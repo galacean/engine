@@ -1,0 +1,35 @@
+{
+  "name": "@alipay/r3-mesh",
+  "version": "1.5.6-alpha.21",
+  "description": "R3 Mesh Data & Renderer",
+  "keywords": [
+    "r3",
+    "webgl"
+  ],
+  "authors": [
+    "yanliang.fyl <yanliang.fyl@antfin.com>"
+  ],
+  "homepage": "http://antg.alipay.net",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "license": "MIT",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "dependencies": {
+    "@alipay/r3-base": "^1.5.4-alpha.15",
+    "@alipay/r3-core": "^1.5.6-alpha.22",
+    "@alipay/r3-math": "^1.5.4-alpha.12"
+  },
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  }
+}

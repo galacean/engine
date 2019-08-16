@@ -1,0 +1,253 @@
+import { DataType } from "@alipay/r3-base";
+import { mat4 } from "@alipay/r3-math";
+import { GLShaderProgram } from "./GLShaderProgram";
+import { Logger } from "@alipay/r3-base";
+import { GLTexture2D } from "./GLTexture2D";
+import { GLTextureCubeMap } from "./GLTextureCubeMap";
+import { GLRenderHardware } from "./GLRenderHardware";
+import { RenderTechnique } from "@alipay/r3-material";
+import { GLRenderStates } from "./GLRenderStates";
+
+var UniformDefaults = {};
+UniformDefaults[DataType.FLOAT] = 0.0;
+UniformDefaults[DataType.FLOAT_VEC2] = new Float32Array([0.0, 0.0]);
+UniformDefaults[DataType.FLOAT_VEC3] = new Float32Array([0.0, 0.0, 0.0]);
+UniformDefaults[DataType.FLOAT_VEC4] = new Float32Array([0.0, 0.0, 0.0, 0.0]);
+UniformDefaults[DataType.FLOAT_MAT4] = mat4.create();
+
+/**
+ * GL 层的 Technique 资源管理和渲染调用处理
+ * @private
+ */
+export class GLTechnique {
+  private _rhi: GLRenderHardware;
+  private _tech: RenderTechnique;
+  private _activeTextureCount: number;
+  private _program: GLShaderProgram;
+  private _attributes;
+  private _uniforms;
+
+  constructor(rhi: GLRenderHardware, tech: RenderTechnique) {
+    this._rhi = rhi;
+    this._tech = tech;
+    this._activeTextureCount = 0;
+
+    const gl: WebGLRenderingContext = rhi.gl;
+
+    //-- 编译 Shader
+    this._program = new GLShaderProgram(gl);
+    this._program.createFromSource(
+      tech.vertexShader,
+      tech.fragmentShader,
+      tech.attribLocSet
+    );
+
+    const glProgram = this._program.program;
+
+    // 记录Attribute的shader location
+    this._attributes = {};
+    const attributes = tech.attributes;
+    for (const name in attributes) {
+      this._attributes[name] = {
+        name,
+        semantic: attributes[name].semantic,
+        location: gl.getAttribLocation(glProgram, name)
+      };
+    }
+
+    // 记录Unifrom的shader location
+    this._uniforms = {};
+    const uniforms = tech.uniforms;
+    for (const name in uniforms) {
+      const loc = gl.getUniformLocation(glProgram, name);
+      if (!(loc !== 0 && !loc)) {
+        this._uniforms[name] = {
+          name,
+          location: gl.getUniformLocation(glProgram, name)
+        };
+      } else {
+        delete uniforms[name];
+      }
+    } // end of for
+  }
+
+  /**
+   * 释放 GL 资源
+   */
+  finalize() {
+    if (this._program) {
+      this._program.finalize();
+      this._program = null;
+    }
+  }
+
+  /**
+   * Shader Program 对象
+   * @member {GLShaderProgram}
+   */
+  get program(): GLShaderProgram {
+    return this._program;
+  }
+
+  /**
+   * 顶点属性数组
+   */
+  get attributes() {
+    return this._attributes;
+  }
+
+  /**
+   * Unifrom 参数集合
+   */
+  get uniforms() {
+    return this._uniforms;
+  }
+
+  /**
+   * 开始渲染时调用，绑定内部 GL Program，并设定 Unifrom
+   * @param {Material} mtl
+   */
+  begin(mtl) {
+    const gl = this._rhi.gl;
+    const glProgram = this._program.program;
+
+    //-- 重置内部状态变量
+    this._activeTextureCount = 0;
+
+    //-- bind program
+    gl.useProgram(glProgram);
+
+    //-- upload mtl uniforms
+    const uniforms = this._uniforms;
+    const assetUniforms = this._tech.uniforms;
+    for (const name in uniforms) {
+      this._uploadUniformValue(
+        assetUniforms[name],
+        uniforms[name].location,
+        mtl.getValue(name)
+      );
+    }
+
+    //-- change render states
+    const stateManager = this._rhi.renderStates;
+    if (this._tech.states) {
+      stateManager.pushStateBlock(this._tech.name);
+      this._applyStates(stateManager);
+    }
+
+  }
+
+  /**
+   * 结束渲染，回复状态
+   */
+  end() {
+    // 恢复渲染状态
+    if (this._tech.states) {
+      const stateManager = this._rhi.renderStates;
+      stateManager.popStateBlock();
+    }
+  }
+
+  /**
+   * 将状态设置到GL/RenderStateManager
+   * @param {GLRenderStates} stateManager
+   */
+  _applyStates(stateManager: GLRenderStates) {
+    const states = this._tech.states;
+    //-- enable
+    const enable = states.enable;
+    if (enable) {
+      for (let i = 0, len = enable.length; i < len; i++) {
+        stateManager.enable(enable[i]);
+      }
+    }
+
+    const disable = states.disable;
+    if (disable) {
+      for (let i = 0, len = disable.length; i < len; i++) {
+        stateManager.disable(disable[i]);
+      }
+    }
+
+    //-- functions
+    const functions = states.functions;
+    if (functions) {
+      for (const name in functions) {
+        const args = Array.isArray(functions[name])
+          ? functions[name]
+          : [functions[name]];
+        const func = stateManager[name];
+        func.apply(stateManager, args);
+      } 
+    }
+  }
+
+  /**
+   * 将自己的value设置到shader的uniform值之上
+   * @param {object} uniform
+   * @private
+   */
+  _uploadUniformValue(uniform, location, value) {
+    // 取得uniform的值
+    if (value === null || value === undefined) {
+      value = UniformDefaults[uniform.type];
+    }
+
+    const gl = this._rhi.gl;
+
+    // 设置shader uniform值
+    switch (uniform.type) {
+      case DataType.FLOAT:
+        if (value.length) gl.uniform1fv(location, value);
+        else gl.uniform1f(location, value);
+        break;
+      case DataType.FLOAT_VEC2:
+        gl.uniform2fv(location, value);
+        break;
+      case DataType.FLOAT_VEC3:
+        gl.uniform3fv(location, value);
+        break;
+      case DataType.FLOAT_VEC4:
+        gl.uniform4fv(location, value);
+        break;
+      case DataType.FLOAT_MAT3:
+        gl.uniformMatrix3fv(location, false, value);
+        break;
+      case DataType.FLOAT_MAT4:
+        gl.uniformMatrix4fv(location, false, value);
+        break;
+      case DataType.SAMPLER_2D: {
+        const texture = value;
+        if (texture) {
+          this._uploadTexture(texture, location, GLTexture2D);
+        }
+        break;
+      }
+      case DataType.SAMPLER_CUBE: {
+        const texture = value;
+        if (texture) {
+          this._uploadTexture(texture, location, GLTextureCubeMap);
+        }
+        break;
+      }
+      default:
+        Logger.warn("UNKNOWN uniform type: " + uniform.type);
+        break;
+    } // end of switch
+  }
+
+  /**
+   * 将一个内存中的 Texture2D 对象绑定到 GL
+   * @param {Texture2D} texture
+   */
+  _uploadTexture(texture, location, type) {
+    const assetCache = this._rhi.assetsCache;
+    const glTexture = assetCache.requireObject(texture, type);
+
+    if (glTexture) {
+      const index = this._activeTextureCount++;
+      glTexture.activeBinding(index);
+      this._rhi.gl.uniform1i(location, index);
+    } // end of if
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@alipay/r3-free-controls",
+  "version": "1.0.1-alpha.14",
+  "description": "free controls",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "homepage": "http://gitlab.alipay-inc.com/r3/r3/tree/master/packages/r3-free-controls",
+  "keywords": [
+    "r3"
+  ],
+  "authors": [
+    "shensi <shensi.zxd@alibaba-inc.com>"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "dependencies": {
+    "@alipay/r3-base": "^1.5.4-alpha.15",
+    "@alipay/r3-core": "^1.5.6-alpha.22",
+    "@alipay/r3-math": "^1.5.4-alpha.12",
+    "@alipay/r3-tween": "^1.5.6-alpha.20"
+  }
+}

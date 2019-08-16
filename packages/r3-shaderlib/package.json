@@ -1,0 +1,33 @@
+{
+  "name": "@alipay/r3-shaderlib",
+  "version": "1.5.4-alpha.14",
+  "description": "Shader slices lib",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "homepage": "http://gitlab.alipay-inc.com/r3/r3/tree/master/packages/r3-shaderlib",
+  "keywords": [
+    "r3"
+  ],
+  "authors": [
+    "hongjiang.jhj <hongjiang.jhj@antfin.com>"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "main": "dist/main.js",
+  "mudule": "./src/index.js",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "dependencies": {
+    "@alipay/r3-base": "^1.5.4-alpha.15"
+  },
+  "module": "dist/module.js"
+}

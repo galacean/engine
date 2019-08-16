@@ -1,0 +1,33 @@
+{
+  "name": "@alipay/r3-primitive",
+  "version": "1.5.6-alpha.20",
+  "description": "primitive",
+  "keywords": [
+    "r3"
+  ],
+  "authors": [
+    "daqi.sdq <daqi.sdq@alibaba-inc.com>"
+  ],
+  "homepage": "http://antg.alipay.net",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "license": "MIT",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "dependencies": {
+    "@alipay/r3-base": "^1.5.4-alpha.15",
+    "@alipay/r3-core": "^1.5.6-alpha.22"
+  }
+}

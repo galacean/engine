@@ -1,0 +1,11 @@
+{
+  "npmClient": "tnpm",
+  "version": "independent",
+  "bootstrap": {
+    "hoist": true
+  },
+  "packages": [
+    "packages/*",
+    "playground"
+  ]
+}

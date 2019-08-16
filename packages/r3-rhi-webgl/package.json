@@ -1,0 +1,36 @@
+{
+  "name": "@alipay/r3-rhi-webgl",
+  "version": "1.5.6-alpha.22",
+  "description": "R3 Render Hardware Interface -  WebGL 1.0 implementation",
+  "keywords": [
+    "r3",
+    "webgl"
+  ],
+  "authors": [
+    "yanliang.fyl <yanliang.fyl@antfin.com>"
+  ],
+  "homepage": "http://antg.alipay.net",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "dependencies": {
+    "@alipay/r3-base": "^1.5.4-alpha.15",
+    "@alipay/r3-core": "^1.5.6-alpha.22",
+    "@alipay/r3-material": "^1.5.6-alpha.21",
+    "@alipay/r3-math": "^1.5.4-alpha.12"
+  }
+}

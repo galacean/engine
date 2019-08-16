@@ -1,0 +1,34 @@
+{
+  "name": "@alipay/r3-orbit-controls",
+  "version": "1.5.6-alpha.20",
+  "description": "Orbit controls",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "homepage": "http://gitlab.alipay-inc.com/r3/r3/tree/master/packages/r3-orbit-controls",
+  "keywords": [
+    "r3"
+  ],
+  "authors": [
+    "hongjiang.jhj <hongjiang.jhj@antfin.com>"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "dependencies": {
+    "@alipay/r3-base": "^1.5.4-alpha.15",
+    "@alipay/r3-core": "^1.5.6-alpha.22",
+    "@alipay/r3-math": "^1.5.4-alpha.12"
+  }
+}

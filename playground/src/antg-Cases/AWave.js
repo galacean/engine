@@ -1,0 +1,17 @@
+'use strict';
+
+import { NodeAbility } from '@alipay/r3-core';
+import { AGeometryRenderer } from '@alipay/r3-geometry';
+
+export default class AGeometryScale extends NodeAbility {
+  constructor(node) {
+    super(node);
+    this.mtl = node.findAbilityByType(AGeometryRenderer).getMaterial();
+    this._time = 0;
+  }
+
+  update(deltaTime) {
+    this._time += deltaTime / 1000;
+    this.mtl.setValue('u_time', this._time * 30);
+  }
+}

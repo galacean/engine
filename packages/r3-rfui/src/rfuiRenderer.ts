@@ -1,0 +1,171 @@
+import {
+  BlendFunc,
+  RenderState,
+  FrontFace
+} from '@alipay/r3-base';
+import { AGeometryRenderer } from '@alipay/r3-geometry';
+import { PlaneGeometry, CylinderGeometry } from '@alipay/r3-geometry-shape';
+import { vec4 } from '@alipay/r3-math';
+import { RfuiMaterial } from './rfuiMaterial';
+import { RfuiAnimation } from './animation/rfuiAnimation';
+
+/**
+ * Rfui 渲染类
+ * @extends AGeometryRenderer
+ */
+export class ARfuiRenderer extends AGeometryRenderer {
+
+  public type;
+  public texrureType;
+  public geometryType;
+  public animationManager;
+  private _animationParam;
+  private _geometryParam;
+  private _blendFunc;
+  private _diffuse;
+  private _mask;
+  private _uvVelocity;
+  private _isAnimatingTexture;
+  private _states;
+  protected _material: RfuiMaterial;
+
+  /**
+   * 几何体参数
+   * @typedef {Object} GeometryParam
+   * @property {number} [horizontalSegments = 1] 平面水平分段数
+   * @property {number} [verticalSegments = 1] 平面垂直分段数
+   * @property {number} [thetaLength = Math.PI / 6] 弧面扇区的中心角
+   * @property {number} [thetaStart = Math.PI - thetaLength / 2] 弧面起始角度
+   */
+
+  /**
+   * 转场动画参数
+   * @typedef {Object} AnimationParam
+   * @property {number} [duration = 300] 动画时长
+   * @property {Function} [easing = Easing.linear] 缓动函数
+   * @property {Function} onComplete 完成回调
+   * @property {Loops} loops 循环参数
+   * @property {number} loops.type 循环类型：0（Yoyo）、1（Restart）
+   * @property {number} loops.count 循环次数： -1（无限次）
+   */
+
+  /**
+   * @constructor
+   * @param {Node} node 节点对象
+   * @param {Props} props 渲染类配置
+   * @param {string} [props.texrureType = image]  贴图类型
+   * @param {string} [props.geometryType = plane]  几何体类型
+   * @param {GeometryParam} [props.geometryParam]  几何体参数
+   * @param {AnimationParam} [props.animationParam]  转场动画参数
+   * @param {Array} [props.blendFunc] 混合模式，[SRC_ALPHA, ONE_MINUS_SRC_ALPHA];
+   * @param {vec4|Texture2D} [props.diffuse = vec4.fromValues( 1, 1, 1, 1 )]  贴图
+   * @param {Texture2D} [props.mask]  遮罩贴图
+   * @param {vec2} [props.uvVelocity]  UV 动画速度
+   * @param {boolean} [props.isAnimatingTexture = false]  是否为动画贴图（需要每帧刷新贴图内容）
+   */
+  constructor(node, props) {
+
+    super(node, props);
+    this.type = 'rfui';
+    this.texrureType = props.texrureType || 'image';
+    this.geometryType = props.geometryType || 'plane';
+
+    this._animationParam = props.animationParam;
+    this._geometryParam = props.geometryParam || {};
+    this._blendFunc = props.blendFunc || [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA];
+    this._diffuse = props.diffuse || vec4.fromValues(1, 1, 1, 1);
+    this._mask = props.mask;
+    this._uvVelocity = props.uvVelocity;
+    this._isAnimatingTexture = props.isAnimatingTexture || false;
+    this._states = {
+      // disable: [RenderState.CULL_FACE],
+      enable: [RenderState.BLEND],
+      functions: {
+        blendFunc: this._blendFunc,
+        depthMask: [false]
+      }
+    };
+
+    this.initGeometry();
+    this.initMaterial();
+    this.initAnimation();
+
+  }
+
+  initGeometry() {
+    if ((this._props as any).geometry) {
+
+      this.geometry = (this._props as any).geometry;
+
+    } else {
+
+      if (this.geometryType === 'plane') {
+
+        const horizontalSegments = this._geometryParam.horizontalSegments || 1;
+        const verticalSegments = this._geometryParam.verticalSegments || 1;
+        this.geometry = new PlaneGeometry(1, 1, horizontalSegments, verticalSegments);
+
+      } else {
+
+        const thetaLength = this._geometryParam.thetaLength || Math.PI / 6;
+        const thetaStart = this._geometryParam.thetaStart || Math.PI - thetaLength / 2;
+        this.geometry = new CylinderGeometry(1, 1, 1, 12, 1, true, thetaStart, thetaLength, FrontFace.CW);
+
+      }
+
+    }
+
+  }
+
+  initMaterial() {
+
+    if ((this._props as any).material) {
+
+      this._material = (this._props as any)._material;
+
+    } else {
+
+      if (this.geometryType === 'cylinder') {
+
+        this._states.functions.frontFace = [FrontFace.CW];
+
+      }
+
+      this._material = new RfuiMaterial('rfui_mtl');
+      this._material.renderStates = Object.assign({}, this._states, (this._props as any).renderStates);
+      this._material.diffuse = this._diffuse;
+      this._material.mask = this._mask;
+      this._material.uvVelocity = this._uvVelocity;
+
+    }
+    this.setMaterial(this._material);
+
+  }
+
+  initAnimation() {
+
+    this.animationManager = new RfuiAnimation(this.node, {
+      material: this.getMaterial(),
+      param: this._animationParam
+    });
+
+  }
+
+  update(deltaTime) {
+
+    if (this._isAnimatingTexture) {
+
+      this._diffuse.updateTexture();
+
+    }
+
+  }
+
+  set diffuse(diffuse) {
+
+    this._diffuse = diffuse;
+    this._material.diffuse = this._diffuse;
+
+  }
+
+}

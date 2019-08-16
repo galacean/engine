@@ -1,0 +1,30 @@
+{
+  "name": "@alipay/r3-base",
+  "version": "1.5.4-alpha.15",
+  "description": "R3 engines core",
+  "keywords": [
+    "r3",
+    "webgl"
+  ],
+  "author": "kevin.hs",
+  "homepage": "http://antg.alipay.net",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "test": "karma start --single-run",
+    "build": "rollup -c ../../rollup.config.js",
+    "b:types": "tsc"
+  },
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  }
+}

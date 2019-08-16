@@ -1,0 +1,25 @@
+{
+  "name": "@alipay/r3-math",
+  "description": "r3 engine math moudule",
+  "version": "1.5.4-alpha.12",
+  "homepage": "http://antg.alipay.net",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "devDependencies": {
+    "gl-matrix": "^2.3.2"
+  }
+}

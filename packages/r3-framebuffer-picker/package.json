@@ -1,0 +1,35 @@
+{
+  "name": "@alipay/r3-framebuffer-picker",
+  "version": "1.5.7-alpha.21",
+  "description": "Framebuffer object pick",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "homepage": "http://gitlab.alipay-inc.com/r3/r3/tree/master/packages/r3-framebuffer-picker",
+  "keywords": [
+    "r3"
+  ],
+  "authors": [
+    "hongjiang.jhj <hongjiang.jhj@antfin.com>"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "dependencies": {
+    "@alipay/r3-base": "^1.5.4-alpha.15",
+    "@alipay/r3-core": "^1.5.6-alpha.22",
+    "@alipay/r3-material": "^1.5.6-alpha.21",
+    "@alipay/r3-renderer-basic": "^1.5.7-alpha.20"
+  },
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  }
+}

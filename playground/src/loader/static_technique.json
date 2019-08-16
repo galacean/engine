@@ -1,0 +1,33 @@
+{
+  "technique": {
+    "name": "static_diffuse",
+    "attributes": {
+      "a_position": "position",
+      "a_uv": "texcoord0"
+    },
+    "parameters": {
+      "position": {
+        "semantic": "POSITION",
+        "type": 35665
+      },
+      "texcoord0": {
+        "semantic": "TEXCOORD_0",
+        "type": 35665
+      },
+      "texDiffuse": {
+        "type": 35678
+      },
+      "matMVP": {
+        "semantic": "MODELVIEWPROJECTION",
+        "type": 35676
+      }
+    },
+    "program": 0,
+    "uniforms": {
+      "s_diffuse": "texDiffuse",
+      "u_mvp": "matMVP"
+    }
+  },
+  "vertexShader": "precision highp float;\nprecision highp int;\nattribute vec3 a_position;\nattribute vec2 a_uv;\nuniform mat4 u_mvp;\nvarying vec2 v_uv;\nvoid main()\n{\n  gl_Position = u_mvp * vec4(a_position,1.0);\n  v_uv = a_uv;\n}",
+  "fragmentShader": "precision mediump float;\nprecision mediump int;\nuniform sampler2D s_diffuse;\nvarying vec2 v_uv;\nvoid main()\n{\n  gl_FragColor = texture2D(s_diffuse, v_uv);\n}"
+}

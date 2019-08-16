@@ -1,0 +1,35 @@
+{
+  "name": "@alipay/r3-geometry-shape",
+  "version": "1.5.6-alpha.20",
+  "description": "geometry shape",
+  "keywords": [
+    "r3",
+    "webgl",
+    "geometry"
+  ],
+  "homepage": "http://antg.alipay.net",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc",
+    "test": "ruban test",
+    "debug": "ruban debug"
+  },
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "dependencies": {
+    "@alipay/r3-base": "^1.5.4-alpha.15",
+    "@alipay/r3-core": "^1.5.6-alpha.22",
+    "@alipay/r3-geometry": "^1.5.6-alpha.20",
+    "@alipay/r3-math": "^1.5.4-alpha.12"
+  }
+}

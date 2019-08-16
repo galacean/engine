@@ -1,0 +1,30 @@
+{
+  "name": "@alipay/r3-request",
+  "version": "1.5.4-alpha.9",
+  "description": "R3 request lib",
+  "keywords": [
+    "r3",
+    "webgl"
+  ],
+  "author": "",
+  "homepage": "http://antg.alipay.net",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+  },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+  },
+  "license": "MIT",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc",
+    "test": "ruban test",
+    "debug": "ruban debug"
+  },
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  }
+}
