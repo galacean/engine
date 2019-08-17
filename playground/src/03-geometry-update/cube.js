@@ -1,5 +1,5 @@
-import { DataType, BufferUsage } from '@alipay/r3-base';
-import { BufferGeometry } from '@alipay/r3-geometry';
+import { DataType, BufferUsage } from '@alipay/o3-base';
+import { BufferGeometry } from '@alipay/o3-geometry';
 
 function createCubeGeometry(size) {
   //-- crete object

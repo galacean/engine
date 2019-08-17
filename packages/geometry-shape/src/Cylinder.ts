@@ -1,6 +1,6 @@
-import { DataType, FrontFace } from '@alipay/r3-base';
-import { vec3 } from '@alipay/r3-math';
-import { BufferGeometry } from '@alipay/r3-geometry';
+import { DataType, FrontFace } from '@alipay/o3-base';
+import { vec3 } from '@alipay/o3-math';
+import { BufferGeometry } from '@alipay/o3-geometry';
 
 /**
  * SphereGeometry 球体创建类

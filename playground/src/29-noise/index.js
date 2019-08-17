@@ -1,9 +1,9 @@
-import { Logger } from '@alipay/r3-base';
-import { Engine  } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { SphereGeometry } from '@alipay/r3-geometry-shape';
-import '@alipay/r3-engine-stats';
+import { Logger } from '@alipay/o3-base';
+import { Engine  } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry } from '@alipay/o3-geometry-shape';
+import '@alipay/o3-engine-stats';
 
 import { NoiseMaterial } from './NoiseMaterial';
 import ARotation from '../common/ARotation';
@@ -31,7 +31,7 @@ createSphereGeometry('obj1', [0, 0, 0], 4, 50, 50);
 
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 5, 17], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 5, 17], target: [0, 0, 0]
 });
 
 //-- run

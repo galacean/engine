@@ -225,7 +225,7 @@ export enum DataType {
 }
 
 /**
- * glTF 1.0所支持的Uniform Semantic以及R3的扩展
+ * glTF 1.0所支持的Uniform Semantic以及Oasis3D的扩展
  * @readonly
  */
 export enum UniformSemantic {

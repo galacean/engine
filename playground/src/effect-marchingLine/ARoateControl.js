@@ -1,5 +1,5 @@
-import { NodeAbility } from '@alipay/r3-core';
-import { quat, vec2, vec3, MathUtil } from "@alipay/r3-math";
+import { NodeAbility } from '@alipay/o3-core';
+import { quat, vec2, vec3, MathUtil } from "@alipay/o3-math";
 
 export class ARoateControl extends NodeAbility {
   constructor(node, props) {

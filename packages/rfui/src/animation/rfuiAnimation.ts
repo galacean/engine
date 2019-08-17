@@ -1,5 +1,5 @@
-import {TextureWrapMode} from '@alipay/r3-base';
-import {vec2, quat} from '@alipay/r3-math';
+import {TextureWrapMode} from '@alipay/o3-base';
+import {vec2, quat} from '@alipay/o3-math';
 import {translate, scale, rotate, fade, slide} from './rfuitween';
 
 const ScaleMin = 1e-12;

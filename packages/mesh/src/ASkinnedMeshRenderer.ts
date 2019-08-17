@@ -1,4 +1,4 @@
-import {mat4} from '@alipay/r3-math';
+import {mat4} from '@alipay/o3-math';
 import {AMeshRenderer} from './AMeshRenderer';
 
 /**

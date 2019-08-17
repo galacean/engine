@@ -1,6 +1,6 @@
 import { ACollider } from "./ACollider";
-import { vec3 } from "@alipay/r3-math";
-import { Node } from "@alipay/r3-core";
+import { vec3 } from "@alipay/o3-math";
+import { Node } from "@alipay/o3-core";
 /**
  * 球型碰撞体组件
  * @extends ACollider

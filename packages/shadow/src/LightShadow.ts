@@ -1,8 +1,8 @@
-import { DataType } from '@alipay/r3-base';
-import { RenderTarget } from '@alipay/r3-material';
-import { mat4, MathUtil } from '@alipay/r3-math';
-import { ADirectLight, APointLight, ASpotLight } from '@alipay/r3-lighting';
-import { vec2 } from '@alipay/r3-math';
+import { DataType } from '@alipay/o3-base';
+import { RenderTarget } from '@alipay/o3-material';
+import { mat4, MathUtil } from '@alipay/o3-math';
+import { ADirectLight, APointLight, ASpotLight } from '@alipay/o3-lighting';
+import { vec2 } from '@alipay/o3-math';
 /**
  * 阴影的管理类
  * @private

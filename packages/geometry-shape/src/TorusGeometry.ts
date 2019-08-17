@@ -1,6 +1,6 @@
-import { IndexBufferGeometry } from "@alipay/r3-geometry";
-import { vec3 } from "@alipay/r3-math";
-import { DataType } from "@alipay/r3-base";
+import { IndexBufferGeometry } from "@alipay/o3-geometry";
+import { vec3 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-base";
 
 export class TorusGeometry extends IndexBufferGeometry {
   constructor(private parameters: {

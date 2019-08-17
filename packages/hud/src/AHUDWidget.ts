@@ -1,6 +1,6 @@
-import { vec2, vec3, vec4, quat } from '@alipay/r3-math';
+import { vec2, vec3, vec4, quat } from '@alipay/o3-math';
 import { HUDFeature } from './HUDFeature';
-import { NodeAbility } from '@alipay/r3-core';
+import { NodeAbility } from '@alipay/o3-core';
 
 var widgetID = 1000;
 

@@ -1,14 +1,14 @@
 {
-  "name": "@alipay/r3-math",
-  "description": "r3 engine math moudule",
+  "name": "@alipay/o3-math",
+  "description": "Oasis3D engine math moudule",
   "version": "1.5.4-alpha.12",
-  "homepage": "http://antg.alipay.net",
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
     "type": "git",
-    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
   "bugs": {
-    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
   "main": "dist/main.js",
   "module": "dist/module.js",

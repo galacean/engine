@@ -1,3 +1,3 @@
-# r3-shaderlib
+# o3-shaderlib
 
 * shader 代码库

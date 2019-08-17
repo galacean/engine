@@ -1,4 +1,4 @@
-import {AssetType, EventDispatcher} from '@alipay/r3-base';
+import {AssetType, EventDispatcher} from '@alipay/o3-base';
 import {HandlerType, Prop, ResType} from './type';
 
 interface Props {

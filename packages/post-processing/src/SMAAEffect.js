@@ -1,4 +1,4 @@
-import { RenderTarget } from '@alipay/r3-material';
+import { RenderTarget } from '@alipay/o3-material';
 import { PostEffectNode } from './PostEffectNode';
 import { SMAAEdgesPassNode } from './nodes/SMAAEdgesPassNode';
 import { SMAAWeightPassNode } from './nodes/SMAAWeightPassNode';

@@ -1,6 +1,6 @@
-import { DataType, RenderState } from '@alipay/r3-base';
+import { DataType, RenderState } from '@alipay/o3-base';
 import { PostEffectNode } from '../PostEffectNode';
-import { Material, RenderTechnique } from '@alipay/r3-material';
+import { Material, RenderTechnique } from '@alipay/o3-material';
 
 const SHADER_CONFIG = {
 

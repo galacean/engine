@@ -1,6 +1,6 @@
-import { UniformSemantic, DataType } from '@alipay/r3-base';
-import { Material } from '@alipay/r3-material';
-import { Resource } from '@alipay/r3-loader';
+import { UniformSemantic, DataType } from '@alipay/o3-base';
+import { Material } from '@alipay/o3-material';
+import { Resource } from '@alipay/o3-loader';
 
 export default function dataProcessing(cityMap,center,scale) {
 

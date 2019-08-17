@@ -1,13 +1,13 @@
 'use strict';
 
-import { Engine } from '@alipay/r3-core';
-import { Logger } from '@alipay/r3-base';
-import { vec3 } from '@alipay/r3-math';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import '@alipay/r3-hud';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
+import { Engine } from '@alipay/o3-core';
+import { Logger } from '@alipay/o3-base';
+import { vec3 } from '@alipay/o3-math';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import '@alipay/o3-hud';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
 
-import '@alipay/r3-engine-stats';
+import '@alipay/o3-engine-stats';
 import { AHUDImage } from '../common/AHUDImage';
 import { AHUDLayer } from '../common/AHUDLayer';
 import { ARangeMove } from './ARangeMove';
@@ -24,7 +24,7 @@ let rootNode = scene.root;
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, 10], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 0, 10], target: [0, 0, 0]
 });
 
 

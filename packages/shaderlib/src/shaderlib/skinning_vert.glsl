@@ -1,4 +1,4 @@
-    #if defined( R3_HAS_SKIN ) && defined( R3_JOINTS_NUM )
+    #if defined( O3_HAS_SKIN ) && defined( O3_JOINTS_NUM )
 
     mat4 skinMatrix =
         a_weight.x * u_jointMatrix[ int( a_joint.x ) ] +
@@ -8,10 +8,10 @@
 
     position = skinMatrix * position;
 
-        #ifdef R3_HAS_NORMAL
+        #ifdef O3_HAS_NORMAL
         normal = vec4( skinMatrix * vec4( normal, 0.0 ) ).xyz;
 
-            #if defined( R3_HAS_TANGENT ) && defined( R3_HAS_NORMALMAP )
+            #if defined( O3_HAS_TANGENT ) && defined( O3_HAS_NORMALMAP )
             tangent.xyz = vec4( skinMatrix * vec4( tangent.xyz, 0.0 ) ).xyz;
             #endif
 

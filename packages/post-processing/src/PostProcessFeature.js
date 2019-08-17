@@ -1,7 +1,7 @@
 
-import { SceneFeature } from '@alipay/r3-core';
-import { DataType } from '@alipay/r3-base';
-import { RenderTarget } from '@alipay/r3-material';
+import { SceneFeature } from '@alipay/o3-core';
+import { DataType } from '@alipay/o3-base';
+import { RenderTarget } from '@alipay/o3-material';
 
 import { ScreenQuad } from './ScreenQuad';
 import { RenderTargetPool } from './RenderTargetPool';

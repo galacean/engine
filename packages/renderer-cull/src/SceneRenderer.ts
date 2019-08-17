@@ -1,6 +1,6 @@
 'use strict';
 
-import {BasicSceneRenderer} from '@alipay/r3-renderer-basic';
+import {BasicSceneRenderer} from '@alipay/o3-renderer-basic';
 import {Frustum} from './Frustum';
 
 export class SceneRenderer extends BasicSceneRenderer {

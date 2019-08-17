@@ -1,4 +1,4 @@
-import {TextureCubeMap} from '@alipay/r3-material';
+import {TextureCubeMap} from '@alipay/o3-material';
 import {Request, Prop, HandlerCb} from '../type';
 import {Resource} from '../Resource';
 

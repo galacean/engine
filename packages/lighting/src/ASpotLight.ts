@@ -1,5 +1,5 @@
-import { vec3, mat3, mat4 } from '@alipay/r3-math';
-import { DataType } from '@alipay/r3-base';
+import { vec3, mat3, mat4 } from '@alipay/o3-math';
+import { DataType } from '@alipay/o3-base';
 import { ALight } from './ALight';
 
 /**

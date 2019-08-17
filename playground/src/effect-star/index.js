@@ -1,13 +1,13 @@
-import { Logger } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { SphereGeometry } from '@alipay/r3-geometry-shape';
+import { Logger } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry } from '@alipay/o3-geometry-shape';
 import { PlaneGeometry } from "../common/PlaneGeometry";
-import '@alipay/r3-engine-stats';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import { ASkyBox } from '@alipay/r3-skybox';
+import '@alipay/o3-engine-stats';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { ASkyBox } from '@alipay/o3-skybox';
 
 import { StarMaterial } from './StarMaterial';
 import { HaloMaterial } from "./HaloMaterial";
@@ -23,9 +23,9 @@ let rootNode = scene.root;
 
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, 17], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 0, 17], target: [0, 0, 0]
 });
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo')});
 controler.minDistance = 4;
 controler.maxDistance = 50;
 

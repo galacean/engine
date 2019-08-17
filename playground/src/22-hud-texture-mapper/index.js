@@ -1,16 +1,16 @@
 'use strict';
-import { HUDFeature }  from '@alipay/r3-hud';
-import '@alipay/r3-hud';
-import { Engine } from '@alipay/r3-core';
-import { Logger } from '@alipay/r3-base';
-import { vec3 } from '@alipay/r3-math';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
+import { HUDFeature }  from '@alipay/o3-hud';
+import '@alipay/o3-hud';
+import { Engine } from '@alipay/o3-core';
+import { Logger } from '@alipay/o3-base';
+import { vec3 } from '@alipay/o3-math';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
 
-import '@alipay/r3-engine-stats';
+import '@alipay/o3-engine-stats';
 import { AHUDLayer } from '../common/AHUDLayer';
 import { AHUDLabel } from "../common/AHUDLabel";
-import { Sprite, ASpriteRenderer } from "@alipay/r3-2d";
-import "@alipay/r3-2d";
+import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
+import "@alipay/o3-2d";
 import { ADynamicChange } from "./ADynamicChange";
 
 Logger.enable();
@@ -24,7 +24,7 @@ let rootNode = scene.root;
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, 10], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 0, 10], target: [0, 0, 0]
 });
 
 //-- create hud

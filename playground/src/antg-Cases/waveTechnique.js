@@ -1,4 +1,4 @@
-import { UniformSemantic, DataType } from '@alipay/r3-base';
+import { UniformSemantic, DataType } from '@alipay/o3-base';
 
 export default function getWavaTechniqueData(name) {
   /** Technique 对象的资源名称 */

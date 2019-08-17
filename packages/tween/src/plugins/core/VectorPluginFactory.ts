@@ -1,4 +1,4 @@
-import { vec2, vec3, vec4 } from '@alipay/r3-math';
+import { vec2, vec3, vec4 } from '@alipay/o3-math';
 
 const VectorPluginGenerator = ( count ) => {
 

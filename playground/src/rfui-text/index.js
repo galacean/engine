@@ -1,11 +1,11 @@
 
-import { Engine } from '@alipay/r3-core';
-import { Logger, TextureFilter, TextureWrapMode } from '@alipay/r3-base';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { RfuiNode, ARfuiRenderer, createTextureFromCanvas, drawText, drawLine, drawBezierLine, drawTextAutoLine, drawEnTextAutoLine } from '@alipay/r3-rfui';
-import { Texture2D } from '@alipay/r3-material';
-import '@alipay/r3-engine-stats';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
+import { Engine } from '@alipay/o3-core';
+import { Logger, TextureFilter, TextureWrapMode } from '@alipay/o3-base';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { RfuiNode, ARfuiRenderer, createTextureFromCanvas, drawText, drawLine, drawBezierLine, drawTextAutoLine, drawEnTextAutoLine } from '@alipay/o3-rfui';
+import { Texture2D } from '@alipay/o3-material';
+import '@alipay/o3-engine-stats';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
 import ARotation from '../common/ARotation';
 import { getNodesConfig } from './rfuiConfig';
 
@@ -16,7 +16,7 @@ let scene = engine.currentScene;
 let rootNode = scene.root;
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, 10],
+  canvas: 'o3-demo', position: [0, 0, 10],
   pixelRatio :2,
   clearParam: [0.08, 0.08, 0.2, 1.0]
 });

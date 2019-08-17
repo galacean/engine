@@ -1,3 +1,3 @@
-# r3-particle
+# o3-particle
 
 * 粒子系统

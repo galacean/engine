@@ -1,7 +1,7 @@
 'use strict';
 
-import { DataType, BufferUsage, DrawMode } from '@alipay/r3-base';
-import { AGeometryRenderer, BufferGeometry } from '@alipay/r3-geometry';
+import { DataType, BufferUsage, DrawMode } from '@alipay/o3-base';
+import { AGeometryRenderer, BufferGeometry } from '@alipay/o3-geometry';
 
 export class APointRenderer extends AGeometryRenderer {
   constructor(node, props) {

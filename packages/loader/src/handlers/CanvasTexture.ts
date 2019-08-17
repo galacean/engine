@@ -1,4 +1,4 @@
-import {Texture2D} from '@alipay/r3-material';
+import {Texture2D} from '@alipay/o3-material';
 import {Request, Prop, HandlerCb} from '../type';
 import {Resource} from '../Resource';
 

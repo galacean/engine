@@ -1,5 +1,5 @@
 
-import {EventDispatcher, Event} from "@alipay/r3-base";
+import {EventDispatcher, Event} from "@alipay/o3-base";
 const dispatcher = new EventDispatcher();
 
 /**

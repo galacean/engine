@@ -1,5 +1,5 @@
-import {mat4, mat3} from '@alipay/r3-math';
-import {MaterialType, UniformSemantic} from '@alipay/r3-base';
+import {mat4, mat3} from '@alipay/o3-math';
+import {MaterialType, UniformSemantic} from '@alipay/o3-base';
 import {RenderTechnique} from './RenderTechnique';
 
 /**

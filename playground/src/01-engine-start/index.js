@@ -1,8 +1,8 @@
 'use strict';
 
-import { Engine } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import '@alipay/r3-engine-stats';
+import { Engine } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import '@alipay/o3-engine-stats';
 
 import ARotation from '../common/ARotation';
 
@@ -15,7 +15,7 @@ let rootNode = scene.root;
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 10, 20]
+  canvas: 'o3-demo', position: [0, 10, 20]
 });
 
 //-- run

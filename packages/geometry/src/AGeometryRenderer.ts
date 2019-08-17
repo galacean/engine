@@ -1,8 +1,8 @@
-import { NodeAbility, Node, ACamera } from "@alipay/r3-core";
-import { Logger, Event } from "@alipay/r3-base";
+import { NodeAbility, Node, ACamera } from "@alipay/o3-core";
+import { Logger, Event } from "@alipay/o3-base";
 import { BufferGeometry } from "./BufferGeometry";
 import { IndexBufferGeometry } from "./IndexBufferGeometry";
-import { Material } from "@alipay/r3-material";
+import { Material } from "@alipay/o3-material";
 
 /**
  * 几何体渲染类

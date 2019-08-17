@@ -1,9 +1,9 @@
-import { Engine } from '@alipay/r3-core';
-import { AGPUParticleSystem } from '@alipay/r3-particle';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { Resource, ResourceLoader } from '@alipay/r3-loader';
+import { Engine } from '@alipay/o3-core';
+import { AGPUParticleSystem } from '@alipay/o3-particle';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { Resource, ResourceLoader } from '@alipay/o3-loader';
 
-import { TextureWrapMode } from '@alipay/r3-base';
+import { TextureWrapMode } from '@alipay/o3-base';
 // 创建引擎、获取场景根节点
 const engine = new Engine();
 const scene = engine.currentScene;

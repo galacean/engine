@@ -1,5 +1,5 @@
-import { TextureFilter, TextureWrapMode } from '@alipay/r3-base';
-import { Resource } from '@alipay/r3-loader';
+import { TextureFilter, TextureWrapMode } from '@alipay/o3-base';
+import { Resource } from '@alipay/o3-loader';
 
 // 参考图片：http://szzljy.com/data/29/night-city-hd-wallpapers/night-city-hd-wallpapers-001.jpg
 

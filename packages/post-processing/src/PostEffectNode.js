@@ -1,6 +1,6 @@
 
 import { PostEffectMaterial } from './PostEffectMaterial';
-import { ClearMode } from '@alipay/r3-base';
+import { ClearMode } from '@alipay/o3-base';
 
 /**
  * 支持以树状方式组织后处理效果的渲染流程，也可退化为列表方式

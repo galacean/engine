@@ -1,11 +1,11 @@
-import { DataType } from "@alipay/r3-base";
-import { mat4 } from "@alipay/r3-math";
+import { DataType } from "@alipay/o3-base";
+import { mat4 } from "@alipay/o3-math";
 import { GLShaderProgram } from "./GLShaderProgram";
-import { Logger } from "@alipay/r3-base";
+import { Logger } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { GLRenderHardware } from "./GLRenderHardware";
-import { RenderTechnique } from "@alipay/r3-material";
+import { RenderTechnique } from "@alipay/o3-material";
 import { GLRenderStates } from "./GLRenderStates";
 
 var UniformDefaults = {};

@@ -1,6 +1,6 @@
-import {UniformSemantic, Logger, DataType, RenderState, MaterialType, BlendFunc, CullFace, Side} from '@alipay/r3-base';
-import {Material, RenderTechnique} from '@alipay/r3-material';
-import {LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight} from '@alipay/r3-lighting';
+import {UniformSemantic, Logger, DataType, RenderState, MaterialType, BlendFunc, CullFace, Side} from '@alipay/o3-base';
+import {Material, RenderTechnique} from '@alipay/o3-material';
+import {LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight} from '@alipay/o3-lighting';
 
 import {AEnvironmentMapLight} from './AEnvironmentMapLight';
 import vs from './pbr.vs.glsl';
@@ -996,7 +996,7 @@ class PBRMaterial extends Material {
 
     const rhi = camera._rhi;
 
-    const _macros = ['R3_NEED_WORLDPOS'];
+    const _macros = ['O3_NEED_WORLDPOS'];
 
     if (!primitive.vertexAttributes.NORMAL || !primitive.vertexAttributes.TANGENT)
       if (rhi.requireExtension('OES_standard_derivatives'))
@@ -1006,7 +1006,7 @@ class PBRMaterial extends Material {
     if (uniforms.indexOf('u_baseColorSampler') > -1)
       _macros.push('HAS_BASECOLORMAP');
     if (uniforms.indexOf('u_normalSampler') > -1)
-      _macros.push('R3_HAS_NORMALMAP');
+      _macros.push('O3_HAS_NORMALMAP');
     if (uniforms.indexOf('u_metallicRoughnessSampler') > -1)
       _macros.push('HAS_METALROUGHNESSMAP');
     if (uniforms.indexOf('u_emissiveSampler') > -1)
@@ -1031,13 +1031,13 @@ class PBRMaterial extends Material {
 
     if (this._envMapLightNum) {
 
-      _macros.push('R3_HAS_ENVMAPLIGHT');
+      _macros.push('O3_HAS_ENVMAPLIGHT');
 
       if (this._useDiffuseMap)
-        _macros.push('R3_HAS_DIFFUSEMAP');
+        _macros.push('O3_HAS_DIFFUSEMAP');
 
       if (this._useSpecularMap)
-        _macros.push('R3_HAS_SPECULARMAP');
+        _macros.push('O3_HAS_SPECULARMAP');
 
       if (rhi.requireExtension('EXT_shader_texture_lod'))
         _macros.push('HAS_TEX_LOD');
@@ -1045,11 +1045,11 @@ class PBRMaterial extends Material {
     }
 
     if (this._directLightNum)
-      _macros.push(`R3_DIRECTLIGHT_NUM ${this._directLightNum}`);
+      _macros.push(`O3_DIRECTLIGHT_NUM ${this._directLightNum}`);
     if (this._pointLightNum)
-      _macros.push(`R3_POINTLIGHT_NUM ${this._pointLightNum}`);
+      _macros.push(`O3_POINTLIGHT_NUM ${this._pointLightNum}`);
     if (this._spotLightNum)
-      _macros.push(`R3_SPOTLIGHT_NUM ${this._spotLightNum}`);
+      _macros.push(`O3_SPOTLIGHT_NUM ${this._spotLightNum}`);
 
     if (this._stateObj.unlit)
       _macros.push('UNLIT');
@@ -1058,9 +1058,9 @@ class PBRMaterial extends Material {
     if (this._stateObj.gamma)
       _macros.push('GAMMA');
     if (this._stateObj.doubleSided)
-      _macros.push('R3_DOUBLE_SIDE');
+      _macros.push('O3_DOUBLE_SIDE');
     if (this._stateObj.side === Side.BACK)
-      _macros.push('R3_BACK_SIDE');
+      _macros.push('O3_BACK_SIDE');
     if (this._stateObj.isMetallicWorkflow)
       _macros.push('IS_METALLIC_WORKFLOW');
     if (this._stateObj.premultipliedAlpha)

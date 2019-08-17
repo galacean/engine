@@ -1,12 +1,12 @@
 /**
  * 本示例展示如何实现拖尾效果
  */
-import { Engine, NodeAbility } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import '@alipay/r3-engine-stats';
-import { Resource, ResourceLoader } from '@alipay/r3-loader';
-import { ATrailRenderer, TrailMaterial } from '@alipay/r3-trail';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
+import { Engine, NodeAbility } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import '@alipay/o3-engine-stats';
+import { Resource, ResourceLoader } from '@alipay/o3-loader';
+import { ATrailRenderer, TrailMaterial } from '@alipay/o3-trail';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
 
 
 // 创建引擎、获取场景根节点
@@ -17,9 +17,9 @@ const rootNode = scene.root;
 // 在场景中创建相机节点、配置位置和目标方向
 const cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, 10], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 0, 10], target: [0, 0, 0]
 });
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo')});
 
 // 控制 node 延蝴蝶曲线运动
 class AButterFlyMove extends NodeAbility {

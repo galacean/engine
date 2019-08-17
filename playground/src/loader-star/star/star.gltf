@@ -23645,7 +23645,7 @@
     }
   ],
   "extensionsUsed": [
-    "R3_common"
+    "O3_common"
   ],
   "images": [
     {
@@ -23801,7 +23801,7 @@
       ],
       "name": "face",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -23822,7 +23822,7 @@
       ],
       "name": "face002",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -23848,7 +23848,7 @@
       ],
       "name": "light",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -23874,7 +23874,7 @@
       ],
       "name": "light001",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -23895,7 +23895,7 @@
       ],
       "name": "start",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -23914,7 +23914,7 @@
       ],
       "name": "Bone003",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -23936,7 +23936,7 @@
       ],
       "name": "Bone002",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -23958,7 +23958,7 @@
       ],
       "name": "Bone001",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -23977,7 +23977,7 @@
       ],
       "name": "Bone007",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -23999,7 +23999,7 @@
       ],
       "name": "Bone006",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24021,7 +24021,7 @@
       ],
       "name": "Bone005",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24040,7 +24040,7 @@
       ],
       "name": "Bone011",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24062,7 +24062,7 @@
       ],
       "name": "Bone010",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24084,7 +24084,7 @@
       ],
       "name": "Bone009",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24103,7 +24103,7 @@
       ],
       "name": "Bone015",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24125,7 +24125,7 @@
       ],
       "name": "Bone014",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24147,7 +24147,7 @@
       ],
       "name": "Bone013",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24166,7 +24166,7 @@
       ],
       "name": "Bone019",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24188,7 +24188,7 @@
       ],
       "name": "Bone018",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24212,7 +24212,7 @@
       ],
       "name": "Bone033",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24231,7 +24231,7 @@
       ],
       "name": "Bone034",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24250,7 +24250,7 @@
       ],
       "name": "Bone035",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24269,7 +24269,7 @@
       ],
       "name": "Bone036",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24288,7 +24288,7 @@
       ],
       "name": "Bone021",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24307,7 +24307,7 @@
       ],
       "name": "Bone022",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24330,7 +24330,7 @@
       ],
       "name": "eye1",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24349,7 +24349,7 @@
       ],
       "name": "Bone025",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24368,7 +24368,7 @@
       ],
       "name": "Bone026",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24391,7 +24391,7 @@
       ],
       "name": "eye3",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24410,7 +24410,7 @@
       ],
       "name": "Bone027",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24429,7 +24429,7 @@
       ],
       "name": "Bone028",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24452,7 +24452,7 @@
       ],
       "name": "eye4",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24476,7 +24476,7 @@
       ],
       "name": "Bone029",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24500,7 +24500,7 @@
       ],
       "name": "Bone030",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24523,7 +24523,7 @@
       ],
       "name": "eye5",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24542,7 +24542,7 @@
       ],
       "name": "Bone031",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24561,7 +24561,7 @@
       ],
       "name": "Bone032",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24584,7 +24584,7 @@
       ],
       "name": "eye6",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24603,7 +24603,7 @@
       ],
       "name": "Bone023",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24622,7 +24622,7 @@
       ],
       "name": "Bone024",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24645,7 +24645,7 @@
       ],
       "name": "face1",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24677,7 +24677,7 @@
       ],
       "name": "Bone017",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24703,7 +24703,7 @@
       ],
       "name": "Dummy001",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24722,7 +24722,7 @@
       ],
       "name": "lightbone01",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24741,7 +24741,7 @@
       ],
       "name": "lightbone02",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24760,7 +24760,7 @@
       ],
       "name": "tex01",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24779,7 +24779,7 @@
       ],
       "name": "tex02",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24805,7 +24805,7 @@
       ],
       "name": "start01",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24826,7 +24826,7 @@
       ],
       "name": "start002",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24847,7 +24847,7 @@
       ],
       "name": "start003",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }
@@ -24865,7 +24865,7 @@
       ],
       "name": "star",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }

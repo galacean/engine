@@ -1,7 +1,7 @@
-import { Logger } from '@alipay/r3-base';
-import { AAmbientLight, ALight } from '@alipay/r3-lighting';
+import { Logger } from '@alipay/o3-base';
+import { AAmbientLight, ALight } from '@alipay/o3-lighting';
 import { LightShadow } from './LightShadow';
-import { NodeAbility } from '@alipay/r3-core';
+import { NodeAbility } from '@alipay/o3-core';
 
 /**
  * 设置是否产生阴影

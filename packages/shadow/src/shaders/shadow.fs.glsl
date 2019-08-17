@@ -2,7 +2,7 @@ varying vec2 v_uv;
 
 uniform vec4 u_ambientLight;
 
-#ifdef R3_SHADOW_MAP_COUNT
+#ifdef O3_SHADOW_MAP_COUNT
 
 struct Shadow {
   float     bias;
@@ -11,11 +11,11 @@ struct Shadow {
   float     radius;
 };
 
-uniform Shadow u_shadows[R3_SHADOW_MAP_COUNT];
+uniform Shadow u_shadows[O3_SHADOW_MAP_COUNT];
 
-uniform sampler2D u_shadowMaps[R3_SHADOW_MAP_COUNT];
+uniform sampler2D u_shadowMaps[O3_SHADOW_MAP_COUNT];
 
-varying vec4 v_PositionFromLight[R3_SHADOW_MAP_COUNT];
+varying vec4 v_PositionFromLight[O3_SHADOW_MAP_COUNT];
 
 const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
 
@@ -59,11 +59,11 @@ void main() {
 
   vec4 shadowColor = vec4(1.0, 1.0, 1.0, 1.0);
 
-#ifdef R3_SHADOW_MAP_COUNT
+#ifdef O3_SHADOW_MAP_COUNT
 
   float visibility = 1.0;
 
-  for(int i = 0; i < R3_SHADOW_MAP_COUNT; i++) {
+  for(int i = 0; i < O3_SHADOW_MAP_COUNT; i++) {
 
    visibility -= getVisibility(v_PositionFromLight[i], u_shadowMaps[i], u_shadows[i].mapSize, u_shadows[i].intensity, u_shadows[i].bias, u_shadows[i].radius);
 

@@ -1,8 +1,8 @@
 'use strict';
 
-import { Logger } from '@alipay/r3-base';
-import { NodeAbility, Node } from '@alipay/r3-core';
-import { vec2, vec3, Spherical } from '@alipay/r3-math';
+import { Logger } from '@alipay/o3-base';
+import { NodeAbility, Node } from '@alipay/o3-core';
+import { vec2, vec3, Spherical } from '@alipay/o3-math';
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。

@@ -1,6 +1,6 @@
-    #ifdef R3_HAS_NORMAL
+    #ifdef O3_HAS_NORMAL
 
-        #if defined( R3_HAS_TANGENT ) && defined( R3_HAS_NORMALMAP )
+        #if defined( O3_HAS_TANGENT ) && defined( O3_HAS_NORMALMAP )
 
         vec3 N = normalize( v_TBN[ 2 ] );
 

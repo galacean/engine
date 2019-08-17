@@ -1,10 +1,10 @@
 
-import { Engine } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { CuboidGeometry } from '@alipay/r3-geometry-shape';
-import '@alipay/r3-engine-stats';
-import { ResourceLoader } from '@alipay/r3-loader';
+import { Engine } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { CuboidGeometry } from '@alipay/o3-geometry-shape';
+import '@alipay/o3-engine-stats';
+import { ResourceLoader } from '@alipay/o3-loader';
 
 import createShapeMaterial from './GeometryShapeMaterial';
 
@@ -35,7 +35,7 @@ createCuboidGeometry('obj5', [-4, 2, 0],[0, 0, 0], d, w, w);
 
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 10, 20]
+  canvas: 'o3-demo', position: [0, 10, 20]
 });
 
 engine.run();

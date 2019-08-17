@@ -1,16 +1,16 @@
 
-import { Engine } from '@alipay/r3-core';
-import { Logger } from '@alipay/r3-base';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { PlaneGeometry } from '@alipay/r3-geometry-shape';
-import '@alipay/r3-engine-stats';
+import { Engine } from '@alipay/o3-core';
+import { Logger } from '@alipay/o3-base';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { PlaneGeometry } from '@alipay/o3-geometry-shape';
+import '@alipay/o3-engine-stats';
 import createShapeMaterial from './PlaneMaterial';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
 import AMove from './AMove';
 import { APerspective } from './APerspective';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import { AGPUParticleSystem } from '@alipay/r3-particle';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { AGPUParticleSystem } from '@alipay/o3-particle';
 
 Logger.enable();
 //-- create engine object
@@ -150,7 +150,7 @@ resourceLoader.batchLoad( res, ( err, res ) => {
 
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, 100],
+  canvas: 'o3-demo', position: [0, 0, 100],
   pixelRatio :2,
   clearParam: [0, 0, 0, 1]
 });

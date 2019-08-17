@@ -1,12 +1,12 @@
-import {vec3, vec4} from '@alipay/r3-math';
-import {Engine} from '@alipay/r3-core';
-import {ADefaultCamera} from '@alipay/r3-default-camera';
-import {AGeometryRenderer} from '@alipay/r3-geometry';
-import {SphereGeometry, CuboidGeometry} from '@alipay/r3-geometry-shape';
-import {ConstantMaterial} from '@alipay/r3-mobile-material';
-import {ASphereCollider, ABoxCollider} from '@alipay/r3-collider';
-import '@alipay/r3-raycast';
-import {MaskList} from '@alipay/r3-base'
+import {vec3, vec4} from '@alipay/o3-math';
+import {Engine} from '@alipay/o3-core';
+import {ADefaultCamera} from '@alipay/o3-default-camera';
+import {AGeometryRenderer} from '@alipay/o3-geometry';
+import {SphereGeometry, CuboidGeometry} from '@alipay/o3-geometry-shape';
+import {ConstantMaterial} from '@alipay/o3-mobile-material';
+import {ASphereCollider, ABoxCollider} from '@alipay/o3-collider';
+import '@alipay/o3-raycast';
+import {MaskList} from '@alipay/o3-base'
 
 const COLOR_GRAY = vec4.fromValues(0.75, 0.75, 0.75, 1);
 const COLOR_RED = vec4.fromValues(0.95, 0.05, 0.05, 1)
@@ -53,11 +53,11 @@ boxCollider.setBoxCenterSize([0, 0, 0], [cubeSize, cubeSize, cubeSize]);
 //-- create camera
 let cameraNode = rootNode.createChild('CameraNode');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 5, 17], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 5, 17], target: [0, 0, 0]
 });
 
 //-- input
-document.getElementById('r3-demo').addEventListener('click', (e) => {
+document.getElementById('o3-demo').addEventListener('click', (e) => {
 
   let ray = camera.screenPointToRay(e.offsetX, e.offsetY);
   let pos = vec3.create();

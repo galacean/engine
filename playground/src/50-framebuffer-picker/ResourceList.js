@@ -1,5 +1,5 @@
-import { TextureFilter } from '@alipay/r3-base';
-import { Resource } from '@alipay/r3-loader';
+import { TextureFilter } from '@alipay/o3-base';
+import { Resource } from '@alipay/o3-loader';
 
 let diffuseMapRes = new Resource('dif', {
   type: 'cubemap',

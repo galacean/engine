@@ -1,21 +1,21 @@
 {
-  "name": "@alipay/r3-skybox",
+  "name": "@alipay/o3-skybox",
   "version": "1.5.6-alpha.21",
   "description": "Sky box",
   "repository": {
     "type": "git",
-    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
-  "homepage": "http://gitlab.alipay-inc.com/r3/r3/tree/master/packages/r3-skybox",
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "keywords": [
-    "r3"
+    "Oasis3D"
   ],
   "authors": [
     "hongjiang.jhj <hongjiang.jhj@antfin.com>"
   ],
   "license": "MIT",
   "bugs": {
-    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -24,11 +24,11 @@
   },
   "types": "types/index.d.ts",
   "dependencies": {
-    "@alipay/r3-base": "^1.5.4-alpha.15",
-    "@alipay/r3-geometry": "^1.5.6-alpha.20",
-    "@alipay/r3-geometry-shape": "^1.5.6-alpha.20",
-    "@alipay/r3-material": "^1.5.6-alpha.21",
-    "@alipay/r3-math": "^1.5.4-alpha.12"
+    "@alipay/o3-base": "^1.5.4-alpha.15",
+    "@alipay/o3-geometry": "^1.5.6-alpha.20",
+    "@alipay/o3-geometry-shape": "^1.5.6-alpha.20",
+    "@alipay/o3-material": "^1.5.6-alpha.21",
+    "@alipay/o3-math": "^1.5.4-alpha.12"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

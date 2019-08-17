@@ -1,4 +1,4 @@
-import { SceneFeature } from '@alipay/r3-core';
+import { SceneFeature } from '@alipay/o3-core';
 import { ALinearFog } from './ALinearFog';
 import { AEXP2Fog } from './AEXP2Fog';
 import { AFog } from './AFog';
@@ -68,11 +68,11 @@ export class FogFeature extends SceneFeature{
       const macro = [];
       if( v instanceof AFog ) {
 
-        macro.push( 'R3_HAS_FOG' );
+        macro.push( 'O3_HAS_FOG' );
 
         if( v instanceof AEXP2Fog ) {
 
-          macro.push( 'R3_FOG_EXP2' );
+          macro.push( 'O3_FOG_EXP2' );
 
         }
 

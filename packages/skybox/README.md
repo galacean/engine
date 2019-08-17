@@ -1,3 +1,3 @@
-# r3-skybox
+# o3-skybox
 
 * 天空盒

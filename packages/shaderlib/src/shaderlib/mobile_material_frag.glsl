@@ -1,7 +1,7 @@
 uniform float u_shininess;
 uniform vec4 u_ambientLight;
 
-#ifdef R3_EMISSION_TEXTURE
+#ifdef O3_EMISSION_TEXTURE
 
 uniform sampler2D u_emission;
 
@@ -11,7 +11,7 @@ uniform vec4 u_emission;
 
 #endif
 
-#ifdef R3_AMBIENT_TEXTURE
+#ifdef O3_AMBIENT_TEXTURE
 
 uniform sampler2D u_ambient;
 
@@ -21,7 +21,7 @@ uniform vec4 u_ambient;
 
 #endif
 
-#ifdef R3_DIFFUSE_TEXTURE
+#ifdef O3_DIFFUSE_TEXTURE
 
 uniform sampler2D u_diffuse;
 
@@ -31,7 +31,7 @@ uniform vec4 u_diffuse;
 
 #endif
 
-#ifdef R3_SPECULAR_TEXTURE
+#ifdef O3_SPECULAR_TEXTURE
 
 uniform sampler2D u_specular;
 

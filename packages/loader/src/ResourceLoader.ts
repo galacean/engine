@@ -1,6 +1,6 @@
-import {Event, EventDispatcher} from '@alipay/r3-base';
+import {Event, EventDispatcher} from '@alipay/o3-base';
 import {Resource} from './Resource';
-import * as defaultRequest from '@alipay/r3-request';
+import * as defaultRequest from '@alipay/o3-request';
 import {Engine, ResType, Handler, Prop, Request, ResCb, ResArrayCb} from './type';
 
 const noop = function () {
@@ -23,7 +23,7 @@ export class ResourceLoader extends EventDispatcher {
   /**
    * @constructor
    * @param {Engine} engine 引擎实例
-   * @param request 自定义请求库 默认使用 r3-request
+   * @param request 自定义请求库 默认使用 o3-request
    */
   constructor(engine: Engine, request: Request) {
 

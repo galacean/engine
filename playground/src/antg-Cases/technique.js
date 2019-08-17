@@ -1,4 +1,4 @@
-import { UniformSemantic, DataType, RenderState, BlendFunc } from '@alipay/r3-base';
+import { UniformSemantic, DataType, RenderState, BlendFunc } from '@alipay/o3-base';
 
 export default function getTechniqueData(name) {
   /** Technique 对象的资源名称 */

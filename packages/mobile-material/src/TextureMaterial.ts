@@ -1,5 +1,5 @@
-import { RenderState, DataType } from '@alipay/r3-base';
-import { Material, RenderTechnique } from '@alipay/r3-material';
+import { RenderState, DataType } from '@alipay/o3-base';
+import { Material, RenderTechnique } from '@alipay/o3-material';
 import VERT_SHADER from './shader/Vertex.glsl';
 import FRAG_SHADER from './shader/Texture.glsl';
 
@@ -139,7 +139,7 @@ export class TextureMaterial extends Material {
 
     if (value) {
       this._technique.states.disable.push(RenderState.CULL_FACE);
-      this._technique.customMacros.push('R3_DOUBLE_SIDE');
+      this._technique.customMacros.push('O3_DOUBLE_SIDE');
     }
   }
 }

@@ -1,11 +1,11 @@
-import { vec3, vec4 } from '@alipay/r3-math';
-import { Engine, NodeAbility } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { SphereGeometry, CuboidGeometry } from '@alipay/r3-geometry-shape';
-import { ConstantMaterial } from '@alipay/r3-mobile-material';
-import { ASphereCollider, ABoxCollider } from '@alipay/r3-collider';
-import { ACollisionDetection } from '@alipay/r3-collision';
+import { vec3, vec4 } from '@alipay/o3-math';
+import { Engine, NodeAbility } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry, CuboidGeometry } from '@alipay/o3-geometry-shape';
+import { ConstantMaterial } from '@alipay/o3-mobile-material';
+import { ASphereCollider, ABoxCollider } from '@alipay/o3-collider';
+import { ACollisionDetection } from '@alipay/o3-collision';
 
 const COLOR_GRAY = vec4.fromValues(0.75, 0.75, 0.75, 1);
 const COLOR_RED = vec4.fromValues(0.95, 0.05, 0.05, 1)
@@ -85,7 +85,7 @@ sphereObj.addEventListener('end_overlop', (e) => {
 //-- create camera
 let cameraNode = rootNode.createChild('CameraNode');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 5, 17], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 5, 17], target: [0, 0, 0]
 });
 
 //-- run

@@ -1,6 +1,6 @@
-import { UniformSemantic, DataType, RenderState, BlendFunc, MaterialType } from '@alipay/r3-base';
-import { Material, RenderTecnique } from '@alipay/r3-material';
-import { Resource } from '@alipay/r3-loader';
+import { UniformSemantic, DataType, RenderState, BlendFunc, MaterialType } from '@alipay/o3-base';
+import { Material, RenderTecnique } from '@alipay/o3-material';
+import { Resource } from '@alipay/o3-loader';
 
 export function createBallMaterial(loader) {
  let newMtl = new Material('line_mtl');

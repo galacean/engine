@@ -1,5 +1,5 @@
 
-import { RenderTarget } from '@alipay/r3-material';
+import { RenderTarget } from '@alipay/o3-material';
 import { PostEffectNode } from './PostEffectNode';
 import { ExtractHighlightPassNode } from './nodes/ExtractHighlightPassNode';
 import { KernelBlurPassNode } from './nodes/KernelBlurPassNode';

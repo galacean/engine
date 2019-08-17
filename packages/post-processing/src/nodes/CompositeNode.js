@@ -1,4 +1,4 @@
-import { DataType } from '@alipay/r3-base';
+import { DataType } from '@alipay/o3-base';
 import { PostEffectNode } from '../PostEffectNode';
 
 import CompositeShader from '../shaders/Composite.glsl';

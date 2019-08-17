@@ -1,5 +1,5 @@
-import { UniformSemantic, DataType,  RenderState, BlendFunc } from '@alipay/r3-base';
-import { Material, RenderTechnique } from '@alipay/r3-material';
+import { UniformSemantic, DataType,  RenderState, BlendFunc } from '@alipay/o3-base';
+import { Material, RenderTechnique } from '@alipay/o3-material';
 
 //-- 创建一个新的 Technique
 const VERT_SHADER = `

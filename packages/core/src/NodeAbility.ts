@@ -1,4 +1,4 @@
-import { Event, EventDispatcher, MaskList } from "@alipay/r3-base";
+import { Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { Node } from "./Node";
 import { Engine } from "./Engine";
 import { Scene } from "./Scene";

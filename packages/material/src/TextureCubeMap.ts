@@ -1,5 +1,5 @@
 import {Texture} from './Texture';
-import {TextureFilter, TextureWrapMode} from '@alipay/r3-base';
+import {TextureFilter, TextureWrapMode} from '@alipay/o3-base';
 import {TextureConfig} from './type';
 
 function isPowerOf2(v): boolean {

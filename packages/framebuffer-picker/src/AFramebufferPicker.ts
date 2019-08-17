@@ -1,6 +1,6 @@
-import { NodeAbility, Node, ACamera } from '@alipay/r3-core';
-import { RenderTarget } from '@alipay/r3-material';
-import { MaskList } from '@alipay/r3-base';
+import { NodeAbility, Node, ACamera } from '@alipay/o3-core';
+import { RenderTarget } from '@alipay/o3-material';
+import { MaskList } from '@alipay/o3-base';
 import { ColorRenderPass } from './ColorRenderPass';
 
 /**

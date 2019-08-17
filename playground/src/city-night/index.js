@@ -1,30 +1,30 @@
 //-- naive version with earcut
 //top side face sepration
-import { vec3,vec4} from '@alipay/r3-math';
-import { Logger ,RenderState,MaterialType,BlendFunc} from '@alipay/r3-base';
-import { Engine, SceneFeature } from '@alipay/r3-core';
+import { vec3,vec4} from '@alipay/o3-math';
+import { Logger ,RenderState,MaterialType,BlendFunc} from '@alipay/o3-base';
+import { Engine, SceneFeature } from '@alipay/o3-core';
 
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer, GeometryMerger } from '@alipay/r3-geometry';
-import { CuboidGeometry, SphereGeometry } from '@alipay/r3-geometry-shape';
-import '@alipay/r3-engine-stats';
-import { ResourceLoader,Resource } from '@alipay/r3-loader';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer, GeometryMerger } from '@alipay/o3-geometry';
+import { CuboidGeometry, SphereGeometry } from '@alipay/o3-geometry-shape';
+import '@alipay/o3-engine-stats';
+import { ResourceLoader,Resource } from '@alipay/o3-loader';
 import {createBuildingMaterialWireFrame, BuildingMaterial4Fun, SkyMaterial, BillboardMaterial, RoadMaterial, TopMaterial} from './buildingMaterial';
 import {generateOfficeBuildingSide, generateLiveBuildingSide} from './proceduralTexture';
 
 import {createSideGeometry,createTopGeometry,createBillboardGeometry,createRoadGeometry} from './buildingGeometryNaive';
 
-import { ADirectLight } from '@alipay/r3-lighting';
+import { ADirectLight } from '@alipay/o3-lighting';
 import {CENTER,SCALE} from './constant';
 import cityMap from './medium-building.json';
 // import roadVertices from './road-vertices.json';
 import rawRoadData from './medium-road.json';
 import { dataProcessing, processRoadData } from './dataProcessing.js';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import {BlinnPhongMaterial} from '@alipay/r3-mobile-material';
-import {PostProcessFeature, BloomEffect} from '@alipay/r3-post-processing';
-import { TextureFilter, TextureWrapMode } from '@alipay/r3-base';
-import { RenderTarget } from '@alipay/r3-material';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import {BlinnPhongMaterial} from '@alipay/o3-mobile-material';
+import {PostProcessFeature, BloomEffect} from '@alipay/o3-post-processing';
+import { TextureFilter, TextureWrapMode } from '@alipay/o3-base';
+import { RenderTarget } from '@alipay/o3-material';
 import { RipplePass } from './ripplePass';
 
 Logger.enable();
@@ -431,7 +431,7 @@ if(true || GeometryChooser == 1 || GeometryChooser == 2){
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 var camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 40, 50], near: 3, far: 2000,
+  canvas: 'o3-demo', position: [0, 40, 50], near: 3, far: 2000,
   attributes: {antialias:true}
 });
 cameraNode.lookAt(vec3.fromValues(0,8,0), vec3.fromValues(0, 1, 0));
@@ -440,7 +440,7 @@ cameraNode.lookAt(vec3.fromValues(0,8,0), vec3.fromValues(0, 1, 0));
 const ripplePass = new RipplePass(rippleRT, engine);
 camera.sceneRenderer.addRenderPass(ripplePass);
 
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
 controler.target = vec3.fromValues(0,10,0);
 controler.autoRotate = true;
 controler.autoRotateSpeed = 360.0;

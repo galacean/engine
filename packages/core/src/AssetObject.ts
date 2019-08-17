@@ -1,4 +1,4 @@
-import { AssetType } from "@alipay/r3-base";
+import { AssetType } from "@alipay/o3-base";
 /**
  * 使用引用计数管理的资源对象基类
  */

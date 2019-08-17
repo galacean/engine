@@ -1,5 +1,5 @@
-import {UniformSemantic} from '@alipay/r3-base';
-import {RenderTechnique} from '@alipay/r3-material';
+import {UniformSemantic} from '@alipay/o3-base';
+import {RenderTechnique} from '@alipay/o3-material';
 import {Request, Prop, HandlerCb} from '../type';
 import {Resource} from '../Resource';
 

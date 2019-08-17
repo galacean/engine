@@ -1,11 +1,11 @@
-import { MaskList } from "@alipay/r3-base";
-import { SceneFeature, NodeAbility } from "@alipay/r3-core";
-import { LightFeature } from "@alipay/r3-lighting";
+import { MaskList } from "@alipay/o3-base";
+import { SceneFeature, NodeAbility } from "@alipay/o3-core";
+import { LightFeature } from "@alipay/o3-lighting";
 import { ShadowMapMaterial } from "./ShadowMapMaterial";
 import { ShadowMaterial } from "./ShadowMaterial";
 import { ShadowPass } from "./ShadowPass";
 import { ShadowMapPass } from "./ShadowMapPass";
-import { RenderQueue } from "@alipay/r3-renderer-basic";
+import { RenderQueue } from "@alipay/o3-renderer-basic";
 
 /**
  * Shadow Feature：场景中 Shadow 特性

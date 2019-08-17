@@ -1,19 +1,19 @@
 {
-  "name": "@alipay/r3-geometry-shape",
+  "name": "@alipay/o3-geometry-shape",
   "version": "1.5.6-alpha.20",
   "description": "geometry shape",
   "keywords": [
-    "r3",
+    "Oasis3D",
     "webgl",
     "geometry"
   ],
-  "homepage": "http://antg.alipay.net",
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
     "type": "git",
-    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
   "bugs": {
-    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
   "types": "types/index.d.ts",
   "scripts": {
@@ -27,9 +27,9 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/r3-base": "^1.5.4-alpha.15",
-    "@alipay/r3-core": "^1.5.6-alpha.22",
-    "@alipay/r3-geometry": "^1.5.6-alpha.20",
-    "@alipay/r3-math": "^1.5.4-alpha.12"
+    "@alipay/o3-base": "^1.5.4-alpha.15",
+    "@alipay/o3-core": "^1.5.6-alpha.22",
+    "@alipay/o3-geometry": "^1.5.6-alpha.20",
+    "@alipay/o3-math": "^1.5.4-alpha.12"
   }
 }

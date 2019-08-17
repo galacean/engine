@@ -1,5 +1,5 @@
-import { mat4, vec3, quat, MathUtil } from "@alipay/r3-math";
-import { Logger, Util, Event, EventDispatcher } from "@alipay/r3-base";
+import { mat4, vec3, quat, MathUtil } from "@alipay/o3-math";
+import { Logger, Util, Event, EventDispatcher } from "@alipay/o3-base";
 import { NodeAbility } from "./NodeAbility";
 import { SceneVisitor } from "./SceneVisitor";
 import { Scene } from "./Scene";

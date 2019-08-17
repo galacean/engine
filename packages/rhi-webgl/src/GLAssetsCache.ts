@@ -1,4 +1,4 @@
-import {AssetType} from '@alipay/r3-base';
+import {AssetType} from '@alipay/o3-base';
 
 /**
  * 引擎的资源对象所需要的 GL 资源对象的 Cache 管理

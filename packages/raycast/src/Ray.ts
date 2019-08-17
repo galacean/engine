@@ -1,4 +1,4 @@
-import { vec3 } from '@alipay/r3-math';
+import { vec3 } from '@alipay/o3-math';
 
 
 /**

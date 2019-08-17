@@ -1,5 +1,5 @@
-import { DrawMode, DataType, BufferUsage, UpdateType } from '@alipay/r3-base';
-import { AssetObject } from '@alipay/r3-core';
+import { DrawMode, DataType, BufferUsage, UpdateType } from '@alipay/o3-base';
+import { AssetObject } from '@alipay/o3-core';
 
 let primitiveID = 0;
 

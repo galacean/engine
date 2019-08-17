@@ -1,4 +1,4 @@
-#ifdef R3_POINT_LIGHT_COUNT
+#ifdef O3_POINT_LIGHT_COUNT
 
 struct PointLight {
     vec3 color;
@@ -7,6 +7,6 @@ struct PointLight {
     float distance;
     float decay;
 };
-uniform PointLight u_pointLights[ R3_POINT_LIGHT_COUNT ];
+uniform PointLight u_pointLights[ O3_POINT_LIGHT_COUNT ];
 
 #endif

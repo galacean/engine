@@ -1,12 +1,12 @@
-import { vec4 } from '@alipay/r3-math';
-import { Engine } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { SphereGeometry, CuboidGeometry } from '@alipay/r3-geometry-shape';
-import { ResourceLoader } from '@alipay/r3-loader';
-import { AAmbientLight } from '@alipay/r3-lighting';
-import { ConstantMaterial } from '@alipay/r3-mobile-material';
-import '@alipay/r3-engine-stats';
+import { vec4 } from '@alipay/o3-math';
+import { Engine } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry, CuboidGeometry } from '@alipay/o3-geometry-shape';
+import { ResourceLoader } from '@alipay/o3-loader';
+import { AAmbientLight } from '@alipay/o3-lighting';
+import { ConstantMaterial } from '@alipay/o3-mobile-material';
+import '@alipay/o3-engine-stats';
 
 import ALightColor from '../common/ALightColor';
 
@@ -42,7 +42,7 @@ cubeRenderer2.setMaterial(mtl);
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 5, 17], near: 0.1, far: 100
+  canvas: 'o3-demo', position: [0, 5, 17], near: 0.1, far: 100
 });
 
 //-- run

@@ -1,5 +1,5 @@
 import { ShaderLib, InjectShaderSlices } from './ShaderLib';
-import { Logger } from '@alipay/r3-base';
+import { Logger } from '@alipay/o3-base';
 
 class ShaderFactory{
 
@@ -18,23 +18,23 @@ class ShaderFactory{
 
   static parseShaderName( name ) {
 
-    return `#define R3_SHADER_NAME ${name}\n`;
+    return `#define O3_SHADER_NAME ${name}\n`;
 
   }
 
   static parseAttributeMacros( macros ) {
 
-    return '#define R3_ATTRIBUTE_MACROS_START\n' +
+    return '#define O3_ATTRIBUTE_MACROS_START\n' +
            macros.map( m=>`#define ${m}\n` ).join( '' ) +
-           '#define R3_ATTRIBUTE_MACROS_END\n';
+           '#define O3_ATTRIBUTE_MACROS_END\n';
 
   }
 
   static parseCustomMacros( macros ) {
 
-    return '#define R3_CUSTOM_MACROS_START\n' +
+    return '#define O3_CUSTOM_MACROS_START\n' +
            macros.map( m=>`#define ${m}\n` ).join( '' ) +
-           '#define R3_CUSTOM_MACROS_END\n';
+           '#define O3_CUSTOM_MACROS_END\n';
 
   }
 

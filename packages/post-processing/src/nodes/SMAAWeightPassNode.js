@@ -1,5 +1,5 @@
-import { DataType, TextureFilter } from '@alipay/r3-base';
-import { Texture2D } from '@alipay/r3-material';
+import { DataType, TextureFilter } from '@alipay/o3-base';
+import { Texture2D } from '@alipay/o3-material';
 import { PostEffectNode } from '../PostEffectNode';
 
 import WeightShader from '../shaders/SMAAWeightPass.glsl';

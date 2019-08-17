@@ -1,13 +1,13 @@
-import {vec3, vec4} from '@alipay/r3-math';
-import {Logger, ClearMode} from '@alipay/r3-base';
-import {Engine} from '@alipay/r3-core';
-import {AGeometryRenderer} from '@alipay/r3-geometry';
-import {ADefaultCamera} from '@alipay/r3-default-camera';
-import {SphereGeometry, CuboidGeometry} from '@alipay/r3-geometry-shape';
-import {ResourceLoader, Resource} from '@alipay/r3-loader';
-import {AAmbientLight, ADirectLight} from '@alipay/r3-lighting';
+import {vec3, vec4} from '@alipay/o3-math';
+import {Logger, ClearMode} from '@alipay/o3-base';
+import {Engine} from '@alipay/o3-core';
+import {AGeometryRenderer} from '@alipay/o3-geometry';
+import {ADefaultCamera} from '@alipay/o3-default-camera';
+import {SphereGeometry, CuboidGeometry} from '@alipay/o3-geometry-shape';
+import {ResourceLoader, Resource} from '@alipay/o3-loader';
+import {AAmbientLight, ADirectLight} from '@alipay/o3-lighting';
 import {HatchingMaterial} from './HatchingMaterial';
-import {AOrbitControls} from '@alipay/r3-orbit-controls';
+import {AOrbitControls} from '@alipay/o3-orbit-controls';
 
 
 Logger.enable();
@@ -18,11 +18,11 @@ let rootNode = scene.root;
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, -10], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 0, -10], target: [0, 0, 0]
 });
 camera.setClearMode(ClearMode.SOLID_COLOR, [1, 1, 1, 1]);
 
-let controler = cameraNode.createAbility(AOrbitControls, {canvas: document.getElementById('r3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, {canvas: document.getElementById('o3-demo')});
 controler.autoRotate = false;
 controler.minDistance = 4;
 controler.maxDistance = 50;

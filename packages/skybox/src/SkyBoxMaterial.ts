@@ -1,6 +1,6 @@
-import {DataType, RenderState, CompFunc} from '@alipay/r3-base';
-import {Material, RenderTechnique} from '@alipay/r3-material';
-import {mat4} from '@alipay/r3-math';
+import {DataType, RenderState, CompFunc} from '@alipay/o3-base';
+import {Material, RenderTechnique} from '@alipay/o3-material';
+import {mat4} from '@alipay/o3-math';
 import vs from './skybox.vs.glsl';
 import fs from './skybox.fs.glsl';
 

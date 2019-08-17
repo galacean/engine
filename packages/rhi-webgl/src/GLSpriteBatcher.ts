@@ -1,8 +1,8 @@
-import { Logger } from '@alipay/r3-base';
+import { Logger } from '@alipay/o3-base';
 import { GLSprite } from './GLSprite';
 import { createSpriteMaterial, SpriteTechnique } from './GLSpriteMaterial';
 import { GLTechnique } from './GLTechnique';
-import { RenderTechnique } from "@alipay/r3-material";
+import { RenderTechnique } from "@alipay/o3-material";
 
 /**
  * GL 层的 Technique 资源管理和渲染调用处理

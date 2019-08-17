@@ -1,8 +1,8 @@
-import { Logger } from "@alipay/r3-base";
-import { NodeAbility, Node } from "@alipay/r3-core";
+import { Logger } from "@alipay/o3-base";
+import { NodeAbility, Node } from "@alipay/o3-core";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationClip } from "./AnimationClip";
-import { quat } from "@alipay/r3-math";
+import { quat } from "@alipay/o3-math";
 import { AnimationOptions } from "./types";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点

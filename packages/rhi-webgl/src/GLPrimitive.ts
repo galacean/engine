@@ -1,4 +1,4 @@
-import { Logger, UpdateType, DataType } from '@alipay/r3-base';
+import { Logger, UpdateType, DataType } from '@alipay/o3-base';
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象

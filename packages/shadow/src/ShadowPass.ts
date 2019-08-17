@@ -1,6 +1,6 @@
-import { ClearMode } from '@alipay/r3-base';
-import { RenderPass } from '@alipay/r3-renderer-basic';
-import { LightFeature } from '@alipay/r3-lighting';
+import { ClearMode } from '@alipay/o3-base';
+import { RenderPass } from '@alipay/o3-renderer-basic';
+import { LightFeature } from '@alipay/o3-lighting';
 
 /**
  * RednerPass 对象

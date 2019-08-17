@@ -69,7 +69,7 @@
     }
   ],
   "extensionsUsed": [
-    "R3_common"
+    "O3_common"
   ],
   "images": [
   ],
@@ -101,7 +101,7 @@
       ],
       "name": "Torus01",
       "extensions": {
-        "R3_common": {
+        "O3_common": {
           "colliders": []
         }
       }

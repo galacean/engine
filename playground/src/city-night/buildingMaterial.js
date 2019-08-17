@@ -1,7 +1,7 @@
-import { UniformSemantic, DataType, RenderState, FrontFace } from '@alipay/r3-base';
-import { Material, RenderTechnique } from '@alipay/r3-material';
-import { Resource } from '@alipay/r3-loader';
-import { vec3,vec4} from '@alipay/r3-math';
+import { UniformSemantic, DataType, RenderState, FrontFace } from '@alipay/o3-base';
+import { Material, RenderTechnique } from '@alipay/o3-material';
+import { Resource } from '@alipay/o3-loader';
+import { vec3,vec4} from '@alipay/o3-math';
 
 export class BuildingMaterial4Fun extends Material {
   constructor(name, diffuseMap=null, glossiness=0.0) {

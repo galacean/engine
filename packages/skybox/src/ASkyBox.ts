@@ -1,5 +1,5 @@
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { CuboidGeometry } from '@alipay/r3-geometry-shape';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { CuboidGeometry } from '@alipay/o3-geometry-shape';
 import { SkyBoxMaterial } from './SkyBoxMaterial';
 
 /**

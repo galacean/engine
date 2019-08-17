@@ -1,4 +1,4 @@
-import { Material, RenderTechnique, RenderTarget } from '@alipay/r3-material';
+import { Material, RenderTechnique, RenderTarget } from '@alipay/o3-material';
 
 const VERT_SHADER = `
 

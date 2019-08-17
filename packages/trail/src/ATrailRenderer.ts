@@ -1,9 +1,9 @@
-import { DataType, BufferUsage, DrawMode } from '@alipay/r3-base';
-import { AGeometryRenderer, BufferGeometry } from '@alipay/r3-geometry';
-import { vec3, vec2, quat } from '@alipay/r3-math';
+import { DataType, BufferUsage, DrawMode } from '@alipay/o3-base';
+import { AGeometryRenderer, BufferGeometry } from '@alipay/o3-geometry';
+import { vec3, vec2, quat } from '@alipay/o3-math';
 import { TrailMaterial } from './TrailMaterial';
-import { Texture2D } from '@alipay/r3-material';
-import { Material } from '@alipay/r3-material';
+import { Texture2D } from '@alipay/o3-material';
+import { Material } from '@alipay/o3-material';
 
 /**
  * 拖尾效果渲染组件

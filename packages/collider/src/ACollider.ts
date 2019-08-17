@@ -1,6 +1,6 @@
-import { NodeAbility, Node } from "@alipay/r3-core";
+import { NodeAbility, Node } from "@alipay/o3-core";
 import { ColliderFeature } from "./ColliderFeature";
-import { MaskList } from "@alipay/r3-base";
+import { MaskList } from "@alipay/o3-base";
 
 /**
  * 碰撞体组件的基类, 定义碰撞体的数据

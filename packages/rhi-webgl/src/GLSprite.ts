@@ -1,5 +1,5 @@
-import { Logger } from '@alipay/r3-base';
-import { vec3 } from '@alipay/r3-math';
+import { Logger } from '@alipay/o3-base';
+import { vec3 } from '@alipay/o3-math';
 
 /**
  * 管理HUD控件Batch绘制时，需要处理的几何体数据

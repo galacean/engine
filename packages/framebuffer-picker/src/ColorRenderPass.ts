@@ -1,8 +1,8 @@
-import { RenderPass } from '@alipay/r3-renderer-basic';
+import { RenderPass } from '@alipay/o3-renderer-basic';
 import { ColorMaterial } from './ColorMaterial';
-import { MaskList } from '@alipay/r3-base';
-import { ACamera } from '@alipay/r3-core';
-import { RenderTarget } from '@alipay/r3-material';
+import { MaskList } from '@alipay/o3-base';
+import { ACamera } from '@alipay/o3-core';
+import { RenderTarget } from '@alipay/o3-material';
 
 /**
  * @private

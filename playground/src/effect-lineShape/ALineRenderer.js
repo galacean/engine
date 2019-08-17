@@ -1,8 +1,8 @@
 'use strict';
 
-import { DataType, BufferUsage, DrawMode } from '@alipay/r3-base';
-import { AGeometryRenderer, BufferGeometry } from '@alipay/r3-geometry';
-import { vec3 } from "@alipay/r3-math";
+import { DataType, BufferUsage, DrawMode } from '@alipay/o3-base';
+import { AGeometryRenderer, BufferGeometry } from '@alipay/o3-geometry';
+import { vec3 } from "@alipay/o3-math";
 
 export class ALineRenderer extends AGeometryRenderer {
   constructor(node, props) {

@@ -1,5 +1,5 @@
-import { Logger } from '@alipay/r3-base';
-import { Texture2D } from '@alipay/r3-material';
+import { Logger } from '@alipay/o3-base';
+import { Texture2D } from '@alipay/o3-material';
 
 /**
  * Sprite数据对象

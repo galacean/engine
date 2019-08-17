@@ -1,4 +1,4 @@
-import { DataType, TextureWrapMode } from '@alipay/r3-base';
+import { DataType, TextureWrapMode } from '@alipay/o3-base';
 import { PostEffectNode } from './PostEffectNode';
 import VignetteShader from './shaders/Vignette.glsl';
 

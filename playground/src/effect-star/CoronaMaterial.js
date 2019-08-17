@@ -1,5 +1,5 @@
-import { MaterialType, UniformSemantic, DataType, RenderState, BlendFunc } from '@alipay/r3-base';
-import { Material, RenderTechnique } from '@alipay/r3-material';
+import { MaterialType, UniformSemantic, DataType, RenderState, BlendFunc } from '@alipay/o3-base';
+import { Material, RenderTechnique } from '@alipay/o3-material';
 
 const VERT_SHADER = `
 uniform mat3 normalMatrix;

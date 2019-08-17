@@ -1,6 +1,6 @@
-import {ClearMode} from '@alipay/r3-base';
+import {ClearMode} from '@alipay/o3-base';
 import {RenderPass} from './RenderPass';
-import {vec3} from '@alipay/r3-math';
+import {vec3} from '@alipay/o3-math';
 
 /**
  * Sprite 的 RenderPass，在后处理后绘制，不受后处理影响

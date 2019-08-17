@@ -1,5 +1,5 @@
-import { ComplexMaterial, RenderTechnique } from '@alipay/r3-material';
-import { RenderState, BlendFunc, CompFunc } from '@alipay/r3-base';
+import { ComplexMaterial, RenderTechnique } from '@alipay/o3-material';
+import { RenderState, BlendFunc, CompFunc } from '@alipay/o3-base';
 import { LightShadow } from './LightShadow';
 
 import vs from './shaders/vertex.glsl';
@@ -71,7 +71,7 @@ export class ShadowMaterial extends ComplexMaterial {
 
     if ( this.shadowMapCount > 0 ) {
 
-      macros.push( `R3_SHADOW_MAP_COUNT ${this.shadowMapCount}` );
+      macros.push( `O3_SHADOW_MAP_COUNT ${this.shadowMapCount}` );
 
     }
     return macros;

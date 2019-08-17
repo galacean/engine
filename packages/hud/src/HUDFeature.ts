@@ -1,5 +1,5 @@
-import {SceneFeature} from '@alipay/r3-core';
-import {Logger} from '@alipay/r3-base';
+import {SceneFeature} from '@alipay/o3-core';
+import {Logger} from '@alipay/o3-base';
 import {HUDTextureMapper} from './HUDTextureMapper';
 import {HUDTexture} from './HUDTexture';
 

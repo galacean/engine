@@ -1,4 +1,4 @@
-import { Logger, Util, Event, EventDispatcher } from "@alipay/r3-base";
+import { Logger, Util, Event, EventDispatcher } from "@alipay/o3-base";
 import { FeatureManager } from "./FeatureManager";
 import { Node } from "./Node";
 import { Engine } from "./Engine";

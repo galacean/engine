@@ -1,7 +1,7 @@
 import { Scene } from "./Scene";
 import { AssetPool } from "./AssetPool";
 import { FeatureManager } from "./FeatureManager";
-import { Time, Logger, Event, EventDispatcher } from "@alipay/r3-base";
+import { Time, Logger, Event, EventDispatcher } from "@alipay/o3-base";
 import { ACamera } from "./ACamera";
 import { EngineFeature } from "./EngineFeature";
 

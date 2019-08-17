@@ -1,5 +1,5 @@
 import { StatsPanel } from './StatsPanel';
-import { EngineFeature, Engine, Scene } from '@alipay/r3-core';
+import { EngineFeature, Engine, Scene } from '@alipay/o3-core';
 
 /**
  * Engine Feature：显示 FPS 等引擎状态数据

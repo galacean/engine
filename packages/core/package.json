@@ -1,21 +1,21 @@
 {
-  "name": "@alipay/r3-core",
+  "name": "@alipay/o3-core",
   "version": "1.5.6-alpha.22",
-  "description": "R3 engines core",
+  "description": "Oasis3D engines core",
   "keywords": [
-    "r3",
+    "Oasis3D",
     "webgl"
   ],
   "authors": [
     "yanliang.fyl <yanliang.fyl@antfin.com>"
   ],
-  "homepage": "http://antg.alipay.net",
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
     "type": "git",
-    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
   "bugs": {
-    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
   "license": "MIT",
   "main": "dist/main.js",
@@ -25,8 +25,8 @@
     "b:types": "tsc"
   },
   "dependencies": {
-    "@alipay/r3-base": "^1.5.4-alpha.15",
-    "@alipay/r3-math": "^1.5.4-alpha.12"
+    "@alipay/o3-base": "^1.5.4-alpha.15",
+    "@alipay/o3-math": "^1.5.4-alpha.12"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

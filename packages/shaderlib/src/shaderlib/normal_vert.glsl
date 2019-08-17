@@ -1,6 +1,6 @@
-    #ifdef R3_HAS_NORMAL
+    #ifdef O3_HAS_NORMAL
 
-        #if defined( R3_HAS_TANGENT ) && defined( R3_HAS_NORMALMAP )
+        #if defined( O3_HAS_TANGENT ) && defined( O3_HAS_NORMALMAP )
 
         vec3 normalW = normalize( u_normalMat * normal.xyz );
         vec3 tangentW = normalize( u_normalMat * tangent.xyz );

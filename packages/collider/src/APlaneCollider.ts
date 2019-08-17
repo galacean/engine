@@ -1,6 +1,6 @@
 import { ACollider } from "./ACollider";
-import { vec3 } from "@alipay/r3-math";
-import { Node } from "@alipay/r3-core";
+import { vec3 } from "@alipay/o3-math";
+import { Node } from "@alipay/o3-core";
 
 /**
  * 平面（无限大）碰撞体组件，平面的位置和朝向与SceneObject一致

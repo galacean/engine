@@ -1,6 +1,6 @@
 
-import { DataType } from '@alipay/r3-base';
-import { ComplexMaterial, RenderTechnique } from '@alipay/r3-material';
+import { DataType } from '@alipay/o3-base';
+import { ComplexMaterial, RenderTechnique } from '@alipay/o3-material';
 
 import vs from './shaders/vertex.glsl';
 import fs from './shaders/shadowMap.fs.glsl';
@@ -63,7 +63,7 @@ export class ShadowMapMaterial extends ComplexMaterial {
 
     const macros = [];
 
-    macros.push( 'R3_GENERATE_SHADOW_MAP' );
+    macros.push( 'O3_GENERATE_SHADOW_MAP' );
 
     return macros;
 

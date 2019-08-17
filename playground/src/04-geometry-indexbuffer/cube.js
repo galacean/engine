@@ -1,5 +1,5 @@
-import { DataType } from '@alipay/r3-base';
-import { IndexBufferGeometry } from '@alipay/r3-geometry';
+import { DataType } from '@alipay/o3-base';
+import { IndexBufferGeometry } from '@alipay/o3-geometry';
 
 function createCubeGeometry(size) {
   var indexValues = [

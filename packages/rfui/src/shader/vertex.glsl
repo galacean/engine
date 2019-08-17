@@ -18,11 +18,11 @@ void main() {
     #include <shadow_vert>
     #include <position_vert>
 
-		#ifdef R3_HAS_MASK
+		#ifdef O3_HAS_MASK
 
     v_uv = a_uv;
 
-    #elif defined( R3_NEED_UV ) || defined( R3_HAS_ENVMAP ) || defined( R3_HAS_LIGHTMAP )
+    #elif defined( O3_NEED_UV ) || defined( O3_HAS_ENVMAP ) || defined( O3_HAS_LIGHTMAP )
 
     // may need this calculate normal
     v_uv = vec2( 0., 0. );

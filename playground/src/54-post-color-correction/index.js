@@ -1,14 +1,14 @@
-import { Logger } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { ResourceLoader } from '@alipay/r3-loader';
-import { RegistExtension } from '@alipay/r3-loader-gltf';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import { AEnvironmentMapLight, PBRMaterial } from '@alipay/r3-pbr';
-import { ASkyBox } from '@alipay/r3-skybox';
-import '@alipay/r3-engine-stats';
+import { Logger } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { ResourceLoader } from '@alipay/o3-loader';
+import { RegistExtension } from '@alipay/o3-loader-gltf';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { AEnvironmentMapLight, PBRMaterial } from '@alipay/o3-pbr';
+import { ASkyBox } from '@alipay/o3-skybox';
+import '@alipay/o3-engine-stats';
 
-import { PostProcessFeature, ColorCorrectionEffect, AutoExposureEffect, VignetteEffect } from '@alipay/r3-post-processing';
+import { PostProcessFeature, ColorCorrectionEffect, AutoExposureEffect, VignetteEffect } from '@alipay/o3-post-processing';
 
 import { ResourceList } from '../common/PBRResourceList';
 import { createControllerUI } from '../common/ControllerUI';
@@ -29,11 +29,11 @@ let rootNode = scene.root;
 let cameraNode = rootNode.createChild('camera_node');
 
 let cameraProps = {
-  canvas: 'r3-demo', position: [0, 0, 3], near: 0.1, far: 100,
+  canvas: 'o3-demo', position: [0, 0, 3], near: 0.1, far: 100,
   clearParam: [0, 0, 0, 0]
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
 
 const resourceLoader = new ResourceLoader(engine);
 resourceLoader.batchLoad(ResourceList, (err, res) => {

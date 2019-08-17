@@ -1,19 +1,19 @@
 //-- SSAO demo
-import { vec3,vec4} from '@alipay/r3-math';
-import { Logger } from '@alipay/r3-base';
-import { Engine} from '@alipay/r3-core';
-import { RegistExtension } from '@alipay/r3-loader-gltf';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AEnvironmentMapLight, PBRMaterial } from '@alipay/r3-pbr';
-import { ADirectLight } from '@alipay/r3-lighting';
-import '@alipay/r3-engine-stats';
-import { ResourceLoader, Resource} from '@alipay/r3-loader';
-import '@alipay/r3-loader-gltf';
-import '@alipay/r3-shadow';
-import { AOrbitControls } from '@alipay/r3-orbit-controls'
-import {LambertMaterial} from '@alipay/r3-mobile-material';
-import {PostProcessFeature,SSAOEffect,addNormalPass,addDepthTexturePass,addDepthPass} from '@alipay/r3-post-processing';
-import '@alipay/r3-engine-stats';
+import { vec3,vec4} from '@alipay/o3-math';
+import { Logger } from '@alipay/o3-base';
+import { Engine} from '@alipay/o3-core';
+import { RegistExtension } from '@alipay/o3-loader-gltf';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AEnvironmentMapLight, PBRMaterial } from '@alipay/o3-pbr';
+import { ADirectLight } from '@alipay/o3-lighting';
+import '@alipay/o3-engine-stats';
+import { ResourceLoader, Resource} from '@alipay/o3-loader';
+import '@alipay/o3-loader-gltf';
+import '@alipay/o3-shadow';
+import { AOrbitControls } from '@alipay/o3-orbit-controls'
+import {LambertMaterial} from '@alipay/o3-mobile-material';
+import {PostProcessFeature,SSAOEffect,addNormalPass,addDepthTexturePass,addDepthPass} from '@alipay/o3-post-processing';
+import '@alipay/o3-engine-stats';
 import { createControllerUI } from '../common/ControllerUI';
 
 const cameraNear = 0.1;
@@ -56,11 +56,11 @@ const animationRes = new Resource('earth', {
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 var camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0.8, 10],near:cameraNear,far:cameraFar,fov:90.0,
+  canvas: 'o3-demo', position: [0, 0.8, 10],near:cameraNear,far:cameraFar,fov:90.0,
   clearParam : [0.0,0.0,0.0,1.0]
 });
 cameraNode.lookAt(vec3.fromValues(0,0,0), (0,1,0));
-cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
+cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
 
 let node = rootNode.createChild('gltf_node');
 

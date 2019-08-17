@@ -7,13 +7,13 @@ import {
   TextureWrapMode,
   MaterialType,
   RenderState
-} from '@alipay/r3-base';
-import { openTechnique, path } from '@alipay/r3-loader';
-import { Node } from '@alipay/r3-core';
-import { Texture2D, Material } from '@alipay/r3-material';
-import { Primitive } from '@alipay/r3-primitive';
-import { Mesh, Skin, AMeshRenderer, ASkinnedMeshRenderer } from '@alipay/r3-mesh';
-import { vec3, mat4, quat } from '@alipay/r3-math';
+} from '@alipay/o3-base';
+import { openTechnique, path } from '@alipay/o3-loader';
+import { Node } from '@alipay/o3-core';
+import { Texture2D, Material } from '@alipay/o3-material';
+import { Primitive } from '@alipay/o3-primitive';
+import { Mesh, Skin, AMeshRenderer, ASkinnedMeshRenderer } from '@alipay/o3-mesh';
+import { vec3, mat4, quat } from '@alipay/o3-math';
 import {
   attachLoadingQueue,
   getAccessorData,
@@ -23,7 +23,7 @@ import {
   attachAsset,
   getBufferData
 } from './Util';
-import { AnimationClip, InterpolationType } from '@alipay/r3-animation';
+import { AnimationClip, InterpolationType } from '@alipay/o3-animation';
 
 // 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
@@ -410,7 +410,7 @@ export function parseMaterial(gltfMaterial, resources) {
 
     }
 
-    // r3 private parameters
+    // private parameters
     const { unlit, srgb, gamma, clearCoat, clearCoatRoughness, blendFunc, depthMask } = gltfMaterial;
     if (unlit)
       stateObj.unlit = true;
@@ -861,7 +861,7 @@ export function getItemByIdx(name, idx, resources) {
 }
 
 /**
- * 构造 r3 scene graph，根据节点配置创建 Ability
+ * 构造 scene graph，根据节点配置创建 Ability
  * @param resources
  * @private
  */

@@ -1,8 +1,8 @@
-import { DataType } from '@alipay/r3-base';
-import { RenderTarget } from '@alipay/r3-material';
-import { Material, RenderTechnique, ComplexMaterial } from '@alipay/r3-material';
+import { DataType } from '@alipay/o3-base';
+import { RenderTarget } from '@alipay/o3-material';
+import { Material, RenderTechnique, ComplexMaterial } from '@alipay/o3-material';
 
-import { ShaderFactory } from '@alipay/r3-shaderlib';
+import { ShaderFactory } from '@alipay/o3-shaderlib';
 import DepthPackingShader from './shaderLib/depth_packing.glsl';
 ShaderFactory.InjectShaderSlices( {
   depth_packing:DepthPackingShader

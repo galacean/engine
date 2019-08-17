@@ -1,20 +1,20 @@
-import { Engine,AssetType } from '@alipay/r3-core';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import '@alipay/r3-loader-gltf';
-import { Logger } from '@alipay/r3-base';
-import { AAnimation } from '@alipay/r3-animation';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { ASkinnedMeshRenderer } from '@alipay/r3-mesh';
-import '@alipay/r3-engine-stats';
+import { Engine,AssetType } from '@alipay/o3-core';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import '@alipay/o3-loader-gltf';
+import { Logger } from '@alipay/o3-base';
+import { AAnimation } from '@alipay/o3-animation';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { ASkinnedMeshRenderer } from '@alipay/o3-mesh';
+import '@alipay/o3-engine-stats';
 
-import { Sprite, ASpriteRenderer } from '@alipay/r3-2d';
+import { Sprite, ASpriteRenderer } from '@alipay/o3-2d';
 
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import { TextureMaterial, TransparentMaterial } from '@alipay/r3-mobile-material';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { TextureMaterial, TransparentMaterial } from '@alipay/o3-mobile-material';
 import { WaveMaterial } from "./WaveMaterial";
 import { CircleMaterial } from "./CircleMaterial";
 
-import { RegistExtension } from '@alipay/r3-loader-gltf';
+import { RegistExtension } from '@alipay/o3-loader-gltf';
 
 RegistExtension({ TextureMaterial, TransparentMaterial, WaveMaterial, CircleMaterial } );
 Logger.enable();
@@ -34,10 +34,10 @@ const resourceLoader = new ResourceLoader(engine);
 const cameraRoot = rootNode.createChild('camera_root');
 const cameraNode = cameraRoot.createChild('camera');
 const camera = cameraNode.createAbility(ADefaultCamera, {
-  fov: 45, canvas: 'r3-demo', position: [0, 0, 10], target: [0, 0, 0], clearParam: [0, 0, 0, 0], attributes: { antialias: true, enableCollect: false },
+  fov: 45, canvas: 'o3-demo', position: [0, 0, 10], target: [0, 0, 0], clearParam: [0, 0, 0, 0], attributes: { antialias: true, enableCollect: false },
 });
 
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
 
 //-- load resource
 const gltfRes = new Resource('box_gltf', {

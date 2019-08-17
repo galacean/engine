@@ -1,4 +1,4 @@
-import {AssetObject} from '@alipay/r3-core';
+import {AssetObject} from '@alipay/o3-core';
 
 let meshID = 0;
 

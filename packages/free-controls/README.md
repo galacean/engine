@@ -1,4 +1,4 @@
-# r3-free-controls
+# o3-free-controls
 
 * 漫游控制器，游戏视角
 * 支持鼠标或触摸进行环绕

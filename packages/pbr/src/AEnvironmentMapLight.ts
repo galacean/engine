@@ -1,6 +1,6 @@
-import { DataType } from '@alipay/r3-base';
-import { ALight } from '@alipay/r3-lighting';
-import { TextureCubeMap, Texture2D } from '@alipay/r3-material';
+import { DataType } from '@alipay/o3-base';
+import { ALight } from '@alipay/o3-lighting';
+import { TextureCubeMap, Texture2D } from '@alipay/o3-material';
 
 /**
  * 环境光源

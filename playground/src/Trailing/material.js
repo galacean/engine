@@ -1,6 +1,6 @@
-import { UniformSemantic, DataType, RenderState, BlendFunc } from '@alipay/r3-base';
-import { Material, RenderTechnique } from '@alipay/r3-material';
-import { Resource } from '@alipay/r3-loader';
+import { UniformSemantic, DataType, RenderState, BlendFunc } from '@alipay/o3-base';
+import { Material, RenderTechnique } from '@alipay/o3-material';
+import { Resource } from '@alipay/o3-loader';
 
 export default function createTrailMaterial() {
   let newMtl = new Material('cube_mtl');

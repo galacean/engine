@@ -2,10 +2,10 @@ import {
   BlendFunc,
   RenderState,
   FrontFace
-} from '@alipay/r3-base';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { PlaneGeometry, CylinderGeometry } from '@alipay/r3-geometry-shape';
-import { vec4 } from '@alipay/r3-math';
+} from '@alipay/o3-base';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { PlaneGeometry, CylinderGeometry } from '@alipay/o3-geometry-shape';
+import { vec4 } from '@alipay/o3-math';
 import { RfuiMaterial } from './rfuiMaterial';
 import { RfuiAnimation } from './animation/rfuiAnimation';
 

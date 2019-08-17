@@ -1,11 +1,11 @@
-import { vec3, vec4 } from '@alipay/r3-math';
-import { Engine } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { SphereGeometry } from '@alipay/r3-geometry-shape';
-import { AAmbientLight, ADirectLight } from '@alipay/r3-lighting';
-import { ConstantMaterial, LambertMaterial, BlinnPhongMaterial } from '@alipay/r3-mobile-material';
-import { RenderState } from '../../../packages/r3-default-camera/node_modules/@alipay/r3-base';
+import { vec3, vec4 } from '@alipay/o3-math';
+import { Engine } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry } from '@alipay/o3-geometry-shape';
+import { AAmbientLight, ADirectLight } from '@alipay/o3-lighting';
+import { ConstantMaterial, LambertMaterial, BlinnPhongMaterial } from '@alipay/o3-mobile-material';
+import { RenderState } from '../../../packages/o3-default-camera/node_modules/@alipay/o3-base';
 
 
 let engine = new Engine();
@@ -15,7 +15,7 @@ let rootNode = scene.root;
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, -8], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 0, -8], target: [0, 0, 0]
 });
 
 //-- create lights

@@ -1,6 +1,6 @@
-import { DataType, DrawMode } from '@alipay/r3-base';
-import { BufferGeometry } from '@alipay/r3-geometry';
-import { vec2 } from '@alipay/r3-math';
+import { DataType, DrawMode } from '@alipay/o3-base';
+import { BufferGeometry } from '@alipay/o3-geometry';
+import { vec2 } from '@alipay/o3-math';
 
 /**
  * 覆盖整个屏幕的一个矩形

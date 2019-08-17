@@ -1,7 +1,7 @@
-import { NodeAbility } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
+import { NodeAbility } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
 import { doTweenVec3, tween } from './tween';
-import { Easing } from '@alipay/r3-tween';
+import { Easing } from '@alipay/o3-tween';
 
 // 自定义组件必须继承自 NodeAbility
 export class APerspective extends NodeAbility {

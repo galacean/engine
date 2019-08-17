@@ -1,17 +1,17 @@
-import { Logger } from '@alipay/r3-base';
-import { vec3, vec4 } from '@alipay/r3-math';
-import { Engine, NodeAbility } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { SphereGeometry, CuboidGeometry } from '@alipay/r3-geometry-shape';
-import '@alipay/r3-engine-stats';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import { AAnimation } from '@alipay/r3-animation';
-import '@alipay/r3-shadow';
-import '@alipay/r3-loader-gltf';
+import { Logger } from '@alipay/o3-base';
+import { vec3, vec4 } from '@alipay/o3-math';
+import { Engine, NodeAbility } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry, CuboidGeometry } from '@alipay/o3-geometry-shape';
+import '@alipay/o3-engine-stats';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { AAnimation } from '@alipay/o3-animation';
+import '@alipay/o3-shadow';
+import '@alipay/o3-loader-gltf';
 
-import { ConstantMaterial, BlinnPhongMaterial } from '@alipay/r3-mobile-material';
-import { ASpotLight } from '@alipay/r3-lighting';
+import { ConstantMaterial, BlinnPhongMaterial } from '@alipay/o3-mobile-material';
+import { ASpotLight } from '@alipay/o3-lighting';
 import AMove from '../common/AMove';
 
 // Logger.enable();
@@ -80,7 +80,7 @@ createCuboidGeometry('cubiod4', [0, -2, -5],[0, 0, 0],10, 2, 0.1);
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 5, 17], near: 0.1, far: 100
+  canvas: 'o3-demo', position: [0, 5, 17], near: 0.1, far: 100
 });
 
 //-- load resource

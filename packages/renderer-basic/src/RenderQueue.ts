@@ -1,7 +1,7 @@
-import { vec3 } from '@alipay/r3-math';
-import { Logger, MaskList } from '@alipay/r3-base';
-import { ACamera, NodeAbility } from '@alipay/r3-core';
-import { Material } from '@alipay/r3-material';
+import { vec3 } from '@alipay/o3-math';
+import { Logger, MaskList } from '@alipay/o3-base';
+import { ACamera, NodeAbility } from '@alipay/o3-core';
+import { Material } from '@alipay/o3-material';
 
 /**
  * 渲染队列管理

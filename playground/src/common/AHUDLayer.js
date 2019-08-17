@@ -2,7 +2,7 @@
 
 import {
   AHUDWidget
-} from '@alipay/r3-hud';
+} from '@alipay/o3-hud';
 
 export class AHUDLayer extends AHUDWidget {
 

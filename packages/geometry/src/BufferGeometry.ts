@@ -1,6 +1,6 @@
-import { Logger, UpdateType } from '@alipay/r3-base';
-import { AssetObject } from '@alipay/r3-core';
-import { Primitive } from '@alipay/r3-primitive';
+import { Logger, UpdateType } from '@alipay/o3-base';
+import { AssetObject } from '@alipay/o3-core';
+import { Primitive } from '@alipay/o3-primitive';
 
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from './Constant';
 

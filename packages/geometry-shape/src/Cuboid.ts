@@ -1,5 +1,5 @@
-import { DataType } from '@alipay/r3-base';
-import { BufferGeometry } from '@alipay/r3-geometry';
+import { DataType } from '@alipay/o3-base';
+import { BufferGeometry } from '@alipay/o3-geometry';
 
 /**
  * CubeGeometry 长方体创建类

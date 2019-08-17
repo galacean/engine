@@ -1,4 +1,4 @@
-import { TextureFilter, TextureWrapMode } from "@alipay/r3-base";
+import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
 
 export type TextureConfig = {
   magFilter?: TextureFilter,

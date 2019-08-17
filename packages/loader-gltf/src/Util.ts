@@ -1,4 +1,4 @@
-import {path} from '@alipay/r3-loader';
+import {path} from '@alipay/o3-loader';
 
 /**
  * 解析二进制文本 用于 glb loader

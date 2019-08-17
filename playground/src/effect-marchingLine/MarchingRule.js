@@ -1,6 +1,6 @@
 // MarchingLine.js
 
-import { vec3, mat4, quat } from '@alipay/r3-math';
+import { vec3, mat4, quat } from '@alipay/o3-math';
 import { MarchingLine } from './MarchingLine';
 
 var random = function(min, max) { return min + Math.random() * (max - min);	}

@@ -1,16 +1,16 @@
-import { Logger } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import { RegistExtension } from '@alipay/r3-loader-gltf';
-import { AAnimation } from '@alipay/r3-animation';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import { AEnvironmentMapLight, PBRMaterial } from '@alipay/r3-pbr';
-import { ASkyBox } from '@alipay/r3-skybox';
-import { ALinearFog, AEXP2Fog } from '@alipay/r3-fog';
+import { Logger } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { RegistExtension } from '@alipay/o3-loader-gltf';
+import { AAnimation } from '@alipay/o3-animation';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { AEnvironmentMapLight, PBRMaterial } from '@alipay/o3-pbr';
+import { ASkyBox } from '@alipay/o3-skybox';
+import { ALinearFog, AEXP2Fog } from '@alipay/o3-fog';
 
 
-import '@alipay/r3-engine-stats';
+import '@alipay/o3-engine-stats';
 import * as dat from 'dat.gui';
 
 Logger.enable();
@@ -159,10 +159,10 @@ const gltfRes = new Resource('campaign_gltf', {
 });
 
 let cameraProps = {
-  canvas: 'r3-demo', position: [0, 0, 5], near: 0.01
+  canvas: 'o3-demo', position: [0, 0, 5], near: 0.01
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo')});
 
 
 let node = rootNode.createChild('gltf_node');

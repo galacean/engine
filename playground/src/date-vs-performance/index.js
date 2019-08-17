@@ -1,5 +1,5 @@
-import { Util } from "@alipay/r3-base";
-import { ABoxCollider } from "@alipay/r3-collider/src/ABoxCollider";
+import { Util } from "@alipay/o3-base";
+import { ABoxCollider } from "@alipay/o3-collider/src/ABoxCollider";
 
 
 
@@ -25,7 +25,7 @@ const dateNow = () => {
 };
 
 // Date.now() is 3x faster than performance.now() on Chrome v69.0.3497.100 (Mac)
-// So do we really need performance.now() in 'r3-base/Timer.js'?
+// So do we really need performance.now() in 'o3-base/Timer.js'?
 setTimeout(performanceNow, 2000);
 setTimeout(dateNow, 3000);
 

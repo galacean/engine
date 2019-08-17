@@ -1,16 +1,16 @@
-import { vec3, vec4 } from '@alipay/r3-math';
-import { Logger, MaskList } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { RegistExtension } from '@alipay/r3-loader-gltf';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { SphereGeometry } from '@alipay/r3-geometry-shape';
-import { LambertMaterial } from '@alipay/r3-mobile-material';
-import { CuboidGeometry } from '@alipay/r3-geometry-shape';
-import { PostProcessFeature, addDepthPass, BloomEffect, GodraysEffect, ColorCorrectionEffect, SMAAEffect } from '@alipay/r3-post-processing';
-import { AAmbientLight, ADirectLight } from '@alipay/r3-lighting';
-import '@alipay/r3-engine-stats';
+import { vec3, vec4 } from '@alipay/o3-math';
+import { Logger, MaskList } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { RegistExtension } from '@alipay/o3-loader-gltf';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry } from '@alipay/o3-geometry-shape';
+import { LambertMaterial } from '@alipay/o3-mobile-material';
+import { CuboidGeometry } from '@alipay/o3-geometry-shape';
+import { PostProcessFeature, addDepthPass, BloomEffect, GodraysEffect, ColorCorrectionEffect, SMAAEffect } from '@alipay/o3-post-processing';
+import { AAmbientLight, ADirectLight } from '@alipay/o3-lighting';
+import '@alipay/o3-engine-stats';
 
 import * as dat from 'dat.gui';
 
@@ -41,10 +41,10 @@ let rootNode = scene.root;
 
 let cameraNode = rootNode.createChild('camera_node');
 let cameraProps = {
-  canvas: 'r3-demo', clearParam: [0, 0, 0, 1], position: [30, -40, 50], near: 1, far: 400, attributes: { antialias: false}
+  canvas: 'o3-demo', clearParam: [0, 0, 0, 1], position: [30, -40, 50], near: 1, far: 400, attributes: { antialias: false}
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
  
 // 创建方向光
 let light = rootNode.createChild("light");

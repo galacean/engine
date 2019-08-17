@@ -1,5 +1,5 @@
-import { DataType, RenderState, BlendFunc, MaterialType } from '@alipay/r3-base';
-import { Material, RenderTechnique } from '@alipay/r3-material';
+import { DataType, RenderState, BlendFunc, MaterialType } from '@alipay/o3-base';
+import { Material, RenderTechnique } from '@alipay/o3-material';
 
 import VERT_SHADER from './trail.vs.glsl';
 import FRAG_SHADER from './trail.fs.glsl';

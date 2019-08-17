@@ -1,5 +1,5 @@
-import { DataType, RenderState, BlendFunc, MaterialType } from '@alipay/r3-base';
-import { Material, RenderTechnique } from '@alipay/r3-material';
+import { DataType, RenderState, BlendFunc, MaterialType } from '@alipay/o3-base';
+import { Material, RenderTechnique } from '@alipay/o3-material';
 
 const VERT_SHADER = `
 #include <common_vert>

@@ -1,4 +1,4 @@
-import { RenderTarget } from '@alipay/r3-material';
+import { RenderTarget } from '@alipay/o3-material';
 
 const DEFAULT_PROPS = {
   scene_4096:{

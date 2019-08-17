@@ -1,6 +1,6 @@
 import { ACollider } from "./ACollider";
-import { vec3 } from "@alipay/r3-math";
-import { Node } from "@alipay/r3-core";
+import { vec3 } from "@alipay/o3-math";
+import { Node } from "@alipay/o3-core";
 
 /**
  * 轴对齐的包围盒（AABBox）碰撞体组件

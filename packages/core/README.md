@@ -1,4 +1,4 @@
-# r3-core
+# o3-core
 
 * 实现 Engine 类
 * 实现引擎的核心概念：SceneGraph、组件（Ability）

@@ -1,5 +1,5 @@
-import {Logger} from '@alipay/r3-base';
-import {NodeAbility} from '@alipay/r3-core';
+import {Logger} from '@alipay/o3-base';
+import {NodeAbility} from '@alipay/o3-core';
 
 /**
  * 负责渲染一个Mesh对象的组件

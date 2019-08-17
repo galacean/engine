@@ -1,7 +1,7 @@
-import {Logger} from '@alipay/r3-base';
-import {NodeAbility, Node} from '@alipay/r3-core';
-import {vec3, MathUtil, Spherical} from '@alipay/r3-math';
-import {Tween, Easing, doTransform} from '@alipay/r3-tween';
+import {Logger} from '@alipay/o3-base';
+import {NodeAbility, Node} from '@alipay/o3-core';
+import {vec3, MathUtil, Spherical} from '@alipay/o3-math';
+import {Tween, Easing, doTransform} from '@alipay/o3-tween';
 import {vec3Type} from './type';
 
 // 防止万向锁

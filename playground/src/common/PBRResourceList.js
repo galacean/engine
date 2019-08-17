@@ -1,5 +1,5 @@
-import { TextureFilter } from '../../../packages/r3-base/dist/main';
-import { Resource } from '../../../packages/r3-loader/dist/main';
+import { TextureFilter } from '../../../packages/o3-base/dist/main';
+import { Resource } from '../../../packages/o3-loader/dist/main';
 
 let diffuseMapRes = new Resource('dif', {
   type: 'cubemap',

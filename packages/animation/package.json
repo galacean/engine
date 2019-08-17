@@ -1,18 +1,18 @@
 {
-  "name": "@alipay/r3-animation",
+  "name": "@alipay/o3-animation",
   "version": "1.5.6-alpha.20",
-  "description": "R3 Animation",
+  "description": "Oasis3D Animation",
   "keywords": [
-    "r3",
+    "Oasis3D",
     "webgl"
   ],
-  "homepage": "http://antg.alipay.net",
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
     "type": "git",
-    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
   "bugs": {
-    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
   "license": "MIT",
   "scripts": {
@@ -26,9 +26,9 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/r3-base": "^1.5.4-alpha.15",
-    "@alipay/r3-core": "^1.5.6-alpha.22",
-    "@alipay/r3-math": "^1.5.4-alpha.12",
-    "@alipay/r3-mesh": "^1.5.6-alpha.21"
+    "@alipay/o3-base": "^1.5.4-alpha.15",
+    "@alipay/o3-core": "^1.5.6-alpha.22",
+    "@alipay/o3-math": "^1.5.4-alpha.12",
+    "@alipay/o3-mesh": "^1.5.6-alpha.21"
   }
 }

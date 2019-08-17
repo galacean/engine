@@ -1,14 +1,14 @@
 {
-  "name": "@alipay/r3-fog",
+  "name": "@alipay/o3-fog",
   "version": "1.5.6-alpha.20",
-  "description": "R3 Fog",
+  "description": "Oasis3D Fog",
   "repository": {
     "type": "git",
-    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
-  "homepage": "http://gitlab.alipay-inc.com/r3/r3/tree/master/packages/r3-fog",
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "keywords": [
-    "r3",
+    "Oasis3D",
     "webgl"
   ],
   "authors": [
@@ -16,13 +16,13 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
   "main": "dist/main.js",
   "module": "dist/module.js",
   "dependencies": {
-    "@alipay/r3-base": "^1.5.4-alpha.15",
-    "@alipay/r3-core": "^1.5.6-alpha.22"
+    "@alipay/o3-base": "^1.5.4-alpha.15",
+    "@alipay/o3-core": "^1.5.6-alpha.22"
   },
   "scripts": {
     "b:types": "tsc"

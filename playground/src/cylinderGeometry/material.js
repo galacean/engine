@@ -1,5 +1,5 @@
-import { UniformSemantic, DataType, RenderState, BlendFunc, FrontFace } from '@alipay/r3-base';
-import { Material, RenderTechnique } from '@alipay/r3-material';
+import { UniformSemantic, DataType, RenderState, BlendFunc, FrontFace } from '@alipay/o3-base';
+import { Material, RenderTechnique } from '@alipay/o3-material';
 
 export default function createShapeMaterial() {
   let newMtl = new Material('shape_mtl');

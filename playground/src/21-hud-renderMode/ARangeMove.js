@@ -1,6 +1,6 @@
-import { vec3 } from '@alipay/r3-math'
-import { NodeAbility } from "@alipay/r3-core";
-import { Logger } from "@alipay/r3-base";
+import { vec3 } from '@alipay/o3-math'
+import { NodeAbility } from "@alipay/o3-core";
+import { Logger } from "@alipay/o3-base";
 /**
  * 指定范围内的往返运动
  */

@@ -1,7 +1,7 @@
-import { UniformSemantic, DataType } from '@alipay/r3-base';
-import { Material } from '@alipay/r3-material';
-import { Resource } from '@alipay/r3-loader';
-import { vec3 } from '@alipay/r3-math';
+import { UniformSemantic, DataType } from '@alipay/o3-base';
+import { Material } from '@alipay/o3-material';
+import { Resource } from '@alipay/o3-loader';
+import { vec3 } from '@alipay/o3-math';
 
 function transCoord(coord, center, scale) {
   return [(coord[0]-center[0])*scale[0], (coord[1]-center[1])*scale[1]];

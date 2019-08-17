@@ -1,6 +1,6 @@
 
-import { Engine } from '@alipay/r3-core';
-import { vec3 } from '@alipay/r3-math';
+import { Engine } from '@alipay/o3-core';
+import { vec3 } from '@alipay/o3-math';
 import { AmbientLighting } from '../src/index';
 
 

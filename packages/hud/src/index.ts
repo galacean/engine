@@ -1,4 +1,4 @@
-import { Scene } from '@alipay/r3-core';
+import { Scene } from '@alipay/o3-core';
 import { HUDFeature, hasHUDWidget } from './HUDFeature';
 
 Scene.registerFeature( HUDFeature );

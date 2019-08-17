@@ -1,28 +1,28 @@
 /**
  * 本示例展示如何使用几何体渲染器功能、如何创建几何体资源对象、如何创建材质对象
  */
-import { ClearMode, Logger, MaterialType, DrawMode } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { GLRenderHardware } from '@alipay/r3-rhi-webgl';
-import { BasicSceneRenderer } from '@alipay/r3-renderer-basic';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { vec3, vec4 } from '@alipay/r3-math';
-import '@alipay/r3-engine-stats';
+import { ClearMode, Logger, MaterialType, DrawMode } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { GLRenderHardware } from '@alipay/o3-rhi-webgl';
+import { BasicSceneRenderer } from '@alipay/o3-renderer-basic';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { vec3, vec4 } from '@alipay/o3-math';
+import '@alipay/o3-engine-stats';
 import createPlaneGeometry from './geometry';
 import getTechniqueData from './technique';
 import getWaveTechniqueData from './waveTechnique';
 import AWave from './AWave';
-import { ADirectLight } from '@alipay/r3-lighting';
-import { Resource, ResourceLoader } from '@alipay/r3-loader';
-import { Material } from '@alipay/r3-material';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
+import { ADirectLight } from '@alipay/o3-lighting';
+import { Resource, ResourceLoader } from '@alipay/o3-loader';
+import { Material } from '@alipay/o3-material';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
 
 Logger.enable();
 
 export default class CardUIC {
   constructor(props) {
     props = props || {};
-    this.id = props.id || 'r3-demo';
+    this.id = props.id || 'o3-demo';
     this.imgUrl = props.imgUrl;
     this.deltaX = props.deltaX || 250;
     this.onComplete = props.onComplete;

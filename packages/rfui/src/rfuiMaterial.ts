@@ -1,7 +1,7 @@
-import { vec2, vec4 } from "@alipay/r3-math";
-import { DataType, MaterialType } from "@alipay/r3-base";
-import { Texture2D } from "@alipay/r3-material";
-import { CommonMaterial } from "@alipay/r3-mobile-material";
+import { vec2, vec4 } from "@alipay/o3-math";
+import { DataType, MaterialType } from "@alipay/o3-base";
+import { Texture2D } from "@alipay/o3-material";
+import { CommonMaterial } from "@alipay/o3-mobile-material";
 import RfuiShader from "./shader/fragment.glsl";
 
 /**
@@ -209,9 +209,9 @@ export class RfuiMaterial extends CommonMaterial {
   _generateMacros() {
     const macros = super._generateMacros();
 
-    if (this._diffuse instanceof Texture2D) macros.push("R3_DIFFUSE_TEXTURE");
-    if (this._mask) macros.push("R3_MASK_TEXTURE");
-    if (this._uvVelocity) macros.push("R3_UV_ANIMATE");
+    if (this._diffuse instanceof Texture2D) macros.push("O3_DIFFUSE_TEXTURE");
+    if (this._mask) macros.push("O3_MASK_TEXTURE");
+    if (this._uvVelocity) macros.push("O3_UV_ANIMATE");
 
     return macros;
   }

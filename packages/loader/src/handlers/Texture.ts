@@ -1,5 +1,5 @@
-import {Texture2D} from '@alipay/r3-material';
-import {TextureFilter, TextureWrapMode} from '@alipay/r3-base';
+import {Texture2D} from '@alipay/o3-material';
+import {TextureFilter, TextureWrapMode} from '@alipay/o3-base';
 import {Request, Prop, HandlerCb} from '../type';
 import {Resource} from '../Resource';
 

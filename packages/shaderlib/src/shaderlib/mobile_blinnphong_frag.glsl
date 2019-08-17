@@ -1,9 +1,9 @@
     vec3 lightDiffuse = vec3( 0.0, 0.0, 0.0 );
     vec3 lightSpecular = vec3( 0.0, 0.0, 0.0 );
 
-    #ifdef R3_DIRECT_LIGHT_COUNT
+    #ifdef O3_DIRECT_LIGHT_COUNT
 
-    for( int i = 0; i < R3_DIRECT_LIGHT_COUNT; i++ ) {
+    for( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i++ ) {
         DirectLight lgt = u_directLights[ i ];
 
         float d = max(dot(N, -lgt.direction), 0.0)*lgt.intensity;
@@ -16,9 +16,9 @@
 
     #endif
 
-    #ifdef R3_POINT_LIGHT_COUNT
+    #ifdef O3_POINT_LIGHT_COUNT
 
-    for( int i = 0; i < R3_POINT_LIGHT_COUNT; i++ ) {
+    for( int i = 0; i < O3_POINT_LIGHT_COUNT; i++ ) {
         PointLight lgt = u_pointLights[ i ];
         vec3 direction = v_pos - lgt.position;
         float dist = length( direction );
@@ -36,9 +36,9 @@
 
     #endif
 
-    #ifdef R3_SPOT_LIGHT_COUNT
+    #ifdef O3_SPOT_LIGHT_COUNT
 
-    for( int i = 0; i < R3_SPOT_LIGHT_COUNT; i++) {
+    for( int i = 0; i < O3_SPOT_LIGHT_COUNT; i++) {
         SpotLight lgt = u_spotLights[ i ];
         vec3 direction = v_pos - lgt.position;
         float angle = acos( dot( normalize( direction ), normalize( lgt.direction ) ) );

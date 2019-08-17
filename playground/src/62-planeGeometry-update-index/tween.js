@@ -1,5 +1,5 @@
-import { Tween, Tweener, Easing, doTransform, TweenPlugins } from '@alipay/r3-tween';
-import { Engine, EngineFeature } from '@alipay/r3-core';
+import { Tween, Tweener, Easing, doTransform, TweenPlugins } from '@alipay/o3-tween';
+import { Engine, EngineFeature } from '@alipay/o3-core';
 
 const tween = new Tween();
 

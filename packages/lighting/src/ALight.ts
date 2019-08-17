@@ -1,6 +1,6 @@
-import { NodeAbility, Node } from '@alipay/r3-core';
+import { NodeAbility, Node } from '@alipay/o3-core';
 import { LightFeature } from './LightFeature';
-import { mat4 } from '@alipay/r3-math';
+import { mat4 } from '@alipay/o3-math';
 
 /**
  * 灯光基类

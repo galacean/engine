@@ -17,13 +17,13 @@
 
 #endif
 
-#ifdef R3_HAS_ENVMAPLIGHT
+#ifdef O3_HAS_ENVMAPLIGHT
 
     uniform float u_mipMapLevel;
     uniform float u_diffuseEnvSamplerIntensity;
     uniform float u_specularEnvSamplerIntensity;
 
-    #ifdef R3_HAS_SPECULARMAP
+    #ifdef O3_HAS_SPECULARMAP
 
         uniform samplerCube u_specularEnvSampler;
 
@@ -33,7 +33,7 @@
 
     #endif
 
-    #ifdef R3_HAS_DIFFUSEMAP
+    #ifdef O3_HAS_DIFFUSEMAP
 
         uniform samplerCube u_diffuseEnvSampler;
 
@@ -71,7 +71,7 @@ uniform float u_clearCoatRoughness;
 
 #endif
 
-#ifdef R3_HAS_NORMALMAP
+#ifdef O3_HAS_NORMALMAP
 
     uniform sampler2D u_normalSampler;
     uniform float u_normalScale;
@@ -157,15 +157,15 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
 
 vec3 getNormal()
 {
-  #ifdef R3_HAS_NORMALMAP
-    #ifndef R3_HAS_TANGENT
+  #ifdef O3_HAS_NORMALMAP
+    #ifndef O3_HAS_TANGENT
         #ifdef HAS_DERIVATIVES
             vec3 pos_dx = dFdx(v_pos);
             vec3 pos_dy = dFdy(v_pos);
             vec3 tex_dx = dFdx(vec3(getUv(), 0.0));
             vec3 tex_dy = dFdy(vec3(getUv(), 0.0));
             vec3 t = (tex_dy.t * pos_dx - tex_dx.t * pos_dy) / (tex_dx.s * tex_dy.t - tex_dy.s * tex_dx.t);
-            #ifdef R3_HAS_NORMAL
+            #ifdef O3_HAS_NORMAL
                 vec3 ng = normalize(v_normal);
             #else
                 vec3 ng = cross(pos_dx, pos_dy);
@@ -174,7 +174,7 @@ vec3 getNormal()
             vec3 b = normalize(cross(ng, t));
             mat3 tbn = mat3(t, b, ng);
         #else
-            #ifdef R3_HAS_NORMAL
+            #ifdef O3_HAS_NORMAL
                 vec3 ng = normalize(v_normal);
             #else
                 vec3 ng = vec3(0.0, 0.0, 1.0);
@@ -187,7 +187,7 @@ vec3 getNormal()
         vec3 n = texture2D(u_normalSampler, getUv() ).rgb;
         n = normalize(tbn * ((2.0 * n - 1.0) * vec3(u_normalScale, u_normalScale, 1.0)));
   #else
-    #ifdef R3_HAS_NORMAL
+    #ifdef O3_HAS_NORMAL
         vec3 n = normalize(v_normal);
     #elif defined(HAS_DERIVATIVES)
         vec3 pos_dx = dFdx(v_pos);
@@ -198,7 +198,7 @@ vec3 getNormal()
     #endif
   #endif
 
-  #if defined( R3_DOUBLE_SIDE ) || defined(R3_BACK_SIDE)
+  #if defined( O3_DOUBLE_SIDE ) || defined(O3_BACK_SIDE)
         n *= float( gl_FrontFacing ) * 2.0 - 1.0;
   #endif
 
@@ -374,10 +374,10 @@ float getSpecularMIPLevel( const in float blinnShininessExponent, const in int m
 
 }
 
-#ifdef R3_HAS_ENVMAPLIGHT
+#ifdef O3_HAS_ENVMAPLIGHT
 vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightProbe,*/ const in GeometricContext geometry, const in float blinnShininessExponent, const in int maxMIPLevel ) {
 
-    #ifndef R3_HAS_SPECULARMAP
+    #ifndef O3_HAS_SPECULARMAP
 
         return u_specular * u_specularEnvSamplerIntensity * u_envMapIntensity;
 
@@ -498,14 +498,14 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 }
 
-#ifdef R3_DIRECTLIGHT_NUM
+#ifdef O3_DIRECTLIGHT_NUM
 
     struct DirectionalLight {
         vec3 direction;
         vec3 color;
     };
 
-    uniform DirectionalLight u_directionalLight[ R3_DIRECTLIGHT_NUM ];
+    uniform DirectionalLight u_directionalLight[ O3_DIRECTLIGHT_NUM ];
 
     void getDirectionalDirectLightIrradiance( const in DirectionalLight directionalLight, const in GeometricContext geometry, out IncidentLight directLight ) {
         directLight.color = directionalLight.color;
@@ -515,7 +515,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 #endif
 
-#ifdef R3_POINTLIGHT_NUM
+#ifdef O3_POINTLIGHT_NUM
 
     struct PointLight {
 		vec3 position;
@@ -524,7 +524,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 		float decay;
 	};
 
-	uniform PointLight u_pointLight[ R3_POINTLIGHT_NUM ];
+	uniform PointLight u_pointLight[ O3_POINTLIGHT_NUM ];
 
 	// directLight is an out parameter as having it as a return value caused compiler errors on some devices
 	void getPointDirectLightIrradiance( const in PointLight pointLight, const in GeometricContext geometry, out IncidentLight directLight ) {
@@ -542,7 +542,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 #endif
 
-#ifdef R3_SPOTLIGHT_NUM
+#ifdef O3_SPOTLIGHT_NUM
 
 	struct SpotLight {
 		vec3 position;
@@ -554,7 +554,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 		float penumbraCos;
 	};
 
-	uniform SpotLight u_spotLight[ R3_SPOTLIGHT_NUM ];
+	uniform SpotLight u_spotLight[ O3_SPOTLIGHT_NUM ];
 
 	// directLight is an out parameter as having it as a return value caused compiler errors on some devices
 	void getSpotDirectLightIrradiance( const in SpotLight spotLight, const in GeometricContext geometry, out IncidentLight directLight  ) {
@@ -607,11 +607,11 @@ void main() {
 
     #endif
 
-    #ifdef R3_HAS_VERTEXCOLOR
+    #ifdef O3_HAS_VERTEXCOLOR
 
         diffuseColor.rgb *= v_color.rgb;
 
-        #ifdef R3_HAS_VERTEXALPHA
+        #ifdef O3_HAS_VERTEXALPHA
 
             diffuseColor.a *= v_color.a;
 
@@ -697,11 +697,11 @@ void main() {
 
         IncidentLight directLight;
 
-        #if defined( R3_DIRECTLIGHT_NUM ) && defined( RE_Direct )
+        #if defined( O3_DIRECTLIGHT_NUM ) && defined( RE_Direct )
 
             DirectionalLight directionalLight;
 
-            for ( int i = 0; i < R3_DIRECTLIGHT_NUM; i ++ ) {
+            for ( int i = 0; i < O3_DIRECTLIGHT_NUM; i ++ ) {
 
                 directionalLight = u_directionalLight[ i ];
 
@@ -713,11 +713,11 @@ void main() {
 
         #endif
 
-        #if defined( R3_POINTLIGHT_NUM ) && defined( RE_Direct )
+        #if defined( O3_POINTLIGHT_NUM ) && defined( RE_Direct )
 
             PointLight pointLight;
 
-            for ( int i = 0; i < R3_POINTLIGHT_NUM; i ++ ) {
+            for ( int i = 0; i < O3_POINTLIGHT_NUM; i ++ ) {
 
                 pointLight = u_pointLight[ i ];
 
@@ -729,11 +729,11 @@ void main() {
 
         #endif
 
-        #if defined( R3_SPOTLIGHT_NUM ) && defined( RE_Direct )
+        #if defined( O3_SPOTLIGHT_NUM ) && defined( RE_Direct )
 
             SpotLight spotLight;
 
-            for ( int i = 0; i < R3_SPOTLIGHT_NUM; i ++ ) {
+            for ( int i = 0; i < O3_SPOTLIGHT_NUM; i ++ ) {
 
                 spotLight = u_spotLight[ i ];
 
@@ -760,9 +760,9 @@ void main() {
 
         #endif
 
-        #if defined( RE_IndirectDiffuse ) && defined( R3_HAS_ENVMAPLIGHT )
+        #if defined( RE_IndirectDiffuse ) && defined( O3_HAS_ENVMAPLIGHT )
 
-            #ifdef R3_HAS_DIFFUSEMAP
+            #ifdef O3_HAS_DIFFUSEMAP
 
                 vec3 lightMapIrradiance = textureCube(u_diffuseEnvSampler, geometry.normal).rgb * u_diffuseEnvSamplerIntensity;
 
@@ -782,7 +782,7 @@ void main() {
 
         #endif
 
-        #if defined( R3_HAS_ENVMAPLIGHT ) && defined( RE_IndirectSpecular )
+        #if defined( O3_HAS_ENVMAPLIGHT ) && defined( RE_IndirectSpecular )
 
             radiance += getLightProbeIndirectRadiance( geometry, Material_BlinnShininessExponent( material ), int(u_mipMapLevel) );
             clearCoatRadiance += getLightProbeIndirectRadiance( geometry, Material_ClearCoat_BlinnShininessExponent( material ), int(u_mipMapLevel) );
@@ -806,7 +806,7 @@ void main() {
             float ambientOcclusion = ( texture2D( u_occlusionSampler, getUv() ).r - 1.0 ) * u_occlusionStrength + 1.0;
             reflectedLight.indirectDiffuse *= ambientOcclusion;
 
-            #if defined( R3_HAS_SPECULARMAP )
+            #if defined( O3_HAS_SPECULARMAP )
 
                 float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
                 reflectedLight.indirectSpecular *= computeSpecularOcclusion( dotNV, ambientOcclusion, material.specularRoughness );

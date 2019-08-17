@@ -1,18 +1,18 @@
-import { Engine } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { SphereGeometry } from '@alipay/r3-geometry-shape';
-import { ADirectLight } from '@alipay/r3-lighting';
-import { BlinnPhongMaterial } from '@alipay/r3-mobile-material';
-import { addDepthTexturePass } from '@alipay/r3-post-processing';
-import { vec3 } from '@alipay/r3-math';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import '@alipay/r3-shadow';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
+import { Engine } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry } from '@alipay/o3-geometry-shape';
+import { ADirectLight } from '@alipay/o3-lighting';
+import { BlinnPhongMaterial } from '@alipay/o3-mobile-material';
+import { addDepthTexturePass } from '@alipay/o3-post-processing';
+import { vec3 } from '@alipay/o3-math';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import '@alipay/o3-shadow';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
 import { WaterMaterial } from "./WaterMaterial";
 import { PlaneGeometry } from "../common/PlaneGeometry";
-import { Sprite, ASpriteRenderer } from "@alipay/r3-2d";
-import '@alipay/r3-loader-gltf';
+import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
+import '@alipay/o3-loader-gltf';
 
 
 
@@ -58,12 +58,12 @@ const scene = engine.currentScene;
 const rootNode = scene.root;
 
 // 在场景中创建相机节点、配置位置和目标方向
-const canvas = document.getElementById('r3-demo');
+const canvas = document.getElementById('o3-demo');
 const cameraNode = rootNode.createChild('camera_node');
 const camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: canvas, position: [0, 5, 8], target: [0, 0, 0], near: 0.1, far: 30
 });
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo')});
 controler.minDistance = 4;
 controler.maxDistance = 50;
 

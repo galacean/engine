@@ -1,13 +1,13 @@
-import { Engine } from '@alipay/r3-core';
-import { vec3 } from '@alipay/r3-math';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import '@alipay/r3-loader-gltf';
-import { TextureFilter, TextureWrapMode } from '@alipay/r3-core';
-import { AAnimation } from '@alipay/r3-animation';
+import { Engine } from '@alipay/o3-core';
+import { vec3 } from '@alipay/o3-math';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import '@alipay/o3-loader-gltf';
+import { TextureFilter, TextureWrapMode } from '@alipay/o3-core';
+import { AAnimation } from '@alipay/o3-animation';
 
 
-import '@alipay/r3-engine-stats';
+import '@alipay/o3-engine-stats';
 
 import {ACrossFadeControl} from "./ACrossFadeControl";
 
@@ -21,7 +21,7 @@ let rootNode = scene.root;
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 1.35, 5.5], target: [0, 1.1, 0]
+  canvas: 'o3-demo', position: [0, 1.35, 5.5], target: [0, 1.1, 0]
 });
 
 // load resource config

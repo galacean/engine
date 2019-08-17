@@ -1,15 +1,15 @@
-import { Logger } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { SphereGeometry, CuboidGeometry } from '@alipay/r3-geometry-shape';
-import { LambertMaterial } from '@alipay/r3-mobile-material';
-import { ADirectLight, AAmbientLight } from '@alipay/r3-lighting';
-import { vec3, vec4 } from '@alipay/r3-math';
+import { Logger } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry, CuboidGeometry } from '@alipay/o3-geometry-shape';
+import { LambertMaterial } from '@alipay/o3-mobile-material';
+import { ADirectLight, AAmbientLight } from '@alipay/o3-lighting';
+import { vec3, vec4 } from '@alipay/o3-math';
 import { createLineMaterial } from "./LineMaterial";
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
 import { AMarchingLineRenderer } from './AMarchingLineRenderer';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
 import { MarchingLine } from "./MarchingLine";
 import ALightColor from "../common/ALightColor";
 import { PlaneMarchingRule, SphereMarchingRule } from "./MarchingRule";
@@ -23,12 +23,12 @@ const scene = engine.currentScene;
 const rootNode = scene.root;
 
 // 在场景中创建相机节点、配置位置和目标方向
-const canvas = document.getElementById('r3-demo');
+const canvas = document.getElementById('o3-demo');
 const cameraNode = rootNode.createChild('camera_node');
 cameraNode.createAbility(ADefaultCamera, {
   canvas: canvas, position: [0, 5, 15], target: [0, 0, 0]
 });
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo')});
 controler.minDistance = 4;
 controler.maxDistance = 50;
 controler.enableRotate = false;

@@ -1,5 +1,5 @@
-import {TextureFilter, TextureWrapMode} from '@alipay/r3-base';
-import {AssetObject} from '@alipay/r3-core';
+import {TextureFilter, TextureWrapMode} from '@alipay/o3-base';
+import {AssetObject} from '@alipay/o3-core';
 import {TextureConfig} from './type';
 
 /**

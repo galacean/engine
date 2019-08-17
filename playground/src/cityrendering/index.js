@@ -1,25 +1,25 @@
 //-- naive version with earcut
 //top side face sepration 
-import { vec3,vec4} from '@alipay/r3-math';
-import { Logger ,RenderState,MaterialType,BlendFunc} from '@alipay/r3-base';
-import { Engine, SceneFeature } from '@alipay/r3-core';
+import { vec3,vec4} from '@alipay/o3-math';
+import { Logger ,RenderState,MaterialType,BlendFunc} from '@alipay/o3-base';
+import { Engine, SceneFeature } from '@alipay/o3-core';
 
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { CuboidGeometry } from '@alipay/r3-geometry-shape';
-import '@alipay/r3-engine-stats';
-import { ResourceLoader,Resource } from '@alipay/r3-loader';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { CuboidGeometry } from '@alipay/o3-geometry-shape';
+import '@alipay/o3-engine-stats';
+import { ResourceLoader,Resource } from '@alipay/o3-loader';
 import {createBuildingMaterialWireFrame, BuildingMaterial4Fun} from './buildingMaterial';
 
 import {createSideGeometry,createTopGeometry} from './buildingGeometryNaive'
 
-import { ADirectLight } from '@alipay/r3-lighting';
+import { ADirectLight } from '@alipay/o3-lighting';
 import {CENTER,SCALE} from './constant';
 import cityMap from './hangzhou-geo-very-small.json';
 import dataProcessing from './dataProcessing.js'
-import { AOrbitControls } from '@alipay/r3-orbit-controls'
-import {BlinnPhongMaterial} from '@alipay/r3-mobile-material';
-import {PostProcessFeature, BloomEffect} from '@alipay/r3-post-processing';
+import { AOrbitControls } from '@alipay/o3-orbit-controls'
+import {BlinnPhongMaterial} from '@alipay/o3-mobile-material';
+import {PostProcessFeature, BloomEffect} from '@alipay/o3-post-processing';
 
 Logger.enable();
 
@@ -168,10 +168,10 @@ if(true || GeometryChooser == 1 || GeometryChooser == 2){
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 var camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 20, 50]
+  canvas: 'o3-demo', position: [0, 20, 50]
 });
 cameraNode.lookAt(vec3.fromValues(0,0,0), vec3.fromValues(0, 1, 0));
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
 controler.autoRotate = false;
 controler.autoRotateSpeed = 3.0;
 

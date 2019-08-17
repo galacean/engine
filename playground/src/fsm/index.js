@@ -1,16 +1,16 @@
-import { ClearMode } from '@alipay/r3-base';
-import { Engine, NodeAbility } from '@alipay/r3-core';
-import { vec3 } from '@alipay/r3-math';
-import { GLRenderHardware } from '@alipay/r3-rhi-webgl';
-import { SceneRenderer } from '@alipay/r3-renderer-cull';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import '@alipay/r3-loader-gltf';
-import { TextureFilter, TextureWrapMode } from '@alipay/r3-core';
-import { AAnimation, AnimationEvent } from '@alipay/r3-animation';
-import { AMachine } from '@alipay/r3-fsm';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
+import { ClearMode } from '@alipay/o3-base';
+import { Engine, NodeAbility } from '@alipay/o3-core';
+import { vec3 } from '@alipay/o3-math';
+import { GLRenderHardware } from '@alipay/o3-rhi-webgl';
+import { SceneRenderer } from '@alipay/o3-renderer-cull';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import '@alipay/o3-loader-gltf';
+import { TextureFilter, TextureWrapMode } from '@alipay/o3-core';
+import { AAnimation, AnimationEvent } from '@alipay/o3-animation';
+import { AMachine } from '@alipay/o3-fsm';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
 
-import '@alipay/r3-engine-stats';
+import '@alipay/o3-engine-stats';
 
 //-- create engine object
 let engine = new Engine();
@@ -31,7 +31,7 @@ const animationRes = new Resource('pig_gltf', {
 let cameraProps = {
   RHI: GLRenderHardware,
   SceneRenderer: SceneRenderer,
-  canvas: 'r3-demo',
+  canvas: 'o3-demo',
   attributes: { antialias: true, depth: true }
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);

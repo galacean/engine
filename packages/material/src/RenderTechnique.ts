@@ -1,6 +1,6 @@
-import {UniformSemantic, DataType, Logger} from '@alipay/r3-base';
-import {AssetObject} from '@alipay/r3-core';
-import {ShaderFactory} from '@alipay/r3-shaderlib';
+import {UniformSemantic, DataType, Logger} from '@alipay/o3-base';
+import {AssetObject} from '@alipay/o3-core';
+import {ShaderFactory} from '@alipay/o3-shaderlib';
 
 /**
  * 渲染单个对象所需的控制对象，作为 Material 的模块使用。对应 glTF 里面的 technique 对象
@@ -162,18 +162,18 @@ export class RenderTechnique extends AssetObject {
 
     const attribNames = Object.keys(primitive.vertexAttributes);
 
-    _macros.push(`R3_VERTEX_PRECISION ${this.vertexPrecision}`);
-    _macros.push(`R3_FRAGMENT_PRECISION ${this.fragmentPrecision}`);
+    _macros.push(`O3_VERTEX_PRECISION ${this.vertexPrecision}`);
+    _macros.push(`O3_FRAGMENT_PRECISION ${this.fragmentPrecision}`);
 
     if (attribNames.indexOf('TEXCOORD_0') > -1)
-      _macros.push('R3_HAS_UV');
+      _macros.push('O3_HAS_UV');
     if (attribNames.indexOf('NORMAL') > -1)
-      _macros.push('R3_HAS_NORMAL');
+      _macros.push('O3_HAS_NORMAL');
     if (attribNames.indexOf('TANGENT') > -1)
-      _macros.push('R3_HAS_TANGENT');
+      _macros.push('O3_HAS_TANGENT');
     if (attribNames.indexOf('JOINTS_0') > -1) {
 
-      _macros.push('R3_HAS_SKIN');
+      _macros.push('O3_HAS_SKIN');
       if (component.jointNodes && component.jointNodes.length) {
 
         const maxAttribUniformVec4 = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
@@ -182,16 +182,16 @@ export class RenderTechnique extends AssetObject {
         if (maxJoints < joints)
           Logger.error(`component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, suggest joint count less than ${maxJoints}.`, component);
         else
-          _macros.push(`R3_JOINTS_NUM ${component.jointNodes.length}`); // use anyway, just warn joint count
+          _macros.push(`O3_JOINTS_NUM ${component.jointNodes.length}`); // use anyway, just warn joint count
 
       }
 
     }
     if (attribNames.indexOf('COLOR_0') > -1) {
 
-      _macros.push('R3_HAS_VERTEXCOLOR');
+      _macros.push('O3_HAS_VERTEXCOLOR');
       if (primitive.vertexAttributes.COLOR_0.size === 4)
-        _macros.push('R3_HAS_VERTEXALPHA');
+        _macros.push('O3_HAS_VERTEXALPHA');
 
     }
 
@@ -203,15 +203,15 @@ export class RenderTechnique extends AssetObject {
       else {
 
         const targetNum = component.weights.length;
-        _macros.push('R3_HAS_MORPH');
-        _macros.push(`R3_MORPH_NUM ${targetNum}`);
+        _macros.push('O3_HAS_MORPH');
+        _macros.push(`O3_MORPH_NUM ${targetNum}`);
 
         if (attribNames.indexOf('POSITION_0') > -1)
-          _macros.push('R3_MORPH_POSITION');
+          _macros.push('O3_MORPH_POSITION');
         if (attribNames.indexOf('NORMAL_0') > -1)
-          _macros.push('R3_MORPH_NORMAL');
+          _macros.push('O3_MORPH_NORMAL');
         if (attribNames.indexOf('TANGENT_0') > -1)
-          _macros.push('R3_MORPH_TANGENT');
+          _macros.push('O3_MORPH_TANGENT');
 
         this._attributes = Object.assign(this.attributes, this.createMorphConfig(primitive, targetNum));
         this._uniforms.u_morphWeights = {

@@ -1,6 +1,6 @@
-import { Tween, doTransform } from '@alipay/r3-tween';
-import { Engine, EngineFeature } from '@alipay/r3-core';
-import { DataType } from '@alipay/r3-base';
+import { Tween, doTransform } from '@alipay/o3-tween';
+import { Engine, EngineFeature } from '@alipay/o3-core';
+import { DataType } from '@alipay/o3-base';
 
 export const tween = new Tween();
 

@@ -1,5 +1,5 @@
-import {Logger, DataType} from '@alipay/r3-base';
-import {Material, RenderTechnique} from '@alipay/r3-material';
+import {Logger, DataType} from '@alipay/o3-base';
+import {Material, RenderTechnique} from '@alipay/o3-material';
 import vs from './color.vs.glsl';
 import fs from './color.fs.glsl';
 

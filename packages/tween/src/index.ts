@@ -6,6 +6,6 @@ import * as TweenPlugins from './plugins/index';
 export {LOOP_TYPE} from './Enums';
 
 // adapters
-export {doTransform, doMaterial} from './adapters/R3';
+export {doTransform, doMaterial} from './adapters/o3';
 
 export {Easing, TweenPlugins};

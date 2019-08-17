@@ -6,13 +6,13 @@ uniform float u_opacity;
 uniform vec2 u_uvOffset;
 uniform vec2 u_maskUvOffset;
 
-#ifdef R3_MASK_TEXTURE
+#ifdef O3_MASK_TEXTURE
 
 uniform sampler2D u_mask;
 
 #endif
 
-#ifdef R3_UV_ANIMATE
+#ifdef O3_UV_ANIMATE
 
 uniform vec2 u_uvVelocity;
 
@@ -23,7 +23,7 @@ void main() {
 
   #include <begin_mobile_frag>
 
-  #ifdef R3_DIFFUSE_TEXTURE
+  #ifdef O3_DIFFUSE_TEXTURE
 
     vec2 uvDelta = v_uv + u_uvOffset;
 		float filterX = step(0.0, uvDelta.x) * (1.0 - step(1.0, uvDelta.x));
@@ -32,7 +32,7 @@ void main() {
 
 	#endif
 
-  #ifdef R3_UV_ANIMATE
+  #ifdef O3_UV_ANIMATE
 
 		diffuse = texture2D(u_diffuse, v_uv + u_uvVelocity * u_time);
 
@@ -40,7 +40,7 @@ void main() {
 
   vec4 fragColor = (emission + ambient + diffuse) * u_opacity;
 
-	#ifdef R3_MASK_TEXTURE
+	#ifdef O3_MASK_TEXTURE
 
 		vec2 maskUvDelta = v_uv + u_maskUvOffset;
 		float maskFilterX = step(0.0, maskUvDelta.x) * (1.0 - step(1.0, maskUvDelta.x));

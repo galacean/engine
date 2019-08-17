@@ -1,21 +1,21 @@
 {
-  "name": "@alipay/r3-rhi-webgl",
+  "name": "@alipay/o3-rhi-webgl",
   "version": "1.5.6-alpha.22",
-  "description": "R3 Render Hardware Interface -  WebGL 1.0 implementation",
+  "description": "Oasis3D Render Hardware Interface -  WebGL 1.0 implementation",
   "keywords": [
-    "r3",
+    "Oasis3D",
     "webgl"
   ],
   "authors": [
     "yanliang.fyl <yanliang.fyl@antfin.com>"
   ],
-  "homepage": "http://antg.alipay.net",
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
     "type": "git",
-    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
   "bugs": {
-    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
   "license": "MIT",
   "main": "dist/main.js",
@@ -28,9 +28,9 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/r3-base": "^1.5.4-alpha.15",
-    "@alipay/r3-core": "^1.5.6-alpha.22",
-    "@alipay/r3-material": "^1.5.6-alpha.21",
-    "@alipay/r3-math": "^1.5.4-alpha.12"
+    "@alipay/o3-base": "^1.5.4-alpha.15",
+    "@alipay/o3-core": "^1.5.6-alpha.22",
+    "@alipay/o3-material": "^1.5.6-alpha.21",
+    "@alipay/o3-math": "^1.5.4-alpha.12"
   }
 }

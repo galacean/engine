@@ -1,6 +1,6 @@
-import { Logger, Event, EventDispatcher } from "@alipay/r3-base";
-import { ASkinnedMeshRenderer } from "@alipay/r3-mesh";
-import { Node, NodeAbility } from "@alipay/r3-core";
+import { Logger, Event, EventDispatcher } from "@alipay/o3-base";
+import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
+import { Node, NodeAbility } from "@alipay/o3-core";
 import { AnimationEvent, WrapMode } from "./AnimationConst";
 import { AnimationClip } from "./AnimationClip";
 import { IChannelState, AnimationOptions, IChannelTarget } from "./types";

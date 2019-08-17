@@ -1,4 +1,4 @@
-import { SceneFeature } from "@alipay/r3-core";
+import { SceneFeature } from "@alipay/o3-core";
 import { ACollider } from "./ACollider";
 
 export class ColliderFeature extends SceneFeature {

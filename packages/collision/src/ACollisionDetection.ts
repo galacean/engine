@@ -1,7 +1,7 @@
-import { vec3 } from '@alipay/r3-math';
-import { NodeAbility } from '@alipay/r3-core';
-import { Event } from '@alipay/r3-base';
-import { ColliderFeature, ACollider, ABoxCollider, ASphereCollider } from '@alipay/r3-collider';
+import { vec3 } from '@alipay/o3-math';
+import { NodeAbility } from '@alipay/o3-core';
+import { Event } from '@alipay/o3-base';
+import { ColliderFeature, ACollider, ABoxCollider, ASphereCollider } from '@alipay/o3-collider';
 
 import {
   intersectBox2Box,

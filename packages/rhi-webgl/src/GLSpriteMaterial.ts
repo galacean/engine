@@ -1,6 +1,6 @@
 'use strict';
 
-import { DataType, UniformSemantic, RenderState, BlendFunc } from '@alipay/r3-base';
+import { DataType, UniformSemantic, RenderState, BlendFunc } from '@alipay/o3-base';
 
 const SpriteVertShader = `
 precision highp float;

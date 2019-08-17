@@ -1,5 +1,5 @@
-import { ClearMode } from '@alipay/r3-base';
-import { RenderPass } from '@alipay/r3-renderer-basic';
+import { ClearMode } from '@alipay/o3-base';
+import { RenderPass } from '@alipay/o3-renderer-basic';
 
 /**
  * 后处理 RenderPass

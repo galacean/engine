@@ -1,4 +1,4 @@
-import { ACollider } from "@alipay/r3-collider";
+import { ACollider } from "@alipay/o3-collider";
 
 /**
  * Raycast检测的结果记录

@@ -1,15 +1,15 @@
-import { TextureFilter } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import { RegistExtension } from '@alipay/r3-loader-gltf';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import { AEnvironmentMapLight, PBRMaterial } from '@alipay/r3-pbr';
-import { ASkyBox } from '@alipay/r3-skybox';
-import '@alipay/r3-shadow';
-import { PostProcessFeature, SMAAEffect } from '@alipay/r3-post-processing';
-import { ADirectLight } from '@alipay/r3-lighting';
-import { vec3, mat4 } from '@alipay/r3-math';
+import { TextureFilter } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { RegistExtension } from '@alipay/o3-loader-gltf';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { AEnvironmentMapLight, PBRMaterial } from '@alipay/o3-pbr';
+import { ASkyBox } from '@alipay/o3-skybox';
+import '@alipay/o3-shadow';
+import { PostProcessFeature, SMAAEffect } from '@alipay/o3-post-processing';
+import { ADirectLight } from '@alipay/o3-lighting';
+import { vec3, mat4 } from '@alipay/o3-math';
 RegistExtension( { PBRMaterial } );import { createControllerUI } from '../common/ControllerUI';
 
 //-- create engine object
@@ -21,9 +21,9 @@ let rootNode = scene.root;
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [300, 400, 500], near: 0.01, attributes: { antialias: false}
+  canvas: 'o3-demo', position: [300, 400, 500], near: 0.01, attributes: { antialias: false}
 });
-cameraNode.createAbility(AOrbitControls, { canvas: 'r3-demo'});
+cameraNode.createAbility(AOrbitControls, { canvas: 'o3-demo'});
     
 // 方向光
 let light2 = rootNode.createChild("light2");

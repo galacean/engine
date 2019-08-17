@@ -1,4 +1,4 @@
-import { Logger, ClearMode } from '@alipay/r3-base';
+import { Logger, ClearMode } from '@alipay/o3-base';
 import { GLRenderStates } from './GLRenderStates';
 import { GLAssetsCache } from './GLAssetsCache';
 import { GLPrimitive } from './GLPrimitive';

@@ -1,10 +1,10 @@
 import CardUIC from './CardUIC';
-import { Engine, EngineFeature } from '@alipay/r3-core';
-import { Tween, Easing, doTransform } from '@alipay/r3-tween';
+import { Engine, EngineFeature } from '@alipay/o3-core';
+import { Tween, Easing, doTransform } from '@alipay/o3-tween';
 
 new CardUIC({
   name:'card',
-  id:'r3-demo',
+  id:'o3-demo',
   imgUrl: {
     'pic1':'https://gw.alipayobjects.com/zos/rmsportal/ztBRTwpFgfQpOTckJvFB.png',
     'pic2': 'https://gw.alipayobjects.com/zos/rmsportal/POsJmbPDJRLhChUiJYGd.png',

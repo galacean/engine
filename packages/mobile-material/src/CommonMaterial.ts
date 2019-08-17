@@ -1,8 +1,8 @@
-import { vec3, vec4 } from '@alipay/r3-math';
-import { DataType } from '@alipay/r3-base';
-import { Texture2D } from '@alipay/r3-material';
-import { Material, RenderTechnique } from '@alipay/r3-material';
-import { LightFeature, AAmbientLight } from '@alipay/r3-lighting';
+import { vec3, vec4 } from '@alipay/o3-math';
+import { DataType } from '@alipay/o3-base';
+import { Texture2D } from '@alipay/o3-material';
+import { Material, RenderTechnique } from '@alipay/o3-material';
+import { LightFeature, AAmbientLight } from '@alipay/o3-lighting';
 
 import VertexShader from './shader/Vertex.glsl';
 
@@ -149,10 +149,10 @@ export abstract class CommonMaterial extends Material {
     const macros = [];
 
     if (this._emission instanceof Texture2D)
-      macros.push('R3_EMISSION_TEXTURE');
+      macros.push('O3_EMISSION_TEXTURE');
 
     if (this._ambient instanceof Texture2D)
-      macros.push('R3_AMBIENT_TEXTURE');
+      macros.push('O3_AMBIENT_TEXTURE');
 
     return macros;
 

@@ -1,7 +1,7 @@
 'use strict';
 
-import { NodeAbility } from '@alipay/r3-core';
-import { vec3 } from '@alipay/r3-math';
+import { NodeAbility } from '@alipay/o3-core';
+import { vec3 } from '@alipay/o3-math';
 
 export default class AMove extends NodeAbility {
   constructor(node, props) {

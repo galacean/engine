@@ -1,4 +1,4 @@
-import {Logger} from '@alipay/r3-base';
+import {Logger} from '@alipay/o3-base';
 import {AAmbientLight} from './AAmbientLight';
 import {ADirectLight} from './ADirectLight';
 import {APointLight} from './APointLight';

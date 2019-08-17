@@ -1,6 +1,6 @@
-import { DataType, UniformSemantic } from '@alipay/r3-base';
-import { ADirectLight } from '@alipay/r3-lighting';
-import { Material, RenderTechnique } from '@alipay/r3-material';
+import { DataType, UniformSemantic } from '@alipay/o3-base';
+import { ADirectLight } from '@alipay/o3-lighting';
+import { Material, RenderTechnique } from '@alipay/o3-material';
 
 import VertShaderSource from './Vert.glsl';
 import FragShaderSource from './Frag.glsl';

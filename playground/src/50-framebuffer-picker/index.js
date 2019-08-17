@@ -1,14 +1,14 @@
-import { Logger } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { ResourceLoader } from '@alipay/r3-loader';
-import { RegistExtension } from '@alipay/r3-loader-gltf';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import { AEnvironmentMapLight, PBRMaterial } from '@alipay/r3-pbr';
-import { AMeshRenderer } from '@alipay/r3-mesh';
-import { AFramebufferPicker } from '@alipay/r3-framebuffer-picker';
+import { Logger } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { ResourceLoader } from '@alipay/o3-loader';
+import { RegistExtension } from '@alipay/o3-loader-gltf';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { AEnvironmentMapLight, PBRMaterial } from '@alipay/o3-pbr';
+import { AMeshRenderer } from '@alipay/o3-mesh';
+import { AFramebufferPicker } from '@alipay/o3-framebuffer-picker';
 
-import '@alipay/r3-engine-stats';
+import '@alipay/o3-engine-stats';
 import { ResourceList } from './ResourceList';
 
 Logger.enable();
@@ -27,11 +27,11 @@ let resourceLoader = new ResourceLoader(engine);
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let cameraProps = {
-  canvas: 'r3-demo', position: [0, 0, 40], near: 1, far: 100,
+  canvas: 'o3-demo', position: [0, 0, 40], near: 1, far: 100,
   clearParam: [0.1, 0.2, 0.4, 1]
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
 
 resourceLoader.batchLoad(ResourceList, (err, res) => {
   const gltf = res[0];

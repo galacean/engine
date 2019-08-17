@@ -1,6 +1,6 @@
 
 import { BufferGeometry } from '../src/index';
-import { BufferUsage, DataType } from '@alipay/r3-base';
+import { BufferUsage, DataType } from '@alipay/o3-base';
 
 describe('BufferGeometry', function () {
   var geometry;

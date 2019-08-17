@@ -1,4 +1,4 @@
-import {Engine} from '@alipay/r3-core';
+import {Engine} from '@alipay/o3-core';
 import {Stats} from './Stats';
 
 Engine.registerFeature(Stats);

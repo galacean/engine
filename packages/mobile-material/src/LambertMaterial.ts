@@ -1,8 +1,8 @@
-import {vec4} from '@alipay/r3-math';
-import {DataType} from '@alipay/r3-base';
-import {Texture2D} from '@alipay/r3-material';
+import {vec4} from '@alipay/o3-math';
+import {DataType} from '@alipay/o3-base';
+import {Texture2D} from '@alipay/o3-material';
 import {CommonMaterial} from './CommonMaterial';
-import {LightFeature, ADirectLight} from '@alipay/r3-lighting';
+import {LightFeature, ADirectLight} from '@alipay/o3-lighting';
 import LambertShader from './shader/Lambert.glsl';
 
 /**
@@ -140,13 +140,13 @@ export class LambertMaterial extends CommonMaterial {
 
     const macros = super._generateMacros();
 
-    macros.push('R3_NEED_WORLDPOS');
+    macros.push('O3_NEED_WORLDPOS');
 
     if (this._directLightCount > 0)
-      macros.push(`R3_DIRECT_LIGHT_COUNT ${this._directLightCount}`);
+      macros.push(`O3_DIRECT_LIGHT_COUNT ${this._directLightCount}`);
 
     if (this._diffuse instanceof Texture2D)
-      macros.push('R3_DIFFUSE_TEXTURE');
+      macros.push('O3_DIFFUSE_TEXTURE');
 
     return macros;
 

@@ -17,7 +17,7 @@ let fileDirs;
 if (!LERNA_PACKAGE_NAME) {
   console.log("build all");
   const pkgDir = path.join(__dirname, 'packages');
-  const getDirs = p => fs.readdirSync(p).filter(f => fs.statSync(path.join(p, f)).isDirectory() && f !== "r3-examples");
+  const getDirs = p => fs.readdirSync(p).filter(f => fs.statSync(path.join(p, f)).isDirectory() && f !== "o3-examples");
 
   fileDirs = getDirs(pkgDir);
 } else {
@@ -36,7 +36,7 @@ const pkg = (name, type) => {
 let promises = [...fileDirs.map(name => pkg(name, 'module'))];
 
 if (process.env.NODE_ENV === 'BUILD') {
-  promises = [...['r3'].map(name => pkg(name, 'compress'))];
+  promises = [...['o3'].map(name => pkg(name, 'compress'))];
 }
 
 

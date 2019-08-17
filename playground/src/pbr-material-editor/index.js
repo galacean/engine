@@ -1,15 +1,15 @@
-import {Engine} from '@alipay/r3-core';
-import {DrawMode} from "@alipay/r3-base";
-import {ResourceLoader, Resource} from '@alipay/r3-loader';
-import {AGeometryRenderer} from '@alipay/r3-geometry';
-import {ADefaultCamera} from '@alipay/r3-default-camera';
-import {AOrbitControls} from '@alipay/r3-orbit-controls';
-import {AEnvironmentMapLight, PBRMaterial} from '@alipay/r3-pbr';
-import {SphereGeometry} from '@alipay/r3-geometry-shape';
-import {ASkyBox} from '@alipay/r3-skybox';
-import {AAmbientLight, ADirectLight, APointLight, ASpotLight} from '@alipay/r3-lighting';
+import {Engine} from '@alipay/o3-core';
+import {DrawMode} from "@alipay/o3-base";
+import {ResourceLoader, Resource} from '@alipay/o3-loader';
+import {AGeometryRenderer} from '@alipay/o3-geometry';
+import {ADefaultCamera} from '@alipay/o3-default-camera';
+import {AOrbitControls} from '@alipay/o3-orbit-controls';
+import {AEnvironmentMapLight, PBRMaterial} from '@alipay/o3-pbr';
+import {SphereGeometry} from '@alipay/o3-geometry-shape';
+import {ASkyBox} from '@alipay/o3-skybox';
+import {AAmbientLight, ADirectLight, APointLight, ASpotLight} from '@alipay/o3-lighting';
 import * as dat from 'dat.gui';
-import '@alipay/r3-engine-stats';
+import '@alipay/o3-engine-stats';
 
 let engine = new Engine();
 let scene = engine.currentScene;
@@ -33,9 +33,9 @@ directLightNode.setRotationAngles(180, 0, 0);
 let envLight = envLightNode.createAbility(AEnvironmentMapLight, {});
 
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 10, 20]
+  canvas: 'o3-demo', position: [0, 10, 20]
 });
-let controler = cameraNode.createAbility(AOrbitControls, {canvas: document.getElementById('r3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, {canvas: document.getElementById('o3-demo')});
 
 
 let renderer = ballNode.createAbility(AGeometryRenderer);

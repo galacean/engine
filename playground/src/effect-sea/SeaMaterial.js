@@ -1,5 +1,5 @@
-import { DataType } from '@alipay/r3-base';
-import { Material, RenderTechnique } from '@alipay/r3-material';
+import { DataType } from '@alipay/o3-base';
+import { Material, RenderTechnique } from '@alipay/o3-material';
 
 
  //-- 创建一个新的 Technique

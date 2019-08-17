@@ -1,4 +1,4 @@
-import { Node } from '@alipay/r3-core';
+import { Node } from '@alipay/o3-core';
 import { ARfuiRenderer } from './rfuiRenderer';
 import { ARenderEachRow } from './ability';
 

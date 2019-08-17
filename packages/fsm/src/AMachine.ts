@@ -1,4 +1,4 @@
-import {NodeAbility} from '@alipay/r3-core';
+import {NodeAbility} from '@alipay/o3-core';
 import {Machine} from './Machine';
 
 /**

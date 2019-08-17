@@ -1,7 +1,7 @@
-import { RenderPass } from '@alipay/r3-renderer-basic';
-import { ScreenQuad } from '@alipay/r3-post-processing';
-import { Material, RenderTechnique } from '@alipay/r3-material';
-import { UniformSemantic, DataType, RenderState, FrontFace } from '@alipay/r3-base';
+import { RenderPass } from '@alipay/o3-renderer-basic';
+import { ScreenQuad } from '@alipay/o3-post-processing';
+import { Material, RenderTechnique } from '@alipay/o3-material';
+import { UniformSemantic, DataType, RenderState, FrontFace } from '@alipay/o3-base';
 
 class RippleMaterial extends Material {
   constructor() {

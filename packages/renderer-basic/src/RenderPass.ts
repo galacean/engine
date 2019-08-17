@@ -1,4 +1,4 @@
-import { ClearMode, MaskList } from '@alipay/r3-base';
+import { ClearMode, MaskList } from '@alipay/o3-base';
 
 let passNum = 0;
 

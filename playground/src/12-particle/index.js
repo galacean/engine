@@ -1,14 +1,14 @@
-import { Engine } from '@alipay/r3-core';
-import { ClearMode, BlendFunc, Logger } from '@alipay/r3-base';
-import { GLRenderHardware } from '@alipay/r3-rhi-webgl';
-import { BasicSceneRenderer } from '@alipay/r3-renderer-basic';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { AGPUParticleSystem } from '@alipay/r3-particle';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { Resource, ResourceLoader } from '@alipay/r3-loader';
+import { Engine } from '@alipay/o3-core';
+import { ClearMode, BlendFunc, Logger } from '@alipay/o3-base';
+import { GLRenderHardware } from '@alipay/o3-rhi-webgl';
+import { BasicSceneRenderer } from '@alipay/o3-renderer-basic';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { AGPUParticleSystem } from '@alipay/o3-particle';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { Resource, ResourceLoader } from '@alipay/o3-loader';
 
-import { vec3 } from '@alipay/r3-math';
-import '@alipay/r3-engine-stats';
+import { vec3 } from '@alipay/o3-math';
+import '@alipay/o3-engine-stats';
 
 Logger.enable();
 
@@ -104,7 +104,7 @@ const config = {
 //-- create camera
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, 20],
+  canvas: 'o3-demo', position: [0, 0, 20],
   far: 100,
   near: 1
 });

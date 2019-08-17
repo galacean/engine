@@ -1,7 +1,7 @@
 'use strict';
 
-import { NodeAbility } from '@alipay/r3-core';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
+import { NodeAbility } from '@alipay/o3-core';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
 
 export default class AGeometryScale extends NodeAbility {
   constructor(node) {

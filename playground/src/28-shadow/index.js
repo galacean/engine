@@ -1,16 +1,16 @@
-import { Logger } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import { AAnimation } from '@alipay/r3-animation';
-import { ADirectLight, APointLight } from '@alipay/r3-lighting';
-import { vec3 } from '@alipay/r3-math';
-import '@alipay/r3-loader-gltf';
-import '@alipay/r3-shadow';
-import { Sprite, ASpriteRenderer } from "@alipay/r3-2d";
+import { Logger } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { AAnimation } from '@alipay/o3-animation';
+import { ADirectLight, APointLight } from '@alipay/o3-lighting';
+import { vec3 } from '@alipay/o3-math';
+import '@alipay/o3-loader-gltf';
+import '@alipay/o3-shadow';
+import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
 
-import { ConstantMaterial, BlinnPhongMaterial } from '@alipay/r3-mobile-material';
+import { ConstantMaterial, BlinnPhongMaterial } from '@alipay/o3-mobile-material';
 import { PlaneGeometry } from "../common/PlaneGeometry";
 import { ACircleMove } from './ACircleMove';
 
@@ -25,7 +25,7 @@ let rootNode = scene.root;
 //-- 创建相机
 let cameraNode = rootNode.createChild('camera_node');
 cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, -8], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 0, -8], target: [0, 0, 0]
 });
 
 //-- 创建一个点光源和一个方向光

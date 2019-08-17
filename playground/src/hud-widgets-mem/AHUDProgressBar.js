@@ -1,6 +1,6 @@
 import {
   AHUDWidget
-} from '@alipay/r3-hud';
+} from '@alipay/o3-hud';
 
 /**
  * 进度条控件

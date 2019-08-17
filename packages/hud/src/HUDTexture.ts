@@ -1,5 +1,5 @@
-import { Texture2D } from '@alipay/r3-material';
-import { Logger, Util } from '@alipay/r3-base';
+import { Texture2D } from '@alipay/o3-material';
+import { Logger, Util } from '@alipay/o3-base';
 
 /**
  * HUD贴图对象，内置一个2D的Canvas

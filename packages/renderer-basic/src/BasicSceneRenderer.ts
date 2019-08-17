@@ -1,10 +1,10 @@
-import { vec3 } from '@alipay/r3-math';
+import { vec3 } from '@alipay/o3-math';
 import { RenderPass } from './RenderPass';
 import { RenderQueue } from './RenderQueue';
-import { SceneVisitor, NodeAbility, Node, ACamera } from '@alipay/r3-core';
+import { SceneVisitor, NodeAbility, Node, ACamera } from '@alipay/o3-core';
 import { SeparateSpritePass } from './SeparateSpritePass';
-import { MaterialType, ClearMode, MaskList } from '@alipay/r3-base';
-import { RenderTarget, Material } from '@alipay/r3-material';
+import { MaterialType, ClearMode, MaskList } from '@alipay/o3-base';
+import { RenderTarget, Material } from '@alipay/o3-material';
 
 /**
  * 使用指定的CameraComponent对象，渲染当前场景中的所有可见对象

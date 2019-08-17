@@ -1,7 +1,7 @@
-import {vec3, vec4} from '@alipay/r3-math';
-import {DataType} from '@alipay/r3-base';
-import {RenderTechnique, Texture2D, Material} from '@alipay/r3-material';
-import {LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight} from '@alipay/r3-lighting';
+import {vec3, vec4} from '@alipay/o3-math';
+import {DataType} from '@alipay/o3-base';
+import {RenderTechnique, Texture2D, Material} from '@alipay/o3-material';
+import {LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight} from '@alipay/o3-lighting';
 import {CommonMaterial} from './CommonMaterial';
 
 import BlinnPhongShader from './shader/BlinnPhong.glsl';
@@ -113,18 +113,18 @@ export class BlinnPhongMaterial extends CommonMaterial {
 
     const macros = super._generateMacros();
 
-    macros.push('R3_NEED_WORLDPOS');
+    macros.push('O3_NEED_WORLDPOS');
 
     if (this._diffuse instanceof Texture2D)
-      macros.push('R3_DIFFUSE_TEXTURE');
+      macros.push('O3_DIFFUSE_TEXTURE');
     if (this._specular instanceof Texture2D)
-      macros.push('R3_SPECULAR_TEXTURE');
+      macros.push('O3_SPECULAR_TEXTURE');
     if (this._directLightCount > 0)
-      macros.push(`R3_DIRECT_LIGHT_COUNT ${this._directLightCount}`);
+      macros.push(`O3_DIRECT_LIGHT_COUNT ${this._directLightCount}`);
     if (this._pointLightCount > 0)
-      macros.push(`R3_POINT_LIGHT_COUNT ${this._pointLightCount}`);
+      macros.push(`O3_POINT_LIGHT_COUNT ${this._pointLightCount}`);
     if (this._spotLightCount > 0)
-      macros.push(`R3_SPOT_LIGHT_COUNT ${this._spotLightCount}`);
+      macros.push(`O3_SPOT_LIGHT_COUNT ${this._spotLightCount}`);
 
     return macros;
 

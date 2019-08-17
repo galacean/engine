@@ -1,4 +1,4 @@
-import { Easing } from '@alipay/r3-tween';
+import { Easing } from '@alipay/o3-tween';
 export function getNodesConfig(textures, duration = 1000, scaleX = 2) {
 	return [
 		{

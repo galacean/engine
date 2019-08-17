@@ -1,17 +1,17 @@
-import { vec3, mat4 } from '@alipay/r3-math';
-import { Logger, TextureFilter } from '@alipay/r3-base';
-import { Engine, SceneVisitor } from '@alipay/r3-core';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import { RegistExtension } from '@alipay/r3-loader-gltf';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
-import { AEnvironmentMapLight, PBRMaterial } from '@alipay/r3-pbr';
-import { ASkyBox } from '@alipay/r3-skybox';
-import { ADirectLight } from '@alipay/r3-lighting';
-import '@alipay/r3-engine-stats';
-import '@alipay/r3-shadow';
+import { vec3, mat4 } from '@alipay/o3-math';
+import { Logger, TextureFilter } from '@alipay/o3-base';
+import { Engine, SceneVisitor } from '@alipay/o3-core';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { RegistExtension } from '@alipay/o3-loader-gltf';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { AEnvironmentMapLight, PBRMaterial } from '@alipay/o3-pbr';
+import { ASkyBox } from '@alipay/o3-skybox';
+import { ADirectLight } from '@alipay/o3-lighting';
+import '@alipay/o3-engine-stats';
+import '@alipay/o3-shadow';
 
-import { PostProcessFeature, addDepthPass, DepthOfFieldEffect } from '@alipay/r3-post-processing';
+import { PostProcessFeature, addDepthPass, DepthOfFieldEffect } from '@alipay/o3-post-processing';
 import { ResourceList } from '../common/PBRResourceList';
 import { createControllerUI } from '../common/ControllerUI';
 
@@ -28,11 +28,11 @@ let rootNode = scene.root;
 let cameraNode = rootNode.createChild('camera_node');
 
 let cameraProps = {
-  canvas: 'r3-demo', position: [280, 100, 280], near: 1, far: 1000,
+  canvas: 'o3-demo', position: [280, 100, 280], near: 1, far: 1000,
   clearParam: [0, 0, 0, 0]
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
 
 //-- create light
 let light = rootNode.createChild("light");

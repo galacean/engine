@@ -1,19 +1,19 @@
 {
-  "name": "@alipay/r3-request",
+  "name": "@alipay/o3-request",
   "version": "1.5.4-alpha.9",
-  "description": "R3 request lib",
+  "description": "Oasis3D request lib",
   "keywords": [
-    "r3",
+    "Oasis3D",
     "webgl"
   ],
   "author": "",
-  "homepage": "http://antg.alipay.net",
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
     "type": "git",
-    "url": "http://gitlab.alipay-inc.com/r3/r3.git"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
   "bugs": {
-    "url": "http://gitlab.alipay-inc.com/r3/r3/issues"
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
   "license": "MIT",
   "types": "types/index.d.ts",

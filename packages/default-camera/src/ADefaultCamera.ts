@@ -1,7 +1,7 @@
-import {ACamera} from '@alipay/r3-core';
-import {ClearMode} from '@alipay/r3-base';
-import {GLRenderHardware} from '@alipay/r3-rhi-webgl';
-import {BasicSceneRenderer} from '@alipay/r3-renderer-basic';
+import {ACamera} from '@alipay/o3-core';
+import {ClearMode} from '@alipay/o3-base';
+import {GLRenderHardware} from '@alipay/o3-rhi-webgl';
+import {BasicSceneRenderer} from '@alipay/o3-renderer-basic';
 
 /**
  * 辅助创建默认相机，基于{@link ACamera}

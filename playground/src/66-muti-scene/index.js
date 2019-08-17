@@ -1,19 +1,19 @@
-import { Logger } from '@alipay/r3-base';
-import { Engine } from '@alipay/r3-core';
-import { AGeometryRenderer } from '@alipay/r3-geometry';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import { AAnimation } from '@alipay/r3-animation';
-import { ADirectLight, APointLight } from '@alipay/r3-lighting';
-import { vec3 } from '@alipay/r3-math';
-import '@alipay/r3-loader-gltf';
-import '@alipay/r3-shadow';
-import { Sprite, ASpriteRenderer } from "@alipay/r3-2d";
-import { ConstantMaterial } from '@alipay/r3-mobile-material';
+import { Logger } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { AAnimation } from '@alipay/o3-animation';
+import { ADirectLight, APointLight } from '@alipay/o3-lighting';
+import { vec3 } from '@alipay/o3-math';
+import '@alipay/o3-loader-gltf';
+import '@alipay/o3-shadow';
+import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
+import { ConstantMaterial } from '@alipay/o3-mobile-material';
 import { PlaneGeometry } from "../common/PlaneGeometry";
 import { ACircleMove } from './ACircleMove';
-import { RenderTarget } from '@alipay/r3-material'
-import { PostProcessFeature, VignetteEffect } from '@alipay/r3-post-processing';
+import { RenderTarget } from '@alipay/o3-material'
+import { PostProcessFeature, VignetteEffect } from '@alipay/o3-post-processing';
 
 Logger.enable();
 
@@ -31,12 +31,12 @@ engine.currentScene = scene1;
 //-- 创建相机
 let cameraNode = rootNode.createChild('camera_node');
 cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, -8], target: [0, 0, 0], clearParam: [1,0,0,1]
+  canvas: 'o3-demo', position: [0, 0, -8], target: [0, 0, 0], clearParam: [1,0,0,1]
 });
 
 let cameraNode1 = rootNode1.createChild('camera1_node');
 let camera1 = cameraNode1.createAbility(ADefaultCamera, {
-  canvas: 'r3-demo', position: [0, 0, -8], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 0, -8], target: [0, 0, 0]
 })
 let s2RT = new RenderTarget('scene2', { width: 1024, height: 1024, clearColor: [ 0, 1, 1, 1 ] });
 camera1.sceneRenderer.defaultRenderPass.renderTarget = s2RT;

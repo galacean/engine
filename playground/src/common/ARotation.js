@@ -1,6 +1,6 @@
 'use strict';
 
-import { NodeAbility } from '@alipay/r3-core';
+import { NodeAbility } from '@alipay/o3-core';
 
 export default class ARotation extends NodeAbility {
   constructor(node) {

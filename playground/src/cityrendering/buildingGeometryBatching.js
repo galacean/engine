@@ -1,8 +1,8 @@
-import { vec3,vec4} from '@alipay/r3-math';
-import { BufferUsage } from '@alipay/r3-base';
-import { IndexBufferGeometry,BufferGeometry} from '@alipay/r3-geometry';
-import '@alipay/r3-engine-stats';
-import { DataType } from '@alipay/r3-base';
+import { vec3,vec4} from '@alipay/o3-math';
+import { BufferUsage } from '@alipay/o3-base';
+import { IndexBufferGeometry,BufferGeometry} from '@alipay/o3-geometry';
+import '@alipay/o3-engine-stats';
+import { DataType } from '@alipay/o3-base';
 import {FIXHEIGHT} from './constant';
 
 

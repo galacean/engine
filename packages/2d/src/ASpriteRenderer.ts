@@ -1,5 +1,5 @@
-import {NodeAbility} from '@alipay/r3-core';
-import {vec3, quat} from '@alipay/r3-math';
+import {NodeAbility} from '@alipay/o3-core';
+import {vec3, quat} from '@alipay/o3-math';
 
 /**
  * Sprite渲染管理器

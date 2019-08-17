@@ -1,6 +1,6 @@
-import { ClearMode } from "@alipay/r3-base";
+import { ClearMode } from "@alipay/o3-base";
 import { NodeAbility } from "./NodeAbility";
-import { mat4, vec4, vec3, vec2, MathUtil } from "@alipay/r3-math";
+import { mat4, vec4, vec3, vec2, MathUtil } from "@alipay/o3-math";
 import { Node } from "./Node";
 
 const vec3Cache = vec3.create();

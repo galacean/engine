@@ -1,14 +1,14 @@
-import { Engine } from '@alipay/r3-core';
-import { ADefaultCamera } from '@alipay/r3-default-camera';
-import { ResourceLoader, Resource } from '@alipay/r3-loader';
-import { AAnimation } from '@alipay/r3-animation';
-import { AAmbientLight, ADirectLight, APointLight, ASpotLight } from '@alipay/r3-lighting';
-import { BlinnPhongMaterial } from '@alipay/r3-mobile-material';
-import { vec3, vec4 } from '@alipay/r3-math';
-import { AOrbitControls } from '@alipay/r3-orbit-controls';
+import { Engine } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { AAnimation } from '@alipay/o3-animation';
+import { AAmbientLight, ADirectLight, APointLight, ASpotLight } from '@alipay/o3-lighting';
+import { BlinnPhongMaterial } from '@alipay/o3-mobile-material';
+import { vec3, vec4 } from '@alipay/o3-math';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
 
-import '@alipay/r3-loader-gltf';
-import '@alipay/r3-engine-stats';
+import '@alipay/o3-loader-gltf';
+import '@alipay/o3-engine-stats';
 
 // 创建引擎、获取场景根节点
 const engine = new Engine();
