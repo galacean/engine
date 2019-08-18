@@ -1,6 +1,6 @@
 import GLTexture from './GLTexture';
 import { CubeMapFace } from '@alipay/o3-base';
-import { GLRenderHardware } from '../../o3/src';
+import { GLRenderHardware } from './GLRenderHardware';
 
 /**
  * GL CubeMap 资源管理

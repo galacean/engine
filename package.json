@@ -6,6 +6,10 @@
   "module": "dist/index.module.js",
   "browser": "dist/index.browser.js",
   "types": "types/index.d.ts",
+  "private": true,
+  "bin": {
+    "o3": "./scripts/create.module.js"
+  },
   "workspaces": [
     "packages/*"
   ],
@@ -22,6 +26,7 @@
     "b:all": "npm-run-all --parallel b:types build b:umd",
     "b:doc": "node scripts/build.doc.js",
     "b:umd": "cross-env NODE_ENV=BUILD rollup -c",
+    "c:module": "node scripts/create.module.js",
     "release": "lerna publish prerelease --yes",
     "release:recover": "lerna publish prerelease from-package --yes",
     "webpack-dev-server": "webpack-dev-server --config playground/build/webpack.config.mpa.js",
@@ -52,11 +57,12 @@
     "babel-loader": "^8.0.6",
     "babel-plugin-external-helpers": "^6.22.0",
     "chalk": "^2.4.2",
+    "copy-dir": "^1.1.0",
     "cross-env": "^5.2.0",
     "fs-extra": "^8.1.0",
     "html-webpack-plugin": "^4.0.0-beta.5",
     "husky": "^2.2.0",
-    "inquirer": "^6.5.0",
+    "inquirer": "^6.5.1",
     "jest": "^24.8.0",
     "jsdoc-babel": "^0.5.0",
     "jsdoc-to-markdown": "^5.0.0",
@@ -64,6 +70,7 @@
     "lodash": "^4.17.11",
     "node-fetch": "^2.6.0",
     "npm-run-all": "^4.1.5",
+    "prettier": "1.18.2",
     "raw-loader": "^2.0.0",
     "rollup": "^1.17.0",
     "rollup-plugin-babel": "^4.3.3",
