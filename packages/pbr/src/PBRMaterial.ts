@@ -1057,10 +1057,6 @@ class PBRMaterial extends Material {
       _macros.push('MANUAL_SRGB');
     if (this._stateObj.gamma)
       _macros.push('GAMMA');
-    if (this._stateObj.doubleSided)
-      _macros.push('O3_DOUBLE_SIDE');
-    if (this._stateObj.side === Side.BACK)
-      _macros.push('O3_BACK_SIDE');
     if (this._stateObj.isMetallicWorkflow)
       _macros.push('IS_METALLIC_WORKFLOW');
     if (this._stateObj.premultipliedAlpha)
