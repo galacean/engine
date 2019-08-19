@@ -139,7 +139,6 @@ export class TextureMaterial extends Material {
 
     if (value) {
       this._technique.states.disable.push(RenderState.CULL_FACE);
-      this._technique.customMacros.push('O3_DOUBLE_SIDE');
     }
   }
 }
