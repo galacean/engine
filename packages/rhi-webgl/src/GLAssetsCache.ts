@@ -102,7 +102,7 @@ export class GLAssetsCache {
     for (const name in this._objectSet) {
 
       const obj = this._objectSet[name];
-      obj.finalize();
+      obj.finalize(true);
 
     }
     this._objectSet = {};

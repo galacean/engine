@@ -1,12 +1,12 @@
-import { DataType } from "@alipay/o3-base";
-import { mat4 } from "@alipay/o3-math";
-import { GLShaderProgram } from "./GLShaderProgram";
-import { Logger } from "@alipay/o3-base";
-import { GLTexture2D } from "./GLTexture2D";
-import { GLTextureCubeMap } from "./GLTextureCubeMap";
-import { GLRenderHardware } from "./GLRenderHardware";
-import { RenderTechnique } from "@alipay/o3-material";
-import { GLRenderStates } from "./GLRenderStates";
+import {DataType} from "@alipay/o3-base";
+import {mat4} from "@alipay/o3-math";
+import {GLShaderProgram} from "./GLShaderProgram";
+import {Logger} from "@alipay/o3-base";
+import {GLTexture2D} from "./GLTexture2D";
+import {GLTextureCubeMap} from "./GLTextureCubeMap";
+import {GLRenderHardware} from "./GLRenderHardware";
+import {RenderTechnique} from "@alipay/o3-material";
+import {GLRenderStates} from "./GLRenderStates";
 
 var UniformDefaults = {};
 UniformDefaults[DataType.FLOAT] = 0.0;
@@ -34,13 +34,8 @@ export class GLTechnique {
 
     const gl: WebGLRenderingContext = rhi.gl;
 
-    //-- 编译 Shader
-    this._program = new GLShaderProgram(gl);
-    this._program.createFromSource(
-      tech.vertexShader,
-      tech.fragmentShader,
-      tech.attribLocSet
-    );
+    //-- 编译shader 或者从缓存中捞program
+    this._program = GLShaderProgram.requireProgram(tech, gl);
 
     const glProgram = this._program.program;
 
@@ -51,7 +46,7 @@ export class GLTechnique {
       this._attributes[name] = {
         name,
         semantic: attributes[name].semantic,
-        location: gl.getAttribLocation(glProgram, name)
+        location: this._program.getAttribLocation(glProgram, name)
       };
     }
 
@@ -59,11 +54,11 @@ export class GLTechnique {
     this._uniforms = {};
     const uniforms = tech.uniforms;
     for (const name in uniforms) {
-      const loc = gl.getUniformLocation(glProgram, name);
+      const loc = this._program.getUniformLocation(glProgram, name);
       if (!(loc !== 0 && !loc)) {
         this._uniforms[name] = {
           name,
-          location: gl.getUniformLocation(glProgram, name)
+          location: this._program.getUniformLocation(glProgram, name)
         };
       } else {
         delete uniforms[name];
@@ -74,8 +69,8 @@ export class GLTechnique {
   /**
    * 释放 GL 资源
    */
-  finalize() {
-    if (this._program) {
+  finalize(forceDispose) {
+    if (this._program && forceDispose) {
       this._program.finalize();
       this._program = null;
     }
@@ -178,7 +173,7 @@ export class GLTechnique {
           : [functions[name]];
         const func = stateManager[name];
         func.apply(stateManager, args);
-      } 
+      }
     }
   }
 
