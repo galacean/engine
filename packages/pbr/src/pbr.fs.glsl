@@ -103,6 +103,13 @@ uniform float u_clearCoatRoughness;
 
 uniform vec2 u_resolution;
 
+#ifdef HAS_PERTURBATIONMAP
+    uniform sampler2D u_perturbationSampler;
+    uniform float u_perturbationUOffset;
+    uniform float u_perturbationVOffset;
+#endif
+
+
 // structures
 struct IncidentLight {
     vec3 color;
@@ -629,9 +636,9 @@ void main() {
     #if defined(ALPHA_BLEND) && defined(HAS_OPACITYMAP)
 
         #ifdef GETOPACITYFROMRGB
-            diffuseColor.a*=getLuminance(texture2D( u_opacitySampler, uv ).rgb);
+            diffuseColor.a *= getLuminance(texture2D( u_opacitySampler, uv ).rgb);
         #else
-            diffuseColor.a*=texture2D( u_opacitySampler, uv ).a;
+            diffuseColor.a *= texture2D( u_opacitySampler, uv ).a;
         #endif
 
     #endif
@@ -828,6 +835,15 @@ void main() {
     #ifdef GAMMA
         float gamma = 2.2;
         gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0/gamma));
+    #endif
+
+    #ifdef HAS_PERTURBATIONMAP
+        vec4 screenColor = texture2D(u_perturbationSampler, getScreenUv() + vec4(u_viewMat * vec4(normal, 1.)).xy * vec2(u_perturbationUOffset, u_perturbationVOffset));
+        if (gl_FragColor.a < 1.) {
+           // mock alpha blend
+           gl_FragColor *=  gl_FragColor.a;
+           gl_FragColor += (1.0 - gl_FragColor.a)  * screenColor;
+        }
     #endif
 
     #include <fog_frag>

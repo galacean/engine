@@ -59,6 +59,10 @@ class PBRMaterial extends Material {
    * @param {number} [props.refractionRatio] 折射模式时的折射率的比例，如真空折射率/水折射率=1/1.33;
    * @param {boolean} [props.envMapModeRefract=false] 全局环境贴图使用 反射或者折射 模式;
    * @param {boolean} [props.useScreenUv=false] 是否使用屏幕坐标的uv，代替纹理uv
+   *
+   * @param {Texture2D} [props.perturbationTexture] 扰动纹理
+   * @param {number} [props.perturbationUOffset] 扰动纹理U偏移
+   * @param {number} [props.perturbationVOffset] 扰动纹理V偏移
    */
   constructor(name = PBRMaterial.MATERIAL_NAME, props = {}) {
 
@@ -95,6 +99,11 @@ class PBRMaterial extends Material {
       // reflect,refract
       envMapIntensity: 1,
       refractionRatio: .98,
+
+      // perturbation
+      perturbationUOffset: 0,
+      perturbationVOffset: 0
+
     };
 
     this._stateObj = {
@@ -103,7 +112,7 @@ class PBRMaterial extends Material {
       side: Side.FRONT,
       unlit: false,
       srgb: false,
-      srgbFast: true,
+      srgbFast: false,
       gamma: false,
       blendFunc: [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA],
       depthMask: [false],
@@ -192,7 +201,15 @@ class PBRMaterial extends Material {
         case 'refractionRatio':
           this.refractionRatio = obj[key];
           break;
-
+        case 'perturbationTexture':
+          this.perturbationTexture = obj[key];
+          break;
+        case 'perturbationUOffset':
+          this.perturbationUOffset = obj[key];
+          break;
+        case 'perturbationVOffset':
+          this.perturbationVOffset = obj[key];
+          break;
         default:
           break;
 
@@ -287,7 +304,8 @@ class PBRMaterial extends Material {
           'emissiveTexture',
           'occlusionTexture',
           'opacityTexture',
-          'specularGlossinessTexture'
+          'specularGlossinessTexture',
+          'perturbationTexture',
         ].indexOf(paramName) !== -1) {
           if ((this[paramName] && value == null) || (!this[paramName] && value)) {
             this._technique = null;
@@ -299,7 +317,9 @@ class PBRMaterial extends Material {
 
   }
 
-  /**
+  /****************************************   uniform start **************************************** /
+
+   /**
    * 基础颜色因子
    * @type {Array}
    */
@@ -648,8 +668,60 @@ class PBRMaterial extends Material {
 
   }
 
+  /**
+   * 扰动纹理U偏移
+   * @type {number}
+   */
+  get perturbationUOffset() {
+
+    return this._uniformObj.perturbationUOffset;
+
+  }
+
+  set perturbationUOffset(v) {
+
+    this.setValueByParamName('perturbationUOffset', v);
+    this._uniformObj.perturbationUOffset = v;
+
+  }
 
   /**
+   * 扰动纹理
+   * @type {Texture2D}
+   */
+  get perturbationTexture() {
+
+    return this._uniformObj.perturbationTexture;
+
+  }
+
+  set perturbationTexture(v) {
+
+    this.setValueByParamName('perturbationTexture', v);
+    this._uniformObj.perturbationTexture = v;
+
+  }
+
+  /**
+   * 扰动纹理V偏移
+   * @type {number}
+   */
+  get perturbationVOffset() {
+
+    return this._uniformObj.perturbationVOffset;
+
+  }
+
+  set perturbationVOffset(v) {
+
+    this.setValueByParamName('perturbationVOffset', v);
+    this._uniformObj.perturbationVOffset = v;
+
+  }
+
+  /****************************************   uniform end **************************************** /
+
+   /**
    * alpha混合模式
    * @type {'OPAQUE'|'MASK'|'BLEND'}
    */
@@ -1015,6 +1087,8 @@ class PBRMaterial extends Material {
       _macros.push('HAS_OCCLUSIONMAP');
     if (uniforms.indexOf('u_specularGlossinessSampler') > -1)
       _macros.push('HAS_SPECULARGLOSSINESSMAP');
+    if (uniforms.indexOf('u_perturbationSampler') > -1)
+      _macros.push('HAS_PERTURBATIONMAP');
 
 
     if (this.alphaMode === 'MASK') {
@@ -1055,6 +1129,8 @@ class PBRMaterial extends Material {
       _macros.push('UNLIT');
     if (this._stateObj.srgb)
       _macros.push('MANUAL_SRGB');
+    if (this._stateObj.srgbFast)
+      _macros.push('SRGB_FAST_APPROXIMATION');
     if (this._stateObj.gamma)
       _macros.push('GAMMA');
     if (this._stateObj.isMetallicWorkflow)
@@ -1110,6 +1186,8 @@ class PBRMaterial extends Material {
       states.functions.depthMask = this._stateObj.depthMask;
       this.renderType = MaterialType.TRANSPARENT;
 
+    } else {
+      this.renderType = MaterialType.OPAQUE;
     }
 
     const lightUniforms = {};
@@ -1376,6 +1454,21 @@ class PBRMaterial extends Material {
         name: 'u_resolution',
         paramName: 'resolution',
         type: DataType.FLOAT_VEC2
+      },
+      u_perturbationSampler: {
+        name: 'u_perturbationSampler',
+        paramName: 'perturbationTexture',
+        type: DataType.SAMPLER_2D
+      },
+      u_perturbationUOffset: {
+        name: 'u_perturbationUOffset',
+        paramName: 'perturbationUOffset',
+        type: DataType.FLOAT
+      },
+      u_perturbationVOffset: {
+        name: 'u_perturbationVOffset',
+        paramName: 'perturbationVOffset',
+        type: DataType.FLOAT
       },
       // lights
       u_ambientLightColor: {
