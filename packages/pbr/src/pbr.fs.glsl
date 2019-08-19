@@ -155,15 +155,15 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
   #endif
 }
 
-vec3 getNormal()
+vec3 getNormal(vec2 uv)
 {
   #ifdef O3_HAS_NORMALMAP
     #ifndef O3_HAS_TANGENT
         #ifdef HAS_DERIVATIVES
             vec3 pos_dx = dFdx(v_pos);
             vec3 pos_dy = dFdy(v_pos);
-            vec3 tex_dx = dFdx(vec3(getUv(), 0.0));
-            vec3 tex_dy = dFdy(vec3(getUv(), 0.0));
+            vec3 tex_dx = dFdx(vec3(uv, 0.0));
+            vec3 tex_dy = dFdy(vec3(uv, 0.0));
             vec3 t = (tex_dy.t * pos_dx - tex_dx.t * pos_dy) / (tex_dx.s * tex_dy.t - tex_dy.s * tex_dx.t);
             #ifdef O3_HAS_NORMAL
                 vec3 ng = normalize(v_normal);
@@ -184,7 +184,7 @@ vec3 getNormal()
     #else
         mat3 tbn = v_TBN;
     #endif
-        vec3 n = texture2D(u_normalSampler, getUv() ).rgb;
+        vec3 n = texture2D(u_normalSampler, uv ).rgb;
         n = normalize(tbn * ((2.0 * n - 1.0) * vec3(u_normalScale, u_normalScale, 1.0)));
   #else
     #ifdef O3_HAS_NORMAL
@@ -205,13 +205,8 @@ vec3 getNormal()
   return n;
 }
 
-vec2 getUv(){
-  #ifdef  USE_SCREENUV
-    return gl_FragCoord.xy/u_resolution;
-  #else
-    return v_uv;
-  #endif
-
+vec2 getScreenUv(){
+    return gl_FragCoord.xy / u_resolution;
 }
 
 
@@ -595,13 +590,21 @@ float getLuminance(vec3 color)
 
 void main() {
 
+    #ifdef  USE_SCREENUV
+          vec2 uv = getScreenUv();
+    #else
+          vec2 uv = v_uv;
+    #endif
+
+    vec3 normal = getNormal(uv);
+
     vec4 diffuseColor = u_baseColorFactor;
     ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
     vec3 totalEmissiveRadiance = vec3(0.0);
 
     #ifdef HAS_BASECOLORMAP
 
-        vec4 baseMapColor = texture2D( u_baseColorSampler, getUv() );
+        vec4 baseMapColor = texture2D( u_baseColorSampler, uv );
         baseMapColor = SRGBtoLINEAR( baseMapColor );
         diffuseColor *= baseMapColor;
 
@@ -636,9 +639,9 @@ void main() {
     #if defined(ALPHA_BLEND) && defined(HAS_OPACITYMAP)
 
         #ifdef GETOPACITYFROMRGB
-            diffuseColor.a*=getLuminance(texture2D( u_opacitySampler, getUv() ).rgb);
+            diffuseColor.a*=getLuminance(texture2D( u_opacitySampler, uv ).rgb);
         #else
-            diffuseColor.a*=texture2D( u_opacitySampler, getUv() ).a;
+            diffuseColor.a*=texture2D( u_opacitySampler, uv ).a;
         #endif
 
     #endif
@@ -656,7 +659,7 @@ void main() {
 
         #ifdef HAS_METALROUGHNESSMAP
 
-            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, getUv() );
+            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, uv );
             metalnessFactor *= metalRoughMapColor.b;
             roughnessFactor *= metalRoughMapColor.g;
 
@@ -664,7 +667,7 @@ void main() {
 
         #ifdef HAS_SPECULARGLOSSINESSMAP
 
-            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, getUv() );
+            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, uv );
             specularFactor *= specularGlossinessColor.rgb;
             glossinessFactor *= specularGlossinessColor.a;
 
@@ -690,7 +693,7 @@ void main() {
 
         GeometricContext geometry;
         geometry.position = v_pos;
-        geometry.normal = getNormal();
+        geometry.normal = normal;
         geometry.viewDir = normalize( u_cameraPos - v_pos );
 
         // lights
@@ -803,7 +806,7 @@ void main() {
 
         #ifdef HAS_OCCLUSIONMAP
 
-            float ambientOcclusion = ( texture2D( u_occlusionSampler, getUv() ).r - 1.0 ) * u_occlusionStrength + 1.0;
+            float ambientOcclusion = ( texture2D( u_occlusionSampler, uv ).r - 1.0 ) * u_occlusionStrength + 1.0;
             reflectedLight.indirectDiffuse *= ambientOcclusion;
 
             #if defined( O3_HAS_SPECULARMAP )
@@ -817,7 +820,7 @@ void main() {
 
         #ifdef HAS_EMISSIVEMAP
 
-            vec4 emissiveMapColor = texture2D( u_emissiveSampler, getUv() );
+            vec4 emissiveMapColor = texture2D( u_emissiveSampler, uv );
             emissiveMapColor = SRGBtoLINEAR( emissiveMapColor );
             totalEmissiveRadiance += u_emissiveFactor * emissiveMapColor.rgb;
 
