@@ -1,0 +1,314 @@
+{
+	"asset": {
+		"extras": {
+			"exporterVersion" : "0.90"
+		},
+		"version": "2.0"
+	},
+	"accessors": [
+		{
+			"bufferView": 2,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 598,
+			"max": [ 0.01644918, 0.02092873, 0.01654142 ],
+			"min": [ -0.01644918, -1.051331E-05, -0.01654141 ],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 2,
+			"byteOffset": 7176,
+			"componentType": 5126,
+			"count": 598,
+			"max": [ 0.9979221, 0.9999919, 0.9999429 ],
+			"min": [ -0.9996713, -0.8490009, -0.999267 ],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 1,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 598,
+			"max": [ 0.2606385, 0.9947098 ],
+			"min": [ 0.006969368, 0.734252 ],
+			"type": "VEC2"
+		},
+		{
+			"bufferView": 3,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 598,
+			"max": [ 0.7996557, 1, 1, 1 ],
+			"min": [ -0.9167221, -0.9985513, -0.8325639, 1 ],
+			"type": "VEC4"
+		},
+		{
+			"bufferView": 0,
+			"byteOffset": 0,
+			"componentType": 5123,
+			"count": 3198,
+			"max": [ 597 ],
+			"min": [ 0 ],
+			"type": "SCALAR"
+		},
+		{
+			"bufferView": 2,
+			"byteOffset": 14352,
+			"componentType": 5126,
+			"count": 4280,
+			"max": [ 0.03245254, 0.2052799, 0.03231576 ],
+			"min": [ -0.03245254, -0.0002848897, -0.03231576 ],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 2,
+			"byteOffset": 65712,
+			"componentType": 5126,
+			"count": 4280,
+			"max": [ 0.9983891, 1, 0.9993332 ],
+			"min": [ -0.9988331, -0.9995641, -0.9987558 ],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 1,
+			"byteOffset": 4784,
+			"componentType": 5126,
+			"count": 4280,
+			"max": [ 0.9948505, 0.9898412 ],
+			"min": [ -0.0001495332, 0.008381814 ],
+			"type": "VEC2"
+		},
+		{
+			"bufferView": 3,
+			"byteOffset": 9568,
+			"componentType": 5126,
+			"count": 4280,
+			"max": [ 1, 0.6869633, 0.9998999, 1 ],
+			"min": [ -0.9995525, -0.6995457, -0.9998748, -1 ],
+			"type": "VEC4"
+		},
+		{
+			"bufferView": 0,
+			"byteOffset": 6396,
+			"componentType": 5123,
+			"count": 9210,
+			"max": [ 1658 ],
+			"min": [ 0 ],
+			"type": "SCALAR"
+		},
+		{
+			"bufferView": 0,
+			"byteOffset": 24816,
+			"componentType": 5123,
+			"count": 3456,
+			"max": [ 2219 ],
+			"min": [ 429 ],
+			"type": "SCALAR"
+		},
+		{
+			"bufferView": 0,
+			"byteOffset": 31728,
+			"componentType": 5123,
+			"count": 11610,
+			"max": [ 4279 ],
+			"min": [ 2220 ],
+			"type": "SCALAR"
+		}
+	],
+	"buffers": [
+		{
+			"byteLength": 289092,
+			"uri": "scene.bin"
+		}
+	],
+	"bufferViews": [
+		{
+			"buffer": 0,
+			"byteLength": 54948,
+			"target": 34963,
+			"byteOffset": 234144
+		},
+		{
+			"buffer": 0,
+			"byteLength": 39024,
+			"target": 34962,
+			"byteStride": 8,
+			"byteOffset": 0
+		},
+		{
+			"buffer": 0,
+			"byteLength": 117072,
+			"target": 34962,
+			"byteStride": 12,
+			"byteOffset": 39024
+		},
+		{
+			"buffer": 0,
+			"byteLength": 78048,
+			"target": 34962,
+			"byteStride": 16,
+			"byteOffset": 156096
+		}
+	],
+	"images": [
+		{
+			"uri": "textures/baseColor.jpg"
+		},
+		{
+			"uri": "textures/brdflut.jpg"
+		}
+
+	],
+	"materials": [
+		{
+			"pbrMetallicRoughness": {
+				"baseColorTexture" : {
+					"index" : 0,
+					"texCoord" : 0
+				},
+				"baseColorFactor": [1, 1, 1, 1],
+				"metallicFactor": 0,
+				"roughnessFactor": 0.58
+				},
+			"emissiveFactor": [0, 0, 0],
+			"doubleSided": true,
+			"name": "cap"
+		},
+		{
+			"pbrMetallicRoughness": {
+				"baseColorFactor": [1, 1, 1, 0.3],
+				"metallicFactor": 0.981,
+				"roughnessFactor": 0.067
+				},
+			"alphaMode": "BLEND",
+			"emissiveFactor": [0.6886792, 0.6886792, 0.6886792],
+			"doubleSided": false,
+			"name": "pingshen"
+		},
+		{
+			"pbrMetallicRoughness": {
+				"baseColorTexture" : {
+					"index" : 0,
+					"texCoord" : 0
+				},
+				"baseColorFactor": [1, 1, 1, 1],
+				"metallicFactor": 0,
+				"roughnessFactor": 0.5
+				},
+			"alphaMode": "OPAQUE",
+			"emissiveFactor": [0, 0, 0],
+			"doubleSided": true,
+			"name": "logo"
+		},
+		{
+			"pbrMetallicRoughness": {
+    		"baseColorFactor": [1, 1, 1, 0.3]
+    	},
+			"alphaMode": "BLEND",
+			"doubleSided": false,
+			"name": "water"
+		}
+	],
+	"meshes": [
+		{
+			"name": "bottleCap",
+			"primitives": [
+				{
+					"attributes":{
+						"POSITION": 0,
+						"NORMAL": 1,
+						"TEXCOORD_0": 2,
+						"TANGENT": 3
+					},
+					"indices": 4,
+					"material": 0,
+					"mode": 4
+				}
+			]
+		},
+		{
+			"name": "bottle",
+			"primitives": [
+				{
+					"attributes":{
+						"POSITION": 5,
+						"NORMAL": 6,
+						"TEXCOORD_0": 7,
+						"TANGENT": 8
+					},
+					"indices": 9,
+					"material": 1,
+					"mode": 4
+				},
+				{
+					"attributes":{
+						"POSITION": 5,
+						"NORMAL": 6,
+						"TEXCOORD_0": 7,
+						"TANGENT": 8
+					},
+					"indices": 10,
+					"material": 2,
+					"mode": 4
+				},
+				{
+					"attributes":{
+						"POSITION": 5,
+						"NORMAL": 6,
+						"TEXCOORD_0": 7,
+						"TANGENT": 8
+					},
+					"indices": 11,
+					"material": 3,
+					"mode": 4
+				}
+			]
+		}
+	],
+	"nodes": [
+		{
+			"name": "bottleCap",
+			"mesh": 0,
+			"translation": [ -0.0009066163, 0.2049174, -0.0004816108]
+		},
+		{
+			"name": "bottle",
+			"mesh": 1
+		},
+		{
+			"name": "农夫山泉_农夫山泉饮用天然水_550ml",
+			"children": [
+				1,
+				0
+			],
+			"matrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+		}
+	],
+	"samplers": [
+		{
+			"magFilter": 9729,
+			"minFilter": 9985,
+			"wrapS": 10497,
+			"wrapT": 10497
+		}
+	],
+	"scenes": [
+		{
+			"name":"defaultScene",
+			"nodes": [
+				2
+			]
+		}
+	],
+	"scene": 0,
+	"textures": [
+		{
+			"sampler": 0,
+			"source": 0
+		},
+		{
+			"sampler": 0,
+			"source": 1
+		}
+	]
+}
