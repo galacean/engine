@@ -1,78 +1,87 @@
-import { ShaderLib, InjectShaderSlices } from './ShaderLib';
-import { Logger } from '@alipay/o3-base';
+import {ShaderLib, InjectShaderSlices} from './ShaderLib';
+import {Logger} from '@alipay/o3-base';
 
-class ShaderFactory{
+class ShaderFactory {
 
-  static parseVersion( v ) {
+  static parseVersion(v) {
 
     return `#version ${v}\n`;
 
   }
 
-  static parsePrecision( p ) {
+  static parsePrecision(p) {
 
     return `precision ${p} float;\n` +
-           `precision ${p} int;\n`;
+      `precision ${p} int;\n`;
 
   }
 
-  static parseShaderName( name ) {
+  static parseShaderName(name) {
 
     return `#define O3_SHADER_NAME ${name}\n`;
 
   }
 
-  static parseAttributeMacros( macros ) {
+  static parseAttributeMacros(macros) {
 
     return '#define O3_ATTRIBUTE_MACROS_START\n' +
-           macros.map( m=>`#define ${m}\n` ).join( '' ) +
-           '#define O3_ATTRIBUTE_MACROS_END\n';
+      macros.map(m => `#define ${m}\n`).join('') +
+      '#define O3_ATTRIBUTE_MACROS_END\n';
 
   }
 
-  static parseCustomMacros( macros ) {
+  static parseCustomMacros(macros) {
 
     return '#define O3_CUSTOM_MACROS_START\n' +
-           macros.map( m=>`#define ${m}\n` ).join( '' ) +
-           '#define O3_CUSTOM_MACROS_END\n';
+      macros.map(m => `#define ${m}\n`).join('') +
+      '#define O3_CUSTOM_MACROS_END\n';
 
   }
 
-  static parseShader( src ) {
+  static parseShader(src) {
 
-    return ShaderFactory.parseIncludes( src );
+    return ShaderFactory.parseIncludes(src);
 
   }
 
-  static parseIncludes( src ) {
+  static parseIncludes(src) {
 
     const regex = /^[ \t]*#include +<([\w\d.]+)>/gm;
 
-    function replace( match, slice ) {
+    function replace(match, slice) {
 
-      var replace = ShaderLib[ slice ];
+      var replace = ShaderLib[slice];
 
-      if( replace === undefined ) {
+      if (replace === undefined) {
 
-        Logger.error( `Shader slice "${match.trim()}" not founded.` );
+        Logger.error(`Shader slice "${match.trim()}" not founded.`);
         return '';
 
       }
 
-      return ShaderFactory.parseIncludes( replace );
+      return ShaderFactory.parseIncludes(replace);
 
     }
 
-    return src.replace( regex, replace );
+    return src.replace(regex, replace);
 
   }
 
-  static InjectShaderSlices( slices ) {
+  static InjectShaderSlices(slices) {
 
-    InjectShaderSlices( slices );
+    InjectShaderSlices(slices);
 
   }
+
+  static parseExtension(extensions) {
+
+    return '#define O3_USE_EXTENSION_START\n' +
+      extensions.map(e => `#extension ${e} : enable\n`).join('') +
+      '#define O3_USE_EXTENSION_END\n';
+
+  }
+
 
 }
 
-export { ShaderFactory };
+export {ShaderFactory};
