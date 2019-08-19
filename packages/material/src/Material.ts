@@ -172,9 +172,18 @@ export class Material {
 
     }
 
-    this._technique.compile(camera, component, primitive);
+    this._technique.compile(camera, component, primitive, this);
 
   }
+
+  onBeforeCompile(tech: RenderTechnique) {
+    /** 在编译前可以自定义替换tech的shader,customMacros等配置
+     * @example
+     *  tech.fragmentShader=tech.fragmentShader.replace(**,**);
+     *  tech.fragmentPrecision='highp'
+     * */
+  }
+
 
   /**
    * 按照Uniform的Semantic，自动更新部分参数值

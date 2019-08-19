@@ -1,4 +1,4 @@
-import { ClearMode, MaskList } from '@alipay/o3-base';
+import {ClearMode, MaskList} from '@alipay/o3-base';
 
 let passNum = 0;
 
@@ -61,9 +61,12 @@ class RenderPass {
   }
 
   /**
-   * 用于自定义与场景无关的渲染过程，若 renderOverride 设为了 true 将被执行到
+   * 用于自定义的渲染过程，若 renderOverride 设为了 true 将被执行到
+   * @param {ACamera} camera 相机
+   * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
+   * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  render(camera) {
+  render(camera, opaqueQueue, transparentQueue) {
 
   }
 
@@ -89,4 +92,4 @@ class RenderPass {
 
 }
 
-export { RenderPass };
+export {RenderPass};
