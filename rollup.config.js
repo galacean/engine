@@ -1,23 +1,28 @@
 const fs = require('fs');
 const path = require('path');
-import { promisify } from 'util';
+import {promisify} from 'util';
 
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
 import babel from 'rollup-plugin-babel';
 import string from '@ali/rollup-plugin-string';
-import { terser } from "rollup-plugin-terser";
+import {terser} from "rollup-plugin-terser";
+import miniProgramPlugin from './rollup.miniprogram.plugin';
 
 const readFile = promisify(fs.readFile);
 
-const { LERNA_PACKAGE_NAME, PWD } = process.env;
+const {LERNA_PACKAGE_NAME, PWD, NODE_ENV} = process.env;
+const isMiniProgram = NODE_ENV === 'MINIPROGRAM';
 
 let fileDirs;
-// console.log(JSON.stringify(process.env));
+let excludeDirs = [
+  'o3-examples',
+  'component-miniprogram',
+]
 if (!LERNA_PACKAGE_NAME) {
   console.log("build all");
   const pkgDir = path.join(__dirname, 'packages');
-  const getDirs = p => fs.readdirSync(p).filter(f => fs.statSync(path.join(p, f)).isDirectory() && f !== "o3-examples");
+  const getDirs = p => fs.readdirSync(p).filter(f => fs.statSync(path.join(p, f)).isDirectory() && excludeDirs.indexOf(f) === -1);
 
   fileDirs = getDirs(pkgDir);
 } else {
@@ -29,20 +34,20 @@ if (!LERNA_PACKAGE_NAME) {
 const pkg = (name, type) => {
   const location = path.resolve(__dirname, 'packages', name);
   let main = path.join('src', 'index.ts');
-  return makeRollupConfig({ location, main, name, type });
+  return makeRollupConfig({location, main, name, type});
 };
 
 
 let promises = [...fileDirs.map(name => pkg(name, 'module'))];
 
-if (process.env.NODE_ENV === 'BUILD') {
+if (NODE_ENV === 'BUILD') {
   promises = [...['o3'].map(name => pkg(name, 'compress'))];
 }
 
 
 export default Promise.all(promises);
 
-async function makeRollupConfig({ location, main, name, type }) {
+async function makeRollupConfig({location, main, name, type}) {
   const extensions = [
     ".js", ".jsx", ".ts", ".tsx",
   ];
@@ -54,7 +59,7 @@ async function makeRollupConfig({ location, main, name, type }) {
   );
 
   const commonPlugins = [
-    resolve({ extensions, preferBuiltins: true }),
+    resolve({extensions, preferBuiltins: true}),
     string({
       include: /\.glsl$/
     }),
@@ -97,7 +102,23 @@ async function makeRollupConfig({ location, main, name, type }) {
       ],
     };
   }
-
+  if (isMiniProgram) {
+    return {
+      input,
+      output: [
+        {
+          format: 'cjs',
+          file: path.join(location, 'dist/miniprogram.js'),
+          sourcemap: true,
+        },
+      ],
+      external: Object.keys(pkg.dependencies || {}).concat('@alipay/o3-adapter-miniprogram').map(name => `${name}/dist/miniprogram`),
+      plugins: [
+        ...commonPlugins,
+        ...miniProgramPlugin,
+      ],
+    };
+  }
   return {
     input,
     output: [
@@ -118,5 +139,3 @@ async function makeRollupConfig({ location, main, name, type }) {
     ],
   };
 }
-
-

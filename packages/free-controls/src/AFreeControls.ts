@@ -101,8 +101,8 @@ export class AFreeControls extends NodeAbility {
     this.mainElement = props.mainElement || acamera.renderHardware.canvas;
     this.domElement = props.domElement || document;
 
-    if (!(this.mainElement instanceof HTMLElement)) {
-      Logger.warn('AOrbitControls must have a legal mainElement');
+    if (!(this.mainElement instanceof HTMLCanvasElement)) {
+      Logger.warn('AFreeControls must have a legal mainElement');
       return null;
     }
     this.movementSpeed = 1.0;

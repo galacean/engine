@@ -1,0 +1,7 @@
+<view class="full"
+      onTouchStart="onTouchStart"
+      onTouchMove="onTouchMove"
+      onTouchEnd="onTouchEnd"
+  >
+    <canvas class="full" id="canvas" type="webgl" / >
+</view>
