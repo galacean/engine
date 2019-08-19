@@ -62,6 +62,11 @@ export class RenderTechnique extends AssetObject {
    * @member {Array}
    */
   public customMacros = [];
+  /**
+   * 着色器使用的拓展
+   * @member {Array}
+   */
+  public fsExtension = ['GL_EXT_shader_texture_lod','GL_OES_standard_derivatives'];
 
   public _needCompile = true;
 
@@ -142,6 +147,7 @@ export class RenderTechnique extends AssetObject {
       if (!this._fsHeader || this._recreateHeader)
         this._fsHeader = ShaderFactory.parseVersion(this.version) +
           ShaderFactory.parseShaderName((this.name || 'VOID').toUpperCase() + '_FRAG') + '\n' +
+          ShaderFactory.parseExtension(this.fsExtension) +
           ShaderFactory.parsePrecision(this.fragmentPrecision) + '\n' +
           ShaderFactory.parseAttributeMacros(attribMacros) + '\n' +
           ShaderFactory.parseCustomMacros(this.customMacros) + '\n';
