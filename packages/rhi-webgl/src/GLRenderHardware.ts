@@ -163,6 +163,14 @@ export class GLRenderHardware {
         gl.clearColor(clearParam[0], clearParam[1], clearParam[2], clearParam[3]);
         gl.clear(gl.COLOR_BUFFER_BIT);
         break;
+      case ClearMode.STENCIL_ONLY:
+        gl.clear(gl.STENCIL_BUFFER_BIT);
+        break;
+      case ClearMode.ALL_CLEAR:
+        gl.clearColor(clearParam[0], clearParam[1], clearParam[2], clearParam[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+        break;
+
       case ClearMode.DONT_CLEAR: // dont clear
         break;
 

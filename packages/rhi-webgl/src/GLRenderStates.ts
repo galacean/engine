@@ -100,8 +100,13 @@ export class GLRenderStates {
 
     //-- stencilFunc
     this._parameters[gl.STENCIL_FUNC] = gl.ALWAYS;
-    this._parameters[gl.STENCIL_VALUE_MASK] = 1;
+    this._parameters[gl.STENCIL_VALUE_MASK] = 0xff;
     this._parameters[gl.STENCIL_REF] = 0;
+    gl.stencilFunc(gl.ALWAYS, 0, 0xff);
+
+    // -- stencilMask
+    this._parameters[gl.STENCIL_WRITEMASK] = 0xff;
+    gl.stencilMask(0xff);
 
     //-- stencilOp
     this._parameters[gl.STENCIL_FAIL] = gl.KEEP;

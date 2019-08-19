@@ -21,6 +21,10 @@ export enum ClearMode {
   DEPTH_ONLY = 2,
   /** 只清空颜色 */
   COLOR_ONLY = 3,
+  /** 只清空模版缓冲*/
+  STENCIL_ONLY = 4,
+  /** 清空所有缓冲区 */
+  ALL_CLEAR = 5,
 }
 
 /**
