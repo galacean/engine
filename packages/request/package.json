@@ -1,30 +1,19 @@
 {
   "name": "@alipay/o3-request",
-  "version": "1.5.4-alpha.9",
+  "version": "1.0.0",
   "description": "Oasis3D request lib",
-  "keywords": [
-    "Oasis3D",
-    "webgl"
-  ],
+  "keywords": ["Oasis3D", "webgl"],
   "author": "",
   "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
     "type": "git",
     "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
-  "bugs": {
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
-  },
+  "bugs": { "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues" },
   "license": "MIT",
   "types": "types/index.d.ts",
-  "scripts": {
-    "b:types": "tsc",
-    "test": "ruban test",
-    "debug": "ruban debug"
-  },
+  "scripts": { "b:types": "tsc", "test": "ruban test", "debug": "ruban debug" },
   "main": "dist/main.js",
   "module": "dist/module.js",
-  "publishConfig": {
-    "registry": "http://registry.npm.alibaba-inc.com"
-  }
+  "publishConfig": { "registry": "http://registry.npm.alibaba-inc.com" }
 }
