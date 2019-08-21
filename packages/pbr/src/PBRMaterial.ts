@@ -275,7 +275,7 @@ class PBRMaterial extends Material {
     Object.keys(uniforms).forEach(key => {
       const uniformName = uniforms[key].name;
       if (uniforms[key].paramName === paramName) {
-        if (value === null) {
+        if (value == null) {
           this.delValue(uniformName);
         } else {
           this.setValue(uniformName, value);
