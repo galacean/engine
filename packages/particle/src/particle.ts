@@ -335,7 +335,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         functions: {
           blendFunc: this.blendFunc,
           // todo question
-          depthMask: [DataType.FLOAT]
+          depthMask: [false]
         }
       }
     };
