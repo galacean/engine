@@ -15,6 +15,7 @@ import {RegistExtension} from '@alipay/o3-loader-gltf';
 import {RenderTarget} from '@alipay/o3-material';
 import {RenderPass} from '@alipay/o3-renderer-basic';
 import {Sprite, ASpriteRenderer} from "@alipay/o3-2d";
+import {PerturbationProbe} from '@alipay/o3-env-probe';
 
 RegistExtension({PBRMaterial});
 
@@ -358,10 +359,7 @@ debugModel('/static/model/perturbation-test/scene.gltf', (res) => {
   cap.srgb = true;
   cap.gamma = true;
   pingshen.envMapIntensity = 0.6;
-  let backRenderTarget = new RenderTarget('backFace', {
-    width: camera.canvas.width,
-    height: camera.canvas.height,
-  });
+  let backRenderTarget = new RenderTarget('backFace');
   let backRenderPass = new RenderPass('backFace', -1, backRenderTarget);
   backRenderPass.preRender = function () {
     pingshen.side = Side.BACK;
@@ -369,42 +367,16 @@ debugModel('/static/model/perturbation-test/scene.gltf', (res) => {
     logo.side = Side.BACK;
     cap.side = Side.BACK;
     water.perturbationTexture = null;
-    water.alphaMode = 'BLEND';
-
   }
-  camera.sceneRenderer.addRenderPass(backRenderPass);
-  let defaultRenderPass = camera.sceneRenderer.defaultRenderPass;
-  // defaultRenderPass.renderOverride = true;
-  // defaultRenderPass.render = function (camera) {
-  //   const rhi = camera.renderHardware;
-  //   const sceneRender = camera.sceneRenderer;
-  //
-  //   pingshen.side = Side.BACK;
-  //   water.side = Side.BACK;
-  //   logo.side = Side.BACK;
-  //   cap.side = Side.BACK;
-  //   // rhi.activeRenderTarget(backRenderTarget, camera);
-  //   sceneRender.renderQueue(defaultRenderPass, camera);
-  //
-  //   pingshen.side = Side.FRONT;
-  //   water.side = Side.FRONT;
-  //   logo.side = Side.FRONT;
-  //   cap.side = Side.FRONT;
-  //   rhi.activeRenderTarget(null, camera);
-  //   sceneRender.renderQueue(defaultRenderPass, camera);
-  // }
-  defaultRenderPass.preRender = function () {
+  backRenderPass.postRender = function () {
     pingshen.side = Side.FRONT;
     water.side = Side.FRONT;
     logo.side = Side.DOUBLE;
     cap.side = Side.DOUBLE;
     water.perturbationTexture = backRenderTarget.texture;
-    water.alphaMode = 'OPAQUE';
+  }
+  camera.sceneRenderer.addRenderPass(backRenderPass);
 
-  }
-  defaultRenderPass.postRender=function(){
-    // console.timeEnd('render')
-  }
   // showTexture(backRenderTarget.texture);
 });
 

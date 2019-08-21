@@ -668,22 +668,6 @@ class PBRMaterial extends Material {
 
   }
 
-  /**
-   * 扰动纹理U偏移
-   * @type {number}
-   */
-  get perturbationUOffset() {
-
-    return this._uniformObj.perturbationUOffset;
-
-  }
-
-  set perturbationUOffset(v) {
-
-    this.setValueByParamName('perturbationUOffset', v);
-    this._uniformObj.perturbationUOffset = v;
-
-  }
 
   /**
    * 扰动纹理
@@ -699,6 +683,23 @@ class PBRMaterial extends Material {
 
     this.setValueByParamName('perturbationTexture', v);
     this._uniformObj.perturbationTexture = v;
+
+  }
+
+  /**
+   * 扰动纹理U偏移
+   * @type {number}
+   */
+  get perturbationUOffset() {
+
+    return this._uniformObj.perturbationUOffset;
+
+  }
+
+  set perturbationUOffset(v) {
+
+    this.setValueByParamName('perturbationUOffset', v);
+    this._uniformObj.perturbationUOffset = v;
 
   }
 
@@ -1093,7 +1094,7 @@ class PBRMaterial extends Material {
 
     if (this.alphaMode === 'MASK') {
       _macros.push('ALPHA_MASK');
-    } else if (this.alphaMode === 'BLEND') {
+    } else if (this.alphaMode === 'BLEND' && !this.perturbationTexture) {
       _macros.push('ALPHA_BLEND');
       if (uniforms.indexOf('u_opacitySampler') > -1) {
         _macros.push('HAS_OPACITYMAP');
@@ -1179,7 +1180,7 @@ class PBRMaterial extends Material {
       }
 
     }
-    if (this.alphaMode === 'BLEND') {
+    if (this.alphaMode === 'BLEND' && !this.perturbationTexture) {
 
       states.enable.push(RenderState.BLEND);
       states.functions.blendFunc = this._stateObj.blendFunc;
