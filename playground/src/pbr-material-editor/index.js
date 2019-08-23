@@ -15,7 +15,6 @@ import {RegistExtension} from '@alipay/o3-loader-gltf';
 import {RenderTarget} from '@alipay/o3-material';
 import {RenderPass} from '@alipay/o3-renderer-basic';
 import {Sprite, ASpriteRenderer} from "@alipay/o3-2d";
-import {PerturbationProbe} from '@alipay/o3-env-probe';
 
 RegistExtension({PBRMaterial});
 
