@@ -2,7 +2,10 @@
   "name": "@alipay/o3-example",
   "version": "1.0.0",
   "description": "Oasis3D engine examples",
-  "keywords": ["Oasis3D", "webgl"],
+  "keywords": [
+    "Oasis3D",
+    "webgl"
+  ],
   "private": true,
   "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "author": "",
@@ -10,7 +13,9 @@
     "type": "git",
     "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
   },
-  "bugs": { "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues" },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
+  },
   "license": "MIT",
   "dependencies": {
     "@alipay/o3-2d": "^1.0.0",
@@ -54,5 +59,18 @@
     "dat.gui": "^0.7.2",
     "simple-dropzone": "^0.7.0"
   },
-  "publishConfig": { "registry": "http://registry.npm.alibaba-inc.com" }
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "devDependencies": {
+    "autoprefixer": "^9.6.1",
+    "css-loader": "^3.2.0",
+    "html-loader": "^0.5.5",
+    "less": "^3.10.2",
+    "less-loader": "^5.0.0",
+    "markdown": "^0.5.0",
+    "postcss-import": "^12.0.1",
+    "postcss-loader": "^3.0.0",
+    "style-loader": "^1.0.0"
+  }
 }

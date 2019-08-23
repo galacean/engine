@@ -1,27 +1,26 @@
-import { Engine,AssetType } from '@alipay/o3-core';
-import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import {Engine, AssetType} from '@alipay/o3-core';
+import {ResourceLoader, Resource} from '@alipay/o3-loader';
 import '@alipay/o3-loader-gltf';
-import { Logger } from '@alipay/o3-base';
-import { AAnimation } from '@alipay/o3-animation';
-import { ADefaultCamera } from '@alipay/o3-default-camera';
-import { ASkinnedMeshRenderer } from '@alipay/o3-mesh';
+import {Logger} from '@alipay/o3-base';
+import {AAnimation} from '@alipay/o3-animation';
+import {ADefaultCamera} from '@alipay/o3-default-camera';
+import {ASkinnedMeshRenderer} from '@alipay/o3-mesh';
 import '@alipay/o3-engine-stats';
 
-import { Sprite, ASpriteRenderer } from '@alipay/o3-2d';
+import {Sprite, ASpriteRenderer} from '@alipay/o3-2d';
 
-import { AOrbitControls } from '@alipay/o3-orbit-controls';
-import { TextureMaterial, TransparentMaterial } from '@alipay/o3-mobile-material';
-import { WaveMaterial } from "./WaveMaterial";
-import { CircleMaterial } from "./CircleMaterial";
+import {AOrbitControls} from '@alipay/o3-orbit-controls';
+import {TextureMaterial, TransparentMaterial} from '@alipay/o3-mobile-material';
+import {WaveMaterial} from "./WaveMaterial";
+import {CircleMaterial} from "./CircleMaterial";
 
-import { RegistExtension } from '@alipay/o3-loader-gltf';
+import {RegistExtension} from '@alipay/o3-loader-gltf';
 
-RegistExtension({ TextureMaterial, TransparentMaterial, WaveMaterial, CircleMaterial } );
+RegistExtension({TextureMaterial, TransparentMaterial, WaveMaterial, CircleMaterial});
 Logger.enable();
 
 const heartUrl = 'https://gw.alipayobjects.com/zos/rmsportal/XczEEiOrlvMCeZmgoQiW.png';
 const heartRadius = 3.1;
-
 //-- create engine object
 let engine = new Engine();
 
@@ -34,15 +33,20 @@ const resourceLoader = new ResourceLoader(engine);
 const cameraRoot = rootNode.createChild('camera_root');
 const cameraNode = cameraRoot.createChild('camera');
 const camera = cameraNode.createAbility(ADefaultCamera, {
-  fov: 45, canvas: 'o3-demo', position: [0, 0, 10], target: [0, 0, 0], clearParam: [0, 0, 0, 0], attributes: { antialias: true, enableCollect: false },
+  fov: 45,
+  canvas: 'o3-demo',
+  position: [0, 0, 10],
+  target: [0, 0, 0],
+  clearParam: [0, 0, 0, 0],
+  attributes: {antialias: true, enableCollect: false},
 });
 
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, {canvas: document.getElementById('o3-demo')});
 
 //-- load resource
 const gltfRes = new Resource('box_gltf', {
   type: 'gltf',
-  url: './star/star.gltf', // './star_christmas/star_christmas.gltf' //
+  url: '/static/model/star/star.gltf', // './star_christmas/star_christmas.gltf' //
 });
 
 const textureRes = new Resource('pray', {
@@ -52,12 +56,12 @@ const textureRes = new Resource('pray', {
 
 const circleRes = new Resource('box_gltf', {
   type: 'gltf',
-  url: './circle/Torus01.gltf', //'./star/star.gltf', // './star_christmas/star_christmas.gltf' //
+  url: '/static/model/circle/Torus01.gltf', //'./star/star.gltf', // './star_christmas/star_christmas.gltf' //
 });
 
 resourceLoader.batchLoad([gltfRes, textureRes, circleRes], (err, res) => {
-  if(err) {
-    debugger
+  if (err) {
+    console.log(err)
   }
 
   const circleGlb = res[2];
@@ -91,7 +95,7 @@ resourceLoader.batchLoad([gltfRes, textureRes, circleRes], (err, res) => {
   const skinMeshRenderer = starMeshNode.findAbilityByType(ASkinnedMeshRenderer);
   const mtl = skinMeshRenderer.getSharedMaterial(0);
   let time = 0;
-  starBody.onUpdate = (deltaTime)=>{
+  starBody.onUpdate = (deltaTime) => {
     time += deltaTime / 1000;
     if (time > 6.0 * Math.PI) {
       time %= 6.0 * Math.PI

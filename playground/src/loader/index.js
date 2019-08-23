@@ -1,15 +1,15 @@
-import { ClearMode } from '@alipay/o3-base';
-import { Engine,AssetType } from '@alipay/o3-core';
-import { vec3 } from '@alipay/o3-math';
-import { GLRenderHardware } from '@alipay/o3-rhi-webgl';
-import { SceneRenderer } from '@alipay/o3-renderer-cull';
-import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import {ClearMode, AssetType} from '@alipay/o3-base';
+import {Engine} from '@alipay/o3-core';
+import {vec3} from '@alipay/o3-math';
+import {GLRenderHardware} from '@alipay/o3-rhi-webgl';
+import {SceneRenderer} from '@alipay/o3-renderer-cull';
+import {ResourceLoader, Resource} from '@alipay/o3-loader';
 import '@alipay/o3-loader-gltf';
-import { TextureFilter, TextureWrapMode } from '@alipay/o3-core';
+import {TextureFilter, TextureWrapMode} from '@alipay/o3-core';
 import staticTechnique from './static_technique.json';
 import skinTechnique from './skin_technique.json';
-import { AAnimation } from '@alipay/o3-animation';
-import { ADefaultCamera } from '@alipay/o3-default-camera';
+import {AAnimation} from '@alipay/o3-animation';
+import {ADefaultCamera} from '@alipay/o3-default-camera';
 
 import '@alipay/o3-engine-stats';
 
@@ -51,14 +51,18 @@ const gltfRes = new Resource('campaign_gltf', {
   url: 'https://gw.alipayobjects.com/os/r3/3d645aa3-b466-4b54-9b4b-9c1fc0396adf/campaign_building_default.gltf',
 });
 
-const techRes = new Resource('test_technique', { type: 'technique', data: staticTechnique, assetType: AssetType.Scene});
-const skinTechRes = new Resource('test_skin_technique', { type: 'technique', data: skinTechnique, assetType: AssetType.Scene });
+const techRes = new Resource('test_technique', {type: 'technique', data: staticTechnique, assetType: AssetType.Scene});
+const skinTechRes = new Resource('test_skin_technique', {
+  type: 'technique',
+  data: skinTechnique,
+  assetType: AssetType.Scene
+});
 
 let cameraProps = {
   RHI: GLRenderHardware,
   SceneRenderer: SceneRenderer,
   canvas: 'o3-demo',
-  attributes: { antialias: true, depth: true }
+  attributes: {antialias: true, depth: true}
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
 
@@ -83,10 +87,10 @@ resourceLoader.batchLoad([animationRes, techRes, skinTechRes, textureRes, gltfRe
 
   fairy1.rotateByAngles(0, 180, 0);
   fairy2.rotateByAngles(0, 130, 0);
-  fairy1.scale =[3, 3, 3];
-  fairy2.scale =[3, 3, 3];
-  fairy1.position =[0, -10, 0];
-  fairy2.position =[0, 3, 0];
+  fairy1.scale = [3, 3, 3];
+  fairy2.scale = [3, 3, 3];
+  fairy1.position = [0, -10, 0];
+  fairy2.position = [0, 3, 0];
 
   node.addChild(fairy1);
   node.addChild(fairy2);

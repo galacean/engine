@@ -6,7 +6,7 @@ import {CircleGeometry} from '@alipay/o3-geometry-shape';
 import '@alipay/o3-engine-stats';
 import {ResourceLoader} from '@alipay/o3-loader';
 
-import createShapeMaterial from '../06-cubiodGeometry/GeometryShapeMaterial';
+import createShapeMaterial from '../cubiodGeometry/GeometryShapeMaterial';
 import ARotation from '../common/ARotation';
 import {DrawMode} from "@alipay/o3-base";
 

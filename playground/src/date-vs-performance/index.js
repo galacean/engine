@@ -1,23 +1,22 @@
-import { Util } from "@alipay/o3-base";
-import { ABoxCollider } from "@alipay/o3-collider/src/ABoxCollider";
-
+import {Util} from "@alipay/o3-base";
+import {ABoxCollider} from "@alipay/o3-collider";
 
 
 const testCount = 1000000;
 const performanceNow = () => {
-    let t = performance.now();
-    let kkk = 0;
-    for( let i = 0, l = testCount; i !== l; ++ i ) {
-      kkk += performance.now();
-    }
-    t = performance.now() - t;
-    console.log('performanceNow: ' + t + '(kkk is ' + kkk + ')');
+  let t = performance.now();
+  let kkk = 0;
+  for (let i = 0, l = testCount; i !== l; ++i) {
+    kkk += performance.now();
+  }
+  t = performance.now() - t;
+  console.log('performanceNow: ' + t + '(kkk is ' + kkk + ')');
 };
 
 const dateNow = () => {
   let t = performance.now();
   let kkk = 0;
-  for( let i = 0, l = testCount; i !== l; ++ i ) {
+  for (let i = 0, l = testCount; i !== l; ++i) {
     kkk += Date.now();
   }
   t = performance.now() - t;

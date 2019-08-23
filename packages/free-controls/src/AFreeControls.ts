@@ -211,7 +211,6 @@ export class AFreeControls extends NodeAbility {
    * */
   onMouseDown(event): void {
 
-    event.preventDefault();
     event.stopPropagation();
     event = (event.changedTouches && event.changedTouches[0]) || event;
 

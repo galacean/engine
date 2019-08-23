@@ -1,0 +1,132 @@
+@nav-width: 20em;
+@item-height: 8em;
+
+html, body, canvas {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+
+}
+
+body {
+  font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+iframe {
+  position: absolute;
+  border: 0;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  padding-left: @nav-width;
+  overflow: auto;
+}
+
+.nav {
+  background-color: #282c34;
+  box-shadow: 0 0 10px rgba(0, 0, 0, .5);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: @nav-width;
+  height: 100%;
+  color: #fff;
+  z-index: 1;
+  .header {
+    display: inline-block;
+    width: 100%;
+    font-size: 1.5em;
+    font-weight: 600;
+    text-align: center;
+    line-height: 3rem;
+  }
+  .search-bar {
+    margin-top: 1em;
+    width: 90%;
+    margin-left: 5%;
+    height: 2em;
+    font-size: 1em;
+    box-shadow: 0 0 10px #fff;
+    padding-left: 1em;
+    outline: none;
+    color: #333;
+    border: none;
+    border-radius: 2em;
+  }
+  #itemList {
+    margin-top: 1em;
+    height: calc(100% - 7em);
+    overflow: auto;
+    .hide {
+      display: none;
+    }
+    .item {
+      width: 90%;
+      margin-left: 5%;
+      height: @item-height;
+      margin-top: .6em;
+      //background: #fff;
+      //box-shadow: 0 0 5px #fff;
+      transition: transform 0.2s linear;
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      border-radius: 2px;
+      overflow: auto;
+      &:hover {
+        transform: translate(-2px, -2px);
+        background: #fff;
+        color: #000;
+      }
+      .content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        padding: .5em @item-height + .5em .5em .5em;
+        .title {
+          font-weight: 600;
+          margin: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+
+        }
+      }
+      .avatar {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: @item-height;
+        height: 100%;
+        background: none center center no-repeat;
+      }
+      &.simple {
+        height: 2em;
+        .content {
+          padding-right: 0.5em;
+        }
+        .avatar {
+          display: none;
+        }
+      }
+      &.pick .content .title {
+        text-decoration: underline;
+      }
+    }
+  }
+}

@@ -1,31 +1,43 @@
 //-- naive version with earcut
 //top side face sepration
-import { vec3,vec4} from '@alipay/o3-math';
-import { Logger ,RenderState,MaterialType,BlendFunc} from '@alipay/o3-base';
-import { Engine, SceneFeature } from '@alipay/o3-core';
+import {vec3, vec4} from '@alipay/o3-math';
+import {Logger, RenderState, MaterialType, BlendFunc} from '@alipay/o3-base';
+import {Engine, SceneFeature} from '@alipay/o3-core';
 
-import { ADefaultCamera } from '@alipay/o3-default-camera';
-import { AGeometryRenderer, GeometryMerger } from '@alipay/o3-geometry';
-import { CuboidGeometry, SphereGeometry } from '@alipay/o3-geometry-shape';
+import {ADefaultCamera} from '@alipay/o3-default-camera';
+import {AGeometryRenderer, GeometryMerger} from '@alipay/o3-geometry';
+import {CuboidGeometry, SphereGeometry} from '@alipay/o3-geometry-shape';
 import '@alipay/o3-engine-stats';
-import { ResourceLoader,Resource } from '@alipay/o3-loader';
-import {createBuildingMaterialWireFrame, BuildingMaterial4Fun, SkyMaterial, BillboardMaterial, RoadMaterial, TopMaterial} from './buildingMaterial';
+import {ResourceLoader, Resource} from '@alipay/o3-loader';
+import {
+  createBuildingMaterialWireFrame,
+  BuildingMaterial4Fun,
+  SkyMaterial,
+  BillboardMaterial,
+  RoadMaterial,
+  TopMaterial
+} from './buildingMaterial';
 import {generateOfficeBuildingSide, generateLiveBuildingSide} from './proceduralTexture';
 
-import {createSideGeometry,createTopGeometry,createBillboardGeometry,createRoadGeometry} from './buildingGeometryNaive';
+import {
+  createSideGeometry,
+  createTopGeometry,
+  createBillboardGeometry,
+  createRoadGeometry
+} from './buildingGeometryNaive';
 
-import { ADirectLight } from '@alipay/o3-lighting';
-import {CENTER,SCALE} from './constant';
+import {ADirectLight} from '@alipay/o3-lighting';
+import {CENTER, SCALE} from './constant';
 import cityMap from './medium-building.json';
 // import roadVertices from './road-vertices.json';
 import rawRoadData from './medium-road.json';
-import { dataProcessing, processRoadData } from './dataProcessing.js';
-import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import {dataProcessing, processRoadData} from './dataProcessing.js';
+import {AOrbitControls} from '@alipay/o3-orbit-controls';
 import {BlinnPhongMaterial} from '@alipay/o3-mobile-material';
 import {PostProcessFeature, BloomEffect} from '@alipay/o3-post-processing';
-import { TextureFilter, TextureWrapMode } from '@alipay/o3-base';
-import { RenderTarget } from '@alipay/o3-material';
-import { RipplePass } from './ripplePass';
+import {TextureFilter, TextureWrapMode} from '@alipay/o3-base';
+import {RenderTarget} from '@alipay/o3-material';
+import {RipplePass} from './ripplePass';
 
 Logger.enable();
 
@@ -49,16 +61,16 @@ let topMtl = new TopMaterial();
 topMtl.highlightMap = rippleRT.texture;
 
 const NUM_BUSSINESS_BUILDING_MAT = 3;
-const NUM_LIVE_BUILDING_MAT = 4*2;
+const NUM_LIVE_BUILDING_MAT = 4 * 2;
 
 let bussinessBuildingMatArr = Array(NUM_BUSSINESS_BUILDING_MAT);
 let liveBuildingMatArr = Array(NUM_LIVE_BUILDING_MAT);
 
-for (let i=0;i<NUM_BUSSINESS_BUILDING_MAT;++i) {
-  bussinessBuildingMatArr[i] =  new BuildingMaterial4Fun('business_side_mtl'+i);
+for (let i = 0; i < NUM_BUSSINESS_BUILDING_MAT; ++i) {
+  bussinessBuildingMatArr[i] = new BuildingMaterial4Fun('business_side_mtl' + i);
 }
-for (let i=0;i<NUM_LIVE_BUILDING_MAT;++i) {
-  liveBuildingMatArr[i] = new BuildingMaterial4Fun('live_side_mtl'+i);
+for (let i = 0; i < NUM_LIVE_BUILDING_MAT; ++i) {
+  liveBuildingMatArr[i] = new BuildingMaterial4Fun('live_side_mtl' + i);
 }
 
 const billboardMat = new BillboardMaterial('billboard_mtl');
@@ -66,7 +78,7 @@ const roadMat = new RoadMaterial('road_mtl');
 
 const bussinessBuildingSideMapRes = [
   new Resource('bussinessBuildingSideMap', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -83,7 +95,7 @@ const bussinessBuildingSideMapRes = [
     }
   }),
   new Resource('bussinessBuildingSideMap2', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -100,7 +112,7 @@ const bussinessBuildingSideMapRes = [
     }
   }),
   new Resource('bussinessBuildingSideMap3', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -121,7 +133,7 @@ console.assert(bussinessBuildingSideMapRes.length == NUM_BUSSINESS_BUILDING_MAT)
 
 const liveBuildingSideMapRes = [
   new Resource('liveBuildingSideMap', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -141,7 +153,7 @@ const liveBuildingSideMapRes = [
     }
   }),
   new Resource('liveBuildingSideMap2', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -160,7 +172,7 @@ const liveBuildingSideMapRes = [
     }
   }),
   new Resource('liveBuildingSideMap3', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -180,7 +192,7 @@ const liveBuildingSideMapRes = [
     }
   }),
   new Resource('liveBuildingSideMap4', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -202,7 +214,7 @@ const liveBuildingSideMapRes = [
 
   // again --
   new Resource('liveBuildingSideMap11', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -223,7 +235,7 @@ const liveBuildingSideMapRes = [
     }
   }),
   new Resource('liveBuildingSideMap22', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -243,7 +255,7 @@ const liveBuildingSideMapRes = [
     }
   }),
   new Resource('liveBuildingSideMap33', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -263,7 +275,7 @@ const liveBuildingSideMapRes = [
     }
   }),
   new Resource('liveBuildingSideMap44', {
-    type : 'canvastexture',
+    type: 'canvastexture',
     config: {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
@@ -283,7 +295,7 @@ const liveBuildingSideMapRes = [
     }
   }),
 ];
-console.assert(liveBuildingSideMapRes.length==NUM_LIVE_BUILDING_MAT);
+console.assert(liveBuildingSideMapRes.length == NUM_LIVE_BUILDING_MAT);
 
 let planeMtl = new BlinnPhongMaterial('plane_mtl', false);
 planeMtl.ambient = vec4.fromValues(1.0, 1.0, 1.0, 1.0);
@@ -296,12 +308,12 @@ let skyMtl = new SkyMaterial();
 let skyCubeMapRes = new Resource('sky', {
   type: 'cubemap',
   urls: [
-    './textures/1.bmp',
-    './textures/3.bmp',
-    './textures/t.bmp',
-    './textures/t.bmp',
-    './textures/4.bmp',
-    './textures/2.bmp',
+    require('./textures/1.bmp'),
+    require('./textures/3.bmp'),
+    require('./textures/t.bmp'),
+    require('./textures/t.bmp'),
+    require('./textures/4.bmp'),
+    require('./textures/2.bmp'),
   ]
 });
 // let cityCubemapRes = new Resource('sky', {
@@ -325,18 +337,18 @@ resourceLoader.batchLoad([...bussinessBuildingSideMapRes, ...liveBuildingSideMap
   bloom.smoothWidth = 0.8;
   postProcess.addEffect(bloom);
 
-  const cubemap = res[NUM_BUSSINESS_BUILDING_MAT+NUM_LIVE_BUILDING_MAT].assets[0];
+  const cubemap = res[NUM_BUSSINESS_BUILDING_MAT + NUM_LIVE_BUILDING_MAT].assets[0];
   // const cityCubemap = res[NUM_BUSSINESS_BUILDING_MAT+NUM_LIVE_BUILDING_MAT+1].assets[0];
 
   //-- assign the texture to mtl
-  for (let i=0; i<NUM_BUSSINESS_BUILDING_MAT; ++i) {
+  for (let i = 0; i < NUM_BUSSINESS_BUILDING_MAT; ++i) {
     bussinessBuildingMatArr[i].diffuseMap = res[i].assets[0];
     bussinessBuildingMatArr[i].cubemap = cubemap;
     bussinessBuildingMatArr[i].glossiness = 0.8;
     bussinessBuildingMatArr[i].highlightMap = rippleRT.texture;
   }
-  for (let i=0; i<NUM_LIVE_BUILDING_MAT; ++i) {
-    liveBuildingMatArr[i].diffuseMap = res[i+NUM_BUSSINESS_BUILDING_MAT].assets[0];
+  for (let i = 0; i < NUM_LIVE_BUILDING_MAT; ++i) {
+    liveBuildingMatArr[i].diffuseMap = res[i + NUM_BUSSINESS_BUILDING_MAT].assets[0];
     liveBuildingMatArr[i].cubemap = cubemap;
     liveBuildingMatArr[i].glossiness = 0.0;
     liveBuildingMatArr[i].highlightMap = rippleRT.texture;
@@ -345,7 +357,7 @@ resourceLoader.batchLoad([...bussinessBuildingSideMapRes, ...liveBuildingSideMap
 
   // add sky
   let sky = rootNode.createChild('sky');
-  sky.position = [0,0,0];
+  sky.position = [0, 0, 0];
   let skyRender = sky.createAbility(AGeometryRenderer);
   skyRender.geometry = new SphereGeometry(600, 32, 32);
   // skyRender.geometry = new CuboidGeometry(1200, 1200, 1200);
@@ -366,12 +378,12 @@ resourceLoader.batchLoad([...bussinessBuildingSideMapRes, ...liveBuildingSideMap
       topGeometryList.push(createTopGeometry(cityMapAfter.features[i]));
 
       const billboardGeo = createBillboardGeometry(cityMapAfter.features[i]);
-      if (billboardGeo!=null && Math.random()<0.4) {
+      if (billboardGeo != null && Math.random() < 0.4) {
         billboardGeometryList.push(billboardGeo);
       }
 
       const numFloors = cityMapAfter.features[i].properties.floor;
-      sideGeometryList[sideGeometryList.length-1].primitive.material = (numFloors>10? bussinessBuildingMatArr[i%3]: liveBuildingMatArr[Math.min(Math.floor(numFloors*4/10)+(Math.floor(Math.random()*1.99)*4), NUM_LIVE_BUILDING_MAT-1)]);
+      sideGeometryList[sideGeometryList.length - 1].primitive.material = (numFloors > 10 ? bussinessBuildingMatArr[i % 3] : liveBuildingMatArr[Math.min(Math.floor(numFloors * 4 / 10) + (Math.floor(Math.random() * 1.99) * 4), NUM_LIVE_BUILDING_MAT - 1)]);
     }
 
     let sideMerged = new GeometryMerger(sideGeometryList).merge();
@@ -409,7 +421,7 @@ light.createAbility(ADirectLight, {
   intensity: 0.8
 });
 light.position = [0, 1, 1];
-light.lookAt([0,0,0], [0,1,0]);
+light.lookAt([0, 0, 0], [0, 1, 0]);
 console.log(light.getModelMatrix());
 
 //-- data process
@@ -418,13 +430,13 @@ let roadVertices = processRoadData(rawRoadData, CENTER, SCALE);
 let buildingNumber = cityMapAfter.features.length;
 
 // add the bottom plane
-if(true || GeometryChooser == 1 || GeometryChooser == 2){
-    let obj2 = rootNode.createChild('bottom_plane');
-    obj2.position = [0,-8,0];
-    obj2.setRotationAngles(0, 0, 0);
-    let planeRender = obj2.createAbility(AGeometryRenderer);
-  planeRender.geometry = new CuboidGeometry(1200,0.5,1200);
-    planeRender.setMaterial(planeMtl);
+if (true || GeometryChooser == 1 || GeometryChooser == 2) {
+  let obj2 = rootNode.createChild('bottom_plane');
+  obj2.position = [0, -8, 0];
+  obj2.setRotationAngles(0, 0, 0);
+  let planeRender = obj2.createAbility(AGeometryRenderer);
+  planeRender.geometry = new CuboidGeometry(1200, 0.5, 1200);
+  planeRender.setMaterial(planeMtl);
 }
 
 
@@ -432,16 +444,16 @@ if(true || GeometryChooser == 1 || GeometryChooser == 2){
 let cameraNode = rootNode.createChild('camera_node');
 var camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: 'o3-demo', position: [0, 40, 50], near: 3, far: 2000,
-  attributes: {antialias:true}
+  attributes: {antialias: true}
 });
-cameraNode.lookAt(vec3.fromValues(0,8,0), vec3.fromValues(0, 1, 0));
+cameraNode.lookAt(vec3.fromValues(0, 8, 0), vec3.fromValues(0, 1, 0));
 
 // add ripple pass
 const ripplePass = new RipplePass(rippleRT, engine);
 camera.sceneRenderer.addRenderPass(ripplePass);
 
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
-controler.target = vec3.fromValues(0,10,0);
+let controler = cameraNode.createAbility(AOrbitControls, {canvas: document.getElementById('o3-demo')});
+controler.target = vec3.fromValues(0, 10, 0);
 controler.autoRotate = true;
 controler.autoRotateSpeed = 360.0;
 
