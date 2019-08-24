@@ -1,4 +1,15 @@
-import { Logger } from '@alipay/o3-base';
+import {Logger} from '@alipay/o3-base';
+import {RenderTechnique} from "@alipay/o3-material";
+
+interface UniformCache {
+  [key: string]: WebGLUniformLocation | null
+}
+
+interface AttributeCache {
+  [key: string]: GLint
+}
+
+let programList: Array<GLShaderProgram> = [];
 
 function addLineNum(str) {
 
@@ -27,10 +38,58 @@ function addLineNum(str) {
  */
 export class GLShaderProgram {
 
+  /**
+   * 从缓存中读取program,如果没有则新建
+   * @param {RenderTechnique} tech
+   * @param {WebGLRenderingContext} gl
+   * @return {GLShaderProgram}
+   * */
+  static requireProgram(tech: RenderTechnique, gl: WebGLRenderingContext): GLShaderProgram {
+    let program: GLShaderProgram = null;
+
+    programList.some(p => {
+      if (p._vertexShaderSource === tech.vertexShader && p._fragmentShaderSource === tech.fragmentShader) {
+        program = p;
+        return true;
+      }
+    });
+
+    if (!program) {
+      program = new GLShaderProgram(gl);
+      program.createFromSource(
+        tech.vertexShader,
+        tech.fragmentShader,
+        tech.attribLocSet
+      );
+      programList.push(program);
+
+    }
+
+    return program;
+
+  }
+
+  /**
+   * 从缓存中释放program
+   * @param {GLShaderProgram} program
+   * */
+  static releaseProgram(program: GLShaderProgram) {
+
+    let index = programList.indexOf(program);
+    if (index !== -1) {
+      programList.splice(index, 1);
+    }
+
+  }
+
   private _gl: WebGLRenderingContext;
   private _vertexShader: WebGLShader;
   private _fragmentShader: WebGLShader;
+  private _vertexShaderSource: string;
+  private _fragmentShaderSource: string;
   private _program: WebGLProgram;
+  private _attributeCache: AttributeCache;
+  private _uniformCache: UniformCache;
 
   constructor(gl: WebGLRenderingContext) {
 
@@ -42,8 +101,16 @@ export class GLShaderProgram {
     // {WebGLShader}
     this._fragmentShader = null;
 
+    // shader source
+    this._vertexShaderSource = null;
+    this._fragmentShaderSource = null;
+
     // {WebGLProgram}
     this._program = null;
+
+    // location cache
+    this._attributeCache = {};
+    this._uniformCache = {};
 
   }
 
@@ -107,17 +174,24 @@ export class GLShaderProgram {
 
     }
 
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
+    // debug开启才进行消耗性能的能力检测
+    if (Logger.isEnabled) {
 
-      Logger.error('Could not link WebGL program. \n' + gl.getProgramInfoLog(program));
-      gl.deleteProgram(program);
-      return false;
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
 
+        Logger.error('Could not link WebGL program. \n' + gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return false;
+
+      }
     }
+
 
     // 更新内部变量
     this._vertexShader = vertexShader;
     this._fragmentShader = fragmentShader;
+    this._vertexShaderSource = vertexSource;
+    this._fragmentShaderSource = fragmentSource;
     this._program = program;
     return true;
 
@@ -130,7 +204,7 @@ export class GLShaderProgram {
    * @param {string} shaderSource
    * @private
    */
-  _compileShader(shaderType, shaderSource) {
+  private _compileShader(shaderType, shaderSource) {
 
     const gl = this._gl;
     const shader = gl.createShader(shaderType);
@@ -145,16 +219,47 @@ export class GLShaderProgram {
 
     }
 
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS) && !gl.isContextLost()) {
+    // debug开启才进行消耗性能的能力检测
+    if (Logger.isEnabled) {
 
-      Logger.error(`Could not compile WebGL shader.\n${addLineNum(shaderSource)}\n${gl.getShaderInfoLog(shader)}`);
-      // Logger.error( gl.getShaderInfoLog( shader ) );
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS) && !gl.isContextLost()) {
 
-      gl.deleteShader(shader);
-      return null;
+        Logger.error(`Could not compile WebGL shader.\n${addLineNum(shaderSource)}\n${gl.getShaderInfoLog(shader)}`);
+        // Logger.error( gl.getShaderInfoLog( shader ) );
+
+        gl.deleteShader(shader);
+        return null;
+
+      }
 
     }
+
     return shader;
+
+  }
+
+  /**
+   * getAttribLocation读取速度比较慢，增加缓存机制
+   * */
+  getAttribLocation(glProgram: WebGLProgram, name: string): GLint {
+    if (this._attributeCache.hasOwnProperty(name)) {
+      return this._attributeCache[name];
+    } else {
+      return this._attributeCache[name] = this._gl.getAttribLocation(glProgram, name);
+    }
+
+  }
+
+  /**
+   * getUniformLocation读取速度比较慢，增加缓存机制
+   * */
+  getUniformLocation(glProgram: WebGLProgram, name: string): WebGLUniformLocation | null {
+
+    if (this._uniformCache.hasOwnProperty(name)) {
+      return this._uniformCache[name];
+    } else {
+      return this._uniformCache[name] = this._gl.getUniformLocation(glProgram, name);
+    }
 
   }
 
@@ -167,25 +272,30 @@ export class GLShaderProgram {
     if (this._vertexShader) {
 
       gl.deleteShader(this._vertexShader);
-      this._vertexShader = null;
 
     }
 
     if (this._fragmentShader) {
 
       gl.deleteShader(this._fragmentShader);
-      this._fragmentShader = null;
 
     }
 
     if (this._program) {
 
       gl.deleteProgram(this._program);
-      this._program = null;
 
     }
+
+    this._vertexShader = null;
+    this._fragmentShader = null;
+    this._vertexShaderSource = null;
+    this._fragmentShaderSource = null;
+    this._program = null;
+    this._attributeCache = {};
+    this._uniformCache = {};
+    GLShaderProgram.releaseProgram(this);
 
   }
 
 }
-

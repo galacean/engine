@@ -1,6 +1,7 @@
 import {UniformSemantic, DataType, Logger} from '@alipay/o3-base';
 import {AssetObject} from '@alipay/o3-core';
 import {ShaderFactory} from '@alipay/o3-shaderlib';
+import {Material} from './Material';
 
 /**
  * 渲染单个对象所需的控制对象，作为 Material 的模块使用。对应 glTF 里面的 technique 对象
@@ -110,11 +111,15 @@ export class RenderTechnique extends AssetObject {
 
   }
 
-  compile(camera, component, primitive) {
+  compile(camera, component, primitive, material: Material) {
 
     this.parseFog(camera);
 
     if (this._needCompile) {
+
+      if (typeof material.onBeforeCompile === 'function') {
+        material.onBeforeCompile(this);
+      }
 
       const attribMacros = this.getAttributeDefines(camera, component, primitive);
 
