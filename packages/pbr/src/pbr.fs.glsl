@@ -198,9 +198,7 @@ vec3 getNormal()
     #endif
   #endif
 
-  #if defined( O3_DOUBLE_SIDE ) || defined(O3_BACK_SIDE)
-        n *= float( gl_FrontFacing ) * 2.0 - 1.0;
-  #endif
+  n *= float( gl_FrontFacing ) * 2.0 - 1.0;
 
   return n;
 }
@@ -627,11 +625,6 @@ void main() {
 
     #endif
 
-    #ifndef ALPHA_BLEND
-
-        diffuseColor.a = 1.0;
-
-    #endif
 
     #if defined(ALPHA_BLEND) && defined(HAS_OPACITYMAP)
 
