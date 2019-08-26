@@ -2,8 +2,13 @@
 
 ### Features
 
-- xxxx（@who） ([!MR ID](MR url))
+- rendering pipeline enhance（@shensi.zxd） [!3](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/3)
+- texture perturbation（@shensi.zxd） [!8](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/8)
+- adapter-miniprogram（@shensi.zxd） [!7](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/7)
 
 ### Bug Fixes
 
-- xxxx（@who） ([!COMMIT ID](COMMIT url))
+- disable depthmask（@shensi.zxd） [!10](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/10)
+- del unnecessary shader（@shensi.zxd） [!4](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/4)
+- shader error（@shensi.zxd） [!5](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/5)
+- material screenUv（@shensi.zxd） [!6](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/6)
