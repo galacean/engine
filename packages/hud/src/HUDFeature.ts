@@ -17,7 +17,6 @@ export function hasHUDWidget() {
 /**
  * HUD Feature：场景中HUD特性
  * @extends SceneFeature
- * @private
  */
 export class HUDFeature extends SceneFeature {
 
