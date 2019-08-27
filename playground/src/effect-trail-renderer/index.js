@@ -48,7 +48,7 @@ class AButterFlyMove extends NodeAbility {
 
 const techRes = new Resource('image', {
   type: 'texture',
-  url: './tail.png'
+  url: require('./tail.png')
 });
 
 const props = {

@@ -1,25 +1,25 @@
 //-- naive version with earcut
-//top side face sepration 
-import { vec3,vec4} from '@alipay/o3-math';
-import { Logger ,RenderState,MaterialType,BlendFunc} from '@alipay/o3-base';
-import { Engine, SceneFeature } from '@alipay/o3-core';
+//top side face sepration
+import { vec3, vec4 } from "@alipay/o3-math";
+import { Logger, RenderState, MaterialType, BlendFunc } from "@alipay/o3-base";
+import { Engine, SceneFeature } from "@alipay/o3-core";
 
-import { ADefaultCamera } from '@alipay/o3-default-camera';
-import { AGeometryRenderer } from '@alipay/o3-geometry';
-import { CuboidGeometry } from '@alipay/o3-geometry-shape';
-import '@alipay/o3-engine-stats';
-import { ResourceLoader,Resource } from '@alipay/o3-loader';
-import {createBuildingMaterialWireFrame, BuildingMaterial4Fun} from './buildingMaterial';
+import { ADefaultCamera } from "@alipay/o3-default-camera";
+import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { CuboidGeometry } from "@alipay/o3-geometry-shape";
+import "@alipay/o3-engine-stats";
+import { ResourceLoader, Resource } from "@alipay/o3-loader";
+import { createBuildingMaterialWireFrame, BuildingMaterial4Fun } from "./buildingMaterial";
 
-import {createSideGeometry,createTopGeometry} from './buildingGeometryNaive'
+import { createSideGeometry, createTopGeometry } from "./buildingGeometryNaive";
 
-import { ADirectLight } from '@alipay/o3-lighting';
-import {CENTER,SCALE} from './constant';
-import cityMap from './hangzhou-geo-very-small.json';
-import dataProcessing from './dataProcessing.js'
-import { AOrbitControls } from '@alipay/o3-orbit-controls'
-import {BlinnPhongMaterial} from '@alipay/o3-mobile-material';
-import {PostProcessFeature, BloomEffect} from '@alipay/o3-post-processing';
+import { ADirectLight } from "@alipay/o3-lighting";
+import { CENTER, SCALE } from "./constant";
+import cityMap from "./hangzhou-geo-very-small.json";
+import dataProcessing from "./dataProcessing.js";
+import { AOrbitControls } from "@alipay/o3-orbit-controls";
+import { BlinnPhongMaterial } from "@alipay/o3-mobile-material";
+import { PostProcessFeature, BloomEffect } from "@alipay/o3-post-processing";
 
 Logger.enable();
 
@@ -35,43 +35,43 @@ let scene = engine.currentScene;
 let rootNode = scene.root;
 
 //-- create  material
-let topMtl = new BlinnPhongMaterial('top_mtl', false);
-topMtl.ambient = vec4.fromValues(0.0,0.0,0.0,1);
-topMtl.diffuse = vec4.fromValues(0.0,0.0,0.0,1);
+let topMtl = new BlinnPhongMaterial("top_mtl", false);
+topMtl.ambient = vec4.fromValues(0.0, 0.0, 0.0, 1);
+topMtl.diffuse = vec4.fromValues(0.0, 0.0, 0.0, 1);
 topMtl.shininess = 5;
 
-let sideMtl = new BuildingMaterial4Fun('side_mtl', false);
+let sideMtl = new BuildingMaterial4Fun("side_mtl", false);
 sideMtl.ambient = vec4.fromValues(0.35, 0.05, 0.05, 1);
 sideMtl.shininess = 10;
 
-let sideMtl2 = new BuildingMaterial4Fun('side_mtl2', false);
+let sideMtl2 = new BuildingMaterial4Fun("side_mtl2", false);
 sideMtl.ambient = vec4.fromValues(0.35, 0.05, 0.05, 1);
 sideMtl.shininess = 10;
 
-let sideMtl3 = new BuildingMaterial4Fun('side_mtl3', false);
+let sideMtl3 = new BuildingMaterial4Fun("side_mtl3", false);
 sideMtl.ambient = vec4.fromValues(0.35, 0.05, 0.05, 1);
 sideMtl.shininess = 10;
 
-let planeMtl = new BlinnPhongMaterial('plane_mtl', false);
+let planeMtl = new BlinnPhongMaterial("plane_mtl", false);
 planeMtl.ambient = vec4.fromValues(0.0, 0.0, 0.0, 1);
 planeMtl.shininess = 10;
 
-const sideMapRes = new Resource('sideMap', {
-  type: 'texture',
-  url: './texture/diffuse-9x9.png',
+const sideMapRes = new Resource("sideMap", {
+  type: "texture",
+  url: require("./texture/diffuse-9x9.png")
 });
-const sideMapRes2 = new Resource('sideMap2', {
-  type: 'texture',
-  url: './texture/diffuse-6x21.png',
-})
-const sideMapRes3 = new Resource('sideMap3', {
-  type: 'texture',
-  url: './texture/diffuse-15x12.png',
-})
+const sideMapRes2 = new Resource("sideMap2", {
+  type: "texture",
+  url: require("./texture/diffuse-6x21.png")
+});
+const sideMapRes3 = new Resource("sideMap3", {
+  type: "texture",
+  url: require("./texture/diffuse-15x12.png")
+});
 
-const topMapRes = new Resource('topMap', {
-  type: 'texture',
-  url: './texture/top_map.png'
+const topMapRes = new Resource("topMap", {
+  type: "texture",
+  url: require("./texture/top_map.png")
 });
 
 
@@ -90,19 +90,19 @@ resourceLoader.batchLoad([sideMapRes, sideMapRes2, sideMapRes3, topMapRes], (err
   //topMtl.emission = res[3].assets[0];
   topMtl.renderStates = {
     disable: [RenderState.CULL_FACE]
-  }
+  };
 
   let sideMatArr = [sideMtl, sideMtl2, sideMtl3];
 
   if (GeometryChooser == 0 || GeometryChooser == 2) {
     //-- setup the geometry
     for (let i = 0; i < buildingNumber; ++i) {
-      let sideName = 'building_side_' + i.toString();
+      let sideName = "building_side_" + i.toString();
       let sideObj = rootNode.createChild(sideName);
       let sideRender = sideObj.createAbility(AGeometryRenderer);
       sideRender.geometry = createSideGeometry(cityMapAfter.features[i]);
 
-      let topName = 'building_top_' + i.toString();
+      let topName = "building_top_" + i.toString();
       let topObj = rootNode.createChild(topName);
       let topRender = topObj.createAbility(AGeometryRenderer);
       topRender.geometry = createTopGeometry(cityMapAfter.features[i]);
@@ -129,8 +129,8 @@ resourceLoader.batchLoad([sideMapRes, sideMapRes2, sideMapRes3, topMapRes], (err
             ]
           };
         }
-        
-        sideRender.setMaterial(sideMatArr[i%3]);
+
+        sideRender.setMaterial(sideMatArr[i % 3]);
         topRender.setMaterial(topMtl);
       } else if (MaterialChooser == 1) {
         sideRender.setMaterial(createBuildingMaterialWireFrame(resourceLoader));
@@ -148,30 +148,30 @@ light.createAbility(ADirectLight, {
   intensity: 0.8
 });
 light.position = [0, 1, 1];
-light.lookAt([0,0,0], [0,1,0]);
+light.lookAt([0, 0, 0], [0, 1, 0]);
 console.log(light.getModelMatrix());
 
 //-- data process
-let cityMapAfter = dataProcessing(cityMap,CENTER,SCALE);
+let cityMapAfter = dataProcessing(cityMap, CENTER, SCALE);
 let buildingNumber = cityMapAfter.features.length;
 
 // add the bottom plane
-if(true || GeometryChooser == 1 || GeometryChooser == 2){
-    let obj2 = rootNode.createChild('bottom_plane');
-    obj2.position = [0,0,-2];
-    obj2.setRotationAngles(0, 0, 0);
-    let planeRender = obj2.createAbility(AGeometryRenderer);
-    planeRender.geometry = new CuboidGeometry(2000,1,2000);
-    planeRender.setMaterial(planeMtl);
+if (true || GeometryChooser == 1 || GeometryChooser == 2) {
+  let obj2 = rootNode.createChild("bottom_plane");
+  obj2.position = [0, 0, -2];
+  obj2.setRotationAngles(0, 0, 0);
+  let planeRender = obj2.createAbility(AGeometryRenderer);
+  planeRender.geometry = new CuboidGeometry(2000, 1, 2000);
+  planeRender.setMaterial(planeMtl);
 }
 
 //-- create camera
-let cameraNode = rootNode.createChild('camera_node');
+let cameraNode = rootNode.createChild("camera_node");
 var camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, 20, 50]
+  canvas: "o3-demo", position: [0, 20, 50]
 });
-cameraNode.lookAt(vec3.fromValues(0,0,0), vec3.fromValues(0, 1, 0));
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
+cameraNode.lookAt(vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById("o3-demo") });
 controler.autoRotate = false;
 controler.autoRotateSpeed = 3.0;
 

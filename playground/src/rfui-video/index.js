@@ -18,7 +18,7 @@ let rootNode = scene.root;
 const res = [];
 res.push(new Resource( 'video', {
   type: 'texture',
-  url: './AoDaLiYa_1.mp4',
+  url: require('./AoDaLiYa_1.mp4'),
   handlerType: 'video'
 } ));
 

@@ -41,7 +41,7 @@ document.addEventListener('keydown', (event) => {
     }
   }
 
-  // 测试键：Ctrl+R ，继续
+  // 测试键：Ctrl+R ，继续cc
   if (event.ctrlKey && event.key === 'r') {
     if (engine) {
       console.log('ENGINE resume');

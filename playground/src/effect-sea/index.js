@@ -98,7 +98,7 @@ function createSphereGeometry(name, position, r, h, v, as, ae, ts, te) {
 
 const techRes = new Resource('image', {
   type: 'texture',
-  url: './00.jpg'
+  url: require('./00.jpg')
 });
 
 resourceLoader.load(techRes, (err,res) => {

@@ -40,7 +40,7 @@ const resourceLoader = new ResourceLoader(engine);
 
 const fgTextureRes = new Resource('fg_texture', {
   type: 'image',
-  url: './bar_fg.png',
+  url: require('./bar_fg.png'),
 });
 
 resourceLoader.load(fgTextureRes, (err, res) => {

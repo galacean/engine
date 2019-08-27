@@ -27,14 +27,16 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
 // load resource config
 const textureRes = new Resource('test_texture', {
   type: 'texture',
-  url: './9-tga-512.tga',
+  url: require('./9-tga-512.tga'),
 });
 
 const resourceLoader = new ResourceLoader(engine);
 // resourceLoader.loadConfig
 resourceLoader.batchLoad([textureRes], (err, res) => {
+  if(err) {
+    return;
+  };
   const imageData = res[0].data;
-
   let node = rootNode.createChild('test_node');
 
   //-- image

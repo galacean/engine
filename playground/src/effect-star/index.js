@@ -50,12 +50,12 @@ const r6 = new Resource('image6', {type: 'texture', url: require('./assets/sun_s
 let cubeMapRes = new Resource('env', {
   type: 'cubemap',
   urls: [
-    reuqire('./assets/s_px.jpg'),
-    reuqire('./assets/s_nx.jpg'),
-    reuqire('./assets/s_py.jpg'),
-    reuqire('./assets/s_ny.jpg'),
-    reuqire('./assets/s_pz.jpg'),
-    reuqire('./assets/s_nz.jpg'),
+    require('./assets/s_px.jpg'),
+    require('./assets/s_nx.jpg'),
+    require('./assets/s_py.jpg'),
+    require('./assets/s_ny.jpg'),
+    require('./assets/s_pz.jpg'),
+    require('./assets/s_nz.jpg'),
   ]
 });
 

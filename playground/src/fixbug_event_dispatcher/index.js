@@ -8,8 +8,8 @@ const dispatcher = new EventDispatcher();
  *    onListener3:
  *    onListener4:
  * (错误: onListener2被跳过了)
- * 
- * 修改后: 
+ *
+ * 修改后:
  *    onListener1:
  *    onListener2:
  *    onListener3:
@@ -45,9 +45,9 @@ setTimeout( () => {
 }, 2000 );
 
 
-const domCon = document.body.querySelector('.example-html');
-domCon.innerHTML = '<div>No view for this demo, see console instead...</div>';
-
+// const domCon = document.body.querySelector('.example-html');
+// domCon.innerHTML = '<div>No view for this demo, see console instead...</div>';
+alert('No view for this demo, see console instead...')
 // const testCount = 1000000;
 // const originalArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 // const sharedTmpArray = [];

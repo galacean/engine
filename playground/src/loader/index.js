@@ -8,6 +8,7 @@ import '@alipay/o3-loader-gltf';
 import {TextureFilter, TextureWrapMode} from '@alipay/o3-core';
 import staticTechnique from './static_technique.json';
 import skinTechnique from './skin_technique.json';
+console.log(staticTechnique,skinTechnique)
 import {AAnimation} from '@alipay/o3-animation';
 import {ADefaultCamera} from '@alipay/o3-default-camera';
 
@@ -60,7 +61,7 @@ const skinTechRes = new Resource('test_skin_technique', {
 
 let cameraProps = {
   RHI: GLRenderHardware,
-  SceneRenderer: SceneRenderer,
+  // SceneRenderer: SceneRenderer,
   canvas: 'o3-demo',
   attributes: {antialias: true, depth: true}
 };

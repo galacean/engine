@@ -30,17 +30,17 @@ const resourceLoader = new ResourceLoader(engine);
 
 const bgTextureRes = new Resource('bg_image', {
   type: 'image',
-  url: './bar_bg.png',
+  url: require('./bar_bg.png')
 });
 
 const fgTextureRes = new Resource('fg_image', {
   type: 'image',
-  url: './bar_fg.png'
+  url: require('./bar_fg.png')
 });
 
 const gameStartTextureRes = new Resource('gameStart_texture', {
   type: 'image',
-  url: './game_start.png',
+  url: require('./game_start.png')
 });
 
 resourceLoader.batchLoad([bgTextureRes, fgTextureRes, gameStartTextureRes], (err, res) => {

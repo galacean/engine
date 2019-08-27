@@ -31,7 +31,7 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
 const resourceLoader = new ResourceLoader(engine);
 const bgTextureRes = new Resource('bg_texture', {
   type: 'image',
-  url: './bar_bg.png',
+  url: require('./bar_bg.png'),
 });
 
 function create3DWidgets(testNode, helpImage) {
