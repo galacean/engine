@@ -33,7 +33,7 @@ const resourceLoader = new ResourceLoader(engine);
 
 const skeletonTextureRes = new Resource('gameStart_texture', {
   type: 'image',
-  url: './skeleton.png',
+  url: require('./skeleton.png'),
 });
 
 resourceLoader.batchLoad([skeletonTextureRes], (err, res) => {

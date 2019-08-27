@@ -28,9 +28,7 @@ const dateNow = () => {
 setTimeout(performanceNow, 2000);
 setTimeout(dateNow, 3000);
 
-const domCon = document.body.querySelector('.example-html');
-domCon.innerHTML = '<div>No view for this demo, see console instead...</div>';
-
+alert('No view for this demo, see console instead...')
 // let obj = {
 //   bb: [12, 23, 12, {
 //     cc: 22

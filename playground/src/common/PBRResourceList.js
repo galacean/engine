@@ -128,7 +128,7 @@ const chessGLTF = new Resource('chess', {
 
 const lutRes = new Resource('lut', {
   type: 'texture',
-  url: '/static/env/brdfLUT.png',
+  url: '/static/texture/brdfLUT.png',
 });
 
 const rampTexture = new Resource('ramp', {

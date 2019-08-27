@@ -40,7 +40,7 @@ const resourceLoader = new ResourceLoader(engine);
 
 const bgTextureRes = new Resource('bg_texture', {
   type: 'image',
-  url: './bar_bg.png',
+  url: require('./bar_bg.png'),
 });
 
 resourceLoader.batchLoad([bgTextureRes], (err, res) => {

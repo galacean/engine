@@ -1,13 +1,13 @@
-import { Engine } from '@alipay/o3-core';
-import { Logger } from '@alipay/o3-base';
-import { vec3 } from '@alipay/o3-math';
-import { ADefaultCamera } from '@alipay/o3-default-camera';
-import { HUDFeature } from '@alipay/o3-hud';
-import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { Engine } from "@alipay/o3-core";
+import { Logger } from "@alipay/o3-base";
+import { vec3 } from "@alipay/o3-math";
+import { ADefaultCamera } from "@alipay/o3-default-camera";
+import { HUDFeature } from "@alipay/o3-hud";
+import { ResourceLoader, Resource } from "@alipay/o3-loader";
 
-import '@alipay/o3-engine-stats';
-import { AHUDImage } from '../common/AHUDImage';
-import { AHUDLayer } from '../common/AHUDLayer';
+import "@alipay/o3-engine-stats";
+import { AHUDImage } from "../common/AHUDImage";
+import { AHUDLayer } from "../common/AHUDLayer";
 import { AHUDLabel } from "../common/AHUDLabel";
 import { AHUDProgressBar } from "./AHUDProgressBar";
 
@@ -20,27 +20,27 @@ let scene = engine.currentScene;
 let rootNode = scene.root;
 
 //-- create camera
-let cameraNode = rootNode.createChild('camera_node');
+let cameraNode = rootNode.createChild("camera_node");
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, 0, 10], target: [0, 0, 0]
+  canvas: "o3-demo", position: [0, 0, 10], target: [0, 0, 0]
 });
 
 
 const resourceLoader = new ResourceLoader(engine);
 
-const bgTextureRes = new Resource('bg_image', {
-  type: 'image',
-  url: './bar_bg.png',
+const bgTextureRes = new Resource("bg_image", {
+  type: "image",
+  url: require("./bar_bg.png")
 });
 
-const fgTextureRes = new Resource('fg_image', {
-  type: 'image',
-  url: './bar_fg.png'
+const fgTextureRes = new Resource("fg_image", {
+  type: "image",
+  url: require("./bar_fg.png")
 });
 
-const gameStartTextureRes = new Resource('gameStart_texture', {
-  type: 'image',
-  url: './game_start.png',
+const gameStartTextureRes = new Resource("gameStart_texture", {
+  type: "image",
+  url: require("./game_start.png")
 });
 
 resourceLoader.batchLoad([bgTextureRes, fgTextureRes, gameStartTextureRes], (err, res) => {
@@ -50,13 +50,13 @@ resourceLoader.batchLoad([bgTextureRes, fgTextureRes, gameStartTextureRes], (err
   //-- progress bar
   if (bgImage && fgImage) {
     const barProps = {
-      spriteID: 'bar1',
+      spriteID: "bar1",
       bgImage,
       fgImage,
       textureSize: [400, 80],
       screenSize: [300, 60]
     };
-    const barNode = rootNode.createChild('progressbar');
+    const barNode = rootNode.createChild("progressbar");
     const bar = barNode.createAbility(AHUDProgressBar, barProps);
     bar.setRange(0, 20);
     bar.currentValue = 1;
@@ -66,13 +66,13 @@ resourceLoader.batchLoad([bgTextureRes, fgTextureRes, gameStartTextureRes], (err
 
   //-- layer
   const layerProps = {
-    spriteID: 'layer',
+    spriteID: "layer",
     textureSize: [50, 50],
-    renderMode: '3D',
+    renderMode: "3D",
     worldSize: [5, 2],
-    backgroundStyle: 'rgba(0, 0, 0, 0.65)'
+    backgroundStyle: "rgba(0, 0, 0, 0.65)"
   };
-  const layerNode = rootNode.createChild('layer');
+  const layerNode = rootNode.createChild("layer");
   layerNode.position = [0, 2, 0];
   const layer = layerNode.createAbility(AHUDLayer, layerProps);
 
@@ -80,26 +80,26 @@ resourceLoader.batchLoad([bgTextureRes, fgTextureRes, gameStartTextureRes], (err
   //-- image
   if (gameStartImage) {
     const imageProps = {
-      spriteID: 'gameStartImage',
+      spriteID: "gameStartImage",
       textureSize: [100, 114],
-      renderMode: '3D',
+      renderMode: "3D",
       worldSize: [1, 1.14],
       image: gameStartImage
     };
-    const imageNode = rootNode.createChild('image');
+    const imageNode = rootNode.createChild("image");
     imageNode.position = [0, 2, 0.1];
     const image = imageNode.createAbility(AHUDImage, imageProps);
   }
 
   //-- label
   const labelProps = {
-    spriteID: 'label',
+    spriteID: "label",
     textureSize: [400, 80]
   };
-  const labelNode = rootNode.createChild('label');
+  const labelNode = rootNode.createChild("label");
   labelNode.position = [0, -2, 0];
   const label = labelNode.createAbility(AHUDLabel, labelProps);
-  label.text = 'this is a hud label!';
+  label.text = "this is a hud label!";
 
 });
 

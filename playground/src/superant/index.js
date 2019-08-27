@@ -16,7 +16,7 @@ const scene = engine.currentScene;
 const rootNode = scene.root;
 
 // 在场景中创建相机节点、配置位置和目标方向
-const canvas = document.getElementById('mountNode');
+const canvas = document.getElementById('o3-demo');
 const cameraNode = rootNode.createChild('camera_node');
 cameraNode.createAbility(ADefaultCamera, {
   canvas: canvas, position: [0, 0, 2], target: [0, 0, 0]

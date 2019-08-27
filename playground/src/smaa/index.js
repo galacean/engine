@@ -24,7 +24,7 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: 'o3-demo', position: [300, 400, 500], near: 0.01, attributes: { antialias: false}
 });
 cameraNode.createAbility(AOrbitControls, { canvas: 'o3-demo'});
-    
+
 // 方向光
 let light2 = rootNode.createChild("light2");
 light2.position = [20, 300, 220];
@@ -45,36 +45,36 @@ let envLight = envLightNode.createAbility(AEnvironmentMapLight);
 let cubeMapRes = new Resource('env', {
   type: 'cubemap',
   urls: [
-    './environment/px.jpg',
-    './environment/nx.jpg',
-    './environment/py.jpg',
-    './environment/ny.jpg',
-    './environment/pz.jpg',
-    './environment/nz.jpg',
+    '/static/env/environment/px.jpg',
+    '/static/env/environment/nx.jpg',
+    '/static/env/environment/py.jpg',
+    '/static/env/environment/ny.jpg',
+    '/static/env/environment/pz.jpg',
+    '/static/env/environment/nz.jpg',
   ]
 });
 
 let diffuseMapRes = new Resource('dif', {
   type: 'cubemap',
   urls: [
-    './env/papermill/diffuse/diffuse_right_0.jpg',
-    './env/papermill/diffuse/diffuse_left_0.jpg',
-    './env/papermill/diffuse/diffuse_top_0.jpg',
-    './env/papermill/diffuse/diffuse_bottom_0.jpg',
-    './env/papermill/diffuse/diffuse_front_0.jpg',
-    './env/papermill/diffuse/diffuse_back_0.jpg',
+    '/static/env/papermill/diffuse/diffuse_right_0.jpg',
+    '/static/env/papermill/diffuse/diffuse_left_0.jpg',
+    '/static/env/papermill/diffuse/diffuse_top_0.jpg',
+    '/static/env/papermill/diffuse/diffuse_bottom_0.jpg',
+    '/static/env/papermill/diffuse/diffuse_front_0.jpg',
+    '/static/env/papermill/diffuse/diffuse_back_0.jpg',
   ],
 });
 
 let environmentMapRes = new Resource('dif', {
   type: 'cubemap',
   urls: [
-    './env/papermill/environment/environment_right_0.jpg',
-    './env/papermill/environment/environment_left_0.jpg',
-    './env/papermill/environment/environment_top_0.jpg',
-    './env/papermill/environment/environment_bottom_0.jpg',
-    './env/papermill/environment/environment_front_0.jpg',
-    './env/papermill/environment/environment_back_0.jpg',
+    '/static/env/papermill/environment/environment_right_0.jpg',
+    '/static/env/papermill/environment/environment_left_0.jpg',
+    '/static/env/papermill/environment/environment_top_0.jpg',
+    '/static/env/papermill/environment/environment_bottom_0.jpg',
+    '/static/env/papermill/environment/environment_front_0.jpg',
+    '/static/env/papermill/environment/environment_back_0.jpg',
   ],
 });
 
@@ -82,84 +82,84 @@ let specularMapRes = new Resource('env', {
   type: 'cubemap',
   urls: [
     [
-      './env/papermill/specular/specular_right_0.jpg',
-      './env/papermill/specular/specular_left_0.jpg',
-      './env/papermill/specular/specular_top_0.jpg',
-      './env/papermill/specular/specular_bottom_0.jpg',
-      './env/papermill/specular/specular_front_0.jpg',
-      './env/papermill/specular/specular_back_0.jpg',
+      '/static/env/papermill/specular/specular_right_0.jpg',
+      '/static/env/papermill/specular/specular_left_0.jpg',
+      '/static/env/papermill/specular/specular_top_0.jpg',
+      '/static/env/papermill/specular/specular_bottom_0.jpg',
+      '/static/env/papermill/specular/specular_front_0.jpg',
+      '/static/env/papermill/specular/specular_back_0.jpg',
     ],
     [
-      './env/papermill/specular/specular_right_1.jpg',
-      './env/papermill/specular/specular_left_1.jpg',
-      './env/papermill/specular/specular_top_1.jpg',
-      './env/papermill/specular/specular_bottom_1.jpg',
-      './env/papermill/specular/specular_front_1.jpg',
-      './env/papermill/specular/specular_back_1.jpg',
+      '/static/env/papermill/specular/specular_right_1.jpg',
+      '/static/env/papermill/specular/specular_left_1.jpg',
+      '/static/env/papermill/specular/specular_top_1.jpg',
+      '/static/env/papermill/specular/specular_bottom_1.jpg',
+      '/static/env/papermill/specular/specular_front_1.jpg',
+      '/static/env/papermill/specular/specular_back_1.jpg',
     ],
     [
-      './env/papermill/specular/specular_right_2.jpg',
-      './env/papermill/specular/specular_left_2.jpg',
-      './env/papermill/specular/specular_top_2.jpg',
-      './env/papermill/specular/specular_bottom_2.jpg',
-      './env/papermill/specular/specular_front_2.jpg',
-      './env/papermill/specular/specular_back_2.jpg',
+      '/static/env/papermill/specular/specular_right_2.jpg',
+      '/static/env/papermill/specular/specular_left_2.jpg',
+      '/static/env/papermill/specular/specular_top_2.jpg',
+      '/static/env/papermill/specular/specular_bottom_2.jpg',
+      '/static/env/papermill/specular/specular_front_2.jpg',
+      '/static/env/papermill/specular/specular_back_2.jpg',
     ],
     [
-      './env/papermill/specular/specular_right_3.jpg',
-      './env/papermill/specular/specular_left_3.jpg',
-      './env/papermill/specular/specular_top_3.jpg',
-      './env/papermill/specular/specular_bottom_3.jpg',
-      './env/papermill/specular/specular_front_3.jpg',
-      './env/papermill/specular/specular_back_3.jpg',
+      '/static/env/papermill/specular/specular_right_3.jpg',
+      '/static/env/papermill/specular/specular_left_3.jpg',
+      '/static/env/papermill/specular/specular_top_3.jpg',
+      '/static/env/papermill/specular/specular_bottom_3.jpg',
+      '/static/env/papermill/specular/specular_front_3.jpg',
+      '/static/env/papermill/specular/specular_back_3.jpg',
     ],
     [
-      './env/papermill/specular/specular_right_4.jpg',
-      './env/papermill/specular/specular_left_4.jpg',
-      './env/papermill/specular/specular_top_4.jpg',
-      './env/papermill/specular/specular_bottom_4.jpg',
-      './env/papermill/specular/specular_front_4.jpg',
-      './env/papermill/specular/specular_back_4.jpg',
+      '/static/env/papermill/specular/specular_right_4.jpg',
+      '/static/env/papermill/specular/specular_left_4.jpg',
+      '/static/env/papermill/specular/specular_top_4.jpg',
+      '/static/env/papermill/specular/specular_bottom_4.jpg',
+      '/static/env/papermill/specular/specular_front_4.jpg',
+      '/static/env/papermill/specular/specular_back_4.jpg',
     ],
     [
-      './env/papermill/specular/specular_right_5.jpg',
-      './env/papermill/specular/specular_left_5.jpg',
-      './env/papermill/specular/specular_top_5.jpg',
-      './env/papermill/specular/specular_bottom_5.jpg',
-      './env/papermill/specular/specular_front_5.jpg',
-      './env/papermill/specular/specular_back_5.jpg',
+      '/static/env/papermill/specular/specular_right_5.jpg',
+      '/static/env/papermill/specular/specular_left_5.jpg',
+      '/static/env/papermill/specular/specular_top_5.jpg',
+      '/static/env/papermill/specular/specular_bottom_5.jpg',
+      '/static/env/papermill/specular/specular_front_5.jpg',
+      '/static/env/papermill/specular/specular_back_5.jpg',
     ],
     [
-      './env/papermill/specular/specular_right_6.jpg',
-      './env/papermill/specular/specular_left_6.jpg',
-      './env/papermill/specular/specular_top_6.jpg',
-      './env/papermill/specular/specular_bottom_6.jpg',
-      './env/papermill/specular/specular_front_6.jpg',
-      './env/papermill/specular/specular_back_6.jpg',
+      '/static/env/papermill/specular/specular_right_6.jpg',
+      '/static/env/papermill/specular/specular_left_6.jpg',
+      '/static/env/papermill/specular/specular_top_6.jpg',
+      '/static/env/papermill/specular/specular_bottom_6.jpg',
+      '/static/env/papermill/specular/specular_front_6.jpg',
+      '/static/env/papermill/specular/specular_back_6.jpg',
     ],
     [
-      './env/papermill/specular/specular_right_7.jpg',
-      './env/papermill/specular/specular_left_7.jpg',
-      './env/papermill/specular/specular_top_7.jpg',
-      './env/papermill/specular/specular_bottom_7.jpg',
-      './env/papermill/specular/specular_front_7.jpg',
-      './env/papermill/specular/specular_back_7.jpg',
+      '/static/env/papermill/specular/specular_right_7.jpg',
+      '/static/env/papermill/specular/specular_left_7.jpg',
+      '/static/env/papermill/specular/specular_top_7.jpg',
+      '/static/env/papermill/specular/specular_bottom_7.jpg',
+      '/static/env/papermill/specular/specular_front_7.jpg',
+      '/static/env/papermill/specular/specular_back_7.jpg',
     ],
     [
-      './env/papermill/specular/specular_right_8.jpg',
-      './env/papermill/specular/specular_left_8.jpg',
-      './env/papermill/specular/specular_top_8.jpg',
-      './env/papermill/specular/specular_bottom_8.jpg',
-      './env/papermill/specular/specular_front_8.jpg',
-      './env/papermill/specular/specular_back_8.jpg',
+      '/static/env/papermill/specular/specular_right_8.jpg',
+      '/static/env/papermill/specular/specular_left_8.jpg',
+      '/static/env/papermill/specular/specular_top_8.jpg',
+      '/static/env/papermill/specular/specular_bottom_8.jpg',
+      '/static/env/papermill/specular/specular_front_8.jpg',
+      '/static/env/papermill/specular/specular_back_8.jpg',
     ],
     [
-      './env/papermill/specular/specular_right_9.jpg',
-      './env/papermill/specular/specular_left_9.jpg',
-      './env/papermill/specular/specular_top_9.jpg',
-      './env/papermill/specular/specular_bottom_9.jpg',
-      './env/papermill/specular/specular_front_9.jpg',
-      './env/papermill/specular/specular_back_9.jpg',
+      '/static/env/papermill/specular/specular_right_9.jpg',
+      '/static/env/papermill/specular/specular_left_9.jpg',
+      '/static/env/papermill/specular/specular_top_9.jpg',
+      '/static/env/papermill/specular/specular_bottom_9.jpg',
+      '/static/env/papermill/specular/specular_front_9.jpg',
+      '/static/env/papermill/specular/specular_back_9.jpg',
     ],
 
   ],
@@ -171,7 +171,7 @@ let specularMapRes = new Resource('env', {
 
 const lutRes = new Resource('lut', {
   type: 'texture',
-  url: './env/brdfLUT.png',
+  url: '/static/texture/brdfLUT.png',
 });
 
 
@@ -184,7 +184,7 @@ let node = rootNode.createChild('gltf_node');
 resourceLoader.batchLoad([gltfRes, lutRes, diffuseMapRes, specularMapRes, cubeMapRes], (err, res) => {
   const glb = res[0];
   const nodes = glb.asset.rootScene.nodes;
-    
+
   const postProcess = scene.findFeature(PostProcessFeature);
   postProcess.initRT(3000, 3000);
 
@@ -203,7 +203,7 @@ resourceLoader.batchLoad([gltfRes, lutRes, diffuseMapRes, specularMapRes, cubeMa
     n.recieveShadow = true;
 
   });
-  
+
   nodes[0].children[16].recieveShadow = false;
   nodes[0].children[14].recieveShadow = false;
   nodes[0].children[4].recieveShadow = false;
