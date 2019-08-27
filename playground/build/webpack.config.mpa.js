@@ -53,6 +53,17 @@ let config = {
     filename: 'js/[name].js',
     path: path.resolve(__dirname, '../dist')
   },
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        commons: {
+          name: 'commons',
+          chunks: "initial",
+          minChunks: 2
+        }
+      }
+    }
+  },
   module: {
     rules: [
       {
