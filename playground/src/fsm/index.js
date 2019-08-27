@@ -130,7 +130,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
 
   btn1.addEventListener("click", (e) => {
     machine.dispatch("MOVE");
-    console.log('move')
+    console.log("move");
   });
 
   //-- run

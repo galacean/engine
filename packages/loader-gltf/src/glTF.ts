@@ -596,8 +596,8 @@ export function parseMesh(gltfMesh, resources) {
       primitive.vertexBuffers.push(buffer);
       primitive.vertexAttributes[attributeSemantic] = createAttribute(gltf, attributeSemantic, accessor, h++);
       if (attributeSemantic === 'POSITION') {
-        primitive.boundingBoxMax = accessor.max;
-        primitive.boundingBoxMin = accessor.min;
+        primitive.boundingBoxMax = accessor.max || [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
+        primitive.boundingBoxMin = accessor.min || [Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE];
       }
     }
 
