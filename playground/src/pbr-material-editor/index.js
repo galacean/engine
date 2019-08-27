@@ -47,7 +47,7 @@ directLightNode2.setRotationAngles(45, 0, 0);
 let envLight = envLightNode.createAbility(AEnvironmentMapLight, {});
 
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, .2, .5], clearParam: [.9, .9, .9, 1]
+  canvas: 'o3-demo', position: [0, .2, 30], clearParam: [.9, .9, .9, 1]
 });
 window.camera = camera;
 let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
@@ -339,40 +339,4 @@ function debugModel(modelUrl, onLoad) {
 //-- run
 engine.run();
 
-// debugShape();
-
-debugModel('/static/model/perturbation-test/scene.gltf', (res) => {
-  window.materials = materials;
-  window.meshes = meshes;
-  let pingshen = materials[0];
-  let logo = materials[1];
-  let water = materials[2];
-  let cap = materials[3];
-  water.perturbationUOffset = -0.01;
-  water.perturbationVOffset = 0.03;
-  pingshen.srgb = true;
-  pingshen.gamma = true;
-  logo.srgb = true;
-  logo.gamma = true;
-  water.srgb = true;
-  water.gamma = true;
-  cap.srgb = true;
-  cap.gamma = true;
-  pingshen.envMapIntensity = 0.6;
-
-  let probe = new PerturbationProbe('probe', scene);
-  probe.renderList.push(pingshen, cap, logo, skybox.material);
-
-  water.perturbationTexture = probe.texture;
-
-  // showTexture(backRenderTarget.texture);
-});
-
-function showTexture(t) {
-  const texNode = rootNode.createChild('shadowMapNode');
-  texNode.position = [0, 0, 0];
-  texNode.scale = [0.2, 0.2, 1];
-  const sprite = new Sprite(t, { x: 0, y: 0, width: 512, height: 512 });
-  texNode.createAbility(ASpriteRenderer, sprite);
-
-}
+debugShape();
