@@ -8,15 +8,15 @@ let prefab = document.getElementById('itemPrefab').cloneNode(true);
 prefab.classList.remove('hide');
 let doms = [];
 
-ITEMLIST.forEach(({img, name, readme}, index) => {
+ITEMLIST.forEach(({ img, name, readme }, index) => {
   let cloneNode = prefab.cloneNode(true);
   let titleNode = cloneNode.getElementsByClassName('title')[0];
   // let mdNode = cloneNode.getElementsByClassName('md')[0];
   // let content = markdown.toHTML(readme);
   // mdNode.innerHTML=content;
-  cloneNode.onclick = function () {
-    view(name);
-  }
+  cloneNode.onclick = function() {
+    clickItem(name);
+  };
   titleNode.innerHTML = name;
   titleNode.setAttribute('title', name);
   if (img) {
@@ -29,7 +29,7 @@ ITEMLIST.forEach(({img, name, readme}, index) => {
     }
     avatarNode.setAttribute('style',
       `background-image:url(${imgUrl})`
-    )
+    );
   } else {
     cloneNode.classList.add('simple');
   }
@@ -38,23 +38,23 @@ ITEMLIST.forEach(({img, name, readme}, index) => {
 
   doms.push({
     dom: cloneNode,
-    name,
+    name
     // readme
-  })
+  });
 
-  // 自动打开第一个
+  // 如果没有hash,自动打开第一个
   if (index === 0) {
-    view(name);
+    clickItem(getPageNameFromHash() || name);
   }
-})
+});
 
 searchBar.oninput = (() => {
   updateFilter(searchBar.value);
-})
+});
 
 function updateFilter(value) {
   let reg = new RegExp(value, 'i');
-  doms.forEach(({dom, name, readme}) => {
+  doms.forEach(({ dom, name, readme }) => {
     // if (reg.test(name) || reg.test(readme)) {
     if (reg.test(name)) {
       dom.classList.remove('hide');
@@ -62,12 +62,31 @@ function updateFilter(value) {
     else {
       dom.classList.add('hide');
     }
-  })
+  });
 }
 
-function view(pageName) {
+function clickItem(itemName) {
+  let hashPageName = getPageNameFromHash();
+  if (itemName === hashPageName) {
+    onHashChange();
+  } else {
+    window.location.hash = `#${itemName}`;
+  }
+}
+
+function getPageNameFromHash() {
+  let pageName = '';
+  let hash = window.location.hash;
+  if (hash) {
+    pageName = hash.split('#')[1];
+  }
+  return pageName;
+}
+
+function onHashChange() {
+  let pageName = getPageNameFromHash();
   iframe.setAttribute('src', pageName + '.html');
-  doms.forEach(({dom, name}) => {
+  doms.forEach(({ dom, name }) => {
     if (name === pageName) {
       dom.classList.add('pick');
     } else {
@@ -76,3 +95,4 @@ function view(pageName) {
   });
 }
 
+window.onhashchange = onHashChange;
