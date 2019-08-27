@@ -170,7 +170,7 @@ export const CubeMapFace = [
   0x8517, // gl.TEXTURE_CUBE_MAP_POSITIVE_Y
   0x8518, // gl.TEXTURE_CUBE_MAP_NEGATIVE_Y
   0x8519, // gl.TEXTURE_CUBE_MAP_POSITIVE_Z
-  0x851A, // gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+  0x851A // gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
 ];
 
 /**
@@ -382,4 +382,14 @@ export enum MaskList {
   SHADOW = 0b10000000000000000000000000000,
   SHADOW_MAP = 0b100000000000000000000000000000,
 
+}
+
+/**
+ * 探针渲染速率
+ * */
+export enum RefreshRate {
+  /** 只渲染一次 */
+  ONCE = 1,
+  /** 每帧渲染 */
+  EVERYFRAME = 2,
 }
