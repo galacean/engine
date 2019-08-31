@@ -27,6 +27,7 @@
     "b:doc": "node scripts/build.doc.js",
     "b:umd": "cross-env NODE_ENV=BUILD rollup -c",
     "b:playground": "cross-env NODE_ENV=production webpack --config playground/build/webpack.config.mpa.js",
+    "b:playground-miniprogram": "node ./playground/build/build.miniprogram.js",
     "b:miniprogram": "cross-env NODE_ENV=MINIPROGRAM rollup -c",
     "b:miniprogram-component": "cd packages/component-miniprogram && tnpm run build",
     "c:module": "node scripts/create.module.js",

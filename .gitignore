@@ -13,6 +13,7 @@ types
 lib
 docs
 dist
+dist-miniprogram
 coverage
 .nyc_output
 npm-debug.log*

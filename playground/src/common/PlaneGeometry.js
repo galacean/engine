@@ -1,5 +1,5 @@
 import { DataType } from '@alipay/o3-base';
-import { IndexBufferGeometry } from '@alipay/o3-Geometry';
+import { IndexBufferGeometry } from '@alipay/o3-geometry';
 
 /**
  * PlaneGeometry 四边形
