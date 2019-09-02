@@ -591,11 +591,11 @@ float getLuminance(vec3 color)
 }
 
 void main() {
-
+    vec2 uv = vec2(0., 0.);
     #ifdef  USE_SCREENUV
-          vec2 uv = getScreenUv();
-    #else
-          vec2 uv = v_uv;
+        uv = getScreenUv();
+    #elif defined( O3_HAS_UV ) || defined( O3_NEED_UV ) || defined( O3_HAS_ENVMAP ) || defined( O3_HAS_LIGHTMAP )
+        uv = v_uv;
     #endif
 
     vec3 normal = getNormal(uv);

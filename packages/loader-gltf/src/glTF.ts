@@ -552,7 +552,7 @@ export function parseSkin(gltfSkin, resources) {
   }
 
   // get skeleton
-  const node = getItemByIdx('nodes', gltfSkin.skeleton, resources);
+  const node = getItemByIdx('nodes', gltfSkin.skeleton == null ? gltfSkin.joints[0] : gltfSkin.skeleton, resources);
   skin.skeleton = node.name;
 
   return skin;
