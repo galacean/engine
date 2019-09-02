@@ -15,7 +15,7 @@ function copyDir(name) {
   copydir.sync(from, to, {
     utimes: true, // keep add time and modify time
     mode: true, // keep file mode
-    cover: true // cover file when exists, default is true
+    cover: true, // cover file when exists, default is true
   });
 }
 
@@ -29,7 +29,7 @@ function copyTemplate(name) {
   copydir.sync(from, to, {
     utimes: true, // keep add time and modify time
     mode: true, // keep file mode
-    cover: true // cover file when exists, default is true
+    cover: true, // cover file when exists, default is true
   });
 }
 
@@ -86,7 +86,7 @@ function handleJS(page) {
   // toplevel engine
   newText = newText.replace(/(?:let|const|var)(.*?)=\s*?new\s*?Engine\(\);?/,
     `engine = new Engine();
-    $1 = engine`
+    $1 = engine`,
   );
   // toplevel module
   let reg = /(import.*['"];?)/g;
@@ -98,6 +98,9 @@ function handleJS(page) {
   fs.writeFileSync(file, newText, { encoding: 'utf-8' });
 }
 
+/**
+ * 替换module和静态资源
+ * */
 function handlePrefix(pages) {
   pages.forEach(page => {
     fs.readdirSync(path.resolve(DSTDIR, page)).forEach(filename => {
@@ -106,10 +109,17 @@ function handlePrefix(pages) {
       let stats = fs.statSync(file);
       if (stats.isDirectory()) return;
       const text = fs.readFileSync(file, { encoding: 'utf-8' });
-      const newText = text.replace(
+      // 替换成小程序包
+      let newText = text.replace(
         /(@alipay\/o3.*?)(?=['"])/g,
-        `$1/dist/miniprogram`
+        `$1/dist/miniprogram`,
       );
+      // 替换静态资源
+      for (let resourceName in map) {
+        if (newText.indexOf(resourceName) !== -1) {
+          newText = newText.replace(resourceName, map[resourceName]);
+        }
+      }
       fs.writeFileSync(file, newText, { encoding: 'utf-8' });
     });
   });
@@ -119,6 +129,14 @@ function handlePrefix(pages) {
 fs.ensureDirSync(DSTDIR);
 // 获取page
 let pages = getPages();
+pages = [
+  'common',
+  'controls-orbit',
+  'directLighting',
+  'TextureCubeMap',
+  'pbr',
+  'pbr-material-editor'
+];
 // 处理小程序页面
 pages.forEach(page => {
   // copy 目录
