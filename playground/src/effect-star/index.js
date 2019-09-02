@@ -1,17 +1,17 @@
-import {Logger} from '@alipay/o3-base';
-import {Engine} from '@alipay/o3-core';
-import {ADefaultCamera} from '@alipay/o3-default-camera';
-import {AGeometryRenderer} from '@alipay/o3-geometry';
-import {SphereGeometry} from '@alipay/o3-geometry-shape';
-import {PlaneGeometry} from "../common/PlaneGeometry";
+import { Logger } from '@alipay/o3-base';
+import { Engine } from '@alipay/o3-core';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { SphereGeometry } from '@alipay/o3-geometry-shape';
+import { PlaneGeometry } from '../common/PlaneGeometry';
 import '@alipay/o3-engine-stats';
-import {ResourceLoader, Resource} from '@alipay/o3-loader';
-import {AOrbitControls} from '@alipay/o3-orbit-controls';
-import {ASkyBox} from '@alipay/o3-skybox';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { ASkyBox } from '@alipay/o3-skybox';
 
-import {StarMaterial} from './StarMaterial';
-import {HaloMaterial} from "./HaloMaterial";
-import {CoronaMaterial} from "./CoronaMaterial";
+import { StarMaterial } from './StarMaterial';
+import { HaloMaterial } from './HaloMaterial';
+import { CoronaMaterial } from './CoronaMaterial';
 import * as dat from 'dat.gui';
 
 Logger.enable();
@@ -23,9 +23,9 @@ let rootNode = scene.root;
 
 let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, 0, 17], target: [0, 0, 0]
+  canvas: 'o3-demo', position: [0, 0, 17], target: [0, 0, 0],
 });
-let controler = cameraNode.createAbility(AOrbitControls, {canvas: document.getElementById('o3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
 controler.minDistance = 4;
 controler.maxDistance = 50;
 
@@ -40,23 +40,23 @@ let coronaNode = createPlaneGeometry('corona', [0, 0, 0], coronaMaterial, 3 * ra
 
 addControls();
 
-const r1 = new Resource('image1', {type: 'texture', url: require('./assets/corona.png')});
-const r2 = new Resource('image2', {type: 'texture', url: require('./assets/halo_colorshift.png')});
-const r3 = new Resource('image3', {type: 'texture', url: require('./assets/star_color_modified.png')});
-const r4 = new Resource('image4', {type: 'texture', url: require('./assets/star_colorshift.png')});
-const r5 = new Resource('image5', {type: 'texture', url: require('./assets/sun_halo.png')});
-const r6 = new Resource('image6', {type: 'texture', url: require('./assets/sun_surface.png')});
+const r1 = new Resource('image1', { type: 'texture', url: '/static/texture/effect-star/corona.png' });
+const r2 = new Resource('image2', { type: 'texture', url: '/static/texture/effect-star/halo_colorshift.png' });
+const r3 = new Resource('image3', { type: 'texture', url: '/static/texture/effect-star/star_color_modified.png' });
+const r4 = new Resource('image4', { type: 'texture', url: '/static/texture/effect-star/star_colorshift.png' });
+const r5 = new Resource('image5', { type: 'texture', url: '/static/texture/effect-star/sun_halo.png' });
+const r6 = new Resource('image6', { type: 'texture', url: '/static/texture/effect-star/sun_surface.png' });
 
 let cubeMapRes = new Resource('env', {
   type: 'cubemap',
   urls: [
-    require('./assets/s_px.jpg'),
-    require('./assets/s_nx.jpg'),
-    require('./assets/s_py.jpg'),
-    require('./assets/s_ny.jpg'),
-    require('./assets/s_pz.jpg'),
-    require('./assets/s_nz.jpg'),
-  ]
+    '/static/texture/effect-star/s_px.jpg',
+    '/static/texture/effect-star/s_nx.jpg',
+    '/static/texture/effect-star/s_py.jpg',
+    '/static/texture/effect-star/s_ny.jpg',
+    '/static/texture/effect-star/s_pz.jpg',
+    '/static/texture/effect-star/s_nz.jpg',
+  ],
 });
 
 resourceLoader.batchLoad([r1, r2, r3, r4, r5, r6, cubeMapRes], (err, res) => {
@@ -73,7 +73,7 @@ resourceLoader.batchLoad([r1, r2, r3, r4, r5, r6, cubeMapRes], (err, res) => {
   coronaMaterial.setValue('textureSpectral', res[2].asset);
 
   let cubeMap = res[6].asset;
-  let skybox = rootNode.createAbility(ASkyBox, {skyBoxMap: cubeMap});
+  let skybox = rootNode.createAbility(ASkyBox, { skyBoxMap: cubeMap });
 
 
 });
@@ -103,7 +103,7 @@ function createPlaneGeometry(name, position, mtl, w, h) {
 }
 
 function addControls() {
-  var controls = new function () {
+  var controls = new function() {
     this.star_color = 0.01;
     this.rotate_speed = 1.0;
     this.burn = 1.0;

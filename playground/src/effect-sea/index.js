@@ -6,9 +6,9 @@ import { SphereGeometry, CuboidGeometry } from '@alipay/o3-geometry-shape';
 import { ADirectLight, AAmbientLight } from '@alipay/o3-lighting';
 import { vec3 } from '@alipay/o3-math';
 import { AOrbitControls } from '@alipay/o3-orbit-controls';
-import ALightColor from "../common/ALightColor";
+import ALightColor from '../common/ALightColor';
 import { ResourceLoader, Resource } from '@alipay/o3-loader';
-import { SeaMaterial } from "./SeaMaterial";
+import { SeaMaterial } from './SeaMaterial';
 
 import * as dat from 'dat.gui';
 
@@ -24,21 +24,21 @@ const rootNode = scene.root;
 const canvas = document.getElementById('o3-demo');
 const cameraNode = rootNode.createChild('camera_node');
 const camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: canvas, position: [0, 5, 8], target: [0, 0, 0]
+  canvas: canvas, position: [0, 5, 8], target: [0, 0, 0],
 });
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
 controler.minDistance = 4;
 controler.maxDistance = 50;
 
-let light = rootNode.createChild("light1");
+let light = rootNode.createChild('light1');
 light.createAbility(AAmbientLight);
 light.createAbility(ALightColor, AAmbientLight);
 
 // 创建方向光
-let light2 = rootNode.createChild("light2");
+let light2 = rootNode.createChild('light2');
 light2.createAbility(ADirectLight, {
   color: vec3.fromValues(0.4, 0.6, 0.75),
-  intensity: 0.8
+  intensity: 0.8,
 });
 light2.setRotationAngles(30, 140, 0);
 
@@ -47,13 +47,13 @@ const resourceLoader = new ResourceLoader(engine);
 // 创建材质（可以渲染漫反射的 Lambert 材质）
 const mtl = new SeaMaterial('sea_mtl');
 
-var controls = new function () {
+var controls = new function() {
   this.sea_height = 0.6;
   this.water_scale = 0.2;
   this.water_speed = 3.5;
 
-  this.water_color = [0.8 * 256,0.9 * 256,0.6 * 256];
-  this.sea_base = [0.1 * 256,0.19 * 256,0.22 * 256];
+  this.water_color = [0.8 * 256, 0.9 * 256, 0.6 * 256];
+  this.sea_base = [0.1 * 256, 0.19 * 256, 0.22 * 256];
 };
 
 var gui = new dat.GUI();
@@ -64,15 +64,15 @@ gui.addColor(controls, 'water_color');
 gui.addColor(controls, 'sea_base');
 gui.domElement.style = 'position:absolute;top:0px;right:300px';
 
-rootNode.onUpdate = ()=> {
+rootNode.onUpdate = () => {
   mtl.setValue('u_sea_height', controls.sea_height);
   mtl.setValue('u_water_scale', controls.water_scale);
   mtl.setValue('u_water_speed', controls.water_speed);
 
   let base = vec3.create();
-  mtl.setValue('u_sea_base', vec3.scale(base, controls.sea_base, 1.0/256.));
+  mtl.setValue('u_sea_base', vec3.scale(base, controls.sea_base, 1.0 / 256.));
   let wColor = vec3.create();
-  mtl.setValue('u_water_color', vec3.scale(wColor, controls.water_color, 1.0/256.));
+  mtl.setValue('u_water_color', vec3.scale(wColor, controls.water_color, 1.0 / 256.));
 };
 
 // 创建球体形的海面
@@ -98,10 +98,10 @@ function createSphereGeometry(name, position, r, h, v, as, ae, ts, te) {
 
 const techRes = new Resource('image', {
   type: 'texture',
-  url: require('./00.jpg')
+  url: '/static/texture/effect-sea/00.jpg',
 });
 
-resourceLoader.load(techRes, (err,res) => {
+resourceLoader.load(techRes, (err, res) => {
   const texture = res.asset;
   mtl.setValue('u_texture', texture);
 });
