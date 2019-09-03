@@ -129,6 +129,8 @@ module.exports = {
   '/static/texture/effect-star/s_ny.jpg': 'https://gw.alipayobjects.com/mdn/rms_475770/afts/img/A*VnDETLMraxsAAAAAAAAAAABkARQnAQ',
   '/static/texture/effect-star/s_pz.jpg': 'https://gw.alipayobjects.com/mdn/rms_475770/afts/img/A*C0plTbteboEAAAAAAAAAAABkARQnAQ',
   '/static/texture/effect-star/s_nz.jpg': 'https://gw.alipayobjects.com/mdn/rms_475770/afts/img/A*z7g1SYG5R0gAAAAAAAAAAABkARQnAQ',
+  '/static/texture/effect-lineShape/skeleton.png': 'https://gw.alipayobjects.com/mdn/rms_475770/afts/img/A*tz45R74ZswAAAAAAAAAAAABkARQnAQ',
+  '/static/texture/effect-trail-renderer/tail.png': 'https://gw.alipayobjects.com/mdn/rms_475770/afts/img/A*9nVGTLPhdb4AAAAAAAAAAABkARQnAQ',
   // model
   '/static/model/DamangedHelmet/DamagedHelmet.gltf': 'https://gw.alipayobjects.com/os/loanprod/7de0fee3-84f4-4fdc-ad66-d27ce68aa8a5/5d5a45ef5b0cde1c4f591968/bfa09ec932fc2e30ad7f13b93ee28944.gltf',
   '/static/model/chess/chess.gltf': 'https://gw.alipayobjects.com/os/loanprod/7bbc8cc3-cf76-4128-8d56-9474b7e149d8/5d5a45ef5b0cde1c4f591968/4988eaf8278152980009f474fd1bd106.gltf',

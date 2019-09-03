@@ -4,9 +4,6 @@ const copydir = require('copy-dir');
 const map = require('./resource.map');
 const DSTDIR = path.resolve(__dirname, '../dist-miniprogram');
 const SRCDIR = path.resolve(__dirname, '../src');
-const exclude = [
-  'rfui-video',
-];
 
 /**
  * 拷贝目录
@@ -44,7 +41,6 @@ function getPages() {
   const pages =
     fs.readdirSync(SRCDIR)
       .filter((pageName) => {
-        if (exclude.indexOf(pageName) !== -1) return false;
         if (pageName === 'index') return false;
         let pagePath = path.resolve(SRCDIR, pageName);
         let stats = fs.statSync(pagePath);
@@ -147,4 +143,4 @@ pages.forEach(page => {
 });
 // 替换prefix
 handlePrefix(pages);
-console.log('将下面配置复制到app.json.subPackages.pages', pages.filter(p => p !== 'common').map(page => page + '/index'));
+console.log('将下面配置复制到app.subPackages进行分类展示', pages.filter(p => p !== 'common').map(page => page + '/index'));
