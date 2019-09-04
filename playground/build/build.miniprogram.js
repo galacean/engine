@@ -57,6 +57,9 @@ function replaceVar(text, name, dst) {
   return text.replace(reg, dst);
 }
 
+/**
+ * 替换json
+ * */
 function handleJSON(page) {
   const file = path.resolve(DSTDIR, page, 'index.json');
   const text = fs.readFileSync(file, { encoding: 'utf-8' });
@@ -64,6 +67,17 @@ function handleJSON(page) {
   fs.writeFileSync(file, newText, { encoding: 'utf-8' });
 }
 
+/**
+ * 替换index.js
+ * 1. 替换code
+ * 2. 替换import的o3模块到小程序onReady里面的局部变量
+ * 3. 去除o3-engine-stats模块
+ * 4. o3-demo -> canvas
+ * 5. document.getElementById('*') -> canvas
+ * 6. canvas变量冲突删除
+ * 7. engine升到顶层,用来小程序onUnload时释放
+ * 8. 其他的import模块，升到顶层
+ * */
 function handleJS(page) {
   const file = path.resolve(DSTDIR, page, 'index.js');
   const codeFile = path.resolve(SRCDIR, page, 'index.js');
@@ -84,7 +98,7 @@ function handleJS(page) {
   // replace Duplicate declaration "canvas"
   newText = newText.replace(/(let|const|var)(?:\s*?canvas\s*?=)/g, '');
   // toplevel engine
-  newText = newText.replace(/(?:let|const|var)(.*?)=\s*?new\s*?Engine\(\);?/,
+  newText = newText.replace(/(?:let|const|var)(.*?)=\s*?new\s*?Engine\(\);?/g,
     `engine = new Engine();
     $1 = engine`,
   );
@@ -99,7 +113,10 @@ function handleJS(page) {
 }
 
 /**
- * 替换module和静态资源
+ * 替换路径
+ * 1. 替换成小程序包/dist/miniprogram
+ * 2. 替换/static静态资源映射到cdn
+ * 3. 替换../common相对路径到/page/playground/common绝对路径
  * */
 function handlePrefix(pages) {
   pages.forEach(page => {
@@ -117,9 +134,11 @@ function handlePrefix(pages) {
       // 替换静态资源
       for (let resourceName in map) {
         if (newText.indexOf(resourceName) !== -1) {
-          newText = newText.replace(resourceName, map[resourceName]);
+          newText = newText.replace(new RegExp(resourceName), map[resourceName]);
         }
       }
+      // 替换common
+      newText = newText.replace(/\.\.\/common/g, '/page/playground/common');
       fs.writeFileSync(file, newText, { encoding: 'utf-8' });
     });
   });
