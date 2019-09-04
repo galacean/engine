@@ -1,5 +1,5 @@
 Page({
-  onO3Load(O3, canvas) {
+  onO3Load(O3, canvas, ctx2d) {
     let {
       Logger,
       RegistExtension,
@@ -13,7 +13,7 @@ Page({
     } = O3;
 
     Logger.enable();
-    RegistExtension({PBRMaterial});
+    RegistExtension({ PBRMaterial });
 
     let engine = new Engine();
     let scene = engine.currentScene;
@@ -24,11 +24,11 @@ Page({
       canvas, position: [0, 10, 200],
       clearParam: [1, 1, 0, 1],
       attributes: {
-        antialias: false
-      }
+        antialias: false,
+      },
     });
     // control
-    this.controler = cameraNode.createAbility(AOrbitControls)
+    this.controler = cameraNode.createAbility(AOrbitControls);
 
     // light
     let pointLightNode1 = rootNode.createChild('point_light1');
@@ -48,7 +48,7 @@ Page({
     let resourceLoader = new ResourceLoader(engine, null);
     let gltfRes = new Resource('card', {
       url: 'https://gw.alipayobjects.com/os/basement_prod/55132237-92fb-4ecf-8643-56641651c4d5.gltf',
-      type: 'gltf'
+      type: 'gltf',
     });
     let baseColorTextureRes = new Resource('baseColor', {
       type: 'texture',
@@ -64,7 +64,7 @@ Page({
     });
     resourceLoader.batchLoad([gltfRes, baseColorTextureRes, normalTextureRes, roughnessTextureRes], (err, reses) => {
       // resourceLoader.batchLoad([gltfRes], (err, reses) => {
-      console.log(err, reses)
+      console.log(err, reses);
       if (!err) {
         let gltf = reses[0].asset;
         let mat = gltf.meshes[0].primitives[0].material;
@@ -73,7 +73,7 @@ Page({
         mat.metallicRoughnessTexture = reses[3].asset;
         gltf.rootScene.nodes.forEach(n => {
           n.rotateByAngles(90, 0, 90);
-          rootNode.addChild(n)
+          rootNode.addChild(n);
         });
       }
 
@@ -81,5 +81,5 @@ Page({
 
     // run
     engine.run();
-  }
+  },
 });

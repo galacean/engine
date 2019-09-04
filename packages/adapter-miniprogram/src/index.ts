@@ -11,7 +11,7 @@ import HTMLVideoElement from './HTMLVideoElement';
 import Image from './Image';
 import navigator from './navigator';
 import Node from './Node';
-import {requestAnimationFrame, cancelAnimationFrame} from './requestAnimationFrame';
+import { requestAnimationFrame, cancelAnimationFrame } from './requestAnimationFrame';
 import screen from './screen';
 import XMLHttpRequest from './XMLHttpRequest';
 import performance from './performance';
@@ -42,7 +42,7 @@ let window = {
   },
   dispatchEvent(event: Event) {
     document.dispatchEvent(event);
-  },
+  }
 };
 
 export {
@@ -64,11 +64,12 @@ export {
   cancelAnimationFrame,
   screen,
   XMLHttpRequest,
-  performance,
-}
+  performance
+};
 
 export {
   registerCanvas,
+  registerCanvas2D
 } from './register';
 
 export * from './EventIniter/index';
