@@ -26,6 +26,7 @@
     "@alipay/o3-core": "^1.0.1-alpha.1",
     "@alipay/o3-default-camera": "^1.0.1-alpha.2",
     "@alipay/o3-engine-stats": "^1.0.1-alpha.1",
+    "@alipay/o3-env-probe": "^1.0.0",
     "@alipay/o3-fog": "^1.0.1-alpha.1",
     "@alipay/o3-framebuffer-picker": "^1.0.1-alpha.1",
     "@alipay/o3-free-controls": "^1.0.1-alpha.1",
