@@ -1,4 +1,8 @@
 # Oasis 3D
+初始化依赖
+```
+tnpm run bootstrap
+```
 
 
 ## 游乐场相关
