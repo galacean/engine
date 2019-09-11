@@ -105,6 +105,12 @@ export class Node extends EventDispatcher {
 
   }
 
+  set name(name) {
+
+    this._name = name;
+
+  }
+
   /**
    * 子节点数组
    * @member {Array}
