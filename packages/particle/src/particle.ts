@@ -29,6 +29,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   public maxCount: number;
   public spawnCount: number;
   private _sleepFrameCount: number;
+  public intervalFrameCount: number;
   public options: {};
   public getOptions: any;
   public rotateToVelocity: boolean;
@@ -103,6 +104,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     this.maxCount = props.maxCount !== undefined ? props.maxCount : 1000;
     this.spawnCount = props.spawnCount !== undefined ? props.spawnCount : Math.floor(this.maxCount / 10);
     this._sleepFrameCount = this.spawnCount > 1 ? 0 : 1 / this.spawnCount;
+    this.intervalFrameCount = props.intervalFrameCount || 0;
     this.once = props.once || false;
     this.options = props.options || {};
     this.getOptions = props.getOptions;
@@ -145,7 +147,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     if (this._myActive) {
 
-      if (this._sleepFrameCount > 0 && this._sleepedCount < this._sleepFrameCount) {
+      if (this._sleepFrameCount > 0 && this._sleepedCount < this._sleepFrameCount + this.intervalFrameCount) {
 
         this._sleepedCount++;
 
