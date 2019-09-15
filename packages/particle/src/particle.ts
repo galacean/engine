@@ -355,7 +355,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       }
     };
     if (this.blendFuncSeparate) {
-      cfg.states.functions.blendFuncSeparate. = this.blendFuncSeparate;
+      cfg.states.functions.blendFuncSeparate = this.blendFuncSeparate;
     } else {
       cfg.states.functions.blendFunc = this.blendFunc;
     }
