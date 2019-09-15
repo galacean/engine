@@ -34,6 +34,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   public getOptions: any;
   public rotateToVelocity: boolean;
   public blendFunc: number[];
+  public blendFuncSeparate: number[];
   public useOriginColor: boolean;
   public fragmentShader: string;
   public vertexShader: string;
@@ -92,6 +93,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param {Function} [ParticleProps.getOptions] 获取更新参数（每帧回调）
    * @param {boolean} [ParticleProps.rotateToVelocity] 是否跟随粒子运动速度的方向。
    * @param {Array} [ParticleProps.blendFunc] webgl 混合因子，默认透明度混合 [SRC_ALPHA, ONE_MINUS_SRC_ALPHA]
+   * @param {Array} [ParticleProps.blendFuncSeparate] webgl 混合因子alpha通道分离，优先级高于blendFunc，如无指定使用blendFunc
    * @param {boolean} [ParticleProps.useOriginColor = true] 是否使用图片原色: true(使用图片原色)、 false(图片原色混合生成的颜色)
    * @param {string} [ParticleProps.fragmentShader] 自定义片元着色器
    * @param {string} [ParticleProps.vertexShader] 自定义定点着色器
@@ -103,7 +105,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    */
 
   initialize(props) {
-
     this.maxCount = props.maxCount !== undefined ? props.maxCount : 1000;
     this.spawnCount = props.spawnCount !== undefined ? props.spawnCount : Math.floor(this.maxCount / 10);
     this._sleepFrameCount = this.spawnCount > 1 ? 0 : 1 / this.spawnCount;
@@ -112,6 +113,9 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     this.options = props.options || {};
     this.getOptions = props.getOptions;
     this.rotateToVelocity = props.rotateToVelocity || false;
+    if (props.blendFuncSeparate) {
+      this.blendFuncSeparate = props.blendFuncSeparate;
+    }
     this.blendFunc = props.blendFunc || [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA];
     this.useOriginColor = props.useOriginColor !== undefined ? props.useOriginColor : true;
     this.fragmentShader = props.fragmentShader || null;
@@ -344,13 +348,17 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       states: {
         enable: [RenderState.BLEND],
         functions: {
-          blendFunc: this.blendFunc,
+          // blendFunc: this.blendFunc,
           // todo question
           depthMask: [false]
         }
       }
     };
-
+    if (this.blendFuncSeparate) {
+      cfg.states.functions.blendFuncSeparate = this.blendFuncSeparate;
+    } else {
+      cfg.states.functions.blendFunc = this.blendFunc;
+    }
     if (this.particleTex) {
 
       cfg.uniforms.particleTex = {
