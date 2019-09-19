@@ -43,8 +43,8 @@ export class Sprite {
     this._uvRect = {
       u: this._rect.x / w,
       v: this._rect.y / h,
-      width: w / this._rect.width,
-      height: h / this._rect.height,
+      width: this._rect.width / w,
+      height: this._rect.height / h,
     };
 
     this._worldSize = [this._rect.width / 100, this._rect.height / 100];
