@@ -31,7 +31,7 @@ export class Sprite {
    * @param {Rect} rect 在纹理上面的像素区域
    * @param {vec2} anchor 锚点设置
    */
-  constructor(texture, rect, anchor) {
+  constructor(texture, rect?, anchor?) {
 
     this._texture = texture;
     this._rect = rect || { x: 0, y: 0, width: texture.image.width, height: texture.image.height };
