@@ -498,9 +498,11 @@ export class Node extends EventDispatcher {
     }
 
     const abilityArray = this._abilityArray || [];
-    abilityArray.forEach(ability=>{
+    const len = abilityArray.length;
+    for(let i = 0; i < len; i++) {
+      const ability = abilityArray[i];
       newNode.createAbility(ability.constructor as any, ability._props);
-    })
+    }
 
     return newNode;
 
