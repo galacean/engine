@@ -1,6 +1,6 @@
 import {Util} from '../src/Util';
 
-describe('Time', () => {
+describe.only('Time', () => {
 
 	it('isArray', () => {
 		let aa = [22,33];

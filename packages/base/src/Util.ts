@@ -1,7 +1,7 @@
 export const Util = {
 
   isArray: ("isArray" in Array) ? Array.isArray : (value: any): boolean => {
-
+    
     return toString.call(value) === "[object Array]";
 
   },

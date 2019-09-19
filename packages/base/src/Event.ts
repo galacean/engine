@@ -17,7 +17,7 @@ export class Event {
 
   }
 
-  set target(t) {
+  set target(t: EventDispatcher) {
 
     this._target = t;
 
