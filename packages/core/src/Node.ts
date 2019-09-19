@@ -497,11 +497,10 @@ export class Node extends EventDispatcher {
       newNode.addChild(childNode.clone());
     }
 
-    const abilityArray = this._abilityArray;
-    for (let i = abilityArray.length - 1; i >= 0; i--) {
-      const ability = abilityArray[i];
+    const abilityArray = this._abilityArray || [];
+    abilityArray.forEach(ability=>{
       newNode.createAbility(ability.constructor as any, ability._props);
-    }
+    })
 
     return newNode;
 
