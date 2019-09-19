@@ -29,10 +29,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   public maxCount: number;
   public spawnCount: number;
   private _sleepFrameCount: number;
+  public intervalFrameCount: number;
   public options: {};
   public getOptions: any;
   public rotateToVelocity: boolean;
   public blendFunc: number[];
+  public blendFuncSeparate: number[];
   public useOriginColor: boolean;
   public fragmentShader: string;
   public vertexShader: string;
@@ -40,6 +42,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   public fadeIn: boolean;
   public particleMaskTex;
   public isScaleByLifetime: boolean;
+  public scaleFactor: number;
 
   /**
    * @constructor
@@ -85,10 +88,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param {number} [ParticleProps.maxCount = 1000] 最大粒子数
    * @param {number} [ParticleProps.spawnCount = maxCount / 10] 每帧发射粒子数
    * @param {boolean} [ParticleProps.once = false] 是否只发射一帧, 默认
+   * @param {number} [ParticleProps.intervalFrameCount = 0] 发射粒子间隔帧数
    * @param {ParticleParam} [ParticleProps.options] 发射参数
    * @param {Function} [ParticleProps.getOptions] 获取更新参数（每帧回调）
    * @param {boolean} [ParticleProps.rotateToVelocity] 是否跟随粒子运动速度的方向。
    * @param {Array} [ParticleProps.blendFunc] webgl 混合因子，默认透明度混合 [SRC_ALPHA, ONE_MINUS_SRC_ALPHA]
+   * @param {Array} [ParticleProps.blendFuncSeparate] webgl 混合因子alpha通道分离，优先级高于blendFunc，如无指定使用blendFunc
    * @param {boolean} [ParticleProps.useOriginColor = true] 是否使用图片原色: true(使用图片原色)、 false(图片原色混合生成的颜色)
    * @param {string} [ParticleProps.fragmentShader] 自定义片元着色器
    * @param {string} [ParticleProps.vertexShader] 自定义定点着色器
@@ -96,17 +101,21 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param {Texture} [ParticleProps.maskTexture] 粒子遮罩贴图
    * @param {boolean} [ParticleProps.isScaleByLifetime = false] 是否随生命周期缩小至消失
    * @param {boolean} [ParticleProps.fadeIn = false] 是否添加淡入效果
+   * @param {number} [ParticleProps.scaleFactor = 1] 粒子随时间scale参数
    */
 
   initialize(props) {
-
     this.maxCount = props.maxCount !== undefined ? props.maxCount : 1000;
     this.spawnCount = props.spawnCount !== undefined ? props.spawnCount : Math.floor(this.maxCount / 10);
     this._sleepFrameCount = this.spawnCount > 1 ? 0 : 1 / this.spawnCount;
+    this.intervalFrameCount = props.intervalFrameCount || 0;
     this.once = props.once || false;
     this.options = props.options || {};
     this.getOptions = props.getOptions;
     this.rotateToVelocity = props.rotateToVelocity || false;
+    if (props.blendFuncSeparate) {
+      this.blendFuncSeparate = props.blendFuncSeparate;
+    }
     this.blendFunc = props.blendFunc || [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA];
     this.useOriginColor = props.useOriginColor !== undefined ? props.useOriginColor : true;
     this.fragmentShader = props.fragmentShader || null;
@@ -115,6 +124,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     this.fadeIn = props.fadeIn || false;
     this.particleMaskTex = props.maskTexture || null;
     this.isScaleByLifetime = props.isScaleByLifetime || false;
+    this.scaleFactor = props.scaleFactor || 1;
 
     const randomCount = Math.min(this.maxCount * 2, Math.max(this.spawnCount, 1) * 360);
     this._creatRandom(randomCount);
@@ -145,7 +155,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     if (this._myActive) {
 
-      if (this._sleepFrameCount > 0 && this._sleepedCount < this._sleepFrameCount) {
+      if (this._sleepFrameCount > 0 && this._sleepedCount < this._sleepFrameCount + this.intervalFrameCount) {
 
         this._sleepedCount++;
 
@@ -312,7 +322,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           name: 'rotateRate',
           semantic: 'ROTATERATE',
           type: DataType.FLOAT
-        }
+        },
+        scaleFactor: {
+          name: 'scaleFactor',
+          semantic: 'SCALEFACTOR',
+          type: DataType.FLOAT
+        },
       },
       uniforms: {
         uTime: {
@@ -333,13 +348,17 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       states: {
         enable: [RenderState.BLEND],
         functions: {
-          blendFunc: this.blendFunc,
+          // blendFunc: this.blendFunc,
           // todo question
           depthMask: [false]
         }
       }
     };
-
+    if (this.blendFuncSeparate) {
+      cfg.states.functions.blendFuncSeparate = this.blendFuncSeparate;
+    } else {
+      cfg.states.functions.blendFunc = this.blendFunc;
+    }
     if (this.particleTex) {
 
       cfg.uniforms.particleTex = {
@@ -387,7 +406,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       {semantic: 'ROTATERATE', size: 1, type: FLOAT, normalized: false},
       {semantic: 'STARTTIME', size: 1, type: FLOAT, normalized: false},
       {semantic: 'LIFETIME', size: 1, type: FLOAT, normalized: false},
-      {semantic: 'STARTANGLE', size: 1, type: FLOAT, normalized: false}
+      {semantic: 'STARTANGLE', size: 1, type: FLOAT, normalized: false},
+      {semantic: 'SCALEFACTOR', size: 1, type: FLOAT, normalized: false},
     ], this.maxCount, BufferUsage.DYNAMIC_DRAW);
     return geometry;
 
@@ -417,6 +437,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const startAngleRandomness = options.startAngleRandomness !== undefined ? options.startAngleRandomness : 0;
     const rotateRate = options.rotateRate !== undefined ? options.rotateRate : 0;
     const rotateRateRandomness = options.rotateRateRandomness !== undefined ? options.rotateRateRandomness : 0;
+    const scaleFactor = options.scaleFactor !== undefined ? options.scaleFactor : 1;
 
     if (this.DPR !== undefined) size *= this.DPR;
 
@@ -456,6 +477,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     this.geometry.setValue('STARTANGLE', i, [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2]);
     this.geometry.setValue('ROTATERATE', i, [rotateRate + this._getRandom() * rotateRateRandomness]);
+    this.geometry.setValue('SCALEFACTOR', i, [scaleFactor]);
 
     // 移动指针
     this._cursor++;
@@ -515,6 +537,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         attribute vec3 positionStart;
         attribute vec3 color;
         attribute float startAngle;
+        attribute float scaleFactor;
         
         uniform float uTime;
         uniform mat4 matModelViewProjection;
@@ -536,7 +559,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
       sizeVertexShader:
         `
-          gl_PointSize = size / gl_Position.z;
+          gl_PointSize = size * pow(scaleFactor, deltaTime) / gl_Position.z;
       `,
       isScaleByLifetimeVertexShader:
         `

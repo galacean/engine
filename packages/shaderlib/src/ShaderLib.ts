@@ -54,6 +54,9 @@ import noise_simplex_3D from './shaderlib/noise_simplex_3D.glsl';
 import noise_simplex_4D from './shaderlib/noise_simplex_4D.glsl';
 import noise_simplex from './shaderlib/noise_simplex.glsl';
 
+import refract_share from './shaderlib/refract_share.glsl';
+import refract_frag from './shaderlib/refract_frag.glsl';
+
 export const ShaderLib = {
 
   common,
@@ -112,6 +115,8 @@ export const ShaderLib = {
   noise_simplex_4D,
   noise_simplex,
 
+  refract_share,
+  refract_frag,
 };
 
 export function InjectShaderSlices( obj ) {

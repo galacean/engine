@@ -48,7 +48,7 @@ export class GLShaderProgram {
     let program: GLShaderProgram = null;
 
     programList.some(p => {
-      if (p._vertexShaderSource === tech.vertexShader && p._fragmentShaderSource === tech.fragmentShader) {
+      if (p._gl === gl && p._vertexShaderSource === tech.vertexShader && p._fragmentShaderSource === tech.fragmentShader) {
         program = p;
         return true;
       }

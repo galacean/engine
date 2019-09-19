@@ -5,6 +5,7 @@
 - rendering pipeline enhance（@shensi.zxd） [!3](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/3)
 - texture perturbation（@shensi.zxd） [!8](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/8)
 - adapter-miniprogram（@shensi.zxd） [!7](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/7)
+- perturbation probe（@shensi.zxd） [!13](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/13)
 
 ### Bug Fixes
 

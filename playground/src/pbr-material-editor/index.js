@@ -1,22 +1,23 @@
-import {Engine} from '@alipay/o3-core';
-import {Logger, DrawMode, Side, ClearMode} from "@alipay/o3-base";
-import {ResourceLoader, Resource} from '@alipay/o3-loader';
-import {AGeometryRenderer} from '@alipay/o3-geometry';
-import {ADefaultCamera} from '@alipay/o3-default-camera';
-import {AOrbitControls} from '@alipay/o3-orbit-controls';
-import {AEnvironmentMapLight, PBRMaterial} from '@alipay/o3-pbr';
-import {SphereGeometry} from '@alipay/o3-geometry-shape';
-import {ASkyBox} from '@alipay/o3-skybox';
-import {AAmbientLight, ADirectLight, APointLight, ASpotLight} from '@alipay/o3-lighting';
+import { Engine } from '@alipay/o3-core';
+import { Logger, DrawMode, Side, ClearMode, MaskList } from '@alipay/o3-base';
+import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
+import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { AOrbitControls } from '@alipay/o3-orbit-controls';
+import { AEnvironmentMapLight, PBRMaterial } from '@alipay/o3-pbr';
+import { SphereGeometry } from '@alipay/o3-geometry-shape';
+import { ASkyBox } from '@alipay/o3-skybox';
+import { AAmbientLight, ADirectLight, APointLight, ASpotLight } from '@alipay/o3-lighting';
 import * as dat from 'dat.gui';
 import '@alipay/o3-engine-stats';
-import {Mesh, AMeshRenderer} from '@alipay/o3-mesh';
-import {RegistExtension} from '@alipay/o3-loader-gltf';
-import {RenderTarget} from '@alipay/o3-material';
-import {RenderPass} from '@alipay/o3-renderer-basic';
-import {Sprite, ASpriteRenderer} from "@alipay/o3-2d";
+import { Mesh, AMeshRenderer } from '@alipay/o3-mesh';
+import { RegistExtension } from '@alipay/o3-loader-gltf';
+import { RenderTarget } from '@alipay/o3-material';
+import { RenderPass } from '@alipay/o3-renderer-basic';
+import { Sprite, ASpriteRenderer } from '@alipay/o3-2d';
+import { PerturbationProbe } from '@alipay/o3-env-probe';
 
-RegistExtension({PBRMaterial});
+RegistExtension({ PBRMaterial });
 
 let engine = new Engine();
 let scene = engine.currentScene;
@@ -46,10 +47,10 @@ directLightNode2.setRotationAngles(45, 0, 0);
 let envLight = envLightNode.createAbility(AEnvironmentMapLight, {});
 
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, .2, .5], clearParam: [.9, .9, .9, 1]
+  canvas: 'o3-demo', position: [0, .2, 30], clearParam: [.9, .9, .9, 1]
 });
 window.camera = camera;
-let controler = cameraNode.createAbility(AOrbitControls, {canvas: document.getElementById('r3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
 controler.target = [0, .1, 0];
 let meshes = [];
 let materials = [];
@@ -65,7 +66,7 @@ const cubeTextureRes = cubeTextureList.map(name => new Resource(name, {
     `/static/skybox/${name}/py.jpg`,
     `/static/skybox/${name}/ny.jpg`,
     `/static/skybox/${name}/pz.jpg`,
-    `/static/skybox/${name}/nz.jpg`,
+    `/static/skybox/${name}/nz.jpg`
   ]
 }));
 const textureRes = textureList.map(name => new Resource(name, {
@@ -79,16 +80,16 @@ resourceLoader.batchLoad(cubeTextureRes, (err, reses) => {
   cubeTextureList.forEach((name, index) => {
     cubeTextures[name] = reses[index].asset;
   });
-  skybox = rootNode.createAbility(ASkyBox, {skyBoxMap: cubeTextures.sky});
+  skybox = rootNode.createAbility(ASkyBox, { skyBoxMap: cubeTextures.sky });
   skybox.enabled = false;
 
-  envLight.specularMap = cubeTextures.minisampler
+  envLight.specularMap = cubeTextures.minisampler;
 });
 
 resourceLoader.batchLoad(textureRes, (err, reses) => {
   textureList.forEach((name, index) => {
     textures[name] = reses[index].asset;
-  })
+  });
 });
 
 /**debug*/
@@ -138,7 +139,7 @@ function addSceneGUI() {
       skybox && (skybox.enabled = true);
       skybox && (skybox.skyBoxMap = cubeTextures[v]);
     }
-  })
+  });
   dispFolder.add(state, 'wireframe').onChange(v => {
     meshes.forEach(mesh => mesh.primitives[0].mode = v ? DrawMode.LINE_STRIP : DrawMode.TRIANGLES);
   });
@@ -205,7 +206,7 @@ function addMatGUI() {
       occlusionTexture: m.occlusionTexture && m.occlusionTexture.name || '',
       opacityTexture: m.opacityTexture && m.opacityTexture.name || '',
       specularGlossinessTexture: m.specularGlossinessTexture && m.specularGlossinessTexture.name || '',
-      specularFactor: unNormalRGB(m.specularFactor),
+      specularFactor: unNormalRGB(m.specularFactor)
     };
     const f = materialFolder.addFolder(
       folderName[m.name]
@@ -224,15 +225,15 @@ function addMatGUI() {
     });
     mode1.add(state, 'specularGlossinessTexture', ['None', ...textureList]).onChange(v => {
       m.specularGlossinessTexture = v === 'None' ? null : textures[v];
-    })
+    });
 
     // metallic
-    let mode2 = f.addFolder('金属模式')
+    let mode2 = f.addFolder('金属模式');
     mode2.add(m, 'metallicFactor', 0, 1);
     mode2.add(m, 'roughnessFactor', 0, 1);
     mode2.add(state, 'metallicRoughnessTexture', ['None', ...textureList]).onChange(v => {
       m.metallicRoughnessTexture = v === 'None' ? null : textures[v];
-    })
+    });
     // common
     let common = f.addFolder('通用');
 
@@ -258,25 +259,25 @@ function addMatGUI() {
     });
     common.add(state, 'baseColorTexture', ['None', ...textureList]).onChange(v => {
       m.baseColorTexture = v === 'None' ? null : textures[v];
-    })
+    });
     common.add(state, 'normalTexture', ['None', ...textureList]).onChange(v => {
       m.normalTexture = v === 'None' ? null : textures[v];
-    })
+    });
     common.add(state, 'emissiveTexture', ['None', ...textureList]).onChange(v => {
       m.emissiveTexture = v === 'None' ? null : textures[v];
-    })
+    });
     common.add(state, 'occlusionTexture', ['None', ...textureList]).onChange(v => {
       m.occlusionTexture = v === 'None' ? null : textures[v];
-    })
+    });
     common.add(state, 'opacityTexture', ['None', ...textureList]).onChange(v => {
       m.opacityTexture = v === 'None' ? null : textures[v];
-    })
+    });
 
     // f.open();
     mode1.open();
     mode2.open();
     common.open();
-  })
+  });
 
   materialFolder.open();
 
@@ -294,7 +295,7 @@ function updateModelNode() {
 function debugShape() {
   updateModelNode();
   const geometry = new SphereGeometry(5, 64, 64);
-  const {primitive} = geometry;
+  const { primitive } = geometry;
   const material = new PBRMaterial('pbr', {
     roughnessFactor: 0,
     metallicFactor: 1
@@ -302,7 +303,7 @@ function debugShape() {
   const mesh = new Mesh('defaultMesh');
   primitive.material = material;
   mesh.primitives.push(primitive);
-  modelNode.createAbility(AMeshRenderer, {mesh});
+  modelNode.createAbility(AMeshRenderer, { mesh });
 
   meshes = [mesh];
   materials = [material];
@@ -313,10 +314,10 @@ function debugShape() {
 function debugModel(modelUrl, onLoad) {
   const gltfRes = new Resource('gltf', {
     type: 'gltf',
-    url: modelUrl,
+    url: modelUrl
   });
   resourceLoader.load(gltfRes, (err, res) => {
-    console.log(err, res)
+    console.log(err, res);
     if (err) return;
     let asset = res.asset;
 
@@ -330,60 +331,12 @@ function debugModel(modelUrl, onLoad) {
     });
     addSceneGUI();
     addMatGUI();
-    onLoad && onLoad(res)
-  })
+    onLoad && onLoad(res);
+  });
 
 }
 
 //-- run
 engine.run();
 
-// debugShape();
-
-debugModel('/static/model/perturbation-test/scene.gltf', (res) => {
-  window.materials = materials;
-  window.meshes = meshes;
-  let pingshen = materials[0];
-  let logo = materials[1];
-  let water = materials[2];
-  let cap = materials[3];
-  water.perturbationUOffset = -0.01;
-  water.perturbationVOffset = 0.03;
-  pingshen.srgb = true;
-  pingshen.gamma = true;
-  logo.srgb = true;
-  logo.gamma = true;
-  water.srgb = true;
-  water.gamma = true;
-  cap.srgb = true;
-  cap.gamma = true;
-  pingshen.envMapIntensity = 0.6;
-  let backRenderTarget = new RenderTarget('backFace');
-  let backRenderPass = new RenderPass('backFace', -1, backRenderTarget);
-  backRenderPass.preRender = function () {
-    pingshen.side = Side.BACK;
-    water.side = Side.BACK;
-    logo.side = Side.BACK;
-    cap.side = Side.BACK;
-    water.perturbationTexture = null;
-  }
-  backRenderPass.postRender = function () {
-    pingshen.side = Side.FRONT;
-    water.side = Side.FRONT;
-    logo.side = Side.DOUBLE;
-    cap.side = Side.DOUBLE;
-    water.perturbationTexture = backRenderTarget.texture;
-  }
-  camera.sceneRenderer.addRenderPass(backRenderPass);
-
-  // showTexture(backRenderTarget.texture);
-});
-
-function showTexture(t) {
-  const texNode = rootNode.createChild('shadowMapNode');
-  texNode.position = [0, 0, 0];
-  texNode.scale = [0.2, 0.2, 1];
-  const sprite = new Sprite(t, {x: 0, y: 0, width: 512, height: 512});
-  texNode.createAbility(ASpriteRenderer, sprite);
-
-}
+debugShape();

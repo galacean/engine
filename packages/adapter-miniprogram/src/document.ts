@@ -1,7 +1,7 @@
 import HTMLElement from './HTMLElement';
 import HTMLVideoElement from './HTMLVideoElement';
 import Image from './Image';
-import {getCanvas} from './register';
+import { getCanvas, getCanvas2D } from './register';
 import Event from './Event';
 
 class Body extends HTMLElement {
@@ -26,7 +26,7 @@ class Body extends HTMLElement {
 
 class DocumentElement extends HTMLElement {
   constructor() {
-    super('html', 0)
+    super('html', 0);
   }
 
   addEventListener(type, listener, options = {}) {
@@ -67,14 +67,14 @@ const document = {
   createElement(tagName) {
     tagName = tagName.toLowerCase();
     if (tagName === 'canvas') {
-      return getCanvas();
+      return getCanvas2D();
     } else if (tagName === 'img') {
       return new Image();
     } else if (tagName === 'video') {
       return new HTMLVideoElement();
     }
 
-    return new HTMLElement(tagName)
+    return new HTMLElement(tagName);
   },
 
   createElementNS(nameSpace, tagName) {
@@ -88,22 +88,25 @@ const document = {
 
   getElementById(id) {
     let canvas = getCanvas();
+    let canvas2D = getCanvas2D();
     if (id === canvas.id) {
-      return canvas
+      return canvas;
+    } else if (id === canvas2D.id) {
+      return canvas2D;
     }
-    return null
+    return null;
   },
 
   getElementsByTagName(tagName) {
     tagName = tagName.toLowerCase();
     if (tagName === 'head') {
-      return [document.head]
+      return [document.head];
     } else if (tagName === 'body') {
-      return [document.body]
+      return [document.body];
     } else if (tagName === 'canvas') {
-      return [getCanvas()]
+      return [getCanvas(), getCanvas2D()];
     }
-    return []
+    return [];
   },
 
   getElementsByTagNameNS(nameSpace, tagName) {
@@ -112,55 +115,58 @@ const document = {
 
   getElementsByName(tagName) {
     if (tagName === 'head') {
-      return [document.head]
+      return [document.head];
     } else if (tagName === 'body') {
-      return [document.body]
+      return [document.body];
     } else if (tagName === 'canvas') {
-      return [getCanvas()]
+      return [getCanvas(), getCanvas2D()];
     }
-    return []
+    return [];
   },
 
   querySelector(query) {
     let canvas = getCanvas();
+    let canvas2D = getCanvas2D();
     if (query === 'head') {
-      return document.head
+      return document.head;
     } else if (query === 'body') {
-      return document.body
+      return document.body;
     } else if (query === 'canvas') {
       return canvas;
     } else if (query === `#${canvas.id}`) {
-      return canvas
+      return canvas;
+    } else if (query === `#${canvas2D.id}`) {
+      return canvas2D;
     }
-    return null
+    return null;
   },
 
   querySelectorAll(query) {
     if (query === 'head') {
-      return [document.head]
+      return [document.head];
     } else if (query === 'body') {
-      return [document.body]
+      return [document.body];
     } else if (query === 'canvas') {
-      return [getCanvas()]
+      return [getCanvas(), getCanvas2D()];
     }
-    return []
+    return [];
   },
 
   addEventListener(type, listener, options) {
     if (!events[type]) {
-      events[type] = []
+      events[type] = [];
     }
-    events[type].push(listener)
+    events[type].push(listener);
   },
 
   removeEventListener(type, listener) {
-    const listeners = events[type]
+    const listeners = events[type];
 
     if (listeners && listeners.length > 0) {
       for (let i = listeners.length; i--; i > 0) {
         if (listeners[i] === listener) {
-          listeners.splice(i, 1)
-          break
+          listeners.splice(i, 1);
+          break;
         }
       }
     }
@@ -168,22 +174,22 @@ const document = {
 
   dispatchEvent(event: Event) {
     const type = event.type;
-    const listeners = events[type]
+    const listeners = events[type];
 
     if (listeners) {
       for (let i = 0; i < listeners.length; i++) {
-        listeners[i](event)
+        listeners[i](event);
       }
     }
 
     if (event.target && typeof event.target['on' + type] === 'function') {
-      event.target['on' + type](event)
+      event.target['on' + type](event);
     }
   }
-}
+};
 
 document.documentElement = new DocumentElement();
 document.head = new HTMLElement('head');
 document.body = new Body();
 
-export default document
+export default document;

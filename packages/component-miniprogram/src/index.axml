@@ -3,5 +3,6 @@
       onTouchMove="onTouchMove"
       onTouchEnd="onTouchEnd"
   >
+    <canvas class="full" id="canvas2D" style="display:none" width="1024" height="1024" />
     <canvas class="full" id="canvas" type="webgl" / >
 </view>
