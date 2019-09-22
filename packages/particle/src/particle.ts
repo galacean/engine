@@ -9,7 +9,7 @@ import {
   TextureWrapMode,
 } from '@alipay/o3-base';
 import { Material, RenderTechnique } from '@alipay/o3-material';
-import { AGeometryRenderer, BufferGeometry } from '@alipay/o3-geometry';
+import { AGeometryRenderer, BufferGeometry, IndexBufferGeometry } from '@alipay/o3-geometry';
 import { vec3 } from '@alipay/o3-math';
 
 
@@ -165,9 +165,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         this._sleepedCount = 0;
         const options = this.getOptions ? this.getOptions(this._time) : this.options;
         for (let x = 0; x < this.spawnCount; x++) {
-
           this._spawnParticle(options);
-
         }
 
       }
@@ -267,6 +265,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       material.setValue('particleMaskTex', this.particleMaskTex);
 
     }
+
     super.setMaterial(material);
 
   }
@@ -328,6 +327,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           name: 'scaleFactor',
           semantic: 'SCALEFACTOR',
           type: DataType.FLOAT
+        },
+        uv: {
+          name: 'uv',
+          semantic: 'UV',
+          type: DataType.FLOAT_VEC2
         },
       },
       uniforms: {
@@ -395,9 +399,25 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    */
   _createGeometry() {
 
-    const geometry = new BufferGeometry('particleGeometry');
-    geometry.mode = DrawMode.POINTS;
+    const geometry = new IndexBufferGeometry('particleGeometry');
+    geometry.mode = DrawMode.TRIANGLES;
     const FLOAT = DataType.FLOAT;
+
+    var indices = new Uint16Array(6 * this.maxCount);
+
+    var idx = 0;
+
+    for (var i = 0; i < this.maxCount; ++i) {
+      // 两个三角面
+      var startIndex = i * 4;
+      indices[idx++] = startIndex + 0;
+      indices[idx++] = startIndex + 1;
+      indices[idx++] = startIndex + 2;
+      indices[idx++] = startIndex + 0;
+      indices[idx++] = startIndex + 2;
+      indices[idx++] = startIndex + 3;
+    }
+
     geometry.initialize([
       { semantic: 'POSITIONSTART', size: 3, type: FLOAT, normalized: false },
       { semantic: 'VELOCITY', size: 3, type: FLOAT, normalized: false },
@@ -409,7 +429,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       { semantic: 'LIFETIME', size: 1, type: FLOAT, normalized: false },
       { semantic: 'STARTANGLE', size: 1, type: FLOAT, normalized: false },
       { semantic: 'SCALEFACTOR', size: 1, type: FLOAT, normalized: false },
-    ], this.maxCount, BufferUsage.DYNAMIC_DRAW);
+      { semantic: 'UV', size: 2, type: FLOAT, normalized: false },
+    ], this.maxCount * 4, indices, BufferUsage.DYNAMIC_DRAW);
     return geometry;
 
   }
@@ -428,7 +449,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const color = options.color !== undefined ? this._getColor(options.color) : vec3.fromValues(1, 1, 1);
     const colorRandomness = options.colorRandomness !== undefined ? options.colorRandomness : 1;
     const lifetime = options.lifetime !== undefined ? options.lifetime : 5;
-    let size = options.size !== undefined ? options.size : 10;
+    let size = options.size !== undefined ? options.size : 1;
     const sizeRandomness = options.sizeRandomness !== undefined ? options.sizeRandomness : 0;
     const smoothPosition = options.smoothPosition !== undefined ? options.smoothPosition : false;
 
@@ -446,39 +467,67 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     let x = position[0] + (this._getRandom() * positionRandomness[0]);
     let y = position[1] + (this._getRandom() * positionRandomness[1]);
     let z = position[2] + (this._getRandom() * positionRandomness[2]);
-    if (smoothPosition === true) {
 
+    if (smoothPosition === true) {
       x += -(velocity[0] * this._getRandom());
       y += -(velocity[1] * this._getRandom());
       z += -(velocity[2] * this._getRandom());
-
     }
-    this.geometry.setValue('POSITIONSTART', i, [x, y, z]);
 
     const velX = velocity[0] + (this._getRandom() * velocityRandomness[0]);
     const velY = velocity[1] + (this._getRandom() * velocityRandomness[1]);
     const velZ = velocity[2] + (this._getRandom() * velocityRandomness[2]);
-    this.geometry.setValue('VELOCITY', i, [velX, velY, velZ]);
 
     const accX = acceleration[0] + this._getRandom() * accelerationRandomness[0];
     const accY = acceleration[1] + this._getRandom() * accelerationRandomness[1];
     const accZ = acceleration[2] + this._getRandom() * accelerationRandomness[2];
-    this.geometry.setValue('ACCELERATION', i, [accX, accY, accZ]);
 
     color[0] = this._clamp(color[0] + this._getRandom() * colorRandomness, 0, 1);
     color[1] = this._clamp(color[1] + this._getRandom() * colorRandomness, 0, 1);
     color[2] = this._clamp(color[2] + this._getRandom() * colorRandomness, 0, 1);
-    this.geometry.setValue('COLOR', i, [color[0], color[1], color[2]]);
+    size += this._getRandom() * sizeRandomness * size * 2
+    const lifeTime = [lifetime + this._getRandom() * lifetime];
+    const time = [this._time + (this._getRandom() + 0.5) * 0.1];
+    const sa = [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2];
+    const rr = [rotateRate + this._getRandom() * rotateRateRandomness]
 
-    this.geometry.setValue('SIZE', i, [size + this._getRandom() * sizeRandomness * size * 2]);
-    this.geometry.setValue('LIFETIME', i, [lifetime + this._getRandom() * lifetime]);
+    const s = size / 2;
 
-    const time = this._time + (this._getRandom() + 0.5) * 0.1;
-    this.geometry.setValue('STARTTIME', i, [time]);
+    const corners = [
+      [-s, -s], //left bottom
+      [s, -s], // right bottom
+      [s, s], // right top
+      [-s, s] // left top
+    ]
 
-    this.geometry.setValue('STARTANGLE', i, [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2]);
-    this.geometry.setValue('ROTATERATE', i, [rotateRate + this._getRandom() * rotateRateRandomness]);
-    this.geometry.setValue('SCALEFACTOR', i, [scaleFactor]);
+
+    for (let j = 0; j < 4; j++) {
+      let _x = x + corners[j][0];
+      let _y = y + corners[j][1];
+
+      const k = i * 4 + j;
+
+      this.geometry.setValue('POSITIONSTART', k, [_x, _y, z]);
+
+      this.geometry.setValue('VELOCITY', k, [velX, velY, velZ]);
+
+      this.geometry.setValue('ACCELERATION', k, [accX, accY, accZ]);
+
+      this.geometry.setValue('COLOR', k, [color[0], color[1], color[2]]);
+
+      this.geometry.setValue('SIZE', k, [size]);
+      this.geometry.setValue('LIFETIME', k, lifeTime);
+
+      this.geometry.setValue('STARTTIME', k, time);
+
+      this.geometry.setValue('STARTANGLE', k, sa);
+      this.geometry.setValue('ROTATERATE', k, rr);
+      this.geometry.setValue('SCALEFACTOR', k, [scaleFactor]);
+
+      this._setUvs(i, j, k);
+    }
+
+
 
     // 移动指针
     this._cursor++;
@@ -488,6 +537,40 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     }
 
+  }
+
+  _setUvs(i: number, j: number, k:number) {
+    const { spriteSheet } = this.options;
+    let rects;
+
+    if (spriteSheet) {
+      const w = particleTex.image.width;
+      const h = particleTex.image.height;
+
+      const { x, y, width, height } = spriteSheet[i % spriteSheet.length];
+      const u = x / w;
+      const v = y / h;
+      const p = u + width / w;
+      const q = v + height / h;
+
+      rects = [
+        [u, q], // left bottom
+        [p, q], // right bottom
+        [p, v], // right top
+        [u, v], // left top
+      ]
+
+    }
+    else {
+      rects = [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ]
+    }
+
+    this.geometry.setValue('UV', k, rects[j]);
   }
 
   /**
@@ -539,32 +622,38 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         attribute vec3 color;
         attribute float startAngle;
         attribute float scaleFactor;
+        attribute vec2 uv;
         
         uniform float uTime;
         uniform mat4 matModelViewProjection;
         uniform mat4 matModelView;
+        uniform mat4 matViewInverse;
+        uniform mat4 matView;
+        uniform mat4 matProjection;
+        uniform mat4 matModel;
+        uniform mat4 matLocal;
 
         varying vec3 v_color;
         varying float lifeLeft;
         varying mat2 vTextureMat;
+        varying vec2 v_uv;
         
         void main()
         {
           v_color = color;
+          v_uv = uv + vec2(0.5);
           float deltaTime = max((uTime - startTime), 0.0);
           lifeLeft = clamp((1.0 - ( deltaTime / lifeTime )) * 2.0, 0.0, 1.0);
-          vec3 position = positionStart + (velocity + acceleration * deltaTime) * deltaTime;
-          gl_Position = matModelViewProjection * vec4( position, 1.0 );
-         
+          float scale = size;
       `,
 
       sizeVertexShader:
         `
-          gl_PointSize = size * pow(scaleFactor, deltaTime) / gl_Position.z;
+          scale *= pow(scaleFactor, deltaTime);
       `,
       isScaleByLifetimeVertexShader:
         `
-          gl_PointSize = size * lifeLeft / gl_Position.z;
+          scale *= lifeLeft;
       `,
       rotateToVelocityVertexShader:
         `
@@ -576,8 +665,41 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         `
         float deltaAngle = deltaTime * rotateRate;
         float angle = startAngle + deltaAngle;
-        vec2 angleXY = normalize(vec2(cos(angle), sin(angle)));
-        vTextureMat = mat2(angleXY.x, angleXY.y, -angleXY.y, angleXY.x);
+        float s = sin(angle);
+        float c = cos(angle);
+      
+        vec4 rotatedPoint = vec4((uv.x * c + uv.y * s) * scale, 0., 
+                                 (uv.x * s - uv.y * c) * scale, 1.);
+
+        vec3 center = positionStart + (velocity + acceleration * deltaTime) * deltaTime;
+      
+        vec4 orientation = vec4(0, 0, 0, 1);
+        vec4 q2 = orientation + orientation;
+        vec4 qx = orientation.xxxw * q2.xyzx;
+        vec4 qy = orientation.xyyw * q2.xyzy;
+        vec4 qz = orientation.xxzw * q2.xxzz;
+      
+        mat4 localMatrix = mat4(
+            (1.0 - qy.y) - qz.z, 
+            qx.y + qz.w, 
+            qx.z - qy.w,
+            0,
+      
+            qx.y - qz.w, 
+            (1.0 - qx.x) - qz.z, 
+            qy.z + qx.w,
+            0,
+      
+            qx.z + qy.w, 
+            qy.z - qx.w, 
+            (1.0 - qx.x) - qy.y,
+            0,
+      
+            center.x, center.y, center.z, 1);
+
+        rotatedPoint = localMatrix * rotatedPoint;
+
+        gl_Position = matModelViewProjection * rotatedPoint;
       `,
 
       fragmentShader:
@@ -587,13 +709,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
         varying vec3 v_color;
         varying float lifeLeft;
-        varying mat2 vTextureMat;
+        varying vec2 v_uv;
         uniform sampler2D particleTex;
         uniform sampler2D particleMaskTex;
 
         void main()
         {
-          vec2 pointCoord = (vTextureMat * (gl_PointCoord - vec2(0.5))) + vec2(0.5);
           float new_lifeLeft = lifeLeft;
          
       `,
@@ -615,7 +736,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       `,
       imgFragmentShader:
         `
-        vec4 tex = texture2D(particleTex, pointCoord);
+        vec4 tex = texture2D(particleTex, v_uv);
       `,
       originColorFragmentShader:
         `
@@ -627,7 +748,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       `,
       createColorWithMaskFragmentShader:
         `
-        vec4 maskTex = texture2D( particleMaskTex, pointCoord );
+        vec4 maskTex = texture2D( particleMaskTex, v_uv);
         gl_FragColor = vec4( v_color * tex.rgb + maskTex.a,   new_lifeLeft * tex.a);
       `
     };
