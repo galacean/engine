@@ -26,7 +26,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   private _myActive: boolean;
   private _isInit: boolean;
   private once: boolean;
-  private geometry: BufferGeometry;
   public DPR: number;
   public maxCount: number;
   public spawnCount: number;
