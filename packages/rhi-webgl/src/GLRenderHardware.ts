@@ -34,7 +34,7 @@ export class GLRenderHardware {
 
     }
 
-    this._gl = this._canvas.getContext('webgl', attributes) || this._canvas.getContext('experimental-webgl', attributes);
+    this._gl = (this._canvas.getContext('webgl', attributes) || this._canvas.getContext('experimental-webgl', attributes)) as WebGLRenderingContext;
     if (this._gl === null) {
 
       throw new Error('Get GL Context FAILED.');
