@@ -1,10 +1,19 @@
 import * as r3 from "../../enhanced";
-import {getResource} from "./assets";
-import {Camera} from "../../camera/Camera";
+import { getResource } from "./assets";
+import { Camera } from "../../camera/Camera";
 
 const nodeCache: { [id: string]: r3.Node } = {};
 
-export function parserSceneGraph(engine: r3.Engine, {nodes = {}, abilities = {}}: { nodes: { [id: string]: NodeConfig }, abilities: { [id: string]: AbilityConfig } }) {
+export function parserSceneGraph(
+  engine: r3.Engine,
+  {
+    nodes = {},
+    abilities = {}
+  }: {
+    nodes: { [id: string]: NodeConfig };
+    abilities: { [id: string]: AbilityConfig };
+  }
+) {
   const root = engine.currentScene.root;
   (window as any).root = root;
   // 创建 node
@@ -16,14 +25,17 @@ export function parserSceneGraph(engine: r3.Engine, {nodes = {}, abilities = {}}
   Object.keys(abilities)
     .map(key => abilities[key])
     .forEach(value => createAbility(value, (engine as any).canvas));
-
 }
 
 export function createNode(engine: r3.Engine, config: NodeConfig) {
   const node = new r3.Node(null, null, config.name);
   node.position = config.position || [0, 0, 0];
   config.rotation = config.rotation || [0, 0, 0];
-  node.setRotationAngles(config.rotation[0], config.rotation[1], config.rotation[2]);
+  node.setRotationAngles(
+    config.rotation[0],
+    config.rotation[1],
+    config.rotation[2]
+  );
   node.isActive = config.isActive || true;
   node.scale = config.scale || [1, 1, 1];
   nodeCache[config.id] = node;
@@ -45,6 +57,7 @@ function createAbility(abilityConfig: AbilityConfig, canvas) {
   const Constructor = getConstructor(abilityConfig.type);
   const props = mixPropsToExplicitProps(abilityConfig.props);
   const ability = node.createAbility(Constructor, props);
+  props.enabled != null && (ability.enabled = props.enabled);
   if (ability instanceof Camera && canvas) {
     ability.attachToScene(canvas);
   }
