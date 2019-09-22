@@ -645,8 +645,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           float deltaTime = max((uTime - startTime), 0.0);
           lifeLeft = clamp((1.0 - ( deltaTime / lifeTime )) * 2.0, 0.0, 1.0);
           float scale = size;
+          vec3 position = positionStart + (velocity + acceleration * deltaTime) * deltaTime;
       `,
-
+      postionShader: `
+        gl_Position = matModelViewProjection * vec4( position, 1.0 );
+      `,
       sizeVertexShader:
         `
           scale *= pow(scaleFactor, deltaTime);
@@ -656,10 +659,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           scale *= lifeLeft;
       `,
       rotateToVelocityVertexShader:
+        // TODO：此feature待开发
         `
-        vec4 vWorld = matModelView * vec4( velocity + acceleration * deltaTime, 0.0 );
-        vec2 v2 = normalize(vWorld.xy);
-        vTextureMat = mat2(v2.x, v2.y, -v2.y, v2.x);
+        // vec4 vWorld = matModelView * vec4( velocity + acceleration * deltaTime, 0.0 );
+        // vec2 v2 = normalize(vWorld.xy);
+        // vTextureMat = mat2(v2.x, v2.y, -v2.y, v2.x);
       `,
       rotationVertexShader:
         `
@@ -671,7 +675,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         vec4 rotatedPoint = vec4((uv.x * c + uv.y * s) * scale, 0., 
                                  (uv.x * s - uv.y * c) * scale, 1.);
 
-        vec3 center = positionStart + (velocity + acceleration * deltaTime) * deltaTime;
       
         vec4 orientation = vec4(0, 0, 0, 1);
         vec4 q2 = orientation + orientation;
@@ -695,7 +698,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
             (1.0 - qx.x) - qy.y,
             0,
       
-            center.x, center.y, center.z, 1);
+            position.x, position.y, position.z, 1);
 
         rotatedPoint = localMatrix * rotatedPoint;
 
@@ -794,7 +797,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         }
 
       }
-      vertexShader += '}';
+      vertexShader += this.rotateToVelocity ? (shader.postionShader + '}') : '}';
 
     }
     return vertexShader;
