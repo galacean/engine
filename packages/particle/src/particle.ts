@@ -8,9 +8,9 @@ import {
   MaterialType,
   TextureWrapMode,
 } from '@alipay/o3-base';
-import {Material, RenderTechnique} from '@alipay/o3-material';
-import {AGeometryRenderer, BufferGeometry} from '@alipay/o3-geometry';
-import {vec3} from '@alipay/o3-math';
+import { Material, RenderTechnique } from '@alipay/o3-material';
+import { AGeometryRenderer, BufferGeometry } from '@alipay/o3-geometry';
+import { vec3 } from '@alipay/o3-math';
 
 
 /**
@@ -25,6 +25,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   private _sleepedCount: number;
   private _myActive: boolean;
   private _isInit: boolean;
+  private once: boolean;
+  private geometry: BufferGeometry;
   public DPR: number;
   public maxCount: number;
   public spawnCount: number;
@@ -189,7 +191,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     if (options !== undefined) {
 
-      this.options = {...this.options, ...options};
+      this.options = { ...this.options, ...options };
 
     }
     return this;
@@ -398,16 +400,16 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     geometry.mode = DrawMode.POINTS;
     const FLOAT = DataType.FLOAT;
     geometry.initialize([
-      {semantic: 'POSITIONSTART', size: 3, type: FLOAT, normalized: false},
-      {semantic: 'VELOCITY', size: 3, type: FLOAT, normalized: false},
-      {semantic: 'ACCELERATION', size: 3, type: FLOAT, normalized: false},
-      {semantic: 'COLOR', size: 3, type: FLOAT, normalized: false},
-      {semantic: 'SIZE', size: 1, type: FLOAT, normalized: false},
-      {semantic: 'ROTATERATE', size: 1, type: FLOAT, normalized: false},
-      {semantic: 'STARTTIME', size: 1, type: FLOAT, normalized: false},
-      {semantic: 'LIFETIME', size: 1, type: FLOAT, normalized: false},
-      {semantic: 'STARTANGLE', size: 1, type: FLOAT, normalized: false},
-      {semantic: 'SCALEFACTOR', size: 1, type: FLOAT, normalized: false},
+      { semantic: 'POSITIONSTART', size: 3, type: FLOAT, normalized: false },
+      { semantic: 'VELOCITY', size: 3, type: FLOAT, normalized: false },
+      { semantic: 'ACCELERATION', size: 3, type: FLOAT, normalized: false },
+      { semantic: 'COLOR', size: 3, type: FLOAT, normalized: false },
+      { semantic: 'SIZE', size: 1, type: FLOAT, normalized: false },
+      { semantic: 'ROTATERATE', size: 1, type: FLOAT, normalized: false },
+      { semantic: 'STARTTIME', size: 1, type: FLOAT, normalized: false },
+      { semantic: 'LIFETIME', size: 1, type: FLOAT, normalized: false },
+      { semantic: 'STARTANGLE', size: 1, type: FLOAT, normalized: false },
+      { semantic: 'SCALEFACTOR', size: 1, type: FLOAT, normalized: false },
     ], this.maxCount, BufferUsage.DYNAMIC_DRAW);
     return geometry;
 
