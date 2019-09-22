@@ -1,0 +1,1 @@
+export {createScript} from "./createScript";

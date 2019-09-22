@@ -1,0 +1,32 @@
+{
+  "name": "@alipay/o3-plus",
+  "version": "1.0.1-alpha.2",
+  "description": "Oasis3D o3-plus",
+  "keywords": [
+    "Oasis3D",
+    "webgl"
+  ],
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
+  },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "b:types": "tsc",
+    "lint:fix": "tslint --fix --project ./tsconfig.json"
+  },
+  "types": "types/index.d.ts",
+  "module": "dist/index.module.js",
+  "main": "dist/index.js",
+  "browser": "dist/index.browser.js",
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "dependencies": {
+    "@alipay/o3": "^1.0.1-alpha.5"
+  }
+}
