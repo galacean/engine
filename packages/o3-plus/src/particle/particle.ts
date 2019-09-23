@@ -20,6 +20,8 @@ export class Particle extends AGPUParticleSystem {
       accelerationRandomness: props.__accelerationRandomness,
       color: props.__color,
       colorRandomness: props.__colorRandomness,
+      alpha: props.__alpha,
+      alphaRandomness: props.__alphaRandomness,
       lifetime: props.__lifetime,
       size: props.__size,
       sizeRandomness: props.__sizeRandomness,
@@ -101,6 +103,14 @@ export class Particle extends AGPUParticleSystem {
 
   set __colorRandomness(value) {
     this.updateOption('colorRandomness', value);
+  }
+
+  set __alpha(value) {
+    this.updateOption('alpha', value);
+  }
+
+  set __alphaRandomness(value) {
+    this.updateOption('alphaRandomness', value);
   }
 
   set __lifetime(value) {
