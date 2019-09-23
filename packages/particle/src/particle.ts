@@ -541,17 +541,18 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
   _setUvs(i: number, j: number, k:number) {
     const { spriteSheet } = this.options;
+    const {particleTex} = this;
     let rects;
 
     if (spriteSheet) {
-      const w = particleTex.image.width;
-      const h = particleTex.image.height;
+      const width = particleTex.image.width;
+      const height = particleTex.image.height;
 
-      const { x, y, width, height } = spriteSheet[i % spriteSheet.length];
-      const u = x / w;
-      const v = y / h;
-      const p = u + width / w;
-      const q = v + height / h;
+      const { x, y, w, h} = spriteSheet[i % spriteSheet.length];
+      const u = x / width;
+      const v = y / height;
+      const p = u + w / width;
+      const q = v + h / height;
 
       rects = [
         [u, q], // left bottom
@@ -563,10 +564,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     }
     else {
       rects = [
-        [-0.5, -0.5],
-        [0.5, -0.5],
-        [0.5, 0.5],
-        [-0.5, 0.5]
+        [0, 0],
+        [1, 0],
+        [1, 1],
+        [0, 1]
       ]
     }
 
@@ -641,7 +642,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         void main()
         {
           v_color = color;
-          v_uv = uv + vec2(0.5);
+          v_uv = uv;
           float deltaTime = max((uTime - startTime), 0.0);
           lifeLeft = clamp((1.0 - ( deltaTime / lifeTime )) * 2.0, 0.0, 1.0);
           float scale = size;
