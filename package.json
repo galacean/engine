@@ -39,7 +39,8 @@
     "clean": "lerna exec -- rm -rf dist",
     "docs:update": "node scripts/docs.update.js",
     "post-changelog": "node scripts/post-changelog.js",
-    "fix-memory-limit": "cross-env LIMIT=8192 increase-memory-limit"
+    "fix-memory-limit": "cross-env LIMIT=8192 increase-memory-limit",
+    "aaaa": "lerna publish prerelease --dist-tag alpha --yes --otp x"
   },
   "files": [
     "src",
