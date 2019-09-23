@@ -8,5 +8,5 @@
     "packages/*",
     "playground"
   ],
-  "logLevel": "verbose"
+  "loglevel": "verbose"
 }
