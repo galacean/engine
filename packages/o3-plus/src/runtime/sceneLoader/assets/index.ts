@@ -1,8 +1,10 @@
 import * as r3 from "@alipay/o3";
 import {loadResources} from "./resourceLoader/resource";
+import {loadCubeResources} from "./resourceLoader/cubeResource";
 import {loadScripts} from "./scriptLoader/loader";
 
 const assetCache = {};
+let resourceLoader = null;
 
 export function script(name: string): ClassDecorator {
   return <TFunction extends Function>(target: TFunction): TFunction => {
@@ -12,8 +14,11 @@ export function script(name: string): ClassDecorator {
 }
 
 export async function loadAssets(engine: r3.Engine, assets: { [id: string]: Asset }, onProgress?, local?:boolean) {
+  resourceLoader = new r3.ResourceLoader(engine, null);
   const resources = filterResources(assets);
-  const resPromise = loadResources(engine, resources, onProgress);
+  // 单独处理cubeTexture
+  await loadCubeResources(resourceLoader, assets, assetCache);
+  const resPromise = loadResources(resourceLoader,engine, resources, onProgress);
 
   let promises = [resPromise];
 
@@ -34,7 +39,7 @@ export async function loadAssets(engine: r3.Engine, assets: { [id: string]: Asse
 
 function filterResources(assets: { [id: string]: Asset }) {
   return Object.values(assets)
-    .filter(value => value.downloadable && value.type !== "script")
+    .filter(value => value.downloadable && value.type !== "script" && value.type !== 'cubeTexture')
     .map(value => {
       const resource = new r3.Resource(value.name, {type: value.type as any, url: value.url});
       (resource as any).id = value.id;
