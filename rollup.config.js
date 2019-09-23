@@ -19,14 +19,6 @@ let excludeDirs = ["o3-examples", "component-miniprogram"];
 if (!LERNA_PACKAGE_NAME) {
   console.log("build all");
   const pkgDir = path.join(__dirname, "packages");
-  const getDirs = p =>
-    fs
-      .readdirSync(p)
-      .filter(
-        f =>
-          fs.statSync(path.join(p, f)).isDirectory() &&
-          excludeDirs.indexOf(f) === -1
-      );
 
   fileDirs = fs
     .readdirSync(pkgDir)
