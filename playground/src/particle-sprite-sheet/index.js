@@ -49,10 +49,10 @@ const options = {
   lifetime: 10,
   size: 1,
   sizeRandomness: 0.1,
-  // startAngle: 0,
-  // startAngleRandomness: 1,
-  // rotateRate: 0,
-  // rotateRateRandomness: 2,
+  startAngle: 0,
+  startAngleRandomness: 1,
+  rotateRate: 0,
+  rotateRateRandomness: 2,
   spriteSheet
 };
 // 粒子发射器环境参数

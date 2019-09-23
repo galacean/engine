@@ -352,6 +352,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       } as any,
       states: {
         enable: [RenderState.BLEND],
+        disable: [RenderState.CULL_FACE], // double face
         functions: {
           // blendFunc: this.blendFunc,
           // todo question
