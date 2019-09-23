@@ -47,7 +47,7 @@ const options = {
   color: 0xe2c0cd,
   colorRandomness: 0.1,
   lifetime: 10,
-  size: 0.2,
+  size: 1,
   sizeRandomness: 0.1,
   // startAngle: 0,
   // startAngleRandomness: 1,

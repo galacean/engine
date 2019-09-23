@@ -486,20 +486,29 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     color[1] = this._clamp(color[1] + this._getRandom() * colorRandomness, 0, 1);
     color[2] = this._clamp(color[2] + this._getRandom() * colorRandomness, 0, 1);
     size += this._getRandom() * sizeRandomness * size * 2
+    size /= 10;
     const lifeTime = [lifetime + this._getRandom() * lifetime];
     const time = [this._time + (this._getRandom() + 0.5) * 0.1];
     const sa = [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2];
     const rr = [rotateRate + this._getRandom() * rotateRateRandomness]
 
-    const s = size / 2;
+    let ws = size / 2;
+    let hs = size / 2;
+
+    const {spriteSheet} = options;
+
+    if (spriteSheet) {
+      const {w, h} = spriteSheet[i % spriteSheet.length]
+      ws *= w / 100;
+      hs *= h / 100;
+    }
 
     const corners = [
-      [-s, -s], //left bottom
-      [s, -s], // right bottom
-      [s, s], // right top
-      [-s, s] // left top
+      [-ws, -hs], //left bottom
+      [ws, -hs], // right bottom
+      [ws, hs], // right top
+      [-ws, hs] // left top
     ]
-
 
     for (let j = 0; j < 4; j++) {
       let _x = x + corners[j][0];
