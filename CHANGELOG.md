@@ -6,6 +6,7 @@
 - texture perturbation（@shensi.zxd） [!8](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/8)
 - adapter-miniprogram（@shensi.zxd） [!7](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/7)
 - perturbation probe（@shensi.zxd） [!13](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/13)
+- Support 2FA for npm via --otp (@kevin.hs)
 
 ### Bug Fixes
 

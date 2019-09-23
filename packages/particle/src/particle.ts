@@ -76,11 +76,13 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @property {number} startAngle  初始旋转角度，默认0，范围 0 ~ 2*PI
    * @property {number} rotateRate  自转旋转角速率，默认0
    * @property {number} lifetime  生命周期，默认5，范围  >0
+   * @property {number} alpha 透明度，默认1，范围 0 ~ 1
    * @property {Array/number} positionRandomness  位置随机因子，默认[0,0,0]，范围  >0
    * @property {Array/number} velocityRandomness  速度随机因子，默认[0, 0, 0]，范围  >0
    * @property {Array/number} accelerationRandomness  加速度随机因子，默认[0, 0, 0]，范围  >0
    * @property {number} colorRandomness  颜色随机因子，默认0，范围  0 ~ 1
    * @property {number} sizeRandomness  大小随机因子，默认0，范围  0 ~ 1
+   * @property {number} alphaRandomness  透明度随机因子，默认0，范围 0 ~ 1
    * @property {number} startAngleRandomness  初始旋转角度随机因子，默认0，范围 0 ~ 1
    * @property {number} rotateRateRandomness  自转旋转角速率随机因子，默认0，范围   >0
    */
@@ -294,6 +296,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           semantic: 'COLOR',
           type: DataType.FLOAT_VEC3
         },
+        alpha: {
+          name: 'alpha',
+          semantic: 'ALPHA',
+          type: DataType.FLOAT
+        },
         acceleration: {
           name: 'acceleration',
           semantic: 'ACCELERATION',
@@ -363,7 +370,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           // blendFunc: this.blendFunc,
           // todo question
           depthMask: [false]
-        }
+        } as any
       }
     };
 
@@ -388,8 +395,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     }
 
     if (this.blendFuncSeparate) {
+      // @ts-ignore
       cfg.states.functions.blendFuncSeparate = this.blendFuncSeparate;
     } else {
+      // @ts-ignore
       cfg.states.functions.blendFunc = this.blendFunc;
     }
     if (this.particleTex) {
@@ -476,6 +485,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const velocityRandomness = options.velocityRandomness !== undefined ? this._get3DData(options.velocityRandomness) : [0, 0, 0];
     const color = options.color !== undefined ? this._getColor(options.color) : vec3.fromValues(1, 1, 1);
     const colorRandomness = options.colorRandomness !== undefined ? options.colorRandomness : 1;
+    const alpha = options.alpha !== undefined ? options.alpha : 1;
+    const alphaRandomness = options.alphaRandomness !== undefined ? options.alphaRandomness : 0;
     const lifetime = options.lifetime !== undefined ? options.lifetime : 5;
     let size = options.size !== undefined ? options.size : 1;
     const sizeRandomness = options.sizeRandomness !== undefined ? options.sizeRandomness : 0;
@@ -519,6 +530,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const time = [this._time + (this._getRandom() + 0.5) * 0.1];
     const sa = [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2];
     const rr = [rotateRate + this._getRandom() * rotateRateRandomness]
+    const alpha = this._clamp(alpha + this._getRandom() * alphaRandomness, 0, 1)
 
     let ws = size / 2;
     let hs = size / 2;
@@ -561,9 +573,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       this.geometry.setValue('ROTATERATE', k, rr);
       this.geometry.setValue('SCALEFACTOR', k, [scaleFactor]);
 
+      this.geometry.setValue('ALPHA', k, [alpha]);
+
       this._setUvs(i, j, k);
     }
-
 
 
     // 移动指针
@@ -664,6 +677,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         attribute vec3 acceleration;
         attribute vec3 positionStart;
         attribute vec3 color;
+        attribute float alpha;
         attribute float startAngle;
         attribute float scaleFactor;
         attribute vec2 uv;
@@ -678,6 +692,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         uniform mat4 matLocal;
 
         varying vec3 v_color;
+        varying float v_alpha;
         varying float lifeLeft;
         varying mat2 vTextureMat;
         varying vec2 v_uv;
@@ -686,10 +701,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         {
           v_color = color;
           v_uv = uv;
+          v_alpha = alpha;
+
           float deltaTime = max((uTime - startTime), 0.0);
           lifeLeft = clamp((1.0 - ( deltaTime / lifeTime )) * 2.0, 0.0, 1.0);
           float scale = size;
-          vec3 position = positionStart + (velocity + acceleration * deltaTime) * deltaTime;
+          vec3 position = positionStart + (velocity + acceleration * deltaTime * 0.5) * deltaTime;
       `,
       postionShader: `
         gl_Position = matModelViewProjection * vec4(position, 1.0 );
@@ -769,6 +786,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         precision mediump int;
 
         varying vec3 v_color;
+        varying float v_alpha;
         varying float lifeLeft;
         varying vec2 v_uv;
         uniform sampler2D particleTex;
@@ -790,7 +808,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         if(dist < 0.5){
           float alpha = dist < 0.25 ? new_lifeLeft : new_lifeLeft * (1.0 - (dist - 0.25) * 4.0);
           vec3 shineColor =  vec3(0.8) * (1.0 - (dist * 2.0));
-          gl_FragColor = vec4( v_color + shineColor, alpha);
+          gl_FragColor = vec4( v_color + shineColor, alpha * v_alpha);
         } else {
           gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
         }
@@ -801,16 +819,16 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       `,
       originColorFragmentShader:
         `
-        gl_FragColor = vec4( tex.rgb ,  new_lifeLeft * tex.a);
+        gl_FragColor = vec4( tex.rgb ,  new_lifeLeft * tex.a * v_alpha);
       `,
       createColorFragmentShader:
         `
-        gl_FragColor = vec4( v_color * tex.rgb , new_lifeLeft * tex.a);
+        gl_FragColor = vec4( v_color * tex.rgb , new_lifeLeft * tex.a * v_alpha);
       `,
       createColorWithMaskFragmentShader:
         `
         vec4 maskTex = texture2D( particleMaskTex, v_uv);
-        gl_FragColor = vec4( v_color * tex.rgb + maskTex.a,   new_lifeLeft * tex.a);
+        gl_FragColor = vec4( v_color * tex.rgb + maskTex.a,   new_lifeLeft * tex.a * v_alpha);
       `
     };
 
