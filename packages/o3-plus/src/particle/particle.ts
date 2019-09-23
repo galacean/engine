@@ -1,4 +1,5 @@
 import {AGPUParticleSystem } from "@alipay/o3";
+import { BlendFunc } from "@alipay/o3-base";
 
 /**
  * 暂时只为编辑器使用
@@ -20,8 +21,6 @@ export class Particle extends AGPUParticleSystem {
       accelerationRandomness: props.__accelerationRandomness,
       color: props.__color,
       colorRandomness: props.__colorRandomness,
-      alpha: props.__alpha,
-      alphaRandomness: props.__alphaRandomness,
       lifetime: props.__lifetime,
       size: props.__size,
       sizeRandomness: props.__sizeRandomness,
@@ -29,11 +28,13 @@ export class Particle extends AGPUParticleSystem {
       startAngleRandomness: props.__startAngleRandomness,
       rotateRate: props.__rotateRate,
       rotateRateRandomness: props.__rotateRateRandomness,
+      scaleFactor: props.__scaleFactor,
     };
     // 粒子发射器环境参数
     this._config = {
       maxCount: props.__maxCount,
       spawnCount: props.__spawnCount,
+      intervalFrameCount: props.__intervalFrameCount,
       once: props.__once,
       rotateToVelocity: props.__rotateToVelocity,
       isScaleByLifetime: props.__isScaleByLifetime,
@@ -44,9 +45,20 @@ export class Particle extends AGPUParticleSystem {
       useOriginColor: props.__useOriginColor,
       options: this._options
     };
-
+    if (props.__separate) {
+      this._config.blendFuncSeparate = [
+        BlendFunc[props.__srcRGB || "SRC_ALPHA"],
+        BlendFunc[props.__dstRGB || "ONE_MINUS_SRC_ALPHA"],
+        BlendFunc[props.__srcAlpha || "SRC_ALPHA"],
+        BlendFunc[props.__dstAlpha || "ONE_MINUS_SRC_ALPHA"],
+      ];
+    } else if (props.__src && props.__dst) {
+      this._config.blendFunc = [BlendFunc[props.__src], BlendFunc[props.__dst]];
+    }
     this.initialize(this._config);
-    this.start();
+    if (props.__defaultStart === true || props.__defaultStart === undefined) {
+      this.start();
+    }
   }
 
   updateOption(key, value) {
@@ -105,14 +117,6 @@ export class Particle extends AGPUParticleSystem {
     this.updateOption('colorRandomness', value);
   }
 
-  set __alpha(value) {
-    this.updateOption('alpha', value);
-  }
-
-  set __alphaRandomness(value) {
-    this.updateOption('alphaRandomness', value);
-  }
-
   set __lifetime(value) {
     this.updateOption('lifetime', value);
   }
@@ -141,12 +145,20 @@ export class Particle extends AGPUParticleSystem {
     this.updateOption('rotateRateRandomness', value);
   }
 
+  set __scaleFactor(value) {
+    this.updateOption('scaleFactor', value);
+  }
+
   set __maxCount(value) {
     this.updateConfig('maxCount', value);
   }
 
   set __spawnCount(value) {
     this.updateConfig('spawnCount', value);
+  }
+
+  set __intervalFrameCount(value) {
+    this.updateConfig('intervalFrameCount', value);
   }
 
   set __useOriginColor(value) {
