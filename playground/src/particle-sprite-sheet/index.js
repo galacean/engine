@@ -53,12 +53,13 @@ const options = {
   startAngleRandomness: 1,
   rotateRate: 0,
   rotateRateRandomness: 2,
-  spriteSheet
 };
 // 粒子发射器环境参数
 const config = {
   maxCount: 1000,
   spawnCount: 0.2,
+  spriteSheet,
+  // is2d: true,
   options: options
 };
 

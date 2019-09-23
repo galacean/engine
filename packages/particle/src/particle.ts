@@ -44,6 +44,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   public particleMaskTex;
   public isScaleByLifetime: boolean;
   public scaleFactor: number;
+  public spriteSheet: any[];
+  public is2d: boolean;
 
   /**
    * @constructor
@@ -103,6 +105,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param {boolean} [ParticleProps.isScaleByLifetime = false] 是否随生命周期缩小至消失
    * @param {boolean} [ParticleProps.fadeIn = false] 是否添加淡入效果
    * @param {number} [ParticleProps.scaleFactor = 1] 粒子随时间scale参数
+   * @param {Array} [ParticleProps.spriteSheet] 雪碧图数据
+   * @param {boolean} [ParticleProps.is2d] 是否是2D旋转
    */
 
   initialize(props) {
@@ -126,6 +130,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     this.particleMaskTex = props.maskTexture || null;
     this.isScaleByLifetime = props.isScaleByLifetime || false;
     this.scaleFactor = props.scaleFactor || 1;
+    this.spriteSheet = props.spriteSheet || null;
+    this.is2d = props.is2d || false;
 
     const randomCount = Math.min(this.maxCount * 2, Math.max(this.spawnCount, 1) * 360);
     this._creatRandom(randomCount);
@@ -360,6 +366,27 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         }
       }
     };
+
+    if (this.is2d) {
+      cfg.uniforms.matViewInverse = {
+        name: 'matViewInverse',
+        semantic: UniformSemantic.VIEWINVERSE,
+        type: DataType.FLOAT_MAT4,
+      }
+
+      cfg.uniforms.matProjection = {
+        name: 'matProjection',
+        semantic: UniformSemantic.PROJECTION,
+        type: DataType.FLOAT_MAT4,
+      }
+
+      cfg.uniforms.matView = {
+        name: 'matView',
+        semantic: UniformSemantic.VIEW,
+        type: DataType.FLOAT_MAT4,
+      }
+    }
+
     if (this.blendFuncSeparate) {
       cfg.states.functions.blendFuncSeparate = this.blendFuncSeparate;
     } else {
@@ -496,7 +523,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     let ws = size / 2;
     let hs = size / 2;
 
-    const {spriteSheet} = options;
+    const {spriteSheet} = this;
 
     if (spriteSheet) {
       const {w, h} = spriteSheet[i % spriteSheet.length]
@@ -549,8 +576,14 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
   }
 
-  _setUvs(i: number, j: number, k:number) {
-    const { spriteSheet } = this.options;
+  /**
+   * 设置每个粒子的uv
+   * @param i {number} 第i个粒子
+   * @param j {number} 单个粒子四个顶点中的第j个
+   * @param k {number} 所有粒子顶点中的第k个
+   */
+  private _setUvs(i: number, j: number, k:number) {
+    const { spriteSheet } = this;
     const {particleTex} = this;
     let rects;
 
@@ -659,7 +692,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           vec3 position = positionStart + (velocity + acceleration * deltaTime) * deltaTime;
       `,
       postionShader: `
-        gl_Position = matModelViewProjection * vec4( position, 1.0 );
+        gl_Position = matModelViewProjection * vec4(position, 1.0 );
       `,
       sizeVertexShader:
         `
@@ -683,6 +716,20 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         float s = sin(angle);
         float c = cos(angle);
       
+      `,
+      rotation2dShader: `
+        vec2 rotatedPoint = vec2(uv.x * c + uv.y * s, -uv.x * s + uv.y * c);
+
+        vec3 basisX = matViewInverse[0].xyz;
+        vec3 basisZ = matViewInverse[1].xyz;
+
+        vec3 localPosition = vec3(basisX * rotatedPoint.x +
+                basisZ * rotatedPoint.y) * scale + position;
+
+        gl_Position = matProjection * matView * vec4(localPosition, 1.);
+      `
+      ,
+      rotation3dShader: `
         vec4 rotatedPoint = vec4((uv.x * c + uv.y * s) * scale, 0., 
                                  (uv.x * s - uv.y * c) * scale, 1.);
 
@@ -804,6 +851,14 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         } else {
 
           vertexShader += shader.rotationVertexShader;
+
+          // 2D 和 3D 的旋转算法不同
+          if (this.is2d) {
+            vertexShader += shader.rotation2dShader;
+          }
+          else {
+            vertexShader += shader.rotation3dShader;
+          }
 
         }
 

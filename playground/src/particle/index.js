@@ -33,7 +33,7 @@ const options = {
   color: 0xe2c0cd,
   colorRandomness: 0.1,
   lifetime: 10,
-  size: 1,
+  size: 2,
   sizeRandomness: 0.1,
   startAngle: 0,
   startAngleRandomness: 1,
