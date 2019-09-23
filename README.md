@@ -4,6 +4,13 @@
 tnpm run bootstrap
 ```
 
+### 发布
+
+获取 token 解决 lerna 发布 tnpm 二次验证的问题
+
+```
+tnpm run otp:release
+```
 
 ## 游乐场相关
 调试
