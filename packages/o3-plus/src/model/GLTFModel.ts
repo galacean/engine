@@ -104,9 +104,7 @@ export class GLTFModel extends NodeAbility {
     this.isAnimate = isAnimate;
     this.loop = loop;
     this.autoPlay = autoPlay;
-  }
 
-  public onStart = () => {
     this.addEventListener("enabled", () => {
       this.GLTFNode.isActive = true;
     });
@@ -114,5 +112,4 @@ export class GLTFModel extends NodeAbility {
       this.GLTFNode.isActive = false;
     });
   }
-
 }
