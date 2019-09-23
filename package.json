@@ -14,7 +14,7 @@
     "packages/*"
   ],
   "scripts": {
-    "bootstrap": "npm install && lerna bootstrap",
+    "bootstrap": "lerna bootstrap",
     "test": "jest",
     "test-cov": "jest --coverage",
     "watch": "rollup -cw",
