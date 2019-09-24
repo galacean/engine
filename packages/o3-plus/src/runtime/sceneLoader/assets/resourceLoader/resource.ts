@@ -6,9 +6,7 @@ import * as r3 from "@alipay/o3";
  * @param downloadableResources
  * @param onProgress
  */
-let resourceLoader;
-export async function loadResources(engine: r3.Engine, downloadableResources, onProgress?: (current, total) => void): Promise<any> {
-  resourceLoader = new r3.ResourceLoader(engine, null);
+export async function loadResources(resourceLoader,engine: r3.Engine, downloadableResources, onProgress?: (current, total) => void): Promise<any> {
   return await new Promise<any[]>((resolve, reject) => {
     resourceLoader.batchLoad(downloadableResources, (err, res) => {
       if (err) {

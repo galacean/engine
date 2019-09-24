@@ -88,7 +88,12 @@ function mixPropsToExplicitProps(props): any {
     const prop = props[k];
     // 新对象
     if (prop && prop.type === "asset") {
-      explicitProps[k] = getResource(prop.id);
+      const res = getResource(prop.id);
+      if (prop.dirId) {
+        explicitProps[k] = res && res.asset;
+      } else {
+        explicitProps[k] = res;
+      }
     } else {
       explicitProps[k] = prop;
     }

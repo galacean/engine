@@ -21,8 +21,9 @@ export class GLTFModel extends NodeAbility {
   set asset(value: GLTFAsset) {
     (this.GLTFNode as any)._children = [];
     if (value !== null) {
-      const node = value.assets[0].rootScene.nodes[0];
-      this.GLTFNode.addChild(node.clone());
+      value.assets[0].rootScene.nodes.forEach(node => {
+        this.GLTFNode.addChild(node.clone());
+      });
     }
     this._asset = value;
   }
@@ -104,9 +105,7 @@ export class GLTFModel extends NodeAbility {
     this.isAnimate = isAnimate;
     this.loop = loop;
     this.autoPlay = autoPlay;
-  }
 
-  public onStart = () => {
     this.addEventListener("enabled", () => {
       this.GLTFNode.isActive = true;
     });
@@ -114,5 +113,4 @@ export class GLTFModel extends NodeAbility {
       this.GLTFNode.isActive = false;
     });
   }
-
 }
