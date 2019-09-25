@@ -346,6 +346,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           semantic: 'UV',
           type: DataType.FLOAT_VEC2
         },
+        normalizedUv: {
+          name: 'normalizedUv',
+          semantic: 'NORMALIZED_UV',
+          type: DataType.FLOAT_VEC2
+        },
       },
       uniforms: {
         uTime: {
@@ -390,6 +395,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       cfg.uniforms.matView = {
         name: 'matView',
         semantic: UniformSemantic.VIEW,
+        type: DataType.FLOAT_MAT4,
+      }
+
+      cfg.uniforms.matWorld= {
+        name: 'matWorld',
+        semantic: UniformSemantic.MODEL,
         type: DataType.FLOAT_MAT4,
       }
     }
@@ -468,6 +479,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       { semantic: 'STARTANGLE', size: 1, type: FLOAT, normalized: false },
       { semantic: 'SCALEFACTOR', size: 1, type: FLOAT, normalized: false },
       { semantic: 'UV', size: 2, type: FLOAT, normalized: false },
+      { semantic: 'NORMALIZED_UV', size: 3, type: FLOAT, normalized: false },
     ], this.maxCount * 4, indices, BufferUsage.DYNAMIC_DRAW);
     return geometry;
 
@@ -599,6 +611,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const { spriteSheet } = this;
     const {particleTex} = this;
     let rects;
+    let normalizedUv:number[] = [];
+    let normalizedRects:any[];
 
     if (spriteSheet) {
       const width = particleTex.image.width;
@@ -617,6 +631,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         [u, v], // left top
       ]
 
+      normalizedRects  = [
+        [0, 0, h / w],
+        [1, 0, h / w],
+        [1, 1, h / w],
+        [0, 1, h / w]
+      ]
     }
     else {
       rects = [
@@ -625,9 +645,18 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         [1, 1],
         [0, 1]
       ]
+
+      normalizedRects  = [
+        [0, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [0, 1, 1]
+      ]
+
     }
 
     this.geometry.setValue('UV', k, rects[j]);
+    this.geometry.setValue('NORMALIZED_UV', k, normalizedRects[j]);
   }
 
   /**
@@ -681,6 +710,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         attribute float startAngle;
         attribute float scaleFactor;
         attribute vec2 uv;
+        attribute vec3 normalizedUv;
         
         uniform float uTime;
         uniform mat4 matModelViewProjection;
@@ -688,8 +718,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         uniform mat4 matViewInverse;
         uniform mat4 matView;
         uniform mat4 matProjection;
-        uniform mat4 matModel;
-        uniform mat4 matLocal;
+        uniform mat4 matWorld;
 
         varying vec3 v_color;
         varying float v_alpha;
@@ -705,7 +734,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
           float deltaTime = max((uTime - startTime), 0.0);
           lifeLeft = clamp((1.0 - ( deltaTime / lifeTime )) * 2.0, 0.0, 1.0);
-          float scale = size;
+          float scale = 1.0;
           vec3 position = positionStart + (velocity + acceleration * deltaTime * 0.5) * deltaTime;
       `,
       postionShader: `
@@ -735,20 +764,21 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       
       `,
       rotation2dShader: `
-        vec2 rotatedPoint = vec2(uv.x * c + uv.y * s, -uv.x * s + uv.y * c);
+        vec2 rotatedPoint = vec2((normalizedUv.x - 0.5) * c + ((normalizedUv.y - 0.5) * normalizedUv.z) * s,
+          -(normalizedUv.x - 0.5) * s + ((normalizedUv.y - 0.5) * normalizedUv.z) * c);
 
         vec3 basisX = matViewInverse[0].xyz;
         vec3 basisZ = matViewInverse[1].xyz;
 
-        vec3 localPosition = vec3(basisX * rotatedPoint.x +
-                basisZ * rotatedPoint.y) * scale + position;
+        vec3 localPosition = vec3(basisX * rotatedPoint.x + 
+                    basisZ * rotatedPoint.y) * scale  + position;
 
         gl_Position = matProjection * matView * vec4(localPosition, 1.);
       `
       ,
       rotation3dShader: `
-        vec4 rotatedPoint = vec4((uv.x * c + uv.y * s) * scale, 0., 
-                                 (uv.x * s - uv.y * c) * scale, 1.);
+        vec4 rotatedPoint = vec4(((normalizedUv.x - 0.5) * c + (normalizedUv.y - 0.5) * normalizedUv.z * s) * scale , 0., 
+                                 ((normalizedUv.x - 0.5) * s - (normalizedUv.y - 0.5) * normalizedUv.z * c) * scale, 1.);
 
       
         vec4 orientation = vec4(0, 0, 0, 1);
