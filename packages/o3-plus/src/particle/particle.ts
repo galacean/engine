@@ -1,5 +1,4 @@
-import {AGPUParticleSystem } from "@alipay/o3";
-import { BlendFunc } from "@alipay/o3-base";
+import {AGPUParticleSystem, BlendFunc } from "@alipay/o3";
 
 /**
  * 暂时只为编辑器使用
@@ -47,6 +46,19 @@ export class Particle extends AGPUParticleSystem {
       useOriginColor: props.__useOriginColor,
       options: this._options
     };
+    if (props.__spriteSheet) {
+      if (typeof props.__spriteSheet === 'object' && props.__spriteSheet.length) {
+        this._config.spriteSheet = props.__spriteSheet;
+      } else if (typeof props.__spriteSheet === 'string') {
+        try {
+          const spriteSheet = JSON.parse(props.__spriteSheet);
+          if (spriteSheet.length) {
+            this._config.spriteSheet = spriteSheet;
+          }
+        } catch (e) {
+        }
+      }
+    }
     if (props.__separate) {
       this._config.blendFuncSeparate = [
         BlendFunc[props.__srcRGB || "SRC_ALPHA"],
@@ -151,6 +163,14 @@ export class Particle extends AGPUParticleSystem {
     this.updateOption('scaleFactor', value);
   }
 
+  set __alpha(value) {
+    this.updateOption('alpha', value);
+  }
+    
+  set __alphaRandomness(value) {
+    this.updateOption('alphaRandomness', value);
+  }
+
   set __maxCount(value) {
     this.updateConfig('maxCount', value);
   }
@@ -191,12 +211,23 @@ export class Particle extends AGPUParticleSystem {
     this.updateConfig('maskTexture', value.asset);
   }
 
-  set __alpha(value) {
-    this.updateOption('alpha', value);
-  }
-    
-  set __alphaRandomness(value) {
-    this.updateOption('alphaRandomness', value);
+  set __spriteSheet(value) {
+    if (typeof value === 'object' && value.length) {
+      this.updateConfig('spriteSheet', value);
+    } else if (typeof value === 'string') {
+      try {
+        const spriteSheet = JSON.parse(value);
+        if (spriteSheet.length) {
+          this.updateConfig('spriteSheet', spriteSheet);
+        } else {
+          this.updateConfig('spriteSheet', null);
+        }
+      } catch (e) {
+        this.updateConfig('spriteSheet', null);
+      }
+    } else {
+      this.updateConfig('spriteSheet', null);
+    }
   }
     
 

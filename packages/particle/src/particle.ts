@@ -460,6 +460,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       { semantic: 'VELOCITY', size: 3, type: FLOAT, normalized: false },
       { semantic: 'ACCELERATION', size: 3, type: FLOAT, normalized: false },
       { semantic: 'COLOR', size: 3, type: FLOAT, normalized: false },
+      { semantic: 'ALPHA', size: 1, type: FLOAT, normalized: false },
       { semantic: 'SIZE', size: 1, type: FLOAT, normalized: false },
       { semantic: 'ROTATERATE', size: 1, type: FLOAT, normalized: false },
       { semantic: 'STARTTIME', size: 1, type: FLOAT, normalized: false },
@@ -530,8 +531,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const time = [this._time + (this._getRandom() + 0.5) * 0.1];
     const sa = [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2];
     const rr = [rotateRate + this._getRandom() * rotateRateRandomness]
-    const alpha = this._clamp(alpha + this._getRandom() * alphaRandomness, 0, 1)
-
+    const particleAlpha = this._clamp(alpha + this._getRandom() * alphaRandomness, 0, 1)
     let ws = size / 2;
     let hs = size / 2;
 
@@ -573,7 +573,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       this.geometry.setValue('ROTATERATE', k, rr);
       this.geometry.setValue('SCALEFACTOR', k, [scaleFactor]);
 
-      this.geometry.setValue('ALPHA', k, [alpha]);
+      this.geometry.setValue("ALPHA", k, [particleAlpha]);
 
       this._setUvs(i, j, k);
     }
