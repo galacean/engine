@@ -44,6 +44,7 @@ export class Particle extends AGPUParticleSystem {
       maskTexture: props.__maskTexture ? props.__maskTexture.asset : null,
       // blendFunc: [props.__blendFunc01, props.__blendFunc02],
       useOriginColor: props.__useOriginColor,
+      is2d: props.__is2d,
       options: this._options
     };
     if (props.__spriteSheet) {
@@ -229,8 +230,10 @@ export class Particle extends AGPUParticleSystem {
       this.updateConfig('spriteSheet', null);
     }
   }
-    
 
+  set __is2d(value) {
+    this.updateConfig('is2d', value);
+  }
   // set __blendFunc01(value) {
   //   this._config.blendFunc[0] = value;
   //   this.updateConfig('blendFunc', this._config.blendFunc);
