@@ -38,8 +38,9 @@ const pkg = (name, type) => {
   return makeRollupConfig({ location, main, name, type });
 };
 
-if (isMiniProgram) {
-  fileDirs = fileDirs.filter(name => name !== "o3-plus");
+fileDirs = fileDirs.filter(name => name !== "o3-plus");
+if (!isMiniProgram) {
+  fileDirs.push("o3-plus")
 }
 
 let promises = [...fileDirs.map(name => pkg(name, "module"))];
