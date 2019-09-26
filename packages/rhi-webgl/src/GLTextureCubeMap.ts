@@ -60,7 +60,7 @@ export class GLTextureCubeMap extends GLTexture {
       }
 
     }
-    if (config.updateWholeTexture && this._rhi.requireExtension('EXT_shader_texture_lod')) {
+    if (config.updateWholeTexture) {
 
       super.generateMipmap();
 
