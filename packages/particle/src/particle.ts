@@ -479,7 +479,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       { semantic: 'STARTANGLE', size: 1, type: FLOAT, normalized: false },
       { semantic: 'SCALEFACTOR', size: 1, type: FLOAT, normalized: false },
       { semantic: 'UV', size: 2, type: FLOAT, normalized: false },
-      { semantic: 'NORMALIZED_UV', size: 3, type: FLOAT, normalized: false },
+      { semantic: 'NORMALIZED_UV', size: 2, type: FLOAT, normalized: false },
     ], this.maxCount * 4, indices, BufferUsage.DYNAMIC_DRAW);
     return geometry;
 
@@ -591,14 +591,19 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const { spriteSheet } = this;
     const {particleTex} = this;
     let rects;
-    let normalizedUv:number[] = [];
-    let normalizedRects:any[];
+    const normalizedRects:any[] = [
+      [-0.5, -0.5],
+      [0.5, -0.5],
+      [0.5, 0.5],
+      [-0.5, 0.5]
+    ];
 
     if (spriteSheet) {
       const width = particleTex.image.width;
       const height = particleTex.image.height;
 
       const { x, y, w, h} = spriteSheet[i % spriteSheet.length];
+
       const u = x / width;
       const v = y / height;
       const p = u + w / width;
@@ -611,12 +616,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         [u, v], // left top
       ]
 
-      normalizedRects  = [
-        [-0.5, -0.5, h / w],
-        [0.5, -0.5, h / w],
-        [0.5, 0.5, h / w],
-        [-0.5, 0.5, h / w]
-      ]
     }
     else {
       rects = [
@@ -625,14 +624,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         [1, 1],
         [0, 1]
       ]
-
-      normalizedRects  = [
-        [-0.5, -0.5, 1],
-        [0.5, -0.5, 1],
-        [0.5, 0.5, 1],
-        [-0.5, 0.5, 1]
-      ]
-
     }
 
     this.geometry.setValue('UV', k, rects[j]);
@@ -690,7 +681,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         attribute float startAngle;
         attribute float scaleFactor;
         attribute vec2 uv;
-        attribute vec3 normalizedUv;
+        attribute vec2 normalizedUv;
         
         uniform float uTime;
         uniform mat4 matModelViewProjection;
