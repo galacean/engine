@@ -1,11 +1,10 @@
-import {AGPUParticleSystem } from "@alipay/o3";
-import { BlendFunc } from "@alipay/o3-base";
+import { AGPUParticleSystem } from "@alipay/o3";
+import { BlendFunc } from "@alipay/o3";
 
 /**
  * 暂时只为编辑器使用
  */
 export class Particle extends AGPUParticleSystem {
-
   private _config;
   private _options;
 
@@ -30,7 +29,7 @@ export class Particle extends AGPUParticleSystem {
       rotateRateRandomness: props.__rotateRateRandomness,
       scaleFactor: props.__scaleFactor,
       alpha: props.__alpha,
-      alphaRandomness: props.__alphaRandomness,
+      alphaRandomness: props.__alphaRandomness
     };
     // 粒子发射器环境参数
     this._config = {
@@ -52,7 +51,7 @@ export class Particle extends AGPUParticleSystem {
         BlendFunc[props.__srcRGB || "SRC_ALPHA"],
         BlendFunc[props.__dstRGB || "ONE_MINUS_SRC_ALPHA"],
         BlendFunc[props.__srcAlpha || "SRC_ALPHA"],
-        BlendFunc[props.__dstAlpha || "ONE_MINUS_SRC_ALPHA"],
+        BlendFunc[props.__dstAlpha || "ONE_MINUS_SRC_ALPHA"]
       ];
     } else if (props.__src && props.__dst) {
       this._config.blendFunc = [BlendFunc[props.__src], BlendFunc[props.__dst]];
@@ -66,12 +65,12 @@ export class Particle extends AGPUParticleSystem {
   updateOption(key, value) {
     this._options = {
       ...this._options,
-      [key]: value,
+      [key]: value
     };
     this._config = {
       ...this._config,
       options: {
-        ...this._options,
+        ...this._options
       }
     };
     this.initialize(this._config);
@@ -81,124 +80,123 @@ export class Particle extends AGPUParticleSystem {
   updateConfig(key, value) {
     this._config = {
       ...this._config,
-      [key]: value,
+      [key]: value
     };
     this.initialize(this._config);
     this.start();
   }
 
   set __position(value) {
-    this.updateOption('position', value);
+    this.updateOption("position", value);
   }
 
   set __positionRandomness(value) {
-    this.updateOption('positionRandomness', value);
+    this.updateOption("positionRandomness", value);
   }
 
   set __velocity(value) {
-    this.updateOption('velocity', value);
+    this.updateOption("velocity", value);
   }
 
   set __velocityRandomness(value) {
-    this.updateOption('velocityRandomness', value);
+    this.updateOption("velocityRandomness", value);
   }
 
   set __acceleration(value) {
-    this.updateOption('acceleration', value);
+    this.updateOption("acceleration", value);
   }
 
   set __accelerationRandomness(value) {
-    this.updateOption('accelerationRandomness', value);
+    this.updateOption("accelerationRandomness", value);
   }
 
   set __color(value) {
-    this.updateOption('color', value);
+    this.updateOption("color", value);
   }
 
   set __colorRandomness(value) {
-    this.updateOption('colorRandomness', value);
+    this.updateOption("colorRandomness", value);
   }
 
   set __lifetime(value) {
-    this.updateOption('lifetime', value);
+    this.updateOption("lifetime", value);
   }
 
   set __size(value) {
-    this.updateOption('size', value);
+    this.updateOption("size", value);
   }
 
   set __sizeRandomness(value) {
-    this.updateOption('sizeRandomness', value);
+    this.updateOption("sizeRandomness", value);
   }
 
   set __startAngle(value) {
-    this.updateOption('startAngle', value);
+    this.updateOption("startAngle", value);
   }
 
   set __startAngleRandomness(value) {
-    this.updateOption('startAngleRandomness', value);
+    this.updateOption("startAngleRandomness", value);
   }
 
   set __rotateRate(value) {
-    this.updateOption('rotateRate', value);
+    this.updateOption("rotateRate", value);
   }
 
   set __rotateRateRandomness(value) {
-    this.updateOption('rotateRateRandomness', value);
+    this.updateOption("rotateRateRandomness", value);
   }
 
   set __scaleFactor(value) {
-    this.updateOption('scaleFactor', value);
+    this.updateOption("scaleFactor", value);
   }
 
   set __maxCount(value) {
-    this.updateConfig('maxCount', value);
+    this.updateConfig("maxCount", value);
   }
 
   set __spawnCount(value) {
-    this.updateConfig('spawnCount', value);
+    this.updateConfig("spawnCount", value);
   }
 
   set __intervalFrameCount(value) {
-    this.updateConfig('intervalFrameCount', value);
+    this.updateConfig("intervalFrameCount", value);
   }
 
   set __useOriginColor(value) {
-    this.updateConfig('useOriginColor', value);
+    this.updateConfig("useOriginColor", value);
   }
 
   set __once(value) {
-    this.updateConfig('once', value);
+    this.updateConfig("once", value);
   }
 
   set __rotateToVelocity(value) {
-    this.updateConfig('rotateToVelocity', value);
+    this.updateConfig("rotateToVelocity", value);
   }
 
   set __isScaleByLifetime(value) {
-    this.updateConfig('isScaleByLifetime', value);
+    this.updateConfig("isScaleByLifetime", value);
   }
 
   set __fadeIn(value) {
-    this.updateConfig('fadeIn', value);
+    this.updateConfig("fadeIn", value);
   }
 
   set __texture(value) {
-    this.updateConfig('texture', value.asset);
+    this.updateConfig("texture", value.asset);
   }
 
   set __maskTexture(value) {
-    this.updateConfig('maskTexture', value.asset);
+    this.updateConfig("maskTexture", value.asset);
   }
 
   set __alpha(value) {
-    this.updateOption('alpha', value);
+    this.updateOption("alpha", value);
   }
-    
+
   set __alphaRandomness(value) {
-    this.updateOption('alphaRandomness', value);
+    this.updateOption("alphaRandomness", value);
   }
-    
 
   // set __blendFunc01(value) {
   //   this._config.blendFunc[0] = value;
@@ -209,5 +207,4 @@ export class Particle extends AGPUParticleSystem {
   //   this._config.blendFunc[1] = value;
   //   this.updateConfig('blendFunc', this._config.blendFunc);
   // }
-
 }

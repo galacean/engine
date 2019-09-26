@@ -49,6 +49,10 @@ if (NODE_ENV === "BUILD") {
   promises = [...compressDir.map(name => pkg(name, "compress"))];
 }
 
+// Promise.all(promises).then(res => {
+//   console.log(res);
+// });
+
 export default Promise.all(promises);
 
 async function makeRollupConfig({ location, main, name, type }) {
@@ -113,8 +117,8 @@ async function makeRollupConfig({ location, main, name, type }) {
       plugins: [...commonPlugins, ...miniProgramPlugin]
     };
   }
-  const external =
-    name === "o3-plus" ? {} : Object.keys(pkg.dependencies || {});
+  const external = name === "o3-plus" ? {} : Object.keys(pkg.dependencies || {});
+  // const external = Object.keys(pkg.dependencies || {});
 
   return {
     input,
