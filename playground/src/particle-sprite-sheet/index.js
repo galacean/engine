@@ -14,7 +14,7 @@ const rootNode = scene.root;
 const canvas = document.getElementById('o3-demo');
 const cameraNode = rootNode.createChild('camera_node');
 cameraNode.createAbility(ADefaultCamera, {
-  canvas: canvas, position: [0, 0, 5], target: [0, 0, 0]
+  canvas: canvas, position: [0, 0, 30], target: [0, 0, 0]
 });
 
 let controler = cameraNode.createAbility(AOrbitControls);
@@ -55,7 +55,7 @@ const options = {
   // rotateRateRandomness: 2,
   // acceleration: [0, -0.05, 0]
 
-accelerationRandomness: [1, 2, 0],
+accelerationRandomness: [0, 2, 0],
 alpha: 1,
 alphaRandomness: 0,
 color: [1, 1, 1],
@@ -70,11 +70,11 @@ lifetime: 5,
 maskTexture: null,
 once: false,
 position: [0, 1, 0],
-positionRandomness: [0, 0, 0],
+positionRandomness: [20, 20, 0],
 rotateRate: 3,
 rotateRateRandomness: 2,
 rotateToVelocity: false,
-scaleFactor: 0.5,
+scaleFactor: 1,
 separate: false,
 size: 1,
 // sizeRandomness: 0,
@@ -86,7 +86,7 @@ startAngleRandomness: 0,
 texture: {type: "asset", id: "8", dirId: "", dirName: ""},
 useOriginColor: true,
 velocity: [0, 0, 0],
-velocityRandomness: [0.5, 0.5, 0.5],
+// velocityRandomness: [0.5, 0.5, 0.5],
 
 };
 // 粒子发射器环境参数
@@ -94,7 +94,7 @@ const config = {
   maxCount: 1000,
   spawnCount: 0.2,
   spriteSheet,
-  is2d: true,
+  // is2d: false,
   options: options
 };
 

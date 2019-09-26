@@ -133,7 +133,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     this.isScaleByLifetime = props.isScaleByLifetime || false;
     this.scaleFactor = props.scaleFactor || 1;
     this.spriteSheet = props.spriteSheet || null;
-    this.is2d = props.is2d || false;
+    this.is2d = props.is2d === undefined ? true : props.is2d;
 
     const randomCount = Math.min(this.maxCount * 2, Math.max(this.spawnCount, 1) * 360);
     this._creatRandom(randomCount);
@@ -538,37 +538,17 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     color[1] = this._clamp(color[1] + this._getRandom() * colorRandomness, 0, 1);
     color[2] = this._clamp(color[2] + this._getRandom() * colorRandomness, 0, 1);
     size += this._getRandom() * sizeRandomness * size * 2
-    size /= 10;
     const lifeTime = [lifetime + this._getRandom() * lifetime];
     const time = [this._time + (this._getRandom() + 0.5) * 0.1];
     const sa = [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2];
     const rr = [rotateRate + this._getRandom() * rotateRateRandomness]
     const particleAlpha = this._clamp(alpha + this._getRandom() * alphaRandomness, 0, 1)
-    let ws = size / 2;
-    let hs = size / 2;
-
-    const {spriteSheet} = this;
-
-    if (spriteSheet) {
-      const {w, h} = spriteSheet[i % spriteSheet.length]
-      ws *= w / 100;
-      hs *= h / 100;
-    }
-
-    const corners = [
-      [-ws, -hs], //left bottom
-      [ws, -hs], // right bottom
-      [ws, hs], // right top
-      [-ws, hs] // left top
-    ]
 
     for (let j = 0; j < 4; j++) {
-      let _x = x + corners[j][0];
-      let _y = y + corners[j][1];
-
       const k = i * 4 + j;
 
-      this.geometry.setValue('POSITIONSTART', k, [_x, _y, z]);
+      // this.geometry.setValue('POSITIONSTART', k, [_x, _y, z]);
+      this.geometry.setValue('POSITIONSTART', k, [x, y, z]);
 
       this.geometry.setValue('VELOCITY', k, [velX, velY, velZ]);
 
@@ -632,10 +612,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       ]
 
       normalizedRects  = [
-        [0, 0, h / w],
-        [1, 0, h / w],
-        [1, 1, h / w],
-        [0, 1, h / w]
+        [-0.5, -0.5, h / w],
+        [0.5, -0.5, h / w],
+        [0.5, 0.5, h / w],
+        [-0.5, 0.5, h / w]
       ]
     }
     else {
@@ -647,10 +627,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       ]
 
       normalizedRects  = [
-        [0, 0, 1],
-        [1, 0, 1],
-        [1, 1, 1],
-        [0, 1, 1]
+        [-0.5, -0.5, 1],
+        [0.5, -0.5, 1],
+        [0.5, 0.5, 1],
+        [-0.5, 0.5, 1]
       ]
 
     }
@@ -726,6 +706,16 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         varying mat2 vTextureMat;
         varying vec2 v_uv;
         
+        mat2 rotation2d(float angle) {
+          float s = sin(angle);
+          float c = cos(angle);
+        
+          return mat2(
+            c, -s,
+            s, c
+          );
+        }
+
         void main()
         {
           v_color = color;
@@ -734,7 +724,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
           float deltaTime = max((uTime - startTime), 0.0);
           lifeLeft = clamp((1.0 - ( deltaTime / lifeTime )) * 2.0, 0.0, 1.0);
-          float scale = 1.0;
+          float scale = size;
           vec3 position = positionStart + (velocity + acceleration * deltaTime * 0.5) * deltaTime;
       `,
       postionShader: `
@@ -764,22 +754,20 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       
       `,
       rotation2dShader: `
-        vec2 rotatedPoint = vec2((normalizedUv.x - 0.5) * c + ((normalizedUv.y - 0.5) * normalizedUv.z) * s,
-          -(normalizedUv.x - 0.5) * s + ((normalizedUv.y - 0.5) * normalizedUv.z) * c);
+        vec2 rotatedPoint = rotation2d(angle) * vec2(normalizedUv.x, normalizedUv.y);
 
         vec3 basisX = matViewInverse[0].xyz;
         vec3 basisZ = matViewInverse[1].xyz;
 
         vec3 localPosition = vec3(basisX * rotatedPoint.x + 
-                    basisZ * rotatedPoint.y) * scale  + position;
+                    basisZ * rotatedPoint.y) * scale + position;
 
         gl_Position = matProjection * matView * vec4(localPosition, 1.);
       `
       ,
       rotation3dShader: `
-        vec4 rotatedPoint = vec4(((normalizedUv.x - 0.5) * c + (normalizedUv.y - 0.5) * normalizedUv.z * s) * scale , 0., 
-                                 ((normalizedUv.x - 0.5) * s - (normalizedUv.y - 0.5) * normalizedUv.z * c) * scale, 1.);
-
+        vec4 rotatedPoint = vec4((normalizedUv.x * c + normalizedUv.y * s) * scale , 0., 
+                                 (normalizedUv.x * s - normalizedUv.y * c) * scale, 1.);
       
         vec4 orientation = vec4(0, 0, 0, 1);
         vec4 q2 = orientation + orientation;
