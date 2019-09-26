@@ -9,7 +9,7 @@ import {
   TextureWrapMode,
 } from '@alipay/o3-base';
 import { Material, RenderTechnique } from '@alipay/o3-material';
-import { AGeometryRenderer, BufferGeometry, IndexBufferGeometry } from '@alipay/o3-geometry';
+import { AGeometryRenderer, IndexBufferGeometry } from '@alipay/o3-geometry';
 import { vec3 } from '@alipay/o3-math';
 
 
@@ -344,7 +344,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         uv: {
           name: 'uv',
           semantic: 'UV',
-          type: DataType.FLOAT_VEC2
+          type: DataType.FLOAT_VEC3
         },
         normalizedUv: {
           name: 'normalizedUv',
@@ -398,7 +398,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         type: DataType.FLOAT_MAT4,
       }
 
-      cfg.uniforms.matWorld= {
+      cfg.uniforms.matWorld = {
         name: 'matWorld',
         semantic: UniformSemantic.MODEL,
         type: DataType.FLOAT_MAT4,
@@ -478,7 +478,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       { semantic: 'LIFETIME', size: 1, type: FLOAT, normalized: false },
       { semantic: 'STARTANGLE', size: 1, type: FLOAT, normalized: false },
       { semantic: 'SCALEFACTOR', size: 1, type: FLOAT, normalized: false },
-      { semantic: 'UV', size: 2, type: FLOAT, normalized: false },
+      { semantic: 'UV', size: 3, type: FLOAT, normalized: false },
       { semantic: 'NORMALIZED_UV', size: 2, type: FLOAT, normalized: false },
     ], this.maxCount * 4, indices, BufferUsage.DYNAMIC_DRAW);
     return geometry;
@@ -587,22 +587,23 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param j {number} 单个粒子四个顶点中的第j个
    * @param k {number} 所有粒子顶点中的第k个
    */
-  private _setUvs(i: number, j: number, k:number) {
+  private _setUvs(i: number, j: number, k: number) {
     const { spriteSheet } = this;
-    const {particleTex} = this;
+    const { particleTex } = this;
     let rects;
-    const normalizedRects:any[] = [
+    const normalizedRects: any[] = [
       [-0.5, -0.5],
       [0.5, -0.5],
       [0.5, 0.5],
       [-0.5, 0.5]
     ];
 
-    if (spriteSheet) {
-      const width = particleTex.image.width;
-      const height = particleTex.image.height;
+    const width = particleTex.image.width;
+    const height = particleTex.image.height;
 
-      const { x, y, w, h} = spriteSheet[i % spriteSheet.length];
+    if (spriteSheet) {
+
+      const { x, y, w, h } = spriteSheet[i % spriteSheet.length];
 
       const u = x / width;
       const v = y / height;
@@ -610,19 +611,19 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       const q = v + h / height;
 
       rects = [
-        [u, q], // left bottom
-        [p, q], // right bottom
-        [p, v], // right top
-        [u, v], // left top
+        [u, q, h / w], // left bottom
+        [p, q, h / w], // right bottom
+        [p, v, h / w], // right top
+        [u, v, h / w], // left top
       ]
 
     }
     else {
       rects = [
-        [0, 0],
-        [1, 0],
-        [1, 1],
-        [0, 1]
+        [0, 0, height / width],
+        [1, 0, height / width],
+        [1, 1, height / width],
+        [0, 1, height / width]
       ]
     }
 
@@ -680,7 +681,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         attribute float alpha;
         attribute float startAngle;
         attribute float scaleFactor;
-        attribute vec2 uv;
+        attribute vec3 uv;
         attribute vec2 normalizedUv;
         
         uniform float uTime;
@@ -710,7 +711,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         void main()
         {
           v_color = color;
-          v_uv = uv;
+          v_uv = uv.xy;
           v_alpha = alpha;
 
           float deltaTime = max((uTime - startTime), 0.0);
@@ -745,7 +746,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       
       `,
       rotation2dShader: `
-        vec2 rotatedPoint = rotation2d(angle) * vec2(normalizedUv.x, normalizedUv.y);
+        vec2 rotatedPoint = rotation2d(angle) * vec2(normalizedUv.x, normalizedUv.y * uv.z);
 
         vec3 basisX = matViewInverse[0].xyz;
         vec3 basisZ = matViewInverse[1].xyz;
@@ -757,8 +758,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       `
       ,
       rotation3dShader: `
-        vec4 rotatedPoint = vec4((normalizedUv.x * c + normalizedUv.y * s) * scale , 0., 
-                                 (normalizedUv.x * s - normalizedUv.y * c) * scale, 1.);
+        vec4 rotatedPoint = vec4((normalizedUv.x * c + normalizedUv.y * uv.z * s) * scale , 0., 
+                                 (normalizedUv.x * s - normalizedUv.y * uv.z * c) * scale, 1.);
       
         vec4 orientation = vec4(0, 0, 0, 1);
         vec4 q2 = orientation + orientation;
