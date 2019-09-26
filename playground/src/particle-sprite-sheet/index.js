@@ -5,6 +5,8 @@ import { Resource, ResourceLoader } from '@alipay/o3-loader';
 import { AOrbitControls } from '@alipay/o3-orbit-controls'
 
 import { TextureWrapMode } from '@alipay/o3-base';
+import '@alipay/o3-engine-stats';
+
 // 创建引擎、获取场景根节点
 const engine = new Engine();
 const scene = engine.currentScene;
@@ -66,7 +68,7 @@ const options = {
   fadeIn: false,
   intervalFrameCount: 0,
   isScaleByLifetime: false,
-  lifetime: 5,
+  lifetime: 4,
   maskTexture: null,
   once: false,
   position: [0, 1, 0],
@@ -74,7 +76,7 @@ const options = {
   rotateRate: 3,
   rotateRateRandomness: 2,
   rotateToVelocity: false,
-  scaleFactor: 1.1,
+  scaleFactor: 1,
   separate: false,
   size: 1,
   sizeRandomness: 0,

@@ -714,8 +714,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           v_uv = uv.xy;
           v_alpha = alpha;
 
-          float deltaTime = max((uTime - startTime), 0.0);
-          lifeLeft = clamp((1.0 - ( deltaTime / lifeTime )) * 2.0, 0.0, 1.0);
+          float deltaTime = max(mod(uTime - startTime, lifeTime), 0.0);
+          lifeLeft = 1.0 - deltaTime / lifeTime;
           float scale = size;
           vec3 position = positionStart + (velocity + acceleration * deltaTime * 0.5) * deltaTime;
       `,
