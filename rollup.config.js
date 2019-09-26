@@ -38,8 +38,9 @@ const pkg = (name, type) => {
   return makeRollupConfig({ location, main, name, type });
 };
 
-if (isMiniProgram) {
-  fileDirs = fileDirs.filter(name => name !== "o3-plus");
+fileDirs = fileDirs.filter(name => name !== "o3-plus");
+if (!isMiniProgram) {
+  fileDirs.push("o3-plus")
 }
 
 let promises = [...fileDirs.map(name => pkg(name, "module"))];
@@ -48,6 +49,10 @@ if (NODE_ENV === "BUILD") {
   const compressDir = ["o3", "o3-plus"];
   promises = [...compressDir.map(name => pkg(name, "compress"))];
 }
+
+// Promise.all(promises).then(res => {
+//   console.log(res);
+// });
 
 export default Promise.all(promises);
 
@@ -113,8 +118,8 @@ async function makeRollupConfig({ location, main, name, type }) {
       plugins: [...commonPlugins, ...miniProgramPlugin]
     };
   }
-  const external =
-    name === "o3-plus" ? {} : Object.keys(pkg.dependencies || {});
+  const external = name === "o3-plus" ? {} : Object.keys(pkg.dependencies || {});
+  // const external = Object.keys(pkg.dependencies || {});
 
   return {
     input,

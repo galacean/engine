@@ -32,7 +32,6 @@ const adapterVars = {};
 
 adapterArray.forEach(name => {
   adapterVars[name] = register(name);
-  console.log(`------------adapter ${name} ------------`);
 });
 
 export default [
