@@ -14,7 +14,7 @@
     "packages/*"
   ],
   "scripts": {
-    "bootstrap": "lerna bootstrap",
+    "bootstrap": "tnpm i && lerna bootstrap",
     "test": "jest",
     "test-cov": "jest --coverage",
     "watch": "rollup -cw",
@@ -23,7 +23,7 @@
     "lint:fix": "tslint --fix --project ./tsconfig.json",
     "build": "rollup -c",
     "b:types": "lerna run b:types",
-    "b:all": "npm-run-all --parallel b:types build b:umd b:miniprogram b:miniprogram-component",
+    "b:all": "npm-run-all --parallel b:types build b:miniprogram b:miniprogram-component && tnpm run b:umd",
     "b:doc": "node scripts/build.doc.js",
     "b:umd": "cross-env NODE_ENV=BUILD rollup -c",
     "b:playground": "cross-env NODE_ENV=production webpack --config playground/build/webpack.config.mpa.js",
@@ -54,7 +54,8 @@
   "devDependencies": {
     "@ali/rollup-plugin-string": "^3.0.0",
     "@babel/cli": "^7.5.0",
-    "@babel/core": "^7.5.4",
+    "@babel/core": "^7.6.2",
+    "@babel/node": "^7.6.2",
     "@babel/plugin-proposal-class-properties": "^7.4.4",
     "@babel/plugin-proposal-export-namespace-from": "^7.2.0",
     "@babel/plugin-proposal-object-rest-spread": "^7.4.4",
