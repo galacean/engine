@@ -261,6 +261,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     material.technique = technique;
     material.renderType = MaterialType.TRANSPARENT;
 
+    material.setValue('uOnce', this.once ? 1.0 : 0.0);
+
     if (this.particleTex) {
 
       this.particleTex.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
@@ -353,6 +355,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         },
       },
       uniforms: {
+        uOnce: {
+          name: 'uOnce',
+          type: DataType.FLOAT
+        },
         uTime: {
           name: 'uTime',
           type: DataType.FLOAT
@@ -688,6 +694,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         attribute vec2 normalizedUv;
         
         uniform float uTime;
+        uniform float uOnce;
         uniform mat4 matModelViewProjection;
         uniform mat4 matModelView;
         uniform mat4 matViewInverse;
@@ -716,8 +723,15 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           v_color = color;
           v_uv = uv.xy;
           v_alpha = alpha;
+          
+          float realDeltaTime = uTime - startTime;
 
-          float deltaTime = max(mod(uTime - startTime, lifeTime), 0.0);
+          float deltaTime = max(mod(realDeltaTime, lifeTime), 0.0);
+
+          if (uOnce == 1.0 && realDeltaTime > lifeTime) {
+            deltaTime = lifeTime;
+          }
+
           lifeLeft = 1.0 - deltaTime / lifeTime;
           float scale = size;
           vec3 position = positionStart + (velocity + acceleration * deltaTime * 0.5) * deltaTime;

@@ -70,7 +70,6 @@ const options = {
   isScaleByLifetime: false,
   lifetime: 4,
   maskTexture: null,
-  once: false,
   position: [0, 1, 0],
   positionRandomness: [20, 20, 0],
   rotateRate: 3,
@@ -91,9 +90,9 @@ const options = {
 };
 // 粒子发射器环境参数
 const config = {
-  // rotateToVelocity: true,
+  once: true,
   maxCount: 1000,
-  spawnCount: 0.2,
+  spawnCount: 100,
   spriteSheet,
   // is2d: false,
   options: options
