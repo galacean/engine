@@ -75,7 +75,6 @@ const options = {
   positionRandomness: [20, 20, 0],
   rotateRate: 3,
   rotateRateRandomness: 2,
-  rotateToVelocity: false,
   scaleFactor: 1,
   separate: false,
   size: 1,
@@ -92,6 +91,7 @@ const options = {
 };
 // 粒子发射器环境参数
 const config = {
+  // rotateToVelocity: true,
   maxCount: 1000,
   spawnCount: 0.2,
   spriteSheet,

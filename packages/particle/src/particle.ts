@@ -370,7 +370,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       } as any,
       states: {
         enable: [RenderState.BLEND],
-        disable: [RenderState.CULL_FACE], // double face
         functions: {
           // blendFunc: this.blendFunc,
           // todo question
@@ -403,6 +402,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         semantic: UniformSemantic.MODEL,
         type: DataType.FLOAT_MAT4,
       }
+    }
+    else {
+      // @ts-ignore
+      cfg.states.disable = [RenderState.CULL_FACE];
     }
 
     if (this.blendFuncSeparate) {
@@ -697,7 +700,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         varying float lifeLeft;
         varying mat2 vTextureMat;
         varying vec2 v_uv;
-        
+
         mat2 rotation2d(float angle) {
           float s = sin(angle);
           float c = cos(angle);
@@ -743,7 +746,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         float angle = startAngle + deltaAngle;
         float s = sin(angle);
         float c = cos(angle);
-      
+
       `,
       rotation2dShader: `
         vec2 rotatedPoint = rotation2d(angle) * vec2(normalizedUv.x, normalizedUv.y * uv.z);
