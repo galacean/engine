@@ -228,12 +228,6 @@ export class Particle extends AGPUParticleSystem {
     } else {
       this.updateConfig('spriteSheet', null);
     }
-  set __alpha(value) {
-    this.updateOption("alpha", value);
-  }
-
-  set __alphaRandomness(value) {
-    this.updateOption("alphaRandomness", value);
   }
 
   set __is2d(value) {

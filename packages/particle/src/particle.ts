@@ -25,7 +25,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   private _sleepedCount: number;
   private _myActive: boolean;
   private _isInit: boolean;
-  private once: boolean;
   public DPR: number;
   public maxCount: number;
   public spawnCount: number;
@@ -606,38 +605,46 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       [0.5, 0.5],
       [-0.5, 0.5]
     ];
-
-    const width = particleTex.image.width;
-    const height = particleTex.image.height;
-
-    if (spriteSheet) {
-
-      const { x, y, w, h } = spriteSheet[i % spriteSheet.length];
-
-      const u = x / width;
-      const v = y / height;
-      const p = u + w / width;
-      const q = v + h / height;
-
+    if (particleTex) {
+      const width = particleTex.image.width;
+      const height = particleTex.image.height;
+  
+      if (spriteSheet) {
+  
+        const { x, y, w, h } = spriteSheet[i % spriteSheet.length];
+  
+        const u = x / width;
+        const v = y / height;
+        const p = u + w / width;
+        const q = v + h / height;
+  
+        rects = [
+          [u, q, h / w], // left bottom
+          [p, q, h / w], // right bottom
+          [p, v, h / w], // right top
+          [u, v, h / w], // left top
+        ]
+  
+      }
+      else {
+        rects = [
+          [0, 0, height / width],
+          [1, 0, height / width],
+          [1, 1, height / width],
+          [0, 1, height / width]
+        ]
+      }
+      
+    } else {
       rects = [
-        [u, q, h / w], // left bottom
-        [p, q, h / w], // right bottom
-        [p, v, h / w], // right top
-        [u, v, h / w], // left top
-      ]
-
-    }
-    else {
-      rects = [
-        [0, 0, height / width],
-        [1, 0, height / width],
-        [1, 1, height / width],
-        [0, 1, height / width]
+        [0, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [0, 1, 1]
       ]
     }
-
     this.geometry.setValue('UV', k, rects[j]);
-    this.geometry.setValue('NORMALIZED_UV', k, normalizedRects[j]);
+    this.geometry.setValue('NORMALIZED_UV', k, normalizedRects[j]); 
   }
 
   /**
@@ -831,14 +838,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       `,
       noImgFragmentShader:
         ` 
-        float dist = distance(gl_PointCoord, vec2(0.5, 0.5));
-        if(dist < 0.5){
-          float alpha = dist < 0.25 ? new_lifeLeft : new_lifeLeft * (1.0 - (dist - 0.25) * 4.0);
-          vec3 shineColor =  vec3(0.8) * (1.0 - (dist * 2.0));
-          gl_FragColor = vec4( v_color + shineColor, alpha * v_alpha);
-        } else {
-          gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-        }
+          gl_FragColor = vec4( v_color, new_lifeLeft * v_alpha);
+        
       `,
       imgFragmentShader:
         `
@@ -887,26 +888,23 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         vertexShader += shader.sizeVertexShader;
 
       }
-      if (this.particleTex) {
+      
 
-        if (this.rotateToVelocity) {
+      if (this.rotateToVelocity) {
 
-          vertexShader += shader.rotateToVelocityVertexShader;
+        vertexShader += shader.rotateToVelocityVertexShader;
 
-        } else {
+      } else {
 
-          vertexShader += shader.rotationVertexShader;
+        vertexShader += shader.rotationVertexShader;
 
-          // 2D 和 3D 的旋转算法不同
-          if (this.is2d) {
-            vertexShader += shader.rotation2dShader;
-          }
-          else {
-            vertexShader += shader.rotation3dShader;
-          }
-
+       // 2D 和 3D 的旋转算法不同
+        if (this.is2d) {
+          vertexShader += shader.rotation2dShader;
         }
-
+        else {
+          vertexShader += shader.rotation3dShader;
+        }
       }
       vertexShader += this.rotateToVelocity ? (shader.postionShader + '}') : '}';
 
