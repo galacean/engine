@@ -18,7 +18,6 @@ import { vec3 } from '@alipay/o3-math';
  * @extends AGeometryRenderer
  */
 export class AGPUParticleSystem extends AGeometryRenderer {
-  private _cursor: number;
   private _time: number;
   private _isInit: boolean;
   private _material: any;
@@ -48,7 +47,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   constructor(node) {
 
     super(node);
-    this._cursor = 0; // 粒子指针
     this._time = 0; // 渲染时间，单位秒
     this._isInit = false; // 是否完成初始化
     this.DPR = window.devicePixelRatio; // 精度系数
@@ -131,7 +129,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const options = this.getOptions ? this.getOptions(this._time) : this.options;
 
     for (let x = 0; x < this.maxCount; x++) {
-      this._spawnParticle(options);
+      this._spawnParticle(options, x);
     }
 
     return this;
@@ -418,7 +416,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _createGeometry() {
-
     const geometry = new IndexBufferGeometry('particleGeometry');
     geometry.mode = DrawMode.TRIANGLES;
     const FLOAT = DataType.FLOAT;
@@ -462,8 +459,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param {Options} options
    * @private
    */
-  _spawnParticle(options) {
-
+  _spawnParticle(options, i) {
     const position = options.position !== undefined ? vec3.clone(options.position) : vec3.fromValues(0, 0, 0);
     const positionRandomness = options.positionRandomness !== undefined ? this._get3DData(options.positionRandomness) : [0, 0, 0];
     const velocity = options.velocity !== undefined ? vec3.clone(options.velocity) : vec3.fromValues(0, 0, 0);
@@ -488,7 +484,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     if (this.DPR !== undefined) size *= this.DPR;
 
-    const i = this._cursor;
     let x = position[0] + (this._getRandom() * positionRandomness[0]);
     let y = position[1] + (this._getRandom() * positionRandomness[1]);
     let z = position[2] + (this._getRandom() * positionRandomness[2]);
@@ -542,16 +537,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
       this._setUvs(i, j, k);
     }
-
-
-    // 移动指针
-    this._cursor++;
-    if (this._cursor >= this.maxCount) {
-
-      this._cursor = 0;
-
-    }
-
   }
 
   /**
@@ -682,9 +667,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           v_uv = uv.xy;
           v_alpha = alpha;
           
-          float realDeltaTime = max(uTime - startTime, 0.0);
-
-          float deltaTime = max(mod(realDeltaTime, lifeTime), 0.0);
+          // float deltaTime = max(mod(uTime, lifeTime), 0.0);
+          // 真实的生命周期
+          float life = lifeTime + startTime;
+          // 当前已过去的时间
+          float deltaTime = max(mod(uTime, life) - startTime, 0.0);
 
           bool isDying = false;
 
@@ -692,13 +679,13 @@ export class AGPUParticleSystem extends AGeometryRenderer {
             isDying = true;
           }
 
-          if ((isDying && realDeltaTime > lifeTime)) {
-            deltaTime = lifeTime;
+          if ((isDying && uTime > life)) {
+            deltaTime = life;
           }
 
           // 没出生就代表死亡，否则没出生就显示了
           if (deltaTime == 0.0) {
-            deltaTime = lifeTime;
+            deltaTime = life;
           }
 
           lifeLeft = 1.0 - deltaTime / lifeTime;
