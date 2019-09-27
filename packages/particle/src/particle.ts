@@ -771,7 +771,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         vec3 localPosition = vec3(basisX * rotatedPoint.x + 
                     basisZ * rotatedPoint.y) * scale + position;
 
-        gl_Position = matProjection * matView * vec4(localPosition, 1.);
+        gl_Position = matProjection * matView * vec4(localPosition + matWorld[3].xyz, 1.);
       `
       ,
       rotation3dShader: `

@@ -36,6 +36,7 @@ const spriteSheet = [
 
 // 创建节点
 const node = rootNode.createChild("particle");
+node.position = [2, 5, 0];
 // 给节点绑定粒子发射器组件
 const particleComp1 = node.createAbility(AGPUParticleSystem);
 // 粒子发射参数
@@ -71,7 +72,7 @@ const options = {
   lifetime: 4,
   maskTexture: null,
   position: [0, 1, 0],
-  positionRandomness: [20, 20, 0],
+  positionRandomness: [0, 0, 0],
   rotateRate: 3,
   rotateRateRandomness: 2,
   scaleFactor: 1,
@@ -90,9 +91,9 @@ const options = {
 };
 // 粒子发射器环境参数
 const config = {
-  once: true,
+  // once: true,
   maxCount: 1000,
-  spawnCount: 100,
+  spawnCount: 0.2,
   spriteSheet,
   // is2d: false,
   options: options
