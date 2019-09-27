@@ -43,8 +43,22 @@ export class Particle extends AGPUParticleSystem {
       maskTexture: props.__maskTexture ? props.__maskTexture.asset : null,
       // blendFunc: [props.__blendFunc01, props.__blendFunc02],
       useOriginColor: props.__useOriginColor,
+      is2d: props.__is2d,
       options: this._options
     };
+    if (props.__spriteSheet) {
+      if (typeof props.__spriteSheet === 'object' && props.__spriteSheet.length) {
+        this._config.spriteSheet = props.__spriteSheet;
+      } else if (typeof props.__spriteSheet === 'string') {
+        try {
+          const spriteSheet = JSON.parse(props.__spriteSheet);
+          if (spriteSheet.length) {
+            this._config.spriteSheet = spriteSheet;
+          }
+        } catch (e) {
+        }
+      }
+    }
     if (props.__separate) {
       this._config.blendFuncSeparate = [
         BlendFunc[props.__srcRGB || "SRC_ALPHA"],
@@ -149,6 +163,14 @@ export class Particle extends AGPUParticleSystem {
     this.updateOption("scaleFactor", value);
   }
 
+  set __alpha(value) {
+    this.updateOption('alpha', value);
+  }
+    
+  set __alphaRandomness(value) {
+    this.updateOption('alphaRandomness', value);
+  }
+
   set __maxCount(value) {
     this.updateConfig("maxCount", value);
   }
@@ -189,14 +211,28 @@ export class Particle extends AGPUParticleSystem {
     this.updateConfig("maskTexture", value.asset);
   }
 
-  set __alpha(value) {
-    this.updateOption("alpha", value);
+  set __spriteSheet(value) {
+    if (typeof value === 'object' && value.length) {
+      this.updateConfig('spriteSheet', value);
+    } else if (typeof value === 'string') {
+      try {
+        const spriteSheet = JSON.parse(value);
+        if (spriteSheet.length) {
+          this.updateConfig('spriteSheet', spriteSheet);
+        } else {
+          this.updateConfig('spriteSheet', null);
+        }
+      } catch (e) {
+        this.updateConfig('spriteSheet', null);
+      }
+    } else {
+      this.updateConfig('spriteSheet', null);
+    }
   }
 
-  set __alphaRandomness(value) {
-    this.updateOption("alphaRandomness", value);
+  set __is2d(value) {
+    this.updateConfig('is2d', value);
   }
-
   // set __blendFunc01(value) {
   //   this._config.blendFunc[0] = value;
   //   this.updateConfig('blendFunc', this._config.blendFunc);
