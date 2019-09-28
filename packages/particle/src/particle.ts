@@ -65,6 +65,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @property {number} lifetime  生命周期，默认5，范围  >0
    * @property {number} alpha 透明度，默认1，范围 0 ~ 1
    * @property {Array/number} positionRandomness  位置随机因子，默认[0,0,0]，范围  >0
+   * @property {Array} positionArray  固定位置数组
    * @property {Array/number} velocityRandomness  速度随机因子，默认[0, 0, 0]，范围  >0
    * @property {Array/number} accelerationRandomness  加速度随机因子，默认[0, 0, 0]，范围  >0
    * @property {number} colorRandomness  颜色随机因子，默认0，范围  0 ~ 1
@@ -460,6 +461,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   _spawnParticle(options, i) {
     const position = options.position !== undefined ? vec3.clone(options.position) : vec3.fromValues(0, 0, 0);
     const positionRandomness = options.positionRandomness !== undefined ? this._get3DData(options.positionRandomness) : [0, 0, 0];
+    const positionArray = options.positionArray;
     const velocity = options.velocity !== undefined ? vec3.clone(options.velocity) : vec3.fromValues(0, 0, 0);
     const velocityRandomness = options.velocityRandomness !== undefined ? this._get3DData(options.velocityRandomness) : [0, 0, 0];
     const color = options.color !== undefined ? this._getColor(options.color) : vec3.fromValues(1, 1, 1);
@@ -482,9 +484,24 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     if (this.DPR !== undefined) size *= this.DPR;
 
-    let x = position[0] + (this._getRandom() * positionRandomness[0]);
-    let y = position[1] + (this._getRandom() * positionRandomness[1]);
-    let z = position[2] + (this._getRandom() * positionRandomness[2]);
+    let x = position[0];
+    let y = position[1];
+    let z = position[2];
+
+    if (positionArray) {
+      if (positionArray.length !== this.maxCount) {
+        throw Error('The length of positionArray must be equal to maxCount.');
+      }
+
+      x += positionArray[i][0];
+      y += positionArray[i][1];
+      z += positionArray[i][2];
+    }
+    else {
+      x += this._getRandom() * positionRandomness[0];
+      y += this._getRandom() * positionRandomness[1];
+      z += this._getRandom() * positionRandomness[2];
+    }
 
     if (smoothPosition === true) {
       x += -(velocity[0] * this._getRandom());
