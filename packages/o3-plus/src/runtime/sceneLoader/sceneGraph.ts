@@ -1,6 +1,7 @@
 import * as r3 from "../../enhanced";
 import { getResource } from "./assets";
 import { Camera } from "../../camera/Camera";
+import { Options } from "./parser";
 
 const nodeCache: { [id: string]: r3.Node } = {};
 
@@ -12,7 +13,8 @@ export function parserSceneGraph(
   }: {
     nodes: { [id: string]: NodeConfig };
     abilities: { [id: string]: AbilityConfig };
-  }
+  },
+  options: Options
 ) {
   const root = engine.currentScene.root;
   (window as any).root = root;
@@ -24,7 +26,13 @@ export function parserSceneGraph(
   // 创建 ability
   Object.keys(abilities)
     .map(key => abilities[key])
-    .forEach(value => createAbility(value, (engine as any).canvas));
+    .forEach(value => {
+      const ability = createAbility(value);
+      const canvas = (engine as any).canvas;
+      if (ability instanceof Camera && canvas) {
+        ability.attachToScene(canvas, options.rhiAttr);
+      }
+    });
 }
 
 export function createNode(engine: r3.Engine, config: NodeConfig) {
@@ -52,15 +60,13 @@ export function getNodeById(id: string) {
   return nodeCache[id];
 }
 
-function createAbility(abilityConfig: AbilityConfig, canvas) {
+function createAbility(abilityConfig: AbilityConfig) {
   const node = nodeCache[abilityConfig.node];
   const Constructor = getConstructor(abilityConfig.type);
   const props = mixPropsToExplicitProps(abilityConfig.props);
   const ability = node.createAbility(Constructor, props);
   props.enabled != null && (ability.enabled = props.enabled);
-  if (ability instanceof Camera && canvas) {
-    ability.attachToScene(canvas);
-  }
+  return ability;
 }
 
 function getConstructor(type: string) {

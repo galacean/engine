@@ -15,7 +15,7 @@ export class GLRenderHardware {
   private _canvas: HTMLCanvasElement;
   private _gl: WebGLRenderingContext;
   private _renderStates;
-  private _assetsCache;
+  private _assetsCache: GLAssetsCache;
   private _extensions;
   private _frameCount: number;
   private _spriteBatcher;
@@ -78,7 +78,7 @@ export class GLRenderHardware {
   /**
    * GL 资源对象缓冲池
    */
-  get assetsCache() {
+  get assetsCache(): GLAssetsCache {
 
     return this._assetsCache;
 

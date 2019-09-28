@@ -18,6 +18,7 @@
     "test": "jest",
     "test-cov": "jest --coverage",
     "watch": "rollup -cw",
+    "watch:umd": "cross-env NODE_ENV=BUILD rollup -cw",
     "ci": "npm run lint && npm run test-cov",
     "lint": "tslint --project ./tsconfig.json",
     "lint:fix": "tslint --fix --project ./tsconfig.json",

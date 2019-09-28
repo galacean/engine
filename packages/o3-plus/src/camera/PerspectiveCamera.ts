@@ -1,5 +1,5 @@
 import * as r3 from "@alipay/o3";
-import {Camera} from "./Camera";
+import { Camera } from "./Camera";
 
 interface Props {
   RHI?;
@@ -12,6 +12,7 @@ interface Props {
   pixelRatio?: number;
   clearMode?: number;
   clearParam?: number[];
+  enableCollect?: boolean;
 }
 
 /**
@@ -45,18 +46,20 @@ export class PerspectiveCamera extends Camera {
    * @property {Number} [props.pixelRatio=window.devicePixelRatio] drawingBufferSize 的缩放比率
    */
   constructor(node: r3.Node, props: Props) {
-
     const cameraProps = {
       RHI: props.RHI || r3.GLRenderHardware,
       SceneRenderer: props.SceneRenderer || r3.BasicSceneRenderer,
       canvas: props.canvas,
-      attributes: props.attributes || {},
+      attributes: props.attributes || {}
     };
 
     super(node, cameraProps);
 
     if (props.canvas) {
-      this.canvas = typeof (props.canvas) === "string" ? document.getElementById(props.canvas) as HTMLCanvasElement : props.canvas;
+      this.canvas =
+        typeof props.canvas === "string"
+          ? (document.getElementById(props.canvas) as HTMLCanvasElement)
+          : props.canvas;
     }
 
     /**
@@ -76,15 +79,23 @@ export class PerspectiveCamera extends Camera {
     this.far = props.far || 1000;
     this._pixelRatio = props.pixelRatio || window.devicePixelRatio;
 
-    const clearMode = props.clearMode !== undefined ? props.clearMode : r3.ClearMode.SOLID_COLOR;
+    const clearMode =
+      props.clearMode !== undefined
+        ? props.clearMode
+        : r3.ClearMode.SOLID_COLOR;
     const clearParam = props.clearParam || [0.25, 0.25, 0.25, 1];
     this.setClearMode(clearMode, clearParam);
-
   }
 
-  public attachToScene(canvas: HTMLCanvasElement | string) {
-    canvas = typeof (canvas) === "string" ? document.getElementById(canvas) as HTMLCanvasElement : canvas;
-    super.attachToScene(canvas);
+  public attachToScene(
+    canvas: HTMLCanvasElement | string,
+    attr: WebGLContextAttributes & { enableCollect?: boolean } = {}
+  ) {
+    canvas =
+      typeof canvas === "string"
+        ? (document.getElementById(canvas) as HTMLCanvasElement)
+        : canvas;
+    super.attachToScene(canvas, attr);
     this.canvas = canvas;
     this.updateSizes();
   }
@@ -94,20 +105,14 @@ export class PerspectiveCamera extends Camera {
    * @type {Number}
    */
   get pixelRatio() {
-
     return this._pixelRatio;
-
   }
 
   set pixelRatio(v) {
-
     if (v && this._pixelRatio !== v) {
-
       this._pixelRatio = v;
       this.updateSizes();
-
     }
-
   }
 
   /**
@@ -116,23 +121,17 @@ export class PerspectiveCamera extends Camera {
    * @param {Number} [fov=this.fov] 视场角角度
    */
   public updateSizes(pixelRatio = null, fov = null) {
-
     if (pixelRatio) {
-
       this._pixelRatio = pixelRatio;
-
     }
     if (fov) {
-
       this.fov = fov;
-
     }
 
-    const width = this.canvas.clientWidth * this.pixelRatio | 0;
-    const height = this.canvas.clientHeight * this.pixelRatio | 0;
+    const width = (this.canvas.clientWidth * this.pixelRatio) | 0;
+    const height = (this.canvas.clientHeight * this.pixelRatio) | 0;
 
     if (width !== this.lastWidth || height !== this.lastHeight) {
-
       this.lastWidth = width;
       this.lastHeight = height;
       this.canvas.width = width;
@@ -141,11 +140,8 @@ export class PerspectiveCamera extends Camera {
       this.setPerspective(this.fov, width, height, this.near, this.far);
       this.setViewport(0, 0, width, height);
       return true;
-
     }
 
     return false;
-
   }
-
 }

@@ -179,10 +179,12 @@ export class GLTechnique {
 
   /**
    * 将自己的value设置到shader的uniform值之上
-   * @param {object} uniform
+   * @param uniform
+   * @param location
+   * @param value
    * @private
    */
-  _uploadUniformValue(uniform, location, value) {
+  private _uploadUniformValue(uniform, location, value) {
     // 取得uniform的值
     if (value === null || value === undefined) {
       value = UniformDefaults[uniform.type];

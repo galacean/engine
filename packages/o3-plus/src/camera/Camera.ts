@@ -6,17 +6,12 @@ const vec3Cache = r3.vec3.create();
  * 3D 摄像机组件，添加到一个 Node 上，以 Node 的空间作为 Camera Space
  */
 export class Camera extends r3.NodeAbility {
-
   get renderHardware() {
-
     return this._rhi;
-
   }
 
   get sceneRenderer() {
-
     return this._sceneRenderer;
-
   }
 
   /**
@@ -25,9 +20,7 @@ export class Camera extends r3.NodeAbility {
    * @readonly
    */
   get viewMatrix(): Float32Array | number[] {
-
     return this._viewMat;
-
   }
 
   /**
@@ -36,9 +29,7 @@ export class Camera extends r3.NodeAbility {
    * @readonly
    */
   get inverseViewMatrix(): Float32Array | number[] {
-
     return this._inverseViewMatrix;
-
   }
 
   /**
@@ -47,9 +38,7 @@ export class Camera extends r3.NodeAbility {
    * @readonly
    */
   get projectionMatrix(): Float32Array | number[] {
-
     return this._matProjection;
-
   }
 
   /**
@@ -58,9 +47,7 @@ export class Camera extends r3.NodeAbility {
    * @readonly
    */
   get inverseProjectionMatrix(): Float32Array | number[] {
-
     return this._matInverseProjection;
-
   }
 
   /**
@@ -69,9 +56,7 @@ export class Camera extends r3.NodeAbility {
    * @readonly
    */
   get eyePos(): Float32Array {
-
     return this._ownerNode.worldPosition;
-
   }
 
   public zNear: number;
@@ -99,10 +84,9 @@ export class Camera extends r3.NodeAbility {
   private readonly _matInverseProjection: Float32Array | any[];
 
   constructor(node: r3.Node, props) {
-
     super(node, props);
 
-    const {SceneRenderer, canvas} = props;
+    const { SceneRenderer, canvas } = props;
 
     this._sceneRenderer = new SceneRenderer(this);
     this._isOrtho = false; // 逸瞻：标记是不是ortho，用于射线检测时区分处理
@@ -128,10 +112,13 @@ export class Camera extends r3.NodeAbility {
     canvas && this.attachToScene(canvas);
   }
 
-  public attachToScene(canvas: HTMLCanvasElement) {
+  public attachToScene(canvas: HTMLCanvasElement, attributes?) {
     this._ownerNode.scene.attachRenderCamera(this as any);
     const engine = this._ownerNode.scene.engine;
-    this._rhi = engine.requireRHI((this._props as any).RHI, canvas, (this._props as any).attributes);
+    this._rhi = engine.requireRHI((this._props as any).RHI, canvas, {
+      ...(this._props as any).attributes,
+      ...attributes
+    });
     /**
      * View port: [x, y, width, height]
      */
@@ -142,9 +129,7 @@ export class Camera extends r3.NodeAbility {
    * 渲染场景
    */
   public render() {
-
     this._sceneRenderer.render();
-
   }
 
   /**
@@ -153,11 +138,9 @@ export class Camera extends r3.NodeAbility {
    * @param {*} clearParam 其类型根据 Mode 而不同
    */
   public setClearMode(mode, clearParam) {
-
     const defaultRP = this._sceneRenderer.defaultRenderPass;
     defaultRP.clearMode = mode;
     defaultRP.clearParam = clearParam;
-
   }
 
   /**
@@ -175,9 +158,14 @@ export class Camera extends r3.NodeAbility {
     this.zFar = zFar;
 
     const aspect = viewWidth / viewHeight;
-    r3.mat4.perspective(this._matProjection, r3.MathUtil.toRadian(degFOV), aspect, zNear, zFar);
+    r3.mat4.perspective(
+      this._matProjection,
+      r3.MathUtil.toRadian(degFOV),
+      aspect,
+      zNear,
+      zFar
+    );
     r3.mat4.invert(this._matInverseProjection, this._matProjection);
-
   }
 
   /**
@@ -188,10 +176,8 @@ export class Camera extends r3.NodeAbility {
    * @param {number} height 视口的高度
    */
   public setViewport(x, y, width, height) {
-
     this.viewport = [x, y, width, height];
     this._rhi.viewport(x, y, width, height);
-
   }
 
   /**
@@ -211,7 +197,6 @@ export class Camera extends r3.NodeAbility {
 
     r3.mat4.ortho(this._matProjection, left, right, bottom, top, near, far);
     r3.mat4.invert(this._matInverseProjection, this._matProjection); // 逸瞻：逻辑补全，否则无法正确渲染场景
-
   }
 
   /**
@@ -219,8 +204,9 @@ export class Camera extends r3.NodeAbility {
    * @param {Float32Array | Array<number>} worldPoint 世界空间的坐标点
    * @return {Float32Array} [屏幕坐标X, 屏幕坐标Y, 深度值]
    */
-  public worldToScreen(worldPoint: Float32Array | number[]): Float32Array | any[] {
-
+  public worldToScreen(
+    worldPoint: Float32Array | number[]
+  ): Float32Array | any[] {
     const viewport = this.viewport;
     const width = viewport[2] - viewport[0];
     const height = viewport[3] - viewport[1];
@@ -228,7 +214,12 @@ export class Camera extends r3.NodeAbility {
     const matViewProj = r3.mat4.create();
     r3.mat4.mul(matViewProj, this.projectionMatrix, this.viewMatrix);
 
-    const worldPos = r3.vec4.fromValues(worldPoint[0], worldPoint[1], worldPoint[2], 1.0);
+    const worldPos = r3.vec4.fromValues(
+      worldPoint[0],
+      worldPoint[1],
+      worldPoint[2],
+      1.0
+    );
     const clipPos = r3.vec4.create();
     r3.vec4.transformMat4(clipPos, worldPos, matViewProj);
 
@@ -245,11 +236,10 @@ export class Camera extends r3.NodeAbility {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 
-    x = x * clientWidth / canvasWidth;
-    y = y * clientHeight / canvasHeight;
+    x = (x * clientWidth) / canvasWidth;
+    y = (y * clientHeight) / canvasHeight;
 
     return r3.vec3.fromValues(x, y, depth);
-
   }
 
   /**
@@ -259,7 +249,6 @@ export class Camera extends r3.NodeAbility {
    * @return 世界坐标
    */
   public screenToWorld(screenPoint, depth) {
-
     if (depth === undefined) {
       depth = 0.0;
     }
@@ -270,15 +259,15 @@ export class Camera extends r3.NodeAbility {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 
-    const px = screenPoint[0] / clientWidth * canvasWidth;
-    const py = screenPoint[1] / clientHeight * canvasHeight;
+    const px = (screenPoint[0] / clientWidth) * canvasWidth;
+    const py = (screenPoint[1] / clientHeight) * canvasHeight;
 
     const viewport = this.viewport;
     const viewWidth = viewport[2] - viewport[0];
     const viewHeight = viewport[3] - viewport[1];
 
-    const nx = (px - viewport[0]) / viewWidth * 2 - 1;
-    const ny = 1 - (py - viewport[1]) / viewHeight * 2;
+    const nx = ((px - viewport[0]) / viewWidth) * 2 - 1;
+    const ny = 1 - ((py - viewport[1]) / viewHeight) * 2;
 
     const p = r3.vec4.fromValues(nx, ny, depth, 1.0);
 
@@ -292,7 +281,6 @@ export class Camera extends r3.NodeAbility {
     r3.vec4.transformMat4(u, p, matInv);
 
     return r3.vec3.fromValues(u[0] / u[3], u[1] / u[3], u[2] / u[3]);
-
   }
 
   /**
@@ -303,22 +291,24 @@ export class Camera extends r3.NodeAbility {
   public screenPointToRay(screenPointX, screenPointY) {
     // 逸瞻：区分camera类型设置origin
     let origin;
-    if (this._isOrtho) { origin = this.worldToScreen([screenPointX, screenPointY]); } else { origin = this.eyePos; }
-    const tmp = this.screenToWorld([screenPointX, screenPointY], 0.5);  // world position on depth=0.5
+    if (this._isOrtho) {
+      origin = this.worldToScreen([screenPointX, screenPointY]);
+    } else {
+      origin = this.eyePos;
+    }
+    const tmp = this.screenToWorld([screenPointX, screenPointY], 0.5); // world position on depth=0.5
     r3.vec3.sub(tmp, tmp, origin); // ray direction
     r3.vec3.normalize(tmp, tmp);
     return {
       origin,
-      direction: tmp,
+      direction: tmp
     };
-
   }
 
   /**
    * 释放内部资源
    */
   public destroy() {
-
     super.destroy();
 
     // -- remove from scene
@@ -326,23 +316,17 @@ export class Camera extends r3.NodeAbility {
 
     // --
     if (this._sceneRenderer) {
-
       this._sceneRenderer.destroy();
-
     }
 
     // -- destroy render hardware
     if (this._rhi) {
-
       this._rhi.destroy();
-
     }
-
   }
 
   // 每一帧更新相机所需的矩阵
   public update(deltaTime) {
-
     super.update(deltaTime);
 
     // make sure update directions
@@ -353,9 +337,12 @@ export class Camera extends r3.NodeAbility {
       r3.vec3.scale(vec3Cache, vec3Cache, -1);
     }
     r3.vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
-    r3.mat4.lookAt(this._viewMat, this._ownerNode.position, vec3Cache, this._ownerNode.up);
+    r3.mat4.lookAt(
+      this._viewMat,
+      this._ownerNode.position,
+      vec3Cache,
+      this._ownerNode.up
+    );
     r3.mat4.invert(this._inverseViewMatrix, this._viewMat);
-
   }
-
 }
