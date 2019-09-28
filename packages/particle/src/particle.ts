@@ -170,6 +170,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     this._time = 0;
     this._material.setValue('uActive', 1.0);
+    this._material.setValue('uStart', 1.0);
 
   }
 
@@ -228,7 +229,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       material.setValue('particleMaskTex', this.particleMaskTex);
 
     }
-
+    material.setValue('uStart', 0);
     super.setMaterial(material);
 
     this._material = material;
@@ -316,6 +317,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         },
         uActive: {
           name: 'uActive',
+          type: DataType.FLOAT
+        },
+        uStart: {
+          name: 'uStart',
           type: DataType.FLOAT
         },
         uTime: {
@@ -636,6 +641,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         uniform float uTime;
         uniform float uOnce;
         uniform float uActive;
+        uniform float uStart;
         uniform mat4 matModelViewProjection;
         uniform mat4 matModelView;
         uniform mat4 matViewInverse;
@@ -678,6 +684,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           }
 
           if ((isDying && uTime > life)) {
+            deltaTime = life;
+          }
+
+          if (uStart == 0.0) {
             deltaTime = life;
           }
 
