@@ -21,7 +21,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   private _time: number;
   private _isInit: boolean;
   private _material: any;
-  private once: boolean;
   public DPR: number;
   public maxCount: number;
   public options: {};
