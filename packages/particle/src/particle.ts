@@ -489,6 +489,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     let z = position[2];
 
     if (positionArray) {
+      if (positionArray.length !== this.maxCount) {
+        throw Error('The length of positionArray must be equal to maxCount.');
+      }
+
       x += positionArray[i][0];
       y += positionArray[i][1];
       z += positionArray[i][2];
