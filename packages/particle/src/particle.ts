@@ -229,7 +229,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       material.setValue('particleMaskTex', this.particleMaskTex);
 
     }
-    material.setValue('uStart', 0);
     super.setMaterial(material);
 
     this._material = material;
