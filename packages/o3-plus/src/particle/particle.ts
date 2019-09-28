@@ -58,6 +58,19 @@ export class Particle extends AGPUParticleSystem {
         }
       }
     }
+    if (props.__positionArray) {
+      if (typeof props.__positionArray === 'object' && props.__positionArray.length) {
+        this._options.positionArray = props.__positionArray;
+      } else if (typeof props.__positionArray === 'string') {
+        try {
+          const positionArray = JSON.parse(props.__positionArray);
+          if (positionArray.length) {
+            this._options.positionArray = positionArray;
+          }
+        } catch (e) {
+        }
+      }
+    }
     if (props.__separate) {
       this._config.blendFuncSeparate = [
         BlendFunc[props.__srcRGB || "SRC_ALPHA"],
@@ -172,6 +185,25 @@ export class Particle extends AGPUParticleSystem {
 
   set __startTimeRandomness(value) {
     this.updateOption('startTimeRandomness', value);
+  }
+
+  set __positionArray(value) {
+    if (typeof value === 'object' && value.length) {
+      this.updateOption('positionArray', value);
+    } else if (typeof value === 'string') {
+      try {
+        const positionArray = JSON.parse(value);
+        if (positionArray.length) {
+          this.updateOption('positionArray', positionArray);
+        } else {
+          this.updateOption('positionArray', null);
+        }
+      } catch (e) {
+        this.updateOption('positionArray', null);
+      }
+    } else {
+      this.updateOption('positionArray', null);
+    }
   }
 
   set __maxCount(value) {
