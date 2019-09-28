@@ -1,26 +1,25 @@
-import {AssetType} from '@alipay/o3-base';
+import { AssetType } from "@alipay/o3-base";
+import { GLRenderHardware } from "./GLRenderHardware";
 
 /**
  * 引擎的资源对象所需要的 GL 资源对象的 Cache 管理
  * @private
  */
 export class GLAssetsCache {
-
-  private _rhi;
+  private _rhi: GLRenderHardware;
   private _objectSet;
   private _checkList;
   private _nextID = 1;
-  private _enableCollect;
+  private _enableCollect: boolean;
 
   constructor(rhi, props: { enableCollect?: boolean } = {}) {
-
     this._rhi = rhi;
     this._objectSet = {}; // 所有资源对象的集合
     this._checkList = []; // 需要检测生命周期的对象列表
     this._nextID = 1;
     // 是否启用回收机制
-    this._enableCollect = props.enableCollect === undefined ? true : !!props.enableCollect;
-
+    this._enableCollect =
+      props.enableCollect === undefined ? true : !!props.enableCollect;
   }
 
   /**
@@ -29,18 +28,14 @@ export class GLAssetsCache {
    * @param {class} ctor
    */
   requireObject(asset, ctor) {
-
     let cachedObject = null;
 
     //-- 查找已有
     if (asset.cacheID) {
-
       cachedObject = this._objectSet[asset.cacheID];
-
     }
 
     if (!cachedObject || asset.needRecreate) {
-
       const cacheID = this._nextID++;
       const objectSet = this._objectSet;
 
@@ -54,23 +49,18 @@ export class GLAssetsCache {
 
       //-- 处理运行时资源释放
       if (this._enableCollect && asset.type === AssetType.Cache) {
-
         this._checkList.push(cachedObject);
-
       }
-
     }
 
     cachedObject.activeFrame = this._rhi.frameCount;
     return cachedObject;
-
   }
 
   /**
    * 清除 Cache 中没有用到的 GL 资源对象
    */
   compact() {
-
     if (!this._enableCollect) return;
 
     const currentFrame = this._rhi.frameCount;
@@ -79,35 +69,25 @@ export class GLAssetsCache {
     const objectSet = this._objectSet;
 
     for (let i = checkList.length - 1; i >= 0; i--) {
-
       const cachedObject = checkList[i];
       if (cachedObject.activeFrame < currentFrame) {
-
         delete objectSet[cachedObject.cacheID];
         checkList.splice(i, 1);
 
         cachedObject.finalize();
-
       }
-
     }
-
   }
 
   /**
    * 释放内部登记的所有对象
    */
   finalize() {
-
     for (const name in this._objectSet) {
-
       const obj = this._objectSet[name];
       obj.finalize(true);
-
     }
     this._objectSet = {};
     this._checkList = [];
-
   }
-
 }

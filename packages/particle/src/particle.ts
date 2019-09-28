@@ -20,8 +20,7 @@ import { vec3 } from '@alipay/o3-math';
 export class AGPUParticleSystem extends AGeometryRenderer {
   private _time: number;
   private _isInit: boolean;
-  private _material: any;
-  private once: boolean;
+  private _isStart: boolean;
   public DPR: number;
   public maxCount: number;
   public options: {};
@@ -50,7 +49,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     this._time = 0; // 渲染时间，单位秒
     this._isInit = false; // 是否完成初始化
     this.DPR = window.devicePixelRatio; // 精度系数
-
+    this._isStart = false; // 是否开始粒子动画
   }
 
   /**
@@ -144,7 +143,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    */
   update(deltaTime) {
 
-    if (!this._isInit) {
+    if (!this._isInit || !this._isStart) {
       return;
     }
 
@@ -170,7 +169,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   /**
    * 激活发射模块，重新开始发射 */
   start() {
-
+    this._isStart = true;
     this._time = 0;
     this._material.setValue('uActive', 1.0);
 
@@ -231,7 +230,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       material.setValue('particleMaskTex', this.particleMaskTex);
 
     }
-
     super.setMaterial(material);
 
     this._material = material;

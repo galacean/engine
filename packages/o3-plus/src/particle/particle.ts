@@ -28,13 +28,12 @@ export class Particle extends AGPUParticleSystem {
       rotateRateRandomness: props.__rotateRateRandomness,
       scaleFactor: props.__scaleFactor,
       alpha: props.__alpha,
-      alphaRandomness: props.__alphaRandomness
+      alphaRandomness: props.__alphaRandomness,
+      startTimeRandomness: props.__startTimeRandomness,
     };
     // 粒子发射器环境参数
     this._config = {
       maxCount: props.__maxCount,
-      spawnCount: props.__spawnCount,
-      intervalFrameCount: props.__intervalFrameCount,
       once: props.__once,
       rotateToVelocity: props.__rotateToVelocity,
       isScaleByLifetime: props.__isScaleByLifetime,
@@ -171,16 +170,12 @@ export class Particle extends AGPUParticleSystem {
     this.updateOption('alphaRandomness', value);
   }
 
+  set __startTimeRandomness(value) {
+    this.updateOption('startTimeRandomness', value);
+  }
+
   set __maxCount(value) {
     this.updateConfig("maxCount", value);
-  }
-
-  set __spawnCount(value) {
-    this.updateConfig("spawnCount", value);
-  }
-
-  set __intervalFrameCount(value) {
-    this.updateConfig("intervalFrameCount", value);
   }
 
   set __useOriginColor(value) {
