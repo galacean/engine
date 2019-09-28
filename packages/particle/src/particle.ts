@@ -18,18 +18,11 @@ import { vec3 } from '@alipay/o3-math';
  * @extends AGeometryRenderer
  */
 export class AGPUParticleSystem extends AGeometryRenderer {
-  private _cursor: number;
-  private _rand: any[];
-  private _randomIndex: number;
   private _time: number;
-  private _sleepedCount: number;
-  private _myActive: boolean;
   private _isInit: boolean;
+  private _material: any;
   public DPR: number;
   public maxCount: number;
-  public spawnCount: number;
-  private _sleepFrameCount: number;
-  public intervalFrameCount: number;
   public options: {};
   public getOptions: any;
   public rotateToVelocity: boolean;
@@ -53,13 +46,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   constructor(node) {
 
     super(node);
-    this._cursor = 0; // 粒子指针
-    this._rand = []; // 随机数数组
-    this._randomIndex = 0; // 随机数指针
     this._time = 0; // 渲染时间，单位秒
-    this._sleepedCount = 0; // 睡眠帧数
     this._isInit = false; // 是否完成初始化
-    this._myActive = false; // 是否激活发射模块
     this.DPR = window.devicePixelRatio; // 精度系数
 
   }
@@ -84,15 +72,14 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @property {number} alphaRandomness  透明度随机因子，默认0，范围 0 ~ 1
    * @property {number} startAngleRandomness  初始旋转角度随机因子，默认0，范围 0 ~ 1
    * @property {number} rotateRateRandomness  自转旋转角速率随机因子，默认0，范围   >0
+   * @property {number} startTimeRandomness  每个粒子出现的时间点随机因子，单位秒   >0
    */
 
   /**
    * 初始化
    * @param {ParticleProps} props 初始化参数
    * @param {number} [ParticleProps.maxCount = 1000] 最大粒子数
-   * @param {number} [ParticleProps.spawnCount = maxCount / 10] 每帧发射粒子数
    * @param {boolean} [ParticleProps.once = false] 是否只发射一帧, 默认
-   * @param {number} [ParticleProps.intervalFrameCount = 0] 发射粒子间隔帧数
    * @param {ParticleParam} [ParticleProps.options] 发射参数
    * @param {Function} [ParticleProps.getOptions] 获取更新参数（每帧回调）
    * @param {boolean} [ParticleProps.rotateToVelocity] 是否跟随粒子运动速度的方向。
@@ -112,9 +99,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
   initialize(props) {
     this.maxCount = props.maxCount !== undefined ? props.maxCount : 1000;
-    this.spawnCount = props.spawnCount !== undefined ? props.spawnCount : Math.floor(this.maxCount / 10);
-    this._sleepFrameCount = this.spawnCount > 1 ? 0 : 1 / this.spawnCount;
-    this.intervalFrameCount = props.intervalFrameCount || 0;
     this.once = props.once || false;
     this.options = props.options || {};
     this.getOptions = props.getOptions;
@@ -134,14 +118,19 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     this.spriteSheet = props.spriteSheet || null;
     this.is2d = props.is2d === undefined ? true : props.is2d;
 
-    const randomCount = Math.min(this.maxCount * 2, Math.max(this.spawnCount, 1) * 360);
-    this._creatRandom(randomCount);
     this.setMaterial();
 
     /** @private */
     this.geometry = this._createGeometry();
 
     this._isInit = true;
+
+    const options = this.getOptions ? this.getOptions(this._time) : this.options;
+
+    for (let x = 0; x < this.maxCount; x++) {
+      this._spawnParticle(options, x);
+    }
+
     return this;
 
   }
@@ -154,36 +143,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   update(deltaTime) {
 
     if (!this._isInit) {
-
       return;
-
     }
+
     this._time += deltaTime / 1000;
-    this.getMaterial().setValue('uTime', this._time);
-
-    if (this._myActive) {
-
-      if (this._sleepFrameCount > 0 && this._sleepedCount < this._sleepFrameCount + this.intervalFrameCount) {
-
-        this._sleepedCount++;
-
-      } else {
-
-        this._sleepedCount = 0;
-        const options = this.getOptions ? this.getOptions(this._time) : this.options;
-        for (let x = 0; x < this.spawnCount; x++) {
-          this._spawnParticle(options);
-        }
-
-      }
-
-    }
-
-    if (this.once) {
-
-      this._myActive = false;
-
-    }
+    this._material.setValue('uTime', this._time);
 
   }
 
@@ -194,10 +158,9 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   setOptions(options) {
 
     if (options !== undefined) {
-
       this.options = { ...this.options, ...options };
-
     }
+
     return this;
 
   }
@@ -206,11 +169,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * 激活发射模块，重新开始发射 */
   start() {
 
-    if (!this._myActive) {
-
-      this._myActive = true;
-
-    }
+    this._time = 0;
+    this._material.setValue('uActive', 1.0);
 
   }
 
@@ -219,11 +179,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    */
   stop() {
 
-    if (this._myActive) {
-
-      this._myActive = false;
-
-    }
+    this._material.setValue('uActive', 0.0);
 
   }
 
@@ -234,7 +190,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   destroy() {
 
     super.destroy();
-    this._rand = null;
     this.options = null;
     if (this.particleTex) {
 
@@ -276,6 +231,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     }
 
     super.setMaterial(material);
+
+    this._material = material;
 
   }
 
@@ -356,6 +313,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       uniforms: {
         uOnce: {
           name: 'uOnce',
+          type: DataType.FLOAT
+        },
+        uActive: {
+          name: 'uActive',
           type: DataType.FLOAT
         },
         uTime: {
@@ -454,7 +415,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _createGeometry() {
-
     const geometry = new IndexBufferGeometry('particleGeometry');
     geometry.mode = DrawMode.TRIANGLES;
     const FLOAT = DataType.FLOAT;
@@ -498,8 +458,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param {Options} options
    * @private
    */
-  _spawnParticle(options) {
-
+  _spawnParticle(options, i) {
     const position = options.position !== undefined ? vec3.clone(options.position) : vec3.fromValues(0, 0, 0);
     const positionRandomness = options.positionRandomness !== undefined ? this._get3DData(options.positionRandomness) : [0, 0, 0];
     const velocity = options.velocity !== undefined ? vec3.clone(options.velocity) : vec3.fromValues(0, 0, 0);
@@ -512,6 +471,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     let size = options.size !== undefined ? options.size : 1;
     const sizeRandomness = options.sizeRandomness !== undefined ? options.sizeRandomness : 0;
     const smoothPosition = options.smoothPosition !== undefined ? options.smoothPosition : false;
+    const startTimeRandomness = options.startTimeRandomness !== undefined ? options.startTimeRandomness : 0;
 
     const acceleration = options.acceleration !== undefined ? this._get3DData(options.acceleration) : [0, 0, 0];
     const accelerationRandomness = options.accelerationRandomness !== undefined ? this._get3DData(options.accelerationRandomness) : [0, 0, 0];
@@ -523,7 +483,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     if (this.DPR !== undefined) size *= this.DPR;
 
-    const i = this._cursor;
     let x = position[0] + (this._getRandom() * positionRandomness[0]);
     let y = position[1] + (this._getRandom() * positionRandomness[1]);
     let z = position[2] + (this._getRandom() * positionRandomness[2]);
@@ -545,18 +504,20 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     color[0] = this._clamp(color[0] + this._getRandom() * colorRandomness, 0, 1);
     color[1] = this._clamp(color[1] + this._getRandom() * colorRandomness, 0, 1);
     color[2] = this._clamp(color[2] + this._getRandom() * colorRandomness, 0, 1);
-    size += this._getRandom() * sizeRandomness * size * 2
+    size = Math.max(size + (this._getRandom() * sizeRandomness * size * 2), 0);
     const lifeTime = [lifetime + this._getRandom() * lifetime];
-    const time = [this._time + (this._getRandom() + 0.5) * 0.1];
     const sa = [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2];
     const rr = [rotateRate + this._getRandom() * rotateRateRandomness]
     const particleAlpha = this._clamp(alpha + this._getRandom() * alphaRandomness, 0, 1)
+    const startTime = [Math.random() * startTimeRandomness];
 
     for (let j = 0; j < 4; j++) {
       const k = i * 4 + j;
 
       // this.geometry.setValue('POSITIONSTART', k, [_x, _y, z]);
       this.geometry.setValue('POSITIONSTART', k, [x, y, z]);
+
+      this.geometry.setValue('STARTTIME', k, startTime);
 
       this.geometry.setValue('VELOCITY', k, [velX, velY, velZ]);
 
@@ -567,8 +528,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       this.geometry.setValue('SIZE', k, [size]);
       this.geometry.setValue('LIFETIME', k, lifeTime);
 
-      this.geometry.setValue('STARTTIME', k, time);
-
       this.geometry.setValue('STARTANGLE', k, sa);
       this.geometry.setValue('ROTATERATE', k, rr);
       this.geometry.setValue('SCALEFACTOR', k, [scaleFactor]);
@@ -577,16 +536,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
       this._setUvs(i, j, k);
     }
-
-
-    // 移动指针
-    this._cursor++;
-    if (this._cursor >= this.maxCount) {
-
-      this._cursor = 0;
-
-    }
-
   }
 
   /**
@@ -648,28 +597,13 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   }
 
   /**
-   * 创建随机数数组
-   * @param {number} count 随机数个数
-   * @private
-   */
-  _creatRandom(count) {
-
-    for (let i = 0; i < count; i++) {
-
-      this._rand.push(Math.random() - 0.5);
-
-    }
-
-  }
-
-  /**
    * 获取随机数
    * @returns {number}
    * @private
    */
   _getRandom() {
 
-    return ++this._randomIndex >= this._rand.length ? this._rand[this._randomIndex = 1] : this._rand[this._randomIndex];
+    return Math.random() - 0.5;
 
   }
 
@@ -702,6 +636,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         
         uniform float uTime;
         uniform float uOnce;
+        uniform float uActive;
         uniform mat4 matModelViewProjection;
         uniform mat4 matModelView;
         uniform mat4 matViewInverse;
@@ -731,12 +666,25 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           v_uv = uv.xy;
           v_alpha = alpha;
           
-          float realDeltaTime = uTime - startTime;
+          // float deltaTime = max(mod(uTime, lifeTime), 0.0);
+          // 真实的生命周期
+          float life = lifeTime + startTime;
+          // 当前已过去的时间
+          float deltaTime = max(mod(uTime, life) - startTime, 0.0);
 
-          float deltaTime = max(mod(realDeltaTime, lifeTime), 0.0);
+          bool isDying = false;
 
-          if (uOnce == 1.0 && realDeltaTime > lifeTime) {
-            deltaTime = lifeTime;
+          if (uOnce == 1.0 || uActive == 0.0) {
+            isDying = true;
+          }
+
+          if ((isDying && uTime > life)) {
+            deltaTime = life;
+          }
+
+          // 没出生就代表死亡，否则没出生就显示了
+          if (deltaTime == 0.0) {
+            deltaTime = life;
           }
 
           lifeLeft = 1.0 - deltaTime / lifeTime;
@@ -778,7 +726,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         vec3 localPosition = vec3(basisX * rotatedPoint.x + 
                     basisZ * rotatedPoint.y) * scale + position;
 
-        gl_Position = matProjection * matView * vec4(localPosition, 1.);
+        gl_Position = matProjection * matView * vec4(localPosition + matWorld[3].xyz, 1.);
       `
       ,
       rotation3dShader: `

@@ -36,6 +36,7 @@ const spriteSheet = [
 
 // 创建节点
 const node = rootNode.createChild("particle");
+node.position = [2, 5, 0];
 // 给节点绑定粒子发射器组件
 const particleComp1 = node.createAbility(AGPUParticleSystem);
 // 粒子发射参数
@@ -59,6 +60,7 @@ const options = {
 
   accelerationRandomness: [0, 2, 0],
   alpha: 1,
+  startTimeRandomness: 5,
   alphaRandomness: 0,
   color: [1, 1, 1],
   defaultStart: true,
@@ -71,7 +73,7 @@ const options = {
   lifetime: 4,
   maskTexture: null,
   position: [0, 1, 0],
-  positionRandomness: [20, 20, 0],
+  positionRandomness: [10, 10, 0],
   rotateRate: 3,
   rotateRateRandomness: 2,
   scaleFactor: 1,
@@ -90,9 +92,8 @@ const options = {
 };
 // 粒子发射器环境参数
 const config = {
-  once: true,
-  maxCount: 1000,
-  spawnCount: 100,
+  // once: true,
+  maxCount: 100,
   spriteSheet,
   // is2d: false,
   options: options
@@ -117,6 +118,17 @@ resourceLoader.batchLoad(textureRes, (err, res) => {
     particleComp1.initialize({ ...{ texture: texture1 }, ...config });
     // 开始发射粒子
     particleComp1.start();
+
+    // 2秒后死亡
+    setTimeout(()=> {
+      particleComp1.stop();
+    }, 2000);
+
+    // 10秒后再生
+    setTimeout(()=> {
+      particleComp1.start();
+    }, 10000);
+
     // 启动引擎
     engine.run();
   }
