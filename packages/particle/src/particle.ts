@@ -20,7 +20,6 @@ import { vec3 } from '@alipay/o3-math';
 export class AGPUParticleSystem extends AGeometryRenderer {
   private _time: number;
   private _isInit: boolean;
-  private _material: any;
   public DPR: number;
   public maxCount: number;
   public options: {};
