@@ -54,9 +54,9 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   /**
    * 粒子发射参数
    * @typedef {Object} ParticleParam
-   * @property {Array/Vec3} position 位置，默认[0, 0, 0]
-   * @property {Array/Vec3} velocity 速度，默认[0, 0, 0]
-   * @property {Array/Vec3} acceleration 加速度，默认[0, 0, 0]
+   * @property {Array/vec3} position 位置，默认[0, 0, 0]
+   * @property {Array/vec3} velocity 速度，默认[0, 0, 0]
+   * @property {Array/vec3} acceleration 加速度，默认[0, 0, 0]
    * @property {Array/number} color  颜色，默认[1, 1, 1]，范围 0 ~ 1
    * @property {number} size  大小，默认 10，范围  >0
    * @property {number} startAngle  初始旋转角度，默认0，范围 0 ~ 2*PI
@@ -572,23 +572,23 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     if (particleTex) {
       const width = particleTex.image.width;
       const height = particleTex.image.height;
-  
+
       if (spriteSheet) {
-  
+
         const { x, y, w, h } = spriteSheet[i % spriteSheet.length];
-  
+
         const u = x / width;
         const v = y / height;
         const p = u + w / width;
         const q = v + h / height;
-  
+
         rects = [
           [u, q, h / w], // left bottom
           [p, q, h / w], // right bottom
           [p, v, h / w], // right top
           [u, v, h / w], // left top
         ]
-  
+
       }
       else {
         rects = [
@@ -598,7 +598,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           [0, 1, height / width]
         ]
       }
-      
+
     } else {
       rects = [
         [0, 0, 1],
@@ -608,7 +608,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       ]
     }
     this.geometry.setValue('UV', k, rects[j]);
-    this.geometry.setValue('NORMALIZED_UV', k, normalizedRects[j]); 
+    this.geometry.setValue('NORMALIZED_UV', k, normalizedRects[j]);
   }
 
   /**
@@ -851,7 +851,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         vertexShader += shader.sizeVertexShader;
 
       }
-      
+
 
       if (this.rotateToVelocity) {
 
