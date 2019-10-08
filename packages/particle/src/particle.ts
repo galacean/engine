@@ -44,7 +44,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param {Node} node 节点对象
    */
   constructor(node) {
-
     super(node);
     this._time = 0; // 渲染时间，单位秒
     this._isInit = false; // 是否完成初始化
@@ -719,11 +718,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           scale *= lifeLeft;
       `,
       rotateToVelocityVertexShader:
-        // TODO：此feature待开发
         `
-        // vec4 vWorld = matModelView * vec4( velocity + acceleration * deltaTime, 0.0 );
-        // vec2 v2 = normalize(vWorld.xy);
-        // vTextureMat = mat2(v2.x, v2.y, -v2.y, v2.x);
+        vec3 v = velocity + acceleration * deltaTime;
+        float angle = atan(v.z, v.x) * 2.0;
+        float s = sin(angle);
+        float c = cos(angle);
       `,
       rotationVertexShader:
         `
@@ -862,15 +861,17 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
         vertexShader += shader.rotationVertexShader;
 
-       // 2D 和 3D 的旋转算法不同
-        if (this.is2d) {
-          vertexShader += shader.rotation2dShader;
-        }
-        else {
-          vertexShader += shader.rotation3dShader;
-        }
       }
-      vertexShader += this.rotateToVelocity ? (shader.postionShader + '}') : '}';
+
+      // 2D 和 3D 的旋转算法不同
+      if (this.is2d) {
+        vertexShader += shader.rotation2dShader;
+      }
+      else {
+        vertexShader += shader.rotation3dShader;
+      }
+
+      vertexShader += '}';
 
     }
     return vertexShader;
