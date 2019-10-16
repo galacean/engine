@@ -35,6 +35,7 @@ import '@alipay/o3-shadow';
 export * from '@alipay/o3-skybox';
 export * from '@alipay/o3-trail';
 export * from '@alipay/o3-tween';
+export * from '@alipay/o3-env-probe';
 
 import { PBRMaterial } from '@alipay/o3-pbr';
 import { TextureMaterial, TransparentMaterial } from '@alipay/o3-mobile-material';
