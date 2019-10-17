@@ -19,10 +19,10 @@ export class Sprite {
   /**
    * 纹理区域
    * @typedef {Object} Rect
-   * @param {float} x 横向偏移量
-   * @param {float} y 纵向偏移量
-   * @param {float} width   宽度
-   * @param {float} height  高度
+   * @param {number} x 横向偏移量
+   * @param {number} y 纵向偏移量
+   * @param {number} width   宽度
+   * @param {number} height  高度
    */
 
   /**
