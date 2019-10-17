@@ -42,7 +42,7 @@
     "post-changelog": "node scripts/post-changelog.js",
     "fix-memory-limit": "cross-env LIMIT=8192 increase-memory-limit",
     "otp:release": "node scripts/release/index.js",
-    "release:canary": "lerna publish prerelease --dist-tag alpha --yes --otp x"
+    "release:canary": "lerna publish prerelease --dist-tag alpha --yes"
   },
   "files": [
     "src",
