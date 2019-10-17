@@ -61,12 +61,7 @@ export class ASpriteRenderer extends NodeAbility {
 
   }
 
-  private setTexture (texture) {
-    // TODO：临时兼容Resource
-    if (texture.asset) {
-      texture = texture.asset;
-    }
-
+  protected setTexture (texture) {
     return texture;
   }
 
