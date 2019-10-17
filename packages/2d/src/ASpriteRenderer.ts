@@ -8,7 +8,7 @@ import {Sprite} from './Sprite';
  */
 export class ASpriteRenderer extends NodeAbility {
 
-  private _sprite;
+  protected _sprite;
 
   private _positionQuad;
 
