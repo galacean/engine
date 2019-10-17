@@ -6,11 +6,11 @@ export class SpriteRenderer extends ASpriteRenderer {
       const json = JSON.parse(v);
       this._sprite.spriteRect = json;
     } catch (error) {
-      
+
     }
   }
 
-  private setTexture (texture) {
+  protected setTexture (texture) {
     // TODO：临时兼容Resource
     if (texture.asset) {
       texture = texture.asset;
