@@ -10,7 +10,7 @@ export class SpriteRenderer extends ASpriteRenderer {
     }
   }
 
-  private setTexture (texture) {
+  protected setTexture (texture) {
     // TODO：临时兼容Resource
     if (texture.asset) {
       texture = texture.asset;
