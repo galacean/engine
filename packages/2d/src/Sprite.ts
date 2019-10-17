@@ -11,11 +11,11 @@ export class Sprite {
 
   private _rect;
 
-  private _anchor;
+  private _anchor = [0.5, 0.5];
 
   private _uvRect;
 
-  private _worldSize;
+  private _worldSize = [];
   /**
    * 纹理区域
    * @typedef {Object} Rect
@@ -32,13 +32,44 @@ export class Sprite {
    * @param {vec2} anchor 锚点设置
    */
   constructor(texture, rect?, anchor?) {
+    this.setTexture(texture);
+    this.setRect(rect);
+    this.setAnchor(anchor);
+    this.setUvRect();
+    this.setWorldSize();
+  }
 
-    this._texture = texture;
-    this._rect = rect || { x: 0, y: 0, width: texture.image.width, height: texture.image.height };
+  setTexture (texture) {
+    if (texture) {
+      this._texture = texture;
+    }
+  }
+
+  setRect (rect?) {
+    this._rect = rect || {
+      x: 0,
+      y: 0,
+      width: this._texture ? this._texture.image.width : 0 ,
+      height: this._texture ? this._texture.image.height : 0
+    };
+  }
+
+  setAnchor (anchor) {
     this._anchor = anchor || [0.5, 0.5];
+  }
 
-    const w = this._texture.image ? this._texture.image.width : this._rect.width;
-    const h = this._texture.image ? this._texture.image.height : this._rect.height;
+  setUvRect () {
+    let w, h;
+
+    if (this._texture) {
+      w = this._texture.image.width;
+      h = this._texture.image.height;
+    }
+    else {
+      w = this._rect.width;
+      h = this._rect.height;
+    }
+
 
     this._uvRect = {
       u: this._rect.x / w,
@@ -46,9 +77,10 @@ export class Sprite {
       width: this._rect.width / w,
       height: this._rect.height / h,
     };
+  }
 
+  setWorldSize () {
     this._worldSize = [this._rect.width / 100, this._rect.height / 100];
-
   }
 
   /**
@@ -59,6 +91,14 @@ export class Sprite {
   get spriteRect() {
 
     return this._rect;
+
+  }
+
+  set spriteRect(v) {
+
+    this.setRect(v);
+    this.setUvRect();
+    this.setWorldSize();
 
   }
 
@@ -84,6 +124,15 @@ export class Sprite {
 
   }
 
+  set texture (v) {
+
+    this.setTexture(v);
+    this.setRect(this._rect);
+    this.setUvRect();
+    this.setWorldSize();
+
+  }
+
   /**
    * 锚点位置
    * @member {vec2}
@@ -92,6 +141,12 @@ export class Sprite {
   get anchor() {
 
     return this._anchor;
+
+  }
+
+  set anchor (v) {
+
+    this.setTexture(v);
 
   }
 
