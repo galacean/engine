@@ -127,7 +127,7 @@ export class Sprite {
   set texture (v) {
 
     this.setTexture(v);
-    this.setRect(this._rect);
+    this.setRect();
     this.setUvRect();
     this.setWorldSize();
 
