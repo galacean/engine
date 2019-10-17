@@ -29,7 +29,7 @@ export class Sprite {
    * 构造函数
    * @param {Texture2D} texture 纹理对象
    * @param {Rect} rect 在纹理上面的像素区域
-   * @param {vec2} anchor 锚点设置
+   * @param {[number, number]} anchor 锚点设置
    */
   constructor(texture, rect?, anchor?) {
     this.setTexture(texture);
