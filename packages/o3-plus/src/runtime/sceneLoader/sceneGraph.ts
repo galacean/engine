@@ -44,7 +44,7 @@ export function createNode(engine: r3.Engine, config: NodeConfig) {
     config.rotation[1],
     config.rotation[2]
   );
-  node.isActive = config.isActive || true;
+  node.isActive = config.isActive;
   node.scale = config.scale || [1, 1, 1];
   nodeCache[config.id] = node;
   return config;
