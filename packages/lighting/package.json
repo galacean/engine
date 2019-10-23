@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-lighting",
-  "version": "1.0.1-alpha.8",
+  "version": "1.0.1-alpha.9",
   "description": "Direct light && Ambient light && Point light && Spot light",
   "keywords": [
     "Oasis3D",
