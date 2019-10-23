@@ -1,6 +1,10 @@
 {
   "name": "@alipay/o3-engine-stats",
+<<<<<<< Updated upstream
   "version": "1.0.1-alpha.7",
+=======
+  "version": "1.0.1-alpha.9",
+>>>>>>> Stashed changes
   "description": "Oasis3D engines extension: show engine stats",
   "keywords": [
     "Oasis3D",

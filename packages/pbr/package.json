@@ -1,6 +1,10 @@
 {
   "name": "@alipay/o3-pbr",
+<<<<<<< Updated upstream
   "version": "1.0.1-alpha.8",
+=======
+  "version": "1.0.1-alpha.10",
+>>>>>>> Stashed changes
   "description": "PBR material",
   "repository": {
     "type": "git",

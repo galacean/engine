@@ -1,6 +1,10 @@
 {
   "name": "@alipay/o3-trail",
+<<<<<<< Updated upstream
   "version": "1.0.1-alpha.6",
+=======
+  "version": "1.0.1-alpha.8",
+>>>>>>> Stashed changes
   "description": "trail module",
   "keywords": [
     "Oasis3D"
