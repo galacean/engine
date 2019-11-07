@@ -24,6 +24,7 @@
     "@alipay/o3-collider": "^1.0.1-alpha.6",
     "@alipay/o3-collision": "^1.0.1-alpha.6",
     "@alipay/o3-core": "^1.0.1-alpha.8",
+    "@alipay/o3-decal": "^1.0.0",
     "@alipay/o3-default-camera": "^1.0.1-alpha.9",
     "@alipay/o3-engine-stats": "^1.0.1-alpha.7",
     "@alipay/o3-env-probe": "^1.0.1-alpha.4",
