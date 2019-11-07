@@ -1,4 +1,4 @@
-import { raycast } from './cast.js';
+import { raycast } from './cast';
 import { AMeshRenderer } from '@alipay/o3-mesh';
 
 type RendererArray = Array<AMeshRenderer>;
@@ -6,6 +6,9 @@ type RendererArray = Array<AMeshRenderer>;
 export class Caster {
   public rendererGroup: RendererArray;
   public ray;
+  public constructor() {
+    this.rendererGroup = [];
+  }
 
   setRay(ray) {
     this.ray = ray;

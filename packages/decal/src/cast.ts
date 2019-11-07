@@ -13,7 +13,7 @@ const _intersectPointWorld = vec3.create();
 export function raycast(meshRenderer, ray) {
   const intersects = [];
   const invModelMatrix = meshRenderer.invModelMatrix;
-  const localRay = new Ray(null, null);
+  const localRay = new Ray(undefined, undefined);
   localRay.copy(ray).applyMatrix4(invModelMatrix);
   let primitive;
   if (meshRenderer.mesh) {

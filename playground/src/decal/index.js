@@ -19,15 +19,15 @@ let intersectNode;
 let decalMtl;
 let moved = false;
 
-const canvas = document.getElementById('world');
+const canvas = document.getElementById('o3-demo');
 const world = new World(canvas);
 world.camera.createAbility(AOrbitControls, { canvas });
-world.camera.position = [0, 0, 100];
+world.camera.position = [0, 0, 3];
 world.camera.lookAt([0, 0, 0], [0, 1, 0]);
 
 const mouseHelper = world.createChild('mouseHelper');
 const renderer = mouseHelper.createAbility(AGeometryRenderer);
-renderer.geometry = new CuboidGeometry(1, 1, 10);
+renderer.geometry = new CuboidGeometry(0.05, 0.05, 0.5);
 const mtl = new LambertMaterial('mouseHelper_mtl', false); 
 mtl.diffuse = [1, 0, 0, 1];
 renderer.setMaterial(mtl);
@@ -41,10 +41,9 @@ const caster = new Caster();
 const loader = new AssetsLoader();
 loader.addAsset('model', {
   type: 'gltf',
-  // url: 'https://gw.alipayobjects.com/os/loanprod/ebf98a79-9d49-4fa9-8b6e-2f29fc4255d2/5d763a1ef807291669cc70bd/69d608a2f253cec0b13447886a0ba123.gltf',
+  url: 'https://gw.alipayobjects.com/os/loanprod/ebf98a79-9d49-4fa9-8b6e-2f29fc4255d2/5d763a1ef807291669cc70bd/69d608a2f253cec0b13447886a0ba123.gltf',
   // url: 'https://gw.alipayobjects.com/os/loanprod/4e270abd-1d3d-4c7b-afea-31068083d5fa/5dad69c7bdf825066f54cb52/67dc763d0152ddfa0ba3c4f89cbf6a83.gltf',
-  // url: 'https://gw.alipayobjects.com/os/loanprod/c578426b-41ae-4315-b898-3ce04e0f538f/5dad69c7bdf825066f54cb52/148ac663a1cbaf88b2607f6469223c69.gltf'
-  url: 'https://gw.alipayobjects.com/os/loanprod/b29ee1bf-c8e8-42f5-bb88-30c43fd63b67/5dad69c7bdf825066f54cb52/382105b38b3c1ac62a60dedc13008d7c.gltf',
+  // url: 'https://gw.alipayobjects.com/os/loanprod/b29ee1bf-c8e8-42f5-bb88-30c43fd63b67/5dad69c7bdf825066f54cb52/382105b38b3c1ac62a60dedc13008d7c.gltf',
 });
 
 loader.addAsset('decal_texture', {
@@ -87,13 +86,11 @@ function addLight() {
 }
 
 function rayCastEvent(model) {
-  document.getElementById('world').addEventListener('mousemove', (e) => {
+  document.getElementById('o3-demo').addEventListener('mousemove', (e) => {
     const ray = world.cameraAb.screenPointToRay(e.clientX, e.clientY);
     caster.setRay(ray);
 
-    const intersection = caster.intersect([
-      model.children[0].abilityArray[0],
-    ]);
+    const intersection = caster.intersect(model);
 
     let mostCloseIntersection;
     if (intersection.length > 0) {
@@ -128,13 +125,13 @@ function rayCastEvent(model) {
 }
 
 function addGeometryEvent() {
-  document.getElementById('world').addEventListener('mousemove', () => {
+  document.getElementById('o3-demo').addEventListener('mousemove', () => {
     moved = true;
   });
-  document.getElementById('world').addEventListener('mousedown', () => {
+  document.getElementById('o3-demo').addEventListener('mousedown', () => {
     moved = false;
   });
-  document.getElementById('world').addEventListener('mouseup', (e) => {
+  document.getElementById('o3-demo').addEventListener('mouseup', (e) => {
     const orientation = mouseHelper.rotation;
     if (point && normal && !moved) {
       const decal = world.createChild('decal');
@@ -143,7 +140,7 @@ function addGeometryEvent() {
         intersectNode, 
         point,
         orientation,
-        [10, 10, 10],
+        [0.2, 0.2, 0.2],
       );
       renderer.setMaterial(decalMtl);
     }
