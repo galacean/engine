@@ -148,7 +148,7 @@ export class DecalGeometry extends BufferGeometry {
 
     const normal = transformDirection(temp3, normalInput, targetMatrix);
 
-		decalVertices.push(new DecalVertex(vertex, normal);
+		decalVertices.push(new DecalVertex(vertex, normal));
   }
 
   clipGeometry(inVertices, plane) {
