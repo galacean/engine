@@ -7,11 +7,13 @@ import { AGeometryRenderer } from '@alipay/o3-geometry';
 import { CuboidGeometry, CylinderGeometry } from '@alipay/o3-geometry-shape';
 import { LambertMaterial } from '@alipay/o3-mobile-material';
 import { Texture2D } from '@alipay/o3-material';
+import { Node } from '@alipay/o3-core';
 import {
   DecalGeometry,
   DecalMaterial,
   Caster,
   transformDirection,
+  getBoundingBoxByGLTF,
 } from '@alipay/o3-decal';
 
 
@@ -59,13 +61,17 @@ loader.load().then((res) => {
   // const texture = res[1].asset;
   const model = gltf.asset.rootScene.nodes[0];
   console.log(model);
+  const box = getBoundingBoxByGLTF(model);
+  console.log(box);
+  const center = box.center;
+  model.position = [-center[0], -center[1], -center[2]];
   decalMtl = new DecalMaterial('decal_mtl');
   const textCanvas = createText();
   const texture = new Texture2D('text', textCanvas);
-  console.log(texture);
   decalMtl.texture = texture;
   addShip(model);
   addLight();
+  initUI();
   rayCastEvent(model);
   addGeometryEvent(model);
   world.start();
@@ -92,7 +98,6 @@ function addLight() {
 }
 
 function rayCastEvent(model) {
-  console.log(model);
   caster.setTarget(model);
   document.getElementById('o3-demo').addEventListener('mousemove', () => {
     moved = true;
@@ -171,3 +176,10 @@ function createText() {
   ctx.fillText("Oasis贴花", 10, 100);
   return c;
 }
+
+function initUI () {
+  const addBtn = document.createElement('div');
+  addBtn.innerHTML = '添加贴花';
+  document.body.appendChild(addBtn);
+}
+

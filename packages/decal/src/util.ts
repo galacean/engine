@@ -1,4 +1,5 @@
 import { vec3, mat4 } from '@alipay/o3-math';
+import { AMeshRenderer } from '@alipay/o3-mesh';
 
 export function transformDirection(out, a, m) {
   const x = a[0];
@@ -101,4 +102,53 @@ function compose(position, quaternion, scale) {
   te[ 15 ] = 1;
 
   return te;
+}
+
+export function getBoundingBoxByGLTF(node) {
+  const rendererGroup = [];
+  const maxGroup = [];
+  const minGroup = [];
+  getAllMeshRender(node, rendererGroup);
+  for (let i = 0; i < rendererGroup.length; i += 1) {
+    const primitives = rendererGroup[i].mesh.primitives;
+    for (let j = 0; j < primitives.length; j += 1) {
+      const boundingBoxMax = primitives[j].boundingBoxMax;
+      const boundingBoxMin = primitives[j].boundingBoxMin;
+      maxGroup.push(boundingBoxMax);
+      minGroup.push(boundingBoxMin);
+    }
+  }
+  const maxX = maxGroup.sort((a, b) => b[0] - a[0])[0][0];
+  const maxY = maxGroup.sort((a, b) => b[1] - a[1])[0][1];
+  const maxZ = maxGroup.sort((a, b) => a[2] - b[2])[0][2];
+  const minX = minGroup.sort((a, b) => a[0] - b[0])[0][0];
+  const minY = minGroup.sort((a, b) => a[1] - b[1])[0][1];
+  const minZ = minGroup.sort((a, b) => b[1] - a[2])[0][2];
+  const center = [
+    (maxX + minX) / 2,
+    (maxY + minY) / 2,
+    (maxZ + minZ) / 2,
+  ];
+  const size = Math.max(
+    Math.abs(maxX - minX),
+    Math.abs(maxY - minY),
+    Math.abs(maxZ - minZ),
+  );
+  return {
+    boundingBoxMax: [maxX, maxY, maxZ],
+    boundingBoxMin: [minX, minY, minZ],
+    center,
+    size,
+  }
+}
+
+function getAllMeshRender(node, rendererGroup) {
+  if (node.abilityArray.length > 0 && node.abilityArray[0] instanceof AMeshRenderer) {
+    rendererGroup.push(node.abilityArray[0]);
+  }
+  if (node.children.length > 0) {
+    for (let i = 0; i < node.children.length; i += 1) {
+      getAllMeshRender(node.children[i], rendererGroup);
+    }
+  }
 }
