@@ -26,13 +26,14 @@ export class DecalGeometry extends BufferGeometry {
   public constructor(node: Node, position: FloatArray, orientation: FloatArray, size: FloatArray) {
     super();
     this.node = node;
-    const meshRenderer = node.abilityArray[0]
+    console.log(node);
+    const meshRenderer = node.abilityArray[0];
     if (meshRenderer instanceof AMeshRenderer) {
       this.targetMesh = meshRenderer.mesh;
     } else {
       console.error('必须是mesh');
     }
-    this.targetPrimitive = this.targetMesh.primitives[0];
+    this.targetPrimitive = this.node.primitive;
     this.position = position;
     this.orientation = orientation;
     this.size = size;
@@ -62,10 +63,15 @@ export class DecalGeometry extends BufferGeometry {
     let decalVertices = [];
     const primitive = this.targetPrimitive;
     const positionAttributeIndex = primitive.vertexAttributes.POSITION.vertexBufferIndex;
-    const normalAttributeIndex = primitive.vertexAttributes.NORMAL.vertexBufferIndex;
-
     const positionAttribute = primitive.vertexBuffers[positionAttributeIndex];
-    const normalAttribute = primitive.vertexBuffers[normalAttributeIndex];
+
+    let normalAttributeIndex;
+    let normalAttribute;
+    if (primitive.vertexAttributes.NORMAL) {
+      normalAttributeIndex = primitive.vertexAttributes.NORMAL.vertexBufferIndex;
+      normalAttribute = primitive.vertexBuffers[normalAttributeIndex];
+    }
+
     const index = primitive.indexBuffer;
     const count = primitive.indexBuffer.length;
 
@@ -77,7 +83,10 @@ export class DecalGeometry extends BufferGeometry {
     let normal;
     for (let i = 0; i < count; i += 1) {
       const vertex = fromBufferAttribute(positionAttribute, index[i]);
-      const normal = fromBufferAttribute(normalAttribute, index[i]);
+      let normal;
+      if (normalAttribute) {
+        normal = fromBufferAttribute(normalAttribute, index[i]);
+      }
 
       this.pushDecalVertex(decalVertices, vertex, normal);
     }
@@ -96,10 +105,11 @@ export class DecalGeometry extends BufferGeometry {
       let decalVertex = decalVertices[i];
 
       // create texture coordinates (we are still in projector space)
-			const uv = [
-				0.5 + ( decalVertex.position[0] / size[0] ),
-				0.5 + ( decalVertex.position[1] / size[1] ),
-      ];
+      // 旋转180度
+      const uvx = 0.5 + ( decalVertex.position[0] / size[0] );
+      const uvy = 0.5 + ( decalVertex.position[1] / size[1] );
+
+			const uv = [uvx, 1 - uvy];
 
       // transform the vertex back to world space
       const projectorMatrix = this.projectorMatrix;
@@ -112,7 +122,7 @@ export class DecalGeometry extends BufferGeometry {
 			const position = [
         decalVertex.position[0],
         decalVertex.position[1], 
-        decalVertex.position[2]
+        decalVertex.position[2],
       ];
 			const normal = [
         decalVertex.normal[0],
@@ -146,7 +156,12 @@ export class DecalGeometry extends BufferGeometry {
     const local = vec3.transformMat4(temp1, vertexInput, targetMatrix);
 		const vertex = vec3.transformMat4(temp2, local, projectorMatrixInverse);
 
-    const normal = transformDirection(temp3, normalInput, targetMatrix);
+    let normal;
+    if (normalInput) {
+      normal = transformDirection(temp3, normalInput, targetMatrix);
+    } else {
+      normal = [0, 0, 0];
+    }
 
 		decalVertices.push(new DecalVertex(vertex, normal));
   }
@@ -301,7 +316,9 @@ export class DecalGeometry extends BufferGeometry {
 
 
 class DecalVertex {
-  constructor(position, normal) {
+  public position;
+  public normal;
+  public constructor(position, normal = [0, 0, 0]) {
     this.position = position;
     this.normal = normal;
   }

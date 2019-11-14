@@ -10,15 +10,18 @@ export class Caster {
     this.rendererGroup = [];
   }
 
+  setTarget(node) {
+    this.getAllMeshRender(node);
+  }
+
   setRay(ray) {
     this.ray = ray;
   }
 
-  intersect(node) {
+  intersect() {
     if (!this.ray) {
       console.error('需要设置射线');
     }
-    this.getAllMeshRender(node);
     const group = this.rendererGroup;
     let intersection = [];
     for (let i = 0; i < group.length; i += 1) {
