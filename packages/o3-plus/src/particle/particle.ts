@@ -29,7 +29,7 @@ export class Particle extends AGPUParticleSystem {
       scaleFactor: props.__scaleFactor,
       alpha: props.__alpha,
       alphaRandomness: props.__alphaRandomness,
-      startTimeRandomness: props.__startTimeRandomness,
+      startTimeRandomness: props.__startTimeRandomness
     };
     // 粒子发射器环境参数
     this._config = {
@@ -46,29 +46,27 @@ export class Particle extends AGPUParticleSystem {
       options: this._options
     };
     if (props.__spriteSheet) {
-      if (typeof props.__spriteSheet === 'object' && props.__spriteSheet.length) {
+      if (typeof props.__spriteSheet === "object" && props.__spriteSheet.length) {
         this._config.spriteSheet = props.__spriteSheet;
-      } else if (typeof props.__spriteSheet === 'string') {
+      } else if (typeof props.__spriteSheet === "string") {
         try {
           const spriteSheet = JSON.parse(props.__spriteSheet);
           if (spriteSheet.length) {
             this._config.spriteSheet = spriteSheet;
           }
-        } catch (e) {
-        }
+        } catch (e) {}
       }
     }
     if (props.__positionArray) {
-      if (typeof props.__positionArray === 'object' && props.__positionArray.length) {
+      if (typeof props.__positionArray === "object" && props.__positionArray.length) {
         this._options.positionArray = props.__positionArray;
-      } else if (typeof props.__positionArray === 'string') {
+      } else if (typeof props.__positionArray === "string") {
         try {
           const positionArray = JSON.parse(props.__positionArray);
           if (positionArray.length) {
             this._options.positionArray = positionArray;
           }
-        } catch (e) {
-        }
+        } catch (e) {}
       }
     }
     if (props.__separate) {
@@ -176,33 +174,33 @@ export class Particle extends AGPUParticleSystem {
   }
 
   set __alpha(value) {
-    this.updateOption('alpha', value);
+    this.updateOption("alpha", value);
   }
-    
+
   set __alphaRandomness(value) {
-    this.updateOption('alphaRandomness', value);
+    this.updateOption("alphaRandomness", value);
   }
 
   set __startTimeRandomness(value) {
-    this.updateOption('startTimeRandomness', value);
+    this.updateOption("startTimeRandomness", value);
   }
 
   set __positionArray(value) {
-    if (typeof value === 'object' && value.length) {
-      this.updateOption('positionArray', value);
-    } else if (typeof value === 'string') {
+    if (typeof value === "object" && value.length) {
+      this.updateOption("positionArray", value);
+    } else if (typeof value === "string") {
       try {
         const positionArray = JSON.parse(value);
         if (positionArray.length) {
-          this.updateOption('positionArray', positionArray);
+          this.updateOption("positionArray", positionArray);
         } else {
-          this.updateOption('positionArray', null);
+          this.updateOption("positionArray", null);
         }
       } catch (e) {
-        this.updateOption('positionArray', null);
+        this.updateOption("positionArray", null);
       }
     } else {
-      this.updateOption('positionArray', null);
+      this.updateOption("positionArray", null);
     }
   }
 
@@ -239,26 +237,26 @@ export class Particle extends AGPUParticleSystem {
   }
 
   set __spriteSheet(value) {
-    if (typeof value === 'object' && value.length) {
-      this.updateConfig('spriteSheet', value);
-    } else if (typeof value === 'string') {
+    if (typeof value === "object" && value.length) {
+      this.updateConfig("spriteSheet", value);
+    } else if (typeof value === "string") {
       try {
         const spriteSheet = JSON.parse(value);
         if (spriteSheet.length) {
-          this.updateConfig('spriteSheet', spriteSheet);
+          this.updateConfig("spriteSheet", spriteSheet);
         } else {
-          this.updateConfig('spriteSheet', null);
+          this.updateConfig("spriteSheet", null);
         }
       } catch (e) {
-        this.updateConfig('spriteSheet', null);
+        this.updateConfig("spriteSheet", null);
       }
     } else {
-      this.updateConfig('spriteSheet', null);
+      this.updateConfig("spriteSheet", null);
     }
   }
 
   set __is2d(value) {
-    this.updateConfig('is2d', value);
+    this.updateConfig("is2d", value);
   }
   // set __blendFunc01(value) {
   //   this._config.blendFunc[0] = value;

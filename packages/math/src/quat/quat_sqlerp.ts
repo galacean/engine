@@ -1,5 +1,5 @@
-import { slerp } from './quat_slerp';
-import { create } from './quat_create';
+import { slerp } from "./quat_slerp";
+import { create } from "./quat_create";
 
 /**
  * Performs a spherical linear interpolation with two control points
@@ -12,16 +12,15 @@ import { create } from './quat_create';
  * @param {Number} t interpolation amount
  * @returns {quat} out
  */
-export const sqlerp = (function () {
+export const sqlerp = (function() {
   let temp1 = create();
   let temp2 = create();
 
-  return function (out, a, b, c, d, t) {
+  return function(out, a, b, c, d, t) {
     slerp(temp1, a, d, t);
     slerp(temp2, b, c, t);
     slerp(out, temp1, temp2, 2 * t * (1 - t));
 
     return out;
   };
-}());
-
+})();

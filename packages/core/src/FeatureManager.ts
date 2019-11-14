@@ -8,8 +8,7 @@ import { Engine } from "./Engine";
  * @class
  */
 export class FeatureManager<T extends EngineFeature | SceneFeature> {
-
-  private _features: Array<new() => T> = [];
+  private _features: Array<new () => T> = [];
 
   private _objects = [];
 
@@ -17,7 +16,7 @@ export class FeatureManager<T extends EngineFeature | SceneFeature> {
    * 注册一个功能特性
    * @param {SceneFeature|EngineFeature} Feature
    */
-  public registerFeature(IFeature: new() => T): void {
+  public registerFeature(IFeature: new () => T): void {
     const featureArray = this._features;
 
     // -- 按照 type 查找，避免重复添加
@@ -35,7 +34,6 @@ export class FeatureManager<T extends EngineFeature | SceneFeature> {
     for (let i = 0, len = objectArray.length; i < len; i++) {
       objectArray[i].features.push(new IFeature());
     }
-
   }
 
   /**
@@ -43,15 +41,11 @@ export class FeatureManager<T extends EngineFeature | SceneFeature> {
    * @param {Scene|Engine} obj
    */
   public addObject(obj: Scene | Engine): void {
-
     obj.features = [];
     for (let i = 0, len = this._features.length; i < len; i++) {
-
       obj.features.push(new this._features[i]() as any);
-
     }
     this._objects.push(obj);
-
   }
 
   /**
@@ -61,7 +55,6 @@ export class FeatureManager<T extends EngineFeature | SceneFeature> {
    * @param {Array} args
    */
   public callFeatureMethod(obj: Scene | Engine, method: string, args: any[]): void {
-
     const features = obj.features;
     const count = features.length;
 
@@ -71,7 +64,6 @@ export class FeatureManager<T extends EngineFeature | SceneFeature> {
         feature[method].apply(feature, args);
       }
     }
-
   }
 
   /**
@@ -80,13 +72,13 @@ export class FeatureManager<T extends EngineFeature | SceneFeature> {
    * @param {SceneFeature|EngineFeature} feature
    */
 
-  public findFeature(obj: Scene | Engine, IFeature: new() => T): T {
+  public findFeature(obj: Scene | Engine, IFeature: new () => T): T {
     const features = obj.features;
     const count = features.length;
 
     for (let i = 0; i < count; i++) {
       const feature = features[i];
-      if (feature.constructor === IFeature as any) {
+      if (feature.constructor === (IFeature as any)) {
         return feature as any;
       }
     }

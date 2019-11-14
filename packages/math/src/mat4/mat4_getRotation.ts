@@ -18,7 +18,7 @@ export function getRotation(out, mat) {
     out[0] = (mat[6] - mat[9]) / S;
     out[1] = (mat[8] - mat[2]) / S;
     out[2] = (mat[1] - mat[4]) / S;
-  } else if ((mat[0] > mat[5]) && (mat[0] > mat[10])) {
+  } else if (mat[0] > mat[5] && mat[0] > mat[10]) {
     S = Math.sqrt(1.0 + mat[0] - mat[5] - mat[10]) * 2;
     out[3] = (mat[6] - mat[9]) / S;
     out[0] = 0.25 * S;

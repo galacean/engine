@@ -6,42 +6,35 @@ import { ACamera } from "./ACamera";
  * @class
  */
 export abstract class SceneFeature {
-
   /**
    * 场景 Update 之前的回调
    * @param {Scene} scene
    */
-  public preUpdate(scene: Scene): void {
-  }
+  public preUpdate(scene: Scene): void {}
 
   /**
    * 场景 Update 之后的回调
    * @param {Scene} scene
    */
-  public postUpdate(scene: Scene): void {
-  }
+  public postUpdate(scene: Scene): void {}
 
   /**
    * 场景渲染前的回调
    * @param {Scene} scene
    * @param {ACamera} camera
    */
-  public preRender(scene: Scene, camera: ACamera): void {
-  }
+  public preRender(scene: Scene, camera: ACamera): void {}
 
   /**
    * 场景渲染后的回调
    * @param {Scene} scene
    * @param {ACamera} camera
    */
-  public postRender(scene: Scene, camera: ACamera): void {
-  }
+  public postRender(scene: Scene, camera: ACamera): void {}
 
   /**
    * 场景销毁的时候调用
    * @param {Scene} scene
    */
-  public destroy(scene: Scene): void {
-  }
-
+  public destroy(scene: Scene): void {}
 }

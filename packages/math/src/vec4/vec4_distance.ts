@@ -10,5 +10,5 @@ export function distance(a, b) {
   let y = b[1] - a[1];
   let z = b[2] - a[2];
   let w = b[3] - a[3];
-  return Math.sqrt(x*x + y*y + z*z + w*w);
+  return Math.sqrt(x * x + y * y + z * z + w * w);
 }

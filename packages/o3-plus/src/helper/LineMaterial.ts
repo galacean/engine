@@ -1,7 +1,6 @@
 import * as r3 from "@alipay/o3";
 
 export class LineMaterial extends r3.Material {
-
   private _emission = [1.0, 0.0, 0.0, 1.0];
   private _size: number = 1;
   private state = {
@@ -88,7 +87,6 @@ export class LineMaterial extends r3.Material {
    * @private
    */
   private _internalGenerate(name) {
-
     // 顶点着色器
     const VERT_SHADER = `
       uniform mat4 matModelViewProjection;
@@ -115,16 +113,16 @@ export class LineMaterial extends r3.Material {
     const cfg = {
       attributes: {
         a_position: {
-          name: 'a_position',
-          semantic: 'POSITION',
+          name: "a_position",
+          semantic: "POSITION",
           type: r3.DataType.FLOAT_VEC3
-        },
+        }
       },
       uniforms: {
         matModelViewProjection: {
-          name: 'matModelViewProjection',
+          name: "matModelViewProjection",
           semantic: r3.UniformSemantic.MODELVIEWPROJECTION,
-          type: r3.DataType.FLOAT_MAT4,
+          type: r3.DataType.FLOAT_MAT4
         },
         pointSize: {
           name: "u_pointSize",
@@ -135,7 +133,7 @@ export class LineMaterial extends r3.Material {
           name: "u_color",
           semantic: "COLOR",
           type: r3.DataType.FLOAT_VEC4
-        },
+        }
       }
     };
 
@@ -155,6 +153,5 @@ export class LineMaterial extends r3.Material {
       }
     };
     this.technique = tech;
-
   }
 }

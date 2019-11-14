@@ -8,7 +8,9 @@
  * @returns {quat} out
  */
 export function calculateW(out, a) {
-  let x = a[0], y = a[1], z = a[2];
+  let x = a[0],
+    y = a[1],
+    z = a[2];
 
   out[0] = x;
   out[1] = y;

@@ -3,5 +3,5 @@
  * @function
  */
 
-import { length } from './vec2_length';
+import { length } from "./vec2_length";
 export const len = length;

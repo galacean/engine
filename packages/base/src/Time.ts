@@ -1,10 +1,8 @@
-
 /**
  * 计算每帧时间的工具类
  * @class
  */
 export class Time {
-
   private _clock: { now: () => number };
 
   private _timeScale: number;
@@ -19,7 +17,6 @@ export class Time {
    * @constructor
    */
   constructor() {
-
     // 优先使用 performance 进行计时
     this._clock = performance ? performance : Date;
 
@@ -29,7 +26,6 @@ export class Time {
     const now = this._clock.now();
     this._startTime = now;
     this._lastTickTime = now;
-
   }
 
   /**
@@ -37,9 +33,7 @@ export class Time {
    * @readonly
    */
   get nowTime(): number {
-
     return this._clock.now();
-
   }
 
   /**
@@ -47,23 +41,17 @@ export class Time {
    * @readonly
    */
   get deltaTime(): number {
-
     return this._deltaTime;
-
   }
 
   /**
    * Delta Time 的缩放值
    */
   get timeScale(): number {
-
     return this._timeScale;
-
   }
   set timeScale(s) {
-
     this._timeScale = s;
-
   }
 
   /**
@@ -71,29 +59,22 @@ export class Time {
    * @readonly
    */
   get unscaledDeltaTime(): number {
-
     return this._deltaTime / this._timeScale;
-
   }
 
   /**
    * 时钟初始化之后，经历的时间
    */
   get timeSinceStartup(): number {
-
     return this.nowTime - this._startTime;
-
   }
 
   /**
    * 每帧调用，更新 Delta Time 等内部数据
    */
   public tick(): void {
-
     const now = this.nowTime;
     this._deltaTime = (now - this._lastTickTime) * this._timeScale;
     this._lastTickTime = now;
-
   }
-
 }

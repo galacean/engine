@@ -1,7 +1,7 @@
-import {ACamera} from '@alipay/o3-core';
-import {ClearMode} from '@alipay/o3-base';
-import {GLRenderHardware} from '@alipay/o3-rhi-webgl';
-import {BasicSceneRenderer} from '@alipay/o3-renderer-basic';
+import { ACamera } from "@alipay/o3-core";
+import { ClearMode } from "@alipay/o3-base";
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 
 /**
  * 辅助创建默认相机，基于{@link ACamera}
@@ -38,25 +38,20 @@ export class ADefaultCamera extends ACamera {
    * @property {*} [props.clearParam=[0.25, 0.25, 0.25, 1]] 画布清除参数，详见{@link ClearMode}
    */
   constructor(node, props) {
-
     const cameraProps = {
       RHI: props.RHI || GLRenderHardware,
       SceneRenderer: props.SceneRenderer || BasicSceneRenderer,
       canvas: props.canvas,
-      attributes: props.attributes || {},
+      attributes: props.attributes || {}
     };
 
     super(node, cameraProps);
 
     let canvas;
-    if (typeof (props.canvas) === 'string') {
-
+    if (typeof props.canvas === "string") {
       canvas = document.getElementById(props.canvas);
-
     } else {
-
       canvas = props.canvas;
-
     }
     this.canvas = canvas;
 
@@ -85,7 +80,6 @@ export class ADefaultCamera extends ACamera {
     const clearMode = props.clearMode !== undefined ? props.clearMode : ClearMode.SOLID_COLOR;
     const clearParam = props.clearParam || [0.25, 0.25, 0.25, 1];
     this.setClearMode(clearMode, clearParam);
-
   }
 
   /**
@@ -93,20 +87,14 @@ export class ADefaultCamera extends ACamera {
    * @type {Number}
    */
   get pixelRatio() {
-
     return this._pixelRatio;
-
   }
 
   set pixelRatio(v) {
-
     if (v && this._pixelRatio !== v) {
-
       this._pixelRatio = v;
       this.updateSizes();
-
     }
-
   }
 
   /**
@@ -115,23 +103,17 @@ export class ADefaultCamera extends ACamera {
    * @param {Number} [fov=this.fov] 视场角角度
    */
   updateSizes(pixelRatio = null, fov = null) {
-
     if (pixelRatio) {
-
       this._pixelRatio = pixelRatio;
-
     }
     if (fov) {
-
       this.fov = fov;
-
     }
 
-    const width = this.canvas.clientWidth * this.pixelRatio | 0;
-    const height = this.canvas.clientHeight * this.pixelRatio | 0;
+    const width = (this.canvas.clientWidth * this.pixelRatio) | 0;
+    const height = (this.canvas.clientHeight * this.pixelRatio) | 0;
 
     if (width !== this.lastWidth || height !== this.lastHeight) {
-
       this.lastWidth = width;
       this.lastHeight = height;
       this.canvas.width = width;
@@ -140,11 +122,8 @@ export class ADefaultCamera extends ACamera {
       this.setPerspective(this.fov, width, height, this.near, this.far);
       this.setViewport(0, 0, width, height);
       return true;
-
     }
 
     return false;
-
   }
-
 }

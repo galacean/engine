@@ -57,9 +57,7 @@ export class PerspectiveCamera extends Camera {
 
     if (props.canvas) {
       this.canvas =
-        typeof props.canvas === "string"
-          ? (document.getElementById(props.canvas) as HTMLCanvasElement)
-          : props.canvas;
+        typeof props.canvas === "string" ? (document.getElementById(props.canvas) as HTMLCanvasElement) : props.canvas;
     }
 
     /**
@@ -79,10 +77,7 @@ export class PerspectiveCamera extends Camera {
     this.far = props.far || 1000;
     this._pixelRatio = props.pixelRatio || window.devicePixelRatio;
 
-    const clearMode =
-      props.clearMode !== undefined
-        ? props.clearMode
-        : r3.ClearMode.SOLID_COLOR;
+    const clearMode = props.clearMode !== undefined ? props.clearMode : r3.ClearMode.SOLID_COLOR;
     const clearParam = props.clearParam || [0.25, 0.25, 0.25, 1];
     this.setClearMode(clearMode, clearParam);
   }
@@ -91,10 +86,7 @@ export class PerspectiveCamera extends Camera {
     canvas: HTMLCanvasElement | string,
     attr: WebGLContextAttributes & { enableCollect?: boolean } = {}
   ) {
-    canvas =
-      typeof canvas === "string"
-        ? (document.getElementById(canvas) as HTMLCanvasElement)
-        : canvas;
+    canvas = typeof canvas === "string" ? (document.getElementById(canvas) as HTMLCanvasElement) : canvas;
     super.attachToScene(canvas, attr);
     this.canvas = canvas;
     this.updateSizes();

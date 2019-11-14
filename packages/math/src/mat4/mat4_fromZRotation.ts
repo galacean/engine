@@ -14,10 +14,10 @@ export function fromZRotation(out, rad) {
   let c = Math.cos(rad);
 
   // Perform axis-specific matrix multiplication
-  out[0]  = c;
-  out[1]  = s;
-  out[2]  = 0;
-  out[3]  = 0;
+  out[0] = c;
+  out[1] = s;
+  out[2] = 0;
+  out[3] = 0;
   out[4] = -s;
   out[5] = c;
   out[6] = 0;

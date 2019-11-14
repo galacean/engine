@@ -3,15 +3,12 @@
  * @private
  */
 export class GLExtensions {
-
   rhi;
   private _requireResult;
-  
-  constructor(rhi) {
 
+  constructor(rhi) {
     this.rhi = rhi;
     this._requireResult = {};
-
   }
 
   /**
@@ -21,16 +18,11 @@ export class GLExtensions {
    * @private
    */
   requireExtension(ext) {
-
     if (this._requireResult[ext] !== undefined) {
-
       return this._requireResult[ext];
-
     }
 
     this._requireResult[ext] = this.rhi.gl.getExtension(ext);
     return this._requireResult[ext];
-
   }
-
 }

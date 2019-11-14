@@ -1,18 +1,15 @@
-import { ClearMode } from '@alipay/o3-base';
-import { RenderPass } from '@alipay/o3-renderer-basic';
-import { LightFeature } from '@alipay/o3-lighting';
+import { ClearMode } from "@alipay/o3-base";
+import { RenderPass } from "@alipay/o3-renderer-basic";
+import { LightFeature } from "@alipay/o3-lighting";
 
 /**
  * RednerPass 对象
  * @private
  */
-export class ShadowPass extends RenderPass{
-
-  constructor( ...args ) {
-
-    super( ...args );
+export class ShadowPass extends RenderPass {
+  constructor(...args) {
+    super(...args);
     this.clearMode = ClearMode.DONT_CLEAR;
-
   }
 
   /**
@@ -21,42 +18,30 @@ export class ShadowPass extends RenderPass{
    * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
    * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  preRender( camera, opaqueQueue, transparentQueue ) {
-
+  preRender(camera, opaqueQueue, transparentQueue) {
     this.enabled = false;
-    const lightMgr = camera.scene.findFeature( LightFeature );
-    if ( lightMgr ) {
-
+    const lightMgr = camera.scene.findFeature(LightFeature);
+    if (lightMgr) {
       // keep render based on default render pass
       const pass = camera.sceneRenderer.defaultRenderPass;
       this.renderTarget = pass.renderTarget;
 
       const lights = lightMgr.visibleLights;
       let shadowMapCount = 0;
-      for ( let i = 0, len = lights.length; i < len; i++ ) {
-
+      for (let i = 0, len = lights.length; i < len; i++) {
         const lgt = lights[i];
-        if ( lgt.enableShadow ) {
-
-          lgt.shadow.bindShadowValues( this.replaceMaterial, shadowMapCount, lgt );
+        if (lgt.enableShadow) {
+          lgt.shadow.bindShadowValues(this.replaceMaterial, shadowMapCount, lgt);
           shadowMapCount++;
-
         }
-
       } // end of for
 
-      if ( shadowMapCount !== this.replaceMaterial.shadowMapCount ) {
-
+      if (shadowMapCount !== this.replaceMaterial.shadowMapCount) {
         this.replaceMaterial.shadowMapCount = shadowMapCount;
         this.replaceMaterial.clearTechniques();
-
       }
 
-      if( shadowMapCount ) this.enabled = true;
-
+      if (shadowMapCount) this.enabled = true;
     }
-
   }
-
 }
-

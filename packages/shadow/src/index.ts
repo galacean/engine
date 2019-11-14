@@ -1,8 +1,6 @@
-import './Extension';
+import "./Extension";
 
-import { Scene } from '@alipay/o3-core';
-import { ShadowFeature } from './ShadowFeature';
+import { Scene } from "@alipay/o3-core";
+import { ShadowFeature } from "./ShadowFeature";
 
-Scene.registerFeature( ShadowFeature );
-
-
+Scene.registerFeature(ShadowFeature);

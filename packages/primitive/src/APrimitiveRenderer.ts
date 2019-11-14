@@ -1,5 +1,5 @@
-import {NodeAbility} from '@alipay/o3-core';
-import {Logger} from '@alipay/o3-base';
+import { NodeAbility } from "@alipay/o3-core";
+import { Logger } from "@alipay/o3-base";
 
 /**
  * 负责渲染一个Mesh对象的组件
@@ -13,17 +13,15 @@ export class APrimitiveRenderer extends NodeAbility {
    * @param {Node} node 对象所在节点
    */
   constructor(node) {
-
     super(node);
 
-    this.renderable = true;  // 标记为可渲染对象
+    this.renderable = true; // 标记为可渲染对象
 
     /**
      * 需要渲染的 Primitive 对象
      * @member {Primitive}
      */
     this.primitive = null;
-
   }
 
   /**
@@ -31,32 +29,18 @@ export class APrimitiveRenderer extends NodeAbility {
    * @param {CameraComponent} camera
    */
   render(camera) {
-
     if (this.primitive && this.primitive.material) {
-
-      camera.sceneRenderer.pushPrimitive(
-        this,
-        this.primitive,
-        this.primitive.material
-      );
-
-    }
-    else {
-
-      Logger.error('primitive or  material is null ');
-
+      camera.sceneRenderer.pushPrimitive(this, this.primitive, this.primitive.material);
+    } else {
+      Logger.error("primitive or  material is null ");
     } // end of else
-
   }
 
   /**
    * 释放内部资源
    */
   destroy() {
-
     super.destroy();
     this.primitive = null;
-
   }
-
 }

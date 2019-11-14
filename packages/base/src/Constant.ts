@@ -24,7 +24,7 @@ export enum ClearMode {
   /** 只清空模版缓冲*/
   STENCIL_ONLY = 4,
   /** 清空所有缓冲区 */
-  ALL_CLEAR = 5,
+  ALL_CLEAR = 5
 }
 
 /**
@@ -35,7 +35,7 @@ export enum MaterialType {
   /** 不透明 */
   OPAQUE = 1000,
   /** 透明或半透明 */
-  TRANSPARENT = 2000,
+  TRANSPARENT = 2000
 }
 
 /**
@@ -56,7 +56,7 @@ export enum DrawMode {
   /** 绘制一个三角带。 */
   TRIANGLE_STRIP = 5, // gl.TRIANGLE_STRIP
   /** 绘制一个三角扇。 */
-  TRIANGLE_FAN = 6, // gl.TRIANGLE_FAN
+  TRIANGLE_FAN = 6 // gl.TRIANGLE_FAN
 }
 
 /**
@@ -77,7 +77,7 @@ export enum RenderState {
   /** 通过alpha值决定的临时覆盖值计算。 */
   SAMPLE_ALPHA_TO_COVERAGE = 32926,
   /** 剪裁测试，即丢弃在剪裁矩形范围外的片段。 */
-  SCISSOR_TEST = 3089,
+  SCISSOR_TEST = 3089
 }
 
 /**
@@ -88,7 +88,7 @@ export enum FrontFace {
   /** 顺时针 */
   CW = 0x0900,
   /** 逆时针 */
-  CCW = 0x0901,
+  CCW = 0x0901
 }
 
 /**
@@ -101,7 +101,7 @@ export enum CullFace {
   /** 反面 */
   BACK = 1029,
   /** 正面和反面 */
-  FRONT_AND_BACK = 1032,
+  FRONT_AND_BACK = 1032
 }
 
 /**
@@ -139,7 +139,7 @@ export enum CompFunc {
   /** 大于等于参考值时通过 */
   GEQUAL = 0x0206,
   /** 总是通过 */
-  ALWAYS = 0x0207,
+  ALWAYS = 0x0207
 }
 
 /**
@@ -152,13 +152,13 @@ export enum TextureFilter {
   NEAREST_MIPMAP_NEAREST = 9984, // gl.NEAREST_MIPMAP_NEAREST
   LINEAR_MIPMAP_NEAREST = 9985, // gl.LINEAR_MIPMAP_NEAREST
   NEAREST_MIPMAP_LINEAR = 9986, // gl.NEAREST_MIPMAP_LINEAR
-  LINEAR_MIPMAP_LINEAR = 9987, // gl.LINEAR_MIPMAP_LINEAR
+  LINEAR_MIPMAP_LINEAR = 9987 // gl.LINEAR_MIPMAP_LINEAR
 }
 
 export enum TextureWrapMode {
   REPEAT = 10497, // gl.REPEAT
   CLAMP_TO_EDGE = 33071, // gl.CLAMP_TO_EDGE
-  MIRRORED_REPEAT = 33648, // gl.MIRRORED_REPEAT
+  MIRRORED_REPEAT = 33648 // gl.MIRRORED_REPEAT
 }
 
 /**
@@ -170,7 +170,7 @@ export const CubeMapFace = [
   0x8517, // gl.TEXTURE_CUBE_MAP_POSITIVE_Y
   0x8518, // gl.TEXTURE_CUBE_MAP_NEGATIVE_Y
   0x8519, // gl.TEXTURE_CUBE_MAP_POSITIVE_Z
-  0x851A // gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+  0x851a // gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
 ];
 
 /**
@@ -225,7 +225,7 @@ export enum DataType {
   /** 无符号的 Short 在线 */
   UNSIGNED_SHORT = 5123, // gl.UNSIGNED_SHORT
   /** 无符号整数 */
-  UNSIGNED_INT = 5125, // gl.UNSIGNED_INT
+  UNSIGNED_INT = 5125 // gl.UNSIGNED_INT
 }
 
 /**
@@ -271,7 +271,7 @@ export enum UniformSemantic {
   /** 当前的摄像机的位置 */
   EYEPOS = 17,
   /** 当前程序运行的时长 */
-  TIME = 18,
+  TIME = 18
 }
 
 /**
@@ -280,11 +280,11 @@ export enum UniformSemantic {
  */
 export enum BufferUsage {
   /** Buffer 内容极少更新（一般只在初始化时更新一次） */
-  STATIC_DRAW = 0x88E4,
+  STATIC_DRAW = 0x88e4,
   /** Buffer 内容只写入不读取 */
-  STREAM_DRAW = 0x88E0,
+  STREAM_DRAW = 0x88e0,
   /** Buffer 内容经常更新，只写入不读取 */
-  DYNAMIC_DRAW = 0x88E8,
+  DYNAMIC_DRAW = 0x88e8
 }
 
 /**
@@ -328,7 +328,7 @@ export enum BlendFunc {
   /**
    * 所有通道乘以一减去Alpha常量
    */
-  ONE_MINUS_enumANT_ALPHA = 32772,
+  ONE_MINUS_enumANT_ALPHA = 32772
 }
 
 /**
@@ -341,7 +341,7 @@ export enum UpdateType {
   /** 全部更新 */
   UPDATE_ALL = 1,
   /** 更新指定范围 */
-  UPDATE_RANGE = 2,
+  UPDATE_RANGE = 2
 }
 
 /**
@@ -350,7 +350,6 @@ export enum UpdateType {
  * @private
  */
 export enum MaskList {
-
   MASK1 = 0b1,
   MASK2 = 0b10,
   MASK3 = 0b100,
@@ -380,8 +379,7 @@ export enum MaskList {
   // MASK27=        0b100000000000000000000000000,
   EVERYTHING = 0b1111111111111111111111111111,
   SHADOW = 0b10000000000000000000000000000,
-  SHADOW_MAP = 0b100000000000000000000000000000,
-
+  SHADOW_MAP = 0b100000000000000000000000000000
 }
 
 /**
@@ -391,5 +389,5 @@ export enum RefreshRate {
   /** 只渲染一次 */
   ONCE = 1,
   /** 每帧渲染 */
-  EVERYFRAME = 2,
+  EVERYFRAME = 2
 }

@@ -5,4 +5,4 @@
  * @returns {Number} squared length of a
  * @function
  */
-export { squaredLength } from '../vec4/vec4_squaredLength';
+export { squaredLength } from "../vec4/vec4_squaredLength";

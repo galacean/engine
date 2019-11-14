@@ -3,5 +3,5 @@
  * @function
  */
 
-import { multiply } from './mat2d_multiply';
+import { multiply } from "./mat2d_multiply";
 export const mul = multiply;

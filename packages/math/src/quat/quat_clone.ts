@@ -5,4 +5,4 @@
  * @returns {quat} a new quaternion
  * @function
  */
-export { clone } from '../vec4/vec4_clone';
+export { clone } from "../vec4/vec4_clone";

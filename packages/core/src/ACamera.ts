@@ -8,9 +8,8 @@ const vec3Cache = vec3.create();
 interface ICameraProps {
   canvas: string | HTMLCanvasElement;
   attributes: object;
-  SceneRenderer: { new(camera: ACamera) };
-  RHI: { new(canvas: string | HTMLCanvasElement, attributes: object) };
-
+  SceneRenderer: { new (camera: ACamera) };
+  RHI: { new (canvas: string | HTMLCanvasElement, attributes: object) };
 }
 
 /**
@@ -18,17 +17,12 @@ interface ICameraProps {
  * @extends NodeAbility
  */
 export class ACamera extends NodeAbility {
-
   get renderHardware() {
-
     return this._rhi;
-
   }
 
   get sceneRenderer() {
-
     return this._sceneRenderer;
-
   }
 
   /**
@@ -37,9 +31,7 @@ export class ACamera extends NodeAbility {
    * @readonly
    */
   get viewMatrix() {
-
     return this._viewMat;
-
   }
 
   /**
@@ -48,9 +40,7 @@ export class ACamera extends NodeAbility {
    * @readonly
    */
   get inverseViewMatrix() {
-
     return this._inverseViewMatrix;
-
   }
 
   /**
@@ -59,9 +49,7 @@ export class ACamera extends NodeAbility {
    * @readonly
    */
   get projectionMatrix() {
-
     return this._matProjection;
-
   }
 
   /**
@@ -70,9 +58,7 @@ export class ACamera extends NodeAbility {
    * @readonly
    */
   get inverseProjectionMatrix() {
-
     return this._matInverseProjection;
-
   }
 
   /**
@@ -81,9 +67,7 @@ export class ACamera extends NodeAbility {
    * @readonly
    */
   get eyePos() {
-
     return this._ownerNode.worldPosition;
-
   }
 
   public zNear: number;
@@ -120,7 +104,6 @@ export class ACamera extends NodeAbility {
    * @property {GLRenderHardware} [props.RHI] 硬件抽象层类型，{@link GLRenderHardware}
    */
   constructor(node: Node, props: ICameraProps) {
-
     super(node, props);
 
     const { RHI, SceneRenderer, canvas, attributes } = props;
@@ -154,16 +137,13 @@ export class ACamera extends NodeAbility {
      * @member {Boolean}
      */
     this.leftHand = false;
-
   }
 
   /**
    * 渲染场景
    */
   public render() {
-
     this._sceneRenderer.render();
-
   }
 
   /**
@@ -172,11 +152,9 @@ export class ACamera extends NodeAbility {
    * @param {*} clearParam 其类型根据 Mode 而不同
    */
   public setClearMode(mode: ClearMode, clearParam: number[]) {
-
     const defaultRP = this._sceneRenderer.defaultRenderPass;
     defaultRP.clearMode = mode;
     defaultRP.clearParam = clearParam;
-
   }
 
   /**
@@ -195,7 +173,6 @@ export class ACamera extends NodeAbility {
     const aspect = viewWidth / viewHeight;
     mat4.perspective(this._matProjection, MathUtil.toRadian(degFOV), aspect, zNear, zFar);
     mat4.invert(this._matInverseProjection, this._matProjection);
-
   }
 
   /**
@@ -206,10 +183,8 @@ export class ACamera extends NodeAbility {
    * @param {number} height 视口的高度
    */
   public setViewport(x: number, y: number, width: number, height: number): void {
-
     this.viewport = [x, y, width, height];
     this._rhi.viewport(x, y, width, height);
-
   }
 
   /**
@@ -229,7 +204,6 @@ export class ACamera extends NodeAbility {
 
     mat4.ortho(this._matProjection, left, right, bottom, top, near, far);
     mat4.invert(this._matInverseProjection, this._matProjection); // 逸瞻：逻辑补全，否则无法正确渲染场景
-
   }
 
   /**
@@ -238,7 +212,6 @@ export class ACamera extends NodeAbility {
    * @return {vec3} [屏幕坐标X, 屏幕坐标Y, 深度值]
    */
   public worldToScreen(worldPoint) {
-
     const viewport = this.viewport;
     const width = viewport[2] - viewport[0];
     const height = viewport[3] - viewport[1];
@@ -263,11 +236,10 @@ export class ACamera extends NodeAbility {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 
-    x = x * clientWidth / canvasWidth;
-    y = y * clientHeight / canvasHeight;
+    x = (x * clientWidth) / canvasWidth;
+    y = (y * clientHeight) / canvasHeight;
 
     return vec3.fromValues(x, y, depth);
-
   }
 
   /**
@@ -277,7 +249,6 @@ export class ACamera extends NodeAbility {
    * @return {vec3} 世界坐标
    */
   public screenToWorld(screenPoint, depth) {
-
     if (depth === undefined) {
       depth = 0.0;
     }
@@ -288,15 +259,15 @@ export class ACamera extends NodeAbility {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 
-    const px = screenPoint[0] / clientWidth * canvasWidth;
-    const py = screenPoint[1] / clientHeight * canvasHeight;
+    const px = (screenPoint[0] / clientWidth) * canvasWidth;
+    const py = (screenPoint[1] / clientHeight) * canvasHeight;
 
     const viewport = this.viewport;
     const viewWidth = viewport[2] - viewport[0];
     const viewHeight = viewport[3] - viewport[1];
 
-    const nx = (px - viewport[0]) / viewWidth * 2 - 1;
-    const ny = 1 - (py - viewport[1]) / viewHeight * 2;
+    const nx = ((px - viewport[0]) / viewWidth) * 2 - 1;
+    const ny = 1 - ((py - viewport[1]) / viewHeight) * 2;
 
     const p = vec4.fromValues(nx, ny, depth, 1.0);
 
@@ -310,7 +281,6 @@ export class ACamera extends NodeAbility {
     vec4.transformMat4(u, p, matInv);
 
     return vec3.fromValues(u[0] / u[3], u[1] / u[3], u[2] / u[3]);
-
   }
 
   /**
@@ -318,7 +288,7 @@ export class ACamera extends NodeAbility {
    * @param {number} screenPointX 屏幕X坐标
    * @param {number} screenPointY 屏幕Y坐标
    */
-  public screenPointToRay(screenPointX: number, screenPointY: number): { origin, direction } {
+  public screenPointToRay(screenPointX: number, screenPointY: number): { origin; direction } {
     // 逸瞻：区分camera类型设置origin
     let origin;
     if (this._isOrtho) {
@@ -326,21 +296,19 @@ export class ACamera extends NodeAbility {
     } else {
       origin = this.eyePos;
     }
-    const tmp = this.screenToWorld([screenPointX, screenPointY], 0.5);  // world position on depth=0.5
+    const tmp = this.screenToWorld([screenPointX, screenPointY], 0.5); // world position on depth=0.5
     vec3.sub(tmp, tmp, origin); // ray direction
     vec3.normalize(tmp, tmp);
     return {
       origin,
-      direction: tmp,
+      direction: tmp
     };
-
   }
 
   /**
    * 释放内部资源
    */
   public destroy(): void {
-
     super.destroy();
 
     // -- remove from scene
@@ -348,23 +316,17 @@ export class ACamera extends NodeAbility {
 
     // --
     if (this._sceneRenderer) {
-
       this._sceneRenderer.destroy();
-
     }
 
     // -- destroy render hardware
     if (this._rhi) {
-
       this._rhi.destroy();
-
     }
-
   }
 
   // 每一帧更新相机所需的矩阵
   public update(deltaTime: number): void {
-
     super.update(deltaTime);
 
     // make sure update directions
@@ -377,7 +339,5 @@ export class ACamera extends NodeAbility {
     vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
     mat4.lookAt(this._viewMat, this._ownerNode.position, vec3Cache, this._ownerNode.up);
     mat4.invert(this._inverseViewMatrix, this._viewMat);
-
   }
-
 }

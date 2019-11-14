@@ -1,11 +1,10 @@
-import { RenderPass } from '@alipay/o3-renderer-basic';
+import { RenderPass } from "@alipay/o3-renderer-basic";
 
 /**
  * RednerPass 对象
  * @private
  */
-export class ShadowMapPass extends RenderPass{
-
+export class ShadowMapPass extends RenderPass {
   public light;
   /**
    * RenderPass 构造函数
@@ -16,11 +15,9 @@ export class ShadowMapPass extends RenderPass{
    * @param {number} mask 与 NodeAbility.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
    * @param {ALight} light 需要生成 ShadowMap 的光源
    */
-  constructor( name, priority, renderTarget, replaceMaterial, mask, light ) {
-
-    super( name, priority, renderTarget, replaceMaterial, mask );
+  constructor(name, priority, renderTarget, replaceMaterial, mask, light) {
+    super(name, priority, renderTarget, replaceMaterial, mask);
     this.light = light;
-
   }
 
   /**
@@ -29,13 +26,9 @@ export class ShadowMapPass extends RenderPass{
    * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
    * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  preRender( camera, opaqueQueue, transparentQueue ) {
-
+  preRender(camera, opaqueQueue, transparentQueue) {
     // 光源视点 VP 矩阵
-    this.replaceMaterial.setValue( 'u_viewMatFromLight', this.light.viewMatrix );
-    this.replaceMaterial.setValue( 'u_projMatFromLight', this.light.shadow.projectionMatrix );
-
+    this.replaceMaterial.setValue("u_viewMatFromLight", this.light.viewMatrix);
+    this.replaceMaterial.setValue("u_projMatFromLight", this.light.shadow.projectionMatrix);
   }
-
 }
-

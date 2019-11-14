@@ -39,11 +39,7 @@ export function createNode(engine: r3.Engine, config: NodeConfig) {
   const node = new r3.Node(null, null, config.name);
   node.position = config.position || [0, 0, 0];
   config.rotation = config.rotation || [0, 0, 0];
-  node.setRotationAngles(
-    config.rotation[0],
-    config.rotation[1],
-    config.rotation[2]
-  );
+  node.setRotationAngles(config.rotation[0], config.rotation[1], config.rotation[2]);
   node.isActive = config.isActive;
   node.scale = config.scale || [1, 1, 1];
   nodeCache[config.id] = node;

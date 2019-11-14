@@ -6,12 +6,11 @@ import {
   BlendFunc,
   RenderState,
   MaterialType,
-  TextureWrapMode,
-} from '@alipay/o3-base';
-import { Material, RenderTechnique } from '@alipay/o3-material';
-import { AGeometryRenderer, IndexBufferGeometry } from '@alipay/o3-geometry';
-import { vec3 } from '@alipay/o3-math';
-
+  TextureWrapMode
+} from "@alipay/o3-base";
+import { Material, RenderTechnique } from "@alipay/o3-material";
+import { AGeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
+import { vec3 } from "@alipay/o3-math";
 
 /**
  * GPU粒子系统渲染类
@@ -132,7 +131,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     }
 
     return this;
-
   }
 
   /**
@@ -141,14 +139,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   update(deltaTime) {
-
     if (!this._isInit || !this._isStart) {
       return;
     }
 
     this._time += deltaTime / 1000;
-    this._material.setValue('uTime', this._time);
-
+    this._material.setValue("uTime", this._time);
   }
 
   /**
@@ -156,13 +152,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param {ParticleParam} options 发射参数
    */
   setOptions(options) {
-
     if (options !== undefined) {
       this.options = { ...this.options, ...options };
     }
 
     return this;
-
   }
 
   /**
@@ -170,17 +164,14 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   start() {
     this._isStart = true;
     this._time = 0;
-    this._material.setValue('uActive', 1.0);
-
+    this._material.setValue("uActive", 1.0);
   }
 
   /**
    * 停止发射
    */
   stop() {
-
-    this._material.setValue('uActive', 0.0);
-
+    this._material.setValue("uActive", 0.0);
   }
 
   /**
@@ -188,20 +179,14 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   destroy() {
-
     super.destroy();
     this.options = null;
     if (this.particleTex) {
-
       this.particleTex = null;
-
     }
     if (this.particleMaskTex) {
-
       this.particleMaskTex = null;
-
     }
-
   }
 
   /**
@@ -209,30 +194,24 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   setMaterial() {
-
     const technique = this._createTechnique();
-    const material = new Material('particleMaterial');
+    const material = new Material("particleMaterial");
     material.technique = technique;
     material.renderType = MaterialType.TRANSPARENT;
 
-    material.setValue('uOnce', this.once ? 1.0 : 0.0);
+    material.setValue("uOnce", this.once ? 1.0 : 0.0);
 
     if (this.particleTex) {
-
       this.particleTex.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
-      material.setValue('particleTex', this.particleTex);
-
+      material.setValue("particleTex", this.particleTex);
     }
     if (this.particleMaskTex) {
-
       this.particleMaskTex.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
-      material.setValue('particleMaskTex', this.particleMaskTex);
-
+      material.setValue("particleMaskTex", this.particleMaskTex);
     }
     super.setMaterial(material);
 
     this._material = material;
-
   }
 
   /**
@@ -240,97 +219,96 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _createTechnique() {
-
     const cfg = {
       attributes: {
         positionStart: {
-          name: 'positionStart',
-          semantic: 'POSITIONSTART',
+          name: "positionStart",
+          semantic: "POSITIONSTART",
           type: DataType.FLOAT_VEC3
         },
         color: {
-          name: 'color',
-          semantic: 'COLOR',
+          name: "color",
+          semantic: "COLOR",
           type: DataType.FLOAT_VEC3
         },
         alpha: {
-          name: 'alpha',
-          semantic: 'ALPHA',
+          name: "alpha",
+          semantic: "ALPHA",
           type: DataType.FLOAT
         },
         acceleration: {
-          name: 'acceleration',
-          semantic: 'ACCELERATION',
+          name: "acceleration",
+          semantic: "ACCELERATION",
           type: DataType.FLOAT_VEC3
         },
         velocity: {
-          name: 'velocity',
-          semantic: 'VELOCITY',
+          name: "velocity",
+          semantic: "VELOCITY",
           type: DataType.FLOAT_VEC3
         },
         startAngle: {
-          name: 'startAngle',
-          semantic: 'STARTANGLE',
+          name: "startAngle",
+          semantic: "STARTANGLE",
           type: DataType.FLOAT
         },
         lifeTime: {
-          name: 'lifeTime',
-          semantic: 'LIFETIME',
+          name: "lifeTime",
+          semantic: "LIFETIME",
           type: DataType.FLOAT
         },
         startTime: {
-          name: 'startTime',
-          semantic: 'STARTTIME',
+          name: "startTime",
+          semantic: "STARTTIME",
           type: DataType.FLOAT
         },
         size: {
-          name: 'size',
-          semantic: 'SIZE',
+          name: "size",
+          semantic: "SIZE",
           type: DataType.FLOAT
         },
         rotateRate: {
-          name: 'rotateRate',
-          semantic: 'ROTATERATE',
+          name: "rotateRate",
+          semantic: "ROTATERATE",
           type: DataType.FLOAT
         },
         scaleFactor: {
-          name: 'scaleFactor',
-          semantic: 'SCALEFACTOR',
+          name: "scaleFactor",
+          semantic: "SCALEFACTOR",
           type: DataType.FLOAT
         },
         uv: {
-          name: 'uv',
-          semantic: 'UV',
+          name: "uv",
+          semantic: "UV",
           type: DataType.FLOAT_VEC3
         },
         normalizedUv: {
-          name: 'normalizedUv',
-          semantic: 'NORMALIZED_UV',
+          name: "normalizedUv",
+          semantic: "NORMALIZED_UV",
           type: DataType.FLOAT_VEC2
-        },
+        }
       },
       uniforms: {
         uOnce: {
-          name: 'uOnce',
+          name: "uOnce",
           type: DataType.FLOAT
         },
         uActive: {
-          name: 'uActive',
+          name: "uActive",
           type: DataType.FLOAT
         },
         uTime: {
-          name: 'uTime',
+          name: "uTime",
           type: DataType.FLOAT
         },
         matModelViewProjection: {
-          name: 'matModelViewProjection',
+          name: "matModelViewProjection",
           semantic: UniformSemantic.MODELVIEWPROJECTION,
-          type: DataType.FLOAT_MAT4,
+          type: DataType.FLOAT_MAT4
         },
         matModelView: {
-          name: 'matModelView',
+          name: "matModelView",
           semantic: UniformSemantic.MODELVIEW,
-          type: DataType.FLOAT_MAT4,
+          type: DataType.FLOAT_MAT4
         }
       } as any,
       states: {
@@ -345,30 +323,29 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     if (this.is2d) {
       cfg.uniforms.matViewInverse = {
-        name: 'matViewInverse',
+        name: "matViewInverse",
         semantic: UniformSemantic.VIEWINVERSE,
-        type: DataType.FLOAT_MAT4,
-      }
+        type: DataType.FLOAT_MAT4
+      };
 
       cfg.uniforms.matProjection = {
-        name: 'matProjection',
+        name: "matProjection",
         semantic: UniformSemantic.PROJECTION,
-        type: DataType.FLOAT_MAT4,
-      }
+        type: DataType.FLOAT_MAT4
+      };
 
       cfg.uniforms.matView = {
-        name: 'matView',
+        name: "matView",
         semantic: UniformSemantic.VIEW,
-        type: DataType.FLOAT_MAT4,
-      }
+        type: DataType.FLOAT_MAT4
+      };
 
       cfg.uniforms.matWorld = {
-        name: 'matWorld',
+        name: "matWorld",
         semantic: UniformSemantic.MODEL,
-        type: DataType.FLOAT_MAT4,
-      }
-    }
-    else {
+        type: DataType.FLOAT_MAT4
+      };
+    } else {
       // @ts-ignore
       cfg.states.disable = [RenderState.CULL_FACE];
     }
@@ -381,23 +358,19 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       cfg.states.functions.blendFunc = this.blendFunc;
     }
     if (this.particleTex) {
-
       cfg.uniforms.particleTex = {
-        name: 'particleTex',
+        name: "particleTex",
         type: DataType.SAMPLER_2D
       };
-
     }
     if (this.particleMaskTex) {
-
       cfg.uniforms.particleMaskTex = {
-        name: 'particleMaskTex',
+        name: "particleMaskTex",
         type: DataType.SAMPLER_2D
       };
-
     }
 
-    const tech = new RenderTechnique('particleTech');
+    const tech = new RenderTechnique("particleTech");
     tech.isValid = true;
     tech.uniforms = cfg.uniforms;
     tech.attributes = cfg.attributes;
@@ -406,7 +379,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     tech.fragmentShader = this._createFragmentShader();
 
     return tech;
-
   }
 
   /**
@@ -414,7 +386,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _createGeometry() {
-    const geometry = new IndexBufferGeometry('particleGeometry');
+    const geometry = new IndexBufferGeometry("particleGeometry");
     geometry.mode = DrawMode.TRIANGLES;
     const FLOAT = DataType.FLOAT;
 
@@ -433,23 +405,27 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       indices[idx++] = startIndex + 3;
     }
 
-    geometry.initialize([
-      { semantic: 'POSITIONSTART', size: 3, type: FLOAT, normalized: false },
-      { semantic: 'VELOCITY', size: 3, type: FLOAT, normalized: false },
-      { semantic: 'ACCELERATION', size: 3, type: FLOAT, normalized: false },
-      { semantic: 'COLOR', size: 3, type: FLOAT, normalized: false },
-      { semantic: 'ALPHA', size: 1, type: FLOAT, normalized: false },
-      { semantic: 'SIZE', size: 1, type: FLOAT, normalized: false },
-      { semantic: 'ROTATERATE', size: 1, type: FLOAT, normalized: false },
-      { semantic: 'STARTTIME', size: 1, type: FLOAT, normalized: false },
-      { semantic: 'LIFETIME', size: 1, type: FLOAT, normalized: false },
-      { semantic: 'STARTANGLE', size: 1, type: FLOAT, normalized: false },
-      { semantic: 'SCALEFACTOR', size: 1, type: FLOAT, normalized: false },
-      { semantic: 'UV', size: 3, type: FLOAT, normalized: false },
-      { semantic: 'NORMALIZED_UV', size: 2, type: FLOAT, normalized: false },
-    ], this.maxCount * 4, indices, BufferUsage.DYNAMIC_DRAW);
+    geometry.initialize(
+      [
+        { semantic: "POSITIONSTART", size: 3, type: FLOAT, normalized: false },
+        { semantic: "VELOCITY", size: 3, type: FLOAT, normalized: false },
+        { semantic: "ACCELERATION", size: 3, type: FLOAT, normalized: false },
+        { semantic: "COLOR", size: 3, type: FLOAT, normalized: false },
+        { semantic: "ALPHA", size: 1, type: FLOAT, normalized: false },
+        { semantic: "SIZE", size: 1, type: FLOAT, normalized: false },
+        { semantic: "ROTATERATE", size: 1, type: FLOAT, normalized: false },
+        { semantic: "STARTTIME", size: 1, type: FLOAT, normalized: false },
+        { semantic: "LIFETIME", size: 1, type: FLOAT, normalized: false },
+        { semantic: "STARTANGLE", size: 1, type: FLOAT, normalized: false },
+        { semantic: "SCALEFACTOR", size: 1, type: FLOAT, normalized: false },
+        { semantic: "UV", size: 3, type: FLOAT, normalized: false },
+        { semantic: "NORMALIZED_UV", size: 2, type: FLOAT, normalized: false }
+      ],
+      this.maxCount * 4,
+      indices,
+      BufferUsage.DYNAMIC_DRAW
+    );
     return geometry;
-
   }
 
   /**
@@ -459,10 +435,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    */
   _spawnParticle(options, i) {
     const position = options.position !== undefined ? vec3.clone(options.position) : vec3.fromValues(0, 0, 0);
-    const positionRandomness = options.positionRandomness !== undefined ? this._get3DData(options.positionRandomness) : [0, 0, 0];
+    const positionRandomness =
+      options.positionRandomness !== undefined ? this._get3DData(options.positionRandomness) : [0, 0, 0];
     const positionArray = options.positionArray;
     const velocity = options.velocity !== undefined ? vec3.clone(options.velocity) : vec3.fromValues(0, 0, 0);
-    const velocityRandomness = options.velocityRandomness !== undefined ? this._get3DData(options.velocityRandomness) : [0, 0, 0];
+    const velocityRandomness =
+      options.velocityRandomness !== undefined ? this._get3DData(options.velocityRandomness) : [0, 0, 0];
     const color = options.color !== undefined ? this._getColor(options.color) : vec3.fromValues(1, 1, 1);
     const colorRandomness = options.colorRandomness !== undefined ? options.colorRandomness : 1;
     const alpha = options.alpha !== undefined ? options.alpha : 1;
@@ -474,7 +452,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const startTimeRandomness = options.startTimeRandomness !== undefined ? options.startTimeRandomness : 0;
 
     const acceleration = options.acceleration !== undefined ? this._get3DData(options.acceleration) : [0, 0, 0];
-    const accelerationRandomness = options.accelerationRandomness !== undefined ? this._get3DData(options.accelerationRandomness) : [0, 0, 0];
+    const accelerationRandomness =
+      options.accelerationRandomness !== undefined ? this._get3DData(options.accelerationRandomness) : [0, 0, 0];
     const startAngle = options.startAngle !== undefined ? options.startAngle : 0;
     const startAngleRandomness = options.startAngleRandomness !== undefined ? options.startAngleRandomness : 0;
     const rotateRate = options.rotateRate !== undefined ? options.rotateRate : 0;
@@ -489,14 +468,13 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
     if (positionArray) {
       if (positionArray.length !== this.maxCount) {
-        throw Error('The length of positionArray must be equal to maxCount.');
+        throw Error("The length of positionArray must be equal to maxCount.");
       }
 
       x += positionArray[i][0];
       y += positionArray[i][1];
       z += positionArray[i][2];
-    }
-    else {
+    } else {
       x += this._getRandom() * positionRandomness[0];
       y += this._getRandom() * positionRandomness[1];
       z += this._getRandom() * positionRandomness[2];
@@ -508,9 +486,9 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       z += -(velocity[2] * this._getRandom());
     }
 
-    const velX = velocity[0] + (this._getRandom() * velocityRandomness[0]);
-    const velY = velocity[1] + (this._getRandom() * velocityRandomness[1]);
-    const velZ = velocity[2] + (this._getRandom() * velocityRandomness[2]);
+    const velX = velocity[0] + this._getRandom() * velocityRandomness[0];
+    const velY = velocity[1] + this._getRandom() * velocityRandomness[1];
+    const velZ = velocity[2] + this._getRandom() * velocityRandomness[2];
 
     const accX = acceleration[0] + this._getRandom() * accelerationRandomness[0];
     const accY = acceleration[1] + this._getRandom() * accelerationRandomness[1];
@@ -519,33 +497,33 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     color[0] = this._clamp(color[0] + this._getRandom() * colorRandomness, 0, 1);
     color[1] = this._clamp(color[1] + this._getRandom() * colorRandomness, 0, 1);
     color[2] = this._clamp(color[2] + this._getRandom() * colorRandomness, 0, 1);
-    size = Math.max(size + (this._getRandom() * sizeRandomness * size * 2), 0);
+    size = Math.max(size + this._getRandom() * sizeRandomness * size * 2, 0);
     const lifeTime = [lifetime + this._getRandom() * lifetime];
     const sa = [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2];
-    const rr = [rotateRate + this._getRandom() * rotateRateRandomness]
-    const particleAlpha = this._clamp(alpha + this._getRandom() * alphaRandomness, 0, 1)
+    const rr = [rotateRate + this._getRandom() * rotateRateRandomness];
+    const particleAlpha = this._clamp(alpha + this._getRandom() * alphaRandomness, 0, 1);
     const startTime = [Math.random() * startTimeRandomness];
 
     for (let j = 0; j < 4; j++) {
       const k = i * 4 + j;
 
       // this.geometry.setValue('POSITIONSTART', k, [_x, _y, z]);
-      this.geometry.setValue('POSITIONSTART', k, [x, y, z]);
+      this.geometry.setValue("POSITIONSTART", k, [x, y, z]);
 
-      this.geometry.setValue('STARTTIME', k, startTime);
+      this.geometry.setValue("STARTTIME", k, startTime);
 
-      this.geometry.setValue('VELOCITY', k, [velX, velY, velZ]);
+      this.geometry.setValue("VELOCITY", k, [velX, velY, velZ]);
 
-      this.geometry.setValue('ACCELERATION', k, [accX, accY, accZ]);
+      this.geometry.setValue("ACCELERATION", k, [accX, accY, accZ]);
 
-      this.geometry.setValue('COLOR', k, [color[0], color[1], color[2]]);
+      this.geometry.setValue("COLOR", k, [color[0], color[1], color[2]]);
 
-      this.geometry.setValue('SIZE', k, [size]);
-      this.geometry.setValue('LIFETIME', k, lifeTime);
+      this.geometry.setValue("SIZE", k, [size]);
+      this.geometry.setValue("LIFETIME", k, lifeTime);
 
-      this.geometry.setValue('STARTANGLE', k, sa);
-      this.geometry.setValue('ROTATERATE', k, rr);
-      this.geometry.setValue('SCALEFACTOR', k, [scaleFactor]);
+      this.geometry.setValue("STARTANGLE", k, sa);
+      this.geometry.setValue("ROTATERATE", k, rr);
+      this.geometry.setValue("SCALEFACTOR", k, [scaleFactor]);
 
       this.geometry.setValue("ALPHA", k, [particleAlpha]);
 
@@ -563,18 +541,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const { spriteSheet } = this;
     const { particleTex } = this;
     let rects;
-    const normalizedRects: any[] = [
-      [-0.5, -0.5],
-      [0.5, -0.5],
-      [0.5, 0.5],
-      [-0.5, 0.5]
-    ];
+    const normalizedRects: any[] = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
     if (particleTex) {
       const width = particleTex.image.width;
       const height = particleTex.image.height;
 
       if (spriteSheet) {
-
         const { x, y, w, h } = spriteSheet[i % spriteSheet.length];
 
         const u = x / width;
@@ -586,29 +558,16 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           [u, q, h / w], // left bottom
           [p, q, h / w], // right bottom
           [p, v, h / w], // right top
-          [u, v, h / w], // left top
-        ]
-
+          [u, v, h / w] // left top
+        ];
+      } else {
+        rects = [[0, 0, height / width], [1, 0, height / width], [1, 1, height / width], [0, 1, height / width]];
       }
-      else {
-        rects = [
-          [0, 0, height / width],
-          [1, 0, height / width],
-          [1, 1, height / width],
-          [0, 1, height / width]
-        ]
-      }
-
     } else {
-      rects = [
-        [0, 0, 1],
-        [1, 0, 1],
-        [1, 1, 1],
-        [0, 1, 1]
-      ]
+      rects = [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]];
     }
-    this.geometry.setValue('UV', k, rects[j]);
-    this.geometry.setValue('NORMALIZED_UV', k, normalizedRects[j]);
+    this.geometry.setValue("UV", k, rects[j]);
+    this.geometry.setValue("NORMALIZED_UV", k, normalizedRects[j]);
   }
 
   /**
@@ -617,9 +576,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _getRandom() {
-
     return Math.random() - 0.5;
-
   }
 
   /**
@@ -628,10 +585,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _getShader() {
-
     return {
-      vertexShader:
-        `
+      vertexShader: `
         precision highp float;
         precision highp int;
 
@@ -709,23 +664,19 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       postionShader: `
         gl_Position = matModelViewProjection * vec4(position, 1.0 );
       `,
-      sizeVertexShader:
-        `
+      sizeVertexShader: `
           scale *= pow(scaleFactor, deltaTime);
       `,
-      isScaleByLifetimeVertexShader:
-        `
+      isScaleByLifetimeVertexShader: `
           scale *= lifeLeft;
       `,
-      rotateToVelocityVertexShader:
-        `
+      rotateToVelocityVertexShader: `
         vec3 v = velocity + acceleration * deltaTime;
         float angle = atan(v.z, v.x) * 2.0;
         float s = sin(angle);
         float c = cos(angle);
       `,
-      rotationVertexShader:
-        `
+      rotationVertexShader: `
         float deltaAngle = deltaTime * rotateRate;
         float angle = startAngle + deltaAngle;
         float s = sin(angle);
@@ -742,8 +693,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
                     basisZ * rotatedPoint.y) * scale + position;
 
         gl_Position = matProjection * matView * vec4(localPosition + matWorld[3].xyz, 1.);
-      `
-      ,
+      `,
       rotation3dShader: `
         vec4 rotatedPoint = vec4((normalizedUv.x * c + normalizedUv.y * uv.z * s) * scale , 0., 
                                  (normalizedUv.x * s - normalizedUv.y * uv.z * c) * scale, 1.);
@@ -777,8 +727,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
         gl_Position = matModelViewProjection * rotatedPoint;
       `,
 
-      fragmentShader:
-        `
+      fragmentShader: `
         precision mediump float;
         precision mediump int;
 
@@ -794,35 +743,28 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           float new_lifeLeft = lifeLeft;
          
       `,
-      fadeInFragmentShader:
-        `
+      fadeInFragmentShader: `
         float k = step(0.5, lifeLeft);
         new_lifeLeft =  (1.0 - k) * lifeLeft +  k * (1.0 - lifeLeft);
       `,
-      noImgFragmentShader:
-        ` 
+      noImgFragmentShader: ` 
           gl_FragColor = vec4( v_color, new_lifeLeft * v_alpha);
         
       `,
-      imgFragmentShader:
-        `
+      imgFragmentShader: `
         vec4 tex = texture2D(particleTex, v_uv);
       `,
-      originColorFragmentShader:
-        `
+      originColorFragmentShader: `
         gl_FragColor = vec4( tex.rgb ,  new_lifeLeft * tex.a * v_alpha);
       `,
-      createColorFragmentShader:
-        `
+      createColorFragmentShader: `
         gl_FragColor = vec4( v_color * tex.rgb , new_lifeLeft * tex.a * v_alpha);
       `,
-      createColorWithMaskFragmentShader:
-        `
+      createColorWithMaskFragmentShader: `
         vec4 maskTex = texture2D( particleMaskTex, v_uv);
         gl_FragColor = vec4( v_color * tex.rgb + maskTex.a,   new_lifeLeft * tex.a * v_alpha);
       `
     };
-
   }
 
   /**
@@ -831,51 +773,35 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _createVertexShader() {
-
     const shader = this._getShader();
 
-    let vertexShader = '';
+    let vertexShader = "";
     if (this.vertexShader) {
-
       vertexShader = this.vertexShader;
-
     } else {
-
       vertexShader = shader.vertexShader;
       if (this.isScaleByLifetime) {
-
         vertexShader += shader.isScaleByLifetimeVertexShader;
-
       } else {
-
         vertexShader += shader.sizeVertexShader;
-
       }
 
-
       if (this.rotateToVelocity) {
-
         vertexShader += shader.rotateToVelocityVertexShader;
-
       } else {
-
         vertexShader += shader.rotationVertexShader;
-
       }
 
       // 2D 和 3D 的旋转算法不同
       if (this.is2d) {
         vertexShader += shader.rotation2dShader;
-      }
-      else {
+      } else {
         vertexShader += shader.rotation3dShader;
       }
 
-      vertexShader += '}';
-
+      vertexShader += "}";
     }
     return vertexShader;
-
   }
 
   /**
@@ -884,54 +810,34 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _createFragmentShader() {
-
     const shader = this._getShader();
 
-    let fragmentShader = '';
+    let fragmentShader = "";
     if (this.fragmentShader) {
-
       fragmentShader = this.fragmentShader;
-
     } else {
-
       fragmentShader = shader.fragmentShader;
       if (this.fadeIn) {
-
         fragmentShader += shader.fadeInFragmentShader;
-
       }
 
       if (!this.particleTex) {
-
         fragmentShader += shader.noImgFragmentShader;
-
       } else {
-
         fragmentShader += shader.imgFragmentShader;
         if (this.useOriginColor) {
-
           fragmentShader += shader.originColorFragmentShader;
-
         } else {
-
           if (this.particleMaskTex) {
-
             fragmentShader += shader.createColorWithMaskFragmentShader;
-
           } else {
-
             fragmentShader += shader.createColorFragmentShader;
-
           }
-
         }
-
       }
-      fragmentShader += '}';
-
+      fragmentShader += "}";
     }
     return fragmentShader;
-
   }
 
   /**
@@ -943,19 +849,13 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _clamp(value, min, max) {
-
     if (value > max) {
-
       return max;
-
     }
     if (value < min) {
-
       return min;
-
     }
     return value;
-
   }
 
   /**
@@ -964,13 +864,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _getRGBFromHex(hex) {
-
     hex = Math.floor(hex);
-    const r = (hex >> 16 & 255) / 255;
-    const g = (hex >> 8 & 255) / 255;
+    const r = ((hex >> 16) & 255) / 255;
+    const g = ((hex >> 8) & 255) / 255;
     const b = (hex & 255) / 255;
     return vec3.fromValues(r, g, b);
-
   }
 
   /**
@@ -979,21 +877,13 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _getColor(value) {
-
-    if (typeof value === 'number') {
-
+    if (typeof value === "number") {
       return this._getRGBFromHex(value);
-
     } else if (Array.isArray(value)) {
-
       return vec3.fromValues(value[0], value[1], value[2]);
-
     } else {
-
       return vec3.clone(value);
-
     }
-
   }
 
   /**
@@ -1003,21 +893,14 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @private
    */
   _get3DData(value) {
-
     let res = [];
     if (!Array.isArray(value)) {
-
       res.push(value);
       res.push(value);
       res.push(value);
-
     } else {
-
       res = value;
-
     }
     return res;
-
   }
-
 }

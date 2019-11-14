@@ -14,10 +14,10 @@ export function fromXRotation(out, rad) {
   let c = Math.cos(rad);
 
   // Perform axis-specific matrix multiplication
-  out[0]  = 1;
-  out[1]  = 0;
-  out[2]  = 0;
-  out[3]  = 0;
+  out[0] = 1;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
   out[4] = 0;
   out[5] = c;
   out[6] = s;

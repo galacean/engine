@@ -6,4 +6,4 @@
  * @returns {Number} dot product of a and b
  * @function
  */
-export { dot } from '../vec4/vec4_dot';
+export { dot } from "../vec4/vec4_dot";

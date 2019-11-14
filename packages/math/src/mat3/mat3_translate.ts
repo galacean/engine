@@ -7,10 +7,17 @@
  * @returns {mat3} out
  */
 export function translate(out, a, v) {
-  let a00 = a[0], a01 = a[1], a02 = a[2],
-      a10 = a[3], a11 = a[4], a12 = a[5],
-      a20 = a[6], a21 = a[7], a22 = a[8],
-      x = v[0], y = v[1];
+  let a00 = a[0],
+    a01 = a[1],
+    a02 = a[2],
+    a10 = a[3],
+    a11 = a[4],
+    a12 = a[5],
+    a20 = a[6],
+    a21 = a[7],
+    a22 = a[8],
+    x = v[0],
+    y = v[1];
 
   out[0] = a00;
   out[1] = a01;

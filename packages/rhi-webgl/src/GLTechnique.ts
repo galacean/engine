@@ -1,12 +1,12 @@
-import {DataType} from "@alipay/o3-base";
-import {mat4} from "@alipay/o3-math";
-import {GLShaderProgram} from "./GLShaderProgram";
-import {Logger} from "@alipay/o3-base";
-import {GLTexture2D} from "./GLTexture2D";
-import {GLTextureCubeMap} from "./GLTextureCubeMap";
-import {GLRenderHardware} from "./GLRenderHardware";
-import {RenderTechnique} from "@alipay/o3-material";
-import {GLRenderStates} from "./GLRenderStates";
+import { DataType } from "@alipay/o3-base";
+import { mat4 } from "@alipay/o3-math";
+import { GLShaderProgram } from "./GLShaderProgram";
+import { Logger } from "@alipay/o3-base";
+import { GLTexture2D } from "./GLTexture2D";
+import { GLTextureCubeMap } from "./GLTextureCubeMap";
+import { GLRenderHardware } from "./GLRenderHardware";
+import { RenderTechnique } from "@alipay/o3-material";
+import { GLRenderStates } from "./GLRenderStates";
 
 var UniformDefaults = {};
 UniformDefaults[DataType.FLOAT] = 0.0;
@@ -116,11 +116,7 @@ export class GLTechnique {
     const uniforms = this._uniforms;
     const assetUniforms = this._tech.uniforms;
     for (const name in uniforms) {
-      this._uploadUniformValue(
-        assetUniforms[name],
-        uniforms[name].location,
-        mtl.getValue(name)
-      );
+      this._uploadUniformValue(assetUniforms[name], uniforms[name].location, mtl.getValue(name));
     }
 
     //-- change render states
@@ -129,7 +125,6 @@ export class GLTechnique {
       stateManager.pushStateBlock(this._tech.name);
       this._applyStates(stateManager);
     }
-
   }
 
   /**
@@ -168,9 +163,7 @@ export class GLTechnique {
     const functions = states.functions;
     if (functions) {
       for (const name in functions) {
-        const args = Array.isArray(functions[name])
-          ? functions[name]
-          : [functions[name]];
+        const args = Array.isArray(functions[name]) ? functions[name] : [functions[name]];
         const func = stateManager[name];
         func.apply(stateManager, args);
       }

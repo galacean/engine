@@ -1,2 +1,1 @@
-
-export { GLRenderHardware } from './GLRenderHardware';
+export { GLRenderHardware } from "./GLRenderHardware";

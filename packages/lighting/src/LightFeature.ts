@@ -1,5 +1,5 @@
-import { SceneFeature } from '@alipay/o3-core';
-import { Logger } from '@alipay/o3-base';
+import { SceneFeature } from "@alipay/o3-core";
+import { Logger } from "@alipay/o3-base";
 
 /**
  * 判断场景中是否有灯光
@@ -7,9 +7,7 @@ import { Logger } from '@alipay/o3-base';
  * @private
  */
 export function hasLight() {
-
-  return this.findFeature( LightFeature ).visibleLights.length > 0;
-
+  return this.findFeature(LightFeature).visibleLights.length > 0;
 }
 
 /**
@@ -17,30 +15,23 @@ export function hasLight() {
  * @param {Material} mtl 材质对象
  * @private
  */
-export function bindLightsToMaterial( mtl ) {
-
-  var lights = this.findFeature( LightFeature ).visibleLights;
-  for ( var i = 0, l = lights.length; i < l; i++ ) {
-
-    lights[i].bindMaterialValues( mtl );
-
+export function bindLightsToMaterial(mtl) {
+  var lights = this.findFeature(LightFeature).visibleLights;
+  for (var i = 0, l = lights.length; i < l; i++) {
+    lights[i].bindMaterialValues(mtl);
   }
-
 }
 
 /**
  * Scene Feature：在场景中添加灯光特性
  * @extends SceneFeature
  * @private
-*/
+ */
 export class LightFeature extends SceneFeature {
-
   private visibleLights;
   constructor() {
-
     super();
     this.visibleLights = [];
-
   }
 
   /**
@@ -48,19 +39,13 @@ export class LightFeature extends SceneFeature {
    * @param {LightComponent} light 灯光对象
    * @private
    */
-  attachRenderLight( light ) {
-
-    const index = this.visibleLights.indexOf( light );
-    if ( index == -1 ) {
-
-      this.visibleLights.push( light );
-
+  attachRenderLight(light) {
+    const index = this.visibleLights.indexOf(light);
+    if (index == -1) {
+      this.visibleLights.push(light);
     } else {
-
-      Logger.warn( 'Light already attached.' );
-
+      Logger.warn("Light already attached.");
     }
-
   }
 
   /**
@@ -68,15 +53,10 @@ export class LightFeature extends SceneFeature {
    * @param {LightComponent} light 灯光对象
    * @private
    */
-  detachRenderLight( light ) {
-
-    const index = this.visibleLights.indexOf( light );
-    if ( index != -1 ) {
-
-      this.visibleLights.splice( index, 1 );
-
+  detachRenderLight(light) {
+    const index = this.visibleLights.indexOf(light);
+    if (index != -1) {
+      this.visibleLights.splice(index, 1);
     }
-
   }
-
 }

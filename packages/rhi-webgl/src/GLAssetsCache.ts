@@ -18,8 +18,7 @@ export class GLAssetsCache {
     this._checkList = []; // 需要检测生命周期的对象列表
     this._nextID = 1;
     // 是否启用回收机制
-    this._enableCollect =
-      props.enableCollect === undefined ? true : !!props.enableCollect;
+    this._enableCollect = props.enableCollect === undefined ? true : !!props.enableCollect;
   }
 
   /**

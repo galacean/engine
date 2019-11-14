@@ -8,62 +8,38 @@ import { vec3Type } from "./type";
 import { Transform } from "./Transform";
 
 function activeChange(node: Node) {
-
   return () => {
-
     if (node.parentNode) {
-
       if (node.parentNode.isActiveInHierarchy) {
-
         node.isActiveInHierarchy = node.isActive;
-
       } else {
-
         node.isActiveInHierarchy = false;
-
       }
-
     } else {
-
       node.isActiveInHierarchy = node.isActive;
-
     }
-
   };
-
 }
 
 function enableRenderer(node: Node, enabled: boolean, key: string) {
-
   const abilityArray = node.abilityArray;
 
   if (abilityArray) {
-
     for (let i = abilityArray.length - 1; i >= 0; i--) {
-
       const ability = abilityArray[i];
       if (ability.isRenderable) {
-
         ability[key] = enabled;
-
       }
-
-    }// end of for
-
+    } // end of for
   }
 
   const children = node.children;
   if (children) {
-
     for (let i = children.length - 1; i >= 0; i--) {
-
       const child = children[i];
       child[key] = enabled;
-
-    }// end of for
-
-  }// end of if
-
+    } // end of for
+  } // end of if
 }
 
 /**
@@ -71,16 +47,13 @@ function enableRenderer(node: Node, enabled: boolean, key: string) {
  * @class
  */
 export class Node extends EventDispatcher {
-
   /**
    * 所属的 Scene 对象
    * @member {Scene}
    * @readonly
    */
   get scene(): Scene {
-
     return this._ownerScene;
-
   }
 
   /**
@@ -89,9 +62,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-
     return this._ownerScene.engine;
-
   }
 
   /**
@@ -100,15 +71,11 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get name(): string {
-
     return this._name;
-
   }
 
   set name(name) {
-
     this._name = name;
-
   }
 
   /**
@@ -117,9 +84,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get children(): Node[] {
-
     return this._children;
-
   }
 
   /**
@@ -128,9 +93,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get abilityArray(): NodeAbility[] {
-
     return this._abilityArray;
-
   }
 
   /**
@@ -138,16 +101,12 @@ export class Node extends EventDispatcher {
    * @member {boolean}
    */
   get isActive(): boolean {
-
     return this._activeSelf;
-
   }
 
   set isActive(val: boolean) {
-
     this._activeSelf = val;
     this._activeChangeFun();
-
   }
 
   /**
@@ -156,16 +115,12 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get isActiveInHierarchy(): boolean {
-
     return this._isActiveInInHierarchy;
-
   }
 
   set isActiveInHierarchy(isActiveInHierarchy: boolean) {
-
     this._isActiveInInHierarchy = isActiveInHierarchy;
     this.trigger(new Event("isActiveInHierarchyChange"));
-
   }
 
   /**
@@ -173,31 +128,22 @@ export class Node extends EventDispatcher {
    * @member {Node}
    */
   get parentNode(): Node {
-
     return this._parent;
-
   }
 
   set parentNode(parentObj: Node) {
-
     if (!parentObj || parentObj === this._parent) {
       return;
     }
 
     if (this._parent != null) {
-
       const index = this._parent._children.indexOf(this);
       if (index > -1) {
-
         this._parent._children.splice(index, 1);
         this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-
       } else {
-
         Logger.debug("can not find this object in _parent._children");
-
       }
-
     }
 
     this._parent = parentObj;
@@ -205,7 +151,6 @@ export class Node extends EventDispatcher {
     this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
     this._activeChangeFun();
     this._markTransformDirty();
-
   }
 
   /**
@@ -214,9 +159,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get childrenCount(): number {
-
     return this._children.length;
-
   }
 
   /**
@@ -225,9 +168,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get abilityCount(): number {
-
     return this._abilityArray.length;
-
   }
 
   /**
@@ -237,9 +178,7 @@ export class Node extends EventDispatcher {
    * @private
    */
   get isPendingDestroy(): boolean {
-
     return this._pendingDestroy;
-
   }
 
   // -- Begin of Transform ----------------------------------------------------------------------------------------
@@ -248,16 +187,12 @@ export class Node extends EventDispatcher {
    * @member {vec3}
    */
   get position() {
-
     return this._position;
-
   }
 
   set position(val) {
-
     vec3.set(this._position, val[0], val[1], val[2]);
     this._markTransformDirty();
-
   }
 
   /**
@@ -266,9 +201,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get up() {
-
     return this._up;
-
   }
 
   /**
@@ -277,9 +210,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get forward() {
-
     return this._forward;
-
   }
 
   /**
@@ -288,9 +219,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get right() {
-
     return this._right;
-
   }
 
   /**
@@ -298,69 +227,49 @@ export class Node extends EventDispatcher {
    * @member {vec3}
    */
   get worldPosition() {
-
     if (this._parent) {
-
       const parentModel = this._parent.getModelMatrix();
       const pos = vec3.create();
       vec3.transformMat4(pos, this._position, parentModel);
       return pos;
-
     } else {
-
       return this._position;
-
     }
-
   }
 
   set worldPosition(val) {
-
     const pos = vec3.fromValues(val[0], val[1], val[2]);
     if (this._parent) {
-
       const matWorldToLocal = this._parent.getInvModelMatrix();
       vec3.transformMat4(this._position, pos, matWorldToLocal);
-
     } else {
-
       this._position = pos;
-
     }
     this._markTransformDirty();
-
   }
 
   /** Property: 本节点的旋转四元数(Local Space)
    * @member {quat|Array}
    */
   get rotation() {
-
     return this._rotation;
-
   }
 
   set rotation(val) {
-
     quat.set(this._rotation, val[0], val[1], val[2], val[3]);
     this._markTransformDirty();
-
   }
 
   /** 本节点的缩放系数(Local Space)
    * @member {vec3}
    */
   get scale() {
-
     return this._scale;
-
   }
 
   set scale(val) {
-
     vec3.set(this._scale, val[0], val[1], val[2]);
     this._markTransformDirty();
-
   }
 
   /**
@@ -368,9 +277,7 @@ export class Node extends EventDispatcher {
    * @member {boolean}
    */
   set castShadow(enabled: boolean) {
-
     enableRenderer(this, enabled, "castShadow");
-
   }
 
   /**
@@ -378,9 +285,7 @@ export class Node extends EventDispatcher {
    * @member {boolean}
    */
   set recieveShadow(enabled) {
-
     enableRenderer(this, enabled, "recieveShadow");
-
   }
 
   /**
@@ -388,9 +293,7 @@ export class Node extends EventDispatcher {
    * @member {boolean}
    */
   set ignoreInDepthTexture(enabled: boolean) {
-
     enableRenderer(this, enabled, "ignoreInDepthTexture");
-
   }
 
   public onUpdate: (t?: number) => void;
@@ -434,7 +337,6 @@ export class Node extends EventDispatcher {
    * @param {string} name 节点名称
    */
   constructor(scene?: Scene, parent?: Node, name?: string) {
-
     super();
 
     // -- 核心数据
@@ -473,11 +375,9 @@ export class Node extends EventDispatcher {
     this.onUpdate = null;
 
     this.transform = new Transform(this);
-
   }
 
   public clone(): Node {
-
     const newNode = new Node(this._ownerScene, null, this.name);
 
     newNode._pendingDestroy = this._pendingDestroy;
@@ -499,13 +399,12 @@ export class Node extends EventDispatcher {
 
     const abilityArray = this._abilityArray || [];
     const len = abilityArray.length;
-    for(let i = 0; i < len; i++) {
+    for (let i = 0; i < len; i++) {
       const ability = abilityArray[i];
       newNode.createAbility(ability.constructor as any, ability._props);
     }
 
     return newNode;
-
   }
 
   /**
@@ -514,61 +413,41 @@ export class Node extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
-
     if (!this._activeSelf) {
-
       return;
-
     }
 
     // -- 检查并执行onUpdate函数
     if (this.onUpdate) {
-
       this.onUpdate(deltaTime);
-
     }
 
     // -- 更新所有 Ability
     const abilityArray = this._abilityArray;
     if (abilityArray) {
-
       for (let i = abilityArray.length - 1; i >= 0; i--) {
-
         const ability = abilityArray[i];
 
         if (ability.enabled) {
-
           ability.update(deltaTime);
           if (ability.isPendingDestroy) {
-
             abilityArray.splice(i, 1);
-
           }
-
         }
-
-      }// end of for
-
+      } // end of for
     }
 
     // -- 更新所有子节点
     const children = this._children;
     if (children) {
-
       for (let i = children.length - 1; i >= 0; i--) {
-
         const child = children[i];
         child.update(deltaTime);
         if (child._pendingDestroy) {
-
           children.splice(i, 1);
-
         }
-
-      }// end of for
-
-    }// end of if
-
+      } // end of for
+    } // end of if
   }
 
   /**
@@ -576,35 +455,23 @@ export class Node extends EventDispatcher {
    * @param {SceneVisitor} visitor
    */
   public visit(visitor: SceneVisitor): void {
-
     if (!visitor.acceptNode(this)) {
-
       return;
-
     }
 
     const abilityArray = this._abilityArray;
     if (abilityArray) {
-
       for (let i = abilityArray.length - 1; i >= 0; i--) {
-
         visitor.acceptAbility(abilityArray[i]);
-
       }
-
-    }// end of if
+    } // end of if
 
     const children = this._children;
     if (children) {
-
       for (let i = children.length - 1; i >= 0; i--) {
-
         children[i].visit(visitor);
-
-      }// end of for
-
-    }// end of if
-
+      } // end of for
+    } // end of if
   }
 
   /**
@@ -613,35 +480,25 @@ export class Node extends EventDispatcher {
    * @return {Node}
    */
   public findChildByName(name: string): Node {
-
     // -- find in this
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-
       const child = children[i];
       if (child._name && child._name === name) {
-
         return child;
-
       }
-
     }
 
     // -- 递归的查找所有子节点
     for (let i = children.length - 1; i >= 0; i--) {
-
       const child = children[i];
       const findObj = child.findChildByName(name);
       if (findObj) {
-
         return findObj;
-
       }
-
     }
 
     return null;
-
   }
 
   /**
@@ -650,7 +507,6 @@ export class Node extends EventDispatcher {
    * @return {Node}
    */
   public findChildByPath(path: string): Node {
-
     const splits = path.split("/");
     if (splits.length === 0) {
       return null;
@@ -664,7 +520,6 @@ export class Node extends EventDispatcher {
       }
     }
     return obj;
-
   }
 
   /**
@@ -673,10 +528,8 @@ export class Node extends EventDispatcher {
    * @return {Node} 新创建的子节点对象
    */
   public createChild(name: string): Node {
-
     const child = new Node(this._ownerScene, this, name);
     return child;
-
   }
 
   /**
@@ -684,72 +537,52 @@ export class Node extends EventDispatcher {
    * @param {Node} child
    */
   public addChild(child: Node): void {
-
     if (child._ownerScene !== this._ownerScene) {
-
       // fixme: remove below code after gltf loader can set the right ownerScene
       child._ownerScene = this._ownerScene;
 
-      const traverseSetOwnerScene = (node) => {
-
+      const traverseSetOwnerScene = node => {
         for (let i = node.children.length - 1; i >= 0; i--) {
-
           node.children[i]._ownerScene = node._ownerScene;
           traverseSetOwnerScene(node.children[i]);
-
         }
-
       };
       traverseSetOwnerScene(child);
 
       // throw new Error( 'Node should NOT shared between scenes.' );
-
     }
     child.parentNode = this;
-
   }
 
   /** 销毁本节点对象 */
   public destroy(): void {
-
     this._pendingDestroy = true;
 
     // -- clear ability array
     const abilityArray = this._abilityArray;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
-
       abilityArray[i].destroy();
-
     }
     this._abilityArray = [];
 
     // -- clear children
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-
       children[i].destroy();
-
     }
     this._children = [];
 
     // -- clear parent
     if (this._parent != null) {
-
       const index = this._parent._children.indexOf(this);
       if (index > -1) {
-
         this._parent._children.splice(index, 1);
         this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-
       } else {
-
         Logger.debug("can not find this object in _parent._children");
-
       }
-
     }
     this._parent = null;
-
   }
 
   /**
@@ -757,14 +590,10 @@ export class Node extends EventDispatcher {
    * @param {NodeAbility} abilityObject 功能组件对象
    */
   public attachAbility(abilityObject: NodeAbility): void {
-
     const index = this._abilityArray.indexOf(abilityObject);
     if (index !== -1) {
-
       this._abilityArray.push(abilityObject);
-
     }
-
   }
 
   /**
@@ -772,14 +601,10 @@ export class Node extends EventDispatcher {
    * @param {NodeAbility} abilityObject 功能组件对象
    */
   public detachAbility(abilityObject: NodeAbility): void {
-
     const index = this._abilityArray.indexOf(abilityObject);
     if (index !== -1) {
-
       this._abilityArray.splice(index, 1);
-
     }
-
   }
 
   /**
@@ -788,7 +613,10 @@ export class Node extends EventDispatcher {
    * @param {object} props 组件的额外参数
    * @return {NodeAbility} 新创建的组件对象
    */
-  public createAbility<T extends NodeAbility>(abilityType: new (node: Node, props?: object) => T, props: object = {}): T {
+  public createAbility<T extends NodeAbility>(
+    abilityType: new (node: Node, props?: object) => T,
+    props: object = {}
+  ): T {
     const newAbility = new abilityType(this, props);
     this._abilityArray.push(newAbility);
     return newAbility;
@@ -808,7 +636,6 @@ export class Node extends EventDispatcher {
       }
     }
     return null;
-
   }
 
   /**
@@ -816,10 +643,8 @@ export class Node extends EventDispatcher {
    * @param {quat} rot 旋转四元数
    */
   public rotateByQuat(rot: number[] | Float32Array) {
-
     quat.multiply(this._rotation, this._rotation, rot);
     this._markTransformDirty();
-
   }
 
   /**
@@ -829,7 +654,6 @@ export class Node extends EventDispatcher {
    * @param {number} roll Z轴的旋转角度
    */
   public rotateByAngles(pitch: number, yaw: number, roll: number): void {
-
     const rot = quat.create();
     if (Util.isArray(pitch)) {
       quat.fromEuler(rot, pitch[0], pitch[1], pitch[2]);
@@ -839,7 +663,6 @@ export class Node extends EventDispatcher {
 
     quat.multiply(this._rotation, this._rotation, rot);
     this._markTransformDirty();
-
   }
 
   /**
@@ -849,18 +672,12 @@ export class Node extends EventDispatcher {
    * @param {number} roll 围绕Z轴的旋转
    */
   public setRotationAngles(pitch: number, yaw: number, roll: number): void {
-
     if (Util.isArray(pitch)) {
-
       quat.fromEuler(this._rotation, pitch[0], pitch[1], pitch[2]);
-
     } else {
-
       quat.fromEuler(this._rotation, pitch, yaw, roll);
-
     }
     this._markTransformDirty();
-
   }
 
   /**
@@ -869,29 +686,23 @@ export class Node extends EventDispatcher {
    * @param {number} deg 旋转角度
    */
   public setRotationAxisAngle(axis, deg: number) {
-
     quat.setAxisAngle(this._rotation, axis, MathUtil.toRadian(deg));
     this._markTransformDirty();
-
   }
 
   /** 获取本节点的前方方向
    * @return {vec3} 节点的前方方向向量
    */
   public getForward(): number[] | Float32Array {
-
     const modelMatrix = this.getModelMatrix();
     return vec3.fromValues(modelMatrix[8], modelMatrix[9], modelMatrix[10]);
-
   }
 
   /**
    * 取得Local to World矩阵
    */
   public getModelMatrix(): number[] | Float32Array {
-
     if (this._modelMatrixDirty) {
-
       this._updateModelMatrix();
       vec3.set(this._right, this._modelMatrix[0], this._modelMatrix[1], this._modelMatrix[2]);
       vec3.set(this._up, this._modelMatrix[4], this._modelMatrix[5], this._modelMatrix[6]);
@@ -899,10 +710,8 @@ export class Node extends EventDispatcher {
       vec3.normalize(this._right, this._right);
       vec3.normalize(this._up, this._up);
       vec3.normalize(this._forward, this._forward);
-
     }
     return this._modelMatrix;
-
   }
 
   /**
@@ -910,13 +719,10 @@ export class Node extends EventDispatcher {
    * @param {mat4} m 变换矩阵
    */
   public setModelMatrix(m: number[] | Float32Array) {
-
     const transformMat = mat4.clone(m);
     if (this._parent) {
-
       const parentInvMat = this._parent.getInvModelMatrix();
       mat4.mul(transformMat, parentInvMat, transformMat);
-
     }
 
     mat4.getTranslation(this._position, transformMat);
@@ -924,7 +730,6 @@ export class Node extends EventDispatcher {
     mat4.getScaling(this._scale, transformMat);
 
     this._markTransformDirty();
-
   }
 
   /**
@@ -932,14 +737,10 @@ export class Node extends EventDispatcher {
    * @return {mat4}
    */
   public getInvModelMatrix(): number[] | Float32Array {
-
     if (this._modelMatrixDirty || this._invModelMatrixDirty) {
-
       this._updateInvModelMatrix();
-
     }
     return this._invModelMatrix;
-
   }
 
   /**
@@ -947,23 +748,19 @@ export class Node extends EventDispatcher {
    * @private
    */
   public _updateModelMatrix(): void {
-
-    const temp = mat4.clone(this._modelMatrix)
+    const temp = mat4.clone(this._modelMatrix);
 
     mat4.fromRotationTranslationScale(this._modelMatrix, this._rotation, this._position, this._scale);
     if (this._parent) {
-
       const parentMat = this._parent.getModelMatrix();
       mat4.mul(this._modelMatrix, parentMat, this._modelMatrix);
-
     }
 
-    if(!mat4.equals(temp, this._modelMatrix)) {
+    if (!mat4.equals(temp, this._modelMatrix)) {
       this.trigger(this.propertyChangeEvnet);
     }
 
     this._modelMatrixDirty = false;
-
   }
 
   /**
@@ -971,10 +768,8 @@ export class Node extends EventDispatcher {
    * @private
    */
   public _updateInvModelMatrix(): void {
-
     mat4.invert(this._invModelMatrix, this.getModelMatrix());
     this._invModelMatrixDirty = false;
-
   }
 
   /**
@@ -982,23 +777,17 @@ export class Node extends EventDispatcher {
    * @private
    */
   public _markTransformDirty(): void {
-
     if (this._modelMatrixDirty && this._invModelMatrixDirty) {
-
       return;
-
     }
 
     this._modelMatrixDirty = true;
     this._invModelMatrixDirty = true;
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-
       const child = children[i];
       child._markTransformDirty();
-
     }
-
   }
 
   /**
@@ -1007,13 +796,10 @@ export class Node extends EventDispatcher {
    * @param {vec3} up 指向上方的单位向量
    */
   public lookAt(center: vec3Type, up: vec3Type) {
-
     const position = this.worldPosition;
     const modelMatrix = mat4.create();
     mat4.lookAtR(modelMatrix, position, center, up);
     this.setModelMatrix(modelMatrix);
     return this;
-
   }
-
 }

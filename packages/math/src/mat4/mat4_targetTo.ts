@@ -9,17 +9,17 @@
  */
 export function targetTo(out, eye, target, up) {
   let eyex = eye[0],
-      eyey = eye[1],
-      eyez = eye[2],
-      upx = up[0],
-      upy = up[1],
-      upz = up[2];
+    eyey = eye[1],
+    eyez = eye[2],
+    upx = up[0],
+    upy = up[1],
+    upz = up[2];
 
   let z0 = eyex - target[0],
-      z1 = eyey - target[1],
-      z2 = eyez - target[2];
+    z1 = eyey - target[1],
+    z2 = eyez - target[2];
 
-  let len = z0*z0 + z1*z1 + z2*z2;
+  let len = z0 * z0 + z1 * z1 + z2 * z2;
   if (len > 0) {
     len = 1 / Math.sqrt(len);
     z0 *= len;
@@ -28,8 +28,8 @@ export function targetTo(out, eye, target, up) {
   }
 
   let x0 = upy * z2 - upz * z1,
-      x1 = upz * z0 - upx * z2,
-      x2 = upx * z1 - upy * z0;
+    x1 = upz * z0 - upx * z2,
+    x2 = upx * z1 - upy * z0;
 
   out[0] = x0;
   out[1] = x1;
@@ -48,5 +48,4 @@ export function targetTo(out, eye, target, up) {
   out[14] = eyez;
   out[15] = 1;
   return out;
-};
-
+}
