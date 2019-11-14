@@ -20,7 +20,7 @@
     "watch": "rollup -cw",
     "watch:umd": "cross-env NODE_ENV=BUILD rollup -cw",
     "ci": "npm run lint && npm run test-cov",
-    "lint": "eslint src --fix --ext .ts",
+    "lint": "eslint packages/*/src --ext .ts",
     "build": "rollup -c",
     "b:types": "lerna run b:types",
     "b:all": "npm-run-all --parallel b:types build b:miniprogram b:miniprogram-component && tnpm run b:umd",
@@ -113,6 +113,7 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "prettier --write",
+      "eslint",
       "git add"
     ]
   },
