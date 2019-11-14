@@ -5,7 +5,7 @@ import { ADirectLight } from '@alipay/o3-lighting';
 import { AOrbitControls } from '@alipay/o3-orbit-controls';
 import { AGeometryRenderer } from '@alipay/o3-geometry';
 import { CuboidGeometry, CylinderGeometry } from '@alipay/o3-geometry-shape';
-import { LambertMaterial, TextureMaterial } from '@alipay/o3-mobile-material';
+import { LambertMaterial } from '@alipay/o3-mobile-material';
 import { Texture2D } from '@alipay/o3-material';
 import {
   DecalGeometry,
@@ -14,10 +14,11 @@ import {
   transformDirection,
 } from '@alipay/o3-decal';
 
+
 let point;
 let normal;
-let intersectNode;
 let decalMtl;
+let targetIntersection;
 let moved = false;
 
 const canvas = document.getElementById('o3-demo');
@@ -119,7 +120,7 @@ function rayCastEvent(model) {
       mouseHelper.isActive = true;
       point = mostCloseIntersection.point.slice(0);
       normal = mostCloseIntersection.normal.slice(0);
-      intersectNode = mostCloseIntersection.node;
+      targetIntersection = mostCloseIntersection;
       
       mouseHelper.position = point.slice(0);
 
@@ -145,9 +146,9 @@ function addGeometryEvent() {
     if (point && normal && !moved) {
       const decal = world.createChild('decal');
       const renderer = decal.createAbility(AGeometryRenderer);
-      console.log(intersectNode);
+      console.log(targetIntersection);
       renderer.geometry = new DecalGeometry(
-        intersectNode,
+        targetIntersection,
         point,
         orientation,
         [10, 10, 10],

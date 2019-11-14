@@ -103,12 +103,13 @@ function checkIntersection(
   const pointCopy = vec3.copy(_intersectPointWorld, point);
   const intersectPointWorld = vec3.transformMat4(temp, pointCopy, node.getModelMatrix());
   const distance = distanceTo(ray.origin, intersectPointWorld);
-  node.primitive = primitive;
-  
+
   return {
     node,
     distance,
     point: intersectPointWorld.slice(0),
     normal: null,
+    materialName: primitive.material.name,
+    primitive,
   }
 }

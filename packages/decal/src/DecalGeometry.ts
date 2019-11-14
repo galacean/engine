@@ -14,6 +14,15 @@ import {
 
 type FloatArray = Array<number> | Float32Array;
 
+interface Intersection {
+  node: Node,
+  distance: Number,
+  point: FloatArray,
+  normal: FloatArray,
+  primitive: Primitive,
+  materialName: String,
+}
+
 export class DecalGeometry extends BufferGeometry {
   public size: FloatArray;
   public readonly node: Node;
@@ -23,17 +32,16 @@ export class DecalGeometry extends BufferGeometry {
   public readonly orientation: FloatArray;
   public readonly projectorMatrix: FloatArray;
   public readonly projectorMatrixInverse: FloatArray;
-  public constructor(node: Node, position: FloatArray, orientation: FloatArray, size: FloatArray) {
+  public constructor(intersection: Intersection, position: FloatArray, orientation: FloatArray, size: FloatArray) {
     super();
-    this.node = node;
-    console.log(node);
-    const meshRenderer = node.abilityArray[0];
+    this.node = intersection.node;
+    const meshRenderer = this.node.abilityArray[0];
     if (meshRenderer instanceof AMeshRenderer) {
       this.targetMesh = meshRenderer.mesh;
     } else {
       console.error('必须是mesh');
     }
-    this.targetPrimitive = this.node.primitive;
+    this.targetPrimitive = intersection.primitive;
     this.position = position;
     this.orientation = orientation;
     this.size = size;
