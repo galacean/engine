@@ -13,7 +13,14 @@ import { vec2, vec3, vec4, quat } from "@alipay/o3-math";
  */
 const doTransformRotate = (obj, endValue, interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.QuaternionPlugin;
-  return new Tweener(() => quat.clone(obj.rotation), value => (obj.rotation = value), endValue, interval, options, obj);
+  return new Tweener(
+    () => quat.clone(obj.rotation),
+    value => (obj.rotation = value),
+    endValue,
+    interval,
+    options,
+    obj
+  );
 };
 
 /*** 做平移的插值变换
@@ -26,7 +33,14 @@ const doTransformRotate = (obj, endValue, interval, options: any = {}) => {
 const doTransformTranslate = (obj, endValue, interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
 
-  return new Tweener(() => vec3.clone(obj.position), value => (obj.position = value), endValue, interval, options, obj);
+  return new Tweener(
+    () => vec3.clone(obj.position),
+    value => (obj.position = value),
+    endValue,
+    interval,
+    options,
+    obj
+  );
 };
 
 /*** 做缩放的插值变换
@@ -39,7 +53,14 @@ const doTransformTranslate = (obj, endValue, interval, options: any = {}) => {
 const doTransformScale = (obj, endValue, interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
 
-  return new Tweener(() => vec3.clone(obj.scale), value => (obj.scale = value), endValue, interval, options, obj);
+  return new Tweener(
+    () => vec3.clone(obj.scale),
+    value => (obj.scale = value),
+    endValue,
+    interval,
+    options,
+    obj
+  );
 };
 
 /*** 做材质参数的插值变换
