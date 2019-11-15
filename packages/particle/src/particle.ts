@@ -541,7 +541,12 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const { spriteSheet } = this;
     const { particleTex } = this;
     let rects;
-    const normalizedRects: any[] = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
+    const normalizedRects: any[] = [
+      [-0.5, -0.5],
+      [0.5, -0.5],
+      [0.5, 0.5],
+      [-0.5, 0.5]
+    ];
     if (particleTex) {
       const width = particleTex.image.width;
       const height = particleTex.image.height;
@@ -561,10 +566,20 @@ export class AGPUParticleSystem extends AGeometryRenderer {
           [u, v, h / w] // left top
         ];
       } else {
-        rects = [[0, 0, height / width], [1, 0, height / width], [1, 1, height / width], [0, 1, height / width]];
+        rects = [
+          [0, 0, height / width],
+          [1, 0, height / width],
+          [1, 1, height / width],
+          [0, 1, height / width]
+        ];
       }
     } else {
-      rects = [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]];
+      rects = [
+        [0, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [0, 1, 1]
+      ];
     }
     this.geometry.setValue("UV", k, rects[j]);
     this.geometry.setValue("NORMALIZED_UV", k, normalizedRects[j]);

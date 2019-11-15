@@ -66,7 +66,7 @@ export class AOrbitControls extends NodeAbility {
     PAN: number;
     TOUCH_ZOOM: number;
   };
-  public mouseUpEvents: ({ listener: any; type: string })[];
+  public mouseUpEvents: { listener: any; type: string }[];
 
   /**
    * 轨道控制器构造函数
