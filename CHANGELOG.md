@@ -10,6 +10,7 @@
 
 ### Bug Fixes
 
+- particle fadeIn and fadeOut error [!33](http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues/33)
 - disable depthmask（@shensi.zxd） [!10](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/10)
 - del unnecessary shader（@shensi.zxd） [!4](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/4)
 - shader error（@shensi.zxd） [!5](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/5)
