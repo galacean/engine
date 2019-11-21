@@ -45,6 +45,8 @@ const options = {
 };
 // 粒子发射器环境参数
 const config = {
+  fadeIn: true,
+  fadeOut: true,
   maxCount: 3,
   options: options
 };

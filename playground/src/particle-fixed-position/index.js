@@ -43,12 +43,13 @@ const options = {
   rotateRate: 0,
   rotateRateRandomness: 2,
   positionArray: [
-    [0, 0 ,0 ], [0, 1, 0 ], [0, 2, 0]
+    [0, 0, 0 ], [0, 1, 0 ], [0, 2, 0]
   ]
 };
 // 粒子发射器环境参数
 const config = {
   maxCount: 3,
+  fadeOut: true,
   options: options
 };
 

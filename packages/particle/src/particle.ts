@@ -32,6 +32,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   public vertexShader: string;
   public particleTex;
   public fadeIn: boolean;
+  public fadeOut: boolean;
   public particleMaskTex;
   public isScaleByLifetime: boolean;
   public scaleFactor: number;
@@ -91,6 +92,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
    * @param {Texture} [ParticleProps.maskTexture] 粒子遮罩贴图
    * @param {boolean} [ParticleProps.isScaleByLifetime = false] 是否随生命周期缩小至消失
    * @param {boolean} [ParticleProps.fadeIn = false] 是否添加淡入效果
+   * @param {boolean} [ParticleProps.fadeOut = false] 是否添加淡出效果
    * @param {number} [ParticleProps.scaleFactor = 1] 粒子随时间scale参数
    * @param {Array} [ParticleProps.spriteSheet] 雪碧图数据
    * @param {boolean} [ParticleProps.is2d] 是否是2D旋转
@@ -111,6 +113,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     this.vertexShader = props.vertexShader || null;
     this.particleTex = props.texture || null;
     this.fadeIn = props.fadeIn || false;
+    this.fadeOut = props.fadeOut || false;
     this.particleMaskTex = props.maskTexture || null;
     this.isScaleByLifetime = props.isScaleByLifetime || false;
     this.scaleFactor = props.scaleFactor || 1;
@@ -755,29 +758,32 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
         void main()
         {
-          float new_lifeLeft = lifeLeft;
-         
+          // float alphaFactor = step(0.0, lifeLeft);
+          float alphaFactor = 1.0;
       `,
       fadeInFragmentShader: `
-        float k = step(0.5, lifeLeft);
-        new_lifeLeft =  (1.0 - k) * lifeLeft +  k * (1.0 - lifeLeft);
+        float fadeInFactor = step(0.5, lifeLeft);
+        alphaFactor = 2.0 * fadeInFactor * (1.0 - lifeLeft) + (1.0 - fadeInFactor);
+      `,
+      fadeOutFragmentShader: `
+        float fadeOutFactor = step(0.5, lifeLeft);
+        alphaFactor = alphaFactor * 2.0 * (1.0 - fadeOutFactor) * lifeLeft + alphaFactor * fadeOutFactor;
       `,
       noImgFragmentShader: ` 
-          gl_FragColor = vec4( v_color, new_lifeLeft * v_alpha);
-        
+        gl_FragColor = vec4( v_color, alphaFactor * v_alpha);
       `,
       imgFragmentShader: `
         vec4 tex = texture2D(particleTex, v_uv);
       `,
       originColorFragmentShader: `
-        gl_FragColor = vec4( tex.rgb ,  new_lifeLeft * tex.a * v_alpha);
+        gl_FragColor = vec4(tex.rgb, alphaFactor * tex.a * v_alpha);
       `,
       createColorFragmentShader: `
-        gl_FragColor = vec4( v_color * tex.rgb , new_lifeLeft * tex.a * v_alpha);
+        gl_FragColor = vec4(v_color * tex.rgb, alphaFactor * tex.a * v_alpha);
       `,
       createColorWithMaskFragmentShader: `
         vec4 maskTex = texture2D( particleMaskTex, v_uv);
-        gl_FragColor = vec4( v_color * tex.rgb + maskTex.a,   new_lifeLeft * tex.a * v_alpha);
+        gl_FragColor = vec4(v_color * tex.rgb + maskTex.a, alphaFactor * tex.a * v_alpha);
       `
     };
   }
@@ -834,6 +840,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       fragmentShader = shader.fragmentShader;
       if (this.fadeIn) {
         fragmentShader += shader.fadeInFragmentShader;
+      }
+
+      if (this.fadeOut) {
+        fragmentShader += shader.fadeOutFragmentShader;
       }
 
       if (!this.particleTex) {
