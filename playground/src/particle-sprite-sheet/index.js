@@ -93,6 +93,8 @@ const options = {
 // 粒子发射器环境参数
 const config = {
   // once: true,
+  fadeIn: true,
+  fadeOut: true,
   maxCount: 100,
   spriteSheet,
   // is2d: false,
