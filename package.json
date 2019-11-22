@@ -114,6 +114,7 @@
     "*.{ts,tsx}": [
       "prettier --write",
       "eslint",
+      "tsc --noEmit",
       "git add"
     ]
   },
