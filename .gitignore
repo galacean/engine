@@ -8,7 +8,6 @@ tmp
 /packages/*/doc
 types
 /packages/*/test/fixtures/**/node_modules
-/examples/node_modules
 /boilerplates/*/node_modules
 lib
 docs
@@ -19,5 +18,5 @@ coverage
 npm-debug.log*
 lerna-debug.log
 .changelog
-examples/src/pbr/2.0
 playground/node_modules
+playground/src/test
