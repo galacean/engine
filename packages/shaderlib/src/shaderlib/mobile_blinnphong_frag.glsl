@@ -16,9 +16,12 @@
         float d = max(dot(N, -lgt.direction), 0.0)*lgt.intensity;
         lightDiffuse += lgt.color*d;
 
-        vec3 halfDir = normalize( V - lgt.direction );
-        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * lgt.intensity;
-        lightSpecular += lgt.color * s;
+        float hasLight = step(0.000001, -dot(lgt.direction, N) );
+        if( bool(hasLight) ){
+            vec3 halfDir = normalize( V - lgt.direction );
+            float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * lgt.intensity;
+            lightSpecular += lgt.color * s;
+        }
     }
 
     #endif
