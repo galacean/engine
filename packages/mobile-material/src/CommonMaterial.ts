@@ -15,7 +15,11 @@ export abstract class CommonMaterial extends Material {
   private _side: Side = Side.FRONT;
   private _emission;
   private _ambient;
-  public renderStates: TechniqueStates;
+  public renderStates: TechniqueStates = {
+    enable: [],
+    disable: [],
+    functions: {}
+  };
 
   constructor(name: string) {
     super(name);
@@ -182,22 +186,34 @@ export abstract class CommonMaterial extends Material {
     let states: TechniqueStates = (this.renderStates = {
       enable: [],
       disable: [],
-      functions: {}
+      functions: {},
+      ...this.renderStates
     });
-    switch (this.side) {
-      case Side.DOUBLE:
+
+    // 处理side相关的states
+    let cullFaceIndex = states.disable.indexOf(RenderState.CULL_FACE);
+    if (this.side === Side.DOUBLE) {
+      delete states.functions.cullFace;
+      if (cullFaceIndex === -1) {
         states.disable.push(RenderState.CULL_FACE);
-        break;
-      case Side.FRONT:
-        states.functions.cullFace = [CullFace.BACK];
-        break;
-      case Side.BACK:
-        states.functions.cullFace = [CullFace.FRONT];
-        break;
-      case Side.NONE:
-        states.functions.cullFace = [CullFace.FRONT_AND_BACK];
-        break;
+      }
+    } else {
+      if (cullFaceIndex !== -1) {
+        states.disable.splice(cullFaceIndex, 1);
+      }
+      switch (this.side) {
+        case Side.FRONT:
+          states.functions.cullFace = [CullFace.BACK];
+          break;
+        case Side.BACK:
+          states.functions.cullFace = [CullFace.FRONT];
+          break;
+        case Side.NONE:
+          states.functions.cullFace = [CullFace.FRONT_AND_BACK];
+          break;
+      }
     }
+
     return states;
   }
 }
