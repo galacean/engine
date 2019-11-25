@@ -2,6 +2,7 @@ import { vec3, vec4 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
 import { Texture2D } from "@alipay/o3-material";
 import { Material, RenderTechnique } from "@alipay/o3-material";
+import { TechniqueStates } from "@alipay/o3-material/types/type";
 import { LightFeature, AAmbientLight } from "@alipay/o3-lighting";
 
 import VertexShader from "./shader/Vertex.glsl";
@@ -13,7 +14,7 @@ import VertexShader from "./shader/Vertex.glsl";
 export abstract class CommonMaterial extends Material {
   private _emission;
   private _ambient;
-  public renderStates: { enable?: GLenum[]; disbale?: GLenum[] };
+  public renderStates: TechniqueStates;
 
   constructor(name: string) {
     super(name);
