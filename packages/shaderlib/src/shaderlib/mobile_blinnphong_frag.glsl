@@ -1,7 +1,7 @@
     #ifdef O3_HAS_NORMAL
          N *= float( gl_FrontFacing ) * 2.0 - 1.0;
     #elif
-         N = vec3(0,0,1);
+         N = vec3(0, 0, 1);
     #endif
 
 
@@ -16,12 +16,9 @@
         float d = max(dot(N, -lgt.direction), 0.0)*lgt.intensity;
         lightDiffuse += lgt.color*d;
 
-        float hasSpecular = step(0.000001, -dot(lgt.direction, N) );
-        if( bool(hasSpecular) ){
-            vec3 halfDir = normalize( V - lgt.direction );
-            float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * lgt.intensity;
-            lightSpecular += lgt.color * s;
-        }
+        vec3 halfDir = normalize( V - lgt.direction );
+        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * lgt.intensity;
+        lightSpecular += lgt.color * s;
     }
 
     #endif
@@ -38,12 +35,9 @@
         float d =  max( dot( N, -direction ), 0.0 )*lgt.intensity*decay;
         lightDiffuse += lgt.color*d;
 
-        float hasSpecular = step( 0.000001, -dot( direction, N ) );
-        if( bool(hasSpecular) ){
-            vec3 halfDir = normalize( V - direction );
-            float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * lgt.intensity * decay;
-            lightSpecular += lgt.color * s;
-        }
+        vec3 halfDir = normalize( V - direction );
+        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * lgt.intensity * decay;
+        lightSpecular += lgt.color * s;
 
     }
 
@@ -65,12 +59,9 @@
         float d = max( dot( N, -direction ), 0.0 ) * lgt.intensity * decay * ( penumbra + hasLight );
         lightDiffuse += lgt.color * d;
 
-        float hasSpecular = step( 0.000001, -dot( direction, N ) );
-        if( bool(hasSpecular) ){
-            vec3 halfDir = normalize( V - direction );
-            float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * lgt.intensity * decay * ( penumbra + hasLight );
-            lightSpecular += lgt.color * s;
-        }
+        vec3 halfDir = normalize( V - direction );
+        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * lgt.intensity * decay * ( penumbra + hasLight );
+        lightSpecular += lgt.color * s;
 
     }
 
