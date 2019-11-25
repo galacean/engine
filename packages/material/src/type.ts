@@ -12,7 +12,7 @@ export type React = { x: number; y: number; width: number; height: number };
 export type TechniqueStates = {
   enable?: GLenum[];
   disable?: GLenum[];
-  function?: {
+  functions?: {
     [key: string]: Array<any>;
   };
 };
