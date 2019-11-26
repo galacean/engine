@@ -1067,8 +1067,8 @@ class PBRMaterial extends Material {
   /**
    * 创建一个副本
    */
-  clone() {
-    const newMtl = new PBRMaterial(this.name);
+  clone(name?: string) {
+    const newMtl = new PBRMaterial(name || this.name);
 
     newMtl.renderType = this.renderType;
 
