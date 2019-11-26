@@ -1,4 +1,4 @@
-import { RANDOM } from '../MathUtil/MathUtil_RANDOM';
+import { RANDOM } from "../MathUtil/MathUtil_RANDOM";
 /**
  * Generates a random vector with the given scale
  *
@@ -12,4 +12,4 @@ export function random(out, scale) {
   out[0] = Math.cos(r) * scale;
   out[1] = Math.sin(r) * scale;
   return out;
-};
+}

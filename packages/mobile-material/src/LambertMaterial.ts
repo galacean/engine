@@ -1,16 +1,15 @@
-import {vec4} from '@alipay/o3-math';
-import {DataType} from '@alipay/o3-base';
-import {Texture2D} from '@alipay/o3-material';
-import {CommonMaterial} from './CommonMaterial';
-import {LightFeature, ADirectLight} from '@alipay/o3-lighting';
-import LambertShader from './shader/Lambert.glsl';
+import { vec4 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-base";
+import { Texture2D } from "@alipay/o3-material";
+import { CommonMaterial } from "./CommonMaterial";
+import { LightFeature, ADirectLight } from "@alipay/o3-lighting";
+import LambertShader from "./shader/Lambert.glsl";
 
 /**
  * 实现 Lambert 光照模型的材质
  * color = <emission> + <ambient> * al + <diffuse> * max(N * L, 0)
  */
 export class LambertMaterial extends CommonMaterial {
-
   private _directLightCount;
   private _diffuse;
 
@@ -19,13 +18,11 @@ export class LambertMaterial extends CommonMaterial {
    * @param {String} name 名称
    */
   constructor(name) {
-
     super(name);
 
     this._directLightCount = 0;
 
     this._diffuse = vec4.fromValues(1, 1, 1, 1);
-
   }
 
   /**
@@ -33,16 +30,12 @@ export class LambertMaterial extends CommonMaterial {
    * @member {vec4|Texture2D}
    */
   get diffuse() {
-
     return this._diffuse;
-
   }
 
   set diffuse(val) {
-
     this._diffuse = val;
-    this.setValue('u_diffuse', val);
-
+    this.setValue("u_diffuse", val);
   }
 
   /**
@@ -50,10 +43,8 @@ export class LambertMaterial extends CommonMaterial {
    * @private
    */
   _generateTechnique() {
-
-    this._internalGenerate('LambertMaterial', LambertShader);
-    this.setValue('u_diffuse', this._diffuse);
-
+    this._internalGenerate("LambertMaterial", LambertShader);
+    this.setValue("u_diffuse", this._diffuse);
   }
 
   /**
@@ -61,39 +52,29 @@ export class LambertMaterial extends CommonMaterial {
    * @private
    */
   prepareDrawing(camera, component, primitive) {
-
     let directLightCount = 0;
 
     const scene = camera.scene;
     const lightMgr = scene.findFeature(LightFeature);
     if (lightMgr) {
-
       const lights = lightMgr.visibleLights;
 
       for (let i = 0, len = lights.length; i < len; i++) {
-
         const lgt = lights[i];
         if (lgt instanceof ADirectLight) {
-
           const name = `u_directLights[${directLightCount}]`;
           lgt.bindMaterialValues(this, name);
           directLightCount++;
-
         }
-
-      }// end of for
-
-    }// end of if
+      } // end of for
+    } // end of if
 
     if (this._technique === null || this._directLightCount != directLightCount) {
-
       this._directLightCount = directLightCount;
       this._generateTechnique();
-
     }
 
     super.prepareDrawing(camera, component, primitive);
-
   }
 
   /**
@@ -101,35 +82,27 @@ export class LambertMaterial extends CommonMaterial {
    * @private
    */
   _generateFragmentUniform() {
-
     let uniforms: any = {};
     for (let i = 0; i < this._directLightCount; i++) {
-
       const name = `u_directLights[${i}]`;
       const lgtUniforms = ADirectLight.getUniformDefine(name);
-      uniforms = {...uniforms, ...lgtUniforms};
-
-    }// end of for
+      uniforms = { ...uniforms, ...lgtUniforms };
+    } // end of for
 
     if (this._diffuse instanceof Texture2D) {
-
       uniforms.u_diffuse = {
-        name: 'u_diffuse',
+        name: "u_diffuse",
         type: DataType.SAMPLER_2D
       };
-
     } else {
-
       uniforms.u_diffuse = {
-        name: 'u_diffuse',
+        name: "u_diffuse",
         type: DataType.FLOAT_VEC4
       };
-
     }
 
     const baseUniforms = super._generateFragmentUniform();
     return Object.assign(baseUniforms, uniforms);
-
   }
 
   /**
@@ -137,19 +110,14 @@ export class LambertMaterial extends CommonMaterial {
    * @private
    */
   _generateMacros() {
-
     const macros = super._generateMacros();
 
-    macros.push('O3_NEED_WORLDPOS');
+    macros.push("O3_NEED_WORLDPOS");
 
-    if (this._directLightCount > 0)
-      macros.push(`O3_DIRECT_LIGHT_COUNT ${this._directLightCount}`);
+    if (this._directLightCount > 0) macros.push(`O3_DIRECT_LIGHT_COUNT ${this._directLightCount}`);
 
-    if (this._diffuse instanceof Texture2D)
-      macros.push('O3_DIFFUSE_TEXTURE');
+    if (this._diffuse instanceof Texture2D) macros.push("O3_DIFFUSE_TEXTURE");
 
     return macros;
-
   }
-
 }

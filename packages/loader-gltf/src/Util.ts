@@ -1,4 +1,4 @@
-import {path} from '@alipay/o3-loader';
+import { path } from "@alipay/o3-loader";
 
 /**
  * 解析二进制文本 用于 glb loader
@@ -7,24 +7,18 @@ import {path} from '@alipay/o3-loader';
  * @private
  */
 export function decodeText(array) {
-
-  if (typeof TextDecoder !== 'undefined') {
-
+  if (typeof TextDecoder !== "undefined") {
     return new TextDecoder().decode(array);
-
   }
 
   // TextDecoder polyfill
-  let s = '';
+  let s = "";
 
   for (let i = 0, il = array.length; i < il; i++) {
-
     s += String.fromCharCode(array[i]);
-
   }
 
   return decodeURIComponent(encodeURIComponent(s));
-
 }
 
 /**
@@ -36,18 +30,12 @@ export function decodeText(array) {
  * @private
  */
 export function findByKeyValue(obj, key, value) {
-
   for (const name in obj) {
-
     if (obj[name][key] === value) {
-
       return obj[name];
-
     }
-
   }
   return null;
-
 }
 
 /** 获取 accessor type 占用字节数
@@ -56,7 +44,6 @@ export function findByKeyValue(obj, key, value) {
  * @private
  */
 export function getAccessorTypeSize(accessorType) {
-
   const ACCESSOR_TYPE_SIZE = {
     SCALAR: 1,
     VEC2: 2,
@@ -64,10 +51,9 @@ export function getAccessorTypeSize(accessorType) {
     VEC4: 4,
     MAT2: 4,
     MAT3: 9,
-    MAT4: 16,
+    MAT4: 16
   };
   return ACCESSOR_TYPE_SIZE[accessorType];
-
 }
 
 /**
@@ -78,11 +64,10 @@ export function getAccessorTypeSize(accessorType) {
  * @private
  */
 export function getAccessorData(gltf, accessor, buffers) {
-
   const bufferView = gltf.bufferViews[accessor.bufferView];
   const arrayBuffer = buffers[bufferView.buffer];
-  const accessorByteOffset = accessor.hasOwnProperty('byteOffset') ? accessor.byteOffset : 0;
-  const bufferViewByteOffset = bufferView.hasOwnProperty('byteOffset') ? bufferView.byteOffset : 0;
+  const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
+  const bufferViewByteOffset = bufferView.hasOwnProperty("byteOffset") ? bufferView.byteOffset : 0;
   const byteOffset = accessorByteOffset + bufferViewByteOffset;
   const length = getAccessorTypeSize(accessor.type) * accessor.count;
 
@@ -98,14 +83,13 @@ export function getAccessorData(gltf, accessor, buffers) {
     5122: Int16Array,
     5123: Uint16Array,
     5125: Uint32Array,
-    5126: Float32Array,
+    5126: Float32Array
   };
 
   const arrayType = CTOR_MAP[accessor.componentType];
   let uin8Array = new Uint8Array(arrayBuffer, byteOffset, length * arrayType.BYTES_PER_ELEMENT);
   uin8Array = new Uint8Array(uin8Array);
   return new arrayType(uin8Array.buffer);
-
 }
 
 /**
@@ -116,12 +100,10 @@ export function getAccessorData(gltf, accessor, buffers) {
  * @private
  */
 export function getBufferData(bufferView, buffers) {
-
   // get bufferView
   const arrayBuffer = buffers[bufferView.buffer];
   const byteOffset = bufferView.byteOffset || 0;
   return arrayBuffer.slice(byteOffset, byteOffset + bufferView.byteLength);
-
 }
 
 /**
@@ -134,7 +116,6 @@ export function getBufferData(bufferView, buffers) {
  * @private
  */
 export function createAttribute(gltf, semantic, accessor, idx) {
-
   // {
   //   name,
   //     size,
@@ -153,9 +134,8 @@ export function createAttribute(gltf, semantic, accessor, idx) {
     normalized: false,
     stride: bufferView.byteStride || 0,
     offset: 0,
-    vertexBufferIndex: idx || 0,
+    vertexBufferIndex: idx || 0
   };
-
 }
 
 /**
@@ -168,35 +148,27 @@ export function createAttribute(gltf, semantic, accessor, idx) {
  * @private
  */
 export function attachLoadingQueue(dir, loadQueue, arr = [], type, filesMap) {
-
   for (let i = 0; i < arr.length; i++) {
-
     const item = arr[i];
 
     const uri = item.uri;
-    if (!uri)
-      return;
+    if (!uri) return;
     let data;
     let url = path.isRelativePath(item.uri) ? path.join(dir, item.uri) : item.uri;
 
-    if (filesMap[uri])
-      url = filesMap[uri];
-    else if (uri.substr(0, 5) === 'data:')
-      url = null;
+    if (filesMap[uri]) url = filesMap[uri];
+    else if (uri.substr(0, 5) === "data:") url = null;
 
     if (url || data)
-      loadQueue[item.uri] = ({
+      loadQueue[item.uri] = {
         type,
         props: {
           url,
-          data,
+          data
         }
-      });
-
+      };
   }
-
 }
-
 
 /**
  * 载入 loader 中已存在的 technique
@@ -205,27 +177,23 @@ export function attachLoadingQueue(dir, loadQueue, arr = [], type, filesMap) {
  * @private
  */
 export function attachAsset(resource, resources) {
-
   resource.asset = {
     techniques: [], // RenderTechnique array
-    textures: [],   // Texture2D array
-    meshes: [],     // Mesh array
-    skins: [],      // Skin array
-    materials: [],  // Material array
+    textures: [], // Texture2D array
+    meshes: [], // Mesh array
+    skins: [], // Skin array
+    materials: [], // Material array
     animations: [], // AnimationClip array
-    scenes: [],     // Scene array
+    scenes: [], // Scene array
     nodes: [],
-    rootScene: {},
+    rootScene: {}
   };
 
   // attach preload techniques
   const techniques = resources.technique || [];
   for (let i = 0; i < techniques.length; i++) {
-
     const technique = techniques[i];
 
     resource.asset.techniques.push(technique.asset);
-
   }
-
 }

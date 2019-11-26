@@ -1,9 +1,8 @@
 import { Node } from "./Node";
-import { quat, vec3 } from "@alipay/o3-math"
+import { quat, vec3 } from "@alipay/o3-math";
 
 abstract class BasePoint {
-  constructor(protected node: Node) {
-  }
+  constructor(protected node: Node) {}
 
   abstract get x(): number;
   abstract set x(value: number);

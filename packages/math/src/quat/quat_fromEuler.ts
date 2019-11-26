@@ -9,7 +9,7 @@
  * @function
  */
 export function fromEuler(out, x, y, z) {
-  let halfToRad = 0.5 * Math.PI / 180.0;
+  let halfToRad = (0.5 * Math.PI) / 180.0;
   x *= halfToRad;
   y *= halfToRad;
   z *= halfToRad;

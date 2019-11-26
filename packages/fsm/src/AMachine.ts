@@ -1,12 +1,11 @@
-import {NodeAbility} from '@alipay/o3-core';
-import {Machine} from './Machine';
+import { NodeAbility } from "@alipay/o3-core";
+import { Machine } from "./Machine";
 
 /**
  * 有限状态机类
  * @extends NodeAbility
  */
 class AMachine extends NodeAbility {
-
   private _machine;
 
   /**
@@ -16,11 +15,9 @@ class AMachine extends NodeAbility {
    * @param {string} props.name 名称
    */
   constructor(node, props: { name? } = {}) {
-
     super(node, props);
 
     this._machine = new Machine(props.name);
-
   }
 
   /** 当前的 Machine 对象
@@ -28,9 +25,7 @@ class AMachine extends NodeAbility {
    * @readonly
    */
   get machine() {
-
     return this._machine;
-
   }
 
   /**
@@ -39,11 +34,8 @@ class AMachine extends NodeAbility {
    * @private
    */
   update(deltaTime) {
-
     this.machine.update(deltaTime);
-
   }
-
 }
 
-export {AMachine};
+export { AMachine };

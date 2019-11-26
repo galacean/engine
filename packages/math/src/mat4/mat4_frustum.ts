@@ -14,12 +14,12 @@ export function frustum(out, left, right, bottom, top, near, far) {
   let rl = 1 / (right - left);
   let tb = 1 / (top - bottom);
   let nf = 1 / (near - far);
-  out[0] = (near * 2) * rl;
+  out[0] = near * 2 * rl;
   out[1] = 0;
   out[2] = 0;
   out[3] = 0;
   out[4] = 0;
-  out[5] = (near * 2) * tb;
+  out[5] = near * 2 * tb;
   out[6] = 0;
   out[7] = 0;
   out[8] = (right + left) * rl;
@@ -28,7 +28,7 @@ export function frustum(out, left, right, bottom, top, near, far) {
   out[11] = -1;
   out[12] = 0;
   out[13] = 0;
-  out[14] = (far * near * 2) * nf;
+  out[14] = far * near * 2 * nf;
   out[15] = 0;
   return out;
 }

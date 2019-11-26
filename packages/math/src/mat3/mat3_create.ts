@@ -1,4 +1,4 @@
-import { ARRAY_TYPE } from '../MathUtil/MathUtil_ARRAY_TYPE';
+import { ARRAY_TYPE } from "../MathUtil/MathUtil_ARRAY_TYPE";
 /**
  * 3x3 Matrix
  * @module mat3

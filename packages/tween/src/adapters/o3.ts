@@ -1,8 +1,8 @@
-import * as TweenPlugins from '../plugins';
-import {Tweener} from '../Tweener';
-import {DataType} from '@alipay/o3-base';
+import * as TweenPlugins from "../plugins";
+import { Tweener } from "../Tweener";
+import { DataType } from "@alipay/o3-base";
 
-import {vec2, vec3, vec4, quat} from '@alipay/o3-math';
+import { vec2, vec3, vec4, quat } from "@alipay/o3-math";
 
 /***  做旋转的插值变换
  * @param {Object}  obj 物体
@@ -12,10 +12,15 @@ import {vec2, vec3, vec4, quat} from '@alipay/o3-math';
  * @param {function} options.onComplete 完成后调用函数
  */
 const doTransformRotate = (obj, endValue, interval, options: any = {}) => {
-
   options.plugin = options.plugin || TweenPlugins.QuaternionPlugin;
-  return new Tweener(() => quat.clone(obj.rotation), (value) => obj.rotation = value, endValue, interval, options, obj);
-
+  return new Tweener(
+    () => quat.clone(obj.rotation),
+    value => (obj.rotation = value),
+    endValue,
+    interval,
+    options,
+    obj
+  );
 };
 
 /*** 做平移的插值变换
@@ -26,11 +31,16 @@ const doTransformRotate = (obj, endValue, interval, options: any = {}) => {
  * @param {function} options.onComplete 完成后调用函数
  */
 const doTransformTranslate = (obj, endValue, interval, options: any = {}) => {
-
   options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
 
-  return new Tweener(() => vec3.clone(obj.position), (value) => obj.position = value, endValue, interval, options, obj);
-
+  return new Tweener(
+    () => vec3.clone(obj.position),
+    value => (obj.position = value),
+    endValue,
+    interval,
+    options,
+    obj
+  );
 };
 
 /*** 做缩放的插值变换
@@ -41,11 +51,16 @@ const doTransformTranslate = (obj, endValue, interval, options: any = {}) => {
  * @param {function} options.onComplete 完成后调用函数
  */
 const doTransformScale = (obj, endValue, interval, options: any = {}) => {
-
   options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
 
-  return new Tweener(() => vec3.clone(obj.scale), (value) => obj.scale = value, endValue, interval, options, obj);
-
+  return new Tweener(
+    () => vec3.clone(obj.scale),
+    value => (obj.scale = value),
+    endValue,
+    interval,
+    options,
+    obj
+  );
 };
 
 /*** 做材质参数的插值变换
@@ -56,12 +71,17 @@ const doTransformScale = (obj, endValue, interval, options: any = {}) => {
  * @param {Object} options 选项
  * @param {function} options.onComplete 完成后调用函数
  */
-const doMaterialValue = (mtl, endValue, property = '', interval, options: any = {}) => {
-
+const doMaterialValue = (mtl, endValue, property = "", interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.FloatPlugin;
 
-  return new Tweener(() => mtl.getValue(property), (value) => mtl.setValue(property, value), endValue, interval, options, mtl);
-
+  return new Tweener(
+    () => mtl.getValue(property),
+    value => mtl.setValue(property, value),
+    endValue,
+    interval,
+    options,
+    mtl
+  );
 };
 
 /*** 做材质颜色的插值变换
@@ -72,16 +92,19 @@ const doMaterialValue = (mtl, endValue, property = '', interval, options: any = 
  * @param {Object} options 选项
  * @param {function} options.onComplete 完成后调用函数
  */
-const doMaterialColor = (mtl, endValue, property = '', interval, options: any = {}) => {
-
+const doMaterialColor = (mtl, endValue, property = "", interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
 
-  return new Tweener(() => mtl.getValue(property), (value) => {
-
-    mtl.setValue(property, [value[0] / 255, value[1] / 255, value[2] / 255]);
-
-  }, endValue, interval, options, mtl);
-
+  return new Tweener(
+    () => mtl.getValue(property),
+    value => {
+      mtl.setValue(property, [value[0] / 255, value[1] / 255, value[2] / 255]);
+    },
+    endValue,
+    interval,
+    options,
+    mtl
+  );
 };
 
 /*** 做一般数值的插值变换
@@ -94,29 +117,19 @@ const doMaterialColor = (mtl, endValue, property = '', interval, options: any = 
  * @param {function} options.onComplete 完成后调用函数
  */
 const doTransformByDataType = (startValue, setter, endValue, interval, options: any = {}) => {
-
   if (options.dataType === DataType.FLOAT_VEC2) {
-
     options.plugin = options.plugin || TweenPlugins.Vector2Plugin;
     return new Tweener(() => vec2.clone(startValue), setter, endValue, interval, options);
-
   } else if (options.dataType === DataType.FLOAT_VEC3) {
-
     options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
     return new Tweener(() => vec3.clone(startValue), setter, endValue, interval, options);
-
   } else if (options.dataType === DataType.FLOAT_VEC4) {
-
     options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
     return new Tweener(() => vec4.clone(startValue), setter, endValue, interval, options);
-
   } else {
-
     options.plugin = options.plugin || TweenPlugins.FloatPlugin;
     return new Tweener(() => startValue, setter, endValue, interval, options);
-
   }
-
 };
 
 export const doTransform = {
@@ -128,5 +141,5 @@ export const doTransform = {
 
 export const doMaterial = {
   Float: doMaterialValue,
-  Color: doMaterialColor,
+  Color: doMaterialColor
 };

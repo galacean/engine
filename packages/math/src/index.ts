@@ -7,12 +7,6 @@ import * as quat from "./quat/quat";
 import * as vec2 from "./vec2/vec2";
 import * as vec3 from "./vec3/vec3";
 import * as vec4 from "./vec4/vec4";
-import {Spherical} from "./Spherical";
+import { Spherical } from "./Spherical";
 
-export {
-    MathUtil,
-    mat2, mat2d, mat3, mat4,
-    quat,
-    vec2, vec3, vec4,
-    Spherical
-};
+export { MathUtil, mat2, mat2d, mat3, mat4, quat, vec2, vec3, vec4, Spherical };

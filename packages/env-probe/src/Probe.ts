@@ -2,8 +2,8 @@ import { MaskList, RefreshRate } from "@alipay/o3-base";
 import { PBRMaterial } from "@alipay/o3-pbr";
 
 interface ProbeConfig {
-  renderList?: Array<PBRMaterial>
-  renderMask?: MaskList,
+  renderList?: Array<PBRMaterial>;
+  renderMask?: MaskList;
   refreshRate?: RefreshRate;
 }
 
@@ -31,5 +31,4 @@ export class Probe {
     this.renderMask = config.renderMask || MaskList.EVERYTHING;
     this.refreshRate = config.refreshRate || RefreshRate.EVERYFRAME;
   }
-
 }

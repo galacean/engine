@@ -1,5 +1,5 @@
-import { DrawMode, DataType, BufferUsage, UpdateType } from '@alipay/o3-base';
-import { AssetObject } from '@alipay/o3-core';
+import { DrawMode, DataType, BufferUsage, UpdateType } from "@alipay/o3-base";
+import { AssetObject } from "@alipay/o3-core";
 
 let primitiveID = 0;
 
@@ -29,11 +29,10 @@ export class Primitive extends AssetObject {
   /**
    * @constructor
    */
-  constructor( name? ) {
+  constructor(name?) {
+    super(name !== undefined ? name : "DEFAULT_PRIMITIVENAME_" + primitiveID++);
 
-    super( name !== undefined ? name : 'DEFAULT_PRIMITIVENAME_' + primitiveID++ );
-
-    this.mode = DrawMode.TRIANGLES;  // draw mode, triangles, lines etc.
+    this.mode = DrawMode.TRIANGLES; // draw mode, triangles, lines etc.
     this.usage = BufferUsage.STATIC_DRAW;
     this.updateType = UpdateType.UPDATE_ALL;
     this.updateRange = {
@@ -42,23 +41,22 @@ export class Primitive extends AssetObject {
     };
 
     //-- 顶点数据
-    this.vertexBuffers = [];  // ArrayBuffer，一个Primitive可能包含1个或多个顶点缓冲
-    this.vertexAttributes = {};   // vertex attributes: dict object, [senmatic]-->VertexAttribute
+    this.vertexBuffers = []; // ArrayBuffer，一个Primitive可能包含1个或多个顶点缓冲
+    this.vertexAttributes = {}; // vertex attributes: dict object, [senmatic]-->VertexAttribute
     this.vertexOffset = 0;
     this.vertexCount = 0;
 
     //-- index 数据，可能为null
     this.indexType = DataType.UNSIGNED_SHORT;
-    this.indexCount = 0;       // number of elements
-    this.indexBuffer = null;   // ArrayBuffer object
+    this.indexCount = 0; // number of elements
+    this.indexBuffer = null; // ArrayBuffer object
     this.indexOffset = 0;
 
     //--
-    this.material = null;   // default material objects
-    this.targets = [];      // MorphTarget array
-    this.boundingBoxMax = [ Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE ];
-    this.boundingBoxMin = [ Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE ];
-
+    this.material = null; // default material objects
+    this.targets = []; // MorphTarget array
+    this.boundingBoxMax = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
+    this.boundingBoxMin = [Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE];
   }
 
   /**
@@ -71,8 +69,7 @@ export class Primitive extends AssetObject {
    * @param {number} offset
    * @param {number} vertexBufferIndex
    */
-  addAttribute( semantic, size, type, normalized, stride, offset, vertexBufferIndex ) {
-
+  addAttribute(semantic, size, type, normalized, stride, offset, vertexBufferIndex) {
     this.vertexAttributes[semantic] = {
       semantic,
       size,
@@ -82,17 +79,13 @@ export class Primitive extends AssetObject {
       offset,
       vertexBufferIndex
     };
-
   }
 
   /**
    * 重置更新范围对象
    */
   resetUpdateRange() {
-
     this.updateRange.byteOffset = -1;
     this.updateRange.byteLength = 0;
-
   }
-
 }

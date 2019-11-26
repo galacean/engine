@@ -1,2 +1,1 @@
-
-export { AGPUParticleSystem } from './particle';
+export { AGPUParticleSystem } from "./particle";

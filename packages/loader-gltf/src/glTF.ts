@@ -7,13 +7,13 @@ import {
   TextureWrapMode,
   MaterialType,
   RenderState
-} from '@alipay/o3-base';
-import { openTechnique, path } from '@alipay/o3-loader';
-import { Node } from '@alipay/o3-core';
-import { Texture2D, Material } from '@alipay/o3-material';
-import { Primitive } from '@alipay/o3-primitive';
-import { Mesh, Skin, AMeshRenderer, ASkinnedMeshRenderer } from '@alipay/o3-mesh';
-import { vec3, mat4, quat } from '@alipay/o3-math';
+} from "@alipay/o3-base";
+import { openTechnique, path } from "@alipay/o3-loader";
+import { Node } from "@alipay/o3-core";
+import { Texture2D, Material } from "@alipay/o3-material";
+import { Primitive } from "@alipay/o3-primitive";
+import { Mesh, Skin, AMeshRenderer, ASkinnedMeshRenderer } from "@alipay/o3-mesh";
+import { vec3, mat4, quat } from "@alipay/o3-math";
 import {
   attachLoadingQueue,
   getAccessorData,
@@ -22,8 +22,8 @@ import {
   findByKeyValue,
   attachAsset,
   getBufferData
-} from './Util';
-import { AnimationClip, InterpolationType } from '@alipay/o3-animation';
+} from "./Util";
+import { AnimationClip, InterpolationType } from "@alipay/o3-animation";
 
 // 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
@@ -34,10 +34,10 @@ import { AnimationClip, InterpolationType } from '@alipay/o3-animation';
 //                        https://github.com/KhronosGroup/glTF/issues/947
 
 const TARGET_PATH_MAP = {
-  translation: 'position',
-  rotation: 'rotation',
-  scale: 'scale',
-  weights: 'weights',
+  translation: "position",
+  rotation: "rotation",
+  scale: "scale",
+  weights: "weights"
 };
 
 let nodeCount = 0;
@@ -48,11 +48,11 @@ const RegistedCustomMaterials = {};
  * 扩展专用注册键值
  */
 export const HandledExtensions = {
-  PBRMaterial: 'PBRMaterial',
-  KHR_lights: 'KHR_lights',
-  KHR_materials_unlit: 'KHR_materials_unlit',
-  KHR_materials_pbrSpecularGlossiness: 'KHR_materials_pbrSpecularGlossiness',
-  KHR_techniques_webgl: 'KHR_techniques_webgl',
+  PBRMaterial: "PBRMaterial",
+  KHR_lights: "KHR_lights",
+  KHR_materials_unlit: "KHR_materials_unlit",
+  KHR_materials_pbrSpecularGlossiness: "KHR_materials_pbrSpecularGlossiness",
+  KHR_techniques_webgl: "KHR_techniques_webgl"
 };
 
 let PBRMaterial = null;
@@ -70,15 +70,11 @@ const extensionParsers = {
  * @param {Object} extobj 需要添加的扩展
  */
 export function RegistExtension(extobj) {
-
   Object.keys(extobj).forEach(name => {
-
     if (RegistedObjs[name] === undefined) {
-
       RegistedObjs[name] = extobj[name];
 
       switch (name) {
-
         case HandledExtensions.PBRMaterial:
           PBRMaterial = extobj[name];
           extensionParsers.KHR_materials_unlit = PBRMaterial;
@@ -91,13 +87,9 @@ export function RegistExtension(extobj) {
           if (Material.isPrototypeOf(extobj[name]) && extobj[name].TECH_NAME)
             RegistedCustomMaterials[extobj[name].TECH_NAME] = extobj[name];
           break;
-
       }
-
     }
-
   });
-
 }
 
 /**
@@ -107,7 +99,6 @@ export function RegistExtension(extobj) {
  * @private
  */
 export function parseGLTF(resource) {
-
   // 开始处理 glTF 数据
   // buffers
   const data = resource.data;
@@ -118,88 +109,65 @@ export function parseGLTF(resource) {
     images: data.images,
     gltf: data.gltf,
     buffers: data.buffers,
-    shaders: data.shaders,
+    shaders: data.shaders
   };
 
   if (resources.gltf.asset && resources.gltf.asset.version) {
-
     resources.gltf.version = Number(resources.gltf.asset.version);
     resources.gltf.isGltf2 = resources.gltf.version >= 2 && resources.gltf.version <= 3;
-
   }
 
   parseExtensions(resources);
 
   // parse all related resources
-  parseResources(resources, 'textures', parseTexture);
-  parseResources(resources, 'techniques', parseTechnique);
+  parseResources(resources, "textures", parseTexture);
+  parseResources(resources, "techniques", parseTechnique);
   // fallback to default mtl
-  parseResources(resources, 'materials', parseMaterial);
-  parseResources(resources, 'meshes', parseMesh);
-  parseResources(resources, 'nodes', parseNode);
-  parseResources(resources, 'scenes', parseScene);
-  parseResources(resources, 'skins', parseSkin);
-  parseResources(resources, 'animations', parseAnimation);
+  parseResources(resources, "materials", parseMaterial);
+  parseResources(resources, "meshes", parseMesh);
+  parseResources(resources, "nodes", parseNode);
+  parseResources(resources, "scenes", parseScene);
+  parseResources(resources, "skins", parseSkin);
+  parseResources(resources, "animations", parseAnimation);
   // build & link glTF data
   buildSceneGraph(resources);
 
   return resource;
-
 }
 
 function parseExtensions(resources) {
-
   const { gltf, asset } = resources;
   const { extensions, extensionsUsed, extensionsRequired } = gltf;
   if (extensionsUsed) {
-
-    Logger.info('extensionsUsed: ', extensionsUsed);
+    Logger.info("extensionsUsed: ", extensionsUsed);
     for (let i = 0; i < extensionsUsed.length; i++) {
-
       if (Object.keys(extensionParsers).indexOf(extensionsUsed[i]) > -1) {
-
         if (!extensionParsers[extensionsUsed[i]]) {
-
-          Logger.warn('extension ' + extensionsUsed[i] + ' is used, you can add this extension into gltf');
-
+          Logger.warn("extension " + extensionsUsed[i] + " is used, you can add this extension into gltf");
         }
-
       } else {
-
-        Logger.warn('extensionsUsed has unsupported extension ' + extensionsUsed[i]);
-
+        Logger.warn("extensionsUsed has unsupported extension " + extensionsUsed[i]);
       }
-
     }
-
   }
 
   if (extensionsRequired) {
-
     Logger.info(`extensionsRequired: ${extensionsRequired}`);
     for (let i = 0; i < extensionsRequired.length; i++) {
-
-      if (Object.keys(extensionParsers).indexOf(extensionsRequired[i]) < 0
-        || !extensionParsers[extensionsRequired[i]]) {
-
+      if (
+        Object.keys(extensionParsers).indexOf(extensionsRequired[i]) < 0 ||
+        !extensionParsers[extensionsRequired[i]]
+      ) {
         Logger.error(`model has not supported required extension ${extensionsRequired[i]}`);
-
       }
-
     }
-
   }
 
   if (extensions) {
-
     if (KHR_lights && extensions.KHR_lights) {
-
       asset.lights = KHR_lights.parseLights(extensions.KHR_lights.lights);
-
     }
-
   }
-
 }
 
 /**
@@ -210,22 +178,16 @@ function parseExtensions(resources) {
  * @private
  */
 function parseResources(resources, name, handler) {
-
   const { gltf, asset } = resources;
 
   if (gltf.hasOwnProperty(name)) {
-
     const entities = gltf[name] || [];
-    Logger.debug(name + ':', entities);
+    Logger.debug(name + ":", entities);
 
     for (let i = entities.length - 1; i >= 0; i--) {
-
       asset[name].push(handler(entities[i], resources));
-
     }
-
   }
-
 }
 
 var GLTF_TEX_COUNT = 0;
@@ -237,40 +199,37 @@ var GLTF_TEX_COUNT = 0;
  * @private
  */
 export function parseTexture(gltfTexture, resources) {
-
   const { gltf, images } = resources;
 
   // get sampler & image
   let sampler;
   if (gltfTexture.sampler === undefined) {
-
     sampler = {
       magFilter: TextureFilter.NEAREST,
       minFilter: TextureFilter.NEAREST,
       wrapS: TextureWrapMode.REPEAT,
-      wrapT: TextureWrapMode.REPEAT,
+      wrapT: TextureWrapMode.REPEAT
     };
-
   } else {
-
-    sampler = Object.assign({
-      magFilter: TextureFilter.LINEAR,
-      minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
-      wrapS: TextureWrapMode.REPEAT,
-      wrapT: TextureWrapMode.REPEAT,
-    }, gltf.samplers[gltfTexture.sampler]);
-
+    sampler = Object.assign(
+      {
+        magFilter: TextureFilter.LINEAR,
+        minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
+        wrapS: TextureWrapMode.REPEAT,
+        wrapT: TextureWrapMode.REPEAT
+      },
+      gltf.samplers[gltfTexture.sampler]
+    );
   }
   const image = images[gltfTexture.source];
   const gltfImage = gltf.images[gltfTexture.source];
 
   GLTF_TEX_COUNT++;
-  const name = gltfTexture.name || gltfImage.name || gltfImage.uri || 'GLTF_TEX_' + GLTF_TEX_COUNT;
+  const name = gltfTexture.name || gltfImage.name || gltfImage.uri || "GLTF_TEX_" + GLTF_TEX_COUNT;
   const tex = new Texture2D(name, image, sampler);
   tex.type = resources.assetType;
 
   return tex;
-
 }
 
 /**
@@ -280,7 +239,6 @@ export function parseTexture(gltfTexture, resources) {
  * @private
  */
 export function parseTechnique(gltfTechnique, resources) {
-
   const { gltf, shaders } = resources;
 
   const program = gltf.programs[gltfTechnique.program];
@@ -292,7 +250,6 @@ export function parseTechnique(gltfTechnique, resources) {
   tech.type = resources.assetType;
 
   return tech;
-
 }
 
 /**
@@ -302,45 +259,47 @@ export function parseTechnique(gltfTechnique, resources) {
  * @private
  */
 export function parseMaterial(gltfMaterial, resources) {
-
   const { gltf, asset } = resources;
   let material;
 
-  if (gltf.isGltf2 && typeof gltfMaterial.technique === 'undefined' && PBRMaterial) {
-
+  if (gltf.isGltf2 && typeof gltfMaterial.technique === "undefined" && PBRMaterial) {
     const uniformObj: any = {};
     const stateObj: any = {};
     const {
-      pbrMetallicRoughness, normalTexture, emissiveTexture, emissiveFactor, occlusionTexture,
-      alphaMode, alphaCutoff, doubleSided, extensions,
+      pbrMetallicRoughness,
+      normalTexture,
+      emissiveTexture,
+      emissiveFactor,
+      occlusionTexture,
+      alphaMode,
+      alphaCutoff,
+      doubleSided,
+      extensions
     } = gltfMaterial;
     if (pbrMetallicRoughness) {
-
-      const { baseColorFactor, baseColorTexture, metallicFactor, roughnessFactor, metallicRoughnessTexture } = pbrMetallicRoughness;
+      const {
+        baseColorFactor,
+        baseColorTexture,
+        metallicFactor,
+        roughnessFactor,
+        metallicRoughnessTexture
+      } = pbrMetallicRoughness;
       if (baseColorTexture) {
-
-        uniformObj.baseColorTexture = getItemByIdx('textures', baseColorTexture.index || 0, resources);
-
+        uniformObj.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources);
       }
       if (baseColorFactor) {
-
         uniformObj.baseColorFactor = baseColorFactor;
-
       }
       uniformObj.metallicFactor = metallicFactor !== undefined ? metallicFactor : 1;
       uniformObj.roughnessFactor = roughnessFactor !== undefined ? roughnessFactor : 1;
       if (metallicRoughnessTexture) {
-
-        uniformObj.metallicRoughnessTexture = getItemByIdx('textures', metallicRoughnessTexture.index || 0, resources);
-
+        uniformObj.metallicRoughnessTexture = getItemByIdx("textures", metallicRoughnessTexture.index || 0, resources);
       }
-
     }
 
     if (normalTexture) {
-
       const { index, texCoord, scale } = normalTexture;
-      uniformObj.normalTexture = getItemByIdx('textures', index || 0, resources);
+      uniformObj.normalTexture = getItemByIdx("textures", index || 0, resources);
 
       if (typeof scale !== undefined) {
         uniformObj.normalScale = scale;
@@ -348,35 +307,26 @@ export function parseMaterial(gltfMaterial, resources) {
     }
 
     if (emissiveTexture) {
-
-      uniformObj.emissiveTexture = getItemByIdx('textures', emissiveTexture.index || 0, resources);
-
+      uniformObj.emissiveTexture = getItemByIdx("textures", emissiveTexture.index || 0, resources);
     }
 
     if (occlusionTexture) {
-
-      uniformObj.occlusionTexture = getItemByIdx('textures', occlusionTexture.index || 0, resources);
+      uniformObj.occlusionTexture = getItemByIdx("textures", occlusionTexture.index || 0, resources);
 
       if (occlusionTexture.strength !== undefined) {
         uniformObj.occlusionStrength = occlusionTexture.strength;
       }
-
     }
 
     stateObj.doubleSided = !!doubleSided;
-    stateObj.alphaMode = alphaMode || 'OPAQUE';
-    if (alphaMode === 'MASK') {
-
+    stateObj.alphaMode = alphaMode || "OPAQUE";
+    if (alphaMode === "MASK") {
       uniformObj.alphaCutoff = alphaCutoff === undefined ? 0.5 : alphaCutoff;
-
     }
 
     if (extensions) {
-
       if (extensions.KHR_materials_unlit) {
-
         stateObj.unlit = true;
-
       }
 
       // 高光光泽度
@@ -394,7 +344,7 @@ export function parseMaterial(gltfMaterial, resources) {
           uniformObj.baseColorFactor = diffuseFactor;
         }
         if (diffuseTexture) {
-          uniformObj.baseColorTexture = getItemByIdx('textures', diffuseTexture.index || 0, resources);
+          uniformObj.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources);
         }
         if (specularFactor) {
           uniformObj.specularFactor = specularFactor;
@@ -403,117 +353,91 @@ export function parseMaterial(gltfMaterial, resources) {
           uniformObj.glossinessFactor = glossinessFactor;
         }
         if (specularGlossinessTexture) {
-          uniformObj.specularGlossinessTexture = getItemByIdx('textures', specularGlossinessTexture.index || 0, resources);
+          uniformObj.specularGlossinessTexture = getItemByIdx(
+            "textures",
+            specularGlossinessTexture.index || 0,
+            resources
+          );
         }
-
       }
-
     }
 
     // private parameters
     const { unlit, srgb, gamma, clearCoat, clearCoatRoughness, blendFunc, depthMask } = gltfMaterial;
-    if (unlit)
-      stateObj.unlit = true;
-    if (srgb)
-      stateObj.srgb = true;
-    if (gamma)
-      stateObj.gamma = true;
-    if (clearCoat)
-      uniformObj.clearCoat = clearCoat;
-    if (clearCoatRoughness !== undefined)
-      uniformObj.clearCoatRoughness = clearCoatRoughness;
-    if (blendFunc)
-      stateObj.blendFunc = blendFunc;
-    if (depthMask !== undefined)
-      stateObj.depthMask = depthMask;
+    if (unlit) stateObj.unlit = true;
+    if (srgb) stateObj.srgb = true;
+    if (gamma) stateObj.gamma = true;
+    if (clearCoat) uniformObj.clearCoat = clearCoat;
+    if (clearCoatRoughness !== undefined) uniformObj.clearCoatRoughness = clearCoatRoughness;
+    if (blendFunc) stateObj.blendFunc = blendFunc;
+    if (depthMask !== undefined) stateObj.depthMask = depthMask;
 
     material = new PBRMaterial(gltfMaterial.name || PBRMaterial.MATERIAL_NAME, Object.assign({}, uniformObj, stateObj));
-
   } else {
-
     // use local technique
     const techniqueName = gltfMaterial.technique;
     material = new Material(gltfMaterial.name);
 
     if (Number.isInteger(techniqueName)) {
-
-      material.technique = getItemByIdx('techniques', techniqueName, resources);
+      material.technique = getItemByIdx("techniques", techniqueName, resources);
 
       const technique = material.technique;
-      if (technique && technique.states && technique.states.enable && technique.states.enable.indexOf(RenderState.BLEND) > -1) {
-
+      if (
+        technique &&
+        technique.states &&
+        technique.states.enable &&
+        technique.states.enable.indexOf(RenderState.BLEND) > -1
+      ) {
         material.renderType = MaterialType.TRANSPARENT;
-
       }
-
-    } else if (typeof techniqueName === 'string' && RegistedCustomMaterials[techniqueName]) {
-
+    } else if (typeof techniqueName === "string" && RegistedCustomMaterials[techniqueName]) {
       const MaterialType = RegistedCustomMaterials[techniqueName];
       material = new MaterialType();
-
     } else {
-
       // TODO: add default fallback material -> static_diffuse
       // find & link technique
       for (let j = 0; j < asset.techniques.length; j++) {
-
         if (asset.techniques[j].name === techniqueName) {
-
           material.technique = asset.techniques[j];
           break;
-
         }
-
       }
-
 
       const technique = material.technique;
-      if (technique && technique.states && technique.states.enable && technique.states.enable.indexOf(RenderState.BLEND) > -1) {
-
+      if (
+        technique &&
+        technique.states &&
+        technique.states.enable &&
+        technique.states.enable.indexOf(RenderState.BLEND) > -1
+      ) {
         material.renderType = MaterialType.TRANSPARENT;
-
       }
-
     }
-
   }
 
-  if (gltfMaterial.hasOwnProperty('values')) {
-
+  if (gltfMaterial.hasOwnProperty("values")) {
     for (const paramName in gltfMaterial.values) {
-
-      const uniform = findByKeyValue(material.technique.uniforms, 'paramName', paramName);
+      const uniform = findByKeyValue(material.technique.uniforms, "paramName", paramName);
       if (!uniform) {
-
-        Logger.warn('Cant not find uniform: ' + paramName);
+        Logger.warn("Cant not find uniform: " + paramName);
         continue;
-
       }
 
       const name = uniform.name;
       const type = uniform.type;
       if (type === DataType.SAMPLER_2D) {
-
         let textureIndex = gltfMaterial.values[paramName];
         if (Util.isArray(textureIndex)) {
-
           textureIndex = textureIndex[0];
-
         }
-        const texture = getItemByIdx('textures', textureIndex, resources);
+        const texture = getItemByIdx("textures", textureIndex, resources);
         material.setValue(name, texture);
-
       } else {
-
         material.setValue(name, gltfMaterial.values[paramName]);
-
       }
-
     }
-
   }
   return material;
-
 }
 
 /**
@@ -523,7 +447,6 @@ export function parseMaterial(gltfMaterial, resources) {
  * @private
  */
 export function parseSkin(gltfSkin, resources) {
-
   const { gltf, buffers } = resources;
 
   const jointCount = gltfSkin.joints.length;
@@ -536,27 +459,22 @@ export function parseSkin(gltfSkin, resources) {
   const MAT4_LENGTH = 16;
 
   for (let i = 0; i < jointCount; i++) {
-
     const startIdx = MAT4_LENGTH * i;
     const endIdx = startIdx + MAT4_LENGTH;
     skin.inverseBindMatrices[i] = buffer.subarray(startIdx, endIdx);
-
   }
 
   // get joints
   for (let i = 0; i < jointCount; i++) {
-
-    const node = getItemByIdx('nodes', gltfSkin.joints[i], resources);
+    const node = getItemByIdx("nodes", gltfSkin.joints[i], resources);
     skin.joints[i] = node.name;
-
   }
 
   // get skeleton
-  const node = getItemByIdx('nodes', gltfSkin.skeleton == null ? gltfSkin.joints[0] : gltfSkin.skeleton, resources);
+  const node = getItemByIdx("nodes", gltfSkin.skeleton == null ? gltfSkin.joints[0] : gltfSkin.skeleton, resources);
   skin.skeleton = node.name;
 
   return skin;
-
 }
 
 /**
@@ -566,7 +484,6 @@ export function parseSkin(gltfSkin, resources) {
  * @private
  */
 export function parseMesh(gltfMesh, resources) {
-
   const { asset, gltf, buffers } = resources;
 
   const mesh = new Mesh(gltfMesh.name);
@@ -574,7 +491,6 @@ export function parseMesh(gltfMesh, resources) {
 
   // parse all primitives then link to mesh
   for (let i = 0; i < gltfMesh.primitives.length; i++) {
-
     // TODO: use hash cached primitives
     const gltfPrimitive = gltfMesh.primitives[i];
     // FIXME: use index as primitive's name
@@ -583,38 +499,32 @@ export function parseMesh(gltfMesh, resources) {
 
     primitive.mode = gltfPrimitive.mode == null ? DrawMode.TRIANGLES : gltfPrimitive.mode;
 
-
     let h = 0;
 
     // load vertices
     for (const attributeSemantic in gltfPrimitive.attributes) {
-
       const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
       const accessor = gltf.accessors[accessorIdx];
 
       const buffer = getAccessorData(gltf, accessor, buffers);
       primitive.vertexBuffers.push(buffer);
       primitive.vertexAttributes[attributeSemantic] = createAttribute(gltf, attributeSemantic, accessor, h++);
-      if (attributeSemantic === 'POSITION') {
+      if (attributeSemantic === "POSITION") {
         primitive.boundingBoxMax = accessor.max || [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
         primitive.boundingBoxMin = accessor.min || [Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE];
       }
     }
 
     // load morph targets
-    if (gltfPrimitive.hasOwnProperty('targets')) {
-
+    if (gltfPrimitive.hasOwnProperty("targets")) {
       primitive.targets = [];
       (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);
       let accessorIdx, accessor, buffer;
       for (let j = 0; j < gltfPrimitive.targets.length; j++) {
-
         const target = gltfPrimitive.targets[j];
         for (const attributeSemantic in target) {
-
           switch (attributeSemantic) {
-
-            case 'POSITION':
+            case "POSITION":
               accessorIdx = target.POSITION;
               accessor = gltf.accessors[accessorIdx];
 
@@ -622,7 +532,7 @@ export function parseMesh(gltfMesh, resources) {
               primitive.vertexBuffers.push(buffer);
               primitive.vertexAttributes[`POSITION_${j}`] = createAttribute(gltf, `POSITION_${j}`, accessor, h++);
               break;
-            case 'NORMAL':
+            case "NORMAL":
               accessorIdx = target.NORMAL;
               accessor = gltf.accessors[accessorIdx];
 
@@ -630,7 +540,7 @@ export function parseMesh(gltfMesh, resources) {
               primitive.vertexBuffers.push(buffer);
               primitive.vertexAttributes[`NORMAL_${j}`] = createAttribute(gltf, `NORMAL_${j}`, accessor, h++);
               break;
-            case 'TANGENT':
+            case "TANGENT":
               accessorIdx = target.TANGENT;
               accessor = gltf.accessors[accessorIdx];
 
@@ -641,22 +551,16 @@ export function parseMesh(gltfMesh, resources) {
             default:
               Logger.error(`unknown morth target semantic "${attributeSemantic}"`);
               break;
-
           }
-
         }
-
       }
-
     }
 
     // link mesh primitive material
-    let material = getItemByIdx('materials', gltfPrimitive.material, resources);
+    let material = getItemByIdx("materials", gltfPrimitive.material, resources);
     if ((PBRMaterial && material instanceof PBRMaterial) || material.constructor.DISABLE_SHARE) {
-
       // do not share material cause different attributes
       material = material.clone();
-
     }
     primitive.material = material;
 
@@ -675,11 +579,9 @@ export function parseMesh(gltfMesh, resources) {
     primitive.indexBuffer = buffer;
 
     mesh.primitives.push(primitive);
-
   }
 
   return mesh;
-
 }
 
 /**
@@ -690,7 +592,6 @@ export function parseMesh(gltfMesh, resources) {
  * @private
  */
 export function parseAnimation(gltfAnimation, resources) {
-
   const { gltf, buffers } = resources;
   const gltfSamplers = gltfAnimation.samplers || [];
   const gltfChannels = gltfAnimation.channels || [];
@@ -700,7 +601,6 @@ export function parseAnimation(gltfAnimation, resources) {
 
   // parse samplers
   for (let i = 0; i < gltfSamplers.length; i++) {
-
     const gltfSampler = gltfSamplers[i];
     // input
     const inputAccessor = gltf.accessors[gltfSampler.input];
@@ -708,40 +608,33 @@ export function parseAnimation(gltfAnimation, resources) {
     const input = getAccessorData(gltf, inputAccessor, buffers);
     const output = getAccessorData(gltf, outputAccessor, buffers);
     let outputAccessorSize = getAccessorTypeSize(outputAccessor.type);
-    if (outputAccessorSize * input.length !== output.length)
-      outputAccessorSize = output.length / input.length;
+    if (outputAccessorSize * input.length !== output.length) outputAccessorSize = output.length / input.length;
 
     // TODO: support
     // LINEAR, STEP, CUBICSPLINE
     let samplerInterpolation = InterpolationType.LINEAR;
     switch (gltfSampler.interpolation) {
-
-      case 'CUBICSPLINE':
+      case "CUBICSPLINE":
         samplerInterpolation = InterpolationType.CUBICSPLINE;
         break;
-      case 'STEP':
+      case "STEP":
         samplerInterpolation = InterpolationType.STEP;
         break;
-
     }
     animationClip.addSampler(input, output, outputAccessorSize, samplerInterpolation);
-
   }
 
   for (let i = 0; i < gltfChannels.length; i++) {
-
     const gltfChannel = gltfChannels[i];
     const target = gltfChannel.target;
     const samplerIndex = gltfChannel.sampler;
-    const targetNode = getItemByIdx('nodes', target.node, resources);
+    const targetNode = getItemByIdx("nodes", target.node, resources);
     const targetPath = TARGET_PATH_MAP[target.path];
 
     animationClip.addChannel(samplerIndex, targetNode.name, targetPath);
-
   }
 
   return animationClip;
-
 }
 
 /**
@@ -751,14 +644,29 @@ export function parseAnimation(gltfAnimation, resources) {
  * @private
  */
 export function parseNode(gltfNode, resources) {
-
   // TODO: undefined name?
   const node = new Node(null, null, gltfNode.name || `GLTF_NODE_${nodeCount++}`);
 
-  if (gltfNode.hasOwnProperty('matrix')) {
-
+  if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
-    const mat = mat4.fromValues(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]);
+    const mat = mat4.fromValues(
+      m[0],
+      m[1],
+      m[2],
+      m[3],
+      m[4],
+      m[5],
+      m[6],
+      m[7],
+      m[8],
+      m[9],
+      m[10],
+      m[11],
+      m[12],
+      m[13],
+      m[14],
+      m[15]
+    );
     const pos = vec3.create();
     const scale = vec3.fromValues(1, 1, 1);
     const rot = quat.create();
@@ -767,40 +675,25 @@ export function parseNode(gltfNode, resources) {
     node.position = pos;
     node.rotation = rot;
     node.scale = scale;
-
   } else {
-
     for (const key in TARGET_PATH_MAP) {
-
       if (gltfNode.hasOwnProperty(key)) {
-
         node[TARGET_PATH_MAP[key]] = gltfNode[key];
-
       }
-
     }
-
   }
 
   if (gltfNode.extensions) {
-
     if (KHR_lights && gltfNode.extensions.KHR_lights) {
-
       const lightIdx = gltfNode.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
-
-        const light = getItemByIdx('lights', lightIdx, resources);
-        if (light)
-          node.createAbility(light.ability, light.props);
-
+        const light = getItemByIdx("lights", lightIdx, resources);
+        if (light) node.createAbility(light.ability, light.props);
       }
-
     }
-
   }
 
   return node;
-
 }
 
 /**
@@ -811,36 +704,25 @@ export function parseNode(gltfNode, resources) {
  * @private
  */
 export function parseScene(gltfScene, resources) {
-
   const sceneNodes = [];
   for (let i = 0; i < gltfScene.nodes.length; i++) {
-
-    const node = getItemByIdx('nodes', gltfScene.nodes[i], resources);
+    const node = getItemByIdx("nodes", gltfScene.nodes[i], resources);
     sceneNodes.push(node);
-
   }
 
   if (gltfScene.extensions) {
-
     if (KHR_lights && gltfScene.extensions.KHR_lights) {
-
       const lightIdx = gltfScene.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
-
-        const light = getItemByIdx('lights', lightIdx, resources);
-        if (light)
-          sceneNodes[0].createAbility(light.ability, light.props);
-
+        const light = getItemByIdx("lights", lightIdx, resources);
+        if (light) sceneNodes[0].createAbility(light.ability, light.props);
       }
-
     }
-
   }
 
   return {
-    nodes: sceneNodes,
+    nodes: sceneNodes
   };
-
 }
 
 /**
@@ -852,12 +734,10 @@ export function parseScene(gltfScene, resources) {
  * @private
  */
 export function getItemByIdx(name, idx, resources) {
-
   const { asset } = resources;
 
   const itemIdx = asset[name].length - idx - 1;
   return asset[name][itemIdx];
-
 }
 
 /**
@@ -866,60 +746,45 @@ export function getItemByIdx(name, idx, resources) {
  * @private
  */
 export function buildSceneGraph(resources) {
-
   const { asset, gltf } = resources;
 
   const gltfNodes = gltf.nodes || [];
 
   for (let i = gltfNodes.length - 1; i >= 0; i--) {
-
     const gltfNode = gltfNodes[i];
 
-    const node = getItemByIdx('nodes', i, resources);
+    const node = getItemByIdx("nodes", i, resources);
 
-    if (gltfNode.hasOwnProperty('children')) {
-
+    if (gltfNode.hasOwnProperty("children")) {
       const children = gltfNode.children || [];
       for (let j = children.length - 1; j >= 0; j--) {
-
-        const childNode = getItemByIdx('nodes', children[j], resources);
+        const childNode = getItemByIdx("nodes", children[j], resources);
 
         node.addChild(childNode);
-
       }
-
     }
 
     // link mesh
-    if (gltfNode.hasOwnProperty('mesh')) {
-
+    if (gltfNode.hasOwnProperty("mesh")) {
       // find mesh
-      const mesh = getItemByIdx('meshes', gltfNode.mesh, resources);
+      const mesh = getItemByIdx("meshes", gltfNode.mesh, resources);
 
-      if (gltfNode.hasOwnProperty('skin') || mesh.hasOwnProperty('weights')) {
-
-        const skin = getItemByIdx('skins', gltfNode.skin, resources);
+      if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
+        const skin = getItemByIdx("skins", gltfNode.skin, resources);
         const weights = mesh.weights;
         node.createAbility(ASkinnedMeshRenderer, { skin, mesh, weights });
-
       } else {
-
         node.createAbility(AMeshRenderer, { mesh });
-
       }
-
     }
-
   }
 
-  asset.rootScene = getItemByIdx('scenes', gltf.scene, resources);
-
+  asset.rootScene = getItemByIdx("scenes", gltf.scene, resources);
 }
 
-const BASE64_MARKER = ';base64,';
+const BASE64_MARKER = ";base64,";
 
 class GLTFHandler {
-
   /**
    * 加载 glTF 及其内置的资源文件
    * @param request
@@ -927,131 +792,101 @@ class GLTFHandler {
    * @param callback
    */
   load(request, props, callback) {
-
     const data = {
       images: [],
       gltf: {},
       buffers: [],
-      shaders: [],
+      shaders: []
     };
 
     const filesMap = props.filesMap || {};
     // async load images
     // load gltf & all related resources
-    request.load('json', props, function (err, gltfJSON) {
+    request.load(
+      "json",
+      props,
+      function(err, gltfJSON) {
+        if (!err) {
+          data.gltf = gltfJSON;
 
-      if (!err) {
+          // load images & buffers & shader texts
+          const loadQueue = {};
+          const loadImageQue = {};
 
-        data.gltf = gltfJSON;
+          const dir = path.getDirectory(props.url);
+          attachLoadingQueue(dir, loadQueue, gltfJSON.buffers, "binary", filesMap);
+          attachLoadingQueue(dir, loadQueue, gltfJSON.images, "image", filesMap);
+          attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap);
 
-        // load images & buffers & shader texts
-        const loadQueue = {};
-        const loadImageQue = {};
-
-        const dir = path.getDirectory(props.url);
-        attachLoadingQueue(dir, loadQueue, gltfJSON.buffers, 'binary', filesMap);
-        attachLoadingQueue(dir, loadQueue, gltfJSON.images, 'image', filesMap);
-        attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, 'text', filesMap);
-
-        request.loadAll(loadQueue, function (err, resMap) {
-
-          if (gltfJSON.hasOwnProperty('buffers')) {
-
-            for (let i = 0; i < gltfJSON.buffers.length; i++) {
-
-              const buffer = gltfJSON.buffers[i];
-              if (buffer.uri.substr(0, 5) !== 'data:')
-                data.buffers[i] = resMap[buffer.uri];
-              else {
-
-                const base64Idx = buffer.uri.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
-                const blob = window.atob(buffer.uri.substr(base64Idx));
-                const bytes = new Uint8Array(blob.length);
-                for (let i = 0; i < blob.length; i++)
-                  bytes[i] = blob.charCodeAt(i);
-                data.buffers[i] = bytes.buffer;
-
+          request.loadAll(loadQueue, function(err, resMap) {
+            if (gltfJSON.hasOwnProperty("buffers")) {
+              for (let i = 0; i < gltfJSON.buffers.length; i++) {
+                const buffer = gltfJSON.buffers[i];
+                if (buffer.uri.substr(0, 5) !== "data:") data.buffers[i] = resMap[buffer.uri];
+                else {
+                  const base64Idx = buffer.uri.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
+                  const blob = window.atob(buffer.uri.substr(base64Idx));
+                  const bytes = new Uint8Array(blob.length);
+                  for (let i = 0; i < blob.length; i++) bytes[i] = blob.charCodeAt(i);
+                  data.buffers[i] = bytes.buffer;
+                }
               }
-
             }
 
-          }
-
-          if (gltfJSON.hasOwnProperty('images')) {
-
-            for (let i = 0; i < gltfJSON.images.length; i++) {
-
-              const image = gltfJSON.images[i];
-              if (image.uri)
-                if (image.uri.substr(0, 5) !== 'data:')
-                  data.images[i] = resMap[image.uri];
+            if (gltfJSON.hasOwnProperty("images")) {
+              for (let i = 0; i < gltfJSON.images.length; i++) {
+                const image = gltfJSON.images[i];
+                if (image.uri)
+                  if (image.uri.substr(0, 5) !== "data:") data.images[i] = resMap[image.uri];
+                  else {
+                    const img = new Image();
+                    img.src = image.uri;
+                    data.images[i] = img;
+                  }
                 else {
-
-                  const img = new Image();
-                  img.src = image.uri;
-                  data.images[i] = img;
-
+                  const arrayBuffer = getBufferData(gltfJSON.bufferViews[image.bufferView], data.buffers);
+                  const type = image.mimeType || "image/jpeg";
+                  loadImageQue[i] = {
+                    type: "imageBuffer",
+                    props: {
+                      imageBuffer: arrayBuffer,
+                      type
+                    }
+                  };
                 }
-              else {
-                const arrayBuffer = getBufferData(gltfJSON.bufferViews[image.bufferView], data.buffers);
-                const type = image.mimeType || 'image/jpeg';
-                loadImageQue[i] = {
-                  type: 'imageBuffer',
-                  props: {
-                    imageBuffer: arrayBuffer,
-                    type
+              }
+            }
+
+            if (gltfJSON.hasOwnProperty("shaders")) {
+              for (let i = 0; i < gltfJSON.shaders.length; i++) {
+                const shader = gltfJSON.shaders[i];
+
+                // adapted to the shader form of net file and inside base64 code
+                const base64Index = shader.uri.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
+
+                data.shaders[i] = resMap[shader.uri] || window.atob(shader.uri.substr(base64Index));
+              }
+            }
+
+            request.loadAll(loadImageQue, function(err, imgMap) {
+              if (gltfJSON.hasOwnProperty("images")) {
+                for (let i = 0; i < gltfJSON.images.length; i++) {
+                  const image = gltfJSON.images[i];
+                  if (image.hasOwnProperty("bufferView")) {
+                    data.images[i] = imgMap[i];
                   }
                 }
               }
 
-            }
-
-          }
-
-          if (gltfJSON.hasOwnProperty('shaders')) {
-
-            for (let i = 0; i < gltfJSON.shaders.length; i++) {
-
-              const shader = gltfJSON.shaders[i];
-
-              // adapted to the shader form of net file and inside base64 code
-              const base64Index = shader.uri.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
-
-              data.shaders[i] = resMap[shader.uri] || window.atob(shader.uri.substr(base64Index));
-
-            }
-
-          }
-
-          request.loadAll(loadImageQue, function (err, imgMap) {
-
-            if (gltfJSON.hasOwnProperty('images')) {
-
-              for (let i = 0; i < gltfJSON.images.length; i++) {
-
-                const image = gltfJSON.images[i];
-                if (image.hasOwnProperty('bufferView')) {
-                  data.images[i] = imgMap[i];
-                }
-
-              }
-
-            }
-
-            callback(null, data);
-
+              callback(null, data);
+            });
           });
-
-        });
-
-      } else {
-
-        callback('Error loading glTF JSON from ' + props.url);
-
-      }
-
-    }, true);
-
+        } else {
+          callback("Error loading glTF JSON from " + props.url);
+        }
+      },
+      true
+    );
   }
 
   /**
@@ -1062,10 +897,8 @@ class GLTFHandler {
    */
   // load & use engine exist resources
   patch(resource, resources) {
-
     // use preload techniques
     attachAsset(resource, resources);
-
   }
 
   /**
@@ -1074,11 +907,8 @@ class GLTFHandler {
    * @private
    */
   open(resource) {
-
     parseGLTF(resource);
-
   }
-
 }
 
 export { GLTFHandler };

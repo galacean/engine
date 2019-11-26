@@ -1,3 +1,2 @@
-
-export { ASpriteRenderer } from './ASpriteRenderer';
-export { Sprite } from './Sprite';
+export { ASpriteRenderer } from "./ASpriteRenderer";
+export { Sprite } from "./Sprite";

@@ -8,5 +8,5 @@ export function squaredLength(a) {
   let x = a[0];
   let y = a[1];
   let z = a[2];
-  return x*x + y*y + z*z;
+  return x * x + y * y + z * z;
 }

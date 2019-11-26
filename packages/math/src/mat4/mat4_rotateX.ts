@@ -18,11 +18,12 @@ export function rotateX(out, a, rad) {
   let a22 = a[10];
   let a23 = a[11];
 
-  if (a !== out) { // If the source and destination differ, copy the unchanged rows
-    out[0]  = a[0];
-    out[1]  = a[1];
-    out[2]  = a[2];
-    out[3]  = a[3];
+  if (a !== out) {
+    // If the source and destination differ, copy the unchanged rows
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
     out[12] = a[12];
     out[13] = a[13];
     out[14] = a[14];

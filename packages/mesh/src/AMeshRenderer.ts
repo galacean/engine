@@ -1,12 +1,11 @@
-import {Logger} from '@alipay/o3-base';
-import {NodeAbility} from '@alipay/o3-core';
+import { Logger } from "@alipay/o3-base";
+import { NodeAbility } from "@alipay/o3-core";
 
 /**
  * 负责渲染一个Mesh对象的组件
  * @extends NodeAbility
  */
 export class AMeshRenderer extends NodeAbility {
-
   private _mesh;
   private _instanceMaterials;
   private _sharedMaterials;
@@ -17,26 +16,22 @@ export class AMeshRenderer extends NodeAbility {
    * @param props
    */
   constructor(node, props: { mesh? } = {}) {
-
     super(node, props);
 
-    this.renderable = true;  // 标记为可渲染对象
-    this._mesh = null;        // Mesh Asset Object
+    this.renderable = true; // 标记为可渲染对象
+    this._mesh = null; // Mesh Asset Object
 
-    this._instanceMaterials = [];   // 这个组件独有的材质，用来单独控制材质参数
-    this._sharedMaterials = [];     // Primitive默认材质，默认使用
+    this._instanceMaterials = []; // 这个组件独有的材质，用来单独控制材质参数
+    this._sharedMaterials = []; // Primitive默认材质，默认使用
 
     this.mesh = props.mesh;
-
   }
 
   /**
    * 当前绑定的 Mesh 对象
    */
   get mesh() {
-
     return this._mesh;
-
   }
 
   /**
@@ -44,18 +39,14 @@ export class AMeshRenderer extends NodeAbility {
    * @param {Mesh} mesh Mesh 对象
    */
   set mesh(mesh) {
-
     this._mesh = mesh;
 
     const primitives = mesh.primitives;
     this._sharedMaterials = [];
     this._instanceMaterials = [];
     for (const primitive of primitives) {
-
       this._sharedMaterials.push(primitive.material);
-
-    }// end of for
-
+    } // end of for
   }
 
   /**
@@ -64,9 +55,7 @@ export class AMeshRenderer extends NodeAbility {
    * @param {Material} mtl 材质对象
    */
   setMaterial(primitiveIndex, mtl) {
-
     this._instanceMaterials[primitiveIndex] = mtl;
-
   }
 
   /**
@@ -75,9 +64,7 @@ export class AMeshRenderer extends NodeAbility {
    * @return {Material}
    */
   getInstanceMaterial(primitiveIndex) {
-
     return this._instanceMaterials[primitiveIndex];
-
   }
 
   /**
@@ -86,9 +73,7 @@ export class AMeshRenderer extends NodeAbility {
    * @return {Material}
    */
   getSharedMaterial(primitiveIndex) {
-
     return this._sharedMaterials[primitiveIndex];
-
   }
 
   /**
@@ -96,12 +81,9 @@ export class AMeshRenderer extends NodeAbility {
    * @param {CameraComponent} camera
    */
   render(camera) {
-
     const mesh = this._mesh;
     if (!mesh) {
-
       return;
-
     }
 
     const sceneRenderer = camera.sceneRenderer;
@@ -109,32 +91,20 @@ export class AMeshRenderer extends NodeAbility {
 
     //-- render every primitive
     for (let i = 0, len = primitives.length; i < len; i++) {
-
       const primitive = primitives[i];
       const mtl = this._instanceMaterials[i] || this._sharedMaterials[i];
       if (mtl) {
-
-        sceneRenderer.pushPrimitive(
-          this,
-          primitive,
-          mtl
-        );
-
+        sceneRenderer.pushPrimitive(this, primitive, mtl);
       } else {
-
-        Logger.error('Primitive has no material: ' + primitive.name);
-
+        Logger.error("Primitive has no material: " + primitive.name);
       }
-
-    }// end of for
-
+    } // end of for
   }
 
   /**
    * 释放资源
    */
   destroy() {
-
     super.destroy();
 
     //-- release mesh
@@ -143,8 +113,5 @@ export class AMeshRenderer extends NodeAbility {
     //-- materials
     this._instanceMaterials = [];
     this._sharedMaterials = [];
-
   }
-
 }
-

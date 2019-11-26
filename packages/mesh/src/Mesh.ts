@@ -1,4 +1,4 @@
-import {AssetObject} from '@alipay/o3-core';
+import { AssetObject } from "@alipay/o3-core";
 
 let meshID = 0;
 
@@ -7,7 +7,6 @@ let meshID = 0;
  * @class
  */
 export class Mesh extends AssetObject {
-
   public primitives;
 
   /**
@@ -15,12 +14,9 @@ export class Mesh extends AssetObject {
    * @param {string} name 名称
    */
   constructor(name) {
-
-    super(name || 'DEFAULT_MESH_NAME_' + meshID++);
+    super(name || "DEFAULT_MESH_NAME_" + meshID++);
 
     /** @member {Array} */
     this.primitives = []; // Primitive array
-
   }
-
 }

@@ -8,7 +8,6 @@ import { List, Value, ISample, IChannel } from "./types";
  * @extends AssetObject
  */
 export class AnimationClip extends AssetObject {
-
   public samplers: ISample[];
 
   public channels: IChannel[];
@@ -17,7 +16,6 @@ export class AnimationClip extends AssetObject {
    * @param {string} name
    */
   constructor(name: string) {
-
     super(name);
 
     /** @member {Array} */
@@ -25,7 +23,6 @@ export class AnimationClip extends AssetObject {
 
     /** @member {Array} */
     this.channels = [];
-
   }
 
   /**
@@ -35,8 +32,12 @@ export class AnimationClip extends AssetObject {
    * @param {number} _outputSize
    * @param {constant} _interpolation
    */
-  public addSampler(_input: List, _output: List, _outputSize: number, _interpolation: InterpolationType = InterpolationType.LINEAR) {
-
+  public addSampler(
+    _input: List,
+    _output: List,
+    _outputSize: number,
+    _interpolation: InterpolationType = InterpolationType.LINEAR
+  ) {
     // FIXME - adapt old error animation export file
     if (_interpolation === InterpolationType.CUBICSPLINE) {
       if (_outputSize <= 4) {
@@ -51,10 +52,9 @@ export class AnimationClip extends AssetObject {
       input: _input,
       output: _output,
       outputSize: _outputSize,
-      interpolation: _interpolation,
+      interpolation: _interpolation
     };
     this.samplers.push(sampler);
-
   }
 
   /**
@@ -64,7 +64,6 @@ export class AnimationClip extends AssetObject {
    * @param {string} targetPath, Transform property name: position, rotation, scale
    */
   public addChannel(samplerIndex: number, targetID: string, targetPath: string) {
-
     const bindSampler = this.samplers[samplerIndex];
 
     // channel object, bind a Sample to an Object property
@@ -72,12 +71,11 @@ export class AnimationClip extends AssetObject {
       sampler: bindSampler,
       target: {
         id: targetID,
-        path: targetPath,
-      },
+        path: targetPath
+      }
     };
 
     this.channels.push(channel);
-
   }
 
   /**
@@ -85,9 +83,7 @@ export class AnimationClip extends AssetObject {
    * @return {number} number of channels
    */
   public getChannelCount(): number {
-
     return this.channels.length;
-
   }
 
   /**
@@ -96,9 +92,7 @@ export class AnimationClip extends AssetObject {
    * @param {number} channelIndex
    */
   public getChannelObject(channelIndex: number) {
-
     return this.channels[channelIndex];
-
   }
 
   /**
@@ -107,10 +101,8 @@ export class AnimationClip extends AssetObject {
    * @param {number} channelIndex
    */
   public getFrameCount(channelIndex: number): number {
-
     const sampler = this.channels[channelIndex].sampler;
     return sampler.input.length;
-
   }
 
   /**
@@ -120,10 +112,8 @@ export class AnimationClip extends AssetObject {
    * @param {number} frameIndex
    */
   public getFrameTime(channelIndex: number, frameIndex: number): number {
-
     const sampler = this.channels[channelIndex].sampler;
     return sampler.input[frameIndex];
-
   }
 
   /**
@@ -132,11 +122,9 @@ export class AnimationClip extends AssetObject {
    * @param {number} channelIndex
    */
   public getChannelTimeLength(channelIndex: number): number {
-
     const sampler = this.channels[channelIndex].sampler;
     const frameCount = sampler.input.length;
     return sampler.input[frameCount - 1];
-
   }
 
   /**
@@ -145,10 +133,8 @@ export class AnimationClip extends AssetObject {
    * @param {number} channelIndex
    */
   public createChannelValue(channelIndex: number): number | Float32Array | number[] {
-
     const sampler = this.channels[channelIndex].sampler;
     switch (sampler.outputSize) {
-
       case 1:
         return 0.0;
       // break;
@@ -161,9 +147,7 @@ export class AnimationClip extends AssetObject {
       case 4:
         return quat.create();
       // break;
-
-    }// end of switch
-
+    } // end of switch
   }
 
   /**
@@ -174,78 +158,92 @@ export class AnimationClip extends AssetObject {
    * @param {number} nextFrameIndex
    * @param {number} alpha
    */
-  public evaluate(outValue: Value, channelIndex: number, frameIndex: number, nextFrameIndex: number, alpha: number): Value {
-
+  public evaluate(
+    outValue: Value,
+    channelIndex: number,
+    frameIndex: number,
+    nextFrameIndex: number,
+    alpha: number
+  ): Value {
     const channel = this.channels[channelIndex];
     const output = channel.sampler.output;
     const outputSize = channel.sampler.outputSize;
 
     switch (channel.sampler.interpolation) {
-
       case InterpolationType.CUBICSPLINE:
         this.evaluateCubicSpline(outValue, output, outputSize, frameIndex, nextFrameIndex, alpha);
         break;
       case InterpolationType.LINEAR:
         this.evaluateLinear(outValue, output, outputSize, frameIndex, nextFrameIndex, alpha);
         break;
-
     }
 
     return outValue;
-
   }
 
-  public evaluateCubicSpline(outValue: Value, output: List, outputSize: number, frameIndex: number, nextFrameIndex: number, alpha: number) {
-
+  public evaluateCubicSpline(
+    outValue: Value,
+    output: List,
+    outputSize: number,
+    frameIndex: number,
+    nextFrameIndex: number,
+    alpha: number
+  ) {
     const squared = alpha * alpha;
     const cubed = alpha * squared;
-    const part1 = ((2.0 * cubed) - (3.0 * squared)) + 1.0;
-    const part2 = (-2.0 * cubed) + (3.0 * squared);
-    const part3 = (cubed - (2.0 * squared)) + alpha;
+    const part1 = 2.0 * cubed - 3.0 * squared + 1.0;
+    const part2 = -2.0 * cubed + 3.0 * squared;
+    const part3 = cubed - 2.0 * squared + alpha;
     const part4 = cubed - squared;
 
     for (let i = outputSize; i >= 0; i--) {
-
       const t1 = output[frameIndex * outputSize * 3 + i];
       const v1 = output[frameIndex * outputSize * 3 + outputSize + i];
       const t2 = output[frameIndex * outputSize * 3 + outputSize * 2 + i];
       const v2 = output[nextFrameIndex * outputSize * 3 + outputSize + i];
 
       outValue[i] = v1 * part1 + v2 * part2 + t1 * part3 + t2 * part4;
-
     }
-
   }
 
-  public evaluateLinear(outValue: Value, output: List, outputSize: number, frameIndex: number, nextFrameIndex: number, alpha: number) {
-
+  public evaluateLinear(
+    outValue: Value,
+    output: List,
+    outputSize: number,
+    frameIndex: number,
+    nextFrameIndex: number,
+    alpha: number
+  ) {
     switch (outputSize) {
-
       case 1:
         outValue = output[frameIndex] * (1 - alpha) + output[nextFrameIndex] * alpha;
         break;
       case 2:
-      case 3: {
-
-        for (let i = outputSize; i >= 0; i--) {
-
-          outValue[i] = output[frameIndex * outputSize + i] * (1 - alpha) + output[nextFrameIndex * outputSize + i] * alpha;
-
+      case 3:
+        {
+          for (let i = outputSize; i >= 0; i--) {
+            outValue[i] =
+              output[frameIndex * outputSize + i] * (1 - alpha) + output[nextFrameIndex * outputSize + i] * alpha;
+          }
         }
-
-      }
-              break;
-      case 4: {
-
-        const a = quat.fromValues(output[frameIndex * outputSize], output[frameIndex * outputSize + 1], output[frameIndex * outputSize + 2], output[frameIndex * outputSize + 3]);
-        const b = quat.fromValues(output[nextFrameIndex * outputSize], output[nextFrameIndex * outputSize + 1], output[nextFrameIndex * outputSize + 2], output[nextFrameIndex * outputSize + 3]);
-        quat.slerp(outValue, a, b, alpha);
-
-      }
-              break;
-
-    }// end of switch
-
+        break;
+      case 4:
+        {
+          const a = quat.fromValues(
+            output[frameIndex * outputSize],
+            output[frameIndex * outputSize + 1],
+            output[frameIndex * outputSize + 2],
+            output[frameIndex * outputSize + 3]
+          );
+          const b = quat.fromValues(
+            output[nextFrameIndex * outputSize],
+            output[nextFrameIndex * outputSize + 1],
+            output[nextFrameIndex * outputSize + 2],
+            output[nextFrameIndex * outputSize + 3]
+          );
+          quat.slerp(outValue, a, b, alpha);
+        }
+        break;
+    } // end of switch
   }
-
 }

@@ -39,10 +39,7 @@ export class ABoxCollider extends ACollider {
    * @param {vec3} center 包围盒的中心点
    * @param {vec3} size 包围盒的3个轴向的大小
    */
-  setBoxCenterSize(
-    center: number[] | Float32Array,
-    size: number | Float32Array
-  ) {
+  setBoxCenterSize(center: number[] | Float32Array, size: number | Float32Array) {
     const halfSize = vec3.create();
     vec3.scale(halfSize, size, 0.5);
     vec3.add(this.boxMax, center, halfSize);

@@ -6,8 +6,9 @@
  * @returns {vec2} out
  */
 export function normalize(out, a) {
-  var x = a[0], y = a[1];
-  var len = x*x + y*y;
+  var x = a[0],
+    y = a[1];
+  var len = x * x + y * y;
   if (len > 0) {
     //TODO: evaluate use of glm_invsqrt here?
     len = 1 / Math.sqrt(len);
@@ -15,4 +16,4 @@ export function normalize(out, a) {
     out[1] = a[1] * len;
   }
   return out;
-};
+}

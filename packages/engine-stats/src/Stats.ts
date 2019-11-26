@@ -1,21 +1,17 @@
-import { EngineFeature, Engine, Scene } from '@alipay/o3-core';
-import Monitor from './Monitor';
+import { EngineFeature, Engine, Scene } from "@alipay/o3-core";
+import Monitor from "./Monitor";
 
 /**
  * Engine Feature：显示 FPS 等引擎状态数据
  */
 export class Stats extends EngineFeature {
-
-  private monitor:Monitor;
+  private monitor: Monitor;
   /**
    * 构造函数
    */
   constructor() {
-
     super();
-
   }
-
 
   /**
    * tick 前置回调
@@ -23,7 +19,7 @@ export class Stats extends EngineFeature {
   preTick(engine: Engine, currentScene: Scene): void {
     if (!this.monitor) {
       if (currentScene[0] && currentScene[0].activeCameras[0] && currentScene[0].activeCameras[0].canvas) {
-        this.monitor = new Monitor(currentScene[0].activeCameras[0].canvas)
+        this.monitor = new Monitor(currentScene[0].activeCameras[0].canvas);
       }
     }
   }

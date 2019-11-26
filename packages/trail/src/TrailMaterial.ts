@@ -1,32 +1,30 @@
-import { DataType, RenderState, BlendFunc, MaterialType } from '@alipay/o3-base';
-import { Material, RenderTechnique } from '@alipay/o3-material';
+import { DataType, RenderState, BlendFunc, MaterialType } from "@alipay/o3-base";
+import { Material, RenderTechnique } from "@alipay/o3-material";
 
-import VERT_SHADER from './trail.vs.glsl';
-import FRAG_SHADER from './trail.fs.glsl';
+import VERT_SHADER from "./trail.vs.glsl";
+import FRAG_SHADER from "./trail.fs.glsl";
 
 export class TrailMaterial extends Material {
-
   /**
    * 生成内部所使用的 Technique 对象
    * @private
    */
-  _generateTechnique( ) {
-
+  _generateTechnique() {
     //--
-    const tech = new RenderTechnique( 'trail_tech' );
+    const tech = new RenderTechnique("trail_tech");
     tech.isValid = true;
     tech.uniforms = {
       u_texture: {
-        name: 'u_texture',
-        type: DataType.SAMPLER_2D,
+        name: "u_texture",
+        type: DataType.SAMPLER_2D
       }
     };
     tech.attributes = {};
     tech.states = {
-      enable: [ RenderState.BLEND ],
+      enable: [RenderState.BLEND],
       functions: {
-        blendFunc: [ BlendFunc.SRC_ALPHA, BlendFunc.ONE ],
-        depthMask: [ false ]
+        blendFunc: [BlendFunc.SRC_ALPHA, BlendFunc.ONE],
+        depthMask: [false]
       }
     };
     tech.customMacros = [];
@@ -35,24 +33,17 @@ export class TrailMaterial extends Material {
 
     this._technique = tech;
     this.renderType = MaterialType.TRANSPARENT;
-
   }
 
   /**
    * 重写基类方法
    * @private
    */
-  prepareDrawing( camera, component, primitive ) {
-
-
-    if ( this._technique === null ) {
-
-      this._generateTechnique( );
-
+  prepareDrawing(camera, component, primitive) {
+    if (this._technique === null) {
+      this._generateTechnique();
     }
 
-    super.prepareDrawing( camera, component, primitive );
-
+    super.prepareDrawing(camera, component, primitive);
   }
-
 }

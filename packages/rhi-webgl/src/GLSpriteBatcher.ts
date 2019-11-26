@@ -1,7 +1,7 @@
-import { Logger } from '@alipay/o3-base';
-import { GLSprite } from './GLSprite';
-import { createSpriteMaterial, SpriteTechnique } from './GLSpriteMaterial';
-import { GLTechnique } from './GLTechnique';
+import { Logger } from "@alipay/o3-base";
+import { GLSprite } from "./GLSprite";
+import { createSpriteMaterial, SpriteTechnique } from "./GLSpriteMaterial";
+import { GLTechnique } from "./GLTechnique";
 import { RenderTechnique } from "@alipay/o3-material";
 
 /**
@@ -9,7 +9,6 @@ import { RenderTechnique } from "@alipay/o3-material";
  * @private
  */
 export class GLSpriteBatcher {
-
   private _gl: WebGLRenderingContext;
   private _batchedQueue;
   private _targetTexture;
@@ -19,7 +18,6 @@ export class GLSpriteBatcher {
   private _camera;
 
   constructor(rhi) {
-
     this._gl = rhi.gl;
 
     this._batchedQueue = [];
@@ -31,42 +29,34 @@ export class GLSpriteBatcher {
     this._glTech = new GLTechnique(rhi, SpriteTechnique as RenderTechnique);
     this._material = createSpriteMaterial();
     this._camera = null;
-
   }
 
   /**
    * 将缓存的Sprite也绘制出来
    */
   flush() {
-
     if (this._batchedQueue.length === 0) {
-
       return;
-
     }
 
     if (!this._targetTexture) {
-
-      Logger.error('No texture!');
+      Logger.error("No texture!");
       return;
-
     }
 
-    this._material.setValue('s_diffuse', this._targetTexture);
+    this._material.setValue("s_diffuse", this._targetTexture);
 
-    this._material.setValue('matView', this._camera.viewMatrix);
-    this._material.setValue('matProjection', this._camera.projectionMatrix);
+    this._material.setValue("matView", this._camera.viewMatrix);
+    this._material.setValue("matProjection", this._camera.projectionMatrix);
 
     this._glTech.begin(this._material);
     // 绘制
     this._glSprite.beginDraw(this._batchedQueue.length);
     for (let i = 0, len = this._batchedQueue.length; i < len; i++) {
-
       const positionQuad = this._batchedQueue[i].positionQuad;
       const uvRect = this._batchedQueue[i].uvRect;
       const tintColor = this._batchedQueue[i].tintColor;
       this._glSprite.drawSprite(positionQuad, uvRect, tintColor);
-
     }
     this._glSprite.endDraw();
 
@@ -75,7 +65,6 @@ export class GLSpriteBatcher {
     this._batchedQueue = [];
     this._targetTexture = null;
     this._camera = null;
-
   }
 
   /**
@@ -85,14 +74,10 @@ export class GLSpriteBatcher {
    * @param {ACamera}   camera        相机信息
    */
   canBatch(texture, renderMode, camera) {
-
     if (this._targetTexture === null) {
-
       return true;
-
     }
     return texture === this._targetTexture && camera === this._camera;
-
   }
 
   /**
@@ -105,27 +90,20 @@ export class GLSpriteBatcher {
    * @param {ACamera}   camera        相机信息
    */
   drawSprite(positionQuad, uvRect, tintColor, texture, renderMode, camera) {
-
     if (!this.canBatch(texture, renderMode, camera)) {
-
       this.flush();
-
     }
 
     this._targetTexture = texture;
     this._camera = camera;
     this._batchedQueue.push({ positionQuad, uvRect, tintColor });
-
   }
 
   /**
    * 释放资源
    */
   finalize() {
-
     this._glSprite.finalize();
     this._glTech.finalize();
-
   }
-
 }

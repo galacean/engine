@@ -1,25 +1,19 @@
-import HTMLElement from './HTMLElement'
+import HTMLElement from "./HTMLElement";
 
 export default class HTMLMediaElement extends HTMLElement {
   constructor(tagName: string) {
     super(tagName);
   }
 
-  addTextTrack() {
-  }
+  addTextTrack() {}
 
-  captureStream() {
-  }
+  captureStream() {}
 
-  fastSeek() {
-  }
+  fastSeek() {}
 
-  load() {
-  }
+  load() {}
 
-  pause() {
-  }
+  pause() {}
 
-  play() {
-  }
+  play() {}
 }

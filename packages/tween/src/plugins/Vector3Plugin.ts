@@ -1,5 +1,5 @@
-import generator from './core/VectorPluginFactory';
+import generator from "./core/VectorPluginFactory";
 
-const Vector3Plugin = generator( 3 );
+const Vector3Plugin = generator(3);
 
 export { Vector3Plugin };

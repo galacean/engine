@@ -2,12 +2,7 @@ import { Ray } from "./Ray";
 import { vec3 } from "@alipay/o3-math";
 import { Scene } from "@alipay/o3-core";
 import { RaycastHit } from "./RaycastHit";
-import {
-  ColliderFeature,
-  ABoxCollider,
-  APlaneCollider,
-  ASphereCollider
-} from "@alipay/o3-collider";
+import { ColliderFeature, ABoxCollider, APlaneCollider, ASphereCollider } from "@alipay/o3-collider";
 import { MaskList } from "@alipay/o3-base";
 
 /**

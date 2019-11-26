@@ -10,7 +10,7 @@ export function normalize(out, a) {
   let y = a[1];
   let z = a[2];
   let w = a[3];
-  let len = x*x + y*y + z*z + w*w;
+  let len = x * x + y * y + z * z + w * w;
   if (len > 0) {
     len = 1 / Math.sqrt(len);
     out[0] = x * len;
