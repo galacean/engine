@@ -228,6 +228,10 @@ export class Particle extends AGPUParticleSystem {
     this.updateConfig("fadeIn", value);
   }
 
+  set __fadeOut(value) {
+    this.updateConfig("fadeOut", value);
+  }
+
   set __texture(value) {
     this.updateConfig("texture", value.asset);
   }
