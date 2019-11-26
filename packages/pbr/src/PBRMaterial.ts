@@ -6,9 +6,10 @@ import {
   MaterialType,
   BlendFunc,
   CullFace,
-  Side
+  Side,
+  Util
 } from "@alipay/o3-base";
-import { Material, RenderTechnique } from "@alipay/o3-material";
+import { Material, RenderTechnique, Texture2D } from "@alipay/o3-material";
 import { LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
 
 import { AEnvironmentMapLight } from "./AEnvironmentMapLight";
@@ -1066,26 +1067,42 @@ class PBRMaterial extends Material {
 
   /**
    * 创建一个副本
+   * @param {string} name - name
+   * @param {boolean} cloneTexture - 是否复制纹理，默认复制
    */
-  clone() {
-    const newMtl = new PBRMaterial(this.name);
+  clone(name?: string, cloneTexture?: boolean = true) {
+    const newMtl = new PBRMaterial(name || this.name);
 
     newMtl.renderType = this.renderType;
+    newMtl.useFog = this.useFog;
 
-    for (const name in this._values) {
-      if (this._values.hasOwnProperty(name)) {
-        newMtl._values[name] = this._values[name];
+    for (const name in this._uniformObj) {
+      switch (name) {
+        case "baseColorTexture":
+        case "metallicRoughnessTexture":
+        case "normalTexture":
+        case "emissiveTexture":
+        case "occlusionTexture":
+        case "opacityTexture":
+        case "specularGlossinessTexture":
+        case "perturbationTexture":
+          if (cloneTexture) {
+            let { name: textureName, image, type, config } = this._uniformObj[name];
+            const newTexture = new Texture2D(textureName, image, config);
+            newTexture.type = type;
+            newMtl[name] = newTexture;
+          } else {
+            newMtl[name] = this._uniformObj[name];
+          }
+          break;
+        default:
+          newMtl[name] = Util.clone(this._uniformObj[name]);
       }
     }
 
-    if (this._uniformObj) {
-      newMtl._uniformObj = Object.assign({}, this._uniformObj);
-    }
-
     if (this._stateObj) {
-      newMtl._stateObj = Object.assign({}, this._stateObj);
+      newMtl._stateObj = Util.clone(this._stateObj);
     }
-
     return newMtl;
   }
 

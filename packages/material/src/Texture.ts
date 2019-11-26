@@ -12,6 +12,7 @@ export class Texture extends AssetObject {
   protected _wrapT: TextureWrapMode;
   protected _filterMag: TextureFilter;
   protected _filterMin: TextureFilter;
+  config: any;
 
   /**
    * 纹理对象基类
@@ -24,7 +25,7 @@ export class Texture extends AssetObject {
    */
   constructor(name: string, config: TextureConfig = {}) {
     super(name);
-
+    this.config = config;
     this.setFilter(config.magFilter || TextureFilter.LINEAR, config.minFilter || TextureFilter.LINEAR_MIPMAP_LINEAR);
     this.setWrapMode(config.wrapS || TextureWrapMode.REPEAT, config.wrapT || TextureWrapMode.REPEAT);
   }
