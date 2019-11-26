@@ -79,8 +79,18 @@ export abstract class CommonMaterial extends Material {
   clone(name?: string) {
     let newMaterial = super.clone(name);
     newMaterial.side = this.side;
-    newMaterial.ambient = vec4.clone(this.ambient);
-    newMaterial.emission = vec4.clone(this.emission);
+
+    if (this.ambient instanceof Texture2D) {
+      newMaterial.ambient = this.ambient;
+    } else {
+      newMaterial.ambient = vec4.clone(this.ambient);
+    }
+    if (this.emission instanceof Texture2D) {
+      newMaterial.emission = this.emission;
+    } else {
+      newMaterial.emission = vec4.clone(this.emission);
+    }
+
     return newMaterial;
   }
 
