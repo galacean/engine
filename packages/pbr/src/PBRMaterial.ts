@@ -6,7 +6,8 @@ import {
   MaterialType,
   BlendFunc,
   CullFace,
-  Side
+  Side,
+  Util
 } from "@alipay/o3-base";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
@@ -1074,18 +1075,17 @@ class PBRMaterial extends Material {
 
     for (const name in this._values) {
       if (this._values.hasOwnProperty(name)) {
-        newMtl._values[name] = this._values[name];
+        newMtl._values[name] = Util.clone(this._values[name]);
       }
     }
 
     if (this._uniformObj) {
-      newMtl._uniformObj = Object.assign({}, this._uniformObj);
+      newMtl._uniformObj = Util.clone(this._uniformObj);
     }
 
     if (this._stateObj) {
-      newMtl._stateObj = Object.assign({}, this._stateObj);
+      newMtl._stateObj = Util.clone(this._stateObj);
     }
-
     return newMtl;
   }
 
