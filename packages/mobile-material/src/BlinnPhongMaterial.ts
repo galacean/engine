@@ -76,6 +76,14 @@ export class BlinnPhongMaterial extends CommonMaterial {
     this.setValue("u_shininess", val);
   }
 
+  clone(name?: string) {
+    let newMaterial = super.clone(name);
+    newMaterial.diffuse = vec4.clone(this.diffuse);
+    newMaterial.specular = vec4.clone(this.specular);
+    newMaterial.shininess = this.shininess;
+    return newMaterial;
+  }
+
   /**
    * 生成内部的 Technique 对象
    * @private

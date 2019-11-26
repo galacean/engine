@@ -55,18 +55,11 @@ export class Material {
   }
 
   /** 创建一个本材质对象的深拷贝对象 */
-  clone() {
-    const newMtl = new Material(this.name);
+  clone(name?: string) {
+    const newMtl = new (this.constructor as any)(name || this.name);
 
     newMtl.renderType = this.renderType;
-    newMtl._technique = this._technique;
     newMtl.useFog = this.useFog;
-
-    for (const name in this._values) {
-      if (this._values.hasOwnProperty(name)) {
-        newMtl._values[name] = this._values[name];
-      }
-    } // end of for
 
     return newMtl;
   }

@@ -76,6 +76,14 @@ export abstract class CommonMaterial extends Material {
     this.setValue("u_ambient", val);
   }
 
+  clone(name?: string) {
+    let newMaterial = super.clone(name);
+    newMaterial.side = this.side;
+    newMaterial.ambient = vec4.clone(this.ambient);
+    newMaterial.emission = vec4.clone(this.emission);
+    return newMaterial;
+  }
+
   /**
    * 重写基类方法，添加 ambientLight 计算
    */
