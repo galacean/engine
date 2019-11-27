@@ -758,7 +758,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
         void main()
         {
-          // float alphaFactor = step(0.0, lifeLeft);
           float alphaFactor = 1.0;
       `,
       fadeInFragmentShader: `

@@ -1070,7 +1070,7 @@ class PBRMaterial extends Material {
    * @param {string} name - name
    * @param {boolean} cloneTexture - 是否复制纹理，默认复制
    */
-  clone(name?: string, cloneTexture?: boolean = true) {
+  clone(name?: string, cloneTexture: boolean = true) {
     const newMtl = new PBRMaterial(name || this.name);
 
     newMtl.renderType = this.renderType;
