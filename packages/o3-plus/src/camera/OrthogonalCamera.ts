@@ -9,10 +9,7 @@ interface Props {
   attributes?;
   near?: number;
   far?: number;
-  left?: number;
-  right?: number;
-  bottom?: number;
-  top?: number;
+  size?: number;
   pixelRatio?: number;
   clearMode?: number;
   clearParam?: number[];
@@ -37,27 +34,15 @@ export class OrthographicCamera extends Camera {
    * @member {Number}
    */
   private _far: number;
+
   /**
-   * Define the current limit on the left side for an orthographic camera In scene unit
-   * @member {Number}
+   * 正交摄像头大小，比例是计算出来的
    */
-  private _left: number;
-  /**
-   * Define the current limit on the right side for an orthographic camera In scene unit
-   */
-  private _right: number;
-  /**
-   * Define the current limit on the bottom side for an orthographic camera In scene unit
-   */
-  private _bottom: number;
-  /**
-   * Define the current limit on the top side for an orthographic camera In scene unit
-   */
-  private _top: number;
+  private _size: number;
+
   /**
    * 标记相机参数更新
    */
-  private _dirty: boolean;
   private lastWidth: number;
   private lastHeight: number;
   private _pixelRatio: number;
@@ -77,14 +62,9 @@ export class OrthographicCamera extends Camera {
         typeof props.canvas === "string" ? (document.getElementById(props.canvas) as HTMLCanvasElement) : props.canvas;
     }
 
-    this._left = props.left || -3;
-    this._right = props.right || 3;
-    this._bottom = props.bottom || -3;
-    this._top = props.top || 3;
-    this._near = props.near || 0.01;
+    this._size = props.size || 10;
+    this._near = props.near || 0;
     this._far = props.far || 1000;
-
-    this._dirty = false;
 
     this._pixelRatio = props.pixelRatio || window.devicePixelRatio;
 
@@ -136,12 +116,27 @@ export class OrthographicCamera extends Camera {
       this.canvas.width = width;
       this.canvas.height = height;
 
-      this.setOrtho(this._left, this._right, this._bottom, this._top, this._near, this._far);
+      this.setOrthoFromThis();
       this.setViewport(0, 0, width, height);
       return true;
     }
 
     return false;
+  }
+
+  /**
+   * 正交摄像头上下大小
+   */
+  set size(v: number) {
+    this._size = v;
+    this.setOrthoFromThis();
+  }
+
+  /**
+   * 正交摄像头上下大小
+   */
+  get size(): number {
+    return this._size;
   }
 
   get near(): number {
@@ -162,43 +157,9 @@ export class OrthographicCamera extends Camera {
     this.setOrthoFromThis();
   }
 
-  get left(): number {
-    return this._left;
-  }
-
-  set left(value: number) {
-    this._left = value;
-    this.setOrthoFromThis();
-  }
-
-  get right(): number {
-    return this._right;
-  }
-
-  set right(value: number) {
-    this._right = value;
-    this.setOrthoFromThis();
-  }
-
-  get bottom(): number {
-    return this._bottom;
-  }
-
-  set bottom(value: number) {
-    this._bottom = value;
-    this.setOrthoFromThis();
-  }
-
-  get top(): number {
-    return this._top;
-  }
-
-  set top(value: number) {
-    this._top = value;
-    this.setOrthoFromThis();
-  }
-
   private setOrthoFromThis() {
-    this.setOrtho(this._left, this._right, this._bottom, this._top, this._near, this._far);
+    const width = (this._size * this.lastWidth) / this.lastHeight;
+    const height = this._size;
+    this.setOrtho(-width, width, -height, height, this._near, this._far);
   }
 }
