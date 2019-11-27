@@ -2,6 +2,7 @@
 
 ### Features
 
+- OrthogonalCamera (@kevin.hs) [!32](http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues/32)
 - rendering pipeline enhance（@shensi.zxd） [!3](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/3)
 - texture perturbation（@shensi.zxd） [!8](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/8)
 - adapter-miniprogram（@shensi.zxd） [!7](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/7)
