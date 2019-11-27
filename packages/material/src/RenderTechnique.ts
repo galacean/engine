@@ -11,9 +11,9 @@ export class RenderTechnique extends AssetObject {
   // 是否可用
   public isValid: boolean = false;
   // Unifrom记录数组
-  private _uniforms: any;
+  private _uniforms: any = RenderTechnique.commonUniforms;
   // Attribute记录对象
-  private _attributes: any;
+  private _attributes: any = RenderTechnique.commonAttributes;
   /**
    * 渲染状态控制对象
    * {
