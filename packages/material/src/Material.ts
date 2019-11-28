@@ -132,9 +132,10 @@ export class Material {
    * @param {CameraComponent} camera 当前摄像机
    * @param {Component} component 当前渲染的对象
    * @param {Primitive} primitive 几何对象
+   * @param {Material} oriMaterial 物体本来的材质，用于renderPass使用replaceMaterial时的识别
    * @private
    */
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(camera, component, primitive, oriMaterial?: Material) {
     // 设置Unifroms
     const uniforms = this._technique.uniforms;
     for (const name in uniforms) {

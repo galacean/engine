@@ -62,8 +62,8 @@ class ColorMaterial extends Material {
   /**
    * @private
    */
-  prepareDrawing(camera, component, primitive) {
-    if (!this._technique) this.generateTechnique();
+  prepareDrawing(camera, component, primitive, oriMaterial?: Material) {
+    if (!this._technique) this.generateTechnique(oriMaterial);
 
     this._currentId += 1;
     this._primitivesMap[this._currentId] = { component, primitive };
@@ -75,7 +75,8 @@ class ColorMaterial extends Material {
   /**
    * @private
    */
-  generateTechnique() {
+  generateTechnique(oriMaterial: Material) {
+    const oriTech: any = (oriMaterial && oriMaterial.technique) || {};
     const tech = new RenderTechnique("Framebuffer_Picker_Color_Material");
     tech.isValid = true;
     tech.uniforms = {
@@ -84,6 +85,7 @@ class ColorMaterial extends Material {
         type: DataType.FLOAT_VEC3
       }
     };
+    tech.states = oriTech.states;
     tech.fragmentPrecision = "highp";
     tech.vertexShader = vs;
     tech.fragmentShader = fs;
