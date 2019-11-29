@@ -12,6 +12,20 @@ tnpm run bootstrap
 tnpm run otp:release
 ```
 
+### 测试
+
+```
+tnpm run test
+```
+
+##### 测试覆盖率
+
+```
+tnpm run test-cov
+```
+
+查看 coverage/lcov-report/index.html
+
 ## 游乐场相关
 调试
 
