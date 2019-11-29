@@ -243,10 +243,12 @@ export class Engine extends EventDispatcher {
         this.requestId = requestAnimationFrame(this._animate);
       };
     }
-
-    // fix lastTickTime every time before animating, otherwise the 1st frame after resuming may gets a too large dt.
-    this._animateTime.tick();
-    this._animate();
+    // 防止场景在后台渲染
+    requestAnimationFrame(() => {
+      // fix lastTickTime every time before animating, otherwise the 1st frame after resuming may gets a too large dt.
+      this._animateTime.tick();
+      this._animate();
+    });
 
     // var self = this;
     // var animateTime = this._animateTime;

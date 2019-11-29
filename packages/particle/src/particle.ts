@@ -113,7 +113,7 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     this.vertexShader = props.vertexShader || null;
     this.particleTex = props.texture || null;
     this.fadeIn = props.fadeIn || false;
-    this.fadeOut = props.fadeOut || false;
+    this.fadeOut = props.fadeOut === undefined ? true : props.fadeOut;
     this.particleMaskTex = props.maskTexture || null;
     this.isScaleByLifetime = props.isScaleByLifetime || false;
     this.scaleFactor = props.scaleFactor || 1;

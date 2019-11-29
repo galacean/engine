@@ -9,6 +9,7 @@ let primitiveID = 0;
  * @private
  */
 export class Primitive extends AssetObject {
+  public readonly id: number;
   public mode: number;
   public usage: number;
   public updateType: number;
@@ -30,8 +31,8 @@ export class Primitive extends AssetObject {
    * @constructor
    */
   constructor(name?) {
-    super(name !== undefined ? name : "DEFAULT_PRIMITIVENAME_" + primitiveID++);
-
+    super(name !== undefined ? name : "DEFAULT_PRIMITIVENAME_" + primitiveID);
+    this.id = primitiveID++;
     this.mode = DrawMode.TRIANGLES; // draw mode, triangles, lines etc.
     this.usage = BufferUsage.STATIC_DRAW;
     this.updateType = UpdateType.UPDATE_ALL;

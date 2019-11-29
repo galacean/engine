@@ -29,11 +29,9 @@ let orthographicCamera = cameraNode.createAbility(OrthographicCamera);
 orthographicCamera.attachToScene("o3-demo");
 cameraNode.position = [7, 8, 20];
 cameraNode.createAbility(ADirectLight);
-orthographicCamera.top = 8;
-orthographicCamera.bottom = -8;
-orthographicCamera.left = -8;
-orthographicCamera.right = 8;
 orthographicCamera.node.lookAt([0, 0, 0], [0, 1, 0]);
+orthographicCamera.size = 10;
+console.log(orthographicCamera)
 
 let perspectiveCamera = cameraNode.createAbility(PerspectiveCamera);
 perspectiveCamera.attachToScene("o3-demo");
@@ -43,10 +41,8 @@ const gui = new dat.GUI();
 gui.domElement.style = "position:absolute;top:0px;left:50vw";
 let orthgraphicFolder = gui.addFolder("orthographicCamera");
 orthgraphicFolder.add(orthographicCamera, "enabled");
-orthgraphicFolder.add(orthographicCamera, "left", -1000, 0);
-orthgraphicFolder.add(orthographicCamera, "right", 0, 1000);
-orthgraphicFolder.add(orthographicCamera, "top", 0, 1000);
-orthgraphicFolder.add(orthographicCamera, "bottom", -1000, 0);
+orthgraphicFolder.add(orthographicCamera, "size", 0, 100);
+// orthgraphicFolder.add(orthographicCamera, "heightRatio", 0, 1);
 
 let perspectiveFolder = gui.addFolder("perspectiveCamera");
 perspectiveFolder.add(perspectiveCamera, "enabled");

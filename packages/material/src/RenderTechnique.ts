@@ -3,6 +3,22 @@ import { AssetObject } from "@alipay/o3-core";
 import { ShaderFactory } from "@alipay/o3-shaderlib";
 import { Material } from "./Material";
 import { TechniqueStates } from "./type";
+
+interface Attributes {
+  [key: string]: {
+    name: string;
+    semantic: string;
+    type: DataType;
+  };
+}
+interface Uniforms {
+  [key: string]: {
+    name: string;
+    semantic?: UniformSemantic;
+    type: DataType;
+  };
+}
+
 /**
  * 渲染单个对象所需的控制对象，作为 Material 的模块使用。对应 glTF 里面的 technique 对象
  * @class
@@ -11,9 +27,9 @@ export class RenderTechnique extends AssetObject {
   // 是否可用
   public isValid: boolean = false;
   // Unifrom记录数组
-  private _uniforms: any;
+  private _uniforms: Uniforms = RenderTechnique.commonUniforms;
   // Attribute记录对象
-  private _attributes: any;
+  private _attributes: Attributes = RenderTechnique.commonAttributes;
   /**
    * 渲染状态控制对象
    * {

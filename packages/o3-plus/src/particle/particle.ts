@@ -38,6 +38,7 @@ export class Particle extends AGPUParticleSystem {
       rotateToVelocity: props.__rotateToVelocity,
       isScaleByLifetime: props.__isScaleByLifetime,
       fadeIn: props.__fadeIn,
+      fadeOut: props.__fadeOut,
       texture: props.__texture ? props.__texture.asset : null,
       maskTexture: props.__maskTexture ? props.__maskTexture.asset : null,
       // blendFunc: [props.__blendFunc01, props.__blendFunc02],
@@ -226,6 +227,10 @@ export class Particle extends AGPUParticleSystem {
 
   set __fadeIn(value) {
     this.updateConfig("fadeIn", value);
+  }
+
+  set __fadeOut(value) {
+    this.updateConfig("fadeOut", value);
   }
 
   set __texture(value) {
