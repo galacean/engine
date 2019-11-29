@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-env-probe",
-  "version": "1.0.1-alpha.8",
+  "version": "1.0.1-alpha.9",
   "description": "Oasis3D env-probe",
   "keywords": [
     "Oasis3D",
@@ -31,8 +31,8 @@
   "dependencies": {
     "@alipay/o3-base": "^1.0.1-alpha.9",
     "@alipay/o3-core": "^1.0.1-alpha.12",
-    "@alipay/o3-material": "^1.0.1-alpha.10",
-    "@alipay/o3-pbr": "^1.0.1-alpha.12",
-    "@alipay/o3-renderer-basic": "^1.0.1-alpha.10"
+    "@alipay/o3-material": "^1.0.1-alpha.11",
+    "@alipay/o3-pbr": "^1.0.1-alpha.13",
+    "@alipay/o3-renderer-basic": "^1.0.1-alpha.11"
   }
 }
