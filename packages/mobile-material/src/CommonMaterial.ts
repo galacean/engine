@@ -1,5 +1,5 @@
 import { vec3, vec4 } from "@alipay/o3-math";
-import { CullFace, DataType, Logger, RenderState, Side } from "@alipay/o3-base";
+import { CullFace, DataType, RenderState, Side } from "@alipay/o3-base";
 import { Texture2D } from "@alipay/o3-material";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { TechniqueStates } from "@alipay/o3-material/types/type";
