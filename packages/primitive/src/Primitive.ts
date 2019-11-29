@@ -9,7 +9,7 @@ let primitiveID = 0;
  * @private
  */
 export class Primitive extends AssetObject {
-  public id: number;
+  public readonly id: number;
   public mode: number;
   public usage: number;
   public updateType: number;
