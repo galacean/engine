@@ -41,11 +41,7 @@ export abstract class CommonMaterial extends Material {
     return this._side;
   }
 
-  set side(v) {
-    if ([Side.FRONT, Side.BACK, Side.NONE, Side.DOUBLE].indexOf(v) === -1) {
-      Logger.warn('side only support "Side.FRONT"、"Side.BACK"、"Side.NONE"、"Side.DOUBLE"');
-      return;
-    }
+  set side(v: Side) {
     this._side = v;
     this._technique = null;
   }
