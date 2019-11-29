@@ -12,7 +12,9 @@ tnpm run bootstrap
 tnpm run otp:release
 ```
 
-### 测试
+### 单元测试
+
+关于[单元测试](https://yuque.antfin-inc.com/oasis3d/mlxz18/fhvrag)
 
 ```
 tnpm run test
