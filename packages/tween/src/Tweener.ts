@@ -1,8 +1,7 @@
-import {LOOP_TYPE} from './Enums';
-import {TweenerBase} from './TweenerBase';
+import { LOOP_TYPE } from './Enums'
+import { TweenerBase } from './TweenerBase'
 
-const noop = () => {
-};
+const noop = () => {}
 
 // on events
 // play, pause, complete, kill, rewind, update
@@ -11,7 +10,6 @@ const noop = () => {
  * @extends TweenerBase
  */
 class Tweener extends TweenerBase {
-
   /**
    * @constructor
    * @param {function} getter 获取函数
@@ -23,32 +21,24 @@ class Tweener extends TweenerBase {
    * @param {function} options.onComplete 完成时调用的函数
    */
   constructor(getter, setter, endValue, interval, options = {}, target = null) {
-
-    super(getter, setter, endValue, interval, options, target);
-
+    super(getter, setter, endValue, interval, options, target)
   }
 
   /** 计算Tween动画总时长
    * @member {number}
    */
   duration() {
-
     // infinite
-    let duration = 0;
+    let duration = 0
 
     if (this.options.loops.count === -1) {
-
-      duration = -1;
-
+      duration = -1
     } else {
-
       // FIXME: add rewind time
-      duration = this.options.delay + this.options.loops.count * this.interval;
-
+      duration = this.options.delay + this.options.loops.count * this.interval
     }
 
-    return duration;
-
+    return duration
   }
 
   /**
@@ -57,66 +47,48 @@ class Tweener extends TweenerBase {
    * @private
    */
   update(deltaTime) {
-
-    this._time += deltaTime;
-
+    this._time += deltaTime
     if (!this._paused) {
-
       // if delay don't update
       if (this.options.delay > this._time) {
-
-        return true;
-
+        return true
       }
 
-      this.elapsedTime += deltaTime;
+      this.elapsedTime += deltaTime
       // in case deltaTime is really big
-      this.elapsedTime = this.elapsedTime > this.interval ? this.interval : this.elapsedTime;
+      this.elapsedTime = this.elapsedTime > this.interval ? this.interval : this.elapsedTime
 
       // on start callback
-      this.options.plugin(this);
+      this.options.plugin(this)
 
-      this.options.onTick(this);
+      this.options.onTick(this)
 
       // everything has an end....
       if (this.elapsedTime === this.interval) {
-
         // loop it
         if (this._remainLoops > 0 || this._remainLoops <= -1) {
-
           switch (this.options.loops.type) {
-
             case LOOP_TYPE.Yoyo:
-              this.rewind = !this.rewind;
-              this.elapsedTime = 0;
+              this.rewind = !this.rewind
+              this.elapsedTime = 0
               if (!this.rewind) {
-
-                this._remainLoops--;
-
+                this._remainLoops--
               }
-              break;
+              break
             case LOOP_TYPE.Restart:
               // reset
-              this.elapsedTime = 0;
-              this._remainLoops--;
-              break;
-
+              this.elapsedTime = 0
+              this._remainLoops--
+              break
           }
-
         } else {
-
-          this.stop();
-
+          this.stop()
         }
-
       }
 
-      return true;
-
+      return true
     }
-
   }
-
 }
 
-export {Tweener};
+export { Tweener }
