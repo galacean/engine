@@ -191,6 +191,10 @@ export class GLTechnique {
         if (value.length) gl.uniform1fv(location, value);
         else gl.uniform1f(location, value);
         break;
+      case DataType.INT:
+        if (value.length) gl.uniform1iv(location, value);
+        else gl.uniform1i(location, value);
+        break;
       case DataType.FLOAT_VEC2:
         gl.uniform2fv(location, value);
         break;
@@ -199,6 +203,18 @@ export class GLTechnique {
         break;
       case DataType.FLOAT_VEC4:
         gl.uniform4fv(location, value);
+        break;
+      case DataType.INT_VEC2:
+        gl.uniform2iv(location, value);
+        break;
+      case DataType.INT_VEC3:
+        gl.uniform3iv(location, value);
+        break;
+      case DataType.INT_VEC4:
+        gl.uniform4iv(location, value);
+        break;
+      case DataType.FLOAT_MAT2:
+        gl.uniformMatrix2fv(location, false, value);
         break;
       case DataType.FLOAT_MAT3:
         gl.uniformMatrix3fv(location, false, value);
