@@ -4,7 +4,7 @@ import { AMeshRenderer } from "@alipay/o3-mesh";
 import { AGeometryRenderer } from "@alipay/o3-geometry";
 import { Frustum } from "@alipay/o3-renderer-cull";
 import { IntersectInfo } from "@alipay/o3-base";
-import { pointDistanceToPlane } from "./util";
+import { pointDistanceToPlane, getMinMaxFromPrimitive } from "./util";
 import { Vec3, Mat4 } from "./type";
 
 /**
@@ -38,35 +38,7 @@ export class AABB {
    * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
    * */
   setFromPrimitive(primitive: Primitive, modelMatrix: Mat4, littleEndian = true) {
-    let {
-      vertexCount,
-      vertexBuffers,
-      vertexAttributes: {
-        POSITION: { size, offset, stride, vertexBufferIndex }
-      }
-    } = primitive;
-    let arrayBuffer = vertexBuffers[vertexBufferIndex];
-    if (!(arrayBuffer instanceof ArrayBuffer)) {
-      arrayBuffer = arrayBuffer.buffer;
-    }
-    if (stride === 0) {
-      stride = size * 4;
-    }
-    const dataView = new DataView(arrayBuffer, offset);
-
-    let min = [Infinity, Infinity, Infinity];
-    let max = [-Infinity, -Infinity, -Infinity];
-    for (let i = 0; i < vertexCount; i++) {
-      const base = offset + stride * i;
-      const position = [
-        dataView.getFloat32(base, littleEndian),
-        dataView.getFloat32(base + 4, littleEndian),
-        dataView.getFloat32(base + 8, littleEndian)
-      ];
-      vec3.transformMat4(position, position, modelMatrix);
-      vec3.min(min, min, position);
-      vec3.max(max, max, position);
-    }
+    let { min, max } = getMinMaxFromPrimitive(primitive, modelMatrix, littleEndian);
 
     vec3.add(min, min, this.magnify);
     vec3.add(max, max, this.magnify);
