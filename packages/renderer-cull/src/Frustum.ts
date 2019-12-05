@@ -1,13 +1,14 @@
 "use strict";
 
 import { mat4 } from "@alipay/o3-math";
+import { ACamera } from "@alipay/o3-core";
 
 /**
  * 视锥体（平截头体）
  * @class
  */
 export class Frustum {
-  private _planes;
+  private _planes: number[][];
   /**
    * 构造函数
    */
@@ -17,10 +18,17 @@ export class Frustum {
   }
 
   /**
+   * 获取视锥体的6个平面方程
+   * */
+  get planes() {
+    return this._planes;
+  }
+
+  /**
    * 从摄像机矩阵中提取出平截头体的六个平面
    * @param {ACamera} camera
    */
-  update(camera) {
+  update(camera: ACamera) {
     const planes = this._planes;
 
     const vpm = mat4.create();
