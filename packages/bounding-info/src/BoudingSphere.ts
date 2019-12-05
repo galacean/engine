@@ -20,19 +20,6 @@ export class BoundingSphere {
   public radiusWorld: number = 0;
 
   /**
-   * 通过 min max 来计算包围球
-   * @param {Vec3} min - 最小坐标
-   * @param {Vec3} max - 最大坐标
-   * */
-  setFromMinMax(min: Vec3, max: Vec3) {
-    let distance = vec3.distance(min, max);
-    this.radius = distance * 0.5;
-
-    vec3.add(this.center, min, max);
-    vec3.scale(this.center, this.center, 0.5);
-  }
-
-  /**
    * 通过 primitive 来计算包围球
    * @param {Primitive}  primitive - Oasis primitive
    * @param {Mat4} modelMatrix - Local to World矩阵
@@ -41,8 +28,15 @@ export class BoundingSphere {
   setFromPrimitive(primitive: Primitive, modelMatrix: Mat4, littleEndian = true) {
     let { min, max } = getMinMaxFromPrimitive(primitive, null, littleEndian);
 
-    this.setFromMinMax(min, max);
+    // 先计算local
+    let distance = vec3.distance(min, max);
+    this.radius = distance * 0.5;
+
+    vec3.add(this.center, min, max);
+    vec3.scale(this.center, this.center, 0.5);
     this.radius += this.magnify;
+
+    // 计算world
     this.updateByModelMatrix(modelMatrix);
   }
 
