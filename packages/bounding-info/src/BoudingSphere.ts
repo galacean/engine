@@ -111,7 +111,7 @@ export class BoundingSphere {
 
     for (let i = 0; i < 6; i++) {
       const distance = pointDistanceToPlane(planes[i], this.centerWorld);
-      if (distance > this.radiusWorld) {
+      if (distance < -this.radiusWorld) {
         return false;
       }
     }
