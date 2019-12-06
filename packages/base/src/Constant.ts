@@ -403,3 +403,15 @@ export enum IntersectInfo {
   /** 包含 */
   INCLUDE
 }
+
+/**
+ * 包围物类型
+ * */
+export enum BoundingType {
+  /** 轴对齐包围盒 */
+  AABB,
+  /** 方向包围盒 */
+  OBB,
+  /** 包围球 */
+  SPHERE
+}
