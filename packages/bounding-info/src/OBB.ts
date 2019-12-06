@@ -15,7 +15,6 @@ export class OBB {
   public min: Vec3 = [0, 0, 0];
   public max: Vec3 = [0, 0, 0];
   public corners: Vec3[] = [];
-  public magnify: Vec3 = [0, 0, 0];
   /** 世界坐标系 */
   public minWorld: Vec3 = [0, 0, 0];
   public maxWorld: Vec3 = [0, 0, 0];
@@ -56,9 +55,6 @@ export class OBB {
     let { min, max } = getMinMaxFromPrimitive(primitive, null, littleEndian);
 
     // local
-    vec3.add(min, min, this.magnify);
-    vec3.add(max, max, this.magnify);
-
     this.min = min;
     this.max = max;
     this.corners = this.getCornersFromMinMax(min, max);

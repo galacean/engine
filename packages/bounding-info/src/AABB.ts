@@ -13,7 +13,6 @@ import { Vec3, Mat4 } from "./type";
 export class AABB {
   public min: Vec3 = [0, 0, 0];
   public max: Vec3 = [0, 0, 0];
-  public magnify: Vec3 = [0, 0, 0];
 
   /**
    * 使用中心点和 Size 的方式来计算 AABB 包围盒
@@ -26,9 +25,6 @@ export class AABB {
 
     vec3.subtract(this.min, center, halfSize);
     vec3.add(this.max, center, halfSize);
-
-    vec3.add(this.min, this.min, this.magnify);
-    vec3.add(this.max, this.max, this.magnify);
   }
 
   /**
@@ -39,9 +35,6 @@ export class AABB {
    * */
   setFromPrimitive(primitive: Primitive, modelMatrix: Mat4, littleEndian = true) {
     let { min, max } = getMinMaxFromPrimitive(primitive, modelMatrix, littleEndian);
-
-    vec3.add(min, min, this.magnify);
-    vec3.add(max, max, this.magnify);
 
     this.min = min;
     this.max = max;

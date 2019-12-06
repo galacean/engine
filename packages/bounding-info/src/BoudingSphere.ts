@@ -14,7 +14,6 @@ export class BoundingSphere {
   /** 本地坐标系 */
   public center: Vec3 = [0, 0, 0];
   public radius: number = 0;
-  public magnify: number = 0;
   /** 世界坐标系 */
   public centerWorld: Vec3 = [0, 0, 0];
   public radiusWorld: number = 0;
@@ -34,7 +33,6 @@ export class BoundingSphere {
 
     vec3.add(this.center, min, max);
     vec3.scale(this.center, this.center, 0.5);
-    this.radius += this.magnify;
 
     // 计算world
     this.updateByModelMatrix(modelMatrix);
