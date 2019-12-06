@@ -1,6 +1,6 @@
 import { DrawMode, DataType, BufferUsage, UpdateType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
-
+import { OBB, BoundingSphere } from "@alipay/o3-bounding-info";
 let primitiveID = 0;
 
 /**
@@ -24,8 +24,8 @@ export class Primitive extends AssetObject {
   public indexOffset;
   public material;
   public targets;
-  public boundingBoxMax;
-  public boundingBoxMin;
+  public boundingBox: OBB;
+  public boundingSphere: BoundingSphere;
 
   /**
    * @constructor
@@ -56,8 +56,8 @@ export class Primitive extends AssetObject {
     //--
     this.material = null; // default material objects
     this.targets = []; // MorphTarget array
-    this.boundingBoxMax = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
-    this.boundingBoxMin = [Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE];
+    this.boundingBox = null;
+    this.boundingSphere = null;
   }
 
   /**
