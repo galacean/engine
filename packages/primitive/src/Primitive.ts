@@ -1,4 +1,4 @@
-import { BufferUsage, DataType, DrawMode, IntersectInfo, UpdateType } from "@alipay/o3-base";
+import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 
@@ -27,7 +27,7 @@ export class Primitive extends AssetObject {
   public targets;
   public boundingBox: OBB;
   public boundingSphere: BoundingSphere;
-  public intersectsFrustumInfo: IntersectInfo;
+  public isInFrustum: boolean;
 
   /**
    * @constructor
@@ -60,7 +60,7 @@ export class Primitive extends AssetObject {
     this.targets = []; // MorphTarget array
     this.boundingBox = null;
     this.boundingSphere = null;
-    this.intersectsFrustumInfo = null;
+    this.isInFrustum = true;
   }
 
   /**
