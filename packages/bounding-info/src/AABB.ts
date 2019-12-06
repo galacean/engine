@@ -124,23 +124,15 @@ export class AABB {
     const planes = frustum.planes;
     const min = this.min;
     const max = this.max;
-    const p1 = [],
-      p2 = [];
+    const p = [];
 
     for (let i = 0; i < 6; i++) {
       const plane = planes[i];
-      p1[0] = plane[0] > 0 ? min[0] : max[0];
-      p2[0] = plane[0] > 0 ? max[0] : min[0];
-      p1[1] = plane[1] > 0 ? min[1] : max[1];
-      p2[1] = plane[1] > 0 ? max[1] : min[1];
-      p1[2] = plane[2] > 0 ? min[2] : max[2];
-      p2[2] = plane[2] > 0 ? max[2] : min[2];
+      p[0] = plane[0] > 0 ? max[0] : min[0];
+      p[1] = plane[1] > 0 ? max[1] : min[1];
+      p[2] = plane[2] > 0 ? max[2] : min[2];
 
-      const d1 = pointDistanceToPlane(plane, p1);
-      const d2 = pointDistanceToPlane(plane, p2);
-
-      // 是否在Plane的外侧
-      if (d1 < 0 && d2 < 0) {
+      if (pointDistanceToPlane(plane, p) < 0) {
         return false;
       }
     }
