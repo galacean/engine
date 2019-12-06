@@ -6,10 +6,10 @@ import { AGeometryRenderer } from "@alipay/o3-geometry";
 import { CuboidGeometry, SphereGeometry } from "@alipay/o3-geometry-shape";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
 import { ASpotLight } from "@alipay/o3-lighting";
-import { AABB, BoundingSphere } from "@alipay/o3-bounding-info";
+import { AABB, OBB, BoundingSphere } from "@alipay/o3-bounding-info";
 import * as dat from "dat.gui";
 import { vec3 } from "@alipay/o3-math";
-
+import { createCubeGeometry } from "./geometry";
 const gui = new dat.GUI();
 
 let engine = new Engine();
@@ -44,6 +44,7 @@ let light = lightNode.createAbility(ASpotLight, {
 
 //boundingInfo
 let boundingBox = new AABB();
+let orientedBoundingBox = new OBB();
 let boundingSphere = new BoundingSphere();
 let boundingNode = null;
 function createBoundingSphere() {
@@ -76,7 +77,20 @@ function createBoundingBox() {
   r.material = new ConstantMaterial("mat");
   r.material.emission = [1, 1, 0, 1];
 }
+function createOBB() {
+  orientedBoundingBox.setFromGeometryRenderer(renderer);
+  let { cornersWorld } = orientedBoundingBox;
+  let obj = rootNode.createChild("obb");
+  if (boundingNode) boundingNode.destroy();
+  boundingNode = obj;
+  let r = obj.createAbility(AGeometryRenderer);
+  r.geometry = createCubeGeometry(cornersWorld);
+  r.material = new ConstantMaterial("mat");
+  r.material.emission = [1, 1, 0, 1];
+  r.geometry.primitive.mode = DrawMode.LINE_STRIP;
+}
 createBoundingSphere();
+
 // gui
 let state = {
   color: [1, 1, 0],
@@ -91,16 +105,27 @@ let state = {
   rotateY: obj.transform.rotation.y,
   rotateZ: obj.transform.rotation.z
 };
+
 function showBounding() {
-  if (state.type === "sphere") {
-    createBoundingSphere();
-  } else {
-    createBoundingBox();
+  switch (state.type) {
+    case "sphere":
+      createBoundingSphere();
+      break;
+    case "AABB":
+      createBoundingBox();
+      break;
+    case "OBB":
+      createOBB();
+      break;
   }
 }
-gui.add(state, "type", ["sphere", "AABB"]).onChange(() => {
-  showBounding();
-});
+
+gui
+  .add(state, "type", ["sphere", "AABB", "OBB"])
+  .onChange(() => {
+    showBounding();
+  })
+  .name("包围盒类型");
 gui.add(state, "px", -5, 5).onChange(val => {
   obj.position = [val, obj.position[1], obj.position[2]];
   showBounding();
