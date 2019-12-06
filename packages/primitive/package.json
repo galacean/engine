@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@alipay/o3-base": "^1.0.1-alpha.9",
+    "@alipay/o3-bounding-info": "^1.0.0",
     "@alipay/o3-core": "^1.0.1-alpha.13"
   }
 }
