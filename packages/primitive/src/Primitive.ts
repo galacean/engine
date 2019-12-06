@@ -1,6 +1,7 @@
-import { DrawMode, DataType, BufferUsage, UpdateType } from "@alipay/o3-base";
+import { BufferUsage, DataType, DrawMode, IntersectInfo, UpdateType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
-import { OBB, BoundingSphere } from "@alipay/o3-bounding-info";
+import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
+
 let primitiveID = 0;
 
 /**
@@ -26,6 +27,7 @@ export class Primitive extends AssetObject {
   public targets;
   public boundingBox: OBB;
   public boundingSphere: BoundingSphere;
+  public intersectsFrustumInfo: IntersectInfo;
 
   /**
    * @constructor
@@ -58,6 +60,7 @@ export class Primitive extends AssetObject {
     this.targets = []; // MorphTarget array
     this.boundingBox = null;
     this.boundingSphere = null;
+    this.intersectsFrustumInfo = null;
   }
 
   /**
