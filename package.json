@@ -98,7 +98,7 @@
     "rollup-plugin-modify": "^3.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-terser": "^5.1.1",
-    "typescript": "^3.5.3",
+    "typescript": "^3.7.3",
     "url-loader": "^1.1.2",
     "urllib": "^2.34.1",
     "webpack": "^4.31.0",
