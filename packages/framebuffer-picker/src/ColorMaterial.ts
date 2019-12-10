@@ -63,7 +63,7 @@ class ColorMaterial extends Material {
    * @private
    */
   prepareDrawing(camera, component, primitive, originalMaterial?: Material) {
-    if (!this._technique) this.generateTechnique(originalMaterial);
+    if (!this._technique) this.generateTechnique();
     if (originalMaterial && originalMaterial.technique) {
       this.technique.states = originalMaterial.technique.states;
     }
@@ -77,7 +77,7 @@ class ColorMaterial extends Material {
   /**
    * @private
    */
-  generateTechnique(originalMaterial: Material) {
+  generateTechnique() {
     const tech = new RenderTechnique("Framebuffer_Picker_Color_Material");
     tech.isValid = true;
     tech.uniforms = {
