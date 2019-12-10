@@ -300,6 +300,12 @@ export class AOrbitControls extends NodeAbility {
         this.mainElement.addEventListener(ele.type, ele.listener, false);
       }
     });
+
+    this.addEventListener("disabled", () => {
+      const element = this.domElement === document ? this.domElement.body : this.domElement;
+      this.mainElement.removeEventListener(this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false);
+      element.removeEventListener(this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false);
+    });
   }
 
   /**
