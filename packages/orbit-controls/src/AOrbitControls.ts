@@ -760,6 +760,8 @@ export class AOrbitControls extends NodeAbility {
     this._isMouseUp = true;
 
     this.mouseUpEvents.forEach(ele => {
+      const element = this.domElement === document ? this.domElement.body : this.domElement;
+      element.removeEventListener(ele.type, ele.listener, false);
       this.mainElement.removeEventListener(ele.type, ele.listener, false);
     });
 
