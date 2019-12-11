@@ -1,6 +1,7 @@
 "use strict";
 
 import { mat4 } from "@alipay/o3-math";
+import { Vec4 } from "@alipay/o3-math/types/type";
 import { ACamera } from "@alipay/o3-core";
 
 /**
@@ -8,7 +9,7 @@ import { ACamera } from "@alipay/o3-core";
  * @class
  */
 export class Frustum {
-  private _planes: number[][];
+  private _planes: Vec4[];
   /**
    * 构造函数
    */
