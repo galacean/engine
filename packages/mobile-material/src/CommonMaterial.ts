@@ -1,5 +1,5 @@
 import { vec3, vec4 } from "@alipay/o3-math";
-import { Util, CullFace, DataType, RenderState, Side } from "@alipay/o3-base";
+import { Util, DataType } from "@alipay/o3-base";
 import { Texture2D } from "@alipay/o3-material";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { TechniqueStates } from "@alipay/o3-material/types/type";
@@ -12,7 +12,6 @@ import VertexShader from "./shader/Vertex.glsl";
  * @class
  */
 export abstract class CommonMaterial extends Material {
-  private _side: Side = Side.FRONT;
   private _emission;
   private _ambient;
   public renderStates: TechniqueStates = {
@@ -23,6 +22,7 @@ export abstract class CommonMaterial extends Material {
 
   constructor(name: string) {
     super(name);
+
     this._emission = vec4.fromValues(0, 0, 0, 1);
 
     this._ambient = vec4.fromValues(0, 0, 0, 1);
@@ -31,19 +31,7 @@ export abstract class CommonMaterial extends Material {
      * Technique 渲染状态控制
      * @member {object}
      */
-  }
-
-  /**
-   * 显示哪个面
-   * @type {Side}
-   * */
-  get side(): Side {
-    return this._side;
-  }
-
-  set side(v: Side) {
-    this._side = v;
-    this._technique = null;
+    this.renderStates = {};
   }
 
   /**
@@ -82,7 +70,6 @@ export abstract class CommonMaterial extends Material {
 
   clone(name?: string) {
     let newMaterial = super.clone(name);
-    newMaterial.cloneVal("side", this.side);
     newMaterial.cloneVal("ambient", this.ambient);
     newMaterial.cloneVal("emission", this.emission);
 
@@ -140,7 +127,7 @@ export abstract class CommonMaterial extends Material {
     tech.isValid = true;
     tech.uniforms = uniforms;
     tech.attributes = {};
-    tech.states = this._generateTechniqueStates();
+    tech.states = this.renderStates;
     tech.customMacros = customMacros;
     tech.vertexShader = VertexShader;
     tech.fragmentShader = fragmentShader;
@@ -190,43 +177,5 @@ export abstract class CommonMaterial extends Material {
     }
 
     return fragmentUniform;
-  }
-
-  /**
-   * 处理techniqueStates
-   * */
-  protected _generateTechniqueStates(): TechniqueStates {
-    let states: TechniqueStates = (this.renderStates = {
-      enable: [],
-      disable: [],
-      functions: {},
-      ...this.renderStates
-    });
-
-    // 处理side相关的states
-    let cullFaceIndex = states.disable.indexOf(RenderState.CULL_FACE);
-    if (this.side === Side.DOUBLE) {
-      delete states.functions.cullFace;
-      if (cullFaceIndex === -1) {
-        states.disable.push(RenderState.CULL_FACE);
-      }
-    } else {
-      if (cullFaceIndex !== -1) {
-        states.disable.splice(cullFaceIndex, 1);
-      }
-      switch (this.side) {
-        case Side.FRONT:
-          states.functions.cullFace = [CullFace.BACK];
-          break;
-        case Side.BACK:
-          states.functions.cullFace = [CullFace.FRONT];
-          break;
-        case Side.NONE:
-          states.functions.cullFace = [CullFace.FRONT_AND_BACK];
-          break;
-      }
-    }
-
-    return states;
   }
 }
