@@ -27,10 +27,6 @@
   },
   "dependencies": {
     "@alipay/o3-base": "^1.0.1-alpha.9",
-    "@alipay/o3-geometry": "^1.0.1-alpha.12",
-    "@alipay/o3-math": "^1.0.1-alpha.4",
-    "@alipay/o3-mesh": "^1.0.1-alpha.11",
-    "@alipay/o3-primitive": "^1.0.1-alpha.11",
-    "@alipay/o3-renderer-cull": "^1.0.1-alpha.12"
+    "@alipay/o3-math": "^1.0.1-alpha.4"
   }
 }

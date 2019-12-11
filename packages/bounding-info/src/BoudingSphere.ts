@@ -1,72 +1,35 @@
 import { vec3 } from "@alipay/o3-math";
-import { Primitive } from "@alipay/o3-primitive";
-import { AMeshRenderer } from "@alipay/o3-mesh";
-import { AGeometryRenderer } from "@alipay/o3-geometry";
-import { Frustum } from "@alipay/o3-renderer-cull";
 import { IntersectInfo } from "@alipay/o3-base";
-import { pointDistanceToPlane, getMaxScaleByModelMatrix, getMinMaxFromPrimitive } from "./util";
-import { Vec3, Mat4 } from "./type";
+import { Vec3, Vec4, Mat4 } from "@alipay/o3-math/types/type";
+import { pointDistanceToPlane, getMaxScaleByModelMatrix } from "./util";
 
 /**
  * 包围球
  * */
 export class BoundingSphere {
   /** 本地坐标系 */
-  public center: Vec3 = [0, 0, 0];
+  public center: Vec3 = vec3.create();
   public radius: number = 0;
   /** 世界坐标系 */
-  public centerWorld: Vec3 = [0, 0, 0];
+  public centerWorld: Vec3 = vec3.create();
   public radiusWorld: number = 0;
 
   /**
-   * 通过 primitive 来计算包围球
-   * @param {Primitive}  primitive - Oasis primitive
+   * 初始化包围球, 之后可以通过 modelMatrix 缓存计算
+   * @param {Vec3} minLocal - 本地坐标系的最小坐标
+   * @param {Vec3} maxLocal - 本地坐标系的最大坐标
    * @param {Mat4} modelMatrix - Local to World矩阵
-   * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
    * */
-  setFromPrimitive(primitive: Primitive, modelMatrix: Mat4, littleEndian = true) {
-    let { min, max } = getMinMaxFromPrimitive(primitive, null, littleEndian);
-
+  constructor(minLocal: Vec3, maxLocal: Vec3, modelMatrix: Mat4) {
     // 先计算local
-    let distance = vec3.distance(min, max);
+    let distance = vec3.distance(minLocal, maxLocal);
     this.radius = distance * 0.5;
 
-    vec3.add(this.center, min, max);
+    vec3.add(this.center, minLocal, maxLocal);
     vec3.scale(this.center, this.center, 0.5);
 
     // 计算world
     this.updateByModelMatrix(modelMatrix);
-  }
-
-  /**
-   * 通过 AMeshRenderer 来计算包围球
-   * @param {AMeshRenderer} meshRenderer - Oasis AMeshRenderer
-   * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
-   * */
-  setFromMeshRenderer(meshRenderer: AMeshRenderer, littleEndian = true) {
-    let {
-      mesh: { primitives },
-      node
-    } = meshRenderer;
-    let modelMatrix = node.getModelMatrix();
-
-    primitives.forEach(p => {
-      this.setFromPrimitive(p, modelMatrix, littleEndian);
-    });
-  }
-
-  /**
-   * 通过 AGeometryRenderer 来计算包围球
-   * @param {AGeometryRenderer} geometryRenderer - Oasis AGeometryRenderer
-   * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
-   * */
-  setFromGeometryRenderer(geometryRenderer: AGeometryRenderer, littleEndian = true) {
-    let {
-      geometry: { primitive },
-      node
-    } = geometryRenderer;
-    let modelMatrix = node.getModelMatrix();
-    this.setFromPrimitive(primitive, modelMatrix, littleEndian);
   }
 
   /**
@@ -80,14 +43,12 @@ export class BoundingSphere {
 
   /**
    * 获取与视锥体的 具体相交状态
-   * @param {Frustum} frustum - Oasis 视锥体
+   * @param { Vec4[] } frustumPlanes - Oasis 视锥体的6个平面方程
    * @return {IntersectInfo} 返回相交状态
    * */
-  intersectsFrustum(frustum: Frustum): IntersectInfo {
-    const planes = frustum.planes;
-
+  intersectsFrustum(frustumPlanes: Vec4[]): IntersectInfo {
     for (let i = 0; i < 6; i++) {
-      const distance = pointDistanceToPlane(planes[i], this.centerWorld);
+      const distance = pointDistanceToPlane(frustumPlanes[i], this.centerWorld);
       if (distance < -this.radiusWorld) {
         return IntersectInfo.EXCLUDE;
       }
@@ -100,15 +61,13 @@ export class BoundingSphere {
   }
 
   /**
-   * 是否在视锥体内部
-   * @param {Frustum} frustum - Oasis 视锥体
+   * 是否在视锥体内部（包含或者交叉）
+   * @param { Vec4[] } frustumPlanes - Oasis 视锥体的6个平面方程
    * @return {boolean}
    * */
-  isInFrustum(frustum: Frustum): boolean {
-    const planes = frustum.planes;
-
+  isInFrustum(frustumPlanes: Vec4[]): boolean {
     for (let i = 0; i < 6; i++) {
-      const distance = pointDistanceToPlane(planes[i], this.centerWorld);
+      const distance = pointDistanceToPlane(frustumPlanes[i], this.centerWorld);
       if (distance < -this.radiusWorld) {
         return false;
       }

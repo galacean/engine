@@ -28,6 +28,7 @@ let obj = rootNode.createChild("obj");
 let renderer = obj.createAbility(AGeometryRenderer);
 renderer.geometry = new CuboidGeometry(2, 2, 2);
 renderer.material = new BlinnPhongMaterial("mat");
+let primitive = renderer.geometry.primitive;
 
 // light
 let lightNode = rootNode.createChild("light_node");
@@ -42,53 +43,60 @@ let light = lightNode.createAbility(ASpotLight, {
   penumbra: 0.2
 });
 
-//boundingInfo
-let boundingBox = new AABB();
-let orientedBoundingBox = new OBB();
-let boundingSphere = new BoundingSphere();
+// boundingInfo
+let modelMatrix = obj.getModelMatrix();
+let { min: minWorld, max: maxWorld } = primitive.getMinMax(modelMatrix);
+let { min: minLocal, max: maxLocal } = primitive.getMinMax();
+
+let aabb = new AABB(minWorld, maxWorld);
+let obb = new OBB(minLocal, maxLocal, modelMatrix);
+let boundingSphere = new BoundingSphere(minLocal, maxLocal, modelMatrix);
 let boundingNode = null;
+let material = new ConstantMaterial("mat");
+material.emission = [1, 1, 0, 1];
+
 function createBoundingSphere() {
-  boundingSphere.setFromGeometryRenderer(renderer);
+  boundingSphere.updateByModelMatrix(obj.getModelMatrix());
   let { centerWorld, radiusWorld } = boundingSphere;
-  let obj = rootNode.createChild("boundingSphere");
-  obj.position = centerWorld;
+  let sphere = rootNode.createChild("boundingSphere");
+  sphere.position = centerWorld;
   if (boundingNode) boundingNode.destroy();
-  boundingNode = obj;
-  let r = obj.createAbility(AGeometryRenderer);
+  boundingNode = sphere;
+  let r = sphere.createAbility(AGeometryRenderer);
   r.geometry = new SphereGeometry(radiusWorld, 16, 16);
-  r.material = new ConstantMaterial("mat");
-  r.material.emission = [1, 1, 0, 1];
+  r.material = material;
   r.geometry.primitive.mode = DrawMode.LINE_STRIP;
 }
-function createBoundingBox() {
-  boundingBox.setFromGeometryRenderer(renderer);
-  let { min, max } = boundingBox;
+function createAABB() {
+  let modelMatrix = obj.getModelMatrix();
+  let { min: minWorld, max: maxWorld } = primitive.getMinMax(modelMatrix);
+  aabb.update(minWorld, maxWorld);
+  let { min, max } = aabb;
   let sub = vec3.subtract(vec3.create(), max, min);
   let center = vec3.add(vec3.create(), min, max);
   vec3.scale(center, center, 0.5);
-  let obj = rootNode.createChild("bouningBox");
-  obj.position = center;
+  let aabbNode = rootNode.createChild("boundingBox");
+  aabbNode.position = center;
   if (boundingNode) boundingNode.destroy();
-  boundingNode = obj;
-  let r = obj.createAbility(AGeometryRenderer);
+  boundingNode = aabbNode;
+  let r = aabbNode.createAbility(AGeometryRenderer);
   r.geometry = new CuboidGeometry(sub[0], sub[1], sub[2]);
   r.geometry.primitive.mode = DrawMode.LINE_STRIP;
 
-  r.material = new ConstantMaterial("mat");
-  r.material.emission = [1, 1, 0, 1];
+  r.material = material;
 }
 function createOBB() {
-  orientedBoundingBox.setFromGeometryRenderer(renderer);
-  let { cornersWorld } = orientedBoundingBox;
-  let obj = rootNode.createChild("obb");
+  obb.updateByModelMatrix(obj.getModelMatrix());
+  let { cornersWorld } = obb;
+  let obbNode = rootNode.createChild("obb");
   if (boundingNode) boundingNode.destroy();
-  boundingNode = obj;
-  let r = obj.createAbility(AGeometryRenderer);
+  boundingNode = obbNode;
+  let r = obbNode.createAbility(AGeometryRenderer);
   r.geometry = createCubeGeometry(cornersWorld);
-  r.material = new ConstantMaterial("mat");
-  r.material.emission = [1, 1, 0, 1];
   r.geometry.primitive.mode = DrawMode.LINE_STRIP;
+  r.material = material;
 }
+
 createBoundingSphere();
 
 // gui
@@ -112,7 +120,7 @@ function showBounding() {
       createBoundingSphere();
       break;
     case "AABB":
-      createBoundingBox();
+      createAABB();
       break;
     case "OBB":
       createOBB();
@@ -120,48 +128,51 @@ function showBounding() {
   }
 }
 
-gui
-  .add(state, "type", ["sphere", "AABB", "OBB"])
-  .onChange(() => {
+function showGUI() {
+  gui
+    .add(state, "type", ["sphere", "AABB", "OBB"])
+    .onChange(() => {
+      showBounding();
+    })
+    .name("包围盒类型");
+  gui.add(state, "px", -5, 5).onChange(val => {
+    obj.position = [val, obj.position[1], obj.position[2]];
     showBounding();
-  })
-  .name("包围盒类型");
-gui.add(state, "px", -5, 5).onChange(val => {
-  obj.position = [val, obj.position[1], obj.position[2]];
-  showBounding();
-});
-gui.add(state, "py", -5, 5).onChange(val => {
-  obj.position = [obj.position[0], val, obj.position[2]];
-  showBounding();
-});
-gui.add(state, "pz", -5, 5).onChange(val => {
-  obj.position = [obj.position[0], obj.position[1], val];
-  showBounding();
-});
-gui.add(state, "scaleX", 0, 5).onChange(val => {
-  obj.scale = [val, obj.scale[1], obj.scale[2]];
-  showBounding();
-});
-gui.add(state, "scaleY", 0, 5).onChange(val => {
-  obj.scale = [obj.scale[0], val, obj.scale[2]];
-  showBounding();
-});
-gui.add(state, "scaleZ", 0, 5).onChange(val => {
-  obj.scale = [obj.scale[0], obj.scale[1], val];
-  showBounding();
-});
-gui.add(state, "rotateX", -180, 180).onChange(val => {
-  obj.transform.rotation.x = val;
-  showBounding();
-});
-gui.add(state, "rotateY", -180, 180).onChange(val => {
-  obj.transform.rotation.y = val;
-  showBounding();
-});
-gui.add(state, "rotateZ", -180, 180).onChange(val => {
-  obj.transform.rotation.z = val;
-  showBounding();
-});
+  });
+  gui.add(state, "py", -5, 5).onChange(val => {
+    obj.position = [obj.position[0], val, obj.position[2]];
+    showBounding();
+  });
+  gui.add(state, "pz", -5, 5).onChange(val => {
+    obj.position = [obj.position[0], obj.position[1], val];
+    showBounding();
+  });
+  gui.add(state, "scaleX", 0, 5).onChange(val => {
+    obj.scale = [val, obj.scale[1], obj.scale[2]];
+    showBounding();
+  });
+  gui.add(state, "scaleY", 0, 5).onChange(val => {
+    obj.scale = [obj.scale[0], val, obj.scale[2]];
+    showBounding();
+  });
+  gui.add(state, "scaleZ", 0, 5).onChange(val => {
+    obj.scale = [obj.scale[0], obj.scale[1], val];
+    showBounding();
+  });
+  gui.add(state, "rotateX", -180, 180).onChange(val => {
+    obj.transform.rotation.x = val;
+    showBounding();
+  });
+  gui.add(state, "rotateY", -180, 180).onChange(val => {
+    obj.transform.rotation.y = val;
+    showBounding();
+  });
+  gui.add(state, "rotateZ", -180, 180).onChange(val => {
+    obj.transform.rotation.z = val;
+    showBounding();
+  });
+}
+showGUI();
 
 //-- run
 engine.run();
