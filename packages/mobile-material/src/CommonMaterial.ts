@@ -1,5 +1,5 @@
 import { vec3, vec4 } from "@alipay/o3-math";
-import { CullFace, DataType, RenderState, Side } from "@alipay/o3-base";
+import { Util, CullFace, DataType, RenderState, Side } from "@alipay/o3-base";
 import { Texture2D } from "@alipay/o3-material";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { TechniqueStates } from "@alipay/o3-material/types/type";
@@ -72,20 +72,19 @@ export abstract class CommonMaterial extends Material {
     this.setValue("u_ambient", val);
   }
 
+  cloneVal(key: string, val: any) {
+    if (val instanceof Texture2D) {
+      this[key] = val;
+    } else {
+      this[key] = Util.clone(val);
+    }
+  }
+
   clone(name?: string) {
     let newMaterial = super.clone(name);
-    newMaterial.side = this.side;
-
-    if (this.ambient instanceof Texture2D) {
-      newMaterial.ambient = this.ambient;
-    } else {
-      newMaterial.ambient = vec4.clone(this.ambient);
-    }
-    if (this.emission instanceof Texture2D) {
-      newMaterial.emission = this.emission;
-    } else {
-      newMaterial.emission = vec4.clone(this.emission);
-    }
+    newMaterial.cloneVal("side", this.side);
+    newMaterial.cloneVal("ambient", this.ambient);
+    newMaterial.cloneVal("emission", this.emission);
 
     return newMaterial;
   }

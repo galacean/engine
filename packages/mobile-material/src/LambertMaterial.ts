@@ -38,6 +38,13 @@ export class LambertMaterial extends CommonMaterial {
     this.setValue("u_diffuse", val);
   }
 
+  clone(name?: string) {
+    let newMaterial = super.clone(name);
+    newMaterial.cloneVal("diffuse", this.diffuse);
+
+    return newMaterial;
+  }
+
   /**
    * 生成内部的 Technique 对象
    * @private

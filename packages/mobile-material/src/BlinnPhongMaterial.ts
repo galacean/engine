@@ -78,18 +78,9 @@ export class BlinnPhongMaterial extends CommonMaterial {
 
   clone(name?: string) {
     let newMaterial = super.clone(name);
-    newMaterial.shininess = this.shininess;
-
-    if (this.diffuse instanceof Texture2D) {
-      newMaterial.diffuse = this.diffuse;
-    } else {
-      newMaterial.diffuse = vec4.clone(this.diffuse);
-    }
-    if (this.specular instanceof Texture2D) {
-      newMaterial.specular = this.specular;
-    } else {
-      newMaterial.specular = vec4.clone(this.specular);
-    }
+    newMaterial.cloneVal("shininess", this.shininess);
+    newMaterial.cloneVal("diffuse", this.diffuse);
+    newMaterial.cloneVal("specular", this.specular);
 
     return newMaterial;
   }
