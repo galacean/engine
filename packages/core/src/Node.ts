@@ -717,6 +717,7 @@ export class Node extends EventDispatcher {
   /**
    * 使用 Local to World 更新内部 Transform 数据，效率较低
    * @param {mat4} m 变换矩阵
+   * @deprecated
    */
   public setModelMatrix(m: number[] | Float32Array) {
     const transformMat = mat4.clone(m);
@@ -728,6 +729,21 @@ export class Node extends EventDispatcher {
     mat4.getTranslation(this._position, transformMat);
     mat4.getRotation(this._rotation, transformMat);
     mat4.getScaling(this._scale, transformMat);
+
+    this._markTransformDirty();
+  }
+
+  /**
+   * @deprecated
+   */
+  public setModelMatrixNew(m: number[] | Float32Array) {
+    const transformMat = mat4.clone(m);
+    if (this._parent) {
+      const parentInvMat = this._parent.getInvModelMatrix();
+      mat4.mul(transformMat, parentInvMat, transformMat);
+    }
+
+    mat4.decompose(transformMat, this._position, this._rotation, this._scale);
 
     this._markTransformDirty();
   }
