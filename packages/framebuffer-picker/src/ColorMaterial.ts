@@ -62,9 +62,9 @@ class ColorMaterial extends Material {
   /**
    * @private
    */
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(camera, component, primitive, originalMaterial?: Material) {
     if (!this._technique) this.generateTechnique();
-
+    this.technique.states = originalMaterial?.technique?.states;
     this._currentId += 1;
     this._primitivesMap[this._currentId] = { component, primitive };
     this.setValue("u_colorId", this.id2Color(this._currentId));
@@ -84,6 +84,7 @@ class ColorMaterial extends Material {
         type: DataType.FLOAT_VEC3
       }
     };
+
     tech.fragmentPrecision = "highp";
     tech.vertexShader = vs;
     tech.fragmentShader = fs;

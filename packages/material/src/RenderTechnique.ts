@@ -14,7 +14,7 @@ interface Attributes {
 interface Uniforms {
   [key: string]: {
     name: string;
-    semantic?: UniformSemantic;
+    semantic?: UniformSemantic | string;
     type: DataType;
   };
 }

@@ -1,4 +1,4 @@
-import {Event, EventDispatcher} from '../src/Event.js';
+import {Event, EventDispatcher} from '../src';
 
 class Node extends EventDispatcher {
 	constructor(parent) {

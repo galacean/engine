@@ -12,6 +12,22 @@ tnpm run bootstrap
 tnpm run otp:release
 ```
 
+### 单元测试
+
+关于[单元测试](https://yuque.antfin-inc.com/oasis3d/mlxz18/fhvrag)
+
+```
+tnpm run test
+```
+
+##### 测试覆盖率
+
+```
+tnpm run test-cov
+```
+
+查看 coverage/lcov-report/index.html
+
 ## 游乐场相关
 调试
 
