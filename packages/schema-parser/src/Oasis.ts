@@ -1,7 +1,7 @@
 import { NodeManager } from "./NodeManager";
 import { AbilityManager } from "./AbilityManager";
 import { ResouceManager } from "./resouces/ResourceManager";
-import { PluginManager } from "./PluginManager";
+import { PluginManager } from "./plugins/PluginManager";
 import * as o3 from "@alipay/o3";
 
 export class Oasis {

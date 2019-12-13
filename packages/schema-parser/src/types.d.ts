@@ -89,3 +89,7 @@ interface Schema {
     [assetId: string]: AssetConfig;
   };
 }
+
+interface ClassType<T> extends Function {
+  new (...args: any[]): T;
+}
