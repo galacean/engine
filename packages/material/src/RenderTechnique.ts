@@ -13,7 +13,7 @@ interface Attributes {
 interface Uniforms {
   [key: string]: {
     name: string;
-    semantic?: UniformSemantic;
+    semantic?: UniformSemantic | string;
     type: DataType;
   };
 }
@@ -26,9 +26,9 @@ export class RenderTechnique extends AssetObject {
   // 是否可用
   public isValid: boolean = false;
   // Unifrom记录数组
-  private _uniforms: any = RenderTechnique.commonUniforms;
+  private _uniforms: Uniforms = RenderTechnique.commonUniforms;
   // Attribute记录对象
-  private _attributes: any = RenderTechnique.commonAttributes;
+  private _attributes: Attributes = RenderTechnique.commonAttributes;
   /**
    * 渲染状态控制对象
    * {

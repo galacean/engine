@@ -132,7 +132,7 @@ export class RenderQueue {
         rhi.flushSprite();
 
         if (replaceMaterial) {
-          replaceMaterial.prepareDrawing(camera, item.nodeAbility, item.primitive);
+          replaceMaterial.prepareDrawing(camera, item.nodeAbility, item.primitive, item.mtl);
           rhi.drawPrimitive(item.primitive, replaceMaterial);
         } else {
           item.mtl.prepareDrawing(camera, item.nodeAbility, item.primitive);

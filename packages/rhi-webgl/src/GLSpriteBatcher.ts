@@ -26,7 +26,7 @@ export class GLSpriteBatcher {
     this._glSprite = new GLSprite(rhi.gl);
 
     //-- 初始化GLTechnique
-    this._glTech = new GLTechnique(rhi, SpriteTechnique as RenderTechnique);
+    this._glTech = new GLTechnique(rhi, SpriteTechnique as any);
     this._material = createSpriteMaterial();
     this._camera = null;
   }

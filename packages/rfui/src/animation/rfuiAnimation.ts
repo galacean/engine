@@ -1,6 +1,6 @@
 import { TextureWrapMode } from "@alipay/o3-base";
 import { vec2, quat } from "@alipay/o3-math";
-import { translate, scale, rotate, fade, slide } from "./rfuitween";
+import { translate, scale, rotate, fade, slide } from "./rfuiTween";
 
 const ScaleMin = 1e-12;
 
