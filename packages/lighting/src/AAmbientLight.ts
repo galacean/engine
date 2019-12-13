@@ -1,14 +1,33 @@
 import { vec3 } from "@alipay/o3-math";
 import { ALight } from "./ALight";
+import { DataType } from "@alipay/o3-base";
 
 /**
  * 环境光创建类
  * @extends ALight
  */
 export class AAmbientLight extends ALight {
-  private _lightCache;
+  private _lightColor;
   public color;
   public intensity;
+
+  /**
+   * 生成 Technique 所需的 uniform 定义
+   * @param {string} uniformName
+   */
+  static getUniformDefine(uniformName: string) {
+    return {
+      [uniformName + ".color"]: {
+        name: uniformName + ".color",
+        type: DataType.FLOAT_VEC3
+      },
+      [uniformName + ".intensity"]: {
+        name: uniformName + ".intensity",
+        type: DataType.FLOAT
+      }
+    };
+  }
+
   /**
    * @constructor
    * @param {Node} node 节点对象
@@ -33,14 +52,23 @@ export class AAmbientLight extends ALight {
      */
     this.intensity = props.intensity || 1.0;
 
-    this._lightCache = vec3.create();
+    this._lightColor = vec3.create();
+  }
+
+  /** 获取环境光最终颜色
+   * @return {vec3} 颜色
+   * @readonly
+   */
+  get lightColor() {
+    vec3.scale(this._lightColor, this.color, this.intensity);
+    return this._lightColor;
   }
 
   /**
    * 将灯光参数值提交到材质对象
    */
   bindMaterialValues(mtl, uniformName) {
-    vec3.scale(this._lightCache, this.color, this.intensity);
-    mtl.setValue(uniformName, this._lightCache);
+    mtl.setValue(uniformName + ".color", this.color);
+    mtl.setValue(uniformName + ".intensity", this.intensity);
   }
 }
