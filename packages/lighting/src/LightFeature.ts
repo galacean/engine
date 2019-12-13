@@ -1,5 +1,10 @@
 import { SceneFeature } from "@alipay/o3-core";
 import { Logger } from "@alipay/o3-base";
+import { ALight } from "./ALight";
+import { AAmbientLight } from "./AAmbientLight";
+import { ADirectLight } from "./ADirectLight";
+import { APointLight } from "./APointLight";
+import { ASpotLight } from "./ASpotLight";
 
 /**
  * 判断场景中是否有灯光
@@ -11,24 +16,12 @@ export function hasLight() {
 }
 
 /**
- * 将灯光数据绑定到指定的材质中（指定Unifrom的值）
- * @param {Material} mtl 材质对象
- * @private
- */
-export function bindLightsToMaterial(mtl) {
-  var lights = this.findFeature(LightFeature).visibleLights;
-  for (var i = 0, l = lights.length; i < l; i++) {
-    lights[i].bindMaterialValues(mtl);
-  }
-}
-
-/**
  * Scene Feature：在场景中添加灯光特性
  * @extends SceneFeature
  * @private
  */
 export class LightFeature extends SceneFeature {
-  private visibleLights;
+  private visibleLights: ALight[];
   constructor() {
     super();
     this.visibleLights = [];
@@ -36,10 +29,10 @@ export class LightFeature extends SceneFeature {
 
   /**
    * 向当前场景注册一个灯光对象
-   * @param {LightComponent} light 灯光对象
+   * @param {ALight} light 灯光对象
    * @private
    */
-  attachRenderLight(light) {
+  attachRenderLight(light: ALight) {
     const index = this.visibleLights.indexOf(light);
     if (index == -1) {
       this.visibleLights.push(light);
@@ -50,13 +43,63 @@ export class LightFeature extends SceneFeature {
 
   /**
    * 从当前场景移除一个灯光对象
-   * @param {LightComponent} light 灯光对象
+   * @param {ALight} light 灯光对象
    * @private
    */
-  detachRenderLight(light) {
+  detachRenderLight(light: ALight) {
     const index = this.visibleLights.indexOf(light);
     if (index != -1) {
       this.visibleLights.splice(index, 1);
     }
+  }
+
+  /**
+   * 将灯光数据绑定到指定的材质中（指定 Uniform 的值）
+   * @param {Material} mtl 材质对象
+   * @private
+   */
+  bindMaterialValues(mtl) {
+    let ambientLightCount = 0;
+    let directLightCount = 0;
+    let pointLightCount = 0;
+    let spotLightCount = 0;
+    let lights = this.visibleLights;
+    for (let i = 0, len = lights.length; i < len; i++) {
+      const light = lights[i];
+      if (light instanceof AAmbientLight) {
+        light.bindMaterialValues(mtl, `u_ambientLights[${ambientLightCount++}]`);
+      } else if (light instanceof ADirectLight) {
+        light.bindMaterialValues(mtl, `u_directLights[${directLightCount++}]`);
+      } else if (light instanceof APointLight) {
+        light.bindMaterialValues(mtl, `u_pointLights[${pointLightCount++}]`);
+      } else if (light instanceof ASpotLight) {
+        light.bindMaterialValues(mtl, `u_spotLights[${spotLightCount++}]`);
+      }
+    }
+  }
+
+  /**
+   * 生成 Technique 所需的全部 uniform 定义
+   */
+  getUniformDefine() {
+    let uniforms = {};
+    let ambientLightCount = 0;
+    let directLightCount = 0;
+    let pointLightCount = 0;
+    let spotLightCount = 0;
+    let lights = this.visibleLights;
+    for (let i = 0, len = lights.length; i < len; i++) {
+      const light = lights[i];
+      if (light instanceof AAmbientLight) {
+        uniforms = { ...uniforms, ...AAmbientLight.getUniformDefine(`u_ambientLights[${ambientLightCount++}]`) };
+      } else if (light instanceof ADirectLight) {
+        uniforms = { ...uniforms, ...ADirectLight.getUniformDefine(`u_directLights[${directLightCount++}]`) };
+      } else if (light instanceof APointLight) {
+        uniforms = { ...uniforms, ...APointLight.getUniformDefine(`u_pointLights[${pointLightCount++}]`) };
+      } else if (light instanceof ASpotLight) {
+        uniforms = { ...uniforms, ...ASpotLight.getUniformDefine(`u_spotLights[${spotLightCount++}]`) };
+      }
+    }
+    return uniforms;
   }
 }
