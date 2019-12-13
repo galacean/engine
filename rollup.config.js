@@ -77,7 +77,8 @@ async function makeRollupConfig({ location, main, name, type }) {
       plugins: [
         "@babel/plugin-proposal-export-namespace-from",
         "@babel/proposal-class-properties",
-        "@babel/proposal-object-rest-spread"
+        "@babel/proposal-object-rest-spread",
+        "@babel/plugin-proposal-optional-chaining"
       ]
     }),
     commonjs()
