@@ -5,7 +5,7 @@ import * as path from "./path";
 import { TextureHandler } from "./handlers/Texture";
 import { TechniqueHandler } from "./handlers/Technique";
 import { ImageHandler } from "./handlers/Image";
-import { VideoHandler } from "./handlers/Video";
+import { VideoHandler } from "./handlers/video";
 import { TextureCubeMapHandler } from "./handlers/TextureCubeMap";
 import { CanvasTextureHandler } from "./handlers/CanvasTexture";
 
