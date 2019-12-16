@@ -34,7 +34,8 @@ export class Oasis {
    */
   private parseNodes(): void {
     const { nodes } = this.schema;
-    Object.values(nodes).forEach(this.nodeManager.add);
+    const indices = this.bfsNodes();
+    indices.map(index => nodes[index]).forEach(this.nodeManager.add);
   }
 
   /**
@@ -43,6 +44,27 @@ export class Oasis {
   private parseNodeAbilities(): void {
     const { abilities } = this.schema;
     Object.values(abilities).forEach(this.abilityManager.add);
+  }
+
+  /**
+   * 广度优先遍历，对 nodes 进行排序
+   */
+  private bfsNodes(): number[] {
+    const { nodes } = this.schema;
+    const roots = Object.values(nodes)
+      .filter(node => node.parent == undefined)
+      .map(node => node.parent);
+
+    const result = [];
+    const traverseChildren = (roots: string[]) => {
+      result.concat(roots);
+      roots.forEach(id => {
+        const children = nodes[id].children;
+        children && traverseChildren(children);
+      });
+    };
+    traverseChildren(roots);
+    return result;
   }
 
   static async create(schema: Schema, pluginManager: PluginManager): Promise<Oasis> {

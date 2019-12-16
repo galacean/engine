@@ -56,7 +56,7 @@ export class Material {
 
   /** 创建一个本材质对象的深拷贝对象 */
   clone() {
-    const newMtl = new Material(this.name);
+    const newMtl = new (this.constructor as any)(name || this.name);
 
     newMtl.renderType = this.renderType;
     newMtl._technique = this._technique;

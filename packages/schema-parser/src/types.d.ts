@@ -26,15 +26,15 @@ interface NodeConfig {
   /**
    * 父节点，默认为根节点
    */
-  parent?: number | undefined;
+  parent?: string | undefined;
   /**
    * 子节点，默认为 []
    */
-  children?: number[];
+  children?: string[];
   /**
    * abilities 默认为 []
    */
-  abilities?: number[];
+  abilities?: string[];
   /**
    * 是否激活，默认为 true
    */
