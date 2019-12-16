@@ -12,8 +12,6 @@ import VertexShader from "./shader/Vertex.glsl";
  * @class
  */
 export abstract class CommonMaterial extends Material {
-  private _emission;
-  private _ambient;
   public renderStates: TechniqueStates = {
     enable: [],
     disable: [],
@@ -23,9 +21,9 @@ export abstract class CommonMaterial extends Material {
   constructor(name: string) {
     super(name);
 
-    this._emission = vec4.fromValues(0, 0, 0, 1);
+    this.emission = vec4.fromValues(0, 0, 0, 1);
 
-    this._ambient = vec4.fromValues(0, 0, 0, 1);
+    this.ambient = vec4.fromValues(0, 0, 0, 1);
 
     /**
      * Technique 渲染状态控制
@@ -39,11 +37,10 @@ export abstract class CommonMaterial extends Material {
    * @member {vec4|Texture2D}
    */
   get emission() {
-    return this._emission;
+    return this.getValue("u_emission");
   }
 
   set emission(val) {
-    this._emission = val;
     this.setValue("u_emission", val);
   }
 
@@ -52,28 +49,11 @@ export abstract class CommonMaterial extends Material {
    * @member {vec4|Texture2D}
    */
   get ambient() {
-    return this._ambient;
+    return this.getValue("u_ambient");
   }
 
   set ambient(val) {
-    this._ambient = val;
     this.setValue("u_ambient", val);
-  }
-
-  cloneVal(key: string, val: any) {
-    if (val instanceof Texture2D) {
-      this[key] = val;
-    } else {
-      this[key] = Util.clone(val);
-    }
-  }
-
-  clone(name?: string) {
-    let newMaterial = super.clone(name);
-    newMaterial.cloneVal("ambient", this.ambient);
-    newMaterial.cloneVal("emission", this.emission);
-
-    return newMaterial;
   }
 
   /**
@@ -134,23 +114,20 @@ export abstract class CommonMaterial extends Material {
 
     //-- set default values
     this._technique = tech;
-    this.setValue("u_emission", this._emission);
-    this.setValue("u_ambient", this._ambient);
-    this.setValue("u_ambientLight", vec4.fromValues(1, 1, 1, 1));
   }
 
   _generateMacros() {
     const macros = [];
 
-    if (this._emission instanceof Texture2D) macros.push("O3_EMISSION_TEXTURE");
+    if (this.emission instanceof Texture2D) macros.push("O3_EMISSION_TEXTURE");
 
-    if (this._ambient instanceof Texture2D) macros.push("O3_AMBIENT_TEXTURE");
+    if (this.ambient instanceof Texture2D) macros.push("O3_AMBIENT_TEXTURE");
 
     return macros;
   }
 
   /**
-   * 根据自身的参数类型，生成相应的 Fragment Shader 所需的 Unifrom 定义
+   * 根据自身的参数类型，生成相应的 Fragment Shader 所需的 Uniform 定义
    * @private
    */
   _generateFragmentUniform() {
@@ -169,10 +146,10 @@ export abstract class CommonMaterial extends Material {
       }
     };
 
-    if (this._emission instanceof Texture2D) {
+    if (this.emission instanceof Texture2D) {
       fragmentUniform.u_emission.type = DataType.SAMPLER_2D;
     }
-    if (this._ambient instanceof Texture2D) {
+    if (this.ambient instanceof Texture2D) {
       fragmentUniform.u_ambient.type = DataType.SAMPLER_2D;
     }
 

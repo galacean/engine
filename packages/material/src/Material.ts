@@ -1,6 +1,7 @@
 import { mat4, mat3 } from "@alipay/o3-math";
-import { MaterialType, UniformSemantic } from "@alipay/o3-base";
+import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
 import { RenderTechnique } from "./RenderTechnique";
+import { Texture2D } from "./Texture2D";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
@@ -60,6 +61,17 @@ export class Material {
 
     newMtl.renderType = this.renderType;
     newMtl.useFog = this.useFog;
+
+    for (const name in this._values) {
+      if (this._values.hasOwnProperty(name)) {
+        const val = this._values[name];
+        if (val instanceof Texture2D) {
+          newMtl.setValue(name, val);
+        } else {
+          newMtl.setValue(name, Util.clone(val));
+        }
+      }
+    } // end of for
 
     return newMtl;
   }
