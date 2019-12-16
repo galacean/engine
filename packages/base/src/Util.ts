@@ -5,8 +5,8 @@ export const Util = {
       : (value: any): boolean => {
           return toString.call(value) === "[object Array]";
         },
-  isArrayLike<T>(x: any): boolean {
-    return x && typeof x.length === "number" && typeof x !== "function";
+  isArrayLike(x: any): boolean {
+    return !!x && typeof x.length === "number" && typeof x !== "function";
   },
   clone<T>(obj: T): T {
     if (typeof obj !== "object" || obj === null) {
