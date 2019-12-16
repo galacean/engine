@@ -2,6 +2,7 @@ import { UniformSemantic, DataType, Logger } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { ShaderFactory } from "@alipay/o3-shaderlib";
 import { Material } from "./Material";
+import { TechniqueStates } from "./type";
 
 interface Attributes {
   [key: string]: {
@@ -44,7 +45,7 @@ export class RenderTechnique extends AssetObject {
    * "lineWidth", "polygonOffset", and "scissor"
    * @member {object}
    */
-  public states = null;
+  public states: TechniqueStates = null;
   /**
    * Vertex Shader 代码
    * @member {string}
