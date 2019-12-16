@@ -1,6 +1,6 @@
 import { Logger, UpdateType, DataType } from "@alipay/o3-base";
 import { GLRenderHardware } from "./GLRenderHardware";
-import { GLAsset } from "./GlAsset";
+import { GLAsset } from "./GLAsset";
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
