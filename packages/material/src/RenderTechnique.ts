@@ -2,22 +2,7 @@ import { UniformSemantic, DataType, Logger } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { ShaderFactory } from "@alipay/o3-shaderlib";
 import { Material } from "./Material";
-import { TechniqueStates } from "./type";
-
-interface Attributes {
-  [key: string]: {
-    name: string;
-    semantic: string;
-    type: DataType;
-  };
-}
-interface Uniforms {
-  [key: string]: {
-    name: string;
-    semantic?: UniformSemantic | string;
-    type: DataType;
-  };
-}
+import { TechniqueStates, Attributes, Uniforms } from "./type";
 
 /**
  * 渲染单个对象所需的控制对象，作为 Material 的模块使用。对应 glTF 里面的 technique 对象

@@ -1,4 +1,4 @@
-import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
+import { DataType, TextureFilter, TextureWrapMode, UniformSemantic } from "@alipay/o3-base";
 
 export type TextureConfig = {
   magFilter?: TextureFilter;
@@ -13,6 +13,22 @@ export type TechniqueStates = {
   enable?: GLenum[];
   disable?: GLenum[];
   functions?: {
-    [key: string]: Array<any>;
+    [key: string]: any;
   };
 };
+
+export interface Attributes {
+  [key: string]: {
+    name: string;
+    semantic: string;
+    type: DataType;
+  };
+}
+
+export interface Uniforms {
+  [key: string]: {
+    name: string;
+    semantic?: UniformSemantic | string;
+    type: DataType;
+  };
+}
