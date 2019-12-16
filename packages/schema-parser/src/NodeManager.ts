@@ -11,6 +11,7 @@ export class NodeManager {
     this.root = this.oasis.engine.currentScene.root;
   }
 
+  @pluginHook({ after: "nodeAdded" })
   public add(nodeConfig: NodeConfig) {
     this.create(nodeConfig);
     this.append(nodeConfig.id, nodeConfig.parent, nodeConfig.index);

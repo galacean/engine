@@ -26,11 +26,11 @@ interface NodeConfig {
   /**
    * 父节点，默认为根节点
    */
-  parent?: string | undefined;
+  parent: string | undefined;
   /**
    * 子节点，默认为 []
    */
-  children?: string[];
+  children: string[];
   /**
    * abilities 默认为 []
    */
@@ -72,7 +72,7 @@ interface AbilityConfig {
   /**
    * ability 在 node abilities 的 index，默认是最后一个
    */
-  index?: number;
+  index: number;
 }
 
 // todo
