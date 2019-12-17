@@ -90,8 +90,6 @@ export class Texture2D extends Texture {
     if (!this.canMipmap) {
       this.filterMin = this.filterMin === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
       this.filterMag = this.filterMag === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
-      this.wrapS = TextureWrapMode.CLAMP_TO_EDGE;
-      this.wrapT = TextureWrapMode.CLAMP_TO_EDGE;
     }
   }
 
