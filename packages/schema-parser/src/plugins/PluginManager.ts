@@ -41,13 +41,13 @@ export interface PluginHook {
 }
 
 export function pluginHook(options: Partial<{ before: keyof PluginHook; after: keyof PluginHook }>): MethodDecorator {
-  return (target: any, propertyName: string, descriptor: TypedPropertyDescriptor<any>) => {
+  return function(target: any, propertyName: string, descriptor: TypedPropertyDescriptor<any>) {
     const method = descriptor.value;
 
     descriptor.value = function(...args: any[]) {
-      options.before && this.pluginManager[options.before](...args);
+      options.before && this.oasis.pluginManager[options.before](...args);
       const returnObj = method.apply(this, arguments);
-      options.after && this.pluginManager[options.after](returnObj);
+      options.after && this.oasis.pluginManager[options.after](returnObj);
       return returnObj;
     };
   };

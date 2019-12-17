@@ -1,4 +1,5 @@
 import * as o3 from "@alipay/o3";
+import * as glue from "./glue-ability";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
@@ -10,7 +11,7 @@ export class AbilityManager {
 
   @pluginHook({ after: "abilityAdded" })
   public add(abilityConfig: AbilityConfig) {
-    const { type, nodeId, props, id, index } = abilityConfig;
+    const { type, node: nodeId, props, id, index } = abilityConfig;
 
     const node = this.oasis.nodeManager.get(nodeId);
 
@@ -30,18 +31,25 @@ export class AbilityManager {
     return this.abilityMap[id];
   }
 
-  public delete(id: string) {}
+  public delete(id: string) {
+    const ability = this.abilityMap[id];
+    ability.destroy();
+    delete this.abilityMap[id];
+  }
 
   private getConstructor(type: string) {
-    let namespace = o3;
-    return namespace[type];
+    const constructor = o3[type] || glue[type];
+    if (!constructor) {
+      throw new Error(`${type} is not defined`);
+    }
+    return constructor;
   }
 
   private mixPropsToExplicitProps(props: Props) {
     const explicitProps = { ...props };
     for (let k in props) {
       const prop = props[k];
-      if (this.checkIsAsset(prop)) {
+      if (prop && this.checkIsAsset(prop)) {
         const res = this.oasis.recourceManager.get(prop.id);
         explicitProps[k] = res.asset;
       }

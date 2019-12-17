@@ -5,15 +5,18 @@ import { PluginManager } from "./plugins/PluginManager";
 import * as o3 from "@alipay/o3";
 
 export class Oasis {
+  public readonly engine = new o3.Engine();
   public readonly nodeManager: NodeManager = new NodeManager(this);
   public readonly abilityManager: AbilityManager = new AbilityManager(this);
   public readonly recourceManager: ResouceManager = new ResouceManager(this);
-  public readonly engine = new o3.Engine();
 
-  private constructor(private schema: Schema, public readonly pluginManager: PluginManager) {}
+  private constructor(private schema: Schema, public readonly pluginManager: PluginManager) {
+    this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
+    this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
+  }
 
   private async init() {
-    await this.loadResouces();
+    // await this.loadResouces();
     this.parseNodes();
     this.parseNodeAbilities();
   }
@@ -52,12 +55,12 @@ export class Oasis {
   private bfsNodes(): number[] {
     const { nodes } = this.schema;
     const roots = Object.values(nodes)
-      .filter(node => node.parent == undefined)
-      .map(node => node.parent);
+      .filter(node => typeof node.parent !== "number")
+      .map(node => node.id);
 
-    const result = [];
+    let result = [];
     const traverseChildren = (roots: string[]) => {
-      result.concat(roots);
+      result = result.concat(roots);
       roots.forEach(id => {
         const children = nodes[id].children;
         children && traverseChildren(children);
@@ -67,9 +70,10 @@ export class Oasis {
     return result;
   }
 
-  static async create(schema: Schema, pluginManager: PluginManager): Promise<Oasis> {
-    const oasis = new Oasis(schema, pluginManager);
+  static async create(options: Options, pluginManager: PluginManager): Promise<Oasis> {
+    const oasis = new Oasis(options.config, pluginManager);
     await oasis.init();
+    options.autoPlay && oasis.engine.run();
     return oasis;
   }
 }

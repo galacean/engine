@@ -60,7 +60,7 @@ interface AbilityConfig {
   /**
    * ability 所属 node id
    */
-  nodeId: string;
+  node: string;
   /**
    * ability type
    */
@@ -92,4 +92,13 @@ interface Schema {
 
 interface ClassType<T> extends Function {
   new (...args: any[]): T;
+}
+
+interface Options {
+  canvas?: string | HTMLCanvasElement;
+  config?: any;
+  autoPlay?: boolean;
+  onProgress?: () => {};
+  local?: boolean; // 是否本地开发环境
+  rhiAttr: WebGLContextAttributes & { enableCollect?: boolean };
 }
