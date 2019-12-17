@@ -5,6 +5,8 @@ export type TextureConfig = {
   minFilter?: TextureFilter;
   wrapS?: TextureWrapMode;
   wrapT?: TextureWrapMode;
+  flipY?: boolean;
+  premultiplyAlpha?: boolean;
   [key: string]: any;
 };
 export type React = { x: number; y: number; width: number; height: number };

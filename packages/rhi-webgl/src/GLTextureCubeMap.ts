@@ -33,6 +33,7 @@ export class GLTextureCubeMap extends GLTexture {
     const images = config.images;
     let needGenerateMipmap = false;
 
+    super.setPixelStore();
     for (let f = 0; f < CubeMapFace.length; f++) {
       for (let level = 0; level < images.length; level++) {
         if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace[f]) {

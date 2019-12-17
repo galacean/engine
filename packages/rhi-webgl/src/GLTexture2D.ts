@@ -30,11 +30,13 @@ export class GLTexture2D extends GLTexture {
     const gl = this._gl;
     const config = this._config as Texture2D;
     if (config.needUpdateWholeTexture && config.image) {
+      super.setPixelStore();
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, config.image);
 
       super.generateMipmap();
       config.needUpdateWholeTexture = false;
     } else if (config.updateSubRects.length > 0) {
+      super.setPixelStore();
       for (let i = config.updateSubRects.length - 1; i >= 0; i--) {
         this.updateSubTexture(gl, config, config.updateSubRects[i], config.updateSubImageData[i]);
       }

@@ -15,6 +15,8 @@ export class Texture extends AssetObject {
   public wrapT: TextureWrapMode;
   public filterMag: TextureFilter;
   public filterMin: TextureFilter;
+  public flipY: boolean;
+  public premultiplyAlpha: boolean;
 
   public config: TextureConfig;
 
@@ -26,12 +28,26 @@ export class Texture extends AssetObject {
    * @param {Number} [config.minFilter=TextureFilter.LINEAR_MIPMAP_LINEAR] 缩小时的筛选器
    * @param {Number} [config.wrapS=TextureWrapMode.REPEAT] S方向纹理包裹选项
    * @param {Number} [config.wrapT=TextureWrapMode.REPEAT] T方向纹理包裹选项
+   * @param {boolean} [config.flipY=false] 是否翻转图片上下
+   * @param {boolean} [config.premultiplyAlpha=false] 颜色通道是否预乘 alpha
    */
   constructor(name: string, config: TextureConfig = {}) {
     super(name);
     this.config = config;
+
+    this.setPixelStore(config.flipY, config.premultiplyAlpha);
     this.setFilter(config.magFilter || TextureFilter.LINEAR, config.minFilter || TextureFilter.LINEAR_MIPMAP_LINEAR);
     this.setWrapMode(config.wrapS || TextureWrapMode.REPEAT, config.wrapT || TextureWrapMode.REPEAT);
+  }
+
+  /**
+   * gl.pixelStorei 相关操作，updateTexture 前进行
+   * @param {boolean} flipY - 是否翻转图片上下，默认 false
+   * @param {boolean} premultiplyAlpha - 颜色通道是否预乘 alpha，默认 false
+   * */
+  setPixelStore(flipY = false, premultiplyAlpha = false) {
+    this.flipY = flipY;
+    this.premultiplyAlpha = premultiplyAlpha;
   }
 
   /**
