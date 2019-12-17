@@ -13,8 +13,7 @@ export class Texture2D extends Texture {
   public updateSubRects: Array<React>;
   public updateSubImageData: Array<any>;
   private _image: any;
-
-  public _context: any;
+  private _context: any;
 
   /**
    * 2D 贴图数据对象
