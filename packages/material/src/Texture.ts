@@ -7,12 +7,16 @@ import { TextureConfig } from "./type";
  * @class
  */
 export class Texture extends AssetObject {
-  protected _needUpdateFilers: boolean;
-  protected _wrapS: TextureWrapMode;
-  protected _wrapT: TextureWrapMode;
-  protected _filterMag: TextureFilter;
-  protected _filterMin: TextureFilter;
-  config: any;
+  public needUpdateFilers: boolean;
+  public needUpdateWholeTexture: boolean;
+  public canMipmap: boolean;
+
+  public wrapS: TextureWrapMode;
+  public wrapT: TextureWrapMode;
+  public filterMag: TextureFilter;
+  public filterMin: TextureFilter;
+
+  public config: TextureConfig;
 
   /**
    * 纹理对象基类
@@ -36,9 +40,9 @@ export class Texture extends AssetObject {
    * @param {GLenum} minFilter 缩小筛选器
    */
   setFilter(magFilter: TextureFilter, minFilter: TextureFilter): this {
-    this._needUpdateFilers = this._needUpdateFilers || this._filterMag !== magFilter || this._filterMin !== minFilter;
-    this._filterMag = magFilter;
-    this._filterMin = minFilter;
+    this.needUpdateFilers = this.needUpdateFilers || this.filterMag !== magFilter || this.filterMin !== minFilter;
+    this.filterMag = magFilter;
+    this.filterMin = minFilter;
     return this;
   }
 
@@ -48,9 +52,9 @@ export class Texture extends AssetObject {
    * @param {GLenum} wrapT 贴图坐标在 T 方向的 Wrap 模式
    */
   setWrapMode(wrapS: TextureWrapMode, wrapT: TextureWrapMode): this {
-    this._needUpdateFilers = this._needUpdateFilers || this._wrapS !== wrapS || this._wrapT !== wrapT;
-    this._wrapS = wrapS;
-    this._wrapT = wrapT;
+    this.needUpdateFilers = this.needUpdateFilers || this.wrapS !== wrapS || this.wrapT !== wrapT;
+    this.wrapS = wrapS;
+    this.wrapT = wrapT;
     return this;
   }
 
@@ -59,6 +63,6 @@ export class Texture extends AssetObject {
    * @private
    */
   resetState() {
-    this._needUpdateFilers = true;
+    this.needUpdateFilers = true;
   }
 }

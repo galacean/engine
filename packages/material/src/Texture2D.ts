@@ -10,12 +10,10 @@ function isPowerOf2(v): boolean {
  * 2D 贴图数据对象
  */
 export class Texture2D extends Texture {
-  private updateSubRects: Array<React>;
-  private updateSubImageData: Array<any>;
+  public updateSubRects: Array<React>;
+  public updateSubImageData: Array<any>;
   private _image: any;
-  private _canMipmap: boolean;
 
-  public updateWholeTexture: boolean;
   public _context: any;
 
   /**
@@ -58,7 +56,7 @@ export class Texture2D extends Texture {
    * @param {ImageData} texSubImageData 需要刷新的贴图子区域数据
    */
   updateSubTexture(texSubRect: React, texSubImageData?) {
-    if (this.updateWholeTexture) {
+    if (this.needUpdateWholeTexture) {
       return;
     }
 
@@ -80,25 +78,20 @@ export class Texture2D extends Texture {
    */
   configMipmap() {
     if (isPowerOf2(this._image.width) && isPowerOf2(this._image.height)) {
-      if (
-        this._filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
-        this._filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||
-        this._filterMin === TextureFilter.NEAREST_MIPMAP_LINEAR ||
-        this._filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR
-      ) {
-        this._canMipmap = true;
-      } else {
-        this._canMipmap = false;
-      }
+      this.canMipmap =
+        this.filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
+        this.filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||
+        this.filterMin === TextureFilter.NEAREST_MIPMAP_LINEAR ||
+        this.filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR;
     } else {
-      this._canMipmap = false;
+      this.canMipmap = false;
     }
 
-    if (!this._canMipmap) {
-      this._filterMin = this._filterMin === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
-      this._filterMag = this._filterMag === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
-      this._wrapS = TextureWrapMode.CLAMP_TO_EDGE;
-      this._wrapT = TextureWrapMode.CLAMP_TO_EDGE;
+    if (!this.canMipmap) {
+      this.filterMin = this.filterMin === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
+      this.filterMag = this.filterMag === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
+      this.wrapS = TextureWrapMode.CLAMP_TO_EDGE;
+      this.wrapT = TextureWrapMode.CLAMP_TO_EDGE;
     }
   }
 
@@ -106,8 +99,8 @@ export class Texture2D extends Texture {
    * 刷新整个纹理
    */
   updateTexture() {
-    this.updateWholeTexture = true;
-    this._needUpdateFilers = true;
+    this.needUpdateWholeTexture = true;
+    this.needUpdateFilers = true;
     this.updateSubRects = [];
     this.updateSubImageData = [];
   }

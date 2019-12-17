@@ -11,15 +11,8 @@ function isPowerOf2(v): boolean {
  */
 export class TextureCubeMap extends Texture {
   private _images: Array<any>;
-
   private _mipMapLevel: number;
-
-  private _manualMipMap: boolean;
-  protected _needUpdateFilers: boolean;
-  protected _canMipmap: boolean;
-  protected _needUpdateTexture: Array<boolean>;
-
-  public updateWholeTexture: boolean;
+  public needUpdateCubeTextureFace: Array<boolean>;
 
   /**
    * CubeMap 贴图数据对象
@@ -36,7 +29,7 @@ export class TextureCubeMap extends Texture {
 
     this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
 
-    this._needUpdateTexture = [];
+    this.needUpdateCubeTextureFace = [];
     /**
      * CubeMap 的数据, 顺序为[px, nx, py, ny, pz, nz]
      * @member {Array}
@@ -66,8 +59,8 @@ export class TextureCubeMap extends Texture {
    * 刷新所有纹理
    */
   updateTexture() {
-    this.updateWholeTexture = true;
-    this._needUpdateFilers = true;
+    this.needUpdateWholeTexture = true;
+    this.needUpdateFilers = true;
   }
 
   /**
@@ -77,7 +70,7 @@ export class TextureCubeMap extends Texture {
    */
   updateImage(index: number, image) {
     this._images[index] = image;
-    this._needUpdateTexture[index] = true;
+    this.needUpdateCubeTextureFace[index] = true;
   }
 
   /**
@@ -87,26 +80,23 @@ export class TextureCubeMap extends Texture {
   configMipmap() {
     // manual set MipMap
     if (this.images[1]) {
-      this._manualMipMap = true;
       this._mipMapLevel = Math.log2(this.images[0][0].width);
     } else {
-      this._manualMipMap = false;
-
       if (isPowerOf2(this._images[0][0].width) && isPowerOf2(this._images[0][0].height)) {
         if (
-          this._filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
-          this._filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||
-          this._filterMin === TextureFilter.NEAREST_MIPMAP_LINEAR ||
-          this._filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR
+          this.filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
+          this.filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||
+          this.filterMin === TextureFilter.NEAREST_MIPMAP_LINEAR ||
+          this.filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR
         ) {
-          this._canMipmap = true;
+          this.canMipmap = true;
           this._mipMapLevel = Math.log2(this.images[0][0].width);
         } else {
-          this._canMipmap = false;
+          this.canMipmap = false;
           this._mipMapLevel = 0;
         }
       } else {
-        this._canMipmap = false;
+        this.canMipmap = false;
         this._mipMapLevel = 0;
         this.setFilter(TextureFilter.NEAREST, TextureFilter.NEAREST);
         this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);

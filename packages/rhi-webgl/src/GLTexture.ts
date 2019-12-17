@@ -1,5 +1,6 @@
 import { GLAsset } from "./GLAsset";
 import { GLRenderHardware } from "./GLRenderHardware";
+import { Texture } from "@alipay/o3-material";
 
 /**
  * 管理贴图对象
@@ -9,9 +10,9 @@ import { GLRenderHardware } from "./GLRenderHardware";
 export class GLTexture extends GLAsset {
   protected _gl;
   private _glTexture;
-  protected _config;
+  protected _config: Texture;
   protected _type;
-  constructor(rhi: GLRenderHardware, config, type) {
+  constructor(rhi: GLRenderHardware, config: Texture, type) {
     super(rhi, config);
     this._gl = rhi.gl;
     this._glTexture = rhi.gl.createTexture(); // WebGLTexture
@@ -46,12 +47,12 @@ export class GLTexture extends GLAsset {
   setFilters() {
     const gl = this._gl;
 
-    if (this._config._needUpdateFilers) {
-      this._config._needUpdateFilers = false;
-      gl.texParameteri(this._type, gl.TEXTURE_MAG_FILTER, this._config._filterMag);
-      gl.texParameteri(this._type, gl.TEXTURE_MIN_FILTER, this._config._filterMin);
-      gl.texParameteri(this._type, gl.TEXTURE_WRAP_S, this._config._wrapS);
-      gl.texParameteri(this._type, gl.TEXTURE_WRAP_T, this._config._wrapT);
+    if (this._config.needUpdateFilers) {
+      this._config.needUpdateFilers = false;
+      gl.texParameteri(this._type, gl.TEXTURE_MAG_FILTER, this._config.filterMag);
+      gl.texParameteri(this._type, gl.TEXTURE_MIN_FILTER, this._config.filterMin);
+      gl.texParameteri(this._type, gl.TEXTURE_WRAP_S, this._config.wrapS);
+      gl.texParameteri(this._type, gl.TEXTURE_WRAP_T, this._config.wrapT);
     }
   }
 
@@ -60,7 +61,7 @@ export class GLTexture extends GLAsset {
    * @private
    */
   generateMipmap() {
-    if (this._config._canMipmap) {
+    if (this._config.canMipmap) {
       this._gl.generateMipmap(this._type);
     }
   }
