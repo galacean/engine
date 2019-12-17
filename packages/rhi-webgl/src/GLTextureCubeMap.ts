@@ -31,15 +31,18 @@ export class GLTextureCubeMap extends GLTexture {
     const gl = this._gl;
     const config = this._config as TextureCubeMap;
     const images = config.images;
+    let needGenerateMipmap = false;
 
     for (let f = 0; f < CubeMapFace.length; f++) {
       for (let level = 0; level < images.length; level++) {
-        if (config.needUpdateWholeTexture) {
+        if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace[f]) {
+          config.needUpdateCubeTextureFace[f] = false;
+          needGenerateMipmap = true;
           gl.texImage2D(CubeMapFace[f], level, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, images[level][f]);
         }
       }
     }
-    if (config.needUpdateWholeTexture) {
+    if (needGenerateMipmap) {
       super.generateMipmap();
     }
 
