@@ -20,19 +20,20 @@ export class Oasis {
     return this._canvas;
   }
 
-  private async init(canvas: HTMLCanvasElement) {
+  private init(canvas: HTMLCanvasElement): Promise<any> {
     this.pluginManager.boot(this);
     this._canvas = canvas;
-    // await this.loadResouces();
-    this.parseNodes();
-    this.parseNodeAbilities();
+    return this.loadResouces().then(() => {
+      this.parseNodes();
+      this.parseNodeAbilities();
+    });
   }
 
   /**
    * 加载资源
    */
   private async loadResouces(): Promise<void> {
-    const { assets } = this.schema;
+    const { assets = {} } = this.schema;
 
     const loadingPromises = Object.values(assets).map(this.recourceManager.load);
 
@@ -77,10 +78,11 @@ export class Oasis {
     return result;
   }
 
-  static async create(options: Options, pluginManager: PluginManager): Promise<Oasis> {
+  static create(options: Options, pluginManager: PluginManager): Promise<Oasis> {
     const oasis = new Oasis(options.config, pluginManager);
-    await oasis.init(options.canvas);
-    options.autoPlay && oasis.engine.run();
-    return oasis;
+    return oasis.init(options.canvas).then(() => {
+      options.autoPlay && oasis.engine.run();
+      return oasis;
+    });
   }
 }
