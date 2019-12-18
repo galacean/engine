@@ -60,7 +60,7 @@ export class Sprite {
   setUvRect() {
     let w, h;
 
-    if (this._texture) {
+    if (this._texture && this._texture.image) {
       w = this._texture.image.width;
       h = this._texture.image.height;
     } else {
