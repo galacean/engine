@@ -9,12 +9,18 @@ import { RenderTechnique } from "@alipay/o3-material";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAsset } from "./GLAsset";
 
-var UniformDefaults = {};
+const UniformDefaults = {};
 UniformDefaults[DataType.FLOAT] = 0.0;
 UniformDefaults[DataType.FLOAT_VEC2] = new Float32Array([0.0, 0.0]);
 UniformDefaults[DataType.FLOAT_VEC3] = new Float32Array([0.0, 0.0, 0.0]);
 UniformDefaults[DataType.FLOAT_VEC4] = new Float32Array([0.0, 0.0, 0.0, 0.0]);
 UniformDefaults[DataType.FLOAT_MAT4] = mat4.create();
+
+/** uv变换矩阵 的 uniform 名字在相应纹理的 uniform 后面添加后缀
+ * @example
+ *  u_diffuse -> u_diffuseMatrix
+ *  */
+const UV_MATRIX_POSTFIX = "Matrix";
 
 /**
  * GL 层的 Technique 资源管理和渲染调用处理
@@ -115,7 +121,7 @@ export class GLTechnique extends GLAsset {
     //-- upload mtl uniforms
     const uniforms = this._uniforms;
     const assetUniforms = this._tech.uniforms;
-    for (const name in uniforms) {
+    for (const name in assetUniforms) {
       this._uploadUniformValue(assetUniforms[name], uniforms[name].location, mtl.getValue(name));
     }
 
@@ -226,6 +232,7 @@ export class GLTechnique extends GLAsset {
         const texture = value;
         if (texture) {
           this._uploadTexture(texture, location, GLTexture2D);
+          this.bindTextureMatrix(texture.uvMatrix, uniform.name);
         }
         break;
       }
@@ -243,8 +250,31 @@ export class GLTechnique extends GLAsset {
   }
 
   /**
+   * 绑定纹理矩阵
+   * */
+  bindTextureMatrix(uvMatrix, textureUniformName: string) {
+    const uvMatrixUniformName = textureUniformName + UV_MATRIX_POSTFIX;
+    // 若不存在，则新建
+    if (!this._uniforms[uvMatrixUniformName]) {
+      const glProgram = this._program.program;
+      const loc = this._program.getUniformLocation(glProgram, uvMatrixUniformName);
+      if (!(loc !== 0 && !loc)) {
+        this._uniforms[uvMatrixUniformName] = {
+          name: uvMatrixUniformName,
+          location: loc
+        };
+      }
+    }
+    // 若存在，则绑定
+    if (this._uniforms[uvMatrixUniformName]) {
+      const location = this._uniforms[uvMatrixUniformName].location;
+      this.rhi.gl.uniformMatrix3fv(location, false, uvMatrix);
+    }
+  }
+
+  /**
    * 将一个内存中的 Texture2D 对象绑定到 GL
-   * @param {Texture2D} texture
+   * @param {Texture} texture
    */
   _uploadTexture(texture, location, type) {
     const assetCache = this.rhi.assetsCache;

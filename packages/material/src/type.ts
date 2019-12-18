@@ -7,6 +7,12 @@ export type TextureConfig = {
   wrapT?: TextureWrapMode;
   flipY?: boolean;
   premultiplyAlpha?: boolean;
+  uScale?: number;
+  vScale?: number;
+  uOffset?: number;
+  vOffset?: number;
+  uvRotation?: number;
+  uvCenter?: number[];
   [key: string]: any;
 };
 export type React = { x: number; y: number; width: number; height: number };

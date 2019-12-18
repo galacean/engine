@@ -1,5 +1,6 @@
 import { Texture } from "./Texture";
 import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
+import { mat3 } from "@alipay/o3-math";
 import { TextureConfig, React } from "./type";
 
 function isPowerOf2(v): boolean {
@@ -15,18 +16,31 @@ export class Texture2D extends Texture {
   private _image: any;
   private _context: any;
 
+  /** uv transform */
+  public uOffset: number;
+  public vOffset: number;
+  public uScale: number;
+  public vScale: number;
+  public uvRotation: number; // 0～360度
+  public uvCenter: number[];
+  private _uvMatrix = mat3.create();
+
   /**
    * 2D 贴图数据对象
    * @param {String} name 名称
    * @param {HTMLImageElement|ImageData|HTMLCanvasElement|ImageBitmap|ArrayBufferView|HTMLVideoElement} image 纹理内容
-   * @param {Object} config 可选配置，包含以下参数
-   * @param {Number} [config.magFilter=TextureFilter.LINEAR] 放大时的筛选器
-   * @param {Number} [config.minFilter=TextureFilter.LINEAR_MIPMAP_LINEAR] 缩小时的筛选器
-   * @param {Number} [config.wrapS=TextureWrapMode.REPEAT] S方向纹理包裹选项
-   * @param {Number} [config.wrapT=TextureWrapMode.REPEAT] T方向纹理包裹选项
+   * @param {TextureConfig} config 可选配置
    */
   constructor(name: string, image?, config?: TextureConfig) {
     super(name, config);
+    this.setUvTransform(
+      config?.uOffset,
+      config?.vOffset,
+      config?.uScale,
+      config?.vScale,
+      config?.uvRotation,
+      config?.uvCenter
+    );
 
     if (image) {
       /**
@@ -38,6 +52,46 @@ export class Texture2D extends Texture {
 
     this.updateSubRects = [];
     this.updateSubImageData = [];
+  }
+
+  /**
+   * 设置纹理的一些 RTS 变换
+   * @param {Number} uOffset  - 纹理 U 方向的偏移
+   * @param {Number} vOffset  - 纹理 V 方向的偏移
+   * @param {Number} uScale  - 纹理 U 方向的缩放
+   * @param {Number} vScale  - 纹理 V 方向的缩放
+   * @param {Number} uvRotation  - 纹理旋转弧度，0～2PI
+   * @param {Number[]} uvCenter  - 纹理中心点
+   * */
+  private setUvTransform(
+    uOffset: number = 0,
+    vOffset: number = 0,
+    uScale: number = 1,
+    vScale: number = 1,
+    uvRotation = 0,
+    uvCenter = [0, 0]
+  ) {
+    this.uOffset = uOffset;
+    this.vOffset = vOffset;
+    this.uScale = uScale;
+    this.vScale = vScale;
+    this.uvRotation = uvRotation;
+    this.uvCenter = uvCenter;
+  }
+
+  /**
+   * 获取纹理 RTS 变换矩阵
+   * */
+  public get uvMatrix() {
+    return mat3.fromUvTransform(
+      this._uvMatrix,
+      this.uOffset,
+      this.vOffset,
+      this.uScale,
+      this.vScale,
+      this.uvRotation,
+      this.uvCenter
+    );
   }
 
   get image() {
