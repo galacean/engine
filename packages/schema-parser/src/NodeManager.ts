@@ -15,6 +15,7 @@ export class NodeManager {
   public add(nodeConfig: NodeConfig) {
     this.create(nodeConfig);
     this.append(nodeConfig.id, nodeConfig.parent, nodeConfig.index);
+    return this.get(nodeConfig.id);
   }
 
   public update(id: string, key: string, value: any) {

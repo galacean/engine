@@ -21,6 +21,7 @@ export class AbilityManager {
     const currentIndex = abilityArray.length - 1;
     switchElementsIndex(abilityArray, currentIndex, index);
     this.abilityMap[id] = ability;
+    return ability;
   }
 
   public update(id: string, key: string, value: any) {

@@ -1,19 +1,24 @@
-import { Plugin } from "./Plugin";
 import * as o3 from "@alipay/o3";
 import { Oasis } from "../Oasis";
 
 export class PluginManager implements PluginHook {
-  private registeredPlugins: Set<ClassType<Plugin>> = new Set();
-  private plugins: Plugin[] = [];
+  private registeredPlugins: Set<ClassType<PluginHook>> = new Set();
+  private plugins: PluginHook[] = [];
 
-  register<T extends Plugin>(pluginClass: ClassType<T>) {
+  register<T extends PluginHook>(pluginClass: ClassType<T>) {
     this.registeredPlugins.add(pluginClass);
   }
 
   boot(oasis: Oasis) {
     for (let PluginClass of this.registeredPlugins.values()) {
-      this.plugins.push(new PluginClass(oasis));
+      const plugin = new PluginClass();
+      plugin.oasis = oasis;
+      this.plugins.push(plugin);
     }
+  }
+
+  reset() {
+    this.registeredPlugins.clear();
   }
 
   nodeAdded(node: o3.Node) {
@@ -29,15 +34,16 @@ export class PluginManager implements PluginHook {
   }
 
   private delegateMethod(name: keyof PluginHook, param: any) {
-    this.plugins.forEach(plugin => plugin[name] && plugin[name]!(param));
+    this.plugins.forEach(plugin => plugin[name] && (plugin[name] as any)(param));
   }
 }
 
 export interface PluginHook {
-  nodeAdded(node: o3.Node): any;
-  abilityAdded(ability: o3.NodeAbility): any;
+  oasis?: Oasis;
+  nodeAdded?(node: o3.Node): any;
+  abilityAdded?(ability: o3.NodeAbility): any;
   // todo type
-  resourceAdded(resource: any): any;
+  resourceAdded?(resource: any): any;
 }
 
 export function pluginHook(options: Partial<{ before: keyof PluginHook; after: keyof PluginHook }>): MethodDecorator {

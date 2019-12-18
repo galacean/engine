@@ -95,7 +95,7 @@ interface ClassType<T> extends Function {
 }
 
 interface Options {
-  canvas?: string | HTMLCanvasElement;
+  canvas?: HTMLCanvasElement;
   config?: any;
   autoPlay?: boolean;
   onProgress?: () => {};

@@ -9,13 +9,20 @@ export class Oasis {
   public readonly nodeManager: NodeManager = new NodeManager(this);
   public readonly abilityManager: AbilityManager = new AbilityManager(this);
   public readonly recourceManager: ResouceManager = new ResouceManager(this);
+  public _canvas: HTMLCanvasElement;
 
   private constructor(private schema: Schema, public readonly pluginManager: PluginManager) {
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
   }
 
-  private async init() {
+  public get canvas(): HTMLCanvasElement {
+    return this._canvas;
+  }
+
+  private async init(canvas: HTMLCanvasElement) {
+    this.pluginManager.boot(this);
+    this._canvas = canvas;
     // await this.loadResouces();
     this.parseNodes();
     this.parseNodeAbilities();
@@ -72,7 +79,7 @@ export class Oasis {
 
   static async create(options: Options, pluginManager: PluginManager): Promise<Oasis> {
     const oasis = new Oasis(options.config, pluginManager);
-    await oasis.init();
+    await oasis.init(options.canvas);
     options.autoPlay && oasis.engine.run();
     return oasis;
   }
