@@ -58,7 +58,7 @@ export class GLTechnique extends GLAsset {
       if (!(loc !== 0 && !loc)) {
         this._uniforms[name] = {
           name,
-          location: this._program.getUniformLocation(glProgram, name)
+          location: loc
         };
       } else {
         delete uniforms[name];
