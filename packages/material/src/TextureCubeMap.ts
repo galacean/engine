@@ -24,17 +24,20 @@ export class TextureCubeMap extends Texture {
    * @param {Number} [config.wrapS=TextureWrapMode.CLAMP_TO_EDGE] S方向纹理包裹选项
    * @param {Number} [config.wrapT=TextureWrapMode.CLAMP_TO_EDGE] T方向纹理包裹选项
    */
-  constructor(name: string, images: Array<any>, config?: TextureConfig) {
+  constructor(name: string, images?: Array<any>, config?: TextureConfig) {
     super(name, config);
 
     this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
 
     this.needUpdateCubeTextureFace = [];
+
     /**
      * CubeMap 的数据, 顺序为[px, nx, py, ny, pz, nz]
      * @member {Array}
      */
-    this.images = images;
+    if (images) {
+      this.images = images;
+    }
   }
 
   get images(): Array<any> {
