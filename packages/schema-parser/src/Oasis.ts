@@ -10,19 +10,24 @@ export class Oasis {
   public readonly abilityManager: AbilityManager = new AbilityManager(this);
   public readonly recourceManager: ResouceManager = new ResouceManager(this);
   public _canvas: HTMLCanvasElement;
+  private schema: Schema;
 
-  private constructor(private schema: Schema, public readonly pluginManager: PluginManager) {
+  private constructor(private _options: Readonly<Options>, public readonly pluginManager: PluginManager) {
+    this.schema = _options.config;
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
   }
 
   public get canvas(): HTMLCanvasElement {
-    return this._canvas;
+    return this._options.canvas;
   }
 
-  private init(canvas: HTMLCanvasElement): Promise<any> {
+  public get options(): Readonly<Options> {
+    return this._options;
+  }
+
+  private init(): Promise<any> {
     this.pluginManager.boot(this);
-    this._canvas = canvas;
     return this.loadResouces().then(() => {
       this.parseNodes();
       this.parseNodeAbilities();
@@ -80,7 +85,7 @@ export class Oasis {
 
   static create(options: Options, pluginManager: PluginManager): Promise<Oasis> {
     const oasis = new Oasis(options.config, pluginManager);
-    return oasis.init(options.canvas).then(() => {
+    return oasis.init().then(() => {
       options.autoPlay && oasis.engine.run();
       return oasis;
     });

@@ -7,7 +7,7 @@ export class DefaultCameraPlugin implements PluginHook {
   abilityAdded(ability: o3.NodeAbility) {
     if (ability instanceof glue.Camera) {
       // console.log("camera added")
-      ability.attachToScene(this.oasis.canvas);
+      ability.attachToScene(this.oasis.canvas, this.oasis.options.rhiAttr);
     }
   }
 }
