@@ -45,3 +45,29 @@
     uniform mat3 u_perturbationSamplerMatrix;
 
 #endif
+
+
+// mobile material,以后需要重构成统一的变量
+#ifdef O3_EMISSION_TEXTURE
+
+    uniform mat3 u_emissionMatrix;
+
+#endif
+
+#ifdef O3_AMBIENT_TEXTURE
+
+    uniform mat3 u_ambientMatrix;
+
+#endif
+
+#ifdef O3_DIFFUSE_TEXTURE
+
+    uniform mat3 u_diffuseMatrix;
+
+#endif
+
+#ifdef O3_SPECULAR_TEXTURE
+
+    uniform mat3 u_specularMatrix;
+
+#endif
