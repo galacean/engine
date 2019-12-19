@@ -67,7 +67,6 @@ class PBRMaterial extends Material {
    * @param {number} [props.envMapIntensity] 反射模式时的反射强度；
    * @param {number} [props.refractionRatio] 折射模式时的折射率的比例，如真空折射率/水折射率=1/1.33;
    * @param {boolean} [props.envMapModeRefract=false] 全局环境贴图使用 反射或者折射 模式;
-   * @param {boolean} [props.useScreenUv=false] 是否使用屏幕坐标的uv，代替纹理uv
    *
    * @param {Texture2D} [props.perturbationTexture] 扰动纹理
    * @param {number} [props.perturbationUOffset] 扰动纹理U偏移
@@ -124,8 +123,7 @@ class PBRMaterial extends Material {
       getOpacityFromRGB: false,
       isMetallicWorkflow: true,
       premultipliedAlpha: true,
-      envMapModeRefract: false,
-      useScreenUv: false
+      envMapModeRefract: false
     };
 
     Object.keys(this._uniformObj).forEach(k => this.setValueByParamName(k, this._uniformObj[k]));
@@ -263,9 +261,6 @@ class PBRMaterial extends Material {
           break;
         case "envMapModeRefract":
           this.envMapModeRefract = obj[key];
-          break;
-        case "useScreenUv":
-          this.useScreenUv = obj[key];
           break;
       }
     });
@@ -780,20 +775,6 @@ class PBRMaterial extends Material {
   }
 
   /**
-   * 是否使用屏幕坐标uv，代替纹理uv
-   * 当使用屏幕坐标uv，可以用来进行一些全屏后处理
-   * @type{boolean}
-   * */
-  get useScreenUv(): boolean {
-    return this._stateObj.useScreenUv;
-  }
-
-  set useScreenUv(v) {
-    this._stateObj.useScreenUv = v;
-    this._technique = null;
-  }
-
-  /**
    * 绘制前准备
    * @param {ACamera} camera 相机
    * @param {Ability} component 组件
@@ -951,7 +932,6 @@ class PBRMaterial extends Material {
     if (this._stateObj.isMetallicWorkflow) _macros.push("IS_METALLIC_WORKFLOW");
     if (this._stateObj.premultipliedAlpha) _macros.push("PREMULTIPLIED_ALPHA");
     if (this._stateObj.envMapModeRefract) _macros.push("ENVMAPMODE_REFRACT");
-    if (this._stateObj.useScreenUv) _macros.push("USE_SCREENUV");
 
     return _macros;
   }
