@@ -232,7 +232,7 @@ export class GLTechnique extends GLAsset {
         const texture = value;
         if (texture) {
           this._uploadTexture(texture, location, GLTexture2D);
-          this.bindTextureMatrix(texture.uvMatrix, uniform.name);
+          this.bindUvMatrix(texture.uvMatrix, uniform.name);
         }
         break;
       }
@@ -250,9 +250,9 @@ export class GLTechnique extends GLAsset {
   }
 
   /**
-   * 绑定纹理矩阵
+   * 绑定 uv 变换矩阵
    * */
-  bindTextureMatrix(uvMatrix, textureUniformName: string) {
+  bindUvMatrix(uvMatrix, textureUniformName: string) {
     const uvMatrixUniformName = textureUniformName + UV_MATRIX_POSTFIX;
     // 若不存在，则新建
     if (!this._uniforms[uvMatrixUniformName]) {
