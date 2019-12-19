@@ -2,7 +2,7 @@
 
     v_uv = a_uv;
 
-    #elif defined( O3_NEED_UV ) || defined( O3_HAS_ENVMAP ) || defined( O3_HAS_LIGHTMAP )
+    #else
 
     // may need this calculate normal
     v_uv = vec2( 0., 0. );
