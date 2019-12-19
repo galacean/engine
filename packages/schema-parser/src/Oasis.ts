@@ -1,6 +1,6 @@
 import { NodeManager } from "./NodeManager";
 import { AbilityManager } from "./AbilityManager";
-import { ResouceManager } from "./resouces/ResourceManager";
+import { ResourceManager } from "./ResourceManager";
 import { PluginManager } from "./plugins/PluginManager";
 import * as o3 from "@alipay/o3";
 
@@ -8,7 +8,7 @@ export class Oasis {
   public readonly engine = new o3.Engine();
   public readonly nodeManager: NodeManager = new NodeManager(this);
   public readonly abilityManager: AbilityManager = new AbilityManager(this);
-  public readonly recourceManager: ResouceManager = new ResouceManager(this);
+  public readonly resourceManager: ResourceManager = new ResourceManager(this);
   public _canvas: HTMLCanvasElement;
 
   private constructor(private schema: Schema, public readonly pluginManager: PluginManager) {
@@ -23,7 +23,8 @@ export class Oasis {
   private init(canvas: HTMLCanvasElement): Promise<any> {
     this.pluginManager.boot(this);
     this._canvas = canvas;
-    return this.loadResouces().then(() => {
+    return this.loadResources().then(() => {
+      this.bindResouces();
       this.parseNodes();
       this.parseNodeAbilities();
     });
@@ -32,12 +33,21 @@ export class Oasis {
   /**
    * 加载资源
    */
-  private async loadResouces(): Promise<void> {
+  private loadResources(): Promise<any> {
     const { assets = {} } = this.schema;
 
-    const loadingPromises = Object.values(assets).map(this.recourceManager.load);
+    const loadingPromises = Object.values(assets).map(asset => this.resourceManager.load(asset));
 
-    await Promise.all(loadingPromises);
+    return Promise.all(loadingPromises);
+  }
+
+  /**
+   * 资源绑定
+   */
+  private bindResouces() {
+    this.resourceManager.getAll().forEach(resource => {
+      resource.bind(this.resourceManager);
+    });
   }
 
   /**

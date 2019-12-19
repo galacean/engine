@@ -76,7 +76,24 @@ interface AbilityConfig {
 }
 
 // todo
-interface AssetConfig {}
+interface AssetConfig {
+  /**
+   * asset id
+   */
+  id: string;
+  /**
+   * asset name
+   */
+  name: string;
+  /**
+   * asset type
+   */
+  type: string;
+  /**
+   * asset props
+   */
+  props: Object;
+}
 
 interface Schema {
   nodes: {
