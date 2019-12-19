@@ -268,39 +268,14 @@ class PBRMaterial extends Material {
 
   /**
    * 根据 uniform 的参数名设置材质值
-   * 当入参为null或者undefined时,会删除value
-   * 当纹理从无到有，或者从有到无，会重新编译shader
    * @private
    */
   setValueByParamName(paramName, value) {
     const uniforms = PBRMaterial.TECH_CONFIG.uniforms;
-
-    Object.keys(uniforms).forEach(key => {
-      const uniformName = uniforms[key].name;
-      if (uniforms[key].paramName === paramName) {
-        if (value == null) {
-          this.delValue(uniformName);
-        } else {
-          this.setValue(uniformName, value);
-        }
-        if (
-          [
-            "baseColorTexture",
-            "metallicRoughnessTexture",
-            "normalTexture",
-            "emissiveTexture",
-            "occlusionTexture",
-            "opacityTexture",
-            "specularGlossinessTexture",
-            "perturbationTexture"
-          ].indexOf(paramName) !== -1
-        ) {
-          if ((this[paramName] && value == null) || (!this[paramName] && value)) {
-            this._technique = null;
-          }
-        }
-      }
-    });
+    const uniformName = Object.keys(uniforms).find(key => uniforms[key].paramName === paramName);
+    if (uniformName) {
+      this.setValue(uniformName, value);
+    }
   }
 
   /****************************************   uniform start **************************************** /
