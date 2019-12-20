@@ -17,6 +17,10 @@ interface ICameraProps {
  * @extends NodeAbility
  */
 export class ACamera extends NodeAbility {
+  get aspect() {
+    return this.viewport[2] / this.viewport[3];
+  }
+
   get renderHardware() {
     return this._rhi;
   }
