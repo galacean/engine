@@ -1,4 +1,4 @@
-let cacheCanvas = document.createElement("canvas");
+const cacheCanvas = document.createElement("canvas");
 cacheCanvas.toBlob =
   cacheCanvas.toBlob ||
   //  low performance polyfill based on toDataURL (https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob)
@@ -13,4 +13,4 @@ cacheCanvas.toBlob =
     callback(new Blob([arr]));
   };
 
-export default cacheCanvas;
+export { cacheCanvas };

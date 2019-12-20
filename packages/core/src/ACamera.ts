@@ -18,8 +18,7 @@ interface ICameraProps {
  */
 export class ACamera extends NodeAbility {
   get aspect() {
-    const canvas = this.renderHardware.canvas;
-    return canvas.width / canvas.height;
+    return this.viewport[2] / this.viewport[3];
   }
 
   get renderHardware() {
