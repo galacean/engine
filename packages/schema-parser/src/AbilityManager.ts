@@ -39,6 +39,11 @@ export class AbilityManager {
   }
 
   private getConstructor(type: string) {
+    const splits = type.split(".");
+    // script
+    if (splits.length === 2) {
+      return o3.NodeAbility;
+    }
     const constructor = o3[type] || glue[type];
     if (!constructor) {
       throw new Error(`${type} is not defined`);
@@ -51,8 +56,8 @@ export class AbilityManager {
     for (let k in props) {
       const prop = props[k];
       if (prop && this.checkIsAsset(prop)) {
-        const res = this.oasis.recourceManager.get(prop.id);
-        explicitProps[k] = res.asset;
+        const res = this.oasis.resourceManager.get(prop.id);
+        explicitProps[k] = res.resource;
       }
     }
     return explicitProps;
