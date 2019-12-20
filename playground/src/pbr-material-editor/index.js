@@ -202,6 +202,9 @@ function addTextureDebug(parentFolder, textureType, state, material) {
   const step = 0.01;
   let uvControlers = [];
   function showUVDebug() {
+    hideUVDebug();
+    uvControlers.push(folder.add(material[textureType], "flipY"));
+    uvControlers.push(folder.add(material[textureType], "premultiplyAlpha"));
     uvControlers.push(folder.add(material[textureType], "uOffset", -1, 1, step));
     uvControlers.push(folder.add(material[textureType], "vOffset", -1, 1, step));
     uvControlers.push(folder.add(material[textureType], "uScale", 0, 100, step));
