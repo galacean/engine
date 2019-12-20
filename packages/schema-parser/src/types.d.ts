@@ -96,7 +96,7 @@ interface ClassType<T> extends Function {
 
 interface Options {
   canvas?: HTMLCanvasElement;
-  config?: any;
+  config?: Schema;
   autoPlay?: boolean;
   onProgress?: () => {};
   local?: boolean; // 是否本地开发环境

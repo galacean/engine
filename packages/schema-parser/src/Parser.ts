@@ -1,6 +1,7 @@
 import { PluginManager, PluginHook } from "./plugins/PluginManager";
 import { Oasis } from "./Oasis";
-import { DefaultCameraPlugin } from "./plugins/DefaultCameraPlugin";
+import { defaultCameraPlugin } from "./plugins/DefaultCameraPlugin";
+import { Plugin } from "./plugins/Plugin";
 
 export class Parser {
   private pluginManager: PluginManager = new PluginManager();
@@ -8,8 +9,8 @@ export class Parser {
     return Oasis.create(options, this.pluginManager);
   }
 
-  register<T extends PluginHook>(pluginClass: ClassType<T>) {
-    this.pluginManager.register(pluginClass);
+  register(plugin: Plugin) {
+    this.pluginManager.register(plugin);
   }
 
   resetPlugins() {
@@ -18,4 +19,4 @@ export class Parser {
 }
 
 export const parser = new Parser();
-parser.register(DefaultCameraPlugin);
+parser.register(defaultCameraPlugin);

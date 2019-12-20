@@ -1,18 +1,21 @@
 import { NodeManager } from "./NodeManager";
 import { AbilityManager } from "./AbilityManager";
 import { ResouceManager } from "./resouces/ResourceManager";
-import { PluginManager } from "./plugins/PluginManager";
+import { PluginManager, pluginHook } from "./plugins/PluginManager";
 import * as o3 from "@alipay/o3";
 
-export class Oasis {
+export class Oasis extends o3.EventDispatcher {
   public readonly engine = new o3.Engine();
   public readonly nodeManager: NodeManager = new NodeManager(this);
   public readonly abilityManager: AbilityManager = new AbilityManager(this);
   public readonly recourceManager: ResouceManager = new ResouceManager(this);
   public _canvas: HTMLCanvasElement;
   private schema: Schema;
+  private oasis = this;
 
   private constructor(private _options: Readonly<Options>, public readonly pluginManager: PluginManager) {
+    super();
+    this.resetFeature();
     this.schema = _options.config;
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
@@ -26,6 +29,7 @@ export class Oasis {
     return this._options;
   }
 
+  @pluginHook({ after: "schemaParsed" })
   private init(): Promise<any> {
     this.pluginManager.boot(this);
     return this.loadResouces().then(() => {
@@ -83,8 +87,21 @@ export class Oasis {
     return result;
   }
 
+  /**
+   * 重置 Feature
+   */
+  private resetFeature() {
+    // TODO 脏代码，delete
+    const scene = this.engine.currentScene;
+    scene.features.splice(1, 1);
+    scene.features.splice(3, 1);
+    (scene as any).hasFogFeature = undefined;
+    (scene as any).getFogMacro = undefined;
+    (scene as any).bindFogToMaterial = undefined;
+  }
+
   static create(options: Options, pluginManager: PluginManager): Promise<Oasis> {
-    const oasis = new Oasis(options.config, pluginManager);
+    const oasis = new Oasis(options, pluginManager);
     return oasis.init().then(() => {
       options.autoPlay && oasis.engine.run();
       return oasis;

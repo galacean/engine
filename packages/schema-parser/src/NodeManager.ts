@@ -8,7 +8,7 @@ export class NodeManager {
   private root: o3.Node;
 
   constructor(private oasis: Oasis) {
-    this.root = this.oasis.engine.currentScene.root;
+    this.root = this.oasis.engine.currentScene.root.createChild("runtime-root");
   }
 
   @pluginHook({ after: "nodeAdded" })
@@ -38,6 +38,7 @@ export class NodeManager {
     node.position = position;
     node.setRotationAngles(rotation[0], rotation[1], rotation[2]);
     node.scale = scale;
+    (node as any).id = id;
     this.nodeMap[id] = node;
     return node;
   }

@@ -1,36 +1,31 @@
 import * as o3 from "@alipay/o3";
 import { Oasis } from "../Oasis";
+import { Plugin } from "./Plugin";
 
 export class PluginManager implements PluginHook {
-  private registeredPlugins: Set<ClassType<PluginHook>> = new Set();
+  private registeredPlugins: Set<Plugin> = new Set();
   private plugins: PluginHook[] = [];
 
-  register<T extends PluginHook>(pluginClass: ClassType<T>) {
-    this.registeredPlugins.add(pluginClass);
+  register(plugin: Plugin) {
+    this.registeredPlugins.add(plugin);
   }
 
   boot(oasis: Oasis) {
-    for (let PluginClass of this.registeredPlugins.values()) {
-      const plugin = new PluginClass();
-      plugin.oasis = oasis;
+    for (let plugin of this.registeredPlugins.values()) {
+      if (typeof plugin === "function") {
+        plugin = plugin(oasis);
+      }
       this.plugins.push(plugin);
     }
   }
 
   reset() {
     this.registeredPlugins.clear();
+    this.plugins = [];
   }
 
   nodeAdded(node: o3.Node) {
     this.delegateMethod("nodeAdded", node);
-  }
-
-  abilityAdded(ability: o3.NodeAbility) {
-    this.delegateMethod("abilityAdded", ability);
-  }
-  // todo type
-  resourceAdded(resource: any) {
-    this.delegateMethod("resourceAdded", resource);
   }
 
   private delegateMethod(name: keyof PluginHook, param: any) {
@@ -42,6 +37,7 @@ export interface PluginHook {
   oasis?: Oasis;
   nodeAdded?(node: o3.Node): any;
   abilityAdded?(ability: o3.NodeAbility): any;
+  schemaParsed?(): any;
   // todo type
   resourceAdded?(resource: any): any;
 }
@@ -50,10 +46,10 @@ export function pluginHook(options: Partial<{ before: keyof PluginHook; after: k
   return function(target: any, propertyName: string, descriptor: TypedPropertyDescriptor<any>) {
     const method = descriptor.value;
 
-    descriptor.value = function(...args: any[]) {
+    descriptor.value = async function(...args: any[]) {
       options.before && this.oasis.pluginManager[options.before](...args);
-      const returnObj = method.apply(this, arguments);
-      options.after && this.oasis.pluginManager[options.after](returnObj);
+      const returnObj = await method.apply(this, arguments);
+      options.after && this.oasis.pluginManager.delegateMethod(options.after, returnObj);
       return returnObj;
     };
   };
