@@ -11,8 +11,8 @@ export class GLTFResource extends SchemaResource {
         if (err) {
           reject(err);
         } else {
-          (res as any).newMaterial = (assetConfig.props as any).newMaterial;
-          this._resource = res;
+          (res.asset as any).newMaterial = (assetConfig.props as any).newMaterial;
+          this._resource = res.asset;
           resolve(this);
         }
       });
@@ -36,8 +36,7 @@ export class GLTFResource extends SchemaResource {
     if (!materials || !materials.length) {
       return;
     }
-    const resource = this._resource;
-    const gltf = resource.asset;
+    const gltf = this._resource;
     const meshes = gltf.meshes;
     for (let i = 0; i < materials.length; i++) {
       gltf.materials[i] = resourceManager.get(materials[i].id).resource;

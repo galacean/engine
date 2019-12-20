@@ -5,7 +5,8 @@ import {
   PBRMaterialResource,
   TextureResource,
   ScriptResource,
-  BlinnPhongMaterialResource
+  BlinnPhongMaterialResource,
+  TextureCubeMapResource
 } from "./resouces";
 import * as o3 from "@alipay/o3";
 
@@ -14,7 +15,7 @@ const RESOURCE_CLASS = {
   gltf: GLTFResource,
   texture: TextureResource,
   // 'image': TextureResource,
-  // 'cubeTexture': CubeTextureResource,
+  cubemap: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource
 };

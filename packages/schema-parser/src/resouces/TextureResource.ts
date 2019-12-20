@@ -11,7 +11,7 @@ export class TextureResource extends SchemaResource {
         if (err) {
           reject(err);
         } else {
-          this._resource = res;
+          this._resource = res.asset;
           resolve(this);
         }
       });

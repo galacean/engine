@@ -1,10 +1,9 @@
 import { NodeAbility, Node, AAnimation, AnimationClip, WrapMode } from "@alipay/o3";
 
 interface GLTFAsset {
-  assets: [{ nodes: [Node]; rootScene: { nodes: [Node] } }];
-  asset: {
-    animations: [AnimationClip];
-  };
+  nodes: [Node];
+  rootScene: { nodes: [Node] };
+  animations: [AnimationClip];
 }
 
 /**
@@ -18,7 +17,7 @@ export class GLTFModel extends NodeAbility {
   set asset(value: GLTFAsset) {
     (this.GLTFNode as any)._children = [];
     if (value !== null) {
-      value.assets[0].rootScene.nodes.forEach(node => {
+      value.rootScene.nodes.forEach(node => {
         this.GLTFNode.addChild(node.clone());
       });
     }
@@ -30,15 +29,9 @@ export class GLTFModel extends NodeAbility {
   }
 
   set isAnimate(value: boolean) {
-    if (
-      this._asset &&
-      this._asset.asset &&
-      this._asset.asset.animations &&
-      this._asset.asset.animations.length &&
-      value
-    ) {
+    if (this._asset && this._asset && this._asset.animations && this._asset.animations.length && value) {
       if (!this._animator) {
-        const animations = this._asset.asset.animations;
+        const animations = this._asset.animations;
         // 加载动画
         this._animator = this.node.createAbility(AAnimation);
         animations.forEach((clip: AnimationClip) => {

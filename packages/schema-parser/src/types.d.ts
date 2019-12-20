@@ -92,7 +92,7 @@ interface AssetConfig {
   /**
    * asset props
    */
-  props: Object;
+  props: any;
 }
 
 interface Schema {

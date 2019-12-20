@@ -29,16 +29,8 @@ export class PBRMaterialResource extends SchemaResource {
     PBRMaterialResource.textureArr.map(attr => {
       const value = resource[attr];
       if (value && resourceManager.get(value.id)) {
-        resource[attr] = resourceManager.get(value.id).resource.asset;
+        resource[attr] = resourceManager.get(value.id).resource;
       }
     });
-  }
-
-  update(key: string, value: any) {
-    if (key.indexOf("Texture") > -1) {
-      this._resource[key] = value.asset;
-    } else {
-      this._resource[key] = value;
-    }
   }
 }
