@@ -45,8 +45,8 @@ export class GLTexture extends GLAsset {
    * */
   setPixelStore() {
     const gl = this._gl;
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, this._config.flipY);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, this._config.premultiplyAlpha);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +this._config.flipY);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +this._config.premultiplyAlpha);
   }
 
   /**

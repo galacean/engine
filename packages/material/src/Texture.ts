@@ -15,8 +15,8 @@ export class Texture extends AssetObject {
   public wrapT: TextureWrapMode;
   public filterMag: TextureFilter;
   public filterMin: TextureFilter;
-  public flipY: boolean;
-  public premultiplyAlpha: boolean;
+  private _flipY: boolean = false;
+  private _premultiplyAlpha: boolean = false;
 
   public config: TextureConfig;
 
@@ -35,19 +35,45 @@ export class Texture extends AssetObject {
     super(name);
     this.config = config;
 
-    this.setPixelStore(config.flipY, config.premultiplyAlpha);
-    this.setFilter(config.magFilter || TextureFilter.LINEAR, config.minFilter || TextureFilter.LINEAR_MIPMAP_LINEAR);
-    this.setWrapMode(config.wrapS || TextureWrapMode.REPEAT, config.wrapT || TextureWrapMode.REPEAT);
+    config = {
+      ...{
+        magFilter: TextureFilter.LINEAR,
+        minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
+        wrapS: TextureWrapMode.REPEAT,
+        wrapT: TextureWrapMode.REPEAT,
+        flipY: false,
+        premultiplyAlpha: false
+      },
+      ...config
+    };
+    this.flipY = config.flipY;
+    this.premultiplyAlpha = config.premultiplyAlpha;
+    this.setFilter(config.magFilter, config.minFilter);
+    this.setWrapMode(config.wrapS, config.wrapT);
   }
 
-  /**
-   * gl.pixelStorei 相关操作，updateTexture 前进行
-   * @param {boolean} flipY - 是否翻转图片上下，默认 false
-   * @param {boolean} premultiplyAlpha - 颜色通道是否预乘 alpha，默认 false
-   * */
-  setPixelStore(flipY = false, premultiplyAlpha = false) {
-    this.flipY = flipY;
-    this.premultiplyAlpha = premultiplyAlpha;
+  /** 是否上下翻转图片 */
+  get flipY() {
+    return this._flipY;
+  }
+
+  set flipY(value: boolean) {
+    if (value !== this._flipY) {
+      this.needUpdateWholeTexture = true;
+    }
+    this._flipY = value;
+  }
+
+  /** 颜色通道是否预乘 alpha */
+  get premultiplyAlpha() {
+    return this._premultiplyAlpha;
+  }
+
+  set premultiplyAlpha(value: boolean) {
+    if (value !== this._premultiplyAlpha) {
+      this.needUpdateWholeTexture = true;
+    }
+    this._premultiplyAlpha = value;
   }
 
   /**
