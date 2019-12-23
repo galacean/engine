@@ -41,7 +41,7 @@ const camera = cameraNode.createAbility(ADefaultCamera, {
   attributes: {antialias: true, enableCollect: false},
 });
 
-let controler = cameraNode.createAbility(AOrbitControls, {canvas: document.getElementById('o3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, {mainElement: document.getElementById('o3-demo')});
 
 //-- load resource
 const gltfRes = new Resource('box_gltf', {

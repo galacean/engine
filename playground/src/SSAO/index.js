@@ -60,7 +60,7 @@ var camera = cameraNode.createAbility(ADefaultCamera, {
   clearParam : [0.0,0.0,0.0,1.0]
 });
 cameraNode.lookAt(vec3.fromValues(0,0,0), (0,1,0));
-cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
+cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo') });
 
 let node = rootNode.createChild('gltf_node');
 
