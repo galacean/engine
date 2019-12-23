@@ -1,5 +1,4 @@
 import { SchemaResource } from "./SchemaResource";
-import { ResourceManager } from "../ResourceManager";
 import * as o3 from "@alipay/o3";
 
 export class TextureResource extends SchemaResource {

@@ -1,5 +1,5 @@
 import { SchemaResource } from "./SchemaResource";
-import * as o3 from "@alipay/o3-plus";
+import * as o3 from "@alipay/o3";
 
 export class ScriptResource extends SchemaResource {
   load(resourceLoader: o3.ResourceLoader): Promise<ScriptResource> {

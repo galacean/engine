@@ -1,6 +1,4 @@
-import { Oasis } from "../Oasis";
-
-import { ResourceLoader } from "@alipay/o3-loader";
+import { ResourceLoader } from "@alipay/o3";
 import { ResourceManager } from "../ResourceManager";
 
 export abstract class SchemaResource {

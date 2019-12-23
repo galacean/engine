@@ -93,6 +93,8 @@ interface AssetConfig {
    * asset props
    */
   props: any;
+
+  url: string;
 }
 
 interface Schema {
