@@ -38,6 +38,8 @@ export interface PluginHook {
   nodeAdded?(node: o3.Node): any;
   abilityAdded?(ability: o3.NodeAbility): any;
   schemaParsed?(): any;
+  abilityDeleted?(id: string): any;
+  beforeNodeDeleted?(config: any): any;
   // todo type
   resourceAdded?(resource: any): any;
 }
@@ -47,7 +49,7 @@ export function pluginHook(options: Partial<{ before: keyof PluginHook; after: k
     const method = descriptor.value;
 
     descriptor.value = async function(...args: any[]) {
-      options.before && this.oasis.pluginManager[options.before](...args);
+      options.before && this.oasis.pluginManager.delegateMethod(options.before, ...args);
       const returnObj = await method.apply(this, arguments);
       options.after && this.oasis.pluginManager.delegateMethod(options.after, returnObj);
       return returnObj;

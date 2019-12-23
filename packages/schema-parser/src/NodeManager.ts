@@ -26,6 +26,12 @@ export class NodeManager {
     return this.nodeMap[id];
   }
 
+  @pluginHook({ before: "beforeNodeDeleted" })
+  public delete(id: string) {
+    this.nodeMap[id].destroy();
+    delete this.nodeMap[id];
+  }
+
   /**
    * 创建节点
    * @param nodeConfig
@@ -56,10 +62,5 @@ export class NodeManager {
     const children = parent.children;
     const currentIndex = children.length - 1;
     switchElementsIndex(children, currentIndex, index);
-  }
-
-  public delete(id: string) {
-    this.nodeMap[id].destroy();
-    delete this.nodeMap[id];
   }
 }

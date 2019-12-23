@@ -73,7 +73,9 @@ export class Oasis extends o3.EventDispatcher {
    */
   private parseNodeAbilities(): void {
     const { abilities } = this.schema;
-    Object.values(abilities).forEach(this.abilityManager.add);
+    Object.keys(abilities)
+      .map(id => ({ id, ...abilities[id] }))
+      .forEach(this.abilityManager.add);
   }
 
   /**

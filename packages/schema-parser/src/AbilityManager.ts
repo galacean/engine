@@ -32,10 +32,12 @@ export class AbilityManager {
     return this.abilityMap[id];
   }
 
+  @pluginHook({ after: "abilityDeleted" })
   public delete(id: string) {
     const ability = this.abilityMap[id];
     ability.destroy();
     delete this.abilityMap[id];
+    return id;
   }
 
   private getConstructor(type: string) {

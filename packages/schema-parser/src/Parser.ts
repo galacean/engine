@@ -16,7 +16,15 @@ export class Parser {
   resetPlugins() {
     this.pluginManager.reset();
   }
+
+  private constructor() {}
+
+  static create(): Parser {
+    // todo delete
+    const parser = new Parser();
+    parser.register(defaultCameraPlugin);
+    return parser;
+  }
 }
 
-export const parser = new Parser();
-parser.register(defaultCameraPlugin);
+export const parser = Parser.create();
