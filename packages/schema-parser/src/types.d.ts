@@ -1,3 +1,5 @@
+import { SchemaResource } from "./resouces";
+
 interface NodeConfig {
   /**
    * 节点 id
@@ -80,7 +82,7 @@ interface AssetConfig {
   /**
    * asset id
    */
-  id: string;
+  id?: string;
   /**
    * asset name
    */
@@ -93,6 +95,10 @@ interface AssetConfig {
    * asset props
    */
   props: any;
+  /**
+   * asset url
+   */
+  url?: string;
 }
 
 interface Schema {
@@ -118,4 +124,14 @@ interface Options {
   onProgress?: () => {};
   local?: boolean; // 是否本地开发环境
   rhiAttr: WebGLContextAttributes & { enableCollect?: boolean };
+}
+
+interface LoadAttachedResourceResult {
+  resources: Array<SchemaResource>;
+  structure: {
+    index: number;
+    props?: {
+      [propName: string]: LoadAttachedResourceResult | Array<LoadAttachedResourceResult>;
+    };
+  };
 }

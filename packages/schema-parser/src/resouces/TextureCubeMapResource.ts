@@ -12,20 +12,19 @@ const imageOrderMap = {
 };
 
 export class TextureCubeMapResource extends SchemaResource {
-  load(): Promise<TextureCubeMapResource> {
-    const assetConfig = this.assetConfig;
+  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<TextureCubeMapResource> {
     return new Promise((resolve, reject) => {
       this._resource = new o3.TextureCubeMap(assetConfig.name, [], assetConfig.props);
       resolve(this);
     });
   }
 
-  bind(resourceManager: ResourceManager) {
+  bind() {
     const cubeMap = this._resource;
     const textureAssets = this.assetConfig.props.textures;
     const images = [];
     Object.keys(textureAssets).forEach(key => {
-      images[imageOrderMap[key]] = resourceManager.get(textureAssets[key].id).resource.image;
+      images[imageOrderMap[key]] = this.resourceManager.get(textureAssets[key].id).resource.image;
     });
     cubeMap.images = [images];
   }

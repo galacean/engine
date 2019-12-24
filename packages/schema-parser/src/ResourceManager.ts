@@ -9,6 +9,7 @@ import {
   TextureCubeMapResource
 } from "./resouces";
 import * as o3 from "@alipay/o3";
+import { AssetConfig } from "./types";
 
 const RESOURCE_CLASS = {
   script: ScriptResource,
@@ -20,27 +21,65 @@ const RESOURCE_CLASS = {
   BlinnPhongMaterial: BlinnPhongMaterialResource
 };
 
+const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
+for (const key in RESOURCE_CLASS) {
+  if (RESOURCE_CLASS.hasOwnProperty(key)) {
+    const element = RESOURCE_CLASS[key];
+    RESOURCE_TYPE.set(element, key);
+  }
+}
+
 const resourceFactory = {
-  createResource(assetConfig: AssetConfig): SchemaResource {
-    const type = assetConfig.type;
+  createResource(resourceManager: ResourceManager, type: string): SchemaResource {
     const ResourceConstructor = RESOURCE_CLASS[type];
-    return new ResourceConstructor(assetConfig);
+    return new ResourceConstructor(resourceManager);
   }
 };
 
 export class ResourceManager {
   private resourceMap: { [id: string]: SchemaResource } = {};
   private resourceLoader: o3.ResourceLoader = new o3.ResourceLoader(this.oasis.engine, null);
+  private maxId = 0;
 
   constructor(private oasis: Oasis) {}
 
+  // 从schema中加载资源
   load(asset: AssetConfig): Promise<SchemaResource> {
-    const resource = resourceFactory.createResource(asset);
-    const loadPromise = resource.load(this.resourceLoader);
+    const resource = resourceFactory.createResource(this, asset.type);
+    const loadPromise = resource.load(this.resourceLoader, asset);
+    this.maxId = Math.max(+asset.id, this.maxId);
     loadPromise.then(() => {
       this.resourceMap[asset.id] = resource;
     });
     return loadPromise;
+  }
+
+  // 新增资源
+  add(asset: AssetConfig): Promise<any> {
+    const resource = resourceFactory.createResource(this, asset.type);
+    return new Promise(resolve => {
+      resource.loadWithAttachedResources(this.resourceLoader, asset).then(result => {
+        resolve(this.getAddResourceResult(result.resources, result.structure));
+      });
+    });
+  }
+
+  remove(id: string) {
+    delete this.resourceMap[id];
+  }
+
+  update(id: string, key: string, value: any) {
+    const resource = this.get(id);
+    if (resource) {
+      resource.update(key, value);
+    }
+  }
+
+  updateMeta(id: string, key: string, value: any) {
+    const resource = this.get(id);
+    if (resource) {
+      resource.updateMeta(key, value);
+    }
   }
 
   get(id: string): SchemaResource {
@@ -49,6 +88,28 @@ export class ResourceManager {
 
   getAll(): Array<SchemaResource> {
     return Object.values(this.resourceMap);
+  }
+
+  private getAddResourceResult(resources, structure) {
+    const addResourceResult = {};
+    const resource = resources[structure.index];
+    this.resourceMap[++this.maxId] = resource;
+    addResourceResult.id = this.maxId;
+    addResourceResult.type = RESOURCE_TYPE.get(resource.constructor);
+    addResourceResult.props = {};
+    for (const key in structure.props) {
+      if (structure.props.hasOwnProperty(key)) {
+        const element = structure.props[key];
+        if (element) {
+          if (Array.isArray(element)) {
+            addResourceResult.props[key] = element.map(child => this.getAddResourceResult(resources, child));
+          } else {
+            addResourceResult.props[key] = this.getAddResourceResult(resources, element);
+          }
+        }
+      }
+    }
+    return addResourceResult;
   }
 }
 
