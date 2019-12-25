@@ -2,7 +2,7 @@ import { Oasis } from "../Oasis";
 
 import { ResourceLoader } from "@alipay/o3-loader";
 import { ResourceManager } from "../ResourceManager";
-import { AssetConfig } from "../types";
+import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
 interface IResourceMeta {
   name?: string;
@@ -32,9 +32,20 @@ export abstract class SchemaResource {
   }
 
   abstract load(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<SchemaResource>;
-  loadWithAttachedResources(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<any> {
+  loadWithAttachedResources(
+    resourceLoader: ResourceLoader,
+    assetConfig: AssetConfig
+  ): Promise<LoadAttachedResourceResult> {
     return new Promise(resolve => {
-      resolve(this);
+      this.load(resourceLoader, assetConfig).then(() => {
+        resolve({
+          resources: [this],
+          structure: {
+            index: 0,
+            props: {}
+          }
+        });
+      });
     });
   }
 

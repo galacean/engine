@@ -16,7 +16,7 @@ const RESOURCE_CLASS = {
   gltf: GLTFResource,
   texture: TextureResource,
   // 'image': TextureResource,
-  cubemap: TextureCubeMapResource,
+  cubeTexture: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource
 };

@@ -13,23 +13,6 @@ export class ScriptResource extends SchemaResource {
     });
   }
 
-  loadWithAttachedResources(
-    resourceLoader: ResourceLoader,
-    assetConfig: AssetConfig
-  ): Promise<LoadAttachedResourceResult> {
-    return new Promise(resolve => {
-      this.load(resourceLoader, assetConfig).then(() => {
-        resolve({
-          resources: [this],
-          structure: {
-            index: 0,
-            props: {}
-          }
-        });
-      });
-    });
-  }
-
   setMeta() {
     if (this.resource) {
       this._meta.name = this.resource.name;
