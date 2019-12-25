@@ -55,7 +55,7 @@ export class Oasis extends o3.EventDispatcher {
    */
   private bindResouces() {
     this.resourceManager.getAll().forEach(resource => {
-      resource.bind(this.resourceManager);
+      resource.bind();
     });
   }
 
