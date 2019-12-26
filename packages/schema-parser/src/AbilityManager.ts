@@ -49,7 +49,7 @@ export class AbilityManager {
   private getConstructor(type: string) {
     const splits = type.split(".");
     // script
-    if (splits.length === 2) {
+    if (splits[0] === "script") {
       return scriptAbility[splits[1]];
     }
     const constructor = o3[type] || glue[type];
