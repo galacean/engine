@@ -46,6 +46,7 @@ export class GLTFResource extends SchemaResource {
             const material = meshes[i].primitives[j].material;
             if (!material) return;
             const materialResource = new PBRMaterialResource(this.resourceManager);
+            this._attachedResources.push(materialResource);
             loadPromises.push(
               materialResource.loadWithAttachedResources(resourceLoader, {
                 type: "PBRMaterial",
@@ -59,13 +60,15 @@ export class GLTFResource extends SchemaResource {
           const newMaterial = result.structure.props.newMaterial;
           res.forEach(mat => {
             const matStructure = mat.structure;
-            result.resources.push(mat.resources[matStructure.index]);
+            const matResource = mat.resources[matStructure.index];
+            result.resources.push(matResource);
             matStructure.index = result.resources.length - 1;
             for (const key in matStructure.props) {
               if (matStructure.props.hasOwnProperty(key)) {
-                const texture = matStructure.props[key];
-                result.resources.push(mat.resources[texture.index]);
-                texture.index = result.resources.length - 1;
+                const textureStructure = matStructure.props[key];
+                const textureResource = mat.resources[textureStructure.index];
+                result.resources.push(textureResource);
+                textureStructure.index = result.resources.length - 1;
               }
             }
             newMaterial.push(matStructure);
@@ -102,12 +105,19 @@ export class GLTFResource extends SchemaResource {
     const gltf = this._resource;
     const meshes = gltf.meshes;
     for (let i = 0; i < materials.length; i++) {
-      gltf.materials[i] = this.resourceManager.get(materials[i].id).resource;
+      const matResource = this.resourceManager.get(materials[i].id);
+      if (matResource) {
+        gltf.materials[i] = this.resourceManager.get(materials[i].id).resource;
+      }
     }
     let index = 0;
     for (let i = 0; i < meshes.length; i++) {
       for (let j = 0; j < meshes[i].primitives.length; j++) {
-        meshes[i].primitives[j].material = this.resourceManager.get(materials[index].id).resource;
+        const attachedResource = this.resourceManager.get(materials[index].id);
+        if (attachedResource) {
+          this._attachedResources.push(attachedResource);
+          meshes[i].primitives[j].material = attachedResource.resource;
+        }
         index++;
       }
     }

@@ -72,6 +72,7 @@ export class PBRMaterialResource extends SchemaResource {
         PBRMaterialResource.textureArr.forEach(attr => {
           if (!(material[attr] instanceof o3.Texture)) return;
           const textureResource = new TextureResource(this.resourceManager, material[attr]);
+          this.attachedResources.push(textureResource);
           result.resources.push(textureResource);
           result.structure.props[attr] = {
             index: result.resources.length - 1
@@ -102,7 +103,9 @@ export class PBRMaterialResource extends SchemaResource {
     PBRMaterialResource.textureArr.forEach(attr => {
       const value = resource[attr];
       if (value && this.resourceManager.get(value.id)) {
-        resource[attr] = this.resourceManager.get(value.id).resource;
+        const attachedRresource = this.resourceManager.get(value.id);
+        resource[attr] = attachedRresource.resource;
+        this._attachedResources.push(attachedRresource);
       }
     });
   }

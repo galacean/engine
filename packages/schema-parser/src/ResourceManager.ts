@@ -38,6 +38,7 @@ const resourceFactory = {
 
 export class ResourceManager {
   private resourceMap: { [id: string]: SchemaResource } = {};
+  private resourceIdMap: WeakMap<SchemaResource, string> = new WeakMap();
   private resourceLoader: o3.ResourceLoader = new o3.ResourceLoader(this.oasis.engine, null);
   private maxId = 0;
 
@@ -50,6 +51,7 @@ export class ResourceManager {
     this.maxId = Math.max(+asset.id, this.maxId);
     loadPromise.then(() => {
       this.resourceMap[asset.id] = resource;
+      this.resourceIdMap.set(resource, asset.id);
     });
     return loadPromise;
   }
@@ -64,8 +66,24 @@ export class ResourceManager {
     });
   }
 
-  remove(id: string) {
+  remove(id: string): Array<string> {
+    const resource = this.resourceMap[id];
+    const result = [id];
+    if (resource) {
+      const attached = resource.attachedResources;
+      for (let index = 0; index < attached.length; index++) {
+        const attachedResource = attached[index];
+        const attachedResourceId = this.resourceIdMap.get(attachedResource);
+        if (attachedResourceId) {
+          const attachedResourceRemoveResult = this.remove(attachedResourceId);
+          result.push(...attachedResourceRemoveResult);
+        }
+      }
+    } else {
+      return [];
+    }
     delete this.resourceMap[id];
+    return result;
   }
 
   update(id: string, key: string, value: any) {
@@ -93,7 +111,10 @@ export class ResourceManager {
   private getAddResourceResult(resources, structure) {
     const addResourceResult: any = {};
     const resource = resources[structure.index];
-    this.resourceMap[++this.maxId] = resource;
+    const id = `${++this.maxId}`;
+    this.resourceMap[id] = resource;
+    this.resourceIdMap.set(resource, id);
+
     addResourceResult.id = this.maxId;
     addResourceResult.type = RESOURCE_TYPE.get(resource.constructor);
     addResourceResult.props = {};

@@ -128,10 +128,11 @@ export interface Options {
 
 export interface LoadAttachedResourceResult {
   resources: Array<SchemaResource>;
-  structure: {
-    index: number;
-    props?: {
-      [propName: string]: LoadAttachedResourceResult | Array<LoadAttachedResourceResult>;
-    };
+  structure: LoadAttachedResourceResultStructure;
+}
+interface LoadAttachedResourceResultStructure {
+  index: number;
+  props?: {
+    [propName: string]: LoadAttachedResourceResultStructure | Array<LoadAttachedResourceResultStructure>;
   };
 }

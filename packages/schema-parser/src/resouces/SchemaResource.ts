@@ -14,6 +14,7 @@ function isAsset(config: any): boolean {
 
 export abstract class SchemaResource {
   protected _meta: IResourceMeta = {};
+  protected _attachedResources: Array<SchemaResource> = [];
 
   get resource() {
     return this._resource;
@@ -21,6 +22,10 @@ export abstract class SchemaResource {
 
   get meta() {
     return this._meta;
+  }
+
+  get attachedResources() {
+    return this._attachedResources;
   }
 
   protected setMeta() {}
