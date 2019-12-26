@@ -27,6 +27,10 @@ export class NodeManager {
     return this.nodeMap[id];
   }
 
+  public reset() {
+    this.nodeMap = {};
+  }
+
   @pluginHook({ before: "beforeNodeDeleted" })
   public delete(id: string) {
     this.nodeMap[id].destroy();

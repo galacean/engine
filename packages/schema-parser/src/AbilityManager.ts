@@ -4,6 +4,7 @@ import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { AbilityConfig, Props } from "./types";
+import { scriptAbility } from "./resouces";
 
 export class AbilityManager {
   private abilityMap: { [id: string]: o3.NodeAbility } = {};
@@ -49,7 +50,7 @@ export class AbilityManager {
     const splits = type.split(".");
     // script
     if (splits.length === 2) {
-      return o3.NodeAbility;
+      return scriptAbility[splits[1]];
     }
     const constructor = o3[type] || glue[type];
     if (!constructor) {

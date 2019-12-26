@@ -79,8 +79,6 @@ export class ResourceManager {
           result.push(...attachedResourceRemoveResult);
         }
       }
-    } else {
-      return [];
     }
     delete this.resourceMap[id];
     return result;
@@ -131,5 +129,9 @@ export class ResourceManager {
       }
     }
     return addResourceResult;
+  }
+
+  get isLocal(): boolean {
+    return this.oasis.options.local;
   }
 }

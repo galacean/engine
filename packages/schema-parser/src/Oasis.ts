@@ -31,6 +31,12 @@ export class Oasis extends o3.EventDispatcher {
     return this._options;
   }
 
+  public updateConfig(config: Schema): void {
+    this.schema = config;
+
+    this.init();
+  }
+
   @pluginHook({ after: "schemaParsed" })
   private init(): Promise<any> {
     this.pluginManager.boot(this);
