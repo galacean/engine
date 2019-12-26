@@ -1,1 +1,1 @@
-export { parser } from "./Parser";
+export { parser, Parser } from "./Parser";

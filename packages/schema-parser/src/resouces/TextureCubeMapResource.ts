@@ -1,8 +1,6 @@
 import { SchemaResource } from "./SchemaResource";
-import { ResourceManager } from "../ResourceManager";
 import * as o3 from "@alipay/o3";
-import { AssetConfig, LoadAttachedResourceResult } from "../types";
-import { ResourceLoader } from "@alipay/o3";
+import { AssetConfig } from "../types";
 
 const imageOrderMap = {
   px: 0,

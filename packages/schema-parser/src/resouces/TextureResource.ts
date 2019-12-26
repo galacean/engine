@@ -1,7 +1,6 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
-import { AssetConfig, LoadAttachedResourceResult } from "../types";
-import { ResourceLoader } from "@alipay/o3";
+import { AssetConfig } from "../types";
 
 export class TextureResource extends SchemaResource {
   load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<TextureResource> {

@@ -1,7 +1,6 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
-import { ResourceManager } from "../ResourceManager";
-import { ResourceLoader } from "@alipay/o3-loader";
+import { ResourceLoader } from "@alipay/o3";
 
 import { TextureResource } from "./TextureResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
@@ -61,7 +60,7 @@ export class PBRMaterialResource extends SchemaResource {
   ): Promise<LoadAttachedResourceResult> {
     return new Promise(resolve => {
       this.load(resourceLoader, assetConfig).then(() => {
-        const result = {
+        const result: any = {
           resources: [this],
           structure: {
             index: 0,

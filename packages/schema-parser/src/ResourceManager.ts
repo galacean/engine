@@ -91,7 +91,7 @@ export class ResourceManager {
   }
 
   private getAddResourceResult(resources, structure) {
-    const addResourceResult = {};
+    const addResourceResult: any = {};
     const resource = resources[structure.index];
     this.resourceMap[++this.maxId] = resource;
     addResourceResult.id = this.maxId;
@@ -112,5 +112,3 @@ export class ResourceManager {
     return addResourceResult;
   }
 }
-
-const a = 1;

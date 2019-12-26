@@ -1,6 +1,6 @@
 import { SchemaResource } from "./resouces";
 
-interface NodeConfig {
+export interface NodeConfig {
   /**
    * 节点 id
    */
@@ -43,18 +43,18 @@ interface NodeConfig {
   isActive?: boolean;
 }
 
-interface Props {
+export interface Props {
   [key: string]: any | AssetProp;
 }
 
-interface AssetProp {
+export interface AssetProp {
   type: "asset";
   /**
    * asset id
    */
   id: string;
 }
-interface AbilityConfig {
+export interface AbilityConfig {
   /**
    * ability id
    */
@@ -78,7 +78,7 @@ interface AbilityConfig {
 }
 
 // todo
-interface AssetConfig {
+export interface AssetConfig {
   /**
    * asset id
    */
@@ -101,7 +101,7 @@ interface AssetConfig {
   url?: string;
 }
 
-interface Schema {
+export interface Schema {
   nodes: {
     [nodeId: string]: NodeConfig;
   };
@@ -113,11 +113,11 @@ interface Schema {
   };
 }
 
-interface ClassType<T> extends Function {
+export interface ClassType<T> extends Function {
   new (...args: any[]): T;
 }
 
-interface Options {
+export interface Options {
   canvas?: HTMLCanvasElement;
   config?: Schema;
   autoPlay?: boolean;
@@ -126,7 +126,7 @@ interface Options {
   rhiAttr: WebGLContextAttributes & { enableCollect?: boolean };
 }
 
-interface LoadAttachedResourceResult {
+export interface LoadAttachedResourceResult {
   resources: Array<SchemaResource>;
   structure: {
     index: number;

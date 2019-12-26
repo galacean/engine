@@ -3,6 +3,7 @@ import { AbilityManager } from "./AbilityManager";
 import { ResourceManager } from "./ResourceManager";
 import { PluginManager, pluginHook } from "./plugins/PluginManager";
 import * as o3 from "@alipay/o3";
+import { Schema, Options } from "./types";
 
 export class Oasis extends o3.EventDispatcher {
   public readonly engine = new o3.Engine();
@@ -11,6 +12,7 @@ export class Oasis extends o3.EventDispatcher {
   public readonly resourceManager: ResourceManager = new ResourceManager(this);
   public _canvas: HTMLCanvasElement;
   private schema: Schema;
+  // hook 重点
   private oasis = this;
 
   private constructor(private _options: Readonly<Options>, public readonly pluginManager: PluginManager) {

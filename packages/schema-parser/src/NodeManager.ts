@@ -2,6 +2,7 @@ import * as o3 from "@alipay/o3";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
+import { NodeConfig } from "./types";
 
 export class NodeManager {
   private nodeMap: { [id: string]: o3.Node } = {};
