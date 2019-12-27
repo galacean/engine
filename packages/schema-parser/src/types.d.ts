@@ -99,6 +99,10 @@ export interface AssetConfig {
    * asset url
    */
   url?: string;
+  /**
+   * asset source
+   */
+  source?: string;
 }
 
 export interface Schema {

@@ -6,6 +6,7 @@ interface IResourceMeta {
   name?: string;
   url?: string;
   size?: number;
+  source?: string;
 }
 
 function isAsset(config: any): boolean {

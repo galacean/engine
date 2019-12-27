@@ -14,9 +14,8 @@ export class GLTFResource extends SchemaResource {
           reject(err);
         } else {
           (res.asset as any).newMaterial = (assetConfig.props as any).newMaterial;
-          (res.asset as any).name = assetConfig.name;
           this._resource = res.asset;
-          this.setMeta();
+          this.setMeta(assetConfig);
           resolve(this);
         }
       });
@@ -79,9 +78,9 @@ export class GLTFResource extends SchemaResource {
     });
   }
 
-  setMeta() {
-    if (this.resource) {
-      this.meta.name = this.resource.name;
+  setMeta(assetConfig?: AssetConfig) {
+    if (assetConfig) {
+      this.meta.name = assetConfig.name;
     }
   }
 

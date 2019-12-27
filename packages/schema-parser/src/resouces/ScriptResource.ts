@@ -31,19 +31,24 @@ export class ScriptResource extends SchemaResource {
     return new Promise(resolve => {
       if (!this.resourceManager.isLocal) {
         const scriptDom = document.createElement("script");
-        this.setMeta();
+        this._resource = scriptDom;
+        this.setMeta(assetConfig);
         scriptDom.onload = () => {
-          document.body.appendChild(scriptDom);
           resolve(this);
         };
         scriptDom.src = assetConfig.url;
+        document.body.appendChild(scriptDom);
+      } else {
+        resolve(this);
       }
     });
   }
 
-  setMeta() {
-    if (this.resource) {
-      this._meta.name = this.resource.name;
+  setMeta(assetConfig?: AssetConfig) {
+    if (assetConfig) {
+      this._meta.name = assetConfig.name;
+      this._meta.url = assetConfig.url;
+      this._meta.source = assetConfig.source;
     }
   }
 }
