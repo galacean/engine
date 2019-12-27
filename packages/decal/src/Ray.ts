@@ -29,14 +29,10 @@ export class Ray {
     return target;
   }
 
-  intersectTriangle(a, b, c, backfaceCulling, target) {
+  intersectTriangle(_a, _b, _c, backfaceCulling, target) {
     // Compute the offset origin, edges, and normal.
     // from http://www.geometrictools.com/GTEngine/Include/Mathematics/GteIntrRay3Triangle3.h
   
-    const _a = a;
-    const _b = b;
-    const _c = c;
-
     const _edge1 = vec3.subtract( edge1, _b, _a );
     const _edge2 = vec3.subtract( edge2, _c, _a );
     const _normal = vec3.cross( normal, _edge1, _edge2 );
@@ -63,7 +59,7 @@ export class Ray {
   
     const _diff = vec3.subtract(diff, _origin, _a);
     const cde = vec3.cross(temp1, _diff, _edge2);
-    const DdQxE2 = sign * vec3.dot(this.direction, cde);
+    const DdQxE2 = sign * vec3.dot(_direction, cde);
   
     // b1 < 0, no intersection
     if ( DdQxE2 < 0 ) {

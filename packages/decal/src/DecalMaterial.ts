@@ -3,13 +3,19 @@ import { Material, RenderTechnique } from '@alipay/o3-material';
 
 const VERT_SHADER = `
 uniform mat4 matModelViewProjection;
+uniform float u_angle;
 
 attribute vec3 a_position;
 attribute vec2 a_uv;
 varying vec2 v_uv;
 
 void main() {
-  v_uv = a_uv;
+  float angle = radians(u_angle);
+  float sin_factor = sin(angle);
+  float cos_factor = cos(angle);
+  v_uv = vec2(a_uv.x - 0.5, a_uv.y - 0.5) * mat2(cos_factor, sin_factor, -sin_factor, cos_factor);
+  v_uv.x += 0.5;
+  v_uv.y += 0.5;
   gl_Position = matModelViewProjection * vec4(a_position, 1.0 );
 }
 `;
@@ -29,7 +35,9 @@ void main()
 }`;
 
 export class DecalMaterial extends Material {
-
+  private _technique;
+  private renderType;
+  private name;
   /**
    * 生成内部所使用的 Technique 对象
    * @private
@@ -120,6 +128,14 @@ export class DecalMaterial extends Material {
 
   }
 
+  set rotation(v) {
+    this.setValue('u_angle', v);
+  }
+
+  get rotation() {
+    return this.getValue('u_angle');
+  }
+ 
   /**
    * 添加 uniform 定义
    * @private
@@ -141,7 +157,11 @@ export class DecalMaterial extends Material {
         name: 'doubleSided',
         paramName: 'doubleSided',
         type: DataType.BOOL,
-      }
+      },
+      u_angle: {
+        name: 'u_angle',
+        type: DataType.FLOAT,
+      },
     };
     return uniforms;
   }

@@ -15,35 +15,37 @@ export function raycast(meshRenderer, ray) {
   const invModelMatrix = meshRenderer.invModelMatrix;
   const localRay = new Ray(undefined, undefined);
   localRay.copy(ray).applyMatrix4(invModelMatrix);
-  let primitive;
-  if (meshRenderer.mesh) {
-    primitive = meshRenderer.mesh.primitives[0];
-  }
+  let primitives;
   if (meshRenderer.geometry) {
-    primitive = meshRenderer.geometry.primitive;
+    console.error('模型必须是mesh');
   }
-  const positionAttributeIndex = primitive.vertexAttributes.POSITION.vertexBufferIndex;
-  const positionAttribute = primitive.vertexBuffers[positionAttributeIndex];
-  const indexAttribute = primitive.indexBuffer;
-  const count = primitive.vertexCount;
+  if (meshRenderer.mesh) {
+    primitives = meshRenderer.mesh.primitives;
+  }
   let intersection;
-  for (let i = 0; i < indexAttribute.length; i += 3) {
-    const a = getXFromIndex(indexAttribute, i);
-    const b = getXFromIndex(indexAttribute, i + 1);
-    const c = getXFromIndex(indexAttribute, i + 2);
-    intersection = checkBufferGeometryIntersection(
-      meshRenderer.node, // 父节点
-      ray,
-      localRay,
-      positionAttribute,
-      a,
-      b,
-      c,
-    );
-    if (intersection) {
-      intersection.faceIndex = Math.floor( i / 3 );
-      intersects.push(intersection);
-
+  for (let i = 0; i < primitives.length; i += 1) {
+    const primitive = primitives[i];
+    const positionAttributeIndex = primitive.vertexAttributes.POSITION.vertexBufferIndex;
+    const positionAttribute = primitive.vertexBuffers[positionAttributeIndex];
+    const indexAttribute = primitive.indexBuffer;
+    for (let i = 0; i < indexAttribute.length; i += 3) {
+      const a = getXFromIndex(indexAttribute, i);
+      const b = getXFromIndex(indexAttribute, i + 1);
+      const c = getXFromIndex(indexAttribute, i + 2);
+      intersection = checkBufferGeometryIntersection(
+        meshRenderer.node, // 父节点
+        ray,
+        localRay,
+        positionAttribute,
+        a,
+        b,
+        c,
+        primitive,
+      );
+      if (intersection) {
+        intersection.faceIndex = Math.floor( i / 3 );
+        intersects.push(intersection);
+      }
     }
   }
   return intersects;
@@ -57,6 +59,7 @@ function checkBufferGeometryIntersection(
   a, 
   b, 
   c,
+  primitive,
 ) {
   const vA = fromBufferAttribute(positionAttribute, a);
 	const vB = fromBufferAttribute(positionAttribute, b);
@@ -69,6 +72,7 @@ function checkBufferGeometryIntersection(
     vB, 
     vC, 
     _intersectPoint,
+    primitive,
   );
 
   if (intersection) {
@@ -87,6 +91,7 @@ function checkIntersection(
   pB,
   pC, 
   point,
+  primitive,
 ) {
   const intersect = localRay.intersectTriangle(
     pA, pB, pC, false, point,
@@ -98,11 +103,13 @@ function checkIntersection(
   const pointCopy = vec3.copy(_intersectPointWorld, point);
   const intersectPointWorld = vec3.transformMat4(temp, pointCopy, node.getModelMatrix());
   const distance = distanceTo(ray.origin, intersectPointWorld);
-  
+
   return {
     node,
     distance,
     point: intersectPointWorld.slice(0),
     normal: null,
+    materialName: primitive.material.name,
+    primitive,
   }
 }
