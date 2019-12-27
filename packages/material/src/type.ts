@@ -15,6 +15,15 @@ export type TextureConfig = {
   uvCenter?: number[];
   [key: string]: any;
 };
+
+export type RenderTargetConfig = {
+  width?: number;
+  height?: number;
+  clearColor?;
+  enableDepthTexture?: boolean;
+  isCube?: boolean;
+};
+
 export type React = { x: number; y: number; width: number; height: number };
 
 export type TechniqueStates = {
