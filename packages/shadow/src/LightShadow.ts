@@ -1,14 +1,13 @@
-import { DataType } from '@alipay/o3-base';
-import { RenderTarget } from '@alipay/o3-material';
-import { mat4, MathUtil } from '@alipay/o3-math';
-import { ADirectLight, APointLight, ASpotLight } from '@alipay/o3-lighting';
-import { vec2 } from '@alipay/o3-math';
+import { DataType } from "@alipay/o3-base";
+import { RenderTarget } from "@alipay/o3-material";
+import { mat4, MathUtil } from "@alipay/o3-math";
+import { ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
+import { vec2 } from "@alipay/o3-math";
 /**
  * 阴影的管理类
  * @private
  */
 export class LightShadow {
-
   private _mapSize;
   private _renderTarget;
   public bias;
@@ -16,11 +15,10 @@ export class LightShadow {
   public radius;
   public projectionMatrix;
 
-  constructor( props = { width: 512, height: 512 } ) {
+  constructor(props = { width: 512, height: 512 }) {
+    this._mapSize = vec2.fromValues(props.width, props.height);
 
-    this._mapSize = vec2.fromValues( props.width, props.height );
-
-    this._renderTarget = new RenderTarget( 'shadowMap', { ...props, clearColor: [ 1.0, 1.0, 1.0, 1.0 ] } );
+    this._renderTarget = new RenderTarget("shadowMap", { ...props, clearColor: [1.0, 1.0, 1.0, 1.0] });
 
     /**
      * （偏斜）
@@ -45,7 +43,6 @@ export class LightShadow {
      * @member {mat4}
      */
     this.projectionMatrix = mat4.create();
-
   }
 
   /**
@@ -54,9 +51,7 @@ export class LightShadow {
    * @readonly
    */
   get renderTarget() {
-
     return this._renderTarget;
-
   }
 
   /**
@@ -65,9 +60,7 @@ export class LightShadow {
    * @readonly
    */
   get map() {
-
     return this._renderTarget.texture;
-
   }
 
   /**
@@ -76,45 +69,35 @@ export class LightShadow {
    * @readonly
    */
   get mapSize() {
-
     return this._mapSize;
-
   }
 
   /**
    * 初始化光照的投影矩阵
    * @param {ALight} light
    */
-  initShadowProjectionMatrix( light ) {
-
+  initShadowProjectionMatrix(light) {
     /**
      * 方向光初始化投影矩阵，默认覆盖区域 left: -5, right: 5, bottom: -5, up: 5, near: 0.5, far: 50
      */
-    if ( light instanceof ADirectLight ) {
-
-      mat4.ortho( this.projectionMatrix, -5, 5, -5, 5, 0.1, 50 );
-
+    if (light instanceof ADirectLight) {
+      mat4.ortho(this.projectionMatrix, -5, 5, -5, 5, 0.1, 50);
     }
 
     /**
      * 点光源初始化投影矩阵，默认配置：fov: 50, aspect: 1, near: 0.5, far: 50
      */
-    if ( light instanceof APointLight ) {
-
-      mat4.perspective( this.projectionMatrix, MathUtil.toRadian( 50 ), 1, 0.5, 50 );
-
+    if (light instanceof APointLight) {
+      mat4.perspective(this.projectionMatrix, MathUtil.toRadian(50), 1, 0.5, 50);
     }
 
     /**
      * 聚光灯初始化投影矩阵，默认配置：fov: this.angle * 2 * Math.sqrt(2), aspect: 1, near: 0.1, far: this.distance + 5
      */
-    if ( light instanceof ASpotLight ) {
-
-      const fov = Math.min( Math.PI / 2, light.angle * 2 * Math.sqrt( 2 ) );
-      mat4.perspective( this.projectionMatrix, fov, 1, 0.1, light.distance + 5 );
-
+    if (light instanceof ASpotLight) {
+      const fov = Math.min(Math.PI / 2, light.angle * 2 * Math.sqrt(2));
+      mat4.perspective(this.projectionMatrix, fov, 1, 0.1, light.distance + 5);
     }
-
   }
 
   /**
@@ -122,15 +105,15 @@ export class LightShadow {
    * @param {number} width
    * @param {number} height
    */
-  setMapSize( width, height ) {
-
-    if ( MathUtil.isPowerOf2( width ) && MathUtil.isPowerOf2( height ) && ( this._mapSize.width !== width || this._mapSize.height !== height ) ) {
-
-      this._mapSize = vec2.fromValues( width, height );
-      this._renderTarget = new RenderTarget( 'shadowMap', { width, height, clearColor: [ 1.0, 1.0, 1.0, 1.0 ] } );
-
+  setMapSize(width, height) {
+    if (
+      MathUtil.isPowerOf2(width) &&
+      MathUtil.isPowerOf2(height) &&
+      (this._mapSize.width !== width || this._mapSize.height !== height)
+    ) {
+      this._mapSize = vec2.fromValues(width, height);
+      this._renderTarget = new RenderTarget("shadowMap", { width, height, clearColor: [1.0, 1.0, 1.0, 1.0] });
     }
-
   }
 
   /**
@@ -140,30 +123,26 @@ export class LightShadow {
    * @param {NodeAbility} component
    * @param {ALight} light
    */
-  bindShadowValues( mtl, index, light ) {
-
+  bindShadowValues(mtl, index, light) {
     // 光源视点VP
-    mtl.setValue( `u_viewMatFromLight[${index}]`, light.viewMatrix );
-    mtl.setValue( `u_projMatFromLight[${index}]`, this.projectionMatrix );
+    mtl.setValue(`u_viewMatFromLight[${index}]`, light.viewMatrix);
+    mtl.setValue(`u_projMatFromLight[${index}]`, this.projectionMatrix);
 
     // shadow map
     const uniformName = `u_shadows[${index}]`;
-    mtl.setValue( uniformName + '.bias', this.bias );
-    mtl.setValue( uniformName + '.intensity', this.intensity );
-    mtl.setValue( uniformName + '.radius', this.radius );
-    mtl.setValue( uniformName + '.mapSize', this._mapSize );
+    mtl.setValue(uniformName + ".bias", this.bias);
+    mtl.setValue(uniformName + ".intensity", this.intensity);
+    mtl.setValue(uniformName + ".radius", this.radius);
+    mtl.setValue(uniformName + ".mapSize", this._mapSize);
 
-    mtl.setValue( `u_shadowMaps[${index}]`, this.map );
-
+    mtl.setValue(`u_shadowMaps[${index}]`, this.map);
   }
 
   /**
    * 生成 Technique 所需的 uniform 定义
    * @param {number} index ShadowMap Index
    */
-  static getUniformDefine( index )
-  {
-
+  static getUniformDefine(index) {
     const uniforms = {};
 
     uniforms[`u_viewMatFromLight[${index}]`] = {
@@ -177,23 +156,23 @@ export class LightShadow {
     };
 
     const uniformName = `u_shadows[${index}]`;
-    uniforms[uniformName + '.bias'] = {
-      name: uniformName + '.bias',
+    uniforms[uniformName + ".bias"] = {
+      name: uniformName + ".bias",
       type: DataType.FLOAT
     };
 
-    uniforms[uniformName + '.intensity'] = {
-      name: uniformName + '.intensity',
+    uniforms[uniformName + ".intensity"] = {
+      name: uniformName + ".intensity",
       type: DataType.FLOAT
     };
 
-    uniforms[uniformName + '.radius'] = {
-      name: uniformName + '.radius',
+    uniforms[uniformName + ".radius"] = {
+      name: uniformName + ".radius",
       type: DataType.FLOAT
     };
 
-    uniforms[uniformName + '.mapSize'] = {
-      name: uniformName + '.mapSize',
+    uniforms[uniformName + ".mapSize"] = {
+      name: uniformName + ".mapSize",
       type: DataType.FLOAT_VEC2
     };
 
@@ -202,7 +181,5 @@ export class LightShadow {
       type: DataType.SAMPLER_2D
     };
     return uniforms;
-
   }
-
 }

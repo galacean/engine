@@ -23,9 +23,9 @@ interface Props {
  */
 export class PerspectiveCamera extends Camera {
   public canvas: HTMLCanvasElement;
-  public fov: number;
-  public near: number;
-  public far: number;
+  private _fov: number;
+  private _near: number;
+  private _far: number;
   public lastWidth: number;
   public lastHeight: number;
 
@@ -57,32 +57,27 @@ export class PerspectiveCamera extends Camera {
 
     if (props.canvas) {
       this.canvas =
-        typeof props.canvas === "string"
-          ? (document.getElementById(props.canvas) as HTMLCanvasElement)
-          : props.canvas;
+        typeof props.canvas === "string" ? (document.getElementById(props.canvas) as HTMLCanvasElement) : props.canvas;
     }
 
     /**
      * 透视相机视场角角度
      * @member {Number}
      */
-    this.fov = props.fov || 45;
+    this._fov = props.fov || 45;
     /**
      * 透视相机近裁剪面
      * @member {Number}
      */
-    this.near = props.near || 0.01;
+    this._near = props.near || 0.01;
     /**
      * 透视相机远裁剪面
      * @member {Number}
      */
-    this.far = props.far || 1000;
+    this._far = props.far || 1000;
     this._pixelRatio = props.pixelRatio || window.devicePixelRatio;
 
-    const clearMode =
-      props.clearMode !== undefined
-        ? props.clearMode
-        : r3.ClearMode.SOLID_COLOR;
+    const clearMode = props.clearMode !== undefined ? props.clearMode : r3.ClearMode.SOLID_COLOR;
     const clearParam = props.clearParam || [0.25, 0.25, 0.25, 1];
     this.setClearMode(clearMode, clearParam);
   }
@@ -91,10 +86,7 @@ export class PerspectiveCamera extends Camera {
     canvas: HTMLCanvasElement | string,
     attr: WebGLContextAttributes & { enableCollect?: boolean } = {}
   ) {
-    canvas =
-      typeof canvas === "string"
-        ? (document.getElementById(canvas) as HTMLCanvasElement)
-        : canvas;
+    canvas = typeof canvas === "string" ? (document.getElementById(canvas) as HTMLCanvasElement) : canvas;
     super.attachToScene(canvas, attr);
     this.canvas = canvas;
     this.updateSizes();
@@ -125,7 +117,7 @@ export class PerspectiveCamera extends Camera {
       this._pixelRatio = pixelRatio;
     }
     if (fov) {
-      this.fov = fov;
+      this._fov = fov;
     }
 
     const width = (this.canvas.clientWidth * this.pixelRatio) | 0;
@@ -137,11 +129,38 @@ export class PerspectiveCamera extends Camera {
       this.canvas.width = width;
       this.canvas.height = height;
 
-      this.setPerspective(this.fov, width, height, this.near, this.far);
+      this.setPerspective(this._fov, width, height, this._near, this._far);
       this.setViewport(0, 0, width, height);
       return true;
     }
 
     return false;
+  }
+
+  get fov(): number {
+    return this._fov;
+  }
+
+  get near(): number {
+    return this._near;
+  }
+
+  get far(): number {
+    return this._far;
+  }
+
+  set far(value: number) {
+    this._far = value;
+    this.setPerspective(this._fov, this.lastWidth, this.lastHeight, this._near, this._far);
+  }
+
+  set near(value: number) {
+    this._near = value;
+    this.setPerspective(this._fov, this.lastWidth, this.lastHeight, this._near, this._far);
+  }
+
+  set fov(value: number) {
+    this._fov = value;
+    this.setPerspective(this._fov, this.lastWidth, this.lastHeight, this._near, this._far);
   }
 }

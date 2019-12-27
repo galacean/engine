@@ -7,7 +7,8 @@
  * @returns {mat3} out
  **/
 export function scale(out, a, v) {
-  let x = v[0], y = v[1];
+  let x = v[0],
+    y = v[1];
 
   out[0] = x * a[0];
   out[1] = x * a[1];

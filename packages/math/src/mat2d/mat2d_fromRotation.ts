@@ -10,7 +10,8 @@
  * @returns {mat2d} out
  */
 export function fromRotation(out, rad) {
-  let s = Math.sin(rad), c = Math.cos(rad);
+  let s = Math.sin(rad),
+    c = Math.cos(rad);
   out[0] = c;
   out[1] = s;
   out[2] = -s;

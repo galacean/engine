@@ -18,9 +18,10 @@ export function rotateZ(out, a, rad) {
   let a12 = a[6];
   let a13 = a[7];
 
-  if (a !== out) { // If the source and destination differ, copy the unchanged last row
-    out[8]  = a[8];
-    out[9]  = a[9];
+  if (a !== out) {
+    // If the source and destination differ, copy the unchanged last row
+    out[8] = a[8];
+    out[9] = a[9];
     out[10] = a[10];
     out[11] = a[11];
     out[12] = a[12];

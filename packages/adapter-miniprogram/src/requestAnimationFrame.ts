@@ -1,4 +1,4 @@
-import {getCanvas} from './register';
+import { getCanvas } from "./register";
 
 let lastTime: any = 0;
 let id: any = 0;
@@ -9,11 +9,10 @@ function hack(cb) {
   let nextTime = Math.max(lastTime + 23, now);
 
   id = setTimeout(() => {
-    cb(lastTime = nextTime);
+    cb((lastTime = nextTime));
   }, nextTime - now);
 
   return id;
-
 }
 
 function requestAnimationFrame(cb) {
@@ -34,7 +33,4 @@ function cancelAnimationFrame(id) {
   }
 }
 
-export {
-  requestAnimationFrame,
-  cancelAnimationFrame,
-}
+export { requestAnimationFrame, cancelAnimationFrame };

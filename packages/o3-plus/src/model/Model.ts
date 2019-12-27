@@ -9,11 +9,10 @@ import {
   LambertMaterial,
   TransparentMaterial,
   TextureMaterial,
-  PBRMaterial,
+  PBRMaterial
 } from "@alipay/o3";
 
 export class Model extends AGeometryRenderer {
-
   set geometryType(value: GeometryType) {
     if (this._geometryType === value) {
       return;
@@ -46,7 +45,7 @@ export class Model extends AGeometryRenderer {
     [GeometryType.Sphere]: SphereGeometry,
     [GeometryType.Cylinder]: CylinderGeometry,
     [GeometryType.Plane]: PlaneGeometry,
-    [GeometryType.Box]: CuboidGeometry,
+    [GeometryType.Box]: CuboidGeometry
   };
 
   private _materialMap = {
@@ -55,13 +54,13 @@ export class Model extends AGeometryRenderer {
     [MaterialType.Constant]: ConstantMaterial,
     [MaterialType.Lambert]: LambertMaterial,
     [MaterialType.Transparent]: TransparentMaterial,
-    [MaterialType.Texture]: TextureMaterial,
+    [MaterialType.Texture]: TextureMaterial
   };
 
   constructor(node, props) {
     super(node, props);
 
-    const {geometryType = GeometryType.Box} = props;
+    const { geometryType = GeometryType.Box } = props;
 
     if (!props.material) {
       this.materialType = MaterialType.BlinnPhong;
@@ -74,7 +73,7 @@ enum GeometryType {
   Box = "Box",
   Cylinder = "Cylinder",
   Plane = "Plane",
-  Sphere = "Sphere",
+  Sphere = "Sphere"
 }
 
 enum MaterialType {
@@ -83,5 +82,5 @@ enum MaterialType {
   Constant = "Constant",
   Lambert = "Lambert",
   Transparent = "Transparent",
-  Texture = "Texture",
+  Texture = "Texture"
 }

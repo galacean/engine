@@ -12,4 +12,4 @@ export function cross(out, a, b) {
   out[0] = out[1] = 0;
   out[2] = z;
   return out;
-};
+}

@@ -1,2 +1,1 @@
-
-export { SceneRenderer } from './SceneRenderer';
+export { SceneRenderer } from "./SceneRenderer";

@@ -7,11 +7,17 @@
  * @returns {mat3} out
  */
 export function rotate(out, a, rad) {
-  let a00 = a[0], a01 = a[1], a02 = a[2],
-      a10 = a[3], a11 = a[4], a12 = a[5],
-      a20 = a[6], a21 = a[7], a22 = a[8],
-      s = Math.sin(rad),
-      c = Math.cos(rad);
+  let a00 = a[0],
+    a01 = a[1],
+    a02 = a[2],
+    a10 = a[3],
+    a11 = a[4],
+    a12 = a[5],
+    a20 = a[6],
+    a21 = a[7],
+    a22 = a[8],
+    s = Math.sin(rad),
+    c = Math.cos(rad);
 
   out[0] = c * a00 + s * a10;
   out[1] = c * a01 + s * a11;
@@ -25,4 +31,4 @@ export function rotate(out, a, rad) {
   out[7] = a21;
   out[8] = a22;
   return out;
-};
+}

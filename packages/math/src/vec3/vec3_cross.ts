@@ -7,8 +7,12 @@
  * @returns {vec3} out
  */
 export function cross(out, a, b) {
-  let ax = a[0], ay = a[1], az = a[2];
-  let bx = b[0], by = b[1], bz = b[2];
+  let ax = a[0],
+    ay = a[1],
+    az = a[2];
+  let bx = b[0],
+    by = b[1],
+    bz = b[2];
 
   out[0] = ay * bz - az * by;
   out[1] = az * bx - ax * bz;

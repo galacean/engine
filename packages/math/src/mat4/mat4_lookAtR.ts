@@ -1,9 +1,9 @@
-import { EPSILON } from '../MathUtil/MathUtil_EPSILON';
-import { normalize } from '../vec3/vec3_normalize';
-import { subtract } from '../vec3/vec3_subtract';
-import { create } from '../vec3/vec3_create';
-import { length } from '../vec3/vec3_length';
-import { cross } from '../vec3/vec3_cross';
+import { EPSILON } from "../MathUtil/MathUtil_EPSILON";
+import { normalize } from "../vec3/vec3_normalize";
+import { subtract } from "../vec3/vec3_subtract";
+import { create } from "../vec3/vec3_create";
+import { length } from "../vec3/vec3_length";
+import { cross } from "../vec3/vec3_cross";
 
 /**
  * Generates a look-at matrix with the given eye position, focal point, and up axis
@@ -20,34 +20,30 @@ const yAxis = create();
 const zAxis = create();
 const makeSafe = create();
 
-export function lookAtR( out, eye, target, up ) {
+export function lookAtR(out, eye, target, up) {
+  subtract(zAxis, target, eye);
+  if (length(zAxis) === 0) zAxis[2] = 1;
 
-  subtract( zAxis, target, eye );
-  if ( length( zAxis ) === 0 )
-    zAxis[2] = 1;
-
-  normalize( zAxis, zAxis );
+  normalize(zAxis, zAxis);
   // make safe
-  const l = length( subtract( makeSafe, normalize( up, up ), zAxis ) );
-  if( l === 0  || l === 2 ) {
-
+  const l = length(subtract(makeSafe, normalize(up, up), zAxis));
+  if (l === 0 || l === 2) {
     zAxis[2] += EPSILON;
-    normalize( zAxis, zAxis );
-
+    normalize(zAxis, zAxis);
   }
-  normalize( xAxis, cross( xAxis, up, zAxis ) );
-  normalize( yAxis, cross( yAxis, zAxis, xAxis ) );
+  normalize(xAxis, cross(xAxis, up, zAxis));
+  normalize(yAxis, cross(yAxis, zAxis, xAxis));
 
-  out[ 0] = xAxis[0];
-  out[ 1] = xAxis[1];
-  out[ 2] = xAxis[2];
-  out[ 3] = 0;
-  out[ 4] = yAxis[0];
-  out[ 5] = yAxis[1];
-  out[ 6] = yAxis[2];
-  out[ 7] = 0;
-  out[ 8] = zAxis[0];
-  out[ 9] = zAxis[1];
+  out[0] = xAxis[0];
+  out[1] = xAxis[1];
+  out[2] = xAxis[2];
+  out[3] = 0;
+  out[4] = yAxis[0];
+  out[5] = yAxis[1];
+  out[6] = yAxis[2];
+  out[7] = 0;
+  out[8] = zAxis[0];
+  out[9] = zAxis[1];
   out[10] = zAxis[2];
   out[11] = 0;
   out[12] = eye[0];
@@ -56,5 +52,4 @@ export function lookAtR( out, eye, target, up ) {
   out[15] = 1;
 
   return out;
-
 }

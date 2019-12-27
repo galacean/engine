@@ -1,6 +1,6 @@
-import devicePixelRatio from './devicePixelRatio';
-import * as Mixin from './util/mixin';
-import document from './document';
+import devicePixelRatio from "./devicePixelRatio";
+import * as Mixin from "./util/mixin";
+import document from "./document";
 
 /**同步和异步都需要的数据*/
 let canvas: any = {};
@@ -13,11 +13,11 @@ function registerCanvas(c, id: string) {
   canvas.clientWidth = c.width / devicePixelRatio;
   canvas.clientHeight = c.height / devicePixelRatio;
 
-  if (!('tagName' in canvas)) {
-    canvas.tagName = 'CANVAS';
+  if (!("tagName" in canvas)) {
+    canvas.tagName = "CANVAS";
   }
 
-  canvas.type = 'canvas';
+  canvas.type = "canvas";
 
   Mixin.parentNode(canvas);
   Mixin.style(canvas);
@@ -25,10 +25,8 @@ function registerCanvas(c, id: string) {
   Mixin.clientRegion(canvas);
   Mixin.offsetRegion(canvas);
 
-  canvas.focus = function() {
-  };
-  canvas.blur = function() {
-  };
+  canvas.focus = function() {};
+  canvas.blur = function() {};
 
   canvas.addEventListener = function(type, listener, options = {}) {
     document.addEventListener(type, listener, options);
@@ -53,13 +51,12 @@ function registerCanvas2D(ctx, id: string) {
     clientWidth: width / devicePixelRatio,
     clientHeight: height / devicePixelRatio,
     id,
-    type: 'canvas',
+    type: "canvas"
   };
 
-  if (!('tagName' in canvas2D)) {
-    canvas2D.tagName = 'CANVAS';
+  if (!("tagName" in canvas2D)) {
+    canvas2D.tagName = "CANVAS";
   }
-
 
   Mixin.parentNode(canvas2D);
   Mixin.style(canvas2D);
@@ -68,14 +65,12 @@ function registerCanvas2D(ctx, id: string) {
   Mixin.offsetRegion(canvas2D);
 
   canvas2D.getContext = function(type) {
-    if (type === '2d') {
+    if (type === "2d") {
       return ctx;
     }
   };
-  canvas2D.focus = function() {
-  };
-  canvas2D.blur = function() {
-  };
+  canvas2D.focus = function() {};
+  canvas2D.blur = function() {};
 
   canvas2D.addEventListener = function(type, listener, options = {}) {
     document.addEventListener(type, listener, options);
@@ -100,9 +95,4 @@ function getCanvas2D() {
   return canvas2D;
 }
 
-export {
-  registerCanvas,
-  registerCanvas2D,
-  getCanvas,
-  getCanvas2D,
-};
+export { registerCanvas, registerCanvas2D, getCanvas, getCanvas2D };

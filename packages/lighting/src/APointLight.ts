@@ -1,13 +1,12 @@
-import { vec3 } from '@alipay/o3-math';
-import { DataType } from '@alipay/o3-base';
-import { ALight } from './ALight';
+import { vec3 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-base";
+import { ALight } from "./ALight";
 
 /**
  * 点光源创建类
  * @extends ALight
  */
 export class APointLight extends ALight {
-
   public color;
   public intensity;
   public distance;
@@ -23,16 +22,15 @@ export class APointLight extends ALight {
    * @param {number} [props.distance=0] 辐射距离
    * @param {number} [props.decay=0] 衰减系数
    */
-  constructor( node, props ) {
-
-    super( node );
-    this.name = props.name || 'pointLight';
+  constructor(node, props) {
+    super(node);
+    this.name = props.name || "pointLight";
 
     /**
      * 颜色
      * @member {Vec3}
      */
-    this.color = props.color || vec3.fromValues( 1, 1, 1 );
+    this.color = props.color || vec3.fromValues(1, 1, 1);
 
     /**
      * 光照强度
@@ -53,7 +51,6 @@ export class APointLight extends ALight {
     this.decay = props.decay !== undefined ? props.decay : 0;
 
     this._lightColor = vec3.create();
-
   }
 
   /** 获取点光源位置
@@ -61,9 +58,7 @@ export class APointLight extends ALight {
    * @readonly
    */
   get position() {
-
     return this.node.worldPosition;
-
   }
 
   /** 获取点光源最终颜色
@@ -71,18 +66,15 @@ export class APointLight extends ALight {
    * @readonly
    */
   get lightColor() {
-
-    vec3.scale( this._lightColor, this.color, this.intensity );
+    vec3.scale(this._lightColor, this.color, this.intensity);
     return this._lightColor;
-
   }
 
   /**
    * 生成 Technique 所需的 uniform 定义
    * @param {string} uniformName
    */
-  static getUniformDefine( uniformName ) {
-
+  static getUniformDefine(uniformName) {
     /**
       struct PointLight {
         vec3 position;
@@ -94,47 +86,42 @@ export class APointLight extends ALight {
      */
     const uniforms = {};
 
-    uniforms[uniformName + '.position'] = {
-      name: uniformName + '.position',
+    uniforms[uniformName + ".position"] = {
+      name: uniformName + ".position",
       type: DataType.FLOAT_VEC3
     };
 
-    uniforms[uniformName + '.color'] = {
-      name: uniformName + '.color',
+    uniforms[uniformName + ".color"] = {
+      name: uniformName + ".color",
       type: DataType.FLOAT_VEC3
     };
 
-    uniforms[uniformName + '.intensity'] = {
-      name: uniformName + '.intensity',
+    uniforms[uniformName + ".intensity"] = {
+      name: uniformName + ".intensity",
       type: DataType.FLOAT
     };
 
-    uniforms[uniformName + '.distance'] = {
-      name: uniformName + '.distance',
+    uniforms[uniformName + ".distance"] = {
+      name: uniformName + ".distance",
       type: DataType.FLOAT
     };
 
-    uniforms[uniformName + '.decay'] = {
-      name: uniformName + '.decay',
+    uniforms[uniformName + ".decay"] = {
+      name: uniformName + ".decay",
       type: DataType.FLOAT
     };
 
     return uniforms;
-
   }
 
   /**
    * 将灯光参数值提交到材质对象
    */
-  bindMaterialValues( mtl, uniformName ) {
-
-    mtl.setValue( uniformName + '.position', this.position );
-    mtl.setValue( uniformName + '.color', this.color );
-    mtl.setValue( uniformName + '.intensity', this.intensity );
-    mtl.setValue( uniformName + '.distance', this.distance );
-    mtl.setValue( uniformName + '.decay', this.decay );
-
+  bindMaterialValues(mtl, uniformName) {
+    mtl.setValue(uniformName + ".position", this.position);
+    mtl.setValue(uniformName + ".color", this.color);
+    mtl.setValue(uniformName + ".intensity", this.intensity);
+    mtl.setValue(uniformName + ".distance", this.distance);
+    mtl.setValue(uniformName + ".decay", this.decay);
   }
-
-
 }

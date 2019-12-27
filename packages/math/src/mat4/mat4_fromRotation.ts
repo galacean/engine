@@ -1,4 +1,4 @@
-import { EPSILON } from '../MathUtil/MathUtil_EPSILON';
+import { EPSILON } from "../MathUtil/MathUtil_EPSILON";
 /**
  * Creates a matrix from a given angle around a given axis
  * This is equivalent to (but much faster than):
@@ -12,11 +12,15 @@ import { EPSILON } from '../MathUtil/MathUtil_EPSILON';
  * @returns {mat4} out
  */
 export function fromRotation(out, rad, axis) {
-  let x = axis[0], y = axis[1], z = axis[2];
+  let x = axis[0],
+    y = axis[1],
+    z = axis[2];
   let len = Math.sqrt(x * x + y * y + z * z);
   let s, c, t;
 
-  if (Math.abs(len) < EPSILON) { return null; }
+  if (Math.abs(len) < EPSILON) {
+    return null;
+  }
 
   len = 1 / len;
   x *= len;

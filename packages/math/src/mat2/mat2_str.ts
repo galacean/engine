@@ -1,4 +1,3 @@
-
 /**
  * Returns a string representation of a mat2
  *
@@ -6,5 +5,5 @@
  * @returns {String} string representation of the matrix
  */
 export function str(a) {
-  return 'mat2(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
+  return "mat2(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
 }

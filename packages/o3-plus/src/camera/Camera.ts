@@ -158,13 +158,7 @@ export class Camera extends r3.NodeAbility {
     this.zFar = zFar;
 
     const aspect = viewWidth / viewHeight;
-    r3.mat4.perspective(
-      this._matProjection,
-      r3.MathUtil.toRadian(degFOV),
-      aspect,
-      zNear,
-      zFar
-    );
+    r3.mat4.perspective(this._matProjection, r3.MathUtil.toRadian(degFOV), aspect, zNear, zFar);
     r3.mat4.invert(this._matInverseProjection, this._matProjection);
   }
 
@@ -204,9 +198,7 @@ export class Camera extends r3.NodeAbility {
    * @param {Float32Array | Array<number>} worldPoint 世界空间的坐标点
    * @return {Float32Array} [屏幕坐标X, 屏幕坐标Y, 深度值]
    */
-  public worldToScreen(
-    worldPoint: Float32Array | number[]
-  ): Float32Array | any[] {
+  public worldToScreen(worldPoint: Float32Array | number[]): Float32Array | any[] {
     const viewport = this.viewport;
     const width = viewport[2] - viewport[0];
     const height = viewport[3] - viewport[1];
@@ -214,12 +206,7 @@ export class Camera extends r3.NodeAbility {
     const matViewProj = r3.mat4.create();
     r3.mat4.mul(matViewProj, this.projectionMatrix, this.viewMatrix);
 
-    const worldPos = r3.vec4.fromValues(
-      worldPoint[0],
-      worldPoint[1],
-      worldPoint[2],
-      1.0
-    );
+    const worldPos = r3.vec4.fromValues(worldPoint[0], worldPoint[1], worldPoint[2], 1.0);
     const clipPos = r3.vec4.create();
     r3.vec4.transformMat4(clipPos, worldPos, matViewProj);
 
@@ -337,12 +324,7 @@ export class Camera extends r3.NodeAbility {
       r3.vec3.scale(vec3Cache, vec3Cache, -1);
     }
     r3.vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
-    r3.mat4.lookAt(
-      this._viewMat,
-      this._ownerNode.position,
-      vec3Cache,
-      this._ownerNode.up
-    );
+    r3.mat4.lookAt(this._viewMat, this._ownerNode.position, vec3Cache, this._ownerNode.up);
     r3.mat4.invert(this._inverseViewMatrix, this._viewMat);
   }
 }

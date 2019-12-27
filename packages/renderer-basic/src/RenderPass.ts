@@ -1,4 +1,4 @@
-import {ClearMode, MaskList} from '@alipay/o3-base';
+import { ClearMode, MaskList } from "@alipay/o3-base";
 
 let passNum = 0;
 
@@ -6,7 +6,6 @@ let passNum = 0;
  * RednerPass 对象
  */
 class RenderPass {
-
   public name: string;
   public enabled: boolean;
   public priority: number;
@@ -25,8 +24,13 @@ class RenderPass {
    * @param {Material} replaceMaterial 替换模型的默认材质
    * @param {MaskList} mask 与 NodeAbility.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
    */
-  constructor(name = `RENDER_PASS${passNum++}`, priority = 0, renderTarget = null, replaceMaterial = null, mask = null) {
-
+  constructor(
+    name = `RENDER_PASS${passNum++}`,
+    priority = 0,
+    renderTarget = null,
+    replaceMaterial = null,
+    mask = null
+  ) {
     this.name = name;
     this.enabled = true;
     this.priority = priority;
@@ -41,7 +45,6 @@ class RenderPass {
      */
     this.clearMode = ClearMode.SOLID_COLOR;
     this._clearParam = null; // PASS use render target's clearParam
-
   }
 
   /**
@@ -49,15 +52,11 @@ class RenderPass {
    * @type {*}
    */
   get clearParam() {
-
     return (this.renderTarget && this.renderTarget.clearColor) || this._clearParam;
-
   }
 
   set clearParam(v) {
-
     this._clearParam = v;
-
   }
 
   /**
@@ -66,9 +65,7 @@ class RenderPass {
    * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
    * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  render(camera, opaqueQueue, transparentQueue) {
-
-  }
+  render(camera, opaqueQueue, transparentQueue) {}
 
   /**
    * Pass 渲染前调用
@@ -76,9 +73,7 @@ class RenderPass {
    * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
    * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  preRender(camera, opaqueQueue, transparentQueue) {
-
-  }
+  preRender(camera, opaqueQueue, transparentQueue) {}
 
   /**
    * Pass 渲染后调用
@@ -86,10 +81,7 @@ class RenderPass {
    * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
    * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  postRender(camera, opaqueQueue, transparentQueue) {
-
-  }
-
+  postRender(camera, opaqueQueue, transparentQueue) {}
 }
 
-export {RenderPass};
+export { RenderPass };

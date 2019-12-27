@@ -1,18 +1,15 @@
-import {Texture} from './Texture';
-import {TextureFilter, TextureWrapMode} from '@alipay/o3-base';
-import {TextureConfig} from './type';
+import { Texture } from "./Texture";
+import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
+import { TextureConfig } from "./type";
 
 function isPowerOf2(v): boolean {
-
   return (v & (v - 1)) === 0;
-
 }
 
 /**
  * CubeMap 贴图数据对象
  */
 export class TextureCubeMap extends Texture {
-
   private _images: Array<any>;
 
   private _mipMapLevel: number;
@@ -35,7 +32,6 @@ export class TextureCubeMap extends Texture {
    * @param {Number} [config.wrapT=TextureWrapMode.CLAMP_TO_EDGE] T方向纹理包裹选项
    */
   constructor(name: string, images: Array<any>, config: TextureConfig) {
-
     super(name, config);
 
     this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
@@ -46,21 +42,16 @@ export class TextureCubeMap extends Texture {
      * @member {Array}
      */
     this.images = images;
-
   }
 
   get images(): Array<any> {
-
     return this._images;
-
   }
 
   set images(v: Array<any>) {
-
     this._images = v;
     this.updateTexture();
     this.configMipmap();
-
   }
 
   /**
@@ -68,19 +59,15 @@ export class TextureCubeMap extends Texture {
    * @readonly
    */
   get mipMapLevel(): number {
-
     return this._mipMapLevel;
-
   }
 
   /**
    * 刷新所有纹理
    */
   updateTexture() {
-
     this.updateWholeTexture = true;
     this._needUpdateFilers = true;
-
   }
 
   /**
@@ -89,10 +76,8 @@ export class TextureCubeMap extends Texture {
    * @param {HTMLImageElement|HTMLVideoElement|HTMLCanvasElement} image 更新的内容
    */
   updateImage(index: number, image) {
-
     this._images[index] = image;
     this._needUpdateTexture[index] = true;
-
   }
 
   /**
@@ -100,59 +85,41 @@ export class TextureCubeMap extends Texture {
    * @private
    */
   configMipmap() {
-
     // manual set MipMap
     if (this.images[1]) {
-
       this._manualMipMap = true;
       this._mipMapLevel = Math.log2(this.images[0][0].width);
-
     } else {
-
       this._manualMipMap = false;
 
       if (isPowerOf2(this._images[0][0].width) && isPowerOf2(this._images[0][0].height)) {
-
-        if (this._filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
+        if (
+          this._filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
           this._filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||
           this._filterMin === TextureFilter.NEAREST_MIPMAP_LINEAR ||
-          this._filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR) {
-
+          this._filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR
+        ) {
           this._canMipmap = true;
           this._mipMapLevel = Math.log2(this.images[0][0].width);
-
-
         } else {
-
           this._canMipmap = false;
           this._mipMapLevel = 0;
-
         }
-
       } else {
-
         this._canMipmap = false;
         this._mipMapLevel = 0;
         this.setFilter(TextureFilter.NEAREST, TextureFilter.NEAREST);
         this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
-
       }
-
     }
-
-
-  };
+  }
 
   /**
    * 重置共享状态，以防清除GL资源后重建时状态错误
    * @private
    */
   resetState() {
-
-    if (this.images)
-      this.images = this.images;
+    if (this.images) this.images = this.images;
     super.resetState();
-
   }
-
 }

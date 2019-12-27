@@ -1,4 +1,4 @@
-import { ARRAY_TYPE } from '../MathUtil/MathUtil_ARRAY_TYPE';
+import { ARRAY_TYPE } from "../MathUtil/MathUtil_ARRAY_TYPE";
 /**
  * Create a new mat2d with the given values
  *

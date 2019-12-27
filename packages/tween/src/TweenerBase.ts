@@ -1,8 +1,7 @@
-import {LOOP_TYPE} from './Enums';
-import * as Easing from './Easing';
+import { LOOP_TYPE } from "./Enums";
+import * as Easing from "./Easing";
 
-const noop = () => {
-};
+const noop = () => {};
 
 // on events
 // play, pause, complete, kill, rewind, update
@@ -12,7 +11,6 @@ const noop = () => {
  * @private
  */
 class TweenerBase {
-
   protected _time;
   protected _paused;
   protected _remainLoops;
@@ -28,13 +26,12 @@ class TweenerBase {
   public setter;
 
   constructor(getter, setter, endValue, interval, options = {}, target) {
-
     this.options = {
-      id: '',
+      id: "",
       loops: {
         // set -1 as infinite
         count: 0,
-        type: LOOP_TYPE.Yoyo,
+        type: LOOP_TYPE.Yoyo
       },
       easing: Easing.linear,
       delay: 0,
@@ -46,7 +43,7 @@ class TweenerBase {
       onComplete: noop,
       onTick: noop,
 
-      ...options,
+      ...options
     };
 
     this._time = 0;
@@ -63,14 +60,11 @@ class TweenerBase {
     this.setter = setter;
 
     this.interval = interval;
-
   }
 
-  duration() {
-  }
+  duration() {}
 
-  update(deltaTime) {
-  }
+  update(deltaTime) {}
 
   /**
    * 设置循环数
@@ -78,48 +72,37 @@ class TweenerBase {
    * @param {LOOP_TYPE} type 循环类型
    */
   setLoops(count, type = LOOP_TYPE.Yoyo) {
-
-    this.options.loops = {count, type};
+    this.options.loops = { count, type };
     // reset loop
     this._remainLoops = count;
 
     return this;
-
   }
 
   set(key, value) {
-
-    this.options = {...this.options, ...{[key]: value}};
+    this.options = { ...this.options, ...{ [key]: value } };
 
     return this;
-
   }
 
   stop() {
-
     this.options.onComplete(this);
 
     this._paused = true;
 
     return this;
-
   }
 
   pause() {
-
     if (this._paused) return false;
     this._paused = true;
 
     return this;
-
   }
 
   start(tweenManager) {
-
     if (tweenManager) {
-
       tweenManager.add(this);
-
     }
 
     if (!this._paused) return false;
@@ -128,9 +111,7 @@ class TweenerBase {
     this._played = true;
 
     return this;
-
   }
-
 }
 
-export {TweenerBase};
+export { TweenerBase };

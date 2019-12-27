@@ -1,82 +1,82 @@
-import screen from '../screen';
+import screen from "../screen";
 
-const {availWidth: innerWidth, availHeight: innerHeight} = screen;
-import document from '../document';
+const { availWidth: innerWidth, availHeight: innerHeight } = screen;
+import document from "../document";
 
 export function parentNode(obj, level?: number) {
-  if (!('parentNode' in obj)) {
+  if (!("parentNode" in obj)) {
     let _parent;
 
     if (level === 0) {
-      _parent = function () {
+      _parent = function() {
         // return document
-        return null
-      }
+        return null;
+      };
     } else if (level === 1) {
-      _parent = function () {
-        return document.documentElement
-      }
+      _parent = function() {
+        return document.documentElement;
+      };
     } else {
-      _parent = function () {
-        return document.body
-      }
+      _parent = function() {
+        return document.body;
+      };
     }
 
-    Object.defineProperty(obj, 'parentNode', {
+    Object.defineProperty(obj, "parentNode", {
       enumerable: true,
       get: _parent
-    })
+    });
   }
 
-  if (!('parentElement' in obj)) {
+  if (!("parentElement" in obj)) {
     let _parent;
 
     if (level === 0) {
-      _parent = function () {
-        return null
-      }
+      _parent = function() {
+        return null;
+      };
     } else if (level === 1) {
-      _parent = function () {
-        return document.documentElement
-      }
+      _parent = function() {
+        return document.documentElement;
+      };
     } else {
-      _parent = function () {
-        return document.body
-      }
+      _parent = function() {
+        return document.body;
+      };
     }
 
-    Object.defineProperty(obj, 'parentElement', {
+    Object.defineProperty(obj, "parentElement", {
       enumerable: true,
       get: _parent
-    })
+    });
   }
 }
 
 export function style(obj) {
-  obj.style = obj.style || {}
+  obj.style = obj.style || {};
 
   Object.assign(obj.style, {
-    top: '0px',
-    left: '0px',
-    width: innerWidth + 'px',
-    height: innerHeight + 'px',
-    margin: '0px',
-    padding: '0px',
-  })
+    top: "0px",
+    left: "0px",
+    width: innerWidth + "px",
+    height: innerHeight + "px",
+    margin: "0px",
+    padding: "0px"
+  });
 }
 
 export function clientRegion(obj) {
-  if (!('clientLeft' in obj)) {
+  if (!("clientLeft" in obj)) {
     obj.clientLeft = 0;
     obj.clientTop = 0;
   }
-  if (!('clientWidth' in obj)) {
+  if (!("clientWidth" in obj)) {
     obj.clientWidth = innerWidth;
     obj.clientHeight = innerHeight;
   }
 
-  if (!('getBoundingClientRect' in obj)) {
-    obj.getBoundingClientRect = function () {
+  if (!("getBoundingClientRect" in obj)) {
+    obj.getBoundingClientRect = function() {
       const ret = {
         x: 0,
         y: 0,
@@ -85,39 +85,38 @@ export function clientRegion(obj) {
         width: this.clientWidth,
         height: this.clientHeight,
         right: this.clientWidth,
-        bottom: this.clientHeight,
+        bottom: this.clientHeight
       };
 
       return ret;
-    }
+    };
   }
 }
 
 export function offsetRegion(obj) {
-  if (!('offsetLeft' in obj)) {
+  if (!("offsetLeft" in obj)) {
     obj.offsetLeft = 0;
     obj.offsetTop = 0;
   }
-  if (!('offsetWidth' in obj)) {
+  if (!("offsetWidth" in obj)) {
     obj.offsetWidth = innerWidth;
     obj.offsetHeight = innerHeight;
   }
 }
 
 export function scrollRegion(obj) {
-  if (!('scrollLeft' in obj)) {
+  if (!("scrollLeft" in obj)) {
     obj.scrollLeft = 0;
     obj.scrollTop = 0;
   }
-  if (!('scrollWidth' in obj)) {
+  if (!("scrollWidth" in obj)) {
     obj.scrollWidth = innerWidth;
     obj.scrollHeight = innerHeight;
   }
 }
 
 export function classList(obj) {
-  const noop = function () {
-  }
+  const noop = function() {};
   obj.classList = [];
   obj.classList.add = noop;
   obj.classList.remove = noop;

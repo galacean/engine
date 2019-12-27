@@ -18,8 +18,7 @@ export async function loadScene(options: Options): Promise<r3.Engine> {
 
   const { assets = {}, sceneGraph = {} } = config;
 
-  assets &&
-    (await loadAssets(engine, assets, options.onProgress, options.local));
+  assets && (await loadAssets(engine, assets, options.onProgress, options.local));
 
   parserSceneGraph(engine, sceneGraph, options);
 

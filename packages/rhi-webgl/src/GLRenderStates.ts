@@ -19,9 +19,7 @@ export class GLRenderStates {
     //-- 初始化，设置所有渲染状态为默认值 ---------------
 
     //-- cache
-    this._parameters[gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS] = gl.getParameter(
-      gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS
-    );
+    this._parameters[gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS] = gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
 
     //-- enable/disable
     this._parameters[gl.BLEND] = false;
@@ -91,12 +89,7 @@ export class GLRenderStates {
     gl.polygonOffset(0, 0);
 
     //-- scissor
-    this._parameters[gl.SCISSOR_BOX] = [
-      0,
-      0,
-      gl.canvas.width,
-      gl.canvas.height
-    ];
+    this._parameters[gl.SCISSOR_BOX] = [0, 0, gl.canvas.width, gl.canvas.height];
 
     //-- stencilFunc
     this._parameters[gl.STENCIL_FUNC] = gl.ALWAYS;
@@ -299,16 +292,9 @@ export class GLRenderStates {
     const gl = this._gl;
     const param = this._parameters;
 
-    if (
-      param[gl.BLEND_EQUATION_RGB] === modeRGB &&
-      param[gl.BLEND_EQUATION_ALPHA] === modeAlpha
-    )
-      return;
+    if (param[gl.BLEND_EQUATION_RGB] === modeRGB && param[gl.BLEND_EQUATION_ALPHA] === modeAlpha) return;
 
-    const pushArgs = [
-      param[gl.BLEND_EQUATION_RGB],
-      param[gl.BLEND_EQUATION_ALPHA]
-    ];
+    const pushArgs = [param[gl.BLEND_EQUATION_RGB], param[gl.BLEND_EQUATION_ALPHA]];
     const pushParam = {};
     pushParam[gl.BLEND_EQUATION_RGB] = param[gl.BLEND_EQUATION_RGB];
     pushParam[gl.BLEND_EQUATION_ALPHA] = param[gl.BLEND_EQUATION_ALPHA];
@@ -330,11 +316,7 @@ export class GLRenderStates {
     const gl = this._gl;
     const pushParam = {};
     pushParam[gl.COLOR_WRITEMASK] = this._parameters[gl.COLOR_WRITEMASK];
-    this._pushState(
-      gl.colorMask,
-      this._parameters[gl.COLOR_WRITEMASK],
-      pushParam
-    );
+    this._pushState(gl.colorMask, this._parameters[gl.COLOR_WRITEMASK], pushParam);
 
     this._parameters[gl.COLOR_WRITEMASK] = [red, green, blue, alpha];
     gl.colorMask(red, green, blue, alpha);
@@ -351,11 +333,7 @@ export class GLRenderStates {
 
     const pushParam = {};
     pushParam[gl.DEPTH_WRITEMASK] = this._parameters[gl.DEPTH_WRITEMASK];
-    this._pushState(
-      gl.depthMask,
-      [this._parameters[gl.DEPTH_WRITEMASK]],
-      pushParam
-    );
+    this._pushState(gl.depthMask, [this._parameters[gl.DEPTH_WRITEMASK]], pushParam);
 
     this._parameters[gl.DEPTH_WRITEMASK] = flag;
     gl.depthMask(flag);
@@ -372,11 +350,7 @@ export class GLRenderStates {
 
     const pushParam = {};
     pushParam[gl.CULL_FACE_MODE] = this._parameters[gl.CULL_FACE_MODE];
-    this._pushState(
-      gl.cullFace,
-      [this._parameters[gl.CULL_FACE_MODE]],
-      pushParam
-    );
+    this._pushState(gl.cullFace, [this._parameters[gl.CULL_FACE_MODE]], pushParam);
 
     this._parameters[gl.CULL_FACE_MODE] = mode;
     gl.cullFace(mode);
@@ -429,11 +403,7 @@ export class GLRenderStates {
 
     const pushParam = {};
     pushParam[gl.DEPTH_RANGE] = currentValue;
-    this._pushState(
-      gl.depthRange,
-      [this._parameters[gl.DEPTH_RANGE]],
-      pushParam
-    );
+    this._pushState(gl.depthRange, [this._parameters[gl.DEPTH_RANGE]], pushParam);
 
     this._parameters[gl.DEPTH_RANGE] = [zNear, zFar];
     gl.depthRange(zNear, zFar);
@@ -446,25 +416,15 @@ export class GLRenderStates {
    */
   polygonOffset(factor, units) {
     const gl = this._gl;
-    if (
-      this._parameters[gl.POLYGON_OFFSET_FACTOR] === factor &&
-      this._parameters[gl.POLYGON_OFFSET_UNITS] === units
-    )
+    if (this._parameters[gl.POLYGON_OFFSET_FACTOR] === factor && this._parameters[gl.POLYGON_OFFSET_UNITS] === units)
       return;
 
     const pushParam = {};
-    pushParam[gl.POLYGON_OFFSET_FACTOR] = this._parameters[
-      gl.POLYGON_OFFSET_FACTOR
-    ];
-    pushParam[gl.POLYGON_OFFSET_UNITS] = this._parameters[
-      gl.POLYGON_OFFSET_UNITS
-    ];
+    pushParam[gl.POLYGON_OFFSET_FACTOR] = this._parameters[gl.POLYGON_OFFSET_FACTOR];
+    pushParam[gl.POLYGON_OFFSET_UNITS] = this._parameters[gl.POLYGON_OFFSET_UNITS];
     this._pushState(
       gl.polygonOffset,
-      [
-        this._parameters[gl.POLYGON_OFFSET_FACTOR],
-        this._parameters[gl.POLYGON_OFFSET_UNITS]
-      ],
+      [this._parameters[gl.POLYGON_OFFSET_FACTOR], this._parameters[gl.POLYGON_OFFSET_UNITS]],
       pushParam
     );
 
@@ -484,8 +444,7 @@ export class GLRenderStates {
     const gl = this._gl;
 
     const box = this._parameters[gl.SCISSOR_BOX];
-    if (box[0] === x && box[1] === y && box[2] === width && box[3] === height)
-      return;
+    if (box[0] === x && box[1] === y && box[2] === width && box[3] === height) return;
 
     const pushParam = {};
     pushParam[gl.SCISSOR_BOX] = box;

@@ -1,6 +1,6 @@
-import {parseGLTF} from './glTF';
-import {decodeText} from './Util';
-import {getBufferData, attachAsset} from './Util';
+import { parseGLTF } from "./glTF";
+import { decodeText } from "./Util";
+import { getBufferData, attachAsset } from "./Util";
 
 /**
  * 解析 glb 格式
@@ -9,11 +9,10 @@ import {getBufferData, attachAsset} from './Util';
  * @private
  */
 export function parseGLB(glb) {
-
   const UINT32_LENGTH = 4;
-  const GLB_HEADER_MAGIC = 0x46546C67; // 'glTF'
+  const GLB_HEADER_MAGIC = 0x46546c67; // 'glTF'
   const GLB_HEADER_LENGTH = 12;
-  const GLB_CHUNK_TYPES = {JSON: 0x4E4F534A, BIN: 0x004E4942};
+  const GLB_CHUNK_TYPES = { JSON: 0x4e4f534a, BIN: 0x004e4942 };
 
   const dataView = new DataView(glb);
 
@@ -25,10 +24,8 @@ export function parseGLB(glb) {
   };
 
   if (header.magic !== GLB_HEADER_MAGIC) {
-
-    console.error('Invalid glb magic number. Expected 0x46546C67, found 0x' + header.magic.toString(16));
+    console.error("Invalid glb magic number. Expected 0x46546C67, found 0x" + header.magic.toString(16));
     return null;
-
   }
 
   // read main data
@@ -37,10 +34,8 @@ export function parseGLB(glb) {
 
   // read glTF json
   if (chunkType !== GLB_CHUNK_TYPES.JSON) {
-
-    console.error('Invalid glb chunk type. Expected 0x004E4942, found 0x' + chunkType.toString(16));
+    console.error("Invalid glb chunk type. Expected 0x004E4942, found 0x" + chunkType.toString(16));
     return null;
-
   }
 
   const glTFData = new Uint8Array(glb, GLB_HEADER_LENGTH + 2 * UINT32_LENGTH, chunkLength);
@@ -51,15 +46,12 @@ export function parseGLB(glb) {
   let byteOffset = GLB_HEADER_LENGTH + 2 * UINT32_LENGTH + chunkLength;
 
   while (byteOffset < header.length) {
-
     chunkLength = dataView.getUint32(byteOffset, true);
     chunkType = dataView.getUint32(byteOffset + UINT32_LENGTH, true);
 
     if (chunkType !== GLB_CHUNK_TYPES.BIN) {
-
-      console.error('Invalid glb chunk type. Expected 0x004E4942, found 0x' + chunkType.toString(16));
+      console.error("Invalid glb chunk type. Expected 0x004E4942, found 0x" + chunkType.toString(16));
       return null;
-
     }
 
     const currentOffset = byteOffset + 2 * UINT32_LENGTH;
@@ -67,19 +59,16 @@ export function parseGLB(glb) {
     buffers.push(buffer);
 
     byteOffset += chunkLength + 2 * UINT32_LENGTH;
-
   }
 
   // start parse glTF
   return {
     gltf,
-    buffers,
+    buffers
   };
-
 }
 
 class GLBHandler {
-
   /**
    * 实现 handler 的 load 方法， glb 仅需加载 bin 资源与 imageBuffer,base64
    * @param request 请求库
@@ -87,18 +76,15 @@ class GLBHandler {
    * @param callback 加载成功回调
    */
   load(request, props, callback) {
-
     const data = {
       images: [],
       gltf: {} as any,
       buffers: [],
-      shaders: [],
+      shaders: []
     };
 
-    request.load('binary', props, function (err, bin) {
-
+    request.load("binary", props, function(err, bin) {
       if (!err) {
-
         // load images and shaders
         const res = parseGLB(bin);
         data.gltf = res.gltf;
@@ -110,13 +96,12 @@ class GLBHandler {
         const images = data.gltf.images || [];
 
         for (let i = 0; i < images.length; i++) {
-
           const img = images[i];
           const uri = img.uri;
 
           if (uri) {
             //base64
-            if (uri.substr(0, 5) === 'data:') {
+            if (uri.substr(0, 5) === "data:") {
               const img = new Image();
               img.src = uri;
               data.images[i] = img;
@@ -130,64 +115,50 @@ class GLBHandler {
             const bufferData = getBufferData(bufferView, res.buffers);
 
             loadQueue[i] = {
-              type: 'imageBuffer',
+              type: "imageBuffer",
               props: {
                 imageBuffer: bufferData,
-                type: img.mimeType || 'image/jpeg',
+                type: img.mimeType || "image/jpeg"
               }
             };
-
           }
 
           counter++;
-
         }
 
         // 逸瞻：增加对glb文件中shader的解析支持
         const shaders = data.gltf.shaders || [];
 
         for (let i = 0; i < shaders.length; i++) {
-
           const shader = shaders[i];
           const bufferView = data.gltf.bufferViews[shader.bufferView];
           const bufferData = getBufferData(bufferView, res.buffers);
 
           loadQueue[counter] = {
-            type: 'shaderBuffer',
+            type: "shaderBuffer",
             props: {
               shaderBuffer: bufferData,
-              type: 'text/plain'
+              type: "text/plain"
             }
           };
           counter++;
-
         }
 
-
-        request.loadAll(loadQueue, function (err, resMap) {
-
+        request.loadAll(loadQueue, function(err, resMap) {
           for (const res in resMap) {
-
             if (resMap[res] instanceof Image) {
               data.images[res] = resMap[res];
             } else {
               data.shaders.push(resMap[res]);
             }
-
           }
 
           callback(null, data);
-
         });
-
       } else {
-
-        callback('Error loading GLB from ' + props.url);
-
+        callback("Error loading GLB from " + props.url);
       }
-
     });
-
   }
 
   /**
@@ -197,10 +168,8 @@ class GLBHandler {
    */
   // load & use engine exist resources
   patch(resource, resources) {
-
     // init asset info
     attachAsset(resource, resources);
-
   }
 
   /**
@@ -208,12 +177,9 @@ class GLBHandler {
    * @param resource
    */
   open(resource) {
-
     // start parse glTF json
     parseGLTF(resource);
-
   }
-
 }
 
-export {GLBHandler};
+export { GLBHandler };

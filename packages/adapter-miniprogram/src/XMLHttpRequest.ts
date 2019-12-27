@@ -1,22 +1,20 @@
-import EventTarget from './EventTarget';
+import EventTarget from "./EventTarget";
 
 declare let my: any;
 const _requestHeader = new Map();
 const _responseHeader = new Map();
 const _requestTask = new Map();
 
-function _triggerEvent(type, event = {target: this}) {
-
-  if (typeof this[`on${type}`] === 'function') {
-    this[`on${type}`].call(this, event)
+function _triggerEvent(type, event = { target: this }) {
+  if (typeof this[`on${type}`] === "function") {
+    this[`on${type}`].call(this, event);
   }
 }
 
-function _changeReadyState(readyState, event = {readyState}) {
+function _changeReadyState(readyState, event = { readyState }) {
   this.readyState = readyState;
-  _triggerEvent.call(this, 'readystatechange', event)
+  _triggerEvent.call(this, "readystatechange", event);
 }
-
 
 export default class XMLHttpRequest extends EventTarget {
   static UNSEND: number;
@@ -60,15 +58,15 @@ export default class XMLHttpRequest extends EventTarget {
     this.readyState = 0;
     this.response = null;
     this.responseText = null;
-    this._responseType = 'text';
+    this._responseType = "text";
     this.responseXML = null;
     this.status = 0;
-    this.statusText = '';
+    this.statusText = "";
     this.upload = {};
     this.withCredentials = false;
 
-    _requestHeader.set('requestHeader', {
-      'content-type': 'application/x-www-form-urlencoded'
+    _requestHeader.set("requestHeader", {
+      "content-type": "application/x-www-form-urlencoded"
     });
   }
 
@@ -77,23 +75,25 @@ export default class XMLHttpRequest extends EventTarget {
   }
 
   abort() {
-    const myRequestTask = _requestTask.get('requestTask');
+    const myRequestTask = _requestTask.get("requestTask");
 
     if (myRequestTask) {
-      myRequestTask.abort()
+      myRequestTask.abort();
     }
   }
 
   getAllResponseHeaders() {
-    const responseHeader = _responseHeader.get('responseHeader');
+    const responseHeader = _responseHeader.get("responseHeader");
 
-    return Object.keys(responseHeader).map((header) => {
-      return `${header}: ${responseHeader[header]}`
-    }).join('\n');
+    return Object.keys(responseHeader)
+      .map(header => {
+        return `${header}: ${responseHeader[header]}`;
+      })
+      .join("\n");
   }
 
   getResponseHeader(header) {
-    return _responseHeader.get('responseHeader')[header];
+    return _responseHeader.get("responseHeader")[header];
   }
 
   open(method, url /* GET/POST*/) {
@@ -102,45 +102,44 @@ export default class XMLHttpRequest extends EventTarget {
     _changeReadyState.call(this, XMLHttpRequest.OPENED);
   }
 
-  overrideMimeType() {
-  }
+  overrideMimeType() {}
 
-  send(data = '') {
+  send(data = "") {
     if (this.readyState !== XMLHttpRequest.OPENED) {
-      throw new Error("Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.")
+      throw new Error("Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.");
     } else {
       const url = this._url;
-      const header = _requestHeader.get('requestHeader');
+      const header = _requestHeader.get("requestHeader");
       const responseType = this._responseType;
 
       let encoding;
 
-      if (responseType === 'arraybuffer') {
+      if (responseType === "arraybuffer") {
         // encoding = 'binary'
       } else {
-        encoding = 'utf8';
+        encoding = "utf8";
       }
 
       delete this.response;
       this.response = null;
 
-      const onSuccess = ({data, status, headers}) => {
+      const onSuccess = ({ data, status, headers }) => {
         status = status === undefined ? 200 : status;
         this.status = status;
         if (headers) {
-          _responseHeader.set('responseHeader', headers);
+          _responseHeader.set("responseHeader", headers);
         }
-        _triggerEvent.call(this, 'loadstart');
+        _triggerEvent.call(this, "loadstart");
         _changeReadyState.call(this, XMLHttpRequest.HEADERS_RECEIVED);
         _changeReadyState.call(this, XMLHttpRequest.LOADING);
 
         this.response = data;
 
         if (data instanceof ArrayBuffer) {
-          Object.defineProperty(this, 'responseText', {
+          Object.defineProperty(this, "responseText", {
             enumerable: true,
             configurable: true,
-            get: function () {
+            get: function() {
               throw "InvalidStateError : responseType is " + this._responseType;
             }
           });
@@ -148,24 +147,23 @@ export default class XMLHttpRequest extends EventTarget {
           this.responseText = data;
         }
         _changeReadyState.call(this, XMLHttpRequest.DONE);
-        _triggerEvent.call(this, 'load');
-        _triggerEvent.call(this, 'loadend');
-      }
+        _triggerEvent.call(this, "load");
+        _triggerEvent.call(this, "loadend");
+      };
 
-      const onFail = ({message: errMsg}) => {
+      const onFail = ({ message: errMsg }) => {
         // TODO 规范错误
         if (!errMsg) {
           return;
         }
-        if (errMsg.indexOf('abort') !== -1) {
-          _triggerEvent.call(this, 'abort')
+        if (errMsg.indexOf("abort") !== -1) {
+          _triggerEvent.call(this, "abort");
         } else {
-          _triggerEvent.call(this, 'error', {
+          _triggerEvent.call(this, "error", {
             message: errMsg
-          })
+          });
         }
-        _triggerEvent.call(this, 'loadend')
-
+        _triggerEvent.call(this, "loadend");
       };
 
       let requestTask = my.request({
@@ -177,32 +175,31 @@ export default class XMLHttpRequest extends EventTarget {
         success: onSuccess,
         fail: onFail
       });
-      _requestTask.set('requestTask', requestTask);
+      _requestTask.set("requestTask", requestTask);
     }
   }
 
   setRequestHeader(header, value) {
-    const myHeader = _requestHeader.get('requestHeader');
+    const myHeader = _requestHeader.get("requestHeader");
 
     myHeader[header] = value;
-    _requestHeader.set('requestHeader', myHeader);
-
+    _requestHeader.set("requestHeader", myHeader);
   }
 
   addEventListener(type, listener) {
-    if (typeof listener !== 'function') {
+    if (typeof listener !== "function") {
       return;
     }
 
-    this['on' + type] = (event = {}) => {
+    this["on" + type] = (event = {}) => {
       event.target = event.target || this;
-      listener.call(this, event)
-    }
+      listener.call(this, event);
+    };
   }
 
   removeEventListener(type, listener) {
-    if (this['on' + type] === listener) {
-      this['on' + type] = null;
+    if (this["on" + type] === listener) {
+      this["on" + type] = null;
     }
   }
 }

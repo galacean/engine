@@ -6,8 +6,9 @@
  * @param {Number} c The angle of rotation
  * @returns {vec3} out
  */
-export function rotateX(out, a, b, c){
-  let p = [], r=[];
+export function rotateX(out, a, b, c) {
+  let p = [],
+    r = [];
   //Translate point to the origin
   p[0] = a[0] - b[0];
   p[1] = a[1] - b[1];
@@ -15,8 +16,8 @@ export function rotateX(out, a, b, c){
 
   //perform rotation
   r[0] = p[0];
-  r[1] = p[1]*Math.cos(c) - p[2]*Math.sin(c);
-  r[2] = p[1]*Math.sin(c) + p[2]*Math.cos(c);
+  r[1] = p[1] * Math.cos(c) - p[2] * Math.sin(c);
+  r[2] = p[1] * Math.sin(c) + p[2] * Math.cos(c);
 
   //translate to correct position
   out[0] = r[0] + b[0];

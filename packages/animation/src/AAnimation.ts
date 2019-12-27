@@ -10,27 +10,20 @@ import { AnimationOptions } from "./types";
  * @see class AnimationClip
  */
 export class AAnimation extends NodeAbility {
-
   /**
    * 缩放播放速度
    * @member {number}
    */
   get timeScale(): number {
-
     return this._timeScale;
-
   }
   /**
    * 设置播放速度
    */
   set timeScale(val: number) {
-
     if (val > 0) {
-
       this._timeScale = val;
-
     }
-
   }
 
   /**
@@ -41,35 +34,33 @@ export class AAnimation extends NodeAbility {
    * @param {number} alpha
    * @private
    */
-  public static lerp(outValue: Float32Array | number, startValue: number, endValue: number, alpha: number, outputSize: number): Float32Array | number {
-
+  public static lerp(
+    outValue: Float32Array | number,
+    startValue: number,
+    endValue: number,
+    alpha: number,
+    outputSize: number
+  ): Float32Array | number {
     switch (outputSize) {
-
       case 1:
         outValue = startValue * (1 - alpha) + endValue * alpha;
         break;
       case 2:
-      case 3: {
-
-        for (let i = outputSize; i >= 0; i--) {
-
-          outValue[i] = startValue[i] * (1 - alpha) + endValue[i] * alpha;
-
+      case 3:
+        {
+          for (let i = outputSize; i >= 0; i--) {
+            outValue[i] = startValue[i] * (1 - alpha) + endValue[i] * alpha;
+          }
         }
-
-      }
-              break;
-      case 4: {
-
-        quat.slerp(outValue, startValue, endValue, alpha);
-
-      }
-              break;
-
-    }// end of switch
+        break;
+      case 4:
+        {
+          quat.slerp(outValue, startValue, endValue, alpha);
+        }
+        break;
+    } // end of switch
 
     return outValue;
-
   }
 
   private _animSet;
@@ -84,12 +75,10 @@ export class AAnimation extends NodeAbility {
    * @param {Node} node
    */
   constructor(node: Node) {
-
     super(node);
-    this._animSet = {};   // name : AnimationClip
+    this._animSet = {}; // name : AnimationClip
     this._animLayers = [new AnimationLayer()];
     this._timeScale = 1.0;
-
   }
 
   /**
@@ -98,17 +87,14 @@ export class AAnimation extends NodeAbility {
    * @private
    */
   public update(deltaTime: number) {
-
     super.update(deltaTime);
 
     deltaTime = deltaTime * this._timeScale;
 
     // update state
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
       const animLayer = this._animLayers[i];
       animLayer.updateState(deltaTime);
-
     }
 
     // update value
@@ -116,18 +102,13 @@ export class AAnimation extends NodeAbility {
 
     // trigger events and destroy no use layer
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
       const animLayer = this._animLayers[i];
       animLayer.triggerEvents();
       if (!animLayer.isPlaying && (animLayer.isFading || animLayer.isMixLayer)) {
-
         this._animLayers.splice(i, 1);
         this._removeRefMixLayers(animLayer);
-
       }
-
     }
-
   }
 
   /**
@@ -136,9 +117,7 @@ export class AAnimation extends NodeAbility {
    * @param {string} name 动画片段名称
    */
   public addAnimationClip(animClip: AnimationClip, name: string) {
-
     this._animSet[name] = animClip;
-
   }
 
   /**
@@ -146,14 +125,10 @@ export class AAnimation extends NodeAbility {
    * @param {string} name 动画片段的名称
    */
   public removeAnimationClip(name: string) {
-
     const animClip = this._animSet[name];
     if (animClip) {
-
       delete this._animSet[name];
-
     }
-
   }
 
   /**
@@ -162,18 +137,12 @@ export class AAnimation extends NodeAbility {
    * @return {number}
    */
   public getAnimationClipLength(name: string): number {
-
     const animClip = this._animSet[name];
     if (animClip) {
-
       return animClip.getChannelTimeLength(0);
-
     } else {
-
       return 0.0;
-
     }
-
   }
 
   /**
@@ -181,18 +150,12 @@ export class AAnimation extends NodeAbility {
    * @return {boolean}
    */
   public isPlaying(): boolean {
-
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
       if (this._animLayers[i].isPlaying) {
-
         return true;
-
       }
-
     }
     return false;
-
   }
 
   /**
@@ -216,36 +179,26 @@ export class AAnimation extends NodeAbility {
    * @param {AnimationOptions} options 动画参数
    */
   public playAnimationClip(name: string, options: AnimationOptions) {
-
     const animClip = this._animSet[name];
     if (!animClip) {
-
       Logger.error("can not find anim clip: " + name);
       return;
-
     }
 
     let animLayer: AnimationLayer = null;
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
       if (!this._animLayers[i].isFading && !this._animLayers[i].isMixLayer) {
-
         animLayer = this._animLayers[i];
         break;
-
       }
-
     }
 
     if (!animLayer) {
-
       animLayer = new AnimationLayer();
       this._animLayers.push(animLayer);
-
     }
     this._removeRefMixLayers(animLayer);
     this._channelTargets = animLayer.play(animClip, this.node, options);
-
   }
 
   /**
@@ -255,46 +208,32 @@ export class AAnimation extends NodeAbility {
    * @param {AnimationOptions} options 动画参数
    */
   public crossFade(name: string, crossFadeDuration: number, options: AnimationOptions) {
-
     const animClip = this._animSet[name];
     if (!animClip) {
-
       Logger.error("can not find anim clip: " + name);
       return;
-
     }
 
     if (!crossFadeDuration || crossFadeDuration < 0) {
-
       Logger.error("crossFadeDuration can not less than 0!");
       return;
-
     }
 
     // 寻找可以进行混合的目标
     let targetAnimLayer = null;
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
       if (this._animLayers[i].canMix(animClip, this.node)) {
-
         targetAnimLayer = this._animLayers[i];
         break;
-
       }
-
     }
 
     if (targetAnimLayer) {
-
       // 先清除还未结束的crossFading动作
       for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
         if (this._animLayers[i].isFading) {
-
           this._animLayers.splice(i, 1);
-
         }
-
       }
 
       targetAnimLayer.isFading = true;
@@ -306,13 +245,9 @@ export class AAnimation extends NodeAbility {
       animLayer.crossFadeDeltaTime = 0;
       animLayer.play(animClip, this.node, options);
       this._animLayers.push(animLayer);
-
     } else {
-
       this.playAnimationClip(name, options);
-
     }
-
   }
 
   /**
@@ -322,38 +257,28 @@ export class AAnimation extends NodeAbility {
    * @param {AnimationOptions} options 动画参数
    */
   public mix(name: string, mixBoneName: string, options: AnimationOptions) {
-
     const animClip = this._animSet[name];
     if (!animClip) {
-
       Logger.error("can not find anim clip: " + name);
       return;
-
     }
 
     const mixNode = this.node.findChildByName(mixBoneName);
     if (!mixNode) {
-
       Logger.error("can not find mix bone!");
       return;
-
     }
 
     // 寻找可以进行混合的目标
     let targetAnimLayer = null;
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
       if (this._animLayers[i].canMix(animClip, this.node)) {
-
         targetAnimLayer = this._animLayers[i];
         break;
-
       }
-
     }
 
     if (targetAnimLayer) {
-
       this._removeRefMixLayers(null, mixNode);
 
       targetAnimLayer.hasMixLayer = true;
@@ -364,9 +289,7 @@ export class AAnimation extends NodeAbility {
       animLayer.mixNode = mixNode;
       animLayer.mix(animClip, targetAnimLayer, this.node, mixNode, options);
       this._animLayers.push(animLayer);
-
     }
-
   }
 
   /**
@@ -374,21 +297,13 @@ export class AAnimation extends NodeAbility {
    * @param {boolean} rightnow, stop it immediately, or it will stop at the end of the clip
    */
   public stop(rightnow: boolean) {
-
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
       if (this._animLayers[i].isFading) {
-
         this._animLayers.splice(i, 1);
-
       } else {
-
         this._animLayers[i].stop(rightnow);
-
       }
-
     }
-
   }
 
   /**
@@ -396,16 +311,12 @@ export class AAnimation extends NodeAbility {
    * @param {float} frameTime
    */
   public jumpToFrame(frameTime: number) {
-
     frameTime = frameTime / 1000;
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
       this._animLayers[i].jumpToFrame(frameTime);
-
     }
 
     this._updateValues();
-
   }
 
   // -- private ----------------------------------------------------------
@@ -415,39 +326,30 @@ export class AAnimation extends NodeAbility {
    * @private
    */
   public _removeRefMixLayers(targetLayer: AnimationLayer, mixNode?) {
-
     if (targetLayer && targetLayer.hasMixLayer) {
-
       for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
         const animLayer = this._animLayers[i];
         if (animLayer.isMixLayer && animLayer.mixTagetLayer === targetLayer) {
-
           animLayer.removeMixWeight();
           this._animLayers.splice(i, 1);
-
         }
-
       }
-
     }
 
     if (mixNode) {
-
       for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
         const animLayer = this._animLayers[i];
-        if (animLayer.isMixLayer && (animLayer.mixNode === mixNode || animLayer.mixNode.findChildByName(mixNode) || mixNode.findChildByName(animLayer.mixNode))) {
-
+        if (
+          animLayer.isMixLayer &&
+          (animLayer.mixNode === mixNode ||
+            animLayer.mixNode.findChildByName(mixNode) ||
+            mixNode.findChildByName(animLayer.mixNode))
+        ) {
           animLayer.removeMixWeight();
           this._animLayers.splice(i, 1);
-
         }
-
       }
-
     }
-
   }
 
   /**
@@ -455,34 +357,24 @@ export class AAnimation extends NodeAbility {
    * @private
    */
   public _updateValues() {
-
     if (this._animLayers.length === 0 || !this._channelTargets) {
-
       return;
-
     }
 
     for (let i = this._channelTargets.length - 1; i >= 0; i--) {
-
       const channelTarget = this._channelTargets[i];
       const val = this._getChannelValue(i, channelTarget.outputSize);
       const targetObject = channelTarget.targetObject;
       const path = channelTarget.path;
 
       if (path === "weights") {
-
         // ASkinnedMeshRenderer
         targetObject.setWeights(val);
-
       } else {
-
         // Node[property]
         targetObject[path] = val;
-
       }
-
     } // end of for
-
   }
 
   /**
@@ -492,37 +384,26 @@ export class AAnimation extends NodeAbility {
    * @private
    */
   public _getChannelValue(channelIndex: number, outputSize: number): number | Float32Array | boolean {
-
     const weights = [];
     const values = [];
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-
       const weight = this._animLayers[i].getChannelLayerWeight(channelIndex);
       if (weight > 0) {
-
         weights.push(weight);
         values.push(this._animLayers[i].getChannelValue(channelIndex));
-
       }
-
     }
 
     if (values.length === 1) {
-
       // 一个值生效，直接返回结果
       return values[0];
-
     } else if (values.length === 2) {
-
       // 两个值生效，插值返回
       return AAnimation.lerp(values[0], values[0], values[1], weights[1], outputSize);
-
     }
 
     // 其他情况，是暂时处理不了的
     Logger.error("Can not get channel value!");
     return false;
-
   }
-
 }

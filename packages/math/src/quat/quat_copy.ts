@@ -6,4 +6,4 @@
  * @returns {quat} out
  * @function
  */
-export { copy } from '../vec4/vec4_copy';
+export { copy } from "../vec4/vec4_copy";

@@ -1,1 +1,1 @@
-export { ACollisionDetection } from './ACollisionDetection';
+export { ACollisionDetection } from "./ACollisionDetection";

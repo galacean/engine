@@ -5,4 +5,4 @@
  * @param {quat} b The second quaternion.
  * @returns {Boolean} True if the vectors are equal, false otherwise.
  */
-export { exactEquals } from '../vec4/vec4_exactEquals';
+export { exactEquals } from "../vec4/vec4_exactEquals";

@@ -1,4 +1,4 @@
-import { EPSILON } from '../MathUtil/MathUtil_EPSILON';
+import { EPSILON } from "../MathUtil/MathUtil_EPSILON";
 /**
  * Rotates a mat4 by the given angle around the given axis
  *
@@ -9,7 +9,9 @@ import { EPSILON } from '../MathUtil/MathUtil_EPSILON';
  * @returns {mat4} out
  */
 export function rotate(out, a, rad, axis) {
-  let x = axis[0], y = axis[1], z = axis[2];
+  let x = axis[0],
+    y = axis[1],
+    z = axis[2];
   let len = Math.sqrt(x * x + y * y + z * z);
   let s, c, t;
   let a00, a01, a02, a03;
@@ -19,7 +21,9 @@ export function rotate(out, a, rad, axis) {
   let b10, b11, b12;
   let b20, b21, b22;
 
-  if (Math.abs(len) < EPSILON) { return null; }
+  if (Math.abs(len) < EPSILON) {
+    return null;
+  }
 
   len = 1 / len;
   x *= len;
@@ -30,14 +34,29 @@ export function rotate(out, a, rad, axis) {
   c = Math.cos(rad);
   t = 1 - c;
 
-  a00 = a[0]; a01 = a[1]; a02 = a[2]; a03 = a[3];
-  a10 = a[4]; a11 = a[5]; a12 = a[6]; a13 = a[7];
-  a20 = a[8]; a21 = a[9]; a22 = a[10]; a23 = a[11];
+  a00 = a[0];
+  a01 = a[1];
+  a02 = a[2];
+  a03 = a[3];
+  a10 = a[4];
+  a11 = a[5];
+  a12 = a[6];
+  a13 = a[7];
+  a20 = a[8];
+  a21 = a[9];
+  a22 = a[10];
+  a23 = a[11];
 
   // Construct the elements of the rotation matrix
-  b00 = x * x * t + c; b01 = y * x * t + z * s; b02 = z * x * t - y * s;
-  b10 = x * y * t - z * s; b11 = y * y * t + c; b12 = z * y * t + x * s;
-  b20 = x * z * t + y * s; b21 = y * z * t - x * s; b22 = z * z * t + c;
+  b00 = x * x * t + c;
+  b01 = y * x * t + z * s;
+  b02 = z * x * t - y * s;
+  b10 = x * y * t - z * s;
+  b11 = y * y * t + c;
+  b12 = z * y * t + x * s;
+  b20 = x * z * t + y * s;
+  b21 = y * z * t - x * s;
+  b22 = z * z * t + c;
 
   // Perform rotation-specific matrix multiplication
   out[0] = a00 * b00 + a10 * b01 + a20 * b02;
@@ -53,7 +72,8 @@ export function rotate(out, a, rad, axis) {
   out[10] = a02 * b20 + a12 * b21 + a22 * b22;
   out[11] = a03 * b20 + a13 * b21 + a23 * b22;
 
-  if (a !== out) { // If the source and destination differ, copy the unchanged last row
+  if (a !== out) {
+    // If the source and destination differ, copy the unchanged last row
     out[12] = a[12];
     out[13] = a[13];
     out[14] = a[14];

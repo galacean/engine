@@ -1,8 +1,8 @@
-import { Logger, UpdateType } from '@alipay/o3-base';
-import { AssetObject } from '@alipay/o3-core';
-import { Primitive } from '@alipay/o3-primitive';
+import { Logger, UpdateType } from "@alipay/o3-base";
+import { AssetObject } from "@alipay/o3-core";
+import { Primitive } from "@alipay/o3-primitive";
 
-import { getVertexDataTypeSize, getVertexDataTypeDataView } from './Constant';
+import { getVertexDataTypeSize, getVertexDataTypeDataView } from "./Constant";
 
 let geometryCount = 0;
 
@@ -11,7 +11,6 @@ let geometryCount = 0;
  * @extends AssetObject
  */
 export class BufferGeometry extends AssetObject {
-
   primitive;
 
   stride: number;
@@ -22,13 +21,11 @@ export class BufferGeometry extends AssetObject {
    * @param {string} name 名称
    */
   constructor(name?: string) {
-
-    name = name || 'bufferGeometry' + geometryCount++;
+    name = name || "bufferGeometry" + geometryCount++;
     super(name);
 
     this.primitive = new Primitive();
     this.stride = 0;
-
   }
 
   /**
@@ -47,34 +44,34 @@ export class BufferGeometry extends AssetObject {
    * @param {number} usage 数据绘制类型常量，默认为静态类型 STATIC_DRAW，需要更新数据时使用动态类型 DYNAMIC_DRAW
    */
   initialize(attributes, vertexCount, usage?) {
-
     const attribCount = attributes.length;
     let stride = 0;
     for (let i = 0; i < attribCount; i++) {
-
       const attribute = attributes[i];
       attributes[i].offset = stride;
       stride += this._getSizeInByte(attribute.size, attribute.type);
-
     }
 
     for (let i = 0; i < attribCount; i++) {
-
       const attribute = attributes[i];
-      this.primitive.addAttribute(attribute.semantic, attribute.size, attribute.type, attribute.normalized, stride, attribute.offset, 0);
-
+      this.primitive.addAttribute(
+        attribute.semantic,
+        attribute.size,
+        attribute.type,
+        attribute.normalized,
+        stride,
+        attribute.offset,
+        0
+      );
     }
 
     this.primitive.vertexBuffers[0] = new ArrayBuffer(vertexCount * stride);
     this.primitive.vertexCount = vertexCount;
     if (usage) {
-
       this.primitive.usage = usage;
-
     }
     this.attributes = attributes;
     this.stride = stride;
-
   }
 
   /**
@@ -83,9 +80,7 @@ export class BufferGeometry extends AssetObject {
    * @returns {number} 顶点数
    */
   get vertexCount() {
-
     return this.primitive.vertexCount;
-
   }
 
   /**
@@ -93,9 +88,7 @@ export class BufferGeometry extends AssetObject {
    * @param {string} mode 渲染模式常量
    */
   set mode(mode) {
-
     this.primitive.mode = mode;
-
   }
 
   /**
@@ -103,9 +96,7 @@ export class BufferGeometry extends AssetObject {
    * @returns {number} 渲染模式常量
    */
   get mode() {
-
     return this.primitive.mode;
-
   }
 
   /**
@@ -113,17 +104,11 @@ export class BufferGeometry extends AssetObject {
    * @param {Array} vertexValues 顶点的属性数据对象列表
    */
   setAllVertexValues(vertexValues) {
-
     if (Array.isArray(vertexValues)) {
-
       vertexValues.forEach((values, index) => {
-
         this.setVertexValues(index, values);
-
       });
-
     }
-
   }
 
   /**
@@ -132,22 +117,14 @@ export class BufferGeometry extends AssetObject {
    * @param {Object} values 顶点的属性数据对象，对象的属性为顶点属性的名称，值为顶点属性的数据
    */
   setVertexValues(vertexIndex, values) {
-
-    if (typeof (values) === 'object') {
-
+    if (typeof values === "object") {
       for (const name in values) {
-
         if (values.hasOwnProperty(name)) {
-
           const value = values[name];
           this.setValue(name, vertexIndex, value);
-
         }
-
       }
-
     }
-
   }
 
   /**
@@ -157,26 +134,19 @@ export class BufferGeometry extends AssetObject {
    * @param {number[]} value 属性值
    */
   setValue(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
-
     const vertexAttrib = this.primitive.vertexAttributes[semantic];
     if (vertexAttrib == undefined) {
-
-      Logger.error('UNKNOWN semantic: ' + semantic);
+      Logger.error("UNKNOWN semantic: " + semantic);
       return false;
-
     }
     if (vertexIndex >= this.primitive.vertexCount) {
-
-      Logger.error('vertexIndex: ' + vertexIndex + ' out of range: ' + this.primitive.vertexCount);
+      Logger.error("vertexIndex: " + vertexIndex + " out of range: " + this.primitive.vertexCount);
       return false;
-
     }
 
     if (value.length !== vertexAttrib.size) {
-
-      Logger.error('value size MUST be equal to vertexAttrib size: ' + value.length);
+      Logger.error("value size MUST be equal to vertexAttrib size: " + value.length);
       return false;
-
     }
     const constructor = getVertexDataTypeDataView(vertexAttrib.type);
     const byteOffset = vertexAttrib.offset + vertexAttrib.stride * vertexIndex;
@@ -187,29 +157,20 @@ export class BufferGeometry extends AssetObject {
 
     // 数据更新时修改更新状态为 UPDATE_RANGE
     if (this.primitive.updateType === UpdateType.NO_UPDATE) {
-
       this.primitive.updateType = UpdateType.UPDATE_RANGE;
-
     }
     // 设置更新范围
     if (this.primitive.updateType === UpdateType.UPDATE_RANGE) {
-
       const byteLength = this._getSizeInByte(vertexAttrib.size, vertexAttrib.type);
       if (this.primitive.updateRange.byteOffset < 0) {
-
         this.primitive.updateRange.byteOffset = byteOffset;
         this.primitive.updateRange.byteLength = byteLength;
-
       } else {
-
         this._getUpdateRange(byteOffset, byteLength);
-
       }
-
     }
 
     return true;
-
   }
 
   /**
@@ -218,20 +179,14 @@ export class BufferGeometry extends AssetObject {
    * @returns {Object} 顶点数据集
    */
   getVertexValues(index) {
-
     const vertexAttributes = this.primitive.vertexAttributes;
     const values = {};
     for (const semantic in vertexAttributes) {
-
       if (vertexAttributes.hasOwnProperty(semantic)) {
-
         values[semantic] = this.getValue(semantic, index);
-
       }
-
     }
     return values;
-
   }
 
   /**
@@ -241,24 +196,22 @@ export class BufferGeometry extends AssetObject {
    * @returns {TypedArray} 顶点数据
    */
   getValue(name, vertexIndex) {
-
     const vertexAttrib = this.primitive.vertexAttributes[name];
     if (vertexAttrib === undefined) {
-
-      Logger.error('UNKNOWN name: ' + name);
+      Logger.error("UNKNOWN name: " + name);
       return null;
-
     }
     if (vertexIndex >= this.primitive.vertexCount) {
-
-      Logger.error('vertexIndex: ' + vertexIndex + ' out of range: ' + this.primitive.vertexCount);
+      Logger.error("vertexIndex: " + vertexIndex + " out of range: " + this.primitive.vertexCount);
       return null;
-
     }
     const constructor = getVertexDataTypeDataView(vertexAttrib.type);
 
-    return new constructor(this.primitive.vertexBuffers[0], vertexAttrib.offset + vertexAttrib.stride * vertexIndex, vertexAttrib.size);
-
+    return new constructor(
+      this.primitive.vertexBuffers[0],
+      vertexAttrib.offset + vertexAttrib.stride * vertexIndex,
+      vertexAttrib.size
+    );
   }
 
   /**
@@ -268,13 +221,12 @@ export class BufferGeometry extends AssetObject {
    * @private
    */
   _getUpdateRange(byteOffset, byteLength) {
-
     const updateRange = this.primitive.updateRange;
     const rangeEnd1 = updateRange.byteOffset + updateRange.byteLength;
     updateRange.byteOffset = Math.min(byteOffset, updateRange.byteOffset);
     const rangeEnd2 = byteOffset + byteLength;
-    updateRange.byteLength = rangeEnd1 <= rangeEnd2 ? rangeEnd2 - updateRange.byteOffset : rangeEnd1 - updateRange.byteOffset;
-
+    updateRange.byteLength =
+      rangeEnd1 <= rangeEnd2 ? rangeEnd2 - updateRange.byteOffset : rangeEnd1 - updateRange.byteOffset;
   }
 
   /**
@@ -284,19 +236,13 @@ export class BufferGeometry extends AssetObject {
    * @private
    */
   _getSizeInByte(size, type) {
-
     const num = getVertexDataTypeSize(type);
     if (num) {
-
       return size * num;
-
     } else {
-
-      Logger.error('UNKNOWN vertex attribute type: ' + type);
+      Logger.error("UNKNOWN vertex attribute type: " + type);
       return 0;
-
     }
-
   }
 
   /**
@@ -304,11 +250,8 @@ export class BufferGeometry extends AssetObject {
    * @private
    */
   _finalize() {
-
     super._finalize();
     this.primitive.finalize();
     this.primitive = null;
-
   }
-
 }

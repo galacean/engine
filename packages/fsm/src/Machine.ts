@@ -1,5 +1,4 @@
-const noop = function () {
-};
+const noop = function() {};
 
 /**
  * 状态机类
@@ -7,7 +6,6 @@ const noop = function () {
  * @private
  */
 class Machine {
-
   public name;
   public currentState;
   public machineTime;
@@ -19,19 +17,17 @@ class Machine {
    * @param {string} name 名称
    */
   constructor(name) {
-
     this.name = name;
     this.currentState = {
-      name: 'init',
+      name: "init",
       onEnter: noop,
       onExit: noop,
-      onTick: noop,
+      onTick: noop
     };
 
     this.machineTime = 0;
     this.states = {};
     this.transitions = {};
-
   }
 
   /**
@@ -40,52 +36,40 @@ class Machine {
    * @param {function} onEnter 进入状态函数
    */
   addState(name, onEnter = noop) {
-
     let state = {
-      name: '',
+      name: "",
       onEnter: noop,
       onExit: noop,
       onTick: noop,
-      _startTime: 0,
+      _startTime: 0
     };
     // shortCut
-    if (typeof (name) === 'string') {
-
+    if (typeof name === "string") {
       state.name = name;
       state.onEnter = onEnter;
-
     } else {
-
       // full config
       state = name;
-
     }
 
     this.states[state.name] = state;
-
   }
 
   /**
    * 添加一个状态过渡
    * @param {{ from: string | string[], to: string, trigger: string }} param0
    */
-  addTransition({from, to, trigger}) {
-
+  addTransition({ from, to, trigger }) {
     let currentStates = from;
 
-    if (typeof (currentStates) === 'string') {
-
+    if (typeof currentStates === "string") {
       currentStates = [from];
-
     }
 
     // TODO: add state verify
     for (const currentState of currentStates) {
-
       this.transitions[[trigger, currentState] as any] = to;
-
     }
-
   }
 
   /**
@@ -93,13 +77,9 @@ class Machine {
    * @param {Array}  transitions 状态过渡数组
    */
   addTransitions(transitions) {
-
     for (const transition of transitions) {
-
       this.addTransition(transition);
-
     }
-
   }
 
   /**
@@ -107,9 +87,7 @@ class Machine {
    * @param {Object}  state 状态名
    */
   is(state) {
-
     return this.currentState.name === state;
-
   }
 
   /**
@@ -118,28 +96,22 @@ class Machine {
    * @param {Object} data 数据
    */
   to(stateName, data = {}) {
-
     const prevState = this.currentState || {};
     const toState = this.states[stateName];
     // exit current state
 
     if (prevState.onExit) {
-
       prevState.startTime = 0;
       prevState.onExit.call(this, stateName, data);
-
     }
 
     this.currentState = toState;
 
     // enter next state
     if (toState && toState.onEnter) {
-
       toState.startTime = this.machineTime;
       toState.onEnter.call(this, prevState.name, data);
-
     }
-
   }
 
   /**
@@ -148,16 +120,12 @@ class Machine {
    * @param {Object} data 数据
    */
   dispatch(trigger, data) {
-
     console.log(this.transitions);
     const nextState = this.transitions[[trigger, this.currentState.name] as any];
     console.log(this.currentState, trigger, data, nextState);
     if (nextState) {
-
       this.to(nextState, data);
-
     }
-
   }
 
   /**
@@ -165,18 +133,13 @@ class Machine {
    * @param {number}  deltaTime 两帧之间的时间
    */
   update(deltaTime) {
-
     this.machineTime += deltaTime;
 
     if (this.currentState && this.currentState.onTick) {
-
       const currentStateDuration = this.machineTime - this.currentState.startTime;
       this.currentState.onTick(deltaTime, currentStateDuration);
-
     }
-
   }
-
 }
 
-export {Machine};
+export { Machine };

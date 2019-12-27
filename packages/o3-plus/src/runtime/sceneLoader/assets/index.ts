@@ -1,7 +1,7 @@
 import * as r3 from "@alipay/o3";
-import {loadResources} from "./resourceLoader/resource";
-import {loadCubeResources} from "./resourceLoader/cubeResource";
-import {loadScripts} from "./scriptLoader/loader";
+import { loadResources } from "./resourceLoader/resource";
+import { loadCubeResources } from "./resourceLoader/cubeResource";
+import { loadScripts } from "./scriptLoader/loader";
 
 const assetCache = {};
 let resourceLoader = null;
@@ -13,19 +13,19 @@ export function script(name: string): ClassDecorator {
   };
 }
 
-export async function loadAssets(engine: r3.Engine, assets: { [id: string]: Asset }, onProgress?, local?:boolean) {
+export async function loadAssets(engine: r3.Engine, assets: { [id: string]: Asset }, onProgress?, local?: boolean) {
   resourceLoader = new r3.ResourceLoader(engine, null);
   const resources = filterResources(assets);
   // 单独处理cubeTexture
   await loadCubeResources(resourceLoader, assets, assetCache);
-  const resPromise = loadResources(resourceLoader,engine, resources, onProgress);
+  const resPromise = loadResources(resourceLoader, engine, resources, onProgress);
 
   let promises = [resPromise];
 
   if (!local) {
     const scripts = filterScripts(assets);
     const scriptsPromise = loadScripts(scripts);
-    promises.push(scriptsPromise)
+    promises.push(scriptsPromise);
   }
 
   const res = await Promise.all(promises);
@@ -39,11 +39,11 @@ export async function loadAssets(engine: r3.Engine, assets: { [id: string]: Asse
 
 function filterResources(assets: { [id: string]: Asset }) {
   return Object.values(assets)
-    .filter(value => value.downloadable && value.type !== "script" && value.type !== 'cubeTexture')
+    .filter(value => value.downloadable && value.type !== "script" && value.type !== "cubeTexture")
     .map(value => {
-      const resource = new r3.Resource(value.name, {type: value.type as any, url: value.url});
+      const resource = new r3.Resource(value.name, { type: value.type as any, url: value.url });
       (resource as any).id = value.id;
-      if (value.type === 'gltf' && value.props) {
+      if (value.type === "gltf" && value.props) {
         (resource as any).newMaterial = (value.props as any).newMaterial;
       }
       return resource;
@@ -70,7 +70,7 @@ function loadR3Object(assets: { [id: string]: Asset }) {
       }
       r3Object.type = value.type;
       setResource(value.id, r3Object);
-    })
+    });
 }
 
 function bindAsset() {
@@ -78,8 +78,15 @@ function bindAsset() {
     const asset = assetCache[key];
 
     // 替换PBR材质中的纹理
-    if (asset && asset.type === 'PBRMaterial') {
-      const textureArr = ['metallicRoughnessTexture', 'specularGlossinessTexture', 'baseColorTexture', 'normalTexture', 'emissiveTexture', 'occlusionTexture'];
+    if (asset && asset.type === "PBRMaterial") {
+      const textureArr = [
+        "metallicRoughnessTexture",
+        "specularGlossinessTexture",
+        "baseColorTexture",
+        "normalTexture",
+        "emissiveTexture",
+        "occlusionTexture"
+      ];
       textureArr.map(attr => {
         const value = asset[attr];
         if (value && checkIsAsset(value)) {
@@ -89,7 +96,7 @@ function bindAsset() {
     }
 
     // 替换gltf文件中的material
-    if (asset && asset.type === 'gltf' && asset.newMaterial) {
+    if (asset && asset.type === "gltf" && asset.newMaterial) {
       const gltf = asset.asset;
       const meshes = gltf.meshes;
       // 兼容旧项目
@@ -118,11 +125,11 @@ function bindAsset() {
       //   meshes[i].primitives[0].material = getResource(assetId);
       // }
     }
-  })
+  });
 }
 
 function checkIsAsset(config: any): boolean {
-  return config.type === 'asset';
+  return config.type === "asset";
 }
 
 export function getResource(id: string) {
@@ -150,5 +157,5 @@ export interface Asset {
   url?: string;
   localUrl?: string;
   type: string;
-  props?: object
+  props?: object;
 }

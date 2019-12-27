@@ -1,4 +1,4 @@
-import { ARRAY_TYPE } from '../MathUtil/MathUtil_ARRAY_TYPE';
+import { ARRAY_TYPE } from "../MathUtil/MathUtil_ARRAY_TYPE";
 /**
  * Create a new mat3 with the given values
  *

@@ -1,28 +1,26 @@
-import { RenderState, DataType } from '@alipay/o3-base';
-import { Material, RenderTechnique } from '@alipay/o3-material';
-import VERT_SHADER from './shader/Vertex.glsl';
-import FRAG_SHADER from './shader/Texture.glsl';
+import { RenderState, DataType } from "@alipay/o3-base";
+import { Material, RenderTechnique } from "@alipay/o3-material";
+import VERT_SHADER from "./shader/Vertex.glsl";
+import FRAG_SHADER from "./shader/Texture.glsl";
 
 /**
  * 无光照贴图材质
  */
 export class TextureMaterial extends Material {
-
-  static TECH_NAME = 'Texture';
+  static TECH_NAME = "Texture";
   static DISABLE_SHARE = true;
 
   /**
    * 构造函数
    * @param {string} name 名称
    */
-  constructor( name ) {
-
-    super( name || 'TextureMaterial' );
+  constructor(name) {
+    super(name || "TextureMaterial");
 
     const uniforms = this._generateFragmentUniform();
 
     //--
-    const tech = new RenderTechnique( 'Texture' );
+    const tech = new RenderTechnique("Texture");
     tech.isValid = true;
     tech.uniforms = uniforms;
     tech.attributes = {};
@@ -32,7 +30,6 @@ export class TextureMaterial extends Material {
     tech.states = {};
 
     this._technique = tech;
-
   }
 
   /**
@@ -40,69 +37,51 @@ export class TextureMaterial extends Material {
    * @param {string} name 参数名称
    * @param {*} value 参数值
    */
-  setValue( name, value ) {
-
-    if ( name === 'doubleSided' ) {
-
+  setValue(name, value) {
+    if (name === "doubleSided") {
       this._setDoubleSidedDisplay(value);
-
     }
 
-    super.setValue( name, value );
-
+    super.setValue(name, value);
   }
 
   /**
-  * 纹理贴图
-  * @member {Texture2D}
-  */
-  set texture( v ) {
-
-    this.setValue( 's_diffuse', v );
-
+   * 纹理贴图
+   * @member {Texture2D}
+   */
+  set texture(v) {
+    this.setValue("s_diffuse", v);
   }
   get texture() {
-
-    return this.getValue( 's_diffuse' );
-
+    return this.getValue("s_diffuse");
   }
 
   /**
-  * 是否双面显示
-  * @member {boolean}
-  */
+   * 是否双面显示
+   * @member {boolean}
+   */
   set doubleSided(v) {
-
-    this.setValue('doubleSided', v);
-
+    this.setValue("doubleSided", v);
   }
   get doubleSided() {
-
-    return this.getValue('doubleSided');
-
+    return this.getValue("doubleSided");
   }
 
   /** 创建一个本材质对象的深拷贝对象 */
   clone() {
-
-    const newMtl = new TextureMaterial( this.name );
+    const newMtl = new TextureMaterial(this.name);
 
     newMtl.renderType = this.renderType;
 
-    for ( const name in this._values ) {
-
-      if ( this._values.hasOwnProperty( name ) ) {
-
+    for (const name in this._values) {
+      if (this._values.hasOwnProperty(name)) {
         newMtl._values[name] = this._values[name];
-
       }
-
-    }// end of for
+    } // end of for
 
     newMtl._technique.states = this._technique.states;
 
     return newMtl;
-
   }
 
   /**
@@ -110,22 +89,20 @@ export class TextureMaterial extends Material {
    * @private
    */
   _generateFragmentUniform() {
-
     const uniforms = {
       s_diffuse: {
-        name: 's_diffuse',
-        paramName: '_MainTex',
-        type: DataType.SAMPLER_2D,
+        name: "s_diffuse",
+        paramName: "_MainTex",
+        type: DataType.SAMPLER_2D
       },
       doubleSided: {
-        name: 'doubleSided',
-        paramName: 'doubleSided',
-        type: DataType.BOOL,
+        name: "doubleSided",
+        paramName: "doubleSided",
+        type: DataType.BOOL
       }
     };
 
     return uniforms;
-
   }
 
   /**
@@ -133,7 +110,6 @@ export class TextureMaterial extends Material {
    * @private
    */
   _setDoubleSidedDisplay(value) {
-
     this._technique.states.disable = [];
     this._technique.customMacros = [];
 

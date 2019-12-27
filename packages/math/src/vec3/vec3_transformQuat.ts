@@ -9,8 +9,13 @@
 export function transformQuat(out, a, q) {
   // benchmarks: http://jsperf.com/quaternion-transform-vec3-implementations
 
-  let x = a[0], y = a[1], z = a[2];
-  let qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+  let x = a[0],
+    y = a[1],
+    z = a[2];
+  let qx = q[0],
+    qy = q[1],
+    qz = q[2],
+    qw = q[3];
 
   // calculate quat * vec
   let ix = qw * x + qy * z - qz * y;

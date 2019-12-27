@@ -5,5 +5,5 @@
  * @returns {String} string representation of the vector
  */
 export function str(a) {
-  return 'vec3(' + a[0] + ', ' + a[1] + ', ' + a[2] + ')';
+  return "vec3(" + a[0] + ", " + a[1] + ", " + a[2] + ")";
 }

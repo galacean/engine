@@ -4,7 +4,6 @@ import { AssetObject } from "./AssetObject";
  * 资源池：管理所有资源对象
  */
 export class AssetPool {
-
   private _assets: { [key: string]: AssetObject };
 
   /**
@@ -12,18 +11,14 @@ export class AssetPool {
    * @constructor
    */
   constructor() {
-
     this._assets = {};
-
   }
 
   /**
    * 资源池中资源的个数
    */
   get assetsCount(): number {
-
     return Object.keys(this._assets).length;
-
   }
 
   /**
@@ -31,14 +26,13 @@ export class AssetPool {
    * @param {string} name
    * @param {AssetObject} ctor
    */
-  public requireAsset(name: string, ctor?: { new(name: string, props: object) }, props?: object) {
+  public requireAsset(name: string, ctor?: { new (name: string, props: object) }, props?: object) {
     let asset = this._assets[name];
     if (!asset) {
       asset = new ctor(name, props);
       this.addAsset(name, asset);
     }
     return asset;
-
   }
 
   /**
@@ -56,7 +50,6 @@ export class AssetPool {
    */
   public addAsset(name: string, assetObject: AssetObject): void {
     this._assets[name] = assetObject;
-
   }
 
   /**
@@ -73,5 +66,4 @@ export class AssetPool {
   public clear(): void {
     this._assets = {};
   }
-
 }

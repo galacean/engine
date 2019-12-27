@@ -6,4 +6,4 @@
  * @returns {quat} out
  * @function
  */
-export { normalize } from '../vec4/vec4_normalize';
+export { normalize } from "../vec4/vec4_normalize";

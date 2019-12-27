@@ -2,6 +2,7 @@
 
 ### Features
 
+- OrthogonalCamera (@kevin.hs) [!32](http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues/32)
 - rendering pipeline enhance（@shensi.zxd） [!3](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/3)
 - texture perturbation（@shensi.zxd） [!8](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/8)
 - adapter-miniprogram（@shensi.zxd） [!7](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/7)
@@ -10,7 +11,10 @@
 
 ### Bug Fixes
 
+- particle fadeIn and fadeOut error [!33](http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues/33)
 - disable depthmask（@shensi.zxd） [!10](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/10)
 - del unnecessary shader（@shensi.zxd） [!4](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/4)
 - shader error（@shensi.zxd） [!5](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/5)
 - material screenUv（@shensi.zxd） [!6](http://gitlab.alipay-inc.com/OasisHub/oasis3d/merge_requests/6)
+
+# [Oasis1.0](http://gitlab.alipay-inc.com/OasisHub/oasis3d/milestones/1) (2020-1-1)

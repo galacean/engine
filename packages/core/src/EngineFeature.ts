@@ -6,34 +6,28 @@ import { Scene } from "./Scene";
  * @class
  */
 export class EngineFeature {
-
   /**
    * 引擎主循环运行之前的回调，用来预加载资源
    * @param {Engine} engine
    */
-  public preLoad(engine: Engine): void {
-  }
+  public preLoad(engine: Engine): void {}
 
   /**
    * 场景 Tick 之前的回调
    * @param {Engine} engine
    * @param {Scene} currentScene
    */
-  public preTick(engine: Engine, currentScene: Scene): void {
-  }
+  public preTick(engine: Engine, currentScene: Scene): void {}
 
   /**
    * 场景 Tick 完成之后的回调
    * @param {Engine} engine
    */
-  public postTick(engine: Engine, currentScene: Scene): void {
-  }
+  public postTick(engine: Engine, currentScene: Scene): void {}
 
   /**
    * 引擎关闭的时候调用
    * @param {Engine} engine
    */
-  public shutdown(engine: Engine): void {
-  }
-
+  public shutdown(engine: Engine): void {}
 }

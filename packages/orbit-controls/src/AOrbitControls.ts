@@ -1,14 +1,13 @@
-'use strict';
+"use strict";
 
-import { Logger } from '@alipay/o3-base';
-import { NodeAbility, Node } from '@alipay/o3-core';
-import { vec2, vec3, Spherical } from '@alipay/o3-math';
+import { Logger } from "@alipay/o3-base";
+import { NodeAbility, Node } from "@alipay/o3-core";
+import { vec2, vec3, Spherical } from "@alipay/o3-math";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
  */
 export class AOrbitControls extends NodeAbility {
-
   public camera: Node;
   public domElement: HTMLElement | Document;
   public mainElement: HTMLCanvasElement;
@@ -58,8 +57,16 @@ export class AOrbitControls extends NodeAbility {
   private _panDelta: any[] | Float32Array;
   private _zoomEnd: any[] | Float32Array;
   private _zoomDelta: any[] | Float32Array;
-  public STATE: { TOUCH_ROTATE: number; ROTATE: number; TOUCH_PAN: number; ZOOM: number; NONE: number; PAN: number; TOUCH_ZOOM: number };
-  public mouseUpEvents: ({ listener: any; type: string })[];
+  public STATE: {
+    TOUCH_ROTATE: number;
+    ROTATE: number;
+    TOUCH_PAN: number;
+    ZOOM: number;
+    NONE: number;
+    PAN: number;
+    TOUCH_ZOOM: number;
+  };
+  public mouseUpEvents: { listener: any; type: string }[];
 
   /**
    * 轨道控制器构造函数
@@ -70,14 +77,15 @@ export class AOrbitControls extends NodeAbility {
    * @property {fov} [props.fov=45] 透视相机的视场角大小，影响控制器的控制精度
    * @property {Vec3} [props.target=[0,0,0]] 围绕的目标点，默认原点
    */
-  constructor(node: Node,
+  constructor(
+    node: Node,
     props?: {
-      domElement?: HTMLElement | Document,
-      fov?: number,
-      target?: Array<number>,
-      mainElement?: HTMLCanvasElement
-    }) {
-
+      domElement?: HTMLElement | Document;
+      fov?: number;
+      target?: Array<number>;
+      mainElement?: HTMLCanvasElement;
+    }
+  ) {
     super(node);
 
     this.camera = node;
@@ -87,10 +95,8 @@ export class AOrbitControls extends NodeAbility {
     this.fov = props.fov || 45;
 
     if (!(this.mainElement instanceof HTMLCanvasElement)) {
-
-      Logger.warn('AOrbitControls must have a legal mainElement');
+      Logger.warn("AOrbitControls must have a legal mainElement");
       return null;
-
     }
     // 目标点
     this.target = props.target || vec3.create();
@@ -215,15 +221,22 @@ export class AOrbitControls extends NodeAbility {
      */
     this.enableKeys = false;
     this.keys = {
-      LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40,
+      LEFT: 37,
+      UP: 38,
+      RIGHT: 39,
+      BOTTOM: 40
     };
 
     // 控制键位
     this.mouseButtons = {
-      ORBIT: 0, ZOOM: 1, PAN: 2,
+      ORBIT: 0,
+      ZOOM: 1,
+      PAN: 2
     };
     this.touchFingers = {
-      ORBIT: 1, ZOOM: 2, PAN: 3,
+      ORBIT: 1,
+      ZOOM: 2,
+      PAN: 3
     };
 
     // 复用对象 防止栈分配过多
@@ -255,39 +268,44 @@ export class AOrbitControls extends NodeAbility {
     this._zoomDelta = vec2.create();
 
     this.STATE = {
-      NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2, TOUCH_ROTATE: 3, TOUCH_ZOOM: 4, TOUCH_PAN: 5,
+      NONE: -1,
+      ROTATE: 0,
+      ZOOM: 1,
+      PAN: 2,
+      TOUCH_ROTATE: 3,
+      TOUCH_ZOOM: 4,
+      TOUCH_PAN: 5
     };
     this._state = this.STATE.NONE;
 
     this.constEvents = [
-      { type: 'mousedown', listener: this.onMouseDown.bind(this) },
-      { type: 'wheel', listener: this.onMouseWheel.bind(this) },
-      { type: 'keydown', listener: this.onKeyDown.bind(this), element: window },
-      { type: 'touchstart', listener: this.onTouchStart.bind(this) },
-      { type: 'touchmove', listener: this.onTouchMove.bind(this) },
-      { type: 'touchend', listener: this.onTouchEnd.bind(this) },
-      { type: 'contextmenu', listener: this.onContextMenu.bind(this) },
+      { type: "mousedown", listener: this.onMouseDown.bind(this) },
+      { type: "wheel", listener: this.onMouseWheel.bind(this) },
+      { type: "keydown", listener: this.onKeyDown.bind(this), element: window },
+      { type: "touchstart", listener: this.onTouchStart.bind(this) },
+      { type: "touchmove", listener: this.onTouchMove.bind(this) },
+      { type: "touchend", listener: this.onTouchEnd.bind(this) },
+      { type: "contextmenu", listener: this.onContextMenu.bind(this) }
     ];
 
     this.mouseUpEvents = [
-      { type: 'mousemove', listener: this.onMouseMove.bind(this) },
-      { type: 'mouseup', listener: this.onMouseUp.bind(this) },
+      { type: "mousemove", listener: this.onMouseMove.bind(this) },
+      { type: "mouseup", listener: this.onMouseUp.bind(this) }
     ];
 
     this.constEvents.forEach(ele => {
-
       if (ele.element) {
-
         ele.element.addEventListener(ele.type, ele.listener, false);
-
       } else {
-
         this.mainElement.addEventListener(ele.type, ele.listener, false);
-
       }
-
     });
 
+    this.addEventListener("disabled", () => {
+      const element = this.domElement === document ? this.domElement.body : this.domElement;
+      this.mainElement.removeEventListener(this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false);
+      element.removeEventListener(this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false);
+    });
   }
 
   /**
@@ -295,47 +313,35 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   destroy() {
-
     this.constEvents.forEach(ele => {
-
       if (ele.element) {
-
         ele.element.removeEventListener(ele.type, ele.listener, false);
-
       } else {
-
         this.mainElement.removeEventListener(ele.type, ele.listener, false);
-
       }
-
     });
     const element = this.domElement === document ? this.domElement.body : this.domElement;
     this.mainElement.removeEventListener(this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false);
     element.removeEventListener(this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false);
     super.destroy();
-
   }
 
   /**
    * 在触屏上用单指控制旋转，三指控制平移
    */
   setOneFingerRotate() {
-
     this.touchFingers.ORBIT = 1;
     this.touchFingers.ZOOM = 2;
     this.touchFingers.PAN = 3;
-
   }
 
   /**
    * 在触屏上用单指控制平移，三指控制旋转
    */
   setOneFingerPan() {
-
     this.touchFingers.ORBIT = 3;
     this.touchFingers.ZOOM = 2;
     this.touchFingers.PAN = 1;
-
   }
 
   /**
@@ -344,7 +350,6 @@ export class AOrbitControls extends NodeAbility {
    * @param {Number} dtime 和上次绘制的事件间隔 ms
    */
   update(dtime) {
-
     if (!this.enabled) return;
 
     super.update(dtime);
@@ -355,9 +360,7 @@ export class AOrbitControls extends NodeAbility {
     this._spherical.setFromVec3(this._offset);
 
     if (this.autoRotate && this._state === this.STATE.NONE) {
-
       this.rotateLeft(this.getAutoRotationAngle(dtime));
-
     }
 
     this._spherical.theta += this._sphericalDelta.theta;
@@ -368,9 +371,7 @@ export class AOrbitControls extends NodeAbility {
     this._spherical.makeSafe();
 
     if (this._scale !== 1) {
-
       this._zoomFrag = this._spherical.radius * (this._scale - 1);
-
     }
 
     this._spherical.radius += this._zoomFrag;
@@ -384,32 +385,23 @@ export class AOrbitControls extends NodeAbility {
     this.camera.lookAt(this.target, vec3.fromValues(0, 1, 0));
 
     if (this.enableDamping === true) {
-
-      this._sphericalDump.theta *= (1 - this.dampingFactor);
-      this._sphericalDump.phi *= (1 - this.dampingFactor);
-      this._zoomFrag *= (1 - this.zoomFactor);
+      this._sphericalDump.theta *= 1 - this.dampingFactor;
+      this._sphericalDump.phi *= 1 - this.dampingFactor;
+      this._zoomFrag *= 1 - this.zoomFactor;
 
       if (this._isMouseUp) {
-
         this._sphericalDelta.theta = this._sphericalDump.theta;
         this._sphericalDelta.phi = this._sphericalDump.phi;
-
       } else {
-
         this._sphericalDelta.set(0, 0, 0);
-
       }
-
     } else {
-
       this._sphericalDelta.set(0, 0, 0);
       this._zoomFrag = 0;
-
     }
 
     this._scale = 1;
     vec3.set(this._panOffset, 0, 0, 0);
-
   }
 
   /**
@@ -417,9 +409,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   getAutoRotationAngle(dtime) {
-
-    return 2 * Math.PI / this.autoRotateSpeed / 1000 * dtime;
-
+    return ((2 * Math.PI) / this.autoRotateSpeed / 1000) * dtime;
   }
 
   /**
@@ -427,9 +417,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   getZoomScale() {
-
     return Math.pow(0.95, this.zoomSpeed);
-
   }
 
   /**
@@ -437,14 +425,10 @@ export class AOrbitControls extends NodeAbility {
    * @property {Number} radian 旋转的弧度值
    */
   rotateLeft(radian) {
-
     this._sphericalDelta.theta -= radian;
     if (this.enableDamping) {
-
       this._sphericalDump.theta = -radian;
-
     }
-
   }
 
   /**
@@ -452,14 +436,10 @@ export class AOrbitControls extends NodeAbility {
    * @property {Number} radian 旋转的弧度值
    */
   rotateUp(radian) {
-
     this._sphericalDelta.phi -= radian;
     if (this.enableDamping) {
-
       this._sphericalDump.phi = -radian;
-
     }
-
   }
 
   /**
@@ -467,11 +447,9 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   panLeft(distance, worldMatrix) {
-
     vec3.set(this._vPan, worldMatrix[0], worldMatrix[1], worldMatrix[2]);
     vec3.scale(this._vPan, this._vPan, distance); // WARN: camera left is positive x
     vec3.add(this._panOffset, this._panOffset, this._vPan);
-
   }
 
   /**
@@ -479,11 +457,9 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   panUp(distance, worldMatrix) {
-
     vec3.set(this._vPan, worldMatrix[4], worldMatrix[5], worldMatrix[6]);
     vec3.scale(this._vPan, this._vPan, distance);
     vec3.add(this._panOffset, this._panOffset, this._vPan);
-
   }
 
   /**
@@ -492,8 +468,7 @@ export class AOrbitControls extends NodeAbility {
    * @property {Number} deltaY y方向的平移量，屏幕距离
    */
   pan(deltaX, deltaY) {
-
-    const element = this.domElement === document ? this.domElement.body : this.domElement as HTMLElement;
+    const element = this.domElement === document ? this.domElement.body : (this.domElement as HTMLElement);
 
     // perspective only
     const position = this.camera.position;
@@ -505,7 +480,6 @@ export class AOrbitControls extends NodeAbility {
 
     this.panLeft(2 * deltaX * (targetDistance / element.clientHeight), this.camera.getModelMatrix());
     this.panUp(2 * deltaY * (targetDistance / element.clientHeight), this.camera.getModelMatrix());
-
   }
 
   /**
@@ -513,10 +487,8 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   zoomIn(zoomScale) {
-
     // perspective only
     this._scale *= zoomScale;
-
   }
 
   /**
@@ -524,10 +496,8 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   zoomOut(zoomScale) {
-
     // perspective only
     this._scale /= zoomScale;
-
   }
 
   /**
@@ -535,9 +505,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleMouseDownRotate(event) {
-
     vec2.set(this._rotateStart, event.clientX, event.clientY);
-
   }
 
   /**
@@ -545,9 +513,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleMouseDownZoom(event) {
-
     vec2.set(this._zoomStart, event.clientX, event.clientY);
-
   }
 
   /**
@@ -555,9 +521,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleMouseDownPan(event) {
-
     vec2.set(this._panStart, event.clientX, event.clientY);
-
   }
 
   /**
@@ -565,17 +529,15 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleMouseMoveRotate(event) {
-
     vec2.set(this._rotateEnd, event.clientX, event.clientY);
     vec2.sub(this._rotateDelta, this._rotateEnd, this._rotateStart);
 
-    const element = this.domElement === document ? document.body : this.domElement as HTMLElement;
+    const element = this.domElement === document ? document.body : (this.domElement as HTMLElement);
 
     this.rotateLeft(2 * Math.PI * (this._rotateDelta[0] / element.clientWidth) * this.rotateSpeed);
     this.rotateUp(2 * Math.PI * (this._rotateDelta[1] / element.clientHeight) * this.rotateSpeed);
 
     vec2.copy(this._rotateStart, this._rotateEnd);
-
   }
 
   /**
@@ -583,22 +545,16 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleMouseMoveZoom(event) {
-
     vec2.set(this._zoomEnd, event.clientX, event.clientY);
     vec2.sub(this._zoomDelta, this._zoomEnd, this._zoomStart);
 
     if (this._zoomDelta[1] > 0) {
-
       this.zoomOut(this.getZoomScale());
-
     } else if (this._zoomDelta[1] < 0) {
-
       this.zoomIn(this.getZoomScale());
-
     }
 
     vec2.copy(this._zoomStart, this._zoomEnd);
-
   }
 
   /**
@@ -606,14 +562,12 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleMouseMovePan(event: MouseEvent): void {
-
     vec2.set(this._panEnd, event.clientX, event.clientY);
     vec2.sub(this._panDelta, this._panEnd, this._panStart);
 
     this.pan(this._panDelta[0], this._panDelta[1]);
 
     vec2.copy(this._panStart, this._panEnd);
-
   }
 
   /**
@@ -621,17 +575,11 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleMouseWheel(event: MouseWheelEvent): void {
-
     if (event.deltaY < 0) {
-
       this.zoomIn(this.getZoomScale());
-
     } else if (event.deltaY > 0) {
-
       this.zoomOut(this.getZoomScale());
-
     }
-
   }
 
   /**
@@ -639,9 +587,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleKeyDown(event: KeyboardEvent) {
-
     switch (event.keyCode) {
-
       case this.keys.UP:
         this.pan(0, this.keyPanSpeed);
         break;
@@ -654,9 +600,7 @@ export class AOrbitControls extends NodeAbility {
       case this.keys.RIGHT:
         this.pan(-this.keyPanSpeed, 0);
         break;
-
     }
-
   }
 
   /**
@@ -664,9 +608,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleTouchStartRotate(event: TouchEvent) {
-
     vec2.set(this._rotateStart, event.touches[0].pageX, event.touches[0].pageY);
-
   }
 
   /**
@@ -674,14 +616,12 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleTouchStartZoom(event: TouchEvent) {
-
     const dx = event.touches[0].pageX - event.touches[1].pageX;
     const dy = event.touches[0].pageY - event.touches[1].pageY;
 
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     vec2.set(this._zoomStart, 0, distance);
-
   }
 
   /**
@@ -689,9 +629,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleTouchStartPan(event: TouchEvent) {
-
     vec2.set(this._panStart, event.touches[0].pageX, event.touches[0].pageY);
-
   }
 
   /**
@@ -699,17 +637,15 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleTouchMoveRotate(event: TouchEvent) {
-
     vec2.set(this._rotateEnd, event.touches[0].pageX, event.touches[0].pageY);
     vec2.sub(this._rotateDelta, this._rotateEnd, this._rotateStart);
 
-    const element = this.domElement === document ? this.domElement.body : this.domElement as HTMLElement;
+    const element = this.domElement === document ? this.domElement.body : (this.domElement as HTMLElement);
 
-    this.rotateLeft(2 * Math.PI * this._rotateDelta[0] / element.clientWidth * this.rotateSpeed);
-    this.rotateUp(2 * Math.PI * this._rotateDelta[1] / element.clientHeight * this.rotateSpeed);
+    this.rotateLeft(((2 * Math.PI * this._rotateDelta[0]) / element.clientWidth) * this.rotateSpeed);
+    this.rotateUp(((2 * Math.PI * this._rotateDelta[1]) / element.clientHeight) * this.rotateSpeed);
 
     vec2.copy(this._rotateStart, this._rotateEnd);
-
   }
 
   /**
@@ -717,7 +653,6 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleTouchMoveZoom(event) {
-
     const dx = event.touches[0].pageX - event.touches[1].pageX;
     const dy = event.touches[0].pageY - event.touches[1].pageY;
 
@@ -728,17 +663,12 @@ export class AOrbitControls extends NodeAbility {
     vec2.sub(this._zoomDelta, this._zoomEnd, this._zoomStart);
 
     if (this._zoomDelta[1] > 0) {
-
       this.zoomIn(this.getZoomScale());
-
     } else if (this._zoomDelta[1] < 0) {
-
       this.zoomOut(this.getZoomScale());
-
     }
 
     vec2.copy(this._zoomStart, this._zoomEnd);
-
   }
 
   /**
@@ -746,7 +676,6 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   handleTouchMovePan(event: TouchEvent) {
-
     vec2.set(this._panEnd, event.touches[0].pageX, event.touches[0].pageY);
 
     vec2.sub(this._panDelta, this._panEnd, this._panStart);
@@ -754,7 +683,6 @@ export class AOrbitControls extends NodeAbility {
     this.pan(this._panDelta[0], this._panDelta[1]);
 
     vec2.copy(this._panStart, this._panEnd);
-
   }
 
   /**
@@ -762,7 +690,6 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   onMouseDown(event: MouseEvent) {
-
     if (this.enabled === false) return;
 
     event.preventDefault();
@@ -770,7 +697,6 @@ export class AOrbitControls extends NodeAbility {
     this._isMouseUp = false;
 
     switch (event.button) {
-
       case this.mouseButtons.ORBIT:
         if (this.enableRotate === false) return;
 
@@ -791,17 +717,13 @@ export class AOrbitControls extends NodeAbility {
         this.handleMouseDownPan(event);
         this._state = this.STATE.PAN;
         break;
-
     }
 
     if (this._state !== this.STATE.NONE) {
-
       const element = this.domElement === document ? this.domElement.body : this.domElement;
       this.mainElement.addEventListener(this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false);
       element.addEventListener(this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false);
-
     }
-
   }
 
   /**
@@ -809,13 +731,11 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   onMouseMove(event: MouseEvent) {
-
     if (this.enabled === false) return;
 
     event.preventDefault();
 
     switch (this._state) {
-
       case this.STATE.ROTATE:
         if (this.enableRotate === false) return;
 
@@ -833,9 +753,7 @@ export class AOrbitControls extends NodeAbility {
 
         this.handleMouseMovePan(event);
         break;
-
     }
-
   }
 
   /**
@@ -843,19 +761,17 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   onMouseUp() {
-
     if (this.enabled === false) return;
 
     this._isMouseUp = true;
 
     this.mouseUpEvents.forEach(ele => {
-
+      const element = this.domElement === document ? this.domElement.body : this.domElement;
+      element.removeEventListener(ele.type, ele.listener, false);
       this.mainElement.removeEventListener(ele.type, ele.listener, false);
-
     });
 
     this._state = this.STATE.NONE;
-
   }
 
   /**
@@ -863,14 +779,17 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   onMouseWheel(event: MouseWheelEvent) {
-
-    if (this.enabled === false || this.enableZoom === false || (this._state !== this.STATE.NONE && this._state !== this.STATE.ROTATE)) return;
+    if (
+      this.enabled === false ||
+      this.enableZoom === false ||
+      (this._state !== this.STATE.NONE && this._state !== this.STATE.ROTATE)
+    )
+      return;
 
     event.preventDefault();
     event.stopPropagation();
 
     this.handleMouseWheel(event);
-
   }
 
   /**
@@ -878,11 +797,9 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   onKeyDown(event: KeyboardEvent) {
-
     if (this.enabled === false || this.enableKeys === false || this.enablePan === false) return;
 
     this.handleKeyDown(event);
-
   }
 
   /**
@@ -890,13 +807,11 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   onTouchStart(event: TouchEvent) {
-
     if (this.enabled === false) return;
 
     this._isMouseUp = false;
 
     switch (event.touches.length) {
-
       case this.touchFingers.ORBIT:
         if (this.enableRotate === false) return;
 
@@ -923,9 +838,7 @@ export class AOrbitControls extends NodeAbility {
 
       default:
         this._state = this.STATE.NONE;
-
     }
-
   }
 
   /**
@@ -933,14 +846,12 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   onTouchMove(event: TouchEvent) {
-
     if (this.enabled === false) return;
 
     event.preventDefault();
     event.stopPropagation();
 
     switch (event.touches.length) {
-
       case this.touchFingers.ORBIT:
         if (this.enableRotate === false) return;
         if (this._state !== this.STATE.TOUCH_ROTATE) return;
@@ -964,9 +875,7 @@ export class AOrbitControls extends NodeAbility {
 
       default:
         this._state = this.STATE.NONE;
-
     }
-
   }
 
   /**
@@ -974,12 +883,10 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   onTouchEnd() {
-
     if (this.enabled === false) return;
 
     this._isMouseUp = true;
     this._state = this.STATE.NONE;
-
   }
 
   /**
@@ -987,10 +894,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   onContextMenu(event) {
-
     if (this.enabled === false) return;
     event.preventDefault();
-
   }
-
 }

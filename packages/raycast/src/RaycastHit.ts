@@ -5,7 +5,6 @@ import { ACollider } from "@alipay/o3-collider";
  * @class
  */
 export class RaycastHit {
-
   public distance: number;
   public collider: ACollider;
   public point: Float32Array | number;
@@ -13,7 +12,6 @@ export class RaycastHit {
    * 构造函数
    */
   constructor() {
-
     /**
      * 碰撞点离射线起点的距离
      * @member {float}
@@ -31,7 +29,5 @@ export class RaycastHit {
      * @member {vec3}
      */
     this.point = null;
-
   }
-
 }

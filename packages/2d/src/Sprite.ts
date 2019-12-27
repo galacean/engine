@@ -1,12 +1,11 @@
-import { Logger } from '@alipay/o3-base';
-import { Texture2D } from '@alipay/o3-material';
+import { Logger } from "@alipay/o3-base";
+import { Texture2D } from "@alipay/o3-material";
 
 /**
  * Sprite数据对象
  * @class
  */
 export class Sprite {
-
   private _texture;
 
   private _rect;
@@ -39,47 +38,45 @@ export class Sprite {
     this.setWorldSize();
   }
 
-  setTexture (texture) {
+  setTexture(texture) {
     if (texture) {
       this._texture = texture;
     }
   }
 
-  setRect (rect?) {
+  setRect(rect?) {
     this._rect = rect || {
       x: 0,
       y: 0,
-      width: this._texture ? this._texture.image.width : 0 ,
+      width: this._texture ? this._texture.image.width : 0,
       height: this._texture ? this._texture.image.height : 0
     };
   }
 
-  setAnchor (anchor) {
+  setAnchor(anchor) {
     this._anchor = anchor || [0.5, 0.5];
   }
 
-  setUvRect () {
+  setUvRect() {
     let w, h;
 
-    if (this._texture) {
+    if (this._texture && this._texture.image) {
       w = this._texture.image.width;
       h = this._texture.image.height;
-    }
-    else {
+    } else {
       w = this._rect.width;
       h = this._rect.height;
     }
-
 
     this._uvRect = {
       u: this._rect.x / w,
       v: this._rect.y / h,
       width: this._rect.width / w,
-      height: this._rect.height / h,
+      height: this._rect.height / h
     };
   }
 
-  setWorldSize () {
+  setWorldSize() {
     this._worldSize = [this._rect.width / 100, this._rect.height / 100];
   }
 
@@ -89,17 +86,13 @@ export class Sprite {
    * @readonly
    */
   get spriteRect() {
-
     return this._rect;
-
   }
 
   set spriteRect(v) {
-
     this.setRect(v);
     this.setUvRect();
     this.setWorldSize();
-
   }
 
   /**
@@ -108,9 +101,7 @@ export class Sprite {
    * @readonly
    */
   get uvRect() {
-
     return this._uvRect;
-
   }
 
   /**
@@ -119,18 +110,14 @@ export class Sprite {
    * @readonly
    */
   get texture() {
-
     return this._texture;
-
   }
 
-  set texture (v) {
-
+  set texture(v) {
     this.setTexture(v);
     this.setRect();
     this.setUvRect();
     this.setWorldSize();
-
   }
 
   /**
@@ -139,15 +126,11 @@ export class Sprite {
    * @readonly
    */
   get anchor() {
-
     return this._anchor;
-
   }
 
-  set anchor (v) {
-
+  set anchor(v) {
     this.setTexture(v);
-
   }
 
   /**
@@ -156,9 +139,7 @@ export class Sprite {
    * @readonly
    */
   get worldSize() {
-
     return this._worldSize;
-
   }
 
   /**
@@ -170,19 +151,14 @@ export class Sprite {
    * @param {vec2} anchor 锚点位置
    */
   static createFromImage(name, image, config, rect, anchor) {
-
     if (!image) {
-
-      Logger.error('No image!');
+      Logger.error("No image!");
       return false;
-
     }
     const texture = new Texture2D(name, image, config);
     rect = rect || { x: 0, y: 0, width: image.width, height: image.height };
     anchor = anchor || [0.5, 0.5];
 
     return new Sprite(texture, rect, anchor);
-
   }
-
 }

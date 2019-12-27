@@ -8,4 +8,4 @@
  * @returns {quat} a new quaternion
  * @function
  */
-export { fromValues } from '../vec4/vec4_fromValues';
+export { fromValues } from "../vec4/vec4_fromValues";

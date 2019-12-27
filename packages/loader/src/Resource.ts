@@ -1,21 +1,20 @@
-import {AssetType, EventDispatcher} from '@alipay/o3-base';
-import {HandlerType, Prop, ResType} from './type';
+import { AssetType, EventDispatcher } from "@alipay/o3-base";
+import { HandlerType, Prop, ResType } from "./type";
 
 interface Props {
-  type: ResType,
-  handlerType?: HandlerType,
-  config?: Prop,
-  data?: Prop,
-  assetType?: AssetType,
-  url?: string,
-  urls?: Array<string>
+  type: ResType;
+  handlerType?: HandlerType;
+  config?: Prop;
+  data?: Prop;
+  assetType?: AssetType;
+  url?: string;
+  urls?: Array<string>;
 }
 
 /**
  * 资源管理器加载的资源对象
  */
 export class Resource extends EventDispatcher {
-
   public name: string;
   public type: ResType;
   public handlerType: HandlerType | void;
@@ -25,7 +24,7 @@ export class Resource extends EventDispatcher {
   public assetType: AssetType;
   public loaded: boolean;
   public loading: boolean;
-  private _file: { url: string | void, urls: Array<string> | void };
+  private _file: { url: string | void; urls: Array<string> | void };
 
   /**
    * 资源
@@ -39,8 +38,7 @@ export class Resource extends EventDispatcher {
    * @param {string} props.url 关联的文件地址
    * @param {Object} props.urls 关联的多个文件地址
    */
-  constructor(name: string = '', props: Props) {
-
+  constructor(name: string = "", props: Props) {
     super();
 
     this.name = name;
@@ -73,9 +71,8 @@ export class Resource extends EventDispatcher {
     // }
     this._file = {
       url: props.url,
-      urls: props.urls,
+      urls: props.urls
     };
-
   }
 
   /**
@@ -83,21 +80,13 @@ export class Resource extends EventDispatcher {
    * @param callback 回调
    */
   ready(callback: (this: Resource, res: Resource) => any) {
-
     if (this.assets) {
-
       callback.call(this, this);
-
     } else {
-
-      this.once('loaded', function (resource) {
-
+      this.once("loaded", function(resource) {
         callback.call(this, resource);
-
       });
-
     }
-
   }
 
   /**
@@ -105,9 +94,7 @@ export class Resource extends EventDispatcher {
    * @returns url 文件地址
    */
   get fileUrl(): string | Array<string> | void {
-
     return this._file.url || this._file.urls;
-
   }
 
   /**
@@ -115,14 +102,10 @@ export class Resource extends EventDispatcher {
    * @returns asset 资源对象
    */
   get asset(): Prop | void {
-
     // return default asset
     if (this.assets && this.assets[0]) {
-
       return this.assets[0];
-
     }
-
   }
 
   /**
@@ -135,8 +118,5 @@ export class Resource extends EventDispatcher {
     } else {
       this.assets[0] = asset;
     }
-
   }
-
 }
-
