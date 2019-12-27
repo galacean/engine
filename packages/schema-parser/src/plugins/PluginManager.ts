@@ -37,6 +37,7 @@ export interface PluginHook {
   oasis?: Oasis;
   nodeAdded?(node: o3.Node): any;
   abilityAdded?(ability: o3.NodeAbility): any;
+  beforeAbilityAdded?(config: any): any;
   schemaParsed?(): any;
   abilityDeleted?(id: string): any;
   beforeNodeDeleted?(config: any): any;

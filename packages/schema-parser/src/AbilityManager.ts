@@ -11,7 +11,7 @@ export class AbilityManager {
 
   constructor(private oasis: Oasis) {}
 
-  @pluginHook({ after: "abilityAdded" })
+  @pluginHook({ after: "abilityAdded", before: "beforeAbilityAdded" })
   public add(abilityConfig: AbilityConfig) {
     const { type, node: nodeId, props, id, index } = abilityConfig;
 
