@@ -2,6 +2,7 @@ import { mat4, mat3 } from "@alipay/o3-math";
 import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture2D } from "./Texture2D";
+import { TextureCubeMap } from "./TextureCubeMap";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
@@ -115,9 +116,9 @@ export class Material {
    */
   setValue(name: string, value) {
     const oriValue = this.getValue(name);
-    const oriIsTexture2D = oriValue instanceof Texture2D;
-    const curIsTexture2D = value instanceof Texture2D;
-    if ((!oriIsTexture2D && curIsTexture2D) || (oriIsTexture2D && !curIsTexture2D)) {
+    const oriIsTexture = oriValue instanceof Texture2D || oriValue instanceof TextureCubeMap;
+    const curIsTexture = value instanceof Texture2D || value instanceof TextureCubeMap;
+    if ((!oriIsTexture && curIsTexture) || (oriIsTexture && !curIsTexture)) {
       this._technique = null;
     }
     if (value) {

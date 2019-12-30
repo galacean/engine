@@ -1,10 +1,9 @@
 import { Probe } from "./Probe";
-import { ReflectionProbeConfig } from "./type";
-import { ACamera } from "@alipay/o3-core";
-import { TextureCubeMap, RenderTarget } from "@alipay/o3-material";
-import { RenderPass, BasicSceneRenderer } from "@alipay/o3-renderer-basic";
-import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { Node } from "@alipay/o3-core";
+import { RenderTarget } from "@alipay/o3-material";
+import { RenderPass } from "@alipay/o3-renderer-basic";
 import { mat4, vec3 } from "@alipay/o3-math";
+import { ReflectionProbeConfig } from "./type";
 
 const cacheTarget = vec3.create();
 const cacheUp = vec3.create();
@@ -12,16 +11,17 @@ const cacheDir = vec3.create();
 const fovRadian = (90 * Math.PI) / 180;
 
 /**
- * 反射探针
+ * 反射探针,生成 cubeTexture
  * */
 export class ReflectionProbe extends Probe {
-  public camera: ACamera;
   public renderPass: RenderPass;
+
   /** 可以设置探针的位置，默认为原点 [0,0,0] */
   public position = [0, 0, 0];
 
   private readonly renderTarget: RenderTarget;
   private readonly renderTargetSwap: RenderTarget;
+
   private oriViewMatrix = mat4.create();
   private oriInverseViewMatrix = mat4.create();
   private oriProjectionMatrix = mat4.create();
@@ -29,22 +29,20 @@ export class ReflectionProbe extends Probe {
 
   /**
    * 创建反射探针
-   * @param {string} name - 探针名字
-   * @param {ACamera} camera - Oasis 相机
+   * @param {Node} node
    * @param {PerturbationProbeConfig} config - 可选配置
    * */
-  constructor(name: string, camera: ACamera, config: ReflectionProbeConfig = {}) {
-    super(name, config);
-    this.camera = camera;
-    this.renderTarget = new RenderTarget(name + "_renderTarget", {
+  constructor(node: Node, config: ReflectionProbeConfig = {}) {
+    super(node, config);
+    this.renderTarget = new RenderTarget("_renderTarget" + this.cacheId, {
       ...config,
       isCube: true
     });
-    this.renderTargetSwap = new RenderTarget(name + "_renderTarget_swap", {
+    this.renderTargetSwap = new RenderTarget("_renderTarget_swap" + this.cacheId, {
       ...config,
       isCube: true
     });
-    this.renderPass = new RenderPass(name + "_renderPass", -10, this.renderTarget);
+    this.renderPass = new RenderPass("_renderPass" + this.cacheId, -10, this.renderTarget);
 
     this.position = config.position || [0, 0, 0];
 
@@ -53,28 +51,6 @@ export class ReflectionProbe extends Probe {
     this.customRenderPass();
 
     this.sceneRenderer.addRenderPass(this.renderPass);
-  }
-
-  private get sceneRenderer(): BasicSceneRenderer {
-    return this.camera.sceneRenderer;
-  }
-
-  private get rhi(): GLRenderHardware {
-    return this.camera.renderHardware;
-  }
-
-  /**
-   * 获取需要渲染的真实队列.
-   * 1. 排除 sprite
-   * 2. 排除 renderList 之外的材质
-   * 3. 如果 renderAll，只排除 sprite
-   * */
-  private get renderItems() {
-    const opaqueQueue = this.sceneRenderer.opaqueQueue;
-    const transparentQueue = this.sceneRenderer.transparentQueue;
-    return opaqueQueue.items
-      .concat(transparentQueue.items)
-      .filter(item => item.primitive && (this.renderAll || this.renderList.includes(item.mtl)));
   }
 
   /**
@@ -100,7 +76,7 @@ export class ReflectionProbe extends Probe {
   /**
    * 自定义 renderPass
    * */
-  private customRenderPass() {
+  protected customRenderPass() {
     this.renderPass.preRender = () => {
       this.storeCamera();
     };
@@ -137,7 +113,7 @@ export class ReflectionProbe extends Probe {
         // render
         this.renderItems.forEach(item => {
           const { nodeAbility, primitive, mtl } = item;
-          if (!(nodeAbility.renderPassFlag & this.renderMask)) return;
+          if (!(nodeAbility.renderPassFlag & this.renderPassFlag)) return;
           mtl.prepareDrawing(this.camera, nodeAbility, primitive);
           this.rhi.drawPrimitive(primitive, mtl);
         });
@@ -187,36 +163,5 @@ export class ReflectionProbe extends Probe {
     mat4.invert(this.camera.inverseViewMatrix, this.camera.viewMatrix);
     mat4.perspective(this.camera.projectionMatrix, fovRadian, 1, this.camera.zNear, this.camera.zFar);
     mat4.invert(this.camera.inverseProjectionMatrix, this.camera.projectionMatrix);
-  }
-
-  /**
-   * 探针所得
-   * */
-  public get cubeTexture(): TextureCubeMap {
-    return this.renderPass.renderTarget.cubeTexture;
-  }
-
-  /**
-   * issue: Feedback Loops Between Textures and the Framebuffer
-   * 提供钩子让用户进行交换 cubeTexture
-   * @example
-   * probe.onTextureChange=()=>{
-   *   envLight.specularMap=probe.cubeTexture;
-   * }
-   * */
-  public onTextureChange(cubeTexture: TextureCubeMap) {}
-
-  /**
-   * 暂停 RTT（ render target to texture）
-   * */
-  public pause() {
-    this.renderPass.enabled = false;
-  }
-
-  /**
-   * 继续 RTT
-   * */
-  public resume() {
-    this.renderPass.enabled = true;
   }
 }

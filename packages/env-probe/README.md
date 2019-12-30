@@ -9,9 +9,26 @@
 import {PerturbationProbe} from '@alipay/o3-env-probe';
 
 
-let probe = new PerturbationProbe('perturbationProbe',scene,{});
-probe.renderList.push(...)
-material.perturbationTexture=probe.texture;
+const probe = rootNode.createAbility(PerturbationProbe, {
+    renderList: [pingshen, cap, logo]
+  });
+
+water.perturbationTexture = probe.texture;
+
+```
+
+
+# reflection example
+```
+import {ReflectionProbe} from '@alipay/o3-env-probe';
+
+const probe = rootNode.createAbility(ReflectionProbe, {
+     renderAll: true
+  });
+
+  probe.onTextureChange = cubeTexture => {
+    envLight.specularMap = cubeTexture;
+  };
 
 ```
 

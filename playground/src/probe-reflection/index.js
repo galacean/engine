@@ -122,7 +122,7 @@ function reflectionDemo() {
     onY: time => Math.cos(time + 2) * 5
   });
 
-  const probe1 = new ReflectionProbe("probe", camera, {
+  const probe1 = rootNode.createAbility(ReflectionProbe, {
     // renderAll: true
     renderList: [sphere1Mat, sphere2Mat, sphere3Mat, skybox.material]
   });
@@ -146,7 +146,7 @@ function reflectionDemo() {
   gui
     .add(state, "enableProbe")
     .onChange(v => {
-      v ? probe1.resume() : probe1.pause();
+      probe1.enabled = v;
     })
     .name("动态反射开关");
 }

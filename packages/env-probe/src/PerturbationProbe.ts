@@ -1,79 +1,34 @@
-import { Scene } from "@alipay/o3-core";
-import { MaskList, RefreshRate, Side, Logger } from "@alipay/o3-base";
-import { Texture2D, RenderTarget } from "@alipay/o3-material";
-import { PBRMaterial } from "@alipay/o3-pbr";
+import { Node } from "@alipay/o3-core";
+import { Side } from "@alipay/o3-base";
+import { RenderTarget } from "@alipay/o3-material";
 import { Probe } from "./Probe";
 import { RenderPass } from "@alipay/o3-renderer-basic";
-
-type ClearColor = [number, number, number, number];
-
-interface PerturbationProbeConfig {
-  /** probe config */
-  renderList?: Array<PBRMaterial>;
-  renderMask?: MaskList;
-  refreshRate?: RefreshRate;
-  /** renderTarget config */
-  width?: number;
-  height?: number;
-  clearColor?: ClearColor;
-  enableDepthTexture?: boolean;
-}
+import { PerturbationProbeConfig } from "./type";
 
 /**
  * 扰动纹理探针，用于生成2D扰动纹理
  * */
 export class PerturbationProbe extends Probe {
-  renderTarget: RenderTarget;
-  renderPass: RenderPass;
-  scene: Scene;
+  private readonly renderTarget: RenderTarget;
+  private readonly renderTargetSwap: RenderTarget;
+  public renderPass: RenderPass;
 
   /**
    * 纹理扰动探针
-   * @param {string} name
+   * @param {Node} node
    * @param {PerturbationProbeConfig} config
    * */
-  constructor(name: string, scene: Scene, config: PerturbationProbeConfig = {}) {
-    super(name, config);
-    this.scene = scene;
-    this.renderTarget = new RenderTarget(name + "_renderTarget", config);
-    this.renderPass = new RenderPass(name + "_renderPass", -2, this.renderTarget);
+  constructor(node: Node, config: PerturbationProbeConfig = {}) {
+    super(node, config);
+    this.renderTarget = new RenderTarget("_renderTarget" + this.cacheId, config);
+    this.renderTargetSwap = new RenderTarget("_renderTarget_swap" + this.cacheId, config);
+    this.renderPass = new RenderPass("_renderPass" + this.cacheId, -10, this.renderTarget);
+
     /** 自定义渲染管道 */
     this.renderPass.renderOverride = true;
-    if (!(scene instanceof Scene)) {
-      Logger.error("PerturbationProbe need scene!");
-      return;
-    }
-    if (!scene.activeCameras.length) {
-      Logger.error("no active camera found in current scene!");
-      return;
-    }
+    this.customRenderPass();
 
-    this.handleRenderPass();
     this.sceneRenderer.addRenderPass(this.renderPass);
-  }
-
-  /**
-   * 获取第一个sceneRenderer
-   * */
-  private get sceneRenderer() {
-    return this.scene.activeCameras[0].sceneRenderer;
-  }
-
-  /**
-   * rhi
-   * */
-  private get rhi() {
-    return this.scene.activeCameras[0].renderHardware;
-  }
-
-  /**
-   * 渲染队列，排除sprite
-   * */
-  private get renderItems() {
-    let opaqueQueue = this.sceneRenderer.opaqueQueue;
-    let transparentQueue = this.sceneRenderer.transparentQueue;
-    let renderItems = opaqueQueue.items.concat(transparentQueue.items).filter(item => item.primitive);
-    return renderItems;
   }
 
   /**
@@ -85,9 +40,7 @@ export class PerturbationProbe extends Probe {
       // 打标，减少数组查找次数
       item.__probe__ = true;
       item.initialSide = material.side;
-      item.initialPT = material.perturbationTexture;
       material.side = Side.BACK;
-      material.perturbationTexture = null;
     }
   }
 
@@ -98,51 +51,45 @@ export class PerturbationProbe extends Probe {
     let material = item.mtl;
     if (item.__probe__) {
       material.side = item.initialSide;
-      material.perturbationTexture = item.initialPT;
       delete item.initialSide;
-      delete item.initialPT;
       delete item.__probe__;
     }
   }
 
-  /**
-   * 处理renderPass
-   * */
-  private handleRenderPass() {
+  protected customRenderPass() {
     this.renderPass.preRender = () => {
       this.renderItems.forEach(item => {
         this.storeMaterial(item);
       });
     };
-
     this.renderPass.postRender = () => {
       this.renderItems.forEach(item => {
         this.restoreMaterial(item);
       });
+
+      // 交换 FBO
+      // prevent issue: Feedback Loops Between Textures and the Framebuffer.
+      if (this.renderPass.enabled) {
+        // 钩子
+        this.onTextureChange(this.texture, this.depthTexture);
+
+        if (this.renderPass.renderTarget === this.renderTarget) {
+          this.renderPass.renderTarget = this.renderTargetSwap;
+        } else {
+          this.renderPass.renderTarget = this.renderTarget;
+        }
+      }
     };
 
     this.renderPass.render = camera => {
       this.renderItems.forEach(item => {
         const { nodeAbility, primitive, mtl } = item;
-        if (!item.__probe__) return;
-        if (!(nodeAbility.renderPassFlag & this.renderMask)) return;
+        if (!(nodeAbility.renderPassFlag & this.renderPassFlag)) return;
 
-        this.rhi.flushSprite();
+        // render
         mtl.prepareDrawing(camera, nodeAbility, primitive);
         this.rhi.drawPrimitive(primitive, mtl);
       });
-      this.rhi.flushSprite();
     };
-  }
-
-  /**
-   * 探针所得
-   * */
-  get texture(): Texture2D {
-    return this.renderTarget.texture;
-  }
-
-  get depthTexture(): Texture2D {
-    return this.renderTarget.depthTexture;
   }
 }
