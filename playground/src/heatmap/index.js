@@ -23,7 +23,7 @@ const cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: 'o3-demo', position: [0, 0, 100], target: [0, 0, 0]
 });
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo')});
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo')});
 
 // 在场景中创建 cube 节点
 const cube = rootNode.createChild("cube");
