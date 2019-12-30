@@ -1,4 +1,4 @@
-import { Logger, Util, Event, EventDispatcher } from "@alipay/o3-base";
+import { Logger, Util, Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { FeatureManager } from "./FeatureManager";
 import { Node } from "./Node";
 import { Engine } from "./Engine";
@@ -150,6 +150,12 @@ export class Scene extends EventDispatcher {
     }
     return this._root.findChildByName(name);
   }
+
+  /**
+   * 射线
+   * @param ray
+   */
+  public raycast(ray: { origin: number[]; direction: number[] }, outPos?: number[], tag?: MaskList): any {}
 
   /** 销毁当前场景中的数据 */
   public destroy(): void {
