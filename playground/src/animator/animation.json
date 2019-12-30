@@ -9,99 +9,17 @@
   ],
   "animationClips": [
     {
-      "name": "translate1",
-      "type": "Interpolation",
-      "options": {
-        "value": [
-          1,
-          1,
-          1
-        ],
-        "property": "position",
-        "interpolation": "easeOutBounce",
-        "duration": 2000
-      }
-    },
-    {
-      "name": "scale1",
-      "type": "Interpolation",
-      "options": {
-        "value": [
-          2,
-          2,
-          2
-        ],
-        "property": "scale",
-        "interpolation": "linear",
-        "duration": 2000
-      }
-    },
-    {
-      "name": "translate2",
-      "type": "Interpolation",
-      "options": {
-        "value": [
-          0,
-          0,
-          0
-        ],
-        "property": "position",
-        "interpolation": "linear",
-        "duration": 2000
-      }
-    },
-    {
-      "name": "scale3",
-      "type": "Interpolation",
-      "options": {
-        "value": [
-          1,
-          1,
-          1
-        ],
-        "property": "scale",
-        "interpolation": "easeInOutBounce",
-        "duration": 1000
-      }
-    },
-    {
-      "name": "hatlightRotate",
-      "type": "AnimationComponent",
-      "options": {
-        "script": "hatlight",
-        "params": {
-          "animType": "rotate"
-        }
-      }
-    },
-    {
-      "name": "hatlightScale",
-      "type": "AnimationComponent",
-      "options": {
-        "script": "hatlight",
-        "params": {
-          "animType": "scale"
-        }
-      }
-    },
-    {
       "name": "walk",
       "type": "Skelton",
       "options": {
         "action": "walk"
-      }
-    },
-    {
-      "name": "dance",
-      "type": "Skelton",
-      "options": {
-        "action": "dance"
       }
     }
   ],
   "animations": [
     {
       "node": 1,
+      "timeScale": 0.5,
       "keyFrames": {
         "0": [
           0,
@@ -121,6 +39,7 @@
     },
     {
       "node": 0,
+      "speed": 2,
       "keyFrames": {
         "0": [
           0,
@@ -142,7 +61,9 @@
   "animator": {
     "type": "timeline",
     "options": {
-      "wrapMode": "LOOP",
+      "loopTimes": 1,
+      "timeScale": 0.5
+      ,
       "keyFrames": {
         "0": [
           0
