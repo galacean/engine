@@ -32,7 +32,7 @@ let cameraProps = {
   clearParam: [0, 0, 0, 1]
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo') });
 
 //--
 const resourceLoader = new ResourceLoader(engine);
