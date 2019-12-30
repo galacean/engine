@@ -47,7 +47,7 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
   position: [0, 0.2, 0.5],
   clearParam: [0.9, 0.9, 0.9, 1]
 });
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById("r3-demo") });
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("r3-demo") });
 controler.target = [0, 0.1, 0];
 
 /**resources*/

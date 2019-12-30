@@ -171,7 +171,7 @@ var camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: "o3-demo", position: [0, 20, 50]
 });
 cameraNode.lookAt(vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById("o3-demo") });
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("o3-demo") });
 controler.autoRotate = false;
 controler.autoRotateSpeed = 3.0;
 
