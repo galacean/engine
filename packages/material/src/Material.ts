@@ -118,7 +118,7 @@ export class Material {
     const oriValue = this.getValue(name);
     const oriIsTexture = oriValue instanceof Texture2D || oriValue instanceof TextureCubeMap;
     const curIsTexture = value instanceof Texture2D || value instanceof TextureCubeMap;
-    if ((!oriIsTexture && curIsTexture) || (oriIsTexture && !curIsTexture)) {
+    if (((this as any)._generateTechnique && !oriIsTexture && curIsTexture) || (oriIsTexture && !curIsTexture)) {
       this._technique = null;
     }
     if (value) {
