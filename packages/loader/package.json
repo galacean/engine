@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-loader",
-  "version": "1.0.1-alpha.15",
+  "version": "1.0.1-alpha.16",
   "description": "load resources",
   "keywords": [
     "Oasis3D",
@@ -26,7 +26,7 @@
   "module": "dist/module.js",
   "dependencies": {
     "@alipay/o3-base": "^1.0.1-alpha.12",
-    "@alipay/o3-material": "^1.0.1-alpha.15",
+    "@alipay/o3-material": "^1.0.1-alpha.16",
     "@alipay/o3-request": "^1.0.1-alpha.4"
   },
   "publishConfig": {
