@@ -6,11 +6,15 @@
  * @returns {mat2d} out
  */
 export function invert(out, a) {
-  let aa = a[0], ab = a[1], ac = a[2], ad = a[3];
-  let atx = a[4], aty = a[5];
+  let aa = a[0],
+    ab = a[1],
+    ac = a[2],
+    ad = a[3];
+  let atx = a[4],
+    aty = a[5];
 
   let det = aa * ad - ab * ac;
-  if(!det){
+  if (!det) {
     return null;
   }
   det = 1.0 / det;

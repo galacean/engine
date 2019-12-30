@@ -1,3 +1,2 @@
-
-export { PBRMaterial } from './PBRMaterial';
-export { AEnvironmentMapLight } from './AEnvironmentMapLight';
+export { PBRMaterial } from "./PBRMaterial";
+export { AEnvironmentMapLight } from "./AEnvironmentMapLight";

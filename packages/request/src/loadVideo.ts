@@ -1,6 +1,5 @@
-export function loadVideo( url, callback, crossOrigin = 'anonymous' ) {
-
-  const video = document.createElement( 'video' );
+export function loadVideo(url, callback, crossOrigin = "anonymous") {
+  const video = document.createElement("video");
 
   let loaded = false;
 
@@ -8,31 +7,26 @@ export function loadVideo( url, callback, crossOrigin = 'anonymous' ) {
   video.crossOrigin = crossOrigin;
 
   video.onerror = () => {
-
-    callback( new Error( 'Failed to load ' + url ), null );
-
+    callback(new Error("Failed to load " + url), null);
   };
 
-  video.addEventListener( 'canplaythrough', () => {
+  video.addEventListener(
+    "canplaythrough",
+    () => {
+      if (loaded) return;
 
-    if( loaded ) return;
-
-    loaded = true;
-    callback( null, video );
-
-  }, true );
+      loaded = true;
+      callback(null, video);
+    },
+    true
+  );
 
   video.src = url;
 
   // add load timeout fallback
-  setTimeout( function () {
-
-    if ( !loaded ) {
-
-      callback( new Error( 'Failed to load ' + url ) );
-
+  setTimeout(function() {
+    if (!loaded) {
+      callback(new Error("Failed to load " + url));
     }
-
-  }, 10000 );
-
+  }, 10000);
 }

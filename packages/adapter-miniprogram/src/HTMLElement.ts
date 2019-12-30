@@ -1,8 +1,7 @@
-import * as Mixin from './util/mixin';
-import Element from './Element';
+import * as Mixin from "./util/mixin";
+import Element from "./Element";
 
-function noop() {
-}
+function noop() {}
 
 export default class HTMLElement extends Element {
   className: string;
@@ -16,10 +15,10 @@ export default class HTMLElement extends Element {
   innerHTML: string;
   tagName: string;
 
-  constructor(tagName = '', level?: number) {
+  constructor(tagName = "", level?: number) {
     super();
 
-    this.className = '';
+    this.className = "";
     this.children = [];
 
     this.focus = noop;
@@ -30,7 +29,7 @@ export default class HTMLElement extends Element {
     this.removeChild = noop;
     this.remove = noop;
 
-    this.innerHTML = '';
+    this.innerHTML = "";
 
     this.tagName = tagName.toUpperCase();
 

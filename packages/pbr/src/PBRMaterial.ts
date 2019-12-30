@@ -1,16 +1,25 @@
-import {UniformSemantic, Logger, DataType, RenderState, MaterialType, BlendFunc, CullFace, Side} from '@alipay/o3-base';
-import {Material, RenderTechnique} from '@alipay/o3-material';
-import {LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight} from '@alipay/o3-lighting';
+import {
+  UniformSemantic,
+  Logger,
+  DataType,
+  RenderState,
+  MaterialType,
+  BlendFunc,
+  CullFace,
+  Side,
+  Util
+} from "@alipay/o3-base";
+import { Material, RenderTechnique, Texture2D } from "@alipay/o3-material";
+import { LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
 
-import {AEnvironmentMapLight} from './AEnvironmentMapLight';
-import vs from './pbr.vs.glsl';
-import fs from './pbr.fs.glsl';
+import { AEnvironmentMapLight } from "./AEnvironmentMapLight";
+import vs from "./pbr.vs.glsl";
+import fs from "./pbr.fs.glsl";
 
 /**
  * PBR（Physically-Based Rendering）材质
  */
 class PBRMaterial extends Material {
-
   private _uniformObj;
   private _stateObj;
   private _envMapLightNum: number;
@@ -65,13 +74,11 @@ class PBRMaterial extends Material {
    * @param {number} [props.perturbationVOffset] 扰动纹理V偏移
    */
   constructor(name = PBRMaterial.MATERIAL_NAME, props = {}) {
-
     super(name);
 
     this.createDefaulteValues();
     this.setUniforms(props);
     this.setStates(props);
-
   }
 
   /**
@@ -79,7 +86,6 @@ class PBRMaterial extends Material {
    * @private
    */
   createDefaulteValues() {
-
     this._uniformObj = {
       baseColorFactor: [1, 1, 1, 1],
       metallicFactor: 1,
@@ -98,16 +104,15 @@ class PBRMaterial extends Material {
 
       // reflect,refract
       envMapIntensity: 1,
-      refractionRatio: .98,
+      refractionRatio: 0.98,
 
       // perturbation
       perturbationUOffset: 0,
       perturbationVOffset: 0
-
     };
 
     this._stateObj = {
-      alphaMode: 'OPAQUE',
+      alphaMode: "OPAQUE",
       doubleSided: false,
       side: Side.FRONT,
       unlit: false,
@@ -120,11 +125,10 @@ class PBRMaterial extends Material {
       isMetallicWorkflow: true,
       premultipliedAlpha: true,
       envMapModeRefract: false,
-      useScreenUv: false,
+      useScreenUv: false
     };
 
     Object.keys(this._uniformObj).forEach(k => this.setValueByParamName(k, this._uniformObj[k]));
-
   }
 
   /**
@@ -133,90 +137,84 @@ class PBRMaterial extends Material {
    * @private
    */
   setUniforms(obj) {
-
     Object.keys(obj).forEach(key => {
-
       switch (key) {
-
-        case 'baseColorFactor':
+        case "baseColorFactor":
           this.baseColorFactor = obj[key];
           break;
-        case 'opacity':
+        case "opacity":
           this.opacity = obj[key];
           break;
-        case 'opacityTexture':
+        case "opacityTexture":
           this.opacityTexture = obj[key];
           break;
-        case 'baseColorTexture':
+        case "baseColorTexture":
           this.baseColorTexture = obj[key];
           break;
-        case 'metallicFactor':
+        case "metallicFactor":
           this.metallicFactor = obj[key];
           break;
-        case 'roughnessFactor':
+        case "roughnessFactor":
           this.roughnessFactor = obj[key];
           break;
-        case 'metallicRoughnessTexture':
+        case "metallicRoughnessTexture":
           this.metallicRoughnessTexture = obj[key];
           break;
-        case 'normalTexture':
+        case "normalTexture":
           this.normalTexture = obj[key];
           break;
-        case 'normalScale':
+        case "normalScale":
           this.normalScale = obj[key];
           break;
-        case 'emissiveTexture':
+        case "emissiveTexture":
           this.emissiveTexture = obj[key];
           break;
-        case 'emissiveFactor':
+        case "emissiveFactor":
           this.emissiveFactor = obj[key];
           break;
-        case 'occlusionTexture':
+        case "occlusionTexture":
           this.occlusionTexture = obj[key];
           break;
-        case 'occlusionStrength':
+        case "occlusionStrength":
           this.occlusionStrength = obj[key];
           break;
-        case 'alphaCutoff':
+        case "alphaCutoff":
           this.alphaCutoff = obj[key];
           break;
-        case 'clearCoat':
+        case "clearCoat":
           this.clearCoat = obj[key];
           break;
-        case 'clearCoatRoughness':
+        case "clearCoatRoughness":
           this.clearCoatRoughness = obj[key];
           break;
-        case 'specularFactor':
+        case "specularFactor":
           this.specularFactor = obj[key];
           break;
-        case 'glossinessFactor':
+        case "glossinessFactor":
           this.glossinessFactor = obj[key];
           break;
-        case 'specularGlossinessTexture':
+        case "specularGlossinessTexture":
           this.specularGlossinessTexture = obj[key];
           break;
-        case 'envMapIntensity':
+        case "envMapIntensity":
           this.envMapIntensity = obj[key];
           break;
-        case 'refractionRatio':
+        case "refractionRatio":
           this.refractionRatio = obj[key];
           break;
-        case 'perturbationTexture':
+        case "perturbationTexture":
           this.perturbationTexture = obj[key];
           break;
-        case 'perturbationUOffset':
+        case "perturbationUOffset":
           this.perturbationUOffset = obj[key];
           break;
-        case 'perturbationVOffset':
+        case "perturbationVOffset":
           this.perturbationVOffset = obj[key];
           break;
         default:
           break;
-
       }
-
     });
-
   }
 
   /**
@@ -225,58 +223,52 @@ class PBRMaterial extends Material {
    * @private
    */
   setStates(obj) {
-
     Object.keys(obj).forEach(key => {
-
       switch (key) {
-
-        case 'doubleSided':
+        case "doubleSided":
           this.doubleSided = obj[key];
           break;
-        case 'side':
+        case "side":
           this.side = obj[key];
           break;
-        case 'alphaMode':
+        case "alphaMode":
           this.alphaMode = obj[key];
           break;
-        case 'unlit':
+        case "unlit":
           this.unlit = obj[key];
           break;
-        case 'srgb':
+        case "srgb":
           this.srgb = obj[key];
           break;
-        case 'srgbFast':
+        case "srgbFast":
           this.srgbFast = obj[key];
           break;
-        case 'gamma':
+        case "gamma":
           this.gamma = obj[key];
           break;
-        case 'blendFunc':
+        case "blendFunc":
           this._stateObj.blendFunc = obj[key];
           break;
-        case 'depthMask':
+        case "depthMask":
           this._stateObj.depthMask = obj[key];
           break;
-        case 'getOpacityFromRGB':
+        case "getOpacityFromRGB":
           this.getOpacityFromRGB = obj[key];
           break;
-        case 'isMetallicWorkflow':
+        case "isMetallicWorkflow":
           this.isMetallicWorkflow = obj[key];
           break;
-        case 'premultipliedAlpha':
+        case "premultipliedAlpha":
           this.premultipliedAlpha = obj[key];
           break;
-        case 'envMapModeRefract':
+        case "envMapModeRefract":
           this.envMapModeRefract = obj[key];
           break;
-        case 'useScreenUv':
+        case "useScreenUv":
           this.useScreenUv = obj[key];
           break;
-
       }
-
     });
-
   }
 
   /**
@@ -286,7 +278,6 @@ class PBRMaterial extends Material {
    * @private
    */
   setValueByParamName(paramName, value) {
-
     const uniforms = PBRMaterial.TECH_CONFIG.uniforms;
 
     Object.keys(uniforms).forEach(key => {
@@ -297,24 +288,24 @@ class PBRMaterial extends Material {
         } else {
           this.setValue(uniformName, value);
         }
-        if ([
-          'baseColorTexture',
-          'metallicRoughnessTexture',
-          'normalTexture',
-          'emissiveTexture',
-          'occlusionTexture',
-          'opacityTexture',
-          'specularGlossinessTexture',
-          'perturbationTexture',
-        ].indexOf(paramName) !== -1) {
+        if (
+          [
+            "baseColorTexture",
+            "metallicRoughnessTexture",
+            "normalTexture",
+            "emissiveTexture",
+            "occlusionTexture",
+            "opacityTexture",
+            "specularGlossinessTexture",
+            "perturbationTexture"
+          ].indexOf(paramName) !== -1
+        ) {
           if ((this[paramName] && value == null) || (!this[paramName] && value)) {
             this._technique = null;
           }
         }
       }
-
     });
-
   }
 
   /****************************************   uniform start **************************************** /
@@ -324,16 +315,12 @@ class PBRMaterial extends Material {
    * @type {Array}
    */
   get baseColorFactor() {
-
     return this._uniformObj.baseColorFactor;
-
   }
 
   set baseColorFactor(v) {
-
     this._uniformObj.baseColorFactor = v;
-    this.setValueByParamName('baseColorFactor', v);
-
+    this.setValueByParamName("baseColorFactor", v);
   }
 
   get opacity(): number {
@@ -349,16 +336,12 @@ class PBRMaterial extends Material {
    * @type {Texture2D}
    */
   get baseColorTexture() {
-
     return this._uniformObj.baseColorTexture;
-
   }
 
   set baseColorTexture(v) {
-
-    this.setValueByParamName('baseColorTexture', v);
+    this.setValueByParamName("baseColorTexture", v);
     this._uniformObj.baseColorTexture = v;
-
   }
 
   /**
@@ -370,10 +353,8 @@ class PBRMaterial extends Material {
   }
 
   set opacityTexture(v) {
-
-    this.setValueByParamName('opacityTexture', v);
+    this.setValueByParamName("opacityTexture", v);
     this._uniformObj.opacityTexture = v;
-
   }
 
   /**
@@ -381,17 +362,13 @@ class PBRMaterial extends Material {
    * @type {Number}
    */
   get metallicFactor() {
-
     return this._uniformObj.metallicFactor;
-
   }
 
   set metallicFactor(v) {
-
     this._uniformObj.metallicFactor = v;
     this._uniformObj.metallicRoughness[0] = v;
-    this.setValueByParamName('metallicRoughness', this._uniformObj.metallicRoughness);
-
+    this.setValueByParamName("metallicRoughness", this._uniformObj.metallicRoughness);
   }
 
   /**
@@ -399,17 +376,13 @@ class PBRMaterial extends Material {
    * @type {Number}
    */
   get roughnessFactor() {
-
     return this._uniformObj.roughnessFactor;
-
   }
 
   set roughnessFactor(v) {
-
     this._uniformObj.roughnessFactor = v;
     this._uniformObj.metallicRoughness[1] = v;
-    this.setValueByParamName('metallicRoughness', this._uniformObj.metallicRoughness);
-
+    this.setValueByParamName("metallicRoughness", this._uniformObj.metallicRoughness);
   }
 
   /**
@@ -417,16 +390,12 @@ class PBRMaterial extends Material {
    * @type {Texture2D}
    */
   get metallicRoughnessTexture() {
-
     return this._uniformObj.metallicRoughnessTexture;
-
   }
 
   set metallicRoughnessTexture(v) {
-
-    this.setValueByParamName('metallicRoughnessTexture', v);
+    this.setValueByParamName("metallicRoughnessTexture", v);
     this._uniformObj.metallicRoughnessTexture = v;
-
   }
 
   /**
@@ -434,16 +403,12 @@ class PBRMaterial extends Material {
    * @type {Texture2D}
    */
   get normalTexture() {
-
     return this._uniformObj.normalTexture;
-
   }
 
   set normalTexture(v) {
-
-    this.setValueByParamName('normalTexture', v);
+    this.setValueByParamName("normalTexture", v);
     this._uniformObj.normalTexture = v;
-
   }
 
   /**
@@ -451,16 +416,12 @@ class PBRMaterial extends Material {
    * @type {Number}
    */
   get normalScale() {
-
     return this._uniformObj.normalScale;
-
   }
 
   set normalScale(v) {
-
     this._uniformObj.normalScale = v;
-    this.setValueByParamName('normalScale', v);
-
+    this.setValueByParamName("normalScale", v);
   }
 
   /**
@@ -468,16 +429,12 @@ class PBRMaterial extends Material {
    * @type {Texture2D}
    */
   get emissiveTexture() {
-
     return this._uniformObj.emissiveTexture;
-
   }
 
   set emissiveTexture(v) {
-
-    this.setValueByParamName('emissiveTexture', v);
+    this.setValueByParamName("emissiveTexture", v);
     this._uniformObj.emissiveTexture = v;
-
   }
 
   /**
@@ -485,16 +442,12 @@ class PBRMaterial extends Material {
    * @type {Array}
    */
   get emissiveFactor() {
-
     return this._uniformObj.emissiveFactor;
-
   }
 
   set emissiveFactor(v) {
-
     this._uniformObj.emissiveFactor = v;
-    this.setValueByParamName('emissiveFactor', v);
-
+    this.setValueByParamName("emissiveFactor", v);
   }
 
   /**
@@ -502,16 +455,12 @@ class PBRMaterial extends Material {
    * @type {Texture2D}
    */
   get occlusionTexture() {
-
     return this._uniformObj.occlusionTexture;
-
   }
 
   set occlusionTexture(v) {
-
-    this.setValueByParamName('occlusionTexture', v);
+    this.setValueByParamName("occlusionTexture", v);
     this._uniformObj.occlusionTexture = v;
-
   }
 
   /**
@@ -519,16 +468,12 @@ class PBRMaterial extends Material {
    * @type {Number}
    */
   get occlusionStrength() {
-
     return this._uniformObj.occlusionStrength;
-
   }
 
   set occlusionStrength(v) {
-
     this._uniformObj.occlusionStrength = v;
-    this.setValueByParamName('occlusionStrength', v);
-
+    this.setValueByParamName("occlusionStrength", v);
   }
 
   /**
@@ -536,16 +481,12 @@ class PBRMaterial extends Material {
    * @type {Number}
    */
   get alphaCutoff() {
-
     return this._uniformObj.alphaCutoff;
-
   }
 
   set alphaCutoff(v) {
-
     this._uniformObj.alphaCutoff = v;
-    this.setValueByParamName('alphaCutoff', v);
-
+    this.setValueByParamName("alphaCutoff", v);
   }
 
   /**
@@ -553,16 +494,12 @@ class PBRMaterial extends Material {
    * @type {Number}
    */
   get clearCoat() {
-
     return this._uniformObj.clearCoat;
-
   }
 
   set clearCoat(v) {
-
     this._uniformObj.clearCoat = v;
-    this.setValueByParamName('clearCoat', v);
-
+    this.setValueByParamName("clearCoat", v);
   }
 
   /**
@@ -570,34 +507,25 @@ class PBRMaterial extends Material {
    * @type {Number}
    */
   get clearCoatRoughness() {
-
     return this._uniformObj.clearCoatRoughness;
-
   }
 
   set clearCoatRoughness(v) {
-
     this._uniformObj.clearCoatRoughness = v;
-    this.setValueByParamName('clearCoatRoughness', v);
-
+    this.setValueByParamName("clearCoatRoughness", v);
   }
-
 
   /**
    * 高光度因子
    * @type {Array}
    */
   get specularFactor() {
-
     return this._uniformObj.specularFactor;
-
   }
 
   set specularFactor(v) {
-
-    this.setValueByParamName('specularFactor', v);
+    this.setValueByParamName("specularFactor", v);
     this._uniformObj.specularFactor = v;
-
   }
 
   /**
@@ -605,16 +533,12 @@ class PBRMaterial extends Material {
    * @type {Array}
    */
   get glossinessFactor() {
-
     return this._uniformObj.glossinessFactor;
-
   }
 
   set glossinessFactor(v) {
-
-    this.setValueByParamName('glossinessFactor', v);
+    this.setValueByParamName("glossinessFactor", v);
     this._uniformObj.glossinessFactor = v;
-
   }
 
   /**
@@ -622,16 +546,12 @@ class PBRMaterial extends Material {
    * @type {Texture2D}
    */
   get specularGlossinessTexture() {
-
     return this._uniformObj.specularGlossinessTexture;
-
   }
 
   set specularGlossinessTexture(v) {
-
-    this.setValueByParamName('specularGlossinessTexture', v);
+    this.setValueByParamName("specularGlossinessTexture", v);
     this._uniformObj.specularGlossinessTexture = v;
-
   }
 
   /**
@@ -639,16 +559,12 @@ class PBRMaterial extends Material {
    * @type {number}
    */
   get envMapIntensity() {
-
     return this._uniformObj.envMapIntensity;
-
   }
 
   set envMapIntensity(v) {
-
-    this.setValueByParamName('envMapIntensity', v);
+    this.setValueByParamName("envMapIntensity", v);
     this._uniformObj.envMapIntensity = v;
-
   }
 
   /**
@@ -656,34 +572,25 @@ class PBRMaterial extends Material {
    * @type {number}
    */
   get refractionRatio() {
-
     return this._uniformObj.refractionRatio;
-
   }
 
   set refractionRatio(v) {
-
-    this.setValueByParamName('refractionRatio', v);
+    this.setValueByParamName("refractionRatio", v);
     this._uniformObj.refractionRatio = v;
-
   }
-
 
   /**
    * 扰动纹理
    * @type {Texture2D}
    */
   get perturbationTexture() {
-
     return this._uniformObj.perturbationTexture;
-
   }
 
   set perturbationTexture(v) {
-
-    this.setValueByParamName('perturbationTexture', v);
+    this.setValueByParamName("perturbationTexture", v);
     this._uniformObj.perturbationTexture = v;
-
   }
 
   /**
@@ -691,16 +598,12 @@ class PBRMaterial extends Material {
    * @type {number}
    */
   get perturbationUOffset() {
-
     return this._uniformObj.perturbationUOffset;
-
   }
 
   set perturbationUOffset(v) {
-
-    this.setValueByParamName('perturbationUOffset', v);
+    this.setValueByParamName("perturbationUOffset", v);
     this._uniformObj.perturbationUOffset = v;
-
   }
 
   /**
@@ -708,16 +611,12 @@ class PBRMaterial extends Material {
    * @type {number}
    */
   get perturbationVOffset() {
-
     return this._uniformObj.perturbationVOffset;
-
   }
 
   set perturbationVOffset(v) {
-
-    this.setValueByParamName('perturbationVOffset', v);
+    this.setValueByParamName("perturbationVOffset", v);
     this._uniformObj.perturbationVOffset = v;
-
   }
 
   /****************************************   uniform end **************************************** /
@@ -727,16 +626,12 @@ class PBRMaterial extends Material {
    * @type {'OPAQUE'|'MASK'|'BLEND'}
    */
   get alphaMode() {
-
     return this._stateObj.alphaMode;
-
   }
 
   set alphaMode(v) {
-
     this._stateObj.alphaMode = v;
     this._technique = null;
-
   }
 
   /**
@@ -744,13 +639,10 @@ class PBRMaterial extends Material {
    * @type {Boolean}
    */
   get doubleSided() {
-
     return this._stateObj.doubleSided;
-
   }
 
   set doubleSided(v) {
-
     this._stateObj.doubleSided = v;
     if (v) {
       this._stateObj.side = Side.DOUBLE;
@@ -758,7 +650,6 @@ class PBRMaterial extends Material {
       this._stateObj.side = Side.FRONT;
     }
     this._technique = null;
-
   }
 
   /**
@@ -766,9 +657,7 @@ class PBRMaterial extends Material {
    * @type {Side}
    * */
   get side() {
-
     return this._stateObj.side;
-
   }
 
   set side(v) {
@@ -784,7 +673,6 @@ class PBRMaterial extends Material {
     }
     this._stateObj.side = v;
     this._technique = null;
-
   }
 
   /**
@@ -792,16 +680,12 @@ class PBRMaterial extends Material {
    * @type {Boolean}
    */
   get unlit() {
-
     return this._stateObj.unlit;
-
   }
 
   set unlit(v) {
-
     this._stateObj.unlit = v;
     this._technique = null;
-
   }
 
   /**
@@ -809,32 +693,24 @@ class PBRMaterial extends Material {
    * @type {Boolean}
    */
   get srgb() {
-
     return this._stateObj.srgb;
-
   }
 
   set srgb(v) {
-
     this._stateObj.srgb = v;
     this._technique = null;
-
   }
 
   /**
    * sRGB线性校正是否使用近似快速算法
    * */
   get srgbFast(): boolean {
-
     return this._stateObj.srgbFast;
-
   }
 
   set srgbFast(v: boolean) {
-
     this._stateObj.srgbFast = v;
     this._technique = null;
-
   }
 
   /**
@@ -842,16 +718,12 @@ class PBRMaterial extends Material {
    * @type {Boolean}
    */
   get gamma() {
-
     return this._stateObj.gamma;
-
   }
 
   set gamma(v) {
-
     this._stateObj.gamma = v;
     this._technique = null;
-
   }
 
   /**
@@ -860,16 +732,12 @@ class PBRMaterial extends Material {
    * @type{boolean}
    * */
   get getOpacityFromRGB(): boolean {
-
     return this._stateObj.getOpacityFromRGB;
-
   }
 
   set getOpacityFromRGB(v) {
-
     this._stateObj.getOpacityFromRGB = v;
     this._technique = null;
-
   }
 
   /**
@@ -877,16 +745,12 @@ class PBRMaterial extends Material {
    * @type{boolean}
    * */
   get isMetallicWorkflow(): boolean {
-
     return this._stateObj.isMetallicWorkflow;
-
   }
 
   set isMetallicWorkflow(v) {
-
     this._stateObj.isMetallicWorkflow = v;
     this._technique = null;
-
   }
 
   /**
@@ -894,16 +758,12 @@ class PBRMaterial extends Material {
    * @type{boolean}
    * */
   get premultipliedAlpha(): boolean {
-
     return this._stateObj.premultipliedAlpha;
-
   }
 
   set premultipliedAlpha(v) {
-
     this._stateObj.premultipliedAlpha = v;
     this._technique = null;
-
   }
 
   /**
@@ -911,16 +771,12 @@ class PBRMaterial extends Material {
    * @type{boolean}
    * */
   get envMapModeRefract(): boolean {
-
     return this._stateObj.envMapModeRefract;
-
   }
 
   set envMapModeRefract(v) {
-
     this._stateObj.envMapModeRefract = v;
     this._technique = null;
-
   }
 
   /**
@@ -929,18 +785,13 @@ class PBRMaterial extends Material {
    * @type{boolean}
    * */
   get useScreenUv(): boolean {
-
     return this._stateObj.useScreenUv;
-
   }
 
   set useScreenUv(v) {
-
     this._stateObj.useScreenUv = v;
     this._technique = null;
-
   }
-
 
   /**
    * 绘制前准备
@@ -949,7 +800,6 @@ class PBRMaterial extends Material {
    * @private
    */
   prepareDrawing(camera, component, primitive) {
-
     let envMapLightNum: number = 0;
     let directLightNum: number = 0;
     let pointLightNum: number = 0;
@@ -960,40 +810,29 @@ class PBRMaterial extends Material {
     const scene = camera.scene;
     const lightMgr = scene.findFeature(LightFeature);
     if (lightMgr) {
-
       const lights = lightMgr.visibleLights;
-      this.setValue('u_ambientLightColor', [0, 0, 0]);
+      this.setValue("u_ambientLightColor", [0, 0, 0]);
       for (let i = 0; i < lights.length; i++) {
-
         const light = lights[i];
         if (!envMapLight && lights[i] instanceof AEnvironmentMapLight) {
-
           envMapLight = lights[i];
           envMapLight.bindMaterialValues(this);
           useDiffuseMap = envMapLight.useDiffuseMap;
           useSpecularMap = envMapLight.useSpecularMap;
           envMapLightNum = 1;
-
         } else if (light instanceof AAmbientLight) {
-
-          light.bindMaterialValues(this, 'u_ambientLightColor');
-
+          light.bindMaterialValues(this, "u_ambientLightColor");
         } else if (light instanceof ADirectLight) {
-
           this.setValue(`u_directionalLight[${directLightNum}].color`, light.lightColor);
           this.setValue(`u_directionalLight[${directLightNum}].direction`, light.reverseDirection);
           directLightNum++;
-
         } else if (light instanceof APointLight) {
-
           this.setValue(`u_pointLight[${pointLightNum}].position`, light.position);
           this.setValue(`u_pointLight[${pointLightNum}].color`, light.lightColor);
           this.setValue(`u_pointLight[${pointLightNum}].distance`, light.distance);
           this.setValue(`u_pointLight[${pointLightNum}].decay`, light.distance === 0 ? 0 : light.decay);
           pointLightNum++;
-
         } else if (light instanceof ASpotLight) {
-
           this.setValue(`u_spotLight[${spotLightNum}].position`, light.position);
           this.setValue(`u_spotLight[${spotLightNum}].color`, light.lightColor);
           this.setValue(`u_spotLight[${spotLightNum}].direction`, light.reverseDirection);
@@ -1002,18 +841,19 @@ class PBRMaterial extends Material {
           this.setValue(`u_spotLight[${spotLightNum}].coneCos`, Math.cos(light.angle));
           this.setValue(`u_spotLight[${spotLightNum}].penumbraCos`, Math.cos(light.angle * (1 - light.penumbra)));
           spotLightNum++;
-
         }
-
       }
-
     }
 
-    if (!this._technique || this._envMapLightNum !== envMapLightNum ||
-      this._useDiffuseMap !== useDiffuseMap || this._useSpecularMap !== useSpecularMap ||
-      this._directLightNum !== directLightNum || this._pointLightNum !== pointLightNum ||
-      this._spotLightNum !== spotLightNum) {
-
+    if (
+      !this._technique ||
+      this._envMapLightNum !== envMapLightNum ||
+      this._useDiffuseMap !== useDiffuseMap ||
+      this._useSpecularMap !== useSpecularMap ||
+      this._directLightNum !== directLightNum ||
+      this._pointLightNum !== pointLightNum ||
+      this._spotLightNum !== spotLightNum
+    ) {
       this._envMapLightNum = envMapLightNum;
       this._useDiffuseMap = useDiffuseMap;
       this._useSpecularMap = useSpecularMap;
@@ -1021,14 +861,12 @@ class PBRMaterial extends Material {
       this._pointLightNum = pointLightNum;
       this._spotLightNum = spotLightNum;
       this._generateTechnique(camera, component, primitive);
-
     }
 
     // 额外配置
-    this.setValue('u_resolution', [camera._rhi.canvas.width, camera._rhi.canvas.height]);
+    this.setValue("u_resolution", [camera._rhi.canvas.width, camera._rhi.canvas.height]);
 
     super.prepareDrawing(camera, component, primitive);
-
   }
 
   /**
@@ -1038,7 +876,6 @@ class PBRMaterial extends Material {
    * @private
    */
   _generateTechnique(camera, component, primitive) {
-
     const customMacros = this._generateShaderMacros(camera, component, primitive);
     const techName = PBRMaterial.TECHNIQUE_NAME;
     const vertex = PBRMaterial.STATIC_VERTEX_SHADER;
@@ -1049,14 +886,13 @@ class PBRMaterial extends Material {
     tech.isValid = true;
     tech.uniforms = config.uniforms;
     tech.attributes = config.attributes;
-    tech.fragmentPrecision = 'highp';
+    tech.fragmentPrecision = "highp";
     tech.customMacros = customMacros;
     tech.states = config.states;
     tech.vertexShader = vertex;
     tech.fragmentShader = frag;
 
     this._technique = tech;
-
   }
 
   /**
@@ -1066,105 +902,73 @@ class PBRMaterial extends Material {
    * @private
    */
   _generateShaderMacros(camera, component, primitive) {
-
     const rhi = camera._rhi;
 
-    const _macros = ['O3_NEED_WORLDPOS'];
+    const _macros = ["O3_NEED_WORLDPOS"];
 
     if (!primitive.vertexAttributes.NORMAL || !primitive.vertexAttributes.TANGENT)
-      if (rhi.requireExtension('OES_standard_derivatives'))
-        _macros.push('HAS_DERIVATIVES');
+      if (rhi.requireExtension("OES_standard_derivatives")) _macros.push("HAS_DERIVATIVES");
 
     const uniforms = Object.keys(this._values);
-    if (uniforms.indexOf('u_baseColorSampler') > -1)
-      _macros.push('HAS_BASECOLORMAP');
-    if (uniforms.indexOf('u_normalSampler') > -1)
-      _macros.push('O3_HAS_NORMALMAP');
-    if (uniforms.indexOf('u_metallicRoughnessSampler') > -1)
-      _macros.push('HAS_METALROUGHNESSMAP');
-    if (uniforms.indexOf('u_emissiveSampler') > -1)
-      _macros.push('HAS_EMISSIVEMAP');
-    if (uniforms.indexOf('u_occlusionSampler') > -1)
-      _macros.push('HAS_OCCLUSIONMAP');
-    if (uniforms.indexOf('u_specularGlossinessSampler') > -1)
-      _macros.push('HAS_SPECULARGLOSSINESSMAP');
-    if (uniforms.indexOf('u_perturbationSampler') > -1)
-      _macros.push('HAS_PERTURBATIONMAP');
+    if (uniforms.indexOf("u_baseColorSampler") > -1) _macros.push("HAS_BASECOLORMAP");
+    if (uniforms.indexOf("u_normalSampler") > -1) _macros.push("O3_HAS_NORMALMAP");
+    if (uniforms.indexOf("u_metallicRoughnessSampler") > -1) _macros.push("HAS_METALROUGHNESSMAP");
+    if (uniforms.indexOf("u_emissiveSampler") > -1) _macros.push("HAS_EMISSIVEMAP");
+    if (uniforms.indexOf("u_occlusionSampler") > -1) _macros.push("HAS_OCCLUSIONMAP");
+    if (uniforms.indexOf("u_specularGlossinessSampler") > -1) _macros.push("HAS_SPECULARGLOSSINESSMAP");
+    if (uniforms.indexOf("u_perturbationSampler") > -1) _macros.push("HAS_PERTURBATIONMAP");
 
-
-    if (this.alphaMode === 'MASK') {
-      _macros.push('ALPHA_MASK');
-    } else if (this.alphaMode === 'BLEND' && !this.perturbationTexture) {
-      _macros.push('ALPHA_BLEND');
-      if (uniforms.indexOf('u_opacitySampler') > -1) {
-        _macros.push('HAS_OPACITYMAP');
+    if (this.alphaMode === "MASK") {
+      _macros.push("ALPHA_MASK");
+    } else if (this.alphaMode === "BLEND" && !this.perturbationTexture) {
+      _macros.push("ALPHA_BLEND");
+      if (uniforms.indexOf("u_opacitySampler") > -1) {
+        _macros.push("HAS_OPACITYMAP");
         if (this.getOpacityFromRGB) {
-          _macros.push('GETOPACITYFROMRGB');
+          _macros.push("GETOPACITYFROMRGB");
         }
       }
     }
 
     if (this._envMapLightNum) {
+      _macros.push("O3_HAS_ENVMAPLIGHT");
 
-      _macros.push('O3_HAS_ENVMAPLIGHT');
+      if (this._useDiffuseMap) _macros.push("O3_HAS_DIFFUSEMAP");
 
-      if (this._useDiffuseMap)
-        _macros.push('O3_HAS_DIFFUSEMAP');
+      if (this._useSpecularMap) _macros.push("O3_HAS_SPECULARMAP");
 
-      if (this._useSpecularMap)
-        _macros.push('O3_HAS_SPECULARMAP');
-
-      if (rhi.requireExtension('EXT_shader_texture_lod'))
-        _macros.push('HAS_TEX_LOD');
-
+      if (rhi.requireExtension("EXT_shader_texture_lod")) _macros.push("HAS_TEX_LOD");
     }
 
-    if (this._directLightNum)
-      _macros.push(`O3_DIRECTLIGHT_NUM ${this._directLightNum}`);
-    if (this._pointLightNum)
-      _macros.push(`O3_POINTLIGHT_NUM ${this._pointLightNum}`);
-    if (this._spotLightNum)
-      _macros.push(`O3_SPOTLIGHT_NUM ${this._spotLightNum}`);
+    if (this._directLightNum) _macros.push(`O3_DIRECTLIGHT_NUM ${this._directLightNum}`);
+    if (this._pointLightNum) _macros.push(`O3_POINTLIGHT_NUM ${this._pointLightNum}`);
+    if (this._spotLightNum) _macros.push(`O3_SPOTLIGHT_NUM ${this._spotLightNum}`);
 
-    if (this._stateObj.unlit)
-      _macros.push('UNLIT');
-    if (this._stateObj.srgb)
-      _macros.push('MANUAL_SRGB');
-    if (this._stateObj.srgbFast)
-      _macros.push('SRGB_FAST_APPROXIMATION');
-    if (this._stateObj.gamma)
-      _macros.push('GAMMA');
-    if (this._stateObj.isMetallicWorkflow)
-      _macros.push('IS_METALLIC_WORKFLOW');
-    if (this._stateObj.premultipliedAlpha)
-      _macros.push('PREMULTIPLIED_ALPHA');
-    if (this._stateObj.envMapModeRefract)
-      _macros.push('ENVMAPMODE_REFRACT');
-    if (this._stateObj.useScreenUv)
-      _macros.push('USE_SCREENUV');
+    if (this._stateObj.unlit) _macros.push("UNLIT");
+    if (this._stateObj.srgb) _macros.push("MANUAL_SRGB");
+    if (this._stateObj.srgbFast) _macros.push("SRGB_FAST_APPROXIMATION");
+    if (this._stateObj.gamma) _macros.push("GAMMA");
+    if (this._stateObj.isMetallicWorkflow) _macros.push("IS_METALLIC_WORKFLOW");
+    if (this._stateObj.premultipliedAlpha) _macros.push("PREMULTIPLIED_ALPHA");
+    if (this._stateObj.envMapModeRefract) _macros.push("ENVMAPMODE_REFRACT");
+    if (this._stateObj.useScreenUv) _macros.push("USE_SCREENUV");
 
     return _macros;
-
   }
-
 
   /**
    * 创建Technique配置信息
    */
   _generateConfig() {
-
     const defaultState = PBRMaterial.TECH_CONFIG.states;
     const states = {
       disable: defaultState.disable.slice(),
       enable: defaultState.enable.slice(),
-      functions: Object.assign({}, defaultState.functions) as any,
+      functions: Object.assign({}, defaultState.functions) as any
     };
     if (this.doubleSided) {
-
       states.disable.push(RenderState.CULL_FACE);
-
     } else {
-
       switch (this.side) {
         case Side.FRONT:
           states.functions.cullFace = [CullFace.BACK];
@@ -1176,152 +980,142 @@ class PBRMaterial extends Material {
           states.functions.cullFace = [CullFace.FRONT_AND_BACK];
           break;
         default:
-          delete states.functions.cullFace
+          delete states.functions.cullFace;
       }
-
     }
-    if (this.alphaMode === 'BLEND' && !this.perturbationTexture) {
-
+    if (this.alphaMode === "BLEND" && !this.perturbationTexture) {
       states.enable.push(RenderState.BLEND);
       states.functions.blendFunc = this._stateObj.blendFunc;
       states.functions.depthMask = this._stateObj.depthMask;
       this.renderType = MaterialType.TRANSPARENT;
-
     } else {
       this.renderType = MaterialType.OPAQUE;
     }
 
     const lightUniforms = {};
     if (this._directLightNum) {
-
       for (let i = 0; i < this._directLightNum; i++) {
-
         lightUniforms[`u_directionalLight[${i}].color`] = {
           name: `u_directionalLight[${i}].color`,
-          type: DataType.FLOAT_VEC3,
+          type: DataType.FLOAT_VEC3
         };
         lightUniforms[`u_directionalLight[${i}].direction`] = {
           name: `u_directionalLight[${i}].direction`,
-          type: DataType.FLOAT_VEC3,
+          type: DataType.FLOAT_VEC3
         };
-
       }
-
     }
 
     if (this._pointLightNum) {
-
       for (let i = 0; i < this._pointLightNum; i++) {
-
         lightUniforms[`u_pointLight[${i}].position`] = {
           name: `u_pointLight[${i}].position`,
-          type: DataType.FLOAT_VEC3,
+          type: DataType.FLOAT_VEC3
         };
         lightUniforms[`u_pointLight[${i}].color`] = {
           name: `u_pointLight[${i}].color`,
-          type: DataType.FLOAT_VEC3,
+          type: DataType.FLOAT_VEC3
         };
         lightUniforms[`u_pointLight[${i}].distance`] = {
           name: `u_pointLight[${i}].distance`,
-          type: DataType.FLOAT,
+          type: DataType.FLOAT
         };
         lightUniforms[`u_pointLight[${i}].decay`] = {
           name: `u_pointLight[${i}].decay`,
-          type: DataType.FLOAT,
+          type: DataType.FLOAT
         };
-
       }
-
     }
 
     if (this._spotLightNum) {
-
       for (let i = 0; i < this._spotLightNum; i++) {
-
         lightUniforms[`u_spotLight[${i}].position`] = {
           name: `u_spotLight[${i}].position`,
-          type: DataType.FLOAT_VEC3,
+          type: DataType.FLOAT_VEC3
         };
         lightUniforms[`u_spotLight[${i}].direction`] = {
           name: `u_spotLight[${i}].direction`,
-          type: DataType.FLOAT_VEC3,
+          type: DataType.FLOAT_VEC3
         };
         lightUniforms[`u_spotLight[${i}].color`] = {
           name: `u_spotLight[${i}].color`,
-          type: DataType.FLOAT_VEC3,
+          type: DataType.FLOAT_VEC3
         };
         lightUniforms[`u_spotLight[${i}].distance`] = {
           name: `u_spotLight[${i}].distance`,
-          type: DataType.FLOAT,
+          type: DataType.FLOAT
         };
         lightUniforms[`u_spotLight[${i}].decay`] = {
           name: `u_spotLight[${i}].decay`,
-          type: DataType.FLOAT,
+          type: DataType.FLOAT
         };
         lightUniforms[`u_spotLight[${i}].coneCos`] = {
           name: `u_spotLight[${i}].coneCos`,
-          type: DataType.FLOAT,
+          type: DataType.FLOAT
         };
         lightUniforms[`u_spotLight[${i}].penumbraCos`] = {
           name: `u_spotLight[${i}].penumbraCos`,
-          type: DataType.FLOAT,
+          type: DataType.FLOAT
         };
-
       }
-
     }
 
     PBRMaterial.TECH_CONFIG.uniforms = Object.assign({}, PBRMaterial.TECH_CONFIG.uniforms, lightUniforms);
 
-    return Object.assign({}, PBRMaterial.TECH_CONFIG, {states});
-
+    return Object.assign({}, PBRMaterial.TECH_CONFIG, { states });
   }
 
   /**
    * 创建一个副本
+   * @param {string} name - name
+   * @param {boolean} cloneTexture - 是否复制纹理，默认复制
    */
-  clone() {
-
-    const newMtl = new PBRMaterial(this.name);
+  clone(name?: string, cloneTexture: boolean = true) {
+    const newMtl = new PBRMaterial(name || this.name);
 
     newMtl.renderType = this.renderType;
+    newMtl.useFog = this.useFog;
 
-    for (const name in this._values) {
-
-      if (this._values.hasOwnProperty(name)) {
-
-        newMtl._values[name] = this._values[name];
-
+    for (const name in this._uniformObj) {
+      switch (name) {
+        case "baseColorTexture":
+        case "metallicRoughnessTexture":
+        case "normalTexture":
+        case "emissiveTexture":
+        case "occlusionTexture":
+        case "opacityTexture":
+        case "specularGlossinessTexture":
+        case "perturbationTexture":
+          if (cloneTexture) {
+            let { name: textureName, image, type, config } = this._uniformObj[name];
+            const newTexture = new Texture2D(textureName, image, config);
+            newTexture.type = type;
+            newMtl[name] = newTexture;
+          } else {
+            newMtl[name] = this._uniformObj[name];
+          }
+          break;
+        default:
+          newMtl[name] = Util.clone(this._uniformObj[name]);
       }
-
-    }
-
-    if (this._uniformObj) {
-
-      newMtl._uniformObj = Object.assign({}, this._uniformObj);
-
     }
 
     if (this._stateObj) {
-
-      newMtl._stateObj = Object.assign({}, this._stateObj);
-
+      newMtl._stateObj = Util.clone(this._stateObj);
     }
-
     return newMtl;
-
   }
 
   /**
    * 默认材质名 ‘PBR_MATERIAL’
    * @private
    */
-  static MATERIAL_NAME = 'PBR_MATERIAL';
+  static MATERIAL_NAME = "PBR_MATERIAL";
   /**
    * 默认Technique名 ‘PBR_TECHNIQUE’
    * @private
    */
-  static TECHNIQUE_NAME = 'PBR_TECHNIQUE';
+  static TECHNIQUE_NAME = "PBR_TECHNIQUE";
 
   /**
    * 顶点着色器
@@ -1347,144 +1141,145 @@ class PBRMaterial extends Material {
    */
   static TECH_CONFIG = {
     attributes: {},
-    uniforms: Object.assign({
-      u_baseColorSampler: {
-        name: 'u_baseColorSampler',
-        paramName: 'baseColorTexture',
-        type: DataType.SAMPLER_2D,
+    uniforms: Object.assign(
+      {
+        u_baseColorSampler: {
+          name: "u_baseColorSampler",
+          paramName: "baseColorTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_baseColorFactor: {
+          name: "u_baseColorFactor",
+          paramName: "baseColorFactor",
+          type: DataType.FLOAT_VEC4
+        },
+        u_normalSampler: {
+          name: "u_normalSampler",
+          paramName: "normalTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_normalScale: {
+          name: "u_normalScale",
+          paramName: "normalScale",
+          type: DataType.FLOAT
+        },
+        u_lightDirection: {
+          name: "u_lightDirection",
+          type: DataType.FLOAT_VEC3
+        },
+        u_lightColor: {
+          name: "u_lightColor",
+          type: DataType.FLOAT_VEC3
+        },
+        u_metallicRoughnessValue: {
+          name: "u_metallicRoughnessValue",
+          paramName: "metallicRoughness",
+          type: DataType.FLOAT_VEC2
+        },
+        u_metallicRoughnessSampler: {
+          name: "u_metallicRoughnessSampler",
+          paramName: "metallicRoughnessTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_emissiveFactor: {
+          name: "u_emissiveFactor",
+          paramName: "emissiveFactor",
+          type: DataType.FLOAT_VEC3
+        },
+        u_emissiveSampler: {
+          name: "u_emissiveSampler",
+          paramName: "emissiveTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_occlusionSampler: {
+          name: "u_occlusionSampler",
+          paramName: "occlusionTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_occlusionStrength: {
+          name: "u_occlusionStrength",
+          paramName: "occlusionStrength",
+          type: DataType.FLOAT
+        },
+        u_alphaCutoff: {
+          name: "u_alphaCutoff",
+          paramName: "alphaCutoff",
+          type: DataType.FLOAT
+        },
+        u_clearCoat: {
+          name: "u_clearCoat",
+          paramName: "clearCoat",
+          type: DataType.FLOAT
+        },
+        u_clearCoatRoughness: {
+          name: "u_clearCoatRoughness",
+          paramName: "clearCoatRoughness",
+          type: DataType.FLOAT
+        },
+        u_opacitySampler: {
+          name: "u_opacitySampler",
+          paramName: "opacityTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_specularFactor: {
+          name: "u_specularFactor",
+          paramName: "specularFactor",
+          type: DataType.FLOAT_VEC3
+        },
+        u_glossinessFactor: {
+          name: "u_glossinessFactor",
+          paramName: "glossinessFactor",
+          type: DataType.FLOAT
+        },
+        u_specularGlossinessSampler: {
+          name: "u_specularGlossinessSampler",
+          paramName: "specularGlossinessTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_envMapIntensity: {
+          name: "u_envMapIntensity",
+          paramName: "envMapIntensity",
+          type: DataType.FLOAT
+        },
+        u_refractionRatio: {
+          name: "u_refractionRatio",
+          paramName: "refractionRatio",
+          type: DataType.FLOAT
+        },
+        u_resolution: {
+          name: "u_resolution",
+          paramName: "resolution",
+          type: DataType.FLOAT_VEC2
+        },
+        u_perturbationSampler: {
+          name: "u_perturbationSampler",
+          paramName: "perturbationTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_perturbationUOffset: {
+          name: "u_perturbationUOffset",
+          paramName: "perturbationUOffset",
+          type: DataType.FLOAT
+        },
+        u_perturbationVOffset: {
+          name: "u_perturbationVOffset",
+          paramName: "perturbationVOffset",
+          type: DataType.FLOAT
+        },
+        // lights
+        u_ambientLightColor: {
+          name: "u_ambientLightColor",
+          type: DataType.FLOAT_VEC3
+        }
       },
-      u_baseColorFactor: {
-        name: 'u_baseColorFactor',
-        paramName: 'baseColorFactor',
-        type: DataType.FLOAT_VEC4,
-      },
-      u_normalSampler: {
-        name: 'u_normalSampler',
-        paramName: 'normalTexture',
-        type: DataType.SAMPLER_2D,
-      },
-      u_normalScale: {
-        name: 'u_normalScale',
-        paramName: 'normalScale',
-        type: DataType.FLOAT,
-      },
-      u_lightDirection: {
-        name: 'u_lightDirection',
-        type: DataType.FLOAT_VEC3,
-      },
-      u_lightColor: {
-        name: 'u_lightColor',
-        type: DataType.FLOAT_VEC3,
-      },
-      u_metallicRoughnessValue: {
-        name: 'u_metallicRoughnessValue',
-        paramName: 'metallicRoughness',
-        type: DataType.FLOAT_VEC2,
-      },
-      u_metallicRoughnessSampler: {
-        name: 'u_metallicRoughnessSampler',
-        paramName: 'metallicRoughnessTexture',
-        type: DataType.SAMPLER_2D,
-      },
-      u_emissiveFactor: {
-        name: 'u_emissiveFactor',
-        paramName: 'emissiveFactor',
-        type: DataType.FLOAT_VEC3,
-      },
-      u_emissiveSampler: {
-        name: 'u_emissiveSampler',
-        paramName: 'emissiveTexture',
-        type: DataType.SAMPLER_2D,
-      },
-      u_occlusionSampler: {
-        name: 'u_occlusionSampler',
-        paramName: 'occlusionTexture',
-        type: DataType.SAMPLER_2D,
-      },
-      u_occlusionStrength: {
-        name: 'u_occlusionStrength',
-        paramName: 'occlusionStrength',
-        type: DataType.FLOAT,
-      },
-      u_alphaCutoff: {
-        name: 'u_alphaCutoff',
-        paramName: 'alphaCutoff',
-        type: DataType.FLOAT,
-      },
-      u_clearCoat: {
-        name: 'u_clearCoat',
-        paramName: 'clearCoat',
-        type: DataType.FLOAT,
-      },
-      u_clearCoatRoughness: {
-        name: 'u_clearCoatRoughness',
-        paramName: 'clearCoatRoughness',
-        type: DataType.FLOAT,
-      },
-      u_opacitySampler: {
-        name: 'u_opacitySampler',
-        paramName: 'opacityTexture',
-        type: DataType.SAMPLER_2D,
-      },
-      u_specularFactor: {
-        name: 'u_specularFactor',
-        paramName: 'specularFactor',
-        type: DataType.FLOAT_VEC3
-      },
-      u_glossinessFactor: {
-        name: 'u_glossinessFactor',
-        paramName: 'glossinessFactor',
-        type: DataType.FLOAT
-      },
-      u_specularGlossinessSampler: {
-        name: 'u_specularGlossinessSampler',
-        paramName: 'specularGlossinessTexture',
-        type: DataType.SAMPLER_2D
-      },
-      u_envMapIntensity: {
-        name: 'u_envMapIntensity',
-        paramName: 'envMapIntensity',
-        type: DataType.FLOAT
-      },
-      u_refractionRatio: {
-        name: 'u_refractionRatio',
-        paramName: 'refractionRatio',
-        type: DataType.FLOAT
-      },
-      u_resolution: {
-        name: 'u_resolution',
-        paramName: 'resolution',
-        type: DataType.FLOAT_VEC2
-      },
-      u_perturbationSampler: {
-        name: 'u_perturbationSampler',
-        paramName: 'perturbationTexture',
-        type: DataType.SAMPLER_2D
-      },
-      u_perturbationUOffset: {
-        name: 'u_perturbationUOffset',
-        paramName: 'perturbationUOffset',
-        type: DataType.FLOAT
-      },
-      u_perturbationVOffset: {
-        name: 'u_perturbationVOffset',
-        paramName: 'perturbationVOffset',
-        type: DataType.FLOAT
-      },
-      // lights
-      u_ambientLightColor: {
-        name: 'u_ambientLightColor',
-        type: DataType.FLOAT_VEC3,
-      },
-
-    }, AEnvironmentMapLight.UNIFORM_DEFINE),
+      AEnvironmentMapLight.UNIFORM_DEFINE
+    ),
     states: {
       disable: [],
       enable: [],
-      functions: {},
-    },
+      functions: {}
+    }
   };
-
 }
 
-export {PBRMaterial};
+export { PBRMaterial };

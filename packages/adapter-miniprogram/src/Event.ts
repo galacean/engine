@@ -9,17 +9,14 @@ export default class Event {
   timeStamp: number;
 
   constructor(type: any) {
-
     this.cancelBubble = false;
     this.cancelable = false;
     this.target = null;
     this.currentTarget = null;
-    this.preventDefault = () => {
-    };
-    this.stopPropagation = () => {
-    };
+    this.preventDefault = () => {};
+    this.stopPropagation = () => {};
 
     this.type = type;
-    this.timeStamp = Date.now()
+    this.timeStamp = Date.now();
   }
 }

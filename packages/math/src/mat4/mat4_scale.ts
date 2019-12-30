@@ -7,7 +7,9 @@
  * @returns {mat4} out
  **/
 export function scale(out, a, v) {
-  let x = v[0], y = v[1], z = v[2];
+  let x = v[0],
+    y = v[1],
+    z = v[2];
 
   out[0] = a[0] * x;
   out[1] = a[1] * x;

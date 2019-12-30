@@ -9,4 +9,4 @@
  * @returns {quat} out
  * @function
  */
-export { set } from '../vec4/vec4_set';
+export { set } from "../vec4/vec4_set";

@@ -8,4 +8,4 @@
  * @returns {quat} out
  * @function
  */
-export { lerp } from '../vec4/vec4_lerp';
+export { lerp } from "../vec4/vec4_lerp";

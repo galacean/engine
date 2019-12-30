@@ -1,13 +1,16 @@
 /**
-* Calculates a 3x3 matrix from the given quaternion
-*
-* @param {mat3} out mat3 receiving operation result
-* @param {quat} q Quaternion to create matrix from
-*
-* @returns {mat3} out
-*/
+ * Calculates a 3x3 matrix from the given quaternion
+ *
+ * @param {mat3} out mat3 receiving operation result
+ * @param {quat} q Quaternion to create matrix from
+ *
+ * @returns {mat3} out
+ */
 export function fromQuat(out, q) {
-  let x = q[0], y = q[1], z = q[2], w = q[3];
+  let x = q[0],
+    y = q[1],
+    z = q[2],
+    w = q[3];
   let x2 = x + x;
   let y2 = y + y;
   let z2 = z + z;

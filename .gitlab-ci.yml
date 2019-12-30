@@ -1,0 +1,16 @@
+before_script:
+  - export PATH=$PWD/node_modules/.bin:$PATH
+  - echo $PATH
+  - time enclose install tnpm:tnpm
+  - tnpm -v
+test:
+  image: reg.docker.alibaba-inc.com/dockerlab/node-ci:3.4.2
+  script:
+    - time tnpm i --no-cache --internal-oss-cache && lerna bootstrap --hoist
+    - which node && node -p 'process.versions'
+    - time tnpm run b:types
+    - time tnpm run build
+    - time tnpm run b:umd
+    - time tnpm run ci
+  tags:
+    - swarm

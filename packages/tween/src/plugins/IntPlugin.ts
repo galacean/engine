@@ -1,7 +1,5 @@
 const IntPlugin = {
-  reset() {
-
-  },
+  reset() {},
 
   /**
    *
@@ -9,23 +7,17 @@ const IntPlugin = {
    * @param value int
    * @returns int
    */
-  startValue( tweener, value ) {
-
+  startValue(tweener, value) {
     return value;
-
   },
 
   // used in Incremental type LOOP_TYPE
-  setRelativeEndValue( tweener ) {
-
+  setRelativeEndValue(tweener) {
     tweener.endValue += tweener.startValue;
-
   },
 
-  setOffsetValue( tweener ) {
-
+  setOffsetValue(tweener) {
     tweener.offsetValue = tweener.endValue - tweener.startValue;
-
   },
 
   /**
@@ -41,8 +33,5 @@ const IntPlugin = {
    * @param duration
    * @param inverse bool
    */
-  apply( options, tweener, relative, getter, setter, elapsed, startValue, offsetValue, duration, inverse ) {
-
-  },
-
+  apply(options, tweener, relative, getter, setter, elapsed, startValue, offsetValue, duration, inverse) {}
 };

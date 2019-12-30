@@ -26,9 +26,7 @@ export class Engine extends EventDispatcher {
    * @readonly
    */
   get time(): Time {
-
     return this._time;
-
   }
 
   /**
@@ -37,29 +35,21 @@ export class Engine extends EventDispatcher {
    * @readonly
    */
   get currentScene(): Scene {
-
     return this._currentScene;
-
   }
 
   set currentScene(scene: Scene) {
-
     if (scene) {
-
       this._currentScene = scene;
 
-      if (!this.scenes.find((s) => {
-
-        return s === scene;
-
-      })) {
-
+      if (
+        !this.scenes.find(s => {
+          return s === scene;
+        })
+      ) {
         this.scenes.push(scene);
-
       }
-
     }
-
   }
 
   /**
@@ -110,7 +100,6 @@ export class Engine extends EventDispatcher {
    * @constructor
    */
   constructor() {
-
     super();
 
     // 加入 Feature 管理
@@ -125,9 +114,7 @@ export class Engine extends EventDispatcher {
   }
 
   public findFeature(Feature) {
-
     return engineFeatureManager.findFeature(this, Feature);
-
   }
 
   /**
@@ -137,7 +124,11 @@ export class Engine extends EventDispatcher {
    * @param {Object} attributes 配置信息
    * @private
    */
-  public requireRHI<T>(RHI: new (canvas: string | HTMLCanvasElement, attributes: object) => T, canvas: string | HTMLCanvasElement, attributes: object): T {
+  public requireRHI<T>(
+    RHI: new (canvas: string | HTMLCanvasElement, attributes: object) => T,
+    canvas: string | HTMLCanvasElement,
+    attributes: object
+  ): T {
     let c: HTMLCanvasElement;
     if (typeof canvas === "string") {
       c = document.getElementById(canvas) as HTMLCanvasElement;
@@ -179,7 +170,6 @@ export class Engine extends EventDispatcher {
     } else {
       Logger.error("Engine -- bad scene index: " + index);
     }
-
   }
 
   /**
@@ -218,59 +208,47 @@ export class Engine extends EventDispatcher {
 
   /** 继续（暂停后的）渲染 */
   public resume(): void {
-
     this._paused = false;
 
     let fixedUpdateAccumulator = 0;
 
     if (!this._animate) {
       this._animate = () => {
-
         const animateTime = this._animateTime;
         animateTime.tick();
 
         if (this._currentScene) {
-
           const interval = this._fixedUpdateInterval;
           fixedUpdateAccumulator += animateTime.deltaTime;
           // let updCount = 0;
           while (fixedUpdateAccumulator >= interval) {
-
             this._currentScene.trigger(new Event("fixedUpdate", this));
             fixedUpdateAccumulator -= interval;
             // updCount ++;
-
           }
           // console.log( 'updCount: ' + updCount  + ', ' + fixedUpdateAccumulator );
-
         }
 
         // -- tick
         if (this._FPSTime) {
-
           if (this._tickTime >= this._FPSTime) {
-
             this.tick();
             this._tickTime -= this._FPSTime;
-
           }
           this._tickTime += animateTime.deltaTime;
-
         } else {
-
           this.tick();
-
         }
 
         this.requestId = requestAnimationFrame(this._animate);
-
       };
-
     }
-
-    // fix lastTickTime every time before animating, otherwise the 1st frame after resuming may gets a too large dt.
-    this._animateTime.tick();
-    this._animate();
+    // 防止场景在后台渲染
+    requestAnimationFrame(() => {
+      // fix lastTickTime every time before animating, otherwise the 1st frame after resuming may gets a too large dt.
+      this._animateTime.tick();
+      this._animate();
+    });
 
     // var self = this;
     // var animateTime = this._animateTime;
@@ -324,7 +302,6 @@ export class Engine extends EventDispatcher {
 
     // }// end of function
     // animate();
-
   }
 
   /** 运行引擎，驱动每帧动画更新 */
@@ -334,15 +311,12 @@ export class Engine extends EventDispatcher {
     this.trigger(new Event("run", this));
   }
 
-  public render(scene: Scene, camera: ACamera): void {
-
-  }
+  public render(scene: Scene, camera: ACamera): void {}
 
   /** 更新当前场景中对象的状态，并渲染当前帧画面
    * @private
    */
   public tick(): void {
-
     if (this._paused) {
       return;
     }
@@ -366,21 +340,17 @@ export class Engine extends EventDispatcher {
     }
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this.scenes]);
-
   }
 
   /** 关闭当前引擎 */
   public shutdown(): void {
-
     // -- event
     this.trigger(new Event("shutdown", this));
     engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
     // -- cancel animation
     if (this.requestId) {
-
       cancelAnimationFrame(this.requestId);
       this.requestId = 0;
-
     }
 
     this._animate = undefined;
@@ -393,7 +363,5 @@ export class Engine extends EventDispatcher {
 
     // --
     this.assetPool.clear();
-
   }
-
 }

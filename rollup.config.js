@@ -22,11 +22,7 @@ if (!LERNA_PACKAGE_NAME) {
 
   fileDirs = fs
     .readdirSync(pkgDir)
-    .filter(
-      f =>
-        fs.statSync(path.join(pkgDir, f)).isDirectory() &&
-        excludeDirs.indexOf(f) === -1
-    );
+    .filter(f => fs.statSync(path.join(pkgDir, f)).isDirectory() && excludeDirs.indexOf(f) === -1);
 } else {
   const dirname = path.basename(PWD);
   fileDirs = [dirname];
@@ -40,7 +36,7 @@ const pkg = (name, type) => {
 
 fileDirs = fileDirs.filter(name => name !== "o3-plus");
 if (!isMiniProgram) {
-  fileDirs.push("o3-plus")
+  fileDirs.push("o3-plus");
 }
 
 let promises = [...fileDirs.map(name => pkg(name, "module"))];
@@ -73,12 +69,6 @@ async function makeRollupConfig({ location, main, name, type }) {
     babel({
       extensions,
       exclude: ["node_modules/**", "packages/**/node_modules/**"],
-      presets: [["@babel/env"], ["@babel/preset-typescript"]],
-      plugins: [
-        "@babel/plugin-proposal-export-namespace-from",
-        "@babel/proposal-class-properties",
-        "@babel/proposal-object-rest-spread"
-      ]
     }),
     commonjs()
   ];

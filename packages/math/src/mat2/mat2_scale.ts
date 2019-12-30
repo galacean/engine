@@ -7,8 +7,12 @@
  * @returns {mat2} out
  **/
 export function scale(out, a, v) {
-  let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
-  let v0 = v[0], v1 = v[1];
+  let a0 = a[0],
+    a1 = a[1],
+    a2 = a[2],
+    a3 = a[3];
+  let v0 = v[0],
+    v1 = v[1];
   out[0] = a0 * v0;
   out[1] = a1 * v0;
   out[2] = a2 * v1;

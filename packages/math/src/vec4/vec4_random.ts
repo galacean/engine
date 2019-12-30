@@ -1,6 +1,6 @@
-import { RANDOM } from '../MathUtil/MathUtil_RANDOM';
-import { normalize } from './vec4_normalize';
-import { scale } from './vec4_scale';
+import { RANDOM } from "../MathUtil/MathUtil_RANDOM";
+import { normalize } from "./vec4_normalize";
+import { scale } from "./vec4_scale";
 
 /**
  * Generates a random vector with the given scale

@@ -1,12 +1,12 @@
-import {DataType} from "@alipay/o3-base";
-import {mat4} from "@alipay/o3-math";
-import {GLShaderProgram} from "./GLShaderProgram";
-import {Logger} from "@alipay/o3-base";
-import {GLTexture2D} from "./GLTexture2D";
-import {GLTextureCubeMap} from "./GLTextureCubeMap";
-import {GLRenderHardware} from "./GLRenderHardware";
-import {RenderTechnique} from "@alipay/o3-material";
-import {GLRenderStates} from "./GLRenderStates";
+import { DataType } from "@alipay/o3-base";
+import { mat4 } from "@alipay/o3-math";
+import { GLShaderProgram } from "./GLShaderProgram";
+import { Logger } from "@alipay/o3-base";
+import { GLTexture2D } from "./GLTexture2D";
+import { GLTextureCubeMap } from "./GLTextureCubeMap";
+import { GLRenderHardware } from "./GLRenderHardware";
+import { RenderTechnique } from "@alipay/o3-material";
+import { GLRenderStates } from "./GLRenderStates";
 
 var UniformDefaults = {};
 UniformDefaults[DataType.FLOAT] = 0.0;
@@ -116,11 +116,7 @@ export class GLTechnique {
     const uniforms = this._uniforms;
     const assetUniforms = this._tech.uniforms;
     for (const name in uniforms) {
-      this._uploadUniformValue(
-        assetUniforms[name],
-        uniforms[name].location,
-        mtl.getValue(name)
-      );
+      this._uploadUniformValue(assetUniforms[name], uniforms[name].location, mtl.getValue(name));
     }
 
     //-- change render states
@@ -129,7 +125,6 @@ export class GLTechnique {
       stateManager.pushStateBlock(this._tech.name);
       this._applyStates(stateManager);
     }
-
   }
 
   /**
@@ -168,9 +163,7 @@ export class GLTechnique {
     const functions = states.functions;
     if (functions) {
       for (const name in functions) {
-        const args = Array.isArray(functions[name])
-          ? functions[name]
-          : [functions[name]];
+        const args = Array.isArray(functions[name]) ? functions[name] : [functions[name]];
         const func = stateManager[name];
         func.apply(stateManager, args);
       }
@@ -198,6 +191,10 @@ export class GLTechnique {
         if (value.length) gl.uniform1fv(location, value);
         else gl.uniform1f(location, value);
         break;
+      case DataType.INT:
+        if (value.length) gl.uniform1iv(location, value);
+        else gl.uniform1i(location, value);
+        break;
       case DataType.FLOAT_VEC2:
         gl.uniform2fv(location, value);
         break;
@@ -206,6 +203,18 @@ export class GLTechnique {
         break;
       case DataType.FLOAT_VEC4:
         gl.uniform4fv(location, value);
+        break;
+      case DataType.INT_VEC2:
+        gl.uniform2iv(location, value);
+        break;
+      case DataType.INT_VEC3:
+        gl.uniform3iv(location, value);
+        break;
+      case DataType.INT_VEC4:
+        gl.uniform4iv(location, value);
+        break;
+      case DataType.FLOAT_MAT2:
+        gl.uniformMatrix2fv(location, false, value);
         break;
       case DataType.FLOAT_MAT3:
         gl.uniformMatrix3fv(location, false, value);

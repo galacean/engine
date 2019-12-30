@@ -18,11 +18,12 @@ export function rotateY(out, a, rad) {
   let a22 = a[10];
   let a23 = a[11];
 
-  if (a !== out) { // If the source and destination differ, copy the unchanged rows
-    out[4]  = a[4];
-    out[5]  = a[5];
-    out[6]  = a[6];
-    out[7]  = a[7];
+  if (a !== out) {
+    // If the source and destination differ, copy the unchanged rows
+    out[4] = a[4];
+    out[5] = a[5];
+    out[6] = a[6];
+    out[7] = a[7];
     out[12] = a[12];
     out[13] = a[13];
     out[14] = a[14];

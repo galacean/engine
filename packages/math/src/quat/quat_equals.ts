@@ -5,4 +5,4 @@
  * @param {quat} b The second vector.
  * @returns {Boolean} True if the vectors are equal, false otherwise.
  */
-export { equals } from '../vec4/vec4_equals';
+export { equals } from "../vec4/vec4_equals";

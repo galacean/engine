@@ -1,4 +1,4 @@
-import { DataType } from '@alipay/o3-base';
+import { DataType } from "@alipay/o3-base";
 
 const vertexDataTypeSizeHash = {};
 vertexDataTypeSizeHash[DataType.BYTE] = 1;
@@ -9,10 +9,8 @@ vertexDataTypeSizeHash[DataType.INT] = 4;
 vertexDataTypeSizeHash[DataType.UNSIGNED_INT] = 4;
 vertexDataTypeSizeHash[DataType.FLOAT] = 4;
 
-export function getVertexDataTypeSize( type ) {
-
+export function getVertexDataTypeSize(type) {
   return vertexDataTypeSizeHash[type];
-
 }
 
 const vertexDataTypeDataView = {};
@@ -24,8 +22,6 @@ vertexDataTypeDataView[DataType.INT] = Int32Array;
 vertexDataTypeDataView[DataType.UNSIGNED_INT] = Uint32Array;
 vertexDataTypeDataView[DataType.FLOAT] = Float32Array;
 
-export function getVertexDataTypeDataView( type ) {
-
+export function getVertexDataTypeDataView(type) {
   return vertexDataTypeDataView[type];
-
 }

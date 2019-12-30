@@ -1,13 +1,12 @@
-import { vec3 } from '@alipay/o3-math';
-import { DataType } from '@alipay/o3-base';
-import { ALight } from './ALight';
+import { vec3 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-base";
+import { ALight } from "./ALight";
 
 /**
  * 方向光创建类
  * @extends ALight
  */
 export class ADirectLight extends ALight {
-
   private _lightColor;
   private _reverseDirection;
   public color;
@@ -22,16 +21,15 @@ export class ADirectLight extends ALight {
    * @param {number} [props.intensity = 1] 光照强度
    * @param {Vec3} [props.direction] 光照方向，默认节点forward方向
    */
-  constructor( node, props ) {
-
-    super( node );
-    this.name = props.name || 'directLight';
+  constructor(node, props) {
+    super(node);
+    this.name = props.name || "directLight";
 
     /**
      * 颜色
      * @member {Vec3}
      */
-    this.color = props.color || vec3.fromValues( 1, 1, 1 );
+    this.color = props.color || vec3.fromValues(1, 1, 1);
 
     /**
      * 光照强度
@@ -41,7 +39,6 @@ export class ADirectLight extends ALight {
 
     this._lightColor = vec3.create();
     this._reverseDirection = vec3.create();
-
   }
 
   /** 获取方向光方向
@@ -49,9 +46,7 @@ export class ADirectLight extends ALight {
    * @readonly
    */
   get direction() {
-
     return this.node.getForward();
-
   }
 
   /** 获取方向光最终颜色
@@ -59,10 +54,8 @@ export class ADirectLight extends ALight {
    * @readonly
    */
   get lightColor() {
-
-    vec3.scale( this._lightColor, this.color, this.intensity );
+    vec3.scale(this._lightColor, this.color, this.intensity);
     return this._lightColor;
-
   }
 
   /** 方向光方向的反方向
@@ -70,18 +63,15 @@ export class ADirectLight extends ALight {
    * @readonly
    */
   get reverseDirection() {
-
-    vec3.scale( this._reverseDirection, this.direction, -1 );
+    vec3.scale(this._reverseDirection, this.direction, -1);
     return this._reverseDirection;
-
   }
 
   /**
    * 生成 Technique 所需的 uniform 定义
    * @param {string} uniformName
    */
-  static getUniformDefine( uniformName ) {
-
+  static getUniformDefine(uniformName) {
     /**
      *   struct DirectLight {
      *    vec3 color;
@@ -91,34 +81,30 @@ export class ADirectLight extends ALight {
      */
     const uniforms = {};
 
-    uniforms[uniformName + '.color'] = {
-      name: uniformName + '.color',
+    uniforms[uniformName + ".color"] = {
+      name: uniformName + ".color",
       type: DataType.FLOAT_VEC3
     };
 
-    uniforms[uniformName + '.intensity'] = {
-      name: uniformName + '.intensity',
+    uniforms[uniformName + ".intensity"] = {
+      name: uniformName + ".intensity",
       type: DataType.FLOAT
     };
 
-    uniforms[uniformName + '.direction'] = {
-      name: uniformName + '.direction',
+    uniforms[uniformName + ".direction"] = {
+      name: uniformName + ".direction",
       type: DataType.FLOAT_VEC3
     };
 
     return uniforms;
-
   }
 
   /**
    * 将灯光参数值提交到材质对象
    */
-  bindMaterialValues( mtl, uniformName ) {
-
-    mtl.setValue( uniformName + '.color', this.color );
-    mtl.setValue( uniformName + '.intensity', this.intensity );
-    mtl.setValue( uniformName + '.direction', this.direction );
-
+  bindMaterialValues(mtl, uniformName) {
+    mtl.setValue(uniformName + ".color", this.color);
+    mtl.setValue(uniformName + ".intensity", this.intensity);
+    mtl.setValue(uniformName + ".direction", this.direction);
   }
-
 }

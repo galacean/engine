@@ -1,13 +1,12 @@
-import {TextureFilter, TextureWrapMode} from '@alipay/o3-base';
-import {AssetObject} from '@alipay/o3-core';
-import {Texture2D} from './Texture2D';
+import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
+import { AssetObject } from "@alipay/o3-core";
+import { Texture2D } from "./Texture2D";
 
 /**
  * 渲染目标，3D场景中的物体可以选择直接绘制到屏幕上，也可以选择渲染到一个 RenderTarget 上。渲染到 RenderTarget 上的内容可以作为纹理（Texture2D）供其他渲染环节使用。
  * @class
  */
 export class RenderTarget extends AssetObject {
-
   public width: number;
   public height: number;
   public clearColor: Array<number>;
@@ -23,8 +22,7 @@ export class RenderTarget extends AssetObject {
    * @param {Number} [config.enableDepthTexture=false] 是否开启深度纹理
    * @param {Number} [config.clearColor=[0, 0, 0, 0]] 清空后的填充色
    */
-  constructor(name, config: { width?: number, height?: number, clearColor?, enableDepthTexture?: boolean } = {}) {
-
+  constructor(name, config: { width?: number; height?: number; clearColor?; enableDepthTexture?: boolean } = {}) {
     super(name);
 
     /**
@@ -49,25 +47,21 @@ export class RenderTarget extends AssetObject {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR,
       wrapS: TextureWrapMode.CLAMP_TO_EDGE,
-      wrapT: TextureWrapMode.CLAMP_TO_EDGE,
+      wrapT: TextureWrapMode.CLAMP_TO_EDGE
     };
 
     /**
      * RenderTarget 渲染后的内容对应的纹理对象
      * @member {string}
      */
-    this.texture = new Texture2D(name + '_render_texture', null, textureConfig);
+    this.texture = new Texture2D(name + "_render_texture", null, textureConfig);
 
     if (config.enableDepthTexture) {
-
       /**
        * RenderTarget 渲染后的内容对应的深度纹理对象，只有在 config.enableDepthTexture = true 时生效
        * @member {string}
        */
-      this.depthTexture = new Texture2D(name + '_depth_texture', null, textureConfig);
-
+      this.depthTexture = new Texture2D(name + "_depth_texture", null, textureConfig);
     }
-
   }
-
 }

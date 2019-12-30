@@ -1,6 +1,6 @@
-import { DataType } from '@alipay/o3-base';
-import { ALight } from '@alipay/o3-lighting';
-import { TextureCubeMap, Texture2D } from '@alipay/o3-material';
+import { DataType } from "@alipay/o3-base";
+import { ALight } from "@alipay/o3-lighting";
+import { TextureCubeMap, Texture2D } from "@alipay/o3-material";
 
 /**
  * 环境光源
@@ -24,9 +24,8 @@ class AEnvironmentMapLight extends ALight {
    * @param {Number} [props.diffuseIntensity=1] 环境光强度
    * @param {Number} [props.specularIntensity=1] 高光强度
    */
-  constructor( node, props ) {
-
-    super( node );
+  constructor(node, props) {
+    super(node);
 
     const { name, diffuseMap, specularMap, diffuse, specular, diffuseIntensity, specularIntensity } = props;
     this.name = name;
@@ -47,13 +46,13 @@ class AEnvironmentMapLight extends ALight {
      * 单色环境光
      * @member {Array}
      */
-    this.diffuse = diffuse || [ 0.3, 0.3, 0.3 ];
+    this.diffuse = diffuse || [0.3, 0.3, 0.3];
 
     /**
      * 单色高光
      * @member {Array}
      */
-    this.specular = specular || [ 0.5, 0.5, 0.5 ];
+    this.specular = specular || [0.5, 0.5, 0.5];
 
     /**
      * 环境光强度
@@ -66,7 +65,6 @@ class AEnvironmentMapLight extends ALight {
      * @member {Number}
      */
     this.specularIntensity = specularIntensity === undefined ? 1 : specularIntensity;
-
   }
 
   /**
@@ -75,9 +73,7 @@ class AEnvironmentMapLight extends ALight {
    * @returns {Boolean}
    */
   get useDiffuseMap() {
-
     return !!this.diffuseMap;
-
   }
 
   /**
@@ -86,9 +82,7 @@ class AEnvironmentMapLight extends ALight {
    * @returns {Boolean}
    */
   get useSpecularMap() {
-
     return !!this.specularMap;
-
   }
 
   /**
@@ -96,32 +90,22 @@ class AEnvironmentMapLight extends ALight {
    * @param {Material} mtl 材质
    * @private
    */
-  bindMaterialValues( mtl ) {
+  bindMaterialValues(mtl) {
+    mtl.setValue("u_diffuseEnvSamplerIntensity", this.diffuseIntensity);
+    mtl.setValue("u_specularEnvSamplerIntensity", this.specularIntensity);
 
-    mtl.setValue( 'u_diffuseEnvSamplerIntensity', this.diffuseIntensity );
-    mtl.setValue( 'u_specularEnvSamplerIntensity', this.specularIntensity );
-
-    if( this.useDiffuseMap ) {
-
-      mtl.setValue( 'u_diffuseEnvSampler', this.diffuseMap );
-
+    if (this.useDiffuseMap) {
+      mtl.setValue("u_diffuseEnvSampler", this.diffuseMap);
     } else {
-
-      mtl.setValue( 'u_diffuse', this.diffuse );
-
+      mtl.setValue("u_diffuse", this.diffuse);
     }
 
-    if( this.useSpecularMap ) {
-
-      mtl.setValue( 'u_specularEnvSampler', this.specularMap );
-      mtl.setValue( 'u_mipMapLevel', this.specularMap.mipMapLevel );
-
+    if (this.useSpecularMap) {
+      mtl.setValue("u_specularEnvSampler", this.specularMap);
+      mtl.setValue("u_mipMapLevel", this.specularMap.mipMapLevel);
     } else {
-
-      mtl.setValue( 'u_specular', this.specular );
-
+      mtl.setValue("u_specular", this.specular);
     }
-
   }
 
   /**
@@ -129,44 +113,41 @@ class AEnvironmentMapLight extends ALight {
    * @private
    */
   static UNIFORM_DEFINE = {
-
-    u_diffuseEnvSampler : {
-      name: 'u_diffuseEnvSampler',
+    u_diffuseEnvSampler: {
+      name: "u_diffuseEnvSampler",
       type: DataType.SAMPLER_CUBE
     },
 
-    u_specularEnvSampler : {
-      name: 'u_specularEnvSampler',
+    u_specularEnvSampler: {
+      name: "u_specularEnvSampler",
       type: DataType.SAMPLER_CUBE
     },
 
-    u_diffuse : {
-      name: 'u_diffuse',
+    u_diffuse: {
+      name: "u_diffuse",
       type: DataType.FLOAT_VEC3
     },
 
-    u_specular : {
-      name: 'u_specular',
+    u_specular: {
+      name: "u_specular",
       type: DataType.FLOAT_VEC3
     },
 
-    u_mipMapLevel : {
-      name: 'u_mipMapLevel',
-      type: DataType.FLOAT,
+    u_mipMapLevel: {
+      name: "u_mipMapLevel",
+      type: DataType.FLOAT
     },
 
-    'u_specularEnvSamplerIntensity' : {
-      name: 'u_specularEnvSamplerIntensity',
-      type: DataType.FLOAT,
+    u_specularEnvSamplerIntensity: {
+      name: "u_specularEnvSamplerIntensity",
+      type: DataType.FLOAT
     },
 
-    'u_diffuseEnvSamplerIntensity' : {
-      name: 'u_diffuseEnvSamplerIntensity',
-      type: DataType.FLOAT,
-    },
-
-  }
-
+    u_diffuseEnvSamplerIntensity: {
+      name: "u_diffuseEnvSamplerIntensity",
+      type: DataType.FLOAT
+    }
+  };
 }
 
 export { AEnvironmentMapLight };

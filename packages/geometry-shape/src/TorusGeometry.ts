@@ -3,16 +3,18 @@ import { vec3 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
 
 export class TorusGeometry extends IndexBufferGeometry {
-  constructor(private parameters: {
-    radius?: number,
-    tube?: number,
-    radialSegments?: number,
-    tubularSegments?: number,
-    arc?: number
-  } = {}) {
+  constructor(
+    private parameters: {
+      radius?: number;
+      tube?: number;
+      radialSegments?: number;
+      tubularSegments?: number;
+      arc?: number;
+    } = {}
+  ) {
     super();
 
-    this.type = 'TorusBufferGeometry';
+    this.type = "TorusBufferGeometry";
 
     const radius = this.parameters.radius || 1;
     const tube = this.parameters.tube || 0.4;
@@ -36,11 +38,9 @@ export class TorusGeometry extends IndexBufferGeometry {
     // generate vertices, normals and uvs
 
     for (let j = 0; j <= radialSegments; j++) {
-
       for (let i = 0; i <= tubularSegments; i++) {
-
-        const u = i / tubularSegments * arc;
-        const v = j / radialSegments * Math.PI * 2;
+        const u = (i / tubularSegments) * arc;
+        const v = (j / radialSegments) * Math.PI * 2;
 
         // vertex
 
@@ -63,17 +63,13 @@ export class TorusGeometry extends IndexBufferGeometry {
 
         uvs.push(i / tubularSegments);
         uvs.push(j / radialSegments);
-
       }
-
     }
 
     // generate indices
 
     for (let j = 1; j <= radialSegments; j++) {
-
       for (let i = 1; i <= tubularSegments; i++) {
-
         // indices
 
         const a = (tubularSegments + 1) * j + i - 1;
@@ -85,17 +81,13 @@ export class TorusGeometry extends IndexBufferGeometry {
 
         indices.push(a, b, d);
         indices.push(b, c, d);
-
       }
-
     }
 
     // build geometry
 
     this.initialize(
-      [
-        { semantic: 'POSITION', size: 3, type: DataType.FLOAT, normalized: false },
-      ],
+      [{ semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false }],
       vertices.length,
       indices
     );
@@ -103,5 +95,4 @@ export class TorusGeometry extends IndexBufferGeometry {
       this.setValue("POSITION", index, value);
     });
   }
-
 }

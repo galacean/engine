@@ -9,14 +9,14 @@ type ClearColor = [number, number, number, number];
 
 interface PerturbationProbeConfig {
   /** probe config */
-  renderList?: Array<PBRMaterial>,
-  renderMask?: MaskList,
-  refreshRate?: RefreshRate,
+  renderList?: Array<PBRMaterial>;
+  renderMask?: MaskList;
+  refreshRate?: RefreshRate;
   /** renderTarget config */
-  width?: number,
-  height?: number,
-  clearColor?: ClearColor,
-  enableDepthTexture?: boolean,
+  width?: number;
+  height?: number;
+  clearColor?: ClearColor;
+  enableDepthTexture?: boolean;
 }
 
 /**
@@ -36,10 +36,7 @@ export class PerturbationProbe extends Probe {
     super(name, config);
     this.scene = scene;
     this.renderTarget = new RenderTarget(name + "_renderTarget", config);
-    this.renderPass = new RenderPass(name + "_renderPass",
-      -2,
-      this.renderTarget
-    );
+    this.renderPass = new RenderPass(name + "_renderPass", -2, this.renderTarget);
     /** 自定义渲染管道 */
     this.renderPass.renderOverride = true;
     if (!(scene instanceof Scene)) {
@@ -53,7 +50,6 @@ export class PerturbationProbe extends Probe {
 
     this.handleRenderPass();
     this.sceneRenderer.addRenderPass(this.renderPass);
-
   }
 
   /**
@@ -93,7 +89,6 @@ export class PerturbationProbe extends Probe {
       material.side = Side.BACK;
       material.perturbationTexture = null;
     }
-
   }
 
   /**
@@ -108,14 +103,12 @@ export class PerturbationProbe extends Probe {
       delete item.initialPT;
       delete item.__probe__;
     }
-
   }
 
   /**
    * 处理renderPass
    * */
   private handleRenderPass() {
-
     this.renderPass.preRender = () => {
       this.renderItems.forEach(item => {
         this.storeMaterial(item);
@@ -128,7 +121,7 @@ export class PerturbationProbe extends Probe {
       });
     };
 
-    this.renderPass.render = (camera) => {
+    this.renderPass.render = camera => {
       this.renderItems.forEach(item => {
         const { nodeAbility, primitive, mtl } = item;
         if (!item.__probe__) return;
@@ -140,7 +133,6 @@ export class PerturbationProbe extends Probe {
       });
       this.rhi.flushSprite();
     };
-
   }
 
   /**
@@ -153,5 +145,4 @@ export class PerturbationProbe extends Probe {
   get depthTexture(): Texture2D {
     return this.renderTarget.depthTexture;
   }
-
 }

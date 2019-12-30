@@ -5,6 +5,7 @@
  * @returns {Number} length of a
  */
 export function length(a) {
-  var x = a[0], y = a[1];
-  return Math.sqrt(x*x + y*y);
-};
+  var x = a[0],
+    y = a[1];
+  return Math.sqrt(x * x + y * y);
+}

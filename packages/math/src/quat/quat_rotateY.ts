@@ -9,8 +9,12 @@
 export function rotateY(out, a, rad) {
   rad *= 0.5;
 
-  let ax = a[0], ay = a[1], az = a[2], aw = a[3];
-  let by = Math.sin(rad), bw = Math.cos(rad);
+  let ax = a[0],
+    ay = a[1],
+    az = a[2],
+    aw = a[3];
+  let by = Math.sin(rad),
+    bw = Math.cos(rad);
 
   out[0] = ax * bw - az * by;
   out[1] = ay * bw + aw * by;

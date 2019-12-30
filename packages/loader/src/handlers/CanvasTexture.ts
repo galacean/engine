@@ -1,6 +1,6 @@
-import {Texture2D} from '@alipay/o3-material';
-import {Request, Prop, HandlerCb} from '../type';
-import {Resource} from '../Resource';
+import { Texture2D } from "@alipay/o3-material";
+import { Request, Prop, HandlerCb } from "../type";
+import { Resource } from "../Resource";
 
 /**
  * Canvas Texture:
@@ -25,36 +25,26 @@ import {Resource} from '../Resource';
  * // load resource ...
  */
 export class CanvasTextureHandler {
-
   load(request: Request, props: Prop, callback: HandlerCb) {
-
-    if (!props.hasOwnProperty('draw')) {
-
+    if (!props.hasOwnProperty("draw")) {
       callback('canvastexture resource has no "draw" function specified', null);
-
     } else {
-
       const width = props.width || 256;
       const height = props.height || 256;
       props.width = width;
       props.height = height;
       // let params = {width: width, height: height, };
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       props.draw(ctx, props);
       callback(null, canvas);
-
     }
-
   }
 
   open(resource: Resource) {
-
     const tex = new Texture2D(resource.name, resource.data, resource.config);
     resource.asset = tex;
-
   }
-
 }

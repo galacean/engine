@@ -1,4 +1,4 @@
-import { Logger, Util, Event, EventDispatcher } from "@alipay/o3-base";
+import { Logger, Util, Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { FeatureManager } from "./FeatureManager";
 import { Node } from "./Node";
 import { Engine } from "./Engine";
@@ -23,15 +23,12 @@ const sceneFeatureManager = new FeatureManager<SceneFeature>();
  * @class
  */
 export class Scene extends EventDispatcher {
-
   /** 当前的 Engine 对象
    * @member {Engine}
    * @readonly
    */
   get engine(): Engine {
-
     return this._engine;
-
   }
 
   /**
@@ -41,9 +38,7 @@ export class Scene extends EventDispatcher {
    * @readonly
    */
   get root(): Node {
-
     return this._root;
-
   }
 
   get activeCameras(): ACamera[] {
@@ -66,7 +61,6 @@ export class Scene extends EventDispatcher {
    * @param {Engine} engine 引擎对象
    */
   constructor(engine: Engine) {
-
     super();
 
     this._engine = engine;
@@ -74,13 +68,10 @@ export class Scene extends EventDispatcher {
     this._activeCameras = [];
 
     sceneFeatureManager.addObject(this);
-
   }
 
-  public findFeature<T extends SceneFeature>(Feature: { new(): T }): T {
-
+  public findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
     return sceneFeatureManager.findFeature(this, Feature) as T;
-
   }
 
   /**
@@ -89,41 +80,29 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
-
     sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]);
     this._root.update(deltaTime);
     sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]);
-
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
    * @private
    */
   public render(): void {
-
     const cameras = this._activeCameras;
     if (cameras.length > 0) {
-
       for (let i = 0, l = cameras.length; i < l; i++) {
-
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-
           sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]);
           camera.render();
           sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]);
-
         }
-
       }
-
     } else {
-
       Logger.debug("NO active camera.");
-
     }
-
   }
 
   /**
@@ -131,9 +110,7 @@ export class Scene extends EventDispatcher {
    * @param {SceneVisitor} visitor
    */
   public visitSceneGraph(visitor: SceneVisitor): void {
-
     this._root.visit(visitor);
-
   }
 
   /**
@@ -142,18 +119,12 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public attachRenderCamera(camera: ACamera): void {
-
     const index = this._activeCameras.indexOf(camera);
     if (index === -1) {
-
       this._activeCameras.push(camera);
-
     } else {
-
       Logger.warn("Camera already attached.");
-
     }
-
   }
 
   /**
@@ -162,14 +133,10 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public detachRenderCamera(camera: ACamera): void {
-
     const index = this._activeCameras.indexOf(camera);
     if (index !== -1) {
-
       this._activeCameras.splice(index, 1);
-
     }
-
   }
 
   /**
@@ -184,13 +151,17 @@ export class Scene extends EventDispatcher {
     return this._root.findChildByName(name);
   }
 
+  /**
+   * 射线
+   * @param ray
+   */
+  public raycast(ray: { origin: number[]; direction: number[] }, outPos?: number[], tag?: MaskList): any {}
+
   /** 销毁当前场景中的数据 */
   public destroy(): void {
-
     sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
     this._root.destroy();
     this._root = null;
     this._activeCameras = null;
-
   }
 }

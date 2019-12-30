@@ -1,8 +1,8 @@
-import {Logger} from '@alipay/o3-base';
-import {NodeAbility, Node} from '@alipay/o3-core';
-import {vec3, MathUtil, Spherical} from '@alipay/o3-math';
-import {Tween, Easing, doTransform} from '@alipay/o3-tween';
-import {vec3Type} from './type';
+import { Logger } from "@alipay/o3-base";
+import { NodeAbility, Node } from "@alipay/o3-core";
+import { vec3, MathUtil, Spherical } from "@alipay/o3-math";
+import { Tween, Easing, doTransform } from "@alipay/o3-tween";
+import { vec3Type } from "./type";
 
 // 防止万向锁
 const ESP = MathUtil.EPSILON;
@@ -85,7 +85,7 @@ export class AFreeControls extends NodeAbility {
   private _v3Cache: any;
   private _spherical: Spherical;
   private _rotateOri: Array<number>;
-  private _events: Array<{ type: string, listener: () => {}, element?: any }>;
+  private _events: Array<{ type: string; listener: () => {}; element?: any }>;
 
   /**
    * 漫游控制器构造函数
@@ -94,7 +94,7 @@ export class AFreeControls extends NodeAbility {
    * @property {Canvas|HTMLElement} [props.mainElement=RHI.canvas] 获取事件的HTMLElement对象，推荐使用绘制的canvas
    * @property {HTMLElement} [props.domElement=document] 获取顶级事件的HTMLElement对象。
    */
-  constructor(node: Node, props: { mainElement?, domElement? }) {
+  constructor(node: Node, props: { mainElement?; domElement? }) {
     super(node);
     this.camera = node;
     const acamera = node.scene.activeCameras[0];
@@ -102,7 +102,7 @@ export class AFreeControls extends NodeAbility {
     this.domElement = props.domElement || document;
 
     if (!(this.mainElement instanceof HTMLCanvasElement)) {
-      Logger.warn('AFreeControls must have a legal mainElement');
+      Logger.warn("AFreeControls must have a legal mainElement");
       return null;
     }
     this.movementSpeed = 1.0;
@@ -116,11 +116,11 @@ export class AFreeControls extends NodeAbility {
 
     this.press = false;
 
-    this.keysForward = ['KeyW', 'ArrowUp'];
-    this.keysBackward = ['KeyS', 'ArrowDown'];
-    this.keysLeft = ['KeyA', 'ArrowLeft'];
-    this.keysRight = ['KeyD', 'ArrowRight'];
-    this.keysJump = ['Space'];
+    this.keysForward = ["KeyW", "ArrowUp"];
+    this.keysBackward = ["KeyS", "ArrowDown"];
+    this.keysLeft = ["KeyA", "ArrowLeft"];
+    this.keysRight = ["KeyD", "ArrowRight"];
+    this.keysJump = ["Space"];
 
     this._theta = 0;
     this._phi = 0;
@@ -137,22 +137,21 @@ export class AFreeControls extends NodeAbility {
     this._rotateOri = [0, 0];
 
     this._events = [
-      {type: 'mousemove', listener: this.onMouseMove.bind(this)},
-      {type: 'touchmove', listener: this.onMouseMove.bind(this)},
-      {type: 'mousedown', listener: this.onMouseDown.bind(this)},
-      {type: 'touchstart', listener: this.onMouseDown.bind(this)},
-      {type: 'mouseup', listener: this.onMouseUp.bind(this)},
-      {type: 'touchend', listener: this.onMouseUp.bind(this)},
-      {type: 'keydown', listener: this.onKeyDown.bind(this), element: window},
-      {type: 'keyup', listener: this.onKeyUp.bind(this), element: window},
-      {type: 'contextmenu', listener: this.onContextMenu.bind(this)},
+      { type: "mousemove", listener: this.onMouseMove.bind(this) },
+      { type: "touchmove", listener: this.onMouseMove.bind(this) },
+      { type: "mousedown", listener: this.onMouseDown.bind(this) },
+      { type: "touchstart", listener: this.onMouseDown.bind(this) },
+      { type: "mouseup", listener: this.onMouseUp.bind(this) },
+      { type: "touchend", listener: this.onMouseUp.bind(this) },
+      { type: "keydown", listener: this.onKeyDown.bind(this), element: window },
+      { type: "keyup", listener: this.onKeyUp.bind(this), element: window },
+      { type: "contextmenu", listener: this.onContextMenu.bind(this) }
     ];
 
     this.initEvents();
 
     // init spherical
     this.updateSpherical();
-
   }
 
   /**
@@ -160,9 +159,7 @@ export class AFreeControls extends NodeAbility {
    * @private
    * */
   onContextMenu(event): void {
-
     event.preventDefault();
-
   }
 
   /**
@@ -170,8 +167,7 @@ export class AFreeControls extends NodeAbility {
    * @private
    * */
   onKeyDown(event): void {
-
-    const {code, key, keyCode} = event;
+    const { code, key, keyCode } = event;
     if (includes(this.keysForward, code, key, keyCode)) {
       this._moveForward = true;
     } else if (includes(this.keysBackward, code, key, keyCode)) {
@@ -183,16 +179,14 @@ export class AFreeControls extends NodeAbility {
     } else if (includes(this.keysJump, code, key, keyCode)) {
       this.jump();
     }
-
-  };
+  }
 
   /**
    * 键盘抬起事件
    * @private
    * */
   onKeyUp(event): void {
-
-    const {code, key, keyCode} = event;
+    const { code, key, keyCode } = event;
     if (includes(this.keysForward, code, key, keyCode)) {
       this._moveForward = false;
     } else if (includes(this.keysBackward, code, key, keyCode)) {
@@ -202,15 +196,13 @@ export class AFreeControls extends NodeAbility {
     } else if (includes(this.keysRight, code, key, keyCode)) {
       this._moveRight = false;
     }
-
-  };
+  }
 
   /**
    * 手势按下事件
    * @private
    * */
   onMouseDown(event): void {
-
     event.stopPropagation();
     event = (event.changedTouches && event.changedTouches[0]) || event;
 
@@ -220,28 +212,24 @@ export class AFreeControls extends NodeAbility {
 
     this.press = true;
     this._rotateOri = [event.clientX, event.clientY];
-
-  };
+  }
 
   /**
    * 手势抬起事件
    * @private
    * */
   onMouseUp(event): void {
-
     event.preventDefault();
     event.stopPropagation();
 
     this.press = false;
-
-  };
+  }
 
   /**
    * 手势滑动事件
    * @private
    * */
   onMouseMove(event): void {
-
     if (this.press === false) return;
     if (this.enabled === false) return;
 
@@ -259,8 +247,7 @@ export class AFreeControls extends NodeAbility {
     const actualY = movementY * factorY;
 
     this.rotate(-actualX, actualY);
-
-  };
+  }
 
   /**
    * 分别绕y轴，x轴旋转的角度
@@ -269,7 +256,6 @@ export class AFreeControls extends NodeAbility {
    * @param {number} beta - 绕x轴旋转的deg
    * */
   rotate(alpha: number = 0, beta: number = 0): void {
-
     this._theta += MathUtil.toRadian(alpha);
     this._phi += MathUtil.toRadian(beta);
     this._phi = MathUtil.clamp(this._phi, ESP, Math.PI - ESP);
@@ -284,38 +270,37 @@ export class AFreeControls extends NodeAbility {
    * 跳跃，根据jumpY确定高度，jumpDuration确定时间，floorY确定地面高度
    * */
   jump(): void {
-
     if (this._moveJump) return;
 
     this._moveJump = true;
 
     let p = this.camera.position;
 
-    doTransform.Translate(this.camera, [p[0], this.jumpY, p[2]], this.jumpDuration / 2, {
-      easing: Easing.easeOutSine,
-      onComplete: () => {
-        doTransform.Translate(this.camera, [p[0], this.floorY, p[2]], this.jumpDuration / 2, {
-          easing: Easing.easeInSine,
-          onComplete: () => {
-            this._moveJump = false;
-          }
-        }).start(tween);
-      }
-    }).start(tween);
-
+    doTransform
+      .Translate(this.camera, [p[0], this.jumpY, p[2]], this.jumpDuration / 2, {
+        easing: Easing.easeOutSine,
+        onComplete: () => {
+          doTransform
+            .Translate(this.camera, [p[0], this.floorY, p[2]], this.jumpDuration / 2, {
+              easing: Easing.easeInSine,
+              onComplete: () => {
+                this._moveJump = false;
+              }
+            })
+            .start(tween);
+        }
+      })
+      .start(tween);
   }
-
 
   /**
    * transform vec3 on axis by distance
    * */
   translateOnAxis(axis: vec3Type, distance: number, v3: vec3Type = this.camera.position): void {
-
     let diff = vec3.create();
     vec3.normalize(diff, axis);
     vec3.scale(diff, diff, distance);
     vec3.add(v3, v3, diff);
-
   }
 
   /**
@@ -323,10 +308,9 @@ export class AFreeControls extends NodeAbility {
    * @param {number} delta - tick gap
    * */
   update(delta: number): void {
-
     if (this.enabled === false) return;
 
-    const actualMoveSpeed = delta / 1000 * this.movementSpeed;
+    const actualMoveSpeed = (delta / 1000) * this.movementSpeed;
     if (this._moveForward) {
       this.translateOnAxis(this.camera.forward, actualMoveSpeed);
     }
@@ -345,7 +329,6 @@ export class AFreeControls extends NodeAbility {
     if (this.floorMock && !this._moveJump) {
       this.camera.position[1] = this.floorY;
     }
-
   }
 
   /**注册浏览器事件*/
@@ -363,7 +346,6 @@ export class AFreeControls extends NodeAbility {
    * dispose all events
    * */
   destroy(): void {
-
     this._events.forEach(ele => {
       if (ele.element) {
         ele.element.removeEventListener(ele.type, ele.listener, false);
@@ -372,8 +354,7 @@ export class AFreeControls extends NodeAbility {
       }
     });
     super.destroy();
-
-  };
+  }
 
   /**
    * automatically updateSpherical after lookAt
@@ -381,7 +362,6 @@ export class AFreeControls extends NodeAbility {
    * @param {vec3} up
    * */
   lookAt(target: vec3Type, up?: vec3Type): void {
-
     this.camera.lookAt(target, up || [0, 1, 0]);
 
     this.updateSpherical();
@@ -394,13 +374,10 @@ export class AFreeControls extends NodeAbility {
    * AFreeControls#updateSpherical();
    * */
   updateSpherical(): void {
-
     vec3.set(this._v3Cache, 0, 0, 1);
     vec3.transformQuat(this._v3Cache, this._v3Cache, this.camera.rotation);
     this._spherical.setFromVec3(this._v3Cache);
     this._theta = this._spherical.theta;
     this._phi = this._spherical.phi;
-
   }
-
 }

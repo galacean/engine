@@ -7,4 +7,4 @@
  * @returns {quat} out
  * @function
  */
-export { add } from '../vec4/vec4_add';
+export { add } from "../vec4/vec4_add";

@@ -7,4 +7,4 @@
  * @returns {quat} out
  * @function
  */
-export { scale } from '../vec4/vec4_scale';
+export { scale } from "../vec4/vec4_scale";

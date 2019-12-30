@@ -1,5 +1,5 @@
-import { Texture2D } from '@alipay/o3-material';
-import { Logger, Util } from '@alipay/o3-base';
+import { Texture2D } from "@alipay/o3-material";
+import { Logger, Util } from "@alipay/o3-base";
 
 /**
  * HUD贴图对象，内置一个2D的Canvas
@@ -7,7 +7,6 @@ import { Logger, Util } from '@alipay/o3-base';
  * @private
  */
 export class HUDTexture extends Texture2D {
-
   private _canvas;
   private _resetWholeTexture;
   private _maxTexSubWidth;
@@ -21,28 +20,26 @@ export class HUDTexture extends Texture2D {
    * @param {number} width 内部Canvas的宽度
    * @param {number} height 内部Canvas的高度
    */
-  constructor( name, width, height ) {
-
-    super( name );
+  constructor(name, width, height) {
+    super(name);
 
     //-- 创建2D绘制相关对象
-    this._canvas = document.createElement( 'canvas' );
+    this._canvas = document.createElement("canvas");
     this._canvas.width = width;
     this._canvas.height = height;
 
-    this.context = this._canvas.getContext( '2d' );
+    this.context = this._canvas.getContext("2d");
 
     //-- Texture Altas
     this.image = this._canvas;
     this._resetWholeTexture = true;
     //-- 限制刷新canvas区域的大小，保证用来刷新的内存最大不超过1M
-    this._maxTexSubWidth = Math.min( 1, 512 / width );
-    this._maxTexSubHeight = Math.min( 1, 512 / height );
+    this._maxTexSubWidth = Math.min(1, 512 / width);
+    this._maxTexSubHeight = Math.min(1, 512 / height);
 
     //--
     const u = window.navigator.userAgent;
-    this.isAndroid = u.indexOf( 'Android' ) > -1 || u.indexOf( 'Linux' ) > -1;
-
+    this.isAndroid = u.indexOf("Android") > -1 || u.indexOf("Linux") > -1;
   }
 
   /**
@@ -50,9 +47,7 @@ export class HUDTexture extends Texture2D {
    * @member
    */
   get canvas() {
-
     return this._canvas;
-
   }
 
   /**
@@ -60,56 +55,40 @@ export class HUDTexture extends Texture2D {
    * @param {Object} gl
    * @param {Array} dirtyRects 需要刷新的区域
    */
-  updateDirtyRects( dirtyRects ) {
-
-    if ( dirtyRects.length === 0 ) {
-
+  updateDirtyRects(dirtyRects) {
+    if (dirtyRects.length === 0) {
       return;
-
     }
 
-    if ( this.isAndroid ) {
-
+    if (this.isAndroid) {
       this._resetWholeTexture = true;
-
     }
 
-    if ( this._resetWholeTexture ) {
-
+    if (this._resetWholeTexture) {
       this.updateTexture();
       this._resetWholeTexture = false;
-
     } else {
-
       // 刷新子区域
-      const subRects = this._getMergedTexSubRects( dirtyRects );
-      for ( let i = 0, size = subRects.length; i < size; i++ ) {
-
-        this.updateSubTexture( subRects[i] );
-
+      const subRects = this._getMergedTexSubRects(dirtyRects);
+      for (let i = 0, size = subRects.length; i < size; i++) {
+        this.updateSubTexture(subRects[i]);
       }
-
     }
-
   }
 
   /**
    * 清空指定区域的纹理
    * @param {Object} rect
    */
-  clearRect( rect ) {
-
-    if ( rect ) {
-
+  clearRect(rect) {
+    if (rect) {
       const x = rect.x;
       const y = rect.y;
       const w = rect.width;
       const h = rect.height;
-      this.context.clearRect( x, y, w, h );
-      this.updateSubTexture( rect );
-
+      this.context.clearRect(x, y, w, h);
+      this.updateSubTexture(rect);
     }
-
   }
 
   /**
@@ -117,41 +96,29 @@ export class HUDTexture extends Texture2D {
    * @param {Array} dirtyRects
    * @private
    */
-  _getMergedTexSubRects( dirtyRects ) {
-
-    if ( dirtyRects.length === 1 ) {
-
-      return [ dirtyRects[0] ];
-
+  _getMergedTexSubRects(dirtyRects) {
+    if (dirtyRects.length === 1) {
+      return [dirtyRects[0]];
     }
 
     const textSubRects = [];
 
-    for ( let i = 0, size = dirtyRects.length; i < size; i++ ) {
-
+    for (let i = 0, size = dirtyRects.length; i < size; i++) {
       const dirtyRect = dirtyRects[i];
       let isMerged = false;
-      for ( let j = 0, size = textSubRects.length; j < size; j++ ) {
-
-        if ( this._tryToMergeRect( textSubRects[j], dirtyRect ) ) {
-
+      for (let j = 0, size = textSubRects.length; j < size; j++) {
+        if (this._tryToMergeRect(textSubRects[j], dirtyRect)) {
           isMerged = true;
           break;
-
         }
-
       }
 
-      if ( !isMerged ) {
-
-        textSubRects.push( Util.clone( dirtyRect ) );
-
+      if (!isMerged) {
+        textSubRects.push(Util.clone(dirtyRect));
       }
-
     }
 
     return textSubRects;
-
   }
 
   /**
@@ -160,25 +127,19 @@ export class HUDTexture extends Texture2D {
    * @param {Object} dirtyRect
    * @private
    */
-  _tryToMergeRect( textSubRect, dirtyRect ) {
+  _tryToMergeRect(textSubRect, dirtyRect) {
+    const left = Math.min(textSubRect.x, dirtyRect.x);
+    const bottom = Math.min(textSubRect.y, dirtyRect.y);
+    const right = Math.max(textSubRect.x + textSubRect.width, dirtyRect.x + dirtyRect.width);
+    const top = Math.max(textSubRect.y + textSubRect.height, dirtyRect.y + dirtyRect.height);
 
-    const left = Math.min( textSubRect.x, dirtyRect.x );
-    const bottom = Math.min( textSubRect.y, dirtyRect.y );
-    const right = Math.max( textSubRect.x + textSubRect.width, dirtyRect.x + dirtyRect.width );
-    const top = Math.max( textSubRect.y + textSubRect.height, dirtyRect.y + dirtyRect.height );
-
-    if ( right - left <= this._maxTexSubWidth && top - bottom <= this._maxTexSubHeight ) {
-
-      textSubRect.x = Math.max( 0, left );
-      textSubRect.y = Math.max( 0, bottom );
-      textSubRect.width = Math.min( this._canvas.width, right - left );
-      textSubRect.height = Math.min( this._canvas.width, top - bottom );
+    if (right - left <= this._maxTexSubWidth && top - bottom <= this._maxTexSubHeight) {
+      textSubRect.x = Math.max(0, left);
+      textSubRect.y = Math.max(0, bottom);
+      textSubRect.width = Math.min(this._canvas.width, right - left);
+      textSubRect.height = Math.min(this._canvas.width, top - bottom);
       return true;
-
     }
     return false;
-
   }
-
 }
-

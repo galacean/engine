@@ -7,8 +7,14 @@
  * @returns {mat2d} out
  **/
 export function translate(out, a, v) {
-  let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5];
-  let v0 = v[0], v1 = v[1];
+  let a0 = a[0],
+    a1 = a[1],
+    a2 = a[2],
+    a3 = a[3],
+    a4 = a[4],
+    a5 = a[5];
+  let v0 = v[0],
+    v1 = v[1];
   out[0] = a0;
   out[1] = a1;
   out[2] = a2;

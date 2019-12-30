@@ -8,7 +8,9 @@
 export function transpose(out, a) {
   // If we are transposing ourselves we can skip a few steps but have to cache some values
   if (out === a) {
-    let a01 = a[1], a02 = a[2], a12 = a[5];
+    let a01 = a[1],
+      a02 = a[2],
+      a12 = a[5];
     out[1] = a[3];
     out[2] = a[6];
     out[3] = a01;

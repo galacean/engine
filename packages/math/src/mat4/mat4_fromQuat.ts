@@ -7,7 +7,10 @@
  * @returns {mat4} out
  */
 export function fromQuat(out, q) {
-  let x = q[0], y = q[1], z = q[2], w = q[3];
+  let x = q[0],
+    y = q[1],
+    z = q[2],
+    w = q[3];
   let x2 = x + x;
   let y2 = y + y;
   let z2 = z + z;

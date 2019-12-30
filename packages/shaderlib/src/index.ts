@@ -1,2 +1,1 @@
-
-export { ShaderFactory } from './ShaderFactory';
+export { ShaderFactory } from "./ShaderFactory";

@@ -12,14 +12,11 @@ import { IChannelState, AnimationOptions, IChannelTarget } from "./types";
  * @private
  */
 export class AnimationLayer extends EventDispatcher {
-
   /**
    * @return is playing
    */
   get isPlaying(): boolean {
-
     return this._animClip && this._isPlaying;
-
   }
 
   public layerWeight: number;
@@ -60,13 +57,11 @@ export class AnimationLayer extends EventDispatcher {
    * @constructor
    */
   constructor() {
-
     super();
 
     this.layerWeight = 1.0;
 
     this._activedEvents = [];
-
   }
 
   /**
@@ -75,22 +70,16 @@ export class AnimationLayer extends EventDispatcher {
    * @return can mix with current AnimationClip
    */
   public canMix(nextAnimClip: AnimationClip, rootNode: Node): boolean {
-
     if (!this._animClip || !this._isPlaying || this.isMixLayer || this.isFading) {
-
       return false;
-
     }
 
     if (this._animClip.getChannelCount() !== nextAnimClip.getChannelCount()) {
-
       return false;
-
     }
 
     const count = this._animClip.getChannelCount();
     for (let i = count - 1; i >= 0; i--) {
-
       const curChannel = this._animClip.getChannelObject(i);
       const curTargetObject = this._findChannelTarget(rootNode, curChannel.target);
 
@@ -98,15 +87,11 @@ export class AnimationLayer extends EventDispatcher {
       const nextTargetObject = this._findChannelTarget(rootNode, nextChannel.target);
 
       if (curTargetObject !== nextTargetObject) {
-
         return false;
-
       }
-
     }
 
     return true;
-
   }
 
   /**
@@ -117,8 +102,13 @@ export class AnimationLayer extends EventDispatcher {
    * @param {Node} mixNode, mix bone node
    * @param {AnimationOptions} options, animation events options
    */
-  public mix(animClip: AnimationClip, targetLayer: AnimationLayer, rootNode: Node, mixNode: Node, options: { wrapMode?: WrapMode } = {}) {
-
+  public mix(
+    animClip: AnimationClip,
+    targetLayer: AnimationLayer,
+    rootNode: Node,
+    mixNode: Node,
+    options: { wrapMode?: WrapMode } = {}
+  ) {
     this._isPlaying = targetLayer.isPlaying;
     this._animClip = animClip;
     this._wrapMode = typeof options.wrapMode !== "undefined" ? options.wrapMode : targetLayer._wrapMode;
@@ -130,53 +120,41 @@ export class AnimationLayer extends EventDispatcher {
 
     // -- create new state object
     if (this._isPlaying) {
-
       const targetChannelStates = targetLayer._channelStates;
       const count = this._animClip.getChannelCount();
       for (let i = count - 1; i >= 0; i--) {
-
         const channel = this._animClip.getChannelObject(i);
         const targetObject = this._findChannelTarget(mixNode, channel.target);
         this._channelStates[i] = {
           frameTime: 0.0,
           currentFrame: 0,
           currentValue: this._animClip.createChannelValue(i),
-          mixWeight: (targetObject ? 1 : 0),
+          mixWeight: targetObject ? 1 : 0
         };
 
-        targetChannelStates[i].mixWeight = targetChannelStates[i].mixWeight === undefined ? 1 : targetChannelStates[i].mixWeight;
+        targetChannelStates[i].mixWeight =
+          targetChannelStates[i].mixWeight === undefined ? 1 : targetChannelStates[i].mixWeight;
         if (targetChannelStates[i].mixWeight === 1) {
-
-          targetChannelStates[i].mixWeight = (targetObject ? 0 : 1);
-
+          targetChannelStates[i].mixWeight = targetObject ? 0 : 1;
         }
 
         const channelTimeLength = this._animClip.getChannelTimeLength(i);
         this._animClipLength = this._animClipLength > channelTimeLength ? this._animClipLength : channelTimeLength;
-
       } // end of for
 
       return true;
-
     }
 
     return false;
-
   }
 
   public removeMixWeight() {
-
     const count = this._channelStates.length;
     for (let i = count - 1; i >= 0; i--) {
-
       if (this._channelStates[i].mixWeight === 1) {
-
         this.mixTagetLayer._channelStates[i].mixWeight = 1;
-
       }
-
     }
-
   }
 
   /**
@@ -185,8 +163,11 @@ export class AnimationLayer extends EventDispatcher {
    * @param {Node} rootNode, root node of Skeleton Animation
    * @param {AnimationOptions} options
    */
-  public play(animClip: AnimationClip, rootNode: Node, options: AnimationOptions = { wrapMode: WrapMode.LOOP }): false | IChannelTarget[] {
-
+  public play(
+    animClip: AnimationClip,
+    rootNode: Node,
+    options: AnimationOptions = { wrapMode: WrapMode.LOOP }
+  ): false | IChannelTarget[] {
     this._isPlaying = !!animClip;
     this._animClip = animClip;
     this._wrapMode = typeof options.wrapMode !== "undefined" ? options.wrapMode : WrapMode.LOOP;
@@ -198,41 +179,34 @@ export class AnimationLayer extends EventDispatcher {
 
     // -- create new state object
     if (this._isPlaying) {
-
       const count = this._animClip.getChannelCount();
       const channelTargets: IChannelTarget[] = [];
       for (let i = count - 1; i >= 0; i--) {
-
         const channel = this._animClip.getChannelObject(i);
         const targetObject = this._findChannelTarget(rootNode, channel.target);
         if (!targetObject) {
-
           Logger.warn("Can not find channel target:" + channel.target.id);
-
         }
         this._channelStates[i] = {
           frameTime: 0.0,
           currentFrame: 0,
-          currentValue: this._animClip.createChannelValue(i),
+          currentValue: this._animClip.createChannelValue(i)
         };
 
         channelTargets[i] = {
           targetObject,
           path: channel.target.path,
-          outputSize: channel.sampler.outputSize,
+          outputSize: channel.sampler.outputSize
         };
 
         const channelTimeLength = this._animClip.getChannelTimeLength(i);
         this._animClipLength = this._animClipLength > channelTimeLength ? this._animClipLength : channelTimeLength;
-
       } // end of for
 
       return channelTargets;
-
     }
 
     return false;
-
   }
 
   /**
@@ -240,23 +214,15 @@ export class AnimationLayer extends EventDispatcher {
    * @param {boolean} rightnow stop it immediately, or it will stop at the end of the clip
    */
   public stop(rightnow: boolean) {
-
     if (!this._animClip || !this._isPlaying) {
-
       return;
-
     }
 
     if (rightnow) {
-
       this._isPlaying = false;
-
     } else {
-
       this._wrapMode = WrapMode.ONCE;
-
     }
-
   }
 
   /**
@@ -264,35 +230,24 @@ export class AnimationLayer extends EventDispatcher {
    * @param {number} deltaTime
    */
   public updateState(deltaTime: number) {
-
     if (!this._animClip || !this._isPlaying) {
-
       return;
-
     }
 
     // 更新Animation Layer 的权重
     if (this.isFading) {
-
       this.fadeDeltaTime += deltaTime;
-      this.layerWeight = 1.0 - (this.fadeDeltaTime / this.fadeDuration);
+      this.layerWeight = 1.0 - this.fadeDeltaTime / this.fadeDuration;
       if (this.layerWeight <= 0) {
-
         this._isPlaying = false;
-
       }
-
     } else if (this.crossFadeDuration) {
-
       this.crossFadeDeltaTime += deltaTime;
-      this.layerWeight = (this.crossFadeDeltaTime / this.crossFadeDuration);
+      this.layerWeight = this.crossFadeDeltaTime / this.crossFadeDuration;
       if (this.layerWeight >= 1.0) {
-
         this.layerWeight = 1.0;
         delete this.crossFadeDuration;
-
       }
-
     }
 
     deltaTime = deltaTime / 1000;
@@ -302,27 +257,18 @@ export class AnimationLayer extends EventDispatcher {
     const count = this._animClip.getChannelCount();
     let playingCount = 0;
     for (let i = count - 1; i >= 0; i--) {
-
       if (this._updateChannelState(deltaTime, i)) {
-
         playingCount++;
-
       }
-
     }
 
     if (playingCount === 0) {
-
       this._isPlaying = false;
 
       if (this.isMixLayer) {
-
         this.removeMixWeight();
-
       }
-
     }
-
   }
 
   /**
@@ -330,16 +276,12 @@ export class AnimationLayer extends EventDispatcher {
    * @param {number} channelIndex
    */
   public getChannelLayerWeight(channelIndex: number): number {
-
     if ((this.hasMixLayer || this.isMixLayer) && channelIndex < this._channelStates.length) {
-
       const mixWeight = this._channelStates[channelIndex].mixWeight;
       const layerWeight = this.isMixLayer ? this.mixTagetLayer.layerWeight : this.layerWeight;
       return mixWeight * layerWeight;
-
     }
     return this.layerWeight;
-
   }
 
   /**
@@ -347,24 +289,19 @@ export class AnimationLayer extends EventDispatcher {
    * @param {number} channelIndex
    */
   public getChannelValue(channelIndex: number) {
-
     return this._channelStates[channelIndex].currentValue;
-
   }
 
   /**
    * 触发动画事件
    */
   public triggerEvents() {
-
-    this._activedEvents && this._activedEvents.forEach(event => {
-
-      this.trigger(event);
-
-    });
+    this._activedEvents &&
+      this._activedEvents.forEach(event => {
+        this.trigger(event);
+      });
 
     this._activedEvents.length = 0;
-
   }
 
   /**
@@ -372,19 +309,15 @@ export class AnimationLayer extends EventDispatcher {
    * @param {number} frameTime
    */
   public jumpToFrame(frameTime: number) {
-
     const count = this._animClip.getChannelCount();
     for (let i = count - 1; i >= 0; i--) {
-
       // 1. - clear pre frameTime
       const channelState = this._channelStates[i];
       channelState.frameTime = 0;
 
       // 2. - update new frameTime
       this._updateChannelState(frameTime, i);
-
     }
-
   }
 
   /**
@@ -394,16 +327,13 @@ export class AnimationLayer extends EventDispatcher {
    * @private
    */
   public _updateChannelState(deltaTime, channelIndex) {
-
     const animClip = this._animClip;
     const channelState = this._channelStates[channelIndex];
     const animClipLength = animClip.getChannelTimeLength(channelIndex);
 
     channelState.frameTime += deltaTime;
     if (channelState.frameTime > animClipLength) {
-
       switch (this._wrapMode) {
-
         case WrapMode.ONCE:
           channelState.frameTime = animClipLength;
           break;
@@ -412,28 +342,27 @@ export class AnimationLayer extends EventDispatcher {
           break;
         default:
           Logger.error("Unknown Anim wrap Mode: " + this._wrapMode);
-
       }
-
-    }// end of if
+    } // end of if
 
     if (channelState.mixWeight && channelState.mixWeight === 0) {
-
       return true;
-
     }
 
     const frameTime = Math.min(channelState.frameTime, animClipLength);
     const lerpState = this._getKeyAndAlpha(animClip.getChannelObject(channelIndex), frameTime);
-    channelState.currentValue = animClip.evaluate(channelState.currentValue, channelIndex, lerpState.currentKey, lerpState.nextKey, lerpState.alpha);
+    channelState.currentValue = animClip.evaluate(
+      channelState.currentValue,
+      channelIndex,
+      lerpState.currentKey,
+      lerpState.nextKey,
+      lerpState.alpha
+    );
 
     if (this._wrapMode === WrapMode.ONCE && channelState.frameTime >= animClipLength) {
-
       return false;
-
     }
     return true;
-
   }
   // -- private ----------------------------------------------------------
   /**
@@ -441,40 +370,28 @@ export class AnimationLayer extends EventDispatcher {
    * @private
    */
   private _addEvents(options: any) {
-
     this.removeAllEventListeners();
 
     this._frameEvents = [];
     if (options.events) {
-
       let frameEventIndex = 0;
       for (let i = options.events.length - 1; i >= 0; i--) {
-
         const event = options.events[i];
         let eventType = event.type;
         if (event.type === AnimationEvent.FRAME_EVENT) {
-
           eventType = "frameEvent" + frameEventIndex;
           frameEventIndex++;
-          this._frameEvents.push(
-            {
-              eventType,
-              triggerTime: event.triggerTime,
-              triggered: false,
-            },
-          );
-
+          this._frameEvents.push({
+            eventType,
+            triggerTime: event.triggerTime,
+            triggered: false
+          });
         }
         this.addEventListener(eventType, e => {
-
           event.callback();
-
         });
-
       } // end of for
-
     } // end of if
-
   }
 
   /**
@@ -483,56 +400,38 @@ export class AnimationLayer extends EventDispatcher {
    * @private
    */
   private _activeEvents(deltaTime: number) {
-
     // 触发Frame Event
     if (this._frameEvents.length > 0 && this._channelStates.length > 0) {
-
       const curFrameTime = this._channelStates[0].frameTime + deltaTime;
       for (let i = this._frameEvents.length - 1; i >= 0; i--) {
-
         const frameEvent = this._frameEvents[i];
         if (!frameEvent.triggered && curFrameTime > frameEvent.triggerTime) {
-
           this._activedEvents.push(new Event(frameEvent.eventType, this));
           frameEvent.triggered = true;
-
         }
-
       }
-
     }
 
-    if (this._channelStates.length > 0
-      && this._channelStates[0].frameTime + deltaTime >= this._animClip.getChannelTimeLength(0)) {
-
+    if (
+      this._channelStates.length > 0 &&
+      this._channelStates[0].frameTime + deltaTime >= this._animClip.getChannelTimeLength(0)
+    ) {
       if (this._wrapMode === WrapMode.LOOP) {
-
         // 重置Frame Event状态
         if (this._frameEvents.length > 0) {
-
           for (let i = this._frameEvents.length - 1; i >= 0; i--) {
-
             this._frameEvents[i].triggered = false;
-
           }
-
         }
         // 激活Loop End Event
         if (this.hasEvent(AnimationEvent.LOOP_END)) {
-
           this._activedEvents.push(new Event(AnimationEvent.LOOP_END, this));
-
         }
-
       } else if (this.hasEvent(AnimationEvent.FINISHED)) {
-
         // 激活Finish Event
         this._activedEvents.push(new Event(AnimationEvent.FINISHED, this));
-
       }
-
     }
-
   }
 
   /**
@@ -542,29 +441,19 @@ export class AnimationLayer extends EventDispatcher {
    * @private
    */
   private _findChannelTarget(rootNode: Node, target: any): Node | NodeAbility {
-
     const targetID = target.id;
     let targetSceneObject: Node = null;
     if (rootNode.name === targetID) {
-
       targetSceneObject = rootNode;
-
     } else {
-
       targetSceneObject = rootNode.findChildByName(targetID);
-
     }
 
     if (target.path === "weights") {
-
       return targetSceneObject.findAbilityByType(ASkinnedMeshRenderer);
-
     } else {
-
       return targetSceneObject;
-
     }
-
   }
 
   /**
@@ -574,7 +463,6 @@ export class AnimationLayer extends EventDispatcher {
    * @private
    */
   private _getKeyAndAlpha(channel, time: number) {
-
     let keyTime = 0;
     let currentKey = 0;
     let nextKey = 0;
@@ -582,42 +470,32 @@ export class AnimationLayer extends EventDispatcher {
     const timeKeys = channel.sampler.input;
     const numKeys = timeKeys.length;
     for (let i = numKeys - 1; i >= 0; i--) {
-
       if (time > timeKeys[i]) {
-
         keyTime = time - timeKeys[i];
         currentKey = i;
         break;
-
       }
-
     }
 
     nextKey = currentKey + 1;
     if (nextKey >= numKeys) {
-
       switch (this._wrapMode) {
-
         case WrapMode.ONCE:
           nextKey = numKeys - 1;
           break;
         case WrapMode.LOOP:
           nextKey = 0;
           break;
-
       }
-
     }
 
     const keyLength = timeKeys[nextKey] - timeKeys[currentKey];
-    const alpha = (nextKey === currentKey || keyLength < 0.00001) ? 1 : (keyTime / keyLength);
+    const alpha = nextKey === currentKey || keyLength < 0.00001 ? 1 : keyTime / keyLength;
 
     return {
       currentKey,
       nextKey,
-      alpha,
+      alpha
     };
-
   }
-
 }

@@ -1,11 +1,10 @@
-import { AFog } from './AFog';
+import { AFog } from "./AFog";
 
 /**
  * 线性雾，根据镜头距离线性差值雾浓度
  * @extends AFog
  */
 export class ALinearFog extends AFog {
-
   public near;
   public far;
   public color;
@@ -17,9 +16,8 @@ export class ALinearFog extends AFog {
    * @param {Number} [props.near=1] 最近距离
    * @param {Number} [props.far=1000] 最远距离
    */
-  constructor( node, props ) {
-
-    super( node, props );
+  constructor(node, props) {
+    super(node, props);
 
     /**
      * 最近距离
@@ -31,18 +29,14 @@ export class ALinearFog extends AFog {
      * @member {Number}
      */
     this.far = props.far === undefined ? 1000 : props.far;
-
   }
 
   /**
    * @private
    */
-  bindMaterialValues( mtl ){
-
-    mtl.setValue( 'u_fogColor', this.color );
-    mtl.setValue( 'u_fogNear', this.near );
-    mtl.setValue( 'u_fogFar', this.far );
-
+  bindMaterialValues(mtl) {
+    mtl.setValue("u_fogColor", this.color);
+    mtl.setValue("u_fogNear", this.near);
+    mtl.setValue("u_fogFar", this.far);
   }
-
 }

@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-import { DataType, UniformSemantic, RenderState, BlendFunc } from '@alipay/o3-base';
+import { DataType, UniformSemantic, RenderState, BlendFunc } from "@alipay/o3-base";
 
 const SpriteVertShader = `
 precision highp float;
@@ -40,7 +40,7 @@ void main()
 `;
 
 export const SpriteTechnique = {
-  name: 'spriteTech3D',
+  name: "spriteTech3D",
   vertexShader: SpriteVertShader,
   fragmentShader: SpriteFragmentShader,
   attribLocSet: {
@@ -49,65 +49,58 @@ export const SpriteTechnique = {
     a_color: 2
   },
   attributes: {
-    a_pos:{
-      name: 'a_pos',
-      semantic: 'POSITION',
+    a_pos: {
+      name: "a_pos",
+      semantic: "POSITION",
       type: DataType.FLOAT_VEC3
     },
-    a_uv:{
-      name: 'a_uv',
-      semantic: 'TEXCOORD_0',
+    a_uv: {
+      name: "a_uv",
+      semantic: "TEXCOORD_0",
       type: DataType.FLOAT_VEC2
     },
     a_color: {
-      name: 'a_color',
-      semantic: 'COLOR',
+      name: "a_color",
+      semantic: "COLOR",
       type: DataType.FLOAT_VEC3
     }
   },
   uniforms: {
     matProjection: {
-      name: 'matProjection',
+      name: "matProjection",
       semantic: UniformSemantic.PROJECTION,
-      type: DataType.FLOAT_MAT4,
+      type: DataType.FLOAT_MAT4
     },
     matView: {
-      name: 'matView',
+      name: "matView",
       semantic: UniformSemantic.VIEW,
-      type: DataType.FLOAT_MAT4,
+      type: DataType.FLOAT_MAT4
     },
     s_diffuse: {
-      name: 's_diffuse',
+      name: "s_diffuse",
       type: DataType.SAMPLER_2D
     }
   },
   states: {
-    disable: [ RenderState.CULL_FACE ],
-    enable: [ RenderState.BLEND ],
+    disable: [RenderState.CULL_FACE],
+    enable: [RenderState.BLEND],
     functions: {
-      blendFunc: [ BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA ],
-      depthMask: [ false ]//[gl.FALSE]
+      blendFunc: [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA],
+      depthMask: [false] //[gl.FALSE]
     }
   }
-
 };
 
 export function createSpriteMaterial() {
-
   const values = {};
   return {
     values,
 
-    setValue: ( key, val ) =>{
-
+    setValue: (key, val) => {
       values[key] = val;
-
     },
-    getValue: ( key ) =>{
-
+    getValue: key => {
       return values[key];
-
     }
   };
-
 }

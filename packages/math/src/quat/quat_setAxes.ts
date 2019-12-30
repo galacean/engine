@@ -1,6 +1,6 @@
-import { create } from '../mat3/mat3_create';
-import { normalize } from './quat_normalize';
-import { fromMat3 } from './quat_fromMat3';
+import { create } from "../mat3/mat3_create";
+import { normalize } from "./quat_normalize";
+import { fromMat3 } from "./quat_fromMat3";
 
 /**
  * Sets the specified quaternion with values corresponding to the given
