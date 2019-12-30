@@ -1,8 +1,7 @@
 import { mat4, mat3 } from "@alipay/o3-math";
 import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
 import { RenderTechnique } from "./RenderTechnique";
-import { Texture2D } from "./Texture2D";
-import { TextureCubeMap } from "./TextureCubeMap";
+import { Texture } from "./Texture";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
@@ -56,9 +55,13 @@ export class Material {
     this._values = {};
   }
 
-  /** 创建一个本材质对象的深拷贝对象 */
-  clone(name?: string) {
-    const newMtl = new (this.constructor as any)(name || this.name);
+  /** 创建一个本材质对象的深拷贝对象
+   * @param {string} name - 复制的材质名字
+   * @param {boolean} cloneTexture - 是否复制纹理，默认 false,共用纹理
+   * // todo: texture.clone()
+   * */
+  clone(name: string = this.name, cloneTexture: boolean = false) {
+    const newMtl = new (this.constructor as any)(name);
 
     newMtl.renderType = this.renderType;
     newMtl.useFog = this.useFog;
@@ -66,7 +69,7 @@ export class Material {
     for (const name in this._values) {
       if (this._values.hasOwnProperty(name)) {
         const val = this._values[name];
-        if (val instanceof Texture2D) {
+        if (val instanceof Texture) {
           newMtl.setValue(name, val);
         } else {
           newMtl.setValue(name, Util.clone(val));
@@ -116,9 +119,9 @@ export class Material {
    */
   setValue(name: string, value) {
     const oriValue = this.getValue(name);
-    const oriIsTexture = oriValue instanceof Texture2D || oriValue instanceof TextureCubeMap;
-    const curIsTexture = value instanceof Texture2D || value instanceof TextureCubeMap;
-    if (((this as any)._generateTechnique && !oriIsTexture && curIsTexture) || (oriIsTexture && !curIsTexture)) {
+    const oriIsTexture = oriValue instanceof Texture;
+    const curIsTexture = value instanceof Texture;
+    if ((this as any)._generateTechnique && ((!oriIsTexture && curIsTexture) || (oriIsTexture && !curIsTexture))) {
       this._technique = null;
     }
     if (value) {
