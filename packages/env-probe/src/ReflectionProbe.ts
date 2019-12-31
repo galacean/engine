@@ -88,7 +88,7 @@ export class ReflectionProbe extends Probe {
       // prevent issue: Feedback Loops Between Textures and the Framebuffer.
       if (this.renderPass.enabled) {
         // 钩子
-        this.onTextureChange(this.cubeTexture);
+        this.onTextureChange && this.onTextureChange(this.cubeTexture);
 
         if (this.renderPass.renderTarget === this.renderTarget) {
           this.renderPass.renderTarget = this.renderTargetSwap;

@@ -64,7 +64,7 @@ export class PerturbationProbe extends Probe {
       // prevent issue: Feedback Loops Between Textures and the Framebuffer.
       if (this.renderPass.enabled) {
         // 钩子
-        this.onTextureChange(this.texture, this.depthTexture);
+        this.onTextureChange && this.onTextureChange(this.texture, this.depthTexture);
 
         if (this.renderPass.renderTarget === this.renderTarget) {
           this.renderPass.renderTarget = this.renderTargetSwap;
