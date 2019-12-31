@@ -70,4 +70,6 @@ export abstract class SchemaResource {
   updateMeta(key: string, value: any) {
     this._meta[key] = value;
   }
+
+  onDestroy() {}
 }

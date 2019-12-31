@@ -25,7 +25,7 @@ let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: 'o3-demo', position: [0, 0, 10], target: [0, 0, 0],
 });
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo') });
 controler.minDistance = 4;
 controler.maxDistance = 50;
 

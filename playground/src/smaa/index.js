@@ -23,7 +23,7 @@ let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: 'o3-demo', position: [300, 400, 500], near: 0.01, attributes: { antialias: false}
 });
-cameraNode.createAbility(AOrbitControls, { canvas: 'o3-demo'});
+cameraNode.createAbility(AOrbitControls);
 
 // 方向光
 let light2 = rootNode.createChild("light2");

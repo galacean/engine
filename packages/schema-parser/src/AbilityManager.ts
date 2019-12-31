@@ -38,7 +38,7 @@ export class AbilityManager {
     return this.abilityMap[id];
   }
 
-  @pluginHook({ after: "abilityDeleted" })
+  @pluginHook({ after: "abilityDeleted", before: "beforeAbilityDeleted" })
   public delete(id: string) {
     const ability = this.abilityMap[id];
     ability.destroy();
