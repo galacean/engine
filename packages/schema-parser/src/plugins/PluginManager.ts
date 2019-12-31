@@ -40,7 +40,9 @@ export interface PluginHook {
   beforeAbilityAdded?(config: any): any;
   schemaParsed?(): any;
   abilityDeleted?(id: string): any;
+  beforeAbilityDeleted?(id: string): any;
   beforeNodeDeleted?(config: any): any;
+  beforeResourceRemove?(id: string): any;
   // todo type
   resourceAdded?(resource: any): any;
 }
