@@ -36,12 +36,8 @@ export class PerturbationProbe extends Probe {
    * */
   private storeMaterial(item) {
     let material = item.mtl;
-    if (this.renderList.indexOf(material) !== -1) {
-      // 打标，减少数组查找次数
-      item.__probe__ = true;
-      item.initialSide = material.side;
-      material.side = Side.BACK;
-    }
+    item.initialSide = material.side;
+    material.side = Side.BACK;
   }
 
   /**
@@ -49,11 +45,8 @@ export class PerturbationProbe extends Probe {
    * */
   private restoreMaterial(item) {
     let material = item.mtl;
-    if (item.__probe__) {
-      material.side = item.initialSide;
-      delete item.initialSide;
-      delete item.__probe__;
-    }
+    material.side = item.initialSide;
+    delete item.initialSide;
   }
 
   protected customRenderPass() {

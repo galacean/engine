@@ -15,6 +15,7 @@ export abstract class Probe extends NodeAbility {
   public camera: ACamera;
   public renderList: Material[];
   public renderAll: boolean;
+  public excludeRenderList: Material[];
 
   public abstract renderPass: RenderPass;
 
@@ -34,6 +35,7 @@ export abstract class Probe extends NodeAbility {
 
     this.camera = config.camera || node.scene.activeCameras[0];
     this.renderList = config.renderList || [];
+    this.excludeRenderList = config.excludeRenderList || [];
     this.renderAll = !!config.renderAll;
 
     /**
@@ -68,9 +70,12 @@ export abstract class Probe extends NodeAbility {
   protected get renderItems() {
     const opaqueQueue = this.sceneRenderer.opaqueQueue;
     const transparentQueue = this.sceneRenderer.transparentQueue;
-    return opaqueQueue.items
-      .concat(transparentQueue.items)
-      .filter(item => item.primitive && (this.renderAll || this.renderList.includes(item.mtl)));
+    return opaqueQueue.items.concat(transparentQueue.items).filter(item => {
+      if (!item.primitive) return false;
+      if (this.excludeRenderList.includes(item.mtl)) return false;
+      if (this.renderAll) return true;
+      if (this.renderList.includes(item.mtl)) return true;
+    });
   }
 
   /**
