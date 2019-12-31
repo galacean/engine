@@ -36,7 +36,7 @@ export * from "@alipay/o3-skybox";
 export * from "@alipay/o3-trail";
 export * from "@alipay/o3-tween";
 export * from "@alipay/o3-env-probe";
-
+export { AnimationClip as AnimationClipNew, AAnimation as AAnimationNew, AAnimator } from "@alipay/o3-animator";
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { TextureMaterial, TransparentMaterial } from "@alipay/o3-mobile-material";
 import { RegistExtension } from "@alipay/o3-loader-gltf";

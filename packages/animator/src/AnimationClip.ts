@@ -1,42 +1,47 @@
-import { AssetObject, Node } from '@alipay/o3-core'
-import { InterpolationType, AnimationType } from './AnimationConst'
-import { Value } from './types'
-import { Tweener, TweenPlugins, doTransform } from '@alipay/o3-tween'
-import { vec2, vec3, vec4, quat } from '@alipay/o3-math'
-const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationType
+import { AssetObject } from "@alipay/o3-core";
+import { InterpolationType, AnimationType } from "./AnimationConst";
+import { Value } from "./types";
+const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationType;
 
 /**
  * Data for an animation, set of Samples and Channels
  * @extends AssetObject
  */
 export class AnimationClip extends AssetObject {
-  public animationType: AnimationType
-  public options: any
+  public animationType: AnimationType;
+  public options: any;
   /**
    * Interpolation
    */
-  public endValue?: Value
-  public affectProperty?: string
-  public interpolation?: InterpolationType
-  public node: Node
+  public endValue?: Value = new Float32Array([0, 0, 0]);
+  public affectProperty?: string = null;
+  public interpolation?: InterpolationType = InterpolationType.LINEAR;
+  public duration?: number = null;
+
   /**
    * Frame
    */
-  public frameIndex?: number
-  duration: any
-  skeltonAnim: any
-  animationComponentAbility: any
+  public frameIndex?: number = null;
+  /**
+   * Skelton
+   */
+  public skeltonAnim?: any = null;
+  /**
+   * AnimationComponent
+   */
+  public animationComponentAbility: any = null;
 
   /**
    * @constructor
    * @param {string} name
    * @param {AnimationType} animationType
    */
-  constructor(name: string, animationType: AnimationType, options: any) {
-    super(name)
-    this.animationType = animationType || Interpolation
-    this.options = options
-    this.initialize()
+  constructor(name: string, animationType: AnimationType, options: any = null) {
+    super(name);
+    console.log(animationType, Interpolation);
+    this.animationType = animationType || Interpolation;
+    this.options = options;
+    this.initialize();
   }
 
   // get startTime() {
@@ -54,39 +59,41 @@ export class AnimationClip extends AssetObject {
   initialize() {
     switch (this.animationType) {
       case Interpolation:
-        this.initInterpolation()
-        break
+        this.initInterpolation();
+        break;
       case Frame:
-        this.initFrame()
-        break
+        this.initFrame();
+        break;
       case Skelton:
-        this.initSkelton()
-        break
+        this.initSkelton();
+        break;
       default:
-        this.animationType = AnimationComponent
-        this.initAnimationComponent()
-        break
+        this.animationType = AnimationComponent;
+        this.initAnimationComponent();
+        break;
     }
   }
 
   initInterpolation() {
-    const { value, property, interpolation, duration } = this.options
-    this.endValue = value
-    this.affectProperty = property
-    this.interpolation = interpolation
-    this.duration = duration
+    if (this.options) {
+      const { value, property, interpolation, duration } = this.options;
+      this.endValue = new Float32Array(value);
+      this.affectProperty = property;
+      this.interpolation = interpolation;
+      this.duration = duration;
+    }
   }
 
   initFrame() {
-    const { fps, frameRects } = this.options
+    const { fps, frameRects } = this.options;
   }
 
   initSkelton() {
-    this.skeltonAnim = this.options
+    this.skeltonAnim = this.options;
   }
 
   initAnimationComponent() {
-    const { script } = this.options
-    this.animationComponentAbility = script
+    const { script } = this.options;
+    this.animationComponentAbility = script;
   }
 }

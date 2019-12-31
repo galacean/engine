@@ -1,29 +1,29 @@
-import { Logger } from '@alipay/o3-base';
-import { ClearMode, DataType } from '@alipay/o3-base';
-import { Engine, EngineFeature } from '@alipay/o3-core';
-import { vec3 } from '@alipay/o3-math';
-import { GLRenderHardware } from '@alipay/o3-rhi-webgl';
-import { SceneRenderer } from '@alipay/o3-renderer-cull';
-import { ResourceLoader, Resource } from '@alipay/o3-loader';
-import '@alipay/o3-loader-gltf';
-import { TextureFilter, TextureWrapMode } from '@alipay/o3-core';
-import { AAnimation as ASkeltonAnimation } from '@alipay/o3-animation';
-import { AAnimation, AAnimator, AnimationClip, AnimationType } from '@alipay/o3-animator';
-import { Tween, Tweener, LOOP_TYPE, Easing, doTransform, doMaterial } from '@alipay/o3-tween';
-import { ADefaultCamera } from '@alipay/o3-default-camera';
-import { registerAnimationClip, parseAnimationData } from '@alipay/o3-loader-animation'
-import '@alipay/o3-engine-stats';
-import hatlightRenderer from './hatlight'
-import animationData from './animation'
-const { Interpolation, Skelton, AnimationComponent } = AnimationType
+import { Logger } from "@alipay/o3-base";
+import { ClearMode, DataType } from "@alipay/o3-base";
+import { Engine, EngineFeature } from "@alipay/o3-core";
+import { vec3 } from "@alipay/o3-math";
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { SceneRenderer } from "@alipay/o3-renderer-cull";
+import { ResourceLoader, Resource } from "@alipay/o3-loader";
+import "@alipay/o3-loader-gltf";
+import { TextureFilter, TextureWrapMode } from "@alipay/o3-core";
+import { AAnimation as ASkeltonAnimation } from "@alipay/o3-animation";
+import { AAnimation, AAnimator, AnimationClip, AnimationType } from "@alipay/o3-animator";
+import { Tween, Tweener, LOOP_TYPE, Easing, doTransform, doMaterial } from "@alipay/o3-tween";
+import { ADefaultCamera } from "@alipay/o3-default-camera";
+import { registerAnimationClip, parseAnimationData } from "@alipay/o3-loader-animation";
+import "@alipay/o3-engine-stats";
+import hatlightRenderer from "./hatlight";
+import animationData from "./animation";
+const { Interpolation, Skelton, AnimationComponent } = AnimationType;
 //-- create engine object
-console.log(animationData)
+console.log(animationData);
 let engine = new Engine();
 
 const tween = new Tween();
 
 class TweenFeature extends EngineFeature {
-  preTick (engine, currentScene) {
+  preTick(engine, currentScene) {
     tween.update(engine._time._deltaTime);
   }
 }
@@ -36,17 +36,17 @@ let rootNode = scene.root;
 const resourceLoader = new ResourceLoader(engine);
 
 //-- create camera
-let cameraNode = rootNode.createChild('camera_node');
+let cameraNode = rootNode.createChild("camera_node");
 
-const animationRes = new Resource('pig_glb', {
-  type: 'gltf',
-  url: 'https://gw.alipayobjects.com/os/r3/43bf0cbe-17c8-4835-88ff-f28636dd2b14/pig.gltf',
+const animationRes = new Resource("pig_glb", {
+  type: "gltf",
+  url: "https://gw.alipayobjects.com/os/r3/43bf0cbe-17c8-4835-88ff-f28636dd2b14/pig.gltf"
 });
 
 let cameraProps = {
   RHI: GLRenderHardware,
   SceneRenderer: SceneRenderer,
-  canvas: 'o3-demo',
+  canvas: "o3-demo",
   attributes: { antialias: true, depth: true }
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
@@ -56,7 +56,7 @@ cameraNode.lookAt(vec3.fromValues(0, 1.1, 0), vec3.fromValues(0, 1, 0));
 camera.setPerspective(43.5, 480, 640, 0.1, 500);
 camera.setClearMode(ClearMode.SOLID_COLOR, [0.25, 0.25, 0.25, 1.0]);
 
-let node = rootNode.createChild('gltf_node');
+let node = rootNode.createChild("gltf_node");
 
 // load resource config
 // resourceLoader.loadConfig
@@ -68,14 +68,14 @@ resourceLoader.load(animationRes, (err, gltf) => {
   pig.rotateByAngles(0, 160, 0);
 
   node.addChild(pig);
-  let book = pig.findChildByName('book_one');
+  let book = pig.findChildByName("book_one");
   book.isActive = false;
 
-  pig.createAbility(ASkeltonAnimation)
+  pig.createAbility(ASkeltonAnimation);
 
   //new Animation Test start
   const pigAnimation = pig.createAbility(AAnimation, {
-    name: 'pigAnimation'
+    name: "pigAnimation"
   });
   // const actionMap = {}
   // animations.forEach(clip => {
@@ -119,7 +119,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
   // pigAnimation.addAnimationClip(1000, ac5)
   // pigAnimation.addAnimationClip(3000, ac6)
 
-  let hatlightNode = rootNode.createChild('hatlight')
+  let hatlightNode = rootNode.createChild("hatlight");
   // const hatlightRotate = hatlightNode.createAbility(hatlightRenderer, {
   //   animType: 'rotate'
   // })
@@ -142,15 +142,15 @@ resourceLoader.load(animationRes, (err, gltf) => {
   // animator.addAnimationByStartTime(0, pigAnimation)
   // animator.addAnimationByStartTime(1000, hatlightAnimation)
   // animator.play()
-  registerAnimationClip(animationData, 'hatlight', hatlightRenderer)
+  registerAnimationClip(animationData, "hatlight", hatlightRenderer);
   animations.forEach(clip => {
-    registerAnimationClip(animationData, clip.name, clip)
-  })
+    registerAnimationClip(animationData, clip.name, clip);
+  });
 
-  const animator = parseAnimationData(scene, animationData)
-  console.log(animator)
-  animator.play()
-  //new Animation Test end 
+  const animator = parseAnimationData(scene, animationData);
+  console.log(animator);
+  animator.play();
+  //new Animation Test end
 
   //-- show the use of general interpolation interface
   // doTransform.DataType(
@@ -176,12 +176,10 @@ resourceLoader.load(animationRes, (err, gltf) => {
   // }).start(tween);
 });
 
-
 // const hatlight = hatlightNode.createAbility(AGeometryRenderer, {
 //   geometry: new CuboidGeometry(),
 //   material: new LambertMaterial(),
 // });
-
 
 //-- run
 engine.run();

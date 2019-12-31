@@ -6,7 +6,8 @@ import {
   TextureResource,
   ScriptResource,
   BlinnPhongMaterialResource,
-  TextureCubeMapResource
+  TextureCubeMapResource,
+  AnimationClip
 } from "./resouces";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "./types";
@@ -19,7 +20,8 @@ const RESOURCE_CLASS = {
   // 'image': TextureResource,
   cubeTexture: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
-  BlinnPhongMaterial: BlinnPhongMaterialResource
+  BlinnPhongMaterial: BlinnPhongMaterialResource,
+  AnimationClip: AnimationClip
 };
 
 const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
