@@ -10,6 +10,7 @@ import {
 } from "./resouces";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "./types";
+import { pluginHook } from "./plugins/PluginManager";
 
 const RESOURCE_CLASS = {
   script: ScriptResource,
@@ -66,6 +67,7 @@ export class ResourceManager {
     });
   }
 
+  @pluginHook({ before: "beforeResourceRemove" })
   remove(id: string): Array<string> {
     const resource = this.resourceMap[id];
     const result = [id];
@@ -80,6 +82,7 @@ export class ResourceManager {
         }
       }
     }
+    this.resourceIdMap[id].onDestroy();
     delete this.resourceMap[id];
     return result;
   }

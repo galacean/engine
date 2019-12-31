@@ -31,6 +31,7 @@ export class ScriptResource extends SchemaResource {
     return new Promise(resolve => {
       if (!this.resourceManager.isLocal) {
         const scriptDom = document.createElement("script");
+        scriptDom.crossOrigin = "anonymous";
         this._resource = scriptDom;
         this.setMeta(assetConfig);
         scriptDom.onload = () => {
