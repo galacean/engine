@@ -82,7 +82,7 @@ export class ResourceManager {
         }
       }
     }
-    this.resourceIdMap[id].onDestroy();
+    // this.resourceIdMap[id].onDestroy();
     delete this.resourceMap[id];
     return result;
   }
