@@ -79,6 +79,16 @@ export abstract class Probe extends NodeAbility {
   }
 
   /**
+   * 销毁本组件对象
+   */
+  public destroy(): void {
+    this.enabled = false;
+    this.sceneRenderer.removeRenderPass(this.renderPass);
+
+    super.destroy();
+  }
+
+  /**
    * 探针所得
    * */
   public get texture(): Texture2D {
