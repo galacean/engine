@@ -133,7 +133,8 @@ function reflectionDemo() {
   // debug
   const state = {
     enableAnimate: true,
-    enableProbe: true
+    enableProbe: true,
+    size: 1024
   };
   gui
     .add(state, "enableAnimate")
@@ -149,6 +150,12 @@ function reflectionDemo() {
       probe1.enabled = v;
     })
     .name("动态反射开关");
+  gui
+    .add(state, "size", 1, 4096)
+    .onChange(size => {
+      probe1.size = size;
+    })
+    .name("分辨率");
 }
 
 load("/static/model/DamangedHelmet/DamagedHelmet.gltf", reflectionDemo);

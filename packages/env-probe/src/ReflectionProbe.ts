@@ -45,6 +45,7 @@ export class ReflectionProbe extends Probe {
     this.renderPass = new RenderPass("_renderPass" + this.cacheId, -10, this.renderTarget);
 
     this.position = config.position || [0, 0, 0];
+    this.size = config.size || 1024;
 
     /** 自定义渲染管道 */
     this.renderPass.renderOverride = true;
@@ -163,5 +164,14 @@ export class ReflectionProbe extends Probe {
     mat4.invert(this.camera.inverseViewMatrix, this.camera.viewMatrix);
     mat4.perspective(this.camera.projectionMatrix, fovRadian, 1, this.camera.zNear, this.camera.zFar);
     mat4.invert(this.camera.inverseProjectionMatrix, this.camera.projectionMatrix);
+  }
+
+  public set size(size: number) {
+    this.renderTarget.width = size;
+    this.renderTarget.height = size;
+    this.renderTargetSwap.width = size;
+    this.renderTargetSwap.height = size;
+    this.renderTarget.needRecreate = true;
+    this.renderTargetSwap.needRecreate = true;
   }
 }

@@ -85,4 +85,18 @@ export class PerturbationProbe extends Probe {
       });
     };
   }
+
+  public set width(width: number) {
+    this.renderTarget.width = width;
+    this.renderTargetSwap.width = width;
+    this.renderTarget.needRecreate = true;
+    this.renderTargetSwap.needRecreate = true;
+  }
+
+  public set height(height: number) {
+    this.renderTarget.height = height;
+    this.renderTargetSwap.height = height;
+    this.renderTarget.needRecreate = true;
+    this.renderTargetSwap.needRecreate = true;
+  }
 }
