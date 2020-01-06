@@ -35,9 +35,13 @@ void main()
 }`;
 
 export class DecalMaterial extends Material {
-  private _technique;
-  private renderType;
-  private name;
+  _technique: RenderTechnique;
+  name: string;
+  renderType: MaterialType;
+  constructor(name: string) {
+    super(name);
+    this.name = name;
+  }
   /**
    * 生成内部所使用的 Technique 对象
    * @private

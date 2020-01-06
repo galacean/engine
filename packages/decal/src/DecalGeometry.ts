@@ -332,6 +332,6 @@ class DecalVertex {
   }
 
   clone() {
-    return new this.constructor(this.position.slice(0), this.normal.slice(0));
+    return new DecalVertex(this.position.slice(0), this.normal.slice(0));
   }
 }
