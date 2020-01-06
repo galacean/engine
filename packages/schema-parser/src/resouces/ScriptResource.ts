@@ -30,11 +30,14 @@ export class ScriptResource extends SchemaResource {
     this.initScriptContext();
     return new Promise(resolve => {
       if (!this.resourceManager.isLocal) {
+        const config = assetConfig as any;
+        const name = config.props.scripts[0].name;
         const scriptDom = document.createElement("script");
         scriptDom.crossOrigin = "anonymous";
-        this._resource = scriptDom;
         this.setMeta(assetConfig);
         scriptDom.onload = () => {
+          this._resource = (window as any).o3Scripts[name];
+          scriptAbility[name] = this._resource;
           resolve(this);
         };
         scriptDom.src = assetConfig.url;
