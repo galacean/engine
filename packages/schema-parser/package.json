@@ -25,5 +25,7 @@
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@alipay/o3": "^1.0.1-alpha.29"
+  }
 }

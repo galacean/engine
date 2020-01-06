@@ -24,6 +24,7 @@ export class NodeManager {
   }
 
   public get(id: string): o3.Node {
+    if (id === "0") return this.root;
     return this.nodeMap[id];
   }
 

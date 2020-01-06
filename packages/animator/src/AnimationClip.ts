@@ -1,6 +1,5 @@
 import { AssetObject } from "@alipay/o3-core";
-import { InterpolationType, AnimationType } from "./AnimationConst";
-import { Value } from "./types";
+import { AnimationType } from "./AnimationConst";
 const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationType;
 
 /**
@@ -9,14 +8,11 @@ const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationType;
  */
 export class AnimationClip extends AssetObject {
   public animationType: AnimationType;
-  public options: any;
+  public _options: any;
   /**
    * Interpolation
    */
-  public endValue?: Value = new Float32Array([0, 0, 0]);
-  public affectProperty?: string = null;
-  public interpolation?: InterpolationType = InterpolationType.LINEAR;
-  public duration?: number = null;
+  public keyFrames: any;
 
   /**
    * Frame
@@ -38,9 +34,15 @@ export class AnimationClip extends AssetObject {
    */
   constructor(name: string, animationType: AnimationType, options: any = null) {
     super(name);
-    console.log(animationType, Interpolation);
     this.animationType = animationType || Interpolation;
     this.options = options;
+    this.initialize();
+  }
+  get options() {
+    return this._options;
+  }
+  set options(options) {
+    this._options = options;
     this.initialize();
   }
 
@@ -76,11 +78,8 @@ export class AnimationClip extends AssetObject {
 
   initInterpolation() {
     if (this.options) {
-      const { value, property, interpolation, duration } = this.options;
-      this.endValue = new Float32Array(value);
-      this.affectProperty = property;
-      this.interpolation = interpolation;
-      this.duration = duration;
+      const { keyFrames } = this.options;
+      this.keyFrames = keyFrames;
     }
   }
 

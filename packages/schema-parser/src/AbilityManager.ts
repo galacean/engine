@@ -16,7 +16,6 @@ export class AbilityManager {
     const { type, node: nodeId, props, id, index } = abilityConfig;
 
     const node = this.oasis.nodeManager.get(nodeId);
-
     const AbilityConstructor = this.getConstructor(type);
     const ability = node.createAbility(AbilityConstructor, this.mixPropsToExplicitProps(props));
     const abilityArray = node.abilityArray;
@@ -27,6 +26,7 @@ export class AbilityManager {
   }
 
   public update(id: string, key: string, value: any) {
+    console.log("updateAbility", key, value);
     if (value && this.checkIsAsset(value)) {
       this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;
     } else {
@@ -53,6 +53,7 @@ export class AbilityManager {
       return scriptAbility[splits[1]];
     }
     const constructor = o3[type] || glue[type];
+    console.log(type, constructor);
     if (!constructor) {
       throw new Error(`${type} is not defined`);
     }

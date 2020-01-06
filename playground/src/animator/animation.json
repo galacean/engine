@@ -12,14 +12,20 @@
       "name": "translate1",
       "type": "Interpolation",
       "options": {
-        "value": [
-          1,
-          1,
-          1
-        ],
-        "property": "position",
-        "interpolation": "easeOutBounce",
-        "duration": 2000
+        "keyFrames": {
+          "0": [
+            {
+              "value": [
+                1,
+                1,
+                1
+              ],
+              "property": "position",
+              "interpolation": "easeOutBounce",
+              "duration": 2000
+            }
+          ]
+        }
       }
     },
     {

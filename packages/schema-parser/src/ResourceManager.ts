@@ -7,7 +7,9 @@ import {
   ScriptResource,
   BlinnPhongMaterialResource,
   TextureCubeMapResource,
-  AnimationClip
+  AnimationClip,
+  Animation,
+  Animator
 } from "./resouces";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "./types";
@@ -21,7 +23,9 @@ const RESOURCE_CLASS = {
   cubeTexture: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
-  AnimationClip: AnimationClip
+  AnimationClip: AnimationClip,
+  Animation: Animation,
+  Animator: Animator
 };
 
 const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
@@ -69,7 +73,7 @@ export class ResourceManager {
     });
   }
 
-  @pluginHook({ before: "beforeResourceRemove" })
+  // @pluginHook({ before: "beforeResourceRemove" })
   remove(id: string): Array<string> {
     const resource = this.resourceMap[id];
     const result = [id];
@@ -83,8 +87,8 @@ export class ResourceManager {
           result.push(...attachedResourceRemoveResult);
         }
       }
+      resource.onDestroy && resource.onDestroy();
     }
-    this.resourceIdMap[id].onDestroy();
     delete this.resourceMap[id];
     return result;
   }
