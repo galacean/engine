@@ -72,7 +72,7 @@ class PBRMaterial extends Material {
    * @param {number} [props.perturbationUOffset] 扰动纹理U偏移
    * @param {number} [props.perturbationVOffset] 扰动纹理V偏移
    *
-   * @param {TextureCubeMap} [props.reflectionTexture] 透明度贴图
+   * @param {TextureCubeMap} [props.reflectionTexture] 局部反射贴图，可以覆盖 AEnvironmentMapLight
    *
    */
   constructor(name = PBRMaterial.MATERIAL_NAME, props = {}) {
