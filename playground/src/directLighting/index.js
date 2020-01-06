@@ -55,7 +55,7 @@ let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: 'o3-demo', position: [0, 0, 10], near: 0.1, far: 100
 });
-cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
+cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo') });
 
 //-- run
 engine.run();

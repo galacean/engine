@@ -31,7 +31,7 @@ let cameraProps = {
   clearParam: [0.1, 0.2, 0.4, 1]
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo') });
 
 resourceLoader.batchLoad(ResourceList, (err, res) => {
   const gltf = res[0];

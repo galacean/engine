@@ -50,7 +50,7 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: 'o3-demo', position: [0, .2, 30], clearParam: [.9, .9, .9, 1]
 });
 window.camera = camera;
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('r3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('r3-demo') });
 controler.target = [0, .1, 0];
 let meshes = [];
 let materials = [];
