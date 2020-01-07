@@ -44,6 +44,8 @@ export class Oasis extends o3.EventDispatcher {
       this.bindResouces();
       this.parseNodes();
       this.parseNodeAbilities();
+      // TODO 临时使用 用于运行时asset把id转化为各种实例
+      this.attach();
     });
   }
 
@@ -118,6 +120,11 @@ export class Oasis extends o3.EventDispatcher {
     (scene as any).hasFogFeature = undefined;
     (scene as any).getFogMacro = undefined;
     (scene as any).bindFogToMaterial = undefined;
+  }
+  private attach() {
+    this.resourceManager.getAll().forEach(resource => {
+      resource.attach();
+    });
   }
 
   static create(options: Options, pluginManager: PluginManager): Promise<Oasis> {

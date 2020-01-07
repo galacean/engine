@@ -14,6 +14,7 @@ export class Animation extends AssetObject {
     return this._keyFrames;
   }
   set keyFrames(keyFrames) {
+    console.log("set", keyFrames);
     this._keyFrames = keyFrames;
   }
 }

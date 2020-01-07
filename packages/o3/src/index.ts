@@ -42,7 +42,7 @@ export {
   Animator,
   AAnimation as AAnimationNew,
   AAnimator,
-  AnimationType
+  AnimationClipType
 } from "@alipay/o3-animator";
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { TextureMaterial, TransparentMaterial } from "@alipay/o3-mobile-material";

@@ -1,13 +1,13 @@
 import { AssetObject } from "@alipay/o3-core";
-import { AnimationType } from "./AnimationConst";
-const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationType;
+import { AnimationClipType } from "./AnimationConst";
+const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationClipType;
 
 /**
  * Data for an animation, set of Samples and Channels
  * @extends AssetObject
  */
 export class AnimationClip extends AssetObject {
-  public animationType: AnimationType;
+  public AnimationClipType: AnimationClipType;
   public _options: any;
   /**
    * Interpolation
@@ -30,11 +30,11 @@ export class AnimationClip extends AssetObject {
   /**
    * @constructor
    * @param {string} name
-   * @param {AnimationType} animationType
+   * @param {AnimationClipType} AnimationClipType
    */
-  constructor(name: string, animationType: AnimationType, options: any = null) {
+  constructor(name: string, AnimationClipType: AnimationClipType, options: any = null) {
     super(name);
-    this.animationType = animationType || Interpolation;
+    this.AnimationClipType = AnimationClipType || Interpolation;
     this.options = options;
     this.initialize();
   }
@@ -59,7 +59,7 @@ export class AnimationClip extends AssetObject {
   // }
 
   initialize() {
-    switch (this.animationType) {
+    switch (this.AnimationClipType) {
       case Interpolation:
         this.initInterpolation();
         break;
@@ -70,7 +70,7 @@ export class AnimationClip extends AssetObject {
         this.initSkelton();
         break;
       default:
-        this.animationType = AnimationComponent;
+        this.AnimationClipType = AnimationComponent;
         this.initAnimationComponent();
         break;
     }

@@ -1,6 +1,8 @@
 import { ResourceLoader } from "@alipay/o3";
 import { ResourceManager } from "../ResourceManager";
+
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
+import { Oasis } from "../Oasis";
 
 interface IResourceMeta {
   name?: string;
@@ -35,13 +37,14 @@ export abstract class SchemaResource {
     this.setMeta();
   }
 
-  abstract load(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<SchemaResource>;
+  abstract load(resourceLoader: ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<SchemaResource>;
   loadWithAttachedResources(
     resourceLoader: ResourceLoader,
-    assetConfig: AssetConfig
+    assetConfig: AssetConfig,
+    oasis: Oasis
   ): Promise<LoadAttachedResourceResult> {
     return new Promise(resolve => {
-      this.load(resourceLoader, assetConfig).then(() => {
+      this.load(resourceLoader, assetConfig, oasis).then(() => {
         resolve({
           resources: [this],
           structure: {
@@ -58,6 +61,7 @@ export abstract class SchemaResource {
   }
 
   bind(): void {}
+  attach(): void {}
 
   update(key: string, value: any) {
     if (isAsset(value)) {

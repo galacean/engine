@@ -1,12 +1,12 @@
-import { Logger } from "@alipay/o3-base";
 import { NodeAbility, Node } from "@alipay/o3-core";
 import { AAnimation as SkeltonAnimation } from "@alipay/o3-animation";
 import { AnimationClip } from "./AnimationClip";
-import { quat } from "@alipay/o3-math";
 import { AnimationOptions, List } from "./types";
-import { AnimationType } from "./AnimationConst";
-import { Tweener, doTransform } from "@alipay/o3-tween";
-const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationType;
+import { AnimationClipType } from "./AnimationConst";
+import { Tween, doTransform, Easing } from "@alipay/o3-tween";
+import { vec3 } from "@alipay/o3-math";
+import { getAnimationClipHander } from "./handler/index";
+const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationClipType;
 
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
@@ -22,26 +22,24 @@ export class AAnimation extends NodeAbility {
   private _animClipSet;
   private _startTimeSet;
   private _startTimeQueue: Array<number>;
-  private _name: string;
   private _sortedStartTime: boolean;
   private _animClipStartTimeMap: any;
-  private _handlerList: Array<any>;
+  private handlerList: Array<any>;
   private _handlerMap: any;
   _animationData: any;
   loop: any;
-  get name() {
-    return this._name;
-  }
 
   set animationData(animationData) {
-    const { keyFrames } = animationData;
-    this._animationData = animationData;
+    const { keyFrames = {} } = animationData || {};
+    console.log("AAnimation animationData", keyFrames);
     Object.keys(keyFrames).forEach(startTime => {
       const keyFramesList = keyFrames[startTime];
       keyFramesList.forEach(keyFrame => {
         this.addAnimationClip(Number(startTime), keyFrame);
       });
     });
+    console.log(this._animClipStartTimeMap);
+    // this.play();
   }
 
   /**
@@ -52,12 +50,11 @@ export class AAnimation extends NodeAbility {
     super(node);
     console.log("AAnimation", node, props);
     const { animationData, loop } = props;
-    this._name = props.name || "";
     this._animClipSet = {}; // name : AnimationClip
     this._animClipStartTimeMap = {};
     this._startTimeSet = {}; // startTime: AnimationClip
     this._startTimeQueue = [];
-    this._handlerList = [];
+    this.handlerList = [];
     this._handlerMap = {};
     this.currentTime = 0;
     this.animationData = animationData;
@@ -74,19 +71,8 @@ export class AAnimation extends NodeAbility {
     super.update(deltaTime);
     this.currentTime += deltaTime;
     this.checkNeedBindHandlers();
-    this._handlerList.forEach(handler => {
-      const { type } = handler;
-      switch (type) {
-        case Interpolation:
-          this.updateInterpolation(handler, deltaTime);
-          break;
-        case Skelton:
-          this.updateSkeltonAnim(handler);
-          break;
-        case AnimationComponent:
-          this.updateAnimationComponent(handler, deltaTime);
-          break;
-      }
+    this.handlerList.forEach(handler => {
+      handler.update(deltaTime);
     });
   }
   checkNeedBindHandlers() {
@@ -97,28 +83,14 @@ export class AAnimation extends NodeAbility {
         const animClipTime = this.currentTime - startTime;
         const hasBind = this._handlerMap[animClipName] && this._handlerMap[animClipName][startTime];
         if (animClipTime >= 0 && !hasBind) {
-          const handler = this.bindAnimClip(animClip);
+          const handler = getAnimationClipHander(this.node, animClip);
           this._handlerMap[animClipName] = {
             [startTime]: handler
           };
+          this.handlerList.push(handler);
         }
       });
     });
-  }
-
-  updateInterpolation(handler, deltaTime) {
-    const { _handler, targetValue } = handler;
-    _handler.update(deltaTime);
-    for (let key in targetValue) {
-      this.node[key] = targetValue[key];
-    }
-  }
-
-  updateSkeltonAnim(handler) {
-    const { animClip, _handler } = handler;
-    if (handler.targetValue) return;
-    _handler.playAnimationClip(animClip.skeltonAnim.name);
-    handler.targetValue = true;
   }
 
   updateAnimationComponent(handler, deltaTime) {
@@ -126,83 +98,6 @@ export class AAnimation extends NodeAbility {
     if (_handler.animUpdate) {
       _handler.animUpdate(deltaTime);
     }
-  }
-
-  bindAnimClip(animClip) {
-    switch (animClip.animationType) {
-      case Interpolation:
-        return this.bindInterpolationAnimClip(animClip);
-      case Skelton:
-        return this.bindSkeltonAnimClip(animClip);
-      case AnimationComponent:
-        return this.bindAnimationComponentAnimClip(animClip);
-    }
-  }
-
-  bindInterpolationAnimClip(animClip) {
-    const { Translate, Rotate, Scale, DataType } = doTransform;
-    const { endValue, affectProperty, duration, interpolation } = animClip;
-    let targetValue = {};
-    //TODO deep clone
-    targetValue[affectProperty] = JSON.parse(JSON.stringify(this.node[affectProperty]));
-    let tweener = null;
-    switch (affectProperty) {
-      case "position":
-        tweener = Translate(targetValue, endValue, duration, {
-          easing: interpolation
-        });
-        break;
-      case "rotate":
-        tweener = Rotate(targetValue, endValue, duration, {
-          easing: interpolation
-        });
-        break;
-      case "scale":
-        tweener = Scale(targetValue, endValue, duration, {
-          easing: interpolation
-        });
-        break;
-      default:
-        if (targetValue.hasOwnProperty(affectProperty)) {
-          const startValue = targetValue[affectProperty];
-          tweener = DataType(
-            startValue,
-            value => {
-              targetValue[affectProperty] = value;
-            },
-            endValue,
-            duration,
-            {
-              easing: interpolation
-            }
-          );
-        }
-    }
-    tweener.start(false);
-    const handler = {
-      type: Interpolation,
-      _handler: tweener,
-      targetValue,
-      animClip,
-      _lastFrameTime: 0
-    };
-    this._handlerList.push(handler);
-    return handler;
-  }
-
-  bindSkeltonAnimClip(animClip) {
-    const skeltoAnimationRenderer =
-      this.node.findAbilityByType(SkeltonAnimation) || this.node.createAbility(SkeltonAnimation);
-    skeltoAnimationRenderer.addAnimationClip(animClip.skeltonAnim, animClip.skeltonAnim.name);
-    const handler = {
-      type: Skelton,
-      _handler: skeltoAnimationRenderer,
-      targetValue: false, // skelton clip is playing
-      animClip,
-      _lastFrameTime: 0
-    };
-    this._handlerList.push(handler);
-    return handler;
   }
 
   bindAnimationComponentAnimClip(animClip) {
@@ -213,10 +108,9 @@ export class AAnimation extends NodeAbility {
       type: AnimationComponent,
       _handler: animationComponent,
       targetValue: null,
-      animClip,
-      _lastFrameTime: 0
+      animClip
     };
-    this._handlerList.push(handler);
+    this.handlerList.push(handler);
     return handler;
   }
 
