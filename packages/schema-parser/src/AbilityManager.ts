@@ -18,6 +18,10 @@ export class AbilityManager {
     const node = this.oasis.nodeManager.get(nodeId);
 
     const AbilityConstructor = this.getConstructor(type);
+    if (!AbilityConstructor) {
+      o3.Logger.error(`${type} abiltiy is not defined`);
+      return;
+    }
     const ability = node.createAbility(AbilityConstructor, this.mixPropsToExplicitProps(props));
     const abilityArray = node.abilityArray;
     const currentIndex = abilityArray.length - 1;
