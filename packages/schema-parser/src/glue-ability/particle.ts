@@ -39,8 +39,8 @@ export class Particle extends AGPUParticleSystem {
       isScaleByLifetime: props.__isScaleByLifetime,
       fadeIn: props.__fadeIn,
       fadeOut: props.__fadeOut,
-      texture: props.__texture ? props.__texture.asset : null,
-      maskTexture: props.__maskTexture ? props.__maskTexture.asset : null,
+      texture: props.__texture ? props.__texture : null,
+      maskTexture: props.__maskTexture ? props.__maskTexture : null,
       // blendFunc: [props.__blendFunc01, props.__blendFunc02],
       useOriginColor: props.__useOriginColor,
       is2d: props.__is2d,
@@ -234,11 +234,11 @@ export class Particle extends AGPUParticleSystem {
   }
 
   set __texture(value) {
-    this.updateConfig("texture", value.asset);
+    this.updateConfig("texture", value);
   }
 
   set __maskTexture(value) {
-    this.updateConfig("maskTexture", value.asset);
+    this.updateConfig("maskTexture", value);
   }
 
   set __spriteSheet(value) {
