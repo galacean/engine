@@ -30,6 +30,7 @@
     "@alipay/o3-core": "^1.0.1-alpha.8",
     "@alipay/o3-math": "^1.0.1-alpha.1",
     "@alipay/o3-mesh": "^1.0.1-alpha.6",
+    "@alipay/o3-animation": "^1.0.1-next.0",
     "@alipay/o3-tween": "^1.0.1-alpha.3"
   }
 }

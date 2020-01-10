@@ -1,13 +1,13 @@
 import { Node } from "@alipay/o3-core";
 import { AAnimation, AAnimator, AnimationClip, AnimationClipType } from "@alipay/o3-animator";
 import { Easing } from "@alipay/o3-tween";
-const { Interpolation, Skelton, AnimationComponent } = AnimationClipType;
+const { Interpolation, Skeleton, AnimationComponent } = AnimationClipType;
 
 let animClipCount = 0;
 let animCount = 0;
 const animationClipTypeMap = {
   Interpolation: Interpolation,
-  Skelton: Skelton,
+  Skeleton: Skeleton,
   AnimationComponent: AnimationComponent
 };
 /**
@@ -61,7 +61,7 @@ function parseAnimationClip(currentScene, animClipData, resources) {
         duration
       });
       break;
-    case Skelton:
+    case Skeleton:
       const { action } = options;
       animClip = new AnimationClip(
         name || `AnimationClip_${animClipCount++}`,

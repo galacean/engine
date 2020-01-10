@@ -92,14 +92,14 @@
     },
     {
       "name": "walk",
-      "type": "Skelton",
+      "type": "Skeleton",
       "options": {
         "action": "walk"
       }
     },
     {
       "name": "dance",
-      "type": "Skelton",
+      "type": "Skeleton",
       "options": {
         "action": "dance"
       }

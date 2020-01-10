@@ -1,7 +1,7 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
-const { AnimationClipNew, AnimationClipType } = o3;
+import { AnimationClipNew, AnimationClipType } from "@alipay/o3";
 export class AnimationClip extends SchemaResource {
   config: AssetConfig;
   load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<AnimationClip> {
@@ -9,7 +9,7 @@ export class AnimationClip extends SchemaResource {
       this.config = assetConfig;
       const { name, props } = assetConfig;
       const { type = "Interpolation", options = {} } = props || {};
-      const assetObj = new AnimationClipNew(name, AnimationClipType[type], options);
+      const assetObj = new AnimationClipNew(name, type, options);
       this._resource = assetObj;
       this.setMeta();
       resolve(this);
@@ -23,10 +23,10 @@ export class AnimationClip extends SchemaResource {
   }
 
   bind() {
-    const { Skelton, AnimationComponent } = AnimationClipType;
+    const { Skeleton: Skeleton, AnimationComponent } = AnimationClipType;
     const { AnimationClipType: type } = this.resource;
     switch (type) {
-      case Skelton:
+      case Skeleton:
         const {
           props: {
             options: { gltfAssetId, action }

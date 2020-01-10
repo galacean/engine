@@ -1,6 +1,6 @@
 import { AssetObject } from "@alipay/o3-core";
 import { AnimationClipType } from "./AnimationConst";
-const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationClipType;
+const { Interpolation, Frame, Skeleton, AnimationComponent } = AnimationClipType;
 
 /**
  * Data for an animation, set of Samples and Channels
@@ -19,7 +19,7 @@ export class AnimationClip extends AssetObject {
    */
   public frameIndex?: number = null;
   /**
-   * Skelton
+   * Skeleton
    */
   public skeltonAnim?: any = null;
   /**
@@ -57,7 +57,7 @@ export class AnimationClip extends AssetObject {
       case Frame:
         this.initFrame();
         break;
-      case Skelton:
+      case Skeleton:
         this.initSkelton();
         break;
       default:

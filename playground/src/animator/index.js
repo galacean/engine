@@ -21,7 +21,7 @@ import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { ADirectLight } from "@alipay/o3-lighting";
 
 RegistExtension({ PBRMaterial, TextureMaterial, TransparentMaterial });
-const { Interpolation, Skelton, AnimationComponent } = AnimationClipType;
+const { Interpolation, Skeleton, AnimationComponent } = AnimationClipType;
 //-- create engine object
 let engine = new Engine();
 
@@ -127,7 +127,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
     }
   };
   const ac1 = new AnimationClip("translate1", Interpolation, options);
-  const ac5 = new AnimationClip("B", Skelton, actionMap["B"]);
+  const ac5 = new AnimationClip("B", Skeleton, actionMap["B"]);
   pigAnimation.addAnimationClip(0, ac1);
   pigAnimation.addAnimationClip(200, ac5);
   pigAnimation.addAnimationClip(3000, ac5);

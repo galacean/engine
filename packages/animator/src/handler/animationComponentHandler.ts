@@ -1,10 +1,8 @@
 import { Node } from "@alipay/o3-core";
 import { vec3 } from "@alipay/o3-math";
 import { AnimationClipType } from "../AnimationConst";
-import { Tween, doTransform, Easing } from "@alipay/o3-tween";
 import { AnimationClip } from "../AnimationClip";
 import { AnimationClipHandler } from "./animationClipHandler";
-const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationClipType;
 
 export class AnimationComponentHandler extends AnimationClipHandler {
   handler: any;

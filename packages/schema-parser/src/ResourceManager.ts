@@ -10,7 +10,7 @@ import {
   AnimationClip,
   Animation,
   Animator
-} from "./resouces";
+} from "./resources";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "./types";
 import { pluginHook } from "./plugins/PluginManager";

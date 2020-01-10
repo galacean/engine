@@ -68,6 +68,7 @@
     "@alipay/o3-shadow": "^1.0.1-next.0",
     "@alipay/o3-skybox": "^1.0.1-next.0",
     "@alipay/o3-trail": "^1.0.1-next.0",
+    "@alipay/o3-animator": "^1.0.0-alpha.1",
     "@alipay/o3-tween": "^1.0.1-next.0"
   }
 }

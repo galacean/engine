@@ -4,7 +4,7 @@ import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { AbilityConfig, Props } from "./types";
-import { scriptAbility } from "./resouces";
+import { scriptAbility } from "./resources";
 
 export class AbilityManager {
   private abilityMap: { [id: string]: o3.NodeAbility } = {};

@@ -43,8 +43,8 @@ export enum InterpolationType {
  */
 export enum AnimationClipType {
   /** 插值动画 */
-  Interpolation = 0,
-  Frame = 1,
-  Skelton = 2,
-  AnimationComponent = 3
+  Interpolation = "Interpolation",
+  Frame = "Frame",
+  Skeleton = "Skeleton",
+  AnimationComponent = "AnimationComponent"
 }
