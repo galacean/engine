@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-loader-gltf",
-  "version": "1.0.1-next.1",
+  "version": "1.1.0-next.0",
   "description": "load glTF files",
   "keywords": [
     "Oasis3D",
@@ -26,15 +26,15 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-animation": "^1.0.1-next.0",
-    "@alipay/o3-base": "^1.0.1-next.0",
-    "@alipay/o3-core": "^1.0.1-next.0",
-    "@alipay/o3-loader": "^1.0.1-next.1",
-    "@alipay/o3-material": "^1.0.1-next.1",
-    "@alipay/o3-math": "^1.0.1-alpha.4",
-    "@alipay/o3-mesh": "^1.0.1-next.0",
-    "@alipay/o3-mobile-material": "^1.0.1-next.1",
-    "@alipay/o3-pbr": "^1.0.1-next.1",
-    "@alipay/o3-primitive": "^1.0.1-next.0"
+    "@alipay/o3-animation": "^1.1.0-next.0",
+    "@alipay/o3-base": "^1.1.0-next.0",
+    "@alipay/o3-core": "^1.1.0-next.0",
+    "@alipay/o3-loader": "^1.1.0-next.0",
+    "@alipay/o3-material": "^1.1.0-next.0",
+    "@alipay/o3-math": "^1.1.0-next.0",
+    "@alipay/o3-mesh": "^1.1.0-next.0",
+    "@alipay/o3-mobile-material": "^1.1.0-next.0",
+    "@alipay/o3-pbr": "^1.1.0-next.0",
+    "@alipay/o3-primitive": "^1.1.0-next.0"
   }
 }
