@@ -41,7 +41,7 @@ export enum InterpolationType {
  * 动画类型
  * @readonly
  */
-export enum AnimationType {
+export enum AnimationClipType {
   /** 插值动画 */
   Interpolation = 0,
   Frame = 1,

@@ -1,13 +1,13 @@
 import { AssetObject } from "@alipay/o3-core";
-import { AnimationType } from "./AnimationConst";
-const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationType;
+import { AnimationClipType } from "./AnimationConst";
+const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationClipType;
 
 /**
  * Data for an animation, set of Samples and Channels
  * @extends AssetObject
  */
 export class AnimationClip extends AssetObject {
-  public animationType: AnimationType;
+  public AnimationClipType: AnimationClipType;
   public _options: any;
   /**
    * Interpolation
@@ -27,15 +27,18 @@ export class AnimationClip extends AssetObject {
    */
   public animationComponentAbility: any = null;
 
+  public handlerMap: any;
+
   /**
    * @constructor
    * @param {string} name
-   * @param {AnimationType} animationType
+   * @param {AnimationClipType} AnimationClipType
    */
-  constructor(name: string, animationType: AnimationType, options: any = null) {
+  constructor(name: string, AnimationClipType: AnimationClipType, options: any = null) {
     super(name);
-    this.animationType = animationType || Interpolation;
+    this.AnimationClipType = AnimationClipType || Interpolation;
     this.options = options;
+    this.handlerMap = {};
     this.initialize();
   }
   get options() {
@@ -46,20 +49,8 @@ export class AnimationClip extends AssetObject {
     this.initialize();
   }
 
-  // get startTime() {
-  //   return this._startTime
-  // }
-
-  // set startTime(time) {
-  //   this._startTime = time
-  // }
-
-  // public setStartTime(time) {
-  //   this._startTime = time
-  // }
-
   initialize() {
-    switch (this.animationType) {
+    switch (this.AnimationClipType) {
       case Interpolation:
         this.initInterpolation();
         break;
@@ -70,7 +61,7 @@ export class AnimationClip extends AssetObject {
         this.initSkelton();
         break;
       default:
-        this.animationType = AnimationComponent;
+        this.AnimationClipType = AnimationComponent;
         this.initAnimationComponent();
         break;
     }
@@ -94,5 +85,22 @@ export class AnimationClip extends AssetObject {
   initAnimationComponent() {
     const { script } = this.options;
     this.animationComponentAbility = script;
+  }
+
+  addHandler(id, handler) {
+    this.handlerMap[id] = handler;
+  }
+
+  removeHandler(id) {
+    if (this.handlerMap[id]) {
+      this.handlerMap[id].stop();
+      delete this.handlerMap[id];
+    }
+  }
+
+  removeAllHandler() {
+    Object.keys(this.handlerMap).forEach(id => {
+      this.removeHandler(id);
+    });
   }
 }

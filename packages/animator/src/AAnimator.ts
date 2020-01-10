@@ -1,41 +1,42 @@
-import { NodeAbility, Node } from '@alipay/o3-core'
-import { AAnimation } from './AAnimation'
+import { NodeAbility, Node } from "@alipay/o3-core";
+import { AAnimation } from "./AAnimation";
 
 /**
  * Engine Feature：全局动画控制器
  */
 export class AAnimator extends NodeAbility {
-  state: string
-  runTime: number
-  startTime: number
-  currentTime: number
-  _timeScale: number
-  _sortedStartTime: boolean
-  _startTimeSet: any
-  _startTimeQueue: any
-  _animSet: any
-  _animStartTimeMap: any
-  _name: any
-  _handlerList: Array<any>
+  public currentTime: number;
+  public duration: number;
+  public startTimeAnimationMap: any;
+  public animationList: Array<any>;
+  private _animatorData: any;
+  private _isPlaying: boolean;
+  private _timeScale: number;
+  private needParse: boolean;
 
   /**
    * 缩放播放速度
    * @member {number}
    */
   get timeScale(): number {
-    return this._timeScale
+    return this._timeScale;
   }
   /**
    * 设置播放速度
    */
   set timeScale(val: number) {
     if (val > 0) {
-      this._timeScale = val
+      this._timeScale = val;
     }
   }
 
-  get name() {
-    return this._name
+  get animatorData() {
+    return this._animatorData;
+  }
+
+  set animatorData(animatorData) {
+    this.needParse = true;
+    this._animatorData = animatorData;
   }
 
   /**
@@ -43,70 +44,101 @@ export class AAnimator extends NodeAbility {
    * @param {Node} node
    */
   constructor(node: Node, props: any) {
-    super(node)
-    this._name = props.name || ''
-    this._animSet = {} // name : Animation
-    this._animStartTimeMap = {}
-    this._startTimeSet = {} // startTime: Animation
-    this._startTimeQueue = []
-    this._timeScale = 1.0
-    this.currentTime = 0
-  }
-
-  /**
-   * 添加animClip
-   * @param {number} startTime 开始时间
-   * @param {Animation} animation 动画片段对象
-   */
-  public addAnimationByStartTime(startTime: number, animation: AAnimation) {
-    const name = animation.name
-    this._sortedStartTime = false
-    this._startTimeSet[startTime] = this._startTimeSet[startTime] || {}
-    this._startTimeSet[startTime][name] = animation
-    if (!~this._startTimeQueue.indexOf(startTime)) {
-      this._startTimeQueue.push(startTime)
-    }
-    this._animSet[name] = animation
-    this._animStartTimeMap[name] = startTime
-  }
-
-  public removeAnimationClip(name: string) {
-    const animation = this._animSet[name]
-    if (animation) {
-      const startTime = this._animStartTimeMap[name]
-      this._sortedStartTime = false
-      delete this._startTimeSet[startTime][name]
-      delete this._animSet[name]
-      delete this._animStartTimeMap[name]
-      const keyFrameIndex = this._startTimeQueue.indexOf(startTime)
-      if (!!~keyFrameIndex) {
-        this._startTimeQueue.splice(keyFrameIndex, 1)
-      }
-    }
-  }
-
-  sortKeyFrame() {
-    this._startTimeQueue.sort()
-    this._sortedStartTime = true
-  }
-
-  play(): void {
-    if (!this._sortedStartTime) this.sortKeyFrame()
-    this.state = 'run'
-    this.startTime = new Date().getTime()
+    super(node);
+    const { animatorData } = props;
+    this.animationList = [];
+    this.startTimeAnimationMap = {}; // startTime: AnimationList
+    this._timeScale = 1.0;
+    this.currentTime = 0;
+    this.animatorData = animatorData;
+    animatorData.onAttach = data => {
+      this.animatorData = data;
+    };
   }
 
   public update(deltaTime: number) {
-    if (this.state !== 'run') return
-    deltaTime = deltaTime * this._timeScale
-    super.update(deltaTime)
-    this.currentTime += deltaTime
-    Object.keys(this._animSet).forEach(name => {
-      const anim = this._animSet[name]
-      const animStartTime = this._animStartTimeMap[name]
-      if (this.currentTime - animStartTime >= 0 && !anim.isPlaying()) {
-        anim.play()
+    if (!this._isPlaying) return;
+    const { duration, startTimeAnimationMap } = this;
+    deltaTime = deltaTime * this._timeScale;
+    super.update(deltaTime);
+    if (this.currentTime > duration) {
+      this.reset();
+    }
+    this.currentTime += deltaTime;
+    Object.keys(startTimeAnimationMap).forEach(startTime => {
+      if (this.currentTime - Number(startTime) >= 0) {
+        const animationList = startTimeAnimationMap[startTime];
+        animationList.forEach(animation => {
+          animation.onAnimUpdate(deltaTime);
+        });
       }
-    })
+    });
+  }
+
+  public addAnimationByStartTime(startTime: number, animation: AAnimation) {
+    this.startTimeAnimationMap[startTime] = this.startTimeAnimationMap[startTime] || [];
+    this.startTimeAnimationMap[startTime].push(animation);
+    this.animationList.push(animation);
+  }
+
+  public removeAllAnimation() {
+    this.startTimeAnimationMap = [];
+    this.animationList = [];
+  }
+
+  protected parseAnimatorData() {
+    const { options: { keyFrames = {}, timeScale = 1, duration = Infinity } = {} } = this.animatorData;
+    this.removeAllAnimation();
+    Object.keys(keyFrames).forEach(startTime => {
+      const keyFramesList = keyFrames[startTime] || [];
+      keyFramesList.forEach(keyFrame => {
+        this.addAnimationByStartTime(Number(startTime), keyFrame);
+      });
+    });
+    this.duration = duration || Infinity;
+    this.timeScale = timeScale;
+    this.needParse = false;
+  }
+  /**
+   * 是否正在播放
+   * @return {boolean}
+   */
+  public isPlaying(): boolean {
+    return this._isPlaying;
+  }
+
+  /**
+   * 开始播放
+   */
+  public play() {
+    if (this.needParse) {
+      this.parseAnimatorData();
+    }
+    this._isPlaying = true;
+  }
+
+  /**
+   * 暂停播放
+   *
+   */
+  public pause() {
+    this._isPlaying = false;
+    this.animationList.forEach(animation => {
+      animation.pause();
+    });
+  }
+
+  /**
+   * 跳转到动画的某一帧，立刻生效
+   * @param {float} frameTime
+   */
+  public jumpToFrame(frameTime: number) {}
+
+  private reset() {
+    this.currentTime = 0;
+    this.pause();
+    this.animationList.forEach(animation => {
+      animation.reset();
+    });
   }
 }

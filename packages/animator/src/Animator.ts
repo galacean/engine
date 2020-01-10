@@ -5,15 +5,16 @@ import { AssetObject } from "@alipay/o3-core";
  * @extends AssetObject
  */
 export class Animator extends AssetObject {
-  _keyFrames: any;
-  constructor(name: string, keyFrames) {
+  _options: any;
+  constructor(name: string, options: any) {
     super(name);
-    this.keyFrames = keyFrames;
+    this.options = options;
   }
-  get keyFrames() {
-    return this._keyFrames;
+  get options() {
+    return this._options;
   }
-  set keyFrames(keyFrames) {
-    this._keyFrames = keyFrames;
+  set options(options) {
+    this._options = options;
   }
+  onAttach() {}
 }
