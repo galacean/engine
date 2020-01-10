@@ -10,7 +10,7 @@ interface IResourceMeta {
 }
 
 function isAsset(config: any): boolean {
-  return config.type === "asset";
+  return config && config.type === "asset";
 }
 
 export abstract class SchemaResource {
@@ -61,7 +61,9 @@ export abstract class SchemaResource {
 
   update(key: string, value: any) {
     if (isAsset(value)) {
-      this._resource[key] = this.resourceManager.get(value.id).resource;
+      const resource = this.resourceManager.get(value.id);
+      this.attachedResources.push(resource);
+      this._resource[key] = resource.resource;
     } else {
       this._resource[key] = value;
     }

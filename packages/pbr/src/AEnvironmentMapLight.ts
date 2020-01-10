@@ -73,7 +73,7 @@ class AEnvironmentMapLight extends ALight {
    * @returns {Boolean}
    */
   get useDiffuseMap() {
-    return !!this.diffuseMap;
+    return !!this.diffuseMap && this.diffuseMap.isComplete;
   }
 
   /**
@@ -82,7 +82,7 @@ class AEnvironmentMapLight extends ALight {
    * @returns {Boolean}
    */
   get useSpecularMap() {
-    return !!this.specularMap;
+    return !!this.specularMap && this.specularMap.isComplete;
   }
 
   /**
