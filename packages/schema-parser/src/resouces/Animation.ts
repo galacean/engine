@@ -9,7 +9,6 @@ export class Animation extends SchemaResource {
       this.config = assetConfig;
       const { name, props } = assetConfig;
       const assetObj = new AnimationAsset(name, props);
-      console.log("assetObj", assetConfig, assetObj);
       this._resource = assetObj;
       this.setMeta();
       resolve(this);
@@ -47,6 +46,5 @@ export class Animation extends SchemaResource {
       props: { keyFrames }
     } = this.config;
     this._resource["keyFrames"] = this.parseDate(keyFrames);
-    console.log("bind", this._resource);
   }
 }
