@@ -12,10 +12,16 @@ const imageOrderMap = {
 };
 
 export class TextureCubeMapResource extends SchemaResource {
+  private imageAssets = {};
   load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<TextureCubeMapResource> {
     return new Promise((resolve, reject) => {
-      this._resource = new o3.TextureCubeMap(assetConfig.name, [], assetConfig.props);
-      this._resource.imageAssets = assetConfig.props.textures;
+      this._resource = new o3.TextureCubeMap(assetConfig.name, null, assetConfig.props);
+      for (const key in imageOrderMap) {
+        if (imageOrderMap.hasOwnProperty(key)) {
+          this.imageAssets[key] = assetConfig.props[key];
+        }
+      }
+      this.imageAssets = assetConfig.props;
       this.setMeta();
       resolve(this);
     });
@@ -23,11 +29,18 @@ export class TextureCubeMapResource extends SchemaResource {
 
   bind() {
     const cubeMap = this._resource;
-    const imageAssets = cubeMap.imageAssets;
+    const imageAssets = this.imageAssets;
     const images = [];
     Object.keys(imageAssets).forEach(key => {
-      images[imageOrderMap[key]] = this.resourceManager.get(imageAssets[key].id).resource.image;
+      if (imageAssets[key]) {
+        images[imageOrderMap[key]] = this.resourceManager.get(imageAssets[key].id).resource.image;
+      }
     });
     cubeMap.images = [images];
+  }
+
+  update(key: string, value: any) {
+    this.imageAssets[key] = value;
+    this.bind();
   }
 }

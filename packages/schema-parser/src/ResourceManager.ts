@@ -75,25 +75,31 @@ export class ResourceManager {
     });
   }
 
-  // @pluginHook({ before: "beforeResourceRemove" })
-  remove(id: string): Array<string> {
-    const resource = this.resourceMap[id];
-    const result = [id];
-    if (resource) {
-      const attached = resource.attachedResources;
-      for (let index = 0; index < attached.length; index++) {
-        const attachedResource = attached[index];
-        const attachedResourceId = this.resourceIdMap.get(attachedResource);
-        if (attachedResourceId) {
-          const attachedResourceRemoveResult = this.remove(attachedResourceId);
-          result.push(...attachedResourceRemoveResult);
+  @pluginHook({ before: "beforeResourceRemove" })
+  remove(id: string): Promise<Array<string>> {
+    return new Promise(resolve => {
+      const resource = this.resourceMap[id];
+      const result = [id];
+      let hasAttachedResource = false;
+      delete this.resourceMap[id];
+      if (resource) {
+        const attached = resource.attachedResources;
+        for (let index = 0; index < attached.length; index++) {
+          const attachedResource = attached[index];
+          const attachedResourceId = this.resourceIdMap.get(attachedResource);
+          if (attachedResourceId) {
+            hasAttachedResource = true;
+            this.remove(attachedResourceId).then(attachedResourceRemoveResult => {
+              result.push(...attachedResourceRemoveResult);
+              resolve(result);
+            });
+          }
         }
       }
-      resource.onDestroy && resource.onDestroy();
-    }
-    // this.resourceIdMap[id].onDestroy();
-    delete this.resourceMap[id];
-    return result;
+      if (!hasAttachedResource) {
+        resolve(result);
+      }
+    });
   }
 
   update(id: string, key: string, value: any) {
