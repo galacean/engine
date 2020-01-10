@@ -7,13 +7,37 @@ export class AnimationClipHandler {
   protected animClip: AnimationClip;
   protected node: Node;
   public currentTime: number;
-  constructor(type: AnimationClipType, node: Node, animClip: AnimationClip) {
+  protected hasInit: boolean;
+  enabled: boolean;
+  id: number;
+  constructor(id: number, type: AnimationClipType, node: Node, animClip: AnimationClip) {
+    this.id = id;
     this.type = type;
     this.node = node;
     this.animClip = animClip;
-    this.currentTime = 0;
+    this.hasInit = false;
   }
 
-  init() {}
-  update(deltaTime: number) {}
+  init() {
+    this.currentTime = 0;
+    this.enabled = true;
+    this.animClip.addHandler(this.id, this);
+  }
+  play() {
+    this.enabled = true;
+  }
+  update(deltaTime: number) {
+    if (!this.hasInit) {
+      this.init();
+      this.hasInit = true;
+    }
+  }
+  pause() {}
+  stop() {
+    this.enabled = false;
+  }
+  reset() {
+    this.animClip.removeHandler(this.id);
+    this.hasInit = false;
+  }
 }

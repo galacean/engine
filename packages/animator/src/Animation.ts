@@ -6,15 +6,24 @@ import { AssetObject } from "@alipay/o3-core";
  */
 export class Animation extends AssetObject {
   _keyFrames: any;
-  constructor(name: string, keyFrames) {
+  _duration: number;
+  constructor(name: string, props: any) {
     super(name);
+    const { keyFrames, duration } = props;
     this.keyFrames = keyFrames;
+    this.duration = duration;
   }
   get keyFrames() {
     return this._keyFrames;
   }
   set keyFrames(keyFrames) {
-    console.log("set", keyFrames);
     this._keyFrames = keyFrames;
+  }
+  get duration() {
+    return this._duration;
+  }
+  set duration(duration) {
+    123213123, duration;
+    this._duration = duration;
   }
 }

@@ -4,32 +4,33 @@ import { AnimationClipType } from "../AnimationConst";
 import { Tween, Tweener, doTransform, Easing } from "@alipay/o3-tween";
 import { AnimationClip } from "../AnimationClip";
 import { AnimationClipHandler } from "./animationClipHandler";
-const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationClipType;
 
 export class InterpolationHandler extends AnimationClipHandler {
   keyFrameTimeTweenerMap: { [keyframeTime: number]: Tweener };
   intervalKeyFrameList: Array<[number, number, any, string[], boolean]>; //startTime endTime keyFrame isPlaying
   tween: Tween;
-  constructor(type: AnimationClipType, node: Node, animClip: AnimationClip) {
-    super(type, node, animClip);
-    this.intervalKeyFrameList = [];
-    this.init();
+  originNodeState: { position: any[] | Float32Array; rotation: any[] | Float32Array; scale: any[] | Float32Array };
+  constructor(id: number, type: AnimationClipType, node: Node, animClip: AnimationClip) {
+    super(id, type, node, animClip);
+    this.originNodeState = {
+      position: vec3.clone(node["position"]),
+      rotation: quat.clone(node["rotation"]),
+      scale: vec3.clone(node["scale"])
+    };
   }
 
   init() {
-    const { node, animClip, intervalKeyFrameList } = this;
+    super.init();
+    const { animClip } = this;
     const { keyFrames } = animClip;
     this.tween = new Tween();
     const keyFrameTimeQueue = Object.keys(animClip.keyFrames)
       .map(startTime => Number(startTime))
       .sort();
     const subPropertyMap = { x: 0, y: 1, z: 2 };
+    this.intervalKeyFrameList = [];
     let lastFrameTime = 0;
-    let lastNodeState = {
-      position: vec3.clone(node["position"]),
-      rotation: quat.clone(node["rotation"]),
-      scale: vec3.clone(node["scale"])
-    };
+    let lastNodeState = this.originNodeState;
     keyFrameTimeQueue.forEach(keyFrameTime => {
       let keyFrameList = keyFrames[keyFrameTime];
       let currentNodeState = {
@@ -49,8 +50,7 @@ export class InterpolationHandler extends AnimationClipHandler {
         }
         changedList.push(property);
       });
-      intervalKeyFrameList.push([lastFrameTime, keyFrameTime, currentNodeState, changedList, false]);
-      // generateTweener
+      this.intervalKeyFrameList.push([lastFrameTime, keyFrameTime, currentNodeState, changedList, false]);
       lastFrameTime = keyFrameTime;
       lastNodeState = {
         position: vec3.clone(currentNodeState["position"]),
@@ -86,6 +86,7 @@ export class InterpolationHandler extends AnimationClipHandler {
   }
 
   update(deltaTime: number) {
+    super.update(deltaTime);
     this.currentTime += deltaTime;
     this.intervalKeyFrameList.forEach(data => {
       const [startTime, endTime, endValue, changedList, isPlaying] = data;
@@ -97,6 +98,17 @@ export class InterpolationHandler extends AnimationClipHandler {
       }
     });
     this.tween.update(deltaTime);
-    // this.keyFrameTimeQueue.
+  }
+
+  reset() {
+    const { node, originNodeState } = this;
+    super.reset();
+    ["position", "rotation", "scale"].forEach(property => {
+      if (property === "rotation") {
+        node[property] = quat.clone(originNodeState[property]);
+      } else {
+        node[property] = vec3.clone(originNodeState[property]);
+      }
+    });
   }
 }

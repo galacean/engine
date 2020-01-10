@@ -13,7 +13,6 @@ export class Animator extends SchemaResource {
       const { name, props } = assetConfig;
       const { keyFrames } = props || {};
       const assetObj = new AnimatorAsset(name, keyFrames);
-      console.log("assetObj", assetConfig, assetObj);
       this._resource = assetObj;
       this.setMeta();
       resolve(this);
@@ -44,10 +43,8 @@ export class Animator extends SchemaResource {
   }
 
   update(key: string, value: any) {
-    console.log("Animator11", key, value);
     if (key === "options") {
-      this.resource[key] = this.parseDate(value);
-      console.log(this.resource);
+      this._resource[key] = this.parseDate(value);
     } else {
       super.update(key, value);
     }
@@ -56,7 +53,7 @@ export class Animator extends SchemaResource {
     const {
       props: { options }
     } = this.config;
-    console.log("attach", options);
-    this.resource["options"] = this.parseDate(options);
+    this._resource["options"] = this.parseDate(options);
+    this.resource.onAttach && this.resource.onAttach(this.resource);
   }
 }

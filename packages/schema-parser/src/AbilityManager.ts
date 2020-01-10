@@ -26,7 +26,6 @@ export class AbilityManager {
   }
 
   public update(id: string, key: string, value: any) {
-    console.log("updateAbility", key, value, this.checkIsAsset(value));
     if (value && this.checkIsAsset(value)) {
       this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;
     } else {

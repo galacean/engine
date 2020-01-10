@@ -23,7 +23,6 @@ import { ADirectLight } from "@alipay/o3-lighting";
 RegistExtension({ PBRMaterial, TextureMaterial, TransparentMaterial });
 const { Interpolation, Skelton, AnimationComponent } = AnimationClipType;
 //-- create engine object
-console.log(animationData);
 let engine = new Engine();
 
 const tween = new Tween();
@@ -82,19 +81,11 @@ resourceLoader.load(animationRes, (err, gltf) => {
 
   node.addChild(pig);
 
-  // let test = pig.createAbility(ASkeltonAnimation);
-  // console.log(pig.rotation);
-  // animations.forEach(clip => {
-  //   test.addAnimationClip(clip, clip.name);
-  // });
-  // test.playAnimationClip("B");
-  //new Animation Test start
   const pigAnimation = pig.createAbility(AAnimation);
   const actionMap = {};
   animations.forEach(clip => {
     actionMap[clip.name] = clip;
   });
-  console.log(actionMap);
   const options = {
     keyFrames: {
       "0": [
@@ -136,100 +127,14 @@ resourceLoader.load(animationRes, (err, gltf) => {
     }
   };
   const ac1 = new AnimationClip("translate1", Interpolation, options);
-  // const ac2 = new AnimationClip('scale2', Interpolation, {
-  //   value: [2, 2, 2],
-  //   property: 'scale',
-  //   "interpolation": Easing.linear,
-  //   duration: 2000
-  // })
-  // const ac3 = new AnimationClip('translate2', Interpolation, {
-  //   value: [0, 0, 0],
-  //   property: 'position',
-  //   "interpolation": Easing.linear,
-  //   duration: 2000
-  // })
-  // const ac4 = new AnimationClip('scale3', Interpolation, {
-  //   value: [1, 1, 1],
-  //   property: 'scale',
-  //   "interpolation": Easing.easeInOutBounce,
-  //   duration: 1000
-  // })
   const ac5 = new AnimationClip("B", Skelton, actionMap["B"]);
-  // const ac6 = new AnimationClip('dance', Skelton, actionMap['dance'])
-  // animation.addAnimationClips({
-  //   2000: [ac1],
-  //   4000: [ac2, ac3],
-  //   5000: [ac4]
-  // })
   pigAnimation.addAnimationClip(0, ac1);
   pigAnimation.addAnimationClip(200, ac5);
-  pigAnimation.addAnimationClip(300, ac5);
-  // pigAnimation.addAnimationClip(2000, ac3)
-  // pigAnimation.addAnimationClip(4000, ac4)
-  // pigAnimation.addAnimationClip(1000, ac5)
-  // pigAnimation.addAnimationClip(3000, ac6)
-  pigAnimation.play();
-  // let hatlightNode = rootNode.createChild("hatlight");
-  // const hatlightRotate = hatlightNode.createAbility(hatlightRenderer, {
-  //   animType: 'rotate'
-  // })
-  // const hatlightScale = hatlightNode.createAbility(hatlightRenderer, {
-  //   animType: 'scale'
-  // })
-  // const ac7 = new AnimationClip('hatlightRotate', AnimationComponent, hatlightRotate)
-  // const ac8 = new AnimationClip('hatlightScale', AnimationComponent, hatlightScale)
-
-  // const hatlightAnimation = hatlightNode.createAbility(AAnimation, {
-  //   name: 'hatlightAnimation'
-  // });
-  // hatlightAnimation.addAnimationClip(0, ac1)
-  // hatlightAnimation.addAnimationClip(2000, ac2)
-  // hatlightAnimation.addAnimationClip(2000, ac3)
-  // hatlightAnimation.addAnimationClip(4000, ac4)
-  // hatlightAnimation.addAnimationClip(0, ac7)
-  // hatlightAnimation.addAnimationClip(1000, ac8)
-  // const animator = rootNode.createAbility(AAnimator)
-  // animator.addAnimationByStartTime(0, pigAnimation)
-  // animator.addAnimationByStartTime(1000, hatlightAnimation)
-  // animator.play()
-  // registerAnimationClip(animationData, "hatlight", hatlightRenderer);
-  // animations.forEach(clip => {
-  //   registerAnimationClip(animationData, clip.name, clip);
-  // });
-
-  // const animator = parseAnimationData(scene, animationData);
-  // console.log(animator);
-  // animator.play();
-  //new Animation Test end
-
-  //-- show the use of general interpolation interface
-  // doTransform.DataType(
-  //   vec3.fromValues(0.0, 0.0, 0.0),
-  //   (value) => { },
-  //   vec3.fromValues(1.0, 1.0, 1.0),
-  //   2000,
-  //   { dataType: DataType.FLOAT_VEC3 }
-  // ).start(tween);
-
-  // doTransform.Translate(pig, [1, 1, 1], 2000, {
-  //   easing: Easing.easeOutBounce,
-  //   onComplete: () => {
-  //     doTransform.Scale(pig, [2, 2, 2], 2000).start(tween);
-  //     doTransform.Translate(pig, [0, 0, 0], 2000, {
-  //       onComplete: () => {
-  //         doTransform.Scale(pig, [1, 1, 1], 1000, {
-  //           easing: Easing.easeInOutBounce,
-  //         }).start(tween);
-  //       }
-  //     }).start(tween);
-  //   }
-  // }).start(tween);
+  pigAnimation.addAnimationClip(3000, ac5);
+  const animator = rootNode.createAbility(AAnimator);
+  animator.addAnimationByStartTime(0, pigAnimation);
+  animator.play();
 });
-
-// const hatlight = hatlightNode.createAbility(AGeometryRenderer, {
-//   geometry: new CuboidGeometry(),
-//   material: new LambertMaterial(),
-// });
 
 //-- run
 engine.run();

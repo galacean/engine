@@ -16,4 +16,5 @@ export class Animator extends AssetObject {
   set options(options) {
     this._options = options;
   }
+  onAttach() {}
 }

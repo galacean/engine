@@ -1,12 +1,8 @@
 import { NodeAbility, Node } from "@alipay/o3-core";
-import { AAnimation as SkeltonAnimation } from "@alipay/o3-animation";
 import { AnimationClip } from "./AnimationClip";
-import { AnimationOptions, List } from "./types";
-import { AnimationClipType } from "./AnimationConst";
-import { Tween, doTransform, Easing } from "@alipay/o3-tween";
-import { vec3 } from "@alipay/o3-math";
 import { getAnimationClipHander } from "./handler/index";
-const { Interpolation, Frame, Skelton, AnimationComponent } = AnimationClipType;
+import { AnimationClipHandler } from "./handler/animationClipHandler";
+import { WrapMode } from "./AnimationConst";
 
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
@@ -18,28 +14,48 @@ export class AAnimation extends NodeAbility {
    * 当前播放时间
    */
   public currentTime: number;
+  public duration: number;
+  private _wrapMode: WrapMode;
   private _isPlaying: boolean;
-  private _animClipSet;
-  private _startTimeSet;
-  private _startTimeQueue: Array<number>;
-  private _sortedStartTime: boolean;
-  private _animClipStartTimeMap: any;
+  private animClipSet;
+  private uniqueAnimClipSet;
+  private startTimeAnimClipSet;
   private handlerList: Array<any>;
-  private _handlerMap: any;
-  _animationData: any;
-  loop: any;
+  private binHandlerMap: any;
+  private handlerStartTimeMap: WeakMap<AnimationClipHandler, number>;
+  private _animationData: any;
+  private _timeScale: number;
+  private needParse: boolean;
 
+  /**
+   * 缩放播放速度
+   * @member {number}
+   */
+  get timeScale(): number {
+    return this._timeScale;
+  }
+  /**
+   * 设置播放速度
+   */
+  set timeScale(val: number) {
+    if (val > 0) {
+      this._timeScale = val;
+    }
+  }
+
+  get wrapMode() {
+    return this._wrapMode;
+  }
+  set wrapMode(wrapMode) {
+    this._wrapMode = wrapMode;
+  }
+
+  get animationData() {
+    return this._animationData;
+  }
   set animationData(animationData) {
-    const { keyFrames = {} } = animationData || {};
-    console.log("AAnimation animationData", keyFrames);
-    Object.keys(keyFrames).forEach(startTime => {
-      const keyFramesList = keyFrames[startTime];
-      keyFramesList.forEach(keyFrame => {
-        this.addAnimationClip(Number(startTime), keyFrame);
-      });
-    });
-    console.log(this._animClipStartTimeMap);
-    // this.play();
+    this.needParse = true;
+    this._animationData = animationData;
   }
 
   /**
@@ -48,17 +64,17 @@ export class AAnimation extends NodeAbility {
    */
   constructor(node: Node, props: any) {
     super(node);
-    console.log("AAnimation", node, props);
-    const { animationData, loop } = props;
-    this._animClipSet = {}; // name : AnimationClip
-    this._animClipStartTimeMap = {};
-    this._startTimeSet = {}; // startTime: AnimationClip
-    this._startTimeQueue = [];
+    const { animationData, wrapMode } = props;
+    this.animClipSet = {}; // name : AnimationClip
+    this.uniqueAnimClipSet = {};
+    this.startTimeAnimClipSet = {}; // startTime: AnimationClip
     this.handlerList = [];
-    this._handlerMap = {};
+    this.binHandlerMap = {};
+    this.handlerStartTimeMap = new WeakMap();
+    this._timeScale = 1.0;
     this.currentTime = 0;
     this.animationData = animationData;
-    this.loop = loop;
+    this.wrapMode = wrapMode;
   }
 
   /**
@@ -68,52 +84,44 @@ export class AAnimation extends NodeAbility {
    */
   public update(deltaTime: number) {
     if (!this._isPlaying) return;
+    const { duration, handlerStartTimeMap, wrapMode } = this;
+    deltaTime = deltaTime * this._timeScale;
     super.update(deltaTime);
-    this.currentTime += deltaTime;
-    this.checkNeedBindHandlers();
-    this.handlerList.forEach(handler => {
-      handler.update(deltaTime);
-    });
-  }
-  checkNeedBindHandlers() {
-    Object.keys(this._animClipSet).forEach(animClipName => {
-      const animClip = this._animClipSet[animClipName];
-      const animClipStartTimes = this._animClipStartTimeMap[animClipName];
-      animClipStartTimes.forEach(startTime => {
-        const animClipTime = this.currentTime - startTime;
-        const hasBind = this._handlerMap[animClipName] && this._handlerMap[animClipName][startTime];
-        if (animClipTime >= 0 && !hasBind) {
-          const handler = getAnimationClipHander(this.node, animClip);
-          this._handlerMap[animClipName] = {
-            [startTime]: handler
-          };
-          this.handlerList.push(handler);
-        }
-      });
-    });
-  }
-
-  updateAnimationComponent(handler, deltaTime) {
-    const { _handler } = handler;
-    if (_handler.animUpdate) {
-      _handler.animUpdate(deltaTime);
+    if (this.currentTime > duration) {
+      this.reset();
+      if (wrapMode === WrapMode.LOOP) {
+        this.play();
+      }
     }
+    this.currentTime += deltaTime;
+    this.handlerList.forEach(handler => {
+      const handlerStartTime = handlerStartTimeMap.get(handler);
+      if (this.currentTime > handlerStartTime) {
+        handler.update(deltaTime);
+      }
+    });
   }
-
-  bindAnimationComponentAnimClip(animClip) {
-    const { animationComponentAbility } = animClip;
-    const { params } = animClip.options;
-    const animationComponent = this.node.createAbility(animationComponentAbility, params);
-    const handler = {
-      type: AnimationComponent,
-      _handler: animationComponent,
-      targetValue: null,
-      animClip
-    };
-    this.handlerList.push(handler);
-    return handler;
+  //TODO 临时方案后面改为jumptoFrame
+  public onAnimUpdate(deltaTime: number) {
+    if (this.needParse) {
+      this.parseAnimationData();
+    }
+    const { duration, handlerStartTimeMap, wrapMode } = this;
+    deltaTime = deltaTime * this._timeScale;
+    if (this.currentTime > duration) {
+      this.reset();
+      if (wrapMode === WrapMode.LOOP) {
+        this.play();
+      }
+    }
+    this.currentTime += deltaTime;
+    this.handlerList.forEach(handler => {
+      const handlerStartTime = handlerStartTimeMap.get(handler);
+      if (this.currentTime > handlerStartTime) {
+        handler.update(deltaTime);
+      }
+    });
   }
-
   /**
    * 添加animClip
    * @param {number} startTime 开始时间
@@ -121,15 +129,31 @@ export class AAnimation extends NodeAbility {
    */
   public addAnimationClip(startTime: number, animClip: AnimationClip) {
     const name = animClip.name;
-    this._sortedStartTime = false;
-    this._startTimeSet[startTime] = this._startTimeSet[startTime] || {};
-    this._startTimeSet[startTime][name] = animClip;
-    if (!~this._startTimeQueue.indexOf(startTime)) {
-      this._startTimeQueue.push(startTime);
+    if (this.uniqueAnimClipSet[`${name}_${startTime}`]) return;
+    this.animClipSet[name] = animClip;
+    this.uniqueAnimClipSet[`${name}_${startTime}`] = animClip;
+    this.startTimeAnimClipSet[startTime] = this.startTimeAnimClipSet[startTime] || [];
+    this.startTimeAnimClipSet[startTime].push(animClip);
+    this.binHandlerMap[name] = this.binHandlerMap[name] || {};
+    const hasBind = this.binHandlerMap[name][startTime];
+    if (!hasBind) {
+      const handler = getAnimationClipHander(this.node, animClip);
+      this.handlerStartTimeMap.set(handler, startTime);
+      this.handlerList.push(handler);
+      this.binHandlerMap[name][startTime] = handler;
     }
-    this._animClipSet[name] = animClip;
-    this._animClipStartTimeMap[name] = this._animClipStartTimeMap[name] || [];
-    this._animClipStartTimeMap[name].push(startTime);
+  }
+  public removeHandler(name, startTime) {
+    const { handlerList } = this;
+    const handler = this.binHandlerMap[name][startTime];
+    for (let i = handlerList.length - 1; i >= 0; --i) {
+      if (handlerList[i].id === handler.id) {
+        handlerList.splice(i, 1);
+        break;
+      }
+    }
+    this.handlerStartTimeMap.delete(handler);
+    delete this.binHandlerMap[name][startTime];
   }
 
   /**
@@ -137,41 +161,43 @@ export class AAnimation extends NodeAbility {
    * @param {string} name 动画片段的名称
    */
   public removeAnimationClip(name: string) {
-    const animClip = this._animClipSet[name];
+    const animClip = this.animClipSet[name];
     if (animClip) {
-      const startTimes = this._animClipStartTimeMap[name];
-      this._sortedStartTime = false;
-      delete this._animClipSet[name];
-      startTimes.forEach(startTime => {
-        delete this._startTimeSet[startTime][name];
-        const keyFrameIndex = this._startTimeQueue.indexOf(startTime);
-        if (!!~keyFrameIndex) {
-          this._startTimeQueue.splice(keyFrameIndex, 1);
-        }
+      Object.keys(this.startTimeAnimClipSet).forEach(startTime => {
+        let deletIndex = null;
+        this.startTimeAnimClipSet[startTime].forEach((animClip, index) => {
+          if (animClip.name === name) {
+            deletIndex = index;
+            this.removeHandler(name, startTime);
+            delete this.uniqueAnimClipSet[`${name}_${startTime}`];
+            delete this.startTimeAnimClipSet[startTime][deletIndex];
+          }
+        });
       });
-      delete this._animClipStartTimeMap[name];
+      delete this.animClipSet[name];
     }
   }
 
-  sortKeyFrame() {
-    this._startTimeQueue.sort();
-    this._sortedStartTime = true;
+  public removeAllAnimationClip() {
+    const { animClipSet } = this;
+    Object.keys(animClipSet).forEach(name => {
+      this.removeAnimationClip(name);
+    });
   }
 
-  /**
-   * 取得指定的 AnimationClip 的时间长度
-   * @param {string} name 动画片段的名称
-   * @return {number}
-   */
-  public getAnimationClipLength(name: string): number {
-    // const animClip = this._animClipSet[name]
-    // if (animClip) {
-    //   return animClip.getChannelTimeLength(0)
-    // } else {
-    //   return 0.0
-    // }
+  protected parseAnimationData() {
+    const { keyFrames = {}, timeScale = 1, duration = Infinity } = this.animationData || {};
+    this.removeAllAnimationClip();
+    Object.keys(keyFrames).forEach(startTime => {
+      const keyFramesList = keyFrames[startTime];
+      keyFramesList.forEach(keyFrame => {
+        this.addAnimationClip(Number(startTime), keyFrame);
+      });
+    });
+    this.duration = duration || Infinity;
+    this.timeScale = timeScale;
+    this.needParse = false;
   }
-
   /**
    * 是否正在播放
    * @return {boolean}
@@ -181,52 +207,37 @@ export class AAnimation extends NodeAbility {
   }
 
   /**
-   * 播放动画
-   * @param {String} name 动画片段的名称
-   * @param {AnimationOptions} options 动画参数
-   */
-  public playAnimationClip(name: string, options: AnimationOptions) {}
-
-  /**
    * 开始播放
    */
   public play() {
-    if (!this._sortedStartTime) this.sortKeyFrame();
+    if (this.needParse) {
+      this.parseAnimationData();
+    }
     this._isPlaying = true;
-
-    // for (let i = this._animLayers.length - 1; i >= 0; i--) {
-    //   if (this._animLayers[i].isFading) {
-    //     this._animLayers.splice(i, 1)
-    //   } else {
-    //     this._animLayers[i].stop(rightnow)
-    //   }
-    // }
   }
 
   /**
-   * 停止播放
+   * 暂停播放
    *
    */
-  public stop(rightnow: boolean) {
+  public pause() {
     this._isPlaying = false;
-    // for (let i = this._animLayers.length - 1; i >= 0; i--) {
-    //   if (this._animLayers[i].isFading) {
-    //     this._animLayers.splice(i, 1)
-    //   } else {
-    //     this._animLayers[i].stop(rightnow)
-    //   }
-    // }
+    this.handlerList.forEach(handler => {
+      handler.pause();
+    });
   }
 
   /**
    * 跳转到动画的某一帧，立刻生效
    * @param {float} frameTime
    */
-  public jumpToFrame(frameTime: number) {
-    // frameTime = frameTime / 1000
-    // for (let i = this._animLayers.length - 1; i >= 0; i--) {
-    //   this._animLayers[i].jumpToFrame(frameTime)
-    // }
-    // this._updateValues()
+  public jumpToFrame(frameTime: number) {}
+
+  private reset() {
+    this.currentTime = 0;
+    this.pause();
+    this.handlerList.reverse().forEach(handler => {
+      handler.reset();
+    });
   }
 }

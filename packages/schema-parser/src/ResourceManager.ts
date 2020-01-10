@@ -91,6 +91,7 @@ export class ResourceManager {
       }
       resource.onDestroy && resource.onDestroy();
     }
+    // this.resourceIdMap[id].onDestroy();
     delete this.resourceMap[id];
     return result;
   }

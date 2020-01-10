@@ -8,8 +8,7 @@ export class Animation extends SchemaResource {
     return new Promise(resolve => {
       this.config = assetConfig;
       const { name, props } = assetConfig;
-      const { keyFrames } = props || {};
-      const assetObj = new AnimationAsset(name, keyFrames);
+      const assetObj = new AnimationAsset(name, props);
       console.log("assetObj", assetConfig, assetObj);
       this._resource = assetObj;
       this.setMeta();
@@ -37,7 +36,7 @@ export class Animation extends SchemaResource {
 
   update(key: string, value: any) {
     if (key === "keyFrames") {
-      this.resource[key] = this.parseDate(value);
+      this._resource[key] = this.parseDate(value);
     } else {
       super.update(key, value);
     }
@@ -47,7 +46,7 @@ export class Animation extends SchemaResource {
     const {
       props: { keyFrames }
     } = this.config;
-    this.resource["keyFrames"] = this.parseDate(keyFrames);
-    console.log("bind", this.resource);
+    this._resource["keyFrames"] = this.parseDate(keyFrames);
+    console.log("bind", this._resource);
   }
 }

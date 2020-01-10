@@ -27,6 +27,8 @@ export class AnimationClip extends AssetObject {
    */
   public animationComponentAbility: any = null;
 
+  public handlerMap: any;
+
   /**
    * @constructor
    * @param {string} name
@@ -36,6 +38,7 @@ export class AnimationClip extends AssetObject {
     super(name);
     this.AnimationClipType = AnimationClipType || Interpolation;
     this.options = options;
+    this.handlerMap = {};
     this.initialize();
   }
   get options() {
@@ -45,18 +48,6 @@ export class AnimationClip extends AssetObject {
     this._options = options;
     this.initialize();
   }
-
-  // get startTime() {
-  //   return this._startTime
-  // }
-
-  // set startTime(time) {
-  //   this._startTime = time
-  // }
-
-  // public setStartTime(time) {
-  //   this._startTime = time
-  // }
 
   initialize() {
     switch (this.AnimationClipType) {
@@ -94,5 +85,22 @@ export class AnimationClip extends AssetObject {
   initAnimationComponent() {
     const { script } = this.options;
     this.animationComponentAbility = script;
+  }
+
+  addHandler(id, handler) {
+    this.handlerMap[id] = handler;
+  }
+
+  removeHandler(id) {
+    if (this.handlerMap[id]) {
+      this.handlerMap[id].stop();
+      delete this.handlerMap[id];
+    }
+  }
+
+  removeAllHandler() {
+    Object.keys(this.handlerMap).forEach(id => {
+      this.removeHandler(id);
+    });
   }
 }
