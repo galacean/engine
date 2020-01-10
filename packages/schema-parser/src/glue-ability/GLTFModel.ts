@@ -88,7 +88,6 @@ export class GLTFModel extends NodeAbility {
     super(node, props);
 
     this.GLTFNode = this.node.createChild("GLTF");
-
     const { asset = null, isAnimate, autoPlay, loop } = props;
     this.asset = asset;
     this.isAnimate = isAnimate;
