@@ -89,7 +89,7 @@ async function makeRollupConfig({ location, main, name, type }) {
           sourcemap: true
         }
       ],
-      plugins: [...commonPlugins]
+      plugins: [...commonPlugins, terser()]
     };
   }
   if (isMiniProgram) {

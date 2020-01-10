@@ -23,10 +23,10 @@ export class AnimationClip extends SchemaResource {
   }
 
   bind() {
-    const { Skelton, AnimationComponent } = AnimationClipType;
+    const { Skeleton, AnimationComponent } = AnimationClipType;
     const { AnimationClipType: type } = this.resource;
     switch (type) {
-      case Skelton:
+      case Skeleton:
         const {
           props: {
             options: { gltfAssetId, action }
