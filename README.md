@@ -4,11 +4,10 @@
 
 [![TNPM version][tnpm-image]][tnpm-url]
 [![TNPM downloads][tnpm-downloads-image]][tnpm-url]
-![install-alinode 4](https://duing.alibaba-inc.com/img/label?key=install-alinode&value=4&keyBgColor=505050&valueBgColor=51CA2A&size=12)
 
-[tnpm-image]: https://npm.alibaba-inc.com/badge/v/@alipay/validate-schema.svg
-[tnpm-url]: https://npm.alibaba-inc.com/package/@alipay/validate-schema
-[tnpm-downloads-image]: https://npm.alibaba-inc.com/badge/d/@alipay/validate-schema.svg
+[tnpm-image]: https://npm.alibaba-inc.com/badge/v/@alipay/o3.svg
+[tnpm-url]: https://npm.alibaba-inc.com/package/@alipay/o3
+[tnpm-downloads-image]: https://npm.alibaba-inc.com/badge/d/@alipay/o3.svg
 
 ## 初始化依赖
 ```
@@ -59,15 +58,18 @@ npm run fix-memory-limit
 ```
 
 缩略图模式
+
 > 往playground/*/ 下面添加avatar.jpg 或者avatar.png ,将自动切换展示模式
 
 
 发布小程序版本
-> 将构建产物copy到小程序仓库的page/playground下面
-```
-npm run b:playground-miniprogram
 
+> 将构建产物copy到小程序仓库的page/playground下面
+
+``` shell
+npm run b:playground-miniprogram
 ```
+
 
 ## Contributors(5)
 
