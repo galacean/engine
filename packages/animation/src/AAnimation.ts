@@ -150,7 +150,7 @@ export class AAnimation extends NodeAbility {
    * @param {string} name 动画片段的名称
    * @return {number}
    */
-  public getAnimationClip(name: string): number {
+  public getAnimationClip(name: string): AnimationClip {
     return this._animSet[name] || null;
   }
 
