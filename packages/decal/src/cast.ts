@@ -1,4 +1,5 @@
 import { vec3 } from '@alipay/o3-math';
+import { Logger } from "@alipay/o3-base";
 import { Ray } from './Ray';
 import {
   getNormal,
@@ -6,6 +7,7 @@ import {
   getXFromIndex,
   fromBufferAttribute,
 } from './util';
+
 
 const _intersectPoint = vec3.create();
 const _intersectPointWorld = vec3.create();
@@ -17,7 +19,7 @@ export function raycast(meshRenderer, ray) {
   localRay.copy(ray).applyMatrix4(invModelMatrix);
   let primitives;
   if (meshRenderer.geometry) {
-    console.error('模型必须是mesh');
+    Logger.error('模型必须是mesh');
   }
   if (meshRenderer.mesh) {
     primitives = meshRenderer.mesh.primitives;
