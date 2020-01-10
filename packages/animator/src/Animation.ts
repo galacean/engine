@@ -23,7 +23,6 @@ export class Animation extends AssetObject {
     return this._duration;
   }
   set duration(duration) {
-    123213123, duration;
     this._duration = duration;
   }
 }
