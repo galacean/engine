@@ -146,6 +146,15 @@ export class AAnimation extends NodeAbility {
   }
 
   /**
+   * 取得指定的 AnimationClip
+   * @param {string} name 动画片段的名称
+   * @return {number}
+   */
+  public getAnimationClip(name: string): number {
+    return this._animSet[name] || null;
+  }
+
+  /**
    * 是否正在播放
    * @return {boolean}
    */

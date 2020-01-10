@@ -4,7 +4,7 @@ import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { AbilityConfig, Props } from "./types";
-import { scriptAbility } from "./resouces";
+import { scriptAbility } from "./resources";
 
 export class AbilityManager {
   private abilityMap: { [id: string]: o3.NodeAbility } = {};
@@ -16,7 +16,6 @@ export class AbilityManager {
     const { type, node: nodeId, props, id, index } = abilityConfig;
 
     const node = this.oasis.nodeManager.get(nodeId);
-
     const AbilityConstructor = this.getConstructor(type);
     if (!AbilityConstructor) {
       o3.Logger.error(`${type} abiltiy is not defined`);
@@ -69,7 +68,9 @@ export class AbilityManager {
       const prop = props[k];
       if (prop && this.checkIsAsset(prop)) {
         const res = this.oasis.resourceManager.get(prop.id);
-        explicitProps[k] = res.resource;
+        if (res) {
+          explicitProps[k] = res.resource;
+        }
       }
     }
     return explicitProps;

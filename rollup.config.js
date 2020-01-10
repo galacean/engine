@@ -68,7 +68,7 @@ async function makeRollupConfig({ location, main, name, type }) {
     }),
     babel({
       extensions,
-      exclude: ["node_modules/**", "packages/**/node_modules/**"],
+      exclude: ["node_modules/**", "packages/**/node_modules/**"]
     }),
     commonjs()
   ];
@@ -89,7 +89,7 @@ async function makeRollupConfig({ location, main, name, type }) {
           sourcemap: true
         }
       ],
-      plugins: [...commonPlugins, terser()]
+      plugins: [...commonPlugins]
     };
   }
   if (isMiniProgram) {

@@ -6,8 +6,11 @@ import {
   TextureResource,
   ScriptResource,
   BlinnPhongMaterialResource,
-  TextureCubeMapResource
-} from "./resouces";
+  TextureCubeMapResource,
+  AnimationClip,
+  Animation,
+  Animator
+} from "./resources";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "./types";
 import { pluginHook } from "./plugins/PluginManager";
@@ -19,7 +22,10 @@ const RESOURCE_CLASS = {
   // 'image': TextureResource,
   cubeTexture: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
-  BlinnPhongMaterial: BlinnPhongMaterialResource
+  BlinnPhongMaterial: BlinnPhongMaterialResource,
+  AnimationClip: AnimationClip,
+  Animation: Animation,
+  Animator: Animator
 };
 
 const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
@@ -48,7 +54,8 @@ export class ResourceManager {
   // 从schema中加载资源
   load(asset: AssetConfig): Promise<SchemaResource> {
     const resource = resourceFactory.createResource(this, asset.type);
-    const loadPromise = resource.load(this.resourceLoader, asset);
+    //TODO 脏代码
+    const loadPromise = resource.load(this.resourceLoader, asset, this.oasis);
     this.maxId = Math.max(+asset.id, this.maxId);
     loadPromise.then(() => {
       this.resourceMap[asset.id] = resource;
@@ -61,7 +68,8 @@ export class ResourceManager {
   add(asset: AssetConfig): Promise<any> {
     const resource = resourceFactory.createResource(this, asset.type);
     return new Promise(resolve => {
-      resource.loadWithAttachedResources(this.resourceLoader, asset).then(result => {
+      //TODO 脏代码
+      resource.loadWithAttachedResources(this.resourceLoader, asset, this.oasis).then(result => {
         resolve(this.getAddResourceResult(result.resources, result.structure));
       });
     });

@@ -1,3 +1,3 @@
 export { parser, Parser } from "./Parser";
-export { script } from "./resouces";
+export { script } from "./resources";
 export * from "./glue-ability";

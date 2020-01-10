@@ -1,11 +1,11 @@
-import { Engine } from '@alipay/o3-core';
-import { vec3 } from '@alipay/o3-math';
-import { ADefaultCamera } from '@alipay/o3-default-camera';
-import { ResourceLoader, Resource } from '@alipay/o3-loader';
-import '@alipay/o3-loader-gltf';
-import { TextureFilter, TextureWrapMode } from '@alipay/o3-core';
-import { AAnimation, AnimationEvent, WrapMode } from '@alipay/o3-animation';
-import '@alipay/o3-hud';
+import { Engine } from "@alipay/o3-core";
+import { vec3 } from "@alipay/o3-math";
+import { ADefaultCamera } from "@alipay/o3-default-camera";
+import { ResourceLoader, Resource } from "@alipay/o3-loader";
+import "@alipay/o3-loader-gltf";
+import { TextureFilter, TextureWrapMode } from "@alipay/o3-core";
+import { AAnimation, AnimationEvent, WrapMode } from "@alipay/o3-animation";
+import "@alipay/o3-hud";
 
 import { AHUDLabel } from "../common/AHUDLabel";
 
@@ -15,18 +15,18 @@ let engine = new Engine();
 let scene = engine.currentScene;
 let rootNode = scene.root;
 
-
-
 //-- create camera
-let cameraNode = rootNode.createChild('camera_node');
+let cameraNode = rootNode.createChild("camera_node");
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, 1.35, 5.5], target: [0, 1.1, 0]
+  canvas: "o3-demo",
+  position: [0, 1.35, 5.5],
+  target: [0, 1.1, 0]
 });
 
 // load resource config
-const animationRes = new Resource('pig_glb', {
-  type: 'gltf',
-  url: 'https://gw.alipayobjects.com/os/r3/43bf0cbe-17c8-4835-88ff-f28636dd2b14/pig.gltf',
+const animationRes = new Resource("pig_glb", {
+  type: "gltf",
+  url: "https://gw.alipayobjects.com/os/r3/43bf0cbe-17c8-4835-88ff-f28636dd2b14/pig.gltf"
 });
 
 const resourceLoader = new ResourceLoader(engine);
@@ -38,10 +38,10 @@ resourceLoader.load(animationRes, (err, gltf) => {
   const pig = pigPrefab.clone();
   pig.rotateByAngles(0, 180, 0);
 
-  let node = rootNode.createChild('gltf_node');
+  let node = rootNode.createChild("gltf_node");
   node.addChild(pig);
 
-  let book = pig.findChildByName('book_one');
+  let book = pig.findChildByName("book_one");
   book.isActive = false;
 
   const animator = pig.createAbility(AAnimation);
@@ -49,45 +49,44 @@ resourceLoader.load(animationRes, (err, gltf) => {
     animator.addAnimationClip(clip, clip.name);
   });
 
-  animator.playAnimationClip('walk');
+  animator.playAnimationClip("walk");
   // animator.stop(true);
   // animator.jumpToFrame(600);
 
   //-- create hud
   let labelProps = {
-    spriteID: 'label',
+    spriteID: "label",
     textureSize: [400, 120],
-    renderMode: '3D',
-    worldSize: [1.5, 0.3],
+    renderMode: "3D",
+    worldSize: [1.5, 0.3]
   };
-  const labelNode = rootNode.createChild('label');
+  const labelNode = rootNode.createChild("label");
   labelNode.position = vec3.fromValues(-0.75, 2, 0);
   const label = labelNode.createAbility(AHUDLabel, labelProps);
-  label.backgroundStyle = 'rgba(112, 128, 105, 1)';
+  label.backgroundStyle = "rgba(112, 128, 105, 1)";
   label.text = "Click change time scale";
 
   let label2Props = {
-    spriteID: 'label2',
+    spriteID: "label2",
     textureSize: [400, 120],
-    renderMode: '3D',
-    worldSize: [1, 0.2],
+    renderMode: "3D",
+    worldSize: [1, 0.2]
   };
-  const label2Node = rootNode.createChild('label2');
+  const label2Node = rootNode.createChild("label2");
   label2Node.position = vec3.fromValues(-1, 1.6, 0);
   const label2 = label2Node.createAbility(AHUDLabel, label2Props);
-  label2.backgroundStyle = 'rgba(112, 128, 105, 1)';
+  label2.backgroundStyle = "rgba(112, 128, 105, 1)";
   label2.text = "Current time scale: " + animator.timeScale;
 
   let timeScaleValues = [0.1, 0.3, 0.5, 1.0, 2.0, 3.0];
   let timeScaleIndex = 0;
-  document.getElementById('o3-demo').addEventListener('click', (e) => {
+  document.getElementById("o3-demo").addEventListener("click", e => {
     if (timeScaleIndex >= timeScaleValues.length) {
       timeScaleIndex = 0;
     }
     animator.timeScale = timeScaleValues[timeScaleIndex++];
     label2.text = "Current time scale: " + animator.timeScale;
   });
-
 });
 
 //-- run

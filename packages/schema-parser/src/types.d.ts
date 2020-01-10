@@ -1,4 +1,4 @@
-import { SchemaResource } from "./resouces";
+import { SchemaResource } from "./resources";
 
 export interface NodeConfig {
   /**
