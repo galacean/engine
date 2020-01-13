@@ -21,6 +21,8 @@ export class TextureCubeMap extends Texture {
 
   public updateWholeTexture: boolean;
 
+  public isComplete: boolean = false;
+
   /**
    * CubeMap 贴图数据对象
    * @param {String} name 名称
@@ -49,9 +51,15 @@ export class TextureCubeMap extends Texture {
   }
 
   set images(v: Array<any>) {
-    this._images = v;
-    this.updateTexture();
-    this.configMipmap();
+    if (v && v.length) {
+      this._images = v;
+      this.updateTexture();
+      this.configMipmap();
+      this.isComplete =
+        this._images.length &&
+        this._images[0].length === 6 &&
+        this._images[0].reduce((sum, item) => (item ? sum + 1 : sum), 0) === 6;
+    }
   }
 
   /**
@@ -86,31 +94,35 @@ export class TextureCubeMap extends Texture {
    */
   configMipmap() {
     // manual set MipMap
-    if (this.images[1]) {
-      this._manualMipMap = true;
-      this._mipMapLevel = Math.log2(this.images[0][0].width);
-    } else {
-      this._manualMipMap = false;
+    if (this.images.length && this.images[0].length && this.images[0][0]) {
+      if (this.images[1]) {
+        this._manualMipMap = true;
+        this._mipMapLevel = Math.log2(this.images[0][0].width);
+      } else {
+        this._manualMipMap = false;
 
-      if (isPowerOf2(this._images[0][0].width) && isPowerOf2(this._images[0][0].height)) {
-        if (
-          this._filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
-          this._filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||
-          this._filterMin === TextureFilter.NEAREST_MIPMAP_LINEAR ||
-          this._filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR
-        ) {
-          this._canMipmap = true;
-          this._mipMapLevel = Math.log2(this.images[0][0].width);
+        if (isPowerOf2(this._images[0][0].width) && isPowerOf2(this._images[0][0].height)) {
+          if (
+            this._filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
+            this._filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||
+            this._filterMin === TextureFilter.NEAREST_MIPMAP_LINEAR ||
+            this._filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR
+          ) {
+            this._canMipmap = true;
+            this._mipMapLevel = Math.log2(this.images[0][0].width);
+          } else {
+            this._canMipmap = false;
+            this._mipMapLevel = 0;
+          }
         } else {
           this._canMipmap = false;
           this._mipMapLevel = 0;
+          this.setFilter(TextureFilter.NEAREST, TextureFilter.NEAREST);
+          this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
         }
-      } else {
-        this._canMipmap = false;
-        this._mipMapLevel = 0;
-        this.setFilter(TextureFilter.NEAREST, TextureFilter.NEAREST);
-        this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
       }
+    } else {
+      this._canMipmap = false;
     }
   }
 

@@ -1,5 +1,5 @@
-import { MaterialType, UniformSemantic, DataType, RenderState, BlendFunc } from '@alipay/o3-base';
-import { Material, RenderTechnique } from '@alipay/o3-material';
+import { MaterialType, UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-base";
+import { Material, RenderTechnique } from "@alipay/o3-material";
 
 const VERT_SHADER = `
 uniform mat4 matModelViewProjection;
@@ -46,13 +46,12 @@ export class DecalMaterial extends Material {
    * 生成内部所使用的 Technique 对象
    * @private
    */
-  _generateTechnique( camera, component ) {
-
+  _generateTechnique(camera, component) {
     const customMacros = [];
     const uniforms = this._generateFragmentUniform();
 
     //--
-    const tech = new RenderTechnique( this.name );
+    const tech = new RenderTechnique(this.name);
     tech.isValid = true;
     tech.uniforms = uniforms;
     tech.attributes = {};
@@ -61,11 +60,11 @@ export class DecalMaterial extends Material {
     tech.vertexShader = VERT_SHADER;
     tech.fragmentShader = FRAG_SHADER;
     tech.states = {
-      enable: [ RenderState.BLEND, RenderState.POLYGON_OFFSET_FILL, RenderState.DEPTH_TEST ],
+      enable: [RenderState.BLEND, RenderState.POLYGON_OFFSET_FILL, RenderState.DEPTH_TEST],
       functions: {
-        blendFunc: [ BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA ],
-        depthMask: [ false ],
-        polygonOffset: [ -1, -4 ],
+        blendFunc: [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA],
+        depthMask: [false],
+        polygonOffset: [-1, -4]
       }
     };
 
@@ -73,16 +72,12 @@ export class DecalMaterial extends Material {
     this.renderType = MaterialType.TRANSPARENT;
   }
 
-  prepareDrawing( camera, component, primitive ) {
-
-    if ( !this._technique ) {
-
-      this._generateTechnique(  camera, component );
-
+  prepareDrawing(camera, component, primitive) {
+    if (!this._technique) {
+      this._generateTechnique(camera, component);
     }
 
-    super.prepareDrawing( camera, component, primitive );
-
+    super.prepareDrawing(camera, component, primitive);
   }
 
   /**
@@ -90,82 +85,69 @@ export class DecalMaterial extends Material {
    * @param {string} name 参数名称
    * @param {*} value 参数值
    */
-  setValue( name, value ) {
-
-    if ( name === 'doubleSided' ) {
-
+  setValue(name, value) {
+    if (name === "doubleSided") {
       this._setDoubleSidedDisplay(value);
-
     }
 
-    super.setValue( name, value );
-
+    super.setValue(name, value);
   }
 
   /**
-  * 纹理贴图
-  * @member {Texture2D}
-  */
-  set texture( v ) {
-
-    this.setValue( 's_diffuse', v );
-
+   * 纹理贴图
+   * @member {Texture2D}
+   */
+  set texture(v) {
+    this.setValue("s_diffuse", v);
   }
   get texture() {
-
-    return this.getValue( 's_diffuse' );
-
+    return this.getValue("s_diffuse");
   }
 
   /**
-  * 是否双面显示
-  * @member {boolean}
-  */
+   * 是否双面显示
+   * @member {boolean}
+   */
   set doubleSided(v) {
-
-    this.setValue('doubleSided', v);
-
+    this.setValue("doubleSided", v);
   }
   get doubleSided() {
-
-    return this.getValue('doubleSided');
-
+    return this.getValue("doubleSided");
   }
 
   set rotation(v) {
-    this.setValue('u_angle', v);
+    this.setValue("u_angle", v);
   }
 
   get rotation() {
-    return this.getValue('u_angle');
+    return this.getValue("u_angle");
   }
- 
+
   /**
    * 添加 uniform 定义
    * @private
    */
   _generateFragmentUniform() {
-
     const uniforms = {
       matModelViewProjection: {
-        name: 'matModelViewProjection',
+        name: "matModelViewProjection",
         semantic: UniformSemantic.MODELVIEWPROJECTION,
-        type: DataType.FLOAT_MAT4,
+        type: DataType.FLOAT_MAT4
       },
       s_diffuse: {
-        name: 's_diffuse',
-        paramName: '_MainTex',
-        type: DataType.SAMPLER_2D,
+        name: "s_diffuse",
+        paramName: "_MainTex",
+        type: DataType.SAMPLER_2D
       },
       doubleSided: {
-        name: 'doubleSided',
-        paramName: 'doubleSided',
-        type: DataType.BOOL,
+        name: "doubleSided",
+        paramName: "doubleSided",
+        type: DataType.BOOL
       },
       u_angle: {
-        name: 'u_angle',
-        type: DataType.FLOAT,
-      },
+        name: "u_angle",
+        type: DataType.FLOAT
+      }
     };
     return uniforms;
   }
@@ -175,7 +157,6 @@ export class DecalMaterial extends Material {
    * @private
    */
   _setDoubleSidedDisplay(value) {
-
     this._technique.states.disable = [];
     this._technique.customMacros = [];
 

@@ -1,5 +1,5 @@
-import { raycast } from './cast';
-import { AMeshRenderer } from '@alipay/o3-mesh';
+import { raycast } from "./cast";
+import { AMeshRenderer } from "@alipay/o3-mesh";
 
 type RendererArray = Array<AMeshRenderer>;
 
@@ -20,7 +20,7 @@ export class Caster {
 
   intersect() {
     if (!this.ray) {
-      console.error('需要设置射线');
+      console.error("需要设置射线");
     }
     const group = this.rendererGroup;
     let intersection = [];
