@@ -13,7 +13,9 @@ export class GLTFResource extends SchemaResource {
         if (err) {
           reject(err);
         } else {
-          (res.asset as any).newMaterial = (assetConfig.props as any).newMaterial;
+          if (assetConfig.props) {
+            (res.asset as any).newMaterial = (assetConfig.props as any).newMaterial;
+          }
           this._resource = res.asset;
           this.setMeta(assetConfig);
           resolve(this);
