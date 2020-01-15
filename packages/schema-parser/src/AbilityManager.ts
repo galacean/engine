@@ -22,6 +22,10 @@ export class AbilityManager {
       return;
     }
     const ability = node.createAbility(AbilityConstructor, this.mixPropsToExplicitProps(props));
+    const { enabled } = props;
+    if (enabled !== undefined) {
+      ability.enabled = enabled;
+    }
     const abilityArray = node.abilityArray;
     const currentIndex = abilityArray.length - 1;
     switchElementsIndex(abilityArray, currentIndex, index);
