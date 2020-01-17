@@ -126,7 +126,11 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
       const mat = this._mat;
       for (let i = joints.length - 1; i >= 0; i--) {
         mat4.identity(mat);
-        mat4.multiply(mat, joints[i].getModelMatrix(), ibms[i]);
+        if (joints[i]) {
+          mat4.multiply(mat, joints[i].getModelMatrix(), ibms[i]);
+        } else {
+          mat4.copy(mat, ibms[i]);
+        }
         mat4.multiply(mat, worldToLocal, mat);
         matrixPalette.set(mat, i * 16);
       } // end of for
