@@ -81,7 +81,6 @@ class TweenerBase {
 
   set(key, value) {
     this.options = { ...this.options, ...{ [key]: value } };
-
     return this;
   }
 
