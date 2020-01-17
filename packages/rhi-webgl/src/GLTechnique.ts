@@ -7,20 +7,26 @@ import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { RenderTechnique } from "@alipay/o3-material";
 import { GLRenderStates } from "./GLRenderStates";
+import { GLAsset } from "./GLAsset";
 
-var UniformDefaults = {};
+const UniformDefaults = {};
 UniformDefaults[DataType.FLOAT] = 0.0;
 UniformDefaults[DataType.FLOAT_VEC2] = new Float32Array([0.0, 0.0]);
 UniformDefaults[DataType.FLOAT_VEC3] = new Float32Array([0.0, 0.0, 0.0]);
 UniformDefaults[DataType.FLOAT_VEC4] = new Float32Array([0.0, 0.0, 0.0, 0.0]);
 UniformDefaults[DataType.FLOAT_MAT4] = mat4.create();
 
+/** uv变换矩阵 的 uniform 名字在相应纹理的 uniform 后面添加后缀
+ * @example
+ *  u_diffuse -> u_diffuseMatrix
+ *  */
+const UV_MATRIX_POSTFIX = "Matrix";
+
 /**
  * GL 层的 Technique 资源管理和渲染调用处理
  * @private
  */
-export class GLTechnique {
-  private _rhi: GLRenderHardware;
+export class GLTechnique extends GLAsset {
   private _tech: RenderTechnique;
   private _activeTextureCount: number;
   private _program: GLShaderProgram;
@@ -28,7 +34,7 @@ export class GLTechnique {
   private _uniforms;
 
   constructor(rhi: GLRenderHardware, tech: RenderTechnique) {
-    this._rhi = rhi;
+    super(rhi, tech);
     this._tech = tech;
     this._activeTextureCount = 0;
 
@@ -58,7 +64,7 @@ export class GLTechnique {
       if (!(loc !== 0 && !loc)) {
         this._uniforms[name] = {
           name,
-          location: this._program.getUniformLocation(glProgram, name)
+          location: loc
         };
       } else {
         delete uniforms[name];
@@ -69,7 +75,7 @@ export class GLTechnique {
   /**
    * 释放 GL 资源
    */
-  finalize(forceDispose) {
+  finalize(forceDispose?: boolean) {
     if (this._program && forceDispose) {
       this._program.finalize();
       this._program = null;
@@ -103,7 +109,7 @@ export class GLTechnique {
    * @param {Material} mtl
    */
   begin(mtl) {
-    const gl = this._rhi.gl;
+    const gl = this.rhi.gl;
     const glProgram = this._program.program;
 
     //-- 重置内部状态变量
@@ -115,12 +121,12 @@ export class GLTechnique {
     //-- upload mtl uniforms
     const uniforms = this._uniforms;
     const assetUniforms = this._tech.uniforms;
-    for (const name in uniforms) {
+    for (const name in assetUniforms) {
       this._uploadUniformValue(assetUniforms[name], uniforms[name].location, mtl.getValue(name));
     }
 
     //-- change render states
-    const stateManager = this._rhi.renderStates;
+    const stateManager = this.rhi.renderStates;
     if (this._tech.states) {
       stateManager.pushStateBlock(this._tech.name);
       this._applyStates(stateManager);
@@ -133,7 +139,7 @@ export class GLTechnique {
   end() {
     // 恢复渲染状态
     if (this._tech.states) {
-      const stateManager = this._rhi.renderStates;
+      const stateManager = this.rhi.renderStates;
       stateManager.popStateBlock();
     }
   }
@@ -183,7 +189,7 @@ export class GLTechnique {
       value = UniformDefaults[uniform.type];
     }
 
-    const gl = this._rhi.gl;
+    const gl = this.rhi.gl;
 
     // 设置shader uniform值
     switch (uniform.type) {
@@ -226,6 +232,7 @@ export class GLTechnique {
         const texture = value;
         if (texture) {
           this._uploadTexture(texture, location, GLTexture2D);
+          this.bindUvMatrix(texture.uvMatrix, uniform.name);
         }
         break;
       }
@@ -243,17 +250,40 @@ export class GLTechnique {
   }
 
   /**
+   * 绑定 uv 变换矩阵
+   * */
+  bindUvMatrix(uvMatrix, textureUniformName: string) {
+    const uvMatrixUniformName = textureUniformName + UV_MATRIX_POSTFIX;
+    // 若不存在，则新建
+    if (!this._uniforms[uvMatrixUniformName]) {
+      const glProgram = this._program.program;
+      const loc = this._program.getUniformLocation(glProgram, uvMatrixUniformName);
+      if (!(loc !== 0 && !loc)) {
+        this._uniforms[uvMatrixUniformName] = {
+          name: uvMatrixUniformName,
+          location: loc
+        };
+      }
+    }
+    // 若存在，则绑定
+    if (this._uniforms[uvMatrixUniformName]) {
+      const location = this._uniforms[uvMatrixUniformName].location;
+      this.rhi.gl.uniformMatrix3fv(location, false, uvMatrix);
+    }
+  }
+
+  /**
    * 将一个内存中的 Texture2D 对象绑定到 GL
-   * @param {Texture2D} texture
+   * @param {Texture} texture
    */
   _uploadTexture(texture, location, type) {
-    const assetCache = this._rhi.assetsCache;
+    const assetCache = this.rhi.assetsCache;
     const glTexture = assetCache.requireObject(texture, type);
 
     if (glTexture) {
       const index = this._activeTextureCount++;
       glTexture.activeBinding(index);
-      this._rhi.gl.uniform1i(location, index);
+      this.rhi.gl.uniform1i(location, index);
     } // end of if
   }
 }

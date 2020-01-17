@@ -1,12 +1,12 @@
 import { RenderState, DataType } from "@alipay/o3-base";
-import { Material, RenderTechnique } from "@alipay/o3-material";
-import VERT_SHADER from "./shader/Vertex.glsl";
+import { CommonMaterial } from "./CommonMaterial";
+import { Texture2D } from "@alipay/o3-material";
 import FRAG_SHADER from "./shader/Texture.glsl";
 
 /**
  * 无光照贴图材质
  */
-export class TextureMaterial extends Material {
+export class TextureMaterial extends CommonMaterial {
   static TECH_NAME = "Texture";
   static DISABLE_SHARE = true;
 
@@ -16,20 +16,10 @@ export class TextureMaterial extends Material {
    */
   constructor(name) {
     super(name || "TextureMaterial");
+  }
 
-    const uniforms = this._generateFragmentUniform();
-
-    //--
-    const tech = new RenderTechnique("Texture");
-    tech.isValid = true;
-    tech.uniforms = uniforms;
-    tech.attributes = {};
-    tech.customMacros = [];
-    tech.vertexShader = VERT_SHADER;
-    tech.fragmentShader = FRAG_SHADER;
-    tech.states = {};
-
-    this._technique = tech;
+  _generateTechnique() {
+    this._internalGenerate("Texture", FRAG_SHADER);
   }
 
   /**
@@ -50,10 +40,10 @@ export class TextureMaterial extends Material {
    * @member {Texture2D}
    */
   set texture(v) {
-    this.setValue("s_diffuse", v);
+    this.setValue("u_diffuse", v);
   }
   get texture() {
-    return this.getValue("s_diffuse");
+    return this.getValue("u_diffuse");
   }
 
   /**
@@ -67,42 +57,31 @@ export class TextureMaterial extends Material {
     return this.getValue("doubleSided");
   }
 
-  /** 创建一个本材质对象的深拷贝对象 */
-  clone() {
-    const newMtl = new TextureMaterial(this.name);
-
-    newMtl.renderType = this.renderType;
-
-    for (const name in this._values) {
-      if (this._values.hasOwnProperty(name)) {
-        newMtl._values[name] = this._values[name];
-      }
-    } // end of for
-
-    newMtl._technique.states = this._technique.states;
-
-    return newMtl;
-  }
-
   /**
    * 添加 uniform 定义
    * @private
    */
   _generateFragmentUniform() {
-    const uniforms = {
-      s_diffuse: {
-        name: "s_diffuse",
+    const uniforms: any = {};
+    if (this.texture instanceof Texture2D) {
+      uniforms.u_diffuse = {
+        name: "u_diffuse",
         paramName: "_MainTex",
         type: DataType.SAMPLER_2D
-      },
-      doubleSided: {
-        name: "doubleSided",
-        paramName: "doubleSided",
-        type: DataType.BOOL
-      }
+      };
+    }
+    return {
+      ...super._generateFragmentUniform(),
+      ...uniforms
     };
+  }
 
-    return uniforms;
+  _generateMacros() {
+    const macros = super._generateMacros();
+
+    if (this.texture instanceof Texture2D) macros.push("O3_DIFFUSE_TEXTURE");
+
+    return macros;
   }
 
   /**
@@ -111,7 +90,6 @@ export class TextureMaterial extends Material {
    */
   _setDoubleSidedDisplay(value) {
     this._technique.states.disable = [];
-    this._technique.customMacros = [];
 
     if (value) {
       this._technique.states.disable.push(RenderState.CULL_FACE);

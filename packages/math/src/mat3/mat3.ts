@@ -13,6 +13,7 @@ export { fromQuat } from "./mat3_fromQuat";
 export { fromRotation } from "./mat3_fromRotation";
 export { fromScaling } from "./mat3_fromScaling";
 export { fromTranslation } from "./mat3_fromTranslation";
+export { fromUvTransform } from "./mat3_fromUvTransform";
 export { fromValues } from "./mat3_fromValues";
 export { identity } from "./mat3_identity";
 export { invert } from "./mat3_invert";

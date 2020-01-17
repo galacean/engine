@@ -57,6 +57,10 @@ import noise_simplex from "./shaderlib/noise_simplex.glsl";
 import refract_share from "./shaderlib/refract_share.glsl";
 import refract_frag from "./shaderlib/refract_frag.glsl";
 
+import uv_transform_share_declaration from "./shaderlib/uv_transform_share_declaration.glsl";
+import uv_transform_vert_declaration from "./shaderlib/uv_transform_vert_declaration.glsl";
+import uv_transform_vert_chunk from "./shaderlib/uv_transform_vert_chunk.glsl";
+
 export const ShaderLib = {
   common,
   common_vert,
@@ -115,7 +119,11 @@ export const ShaderLib = {
   noise_simplex,
 
   refract_share,
-  refract_frag
+  refract_frag,
+
+  uv_transform_share_declaration,
+  uv_transform_vert_declaration,
+  uv_transform_vert_chunk
 };
 
 export function InjectShaderSlices(obj) {

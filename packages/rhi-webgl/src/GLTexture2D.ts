@@ -1,12 +1,14 @@
-import GLTexture from "./GLTexture";
+import { GLTexture } from "./GLTexture";
+import { GLRenderHardware } from "./GLRenderHardware";
+import { Texture2D } from "@alipay/o3-material";
 
 /**
  * GL 2D贴图资源管理
  * @private
  */
 export class GLTexture2D extends GLTexture {
-  constructor({ gl }, config) {
-    super(gl, config, gl.TEXTURE_2D);
+  constructor(rhi: GLRenderHardware, config) {
+    super(rhi, config, rhi.gl.TEXTURE_2D);
   }
 
   /**
@@ -26,13 +28,15 @@ export class GLTexture2D extends GLTexture {
    */
   updateTexture() {
     const gl = this._gl;
-    const config = this._config;
-    if (config.updateWholeTexture && config.image) {
+    const config = this._config as Texture2D;
+    if (config.needUpdateWholeTexture && config.image) {
+      super.setPixelStore();
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, config.image);
 
       super.generateMipmap();
-      config.updateWholeTexture = false;
+      config.needUpdateWholeTexture = false;
     } else if (config.updateSubRects.length > 0) {
+      super.setPixelStore();
       for (let i = config.updateSubRects.length - 1; i >= 0; i--) {
         this.updateSubTexture(gl, config, config.updateSubRects[i], config.updateSubImageData[i]);
       }

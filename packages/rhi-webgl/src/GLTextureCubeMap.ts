@@ -1,17 +1,15 @@
-import GLTexture from "./GLTexture";
+import { GLTexture } from "./GLTexture";
 import { CubeMapFace } from "@alipay/o3-base";
 import { GLRenderHardware } from "./GLRenderHardware";
+import { TextureCubeMap } from "@alipay/o3-material";
 
 /**
  * GL CubeMap 资源管理
  * @private
  */
 export class GLTextureCubeMap extends GLTexture {
-  private _rhi: GLRenderHardware;
-
-  constructor(rhi, config) {
-    super(rhi.gl, config, rhi.gl.TEXTURE_CUBE_MAP);
-    this._rhi = rhi;
+  constructor(rhi: GLRenderHardware, config) {
+    super(rhi, config, rhi.gl.TEXTURE_CUBE_MAP);
   }
 
   /**
@@ -31,20 +29,23 @@ export class GLTextureCubeMap extends GLTexture {
    */
   updateTexture() {
     const gl = this._gl;
-    const config = this._config;
+    const config = this._config as TextureCubeMap;
     const images = config.images;
 
-    for (let f = 0; f < CubeMapFace.length; f++) {
-      for (let level = 0; level < images.length; level++) {
-        if (config.updateWholeTexture) {
-          gl.texImage2D(CubeMapFace[f], level, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, images[level][f]);
+    if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace.includes(true)) {
+      super.setPixelStore();
+      for (let f = 0; f < CubeMapFace.length; f++) {
+        for (let level = 0; level < images.length; level++) {
+          if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace[f]) {
+            config.needUpdateCubeTextureFace[f] = false;
+            gl.texImage2D(CubeMapFace[f], level, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, images[level][f]);
+          }
         }
       }
-    }
-    if (config.updateWholeTexture) {
+
       super.generateMipmap();
     }
 
-    config.updateWholeTexture = false;
+    config.needUpdateWholeTexture = false;
   }
 }

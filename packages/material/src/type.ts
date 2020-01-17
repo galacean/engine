@@ -5,8 +5,25 @@ export type TextureConfig = {
   minFilter?: TextureFilter;
   wrapS?: TextureWrapMode;
   wrapT?: TextureWrapMode;
+  flipY?: boolean;
+  premultiplyAlpha?: boolean;
+  uScale?: number;
+  vScale?: number;
+  uOffset?: number;
+  vOffset?: number;
+  uvRotation?: number;
+  uvCenter?: number[];
   [key: string]: any;
 };
+
+export type RenderTargetConfig = {
+  width?: number;
+  height?: number;
+  clearColor?;
+  enableDepthTexture?: boolean;
+  isCube?: boolean;
+};
+
 export type React = { x: number; y: number; width: number; height: number };
 
 export type TechniqueStates = {
