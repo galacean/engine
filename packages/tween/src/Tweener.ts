@@ -48,7 +48,6 @@ class Tweener extends TweenerBase {
    */
   update(deltaTime) {
     this._time += deltaTime;
-
     if (!this._paused) {
       // if delay don't update
       if (this.options.delay > this._time) {
@@ -61,7 +60,6 @@ class Tweener extends TweenerBase {
 
       // on start callback
       this.options.plugin(this);
-
       this.options.onTick(this);
 
       // everything has an end....
