@@ -19,7 +19,7 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: 'o3-demo', position: [0, 0, -8], target: [0, 0, 0]
 });
 
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo') });
 
 
 //-- create lights

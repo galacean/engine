@@ -53,21 +53,6 @@ export class TransparentMaterial extends Material {
     return this.getValue("s_diffuse");
   }
 
-  /** 创建一个本材质对象的深拷贝对象 */
-  clone() {
-    const newMtl = new TransparentMaterial(this.name);
-
-    newMtl.renderType = this.renderType;
-
-    for (const name in this._values) {
-      if (this._values.hasOwnProperty(name)) {
-        newMtl._values[name] = this._values[name];
-      }
-    } // end of for
-
-    return newMtl;
-  }
-
   /**
    * 添加 uniform 定义
    * @private

@@ -22,7 +22,7 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
 });
 camera.setClearMode(ClearMode.SOLID_COLOR, [1, 1, 1, 1]);
 
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo') });
 controler.autoRotate = false;
 controler.minDistance = 4;
 controler.maxDistance = 50;

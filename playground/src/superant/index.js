@@ -21,7 +21,7 @@ const cameraNode = rootNode.createChild('camera_node');
 cameraNode.createAbility(ADefaultCamera, {
   canvas: canvas, position: [0, 0, 2], target: [0, 0, 0]
 });
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('mountNode')});
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('mountNode')});
 
 let ambientLight = rootNode.createChild( 'ambient_light_node' );
 ambientLight.createAbility( AAmbientLight, {

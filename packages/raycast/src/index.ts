@@ -24,6 +24,10 @@ import { MaskList } from "@alipay/o3-base";
 
   for (let i = 0, len = colliders.length; i < len; i++) {
     const collider = colliders[i];
+    if (!collider.node.isActiveInHierarchy) {
+      continue;
+    }
+
     if (!(collider.tag & tag)) {
       continue;
     }

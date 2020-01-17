@@ -275,7 +275,10 @@ export class Camera extends r3.NodeAbility {
    * @param {number} screenPointX 屏幕X坐标
    * @param {number} screenPointY 屏幕Y坐标
    */
-  public screenPointToRay(screenPointX, screenPointY) {
+  public screenPointToRay(
+    screenPointX: number,
+    screenPointY: number
+  ): { origin: number[]; direction: number[] | Float32Array } {
     // 逸瞻：区分camera类型设置origin
     let origin;
     if (this._isOrtho) {

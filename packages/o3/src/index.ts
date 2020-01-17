@@ -38,6 +38,14 @@ export * from "@alipay/o3-tween";
 export * from "@alipay/o3-env-probe";
 export * from "@alipay/o3-bounding-info";
 
+export {
+  AnimationClip as AnimationClipNew,
+  Animation,
+  Animator,
+  AAnimation as AAnimationNew,
+  AAnimator,
+  AnimationClipType
+} from "@alipay/o3-animator";
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { TextureMaterial, TransparentMaterial } from "@alipay/o3-mobile-material";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
