@@ -65,8 +65,12 @@ class PBRMaterial extends Material {
    *
    * @param {boolean} [props.premultipliedAlpha] rgb是否预乘alpha值;
    * @param {number} [props.envMapIntensity] 反射模式时的反射强度；
+   *
+   *  todo: IOR 更加符合材质的属性，但是需要增加额外的属性来表示非真空折射率，如摄像机在水中等情况。
    * @param {number} [props.refractionRatio] 折射模式时的折射率的比例，如真空折射率/水折射率=1/1.33;
    * @param {boolean} [props.envMapModeRefract=false] 全局环境贴图使用 反射或者折射 模式;
+   * @param {Texture2D} [props.refractionTexture] 局部 折射纹理;
+   * @param {number} [props.refractionDepth] 局部 折射纹理 深度值，用来模拟折射距离;
    *
    * @param {Texture2D} [props.perturbationTexture] 扰动纹理
    * @param {number} [props.perturbationUOffset] 扰动纹理U偏移
@@ -106,7 +110,8 @@ class PBRMaterial extends Material {
 
       // reflect,refract
       envMapIntensity: 1,
-      refractionRatio: 0.98,
+      refractionRatio: 1 / 1.33,
+      refractionDepth: 1,
 
       // perturbation
       perturbationUOffset: 0,
@@ -205,6 +210,12 @@ class PBRMaterial extends Material {
           break;
         case "refractionRatio":
           this.refractionRatio = obj[key];
+          break;
+        case "refractionDepth":
+          this.refractionDepth = obj[key];
+          break;
+        case "refractionTexture":
+          this.refractionTexture = obj[key];
           break;
         case "perturbationTexture":
           this.perturbationTexture = obj[key];
@@ -532,7 +543,7 @@ class PBRMaterial extends Material {
 
   /**
    * 镜面反射纹理
-   * @type {Texture2D}
+   * @type {TextureCubeMap}
    */
   get reflectionTexture() {
     return this._uniformObj.reflectionTexture;
@@ -567,6 +578,32 @@ class PBRMaterial extends Material {
   set refractionRatio(v) {
     this.setValueByParamName("refractionRatio", v);
     this._uniformObj.refractionRatio = v;
+  }
+
+  /**
+   * 局部折射纹理的深度值，用来模拟折射距离
+   * @type {number}
+   */
+  get refractionDepth() {
+    return this._uniformObj.refractionDepth;
+  }
+
+  set refractionDepth(v) {
+    this.setValueByParamName("refractionDepth", v);
+    this._uniformObj.refractionDepth = v;
+  }
+
+  /**
+   * 局部折射纹理
+   * @type {Texture2D}
+   */
+  get refractionTexture() {
+    return this._uniformObj.refractionTexture;
+  }
+
+  set refractionTexture(v) {
+    this.setValueByParamName("refractionTexture", v);
+    this._uniformObj.refractionTexture = v;
   }
 
   /**
@@ -893,10 +930,31 @@ class PBRMaterial extends Material {
     if (uniforms.indexOf("u_specularGlossinessSampler") > -1) _macros.push("HAS_SPECULARGLOSSINESSMAP");
     if (uniforms.indexOf("u_perturbationSampler") > -1) _macros.push("HAS_PERTURBATIONMAP");
     if (uniforms.indexOf("u_reflectionSampler") > -1) _macros.push("HAS_REFLECTIONMAP");
+    if (uniforms.indexOf("u_refractionSampler") > -1) {
+      this.setValueByParamName("PTMMatrix", [
+        0.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.5,
+        0.0,
+        0.5,
+        0.5,
+        0.5,
+        1.0
+      ]);
+      _macros.push("HAS_REFRACTIONMAP");
+    }
 
     if (this.alphaMode === "MASK") {
       _macros.push("ALPHA_MASK");
-    } else if (this.alphaMode === "BLEND" && !this.perturbationTexture) {
+    } else if (this.alphaMode === "BLEND" && !this.refractionTexture) {
       _macros.push("ALPHA_BLEND");
       if (uniforms.indexOf("u_opacitySampler") > -1) {
         _macros.push("HAS_OPACITYMAP");
@@ -958,7 +1016,7 @@ class PBRMaterial extends Material {
           delete states.functions.cullFace;
       }
     }
-    if (this.alphaMode === "BLEND" && !this.perturbationTexture) {
+    if (this.alphaMode === "BLEND" && !this.refractionTexture) {
       states.enable.push(RenderState.BLEND);
       states.functions.blendFunc = this._stateObj.blendFunc;
       states.functions.depthMask = this._stateObj.depthMask;
@@ -1216,6 +1274,11 @@ class PBRMaterial extends Material {
           paramName: "reflectionTexture",
           type: DataType.SAMPLER_CUBE
         },
+        u_PTMMatrix: {
+          name: "u_PTMMatrix",
+          paramName: "PTMMatrix",
+          type: DataType.FLOAT_MAT4
+        },
         u_envMapIntensity: {
           name: "u_envMapIntensity",
           paramName: "envMapIntensity",
@@ -1225,6 +1288,16 @@ class PBRMaterial extends Material {
           name: "u_refractionRatio",
           paramName: "refractionRatio",
           type: DataType.FLOAT
+        },
+        u_refractionDepth: {
+          name: "u_refractionDepth",
+          paramName: "refractionDepth",
+          type: DataType.FLOAT
+        },
+        u_refractionSampler: {
+          name: "u_refractionSampler",
+          paramName: "refractionTexture",
+          type: DataType.SAMPLER_2D
         },
         u_resolution: {
           name: "u_resolution",
