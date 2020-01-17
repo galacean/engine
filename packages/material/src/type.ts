@@ -7,11 +7,17 @@ export type TextureConfig = {
   wrapT?: TextureWrapMode;
   flipY?: boolean;
   premultiplyAlpha?: boolean;
+  /** 纹理 U 方向的缩放 */
   uScale?: number;
+  /** 纹理 V 方向的缩放 */
   vScale?: number;
+  /** 纹理 U 方向的偏移 */
   uOffset?: number;
+  /** 纹理 V 方向的偏移 */
   vOffset?: number;
+  /** 纹理旋转弧度，0～2PI */
   uvRotation?: number;
+  /** 纹理中心点 */
   uvCenter?: number[];
   [key: string]: any;
 };

@@ -21,8 +21,9 @@ export class Texture2D extends Texture {
   public vOffset: number;
   public uScale: number;
   public vScale: number;
-  public uvRotation: number; // 0～360度
+  public uvRotation: number; // 弧度:0～2PI
   public uvCenter: number[];
+
   private _uvMatrix = mat3.create();
 
   /**
@@ -31,16 +32,27 @@ export class Texture2D extends Texture {
    * @param {HTMLImageElement|ImageData|HTMLCanvasElement|ImageBitmap|ArrayBufferView|HTMLVideoElement} image 纹理内容
    * @param {TextureConfig} config 可选配置
    */
-  constructor(name: string, image?, config?: TextureConfig) {
+  constructor(name: string, image?, config: TextureConfig = {}) {
     super(name, config);
-    this.setUvTransform(
-      config?.uOffset,
-      config?.vOffset,
-      config?.uScale,
-      config?.vScale,
-      config?.uvRotation,
-      config?.uvCenter
-    );
+
+    config = {
+      ...{
+        uOffset: 0,
+        vOffset: 0,
+        uScale: 1,
+        vScale: 1,
+        uvRotation: 0,
+        uvCenter: [0, 0]
+      },
+      ...config
+    };
+
+    this.uOffset = config.uOffset;
+    this.vOffset = config.vOffset;
+    this.uScale = config.uScale;
+    this.vScale = config.vScale;
+    this.uvRotation = config.uvRotation;
+    this.uvCenter = config.uvCenter;
 
     if (image) {
       /**
@@ -52,31 +64,6 @@ export class Texture2D extends Texture {
 
     this.updateSubRects = [];
     this.updateSubImageData = [];
-  }
-
-  /**
-   * 设置纹理的一些 RTS 变换
-   * @param {Number} uOffset  - 纹理 U 方向的偏移
-   * @param {Number} vOffset  - 纹理 V 方向的偏移
-   * @param {Number} uScale  - 纹理 U 方向的缩放
-   * @param {Number} vScale  - 纹理 V 方向的缩放
-   * @param {Number} uvRotation  - 纹理旋转弧度，0～2PI
-   * @param {Number[]} uvCenter  - 纹理中心点
-   * */
-  private setUvTransform(
-    uOffset: number = 0,
-    vOffset: number = 0,
-    uScale: number = 1,
-    vScale: number = 1,
-    uvRotation = 0,
-    uvCenter = [0, 0]
-  ) {
-    this.uOffset = uOffset;
-    this.vOffset = vOffset;
-    this.uScale = uScale;
-    this.vScale = vScale;
-    this.uvRotation = uvRotation;
-    this.uvCenter = uvCenter;
   }
 
   /**
