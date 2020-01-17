@@ -42,7 +42,7 @@ let envLight = envLightNode.createAbility(AEnvironmentMapLight, {});
 let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: "o3-demo",
   position: [0, 0.2, 0.5],
-  clearParam: [1, 1, 1, 0]
+  clearParam: [0.9, 0.9, 0.9, 1]
 });
 let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("r3-demo") });
 controler.target = [0, 0.1, 0];
