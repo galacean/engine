@@ -1,0 +1,162 @@
+{
+  "nodes": [
+    {
+      "name": "pig"
+    },
+    {
+      "name": "hatlight"
+    }
+  ],
+  "animationClips": [
+    {
+      "name": "translate1",
+      "type": "Interpolation",
+      "options": {
+        "keyFrames": {
+          "0": [
+            {
+              "value": [
+                1,
+                1,
+                1
+              ],
+              "property": "position",
+              "interpolation": "easeOutBounce",
+              "duration": 2000
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scale1",
+      "type": "Interpolation",
+      "options": {
+        "value": [
+          2,
+          2,
+          2
+        ],
+        "property": "scale",
+        "interpolation": "linear",
+        "duration": 2000
+      }
+    },
+    {
+      "name": "translate2",
+      "type": "Interpolation",
+      "options": {
+        "value": [
+          0,
+          0,
+          0
+        ],
+        "property": "position",
+        "interpolation": "linear",
+        "duration": 2000
+      }
+    },
+    {
+      "name": "scale3",
+      "type": "Interpolation",
+      "options": {
+        "value": [
+          1,
+          1,
+          1
+        ],
+        "property": "scale",
+        "interpolation": "easeInOutBounce",
+        "duration": 1000
+      }
+    },
+    {
+      "name": "hatlightRotate",
+      "type": "AnimationComponent",
+      "options": {
+        "script": "hatlight",
+        "params": {
+          "animType": "rotate"
+        }
+      }
+    },
+    {
+      "name": "hatlightScale",
+      "type": "AnimationComponent",
+      "options": {
+        "script": "hatlight",
+        "params": {
+          "animType": "scale"
+        }
+      }
+    },
+    {
+      "name": "walk",
+      "type": "Skeleton",
+      "options": {
+        "action": "walk"
+      }
+    },
+    {
+      "name": "dance",
+      "type": "Skeleton",
+      "options": {
+        "action": "dance"
+      }
+    }
+  ],
+  "animations": [
+    {
+      "node": 1,
+      "keyFrames": {
+        "0": [
+          0,
+          4
+        ],
+        "1000": [
+          5
+        ],
+        "2000": [
+          1,
+          2
+        ],
+        "4000": [
+          3
+        ]
+      }
+    },
+    {
+      "node": 0,
+      "keyFrames": {
+        "0": [
+          0,
+          6
+        ],
+        "2000": [
+          1,
+          2
+        ],
+        "3000": [
+          7
+        ],
+        "4000": [
+          3
+        ]
+      }
+    }
+  ],
+  "animator": {
+    "type": "timeline",
+    "options": {
+      "wrapMode": "LOOP",
+      "keyFrames": {
+        "0": [
+          0
+        ],
+        "1000": [
+          1
+        ]
+      }
+    }
+  }
+}

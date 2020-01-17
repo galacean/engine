@@ -15,9 +15,6 @@ export class BlinnPhongMaterial extends CommonMaterial {
   private _directLightCount;
   private _spotLightCount;
   private _pointLightCount;
-  private _diffuse;
-  private _specular;
-  private _shininess;
 
   /**
    * 实现 Blinn 光照模型的材质
@@ -30,11 +27,11 @@ export class BlinnPhongMaterial extends CommonMaterial {
     this._pointLightCount = 0;
     this._spotLightCount = 0;
 
-    this._diffuse = vec4.fromValues(1, 1, 1, 1);
+    this.diffuse = vec4.fromValues(1, 1, 1, 1);
 
-    this._specular = vec4.fromValues(1, 1, 1, 1);
+    this.specular = vec4.fromValues(1, 1, 1, 1);
 
-    this._shininess = 16.0;
+    this.shininess = 16.0;
   }
 
   /**
@@ -42,11 +39,10 @@ export class BlinnPhongMaterial extends CommonMaterial {
    * @member {vec4|Texture2D}
    */
   get diffuse() {
-    return this._diffuse;
+    return this.getValue("u_diffuse");
   }
 
   set diffuse(val) {
-    this._diffuse = val;
     this.setValue("u_diffuse", val);
   }
 
@@ -55,11 +51,10 @@ export class BlinnPhongMaterial extends CommonMaterial {
    * @member {vec4|Texture2D}
    */
   get specular() {
-    return this._specular;
+    return this.getValue("u_specular");
   }
 
   set specular(val) {
-    this._specular = val;
     this.setValue("u_specular", val);
   }
 
@@ -68,11 +63,10 @@ export class BlinnPhongMaterial extends CommonMaterial {
    * @member {float}
    */
   get shininess() {
-    return this._shininess;
+    return this.getValue("u_shininess");
   }
 
   set shininess(val) {
-    this._shininess = val;
     this.setValue("u_shininess", val);
   }
 
@@ -82,9 +76,6 @@ export class BlinnPhongMaterial extends CommonMaterial {
    */
   _generateTechnique() {
     this._internalGenerate("BlinnPhongMaterial", BlinnPhongShader);
-    this.setValue("u_diffuse", this._diffuse);
-    this.setValue("u_specular", this._specular);
-    this.setValue("u_shininess", this._shininess);
   }
 
   /**
@@ -96,8 +87,8 @@ export class BlinnPhongMaterial extends CommonMaterial {
 
     macros.push("O3_NEED_WORLDPOS");
 
-    if (this._diffuse instanceof Texture2D) macros.push("O3_DIFFUSE_TEXTURE");
-    if (this._specular instanceof Texture2D) macros.push("O3_SPECULAR_TEXTURE");
+    if (this.diffuse instanceof Texture2D) macros.push("O3_DIFFUSE_TEXTURE");
+    if (this.specular instanceof Texture2D) macros.push("O3_SPECULAR_TEXTURE");
     if (this._directLightCount > 0) macros.push(`O3_DIRECT_LIGHT_COUNT ${this._directLightCount}`);
     if (this._pointLightCount > 0) macros.push(`O3_POINT_LIGHT_COUNT ${this._pointLightCount}`);
     if (this._spotLightCount > 0) macros.push(`O3_SPOT_LIGHT_COUNT ${this._spotLightCount}`);
@@ -177,7 +168,7 @@ export class BlinnPhongMaterial extends CommonMaterial {
       uniforms = { ...uniforms, ...lgtUniforms };
     } // end of for
 
-    if (this._diffuse instanceof Texture2D) {
+    if (this.diffuse instanceof Texture2D) {
       uniforms.u_diffuse = {
         name: "u_diffuse",
         type: DataType.SAMPLER_2D
@@ -189,7 +180,7 @@ export class BlinnPhongMaterial extends CommonMaterial {
       };
     }
 
-    if (this._specular instanceof Texture2D) {
+    if (this.specular instanceof Texture2D) {
       uniforms.u_specular = {
         name: "u_specular",
         type: DataType.SAMPLER_2D

@@ -11,7 +11,6 @@ import LambertShader from "./shader/Lambert.glsl";
  */
 export class LambertMaterial extends CommonMaterial {
   private _directLightCount;
-  private _diffuse;
 
   /**
    * Lambert 光照模型材质
@@ -22,7 +21,7 @@ export class LambertMaterial extends CommonMaterial {
 
     this._directLightCount = 0;
 
-    this._diffuse = vec4.fromValues(1, 1, 1, 1);
+    this.diffuse = vec4.fromValues(1, 1, 1, 1);
   }
 
   /**
@@ -30,11 +29,10 @@ export class LambertMaterial extends CommonMaterial {
    * @member {vec4|Texture2D}
    */
   get diffuse() {
-    return this._diffuse;
+    return this.getValue("u_diffuse");
   }
 
   set diffuse(val) {
-    this._diffuse = val;
     this.setValue("u_diffuse", val);
   }
 
@@ -44,7 +42,6 @@ export class LambertMaterial extends CommonMaterial {
    */
   _generateTechnique() {
     this._internalGenerate("LambertMaterial", LambertShader);
-    this.setValue("u_diffuse", this._diffuse);
   }
 
   /**
@@ -89,7 +86,7 @@ export class LambertMaterial extends CommonMaterial {
       uniforms = { ...uniforms, ...lgtUniforms };
     } // end of for
 
-    if (this._diffuse instanceof Texture2D) {
+    if (this.diffuse instanceof Texture2D) {
       uniforms.u_diffuse = {
         name: "u_diffuse",
         type: DataType.SAMPLER_2D
@@ -116,7 +113,7 @@ export class LambertMaterial extends CommonMaterial {
 
     if (this._directLightCount > 0) macros.push(`O3_DIRECT_LIGHT_COUNT ${this._directLightCount}`);
 
-    if (this._diffuse instanceof Texture2D) macros.push("O3_DIFFUSE_TEXTURE");
+    if (this.diffuse instanceof Texture2D) macros.push("O3_DIFFUSE_TEXTURE");
 
     return macros;
   }

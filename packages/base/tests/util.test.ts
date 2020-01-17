@@ -1,7 +1,7 @@
 describe("Oasis Base Util Test", () => {
   const func = Array.isArray;
   describe("Utils.isArray is not Array.isArray", () => {
-    beforeEach(()=>{
+    beforeEach(() => {
       delete Array.isArray;
     });
 
@@ -21,7 +21,7 @@ describe("Oasis Base Util Test", () => {
   });
 
   describe("Utils.isArray", () => {
-    beforeEach(()=>{
+    beforeEach(() => {
       Array.isArray = func;
     });
     it("Float32Array is not Array", () => {
@@ -37,8 +37,16 @@ describe("Oasis Base Util Test", () => {
     });
   });
 
+  describe("Utils.isArrayLike", () => {
+    it("Float32Array is ArrayLike", () => {
+      const { Util } = require("../src/Util");
+      const result = Util.isArrayLike(new Float32Array([1, 2, 3]));
+      expect(result).toBeTruthy();
+    });
+  });
+
   describe("Utils.clone", () => {
-    beforeEach(()=>{
+    beforeEach(() => {
       Array.isArray = func;
     });
     it("should null clone is null", function() {
@@ -68,6 +76,12 @@ describe("Oasis Base Util Test", () => {
       const { Util } = require("../src/Util");
       const array = [{ a: 1 }, { b: 1 }];
       expect(Util.clone(array)).toEqual(array);
+    });
+
+    it("items of arrayLike are equals", function() {
+      const { Util } = require("../src/Util");
+      const typedArray = new Float32Array([1, 2, 3]);
+      expect(Util.clone(typedArray)).toEqual(typedArray);
     });
   });
 });
