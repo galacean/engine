@@ -98,8 +98,16 @@ debugModel("/static/model/perturbation-test/scene.gltf", res => {
   let logo = materials[1];
   let water = materials[2];
   let cap = materials[3];
-  pingshen.envMapIntensity = 0.5;
-
+  water.perturbationUOffset = -0.01;
+  water.perturbationVOffset = 0.03;
+  pingshen.srgb = true;
+  pingshen.gamma = true;
+  logo.srgb = true;
+  logo.gamma = true;
+  water.srgb = true;
+  water.gamma = true;
+  cap.srgb = true;
+  cap.gamma = true;
   const probe = rootNode.createAbility(PerturbationProbe, {
     width: 2048,
     height: 2048,
