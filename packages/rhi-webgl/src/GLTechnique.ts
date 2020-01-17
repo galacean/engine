@@ -231,7 +231,7 @@ export class GLTechnique extends GLAsset {
       }
       case DataType.SAMPLER_CUBE: {
         const texture = value;
-        if (texture && texture.isComplete) {
+        if (texture) {
           this._uploadTexture(texture, location, GLTextureCubeMap);
         }
         break;
