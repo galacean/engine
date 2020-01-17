@@ -35,6 +35,7 @@ export class AAnimator extends NodeAbility {
   }
 
   set animatorData(animatorData) {
+    if (!animatorData) return;
     this.needParse = true;
     this._animatorData = animatorData;
   }
@@ -51,9 +52,11 @@ export class AAnimator extends NodeAbility {
     this._timeScale = 1.0;
     this.currentTime = 0;
     this.animatorData = animatorData;
-    animatorData.onAttach = data => {
-      this.animatorData = data;
-    };
+    if (animatorData) {
+      animatorData.onAttach = data => {
+        this.animatorData = data;
+      };
+    }
   }
 
   public update(deltaTime: number) {
@@ -134,7 +137,7 @@ export class AAnimator extends NodeAbility {
    */
   public jumpToFrame(frameTime: number) {}
 
-  private reset() {
+  public reset() {
     this.currentTime = 0;
     this.pause();
     this.animationList.forEach(animation => {

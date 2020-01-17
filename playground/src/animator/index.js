@@ -1,25 +1,20 @@
-import { Logger } from "@alipay/o3-base";
-import { ClearMode, DataType } from "@alipay/o3-base";
+import { ClearMode } from "@alipay/o3-base";
 import { Engine, EngineFeature } from "@alipay/o3-core";
 import { vec3 } from "@alipay/o3-math";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { SceneRenderer } from "@alipay/o3-renderer-cull";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
-import { TextureFilter, TextureWrapMode } from "@alipay/o3-core";
-import { AAnimation as ASkeltonAnimation } from "@alipay/o3-animation";
 import { AAnimation, AAnimator, AnimationClip, AnimationClipType } from "@alipay/o3-animator";
 import { Tween, Tweener, LOOP_TYPE, Easing, doTransform, doMaterial } from "@alipay/o3-tween";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
-import { registerAnimationClip, parseAnimationData } from "@alipay/o3-loader-animation";
 import "@alipay/o3-engine-stats";
-import hatlightRenderer from "./hatlight";
-import animationData from "./animation";
 import { PBRMaterial } from "@alipay/o3-pbr";
-import { TextureMaterial, TransparentMaterial } from "@alipay/o3-mobile-material";
+import { TextureMaterial, TransparentMaterial, LambertMaterial } from "@alipay/o3-mobile-material";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { ADirectLight } from "@alipay/o3-lighting";
-
+import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { CuboidGeometry } from "@alipay/o3-geometry-shape";
 RegistExtension({ PBRMaterial, TextureMaterial, TransparentMaterial });
 const { Interpolation, Skeleton, AnimationComponent } = AnimationClipType;
 //-- create engine object
@@ -80,8 +75,14 @@ resourceLoader.load(animationRes, (err, gltf) => {
   pig.rotateByAngles(0, -90, 0);
 
   node.addChild(pig);
-
+  let cubeNode = rootNode.createChild("cube_node");
+  let cube = cubeNode.createAbility(AGeometryRenderer, {
+    geometry: new CuboidGeometry(),
+    material: new LambertMaterial()
+  });
+  cubeNode.position = [-2, 0, 0];
   const pigAnimation = pig.createAbility(AAnimation);
+  const cubeAnimation = cubeNode.createAbility(AAnimation);
   const actionMap = {};
   animations.forEach(clip => {
     actionMap[clip.name] = clip;
@@ -91,36 +92,16 @@ resourceLoader.load(animationRes, (err, gltf) => {
       "0": [
         {
           value: 0,
-          property: "position",
-          subProperty: "x",
+          property: "rotation",
+          subProperty: "y",
           interpolation: "linear"
         }
       ],
       "2600": [
         {
-          value: 0.2,
-          property: "position",
-          subProperty: "x",
-          interpolation: "linear"
-        },
-        {
-          value: 0.5,
-          property: "position",
+          value: 60,
+          property: "rotation",
           subProperty: "y",
-          interpolation: "linear"
-        }
-      ],
-      "7760": [
-        {
-          value: 0.3,
-          property: "position",
-          subProperty: "x",
-          interpolation: "linear"
-        },
-        {
-          value: 0.3,
-          property: "position",
-          subProperty: "z",
           interpolation: "linear"
         }
       ]
@@ -131,8 +112,10 @@ resourceLoader.load(animationRes, (err, gltf) => {
   pigAnimation.addAnimationClip(0, ac1);
   pigAnimation.addAnimationClip(200, ac5);
   pigAnimation.addAnimationClip(3000, ac5);
+  cubeAnimation.addAnimationClip(0, ac1);
   const animator = rootNode.createAbility(AAnimator);
   animator.addAnimationByStartTime(0, pigAnimation);
+  animator.addAnimationByStartTime(0, cubeAnimation);
   animator.play();
 });
 
