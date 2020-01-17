@@ -86,35 +86,31 @@ export class TextureCubeMap extends Texture {
    */
   configMipmap() {
     // manual set MipMap
-    if (this.images.length) {
-      if (this.images[1]) {
-        this._manualMipMap = true;
-        this._mipMapLevel = Math.log2(this.images[0][0].width);
-      } else {
-        this._manualMipMap = false;
+    if (this.images[1]) {
+      this._manualMipMap = true;
+      this._mipMapLevel = Math.log2(this.images[0][0].width);
+    } else {
+      this._manualMipMap = false;
 
-        if (isPowerOf2(this._images[0][0].width) && isPowerOf2(this._images[0][0].height)) {
-          if (
-            this._filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
-            this._filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||
-            this._filterMin === TextureFilter.NEAREST_MIPMAP_LINEAR ||
-            this._filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR
-          ) {
-            this._canMipmap = true;
-            this._mipMapLevel = Math.log2(this.images[0][0].width);
-          } else {
-            this._canMipmap = false;
-            this._mipMapLevel = 0;
-          }
+      if (isPowerOf2(this._images[0][0].width) && isPowerOf2(this._images[0][0].height)) {
+        if (
+          this._filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
+          this._filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||
+          this._filterMin === TextureFilter.NEAREST_MIPMAP_LINEAR ||
+          this._filterMin === TextureFilter.LINEAR_MIPMAP_LINEAR
+        ) {
+          this._canMipmap = true;
+          this._mipMapLevel = Math.log2(this.images[0][0].width);
         } else {
           this._canMipmap = false;
           this._mipMapLevel = 0;
-          this.setFilter(TextureFilter.NEAREST, TextureFilter.NEAREST);
-          this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
         }
+      } else {
+        this._canMipmap = false;
+        this._mipMapLevel = 0;
+        this.setFilter(TextureFilter.NEAREST, TextureFilter.NEAREST);
+        this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
       }
-    } else {
-      this._canMipmap = false;
     }
   }
 
