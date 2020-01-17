@@ -17,7 +17,7 @@ import * as dat from 'dat.gui';
 let params = {
   godRayIntensity: 0.3,
   godRayLong: 0.8,
-  colorR: 0.9, 
+  colorR: 0.9,
   colorG: 0.9,
   colorB: 1.0,
 };
@@ -44,8 +44,8 @@ let cameraProps = {
   canvas: 'o3-demo', clearParam: [0, 0, 0, 1], position: [30, -40, 50], near: 1, far: 400, attributes: { antialias: false}
 };
 let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById('o3-demo') });
- 
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo') });
+
 // 创建方向光
 let light = rootNode.createChild("light");
 light.createAbility(AAmbientLight, {
@@ -72,25 +72,25 @@ const sceneDepthRT = addDepthPass(camera, MaskList.MASK1, 1024);
 const godrays = new GodraysEffect(postProcess);
 godrays.depthTexture = sceneDepthRT.texture;
 godrays.sunScreen = sunWorldPosition;
-godrays.godRayIntensity = 0.6; 
-godrays.godRayLong = 0.8; 
-godrays.color = [0.9, 0.9, 1.0]; 
-postProcess.addEffect(godrays); 
+godrays.godRayIntensity = 0.6;
+godrays.godRayLong = 0.8;
+godrays.color = [0.9, 0.9, 1.0];
+postProcess.addEffect(godrays);
 
 godRayIntensityController.onChange(function(value) {
-  godrays.godRayIntensity = value; 
+  godrays.godRayIntensity = value;
 });
 godRayLongController.onChange(function(value) {
-  godrays.godRayLong = value; 
+  godrays.godRayLong = value;
 });
 colorRController.onChange(function(value) {
-  godrays.color[0] = value; 
+  godrays.color[0] = value;
 });
 colorGController.onChange(function(value) {
-  godrays.color[1] = value; 
+  godrays.color[1] = value;
 });
 colorBController.onChange(function(value) {
-  godrays.color[2] = value; 
+  godrays.color[2] = value;
 });
 
 

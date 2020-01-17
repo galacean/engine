@@ -52,7 +52,6 @@ const doTransformTranslate = (obj, endValue, interval, options: any = {}) => {
  */
 const doTransformScale = (obj, endValue, interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
-
   return new Tweener(
     () => vec3.clone(obj.scale),
     value => (obj.scale = value),
