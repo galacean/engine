@@ -1,21 +1,18 @@
 import { Engine } from "@alipay/o3-core";
-import { Logger, DrawMode, Side, ClearMode } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-base";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
-import { AGeometryRenderer } from "@alipay/o3-geometry";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
 import { AEnvironmentMapLight, PBRMaterial } from "@alipay/o3-pbr";
-import { SphereGeometry } from "@alipay/o3-geometry-shape";
-import { ASkyBox } from "@alipay/o3-skybox";
-import { AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
+import { ADirectLight } from "@alipay/o3-lighting";
 import * as dat from "dat.gui";
 import "@alipay/o3-engine-stats";
-import { Mesh, AMeshRenderer } from "@alipay/o3-mesh";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { PerturbationProbe } from "@alipay/o3-env-probe";
 
+const gui = new dat.GUI();
 RegistExtension({ PBRMaterial });
-
+Logger.enable();
 let engine = new Engine();
 let scene = engine.currentScene;
 const resourceLoader = new ResourceLoader(engine);
@@ -45,7 +42,7 @@ let envLight = envLightNode.createAbility(AEnvironmentMapLight, {});
 let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: "o3-demo",
   position: [0, 0.2, 0.5],
-  clearParam: [0.9, 0.9, 0.9, 1]
+  clearParam: [1, 1, 1, 0]
 });
 let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("r3-demo") });
 controler.target = [0, 0.1, 0];
@@ -84,6 +81,7 @@ function debugModel(modelUrl, onLoad) {
     let asset = res.asset;
 
     updateModelNode();
+    // modelNode.position[0] += 0.1;
     asset.rootScene.nodes.forEach(n => modelNode.addChild(n));
     asset.meshes.forEach(mesh => {
       mesh.primitives.forEach(p => materials.push(p.material));
@@ -100,26 +98,17 @@ debugModel("/static/model/perturbation-test/scene.gltf", res => {
   let logo = materials[1];
   let water = materials[2];
   let cap = materials[3];
-  water.perturbationUOffset = -0.01;
-  water.perturbationVOffset = 0.03;
-  pingshen.srgb = true;
-  pingshen.gamma = true;
-  logo.srgb = true;
-  logo.gamma = true;
-  water.srgb = true;
-  water.gamma = true;
-  cap.srgb = true;
-  cap.gamma = true;
-  pingshen.envMapIntensity = 0.8;
+  pingshen.envMapIntensity = 0.5;
 
   const probe = rootNode.createAbility(PerturbationProbe, {
     width: 2048,
     height: 2048,
     renderList: [pingshen, cap, logo]
   });
-
-  water.perturbationTexture = probe.texture;
+  water.refractionTexture = probe.texture;
+  water.refractionDepth = 0.025;
   // probe.onTextureChange = texture => {
   //   water.perturbationTexture = texture;
   // };
+  gui.add(water, "refractionRatio", 0, 1, 0.01).name("折射率");
 });
