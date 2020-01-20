@@ -428,11 +428,13 @@ export class Node extends EventDispatcher {
       for (let i = abilityArray.length - 1; i >= 0; i--) {
         const ability = abilityArray[i];
 
+        if (ability.isPendingDestroy) {
+          abilityArray.splice(i, 1);
+          continue;
+        }
+
         if (ability.enabled) {
           ability.update(deltaTime);
-          if (ability.isPendingDestroy) {
-            abilityArray.splice(i, 1);
-          }
         }
       } // end of for
     }
@@ -442,10 +444,11 @@ export class Node extends EventDispatcher {
     if (children) {
       for (let i = children.length - 1; i >= 0; i--) {
         const child = children[i];
-        child.update(deltaTime);
         if (child._pendingDestroy) {
           children.splice(i, 1);
+          continue;
         }
+        child.update(deltaTime);
       } // end of for
     } // end of if
   }
