@@ -2,7 +2,7 @@ import { NodeAbility, Node } from "@alipay/o3-core";
 import { AAnimation } from "./AAnimation";
 
 /**
- * Engine Feature：全局动画控制器
+ * 全局动画控制器
  */
 export class AAnimator extends NodeAbility {
   public currentTime: number;

@@ -45,6 +45,7 @@ export class AnimationClip extends AssetObject {
     return this._options;
   }
   set options(options) {
+    console.log("update options");
     this._options = options;
     this.initialize();
   }

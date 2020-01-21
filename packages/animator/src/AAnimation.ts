@@ -15,8 +15,8 @@ export class AAnimation extends NodeAbility {
    */
   public currentTime: number;
   public duration: number;
+  public state: string;
   private _wrapMode: WrapMode;
-  private _isPlaying: boolean;
   private animClipSet;
   private uniqueAnimClipSet;
   private startTimeAnimClipSet;
@@ -25,7 +25,6 @@ export class AAnimation extends NodeAbility {
   private handlerStartTimeMap: WeakMap<AnimationClipHandler, number>;
   private _animationData: any;
   private _timeScale: number;
-  private needParse: boolean;
 
   /**
    * 缩放播放速度
@@ -55,7 +54,6 @@ export class AAnimation extends NodeAbility {
   }
   set animationData(animationData) {
     if (!animationData) return;
-    this.needParse = true;
     this._animationData = animationData;
   }
 
@@ -76,6 +74,7 @@ export class AAnimation extends NodeAbility {
     this.currentTime = 0;
     this.animationData = animationData;
     this.wrapMode = wrapMode;
+    this.state = "init";
   }
 
   /**
@@ -84,10 +83,11 @@ export class AAnimation extends NodeAbility {
    * @private
    */
   public update(deltaTime: number) {
-    if (!this._isPlaying) return;
+    if (this.state !== "playing") return;
     const { duration, handlerStartTimeMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     super.update(deltaTime);
+    console.log(222, duration);
     if (this.currentTime > duration) {
       this.reset();
       if (wrapMode === WrapMode.LOOP) {
@@ -104,9 +104,6 @@ export class AAnimation extends NodeAbility {
   }
   //TODO 临时方案后面改为jumptoFrame
   public onAnimUpdate(deltaTime: number) {
-    if (this.needParse) {
-      this.parseAnimationData();
-    }
     const { duration, handlerStartTimeMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     if (this.currentTime > duration) {
@@ -197,24 +194,16 @@ export class AAnimation extends NodeAbility {
     });
     this.duration = duration || Infinity;
     this.timeScale = timeScale;
-    this.needParse = false;
-  }
-  /**
-   * 是否正在播放
-   * @return {boolean}
-   */
-  public isPlaying(): boolean {
-    return this._isPlaying;
   }
 
   /**
    * 开始播放
    */
   public play() {
-    if (this.needParse) {
+    if (this.state === "init" || this.state === "stop") {
       this.parseAnimationData();
     }
-    this._isPlaying = true;
+    this.state = "playing";
   }
 
   /**
@@ -222,12 +211,14 @@ export class AAnimation extends NodeAbility {
    *
    */
   public pause() {
-    this._isPlaying = false;
-    this.handlerList.forEach(handler => {
-      handler.pause();
-    });
+    this.state = "pause";
   }
 
+  public stop() {
+    this.pause();
+    this.reset();
+    this.state = "stop";
+  }
   /**
    * 跳转到动画的某一帧，立刻生效
    * @param {float} frameTime
@@ -237,8 +228,10 @@ export class AAnimation extends NodeAbility {
   public reset() {
     this.currentTime = 0;
     this.pause();
+    console.log(this.handlerList.length);
     this.handlerList.reverse().forEach(handler => {
       handler.reset();
     });
+    this.state = "init";
   }
 }

@@ -99,7 +99,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
       ],
       "2600": [
         {
-          value: 60,
+          value: -360,
           property: "rotation",
           subProperty: "y",
           interpolation: "linear"
