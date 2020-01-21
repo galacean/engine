@@ -1,4 +1,5 @@
 import { AssetObject } from "@alipay/o3-core";
+import { Primitive } from "@alipay/o3-primitive";
 
 let meshID = 0;
 
@@ -7,7 +8,7 @@ let meshID = 0;
  * @class
  */
 export class Mesh extends AssetObject {
-  public primitives;
+  public primitives: Primitive[];
 
   /**
    * 构造函数

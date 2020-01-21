@@ -1,27 +1,31 @@
 import { mat4 } from "@alipay/o3-math";
 import { AMeshRenderer } from "./AMeshRenderer";
+import { Node } from "@alipay/o3-core";
+import { Mesh } from "./Mesh";
+import { mat4Type } from "@alipay/o3-core/types/type";
+import { Skin } from "./Skin";
 
 /**
  * 负责渲染一个 Skinned Mesh 的组件
  * @extends AMeshRenderer
  */
 export class ASkinnedMeshRenderer extends AMeshRenderer {
-  private _mat;
-  private _weights;
-  private _skin;
-  public started;
-  public matrixPalette;
-  public jointNodes;
+  private _mat: Float32Array;
+  private _weights: number[];
+  private _skin: Skin;
+  public started: boolean;
+  public matrixPalette: Float32Array;
+  public jointNodes: Node[];
 
   /**
    * constructor
    * @param node
    * @param props
    */
-  constructor(node, props: { mesh?; skin?; weights? } = {}) {
+  constructor(node: Node, props: { mesh?: Mesh; skin?: Skin; weights?: number[] } = {}) {
     super(node, props);
 
-    this._mat = mat4.create();
+    this._mat = mat4.create() as Float32Array;
     this._weights = null;
     this._skin = null;
 
@@ -33,7 +37,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * set morph target weights
    * @param {Number|Vec} weights 权重参数
    */
-  setWeights(weights) {
+  setWeights(weights: number[]) {
     this._weights = weights;
   }
 
@@ -96,7 +100,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * @param {string} nodeName
    * @private
    */
-  _findParent(node, nodeName) {
+  _findParent(node: Node, nodeName: string) {
     if (node) {
       const parent = node.parentNode;
       if (!parent) return null;
@@ -115,7 +119,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * @param {Number} deltaTime
    * @private
    */
-  update(deltaTime) {
+  update(deltaTime: number) {
     super.update(deltaTime);
     if (this._skin) {
       const joints = this.jointNodes;
