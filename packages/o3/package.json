@@ -31,6 +31,7 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
+    "@alipay/o3-bounding-info": "^1.5.0",
     "@alipay/o3-2d": "^1.5.0",
     "@alipay/o3-animation": "^1.5.0",
     "@alipay/o3-animator": "^1.5.0",

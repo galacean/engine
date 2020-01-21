@@ -381,3 +381,37 @@ export enum MaskList {
   SHADOW = 0b10000000000000000000000000000,
   SHADOW_MAP = 0b100000000000000000000000000000
 }
+
+/**
+ * 探针渲染速率
+ * */
+export enum RefreshRate {
+  /** 只渲染一次 */
+  ONCE = 1,
+  /** 每帧渲染 */
+  EVERYFRAME = 2
+}
+
+/**
+ * 相交信息
+ * */
+export enum IntersectInfo {
+  /** 分离 */
+  EXCLUDE,
+  /** 交叉 */
+  INTERSECT,
+  /** 包含 */
+  INCLUDE
+}
+
+/**
+ * 包围物类型
+ * */
+export enum BoundingType {
+  /** 轴对齐包围盒 */
+  AABB,
+  /** 方向包围盒 */
+  OBB,
+  /** 包围球 */
+  SPHERE
+}
