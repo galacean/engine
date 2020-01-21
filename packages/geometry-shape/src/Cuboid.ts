@@ -39,44 +39,44 @@ export class CuboidGeometry extends BufferGeometry {
 
     // 三角形顶点序号数据
     this._indexs = [
+      7,
       5,
       1,
-      7,
       3,
       7,
       1,
 
+      2,
       0,
       4,
-      2,
       6,
       2,
       4,
 
+      2,
       6,
       7,
-      2,
       3,
       2,
       7,
 
+      4,
       0,
       1,
-      4,
       5,
       4,
       1,
 
+      6,
       4,
       5,
-      6,
       7,
       6,
       5,
 
+      3,
       1,
       0,
-      3,
       2,
       3,
       0
@@ -94,9 +94,9 @@ export class CuboidGeometry extends BufferGeometry {
 
     // uv 坐标数据
     this._uvs = [
+      [0, 1],
       [0, 0],
       [1, 0],
-      [0, 1],
       [1, 1],
       [0, 1],
       [1, 0]
