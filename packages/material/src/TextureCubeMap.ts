@@ -17,7 +17,7 @@ export class TextureCubeMap extends Texture {
   private _manualMipMap: boolean;
   protected _needUpdateFilers: boolean;
   protected _canMipmap: boolean;
-  protected _needUpdateTexture: Array<boolean>;
+  // protected _needUpdateTexture: Array<boolean>;
 
   public updateWholeTexture: boolean;
 
@@ -36,12 +36,14 @@ export class TextureCubeMap extends Texture {
 
     this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
 
-    this._needUpdateTexture = [];
+    // this._needUpdateTexture = [];
     /**
      * CubeMap 的数据, 顺序为[px, nx, py, ny, pz, nz]
      * @member {Array}
      */
-    this.images = images;
+    if (images) {
+      this.images = images;
+    }
   }
 
   get images(): Array<any> {
@@ -76,8 +78,10 @@ export class TextureCubeMap extends Texture {
    * @param {HTMLImageElement|HTMLVideoElement|HTMLCanvasElement} image 更新的内容
    */
   updateImage(index: number, image) {
-    this._images[index] = image;
-    this._needUpdateTexture[index] = true;
+    if (this._images[0]) {
+      this._images[0][index] = image;
+      // this._needUpdateTexture[index] = true;
+    }
   }
 
   /**
