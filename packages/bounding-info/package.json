@@ -1,12 +1,10 @@
 {
-  "name": "@alipay/o3-primitive",
+  "name": "@alipay/o3-bounding-info",
   "version": "1.5.0",
-  "description": "primitive",
+  "description": "Oasis3D bounding-info",
   "keywords": [
-    "Oasis3D"
-  ],
-  "authors": [
-    "daqi.sdq <daqi.sdq@alibaba-inc.com>"
+    "Oasis3D",
+    "webgl"
   ],
   "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
@@ -17,10 +15,11 @@
     "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
   "license": "MIT",
-  "types": "types/index.d.ts",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc",
+    "lint:fix": "tslint --fix --project ./tsconfig.json"
   },
+  "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "publishConfig": {
@@ -28,7 +27,6 @@
   },
   "dependencies": {
     "@alipay/o3-base": "^1.5.0",
-    "@alipay/o3-core": "^1.5.0",
     "@alipay/o3-math": "^1.5.0"
   }
 }
