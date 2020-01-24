@@ -45,17 +45,18 @@ export class AAnimation extends NodeAbility {
       case 1:
         outValue = startValue * (1 - alpha) + endValue * alpha;
         break;
+      case 4:
+        {
+          quat.slerp(outValue, startValue, endValue, alpha);
+        }
+        break;
       case 2:
       case 3:
+      default:
         {
           for (let i = outputSize; i >= 0; i--) {
             outValue[i] = startValue[i] * (1 - alpha) + endValue[i] * alpha;
           }
-        }
-        break;
-      case 4:
-        {
-          quat.slerp(outValue, startValue, endValue, alpha);
         }
         break;
     } // end of switch
@@ -88,6 +89,9 @@ export class AAnimation extends NodeAbility {
    */
   public update(deltaTime: number) {
     super.update(deltaTime);
+    if (!this.isPlaying()) {
+      return;
+    }
 
     deltaTime = deltaTime * this._timeScale;
 

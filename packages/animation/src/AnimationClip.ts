@@ -138,14 +138,8 @@ export class AnimationClip extends AssetObject {
       case 1:
         return 0.0;
       // break;
-      case 2:
-        return vec2.create();
-      // break;
-      case 3:
-        return vec3.create();
-      // break;
-      case 4:
-        return quat.create();
+      default:
+        return new Float32Array(sampler.outputSize);
       // break;
     } // end of switch
   }
@@ -218,15 +212,6 @@ export class AnimationClip extends AssetObject {
       case 1:
         outValue = output[frameIndex] * (1 - alpha) + output[nextFrameIndex] * alpha;
         break;
-      case 2:
-      case 3:
-        {
-          for (let i = outputSize; i >= 0; i--) {
-            outValue[i] =
-              output[frameIndex * outputSize + i] * (1 - alpha) + output[nextFrameIndex * outputSize + i] * alpha;
-          }
-        }
-        break;
       case 4:
         {
           const a = quat.fromValues(
@@ -242,6 +227,16 @@ export class AnimationClip extends AssetObject {
             output[nextFrameIndex * outputSize + 3]
           );
           quat.slerp(outValue, a, b, alpha);
+        }
+        break;
+      case 2:
+      case 3:
+      default:
+        {
+          for (let i = outputSize; i >= 0; i--) {
+            outValue[i] =
+              output[frameIndex * outputSize + i] * (1 - alpha) + output[nextFrameIndex * outputSize + i] * alpha;
+          }
         }
         break;
     } // end of switch
