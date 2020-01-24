@@ -1,16 +1,19 @@
 import { Logger, UpdateType, DataType } from "@alipay/o3-base";
+import { Primitive } from "@alipay/o3-primitive";
+import { GLRenderHardware } from "./GLRenderHardware";
+import { GLTechnique } from "./GLTechnique";
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
  * @private
  */
 export class GLPrimitive {
-  private _rhi;
-  private _primitive;
+  private _rhi: GLRenderHardware;
+  private _primitive: Primitive;
   private _glIndexBuffer: WebGLBuffer;
-  private _glVertBuffers;
+  private _glVertBuffers: WebGLBuffer[];
 
-  constructor(rhi, primitive) {
+  constructor(rhi: GLRenderHardware, primitive: Primitive) {
     this._rhi = rhi;
     this._primitive = primitive;
 
@@ -67,7 +70,7 @@ export class GLPrimitive {
    * 执行绘制操作
    * @param {GLTechnique} tech
    */
-  draw(tech) {
+  draw(tech: GLTechnique) {
     if (this._primitive.indexType === DataType.UNSIGNED_INT && !this._rhi.requireExtension("OES_element_index_uint")) {
       console.warn("primitive have UNSIGN_INT index and not supported by this device", this);
       return;
@@ -105,8 +108,8 @@ export class GLPrimitive {
     const techAttributes = tech.attributes;
     const attributes = primitive.vertexAttributes;
     const vbos = this._glVertBuffers;
-    let vbo;
-    let lastBoundVbo;
+    let vbo: WebGLBuffer;
+    let lastBoundVbo: WebGLBuffer;
 
     for (const name in techAttributes) {
       const loc = techAttributes[name].location;

@@ -5,7 +5,7 @@ import { Logger } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { GLRenderHardware } from "./GLRenderHardware";
-import { RenderTechnique } from "@alipay/o3-material";
+import { RenderTechnique, Material } from "@alipay/o3-material";
 import { GLRenderStates } from "./GLRenderStates";
 
 var UniformDefaults = {};
@@ -69,7 +69,7 @@ export class GLTechnique {
   /**
    * 释放 GL 资源
    */
-  finalize(forceDispose) {
+  finalize(forceDispose: boolean) {
     if (this._program && forceDispose) {
       this._program.finalize();
       this._program = null;
@@ -102,7 +102,7 @@ export class GLTechnique {
    * 开始渲染时调用，绑定内部 GL Program，并设定 Unifrom
    * @param {Material} mtl
    */
-  begin(mtl) {
+  begin(mtl: Material) {
     const gl = this._rhi.gl;
     const glProgram = this._program.program;
 
