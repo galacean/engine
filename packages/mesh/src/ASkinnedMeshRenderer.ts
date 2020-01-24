@@ -12,6 +12,7 @@ import { Skin } from "./Skin";
 export class ASkinnedMeshRenderer extends AMeshRenderer {
   private _mat: Float32Array;
   private _weights: number[];
+  private weightsIndices: number[] = [];
   private _skin: Skin;
   public started: boolean;
   public matrixPalette: Float32Array;
@@ -30,7 +31,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
     this._skin = null;
 
     this.skin = props.skin;
-    this.setWeights(props.weights);
+    this.setWeights(props.mesh?.weights);
   }
 
   /**
@@ -38,7 +39,28 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * @param {Number|Vec} weights 权重参数
    */
   setWeights(weights: number[]) {
+    window["comp"] = this;
     this._weights = weights;
+    const len = weights.length;
+    for (let i = 0; i < len; i++) {
+      this.weightsIndices[i] = i;
+    }
+
+    const weightsIndices = this.weightsIndices;
+
+    for (let i = 0; i < len; i++) {
+      for (let j = i + 1; j < len; j++) {
+        if (weights[j] > weights[i]) {
+          let t = weights[i];
+          weights[i] = weights[j];
+          weights[j] = t;
+          t = weightsIndices[i];
+          weightsIndices[i] = weightsIndices[j];
+          weightsIndices[j] = t;
+        }
+      }
+    }
+    this.mesh.updatePrimitiveWeightsIndices(weightsIndices);
   }
 
   /**

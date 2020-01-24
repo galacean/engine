@@ -9,15 +9,22 @@ let meshID = 0;
  */
 export class Mesh extends AssetObject {
   public primitives: Primitive[];
+  public weights: number[];
 
   /**
    * 构造函数
    * @param {string} name 名称
    */
-  constructor(name) {
+  constructor(name?: string) {
     super(name || "DEFAULT_MESH_NAME_" + meshID++);
 
     /** @member {Array} */
     this.primitives = []; // Primitive array
+  }
+
+  updatePrimitiveWeightsIndices(weightsIndices: number[]) {
+    this.primitives.forEach(primitive => {
+      primitive.updateWeightsIndices(weightsIndices);
+    });
   }
 }

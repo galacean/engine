@@ -26,11 +26,12 @@ export class Primitive extends AssetObject {
   public targets;
   public boundingBoxMax;
   public boundingBoxMin;
+  public indexNeedUpdate: boolean;
 
   /**
    * @constructor
    */
-  constructor(name?) {
+  constructor(name?: string) {
     super(name !== undefined ? name : "DEFAULT_PRIMITIVENAME_" + primitiveID);
     this.id = primitiveID++;
     this.mode = DrawMode.TRIANGLES; // draw mode, triangles, lines etc.
@@ -70,7 +71,15 @@ export class Primitive extends AssetObject {
    * @param {number} offset
    * @param {number} vertexBufferIndex
    */
-  addAttribute(semantic, size, type, normalized, stride, offset, vertexBufferIndex) {
+  addAttribute(
+    semantic: string,
+    size: number,
+    type: DataType,
+    normalized: boolean,
+    stride: number,
+    offset: number,
+    vertexBufferIndex: number
+  ) {
     this.vertexAttributes[semantic] = {
       semantic,
       size,
@@ -80,6 +89,24 @@ export class Primitive extends AssetObject {
       offset,
       vertexBufferIndex
     };
+  }
+
+  updateWeightsIndices(indices: number[]) {
+    if (this.targets.length !== indices.length || indices.length === 0) {
+      return;
+    }
+    for (let i = 0; i < indices.length; i++) {
+      const currentIndex = indices[i];
+      Object.keys(this.targets[i]).forEach((key: string) => {
+        const semantic = this.targets[i][key].name;
+        const index = this.targets[currentIndex][key].vertexBufferIndex;
+        this.updateAttribBufferIndex(semantic, index);
+      });
+    }
+  }
+
+  updateAttribBufferIndex(semantic: string, index: number) {
+    this.vertexAttributes[semantic].vertexBufferIndex = index;
   }
 
   /**
