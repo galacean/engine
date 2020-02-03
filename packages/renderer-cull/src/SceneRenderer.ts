@@ -41,7 +41,7 @@ export class SceneRenderer extends BasicSceneRenderer {
     if (!primitive.boundingBox) {
       const { min, max } = primitive.getMinMax();
       primitive.boundingBox = new OBB(min, max, modelMatrix);
-    } else {
+    } else if (nodeAbility.node.isDirty) {
       primitive.boundingBox.updateByModelMatrix(modelMatrix);
     }
 
