@@ -61,8 +61,8 @@ export class GLRenderStates {
     this._parameters[gl.BLEND_SRC_RGB] = gl.ONE;
     this._parameters[gl.BLEND_SRC_ALPHA] = gl.ONE;
     this._parameters[gl.BLEND_DST_RGB] = gl.ZERO;
-    this._parameters[gl.BLEND_DST_ALPHA] = gl.ONE;
-    gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ONE, gl.ONE);
+    this._parameters[gl.BLEND_DST_ALPHA] = gl.ZERO;
+    gl.blendFunc(gl.ONE, gl.ZERO);
 
     this._parameters[gl.BLEND_EQUATION_RGB] = gl.FUNC_ADD;
     this._parameters[gl.BLEND_EQUATION_ALPHA] = gl.FUNC_ADD;
@@ -214,7 +214,34 @@ export class GLRenderStates {
    */
   blendFunc(sfactor, dfactor) {
     const gl = this._gl;
-    this.blendFuncSeparate(sfactor, dfactor, gl.ONE, gl.ONE);
+
+    const param = this._parameters;
+    if (
+      param[gl.BLEND_SRC_RGB] === sfactor &&
+      param[gl.BLEND_SRC_ALPHA] === sfactor &&
+      param[gl.BLEND_DST_RGB] === dfactor &&
+      param[gl.BLEND_DST_ALPHA] === dfactor
+    )
+      return;
+
+    const pushArgs = [
+      param[gl.BLEND_SRC_RGB],
+      param[gl.BLEND_DST_RGB],
+      param[gl.BLEND_SRC_ALPHA],
+      param[gl.BLEND_DST_ALPHA]
+    ];
+    const pushParam = {};
+    pushParam[gl.BLEND_SRC_RGB] = param[gl.BLEND_SRC_RGB];
+    pushParam[gl.BLEND_DST_RGB] = param[gl.BLEND_DST_RGB];
+    pushParam[gl.BLEND_SRC_ALPHA] = param[gl.BLEND_SRC_ALPHA];
+    pushParam[gl.BLEND_DST_ALPHA] = param[gl.BLEND_DST_ALPHA];
+    this._pushState(gl.blendFuncSeparate, pushArgs, pushParam);
+
+    param[gl.BLEND_SRC_RGB] = sfactor;
+    param[gl.BLEND_SRC_ALPHA] = sfactor;
+    param[gl.BLEND_DST_RGB] = dfactor;
+    param[gl.BLEND_DST_ALPHA] = dfactor;
+    gl.blendFunc(sfactor, dfactor);
   }
 
   /**
