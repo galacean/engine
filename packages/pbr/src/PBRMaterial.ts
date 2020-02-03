@@ -119,7 +119,8 @@ class PBRMaterial extends Material {
       srgb: false,
       srgbFast: false,
       gamma: false,
-      blendFunc: [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA],
+      blendFunc: [],
+      blendFuncSeparate: [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA, BlendFunc.ONE, BlendFunc.ONE],
       depthMask: [false],
       getOpacityFromRGB: false,
       isMetallicWorkflow: true,
@@ -247,10 +248,13 @@ class PBRMaterial extends Material {
           this.gamma = obj[key];
           break;
         case "blendFunc":
-          this._stateObj.blendFunc = obj[key];
+          this.blendFunc = obj[key];
+          break;
+        case "blendFuncSeparate":
+          this.blendFuncSeparate = obj[key];
           break;
         case "depthMask":
-          this._stateObj.depthMask = obj[key];
+          this.depthMask = obj[key];
           break;
         case "getOpacityFromRGB":
           this.getOpacityFromRGB = obj[key];
@@ -726,6 +730,33 @@ class PBRMaterial extends Material {
     this._technique = null;
   }
 
+  get blendFunc() {
+    return this._stateObj.blendFunc;
+  }
+
+  set blendFunc(v) {
+    this._stateObj.blendFunc = v;
+    this._technique = null;
+  }
+
+  get blendFuncSeparate() {
+    return this._stateObj.blendFuncSeparate;
+  }
+
+  set blendFuncSeparate(v) {
+    this._stateObj.blendFuncSeparate = v;
+    this._technique = null;
+  }
+
+  get depthMask() {
+    return this._stateObj.depthMask;
+  }
+
+  set depthMask(v) {
+    this._stateObj.depthMask = v;
+    this._technique = null;
+  }
+
   /**
    * 透明度通道选择
    * true:取透明度贴图的rgb亮度，false:取alpha通道
@@ -985,7 +1016,11 @@ class PBRMaterial extends Material {
     }
     if (this.alphaMode === "BLEND" && !this.perturbationTexture) {
       states.enable.push(RenderState.BLEND);
-      states.functions.blendFunc = this._stateObj.blendFunc;
+      if (this._stateObj.blendFunc.length) {
+        states.functions.blendFunc = this._stateObj.blendFunc;
+      } else {
+        states.functions.blendFuncSeparate = this._stateObj.blendFuncSeparate;
+      }
       states.functions.depthMask = this._stateObj.depthMask;
       this.renderType = MaterialType.TRANSPARENT;
     } else {
