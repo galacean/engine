@@ -39,8 +39,10 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * @param {Number|Vec} weights 权重参数
    */
   setWeights(weights: number[]) {
-    window["comp"] = this;
     this._weights = weights;
+    if (!weights) {
+      return;
+    }
     const len = weights.length;
     for (let i = 0; i < len; i++) {
       this.weightsIndices[i] = i;
