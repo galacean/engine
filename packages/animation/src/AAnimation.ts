@@ -3,7 +3,8 @@ import { NodeAbility, Node } from "@alipay/o3-core";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationClip } from "./AnimationClip";
 import { quat } from "@alipay/o3-math";
-import { AnimationOptions } from "./types";
+import { AnimationOptions, IChannelTarget } from "./types";
+import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
  * @extends NodeAbility
@@ -70,7 +71,7 @@ export class AAnimation extends NodeAbility {
 
   private _timeScale: number;
 
-  private _channelTargets;
+  private _channelTargets: IChannelTarget[] | false;
   /**
    * @constructor
    * @param {Node} node
@@ -382,7 +383,7 @@ export class AAnimation extends NodeAbility {
 
       if (path === "weights") {
         // ASkinnedMeshRenderer
-        targetObject.setWeights(val);
+        (targetObject as ASkinnedMeshRenderer).setWeights(val as any);
       } else {
         // Node[property]
         targetObject[path] = val;

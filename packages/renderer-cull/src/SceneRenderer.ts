@@ -12,6 +12,11 @@ export class SceneRenderer extends BasicSceneRenderer {
     this._frustum = new Frustum();
   }
 
+  /** 获取当前相机的视锥体 */
+  get frustum() {
+    return this._frustum;
+  }
+
   /**
    * 更新Frustum，执行场景渲染流程
    */

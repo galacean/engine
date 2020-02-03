@@ -1,0 +1,31 @@
+type array2<T> = { 0: T; 1: T };
+type array3<T> = { 0: T; 1: T; 2: T };
+type array4<T> = { 0: T; 1: T; 2: T; 3: T };
+type array9<T> = { 0: T; 1: T; 2: T; 3: T; 4: T; 5: T; 6: T; 7: T; 8: T };
+type array16<T> = {
+  0: T;
+  1: T;
+  2: T;
+  3: T;
+  4: T;
+  5: T;
+  6: T;
+  7: T;
+  8: T;
+  9: T;
+  10: T;
+  11: T;
+  12: T;
+  13: T;
+  14: T;
+  15: T;
+};
+type TypedArray = Array<number> | Float32Array;
+
+export type Vec2 = TypedArray | array2<number>;
+export type Vec3 = TypedArray | array3<number>;
+export type Vec4 = TypedArray | array4<number>;
+export type Quat = TypedArray | array4<number>;
+export type Mat2 = TypedArray | array4<number>;
+export type Mat3 = TypedArray | array9<number>;
+export type Mat4 = TypedArray | array16<number>;
