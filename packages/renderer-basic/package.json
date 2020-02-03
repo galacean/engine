@@ -26,8 +26,8 @@
   "module": "dist/module.js",
   "dependencies": {
     "@alipay/o3-base": "^1.5.0",
-    "@alipay/o3-core": "^1.5.2",
-    "@alipay/o3-material": "^1.5.2",
+    "@alipay/o3-core": "^1.5.0",
+    "@alipay/o3-material": "^1.5.0",
     "@alipay/o3-math": "^1.5.0"
   },
   "publishConfig": {
