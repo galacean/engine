@@ -10,6 +10,10 @@ import { Material } from "@alipay/o3-material";
  */
 export class RenderQueue {
   private _items;
+  /**
+   * 标识是否已经计算好当前 renderQueue 中各个材质的最大骨骼节点数，只需要计算一次
+   */
+  private _hasMaxJointsNum: boolean = false;
 
   constructor() {
     this._items = [];
@@ -119,11 +123,21 @@ export class RenderQueue {
     const rhi = camera.renderHardware;
     const items = this._items;
 
-    for (let i = 0, len = this._items.length; i < len; i++) {
+    // 如果没有items不需要渲染
+    if (items.length === 0) {
+      return;
+    }
+
+    if (!this._hasMaxJointsNum) {
+      this.getMaxJointsNum(items);
+    }
+
+    for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
+      const { nodeAbility, primitive, mtl } = item;
 
       //-- filter by mask
-      const renderPassFlag = item.nodeAbility.renderPassFlag;
+      const renderPassFlag = nodeAbility.renderPassFlag;
       if (!(renderPassFlag & mask)) continue;
 
       //-- draw
@@ -132,11 +146,11 @@ export class RenderQueue {
         rhi.flushSprite();
 
         if (replaceMaterial) {
-          replaceMaterial.prepareDrawing(camera, item.nodeAbility, item.primitive, item.mtl);
-          rhi.drawPrimitive(item.primitive, replaceMaterial);
+          replaceMaterial.prepareDrawing(camera, nodeAbility, primitive, mtl);
+          rhi.drawPrimitive(primitive, replaceMaterial);
         } else {
-          item.mtl.prepareDrawing(camera, item.nodeAbility, item.primitive);
-          rhi.drawPrimitive(item.primitive, item.mtl);
+          mtl.prepareDrawing(camera, nodeAbility, primitive);
+          rhi.drawPrimitive(primitive, mtl);
         }
       } else {
         rhi.drawSprite(item.positionQuad, item.uvRect, item.tintColor, item.texture, item.renderMode, item.camera);
@@ -144,6 +158,24 @@ export class RenderQueue {
     } // end of for
 
     rhi.flushSprite();
+  }
+
+  /**
+   * 获取当前 renderQueue 中各个材质的最大骨骼节点数
+   * @param items
+   */
+  getMaxJointsNum(items) {
+    for (let i = 0, len = items.length; i < len; i++) {
+      const { nodeAbility, mtl } = items[i];
+
+      // 仅当 nodeAbility 为 ASkinnedMeshRenderer 时需要计算
+      if (nodeAbility.jointNodes) {
+        mtl.maxJointsNum = Math.max(mtl.maxJointsNum, nodeAbility.jointNodes.length);
+      }
+    }
+
+    // 标识已经计算过
+    this._hasMaxJointsNum = true;
   }
 
   /**
