@@ -28,6 +28,7 @@ class PBRMaterial extends Material {
   private _directLightNum: number;
   private _useSpecularMap: boolean;
   private _pointLightNum: number;
+  private _clipPlaneNum: number;
 
   /**
    * PBR 材质
@@ -852,7 +853,8 @@ class PBRMaterial extends Material {
       this._useSpecularMap !== useSpecularMap ||
       this._directLightNum !== directLightNum ||
       this._pointLightNum !== pointLightNum ||
-      this._spotLightNum !== spotLightNum
+      this._spotLightNum !== spotLightNum ||
+      this._clipPlaneNum !== scene.clipPlanes.length
     ) {
       this._envMapLightNum = envMapLightNum;
       this._useDiffuseMap = useDiffuseMap;
@@ -860,11 +862,17 @@ class PBRMaterial extends Material {
       this._directLightNum = directLightNum;
       this._pointLightNum = pointLightNum;
       this._spotLightNum = spotLightNum;
+      this._clipPlaneNum = scene.clipPlanes.length;
       this._generateTechnique(camera, component, primitive);
     }
 
-    // 额外配置
+    /** 额外配置 */
+    // 分辨率
     this.setValue("u_resolution", [camera._rhi.canvas.width, camera._rhi.canvas.height]);
+    // clipPlane
+    for (let i = 0; i < this._clipPlaneNum; i++) {
+      this.setValue(`u_clipPlanes[${i}]`, scene.clipPlanes[i]);
+    }
 
     super.prepareDrawing(camera, component, primitive);
   }
@@ -943,6 +951,7 @@ class PBRMaterial extends Material {
     if (this._directLightNum) _macros.push(`O3_DIRECTLIGHT_NUM ${this._directLightNum}`);
     if (this._pointLightNum) _macros.push(`O3_POINTLIGHT_NUM ${this._pointLightNum}`);
     if (this._spotLightNum) _macros.push(`O3_SPOTLIGHT_NUM ${this._spotLightNum}`);
+    if (this._clipPlaneNum) _macros.push(`O3_CLIPPLANE_NUM ${this._clipPlaneNum}`);
 
     if (this._stateObj.unlit) _macros.push("UNLIT");
     if (this._stateObj.srgb) _macros.push("MANUAL_SRGB");
@@ -1060,7 +1069,20 @@ class PBRMaterial extends Material {
       }
     }
 
-    PBRMaterial.TECH_CONFIG.uniforms = Object.assign({}, PBRMaterial.TECH_CONFIG.uniforms, lightUniforms);
+    const clipPlaneUniforms = {};
+    for (let i = 0; i < this._clipPlaneNum; i++) {
+      clipPlaneUniforms[`u_clipPlanes[${i}]`] = {
+        name: `u_clipPlanes[${i}]`,
+        type: DataType.FLOAT_VEC4
+      };
+    }
+
+    PBRMaterial.TECH_CONFIG.uniforms = Object.assign(
+      {},
+      PBRMaterial.TECH_CONFIG.uniforms,
+      lightUniforms,
+      clipPlaneUniforms
+    );
 
     return Object.assign({}, PBRMaterial.TECH_CONFIG, { states });
   }

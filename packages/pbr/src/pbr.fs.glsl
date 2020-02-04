@@ -7,6 +7,7 @@
 #include <normal_share>
 #include <color_share>
 #include <worldpos_share>
+#include <clipPlane_frag_define>
 #include <refract_share>
 
 
@@ -587,6 +588,8 @@ float getLuminance(vec3 color)
 }
 
 void main() {
+    #include <clipPlane_frag>
+
     vec2 uv = vec2(0., 0.);
     #ifdef  USE_SCREENUV
         uv = getScreenUv();

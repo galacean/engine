@@ -57,6 +57,11 @@ import noise_simplex from "./shaderlib/noise_simplex.glsl";
 import refract_share from "./shaderlib/refract_share.glsl";
 import refract_frag from "./shaderlib/refract_frag.glsl";
 
+import clipPlane_vert_define from "./shaderlib/clipPlane_vert_define.glsl";
+import clipPlane_vert from "./shaderlib/clipPlane_vert.glsl";
+import clipPlane_frag_define from "./shaderlib/clipPlane_frag_define.glsl";
+import clipPlane_frag from "./shaderlib/clipPlane_frag.glsl";
+
 export const ShaderLib = {
   common,
   common_vert,
@@ -115,7 +120,12 @@ export const ShaderLib = {
   noise_simplex,
 
   refract_share,
-  refract_frag
+  refract_frag,
+
+  clipPlane_vert_define,
+  clipPlane_vert,
+  clipPlane_frag_define,
+  clipPlane_frag
 };
 
 export function InjectShaderSlices(obj) {
