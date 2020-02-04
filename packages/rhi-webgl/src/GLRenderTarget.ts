@@ -1,22 +1,23 @@
 import { Logger } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
+import { GLAsset } from "./GLAsset";
+import { GLRenderHardware } from "./GLRenderHardware";
 
 /**
  * GL 层的 RenderTarget 资源管理和渲染调用处理
  * @class
  * @private
  */
-export class GLRenderTarget {
+export class GLRenderTarget extends GLAsset {
   private _config;
-  private _rhi;
   private _glTexture;
   private _glDepthTexture;
   private _depthBuffer;
   private _framebuffer;
 
-  constructor(rhi, config) {
+  constructor(rhi: GLRenderHardware, config) {
+    super(rhi, config);
     this._config = config;
-    this._rhi = rhi;
 
     this._initialize();
   }
@@ -26,15 +27,15 @@ export class GLRenderTarget {
    * @private
    */
   activeRenderTarget() {
-    const gl = this._rhi.gl;
+    const gl = this.rhi.gl;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._framebuffer);
     gl.viewport(0.0, 0.0, this._config.width, this._config.height);
 
     // 激活一下Texture资源, 否则可能会被释放掉
-    this._rhi.assetsCache.requireObject(this._config.texture, GLTexture2D);
+    this.rhi.assetsCache.requireObject(this._config.texture, GLTexture2D);
     if (this._config.depthTexture) {
-      this._rhi.assetsCache.requireObject(this._config.depthTexture, GLTexture2D);
+      this.rhi.assetsCache.requireObject(this._config.depthTexture, GLTexture2D);
     }
   }
 
@@ -43,7 +44,7 @@ export class GLRenderTarget {
    * @private
    */
   _initialize() {
-    const gl = this._rhi.gl;
+    const gl = this.rhi.gl;
 
     const width = this._config.width;
     const height = this._config.height;
@@ -51,13 +52,13 @@ export class GLRenderTarget {
     const depthTexture = this._config.depthTexture;
 
     // 创建纹理对象并设置其尺寸和参数
-    this._glTexture = this._rhi.assetsCache.requireObject(texture, GLTexture2D);
+    this._glTexture = this.rhi.assetsCache.requireObject(texture, GLTexture2D);
     this._glTexture.activeBinding(0);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
     if (depthTexture && gl.getExtension("WEBGL_depth_texture")) {
       // 创建深度纹理
-      this._glDepthTexture = this._rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
+      this._glDepthTexture = this.rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
       this._glDepthTexture.activeBinding(0);
       gl.texImage2D(
         gl.TEXTURE_2D,
@@ -109,7 +110,7 @@ export class GLRenderTarget {
    * @private
    */
   finalize() {
-    const gl = this._rhi.gl;
+    const gl = this.rhi.gl;
     if (this._framebuffer) {
       gl.deleteFramebuffer(this._framebuffer);
       this._framebuffer = null;

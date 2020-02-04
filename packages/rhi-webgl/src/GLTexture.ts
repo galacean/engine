@@ -1,16 +1,20 @@
+import { GLAsset } from "./GLAsset";
+import { GLRenderHardware } from "./GLRenderHardware";
+
 /**
  * 管理贴图对象
  * @class
  * @private
  */
-export default class GLTexture {
+export class GLTexture extends GLAsset {
   protected _gl;
   private _glTexture;
   protected _config;
   protected _type;
-  constructor(gl, config, type) {
-    this._gl = gl;
-    this._glTexture = gl.createTexture(); // WebGLTexture
+  constructor(rhi: GLRenderHardware, config, type) {
+    super(rhi, config);
+    this._gl = rhi.gl;
+    this._glTexture = rhi.gl.createTexture(); // WebGLTexture
     this._config = config;
     this._type = type;
   }
