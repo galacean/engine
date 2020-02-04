@@ -48,9 +48,14 @@ const textureRes = new Resource('baseColor', {
   url: 'https://gw-office.alipayobjects.com/basement_prod/3c140e43-e7d8-4c51-999e-1f68218afc54.jpg'
 });
 
+const animationRes2 = new Resource("mayi", {
+  type: "gltf",
+  url: "https://gw.alipayobjects.com/os/loanprod/238fd5a7-6018-40f3-8049-1e773049a322/5e06ed963a414a17a737e070/1a69181086191d564de6f8a891a610f8.gltf"
+});
+
 const resourceLoader = new ResourceLoader(engine);
 // resourceLoader.loadConfig
-resourceLoader.batchLoad([animationRes, textureRes], (err, [gltf, texture]) => {
+resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf, texture, gltf2]) => {
   const prefab = gltf.asset.rootScene.nodes[0];
   const animations = gltf.asset.animations;
 
@@ -66,6 +71,7 @@ resourceLoader.batchLoad([animationRes, textureRes], (err, [gltf, texture]) => {
 
   let node = rootNode.createChild("gltf_node");
   node.scale = [0.5, 0.5, 0.5]
+  node.position = [-1, 0, 0]
   node.addChild(huabei);
 
   const animator = huabei.createAbility(AAnimation);
@@ -75,6 +81,38 @@ resourceLoader.batchLoad([animationRes, textureRes], (err, [gltf, texture]) => {
   });
 
   animator.playAnimationClip("A");
+
+  //......
+  setTimeout(()  => {
+    const prefab2 = gltf2.asset.rootScene.nodes[0];
+    const animations2 = gltf2.asset.animations;
+
+    const mayi = prefab2.clone();
+
+    mayi.rotateByAngles(0, -180, 0);
+
+    let node2 = rootNode.createChild("gltf_node2");
+    node2.scale = [0.05, 0.05, 0.05]
+    node2.position = [1, 0, 0]
+    node2.addChild(mayi);
+
+    const animator2 = mayi.createAbility(AAnimation);
+
+    animations2.forEach(clip => {
+      animator2.addAnimationClip(clip, clip.name);
+    });
+
+    animator2.playAnimationClip("Fast Run");
+
+    // 极端情况测试
+    setTimeout(() => {
+      node.isActive = false;
+      setTimeout(() => {
+        node.isActive = true;
+      }, 1000)
+    }, 1000)
+  }, 1000);
+
 });
 
 //-- run

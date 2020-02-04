@@ -10,10 +10,6 @@ import { Material } from "@alipay/o3-material";
  */
 export class RenderQueue {
   private _items;
-  /**
-   * 标识是否已经计算好当前 renderQueue 中各个材质的最大骨骼节点数，只需要计算一次
-   */
-  private _hasMaxJointsNum: boolean = false;
 
   constructor() {
     this._items = [];
@@ -128,9 +124,7 @@ export class RenderQueue {
       return;
     }
 
-    if (!this._hasMaxJointsNum) {
-      this.getMaxJointsNum(items);
-    }
+    this.updateMaxJointsNum(this._items);
 
     for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
@@ -161,10 +155,10 @@ export class RenderQueue {
   }
 
   /**
-   * 获取当前 renderQueue 中各个材质的最大骨骼节点数
+   * 更新当前 renderQueue 中各个材质的最大骨骼节点数
    * @param items
    */
-  getMaxJointsNum(items) {
+  updateMaxJointsNum(items) {
     for (let i = 0, len = items.length; i < len; i++) {
       const { nodeAbility, mtl } = items[i];
 
@@ -173,9 +167,6 @@ export class RenderQueue {
         mtl.maxJointsNum = Math.max(mtl.maxJointsNum, nodeAbility.jointNodes.length);
       }
     }
-
-    // 标识已经计算过
-    this._hasMaxJointsNum = true;
   }
 
   /**
