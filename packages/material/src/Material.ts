@@ -156,13 +156,30 @@ export class Material {
     this._technique.compile(camera, component, primitive, this);
   }
 
-  onBeforeCompile(tech: RenderTechnique) {
-    /** 在编译前可以自定义替换tech的shader,customMacros等配置
-     * @example
-     *  tech.fragmentShader=tech.fragmentShader.replace(**,**);
-     *  tech.fragmentPrecision='highp'
-     * */
-  }
+  /** 编译前钩子，在编译前可以自定义替换tech的shader,customMacros等配置
+   * @param {RenderTechnique} tech - technique
+   * @example
+   *  tech.fragmentShader=tech.fragmentShader.replace(**,**);
+   *  tech.fragmentPrecision='highp'
+   * */
+  preCompile(tech: RenderTechnique) {}
+
+  /**
+   * 编译后钩子
+   * */
+  postCompile(tech: RenderTechnique) {}
+
+  /**
+   * 材质渲染前钩子
+   * @param {NodeAbility} nodeAbility
+   * @param {Primitive} primitive
+   * */
+  preRender(nodeAbility, primitive) {}
+
+  /**
+   * 材质渲染后钩子
+   * */
+  postRender(nodeAbility, primitive) {}
 
   /**
    * 按照Uniform的Semantic，自动更新部分参数值
