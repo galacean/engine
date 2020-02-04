@@ -34,15 +34,15 @@ export class SceneRenderer extends BasicSceneRenderer {
    * @param {Material} mtl
    */
   pushPrimitive(nodeAbility, primitive: Primitive, mtl) {
+    const { node } = nodeAbility;
     let isInFrustum = true;
-    let modelMatrix = nodeAbility.node.getModelMatrix();
 
     //-- 进行视锥剪裁
     if (!primitive.boundingBox) {
       const { min, max } = primitive.getMinMax();
-      primitive.boundingBox = new OBB(min, max, modelMatrix);
-    } else if (nodeAbility.node.isDirty) {
-      primitive.boundingBox.updateByModelMatrix(modelMatrix);
+      primitive.boundingBox = new OBB(min, max, node.getModelMatrix());
+    } else if (node.isDirty) {
+      primitive.boundingBox.updateByModelMatrix(node.getModelMatrix());
     }
 
     isInFrustum = primitive.boundingBox.isInFrustum(this.frustum.planes);
