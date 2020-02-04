@@ -2,19 +2,19 @@ import { Logger, UpdateType, DataType } from "@alipay/o3-base";
 import { Primitive } from "@alipay/o3-primitive";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { GLTechnique } from "./GLTechnique";
+import { GLAsset } from "./GLAsset";
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
  * @private
  */
-export class GLPrimitive {
-  private _rhi: GLRenderHardware;
-  private _primitive: Primitive;
+export class GLPrimitive extends GLAsset {
+  private readonly _primitive;
   private _glIndexBuffer: WebGLBuffer;
   private _glVertBuffers: WebGLBuffer[];
 
   constructor(rhi: GLRenderHardware, primitive: Primitive) {
-    this._rhi = rhi;
+    super(rhi, primitive);
     this._primitive = primitive;
 
     const gl = rhi.gl;
@@ -35,7 +35,7 @@ export class GLPrimitive {
    * @private
    */
   _createVertextBuffer() {
-    const gl = this._rhi.gl;
+    const gl = this.rhi.gl;
     const primitive = this._primitive;
     const vertBuffers = primitive.vertexBuffers;
     const usage = primitive.usage;
@@ -54,7 +54,7 @@ export class GLPrimitive {
    * @private
    */
   _updateVertexBuffers() {
-    const gl = this._rhi.gl;
+    const gl = this.rhi.gl;
     const primitive = this._primitive;
     const vertexBuffer = primitive.vertexBuffers[0];
     const vertBufferObject = this._glVertBuffers[0];
@@ -71,12 +71,12 @@ export class GLPrimitive {
    * @param {GLTechnique} tech
    */
   draw(tech: GLTechnique) {
-    if (this._primitive.indexType === DataType.UNSIGNED_INT && !this._rhi.requireExtension("OES_element_index_uint")) {
+    if (this._primitive.indexType === DataType.UNSIGNED_INT && !this.rhi.requireExtension("OES_element_index_uint")) {
       console.warn("primitive have UNSIGN_INT index and not supported by this device", this);
       return;
     }
 
-    const gl: WebGLRenderingContext = this._rhi.gl;
+    const gl = this.rhi.gl;
     const primitive = this._primitive;
 
     switch (primitive.updateType) {
@@ -159,7 +159,7 @@ export class GLPrimitive {
    * 释放 GL 资源
    */
   finalize() {
-    const gl = this._rhi.gl;
+    const gl = this.rhi.gl;
     const primitive = this._primitive;
     //-- 释放顶点缓冲
     if (this._glVertBuffers) {
