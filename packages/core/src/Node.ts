@@ -296,6 +296,13 @@ export class Node extends EventDispatcher {
     enableRenderer(this, enabled, "ignoreInDepthTexture");
   }
 
+  /**
+   * matrix 是否发生变化
+   * */
+  get isDirty() {
+    return this._modelMatrixDirty;
+  }
+
   public onUpdate: (t?: number) => void;
   public _parent: Node;
   public transform: Transform;
