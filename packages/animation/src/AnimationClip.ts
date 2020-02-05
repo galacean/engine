@@ -213,30 +213,24 @@ export class AnimationClip extends AssetObject {
         outValue = output[frameIndex] * (1 - alpha) + output[nextFrameIndex] * alpha;
         break;
       case 4:
-        {
-          const a = quat.fromValues(
-            output[frameIndex * outputSize],
-            output[frameIndex * outputSize + 1],
-            output[frameIndex * outputSize + 2],
-            output[frameIndex * outputSize + 3]
-          );
-          const b = quat.fromValues(
-            output[nextFrameIndex * outputSize],
-            output[nextFrameIndex * outputSize + 1],
-            output[nextFrameIndex * outputSize + 2],
-            output[nextFrameIndex * outputSize + 3]
-          );
-          quat.slerp(outValue, a, b, alpha);
-        }
+        const a = quat.fromValues(
+          output[frameIndex * outputSize],
+          output[frameIndex * outputSize + 1],
+          output[frameIndex * outputSize + 2],
+          output[frameIndex * outputSize + 3]
+        );
+        const b = quat.fromValues(
+          output[nextFrameIndex * outputSize],
+          output[nextFrameIndex * outputSize + 1],
+          output[nextFrameIndex * outputSize + 2],
+          output[nextFrameIndex * outputSize + 3]
+        );
+        quat.slerp(outValue, a, b, alpha);
         break;
-      case 2:
-      case 3:
       default:
-        {
-          for (let i = outputSize; i >= 0; i--) {
-            outValue[i] =
-              output[frameIndex * outputSize + i] * (1 - alpha) + output[nextFrameIndex * outputSize + i] * alpha;
-          }
+        for (let i = outputSize; i >= 0; i--) {
+          outValue[i] =
+            output[frameIndex * outputSize + i] * (1 - alpha) + output[nextFrameIndex * outputSize + i] * alpha;
         }
         break;
     } // end of switch

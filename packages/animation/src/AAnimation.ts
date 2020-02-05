@@ -47,17 +47,11 @@ export class AAnimation extends NodeAbility {
         outValue = startValue * (1 - alpha) + endValue * alpha;
         break;
       case 4:
-        {
-          quat.slerp(outValue, startValue, endValue, alpha);
-        }
+        quat.slerp(outValue, startValue, endValue, alpha);
         break;
-      case 2:
-      case 3:
       default:
-        {
-          for (let i = outputSize; i >= 0; i--) {
-            outValue[i] = startValue[i] * (1 - alpha) + endValue[i] * alpha;
-          }
+        for (let i = outputSize; i >= 0; i--) {
+          outValue[i] = startValue[i] * (1 - alpha) + endValue[i] * alpha;
         }
         break;
     } // end of switch
