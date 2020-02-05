@@ -575,7 +575,7 @@ export function parseMesh(gltfMesh, resources) {
     // link mesh primitive material
     if (gltfPrimitive.material !== undefined) {
       let material = getItemByIdx("materials", gltfPrimitive.material, resources);
-      if ((PBRMaterial && material instanceof PBRMaterial) || material.constructor.DISABLE_SHARE) {
+      if (material.constructor.DISABLE_SHARE) {
         // do not share material cause different attributes
         material = material.clone();
       }
