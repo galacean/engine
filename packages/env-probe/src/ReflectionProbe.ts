@@ -14,13 +14,8 @@ const fovRadian = (90 * Math.PI) / 180;
  * 反射探针,生成 cubeTexture
  * */
 export class ReflectionProbe extends Probe {
-  public renderPass: RenderPass;
-
   /** 可以设置探针的位置，默认为原点 [0,0,0] */
   public position = [0, 0, 0];
-
-  private readonly renderTarget: RenderTarget;
-  private readonly renderTargetSwap: RenderTarget;
 
   private oriViewMatrix = mat4.create();
   private oriInverseViewMatrix = mat4.create();
@@ -33,25 +28,13 @@ export class ReflectionProbe extends Probe {
    * @param {PerturbationProbeConfig} config - 可选配置
    * */
   constructor(node: Node, config: ReflectionProbeConfig = {}) {
-    super(node, config);
-    this.renderTarget = new RenderTarget("_renderTarget" + this.cacheId, {
+    super(node, {
       ...config,
       isCube: true
     });
-    this.renderTargetSwap = new RenderTarget("_renderTarget_swap" + this.cacheId, {
-      ...config,
-      isCube: true
-    });
-    this.renderPass = new RenderPass("_renderPass" + this.cacheId, -10, this.renderTarget);
 
     this.position = config.position || [0, 0, 0];
     this.size = config.size || 1024;
-
-    /** 自定义渲染管道 */
-    this.renderPass.renderOverride = true;
-    this.customRenderPass();
-
-    this.sceneRenderer.addRenderPass(this.renderPass);
   }
 
   /**
@@ -74,52 +57,31 @@ export class ReflectionProbe extends Probe {
     mat4.copy(this.camera.inverseProjectionMatrix, this.oriInverseProjectionMatrix);
   }
 
-  /**
-   * 自定义 renderPass
-   * */
-  protected customRenderPass() {
-    this.renderPass.preRender = () => {
-      this.storeCamera();
-    };
+  protected preRender() {
+    super.preRender();
+    this.storeCamera();
+  }
 
-    this.renderPass.postRender = () => {
-      this.restoreCamera();
+  protected render() {
+    // 渲染6个面
+    for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+      // 设置渲染面
+      this.rhi.setRenderTargetFace(this.renderPass.renderTarget, faceIndex);
 
-      // 交换 FBO
-      // prevent issue: Feedback Loops Between Textures and the Framebuffer.
-      if (this.renderPass.enabled) {
-        // 钩子
-        this.onTextureChange && this.onTextureChange(this.cubeTexture);
+      // clear
+      this.rhi.clearRenderTarget(this.renderPass.clearMode, this.renderPass.clearParam);
 
-        if (this.renderPass.renderTarget === this.renderTarget) {
-          this.renderPass.renderTarget = this.renderTargetSwap;
-        } else {
-          this.renderPass.renderTarget = this.renderTarget;
-        }
-      }
-    };
+      // 改 camera 参数
+      this.setCamera(faceIndex);
 
-    this.renderPass.render = () => {
-      // 渲染6个面
-      for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-        // 设置渲染面
-        this.rhi.setRenderTargetFace(this.renderPass.renderTarget, faceIndex);
+      // render
+      super.render();
+    }
+  }
 
-        // clear
-        this.rhi.clearRenderTarget(this.renderPass.clearMode, this.renderPass.clearParam);
-
-        // 改 camera 参数
-        this.setCamera(faceIndex);
-
-        // render
-        this.renderItems.forEach(item => {
-          const { nodeAbility, primitive, mtl } = item;
-          if (!(nodeAbility.renderPassFlag & this.renderPassFlag)) return;
-          mtl.prepareDrawing(this.camera, nodeAbility, primitive);
-          this.rhi.drawPrimitive(primitive, mtl);
-        });
-      }
-    };
+  protected postRender() {
+    super.postRender();
+    this.restoreCamera();
   }
 
   /**

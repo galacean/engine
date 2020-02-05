@@ -98,8 +98,6 @@ debugModel("/static/model/perturbation-test/scene.gltf", res => {
   let logo = materials[1];
   let water = materials[2];
   let cap = materials[3];
-  water.perturbationUOffset = -0.01;
-  water.perturbationVOffset = 0.03;
   pingshen.srgb = true;
   pingshen.gamma = true;
   logo.srgb = true;
@@ -114,7 +112,7 @@ debugModel("/static/model/perturbation-test/scene.gltf", res => {
     renderList: [pingshen, cap, logo]
   });
   water.refractionTexture = probe.texture;
-  water.refractionDepth = 0.025;
+  water.refractionDepth = 0.025; // 瓶身的厚度
   // probe.onTextureChange = texture => {
   //   water.perturbationTexture = texture;
   // };
