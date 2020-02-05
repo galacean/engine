@@ -23,6 +23,11 @@ export class Material {
    * @member {boolean}
    */
   useFog: boolean;
+  /**
+   * 最大骨骼关节数
+   * @member {number}
+   */
+  maxJointsNum: number;
 
   protected _technique: RenderTechnique;
   protected _values;
@@ -32,23 +37,13 @@ export class Material {
    * @param {string} name 名称
    */
   constructor(name: string) {
-    /**
-     * 名称
-     * @member {string}
-     */
     this.name = name;
 
-    /**
-     * 材质类型：透明 or 不透明
-     * @member {MaterialType}
-     */
     this.renderType = MaterialType.OPAQUE;
 
-    /**
-     * 是否受到全局雾效影响
-     * @member {boolean}
-     */
     this.useFog = true;
+
+    this.maxJointsNum = 0;
 
     //--
     this._technique = null;
