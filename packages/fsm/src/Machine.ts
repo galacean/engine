@@ -120,9 +120,7 @@ class Machine {
    * @param {Object} data 数据
    */
   dispatch(trigger, data) {
-    console.log(this.transitions);
     const nextState = this.transitions[[trigger, this.currentState.name] as any];
-    console.log(this.currentState, trigger, data, nextState);
     if (nextState) {
       this.to(nextState, data);
     }

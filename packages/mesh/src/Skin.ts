@@ -7,9 +7,9 @@ let skinID = 0;
  * @class
  */
 export class Skin extends AssetObject {
-  public inverseBindMatrices;
-  public joints;
-  public skeleton;
+  public inverseBindMatrices: Float32Array[];
+  public joints: string[];
+  public skeleton: string;
   /**
    * 构造函数
    * @param {string} name 名称
