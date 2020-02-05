@@ -107,9 +107,7 @@ export class RenderTechnique extends AssetObject {
     this.parseFog(camera);
 
     if (this._needCompile) {
-      if (typeof material.onBeforeCompile === "function") {
-        material.onBeforeCompile(this);
-      }
+      material.preCompile?.(this);
 
       const attribMacros = this.getAttributeDefines(camera, component, primitive);
 
@@ -154,6 +152,8 @@ export class RenderTechnique extends AssetObject {
 
       this._needCompile = false;
       this._recreateHeader = false;
+
+      material.postCompile?.(this);
     }
   }
 

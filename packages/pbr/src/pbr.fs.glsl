@@ -10,6 +10,7 @@
 #include <worldpos_share>
 #include <refraction_share>
 #include <perturbation_share>
+#include <clipPlane_frag_define>
 
 
 #ifdef ALPHA_MASK
@@ -600,6 +601,8 @@ float getLuminance(vec3 color)
 }
 
 void main() {
+    #include <clipPlane_frag>
+
     vec3 normal = getNormal();
 
     vec4 diffuseColor = u_baseColorFactor;
