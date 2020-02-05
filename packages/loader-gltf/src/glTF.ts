@@ -531,7 +531,6 @@ export function parseMesh(gltfMesh, resources) {
       let accessorIdx, accessor, buffer;
       for (let j = 0; j < gltfPrimitive.targets.length; j++) {
         const target = gltfPrimitive.targets[j];
-        const targetObject = {};
         for (const attributeSemantic in target) {
           switch (attributeSemantic) {
             case "POSITION":

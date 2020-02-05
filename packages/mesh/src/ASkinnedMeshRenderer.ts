@@ -2,7 +2,6 @@ import { mat4 } from "@alipay/o3-math";
 import { AMeshRenderer } from "./AMeshRenderer";
 import { Node } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
-import { mat4Type } from "@alipay/o3-core/types/type";
 import { Skin } from "./Skin";
 
 /**
