@@ -1,3 +1,3 @@
 export { Probe } from "./Probe";
-export { PerturbationProbe } from "./PerturbationProbe";
-export { ReflectionProbe } from "./ReflectionProbe";
+export { PlaneProbe } from "./PlaneProbe";
+export { CubeProbe } from "./CubeProbe";

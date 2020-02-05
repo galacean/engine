@@ -1,20 +1,18 @@
 import { Node } from "@alipay/o3-core";
 import { Side } from "@alipay/o3-base";
-import { RenderTarget } from "@alipay/o3-material";
 import { Probe } from "./Probe";
-import { RenderPass } from "@alipay/o3-renderer-basic";
-import { PerturbationProbeConfig } from "./type";
+import { PlaneProbeConfig } from "./type";
 
 /**
- * 扰动纹理探针，用于生成2D扰动纹理
+ * 平面探针，用于生成 折射/纹理扰动 等效果
  * */
-export class PerturbationProbe extends Probe {
+export class PlaneProbe extends Probe {
   /**
-   * 纹理扰动探针
+   * 创建探针
    * @param {Node} node
-   * @param {PerturbationProbeConfig} config
+   * @param {PlaneProbeConfig} config
    * */
-  constructor(node: Node, config: PerturbationProbeConfig = {}) {
+  constructor(node: Node, config: PlaneProbeConfig = {}) {
     super(node, config);
   }
 

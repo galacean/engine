@@ -1,9 +1,7 @@
 import { Probe } from "./Probe";
 import { Node } from "@alipay/o3-core";
-import { RenderTarget } from "@alipay/o3-material";
-import { RenderPass } from "@alipay/o3-renderer-basic";
 import { mat4, vec3 } from "@alipay/o3-math";
-import { ReflectionProbeConfig } from "./type";
+import { CubeProbeConfig } from "./type";
 
 const cacheTarget = vec3.create();
 const cacheUp = vec3.create();
@@ -11,9 +9,9 @@ const cacheDir = vec3.create();
 const fovRadian = (90 * Math.PI) / 180;
 
 /**
- * 反射探针,生成 cubeTexture
+ * 立方体探针,生成 cubeTexture,用于 动态环境反射 等效果
  * */
-export class ReflectionProbe extends Probe {
+export class CubeProbe extends Probe {
   /** 可以设置探针的位置，默认为原点 [0,0,0] */
   public position = [0, 0, 0];
 
@@ -23,11 +21,11 @@ export class ReflectionProbe extends Probe {
   private oriInverseProjectionMatrix = mat4.create();
 
   /**
-   * 创建反射探针
+   * 创建探针
    * @param {Node} node
-   * @param {PerturbationProbeConfig} config - 可选配置
+   * @param {CubeProbeConfig} config - 可选配置
    * */
-  constructor(node: Node, config: ReflectionProbeConfig = {}) {
+  constructor(node: Node, config: CubeProbeConfig = {}) {
     super(node, {
       ...config,
       isCube: true

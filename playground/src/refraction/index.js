@@ -8,7 +8,7 @@ import { ADirectLight } from "@alipay/o3-lighting";
 import * as dat from "dat.gui";
 import "@alipay/o3-engine-stats";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
-import { PerturbationProbe } from "@alipay/o3-env-probe";
+import { PlaneProbe } from "@alipay/o3-env-probe";
 
 const gui = new dat.GUI();
 RegistExtension({ PBRMaterial });
@@ -106,7 +106,7 @@ debugModel("/static/model/perturbation-test/scene.gltf", res => {
   water.gamma = true;
   cap.srgb = true;
   cap.gamma = true;
-  const probe = rootNode.createAbility(PerturbationProbe, {
+  const probe = rootNode.createAbility(PlaneProbe, {
     width: 2048,
     height: 2048,
     renderList: [pingshen, cap, logo]

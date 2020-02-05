@@ -16,9 +16,9 @@ export interface ProbeConfig extends RenderTargetConfig {
   clipPlanes?: Vec4[];
 }
 
-export interface PerturbationProbeConfig extends ProbeConfig {}
+export interface PlaneProbeConfig extends ProbeConfig {}
 
-export interface ReflectionProbeConfig extends ProbeConfig {
+export interface CubeProbeConfig extends ProbeConfig {
   /** 分辨率，一般默认的 1024 够用了 */
   size?: number;
   /** 可以设置探针的位置，默认为原点 [0,0,0] */
