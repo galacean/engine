@@ -50,7 +50,8 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
 
     const weightsIndices = this.weightsIndices;
 
-    for (let i = 0; i < len; i++) {
+    // 冒泡排序，对 weights 进行大小排序，weightsIndices 根据 weights 顺序而调换顺序
+    for (let i = 0; i < len - 1; i++) {
       for (let j = i + 1; j < len; j++) {
         if (weights[j] > weights[i]) {
           let t = weights[i];
