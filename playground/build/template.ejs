@@ -1,21 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title><%= htmlWebpackPlugin.options.title %></title>
     <style>
-        html, body, canvas {
-            margin: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        .dg.main > ul {
-            overflow: auto;
-        }
+      html,
+      body,
+      canvas {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      .dg.main > ul {
+        overflow: auto;
+      }
     </style>
-</head>
-<body>
-<canvas id="o3-demo"></canvas>
-</body>
+  </head>
+  <body>
+    <script
+      src="https://gw.alipayobjects.com/os/lib/alipay/o3-plus/1.5.4/dist/index.browser.js"
+      crossorigin="anonymous"
+    ></script>
+    <canvas id="o3-demo"></canvas>
+  </body>
 </html>
