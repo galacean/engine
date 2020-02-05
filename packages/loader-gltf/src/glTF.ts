@@ -45,8 +45,18 @@ let nodeCount = 0;
 
 const RegistedObjs = {};
 const RegistedCustomMaterials = {};
-const defaultMateril = new ConstantMaterial("default");
-defaultMateril.emission = [0.749, 0.749, 0.749, 1];
+
+const getDefaultMaterial = (function() {
+  let defaultMateril: ConstantMaterial;
+  return () => {
+    if (!defaultMateril) {
+      defaultMateril = new ConstantMaterial("default");
+      defaultMateril.emission = [0.749, 0.749, 0.749, 1];
+    }
+    return defaultMateril;
+  };
+})();
+
 /**
  * 扩展专用注册键值
  */
@@ -572,7 +582,7 @@ export function parseMesh(gltfMesh, resources) {
       }
       primitive.material = material;
     } else {
-      primitive.material = defaultMateril;
+      primitive.material = getDefaultMaterial();
     }
 
     // get vertex count
