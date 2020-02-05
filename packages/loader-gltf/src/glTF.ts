@@ -11,6 +11,7 @@ import {
 import { openTechnique, path } from "@alipay/o3-loader";
 import { Node } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
+import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
 import { Mesh, Skin, AMeshRenderer, ASkinnedMeshRenderer } from "@alipay/o3-mesh";
 import { vec3, mat4, quat } from "@alipay/o3-math";
@@ -44,6 +45,18 @@ let nodeCount = 0;
 
 const RegistedObjs = {};
 const RegistedCustomMaterials = {};
+
+const getDefaultMaterial = (function() {
+  let defaultMateril: ConstantMaterial;
+  return () => {
+    if (!defaultMateril) {
+      defaultMateril = new ConstantMaterial("default");
+      defaultMateril.emission = [0.749, 0.749, 0.749, 1];
+    }
+    return defaultMateril;
+  };
+})();
+
 /**
  * 扩展专用注册键值
  */
@@ -526,7 +539,9 @@ export function parseMesh(gltfMesh, resources) {
 
               buffer = getAccessorData(gltf, accessor, buffers);
               primitive.vertexBuffers.push(buffer);
-              primitive.vertexAttributes[`POSITION_${j}`] = createAttribute(gltf, `POSITION_${j}`, accessor, h++);
+              const posAttrib = createAttribute(gltf, `POSITION_${j}`, accessor, h++);
+              primitive.vertexAttributes[`POSITION_${j}`] = posAttrib;
+              target["POSITION"] = { ...posAttrib };
               break;
             case "NORMAL":
               accessorIdx = target.NORMAL;
@@ -534,7 +549,9 @@ export function parseMesh(gltfMesh, resources) {
 
               buffer = getAccessorData(gltf, accessor, buffers);
               primitive.vertexBuffers.push(buffer);
-              primitive.vertexAttributes[`NORMAL_${j}`] = createAttribute(gltf, `NORMAL_${j}`, accessor, h++);
+              const normalAttrib = createAttribute(gltf, `NORMAL_${j}`, accessor, h++);
+              primitive.vertexAttributes[`NORMAL_${j}`] = normalAttrib;
+              target["NORMAL"] = { ...normalAttrib };
               break;
             case "TANGENT":
               accessorIdx = target.TANGENT;
@@ -542,23 +559,30 @@ export function parseMesh(gltfMesh, resources) {
 
               buffer = getAccessorData(gltf, accessor, buffers);
               primitive.vertexBuffers.push(buffer);
-              primitive.vertexAttributes[`TANGENT_${j}`] = createAttribute(gltf, `TANGENT_${j}`, accessor, h++);
+              const tangentAttrib = createAttribute(gltf, `TANGENT_${j}`, accessor, h++);
+              primitive.vertexAttributes[`TANGENT_${j}`] = tangentAttrib;
+              target["TANGENT"] = { ...tangentAttrib };
               break;
             default:
               Logger.error(`unknown morth target semantic "${attributeSemantic}"`);
               break;
           }
+          primitive.targets.push(target);
         }
       }
     }
 
     // link mesh primitive material
-    let material = getItemByIdx("materials", gltfPrimitive.material, resources);
-    if (material.constructor.DISABLE_SHARE) {
-      // do not share material cause different attributes
-      material = material.clone();
+    if (gltfPrimitive.material !== undefined) {
+      let material = getItemByIdx("materials", gltfPrimitive.material, resources);
+      if (material.constructor.DISABLE_SHARE) {
+        // do not share material cause different attributes
+        material = material.clone();
+      }
+      primitive.material = material;
+    } else {
+      primitive.material = getDefaultMaterial();
     }
-    primitive.material = material;
 
     // get vertex count
     const accessorIdx = gltfPrimitive.attributes.POSITION;
