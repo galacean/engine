@@ -20,7 +20,7 @@ let rootNode = scene.root;
 let cameraNode = rootNode.createChild("camera_node");
 let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: "o3-demo",
-  position: [0, 300, 0],
+  position: [400, 400, 400],
   target: [0, 150, 0],
   fov: 50
 });
@@ -54,12 +54,9 @@ resourceLoader.load(animationRes, (err, gltf) => {
   const animations = gltf.asset.animations;
 
   const horse = horsePrefab.clone();
-  // pig.rotateByAngles(0, 180, 0);
 
   rootNode.addChild(horse);
 
-  // let book = pig.findChildByName('book_one');
-  // book.isActive = false;
 
   const animator = horse.createAbility(AAnimation);
   // console.log(animations);
@@ -68,10 +65,6 @@ resourceLoader.load(animationRes, (err, gltf) => {
   });
   animator.playAnimationClip("horse_A_");
   window['animator'] = animator;
-  console.log(animator.isPlaying())
-  // animator.
-  // animator.mix('wave', 'Bone07'); // 左胳膊骨骼
-  // animator.mix('wave', 'Bone11'); // 右胳膊骨骼
 });
 
 //-- run

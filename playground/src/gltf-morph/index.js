@@ -205,36 +205,13 @@ resourceLoader.batchLoad([gltfRes, diffuseMapRes, specularMapRes, environmentMap
   });
 
   nodes[0].findChildByName("head").createAbility(MorphAnimation);
-  // const headMeshRenderer = nodes[0].findChildByName("head").abilityArray[0];
-  // setTimeout(() => {
-  //   const weights = headMeshRenderer.jointNodes.map(node=>{
-  //     return 0
-  //   });
-  //   weights[2] = 1;
-  //   headMeshRenderer.setWeights(weights)
-  // }, 2000);
-
-  // envLight.diffuseMap = res[1].asset;
-  // envLight.specularMap = res[2].asset;
-  // node.createAbility(ASkyBox, { skyBoxMap: res[3].asset });
 
   const animations = glb.asset.animations;
   const animator = node.createAbility(AAnimation);
 
   animations.forEach(clip => {
     animator.addAnimationClip(clip, clip.name);
-    // const num = clip.samplers.reduce((total, item) => {
-    //   console.log(item.output.length);
-    //   return total + item.output.length;
-    // }, 0);
-    // console.log(num);
   });
-
-  // console.log(glb.asset);
-
-  // animator.playAnimationClip("Take 001")
-
-  // animator.playAnimationClip('BusterDrone');
 });
 
 //-- run
