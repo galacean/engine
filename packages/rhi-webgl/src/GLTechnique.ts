@@ -5,7 +5,7 @@ import { Logger } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { GLRenderHardware } from "./GLRenderHardware";
-import { RenderTechnique } from "@alipay/o3-material";
+import { RenderTechnique, Material } from "@alipay/o3-material";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAsset } from "./GLAsset";
 
@@ -108,7 +108,7 @@ export class GLTechnique extends GLAsset {
    * 开始渲染时调用，绑定内部 GL Program，并设定 Unifrom
    * @param {Material} mtl
    */
-  begin(mtl) {
+  begin(mtl: Material) {
     const gl = this.rhi.gl;
     const glProgram = this._program.program;
 

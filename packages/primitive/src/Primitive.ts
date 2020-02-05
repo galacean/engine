@@ -1,5 +1,6 @@
-import { DrawMode, DataType, BufferUsage, UpdateType } from "@alipay/o3-base";
+import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
+import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 import { Mat4 } from "@alipay/o3-math/types/type";
 import { vec3 } from "@alipay/o3-math";
 
@@ -26,13 +27,14 @@ export class Primitive extends AssetObject {
   public indexOffset;
   public material;
   public targets;
-  public boundingBoxMax;
-  public boundingBoxMin;
+  public boundingBox: OBB;
+  public boundingSphere: BoundingSphere;
+  public isInFrustum: boolean;
 
   /**
    * @constructor
    */
-  constructor(name?) {
+  constructor(name?: string) {
     super(name !== undefined ? name : "DEFAULT_PRIMITIVENAME_" + primitiveID);
     this.id = primitiveID++;
     this.mode = DrawMode.TRIANGLES; // draw mode, triangles, lines etc.
@@ -58,8 +60,9 @@ export class Primitive extends AssetObject {
     //--
     this.material = null; // default material objects
     this.targets = []; // MorphTarget array
-    this.boundingBoxMax = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
-    this.boundingBoxMin = [Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE];
+    this.boundingBox = null;
+    this.boundingSphere = null;
+    this.isInFrustum = true;
   }
 
   /**
@@ -72,7 +75,15 @@ export class Primitive extends AssetObject {
    * @param {number} offset
    * @param {number} vertexBufferIndex
    */
-  addAttribute(semantic, size, type, normalized, stride, offset, vertexBufferIndex) {
+  addAttribute(
+    semantic: string,
+    size: number,
+    type: DataType,
+    normalized: boolean,
+    stride: number,
+    offset: number,
+    vertexBufferIndex: number
+  ) {
     this.vertexAttributes[semantic] = {
       semantic,
       size,
@@ -82,6 +93,24 @@ export class Primitive extends AssetObject {
       offset,
       vertexBufferIndex
     };
+  }
+
+  updateWeightsIndices(indices: number[]) {
+    if (this.targets.length !== indices.length || indices.length === 0) {
+      return;
+    }
+    for (let i = 0; i < indices.length; i++) {
+      const currentIndex = indices[i];
+      Object.keys(this.targets[i]).forEach((key: string) => {
+        const semantic = this.targets[i][key].name;
+        const index = this.targets[currentIndex][key].vertexBufferIndex;
+        this.updateAttribBufferIndex(semantic, index);
+      });
+    }
+  }
+
+  updateAttribBufferIndex(semantic: string, index: number) {
+    this.vertexAttributes[semantic].vertexBufferIndex = index;
   }
 
   /**

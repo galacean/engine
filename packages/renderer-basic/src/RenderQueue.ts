@@ -119,11 +119,19 @@ export class RenderQueue {
     const rhi = camera.renderHardware;
     const items = this._items;
 
-    for (let i = 0, len = this._items.length; i < len; i++) {
+    // 如果没有items不需要渲染
+    if (items.length === 0) {
+      return;
+    }
+
+    this.updateMaxJointsNum(this._items);
+
+    for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
+      const { nodeAbility, primitive, mtl } = item;
 
       //-- filter by mask
-      const renderPassFlag = item.nodeAbility.renderPassFlag;
+      const renderPassFlag = nodeAbility.renderPassFlag;
       if (!(renderPassFlag & mask)) continue;
 
       //-- draw
@@ -131,10 +139,10 @@ export class RenderQueue {
         //-- 如果有缓存的Sprite尚未绘制，则先绘制缓存的Sprite
         rhi.flushSprite();
 
-        const material = replaceMaterial ? replaceMaterial : item.mtl;
+        const material = replaceMaterial ? replaceMaterial : mtl;
         material.preRender?.(item.nodeAbility, item.primitive);
 
-        material.prepareDrawing(camera, item.nodeAbility, item.primitive, item.mtl);
+        material.prepareDrawing(camera, item.nodeAbility, item.primitive, mtl);
         rhi.drawPrimitive(item.primitive, material);
 
         material.postRender?.(item.nodeAbility, item.primitive);
@@ -144,6 +152,21 @@ export class RenderQueue {
     } // end of for
 
     rhi.flushSprite();
+  }
+
+  /**
+   * 更新当前 renderQueue 中各个材质的最大骨骼节点数
+   * @param items
+   */
+  updateMaxJointsNum(items) {
+    for (let i = 0, len = items.length; i < len; i++) {
+      const { nodeAbility, mtl } = items[i];
+
+      // 仅当 nodeAbility 为 ASkinnedMeshRenderer 时需要计算
+      if (nodeAbility.jointNodes) {
+        mtl.maxJointsNum = Math.max(mtl.maxJointsNum, nodeAbility.jointNodes.length);
+      }
+    }
   }
 
   /**

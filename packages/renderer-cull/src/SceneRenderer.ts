@@ -2,6 +2,8 @@
 
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { Frustum } from "./Frustum";
+import { OBB } from "@alipay/o3-bounding-info";
+import { Primitive } from "@alipay/o3-primitive";
 
 export class SceneRenderer extends BasicSceneRenderer {
   private _frustum: Frustum;
@@ -31,16 +33,23 @@ export class SceneRenderer extends BasicSceneRenderer {
    * @param {Primitive} primitive
    * @param {Material} mtl
    */
-  pushPrimitive(nodeAbility, primitive, mtl) {
-    let add = true;
+  pushPrimitive(nodeAbility, primitive: Primitive, mtl) {
+    const { node } = nodeAbility;
+    let isInFrustum = true;
 
     //-- 进行视锥剪裁
-    if ("boundingBoxMax" in primitive && "boundingBoxMin" in primitive) {
-      add = this._frustum.intersectsBox(primitive.boundingBoxMax, primitive.boundingBoxMin);
+    if (!primitive.boundingBox) {
+      const { min, max } = primitive.getMinMax();
+      primitive.boundingBox = new OBB(min, max, node.getModelMatrix());
+    } else if (node.isDirty) {
+      primitive.boundingBox.updateByModelMatrix(node.getModelMatrix());
     }
 
+    isInFrustum = primitive.boundingBox.isInFrustum(this.frustum.planes);
+    primitive.isInFrustum = isInFrustum;
+
     //-- 添加到渲染队列
-    if (add) {
+    if (isInFrustum) {
       super.pushPrimitive(nodeAbility, primitive, mtl);
     }
   }
