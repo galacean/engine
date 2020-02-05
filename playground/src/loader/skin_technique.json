@@ -1,0 +1,49 @@
+{
+  "technique": {
+    "name": "skin_diffuse",
+    "attributes": {
+      "a_position": "position",
+      "a_uv": "texcoord0",
+      "a_joint": "joint",
+      "a_weight": "weight"
+    },
+    "parameters": {
+      "position": {
+        "semantic": "POSITION",
+        "type": 35665
+      },
+      "texcoord0": {
+        "semantic": "TEXCOORD_0",
+        "type": 35665
+      },
+      "matMVP": {
+        "semantic": "MODELVIEWPROJECTION",
+        "type": 35676
+      },
+      "texDiffuse": {
+        "type": 35678
+      },
+      "joint": {
+        "semantic": "JOINTS_0",
+        "type": 35666
+      },
+      "jointMatrix": {
+        "semantic": "JOINTMATRIX",
+        "count": 30,
+        "type": 35676
+      },
+      "weight": {
+        "semantic": "WEIGHTS_0",
+        "type": 35666
+      }
+    },
+    "program": 0,
+    "uniforms": {
+      "u_mvp": "matMVP",
+      "s_diffuse": "texDiffuse",
+      "u_jointMatrix": "jointMatrix"
+    }
+  },
+  "vertexShader": "precision highp float; \n precision highp int; \n attribute vec3 a_position; \n attribute vec2 a_uv; \n attribute vec4 a_joint; \n attribute vec4 a_weight; \n uniform mat4 matProjection; \n uniform mat4 u_mvp; \n uniform mat4 u_jointMatrix[30]; \n #define getBoneMatrix(i) u_jointMatrix[int(i)] \n varying vec2 v_uv; \n void main() \n { \n   mat4 skinMat = a_weight.x * getBoneMatrix(a_joint.x); \n   skinMat += a_weight.y * getBoneMatrix(a_joint.y); \n   skinMat += a_weight.z * getBoneMatrix(a_joint.z); \n   skinMat += a_weight.w * getBoneMatrix(a_joint.w); \n   vec4 pos = skinMat * vec4(a_position, 1.0); \n   gl_Position = u_mvp * pos; \n   v_uv = a_uv; \n }",
+  "fragmentShader": "precision mediump float;\nprecision mediump int;\nuniform sampler2D s_diffuse;\nvarying vec2 v_uv;\nvoid main()\n{\n  gl_FragColor = texture2D(s_diffuse, v_uv);\n}"
+}

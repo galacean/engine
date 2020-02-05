@@ -1,0 +1,33 @@
+{
+  "name": "@alipay/o3-primitive",
+  "version": "1.0.1-next.0",
+  "description": "primitive",
+  "keywords": [
+    "Oasis3D"
+  ],
+  "authors": [
+    "daqi.sdq <daqi.sdq@alibaba-inc.com>"
+  ],
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
+  },
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
+  },
+  "license": "MIT",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "dependencies": {
+    "@alipay/o3-base": "^1.0.1-next.0",
+    "@alipay/o3-core": "^1.0.1-next.0"
+  }
+}

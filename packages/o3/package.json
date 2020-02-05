@@ -1,0 +1,73 @@
+{
+  "name": "@alipay/o3",
+  "version": "1.0.1-next.1",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
+  },
+  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
+  "keywords": [
+    "Oasis3D"
+  ],
+  "authors": [
+    "yanliang.fyl <yanliang.fyl@antfin.com>",
+    "daqi.sdq <daqi.sdq@alibaba-inc.com>",
+    "minnuo <audrey.tm@alibaba-inc.com>",
+    "qibo.pqb <qibo.pqb@antfin.com>"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
+  },
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "browser": "dist/browser.min.js",
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
+  "dependencies": {
+    "@alipay/o3-2d": "^1.0.1-next.1",
+    "@alipay/o3-animation": "^1.0.1-next.0",
+    "@alipay/o3-base": "^1.0.1-next.0",
+    "@alipay/o3-collider": "^1.0.1-next.0",
+    "@alipay/o3-collision": "^1.0.1-next.0",
+    "@alipay/o3-core": "^1.0.1-next.0",
+    "@alipay/o3-default-camera": "^1.0.1-next.1",
+    "@alipay/o3-engine-stats": "^1.0.1-next.0",
+    "@alipay/o3-env-probe": "^1.0.1-next.1",
+    "@alipay/o3-fog": "^1.0.1-next.0",
+    "@alipay/o3-framebuffer-picker": "^1.0.1-next.1",
+    "@alipay/o3-free-controls": "^1.0.1-next.0",
+    "@alipay/o3-fsm": "^1.0.1-next.0",
+    "@alipay/o3-geometry": "^1.0.1-next.1",
+    "@alipay/o3-geometry-shape": "^1.0.1-next.1",
+    "@alipay/o3-hud": "^1.0.1-next.1",
+    "@alipay/o3-lighting": "^1.0.1-next.0",
+    "@alipay/o3-loader": "^1.0.1-next.1",
+    "@alipay/o3-loader-gltf": "^1.0.1-next.1",
+    "@alipay/o3-material": "^1.0.1-next.1",
+    "@alipay/o3-math": "^1.0.1-alpha.4",
+    "@alipay/o3-mesh": "^1.0.1-next.0",
+    "@alipay/o3-mobile-material": "^1.0.1-next.1",
+    "@alipay/o3-orbit-controls": "^1.0.1-next.0",
+    "@alipay/o3-particle": "^1.0.1-next.1",
+    "@alipay/o3-pbr": "^1.0.1-next.1",
+    "@alipay/o3-primitive": "^1.0.1-next.0",
+    "@alipay/o3-raycast": "^1.0.1-next.0",
+    "@alipay/o3-renderer-basic": "^1.0.1-next.1",
+    "@alipay/o3-renderer-cull": "^1.0.1-next.1",
+    "@alipay/o3-request": "^1.0.1-alpha.4",
+    "@alipay/o3-rfui": "^1.0.1-next.1",
+    "@alipay/o3-rhi-webgl": "^1.0.1-next.1",
+    "@alipay/o3-shaderlib": "^1.0.1-next.0",
+    "@alipay/o3-shadow": "^1.0.1-next.1",
+    "@alipay/o3-skybox": "^1.0.1-next.1",
+    "@alipay/o3-trail": "^1.0.1-next.1",
+    "@alipay/o3-tween": "^1.0.1-next.0"
+  }
+}

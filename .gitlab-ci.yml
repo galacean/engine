@@ -1,0 +1,14 @@
+# 不要修改该文件，会自动生成，详见 https://gitlab.alibaba-inc.com/node/ci
+before_script:
+  - export PATH=$PWD/node_modules/.bin:$PATH
+  - echo $PATH
+  - time enclose install tnpm:tnpm
+  - tnpm -v
+alinode-3.11.7:
+  image: reg.docker.alibaba-inc.com/dockerlab/node-ci:3.7.7
+  script:
+    - time tnpm i --install-alinode=3.11.7 --no-cache --internal-oss-cache
+    - node -e "console.log('%j, %j', process.versions, process.execPath)"
+    - time tnpm run ci
+  tags:
+    - swarm
