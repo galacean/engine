@@ -854,7 +854,7 @@ class PBRMaterial extends Material {
       this._directLightNum !== directLightNum ||
       this._pointLightNum !== pointLightNum ||
       this._spotLightNum !== spotLightNum ||
-      this._clipPlaneNum !== scene.clipPlanes.length
+      this._clipPlaneNum !== scene.clipPlanes?.length
     ) {
       this._envMapLightNum = envMapLightNum;
       this._useDiffuseMap = useDiffuseMap;
@@ -862,7 +862,7 @@ class PBRMaterial extends Material {
       this._directLightNum = directLightNum;
       this._pointLightNum = pointLightNum;
       this._spotLightNum = spotLightNum;
-      this._clipPlaneNum = scene.clipPlanes.length;
+      this._clipPlaneNum = scene.clipPlanes?.length;
       this._generateTechnique(camera, component, primitive);
     }
 
