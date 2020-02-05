@@ -509,10 +509,6 @@ export function parseMesh(gltfMesh, resources) {
       const buffer = getAccessorData(gltf, accessor, buffers);
       primitive.vertexBuffers.push(buffer);
       primitive.vertexAttributes[attributeSemantic] = createAttribute(gltf, attributeSemantic, accessor, h++);
-      if (attributeSemantic === "POSITION") {
-        primitive.boundingBoxMax = accessor.max || [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
-        primitive.boundingBoxMin = accessor.min || [Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE];
-      }
     }
 
     // load morph targets
@@ -558,7 +554,7 @@ export function parseMesh(gltfMesh, resources) {
 
     // link mesh primitive material
     let material = getItemByIdx("materials", gltfPrimitive.material, resources);
-    if ((PBRMaterial && material instanceof PBRMaterial) || material.constructor.DISABLE_SHARE) {
+    if (material.constructor.DISABLE_SHARE) {
       // do not share material cause different attributes
       material = material.clone();
     }

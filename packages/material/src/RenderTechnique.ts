@@ -111,7 +111,7 @@ export class RenderTechnique extends AssetObject {
         material.onBeforeCompile(this);
       }
 
-      const attribMacros = this.getAttributeDefines(camera, component, primitive);
+      const attribMacros = this.getAttributeDefines(camera, component, primitive, material);
 
       if (this._recreateHeader) {
         // reset configs
@@ -157,7 +157,7 @@ export class RenderTechnique extends AssetObject {
     }
   }
 
-  getAttributeDefines(camera, component, primitive) {
+  getAttributeDefines(camera, component, primitive, material) {
     const rhi = camera._rhi;
     const gl = rhi.gl;
     const _macros = [];
@@ -177,12 +177,15 @@ export class RenderTechnique extends AssetObject {
         const maxAttribUniformVec4 = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
         const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
         const joints = component.jointNodes.length;
-        if (maxJoints < joints)
+        if (maxJoints < joints) {
           Logger.error(
             `component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, suggest joint count less than ${maxJoints}.`,
             component
           );
-        else _macros.push(`O3_JOINTS_NUM ${component.jointNodes.length}`); // use anyway, just warn joint count
+        } else {
+          // 使用最大关节数，保证所有 ASkinnedMeshRenderer 都可以共用材质
+          _macros.push(`O3_JOINTS_NUM ${material.maxJointsNum}`);
+        }
       }
     }
     if (attribNames.indexOf("COLOR_0") > -1) {
