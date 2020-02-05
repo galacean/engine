@@ -1,12 +1,13 @@
-import GLTexture from "./GLTexture";
+import { GLTexture } from "./GLTexture";
+import { GLRenderHardware } from "./GLRenderHardware";
 
 /**
  * GL 2D贴图资源管理
  * @private
  */
 export class GLTexture2D extends GLTexture {
-  constructor({ gl }, config) {
-    super(gl, config, gl.TEXTURE_2D);
+  constructor(rhi: GLRenderHardware, config) {
+    super(rhi, config, rhi.gl.TEXTURE_2D);
   }
 
   /**

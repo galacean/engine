@@ -1,4 +1,4 @@
-import GLTexture from "./GLTexture";
+import { GLTexture } from "./GLTexture";
 import { CubeMapFace } from "@alipay/o3-base";
 import { GLRenderHardware } from "./GLRenderHardware";
 
@@ -7,11 +7,8 @@ import { GLRenderHardware } from "./GLRenderHardware";
  * @private
  */
 export class GLTextureCubeMap extends GLTexture {
-  private _rhi: GLRenderHardware;
-
-  constructor(rhi, config) {
-    super(rhi.gl, config, rhi.gl.TEXTURE_CUBE_MAP);
-    this._rhi = rhi;
+  constructor(rhi: GLRenderHardware, config) {
+    super(rhi, config, rhi.gl.TEXTURE_CUBE_MAP);
   }
 
   /**

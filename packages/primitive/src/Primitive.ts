@@ -1,5 +1,8 @@
-import { DrawMode, DataType, BufferUsage, UpdateType } from "@alipay/o3-base";
+import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
+import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
+import { Mat4 } from "@alipay/o3-math/types/type";
+import { vec3 } from "@alipay/o3-math";
 
 let primitiveID = 0;
 
@@ -24,8 +27,9 @@ export class Primitive extends AssetObject {
   public indexOffset;
   public material;
   public targets;
-  public boundingBoxMax;
-  public boundingBoxMin;
+  public boundingBox: OBB;
+  public boundingSphere: BoundingSphere;
+  public isInFrustum: boolean;
 
   /**
    * @constructor
@@ -56,8 +60,9 @@ export class Primitive extends AssetObject {
     //--
     this.material = null; // default material objects
     this.targets = []; // MorphTarget array
-    this.boundingBoxMax = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
-    this.boundingBoxMin = [Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE];
+    this.boundingBox = null;
+    this.boundingSphere = null;
+    this.isInFrustum = true;
   }
 
   /**
@@ -88,5 +93,47 @@ export class Primitive extends AssetObject {
   resetUpdateRange() {
     this.updateRange.byteOffset = -1;
     this.updateRange.byteLength = 0;
+  }
+
+  /**
+   * 通过 primitive 计算本地/世界坐标系的 min/max
+   * @param {Mat4} modelMatrix - Local to World矩阵,如果传此值，则计算min/max时将考虑RTS变换，如果不传，则计算local min/max
+   * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
+   * */
+  getMinMax(modelMatrix?: Mat4, littleEndian = true) {
+    let {
+      vertexCount,
+      vertexBuffers,
+      vertexAttributes: {
+        POSITION: { size, offset, stride, vertexBufferIndex }
+      }
+    } = this;
+    let arrayBuffer = vertexBuffers[vertexBufferIndex];
+    if (!(arrayBuffer instanceof ArrayBuffer)) {
+      arrayBuffer = arrayBuffer.buffer;
+    }
+    if (stride === 0) {
+      stride = size * 4;
+    }
+    const dataView = new DataView(arrayBuffer, offset);
+
+    let min = [Infinity, Infinity, Infinity];
+    let max = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < vertexCount; i++) {
+      const base = offset + stride * i;
+      const position = [
+        dataView.getFloat32(base, littleEndian),
+        dataView.getFloat32(base + 4, littleEndian),
+        dataView.getFloat32(base + 8, littleEndian)
+      ];
+      modelMatrix && vec3.transformMat4(position, position, modelMatrix);
+      vec3.min(min, min, position);
+      vec3.max(max, max, position);
+    }
+
+    return {
+      min,
+      max
+    };
   }
 }

@@ -1,18 +1,24 @@
 import { AssetType } from "@alipay/o3-base";
+import { AssetObject } from "@alipay/o3-core";
 import { GLRenderHardware } from "./GLRenderHardware";
+import { GLAsset } from "./GLAsset";
+
+interface ObjectSet {
+  [key: number]: GLAsset;
+}
 
 /**
  * 引擎的资源对象所需要的 GL 资源对象的 Cache 管理
  * @private
  */
 export class GLAssetsCache {
-  private _rhi: GLRenderHardware;
-  private _objectSet;
-  private _checkList;
-  private _nextID = 1;
-  private _enableCollect: boolean;
+  private readonly _rhi: GLRenderHardware;
+  private _objectSet: ObjectSet;
+  private _checkList: GLAsset[];
+  private _nextID: number;
+  private readonly _enableCollect: boolean;
 
-  constructor(rhi, props: { enableCollect?: boolean } = {}) {
+  constructor(rhi: GLRenderHardware, props: { enableCollect?: boolean } = {}) {
     this._rhi = rhi;
     this._objectSet = {}; // 所有资源对象的集合
     this._checkList = []; // 需要检测生命周期的对象列表
@@ -26,7 +32,7 @@ export class GLAssetsCache {
    * @param {object} asset
    * @param {class} ctor
    */
-  requireObject(asset, ctor) {
+  requireObject(asset: AssetObject, ctor: new (...args: any) => GLAsset) {
     let cachedObject = null;
 
     //-- 查找已有

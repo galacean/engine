@@ -1,1 +1,1 @@
-export { registerAnimationClip, parseAnimationData } from './animation'
+export { registerAnimationClip, parseAnimationData } from "./animation";

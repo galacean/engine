@@ -391,3 +391,27 @@ export enum RefreshRate {
   /** 每帧渲染 */
   EVERYFRAME = 2
 }
+
+/**
+ * 相交信息
+ * */
+export enum IntersectInfo {
+  /** 分离 */
+  EXCLUDE,
+  /** 交叉 */
+  INTERSECT,
+  /** 包含 */
+  INCLUDE
+}
+
+/**
+ * 包围物类型
+ * */
+export enum BoundingType {
+  /** 轴对齐包围盒 */
+  AABB,
+  /** 方向包围盒 */
+  OBB,
+  /** 包围球 */
+  SPHERE
+}
