@@ -15,7 +15,7 @@ const { LERNA_PACKAGE_NAME, PWD, NODE_ENV } = process.env;
 const isMiniProgram = NODE_ENV === "MINIPROGRAM";
 
 let fileDirs;
-let excludeDirs = ["o3-examples", "component-miniprogram"];
+let excludeDirs = ["o3-examples", "component-miniprogram", "o3-plus"];
 if (!LERNA_PACKAGE_NAME) {
   console.log("build all");
   const pkgDir = path.join(__dirname, "packages");
@@ -103,8 +103,8 @@ async function makeRollupConfig({ location, main, name, type }) {
       plugins: [...commonPlugins, ...miniProgramPlugin]
     };
   }
-  const external = name === "o3-plus" ? {} : Object.keys(pkg.dependencies || {});
-  // const external = Object.keys(pkg.dependencies || {});
+  // const external = name === "o3-plus" ? {} : Object.keys(pkg.dependencies || {});
+  const external = Object.keys(pkg.dependencies || {});
 
   return {
     input,
