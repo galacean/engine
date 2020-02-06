@@ -1,6 +1,6 @@
     #ifdef O3_EMISSION_TEXTURE
 
-    vec4 emission = texture2D(u_emission, v_uv);
+    vec4 emission = texture2D(u_emission, v_uv_emissionTexture);
 
     #else
 
@@ -10,7 +10,7 @@
 
     #ifdef O3_AMBIENT_TEXTURE
 
-    vec4 ambient = texture2D(u_ambient, v_uv) * u_ambientLight;
+    vec4 ambient = texture2D(u_ambient, v_uv_ambientTexture) * u_ambientLight;
 
     #else
 
@@ -20,7 +20,7 @@
 
     #ifdef O3_DIFFUSE_TEXTURE
 
-    vec4 diffuse = texture2D(u_diffuse, v_uv);
+    vec4 diffuse = texture2D(u_diffuse, v_uv_diffuseTexture);
 
     #else
 
@@ -30,7 +30,7 @@
 
     #ifdef O3_SPECULAR_TEXTURE
 
-    vec4 specular = texture2D(u_specular, v_uv);
+    vec4 specular = texture2D(u_specular, v_uv_specularTexture);
 
     #else
 

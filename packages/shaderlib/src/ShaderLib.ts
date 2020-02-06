@@ -62,6 +62,10 @@ import clipPlane_vert from "./shaderlib/clipPlane_vert.glsl";
 import clipPlane_frag_define from "./shaderlib/clipPlane_frag_define.glsl";
 import clipPlane_frag from "./shaderlib/clipPlane_frag.glsl";
 
+import uv_transform_share_declaration from "./shaderlib/uv_transform_share_declaration.glsl";
+import uv_transform_vert_declaration from "./shaderlib/uv_transform_vert_declaration.glsl";
+import uv_transform_vert_chunk from "./shaderlib/uv_transform_vert_chunk.glsl";
+
 export const ShaderLib = {
   common,
   common_vert,
@@ -125,7 +129,11 @@ export const ShaderLib = {
   clipPlane_vert_define,
   clipPlane_vert,
   clipPlane_frag_define,
-  clipPlane_frag
+  clipPlane_frag,
+
+  uv_transform_share_declaration,
+  uv_transform_vert_declaration,
+  uv_transform_vert_chunk
 };
 
 export function InjectShaderSlices(obj) {

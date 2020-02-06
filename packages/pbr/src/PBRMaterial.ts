@@ -9,7 +9,7 @@ import {
   Side,
   Util
 } from "@alipay/o3-base";
-import { Material, RenderTechnique, Texture2D } from "@alipay/o3-material";
+import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import { LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
 
 import { AEnvironmentMapLight } from "./AEnvironmentMapLight";
@@ -38,6 +38,8 @@ class PBRMaterial extends Material {
    * @param {Texture2D} [props.baseColorTexture] 基础颜色纹理
    * @param {Number} [props.metallicFactor=1] 金属度
    * @param {Number} [props.roughnessFactor=1] 粗糙度
+   * @param {Texture2D} [props.metallicTexture] 金属纹理
+   * @param {Texture2D} [props.roughnessTexture] 粗糙度纹理
    * @param {Texture2D} [props.metallicRoughnessTexture] 金属粗糙度纹理
    * @param {Texture2D} [props.normalTexture] 法线纹理
    * @param {Number} [props.normalScale=1] 法线缩放量
@@ -68,11 +70,13 @@ class PBRMaterial extends Material {
    * @param {number} [props.envMapIntensity] 反射模式时的反射强度；
    * @param {number} [props.refractionRatio] 折射模式时的折射率的比例，如真空折射率/水折射率=1/1.33;
    * @param {boolean} [props.envMapModeRefract=false] 全局环境贴图使用 反射或者折射 模式;
-   * @param {boolean} [props.useScreenUv=false] 是否使用屏幕坐标的uv，代替纹理uv
    *
    * @param {Texture2D} [props.perturbationTexture] 扰动纹理
    * @param {number} [props.perturbationUOffset] 扰动纹理U偏移
    * @param {number} [props.perturbationVOffset] 扰动纹理V偏移
+   *
+   * @param {TextureCubeMap} [props.reflectionTexture] 局部反射贴图，可以覆盖 AEnvironmentMapLight
+   *
    */
   constructor(name = PBRMaterial.MATERIAL_NAME, props = {}) {
     super(name);
@@ -125,8 +129,7 @@ class PBRMaterial extends Material {
       getOpacityFromRGB: false,
       isMetallicWorkflow: true,
       premultipliedAlpha: true,
-      envMapModeRefract: false,
-      useScreenUv: false
+      envMapModeRefract: false
     };
 
     Object.keys(this._uniformObj).forEach(k => this.setValueByParamName(k, this._uniformObj[k]));
@@ -157,6 +160,12 @@ class PBRMaterial extends Material {
           break;
         case "roughnessFactor":
           this.roughnessFactor = obj[key];
+          break;
+        case "metallicTexture":
+          this.metallicTexture = obj[key];
+          break;
+        case "roughnessTexture":
+          this.roughnessTexture = obj[key];
           break;
         case "metallicRoughnessTexture":
           this.metallicRoughnessTexture = obj[key];
@@ -196,6 +205,9 @@ class PBRMaterial extends Material {
           break;
         case "specularGlossinessTexture":
           this.specularGlossinessTexture = obj[key];
+          break;
+        case "reflectionTexture":
+          this.reflectionTexture = obj[key];
           break;
         case "envMapIntensity":
           this.envMapIntensity = obj[key];
@@ -265,48 +277,20 @@ class PBRMaterial extends Material {
         case "envMapModeRefract":
           this.envMapModeRefract = obj[key];
           break;
-        case "useScreenUv":
-          this.useScreenUv = obj[key];
-          break;
       }
     });
   }
 
   /**
    * 根据 uniform 的参数名设置材质值
-   * 当入参为null或者undefined时,会删除value
-   * 当纹理从无到有，或者从有到无，会重新编译shader
    * @private
    */
   setValueByParamName(paramName, value) {
     const uniforms = PBRMaterial.TECH_CONFIG.uniforms;
-
-    Object.keys(uniforms).forEach(key => {
-      const uniformName = uniforms[key].name;
-      if (uniforms[key].paramName === paramName) {
-        if (value == null) {
-          this.delValue(uniformName);
-        } else {
-          this.setValue(uniformName, value);
-        }
-        if (
-          [
-            "baseColorTexture",
-            "metallicRoughnessTexture",
-            "normalTexture",
-            "emissiveTexture",
-            "occlusionTexture",
-            "opacityTexture",
-            "specularGlossinessTexture",
-            "perturbationTexture"
-          ].indexOf(paramName) !== -1
-        ) {
-          if ((this[paramName] && value == null) || (!this[paramName] && value)) {
-            this._technique = null;
-          }
-        }
-      }
-    });
+    const uniformName = Object.keys(uniforms).find(key => uniforms[key].paramName === paramName);
+    if (uniformName) {
+      this.setValue(uniformName, value);
+    }
   }
 
   /****************************************   uniform start **************************************** /
@@ -384,6 +368,32 @@ class PBRMaterial extends Material {
     this._uniformObj.roughnessFactor = v;
     this._uniformObj.metallicRoughness[1] = v;
     this.setValueByParamName("metallicRoughness", this._uniformObj.metallicRoughness);
+  }
+
+  /**
+   * 金属纹理
+   * @type {Texture2D}
+   */
+  get metallicTexture() {
+    return this._uniformObj.metallicTexture;
+  }
+
+  set metallicTexture(v) {
+    this.setValueByParamName("metallicTexture", v);
+    this._uniformObj.metallicTexture = v;
+  }
+
+  /**
+   * 粗糙度纹理
+   * @type {Texture2D}
+   */
+  get roughnessTexture() {
+    return this._uniformObj.roughnessTexture;
+  }
+
+  set roughnessTexture(v) {
+    this.setValueByParamName("roughnessTexture", v);
+    this._uniformObj.roughnessTexture = v;
   }
 
   /**
@@ -553,6 +563,19 @@ class PBRMaterial extends Material {
   set specularGlossinessTexture(v) {
     this.setValueByParamName("specularGlossinessTexture", v);
     this._uniformObj.specularGlossinessTexture = v;
+  }
+
+  /**
+   * 镜面反射纹理
+   * @type {Texture2D}
+   */
+  get reflectionTexture() {
+    return this._uniformObj.reflectionTexture;
+  }
+
+  set reflectionTexture(v) {
+    this.setValueByParamName("reflectionTexture", v);
+    this._uniformObj.reflectionTexture = v;
   }
 
   /**
@@ -781,20 +804,6 @@ class PBRMaterial extends Material {
   }
 
   /**
-   * 是否使用屏幕坐标uv，代替纹理uv
-   * 当使用屏幕坐标uv，可以用来进行一些全屏后处理
-   * @type{boolean}
-   * */
-  get useScreenUv(): boolean {
-    return this._stateObj.useScreenUv;
-  }
-
-  set useScreenUv(v) {
-    this._stateObj.useScreenUv = v;
-    this._technique = null;
-  }
-
-  /**
    * 绘制前准备
    * @param {ACamera} camera 相机
    * @param {Ability} component 组件
@@ -920,11 +929,14 @@ class PBRMaterial extends Material {
     const uniforms = Object.keys(this._values);
     if (uniforms.indexOf("u_baseColorSampler") > -1) _macros.push("HAS_BASECOLORMAP");
     if (uniforms.indexOf("u_normalSampler") > -1) _macros.push("O3_HAS_NORMALMAP");
+    if (uniforms.indexOf("u_metallicSampler") > -1) _macros.push("HAS_METALMAP");
+    if (uniforms.indexOf("u_roughnessSampler") > -1) _macros.push("HAS_ROUGHNESSMAP");
     if (uniforms.indexOf("u_metallicRoughnessSampler") > -1) _macros.push("HAS_METALROUGHNESSMAP");
     if (uniforms.indexOf("u_emissiveSampler") > -1) _macros.push("HAS_EMISSIVEMAP");
     if (uniforms.indexOf("u_occlusionSampler") > -1) _macros.push("HAS_OCCLUSIONMAP");
     if (uniforms.indexOf("u_specularGlossinessSampler") > -1) _macros.push("HAS_SPECULARGLOSSINESSMAP");
     if (uniforms.indexOf("u_perturbationSampler") > -1) _macros.push("HAS_PERTURBATIONMAP");
+    if (uniforms.indexOf("u_reflectionSampler") > -1) _macros.push("HAS_REFLECTIONMAP");
 
     if (this.alphaMode === "MASK") {
       _macros.push("ALPHA_MASK");
@@ -960,7 +972,6 @@ class PBRMaterial extends Material {
     if (this._stateObj.isMetallicWorkflow) _macros.push("IS_METALLIC_WORKFLOW");
     if (this._stateObj.premultipliedAlpha) _macros.push("PREMULTIPLIED_ALPHA");
     if (this._stateObj.envMapModeRefract) _macros.push("ENVMAPMODE_REFRACT");
-    if (this._stateObj.useScreenUv) _macros.push("USE_SCREENUV");
 
     return _macros;
   }
@@ -1101,6 +1112,8 @@ class PBRMaterial extends Material {
     for (const name in this._uniformObj) {
       switch (name) {
         case "baseColorTexture":
+        case "metallicTexture":
+        case "roughnessTexture":
         case "metallicRoughnessTexture":
         case "normalTexture":
         case "emissiveTexture":
@@ -1198,6 +1211,16 @@ class PBRMaterial extends Material {
           paramName: "metallicRoughness",
           type: DataType.FLOAT_VEC2
         },
+        u_metallicSampler: {
+          name: "u_metallicSampler",
+          paramName: "metallicTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_roughnessSampler: {
+          name: "u_roughnessSampler",
+          paramName: "roughnessTexture",
+          type: DataType.SAMPLER_2D
+        },
         u_metallicRoughnessSampler: {
           name: "u_metallicRoughnessSampler",
           paramName: "metallicRoughnessTexture",
@@ -1257,6 +1280,11 @@ class PBRMaterial extends Material {
           name: "u_specularGlossinessSampler",
           paramName: "specularGlossinessTexture",
           type: DataType.SAMPLER_2D
+        },
+        u_reflectionSampler: {
+          name: "u_reflectionSampler",
+          paramName: "reflectionTexture",
+          type: DataType.SAMPLER_CUBE
         },
         u_envMapIntensity: {
           name: "u_envMapIntensity",
