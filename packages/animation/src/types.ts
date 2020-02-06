@@ -1,5 +1,6 @@
 import { InterpolationType, WrapMode } from "./AnimationConst";
 import { Node, NodeAbility } from "@alipay/o3-core";
+import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
 
 export interface AnimationOptions {
   wrapMode?: WrapMode;
@@ -29,11 +30,11 @@ export interface ITarget {
   id: string;
 }
 
-export interface IChannelTarget {
-  targetObject: Node | NodeAbility;
+export type IChannelTarget = {
+  targetObject: Node | NodeAbility | ASkinnedMeshRenderer;
   path: string;
   outputSize: number;
-}
+};
 
 export type List = number[] | Float32Array;
 
