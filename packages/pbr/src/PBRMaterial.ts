@@ -9,7 +9,7 @@ import {
   Side,
   Util
 } from "@alipay/o3-base";
-import { Material, RenderTechnique, Texture2D } from "@alipay/o3-material";
+import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import { LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
 
 import { AEnvironmentMapLight } from "./AEnvironmentMapLight";
@@ -73,6 +73,9 @@ class PBRMaterial extends Material {
    * @param {Texture2D} [props.perturbationTexture] 扰动纹理
    * @param {number} [props.perturbationUOffset] 扰动纹理U偏移
    * @param {number} [props.perturbationVOffset] 扰动纹理V偏移
+   *
+   * @param {TextureCubeMap} [props.reflectionTexture] 局部反射贴图，可以覆盖 AEnvironmentMapLight
+   *
    */
   constructor(name = PBRMaterial.MATERIAL_NAME, props = {}) {
     super(name);
@@ -201,6 +204,9 @@ class PBRMaterial extends Material {
           break;
         case "specularGlossinessTexture":
           this.specularGlossinessTexture = obj[key];
+          break;
+        case "reflectionTexture":
+          this.reflectionTexture = obj[key];
           break;
         case "envMapIntensity":
           this.envMapIntensity = obj[key];
@@ -559,6 +565,19 @@ class PBRMaterial extends Material {
   }
 
   /**
+   * 镜面反射纹理
+   * @type {Texture2D}
+   */
+  get reflectionTexture() {
+    return this._uniformObj.reflectionTexture;
+  }
+
+  set reflectionTexture(v) {
+    this.setValueByParamName("reflectionTexture", v);
+    this._uniformObj.reflectionTexture = v;
+  }
+
+  /**
    * 反射强度
    * @type {number}
    */
@@ -909,6 +928,7 @@ class PBRMaterial extends Material {
     if (uniforms.indexOf("u_occlusionSampler") > -1) _macros.push("HAS_OCCLUSIONMAP");
     if (uniforms.indexOf("u_specularGlossinessSampler") > -1) _macros.push("HAS_SPECULARGLOSSINESSMAP");
     if (uniforms.indexOf("u_perturbationSampler") > -1) _macros.push("HAS_PERTURBATIONMAP");
+    if (uniforms.indexOf("u_reflectionSampler") > -1) _macros.push("HAS_REFLECTIONMAP");
 
     if (this.alphaMode === "MASK") {
       _macros.push("ALPHA_MASK");
@@ -1238,6 +1258,11 @@ class PBRMaterial extends Material {
           name: "u_specularGlossinessSampler",
           paramName: "specularGlossinessTexture",
           type: DataType.SAMPLER_2D
+        },
+        u_reflectionSampler: {
+          name: "u_reflectionSampler",
+          paramName: "reflectionTexture",
+          type: DataType.SAMPLER_CUBE
         },
         u_envMapIntensity: {
           name: "u_envMapIntensity",

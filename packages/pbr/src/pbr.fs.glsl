@@ -116,6 +116,12 @@ uniform float u_clearCoatRoughness;
 
 #endif
 
+#ifdef HAS_REFLECTIONMAP
+
+    uniform samplerCube u_reflectionSampler;
+
+#endif
+
 uniform vec2 u_resolution;
 
 
@@ -383,7 +389,7 @@ float getSpecularMIPLevel( const in float blinnShininessExponent, const in int m
 #ifdef O3_HAS_ENVMAPLIGHT
 vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightProbe,*/ const in GeometricContext geometry, const in float blinnShininessExponent, const in int maxMIPLevel ) {
 
-    #ifndef O3_HAS_SPECULARMAP
+    #if !defined(O3_HAS_SPECULARMAP) && !defined(HAS_REFLECTIONMAP)
 
         return u_specular * u_specularEnvSamplerIntensity * u_envMapIntensity;
 
@@ -398,17 +404,22 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
         vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
 
     #endif
-        reflectVec = inverseTransformDirection( reflectVec, u_viewMat );
+//        reflectVec = inverseTransformDirection( reflectVec, u_viewMat );
         float specularMIPLevel = getSpecularMIPLevel( blinnShininessExponent, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
-
-            vec4 envMapColor = textureCubeLodEXT( u_specularEnvSampler, reflectVec, specularMIPLevel );
+            #ifdef HAS_REFLECTIONMAP
+                 vec4 envMapColor = textureCubeLodEXT( u_reflectionSampler, reflectVec, specularMIPLevel );
+            #else
+                vec4 envMapColor = textureCubeLodEXT( u_specularEnvSampler, reflectVec, specularMIPLevel );
+            #endif
 
         #else
-
-            vec4 envMapColor = textureCube( u_specularEnvSampler, reflectVec, specularMIPLevel );
-
+            #ifdef HAS_REFLECTIONMAP
+                 vec4 envMapColor = textureCube( u_reflectionSampler, reflectVec, specularMIPLevel );
+            #else
+                 vec4 envMapColor = textureCube( u_specularEnvSampler, reflectVec, specularMIPLevel );
+            #endif
         #endif
 
         envMapColor.rgb = SRGBtoLINEAR( envMapColor * u_specularEnvSamplerIntensity * u_envMapIntensity).rgb;
@@ -422,7 +433,7 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
 
 //- ENV MAP
 
-// PBR RenderEquations
+// PBR RenderEquations#
 
 #define MAXIMUM_SPECULAR_COEFFICIENT 0.16
 #define DEFAULT_SPECULAR_COEFFICIENT 0.04

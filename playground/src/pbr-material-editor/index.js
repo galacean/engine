@@ -198,43 +198,6 @@ function addSceneGUI() {
   // lightFolder.open();
 }
 
-function addTextureDebug(parentFolder, textureType, state, material) {
-  const step = 0.01;
-  let uvControlers = [];
-  function showUVDebug() {
-    hideUVDebug();
-    uvControlers.push(folder.add(material[textureType], "flipY"));
-    uvControlers.push(folder.add(material[textureType], "premultiplyAlpha"));
-    uvControlers.push(folder.add(material[textureType], "uOffset", -1, 1, step));
-    uvControlers.push(folder.add(material[textureType], "vOffset", -1, 1, step));
-    uvControlers.push(folder.add(material[textureType], "uScale", 0, 100, step));
-    uvControlers.push(folder.add(material[textureType], "vScale", 0, 100, step));
-    uvControlers.push(folder.add(material[textureType], "uvRotation", 0, Math.PI * 2, step));
-    uvControlers.push(folder.add(material[textureType].uvCenter, "0", -1, 1, step).name("centerX"));
-    uvControlers.push(folder.add(material[textureType].uvCenter, "1", -1, 1, step).name("centerY"));
-  }
-  function hideUVDebug() {
-    uvControlers.forEach(controler => controler.remove());
-    uvControlers = [];
-  }
-  const folder = parentFolder.addFolder(textureType);
-  folder
-    .add(state, textureType, ["None", ...textureList])
-    .onChange(v => {
-      if (v === "None") {
-        material[textureType] = null;
-        hideUVDebug();
-      } else {
-        material[textureType] = textures[v];
-        showUVDebug();
-      }
-    })
-    .name("纹理");
-  if (material[textureType]) {
-    showUVDebug();
-  }
-}
-
 function addMatGUI() {
   if (materialFolder) {
     gui.removeFolder(materialFolder);
