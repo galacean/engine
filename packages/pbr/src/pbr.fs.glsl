@@ -612,6 +612,8 @@ float getLuminance(vec3 color)
 }
 
 void main() {
+    #include <clipPlane_frag>
+
     vec3 normal = getNormal();
 
     vec4 diffuseColor = u_baseColorFactor;
