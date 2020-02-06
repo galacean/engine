@@ -1,21 +1,23 @@
 import { Logger } from "@alipay/o3-base";
-import { NodeAbility } from "@alipay/o3-core";
+import { Material } from "@alipay/o3-material";
+import { NodeAbility, Node, ACamera } from "@alipay/o3-core";
+import { Mesh } from "./Mesh";
 
 /**
  * 负责渲染一个Mesh对象的组件
  * @extends NodeAbility
  */
 export class AMeshRenderer extends NodeAbility {
-  private _mesh;
-  private _instanceMaterials;
-  private _sharedMaterials;
+  private _mesh: Mesh;
+  private _instanceMaterials: Material[];
+  private _sharedMaterials: Material[];
 
   /**
    * @constructor
    * @param {Node} node 所属的Node对象
    * @param props
    */
-  constructor(node, props: { mesh? } = {}) {
+  constructor(node: Node, props: { mesh?: Mesh } = {}) {
     super(node, props);
 
     this.renderable = true; // 标记为可渲染对象
@@ -38,7 +40,7 @@ export class AMeshRenderer extends NodeAbility {
    * 指定需要渲染的Mesh对象；多个MeshRenderer对象可以引用同一个Mesh对象
    * @param {Mesh} mesh Mesh 对象
    */
-  set mesh(mesh) {
+  set mesh(mesh: Mesh) {
     this._mesh = mesh;
 
     const primitives = mesh.primitives;
@@ -51,10 +53,10 @@ export class AMeshRenderer extends NodeAbility {
 
   /**
    * 指定一个Primitive所使用的材质（替代Primitive的默认材质）
-   * @param {string} primitiveName Primitive 的名称
+   * @param {number} primitiveIndex Primitive 的名称
    * @param {Material} mtl 材质对象
    */
-  setMaterial(primitiveIndex, mtl) {
+  setMaterial(primitiveIndex: number, mtl: Material) {
     this._instanceMaterials[primitiveIndex] = mtl;
   }
 
@@ -63,7 +65,7 @@ export class AMeshRenderer extends NodeAbility {
    * @param {number} primitiveIndex 索引值
    * @return {Material}
    */
-  getInstanceMaterial(primitiveIndex) {
+  getInstanceMaterial(primitiveIndex: number): Material {
     return this._instanceMaterials[primitiveIndex];
   }
 
@@ -72,7 +74,7 @@ export class AMeshRenderer extends NodeAbility {
    * @param {number} primitiveIndex 索引值
    * @return {Material}
    */
-  getSharedMaterial(primitiveIndex) {
+  getSharedMaterial(primitiveIndex: number): Material {
     return this._sharedMaterials[primitiveIndex];
   }
 
@@ -80,7 +82,7 @@ export class AMeshRenderer extends NodeAbility {
    * 执行渲染
    * @param {CameraComponent} camera
    */
-  render(camera) {
+  render(camera: ACamera) {
     const mesh = this._mesh;
     if (!mesh) {
       return;

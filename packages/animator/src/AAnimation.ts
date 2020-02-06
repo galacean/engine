@@ -128,7 +128,6 @@ export class AAnimation extends NodeAbility {
    * @param {AnimationClip} animClip 动画片段对象
    */
   public addAnimationClip(startTime: number, animClip: AnimationClip) {
-    console.log(111);
     const name = animClip.name;
     if (this.uniqueAnimClipSet[`${name}_${startTime}`]) return;
     this.animClipSet[name] = animClip;
@@ -138,7 +137,6 @@ export class AAnimation extends NodeAbility {
     this.binHandlerMap[name] = this.binHandlerMap[name] || {};
     const hasBind = this.binHandlerMap[name][startTime];
     if (!hasBind) {
-      console.log(333, animClip);
       const handler = getAnimationClipHander(this.node, animClip);
       this.handlerStartTimeMap.set(handler, startTime);
       this.handlerList.push(handler);
@@ -188,8 +186,6 @@ export class AAnimation extends NodeAbility {
   }
 
   protected parseAnimationData() {
-    console.log(22);
-
     const { keyFrames = {}, timeScale = 1, duration = Infinity } = this.animationData || {};
     this.removeAllAnimationClip();
     Object.keys(keyFrames).forEach(startTime => {

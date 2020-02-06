@@ -53,6 +53,9 @@ let config = {
     filename: 'js/[name].js',
     path: path.resolve(__dirname, '../dist')
   },
+  externals: {
+    '@alipay/o3-plus': 'o3'
+  },
   optimization: {
     splitChunks: {
       cacheGroups: {
