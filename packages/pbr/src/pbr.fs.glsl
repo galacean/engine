@@ -4,6 +4,7 @@
 #include <fog_share>
 
 #include <uv_share>
+#include <uv_transform_share_declaration>
 #include <normal_share>
 #include <color_share>
 #include <worldpos_share>
@@ -167,15 +168,15 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
   #endif
 }
 
-vec3 getNormal(vec2 uv)
+vec3 getNormal()
 {
   #ifdef O3_HAS_NORMALMAP
     #ifndef O3_HAS_TANGENT
         #ifdef HAS_DERIVATIVES
             vec3 pos_dx = dFdx(v_pos);
             vec3 pos_dy = dFdy(v_pos);
-            vec3 tex_dx = dFdx(vec3(uv, 0.0));
-            vec3 tex_dy = dFdy(vec3(uv, 0.0));
+            vec3 tex_dx = dFdx(vec3(v_uv, 0.0));
+            vec3 tex_dy = dFdy(vec3(v_uv, 0.0));
             vec3 t = (tex_dy.t * pos_dx - tex_dx.t * pos_dy) / (tex_dx.s * tex_dy.t - tex_dy.s * tex_dx.t);
             #ifdef O3_HAS_NORMAL
                 vec3 ng = normalize(v_normal);
@@ -196,7 +197,7 @@ vec3 getNormal(vec2 uv)
     #else
         mat3 tbn = v_TBN;
     #endif
-        vec3 n = texture2D(u_normalSampler, uv ).rgb;
+        vec3 n = texture2D(u_normalSampler, v_uv_normalTexture ).rgb;
         n = normalize(tbn * ((2.0 * n - 1.0) * vec3(u_normalScale, u_normalScale, 1.0)));
   #else
     #ifdef O3_HAS_NORMAL
@@ -599,14 +600,7 @@ float getLuminance(vec3 color)
 }
 
 void main() {
-    vec2 uv = vec2(0., 0.);
-    #ifdef  USE_SCREENUV
-        uv = getScreenUv();
-    #elif defined( O3_HAS_UV ) || defined( O3_NEED_UV ) || defined( O3_HAS_ENVMAP ) || defined( O3_HAS_LIGHTMAP )
-        uv = v_uv;
-    #endif
-
-    vec3 normal = getNormal(uv);
+    vec3 normal = getNormal();
 
     vec4 diffuseColor = u_baseColorFactor;
     ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
@@ -614,7 +608,7 @@ void main() {
 
     #ifdef HAS_BASECOLORMAP
 
-        vec4 baseMapColor = texture2D( u_baseColorSampler, uv );
+        vec4 baseMapColor = texture2D( u_baseColorSampler, v_uv_baseColorTexture );
         baseMapColor = SRGBtoLINEAR( baseMapColor );
         diffuseColor *= baseMapColor;
 
@@ -644,9 +638,9 @@ void main() {
     #if defined(ALPHA_BLEND) && defined(HAS_OPACITYMAP)
 
         #ifdef GETOPACITYFROMRGB
-            diffuseColor.a *= getLuminance(texture2D( u_opacitySampler, uv ).rgb);
+            diffuseColor.a *= getLuminance(texture2D( u_opacitySampler, v_uv_opacityTexture ).rgb);
         #else
-            diffuseColor.a *= texture2D( u_opacitySampler, uv ).a;
+            diffuseColor.a *= texture2D( u_opacitySampler, v_uv_opacityTexture ).a;
         #endif
 
     #endif
@@ -664,7 +658,7 @@ void main() {
 
         #ifdef HAS_METALROUGHNESSMAP
 
-            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, uv );
+            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, v_uv_metallicRoughnessTexture );
             metalnessFactor *= metalRoughMapColor.b;
             roughnessFactor *= metalRoughMapColor.g;
 
@@ -686,7 +680,7 @@ void main() {
 
         #ifdef HAS_SPECULARGLOSSINESSMAP
 
-            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, uv );
+            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv_specularGlossinessTexture );
             specularFactor *= specularGlossinessColor.rgb;
             glossinessFactor *= specularGlossinessColor.a;
 
@@ -825,7 +819,7 @@ void main() {
 
         #ifdef HAS_OCCLUSIONMAP
 
-            float ambientOcclusion = ( texture2D( u_occlusionSampler, uv ).r - 1.0 ) * u_occlusionStrength + 1.0;
+            float ambientOcclusion = ( texture2D( u_occlusionSampler, v_uv_occlusionTexture ).r - 1.0 ) * u_occlusionStrength + 1.0;
             reflectedLight.indirectDiffuse *= ambientOcclusion;
 
             #if defined( O3_HAS_SPECULARMAP )
@@ -839,7 +833,7 @@ void main() {
 
         #ifdef HAS_EMISSIVEMAP
 
-            vec4 emissiveMapColor = texture2D( u_emissiveSampler, uv );
+            vec4 emissiveMapColor = texture2D( u_emissiveSampler, v_uv_emissiveTexture );
             emissiveMapColor = SRGBtoLINEAR( emissiveMapColor );
             totalEmissiveRadiance += u_emissiveFactor * emissiveMapColor.rgb;
 

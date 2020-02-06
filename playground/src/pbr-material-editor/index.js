@@ -198,6 +198,43 @@ function addSceneGUI() {
   // lightFolder.open();
 }
 
+function addTextureDebug(parentFolder, textureType, state, material) {
+  const step = 0.01;
+  let uvControlers = [];
+  function showUVDebug() {
+    hideUVDebug();
+    uvControlers.push(folder.add(material[textureType], "flipY"));
+    uvControlers.push(folder.add(material[textureType], "premultiplyAlpha"));
+    uvControlers.push(folder.add(material[textureType], "uOffset", -1, 1, step));
+    uvControlers.push(folder.add(material[textureType], "vOffset", -1, 1, step));
+    uvControlers.push(folder.add(material[textureType], "uScale", 0, 100, step));
+    uvControlers.push(folder.add(material[textureType], "vScale", 0, 100, step));
+    uvControlers.push(folder.add(material[textureType], "uvRotation", 0, Math.PI * 2, step));
+    uvControlers.push(folder.add(material[textureType].uvCenter, "0", -1, 1, step).name("centerX"));
+    uvControlers.push(folder.add(material[textureType].uvCenter, "1", -1, 1, step).name("centerY"));
+  }
+  function hideUVDebug() {
+    uvControlers.forEach(controler => controler.remove());
+    uvControlers = [];
+  }
+  const folder = parentFolder.addFolder(textureType);
+  folder
+    .add(state, textureType, ["None", ...textureList])
+    .onChange(v => {
+      if (v === "None") {
+        material[textureType] = null;
+        hideUVDebug();
+      } else {
+        material[textureType] = textures[v];
+        showUVDebug();
+      }
+    })
+    .name("纹理");
+  if (material[textureType]) {
+    showUVDebug();
+  }
+}
+
 function addMatGUI() {
   if (materialFolder) {
     gui.removeFolder(materialFolder);
@@ -231,23 +268,15 @@ function addMatGUI() {
     mode1.addColor(state, "specularFactor").onChange(v => {
       m.specularFactor = normalRGB(v);
     });
-    mode1.add(state, "specularGlossinessTexture", ["None", ...textureList]).onChange(v => {
-      m.specularGlossinessTexture = v === "None" ? null : textures[v];
-    });
+    addTextureDebug(mode1, "specularGlossinessTexture", state, m);
 
     // metallic
     let mode2 = f.addFolder("金属模式");
     mode2.add(m, "metallicFactor", 0, 1);
     mode2.add(m, "roughnessFactor", 0, 1);
-    mode2.add(state, "metallicTexture", ["None", ...textureList]).onChange(v => {
-      m.metallicTexture = v === "None" ? null : textures[v];
-    });
-    mode2.add(state, "roughnessTexture", ["None", ...textureList]).onChange(v => {
-      m.roughnessTexture = v === "None" ? null : textures[v];
-    });
-    mode2.add(state, "metallicRoughnessTexture", ["None", ...textureList]).onChange(v => {
-      m.metallicRoughnessTexture = v === "None" ? null : textures[v];
-    });
+    addTextureDebug(mode2, "metallicTexture", state, m);
+    addTextureDebug(mode2, "roughnessTexture", state, m);
+    addTextureDebug(mode2, "metallicRoughnessTexture", state, m);
     // common
     let common = f.addFolder("通用");
 
@@ -277,21 +306,11 @@ function addMatGUI() {
     common.addColor(state, "emissiveFactor").onChange(v => {
       m.emissiveFactor = normalRGB(v);
     });
-    common.add(state, "baseColorTexture", ["None", ...textureList]).onChange(v => {
-      m.baseColorTexture = v === "None" ? null : textures[v];
-    });
-    common.add(state, "normalTexture", ["None", ...textureList]).onChange(v => {
-      m.normalTexture = v === "None" ? null : textures[v];
-    });
-    common.add(state, "emissiveTexture", ["None", ...textureList]).onChange(v => {
-      m.emissiveTexture = v === "None" ? null : textures[v];
-    });
-    common.add(state, "occlusionTexture", ["None", ...textureList]).onChange(v => {
-      m.occlusionTexture = v === "None" ? null : textures[v];
-    });
-    common.add(state, "opacityTexture", ["None", ...textureList]).onChange(v => {
-      m.opacityTexture = v === "None" ? null : textures[v];
-    });
+    addTextureDebug(common, "baseColorTexture", state, m);
+    addTextureDebug(common, "normalTexture", state, m);
+    addTextureDebug(common, "emissiveTexture", state, m);
+    addTextureDebug(common, "occlusionTexture", state, m);
+    addTextureDebug(common, "opacityTexture", state, m);
 
     // f.open();
     mode1.open();

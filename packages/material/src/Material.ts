@@ -103,11 +103,23 @@ export class Material {
 
   /**
    * 设定材质参数值
+   * 当 texture 发生 无 <-> 有 变化时，需要重新编译
+   * TODO: 重构成不需要重新编译 technique 的机制
    * @param {string} name 参数名称
    * @param {*} value 参数值
    */
   setValue(name: string, value) {
-    this._values[name] = value;
+    const oriValue = this.getValue(name);
+    const oriIsTexture2D = oriValue instanceof Texture2D;
+    const curIsTexture2D = value instanceof Texture2D;
+    if ((!oriIsTexture2D && curIsTexture2D) || (oriIsTexture2D && !curIsTexture2D)) {
+      this._technique = null;
+    }
+    if (value) {
+      this._values[name] = value;
+    } else {
+      this.delValue(name);
+    }
   }
 
   /**
