@@ -37,6 +37,8 @@ class PBRMaterial extends Material {
    * @param {Texture2D} [props.baseColorTexture] 基础颜色纹理
    * @param {Number} [props.metallicFactor=1] 金属度
    * @param {Number} [props.roughnessFactor=1] 粗糙度
+   * @param {Texture2D} [props.metallicTexture] 金属纹理
+   * @param {Texture2D} [props.roughnessTexture] 粗糙度纹理
    * @param {Texture2D} [props.metallicRoughnessTexture] 金属粗糙度纹理
    * @param {Texture2D} [props.normalTexture] 法线纹理
    * @param {Number} [props.normalScale=1] 法线缩放量
@@ -154,6 +156,12 @@ class PBRMaterial extends Material {
           break;
         case "roughnessFactor":
           this.roughnessFactor = obj[key];
+          break;
+        case "metallicTexture":
+          this.metallicTexture = obj[key];
+          break;
+        case "roughnessTexture":
+          this.roughnessTexture = obj[key];
           break;
         case "metallicRoughnessTexture":
           this.metallicRoughnessTexture = obj[key];
@@ -353,6 +361,32 @@ class PBRMaterial extends Material {
     this._uniformObj.roughnessFactor = v;
     this._uniformObj.metallicRoughness[1] = v;
     this.setValueByParamName("metallicRoughness", this._uniformObj.metallicRoughness);
+  }
+
+  /**
+   * 金属纹理
+   * @type {Texture2D}
+   */
+  get metallicTexture() {
+    return this._uniformObj.metallicTexture;
+  }
+
+  set metallicTexture(v) {
+    this.setValueByParamName("metallicTexture", v);
+    this._uniformObj.metallicTexture = v;
+  }
+
+  /**
+   * 粗糙度纹理
+   * @type {Texture2D}
+   */
+  get roughnessTexture() {
+    return this._uniformObj.roughnessTexture;
+  }
+
+  set roughnessTexture(v) {
+    this.setValueByParamName("roughnessTexture", v);
+    this._uniformObj.roughnessTexture = v;
   }
 
   /**
@@ -868,6 +902,8 @@ class PBRMaterial extends Material {
     const uniforms = Object.keys(this._values);
     if (uniforms.indexOf("u_baseColorSampler") > -1) _macros.push("HAS_BASECOLORMAP");
     if (uniforms.indexOf("u_normalSampler") > -1) _macros.push("O3_HAS_NORMALMAP");
+    if (uniforms.indexOf("u_metallicSampler") > -1) _macros.push("HAS_METALMAP");
+    if (uniforms.indexOf("u_roughnessSampler") > -1) _macros.push("HAS_ROUGHNESSMAP");
     if (uniforms.indexOf("u_metallicRoughnessSampler") > -1) _macros.push("HAS_METALROUGHNESSMAP");
     if (uniforms.indexOf("u_emissiveSampler") > -1) _macros.push("HAS_EMISSIVEMAP");
     if (uniforms.indexOf("u_occlusionSampler") > -1) _macros.push("HAS_OCCLUSIONMAP");
@@ -1034,6 +1070,8 @@ class PBRMaterial extends Material {
     for (const name in this._uniformObj) {
       switch (name) {
         case "baseColorTexture":
+        case "metallicTexture":
+        case "roughnessTexture":
         case "metallicRoughnessTexture":
         case "normalTexture":
         case "emissiveTexture":
@@ -1130,6 +1168,16 @@ class PBRMaterial extends Material {
           name: "u_metallicRoughnessValue",
           paramName: "metallicRoughness",
           type: DataType.FLOAT_VEC2
+        },
+        u_metallicSampler: {
+          name: "u_metallicSampler",
+          paramName: "metallicTexture",
+          type: DataType.SAMPLER_2D
+        },
+        u_roughnessSampler: {
+          name: "u_roughnessSampler",
+          paramName: "roughnessTexture",
+          type: DataType.SAMPLER_2D
         },
         u_metallicRoughnessSampler: {
           name: "u_metallicRoughnessSampler",

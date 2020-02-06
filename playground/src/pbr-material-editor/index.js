@@ -52,7 +52,7 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
   clearParam: [0.9, 0.9, 0.9, 1]
 });
 window.camera = camera;
-let controler = cameraNode.createAbility(AOrbitControls, { canvas: document.getElementById("r3-demo") });
+let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("r3-demo") });
 controler.target = [0, 0.1, 0];
 let meshes = [];
 let materials = [];
@@ -248,6 +248,8 @@ function addMatGUI() {
       baseColorFactor: unNormalRGB(m.baseColorFactor),
       emissiveFactor: unNormalRGB(m.emissiveFactor),
       baseColorTexture: (m.baseColorTexture && m.baseColorTexture.name) || "",
+      metallicTexture: (m.metallicTexture && m.metallicTexture.name) || "",
+      roughnessTexture: (m.roughnessTexture && m.roughnessTexture.name) || "",
       metallicRoughnessTexture: (m.metallicRoughnessTexture && m.metallicRoughnessTexture.name) || "",
       normalTexture: (m.normalTexture && m.normalTexture.name) || "",
       emissiveTexture: (m.emissiveTexture && m.emissiveTexture.name) || "",
@@ -272,6 +274,8 @@ function addMatGUI() {
     let mode2 = f.addFolder("金属模式");
     mode2.add(m, "metallicFactor", 0, 1);
     mode2.add(m, "roughnessFactor", 0, 1);
+    addTextureDebug(mode2, "metallicTexture", state, m);
+    addTextureDebug(mode2, "roughnessTexture", state, m);
     addTextureDebug(mode2, "metallicRoughnessTexture", state, m);
     // common
     let common = f.addFolder("通用");

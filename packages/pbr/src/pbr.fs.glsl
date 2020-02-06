@@ -85,6 +85,18 @@ uniform float u_clearCoatRoughness;
 
 #endif
 
+#ifdef HAS_METALMAP
+
+    uniform sampler2D u_metallicSampler;
+
+#endif
+
+#ifdef HAS_ROUGHNESSMAP
+
+    uniform sampler2D u_roughnessSampler;
+
+#endif
+
 #ifdef HAS_METALROUGHNESSMAP
 
     uniform sampler2D u_metallicRoughnessSampler;
@@ -650,6 +662,20 @@ void main() {
             metalnessFactor *= metalRoughMapColor.b;
             roughnessFactor *= metalRoughMapColor.g;
 
+        #else
+            #ifdef HAS_METALMAP
+
+            vec4 metalMapColor = texture2D( u_metallicSampler, uv );
+            metalnessFactor *= metalMapColor.b;
+
+            #endif
+
+            #ifdef HAS_ROUGHNESSMAP
+
+            vec4 roughMapColor = texture2D( u_roughnessSampler, uv );
+            roughnessFactor *= roughMapColor.g;
+
+            #endif
         #endif
 
         #ifdef HAS_SPECULARGLOSSINESSMAP
