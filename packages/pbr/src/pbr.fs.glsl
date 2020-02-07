@@ -8,8 +8,9 @@
 #include <normal_share>
 #include <color_share>
 #include <worldpos_share>
+#include <refraction_share>
+#include <perturbation_share>
 #include <clipPlane_frag_define>
-#include <refract_share>
 
 
 #ifdef ALPHA_MASK
@@ -867,7 +868,8 @@ void main() {
         gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 / gamma));
     #endif
 
-    #include <refract_frag>
+    #include <refraction_frag>
+    #include <perturbation_frag>
     #include <fog_frag>
 
 }

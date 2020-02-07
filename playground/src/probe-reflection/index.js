@@ -12,7 +12,7 @@ import * as dat from "dat.gui";
 import "@alipay/o3-engine-stats";
 import { Mesh, AMeshRenderer } from "@alipay/o3-mesh";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
-import { ReflectionProbe } from "@alipay/o3-env-probe";
+import { CubeProbe } from "@alipay/o3-env-probe";
 import { MoveAbility } from "./MoveAbility";
 
 RegistExtension({ PBRMaterial });
@@ -122,7 +122,7 @@ function reflectionDemo() {
     onY: time => Math.cos(time + 2) * 5
   });
 
-  const probe1 = rootNode.createAbility(ReflectionProbe, {
+  const probe1 = rootNode.createAbility(CubeProbe, {
     // renderAll: true
     renderList: [sphere1Mat, sphere2Mat, sphere3Mat, skybox.material]
   });
