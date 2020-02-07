@@ -139,13 +139,13 @@ export class RenderQueue {
         //-- 如果有缓存的Sprite尚未绘制，则先绘制缓存的Sprite
         rhi.flushSprite();
 
-        if (replaceMaterial) {
-          replaceMaterial.prepareDrawing(camera, nodeAbility, primitive, mtl);
-          rhi.drawPrimitive(primitive, replaceMaterial);
-        } else {
-          mtl.prepareDrawing(camera, nodeAbility, primitive);
-          rhi.drawPrimitive(primitive, mtl);
-        }
+        const material = replaceMaterial ? replaceMaterial : mtl;
+        material.preRender?.(item.nodeAbility, item.primitive);
+
+        material.prepareDrawing(camera, item.nodeAbility, item.primitive, mtl);
+        rhi.drawPrimitive(item.primitive, material);
+
+        material.postRender?.(item.nodeAbility, item.primitive);
       } else {
         rhi.drawSprite(item.positionQuad, item.uvRect, item.tintColor, item.texture, item.renderMode, item.camera);
       }

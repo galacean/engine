@@ -8,6 +8,7 @@
 #include <normal_share>
 #include <color_share>
 #include <worldpos_share>
+#include <clipPlane_frag_define>
 #include <refract_share>
 
 
@@ -611,6 +612,8 @@ float getLuminance(vec3 color)
 }
 
 void main() {
+    #include <clipPlane_frag>
+
     vec3 normal = getNormal();
 
     vec4 diffuseColor = u_baseColorFactor;
