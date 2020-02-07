@@ -26,6 +26,7 @@ export class Primitive extends AssetObject {
   public indexBuffer;
   public indexOffset;
   public material;
+  public materialIndex: number;
   public targets;
   public boundingBox: OBB;
   public boundingSphere: BoundingSphere;

@@ -579,6 +579,7 @@ export function parseMesh(gltfMesh, resources) {
         // do not share material cause different attributes
         material = material.clone();
       }
+      primitive.materialIndex = gltfPrimitive.material;
       primitive.material = material;
     } else {
       primitive.material = getDefaultMaterial();
