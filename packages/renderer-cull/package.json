@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-renderer-cull",
-  "version": "1.5.2",
+  "version": "1.6.0-alpha",
   "description": "Oasis3D camera renderer with frustum cull",
   "keywords": [
     "Oasis3D",
@@ -27,11 +27,11 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-base": "^1.5.2",
-    "@alipay/o3-bounding-info": "^1.5.2",
-    "@alipay/o3-core": "^1.5.2",
-    "@alipay/o3-math": "^1.5.2",
-    "@alipay/o3-primitive": "^1.5.2",
-    "@alipay/o3-renderer-basic": "^1.5.2"
+    "@alipay/o3-base": "^1.6.0-alpha",
+    "@alipay/o3-bounding-info": "^1.6.0-alpha",
+    "@alipay/o3-core": "^1.6.0-alpha",
+    "@alipay/o3-math": "^1.6.0-alpha",
+    "@alipay/o3-primitive": "^1.6.0-alpha",
+    "@alipay/o3-renderer-basic": "^1.6.0-alpha"
   }
 }

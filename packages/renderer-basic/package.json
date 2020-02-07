@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-renderer-basic",
-  "version": "1.5.2",
+  "version": "1.6.0-alpha",
   "description": "Oasis3D Basic Camera Renderer",
   "keywords": [
     "Oasis3D",
@@ -25,10 +25,10 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "dependencies": {
-    "@alipay/o3-base": "^1.5.2",
-    "@alipay/o3-core": "^1.5.2",
-    "@alipay/o3-material": "^1.5.2",
-    "@alipay/o3-math": "^1.5.2"
+    "@alipay/o3-base": "^1.6.0-alpha",
+    "@alipay/o3-core": "^1.6.0-alpha",
+    "@alipay/o3-material": "^1.6.0-alpha",
+    "@alipay/o3-math": "^1.6.0-alpha"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
