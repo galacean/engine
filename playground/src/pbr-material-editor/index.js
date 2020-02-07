@@ -12,7 +12,7 @@ import * as dat from "dat.gui";
 import "@alipay/o3-engine-stats";
 import { Mesh, AMeshRenderer } from "@alipay/o3-mesh";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
-import { RenderTarget } from "@alipay/o3-material";
+import { RenderTarget, Texture2D } from "@alipay/o3-material";
 import { RenderPass } from "@alipay/o3-renderer-basic";
 import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
 import { PerturbationProbe } from "@alipay/o3-env-probe";
@@ -196,6 +196,43 @@ function addSceneGUI() {
 
   // dispFolder.open();
   // lightFolder.open();
+}
+
+function addTextureDebug(parentFolder, textureType, state, material) {
+  const step = 0.01;
+  let uvControlers = [];
+  function showUVDebug() {
+    hideUVDebug();
+    uvControlers.push(folder.add(material[textureType], "flipY"));
+    uvControlers.push(folder.add(material[textureType], "premultiplyAlpha"));
+    uvControlers.push(folder.add(material[textureType], "uOffset", -1, 1, step));
+    uvControlers.push(folder.add(material[textureType], "vOffset", -1, 1, step));
+    uvControlers.push(folder.add(material[textureType], "uScale", 0, 100, step));
+    uvControlers.push(folder.add(material[textureType], "vScale", 0, 100, step));
+    uvControlers.push(folder.add(material[textureType], "uvRotation", 0, Math.PI * 2, step));
+    uvControlers.push(folder.add(material[textureType].uvCenter, "0", -1, 1, step).name("centerX"));
+    uvControlers.push(folder.add(material[textureType].uvCenter, "1", -1, 1, step).name("centerY"));
+  }
+  function hideUVDebug() {
+    uvControlers.forEach(controler => controler.remove());
+    uvControlers = [];
+  }
+  const folder = parentFolder.addFolder(textureType);
+  folder
+    .add(state, textureType, ["None", ...textureList])
+    .onChange(v => {
+      if (v === "None") {
+        material[textureType] = null;
+        hideUVDebug();
+      } else {
+        material[textureType] = textures[v];
+        showUVDebug();
+      }
+    })
+    .name("纹理");
+  if (material[textureType] && material[textureType] instanceof Texture2D) {
+    showUVDebug();
+  }
 }
 
 function addMatGUI() {

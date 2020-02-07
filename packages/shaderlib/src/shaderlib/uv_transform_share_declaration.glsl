@@ -22,6 +22,18 @@
 
 #endif
 
+#ifdef HAS_METALMAP
+
+    varying vec2 v_uv_metallicTexture;
+
+#endif
+
+#ifdef HAS_ROUGHNESSMAP
+
+    varying vec2 v_uv_roughnessTexture;
+
+#endif
+
 #ifdef HAS_METALROUGHNESSMAP
 
     varying vec2 v_uv_metallicRoughnessTexture;

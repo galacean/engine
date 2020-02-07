@@ -22,6 +22,18 @@
 
 #endif
 
+#ifdef HAS_METALMAP
+
+    uniform mat3 u_metallicSamplerMatrix;
+
+#endif
+
+#ifdef HAS_ROUGHNESSMAP
+
+    uniform mat3 u_roughnessSamplerMatrix;
+
+#endif
+
 #ifdef HAS_METALROUGHNESSMAP
 
     uniform mat3 u_metallicRoughnessSamplerMatrix;

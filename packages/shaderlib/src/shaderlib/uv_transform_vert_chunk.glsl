@@ -22,6 +22,18 @@
 
 #endif
 
+#ifdef HAS_METALMAP
+
+    v_uv_metallicTexture = (u_metallicSamplerMatrix * vec3(v_uv, 1.0)).st ;
+
+#endif
+
+#ifdef HAS_ROUGHNESSMAP
+
+    v_uv_roughnessTexture = (u_roughnessSamplerMatrix * vec3(v_uv, 1.0)).st ;
+
+#endif
+
 #ifdef HAS_METALROUGHNESSMAP
 
     v_uv_metallicRoughnessTexture = (u_metallicRoughnessSamplerMatrix * vec3(v_uv, 1.0)).st ;

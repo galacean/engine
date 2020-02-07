@@ -680,14 +680,14 @@ void main() {
         #else
             #ifdef HAS_METALMAP
 
-            vec4 metalMapColor = texture2D( u_metallicSampler, uv );
+            vec4 metalMapColor = texture2D( u_metallicSampler, v_uv_metallicTexture );
             metalnessFactor *= metalMapColor.b;
 
             #endif
 
             #ifdef HAS_ROUGHNESSMAP
 
-            vec4 roughMapColor = texture2D( u_roughnessSampler, uv );
+            vec4 roughMapColor = texture2D( u_roughnessSampler, v_uv_roughnessTexture );
             roughnessFactor *= roughMapColor.g;
 
             #endif
