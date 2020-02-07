@@ -16,7 +16,9 @@ export class PBRMaterialResource extends SchemaResource {
     "occlusionTexture",
     "opacityTexture",
     "specularGlossinessTexture",
-    "perturbationTexture"
+    "perturbationTexture",
+    "refractionTexture",
+    "reflectionTexture"
   ];
 
   static propsKey = [
@@ -49,7 +51,8 @@ export class PBRMaterialResource extends SchemaResource {
     "refractionRatio",
     "envMapModeRefract",
     "perturbationUOffset",
-    "perturbationVOffset"
+    "perturbationVOffset",
+    "refractionDepth"
   ];
 
   load(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<PBRMaterialResource> {
