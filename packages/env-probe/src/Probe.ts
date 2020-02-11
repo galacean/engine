@@ -15,7 +15,7 @@ export abstract class Probe extends NodeAbility {
   private readonly isCube: boolean;
   private oriClipPlane: Vec4[];
 
-  public camera: ACamera;
+  private _camera: ACamera;
 
   /** 优先级 excludeRenderList > renderAll > renderList */
   public excludeRenderList: Material[];
@@ -28,6 +28,17 @@ export abstract class Probe extends NodeAbility {
 
   /** 裁剪面 */
   public clipPlanes: Vec4[];
+
+  public set camera(camera) {
+    if (camera === this._camera) return;
+    this._camera && this.sceneRenderer.removeRenderPass(this.renderPass);
+    this._camera = camera;
+    camera && this.sceneRenderer.addRenderPass(this.renderPass);
+  }
+
+  public get camera() {
+    return this._camera;
+  }
 
   /**
    * 探针所得 2D 纹理
@@ -82,13 +93,6 @@ export abstract class Probe extends NodeAbility {
     super(node, config);
     this.cacheId = cacheId++;
 
-    this.isCube = !!config.isCube;
-    this.camera = config.camera || node.scene.activeCameras[0];
-    this.excludeRenderList = config.excludeRenderList || [];
-    this.renderAll = !!config.renderAll;
-    this.renderList = config.renderList || [];
-    this.clipPlanes = config.clipPlanes || [];
-
     this.renderTarget = new RenderTarget("_renderTarget" + this.cacheId, config);
     this.renderTargetSwap = new RenderTarget("_renderTarget_swap" + this.cacheId, config);
     this.renderPass = new RenderPass("_renderPass" + this.cacheId, -10, this.renderTarget);
@@ -99,7 +103,12 @@ export abstract class Probe extends NodeAbility {
     this.renderPass.render = this.render.bind(this);
     this.renderPass.postRender = this.postRender.bind(this);
 
-    this.sceneRenderer.addRenderPass(this.renderPass);
+    this.isCube = !!config.isCube;
+    this.camera = config.camera || this.scene.activeCameras[0];
+    this.excludeRenderList = config.excludeRenderList || [];
+    this.renderAll = !!config.renderAll;
+    this.renderList = config.renderList || [];
+    this.clipPlanes = config.clipPlanes || [];
 
     /**
      * 继续 RTT
