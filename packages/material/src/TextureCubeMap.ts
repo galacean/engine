@@ -14,12 +14,6 @@ export class TextureCubeMap extends Texture {
   private _mipMapLevel: number;
   public needUpdateCubeTextureFace: Array<boolean>;
 
-  protected _needUpdateFilers: boolean;
-  protected _canMipmap: boolean;
-  // protected _needUpdateTexture: Array<boolean>;
-
-  public updateWholeTexture: boolean;
-
   /**
    * CubeMap 贴图数据对象
    * @param {String} name 名称
