@@ -102,6 +102,7 @@ export class ResourceManager {
     });
   }
 
+  @pluginHook({ after: "resourceUpdated" })
   update(id: string, key: string, value: any) {
     const resource = this.get(id);
     if (resource) {
