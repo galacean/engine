@@ -45,6 +45,7 @@ export interface PluginHook {
   beforeNodeDeleted?(config: any): any;
   beforeResourceRemove?(id: string): any;
   resourceUpdated?(id: string, key: string, value: any): any;
+  beforeResourceUpdate?(id: string, key: string, value: any): any;
   // todo type
   resourceAdded?(resource: any): any;
 }
