@@ -108,6 +108,12 @@ export class ResourceManager {
     if (resource) {
       resource.update(key, value);
     }
+    return {
+      resource,
+      id,
+      key,
+      value
+    };
   }
 
   updateMeta(id: string, key: string, value: any) {
