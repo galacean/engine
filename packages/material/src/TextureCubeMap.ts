@@ -14,6 +14,12 @@ export class TextureCubeMap extends Texture {
   private _mipMapLevel: number;
   public needUpdateCubeTextureFace: Array<boolean>;
 
+  protected _needUpdateFilers: boolean;
+  protected _canMipmap: boolean;
+  // protected _needUpdateTexture: Array<boolean>;
+
+  public updateWholeTexture: boolean;
+
   /**
    * CubeMap 贴图数据对象
    * @param {String} name 名称
@@ -72,7 +78,10 @@ export class TextureCubeMap extends Texture {
    * @param {HTMLImageElement|HTMLVideoElement|HTMLCanvasElement} image 更新的内容
    */
   updateImage(index: number, image) {
-    this._images[index] = image;
+    if (this._images[0]) {
+      this._images[0][index] = image;
+      // this._needUpdateTexture[index] = true;
+    }
     this.needUpdateCubeTextureFace[index] = true;
   }
 
