@@ -551,17 +551,26 @@ export class Node extends EventDispatcher {
       // fixme: remove below code after gltf loader can set the right ownerScene
       child._ownerScene = this._ownerScene;
 
-      const traverseSetOwnerScene = node => {
-        for (let i = node.children.length - 1; i >= 0; i--) {
-          node.children[i]._ownerScene = node._ownerScene;
-          traverseSetOwnerScene(node.children[i]);
-        }
-      };
-      traverseSetOwnerScene(child);
-
+      Node.traverseSetOwnerScene(child);
       // throw new Error( 'Node should NOT shared between scenes.' );
     }
     child.parentNode = this;
+  }
+
+  /**
+   * 删除子节点
+   * @param child
+   */
+  public removeChild(child: Node) {
+    const index = this._children.indexOf(child);
+    if (index < 0) {
+      return;
+    }
+    this._children.splice(index, 1);
+    child._parent = null;
+
+    child._ownerScene = null;
+    Node.traverseSetOwnerScene(child);
   }
 
   /** 销毁本节点对象 */
@@ -827,5 +836,12 @@ export class Node extends EventDispatcher {
     mat4.lookAtR(modelMatrix, position, center, up);
     this.setModelMatrix(modelMatrix);
     return this;
+  }
+
+  private static traverseSetOwnerScene(node: Node) {
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      node.children[i]._ownerScene = node._ownerScene;
+      this.traverseSetOwnerScene(node.children[i]);
+    }
   }
 }
