@@ -1,6 +1,7 @@
 import * as o3 from "@alipay/o3";
 import { Oasis } from "../Oasis";
 import { Plugin } from "./Plugin";
+import { SchemaResource } from "../resources";
 
 export class PluginManager implements PluginHook {
   private registeredPlugins: Set<Plugin> = new Set();
@@ -44,7 +45,8 @@ export interface PluginHook {
   beforeAbilityDeleted?(id: string): any;
   beforeNodeDeleted?(config: any): any;
   beforeResourceRemove?(id: string): any;
-  resourceUpdated?(id: string, key: string, value: any): any;
+  resourceUpdated?(info: { resource: SchemaResource; id: string; key: string; value: any }): any;
+  beforeResourceUpdate?(id: string, key: string, value: any): any;
   // todo type
   resourceAdded?(resource: any): any;
 }

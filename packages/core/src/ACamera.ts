@@ -251,8 +251,8 @@ export class ACamera extends NodeAbility {
     const py = (screenPoint[1] / clientHeight) * canvasHeight;
 
     const viewport = this.viewport;
-    const viewWidth = viewport[2] - viewport[0];
-    const viewHeight = viewport[3] - viewport[1];
+    const viewWidth = viewport[2];
+    const viewHeight = viewport[3];
 
     const nx = ((px - viewport[0]) / viewWidth) * 2 - 1;
     const ny = 1 - ((py - viewport[1]) / viewHeight) * 2;

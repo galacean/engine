@@ -102,12 +102,18 @@ export class ResourceManager {
     });
   }
 
-  @pluginHook({ after: "resourceUpdated" })
+  @pluginHook({ after: "resourceUpdated", before: "beforeResourceUpdate" })
   update(id: string, key: string, value: any) {
     const resource = this.get(id);
     if (resource) {
       resource.update(key, value);
     }
+    return {
+      resource,
+      id,
+      key,
+      value
+    };
   }
 
   updateMeta(id: string, key: string, value: any) {

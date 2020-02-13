@@ -72,7 +72,10 @@ export class TextureCubeMap extends Texture {
    * @param {HTMLImageElement|HTMLVideoElement|HTMLCanvasElement} image 更新的内容
    */
   updateImage(index: number, image) {
-    this._images[index] = image;
+    if (this._images[0]) {
+      this._images[0][index] = image;
+      // this._needUpdateTexture[index] = true;
+    }
     this.needUpdateCubeTextureFace[index] = true;
   }
 
