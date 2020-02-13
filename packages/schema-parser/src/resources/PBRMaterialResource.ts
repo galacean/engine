@@ -7,12 +7,18 @@ import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
 export class PBRMaterialResource extends SchemaResource {
   static textureArr = [
-    "metallicRoughnessTexture",
-    "specularGlossinessTexture",
     "baseColorTexture",
+    "metallicTexture",
+    "roughnessTexture",
+    "metallicRoughnessTexture",
     "normalTexture",
     "emissiveTexture",
-    "occlusionTexture"
+    "occlusionTexture",
+    "opacityTexture",
+    "specularGlossinessTexture",
+    "perturbationTexture",
+    "refractionTexture",
+    "reflectionTexture"
   ];
 
   static propsKey = [
@@ -39,7 +45,14 @@ export class PBRMaterialResource extends SchemaResource {
     "normalTexture",
     "emissiveTexture",
     "occlusionTexture",
-    "occlusionStrength"
+    "occlusionStrength",
+    "opacity",
+    "getOpacityFromRGB",
+    "refractionRatio",
+    "envMapModeRefract",
+    "perturbationUOffset",
+    "perturbationVOffset",
+    "refractionDepth"
   ];
 
   load(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<PBRMaterialResource> {

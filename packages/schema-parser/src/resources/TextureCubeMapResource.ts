@@ -1,6 +1,8 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
-import { AssetConfig } from "../types";
+import { ResourceLoader } from "@alipay/o3";
+import { TextureResource } from "./TextureResource";
+import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
 const imageOrderMap = {
   px: 0,
@@ -27,20 +29,64 @@ export class TextureCubeMapResource extends SchemaResource {
     });
   }
 
+  loadWithAttachedResources(
+    resourceLoader: ResourceLoader,
+    assetConfig: AssetConfig
+  ): Promise<LoadAttachedResourceResult> {
+    return new Promise(resolve => {
+      const result: LoadAttachedResourceResult = {
+        resources: [this],
+        structure: {
+          index: 0,
+          props: {}
+        }
+      };
+      const textureResources = [];
+      const configs = [];
+      for (const key in assetConfig.props) {
+        if (assetConfig.props.hasOwnProperty(key)) {
+          const element = assetConfig.props[key];
+          configs[imageOrderMap[key]] = element;
+          const textureResource = new TextureResource(this.resourceManager);
+          result.resources.push(textureResource);
+          result.structure.props[key] = {
+            index: result.resources.length - 1
+          };
+          textureResources[imageOrderMap[key]] = textureResource;
+          this._attachedResources.push(textureResource);
+        }
+      }
+      const promises = textureResources.map((textureResource, index) => {
+        return textureResource.load(resourceLoader, configs[index]);
+      });
+
+      Promise.all(promises).then(textureResources => {
+        const images = textureResources.map(textureResource => textureResource.resource.image);
+        this._resource = new o3.TextureCubeMap(assetConfig.name, [images], assetConfig.props);
+        this.setMeta();
+        resolve(result);
+      });
+    });
+  }
+
   bind() {
     const cubeMap = this._resource;
     const imageAssets = this.imageAssets;
     const images = [];
     Object.keys(imageAssets).forEach(key => {
       if (imageAssets[key]) {
-        images[imageOrderMap[key]] = this.resourceManager.get(imageAssets[key].id).resource.image;
+        const textureResource = this.resourceManager.get(imageAssets[key].id);
+        images[imageOrderMap[key]] = textureResource.resource.image;
+        this._attachedResources.push(textureResource);
       }
     });
     cubeMap.images = [images];
   }
 
   update(key: string, value: any) {
-    this.imageAssets[key] = value;
-    this.bind();
+    const resource = this.resourceManager.get(value.id);
+
+    this.resource.updateImage(imageOrderMap[key], resource.resource.image);
+    this.resource.updateTexture();
   }
 }

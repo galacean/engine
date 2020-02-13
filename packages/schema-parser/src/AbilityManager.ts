@@ -29,10 +29,12 @@ export class AbilityManager {
     const abilityArray = node.abilityArray;
     const currentIndex = abilityArray.length - 1;
     switchElementsIndex(abilityArray, currentIndex, index);
+    (ability as any).id = id;
     this.abilityMap[id] = ability;
     return ability;
   }
 
+  @pluginHook({ before: "beforeAbilityUpdated" })
   public update(id: string, key: string, value: any) {
     if (value && this.checkIsAsset(value)) {
       this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;

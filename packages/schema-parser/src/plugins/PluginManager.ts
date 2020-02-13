@@ -1,6 +1,7 @@
 import * as o3 from "@alipay/o3";
 import { Oasis } from "../Oasis";
 import { Plugin } from "./Plugin";
+import { SchemaResource } from "../resources";
 
 export class PluginManager implements PluginHook {
   private registeredPlugins: Set<Plugin> = new Set();
@@ -28,8 +29,8 @@ export class PluginManager implements PluginHook {
     this.delegateMethod("nodeAdded", node);
   }
 
-  private delegateMethod(name: keyof PluginHook, param: any) {
-    this.plugins.forEach(plugin => plugin[name] && (plugin[name] as any)(param));
+  private delegateMethod(name: keyof PluginHook, ...args) {
+    this.plugins.forEach(plugin => plugin[name] && (plugin[name] as any)(...args));
   }
 }
 
@@ -38,11 +39,14 @@ export interface PluginHook {
   nodeAdded?(node: o3.Node): any;
   abilityAdded?(ability: o3.NodeAbility): any;
   beforeAbilityAdded?(config: any): any;
+  beforeAbilityUpdated?(id: string, key: string, value: any): any;
   schemaParsed?(): any;
   abilityDeleted?(id: string): any;
   beforeAbilityDeleted?(id: string): any;
   beforeNodeDeleted?(config: any): any;
   beforeResourceRemove?(id: string): any;
+  resourceUpdated?(info: { resource: SchemaResource; id: string; key: string; value: any }): any;
+  beforeResourceUpdate?(id: string, key: string, value: any): any;
   // todo type
   resourceAdded?(resource: any): any;
 }

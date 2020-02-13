@@ -54,8 +54,19 @@ import noise_simplex_3D from "./shaderlib/noise_simplex_3D.glsl";
 import noise_simplex_4D from "./shaderlib/noise_simplex_4D.glsl";
 import noise_simplex from "./shaderlib/noise_simplex.glsl";
 
-import refract_share from "./shaderlib/refract_share.glsl";
-import refract_frag from "./shaderlib/refract_frag.glsl";
+import perturbation_share from "./shaderlib/perturbation_share.glsl";
+import perturbation_frag from "./shaderlib/perturbation_frag.glsl";
+import refraction_share from "./shaderlib/refraction_share.glsl";
+import refraction_frag from "./shaderlib/refraction_frag.glsl";
+
+import uv_transform_share_declaration from "./shaderlib/uv_transform_share_declaration.glsl";
+import uv_transform_vert_declaration from "./shaderlib/uv_transform_vert_declaration.glsl";
+import uv_transform_vert_chunk from "./shaderlib/uv_transform_vert_chunk.glsl";
+
+import clipPlane_vert_define from "./shaderlib/clipPlane_vert_define.glsl";
+import clipPlane_vert from "./shaderlib/clipPlane_vert.glsl";
+import clipPlane_frag_define from "./shaderlib/clipPlane_frag_define.glsl";
+import clipPlane_frag from "./shaderlib/clipPlane_frag.glsl";
 
 export const ShaderLib = {
   common,
@@ -114,8 +125,19 @@ export const ShaderLib = {
   noise_simplex_4D,
   noise_simplex,
 
-  refract_share,
-  refract_frag
+  perturbation_share,
+  perturbation_frag,
+  refraction_share,
+  refraction_frag,
+
+  uv_transform_share_declaration,
+  uv_transform_vert_declaration,
+  uv_transform_vert_chunk,
+
+  clipPlane_vert_define,
+  clipPlane_vert,
+  clipPlane_frag_define,
+  clipPlane_frag
 };
 
 export function InjectShaderSlices(obj) {

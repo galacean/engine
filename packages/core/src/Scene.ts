@@ -5,6 +5,7 @@ import { Engine } from "./Engine";
 import { ACamera } from "./ACamera";
 import { SceneFeature } from "./SceneFeature";
 import { SceneVisitor } from "./SceneVisitor";
+import { Vec4 } from "@alipay/o3-math/types/type";
 
 /*
 Scene Feature:
@@ -56,6 +57,14 @@ export class Scene extends EventDispatcher {
   private _engine: Engine;
 
   private _root: Node;
+
+  /**
+   * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
+   * @example
+   * scene.clipPlanes = [[0,1,0,0]];
+   * */
+  public clipPlanes: Vec4[] = [];
+
   /**
    * 构造函数
    * @param {Engine} engine 引擎对象

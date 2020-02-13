@@ -4,10 +4,13 @@
 #include <fog_share>
 
 #include <uv_share>
+#include <uv_transform_share_declaration>
 #include <normal_share>
 #include <color_share>
 #include <worldpos_share>
-#include <refract_share>
+#include <refraction_share>
+#include <perturbation_share>
+#include <clipPlane_frag_define>
 
 
 #ifdef ALPHA_MASK
@@ -84,6 +87,18 @@ uniform float u_clearCoatRoughness;
 
 #endif
 
+#ifdef HAS_METALMAP
+
+    uniform sampler2D u_metallicSampler;
+
+#endif
+
+#ifdef HAS_ROUGHNESSMAP
+
+    uniform sampler2D u_roughnessSampler;
+
+#endif
+
 #ifdef HAS_METALROUGHNESSMAP
 
     uniform sampler2D u_metallicRoughnessSampler;
@@ -100,6 +115,12 @@ uniform float u_clearCoatRoughness;
 #ifdef HAS_OPACITYMAP
 
     uniform sampler2D u_opacitySampler;
+
+#endif
+
+#ifdef HAS_REFLECTIONMAP
+
+    uniform samplerCube u_reflectionSampler;
 
 #endif
 
@@ -155,15 +176,15 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
   #endif
 }
 
-vec3 getNormal(vec2 uv)
+vec3 getNormal()
 {
   #ifdef O3_HAS_NORMALMAP
     #ifndef O3_HAS_TANGENT
         #ifdef HAS_DERIVATIVES
             vec3 pos_dx = dFdx(v_pos);
             vec3 pos_dy = dFdy(v_pos);
-            vec3 tex_dx = dFdx(vec3(uv, 0.0));
-            vec3 tex_dy = dFdy(vec3(uv, 0.0));
+            vec3 tex_dx = dFdx(vec3(v_uv, 0.0));
+            vec3 tex_dy = dFdy(vec3(v_uv, 0.0));
             vec3 t = (tex_dy.t * pos_dx - tex_dx.t * pos_dy) / (tex_dx.s * tex_dy.t - tex_dy.s * tex_dx.t);
             #ifdef O3_HAS_NORMAL
                 vec3 ng = normalize(v_normal);
@@ -184,7 +205,7 @@ vec3 getNormal(vec2 uv)
     #else
         mat3 tbn = v_TBN;
     #endif
-        vec3 n = texture2D(u_normalSampler, uv ).rgb;
+        vec3 n = texture2D(u_normalSampler, v_uv_normalTexture ).rgb;
         n = normalize(tbn * ((2.0 * n - 1.0) * vec3(u_normalScale, u_normalScale, 1.0)));
   #else
     #ifdef O3_HAS_NORMAL
@@ -370,7 +391,7 @@ float getSpecularMIPLevel( const in float blinnShininessExponent, const in int m
 #ifdef O3_HAS_ENVMAPLIGHT
 vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightProbe,*/ const in GeometricContext geometry, const in float blinnShininessExponent, const in int maxMIPLevel ) {
 
-    #ifndef O3_HAS_SPECULARMAP
+    #if !defined(O3_HAS_SPECULARMAP) && !defined(HAS_REFLECTIONMAP)
 
         return u_specular * u_specularEnvSamplerIntensity * u_envMapIntensity;
 
@@ -385,17 +406,22 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
         vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
 
     #endif
-        reflectVec = inverseTransformDirection( reflectVec, u_viewMat );
+//        reflectVec = inverseTransformDirection( reflectVec, u_viewMat );
         float specularMIPLevel = getSpecularMIPLevel( blinnShininessExponent, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
-
-            vec4 envMapColor = textureCubeLodEXT( u_specularEnvSampler, reflectVec, specularMIPLevel );
+            #ifdef HAS_REFLECTIONMAP
+                 vec4 envMapColor = textureCubeLodEXT( u_reflectionSampler, reflectVec, specularMIPLevel );
+            #else
+                vec4 envMapColor = textureCubeLodEXT( u_specularEnvSampler, reflectVec, specularMIPLevel );
+            #endif
 
         #else
-
-            vec4 envMapColor = textureCube( u_specularEnvSampler, reflectVec, specularMIPLevel );
-
+            #ifdef HAS_REFLECTIONMAP
+                 vec4 envMapColor = textureCube( u_reflectionSampler, reflectVec, specularMIPLevel );
+            #else
+                 vec4 envMapColor = textureCube( u_specularEnvSampler, reflectVec, specularMIPLevel );
+            #endif
         #endif
 
         envMapColor.rgb = SRGBtoLINEAR( envMapColor * u_specularEnvSamplerIntensity * u_envMapIntensity).rgb;
@@ -409,7 +435,7 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
 
 //- ENV MAP
 
-// PBR RenderEquations
+// PBR RenderEquations#
 
 #define MAXIMUM_SPECULAR_COEFFICIENT 0.16
 #define DEFAULT_SPECULAR_COEFFICIENT 0.04
@@ -587,14 +613,9 @@ float getLuminance(vec3 color)
 }
 
 void main() {
-    vec2 uv = vec2(0., 0.);
-    #ifdef  USE_SCREENUV
-        uv = getScreenUv();
-    #elif defined( O3_HAS_UV ) || defined( O3_NEED_UV ) || defined( O3_HAS_ENVMAP ) || defined( O3_HAS_LIGHTMAP )
-        uv = v_uv;
-    #endif
+    #include <clipPlane_frag>
 
-    vec3 normal = getNormal(uv);
+    vec3 normal = getNormal();
 
     vec4 diffuseColor = u_baseColorFactor;
     ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
@@ -602,7 +623,7 @@ void main() {
 
     #ifdef HAS_BASECOLORMAP
 
-        vec4 baseMapColor = texture2D( u_baseColorSampler, uv );
+        vec4 baseMapColor = texture2D( u_baseColorSampler, v_uv_baseColorTexture );
         baseMapColor = SRGBtoLINEAR( baseMapColor );
         diffuseColor *= baseMapColor;
 
@@ -632,9 +653,9 @@ void main() {
     #if defined(ALPHA_BLEND) && defined(HAS_OPACITYMAP)
 
         #ifdef GETOPACITYFROMRGB
-            diffuseColor.a *= getLuminance(texture2D( u_opacitySampler, uv ).rgb);
+            diffuseColor.a *= getLuminance(texture2D( u_opacitySampler, v_uv_opacityTexture ).rgb);
         #else
-            diffuseColor.a *= texture2D( u_opacitySampler, uv ).a;
+            diffuseColor.a *= texture2D( u_opacitySampler, v_uv_opacityTexture ).a;
         #endif
 
     #endif
@@ -652,15 +673,29 @@ void main() {
 
         #ifdef HAS_METALROUGHNESSMAP
 
-            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, uv );
+            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, v_uv_metallicRoughnessTexture );
             metalnessFactor *= metalRoughMapColor.b;
             roughnessFactor *= metalRoughMapColor.g;
 
+        #else
+            #ifdef HAS_METALMAP
+
+            vec4 metalMapColor = texture2D( u_metallicSampler, v_uv_metallicTexture );
+            metalnessFactor *= metalMapColor.b;
+
+            #endif
+
+            #ifdef HAS_ROUGHNESSMAP
+
+            vec4 roughMapColor = texture2D( u_roughnessSampler, v_uv_roughnessTexture );
+            roughnessFactor *= roughMapColor.g;
+
+            #endif
         #endif
 
         #ifdef HAS_SPECULARGLOSSINESSMAP
 
-            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, uv );
+            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv_specularGlossinessTexture );
             specularFactor *= specularGlossinessColor.rgb;
             glossinessFactor *= specularGlossinessColor.a;
 
@@ -799,7 +834,7 @@ void main() {
 
         #ifdef HAS_OCCLUSIONMAP
 
-            float ambientOcclusion = ( texture2D( u_occlusionSampler, uv ).r - 1.0 ) * u_occlusionStrength + 1.0;
+            float ambientOcclusion = ( texture2D( u_occlusionSampler, v_uv_occlusionTexture ).r - 1.0 ) * u_occlusionStrength + 1.0;
             reflectedLight.indirectDiffuse *= ambientOcclusion;
 
             #if defined( O3_HAS_SPECULARMAP )
@@ -813,7 +848,7 @@ void main() {
 
         #ifdef HAS_EMISSIVEMAP
 
-            vec4 emissiveMapColor = texture2D( u_emissiveSampler, uv );
+            vec4 emissiveMapColor = texture2D( u_emissiveSampler, v_uv_emissiveTexture );
             emissiveMapColor = SRGBtoLINEAR( emissiveMapColor );
             totalEmissiveRadiance += u_emissiveFactor * emissiveMapColor.rgb;
 
@@ -833,7 +868,8 @@ void main() {
         gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 / gamma));
     #endif
 
-    #include <refract_frag>
+    #include <refraction_frag>
+    #include <perturbation_frag>
     #include <fog_frag>
 
 }

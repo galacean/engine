@@ -80,12 +80,18 @@ function bindAsset() {
     // 替换PBR材质中的纹理
     if (asset && asset.type === "PBRMaterial") {
       const textureArr = [
-        "metallicRoughnessTexture",
-        "specularGlossinessTexture",
         "baseColorTexture",
+        "metallicTexture",
+        "roughnessTexture",
+        "metallicRoughnessTexture",
         "normalTexture",
         "emissiveTexture",
-        "occlusionTexture"
+        "occlusionTexture",
+        "opacityTexture",
+        "specularGlossinessTexture",
+        "perturbationTexture",
+        "refractionTexture",
+        "reflectionTexture"
       ];
       textureArr.map(attr => {
         const value = asset[attr];
