@@ -894,7 +894,7 @@ class PBRMaterial extends Material {
         const light = lights[i];
         if (!envMapLight && lights[i] instanceof AEnvironmentMapLight) {
           envMapLight = lights[i];
-          envMapLight.bindMaterialValues(this);
+          envMapLight.bindMaterialValues(this, "u_envMapLight");
           useDiffuseMap = envMapLight.useDiffuseMap;
           useSpecularMap = envMapLight.useSpecularMap;
           envMapLightNum = 1;
@@ -1185,6 +1185,7 @@ class PBRMaterial extends Material {
       {},
       PBRMaterial.TECH_CONFIG.uniforms,
       lightUniforms,
+      AEnvironmentMapLight.getUniformDefine("u_envMapLight"),
       clipPlaneUniforms
     );
 
@@ -1269,169 +1270,166 @@ class PBRMaterial extends Material {
    */
   static TECH_CONFIG = {
     attributes: {},
-    uniforms: Object.assign(
-      {
-        u_baseColorSampler: {
-          name: "u_baseColorSampler",
-          paramName: "baseColorTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_baseColorFactor: {
-          name: "u_baseColorFactor",
-          paramName: "baseColorFactor",
-          type: DataType.FLOAT_VEC4
-        },
-        u_normalSampler: {
-          name: "u_normalSampler",
-          paramName: "normalTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_normalScale: {
-          name: "u_normalScale",
-          paramName: "normalScale",
-          type: DataType.FLOAT
-        },
-        u_lightDirection: {
-          name: "u_lightDirection",
-          type: DataType.FLOAT_VEC3
-        },
-        u_lightColor: {
-          name: "u_lightColor",
-          type: DataType.FLOAT_VEC3
-        },
-        u_metallicRoughnessValue: {
-          name: "u_metallicRoughnessValue",
-          paramName: "metallicRoughness",
-          type: DataType.FLOAT_VEC2
-        },
-        u_metallicSampler: {
-          name: "u_metallicSampler",
-          paramName: "metallicTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_roughnessSampler: {
-          name: "u_roughnessSampler",
-          paramName: "roughnessTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_metallicRoughnessSampler: {
-          name: "u_metallicRoughnessSampler",
-          paramName: "metallicRoughnessTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_emissiveFactor: {
-          name: "u_emissiveFactor",
-          paramName: "emissiveFactor",
-          type: DataType.FLOAT_VEC3
-        },
-        u_emissiveSampler: {
-          name: "u_emissiveSampler",
-          paramName: "emissiveTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_occlusionSampler: {
-          name: "u_occlusionSampler",
-          paramName: "occlusionTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_occlusionStrength: {
-          name: "u_occlusionStrength",
-          paramName: "occlusionStrength",
-          type: DataType.FLOAT
-        },
-        u_alphaCutoff: {
-          name: "u_alphaCutoff",
-          paramName: "alphaCutoff",
-          type: DataType.FLOAT
-        },
-        u_clearCoat: {
-          name: "u_clearCoat",
-          paramName: "clearCoat",
-          type: DataType.FLOAT
-        },
-        u_clearCoatRoughness: {
-          name: "u_clearCoatRoughness",
-          paramName: "clearCoatRoughness",
-          type: DataType.FLOAT
-        },
-        u_opacitySampler: {
-          name: "u_opacitySampler",
-          paramName: "opacityTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_specularFactor: {
-          name: "u_specularFactor",
-          paramName: "specularFactor",
-          type: DataType.FLOAT_VEC3
-        },
-        u_glossinessFactor: {
-          name: "u_glossinessFactor",
-          paramName: "glossinessFactor",
-          type: DataType.FLOAT
-        },
-        u_specularGlossinessSampler: {
-          name: "u_specularGlossinessSampler",
-          paramName: "specularGlossinessTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_reflectionSampler: {
-          name: "u_reflectionSampler",
-          paramName: "reflectionTexture",
-          type: DataType.SAMPLER_CUBE
-        },
-        u_PTMMatrix: {
-          name: "u_PTMMatrix",
-          paramName: "PTMMatrix",
-          type: DataType.FLOAT_MAT4
-        },
-        u_envMapIntensity: {
-          name: "u_envMapIntensity",
-          paramName: "envMapIntensity",
-          type: DataType.FLOAT
-        },
-        u_refractionRatio: {
-          name: "u_refractionRatio",
-          paramName: "refractionRatio",
-          type: DataType.FLOAT
-        },
-        u_refractionDepth: {
-          name: "u_refractionDepth",
-          paramName: "refractionDepth",
-          type: DataType.FLOAT
-        },
-        u_refractionSampler: {
-          name: "u_refractionSampler",
-          paramName: "refractionTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_resolution: {
-          name: "u_resolution",
-          paramName: "resolution",
-          type: DataType.FLOAT_VEC2
-        },
-        u_perturbationSampler: {
-          name: "u_perturbationSampler",
-          paramName: "perturbationTexture",
-          type: DataType.SAMPLER_2D
-        },
-        u_perturbationUOffset: {
-          name: "u_perturbationUOffset",
-          paramName: "perturbationUOffset",
-          type: DataType.FLOAT
-        },
-        u_perturbationVOffset: {
-          name: "u_perturbationVOffset",
-          paramName: "perturbationVOffset",
-          type: DataType.FLOAT
-        },
-        // lights
-        u_ambientLightColor: {
-          name: "u_ambientLightColor",
-          type: DataType.FLOAT_VEC3
-        }
+    uniforms: Object.assign({
+      u_baseColorSampler: {
+        name: "u_baseColorSampler",
+        paramName: "baseColorTexture",
+        type: DataType.SAMPLER_2D
       },
-      AEnvironmentMapLight.UNIFORM_DEFINE
-    ),
+      u_baseColorFactor: {
+        name: "u_baseColorFactor",
+        paramName: "baseColorFactor",
+        type: DataType.FLOAT_VEC4
+      },
+      u_normalSampler: {
+        name: "u_normalSampler",
+        paramName: "normalTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_normalScale: {
+        name: "u_normalScale",
+        paramName: "normalScale",
+        type: DataType.FLOAT
+      },
+      u_lightDirection: {
+        name: "u_lightDirection",
+        type: DataType.FLOAT_VEC3
+      },
+      u_lightColor: {
+        name: "u_lightColor",
+        type: DataType.FLOAT_VEC3
+      },
+      u_metallicRoughnessValue: {
+        name: "u_metallicRoughnessValue",
+        paramName: "metallicRoughness",
+        type: DataType.FLOAT_VEC2
+      },
+      u_metallicSampler: {
+        name: "u_metallicSampler",
+        paramName: "metallicTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_roughnessSampler: {
+        name: "u_roughnessSampler",
+        paramName: "roughnessTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_metallicRoughnessSampler: {
+        name: "u_metallicRoughnessSampler",
+        paramName: "metallicRoughnessTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_emissiveFactor: {
+        name: "u_emissiveFactor",
+        paramName: "emissiveFactor",
+        type: DataType.FLOAT_VEC3
+      },
+      u_emissiveSampler: {
+        name: "u_emissiveSampler",
+        paramName: "emissiveTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_occlusionSampler: {
+        name: "u_occlusionSampler",
+        paramName: "occlusionTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_occlusionStrength: {
+        name: "u_occlusionStrength",
+        paramName: "occlusionStrength",
+        type: DataType.FLOAT
+      },
+      u_alphaCutoff: {
+        name: "u_alphaCutoff",
+        paramName: "alphaCutoff",
+        type: DataType.FLOAT
+      },
+      u_clearCoat: {
+        name: "u_clearCoat",
+        paramName: "clearCoat",
+        type: DataType.FLOAT
+      },
+      u_clearCoatRoughness: {
+        name: "u_clearCoatRoughness",
+        paramName: "clearCoatRoughness",
+        type: DataType.FLOAT
+      },
+      u_opacitySampler: {
+        name: "u_opacitySampler",
+        paramName: "opacityTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_specularFactor: {
+        name: "u_specularFactor",
+        paramName: "specularFactor",
+        type: DataType.FLOAT_VEC3
+      },
+      u_glossinessFactor: {
+        name: "u_glossinessFactor",
+        paramName: "glossinessFactor",
+        type: DataType.FLOAT
+      },
+      u_specularGlossinessSampler: {
+        name: "u_specularGlossinessSampler",
+        paramName: "specularGlossinessTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_reflectionSampler: {
+        name: "u_reflectionSampler",
+        paramName: "reflectionTexture",
+        type: DataType.SAMPLER_CUBE
+      },
+      u_PTMMatrix: {
+        name: "u_PTMMatrix",
+        paramName: "PTMMatrix",
+        type: DataType.FLOAT_MAT4
+      },
+      u_envMapIntensity: {
+        name: "u_envMapIntensity",
+        paramName: "envMapIntensity",
+        type: DataType.FLOAT
+      },
+      u_refractionRatio: {
+        name: "u_refractionRatio",
+        paramName: "refractionRatio",
+        type: DataType.FLOAT
+      },
+      u_refractionDepth: {
+        name: "u_refractionDepth",
+        paramName: "refractionDepth",
+        type: DataType.FLOAT
+      },
+      u_refractionSampler: {
+        name: "u_refractionSampler",
+        paramName: "refractionTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_resolution: {
+        name: "u_resolution",
+        paramName: "resolution",
+        type: DataType.FLOAT_VEC2
+      },
+      u_perturbationSampler: {
+        name: "u_perturbationSampler",
+        paramName: "perturbationTexture",
+        type: DataType.SAMPLER_2D
+      },
+      u_perturbationUOffset: {
+        name: "u_perturbationUOffset",
+        paramName: "perturbationUOffset",
+        type: DataType.FLOAT
+      },
+      u_perturbationVOffset: {
+        name: "u_perturbationVOffset",
+        paramName: "perturbationVOffset",
+        type: DataType.FLOAT
+      },
+      // lights
+      u_ambientLightColor: {
+        name: "u_ambientLightColor",
+        type: DataType.FLOAT_VEC3
+      }
+    }),
     states: {
       disable: [],
       enable: [],

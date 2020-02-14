@@ -14,6 +14,51 @@ class AEnvironmentMapLight extends ALight {
   public specularIntensity;
 
   /**
+   * 生成 Technique 所需的 uniform 定义
+   * @param {string} uniformName
+   */
+  static getUniformDefine(uniformName) {
+    const uniforms = {};
+
+    uniforms[uniformName + ".diffuseSampler"] = {
+      name: uniformName + ".diffuseSampler",
+      type: DataType.SAMPLER_CUBE
+    };
+
+    uniforms[uniformName + ".specularSampler"] = {
+      name: uniformName + ".specularSampler",
+      type: DataType.SAMPLER_CUBE
+    };
+
+    uniforms[uniformName + ".diffuse"] = {
+      name: uniformName + ".diffuse",
+      type: DataType.FLOAT_VEC3
+    };
+
+    uniforms[uniformName + ".specular"] = {
+      name: uniformName + ".specular",
+      type: DataType.FLOAT_VEC3
+    };
+
+    uniforms[uniformName + ".mipMapLevel"] = {
+      name: uniformName + ".mipMapLevel",
+      type: DataType.FLOAT
+    };
+
+    uniforms[uniformName + ".diffuseIntensity"] = {
+      name: uniformName + ".diffuseIntensity",
+      type: DataType.FLOAT
+    };
+
+    uniforms[uniformName + ".specularIntensity"] = {
+      name: uniformName + ".specularIntensity",
+      type: DataType.FLOAT
+    };
+
+    return uniforms;
+  }
+
+  /**
    * 环境光源
    * @param {Node} node 节点对象
    * @param {Object} props 包含以下参数
@@ -86,68 +131,25 @@ class AEnvironmentMapLight extends ALight {
   }
 
   /**
-   * 设置Values到材质
-   * @param {Material} mtl 材质
-   * @private
+   * 将灯光参数绑定到指定的材质对象上
    */
-  bindMaterialValues(mtl) {
-    mtl.setValue("u_diffuseEnvSamplerIntensity", this.diffuseIntensity);
-    mtl.setValue("u_specularEnvSamplerIntensity", this.specularIntensity);
+  bindMaterialValues(mtl, uniformName) {
+    mtl.setValue(uniformName + ".diffuseIntensity", this.diffuseIntensity);
+    mtl.setValue(uniformName + ".specularIntensity", this.specularIntensity);
 
     if (this.useDiffuseMap) {
-      mtl.setValue("u_diffuseEnvSampler", this.diffuseMap);
+      mtl.setValue(uniformName + ".diffuseSampler", this.diffuseMap);
     } else {
-      mtl.setValue("u_diffuse", this.diffuse);
+      mtl.setValue(uniformName + ".diffuse", this.diffuse);
     }
 
     if (this.useSpecularMap) {
-      mtl.setValue("u_specularEnvSampler", this.specularMap);
-      mtl.setValue("u_mipMapLevel", this.specularMap.mipMapLevel);
+      mtl.setValue(uniformName + ".specularSampler", this.specularMap);
+      mtl.setValue(uniformName + ".mipMapLevel", this.specularMap.mipMapLevel);
     } else {
-      mtl.setValue("u_specular", this.specular);
+      mtl.setValue(uniformName + ".specular", this.specular);
     }
   }
-
-  /**
-   * Uniform 配置
-   * @private
-   */
-  static UNIFORM_DEFINE = {
-    u_diffuseEnvSampler: {
-      name: "u_diffuseEnvSampler",
-      type: DataType.SAMPLER_CUBE
-    },
-
-    u_specularEnvSampler: {
-      name: "u_specularEnvSampler",
-      type: DataType.SAMPLER_CUBE
-    },
-
-    u_diffuse: {
-      name: "u_diffuse",
-      type: DataType.FLOAT_VEC3
-    },
-
-    u_specular: {
-      name: "u_specular",
-      type: DataType.FLOAT_VEC3
-    },
-
-    u_mipMapLevel: {
-      name: "u_mipMapLevel",
-      type: DataType.FLOAT
-    },
-
-    u_specularEnvSamplerIntensity: {
-      name: "u_specularEnvSamplerIntensity",
-      type: DataType.FLOAT
-    },
-
-    u_diffuseEnvSamplerIntensity: {
-      name: "u_diffuseEnvSamplerIntensity",
-      type: DataType.FLOAT
-    }
-  };
 }
 
 export { AEnvironmentMapLight };

@@ -21,29 +21,21 @@
 
 #ifdef O3_HAS_ENVMAPLIGHT
 
-    uniform float u_mipMapLevel;
-    uniform float u_diffuseEnvSamplerIntensity;
-    uniform float u_specularEnvSamplerIntensity;
-
-    #ifdef O3_HAS_SPECULARMAP
-
-        uniform samplerCube u_specularEnvSampler;
-
-    #else
-
-        uniform vec3 u_specular;
-
-    #endif
-
+    struct EnvMapLight {
     #ifdef O3_HAS_DIFFUSEMAP
-
-        uniform samplerCube u_diffuseEnvSampler;
-
-    #else
-
-        uniform vec3 u_diffuse;
-
+        samplerCube diffuseSampler;
     #endif
+    #ifdef O3_HAS_SPECULARMAP
+        samplerCube specularSampler;
+    #endif
+        vec3 diffuse;
+        vec3 specular;
+        float mipMapLevel;
+        float diffuseIntensity;
+        float specularIntensity;
+    };
+
+    uniform EnvMapLight u_envMapLight;
 
 #endif
 
@@ -393,7 +385,7 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
 
     #if !defined(O3_HAS_SPECULARMAP) && !defined(HAS_REFLECTIONMAP)
 
-        return u_specular * u_specularEnvSamplerIntensity * u_envMapIntensity;
+        return u_envMapLight.specular * u_envMapLight.specularIntensity * u_envMapIntensity;
 
     #else
 
@@ -413,18 +405,18 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
             #ifdef HAS_REFLECTIONMAP
                  vec4 envMapColor = textureCubeLodEXT( u_reflectionSampler, reflectVec, specularMIPLevel );
             #else
-                vec4 envMapColor = textureCubeLodEXT( u_specularEnvSampler, reflectVec, specularMIPLevel );
+                vec4 envMapColor = textureCubeLodEXT( u_envMapLight.specularSampler, reflectVec, specularMIPLevel );
             #endif
 
         #else
             #ifdef HAS_REFLECTIONMAP
                  vec4 envMapColor = textureCube( u_reflectionSampler, reflectVec, specularMIPLevel );
             #else
-                 vec4 envMapColor = textureCube( u_specularEnvSampler, reflectVec, specularMIPLevel );
+                 vec4 envMapColor = textureCube( u_envMapLight.specularSampler, reflectVec, specularMIPLevel );
             #endif
         #endif
 
-        envMapColor.rgb = SRGBtoLINEAR( envMapColor * u_specularEnvSamplerIntensity * u_envMapIntensity).rgb;
+        envMapColor.rgb = SRGBtoLINEAR( envMapColor * u_envMapLight.specularIntensity * u_envMapIntensity).rgb;
 
         return envMapColor.rgb;
 
@@ -795,11 +787,11 @@ void main() {
 
             #ifdef O3_HAS_DIFFUSEMAP
 
-                vec3 lightMapIrradiance = textureCube(u_diffuseEnvSampler, geometry.normal).rgb * u_diffuseEnvSamplerIntensity;
+                vec3 lightMapIrradiance = textureCube(u_envMapLight.diffuseSampler, geometry.normal).rgb * u_envMapLight.diffuseIntensity;
 
             #else
 
-                vec3 lightMapIrradiance = u_diffuse * u_diffuseEnvSamplerIntensity;
+                vec3 lightMapIrradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
 
             #endif
 
@@ -815,8 +807,8 @@ void main() {
 
         #if defined( O3_HAS_ENVMAPLIGHT ) && defined( RE_IndirectSpecular )
 
-            radiance += getLightProbeIndirectRadiance( geometry, Material_BlinnShininessExponent( material ), int(u_mipMapLevel) );
-            clearCoatRadiance += getLightProbeIndirectRadiance( geometry, Material_ClearCoat_BlinnShininessExponent( material ), int(u_mipMapLevel) );
+            radiance += getLightProbeIndirectRadiance( geometry, Material_BlinnShininessExponent( material ), int(u_envMapLight.mipMapLevel) );
+            clearCoatRadiance += getLightProbeIndirectRadiance( geometry, Material_ClearCoat_BlinnShininessExponent( material ), int(u_envMapLight.mipMapLevel) );
 
         #endif
 

@@ -5,6 +5,7 @@ import { AAmbientLight } from "./AAmbientLight";
 import { ADirectLight } from "./ADirectLight";
 import { APointLight } from "./APointLight";
 import { ASpotLight } from "./ASpotLight";
+import { AEnvironmentMapLight } from "@alipay/o3-pbr";
 
 /**
  * 判断场景中是否有灯光
@@ -59,21 +60,28 @@ export class LightFeature extends SceneFeature {
    * @private
    */
   bindMaterialValues(mtl) {
+    /**
+     * ambientLight 和 envMapLight 在 scene 中分别只有一个
+     * */
     let ambientLightCount = 0;
     let directLightCount = 0;
     let pointLightCount = 0;
     let spotLightCount = 0;
+    let envMapLightCount = 0;
+
     let lights = this.visibleLights;
     for (let i = 0, len = lights.length; i < len; i++) {
       const light = lights[i];
-      if (light instanceof AAmbientLight) {
-        light.bindMaterialValues(mtl, `u_ambientLights[${ambientLightCount++}]`);
+      if (light instanceof AAmbientLight && !ambientLightCount++) {
+        light.bindMaterialValues(mtl, `u_ambientLight`);
       } else if (light instanceof ADirectLight) {
         light.bindMaterialValues(mtl, `u_directLights[${directLightCount++}]`);
       } else if (light instanceof APointLight) {
         light.bindMaterialValues(mtl, `u_pointLights[${pointLightCount++}]`);
       } else if (light instanceof ASpotLight) {
         light.bindMaterialValues(mtl, `u_spotLights[${spotLightCount++}]`);
+      } else if (light instanceof AEnvironmentMapLight && !envMapLightCount++) {
+        light.bindMaterialValues(mtl, `u_envMapLight`);
       }
     }
   }
@@ -87,17 +95,21 @@ export class LightFeature extends SceneFeature {
     let directLightCount = 0;
     let pointLightCount = 0;
     let spotLightCount = 0;
+    let envMapLightCount = 0;
+
     let lights = this.visibleLights;
     for (let i = 0, len = lights.length; i < len; i++) {
       const light = lights[i];
-      if (light instanceof AAmbientLight) {
-        uniforms = { ...uniforms, ...AAmbientLight.getUniformDefine(`u_ambientLights[${ambientLightCount++}]`) };
+      if (light instanceof AAmbientLight && !ambientLightCount++) {
+        uniforms = { ...uniforms, ...AAmbientLight.getUniformDefine(`u_ambientLight`) };
       } else if (light instanceof ADirectLight) {
         uniforms = { ...uniforms, ...ADirectLight.getUniformDefine(`u_directLights[${directLightCount++}]`) };
       } else if (light instanceof APointLight) {
         uniforms = { ...uniforms, ...APointLight.getUniformDefine(`u_pointLights[${pointLightCount++}]`) };
       } else if (light instanceof ASpotLight) {
         uniforms = { ...uniforms, ...ASpotLight.getUniformDefine(`u_spotLights[${spotLightCount++}]`) };
+      } else if (light instanceof AEnvironmentMapLight && !envMapLightCount++) {
+        uniforms = { ...uniforms, ...AEnvironmentMapLight.getUniformDefine(`u_envMapLight`) };
       }
     }
     return uniforms;
