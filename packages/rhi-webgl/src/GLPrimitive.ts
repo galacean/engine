@@ -9,7 +9,7 @@ import { GLAsset } from "./GLAsset";
  * @private
  */
 export class GLPrimitive extends GLAsset {
-  private readonly _primitive;
+  private readonly _primitive: Primitive;
   private _glIndexBuffer: WebGLBuffer;
   private _glVertBuffers: WebGLBuffer[];
 

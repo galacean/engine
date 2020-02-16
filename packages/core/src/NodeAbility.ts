@@ -216,6 +216,10 @@ export class NodeAbility extends EventDispatcher {
     this._renderable = val;
   }
 
+  get started(): boolean {
+    return this._started;
+  }
+
   /**
    * 销毁本组件对象
    */
