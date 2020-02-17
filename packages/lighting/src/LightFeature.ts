@@ -5,7 +5,7 @@ import { AAmbientLight } from "./AAmbientLight";
 import { ADirectLight } from "./ADirectLight";
 import { APointLight } from "./APointLight";
 import { ASpotLight } from "./ASpotLight";
-import { AEnvironmentMapLight } from "@alipay/o3-pbr";
+import { AEnvironmentMapLight } from "./AEnvironmentMapLight";
 
 /**
  * 判断场景中是否有灯光
@@ -23,6 +23,55 @@ export function hasLight() {
  */
 export class LightFeature extends SceneFeature {
   private visibleLights: ALight[];
+
+  /**
+   * 获取光源种类的相应数量
+   * */
+  get lightSortAmount(): {
+    ambientLightCount: number;
+    directLightCount: number;
+    pointLightCount: number;
+    spotLightCount: number;
+    envMapLightCount: number;
+    useDiffuseEnv: boolean;
+    useSpecularEnv: boolean;
+  } {
+    let ambientLightCount = 0;
+    let directLightCount = 0;
+    let pointLightCount = 0;
+    let spotLightCount = 0;
+    let envMapLightCount = 0;
+    let useDiffuseEnv = false;
+    let useSpecularEnv = false;
+
+    let lights = this.visibleLights;
+    for (let i = 0, len = lights.length; i < len; i++) {
+      const light = lights[i];
+      if (light instanceof AAmbientLight) {
+        ambientLightCount++;
+      } else if (light instanceof ADirectLight) {
+        directLightCount++;
+      } else if (light instanceof APointLight) {
+        pointLightCount++;
+      } else if (light instanceof ASpotLight) {
+        spotLightCount++;
+      } else if (light instanceof AEnvironmentMapLight) {
+        envMapLightCount++;
+        useDiffuseEnv = light.useDiffuseMap;
+        useSpecularEnv = light.useSpecularMap;
+      }
+    }
+    return {
+      ambientLightCount,
+      directLightCount,
+      pointLightCount,
+      spotLightCount,
+      envMapLightCount,
+      useDiffuseEnv,
+      useSpecularEnv
+    };
+  }
+
   constructor() {
     super();
     this.visibleLights = [];
@@ -61,7 +110,7 @@ export class LightFeature extends SceneFeature {
    */
   bindMaterialValues(mtl) {
     /**
-     * ambientLight 和 envMapLight 在 scene 中分别只有一个
+     * ambientLight 和 envMapLight 在 scene 中只用最后一个
      * */
     let ambientLightCount = 0;
     let directLightCount = 0;
@@ -72,16 +121,18 @@ export class LightFeature extends SceneFeature {
     let lights = this.visibleLights;
     for (let i = 0, len = lights.length; i < len; i++) {
       const light = lights[i];
-      if (light instanceof AAmbientLight && !ambientLightCount++) {
+      if (light instanceof AAmbientLight) {
         light.bindMaterialValues(mtl, `u_ambientLight`);
+        ambientLightCount++;
       } else if (light instanceof ADirectLight) {
         light.bindMaterialValues(mtl, `u_directLights[${directLightCount++}]`);
       } else if (light instanceof APointLight) {
         light.bindMaterialValues(mtl, `u_pointLights[${pointLightCount++}]`);
       } else if (light instanceof ASpotLight) {
         light.bindMaterialValues(mtl, `u_spotLights[${spotLightCount++}]`);
-      } else if (light instanceof AEnvironmentMapLight && !envMapLightCount++) {
+      } else if (light instanceof AEnvironmentMapLight) {
         light.bindMaterialValues(mtl, `u_envMapLight`);
+        envMapLightCount++;
       }
     }
   }
