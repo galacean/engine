@@ -21,6 +21,10 @@ export class AAmbientLight extends ALight {
         name: uniformName + ".color",
         type: DataType.FLOAT_VEC3
       },
+      [uniformName + ".lightColor"]: {
+        name: uniformName + ".lightColor",
+        type: DataType.FLOAT_VEC3
+      },
       [uniformName + ".intensity"]: {
         name: uniformName + ".intensity",
         type: DataType.FLOAT
@@ -69,6 +73,7 @@ export class AAmbientLight extends ALight {
    */
   bindMaterialValues(mtl, uniformName) {
     mtl.setValue(uniformName + ".color", this.color);
+    mtl.setValue(uniformName + ".lightColor", this.lightColor);
     mtl.setValue(uniformName + ".intensity", this.intensity);
   }
 }

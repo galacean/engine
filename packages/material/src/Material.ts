@@ -2,7 +2,6 @@ import { mat4, mat3 } from "@alipay/o3-math";
 import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
-import { LightFeature } from "@alipay/o3-lighting";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
