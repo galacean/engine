@@ -1,6 +1,5 @@
 import { DataType } from "@alipay/o3-base";
-import { ALight } from "@alipay/o3-lighting";
-import { TextureCubeMap, Texture2D } from "@alipay/o3-material";
+import { ALight } from "./ALight";
 
 /**
  * 环境光源

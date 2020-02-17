@@ -29,7 +29,6 @@
   "dependencies": {
     "@alipay/o3-base": "^1.6.0-alpha",
     "@alipay/o3-core": "^1.6.0-alpha.3",
-    "@alipay/o3-math": "^1.6.0-alpha",
-    "@alipay/o3-pbr": "^1.6.0-alpha.3"
+    "@alipay/o3-math": "^1.6.0-alpha"
   }
 }
