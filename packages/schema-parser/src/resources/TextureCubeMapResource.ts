@@ -1,8 +1,10 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
-import { ResourceLoader } from "@alipay/o3";
+import { ResourceLoader, Logger } from "@alipay/o3";
 import { TextureResource } from "./TextureResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
+
+Logger.enable();
 
 const imageOrderMap = {
   px: 0,
@@ -69,6 +71,12 @@ export class TextureCubeMapResource extends SchemaResource {
     });
   }
 
+  setMeta() {
+    if (this.resource) {
+      this.meta.name = this.resource.name;
+    }
+  }
+
   bind() {
     const cubeMap = this._resource;
     const imageAssets = this.imageAssets;
@@ -76,8 +84,14 @@ export class TextureCubeMapResource extends SchemaResource {
     Object.keys(imageAssets).forEach(key => {
       if (imageAssets[key]) {
         const textureResource = this.resourceManager.get(imageAssets[key].id);
-        images[imageOrderMap[key]] = textureResource.resource.image;
-        this._attachedResources.push(textureResource);
+        if (textureResource && textureResource instanceof TextureResource) {
+          images[imageOrderMap[key]] = textureResource.resource.image;
+          this._attachedResources.push(textureResource);
+        } else {
+          Logger.warn(
+            `TextureCubeMapResource: ${this.meta.name} can't find asset "${key}", which id is: ${imageAssets[key].id}`
+          );
+        }
       }
     });
     cubeMap.images = [images];
@@ -85,8 +99,9 @@ export class TextureCubeMapResource extends SchemaResource {
 
   update(key: string, value: any) {
     const resource = this.resourceManager.get(value.id);
-
-    this.resource.updateImage(imageOrderMap[key], resource.resource.image);
-    this.resource.updateTexture();
+    if (resource && resource instanceof TextureResource) {
+      this.resource.updateImage(imageOrderMap[key], resource.resource.image);
+      this.resource.updateTexture();
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { ResourceLoader } from "@alipay/o3";
+import { ResourceLoader, Logger } from "@alipay/o3";
 import { ResourceManager } from "../ResourceManager";
 
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
@@ -14,6 +14,8 @@ interface IResourceMeta {
 function isAsset(config: any): boolean {
   return config && config.type === "asset";
 }
+
+Logger.enable();
 
 export abstract class SchemaResource {
   protected _meta: IResourceMeta = {};
@@ -66,8 +68,11 @@ export abstract class SchemaResource {
   update(key: string, value: any) {
     if (isAsset(value)) {
       const resource = this.resourceManager.get(value.id);
-      this.attachedResources.push(resource);
-      this._resource[key] = resource.resource;
+      if (resource) {
+        this._resource[key] = resource.resource;
+      } else {
+        Logger.warn(`SchemaResource: ${this.meta.name} can't find asset, which id is: ${value.id}`);
+      }
     } else {
       this._resource[key] = value;
     }

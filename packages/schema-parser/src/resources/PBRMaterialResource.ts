@@ -1,9 +1,11 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
-import { ResourceLoader } from "@alipay/o3";
+import { ResourceLoader, Logger } from "@alipay/o3";
 
 import { TextureResource } from "./TextureResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
+
+Logger.enable();
 
 export class PBRMaterialResource extends SchemaResource {
   static textureArr = [
@@ -115,10 +117,15 @@ export class PBRMaterialResource extends SchemaResource {
     const resource = this._resource;
     PBRMaterialResource.textureArr.forEach(attr => {
       const value = resource[attr];
-      if (value && this.resourceManager.get(value.id)) {
-        const attachedRresource = this.resourceManager.get(value.id);
-        resource[attr] = attachedRresource.resource;
-        this._attachedResources.push(attachedRresource);
+      if (value && value.type === "asset") {
+        const textureResource = this.resourceManager.get(value.id);
+        if (textureResource && textureResource instanceof TextureResource) {
+          resource[attr] = textureResource.resource;
+          this._attachedResources.push(textureResource);
+        } else {
+          resource[attr] = null;
+          Logger.warn(`PBRMaterialResource: ${this.meta.name} can't find asset "${attr}", which id is: ${value.id}`);
+        }
       }
     });
   }
