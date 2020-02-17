@@ -5,6 +5,7 @@
 #include <mobile_material_frag>
 
 #include <fog_share>
+#include <ambient_light_frag>
 
 void main() {
 

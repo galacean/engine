@@ -4,6 +4,7 @@
 #include <uv_transform_share_declaration>
 #include <normal_share>
 
+#include <ambient_light_frag>
 #include <direct_light_frag>
 #include <mobile_material_frag>
 
