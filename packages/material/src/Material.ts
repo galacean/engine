@@ -2,6 +2,7 @@ import { mat4, mat3 } from "@alipay/o3-math";
 import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
+import { LightFeature } from "@alipay/o3-lighting";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
@@ -116,7 +117,7 @@ export class Material {
     const oriValue = this.getValue(name);
     const oriIsTexture = oriValue instanceof Texture;
     const curIsTexture = value instanceof Texture;
-    if ((this as any)._generateTechnique && ((!oriIsTexture && curIsTexture) || (oriIsTexture && !curIsTexture))) {
+    if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {
       this._technique = null;
     }
     if (value) {
