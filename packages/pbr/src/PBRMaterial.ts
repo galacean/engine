@@ -1,18 +1,7 @@
-import {
-  UniformSemantic,
-  Logger,
-  DataType,
-  RenderState,
-  MaterialType,
-  BlendFunc,
-  CullFace,
-  Side,
-  Util
-} from "@alipay/o3-base";
+import { Logger, DataType, RenderState, MaterialType, BlendFunc, CullFace, Side, Util } from "@alipay/o3-base";
 import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
-import { LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
+import { LightFeature } from "@alipay/o3-lighting";
 
-import { AEnvironmentMapLight } from "./AEnvironmentMapLight";
 import vs from "./pbr.vs.glsl";
 import fs from "./pbr.fs.glsl";
 
@@ -22,13 +11,14 @@ import fs from "./pbr.fs.glsl";
 class PBRMaterial extends Material {
   private _uniformObj;
   private _stateObj;
-  private _envMapLightNum: number;
-  private _spotLightNum: number;
-  private _useDiffuseMap: boolean;
-  private _directLightNum: number;
-  private _useSpecularMap: boolean;
-  private _pointLightNum: number;
-  private _clipPlaneNum: number;
+  private _ambientLightCount: number;
+  private _envMapLightCount: number;
+  private _spotLightCount: number;
+  private _directLightCount: number;
+  private _pointLightCount: number;
+  private _useDiffuseEnv: boolean;
+  private _useSpecularEnv: boolean;
+  private _clipPlaneCount: number;
 
   /**
    * PBR 材质
@@ -878,77 +868,48 @@ class PBRMaterial extends Material {
    * @private
    */
   prepareDrawing(camera, component, primitive) {
-    let envMapLightNum: number = 0;
-    let directLightNum: number = 0;
-    let pointLightNum: number = 0;
-    let spotLightNum: number = 0;
-    let envMapLight: AEnvironmentMapLight = null;
-    let useDiffuseMap: boolean = false;
-    let useSpecularMap: boolean = false;
     const scene = camera.scene;
     const lightMgr = scene.findFeature(LightFeature);
-    if (lightMgr) {
-      const lights = lightMgr.visibleLights;
-      this.setValue("u_ambientLightColor", [0, 0, 0]);
-      for (let i = 0; i < lights.length; i++) {
-        const light = lights[i];
-        if (!envMapLight && lights[i] instanceof AEnvironmentMapLight) {
-          envMapLight = lights[i];
-          envMapLight.bindMaterialValues(this, "u_envMapLight");
-          useDiffuseMap = envMapLight.useDiffuseMap;
-          useSpecularMap = envMapLight.useSpecularMap;
-          envMapLightNum = 1;
-        } else if (light instanceof AAmbientLight) {
-          light.bindMaterialValues(this, "u_ambientLightColor");
-        } else if (light instanceof ADirectLight) {
-          this.setValue(`u_directionalLight[${directLightNum}].color`, light.lightColor);
-          this.setValue(`u_directionalLight[${directLightNum}].direction`, light.reverseDirection);
-          directLightNum++;
-        } else if (light instanceof APointLight) {
-          this.setValue(`u_pointLight[${pointLightNum}].position`, light.position);
-          this.setValue(`u_pointLight[${pointLightNum}].color`, light.lightColor);
-          this.setValue(`u_pointLight[${pointLightNum}].distance`, light.distance);
-          this.setValue(`u_pointLight[${pointLightNum}].decay`, light.distance === 0 ? 0 : light.decay);
-          pointLightNum++;
-        } else if (light instanceof ASpotLight) {
-          this.setValue(`u_spotLight[${spotLightNum}].position`, light.position);
-          this.setValue(`u_spotLight[${spotLightNum}].color`, light.lightColor);
-          this.setValue(`u_spotLight[${spotLightNum}].direction`, light.reverseDirection);
-          this.setValue(`u_spotLight[${spotLightNum}].distance`, light.distance);
-          this.setValue(`u_spotLight[${spotLightNum}].decay`, light.distance === 0 ? 0 : light.decay);
-          this.setValue(`u_spotLight[${spotLightNum}].coneCos`, Math.cos(light.angle));
-          this.setValue(`u_spotLight[${spotLightNum}].penumbraCos`, Math.cos(light.angle * (1 - light.penumbra)));
-          spotLightNum++;
-        }
-      }
+
+    /** 光源 uniform values */
+    lightMgr.bindMaterialValues(this);
+    /** 分辨率 */
+    this.setValue("u_resolution", [camera._rhi.canvas.width, camera._rhi.canvas.height]);
+    /** clipPlane */
+    for (let i = 0; i < this._clipPlaneCount; i++) {
+      this.setValue(`u_clipPlanes[${i}]`, scene.clipPlanes[i]);
     }
 
+    /** 是否需要重新编译 technique */
+    const {
+      ambientLightCount,
+      directLightCount,
+      pointLightCount,
+      spotLightCount,
+      envMapLightCount,
+      useDiffuseEnv,
+      useSpecularEnv
+    } = lightMgr.lightSortAmount;
     if (
       !this._technique ||
-      this._envMapLightNum !== envMapLightNum ||
-      this._useDiffuseMap !== useDiffuseMap ||
-      this._useSpecularMap !== useSpecularMap ||
-      this._directLightNum !== directLightNum ||
-      this._pointLightNum !== pointLightNum ||
-      this._spotLightNum !== spotLightNum ||
-      this._clipPlaneNum !== scene.clipPlanes?.length
+      this._ambientLightCount !== ambientLightCount ||
+      this._envMapLightCount !== envMapLightCount ||
+      this._useDiffuseEnv !== useDiffuseEnv ||
+      this._useSpecularEnv !== useSpecularEnv ||
+      this._directLightCount !== directLightCount ||
+      this._pointLightCount !== pointLightCount ||
+      this._spotLightCount !== spotLightCount ||
+      this._clipPlaneCount !== scene.clipPlanes?.length
     ) {
-      this._envMapLightNum = envMapLightNum;
-      this._useDiffuseMap = useDiffuseMap;
-      this._useSpecularMap = useSpecularMap;
-      this._directLightNum = directLightNum;
-      this._pointLightNum = pointLightNum;
-      this._spotLightNum = spotLightNum;
-      this._clipPlaneNum = scene.clipPlanes?.length;
+      this._ambientLightCount = ambientLightCount;
+      this._envMapLightCount = envMapLightCount;
+      this._useDiffuseEnv = useDiffuseEnv;
+      this._useSpecularEnv = useSpecularEnv;
+      this._directLightCount = directLightCount;
+      this._pointLightCount = pointLightCount;
+      this._spotLightCount = spotLightCount;
+      this._clipPlaneCount = scene.clipPlanes?.length;
       this._generateTechnique(camera, component, primitive);
-    }
-
-    /** 额外配置 */
-    // 分辨率
-    this.setValue("u_resolution", [camera._rhi.canvas.width, camera._rhi.canvas.height]);
-    // clipPlane
-    for (let i = 0; i < this._clipPlaneNum; i++) {
-      this.setValue(`u_clipPlanes[${i}]`, scene.clipPlanes[i]);
     }
 
     super.prepareDrawing(camera, component, primitive);
@@ -966,18 +927,19 @@ class PBRMaterial extends Material {
     const vertex = PBRMaterial.STATIC_VERTEX_SHADER;
     const frag = PBRMaterial.STATIC_FRAGMENT_SHADER;
     const config = this._generateConfig();
+    const lightMgr = camera.scene.findFeature(LightFeature);
 
     const tech = new RenderTechnique(techName);
     tech.isValid = true;
-    tech.uniforms = config.uniforms;
+    tech.uniforms = { ...lightMgr.getUniformDefine(), ...config.uniforms };
     tech.attributes = config.attributes;
     tech.fragmentPrecision = "highp";
     tech.customMacros = customMacros;
     tech.states = config.states;
     tech.vertexShader = vertex;
     tech.fragmentShader = frag;
-
     this._technique = tech;
+    return tech;
   }
 
   /**
@@ -1039,20 +1001,23 @@ class PBRMaterial extends Material {
       }
     }
 
-    if (this._envMapLightNum) {
+    if (this._envMapLightCount) {
       _macros.push("O3_HAS_ENVMAPLIGHT");
 
-      if (this._useDiffuseMap) _macros.push("O3_HAS_DIFFUSEMAP");
+      if (this._useDiffuseEnv) _macros.push("O3_HAS_DIFFUSEMAP");
 
-      if (this._useSpecularMap) _macros.push("O3_HAS_SPECULARMAP");
+      if (this._useSpecularEnv) _macros.push("O3_HAS_SPECULARMAP");
 
       if (rhi.requireExtension("EXT_shader_texture_lod")) _macros.push("HAS_TEX_LOD");
     }
 
-    if (this._directLightNum) _macros.push(`O3_DIRECTLIGHT_NUM ${this._directLightNum}`);
-    if (this._pointLightNum) _macros.push(`O3_POINTLIGHT_NUM ${this._pointLightNum}`);
-    if (this._spotLightNum) _macros.push(`O3_SPOTLIGHT_NUM ${this._spotLightNum}`);
-    if (this._clipPlaneNum) _macros.push(`O3_CLIPPLANE_NUM ${this._clipPlaneNum}`);
+    if (this._ambientLightCount) {
+      _macros.push("O3_HAS_AMBIENTLIGHT");
+    }
+    if (this._directLightCount) _macros.push(`O3_DIRECTLIGHT_NUM ${this._directLightCount}`);
+    if (this._pointLightCount) _macros.push(`O3_POINTLIGHT_NUM ${this._pointLightCount}`);
+    if (this._spotLightCount) _macros.push(`O3_SPOTLIGHT_NUM ${this._spotLightCount}`);
+    if (this._clipPlaneCount) _macros.push(`O3_CLIPPLANE_NUM ${this._clipPlaneCount}`);
 
     if (this._stateObj.unlit) _macros.push("UNLIT");
     if (this._stateObj.srgb) _macros.push("MANUAL_SRGB");
@@ -1105,89 +1070,15 @@ class PBRMaterial extends Material {
       this.renderType = MaterialType.OPAQUE;
     }
 
-    const lightUniforms = {};
-    if (this._directLightNum) {
-      for (let i = 0; i < this._directLightNum; i++) {
-        lightUniforms[`u_directionalLight[${i}].color`] = {
-          name: `u_directionalLight[${i}].color`,
-          type: DataType.FLOAT_VEC3
-        };
-        lightUniforms[`u_directionalLight[${i}].direction`] = {
-          name: `u_directionalLight[${i}].direction`,
-          type: DataType.FLOAT_VEC3
-        };
-      }
-    }
-
-    if (this._pointLightNum) {
-      for (let i = 0; i < this._pointLightNum; i++) {
-        lightUniforms[`u_pointLight[${i}].position`] = {
-          name: `u_pointLight[${i}].position`,
-          type: DataType.FLOAT_VEC3
-        };
-        lightUniforms[`u_pointLight[${i}].color`] = {
-          name: `u_pointLight[${i}].color`,
-          type: DataType.FLOAT_VEC3
-        };
-        lightUniforms[`u_pointLight[${i}].distance`] = {
-          name: `u_pointLight[${i}].distance`,
-          type: DataType.FLOAT
-        };
-        lightUniforms[`u_pointLight[${i}].decay`] = {
-          name: `u_pointLight[${i}].decay`,
-          type: DataType.FLOAT
-        };
-      }
-    }
-
-    if (this._spotLightNum) {
-      for (let i = 0; i < this._spotLightNum; i++) {
-        lightUniforms[`u_spotLight[${i}].position`] = {
-          name: `u_spotLight[${i}].position`,
-          type: DataType.FLOAT_VEC3
-        };
-        lightUniforms[`u_spotLight[${i}].direction`] = {
-          name: `u_spotLight[${i}].direction`,
-          type: DataType.FLOAT_VEC3
-        };
-        lightUniforms[`u_spotLight[${i}].color`] = {
-          name: `u_spotLight[${i}].color`,
-          type: DataType.FLOAT_VEC3
-        };
-        lightUniforms[`u_spotLight[${i}].distance`] = {
-          name: `u_spotLight[${i}].distance`,
-          type: DataType.FLOAT
-        };
-        lightUniforms[`u_spotLight[${i}].decay`] = {
-          name: `u_spotLight[${i}].decay`,
-          type: DataType.FLOAT
-        };
-        lightUniforms[`u_spotLight[${i}].coneCos`] = {
-          name: `u_spotLight[${i}].coneCos`,
-          type: DataType.FLOAT
-        };
-        lightUniforms[`u_spotLight[${i}].penumbraCos`] = {
-          name: `u_spotLight[${i}].penumbraCos`,
-          type: DataType.FLOAT
-        };
-      }
-    }
-
     const clipPlaneUniforms = {};
-    for (let i = 0; i < this._clipPlaneNum; i++) {
+    for (let i = 0; i < this._clipPlaneCount; i++) {
       clipPlaneUniforms[`u_clipPlanes[${i}]`] = {
         name: `u_clipPlanes[${i}]`,
         type: DataType.FLOAT_VEC4
       };
     }
 
-    PBRMaterial.TECH_CONFIG.uniforms = Object.assign(
-      {},
-      PBRMaterial.TECH_CONFIG.uniforms,
-      lightUniforms,
-      AEnvironmentMapLight.getUniformDefine("u_envMapLight"),
-      clipPlaneUniforms
-    );
+    PBRMaterial.TECH_CONFIG.uniforms = Object.assign({}, PBRMaterial.TECH_CONFIG.uniforms, clipPlaneUniforms);
 
     return Object.assign({}, PBRMaterial.TECH_CONFIG, { states });
   }
@@ -1204,28 +1095,18 @@ class PBRMaterial extends Material {
     newMtl.useFog = this.useFog;
 
     for (const name in this._uniformObj) {
-      switch (name) {
-        case "baseColorTexture":
-        case "metallicTexture":
-        case "roughnessTexture":
-        case "metallicRoughnessTexture":
-        case "normalTexture":
-        case "emissiveTexture":
-        case "occlusionTexture":
-        case "opacityTexture":
-        case "specularGlossinessTexture":
-        case "perturbationTexture":
-          if (cloneTexture) {
-            let { name: textureName, image, type, config } = this._uniformObj[name];
-            const newTexture = new Texture2D(textureName, image, config);
-            newTexture.type = type;
-            newMtl[name] = newTexture;
-          } else {
-            newMtl[name] = this._uniformObj[name];
-          }
-          break;
-        default:
-          newMtl[name] = Util.clone(this._uniformObj[name]);
+      const value = this._uniformObj[name];
+      if (value instanceof Texture2D) {
+        if (cloneTexture) {
+          const { name: textureName, image, type, config } = value;
+          const newTexture = new Texture2D(textureName, image, config);
+          newTexture.type = type;
+          newMtl[name] = newTexture;
+        } else {
+          newMtl[name] = value;
+        }
+      } else {
+        newMtl[name] = Util.clone(value);
       }
     }
 
@@ -1423,11 +1304,6 @@ class PBRMaterial extends Material {
         name: "u_perturbationVOffset",
         paramName: "perturbationVOffset",
         type: DataType.FLOAT
-      },
-      // lights
-      u_ambientLightColor: {
-        name: "u_ambientLightColor",
-        type: DataType.FLOAT_VEC3
       }
     }),
     states: {

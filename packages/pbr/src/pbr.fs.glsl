@@ -41,12 +41,6 @@
 
 uniform float u_envMapIntensity;
 uniform float u_refractionRatio;
-
-
-
-uniform vec3 u_lightDirection;
-uniform vec3 u_lightColor;
-
 uniform vec2 u_metallicRoughnessValue;
 uniform vec4 u_baseColorFactor;
 
@@ -493,7 +487,15 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
 
 // Lights
 
-uniform vec3 u_ambientLightColor;
+#ifdef O3_HAS_AMBIENTLIGHT
+
+    struct AmbientLight {
+        vec3 color;
+        vec3 lightColor;
+        float intensity;
+    };
+    uniform AmbientLight u_ambientLight;
+#endif
 
 vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
@@ -514,12 +516,13 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
     struct DirectionalLight {
         vec3 direction;
         vec3 color;
+        vec3 lightColor;
     };
 
-    uniform DirectionalLight u_directionalLight[ O3_DIRECTLIGHT_NUM ];
+    uniform DirectionalLight u_directLights[ O3_DIRECTLIGHT_NUM ];
 
     void getDirectionalDirectLightIrradiance( const in DirectionalLight directionalLight, const in GeometricContext geometry, out IncidentLight directLight ) {
-        directLight.color = directionalLight.color;
+        directLight.color = directionalLight.lightColor;
         directLight.direction = directionalLight.direction;
         directLight.visible = true;
     }
@@ -531,11 +534,12 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
     struct PointLight {
 		vec3 position;
 		vec3 color;
+        vec3 lightColor;
 		float distance;
 		float decay;
 	};
 
-	uniform PointLight u_pointLight[ O3_POINTLIGHT_NUM ];
+	uniform PointLight u_pointLights[ O3_POINTLIGHT_NUM ];
 
 	// directLight is an out parameter as having it as a return value caused compiler errors on some devices
 	void getPointDirectLightIrradiance( const in PointLight pointLight, const in GeometricContext geometry, out IncidentLight directLight ) {
@@ -545,7 +549,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 		float lightDistance = length( lVector );
 
-		directLight.color = pointLight.color;
+		directLight.color = pointLight.lightColor;
 		directLight.color *= punctualLightIntensityToIrradianceFactor( lightDistance, pointLight.distance, pointLight.decay );
 		directLight.visible = ( directLight.color != vec3( 0.0 ) );
 
@@ -559,13 +563,14 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 		vec3 position;
 		vec3 direction;
 		vec3 color;
+        vec3 lightColor;
 		float distance;
 		float decay;
 		float coneCos;
 		float penumbraCos;
 	};
 
-	uniform SpotLight u_spotLight[ O3_SPOTLIGHT_NUM ];
+	uniform SpotLight u_spotLights[ O3_SPOTLIGHT_NUM ];
 
 	// directLight is an out parameter as having it as a return value caused compiler errors on some devices
 	void getSpotDirectLightIrradiance( const in SpotLight spotLight, const in GeometricContext geometry, out IncidentLight directLight  ) {
@@ -580,7 +585,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 			float spotEffect = smoothstep( spotLight.coneCos, spotLight.penumbraCos, angleCos );
 
-			directLight.color = spotLight.color;
+			directLight.color = spotLight.lightColor;
 			directLight.color *= spotEffect * punctualLightIntensityToIrradianceFactor( lightDistance, spotLight.distance, spotLight.decay );
 			directLight.visible = true;
 
@@ -726,7 +731,7 @@ void main() {
 
             for ( int i = 0; i < O3_DIRECTLIGHT_NUM; i ++ ) {
 
-                directionalLight = u_directionalLight[ i ];
+                directionalLight = u_directLights[ i ];
 
                 getDirectionalDirectLightIrradiance( directionalLight, geometry, directLight );
 
@@ -742,7 +747,7 @@ void main() {
 
             for ( int i = 0; i < O3_POINTLIGHT_NUM; i ++ ) {
 
-                pointLight = u_pointLight[ i ];
+                pointLight = u_pointLights[ i ];
 
                 getPointDirectLightIrradiance( pointLight, geometry, directLight );
 
@@ -758,7 +763,7 @@ void main() {
 
             for ( int i = 0; i < O3_SPOTLIGHT_NUM; i ++ ) {
 
-                spotLight = u_spotLight[ i ];
+                spotLight = u_spotLights[ i ];
 
                 getSpotDirectLightIrradiance( spotLight, geometry, directLight );
 
@@ -770,9 +775,11 @@ void main() {
 
         // light maps
 
-        #if defined( RE_IndirectDiffuse )
+        vec3 irradiance = vec3(0);
 
-            vec3 irradiance = getAmbientLightIrradiance( u_ambientLightColor );
+        #if defined( RE_IndirectDiffuse ) && defined(O3_HAS_AMBIENTLIGHT)
+
+            irradiance += getAmbientLightIrradiance( u_ambientLight.lightColor );
 
         #endif
 
