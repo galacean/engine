@@ -1,7 +1,6 @@
 import { DataType, RenderState, BlendFunc, MaterialType } from "@alipay/o3-base";
-import { Material, RenderTechnique, Texture2D } from "@alipay/o3-material";
+import { Texture2D } from "@alipay/o3-material";
 import { CommonMaterial } from "./CommonMaterial";
-import VERT_SHADER from "./shader/Vertex.glsl";
 import FRAG_SHADER from "./shader/Texture.glsl";
 
 /**
@@ -40,6 +39,7 @@ export class TransparentMaterial extends CommonMaterial {
   set texture(v) {
     this.setValue("u_diffuse", v);
   }
+
   get texture() {
     return this.getValue("u_diffuse");
   }
