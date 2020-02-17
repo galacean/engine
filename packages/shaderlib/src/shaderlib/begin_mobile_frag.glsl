@@ -8,14 +8,13 @@
 
     #endif
 
-    #ifdef O3_AMBIENT_TEXTURE
-
-    vec4 ambient = texture2D(u_ambient, v_uv_ambientTexture) * u_ambientLight;
-
-    #else
-
-    vec4 ambient = u_ambient * u_ambientLight;
-
+    vec4 ambient = vec4(0);
+    #ifdef O3_HAS_AMBIENTLIGHT
+        #ifdef O3_AMBIENT_TEXTURE
+            ambient = texture2D(u_ambient, v_uv_ambientTexture) * vec4(u_ambientLight.lightColor, 1.0);
+         #else
+            ambient = u_ambient * vec4(u_ambientLight.lightColor, 1.0);
+         #endif
     #endif
 
     #ifdef O3_DIFFUSE_TEXTURE
