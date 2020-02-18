@@ -68,9 +68,7 @@ export class PBRMaterialResource extends SchemaResource {
   getProps() {
     const result = {};
     const props = getAllGetters(this.resource);
-    for (let k in props) {
-      result[k] = this.resource[k];
-    }
+    props.forEach(prop => (result[prop] = this.resource[prop]));
     return result;
   }
 
