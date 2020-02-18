@@ -288,7 +288,6 @@ function addMatGUI() {
     common.add(m, "opacity", 0, 1).onChange(v => {
       state.baseColorFactor[3] = v;
     });
-    common.add(m, "premultipliedAlpha");
     common.add(m, "alphaMode", ["OPAQUE", "BLEND", "MASK"]);
     common.add(m, "alphaCutoff", 0, 1);
     common.add(m, "clearCoat", 0, 1);

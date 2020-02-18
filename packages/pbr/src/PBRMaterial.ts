@@ -56,7 +56,6 @@ class PBRMaterial extends Material {
    * @param {number} [props.glossinessFactor=0] 光泽度
    * @param {Texture2D} [props.specularGlossinessTexture] 高光光泽度纹理
    *
-   * @param {boolean} [props.premultipliedAlpha] rgb是否预乘alpha值;
    * @param {number} [props.envMapIntensity] 反射模式时的反射强度；
    *
    *  todo: IOR 更加符合材质的属性，但是需要增加额外的属性来表示非真空折射率，如摄像机在水中等情况。
@@ -124,7 +123,6 @@ class PBRMaterial extends Material {
       depthMask: [false],
       getOpacityFromRGB: false,
       isMetallicWorkflow: true,
-      premultipliedAlpha: true,
       envMapModeRefract: false
     };
 
@@ -275,9 +273,6 @@ class PBRMaterial extends Material {
           break;
         case "isMetallicWorkflow":
           this.isMetallicWorkflow = obj[key];
-          break;
-        case "premultipliedAlpha":
-          this.premultipliedAlpha = obj[key];
           break;
         case "envMapModeRefract":
           this.envMapModeRefract = obj[key];
@@ -836,19 +831,6 @@ class PBRMaterial extends Material {
   }
 
   /**
-   * rgb是否预乘alpha
-   * @type{boolean}
-   * */
-  get premultipliedAlpha(): boolean {
-    return this._stateObj.premultipliedAlpha;
-  }
-
-  set premultipliedAlpha(v) {
-    this._stateObj.premultipliedAlpha = v;
-    this._technique = null;
-  }
-
-  /**
    * 是否使用折射模式，默认反射模式
    * @type{boolean}
    * */
@@ -1024,7 +1006,6 @@ class PBRMaterial extends Material {
     if (this._stateObj.srgbFast) _macros.push("SRGB_FAST_APPROXIMATION");
     if (this._stateObj.gamma) _macros.push("GAMMA");
     if (this._stateObj.isMetallicWorkflow) _macros.push("IS_METALLIC_WORKFLOW");
-    if (this._stateObj.premultipliedAlpha) _macros.push("PREMULTIPLIED_ALPHA");
     if (this._stateObj.envMapModeRefract) _macros.push("ENVMAPMODE_REFRACT");
 
     return _macros;
