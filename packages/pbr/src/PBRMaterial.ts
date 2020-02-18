@@ -986,9 +986,9 @@ class PBRMaterial extends Material {
     if (this._envMapLightCount) {
       _macros.push("O3_HAS_ENVMAP_LIGHT");
 
-      if (this._useDiffuseEnv) _macros.push("O3_HAS_DIFFUSEMAP");
+      if (this._useDiffuseEnv) _macros.push("O3_USE_DIFFUSE_ENV");
 
-      if (this._useSpecularEnv) _macros.push("O3_HAS_SPECULARMAP");
+      if (this._useSpecularEnv) _macros.push("O3_USE_SPECULAR_ENV");
 
       if (rhi.requireExtension("EXT_shader_texture_lod")) _macros.push("HAS_TEX_LOD");
     }

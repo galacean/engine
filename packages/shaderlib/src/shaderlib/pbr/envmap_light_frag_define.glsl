@@ -2,11 +2,11 @@
 
 struct EnvMapLight {
 
-    #ifdef O3_HAS_DIFFUSEMAP
+    #ifdef O3_USE_DIFFUSE_ENV
     samplerCube diffuseSampler;
     #endif
 
-    #ifdef O3_HAS_SPECULARMAP
+    #ifdef O3_USE_SPECULAR_ENV
     samplerCube specularSampler;
     #endif
 

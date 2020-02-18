@@ -8,7 +8,7 @@
 
     #if defined(O3_HAS_ENVMAP_LIGHT)
 
-        #ifdef O3_HAS_DIFFUSEMAP
+        #ifdef O3_USE_DIFFUSE_ENV
             vec3 lightMapIrradiance = textureCube(u_envMapLight.diffuseSampler, geometry.normal).rgb * u_envMapLight.diffuseIntensity;
         #else
             vec3 lightMapIrradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;

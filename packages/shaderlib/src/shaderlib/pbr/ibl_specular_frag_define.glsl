@@ -36,7 +36,7 @@ float getSpecularMIPLevel( const in float blinnShininessExponent, const in int m
 
 vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightProbe,*/ const in GeometricContext geometry, const in float blinnShininessExponent, const in int maxMIPLevel ) {
 
-    #if !defined(O3_HAS_SPECULARMAP) && !defined(HAS_REFLECTIONMAP)
+    #if !defined(O3_USE_SPECULAR_ENV) && !defined(HAS_REFLECTIONMAP)
 
         return u_envMapLight.specular * u_envMapLight.specularIntensity * u_envMapIntensity;
 

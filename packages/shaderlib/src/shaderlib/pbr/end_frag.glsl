@@ -3,7 +3,7 @@
     float ambientOcclusion = (texture2D(u_occlusionSampler, v_uv_occlusionTexture).r - 1.0) * u_occlusionStrength + 1.0;
     reflectedLight.indirectDiffuse *= ambientOcclusion;
 
-    #if defined(O3_HAS_SPECULARMAP)
+    #if defined(O3_USE_SPECULAR_ENV)
 
         float dotNV = saturate(dot(geometry.normal, geometry.viewDir));
         reflectedLight.indirectSpecular *= computeSpecularOcclusion(dotNV, ambientOcclusion, material.specularRoughness);
