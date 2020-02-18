@@ -115,6 +115,7 @@ export interface Schema {
   assets: {
     [assetId: string]: AssetConfig;
   };
+  [name: string]: any;
 }
 
 export interface ClassType<T> extends Function {
@@ -123,11 +124,15 @@ export interface ClassType<T> extends Function {
 
 export interface Options {
   canvas?: HTMLCanvasElement;
+  // 传入 schema
   config?: Schema;
+  // 是否自动调用 engine.run()，默认为 false
   autoPlay?: boolean;
   onProgress?: () => {};
-  local?: boolean; // 是否本地开发环境
-  rhiAttr: WebGLContextAttributes & { enableCollect?: boolean };
+  // 脚本是否本地开发环境
+  local?: boolean;
+  // gl context 参数
+  rhiAttr?: WebGLContextAttributes & { enableCollect?: boolean };
 }
 
 export interface LoadAttachedResourceResult {
