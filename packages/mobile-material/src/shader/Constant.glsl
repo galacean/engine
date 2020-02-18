@@ -1,7 +1,7 @@
 #include <common>
 #include <common_frag>
 #include <uv_share>
-#include <uv_transform_share_declaration>
+#include <uv_transform_share_define>
 #include <mobile_material_frag>
 
 #include <fog_share>
