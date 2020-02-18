@@ -859,11 +859,7 @@ void main() {
     #endif
 
 
-    #ifdef GAMMA
-        float gamma = 2.2;
-        gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 / gamma));
-    #endif
-
+    #include <gamma_frag>
     #include <refraction_frag>
     #include <perturbation_frag>
     #include <fog_frag>

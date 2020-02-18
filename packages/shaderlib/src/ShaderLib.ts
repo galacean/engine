@@ -69,6 +69,8 @@ import clipPlane_vert from "./shaderlib/clipPlane_vert.glsl";
 import clipPlane_frag_define from "./shaderlib/clipPlane_frag_define.glsl";
 import clipPlane_frag from "./shaderlib/clipPlane_frag.glsl";
 
+import gamma_frag from "./shaderlib/gamma_frag.glsl";
+
 export const ShaderLib = {
   common,
   common_vert,
@@ -139,7 +141,9 @@ export const ShaderLib = {
   clipPlane_vert_define,
   clipPlane_vert,
   clipPlane_frag_define,
-  clipPlane_frag
+  clipPlane_frag,
+
+  gamma_frag
 };
 
 export function InjectShaderSlices(obj) {
