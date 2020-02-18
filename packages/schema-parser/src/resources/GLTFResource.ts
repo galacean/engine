@@ -51,7 +51,7 @@ export class GLTFResource extends SchemaResource {
             materialResource.loadWithAttachedResources(resourceLoader, {
               type: "PBRMaterial",
               name: material.name,
-              props: material
+              resource: material
             })
           );
         }
