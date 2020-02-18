@@ -1,5 +1,5 @@
 import { SchemaResource } from "./SchemaResource";
-import { ResourceLoader } from "@alipay/o3";
+import { ResourceLoader, Logger } from "@alipay/o3";
 
 import * as o3 from "@alipay/o3";
 import { PBRMaterialResource } from "./PBRMaterialResource";
@@ -130,6 +130,8 @@ export class GLTFResource extends SchemaResource {
         if (mtlResource) {
           this._attachedResources.push(mtlResource);
           gltf.materials[i] = mtlResource.resource;
+        } else {
+          Logger.warn(`GLTFResource: ${this.meta.name} can't find asset "material", which id is: ${materials[i].id}`);
         }
       }
       for (let j = 0; j < meshes.length; j++) {
