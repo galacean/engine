@@ -71,6 +71,8 @@ import clipPlane_frag from "./shaderlib/clipPlane_frag.glsl";
 
 import gamma_frag from "./shaderlib/gamma_frag.glsl";
 
+import PBRShaderLib from "./shaderlib/pbr";
+
 export const ShaderLib = {
   common,
   common_vert,
@@ -143,7 +145,9 @@ export const ShaderLib = {
   clipPlane_frag_define,
   clipPlane_frag,
 
-  gamma_frag
+  gamma_frag,
+
+  ...PBRShaderLib
 };
 
 export function InjectShaderSlices(obj) {
