@@ -3,16 +3,13 @@ import { ResourceManager } from "../ResourceManager";
 
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { Oasis } from "../Oasis";
+import { isAsset } from "../utils";
 
 interface IResourceMeta {
   name?: string;
   url?: string;
   size?: number;
   source?: string;
-}
-
-function isAsset(config: any): boolean {
-  return config && config.type === "asset";
 }
 
 export abstract class SchemaResource {

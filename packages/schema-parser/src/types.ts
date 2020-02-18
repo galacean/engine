@@ -94,7 +94,7 @@ export interface AssetConfig {
   /**
    * asset props
    */
-  props: any;
+  props?: any;
   /**
    * asset url
    */
@@ -103,6 +103,10 @@ export interface AssetConfig {
    * asset source
    */
   source?: string;
+  /**
+   * asset resource
+   */
+  resource?: any;
 }
 
 export interface Schema {
