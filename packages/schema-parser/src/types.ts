@@ -132,7 +132,7 @@ export interface Options {
   // 脚本是否本地开发环境
   local?: boolean;
   // gl context 参数
-  rhiAttr: WebGLContextAttributes & { enableCollect?: boolean };
+  rhiAttr?: WebGLContextAttributes & { enableCollect?: boolean };
 }
 
 export interface LoadAttachedResourceResult {
