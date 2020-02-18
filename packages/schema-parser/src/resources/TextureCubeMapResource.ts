@@ -4,8 +4,6 @@ import { ResourceLoader, Logger } from "@alipay/o3";
 import { TextureResource } from "./TextureResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
-Logger.enable();
-
 const imageOrderMap = {
   px: 0,
   nx: 1,

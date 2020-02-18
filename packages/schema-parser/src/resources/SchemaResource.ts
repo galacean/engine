@@ -15,8 +15,6 @@ function isAsset(config: any): boolean {
   return config && config.type === "asset";
 }
 
-Logger.enable();
-
 export abstract class SchemaResource {
   protected _meta: IResourceMeta = {};
   protected _attachedResources: Array<SchemaResource> = [];

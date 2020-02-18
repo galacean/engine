@@ -5,8 +5,6 @@ import * as o3 from "@alipay/o3";
 import { PBRMaterialResource } from "./PBRMaterialResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
-Logger.enable();
-
 export class GLTFResource extends SchemaResource {
   load(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<GLTFResource> {
     return new Promise((resolve, reject) => {

@@ -5,8 +5,6 @@ import { ResourceLoader, Logger } from "@alipay/o3";
 import { TextureResource } from "./TextureResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
-Logger.enable();
-
 export class PBRMaterialResource extends SchemaResource {
   static textureArr = [
     "baseColorTexture",

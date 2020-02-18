@@ -4,8 +4,6 @@ import { AssetConfig } from "../types";
 import { Logger } from "@alipay/o3";
 const { Animation: AnimationAsset } = o3;
 
-Logger.enable();
-
 export class Animation extends SchemaResource {
   private config: AssetConfig;
   load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<Animation> {
