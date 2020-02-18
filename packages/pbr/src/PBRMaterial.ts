@@ -984,7 +984,7 @@ class PBRMaterial extends Material {
     }
 
     if (this._envMapLightCount) {
-      _macros.push("O3_HAS_ENVMAPLIGHT");
+      _macros.push("O3_HAS_ENVMAP_LIGHT");
 
       if (this._useDiffuseEnv) _macros.push("O3_HAS_DIFFUSEMAP");
 
@@ -994,11 +994,11 @@ class PBRMaterial extends Material {
     }
 
     if (this._ambientLightCount) {
-      _macros.push("O3_HAS_AMBIENTLIGHT");
+      _macros.push("O3_HAS_AMBIENT_LIGHT");
     }
-    if (this._directLightCount) _macros.push(`O3_DIRECTLIGHT_NUM ${this._directLightCount}`);
-    if (this._pointLightCount) _macros.push(`O3_POINTLIGHT_NUM ${this._pointLightCount}`);
-    if (this._spotLightCount) _macros.push(`O3_SPOTLIGHT_NUM ${this._spotLightCount}`);
+    if (this._directLightCount) _macros.push(`O3_DIRECT_LIGHT_COUNT ${this._directLightCount}`);
+    if (this._pointLightCount) _macros.push(`O3_POINT_LIGHT_COUNT ${this._pointLightCount}`);
+    if (this._spotLightCount) _macros.push(`O3_SPOT_LIGHT_COUNT ${this._spotLightCount}`);
     if (this._clipPlaneCount) _macros.push(`O3_CLIPPLANE_NUM ${this._clipPlaneCount}`);
 
     if (this._stateObj.unlit) _macros.push("UNLIT");

@@ -1,4 +1,4 @@
-#ifdef O3_HAS_AMBIENTLIGHT
+#ifdef O3_HAS_AMBIENT_LIGHT
 
 struct AmbientLight {
     vec3 color;

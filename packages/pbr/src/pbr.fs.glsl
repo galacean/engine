@@ -12,6 +12,10 @@
 #include <perturbation_share>
 #include <clipPlane_frag_define>
 
+#include <ambient_light_frag>
+#include <direct_light_frag>
+#include <point_light_frag>
+#include <spot_light_frag>
 
 #ifdef ALPHA_MASK
 
@@ -19,7 +23,7 @@
 
 #endif
 
-#ifdef O3_HAS_ENVMAPLIGHT
+#ifdef O3_HAS_ENVMAP_LIGHT
 
     struct EnvMapLight {
     #ifdef O3_HAS_DIFFUSEMAP
@@ -374,7 +378,7 @@ float getSpecularMIPLevel( const in float blinnShininessExponent, const in int m
 
 }
 
-#ifdef O3_HAS_ENVMAPLIGHT
+#ifdef O3_HAS_ENVMAP_LIGHT
 vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightProbe,*/ const in GeometricContext geometry, const in float blinnShininessExponent, const in int maxMIPLevel ) {
 
     #if !defined(O3_HAS_SPECULARMAP) && !defined(HAS_REFLECTIONMAP)
@@ -487,15 +491,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
 
 // Lights
 
-#ifdef O3_HAS_AMBIENTLIGHT
-
-    struct AmbientLight {
-        vec3 color;
-        vec3 lightColor;
-        float intensity;
-    };
-    uniform AmbientLight u_ambientLight;
-#endif
+#ifdef O3_HAS_AMBIENT_LIGHT
 
 vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
@@ -510,18 +506,13 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
     return irradiance;
 
 }
+#endif
 
-#ifdef O3_DIRECTLIGHT_NUM
 
-    struct DirectionalLight {
-        vec3 direction;
-        vec3 color;
-        vec3 lightColor;
-    };
 
-    uniform DirectionalLight u_directLights[ O3_DIRECTLIGHT_NUM ];
+#ifdef O3_DIRECT_LIGHT_COUNT
 
-    void getDirectionalDirectLightIrradiance( const in DirectionalLight directionalLight, const in GeometricContext geometry, out IncidentLight directLight ) {
+    void getDirectionalDirectLightIrradiance( const in DirectLight directionalLight, const in GeometricContext geometry, out IncidentLight directLight ) {
         directLight.color = directionalLight.lightColor;
         directLight.direction = directionalLight.direction;
         directLight.visible = true;
@@ -529,17 +520,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 #endif
 
-#ifdef O3_POINTLIGHT_NUM
-
-    struct PointLight {
-		vec3 position;
-		vec3 color;
-        vec3 lightColor;
-		float distance;
-		float decay;
-	};
-
-	uniform PointLight u_pointLights[ O3_POINTLIGHT_NUM ];
+#ifdef O3_POINT_LIGHT_COUNT
 
 	// directLight is an out parameter as having it as a return value caused compiler errors on some devices
 	void getPointDirectLightIrradiance( const in PointLight pointLight, const in GeometricContext geometry, out IncidentLight directLight ) {
@@ -557,20 +538,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 #endif
 
-#ifdef O3_SPOTLIGHT_NUM
-
-	struct SpotLight {
-		vec3 position;
-		vec3 direction;
-		vec3 color;
-        vec3 lightColor;
-		float distance;
-		float decay;
-		float coneCos;
-		float penumbraCos;
-	};
-
-	uniform SpotLight u_spotLights[ O3_SPOTLIGHT_NUM ];
+#ifdef O3_SPOT_LIGHT_COUNT
 
 	// directLight is an out parameter as having it as a return value caused compiler errors on some devices
 	void getSpotDirectLightIrradiance( const in SpotLight spotLight, const in GeometricContext geometry, out IncidentLight directLight  ) {
@@ -725,11 +693,11 @@ void main() {
 
         IncidentLight directLight;
 
-        #if defined( O3_DIRECTLIGHT_NUM ) && defined( RE_Direct )
+        #if defined( O3_DIRECT_LIGHT_COUNT ) && defined( RE_Direct )
 
-            DirectionalLight directionalLight;
+            DirectLight directionalLight;
 
-            for ( int i = 0; i < O3_DIRECTLIGHT_NUM; i ++ ) {
+            for ( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i ++ ) {
 
                 directionalLight = u_directLights[ i ];
 
@@ -741,11 +709,11 @@ void main() {
 
         #endif
 
-        #if defined( O3_POINTLIGHT_NUM ) && defined( RE_Direct )
+        #if defined( O3_POINT_LIGHT_COUNT ) && defined( RE_Direct )
 
             PointLight pointLight;
 
-            for ( int i = 0; i < O3_POINTLIGHT_NUM; i ++ ) {
+            for ( int i = 0; i < O3_POINT_LIGHT_COUNT; i ++ ) {
 
                 pointLight = u_pointLights[ i ];
 
@@ -757,11 +725,11 @@ void main() {
 
         #endif
 
-        #if defined( O3_SPOTLIGHT_NUM ) && defined( RE_Direct )
+        #if defined( O3_SPOT_LIGHT_COUNT ) && defined( RE_Direct )
 
             SpotLight spotLight;
 
-            for ( int i = 0; i < O3_SPOTLIGHT_NUM; i ++ ) {
+            for ( int i = 0; i < O3_SPOT_LIGHT_COUNT; i ++ ) {
 
                 spotLight = u_spotLights[ i ];
 
@@ -777,7 +745,7 @@ void main() {
 
         vec3 irradiance = vec3(0);
 
-        #if defined( RE_IndirectDiffuse ) && defined(O3_HAS_AMBIENTLIGHT)
+        #if defined( RE_IndirectDiffuse ) && defined(O3_HAS_AMBIENT_LIGHT)
 
             irradiance += getAmbientLightIrradiance( u_ambientLight.lightColor );
 
@@ -790,7 +758,7 @@ void main() {
 
         #endif
 
-        #if defined( RE_IndirectDiffuse ) && defined( O3_HAS_ENVMAPLIGHT )
+        #if defined( RE_IndirectDiffuse ) && defined( O3_HAS_ENVMAP_LIGHT )
 
             #ifdef O3_HAS_DIFFUSEMAP
 
@@ -812,7 +780,7 @@ void main() {
 
         #endif
 
-        #if defined( O3_HAS_ENVMAPLIGHT ) && defined( RE_IndirectSpecular )
+        #if defined( O3_HAS_ENVMAP_LIGHT ) && defined( RE_IndirectSpecular )
 
             radiance += getLightProbeIndirectRadiance( geometry, Material_BlinnShininessExponent( material ), int(u_envMapLight.mipMapLevel) );
             clearCoatRadiance += getLightProbeIndirectRadiance( geometry, Material_ClearCoat_BlinnShininessExponent( material ), int(u_envMapLight.mipMapLevel) );

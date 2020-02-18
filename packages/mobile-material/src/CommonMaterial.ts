@@ -116,7 +116,7 @@ export abstract class CommonMaterial extends Material {
     if (this.ambient instanceof Texture2D) macros.push("O3_AMBIENT_TEXTURE");
 
     if (this._ambientLightCount) {
-      macros.push("O3_HAS_AMBIENTLIGHT");
+      macros.push("O3_HAS_AMBIENT_LIGHT");
     }
     return macros;
   }
