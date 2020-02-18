@@ -112,7 +112,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
           if (!jointNodes[i]) {
             if (this._rootNodes && this._rootNodes.length) {
               jointNodes[i] = this._findChildFromRootNodes(this._rootNodes, joints[i]);
-            } else {
+            } else if (rootBone.parentNode) {
               jointNodes[i] = rootBone.parentNode.findChildByName(joints[i]);
             }
           }
