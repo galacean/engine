@@ -1,65 +1,23 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
-import { ResourceLoader } from "@alipay/o3";
+import { ResourceLoader, Logger, PBRMaterial } from "@alipay/o3";
 
 import { TextureResource } from "./TextureResource";
+import { isAsset, getAllGetters } from "../utils";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
 export class PBRMaterialResource extends SchemaResource {
-  static textureArr = [
-    "baseColorTexture",
-    "metallicTexture",
-    "roughnessTexture",
-    "metallicRoughnessTexture",
-    "normalTexture",
-    "emissiveTexture",
-    "occlusionTexture",
-    "opacityTexture",
-    "specularGlossinessTexture",
-    "perturbationTexture",
-    "refractionTexture",
-    "reflectionTexture"
-  ];
-
-  static propsKey = [
-    "isMetallicWorkflow",
-    "envMapIntensity",
-    "metallicFactor",
-    "roughnessFactor",
-    "metallicRoughnessTexture",
-    "glossinessFactor",
-    "specularFactor",
-    "specularGlossinessTexture",
-    "normalScale",
-    "alphaCutoff",
-    "clearCoat",
-    "clearCoatRoughness",
-    "doubleSided",
-    "unlit",
-    "srgb",
-    "gamma",
-    "alphaMode",
-    "baseColorFactor",
-    "emissiveFactor",
-    "baseColorTexture",
-    "normalTexture",
-    "emissiveTexture",
-    "occlusionTexture",
-    "occlusionStrength",
-    "opacity",
-    "getOpacityFromRGB",
-    "refractionRatio",
-    "envMapModeRefract",
-    "perturbationUOffset",
-    "perturbationVOffset",
-    "refractionDepth"
-  ];
+  private configProps;
 
   load(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<PBRMaterialResource> {
     return new Promise(resolve => {
       const assetObj = new o3.PBRMaterial(assetConfig.name);
-      for (let k in assetConfig.props) {
-        assetObj[k] = assetConfig.props[k];
+      this.configProps = assetConfig.props;
+
+      for (let k in this.configProps) {
+        if (!isAsset(this.configProps[k])) {
+          assetObj[k] = this.configProps[k];
+        }
       }
       this._resource = assetObj;
       this.setMeta();
@@ -71,8 +29,11 @@ export class PBRMaterialResource extends SchemaResource {
     resourceLoader: ResourceLoader,
     assetConfig: AssetConfig
   ): Promise<LoadAttachedResourceResult> {
-    return new Promise(resolve => {
-      this.load(resourceLoader, assetConfig).then(() => {
+    return new Promise((resolve, reject) => {
+      if (assetConfig.resource instanceof PBRMaterial) {
+        this._resource = assetConfig.resource;
+
+        this.setMeta();
         const result: any = {
           resources: [this],
           structure: {
@@ -82,7 +43,7 @@ export class PBRMaterialResource extends SchemaResource {
         };
 
         const material = this._resource;
-        PBRMaterialResource.textureArr.forEach(attr => {
+        getAllGetters(this._resource).forEach(attr => {
           if (!(material[attr] instanceof o3.Texture)) return;
           const textureResource = new TextureResource(this.resourceManager, material[attr]);
           this.attachedResources.push(textureResource);
@@ -92,7 +53,9 @@ export class PBRMaterialResource extends SchemaResource {
           };
         });
         resolve(result);
-      });
+      } else {
+        reject("Load PBRMaterial Error");
+      }
     });
   }
 
@@ -104,7 +67,8 @@ export class PBRMaterialResource extends SchemaResource {
 
   getProps() {
     const result = {};
-    for (let k in PBRMaterialResource.propsKey) {
+    const props = getAllGetters(this.resource);
+    for (let k in props) {
       result[k] = this.resource[k];
     }
     return result;
@@ -113,12 +77,18 @@ export class PBRMaterialResource extends SchemaResource {
   bind() {
     // 替换PBR材质中的纹理
     const resource = this._resource;
-    PBRMaterialResource.textureArr.forEach(attr => {
-      const value = resource[attr];
-      if (value && this.resourceManager.get(value.id)) {
-        const attachedRresource = this.resourceManager.get(value.id);
-        resource[attr] = attachedRresource.resource;
-        this._attachedResources.push(attachedRresource);
+    Object.keys(this.configProps).forEach(attr => {
+      // const value = resource[attr];
+      const value = this.configProps[attr];
+      if (isAsset(value)) {
+        const textureResource = this.resourceManager.get(value.id);
+        if (textureResource && textureResource instanceof TextureResource) {
+          resource[attr] = textureResource.resource;
+          this._attachedResources.push(textureResource);
+        } else {
+          resource[attr] = null;
+          Logger.warn(`PBRMaterialResource: ${this.meta.name} can't find asset "${attr}", which id is: ${value.id}`);
+        }
       }
     });
   }

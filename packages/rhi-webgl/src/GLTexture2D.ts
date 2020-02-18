@@ -35,7 +35,7 @@ export class GLTexture2D extends GLTexture {
 
       super.generateMipmap();
       config.needUpdateWholeTexture = false;
-    } else if (config.updateSubRects.length > 0) {
+    } else if (config.updateSubRects && config.updateSubRects.length > 0) {
       super.setPixelStore();
       for (let i = config.updateSubRects.length - 1; i >= 0; i--) {
         this.updateSubTexture(gl, config, config.updateSubRects[i], config.updateSubImageData[i]);
