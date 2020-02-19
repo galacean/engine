@@ -9,7 +9,8 @@ import {
   TextureCubeMapResource,
   AnimationClip,
   Animation,
-  Animator
+  Animator,
+  SpineResource
 } from "./resources";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "./types";
@@ -25,7 +26,8 @@ const RESOURCE_CLASS = {
   BlinnPhongMaterial: BlinnPhongMaterialResource,
   AnimationClip: AnimationClip,
   Animation: Animation,
-  Animator: Animator
+  Animator: Animator,
+  spine: SpineResource
 };
 
 const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
@@ -153,6 +155,7 @@ export class ResourceManager {
         }
       }
     }
+    console.log(addResourceResult);
     return addResourceResult;
   }
 

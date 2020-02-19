@@ -9,3 +9,4 @@ export { AnimationClip } from "./AnimationClip";
 export { Animation } from "./Animation";
 export { Animator } from "./Animator";
 export * from "./ScriptResource";
+export { SpineResource } from "./SpineResource";

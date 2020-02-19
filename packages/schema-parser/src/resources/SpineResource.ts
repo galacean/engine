@@ -1,0 +1,111 @@
+import { SchemaResource } from "./SchemaResource";
+import { ResourceLoader } from "@alipay/o3";
+
+import * as o3 from "@alipay/o3";
+import { AssetConfig, LoadAttachedResourceResult } from "../types";
+
+export class SpineResource extends SchemaResource {
+  load(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<SpineResource> {
+    return new Promise((resolve, reject) => {
+      this._resource = assetConfig;
+      this.setMeta();
+      resolve(this);
+    });
+  }
+
+  loadWithAttachedResources(
+    resourceLoader: ResourceLoader,
+    assetConfig: AssetConfig
+  ): Promise<LoadAttachedResourceResult> {
+    return new Promise(resolve => {
+      this.load(resourceLoader, assetConfig).then(() => {
+        const result = {
+          resources: [this],
+          structure: {
+            index: 0,
+            props: {
+              spineAssets: []
+            }
+          }
+        };
+        const assets = assetConfig.props.spineAssets;
+        const spineAssets = result.structure.props.spineAssets;
+        for (const key in assets) {
+          if (assets.hasOwnProperty(key)) {
+            const structure = {
+              index: 0
+            };
+            spineAssets.push(structure);
+          }
+        }
+        resolve(result);
+      });
+    });
+  }
+
+  setMeta(assetConfig?: AssetConfig) {
+    if (assetConfig) {
+      this.meta.name = assetConfig.name;
+    }
+  }
+
+  bind() {
+    const resource = this._resource;
+    this.bindMaterials(resource.newMaterial);
+  }
+
+  update(key: string, value: any) {
+    if (key === "newMaterial") {
+      this.bindMaterials(value);
+    } else {
+      this._resource[key] = value;
+    }
+  }
+
+  private bindMaterials(materials) {
+    if (!materials || !materials.length) {
+      return;
+    }
+    const gltf = this._resource;
+    const meshes = gltf.meshes;
+    // 兼容material克隆时期生成的schema
+    // 通过schema中material数量和gltf中materials数量比较
+    // 如果不相等说明是老版本，虽然不准确
+    if (materials.length !== gltf.materials.length) {
+      for (let i = 0; i < materials.length; i++) {
+        const matResource = this.resourceManager.get(materials[i].id);
+        if (matResource) {
+          gltf.materials[i] = this.resourceManager.get(materials[i].id).resource;
+        }
+      }
+      let index = 0;
+      for (let i = 0; i < meshes.length; i++) {
+        for (let j = 0; j < meshes[i].primitives.length; j++) {
+          const attachedResource = this.resourceManager.get(materials[index].id);
+          if (attachedResource) {
+            this._attachedResources.push(attachedResource);
+            meshes[i].primitives[j].material = attachedResource.resource;
+          }
+          index++;
+        }
+      }
+    } else {
+      for (let i = 0; i < materials.length; i++) {
+        const mtlResource = this.resourceManager.get(materials[i].id);
+        if (mtlResource) {
+          this._attachedResources.push(mtlResource);
+          gltf.materials[i] = mtlResource.resource;
+        }
+      }
+      for (let j = 0; j < meshes.length; j++) {
+        for (let k = 0; k < meshes[j].primitives.length; k++) {
+          if (meshes[j].primitives[k].materialIndex !== undefined) {
+            // 因为gltf模型中的materials是倒叙遍历的，所以这里要这么写
+            const index = gltf.materials.length - 1 - meshes[j].primitives[k].materialIndex;
+            meshes[j].primitives[k].material = gltf.materials[index];
+          }
+        }
+      }
+    }
+  }
+}
