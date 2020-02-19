@@ -111,7 +111,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
           jointNodes[i] = rootBone.findChildByName(joints[i]);
           if (!jointNodes[i]) {
             if (this._rootNodes && this._rootNodes.length) {
-              jointNodes[i] = this._findChildFromRootNodes(this._rootNodes, joints[i]);
+              jointNodes[i] = this._findChildFromRootNodes(joints[i]);
             } else if (rootBone.parentNode) {
               jointNodes[i] = rootBone.parentNode.findChildByName(joints[i]);
             }
@@ -150,12 +150,14 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * @param {string} nodeName
    * @private
    */
-  _findChildFromRootNodes(rootNodes: Node[], nodeName: string) {
-    for (let index = 0; index < rootNodes.length; index++) {
-      const root = rootNodes[index];
-      const node = root.findChildByName(nodeName);
-      if (node) {
-        return node;
+  private _findChildFromRootNodes(nodeName: string) {
+    if (this._rootNodes && this._rootNodes.length) {
+      for (let index = 0; index < this._rootNodes.length; index++) {
+        const root = this._rootNodes[index];
+        const node = root.findChildByName(nodeName);
+        if (node) {
+          return node;
+        }
       }
     }
     return null;
