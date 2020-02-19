@@ -13,6 +13,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
   private _weights: number[];
   private weightsIndices: number[] = [];
   private _skin: Skin;
+  private _rootNodes: Node[];
   public started: boolean;
   public matrixPalette: Float32Array;
   public jointNodes: Node[];
@@ -22,14 +23,16 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * @param node
    * @param props
    */
-  constructor(node: Node, props: { mesh?: Mesh; skin?: Skin; weights?: number[] } = {}) {
+  constructor(node: Node, props: { mesh?: Mesh; skin?: Skin; weights?: number[]; rootNodes?: Node[] } = {}) {
     super(node, props);
 
     this._mat = mat4.create() as Float32Array;
     this._weights = null;
     this._skin = null;
+    this._rootNodes = null;
 
     this.skin = props.skin;
+    this._rootNodes = props.rootNodes;
     this.setWeights(props.mesh?.weights);
   }
 
@@ -101,14 +104,17 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
 
       const joints = skin.joints;
       const jointNodes = [];
-
       for (let i = joints.length - 1; i >= 0; i--) {
         if (joints[i] === skin.skeleton) {
           jointNodes[i] = rootBone;
         } else {
           jointNodes[i] = rootBone.findChildByName(joints[i]);
-          if (!jointNodes[i] && rootBone.parentNode) {
-            jointNodes[i] = rootBone.parentNode.findChildByName(joints[i]);
+          if (!jointNodes[i]) {
+            if (this._rootNodes && this._rootNodes.length) {
+              jointNodes[i] = this._findChildFromRootNodes(joints[i]);
+            } else if (rootBone.parentNode) {
+              jointNodes[i] = rootBone.parentNode.findChildByName(joints[i]);
+            }
           }
         }
       } // end of for
@@ -134,6 +140,25 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
       if (brother) return brother;
 
       return this._findParent(parent, nodeName);
+    }
+    return null;
+  }
+
+  /**
+   * 从root中查找
+   * @param {Node[]} rootNodes
+   * @param {string} nodeName
+   * @private
+   */
+  private _findChildFromRootNodes(nodeName: string) {
+    if (this._rootNodes && this._rootNodes.length) {
+      for (let index = 0; index < this._rootNodes.length; index++) {
+        const root = this._rootNodes[index];
+        const node = root.findChildByName(nodeName);
+        if (node) {
+          return node;
+        }
+      }
     }
     return null;
   }
