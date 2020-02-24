@@ -30,31 +30,40 @@ export class PBRMaterialResource extends SchemaResource {
     assetConfig: AssetConfig
   ): Promise<LoadAttachedResourceResult> {
     return new Promise((resolve, reject) => {
+      let loadPromise;
       if (assetConfig.resource instanceof PBRMaterial) {
-        this._resource = assetConfig.resource;
-
-        this.setMeta();
-        const result: any = {
-          resources: [this],
-          structure: {
-            index: 0,
-            props: {}
-          }
-        };
-
-        const material = this._resource;
-        getAllGetters(this._resource).forEach(attr => {
-          if (!(material[attr] instanceof o3.Texture)) return;
-          const textureResource = new TextureResource(this.resourceManager, material[attr]);
-          this.attachedResources.push(textureResource);
-          result.resources.push(textureResource);
-          result.structure.props[attr] = {
-            index: result.resources.length - 1
-          };
+        loadPromise = new Promise(resolve => {
+          this._resource = assetConfig.resource;
+          this.setMeta();
+          resolve(this);
         });
-        resolve(result);
+      } else if (assetConfig.props) {
+        loadPromise = this.load(resourceLoader, assetConfig);
       } else {
         reject("Load PBRMaterial Error");
+      }
+      if (loadPromise) {
+        loadPromise.then(() => {
+          const result: any = {
+            resources: [this],
+            structure: {
+              index: 0,
+              props: {}
+            }
+          };
+
+          const material = this._resource;
+          getAllGetters(this._resource).forEach(attr => {
+            if (!(material[attr] instanceof o3.Texture)) return;
+            const textureResource = new TextureResource(this.resourceManager, material[attr]);
+            this.attachedResources.push(textureResource);
+            result.resources.push(textureResource);
+            result.structure.props[attr] = {
+              index: result.resources.length - 1
+            };
+          });
+          resolve(result);
+        });
       }
     });
   }
