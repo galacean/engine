@@ -3,7 +3,7 @@ import { AnimationClip } from "./AnimationClip";
 import { getAnimationClipHander } from "./handler/index";
 import { AnimationClipHandler } from "./handler/animationClipHandler";
 import { WrapMode } from "./AnimationConst";
-
+console.log(1231231);
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
  * @extends NodeAbility
