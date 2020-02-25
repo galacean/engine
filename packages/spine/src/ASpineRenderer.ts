@@ -1,9 +1,10 @@
-import { vec2, vec4 } from '@alipay/o3-math';
-import { NodeAbility } from '@alipay/o3-core';
-import { MeshBatcher } from '../core/MeshBatcher';
-import { spine } from '@alipay/spine-core';
+import { vec2, vec4 } from "@alipay/o3-math";
+import { NodeAbility } from "@alipay/o3-core";
+import { MeshBatcher } from "../core/MeshBatcher";
+import { spine } from "@alipay/spine-core";
 
 var lastFrameTime = Date.now() / 1000;
+const { Skeleton, AnimationStateData, AnimationState, SkeletonData } = spine;
 
 export class ASpineRenderer extends NodeAbility {
   skeleton;
@@ -15,6 +16,7 @@ export class ASpineRenderer extends NodeAbility {
   private batches = new Array();
   private nextBatchIndex = 0;
   private vertexCount;
+  private _asset;
 
   static QUAD_TRIANGLES = [0, 1, 2, 2, 3, 0];
   static VERTEX_SIZE = 2 + 2 + 4;
@@ -27,18 +29,34 @@ export class ASpineRenderer extends NodeAbility {
    * @param {Node} node
    * @param {Sprite} sprite
    */
-  constructor(node, skeletonData) {
+  constructor(node, data) {
     super(node);
-
-    const { Skeleton, AnimationStateData, AnimationState } = spine;
-    this.skeleton = new Skeleton(skeletonData);
-    const animData = new AnimationStateData(skeletonData);
-    this.state = new AnimationState(animData);
-    this.getVertexCount();
+    this.setSkeletionData(data);
     //-- Ability属性
     this.renderable = true;
   }
-  
+
+  setSkeletionData(skeletonData) {
+    if (skeletonData.constructor.name === "SkeletonData") {
+      this._asset = skeletonData;
+      this.skeleton = new Skeleton(skeletonData);
+      const animData = new AnimationStateData(skeletonData);
+      this.state = new AnimationState(animData);
+      this.getVertexCount();
+    }
+  }
+
+  /**
+   * 为编辑器使用
+   */
+  set asset(data) {
+    this.setSkeletionData(data);
+  }
+
+  get asset() {
+    return this._asset;
+  }
+
   getVertexCount() {
     let drawOrder = this.skeleton.drawOrder;
     let vertexCount = 0;
@@ -64,7 +82,9 @@ export class ASpineRenderer extends NodeAbility {
     let now = Date.now() / 1000;
     let delta = now - lastFrameTime;
     lastFrameTime = now;
-    this.updateState(delta);
+    if (this._asset) {
+      this.updateState(delta);
+    }
   }
 
   updateState(deltaTime) {
@@ -88,7 +108,7 @@ export class ASpineRenderer extends NodeAbility {
 
   nextBatch() {
     if (this.batches.length == this.nextBatchIndex) {
-      const batchNode = this.node.createChild('batch');
+      const batchNode = this.node.createChild("batch");
       const batch = batchNode.createAbility(MeshBatcher, { maxVertices: this.vertexCount });
       this.batches.push(batch);
     }
@@ -140,7 +160,7 @@ export class ASpineRenderer extends NodeAbility {
         uvs = mesh.uvs;
         texture = mesh.region.renderObject.texture;
       } else continue;
-      
+
       if (texture != null) {
         let skeleton = slot.bone.skeleton;
         let skeletonColor = skeleton.color;
@@ -151,7 +171,7 @@ export class ASpineRenderer extends NodeAbility {
           skeletonColor.r * slotColor.r * attachmentColor.r,
           skeletonColor.g * slotColor.g * attachmentColor.g,
           skeletonColor.b * slotColor.b * attachmentColor.b,
-          alpha,
+          alpha
         ];
 
         let finalVertices: ArrayLike<number>;
@@ -173,8 +193,7 @@ export class ASpineRenderer extends NodeAbility {
         finalIndices = triangles;
         finalIndicesLength = triangles.length;
 
-        if (finalVerticesLength == 0 || finalIndicesLength == 0)
-          continue;
+        if (finalVerticesLength == 0 || finalIndicesLength == 0) continue;
 
         // Start new batch if this one can't hold vertices/indices
         if (!batch.canBatch(finalVerticesLength, finalIndicesLength)) {
@@ -207,5 +226,4 @@ export class ASpineRenderer extends NodeAbility {
     }
     batch.end();
   }
-  
 }
