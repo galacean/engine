@@ -47,5 +47,4 @@ export {
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { TextureMaterial, TransparentMaterial } from "@alipay/o3-mobile-material";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
-console.log(999999);
 RegistExtension({ PBRMaterial, TextureMaterial, TransparentMaterial });

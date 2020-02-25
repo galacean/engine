@@ -3,7 +3,6 @@ import { AnimationClip } from "./AnimationClip";
 import { getAnimationClipHander } from "./handler/index";
 import { AnimationClipHandler } from "./handler/animationClipHandler";
 import { WrapMode } from "./AnimationConst";
-console.log(1231231);
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
  * @extends NodeAbility
@@ -87,7 +86,6 @@ export class AAnimation extends NodeAbility {
     const { duration, handlerStartTimeMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     super.update(deltaTime);
-    console.log(222, duration);
     if (this.currentTime > duration) {
       this.reset();
       if (wrapMode === WrapMode.LOOP) {
@@ -104,12 +102,13 @@ export class AAnimation extends NodeAbility {
   }
   //TODO 临时方案后面改为jumptoFrame
   public onAnimUpdate(deltaTime: number) {
+    if (this.state !== "playingByAnimator") return;
     const { duration, handlerStartTimeMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     if (this.currentTime > duration) {
       this.reset();
       if (wrapMode === WrapMode.LOOP) {
-        this.play();
+        this.playByAnimator();
       }
     }
     this.currentTime += deltaTime;
@@ -206,6 +205,13 @@ export class AAnimation extends NodeAbility {
     this.state = "playing";
   }
 
+  public playByAnimator() {
+    if (this.state === "init" || this.state === "stop") {
+      this.parseAnimationData();
+    }
+    this.state = "playingByAnimator";
+  }
+
   /**
    * 暂停播放
    *
@@ -228,7 +234,6 @@ export class AAnimation extends NodeAbility {
   public reset() {
     this.currentTime = 0;
     this.pause();
-    console.log(this.handlerList.length);
     this.handlerList.reverse().forEach(handler => {
       handler.reset();
     });

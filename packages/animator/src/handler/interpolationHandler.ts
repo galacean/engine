@@ -103,6 +103,7 @@ export class InterpolationHandler extends AnimationClipHandler {
   reset() {
     const { curNodeState, originNodeState, tween } = this;
     super.reset();
+    if (!curNodeState) return;
     ["position", "rotation", "scale"].forEach(property => {
       if (property === "rotation") {
         curNodeState[property] = quat.clone(originNodeState[property]);

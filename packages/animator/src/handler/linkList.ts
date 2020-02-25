@@ -103,7 +103,6 @@ class LinkList<T> {
   print(): void {
     let cur = this.head;
     while (cur != null) {
-      console.log(cur.data);
       cur = cur.next;
     }
   }
