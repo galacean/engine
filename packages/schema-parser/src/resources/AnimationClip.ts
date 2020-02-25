@@ -1,7 +1,7 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
-import { AnimationClipNew, AnimationClipType } from "@alipay/o3";
+import { AnimationClipNew, AnimationClipType, Logger } from "@alipay/o3";
 export class AnimationClip extends SchemaResource {
   config: AssetConfig;
   load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<AnimationClip> {
@@ -32,12 +32,17 @@ export class AnimationClip extends SchemaResource {
             options: { gltfAssetId, action }
           }
         } = this.config;
-        const { animations } = this.resourceManager.get(gltfAssetId).resource;
-        let actionMap = [];
-        animations.forEach(clip => {
-          actionMap[clip.name] = clip;
-        });
-        this._resource.options = actionMap[action];
+        const resource = this.resourceManager.get(gltfAssetId);
+        if (resource) {
+          const { animations } = resource.resource;
+          let actionMap = [];
+          animations.forEach(clip => {
+            actionMap[clip.name] = clip;
+          });
+          this._resource.options = actionMap[action];
+        } else {
+          Logger.warn(`AnimationClip: ${this.meta.name} can't find asset "gltf", which id is: ${gltfAssetId}`);
+        }
         break;
       case AnimationComponent:
         break;

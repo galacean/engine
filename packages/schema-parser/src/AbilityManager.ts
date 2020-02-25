@@ -5,6 +5,7 @@ import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { AbilityConfig, Props } from "./types";
 import { scriptAbility } from "./resources";
+import { Logger } from "@alipay/o3";
 
 export class AbilityManager {
   private abilityMap: { [id: string]: o3.NodeAbility } = {};
@@ -76,6 +77,9 @@ export class AbilityManager {
         const res = this.oasis.resourceManager.get(prop.id);
         if (res) {
           explicitProps[k] = res.resource;
+        } else {
+          explicitProps[k] = null;
+          Logger.warn(`AbilityManager: can't get asset "${k}", which id is ${prop.id}`);
         }
       }
     }

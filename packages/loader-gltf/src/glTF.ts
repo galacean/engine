@@ -771,9 +771,10 @@ export function buildSceneGraph(resources) {
 
   const gltfNodes = gltf.nodes || [];
 
+  asset.rootScene = getItemByIdx("scenes", gltf.scene, resources);
+
   for (let i = gltfNodes.length - 1; i >= 0; i--) {
     const gltfNode = gltfNodes[i];
-
     const node = getItemByIdx("nodes", i, resources);
 
     if (gltfNode.hasOwnProperty("children")) {
@@ -793,14 +794,12 @@ export function buildSceneGraph(resources) {
       if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
         const skin = getItemByIdx("skins", gltfNode.skin, resources);
         const weights = mesh.weights;
-        node.createAbility(ASkinnedMeshRenderer, { skin, mesh, weights });
+        node.createAbility(ASkinnedMeshRenderer, { skin, mesh, weights, rootNodes: asset.rootScene?.nodes });
       } else {
         node.createAbility(AMeshRenderer, { mesh });
       }
     }
   }
-
-  asset.rootScene = getItemByIdx("scenes", gltf.scene, resources);
 }
 
 const BASE64_MARKER = ";base64,";
