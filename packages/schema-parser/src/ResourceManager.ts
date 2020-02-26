@@ -10,6 +10,7 @@ import {
   AnimationClip,
   Animation,
   Animator,
+  BaseResource,
   SpineResource
 } from "./resources";
 import * as o3 from "@alipay/o3";
@@ -27,7 +28,8 @@ const RESOURCE_CLASS = {
   AnimationClip: AnimationClip,
   Animation: Animation,
   Animator: Animator,
-  spine: SpineResource
+  spine: SpineResource,
+  base: BaseResource
 };
 
 const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
@@ -142,6 +144,7 @@ export class ResourceManager {
 
     addResourceResult.id = this.maxId;
     addResourceResult.type = RESOURCE_TYPE.get(resource.constructor);
+    addResourceResult.meta = resource.meta;
     addResourceResult.props = {};
     for (const key in structure.props) {
       if (structure.props.hasOwnProperty(key)) {
@@ -155,7 +158,6 @@ export class ResourceManager {
         }
       }
     }
-    console.log(addResourceResult);
     return addResourceResult;
   }
 

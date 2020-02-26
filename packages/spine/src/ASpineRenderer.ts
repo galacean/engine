@@ -17,6 +17,7 @@ export class ASpineRenderer extends NodeAbility {
   private nextBatchIndex = 0;
   private vertexCount;
   private _asset;
+  private animationNames = [];
 
   static QUAD_TRIANGLES = [0, 1, 2, 2, 3, 0];
   static VERTEX_SIZE = 2 + 2 + 4;
@@ -29,32 +30,58 @@ export class ASpineRenderer extends NodeAbility {
    * @param {Node} node
    * @param {Sprite} sprite
    */
-  constructor(node, data) {
+  constructor(node, prop) {
     super(node);
-    this.setSkeletionData(data);
+    const { asset, animation } = prop;
+    this.setSkeletonData(asset);
+    if (animation) {
+      this.animation = animation;
+    }
     //-- Ability属性
     this.renderable = true;
   }
 
-  setSkeletionData(skeletonData) {
-    if (skeletonData.constructor.name === "SkeletonData") {
-      this._asset = skeletonData;
-      this.skeleton = new Skeleton(skeletonData);
-      const animData = new AnimationStateData(skeletonData);
+  setSkeletonData(asset) {
+    if (asset && asset.constructor.name === "SkeletonData") {
+      this._asset = asset;
+      this.skeleton = new Skeleton(asset);
+      const animData = new AnimationStateData(asset);
       this.state = new AnimationState(animData);
+      const animations = animData.skeletonData.animations;
+      this.animationNames = animations.map(item => item.name);
       this.getVertexCount();
+    } else {
+      console.log("需要传入skeletiondata");
     }
   }
 
   /**
    * 为编辑器使用
    */
-  set asset(data) {
-    this.setSkeletionData(data);
+  set asset(asset) {
+    this.disposeCurrentSkeleton();
+    this.setSkeletonData(asset);
   }
 
   get asset() {
     return this._asset;
+  }
+
+  disposeCurrentSkeleton() {
+    this._asset = null;
+    this.clearBatches();
+    this.batches = [];
+    this.node._children = [];
+  }
+
+  set animation(animationName) {
+    if (this.state) {
+      if (animationName && this.animationNames.includes(animationName)) {
+        this.state.setAnimation(0, animationName, true);
+      } else {
+        this.state.setEmptyAnimation(0, true);
+      }
+    }
   }
 
   getVertexCount() {
