@@ -1,0 +1,142 @@
+{
+  "accessors": [
+    {
+      "name": "Node-Mesh_0_positions",
+      "componentType": 5126,
+      "count": 50000,
+      "min": [
+        -7.0467000007629395,
+        0,
+        -3.1512999534606934
+      ],
+      "max": [
+        7.0467000007629395,
+        9.939900398254395,
+        3.1512999534606934
+      ],
+      "type": "VEC3",
+      "bufferView": 0,
+      "byteOffset": 0
+    },
+    {
+      "name": "Node-Mesh_0_normals",
+      "componentType": 5126,
+      "count": 50000,
+      "min": [
+        -0.9999901652336121,
+        -0.9999975562095642,
+        -1
+      ],
+      "max": [
+        0.9999991059303284,
+        0.9999842643737793,
+        1
+      ],
+      "type": "VEC3",
+      "bufferView": 1,
+      "byteOffset": 0
+    },
+    {
+      "name": "Node-Mesh_0_indices",
+      "componentType": 5123,
+      "count": 300000,
+      "min": [
+        0
+      ],
+      "max": [
+        49999
+      ],
+      "type": "SCALAR",
+      "bufferView": 2,
+      "byteOffset": 0
+    }
+  ],
+  "asset": {
+    "generator": "obj2gltf",
+    "version": "2.0"
+  },
+  "buffers": [
+    {
+      "name": "dragon",
+      "byteLength": 1800000,
+      "uri": "dragon.bin"
+    }
+  ],
+  "bufferViews": [
+    {
+      "name": "bufferView_0",
+      "buffer": 0,
+      "byteLength": 600000,
+      "byteOffset": 0,
+      "byteStride": 12,
+      "target": 34962
+    },
+    {
+      "name": "bufferView_1",
+      "buffer": 0,
+      "byteLength": 600000,
+      "byteOffset": 600000,
+      "byteStride": 12,
+      "target": 34962
+    },
+    {
+      "name": "bufferView_2",
+      "buffer": 0,
+      "byteLength": 600000,
+      "byteOffset": 1200000,
+      "target": 34963
+    }
+  ],
+  "materials": [
+    {
+      "name": "default",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.5,
+          0.5,
+          0.5,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 1
+      },
+      "emissiveFactor": [
+        0,
+        0,
+        0
+      ],
+      "alphaMode": "OPAQUE",
+      "doubleSided": false
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Node-Mesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "Node",
+      "mesh": 0
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { Logger, ClearMode } from "@alipay/o3-base";
+import { RenderTarget } from "@alipay/o3-material";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLPrimitive } from "./GLPrimitive";
@@ -194,9 +195,9 @@ export class GLRenderHardware {
 
   /**
    * 激活指定的RenderTarget
-   * @param {RenderTarget} renderTarget  需要被激活的RenderTarget对象，如果未设置，则
+   * @param {RenderTarget} renderTarget  需要被激活的RenderTarget对象，如果未设置，则渲染到屏幕帧
    */
-  activeRenderTarget(renderTarget, camera) {
+  activeRenderTarget(renderTarget: RenderTarget, camera) {
     if (renderTarget) {
       const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
       glRenderTarget.activeRenderTarget();
@@ -204,6 +205,18 @@ export class GLRenderHardware {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(camera.viewport[0], camera.viewport[1], camera.viewport[2], camera.viewport[3]);
+    }
+  }
+
+  /**
+   * 设置渲染到立方体纹理的面
+   * @param {RenderTarget} renderTarget  需要设置的 RenderTarget 对象
+   * @param {number} faceIndex - gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex
+   * */
+  setRenderTargetFace(renderTarget: RenderTarget, faceIndex: number) {
+    if (renderTarget) {
+      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
+      glRenderTarget.setRenderTargetFace(faceIndex);
     }
   }
 

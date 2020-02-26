@@ -30,42 +30,6 @@ export class ACamera extends NodeAbility {
   }
 
   /**
-   * View 矩阵
-   * @member {mat4}
-   * @readonly
-   */
-  get viewMatrix() {
-    return this._viewMat;
-  }
-
-  /**
-   * View 矩阵的逆矩阵
-   * @member {mat4}
-   * @readonly
-   */
-  get inverseViewMatrix() {
-    return this._inverseViewMatrix;
-  }
-
-  /**
-   * 投影矩阵
-   * @member {mat4}
-   * @readonly
-   */
-  get projectionMatrix() {
-    return this._matProjection;
-  }
-
-  /**
-   * 投影矩阵的逆矩阵
-   * @member {mat4}
-   * @readonly
-   */
-  get inverseProjectionMatrix() {
-    return this._matInverseProjection;
-  }
-
-  /**
    * 摄像机的位置(World Space)
    * @member {mat4}
    * @readonly
@@ -73,6 +37,34 @@ export class ACamera extends NodeAbility {
   get eyePos() {
     return this._ownerNode.worldPosition;
   }
+
+  /**
+   * View 矩阵
+   * @member {mat4}
+   * @readonly
+   */
+  public viewMatrix;
+
+  /**
+   * View 矩阵的逆矩阵
+   * @member {mat4}
+   * @readonly
+   */
+  public inverseViewMatrix;
+
+  /**
+   * 投影矩阵
+   * @member {mat4}
+   * @readonly
+   */
+  public projectionMatrix;
+
+  /**
+   * 投影矩阵的逆矩阵
+   * @member {mat4}
+   * @readonly
+   */
+  public inverseProjectionMatrix;
 
   public zNear: number;
 
@@ -89,14 +81,6 @@ export class ACamera extends NodeAbility {
   private _sceneRenderer;
 
   private _isOrtho: boolean;
-
-  private _viewMat;
-
-  private _matProjection;
-
-  private _inverseViewMatrix;
-
-  private _matInverseProjection;
 
   /**
    * 构造函数
@@ -116,10 +100,10 @@ export class ACamera extends NodeAbility {
     this._rhi = engine.requireRHI(RHI, canvas, attributes);
     this._sceneRenderer = new SceneRenderer(this);
     this._isOrtho = false; // 逸瞻：标记是不是ortho，用于射线检测时区分处理
-    this._viewMat = mat4.create();
-    this._matProjection = mat4.create();
-    this._inverseViewMatrix = mat4.create();
-    this._matInverseProjection = mat4.create();
+    this.viewMatrix = mat4.create();
+    this.projectionMatrix = mat4.create();
+    this.inverseViewMatrix = mat4.create();
+    this.inverseProjectionMatrix = mat4.create();
 
     this.node.scene.attachRenderCamera(this);
 
@@ -175,8 +159,8 @@ export class ACamera extends NodeAbility {
     this.zFar = zFar;
 
     const aspect = viewWidth / viewHeight;
-    mat4.perspective(this._matProjection, MathUtil.toRadian(degFOV), aspect, zNear, zFar);
-    mat4.invert(this._matInverseProjection, this._matProjection);
+    mat4.perspective(this.projectionMatrix, MathUtil.toRadian(degFOV), aspect, zNear, zFar);
+    mat4.invert(this.inverseProjectionMatrix, this.projectionMatrix);
   }
 
   /**
@@ -206,8 +190,8 @@ export class ACamera extends NodeAbility {
     this.zNear = near;
     this.zFar = far;
 
-    mat4.ortho(this._matProjection, left, right, bottom, top, near, far);
-    mat4.invert(this._matInverseProjection, this._matProjection); // 逸瞻：逻辑补全，否则无法正确渲染场景
+    mat4.ortho(this.projectionMatrix, left, right, bottom, top, near, far);
+    mat4.invert(this.inverseProjectionMatrix, this.projectionMatrix); // 逸瞻：逻辑补全，否则无法正确渲染场景
   }
 
   /**
@@ -267,8 +251,8 @@ export class ACamera extends NodeAbility {
     const py = (screenPoint[1] / clientHeight) * canvasHeight;
 
     const viewport = this.viewport;
-    const viewWidth = viewport[2] - viewport[0];
-    const viewHeight = viewport[3] - viewport[1];
+    const viewWidth = viewport[2];
+    const viewHeight = viewport[3];
 
     const nx = ((px - viewport[0]) / viewWidth) * 2 - 1;
     const ny = 1 - ((py - viewport[1]) / viewHeight) * 2;
@@ -341,7 +325,7 @@ export class ACamera extends NodeAbility {
       vec3.scale(vec3Cache, vec3Cache, -1);
     }
     vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
-    mat4.lookAt(this._viewMat, this._ownerNode.position, vec3Cache, this._ownerNode.up);
-    mat4.invert(this._inverseViewMatrix, this._viewMat);
+    mat4.lookAt(this.viewMatrix, this._ownerNode.position, vec3Cache, this._ownerNode.up);
+    mat4.invert(this.inverseViewMatrix, this.viewMatrix);
   }
 }

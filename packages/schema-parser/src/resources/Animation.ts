@@ -1,7 +1,9 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
+import { Logger } from "@alipay/o3";
 const { Animation: AnimationAsset } = o3;
+
 export class Animation extends SchemaResource {
   private config: AssetConfig;
   load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<Animation> {
@@ -26,8 +28,15 @@ export class Animation extends SchemaResource {
       const keyFrameList = value[keyFrameTime];
       parseData[keyFrameTime] = parseData[keyFrameTime] || [];
       keyFrameList.forEach(animationClipId => {
-        const animationClip = this.resourceManager.get(animationClipId).resource;
-        parseData[keyFrameTime].push(animationClip);
+        const animationClipResource = this.resourceManager.get(animationClipId);
+        if (animationClipResource) {
+          const animationClip = animationClipResource.resource;
+          parseData[keyFrameTime].push(animationClip);
+        } else {
+          Logger.warn(
+            `AnimationResource: ${this.meta.name} can't find asset "animationClip", which id is: ${animationClipId}`
+          );
+        }
       });
     });
     return parseData;

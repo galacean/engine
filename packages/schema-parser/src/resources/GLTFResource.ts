@@ -1,5 +1,5 @@
 import { SchemaResource } from "./SchemaResource";
-import { ResourceLoader } from "@alipay/o3";
+import { ResourceLoader, Logger } from "@alipay/o3";
 
 import * as o3 from "@alipay/o3";
 import { PBRMaterialResource } from "./PBRMaterialResource";
@@ -31,7 +31,7 @@ export class GLTFResource extends SchemaResource {
     return new Promise(resolve => {
       this.load(resourceLoader, assetConfig).then(() => {
         const gltf = this.resource;
-        const meshes = gltf.meshes;
+        const { materials } = gltf;
         const loadPromises = [];
         const result = {
           resources: [this],
@@ -42,20 +42,18 @@ export class GLTFResource extends SchemaResource {
             }
           }
         };
-        for (let i = 0; i < meshes.length; i++) {
-          for (let j = 0; j < meshes[i].primitives.length; j++) {
-            const material = meshes[i].primitives[j].material;
-            if (!material) return;
-            const materialResource = new PBRMaterialResource(this.resourceManager);
-            this._attachedResources.push(materialResource);
-            loadPromises.push(
-              materialResource.loadWithAttachedResources(resourceLoader, {
-                type: "PBRMaterial",
-                name: material.name,
-                props: material
-              })
-            );
-          }
+        for (let i = 0; i < materials.length; i++) {
+          const material = materials[i];
+
+          const materialResource = new PBRMaterialResource(this.resourceManager);
+          this._attachedResources.push(materialResource);
+          loadPromises.push(
+            materialResource.loadWithAttachedResources(resourceLoader, {
+              type: "PBRMaterial",
+              name: material.name,
+              resource: material
+            })
+          );
         }
         Promise.all(loadPromises).then(res => {
           const newMaterial = result.structure.props.newMaterial;
@@ -105,21 +103,45 @@ export class GLTFResource extends SchemaResource {
     }
     const gltf = this._resource;
     const meshes = gltf.meshes;
-    for (let i = 0; i < materials.length; i++) {
-      const matResource = this.resourceManager.get(materials[i].id);
-      if (matResource) {
-        gltf.materials[i] = this.resourceManager.get(materials[i].id).resource;
-      }
-    }
-    let index = 0;
-    for (let i = 0; i < meshes.length; i++) {
-      for (let j = 0; j < meshes[i].primitives.length; j++) {
-        const attachedResource = this.resourceManager.get(materials[index].id);
-        if (attachedResource) {
-          this._attachedResources.push(attachedResource);
-          meshes[i].primitives[j].material = attachedResource.resource;
+    // 兼容material克隆时期生成的schema
+    // 通过schema中material数量和gltf中materials数量比较
+    // 如果不相等说明是老版本，虽然不准确
+    if (materials.length !== gltf.materials.length) {
+      for (let i = 0; i < materials.length; i++) {
+        const matResource = this.resourceManager.get(materials[i].id);
+        if (matResource) {
+          gltf.materials[i] = this.resourceManager.get(materials[i].id).resource;
         }
-        index++;
+      }
+      let index = 0;
+      for (let i = 0; i < meshes.length; i++) {
+        for (let j = 0; j < meshes[i].primitives.length; j++) {
+          const attachedResource = this.resourceManager.get(materials[index].id);
+          if (attachedResource) {
+            this._attachedResources.push(attachedResource);
+            meshes[i].primitives[j].material = attachedResource.resource;
+          }
+          index++;
+        }
+      }
+    } else {
+      for (let i = 0; i < materials.length; i++) {
+        const mtlResource = this.resourceManager.get(materials[i].id);
+        if (mtlResource) {
+          this._attachedResources.push(mtlResource);
+          gltf.materials[i] = mtlResource.resource;
+        } else {
+          Logger.warn(`GLTFResource: ${this.meta.name} can't find asset "material", which id is: ${materials[i].id}`);
+        }
+      }
+      for (let j = 0; j < meshes.length; j++) {
+        for (let k = 0; k < meshes[j].primitives.length; k++) {
+          if (meshes[j].primitives[k].materialIndex !== undefined) {
+            // 因为gltf模型中的materials是倒叙遍历的，所以这里要这么写
+            const index = gltf.materials.length - 1 - meshes[j].primitives[k].materialIndex;
+            meshes[j].primitives[k].material = gltf.materials[index];
+          }
+        }
       }
     }
   }

@@ -1,17 +1,34 @@
 # o3-env-probe
-环境探针类，提供诸如反射折射等功能
+环境探针类，提供诸如 反射/折射/镜子/纹理扰动 等功能
 
-1. PerturbationProbe
-2. ReflectionProbe
+1. PlaneProbe
+2. CubeProbe
 
-# perturbation example
+# refraction example
 ```
-import {PerturbationProbe} from '@alipay/o3-env-probe';
+import {PlaneProbe} from '@alipay/o3-env-probe';
 
 
-let probe = new PerturbationProbe('perturbationProbe',scene,{});
-probe.renderList.push(...)
-material.perturbationTexture=probe.texture;
+const probe = rootNode.createAbility(PlaneProbe, {
+    renderList: [pingshen, cap, logo]
+  });
+
+ water.refractionTexture = probe.texture;
+ water.refractionDepth = 0.025; // 瓶身的厚度
+```
+
+
+# reflection example
+```
+import {CubeProbe} from '@alipay/o3-env-probe';
+
+const probe = rootNode.createAbility(CubeProbe, {
+     renderAll: true
+  });
+
+  probe.onTextureChange = cubeTexture => {
+    envLight.specularMap = cubeTexture;
+  };
 
 ```
 

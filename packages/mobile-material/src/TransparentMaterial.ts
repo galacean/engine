@@ -1,13 +1,13 @@
 import { DataType, RenderState, BlendFunc, MaterialType } from "@alipay/o3-base";
-import { Material, RenderTechnique } from "@alipay/o3-material";
-
+import { Material, RenderTechnique, Texture2D } from "@alipay/o3-material";
+import { CommonMaterial } from "./CommonMaterial";
 import VERT_SHADER from "./shader/Vertex.glsl";
 import FRAG_SHADER from "./shader/Texture.glsl";
 
 /**
  * 支持透明的无光照贴图材质
  */
-export class TransparentMaterial extends Material {
+export class TransparentMaterial extends CommonMaterial {
   static TECH_NAME = "Transparent";
   static DISABLE_SHARE = true;
 
@@ -17,19 +17,10 @@ export class TransparentMaterial extends Material {
    */
   constructor(name) {
     super(name || "TransparentMaterial");
+  }
 
-    const uniforms = this._generateFragmentUniform();
-
-    //--
-    const tech = new RenderTechnique("Transparent");
-    tech.isValid = true;
-    tech.uniforms = uniforms;
-    tech.attributes = {};
-    tech.states = {};
-    tech.customMacros = [];
-    tech.vertexShader = VERT_SHADER;
-    tech.fragmentShader = FRAG_SHADER;
-    tech.states = {
+  _generateTechnique() {
+    this.renderStates = {
       enable: [RenderState.BLEND],
       disable: [RenderState.CULL_FACE],
       functions: {
@@ -37,9 +28,9 @@ export class TransparentMaterial extends Material {
         depthMask: [false]
       }
     };
-
-    this._technique = tech;
     this.renderType = MaterialType.TRANSPARENT;
+
+    this._internalGenerate("Transparent", FRAG_SHADER);
   }
 
   /**
@@ -47,10 +38,10 @@ export class TransparentMaterial extends Material {
    * @member {Texture2D}
    */
   set texture(v) {
-    this.setValue("s_diffuse", v);
+    this.setValue("u_diffuse", v);
   }
   get texture() {
-    return this.getValue("s_diffuse");
+    return this.getValue("u_diffuse");
   }
 
   /**
@@ -58,14 +49,25 @@ export class TransparentMaterial extends Material {
    * @private
    */
   _generateFragmentUniform() {
-    const uniforms = {
-      s_diffuse: {
-        name: "s_diffuse",
+    const uniforms: any = {};
+    if (this.texture instanceof Texture2D) {
+      uniforms.u_diffuse = {
+        name: "u_diffuse",
         paramName: "_MainTex",
         type: DataType.SAMPLER_2D
-      }
+      };
+    }
+    return {
+      ...super._generateFragmentUniform(),
+      ...uniforms
     };
+  }
 
-    return uniforms;
+  _generateMacros() {
+    const macros = super._generateMacros();
+
+    if (this.texture instanceof Texture2D) macros.push("O3_DIFFUSE_TEXTURE");
+
+    return macros;
   }
 }

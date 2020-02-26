@@ -3,7 +3,8 @@ import { NodeAbility, Node } from "@alipay/o3-core";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationClip } from "./AnimationClip";
 import { quat } from "@alipay/o3-math";
-import { AnimationOptions } from "./types";
+import { AnimationOptions, IChannelTarget } from "./types";
+import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
  * @extends NodeAbility
@@ -45,17 +46,12 @@ export class AAnimation extends NodeAbility {
       case 1:
         outValue = startValue * (1 - alpha) + endValue * alpha;
         break;
-      case 2:
-      case 3:
-        {
-          for (let i = outputSize; i >= 0; i--) {
-            outValue[i] = startValue[i] * (1 - alpha) + endValue[i] * alpha;
-          }
-        }
-        break;
       case 4:
-        {
-          quat.slerp(outValue, startValue, endValue, alpha);
+        quat.slerp(outValue, startValue, endValue, alpha);
+        break;
+      default:
+        for (let i = outputSize; i >= 0; i--) {
+          outValue[i] = startValue[i] * (1 - alpha) + endValue[i] * alpha;
         }
         break;
     } // end of switch
@@ -69,7 +65,7 @@ export class AAnimation extends NodeAbility {
 
   private _timeScale: number;
 
-  private _channelTargets;
+  private _channelTargets: IChannelTarget[] | false;
   /**
    * @constructor
    * @param {Node} node
@@ -88,6 +84,9 @@ export class AAnimation extends NodeAbility {
    */
   public update(deltaTime: number) {
     super.update(deltaTime);
+    if (!this.isPlaying()) {
+      return;
+    }
 
     deltaTime = deltaTime * this._timeScale;
 
@@ -378,7 +377,7 @@ export class AAnimation extends NodeAbility {
 
       if (path === "weights") {
         // ASkinnedMeshRenderer
-        targetObject.setWeights(val);
+        (targetObject as ASkinnedMeshRenderer).setWeights(val as any);
       } else {
         // Node[property]
         targetObject[path] = val;

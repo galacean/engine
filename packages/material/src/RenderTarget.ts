@@ -1,17 +1,23 @@
 import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Texture2D } from "./Texture2D";
+import { TextureCubeMap } from "./TextureCubeMap";
+import { RenderTargetConfig } from "./type";
 
 /**
- * 渲染目标，3D场景中的物体可以选择直接绘制到屏幕上，也可以选择渲染到一个 RenderTarget 上。渲染到 RenderTarget 上的内容可以作为纹理（Texture2D）供其他渲染环节使用。
+ * 渲染目标，3D场景中的物体可以选择直接绘制到屏幕上，也可以选择渲染到一个 RenderTarget 上。
+ * config.isCube= true时  - 渲染到 RenderTarget 上的内容可以作为纹理（Texture2D）供其他渲染环节使用。
+ * config.isCube= false时 - 渲染到 RenderTarget 上的内容可以作为纹理（TextureCubeMap）供其他渲染环节使用。
  * @class
  */
 export class RenderTarget extends AssetObject {
   public width: number;
   public height: number;
   public clearColor: Array<number>;
-  public texture: any;
-  public depthTexture: any;
+
+  public cubeTexture: TextureCubeMap;
+  public texture: Texture2D;
+  public depthTexture: Texture2D;
 
   /**
    * 纹理对象基类
@@ -21,8 +27,9 @@ export class RenderTarget extends AssetObject {
    * @param {Number} [config.height=1024] 高
    * @param {Number} [config.enableDepthTexture=false] 是否开启深度纹理
    * @param {Number} [config.clearColor=[0, 0, 0, 0]] 清空后的填充色
+   * @param {Number} [config.isCube=false] 是否渲染到 cubeMap
    */
-  constructor(name, config: { width?: number; height?: number; clearColor?; enableDepthTexture?: boolean } = {}) {
+  constructor(name, config: RenderTargetConfig = {}) {
     super(name);
 
     /**
@@ -49,19 +56,21 @@ export class RenderTarget extends AssetObject {
       wrapS: TextureWrapMode.CLAMP_TO_EDGE,
       wrapT: TextureWrapMode.CLAMP_TO_EDGE
     };
-
     /**
-     * RenderTarget 渲染后的内容对应的纹理对象
-     * @member {string}
-     */
-    this.texture = new Texture2D(name + "_render_texture", null, textureConfig);
+     * 选择渲染到2D纹理还是立方体纹理
+     * */
+    if (config.isCube) {
+      this.cubeTexture = new TextureCubeMap(name + "_render_texture", null, textureConfig);
+    } else {
+      this.texture = new Texture2D(name + "_render_texture", null, textureConfig);
 
-    if (config.enableDepthTexture) {
-      /**
-       * RenderTarget 渲染后的内容对应的深度纹理对象，只有在 config.enableDepthTexture = true 时生效
-       * @member {string}
-       */
-      this.depthTexture = new Texture2D(name + "_depth_texture", null, textureConfig);
+      if (config.enableDepthTexture) {
+        /**
+         * RenderTarget 渲染后的内容对应的深度纹理对象
+         * 只有在 config.enableDepthTexture = true 且 config.isCube != true 时生效
+         */
+        this.depthTexture = new Texture2D(name + "_depth_texture", null, textureConfig);
+      }
     }
   }
 }

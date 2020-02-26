@@ -2,6 +2,7 @@
 #include <common_frag>
 
 #include <uv_share>
+#include <uv_transform_share_declaration>
 #include <normal_share>
 #include <worldpos_share>
 

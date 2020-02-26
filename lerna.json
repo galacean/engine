@@ -1,6 +1,6 @@
 {
   "npmClient": "tnpm",
-  "version": "independent",
+  "version": "1.6.0-alpha.6",
   "bootstrap": {
     "hoist": true
   },

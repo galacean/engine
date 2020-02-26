@@ -5,6 +5,7 @@ import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { AbilityConfig, Props } from "./types";
 import { scriptAbility } from "./resources";
+import { Logger } from "@alipay/o3";
 
 export class AbilityManager {
   private abilityMap: { [id: string]: o3.NodeAbility } = {};
@@ -29,10 +30,12 @@ export class AbilityManager {
     const abilityArray = node.abilityArray;
     const currentIndex = abilityArray.length - 1;
     switchElementsIndex(abilityArray, currentIndex, index);
+    (ability as any).id = id;
     this.abilityMap[id] = ability;
     return ability;
   }
 
+  @pluginHook({ before: "beforeAbilityUpdated" })
   public update(id: string, key: string, value: any) {
     if (value && this.checkIsAsset(value)) {
       this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;
@@ -74,6 +77,9 @@ export class AbilityManager {
         const res = this.oasis.resourceManager.get(prop.id);
         if (res) {
           explicitProps[k] = res.resource;
+        } else {
+          explicitProps[k] = null;
+          Logger.warn(`AbilityManager: can't get asset "${k}", which id is ${prop.id}`);
         }
       }
     }

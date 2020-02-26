@@ -3,6 +3,7 @@ import {
   SchemaResource,
   GLTFResource,
   PBRMaterialResource,
+  ShaderMaterialResource,
   TextureResource,
   ScriptResource,
   BlinnPhongMaterialResource,
@@ -22,6 +23,7 @@ const RESOURCE_CLASS = {
   // 'image': TextureResource,
   cubeTexture: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
+  ShaderMaterial: ShaderMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
   AnimationClip: AnimationClip,
   Animation: Animation,
@@ -102,11 +104,18 @@ export class ResourceManager {
     });
   }
 
+  @pluginHook({ after: "resourceUpdated", before: "beforeResourceUpdate" })
   update(id: string, key: string, value: any) {
     const resource = this.get(id);
     if (resource) {
       resource.update(key, value);
     }
+    return {
+      resource,
+      id,
+      key,
+      value
+    };
   }
 
   updateMeta(id: string, key: string, value: any) {

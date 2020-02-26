@@ -13,12 +13,14 @@ tnpm i @alipay/o3-schema-parser -S
 ### 使用
 
 ``` TypeScript
-import {parser} from "@alipay/o3-schema-parser";
+import { parser } from "@alipay/o3-schema-parser";
 
 parser.parse({
-  canvas,
   config: schema,
-  canvas: canvas
+  // HTMLCanvasElement
+  canvas: canvas,
+  // 自动调用 engine.run()，默认为 false
+  autoPlay: true,
 });
 
 ```

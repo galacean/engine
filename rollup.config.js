@@ -15,7 +15,7 @@ const { LERNA_PACKAGE_NAME, PWD, NODE_ENV } = process.env;
 const isMiniProgram = NODE_ENV === "MINIPROGRAM";
 
 let fileDirs;
-let excludeDirs = ["o3-examples", "component-miniprogram"];
+let excludeDirs = ["o3-examples", "component-miniprogram", "o3-plus"];
 if (!LERNA_PACKAGE_NAME) {
   console.log("build all");
   const pkgDir = path.join(__dirname, "packages");
@@ -34,15 +34,10 @@ const pkg = (name, type) => {
   return makeRollupConfig({ location, main, name, type });
 };
 
-fileDirs = fileDirs.filter(name => name !== "o3-plus");
-if (!isMiniProgram) {
-  fileDirs.push("o3-plus");
-}
-
 let promises = [...fileDirs.map(name => pkg(name, "module"))];
 
 if (NODE_ENV === "BUILD") {
-  const compressDir = ["o3", "o3-plus"];
+  const compressDir = ["o3"];
   promises = [...compressDir.map(name => pkg(name, "compress"))];
 }
 
@@ -108,8 +103,8 @@ async function makeRollupConfig({ location, main, name, type }) {
       plugins: [...commonPlugins, ...miniProgramPlugin]
     };
   }
-  const external = name === "o3-plus" ? {} : Object.keys(pkg.dependencies || {});
-  // const external = Object.keys(pkg.dependencies || {});
+  // const external = name === "o3-plus" ? {} : Object.keys(pkg.dependencies || {});
+  const external = Object.keys(pkg.dependencies || {});
 
   return {
     input,
