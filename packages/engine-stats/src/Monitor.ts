@@ -56,8 +56,8 @@ export default class Monitor {
   private items: string[];
   private container: HTMLElement;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.core = new Core(canvas);
+  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext) {
+    this.core = new Core(gl);
     this.items = [];
     this.items = ["fps", "memory", "drawCall", "triangles", "textures", "shaders"];
     this.createContainer();
