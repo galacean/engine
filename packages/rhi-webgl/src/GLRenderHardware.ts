@@ -8,8 +8,9 @@ import { GLTechnique } from "./GLTechnique";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLExtensions } from "./GLExtensions";
+
 /**
- * GPU 硬件抽象层的 WebGL 1.0 版的实现
+ * GPU 硬件抽象层的 WebGL 的实现
  * @private
  */
 export class GLRenderHardware {
