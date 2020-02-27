@@ -20,3 +20,8 @@ export function getAllGetters(obj: any): Array<string> {
   }
   return result;
 }
+
+// 求数组并集
+export function union(arr1: Array<any>, arr2: Array<any>): Array<any> {
+  return arr1.concat(arr2.filter(v => !(arr1.indexOf(v) > -1)));
+}
