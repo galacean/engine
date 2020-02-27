@@ -1,13 +1,20 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
+import { DataType } from "@alipay/o3";
 
 interface IResourceShaderDefine {
   vertexShader?: string;
   fragmentShader?: string;
   states?: object;
   uniforms?: object;
-  attributes?: object;
+  attributes?: {
+    [key: string]: {
+      name: string;
+      semantic: string;
+      type: DataType;
+    };
+  };
 }
 
 export class ShaderMaterialResource extends SchemaResource {
