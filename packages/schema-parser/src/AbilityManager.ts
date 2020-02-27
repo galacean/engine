@@ -35,13 +35,14 @@ export class AbilityManager {
     return ability;
   }
 
-  @pluginHook({ before: "beforeAbilityUpdated" })
+  @pluginHook({ before: "beforeAbilityUpdated", after: "abilityUpdated" })
   public update(id: string, key: string, value: any) {
     if (value && this.checkIsAsset(value)) {
       this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;
     } else {
       this.get(id)[key] = value;
     }
+    return { id, key, value };
   }
 
   public get(id: string): o3.NodeAbility {
