@@ -48,3 +48,11 @@ export enum AnimationClipType {
   Skeleton = "Skeleton",
   AnimationComponent = "AnimationComponent"
 }
+
+export enum PlayState {
+  PLAYING = 0,
+  PAUSUE = 1,
+  STOP = 2,
+  INIT = 3,
+  PLAYBYANIMATOR = 4
+}

@@ -1,6 +1,6 @@
 import { NodeAbility, Node } from "@alipay/o3-core";
 import { AAnimation } from "./AAnimation";
-import { WrapMode } from "./AnimationConst";
+import { WrapMode, PlayState } from "./AnimationConst";
 
 /**
  * 全局动画控制器
@@ -10,7 +10,7 @@ export class AAnimator extends NodeAbility {
   public duration: number;
   public startTimeAnimationMap: any;
   public animationList: Array<any>;
-  public state: string;
+  public state: PlayState;
   private _animatorData: any;
   private _timeScale: number;
   private _wrapMode: WrapMode;
@@ -65,11 +65,11 @@ export class AAnimator extends NodeAbility {
         this.animatorData = data;
       };
     }
-    this.state = "init";
+    this.state = PlayState.INIT;
   }
 
   public update(deltaTime: number) {
-    if (this.state !== "playing") return;
+    if (this.state !== PlayState.PLAYING) return;
     const { duration, startTimeAnimationMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     super.update(deltaTime);
@@ -118,13 +118,15 @@ export class AAnimator extends NodeAbility {
    * 开始播放
    */
   public play() {
-    if (this.state === "init" || this.state === "stop") {
-      this.parseAnimatorData();
+    if (this.state === PlayState.INIT || this.state === PlayState.STOP) {
+      if (this.animatorData) {
+        this.parseAnimatorData();
+      }
       this.animationList.forEach(animation => {
         animation.playByAnimator();
       });
     }
-    this.state = "playing";
+    this.state = PlayState.PLAYING;
   }
 
   /**
@@ -132,7 +134,7 @@ export class AAnimator extends NodeAbility {
    *
    */
   public pause() {
-    this.state = "pause";
+    this.state = PlayState.PAUSUE;
     this.animationList.forEach(animation => {
       animation.pause();
     });
@@ -141,7 +143,7 @@ export class AAnimator extends NodeAbility {
   public stop() {
     this.pause();
     this.reset();
-    this.state = "stop";
+    this.state = PlayState.STOP;
   }
 
   /**
@@ -156,6 +158,6 @@ export class AAnimator extends NodeAbility {
     this.animationList.forEach(animation => {
       animation.reset();
     });
-    this.state = "init";
+    this.state = PlayState.INIT;
   }
 }

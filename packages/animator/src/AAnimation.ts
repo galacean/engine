@@ -2,7 +2,7 @@ import { NodeAbility, Node } from "@alipay/o3-core";
 import { AnimationClip } from "./AnimationClip";
 import { getAnimationClipHander } from "./handler/index";
 import { AnimationClipHandler } from "./handler/animationClipHandler";
-import { WrapMode } from "./AnimationConst";
+import { WrapMode, PlayState } from "./AnimationConst";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
  * @extends NodeAbility
@@ -14,7 +14,7 @@ export class AAnimation extends NodeAbility {
    */
   public currentTime: number;
   public duration: number;
-  public state: string;
+  public state: PlayState;
   private _wrapMode: WrapMode;
   private animClipSet;
   private uniqueAnimClipSet;
@@ -73,7 +73,7 @@ export class AAnimation extends NodeAbility {
     this.currentTime = 0;
     this.animationData = animationData;
     this.wrapMode = wrapMode;
-    this.state = "init";
+    this.state = PlayState.INIT;
   }
 
   /**
@@ -82,7 +82,7 @@ export class AAnimation extends NodeAbility {
    * @private
    */
   public update(deltaTime: number) {
-    if (this.state !== "playing") return;
+    if (this.state !== PlayState.PLAYING) return;
     const { duration, handlerStartTimeMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     super.update(deltaTime);
@@ -102,7 +102,7 @@ export class AAnimation extends NodeAbility {
   }
   //TODO 临时方案后面改为jumptoFrame
   public onAnimUpdate(deltaTime: number) {
-    if (this.state !== "playingByAnimator") return;
+    if (this.state !== PlayState.PLAYBYANIMATOR) return;
     const { duration, handlerStartTimeMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     if (this.currentTime > duration) {
@@ -199,17 +199,21 @@ export class AAnimation extends NodeAbility {
    * 开始播放
    */
   public play() {
-    if (this.state === "init" || this.state === "stop") {
-      this.parseAnimationData();
+    if (this.state === PlayState.INIT || this.state === PlayState.STOP) {
+      if (this.animationData) {
+        this.parseAnimationData();
+      }
     }
-    this.state = "playing";
+    this.state = PlayState.PLAYING;
   }
 
   public playByAnimator() {
-    if (this.state === "init" || this.state === "stop") {
-      this.parseAnimationData();
+    if (this.state === PlayState.INIT || this.state === PlayState.STOP) {
+      if (this.animationData) {
+        this.parseAnimationData();
+      }
     }
-    this.state = "playingByAnimator";
+    this.state = PlayState.PLAYBYANIMATOR;
   }
 
   /**
@@ -217,13 +221,13 @@ export class AAnimation extends NodeAbility {
    *
    */
   public pause() {
-    this.state = "pause";
+    this.state = PlayState.PAUSUE;
   }
 
   public stop() {
     this.pause();
     this.reset();
-    this.state = "stop";
+    this.state = PlayState.STOP;
   }
   /**
    * 跳转到动画的某一帧，立刻生效
@@ -237,6 +241,6 @@ export class AAnimation extends NodeAbility {
     this.handlerList.reverse().forEach(handler => {
       handler.reset();
     });
-    this.state = "init";
+    this.state = PlayState.INIT;
   }
 }

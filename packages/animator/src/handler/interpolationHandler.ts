@@ -4,7 +4,7 @@ import { AnimationClipType } from "../AnimationConst";
 import { Tween, Tweener, doTransform, Easing } from "@alipay/o3-tween";
 import { AnimationClip } from "../AnimationClip";
 import { AnimationClipHandler } from "./animationClipHandler";
-import LinkList from "./linkList";
+import { LinkList } from "./linkList";
 export class InterpolationHandler extends AnimationClipHandler {
   private keyFrameLinkListMap: { [key: string]: LinkList<any> };
   private tween: Tween;

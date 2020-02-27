@@ -44,7 +44,7 @@ const resourceLoader = new ResourceLoader(engine);
 //-- create camera
 let cameraNode = rootNode.createChild("camera_node");
 
-const animationRes = new Resource("pig_glb", {
+const animationRes = new Resource("model_glb", {
   type: "gltf",
   url:
     "https://gw.alipayobjects.com/os/loanprod/fda2ae85-62aa-4e3a-8374-bd35d9d1aec7/5dedb526824f83c7bb20f100/7c13bc70ad85c8c84079a2f3c3df295e.gltf"
@@ -68,20 +68,20 @@ let node = rootNode.createChild("gltf_node");
 // load resource config
 // resourceLoader.loadConfig
 resourceLoader.load(animationRes, (err, gltf) => {
-  const pigPrefab = gltf.asset.rootScene.nodes[0];
+  const modelPrefab = gltf.asset.rootScene.nodes[0];
   const animations = gltf.asset.animations;
 
-  const pig = pigPrefab.clone();
-  pig.rotateByAngles(0, -90, 0);
+  const model = modelPrefab.clone();
+  model.rotateByAngles(0, -90, 0);
 
-  node.addChild(pig);
+  node.addChild(model);
   let cubeNode = rootNode.createChild("cube_node");
   let cube = cubeNode.createAbility(AGeometryRenderer, {
     geometry: new CuboidGeometry(),
     material: new LambertMaterial()
   });
   cubeNode.position = [-2, 0, 0];
-  const pigAnimation = pig.createAbility(AAnimation);
+  const modelAnimation = model.createAbility(AAnimation);
   const cubeAnimation = cubeNode.createAbility(AAnimation);
   const actionMap = {};
   animations.forEach(clip => {
@@ -109,12 +109,12 @@ resourceLoader.load(animationRes, (err, gltf) => {
   };
   const ac1 = new AnimationClip("translate1", Interpolation, options);
   const ac5 = new AnimationClip("B", Skeleton, actionMap["B"]);
-  pigAnimation.addAnimationClip(0, ac1);
-  pigAnimation.addAnimationClip(200, ac5);
-  pigAnimation.addAnimationClip(3000, ac5);
+  modelAnimation.addAnimationClip(0, ac1);
+  modelAnimation.addAnimationClip(200, ac5);
+  modelAnimation.addAnimationClip(3000, ac5);
   cubeAnimation.addAnimationClip(0, ac1);
   const animator = rootNode.createAbility(AAnimator);
-  animator.addAnimationByStartTime(0, pigAnimation);
+  animator.addAnimationByStartTime(0, modelAnimation);
   animator.addAnimationByStartTime(0, cubeAnimation);
   animator.play();
 });
