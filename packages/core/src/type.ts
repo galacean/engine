@@ -1,5 +1,6 @@
 import { EngineFeature } from "./EngineFeature";
 import { SceneFeature } from "./SceneFeature";
+import { ACamera } from "./ACamera";
 
 type array2<T> = { 0: T; 1: T };
 type array3<T> = { 0: T; 1: T; 2: T };
@@ -40,3 +41,18 @@ export type Canvas = object;
 export type BasicSceneRenderer = any;
 export type GLRenderHardware = any;
 export type Feature = EngineFeature | SceneFeature;
+
+export interface ICameraProps {
+  canvas: string | HTMLCanvasElement;
+  attributes: RHIOption;
+  SceneRenderer: { new (camera: ACamera) };
+  RHI: { new (canvas: string | HTMLCanvasElement, option: RHIOption) };
+}
+
+/** RHI prop*/
+export interface RHIOption extends WebGLContextAttributes {
+  /** 是否启用回收机制 */
+  enableCollect?: boolean;
+  /** 是否禁止使用 WebGL2 */
+  disableWebGL2?: boolean;
+}

@@ -2,6 +2,7 @@ import { ACamera } from "@alipay/o3-core";
 import { ClearMode } from "@alipay/o3-base";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
+import { ICameraProps, RHIOption } from "@alipay/o3-core/types/type";
 
 /**
  * 辅助创建默认相机，基于{@link ACamera}
@@ -24,7 +25,7 @@ export class ADefaultCamera extends ACamera {
    * @param {Node} node 对象所在节点
    * @param {Object} props  相机配置参数，包含以下项
    * @property {Canvas|String} props.canvas 画布对象，可以是 HTML Canvas Element 或者对象的 id
-   * @property {Object} [props.attributes={}] [Canvas 3d ContextAttributes]{@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext}
+   * @property {RHIOption} [props.attributes={}] - RHI 操作参数
    * @property {SceneRenderer} [props.SceneRenderer=BasicSceneRenderer] 渲染器类型，{@link BasicSceneRenderer} 和 {@link SceneRenderer}
    * @property {GLRenderHardware} [props.RHI=GLRenderHardware] 硬件抽象层类型，{@link GLRenderHardware}
    * @property {Array} [props.position=[0, 10, 20]] 相机位置
@@ -38,7 +39,7 @@ export class ADefaultCamera extends ACamera {
    * @property {*} [props.clearParam=[0.25, 0.25, 0.25, 1]] 画布清除参数，详见{@link ClearMode}
    */
   constructor(node, props) {
-    const cameraProps = {
+    const cameraProps: ICameraProps = {
       RHI: props.RHI || GLRenderHardware,
       SceneRenderer: props.SceneRenderer || BasicSceneRenderer,
       canvas: props.canvas,
