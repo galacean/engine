@@ -35,7 +35,7 @@ light2.lookAt([0, 0, 0], [0, 1, 0]);
 //-- Create ConstantMaterial
 let mtl1 = new ConstantMaterial('TestMaterial', false);
 mtl1.emission = vec4.fromValues(0.5, 0.5, 0.5, 1);
-mtl1.ambient = vec4.fromValues(0.25, 0.25, 0.25, 1);
+mtl1.ambient = vec4.fromValues(1, 0.25, 0.25, 1);
 mtl1.renderStates = {
   disable: [
     RenderState.CULL_FACE

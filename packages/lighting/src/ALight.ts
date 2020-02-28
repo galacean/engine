@@ -6,10 +6,30 @@ import { mat4 } from "@alipay/o3-math";
  * 灯光基类
  * @extends NodeAbility
  */
-export class ALight extends NodeAbility {
+export abstract class ALight extends NodeAbility {
   protected _viewMat;
   protected _modelMat;
   protected name: string;
+
+  /**
+   * 将灯光参数绑定到指定的材质对象上
+   * @param {Material} mtl 材质对象
+   * @param {string} uniformName 材质对象
+   * @private
+   */
+  abstract bindMaterialValues(mtl, uniformName: string);
+
+  /**
+   * 生成 Technique 所需的 uniform 定义
+   * @example
+   * const name = `u_pointLights[0]`;
+   * const lgtUniforms = APointLight.getUniformDefine(name)
+   * @param {string} uniformName
+   */
+  static getUniformDefine(uniformName: string) {
+    return {};
+  }
+
   /**
    * @constructor
    * @param {Node} node 节点对象
@@ -36,13 +56,6 @@ export class ALight extends NodeAbility {
   onDisable() {
     this.scene.findFeature(LightFeature).detachRenderLight(this);
   }
-
-  /**
-   * 将灯光参数绑定到指定的材质对象上
-   * @param {Material} mtl 材质对象
-   * @private
-   */
-  bindMaterialValues(mtl, uniformName) {}
 
   /**
    * View 矩阵
