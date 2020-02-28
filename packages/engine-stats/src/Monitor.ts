@@ -14,6 +14,8 @@ let tpl = `
     <dd>0</dd>
     <dt>Shaders</dt>
     <dd>0</dd>
+    <dt>WebGL</dt>
+    <dd></dd>
   </dl>
 `;
 let css = `
@@ -59,7 +61,7 @@ export default class Monitor {
   constructor(gl: WebGLRenderingContext | WebGL2RenderingContext) {
     this.core = new Core(gl);
     this.items = [];
-    this.items = ["fps", "memory", "drawCall", "triangles", "textures", "shaders"];
+    this.items = ["fps", "memory", "drawCall", "triangles", "textures", "shaders", "webglContext"];
     this.createContainer();
     this.update = this.update.bind(this);
   }
