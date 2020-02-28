@@ -83,15 +83,15 @@ class ShaderFactory {
     /** 替换版本 */
     shader = shader.replace(/#version 100/, "#version 300 es");
     /** 修饰符替换 */
-    shader = shader.replace(/attribute/g, "in");
-    shader = shader.replace(/varying/g, isFrag ? "in" : "out");
+    shader = shader.replace(/\battribute\b/g, "in");
+    shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
 
     /** 内置变量替换 */
-    shader = shader.replace(/texture(2D|Cube)\s*\(/g, "texture(");
-    shader = shader.replace(/texture(2D|Cube)LodEXT\s*\(/g, "textureLod(");
+    shader = shader.replace(/\btexture(2D|Cube)\s*\(/g, "texture(");
+    shader = shader.replace(/\btexture(2D|Cube)LodEXT\s*\(/g, "textureLod(");
     if (isFrag) {
       shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
-      shader = shader.replace(/gl_FragColor/g, "glFragColor");
+      shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
     }
 
     return shader;
