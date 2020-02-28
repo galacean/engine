@@ -91,7 +91,7 @@ function load(name, scale) {
 
     const skeletonNode = world.createChild("skeleton");
 
-    const spineRenderer = skeletonNode.createAbility(ASpineRenderer, skeletonData);
+    const spineRenderer = skeletonNode.createAbility(ASpineRenderer, { asset: skeletonData });
 
     spineRenderer.state.setAnimation(0, "animation", true);
 

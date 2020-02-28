@@ -105,7 +105,7 @@ export class ASpineRenderer extends NodeAbility {
 
   render() {}
 
-  update() {
+  onUpdate() {
     let now = Date.now() / 1000;
     let delta = now - lastFrameTime;
     lastFrameTime = now;
