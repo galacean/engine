@@ -2,7 +2,7 @@ import { AssetType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { GLAsset } from "./GLAsset";
-import { RHIOption } from "./type";
+import { RHIOption } from "@alipay/o3-core/types/type";
 
 interface ObjectSet {
   [key: number]: GLAsset;
