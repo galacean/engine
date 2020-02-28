@@ -1,4 +1,4 @@
-import { Logger, ClearMode } from "@alipay/o3-base";
+import { Logger, ClearMode, GLCapabilityType } from "@alipay/o3-base";
 import { RenderTarget } from "@alipay/o3-material";
 import { RHIOption } from "@alipay/o3-core/types/type";
 import { GLRenderStates } from "./GLRenderStates";
@@ -8,6 +8,7 @@ import { GLTechnique } from "./GLTechnique";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLExtensions } from "./GLExtensions";
+import { GLCapability } from "./GLCapability";
 
 /**
  * GPU 硬件抽象层的 WebGL 的实现
@@ -21,6 +22,7 @@ export class GLRenderHardware {
   private _extensions;
   private _frameCount: number;
   private _spriteBatcher;
+  private _capability: GLCapability;
 
   /** 当前 RHI 是否为 WebGL 2.0 */
   get isWebGL2() {
@@ -56,6 +58,8 @@ export class GLRenderHardware {
     this._assetsCache = new GLAssetsCache(this, option);
 
     this._extensions = new GLExtensions(this);
+
+    this._capability = new GLCapability(this);
 
     this._frameCount = 0;
   }
@@ -93,6 +97,13 @@ export class GLRenderHardware {
   }
 
   /**
+   * GL 能力管理
+   * */
+  get capability(): GLCapability {
+    return this._capability;
+  }
+
+  /**
    * 当前帧的计数
    */
   get frameCount() {
@@ -106,6 +117,13 @@ export class GLRenderHardware {
    */
   requireExtension(ext) {
     return this._extensions.requireExtension(ext);
+  }
+
+  /**
+   * 查询能否使用某些 GL 能力
+   * */
+  canIUse(capabilityType: GLCapabilityType) {
+    return this.capability.canIUse(capabilityType);
   }
 
   /**

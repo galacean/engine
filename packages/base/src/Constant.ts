@@ -415,3 +415,14 @@ export enum BoundingType {
   /** 包围球 */
   SPHERE
 }
+
+/**
+ * GL 层能力
+ * 有些能力可以靠 extension 来抹平，有些能力必须支持 WebGL 2.0
+ * */
+export enum GLCapabilityType {
+  standardDerivatives = "OES_standard_derivatives",
+  shaderTextureLod = "EXT_shader_texture_lod",
+  elementIndexUint = "OES_element_index_uint",
+  depthTexture = "WEBGL_depth_texture"
+}

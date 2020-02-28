@@ -7,7 +7,8 @@ import {
   BlendFunc,
   CullFace,
   Side,
-  Util
+  Util,
+  GLCapabilityType
 } from "@alipay/o3-base";
 import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import { LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
@@ -992,7 +993,7 @@ class PBRMaterial extends Material {
     const _macros = ["O3_NEED_WORLDPOS"];
 
     if (!primitive.vertexAttributes.NORMAL || !primitive.vertexAttributes.TANGENT)
-      if (rhi.requireExtension("OES_standard_derivatives")) _macros.push("HAS_DERIVATIVES");
+      if (rhi.canIUse(GLCapabilityType.standardDerivatives)) _macros.push("HAS_DERIVATIVES");
 
     const uniforms = Object.keys(this._values);
     if (uniforms.indexOf("u_baseColorSampler") > -1) _macros.push("HAS_BASECOLORMAP");
@@ -1046,7 +1047,7 @@ class PBRMaterial extends Material {
 
       if (this._useSpecularMap) _macros.push("O3_HAS_SPECULARMAP");
 
-      if (rhi.requireExtension("EXT_shader_texture_lod")) _macros.push("HAS_TEX_LOD");
+      if (rhi.canIUse(GLCapabilityType.shaderTextureLod)) _macros.push("HAS_TEX_LOD");
     }
 
     if (this._directLightNum) _macros.push(`O3_DIRECTLIGHT_NUM ${this._directLightNum}`);
