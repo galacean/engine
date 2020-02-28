@@ -3,19 +3,14 @@ import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { union } from "../utils";
 import { DataType } from "@alipay/o3";
+import { TechniqueStates, Uniforms, Attributes } from "@alipay/o3-material/types/type";
 
 interface IResourceShaderDefine {
   vertexShader?: string;
   fragmentShader?: string;
-  states?: o3.TechniqueStates;
-  uniforms?: object;
-  attributes?: {
-    [key: string]: {
-      name: string;
-      semantic: string;
-      type: DataType;
-    };
-  };
+  states?: TechniqueStates;
+  uniforms?: Uniforms;
+  attributes?: Attributes;
   isValid?: boolean;
 }
 
