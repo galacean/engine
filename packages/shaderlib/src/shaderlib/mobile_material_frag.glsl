@@ -1,5 +1,4 @@
 uniform float u_shininess;
-uniform vec4 u_ambientLight;
 
 #ifdef O3_EMISSION_TEXTURE
 

@@ -1,6 +1,6 @@
 #include <common>
 #include <common_frag>
-#include <uv_transform_share_declaration>
+#include <uv_transform_share_define>
 
 uniform sampler2D u_diffuse;
 varying vec3 v_pos;

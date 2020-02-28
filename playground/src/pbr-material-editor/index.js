@@ -4,10 +4,10 @@ import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import { AGeometryRenderer } from "@alipay/o3-geometry";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
-import { AEnvironmentMapLight, PBRMaterial } from "@alipay/o3-pbr";
+import { PBRMaterial } from "@alipay/o3-pbr";
 import { SphereGeometry } from "@alipay/o3-geometry-shape";
 import { ASkyBox } from "@alipay/o3-skybox";
-import { AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
+import { AAmbientLight, ADirectLight, APointLight, ASpotLight, AEnvironmentMapLight } from "@alipay/o3-lighting";
 import * as dat from "dat.gui";
 import "@alipay/o3-engine-stats";
 import { Mesh, AMeshRenderer } from "@alipay/o3-mesh";
@@ -22,7 +22,6 @@ RegistExtension({ PBRMaterial });
 let engine = new Engine();
 let scene = engine.currentScene;
 const resourceLoader = new ResourceLoader(engine);
-
 /**node*/
 let rootNode = scene.root;
 let directLightNode = rootNode.createChild("dir_light");
@@ -289,7 +288,6 @@ function addMatGUI() {
     common.add(m, "opacity", 0, 1).onChange(v => {
       state.baseColorFactor[3] = v;
     });
-    common.add(m, "premultipliedAlpha");
     common.add(m, "alphaMode", ["OPAQUE", "BLEND", "MASK"]);
     common.add(m, "alphaCutoff", 0, 1);
     common.add(m, "clearCoat", 0, 1);

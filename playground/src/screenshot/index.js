@@ -5,7 +5,8 @@ import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { AAnimation } from "@alipay/o3-animation";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
-import { AEnvironmentMapLight, PBRMaterial } from "@alipay/o3-pbr";
+import { PBRMaterial } from "@alipay/o3-pbr";
+import { AEnvironmentMapLight } from "@alipay/o3-lighting";
 import { ASkyBox } from "@alipay/o3-skybox";
 import { Screenshot } from "@alipay/o3-screenshot";
 

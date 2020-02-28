@@ -1,9 +1,10 @@
 #include <common>
 #include <common_frag>
 #include <uv_share>
-#include <uv_transform_share_declaration>
+#include <uv_transform_share_define>
 #include <normal_share>
 
+#include <ambient_light_frag>
 #include <direct_light_frag>
 #include <mobile_material_frag>
 

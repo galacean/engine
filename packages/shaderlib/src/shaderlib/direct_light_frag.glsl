@@ -2,6 +2,7 @@
 
 struct DirectLight {
     vec3 color;
+    vec3 lightColor;
     float intensity;
     vec3 direction;
 };

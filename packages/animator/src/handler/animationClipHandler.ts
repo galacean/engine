@@ -32,7 +32,6 @@ export class AnimationClipHandler {
       this.hasInit = true;
     }
   }
-  pause() {}
   stop() {
     this.enabled = false;
   }

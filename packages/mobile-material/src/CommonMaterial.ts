@@ -1,22 +1,25 @@
-import { vec3, vec4 } from "@alipay/o3-math";
-import { Util, DataType } from "@alipay/o3-base";
+import { vec4 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-base";
 import { Texture2D } from "@alipay/o3-material";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { TechniqueStates } from "@alipay/o3-material/types/type";
-import { LightFeature, AAmbientLight } from "@alipay/o3-lighting";
 
 import VertexShader from "./shader/Vertex.glsl";
+import { LightFeature } from "@alipay/o3-lighting";
 
 /**
  * 材质的通用参数管理，其他常用材质的基类
  * @class
  */
 export abstract class CommonMaterial extends Material {
+  private _ambientLightCount: number;
   public renderStates: TechniqueStates = {
     enable: [],
     disable: [],
     functions: {}
   };
+
+  protected abstract _generateTechnique();
 
   constructor(name: string) {
     super(name);
@@ -56,42 +59,31 @@ export abstract class CommonMaterial extends Material {
     this.setValue("u_ambient", val);
   }
 
-  /**
-   * 重写基类方法，添加 ambientLight 计算
-   */
   prepareDrawing(camera, component, primitive) {
-    if (this._technique === null) {
-      this._generateTechnique();
-    }
+    const lightMgr = camera.scene.findFeature(LightFeature);
 
-    this._updateAmbientLight(camera);
+    /** 光源 uniform values */
+    lightMgr.bindMaterialValues(this);
+
+    const { ambientLightCount } = lightMgr.lightSortAmount;
+
+    if (!this._technique || this._ambientLightCount !== ambientLightCount) {
+      this._ambientLightCount = ambientLightCount;
+      this._generateTechnique();
+      this.bindLightUniformDefine(camera);
+    }
     super.prepareDrawing(camera, component, primitive);
   }
 
-  protected abstract _generateTechnique();
-
   /**
-   * 计算场景中的环境光总量
-   * @private
-   */
-  _updateAmbientLight(camera) {
-    //-- 累加场景中所有的 AmbientLighting，计算总的颜色
-    const scene = camera.scene;
-    const lightMgr = scene.findFeature(LightFeature);
-    if (lightMgr) {
-      const lights = lightMgr.visibleLights;
-      const ambientLight = vec3.fromValues(0, 0, 0);
-      const color = vec3.create();
-      for (let i = 0, len = lights.length; i < len; i++) {
-        const lgt = lights[i];
-        if (lgt instanceof AAmbientLight) {
-          vec3.scale(color, lgt.color, lgt.intensity);
-          vec3.add(ambientLight, ambientLight, color);
-        }
-      } // end of for
-
-      this.setValue("u_ambientLight", vec4.fromValues(ambientLight[0], ambientLight[1], ambientLight[2], 1));
-    } // end of if
+   * 绑定灯光相关 Uniform Define
+   * */
+  bindLightUniformDefine(camera) {
+    const lightMgr = camera.scene.findFeature(LightFeature);
+    this._technique.uniforms = {
+      ...lightMgr.getUniformDefine(),
+      ...this._technique.uniforms
+    };
   }
 
   /**
@@ -123,6 +115,9 @@ export abstract class CommonMaterial extends Material {
 
     if (this.ambient instanceof Texture2D) macros.push("O3_AMBIENT_TEXTURE");
 
+    if (this._ambientLightCount) {
+      macros.push("O3_HAS_AMBIENT_LIGHT");
+    }
     return macros;
   }
 
@@ -138,10 +133,6 @@ export abstract class CommonMaterial extends Material {
       },
       u_ambient: {
         name: "u_ambient",
-        type: DataType.FLOAT_VEC4
-      },
-      u_ambientLight: {
-        name: "u_ambientLight",
         type: DataType.FLOAT_VEC4
       }
     };

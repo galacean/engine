@@ -1,12 +1,12 @@
-import { ResourceLoader, Resource } from '@alipay/o3-loader';
-import { RegistExtension } from '@alipay/o3-loader-gltf';
-import { TransparentMaterial, TextureMaterial } from '@alipay/o3-mobile-material';
-import { PBRMaterial } from '@alipay/o3-pbr';
+import { ResourceLoader, Resource } from "@alipay/o3-loader";
+import { RegistExtension } from "@alipay/o3-loader-gltf";
+import { TransparentMaterial, TextureMaterial } from "@alipay/o3-mobile-material";
+import { PBRMaterial } from "@alipay/o3-pbr";
 
 RegistExtension({
   TextureMaterial,
   TransparentMaterial,
-  PBRMaterial,
+  PBRMaterial
 });
 
 class AssetsLoader {
@@ -17,9 +17,9 @@ class AssetsLoader {
 
   /**
    * @description: 添加资源
-   * @name {String} 资源名称 
+   * @name {String} 资源名称
    * @props {Object} 资源配置项(一般指定type:gltf,url即可)
-   * @return: 
+   * @return:
    */
   addAsset(name, props) {
     const asset = new Resource(name, props);
@@ -49,7 +49,6 @@ class AssetsLoader {
       }
     });
   }
-
 }
 
 export default AssetsLoader;

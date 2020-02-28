@@ -49,22 +49,9 @@ export class LambertMaterial extends CommonMaterial {
    * @private
    */
   prepareDrawing(camera, component, primitive) {
-    let directLightCount = 0;
-
     const scene = camera.scene;
     const lightMgr = scene.findFeature(LightFeature);
-    if (lightMgr) {
-      const lights = lightMgr.visibleLights;
-
-      for (let i = 0, len = lights.length; i < len; i++) {
-        const lgt = lights[i];
-        if (lgt instanceof ADirectLight) {
-          const name = `u_directLights[${directLightCount}]`;
-          lgt.bindMaterialValues(this, name);
-          directLightCount++;
-        }
-      } // end of for
-    } // end of if
+    const { directLightCount } = lightMgr.lightSortAmount;
 
     if (this._technique === null || this._directLightCount != directLightCount) {
       this._directLightCount = directLightCount;
@@ -80,11 +67,6 @@ export class LambertMaterial extends CommonMaterial {
    */
   _generateFragmentUniform() {
     let uniforms: any = {};
-    for (let i = 0; i < this._directLightCount; i++) {
-      const name = `u_directLights[${i}]`;
-      const lgtUniforms = ADirectLight.getUniformDefine(name);
-      uniforms = { ...uniforms, ...lgtUniforms };
-    } // end of for
 
     if (this.diffuse instanceof Texture2D) {
       uniforms.u_diffuse = {

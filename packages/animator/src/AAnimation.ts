@@ -2,8 +2,7 @@ import { NodeAbility, Node } from "@alipay/o3-core";
 import { AnimationClip } from "./AnimationClip";
 import { getAnimationClipHander } from "./handler/index";
 import { AnimationClipHandler } from "./handler/animationClipHandler";
-import { WrapMode } from "./AnimationConst";
-
+import { WrapMode, PlayState } from "./AnimationConst";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
  * @extends NodeAbility
@@ -15,8 +14,8 @@ export class AAnimation extends NodeAbility {
    */
   public currentTime: number;
   public duration: number;
+  public state: PlayState;
   private _wrapMode: WrapMode;
-  private _isPlaying: boolean;
   private animClipSet;
   private uniqueAnimClipSet;
   private startTimeAnimClipSet;
@@ -25,7 +24,6 @@ export class AAnimation extends NodeAbility {
   private handlerStartTimeMap: WeakMap<AnimationClipHandler, number>;
   private _animationData: any;
   private _timeScale: number;
-  private needParse: boolean;
 
   /**
    * 缩放播放速度
@@ -54,7 +52,7 @@ export class AAnimation extends NodeAbility {
     return this._animationData;
   }
   set animationData(animationData) {
-    this.needParse = true;
+    if (!animationData) return;
     this._animationData = animationData;
   }
 
@@ -75,6 +73,7 @@ export class AAnimation extends NodeAbility {
     this.currentTime = 0;
     this.animationData = animationData;
     this.wrapMode = wrapMode;
+    this.state = PlayState.INIT;
   }
 
   /**
@@ -83,7 +82,7 @@ export class AAnimation extends NodeAbility {
    * @private
    */
   public update(deltaTime: number) {
-    if (!this._isPlaying) return;
+    if (this.state !== PlayState.PLAYING) return;
     const { duration, handlerStartTimeMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     super.update(deltaTime);
@@ -103,15 +102,13 @@ export class AAnimation extends NodeAbility {
   }
   //TODO 临时方案后面改为jumptoFrame
   public onAnimUpdate(deltaTime: number) {
-    if (this.needParse) {
-      this.parseAnimationData();
-    }
+    if (this.state !== PlayState.PLAYBYANIMATOR) return;
     const { duration, handlerStartTimeMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     if (this.currentTime > duration) {
       this.reset();
       if (wrapMode === WrapMode.LOOP) {
-        this.play();
+        this.playByAnimator();
       }
     }
     this.currentTime += deltaTime;
@@ -196,24 +193,27 @@ export class AAnimation extends NodeAbility {
     });
     this.duration = duration || Infinity;
     this.timeScale = timeScale;
-    this.needParse = false;
-  }
-  /**
-   * 是否正在播放
-   * @return {boolean}
-   */
-  public isPlaying(): boolean {
-    return this._isPlaying;
   }
 
   /**
    * 开始播放
    */
   public play() {
-    if (this.needParse) {
-      this.parseAnimationData();
+    if (this.state === PlayState.INIT || this.state === PlayState.STOP) {
+      if (this.animationData) {
+        this.parseAnimationData();
+      }
     }
-    this._isPlaying = true;
+    this.state = PlayState.PLAYING;
+  }
+
+  public playByAnimator() {
+    if (this.state === PlayState.INIT || this.state === PlayState.STOP) {
+      if (this.animationData) {
+        this.parseAnimationData();
+      }
+    }
+    this.state = PlayState.PLAYBYANIMATOR;
   }
 
   /**
@@ -221,23 +221,26 @@ export class AAnimation extends NodeAbility {
    *
    */
   public pause() {
-    this._isPlaying = false;
-    this.handlerList.forEach(handler => {
-      handler.pause();
-    });
+    this.state = PlayState.PAUSUE;
   }
 
+  public stop() {
+    this.pause();
+    this.reset();
+    this.state = PlayState.STOP;
+  }
   /**
    * 跳转到动画的某一帧，立刻生效
    * @param {float} frameTime
    */
   public jumpToFrame(frameTime: number) {}
 
-  private reset() {
+  public reset() {
     this.currentTime = 0;
     this.pause();
     this.handlerList.reverse().forEach(handler => {
       handler.reset();
     });
+    this.state = PlayState.INIT;
   }
 }
