@@ -1,0 +1,71 @@
+# 不要修改该文件，会自动生成，详见 https://gitlab.alibaba-inc.com/node/ci
+
+stages:
+  - test
+
+environments:
+  NODE_ENV: "test"
+
+beforeScript:
+  - |
+    export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
+    echo $PATH
+    time enclose install tnpm:tnpm
+    tnpm -v
+node-8:
+  stage: test
+  aciTags: DOCKER
+  agent:
+    docker:
+      image: reg.docker.alibaba-inc.com/dockerlab/node-ci:3.7.11
+  script:
+    - |
+      export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
+      time tnpm i --install-node=8 --no-cache --internal-oss-cache
+      node -e "console.log('%j, %j', process.versions, process.execPath)"
+      time tnpm run ci
+  coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
+  passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
+  publisher:
+    archiveArtifacts: 'coverage/'
+    html:
+      index: coverage/lcov-report/index.html
+      displayName: 测试覆盖率
+node-10:
+  stage: test
+  aciTags: DOCKER
+  agent:
+    docker:
+      image: reg.docker.alibaba-inc.com/dockerlab/node-ci:3.7.11
+  script:
+    - |
+      export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
+      time tnpm i --install-node=10 --no-cache --internal-oss-cache
+      node -e "console.log('%j, %j', process.versions, process.execPath)"
+      time tnpm run ci
+  coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
+  passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
+  publisher:
+    archiveArtifacts: 'coverage/'
+    html:
+      index: coverage/lcov-report/index.html
+      displayName: 测试覆盖率
+node-12:
+  stage: test
+  aciTags: DOCKER
+  agent:
+    docker:
+      image: reg.docker.alibaba-inc.com/dockerlab/node-ci:3.7.11
+  script:
+    - |
+      export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
+      time tnpm i --install-node=12 --no-cache --internal-oss-cache
+      node -e "console.log('%j, %j', process.versions, process.execPath)"
+      time tnpm run ci
+  coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
+  passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
+  publisher:
+    archiveArtifacts: 'coverage/'
+    html:
+      index: coverage/lcov-report/index.html
+      displayName: 测试覆盖率

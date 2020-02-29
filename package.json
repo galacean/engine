@@ -52,7 +52,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@ali/ci": "^4.19.0",
+    "@ali/ci": "^4.24.0",
     "@ali/rollup-plugin-string": "^3.0.0",
     "@babel/cli": "^7.5.0",
     "@babel/core": "^7.6.2",
@@ -124,7 +124,7 @@
     ]
   },
   "ci": {
-    "type": "gitlab",
-    "version": "alinode=3.11.7"
+    "type": "aci",
+    "versions": "8, 10, 12"
   }
 }
