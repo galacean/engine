@@ -139,6 +139,11 @@ export class ASpotLight extends ALight {
       type: DataType.FLOAT_VEC3
     };
 
+    uniforms[uniformName + ".lightColor"] = {
+      name: uniformName + ".lightColor",
+      type: DataType.FLOAT_VEC3
+    };
+
     uniforms[uniformName + ".intensity"] = {
       name: uniformName + ".intensity",
       type: DataType.FLOAT
@@ -164,6 +169,16 @@ export class ASpotLight extends ALight {
       type: DataType.FLOAT
     };
 
+    uniforms[uniformName + ".coneCos"] = {
+      name: uniformName + ".coneCos",
+      type: DataType.FLOAT
+    };
+
+    uniforms[uniformName + ".penumbraCos"] = {
+      name: uniformName + ".penumbraCos",
+      type: DataType.FLOAT
+    };
+
     return uniforms;
   }
 
@@ -174,10 +189,13 @@ export class ASpotLight extends ALight {
     mtl.setValue(uniformName + ".position", this.position);
     mtl.setValue(uniformName + ".direction", this.direction);
     mtl.setValue(uniformName + ".color", this.color);
+    mtl.setValue(uniformName + ".lightColor", this.lightColor);
     mtl.setValue(uniformName + ".intensity", this.intensity);
     mtl.setValue(uniformName + ".distance", this.distance);
     mtl.setValue(uniformName + ".decay", this.decay);
     mtl.setValue(uniformName + ".angle", this.angle);
     mtl.setValue(uniformName + ".penumbra", this.penumbra);
+    mtl.setValue(uniformName + ".coneCos", Math.cos(this.angle));
+    mtl.setValue(uniformName + ".penumbraCos", Math.cos(this.angle * (1 - this.penumbra)));
   }
 }
