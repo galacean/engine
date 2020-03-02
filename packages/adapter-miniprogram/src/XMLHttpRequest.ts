@@ -191,7 +191,7 @@ export default class XMLHttpRequest extends EventTarget {
       return;
     }
 
-    this["on" + type] = (event = {}) => {
+    this["on" + type] = (event: any = {}) => {
       event.target = event.target || this;
       listener.call(this, event);
     };
