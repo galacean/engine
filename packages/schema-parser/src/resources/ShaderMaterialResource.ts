@@ -2,8 +2,7 @@ import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { union } from "../utils";
-import { DataType } from "@alipay/o3";
-import { TechniqueStates, Uniforms, Attributes } from "@alipay/o3-material/types/type";
+import { TechniqueStates, Uniforms, Attributes } from "@alipay/o3";
 
 interface IResourceShaderDefine {
   vertexShader?: string;
