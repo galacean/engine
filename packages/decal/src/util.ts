@@ -118,10 +118,9 @@ export function getBoundingBoxByGLTF(node) {
   for (let i = 0; i < rendererGroup.length; i += 1) {
     const primitives = rendererGroup[i].mesh.primitives;
     for (let j = 0; j < primitives.length; j += 1) {
-      const boundingBoxMax = primitives[j].boundingBoxMax;
-      const boundingBoxMin = primitives[j].boundingBoxMin;
-      maxGroup.push(boundingBoxMax);
-      minGroup.push(boundingBoxMin);
+      const { min, max } = primitives[j].getMinMax(node.getModelMatrix());
+      maxGroup.push(max);
+      minGroup.push(min);
     }
   }
   const maxX = maxGroup.sort((a, b) => b[0] - a[0])[0][0];
