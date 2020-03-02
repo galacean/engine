@@ -13,7 +13,7 @@ export abstract class GLAsset {
   public cacheID: number;
 
   /**
-   * @param {GLRenderHardware} rhi - GPU 硬件抽象层的 WebGL 1.0
+   * @param {GLRenderHardware} rhi - GPU 硬件抽象层的 WebGL
    * @param {AssetObject} asset - 引擎 js 部分的资源对象
    * */
   protected constructor(rhi: GLRenderHardware, asset: AssetObject) {

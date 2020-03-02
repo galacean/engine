@@ -4,83 +4,79 @@ import { AnimationClipType } from "../AnimationConst";
 import { Tween, Tweener, doTransform, Easing } from "@alipay/o3-tween";
 import { AnimationClip } from "../AnimationClip";
 import { AnimationClipHandler } from "./animationClipHandler";
-
+import { LinkList } from "./linkList";
 export class InterpolationHandler extends AnimationClipHandler {
-  keyFrameTimeTweenerMap: { [keyframeTime: number]: Tweener };
-  intervalKeyFrameList: Array<[number, number, any, string[], boolean]>; //startTime endTime keyFrame isPlaying
-  tween: Tween;
-  originNodeState: { position: any[] | Float32Array; rotation: any[] | Float32Array; scale: any[] | Float32Array };
-  constructor(id: number, type: AnimationClipType, node: Node, animClip: AnimationClip) {
-    super(id, type, node, animClip);
-    this.originNodeState = {
-      position: vec3.clone(node["position"]),
-      rotation: quat.clone(node["rotation"]),
-      scale: vec3.clone(node["scale"])
-    };
-  }
+  private keyFrameLinkListMap: { [key: string]: LinkList<any> };
+  private tween: Tween;
+  private originNodeState: Node;
+  private curNodeState: Node;
 
   init() {
     super.init();
-    const { animClip } = this;
+    const { animClip, node } = this;
     const { keyFrames } = animClip;
     this.tween = new Tween();
+    this.keyFrameLinkListMap = {};
+    this.originNodeState = node.clone();
+    this.curNodeState = node.clone();
+    this.curNodeState.rotation = quat.toEuler(vec3.create(), this.curNodeState.rotation);
     const keyFrameTimeQueue = Object.keys(animClip.keyFrames)
       .map(startTime => Number(startTime))
       .sort();
-    const subPropertyMap = { x: 0, y: 1, z: 2 };
-    this.intervalKeyFrameList = [];
-    let lastFrameTime = 0;
-    let lastNodeState = this.originNodeState;
     keyFrameTimeQueue.forEach(keyFrameTime => {
       let keyFrameList = keyFrames[keyFrameTime];
-      let currentNodeState = {
-        position: vec3.clone(lastNodeState["position"]),
-        rotation: quat.clone(lastNodeState["rotation"]),
-        scale: vec3.clone(lastNodeState["scale"])
-      };
-      let changedList = [];
       keyFrameList = keyFrameList.forEach(keyFrame => {
-        const { property, subProperty, value } = keyFrame;
-        if (property === "rotation") {
-          let euler = quat.toEuler(quat.create(), currentNodeState.rotation);
-          euler[subPropertyMap[subProperty]] = value;
-          quat.fromEuler(currentNodeState[property], euler[0], euler[1], euler[2]);
-        } else {
-          currentNodeState[property][subPropertyMap[subProperty]] = value;
-        }
-        changedList.push(property);
+        const { property, subProperty } = keyFrame;
+        const key = `${property}.${subProperty}`;
+        keyFrame.keyFrameTime = keyFrameTime;
+        this.keyFrameLinkListMap[key] = this.keyFrameLinkListMap[key] || new LinkList();
+        this.keyFrameLinkListMap[key].append(keyFrame);
       });
-      this.intervalKeyFrameList.push([lastFrameTime, keyFrameTime, currentNodeState, changedList, false]);
-      lastFrameTime = keyFrameTime;
-      lastNodeState = {
-        position: vec3.clone(currentNodeState["position"]),
-        rotation: quat.clone(currentNodeState["rotation"]),
-        scale: vec3.clone(currentNodeState["scale"])
-      };
     });
+    this.generateTweener();
   }
-  generateTweener(startTime: number, endTime: number, endValue: any, changedList: string[]) {
-    const { node, tween } = this;
-    const { Translate, Rotate, Scale } = doTransform;
-    const duration = endTime - startTime;
-    const transFuncMap = {
-      position: Translate,
-      rotation: Rotate,
-      scale: Scale
+  generateTweener() {
+    const { tween, keyFrameLinkListMap, curNodeState } = this;
+    const { DataType } = doTransform;
+    const subPropertyMap = {
+      x: 0,
+      y: 1,
+      z: 2
     };
-    changedList.forEach(property => {
-      if (duration > 0) {
-        const tweener = transFuncMap[property](node, endValue[property], duration, {
-          easing: Easing["linear"]
-        });
-        tweener.start(tween);
-      } else {
-        //直接赋值
-        if (property === "rotation") {
-          node[property] = quat.clone(endValue[property]);
-        } else {
-          node[property] = vec3.clone(endValue[property]);
+    Object.keys(keyFrameLinkListMap).forEach(key => {
+      let temp = key.split(".");
+      const keyFrameLinkList = keyFrameLinkListMap[key];
+      const property = temp[0];
+      const subProperty = temp[1];
+      let currentNode = keyFrameLinkList.head;
+      while (currentNode !== null) {
+        let startValue = curNodeState[property][subPropertyMap[subProperty]];
+        let duration = currentNode.data.keyFrameTime;
+        let delay = 0;
+        const endValue = currentNode.data.value;
+        if (currentNode.prev) {
+          startValue = currentNode.prev.data.value;
+          duration = currentNode.data.keyFrameTime - currentNode.prev.data.keyFrameTime;
+          delay = currentNode.prev.data.keyFrameTime;
         }
+        if (duration > 0) {
+          const tweener = DataType(
+            startValue,
+            val => {
+              curNodeState[property][subPropertyMap[subProperty]] = val;
+            },
+            endValue,
+            duration,
+            {
+              easing: Easing["linear"],
+              delay
+            }
+          );
+          tweener.start(tween);
+        } else {
+          curNodeState[property][subPropertyMap[subProperty]] = endValue;
+        }
+        currentNode = currentNode.next;
       }
     });
   }
@@ -88,27 +84,33 @@ export class InterpolationHandler extends AnimationClipHandler {
   update(deltaTime: number) {
     super.update(deltaTime);
     this.currentTime += deltaTime;
-    this.intervalKeyFrameList.forEach(data => {
-      const [startTime, endTime, endValue, changedList, isPlaying] = data;
-      if (this.currentTime > startTime) {
-        if (!isPlaying) {
-          this.generateTweener(startTime, endTime, endValue, changedList);
-          data[4] = true;
-        }
+    this.tween.update(deltaTime);
+    this.affectNode();
+  }
+
+  affectNode() {
+    const { node, curNodeState } = this;
+    ["position", "rotation", "scale"].forEach(property => {
+      if (property === "rotation") {
+        const euler = curNodeState[property];
+        node[property] = quat.fromEuler(quat.create(), euler[0], euler[1], euler[2]);
+      } else {
+        node[property] = vec3.clone(curNodeState[property]);
       }
     });
-    this.tween.update(deltaTime);
   }
 
   reset() {
-    const { node, originNodeState } = this;
+    const { curNodeState, originNodeState, tween } = this;
     super.reset();
+    if (!curNodeState) return;
     ["position", "rotation", "scale"].forEach(property => {
       if (property === "rotation") {
-        node[property] = quat.clone(originNodeState[property]);
+        curNodeState[property] = quat.clone(originNodeState[property]);
       } else {
-        node[property] = vec3.clone(originNodeState[property]);
+        curNodeState[property] = vec3.clone(originNodeState[property]);
       }
     });
+    this.affectNode();
   }
 }

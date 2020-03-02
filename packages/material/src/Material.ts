@@ -116,7 +116,7 @@ export class Material {
     const oriValue = this.getValue(name);
     const oriIsTexture = oriValue instanceof Texture;
     const curIsTexture = value instanceof Texture;
-    if ((this as any)._generateTechnique && ((!oriIsTexture && curIsTexture) || (oriIsTexture && !curIsTexture))) {
+    if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {
       this._technique = null;
     }
     if (value) {

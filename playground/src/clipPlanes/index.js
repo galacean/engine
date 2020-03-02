@@ -5,9 +5,9 @@ import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { AAnimation } from "@alipay/o3-animation";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
-import { AEnvironmentMapLight, PBRMaterial } from "@alipay/o3-pbr";
+import { PBRMaterial } from "@alipay/o3-pbr";
 import { ASkyBox } from "@alipay/o3-skybox";
-import { AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
+import { AAmbientLight, ADirectLight, APointLight, ASpotLight, AEnvironmentMapLight } from "@alipay/o3-lighting";
 
 import "@alipay/o3-engine-stats";
 import * as dat from "dat.gui";

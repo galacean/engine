@@ -24,6 +24,7 @@ import shadow_vert from "./shaderlib/shadow_vert.glsl";
 import morph_vert from "./shaderlib/morph_vert.glsl";
 import fog_vert from "./shaderlib/fog_vert.glsl";
 
+import ambient_light_frag from "./shaderlib/ambient_light_frag.glsl";
 import direct_light_frag from "./shaderlib/direct_light_frag.glsl";
 import point_light_frag from "./shaderlib/point_light_frag.glsl";
 import spot_light_frag from "./shaderlib/spot_light_frag.glsl";
@@ -59,14 +60,18 @@ import perturbation_frag from "./shaderlib/perturbation_frag.glsl";
 import refraction_share from "./shaderlib/refraction_share.glsl";
 import refraction_frag from "./shaderlib/refraction_frag.glsl";
 
-import uv_transform_share_declaration from "./shaderlib/uv_transform_share_declaration.glsl";
-import uv_transform_vert_declaration from "./shaderlib/uv_transform_vert_declaration.glsl";
-import uv_transform_vert_chunk from "./shaderlib/uv_transform_vert_chunk.glsl";
+import uv_transform_share_define from "./shaderlib/uv_transform_share_define.glsl";
+import uv_transform_vert_define from "./shaderlib/uv_transform_vert_define.glsl";
+import uv_transform_vert from "./shaderlib/uv_transform_vert.glsl";
 
 import clipPlane_vert_define from "./shaderlib/clipPlane_vert_define.glsl";
 import clipPlane_vert from "./shaderlib/clipPlane_vert.glsl";
 import clipPlane_frag_define from "./shaderlib/clipPlane_frag_define.glsl";
 import clipPlane_frag from "./shaderlib/clipPlane_frag.glsl";
+
+import gamma_frag from "./shaderlib/gamma_frag.glsl";
+
+import PBRShaderLib from "./shaderlib/pbr";
 
 export const ShaderLib = {
   common,
@@ -95,6 +100,7 @@ export const ShaderLib = {
   morph_vert,
   fog_vert,
 
+  ambient_light_frag,
   direct_light_frag,
   point_light_frag,
   spot_light_frag,
@@ -130,14 +136,18 @@ export const ShaderLib = {
   refraction_share,
   refraction_frag,
 
-  uv_transform_share_declaration,
-  uv_transform_vert_declaration,
-  uv_transform_vert_chunk,
+  uv_transform_share_define,
+  uv_transform_vert_define,
+  uv_transform_vert,
 
   clipPlane_vert_define,
   clipPlane_vert,
   clipPlane_frag_define,
-  clipPlane_frag
+  clipPlane_frag,
+
+  gamma_frag,
+
+  ...PBRShaderLib
 };
 
 export function InjectShaderSlices(obj) {

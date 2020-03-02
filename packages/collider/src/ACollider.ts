@@ -28,7 +28,7 @@ export class ACollider extends NodeAbility {
    * @private
    */
   onEnable(): void {
-    this.scene.findFeature(ColliderFeature).attachCollider(this);
+    // this.scene.findFeature(ColliderFeature).attachCollider(this);
   }
 
   /** 事件回调：在对象Disable的时候，从当前的Scene移除

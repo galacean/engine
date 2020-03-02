@@ -40,6 +40,7 @@ export interface PluginHook {
   abilityAdded?(ability: o3.NodeAbility): any;
   beforeAbilityAdded?(config: any): any;
   beforeAbilityUpdated?(id: string, key: string, value: any): any;
+  abilityUpdated?(updateConfig?: { id: string; key: string; value: any }): any;
   schemaParsed?(): any;
   abilityDeleted?(id: string): any;
   beforeAbilityDeleted?(id: string): any;
