@@ -33,16 +33,16 @@ describe("Node test", function() {
     const out = [];
     mat4.fromRotationTranslationScale(out, rotation, position, scale);
     mat4.decompose(out, position, rotation, scale);
-    console.log(position);
-    console.log(rotation);
-    console.log(scale);
+    // console.log(position);
+    // console.log(rotation);
+    // console.log(scale);
     // console.log(model);
   });
 
-  it.only("test node", () => {
+  it("test node", () => {
     const node = new Node();
     node.setModelMatrix(start);
     const model = node.getModelMatrix();
-    console.log(model);
+    // console.log(model);
   });
 });
