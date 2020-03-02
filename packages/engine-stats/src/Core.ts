@@ -13,7 +13,7 @@ declare global {
  * @class Core
  */
 export default class Core {
-  private gl: WebGLRenderingContext;
+  private gl: WebGLRenderingContext | WebGL2RenderingContext;
   private drawCallHook: DrawCallHook;
   private textureHook: TextureHook;
   private shaderHook: ShaderHook;
@@ -21,23 +21,12 @@ export default class Core {
   private samplingIndex: number = 0;
   private now: number;
 
-  constructor(canvas: HTMLCanvasElement) {
-    try {
-      this.gl = canvas.getContext("webgl");
-
-      if (this.gl) {
-        log("Hey boy, engine stats monitor is opened! ");
-      }
-    } catch (error) {
-      errorLog(`Can't get WebGL context.`);
-    }
-
-    if (this.gl) {
-      this.hook(this.gl);
-    }
+  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext) {
+    this.gl = gl;
+    this.hook(gl);
   }
 
-  private hook(gl: WebGLRenderingContext) {
+  private hook(gl: WebGLRenderingContext | WebGL2RenderingContext) {
     this.drawCallHook = new DrawCallHook(gl);
     this.textureHook = new TextureHook(gl);
     this.shaderHook = new ShaderHook(gl);
@@ -74,7 +63,8 @@ export default class Core {
       lines: this.drawCallHook.lines,
       points: this.drawCallHook.points,
       textures: this.textureHook.textures,
-      shaders: this.shaderHook.shaders
+      shaders: this.shaderHook.shaders,
+      webglContext: this.gl instanceof WebGL2RenderingContext ? "2.0" : "1.0"
     };
 
     this.reset();

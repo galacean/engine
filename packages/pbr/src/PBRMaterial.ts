@@ -1,4 +1,14 @@
-import { Logger, DataType, RenderState, MaterialType, BlendFunc, CullFace, Side, Util } from "@alipay/o3-base";
+import {
+  Logger,
+  DataType,
+  RenderState,
+  MaterialType,
+  BlendFunc,
+  CullFace,
+  Side,
+  Util,
+  GLCapabilityType
+} from "@alipay/o3-base";
 import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import { LightFeature } from "@alipay/o3-lighting";
 
@@ -936,7 +946,7 @@ class PBRMaterial extends Material {
     const _macros = ["O3_NEED_WORLDPOS"];
 
     if (!primitive.vertexAttributes.NORMAL || !primitive.vertexAttributes.TANGENT)
-      if (rhi.requireExtension("OES_standard_derivatives")) _macros.push("HAS_DERIVATIVES");
+      if (rhi.canIUse(GLCapabilityType.standardDerivatives)) _macros.push("HAS_DERIVATIVES");
 
     const uniforms = Object.keys(this._values);
     if (uniforms.indexOf("u_baseColorSampler") > -1) _macros.push("HAS_BASECOLORMAP");
@@ -990,7 +1000,7 @@ class PBRMaterial extends Material {
 
       if (this._useSpecularEnv) _macros.push("O3_USE_SPECULAR_ENV");
 
-      if (rhi.requireExtension("EXT_shader_texture_lod")) _macros.push("HAS_TEX_LOD");
+      if (rhi.canIUse(GLCapabilityType.shaderTextureLod)) _macros.push("HAS_TEX_LOD");
     }
 
     if (this._ambientLightCount) {

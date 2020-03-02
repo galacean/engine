@@ -8,9 +8,9 @@ export default class ShaderHook {
   private realAttachShader: any;
   private realDetachShader: any;
   private hooked: boolean;
-  private gl: WebGLRenderingContext;
+  private gl: WebGLRenderingContext | WebGL2RenderingContext;
 
-  constructor(gl: WebGLRenderingContext) {
+  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext) {
     this.realAttachShader = gl.attachShader;
     this.realDetachShader = gl.detachShader;
 

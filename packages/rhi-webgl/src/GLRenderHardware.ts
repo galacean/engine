@@ -1,5 +1,6 @@
-import { Logger, ClearMode } from "@alipay/o3-base";
+import { Logger, ClearMode, GLCapabilityType } from "@alipay/o3-base";
 import { RenderTarget } from "@alipay/o3-material";
+import { RHIOption } from "@alipay/o3-core/types/type";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLPrimitive } from "./GLPrimitive";
@@ -7,40 +8,58 @@ import { GLTechnique } from "./GLTechnique";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLExtensions } from "./GLExtensions";
+import { GLCapability } from "./GLCapability";
+
 /**
- * GPU 硬件抽象层的 WebGL 1.0 版的实现
+ * GPU 硬件抽象层的 WebGL 的实现
  * @private
  */
 export class GLRenderHardware {
   private _canvas: HTMLCanvasElement;
-  private _gl: WebGLRenderingContext;
+  private _gl: WebGLRenderingContext | WebGL2RenderingContext;
   private _renderStates;
   private _assetsCache: GLAssetsCache;
   private _extensions;
   private _frameCount: number;
   private _spriteBatcher;
+  private _capability: GLCapability;
 
-  constructor(canvas: HTMLCanvasElement, attributes) {
-    //-- get gl context
+  /** 当前 RHI 是否为 WebGL 2.0 */
+  get isWebGL2() {
+    return this.gl instanceof WebGL2RenderingContext;
+  }
+
+  constructor(canvas: HTMLCanvasElement, option: RHIOption) {
     if (typeof canvas === "string") {
       this._canvas = document.getElementById(canvas) as HTMLCanvasElement;
     } else {
       this._canvas = canvas;
     }
 
-    this._gl = (this._canvas.getContext("webgl", attributes) ||
-      this._canvas.getContext("experimental-webgl", attributes)) as WebGLRenderingContext;
-    if (this._gl === null) {
+    /** 若不设置 disableWebGL2 为 true，则默认自动优先使用 WebGL 2.0 */
+    if (!option.disableWebGL2) {
+      this._gl = <WebGL2RenderingContext>(
+        (this._canvas.getContext("webgl2", option) || this._canvas.getContext("experimental-webgl2", option))
+      );
+    }
+
+    if (!this._gl) {
+      this._gl = <WebGLRenderingContext>(
+        (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
+      );
+    }
+
+    if (!this._gl) {
       throw new Error("Get GL Context FAILED.");
     }
 
-    //-- states
     this._renderStates = new GLRenderStates(this._gl);
 
-    //--
-    this._assetsCache = new GLAssetsCache(this, attributes);
+    this._assetsCache = new GLAssetsCache(this, option);
 
     this._extensions = new GLExtensions(this);
+
+    this._capability = new GLCapability(this);
 
     this._frameCount = 0;
   }
@@ -78,6 +97,13 @@ export class GLRenderHardware {
   }
 
   /**
+   * GL 能力管理
+   * */
+  get capability(): GLCapability {
+    return this._capability;
+  }
+
+  /**
    * 当前帧的计数
    */
   get frameCount() {
@@ -91,6 +117,13 @@ export class GLRenderHardware {
    */
   requireExtension(ext) {
     return this._extensions.requireExtension(ext);
+  }
+
+  /**
+   * 查询能否使用某些 GL 能力
+   * */
+  canIUse(capabilityType: GLCapabilityType) {
+    return this.capability.canIUse(capabilityType);
   }
 
   /**

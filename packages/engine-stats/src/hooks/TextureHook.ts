@@ -8,9 +8,9 @@ export default class TextureHook {
   private realCreateTexture: any;
   private realDeleteTexture: any;
   private hooked: boolean;
-  private gl: WebGLRenderingContext;
+  private gl: WebGLRenderingContext | WebGL2RenderingContext;
 
-  constructor(gl: WebGLRenderingContext) {
+  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext) {
     this.realCreateTexture = gl.createTexture;
     this.realDeleteTexture = gl.deleteTexture;
 

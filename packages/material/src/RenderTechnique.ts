@@ -43,8 +43,9 @@ export class RenderTechnique extends AssetObject {
   public fragmentShader: string = "";
 
   /**
-   * GLSL 版本
-   * @member {String}
+   * GLSL 原始版本
+   * 若 WebGL 2 时着色器为旧版本，则升级到 300 版本
+   * @member {String} - "100" | "300 es"
    */
   public version = "100";
   /**
@@ -62,11 +63,18 @@ export class RenderTechnique extends AssetObject {
    * @member {Array}
    */
   public customMacros = [];
+
   /**
-   * 着色器使用的拓展
+   * WebGL 1.0 时着色器中使用的拓展
    * @member {Array}
    */
-  public fsExtension = ["GL_EXT_shader_texture_lod", "GL_OES_standard_derivatives"];
+  public shaderExtension100 = ["GL_EXT_shader_texture_lod", "GL_OES_standard_derivatives"];
+
+  /**
+   * WebGL 2.0 时着色器中使用的拓展
+   * @member {Array}
+   */
+  public shaderExtension300 = [];
 
   public _needCompile = true;
 
@@ -76,7 +84,6 @@ export class RenderTechnique extends AssetObject {
   private _fsHeader: string;
   private _fsCode: string;
   private _fogMacro: string;
-  public needRecreate: boolean;
   public attribLocSet: any;
 
   /**
@@ -107,6 +114,8 @@ export class RenderTechnique extends AssetObject {
     this.parseFog(camera);
 
     if (this._needCompile) {
+      const isWebGL2 = camera?.renderHardware?.isWebGL2;
+
       material.preCompile?.(this);
 
       const attribMacros = this.getAttributeDefines(camera, component, primitive, material);
@@ -138,7 +147,7 @@ export class RenderTechnique extends AssetObject {
           ShaderFactory.parseVersion(this.version) +
           ShaderFactory.parseShaderName((this.name || "VOID").toUpperCase() + "_FRAG") +
           "\n" +
-          ShaderFactory.parseExtension(this.fsExtension) +
+          ShaderFactory.parseExtension(isWebGL2 ? this.shaderExtension300 : this.shaderExtension100) +
           ShaderFactory.parsePrecision(this.fragmentPrecision) +
           "\n" +
           ShaderFactory.parseAttributeMacros(attribMacros) +
@@ -149,6 +158,12 @@ export class RenderTechnique extends AssetObject {
       if (!this._fsCode) this._fsCode = ShaderFactory.parseShader(this.fragmentShader);
 
       this.fragmentShader = this._fsHeader + this._fsCode;
+
+      /** 若 WebGL 2 时着色器为旧版本，则升级到 300 版本 */
+      if (isWebGL2 && this.version !== "300 es") {
+        this.vertexShader = ShaderFactory.convertTo300(this.vertexShader);
+        this.fragmentShader = ShaderFactory.convertTo300(this.fragmentShader, true);
+      }
 
       this._needCompile = false;
       this._recreateHeader = false;
