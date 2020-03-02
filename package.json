@@ -19,7 +19,7 @@
     "test-cov": "jest --coverage",
     "watch": "rollup -cw",
     "watch:umd": "cross-env NODE_ENV=BUILD rollup -cw",
-    "ci": "lerna bootstrap --hoist && tnpm run build && tnpm run b:types && tnpm run test",
+    "ci": "lerna bootstrap --hoist && tnpm run build && tnpm run b:types && tnpm run test-cov",
     "lint": "eslint packages/*/src --ext .ts",
     "build": "rollup -c",
     "b:types": "lerna run b:types",
