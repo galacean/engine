@@ -37,6 +37,7 @@ export * from "@alipay/o3-trail";
 export * from "@alipay/o3-tween";
 export * from "@alipay/o3-env-probe";
 export * from "@alipay/o3-bounding-info";
+export * from "@alipay/o3-spine";
 
 export {
   AnimationClip as AnimationClipNew,

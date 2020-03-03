@@ -64,6 +64,7 @@
     "@alipay/o3-renderer-basic": "^1.6.0-alpha.8",
     "@alipay/o3-renderer-cull": "^1.6.0-alpha.8",
     "@alipay/o3-request": "^1.5.0",
+    "@alipay/o3-spine": "^1.0.0",
     "@alipay/o3-rfui": "^1.6.0-alpha.8",
     "@alipay/o3-rhi-webgl": "^1.6.0-alpha.8",
     "@alipay/o3-shaderlib": "^1.6.0-alpha.8",
