@@ -1,6 +1,6 @@
 import { vec4 } from "@alipay/o3-math";
 import { NodeAbility } from "@alipay/o3-core";
-import { MeshBatcher } from "../core/MeshBatcher";
+import { MeshBatcher } from "./core/MeshBatcher";
 import { spine } from "@alipay/spine-core";
 
 const { Skeleton, AnimationStateData, AnimationState, SkeletonData } = spine;
