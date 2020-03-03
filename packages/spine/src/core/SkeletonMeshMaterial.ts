@@ -1,5 +1,5 @@
-import { MaterialType, DataType, UniformSemantic, RenderState, BlendFunc } from '@alipay/o3-base';
-import { Material, RenderTechnique } from '@alipay/o3-material';
+import { MaterialType, DataType, UniformSemantic, RenderState, BlendFunc } from "@alipay/o3-base";
+import { Material, RenderTechnique } from "@alipay/o3-material";
 
 const VERT_SHADER = `
   uniform mat4 matModelViewProjection;
@@ -26,19 +26,17 @@ const FRAG_SHADER = `
 `;
 
 export class SkeletonMeshMaterial extends Material {
-
   /**
    * 生成内部所使用的 Technique 对象
    * @private
    */
-  _generateTechnique( camera, component ) {
-
+  _generateTechnique(camera, component) {
     const customMacros = [];
     const uniforms = this.generateUniform();
     const attributes = this.generateAttributes();
 
     //--
-    const tech = new RenderTechnique( this.name );
+    const tech = new RenderTechnique(this.name);
     tech.isValid = true;
     tech.uniforms = uniforms;
     tech.attributes = attributes;
@@ -46,17 +44,15 @@ export class SkeletonMeshMaterial extends Material {
     tech.vertexShader = VERT_SHADER;
     tech.fragmentShader = FRAG_SHADER;
     tech.states = {
-      disable: [
-        RenderState.CULL_FACE
-      ],
-      enable: [ RenderState.BLEND ],
+      disable: [RenderState.CULL_FACE],
+      enable: [RenderState.BLEND],
       functions: {
-        blendFuncSeparate: [ 
-          BlendFunc.SRC_ALPHA, 
-          BlendFunc.ONE_MINUS_SRC_ALPHA, 
-          BlendFunc.ONE, 
+        blendFuncSeparate: [
+          BlendFunc.SRC_ALPHA,
+          BlendFunc.ONE_MINUS_SRC_ALPHA,
+          BlendFunc.ONE,
           BlendFunc.ONE_MINUS_SRC_ALPHA
-        ],
+        ]
       }
     };
 
@@ -64,35 +60,31 @@ export class SkeletonMeshMaterial extends Material {
     this.renderType = MaterialType.TRANSPARENT;
   }
 
-  prepareDrawing( camera, component, primitive ) {
-
-    if ( !this._technique ) {
-
-      this._generateTechnique(  camera, component );
-
+  prepareDrawing(camera, component, primitive) {
+    if (!this._technique) {
+      this._generateTechnique(camera, component);
     }
 
-    super.prepareDrawing( camera, component, primitive );
-
+    super.prepareDrawing(camera, component, primitive);
   }
 
   generateAttributes() {
     const attributes = {
       a_position: {
-        name: 'a_position',
-        semantic: 'POSITION',
+        name: "a_position",
+        semantic: "POSITION",
         type: DataType.FLOAT_VEC3
       },
       a_color: {
-        name: 'a_color',
-        semantic: 'COLOR',
+        name: "a_color",
+        semantic: "COLOR",
         type: DataType.FLOAT_VEC4
       },
       a_uv: {
-        name: 'a_uv',
-        semantic: 'TEXCOORD_0',
+        name: "a_uv",
+        semantic: "TEXCOORD_0",
         type: DataType.FLOAT_VEC2
-      },
+      }
     };
     return attributes;
   }
@@ -100,23 +92,22 @@ export class SkeletonMeshMaterial extends Material {
   generateUniform() {
     const uniforms = {
       map: {
-        name: 'map',
-        type: DataType.SAMPLER_2D,
+        name: "map",
+        type: DataType.SAMPLER_2D
       },
       matModelViewProjection: {
-        name: 'matModelViewProjection',
+        name: "matModelViewProjection",
         semantic: UniformSemantic.MODELVIEWPROJECTION,
-        type: DataType.FLOAT_MAT4,
-      },
+        type: DataType.FLOAT_MAT4
+      }
     };
     return uniforms;
   }
 
-  set map( v ) {
-    this.setValue('map', v);
+  set map(v) {
+    this.setValue("map", v);
   }
   get map() {
-    return this.getValue('map');
+    return this.getValue("map");
   }
-
 }
