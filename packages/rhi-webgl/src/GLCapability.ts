@@ -33,12 +33,19 @@ export class GLCapability {
   private init() {
     const cap = this.capabilityList;
     const rhi = this.rhi;
-    const { standardDerivatives, shaderTextureLod, elementIndexUint, depthTexture } = GLCapabilityType;
+    const {
+      standardDerivatives,
+      shaderTextureLod,
+      elementIndexUint,
+      depthTexture,
+      vertexArrayObject
+    } = GLCapabilityType;
 
     cap.set(standardDerivatives, rhi.isWebGL2 || !!rhi.requireExtension(standardDerivatives));
     cap.set(shaderTextureLod, rhi.isWebGL2 || !!rhi.requireExtension(shaderTextureLod));
     cap.set(elementIndexUint, rhi.isWebGL2 || !!rhi.requireExtension(elementIndexUint));
     cap.set(depthTexture, rhi.isWebGL2 || !!rhi.requireExtension(depthTexture));
+    cap.set(vertexArrayObject, rhi.isWebGL2 || !!rhi.requireExtension(vertexArrayObject));
   }
 
   /**
@@ -72,10 +79,16 @@ export class GLCapability {
   /** 兼容 WebGL 1和 WebGL 2,抹平接口差异 */
   private compatibleAll() {
     // 需要兼容的能力
-    const { depthTexture } = GLCapabilityType;
+    const { depthTexture, vertexArrayObject } = GLCapabilityType;
 
     this.compatible(depthTexture, {
       UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
+    });
+    this.compatible(vertexArrayObject, {
+      createVertexArray: "createVertexArrayOES",
+      deleteVertexArray: "deleteVertexArrayOES",
+      isVertexArray: "isVertexArrayOES",
+      bindVertexArray: "bindVertexArrayOES"
     });
   }
 }
