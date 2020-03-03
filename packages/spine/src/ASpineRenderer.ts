@@ -1,4 +1,4 @@
-import { vec2, vec4 } from "@alipay/o3-math";
+import { vec4 } from "@alipay/o3-math";
 import { NodeAbility } from "@alipay/o3-core";
 import { MeshBatcher } from "../core/MeshBatcher";
 import { spine } from "@alipay/spine-core";
@@ -6,6 +6,7 @@ import { spine } from "@alipay/spine-core";
 const { Skeleton, AnimationStateData, AnimationState, SkeletonData } = spine;
 
 export class ASpineRenderer extends NodeAbility {
+  node;
   skeleton;
   state;
   zOffset: number = 0.1;
@@ -70,7 +71,7 @@ export class ASpineRenderer extends NodeAbility {
     this._asset = null;
     this.clearBatches();
     this.batches = [];
-    this.node._children = [];
+    this.node.children = [];
   }
 
   set animation(animationName) {
@@ -143,7 +144,7 @@ export class ASpineRenderer extends NodeAbility {
   updateGeometry() {
     this.clearBatches();
 
-    let vertices: ArrayLike<number> = this.vertices;
+    let vertices = this.vertices;
     let triangles: Array<number> = null;
     let uvs: ArrayLike<number> = null;
     let drawOrder = this.skeleton.drawOrder;

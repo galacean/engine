@@ -55,10 +55,7 @@ export class SpineResource extends SchemaResource {
     });
   }
 
-  loadWithAttachedResources(
-    resourceLoader: ResourceLoader,
-    assetConfig: AssetConfig
-  ): Promise<LoadAttachedResourceResult> {
+  loadWithAttachedResources(resourceLoader, assetConfig: AssetConfig): Promise<LoadAttachedResourceResult> {
     return new Promise(resolve => {
       this.load(resourceLoader, assetConfig).then(res => {
         const result: any = {
