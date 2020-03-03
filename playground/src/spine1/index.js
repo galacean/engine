@@ -74,27 +74,27 @@ function loadSpine() {
   assetManager.loadText(skeletonFile);
   assetManager.loadTexture(textureFile);
   assetManager.loadText(atlasFile);
-  requestAnimationFrame(load);
+  assetManager.onLoad().then(res => {
+    initSpine();
+  });
 }
 
-function load(name, scale) {
-  if (assetManager.isLoadingComplete()) {
-    atlas = new spine.TextureAtlas(assetManager.get(atlasFile), function(path) {
-      return assetManager.get(textureFile);
-    });
-    atlasLoader = new spine.AtlasAttachmentLoader(atlas);
+function initSpine() {
+  const atlas = new spine.TextureAtlas(assetManager.get(atlasFile), function(path) {
+    return assetManager.get(textureFile);
+  });
+  atlasLoader = new spine.AtlasAttachmentLoader(atlas);
 
-    const skeletonJson = new spine.SkeletonJson(atlasLoader);
+  const skeletonJson = new spine.SkeletonJson(atlasLoader);
 
-    skeletonJson.scale = 0.4;
-    const skeletonData = skeletonJson.readSkeletonData(assetManager.get(skeletonFile));
+  skeletonJson.scale = 0.4;
+  const skeletonData = skeletonJson.readSkeletonData(assetManager.get(skeletonFile));
 
-    const skeletonNode = world.createChild("skeleton");
+  const skeletonNode = world.createChild("skeleton");
 
-    const spineRenderer = skeletonNode.createAbility(ASpineRenderer, { asset: skeletonData });
+  const spineRenderer = skeletonNode.createAbility(ASpineRenderer, { asset: skeletonData });
 
-    spineRenderer.state.setAnimation(0, "animation", true);
+  spineRenderer.state.setAnimation(0, "animation", true);
 
-    skeletonNode.position = [-75, -60, 0];
-  } else requestAnimationFrame(load);
+  skeletonNode.position = [-75, -60, 0];
 }

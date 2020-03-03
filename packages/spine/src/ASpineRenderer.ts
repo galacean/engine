@@ -3,7 +3,6 @@ import { NodeAbility } from "@alipay/o3-core";
 import { MeshBatcher } from "../core/MeshBatcher";
 import { spine } from "@alipay/spine-core";
 
-var lastFrameTime = Date.now() / 1000;
 const { Skeleton, AnimationStateData, AnimationState, SkeletonData } = spine;
 
 export class ASpineRenderer extends NodeAbility {
@@ -51,7 +50,7 @@ export class ASpineRenderer extends NodeAbility {
       this.animationNames = animations.map(item => item.name);
       this.getVertexCount();
     } else {
-      console.log("需要传入skeletiondata");
+      console.log("需要传入skeletondata");
     }
   }
 
@@ -105,12 +104,9 @@ export class ASpineRenderer extends NodeAbility {
 
   render() {}
 
-  onUpdate() {
-    let now = Date.now() / 1000;
-    let delta = now - lastFrameTime;
-    lastFrameTime = now;
+  onUpdate(delta) {
     if (this._asset) {
-      this.updateState(delta);
+      this.updateState(delta * 0.001);
     }
   }
 
@@ -155,8 +151,8 @@ export class ASpineRenderer extends NodeAbility {
     batch.begin();
     let z = 0;
     let zOffset = this.zOffset;
+    const vertexSize = ASpineRenderer.VERTEX_SIZE;
     for (let i = 0, n = drawOrder.length; i < n; i++) {
-      let vertexSize = ASpineRenderer.VERTEX_SIZE;
       let slot = drawOrder[i];
       if (!slot.bone.active) continue;
       let attachment = slot.getAttachment();

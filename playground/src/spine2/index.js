@@ -87,58 +87,27 @@ function loadSpine() {
   assetManager.loadText(skeletonFile);
   assetManager.loadTexture(textureFile);
   assetManager.loadText(atlasFile);
-  requestAnimationFrame(load);
+  assetManager.onLoad().then(() => {
+    initSpine();
+  });
 }
 
-function load(name, scale) {
-  if (assetManager.isLoadingComplete()) {
-    atlas = new spine.TextureAtlas(assetManager.get(atlasFile), function(path) {
-      return assetManager.get(textureFile);
-    });
-    atlasLoader = new spine.AtlasAttachmentLoader(atlas);
+function initSpine() {
+  const atlas = new spine.TextureAtlas(assetManager.get(atlasFile), function(path) {
+    return assetManager.get(textureFile);
+  });
+  atlasLoader = new spine.AtlasAttachmentLoader(atlas);
 
-    const skeletonJson = new spine.SkeletonJson(atlasLoader);
+  const skeletonJson = new spine.SkeletonJson(atlasLoader);
 
-    skeletonJson.scale = 0.4;
-    const skeletonData = skeletonJson.readSkeletonData(assetManager.get(skeletonFile));
+  skeletonJson.scale = 0.4;
+  const skeletonData = skeletonJson.readSkeletonData(assetManager.get(skeletonFile));
 
-    const skeletonNode = world.createChild("skeleton");
+  const skeletonNode = world.createChild("skeleton");
 
-    const spineRenderer = skeletonNode.createAbility(ASpineRenderer, { asset: skeletonData });
+  const spineRenderer = skeletonNode.createAbility(ASpineRenderer, { asset: skeletonData });
 
-    spineRenderer.state.setAnimation(0, "animation", true);
+  spineRenderer.state.setAnimation(0, "animation", true);
 
-    skeletonNode.position = [-75, -60, 0];
-  } else requestAnimationFrame(load);
-}
-
-function addParticle() {
-  const node = world.createChild("particle");
-  // 给节点绑定粒子发射器组件
-  const particleComp = node.createAbility(AGPUParticleSystem);
-  // 粒子发射参数
-  const options = {
-    position: [0, 1, 0],
-    positionRandomness: [0, 0, 0],
-    velocity: [0, 0, 0],
-    velocityRandomness: [0.5, 0.5, 0.5],
-    acceleration: [0, -0.05, 0],
-    accelerationRandomness: [0, 0, 0],
-    color: 0x125570,
-    colorRandomness: 0.5,
-    lifetime: 5,
-    size:40,
-    sizeRandomness: 0,
-  };
-  // 粒子发射器环境参数
-  const config = {
-    maxCount: 100,
-    spawnCount: 5,
-    direction: 'velocity',
-    useOriginColor:false,
-    options: options
-  };
-  particleComp.initialize(config);
-  // 开始发射粒子
-  particleComp.start();
+  skeletonNode.position = [-75, -60, 0];
 }
