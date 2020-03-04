@@ -12,10 +12,12 @@ export class GLPrimitive extends GLAsset {
   private readonly _primitive;
   private _glIndexBuffer: WebGLBuffer;
   private _glVertBuffers: WebGLBuffer[];
+  private updateType: UpdateType;
 
   constructor(rhi: GLRenderHardware, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
+    this.updateType = primitive.updateType;
 
     const gl = rhi.gl;
 
@@ -79,16 +81,16 @@ export class GLPrimitive extends GLAsset {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
 
-    switch (primitive.updateType) {
+    switch (this.updateType) {
       case UpdateType.NO_UPDATE:
         break;
       case UpdateType.UPDATE_ALL:
         this._createVertextBuffer();
-        primitive.updateType = UpdateType.NO_UPDATE;
+        this.updateType = UpdateType.NO_UPDATE;
         break;
       case UpdateType.UPDATE_RANGE:
         this._updateVertexBuffers();
-        primitive.updateType = UpdateType.NO_UPDATE;
+        this.updateType = UpdateType.NO_UPDATE;
         primitive.resetUpdateRange();
         break;
     }
@@ -160,13 +162,11 @@ export class GLPrimitive extends GLAsset {
    */
   finalize() {
     const gl = this.rhi.gl;
-    const primitive = this._primitive;
     //-- 释放顶点缓冲
     if (this._glVertBuffers) {
       for (let i = 0; i < this._glVertBuffers.length; i++) {
         gl.deleteBuffer(this._glVertBuffers[i]);
       }
-      primitive.updateType = UpdateType.UPDATE_ALL;
       this._glVertBuffers = null;
     }
 

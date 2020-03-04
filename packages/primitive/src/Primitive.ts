@@ -13,9 +13,9 @@ let primitiveID = 0;
  */
 export class Primitive extends AssetObject {
   public readonly id: number;
-  public mode: number;
-  public usage: number;
-  public updateType: number;
+  public mode: DrawMode;
+  public usage: BufferUsage;
+  public updateType: UpdateType;
   public updateRange: { byteOffset: number; byteLength: number };
   public vertexBuffers;
   public vertexAttributes;
