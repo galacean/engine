@@ -8,6 +8,7 @@ import { LambertMaterial } from '@alipay/o3-mobile-material';
 import { ALODGroup } from '@alipay/o3-mesh';
 import { AOrbitControls } from '@alipay/o3-orbit-controls';
 
+import * as dat from 'dat.gui';
 
 let engine = new Engine();
 let scene = engine.currentScene;
@@ -21,7 +22,6 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
 
 let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById('o3-demo') });
 
-
 //-- create lights
 let light1 = rootNode.createChild("light1");
 let ambientLgt = light1.createAbility(AAmbientLight);
@@ -34,6 +34,20 @@ light2.createAbility(ADirectLight, {
 });
 light2.position = [-15, 20, -15];
 light2.lookAt([0, 0, 0], [0, 1, 0]);
+
+const gui = new dat.GUI();
+gui.domElement.style = 'position:absolute;top:0px;left:50vw';
+const controls = {
+  remove: ()=>{
+    rootNode.removeChild(light1)
+  },
+  add: ()=>{
+    rootNode.addChild(light1)
+  }
+}
+
+gui.add(controls, 'remove');
+gui.add(controls, 'add');
 
 
 //-- Create LambertMaterial

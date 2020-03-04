@@ -13,24 +13,25 @@ let primitiveID = 0;
  */
 export class Primitive extends AssetObject {
   public readonly id: number;
-  public mode: number;
-  public usage: number;
-  public updateType: number;
+  public mode: DrawMode;
+  public usage: BufferUsage;
+  public updateType: UpdateType;
   public updateRange: { byteOffset: number; byteLength: number };
   public vertexBuffers;
   public vertexAttributes;
-  public vertexOffset;
-  public vertexCount;
-  public indexType;
-  public indexCount;
+  public vertexOffset: number;
+  public vertexCount: number;
+  public indexType: DataType;
+  public indexCount: number;
   public indexBuffer;
-  public indexOffset;
+  public indexOffset: number;
   public material;
   public materialIndex: number;
-  public targets;
+  public targets: any[];
   public boundingBox: OBB;
   public boundingSphere: BoundingSphere;
   public isInFrustum: boolean;
+  public indexNeedUpdate: boolean;
 
   /**
    * @constructor

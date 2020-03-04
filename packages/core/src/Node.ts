@@ -121,6 +121,7 @@ export class Node extends EventDispatcher {
   set isActiveInHierarchy(isActiveInHierarchy: boolean) {
     this._isActiveInInHierarchy = isActiveInHierarchy;
     this.trigger(new Event("isActiveInHierarchyChange"));
+    this.traverseAbilitiesTriggerEnabled(isActiveInHierarchy);
   }
 
   /**
@@ -551,17 +552,30 @@ export class Node extends EventDispatcher {
       // fixme: remove below code after gltf loader can set the right ownerScene
       child._ownerScene = this._ownerScene;
 
-      const traverseSetOwnerScene = node => {
-        for (let i = node.children.length - 1; i >= 0; i--) {
-          node.children[i]._ownerScene = node._ownerScene;
-          traverseSetOwnerScene(node.children[i]);
-        }
-      };
-      traverseSetOwnerScene(child);
-
+      Node.traverseSetOwnerScene(child);
       // throw new Error( 'Node should NOT shared between scenes.' );
     }
     child.parentNode = this;
+  }
+
+  /**
+   * 删除子节点
+   * @param child
+   */
+  public removeChild(child: Node) {
+    const index = this._children.indexOf(child);
+    if (index < 0) {
+      Logger.warn(`child's parent is not this node!`);
+      return;
+    }
+    this._children.splice(index, 1);
+    child._parent = null;
+
+    if (this._ownerScene) {
+      child.traverseAbilitiesTriggerEnabled(false);
+      child._ownerScene = null;
+      Node.traverseSetOwnerScene(child);
+    }
   }
 
   /** 销毁本节点对象 */
@@ -827,5 +841,26 @@ export class Node extends EventDispatcher {
     mat4.lookAtR(modelMatrix, position, center, up);
     this.setModelMatrix(modelMatrix);
     return this;
+  }
+
+  private traverseAbilitiesTriggerEnabled(enabled: boolean) {
+    const eventName = enabled ? "enabled" : "disabled";
+    for (let i = 0; i < this._abilityArray.length; i++) {
+      const abiltiy = this._abilityArray[i];
+      if (abiltiy && abiltiy.started && abiltiy.enabled) {
+        abiltiy.trigger(new Event(eventName, this));
+      }
+    }
+  }
+
+  private static traverseSetOwnerScene(node: Node) {
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      const child = node.children[i];
+      const enabled = node._ownerScene ? false : true;
+      node.traverseAbilitiesTriggerEnabled(enabled);
+
+      child._ownerScene = node._ownerScene;
+      this.traverseSetOwnerScene(node.children[i]);
+    }
   }
 }
