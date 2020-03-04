@@ -14,7 +14,6 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
   private weightsIndices: number[] = [];
   private _skin: Skin;
   private _rootNodes: Node[];
-  public started: boolean;
   public matrixPalette: Float32Array;
   public jointNodes: Node[];
 
@@ -80,7 +79,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    */
   set skin(skin) {
     this._skin = skin;
-    this.started = false; // force onStart callback
+    this._started = false; // force onStart callback
   }
 
   get weights() {
