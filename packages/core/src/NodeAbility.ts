@@ -124,7 +124,7 @@ export class NodeAbility extends EventDispatcher {
   public _props: object;
   public _ownerNode: Node;
   public _renderable: boolean;
-  private _started: boolean = false;
+  protected _started: boolean = false;
   private _enabled: boolean = true;
   private _pendingDestroy: boolean;
   private _renderPriority: number;
