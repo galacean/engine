@@ -6,7 +6,6 @@ import { spine } from "@alipay/spine-core";
 const { Skeleton, AnimationStateData, AnimationState, SkeletonData } = spine;
 
 export class ASpineRenderer extends NodeAbility {
-  node;
   skeleton;
   state;
   zOffset: number = 0.1;
