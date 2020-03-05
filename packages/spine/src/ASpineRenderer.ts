@@ -40,8 +40,8 @@ export class ASpineRenderer extends NodeAbility {
     this.renderable = true;
   }
 
-  setSkeletonData(asset) {
-    if (asset && asset.constructor.name === SkeletonData.name) {
+  setSkeletonData(asset: spine.SkeletonData) {
+    if (asset) {
       this._asset = asset;
       this.skeleton = new Skeleton(asset);
       const animData = new AnimationStateData(asset);
