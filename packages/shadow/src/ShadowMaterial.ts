@@ -21,6 +21,7 @@ export class ShadowMaterial extends ComplexMaterial {
 
     //--
     const tech = new RenderTechnique(this.name);
+    tech.autoConvert = false;
     tech.isValid = true;
     tech.uniforms = uniforms;
     tech.attributes = {};
