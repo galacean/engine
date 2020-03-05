@@ -6,7 +6,6 @@ import { spine } from "@alipay/spine-core";
 const { Skeleton, AnimationStateData, AnimationState, SkeletonData } = spine;
 
 export class ASpineRenderer extends NodeAbility {
-  node;
   skeleton;
   state;
   zOffset: number = 0.1;
@@ -71,7 +70,12 @@ export class ASpineRenderer extends NodeAbility {
     this._asset = null;
     this.clearBatches();
     this.batches = [];
-    this.node.children = [];
+    const children = (this.node as any).children;
+    for (let i = 0; i < children.length; i += 1) {
+      if (children[i].name === "batch") {
+        children[i].destroy();
+      }
+    }
   }
 
   set animation(animationName) {
