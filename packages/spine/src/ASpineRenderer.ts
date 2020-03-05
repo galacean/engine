@@ -70,7 +70,7 @@ export class ASpineRenderer extends NodeAbility {
     this._asset = null;
     this.clearBatches();
     this.batches = [];
-    const children = (this.node as any)._children;
+    const children = (this.node as any).children;
     for (let i = 0; i < children.length; i += 1) {
       if (children[i].name === "batch") {
         children[i].destroy();
