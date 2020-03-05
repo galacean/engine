@@ -70,7 +70,7 @@ export class ASpineRenderer extends NodeAbility {
     this._asset = null;
     this.clearBatches();
     this.batches = [];
-    this.node.children = [];
+    (this.node as any)._children = [];
   }
 
   set animation(animationName) {

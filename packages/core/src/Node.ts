@@ -87,10 +87,6 @@ export class Node extends EventDispatcher {
     return this._children;
   }
 
-  set children(v) {
-    this._children = v;
-  }
-
   /**
    * 功能组件数组
    * @member {Array}
