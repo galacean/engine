@@ -70,12 +70,9 @@ export class ASpineRenderer extends NodeAbility {
     this._asset = null;
     this.clearBatches();
     this.batches = [];
-    const children = (this.node as any)._children;
-    for (let i = 0; i < children.length; i += 1) {
-      if (children[i].name === "batch") {
-        children.splice(i, 1);
-      }
-    }
+    let children = (this.node as any)._children;
+    const filterd = children.filter(node => node.name !== "batch");
+    children = filterd;
   }
 
   set animation(animationName) {
