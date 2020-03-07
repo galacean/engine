@@ -1,6 +1,7 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
+import { Oasis } from "../Oasis";
 
 export const scriptAbility = {};
 export function script(name: string) {
@@ -26,12 +27,12 @@ export class ScriptResource extends SchemaResource {
     };
   }
 
-  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<ScriptResource> {
+  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<ScriptResource> {
     this.initScriptContext();
     return new Promise(resolve => {
+      const config = assetConfig as any;
+      const name = config.props.scripts[0].name;
       if (!this.resourceManager.isLocal) {
-        const config = assetConfig as any;
-        const name = config.props.scripts[0].name;
         const scriptDom = document.createElement("script");
         scriptDom.crossOrigin = "anonymous";
         this.setMeta(assetConfig);
@@ -44,6 +45,7 @@ export class ScriptResource extends SchemaResource {
         scriptDom.src = assetConfig.url;
         document.body.appendChild(scriptDom);
       } else {
+        scriptAbility[name] = oasis.options?.scripts[name];
         resolve(this);
       }
     });
