@@ -19,10 +19,7 @@ export class ASkyBox extends AGeometryRenderer {
     super(node, props);
 
     const { skyBoxMap } = props;
-    if (!skyBoxMap) {
-      this.enabled = false;
-      throw Error('ASkyBox have to init with property "skyBoxMap".');
-    }
+
     /**
      * 天空盒纹理
      * @member {TextureCubeMap}
@@ -41,6 +38,7 @@ export class ASkyBox extends AGeometryRenderer {
   }
 
   set skyBoxMap(v) {
+    this.enabled = !!v;
     this._skyBoxMap = v;
     this.getMaterial().setValue("u_cube", v);
   }

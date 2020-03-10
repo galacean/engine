@@ -31,7 +31,8 @@ let cameraNode = rootNode.createChild("camera_node");
 let modelNode = null;
 
 /**ability*/
-let skybox = null;
+const skybox = rootNode.createAbility(ASkyBox);
+
 // light
 let directLight = directLightNode.createAbility(ADirectLight, {
   color: [1, 1, 1],
@@ -87,8 +88,6 @@ resourceLoader.batchLoad(cubeTextureRes, (err, reses) => {
   cubeTextureList.forEach((name, index) => {
     cubeTextures[name] = reses[index].asset;
   });
-  skybox = rootNode.createAbility(ASkyBox, { skyBoxMap: cubeTextures.sky });
-  skybox.enabled = false;
 
   envLight.specularMap = cubeTextures.minisampler;
 });
@@ -141,9 +140,8 @@ function addSceneGUI() {
   const dispFolder = gui.addFolder("Display");
   dispFolder.add(state, "background", ["None", ...cubeTextureList]).onChange(v => {
     if (v === "None") {
-      skybox && (skybox.enabled = false);
+      skybox.skyBoxMap = null;
     } else {
-      skybox && (skybox.enabled = true);
       skybox && (skybox.skyBoxMap = cubeTextures[v]);
     }
   });
