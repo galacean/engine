@@ -15,6 +15,7 @@ import { requestAnimationFrame, cancelAnimationFrame } from "./requestAnimationF
 import screen from "./screen";
 import XMLHttpRequest from "./XMLHttpRequest";
 import performance from "./performance";
+import WebGL2RenderingContext from "./WebGL2";
 
 let window = {
   atob,
@@ -34,6 +35,7 @@ let window = {
   screen,
   XMLHttpRequest,
   performance,
+  WebGL2RenderingContext,
   addEventListener(type, listener, options = {}) {
     document.addEventListener(type, listener, options);
   },
@@ -64,7 +66,8 @@ export {
   cancelAnimationFrame,
   screen,
   XMLHttpRequest,
-  performance
+  performance,
+  WebGL2RenderingContext
 };
 
 export { registerCanvas, registerCanvas2D } from "./register";
