@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3",
-  "version": "1.6.1-alpha.2",
+  "version": "1.6.1-alpha.3",
   "description": "",
   "repository": {
     "type": "git",
@@ -39,9 +39,9 @@
     "@alipay/o3-collider": "^1.6.0",
     "@alipay/o3-collision": "^1.6.0",
     "@alipay/o3-core": "^1.6.0",
-    "@alipay/o3-default-camera": "^1.6.0",
+    "@alipay/o3-default-camera": "^1.6.1-alpha.3",
     "@alipay/o3-engine-stats": "^1.6.0",
-    "@alipay/o3-env-probe": "^1.6.0",
+    "@alipay/o3-env-probe": "^1.6.1-alpha.3",
     "@alipay/o3-fog": "^1.6.0",
     "@alipay/o3-framebuffer-picker": "^1.6.0",
     "@alipay/o3-free-controls": "^1.6.0",
@@ -65,7 +65,7 @@
     "@alipay/o3-renderer-cull": "^1.6.0",
     "@alipay/o3-request": "^1.5.0",
     "@alipay/o3-rfui": "^1.6.1-alpha.1",
-    "@alipay/o3-rhi-webgl": "^1.6.0",
+    "@alipay/o3-rhi-webgl": "^1.6.1-alpha.3",
     "@alipay/o3-shaderlib": "^1.6.0",
     "@alipay/o3-shadow": "^1.6.0",
     "@alipay/o3-skybox": "^1.6.1-alpha.2",
