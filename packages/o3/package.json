@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3",
-  "version": "1.6.1-alpha.1",
+  "version": "1.6.1-alpha.2",
   "description": "",
   "repository": {
     "type": "git",
@@ -68,7 +68,7 @@
     "@alipay/o3-rhi-webgl": "^1.6.0",
     "@alipay/o3-shaderlib": "^1.6.0",
     "@alipay/o3-shadow": "^1.6.0",
-    "@alipay/o3-skybox": "^1.6.0",
+    "@alipay/o3-skybox": "^1.6.1-alpha.2",
     "@alipay/o3-spine": "^1.6.0",
     "@alipay/o3-trail": "^1.6.0",
     "@alipay/o3-tween": "^1.6.0"
