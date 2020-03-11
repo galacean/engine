@@ -4,6 +4,7 @@ import { RHIOption } from "@alipay/o3-core/types/type";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLPrimitive } from "./GLPrimitive";
+import { GLVAOPrimitive } from "./GLVAOPrimitive";
 import { GLTechnique } from "./GLTechnique";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
@@ -187,7 +188,10 @@ export class GLRenderHardware {
    * @param {Material} mtl
    */
   drawPrimitive(primitive, mtl) {
-    const glPrimitive = this._assetsCache.requireObject(primitive, GLPrimitive);
+    const glPrimitive = this._assetsCache.requireObject(
+      primitive,
+      this.canIUse(GLCapabilityType.vertexArrayObject) ? GLVAOPrimitive : GLPrimitive
+    );
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
     if (glPrimitive && glTech) {
