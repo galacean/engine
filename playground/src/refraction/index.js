@@ -1,5 +1,5 @@
 import { Engine } from "@alipay/o3-core";
-import { Logger } from "@alipay/o3-base";
+import { BlendFunc, Logger } from "@alipay/o3-base";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
@@ -93,7 +93,7 @@ function debugModel(modelUrl, onLoad) {
 //-- run
 engine.run();
 
-debugModel("/static/model/perturbation-test/scene.gltf", res => {
+debugModel("/static/model/water-bottle/scene.gltf", res => {
   let pingshen = materials[0];
   let logo = materials[1];
   let water = materials[2];
@@ -106,6 +106,13 @@ debugModel("/static/model/perturbation-test/scene.gltf", res => {
   water.gamma = true;
   cap.srgb = true;
   cap.gamma = true;
+  pingshen.envMapIntensity = 0.5;
+  water.blendFuncSeparate = pingshen.blendFuncSeparate = [
+    BlendFunc.SRC_ALPHA,
+    BlendFunc.ONE_MINUS_SRC_ALPHA,
+    BlendFunc.SRC_ALPHA,
+    BlendFunc.ONE_MINUS_SRC_ALPHA
+  ];
   const probe = rootNode.createAbility(PlaneProbe, {
     width: 2048,
     height: 2048,
