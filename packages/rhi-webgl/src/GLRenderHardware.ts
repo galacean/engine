@@ -10,6 +10,7 @@ import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLExtensions } from "./GLExtensions";
 import { GLCapability } from "./GLCapability";
+import { WebGL1Extension } from "./type";
 
 /**
  * GPU 硬件抽象层的 WebGL 的实现
@@ -17,7 +18,7 @@ import { GLCapability } from "./GLCapability";
  */
 export class GLRenderHardware {
   private _canvas: HTMLCanvasElement;
-  private _gl: WebGLRenderingContext | WebGL2RenderingContext;
+  private _gl: (WebGLRenderingContext & WebGL1Extension) | WebGL2RenderingContext;
   private _renderStates;
   private _assetsCache: GLAssetsCache;
   private _extensions;
@@ -45,7 +46,7 @@ export class GLRenderHardware {
     }
 
     if (!this._gl) {
-      this._gl = <WebGLRenderingContext>(
+      this._gl = <WebGLRenderingContext & WebGL1Extension>(
         (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
       );
     }
