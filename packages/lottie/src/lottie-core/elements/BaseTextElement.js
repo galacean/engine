@@ -1,0 +1,1 @@
+var BaseTextElement = function() {};

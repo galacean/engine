@@ -1,21 +1,51 @@
 import { NodeAbility } from "@alipay/o3-core";
-import { vec3, quat } from "@alipay/o3-math";
-import { Sprite } from "./Sprite";
+import { vec3, vec4, quat, mat4 } from "@alipay/o3-math";
+import { Texture2D } from "@alipay/o3-material";
+
+interface IUvRect {
+  u: number;
+  v: number;
+  width: number;
+  height: number;
+}
+
+interface IRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface IPositionQuad {
+  leftTop: any;
+  leftBottom: any;
+  rightTop: any;
+  rightBottom: any;
+}
 
 /**
  * Sprite渲染管理器
  * @class
  */
 export class ASpriteRenderer extends NodeAbility {
-  protected _sprite;
+  private _uvRect: IUvRect;
+  private _worldSize: number[] = [];
+  private _positionQuad: IPositionQuad;
+  private _rotationAngle: number;
+  private _anchor: number[];
+  private _texture: Texture2D;
+  private _rect: IRect;
+  private _worldSizeFactor: number;
 
-  private _positionQuad;
-
-  private _rotationAngle;
-
-  renderMode;
-
-  tintColor;
+  /**
+   * 渲染方式，2D或3D，默认是2D。TODO: 3D
+   */
+  renderMode: string = "2D";
+  /**
+   * 调节色，控制 Sprite 颜色变化
+   */
+  public tintColor: number[] = [1, 1, 1, 1];
+  public transformMatrix: any;
 
   /**
    * 构造函数
@@ -25,16 +55,18 @@ export class ASpriteRenderer extends NodeAbility {
   constructor(node, sprite) {
     super(node);
 
-    if (!(sprite instanceof Sprite)) {
-      const { texture, rect, anchor } = sprite;
-      sprite = new Sprite(this.setTexture(texture), rect, anchor);
-    }
+    const { texture, rect, anchor, worldSizeFactor } = sprite;
+    this._worldSizeFactor = worldSizeFactor || 100;
+    this.setTexture(texture);
+    this.setRect(rect);
+    this.setAnchor(anchor);
+    this.setUvRect();
+    this.setWorldSize();
 
     //-- Ability属性
     this.renderable = true;
 
     //--
-    this._sprite = sprite;
     this._positionQuad = {
       leftTop: vec3.create(),
       leftBottom: vec3.create(),
@@ -42,24 +74,42 @@ export class ASpriteRenderer extends NodeAbility {
       rightBottom: vec3.create()
     };
 
-    /**
-     * 调节色，控制 Sprite 颜色变化
-     * @member {vec4}
-     */
-    this.tintColor = [1, 1, 1, 1];
-
-    /**
-     * 渲染方式，2D或3D，默认是2D
-     * TODO: 3D
-     * @member {vec4}
-     */
-    this.renderMode = "2D";
-
     this._rotationAngle = 0;
   }
 
+  set texture(v) {
+    this.setTexture(v);
+    this.setRect();
+    this.setUvRect();
+    this.setWorldSize();
+  }
+
+  get texture() {
+    return this._texture;
+  }
+
+  set anchor(v) {
+    this._anchor = v || [0.5, 0.5];
+  }
+
+  get anchor() {
+    return this._anchor;
+  }
+
+  set rect(v) {
+    this.setRect(v);
+    this.setUvRect();
+    this.setWorldSize();
+  }
+
+  get rect() {
+    return this._rect;
+  }
+
   protected setTexture(texture) {
-    return texture;
+    if (texture) {
+      this._texture = texture;
+    }
   }
 
   /**
@@ -74,39 +124,40 @@ export class ASpriteRenderer extends NodeAbility {
     this._rotationAngle = v;
   }
 
-  /**
-   * 纹理对象
-   */
-  get texture() {
-    return this._sprite.texture;
+  protected setRect(rect?) {
+    this._rect = rect || {
+      x: 0,
+      y: 0,
+      width: this._texture ? this._texture.image.width : 0,
+      height: this.texture ? this._texture.image.height : 0
+    };
   }
 
-  set texture(v) {
-    v = this.setTexture(v);
-
-    this._sprite.texture = v;
+  protected setAnchor(anchor) {
+    this._anchor = anchor || [0.5, 0.5];
   }
 
-  /**
-   * 在纹理上面的像素区域
-   */
-  get rect() {
-    return this._sprite.spriteRect;
+  protected setWorldSize() {
+    const { _worldSizeFactor } = this;
+    this._worldSize = [this._rect.width / _worldSizeFactor, this._rect.height / _worldSizeFactor];
   }
 
-  set rect(v) {
-    this._sprite.spriteRect = v;
-  }
+  protected setUvRect() {
+    let w, h;
 
-  /**
-   * 锚点设置
-   */
-  get anchor() {
-    return this._sprite.anchor;
-  }
-
-  set anchor(v) {
-    this._sprite.anchor = v;
+    if (this._texture && this._texture.image) {
+      w = this._texture.image.width;
+      h = this._texture.image.height;
+    } else {
+      w = this._rect.width;
+      h = this._rect.height;
+    }
+    this._uvRect = {
+      u: this._rect.x / w,
+      v: this._rect.y / h,
+      width: this._rect.width / w,
+      height: this._rect.height / h
+    };
   }
 
   /**
@@ -114,21 +165,59 @@ export class ASpriteRenderer extends NodeAbility {
    * @param {ACamera} camera
    */
   render(camera) {
-    if (!this._sprite) {
-      return;
-    }
-
     this._updatePositionQuad(camera);
-
+    this._transformByMatrix();
     camera.sceneRenderer.pushSprite(
       this,
       this._positionQuad,
-      this._sprite.uvRect,
+      this._uvRect,
       this.tintColor,
-      this._sprite.texture,
+      this.texture,
       this.renderMode,
       camera
     );
+  }
+
+  _transformByMatrix() {
+    if (!this.transformMatrix) return;
+    const matrix = this.transformMatrix;
+    const leftTop = vec4.set(
+      vec4.create(),
+      this._positionQuad.leftTop[0],
+      this._positionQuad.leftTop[1],
+      this._positionQuad.leftTop[2],
+      1
+    );
+    const leftBottom = vec4.set(
+      vec4.create(),
+      this._positionQuad.leftBottom[0],
+      this._positionQuad.leftBottom[1],
+      this._positionQuad.leftBottom[2],
+      1
+    );
+
+    const rightTop = vec4.set(
+      vec4.create(),
+      this._positionQuad.rightTop[0],
+      this._positionQuad.rightTop[1],
+      this._positionQuad.rightTop[2],
+      1
+    );
+    const rightBottom = vec4.set(
+      vec4.create(),
+      this._positionQuad.rightBottom[0],
+      this._positionQuad.rightBottom[1],
+      this._positionQuad.rightBottom[2],
+      1
+    );
+    vec4.transformMat4(leftTop, leftTop, matrix);
+    vec4.transformMat4(leftBottom, leftBottom, matrix);
+    vec4.transformMat4(rightTop, rightTop, matrix);
+    vec4.transformMat4(rightBottom, rightBottom, matrix);
+    this._positionQuad.leftTop = vec3.clone([leftTop[0], leftTop[1], leftTop[2]]);
+    this._positionQuad.leftBottom = vec3.clone([leftBottom[0], leftBottom[1], leftBottom[2]]);
+    this._positionQuad.rightTop = vec3.clone([rightTop[0], rightTop[1], rightTop[2]]);
+    this._positionQuad.rightBottom = vec3.clone([rightBottom[0], rightBottom[1], rightBottom[2]]);
   }
 
   /**
@@ -141,10 +230,9 @@ export class ASpriteRenderer extends NodeAbility {
       const m = camera.viewMatrix;
       const vx = vec3.fromValues(m[0], m[4], m[8]);
       const vy = vec3.fromValues(m[1], m[5], m[9]);
-
       //-- center pos
       const c = vec3.clone(this.node.worldPosition);
-      const s = this._sprite.worldSize;
+      const s = this._worldSize;
       const ns = this.node.scale;
 
       vec3.scale(vx, vx, s[0] * ns[0]);
@@ -162,8 +250,8 @@ export class ASpriteRenderer extends NodeAbility {
 
       const cx = vec3.create();
       const cy = vec3.create();
-      vec3.scale(cx, vx, (this._sprite.anchor[0] - 0.5) * 2);
-      vec3.scale(cy, vy, (this._sprite.anchor[1] - 0.5) * 2);
+      vec3.scale(cx, vx, (this.anchor[0] - 0.5) * 2);
+      vec3.scale(cy, vy, (this.anchor[1] - 0.5) * 2);
 
       vec3.sub(c, c, cx);
       vec3.add(c, c, cy);
@@ -190,6 +278,7 @@ export class ASpriteRenderer extends NodeAbility {
       this._positionQuad.leftBottom = leftBottom;
       this._positionQuad.rightTop = rightTop;
       this._positionQuad.rightBottom = rightBottom;
+      // console.log(3333, ns[0], leftTop, leftBottom);
     } else {
       // TODO: 3D
     }

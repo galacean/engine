@@ -11,7 +11,7 @@ import '@alipay/o3-shadow';
 import { ResourceLoader, Resource } from '@alipay/o3-loader';
 import { WaterMaterial } from "./WaterMaterial";
 import { PlaneGeometry } from "../common/PlaneGeometry";
-import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
+import { ASpriteRenderer } from "@alipay/o3-2d";
 import '@alipay/o3-loader-gltf';
 
 
@@ -47,8 +47,10 @@ function showRenderTexture(renderTarget, directLight, rootNode) {
     const texNode = rootNode.createChild('depthTextureNode');
     texNode.position = positions[i];
     texNode.scale = [0.10, 0.10, 1];
-    const sprite = new Sprite(textures[i], {x:0, y: 0, width:512, height:512});
-    const spriteRenderer = texNode.createAbility(ASpriteRenderer, sprite);
+    const spriteRenderer = texNode.createAbility(ASpriteRenderer, {
+      texture: textures[i],
+      rect: {x:0, y: 0, width:512, height:512}
+    });
   }
 }
 

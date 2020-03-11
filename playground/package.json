@@ -65,6 +65,7 @@
     "@alipay/o3-trail": "^1.6.0",
     "@alipay/o3-tween": "^1.6.0",
     "@alipay/spine-core": "^1.0.0",
+    "@alipay/o3-lottie": "^1.0.0",
     "dat.gui": "^0.7.2",
     "simple-dropzone": "^0.7.0"
   },

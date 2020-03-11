@@ -8,7 +8,7 @@ import { ADirectLight, APointLight } from '@alipay/o3-lighting';
 import { vec3 } from '@alipay/o3-math';
 import '@alipay/o3-loader-gltf';
 import '@alipay/o3-shadow';
-import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
+import { ASpriteRenderer } from "@alipay/o3-2d";
 
 import { ConstantMaterial, BlinnPhongMaterial } from '@alipay/o3-mobile-material';
 import { PlaneGeometry } from "../common/PlaneGeometry";
@@ -143,8 +143,10 @@ function showShadowMap(pointLight, directLight) {
     const texNode = rootNode.createChild('shadowMapNode');
     texNode.position = positions[i];
     texNode.scale = [0.10, 0.10, 1];
-    const sprite = new Sprite(lights[i].shadow.map, { x:0, y: 0, width:512, height:512 });
-    texNode.createAbility(ASpriteRenderer, sprite);
+    texNode.createAbility(ASpriteRenderer, {
+      texture: lights[i].shadow.map,
+      rect: { x:0, y: 0, width:512, height:512 }
+    });
   }
 
 }
