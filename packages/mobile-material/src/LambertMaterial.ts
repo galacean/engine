@@ -56,6 +56,7 @@ export class LambertMaterial extends CommonMaterial {
     if (this._technique === null || this._directLightCount != directLightCount) {
       this._directLightCount = directLightCount;
       this._generateTechnique();
+      this.bindLightUniformDefine(camera);
     }
 
     super.prepareDrawing(camera, component, primitive);

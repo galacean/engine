@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-shaderlib",
-  "version": "1.6.0-alpha.8",
+  "version": "1.6.0",
   "description": "Shader slices lib",
   "repository": {
     "type": "git",
@@ -27,7 +27,7 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-base": "^1.6.0-alpha.8"
+    "@alipay/o3-base": "^1.6.0"
   },
   "module": "dist/module.js"
 }

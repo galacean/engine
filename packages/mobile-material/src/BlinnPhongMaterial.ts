@@ -116,6 +116,7 @@ export class BlinnPhongMaterial extends CommonMaterial {
       this._spotLightCount = spotLightCount;
 
       this._generateTechnique();
+      this.bindLightUniformDefine(camera);
     }
 
     super.prepareDrawing(camera, component, primitive);

@@ -28,7 +28,7 @@ export class GLRenderHardware {
 
   /** 当前 RHI 是否为 WebGL 2.0 */
   get isWebGL2() {
-    return this.gl instanceof WebGL2RenderingContext;
+    return window.hasOwnProperty("WebGL2RenderingContext") && this.gl instanceof WebGL2RenderingContext;
   }
 
   constructor(canvas: HTMLCanvasElement, option: RHIOption) {

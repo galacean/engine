@@ -31,7 +31,7 @@ export class Primitive extends AssetObject {
 
   public material;
   public materialIndex: number;
-  public targets;
+  public targets: any[];
   public boundingBox: OBB;
   public boundingSphere: BoundingSphere;
   public isInFrustum: boolean;

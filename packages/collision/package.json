@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-collision",
-  "version": "1.6.0-alpha.8",
+  "version": "1.6.0",
   "description": "collision module",
   "keywords": [
     "Oasis3D"
@@ -27,9 +27,9 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-base": "^1.6.0-alpha.8",
-    "@alipay/o3-collider": "^1.6.0-alpha.8",
-    "@alipay/o3-core": "^1.6.0-alpha.8",
-    "@alipay/o3-math": "^1.6.0-alpha"
+    "@alipay/o3-base": "^1.6.0",
+    "@alipay/o3-collider": "^1.6.0",
+    "@alipay/o3-core": "^1.6.0",
+    "@alipay/o3-math": "^1.6.0"
   }
 }

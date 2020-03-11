@@ -16,7 +16,7 @@ export class AssetManager extends spine.AssetManager {
   }
 
   checkLoaded(resolve) {
-    if (this.isLoadingComplete()) {
+    if ((this as any).toLoad == 0) {
       cancelAnimationFrame(this.checkRaf);
       resolve(this);
     } else {

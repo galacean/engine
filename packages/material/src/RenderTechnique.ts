@@ -44,10 +44,14 @@ export class RenderTechnique extends AssetObject {
 
   /**
    * GLSL 原始版本
-   * 若 WebGL 2 时着色器为旧版本，则升级到 300 版本
+   * 若 autoConvert = true, WebGL 2 时着色器为旧版本，则升级到 300 版本
    * @member {String} - "100" | "300 es"
    */
   public version = "100";
+
+  /** 自动转换 GLSL 版本 */
+  public autoConvert = true;
+
   /**
    * Vertex Shader 的精度
    * @member {String}
@@ -159,8 +163,8 @@ export class RenderTechnique extends AssetObject {
 
       this.fragmentShader = this._fsHeader + this._fsCode;
 
-      /** 若 WebGL 2 时着色器为旧版本，则升级到 300 版本 */
-      if (isWebGL2 && this.version !== "300 es") {
+      /** 若 autoConvert = true,  WebGL 2 时着色器为旧版本，则升级到 300 版本 */
+      if (this.autoConvert && isWebGL2 && this.version !== "300 es") {
         this.vertexShader = ShaderFactory.convertTo300(this.vertexShader);
         this.fragmentShader = ShaderFactory.convertTo300(this.fragmentShader, true);
       }

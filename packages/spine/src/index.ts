@@ -1,2 +1,2 @@
 export { ASpineRenderer } from "./ASpineRenderer";
-export { AssetManager } from '../core/AssetManager';
+export { AssetManager } from "./core/AssetManager";
