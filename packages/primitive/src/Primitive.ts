@@ -17,14 +17,18 @@ export class Primitive extends AssetObject {
   public usage: BufferUsage;
   public updateType: UpdateType;
   public updateRange: { byteOffset: number; byteLength: number };
+
   public vertexBuffers;
   public vertexAttributes;
-  public vertexOffset;
-  public vertexCount;
-  public indexType;
-  public indexCount;
+  public vertexOffset: number;
+  public vertexCount: number;
+
+  public indexType: DataType.UNSIGNED_BYTE | DataType.UNSIGNED_SHORT | DataType.UNSIGNED_INT;
+  public indexCount: number;
   public indexBuffer;
-  public indexOffset;
+  public indexOffset: number;
+  public indexNeedUpdate: boolean;
+
   public material;
   public materialIndex: number;
   public targets;
@@ -57,6 +61,7 @@ export class Primitive extends AssetObject {
     this.indexCount = 0; // number of elements
     this.indexBuffer = null; // ArrayBuffer object
     this.indexOffset = 0;
+    this.indexNeedUpdate = false;
 
     //--
     this.material = null; // default material objects
