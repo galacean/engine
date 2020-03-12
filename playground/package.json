@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-example",
-  "version": "1.6.1-alpha.3",
+  "version": "1.6.1-alpha.4",
   "description": "Oasis3D engine examples",
   "keywords": [
     "Oasis3D",
@@ -48,7 +48,7 @@
     "@alipay/o3-orbit-controls": "^1.6.0",
     "@alipay/o3-particle": "^1.6.0",
     "@alipay/o3-pbr": "^1.6.0",
-    "@alipay/o3-plus": "^1.6.1-alpha.3",
+    "@alipay/o3-plus": "^1.6.1-alpha.4",
     "@alipay/o3-post-processing": "^1.6.0",
     "@alipay/o3-primitive": "^1.6.0",
     "@alipay/o3-raycast": "^1.6.0",
@@ -61,7 +61,7 @@
     "@alipay/o3-shaderlib": "^1.6.0",
     "@alipay/o3-shadow": "^1.6.0",
     "@alipay/o3-skybox": "^1.6.1-alpha.2",
-    "@alipay/o3-spine": "^1.6.0",
+    "@alipay/o3-spine": "^1.6.1-alpha.4",
     "@alipay/o3-trail": "^1.6.0",
     "@alipay/o3-tween": "^1.6.0",
     "@alipay/spine-core": "^1.0.0",
