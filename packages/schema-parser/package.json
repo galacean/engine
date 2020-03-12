@@ -28,6 +28,7 @@
   "dependencies": {
     "@alipay/o3": "^1.6.1-alpha.3",
     "@alipay/o3-material": "^1.6.0",
+    "@alipay/o3-spine": "^1.6.0",
     "@alipay/spine-core": "^1.0.0"
   }
 }
