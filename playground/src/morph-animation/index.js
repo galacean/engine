@@ -1,11 +1,11 @@
 import { Engine } from "@alipay/o3-core";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
-import { ADirectLight, AAmbientLight } from "@alipay/o3-lighting";
+import { ADirectLight, AAmbientLight, AEnvironmentMapLight } from "@alipay/o3-lighting";
 import { vec3 } from "@alipay/o3-math";
 import "@alipay/o3-loader-gltf";
 import { AAnimation } from "@alipay/o3-animation";
-import { AEnvironmentMapLight, PBRMaterial } from "@alipay/o3-pbr";
+import { PBRMaterial } from "@alipay/o3-pbr";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
 RegistExtension({ PBRMaterial });
@@ -25,7 +25,7 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
   fov: 50
 });
 
-cameraNode.createAbility(AOrbitControls)
+cameraNode.createAbility(AOrbitControls);
 
 // load resource config
 const animationRes = new Resource("pig_glb", {
@@ -57,14 +57,13 @@ resourceLoader.load(animationRes, (err, gltf) => {
 
   rootNode.addChild(horse);
 
-
   const animator = horse.createAbility(AAnimation);
   // console.log(animations);
   animations.forEach(clip => {
     animator.addAnimationClip(clip, clip.name);
   });
   animator.playAnimationClip("horse_A_");
-  window['animator'] = animator;
+  window["animator"] = animator;
 });
 
 //-- run

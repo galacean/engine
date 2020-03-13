@@ -1,4 +1,4 @@
-import { Logger, UpdateType, DataType } from "@alipay/o3-base";
+import { Logger, UpdateType, DataType, GLCapabilityType } from "@alipay/o3-base";
 import { Primitive } from "@alipay/o3-primitive";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { GLTechnique } from "./GLTechnique";
@@ -9,7 +9,7 @@ import { GLAsset } from "./GLAsset";
  * @private
  */
 export class GLPrimitive extends GLAsset {
-  private readonly _primitive;
+  private readonly _primitive: Primitive;
   private _glIndexBuffer: WebGLBuffer;
   private _glVertBuffers: WebGLBuffer[];
 
@@ -71,7 +71,7 @@ export class GLPrimitive extends GLAsset {
    * @param {GLTechnique} tech
    */
   draw(tech: GLTechnique) {
-    if (this._primitive.indexType === DataType.UNSIGNED_INT && !this.rhi.requireExtension("OES_element_index_uint")) {
+    if (this._primitive.indexType === DataType.UNSIGNED_INT && !this.rhi.canIUse(GLCapabilityType.elementIndexUint)) {
       console.warn("primitive have UNSIGN_INT index and not supported by this device", this);
       return;
     }

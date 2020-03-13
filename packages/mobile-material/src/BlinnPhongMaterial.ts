@@ -101,32 +101,9 @@ export class BlinnPhongMaterial extends CommonMaterial {
    * @private
    */
   prepareDrawing(camera, component, primitive) {
-    let directLightCount = 0;
-    let pointLightCount = 0;
-    let spotLightCount = 0;
-
     const scene = camera.scene;
     const lightMgr = scene.findFeature(LightFeature);
-    if (lightMgr) {
-      const lights = lightMgr.visibleLights;
-
-      for (let i = 0, len = lights.length; i < len; i++) {
-        const lgt = lights[i];
-        if (lgt instanceof ADirectLight) {
-          const name = `u_directLights[${directLightCount}]`;
-          lgt.bindMaterialValues(this, name);
-          directLightCount++;
-        } else if (lgt instanceof APointLight) {
-          const name = `u_pointLights[${pointLightCount}]`;
-          lgt.bindMaterialValues(this, name);
-          pointLightCount++;
-        } else if (lgt instanceof ASpotLight) {
-          const name = `u_spotLights[${spotLightCount}]`;
-          lgt.bindMaterialValues(this, name);
-          spotLightCount++;
-        }
-      } // end of for
-    } // end of if
+    const { directLightCount, pointLightCount, spotLightCount } = lightMgr.lightSortAmount;
 
     if (
       this._technique === null ||
@@ -139,6 +116,7 @@ export class BlinnPhongMaterial extends CommonMaterial {
       this._spotLightCount = spotLightCount;
 
       this._generateTechnique();
+      this.bindLightUniformDefine(camera);
     }
 
     super.prepareDrawing(camera, component, primitive);
@@ -150,23 +128,6 @@ export class BlinnPhongMaterial extends CommonMaterial {
    */
   _generateFragmentUniform() {
     let uniforms: any = {};
-    for (let i = 0; i < this._directLightCount; i++) {
-      const name = `u_directLights[${i}]`;
-      const lgtUniforms = ADirectLight.getUniformDefine(name);
-      uniforms = { ...uniforms, ...lgtUniforms };
-    } // end of for
-
-    for (let i = 0; i < this._pointLightCount; i++) {
-      const name = `u_pointLights[${i}]`;
-      const lgtUniforms = APointLight.getUniformDefine(name);
-      uniforms = { ...uniforms, ...lgtUniforms };
-    } // end of for
-
-    for (let i = 0; i < this._spotLightCount; i++) {
-      const name = `u_spotLights[${i}]`;
-      const lgtUniforms = ASpotLight.getUniformDefine(name);
-      uniforms = { ...uniforms, ...lgtUniforms };
-    } // end of for
 
     if (this.diffuse instanceof Texture2D) {
       uniforms.u_diffuse = {

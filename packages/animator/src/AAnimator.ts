@@ -1,18 +1,19 @@
 import { NodeAbility, Node } from "@alipay/o3-core";
 import { AAnimation } from "./AAnimation";
+import { WrapMode, PlayState } from "./AnimationConst";
 
 /**
- * Engine Feature：全局动画控制器
+ * 全局动画控制器
  */
 export class AAnimator extends NodeAbility {
   public currentTime: number;
   public duration: number;
   public startTimeAnimationMap: any;
   public animationList: Array<any>;
+  public state: PlayState;
   private _animatorData: any;
-  private _isPlaying: boolean;
   private _timeScale: number;
-  private needParse: boolean;
+  private _wrapMode: WrapMode;
 
   /**
    * 缩放播放速度
@@ -30,12 +31,19 @@ export class AAnimator extends NodeAbility {
     }
   }
 
+  get wrapMode() {
+    return this._wrapMode;
+  }
+  set wrapMode(wrapMode) {
+    this._wrapMode = wrapMode;
+  }
+
   get animatorData() {
     return this._animatorData;
   }
 
   set animatorData(animatorData) {
-    this.needParse = true;
+    if (!animatorData) return;
     this._animatorData = animatorData;
   }
 
@@ -45,24 +53,31 @@ export class AAnimator extends NodeAbility {
    */
   constructor(node: Node, props: any) {
     super(node);
-    const { animatorData } = props;
+    const { animatorData, wrapMode } = props;
     this.animationList = [];
     this.startTimeAnimationMap = {}; // startTime: AnimationList
     this._timeScale = 1.0;
     this.currentTime = 0;
     this.animatorData = animatorData;
-    animatorData.onAttach = data => {
-      this.animatorData = data;
-    };
+    this.wrapMode = wrapMode;
+    if (animatorData) {
+      animatorData.onAttach = data => {
+        this.animatorData = data;
+      };
+    }
+    this.state = PlayState.INIT;
   }
 
   public update(deltaTime: number) {
-    if (!this._isPlaying) return;
-    const { duration, startTimeAnimationMap } = this;
+    if (this.state !== PlayState.PLAYING) return;
+    const { duration, startTimeAnimationMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
     super.update(deltaTime);
     if (this.currentTime > duration) {
       this.reset();
+      if (wrapMode === WrapMode.LOOP) {
+        this.play();
+      }
     }
     this.currentTime += deltaTime;
     Object.keys(startTimeAnimationMap).forEach(startTime => {
@@ -97,24 +112,21 @@ export class AAnimator extends NodeAbility {
     });
     this.duration = duration || Infinity;
     this.timeScale = timeScale;
-    this.needParse = false;
-  }
-  /**
-   * 是否正在播放
-   * @return {boolean}
-   */
-  public isPlaying(): boolean {
-    return this._isPlaying;
   }
 
   /**
    * 开始播放
    */
   public play() {
-    if (this.needParse) {
-      this.parseAnimatorData();
+    if (this.state === PlayState.INIT || this.state === PlayState.STOP) {
+      if (this.animatorData) {
+        this.parseAnimatorData();
+      }
+      this.animationList.forEach(animation => {
+        animation.playByAnimator();
+      });
     }
-    this._isPlaying = true;
+    this.state = PlayState.PLAYING;
   }
 
   /**
@@ -122,10 +134,16 @@ export class AAnimator extends NodeAbility {
    *
    */
   public pause() {
-    this._isPlaying = false;
+    this.state = PlayState.PAUSUE;
     this.animationList.forEach(animation => {
       animation.pause();
     });
+  }
+
+  public stop() {
+    this.pause();
+    this.reset();
+    this.state = PlayState.STOP;
   }
 
   /**
@@ -134,11 +152,12 @@ export class AAnimator extends NodeAbility {
    */
   public jumpToFrame(frameTime: number) {}
 
-  private reset() {
+  public reset() {
     this.currentTime = 0;
     this.pause();
     this.animationList.forEach(animation => {
       animation.reset();
     });
+    this.state = PlayState.INIT;
   }
 }

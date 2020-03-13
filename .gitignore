@@ -21,3 +21,4 @@ lerna-debug.log
 playground/node_modules
 playground/src/test
 AUTHORS
+.vscode

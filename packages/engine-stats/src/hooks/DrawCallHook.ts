@@ -11,9 +11,9 @@ export default class DrawCallHook {
   private hooked: boolean;
   private realDrawElements: any;
   private realDrawArrays: any;
-  private gl: WebGLRenderingContext;
+  private gl: WebGLRenderingContext | WebGL2RenderingContext;
 
-  constructor(gl: WebGLRenderingContext) {
+  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext) {
     this.realDrawElements = gl.drawElements;
     this.realDrawArrays = gl.drawArrays;
 

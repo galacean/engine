@@ -37,6 +37,7 @@ export * from "@alipay/o3-trail";
 export * from "@alipay/o3-tween";
 export * from "@alipay/o3-env-probe";
 export * from "@alipay/o3-bounding-info";
+export * from "@alipay/o3-spine";
 
 export {
   AnimationClip as AnimationClipNew,
@@ -49,5 +50,4 @@ export {
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { TextureMaterial, TransparentMaterial } from "@alipay/o3-mobile-material";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
-
 RegistExtension({ PBRMaterial, TextureMaterial, TransparentMaterial });

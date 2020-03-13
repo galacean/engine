@@ -96,6 +96,11 @@ export class APointLight extends ALight {
       type: DataType.FLOAT_VEC3
     };
 
+    uniforms[uniformName + ".lightColor"] = {
+      name: uniformName + ".lightColor",
+      type: DataType.FLOAT_VEC3
+    };
+
     uniforms[uniformName + ".intensity"] = {
       name: uniformName + ".intensity",
       type: DataType.FLOAT
@@ -120,6 +125,7 @@ export class APointLight extends ALight {
   bindMaterialValues(mtl, uniformName) {
     mtl.setValue(uniformName + ".position", this.position);
     mtl.setValue(uniformName + ".color", this.color);
+    mtl.setValue(uniformName + ".lightColor", this.lightColor);
     mtl.setValue(uniformName + ".intensity", this.intensity);
     mtl.setValue(uniformName + ".distance", this.distance);
     mtl.setValue(uniformName + ".decay", this.decay);

@@ -135,6 +135,7 @@ export interface Options {
   onProgress?: () => {};
   // 脚本是否本地开发环境
   local?: boolean;
+  scripts?: { [name: string]: any };
   // gl context 参数
   rhiAttr?: WebGLContextAttributes & { enableCollect?: boolean };
 }

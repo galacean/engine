@@ -2,15 +2,9 @@ import { ClearMode } from "@alipay/o3-base";
 import { NodeAbility } from "./NodeAbility";
 import { mat4, vec4, vec3, vec2, MathUtil } from "@alipay/o3-math";
 import { Node } from "./Node";
+import { ICameraProps, RHIOption } from "./type";
 
 const vec3Cache = vec3.create();
-
-interface ICameraProps {
-  canvas: string | HTMLCanvasElement;
-  attributes: object;
-  SceneRenderer: { new (camera: ACamera) };
-  RHI: { new (canvas: string | HTMLCanvasElement, attributes: object) };
-}
 
 /**
  * 3D 摄像机组件，添加到一个 Node 上，以 Node 的空间作为 Camera Space
@@ -87,7 +81,7 @@ export class ACamera extends NodeAbility {
    * @param {Node} node 对象所在节点
    * @param {Object} props  相机配置参数，包含以下项
    * @property {Canvas|String} props.canvas 画布对象，可以是 HTML Canvas Element 或者对象的 id
-   * @property {Object} [props.attributes] [Canvas 3d ContextAttributes]{@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext}
+   * @property {RHIOption} [props.attributes] - RHI 操作参数
    * @property {SceneRenderer} [props.SceneRenderer] 渲染器类型，{@link BasicSceneRenderer} 和 {@link SceneRenderer}
    * @property {GLRenderHardware} [props.RHI] 硬件抽象层类型，{@link GLRenderHardware}
    */

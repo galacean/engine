@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger, GLCapabilityType } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { GLAsset } from "./GLAsset";
@@ -117,7 +117,7 @@ export class GLRenderTarget extends GLAsset {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
       // 创建深度纹理或者绑定深度RBO
-      if (depthTexture && gl.getExtension("WEBGL_depth_texture")) {
+      if (depthTexture && this.rhi.canIUse(GLCapabilityType.depthTexture)) {
         // 创建深度纹理
         this._glDepthTexture = this.rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
         this._glDepthTexture.activeBinding(0);

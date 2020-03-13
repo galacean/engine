@@ -2,8 +2,12 @@ import { ShaderLib, InjectShaderSlices } from "./ShaderLib";
 import { Logger } from "@alipay/o3-base";
 
 class ShaderFactory {
-  static parseVersion(v) {
-    return `#version ${v}\n`;
+  /**
+   * GLSL 版本
+   * @param {string} version - "100" | "300 es"
+   * */
+  static parseVersion(version: string = "100") {
+    return `#version ${version}\n`;
   }
 
   static parsePrecision(p) {
@@ -53,12 +57,44 @@ class ShaderFactory {
     InjectShaderSlices(slices);
   }
 
-  static parseExtension(extensions) {
+  /**
+   * 相应版本的 extension
+   * @param {string[]} extensions - such as ["GL_EXT_shader_texture_lod"]
+   * */
+  static parseExtension(extensions: string[]) {
     return (
-      "#define O3_USE_EXTENSION_START\n" +
+      `#define O3_EXTENSION_START\n` +
       extensions.map(e => `#extension ${e} : enable\n`).join("") +
-      "#define O3_USE_EXTENSION_END\n"
+      `#define O3_EXTENSION_END\n`
     );
+  }
+
+  /**
+   * 切换低版本 GLSL 到 GLSL 300 es
+   * @param {string} shader - code
+   * @param {boolean} isFrag - 是否为片元着色器。
+   * */
+  static convertTo300(shader: string, isFrag?: boolean) {
+    const isGLSL300 = shader.includes("#version 300 es");
+
+    // 如果本来就是新版本着色器，则无需转换。
+    if (isGLSL300) return shader;
+
+    /** 替换版本 */
+    shader = shader.replace(/#version 100/, "#version 300 es");
+    /** 修饰符替换 */
+    shader = shader.replace(/\battribute\b/g, "in");
+    shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
+
+    /** 内置变量替换 */
+    shader = shader.replace(/\btexture(2D|Cube)\s*\(/g, "texture(");
+    shader = shader.replace(/\btexture(2D|Cube)LodEXT\s*\(/g, "textureLod(");
+    if (isFrag) {
+      shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
+      shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
+    }
+
+    return shader;
   }
 }
 
