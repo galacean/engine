@@ -267,15 +267,29 @@ export class GLRenderTarget extends GLAsset {
     if (this.frameBuffer) {
       gl.deleteFramebuffer(this.frameBuffer);
     }
-
     if (this.depthRenderBuffer) {
       gl.deleteRenderbuffer(this.depthRenderBuffer);
     }
+
+    if (this.MSAAFrameBuffer) {
+      gl.deleteFramebuffer(this.MSAAFrameBuffer);
+    }
+    if (this.MSAAColorRenderBuffer) {
+      gl.deleteRenderbuffer(this.MSAAColorRenderBuffer);
+    }
+    if (this.MSAADepthRenderBuffer) {
+      gl.deleteRenderbuffer(this.MSAADepthRenderBuffer);
+    }
+
     this.glTexture = null;
     this.glDepthTexture = null;
     this.glCubeTexture = null;
 
     this.frameBuffer = null;
     this.depthRenderBuffer = null;
+
+    this.MSAAFrameBuffer = null;
+    this.MSAAColorRenderBuffer = null;
+    this.MSAADepthRenderBuffer = null;
   }
 }
