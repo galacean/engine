@@ -151,7 +151,7 @@ function reflectionDemo() {
     })
     .name("动态反射开关");
   gui
-    .add(state, "size", 1, 4096)
+    .add(state, "size", 1, 2048)
     .onChange(size => {
       probe.size = size;
     })
