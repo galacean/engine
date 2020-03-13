@@ -84,6 +84,15 @@ export abstract class Probe extends NodeAbility {
     });
   }
 
+  /** WebGL2 时，可以开启硬件层的 MSAA */
+  public get samples() {
+    return this.renderTarget.samples;
+  }
+
+  public set samples(v: number) {
+    this.renderTarget.samples = this.renderTargetSwap.samples = v;
+  }
+
   /**
    *探针基类
    * @param {Node} node
