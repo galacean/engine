@@ -67,10 +67,8 @@ export class GLRenderTarget extends GLAsset {
 
     const gl = this.rhi.gl;
 
-    // 状态机切换到当前纹理
-    this.glCubeTexture.activeBinding(0);
-
     // 绑定颜色纹理
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
     gl.framebufferTexture2D(
       gl.FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0,
@@ -78,6 +76,13 @@ export class GLRenderTarget extends GLAsset {
       this.glCubeTexture.glTexture,
       0
     );
+
+    // 绑定纹理后，需要还原 MSAA 状态
+    if (this.MSAAFrameBuffer) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.MSAAFrameBuffer);
+    } else {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+    }
   }
 
   /**
@@ -184,7 +189,7 @@ export class GLRenderTarget extends GLAsset {
       // frameBuffer 绑定 depthRenderBuffer
       this.depthRenderBuffer = gl.createRenderbuffer();
       gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
-      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+      gl.renderbufferStorage(gl.RENDERBUFFER, isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16, width, height);
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRenderBuffer);
     } else {
       /**
