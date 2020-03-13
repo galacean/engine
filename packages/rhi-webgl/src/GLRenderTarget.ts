@@ -1,4 +1,5 @@
-import { Logger, GLCapabilityType } from "@alipay/o3-base";
+import { RenderTarget } from "@alipay/o3-material";
+import { GLCapabilityType, Logger } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { GLAsset } from "./GLAsset";
@@ -10,20 +11,19 @@ import { GLRenderHardware } from "./GLRenderHardware";
  * @private
  */
 export class GLRenderTarget extends GLAsset {
-  private _config;
+  private renderTarget: RenderTarget;
 
-  private _glTexture: GLTexture2D;
-  private _glDepthTexture: GLTexture2D;
-  private _glCubeTexture: GLTextureCubeMap;
+  private glTexture: GLTexture2D;
+  private glDepthTexture: GLTexture2D;
+  private glCubeTexture: GLTextureCubeMap;
 
-  private _depthBuffer: WebGLRenderbuffer;
-  private _framebuffer: WebGLFramebuffer;
+  private frameBuffer: WebGLFramebuffer;
+  private depthRenderBuffer: WebGLRenderbuffer;
 
-  constructor(rhi: GLRenderHardware, config) {
-    super(rhi, config);
-    this._config = config;
-
-    this._initialize();
+  constructor(rhi: GLRenderHardware, renderTarget: RenderTarget) {
+    super(rhi, renderTarget);
+    this.renderTarget = renderTarget;
+    this.initialize();
   }
 
   /**
@@ -32,17 +32,17 @@ export class GLRenderTarget extends GLAsset {
    */
   activeRenderTarget() {
     const gl = this.rhi.gl;
+    const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._framebuffer);
-    gl.viewport(0.0, 0.0, this._config.width, this._config.height);
-
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+    gl.viewport(0.0, 0.0, width, height);
     // 激活一下Texture资源, 否则可能会被释放掉
-    if (this._config.cubeTexture) {
-      this.rhi.assetsCache.requireObject(this._config.cubeTexture, GLTextureCubeMap);
+    if (cubeTexture) {
+      this.rhi.assetsCache.requireObject(cubeTexture, GLTextureCubeMap);
     } else {
-      this.rhi.assetsCache.requireObject(this._config.texture, GLTexture2D);
-      if (this._config.depthTexture) {
-        this.rhi.assetsCache.requireObject(this._config.depthTexture, GLTexture2D);
+      this.rhi.assetsCache.requireObject(texture, GLTexture2D);
+      if (depthTexture) {
+        this.rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
       }
     }
   }
@@ -52,19 +52,19 @@ export class GLRenderTarget extends GLAsset {
    * @param {number} faceIndex - gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex
    * */
   setRenderTargetFace(faceIndex: number) {
-    if (!this._glCubeTexture) return;
+    if (!this.glCubeTexture) return;
 
     const gl = this.rhi.gl;
 
     // 状态机切换到当前纹理
-    this._glCubeTexture.activeBinding(0);
+    this.glCubeTexture.activeBinding(0);
 
     // 绑定颜色纹理
     gl.framebufferTexture2D(
       gl.FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
-      this._glCubeTexture.glTexture,
+      this.glCubeTexture.glTexture,
       0
     );
   }
@@ -73,21 +73,21 @@ export class GLRenderTarget extends GLAsset {
    * 初始化 RenderTarget
    * @private
    */
-  _initialize() {
+  initialize() {
     const gl = this.rhi.gl;
-    const { width, height, texture, cubeTexture, depthTexture } = this._config;
+    const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
 
     // 创建帧缓冲区对象
-    this._framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._framebuffer);
+    this.frameBuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 
     /**
      * 渲染到立方体纹理
      * */
     if (cubeTexture) {
       // 创建纹理对象并设置其尺寸和参数
-      this._glCubeTexture = this.rhi.assetsCache.requireObject(cubeTexture, GLTextureCubeMap);
-      this._glCubeTexture.activeBinding(0);
+      this.glCubeTexture = this.rhi.assetsCache.requireObject(cubeTexture, GLTextureCubeMap);
+      this.glCubeTexture.activeBinding(0);
       for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
         gl.texImage2D(
           gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
@@ -102,25 +102,25 @@ export class GLRenderTarget extends GLAsset {
         );
       }
 
-      // framebuffer 绑定 depthRenderBuffer
-      this._depthBuffer = gl.createRenderbuffer();
-      gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthBuffer);
+      // frameBuffer 绑定 depthRenderBuffer
+      this.depthRenderBuffer = gl.createRenderbuffer();
+      gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
       gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this._depthBuffer);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRenderBuffer);
     } else {
       /**
        * 渲染到平面纹理
        * */
       // 创建纹理对象并设置其尺寸和参数
-      this._glTexture = this.rhi.assetsCache.requireObject(texture, GLTexture2D);
-      this._glTexture.activeBinding(0);
+      this.glTexture = this.rhi.assetsCache.requireObject(texture, GLTexture2D);
+      this.glTexture.activeBinding(0);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
       // 创建深度纹理或者绑定深度RBO
       if (depthTexture && this.rhi.canIUse(GLCapabilityType.depthTexture)) {
         // 创建深度纹理
-        this._glDepthTexture = this.rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
-        this._glDepthTexture.activeBinding(0);
+        this.glDepthTexture = this.rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
+        this.glDepthTexture.activeBinding(0);
         gl.texImage2D(
           gl.TEXTURE_2D,
           0,
@@ -134,19 +134,19 @@ export class GLRenderTarget extends GLAsset {
         );
       } else {
         // 创建渲染缓冲区对象并设置其尺寸和参数
-        this._depthBuffer = gl.createRenderbuffer();
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+        this.depthRenderBuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
       }
 
       // 绑定颜色纹理
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._glTexture.glTexture, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.glTexture.glTexture, 0);
 
       // 绑定深度纹理或者深度RBO
       if (depthTexture) {
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this._glDepthTexture.glTexture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.glDepthTexture.glTexture, 0);
       } else {
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this._depthBuffer);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRenderBuffer);
       }
     }
 
@@ -172,19 +172,29 @@ export class GLRenderTarget extends GLAsset {
    */
   finalize() {
     const gl = this.rhi.gl;
-    if (this._framebuffer) {
-      gl.deleteFramebuffer(this._framebuffer);
-      this._framebuffer = null;
+
+    if (this.glTexture) {
+      this.glTexture.finalize();
+    }
+    if (this.glDepthTexture) {
+      this.glDepthTexture.finalize();
+    }
+    if (this.glCubeTexture) {
+      this.glCubeTexture.finalize();
     }
 
-    // 自动释放的资源
-    this._glTexture = null;
-    this._glDepthTexture = null;
-    this._glCubeTexture = null;
-
-    if (this._depthBuffer) {
-      gl.deleteRenderbuffer(this._depthBuffer);
-      this._depthBuffer = null;
+    if (this.frameBuffer) {
+      gl.deleteFramebuffer(this.frameBuffer);
     }
+
+    if (this.depthRenderBuffer) {
+      gl.deleteRenderbuffer(this.depthRenderBuffer);
+    }
+    this.glTexture = null;
+    this.glDepthTexture = null;
+    this.glCubeTexture = null;
+
+    this.frameBuffer = null;
+    this.depthRenderBuffer = null;
   }
 }
