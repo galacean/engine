@@ -1,5 +1,6 @@
 import { RenderTarget } from "@alipay/o3-material";
 import { GLCapabilityType, Logger } from "@alipay/o3-base";
+import { MathUtil } from "@alipay/o3-math";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { GLAsset } from "./GLAsset";
@@ -20,6 +21,10 @@ export class GLRenderTarget extends GLAsset {
   private frameBuffer: WebGLFramebuffer;
   private depthRenderBuffer: WebGLRenderbuffer;
 
+  /** WebGL2 时，可以开启硬件层的 MSAA */
+  private MSAAFrameBuffer: WebGLFramebuffer;
+  private MSAAColorRenderBuffer: WebGLRenderbuffer;
+  private MSAADepthRenderBuffer: WebGLRenderbuffer;
   constructor(rhi: GLRenderHardware, renderTarget: RenderTarget) {
     super(rhi, renderTarget);
     this.renderTarget = renderTarget;
@@ -35,7 +40,11 @@ export class GLRenderTarget extends GLAsset {
     const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+    if (this.MSAAFrameBuffer) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.MSAAFrameBuffer);
+    } else {
     gl.viewport(0.0, 0.0, width, height);
+    }
     // 激活一下Texture资源, 否则可能会被释放掉
     if (cubeTexture) {
       this.rhi.assetsCache.requireObject(cubeTexture, GLTextureCubeMap);
@@ -70,14 +79,83 @@ export class GLRenderTarget extends GLAsset {
   }
 
   /**
+  /** 根据运行环境获取真实的采样数 */
+  getExactSamples(samples: number) {
+    const canUseMS = this.rhi.canIUse(GLCapabilityType.multipleSample);
+    const gl = this.rhi.gl;
+    if (canUseMS) {
+      const maxSamples = gl.getParameter(gl.MAX_SAMPLES);
+      return MathUtil.clamp(samples, 1, maxSamples);
+    } else {
+      return 1;
+    }
+  }
+
+  /** 初始化硬件层 MSAA  */
+  initMSAA() {
+    const gl = this.rhi.gl;
+    const { width, height, samples } = this.renderTarget;
+
+    this.MSAAFrameBuffer = gl.createFramebuffer();
+    this.MSAAColorRenderBuffer = gl.createRenderbuffer();
+    this.MSAADepthRenderBuffer = gl.createRenderbuffer();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.MSAAFrameBuffer);
+
+    // prepare MSAA RBO
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.MSAAColorRenderBuffer);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.RGBA8, width, height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, this.MSAAColorRenderBuffer);
+
+    // prepare depth RBO
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.MSAADepthRenderBuffer);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.DEPTH_COMPONENT32F, width, height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.MSAADepthRenderBuffer);
+
+    // 检查帧缓冲区对象是否被正确设置
+    const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (gl.FRAMEBUFFER_COMPLETE !== e) {
+      Logger.error("MSAA Frame buffer error: " + e.toString());
+      return;
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /** blit FBO */
+  blitRenderTarget() {
+    if (!this.MSAAFrameBuffer) return;
+
+    const gl = this.rhi.gl;
+    const { width, height } = this.renderTarget;
+    let mask = gl.COLOR_BUFFER_BIT;
+    if (this.glDepthTexture) {
+      mask = gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT;
+    }
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.MSAAFrameBuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.frameBuffer);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
+  }
+
    * 初始化 RenderTarget
    * @private
    */
   initialize() {
     const gl = this.rhi.gl;
     const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
+    const isWebGL2 = this.rhi.isWebGL2;
+
 
     // 创建帧缓冲区对象
+    /** 用户输入的采样数 */
+    let samples = this.renderTarget.samples;
+    /** 实际采样数 */
+    samples = this.renderTarget.samples = this.getExactSamples(samples);
+    if (samples > 1) {
+      this.initMSAA();
+    }
+
     this.frameBuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 

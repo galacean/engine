@@ -246,6 +246,14 @@ export class GLRenderHardware {
     }
   }
 
+  /** blit FBO */
+  blitRenderTarget(renderTarget: RenderTarget) {
+    if (renderTarget) {
+      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
+      glRenderTarget.blitRenderTarget();
+    }
+  }
+
   /**
    * 设置渲染到立方体纹理的面
    * @param {RenderTarget} renderTarget  需要设置的 RenderTarget 对象
