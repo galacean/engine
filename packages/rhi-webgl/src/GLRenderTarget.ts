@@ -25,6 +25,7 @@ export class GLRenderTarget extends GLAsset {
   private MSAAFrameBuffer: WebGLFramebuffer;
   private MSAAColorRenderBuffer: WebGLRenderbuffer;
   private MSAADepthRenderBuffer: WebGLRenderbuffer;
+
   constructor(rhi: GLRenderHardware, renderTarget: RenderTarget) {
     super(rhi, renderTarget);
     this.renderTarget = renderTarget;
@@ -39,12 +40,13 @@ export class GLRenderTarget extends GLAsset {
     const gl = this.rhi.gl;
     const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
     if (this.MSAAFrameBuffer) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.MSAAFrameBuffer);
     } else {
-    gl.viewport(0.0, 0.0, width, height);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
     }
+    gl.viewport(0.0, 0.0, width, height);
+
     // 激活一下Texture资源, 否则可能会被释放掉
     if (cubeTexture) {
       this.rhi.assetsCache.requireObject(cubeTexture, GLTextureCubeMap);
@@ -79,7 +81,7 @@ export class GLRenderTarget extends GLAsset {
   }
 
   /**
-  /** 根据运行环境获取真实的采样数 */
+   /** 根据运行环境获取真实的采样数 */
   getExactSamples(samples: number) {
     const canUseMS = this.rhi.canIUse(GLCapabilityType.multipleSample);
     const gl = this.rhi.gl;
@@ -138,14 +140,13 @@ export class GLRenderTarget extends GLAsset {
     gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
   }
 
-   * 初始化 RenderTarget
+  /** 初始化 RenderTarget
    * @private
    */
   initialize() {
     const gl = this.rhi.gl;
     const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
     const isWebGL2 = this.rhi.isWebGL2;
-
 
     // 创建帧缓冲区对象
     /** 用户输入的采样数 */
@@ -199,22 +200,24 @@ export class GLRenderTarget extends GLAsset {
         // 创建深度纹理
         this.glDepthTexture = this.rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
         this.glDepthTexture.activeBinding(0);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texImage2D(
           gl.TEXTURE_2D,
           0,
-          gl.DEPTH_COMPONENT,
+          isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
           width,
           height,
           0,
           gl.DEPTH_COMPONENT,
-          gl.UNSIGNED_SHORT,
+          isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
           null
         );
       } else {
         // 创建渲染缓冲区对象并设置其尺寸和参数
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
         this.depthRenderBuffer = gl.createRenderbuffer();
         gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16, width, height);
       }
 
       // 绑定颜色纹理
