@@ -7,7 +7,7 @@ import { GLTechnique } from "./GLTechnique";
  * 基于 VAO 的 GLPrimitive
  * */
 export class GLVAOPrimitive extends GLPrimitive {
-  private vao: Map<GLTechnique, WebGLVertexArrayObject>;
+  private vao: Map<number, WebGLVertexArrayObject>;
 
   constructor(rhi: GLRenderHardware, primitive: Primitive) {
     super(rhi, primitive);
@@ -31,7 +31,7 @@ export class GLVAOPrimitive extends GLPrimitive {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     this.disableAttrib();
 
-    this.vao.set(tech, vao);
+    this.vao.set(tech.cacheID, vao);
   }
 
   /**
@@ -46,10 +46,10 @@ export class GLVAOPrimitive extends GLPrimitive {
     this.prepareBuffers();
 
     /** draw */
-    if (!this.vao.has(tech)) {
+    if (!this.vao.has(tech.cacheID)) {
       this.registerVAO(tech);
     }
-    const vao = this.vao.get(tech);
+    const vao = this.vao.get(tech.cacheID);
     gl.bindVertexArray(vao);
     if (this._glIndexBuffer) {
       gl.drawElements(primitive.mode, primitive.indexCount, primitive.indexType, primitive.indexOffset);
