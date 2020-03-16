@@ -30,7 +30,7 @@ export type RenderTargetConfig = {
   isCube?: boolean;
 };
 
-export type React = { x: number; y: number; width: number; height: number };
+export type Rect = { x: number; y: number; width: number; height: number };
 
 export type TechniqueStates = {
   enable?: GLenum[];
