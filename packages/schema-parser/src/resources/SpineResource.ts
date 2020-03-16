@@ -1,8 +1,7 @@
 import { SchemaResource } from "./SchemaResource";
 import { BaseResource } from "./BaseResource";
-import { ResourceLoader, AssetManager } from "@alipay/o3";
+import { ResourceLoader, AssetManager, spine } from "@alipay/o3";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
-import { spine } from "@alipay/o3-spine";
 
 export class SpineResource extends SchemaResource {
   load(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<SpineResource> {
