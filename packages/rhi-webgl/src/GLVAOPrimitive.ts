@@ -15,7 +15,7 @@ export class GLVAOPrimitive extends GLPrimitive {
   }
 
   /** 注册 VAO */
-  registerVAO(tech: GLTechnique) {
+  private registerVAO(tech: GLTechnique) {
     const gl = this.rhi.gl;
     const vao = gl.createVertexArray();
 

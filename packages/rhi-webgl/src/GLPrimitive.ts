@@ -21,7 +21,7 @@ export class GLPrimitive extends GLAsset {
   }
 
   /** 创建并初始化 IBO、VBO */
-  initBuffers() {
+  protected initBuffers() {
     const gl = this.rhi.gl;
     const { indexBuffer, vertexBuffers, usage } = this._primitive;
 
@@ -49,7 +49,7 @@ export class GLPrimitive extends GLAsset {
    * @param {number} byteOffset - 更新 buffer 的偏移字节
    * @param {number} byteLength - 更新 buffer 的字节长度
    */
-  updateVertexBuffer(bufferIndex = 0, byteOffset = -1, byteLength = 0) {
+  protected updateVertexBuffer(bufferIndex = 0, byteOffset = -1, byteLength = 0) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
     const vertexBuffer = primitive.vertexBuffers[bufferIndex];
@@ -65,7 +65,7 @@ export class GLPrimitive extends GLAsset {
    * 更新 IBO
    * // todo: 更新部分
    * */
-  updateIndexBuffer() {
+  protected updateIndexBuffer() {
     const gl = this.rhi.gl;
     const indexBuffer = this._primitive.indexBuffer;
 
@@ -77,7 +77,7 @@ export class GLPrimitive extends GLAsset {
   /**
    * 绑定 Buffer 和 attribute
    * */
-  bindBufferAndAttrib(tech: GLTechnique) {
+  protected bindBufferAndAttrib(tech: GLTechnique) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
 
@@ -116,7 +116,7 @@ export class GLPrimitive extends GLAsset {
   /**
    * 初始化或更新 BufferObject
    * */
-  prepareBuffers() {
+  protected prepareBuffers() {
     const primitive = this._primitive;
 
     /** init BO or update VBO */
