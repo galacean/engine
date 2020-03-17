@@ -9,7 +9,7 @@ import { Texture } from "@alipay/o3-material";
  */
 export class GLTexture extends GLAsset {
   protected _gl;
-  private _glTexture;
+  private _glTexture: WebGLTexture;
   protected _config: Texture;
   protected _type;
   constructor(rhi: GLRenderHardware, config: Texture, type) {

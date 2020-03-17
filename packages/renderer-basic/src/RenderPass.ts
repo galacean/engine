@@ -1,4 +1,5 @@
 import { ClearMode, MaskList } from "@alipay/o3-base";
+import { RenderTarget } from "@alipay/o3-material";
 
 let passNum = 0;
 
@@ -9,7 +10,7 @@ class RenderPass {
   public name: string;
   public enabled: boolean;
   public priority: number;
-  public renderTarget;
+  public renderTarget: RenderTarget;
   public replaceMaterial;
   public mask: MaskList;
   public renderOverride: boolean;
