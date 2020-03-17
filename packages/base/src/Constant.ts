@@ -427,3 +427,11 @@ export enum GLCapabilityType {
   depthTexture = "WEBGL_depth_texture",
   drawBuffers = "WEBGL_draw_buffers"
 }
+
+/**
+ * GL 纹理格式
+ */
+export enum GLTextureFormat {
+  RGB = 6407,
+  RGBA = 6408
+}
