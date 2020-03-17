@@ -99,7 +99,7 @@ export class GLRenderTarget extends GLAsset {
   }
 
   /** 初始化硬件层 MSAA  */
-  initMSAA() {
+  private initMSAA() {
     const gl = this.rhi.gl;
     const { width, height, samples } = this.renderTarget;
 
@@ -148,7 +148,7 @@ export class GLRenderTarget extends GLAsset {
   /** 初始化 RenderTarget
    * @private
    */
-  initialize() {
+  private initialize() {
     const gl = this.rhi.gl;
     const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
     const isWebGL2 = this.rhi.isWebGL2;
