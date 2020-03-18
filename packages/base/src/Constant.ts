@@ -424,5 +424,6 @@ export enum GLCapabilityType {
   standardDerivatives = "OES_standard_derivatives",
   shaderTextureLod = "EXT_shader_texture_lod",
   elementIndexUint = "OES_element_index_uint",
-  depthTexture = "WEBGL_depth_texture"
+  depthTexture = "WEBGL_depth_texture",
+  vertexArrayObject = "OES_vertex_array_object"
 }
