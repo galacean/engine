@@ -3,7 +3,7 @@ import { NodeAbility } from "@alipay/o3-core";
 import { MeshBatcher } from "./core/MeshBatcher";
 import { spine } from "@alipay/spine-core";
 
-const { Skeleton, AnimationStateData, AnimationState, SkeletonData } = spine;
+const { Skeleton, AnimationStateData, AnimationState, RegionAttachment, MeshAttachment } = spine;
 
 export class ASpineRenderer extends NodeAbility {
   skeleton;
@@ -97,9 +97,9 @@ export class ASpineRenderer extends NodeAbility {
       let attachment = slot.getAttachment();
       if (!attachment) {
         continue;
-      } else if (attachment.constructor.name === "RegionAttachment") {
+      } else if (attachment instanceof RegionAttachment) {
         vertexCount += ASpineRenderer.QUAD_TRIANGLES.length;
-      } else if (attachment.constructor.name === "MeshAttachment") {
+      } else if (attachment instanceof MeshAttachment) {
         let mesh = attachment;
         vertexCount += mesh.triangles.length;
       } else continue;
@@ -166,7 +166,7 @@ export class ASpineRenderer extends NodeAbility {
       let numFloats = 0;
       if (!attachment) {
         continue;
-      } else if (attachment.constructor.name === "RegionAttachment") {
+      } else if (attachment instanceof RegionAttachment) {
         let region = attachment;
         attachmentColor = region.color;
         vertices = this.vertices;
@@ -175,7 +175,7 @@ export class ASpineRenderer extends NodeAbility {
         triangles = ASpineRenderer.QUAD_TRIANGLES;
         uvs = region.uvs;
         texture = region.region.renderObject.texture;
-      } else if (attachment.constructor.name === "MeshAttachment") {
+      } else if (attachment instanceof MeshAttachment) {
         let mesh = attachment;
         attachmentColor = mesh.color;
         vertices = this.vertices;
