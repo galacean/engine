@@ -27,7 +27,7 @@ void RE_Direct_Physical( const in IncidentLight directLight, const in GeometricC
 
     void getDirectionalDirectLightIrradiance( const in DirectLight directionalLight, const in GeometricContext geometry, out IncidentLight directLight ) {
         directLight.color = directionalLight.lightColor;
-        directLight.direction = directionalLight.direction;
+        directLight.direction = -directionalLight.direction;
         directLight.visible = true;
     }
 
