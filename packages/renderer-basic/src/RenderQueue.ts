@@ -124,7 +124,7 @@ export class RenderQueue {
       return;
     }
 
-    this.updateMaxJointsNum(this._items);
+    this.updateMaxJointsNum(this._items, replaceMaterial);
 
     for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
@@ -157,14 +157,16 @@ export class RenderQueue {
   /**
    * 更新当前 renderQueue 中各个材质的最大骨骼节点数
    * @param items
+   * @param {Material} replaceMaterial
    */
-  updateMaxJointsNum(items) {
+  updateMaxJointsNum(items, replaceMaterial: Material) {
     for (let i = 0, len = items.length; i < len; i++) {
       const { nodeAbility, mtl } = items[i];
 
+      const materialControl = replaceMaterial ? replaceMaterial : mtl;
       // 仅当 nodeAbility 为 ASkinnedMeshRenderer 时需要计算
       if (nodeAbility.jointNodes) {
-        mtl.maxJointsNum = Math.max(mtl.maxJointsNum, nodeAbility.jointNodes.length);
+        materialControl.maxJointsNum = Math.max(materialControl.maxJointsNum, nodeAbility.jointNodes.length);
       }
     }
   }
