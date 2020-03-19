@@ -3,13 +3,6 @@ import { Texture2D } from "./Texture2D";
 import { RenderTargetConfig } from "./type";
 import { RenderTarget } from "./RenderTarget";
 
-const textureConfig = {
-  magFilter: TextureFilter.NEAREST,
-  minFilter: TextureFilter.NEAREST,
-  wrapS: TextureWrapMode.CLAMP_TO_EDGE,
-  wrapT: TextureWrapMode.CLAMP_TO_EDGE
-};
-
 /**
  * 渲染目标，3D场景中的物体可以选择直接绘制到屏幕上，也可以选择渲染到一个 RenderTarget 上。
  * config.isCube= true时  - 渲染到 RenderTarget 上的内容可以作为纹理（Texture2D）供其他渲染环节使用。
@@ -17,11 +10,6 @@ const textureConfig = {
  * @class
  */
 export class MultiRenderTarget extends RenderTarget {
-  public readonly width: number;
-  public readonly height: number;
-  public readonly clearColor: Array<number>;
-
-  private _depthTexture: Texture2D;
   private _textures: Texture2D[] = [];
 
   /**
@@ -36,7 +24,7 @@ export class MultiRenderTarget extends RenderTarget {
     super(name, { ...config, isMulti: true });
 
     if (config.enableDepthTexture) {
-      this._depthTexture = new Texture2D("depth_texture", null, textureConfig);
+      this.depthTexture = new Texture2D("depth_texture", null, this.textureConfig);
     }
   }
 
@@ -46,9 +34,5 @@ export class MultiRenderTarget extends RenderTarget {
 
   public addTexColor(texture: Texture2D): void {
     this._textures.push(texture);
-  }
-
-  public get depthTexture(): Texture2D {
-    return this._depthTexture;
   }
 }
