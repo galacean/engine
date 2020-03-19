@@ -1,5 +1,5 @@
 import { Logger, ClearMode, GLCapabilityType } from "@alipay/o3-base";
-import { RenderTarget, MultiRenderTarget } from "@alipay/o3-material";
+import { RenderTarget } from "@alipay/o3-material";
 import { RHIOption } from "@alipay/o3-core/types/type";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAssetsCache } from "./GLAssetsCache";

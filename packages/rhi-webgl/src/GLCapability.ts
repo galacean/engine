@@ -37,11 +37,24 @@ export class GLCapability {
    * */
   private init() {
     const cap = this.capabilityList;
-    const { isWebGL2 } = this.rhi;
+    const { isWebGL2, requireExtension } = this.rhi;
+    const {
+      standardDerivatives,
+      shaderTextureLod,
+      elementIndexUint,
+      depthTexture,
+      vertexArrayObject,
+      multipleSample,
+      drawBuffers
+    } = GLCapabilityType;
 
-    for (let key in GLCapabilityType) {
-      cap.set(GLCapabilityType[key], isWebGL2 || !!this.rhi.requireExtension(GLCapabilityType[key]));
-    }
+    cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
+    cap.set(shaderTextureLod, isWebGL2 || !!requireExtension(shaderTextureLod));
+    cap.set(elementIndexUint, isWebGL2 || !!requireExtension(elementIndexUint));
+    cap.set(depthTexture, isWebGL2 || !!requireExtension(depthTexture));
+    cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
+    cap.set(multipleSample, isWebGL2);
+    cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
   }
 
   /**
