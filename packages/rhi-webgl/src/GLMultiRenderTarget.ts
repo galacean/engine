@@ -1,6 +1,5 @@
-import { GLAsset } from "./GLAsset";
 import { GLRenderHardware } from "./GLRenderHardware";
-import { MultiRenderTarget, Texture2D } from "@alipay/o3-material";
+import { MultiRenderTarget } from "@alipay/o3-material";
 import { GLCapabilityType } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLRenderTarget } from "./GLRenderTarget";
@@ -18,8 +17,12 @@ export class GLMultiRenderTarget extends GLRenderTarget {
     }
 
     config.textures.forEach((texture, index) => {
-      this._glTextures.push(this.initColorTexture(texture, this.getAttachmentIndex(index)));
+      const glIndex = this.getAttachmentIndex(index);
+      this._glTextures.push(this.initColorTexture(texture, glIndex));
+      this.buffers.push(glIndex);
     });
+
+    this.checkFrameBuffer();
 
     this.drawBuffers();
   }
