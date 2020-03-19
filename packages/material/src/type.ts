@@ -19,6 +19,7 @@ export type TextureConfig = {
   uvRotation?: number;
   /** 纹理中心点 */
   uvCenter?: number[];
+  format?: GLenum;
   [key: string]: any;
 };
 
@@ -28,6 +29,9 @@ export type RenderTargetConfig = {
   clearColor?;
   enableDepthTexture?: boolean;
   isCube?: boolean;
+  /** WebGL2 时，可以开启硬件层的 MSAA */
+  samples?: number;
+  isMulti?: boolean;
 };
 
 export type Rect = { x: number; y: number; width: number; height: number };

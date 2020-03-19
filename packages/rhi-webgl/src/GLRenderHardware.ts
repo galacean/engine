@@ -1,5 +1,5 @@
 import { Logger, ClearMode, GLCapabilityType } from "@alipay/o3-base";
-import { RenderTarget } from "@alipay/o3-material";
+import { RenderTarget, MultiRenderTarget } from "@alipay/o3-material";
 import { RHIOption } from "@alipay/o3-core/types/type";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAssetsCache } from "./GLAssetsCache";
@@ -9,6 +9,8 @@ import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLExtensions } from "./GLExtensions";
 import { GLCapability } from "./GLCapability";
+import { ACamera } from "@alipay/o3-core";
+import { GLMultiRenderTarget } from "./GLMultiRenderTarget";
 
 /**
  * GPU 硬件抽象层的 WebGL 的实现
@@ -23,10 +25,11 @@ export class GLRenderHardware {
   private _frameCount: number;
   private _spriteBatcher;
   private _capability: GLCapability;
+  private _isWebGL2: boolean;
 
   /** 当前 RHI 是否为 WebGL 2.0 */
   get isWebGL2() {
-    return window.hasOwnProperty("WebGL2RenderingContext") && this.gl instanceof WebGL2RenderingContext;
+    return this._isWebGL2;
   }
 
   constructor(canvas: HTMLCanvasElement, option: RHIOption) {
@@ -41,12 +44,14 @@ export class GLRenderHardware {
       this._gl = <WebGL2RenderingContext>(
         (this._canvas.getContext("webgl2", option) || this._canvas.getContext("experimental-webgl2", option))
       );
+      this._isWebGL2 = true;
     }
 
     if (!this._gl) {
       this._gl = <WebGLRenderingContext>(
         (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
       );
+      this._isWebGL2 = false;
     }
 
     if (!this._gl) {
@@ -233,6 +238,17 @@ export class GLRenderHardware {
   activeRenderTarget(renderTarget: RenderTarget, camera) {
     if (renderTarget) {
       const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
+      glRenderTarget.activeRenderTarget();
+    } else {
+      const gl = this._gl;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(camera.viewport[0], camera.viewport[1], camera.viewport[2], camera.viewport[3]);
+    }
+  }
+
+  activeMultiRenderTarget(renderTarget: MultiRenderTarget, camera: ACamera) {
+    if (renderTarget) {
+      const glRenderTarget: GLMultiRenderTarget = this._assetsCache.requireObject(renderTarget, GLMultiRenderTarget);
       glRenderTarget.activeRenderTarget();
     } else {
       const gl = this._gl;
