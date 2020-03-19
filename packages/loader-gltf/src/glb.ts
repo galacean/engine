@@ -178,7 +178,7 @@ class GLBHandler {
    */
   open(resource) {
     // start parse glTF json
-    parseGLTF(resource);
+    return parseGLTF(resource);
   }
 }
 
