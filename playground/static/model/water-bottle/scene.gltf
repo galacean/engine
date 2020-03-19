@@ -176,9 +176,9 @@
 		},
 		{
 			"pbrMetallicRoughness": {
-				"baseColorFactor": [1, 1, 1, 0.3],
-				"metallicFactor": 0.981,
-				"roughnessFactor": 0.067
+				"baseColorFactor": [1, 1, 1, 0.35],
+				"metallicFactor": 1,
+				"roughnessFactor": 0
 				},
 			"alphaMode": "BLEND",
 			"emissiveFactor": [0.6886792, 0.6886792, 0.6886792],

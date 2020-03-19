@@ -151,7 +151,6 @@ export class GLRenderTarget extends GLAsset {
    */
   private initialize() {
     const gl = this.rhi.gl;
-
     /** 用户输入的采样数 */
     let samples = this.renderTarget.samples;
     /** 实际采样数 */

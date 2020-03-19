@@ -4,6 +4,7 @@ import { RHIOption } from "@alipay/o3-core/types/type";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLPrimitive } from "./GLPrimitive";
+import { GLVAOPrimitive } from "./GLVAOPrimitive";
 import { GLTechnique } from "./GLTechnique";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
@@ -11,6 +12,7 @@ import { GLExtensions } from "./GLExtensions";
 import { GLCapability } from "./GLCapability";
 import { ACamera } from "@alipay/o3-core";
 import { GLMultiRenderTarget } from "./GLMultiRenderTarget";
+import { WebGLExtension } from "./type";
 
 /**
  * GPU 硬件抽象层的 WebGL 的实现
@@ -18,7 +20,7 @@ import { GLMultiRenderTarget } from "./GLMultiRenderTarget";
  */
 export class GLRenderHardware {
   private _canvas: HTMLCanvasElement;
-  private _gl: WebGLRenderingContext | WebGL2RenderingContext;
+  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _assetsCache: GLAssetsCache;
   private _extensions;
@@ -48,7 +50,7 @@ export class GLRenderHardware {
     }
 
     if (!this._gl) {
-      this._gl = <WebGLRenderingContext>(
+      this._gl = <WebGLRenderingContext & WebGLExtension>(
         (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
       );
       this._isWebGL2 = false;
@@ -192,7 +194,10 @@ export class GLRenderHardware {
    * @param {Material} mtl
    */
   drawPrimitive(primitive, mtl) {
-    const glPrimitive = this._assetsCache.requireObject(primitive, GLPrimitive);
+    const glPrimitive = this._assetsCache.requireObject(
+      primitive,
+      this.canIUse(GLCapabilityType.vertexArrayObject) ? GLVAOPrimitive : GLPrimitive
+    );
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
     if (glPrimitive && glTech) {
@@ -254,6 +259,14 @@ export class GLRenderHardware {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(camera.viewport[0], camera.viewport[1], camera.viewport[2], camera.viewport[3]);
+    }
+  }
+
+  /** blit FBO */
+  blitRenderTarget(renderTarget: RenderTarget) {
+    if (renderTarget) {
+      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
+      glRenderTarget.blitRenderTarget();
     }
   }
 

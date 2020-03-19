@@ -74,6 +74,12 @@ export class CubeProbe extends Probe {
 
       // render
       super.render();
+
+      // MSAA need to blit
+      // 6'th face will blit in pipeline
+      if (faceIndex < 5) {
+        this.rhi.blitRenderTarget(this.renderPass.renderTarget);
+      }
     }
   }
 
@@ -127,11 +133,7 @@ export class CubeProbe extends Probe {
   }
 
   public set size(size: number) {
-    this.renderTarget.width = size;
-    this.renderTarget.height = size;
-    this.renderTargetSwap.width = size;
-    this.renderTargetSwap.height = size;
-    this.renderTarget.needRecreate = true;
-    this.renderTargetSwap.needRecreate = true;
+    this.renderTarget.width = this.renderTargetSwap.width = this.renderTarget.height = this.renderTargetSwap.height = size;
+    this.renderTarget.needRecreate = this.renderTargetSwap.needRecreate = true;
   }
 }

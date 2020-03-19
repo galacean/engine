@@ -20,7 +20,7 @@ export class GLCapability {
 
     this.init();
     // 抹平接口差异
-    this.compatibleAll();
+    this.compatibleAllInterface();
   }
 
   /**
@@ -30,15 +30,28 @@ export class GLCapability {
     return this.capabilityList.get(capabilityType);
   }
 
+  /**
+   *  初始化能力
+   * */
   private init() {
     const cap = this.capabilityList;
-    const rhi = this.rhi;
-    const { standardDerivatives, shaderTextureLod, elementIndexUint, depthTexture } = GLCapabilityType;
+    const { isWebGL2, requireExtension } = this.rhi;
+    const {
+      standardDerivatives,
+      shaderTextureLod,
+      elementIndexUint,
+      depthTexture,
+      vertexArrayObject,
+      multipleSample
+    } = GLCapabilityType;
 
-    cap.set(standardDerivatives, rhi.isWebGL2 || !!rhi.requireExtension(standardDerivatives));
-    cap.set(shaderTextureLod, rhi.isWebGL2 || !!rhi.requireExtension(shaderTextureLod));
-    cap.set(elementIndexUint, rhi.isWebGL2 || !!rhi.requireExtension(elementIndexUint));
-    cap.set(depthTexture, rhi.isWebGL2 || !!rhi.requireExtension(depthTexture));
+    cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
+    cap.set(shaderTextureLod, isWebGL2 || !!requireExtension(shaderTextureLod));
+    cap.set(elementIndexUint, isWebGL2 || !!requireExtension(elementIndexUint));
+    cap.set(depthTexture, isWebGL2 || !!requireExtension(depthTexture));
+    cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
+
+    cap.set(multipleSample, isWebGL2);
   }
 
   /**
@@ -49,7 +62,7 @@ export class GLCapability {
    * })
    * 满足条件时， gl.UNSIGNED_INT_24_8 = ext.UNSIGNED_INT_24_8_WEBGL
    * */
-  private compatible(capabilityType: GLCapabilityType, flatItem: { [glKey: string]: extensionKey }) {
+  private compatibleInterface(capabilityType: GLCapabilityType, flatItem: { [glKey: string]: extensionKey }) {
     const rhi = this.rhi;
     const gl = rhi.gl;
     let ext = null;
@@ -70,12 +83,18 @@ export class GLCapability {
   }
 
   /** 兼容 WebGL 1和 WebGL 2,抹平接口差异 */
-  private compatibleAll() {
+  private compatibleAllInterface() {
     // 需要兼容的能力
-    const { depthTexture } = GLCapabilityType;
+    const { depthTexture, vertexArrayObject } = GLCapabilityType;
 
-    this.compatible(depthTexture, {
+    this.compatibleInterface(depthTexture, {
       UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
+    });
+    this.compatibleInterface(vertexArrayObject, {
+      createVertexArray: "createVertexArrayOES",
+      deleteVertexArray: "deleteVertexArrayOES",
+      isVertexArray: "isVertexArrayOES",
+      bindVertexArray: "bindVertexArrayOES"
     });
   }
 }
