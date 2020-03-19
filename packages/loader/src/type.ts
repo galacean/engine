@@ -1,13 +1,22 @@
 import { Resource } from "./Resource";
 
-export type ResType = "texture" | "technique" | "image" | "video" | "cubemap" | "canvastexture" | "gltf" | "glb";
+export type ResType =
+  | "texture"
+  | "technique"
+  | "image"
+  | "video"
+  | "cubemap"
+  | "canvastexture"
+  | "gltf"
+  | "glb"
+  | "binary";
 export type HandlerType = "image" | "video";
 export type Prop = { [key: string]: any };
 export type Engine = any;
 export type Handler = {
   [key: string]: any;
   load: (request: Request, props: Prop, callback: HandlerCb) => void;
-  open: (resource: Resource) => void;
+  open: (resource: Resource) => void | Promise<any>;
   patch?: (resource: Resource, resources: { [key: string]: Array<Resource> }) => void;
 };
 export type Request = {

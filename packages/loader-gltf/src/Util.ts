@@ -56,6 +56,22 @@ export function getAccessorTypeSize(accessorType) {
   return ACCESSOR_TYPE_SIZE[accessorType];
 }
 
+/** 获取 component type 对应的 TypedArray
+ * @return {function}
+ * @param {string} componentType
+ */
+export function getComponentType(componentType) {
+  const WEBGL_COMPONENT_TYPES = {
+    5120: Int8Array,
+    5121: Uint8Array,
+    5122: Int16Array,
+    5123: Uint16Array,
+    5125: Uint32Array,
+    5126: Float32Array
+  };
+  return WEBGL_COMPONENT_TYPES[componentType];
+}
+
 /**
  * 获取 accessor 数据
  * @param gltf
@@ -71,22 +87,22 @@ export function getAccessorData(gltf, accessor, buffers) {
   const byteOffset = accessorByteOffset + bufferViewByteOffset;
   const length = getAccessorTypeSize(accessor.type) * accessor.count;
 
-  const CTOR_MAP = {
-    // 5120 (BYTE)	1
-    // 5121(UNSIGNED_BYTE)	1
-    // 5122 (SHORT)	2
-    // 5123 (UNSIGNED_SHORT)	2
-    // 5125 (UNSIGNED_INT)	4
-    // 5126 (FLOAT)	4
-    5120: Int8Array,
-    5121: Uint8Array,
-    5122: Int16Array,
-    5123: Uint16Array,
-    5125: Uint32Array,
-    5126: Float32Array
-  };
+  // const CTOR_MAP = {
+  //   // 5120 (BYTE)	1
+  //   // 5121(UNSIGNED_BYTE)	1
+  //   // 5122 (SHORT)	2
+  //   // 5123 (UNSIGNED_SHORT)	2
+  //   // 5125 (UNSIGNED_INT)	4
+  //   // 5126 (FLOAT)	4
+  //   5120: Int8Array,
+  //   5121: Uint8Array,
+  //   5122: Int16Array,
+  //   5123: Uint16Array,
+  //   5125: Uint32Array,
+  //   5126: Float32Array
+  // };
 
-  const arrayType = CTOR_MAP[accessor.componentType];
+  const arrayType = getComponentType(accessor.componentType);
   let uin8Array = new Uint8Array(arrayBuffer, byteOffset, length * arrayType.BYTES_PER_ELEMENT);
   uin8Array = new Uint8Array(uin8Array);
   return new arrayType(uin8Array.buffer);
