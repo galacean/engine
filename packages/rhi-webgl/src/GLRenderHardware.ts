@@ -240,20 +240,10 @@ export class GLRenderHardware {
    * 激活指定的RenderTarget
    * @param {RenderTarget} renderTarget  需要被激活的RenderTarget对象，如果未设置，则渲染到屏幕帧
    */
-  activeRenderTarget(renderTarget: RenderTarget, camera) {
+  activeRenderTarget(renderTarget: RenderTarget, camera: ACamera) {
     if (renderTarget) {
-      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
-      glRenderTarget.activeRenderTarget();
-    } else {
-      const gl = this._gl;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(camera.viewport[0], camera.viewport[1], camera.viewport[2], camera.viewport[3]);
-    }
-  }
-
-  activeMultiRenderTarget(renderTarget: MultiRenderTarget, camera: ACamera) {
-    if (renderTarget) {
-      const glRenderTarget: GLMultiRenderTarget = this._assetsCache.requireObject(renderTarget, GLMultiRenderTarget);
+      const TargetClazz = renderTarget.isMulti ? GLMultiRenderTarget : GLRenderTarget;
+      const glRenderTarget = this._assetsCache.requireObject(renderTarget, TargetClazz);
       glRenderTarget.activeRenderTarget();
     } else {
       const gl = this._gl;

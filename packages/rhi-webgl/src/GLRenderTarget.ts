@@ -25,7 +25,6 @@ export class GLRenderTarget extends GLAsset {
   private MSAAFrameBuffer: WebGLFramebuffer;
   private MSAAColorRenderBuffer: WebGLRenderbuffer;
   private MSAADepthRenderBuffer: WebGLRenderbuffer;
-  protected isMulti = false;
 
   constructor(rhi: GLRenderHardware, renderTarget: RenderTarget) {
     super(rhi, renderTarget);
@@ -162,7 +161,7 @@ export class GLRenderTarget extends GLAsset {
     this.frameBuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 
-    this.isMulti || this.initTexture();
+    this.renderTarget.isMulti || this.initTexture();
   }
 
   protected initTexture() {

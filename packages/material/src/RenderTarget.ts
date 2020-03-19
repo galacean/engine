@@ -31,6 +31,10 @@ export class RenderTarget extends AssetObject {
     this.needRecreate = true;
   }
 
+  public get isMulti(): boolean {
+    return this.config.isMulti;
+  }
+
   protected textureConfig = {
     magFilter: TextureFilter.LINEAR,
     minFilter: TextureFilter.LINEAR,
