@@ -8,6 +8,7 @@ import babel from "rollup-plugin-babel";
 import string from "@ali/rollup-plugin-string";
 import { terser } from "rollup-plugin-terser";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
+import binary2base64 from "./rollup.binary2base64.plugin";
 
 const readFile = promisify(fs.readFile);
 
@@ -59,7 +60,10 @@ async function makeRollupConfig({ location, main, name, type }) {
   const commonPlugins = [
     resolve({ extensions, preferBuiltins: true }),
     string({
-      include: /\.glsl$/
+      include: [/\.glsl$/, "packages/**/worker/**/*.js", "packages/**/string/**/*.js"]
+    }),
+    binary2base64({
+      include: [/\.wasm$/]
     }),
     babel({
       extensions,
