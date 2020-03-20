@@ -1,112 +1,68 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
-import { union } from "../utils";
-import { TechniqueStates, Uniforms, Attributes } from "@alipay/o3";
-
-interface IResourceShaderDefine {
-  vertexShader?: string;
-  fragmentShader?: string;
-  states?: TechniqueStates;
-  uniforms?: Uniforms;
-  attributes?: Attributes;
-  isValid?: boolean;
-}
+import { ShaderMatrial } from "./ShaderMaterial";
 
 export class ShaderMaterialResource extends SchemaResource {
-  private shaderDefine: IResourceShaderDefine = {
-    vertexShader: "",
-    fragmentShader: "",
-    states: {
-      enable: [],
-      disable: [],
-      functions: {
-        blendFunc: [o3.BlendFunc.SRC_ALPHA, o3.BlendFunc.ONE_MINUS_SRC_ALPHA]
-      }
-    },
-    uniforms: {},
-    attributes: {},
-    isValid: true
-  };
+  private scripts: Array<any>;
 
-  private initShaderDefines(assetConfig) {
-    const { isValid, blend, blendSrcFactor, blendDstFactor, doubleSide, depthTest } = assetConfig.props;
-    this.isValid = isValid;
-    this.blend = blend;
-    this.blendSrcFactor = blendSrcFactor;
-    this.blendDstFactor = blendDstFactor;
-    this.doubleSide = doubleSide;
-    this.depthTest = depthTest;
-
+  private loadShaderDefine() {
     return new Promise(resolve => {
-      if (!this.resourceManager.isLocal) {
-        const config = assetConfig as any;
-        const name = config.props.scripts[0].name;
-        const scriptDom = document.createElement("script");
-        scriptDom.crossOrigin = "anonymous";
-        this.setMeta(assetConfig);
-        scriptDom.onload = () => {
-          const scripts = (window as any).o3Scripts;
-          const shaderMaterialDefine = (scripts && scripts[name]) || {};
-
-          const {
-            vertexShader = "",
-            fragmentShader = "",
-            states = {},
-            uniforms = {},
-            attributes = {}
-          } = shaderMaterialDefine;
-          const { enable = [], disable = [], functions = {} } = states;
-          states.enable = union(enable, this.shaderDefine.states.enable);
-          states.disable = union(disable, this.shaderDefine.states.disable);
-          states.functions = Object.assign({}, this.shaderDefine.states.functions, functions);
-
-          this.shaderDefine = {
-            vertexShader,
-            fragmentShader,
-            states,
-            uniforms: Object.assign({}, ShaderMaterialResource.commonUniforms, uniforms),
-            attributes
-          };
-
-          resolve();
-        };
-        scriptDom.src = assetConfig.url;
-        document.body.appendChild(scriptDom);
-      } else {
+      if (this.resourceManager.isLocal) {
         resolve();
+        return;
       }
+      const name = this.scripts[0].name;
+
+      const oldScriptDom = document.getElementById(name);
+      if (oldScriptDom) {
+        document.body.removeChild(oldScriptDom);
+      }
+
+      const scriptDom = document.createElement("script");
+      scriptDom.crossOrigin = "anonymous";
+      scriptDom.onload = () => {
+        const scripts = (window as any).o3Scripts;
+        const shaderMaterialDefine = (scripts && scripts[name]) || {};
+
+        const {
+          vertexShader = "",
+          fragmentShader = "",
+          states = {},
+          uniforms = {},
+          attributes = {}
+        } = shaderMaterialDefine;
+        this._resource.uniforms = uniforms;
+        this._resource.attributes = attributes;
+        this._resource.vertexShader = vertexShader;
+        this._resource.fragmentShader = fragmentShader;
+        this._resource.renderStates = states;
+        resolve();
+      };
+      scriptDom.id = name;
+      scriptDom.src = this._meta.url;
+      document.body.appendChild(scriptDom);
     });
   }
 
   private createMaterial() {
-    const tech = this.createTechnique();
-    const material = new o3.Material(this.meta.name || "shader_mtl");
-    material.technique = tech;
+    const material = new ShaderMatrial(this.meta.name || "shader_mtl");
     this._resource = material;
   }
 
-  private createTechnique() {
-    const { vertexShader, fragmentShader, states, uniforms, attributes, isValid } = this.shaderDefine;
-
-    const tech = new o3.RenderTechnique("my_tech");
-    tech.isValid = isValid;
-    tech.uniforms = uniforms;
-    tech.attributes = attributes;
-    tech.vertexShader = vertexShader;
-    tech.fragmentShader = fragmentShader;
-    tech.states = states;
-    return tech;
-  }
-
   load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<ShaderMaterialResource> {
-    return this.initShaderDefines(assetConfig).then(
+    this.setMeta(assetConfig);
+    this.scripts = assetConfig.props.scripts;
+    this.createMaterial();
+
+    return this.loadShaderDefine().then(
       () =>
         new Promise((resolve, reject) => {
           try {
-            this.createMaterial();
-            const { transparent } = assetConfig.props;
-            this.transparent = transparent;
+            for (let k in assetConfig.props) {
+              this._resource[k] = assetConfig.props[k];
+            }
+            this._resource.updateTechnique();
             resolve(this);
           } catch {
             reject("[shader material] createTechnique error");
@@ -123,71 +79,21 @@ export class ShaderMaterialResource extends SchemaResource {
     }
   }
 
+  updateMeta(key: string, value: any) {
+    super.updateMeta(key, value);
+    if (key === "url") {
+      this.loadShaderDefine().then(() => {
+        try {
+          this._resource.updateTechnique();
+        } catch {
+          console.error("[shader material] createTechnique error");
+        }
+      });
+    }
+  }
+
   update(key: string, value: any) {
-    const shaderMaterialResource = this;
-    shaderMaterialResource[key] = value;
+    this._resource[key] = value;
+    this._resource.updateTechnique();
   }
-
-  private _addState(key: string, state: Array<any>) {
-    const { states } = this.shaderDefine;
-    this.shaderDefine.states[key] = union(states.disable, state);
-  }
-
-  private _removeState(key: string, state: any) {
-    const { states } = this.shaderDefine;
-    this.shaderDefine.states[key] = states.disable.filter(value => value !== state);
-  }
-
-  set transparent(value: boolean) {
-    this._resource.transparent = value;
-  }
-
-  set isValid(value: boolean) {
-    this.shaderDefine.isValid = value;
-  }
-
-  set blend(value: boolean) {
-    if (value) {
-      this._addState("enable", [o3.RenderState.BLEND]);
-    } else {
-      this._removeState("enable", o3.RenderState.BLEND);
-    }
-  }
-
-  set blendSrcFactor(value: string) {
-    this.shaderDefine.states.functions.blendFunc[0] = value;
-  }
-
-  set blendDstFactor(value: string) {
-    this.shaderDefine.states.functions.blendFunc[1] = value;
-  }
-
-  set doubleSide(value: boolean) {
-    if (value) {
-      this._addState("disable", [o3.RenderState.CULL_FACE]);
-    } else {
-      this._removeState("disable", o3.RenderState.CULL_FACE);
-    }
-  }
-
-  set depthTest(value: boolean) {
-    if (!value) {
-      this._addState("disable", [o3.RenderState.DEPTH_TEST]);
-    } else {
-      this._removeState("disable", o3.RenderState.DEPTH_TEST);
-    }
-  }
-
-  static commonUniforms = {
-    matModelViewProjection: {
-      name: "matModelViewProjection",
-      semantic: o3.UniformSemantic.MODELVIEWPROJECTION,
-      type: o3.DataType.FLOAT_MAT4
-    },
-    matModelView: {
-      name: "matModelView",
-      semantic: o3.UniformSemantic.MODELVIEW,
-      type: o3.DataType.FLOAT_MAT4
-    }
-  };
 }
