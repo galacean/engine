@@ -16,10 +16,10 @@
   },
   "license": "MIT",
   "scripts": {
-    "b:types": "tsc",
+    "b:types": "echo 'hi'",
     "lint:fix": "tslint --fix --project ./tsconfig.json"
   },
-  "types": "types/index.d.ts",
+  "types": "index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "publishConfig": {
