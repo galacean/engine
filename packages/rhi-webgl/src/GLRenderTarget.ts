@@ -38,7 +38,7 @@ export class GLRenderTarget extends GLAsset {
    */
   public activeRenderTarget() {
     const gl = this.rhi.gl;
-    const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
+    const { width, height, isMulti } = this.renderTarget;
 
     if (this.MSAAFrameBuffer) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.MSAAFrameBuffer);
@@ -46,7 +46,11 @@ export class GLRenderTarget extends GLAsset {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
     }
     gl.viewport(0.0, 0.0, width, height);
+    !isMulti && this.activeTexture();
+  }
 
+  private activeTexture() {
+    const { texture, cubeTexture, depthTexture } = this.renderTarget;
     // 激活一下Texture资源, 否则可能会被释放掉
     if (cubeTexture) {
       this.rhi.assetsCache.requireObject(cubeTexture, GLTextureCubeMap);
