@@ -283,6 +283,7 @@ let node = rootNode.createChild("gltf_node");
 resourceLoader.batchLoad([gltfRes, diffuseMapRes, specularMapRes, environmentMapRes], (err, res) => {
   const glb = res[0];
   const nodes = glb.asset.rootScene.nodes;
+  console.log(nodes);
   nodes.forEach(n => {
     node.addChild(n);
   });

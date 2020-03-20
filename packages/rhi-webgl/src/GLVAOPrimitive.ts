@@ -1,3 +1,11 @@
+/*
+ * @Author: your name
+ * @Date: 2020-03-18 15:42:32
+ * @LastEditTime: 2020-03-19 20:39:20
+ * @LastEditors: Please set LastEditors
+ * @Description: In User Settings Edit
+ * @FilePath: /oasis3d/packages/rhi-webgl/src/GLVAOPrimitive.ts
+ */
 import { GLPrimitive } from "./GLPrimitive";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { Primitive } from "@alipay/o3-primitive";
@@ -45,17 +53,19 @@ export class GLVAOPrimitive extends GLPrimitive {
     /** prepare BO */
     this.prepareBuffers();
 
-    /** draw */
+    /** render */
     if (!this.vao.has(tech.cacheID)) {
       this.registerVAO(tech);
     }
     const vao = this.vao.get(tech.cacheID);
     gl.bindVertexArray(vao);
-    if (this._glIndexBuffer) {
-      gl.drawElements(primitive.mode, primitive.indexCount, primitive.indexType, primitive.indexOffset);
+
+    if (primitive.isInstanced) {
+      this._renderer.renderInstances(primitive, this._glIndexBuffer);
     } else {
-      gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
+      this._renderer.render(primitive, this._glIndexBuffer);
     }
+
     gl.bindVertexArray(null);
   }
 

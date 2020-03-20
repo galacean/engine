@@ -41,7 +41,8 @@ export class GLCapability {
       shaderTextureLod,
       elementIndexUint,
       depthTexture,
-      vertexArrayObject
+      vertexArrayObject,
+      instancedArrays
     } = GLCapabilityType;
 
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
@@ -49,6 +50,7 @@ export class GLCapability {
     cap.set(elementIndexUint, isWebGL2 || !!requireExtension(elementIndexUint));
     cap.set(depthTexture, isWebGL2 || !!requireExtension(depthTexture));
     cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
+    cap.set(instancedArrays, isWebGL2 || !!requireExtension(instancedArrays));
   }
 
   /**
@@ -82,7 +84,7 @@ export class GLCapability {
   /** 兼容 WebGL 1和 WebGL 2,抹平接口差异 */
   private compatibleAllInterface() {
     // 需要兼容的能力
-    const { depthTexture, vertexArrayObject } = GLCapabilityType;
+    const { depthTexture, vertexArrayObject, instancedArrays } = GLCapabilityType;
 
     this.compatibleInterface(depthTexture, {
       UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
@@ -92,6 +94,11 @@ export class GLCapability {
       deleteVertexArray: "deleteVertexArrayOES",
       isVertexArray: "isVertexArrayOES",
       bindVertexArray: "bindVertexArrayOES"
+    });
+    this.compatibleInterface(instancedArrays, {
+      drawArraysInstanced: "drawArraysInstancedANGLE",
+      drawElementsInstanced: "drawElementsInstancedANGLE",
+      vertexAttribDivisor: "vertexAttribDivisorANGLE"
     });
   }
 }

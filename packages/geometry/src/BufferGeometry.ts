@@ -54,15 +54,10 @@ export class BufferGeometry extends AssetObject {
 
     for (let i = 0; i < attribCount; i++) {
       const attribute = attributes[i];
-      this.primitive.addAttribute(
-        attribute.semantic,
-        attribute.size,
-        attribute.type,
-        attribute.normalized,
-        stride,
-        attribute.offset,
-        0
-      );
+      this.primitive.addAttribute({
+        ...attribute,
+        stride
+      });
     }
 
     this.primitive.vertexBuffers[0] = new ArrayBuffer(vertexCount * stride);
@@ -121,7 +116,11 @@ export class BufferGeometry extends AssetObject {
       for (const name in values) {
         if (values.hasOwnProperty(name)) {
           const value = values[name];
-          this.setValue(name, vertexIndex, value);
+          const attr = this.primitive.vertexAttributes[name];
+          // instanced buffer 单独处理
+          if (!attr.instanced) {
+            this.setValue(name, vertexIndex, value);
+          }
         }
       }
     }
@@ -139,6 +138,7 @@ export class BufferGeometry extends AssetObject {
       Logger.error("UNKNOWN semantic: " + semantic);
       return false;
     }
+
     if (vertexIndex >= this.primitive.vertexCount) {
       Logger.error("vertexIndex: " + vertexIndex + " out of range: " + this.primitive.vertexCount);
       return false;

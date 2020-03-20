@@ -1,8 +1,9 @@
-import { Logger, UpdateType } from "@alipay/o3-base";
+import { Logger, UpdateType, GLCapabilityType } from "@alipay/o3-base";
 import { Primitive } from "@alipay/o3-primitive";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { GLTechnique } from "./GLTechnique";
 import { GLAsset } from "./GLAsset";
+import { GLBufferRenderer } from "./GLBufferRenderer";
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
@@ -13,11 +14,13 @@ export class GLPrimitive extends GLAsset {
   protected _glIndexBuffer: WebGLBuffer;
   protected _glVertBuffers: WebGLBuffer[];
   protected attribLocArray: number[];
+  protected _renderer: GLBufferRenderer;
 
   constructor(rhi: GLRenderHardware, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
     this.attribLocArray = [];
+    this._renderer = new GLBufferRenderer(this.rhi);
   }
 
   /** 创建并初始化 IBO、VBO */
@@ -104,6 +107,11 @@ export class GLPrimitive extends GLAsset {
 
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(loc, att.size, att.type, att.normalized, att.stride, att.offset);
+        // For instanced attributes, divisor needs to be set.
+        // For firefox, need to set back to 0 if non-instanced drawn after instanced. Else won't render
+        if (this.rhi.canIUse(GLCapabilityType.instancedArrays)) {
+          gl.vertexAttribDivisor(loc, att.instanced);
+        }
         this.attribLocArray.push(loc);
       } else {
         Logger.warn("vertex attribute not found: " + name);
@@ -156,13 +164,11 @@ export class GLPrimitive extends GLAsset {
     /** 绑定 Buffer 和 attribute */
     this.bindBufferAndAttrib(tech);
 
-    /** draw */
-    if (this._glIndexBuffer) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glIndexBuffer);
-      gl.drawElements(primitive.mode, primitive.indexCount, primitive.indexType, primitive.indexOffset);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    /** render */
+    if (primitive.isInstanced) {
+      this._renderer.renderInstances(primitive, this._glIndexBuffer);
     } else {
-      gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
+      this._renderer.render(primitive, this._glIndexBuffer);
     }
 
     /** unbind */

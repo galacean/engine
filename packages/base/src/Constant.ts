@@ -425,5 +425,6 @@ export enum GLCapabilityType {
   shaderTextureLod = "EXT_shader_texture_lod",
   elementIndexUint = "OES_element_index_uint",
   depthTexture = "WEBGL_depth_texture",
-  vertexArrayObject = "OES_vertex_array_object"
+  vertexArrayObject = "OES_vertex_array_object",
+  instancedArrays = "ANGLE_instanced_arrays"
 }

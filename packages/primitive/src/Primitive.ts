@@ -4,6 +4,17 @@ import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 import { Mat4 } from "@alipay/o3-math/types/type";
 import { vec3 } from "@alipay/o3-math";
 
+interface Attribute {
+  semantic: string;
+  size: number;
+  type: DataType;
+  normalized: boolean;
+  instanced: number;
+  stride: number;
+  offset: number;
+  vertexBufferIndex: number;
+}
+
 let primitiveID = 0;
 
 /**
@@ -35,6 +46,9 @@ export class Primitive extends AssetObject {
   public boundingBox: OBB;
   public boundingSphere: BoundingSphere;
   public isInFrustum: boolean;
+
+  private isInstanced: boolean;
+  private instancedCount: number;
 
   /**
    * @constructor
@@ -69,6 +83,10 @@ export class Primitive extends AssetObject {
     this.boundingBox = null;
     this.boundingSphere = null;
     this.isInFrustum = true;
+
+    // instanced
+    this.isInstanced = false;
+    this.instancedCount = 0;
   }
 
   /**
@@ -81,24 +99,20 @@ export class Primitive extends AssetObject {
    * @param {number} offset
    * @param {number} vertexBufferIndex
    */
-  addAttribute(
-    semantic: string,
-    size: number,
-    type: DataType,
-    normalized: boolean,
-    stride: number,
-    offset: number,
-    vertexBufferIndex: number
-  ) {
+  addAttribute({ size, type, stride, offset, semantic, normalized, instanced = 0, vertexBufferIndex = 0 }: Attribute) {
     this.vertexAttributes[semantic] = {
-      semantic,
       size,
       type,
-      normalized,
       stride,
       offset,
+      semantic,
+      instanced,
+      normalized,
       vertexBufferIndex
     };
+    if (instanced) {
+      this.isInstanced = true;
+    }
   }
 
   updateWeightsIndices(indices: number[]) {
@@ -167,5 +181,14 @@ export class Primitive extends AssetObject {
       min,
       max
     };
+  }
+
+  /**
+   * 设置instanced count
+   * @param {number} instanced count
+   */
+
+  setInstancedCount(count: number) {
+    this.instancedCount = count;
   }
 }
