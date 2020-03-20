@@ -17,16 +17,16 @@ onmessage = function(e) {
       break;
 
     case "decode":
-      var buffer = message.buffer;
-      var taskConfig = message.taskConfig;
+      const buffer = message.buffer;
+      const taskConfig = message.taskConfig;
       decoderPending.then(module => {
-        var draco = module.draco;
-        var decoder = new draco.Decoder();
-        var decoderBuffer = new draco.DecoderBuffer();
+        const draco = module.draco;
+        const decoder = new draco.Decoder();
+        const decoderBuffer = new draco.DecoderBuffer();
         decoderBuffer.Init(new Int8Array(buffer), buffer.byteLength);
         try {
-          var geometry = decodeGeometry(draco, decoder, decoderBuffer, taskConfig);
-          var buffers = geometry.attributes.map(attr => attr.array.buffer);
+          const geometry = decodeGeometry(draco, decoder, decoderBuffer, taskConfig);
+          const buffers = geometry.attributes.map(attr => attr.array.buffer);
           if (geometry.index) buffers.push(geometry.index.array.buffer);
           self.postMessage({ type: "decode", id: message.id, geometry }, buffers);
         } catch (error) {
@@ -53,11 +53,11 @@ function decodeGeometry(draco, decoder, decoderBuffer, taskConfig) {
     dracoGeometry = new draco.Mesh();
     decodingStatus = decoder.DecodeBufferToMesh(decoderBuffer, dracoGeometry);
   } else {
-    throw new Error("DRACODecoder: Unexpected geometry type.");
+    throw new Error("DRACODecoder worker: Unexpected geometry type.");
   }
 
   if (!decodingStatus.ok() || dracoGeometry.ptr === 0) {
-    throw new Error("DRACODecoder: Decoding failed: " + decodingStatus.error_msg());
+    throw new Error("DRACODecoder worker: Decoding failed: " + decodingStatus.error_msg());
   }
 
   const geometry = { index: null, attributes: [] };
