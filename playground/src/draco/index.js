@@ -12,6 +12,67 @@ import "@alipay/o3-engine-stats";
 
 RegistExtension({ PBRMaterial });
 
+const request = {
+  load(type, props, callback) {
+    if (type === "json") {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", props.url + "?" + Date.now() + Math.random(), true);
+      xhr.onreadystatechange = function(e) {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            if (callback) {
+              callback(null, JSON.parse(xhr.responseText));
+            }
+          } else {
+            callback("loadText error: " + xhr.statusText, null);
+          }
+        }
+      };
+      xhr.send(null);
+    } else if (type === "binary") {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", props.url + "?" + Date.now() + Math.random(), true);
+      xhr.responseType = "arraybuffer";
+      xhr.onreadystatechange = function(e) {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            callback(null, xhr.response);
+          } else {
+            callback("loadBinary error : " + xhr.response, null);
+          }
+        }
+      };
+      xhr.send(null);
+    }
+  },
+  loadAll(loadQueue = {}, callback) {
+    const promises = [];
+    const promisesKey = [];
+    for (const key in loadQueue) {
+      const loadItem = loadQueue[key] || {};
+      const promise = new Promise((resolve, reject) => {
+        this.load(loadItem.type, loadItem.props, (err, res) => {
+          if (!err) {
+            resolve(res);
+          } else {
+            reject(err);
+          }
+        });
+      });
+      promises.push(promise);
+      promisesKey.push(key);
+    }
+
+    Promise.all(promises).then(resArr => {
+      const map = {};
+      for (let i = 0; i < resArr.length; i++) {
+        map[promisesKey[i]] = resArr[i];
+      }
+      callback(null, map);
+    });
+  }
+};
+
 //-- create engine object
 let engine = new Engine();
 
@@ -33,7 +94,7 @@ let ambientLight = ambientLightNode.createAbility(AAmbientLight, {
 });
 ambientLight.enabled = true;
 
-const resourceLoader = new ResourceLoader(engine);
+const resourceLoader = new ResourceLoader(engine, request);
 
 //-- create camera
 let cameraNode = rootNode.createChild("camera_node");
@@ -83,7 +144,7 @@ function loadGLTFS() {
     gltfUrls.forEach((url, index) => {
       const res = new Resource("gltf" + index, {
         type: "gltf",
-        url: url + "?" + Math.random()
+        url: url
       });
       resourceLoader.load(res, (err, gltf) => {
         console.log("gltf", gltf);
@@ -125,7 +186,7 @@ function loadDracos() {
     dracoUrls.forEach((url, index) => {
       const res = new Resource("draco" + index, {
         type: "gltf",
-        url: url + "?" + Math.random()
+        url: url
       });
       resourceLoader.load(res, (err, gltf) => {
         console.log("draco", gltf);
