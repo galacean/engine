@@ -39,6 +39,18 @@ export class DRACODecoder {
     }
   }
 
+  private getWorker(): DRACOWorker {
+    if (this.pool.length < this.workerLimit) {
+      const dracoWorker = new DRACOWorker(this.workerSourceURL, this.decoderWASMBinary);
+      this.pool.push(dracoWorker);
+    } else {
+      this.pool.sort(function(a, b) {
+        return a.currentLoad > b.currentLoad ? -1 : 1;
+      });
+    }
+    return this.pool[this.pool.length - 1];
+  }
+
   decode(buffer: ArrayBuffer, taskConfig: ITaskConfig): Promise<any> {
     const taskKey = JSON.stringify(taskConfig);
 
@@ -64,15 +76,7 @@ export class DRACODecoder {
     const taskId = this.currentTaskId++;
     const cost = buffer.byteLength;
 
-    if (this.pool.length < this.workerLimit) {
-      const dracoWorker = new DRACOWorker(this.workerSourceURL, this.decoderWASMBinary);
-      this.pool.push(dracoWorker);
-    } else {
-      this.pool.sort(function(a, b) {
-        return a.currentLoad > b.currentLoad ? -1 : 1;
-      });
-    }
-    const worker = this.pool[this.pool.length - 1];
+    const worker = this.getWorker();
     worker.setCosts(taskId, cost);
     worker.addCurrentLoad(cost);
     const task = new Promise((resolve, reject) => {
