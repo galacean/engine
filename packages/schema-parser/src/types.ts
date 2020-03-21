@@ -150,3 +150,19 @@ interface LoadAttachedResourceResultStructure {
     [propName: string]: LoadAttachedResourceResultStructure | Array<LoadAttachedResourceResultStructure>;
   };
 }
+
+export type EnableConfig = GLenum[];
+
+export type DisableConfig = GLenum[];
+
+export type FunctionConfig = {
+  [key: string]: any;
+};
+
+export type TechniqueStates = {
+  enable?: GLenum[];
+  disable?: GLenum[];
+  functions?: {
+    [key: string]: any;
+  };
+};

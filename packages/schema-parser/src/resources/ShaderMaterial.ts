@@ -1,5 +1,6 @@
 import * as o3 from "@alipay/o3";
 import { union } from "../utils";
+import { EnableConfig, DisableConfig, FunctionConfig, TechniqueStates } from "../types";
 
 export class ShaderMatrial extends o3.Material {
   public vertexShader: string = "";
@@ -7,14 +8,14 @@ export class ShaderMatrial extends o3.Material {
   public isValid: boolean = true;
   public attributes = {};
   private _uniforms = ShaderMatrial.commonUniforms;
-  private _renderStates = {
+  private _renderStates: TechniqueStates = {
     enable: [],
     disable: [],
     functions: {}
   };
-  private _enableConfig = [];
-  private _disableConfig = [];
-  private _functionsConfig = {
+  private _enableConfig: EnableConfig = [];
+  private _disableConfig: DisableConfig = [];
+  private _functionsConfig: FunctionConfig = {
     blendFunc: [o3.BlendFunc.SRC_ALPHA, o3.BlendFunc.ONE_MINUS_SRC_ALPHA]
   };
 
