@@ -1,4 +1,4 @@
-import { Logger, UpdateType, DataType, GLCapabilityType } from "@alipay/o3-base";
+import { Logger, UpdateType } from "@alipay/o3-base";
 import { Primitive } from "@alipay/o3-primitive";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { GLTechnique } from "./GLTechnique";
@@ -9,57 +9,52 @@ import { GLAsset } from "./GLAsset";
  * @private
  */
 export class GLPrimitive extends GLAsset {
-  private readonly _primitive: Primitive;
-  private _glIndexBuffer: WebGLBuffer;
-  private _glVertBuffers: WebGLBuffer[];
+  protected readonly _primitive;
+  protected _glIndexBuffer: WebGLBuffer;
+  protected _glVertBuffers: WebGLBuffer[];
+  protected attribLocArray: number[];
 
   constructor(rhi: GLRenderHardware, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
-
-    const gl = rhi.gl;
-
-    //-- create index buffer
-    const indexBuffer = primitive.indexBuffer;
-    if (indexBuffer) {
-      const indexBufferObject = gl.createBuffer();
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexBuffer, gl.STATIC_DRAW);
-      this._glIndexBuffer = indexBufferObject;
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    }
+    this.attribLocArray = [];
   }
 
-  /**
-   * 创建 VertexBuffers 数据
-   * @private
-   */
-  _createVertextBuffer() {
+  /** 创建并初始化 IBO、VBO */
+  protected initBuffers() {
     const gl = this.rhi.gl;
-    const primitive = this._primitive;
-    const vertBuffers = primitive.vertexBuffers;
-    const usage = primitive.usage;
+    const { indexBuffer, vertexBuffers, usage } = this._primitive;
+
+    /** index buffer */
+    if (indexBuffer) {
+      this._glIndexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glIndexBuffer);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexBuffer, gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    }
+
+    /** vertex buffers*/
     this._glVertBuffers = [];
-    for (let i = 0, len = vertBuffers.length; i < len; i++) {
-      const vertBufferObject = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferObject);
-      gl.bufferData(gl.ARRAY_BUFFER, vertBuffers[i], usage);
-      this._glVertBuffers.push(vertBufferObject);
+    for (let i = 0, len = vertexBuffers.length; i < len; i++) {
+      this._glVertBuffers[i] = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._glVertBuffers[i]);
+      gl.bufferData(gl.ARRAY_BUFFER, vertexBuffers[i], usage);
       gl.bindBuffer(gl.ARRAY_BUFFER, null);
     }
   }
 
   /**
-   * 更新 VertexBuffers 数据
-   * @private
+   * 更新 VBO
+   * @param {number} bufferIndex - 第几个 vbo
+   * @param {number} byteOffset - 更新 buffer 的偏移字节
+   * @param {number} byteLength - 更新 buffer 的字节长度
    */
-  _updateVertexBuffers() {
+  protected updateVertexBuffer(bufferIndex = 0, byteOffset = -1, byteLength = 0) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
-    const vertexBuffer = primitive.vertexBuffers[0];
-    const vertBufferObject = this._glVertBuffers[0];
-    const byteOffset = primitive.updateRange.byteOffset;
-    const byteLength = primitive.updateRange.byteLength;
+    const vertexBuffer = primitive.vertexBuffers[bufferIndex];
+    const vertBufferObject = this._glVertBuffers[bufferIndex];
+
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferObject);
     const activeVertexBuffer = new Int8Array(vertexBuffer, byteOffset, byteLength);
     gl.bufferSubData(gl.ARRAY_BUFFER, byteOffset, activeVertexBuffer);
@@ -67,44 +62,26 @@ export class GLPrimitive extends GLAsset {
   }
 
   /**
-   * 执行绘制操作
-   * @param {GLTechnique} tech
-   */
-  draw(tech: GLTechnique) {
-    if (this._primitive.indexType === DataType.UNSIGNED_INT && !this.rhi.canIUse(GLCapabilityType.elementIndexUint)) {
-      console.warn("primitive have UNSIGN_INT index and not supported by this device", this);
-      return;
-    }
+   * 更新 IBO
+   * // todo: 更新部分
+   * */
+  protected updateIndexBuffer() {
+    const gl = this.rhi.gl;
+    const indexBuffer = this._primitive.indexBuffer;
 
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glIndexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexBuffer, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+  }
+
+  /**
+   * 绑定 Buffer 和 attribute
+   * */
+  protected bindBufferAndAttrib(tech: GLTechnique) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
 
-    switch (primitive.updateType) {
-      case UpdateType.NO_UPDATE:
-        break;
-      case UpdateType.UPDATE_ALL:
-        this._createVertextBuffer();
-        primitive.updateType = UpdateType.NO_UPDATE;
-        break;
-      case UpdateType.UPDATE_RANGE:
-        this._updateVertexBuffers();
-        primitive.updateType = UpdateType.NO_UPDATE;
-        primitive.resetUpdateRange();
-        break;
-    }
-
-    if (primitive.indexNeedUpdate) {
-      primitive.indexNeedUpdate = false;
-      const indexBuffer = primitive.indexBuffer;
-      if (indexBuffer) {
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glIndexBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexBuffer, gl.DYNAMIC_DRAW);
-      }
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    }
-
-    //-- bind vertex attributes
-    const locArray = [];
+    this.attribLocArray = [];
     const techAttributes = tech.attributes;
     const attributes = primitive.vertexAttributes;
     const vbos = this._glVertBuffers;
@@ -124,35 +101,80 @@ export class GLPrimitive extends GLAsset {
           lastBoundVbo = vbo;
           gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
         }
-        // gl.bindBuffer( gl.ARRAY_BUFFER, vbo );
 
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(loc, att.size, att.type, att.normalized, att.stride, att.offset);
-        locArray.push(loc);
+        this.attribLocArray.push(loc);
       } else {
         Logger.warn("vertex attribute not found: " + name);
       }
-    } // end of for
+    }
 
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  }
+
+  /**
+   * 初始化或更新 BufferObject
+   * */
+  protected prepareBuffers() {
+    const primitive = this._primitive;
+
+    /** init BO or update VBO */
+    switch (primitive.updateType) {
+      case UpdateType.NO_UPDATE:
+        break;
+      case UpdateType.UPDATE_ALL:
+        this.initBuffers();
+        primitive.updateType = UpdateType.NO_UPDATE;
+        break;
+      case UpdateType.UPDATE_RANGE:
+        this.updateVertexBuffer(0, primitive.updateRange.byteOffset, primitive.updateRange.byteLength);
+        primitive.updateType = UpdateType.NO_UPDATE;
+        primitive.resetUpdateRange();
+        break;
+    }
+
+    /** update IBO */
+    if (primitive.indexNeedUpdate) {
+      primitive.indexNeedUpdate = false;
+      if (this._glIndexBuffer) {
+        this.updateIndexBuffer();
+      }
+    }
+  }
+
+  /**
+   * 执行绘制操作
+   * @param {GLTechnique} tech
+   */
+  draw(tech: GLTechnique) {
+    const gl = this.rhi.gl;
+    const primitive = this._primitive;
+
+    /** prepare BO */
+    this.prepareBuffers();
+    /** 绑定 Buffer 和 attribute */
+    this.bindBufferAndAttrib(tech);
+
+    /** draw */
     if (this._glIndexBuffer) {
-      //-- bind index buffer
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glIndexBuffer);
-
-      //-- draw call
       gl.drawElements(primitive.mode, primitive.indexCount, primitive.indexType, primitive.indexOffset);
-
-      //-- clear states
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     } else {
-      //-- draw array
       gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
-    } // end of else
+    }
 
-    //-- clear states
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    for (let i = 0, l = locArray.length; i < l; i++) {
-      gl.disableVertexAttribArray(locArray[i]);
-    } // end of for
+    /** unbind */
+    this.disableAttrib();
+  }
+
+  /** disableVertexAttribArray */
+  protected disableAttrib() {
+    const gl = this.rhi.gl;
+    for (let i = 0, l = this.attribLocArray.length; i < l; i++) {
+      gl.disableVertexAttribArray(this.attribLocArray[i]);
+    }
   }
 
   /**
