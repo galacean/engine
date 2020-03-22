@@ -1,7 +1,6 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
-import { ShaderMatrial } from "./ShaderMaterial";
 
 export class ShaderMaterialResource extends SchemaResource {
   private scripts: Array<any>;
@@ -46,7 +45,7 @@ export class ShaderMaterialResource extends SchemaResource {
   }
 
   private createMaterial() {
-    const material = new ShaderMatrial(this.meta.name || "shader_mtl");
+    const material = new o3.ShaderMaterial(this.meta.name || "shader_mtl");
     this._resource = material;
   }
 

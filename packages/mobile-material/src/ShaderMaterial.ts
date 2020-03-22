@@ -1,28 +1,39 @@
-import * as o3 from "@alipay/o3";
-import { union } from "../utils";
-import { EnableConfig, DisableConfig, FunctionConfig, TechniqueStates } from "../types";
+import { EnableConfig, DisableConfig, FunctionConfig } from "./type";
+import { UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-base";
+import { Material, RenderTechnique } from "@alipay/o3-material";
+import { TechniqueStates } from "@alipay/o3-material/types/type";
 
-export class ShaderMatrial extends o3.Material {
+export class ShaderMaterial extends Material {
+  // Vertex Shader 代码
   public vertexShader: string = "";
+  // Fragment Shader 代码
   public fragmentShader: string = "";
+  // 是否可用
   public isValid: boolean = true;
+  // Attribute记录对象
   public attributes = {};
-  private _uniforms = ShaderMatrial.commonUniforms;
+  // Unifrom记录数组
+  private _uniforms = ShaderMaterial.commonUniforms;
+  // 渲染状态控制对象
   private _renderStates: TechniqueStates = {
     enable: [],
     disable: [],
     functions: {}
   };
+  // 渲染状态控制对象中的 enable 配置项
   private _enableConfig: EnableConfig = [];
+  // 渲染状态控制对象中的 disable 配置项
   private _disableConfig: DisableConfig = [];
+  // 渲染状态控制对象中的 function 配置项
   private _functionsConfig: FunctionConfig = {
-    blendFunc: [o3.BlendFunc.SRC_ALPHA, o3.BlendFunc.ONE_MINUS_SRC_ALPHA]
+    blendFunc: [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA]
   };
 
   constructor(name) {
     super(name);
   }
 
+  // 开始渲染指定对象
   prepareDrawing(camera, component, primitive) {
     if (!this._technique) {
       const tech = this._generateTechnique(camera, component, primitive);
@@ -36,8 +47,9 @@ export class ShaderMatrial extends o3.Material {
     this._technique = null;
   }
 
+  // 生成内部的 Technique 对象
   _generateTechnique(camera, component, primitive) {
-    const tech = new o3.RenderTechnique("ShaderMaterial");
+    const tech = new RenderTechnique("ShaderMaterial");
 
     tech.isValid = this.isValid;
     tech.uniforms = this.uniforms;
@@ -63,8 +75,8 @@ export class ShaderMatrial extends o3.Material {
   set renderStates(value) {
     const { enable = [], disable = [], functions = {} } = value;
     // 为了防止冲突，把预置的几个属性放在_enableConfig里面，此处需过滤掉
-    const enableState = enable.filter(value => ShaderMatrial.commonEnable.indexOf(value) < 0);
-    const disableState = disable.filter(value => ShaderMatrial.commonDisable.indexOf(value) < 0);
+    const enableState = enable.filter(value => ShaderMaterial.commonEnable.indexOf(value) < 0);
+    const disableState = disable.filter(value => ShaderMaterial.commonDisable.indexOf(value) < 0);
     this._renderStates.enable = union(enableState, this._enableConfig);
     this._renderStates.disable = union(disableState, this._disableConfig);
     this._renderStates.functions = Object.assign({}, functions, this._functionsConfig);
@@ -75,45 +87,50 @@ export class ShaderMatrial extends o3.Material {
   }
 
   set uniforms(value) {
-    this._uniforms = Object.assign({}, ShaderMatrial.commonUniforms, value);
+    this._uniforms = Object.assign({}, ShaderMaterial.commonUniforms, value);
   }
 
+  // 是否开启片元的颜色融合计算
   set blend(value: boolean) {
     if (value) {
-      this._enableConfig = union(this._enableConfig, [o3.RenderState.BLEND]);
+      this._enableConfig = union(this._enableConfig, [RenderState.BLEND]);
     } else {
-      this._enableConfig = this._enableConfig.filter(state => state !== o3.RenderState.BLEND);
-      this.removeState("enable", o3.RenderState.BLEND);
+      this._enableConfig = this._enableConfig.filter(state => state !== RenderState.BLEND);
+      this.removeState("enable", RenderState.BLEND);
     }
     this.renderStates = this._renderStates;
   }
 
+  // 混合源因子
   set blendSrcFactor(value: string) {
     this._functionsConfig.blendFunc[0] = value;
     this.renderStates = this._renderStates;
   }
 
+  // 混合目标因子
   set blendDstFactor(value: string) {
     this._functionsConfig.blendFunc[1] = value;
     this.renderStates = this._renderStates;
   }
 
+  // 是否双面显示
   set doubleSide(value: boolean) {
     if (value) {
-      this._disableConfig = union(this._disableConfig, [o3.RenderState.CULL_FACE]);
+      this._disableConfig = union(this._disableConfig, [RenderState.CULL_FACE]);
     } else {
-      this._disableConfig = this._disableConfig.filter(state => state !== o3.RenderState.CULL_FACE);
-      this.removeState("disable", o3.RenderState.CULL_FACE);
+      this._disableConfig = this._disableConfig.filter(state => state !== RenderState.CULL_FACE);
+      this.removeState("disable", RenderState.CULL_FACE);
     }
     this.renderStates = this._renderStates;
   }
 
+  // 是否开启深度测试
   set depthTest(value: boolean) {
     if (!value) {
-      this._disableConfig = union(this._disableConfig, [o3.RenderState.DEPTH_TEST]);
+      this._disableConfig = union(this._disableConfig, [RenderState.DEPTH_TEST]);
     } else {
-      this._disableConfig = this._disableConfig.filter(state => state !== o3.RenderState.DEPTH_TEST);
-      this.removeState("disable", o3.RenderState.DEPTH_TEST);
+      this._disableConfig = this._disableConfig.filter(state => state !== RenderState.DEPTH_TEST);
+      this.removeState("disable", RenderState.DEPTH_TEST);
     }
     this.renderStates = this._renderStates;
   }
@@ -121,16 +138,20 @@ export class ShaderMatrial extends o3.Material {
   static commonUniforms = {
     matModelViewProjection: {
       name: "matModelViewProjection",
-      semantic: o3.UniformSemantic.MODELVIEWPROJECTION,
-      type: o3.DataType.FLOAT_MAT4
+      semantic: UniformSemantic.MODELVIEWPROJECTION,
+      type: DataType.FLOAT_MAT4
     },
     matModelView: {
       name: "matModelView",
-      semantic: o3.UniformSemantic.MODELVIEW,
-      type: o3.DataType.FLOAT_MAT4
+      semantic: UniformSemantic.MODELVIEW,
+      type: DataType.FLOAT_MAT4
     }
   };
 
-  static commonEnable = [o3.RenderState.BLEND];
-  static commonDisable = [o3.RenderState.CULL_FACE, o3.RenderState.DEPTH_TEST];
+  static commonEnable = [RenderState.BLEND];
+  static commonDisable = [RenderState.CULL_FACE, RenderState.DEPTH_TEST];
+}
+
+export function union(arr1: Array<any>, arr2: Array<any>): Array<any> {
+  return arr1.concat(arr2.filter(v => !(arr1.indexOf(v) > -1)));
 }
