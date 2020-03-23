@@ -128,6 +128,9 @@ export class GLPrimitive extends GLAsset {
         primitive.updateType = UpdateType.NO_UPDATE;
         break;
       case UpdateType.UPDATE_RANGE:
+        if (!this._glVertBuffers?.length) {
+          this.initBuffers();
+        }
         this.updateVertexBuffer(0, primitive.updateRange.byteOffset, primitive.updateRange.byteLength);
         primitive.updateType = UpdateType.NO_UPDATE;
         primitive.resetUpdateRange();
