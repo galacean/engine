@@ -1,23 +1,21 @@
-import {
-  ADefaultCamera,
-  AGeometryRenderer,
-  Engine,
-  EngineFeature,
-  BasicSceneRenderer,
-  MaskList,
-  PlaneGeometry,
-  APointLight,
-  BlinnPhongMaterial,
-  CuboidGeometry,
-  AOrbitControls
-} from "@alipay/o3";
+import { Engine, Scene } from "@alipay/o3-core";
+import { APointLight, LightFeature } from "@alipay/o3-lighting";
+import { BlinnPhongMaterial } from "@alipay/o3-mobile-material";
+import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { CuboidGeometry, PlaneGeometry } from "@alipay/o3-geometry-shape";
+import { MaskList } from "@alipay/o3-base";
+import { AOrbitControls } from "@alipay/o3-orbit-controls";
+import { ADefaultCamera } from "@alipay/o3-default-camera";
+
 import { MRTSceneRenderer } from "./MRTSceneRenderer";
+
+Scene.registerFeature(LightFeature)
 
 const engine = new Engine();
 const root = engine.currentScene.root;
 const camera = root.createChild("camera");
 const cameraAbility = camera.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo',
+  canvas: "o3-demo",
   position: [0, 0, 10],
   target: [0, 0, 0],
   SceneRenderer: MRTSceneRenderer,
@@ -26,7 +24,6 @@ const cameraAbility = camera.createAbility(ADefaultCamera, {
   }
 });
 camera.createAbility(AOrbitControls);
-// cameraAbility.sceneRendere.defaultRenderPass.mask = MaskList.MASK1;
 
 const box = root.createChild("box");
 box.position = [-2, -2, 0];
@@ -48,8 +45,9 @@ light.createAbility(APointLight, {
   distance: 5.0,
   decay: 0.3
 });
-root.scene.features.shift();
-root.scene.features.pop();
+// root.scene.features.shift();
+// root.scene.features.pop();
+console.log(root.scene.constructor === Scene);
 
 const geometry1 = new PlaneGeometry(2.0, 2.0);
 const planeNode = root.createChild("plane");
@@ -60,4 +58,4 @@ const plane = planeNode.createAbility(AGeometryRenderer, {
 
 plane.renderPassFlag = MaskList.MASK2;
 
-engine.tick();
+engine.run();

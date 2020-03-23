@@ -1,4 +1,6 @@
-import { RenderPass, MaskList, RenderTarget, MultiRenderTarget, Texture2D, TextureFilter, TextureWrapMode } from "@alipay/o3";
+import { MaskList, TextureFilter, TextureWrapMode } from "@alipay/o3-base";
+import { Texture2D } from "@alipay/o3-material";
+import { RenderPass } from "@alipay/o3-renderer-basic";
 import { MRTMaterial } from "./MRTMaterial";
 
 export class MRTRenderPass extends RenderPass {
@@ -11,7 +13,7 @@ export class MRTRenderPass extends RenderPass {
       magFilter: TextureFilter.LINEAR,
       minFilter: TextureFilter.LINEAR,
       wrapS: TextureWrapMode.CLAMP_TO_EDGE,
-      wrapT: TextureWrapMode.CLAMP_TO_EDGE,
+      wrapT: TextureWrapMode.CLAMP_TO_EDGE
     };
 
     renderTarget.addTexColor(new Texture2D("diffuse-texture", null, config));

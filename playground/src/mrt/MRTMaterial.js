@@ -1,4 +1,5 @@
-import { Material, RenderState, DataType, BlendFunc, UniformSemantic, RenderTechnique, BlinnPhongMaterial, ACamera, LightFeature } from "@alipay/o3";
+import { Material, RenderTechnique } from "@alipay/o3-material";
+import { RenderState, DataType, UniformSemantic } from "@alipay/o3-base";
 const vs = `
 precision highp float;
 precision highp int;
@@ -67,50 +68,50 @@ export class MRTMaterial extends Material {
       a_position: {
         name: "a_position",
         semantic: "POSITION",
-        type: DataType.FLOAT_VEC3,
+        type: DataType.FLOAT_VEC3
       },
       a_normal: {
         name: "a_normal",
         semantic: "NORMAL",
-        type: DataType.FLOAT_VEC3,
+        type: DataType.FLOAT_VEC3
       },
       a_uv: {
         name: "a_uv",
         semantic: "TEXCOORD_0",
-        type: DataType.FLOAT_VEC2,
-      },
+        type: DataType.FLOAT_VEC2
+      }
     };
     tech.uniforms = {
       u_MVMat: {
         name: "u_MVMat",
         semantic: UniformSemantic.MODELVIEW,
-        type: DataType.FLOAT_MAT4,
+        type: DataType.FLOAT_MAT4
       },
       u_MVPMat: {
         name: "u_MVPMat",
         semantic: UniformSemantic.MODELVIEWPROJECTION,
-        type: DataType.FLOAT_MAT4,
+        type: DataType.FLOAT_MAT4
       },
       u_normalMat: {
         name: "u_normalMat",
         semantic: UniformSemantic.MODELINVERSETRANSPOSE,
-        type: DataType.FLOAT_MAT3,
+        type: DataType.FLOAT_MAT3
       },
       u_shininess: {
         name: "u_shininess",
-        type: DataType.FLOAT,
+        type: DataType.FLOAT
       },
       u_diffuse: {
         name: "u_diffuse",
-        type: DataType.FLOAT_VEC4,
-      },
+        type: DataType.FLOAT_VEC4
+      }
     };
 
     tech.states = {
       enable: [RenderState.DEPTH_TEST],
       functions: {
-        depthMask: [true],
-      },
+        depthMask: [true]
+      }
     };
 
     tech.vertexShader = vs;

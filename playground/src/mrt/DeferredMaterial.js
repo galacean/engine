@@ -1,4 +1,6 @@
-import { Material, RenderState, DataType, BlendFunc, UniformSemantic, RenderTechnique, BlinnPhongMaterial, LightFeature } from "@alipay/o3";
+import { Material, RenderTechnique } from "@alipay/o3-material";
+import { RenderState, DataType } from "@alipay/o3-base";
+import { LightFeature } from "@alipay/o3-lighting";
 const vs = `
 precision highp float;
 precision highp int;
@@ -49,11 +51,11 @@ export class DeferredMaterial extends Material {
 
     // (this._values = originalMaterial as any)._values;
     // feature.bindMaterialValues();
-    const feature = camera.scene.findFeature(LightFeature);
-    const lightUniforms = feature.getUniformDefine();
-    const currentUniforms = this._technique.uniforms;
-    this._technique._uniforms = { ...currentUniforms, ...lightUniforms };
-    feature.bindMaterialValues(this);
+    // const feature = camera.scene.findFeature(LightFeature);
+    // const lightUniforms = feature.getUniformDefine();
+    // const currentUniforms = this._technique.uniforms;
+    // this._technique._uniforms = { ...currentUniforms, ...lightUniforms };
+    // feature.bindMaterialValues(this);
     // originalMaterial.bindLightUniformDefine
     super.prepareDrawing(camera, component, primitive);
   }
@@ -61,24 +63,24 @@ export class DeferredMaterial extends Material {
   customUniform = {
     u_shininess: {
       name: "u_shininess",
-      type: DataType.FLOAT,
+      type: DataType.FLOAT
     },
     shininessTexture: {
       name: "shininessTexture",
-      type: DataType.SAMPLER_2D,
+      type: DataType.SAMPLER_2D
     },
     positionTexture: {
       name: "positionTexture",
-      type: DataType.SAMPLER_2D,
+      type: DataType.SAMPLER_2D
     },
     normalTexture: {
       name: "normalTexture",
-      type: DataType.SAMPLER_2D,
+      type: DataType.SAMPLER_2D
     },
     diffuseTexture: {
       name: "diffuseTexture",
-      type: DataType.SAMPLER_2D,
-    },
+      type: DataType.SAMPLER_2D
+    }
   };
 
   /**
@@ -92,26 +94,26 @@ export class DeferredMaterial extends Material {
       a_position: {
         name: "a_position",
         semantic: "POSITION",
-        type: DataType.FLOAT_VEC3,
+        type: DataType.FLOAT_VEC3
       },
       a_normal: {
         name: "a_normal",
         semantic: "NORMAL",
-        type: DataType.FLOAT_VEC3,
+        type: DataType.FLOAT_VEC3
       },
       a_uv: {
         name: "a_uv",
         semantic: "TEXCOORD_0",
-        type: DataType.FLOAT_VEC2,
-      },
+        type: DataType.FLOAT_VEC2
+      }
     };
     tech.uniforms = this.customUniform;
 
     tech.states = {
       enable: [RenderState.DEPTH_TEST],
       functions: {
-        depthMask: [true],
-      },
+        depthMask: [true]
+      }
     };
 
     tech.vertexShader = vs;

@@ -1,4 +1,5 @@
-import { RenderPass, MaskList, RenderTarget, MultiRenderTarget, Texture2D, Material } from "@alipay/o3";
+import { RenderPass } from "@alipay/o3-renderer-basic";
+import { MaskList } from "@alipay/o3-base";
 import { DeferredMaterial } from "./DeferredMaterial";
 
 export class MainRenderPass extends RenderPass {

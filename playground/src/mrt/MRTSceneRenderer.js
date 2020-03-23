@@ -1,21 +1,10 @@
-import {
-  RenderTarget,
-  Material,
-  vec3,
-  RenderPass,
-  RenderQueue,
-  SceneVisitor,
-  NodeAbility,
-  Node,
-  ACamera,
-  MaterialType,
-  ClearMode,
-  MaskList,
-  MultiRenderTarget
-} from "@alipay/o3";
+import { MultiRenderTarget } from "@alipay/o3-material";
 import { MRTRenderPass } from "./MRTRenderPass";
-import { GLRenderHardware } from "@alipay/o3";
 import { MainRenderPass } from "./MainRenderPass";
+import { vec3 } from "@alipay/o3-math";
+import { SceneVisitor } from "@alipay/o3-core";
+import { ACamera } from "@alipay/o3-default-camera";
+import { RenderQueue } from "@alipay/o3-renderer-basic";
 
 /**
  * 使用指定的CameraComponent对象，渲染当前场景中的所有可见对象
