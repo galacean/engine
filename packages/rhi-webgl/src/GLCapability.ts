@@ -41,7 +41,8 @@ export class GLCapability {
       shaderTextureLod,
       elementIndexUint,
       depthTexture,
-      vertexArrayObject
+      vertexArrayObject,
+      multipleSample
     } = GLCapabilityType;
 
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
@@ -49,6 +50,8 @@ export class GLCapability {
     cap.set(elementIndexUint, isWebGL2 || !!requireExtension(elementIndexUint));
     cap.set(depthTexture, isWebGL2 || !!requireExtension(depthTexture));
     cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
+
+    cap.set(multipleSample, isWebGL2);
   }
 
   /**

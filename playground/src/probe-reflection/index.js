@@ -122,11 +122,11 @@ function reflectionDemo() {
     onY: time => Math.cos(time + 2) * 5
   });
 
-  const probe1 = rootNode.createAbility(CubeProbe, {
+  const probe = rootNode.createAbility(CubeProbe, {
     // renderAll: true
     renderList: [sphere1Mat, sphere2Mat, sphere3Mat, skybox.material]
   });
-  probe1.onTextureChange = cubeTexture => {
+  probe.onTextureChange = cubeTexture => {
     envLight.specularMap = cubeTexture;
   };
 
@@ -147,15 +147,24 @@ function reflectionDemo() {
   gui
     .add(state, "enableProbe")
     .onChange(v => {
-      probe1.enabled = v;
+      probe.enabled = v;
     })
     .name("动态反射开关");
   gui
-    .add(state, "size", 1, 4096)
+    .add(state, "size", 1, 2048)
     .onChange(size => {
-      probe1.size = size;
+      probe.size = size;
     })
     .name("分辨率");
+
+  const rhi = camera.renderHardware;
+  const gl = rhi.gl;
+  if (!rhi.isWebGL2) {
+    alert("本案例需要 WebGL2 支持");
+  } else {
+    const max = gl.getParameter(gl.MAX_SAMPLES);
+    gui.add(probe, "samples", 0, max, 1).name("MSAA");
+  }
 }
 
 load("/static/model/DamangedHelmet/DamagedHelmet.gltf", reflectionDemo);

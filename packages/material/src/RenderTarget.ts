@@ -19,6 +19,18 @@ export class RenderTarget extends AssetObject {
   public texture: Texture2D;
   public depthTexture: Texture2D;
 
+  /** WebGL2 时，可以开启硬件层的 MSAA */
+  private _samples: number;
+
+  get samples() {
+    return this._samples;
+  }
+
+  set samples(v) {
+    this._samples = v;
+    this.needRecreate = true;
+  }
+
   /**
    * 纹理对象基类
    * @param {String} name 名称
@@ -28,6 +40,8 @@ export class RenderTarget extends AssetObject {
    * @param {Number} [config.enableDepthTexture=false] 是否开启深度纹理
    * @param {Number} [config.clearColor=[0, 0, 0, 0]] 清空后的填充色
    * @param {Number} [config.isCube=false] 是否渲染到 cubeMap
+   * @param {Number} [config.samples=1] MSAA 采样数,只有 WebGL2 时才会生效
+   *
    */
   constructor(name, config: RenderTargetConfig = {}) {
     super(name);
@@ -72,5 +86,8 @@ export class RenderTarget extends AssetObject {
         this.depthTexture = new Texture2D(name + "_depth_texture", null, textureConfig);
       }
     }
+
+    /** WebGL2 时，可以开启硬件层的 MSAA */
+    this._samples = config.samples || 1;
   }
 }
