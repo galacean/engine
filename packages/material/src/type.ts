@@ -19,7 +19,6 @@ export type TextureConfig = {
   uvRotation?: number;
   /** 纹理中心点 */
   uvCenter?: number[];
-  format?: GLenum;
   [key: string]: any;
 };
 

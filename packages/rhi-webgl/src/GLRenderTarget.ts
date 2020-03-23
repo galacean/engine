@@ -225,7 +225,7 @@ export class GLRenderTarget extends GLAsset {
     const glTexture: GLTexture2D = this.rhi.assetsCache.requireObject(texture, GLTexture2D);
     index = index ?? gl.COLOR_ATTACHMENT0;
     glTexture.activeBinding(0);
-    gl.texImage2D(gl.TEXTURE_2D, 0, texture.format, width, height, 0, texture.format, gl.UNSIGNED_BYTE, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, index, gl.TEXTURE_2D, glTexture.glTexture, 0);
     return glTexture;
   }

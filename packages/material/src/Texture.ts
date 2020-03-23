@@ -17,7 +17,6 @@ export class Texture extends AssetObject {
   public filterMin: TextureFilter;
   private _flipY: boolean = false;
   private _premultiplyAlpha: boolean = false;
-  private _format: GLenum;
 
   public config: TextureConfig;
 
@@ -49,8 +48,6 @@ export class Texture extends AssetObject {
     this.premultiplyAlpha = config.premultiplyAlpha;
     this.setFilter(config.magFilter, config.minFilter);
     this.setWrapMode(config.wrapS, config.wrapT);
-
-    this._format = config.format ?? GLTextureFormat.RGBA;
   }
 
   /** 是否上下翻转图片 */
@@ -107,12 +104,5 @@ export class Texture extends AssetObject {
    */
   resetState() {
     this.needUpdateFilers = true;
-  }
-
-  /**
-   * 获取纹理格式
-   */
-  get format(): GLenum {
-    return this._format;
   }
 }
