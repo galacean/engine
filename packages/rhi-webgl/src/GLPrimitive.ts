@@ -61,7 +61,6 @@ export class GLPrimitive extends GLAsset {
    * @param {number} byteLength - 更新 buffer 的字节长度
    */
   protected updateVertexBuffer(bufferIndex = 0, byteOffset = -1, byteLength = 0) {
-    console.log("fdafds");
     const gl = this.rhi.gl;
     const primitive = this._primitive;
     const vertexBuffer = primitive.vertexBuffers[bufferIndex];

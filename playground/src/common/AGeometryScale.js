@@ -5,7 +5,7 @@ import { NodeAbility } from '@alipay/o3-core';
 export default class AGeometryScale extends NodeAbility {
   constructor(node, props) {
     super(node);
-    this.geometry = props.geometry;
+    this.geometry = props.cubeGeometry;
     this.size = props.size || 1;
     this.range = props.range || 0.3;
     this.indexValues = [
