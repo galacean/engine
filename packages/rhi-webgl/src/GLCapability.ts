@@ -36,22 +36,10 @@ export class GLCapability {
   private init() {
     const cap = this.capabilityList;
     const { isWebGL2 } = this.rhi;
-    const {
-      standardDerivatives,
-      shaderTextureLod,
-      elementIndexUint,
-      depthTexture,
-      vertexArrayObject,
-      multipleSample
-    } = GLCapabilityType;
 
-    cap.set(standardDerivatives, isWebGL2 || !!this.rhi.requireExtension(standardDerivatives));
-    cap.set(shaderTextureLod, isWebGL2 || !!this.rhi.requireExtension(shaderTextureLod));
-    cap.set(elementIndexUint, isWebGL2 || !!this.rhi.requireExtension(elementIndexUint));
-    cap.set(depthTexture, isWebGL2 || !!this.rhi.requireExtension(depthTexture));
-    cap.set(vertexArrayObject, isWebGL2 || !!this.rhi.requireExtension(vertexArrayObject));
-
-    cap.set(multipleSample, isWebGL2);
+    for (let key in GLCapabilityType) {
+      cap.set(GLCapabilityType[key], isWebGL2 || !!this.rhi.requireExtension(GLCapabilityType[key]));
+    }
   }
 
   /**
@@ -85,7 +73,7 @@ export class GLCapability {
   /** 兼容 WebGL 1和 WebGL 2,抹平接口差异 */
   private compatibleAllInterface() {
     // 需要兼容的能力
-    const { depthTexture, vertexArrayObject } = GLCapabilityType;
+    const { depthTexture, vertexArrayObject, drawBuffers } = GLCapabilityType;
 
     this.compatibleInterface(depthTexture, {
       UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
@@ -95,6 +83,16 @@ export class GLCapability {
       deleteVertexArray: "deleteVertexArrayOES",
       isVertexArray: "isVertexArrayOES",
       bindVertexArray: "bindVertexArrayOES"
+    });
+
+    const items = {};
+    for (let i = 0; i < this.rhi.requireExtension(drawBuffers).MAX_DRAW_BUFFERS_WEBGL; i++) {
+      i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
+      items[`DRAW_BUFFER0${i}`] = `DRAW_BUFFER${i}_WEBGL`;
+    }
+    this.compatibleInterface(drawBuffers, {
+      drawBuffers: "drawBuffersWEBGL",
+      ...items
     });
   }
 }

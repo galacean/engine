@@ -39,15 +39,11 @@ export class GLMultiRenderTarget extends GLRenderTarget {
 
   private getAttachmentIndex(index: number) {
     const gl = this.rhi.gl;
-    return this.rhi.isWebGL2 ? gl[`COLOR_ATTACHMENT${index}`] : this.getExtention()[`COLOR_ATTACHMENT${index}_WEBGL`];
+    return gl[`COLOR_ATTACHMENT${index}`];
   }
 
   private drawBuffers() {
-    if (this.rhi.isWebGL2) {
-      (this.rhi.gl as WebGL2RenderingContext).drawBuffers(this.buffers);
-    } else {
-      this.getExtention().drawBuffersWEBGL(this.buffers);
-    }
+    (this.rhi.gl as WebGL2RenderingContext).drawBuffers(this.buffers);
   }
 
   private getExtention(): WEBGL_draw_buffers {
