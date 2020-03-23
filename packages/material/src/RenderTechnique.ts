@@ -201,7 +201,7 @@ export class RenderTechnique extends AssetObject {
             `component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, suggest joint count less than ${maxJoints}.`,
             component
           );
-        } else {
+        } else if (material.maxJointsNum > 0) {
           // 使用最大关节数，保证所有 ASkinnedMeshRenderer 都可以共用材质
           _macros.push(`O3_JOINTS_NUM ${material.maxJointsNum}`);
         }
