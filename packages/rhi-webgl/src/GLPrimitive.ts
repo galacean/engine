@@ -65,6 +65,7 @@ export class GLPrimitive extends GLAsset {
     const primitive = this._primitive;
     const vertexBuffer = primitive.vertexBuffers[bufferIndex];
     const vertBufferObject = this._glVertBuffers[bufferIndex];
+
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferObject);
     const activeVertexBuffer = new Int8Array(vertexBuffer, byteOffset, byteLength);
     gl.bufferSubData(gl.ARRAY_BUFFER, byteOffset, activeVertexBuffer);
