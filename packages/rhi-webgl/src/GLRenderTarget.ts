@@ -259,7 +259,7 @@ export class GLRenderTarget extends GLAsset {
     const { gl, isWebGL2 } = this.rhi;
     const { width, height } = this.renderTarget;
     const depthRenderBuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
     gl.renderbufferStorage(gl.RENDERBUFFER, isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16, width, height);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthRenderBuffer);
     return depthRenderBuffer;
