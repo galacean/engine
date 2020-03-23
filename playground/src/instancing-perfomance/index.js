@@ -1,20 +1,17 @@
 /*
  * @Author: your name
- * @Date: 2020-03-20 11:22:17
- * @LastEditTime: 2020-03-22 16:33:54
+ * @Date: 2020-03-22 17:23:59
+ * @LastEditTime: 2020-03-23 10:59:43
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
- * @FilePath: /oasis3d/playground/src/instancing/index.js
- */
-/**
- * 本示例展示如何使用几何体渲染器功能、如何创建几何体资源对象、如何创建材质对象
+ * @FilePath: /oasis3d/playground/src/instancing-perfomance/index.js
  */
 import { Engine } from '@alipay/o3-core';
 import { ADefaultCamera } from '@alipay/o3-default-camera';
 import { AGeometryRenderer } from '@alipay/o3-geometry';
 import '@alipay/o3-engine-stats';
 import createCubeGeometry from './geometry';
-import { createCubeMaterial, UpdateMaterialAbility } from './geometryMaterial';
+import { createCubeMaterial } from './geometryMaterial';
 import ARotation from '../common/ARotation';
 import { ResourceLoader } from '@alipay/o3-loader';
 
@@ -22,6 +19,7 @@ import { ResourceLoader } from '@alipay/o3-loader';
 const engine = new Engine();
 const scene = engine.currentScene;
 const rootNode = scene.root;
+
 
 const resourceLoader = new ResourceLoader(engine);
 
@@ -36,9 +34,8 @@ const cube = rootNode.createChild("cube");
 cube.createAbility(ARotation);
 // 在 cube 节点上绑定几何体渲染器功能、引用几何体资源对象、添加材质对象
 const cubeRenderer = cube.createAbility(AGeometryRenderer);
-cubeRenderer.geometry = createCubeGeometry(3);
+cubeRenderer.geometry = createCubeGeometry(0.5);
 cubeRenderer.setMaterial(createCubeMaterial(resourceLoader));
-cube.createAbility(UpdateMaterialAbility);
 
 // 启动引擎
 engine.run();

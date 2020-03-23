@@ -189,10 +189,7 @@ export class GLRenderHardware {
    * @param {Material} mtl
    */
   drawPrimitive(primitive, mtl) {
-    const glPrimitive = this._assetsCache.requireObject(
-      primitive,
-      this.canIUse(GLCapabilityType.vertexArrayObject) ? GLVAOPrimitive : GLPrimitive
-    );
+    const glPrimitive = this._assetsCache.requireObject(primitive, GLPrimitive);
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
     if (glPrimitive && glTech) {

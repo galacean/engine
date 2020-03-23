@@ -13,6 +13,7 @@ export class GLPrimitive extends GLAsset {
   protected readonly _primitive;
   protected _glIndexBuffer: WebGLBuffer;
   protected _glVertBuffers: WebGLBuffer[];
+  protected _glInstancedBuffer: WebGLBuffer;
   protected attribLocArray: number[];
   protected _renderer: GLBufferRenderer;
 
@@ -26,7 +27,7 @@ export class GLPrimitive extends GLAsset {
   /** 创建并初始化 IBO、VBO */
   protected initBuffers() {
     const gl = this.rhi.gl;
-    const { indexBuffer, vertexBuffers, usage } = this._primitive;
+    const { indexBuffer, vertexBuffers, instancedBuffer, usage } = this._primitive;
 
     /** index buffer */
     if (indexBuffer) {
@@ -42,6 +43,13 @@ export class GLPrimitive extends GLAsset {
       this._glVertBuffers[i] = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this._glVertBuffers[i]);
       gl.bufferData(gl.ARRAY_BUFFER, vertexBuffers[i], usage);
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    }
+
+    if (instancedBuffer) {
+      this._glInstancedBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._glInstancedBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, instancedBuffer, usage);
       gl.bindBuffer(gl.ARRAY_BUFFER, null);
     }
   }
@@ -65,8 +73,23 @@ export class GLPrimitive extends GLAsset {
   }
 
   /**
+   * 更新 instanced buffer
+   * */
+  protected updateInstancedBuffer(byteOffset = -1, byteLength = 0) {
+    const gl = this.rhi.gl;
+    const primitive = this._primitive;
+    const instancedBuffer = primitive.instancedBuffer;
+    const instancedBufferObject = this._glInstancedBuffer;
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, instancedBufferObject);
+    const activeVertexBuffer = new Int8Array(instancedBuffer, byteOffset, byteLength);
+    gl.bufferSubData(gl.ARRAY_BUFFER, byteOffset, activeVertexBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  }
+
+  /**
    * 更新 IBO
-   * // todo: 更新部分
+   * // todo: 更新部分 emmm为啥没有更新部分。。
    * */
   protected updateIndexBuffer() {
     const gl = this.rhi.gl;
@@ -86,8 +109,9 @@ export class GLPrimitive extends GLAsset {
 
     this.attribLocArray = [];
     const techAttributes = tech.attributes;
-    const attributes = primitive.vertexAttributes;
+    const attributes = primitive.attributes;
     const vbos = this._glVertBuffers;
+    const instanceVBO = this._glInstancedBuffer;
     let vbo: WebGLBuffer;
     let lastBoundVbo: WebGLBuffer;
 
@@ -98,7 +122,11 @@ export class GLPrimitive extends GLAsset {
       const semantic = techAttributes[name].semantic;
       const att = attributes[semantic];
       if (att) {
-        vbo = vbos[att.vertexBufferIndex];
+        if (att.instanced) {
+          vbo = instanceVBO;
+        } else {
+          vbo = vbos[att.vertexBufferIndex];
+        }
         // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
         if (lastBoundVbo !== vbo) {
           lastBoundVbo = vbo;
@@ -126,7 +154,6 @@ export class GLPrimitive extends GLAsset {
    * */
   protected prepareBuffers() {
     const primitive = this._primitive;
-
     /** init BO or update VBO */
     switch (primitive.updateType) {
       case UpdateType.NO_UPDATE:
@@ -156,14 +183,12 @@ export class GLPrimitive extends GLAsset {
    * @param {GLTechnique} tech
    */
   draw(tech: GLTechnique) {
-    const gl = this.rhi.gl;
     const primitive = this._primitive;
 
     /** prepare BO */
     this.prepareBuffers();
     /** 绑定 Buffer 和 attribute */
     this.bindBufferAndAttrib(tech);
-
     /** render */
     if (primitive.isInstanced) {
       this._renderer.renderInstances(primitive, this._glIndexBuffer);

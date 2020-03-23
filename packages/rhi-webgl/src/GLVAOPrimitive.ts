@@ -1,11 +1,3 @@
-/*
- * @Author: your name
- * @Date: 2020-03-18 15:42:32
- * @LastEditTime: 2020-03-19 20:39:20
- * @LastEditors: Please set LastEditors
- * @Description: In User Settings Edit
- * @FilePath: /oasis3d/packages/rhi-webgl/src/GLVAOPrimitive.ts
- */
 import { GLPrimitive } from "./GLPrimitive";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { Primitive } from "@alipay/o3-primitive";

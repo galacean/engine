@@ -47,8 +47,10 @@ export class Primitive extends AssetObject {
   public boundingSphere: BoundingSphere;
   public isInFrustum: boolean;
 
-  private isInstanced: boolean;
-  private instancedCount: number;
+  public instancedBuffer;
+  public instancedAttributes;
+  public isInstanced: boolean;
+  public instancedCount: number;
 
   /**
    * @constructor
@@ -84,9 +86,11 @@ export class Primitive extends AssetObject {
     this.boundingSphere = null;
     this.isInFrustum = true;
 
-    // instanced
+    // instanced 数据
+    this.instancedBuffer = null;
     this.isInstanced = false;
     this.instancedCount = 0;
+    this.instancedAttributes = {};
   }
 
   /**
@@ -100,18 +104,29 @@ export class Primitive extends AssetObject {
    * @param {number} vertexBufferIndex
    */
   addAttribute({ size, type, stride, offset, semantic, normalized, instanced = 0, vertexBufferIndex = 0 }: Attribute) {
-    this.vertexAttributes[semantic] = {
-      size,
-      type,
-      stride,
-      offset,
-      semantic,
-      instanced,
-      normalized,
-      vertexBufferIndex
-    };
     if (instanced) {
       this.isInstanced = true;
+      this.instancedAttributes[semantic] = {
+        size,
+        type,
+        stride,
+        offset,
+        semantic,
+        instanced,
+        normalized,
+        vertexBufferIndex
+      };
+    } else {
+      this.vertexAttributes[semantic] = {
+        size,
+        type,
+        stride,
+        offset,
+        semantic,
+        instanced,
+        normalized,
+        vertexBufferIndex
+      };
     }
   }
 
@@ -187,8 +202,14 @@ export class Primitive extends AssetObject {
    * 设置instanced count
    * @param {number} instanced count
    */
-
   setInstancedCount(count: number) {
     this.instancedCount = count;
+  }
+
+  get attributes() {
+    return {
+      ...this.vertexAttributes,
+      ...this.instancedAttributes
+    };
   }
 }

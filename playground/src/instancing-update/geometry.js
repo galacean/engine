@@ -1,4 +1,4 @@
-import { DataType } from "@alipay/o3-base";
+import { DataType, UpdateType } from "@alipay/o3-base";
 import { BufferGeometry } from "@alipay/o3-geometry";
 
 /**
@@ -8,7 +8,7 @@ import { BufferGeometry } from "@alipay/o3-geometry";
 export default function createInstancedGeometry(size) {
   //-- crete object
   const geometry = new BufferGeometry("cubeGeometry");
-  geometry.setInstancedCount(50);
+  geometry.setInstancedCount(20);
   geometry.initialize(
     [
       { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
@@ -80,6 +80,7 @@ export default function createInstancedGeometry(size) {
     6,
     5
   ];
+
   indexValues.forEach((vertexIndex, i) => {
     geometry.setValue("POSITION", i, pos[vertexIndex]);
     geometry.setValue("COLOR", i, colors[vertexIndex]);
@@ -93,5 +94,6 @@ export default function createInstancedGeometry(size) {
     instancedValues.push({ offset, random });
   }
   geometry.setAllInstancedValues(instancedValues);
+
   return geometry;
 }
