@@ -14,7 +14,7 @@ export class UpdateMaterialAbility extends NodeAbility {
   onUpdate(deltaTime) {
     const material = this.node.abilityArray[1].material;
     time += deltaTime;
-    material.setValue('time', time * 0.0008);
+    material.setValue('time', time * 0.001);
   }
 }
 

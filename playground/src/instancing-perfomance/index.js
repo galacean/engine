@@ -1,11 +1,3 @@
-/*
- * @Author: your name
- * @Date: 2020-03-22 17:23:59
- * @LastEditTime: 2020-03-23 10:59:43
- * @LastEditors: Please set LastEditors
- * @Description: In User Settings Edit
- * @FilePath: /oasis3d/playground/src/instancing-perfomance/index.js
- */
 import { Engine } from '@alipay/o3-core';
 import { ADefaultCamera } from '@alipay/o3-default-camera';
 import { AGeometryRenderer } from '@alipay/o3-geometry';
@@ -14,12 +6,15 @@ import createCubeGeometry from './geometry';
 import { createCubeMaterial } from './geometryMaterial';
 import ARotation from '../common/ARotation';
 import { ResourceLoader } from '@alipay/o3-loader';
+import * as dat from 'dat.gui';
 
 // 创建引擎、获取场景根节点
 const engine = new Engine();
 const scene = engine.currentScene;
 const rootNode = scene.root;
+const config = { count: 5000 };
 
+const gui = new dat.GUI();
 
 const resourceLoader = new ResourceLoader(engine);
 
@@ -34,8 +29,13 @@ const cube = rootNode.createChild("cube");
 cube.createAbility(ARotation);
 // 在 cube 节点上绑定几何体渲染器功能、引用几何体资源对象、添加材质对象
 const cubeRenderer = cube.createAbility(AGeometryRenderer);
-cubeRenderer.geometry = createCubeGeometry(0.5);
+const geometry = createCubeGeometry(0.5);
+cubeRenderer.geometry = geometry;
 cubeRenderer.setMaterial(createCubeMaterial(resourceLoader));
+
+gui.add(config, 'count', 0, 100000).onChange(v => {
+  geometry.setInstancedCount(v);
+});
 
 // 启动引擎
 engine.run();

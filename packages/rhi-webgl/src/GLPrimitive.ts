@@ -61,11 +61,11 @@ export class GLPrimitive extends GLAsset {
    * @param {number} byteLength - 更新 buffer 的字节长度
    */
   protected updateVertexBuffer(bufferIndex = 0, byteOffset = -1, byteLength = 0) {
+    console.log("fdafds");
     const gl = this.rhi.gl;
     const primitive = this._primitive;
     const vertexBuffer = primitive.vertexBuffers[bufferIndex];
     const vertBufferObject = this._glVertBuffers[bufferIndex];
-
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferObject);
     const activeVertexBuffer = new Int8Array(vertexBuffer, byteOffset, byteLength);
     gl.bufferSubData(gl.ARRAY_BUFFER, byteOffset, activeVertexBuffer);
@@ -73,7 +73,7 @@ export class GLPrimitive extends GLAsset {
   }
 
   /**
-   * 更新 instanced buffer
+   * 更新 instanced
    * */
   protected updateInstancedBuffer(byteOffset = -1, byteLength = 0) {
     const gl = this.rhi.gl;
@@ -89,7 +89,7 @@ export class GLPrimitive extends GLAsset {
 
   /**
    * 更新 IBO
-   * // todo: 更新部分 emmm为啥没有更新部分。。
+   * // todo: 更新部分
    * */
   protected updateIndexBuffer() {
     const gl = this.rhi.gl;
@@ -163,8 +163,16 @@ export class GLPrimitive extends GLAsset {
         primitive.updateType = UpdateType.NO_UPDATE;
         break;
       case UpdateType.UPDATE_RANGE:
-        this.updateVertexBuffer(0, primitive.updateRange.byteOffset, primitive.updateRange.byteLength);
+        if (!this._glVertBuffers?.length) {
+          this.initBuffers();
+        }
+        primitive.updateVertex &&
+          this.updateVertexBuffer(0, primitive.updateRange.byteOffset, primitive.updateRange.byteLength);
+        primitive.updateInstanced &&
+          this.updateInstancedBuffer(primitive.updateRange.byteOffset, primitive.updateRange.byteLength);
         primitive.updateType = UpdateType.NO_UPDATE;
+        primitive.updateInstanced = false;
+        primitive.updateVertex = false;
         primitive.resetUpdateRange();
         break;
     }

@@ -7,6 +7,7 @@ import { createCubeMaterial } from './geometryMaterial';
 import ARotation from '../common/ARotation';
 import { ResourceLoader } from '@alipay/o3-loader';
 import { UpdateType } from '@alipay/o3-base';
+import AGeometryScale from './AGeometryScale.js';
 
 // 创建引擎、获取场景根节点
 const engine = new Engine();
@@ -30,64 +31,8 @@ const geometry = createCubeGeometry(3);
 cubeRenderer.geometry = geometry;
 const material = createCubeMaterial(resourceLoader);
 cubeRenderer.setMaterial(material);
+cube.createAbility(AGeometryScale, { geometry });
 
-const size = 10;
-const indexValues = [
-  0,
-  2,
-  1,
-  3,
-  1,
-  2,
-  0,
-  4,
-  2,
-  6,
-  2,
-  4,
-  5,
-  1,
-  7,
-  3,
-  7,
-  1,
-  6,
-  7,
-  2,
-  3,
-  2,
-  7,
-  0,
-  1,
-  4,
-  5,
-  4,
-  1,
-  4,
-  5,
-  6,
-  7,
-  6,
-  5
-];
-const posNew = [
-  [-size / 2, -size / 2, -size / 2],
-  [size / 2, -size / 2, -size / 2],
-  [-size / 2, size / 2, -size / 2],
-  [size / 2, size / 2, -size / 2],
-  [-size / 2, -size / 2, size / 2],
-  [size / 2, -size / 2, size / 2],
-  [-size / 2, size / 2, size / 2],
-  [size / 2, size / 2, size / 2]
-];
-
-indexValues.forEach((vertexIndex, i) => {
-  geometry.setValue("POSITION", i, posNew[vertexIndex]);
-});
-
-setTimeout(() => {
-  geometry.primitive.updateType = UpdateType.UPDATE_RANGE;
-}, 1000);
 
 // 启动引擎
 engine.run();

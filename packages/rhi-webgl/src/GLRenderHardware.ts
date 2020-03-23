@@ -189,7 +189,11 @@ export class GLRenderHardware {
    * @param {Material} mtl
    */
   drawPrimitive(primitive, mtl) {
-    const glPrimitive = this._assetsCache.requireObject(primitive, GLPrimitive);
+    // todo: VAO 不支持 morph 动画
+    const glPrimitive = this._assetsCache.requireObject(
+      primitive,
+      this.canIUse(GLCapabilityType.vertexArrayObject) && !primitive.targets.length ? GLVAOPrimitive : GLPrimitive
+    );
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
     if (glPrimitive && glTech) {

@@ -235,6 +235,7 @@ export class BufferGeometry extends AssetObject {
     // 数据更新时修改更新状态为 UPDATE_RANGE
     if (this.primitive.updateType === UpdateType.NO_UPDATE) {
       this.primitive.updateType = UpdateType.UPDATE_RANGE;
+      this.primitive.updateVertex = true;
     }
     // 设置更新范围
     if (this.primitive.updateType === UpdateType.UPDATE_RANGE) {
@@ -323,6 +324,7 @@ export class BufferGeometry extends AssetObject {
     // 数据更新时修改更新状态为 UPDATE_RANGE
     if (this.primitive.updateType === UpdateType.NO_UPDATE) {
       this.primitive.updateType = UpdateType.UPDATE_RANGE;
+      this.primitive.updateInstanced = true;
     }
     // 设置更新范围
     if (this.primitive.updateType === UpdateType.UPDATE_RANGE) {
