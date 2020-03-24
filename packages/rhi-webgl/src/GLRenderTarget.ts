@@ -154,18 +154,20 @@ export class GLRenderTarget extends GLAsset {
    */
   private initialize() {
     const gl = this.rhi.gl;
-    /** 用户输入的采样数 */
-    let samples = this.renderTarget.samples;
-    /** 实际采样数 */
-    samples = this.renderTarget.samples = this.getExactSamples(samples);
-    if (samples > 1) {
-      this.initMSAA();
-    }
 
     this.frameBuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 
-    this.renderTarget.isMulti || this.initTexture();
+    if (!this.renderTarget.isMulti) {
+      this.initTexture();
+      /** 用户输入的采样数 */
+      let samples = this.renderTarget.samples;
+      /** 实际采样数 */
+      samples = this.renderTarget.samples = this.getExactSamples(samples);
+      if (samples > 1) {
+        this.initMSAA();
+      }
+    }
   }
 
   protected initTexture() {
