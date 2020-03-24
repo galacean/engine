@@ -3,9 +3,7 @@ import { MultiRenderTargetConfig } from "./type";
 import { RenderTarget } from "./RenderTarget";
 
 /**
- * 渲染目标，3D场景中的物体可以选择直接绘制到屏幕上，也可以选择渲染到一个 RenderTarget 上。
- * config.isCube= true时  - 渲染到 RenderTarget 上的内容可以作为纹理（Texture2D）供其他渲染环节使用。
- * config.isCube= false时 - 渲染到 RenderTarget 上的内容可以作为纹理（TextureCubeMap）供其他渲染环节使用。
+ * 多渲染目标，可以渲染到多个 RenderTarget。MRT 目前不支持 MSAA 和 isCube 参数
  * @class
  */
 export class MultiRenderTarget extends RenderTarget {
