@@ -29,9 +29,8 @@ export class GLMultiRenderTarget extends GLRenderTarget {
 
   finalize() {
     super.finalize();
-    const { gl } = this.rhi;
     this._glTextures.forEach(texture => {
-      gl.deleteTexture(texture);
+      texture.finalize();
     });
     this._glTextures = [];
     this.buffers = [];
@@ -44,9 +43,5 @@ export class GLMultiRenderTarget extends GLRenderTarget {
 
   private drawBuffers() {
     (this.rhi.gl as WebGL2RenderingContext).drawBuffers(this.buffers);
-  }
-
-  private getExtention(): WEBGL_draw_buffers {
-    return this.rhi.requireExtension(GLCapabilityType.drawBuffers);
   }
 }
