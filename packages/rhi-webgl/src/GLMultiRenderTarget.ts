@@ -17,7 +17,6 @@ export class GLMultiRenderTarget extends GLRenderTarget {
     }
 
     config.textures.forEach((texture, index) => {
-      const glIndex = this.getAttachmentIndex(index);
       this._glTextures.push(this.initColorTexture(texture, index));
       this.buffers.push(this.rhi.gl.COLOR_ATTACHMENT0 + index);
     });
@@ -34,10 +33,5 @@ export class GLMultiRenderTarget extends GLRenderTarget {
     });
     this._glTextures = [];
     this.buffers = [];
-  }
-
-  private getAttachmentIndex(index: number) {
-    const gl = this.rhi.gl;
-    return gl[`COLOR_ATTACHMENT${index}`];
   }
 }
