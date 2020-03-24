@@ -192,7 +192,7 @@ export class GLRenderTarget extends GLAsset {
       this.depthRenderBuffer = this.initDepthRenderBuffer();
     } else {
       // 渲染到平面纹理
-      this.glTexture = this.initColorTexture(texture, gl.COLOR_ATTACHMENT0);
+      this.glTexture = this.initColorTexture(texture, 0);
 
       // 创建深度纹理或者绑定深度RBO
       if (depthTexture && this.rhi.canIUse(GLCapabilityType.depthTexture)) {
@@ -219,11 +219,11 @@ export class GLRenderTarget extends GLAsset {
   /**
    * 初始化颜色纹理
    */
-  protected initColorTexture(texture: Texture2D, index?: GLenum) {
+  protected initColorTexture(texture: Texture2D, index: number = 0) {
     const { gl } = this.rhi;
     const { width, height } = this.renderTarget;
     const glTexture: GLTexture2D = this.rhi.assetsCache.requireObject(texture, GLTexture2D);
-    index = index ?? gl.COLOR_ATTACHMENT0;
+    index = gl.COLOR_ATTACHMENT0 + index;
     glTexture.activeBinding(0);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, index, gl.TEXTURE_2D, glTexture.glTexture, 0);

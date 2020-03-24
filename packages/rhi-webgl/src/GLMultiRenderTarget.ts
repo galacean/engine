@@ -18,8 +18,8 @@ export class GLMultiRenderTarget extends GLRenderTarget {
 
     config.textures.forEach((texture, index) => {
       const glIndex = this.getAttachmentIndex(index);
-      this._glTextures.push(this.initColorTexture(texture, glIndex));
-      this.buffers.push(glIndex);
+      this._glTextures.push(this.initColorTexture(texture, index));
+      this.buffers.push(this.rhi.gl.COLOR_ATTACHMENT0 + index);
     });
 
     this.checkFrameBuffer();
