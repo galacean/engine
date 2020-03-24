@@ -176,6 +176,7 @@ export class BasicSceneRenderer extends SceneVisitor {
       }
     }
 
+    rhi.blitRenderTarget(pass.renderTarget);
     pass.postRender(camera, this.opaqueQueue, this.transparentQueue);
   }
 

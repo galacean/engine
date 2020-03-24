@@ -49,16 +49,12 @@ export class PlaneProbe extends Probe {
   }
 
   public set width(width: number) {
-    this.renderTarget.width = width;
-    this.renderTargetSwap.width = width;
-    this.renderTarget.needRecreate = true;
-    this.renderTargetSwap.needRecreate = true;
+    this.renderTarget.width = this.renderTargetSwap.width = width;
+    this.renderTarget.needRecreate = this.renderTargetSwap.needRecreate = true;
   }
 
   public set height(height: number) {
-    this.renderTarget.height = height;
-    this.renderTargetSwap.height = height;
-    this.renderTarget.needRecreate = true;
-    this.renderTargetSwap.needRecreate = true;
+    this.renderTarget.height = this.renderTargetSwap.height = height;
+    this.renderTarget.needRecreate = this.renderTargetSwap.needRecreate = true;
   }
 }

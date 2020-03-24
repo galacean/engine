@@ -1,3 +1,4 @@
+import { AssetType } from "@alipay/o3-base";
 import { ACamera, Node, NodeAbility } from "@alipay/o3-core";
 import { Material, RenderTarget, Texture, Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import { BasicSceneRenderer, RenderPass } from "@alipay/o3-renderer-basic";
@@ -84,6 +85,15 @@ export abstract class Probe extends NodeAbility {
     });
   }
 
+  /** WebGL2 时，可以开启硬件层的 MSAA */
+  public get samples() {
+    return this.renderTarget.samples;
+  }
+
+  public set samples(v: number) {
+    this.renderTarget.samples = this.renderTargetSwap.samples = v;
+  }
+
   /**
    *探针基类
    * @param {Node} node
@@ -123,6 +133,9 @@ export abstract class Probe extends NodeAbility {
     this.addEventListener("disabled", () => {
       this.renderPass.enabled = false;
     });
+
+    // disable GC
+    this.garbageCollection(false);
   }
 
   protected preRender() {
@@ -162,6 +175,17 @@ export abstract class Probe extends NodeAbility {
     }
   }
 
+  /** 切换 GC */
+  garbageCollection(enable: boolean) {
+    const assetType = enable ? AssetType.Cache : AssetType.Scene;
+    this.renderTarget.type = this.renderTargetSwap.type = assetType;
+    if (this.isCube) {
+      this.renderTarget.cubeTexture.type = this.renderTargetSwap.cubeTexture.type = assetType;
+    } else {
+      this.renderTarget.texture.type = this.renderTargetSwap.texture.type = assetType;
+    }
+  }
+
   /**
    * 销毁 probe 以及 renderPass
    */
@@ -170,6 +194,8 @@ export abstract class Probe extends NodeAbility {
     this.sceneRenderer.removeRenderPass(this.renderPass);
 
     super.destroy();
+    // enable GC
+    this.garbageCollection(true);
   }
 
   /**

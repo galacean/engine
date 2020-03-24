@@ -106,7 +106,7 @@ showRenderTexture(renderTarget, directLight, rootNode);
 // 启动引擎
 engine.run();
 
-const techRes = new Resource('image', { type: 'texture', url: './00.jpg' });
+const techRes = new Resource('image', { type: 'texture', url: '/static/texture/effect-sea/00.jpg' });
 const resourceLoader = new ResourceLoader(engine);
 resourceLoader.batchLoad([techRes], (err,res) => {
 
