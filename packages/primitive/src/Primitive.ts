@@ -4,15 +4,15 @@ import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 import { Mat4 } from "@alipay/o3-math/types/type";
 import { vec3 } from "@alipay/o3-math";
 
-interface Attribute {
+export interface Attribute {
   semantic: string;
   size: number;
   type: DataType;
-  normalized: boolean;
-  instanced: number;
-  stride: number;
-  offset: number;
-  vertexBufferIndex: number;
+  normalized?: boolean;
+  instanced?: number;
+  stride?: number;
+  offset?: number;
+  vertexBufferIndex?: number;
 }
 
 let primitiveID = 0;
@@ -50,7 +50,10 @@ export class Primitive extends AssetObject {
   public instancedBuffer;
   public instancedAttributes;
   public isInstanced: boolean;
-  public instancedCount: number;
+  private _instancedCount: number;
+
+  public updateVertex: boolean;
+  public updateInstanced: boolean;
 
   /**
    * @constructor
@@ -89,8 +92,8 @@ export class Primitive extends AssetObject {
     // instanced 数据
     this.instancedBuffer = null;
     this.isInstanced = false;
-    this.instancedCount = 0;
     this.instancedAttributes = {};
+    this._instancedCount = 0;
   }
 
   /**
@@ -198,12 +201,12 @@ export class Primitive extends AssetObject {
     };
   }
 
-  /**
-   * 设置instanced count
-   * @param {number} instanced count
-   */
-  setInstancedCount(count: number) {
-    this.instancedCount = count;
+  set instancedCount(count: number) {
+    this._instancedCount = count;
+  }
+
+  get instancedCount() {
+    return this._instancedCount;
   }
 
   get attributes() {
@@ -212,4 +215,7 @@ export class Primitive extends AssetObject {
       ...this.instancedAttributes
     };
   }
+
+  finalize() {}
+
 }

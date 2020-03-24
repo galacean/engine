@@ -1,6 +1,7 @@
 import { Logger, UpdateType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Primitive } from "@alipay/o3-primitive";
+import { Attribute } from "@alipay/o3-primitive/types/type";
 
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from "./Constant";
 
@@ -11,7 +12,7 @@ let geometryCount = 0;
  * @extends AssetObject
  */
 export class BufferGeometry extends AssetObject {
-  primitive;
+  primitive: Primitive;
 
   stride: number;
   instancedStride: number;
@@ -45,12 +46,12 @@ export class BufferGeometry extends AssetObject {
    * @param {number} vertexCount 所有三角形顶点总个数
    * @param {number} usage 数据绘制类型常量，默认为静态类型 STATIC_DRAW，需要更新数据时使用动态类型 DYNAMIC_DRAW
    */
-  initialize(attributes, vertexCount, usage?) {
+  initialize(attributes: Attribute[], vertexCount, usage?) {
     const instancedAttributes = attributes.filter(item => item.instanced);
     const vertexAttributes = attributes.filter(item => !item.instanced);
     const isInstanced = instancedAttributes.length > 0;
     if (isInstanced && !this.instancedCount) {
-      Logger.error("Use setInstancedCount to set count of instanced attributes");
+      Logger.error("Need set instanced count");
       return;
     }
 
@@ -60,7 +61,7 @@ export class BufferGeometry extends AssetObject {
     }
   }
 
-  initializeVertex(attributes, vertexCount, usage?) {
+  initializeVertex(attributes: Attribute[], vertexCount: number, usage?) {
     const attribCount = attributes.length;
     let stride = 0;
     for (let i = 0; i < attribCount; i++) {
@@ -86,7 +87,7 @@ export class BufferGeometry extends AssetObject {
     this.stride = stride;
   }
 
-  initializeInstanced(attributes, instancedCount) {
+  initializeInstanced(attributes: Attribute[], instancedCount: number) {
     const attribCount = attributes.length;
     let stride = 0;
     for (let i = 0; i < attribCount; i++) {
@@ -120,6 +121,14 @@ export class BufferGeometry extends AssetObject {
 
   get instancedCount() {
     return this.primitive.instancedCount;
+  }
+
+  /**
+   * 设置instanced数量
+   * @param {number} count instanced数量
+   */
+  set instancedCount(count: number) {
+    this.primitive.instancedCount = count;
   }
 
   /**
@@ -172,7 +181,7 @@ export class BufferGeometry extends AssetObject {
    */
   setAllInstancedValues(instancedValues) {
     if (Array.isArray(instancedValues)) {
-      this.setInstancedCount(instancedValues.length);
+      this.primitive.instancedCount = instancedValues.length;
       instancedValues.forEach((values, index) => {
         this.setInstancedValues(index, values);
       });
@@ -193,14 +202,6 @@ export class BufferGeometry extends AssetObject {
         }
       }
     }
-  }
-
-  /**
-   * 设置instanced数量
-   * @param {number} count instanced数量
-   */
-  setInstancedCount(count) {
-    this.primitive.setInstancedCount(count);
   }
 
   /**

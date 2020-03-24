@@ -3,7 +3,6 @@ import { Primitive } from "@alipay/o3-primitive";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { GLTechnique } from "./GLTechnique";
 import { GLAsset } from "./GLAsset";
-import { GLBufferRenderer } from "./GLBufferRenderer";
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
@@ -15,13 +14,11 @@ export class GLPrimitive extends GLAsset {
   protected _glVertBuffers: WebGLBuffer[];
   protected _glInstancedBuffer: WebGLBuffer;
   protected attribLocArray: number[];
-  protected _renderer: GLBufferRenderer;
 
   constructor(rhi: GLRenderHardware, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
     this.attribLocArray = [];
-    this._renderer = new GLBufferRenderer(this.rhi);
   }
 
   /** 创建并初始化 IBO、VBO */
@@ -191,17 +188,42 @@ export class GLPrimitive extends GLAsset {
    * @param {GLTechnique} tech
    */
   draw(tech: GLTechnique) {
+    const gl = this.rhi.gl;
     const primitive = this._primitive;
 
     /** prepare BO */
     this.prepareBuffers();
     /** 绑定 Buffer 和 attribute */
     this.bindBufferAndAttrib(tech);
-    /** render */
-    if (primitive.isInstanced) {
-      this._renderer.renderInstances(primitive, this._glIndexBuffer);
+    /** draw */
+    const indexBuffer = this._glIndexBuffer;
+    const { isInstanced } = primitive;
+    if (!isInstanced) {
+      if (indexBuffer) {
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+        gl.drawElements(primitive.mode, primitive.indexCount, primitive.indexType, primitive.indexOffset);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+      } else {
+        gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
+      }
     } else {
-      this._renderer.render(primitive, this._glIndexBuffer);
+      if (this.rhi.canIUse(GLCapabilityType.instancedArrays)) {
+        if (indexBuffer) {
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+          gl.drawElementsInstanced(
+            primitive.mode,
+            primitive.indexCount,
+            primitive.indexType,
+            primitive.indexOffset,
+            primitive.instancedCount
+          );
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        } else {
+          gl.drawArraysInstanced(primitive.mode, primitive.vertexOffset, primitive.vertexCount, primitive.instancedCount);
+        }
+      } else {
+        Logger.error("ANGLE_instanced_arrays extension is not supported");
+      }
     }
 
     /** unbind */

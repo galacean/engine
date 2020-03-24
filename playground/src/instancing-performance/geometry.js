@@ -12,7 +12,7 @@ export default function createInstancedGeometry(size) {
   ];
 
   var geometry = new IndexBufferGeometry('cubeIndexGeometry');
-  geometry.setInstancedCount(100000);
+  geometry.instancedCount = 100000;
   geometry.initialize([
     { semantic: 'POSITION', size: 3, type: DataType.FLOAT, normalized: false },
     { semantic: 'COLOR', size: 3, type: DataType.FLOAT, normalized: false },

@@ -32,10 +32,10 @@ const cubeRenderer = cube.createAbility(AGeometryRenderer);
 const geometry = createCubeGeometry(0.5);
 cubeRenderer.geometry = geometry;
 cubeRenderer.setMaterial(createCubeMaterial(resourceLoader));
-geometry.setInstancedCount(5000);
+geometry.instancedCount = 5000;
 
 gui.add(config, 'count', 0, 100000).onChange(v => {
-  geometry.setInstancedCount(v);
+  geometry.instancedCount = v;
 });
 
 // 启动引擎
