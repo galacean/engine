@@ -20,7 +20,9 @@ export class GLCapability {
 
     this.init();
     // 抹平接口差异
-    this.compatibleAllInterface();
+    if (!this.rhi.isWebGL2) {
+      this.compatibleAllInterface();
+    }
   }
 
   /**
