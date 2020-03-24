@@ -97,8 +97,5 @@ export class RenderTarget extends AssetObject {
         this.depthTexture = new Texture2D(name + "_depth_texture", null, this.textureConfig);
       }
     }
-
-    /** WebGL2 时，可以开启硬件层的 MSAA */
-    this._samples = config.samples || 1;
   }
 }
