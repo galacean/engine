@@ -90,10 +90,28 @@ class ShaderFactory {
     shader = shader.replace(/\btexture(2D|Cube)\s*\(/g, "texture(");
     shader = shader.replace(/\btexture(2D|Cube)LodEXT\s*\(/g, "textureLod(");
     if (isFrag) {
-      shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
-      shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
+      // const isMRT = shader.
+      const result = shader.match(/gl_FragData\[.+\]/g);
+      if (result?.length > 0) {
+        this.replaceMRTShader(shader, result.length);
+      } else {
+        shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
+        shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
+        shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
+      }
     }
 
+    return shader;
+  }
+
+  private static replaceMRTShader(shader: string, textureLen: number): string {
+    let declare = "";
+    for (let i = 0; i < textureLen; i++) {
+      declare += `layout(location=0) in vec4 fragOutColor${i};\n`;
+    }
+    declare += `void main(`;
+    shader = shader.replace(/void\s+?main\s*\(/g, declare);
+    shader = shader.replace(/\bgl_FragData\b/g, "fragOutColor");
     return shader;
   }
 }
