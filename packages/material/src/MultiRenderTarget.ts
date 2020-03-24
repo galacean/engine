@@ -1,6 +1,5 @@
-import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
 import { Texture2D } from "./Texture2D";
-import { RenderTargetConfig } from "./type";
+import { MultiRenderTargetConfig } from "./type";
 import { RenderTarget } from "./RenderTarget";
 
 /**
@@ -20,7 +19,7 @@ export class MultiRenderTarget extends RenderTarget {
    * @param {Number} [config.height=1024] 高
    * @param {Number} [config.clearColor=[0, 0, 0, 0]] 清空后的填充色
    */
-  constructor(name: string, config: RenderTargetConfig = {}) {
+  constructor(name: string, config: MultiRenderTargetConfig = {}) {
     super(name, { ...config, isMulti: true });
 
     if (config.enableDepthTexture) {

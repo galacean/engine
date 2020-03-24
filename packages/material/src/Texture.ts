@@ -1,4 +1,4 @@
-import { TextureFilter, TextureWrapMode, GLTextureFormat } from "@alipay/o3-base";
+import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { TextureConfig } from "./type";
 
