@@ -37,4 +37,5 @@ export interface WebGLExtension {
   drawArraysInstanced(mode: GLenum, first: GLint, count: GLsizei, instanceCount: GLsizei): void;
   drawElementsInstanced(mode: GLenum, count: GLsizei, type: GLenum, offset: GLintptr, instanceCount: GLsizei): void;
   vertexAttribDivisor(index: GLuint, divisor: GLuint): void;
+  drawBuffers(buffers: Iterable<GLenum>): void;
 }

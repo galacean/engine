@@ -24,7 +24,7 @@ export class GLMultiRenderTarget extends GLRenderTarget {
 
     this.checkFrameBuffer();
 
-    this.drawBuffers();
+    this.rhi.gl.drawBuffers(this.buffers);
   }
 
   finalize() {
@@ -39,9 +39,5 @@ export class GLMultiRenderTarget extends GLRenderTarget {
   private getAttachmentIndex(index: number) {
     const gl = this.rhi.gl;
     return gl[`COLOR_ATTACHMENT${index}`];
-  }
-
-  private drawBuffers() {
-    (this.rhi.gl as WebGL2RenderingContext).drawBuffers(this.buffers);
   }
 }
