@@ -237,7 +237,7 @@ export class GLRenderTarget extends GLAsset {
    */
   protected initDepthTexture(depthTexture: Texture2D) {
     const { gl, isWebGL2 } = this.rhi;
-    if (!isWebGL2 && this.rhi.canIUse(GLCapabilityType.depthTexture)) {
+    if (!isWebGL2 && !this.rhi.canIUse(GLCapabilityType.depthTexture)) {
       return null;
     }
 
