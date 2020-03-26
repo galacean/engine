@@ -97,7 +97,6 @@ class ShaderFactory {
       } else {
         shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
         shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
-        shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
       }
     }
 
