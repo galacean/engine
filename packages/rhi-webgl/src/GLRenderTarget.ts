@@ -254,7 +254,7 @@ export class GLRenderTarget extends GLAsset {
       isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
       null
     );
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.glDepthTexture.glTexture, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, glDepthTexture.glTexture, 0);
   }
 
   protected initDepthRenderBuffer() {
