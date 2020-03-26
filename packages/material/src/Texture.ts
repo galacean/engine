@@ -10,6 +10,7 @@ export class Texture extends AssetObject {
   public needUpdateFilers: boolean;
   public needUpdateWholeTexture: boolean;
   public canMipmap: boolean;
+  public isCompressed: boolean = false;
 
   public wrapS: TextureWrapMode;
   public wrapT: TextureWrapMode;

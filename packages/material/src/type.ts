@@ -22,6 +22,12 @@ export type TextureConfig = {
   [key: string]: any;
 };
 
+export type CompressedTextureConfig = TextureConfig & {
+  internalFormat: number;
+  width: number;
+  height: number;
+};
+
 export type RenderTargetConfig = {
   width?: number;
   height?: number;

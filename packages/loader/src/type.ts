@@ -1,6 +1,15 @@
 import { Resource } from "./Resource";
 
-export type ResType = "texture" | "technique" | "image" | "video" | "cubemap" | "canvastexture" | "gltf" | "glb";
+export type ResType =
+  | "texture"
+  | "technique"
+  | "image"
+  | "video"
+  | "cubemap"
+  | "canvastexture"
+  | "gltf"
+  | "glb"
+  | "ktx";
 export type HandlerType = "image" | "video";
 export type Prop = { [key: string]: any };
 export type Engine = any;
