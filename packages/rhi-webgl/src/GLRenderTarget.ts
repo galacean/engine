@@ -240,6 +240,10 @@ export class GLRenderTarget extends GLAsset {
     if (!isWebGL2 && this.rhi.canIUse(GLCapabilityType.depthTexture)) {
       return null;
     }
+
+    depthTexture.filterMin = gl.NEAREST;
+    depthTexture.filterMag = gl.NEAREST;
+
     const { width, height } = this.renderTarget;
     const glDepthTexture = this.rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
     glDepthTexture.activeBinding(0);
