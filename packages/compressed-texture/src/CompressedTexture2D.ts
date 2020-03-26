@@ -59,7 +59,9 @@ export class CompressedTexture2D extends Texture2D {
   }
 
   set flipY(value: boolean) {
-    Logger.warn("CompressedTexture2D: flipY is always false");
+    if (value === true) {
+      Logger.warn("CompressedTexture2D: flipY is always false");
+    }
   }
 
   // 压缩纹理不支持运行时生成mipmap
@@ -68,7 +70,9 @@ export class CompressedTexture2D extends Texture2D {
   }
 
   set canMipmap(value: boolean) {
-    Logger.warn("CompressedTexture2D: can't generate mipmap");
+    if (value === true) {
+      Logger.warn("CompressedTexture2D: can't generate mipmap");
+    }
   }
 
   setCompressedData(data: CompressedData) {
