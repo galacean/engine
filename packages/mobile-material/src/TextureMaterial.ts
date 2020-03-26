@@ -1,6 +1,6 @@
 import { RenderState, DataType } from "@alipay/o3-base";
 import { CommonMaterial } from "./CommonMaterial";
-import { Texture2D, Texture, CompressedTexture2D } from "@alipay/o3-material";
+import { Texture2D } from "@alipay/o3-material";
 import FRAG_SHADER from "./shader/Texture.glsl";
 
 /**
@@ -62,29 +62,14 @@ export class TextureMaterial extends CommonMaterial {
    * @private
    */
   _generateFragmentUniform() {
-    console.log("gen", this.texture);
     const uniforms: any = {};
-    const fuck = new CompressedTexture2D("a");
-    console.log("fuck", fuck);
-    console.log("fuck instanceof texture", fuck instanceof Texture);
-    console.log("fuck instanceof texture2d", fuck instanceof Texture2D);
-
-    console.log("fuck instanceof compressedtexture2d", fuck instanceof CompressedTexture2D);
-
-    console.log("this.texture", this.texture);
-    console.log("instanceof texture", this.texture instanceof Texture);
-    console.log("instanceof texture2d", this.texture instanceof Texture2D);
-
-    console.log("instanceof compressedtexture2d", this.texture instanceof CompressedTexture2D);
 
     if (this.texture instanceof Texture2D) {
-      console.log("this.texture", this.texture);
       uniforms.u_diffuse = {
         name: "u_diffuse",
         paramName: "_MainTex",
         type: DataType.SAMPLER_2D
       };
-      console.log("uniforms", uniforms);
     }
     return {
       ...super._generateFragmentUniform(),

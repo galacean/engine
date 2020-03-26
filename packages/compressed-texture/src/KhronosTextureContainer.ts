@@ -4,6 +4,7 @@
  */
 
 import { Logger } from "@alipay/o3-base";
+import { Mipmap } from "./type";
 // import { InternalTexture } from "../Materials/Textures/internalTexture";
 
 /**
@@ -143,7 +144,7 @@ export class KhronosTextureContainer {
     this.loadType = KhronosTextureContainer.COMPRESSED_2D;
   }
 
-  public mipmaps(loadMipmaps) {
+  public mipmaps(loadMipmaps): Mipmap[] {
     const mipmaps = [];
 
     // initialize width & height for level 1

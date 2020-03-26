@@ -60,19 +60,29 @@ resourceLoader.load(dxt1MipmapTexture, (err, res) => {
   const texture = res.asset;
 
   console.log("dxt1mipmap", res);
-  let mtl = new TextureMaterial('dxt1');
+  let mtl = new TextureMaterial('dxt1mipmap');
   mtl.texture = texture;
 
-  let obj2 = rootNode.createChild("obj2");
-  obj2.position = [-1, 0, 0];
-  let cubeRenderer2 = obj2.createAbility(AGeometryRenderer);
+  let obj = rootNode.createChild("obj2");
+  obj.position = [-1, 0, 0];
+  let cubeRenderer2 = obj.createAbility(AGeometryRenderer);
   cubeRenderer2.geometry = new PlaneGeometry(w, w);
   cubeRenderer2.setMaterial(mtl);
 })
 
-// resourceLoader.load(dxt1Texture, (err, res) => {
-//   console.log("dxt1", res)
-// })
+resourceLoader.load(dxt1Texture, (err, res) => {
+  const texture = res.asset;
+
+  console.log("dxt1", res);
+  let mtl = new TextureMaterial('dxt1');
+  mtl.texture = texture;
+
+  let obj = rootNode.createChild("obj2-1");
+  obj.position = [0, 0, 0];
+  let cubeRenderer2 = obj.createAbility(AGeometryRenderer);
+  cubeRenderer2.geometry = new PlaneGeometry(w, w);
+  cubeRenderer2.setMaterial(mtl);
+});
 
 
 //-- create camera
