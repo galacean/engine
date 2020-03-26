@@ -16,6 +16,7 @@ export class BufferGeometry extends AssetObject {
 
   stride: number;
   instancedStride: number;
+  instancedBufferCount: number;
 
   attributes;
   /**
@@ -89,6 +90,7 @@ export class BufferGeometry extends AssetObject {
 
   initializeInstanced(attributes: Attribute[], instancedCount: number) {
     const attribCount = attributes.length;
+    const minDivisor = attributes.sort((a, b) => a.instanced - b.instanced)[0].instanced;
     let stride = 0;
     for (let i = 0; i < attribCount; i++) {
       const attribute = attributes[i];
@@ -104,10 +106,13 @@ export class BufferGeometry extends AssetObject {
       });
     }
 
-    this.primitive.instancedBuffer = new ArrayBuffer(instancedCount * stride);
+    const instancedBufferCount = instancedCount / minDivisor;
+    const instancedBufferLength = instancedBufferCount * stride;
+    this.primitive.instancedBuffer = new ArrayBuffer(instancedBufferLength);
     this.primitive.instancedCount = instancedCount;
     this.attributes = attributes;
     this.instancedStride = stride;
+    this.instancedBufferCount = instancedBufferCount;
   }
 
   /**
@@ -181,9 +186,10 @@ export class BufferGeometry extends AssetObject {
    */
   setAllInstancedValues(instancedValues) {
     if (Array.isArray(instancedValues)) {
-      this.primitive.instancedCount = instancedValues.length;
       instancedValues.forEach((values, index) => {
-        this.setInstancedValues(index, values);
+        if (index < this.instancedBufferCount) {
+          this.setInstancedValues(index, values);
+        }
       });
     }
   }

@@ -36,6 +36,7 @@ function requireCubeTechnique(loader) {
   uniform float time;
 
   varying vec3 v_color;
+  varying vec3 color;
 
   void rotate2d(inout vec2 v, float a){
     mat2 m = mat2(cos(a), -sin(a), sin(a),  cos(a));
@@ -45,7 +46,9 @@ function requireCubeTechnique(loader) {
   void main() {
     v_color = a_color;
     vec3 pos = a_position;
-                
+      
+    color = random;
+
     rotate2d(pos.xz, random.x * 6.28 + time * 4.0 * (random.y - 0.5));
     rotate2d(pos.zy, random.z * 0.5 * sin(time * random.x + random.z * 3.14));
 
@@ -60,6 +63,7 @@ function requireCubeTechnique(loader) {
   precision mediump int;
 
   varying vec3 v_color;
+  varying vec3 color;
   
   void main() {
     gl_FragColor = vec4(v_color, 1.0);

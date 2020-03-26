@@ -13,8 +13,8 @@ export default function createInstancedGeometry(size) {
     [
       { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
       { semantic: "COLOR", size: 3, type: DataType.FLOAT, normalized: false },
-      { semantic: "offset", size: 3, type: DataType.FLOAT, normalized: false, instanced: 20 },
-      { semantic: "random", size: 3, type: DataType.FLOAT, normalized: false, instanced: 20 }
+      { semantic: "offset", size: 3, type: DataType.FLOAT, normalized: false, instanced: 1 },
+      { semantic: "random", size: 3, type: DataType.FLOAT, normalized: false, instanced: 1 }
     ],
     36
   );

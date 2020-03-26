@@ -119,11 +119,8 @@ export class GLPrimitive extends GLAsset {
       const semantic = techAttributes[name].semantic;
       const att = attributes[semantic];
       if (att) {
-        if (att.instanced) {
-          vbo = instanceVBO;
-        } else {
-          vbo = vbos[att.vertexBufferIndex];
-        }
+        const { instanced } = att;
+        vbo = instanced ? instanceVBO : vbos[att.vertexBufferIndex];
         // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
         if (lastBoundVbo !== vbo) {
           lastBoundVbo = vbo;
@@ -219,7 +216,12 @@ export class GLPrimitive extends GLAsset {
           );
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         } else {
-          gl.drawArraysInstanced(primitive.mode, primitive.vertexOffset, primitive.vertexCount, primitive.instancedCount);
+          gl.drawArraysInstanced(
+            primitive.mode,
+            primitive.vertexOffset,
+            primitive.vertexCount,
+            primitive.instancedCount
+          );
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");
