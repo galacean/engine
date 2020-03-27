@@ -2,6 +2,7 @@ import { GLTexture } from "./GLTexture";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { Texture2D } from "@alipay/o3-material";
 import { CompressedTexture2D } from "@alipay/o3-compressed-texture";
+import { Logger } from "@alipay/o3-base";
 
 /**
  * GL 2D贴图资源管理
@@ -49,6 +50,9 @@ export class GLTexture2D extends GLTexture {
       }
     } else if (config.isCompressed && config.needUpdateWholeTexture) {
       const compressedConfig = config as CompressedTexture2D;
+      if (!this.rhi.canIUseTextureFormat(compressedConfig.internalFormat)) {
+        Logger.warn("GLTexture2D: Attempt to load unsupport compressed texture format");
+      }
       const mipmaps = compressedConfig.mipmaps;
       if (mipmaps) {
         super.setPixelStore();
