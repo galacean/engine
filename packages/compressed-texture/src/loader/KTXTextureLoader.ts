@@ -11,7 +11,7 @@ export class KTXTextureHandler {
     let urls = props.url;
     if (!Array.isArray(urls)) urls = [props.url];
     if (urls.length !== 1 && urls.length !== 6) {
-      callback("Error loading KTXTexture with length " + urls.length);
+      callback(new Error("KTXTextureLoader: ktx texture should have 1 or 6 url"));
       return;
     }
     const promises = urls.map(url => {
@@ -20,16 +20,19 @@ export class KTXTextureHandler {
           if (!err) {
             resolve(buffer);
           } else {
-            callback("Error loading KTXTexture from " + url);
-            reject();
+            reject("Error loading KTXTexture from " + url);
           }
         });
       });
     });
 
-    Promise.all(promises).then(res => {
-      callback(null, res);
-    });
+    Promise.all(promises)
+      .then(res => {
+        callback(null, res);
+      })
+      .catch(err => {
+        callback(err);
+      });
   }
 
   open(resource: Resource) {
@@ -45,7 +48,7 @@ export class KTXTextureHandler {
       const texture = new CompressedTextureCubeMap(resource.name, parseCubeKTX(resource.data));
       resource.asset = texture;
     } else {
-      throw new Error("KTXTextureLoader: ktx texture should have 1 or 6 url");
+      throw new Error("KTXTextureLoader: ktx texture should have 1 or 6 texture");
     }
   }
 }

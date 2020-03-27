@@ -1,5 +1,5 @@
 import { GLTexture } from "./GLTexture";
-import { CubeMapFace } from "@alipay/o3-base";
+import { CubeMapFace, Logger } from "@alipay/o3-base";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { TextureCubeMap } from "@alipay/o3-material";
 import { CompressedTextureCubeMap } from "@alipay/o3-compressed-texture";
@@ -49,6 +49,9 @@ export class GLTextureCubeMap extends GLTexture {
       const compressedConfig = this._config as CompressedTextureCubeMap;
       const mipmapsFaces = compressedConfig.mipmapsFaces;
       if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace.includes(true)) {
+        if (!this.rhi.canIUseTextureFormat(compressedConfig.internalFormat)) {
+          Logger.warn("GLTextureCubeMap: Attempt to load unsupport compressed texture format");
+        }
         super.setPixelStore();
         for (let f = 0; f < CubeMapFace.length; f++) {
           if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace[f]) {

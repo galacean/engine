@@ -53,17 +53,21 @@ let cubeMapRes2 = new Resource("env", {
   ]
 });
 resourceLoader.batchLoad([cubeMapRes, cubeMapRes2], (err, res) => {
-  let cubeMaps = res.map(r => r.assets[0]);
-  let mipmapsFacesArray = [cubeMaps[0].mipmapsFaces, cubeMaps[1].mipmapsFaces];
-  let mtl = createCubeMaterial(resourceLoader);
-  mtl.setValue("u_cube", cubeMaps[0]);
-  const w = 1;
-  createCuboidGeometry("obj1", [0, 0, 0], [0, 0, 0], w, w, w, mtl);
+  if (err) {
+    console.log("error", err)
+  } else {
+    let cubeMaps = res.map(r => r.assets[0]);
+    let mipmapsFacesArray = [cubeMaps[0].mipmapsFaces, cubeMaps[1].mipmapsFaces];
+    let mtl = createCubeMaterial(resourceLoader);
+    mtl.setValue("u_cube", cubeMaps[0]);
+    const w = 1;
+    createCuboidGeometry("obj1", [0, 0, 0], [0, 0, 0], w, w, w, mtl);
 
-  let pointer = 1;
-  setInterval(() => {
-    cubeMaps[0].mipmapsFaces = mipmapsFacesArray[pointer++ % 2];
-  }, 2000);
+    let pointer = 1;
+    setInterval(() => {
+      cubeMaps[0].mipmapsFaces = mipmapsFacesArray[pointer++ % 2];
+    }, 2000);
+  }
 });
 
 let cameraNode = rootNode.createChild("camera_node");
