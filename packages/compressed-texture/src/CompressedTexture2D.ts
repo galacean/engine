@@ -1,7 +1,7 @@
 import { TextureFilter, Logger } from "@alipay/o3-base";
 import { Texture2D, TextureConfig } from "@alipay/o3-material";
 
-import { CompressedData, Mipmap } from "./type";
+import { CompressedTextureData, Mipmap } from "./type";
 
 /**
  * 2D 贴图数据对象
@@ -18,9 +18,10 @@ export class CompressedTexture2D extends Texture2D {
   /**
    * 2D 贴图数据对象
    * @param {String} name 名称
-   * @param {CompressedTextureConfig} config 可选配置
+   * @param {CompressedTextureData} compressedData 压缩纹理内容
+   * @param {TextureConfig} config 可选配置
    */
-  constructor(name: string, compressedData?: CompressedData, config?: TextureConfig) {
+  constructor(name: string, compressedData?: CompressedTextureData, config?: TextureConfig) {
     // 压缩纹理不可以flipY
     super(name, null, { ...config, flipY: false });
 
@@ -75,7 +76,7 @@ export class CompressedTexture2D extends Texture2D {
     }
   }
 
-  setCompressedData(data: CompressedData) {
+  setCompressedData(data: CompressedTextureData) {
     this.mipmaps = data.mipmaps;
     this._width = data.width;
     this._height = data.height;
@@ -115,5 +116,9 @@ export class CompressedTexture2D extends Texture2D {
 
   getImageData() {
     Logger.warn("CompressedTexture2D: cant't getImageData from a compressed texture");
+  }
+
+  configMipmap() {
+    Logger.warn("CompressedTexture2D: cant't config mipmap");
   }
 }

@@ -101,7 +101,6 @@ export class GLCapability {
     cap.set(etc1, !!this.rhi.requireExtension(etc1));
     cap.set(pvrtc, !!this.rhi.requireExtension(pvrtc));
     cap.set(s3tc, !!this.rhi.requireExtension(s3tc));
-    console.log("cap", cap);
   }
 
   /**

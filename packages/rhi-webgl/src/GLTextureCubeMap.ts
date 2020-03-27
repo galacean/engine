@@ -2,6 +2,7 @@ import { GLTexture } from "./GLTexture";
 import { CubeMapFace } from "@alipay/o3-base";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { TextureCubeMap } from "@alipay/o3-material";
+import { CompressedTextureCubeMap } from "@alipay/o3-compressed-texture";
 
 /**
  * GL CubeMap 资源管理
@@ -29,21 +30,45 @@ export class GLTextureCubeMap extends GLTexture {
    */
   updateTexture() {
     const gl = this._gl;
-    const config = this._config as TextureCubeMap;
-    const images = config.images;
-
-    if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace.includes(true)) {
-      super.setPixelStore();
-      for (let f = 0; f < CubeMapFace.length; f++) {
-        for (let level = 0; level < images.length; level++) {
+    let config = this._config as TextureCubeMap;
+    if (!config.isCompressed) {
+      const images = config.images;
+      if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace.includes(true)) {
+        super.setPixelStore();
+        for (let f = 0; f < CubeMapFace.length; f++) {
+          for (let level = 0; level < images.length; level++) {
+            if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace[f]) {
+              config.needUpdateCubeTextureFace[f] = false;
+              gl.texImage2D(CubeMapFace[f], level, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, images[level][f]);
+            }
+          }
+        }
+        super.generateMipmap();
+      }
+    } else {
+      const compressedConfig = this._config as CompressedTextureCubeMap;
+      const mipmapsFaces = compressedConfig.mipmapsFaces;
+      if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace.includes(true)) {
+        super.setPixelStore();
+        for (let f = 0; f < CubeMapFace.length; f++) {
           if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace[f]) {
+            const mipmapsFace = mipmapsFaces[f];
+            for (let level = 0; level < mipmapsFace.length; level++) {
+              const mipmap = mipmapsFace[level];
+              gl.compressedTexImage2D(
+                CubeMapFace[f],
+                level,
+                compressedConfig.internalFormat,
+                mipmap.width,
+                mipmap.height,
+                0,
+                mipmap.data
+              );
+            }
             config.needUpdateCubeTextureFace[f] = false;
-            gl.texImage2D(CubeMapFace[f], level, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, images[level][f]);
           }
         }
       }
-
-      super.generateMipmap();
     }
 
     config.needUpdateWholeTexture = false;
