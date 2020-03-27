@@ -26,7 +26,7 @@ export class GLRenderHardware {
 
   /** 当前 RHI 是否为 WebGL 2.0 */
   get isWebGL2() {
-    return this.gl instanceof WebGL2RenderingContext;
+    return false;
   }
 
   constructor(canvas: HTMLCanvasElement, option: RHIOption) {
@@ -37,17 +37,9 @@ export class GLRenderHardware {
     }
 
     /** 若不设置 disableWebGL2 为 true，则默认自动优先使用 WebGL 2.0 */
-    if (!option.disableWebGL2) {
-      this._gl = <WebGL2RenderingContext>(
-        (this._canvas.getContext("webgl2", option) || this._canvas.getContext("experimental-webgl2", option))
-      );
-    }
-
-    if (!this._gl) {
-      this._gl = <WebGLRenderingContext>(
-        (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
-      );
-    }
+    this._gl = <WebGLRenderingContext>(
+      (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
+    );
 
     if (!this._gl) {
       throw new Error("Get GL Context FAILED.");
