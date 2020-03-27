@@ -137,14 +137,35 @@ export class Engine extends EventDispatcher {
     }
 
     if (c) {
+      let rhi = this.getRHI(c);
+      if (!rhi) {
+        rhi = new RHI(canvas, attributes);
+        this._rhis.push(rhi);
+      }
+      return rhi;
+    } else {
+      Logger.warn(`unknown canvas parameter:  ${canvas}`);
+    }
+  }
+
+  /**
+   * 得到 canvas 对应的 RHI 实例
+   * @param {String|HTMLCanvasElement} canvas 画布
+   */
+  public getRHI(canvas: string | HTMLCanvasElement): any {
+    let c: HTMLCanvasElement;
+    if (typeof canvas === "string") {
+      c = document.getElementById(canvas) as HTMLCanvasElement;
+    } else if (canvas instanceof HTMLCanvasElement) {
+      c = canvas;
+    }
+
+    if (c) {
       for (const _rhi of this._rhis) {
         if (_rhi.canvas === c) {
           return _rhi;
         }
       }
-      const rhi = new RHI(canvas, attributes);
-      this._rhis.push(rhi);
-      return rhi;
     } else {
       Logger.warn(`unknown canvas parameter:  ${canvas}`);
     }
