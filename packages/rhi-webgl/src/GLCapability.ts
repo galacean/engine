@@ -37,7 +37,9 @@ export class GLCapability {
    * */
   private init() {
     const cap = this.capabilityList;
-    const { isWebGL2, requireExtension } = this.rhi;
+    const { isWebGL2 } = this.rhi;
+    let requireExtension = this.rhi.requireExtension.bind(this.rhi);
+
     const {
       standardDerivatives,
       shaderTextureLod,
