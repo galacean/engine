@@ -74,7 +74,9 @@ export class GLCapability {
    * */
   private init() {
     const cap = this.capabilityList;
-    const { isWebGL2, requireExtension } = this.rhi;
+    const { isWebGL2 } = this.rhi;
+    let requireExtension = this.rhi.requireExtension.bind(this.rhi);
+
     const {
       standardDerivatives,
       shaderTextureLod,
@@ -82,6 +84,7 @@ export class GLCapability {
       depthTexture,
       vertexArrayObject,
       multipleSample,
+      drawBuffers,
       astc,
       etc,
       etc1,
@@ -94,13 +97,13 @@ export class GLCapability {
     cap.set(depthTexture, isWebGL2 || !!requireExtension(depthTexture));
     cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
     cap.set(multipleSample, isWebGL2);
-    cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
+    cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
 
-    cap.set(astc, !!this.rhi.requireExtension(astc));
-    cap.set(etc, !!this.rhi.requireExtension(etc));
-    cap.set(etc1, !!this.rhi.requireExtension(etc1));
-    cap.set(pvrtc, !!this.rhi.requireExtension(pvrtc));
-    cap.set(s3tc, !!this.rhi.requireExtension(s3tc));
+    cap.set(astc, !!requireExtension(astc));
+    cap.set(etc, !!requireExtension(etc));
+    cap.set(etc1, !!requireExtension(etc1));
+    cap.set(pvrtc, !!requireExtension(pvrtc));
+    cap.set(s3tc, !!requireExtension(s3tc));
   }
 
   /**
