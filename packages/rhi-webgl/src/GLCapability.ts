@@ -75,7 +75,7 @@ export class GLCapability {
   private init() {
     const cap = this.capabilityList;
     const { isWebGL2 } = this.rhi;
-    let requireExtension = this.rhi.requireExtension.bind(this.rhi);
+    const requireExtension = this.rhi.requireExtension.bind(this.rhi);
 
     const {
       standardDerivatives,
@@ -84,7 +84,6 @@ export class GLCapability {
       depthTexture,
       vertexArrayObject,
       multipleSample,
-      drawBuffers,
       astc,
       etc,
       etc1,
@@ -97,7 +96,6 @@ export class GLCapability {
     cap.set(depthTexture, isWebGL2 || !!requireExtension(depthTexture));
     cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
     cap.set(multipleSample, isWebGL2);
-    cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
 
     cap.set(astc, !!requireExtension(astc));
     cap.set(etc, !!requireExtension(etc));
