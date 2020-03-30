@@ -50,7 +50,7 @@ export class GLTexture2D extends GLTexture {
       }
     } else if (config.isCompressed && config.needUpdateWholeTexture) {
       const compressedConfig = config as CompressedTexture2D;
-      if (!this.rhi.canIUseTextureFormat(compressedConfig.internalFormat)) {
+      if (!this.rhi.canIUseCompressedTextureInternalFormat(compressedConfig.internalFormat)) {
         Logger.warn("GLTexture2D: Attempt to load unsupport compressed texture format");
       }
       const mipmaps = compressedConfig.mipmaps;

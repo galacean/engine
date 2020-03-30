@@ -33,7 +33,7 @@ export class GLCapability {
   /**
    * 查询能否使用某种压缩纹理格式
    * */
-  public canIUseTextureFormat(internalType: number): boolean {
+  public canIUseCompressedTextureInternalFormat(internalType: number): boolean {
     const {
       // astc
       RGBA_ASTC_4X4_KHR,

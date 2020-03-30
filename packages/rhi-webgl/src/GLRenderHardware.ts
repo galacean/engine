@@ -131,8 +131,8 @@ export class GLRenderHardware {
   /**
    * 查询能否使用某种压缩纹理格式
    * */
-  canIUseTextureFormat(type: number) {
-    return this.capability.canIUseTextureFormat(type);
+  canIUseCompressedTextureInternalFormat(type: number) {
+    return this.capability.canIUseCompressedTextureInternalFormat(type);
   }
 
   /**

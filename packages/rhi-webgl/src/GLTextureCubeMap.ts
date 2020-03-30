@@ -49,7 +49,7 @@ export class GLTextureCubeMap extends GLTexture {
       const compressedConfig = this._config as CompressedTextureCubeMap;
       const mipmapsFaces = compressedConfig.mipmapsFaces;
       if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace.includes(true)) {
-        if (!this.rhi.canIUseTextureFormat(compressedConfig.internalFormat)) {
+        if (!this.rhi.canIUseCompressedTextureInternalFormat(compressedConfig.internalFormat)) {
           Logger.warn("GLTextureCubeMap: Attempt to load unsupport compressed texture format");
         }
         super.setPixelStore();
