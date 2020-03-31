@@ -7,9 +7,8 @@ import commonjs from "rollup-plugin-commonjs";
 import babel from "rollup-plugin-babel";
 import string from "@ali/rollup-plugin-string";
 import { terser } from "rollup-plugin-terser";
+import { binary2base64 } from "rollup-plugin-binary2base64";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
-import binary2base64 from "./rollup.binary2base64.plugin";
-
 const readFile = promisify(fs.readFile);
 
 const { LERNA_PACKAGE_NAME, PWD, NODE_ENV } = process.env;
