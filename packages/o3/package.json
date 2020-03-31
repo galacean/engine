@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "description": "",
   "repository": {
     "type": "git",
@@ -69,7 +69,7 @@
     "@alipay/o3-shaderlib": "^1.6.5",
     "@alipay/o3-shadow": "^1.6.6",
     "@alipay/o3-skybox": "^1.6.6",
-    "@alipay/o3-spine": "^1.6.6",
+    "@alipay/o3-spine": "^1.6.7",
     "@alipay/o3-trail": "^1.6.6",
     "@alipay/o3-tween": "^1.6.6"
   }
