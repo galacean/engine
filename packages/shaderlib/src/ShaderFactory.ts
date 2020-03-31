@@ -107,7 +107,7 @@ class ShaderFactory {
     let declaration = "";
     for (let i = 0; i < result.length; i++) {
       declaration += `layout(location=${i}) out vec4 fragOutColor${i};\n`;
-      const res = result[i].match(/gl_FragData\[(.+)\]/);
+      const res = result[i].match(/\bgl_FragData\[(.+)\]/);
       shader = shader.replace(result[i], `fragOutColor${res[1]}`);
     }
     declaration += `void main(`;
