@@ -24,28 +24,31 @@ let primitiveID = 0;
  */
 export class Primitive extends AssetObject {
   public readonly id: number;
-  public mode: DrawMode;
-  public usage: BufferUsage;
-  public updateType: UpdateType;
-  public updateRange: { byteOffset: number; byteLength: number };
+  public mode: DrawMode = DrawMode.TRIANGLES; // draw mode, triangles, lines etc.;
+  public usage: BufferUsage = BufferUsage.STATIC_DRAW;
+  public updateType: UpdateType = UpdateType.UPDATE_ALL;
+  public updateRange: { byteOffset: number; byteLength: number } = {
+    byteOffset: -1,
+    byteLength: 0
+  };
 
-  public vertexBuffers;
-  public vertexAttributes;
-  public vertexOffset: number;
-  public vertexCount: number;
+  public vertexBuffers = [];
+  public vertexAttributes = {};
+  public vertexOffset: number = 0;
+  public vertexCount: number = 0;
 
-  public indexType: DataType.UNSIGNED_BYTE | DataType.UNSIGNED_SHORT | DataType.UNSIGNED_INT;
-  public indexCount: number;
-  public indexBuffer;
-  public indexOffset: number;
-  public indexNeedUpdate: boolean;
+  public indexType: DataType.UNSIGNED_BYTE | DataType.UNSIGNED_SHORT | DataType.UNSIGNED_INT = DataType.UNSIGNED_SHORT;
+  public indexCount: number = 0;
+  public indexBuffer = null;
+  public indexOffset: number = 0;
+  public indexNeedUpdate: boolean = false;
 
-  public material;
+  public material = null;
   public materialIndex: number;
-  public targets: any[];
-  public boundingBox: OBB;
-  public boundingSphere: BoundingSphere;
-  public isInFrustum: boolean;
+  public targets: any[] = [];
+  public boundingBox: OBB = null;
+  public boundingSphere: BoundingSphere = null;
+  public isInFrustum: boolean = true;
 
   public instancedBuffer = null;
   public instancedAttributes = {};
@@ -61,33 +64,6 @@ export class Primitive extends AssetObject {
   constructor(name?: string) {
     super(name !== undefined ? name : "DEFAULT_PRIMITIVENAME_" + primitiveID);
     this.id = primitiveID++;
-    this.mode = DrawMode.TRIANGLES; // draw mode, triangles, lines etc.
-    this.usage = BufferUsage.STATIC_DRAW;
-    this.updateType = UpdateType.UPDATE_ALL;
-    this.updateRange = {
-      byteOffset: -1,
-      byteLength: 0
-    };
-
-    //-- 顶点数据
-    this.vertexBuffers = []; // ArrayBuffer，一个Primitive可能包含1个或多个顶点缓冲
-    this.vertexAttributes = {}; // vertex attributes: dict object, [senmatic]-->VertexAttribute
-    this.vertexOffset = 0;
-    this.vertexCount = 0;
-
-    //-- index 数据，可能为null
-    this.indexType = DataType.UNSIGNED_SHORT;
-    this.indexCount = 0; // number of elements
-    this.indexBuffer = null; // ArrayBuffer object
-    this.indexOffset = 0;
-    this.indexNeedUpdate = false;
-
-    //--
-    this.material = null; // default material objects
-    this.targets = []; // MorphTarget array
-    this.boundingBox = null;
-    this.boundingSphere = null;
-    this.isInFrustum = true;
   }
 
   /**
