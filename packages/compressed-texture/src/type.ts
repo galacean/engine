@@ -1,5 +1,7 @@
+import { GLCompressedTextureInternalFormat } from "@alipay/o3-base";
+
 export type CompressedTextureData = {
-  internalFormat: number;
+  internalFormat: GLCompressedTextureInternalFormat;
   width: number;
   height: number;
   mipmaps: Mipmap[];

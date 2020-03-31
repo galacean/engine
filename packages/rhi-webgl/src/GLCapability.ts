@@ -1,5 +1,5 @@
 import { GLRenderHardware } from "./GLRenderHardware";
-import { GLCapabilityType, GLCompressedTextureType, GLCompressedTextureInternalType } from "@alipay/o3-base";
+import { GLCapabilityType, GLCompressedTextureInternalFormat } from "@alipay/o3-base";
 
 type extensionKey = string;
 
@@ -33,7 +33,7 @@ export class GLCapability {
   /**
    * 查询能否使用某种压缩纹理格式
    * */
-  public canIUseCompressedTextureInternalFormat(internalType: number): boolean {
+  public canIUseCompressedTextureInternalFormat(internalType: GLCompressedTextureInternalFormat): boolean {
     const {
       // astc
       RGBA_ASTC_4X4_KHR,
@@ -51,7 +51,7 @@ export class GLCapability {
       // s3tc
       RGB_S3TC_DXT1_EXT,
       RGBA_S3TC_DXT5_EXT
-    } = GLCompressedTextureInternalType;
+    } = GLCompressedTextureInternalFormat;
     if (
       (internalType >= RGBA_ASTC_4X4_KHR && RGBA_ASTC_12X12_KHR <= RGBA_ASTC_12X12_KHR) ||
       (internalType >= SRGB8_ALPHA8_ASTC_4X4_KHR && internalType <= SRGB8_ALPHA8_ASTC_12X12_KHR)

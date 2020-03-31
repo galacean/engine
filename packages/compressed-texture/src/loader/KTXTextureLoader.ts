@@ -3,6 +3,7 @@ import { Resource } from "@alipay/o3-loader";
 import { KhronosTextureContainer } from "../KhronosTextureContainer";
 import { CompressedTexture2D } from "../CompressedTexture2D";
 import { CompressedTextureCubeMap } from "../CompressedTextureCubeMap";
+import { CompressedTextureData, CompressedCubeData } from "../type";
 /**
  * @private
  */
@@ -53,7 +54,7 @@ export class KTXTextureHandler {
   }
 }
 
-function parseCubeKTX(dataArray: ArrayBuffer[]) {
+function parseCubeKTX(dataArray: ArrayBuffer[]): CompressedCubeData {
   for (let i = 0; i < dataArray.length; i++) {
     if (!KhronosTextureContainer.IsValid(dataArray[i])) {
       throw new Error("KTXTextureLoader: texture missing KTX identifier");
@@ -69,7 +70,7 @@ function parseCubeKTX(dataArray: ArrayBuffer[]) {
   };
 }
 
-function parseSingleKTX(data: ArrayBuffer) {
+function parseSingleKTX(data: ArrayBuffer): CompressedTextureData {
   const ktx = new KhronosTextureContainer(data, 1);
   const mipmaps = ktx.mipmaps(true);
   return {

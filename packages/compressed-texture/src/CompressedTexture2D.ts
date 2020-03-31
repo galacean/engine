@@ -1,4 +1,4 @@
-import { TextureFilter, Logger } from "@alipay/o3-base";
+import { TextureFilter, Logger, GLCompressedTextureInternalFormat } from "@alipay/o3-base";
 import { Texture2D, TextureConfig } from "@alipay/o3-material";
 
 import { CompressedTextureData, Mipmap } from "./type";
@@ -13,7 +13,7 @@ export class CompressedTexture2D extends Texture2D {
 
   private _width: number;
   private _height: number;
-  private _internalFormat: number;
+  private _internalFormat: GLCompressedTextureInternalFormat;
 
   /**
    * 2D 贴图数据对象
@@ -51,7 +51,7 @@ export class CompressedTexture2D extends Texture2D {
     return this._height;
   }
 
-  get internalFormat(): number {
+  get internalFormat(): GLCompressedTextureInternalFormat {
     return this._internalFormat;
   }
 

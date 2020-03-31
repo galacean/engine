@@ -1,4 +1,4 @@
-import { TextureWrapMode, Logger } from "@alipay/o3-base";
+import { TextureWrapMode, Logger, GLCompressedTextureInternalFormat } from "@alipay/o3-base";
 import { TextureCubeMap, TextureConfig } from "@alipay/o3-material";
 
 import { CompressedCubeData, Mipmap } from "./type";
@@ -10,7 +10,7 @@ export class CompressedTextureCubeMap extends TextureCubeMap {
   private _mipmapsFaces: Mipmap[][];
   private _width: number;
   private _height: number;
-  private _internalFormat: number;
+  private _internalFormat: GLCompressedTextureInternalFormat;
 
   public isCompressed: boolean = true;
 
@@ -53,7 +53,7 @@ export class CompressedTextureCubeMap extends TextureCubeMap {
     return this._height;
   }
 
-  get internalFormat(): number {
+  get internalFormat(): GLCompressedTextureInternalFormat {
     return this._internalFormat;
   }
 

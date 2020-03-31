@@ -3,7 +3,7 @@
  * ported from https://github.com/BabylonJS/Babylon.js/blob/master/src/Tools/babylon.khronosTextureContainer.ts
  */
 
-import { Logger } from "@alipay/o3-base";
+import { Logger, GLCompressedTextureInternalFormat } from "@alipay/o3-base";
 import { Mipmap } from "./type";
 // import { InternalTexture } from "../Materials/Textures/internalTexture";
 
@@ -40,7 +40,7 @@ export class KhronosTextureContainer {
   /**
    * Gets the base internal format
    */
-  public glBaseInternalFormat: number;
+  public glBaseInternalFormat: GLCompressedTextureInternalFormat;
   /**
    * Gets image width in pixel
    */

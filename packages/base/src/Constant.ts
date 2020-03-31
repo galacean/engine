@@ -437,7 +437,7 @@ export enum GLCapabilityType {
   // s3tc_srgb = "WEBGL_compressed_texture_s3tc_srgb"
 }
 
-export enum GLCompressedTextureInternalType {
+export enum GLCompressedTextureInternalFormat {
   // astc
   RGBA_ASTC_4X4_KHR = 0x93b0,
   RGBA_ASTC_5X4_KHR = 0x93b1,
