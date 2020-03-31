@@ -23,7 +23,7 @@
     "lint": "eslint packages/*/src --ext .ts",
     "build": "rollup -c",
     "b:types": "lerna run b:types",
-    "b:all": "npm-run-all --parallel b:types build && tnpm run b:umd",
+    "b:all": "npm-run-all --parallel b:types build && tnpm run b:umd && tnpm run b:miniprogram && tnpm run miniprogram-component",
     "b:doc": "node scripts/build.doc.js",
     "b:umd": "cross-env NODE_ENV=BUILD rollup -c",
     "b:playground": "cross-env NODE_ENV=production webpack --config playground/build/webpack.config.mpa.js",
