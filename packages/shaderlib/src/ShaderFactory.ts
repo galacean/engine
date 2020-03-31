@@ -91,7 +91,7 @@ class ShaderFactory {
     shader = shader.replace(/\btexture(2D|Cube)LodEXT\s*\(/g, "textureLod(");
     if (isFrag) {
       // const isMRT = shader.
-      const result = shader.match(/gl_FragData\[.+\]/g);
+      const result = shader.match(/\bgl_FragData\[.+\]/g);
       if (result?.length > 0) {
         shader = this.replaceMRTShader(shader, result);
       } else {
