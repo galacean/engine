@@ -199,13 +199,11 @@ export class BufferGeometry extends AssetObject {
    * @param {number} vertexIndex 顶点序号
    * @param {Object} values 顶点的属性数据对象，对象的属性为顶点属性的名称，值为顶点属性的数据
    */
-  setInstancedValues(vertexIndex, values) {
-    if (typeof values === "object") {
-      for (const name in values) {
-        if (values.hasOwnProperty(name)) {
-          const value = values[name];
-          this.setInstancedValue(name, vertexIndex, value);
-        }
+  setInstancedValues(vertexIndex: number, values: object) {
+    for (const name in values) {
+      if (values.hasOwnProperty(name)) {
+        const value = values[name];
+        this.setInstancedValue(name, vertexIndex, value);
       }
     }
   }

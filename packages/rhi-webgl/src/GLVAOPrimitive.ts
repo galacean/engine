@@ -2,7 +2,7 @@ import { GLPrimitive } from "./GLPrimitive";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { Primitive } from "@alipay/o3-primitive";
 import { GLTechnique } from "./GLTechnique";
-import { Logger, GLCapabilityType } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-base";
 
 /**
  * 基于 VAO 的 GLPrimitive
@@ -61,7 +61,7 @@ export class GLVAOPrimitive extends GLPrimitive {
         gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
       }
     } else {
-      if (this.rhi.canIUse(GLCapabilityType.instancedArrays)) {
+      if (this.canUseInstancedArrays) {
         if (indexBuffer) {
           gl.drawElementsInstanced(
             primitive.mode,
@@ -71,13 +71,17 @@ export class GLVAOPrimitive extends GLPrimitive {
             primitive.instancedCount
           );
         } else {
-          gl.drawArraysInstanced(primitive.mode, primitive.vertexOffset, primitive.vertexCount, primitive.instancedCount);
+          gl.drawArraysInstanced(
+            primitive.mode,
+            primitive.vertexOffset,
+            primitive.vertexCount,
+            primitive.instancedCount
+          );
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");
       }
     }
-    
 
     gl.bindVertexArray(null);
   }

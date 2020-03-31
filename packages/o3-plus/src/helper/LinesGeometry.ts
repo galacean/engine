@@ -15,7 +15,6 @@ export class LinesGeometry extends r3.BufferGeometry {
   }
 
   initialize(vertexCount) {
-    console.log(vertexCount);
     super.initialize(
       [{ semantic: "POSITION", size: 3, type: r3.DataType.FLOAT, normalized: false }],
       vertexCount,

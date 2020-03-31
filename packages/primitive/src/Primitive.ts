@@ -47,13 +47,13 @@ export class Primitive extends AssetObject {
   public boundingSphere: BoundingSphere;
   public isInFrustum: boolean;
 
-  public instancedBuffer;
-  public instancedAttributes;
-  public isInstanced: boolean;
-  private _instancedCount: number;
+  public instancedBuffer = null;
+  public instancedAttributes = {};
+  public isInstanced: boolean = false;
 
   public updateVertex: boolean;
   public updateInstanced: boolean;
+  public instancedCount: number;
 
   /**
    * @constructor
@@ -88,12 +88,6 @@ export class Primitive extends AssetObject {
     this.boundingBox = null;
     this.boundingSphere = null;
     this.isInFrustum = true;
-
-    // instanced 数据
-    this.instancedBuffer = null;
-    this.isInstanced = false;
-    this.instancedAttributes = {};
-    this._instancedCount = 0;
   }
 
   /**
@@ -107,29 +101,18 @@ export class Primitive extends AssetObject {
    * @param {number} vertexBufferIndex
    */
   addAttribute({ size, type, stride, offset, semantic, normalized, instanced = 0, vertexBufferIndex = 0 }: Attribute) {
+    this[instanced ? "instancedAttributes" : "vertexAttributes"][semantic] = {
+      size,
+      type,
+      stride,
+      offset,
+      semantic,
+      instanced,
+      normalized,
+      vertexBufferIndex
+    };
     if (instanced) {
       this.isInstanced = true;
-      this.instancedAttributes[semantic] = {
-        size,
-        type,
-        stride,
-        offset,
-        semantic,
-        instanced,
-        normalized,
-        vertexBufferIndex
-      };
-    } else {
-      this.vertexAttributes[semantic] = {
-        size,
-        type,
-        stride,
-        offset,
-        semantic,
-        instanced,
-        normalized,
-        vertexBufferIndex
-      };
     }
   }
 
@@ -201,14 +184,6 @@ export class Primitive extends AssetObject {
     };
   }
 
-  set instancedCount(count: number) {
-    this._instancedCount = count;
-  }
-
-  get instancedCount() {
-    return this._instancedCount;
-  }
-
   get attributes() {
     return {
       ...this.vertexAttributes,
@@ -217,5 +192,4 @@ export class Primitive extends AssetObject {
   }
 
   finalize() {}
-
 }

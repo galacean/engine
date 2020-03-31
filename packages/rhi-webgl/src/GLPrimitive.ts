@@ -14,11 +14,13 @@ export class GLPrimitive extends GLAsset {
   protected _glVertBuffers: WebGLBuffer[];
   protected _glInstancedBuffer: WebGLBuffer;
   protected attribLocArray: number[];
+  protected canUseInstancedArrays: boolean;
 
   constructor(rhi: GLRenderHardware, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
     this.attribLocArray = [];
+    this.canUseInstancedArrays = this.rhi.canIUse(GLCapabilityType.instancedArrays);
   }
 
   /** 创建并初始化 IBO、VBO */
@@ -129,9 +131,7 @@ export class GLPrimitive extends GLAsset {
 
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(loc, att.size, att.type, att.normalized, att.stride, att.offset);
-        // For instanced attributes, divisor needs to be set.
-        // For firefox, need to set back to 0 if non-instanced drawn after instanced. Else won't render
-        if (this.rhi.canIUse(GLCapabilityType.instancedArrays)) {
+        if (this.canUseInstancedArrays) {
           gl.vertexAttribDivisor(loc, att.instanced);
         }
         this.attribLocArray.push(loc);
@@ -204,7 +204,7 @@ export class GLPrimitive extends GLAsset {
         gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
       }
     } else {
-      if (this.rhi.canIUse(GLCapabilityType.instancedArrays)) {
+      if (this.canUseInstancedArrays) {
         if (indexBuffer) {
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
           gl.drawElementsInstanced(
