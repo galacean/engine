@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-loader-gltf",
-  "version": "1.6.2",
+  "version": "1.6.3-alpha.0",
   "description": "load glTF files",
   "keywords": [
     "Oasis3D",
@@ -26,15 +26,15 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-animation": "^1.6.2",
-    "@alipay/o3-base": "^1.6.2",
-    "@alipay/o3-core": "^1.6.2",
-    "@alipay/o3-loader": "^1.6.2",
-    "@alipay/o3-material": "^1.6.2",
+    "@alipay/o3-animation": "^1.6.3-alpha.0",
+    "@alipay/o3-base": "^1.6.3-alpha.0",
+    "@alipay/o3-core": "^1.6.3-alpha.0",
+    "@alipay/o3-loader": "^1.6.3-alpha.0",
+    "@alipay/o3-material": "^1.6.3-alpha.0",
     "@alipay/o3-math": "^1.6.0",
-    "@alipay/o3-mesh": "^1.6.2",
-    "@alipay/o3-mobile-material": "^1.6.2",
-    "@alipay/o3-pbr": "^1.6.2",
-    "@alipay/o3-primitive": "^1.6.2"
+    "@alipay/o3-mesh": "^1.6.3-alpha.0",
+    "@alipay/o3-mobile-material": "^1.6.3-alpha.0",
+    "@alipay/o3-pbr": "^1.6.3-alpha.0",
+    "@alipay/o3-primitive": "^1.6.3-alpha.0"
   }
 }
