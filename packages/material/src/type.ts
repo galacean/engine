@@ -28,6 +28,8 @@ export type RenderTargetConfig = {
   clearColor?;
   enableDepthTexture?: boolean;
   isCube?: boolean;
+  /** WebGL2 时，可以开启硬件层的 MSAA */
+  samples?: number;
 };
 
 export type React = { x: number; y: number; width: number; height: number };

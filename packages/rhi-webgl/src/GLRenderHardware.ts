@@ -10,7 +10,7 @@ import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLExtensions } from "./GLExtensions";
 import { GLCapability } from "./GLCapability";
-import { WebGL1Extension } from "./type";
+import { WebGLExtension } from "./type";
 
 /**
  * GPU 硬件抽象层的 WebGL 的实现
@@ -18,7 +18,7 @@ import { WebGL1Extension } from "./type";
  */
 export class GLRenderHardware {
   private _canvas: HTMLCanvasElement;
-  private _gl: (WebGLRenderingContext & WebGL1Extension) | WebGL2RenderingContext;
+  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _assetsCache: GLAssetsCache;
   private _extensions;
@@ -46,7 +46,7 @@ export class GLRenderHardware {
     }
 
     if (!this._gl) {
-      this._gl = <WebGLRenderingContext & WebGL1Extension>(
+      this._gl = <WebGLRenderingContext & WebGLExtension>(
         (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
       );
     }
@@ -189,9 +189,10 @@ export class GLRenderHardware {
    * @param {Material} mtl
    */
   drawPrimitive(primitive, mtl) {
+    // todo: VAO 不支持 morph 动画
     const glPrimitive = this._assetsCache.requireObject(
       primitive,
-      this.canIUse(GLCapabilityType.vertexArrayObject) ? GLVAOPrimitive : GLPrimitive
+      this.canIUse(GLCapabilityType.vertexArrayObject) && !primitive.targets.length ? GLVAOPrimitive : GLPrimitive
     );
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
@@ -243,6 +244,14 @@ export class GLRenderHardware {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(camera.viewport[0], camera.viewport[1], camera.viewport[2], camera.viewport[3]);
+    }
+  }
+
+  /** blit FBO */
+  blitRenderTarget(renderTarget: RenderTarget) {
+    if (renderTarget) {
+      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
+      glRenderTarget.blitRenderTarget();
     }
   }
 
