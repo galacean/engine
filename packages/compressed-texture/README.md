@@ -1,0 +1,1 @@
+# o3-compressed-texture

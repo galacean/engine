@@ -63,6 +63,7 @@ export class TextureMaterial extends CommonMaterial {
    */
   _generateFragmentUniform() {
     const uniforms: any = {};
+
     if (this.texture instanceof Texture2D) {
       uniforms.u_diffuse = {
         name: "u_diffuse",
