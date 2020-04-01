@@ -72,7 +72,7 @@ export class RenderTechnique extends AssetObject {
    * WebGL 1.0 时着色器中使用的拓展
    * @member {Array}
    */
-  public shaderExtension100 = ["GL_EXT_shader_texture_lod", "GL_OES_standard_derivatives"];
+  public shaderExtension100 = ["GL_EXT_shader_texture_lod", "GL_OES_standard_derivatives", "GL_EXT_draw_buffers"];
 
   /**
    * WebGL 2.0 时着色器中使用的拓展

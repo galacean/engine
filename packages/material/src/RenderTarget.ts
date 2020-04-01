@@ -31,6 +31,17 @@ export class RenderTarget extends AssetObject {
     this.needRecreate = true;
   }
 
+  public get isMulti(): boolean {
+    return this.config.isMulti;
+  }
+
+  protected textureConfig = {
+    magFilter: TextureFilter.LINEAR,
+    minFilter: TextureFilter.LINEAR,
+    wrapS: TextureWrapMode.CLAMP_TO_EDGE,
+    wrapT: TextureWrapMode.CLAMP_TO_EDGE
+  };
+
   /**
    * 纹理对象基类
    * @param {String} name 名称
@@ -43,7 +54,7 @@ export class RenderTarget extends AssetObject {
    * @param {Number} [config.samples=1] MSAA 采样数,只有 WebGL2 时才会生效
    *
    */
-  constructor(name, config: RenderTargetConfig = {}) {
+  constructor(name: string, protected config: RenderTargetConfig = {}) {
     super(name);
 
     /**
@@ -64,30 +75,27 @@ export class RenderTarget extends AssetObject {
      */
     this.clearColor = config.clearColor || [0, 0, 0, 0];
 
-    const textureConfig = {
-      magFilter: TextureFilter.LINEAR,
-      minFilter: TextureFilter.LINEAR,
-      wrapS: TextureWrapMode.CLAMP_TO_EDGE,
-      wrapT: TextureWrapMode.CLAMP_TO_EDGE
-    };
-    /**
-     * 选择渲染到2D纹理还是立方体纹理
-     * */
+    /** WebGL2 时，可以开启硬件层的 MSAA */
+    this._samples = config.samples || 1;
+
+    !config.isMulti && this.initTexture();
+  }
+
+  private initTexture() {
+    const config = this.config;
+    // 选择渲染到2D纹理还是立方体纹理
     if (config.isCube) {
-      this.cubeTexture = new TextureCubeMap(name + "_render_texture", null, textureConfig);
+      this.cubeTexture = new TextureCubeMap(name + "_render_texture", null, this.textureConfig);
     } else {
-      this.texture = new Texture2D(name + "_render_texture", null, textureConfig);
+      this.texture = new Texture2D(name + "_render_texture", null, this.textureConfig);
 
       if (config.enableDepthTexture) {
         /**
          * RenderTarget 渲染后的内容对应的深度纹理对象
          * 只有在 config.enableDepthTexture = true 且 config.isCube != true 时生效
          */
-        this.depthTexture = new Texture2D(name + "_depth_texture", null, textureConfig);
+        this.depthTexture = new Texture2D(name + "_depth_texture", null, this.textureConfig);
       }
     }
-
-    /** WebGL2 时，可以开启硬件层的 MSAA */
-    this._samples = config.samples || 1;
   }
 }

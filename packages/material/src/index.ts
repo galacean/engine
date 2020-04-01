@@ -5,4 +5,5 @@ export { ComplexMaterial } from "./ComplexMaterial";
 export { RenderTechnique } from "./RenderTechnique";
 export { TextureCubeMap } from "./TextureCubeMap";
 export { RenderTarget } from "./RenderTarget";
+export { MultiRenderTarget } from "./MultiRenderTarget";
 export * from "./type";

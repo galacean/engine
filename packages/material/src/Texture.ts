@@ -37,14 +37,12 @@ export class Texture extends AssetObject {
     this.config = config;
 
     config = {
-      ...{
-        magFilter: TextureFilter.LINEAR,
-        minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
-        wrapS: TextureWrapMode.REPEAT,
-        wrapT: TextureWrapMode.REPEAT,
-        flipY: false,
-        premultiplyAlpha: false
-      },
+      magFilter: TextureFilter.LINEAR,
+      minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
+      wrapS: TextureWrapMode.REPEAT,
+      wrapT: TextureWrapMode.REPEAT,
+      flipY: false,
+      premultiplyAlpha: false,
       ...config
     };
     this.flipY = config.flipY;
