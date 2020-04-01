@@ -182,10 +182,8 @@ export class ResourceLoader extends EventDispatcher {
     }
 
     let result = handler.open(resource);
-    if (result instanceof Promise) {
-      result.then();
-    } else {
-      result = Promise.resolve();
+    if (!(result instanceof Promise)) {
+      result = Promise.resolve(result);
     }
 
     result.then(() => {

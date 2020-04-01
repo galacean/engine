@@ -139,33 +139,14 @@ export function parseGLTF(resource) {
 
   // parse all related resources
   return parseResources(resources, "textures", parseTexture)
-    .then(() => {
-      return parseResources(resources, "techniques", parseTechnique);
-    })
-    .then(() => {
-      // fallback to default mtl
-      return parseResources(resources, "materials", parseMaterial);
-    })
-    .then(() => {
-      return parseResources(resources, "meshes", parseMesh);
-    })
-    .then(() => {
-      return parseResources(resources, "nodes", parseNode);
-    })
-    .then(() => {
-      return parseResources(resources, "scenes", parseScene);
-    })
-    .then(() => {
-      return parseResources(resources, "skins", parseSkin);
-    })
-    .then(() => {
-      return parseResources(resources, "animations", parseAnimation);
-    })
-    .then(() => {
-      // build & link glTF data
-      buildSceneGraph(resources);
-      return resource;
-    });
+    .then(() => parseResources(resources, "techniques", parseTechnique))
+    .then(() => parseResources(resources, "materials", parseMaterial))
+    .then(() => parseResources(resources, "meshes", parseMesh))
+    .then(() => parseResources(resources, "nodes", parseNode))
+    .then(() => parseResources(resources, "scenes", parseScene))
+    .then(() => parseResources(resources, "skins", parseSkin))
+    .then(() => parseResources(resources, "animations", parseAnimation))
+    .then(() => buildSceneGraph(resources));
 }
 
 function parseExtensions(resources) {
@@ -855,6 +836,7 @@ export function buildSceneGraph(resources) {
       }
     }
   }
+  return resources;
 }
 
 const BASE64_MARKER = ";base64,";
