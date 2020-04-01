@@ -425,6 +425,15 @@ export enum GLCapabilityType {
   shaderTextureLod = "EXT_shader_texture_lod",
   elementIndexUint = "OES_element_index_uint",
   depthTexture = "WEBGL_depth_texture",
+  drawBuffers = "WEBGL_draw_buffers",
   vertexArrayObject = "OES_vertex_array_object",
   multipleSample = "multipleSampleOnlySupportedInWebGL2"
+}
+
+/**
+ * GL 纹理格式
+ */
+export enum GLTextureFormat {
+  RGB = 6407,
+  RGBA = 6408
 }

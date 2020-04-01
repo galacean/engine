@@ -1,7 +1,7 @@
 import { Texture } from "./Texture";
 import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
 import { mat3 } from "@alipay/o3-math";
-import { TextureConfig, React } from "./type";
+import { TextureConfig, Rect } from "./type";
 
 function isPowerOf2(v): boolean {
   return (v & (v - 1)) === 0;
@@ -11,7 +11,7 @@ function isPowerOf2(v): boolean {
  * 2D 贴图数据对象
  */
 export class Texture2D extends Texture {
-  public updateSubRects: Array<React>;
+  public updateSubRects: Array<Rect>;
   public updateSubImageData: Array<any>;
   private _image: any;
   private _context: any;
@@ -36,14 +36,12 @@ export class Texture2D extends Texture {
     super(name, config);
 
     config = {
-      ...{
-        uOffset: 0,
-        vOffset: 0,
-        uScale: 1,
-        vScale: 1,
-        uvRotation: 0,
-        uvCenter: [0, 0]
-      },
+      uOffset: 0,
+      vOffset: 0,
+      uScale: 1,
+      vScale: 1,
+      uvRotation: 0,
+      uvCenter: [0, 0],
       ...config
     };
 
@@ -95,7 +93,7 @@ export class Texture2D extends Texture {
    * @param {Object} texSubRect 需要刷新的贴图子区域
    * @param {ImageData} texSubImageData 需要刷新的贴图子区域数据
    */
-  updateSubTexture(texSubRect: React, texSubImageData?) {
+  updateSubTexture(texSubRect: Rect, texSubImageData?) {
     if (this.needUpdateWholeTexture) {
       return;
     }

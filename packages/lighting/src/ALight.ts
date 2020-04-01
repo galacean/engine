@@ -34,8 +34,8 @@ export abstract class ALight extends NodeAbility {
    * @constructor
    * @param {Node} node 节点对象
    */
-  constructor(node: Node) {
-    super(node);
+  constructor(node: Node, props?: any) {
+    super(node, props);
 
     this.addEventListener("enabled", this.onEnable);
     this.addEventListener("disabled", this.onDisable);
