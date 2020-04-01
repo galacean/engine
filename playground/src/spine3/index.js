@@ -12,7 +12,7 @@ import {
   AssetManager,
   ASpineRenderer
 } from '@alipay/o3-spine';
-import { spine } from '@alipay/spine-core';
+import { spine } from '@alipay/o3';
 
 let assetManager;
 let atlas;
