@@ -1,4 +1,5 @@
 import { DataType, TextureFilter, TextureWrapMode, UniformSemantic } from "@alipay/o3-base";
+import { RenderTarget } from "./RenderTarget";
 
 export type TextureConfig = {
   magFilter?: TextureFilter;
@@ -22,7 +23,7 @@ export type TextureConfig = {
   [key: string]: any;
 };
 
-export type RenderTargetConfig = {
+export interface RenderTargetConfig {
   width?: number;
   height?: number;
   clearColor?;
@@ -30,9 +31,16 @@ export type RenderTargetConfig = {
   isCube?: boolean;
   /** WebGL2 时，可以开启硬件层的 MSAA */
   samples?: number;
-};
+  isMulti?: boolean;
+}
 
-export type React = { x: number; y: number; width: number; height: number };
+export interface MultiRenderTargetConfig extends RenderTargetConfig {
+  isCube?: false | undefined;
+  isMulti?: true | undefined;
+  samples?: 1 | undefined;
+}
+
+export type Rect = { x: number; y: number; width: number; height: number };
 
 export type TechniqueStates = {
   enable?: GLenum[];

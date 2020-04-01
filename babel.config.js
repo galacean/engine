@@ -5,6 +5,7 @@ module.exports = {
     ["@babel/plugin-proposal-decorators", { legacy: true }],
     ["@babel/plugin-proposal-class-properties", { loose: true }],
     "@babel/proposal-object-rest-spread",
-    "@babel/plugin-proposal-optional-chaining"
+    "@babel/plugin-proposal-optional-chaining",
+    "@babel/plugin-transform-object-assign"
   ]
 };

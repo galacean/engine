@@ -20,7 +20,9 @@ export class GLCapability {
 
     this.init();
     // 抹平接口差异
-    this.compatibleAllInterface();
+    if (!this.rhi.isWebGL2) {
+      this.compatibleAllInterface();
+    }
   }
 
   /**
@@ -35,7 +37,9 @@ export class GLCapability {
    * */
   private init() {
     const cap = this.capabilityList;
-    const { isWebGL2, requireExtension } = this.rhi;
+    const { isWebGL2 } = this.rhi;
+    const requireExtension = this.rhi.requireExtension.bind(this.rhi);
+
     const {
       standardDerivatives,
       shaderTextureLod,
@@ -43,7 +47,8 @@ export class GLCapability {
       depthTexture,
       vertexArrayObject,
       instancedArrays,
-      multipleSample
+      multipleSample,
+      drawBuffers
     } = GLCapabilityType;
 
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
@@ -53,6 +58,7 @@ export class GLCapability {
     cap.set(vertexArrayObject, isWebGL2 || !!requireExtension(vertexArrayObject));
     cap.set(instancedArrays, isWebGL2 || !!requireExtension(instancedArrays));
     cap.set(multipleSample, isWebGL2);
+    cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
   }
 
   /**
@@ -86,7 +92,7 @@ export class GLCapability {
   /** 兼容 WebGL 1和 WebGL 2,抹平接口差异 */
   private compatibleAllInterface() {
     // 需要兼容的能力
-    const { depthTexture, vertexArrayObject, instancedArrays } = GLCapabilityType;
+    const { depthTexture, vertexArrayObject, instancedArrays, drawBuffers } = GLCapabilityType;
 
     this.compatibleInterface(depthTexture, {
       UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
@@ -101,6 +107,15 @@ export class GLCapability {
       drawArraysInstanced: "drawArraysInstancedANGLE",
       drawElementsInstanced: "drawElementsInstancedANGLE",
       vertexAttribDivisor: "vertexAttribDivisorANGLE"
+    });
+    const items = {};
+    for (let i = 0; i < this.rhi.requireExtension(drawBuffers).MAX_DRAW_BUFFERS_WEBGL; i++) {
+      i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
+      items[`DRAW_BUFFER0${i}`] = `DRAW_BUFFER${i}_WEBGL`;
+    }
+    this.compatibleInterface(drawBuffers, {
+      drawBuffers: "drawBuffersWEBGL",
+      ...items
     });
   }
 }
