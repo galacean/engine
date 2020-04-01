@@ -1,5 +1,14 @@
 import { path } from "@alipay/o3-loader";
 
+const WEBGL_COMPONENT_TYPES = {
+  5120: Int8Array,
+  5121: Uint8Array,
+  5122: Int16Array,
+  5123: Uint16Array,
+  5125: Uint32Array,
+  5126: Float32Array
+};
+
 /**
  * 解析二进制文本 用于 glb loader
  * @param array
@@ -61,14 +70,6 @@ export function getAccessorTypeSize(accessorType) {
  * @param {string} componentType
  */
 export function getComponentType(componentType) {
-  const WEBGL_COMPONENT_TYPES = {
-    5120: Int8Array,
-    5121: Uint8Array,
-    5122: Int16Array,
-    5123: Uint16Array,
-    5125: Uint32Array,
-    5126: Float32Array
-  };
   return WEBGL_COMPONENT_TYPES[componentType];
 }
 
