@@ -1,5 +1,5 @@
 import { Logger } from "@alipay/o3-base";
-import { decoderJSString, decoderWASMWrapperString, decoderWASMBase64 } from "@alipay/o3-draco-lib";
+import { decoderJSString, decoderWASMWrapperString, decoderWASMBase64 } from "@alipay/draco-decoder-gltf";
 
 import { DRACOWorker, ITaskConfig } from "./DRACOWorker";
 
