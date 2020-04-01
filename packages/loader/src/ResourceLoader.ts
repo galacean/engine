@@ -181,10 +181,7 @@ export class ResourceLoader extends EventDispatcher {
       handler.patch(resource, this._resources);
     }
 
-    let result = handler.open(resource);
-    if (!(result instanceof Promise)) {
-      result = Promise.resolve(result);
-    }
+    const result = Promise.resolve(handler.open(resource));
 
     result.then(() => {
       // TODO: manage assets pool
