@@ -1,6 +1,7 @@
 import { Logger, UpdateType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Primitive } from "@alipay/o3-primitive";
+import { Attribute } from "@alipay/o3-primitive/types/type";
 
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from "./Constant";
 
@@ -11,9 +12,11 @@ let geometryCount = 0;
  * @extends AssetObject
  */
 export class BufferGeometry extends AssetObject {
-  primitive;
+  primitive: Primitive;
 
   stride: number;
+  instancedStride: number;
+  instancedBufferCount: number;
 
   attributes;
   /**
@@ -26,6 +29,7 @@ export class BufferGeometry extends AssetObject {
 
     this.primitive = new Primitive();
     this.stride = 0;
+    this.instancedStride = 0;
   }
 
   /**
@@ -43,7 +47,22 @@ export class BufferGeometry extends AssetObject {
    * @param {number} vertexCount 所有三角形顶点总个数
    * @param {number} usage 数据绘制类型常量，默认为静态类型 STATIC_DRAW，需要更新数据时使用动态类型 DYNAMIC_DRAW
    */
-  initialize(attributes, vertexCount, usage?) {
+  initialize(attributes: Attribute[], vertexCount, usage?) {
+    const instancedAttributes = attributes.filter(item => item.instanced);
+    const vertexAttributes = attributes.filter(item => !item.instanced);
+    const isInstanced = instancedAttributes.length > 0;
+    if (isInstanced && !this.instancedCount) {
+      Logger.error("Need set instanced count");
+      return;
+    }
+
+    this.initializeVertex(vertexAttributes, vertexCount, usage);
+    if (isInstanced) {
+      this.initializeInstanced(instancedAttributes, this.instancedCount);
+    }
+  }
+
+  initializeVertex(attributes: Attribute[], vertexCount: number, usage?) {
     const attribCount = attributes.length;
     let stride = 0;
     for (let i = 0; i < attribCount; i++) {
@@ -54,15 +73,10 @@ export class BufferGeometry extends AssetObject {
 
     for (let i = 0; i < attribCount; i++) {
       const attribute = attributes[i];
-      this.primitive.addAttribute(
-        attribute.semantic,
-        attribute.size,
-        attribute.type,
-        attribute.normalized,
-        stride,
-        attribute.offset,
-        0
-      );
+      this.primitive.addAttribute({
+        ...attribute,
+        stride
+      });
     }
 
     this.primitive.vertexBuffers[0] = new ArrayBuffer(vertexCount * stride);
@@ -74,6 +88,33 @@ export class BufferGeometry extends AssetObject {
     this.stride = stride;
   }
 
+  initializeInstanced(attributes: Attribute[], instancedCount: number) {
+    const attribCount = attributes.length;
+    const minDivisor = attributes.sort((a, b) => a.instanced - b.instanced)[0].instanced;
+    let stride = 0;
+    for (let i = 0; i < attribCount; i++) {
+      const attribute = attributes[i];
+      attributes[i].offset = stride;
+      stride += this._getSizeInByte(attribute.size, attribute.type);
+    }
+
+    for (let i = 0; i < attribCount; i++) {
+      const attribute = attributes[i];
+      this.primitive.addAttribute({
+        ...attribute,
+        stride
+      });
+    }
+
+    const instancedBufferCount = instancedCount / minDivisor;
+    const instancedBufferLength = instancedBufferCount * stride;
+    this.primitive.instancedBuffer = new ArrayBuffer(instancedBufferLength);
+    this.primitive.instancedCount = instancedCount;
+    this.attributes = attributes;
+    this.instancedStride = stride;
+    this.instancedBufferCount = instancedBufferCount;
+  }
+
   /**
    * 获取顶点数
    * @readonly
@@ -81,6 +122,18 @@ export class BufferGeometry extends AssetObject {
    */
   get vertexCount() {
     return this.primitive.vertexCount;
+  }
+
+  get instancedCount() {
+    return this.primitive.instancedCount;
+  }
+
+  /**
+   * 设置instanced数量
+   * @param {number} count instanced数量
+   */
+  set instancedCount(count: number) {
+    this.primitive.instancedCount = count;
   }
 
   /**
@@ -128,6 +181,34 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
+   * 批量设置instanced数据
+   * @param {Array} instancedValues 顶点的属性数据对象列表
+   */
+  setAllInstancedValues(instancedValues) {
+    if (Array.isArray(instancedValues)) {
+      instancedValues.forEach((values, index) => {
+        if (index < this.instancedBufferCount) {
+          this.setInstancedValues(index, values);
+        }
+      });
+    }
+  }
+
+  /**
+   * 设置instanced属性
+   * @param {number} vertexIndex 顶点序号
+   * @param {Object} values 顶点的属性数据对象，对象的属性为顶点属性的名称，值为顶点属性的数据
+   */
+  setInstancedValues(vertexIndex: number, values: object) {
+    for (const name in values) {
+      if (values.hasOwnProperty(name)) {
+        const value = values[name];
+        this.setInstancedValue(name, vertexIndex, value);
+      }
+    }
+  }
+
+  /**
    * 设置顶点的属性数据
    * @param {string} semantic 属性 semantic
    * @param {number} vertexIndex 顶点序号
@@ -139,6 +220,7 @@ export class BufferGeometry extends AssetObject {
       Logger.error("UNKNOWN semantic: " + semantic);
       return false;
     }
+
     if (vertexIndex >= this.primitive.vertexCount) {
       Logger.error("vertexIndex: " + vertexIndex + " out of range: " + this.primitive.vertexCount);
       return false;
@@ -158,6 +240,7 @@ export class BufferGeometry extends AssetObject {
     // 数据更新时修改更新状态为 UPDATE_RANGE
     if (this.primitive.updateType === UpdateType.NO_UPDATE) {
       this.primitive.updateType = UpdateType.UPDATE_RANGE;
+      this.primitive.updateVertex = true;
     }
     // 设置更新范围
     if (this.primitive.updateType === UpdateType.UPDATE_RANGE) {
@@ -212,6 +295,54 @@ export class BufferGeometry extends AssetObject {
       vertexAttrib.offset + vertexAttrib.stride * vertexIndex,
       vertexAttrib.size
     );
+  }
+
+  /**
+   * 设置instanced的属性数据
+   * @param {string} semantic 属性 semantic
+   * @param {number} vertexIndex 顶点序号
+   * @param {number[]} value 属性值
+   */
+  setInstancedValue(semantic: string, instancedIndex: number, value: number[] | Float32Array) {
+    const instancedAttrib = this.primitive.instancedAttributes[semantic];
+    if (instancedAttrib == undefined) {
+      Logger.error("UNKNOWN semantic: " + semantic);
+      return false;
+    }
+
+    if (instancedIndex >= this.primitive.instancedCount) {
+      Logger.error("instancedIndex: " + instancedIndex + " out of range: " + this.primitive.instancedCount);
+      return false;
+    }
+
+    if (value.length !== instancedAttrib.size) {
+      Logger.error("value size MUST be equal to instancedAttrib size: " + value.length);
+      return false;
+    }
+    const constructor = getVertexDataTypeDataView(instancedAttrib.type);
+    const byteOffset = instancedAttrib.offset + instancedAttrib.stride * instancedIndex;
+    const length = instancedAttrib.size;
+    const view = new constructor(this.primitive.instancedBuffer, byteOffset, length);
+
+    view.set(value);
+
+    // 数据更新时修改更新状态为 UPDATE_RANGE
+    if (this.primitive.updateType === UpdateType.NO_UPDATE) {
+      this.primitive.updateType = UpdateType.UPDATE_RANGE;
+      this.primitive.updateInstanced = true;
+    }
+    // 设置更新范围
+    if (this.primitive.updateType === UpdateType.UPDATE_RANGE) {
+      const byteLength = this._getSizeInByte(instancedAttrib.size, instancedAttrib.type);
+      if (this.primitive.updateRange.byteOffset < 0) {
+        this.primitive.updateRange.byteOffset = byteOffset;
+        this.primitive.updateRange.byteLength = byteLength;
+      } else {
+        this._getUpdateRange(byteOffset, byteLength);
+      }
+    }
+
+    return true;
   }
 
   /**

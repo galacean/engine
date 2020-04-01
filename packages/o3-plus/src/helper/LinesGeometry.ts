@@ -14,9 +14,9 @@ export class LinesGeometry extends r3.BufferGeometry {
     this.initialize(vertexCount);
   }
 
-  initialize(vertexCount: number) {
+  initialize(vertexCount) {
     super.initialize(
-      [{ name: "a_position", semantic: "POSITION", size: 3, type: r3.DataType.FLOAT, normalized: false }],
+      [{ semantic: "POSITION", size: 3, type: r3.DataType.FLOAT, normalized: false }],
       vertexCount,
       r3.BufferUsage.DYNAMIC_DRAW
     );

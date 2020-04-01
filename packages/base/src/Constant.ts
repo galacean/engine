@@ -428,6 +428,8 @@ export enum GLCapabilityType {
   drawBuffers = "WEBGL_draw_buffers",
   vertexArrayObject = "OES_vertex_array_object",
   multipleSample = "multipleSampleOnlySupportedInWebGL2",
+  instancedArrays = "ANGLE_instanced_arrays",
+  multipleSample = "multipleSampleOnlySupportedInWebGL2",
 
   astc = "WEBGL_compressed_texture_astc",
   // atc = "WEBGL_compressed_texture_atc",
