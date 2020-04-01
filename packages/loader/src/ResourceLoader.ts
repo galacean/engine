@@ -181,12 +181,14 @@ export class ResourceLoader extends EventDispatcher {
       handler.patch(resource, this._resources);
     }
 
-    handler.open(resource);
+    const result = Promise.resolve(handler.open(resource));
 
-    // TODO: manage assets pool
-    this.add(resource);
+    result.then(() => {
+      // TODO: manage assets pool
+      this.add(resource);
 
-    callback(null, resource);
-    resource.trigger(new Event("loaded", resource));
+      callback(null, resource);
+      resource.trigger(new Event("loaded", resource));
+    });
   }
 }

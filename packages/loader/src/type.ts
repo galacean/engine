@@ -16,7 +16,7 @@ export type Engine = any;
 export type Handler = {
   [key: string]: any;
   load: (request: Request, props: Prop, callback: HandlerCb) => void;
-  open: (resource: Resource) => void;
+  open: (resource: Resource) => void | Promise<any>;
   patch?: (resource: Resource, resources: { [key: string]: Array<Resource> }) => void;
 };
 export type Request = {

@@ -35,6 +35,7 @@
     "@alipay/o3-mesh": "^1.6.3-alpha.0",
     "@alipay/o3-mobile-material": "^1.6.3-alpha.0",
     "@alipay/o3-pbr": "^1.6.3-alpha.0",
-    "@alipay/o3-primitive": "^1.6.3-alpha.0"
+    "@alipay/o3-primitive": "^1.6.3-alpha.0",
+    "@alipay/o3-draco": "^1.0.0"
   }
 }

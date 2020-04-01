@@ -22,9 +22,12 @@ import {
   createAttribute,
   findByKeyValue,
   attachAsset,
-  getBufferData
+  getBufferData,
+  getComponentType
 } from "./Util";
 import { AnimationClip, InterpolationType } from "@alipay/o3-animation";
+
+import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 
 // 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
@@ -65,7 +68,8 @@ export const HandledExtensions = {
   KHR_lights: "KHR_lights",
   KHR_materials_unlit: "KHR_materials_unlit",
   KHR_materials_pbrSpecularGlossiness: "KHR_materials_pbrSpecularGlossiness",
-  KHR_techniques_webgl: "KHR_techniques_webgl"
+  KHR_techniques_webgl: "KHR_techniques_webgl",
+  KHR_draco_mesh_compression: "KHR_draco_mesh_compression"
 };
 
 let PBRMaterial = null;
@@ -75,7 +79,8 @@ const extensionParsers = {
   KHR_lights: KHR_lights,
   KHR_materials_unlit: PBRMaterial, // Also have other materials
   KHR_materials_pbrSpecularGlossiness: PBRMaterial,
-  KHR_techniques_webgl: Material
+  KHR_techniques_webgl: Material,
+  KHR_draco_mesh_compression: glTFDracoMeshCompression
 };
 
 /**
@@ -133,19 +138,15 @@ export function parseGLTF(resource) {
   parseExtensions(resources);
 
   // parse all related resources
-  parseResources(resources, "textures", parseTexture);
-  parseResources(resources, "techniques", parseTechnique);
-  // fallback to default mtl
-  parseResources(resources, "materials", parseMaterial);
-  parseResources(resources, "meshes", parseMesh);
-  parseResources(resources, "nodes", parseNode);
-  parseResources(resources, "scenes", parseScene);
-  parseResources(resources, "skins", parseSkin);
-  parseResources(resources, "animations", parseAnimation);
-  // build & link glTF data
-  buildSceneGraph(resources);
-
-  return resource;
+  return parseResources(resources, "textures", parseTexture)
+    .then(() => parseResources(resources, "techniques", parseTechnique))
+    .then(() => parseResources(resources, "materials", parseMaterial))
+    .then(() => parseResources(resources, "meshes", parseMesh))
+    .then(() => parseResources(resources, "nodes", parseNode))
+    .then(() => parseResources(resources, "scenes", parseScene))
+    .then(() => parseResources(resources, "skins", parseSkin))
+    .then(() => parseResources(resources, "animations", parseAnimation))
+    .then(() => buildSceneGraph(resources));
 }
 
 function parseExtensions(resources) {
@@ -173,6 +174,9 @@ function parseExtensions(resources) {
       ) {
         Logger.error(`model has not supported required extension ${extensionsRequired[i]}`);
       }
+      if (extensionsRequired[i] === HandledExtensions.KHR_draco_mesh_compression) {
+        extensionParsers.KHR_draco_mesh_compression.init();
+      }
     }
   }
 
@@ -196,11 +200,17 @@ function parseResources(resources, name, handler) {
   if (gltf.hasOwnProperty(name)) {
     const entities = gltf[name] || [];
     Logger.debug(name + ":", entities);
-
+    const promises = [];
     for (let i = entities.length - 1; i >= 0; i--) {
-      asset[name].push(handler(entities[i], resources));
+      promises.push(handler(entities[i], resources));
     }
+    return Promise.all(promises).then(results => {
+      for (let i = 0; i < results.length; i++) {
+        asset[name].push(results[i]);
+      }
+    });
   }
+  return Promise.resolve();
 }
 
 var GLTF_TEX_COUNT = 0;
@@ -241,8 +251,7 @@ export function parseTexture(gltfTexture, resources) {
   const name = gltfTexture.name || gltfImage.name || gltfImage.uri || "GLTF_TEX_" + GLTF_TEX_COUNT;
   const tex = new Texture2D(name, image, sampler);
   tex.type = resources.assetType;
-
-  return tex;
+  return Promise.resolve(tex);
 }
 
 /**
@@ -262,7 +271,7 @@ export function parseTechnique(gltfTechnique, resources) {
   const tech = openTechnique(gltfTechnique, vertCode, fragCode);
   tech.type = resources.assetType;
 
-  return tech;
+  return Promise.resolve(tech);
 }
 
 /**
@@ -450,7 +459,7 @@ export function parseMaterial(gltfMaterial, resources) {
       }
     }
   }
-  return material;
+  return Promise.resolve(material);
 }
 
 /**
@@ -487,7 +496,99 @@ export function parseSkin(gltfSkin, resources) {
   const node = getItemByIdx("nodes", gltfSkin.skeleton == null ? gltfSkin.joints[0] : gltfSkin.skeleton, resources);
   skin.skeleton = node.name;
 
-  return skin;
+  return Promise.resolve(skin);
+}
+
+function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
+  // load vertices
+  let h = 0;
+  for (const attributeSemantic in gltfPrimitive.attributes) {
+    const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
+    const accessor = gltf.accessors[accessorIdx];
+
+    const buffer = getAccessorData(gltf, accessor, buffers);
+    primitive.vertexBuffers.push(buffer);
+    primitive.vertexAttributes[attributeSemantic] = createAttribute(gltf, attributeSemantic, accessor, h++);
+  }
+
+  // get vertex count
+  const accessorIdx = gltfPrimitive.attributes.POSITION;
+  const accessor = gltf.accessors[accessorIdx];
+  primitive.vertexCount = accessor.count;
+
+  // load indices
+  const indexAccessor = gltf.accessors[gltfPrimitive.indices];
+  const buffer = getAccessorData(gltf, indexAccessor, buffers);
+
+  primitive.indexCount = indexAccessor.count;
+  primitive.indexType = indexAccessor.componentType;
+  primitive.indexOffset = 0;
+  primitive.indexBuffer = buffer;
+  return Promise.resolve(primitive);
+}
+
+function parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers) {
+  // load morph targets
+  if (gltfPrimitive.hasOwnProperty("targets")) {
+    let accessorIdx, accessor, buffer;
+    let attributeCount = primitive.vertexBuffers.length;
+    for (let j = 0; j < gltfPrimitive.targets.length; j++) {
+      const target = gltfPrimitive.targets[j];
+      for (const attributeSemantic in target) {
+        switch (attributeSemantic) {
+          case "POSITION":
+            accessorIdx = target.POSITION;
+            accessor = gltf.accessors[accessorIdx];
+
+            buffer = getAccessorData(gltf, accessor, buffers);
+            primitive.vertexBuffers.push(buffer);
+            const posAttrib = createAttribute(gltf, `POSITION_${j}`, accessor, attributeCount++);
+            primitive.vertexAttributes[`POSITION_${j}`] = posAttrib;
+            target["POSITION"] = { ...posAttrib };
+            break;
+          case "NORMAL":
+            accessorIdx = target.NORMAL;
+            accessor = gltf.accessors[accessorIdx];
+
+            buffer = getAccessorData(gltf, accessor, buffers);
+            primitive.vertexBuffers.push(buffer);
+            const normalAttrib = createAttribute(gltf, `NORMAL_${j}`, accessor, attributeCount++);
+            primitive.vertexAttributes[`NORMAL_${j}`] = normalAttrib;
+            target["NORMAL"] = { ...normalAttrib };
+            break;
+          case "TANGENT":
+            accessorIdx = target.TANGENT;
+            accessor = gltf.accessors[accessorIdx];
+
+            buffer = getAccessorData(gltf, accessor, buffers);
+            primitive.vertexBuffers.push(buffer);
+            const tangentAttrib = createAttribute(gltf, `TANGENT_${j}`, accessor, attributeCount++);
+            primitive.vertexAttributes[`TANGENT_${j}`] = tangentAttrib;
+            target["TANGENT"] = { ...tangentAttrib };
+            break;
+          default:
+            Logger.error(`unknown morth target semantic "${attributeSemantic}"`);
+            break;
+        }
+        primitive.targets.push(target);
+      }
+    }
+  }
+}
+
+function parsePrimitiveMaterial(primitive, gltfPrimitive, resources) {
+  // link mesh primitive material
+  if (gltfPrimitive.material !== undefined) {
+    let material = getItemByIdx("materials", gltfPrimitive.material, resources);
+    if (material.constructor.DISABLE_SHARE) {
+      // do not share material cause different attributes
+      material = material.clone();
+    }
+    primitive.materialIndex = gltfPrimitive.material;
+    primitive.material = material;
+  } else {
+    primitive.material = getDefaultMaterial();
+  }
 }
 
 /**
@@ -497,112 +598,47 @@ export function parseSkin(gltfSkin, resources) {
  * @private
  */
 export function parseMesh(gltfMesh, resources) {
-  const { asset, gltf, buffers } = resources;
+  const { gltf, buffers } = resources;
 
   const mesh = new Mesh(gltfMesh.name);
   mesh.type = resources.assetType;
-
   // parse all primitives then link to mesh
+  // TODO: use hash cached primitives
+  const primitivePromises = [];
   for (let i = 0; i < gltfMesh.primitives.length; i++) {
-    // TODO: use hash cached primitives
-    const gltfPrimitive = gltfMesh.primitives[i];
-    // FIXME: use index as primitive's name
-    const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
-    primitive.type = resources.assetType;
-
-    primitive.mode = gltfPrimitive.mode == null ? DrawMode.TRIANGLES : gltfPrimitive.mode;
-
-    let h = 0;
-
-    // load vertices
-    for (const attributeSemantic in gltfPrimitive.attributes) {
-      const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
-      const accessor = gltf.accessors[accessorIdx];
-
-      const buffer = getAccessorData(gltf, accessor, buffers);
-      primitive.vertexBuffers.push(buffer);
-      primitive.vertexAttributes[attributeSemantic] = createAttribute(gltf, attributeSemantic, accessor, h++);
-    }
-
-    // load morph targets
-    if (gltfPrimitive.hasOwnProperty("targets")) {
-      primitive.targets = [];
-      (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);
-      let accessorIdx, accessor, buffer;
-      for (let j = 0; j < gltfPrimitive.targets.length; j++) {
-        const target = gltfPrimitive.targets[j];
-        for (const attributeSemantic in target) {
-          switch (attributeSemantic) {
-            case "POSITION":
-              accessorIdx = target.POSITION;
-              accessor = gltf.accessors[accessorIdx];
-
-              buffer = getAccessorData(gltf, accessor, buffers);
-              primitive.vertexBuffers.push(buffer);
-              const posAttrib = createAttribute(gltf, `POSITION_${j}`, accessor, h++);
-              primitive.vertexAttributes[`POSITION_${j}`] = posAttrib;
-              target["POSITION"] = { ...posAttrib };
-              break;
-            case "NORMAL":
-              accessorIdx = target.NORMAL;
-              accessor = gltf.accessors[accessorIdx];
-
-              buffer = getAccessorData(gltf, accessor, buffers);
-              primitive.vertexBuffers.push(buffer);
-              const normalAttrib = createAttribute(gltf, `NORMAL_${j}`, accessor, h++);
-              primitive.vertexAttributes[`NORMAL_${j}`] = normalAttrib;
-              target["NORMAL"] = { ...normalAttrib };
-              break;
-            case "TANGENT":
-              accessorIdx = target.TANGENT;
-              accessor = gltf.accessors[accessorIdx];
-
-              buffer = getAccessorData(gltf, accessor, buffers);
-              primitive.vertexBuffers.push(buffer);
-              const tangentAttrib = createAttribute(gltf, `TANGENT_${j}`, accessor, h++);
-              primitive.vertexAttributes[`TANGENT_${j}`] = tangentAttrib;
-              target["TANGENT"] = { ...tangentAttrib };
-              break;
-            default:
-              Logger.error(`unknown morth target semantic "${attributeSemantic}"`);
-              break;
-          }
-          primitive.targets.push(target);
+    primitivePromises.push(
+      new Promise(resolve => {
+        const gltfPrimitive = gltfMesh.primitives[i];
+        // FIXME: use index as primitive's name
+        const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
+        primitive.type = resources.assetType;
+        primitive.mode = gltfPrimitive.mode == null ? DrawMode.TRIANGLES : gltfPrimitive.mode;
+        if (gltfPrimitive.hasOwnProperty("targets")) {
+          primitive.targets = [];
+          (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);
         }
-      }
-    }
-
-    // link mesh primitive material
-    if (gltfPrimitive.material !== undefined) {
-      let material = getItemByIdx("materials", gltfPrimitive.material, resources);
-      if (material.constructor.DISABLE_SHARE) {
-        // do not share material cause different attributes
-        material = material.clone();
-      }
-      primitive.materialIndex = gltfPrimitive.material;
-      primitive.material = material;
-    } else {
-      primitive.material = getDefaultMaterial();
-    }
-
-    // get vertex count
-    const accessorIdx = gltfPrimitive.attributes.POSITION;
-    const accessor = gltf.accessors[accessorIdx];
-    primitive.vertexCount = accessor.count;
-
-    // load indices
-    const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-    const buffer = getAccessorData(gltf, indexAccessor, buffers);
-
-    primitive.indexCount = indexAccessor.count;
-    primitive.indexType = indexAccessor.componentType;
-    primitive.indexOffset = 0;
-    primitive.indexBuffer = buffer;
-
-    mesh.primitives.push(primitive);
+        let vertexPromise;
+        if (gltfPrimitive.extensions && gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression]) {
+          const extensionParser = extensionParsers.KHR_draco_mesh_compression;
+          const extension = gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression];
+          vertexPromise = extensionParser.parse(extension, primitive, gltfPrimitive, gltf, buffers);
+        } else {
+          vertexPromise = parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers);
+        }
+        vertexPromise.then(() => {
+          parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers);
+          parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
+          resolve(primitive);
+        });
+      })
+    );
   }
-
-  return mesh;
+  return Promise.all(primitivePromises).then(primitives => {
+    for (let i = 0; i < primitives.length; i++) {
+      mesh.primitives.push(primitives[i]);
+    }
+    return mesh;
+  });
 }
 
 /**
@@ -655,7 +691,7 @@ export function parseAnimation(gltfAnimation, resources) {
     animationClip.addChannel(samplerIndex, targetNode.name, targetPath);
   }
 
-  return animationClip;
+  return Promise.resolve(animationClip);
 }
 
 /**
@@ -714,7 +750,7 @@ export function parseNode(gltfNode, resources) {
     }
   }
 
-  return node;
+  return Promise.resolve(node);
 }
 
 /**
@@ -741,9 +777,9 @@ export function parseScene(gltfScene, resources) {
     }
   }
 
-  return {
+  return Promise.resolve({
     nodes: sceneNodes
-  };
+  });
 }
 
 /**
@@ -800,6 +836,7 @@ export function buildSceneGraph(resources) {
       }
     }
   }
+  return resources;
 }
 
 const BASE64_MARKER = ";base64,";
@@ -818,7 +855,6 @@ class GLTFHandler {
       buffers: [],
       shaders: []
     };
-
     const filesMap = props.filesMap || {};
     // async load images
     // load gltf & all related resources
@@ -828,7 +864,6 @@ class GLTFHandler {
       function(err, gltfJSON) {
         if (!err) {
           data.gltf = gltfJSON;
-
           // load images & buffers & shader texts
           const loadQueue = {};
           const loadImageQue = {};
@@ -927,7 +962,7 @@ class GLTFHandler {
    * @private
    */
   open(resource) {
-    parseGLTF(resource);
+    return parseGLTF(resource);
   }
 }
 
