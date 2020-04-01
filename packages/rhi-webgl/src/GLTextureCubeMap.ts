@@ -31,7 +31,9 @@ export class GLTextureCubeMap extends GLTexture {
   updateTexture() {
     const gl = this._gl;
     let config = this._config as TextureCubeMap;
-    if (!config.isCompressed) {
+    if (config.isCompressed) {
+      this.updateCompressedTexture();
+    } else {
       const images = config.images;
       if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace.includes(true)) {
         super.setPixelStore();
@@ -45,35 +47,42 @@ export class GLTextureCubeMap extends GLTexture {
         }
         super.generateMipmap();
       }
-    } else {
-      const compressedConfig = this._config as CompressedTextureCubeMap;
-      const mipmapsFaces = compressedConfig.mipmapsFaces;
-      if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace.includes(true)) {
-        if (!this.rhi.canIUseCompressedTextureInternalFormat(compressedConfig.internalFormat)) {
-          Logger.warn("GLTextureCubeMap: Attempt to load unsupport compressed texture format");
-        }
-        super.setPixelStore();
-        for (let f = 0; f < CubeMapFace.length; f++) {
-          if (config.needUpdateWholeTexture || config.needUpdateCubeTextureFace[f]) {
-            const mipmapsFace = mipmapsFaces[f];
-            for (let level = 0; level < mipmapsFace.length; level++) {
-              const mipmap = mipmapsFace[level];
-              gl.compressedTexImage2D(
-                CubeMapFace[f],
-                level,
-                compressedConfig.internalFormat,
-                mipmap.width,
-                mipmap.height,
-                0,
-                mipmap.data
-              );
-            }
-            config.needUpdateCubeTextureFace[f] = false;
-          }
-        }
-      }
     }
 
     config.needUpdateWholeTexture = false;
+  }
+
+  /**
+   * 更新压缩纹理内容
+   * @private
+   */
+  private updateCompressedTexture() {
+    const gl = this._gl;
+    const compressedConfig = this._config as CompressedTextureCubeMap;
+    const mipmapsFaces = compressedConfig.mipmapsFaces;
+    if (compressedConfig.needUpdateWholeTexture || compressedConfig.needUpdateCubeTextureFace.includes(true)) {
+      if (!this.rhi.canIUseCompressedTextureInternalFormat(compressedConfig.internalFormat)) {
+        Logger.warn("GLTextureCubeMap: Attempt to load unsupport compressed texture format");
+      }
+      super.setPixelStore();
+      for (let f = 0; f < CubeMapFace.length; f++) {
+        if (compressedConfig.needUpdateWholeTexture || compressedConfig.needUpdateCubeTextureFace[f]) {
+          const mipmapsFace = mipmapsFaces[f];
+          for (let level = 0; level < mipmapsFace.length; level++) {
+            const mipmap = mipmapsFace[level];
+            gl.compressedTexImage2D(
+              CubeMapFace[f],
+              level,
+              compressedConfig.internalFormat,
+              mipmap.width,
+              mipmap.height,
+              0,
+              mipmap.data
+            );
+          }
+          compressedConfig.needUpdateCubeTextureFace[f] = false;
+        }
+      }
+    }
   }
 }
