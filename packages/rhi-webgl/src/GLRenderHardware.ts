@@ -134,6 +134,13 @@ export class GLRenderHardware {
   }
 
   /**
+   * 查询能否使用某种压缩纹理格式
+   * */
+  canIUseCompressedTextureInternalFormat(type: number) {
+    return this.capability.canIUseCompressedTextureInternalFormat(type);
+  }
+
+  /**
    * 设置视口区域
    * @param {number} x 用来设定视口的左下角水平坐标
    * @param {number} y 用来设定视口的左下角垂直坐标

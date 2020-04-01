@@ -1,1 +1,1 @@
-export { Attribute } from './Primitive';
+export { Attribute } from "./Primitive";
