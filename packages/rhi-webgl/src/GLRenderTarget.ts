@@ -1,4 +1,4 @@
-import { RenderTarget } from "@alipay/o3-material";
+import { RenderTarget, Texture2D } from "@alipay/o3-material";
 import { GLCapabilityType, Logger } from "@alipay/o3-base";
 import { MathUtil } from "@alipay/o3-math";
 import { GLTexture2D } from "./GLTexture2D";
@@ -15,7 +15,7 @@ export class GLRenderTarget extends GLAsset {
   private renderTarget: RenderTarget;
 
   private glTexture: GLTexture2D;
-  private glDepthTexture: GLTexture2D;
+  protected glDepthTexture: GLTexture2D;
   private glCubeTexture: GLTextureCubeMap;
 
   private frameBuffer: WebGLFramebuffer;
@@ -36,9 +36,9 @@ export class GLRenderTarget extends GLAsset {
    * 激活 RenderTarget 对象，后续的内容将会被渲染到当前激活 RenderTarget 对象上
    * @private
    */
-  activeRenderTarget() {
+  public activeRenderTarget() {
     const gl = this.rhi.gl;
-    const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
+    const { width, height, isMulti } = this.renderTarget;
 
     if (this.MSAAFrameBuffer) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.MSAAFrameBuffer);
@@ -46,7 +46,11 @@ export class GLRenderTarget extends GLAsset {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
     }
     gl.viewport(0.0, 0.0, width, height);
+    !isMulti && this.activeTexture();
+  }
 
+  private activeTexture() {
+    const { texture, cubeTexture, depthTexture } = this.renderTarget;
     // 激活一下Texture资源, 否则可能会被释放掉
     if (cubeTexture) {
       this.rhi.assetsCache.requireObject(cubeTexture, GLTextureCubeMap);
@@ -62,7 +66,7 @@ export class GLRenderTarget extends GLAsset {
    * 设置渲染到立方体纹理的面
    * @param {number} faceIndex - gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex
    * */
-  setRenderTargetFace(faceIndex: number) {
+  public setRenderTargetFace(faceIndex: number) {
     if (!this.glCubeTexture) return;
 
     const gl = this.rhi.gl;
@@ -87,7 +91,7 @@ export class GLRenderTarget extends GLAsset {
 
   /**
    /** 根据运行环境获取真实的采样数 */
-  getExactSamples(samples: number) {
+  public getExactSamples(samples: number) {
     const canUseMS = this.rhi.canIUse(GLCapabilityType.multipleSample);
     const gl = this.rhi.gl;
     if (canUseMS) {
@@ -150,24 +154,25 @@ export class GLRenderTarget extends GLAsset {
    */
   private initialize() {
     const gl = this.rhi.gl;
-    const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
-    const isWebGL2 = this.rhi.isWebGL2;
-
-    // 创建帧缓冲区对象
-    /** 用户输入的采样数 */
-    let samples = this.renderTarget.samples;
-    /** 实际采样数 */
-    samples = this.renderTarget.samples = this.getExactSamples(samples);
-    if (samples > 1) {
-      this.initMSAA();
-    }
 
     this.frameBuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 
-    /**
-     * 渲染到立方体纹理
-     * */
+    if (!this.renderTarget.isMulti) {
+      this.initTexture();
+      /** 用户输入的采样数 */
+      let samples = this.renderTarget.samples;
+      /** 实际采样数 */
+      samples = this.renderTarget.samples = this.getExactSamples(samples);
+      if (samples > 1) {
+        this.initMSAA();
+      }
+    }
+  }
+
+  protected initTexture() {
+    const gl = this.rhi.gl;
+    const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
     if (cubeTexture) {
       // 创建纹理对象并设置其尺寸和参数
       this.glCubeTexture = this.rhi.assetsCache.requireObject(cubeTexture, GLTextureCubeMap);
@@ -185,63 +190,24 @@ export class GLRenderTarget extends GLAsset {
           null
         );
       }
-
       // frameBuffer 绑定 depthRenderBuffer
-      this.depthRenderBuffer = gl.createRenderbuffer();
-      gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
-      gl.renderbufferStorage(gl.RENDERBUFFER, isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16, width, height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRenderBuffer);
+      this.depthRenderBuffer = this.initDepthRenderBuffer();
     } else {
-      /**
-       * 渲染到平面纹理
-       * */
-      // 创建纹理对象并设置其尺寸和参数
-      this.glTexture = this.rhi.assetsCache.requireObject(texture, GLTexture2D);
-      this.glTexture.activeBinding(0);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      // 渲染到平面纹理
+      this.glTexture = this.initColorTexture(texture, 0);
 
       // 创建深度纹理或者绑定深度RBO
       if (depthTexture && this.rhi.canIUse(GLCapabilityType.depthTexture)) {
         // 创建深度纹理
-        this.glDepthTexture = this.rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
-        this.glDepthTexture.activeBinding(0);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texImage2D(
-          gl.TEXTURE_2D,
-          0,
-          isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
-          width,
-          height,
-          0,
-          gl.DEPTH_COMPONENT,
-          isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
-          null
-        );
+        this.glDepthTexture = this.initDepthTexture(depthTexture);
       } else {
         // 创建渲染缓冲区对象并设置其尺寸和参数
-        this.depthRenderBuffer = gl.createRenderbuffer();
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16, width, height);
-      }
-
-      // 绑定颜色纹理
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.glTexture.glTexture, 0);
-
-      // 绑定深度纹理或者深度RBO
-      if (depthTexture) {
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.glDepthTexture.glTexture, 0);
-      } else {
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRenderBuffer);
+        this.depthRenderBuffer = this.initDepthRenderBuffer();
       }
     }
 
     // 检查帧缓冲区对象是否被正确设置
-    const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    if (gl.FRAMEBUFFER_COMPLETE !== e) {
-      Logger.error("Frame buffer error: " + e.toString());
-      return;
-    }
+    this.checkFrameBuffer();
 
     // 取消当前的focus对象
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -249,6 +215,68 @@ export class GLRenderTarget extends GLAsset {
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
     if (cubeTexture || !depthTexture) {
       gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    }
+  }
+
+  /**
+   * 初始化颜色纹理
+   */
+  protected initColorTexture(texture: Texture2D, index: number = 0) {
+    const { gl } = this.rhi;
+    const { width, height } = this.renderTarget;
+    const glTexture: GLTexture2D = this.rhi.assetsCache.requireObject(texture, GLTexture2D);
+    index = gl.COLOR_ATTACHMENT0 + index;
+    glTexture.activeBinding(0);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, index, gl.TEXTURE_2D, glTexture.glTexture, 0);
+    return glTexture;
+  }
+
+  /**
+   * 初始化深度纹理
+   */
+  protected initDepthTexture(depthTexture: Texture2D) {
+    const { gl, isWebGL2 } = this.rhi;
+    if (!this.rhi.canIUse(GLCapabilityType.depthTexture)) {
+      return null;
+    }
+
+    depthTexture.filterMin = gl.NEAREST;
+    depthTexture.filterMag = gl.NEAREST;
+
+    const { width, height } = this.renderTarget;
+    const glDepthTexture = this.rhi.assetsCache.requireObject(depthTexture, GLTexture2D);
+    glDepthTexture.activeBinding(0);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      isWebGL2 ? (gl as WebGL2RenderingContext).DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
+      width,
+      height,
+      0,
+      gl.DEPTH_COMPONENT,
+      isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
+      null
+    );
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, glDepthTexture.glTexture, 0);
+  }
+
+  protected initDepthRenderBuffer() {
+    const { gl, isWebGL2 } = this.rhi;
+    const { width, height } = this.renderTarget;
+    const depthRenderBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16, width, height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthRenderBuffer);
+    return depthRenderBuffer;
+  }
+
+  protected checkFrameBuffer() {
+    const { gl } = this.rhi;
+    const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (gl.FRAMEBUFFER_COMPLETE !== e) {
+      Logger.error("Frame buffer error: " + e.toString());
+      return;
     }
   }
 

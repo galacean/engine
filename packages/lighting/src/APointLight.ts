@@ -23,7 +23,7 @@ export class APointLight extends ALight {
    * @param {number} [props.decay=0] 衰减系数
    */
   constructor(node, props) {
-    super(node);
+    super(node, props);
     this.name = props.name || "pointLight";
 
     /**
