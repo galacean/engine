@@ -1,6 +1,6 @@
 import { Resource } from "@alipay/o3-loader";
 
-import { KhronosTextureContainer } from "../KhronosTextureContainer";
+import { khronosTextureContainerParser } from "../KhronosTextureContainer";
 import { CompressedTexture2D } from "../CompressedTexture2D";
 import { CompressedTextureCubeMap } from "../CompressedTextureCubeMap";
 import { CompressedTextureData, CompressedCubeData } from "../type";
@@ -39,12 +39,8 @@ export class KTXTextureHandler {
   open(resource: Resource) {
     if (resource.data.length === 1) {
       const data = resource.data[0];
-      if (KhronosTextureContainer.IsValid(data)) {
-        const texture = new CompressedTexture2D(resource.name, parseSingleKTX(data));
-        resource.asset = texture;
-      } else {
-        throw new Error("KTXTextureLoader: texture missing KTX identifier");
-      }
+      const texture = new CompressedTexture2D(resource.name, parseSingleKTX(data));
+      resource.asset = texture;
     } else if (resource.data.length === 6) {
       const texture = new CompressedTextureCubeMap(resource.name, parseCubeKTX(resource.data));
       resource.asset = texture;
@@ -55,26 +51,31 @@ export class KTXTextureHandler {
 }
 
 function parseCubeKTX(dataArray: ArrayBuffer[]): CompressedCubeData {
+  const mipmapsFaces = [];
+  let internalFormat: number;
+  let width: number;
+  let height: number;
   for (let i = 0; i < dataArray.length; i++) {
-    if (!KhronosTextureContainer.IsValid(dataArray[i])) {
-      throw new Error("KTXTextureLoader: texture missing KTX identifier");
+    const ktx = khronosTextureContainerParser.parse(dataArray[i], 1, true);
+    mipmapsFaces.push(ktx.mipmaps);
+    if (i === 0) {
+      width = ktx.pixelWidth;
+      height = ktx.pixelHeight;
+      internalFormat = ktx.glInternalFormat;
     }
   }
-  const ktxArray = dataArray.map(data => new KhronosTextureContainer(data, 1));
-  const mipmapsFaces = ktxArray.map(ktx => ktx.mipmaps(true));
   return {
     mipmapsFaces,
-    internalFormat: ktxArray[0].glInternalFormat,
-    width: ktxArray[0].pixelWidth,
-    height: ktxArray[0].pixelHeight
+    internalFormat,
+    width,
+    height
   };
 }
 
 function parseSingleKTX(data: ArrayBuffer): CompressedTextureData {
-  const ktx = new KhronosTextureContainer(data, 1);
-  const mipmaps = ktx.mipmaps(true);
+  const ktx = khronosTextureContainerParser.parse(data, 1, true);
   return {
-    mipmaps,
+    mipmaps: ktx.mipmaps,
     internalFormat: ktx.glInternalFormat,
     width: ktx.pixelWidth,
     height: ktx.pixelHeight

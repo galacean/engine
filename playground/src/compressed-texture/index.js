@@ -57,11 +57,15 @@ if (rhi.canIUse(GLCapabilityType.s3tc)) {
   resourceLoader.batchLoad(
     [dxt1MipmapUrl, dxt1aMipmapUrl, dxt3MipmapUrl, dxt5MipmapUrl].map(url => new Resource("dxt", { type: "ktx", url })),
     (err, resources) => {
-      renderTextures(
-        resources.map(res => res.asset),
-        1,
-        "s3tc"
-      );
+      if (err) {
+        console.log(err);
+      } else {
+        renderTextures(
+          resources.map(res => res.asset),
+          1,
+          "s3tc"
+        );
+      }
     }
   );
 } else {
@@ -73,11 +77,15 @@ if (rhi.canIUse(GLCapabilityType.etc1)) {
   resourceLoader.batchLoad(
     [etc1Url].map(url => new Resource("etc1", { type: "ktx", url })),
     (err, resources) => {
-      renderTextures(
-        resources.map(res => res.asset),
-        0.5,
-        "etc1"
-      );
+      if (err) {
+        console.log(err);
+      } else {
+        renderTextures(
+          resources.map(res => res.asset),
+          0.5,
+          "etc1"
+        );
+      }
     }
   );
 } else {
@@ -91,11 +99,15 @@ if (rhi.canIUse(GLCapabilityType.etc)) {
   resourceLoader.batchLoad(
     [etc2rgbaUrl, etc2rgbUrl].map(url => new Resource("etc2", { type: "ktx", url })),
     (err, resources) => {
-      renderTextures(
-        resources.map(res => res.asset),
-        0,
-        "etc2"
-      );
+      if (err) {
+        console.log(err);
+      } else {
+        renderTextures(
+          resources.map(res => res.asset),
+          0,
+          "etc2"
+        );
+      }
     }
   );
 } else {
@@ -109,11 +121,15 @@ if (rhi.canIUse(GLCapabilityType.astc)) {
   resourceLoader.batchLoad(
     [astc44Url, astc1212Url].map(url => new Resource("astc", { type: "ktx", url })),
     (err, resources) => {
-      renderTextures(
-        resources.map(res => res.asset),
-        -0.5,
-        "astc"
-      );
+      if (err) {
+        console.log(err);
+      } else {
+        renderTextures(
+          resources.map(res => res.asset),
+          -0.5,
+          "astc"
+        );
+      }
     }
   );
 } else {
@@ -128,11 +144,15 @@ if (rhi.canIUse(GLCapabilityType.pvrtc)) {
   resourceLoader.batchLoad(
     [pvrtc12Url, pvrtc14Url, pvrtc12rgbUrl, pvrtc14rgbUrl].map(url => new Resource("pvrtc", { type: "ktx", url })),
     (err, resources) => {
-      renderTextures(
-        resources.map(res => res.asset),
-        -1,
-        "pvrtc"
-      );
+      if (err) {
+        console.log(err);
+      } else {
+        renderTextures(
+          resources.map(res => res.asset),
+          -1,
+          "pvrtc"
+        );
+      }
     }
   );
 } else {
