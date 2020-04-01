@@ -33,7 +33,7 @@ export class Primitive extends AssetObject {
   };
 
   public vertexBuffers = [];
-  public vertexAttributes = {};
+  public vertexAttributes = <any>{};
   public vertexOffset: number = 0;
   public vertexCount: number = 0;
 
