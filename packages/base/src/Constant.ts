@@ -427,6 +427,7 @@ export enum GLCapabilityType {
   depthTexture = "WEBGL_depth_texture",
   drawBuffers = "WEBGL_draw_buffers",
   vertexArrayObject = "OES_vertex_array_object",
+  instancedArrays = "ANGLE_instanced_arrays",
   multipleSample = "multipleSampleOnlySupportedInWebGL2"
 }
 

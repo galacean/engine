@@ -2,6 +2,7 @@ import { GLPrimitive } from "./GLPrimitive";
 import { GLRenderHardware } from "./GLRenderHardware";
 import { Primitive } from "@alipay/o3-primitive";
 import { GLTechnique } from "./GLTechnique";
+import { Logger } from "@alipay/o3-base";
 
 /**
  * 基于 VAO 的 GLPrimitive
@@ -45,17 +46,43 @@ export class GLVAOPrimitive extends GLPrimitive {
     /** prepare BO */
     this.prepareBuffers();
 
-    /** draw */
+    /** render */
     if (!this.vao.has(tech.cacheID)) {
       this.registerVAO(tech);
     }
     const vao = this.vao.get(tech.cacheID);
     gl.bindVertexArray(vao);
-    if (this._glIndexBuffer) {
-      gl.drawElements(primitive.mode, primitive.indexCount, primitive.indexType, primitive.indexOffset);
+    const indexBuffer = this._glIndexBuffer;
+    const { isInstanced } = primitive;
+    if (!isInstanced) {
+      if (indexBuffer) {
+        gl.drawElements(primitive.mode, primitive.indexCount, primitive.indexType, primitive.indexOffset);
+      } else {
+        gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
+      }
     } else {
-      gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
+      if (this.canUseInstancedArrays) {
+        if (indexBuffer) {
+          gl.drawElementsInstanced(
+            primitive.mode,
+            primitive.indexCount,
+            primitive.indexType,
+            primitive.indexOffset,
+            primitive.instancedCount
+          );
+        } else {
+          gl.drawArraysInstanced(
+            primitive.mode,
+            primitive.vertexOffset,
+            primitive.vertexCount,
+            primitive.instancedCount
+          );
+        }
+      } else {
+        Logger.error("ANGLE_instanced_arrays extension is not supported");
+      }
     }
+
     gl.bindVertexArray(null);
   }
 

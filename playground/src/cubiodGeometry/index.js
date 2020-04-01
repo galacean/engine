@@ -1,4 +1,3 @@
-
 import { Engine } from '@alipay/o3-core';
 import { ADefaultCamera } from '@alipay/o3-default-camera';
 import { AGeometryRenderer } from '@alipay/o3-geometry';
