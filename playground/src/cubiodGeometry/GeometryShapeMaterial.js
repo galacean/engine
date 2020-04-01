@@ -1,16 +1,16 @@
-import { UniformSemantic, DataType } from '@alipay/o3-base';
-import { Material } from '@alipay/o3-material';
-import { Resource } from '@alipay/o3-loader';
+import { UniformSemantic, DataType } from "@alipay/o3-base";
+import { Material } from "@alipay/o3-material";
+import { Resource } from "@alipay/o3-loader";
 
 export default function createShapeMaterial(loader) {
-  let newMtl = new Material('shape_mtl');
+  let newMtl = new Material("shape_mtl");
   newMtl.technique = requireShapeTechnique(loader);
   return newMtl;
 }
 
 function requireShapeTechnique(loader) {
   /** Technique 对象的资源名称 */
-  const TECH_NAME = 'shape_tech';
+  const TECH_NAME = "shape_tech";
 
   //-- 创建一个新的 Technique
   const VERT_SHADER = `
@@ -46,36 +46,36 @@ function requireShapeTechnique(loader) {
     name: TECH_NAME,
     attributes: {
       a_position: {
-        name: 'a_position',
-        semantic: 'POSITION',
+        name: "a_position",
+        semantic: "POSITION",
         type: DataType.FLOAT_VEC3
       },
       a_normal: {
-        name: 'a_normal',
-        semantic: 'NORMAL',
+        name: "a_normal",
+        semantic: "NORMAL",
         type: DataType.FLOAT_VEC3
       },
       a_uv: {
-        name: 'a_uv',
-        semantic: 'TEXCOORD_0',
+        name: "a_uv",
+        semantic: "TEXCOORD_0",
         type: DataType.FLOAT_VEC2
       }
     },
     uniforms: {
       matModelViewProjection: {
-        name: 'matModelViewProjection',
+        name: "matModelViewProjection",
         semantic: UniformSemantic.MODELVIEWPROJECTION,
-        type: DataType.FLOAT_MAT4,
+        type: DataType.FLOAT_MAT4
       }
     }
   };
 
   const techRes = new Resource(TECH_NAME, {
-    type: 'technique',
+    type: "technique",
     data: {
       technique: TECH_CONFIG,
       vertexShader: VERT_SHADER,
-      fragmentShader: FRAG_SHADER,
+      fragmentShader: FRAG_SHADER
     }
   });
 

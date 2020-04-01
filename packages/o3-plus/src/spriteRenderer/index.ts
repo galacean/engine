@@ -4,7 +4,7 @@ export class SpriteRenderer extends ASpriteRenderer {
   set rect(v) {
     try {
       const json = JSON.parse(v);
-      this._sprite.spriteRect = json;
+      super.rect = json;
     } catch (error) {}
   }
 

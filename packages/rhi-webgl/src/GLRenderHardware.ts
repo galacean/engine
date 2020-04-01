@@ -4,15 +4,11 @@ import { RHIOption } from "@alipay/o3-core/types/type";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLPrimitive } from "./GLPrimitive";
-import { GLVAOPrimitive } from "./GLVAOPrimitive";
 import { GLTechnique } from "./GLTechnique";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLExtensions } from "./GLExtensions";
 import { GLCapability } from "./GLCapability";
-import { ACamera } from "@alipay/o3-core";
-import { GLMultiRenderTarget } from "./GLMultiRenderTarget";
-import { WebGLExtension } from "./type";
 
 /**
  * GPU 硬件抽象层的 WebGL 的实现
@@ -20,18 +16,17 @@ import { WebGLExtension } from "./type";
  */
 export class GLRenderHardware {
   private _canvas: HTMLCanvasElement;
-  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private _gl: WebGLRenderingContext | WebGL2RenderingContext;
   private _renderStates;
   private _assetsCache: GLAssetsCache;
   private _extensions;
   private _frameCount: number;
   private _spriteBatcher;
   private _capability: GLCapability;
-  private _isWebGL2: boolean;
 
   /** 当前 RHI 是否为 WebGL 2.0 */
   get isWebGL2() {
-    return this._isWebGL2;
+    return false;
   }
 
   constructor(canvas: HTMLCanvasElement, option: RHIOption) {
@@ -42,19 +37,9 @@ export class GLRenderHardware {
     }
 
     /** 若不设置 disableWebGL2 为 true，则默认自动优先使用 WebGL 2.0 */
-    if (!option.disableWebGL2) {
-      this._gl = <WebGL2RenderingContext>(
-        (this._canvas.getContext("webgl2", option) || this._canvas.getContext("experimental-webgl2", option))
-      );
-      this._isWebGL2 = true;
-    }
-
-    if (!this._gl) {
-      this._gl = <WebGLRenderingContext & WebGLExtension>(
-        (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
-      );
-      this._isWebGL2 = false;
-    }
+    this._gl = <WebGLRenderingContext>(
+      (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
+    );
 
     if (!this._gl) {
       throw new Error("Get GL Context FAILED.");
@@ -134,13 +119,6 @@ export class GLRenderHardware {
   }
 
   /**
-   * 查询能否使用某种压缩纹理格式
-   * */
-  canIUseCompressedTextureInternalFormat(type: number) {
-    return this.capability.canIUseCompressedTextureInternalFormat(type);
-  }
-
-  /**
    * 设置视口区域
    * @param {number} x 用来设定视口的左下角水平坐标
    * @param {number} y 用来设定视口的左下角垂直坐标
@@ -201,11 +179,7 @@ export class GLRenderHardware {
    * @param {Material} mtl
    */
   drawPrimitive(primitive, mtl) {
-    // todo: VAO 不支持 morph 动画
-    const glPrimitive = this._assetsCache.requireObject(
-      primitive,
-      this.canIUse(GLCapabilityType.vertexArrayObject) && !primitive.targets.length ? GLVAOPrimitive : GLPrimitive
-    );
+    const glPrimitive = this._assetsCache.requireObject(primitive, GLPrimitive);
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
     if (glPrimitive && glTech) {
@@ -248,23 +222,14 @@ export class GLRenderHardware {
    * 激活指定的RenderTarget
    * @param {RenderTarget} renderTarget  需要被激活的RenderTarget对象，如果未设置，则渲染到屏幕帧
    */
-  activeRenderTarget(renderTarget: RenderTarget, camera: ACamera) {
+  activeRenderTarget(renderTarget: RenderTarget, camera) {
     if (renderTarget) {
-      const TargetClazz = renderTarget.isMulti ? GLMultiRenderTarget : GLRenderTarget;
-      const glRenderTarget = this._assetsCache.requireObject(renderTarget, TargetClazz);
+      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
       glRenderTarget.activeRenderTarget();
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(camera.viewport[0], camera.viewport[1], camera.viewport[2], camera.viewport[3]);
-    }
-  }
-
-  /** blit FBO */
-  blitRenderTarget(renderTarget: RenderTarget) {
-    if (renderTarget) {
-      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
-      glRenderTarget.blitRenderTarget();
     }
   }
 

@@ -37,7 +37,7 @@ adapterArray.forEach(name => {
 export default [
   inject(adapterVars),
   modify({
-    find: /@alipay\/([\w-]*)/g,
+    find: /@alipay\/(o3[\w-]*)/g,
     replace: (match, moduleName) => `@alipay/${moduleName}/dist/miniprogram`
   }),
 ];

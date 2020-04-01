@@ -9,7 +9,7 @@ import { ADefaultCamera } from '@alipay/o3-default-camera';
 import '@alipay/o3-engine-stats';
 import { AHUDLayer } from '../common/AHUDLayer';
 import { AHUDLabel } from "../common/AHUDLabel";
-import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
+import { ASpriteRenderer } from "@alipay/o3-2d";
 import "@alipay/o3-2d";
 import { ADynamicChange } from "./ADynamicChange";
 
@@ -91,8 +91,10 @@ let rect = {
 const texNode = rootNode.createChild('wholeTexture');
 texNode.position = [0, -3, 0];
 texNode.scale = [0.2, 0.2, 1];
-const sprite = new Sprite(hudFeature.texture, rect);
-const spriteRenderer = texNode.createAbility(ASpriteRenderer, sprite);
+const spriteRenderer = texNode.createAbility(ASpriteRenderer, {
+  texture: hudFeature.texture, 
+  rect
+});
 
 engine.run();
 

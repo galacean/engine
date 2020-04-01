@@ -7,7 +7,7 @@ import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
 import "@alipay/o3-engine-stats";
 
-import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
+import { ASpriteRenderer } from "@alipay/o3-2d";
 
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
 import { TextureMaterial, TransparentMaterial } from "@alipay/o3-mobile-material";
@@ -58,7 +58,6 @@ resourceLoader.batchLoad([textureRes, circleRes], (err, res) => {
   if (err) {
     console.log(err);
   }
-
   const circleGlb = res[1];
   const circlePrefab = circleGlb.asset.rootScene.nodes[0];
   const circle = circlePrefab.clone();
@@ -90,8 +89,11 @@ function addHeartNode(node, res, nums) {
       width: 64,
       height: 64
     };
-    const sprite = new Sprite(res.asset, rect);
-    heart.createAbility(ASpriteRenderer, sprite);
+    // console.log(999, res.asset, res.asset);
+    let spriteRenderer = heart.createAbility(ASpriteRenderer, {
+      texture: res.asset,
+      rect
+    });
   }
 }
 

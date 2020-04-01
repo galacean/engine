@@ -129,8 +129,10 @@ function addHeartNode(node, res, nums) {
       width: 64,
       height: 64,
     };
-    const sprite = new Sprite(res.asset, rect);
-    const spriteRenderer = heart.createAbility(ASpriteRenderer, sprite);
+    const spriteRenderer = heart.createAbility(ASpriteRenderer, {
+      texture: res.asset, 
+      rect
+    });
     // spriteRenderer.separateDraw = true;
   }
 }
