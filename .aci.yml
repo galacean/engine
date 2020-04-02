@@ -18,10 +18,6 @@ node-8:
   agent:
     docker:
       image: reg.docker.alibaba-inc.com/dockerlab/node-ci:3.7.11
-      resourceRequirements:
-        cpu: 4
-        memory: 12
-        ephemeral-storage: 30
   script:
     - |
       export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
@@ -31,9 +27,7 @@ node-8:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
-      artifacts: 'coverage/'
-      allowEmptyArchive: true
+    archiveArtifacts: 'coverage/'
     html:
       index: coverage/lcov-report/index.html
       displayName: 测试覆盖率
@@ -43,10 +37,6 @@ node-10:
   agent:
     docker:
       image: reg.docker.alibaba-inc.com/dockerlab/node-ci:3.7.11
-      resourceRequirements:
-        cpu: 4
-        memory: 12
-        ephemeral-storage: 30
   script:
     - |
       export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
@@ -56,9 +46,7 @@ node-10:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
-      artifacts: 'coverage/'
-      allowEmptyArchive: true
+    archiveArtifacts: 'coverage/'
     html:
       index: coverage/lcov-report/index.html
       displayName: 测试覆盖率
@@ -68,10 +56,6 @@ node-12:
   agent:
     docker:
       image: reg.docker.alibaba-inc.com/dockerlab/node-ci:3.7.11
-      resourceRequirements:
-        cpu: 4
-        memory: 12
-        ephemeral-storage: 30
   script:
     - |
       export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
@@ -81,9 +65,7 @@ node-12:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
-      artifacts: 'coverage/'
-      allowEmptyArchive: true
+    archiveArtifacts: 'coverage/'
     html:
       index: coverage/lcov-report/index.html
       displayName: 测试覆盖率
