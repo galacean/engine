@@ -11,7 +11,7 @@ vec3 getNormal()
             #ifdef O3_HAS_NORMAL
                 vec3 ng = normalize(v_normal);
             #else
-                vec3 ng = cross(pos_dx, pos_dy);
+                vec3 ng = normalize( cross(pos_dx, pos_dy) );
             #endif
             t = normalize(t - ng * dot(ng, t));
             vec3 b = normalize(cross(ng, t));
@@ -35,7 +35,7 @@ vec3 getNormal()
     #elif defined(HAS_DERIVATIVES)
         vec3 pos_dx = dFdx(v_pos);
         vec3 pos_dy = dFdy(v_pos);
-        vec3 n= cross(pos_dx, pos_dy);
+        vec3 n = normalize( cross(pos_dx, pos_dy) );
     #else
         vec3 n= vec3(0.0,0.0,1.0);
     #endif

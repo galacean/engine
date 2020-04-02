@@ -1,7 +1,7 @@
     #ifdef O3_HAS_NORMAL
          N *= float( gl_FrontFacing ) * 2.0 - 1.0;
-    #elif
-         N = vec3(0, 0, 1);
+    #else
+         vec3 N = vec3(0, 0, 1);
     #endif
 
 
