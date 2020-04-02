@@ -9,11 +9,10 @@ import { LambertMaterial } from '@alipay/o3-mobile-material';
 import { Texture2D } from '@alipay/o3-material';
 import { Node, NodeAbility } from '@alipay/o3-core';
 import {
+  spine,
   AssetManager,
   ASpineRenderer
 } from '@alipay/o3-spine';
-import { spine } from '@alipay/spine-core';
-import { AGPUParticleSystem } from '@alipay/o3-particle';
 
 let assetManager;
 let atlas;
