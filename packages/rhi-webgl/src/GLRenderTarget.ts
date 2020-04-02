@@ -250,7 +250,7 @@ export class GLRenderTarget extends GLAsset {
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      isWebGL2 ? (gl as WebGL2RenderingContext).DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
+      isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
       width,
       height,
       0,

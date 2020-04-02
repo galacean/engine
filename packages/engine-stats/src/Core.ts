@@ -64,7 +64,8 @@ export default class Core {
       points: this.drawCallHook.points,
       textures: this.textureHook.textures,
       shaders: this.shaderHook.shaders,
-      webglContext: this.gl instanceof WebGL2RenderingContext ? "2.0" : "1.0"
+      webglContext:
+        window.hasOwnProperty("WebGL2RenderingContext") && this.gl instanceof WebGL2RenderingContext ? "2.0" : "1.0"
     };
 
     this.reset();
