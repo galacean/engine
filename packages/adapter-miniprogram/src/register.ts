@@ -2,6 +2,8 @@ import devicePixelRatio from "./devicePixelRatio";
 import * as Mixin from "./util/mixin";
 import document from "./document";
 
+declare let my: any;
+
 /**同步和异步都需要的数据*/
 let canvas: any = {};
 let canvas2D: any = {};
@@ -10,8 +12,15 @@ let canvas2D: any = {};
 function registerCanvas(c, id: string) {
   canvas = c;
   canvas.id = id;
-  canvas.clientWidth = c.width / devicePixelRatio;
-  canvas.clientHeight = c.height / devicePixelRatio;
+  const { platform } = my.getSystemInfoSync();
+  // todo bug : 小程序 Android width/height 和 iOS 不一致
+  if (platform === "iOS") {
+    canvas.clientWidth = c.width / devicePixelRatio;
+    canvas.clientHeight = c.height / devicePixelRatio;
+  } else {
+    canvas.clientWidth = c.width;
+    canvas.clientHeight = c.height;
+  }
 
   if (!("tagName" in canvas)) {
     canvas.tagName = "CANVAS";
