@@ -158,13 +158,15 @@ export class GLCapability {
       vertexAttribDivisor: "vertexAttribDivisorANGLE"
     });
     const items = {};
-    for (let i = 0; i < this.rhi.requireExtension(drawBuffers).MAX_DRAW_BUFFERS_WEBGL; i++) {
-      i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
-      items[`DRAW_BUFFER0${i}`] = `DRAW_BUFFER${i}_WEBGL`;
+    if (this.canIUse(GLCapabilityType.drawBuffers)) {
+      for (let i = 0; i < this.rhi.requireExtension(drawBuffers).MAX_DRAW_BUFFERS_WEBGL; i++) {
+        i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
+        items[`DRAW_BUFFER0${i}`] = `DRAW_BUFFER${i}_WEBGL`;
+      }
+      this.compatibleInterface(drawBuffers, {
+        drawBuffers: "drawBuffersWEBGL",
+        ...items
+      });
     }
-    this.compatibleInterface(drawBuffers, {
-      drawBuffers: "drawBuffersWEBGL",
-      ...items
-    });
   }
 }
