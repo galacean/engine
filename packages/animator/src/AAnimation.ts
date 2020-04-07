@@ -1,8 +1,8 @@
-import { NodeAbility, Node } from "@alipay/o3-core";
+import { Node, NodeAbility } from "@alipay/o3-core";
 import { AnimationClip } from "./AnimationClip";
-import { getAnimationClipHander } from "./handler/index";
+import { PlayState, WrapMode } from "./AnimationConst";
 import { AnimationClipHandler } from "./handler/animationClipHandler";
-import { WrapMode, PlayState } from "./AnimationConst";
+import { getAnimationClipHander } from "./handler/index";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
  * @extends NodeAbility
@@ -24,6 +24,7 @@ export class AAnimation extends NodeAbility {
   private handlerStartTimeMap: WeakMap<AnimationClipHandler, number>;
   private _animationData: any;
   private _timeScale: number;
+  private _autoPlay: boolean;
 
   /**
    * 缩放播放速度
@@ -48,6 +49,18 @@ export class AAnimation extends NodeAbility {
     this._wrapMode = wrapMode;
   }
 
+  get autoPlay() {
+    return this._autoPlay;
+  }
+  set autoPlay(autoPlay) {
+    this._autoPlay = autoPlay;
+    if (!autoPlay) {
+      this.stop();
+    } else {
+      this.play();
+    }
+  }
+
   get animationData() {
     return this._animationData;
   }
@@ -62,7 +75,7 @@ export class AAnimation extends NodeAbility {
    */
   constructor(node: Node, props: any) {
     super(node);
-    const { animationData, wrapMode } = props;
+    const { animationData, wrapMode, autoPlay } = props;
     this.animClipSet = {}; // name : AnimationClip
     this.uniqueAnimClipSet = {};
     this.startTimeAnimClipSet = {}; // startTime: AnimationClip
@@ -71,9 +84,13 @@ export class AAnimation extends NodeAbility {
     this.handlerStartTimeMap = new WeakMap();
     this._timeScale = 1.0;
     this.currentTime = 0;
-    this.animationData = animationData;
     this.wrapMode = wrapMode;
+    this.autoPlay = autoPlay;
+    this.animationData = animationData;
     this.state = PlayState.INIT;
+    if (autoPlay) {
+      this.play();
+    }
   }
 
   /**

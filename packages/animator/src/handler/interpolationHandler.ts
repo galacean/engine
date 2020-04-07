@@ -1,8 +1,6 @@
 import { Node } from "@alipay/o3-core";
-import { vec3, quat } from "@alipay/o3-math";
-import { AnimationClipType } from "../AnimationConst";
-import { Tween, Tweener, doTransform, Easing } from "@alipay/o3-tween";
-import { AnimationClip } from "../AnimationClip";
+import { quat, vec3 } from "@alipay/o3-math";
+import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 import { AnimationClipHandler } from "./animationClipHandler";
 import { LinkList } from "./linkList";
 export class InterpolationHandler extends AnimationClipHandler {
@@ -10,19 +8,20 @@ export class InterpolationHandler extends AnimationClipHandler {
   private tween: Tween;
   private originNodeState: Node;
   private curNodeState: Node;
-
+  private changedProperty: any;
   init() {
     super.init();
     const { animClip, node } = this;
     const { keyFrames } = animClip;
     this.tween = new Tween();
+    this.changedProperty = {};
     this.keyFrameLinkListMap = {};
     this.originNodeState = node.clone();
     this.curNodeState = node.clone();
     this.curNodeState.rotation = quat.toEuler(vec3.create(), this.curNodeState.rotation);
     const keyFrameTimeQueue = Object.keys(animClip.keyFrames)
       .map(startTime => Number(startTime))
-      .sort();
+      .sort((a, b) => a - b);
     keyFrameTimeQueue.forEach(keyFrameTime => {
       let keyFrameList = keyFrames[keyFrameTime];
       keyFrameList = keyFrameList.forEach(keyFrame => {
@@ -64,6 +63,7 @@ export class InterpolationHandler extends AnimationClipHandler {
             startValue,
             val => {
               curNodeState[property][subPropertyMap[subProperty]] = val;
+              this.changedProperty[property] = true;
             },
             endValue,
             duration,
@@ -90,7 +90,7 @@ export class InterpolationHandler extends AnimationClipHandler {
 
   affectNode() {
     const { node, curNodeState } = this;
-    ["position", "rotation", "scale"].forEach(property => {
+    Object.keys(this.changedProperty).forEach(property => {
       if (property === "rotation") {
         const euler = curNodeState[property];
         node[property] = quat.fromEuler(quat.create(), euler[0], euler[1], euler[2]);
@@ -104,7 +104,7 @@ export class InterpolationHandler extends AnimationClipHandler {
     const { curNodeState, originNodeState, tween } = this;
     super.reset();
     if (!curNodeState) return;
-    ["position", "rotation", "scale"].forEach(property => {
+    Object.keys(this.changedProperty).forEach(property => {
       if (property === "rotation") {
         curNodeState[property] = quat.clone(originNodeState[property]);
       } else {

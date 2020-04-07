@@ -1,6 +1,6 @@
-import { NodeAbility, Node } from "@alipay/o3-core";
+import { Node, NodeAbility } from "@alipay/o3-core";
 import { AAnimation } from "./AAnimation";
-import { WrapMode, PlayState } from "./AnimationConst";
+import { PlayState, WrapMode } from "./AnimationConst";
 
 /**
  * 全局动画控制器
@@ -14,6 +14,7 @@ export class AAnimator extends NodeAbility {
   private _animatorData: any;
   private _timeScale: number;
   private _wrapMode: WrapMode;
+  private _autoPlay: boolean;
 
   /**
    * 缩放播放速度
@@ -38,6 +39,18 @@ export class AAnimator extends NodeAbility {
     this._wrapMode = wrapMode;
   }
 
+  get autoPlay() {
+    return this._autoPlay;
+  }
+  set autoPlay(autoPlay) {
+    this._autoPlay = autoPlay;
+    if (!autoPlay) {
+      this.stop();
+    } else {
+      this.play();
+    }
+  }
+
   get animatorData() {
     return this._animatorData;
   }
@@ -53,19 +66,23 @@ export class AAnimator extends NodeAbility {
    */
   constructor(node: Node, props: any) {
     super(node);
-    const { animatorData, wrapMode } = props;
+    const { animatorData, wrapMode, autoPlay } = props;
     this.animationList = [];
     this.startTimeAnimationMap = {}; // startTime: AnimationList
     this._timeScale = 1.0;
     this.currentTime = 0;
-    this.animatorData = animatorData;
     this.wrapMode = wrapMode;
+    this.autoPlay = autoPlay;
+    this.animatorData = animatorData;
+    this.state = PlayState.INIT;
     if (animatorData) {
       animatorData.onAttach = data => {
         this.animatorData = data;
+        if (autoPlay) {
+          this.play();
+        }
       };
     }
-    this.state = PlayState.INIT;
   }
 
   public update(deltaTime: number) {

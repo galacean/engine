@@ -1,20 +1,20 @@
+import { AAnimation, AAnimator, AnimationClip, AnimationClipType } from "@alipay/o3-animator";
 import { ClearMode } from "@alipay/o3-base";
 import { Engine, EngineFeature } from "@alipay/o3-core";
-import { vec3 } from "@alipay/o3-math";
-import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
-import { SceneRenderer } from "@alipay/o3-renderer-cull";
-import { ResourceLoader, Resource } from "@alipay/o3-loader";
-import "@alipay/o3-loader-gltf";
-import { AAnimation, AAnimator, AnimationClip, AnimationClipType } from "@alipay/o3-animator";
-import { Tween, Tweener, LOOP_TYPE, Easing, doTransform, doMaterial } from "@alipay/o3-tween";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import "@alipay/o3-engine-stats";
-import { PBRMaterial } from "@alipay/o3-pbr";
-import { TextureMaterial, TransparentMaterial, LambertMaterial } from "@alipay/o3-mobile-material";
-import { RegistExtension } from "@alipay/o3-loader-gltf";
-import { ADirectLight } from "@alipay/o3-lighting";
 import { AGeometryRenderer } from "@alipay/o3-geometry";
 import { CuboidGeometry } from "@alipay/o3-geometry-shape";
+import { ADirectLight } from "@alipay/o3-lighting";
+import { Resource, ResourceLoader } from "@alipay/o3-loader";
+import "@alipay/o3-loader-gltf";
+import { RegistExtension } from "@alipay/o3-loader-gltf";
+import { vec3 } from "@alipay/o3-math";
+import { LambertMaterial, TextureMaterial, TransparentMaterial } from "@alipay/o3-mobile-material";
+import { PBRMaterial } from "@alipay/o3-pbr";
+import { SceneRenderer } from "@alipay/o3-renderer-cull";
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { Tween } from "@alipay/o3-tween";
 RegistExtension({ PBRMaterial, TextureMaterial, TransparentMaterial });
 const { Interpolation, Skeleton, AnimationComponent } = AnimationClipType;
 //-- create engine object
@@ -92,14 +92,58 @@ resourceLoader.load(animationRes, (err, gltf) => {
       "0": [
         {
           value: 0,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ],
+      "1000": [
+        {
+          value: 1,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ],
+      "2000": [
+        {
+          value: 0,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ],
+      "3000": [
+        {
+          value: -1,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ],
+      "4000": [
+        {
+          value: 0,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ]
+    }
+  };
+  const options2 = {
+    keyFrames: {
+      "0": [
+        {
+          value: 0,
           property: "rotation",
           subProperty: "y",
           interpolation: "linear"
         }
       ],
-      "2600": [
+      "4000": [
         {
-          value: -360,
+          value: 360,
           property: "rotation",
           subProperty: "y",
           interpolation: "linear"
@@ -108,11 +152,14 @@ resourceLoader.load(animationRes, (err, gltf) => {
     }
   };
   const ac1 = new AnimationClip("translate1", Interpolation, options);
+  const ac2 = new AnimationClip("translate2", Interpolation, options2);
   const ac5 = new AnimationClip("B", Skeleton, actionMap["B"]);
   modelAnimation.addAnimationClip(0, ac1);
+  modelAnimation.addAnimationClip(0, ac2);
   modelAnimation.addAnimationClip(200, ac5);
   modelAnimation.addAnimationClip(3000, ac5);
   cubeAnimation.addAnimationClip(0, ac1);
+  cubeAnimation.addAnimationClip(0, ac2);
   const animator = rootNode.createAbility(AAnimator);
   animator.addAnimationByStartTime(0, modelAnimation);
   animator.addAnimationByStartTime(0, cubeAnimation);
