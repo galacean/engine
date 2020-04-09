@@ -431,11 +431,16 @@ export enum GLCapabilityType {
   multipleSample = "multipleSampleOnlySupportedInWebGL2",
 
   astc = "WEBGL_compressed_texture_astc",
-  // atc = "WEBGL_compressed_texture_atc",
+  astc_webkit = "WEBKIT_WEBGL_compressed_texture_astc",
   etc = "WEBGL_compressed_texture_etc",
+  etc_webkit = "WEBKIT_WEBGL_compressed_texture_etc",
   etc1 = "WEBGL_compressed_texture_etc1",
+  etc1_webkit = "WEBKIT_WEBGL_compressed_texture_etc1",
   pvrtc = "WEBGL_compressed_texture_pvrtc",
-  s3tc = "WEBGL_compressed_texture_s3tc"
+  pvrtc_webkit = "WEBKIT_WEBGL_compressed_texture_pvrtc",
+  s3tc = "WEBGL_compressed_texture_s3tc",
+  s3tc_webkit = "WEBKIT_WEBGL_compressed_texture_s3tc"
+  // atc = "WEBGL_compressed_texture_atc",
   // s3tc_srgb = "WEBGL_compressed_texture_s3tc_srgb"
 }
 
