@@ -162,9 +162,10 @@ export function createAttribute(gltf, semantic, accessor, idx) {
  * @param arr 资源对象数组
  * @param type 使用 request 库请求资源的类型
  * @param filesMap 资源链接查找表
+ * @param {boolean} reSample - 是否 reSample
  * @private
  */
-export function attachLoadingQueue(dir, loadQueue, arr = [], type, filesMap) {
+export function attachLoadingQueue(dir, loadQueue, arr = [], type, filesMap, reSample?: boolean) {
   for (let i = 0; i < arr.length; i++) {
     const item = arr[i];
 
@@ -181,6 +182,7 @@ export function attachLoadingQueue(dir, loadQueue, arr = [], type, filesMap) {
         type,
         props: {
           url,
+          reSample,
           data
         }
       };
