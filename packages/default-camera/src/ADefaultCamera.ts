@@ -12,11 +12,9 @@ import { ICameraProps, RHIOption } from "@alipay/o3-core/types/type";
  */
 export class ADefaultCamera extends ACamera {
   canvas;
-  fov;
-  near;
-  far;
-  lastWidth;
-  lastHeight;
+  private _fov: number;
+  lastWidth: number;
+  lastHeight: number;
 
   private _pixelRatio;
 
@@ -65,17 +63,17 @@ export class ADefaultCamera extends ACamera {
      * 透视相机视场角角度
      * @member {Number}
      */
-    this.fov = props.fov || 45;
+    this._fov = props.fov || 45;
     /**
      * 透视相机近裁剪面
      * @member {Number}
      */
-    this.near = props.near || 0.01;
+    this.zNear = props.near || 0.01;
     /**
      * 透视相机远裁剪面
      * @member {Number}
      */
-    this.far = props.far || 1000;
+    this.zFar = props.far || 1000;
     this.pixelRatio = props.pixelRatio || window.devicePixelRatio;
 
     const clearMode = props.clearMode !== undefined ? props.clearMode : ClearMode.SOLID_COLOR;
@@ -98,6 +96,40 @@ export class ADefaultCamera extends ACamera {
     }
   }
 
+  get fov() {
+    return this._fov;
+  }
+
+  set fov(fov: number) {
+    if (fov !== this.fov) {
+      this._fov = fov;
+      this.setPerspective(this.fov, this.canvas.width, this.canvas.height, this.near, this.far);
+    }
+  }
+
+  /**
+   * 向下兼容
+   * */
+  get near() {
+    return this.zNear;
+  }
+
+  set near(zNear: number) {
+    if (zNear !== this.near) {
+      this.setPerspective(this.fov, this.canvas.width, this.canvas.height, zNear, this.far);
+    }
+  }
+
+  get far() {
+    return this.zFar;
+  }
+
+  set far(zFar: number) {
+    if (zFar !== this.far) {
+      this.setPerspective(this.fov, this.canvas.width, this.canvas.height, this.near, zFar);
+    }
+  }
+
   /**
    * 更新画布大小和透视矩阵
    * @param {Number} [pixelRatio=this.pixelRatio] 像素比率
@@ -108,7 +140,7 @@ export class ADefaultCamera extends ACamera {
       this._pixelRatio = pixelRatio;
     }
     if (fov) {
-      this.fov = fov;
+      this._fov = fov;
     }
 
     const width = (this.canvas.clientWidth * this.pixelRatio) | 0;
