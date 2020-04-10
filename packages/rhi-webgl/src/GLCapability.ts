@@ -88,10 +88,15 @@ export class GLCapability {
       instancedArrays,
       multipleSample,
       astc,
+      astc_webkit,
       etc,
+      etc_webkit,
       etc1,
+      etc1_webkit,
       pvrtc,
+      pvrtc_webkit,
       s3tc,
+      s3tc_webkit,
       drawBuffers
     } = GLCapabilityType;
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
@@ -103,11 +108,11 @@ export class GLCapability {
     cap.set(multipleSample, isWebGL2);
     cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
 
-    cap.set(astc, !!requireExtension(astc));
-    cap.set(etc, !!requireExtension(etc));
-    cap.set(etc1, !!requireExtension(etc1));
-    cap.set(pvrtc, !!requireExtension(pvrtc));
-    cap.set(s3tc, !!requireExtension(s3tc));
+    cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
+    cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
+    cap.set(etc1, !!(requireExtension(etc1) || requireExtension(etc1_webkit)));
+    cap.set(pvrtc, !!(requireExtension(pvrtc) || requireExtension(pvrtc_webkit)));
+    cap.set(s3tc, !!(requireExtension(s3tc) || requireExtension(s3tc_webkit)));
   }
 
   /**
