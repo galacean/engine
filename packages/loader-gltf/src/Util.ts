@@ -88,7 +88,7 @@ export function getAccessorData(gltf, accessor, buffers) {
   const byteOffset = accessorByteOffset + bufferViewByteOffset;
   const accessorTypeSize = getAccessorTypeSize(accessor.type);
   const length = accessorTypeSize * accessor.count;
-  const byteStride = bufferView.byteStride || 0;
+  const byteStride = bufferView.byteStride ?? 0;
   // const CTOR_MAP = {
   //   // 5120 (BYTE)	1
   //   // 5121(UNSIGNED_BYTE)	1
