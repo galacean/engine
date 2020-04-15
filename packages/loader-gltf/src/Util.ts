@@ -86,8 +86,9 @@ export function getAccessorData(gltf, accessor, buffers) {
   const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
   const bufferViewByteOffset = bufferView.hasOwnProperty("byteOffset") ? bufferView.byteOffset : 0;
   const byteOffset = accessorByteOffset + bufferViewByteOffset;
-  const length = getAccessorTypeSize(accessor.type) * accessor.count;
-
+  const accessorTypeSize = getAccessorTypeSize(accessor.type);
+  const length = accessorTypeSize * accessor.count;
+  const byteStride = bufferView.byteStride || 0;
   // const CTOR_MAP = {
   //   // 5120 (BYTE)	1
   //   // 5121(UNSIGNED_BYTE)	1
@@ -104,9 +105,24 @@ export function getAccessorData(gltf, accessor, buffers) {
   // };
 
   const arrayType = getComponentType(accessor.componentType);
-  let uin8Array = new Uint8Array(arrayBuffer, byteOffset, length * arrayType.BYTES_PER_ELEMENT);
-  uin8Array = new Uint8Array(uin8Array);
-  return new arrayType(uin8Array.buffer);
+  let uint8Array;
+  if (byteStride) {
+    uint8Array = new Uint8Array(length * arrayType.BYTES_PER_ELEMENT);
+    const originalBufferView = new Uint8Array(arrayBuffer, bufferViewByteOffset, bufferView.byteLength);
+    let viewAccessor = 0;
+    for (let i = 0; i < accessor.count; i++) {
+      viewAccessor = i * byteStride + accessorByteOffset;
+      const accessorByteSize = accessorTypeSize * arrayType.BYTES_PER_ELEMENT;
+      for (let j = 0; j < accessorByteSize; j++) {
+        uint8Array[i * accessorByteSize + j] = originalBufferView[viewAccessor + j];
+      }
+    }
+  } else {
+    uint8Array = new Uint8Array(arrayBuffer, byteOffset, length * arrayType.BYTES_PER_ELEMENT);
+    uint8Array = new Uint8Array(uint8Array);
+  }
+
+  return new arrayType(uint8Array.buffer);
 }
 
 /**
@@ -143,13 +159,16 @@ export function createAttribute(gltf, semantic, accessor, idx) {
   //     vertexBufferIndex
   // }
   const bufferView = gltf.bufferViews[accessor.bufferView];
-
+  const size = getAccessorTypeSize(accessor.type);
+  const componentType = getComponentType(accessor.componentType);
+  const stride = size * componentType.BYTES_PER_ELEMENT;
   return {
     name: semantic,
-    size: getAccessorTypeSize(accessor.type),
+    size,
     type: accessor.componentType,
     normalized: false,
-    stride: bufferView.byteStride || 0,
+    // stride: bufferView.byteStride || 0,
+    stride,
     offset: 0,
     vertexBufferIndex: idx || 0
   };
