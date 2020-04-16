@@ -13,7 +13,6 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
   private _weights: number[];
   private weightsIndices: number[] = [];
   private _skin: Skin;
-  private _rootNodes: Node[];
   public matrixPalette: Float32Array;
   public jointNodes: Node[];
 
@@ -28,10 +27,8 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
     this._mat = mat4.create() as Float32Array;
     this._weights = null;
     this._skin = null;
-    this._rootNodes = null;
 
     this.skin = props.skin;
-    this._rootNodes = props.rootNodes;
     this.setWeights(props.mesh?.weights);
   }
 
@@ -95,32 +92,28 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
       const skin = this._skin;
       //-- init
 
-      let rootBone = this.node.findChildByName(skin.skeleton);
-      if (!rootBone) {
-        rootBone = this._findParent(this.node, skin.skeleton);
-        if (!rootBone) return;
-      }
-
       const joints = skin.joints;
       const jointNodes = [];
       for (let i = joints.length - 1; i >= 0; i--) {
-        if (joints[i] === skin.skeleton) {
-          jointNodes[i] = rootBone;
-        } else {
-          jointNodes[i] = rootBone.findChildByName(joints[i]);
-          if (!jointNodes[i]) {
-            if (this._rootNodes && this._rootNodes.length) {
-              jointNodes[i] = this._findChildFromRootNodes(joints[i]);
-            } else if (rootBone.parentNode) {
-              jointNodes[i] = rootBone.parentNode.findChildByName(joints[i]);
-            }
-          }
-        }
+        jointNodes[i] = this.findByNodeName(this.node, joints[i]);
       } // end of for
 
       this.matrixPalette = new Float32Array(jointNodes.length * 16);
       this.jointNodes = jointNodes;
     }
+  }
+
+  private findByNodeName(node: Node, nodeName: string) {
+    let n = node.findChildByName(nodeName);
+    if (n) return n;
+
+    const parentNode = node.parentNode;
+    if (!parentNode) return null;
+
+    n = parentNode.findChildByName(nodeName);
+    if (n) return n;
+
+    return this.findByNodeName(parentNode, nodeName);
   }
 
   /**
@@ -139,25 +132,6 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
       if (brother) return brother;
 
       return this._findParent(parent, nodeName);
-    }
-    return null;
-  }
-
-  /**
-   * 从root中查找
-   * @param {Node[]} rootNodes
-   * @param {string} nodeName
-   * @private
-   */
-  private _findChildFromRootNodes(nodeName: string) {
-    if (this._rootNodes && this._rootNodes.length) {
-      for (let index = 0; index < this._rootNodes.length; index++) {
-        const root = this._rootNodes[index];
-        const node = root.findChildByName(nodeName);
-        if (node) {
-          return node;
-        }
-      }
     }
     return null;
   }
