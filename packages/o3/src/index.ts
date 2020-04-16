@@ -16,6 +16,7 @@ export * from "@alipay/o3-compressed-texture";
 export * from "@alipay/o3-core";
 export * from "@alipay/o3-default-camera";
 export * from "@alipay/o3-draco";
+export * from "@alipay/o3-env-probe";
 export * from "@alipay/o3-fog";
 export * from "@alipay/o3-framebuffer-picker";
 export * from "@alipay/o3-free-controls";
