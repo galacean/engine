@@ -830,7 +830,7 @@ export function buildSceneGraph(resources) {
       if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
         const skin = getItemByIdx("skins", gltfNode.skin, resources);
         const weights = mesh.weights;
-        node.createAbility(ASkinnedMeshRenderer, { skin, mesh, weights, rootNodes: asset.rootScene?.nodes });
+        node.createAbility(ASkinnedMeshRenderer, { skin, mesh, weights });
       } else {
         node.createAbility(AMeshRenderer, { mesh });
       }
