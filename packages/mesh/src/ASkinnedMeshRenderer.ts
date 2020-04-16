@@ -104,16 +104,13 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
   }
 
   private findByNodeName(node: Node, nodeName: string) {
-    let n = node.findChildByName(nodeName);
+    if (!node) return null;
+
+    const n = node.findChildByName(nodeName);
+
     if (n) return n;
 
-    const parentNode = node.parentNode;
-    if (!parentNode) return null;
-
-    n = parentNode.findChildByName(nodeName);
-    if (n) return n;
-
-    return this.findByNodeName(parentNode, nodeName);
+    return this.findByNodeName(node.parentNode, nodeName);
   }
 
   /**
