@@ -12,14 +12,14 @@ import { GLRenderHardware } from "./GLRenderHardware";
  * @private
  */
 export class GLRenderTarget extends GLAsset {
-  private renderTarget: RenderTarget;
+  private readonly renderTarget: RenderTarget;
 
   private glTexture: GLTexture2D;
   protected glDepthTexture: GLTexture2D;
   private glCubeTexture: GLTextureCubeMap;
 
   private frameBuffer: WebGLFramebuffer;
-  private depthRenderBuffer: WebGLRenderbuffer;
+  protected depthRenderBuffer: WebGLRenderbuffer;
 
   /** WebGL2 时，可以开启硬件层的 MSAA */
   private MSAAFrameBuffer: WebGLFramebuffer;
@@ -159,7 +159,7 @@ export class GLRenderTarget extends GLAsset {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
 
     if (!this.renderTarget.isMulti) {
-      this.initTexture();
+      this.bindFBO();
       /** 用户输入的采样数 */
       let samples = this.renderTarget.samples;
       /** 实际采样数 */
@@ -170,7 +170,7 @@ export class GLRenderTarget extends GLAsset {
     }
   }
 
-  protected initTexture() {
+  protected bindFBO() {
     const gl = this.rhi.gl;
     const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
     if (cubeTexture) {
@@ -213,9 +213,7 @@ export class GLRenderTarget extends GLAsset {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
-    if (cubeTexture || !depthTexture) {
-      gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-    }
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   }
 
   /**
