@@ -49,6 +49,7 @@ export interface PluginHook {
   resourceUpdated?(info: { resource: SchemaResource; id: string; key: string; value: any }): any;
   beforeResourceUpdate?(id: string, key: string, value: any): any;
   // todo type
+  beforeResourceAdd?(resource: any): any;
   resourceAdded?(resource: any): any;
 }
 
@@ -56,11 +57,12 @@ export function pluginHook(options: Partial<{ before: keyof PluginHook; after: k
   return function(target: any, propertyName: string, descriptor: TypedPropertyDescriptor<any>) {
     const method = descriptor.value;
 
-    descriptor.value = async function(...args: any[]) {
+    descriptor.value = function(...args: any[]) {
       options.before && this.oasis.pluginManager.delegateMethod(options.before, ...args);
-      const returnObj = await method.apply(this, arguments);
-      options.after && this.oasis.pluginManager.delegateMethod(options.after, returnObj);
-      return returnObj;
+      return Promise.resolve(method.apply(this, arguments)).then(returnObj => {
+        options.after && this.oasis.pluginManager.delegateMethod(options.after, returnObj);
+        return returnObj;
+      });
     };
   };
 }
