@@ -110,9 +110,9 @@ export function getAccessorData(gltf, accessor, buffers) {
     uint8Array = new Uint8Array(length * arrayType.BYTES_PER_ELEMENT);
     const originalBufferView = new Uint8Array(arrayBuffer, bufferViewByteOffset, bufferView.byteLength);
     let viewAccessor = 0;
+    const accessorByteSize = accessorTypeSize * arrayType.BYTES_PER_ELEMENT;
     for (let i = 0; i < accessor.count; i++) {
       viewAccessor = i * byteStride + accessorByteOffset;
-      const accessorByteSize = accessorTypeSize * arrayType.BYTES_PER_ELEMENT;
       for (let j = 0; j < accessorByteSize; j++) {
         uint8Array[i * accessorByteSize + j] = originalBufferView[viewAccessor + j];
       }
