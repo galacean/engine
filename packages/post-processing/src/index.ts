@@ -10,7 +10,7 @@ export { BloomEffect } from "./BloomEffect";
 export { BloomResetEffect } from "./BloomResetEffect";
 export { GodraysEffect } from "./GodraysEffect";
 export { addDepthPass } from "./DepthPass";
-export { ScreenQuad } from "./ScreenQuad";
+export { ScreenQuadGeometry as ScreenQuad } from "@alipay/o3-geometry-shape";
 
 export { SMAAEffect } from "./SMAAEffect";
 export { AutoExposureEffect } from "./AutoExposure";
