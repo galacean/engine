@@ -15,7 +15,7 @@ export class BasicSceneRenderer extends SceneVisitor {
   private _opaqueQueue: RenderQueue;
   private _transparentQueue: RenderQueue;
   private _defaultPass: RenderPass;
-  private _renderPassArray: Array<RenderPass>;
+  protected _renderPassArray: Array<RenderPass>;
   private _canvasDepthPass;
   private _separateSpritePass;
 
