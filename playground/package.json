@@ -57,6 +57,7 @@
     "@alipay/o3-raycast": "^2.0.0",
     "@alipay/o3-renderer-basic": "^2.0.0",
     "@alipay/o3-renderer-cull": "^2.0.0",
+    "@alipay/o3-renderer-oit": "^1.0.0",
     "@alipay/o3-request": "^2.0.0",
     "@alipay/o3-rfui": "^2.0.0",
     "@alipay/o3-rhi-webgl": "^2.0.1",
