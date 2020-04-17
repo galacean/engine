@@ -510,3 +510,15 @@ export enum GLTextureFormat {
   RGB = 6407,
   RGBA = 6408
 }
+
+/**
+ * OIT 模式
+ * */
+export enum OITMode {
+  /** 加权平均算法，性能较高 */
+  WEIGHTED_AVERAGE,
+  /** 深度剥离算法，性能较低，但精确度高 */
+  DEPTH_PEEL,
+  /** 双层深度剥离，性能更好，强依赖 MRT */
+  DUAL_DEPTH_PEEL
+}
