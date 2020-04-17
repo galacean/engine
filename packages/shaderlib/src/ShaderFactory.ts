@@ -90,9 +90,10 @@ class ShaderFactory {
     shader = shader.replace(/\btexture(2D|Cube)\s*\(/g, "texture(");
     shader = shader.replace(/\btexture(2D|Cube)LodEXT\s*\(/g, "textureLod(");
     if (isFrag) {
-      // const isMRT = shader.
-      const result = shader.match(/\bgl_FragData\[.+\]/g);
-      if (result?.length > 0) {
+      const isMRT = /\bgl_FragData\[.+?\]/g.test(shader);
+      if (isMRT) {
+        shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
+        const result = shader.match(/\bgl_FragData\[.+?\]/g);
         shader = this.replaceMRTShader(shader, result);
       } else {
         shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
@@ -105,12 +106,20 @@ class ShaderFactory {
 
   private static replaceMRTShader(shader: string, result: string[]): string {
     let declaration = "";
+    const mrtIndexSet = new Set();
+
     for (let i = 0; i < result.length; i++) {
-      declaration += `layout(location=${i}) out vec4 fragOutColor${i};\n`;
-      const res = result[i].match(/\bgl_FragData\[(.+)\]/);
-      shader = shader.replace(result[i], `fragOutColor${res[1]}`);
+      const res = result[i].match(/\bgl_FragData\[(.+?)\]/);
+      mrtIndexSet.add(res[1]);
     }
+
+    mrtIndexSet.forEach(index => {
+      declaration += `layout(location=${index}) out vec4 fragOutColor${index};\n`;
+    });
     declaration += `void main(`;
+
+    shader = shader.replace(/\bgl_FragData\[(.+?)\]/g, "fragOutColor$1");
+
     shader = shader.replace(/void\s+?main\s*\(/g, declaration);
     return shader;
   }

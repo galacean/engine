@@ -1,6 +1,5 @@
 import { GLRenderHardware } from "./GLRenderHardware";
 import { MultiRenderTarget } from "@alipay/o3-material";
-import { GLCapabilityType } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLRenderTarget } from "./GLRenderTarget";
 
@@ -14,6 +13,8 @@ export class GLMultiRenderTarget extends GLRenderTarget {
     this.activeRenderTarget();
     if (config.depthTexture) {
       this.glDepthTexture = this.initDepthTexture(config.depthTexture);
+    } else {
+      this.depthRenderBuffer = this.initDepthRenderBuffer();
     }
 
     config.textures.forEach((texture, index) => {
