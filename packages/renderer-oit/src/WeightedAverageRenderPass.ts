@@ -1,6 +1,6 @@
 import { RenderPass } from "@alipay/o3-renderer-basic";
 import { MultiRenderTarget, Texture2D } from "@alipay/o3-material";
-import { BlendFunc, TextureFilter, TextureWrapMode, RenderState } from "@alipay/o3-base";
+import { BlendFunc, TextureFilter, TextureWrapMode } from "@alipay/o3-base";
 
 /**
  * Weighted-Average renderPass
@@ -43,23 +43,13 @@ export class WeightedAverageRenderPass extends RenderPass {
 
     // 保存原来的 GLState
     transparentQueue.items
-      .filter(item => item.primitive)
-      .forEach(item => {
-        const technique = item.mtl.technique;
-        if (technique) {
-          this.stateMap.set(technique.cacheID, technique.states);
-          technique.states = technique.states || {};
-          technique.states = {
-            ...technique.states,
-            enable: [...(technique.states.enable || []), RenderState.POLYGON_OFFSET_FILL],
-            functions: {
-              ...technique.states.functions,
-              blendFuncSeparate: [BlendFunc.ONE, BlendFunc.ONE, BlendFunc.ONE, BlendFunc.ONE],
-              // blendFuncSeparate: [BlendFunc.ONE, BlendFunc.ONE, BlendFunc.ZERO, BlendFunc.ONE_MINUS_SRC_ALPHA],
-              polygonOffset: [-1, -4]
-            }
-          };
-        }
+      .filter(({ primitive }) => primitive)
+      .forEach(({ mtl }) => {
+        this.stateMap.set(mtl, {
+          blendFuncSeparate: mtl.blendFuncSeparate
+        });
+        mtl.blendFuncSeparate = [BlendFunc.ONE, BlendFunc.ONE, BlendFunc.ONE, BlendFunc.ONE];
+        // mtl.blendFuncSeparate=[BlendFunc.ONE, BlendFunc.ONE, BlendFunc.ZERO, BlendFunc.ONE_MINUS_SRC_ALPHA];
       });
   }
 
@@ -71,13 +61,10 @@ export class WeightedAverageRenderPass extends RenderPass {
   /** 还原 GLState */
   postRender(camera, opaqueQueue, transparentQueue) {
     transparentQueue.items
-      .filter(item => item.primitive)
-      .forEach(item => {
-        const technique = item.mtl.technique;
-        if (technique) {
-          const oriState = this.stateMap.get(technique.cacheID);
-          technique.states = oriState;
-        }
+      .filter(({ primitive }) => primitive)
+      .forEach(({ mtl }) => {
+        const { blendFuncSeparate } = this.stateMap.get(mtl);
+        mtl.blendFuncSeparate = blendFuncSeparate;
       });
   }
 }

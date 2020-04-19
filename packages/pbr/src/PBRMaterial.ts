@@ -30,6 +30,7 @@ class PBRMaterial extends Material {
   private _useDiffuseEnv: boolean;
   private _useSpecularEnv: boolean;
   private _clipPlaneCount: number;
+  private _useOIT: boolean;
 
   /**
    * PBR 材质
@@ -802,7 +803,9 @@ class PBRMaterial extends Material {
 
   set blendFuncSeparate(v) {
     this._stateObj.blendFuncSeparate = v;
-    this._technique = null;
+    if (this.technique?.states) {
+      this.technique.states.functions.blendFuncSeparate = v;
+    }
   }
 
   get depthMask() {
@@ -863,6 +866,7 @@ class PBRMaterial extends Material {
   prepareDrawing(camera, component, primitive) {
     const scene = camera.scene;
     const lightMgr = scene.findFeature(LightFeature);
+    const canOIT = camera.sceneRenderer.canOIT;
 
     /** 光源 uniform values */
     lightMgr.bindMaterialValues(this);
@@ -874,7 +878,7 @@ class PBRMaterial extends Material {
     }
 
     /** oit  depth texture */
-    if (camera.sceneRenderer.canOIT) {
+    if (canOIT) {
       this.setValue("u_depthSampler", camera.sceneRenderer.depthTexture);
     }
 
@@ -897,7 +901,8 @@ class PBRMaterial extends Material {
       this._directLightCount !== directLightCount ||
       this._pointLightCount !== pointLightCount ||
       this._spotLightCount !== spotLightCount ||
-      this._clipPlaneCount !== scene.clipPlanes?.length
+      this._clipPlaneCount !== scene.clipPlanes?.length ||
+      this._useOIT !== canOIT
     ) {
       this._ambientLightCount = ambientLightCount;
       this._envMapLightCount = envMapLightCount;
@@ -907,6 +912,7 @@ class PBRMaterial extends Material {
       this._pointLightCount = pointLightCount;
       this._spotLightCount = spotLightCount;
       this._clipPlaneCount = scene.clipPlanes?.length;
+      this._useOIT = canOIT;
       this._generateTechnique(camera, component, primitive);
     }
 
