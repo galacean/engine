@@ -355,7 +355,8 @@
   "nodes": [
     {
       "name": "base_base",
-      "mesh": 0
+      "mesh": 0,
+    	"translation": [ 0, -0.01, 0]
     },
     {
       "name": "head",
