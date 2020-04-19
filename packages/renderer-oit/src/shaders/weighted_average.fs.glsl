@@ -10,10 +10,10 @@ void main() {
     float count = max(1.0, texture2D(u_Sampler2, screenUv).r * 255.0 ); // * 255 用来兼容非浮点输出
     gl_FragColor = vec4(accum.rgb / max(accum.a, 1e-4), pow(max(0.0, 1.0 - accum.a / count), count));
 
-//    gl_FragColor = accum;
+
     // Depth Weights Improve Occlusion
 //    vec4 accum = texture2D(u_Sampler1, screenUv);
 //    float r = accum.a;
-//    accum.a = texture2D(u_Sampler2, screenUv).r * 1e3;
+//    accum.a = texture2D(u_Sampler2, screenUv).r;
 //    gl_FragColor = vec4(accum.rgb / clamp(accum.a, 1e-4, 5e4), r);
 }

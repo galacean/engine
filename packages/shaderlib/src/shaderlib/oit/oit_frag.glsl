@@ -11,6 +11,6 @@
 
     // Depth Weights Improve Occlusion
 //    float w = weight(gl_FragCoord.z, oitColor.a);
-//    gl_FragData[0] = vec4(oitColor.rgb * oitColor.a * w  , oitColor.a);
-//    gl_FragData[1].r =oitColor.a * w * 1e-3;
+//    gl_FragData[0] = vec4(oitColor.rgb * oitColor.a * w, oitColor.a);
+//    gl_FragData[1].r =oitColor.a * w;
 #endif

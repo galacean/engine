@@ -1,6 +1,5 @@
 import { GLCapabilityType, Logger, OITMode } from "@alipay/o3-base";
-import { BasicSceneRenderer, RenderPass } from "@alipay/o3-renderer-basic";
-import { RenderTarget } from "@alipay/o3-material";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { OpaqueRenderPass } from "./OpaqueRenderPass";
 import { WeightedAverageRenderPass } from "./WeightedAverageRenderPass";
 import { ScreenRenderPass } from "./ScreenRenderPass";
