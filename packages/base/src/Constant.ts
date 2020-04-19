@@ -429,6 +429,8 @@ export enum GLCapabilityType {
   vertexArrayObject = "OES_vertex_array_object",
   instancedArrays = "ANGLE_instanced_arrays",
   multipleSample = "multipleSampleOnlySupportedInWebGL2",
+  textureFloat = "OES_texture_float",
+  colorBufferFloat = "EXT_color_buffer_float",
 
   astc = "WEBGL_compressed_texture_astc",
   astc_webkit = "WEBKIT_WEBGL_compressed_texture_astc",

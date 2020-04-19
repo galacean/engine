@@ -18,6 +18,7 @@ export class RenderTarget extends AssetObject {
   public cubeTexture: TextureCubeMap;
   public texture: Texture2D;
   public depthTexture: Texture2D;
+  public colorBufferFloat: boolean;
 
   /** WebGL2 时，可以开启硬件层的 MSAA */
   private _samples: number;
@@ -52,6 +53,7 @@ export class RenderTarget extends AssetObject {
    * @param {Number} [config.clearColor=[0, 0, 0, 0]] 清空后的填充色
    * @param {Number} [config.isCube=false] 是否渲染到 cubeMap
    * @param {Number} [config.samples=1] MSAA 采样数,只有 WebGL2 时才会生效
+   * @param {Number} [config.colorBufferFloat=false]  color Buffer 输出是否要 float 浮点类型
    *
    */
   constructor(name: string, protected config: RenderTargetConfig = {}) {
@@ -77,6 +79,9 @@ export class RenderTarget extends AssetObject {
 
     /** WebGL2 时，可以开启硬件层的 MSAA */
     this._samples = config.samples || 1;
+
+    /** color Buffer 输出是否要 float 浮点类型 */
+    this.colorBufferFloat = !!config.colorBufferFloat;
 
     !config.isMulti && this.initTexture();
   }
