@@ -47,6 +47,7 @@ const cameraConfig = {
   position: [0, 10, 20],
   attributes: {
     alpha: false
+    // disableWebGL2: true
   }
 };
 

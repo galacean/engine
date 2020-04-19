@@ -163,10 +163,15 @@ export class RenderTechnique extends AssetObject {
 
       this.fragmentShader = this._fsHeader + this._fsCode;
 
-      /** 若 autoConvert = true,  WebGL 2 时着色器为旧版本，则升级到 300 版本 */
+      /**
+       * 若 autoConvert = true,  WebGL 2 时着色器为旧版本，则升级到 300 版本
+       * 若 WebGL1,兼容 gl_FragColor 和 gl_FragData 同时存在的报错
+       * */
       if (this.autoConvert && isWebGL2 && this.version !== "300 es") {
         this.vertexShader = ShaderFactory.convertTo300(this.vertexShader);
         this.fragmentShader = ShaderFactory.convertTo300(this.fragmentShader, true);
+      } else if (!isWebGL2 && this.version !== "300es") {
+        this.fragmentShader = ShaderFactory.compatible(this.fragmentShader);
       }
 
       this._needCompile = false;

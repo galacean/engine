@@ -13,7 +13,8 @@ export class WeightedAverageRenderPass extends RenderPass {
 
     const renderTarget = new MultiRenderTarget("Weighted-Average MRT", {
       width,
-      height
+      height,
+      colorBufferFloat: true
     });
     const config = {
       magFilter: TextureFilter.LINEAR,
