@@ -51,12 +51,12 @@ export class WeightedAverageRenderPass extends RenderPass {
           technique.states = technique.states || {};
           technique.states = {
             ...technique.states,
-            enable: [...technique.states.enable, RenderState.POLYGON_OFFSET_FILL],
+            enable: [...(technique.states.enable || []), RenderState.POLYGON_OFFSET_FILL],
             functions: {
               ...technique.states.functions,
               blendFuncSeparate: [BlendFunc.ONE, BlendFunc.ONE, BlendFunc.ONE, BlendFunc.ONE],
               // blendFuncSeparate: [BlendFunc.ONE, BlendFunc.ONE, BlendFunc.ZERO, BlendFunc.ONE_MINUS_SRC_ALPHA],
-              polygonOffset: [2, 3]
+              polygonOffset: [-1, -4]
             }
           };
         }
