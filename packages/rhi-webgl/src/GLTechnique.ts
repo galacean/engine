@@ -61,13 +61,11 @@ export class GLTechnique extends GLAsset {
     const uniforms = tech.uniforms;
     for (const name in uniforms) {
       const loc = this._program.getUniformLocation(glProgram, name);
-      if (!(loc !== 0 && !loc)) {
+      if (loc !== null) {
         this._uniforms[name] = {
           name,
           location: loc
         };
-      } else {
-        delete uniforms[name];
       }
     } // end of for
   }
@@ -122,7 +120,9 @@ export class GLTechnique extends GLAsset {
     const uniforms = this._uniforms;
     const assetUniforms = this._tech.uniforms;
     for (const name in assetUniforms) {
-      this._uploadUniformValue(assetUniforms[name], uniforms[name].location, mtl.getValue(name));
+      if (uniforms.hasOwnProperty(name)) {
+        this._uploadUniformValue(assetUniforms[name], uniforms[name].location, mtl.getValue(name));
+      }
     }
 
     //-- change render states
