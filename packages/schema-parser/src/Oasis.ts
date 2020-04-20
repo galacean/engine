@@ -40,6 +40,7 @@ export class Oasis extends o3.EventDispatcher {
   @pluginHook({ after: "schemaParsed" })
   private init(): Promise<any> {
     this.pluginManager.boot(this);
+    this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr);
     return this.loadResources().then(() => {
       this.bindResouces();
       this.parseNodes();
