@@ -10,7 +10,7 @@ import { loadTGA } from "./loadTGA";
 export function load(type, props: any = {}, callback) {
   switch (type) {
     case "binary":
-      loadBinary(props.url, callback);
+      loadBinary(props.url, callback, props.timeout);
       break;
     case "text":
       loadText(props.url, callback);
@@ -46,6 +46,7 @@ export function loadAll(loadQueue = {}, callback) {
   for (const key in loadQueue) {
     const loadItem = loadQueue[key] || {};
     const promise = new Promise((resolve, reject) => {
+      console.log("loadAll", loadItem.type, loadItem.props);
       load(loadItem.type, loadItem.props, (err, res) => {
         if (!err) {
           resolve(res);

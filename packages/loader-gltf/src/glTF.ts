@@ -870,8 +870,8 @@ class GLTFHandler {
           const loadImageQue = {};
 
           const dir = path.getDirectory(props.url);
-          attachLoadingQueue(dir, loadQueue, gltfJSON.buffers, "binary", filesMap);
-          attachLoadingQueue(dir, loadQueue, gltfJSON.images, "image", filesMap, reSample);
+          attachLoadingQueue(dir, loadQueue, gltfJSON.buffers, "binary", filesMap, { timeout: props.timeout });
+          attachLoadingQueue(dir, loadQueue, gltfJSON.images, "image", filesMap, { reSample });
           attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap);
 
           request.loadAll(loadQueue, function(err, resMap) {

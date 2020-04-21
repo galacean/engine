@@ -12,6 +12,7 @@ export class Oasis extends o3.EventDispatcher {
   public readonly resourceManager: ResourceManager = new ResourceManager(this);
   public _canvas: HTMLCanvasElement;
   private schema: Schema;
+  public timeout: number; // 全局资源超时配置
   // hook 重点
   private oasis = this;
 
@@ -19,6 +20,7 @@ export class Oasis extends o3.EventDispatcher {
     super();
     this.resetFeature();
     this.schema = _options.config;
+    this.timeout = _options.timeout;
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
   }

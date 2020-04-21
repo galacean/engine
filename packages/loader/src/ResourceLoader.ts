@@ -91,20 +91,25 @@ export class ResourceLoader extends EventDispatcher {
    * 批量加载资源
    * @param resources 资源列表
    * @param callback 加载完成回调
+   * @param timeout  超时时间
    */
-  batchLoad(resources: Array<Resource>, callback: ResArrayCb = noop) {
+  batchLoad(resources: Array<Resource>, callback: ResArrayCb = noop, timeout?: number) {
     // create load promise
     const promises = [];
     for (let i = 0; i < resources.length; i++) {
       const resource = resources[i];
       const promise = new Promise((resolve, reject) => {
-        this.load(resource, (err, res) => {
-          if (!err) {
-            resolve(res);
-          } else {
-            reject(err);
-          }
-        });
+        this.load(
+          resource,
+          (err, res) => {
+            if (!err) {
+              resolve(res);
+            } else {
+              reject(err);
+            }
+          },
+          timeout
+        );
       });
       promises.push(promise);
     }
@@ -123,8 +128,9 @@ export class ResourceLoader extends EventDispatcher {
    * 加载单个资源
    * @param resource 资源
    * @param callback 加载完成回调
+   * @param timeout  超时时间
    */
-  load(resource: Resource, callback: ResCb = noop) {
+  load(resource: Resource, callback: ResCb = noop, timeout?: number) {
     const self = this;
 
     if (resource.loaded) {
@@ -152,7 +158,7 @@ export class ResourceLoader extends EventDispatcher {
         const url = resource.fileUrl;
         const config = resource.config;
 
-        handler.load(this.request, { url, ...config }, function(err, data) {
+        handler.load(this.request, { url, timeout, ...config }, function(err, data) {
           if (!err) {
             resource.data = data;
             self._onLoadSuccess(resource, handler, callback);
