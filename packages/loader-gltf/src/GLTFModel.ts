@@ -1,4 +1,5 @@
-import { NodeAbility, Node, AAnimation, AnimationClip, WrapMode } from "@alipay/o3";
+import { AnimationClip, AAnimation, WrapMode } from "@alipay/o3-animation";
+import { NodeAbility, Node } from "@alipay/o3-core";
 
 interface GLTFAsset {
   nodes: [Node];

@@ -5,4 +5,6 @@ import { ResourceLoader } from "@alipay/o3-loader";
 ResourceLoader.registerHandler("gltf", new GLTFHandler());
 ResourceLoader.registerHandler("glb", new GLBHandler());
 
+export { GLTFModel } from "./GLTFModel";
+
 export { HandledExtensions, RegistExtension } from "./glTF";
