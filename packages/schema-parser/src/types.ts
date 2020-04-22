@@ -139,7 +139,9 @@ export interface Options {
   // gl context 参数
   rhiAttr?: WebGLContextAttributes & { enableCollect?: boolean };
   // 全局资源超时时间
-  timeout: number;
+  timeout?: number;
+  // engine run 的 fps
+  fps?: number;
 }
 
 export interface LoadAttachedResourceResult {

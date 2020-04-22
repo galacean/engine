@@ -23,6 +23,7 @@ export class Oasis extends o3.EventDispatcher {
     this.timeout = _options.timeout;
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
+    _options.fps && this.engine.setFPS(_options.fps);
   }
 
   public get canvas(): HTMLCanvasElement {
