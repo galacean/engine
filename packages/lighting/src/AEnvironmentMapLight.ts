@@ -19,13 +19,13 @@ class AEnvironmentMapLight extends ALight {
   static getUniformDefine(uniformName) {
     const uniforms = {};
 
-    uniforms[uniformName + ".diffuseSampler"] = {
-      name: uniformName + ".diffuseSampler",
+    uniforms["u_env_diffuseSampler"] = {
+      name: "u_env_diffuseSampler",
       type: DataType.SAMPLER_CUBE
     };
 
-    uniforms[uniformName + ".specularSampler"] = {
-      name: uniformName + ".specularSampler",
+    uniforms["u_env_specularSampler"] = {
+      name: "u_env_specularSampler",
       type: DataType.SAMPLER_CUBE
     };
 
@@ -137,13 +137,13 @@ class AEnvironmentMapLight extends ALight {
     mtl.setValue(uniformName + ".specularIntensity", this.specularIntensity);
 
     if (this.useDiffuseMap) {
-      mtl.setValue(uniformName + ".diffuseSampler", this.diffuseMap);
+      mtl.setValue("u_env_diffuseSampler", this.diffuseMap);
     } else {
       mtl.setValue(uniformName + ".diffuse", this.diffuse);
     }
 
     if (this.useSpecularMap) {
-      mtl.setValue(uniformName + ".specularSampler", this.specularMap);
+      mtl.setValue("u_env_specularSampler", this.specularMap);
       mtl.setValue(uniformName + ".mipMapLevel", this.specularMap.mipMapLevel);
     } else {
       mtl.setValue(uniformName + ".specular", this.specular);

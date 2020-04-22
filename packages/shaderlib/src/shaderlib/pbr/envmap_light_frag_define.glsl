@@ -1,15 +1,6 @@
 #ifdef O3_HAS_ENVMAP_LIGHT
 
 struct EnvMapLight {
-
-    #ifdef O3_USE_DIFFUSE_ENV
-    samplerCube diffuseSampler;
-    #endif
-
-    #ifdef O3_USE_SPECULAR_ENV
-    samplerCube specularSampler;
-    #endif
-
     vec3 diffuse;
     vec3 specular;
     float mipMapLevel;
@@ -17,6 +8,15 @@ struct EnvMapLight {
     float specularIntensity;
 };
 
+
 uniform EnvMapLight u_envMapLight;
+
+#ifdef O3_USE_DIFFUSE_ENV
+    uniform samplerCube u_env_diffuseSampler;
+#endif
+
+#ifdef O3_USE_SPECULAR_ENV
+    uniform samplerCube u_env_specularSampler;
+#endif
 
 #endif
