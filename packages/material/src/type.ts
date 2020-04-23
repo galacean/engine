@@ -32,6 +32,8 @@ export interface RenderTargetConfig {
   /** WebGL2 时，可以开启硬件层的 MSAA */
   samples?: number;
   isMulti?: boolean;
+  /** color Buffer 输出是否要 float 浮点类型 */
+  colorBufferFloat?: boolean;
 }
 
 export interface MultiRenderTargetConfig extends RenderTargetConfig {

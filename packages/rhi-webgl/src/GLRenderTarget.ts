@@ -221,11 +221,24 @@ export class GLRenderTarget extends GLAsset {
    */
   protected initColorTexture(texture: Texture2D, index: number = 0) {
     const { gl } = this.rhi;
-    const { width, height } = this.renderTarget;
+    const canIUse = this.rhi.canIUse.bind(this.rhi);
+    const { width, height, colorBufferFloat } = this.renderTarget;
+    const canTextureFloat = canIUse(GLCapabilityType.textureFloat);
+    const canColorBufferFloat = canIUse(GLCapabilityType.colorBufferFloat);
+
+    texture.filterMin = gl.NEAREST;
+    texture.filterMag = gl.NEAREST;
+
     const glTexture: GLTexture2D = this.rhi.assetsCache.requireObject(texture, GLTexture2D);
     index = gl.COLOR_ATTACHMENT0 + index;
     glTexture.activeBinding(0);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    if (colorBufferFloat && canTextureFloat && canColorBufferFloat) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null);
+    } else {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    }
+
     gl.framebufferTexture2D(gl.FRAMEBUFFER, index, gl.TEXTURE_2D, glTexture.glTexture, 0);
     return glTexture;
   }
