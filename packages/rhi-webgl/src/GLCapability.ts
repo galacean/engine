@@ -87,6 +87,8 @@ export class GLCapability {
       vertexArrayObject,
       instancedArrays,
       multipleSample,
+      drawBuffers,
+
       astc,
       astc_webkit,
       etc,
@@ -97,7 +99,9 @@ export class GLCapability {
       pvrtc_webkit,
       s3tc,
       s3tc_webkit,
-      drawBuffers
+
+      textureFloat,
+      colorBufferFloat
     } = GLCapabilityType;
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
     cap.set(shaderTextureLod, isWebGL2 || !!requireExtension(shaderTextureLod));
@@ -107,6 +111,8 @@ export class GLCapability {
     cap.set(instancedArrays, isWebGL2 || !!requireExtension(instancedArrays));
     cap.set(multipleSample, isWebGL2);
     cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
+    cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
+    cap.set(colorBufferFloat, isWebGL2 && !!requireExtension(colorBufferFloat));
 
     cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
