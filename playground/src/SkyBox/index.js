@@ -7,6 +7,9 @@ import { AOrbitControls } from "@alipay/o3-orbit-controls";
 import { TextureCubeMap } from "@alipay/o3-material";
 import { ASkyBox } from "@alipay/o3-skybox";
 
+import * as dat from "dat.gui";
+const gui = new dat.GUI();
+
 Logger.enable();
 
 //-- create engine object
@@ -41,11 +44,26 @@ let cubeMapRes2 = new Resource("env", {
 
 resourceLoader.batchLoad([cubeMapRes, cubeMapRes2], (err, res) => {
   let cubeMaps = res.map(r => r.assets[0]);
-  let skybox = rootNode.createAbility(ASkyBox);
+  const skyboxNode = rootNode.createChild("skyboxNode");
+  let skybox = skyboxNode.createAbility(ASkyBox);
   let pointer = 1;
-  setInterval(() => {
-    skybox.skyBoxMap = cubeMaps[pointer++ % 2];
-  }, 2000);
+  // setInterval(() => {
+  skybox.skyBoxMap = cubeMaps[pointer++ % 2];
+  // }, 1000);
+  const debugInfo = {
+    x: 0,
+    y: 0,
+    z: 0
+  };
+  gui.add(debugInfo, "x", -180, 180, 1).onChange(v => {
+    skyboxNode.setRotationAngles(v, debugInfo.y, debugInfo.z);
+  });
+  gui.add(debugInfo, "y", -180, 180, 1).onChange(v => {
+    skyboxNode.setRotationAngles(debugInfo.x, v, debugInfo.z);
+  });
+  gui.add(debugInfo, "z", -180, 180, 1).onChange(v => {
+    skyboxNode.setRotationAngles(debugInfo.x, debugInfo.y, v);
+  });
 });
 
 let cameraNode = rootNode.createChild("camera_node");
