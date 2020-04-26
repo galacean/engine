@@ -5,6 +5,8 @@ export interface WebGLExtension {
   UNSIGNED_INT_24_8: GLenum;
   MAX_SAMPLES: GLenum;
   RGBA8: GLenum;
+  RGBA16F: GLenum;
+  RGBA32F: GLenum;
   DEPTH_COMPONENT32F: GLenum;
   READ_FRAMEBUFFER: GLenum;
   DRAW_FRAMEBUFFER: GLenum;

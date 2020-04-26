@@ -58,14 +58,14 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
             #ifdef HAS_REFLECTIONMAP
                  vec4 envMapColor = textureCubeLodEXT( u_reflectionSampler, reflectVec, specularMIPLevel );
             #else
-                vec4 envMapColor = textureCubeLodEXT( u_envMapLight.specularSampler, reflectVec, specularMIPLevel );
+                vec4 envMapColor = textureCubeLodEXT( u_env_specularSampler, reflectVec, specularMIPLevel );
             #endif
 
         #else
             #ifdef HAS_REFLECTIONMAP
                  vec4 envMapColor = textureCube( u_reflectionSampler, reflectVec, specularMIPLevel );
             #else
-                 vec4 envMapColor = textureCube( u_envMapLight.specularSampler, reflectVec, specularMIPLevel );
+                 vec4 envMapColor = textureCube( u_env_specularSampler, reflectVec, specularMIPLevel );
             #endif
         #endif
 

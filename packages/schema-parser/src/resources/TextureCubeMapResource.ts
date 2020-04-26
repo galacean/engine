@@ -2,6 +2,7 @@ import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { ResourceLoader, Logger } from "@alipay/o3";
 import { TextureResource } from "./TextureResource";
+import { Oasis } from "../Oasis";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
 const imageOrderMap = {
@@ -31,7 +32,8 @@ export class TextureCubeMapResource extends SchemaResource {
 
   loadWithAttachedResources(
     resourceLoader: ResourceLoader,
-    assetConfig: AssetConfig
+    assetConfig: AssetConfig,
+    oasis: Oasis
   ): Promise<LoadAttachedResourceResult> {
     return new Promise(resolve => {
       const result: LoadAttachedResourceResult = {
@@ -57,7 +59,7 @@ export class TextureCubeMapResource extends SchemaResource {
         }
       }
       const promises = textureResources.map((textureResource, index) => {
-        return textureResource.load(resourceLoader, configs[index]);
+        return textureResource.load(resourceLoader, configs[index], oasis);
       });
 
       Promise.all(promises).then(textureResources => {
