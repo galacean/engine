@@ -8,6 +8,8 @@ export function loadImage(url, callback, crossOrigin = true, reSample = true, ti
   if (timeout) {
     timer = setTimeout(() => {
       callback(new Error("Image load timeout " + url), null);
+      img.onerror = null;
+      img.onload = null;
     }, timeout);
   }
 
