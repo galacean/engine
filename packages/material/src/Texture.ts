@@ -21,6 +21,8 @@ export class Texture extends AssetObject {
 
   public config: TextureConfig;
 
+  public isFloat: boolean;
+
   /**
    * 纹理对象基类
    * @param {String} name 名称
@@ -31,6 +33,7 @@ export class Texture extends AssetObject {
    * @param {Number} [config.wrapT=TextureWrapMode.REPEAT] T方向纹理包裹选项
    * @param {boolean} [config.flipY=false] 是否翻转图片上下
    * @param {boolean} [config.premultiplyAlpha=false] 颜色通道是否预乘 alpha
+   * @param {boolean} [config.isFloat=false] 浮点纹理
    */
   constructor(name: string, config: TextureConfig = {}) {
     super(name);
@@ -43,10 +46,14 @@ export class Texture extends AssetObject {
       wrapT: TextureWrapMode.REPEAT,
       flipY: false,
       premultiplyAlpha: false,
+      isFloat: false,
       ...config
     };
+
     this.flipY = config.flipY;
     this.premultiplyAlpha = config.premultiplyAlpha;
+    this.isFloat = config.isFloat;
+
     this.setFilter(config.magFilter, config.minFilter);
     this.setWrapMode(config.wrapS, config.wrapT);
   }
