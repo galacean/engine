@@ -20,7 +20,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
   private _time: number;
   private _isInit: boolean;
   private _isStart: boolean;
-  public DPR: number;
   public maxCount: number;
   public options: {};
   public getOptions: any;
@@ -47,7 +46,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     super(node);
     this._time = 0; // 渲染时间，单位秒
     this._isInit = false; // 是否完成初始化
-    this.DPR = window.devicePixelRatio; // 精度系数
     this._isStart = false; // 是否开始粒子动画
   }
 
@@ -462,8 +460,6 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     const rotateRate = options.rotateRate !== undefined ? options.rotateRate : 0;
     const rotateRateRandomness = options.rotateRateRandomness !== undefined ? options.rotateRateRandomness : 0;
     const scaleFactor = options.scaleFactor !== undefined ? options.scaleFactor : 1;
-
-    if (this.DPR !== undefined) size *= this.DPR;
 
     let x = position[0];
     let y = position[1];
