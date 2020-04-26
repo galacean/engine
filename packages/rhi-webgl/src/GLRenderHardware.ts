@@ -140,6 +140,11 @@ export class GLRenderHardware {
     return this.capability.canIUseCompressedTextureInternalFormat(type);
   }
 
+  /** 是否能使用更多骨骼关节 */
+  public get canIUseMoreJoints() {
+    return this.capability.canIUseMoreJoints;
+  }
+
   /**
    * 设置视口区域
    * @param {number} x 用来设定视口的左下角水平坐标
