@@ -51,7 +51,7 @@ resourceLoader.load(gltfRes, (err, gltf) => {
   });
 
   // animator.playAnimationClip(animations[0].name);
-  // animator.playAnimationClip("Fast Run");
+  animator.playAnimationClip("Fast Run");
 });
 
 engine.run();
