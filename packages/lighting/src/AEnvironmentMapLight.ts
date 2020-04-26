@@ -1,5 +1,8 @@
 import { DataType } from "@alipay/o3-base";
 import { ALight } from "./ALight";
+import { mat3 } from "@alipay/o3-math";
+
+const cacheMat3 = mat3.create();
 
 /**
  * 环境光源
@@ -42,6 +45,11 @@ class AEnvironmentMapLight extends ALight {
     uniforms[uniformName + ".mipMapLevel"] = {
       name: uniformName + ".mipMapLevel",
       type: DataType.FLOAT
+    };
+
+    uniforms[uniformName + ".transformMatrix"] = {
+      name: uniformName + ".transformMatrix",
+      type: DataType.FLOAT_MAT3
     };
 
     uniforms[uniformName + ".diffuseIntensity"] = {
@@ -148,6 +156,10 @@ class AEnvironmentMapLight extends ALight {
     } else {
       mtl.setValue(uniformName + ".specular", this.specular);
     }
+
+    // 支持旋转
+    const transformMatrix = this.node.getModelMatrix();
+    mtl.setValue(uniformName + ".transformMatrix", mat3.fromMat4(cacheMat3, transformMatrix));
   }
 }
 
