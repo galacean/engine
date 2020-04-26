@@ -1,5 +1,10 @@
-export function loadText(url, callback) {
+export function loadText(url, callback, timeout?: number) {
   const request = new XMLHttpRequest();
+
+  if (timeout) {
+    request.timeout = timeout;
+  }
+
   request.open("GET", url, true);
   request.onreadystatechange = function(e) {
     if (request.readyState === 4) {

@@ -4,32 +4,39 @@ import { ResourceLoader, Logger } from "@alipay/o3";
 import * as o3 from "@alipay/o3";
 import { PBRMaterialResource } from "./PBRMaterialResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
+import { Oasis } from "../Oasis";
 
 export class GLTFResource extends SchemaResource {
-  load(resourceLoader: ResourceLoader, assetConfig: AssetConfig): Promise<GLTFResource> {
+  load(resourceLoader: ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<GLTFResource> {
     return new Promise((resolve, reject) => {
       const resource = new o3.Resource(assetConfig.name, { type: assetConfig.type as any, url: assetConfig.url });
-      resourceLoader.load(resource, (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          if (assetConfig.props) {
-            (res.asset as any).newMaterial = (assetConfig.props as any).newMaterial;
+
+      resourceLoader.load(
+        resource,
+        (err, res) => {
+          if (err) {
+            reject(err);
+          } else {
+            if (assetConfig.props) {
+              (res.asset as any).newMaterial = (assetConfig.props as any).newMaterial;
+            }
+            this._resource = res.asset;
+            this.setMeta(assetConfig);
+            resolve(this);
           }
-          this._resource = res.asset;
-          this.setMeta(assetConfig);
-          resolve(this);
-        }
-      });
+        },
+        oasis.options.timeout
+      );
     });
   }
 
   loadWithAttachedResources(
     resourceLoader: ResourceLoader,
-    assetConfig: AssetConfig
+    assetConfig: AssetConfig,
+    oasis: Oasis
   ): Promise<LoadAttachedResourceResult> {
     return new Promise(resolve => {
-      this.load(resourceLoader, assetConfig).then(() => {
+      this.load(resourceLoader, assetConfig, oasis).then(() => {
         const gltf = this.resource;
         const { materials } = gltf;
         const loadPromises = [];

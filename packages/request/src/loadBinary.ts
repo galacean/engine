@@ -1,5 +1,10 @@
-export function loadBinary(url, callback) {
+export function loadBinary(url, callback, timeout?: number) {
   const request = new XMLHttpRequest();
+
+  if (timeout) {
+    request.timeout = timeout;
+  }
+
   request.open("GET", url, true);
   request.responseType = "arraybuffer";
   request.onreadystatechange = function(e) {

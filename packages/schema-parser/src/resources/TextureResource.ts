@@ -42,16 +42,20 @@ export class TextureResource extends SchemaResource {
         url = assetConfig.url;
         resource = new o3.Resource(assetConfig.name, { type: assetConfig.type as any, url: assetConfig.url });
       }
-      resourceLoader.load(resource, (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          this._resource = res.asset;
-          this.setMeta();
-          this._meta.url = url;
-          resolve(this);
-        }
-      });
+      resourceLoader.load(
+        resource,
+        (err, res) => {
+          if (err) {
+            reject(err);
+          } else {
+            this._resource = res.asset;
+            this.setMeta();
+            this._meta.url = url;
+            resolve(this);
+          }
+        },
+        oasis.options.timeout
+      );
     });
   }
 

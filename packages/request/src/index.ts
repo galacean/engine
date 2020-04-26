@@ -10,19 +10,19 @@ import { loadTGA } from "./loadTGA";
 export function load(type, props: any = {}, callback) {
   switch (type) {
     case "binary":
-      loadBinary(props.url, callback);
+      loadBinary(props.url, callback, props.timeout);
       break;
     case "text":
       loadText(props.url, callback);
       break;
     case "json":
-      loadJSON(props.url, callback);
+      loadJSON(props.url, callback, props.timeout);
       break;
     case "image": {
       if (/\.tga/.test(props.url)) {
-        loadTGA(props.url, callback, props.crossOrigin, props.reSample);
+        loadTGA(props.url, callback, props.crossOrigin, props.reSample, props.timeout);
       } else {
-        loadImage(props.url, callback, props.crossOrigin, props.reSample);
+        loadImage(props.url, callback, props.crossOrigin, props.reSample, props.timeout);
       }
       break;
     }
