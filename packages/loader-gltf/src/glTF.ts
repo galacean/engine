@@ -413,6 +413,7 @@ export function parseMaterial(gltfMaterial, resources) {
         material.renderType = MaterialType.TRANSPARENT;
       }
     } else if (typeof techniqueName === "string" && RegistedCustomMaterials[techniqueName]) {
+      Logger.warn("Deprecated: Please use a model that meets the glTF 2.0 specification");
       const MaterialType = RegistedCustomMaterials[techniqueName];
       material = new MaterialType();
     } else {
@@ -438,7 +439,12 @@ export function parseMaterial(gltfMaterial, resources) {
   }
 
   if (gltfMaterial.hasOwnProperty("values")) {
+    Logger.warn("Deprecated: Please use a model that meets the glTF 2.0 specification");
     for (const paramName in gltfMaterial.values) {
+      if (!material.technique) {
+        Logger.warn("Cant not find technique");
+        continue;
+      }
       const uniform = findByKeyValue(material.technique.uniforms, "paramName", paramName);
       if (!uniform) {
         Logger.warn("Cant not find uniform: " + paramName);
@@ -856,6 +862,7 @@ class GLTFHandler {
       shaders: []
     };
     const filesMap = props.filesMap || {};
+    const reSample = !!props.reSample;
     // async load images
     // load gltf & all related resources
     request.load(
@@ -869,8 +876,8 @@ class GLTFHandler {
           const loadImageQue = {};
 
           const dir = path.getDirectory(props.url);
-          attachLoadingQueue(dir, loadQueue, gltfJSON.buffers, "binary", filesMap);
-          attachLoadingQueue(dir, loadQueue, gltfJSON.images, "image", filesMap);
+          attachLoadingQueue(dir, loadQueue, gltfJSON.buffers, "binary", filesMap, { timeout: props.timeout });
+          attachLoadingQueue(dir, loadQueue, gltfJSON.images, "image", filesMap, { reSample, timeout: props.timeout });
           attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap);
 
           request.loadAll(loadQueue, function(err, resMap) {

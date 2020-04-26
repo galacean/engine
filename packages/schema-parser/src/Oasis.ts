@@ -12,6 +12,7 @@ export class Oasis extends o3.EventDispatcher {
   public readonly resourceManager: ResourceManager = new ResourceManager(this);
   public _canvas: HTMLCanvasElement;
   private schema: Schema;
+  public timeout: number; // 全局资源超时配置
   // hook 重点
   private oasis = this;
 
@@ -19,8 +20,10 @@ export class Oasis extends o3.EventDispatcher {
     super();
     this.resetFeature();
     this.schema = _options.config;
+    this.timeout = _options.timeout;
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
+    _options.fps && this.engine.setFPS(_options.fps);
   }
 
   public get canvas(): HTMLCanvasElement {
@@ -40,6 +43,7 @@ export class Oasis extends o3.EventDispatcher {
   @pluginHook({ after: "schemaParsed" })
   private init(): Promise<any> {
     this.pluginManager.boot(this);
+    this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr || {});
     return this.loadResources().then(() => {
       this.bindResouces();
       this.parseNodes();

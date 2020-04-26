@@ -2,7 +2,7 @@ import { loadBinary } from "./loadBinary";
 import { loadImage } from "./loadImage";
 import { TGA } from "./TGA";
 
-export function loadTGA(url, callback, crossOrigin = true, reSample = true) {
+export function loadTGA(url, callback, crossOrigin = true, reSample = true, timeout?: number) {
   loadBinary(url, function(err, data) {
     if (err) {
       callback("Error loading TGA file from " + url, null);
@@ -18,6 +18,6 @@ export function loadTGA(url, callback, crossOrigin = true, reSample = true) {
     }
 
     const imgUrl = tga.getDataURL();
-    loadImage(imgUrl, callback, crossOrigin, reSample);
+    loadImage(imgUrl, callback, crossOrigin, reSample, timeout);
   });
 }
