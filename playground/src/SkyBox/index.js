@@ -46,24 +46,36 @@ resourceLoader.batchLoad([cubeMapRes, cubeMapRes2], (err, res) => {
   let cubeMaps = res.map(r => r.assets[0]);
   const skyboxNode = rootNode.createChild("skyboxNode");
   let skybox = skyboxNode.createAbility(ASkyBox);
-  let pointer = 1;
-  // setInterval(() => {
-  skybox.skyBoxMap = cubeMaps[pointer++ % 2];
-  // }, 1000);
+  skybox.skyBoxMap = cubeMaps[0];
   const debugInfo = {
     x: 0,
     y: 0,
-    z: 0
+    z: 0,
+    reset: function() {
+      debugInfo.x = debugInfo.y = debugInfo.z = 0;
+
+      skyboxNode.setRotationAngles(0, 0, 0);
+    }
   };
-  gui.add(debugInfo, "x", -180, 180, 1).onChange(v => {
-    skyboxNode.setRotationAngles(v, debugInfo.y, debugInfo.z);
-  });
-  gui.add(debugInfo, "y", -180, 180, 1).onChange(v => {
-    skyboxNode.setRotationAngles(debugInfo.x, v, debugInfo.z);
-  });
-  gui.add(debugInfo, "z", -180, 180, 1).onChange(v => {
-    skyboxNode.setRotationAngles(debugInfo.x, debugInfo.y, v);
-  });
+  gui
+    .add(debugInfo, "x", -180, 180, 1)
+    .onChange(v => {
+      skyboxNode.setRotationAngles(v, debugInfo.y, debugInfo.z);
+    })
+    .listen();
+  gui
+    .add(debugInfo, "y", -180, 180, 1)
+    .onChange(v => {
+      skyboxNode.setRotationAngles(debugInfo.x, v, debugInfo.z);
+    })
+    .listen();
+  gui
+    .add(debugInfo, "z", -180, 180, 1)
+    .onChange(v => {
+      skyboxNode.setRotationAngles(debugInfo.x, debugInfo.y, v);
+    })
+    .listen();
+  gui.add(debugInfo, "reset");
 });
 
 let cameraNode = rootNode.createChild("camera_node");
