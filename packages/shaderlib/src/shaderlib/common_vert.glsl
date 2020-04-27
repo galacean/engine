@@ -34,15 +34,17 @@ attribute vec4 a_color;
 
         mat4 getJointMatrix(sampler2D smp, float index)
         {
-            float offset = index  * 4.0;
-            float dx = 1.0 / (u_jointCount * 4.0 ) ;
+            float base = index / u_jointCount;
+            float hf = 0.5 / u_jointCount;
+            float v = base + hf;
 
-            vec4 m0 = texture2D(smp, vec2(dx * (offset + 0.5), 0.0));
-            vec4 m1 = texture2D(smp, vec2(dx * (offset + 1.5), 0.0));
-            vec4 m2 = texture2D(smp, vec2(dx * (offset + 2.5), 0.0));
-            vec4 m3 = texture2D(smp, vec2(dx * (offset + 3.5), 0.0));
+            vec4 m0 = texture2D(smp, vec2(0.125, v ));
+            vec4 m1 = texture2D(smp, vec2(0.375, v ));
+            vec4 m2 = texture2D(smp, vec2(0.625, v ));
+            vec4 m3 = texture2D(smp, vec2(0.875, v ));
 
             return mat4(m0, m1, m2, m3);
+
         }
 
     #elif defined( O3_JOINTS_NUM )

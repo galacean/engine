@@ -148,13 +148,9 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
       const worldToLocal = this.node.getInvModelMatrix();
 
       const mat = this._mat;
-      let isDirty = false;
       for (let i = joints.length - 1; i >= 0; i--) {
         mat4.identity(mat);
         if (joints[i]) {
-          if (joints[i].isDirty) {
-            isDirty = true;
-          }
           mat4.multiply(mat, joints[i].getModelMatrix(), ibms[i]);
         } else {
           mat4.copy(mat, ibms[i]);
@@ -162,18 +158,21 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
         mat4.multiply(mat, worldToLocal, mat);
         matrixPalette.set(mat, i * 16);
       } // end of for
-      isDirty && this.createJointTexture();
+      this.createJointTexture();
     }
   }
 
-  /** 生成骨骼纹理，将 matrixPalette 存储到 u_jointSampler 中 */
+  /**
+   * 生成骨骼纹理，将 matrixPalette 存储到 u_jointSampler 中
+   * 格式：(4 * RGBA) * jointCont
+   * */
   createJointTexture() {
     if (this.disableJointTexture) return;
     this.jointTexture = new Texture2D("joint_texture", this.matrixPalette, {
       isRaw: true,
       isFloat: true,
-      width: this.jointNodes.length * 4,
-      height: 1
+      width: 4,
+      height: this.jointNodes.length
     });
   }
 }
