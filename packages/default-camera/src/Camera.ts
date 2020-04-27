@@ -1,11 +1,15 @@
-import * as o3 from "@alipay/o3";
+import { NodeAbility } from "@alipay/o3-core";
+import { vec3, mat4, MathUtil, vec4 } from "@alipay/o3-math";
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
+import { Node } from "@alipay/o3-core";
 
-const vec3Cache = o3.vec3.create();
+const vec3Cache = vec3.create();
 
 /**
  * 3D 摄像机组件，添加到一个 Node 上，以 Node 的空间作为 Camera Space
  */
-export class Camera extends o3.NodeAbility {
+export class Camera extends NodeAbility {
   get renderHardware() {
     return this._rhi;
   }
@@ -69,9 +73,9 @@ export class Camera extends o3.NodeAbility {
 
   public leftHand;
 
-  public _rhi: o3.GLRenderHardware;
+  public _rhi: GLRenderHardware;
 
-  private readonly _sceneRenderer: o3.SceneRenderer;
+  private readonly _sceneRenderer: BasicSceneRenderer;
 
   private _isOrtho: boolean;
 
@@ -83,17 +87,17 @@ export class Camera extends o3.NodeAbility {
 
   private readonly _matInverseProjection: Float32Array | any[];
 
-  constructor(node: o3.Node, props) {
+  constructor(node: Node, props) {
     super(node, props);
 
     const { SceneRenderer, canvas } = props;
 
     this._sceneRenderer = new SceneRenderer(this);
     this._isOrtho = false; // 逸瞻：标记是不是ortho，用于射线检测时区分处理
-    this._viewMat = o3.mat4.create();
-    this._matProjection = o3.mat4.create();
-    this._inverseViewMatrix = o3.mat4.create();
-    this._matInverseProjection = o3.mat4.create();
+    this._viewMat = mat4.create();
+    this._matProjection = mat4.create();
+    this._inverseViewMatrix = mat4.create();
+    this._matInverseProjection = mat4.create();
 
     this.zNear = 1.0;
     this.zFar = 100.0;
@@ -158,8 +162,8 @@ export class Camera extends o3.NodeAbility {
     this.zFar = zFar;
 
     const aspect = viewWidth / viewHeight;
-    o3.mat4.perspective(this._matProjection, o3.MathUtil.toRadian(degFOV), aspect, zNear, zFar);
-    o3.mat4.invert(this._matInverseProjection, this._matProjection);
+    mat4.perspective(this._matProjection, MathUtil.toRadian(degFOV), aspect, zNear, zFar);
+    mat4.invert(this._matInverseProjection, this._matProjection);
   }
 
   /**
@@ -189,8 +193,8 @@ export class Camera extends o3.NodeAbility {
     this.zNear = near;
     this.zFar = far;
 
-    o3.mat4.ortho(this._matProjection, left, right, bottom, top, near, far);
-    o3.mat4.invert(this._matInverseProjection, this._matProjection); // 逸瞻：逻辑补全，否则无法正确渲染场景
+    mat4.ortho(this._matProjection, left, right, bottom, top, near, far);
+    mat4.invert(this._matInverseProjection, this._matProjection); // 逸瞻：逻辑补全，否则无法正确渲染场景
   }
 
   /**
@@ -203,12 +207,12 @@ export class Camera extends o3.NodeAbility {
     const width = viewport[2] - viewport[0];
     const height = viewport[3] - viewport[1];
 
-    const matViewProj = o3.mat4.create();
-    o3.mat4.mul(matViewProj, this.projectionMatrix, this.viewMatrix);
+    const matViewProj = mat4.create();
+    mat4.mul(matViewProj, this.projectionMatrix, this.viewMatrix);
 
-    const worldPos = o3.vec4.fromValues(worldPoint[0], worldPoint[1], worldPoint[2], 1.0);
-    const clipPos = o3.vec4.create();
-    o3.vec4.transformMat4(clipPos, worldPos, matViewProj);
+    const worldPos = vec4.fromValues(worldPoint[0], worldPoint[1], worldPoint[2], 1.0);
+    const clipPos = vec4.create();
+    vec4.transformMat4(clipPos, worldPos, matViewProj);
 
     const nx = clipPos[0] / clipPos[3];
     const ny = clipPos[1] / clipPos[3];
@@ -226,7 +230,7 @@ export class Camera extends o3.NodeAbility {
     x = (x * clientWidth) / canvasWidth;
     y = (y * clientHeight) / canvasHeight;
 
-    return o3.vec3.fromValues(x, y, depth);
+    return vec3.fromValues(x, y, depth);
   }
 
   /**
@@ -256,18 +260,18 @@ export class Camera extends o3.NodeAbility {
     const nx = ((px - viewport[0]) / viewWidth) * 2 - 1;
     const ny = 1 - ((py - viewport[1]) / viewHeight) * 2;
 
-    const p = o3.vec4.fromValues(nx, ny, depth, 1.0);
+    const p = vec4.fromValues(nx, ny, depth, 1.0);
 
-    const matViewProj = o3.mat4.create();
-    o3.mat4.mul(matViewProj, this.projectionMatrix, this.viewMatrix);
+    const matViewProj = mat4.create();
+    mat4.mul(matViewProj, this.projectionMatrix, this.viewMatrix);
 
-    const matInv = o3.mat4.create();
-    o3.mat4.invert(matInv, matViewProj);
+    const matInv = mat4.create();
+    mat4.invert(matInv, matViewProj);
 
-    const u = o3.vec4.create();
-    o3.vec4.transformMat4(u, p, matInv);
+    const u = vec4.create();
+    vec4.transformMat4(u, p, matInv);
 
-    return o3.vec3.fromValues(u[0] / u[3], u[1] / u[3], u[2] / u[3]);
+    return vec3.fromValues(u[0] / u[3], u[1] / u[3], u[2] / u[3]);
   }
 
   /**
@@ -284,8 +288,8 @@ export class Camera extends o3.NodeAbility {
       origin = this.eyePos;
     }
     const tmp = this.screenToWorld([screenPointX, screenPointY], 0.5); // world position on depth=0.5
-    o3.vec3.sub(tmp, tmp, origin); // ray direction
-    o3.vec3.normalize(tmp, tmp);
+    vec3.sub(tmp, tmp, origin); // ray direction
+    vec3.normalize(tmp, tmp);
     return {
       origin,
       direction: tmp
@@ -319,12 +323,12 @@ export class Camera extends o3.NodeAbility {
     // make sure update directions
     this._ownerNode.getModelMatrix();
 
-    o3.vec3.copy(vec3Cache, this._ownerNode.forward);
+    vec3.copy(vec3Cache, this._ownerNode.forward);
     if (this.leftHand) {
-      o3.vec3.scale(vec3Cache, vec3Cache, -1);
+      vec3.scale(vec3Cache, vec3Cache, -1);
     }
-    o3.vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
-    o3.mat4.lookAt(this._viewMat, this._ownerNode.position, vec3Cache, this._ownerNode.up);
-    o3.mat4.invert(this._inverseViewMatrix, this._viewMat);
+    vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
+    mat4.lookAt(this._viewMat, this._ownerNode.position, vec3Cache, this._ownerNode.up);
+    mat4.invert(this._inverseViewMatrix, this._viewMat);
   }
 }

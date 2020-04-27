@@ -9,3 +9,5 @@ export { ACollider } from "./ACollider";
 export { ABoxCollider } from "./ABoxCollider";
 export { APlaneCollider } from "./APlaneCollider";
 export { ASphereCollider } from "./ASphereCollider";
+export { BoxCollider } from "./BoxCollider";
+export { SphereCollider } from "./SphereCollider";

@@ -1,4 +1,5 @@
-import { Node, ABoxCollider } from "@alipay/o3";
+import { ABoxCollider } from "./ABoxCollider";
+import { Node } from "@alipay/o3-core";
 
 export class BoxCollider extends ABoxCollider {
   private _center: number[] = [0, 0, 0];

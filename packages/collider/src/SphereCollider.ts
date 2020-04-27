@@ -1,4 +1,5 @@
-import { Node, ASphereCollider } from "@alipay/o3";
+import { Node } from "@alipay/o3-core";
+import { ASphereCollider } from "./ASphereCollider";
 
 export class SphereCollider extends ASphereCollider {
   private __center: number[] = [0, 0, 0];

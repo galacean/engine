@@ -1,4 +1,4 @@
-import { ASpriteRenderer } from "@alipay/o3";
+import { ASpriteRenderer } from "./ASpriteRenderer";
 
 export class SpriteRenderer extends ASpriteRenderer {
   set rect(v) {

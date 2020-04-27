@@ -1,5 +1,8 @@
-import * as o3 from "@alipay/o3";
 import { Camera } from "./Camera";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { Node } from "@alipay/o3-core";
+import { ClearMode } from "@alipay/o3-base";
 
 interface Props {
   RHI?;
@@ -45,10 +48,10 @@ export class PerspectiveCamera extends Camera {
    * @property {Number} [props.far=1000] 透视投影远裁剪面
    * @property {Number} [props.pixelRatio=window.devicePixelRatio] drawingBufferSize 的缩放比率
    */
-  constructor(node: o3.Node, props: Props) {
+  constructor(node: Node, props: Props) {
     const cameraProps = {
-      RHI: props.RHI || o3.GLRenderHardware,
-      SceneRenderer: props.SceneRenderer || o3.BasicSceneRenderer,
+      RHI: props.RHI || GLRenderHardware,
+      SceneRenderer: props.SceneRenderer || BasicSceneRenderer,
       canvas: props.canvas,
       attributes: props.attributes || {}
     };
@@ -77,7 +80,7 @@ export class PerspectiveCamera extends Camera {
     this._far = props.far || 1000;
     this._pixelRatio = props.pixelRatio || window.devicePixelRatio;
 
-    const clearMode = props.clearMode !== undefined ? props.clearMode : o3.ClearMode.SOLID_COLOR;
+    const clearMode = props.clearMode !== undefined ? props.clearMode : ClearMode.SOLID_COLOR;
     const clearParam = props.clearParam || [0.25, 0.25, 0.25, 1];
     this.setClearMode(clearMode, clearParam);
   }

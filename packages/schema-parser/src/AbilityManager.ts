@@ -1,5 +1,4 @@
 import * as o3 from "@alipay/o3";
-import * as glue from "./glue-ability";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
@@ -63,7 +62,7 @@ export class AbilityManager {
     if (splits[0] === "script") {
       return scriptAbility[splits[1]];
     }
-    const constructor = o3[type] || glue[type];
+    const constructor = o3[type];
     if (!constructor) {
       throw new Error(`${type} is not defined`);
     }

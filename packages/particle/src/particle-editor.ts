@@ -1,4 +1,5 @@
-import { AGPUParticleSystem, BlendFunc } from "@alipay/o3";
+import { AGPUParticleSystem } from "./particle";
+import { BlendFunc } from "@alipay/o3-base";
 
 /**
  * 暂时只为编辑器使用
