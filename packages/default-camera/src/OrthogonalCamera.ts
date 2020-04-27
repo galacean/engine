@@ -1,6 +1,8 @@
-import * as o3 from "@alipay/o3";
-import { GLRenderHardware, BasicSceneRenderer } from "@alipay/o3";
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { Node } from "@alipay/o3-core";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { Camera } from "./Camera";
+import { ClearMode } from "@alipay/o3-base";
 
 interface Props {
   RHI?: GLRenderHardware;
@@ -47,10 +49,10 @@ export class OrthographicCamera extends Camera {
   private lastHeight: number;
   private _pixelRatio: number;
 
-  constructor(node: o3.Node, props: Props) {
+  constructor(node: Node, props: Props) {
     const cameraProps = {
-      RHI: props.RHI || o3.GLRenderHardware,
-      SceneRenderer: props.SceneRenderer || o3.BasicSceneRenderer,
+      RHI: props.RHI || GLRenderHardware,
+      SceneRenderer: props.SceneRenderer || BasicSceneRenderer,
       canvas: props.canvas,
       attributes: props.attributes || {}
     };
@@ -68,7 +70,7 @@ export class OrthographicCamera extends Camera {
 
     this._pixelRatio = props.pixelRatio || window.devicePixelRatio;
 
-    const clearMode = props.clearMode !== undefined ? props.clearMode : o3.ClearMode.SOLID_COLOR;
+    const clearMode = props.clearMode !== undefined ? props.clearMode : ClearMode.SOLID_COLOR;
     const clearParam = props.clearParam || [0.25, 0.25, 0.25, 1];
     this.setClearMode(clearMode, clearParam);
   }

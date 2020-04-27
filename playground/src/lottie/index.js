@@ -1,8 +1,8 @@
 import "./transform-runtime";
 import { Engine } from "@alipay/o3-core";
 import { originLottie, ALottieRenderer } from "@alipay/o3-lottie";
+import { OrthographicCamera } from "@alipay/o3-default-camera";
 import animationData from "./multi2";
-import { OrthographicCamera } from "@alipay/o3-schema-parser";
 //用于对比测试效果
 const wrapper = document.createElement("div");
 wrapper.style.position = "absolute";
