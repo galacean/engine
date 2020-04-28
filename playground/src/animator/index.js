@@ -88,7 +88,51 @@ resourceLoader.load(animationRes, (err, gltf) => {
     actionMap[clip.name] = clip;
   });
   const options = {
-    keyFrames: {
+    keyframes: {
+      "0": [
+        {
+          value: 0,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ],
+      "1000": [
+        {
+          value: 1,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ],
+      "2000": [
+        {
+          value: 0,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ],
+      "3000": [
+        {
+          value: -1,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ],
+      "4000": [
+        {
+          value: 0,
+          property: "position",
+          subProperty: "y",
+          interpolation: "linear"
+        }
+      ]
+    }
+  };
+  const options2 = {
+    keyframes: {
       "0": [
         {
           value: 0,

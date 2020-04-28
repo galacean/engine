@@ -12,7 +12,7 @@ export class AnimationClip extends AssetObject {
   /**
    * Interpolation
    */
-  public keyFrames: any;
+  public keyframes: any;
 
   /**
    * Frame
@@ -69,8 +69,8 @@ export class AnimationClip extends AssetObject {
 
   initInterpolation() {
     if (this.options) {
-      const { keyFrames } = this.options;
-      this.keyFrames = keyFrames;
+      const { keyframes } = this.options;
+      this.keyframes = keyframes;
     }
   }
 

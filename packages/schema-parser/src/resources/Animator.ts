@@ -11,8 +11,8 @@ export class Animator extends SchemaResource {
       this.config = assetConfig;
       this.abilityManager = abilityManager;
       const { name, props } = assetConfig;
-      const { keyFrames } = props || {};
-      const assetObj = new AnimatorAsset(name, keyFrames);
+      const { keyframes } = props || {};
+      const assetObj = new AnimatorAsset(name, keyframes);
       this._resource = assetObj;
       this.setMeta();
       resolve(this);
@@ -26,19 +26,19 @@ export class Animator extends SchemaResource {
   }
 
   parseDate(value) {
-    const { keyFrames = {} } = value;
+    const { keyframes = {} } = value;
     const parseData = {};
-    Object.keys(keyFrames).forEach(keyFrameTime => {
-      const keyFrameList = keyFrames[keyFrameTime];
-      parseData[keyFrameTime] = parseData[keyFrameTime] || [];
-      keyFrameList.forEach(animationId => {
+    Object.keys(keyframes).forEach(keyframeTime => {
+      const keyframeList = keyframes[keyframeTime];
+      parseData[keyframeTime] = parseData[keyframeTime] || [];
+      keyframeList.forEach(animationId => {
         const animation = this.abilityManager.get(animationId);
-        parseData[keyFrameTime].push(animation);
+        parseData[keyframeTime].push(animation);
       });
     });
     return {
       ...value,
-      keyFrames: parseData
+      keyframes: parseData
     };
   }
 

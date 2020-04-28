@@ -1,3 +1,5 @@
+import { bezier } from "./BezierEasing";
+
 // t, b, c, d => currentTime, startValue, changeInValue, totalTime
 export function linear(t, b, c, d) {
   return (c * t) / d + b;
@@ -250,4 +252,21 @@ export function easeInOutBounce(t, b, c, d) {
     v = easeOutBounce(t * 2 - d, 0, c, d);
     return v * 0.5 + c * 0.5 + b;
   }
+}
+
+/**
+ * 通过bezier曲线控制点入参生成easing
+ * Hats off to gre：https://github.com/gre/bezier-easing
+ *
+ * @param x1 控制点1的 x，范围 0-1
+ * @param y1 控制点1的 y，范围 0-1
+ * @param x2 控制点2的 x，范围 0-1
+ * @param y2 控制点2的 y，范围 0-1
+ */
+export function bezierEasing(x1, y1, x2, y2) {
+  const easing = bezier(x1, y1, x2, y2);
+
+  return (t, b, c, d) => {
+    return c * easing(t / d) + b;
+  };
 }

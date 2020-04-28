@@ -200,12 +200,12 @@ export class AAnimation extends NodeAbility {
   }
 
   protected parseAnimationData() {
-    const { keyFrames = {}, timeScale = 1, duration = Infinity } = this.animationData || {};
+    const { keyframes = {}, timeScale = 1, duration = Infinity } = this.animationData || {};
     this.removeAllAnimationClip();
-    Object.keys(keyFrames).forEach(startTime => {
-      const keyFramesList = keyFrames[startTime];
-      keyFramesList.forEach(keyFrame => {
-        this.addAnimationClip(Number(startTime), keyFrame);
+    Object.keys(keyframes).forEach(startTime => {
+      const keyframesList = keyframes[startTime];
+      keyframesList.forEach(keyframe => {
+        this.addAnimationClip(Number(startTime), keyframe);
       });
     });
     this.duration = duration || Infinity;

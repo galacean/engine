@@ -119,12 +119,12 @@ export class AAnimator extends NodeAbility {
   }
 
   protected parseAnimatorData() {
-    const { options: { keyFrames = {}, timeScale = 1, duration = Infinity } = {} } = this.animatorData;
+    const { options: { keyframes = {}, timeScale = 1, duration = Infinity } = {} } = this.animatorData;
     this.removeAllAnimation();
-    Object.keys(keyFrames).forEach(startTime => {
-      const keyFramesList = keyFrames[startTime] || [];
-      keyFramesList.forEach(keyFrame => {
-        this.addAnimationByStartTime(Number(startTime), keyFrame);
+    Object.keys(keyframes).forEach(startTime => {
+      const keyframesList = keyframes[startTime] || [];
+      keyframesList.forEach(keyframe => {
+        this.addAnimationByStartTime(Number(startTime), keyframe);
       });
     });
     this.duration = duration || Infinity;

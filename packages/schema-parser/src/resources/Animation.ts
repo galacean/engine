@@ -24,14 +24,14 @@ export class Animation extends SchemaResource {
 
   parseDate(value) {
     const parseData = {};
-    Object.keys(value).forEach(keyFrameTime => {
-      const keyFrameList = value[keyFrameTime];
-      parseData[keyFrameTime] = parseData[keyFrameTime] || [];
-      keyFrameList.forEach(animationClipId => {
+    Object.keys(value).forEach(keyframeTime => {
+      const keyframeList = value[keyframeTime];
+      parseData[keyframeTime] = parseData[keyframeTime] || [];
+      keyframeList.forEach(animationClipId => {
         const animationClipResource = this.resourceManager.get(animationClipId);
         if (animationClipResource) {
           const animationClip = animationClipResource.resource;
-          parseData[keyFrameTime].push(animationClip);
+          parseData[keyframeTime].push(animationClip);
         } else {
           Logger.warn(
             `AnimationResource: ${this.meta.name} can't find asset "animationClip", which id is: ${animationClipId}`
@@ -43,7 +43,7 @@ export class Animation extends SchemaResource {
   }
 
   update(key: string, value: any) {
-    if (key === "keyFrames") {
+    if (key === "keyframes") {
       this._resource[key] = this.parseDate(value);
     } else {
       super.update(key, value);
@@ -52,8 +52,8 @@ export class Animation extends SchemaResource {
 
   bind() {
     const {
-      props: { keyFrames }
+      props: { keyframes }
     } = this.config;
-    this._resource["keyFrames"] = this.parseDate(keyFrames);
+    this._resource["keyframes"] = this.parseDate(keyframes);
   }
 }
