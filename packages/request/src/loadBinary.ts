@@ -12,7 +12,7 @@ export function loadBinary(url, callback, timeout?: number) {
       if (request.status === 200) {
         callback(null, request.response);
       } else {
-        callback("loadBinary error : " + request.response, null);
+        callback("loadBinary error : " + url, null);
       }
     }
   };
