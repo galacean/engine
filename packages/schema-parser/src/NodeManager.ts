@@ -43,9 +43,8 @@ export class NodeManager {
    * @param nodeConfig
    */
   private create(nodeConfig: NodeConfig): o3.Node {
-    const { isActive, position, rotation, scale, id } = nodeConfig;
-    let node: o3.Node;
-    node = new o3.Node(null, null, name);
+    const { isActive, position, rotation, scale, id, name } = nodeConfig;
+    const node = new o3.Node(null, null, name);
     node.isActive = isActive;
     node.position = position;
     node.setRotationAngles(rotation[0], rotation[1], rotation[2]);
