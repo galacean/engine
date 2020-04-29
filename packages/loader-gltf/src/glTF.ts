@@ -813,7 +813,7 @@ export function buildSceneGraph(resources) {
 
   const gltfNodes = gltf.nodes || [];
 
-  asset.rootScene = getItemByIdx("scenes", gltf.scene, resources);
+  asset.rootScene = getItemByIdx("scenes", gltf.scene ?? 0, resources);
 
   for (let i = gltfNodes.length - 1; i >= 0; i--) {
     const gltfNode = gltfNodes[i];
