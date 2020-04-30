@@ -98,7 +98,7 @@ export class Oasis extends o3.EventDispatcher {
   private bfsNodes(): number[] {
     const { nodes } = this.schema;
     const roots = Object.values(nodes)
-      // .filter(node => typeof node.parent !== "number")
+      .filter(node => node.parent === -1)
       .map(node => node.id);
 
     let result = [];
