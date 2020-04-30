@@ -1,3 +1,4 @@
+import { Event } from "@alipay/o3-base";
 import { Node, NodeAbility } from "@alipay/o3-core";
 import { AAnimation } from "./AAnimation";
 import { PlayState, WrapMode } from "./AnimationConst";
@@ -65,12 +66,13 @@ export class AAnimator extends NodeAbility {
    * @param {Node} node
    */
   constructor(node: Node, props: any) {
-    super(node);
-    const { animatorData, wrapMode, autoPlay } = props;
+    super(node, props);
+    const { animatorData, duration, wrapMode, autoPlay } = props;
     this.animationList = [];
     this.startTimeAnimationMap = {}; // startTime: AnimationList
     this._timeScale = 1.0;
     this.currentTime = 0;
+    this.duration = duration || Infinity;
     this.wrapMode = wrapMode;
     this.autoPlay = autoPlay;
     this.animatorData = animatorData;
@@ -91,9 +93,10 @@ export class AAnimator extends NodeAbility {
     deltaTime = deltaTime * this._timeScale;
     super.update(deltaTime);
     if (this.currentTime > duration) {
-      this.reset();
       if (wrapMode === WrapMode.LOOP) {
-        this.play();
+        this.replay();
+      } else {
+        this._finished();
       }
     }
     this.currentTime += deltaTime;
@@ -127,7 +130,7 @@ export class AAnimator extends NodeAbility {
         this.addAnimationByStartTime(Number(startTime), keyframe);
       });
     });
-    this.duration = duration || Infinity;
+    this.duration = duration;
     this.timeScale = timeScale;
   }
 
@@ -146,6 +149,11 @@ export class AAnimator extends NodeAbility {
     this.state = PlayState.PLAYING;
   }
 
+  public replay() {
+    this.reset();
+    this.play();
+  }
+
   /**
    * 暂停播放
    *
@@ -158,9 +166,18 @@ export class AAnimator extends NodeAbility {
   }
 
   public stop() {
-    this.pause();
+    this.animationList.forEach(animation => {
+      animation.stop();
+    });
     this.reset();
     this.state = PlayState.STOP;
+  }
+
+  private _finished() {
+    this.state = PlayState.STOP;
+    const event = new Event("animatorFinished");
+    event.data = this;
+    this.engine.trigger(event);
   }
 
   /**
