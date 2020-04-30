@@ -45,7 +45,7 @@ export class Oasis extends o3.EventDispatcher {
     this.pluginManager.boot(this);
     this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr || {});
     return this.loadResources().then(() => {
-      this.bindResouces();
+      this.bindResources();
       this.parseNodes();
       this.parseNodeAbilities();
       // TODO 临时使用 用于运行时asset把id转化为各种实例
@@ -67,7 +67,7 @@ export class Oasis extends o3.EventDispatcher {
   /**
    * 资源绑定
    */
-  private bindResouces() {
+  private bindResources() {
     this.resourceManager.getAll().forEach(resource => {
       resource.bind();
     });
@@ -98,7 +98,7 @@ export class Oasis extends o3.EventDispatcher {
   private bfsNodes(): number[] {
     const { nodes } = this.schema;
     const roots = Object.values(nodes)
-      .filter(node => node.parent === -1)
+      .filter(node => !nodes[node.parent])
       .map(node => node.id);
 
     let result = [];
