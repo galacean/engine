@@ -29,6 +29,10 @@ export class ASkyBox extends AGeometryRenderer {
     this.skyBoxMap = skyBoxMap;
   }
 
+  onUpdate() {
+    (this.material as SkyBoxMaterial).setModel(this.node.getModelMatrix());
+  }
+
   /**
    * 天空盒贴图
    * @type {TextureCubeMap}
