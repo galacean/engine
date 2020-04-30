@@ -28,7 +28,7 @@ export interface NodeConfig {
   /**
    * 父节点，默认为根节点
    */
-  parent: string | undefined;
+  parent: string | undefined | number;
   /**
    * 子节点，默认为 []
    */
