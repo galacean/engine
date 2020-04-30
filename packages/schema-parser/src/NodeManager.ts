@@ -6,7 +6,7 @@ import { NodeConfig } from "./types";
 
 export class NodeManager {
   private nodeMap: { [id: string]: o3.Node } = {};
-  private root: o3.Node;
+  private readonly root: o3.Node;
 
   constructor(private oasis: Oasis) {
     this.root = this.oasis.engine.currentScene.root.createChild("runtime-root");
@@ -24,7 +24,6 @@ export class NodeManager {
   }
 
   public get(id: string): o3.Node {
-    if (id === "0") return this.root;
     return this.nodeMap[id];
   }
 
