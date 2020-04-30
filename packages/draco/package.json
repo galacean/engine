@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-draco",
-  "version": "2.0.10",
+  "version": "2.0.11",
   "description": "Oasis3D draco",
   "keywords": [
     "Oasis3D",
@@ -27,6 +27,6 @@
   },
   "dependencies": {
     "@alipay/draco-decoder-gltf": "^1.3.6",
-    "@alipay/o3-base": "^2.0.10"
+    "@alipay/o3-base": "^2.0.11"
   }
 }
