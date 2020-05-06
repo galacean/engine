@@ -881,6 +881,10 @@ class GLTFHandler {
           attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap, {});
 
           request.loadAll(loadQueue, function(err, resMap) {
+            if (err) {
+              callback(err);
+              return;
+            }
             if (gltfJSON.hasOwnProperty("buffers")) {
               for (let i = 0; i < gltfJSON.buffers.length; i++) {
                 const buffer = gltfJSON.buffers[i];
