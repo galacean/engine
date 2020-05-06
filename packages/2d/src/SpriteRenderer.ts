@@ -1,11 +1,20 @@
 import { ASpriteRenderer } from "./ASpriteRenderer";
 
 export class SpriteRenderer extends ASpriteRenderer {
-  set rect(v) {
+  protected setRect(rect?) {
     try {
-      const json = JSON.parse(v);
-      super.rect = json;
+      if (rect) {
+        this._rect = JSON.parse(rect);
+      }
     } catch (error) {}
+    if (!this._rect) {
+      this._rect = {
+        x: 0,
+        y: 0,
+        width: this._texture ? this._texture.image.width : 0,
+        height: this.texture ? this._texture.image.height : 0
+      };
+    }
   }
 
   protected setTexture(texture) {
@@ -14,6 +23,6 @@ export class SpriteRenderer extends ASpriteRenderer {
       texture = texture.asset;
     }
 
-    return texture;
+    this._texture = texture;
   }
 }
