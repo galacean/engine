@@ -613,7 +613,7 @@ export function parseMesh(gltfMesh, resources) {
   const primitivePromises = [];
   for (let i = 0; i < gltfMesh.primitives.length; i++) {
     primitivePromises.push(
-      new Promise(resolve => {
+      new Promise((resolve, reject) => {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
         const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
@@ -631,11 +631,15 @@ export function parseMesh(gltfMesh, resources) {
         } else {
           vertexPromise = parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers);
         }
-        vertexPromise.then(() => {
-          parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers);
-          parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
-          resolve(primitive);
-        });
+        vertexPromise
+          .then(() => {
+            parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers);
+            parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
+            resolve(primitive);
+          })
+          .catch(e => {
+            reject(e);
+          });
       })
     );
   }
