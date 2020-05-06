@@ -33,8 +33,8 @@ export class ASpriteRenderer extends NodeAbility {
   private _positionQuad: IPositionQuad;
   private _rotationAngle: number;
   private _anchor: number[];
-  private _texture: Texture2D;
-  private _rect: IRect;
+  protected _texture: Texture2D;
+  protected _rect: IRect;
   private _worldSizeFactor: number;
 
   /**
@@ -62,6 +62,10 @@ export class ASpriteRenderer extends NodeAbility {
     this.setAnchor(anchor);
     this.setUvRect();
     this.setWorldSize();
+
+    if (sprite.tintColor) {
+      this.tintColor = sprite.tintColor;
+    }
 
     //-- Ability属性
     this.renderable = true;
