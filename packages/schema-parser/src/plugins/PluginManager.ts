@@ -37,6 +37,8 @@ export class PluginManager implements PluginHook {
 export interface PluginHook {
   oasis?: Oasis;
   nodeAdded?(node: o3.Node): any;
+  beforeNodeUpdated?(id: string, key: string, value: any): any;
+  nodeUpdated?(updateConfig?: { id: string; key: string; value: any }): any;
   abilityAdded?(ability: o3.NodeAbility): any;
   beforeAbilityAdded?(config: any): any;
   beforeAbilityUpdated?(id: string, key: string, value: any): any;

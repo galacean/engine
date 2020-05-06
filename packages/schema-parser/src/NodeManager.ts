@@ -19,8 +19,10 @@ export class NodeManager {
     return this.get(nodeConfig.id);
   }
 
+  @pluginHook({ before: "beforeNodeUpdated", after: "nodeUpdated" })
   public update(id: string, key: string, value: any) {
     this.get(id)[key] = value;
+    return { id, key, value };
   }
 
   public get(id: string): o3.Node {
