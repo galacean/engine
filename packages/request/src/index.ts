@@ -58,13 +58,17 @@ export function loadAll(loadQueue = {}, callback) {
     promisesKey.push(key);
   }
 
-  Promise.all(promises).then(resArr => {
-    const map = {};
+  Promise.all(promises)
+    .then(resArr => {
+      const map = {};
 
-    for (let i = 0; i < resArr.length; i++) {
-      map[promisesKey[i]] = resArr[i];
-    }
+      for (let i = 0; i < resArr.length; i++) {
+        map[promisesKey[i]] = resArr[i];
+      }
 
-    callback(null, map);
-  });
+      callback(null, map);
+    })
+    .catch(e => {
+      callback(e);
+    });
 }

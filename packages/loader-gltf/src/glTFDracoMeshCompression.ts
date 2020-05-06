@@ -1,5 +1,5 @@
 import { DRACODecoder } from "@alipay/o3-draco";
-import { getComponentType, createAttribute, getBufferData, getAccessorData } from "./Util";
+import { getComponentType, createAttribute, getBufferData } from "./Util";
 
 let decoder;
 

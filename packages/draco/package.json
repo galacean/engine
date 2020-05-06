@@ -26,7 +26,7 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/draco-decoder-gltf": "^1.3.6",
-    "@alipay/o3-base": "^2.0.12"
+    "@alipay/o3-base": "^2.0.12",
+    "@alipay/o3-request": "^2.0.12"
   }
 }

@@ -1,54 +1,72 @@
 import { Logger } from "@alipay/o3-base";
-import { decoderJSString, decoderWASMWrapperString, decoderWASMBase64 } from "@alipay/draco-decoder-gltf";
+import { loadAll } from "@alipay/o3-request";
 
 import { DRACOWorker, ITaskConfig } from "./DRACOWorker";
 
 import workerString from "./worker/worker.js";
 
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binary_string = atob(base64);
-  const len = binary_string.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binary_string.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
+const LIB_PATH = "https://gw.alipayobjects.com/os/lib/alipay/draco-javascript/1.3.6/lib/";
+const JS_FILE = "draco_decoder_gltf.js";
+// basement cdn 不支持wasm后缀，暂时用r3bin后缀代替
+const WASM_FILE = "draco_decoder_gltf.r3bin";
+const WASM_WRAPPER_FILE = "draco_wasm_wrapper_gltf.js";
 
 export class DRACODecoder {
   private pool: DRACOWorker[] = [];
   private workerLimit = Math.min(navigator.hardwareConcurrency || 4, 4);
-  private workerSourceURL: string;
-  private decoderWASMBinary: ArrayBuffer;
   private useJS: boolean;
   private currentTaskId: number = 1;
   private taskCache = new WeakMap();
+  private loadLibPromise: Promise<any>;
 
   constructor(config: IDecoderConfig = { type: "wasm", workerLimit: 4 }) {
     if (config.workerLimit > this.workerLimit) {
       Logger.warn("DRACOWorkerPool: Can not initialize worker pool with limit:" + config.workerLimit);
     } else {
-      this.workerLimit = config.workerLimit;
+      this.workerLimit = config.workerLimit ?? 4;
     }
     this.useJS = typeof WebAssembly !== "object" || config.type === "js";
-    const workerStrings = [this.useJS ? decoderJSString : decoderWASMWrapperString, workerString];
-    const body = workerStrings.join("\n");
-    this.workerSourceURL = URL.createObjectURL(new Blob([body]));
-    if (!this.useJS) {
-      this.decoderWASMBinary = base64ToArrayBuffer(decoderWASMBase64);
-    }
+    this.loadLibPromise = this.preloadLib();
   }
 
-  private getWorker(): DRACOWorker {
-    if (this.pool.length < this.workerLimit) {
-      const dracoWorker = new DRACOWorker(this.workerSourceURL, this.decoderWASMBinary);
-      this.pool.push(dracoWorker);
-    } else {
-      this.pool.sort(function(a, b) {
-        return a.currentLoad > b.currentLoad ? -1 : 1;
-      });
+  private preloadLib(): Promise<any> {
+    if (this.loadLibPromise) {
+      return this.loadLibPromise;
     }
-    return this.pool[this.pool.length - 1];
+    const loadQueue = {};
+    if (this.useJS) {
+      loadQueue["js"] = { type: "text", props: { url: `${LIB_PATH}${JS_FILE}` } };
+    } else {
+      loadQueue["wasm"] = { type: "binary", props: { url: `${LIB_PATH}${WASM_FILE}` } };
+      loadQueue["wrapper"] = { type: "text", props: { url: `${LIB_PATH}${WASM_WRAPPER_FILE}` } };
+    }
+    return new Promise((resolve, reject) => {
+      loadAll(loadQueue, (err, res) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        const workerStrings = [this.useJS ? res["js"] : res["wrapper"], workerString];
+        const body = workerStrings.join("\n");
+        const workerSourceURL = URL.createObjectURL(new Blob([body]));
+        let decoderWASMBinary = this.useJS ? null : res["wasm"];
+        resolve({ workerSourceURL, decoderWASMBinary });
+      });
+    });
+  }
+
+  private getWorker(): Promise<DRACOWorker> {
+    return this.preloadLib().then(worderResources => {
+      if (this.pool.length < this.workerLimit) {
+        const dracoWorker = new DRACOWorker(worderResources.workerSourceURL, worderResources.decoderWASMBinary);
+        this.pool.push(dracoWorker);
+      } else {
+        this.pool.sort(function(a, b) {
+          return a.currentLoad > b.currentLoad ? -1 : 1;
+        });
+      }
+      return this.pool[this.pool.length - 1];
+    });
   }
 
   decode(buffer: ArrayBuffer, taskConfig: ITaskConfig): Promise<any> {
@@ -75,17 +93,24 @@ export class DRACODecoder {
 
     const taskId = this.currentTaskId++;
     const cost = buffer.byteLength;
-
-    const worker = this.getWorker();
-    worker.setCosts(taskId, cost);
-    worker.addCurrentLoad(cost);
+    let taskWorker;
     const task = new Promise((resolve, reject) => {
-      worker.setCallback(taskId, resolve, reject);
-      worker.decode(taskId, taskConfig, buffer);
+      this.getWorker()
+        .then(worker => {
+          taskWorker = worker;
+          worker.setCosts(taskId, cost);
+          worker.addCurrentLoad(cost);
+
+          worker.setCallback(taskId, resolve, reject);
+          worker.decode(taskId, taskConfig, buffer);
+        })
+        .catch(e => {
+          reject(e);
+        });
     });
     task.finally(() => {
-      if (worker && taskId) {
-        worker.releaseTask(taskId);
+      if (taskWorker && taskId) {
+        taskWorker.releaseTask(taskId);
       }
     });
 
