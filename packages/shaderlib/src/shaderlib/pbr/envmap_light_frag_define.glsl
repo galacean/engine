@@ -6,6 +6,7 @@ struct EnvMapLight {
     float mipMapLevel;
     float diffuseIntensity;
     float specularIntensity;
+    mat3 transformMatrix;
 };
 
 

@@ -12,9 +12,14 @@ import fs from "./skybox.fs.glsl";
 export class SkyBoxMaterial extends Material {
   private _cacheMat1;
   private _cacheMat2;
+  private modelMatrix;
 
   constructor(name = SkyBoxMaterial.defaultName) {
     super(name);
+  }
+
+  public setModel(modelMatrix) {
+    this.modelMatrix = modelMatrix;
   }
 
   /**
@@ -32,7 +37,8 @@ export class SkyBoxMaterial extends Material {
     }
     const view = camera.viewMatrix;
     const proj = camera.projectionMatrix;
-    mat4.copy(this._cacheMat1, view);
+
+    mat4.mul(this._cacheMat1, view, this.modelMatrix);
     this._cacheMat1[12] = this._cacheMat1[13] = this._cacheMat1[14] = 0;
     mat4.mul(this._cacheMat2, proj, this._cacheMat1);
     this.setValue("u_mvpNoscale", this._cacheMat2);

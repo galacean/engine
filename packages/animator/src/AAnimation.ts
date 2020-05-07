@@ -1,3 +1,4 @@
+import { Event } from "@alipay/o3-base";
 import { Node, NodeAbility } from "@alipay/o3-core";
 import { AnimationClip } from "./AnimationClip";
 import { PlayState, WrapMode } from "./AnimationConst";
@@ -74,8 +75,8 @@ export class AAnimation extends NodeAbility {
    * @param {Node} node
    */
   constructor(node: Node, props: any) {
-    super(node);
-    const { animationData, wrapMode, autoPlay } = props;
+    super(node, props);
+    const { animationData, duration, wrapMode, autoPlay } = props;
     this.animClipSet = {}; // name : AnimationClip
     this.uniqueAnimClipSet = {};
     this.startTimeAnimClipSet = {}; // startTime: AnimationClip
@@ -85,12 +86,33 @@ export class AAnimation extends NodeAbility {
     this._timeScale = 1.0;
     this.currentTime = 0;
     this.wrapMode = wrapMode;
+    this.duration = duration || Infinity;
     this.autoPlay = autoPlay;
     this.animationData = animationData;
     this.state = PlayState.INIT;
     if (autoPlay) {
       this.play();
     }
+  }
+
+  private _animate(deltaTime, rePlayFunc) {
+    const { duration, handlerStartTimeMap, wrapMode } = this;
+    deltaTime = deltaTime * this._timeScale;
+    if (this.currentTime > duration) {
+      if (wrapMode === WrapMode.LOOP) {
+        this.reset();
+        rePlayFunc.call(this);
+      } else {
+        this._finished();
+      }
+    }
+    this.currentTime += deltaTime;
+    this.handlerList.forEach(handler => {
+      const handlerStartTime = handlerStartTimeMap.get(handler);
+      if (this.currentTime > handlerStartTime) {
+        handler.update(deltaTime);
+      }
+    });
   }
 
   /**
@@ -100,41 +122,12 @@ export class AAnimation extends NodeAbility {
    */
   public update(deltaTime: number) {
     if (this.state !== PlayState.PLAYING) return;
-    const { duration, handlerStartTimeMap, wrapMode } = this;
-    deltaTime = deltaTime * this._timeScale;
-    super.update(deltaTime);
-    if (this.currentTime > duration) {
-      this.reset();
-      if (wrapMode === WrapMode.LOOP) {
-        this.play();
-      }
-    }
-    this.currentTime += deltaTime;
-    this.handlerList.forEach(handler => {
-      const handlerStartTime = handlerStartTimeMap.get(handler);
-      if (this.currentTime > handlerStartTime) {
-        handler.update(deltaTime);
-      }
-    });
+    this._animate(deltaTime, this.play);
   }
-  //TODO 临时方案后面改为jumptoFrame
+
   public onAnimUpdate(deltaTime: number) {
     if (this.state !== PlayState.PLAYBYANIMATOR) return;
-    const { duration, handlerStartTimeMap, wrapMode } = this;
-    deltaTime = deltaTime * this._timeScale;
-    if (this.currentTime > duration) {
-      this.reset();
-      if (wrapMode === WrapMode.LOOP) {
-        this.playByAnimator();
-      }
-    }
-    this.currentTime += deltaTime;
-    this.handlerList.forEach(handler => {
-      const handlerStartTime = handlerStartTimeMap.get(handler);
-      if (this.currentTime > handlerStartTime) {
-        handler.update(deltaTime);
-      }
-    });
+    this._animate(deltaTime, this.playByAnimator);
   }
   /**
    * 添加animClip
@@ -200,36 +193,36 @@ export class AAnimation extends NodeAbility {
   }
 
   protected parseAnimationData() {
-    const { keyFrames = {}, timeScale = 1, duration = Infinity } = this.animationData || {};
+    const { keyframes = {}, timeScale = 1, duration = Infinity } = this.animationData || {};
     this.removeAllAnimationClip();
-    Object.keys(keyFrames).forEach(startTime => {
-      const keyFramesList = keyFrames[startTime];
-      keyFramesList.forEach(keyFrame => {
-        this.addAnimationClip(Number(startTime), keyFrame);
+    Object.keys(keyframes).forEach(startTime => {
+      const keyframesList = keyframes[startTime];
+      keyframesList.forEach(keyframe => {
+        this.addAnimationClip(Number(startTime), keyframe);
       });
     });
-    this.duration = duration || Infinity;
+    this.duration = duration;
     this.timeScale = timeScale;
+  }
+
+  private _prePlay() {
+    if (this.state === PlayState.INIT || this.state === PlayState.STOP) {
+      if (this.animationData) {
+        this.parseAnimationData();
+      }
+    }
   }
 
   /**
    * 开始播放
    */
   public play() {
-    if (this.state === PlayState.INIT || this.state === PlayState.STOP) {
-      if (this.animationData) {
-        this.parseAnimationData();
-      }
-    }
+    this._prePlay();
     this.state = PlayState.PLAYING;
   }
 
   public playByAnimator() {
-    if (this.state === PlayState.INIT || this.state === PlayState.STOP) {
-      if (this.animationData) {
-        this.parseAnimationData();
-      }
-    }
+    this._prePlay();
     this.state = PlayState.PLAYBYANIMATOR;
   }
 
@@ -242,7 +235,6 @@ export class AAnimation extends NodeAbility {
   }
 
   public stop() {
-    this.pause();
     this.reset();
     this.state = PlayState.STOP;
   }
@@ -259,5 +251,12 @@ export class AAnimation extends NodeAbility {
       handler.reset();
     });
     this.state = PlayState.INIT;
+  }
+
+  private _finished() {
+    this.state = PlayState.STOP;
+    const event = new Event("animationFinished");
+    event.data = this;
+    this.node.trigger(event);
   }
 }

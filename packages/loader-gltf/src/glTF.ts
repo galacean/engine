@@ -613,7 +613,7 @@ export function parseMesh(gltfMesh, resources) {
   const primitivePromises = [];
   for (let i = 0; i < gltfMesh.primitives.length; i++) {
     primitivePromises.push(
-      new Promise(resolve => {
+      new Promise((resolve, reject) => {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
         const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
@@ -631,11 +631,15 @@ export function parseMesh(gltfMesh, resources) {
         } else {
           vertexPromise = parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers);
         }
-        vertexPromise.then(() => {
-          parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers);
-          parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
-          resolve(primitive);
-        });
+        vertexPromise
+          .then(() => {
+            parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers);
+            parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
+            resolve(primitive);
+          })
+          .catch(e => {
+            reject(e);
+          });
       })
     );
   }
@@ -813,7 +817,7 @@ export function buildSceneGraph(resources) {
 
   const gltfNodes = gltf.nodes || [];
 
-  asset.rootScene = getItemByIdx("scenes", gltf.scene, resources);
+  asset.rootScene = getItemByIdx("scenes", gltf.scene ?? 0, resources);
 
   for (let i = gltfNodes.length - 1; i >= 0; i--) {
     const gltfNode = gltfNodes[i];
@@ -878,9 +882,13 @@ class GLTFHandler {
           const dir = path.getDirectory(props.url);
           attachLoadingQueue(dir, loadQueue, gltfJSON.buffers, "binary", filesMap, { timeout: props.timeout });
           attachLoadingQueue(dir, loadQueue, gltfJSON.images, "image", filesMap, { reSample, timeout: props.timeout });
-          attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap);
+          attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap, {});
 
           request.loadAll(loadQueue, function(err, resMap) {
+            if (err) {
+              callback(err);
+              return;
+            }
             if (gltfJSON.hasOwnProperty("buffers")) {
               for (let i = 0; i < gltfJSON.buffers.length; i++) {
                 const buffer = gltfJSON.buffers[i];

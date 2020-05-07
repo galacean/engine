@@ -93,6 +93,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
   doTransform
     .Translate(pig, [1, 1, 1], 2000, {
       easing: Easing.easeOutBounce,
+      // easing: Easing.bezierEasing(0, 0, 1, 0.5), // 贝塞尔曲线: https://github.com/gre/bezier-easing
       onComplete: () => {
         doTransform.Scale(pig, [2, 2, 2], 2000).start(tween);
         doTransform

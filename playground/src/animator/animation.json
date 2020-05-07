@@ -12,7 +12,7 @@
       "name": "translate1",
       "type": "Interpolation",
       "options": {
-        "keyFrames": {
+        "keyframes": {
           "0": [
             {
               "value": [
@@ -108,7 +108,7 @@
   "animations": [
     {
       "node": 1,
-      "keyFrames": {
+      "keyframes": {
         "0": [
           0,
           4
@@ -127,7 +127,7 @@
     },
     {
       "node": 0,
-      "keyFrames": {
+      "keyframes": {
         "0": [
           0,
           6
@@ -149,7 +149,7 @@
     "type": "timeline",
     "options": {
       "wrapMode": "LOOP",
-      "keyFrames": {
+      "keyframes": {
         "0": [
           0
         ],

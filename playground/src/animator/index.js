@@ -81,20 +81,24 @@ resourceLoader.load(animationRes, (err, gltf) => {
     material: new LambertMaterial()
   });
   cubeNode.position = [-2, 0, 0];
-  const modelAnimation = model.createAbility(AAnimation);
-  const cubeAnimation = cubeNode.createAbility(AAnimation);
+  const modelAnimation = model.createAbility(AAnimation, {
+    duration: 4000
+  });
+  const cubeAnimation = cubeNode.createAbility(AAnimation, {
+    duration: 1000
+  });
   const actionMap = {};
   animations.forEach(clip => {
     actionMap[clip.name] = clip;
   });
   const options = {
-    keyFrames: {
+    keyframes: {
       "0": [
         {
           value: 0,
           property: "position",
           subProperty: "y",
-          interpolation: "linear"
+          interpolation: "0,0,1,1"
         }
       ],
       "1000": [
@@ -102,7 +106,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
           value: 1,
           property: "position",
           subProperty: "y",
-          interpolation: "linear"
+          interpolation: "0,0,1,1"
         }
       ],
       "2000": [
@@ -110,7 +114,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
           value: 0,
           property: "position",
           subProperty: "y",
-          interpolation: "linear"
+          interpolation: "0,0,1,1"
         }
       ],
       "3000": [
@@ -118,7 +122,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
           value: -1,
           property: "position",
           subProperty: "y",
-          interpolation: "linear"
+          interpolation: "0,0,1,1"
         }
       ],
       "4000": [
@@ -126,27 +130,51 @@ resourceLoader.load(animationRes, (err, gltf) => {
           value: 0,
           property: "position",
           subProperty: "y",
-          interpolation: "linear"
+          interpolation: "0,0,1,1"
         }
       ]
     }
   };
   const options2 = {
-    keyFrames: {
+    keyframes: {
       "0": [
         {
           value: 0,
-          property: "rotation",
+          property: "position",
           subProperty: "y",
-          interpolation: "linear"
+          interpolation: "0,0,1,1"
+        }
+      ],
+      "1000": [
+        {
+          value: 1,
+          property: "position",
+          subProperty: "y",
+          interpolation: "0,0,1,1"
+        }
+      ],
+      "2000": [
+        {
+          value: 0,
+          property: "position",
+          subProperty: "y",
+          interpolation: "0,0,1,1"
+        }
+      ],
+      "3000": [
+        {
+          value: -1,
+          property: "position",
+          subProperty: "y",
+          interpolation: "0,0,1,1"
         }
       ],
       "4000": [
         {
-          value: 360,
-          property: "rotation",
+          value: -2,
+          property: "position",
           subProperty: "y",
-          interpolation: "linear"
+          interpolation: "0,0,1,1"
         }
       ]
     }
@@ -160,7 +188,18 @@ resourceLoader.load(animationRes, (err, gltf) => {
   modelAnimation.addAnimationClip(3000, ac5);
   cubeAnimation.addAnimationClip(0, ac1);
   cubeAnimation.addAnimationClip(0, ac2);
-  const animator = rootNode.createAbility(AAnimator);
+  cubeNode.on('animationFinished', e => {
+    console.log('cubeNode', e.data)
+  })
+  model.on('animationFinished', e => {
+    console.log('model', e.data)
+  })
+  engine.on('animatorFinished', e => {
+    console.log('animatorFinished', e.data)
+  })
+  const animator = rootNode.createAbility(AAnimator, {
+    duration: 4000
+  });
   animator.addAnimationByStartTime(0, modelAnimation);
   animator.addAnimationByStartTime(0, cubeAnimation);
   animator.play();

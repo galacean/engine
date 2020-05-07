@@ -4,7 +4,7 @@ import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 import { AnimationClipHandler } from "./animationClipHandler";
 import { LinkList } from "./linkList";
 export class InterpolationHandler extends AnimationClipHandler {
-  private keyFrameLinkListMap: { [key: string]: LinkList<any> };
+  private keyframeLinkListMap: { [key: string]: LinkList<any> };
   private tween: Tween;
   private originNodeState: Node;
   private curNodeState: Node;
@@ -12,51 +12,58 @@ export class InterpolationHandler extends AnimationClipHandler {
   init() {
     super.init();
     const { animClip, node } = this;
-    const { keyFrames } = animClip;
+    const { keyframes } = animClip;
     this.tween = new Tween();
     this.changedProperty = {};
-    this.keyFrameLinkListMap = {};
+    this.keyframeLinkListMap = {};
     this.originNodeState = node.clone();
     this.curNodeState = node.clone();
     this.curNodeState.rotation = quat.toEuler(vec3.create(), this.curNodeState.rotation);
-    const keyFrameTimeQueue = Object.keys(animClip.keyFrames)
+    const keyframeTimeQueue = Object.keys(animClip.keyframes)
       .map(startTime => Number(startTime))
       .sort((a, b) => a - b);
-    keyFrameTimeQueue.forEach(keyFrameTime => {
-      let keyFrameList = keyFrames[keyFrameTime];
-      keyFrameList = keyFrameList.forEach(keyFrame => {
-        const { property, subProperty } = keyFrame;
+    keyframeTimeQueue.forEach(keyframeTime => {
+      let keyframeList = keyframes[keyframeTime];
+      keyframeList = keyframeList.forEach(keyframe => {
+        const { property, subProperty } = keyframe;
         const key = `${property}.${subProperty}`;
-        keyFrame.keyFrameTime = keyFrameTime;
-        this.keyFrameLinkListMap[key] = this.keyFrameLinkListMap[key] || new LinkList();
-        this.keyFrameLinkListMap[key].append(keyFrame);
+        keyframe.keyframeTime = keyframeTime;
+        this.keyframeLinkListMap[key] = this.keyframeLinkListMap[key] || new LinkList();
+        this.keyframeLinkListMap[key].append(keyframe);
       });
     });
     this.generateTweener();
   }
   generateTweener() {
-    const { tween, keyFrameLinkListMap, curNodeState } = this;
+    const { tween, keyframeLinkListMap, curNodeState } = this;
     const { DataType } = doTransform;
     const subPropertyMap = {
       x: 0,
       y: 1,
       z: 2
     };
-    Object.keys(keyFrameLinkListMap).forEach(key => {
+    Object.keys(keyframeLinkListMap).forEach(key => {
       let temp = key.split(".");
-      const keyFrameLinkList = keyFrameLinkListMap[key];
+      const keyframeLinkList = keyframeLinkListMap[key];
       const property = temp[0];
       const subProperty = temp[1];
-      let currentNode = keyFrameLinkList.head;
+      let currentNode = keyframeLinkList.head;
       while (currentNode !== null) {
+        const keyframeData = currentNode.data;
         let startValue = curNodeState[property][subPropertyMap[subProperty]];
-        let duration = currentNode.data.keyFrameTime;
+        let duration = keyframeData.keyframeTime;
         let delay = 0;
-        const endValue = currentNode.data.value;
+        const { interpolation: interpolationStr } = keyframeData;
+        const interpolation = interpolationStr.split(",");
+        if (interpolation.length !== 4) {
+          console.error("invalid bezier value");
+        }
+        const endValue = keyframeData.value;
         if (currentNode.prev) {
-          startValue = currentNode.prev.data.value;
-          duration = currentNode.data.keyFrameTime - currentNode.prev.data.keyFrameTime;
-          delay = currentNode.prev.data.keyFrameTime;
+          const prevKeyframeData = currentNode.prev.data;
+          startValue = prevKeyframeData.value;
+          duration = keyframeData.keyframeTime - prevKeyframeData.keyframeTime;
+          delay = prevKeyframeData.keyframeTime;
         }
         if (duration > 0) {
           const tweener = DataType(
@@ -68,7 +75,7 @@ export class InterpolationHandler extends AnimationClipHandler {
             endValue,
             duration,
             {
-              easing: Easing["linear"],
+              easing: Easing["bezierEasing"](interpolation[0], interpolation[1], interpolation[2], interpolation[3]),
               delay
             }
           );

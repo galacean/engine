@@ -184,7 +184,7 @@ export function createAttribute(gltf, semantic, accessor, idx) {
  * @param props 资源额外配置
  * @private
  */
-export function attachLoadingQueue(dir, loadQueue, arr = [], type, filesMap, props?: any) {
+export function attachLoadingQueue(dir, loadQueue, arr = [], type, filesMap, props: any) {
   for (let i = 0; i < arr.length; i++) {
     const item = arr[i];
 

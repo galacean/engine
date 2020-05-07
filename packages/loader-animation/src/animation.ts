@@ -81,15 +81,15 @@ function parseAnimationClip(currentScene, animClipData, resources) {
 }
 
 function parseAnimation(currentScene, animData, resources) {
-  const { name, node: nodeIndex, keyFrames } = animData;
+  const { name, node: nodeIndex, keyframes } = animData;
   const node = resources._assets["nodes"][nodeIndex];
   const animation = node.createAbility(AAnimation, {
     name: name || `Animation_${animCount++}`
   });
   const animClips = resources._assets["animationClips"];
-  Object.keys(keyFrames).forEach(keyFrame => {
-    keyFrames[keyFrame].forEach(animClipIndex => {
-      animation.addAnimationClip(keyFrame, animClips[animClipIndex]);
+  Object.keys(keyframes).forEach(keyframe => {
+    keyframes[keyframe].forEach(animClipIndex => {
+      animation.addAnimationClip(keyframe, animClips[animClipIndex]);
     });
   });
   return animation;
@@ -98,14 +98,14 @@ function parseAnimation(currentScene, animData, resources) {
 function buildAnimation(currentScene, resources) {
   const { animator: animatorData } = resources;
   const { type, options } = animatorData;
-  const { keyFrames } = options;
+  const { keyframes } = options;
   const rootNode = currentScene.root;
   const animator = rootNode.createAbility(AAnimator);
   const animations = resources._assets["animations"];
   if (type === "timeline") {
-    Object.keys(keyFrames).forEach(keyFrame => {
-      keyFrames[keyFrame].forEach(animIndex => {
-        animator.addAnimationByStartTime(parseFloat(keyFrame), animations[animIndex]);
+    Object.keys(keyframes).forEach(keyframe => {
+      keyframes[keyframe].forEach(animIndex => {
+        animator.addAnimationByStartTime(parseFloat(keyframe), animations[animIndex]);
       });
     });
   }

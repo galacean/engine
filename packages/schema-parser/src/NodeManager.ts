@@ -6,7 +6,7 @@ import { NodeConfig } from "./types";
 
 export class NodeManager {
   private nodeMap: { [id: string]: o3.Node } = {};
-  private root: o3.Node;
+  private readonly root: o3.Node;
 
   constructor(private oasis: Oasis) {
     this.root = this.oasis.engine.currentScene.root.createChild("runtime-root");
@@ -19,12 +19,13 @@ export class NodeManager {
     return this.get(nodeConfig.id);
   }
 
+  @pluginHook({ before: "beforeNodeUpdated", after: "nodeUpdated" })
   public update(id: string, key: string, value: any) {
     this.get(id)[key] = value;
+    return { id, key, value };
   }
 
   public get(id: string): o3.Node {
-    if (id === "0") return this.root;
     return this.nodeMap[id];
   }
 
@@ -43,9 +44,8 @@ export class NodeManager {
    * @param nodeConfig
    */
   private create(nodeConfig: NodeConfig): o3.Node {
-    const { isActive, position, rotation, scale, id } = nodeConfig;
-    let node: o3.Node;
-    node = new o3.Node(null, null, name);
+    const { isActive, position, rotation, scale, id, name } = nodeConfig;
+    const node = new o3.Node(null, null, name);
     node.isActive = isActive;
     node.position = position;
     node.setRotationAngles(rotation[0], rotation[1], rotation[2]);

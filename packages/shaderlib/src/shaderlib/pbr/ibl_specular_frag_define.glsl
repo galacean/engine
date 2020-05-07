@@ -52,6 +52,9 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
 
     #endif
 //        reflectVec = inverseTransformDirection( reflectVec, u_viewMat );
+
+        reflectVec =  u_envMapLight.transformMatrix * reflectVec;
+
         float specularMIPLevel = getSpecularMIPLevel( blinnShininessExponent, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD

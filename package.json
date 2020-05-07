@@ -31,7 +31,7 @@
     "b:miniprogram": "cross-env NODE_ENV=MINIPROGRAM rollup -c",
     "b:miniprogram-component": "cd packages/component-miniprogram && tnpm run build",
     "c:module": "node scripts/create.module.js",
-    "release": "lerna publish prerelease --yes",
+    "release": "release",
     "release:recover": "lerna publish prerelease from-package --yes",
     "release:force": "lerna exec --no-bail -- tnpm publish --tag alpha",
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server  --config playground/build/webpack.config.mpa.js",
@@ -54,6 +54,7 @@
   "devDependencies": {
     "@ali/ci": "^4.24.0",
     "@ali/rollup-plugin-string": "^3.0.0",
+    "@alipay/release": "^0.10.3",
     "@babel/cli": "^7.5.0",
     "@babel/core": "^7.6.2",
     "@babel/node": "^7.6.2",

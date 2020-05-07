@@ -367,7 +367,40 @@ function debugModel(modelUrl, onLoad) {
   });
 }
 
+function debugEnvLight(envLightNode) {
+  const folder = gui.addFolder("IBL 旋转");
+  const debugInfo = {
+    x: 0,
+    y: 0,
+    z: 0,
+    reset: function() {
+      debugInfo.x = debugInfo.y = debugInfo.z = 0;
+
+      envLightNode.setRotationAngles(0, 0, 0);
+    }
+  };
+  folder
+    .add(debugInfo, "x", -180, 180, 1)
+    .onChange(v => {
+      envLightNode.setRotationAngles(v, debugInfo.y, debugInfo.z);
+    })
+    .listen();
+  folder
+    .add(debugInfo, "y", -180, 180, 1)
+    .onChange(v => {
+      envLightNode.setRotationAngles(debugInfo.x, v, debugInfo.z);
+    })
+    .listen();
+  folder
+    .add(debugInfo, "z", -180, 180, 1)
+    .onChange(v => {
+      envLightNode.setRotationAngles(debugInfo.x, debugInfo.y, v);
+    })
+    .listen();
+  folder.add(debugInfo, "reset");
+}
 //-- run
 engine.run();
 
+debugEnvLight(envLightNode);
 debugShape();

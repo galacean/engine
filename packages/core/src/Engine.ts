@@ -82,7 +82,7 @@ export class Engine extends EventDispatcher {
 
   private _time: Time = new Time();
 
-  private _paused: boolean = false;
+  private _paused: boolean = true;
 
   private _FPSTime: number = 0;
 
@@ -222,6 +222,9 @@ export class Engine extends EventDispatcher {
 
   /** 继续（暂停后的）渲染 */
   public resume(): void {
+    if (!this._paused) {
+      return;
+    }
     this._paused = false;
 
     let fixedUpdateAccumulator = 0;
@@ -258,64 +261,11 @@ export class Engine extends EventDispatcher {
       };
     }
     // 防止场景在后台渲染
-    requestAnimationFrame(() => {
+    this.requestId = requestAnimationFrame(() => {
       // fix lastTickTime every time before animating, otherwise the 1st frame after resuming may gets a too large dt.
       this._animateTime.tick();
       this._animate();
     });
-
-    // var self = this;
-    // var animateTime = this._animateTime;
-
-    // var lastFixedUpdateTime = animateTime.nowTime;
-
-    // function animate() {
-
-    //   animateTime.tick();
-
-    //   //-- fixed update
-    //   if( self._currentScene ){
-
-    //     const nowTime = animateTime.nowTime;
-    //     const interval = self._fixedUpdateInterval;
-    //     let dt = nowTime - lastFixedUpdateTime;
-    //     const needUpdate = dt > interval;
-
-    //     while( dt > interval ){
-
-    //       self._currentScene.trigger( new Event( 'fixedUpdate', self ) );
-    //       dt -= interval;
-
-    //     }
-
-    //     if( needUpdate ){
-
-    //       lastFixedUpdateTime = nowTime - dt;
-
-    //     }
-
-    //   }
-
-    //   //-- tick
-    //   if ( self._FPSTime ) {
-
-    //     if ( self._tickTime >= self._FPSTime ) {
-
-    //       self.tick();
-    //       self._tickTime -= self._FPSTime;
-
-    //     }
-    //     self._tickTime += animateTime.deltaTime;
-
-    //   } else {
-
-    //     self.tick();
-
-    //   }
-    //   self.requestId = requestAnimationFrame( animate );
-
-    // }// end of function
-    // animate();
   }
 
   /** 运行引擎，驱动每帧动画更新 */
