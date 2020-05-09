@@ -1,7 +1,7 @@
 import { Texture } from "./Texture";
 import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
 import { mat3 } from "@alipay/o3-math";
-import { TextureConfig, Rect } from "./type";
+import { Texture2DConfig, Rect } from "./type";
 
 function isPowerOf2(v): boolean {
   return (v & (v - 1)) === 0;
@@ -26,13 +26,18 @@ export class Texture2D extends Texture {
 
   private _uvMatrix = mat3.create();
 
+  /** 是否为 Raw 数据源，如 ImageData、ArrayBufferView */
+  public isRaw: boolean;
+  public width: number;
+  public height: number;
+
   /**
    * 2D 贴图数据对象
    * @param {String} name 名称
    * @param {HTMLImageElement|ImageData|HTMLCanvasElement|ImageBitmap|ArrayBufferView|HTMLVideoElement} image 纹理内容
-   * @param {TextureConfig} config 可选配置
+   * @param {Texture2DConfig} config 可选配置
    */
-  constructor(name: string, image?, config: TextureConfig = {}) {
+  constructor(name: string, image?, config: Texture2DConfig = {}) {
     super(name, config);
 
     config = {
@@ -42,6 +47,9 @@ export class Texture2D extends Texture {
       vScale: 1,
       uvRotation: 0,
       uvCenter: [0, 0],
+      isRaw: false,
+      width: null,
+      height: null,
       ...config
     };
 
@@ -51,6 +59,9 @@ export class Texture2D extends Texture {
     this.vScale = config.vScale;
     this.uvRotation = config.uvRotation;
     this.uvCenter = config.uvCenter;
+    this.isRaw = config.isRaw;
+    this.width = config.width;
+    this.height = config.height;
 
     if (image) {
       /**
@@ -86,7 +97,13 @@ export class Texture2D extends Texture {
   set image(img) {
     this._image = img;
     this.updateTexture();
-    this.configMipmap();
+    if (this.isRaw) {
+      this.setFilter(TextureFilter.NEAREST, TextureFilter.NEAREST);
+      this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
+      this.canMipmap = false;
+    } else {
+      this.configMipmap();
+    }
   }
 
   /**

@@ -71,6 +71,14 @@ export class GLCapability {
     return false;
   }
 
+  /** 是否能使用更多骨骼关节 */
+  public get canIUseMoreJoints() {
+    return (
+      this.canIUse(GLCapabilityType.textureFloat) &&
+      this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0
+    );
+  }
+
   /**
    *  初始化能力
    * */

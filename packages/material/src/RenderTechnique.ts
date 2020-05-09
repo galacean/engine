@@ -192,18 +192,24 @@ export class RenderTechnique extends AssetObject {
     if (attribNames.indexOf("TANGENT") > -1) _macros.push("O3_HAS_TANGENT");
     if (attribNames.indexOf("JOINTS_0") > -1) {
       _macros.push("O3_HAS_SKIN");
-      if (component.jointNodes && component.jointNodes.length) {
-        const maxAttribUniformVec4 = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
-        const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
-        const joints = component.jointNodes.length;
-        if (maxJoints < joints) {
-          Logger.error(
-            `component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, suggest joint count less than ${maxJoints}.`,
-            component
-          );
-        } else if (material.maxJointsNum > 0) {
-          // 使用最大关节数，保证所有 ASkinnedMeshRenderer 都可以共用材质
-          _macros.push(`O3_JOINTS_NUM ${material.maxJointsNum}`);
+      if (component.jointNodes?.length) {
+        /** 是否使用骨骼纹理 */
+        if (!component.disableJointTexture && rhi.canIUseMoreJoints) {
+          _macros.push("O3_USE_JOINT_TEXTURE");
+        } else {
+          component.disableJointTexture = true;
+          const maxAttribUniformVec4 = rhi.renderStates.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
+          const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
+          const joints = component.jointNodes.length;
+          if (maxJoints < joints) {
+            Logger.error(
+              `component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, suggest joint count less than ${maxJoints}.`,
+              component
+            );
+          } else if (material.maxJointsNum > 0) {
+            // 使用最大关节数，保证所有 ASkinnedMeshRenderer 都可以共用材质
+            _macros.push(`O3_JOINTS_NUM ${material.maxJointsNum}`);
+          }
         }
       }
     }
@@ -213,9 +219,9 @@ export class RenderTechnique extends AssetObject {
     }
 
     if (component.weights) {
-      const maxAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+      const maxAttribs = rhi.renderStates.getParameter(gl.MAX_VERTEX_ATTRIBS);
       if (attribNames.length > maxAttribs) {
-        Logger.warn(`too many morph targets, beyound the MAX_VERTEX_ATTRIBS limit ${maxAttribs}`);
+        Logger.warn(`too many morph targets, beyond the MAX_VERTEX_ATTRIBS limit ${maxAttribs}`);
       }
       const targetNum = component.weights.length;
       _macros.push("O3_HAS_MORPH");
@@ -372,6 +378,16 @@ export class RenderTechnique extends AssetObject {
       name: "u_jointMatrix",
       semantic: UniformSemantic.JOINTMATRIX,
       type: DataType.FLOAT_MAT4
+    },
+    u_jointSampler: {
+      name: "u_jointSampler",
+      semantic: UniformSemantic.JOINTTEXTURE,
+      type: DataType.SAMPLER_2D
+    },
+    u_jointCount: {
+      name: "u_jointCount",
+      semantic: UniformSemantic.JOINTCOUNT,
+      type: DataType.FLOAT
     },
     u_fogColor: {
       name: "u_fogColor",
