@@ -308,6 +308,12 @@ export class Material {
       case UniformSemantic.JOINTMATRIX:
         values[uniform.name] = component.matrixPalette;
         break;
+      case UniformSemantic.JOINTTEXTURE:
+        values[uniform.name] = component.jointTexture;
+        break;
+      case UniformSemantic.JOINTCOUNT:
+        values[uniform.name] = component.jointNodes?.length;
+        break;
       case UniformSemantic.MORPHWEIGHTS:
         values[uniform.name] = component.weights;
         break;

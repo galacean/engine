@@ -271,7 +271,11 @@ export enum UniformSemantic {
   /** 当前的摄像机的位置 */
   EYEPOS = 17,
   /** 当前程序运行的时长 */
-  TIME = 18
+  TIME = 18,
+  /** 骨骼矩阵纹理 */
+  JOINTTEXTURE = 19,
+  /** joint 个数 */
+  JOINTCOUNT = 20
 }
 
 /**

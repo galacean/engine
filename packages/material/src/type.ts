@@ -1,5 +1,4 @@
 import { DataType, TextureFilter, TextureWrapMode, UniformSemantic } from "@alipay/o3-base";
-import { RenderTarget } from "./RenderTarget";
 
 export type TextureConfig = {
   magFilter?: TextureFilter;
@@ -8,6 +7,16 @@ export type TextureConfig = {
   wrapT?: TextureWrapMode;
   flipY?: boolean;
   premultiplyAlpha?: boolean;
+  /** 浮点纹理 */
+  isFloat?: boolean;
+  [key: string]: any;
+};
+
+export interface Texture2DConfig extends TextureConfig {
+  /** 是否为 Raw 数据源，如 ImageData、ArrayBufferView */
+  isRaw?: boolean;
+  width?: number;
+  height?: number;
   /** 纹理 U 方向的缩放 */
   uScale?: number;
   /** 纹理 V 方向的缩放 */
@@ -20,8 +29,7 @@ export type TextureConfig = {
   uvRotation?: number;
   /** 纹理中心点 */
   uvCenter?: number[];
-  [key: string]: any;
-};
+}
 
 export interface RenderTargetConfig {
   width?: number;

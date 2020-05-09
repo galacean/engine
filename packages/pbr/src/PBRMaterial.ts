@@ -305,6 +305,55 @@ class PBRMaterial extends Material {
     }
   }
 
+  /** 根据 state 跟新 technique */
+  private updateTechnique(stateName: string, v) {
+    if (this[stateName] === v) return;
+    this._stateObj[stateName] = v;
+
+    const states = this.technique?.states;
+    if (!states) return;
+
+    switch (stateName) {
+      case "doubleSided":
+      case "side":
+        if (this.doubleSided) {
+          states.disable.push(RenderState.CULL_FACE);
+        } else {
+          const index = states.disable.indexOf(RenderState.CULL_FACE);
+          if (index > -1) {
+            states.disable.splice(index, 1);
+          }
+          switch (this.side) {
+            case Side.FRONT:
+              states.functions.cullFace = [CullFace.BACK];
+              break;
+            case Side.BACK:
+              states.functions.cullFace = [CullFace.FRONT];
+              break;
+            case Side.NONE:
+              states.functions.cullFace = [CullFace.FRONT_AND_BACK];
+              break;
+            default:
+              delete states.functions.cullFace;
+          }
+        }
+        break;
+      case "blendFunc":
+      case "blendFuncSeparate":
+        if (this.blendFunc.length) {
+          states.functions.blendFunc = this.blendFunc;
+        } else {
+          states.functions.blendFuncSeparate = this.blendFuncSeparate;
+        }
+        break;
+      case "depthMask":
+        states.functions.depthMask = v;
+        break;
+      default:
+        this._technique = null;
+    }
+  }
+
   /****************************************   uniform start **************************************** /
 
    /**
@@ -683,6 +732,9 @@ class PBRMaterial extends Material {
 
   /****************************************   uniform end **************************************** /
 
+
+  /****************************************   state start **************************************** /
+
    /**
    * alpha混合模式
    * @type {'OPAQUE'|'MASK'|'BLEND'}
@@ -692,8 +744,7 @@ class PBRMaterial extends Material {
   }
 
   set alphaMode(v) {
-    this._stateObj.alphaMode = v;
-    this._technique = null;
+    this.updateTechnique("alphaMode", v);
   }
 
   /**
@@ -705,13 +756,12 @@ class PBRMaterial extends Material {
   }
 
   set doubleSided(v) {
-    this._stateObj.doubleSided = v;
     if (v) {
       this._stateObj.side = Side.DOUBLE;
     } else if (this._stateObj.side === Side.DOUBLE) {
       this._stateObj.side = Side.FRONT;
     }
-    this._technique = null;
+    this.updateTechnique("doubleSided", v);
   }
 
   /**
@@ -722,19 +772,15 @@ class PBRMaterial extends Material {
     return this._stateObj.side;
   }
 
-  set side(v) {
-    if ([Side.FRONT, Side.BACK, Side.NONE, Side.DOUBLE].indexOf(v) === -1) {
-      Logger.warn('PBRMaterial#side only support "Side.FRONT"、"Side.BACK"、"Side.NONE"、"Side.DOUBLE"');
-      return;
-    }
+  set side(v: Side) {
     // 向下兼容doubleSided
     if (v === Side.DOUBLE) {
       this._stateObj.doubleSided = true;
     } else {
       this._stateObj.doubleSided = false;
     }
-    this._stateObj.side = v;
-    this._technique = null;
+
+    this.updateTechnique("side", v);
   }
 
   /**
@@ -746,8 +792,7 @@ class PBRMaterial extends Material {
   }
 
   set unlit(v) {
-    this._stateObj.unlit = v;
-    this._technique = null;
+    this.updateTechnique("unlit", v);
   }
 
   /**
@@ -759,8 +804,7 @@ class PBRMaterial extends Material {
   }
 
   set srgb(v) {
-    this._stateObj.srgb = v;
-    this._technique = null;
+    this.updateTechnique("srgb", v);
   }
 
   /**
@@ -771,8 +815,7 @@ class PBRMaterial extends Material {
   }
 
   set srgbFast(v: boolean) {
-    this._stateObj.srgbFast = v;
-    this._technique = null;
+    this.updateTechnique("srgbFast", v);
   }
 
   /**
@@ -784,8 +827,7 @@ class PBRMaterial extends Material {
   }
 
   set gamma(v) {
-    this._stateObj.gamma = v;
-    this._technique = null;
+    this.updateTechnique("gamma", v);
   }
 
   get blendFunc() {
@@ -793,8 +835,7 @@ class PBRMaterial extends Material {
   }
 
   set blendFunc(v) {
-    this._stateObj.blendFunc = v;
-    this._technique = null;
+    this.updateTechnique("blendFunc", v);
   }
 
   get blendFuncSeparate() {
@@ -802,10 +843,7 @@ class PBRMaterial extends Material {
   }
 
   set blendFuncSeparate(v) {
-    this._stateObj.blendFuncSeparate = v;
-    if (this.technique?.states) {
-      this.technique.states.functions.blendFuncSeparate = v;
-    }
+    this.updateTechnique("blendFuncSeparate", v);
   }
 
   get depthMask() {
@@ -813,8 +851,7 @@ class PBRMaterial extends Material {
   }
 
   set depthMask(v) {
-    this._stateObj.depthMask = v;
-    this._technique = null;
+    this.updateTechnique("depthMask", v);
   }
 
   /**
@@ -827,8 +864,7 @@ class PBRMaterial extends Material {
   }
 
   set getOpacityFromRGB(v) {
-    this._stateObj.getOpacityFromRGB = v;
-    this._technique = null;
+    this.updateTechnique("getOpacityFromRGB", v);
   }
 
   /**
@@ -840,8 +876,7 @@ class PBRMaterial extends Material {
   }
 
   set isMetallicWorkflow(v) {
-    this._stateObj.isMetallicWorkflow = v;
-    this._technique = null;
+    this.updateTechnique("isMetallicWorkflow", v);
   }
 
   /**
@@ -853,9 +888,10 @@ class PBRMaterial extends Material {
   }
 
   set envMapModeRefract(v) {
-    this._stateObj.envMapModeRefract = v;
-    this._technique = null;
+    this.updateTechnique("envMapModeRefract", v);
   }
+
+  /****************************************   state end **************************************** /
 
   /**
    * 绘制前准备
@@ -1065,7 +1101,7 @@ class PBRMaterial extends Material {
     }
     if (this.alphaMode === "BLEND" && !this.refractionTexture) {
       states.enable.push(RenderState.BLEND);
-      if (this._stateObj.blendFunc.length) {
+      if (this.blendFunc.length) {
         states.functions.blendFunc = this._stateObj.blendFunc;
       } else {
         states.functions.blendFuncSeparate = this._stateObj.blendFuncSeparate;

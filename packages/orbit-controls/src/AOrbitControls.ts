@@ -13,6 +13,7 @@ export class AOrbitControls extends NodeAbility {
   public mainElement: HTMLCanvasElement;
   public fov: number;
   public target: Array<number> | Float32Array;
+  public up: Array<number> | Float32Array;
   public minDistance: number;
   public maxDistance: number;
   public minZoom: number;
@@ -100,6 +101,9 @@ export class AOrbitControls extends NodeAbility {
     }
     // 目标点
     this.target = props.target || vec3.create();
+
+    // up向量
+    this.up = vec3.fromValues(0, 1, 0);
 
     // 最大最小距离
     /**
@@ -382,7 +386,7 @@ export class AOrbitControls extends NodeAbility {
     vec3.copy(this._position, this.target);
     vec3.add(this._position, this._position, this._offset);
     this.camera.position = this._position;
-    this.camera.lookAt(this.target, vec3.fromValues(0, 1, 0));
+    this.camera.lookAt(this.target, this.up);
 
     if (this.enableDamping === true) {
       this._sphericalDump.theta *= 1 - this.dampingFactor;
