@@ -104,6 +104,17 @@ class ShaderFactory {
     return shader;
   }
 
+  /**
+   * 1. 兼容 gl_FragColor 和 gl_FragData 同时存在的报错
+   * */
+  static compatible(fragmentShader: string) {
+    const hasFragData = /\bgl_FragData\[.+?\]/g.test(fragmentShader);
+    if (hasFragData) {
+      fragmentShader = fragmentShader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
+    }
+    return fragmentShader;
+  }
+
   private static replaceMRTShader(shader: string, result: string[]): string {
     let declaration = "";
     const mrtIndexSet = new Set();

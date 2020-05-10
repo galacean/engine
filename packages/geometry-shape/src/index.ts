@@ -4,5 +4,6 @@ export { SphereGeometry } from "./Sphere";
 export { PlaneGeometry } from "./Plane";
 export { CylinderGeometry } from "./Cylinder";
 export { CircleGeometry } from "./CircleGeometry";
+export { ScreenQuadGeometry } from "./ScreenQuadGeometry";
+export { TorusGeometry } from "./TorusGeometry";
 export { Model } from "./Model";
-export * from "./TorusGeometry";

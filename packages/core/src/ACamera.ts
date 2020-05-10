@@ -23,6 +23,17 @@ export class ACamera extends NodeAbility {
     return this._sceneRenderer;
   }
 
+  set sceneRenderer(v) {
+    const {
+      defaultRenderPass: { clearMode, clearParam }
+    } = this.sceneRenderer;
+
+    this._sceneRenderer = v;
+    if (!v.defaultRenderPass.clearParam) {
+      this.setClearMode(clearMode, clearParam);
+    }
+  }
+
   /**
    * 摄像机的位置(World Space)
    * @member {mat4}

@@ -72,6 +72,8 @@ import clipPlane_frag from "./shaderlib/clipPlane_frag.glsl";
 import gamma_frag from "./shaderlib/gamma_frag.glsl";
 
 import PBRShaderLib from "./shaderlib/pbr";
+import oit_frag from "./shaderlib/oit/oit_frag.glsl";
+import oit_frag_define from "./shaderlib/oit/oit_frag_define.glsl";
 
 export const ShaderLib = {
   common,
@@ -146,6 +148,9 @@ export const ShaderLib = {
   clipPlane_frag,
 
   gamma_frag,
+
+  oit_frag,
+  oit_frag_define,
 
   ...PBRShaderLib
 };

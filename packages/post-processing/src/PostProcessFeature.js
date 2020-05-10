@@ -3,7 +3,7 @@ import { SceneFeature } from '@alipay/o3-core';
 import { DataType } from '@alipay/o3-base';
 import { RenderTarget } from '@alipay/o3-material';
 
-import { ScreenQuad } from './ScreenQuad';
+import { ScreenQuadGeometry as ScreenQuad } from "@alipay/o3-geometry-shape";
 import { RenderTargetPool } from './RenderTargetPool';
 import { PostEffectNode } from './PostEffectNode';
 import { PostEffectMaterial } from './PostEffectMaterial';

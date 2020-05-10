@@ -24,6 +24,7 @@
     "@alipay/o3-base": "^2.0.12",
     "@alipay/o3-core": "^2.0.12",
     "@alipay/o3-geometry": "^2.0.12",
+    "@alipay/o3-geometry-shape": "^2.0.12",
     "@alipay/o3-material": "^2.0.12",
     "@alipay/o3-math": "^2.0.12",
     "@alipay/o3-primitive": "^2.0.12",

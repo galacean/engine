@@ -7,7 +7,8 @@ import {
   CullFace,
   Side,
   Util,
-  GLCapabilityType
+  GLCapabilityType,
+  OITMode
 } from "@alipay/o3-base";
 import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import { LightFeature } from "@alipay/o3-lighting";
@@ -29,6 +30,7 @@ class PBRMaterial extends Material {
   private _useDiffuseEnv: boolean;
   private _useSpecularEnv: boolean;
   private _clipPlaneCount: number;
+  private _useOIT: boolean;
 
   /**
    * PBR 材质
@@ -900,6 +902,7 @@ class PBRMaterial extends Material {
   prepareDrawing(camera, component, primitive) {
     const scene = camera.scene;
     const lightMgr = scene.findFeature(LightFeature);
+    const canOIT = camera.sceneRenderer.canOIT;
 
     /** 光源 uniform values */
     lightMgr.bindMaterialValues(this);
@@ -908,6 +911,11 @@ class PBRMaterial extends Material {
     /** clipPlane */
     for (let i = 0; i < this._clipPlaneCount; i++) {
       this.setValue(`u_clipPlanes[${i}]`, scene.clipPlanes[i]);
+    }
+
+    /** oit  depth texture */
+    if (canOIT) {
+      this.setValue("u_depthSampler", camera.sceneRenderer.depthTexture);
     }
 
     /** 是否需要重新编译 technique */
@@ -929,7 +937,8 @@ class PBRMaterial extends Material {
       this._directLightCount !== directLightCount ||
       this._pointLightCount !== pointLightCount ||
       this._spotLightCount !== spotLightCount ||
-      this._clipPlaneCount !== scene.clipPlanes?.length
+      this._clipPlaneCount !== scene.clipPlanes?.length ||
+      this._useOIT !== canOIT
     ) {
       this._ambientLightCount = ambientLightCount;
       this._envMapLightCount = envMapLightCount;
@@ -939,6 +948,7 @@ class PBRMaterial extends Material {
       this._pointLightCount = pointLightCount;
       this._spotLightCount = spotLightCount;
       this._clipPlaneCount = scene.clipPlanes?.length;
+      this._useOIT = canOIT;
       this._generateTechnique(camera, component, primitive);
     }
 
@@ -1056,6 +1066,9 @@ class PBRMaterial extends Material {
     if (this._stateObj.isMetallicWorkflow) _macros.push("IS_METALLIC_WORKFLOW");
     if (this._stateObj.envMapModeRefract) _macros.push("ENVMAPMODE_REFRACT");
 
+    if (camera.sceneRenderer.canOIT) {
+      _macros.push("OIT_ENABLE");
+    }
     return _macros;
   }
 
@@ -1333,6 +1346,10 @@ class PBRMaterial extends Material {
         name: "u_perturbationVOffset",
         paramName: "perturbationVOffset",
         type: DataType.FLOAT
+      },
+      u_depthSampler: {
+        name: "u_depthSampler",
+        type: DataType.SAMPLER_2D
       }
     }),
     states: {

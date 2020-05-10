@@ -5,6 +5,7 @@ import { Mat4 } from "@alipay/o3-math/types/type";
 import { vec3 } from "@alipay/o3-math";
 
 export interface Attribute {
+  name?: string;
   semantic: string;
   size: number;
   type: DataType;
