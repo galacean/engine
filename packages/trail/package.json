@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-trail",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "trail module",
   "keywords": [
     "Oasis3D"
@@ -27,10 +27,10 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-base": "^2.1.0",
-    "@alipay/o3-core": "^2.1.0",
-    "@alipay/o3-geometry": "^2.1.0",
-    "@alipay/o3-material": "^2.1.0",
-    "@alipay/o3-math": "^2.1.0"
+    "@alipay/o3-base": "^2.2.0",
+    "@alipay/o3-core": "^2.2.0",
+    "@alipay/o3-geometry": "^2.2.0",
+    "@alipay/o3-material": "^2.2.0",
+    "@alipay/o3-math": "^2.2.0"
   }
 }
