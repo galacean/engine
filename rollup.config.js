@@ -8,6 +8,7 @@ import babel from "rollup-plugin-babel";
 import string from "@ali/rollup-plugin-string";
 import { terser } from "rollup-plugin-terser";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
+import visualizer from 'rollup-plugin-visualizer';
 const readFile = promisify(fs.readFile);
 
 const { LERNA_PACKAGE_NAME, PWD, NODE_ENV } = process.env;
@@ -83,7 +84,7 @@ async function makeRollupConfig({ location, main, name, type }) {
           sourcemap: true
         }
       ],
-      plugins: [...commonPlugins, terser()]
+      plugins: [...commonPlugins, terser(), visualizer({template: 'sunburst'})]
     };
   }
   if (isMiniProgram) {
