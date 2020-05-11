@@ -3,6 +3,8 @@
 #include <normal_share>
 #include <common_frag>
 #include <mobile_material_frag>
+#include <ambient_light_frag>
+
 uniform float u_opacity;
 uniform vec2 u_uvOffset;
 uniform vec2 u_maskUvOffset;
