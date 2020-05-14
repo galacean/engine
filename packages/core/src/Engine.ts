@@ -99,7 +99,7 @@ export class Engine extends EventDispatcher {
    * 构造函数
    * @constructor
    */
-  constructor() {
+  constructor(canvas?: HTMLCanvasElement) {
     super();
 
     // 加入 Feature 管理

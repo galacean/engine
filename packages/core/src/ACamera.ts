@@ -330,6 +330,7 @@ export class ACamera extends NodeAbility {
       vec3.scale(vec3Cache, vec3Cache, -1);
     }
     vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
+    // todo 每帧都会有运算
     mat4.lookAt(this.viewMatrix, this._ownerNode.position, vec3Cache, this._ownerNode.up);
     mat4.invert(this.inverseViewMatrix, this.viewMatrix);
   }
