@@ -1,20 +1,17 @@
 import { ASpriteRenderer } from "./ASpriteRenderer";
+import { Logger } from "@alipay/o3-base";
 
 export class SpriteRenderer extends ASpriteRenderer {
   protected setRect(rect?) {
+    let rectObject;
     try {
       if (rect) {
-        this._rect = JSON.parse(rect);
+        rectObject = JSON.parse(rect);
       }
-    } catch (error) {}
-    if (!this._rect) {
-      this._rect = {
-        x: 0,
-        y: 0,
-        width: this._texture ? this._texture.image.width : 0,
-        height: this.texture ? this._texture.image.height : 0
-      };
+    } catch (error) {
+      Logger.warn("Rect is not valid JSON format");
     }
+    super.setRect(rectObject);
   }
 
   protected setTexture(texture) {
