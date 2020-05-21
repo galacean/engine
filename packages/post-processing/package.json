@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-post-processing",
-  "version": "2.2.2",
+  "version": "2.2.4",
   "description": "Post process effect",
   "keywords": [
     "Oasis3D"
@@ -21,15 +21,15 @@
   "main": "./dist/main.js",
   "module": "./dist/module.js",
   "dependencies": {
-    "@alipay/o3-base": "^2.2.0",
-    "@alipay/o3-core": "^2.2.0",
-    "@alipay/o3-geometry": "^2.2.0",
-    "@alipay/o3-geometry-shape": "2.2.2",
-    "@alipay/o3-material": "^2.2.0",
-    "@alipay/o3-math": "^2.2.0",
-    "@alipay/o3-primitive": "^2.2.0",
-    "@alipay/o3-renderer-basic": "^2.2.0",
-    "@alipay/o3-shaderlib": "^2.2.0"
+    "@alipay/o3-base": "^2.2.4",
+    "@alipay/o3-core": "^2.2.4",
+    "@alipay/o3-geometry": "^2.2.4",
+    "@alipay/o3-geometry-shape": "^2.2.4",
+    "@alipay/o3-material": "^2.2.4",
+    "@alipay/o3-math": "^2.2.4",
+    "@alipay/o3-primitive": "^2.2.4",
+    "@alipay/o3-renderer-basic": "^2.2.4",
+    "@alipay/o3-shaderlib": "^2.2.4"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
