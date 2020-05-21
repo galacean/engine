@@ -1,13 +1,22 @@
 import { Node } from "@alipay/o3-core";
-import { quat, vec3 } from "@alipay/o3-math";
+import { quat, vec3, vec4 } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 import { AnimationClipHandler } from "./animationClipHandler";
 import { LinkList } from "./linkList";
+import { NodeState } from "../types";
+
+function cloneNodeState(node): NodeState {
+  return {
+    position: vec3.clone(node.position),
+    rotation: vec4.clone(node.rotation),
+    scale: vec3.clone(node.scale)
+  };
+}
 export class InterpolationHandler extends AnimationClipHandler {
   private keyframeLinkListMap: { [key: string]: LinkList<any> };
   private tween: Tween;
-  private originNodeState: Node;
-  private curNodeState: Node;
+  private originNodeState: NodeState;
+  private curNodeState: NodeState;
   private changedProperty: any;
   init() {
     super.init();
@@ -16,8 +25,8 @@ export class InterpolationHandler extends AnimationClipHandler {
     this.tween = new Tween();
     this.changedProperty = {};
     this.keyframeLinkListMap = {};
-    this.originNodeState = node.clone();
-    this.curNodeState = node.clone();
+    this.originNodeState = cloneNodeState(node);
+    this.curNodeState = cloneNodeState(node);
     this.curNodeState.rotation = quat.toEuler(vec3.create(), this.curNodeState.rotation);
     const keyframeTimeQueue = Object.keys(animClip.keyframes)
       .map(startTime => Number(startTime))
