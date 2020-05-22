@@ -31,7 +31,6 @@
     "@alipay/o3-core": "^2.2.4",
     "@alipay/o3-geometry": "^2.2.4",
     "@alipay/o3-math": "^2.2.4",
-    "@alipay/o3-mobile-material": "^2.2.4",
-    "@alipay/o3-pbr": "^2.2.4"
+    "@alipay/o3-mobile-material": "^2.2.4"
   }
 }
