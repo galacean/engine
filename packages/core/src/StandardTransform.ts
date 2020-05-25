@@ -1,14 +1,14 @@
-import { NodeAbility } from "../NodeAbility";
+import { NodeAbility } from "./NodeAbility";
 
 /**
  * 变换组件，用于变换相关的操作和层级的子父关联。
  */
-export class Transform extends NodeAbility {
+export class StandardTransform extends NodeAbility {
   /**
    * @todo 由于父类命名冲突，暂时命名为transformParent，待引擎整理后调整为parent
    * 父变换。
    */
-  get transformParent(): Transform {
+  get transformParent(): StandardTransform {
     return null;
   }
 

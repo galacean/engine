@@ -1,6 +1,9 @@
 import { Node } from "./Node";
 import { quat, vec3 } from "@alipay/o3-math";
 
+/**
+ * @deprecated
+ */
 abstract class BasePoint {
   constructor(protected node: Node) {}
 
@@ -14,6 +17,9 @@ abstract class BasePoint {
   abstract set z(value: number);
 }
 
+/**
+ * @deprecated
+ */
 class PositionPoint extends BasePoint {
   get x(): number {
     return this.node.position[0];
@@ -40,6 +46,9 @@ class PositionPoint extends BasePoint {
   }
 }
 
+/**
+ * @deprecated
+ */
 class ScalePoint extends BasePoint {
   get x(): number {
     return this.node.scale[0];
@@ -66,6 +75,9 @@ class ScalePoint extends BasePoint {
   }
 }
 
+/**
+ * @deprecated
+ */
 class RotationPoint extends BasePoint {
   /**
    * @deprecated
@@ -107,6 +119,9 @@ class RotationPoint extends BasePoint {
   }
 }
 
+/**
+ * @deprecated
+ */
 export class Transform {
   private _position: PositionPoint;
   private _rotation: RotationPoint;
