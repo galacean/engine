@@ -97,13 +97,6 @@ export class NodeAbility extends EventDispatcher {
     return this._ownerNode.getInvModelMatrix();
   }
 
-  /**
-   * 增加 parent 属性，主要是提供给事件的冒泡机制使用
-   */
-  get parent(): Node {
-    return this._ownerNode;
-  }
-
   /** 是否被销毁
    * @member {boolean}
    * @readonly
@@ -229,4 +222,12 @@ export class NodeAbility extends EventDispatcher {
     this.trigger(new Event("disabled", this));
     this.trigger(new Event("destroy", this));
   }
+
+  //--------------------------------------------Must delete--------------------------------------------------------
+  // /**
+  //  * 增加 parent 属性，主要是提供给事件的冒泡机制使用
+  //  */
+  // get parent(): Node {
+  //   return this._ownerNode;
+  // }
 }
