@@ -7,342 +7,56 @@ import { Engine } from "./Engine";
 import { vec3Type } from "./type";
 import { Transform } from "./Transform";
 
-function activeChange(node: Node) {
-  return () => {
-    if (node.parentNode) {
-      if (node.parentNode.isActiveInHierarchy) {
-        node.isActiveInHierarchy = node.isActive;
-      } else {
-        node.isActiveInHierarchy = false;
-      }
-    } else {
-      node.isActiveInHierarchy = node.isActive;
-    }
-  };
-}
-
-function enableRenderer(node: Node, enabled: boolean, key: string) {
-  const abilityArray = node.abilityArray;
-
-  if (abilityArray) {
-    for (let i = abilityArray.length - 1; i >= 0; i--) {
-      const ability = abilityArray[i];
-      if (ability.isRenderable) {
-        ability[key] = enabled;
-      }
-    } // end of for
-  }
-
-  const children = node.children;
-  if (children) {
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      child[key] = enabled;
-    } // end of for
-  } // end of if
-}
-
 /**
- * SceneGraph中的一个节点，也就是场景中的一个对象；主要功能是管理组件对象，并组成SceneGraph
- * @class
+ * 节点类,可作为组件的容器。
  */
 export class Node extends EventDispatcher {
-  /**
-   * 所属的 Scene 对象
-   * @member {Scene}
-   * @readonly
-   */
-  get scene(): Scene {
-    return this._ownerScene;
-  }
+  /** 名字。 */
+  name: string;
 
   /**
-   * 引擎对象
-   * @member
-   * @readonly
+   * 是否局部激活。
    */
-  get engine(): Engine {
-    return this._ownerScene.engine;
+  get active(): boolean {
+    //TODO:
+    return false;
+  }
+  set active(value: boolean) {
+    //TODO:
   }
 
   /**
-   * 名字
-   * @member {string}
-   * @readonly
+   * 在层级中是否处于激活状态。
    */
-  get name(): string {
-    return this._name;
-  }
-
-  set name(name) {
-    this._name = name;
+  get activeInHierarchy(): boolean {
+    //TODO:
+    return false;
   }
 
   /**
-   * 子节点数组
-   * @member {Array}
-   * @readonly
+   * 父变换。
    */
-  get children(): Node[] {
-    return this._children;
+  get parent(): Node {
+    //TODO:
+    return null;
+  }
+  set parent(value: Node) {
+    //TODO:
   }
 
   /**
-   * 功能组件数组
-   * @member {Array}
-   * @readonly
+   * 子变换数量。
    */
-  get abilityArray(): NodeAbility[] {
-    return this._abilityArray;
+  get childCount(): number {
+    //TODO:
+    return 0;
   }
-
-  /**
-   * 本节点是否Active
-   * @member {boolean}
-   */
-  get isActive(): boolean {
-    return this._activeSelf;
-  }
-
-  set isActive(val: boolean) {
-    this._activeSelf = val;
-    this._activeChangeFun();
-  }
-
-  /**
-   * 在SceneGraph中是否Active
-   * @member {boolean}
-   * @readonly
-   */
-  get isActiveInHierarchy(): boolean {
-    return this._isActiveInInHierarchy;
-  }
-
-  set isActiveInHierarchy(isActiveInHierarchy: boolean) {
-    this._isActiveInInHierarchy = isActiveInHierarchy;
-    this.trigger(new Event("isActiveInHierarchyChange"));
-    this.traverseAbilitiesTriggerEnabled(isActiveInHierarchy);
-  }
-
-  /**
-   * 父节点
-   * @member {Node}
-   */
-  get parentNode(): Node {
-    return this._parent;
-  }
-
-  set parentNode(parentObj: Node) {
-    if (!parentObj || parentObj === this._parent) {
-      return;
-    }
-
-    if (this._parent != null) {
-      const index = this._parent._children.indexOf(this);
-      if (index > -1) {
-        this._parent._children.splice(index, 1);
-        this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-      } else {
-        Logger.debug("can not find this object in _parent._children");
-      }
-    }
-
-    this._parent = parentObj;
-    parentObj._children.push(this);
-    this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-    this._activeChangeFun();
-    this._markTransformDirty();
-  }
-
-  /**
-   * 子节点的数量
-   * @member {number}
-   * @readonly
-   */
-  get childrenCount(): number {
-    return this._children.length;
-  }
-
-  /**
-   * 所包含的组件的数量
-   * @member {number}
-   * @readonly
-   */
-  get abilityCount(): number {
-    return this._abilityArray.length;
-  }
-
-  /**
-   * 是否被销毁
-   * @member {boolean}
-   * @readonly
-   * @private
-   */
-  get isPendingDestroy(): boolean {
-    return this._pendingDestroy;
-  }
-
-  // -- Begin of Transform ----------------------------------------------------------------------------------------
-  /**
-   * 本节点的位置(Local Space)
-   * @member {vec3}
-   */
-  get position() {
-    return this._position;
-  }
-
-  set position(val) {
-    vec3.set(this._position, val[0], val[1], val[2]);
-    this._markTransformDirty();
-  }
-
-  /**
-   * 节点的上方向
-   * @type {Array}
-   * @readonly
-   */
-  get up() {
-    return this._up;
-  }
-
-  /**
-   * 节点的前方向
-   * @type {Array}
-   * @readonly
-   */
-  get forward() {
-    return this._forward;
-  }
-
-  /**
-   * 节点的右方向
-   * @type {Array}
-   * @readonly
-   */
-  get right() {
-    return this._right;
-  }
-
-  /**
-   * 本节点的世界坐标系位置
-   * @member {vec3}
-   */
-  get worldPosition() {
-    if (this._parent) {
-      const parentModel = this._parent.getModelMatrix();
-      const pos = vec3.create();
-      vec3.transformMat4(pos, this._position, parentModel);
-      return pos;
-    } else {
-      return this._position;
-    }
-  }
-
-  set worldPosition(val) {
-    const pos = vec3.fromValues(val[0], val[1], val[2]);
-    if (this._parent) {
-      const matWorldToLocal = this._parent.getInvModelMatrix();
-      vec3.transformMat4(this._position, pos, matWorldToLocal);
-    } else {
-      this._position = pos;
-    }
-    this._markTransformDirty();
-  }
-
-  /** Property: 本节点的旋转四元数(Local Space)
-   * @member {quat|Array}
-   */
-  get rotation() {
-    return this._rotation;
-  }
-
-  set rotation(val) {
-    quat.set(this._rotation, val[0], val[1], val[2], val[3]);
-    this._markTransformDirty();
-  }
-
-  /** 本节点的缩放系数(Local Space)
-   * @member {vec3}
-   */
-  get scale() {
-    return this._scale;
-  }
-
-  set scale(val) {
-    vec3.set(this._scale, val[0], val[1], val[2]);
-    this._markTransformDirty();
-  }
-
-  /**
-   * 设置是否投射阴影，只有导入 ShadowFeature 时生效
-   * @member {boolean}
-   */
-  set castShadow(enabled: boolean) {
-    enableRenderer(this, enabled, "castShadow");
-  }
-
-  /**
-   * 设置是否接收阴影，只有导入 ShadowFeature 时生效
-   * @member {boolean}
-   */
-  set recieveShadow(enabled) {
-    enableRenderer(this, enabled, "recieveShadow");
-  }
-
-  /**
-   * 设置产生深度纹理时是否忽略该纹理，只有导入 DepthFeature 时生效
-   * @member {boolean}
-   */
-  set ignoreInDepthTexture(enabled: boolean) {
-    enableRenderer(this, enabled, "ignoreInDepthTexture");
-  }
-
-  /**
-   * matrix 是否发生变化
-   * */
-  get isDirty() {
-    return this._modelMatrixDirty;
-  }
-
-  public onUpdate: (t?: number) => void;
-  public _parent: Node;
-  public transform: Transform;
-
-  private _ownerScene: Scene;
-
-  private _name: string;
-
-  private _children: Node[];
-
-  private _abilityArray: NodeAbility[];
-
-  private _pendingDestroy: boolean;
-
-  private _activeSelf: boolean;
-
-  private _isActiveInInHierarchy: boolean;
-
-  private propertyChangeEvnet = new Event("propertyChange");
-
-  private _activeChangeFun;
-
-  private _position;
-
-  private _rotation;
-  private _scale;
-  private _modelMatrix;
-  private _invModelMatrix;
-  private _modelMatrixDirty;
-  private _invModelMatrixDirty;
-  private _up;
-  private _right;
-  private _forward;
 
   /**
    * 构造函数
-   * @param {Scene} scene 所属的场景
-   * @param {Node} parent 父节点
-   * @param {string} name 节点名称
+   * @param scene - 所属的场景
+   * @param parent - 父节点
+   * @param name - 点名称
    */
   constructor(scene?: Scene, parent?: Node, name?: string) {
     super();
@@ -385,6 +99,72 @@ export class Node extends EventDispatcher {
     this.transform = new Transform(this);
   }
 
+  /**
+   * 根据组件类型添加组件。
+   * @returns	组件实例
+   */
+  addComponent<T extends NodeAbility>(): T {
+    //TODO:
+    return null;
+  }
+
+  /**
+   * 根据组件类型获取组件。
+   * @returns	组件实例
+   */
+  getComponent<T extends NodeAbility>(): T {
+    //TODO:
+    return null;
+  }
+
+  /**
+   * 根据组件类型获取组件集合。
+   * @returns	组件实例集合
+   */
+  getComponents<T extends NodeAbility>(results: Array<T>): void {
+    //TODO:
+  }
+
+  /**
+   * 根据索引获取子节点。
+   *  @param index - 索引
+   * @returns 节点
+   */
+  getChild(index: number): Node {
+    //TODO:
+    return null;
+  }
+
+  /**
+   * 根据名字查查找节点。
+   * @param name - 名字
+   * @returns 节点
+   */
+  findByName(name: string): Node {
+    //TODO:
+    return null;
+  }
+
+  /**
+   * 根据路径查找节点，使用‘/’符号作为路径分割符。
+   * @param name - 名字
+   * @returns 节点
+   */
+  findByPath(name: string): Node {
+    //TODO:
+    return null;
+  }
+
+  /**
+   * 清空子节点。
+   */
+  clearChildren(): void {
+    //TODO:
+  }
+
+  /**
+   * 克隆。
+   */
   public clone(): Node {
     const newNode = new Node(this._ownerScene, null, this.name);
 
@@ -416,122 +196,78 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * 每帧状态更新，在Engine.tick()中被调用
-   * @param {number} deltaTime
-   * @private
+   * 销毁。
    */
-  public update(deltaTime: number): void {
-    if (!this._activeSelf) {
-      return;
-    }
+  public destroy(): void {
+    this._pendingDestroy = true;
 
-    // -- 检查并执行onUpdate函数
-    if (this.onUpdate) {
-      this.onUpdate(deltaTime);
-    }
-
-    // -- 更新所有 Ability
+    // -- clear ability array
     const abilityArray = this._abilityArray;
-    if (abilityArray) {
-      for (let i = abilityArray.length - 1; i >= 0; i--) {
-        const ability = abilityArray[i];
-
-        if (ability.isPendingDestroy) {
-          abilityArray.splice(i, 1);
-          continue;
-        }
-
-        if (ability.enabled) {
-          ability.update(deltaTime);
-        }
-      } // end of for
+    for (let i = abilityArray.length - 1; i >= 0; i--) {
+      abilityArray[i].destroy();
     }
+    this._abilityArray = [];
 
-    // -- 更新所有子节点
-    const children = this._children;
-    if (children) {
-      for (let i = children.length - 1; i >= 0; i--) {
-        const child = children[i];
-        if (child._pendingDestroy) {
-          children.splice(i, 1);
-          continue;
-        }
-        child.update(deltaTime);
-      } // end of for
-    } // end of if
-  }
-
-  /**
-   * 递归的访问自身&子节点
-   * @param {SceneVisitor} visitor
-   */
-  public visit(visitor: SceneVisitor): void {
-    if (!visitor.acceptNode(this)) {
-      return;
-    }
-
-    const abilityArray = this._abilityArray;
-    if (abilityArray) {
-      for (let i = abilityArray.length - 1; i >= 0; i--) {
-        visitor.acceptAbility(abilityArray[i]);
-      }
-    } // end of if
-
-    const children = this._children;
-    if (children) {
-      for (let i = children.length - 1; i >= 0; i--) {
-        children[i].visit(visitor);
-      } // end of for
-    } // end of if
-  }
-
-  /**
-   * 按照名称查找子节点
-   * @param {string} name 对象名称
-   * @return {Node}
-   */
-  public findChildByName(name: string): Node {
-    // -- find in this
+    // -- clear children
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child._name && child._name === name) {
-        return child;
+      children[i].destroy();
+    }
+    this._children = [];
+
+    // -- clear parent
+    if (this._parent != null) {
+      const index = this._parent._children.indexOf(this);
+      if (index > -1) {
+        this._parent._children.splice(index, 1);
+        this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
+      } else {
+        Logger.debug("can not find this object in _parent._children");
       }
     }
-
-    // -- 递归的查找所有子节点
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      const findObj = child.findChildByName(name);
-      if (findObj) {
-        return findObj;
-      }
-    }
-
-    return null;
+    this._parent = null;
   }
+
+  //--------------------------------------------TobeConfirmed--------------------------------------------------
 
   /**
-   * 按照路径查找子节点
-   * @param {string} path 斜线分割的路径, 例如：'chicken/obj1/obj2'
-   * @return {Node}
+   * 所属的场景对象。
    */
-  public findChildByPath(path: string): Node {
-    const splits = path.split("/");
-    if (splits.length === 0) {
-      return null;
-    }
-
-    let obj: Node = this;
-    for (const split of splits) {
-      obj = obj.findChildByName(split);
-      if (obj === null) {
-        return null;
-      }
-    }
-    return obj;
+  get scene(): Scene {
+    return this._ownerScene;
   }
+
+  public _parent: Node;
+
+  private _ownerScene: Scene;
+
+  private _name: string;
+
+  private _children: Node[];
+
+  private _abilityArray: NodeAbility[];
+
+  private _pendingDestroy: boolean;
+
+  private _activeSelf: boolean;
+
+  private _isActiveInInHierarchy: boolean;
+
+  private propertyChangeEvnet = new Event("propertyChange");
+
+  private _activeChangeFun;
+
+  private _position;
+
+  private _rotation;
+  private _scale;
+  private _modelMatrix;
+  private _invModelMatrix;
+  private _modelMatrixDirty;
+  private _invModelMatrixDirty;
+  private _up;
+  private _right;
+  private _forward;
 
   /**
    * 创建子节点
@@ -578,25 +314,48 @@ export class Node extends EventDispatcher {
     }
   }
 
-  /** 销毁本节点对象 */
-  public destroy(): void {
-    this._pendingDestroy = true;
+  //--------------------------------------------------------------deprecated----------------------------------------------------------------
 
-    // -- clear ability array
-    const abilityArray = this._abilityArray;
-    for (let i = abilityArray.length - 1; i >= 0; i--) {
-      abilityArray[i].destroy();
+  /** @deprecated */
+  public onUpdate: (t?: number) => void;
+  /** @deprecated */
+  public transform: Transform;
+
+  /**
+   * @deprecated
+   * 是否被销毁
+   * @member {boolean}
+   * @readonly
+   * @private
+   */
+  get isPendingDestroy(): boolean {
+    return this._pendingDestroy;
+  }
+
+  /**
+   * @deprecated
+   * 子节点的数量
+   * @member {number}
+   * @readonly
+   */
+  get childrenCount(): number {
+    return this._children.length;
+  }
+
+  /**
+   * @deprecated
+   * 父节点
+   * @member {Node}
+   */
+  get parentNode(): Node {
+    return this._parent;
+  }
+
+  set parentNode(parentObj: Node) {
+    if (!parentObj || parentObj === this._parent) {
+      return;
     }
-    this._abilityArray = [];
 
-    // -- clear children
-    const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      children[i].destroy();
-    }
-    this._children = [];
-
-    // -- clear parent
     if (this._parent != null) {
       const index = this._parent._children.indexOf(this);
       if (index > -1) {
@@ -606,32 +365,265 @@ export class Node extends EventDispatcher {
         Logger.debug("can not find this object in _parent._children");
       }
     }
-    this._parent = null;
+
+    this._parent = parentObj;
+    parentObj._children.push(this);
+    this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
+    this._activeChangeFun();
+    this._markTransformDirty();
   }
 
   /**
-   * 向节点添加一个已有的功能组件对象
-   * @param {NodeAbility} abilityObject 功能组件对象
+   * @deprecated
+   * 在SceneGraph中是否Active
+   * @member {boolean}
+   * @readonly
    */
-  public attachAbility(abilityObject: NodeAbility): void {
-    const index = this._abilityArray.indexOf(abilityObject);
-    if (index !== -1) {
-      this._abilityArray.push(abilityObject);
+  get isActiveInHierarchy(): boolean {
+    return this._isActiveInInHierarchy;
+  }
+
+  set isActiveInHierarchy(isActiveInHierarchy: boolean) {
+    this._isActiveInInHierarchy = isActiveInHierarchy;
+    this.trigger(new Event("isActiveInHierarchyChange"));
+    this.traverseAbilitiesTriggerEnabled(isActiveInHierarchy);
+  }
+
+  /**
+   * @deprecated
+   * 本节点是否Active
+   */
+  get isActive(): boolean {
+    return this._activeSelf;
+  }
+
+  set isActive(val: boolean) {
+    this._activeSelf = val;
+    this._activeChangeFun();
+  }
+
+  /**
+   * @deprecated
+   * 子节点数组
+   */
+  get children(): Node[] {
+    return this._children;
+  }
+
+  /**
+   * @deprecated
+   * 引擎对象
+   * @member
+   * @readonly
+   */
+  get engine(): Engine {
+    return this._ownerScene.engine;
+  }
+
+  /**
+   * @deprecated
+   * 所包含的组件的数量
+   * @member {number}
+   * @readonly
+   */
+  get abilityCount(): number {
+    return this._abilityArray.length;
+  }
+
+  /**
+   * @deprecated
+   * matrix 是否发生变化
+   */
+  get isDirty() {
+    return this._modelMatrixDirty;
+  }
+
+  /**
+   * @deprecated
+   * 功能组件数组
+   * @member {Array}
+   * @readonly
+   */
+  get abilityArray(): NodeAbility[] {
+    return this._abilityArray;
+  }
+
+  /**
+   * @deprecated
+   * 本节点的位置(Local Space)
+   * @member {vec3}
+   */
+  get position() {
+    return this._position;
+  }
+
+  set position(val) {
+    vec3.set(this._position, val[0], val[1], val[2]);
+    this._markTransformDirty();
+  }
+
+  /**
+   * @deprecated
+   * 节点的上方向
+   * @type {Array}
+   * @readonly
+   */
+  get up() {
+    return this._up;
+  }
+
+  /**
+   * @deprecated
+   * 节点的前方向
+   * @type {Array}
+   * @readonly
+   */
+  get forward() {
+    return this._forward;
+  }
+
+  /**
+   * @deprecated
+   * 节点的右方向
+   * @type {Array}
+   * @readonly
+   */
+  get right() {
+    return this._right;
+  }
+
+  /**
+   * @deprecated
+   * 本节点的世界坐标系位置
+   * @member {vec3}
+   */
+  get worldPosition() {
+    if (this._parent) {
+      const parentModel = this._parent.getModelMatrix();
+      const pos = vec3.create();
+      vec3.transformMat4(pos, this._position, parentModel);
+      return pos;
+    } else {
+      return this._position;
     }
   }
 
-  /**
-   * 把一个功能组件对象，从当前节点移除（不执行 destroy 操作）
-   * @param {NodeAbility} abilityObject 功能组件对象
-   */
-  public detachAbility(abilityObject: NodeAbility): void {
-    const index = this._abilityArray.indexOf(abilityObject);
-    if (index !== -1) {
-      this._abilityArray.splice(index, 1);
+  set worldPosition(val) {
+    const pos = vec3.fromValues(val[0], val[1], val[2]);
+    if (this._parent) {
+      const matWorldToLocal = this._parent.getInvModelMatrix();
+      vec3.transformMat4(this._position, pos, matWorldToLocal);
+    } else {
+      this._position = pos;
     }
+    this._markTransformDirty();
+  }
+
+  /** Property: 本节点的旋转四元数(Local Space)
+   * @member {quat|Array}
+   */
+  get rotation() {
+    return this._rotation;
+  }
+
+  set rotation(val) {
+    quat.set(this._rotation, val[0], val[1], val[2], val[3]);
+    this._markTransformDirty();
   }
 
   /**
+   * @deprecated
+   * 本节点的缩放系数(Local Space)
+   * @member {vec3}
+   */
+  get scale() {
+    return this._scale;
+  }
+
+  set scale(val) {
+    vec3.set(this._scale, val[0], val[1], val[2]);
+    this._markTransformDirty();
+  }
+
+  /**
+   * @deprecated
+   * 设置是否投射阴影，只有导入 ShadowFeature 时生效
+   * @member {boolean}
+   */
+  set castShadow(enabled: boolean) {
+    enableRenderer(this, enabled, "castShadow");
+  }
+
+  /**
+   * @deprecated
+   * 设置是否接收阴影，只有导入 ShadowFeature 时生效
+   * @member {boolean}
+   */
+  set recieveShadow(enabled) {
+    enableRenderer(this, enabled, "recieveShadow");
+  }
+
+  /**
+   * @deprecated
+   * 设置产生深度纹理时是否忽略该纹理，只有导入 DepthFeature 时生效
+   * @member {boolean}
+   */
+  set ignoreInDepthTexture(enabled: boolean) {
+    enableRenderer(this, enabled, "ignoreInDepthTexture");
+  }
+
+  /**
+   * @deprecated
+   * 按照名称查找子节点
+   * @param {string} name 对象名称
+   * @return {Node}
+   */
+  public findChildByName(name: string): Node {
+    // -- find in this
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      if (child._name && child._name === name) {
+        return child;
+      }
+    }
+
+    // -- 递归的查找所有子节点
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      const findObj = child.findChildByName(name);
+      if (findObj) {
+        return findObj;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * @deprecated
+   * 按照路径查找子节点
+   * @param {string} path 斜线分割的路径, 例如：'chicken/obj1/obj2'
+   * @return {Node}
+   */
+  public findChildByPath(path: string): Node {
+    const splits = path.split("/");
+    if (splits.length === 0) {
+      return null;
+    }
+
+    let obj: Node = this;
+    for (const split of splits) {
+      obj = obj.findChildByName(split);
+      if (obj === null) {
+        return null;
+      }
+    }
+    return obj;
+  }
+
+  /**
+   * @deprecated
    * 为这个节点，创建一个功能组件
    * @param {Class} abilityType 组件的类型
    * @param {object} props 组件的额外参数
@@ -647,6 +639,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 在当前节点中，查找指定类型的功能组件
    * @param {Class} abilityType
    * @return {NodeAbility}
@@ -663,6 +656,103 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
+   * 递归的访问自身&子节点
+   * @param {SceneVisitor} visitor
+   */
+  public visit(visitor: SceneVisitor): void {
+    if (!visitor.acceptNode(this)) {
+      return;
+    }
+
+    const abilityArray = this._abilityArray;
+    if (abilityArray) {
+      for (let i = abilityArray.length - 1; i >= 0; i--) {
+        visitor.acceptAbility(abilityArray[i]);
+      }
+    } // end of if
+
+    const children = this._children;
+    if (children) {
+      for (let i = children.length - 1; i >= 0; i--) {
+        children[i].visit(visitor);
+      } // end of for
+    } // end of if
+  }
+
+  /**
+   * @deprecated
+   * 每帧状态更新，在Engine.tick()中被调用
+   * @param {number} deltaTime
+   * @private
+   */
+  public update(deltaTime: number): void {
+    if (!this._activeSelf) {
+      return;
+    }
+
+    // -- 检查并执行onUpdate函数
+    if (this.onUpdate) {
+      this.onUpdate(deltaTime);
+    }
+
+    // -- 更新所有 Ability
+    const abilityArray = this._abilityArray;
+    if (abilityArray) {
+      for (let i = abilityArray.length - 1; i >= 0; i--) {
+        const ability = abilityArray[i];
+
+        if (ability.isPendingDestroy) {
+          abilityArray.splice(i, 1);
+          continue;
+        }
+
+        if (ability.enabled) {
+          ability.update(deltaTime);
+        }
+      } // end of for
+    }
+
+    // -- 更新所有子节点
+    const children = this._children;
+    if (children) {
+      for (let i = children.length - 1; i >= 0; i--) {
+        const child = children[i];
+        if (child._pendingDestroy) {
+          children.splice(i, 1);
+          continue;
+        }
+        child.update(deltaTime);
+      } // end of for
+    } // end of if
+  }
+
+  /**
+   * @deprecated
+   * 向节点添加一个已有的功能组件对象
+   * @param {NodeAbility} abilityObject 功能组件对象
+   */
+  public attachAbility(abilityObject: NodeAbility): void {
+    const index = this._abilityArray.indexOf(abilityObject);
+    if (index !== -1) {
+      this._abilityArray.push(abilityObject);
+    }
+  }
+
+  /**
+   * @deprecated
+   * 把一个功能组件对象，从当前节点移除（不执行 destroy 操作）
+   * @param {NodeAbility} abilityObject 功能组件对象
+   */
+  public detachAbility(abilityObject: NodeAbility): void {
+    const index = this._abilityArray.indexOf(abilityObject);
+    if (index !== -1) {
+      this._abilityArray.splice(index, 1);
+    }
+  }
+
+  /**
+   * @deprecated
    * 使用四元数对对象进行增量旋转
    * @param {quat} rot 旋转四元数
    */
@@ -672,6 +762,34 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
+   */
+  private traverseAbilitiesTriggerEnabled(enabled: boolean) {
+    const eventName = enabled ? "enabled" : "disabled";
+    for (let i = 0; i < this._abilityArray.length; i++) {
+      const abiltiy = this._abilityArray[i];
+      if (abiltiy && abiltiy.started && abiltiy.enabled) {
+        abiltiy.trigger(new Event(eventName, this));
+      }
+    }
+  }
+
+  /**
+   * @deprecated
+   */
+  private static traverseSetOwnerScene(node: Node) {
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      const child = node.children[i];
+      const enabled = node._ownerScene ? false : true;
+      node.traverseAbilitiesTriggerEnabled(enabled);
+
+      child._ownerScene = node._ownerScene;
+      this.traverseSetOwnerScene(node.children[i]);
+    }
+  }
+
+  /**
+   * @deprecated
    * 使用 Euler 角度对对象进行增量旋转, 单位：角度
    * @param {Array | vec3 | number} pitch 如果是number：围绕X轴的旋转；如果是数组：[x, y, z]或者[pitch, yaw, roll]
    * @param {number} yaw Y轴的旋转角度
@@ -690,6 +808,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 使用Euler角度的方式设置旋转, 单位：角度
    * @param {Array|vec3|number} pitch 如果是number：围绕X轴的旋转；如果是数组：[x, y, z]或者[pitch, yaw, roll]
    * @param {number} yaw 围绕Y轴的旋转
@@ -705,6 +824,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 使用Axis-Angle的方式设置旋转：围绕某个向量为轴，旋转一定角度
    * @param {Vec3} axis 旋转轴
    * @param {number} deg 旋转角度
@@ -714,7 +834,9 @@ export class Node extends EventDispatcher {
     this._markTransformDirty();
   }
 
-  /** 获取本节点的前方方向
+  /**
+   * @deprecated
+   * 获取本节点的前方方向
    * @return {vec3} 节点的前方方向向量
    */
   public getForward(): number[] | Float32Array {
@@ -723,6 +845,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 取得Local to World矩阵
    */
   public getModelMatrix(): number[] | Float32Array {
@@ -739,9 +862,9 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 使用 Local to World 更新内部 Transform 数据，效率较低
    * @param {mat4} m 变换矩阵
-   * @deprecated
    */
   public setModelMatrix(m: number[] | Float32Array) {
     const transformMat = mat4.clone(m);
@@ -773,6 +896,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 取得World to Local矩阵
    * @return {mat4}
    */
@@ -784,6 +908,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 重新计算Local to World矩阵
    * @private
    */
@@ -804,6 +929,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 重新计算World to Local矩阵
    * @private
    */
@@ -813,6 +939,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 设置Transform Dirty标志，包括子节点
    * @private
    */
@@ -831,6 +958,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 设置Model矩阵，使得本节点‘看向’一个点
    * @param {vec3} center 看向的点
    * @param {vec3} up 指向上方的单位向量
@@ -842,25 +970,45 @@ export class Node extends EventDispatcher {
     this.setModelMatrix(modelMatrix);
     return this;
   }
+}
 
-  private traverseAbilitiesTriggerEnabled(enabled: boolean) {
-    const eventName = enabled ? "enabled" : "disabled";
-    for (let i = 0; i < this._abilityArray.length; i++) {
-      const abiltiy = this._abilityArray[i];
-      if (abiltiy && abiltiy.started && abiltiy.enabled) {
-        abiltiy.trigger(new Event(eventName, this));
+/**
+ * @deprecated
+ */
+function activeChange(node: Node) {
+  return () => {
+    if (node.parentNode) {
+      if (node.parentNode.isActiveInHierarchy) {
+        node.isActiveInHierarchy = node.isActive;
+      } else {
+        node.isActiveInHierarchy = false;
       }
+    } else {
+      node.isActiveInHierarchy = node.isActive;
     }
+  };
+}
+
+/**
+ * @deprecated
+ */
+function enableRenderer(node: Node, enabled: boolean, key: string) {
+  const abilityArray = node.abilityArray;
+
+  if (abilityArray) {
+    for (let i = abilityArray.length - 1; i >= 0; i--) {
+      const ability = abilityArray[i];
+      if (ability.isRenderable) {
+        ability[key] = enabled;
+      }
+    } // end of for
   }
 
-  private static traverseSetOwnerScene(node: Node) {
-    for (let i = node.children.length - 1; i >= 0; i--) {
-      const child = node.children[i];
-      const enabled = node._ownerScene ? false : true;
-      node.traverseAbilitiesTriggerEnabled(enabled);
-
-      child._ownerScene = node._ownerScene;
-      this.traverseSetOwnerScene(node.children[i]);
-    }
-  }
+  const children = node.children;
+  if (children) {
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      child[key] = enabled;
+    } // end of for
+  } // end of if
 }
