@@ -5,6 +5,7 @@ import { Scene } from "./Scene";
 import { mat4Type } from "./type";
 
 /**
+ * TODO:命名暂时保留兼容性，未来替换为Component
  * 所有组件的基类。
  */
 export class NodeAbility extends EventDispatcher {
@@ -33,13 +34,6 @@ export class NodeAbility extends EventDispatcher {
    */
   get node(): Node {
     return this._ownerNode;
-  }
-
-  /**
-   * 所属场景对象。
-   */
-  get scene(): Scene {
-    return this._ownerNode.scene;
   }
 
   public _props: object;
@@ -79,6 +73,15 @@ export class NodeAbility extends EventDispatcher {
 
     this.trigger(new Event("disabled", this));
     this.trigger(new Event("destroy", this));
+  }
+
+  //--------------------------------------------TobeConfirmed--------------------------------------------------
+
+  /**
+   * 所属场景对象。
+   */
+  get scene(): Scene {
+    return this._ownerNode.scene;
   }
 
   //---------------------------------------------Deprecated-----------------------------------------------------------------
