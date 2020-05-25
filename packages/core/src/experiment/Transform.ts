@@ -5,9 +5,10 @@ import { NodeAbility } from "../NodeAbility";
  */
 export class Transform extends NodeAbility {
   /**
+   * @todo 由于父类命名冲突，暂时命名为transformParent，待引擎整理后调整为parent
    * 父变换。
    */
-  get parent(): Transform {
+  get transformParent(): Transform {
     return null;
   }
 
