@@ -7,12 +7,14 @@ import { Engine } from "./Engine";
 import { vec3Type } from "./type";
 import { Transform } from "./Transform";
 import { StandardTransform } from "./StandardTransform";
-import { Texture } from "./experiment/Texture";
 
 /**
  * 节点类,可作为组件的容器。
  */
 export class Node extends EventDispatcher {
+  private _components: NodeAbility[];
+  private _active: boolean;
+  private _parent: Node;
   /** 名字。 */
   name: string;
 
@@ -21,10 +23,11 @@ export class Node extends EventDispatcher {
    */
   get active(): boolean {
     //TODO:
-    return false;
+    return this._active;
   }
   set active(value: boolean) {
     //TODO:
+    this._active = value;
   }
 
   /**
@@ -32,7 +35,11 @@ export class Node extends EventDispatcher {
    */
   get activeInHierarchy(): boolean {
     //TODO:
-    return false;
+    if (this.parent) {
+      return this.active && this.parent.activeInHierarchy;
+    } else {
+      return this.active;
+    }
   }
 
   /**
@@ -40,10 +47,26 @@ export class Node extends EventDispatcher {
    */
   get parent(): Node {
     //TODO:
-    return null;
+    return this._parent;
   }
-  set parent(value: Node) {
+
+  set parent(node: Node) {
     //TODO:
+    if (!node || node === this._parent) {
+      return;
+    }
+    if (this._parent != null) {
+      const index = this._parent._children.indexOf(this);
+      if (index > -1) {
+        this._parent._children.splice(index, 1);
+        this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
+      } else {
+        Logger.debug("can not find this object in _parent._children");
+      }
+    }
+    this._parent = node;
+    this._parent._children.push(this);
+    this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
   }
 
   /**
@@ -51,7 +74,7 @@ export class Node extends EventDispatcher {
    */
   get childCount(): number {
     //TODO:
-    return 0;
+    return this._children.length;
   }
 
   /**
@@ -69,6 +92,7 @@ export class Node extends EventDispatcher {
 
     this._children = [];
     this._abilityArray = [];
+    this._components = [];
 
     // -- 状态变量
     this._pendingDestroy = false;
@@ -76,9 +100,8 @@ export class Node extends EventDispatcher {
 
     this._isActiveInInHierarchy = true;
     this._activeChangeFun = activeChange(this);
-    this.parentNode = parent;
 
-    //@deprecated
+    // -- Transform
     this._position = vec3.create();
     this._rotation = quat.create();
     this._scale = vec3.fromValues(1, 1, 1);
@@ -86,10 +109,19 @@ export class Node extends EventDispatcher {
     this._invModelMatrix = mat4.create();
     this._modelMatrixDirty = true;
     this._invModelMatrixDirty = true;
+
+    this.parentNode = parent;
+
     this._up = vec3.fromValues(0, 1, 0);
     this._right = vec3.fromValues(1, 0, 0);
     this._forward = vec3.fromValues(0, 0, 1);
+
+    /**
+     * 每帧执行的Update回调函数
+     * @member {function}
+     */
     this.onUpdate = null;
+
     this.transform = new Transform(this);
   }
 
@@ -98,8 +130,11 @@ export class Node extends EventDispatcher {
    * 根据组件类型添加组件。
    * @returns	组件实例
    */
-  addComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T, props = {}): T {
-    return null;
+  addComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T, props: object = {}): T {
+    //TODO:
+    const component = new type(this, props);
+    this._components.push(component);
+    return component;
   }
 
   /**
@@ -108,7 +143,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   getComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T): T {
-    return null;
+    return (this._components.filter(component => component instanceof type)[0] as T) || null;
   }
 
   /**
@@ -116,8 +151,10 @@ export class Node extends EventDispatcher {
    * 根据组件类型获取组件集合。
    * @returns	组件实例集合
    */
-  getComponents<T extends NodeAbility>(type: new (node: Node, props?: object) => T, results: Array<T>): void {
+  getComponents<T extends NodeAbility>(type: new (node: Node, props?: object) => T, results: Array<T>): Array<T> {
     //TODO:
+    results = this._components.filter(component => component instanceof type) as T[];
+    return results;
   }
 
   /**
@@ -127,27 +164,58 @@ export class Node extends EventDispatcher {
    */
   getChild(index: number): Node {
     //TODO:
-    return null;
+    return this._children[index];
   }
 
   /**
-   * 根据名字查查找节点。
+   * 根据名字查找子节点。
    * @param name - 名字
    * @returns 节点
    */
   findByName(name: string): Node {
     //TODO:
+    // -- find in this
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      if (child._name && child._name === name) {
+        return child;
+      }
+    }
+
+    // -- 递归的查找所有子节点
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      const findObj = child.findByName(name);
+      if (findObj) {
+        return findObj;
+      }
+    }
+
     return null;
   }
 
   /**
-   * 根据路径查找节点，使用‘/’符号作为路径分割符。
+   * 根据路径查找子节点，使用‘/’符号作为路径分割符。
    * @param name - 名字
    * @returns 节点
    */
-  findByPath(name: string): Node {
+  findByPath(path: string): Node {
     //TODO:
-    return null;
+    const splits = path.split("/");
+    if (splits.length === 0) {
+      return null;
+    }
+    let obj: Node = this;
+    for (const split of splits) {
+      if (split) {
+        obj = obj.findByName(split);
+        if (obj === null) {
+          return null;
+        }
+      }
+    }
+    return obj;
   }
 
   /**
@@ -155,6 +223,10 @@ export class Node extends EventDispatcher {
    */
   clearChildren(): void {
     //TODO:
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      children[i].destroy();
+    }
   }
 
   /**
@@ -232,8 +304,6 @@ export class Node extends EventDispatcher {
     return this._ownerScene;
   }
 
-  public _parent: Node;
-
   private _ownerScene: Scene;
 
   private _name: string;
@@ -286,7 +356,7 @@ export class Node extends EventDispatcher {
       Node.traverseSetOwnerScene(child);
       // throw new Error( 'Node should NOT shared between scenes.' );
     }
-    child.parentNode = this;
+    child.parent = this;
   }
 
   /**
