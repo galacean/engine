@@ -20,12 +20,12 @@ export class Script extends NodeAbility {
   onStart(): void {}
 
   /**
-   * 更新，在执行逻辑处理之前调用，逐帧调用。
+   * 更新，在执行引擎逻辑处理之前调用，逐帧调用。
    */
   onUpdate(): void {}
 
   /**
-   * 延迟更新，在执行逻辑处理后调用，逐帧调用。
+   * 延迟更新，在执行引擎逻辑处理后调用，逐帧调用。
    */
   onLateUpdate(): void {}
 

@@ -6,6 +6,8 @@ import { Scene } from "./Scene";
 import { Engine } from "./Engine";
 import { vec3Type } from "./type";
 import { Transform } from "./Transform";
+import { StandardTransform } from "./StandardTransform";
+import { Texture } from "./experiment/Texture";
 
 /**
  * 节点类,可作为组件的容器。
@@ -92,28 +94,29 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * //TODO:组件通常不带构造函数参数，日后需要移除
    * 根据组件类型添加组件。
    * @returns	组件实例
    */
-  addComponent<T extends NodeAbility>(): T {
-    //TODO:
+  addComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T, props = {}): T {
     return null;
   }
 
   /**
+   * //TODO:组件通常不带构造函数参数，日后需要移除
    * 根据组件类型获取组件。
    * @returns	组件实例
    */
-  getComponent<T extends NodeAbility>(): T {
-    //TODO:
+  getComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T): T {
     return null;
   }
 
   /**
+   * //TODO:组件通常不带构造函数参数，日后需要移除
    * 根据组件类型获取组件集合。
    * @returns	组件实例集合
    */
-  getComponents<T extends NodeAbility>(results: Array<T>): void {
+  getComponents<T extends NodeAbility>(type: new (node: Node, props?: object) => T, results: Array<T>): void {
     //TODO:
   }
 
