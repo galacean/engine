@@ -1,18 +1,36 @@
-import { mat4, vec3, quat, MathUtil } from "@alipay/o3-math";
-import { Logger, Util, Event, EventDispatcher } from "@alipay/o3-base";
-import { NodeAbility } from "./NodeAbility";
-import { SceneVisitor } from "./SceneVisitor";
-import { Scene } from "./Scene";
+import { Event, EventDispatcher, Logger, Util } from "@alipay/o3-base";
+import { mat4, MathUtil, quat, vec3 } from "@alipay/o3-math";
 import { Engine } from "./Engine";
-import { vec3Type } from "./type";
+import { NodeAbility } from "./NodeAbility";
+import { Scene } from "./Scene";
+import { SceneVisitor } from "./SceneVisitor";
 import { Transform } from "./Transform";
-import { StandardTransform } from "./StandardTransform";
-import { Texture } from "./experiment/Texture";
+import { vec3Type } from "./type";
 
 /**
  * 节点类,可作为组件的容器。
  */
 export class Node extends EventDispatcher {
+  /**
+   * 根据名字查找节点。
+   * @param name - 名字
+   * @returns 节点
+   */
+  static findByName(name: string): Node {
+    //TODO:
+    return null;
+  }
+
+  /**
+   * 根据路径查找节点，使用‘/’符号作为路径分割符。
+   * @param path - 路径
+   * @returns 节点
+   */
+  static findByPath(path: string): Node {
+    //TODO:
+    return null;
+  }
+
   /** 名字。 */
   name: string;
 
@@ -121,8 +139,45 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * 添加子节点对象。
+   * @param child - 子节点
+   */
+  addChild(child: Node): void {
+    //TODO:优化
+    if (child._ownerScene !== this._ownerScene) {
+      // fixme: remove below code after gltf loader can set the right ownerScene
+      child._ownerScene = this._ownerScene;
+
+      Node.traverseSetOwnerScene(child);
+      // throw new Error( 'Node should NOT shared between scenes.' );
+    }
+    child.parentNode = this;
+  }
+
+  /**
+   * 删除子节点。
+   * @param child - 子节点
+   */
+  removeChild(child: Node): void {
+    //TODO:优化
+    const index = this._children.indexOf(child);
+    if (index < 0) {
+      Logger.warn(`child's parent is not this node!`);
+      return;
+    }
+    this._children.splice(index, 1);
+    child._parent = null;
+
+    if (this._ownerScene) {
+      child.traverseAbilitiesTriggerEnabled(false);
+      child._ownerScene = null;
+      Node.traverseSetOwnerScene(child);
+    }
+  }
+
+  /**
    * 根据索引获取子节点。
-   *  @param index - 索引
+   * @param index - 索引
    * @returns 节点
    */
   getChild(index: number): Node {
@@ -131,7 +186,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * 根据名字查查找节点。
+   * 根据名字查找节点。
    * @param name - 名字
    * @returns 节点
    */
@@ -142,10 +197,10 @@ export class Node extends EventDispatcher {
 
   /**
    * 根据路径查找节点，使用‘/’符号作为路径分割符。
-   * @param name - 名字
+   * @param path - 路径
    * @returns 节点
    */
-  findByPath(name: string): Node {
+  findByPath(path: string): Node {
     //TODO:
     return null;
   }
@@ -272,41 +327,6 @@ export class Node extends EventDispatcher {
   public createChild(name: string): Node {
     const child = new Node(this._ownerScene, this, name);
     return child;
-  }
-
-  /**
-   * 添加子节点对象
-   * @param {Node} child
-   */
-  public addChild(child: Node): void {
-    if (child._ownerScene !== this._ownerScene) {
-      // fixme: remove below code after gltf loader can set the right ownerScene
-      child._ownerScene = this._ownerScene;
-
-      Node.traverseSetOwnerScene(child);
-      // throw new Error( 'Node should NOT shared between scenes.' );
-    }
-    child.parentNode = this;
-  }
-
-  /**
-   * 删除子节点
-   * @param child
-   */
-  public removeChild(child: Node) {
-    const index = this._children.indexOf(child);
-    if (index < 0) {
-      Logger.warn(`child's parent is not this node!`);
-      return;
-    }
-    this._children.splice(index, 1);
-    child._parent = null;
-
-    if (this._ownerScene) {
-      child.traverseAbilitiesTriggerEnabled(false);
-      child._ownerScene = null;
-      Node.traverseSetOwnerScene(child);
-    }
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
