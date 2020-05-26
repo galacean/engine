@@ -74,8 +74,9 @@ export class Node extends EventDispatcher {
 
     this._isActiveInInHierarchy = true;
     this._activeChangeFun = activeChange(this);
+    this.parentNode = parent;
 
-    // -- Transform
+    //@deprecated
     this._position = vec3.create();
     this._rotation = quat.create();
     this._scale = vec3.fromValues(1, 1, 1);
@@ -83,19 +84,10 @@ export class Node extends EventDispatcher {
     this._invModelMatrix = mat4.create();
     this._modelMatrixDirty = true;
     this._invModelMatrixDirty = true;
-
-    this.parentNode = parent;
-
     this._up = vec3.fromValues(0, 1, 0);
     this._right = vec3.fromValues(1, 0, 0);
     this._forward = vec3.fromValues(0, 0, 1);
-
-    /**
-     * 每帧执行的Update回调函数
-     * @member {function}
-     */
     this.onUpdate = null;
-
     this.transform = new Transform(this);
   }
 

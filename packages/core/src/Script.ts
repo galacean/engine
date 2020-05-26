@@ -1,4 +1,4 @@
-import { NodeAbility } from "../NodeAbility";
+import { NodeAbility } from "./NodeAbility";
 
 /**
  * 脚本类，可进行逻辑编写。
