@@ -1,7 +1,6 @@
 import { Texture } from "./Texture";
 import { TextureCubeFace } from "./TextureCubeFace";
 import { TextureFormat } from "./TextureFormat";
-import { TextureWrapMode } from "./TextureWrapMode";
 
 /**
  * 立方体纹理。
@@ -40,7 +39,7 @@ export class TextureCube extends Texture {
   // setPixels(face: TextureCubeFace, colors: Color[], miplevel: number, x: number, y: number, width: number, height: number): void;
 
   /**
-   * 根据指定立方体面、区域和纹理层级设置像素数据，同样适用于压缩格式，修改后需要调用apply()方法。
+   * 根据指定立方体面、区域和纹理层级设置像素数据，同样适用于压缩格式。
    * @param face - 立方体面
    * @param colorBuffer - 颜色缓冲
    * @param miplevel - 分级纹理层级
