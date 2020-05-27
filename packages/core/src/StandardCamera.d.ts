@@ -1,9 +1,10 @@
-import { RenderTexture } from "./RenderTexture";
-import { NodeAbility } from "..";
-import { BasicSceneRenderer, GLRenderHardware } from "../type";
+import { NodeAbility } from ".";
+import { RenderBuffer } from "./experiment/graphics/RenderBuffer";
+import { RenderTexture } from "./experiment/graphics/RenderTexture";
+import { BasicSceneRenderer, GLRenderHardware } from "./type";
 
 /**
- * 摄像机组件，用于渲染场景。ßß
+ * 摄像机组件，用于渲染场景。
  */
 export declare abstract class StandardCamera extends NodeAbility {
   /**
@@ -152,6 +153,13 @@ export declare abstract class StandardCamera extends NodeAbility {
    * @param out - 屏幕空间坐标
    */
   viewportToScreenPoint(position: Vector3 | Vector2, out: Vector3 | Vector2): void;
+
+  /**
+   * 设置渲染目标。
+   * @param colorBuffers - 颜色缓冲数组
+   * @param depthBuffer - 深度缓冲
+   */
+  setRenderTargets(colorBuffers: RenderBuffer[], depthBuffer: RenderBuffer): void;
 
   /**
    * 手动调用相机的渲染。
