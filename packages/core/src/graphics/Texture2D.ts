@@ -20,7 +20,7 @@ export class Texture2D extends Texture {
    * @param format - 格式
    * @param mipmap - 是否使用分级纹理
    */
-  constructor(width: number, height: number, format: TextureFormat, mipmap: boolean) {
+  constructor(width: number, height: number, format: TextureFormat, mipmap: boolean = true) {
     super();
   }
 
@@ -55,29 +55,29 @@ export class Texture2D extends Texture {
    */
   setPixelsBuffer(
     colorBuffer: ArrayBufferView,
-    miplevel: number,
-    x: number,
-    y: number,
-    width: number,
-    height: number
+    miplevel: number = 0,
+    x?: number,
+    y?: number,
+    width?: number,
+    height?: number
   ): void {}
 
   /**
    * 根据指定区域和纹理层级设置图源。
    * @param imageSource - 纹理源
    * @param miplevel - 分级纹理层级
+   * @param flipY - 是否翻转Y轴
+   * @param premultiplyAlpha - 是否预乘透明通道
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
-   * @param flipY - 是否翻转Y轴
-   * @param premultipltAlpha - 是否预乘透明通道
    */
   setImageSource(
     imageSource: TexImageSource,
-    miplevel: number,
-    x: number,
-    y: number,
-    flipY: boolean,
-    premultipltAlpha: boolean
+    miplevel: number = 0,
+    flipY: boolean = false,
+    premultiplyAlpha: boolean = false,
+    x?: number,
+    y?: number
   ): void {}
 
   // /**

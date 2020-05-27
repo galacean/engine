@@ -1,7 +1,7 @@
+import { RenderBuffer } from "./RenderBuffer";
 import { RenderTextureColorFormat } from "./RenderTextureColorFormat";
 import { RenderTextureDepthFormat } from "./RenderTextureDepthFormat";
 import { Texture } from "./Texture";
-import { RenderBuffer } from "./RenderBuffer";
 
 /**
  * 类应用于渲染纹理。

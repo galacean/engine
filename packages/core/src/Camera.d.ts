@@ -6,7 +6,7 @@ import { BasicSceneRenderer, GLRenderHardware } from "./type";
 /**
  * 摄像机组件，用于渲染场景。
  */
-export declare abstract class StandardCamera extends NodeAbility {
+export declare abstract class Camera extends NodeAbility {
   /**
    * 近裁剪平面。
    */
@@ -40,8 +40,8 @@ export declare abstract class StandardCamera extends NodeAbility {
   /**
    * 正交模式（true）还是透视模式(false)。
    */
-  get isOrthographic(): boolean;
-  set isOrthographic(value: boolean);
+  get orthographic(): boolean;
+  set orthographic(value: boolean);
 
   /**
    * 正交模式下相机的一半尺寸。
@@ -159,7 +159,7 @@ export declare abstract class StandardCamera extends NodeAbility {
    * @param colorBuffers - 颜色缓冲数组
    * @param depthBuffer - 深度缓冲
    */
-  setRenderTargets(colorBuffers: RenderBuffer[], depthBuffer: RenderBuffer): void;
+  setTargetBuffers(colorBuffers: RenderBuffer[], depthBuffer: RenderBuffer): void;
 
   /**
    * 手动调用相机的渲染。
