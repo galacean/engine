@@ -1,6 +1,6 @@
 import { NodeAbility } from ".";
-import { RenderBuffer } from "./experiment/graphics/RenderBuffer";
-import { RenderTexture } from "./experiment/graphics/RenderTexture";
+import { RenderBuffer } from "./graphics/RenderBuffer";
+import { RenderTexture } from "./graphics/RenderTexture";
 import { BasicSceneRenderer, GLRenderHardware } from "./type";
 
 /**
