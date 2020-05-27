@@ -4,7 +4,6 @@ import { Engine } from "./Engine";
 import { NodeAbility } from "./NodeAbility";
 import { Scene } from "./Scene";
 import { SceneVisitor } from "./SceneVisitor";
-import { Transform } from "./Transform";
 import { vec3Type } from "./type";
 
 /**
@@ -108,7 +107,6 @@ export class Node extends EventDispatcher {
     this._right = vec3.fromValues(1, 0, 0);
     this._forward = vec3.fromValues(0, 0, 1);
     this.onUpdate = null;
-    this.transform = new Transform(this);
   }
 
   /**
@@ -333,8 +331,6 @@ export class Node extends EventDispatcher {
 
   /** @deprecated */
   public onUpdate: (t?: number) => void;
-  /** @deprecated */
-  public transform: Transform;
 
   /**
    * @deprecated
