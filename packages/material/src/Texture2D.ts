@@ -70,13 +70,10 @@ export class Texture2D extends Texture {
        * @member {HTMLImageElement|ImageData|HTMLCanvasElement|ImageBitmap|ArrayBufferView|HTMLVideoElement}
        */
       this.image = image;
-      // console.log(this);
-      console.log(image.width + " " + image.height);
     }
 
     this.updateSubRects = [];
     this.updateSubImageData = [];
-    console.log(this);
   }
 
   /**
