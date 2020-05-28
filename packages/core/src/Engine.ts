@@ -98,8 +98,14 @@ export class Engine extends EventDispatcher {
   /**
    * 构造函数
    * @constructor
+   * @todo canvas 后续会修改成必传参数
    */
-  constructor(canvas?: HTMLCanvasElement) {
+  constructor(
+    private _config: {
+      canvas?: HTMLCanvasElement;
+      attributes?: WebGLContextAttributes & { enableCollect?: boolean };
+    } = {}
+  ) {
     super();
 
     // 加入 Feature 管理
@@ -328,4 +334,10 @@ export class Engine extends EventDispatcher {
     // --
     this.assetPool.clear();
   }
+
+  public get config() {
+    return this._config;
+  }
+
+  public static registerPipline() {}
 }
