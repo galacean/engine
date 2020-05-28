@@ -24,6 +24,7 @@ export class TextureCubeMap extends Texture {
    * @param {Number} [config.minFilter=TextureFilter.LINEAR_MIPMAP_LINEAR] 缩小时的筛选器
    * @param {Number} [config.wrapS=TextureWrapMode.CLAMP_TO_EDGE] S方向纹理包裹选项
    * @param {Number} [config.wrapT=TextureWrapMode.CLAMP_TO_EDGE] T方向纹理包裹选项
+   * @param isReadable - 是否可读
    */
   constructor(name: string, images?: Array<any>, config?: TextureConfig, isReadable: boolean = false) {
     super(name, config);

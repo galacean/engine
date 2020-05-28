@@ -48,11 +48,6 @@ export class GLTextureCubeMap extends GLTexture {
         super.generateMipmap();
       }
       if (!config._isReadable) {
-        // for (var i: number = 0, n: number = images.length; i < n; i++) {
-        //   var img: HTMLImageElement = images[i];
-        //   img.src = "";
-        //   img.onload = null;
-        // }
         config._images = null;
       }
     }

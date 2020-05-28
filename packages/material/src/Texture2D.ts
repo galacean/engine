@@ -37,6 +37,7 @@ export class Texture2D extends Texture {
    * @param {String} name 名称
    * @param {HTMLImageElement|ImageData|HTMLCanvasElement|ImageBitmap|ArrayBufferView|HTMLVideoElement} image 纹理内容
    * @param {Texture2DConfig} config 可选配置
+   * @param isReadable - 是否可读
    */
   constructor(name: string, image?, config: Texture2DConfig = {}, isReadable: boolean = false) {
     super(name, config);
