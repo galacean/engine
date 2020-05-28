@@ -1,46 +1,51 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
-
+import { Oasis } from "../Oasis";
+type ShaderMaterialDefine = {
+  vertexShader: string;
+  fragmentShader: string;
+  states: object;
+  uniforms: object;
+  attributes: object;
+};
 export class ShaderMaterialResource extends SchemaResource {
   private scripts: Array<any>;
 
-  private loadShaderDefine() {
+  private loadShaderDefine(oasis?: Oasis) {
     return new Promise(resolve => {
-      if (this.resourceManager.isLocal) {
-        resolve();
-        return;
-      }
       const name = this.scripts[0].name;
+      if (this.resourceManager.isLocal) {
+        resolve(oasis.options?.scripts[name] ?? {});
+      } else {
+        const oldScriptDom = document.getElementById(name);
+        if (oldScriptDom) {
+          document.body.removeChild(oldScriptDom);
+        }
 
-      const oldScriptDom = document.getElementById(name);
-      if (oldScriptDom) {
-        document.body.removeChild(oldScriptDom);
+        const scriptDom = document.createElement("script");
+        scriptDom.crossOrigin = "anonymous";
+        scriptDom.onload = () => {
+          const scripts = (window as any).o3Scripts;
+          resolve((scripts && scripts[name]) ?? {});
+        };
+        scriptDom.id = name;
+        scriptDom.src = this._meta.url;
+        document.body.appendChild(scriptDom);
       }
-
-      const scriptDom = document.createElement("script");
-      scriptDom.crossOrigin = "anonymous";
-      scriptDom.onload = () => {
-        const scripts = (window as any).o3Scripts;
-        const shaderMaterialDefine = (scripts && scripts[name]) || {};
-
-        const {
-          vertexShader = "",
-          fragmentShader = "",
-          states = {},
-          uniforms = {},
-          attributes = {}
-        } = shaderMaterialDefine;
-        this._resource.uniforms = uniforms;
-        this._resource.attributes = attributes;
-        this._resource.vertexShader = vertexShader;
-        this._resource.fragmentShader = fragmentShader;
-        this._resource.renderStates = states;
-        resolve();
-      };
-      scriptDom.id = name;
-      scriptDom.src = this._meta.url;
-      document.body.appendChild(scriptDom);
+    }).then((shaderMaterialDefine: ShaderMaterialDefine) => {
+      const {
+        vertexShader = "",
+        fragmentShader = "",
+        states = {},
+        uniforms = {},
+        attributes = {}
+      } = shaderMaterialDefine;
+      this._resource.uniforms = uniforms;
+      this._resource.attributes = attributes;
+      this._resource.vertexShader = vertexShader;
+      this._resource.fragmentShader = fragmentShader;
+      this._resource.renderStates = states;
     });
   }
 
@@ -49,12 +54,12 @@ export class ShaderMaterialResource extends SchemaResource {
     this._resource = material;
   }
 
-  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<ShaderMaterialResource> {
+  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<ShaderMaterialResource> {
     this.setMeta(assetConfig);
     this.scripts = assetConfig.props.scripts;
     this.createMaterial();
 
-    return this.loadShaderDefine().then(
+    return this.loadShaderDefine(oasis).then(
       () =>
         new Promise((resolve, reject) => {
           try {

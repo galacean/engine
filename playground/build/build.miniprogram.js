@@ -173,8 +173,10 @@ function handlePrefix(pages) {
         }
       }
       // 替换common
-      newText = newText.replace(/\.\.\/common/g, "/page/playground/common");
-      fs.writeFileSync(file, newText, { encoding: "utf-8" });
+      newText = newText.replace(/\.\.\/common/g, '/pages/playground/common');
+      newText = newText.replace(/document.getElementById\("canvas"\)/g, 'canvas');
+      newText = newText.replace(/document.getElementById\("r3-demo"\)/g, 'canvas');
+      fs.writeFileSync(file, newText, { encoding: 'utf-8' });
     });
   });
 }

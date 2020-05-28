@@ -17,7 +17,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
   public matrixPalette: Float32Array;
   public jointNodes: Node[];
   /** 是否禁用骨骼纹理技术，该技术能提高骨骼上限,若设备不支持，程序会自动改成 true */
-  public disableJointTexture: boolean = false;
+  public disableJointTexture: boolean = true;
   public jointTexture: Texture2D;
 
   /**
