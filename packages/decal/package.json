@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-decal",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "Oasis3D decal",
   "keywords": [
     "Oasis3D",
@@ -31,7 +31,7 @@
     "@alipay/o3-geometry": "^2.2.4",
     "@alipay/o3-material": "^2.2.4",
     "@alipay/o3-math": "^2.2.4",
-    "@alipay/o3-mesh": "^2.2.4",
+    "@alipay/o3-mesh": "2.2.5",
     "@alipay/o3-primitive": "^2.2.4"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-default-camera",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "esay to use camera",
   "keywords": [
     "Oasis3D"
@@ -31,6 +31,6 @@
     "@alipay/o3-core": "^2.2.4",
     "@alipay/o3-math": "^2.2.4",
     "@alipay/o3-renderer-basic": "^2.2.4",
-    "@alipay/o3-rhi-webgl": "^2.2.4"
+    "@alipay/o3-rhi-webgl": "2.2.5"
   }
 }
