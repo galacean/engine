@@ -2,7 +2,8 @@ const fs = require("fs-extra");
 const path = require("path");
 const copydir = require("copy-dir");
 const map = require("./resource.map");
-const DSTDIR = "/Users/husong/WebstormProjects/work/oasis3d-playground-mini/pages/playground/dist-miniprogram";
+const DSTDIR = path.resolve(__dirname, "../dist-miniprogram");
+// const DSTDIR = "/Users/husong/WebstormProjects/work/oasis3d-playground-mini/pages/playground/dist-miniprogram";
 const SRCDIR = path.resolve(__dirname, "../src");
 const prettier = require("prettier");
 
@@ -38,12 +39,12 @@ function copyTemplate(name) {
 const miniProgramPlaygrounds = [
   "2d",
   "ambientLighting",
-  "animation-crossfade",
+  // "animation-crossfade",
   "animation-events",
   "animation-mix",
-  "animation-play",
-  "bounding-type",
-  "clipPlanes",
+  // "animation-play",
+  // "bounding-type",
+  // "clipPlanes",
   "collision",
   "compressed-texture",
   "controls-free",
@@ -51,14 +52,15 @@ const miniProgramPlaygrounds = [
   "cubiodGeometry",
   "custom-material",
   "cylinderGeometry",
-  "decal",
+  // "decal",
+  "ibl",
   "directLighting",
-  "fog",
+  // "fog",
   "instancing",
   "morph-animation",
-  "particle-sprite-sheet",
-  "pbr",
-  "pbr-material-editor",
+  // "particle-sprite-sheet",
+  // "pbr",
+  // "pbr-material-editor",
   "planeGeometry",
   "PointLighting",
   "raycast",
@@ -146,6 +148,7 @@ async function handleJS(page) {
   }
   const filePath = await prettier.resolveConfigFile();
   const options = await prettier.resolveConfig(filePath);
+  options.parser = "babel";
   const formatted = prettier.format(newText, options);
   fs.writeFileSync(file, formatted, { encoding: "utf-8" });
 }
@@ -173,10 +176,10 @@ function handlePrefix(pages) {
         }
       }
       // 替换common
-      newText = newText.replace(/\.\.\/common/g, '/pages/playground/common');
-      newText = newText.replace(/document.getElementById\("canvas"\)/g, 'canvas');
-      newText = newText.replace(/document.getElementById\("r3-demo"\)/g, 'canvas');
-      fs.writeFileSync(file, newText, { encoding: 'utf-8' });
+      newText = newText.replace(/\.\.\/common/g, "/pages/playground/common");
+      newText = newText.replace(/document.getElementById\("canvas"\)/g, "canvas");
+      newText = newText.replace(/document.getElementById\("r3-demo"\)/g, "canvas");
+      fs.writeFileSync(file, newText, { encoding: "utf-8" });
     });
   });
 }
@@ -197,22 +200,24 @@ fs.ensureDirSync(DSTDIR);
 // 获取page
 let pages = getPages();
 // 处理小程序页面
-pages.forEach(page => {
-  // copy 目录
-  copyDir(page);
-  // copy模板，common排除
-  if (page === "common") return;
-  copyTemplate(page);
-  // replace defaultTitle in index.json
-  handleJSON(page);
-  // 处理 index.js
-  handleJS(page);
+Promise.all(
+  pages.map(async page => {
+    // copy 目录
+    copyDir(page);
+    // copy模板，common排除
+    if (page === "common") return;
+    copyTemplate(page);
+    // replace defaultTitle in index.json
+    handleJSON(page);
+    // 处理 index.js
+    await handleJS(page);
+  })
+).then(() => {
+  writeAppJSON(pages);
+  // 替换prefix
+  handlePrefix(pages);
+  console.log(
+    "将下面配置复制到app.subPackages进行分类展示",
+    pages.filter(p => p !== "common").map(page => page + "/index")
+  );
 });
-
-writeAppJSON(pages);
-// 替换prefix
-handlePrefix(pages);
-console.log(
-  "将下面配置复制到app.subPackages进行分类展示",
-  pages.filter(p => p !== "common").map(page => page + "/index")
-);
