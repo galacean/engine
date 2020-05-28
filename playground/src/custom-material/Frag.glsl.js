@@ -1,4 +1,4 @@
-precision mediump float;
+export default `precision mediump float;
 
 //-- varying
 varying vec2 v_uv;
@@ -68,4 +68,4 @@ void main() {
 
   vec4 w = vec4(1.0, 1.0, 1.0, 1.0)*(1.0-weights0.x-weights0.y-weights0.z-weights1.x-weights1.y-weights1.z);
   gl_FragColor = h0+h1+h2+h3+h4+h5+w;
-}
+}`

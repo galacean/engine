@@ -1,4 +1,4 @@
-precision highp float;
+export default `precision highp float;
 
 //-- attributes
 attribute vec3 a_position; 
@@ -24,4 +24,4 @@ void main() {
 
   vec3 worldPos = (u_model * vec4(a_position, 1.0)).xyz;
   v_viewDir = normalize(worldPos-u_eyePos);
-}
+}`
