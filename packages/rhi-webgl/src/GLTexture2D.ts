@@ -1,8 +1,8 @@
-import { GLTexture } from "./GLTexture";
-import { GLRenderHardware } from "./GLRenderHardware";
-import { Texture2D } from "@alipay/o3-material";
+import { GLCapabilityType, Logger } from "@alipay/o3-base";
 import { CompressedTexture2D } from "@alipay/o3-compressed-texture";
-import { GLCapabilityType, Logger, TextureFilter } from "@alipay/o3-base";
+import { Texture2D } from "@alipay/o3-material";
+import { GLRenderHardware } from "./GLRenderHardware";
+import { GLTexture } from "./GLTexture";
 
 /**
  * GL 2D贴图资源管理
@@ -43,7 +43,6 @@ export class GLTexture2D extends GLTexture {
       width,
       height
     } = config;
-
     if (!isCompressed) {
       if (needUpdateWholeTexture && image) {
         super.setPixelStore();
@@ -73,6 +72,13 @@ export class GLTexture2D extends GLTexture {
         } else {
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
           super.generateMipmap();
+          if (!config._isReadable) {
+            var img: HTMLImageElement = config._image;
+            img.src = "";
+            img.onload = null;
+            img.onerror = null;
+            config._image = null;
+          }
         }
 
         config.needUpdateWholeTexture = false;
