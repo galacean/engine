@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-pbr",
-  "version": "2.2.4",
+  "version": "2.2.6-alpha.0",
   "description": "PBR material",
   "repository": {
     "type": "git",
@@ -30,6 +30,6 @@
     "@alipay/o3-base": "^2.2.4",
     "@alipay/o3-core": "^2.2.4",
     "@alipay/o3-lighting": "^2.2.4",
-    "@alipay/o3-material": "^2.2.4"
+    "@alipay/o3-material": "2.2.6-alpha.0"
   }
 }
