@@ -409,7 +409,10 @@ export class Node extends EventDispatcher {
     const len = abilityArray.length;
     for (let i = 0; i < len; i++) {
       const ability = abilityArray[i];
-      newNode.createAbility(ability.constructor as any, ability._props);
+      newNode.createAbility(ability.constructor as any, {
+        ...ability._props,
+        isClone: true
+      });
     }
 
     return newNode;
