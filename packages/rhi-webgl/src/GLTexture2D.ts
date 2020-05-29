@@ -37,13 +37,13 @@ export class GLTexture2D extends GLTexture {
       needUpdateWholeTexture,
       updateSubRects,
       updateSubImageData,
-      image,
       isFloat,
       isRaw,
       width,
       height
     } = config;
     if (!isCompressed) {
+      const { image } = config;
       if (needUpdateWholeTexture && image) {
         super.setPixelStore();
         /** 源数据 */
