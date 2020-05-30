@@ -21,6 +21,15 @@ export class RenderTarget {
   }
 
   /**
+   * 抗锯齿级别。
+   * 如果设置的抗锯齿级别大于硬件支持的最大级别，将使用硬件的最大级别。
+   */
+  get antiAliasing(): number {
+    return 0;
+  }
+  set antiAliasing(value: number) {}
+
+  /**
    * 通过颜色纹理和深度格式创建渲染目标。
    * @param width - 宽
    * @param height - 高
