@@ -1,7 +1,6 @@
 import { NodeAbility } from ".";
-import { RenderBuffer } from "./graphics/RenderBuffer";
-import { RenderTexture } from "./graphics/RenderTexture";
 import { BasicSceneRenderer, GLRenderHardware } from "./type";
+import { RenderTarget } from "./graphics/RenderTarget";
 
 /**
  * 摄像机组件，用于渲染场景。
@@ -98,10 +97,10 @@ export declare abstract class Camera extends NodeAbility {
   set projectionMatrix(value: Matrix);
 
   /**
-   * 目标渲染纹理,如果为空则渲染到屏幕上。
+   * 渲染目标,如果为空则渲染到屏幕上。
    */
-  get targetTexture(): RenderTexture;
-  set targetTexture(value: RenderTexture);
+  get renderTarget(): RenderTarget;
+  set renderTarget(value: RenderTarget);
 
   /**
    * 是否开启HDR。
@@ -153,13 +152,6 @@ export declare abstract class Camera extends NodeAbility {
    * @param out - 屏幕空间坐标
    */
   viewportToScreenPoint(position: Vector3 | Vector2, out: Vector3 | Vector2): void;
-
-  /**
-   * 设置渲染目标。
-   * @param colorBuffers - 颜色缓冲数组
-   * @param depthBuffer - 深度缓冲
-   */
-  setTargetBuffers(colorBuffers: RenderBuffer[], depthBuffer: RenderBuffer): void;
 
   /**
    * 手动调用相机的渲染。

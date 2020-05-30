@@ -9,9 +9,5 @@ export enum RenderTextureColorFormat {
   /** 透明格式，8 bits。*/
   Alpha8 = 2,
   /** RGBA格式,每通道16 bits。*/
-  R16G16B16A16 = 3,
-  /** 深度格式。*/
-  Depth = 4,
-  /** 阴影贴图格式格式。*/
-  ShadowMap = 5
+  R16G16B16A16 = 3
 }

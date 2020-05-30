@@ -1,25 +1,14 @@
-import { RenderBuffer } from "./RenderBuffer";
-import { RenderTextureColorFormat } from "./RenderTextureColorFormat";
 import { RenderTextureDepthFormat } from "./RenderTextureDepthFormat";
 import { Texture } from "./Texture";
 
 /**
- * 类应用于渲染纹理。
+ * 类应用于渲染深度纹理。
  */
-export class RenderTexture extends Texture {
+export class RenderDepthTexture extends Texture {
   /**
-   * 颜色格式。
+   * 格式。
    */
-  get colorFormat(): RenderTextureColorFormat {
-    //TODO:
-    return 0;
-  }
-
-  /**
-   * 深度格式。
-   */
-  get depthFormat(): RenderTextureDepthFormat {
-    //TODO:
+  get format(): RenderTextureDepthFormat {
     return 0;
   }
 
@@ -27,40 +16,18 @@ export class RenderTexture extends Texture {
    * 自动生成多级纹理。
    */
   get autoGenerateMipmaps(): boolean {
-    //TODO:
     return false;
   }
   set autoGenerateMipmaps(value: boolean) {}
 
   /**
-   * 颜色缓冲。
-   */
-  get colorBuffer(): RenderBuffer {
-    //TODO:
-    return null;
-  }
-
-  /**
-   * 深度缓冲。
-   */
-  get depthBuffer(): RenderBuffer {
-    //TODO:
-    return 0;
-  }
-
-  /**
-   * 构造渲染纹理。
+   * 构造渲染深度纹理。
    * @param width - 宽
    * @param height - 高
-   * @param colorFormat - 颜色格式
-   * @param depthFormat - 深度格式
+   * @param format - 格式
+   * @param mipmap - 是否使用多级纹理
    */
-  constructor(
-    width: number,
-    height: number,
-    colorFormat: RenderTextureColorFormat,
-    depthFormat: RenderTextureDepthFormat
-  ) {
+  constructor(width: number, height: number, format: RenderTextureDepthFormat, mipmap: boolean = false) {
     super();
   }
 
