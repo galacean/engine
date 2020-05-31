@@ -1,20 +1,75 @@
-import { mat4, vec3, quat, MathUtil } from "@alipay/o3-math";
-import { Logger, Util, Event, EventDispatcher } from "@alipay/o3-base";
-import { NodeAbility } from "./NodeAbility";
-import { SceneVisitor } from "./SceneVisitor";
-import { Scene } from "./Scene";
+import { Event, EventDispatcher, Logger, Util } from "@alipay/o3-base";
+import { mat4, MathUtil, quat, vec3 } from "@alipay/o3-math";
 import { Engine } from "./Engine";
+import { NodeAbility } from "./NodeAbility";
+import { Scene } from "./Scene";
+import { SceneVisitor } from "./SceneVisitor";
 import { vec3Type } from "./type";
-import { Transform } from "./Transform";
-import { StandardTransform } from "./StandardTransform";
 
 /**
  * 节点类,可作为组件的容器。
  */
 export class Node extends EventDispatcher {
   private _components: NodeAbility[];
-  private _active: boolean;
   private _parent: Node;
+  static nodes = [];
+  /**
+   * 获取根节点
+   */
+
+  static getRoot(): Node {
+    const { nodes } = Node;
+    for (const node of nodes) {
+      if (!node.parent) {
+        return node;
+      }
+    }
+    return null;
+  }
+  /**
+   * 根据名字查找节点。
+   * @param name - 名字
+   * @returns 节点
+   */
+  static findByName(name: string): Node {
+    //TODO:
+    const { nodes } = Node;
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const node = nodes[i];
+      if (node._name && node._name === name) {
+        return node;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 根据路径查找节点，使用‘/’符号作为路径分割符。
+   * @param path - 路径
+   * @returns 节点
+   */
+  static findByPath(path: string): Node {
+    //TODO:
+    const splits = path.split("/");
+    const rootNode = Node.getRoot();
+    if (splits.length === 0) {
+      return null;
+    }
+    if (path === "/") {
+      return rootNode;
+    }
+    let obj: Node = rootNode;
+    for (const split of splits) {
+      if (split) {
+        obj = obj.findByName(split);
+        if (obj === null) {
+          return null;
+        }
+      }
+    }
+    return null;
+  }
+
   /** 名字。 */
   name: string;
 
@@ -23,11 +78,14 @@ export class Node extends EventDispatcher {
    */
   get active(): boolean {
     //TODO:
-    return this._active;
+    return this._activeSelf;
   }
   set active(value: boolean) {
     //TODO:
-    this._active = value;
+    this._activeSelf = value;
+    this._components.forEach(component => {
+      component._setActive(value);
+    });
   }
 
   /**
@@ -96,7 +154,7 @@ export class Node extends EventDispatcher {
 
     // -- 状态变量
     this._pendingDestroy = false;
-    this._activeSelf = true; // local active state of this Node
+    this.active = true; // local active state of this Node
 
     this._isActiveInInHierarchy = true;
     this._activeChangeFun = activeChange(this);
@@ -121,8 +179,7 @@ export class Node extends EventDispatcher {
      * @member {function}
      */
     this.onUpdate = null;
-
-    this.transform = new Transform(this);
+    Node.nodes.push(this);
   }
 
   /**
@@ -158,8 +215,45 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * 添加子节点对象。
+   * @param child - 子节点
+   */
+  addChild(child: Node): void {
+    //TODO:优化
+    if (child._ownerScene !== this._ownerScene) {
+      // fixme: remove below code after gltf loader can set the right ownerScene
+      child._ownerScene = this._ownerScene;
+
+      Node.traverseSetOwnerScene(child);
+      // throw new Error( 'Node should NOT shared between scenes.' );
+    }
+    child.parentNode = this;
+  }
+
+  /**
+   * 删除子节点。
+   * @param child - 子节点
+   */
+  removeChild(child: Node): void {
+    //TODO:优化
+    const index = this._children.indexOf(child);
+    if (index < 0) {
+      Logger.warn(`child's parent is not this node!`);
+      return;
+    }
+    this._children.splice(index, 1);
+    child._parent = null;
+
+    if (this._ownerScene) {
+      child.traverseAbilitiesTriggerEnabled(false);
+      child._ownerScene = null;
+      Node.traverseSetOwnerScene(child);
+    }
+  }
+
+  /**
    * 根据索引获取子节点。
-   *  @param index - 索引
+   * @param index - 索引
    * @returns 节点
    */
   getChild(index: number): Node {
@@ -196,8 +290,8 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * 根据路径查找子节点，使用‘/’符号作为路径分割符。
-   * @param name - 名字
+   * 根据路径查找节点，使用‘/’符号作为路径分割符。
+   * @param path - 路径
    * @returns 节点
    */
   findByPath(path: string): Node {
@@ -206,6 +300,7 @@ export class Node extends EventDispatcher {
     if (splits.length === 0) {
       return null;
     }
+    if (path === "/") return this;
     let obj: Node = this;
     for (const split of splits) {
       if (split) {
@@ -215,7 +310,7 @@ export class Node extends EventDispatcher {
         }
       }
     }
-    return obj;
+    return null;
   }
 
   /**
@@ -348,43 +443,41 @@ export class Node extends EventDispatcher {
    * 添加子节点对象
    * @param {Node} child
    */
-  public addChild(child: Node): void {
-    if (child._ownerScene !== this._ownerScene) {
-      // fixme: remove below code after gltf loader can set the right ownerScene
-      child._ownerScene = this._ownerScene;
+  // public addChild(child: Node): void {
+  //   if (child._ownerScene !== this._ownerScene) {
+  //     // fixme: remove below code after gltf loader can set the right ownerScene
+  //     child._ownerScene = this._ownerScene;
 
-      Node.traverseSetOwnerScene(child);
-      // throw new Error( 'Node should NOT shared between scenes.' );
-    }
-    child.parent = this;
-  }
+  //     Node.traverseSetOwnerScene(child);
+  //     // throw new Error( 'Node should NOT shared between scenes.' );
+  //   }
+  //   child.parent = this;
+  // }
 
-  /**
-   * 删除子节点
-   * @param child
-   */
-  public removeChild(child: Node) {
-    const index = this._children.indexOf(child);
-    if (index < 0) {
-      Logger.warn(`child's parent is not this node!`);
-      return;
-    }
-    this._children.splice(index, 1);
-    child._parent = null;
+  // /**
+  //  * 删除子节点
+  //  * @param child
+  //  */
+  // public removeChild(child: Node) {
+  //   const index = this._children.indexOf(child);
+  //   if (index < 0) {
+  //     Logger.warn(`child's parent is not this node!`);
+  //     return;
+  //   }
+  //   this._children.splice(index, 1);
+  //   child._parent = null;
 
-    if (this._ownerScene) {
-      child.traverseAbilitiesTriggerEnabled(false);
-      child._ownerScene = null;
-      Node.traverseSetOwnerScene(child);
-    }
-  }
+  //   if (this._ownerScene) {
+  //     child.traverseAbilitiesTriggerEnabled(false);
+  //     child._ownerScene = null;
+  //     Node.traverseSetOwnerScene(child);
+  //   }
+  // }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
 
   /** @deprecated */
   public onUpdate: (t?: number) => void;
-  /** @deprecated */
-  public transform: Transform;
 
   /**
    * @deprecated

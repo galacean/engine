@@ -1,9 +1,56 @@
+import { Node } from "./Node";
 import { NodeAbility } from "./NodeAbility";
 
 /**
  * 脚本类，可进行逻辑编写。
  */
 export class Script extends NodeAbility {
+  public _needCalledFuncs: { [key: string]: boolean };
+  protected _started: boolean = false;
+  constructor(node: Node, props: object = {}) {
+    super(node, props);
+    this._isScript = true;
+    this._needCalledFuncs = {};
+  }
+  /**
+   *  @internal
+   */
+  _isOverridedFunc(funcName) {
+    if (this[funcName] !== Script.prototype[funcName]) return true;
+    return false;
+  }
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
+  _onAwake(): void {
+    this.onAwake();
+  }
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
+  _onEnable(): void {
+    const funcsName = ["onStart", "onUpdate", "onLateUpdate", "onPreRender", "onPostRender"];
+    funcsName.forEach(funcName => {
+      if (this._isOverridedFunc[funcName]) {
+        this._needCalledFuncs[funcName] = true;
+      }
+    });
+    this.onEnable();
+  }
+
+  _onDisable(): void {
+    this._needCalledFuncs = {};
+    this.onDisable();
+  }
+
+  _onDestroy(): void {
+    this.onDisable();
+  }
+
   /**
    * 脚本第一次被激活时调用,而且只调用一次。
    */

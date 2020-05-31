@@ -6,7 +6,7 @@ import { ACamera } from "./ACamera";
 import { SceneFeature } from "./SceneFeature";
 import { SceneVisitor } from "./SceneVisitor";
 import { Vec4 } from "@alipay/o3-math/types/type";
-
+import { NodeAbility as Component } from "./NodeAbility";
 /*
 Scene Feature:
 {
@@ -89,9 +89,14 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
-    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]);
-    this._root.update(deltaTime);
-    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]);
+    //TODO:@ 陆庄 update
+    Component.componentsManager.callComponentMethod("onUpdate", deltaTime);
+    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //TODO:移除
+    this._root.update(deltaTime); //TODO:移除
+    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //TODO:移除
+    //TODO:@ 陆庄 inner logic
+    //TODO:@ 陆庄 lateUpdate
+    Component.componentsManager.callComponentMethod("onLateUpdate", deltaTime);
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
@@ -104,9 +109,13 @@ export class Scene extends EventDispatcher {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]);
+          //TODO:@ 陆庄 preRender
+          Component.componentsManager.callComponentMethod("onPreRender");
+          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //TODO:移除
           camera.render();
-          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]);
+          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //TODO:移除
+          //TODO:@ 陆庄 postRender
+          Component.componentsManager.callComponentMethod("onPostRender");
         }
       }
     } else {

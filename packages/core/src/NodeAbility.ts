@@ -1,3 +1,4 @@
+import { ComponentsManager } from "./ComponentsManager";
 import { Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { Node } from "./Node";
 import { Engine } from "./Engine";
@@ -10,6 +11,53 @@ import { mat4Type } from "./type";
  */
 export class NodeAbility extends EventDispatcher {
   /**
+   * 被激活后调用，可根据需要重写此方法
+   * @internal
+   */
+  _onAwake(): void {
+    //override it.
+  }
+  /**
+   * 被激活后调用，可根据需要重写此方法
+   * @internal
+   */
+  _onEnable(): void {
+    //override it.
+  }
+
+  /**
+   * 被禁用时调用，可根据需要重写此方法
+   * @internal
+   */
+  _onDisable(): void {
+    //override it.
+  }
+
+  /**
+   * 被销毁时调用，可根据需要重写此方法
+   * @internal
+   */
+  _onDestroy(): void {
+    //override it.
+  }
+
+  /**
+   * @internal
+   */
+  _setActive(value: boolean): void {
+    if (value) {
+      if (!this._awaked) {
+        this._awaked = true;
+        this._onAwake();
+      }
+      this._enabled && this._onEnable();
+    } else {
+      this._enabled && this._onDisable();
+    }
+  }
+
+  static componentsManager = new ComponentsManager();
+  /**
    * 是否激活
    */
   get enabled(): boolean {
@@ -20,11 +68,12 @@ export class NodeAbility extends EventDispatcher {
     if (val === this._enabled) {
       return;
     }
-
     this._enabled = val;
     if (val && this._started) {
+      this._ownerNode.activeInHierarchy && this._onEnable();
       this.trigger(new Event("enabled", this));
     } else {
+      this._ownerNode.activeInHierarchy && this._onDisable();
       this.trigger(new Event("disabled", this));
     }
   }
@@ -39,6 +88,7 @@ export class NodeAbility extends EventDispatcher {
   public _props: object;
   public _ownerNode: Node;
   public _renderable: boolean;
+  public _isScript: boolean;
   protected _started: boolean = false;
   private _enabled: boolean = true;
   private _pendingDestroy: boolean;
@@ -46,6 +96,8 @@ export class NodeAbility extends EventDispatcher {
   private _renderPassFlag: MaskList;
   private _passMasks: MaskList[];
   private _cullDistanceSq: number;
+  /** @internal */
+  private _awaked: boolean;
 
   /**
    * 构造函数
@@ -54,15 +106,17 @@ export class NodeAbility extends EventDispatcher {
    */
   constructor(node: Node, props: object = {}) {
     super();
-
     this._props = props;
     this._ownerNode = node;
     this._renderable = false;
     this._pendingDestroy = false;
+    this._awaked = false;
     this._renderPriority = 0;
     this._renderPassFlag = MaskList.EVERYTHING;
     this._passMasks = [MaskList.EVERYTHING];
     this._cullDistanceSq = 0; // 等于0，代表不进行 distance cull
+    this._isScript = false;
+    NodeAbility.componentsManager.addComponent(this);
   }
 
   /**
@@ -70,7 +124,11 @@ export class NodeAbility extends EventDispatcher {
    */
   public destroy(): void {
     this._pendingDestroy = true;
-
+    if (this._ownerNode.activeInHierarchy) {
+      this._enabled && this._onDisable();
+    }
+    NodeAbility.componentsManager.removeComponent(this);
+    this._ownerNode.activeInHierarchy && this._onDestroy();
     this.trigger(new Event("disabled", this));
     this.trigger(new Event("destroy", this));
   }
