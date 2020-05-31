@@ -7,6 +7,8 @@ import { SceneFeature } from "./SceneFeature";
 import { SceneVisitor } from "./SceneVisitor";
 import { Vec4 } from "@alipay/o3-math/types/type";
 import { NodeAbility as Component } from "./NodeAbility";
+import { ComponentsManager } from "./ComponentsManager";
+
 /*
 Scene Feature:
 {
@@ -65,6 +67,9 @@ export class Scene extends EventDispatcher {
    * */
   public clipPlanes: Vec4[] = [];
 
+  // @internal
+  public _componentsManager: ComponentsManager;
+
   /**
    * 构造函数
    * @param {Engine} engine 引擎对象
@@ -75,6 +80,7 @@ export class Scene extends EventDispatcher {
     this._engine = engine;
     this._root = new Node(this, null, "root");
     this._activeCameras = [];
+    this._componentsManager = new ComponentsManager();
 
     sceneFeatureManager.addObject(this);
   }
@@ -90,13 +96,13 @@ export class Scene extends EventDispatcher {
    */
   public update(deltaTime: number): void {
     //TODO:@ 陆庄 update
-    Component.componentsManager.callComponentMethod("onUpdate", deltaTime);
+    this._componentsManager.callComponentMethod("onUpdate", deltaTime);
     sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //TODO:移除
     this._root.update(deltaTime); //TODO:移除
     sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //TODO:移除
     //TODO:@ 陆庄 inner logic
     //TODO:@ 陆庄 lateUpdate
-    Component.componentsManager.callComponentMethod("onLateUpdate", deltaTime);
+    this._componentsManager.callComponentMethod("onLateUpdate", deltaTime);
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
@@ -110,12 +116,12 @@ export class Scene extends EventDispatcher {
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
           //TODO:@ 陆庄 preRender
-          Component.componentsManager.callComponentMethod("onPreRender");
+          this._componentsManager.callComponentMethod("onPreRender");
           sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //TODO:移除
           camera.render();
           sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //TODO:移除
           //TODO:@ 陆庄 postRender
-          Component.componentsManager.callComponentMethod("onPostRender");
+          this._componentsManager.callComponentMethod("onPostRender");
         }
       }
     } else {

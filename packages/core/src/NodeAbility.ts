@@ -1,4 +1,3 @@
-import { ComponentsManager } from "./ComponentsManager";
 import { Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { Node } from "./Node";
 import { Engine } from "./Engine";
@@ -56,7 +55,6 @@ export class NodeAbility extends EventDispatcher {
     }
   }
 
-  static componentsManager = new ComponentsManager();
   /**
    * 是否激活
    */
@@ -69,11 +67,16 @@ export class NodeAbility extends EventDispatcher {
       return;
     }
     this._enabled = val;
+    //TODO 把事件拆出来
     if (val && this._started) {
       this._ownerNode.activeInHierarchy && this._onEnable();
-      this.trigger(new Event("enabled", this));
     } else {
       this._ownerNode.activeInHierarchy && this._onDisable();
+    }
+    // @deprecated
+    if (val && this._started) {
+      this.trigger(new Event("enabled", this));
+    } else {
       this.trigger(new Event("disabled", this));
     }
   }
@@ -88,7 +91,6 @@ export class NodeAbility extends EventDispatcher {
   public _props: object;
   public _ownerNode: Node;
   public _renderable: boolean;
-  public _isScript: boolean;
   protected _started: boolean = false;
   private _enabled: boolean = true;
   private _pendingDestroy: boolean;
@@ -115,8 +117,6 @@ export class NodeAbility extends EventDispatcher {
     this._renderPassFlag = MaskList.EVERYTHING;
     this._passMasks = [MaskList.EVERYTHING];
     this._cullDistanceSq = 0; // 等于0，代表不进行 distance cull
-    this._isScript = false;
-    NodeAbility.componentsManager.addComponent(this);
   }
 
   /**
@@ -127,7 +127,6 @@ export class NodeAbility extends EventDispatcher {
     if (this._ownerNode.activeInHierarchy) {
       this._enabled && this._onDisable();
     }
-    NodeAbility.componentsManager.removeComponent(this);
     this._ownerNode.activeInHierarchy && this._onDestroy();
     this.trigger(new Event("disabled", this));
     this.trigger(new Event("destroy", this));

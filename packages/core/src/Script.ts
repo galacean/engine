@@ -5,19 +5,21 @@ import { NodeAbility } from "./NodeAbility";
  * 脚本类，可进行逻辑编写。
  */
 export class Script extends NodeAbility {
-  public _needCalledFuncs: { [key: string]: boolean };
-  protected _started: boolean = false;
+  public _started: boolean = false;
   constructor(node: Node, props: object = {}) {
     super(node, props);
-    this._isScript = true;
-    this._needCalledFuncs = {};
-  }
-  /**
-   *  @internal
-   */
-  _isOverridedFunc(funcName) {
-    if (this[funcName] !== Script.prototype[funcName]) return true;
-    return false;
+    if (this.onUpdate !== Script.prototype.onUpdate) {
+      this.scene._componentsManager.addScript("onUpdate", this);
+    }
+    if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
+      this.scene._componentsManager.addScript("onLateUpdate", this);
+    }
+    if (this.onPreRender !== Script.prototype.onPreRender) {
+      this.scene._componentsManager.addScript("onPreRender", this);
+    }
+    if (this.onPostRender !== Script.prototype.onPostRender) {
+      this.scene._componentsManager.addScript("onPostRender", this);
+    }
   }
   /**
    * @internal
@@ -33,22 +35,36 @@ export class Script extends NodeAbility {
    * @override
    */
   _onEnable(): void {
-    const funcsName = ["onStart", "onUpdate", "onLateUpdate", "onPreRender", "onPostRender"];
-    funcsName.forEach(funcName => {
-      if (this._isOverridedFunc[funcName]) {
-        this._needCalledFuncs[funcName] = true;
-      }
-    });
     this.onEnable();
+  }
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
+  _onStart(): void {
+    this._started = true;
+    this.onStart();
   }
 
   _onDisable(): void {
-    this._needCalledFuncs = {};
     this.onDisable();
   }
 
   _onDestroy(): void {
     this.onDisable();
+    if (this.onUpdate !== Script.prototype.onUpdate) {
+      this.scene._componentsManager.removeScript("onUpdate", this);
+    }
+    if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
+      this.scene._componentsManager.removeScript("onLateUpdate", this);
+    }
+    if (this.onPreRender !== Script.prototype.onPreRender) {
+      this.scene._componentsManager.removeScript("onPreRender", this);
+    }
+    if (this.onPostRender !== Script.prototype.onPostRender) {
+      this.scene._componentsManager.removeScript("onPostRender", this);
+    }
   }
 
   /**
