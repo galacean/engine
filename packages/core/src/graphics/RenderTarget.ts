@@ -1,6 +1,7 @@
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
 import { RenderTextureDepthFormat } from "./RenderTextureDepthFormat";
+import { RenderTextureColorFormat } from "./RenderTextureColorFormat";
 
 /**
  * 用于离屏幕渲染的渲染目标。
@@ -30,11 +31,11 @@ export class RenderTarget {
   set antiAliasing(value: number) {}
 
   /**
-   * 通过颜色纹理和深度格式创建渲染目标。
+   * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
    * @param width - 宽
    * @param height - 高
    * @param colorTexture - 颜色纹理
-   * @param depthTexture - 深度格式
+   * @param depthFormat - 深度格式
    */
   constructor(width: number, height: number, colorTexture: RenderColorTexture, depthFormat: RenderTextureDepthFormat);
 
@@ -48,7 +49,16 @@ export class RenderTarget {
   constructor(width: number, height: number, colorTexture: RenderColorTexture, depthTexture: RenderDepthTexture);
 
   /**
-   * 通过颜色纹理数组和深度格式创建渲染目标。
+   * 通过颜色格式和深度纹理创建渲染目标，使用内部颜色缓冲，无法获取颜色纹理。
+   * @param width - 宽
+   * @param height - 高
+   * @param colorFormat - 颜色格式
+   * @param depthTexture - 深度纹理
+   */
+  constructor(width: number, height: number, colorFormat: RenderTextureColorFormat, depthTexture: RenderDepthTexture);
+
+  /**
+   * 通过颜色纹理数组和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
    * @param width - 宽
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
@@ -66,7 +76,7 @@ export class RenderTarget {
    * @param width - 宽
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
-   * @param depthFormat - 深度纹理
+   * @param depthTexture - 深度纹理
    */
   constructor(
     width: number,
@@ -81,7 +91,7 @@ export class RenderTarget {
   constructor(
     width: number,
     height: number,
-    renderTexture: RenderColorTexture | Array<RenderColorTexture>,
+    renderTexture: RenderColorTexture | Array<RenderColorTexture> | RenderTextureColorFormat,
     depth: RenderDepthTexture | RenderTextureDepthFormat
   ) {}
 
