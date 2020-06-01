@@ -46,16 +46,7 @@ export class RenderTarget {
    * @param colorTexture - 颜色纹理
    * @param depthTexture - 深度纹理
    */
-  constructor(width: number, height: number, colorTexture: RenderColorTexture, depthTexture: RenderDepthTexture);
-
-  /**
-   * 通过颜色格式和深度纹理创建渲染目标，使用内部颜色缓冲，无法获取颜色纹理。
-   * @param width - 宽
-   * @param height - 高
-   * @param colorFormat - 颜色格式
-   * @param depthTexture - 深度纹理
-   */
-  constructor(width: number, height: number, colorFormat: RenderTextureColorFormat, depthTexture: RenderDepthTexture);
+  constructor(width: number, height: number, colorTexture: RenderColorTexture | null, depthTexture: RenderDepthTexture);
 
   /**
    * 通过颜色纹理数组和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
@@ -91,7 +82,7 @@ export class RenderTarget {
   constructor(
     width: number,
     height: number,
-    renderTexture: RenderColorTexture | Array<RenderColorTexture> | RenderTextureColorFormat,
+    renderTexture: RenderColorTexture | Array<RenderColorTexture> | null,
     depth: RenderDepthTexture | RenderTextureDepthFormat
   ) {}
 
