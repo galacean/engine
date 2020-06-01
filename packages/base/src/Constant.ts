@@ -155,6 +155,9 @@ export enum TextureFilter {
   LINEAR_MIPMAP_LINEAR = 9987 // gl.LINEAR_MIPMAP_LINEAR
 }
 
+/**
+ * @deprecated
+ */
 export enum TextureWrapMode {
   REPEAT = 10497, // gl.REPEAT
   CLAMP_TO_EDGE = 33071, // gl.CLAMP_TO_EDGE
@@ -163,6 +166,7 @@ export enum TextureWrapMode {
 
 /**
  * Cube Map 的各个表面的值
+ * @deprecated
  */
 export const CubeMapFace = [
   0x8515, // gl.TEXTURE_CUBE_MAP_POSITIVE_X;
@@ -450,6 +454,9 @@ export enum GLCapabilityType {
   // s3tc_srgb = "WEBGL_compressed_texture_s3tc_srgb"
 }
 
+/**
+ * @deprecated
+ */
 export enum GLCompressedTextureInternalFormat {
   // astc
   RGBA_ASTC_4X4_KHR = 0x93b0,
@@ -510,14 +517,6 @@ export enum GLCompressedTextureInternalFormat {
 }
 
 /**
- * GL 纹理格式
- */
-export enum GLTextureFormat {
-  RGB = 6407,
-  RGBA = 6408
-}
-
-/**
  * OIT 模式
  * */
 export enum OITMode {
@@ -527,4 +526,102 @@ export enum OITMode {
   DEPTH_PEEL,
   /** 双层深度剥离，性能更好，强依赖 MRT */
   DUAL_DEPTH_PEEL
+}
+
+/**
+ * 纹理的循环模式。
+ */
+export enum TextureWrapMode {
+  /** 截取模式，超过纹理边界使用边缘像素的颜色。 */
+  Clamp = 0,
+  /** 重复模式，超过纹理边界会循环平铺。*/
+  Repeat = 1,
+  /** 镜像重复模式，超过纹理边界会镜像循环平铺。*/
+  Mirror = 2
+}
+
+/**
+ * 纹理的过滤模式。
+ */
+export enum TextureFilterMode {
+  /** 点过滤。*/
+  Point = 0,
+  /** 双线性过滤。*/
+  Bilinear = 1,
+  /** 三线性过滤。*/
+  Trilinear = 2
+}
+
+/**
+ * 纹理格式枚举。
+ */
+export enum TextureFormat {
+  /** RGB格式，每通道8 bits。*/
+  R8G8B8 = 0,
+  /** RGBA格式，每通道8 bits。*/
+  R8G8B8A8 = 1,
+  /** RGB格式,R通道5 bits，G通道6 bits，B通道5 bits。*/
+  R5G6B5 = 2,
+  /** 透明格式，8 bits。*/
+  Alpha8 = 3,
+  /** RGBA格式，每个通道32 bits。*/
+  R32G32B32A32 = 4,
+  /** RGB压缩格式的压缩格式。*/
+  DXT1 = 5,
+  /** RGBA压缩格式的压缩格式。*/
+  DXT5 = 6,
+  /** RGB压缩格式，4 bits每像素。*/
+  ETC1_RGB = 7,
+  /** RGB压缩格式，2 bits每像素。*/
+  PVRTC_RGB2 = 8,
+  /** RGBA压缩格式，2 bits每像素。*/
+  PVRTC_RGBA2 = 9,
+  /** RGB压缩格式，4 bits每像素。*/
+  PVRTC_RGB4 = 10,
+  /** RGBA压缩格式，4 bits每像素。*/
+  PVRTC_RGBA4 = 11
+}
+
+/**
+ * 立方体纹理面。
+ */
+export enum TextureCubeFace {
+  /** X轴正方向。 */
+  PositiveX,
+  /** X轴负方向。 */
+  NegativeX,
+  /** Y轴正方向。 */
+  PositiveY,
+  /** Y轴负方向。 */
+  NegativeY,
+  /** Z轴正方向。 */
+  PositiveZ,
+  /** Z轴负方向。 */
+  NegativeZ
+}
+
+/**
+ * 渲染纹理颜色格式枚举。
+ */
+export enum RenderTextureColorFormat {
+  /** RGB格式，每通道8 bits。*/
+  R8G8B8 = 0,
+  /** RGBA格式，每通道8 bits。*/
+  R8G8B8A8 = 1,
+  /** 透明格式，8 bits。*/
+  Alpha8 = 2,
+  /** RGBA格式,每通道16 bits。*/
+  R16G16B16A16 = 3
+}
+
+/**
+ * 渲染纹理深度格式枚举。
+ */
+export enum RenderTextureDepthFormat {
+  /** 至少16位深度缓冲，无模版缓冲。*/
+  Depth16 = 0,
+  /** 8位模板缓冲，无深度缓冲。*/
+  Stencil8 = 1,
+  /** 深度缓冲和模板缓冲。*/
+  DepthStencil = 2
 }
