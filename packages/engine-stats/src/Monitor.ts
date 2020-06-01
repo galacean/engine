@@ -39,7 +39,8 @@ let css = `
   }
 
   .gl-perf dt {
-    color: orange;
+    color: #fff;
+    text-shadow: #000 0 0 1px;
   }
 
   .gl-perf dt .unit{
