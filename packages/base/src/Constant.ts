@@ -439,6 +439,7 @@ export enum GLCapabilityType {
   multipleSample = "multipleSampleOnlySupportedInWebGL2",
   textureFloat = "OES_texture_float",
   colorBufferFloat = "EXT_color_buffer_float",
+  textureFilterAnisotropic = "EXT_texture_filter_anisotropic",
 
   astc = "WEBGL_compressed_texture_astc",
   astc_webkit = "WEBKIT_WEBGL_compressed_texture_astc",

@@ -11,8 +11,6 @@ export class CompressedTexture2D extends Texture2D {
 
   public isCompressed: boolean = true;
 
-  private _width: number;
-  private _height: number;
   private _internalFormat: GLCompressedTextureInternalFormat;
 
   /**
@@ -41,14 +39,6 @@ export class CompressedTexture2D extends Texture2D {
       this.setFilter(this.filterMag, TextureFilter.LINEAR);
     }
     this.updateTexture();
-  }
-
-  get width(): number {
-    return this._width;
-  }
-
-  get height(): number {
-    return this._height;
   }
 
   get internalFormat(): GLCompressedTextureInternalFormat {

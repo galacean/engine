@@ -9,6 +9,18 @@ type extensionKey = string;
 export class GLCapability {
   _rhi: GLRenderHardware;
   capabilityList: Map<GLCapabilityType, boolean>;
+  private _maxAnisoLevel: number;
+
+  /**
+   * 最大各向异性过滤等级。
+   */
+  get maxAnisoLevel() {
+    if (!this._maxAnisoLevel) {
+      const ext = this.rhi.requireExtension(GLCapabilityType.textureFilterAnisotropic);
+      this._maxAnisoLevel = ext ? this.rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 1;
+    }
+    return this._maxAnisoLevel;
+  }
 
   get rhi() {
     return this._rhi;
@@ -109,7 +121,8 @@ export class GLCapability {
       s3tc_webkit,
 
       textureFloat,
-      colorBufferFloat
+      colorBufferFloat,
+      textureFilterAnisotropic
     } = GLCapabilityType;
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
     cap.set(shaderTextureLod, isWebGL2 || !!requireExtension(shaderTextureLod));
@@ -121,6 +134,7 @@ export class GLCapability {
     cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
     cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
     cap.set(colorBufferFloat, isWebGL2 && !!requireExtension(colorBufferFloat));
+    cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
 
     cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
@@ -160,7 +174,13 @@ export class GLCapability {
   /** 兼容 WebGL 1和 WebGL 2,抹平接口差异 */
   private compatibleAllInterface() {
     // 需要兼容的能力
-    const { depthTexture, vertexArrayObject, instancedArrays, drawBuffers } = GLCapabilityType;
+    const {
+      depthTexture,
+      vertexArrayObject,
+      instancedArrays,
+      drawBuffers,
+      textureFilterAnisotropic
+    } = GLCapabilityType;
 
     this.compatibleInterface(depthTexture, {
       UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
@@ -187,5 +207,8 @@ export class GLCapability {
         ...items
       });
     }
+    this.compatibleInterface(textureFilterAnisotropic, {
+      TEXTURE_MAX_ANISOTROPY_EXT: "TEXTURE_MAX_ANISOTROPY_EXT"
+    });
   }
 }

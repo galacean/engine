@@ -1,15 +1,221 @@
 import { Texture } from "./Texture";
-import { TextureFilter, TextureWrapMode } from "@alipay/o3-base";
-import { TextureConfig } from "./type";
+import {
+  TextureFormat,
+  TextureCubeFace,
+  TextureFilter,
+  TextureWrapMode,
+  GLCapabilityType,
+  Logger
+} from "@alipay/o3-base";
+import { TextureFormatDetail, TextureConfig } from "./type";
 
 function isPowerOf2(v): boolean {
   return (v & (v - 1)) === 0;
 }
 
 /**
- * CubeMap 贴图数据对象
+ * 立方体纹理
  */
 export class TextureCubeMap extends Texture {
+  private _format: TextureFormat;
+  private _formatDetail: TextureFormatDetail;
+
+  /**
+   * 纹理的格式。
+   */
+  get format(): TextureFormat {
+    return this._format;
+  }
+
+  /**
+   * 创建立方体纹理。
+   * @param rhi - GPU 硬件抽象层
+   * @param size - 尺寸
+   * @param format - 格式
+   * @param mipmap - 是否使用分级纹理
+   */
+  constructorNew(rhi, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = false) {
+    if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
+      Logger.error("当前环境不支持浮点纹理,请先检测能力再使用");
+      return;
+    }
+    if (mipmap && !isPowerOf2(size)) {
+      Logger.warn("非二次幂纹理不支持开启 mipmap,已自动降级为非mipmap");
+      mipmap = false;
+    }
+
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
+    const isWebGL2: boolean = rhi.isWebGL2;
+    const formatDetail = this.getFormatDetail(format, gl, isWebGL2);
+    const { internalFormat, baseFormat, dataType, isCompressed } = formatDetail;
+    const glTexture = gl.createTexture();
+
+    this._rhi = rhi;
+    this._glTexture = glTexture;
+    this._target = gl.TEXTURE_CUBE_MAP;
+    this._width = size;
+    this._height = size;
+    this._mipmap = mipmap;
+    this._format = format;
+    this._formatDetail = formatDetail;
+
+    // 预开辟 mipmap 显存
+    if (mipmap) {
+      this.bind();
+      for (let i = 0; i < this.mipmapCount; i++) {
+        for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+          gl.texImage2D(
+            gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
+            i,
+            internalFormat,
+            size,
+            size,
+            0,
+            baseFormat,
+            dataType,
+            null
+          );
+        }
+      }
+      this.unbind();
+    }
+  }
+
+  /**
+   * 通过指定立方体面、像素缓冲数据和指定区域设置像，如果mipmap属性为true会自动生成多级纹理数据。
+   * @param face - 立方体面
+   * @param colorBuffer - 颜色缓冲
+   * @param x - 区域起始X坐标
+   * @param y - 区域起始Y坐标
+   * @param width - 区域宽
+   * @param height - 区域高
+   */
+  setPixelBuffer(
+    face: TextureCubeFace,
+    colorBuffer: ArrayBufferView,
+    x?: number,
+    y?: number,
+    width?: number,
+    height?: number
+  ): void;
+
+  /**
+   * 通过指定立方体面、像素缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
+   * @param face - 立方体面
+   * @param colorBuffer - 颜色缓冲
+   * @param x - 区域起始X坐标
+   * @param y - 区域起始Y坐标
+   * @param width - 区域宽
+   * @param height - 区域高
+   * @param miplevel - 分级纹理层级
+   */
+  setPixelBuffer(
+    face: TextureCubeFace,
+    colorBuffer: ArrayBufferView,
+    x?: number,
+    y?: number,
+    width?: number,
+    height?: number,
+    miplevel?: number
+  ): void;
+
+  /**
+   * @internal
+   */
+  setPixelBuffer(
+    face: TextureCubeFace,
+    colorBuffer: ArrayBufferView,
+    x?: number,
+    y?: number,
+    width?: number,
+    height?: number,
+    miplevel: number = 0
+  ): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
+
+    this.bind();
+    gl.texSubImage2D(
+      gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
+      miplevel,
+      x,
+      y,
+      width,
+      height,
+      baseFormat,
+      dataType,
+      colorBuffer
+    );
+    if (this._mipmap && typeof arguments[6] !== "number") {
+      // gl.generateMipmap(this._target);
+    }
+    this.unbind();
+  }
+
+  /**
+   * 通过指定立方体面、图源和指定区域设置像素,如果mipmap属性为true会自动生成多级纹理数据。
+   * @param face - 立方体面
+   * @param imageSource - 纹理源
+   * @param flipY - 是否翻转Y轴
+   * @param premultipltAlpha - 是否预乘透明通道
+   * @param x - 区域起始X坐标
+   * @param y - 区域起始Y坐标
+   */
+  setImageSource(
+    face: TextureCubeFace,
+    imageSource: TexImageSource,
+    flipY?: boolean,
+    premultiplyAlpha?: boolean,
+    x?: number,
+    y?: number
+  ): void;
+
+  /**
+   * 通过指定立方体面、图源、指定区域和纹理层级设置像素。
+   * @param face - 立方体面
+   * @param imageSource - 纹理源
+   * @param flipY - 是否翻转Y轴
+   * @param premultipltAlpha - 是否预乘透明通道
+   * @param x - 区域起始X坐标
+   * @param y - 区域起始Y坐标
+   * @param miplevel - 分级纹理层级
+   */
+  setImageSource(
+    face: TextureCubeFace,
+    imageSource: TexImageSource,
+    flipY?: boolean,
+    premultiplyAlpha?: boolean,
+    x?: number,
+    y?: number,
+    miplevel?: number
+  ): void;
+
+  /**
+   * @internal
+   */
+  setImageSource(
+    face: TextureCubeFace,
+    imageSource: TexImageSource,
+    flipY: boolean = false,
+    premultiplyAlpha: boolean = false,
+    x?: number,
+    y?: number,
+    miplevel: number = 0
+  ): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
+
+    this.bind();
+    gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + face, miplevel, x, y, baseFormat, dataType, imageSource);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
+    if (this._mipmap && typeof arguments[6] !== "number") {
+      // gl.generateMipmap(this._target);
+    }
+    this.unbind();
+  }
+
+  /** ----------------- @deprecated----------------- */
   private _images: Array<any>;
   private _mipMapLevel: number;
   public needUpdateCubeTextureFace: Array<boolean>;
@@ -26,6 +232,12 @@ export class TextureCubeMap extends Texture {
    */
   constructor(name: string, images?: Array<any>, config?: TextureConfig) {
     super(name, config);
+
+    // todo: delete
+    if (arguments[0] instanceof Object) {
+      this.constructorNew.apply(this, arguments);
+      return;
+    }
 
     this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
 
