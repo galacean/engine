@@ -47,9 +47,9 @@ export class GLTextureCubeMap extends GLTexture {
         }
         super.generateMipmap();
       }
-      if (!config._isReadable) {
-        config._images = null;
-      }
+      // if (!config._isReadable) {
+      //   config._images = null;
+      // }
     }
 
     config.needUpdateWholeTexture = false;

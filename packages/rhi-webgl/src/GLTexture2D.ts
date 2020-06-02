@@ -72,13 +72,13 @@ export class GLTexture2D extends GLTexture {
         } else {
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
           super.generateMipmap();
-          if (!config._isReadable) {
-            var img: HTMLImageElement = config._image;
-            img.src = "";
-            img.onload = null;
-            img.onerror = null;
-            config._image = null;
-          }
+          // if (!config._isReadable) {
+          //   var img: HTMLImageElement = config._image;
+          //   img.src = "";
+          //   img.onload = null;
+          //   img.onerror = null;
+          //   config._image = null;
+          // }
         }
 
         config.needUpdateWholeTexture = false;

@@ -15,7 +15,7 @@ export class Texture2D extends Texture {
   public updateSubImageData: Array<any>;
   public _image: any;
   private _context: any;
-  public _isReadable: boolean;
+  // public _isReadable: boolean;
 
   /** uv transform */
   public uOffset: number;
@@ -37,9 +37,8 @@ export class Texture2D extends Texture {
    * @param {String} name 名称
    * @param {HTMLImageElement|ImageData|HTMLCanvasElement|ImageBitmap|ArrayBufferView|HTMLVideoElement} image 纹理内容
    * @param {Texture2DConfig} config 可选配置
-   * @param isReadable - 是否可读
    */
-  constructor(name: string, image?, config: Texture2DConfig = {}, isReadable: boolean = false) {
+  constructor(name: string, image?, config: Texture2DConfig = {} /*, isReadable: boolean = false*/) {
     super(name, config);
     config = {
       uOffset: 0,
@@ -54,7 +53,7 @@ export class Texture2D extends Texture {
       ...config
     };
 
-    this._isReadable = isReadable;
+    // this._isReadable = isReadable;
     this.uOffset = config.uOffset;
     this.vOffset = config.vOffset;
     this.uScale = config.uScale;

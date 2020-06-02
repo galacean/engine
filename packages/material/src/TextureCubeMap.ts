@@ -10,7 +10,7 @@ function isPowerOf2(v): boolean {
  * CubeMap 贴图数据对象
  */
 export class TextureCubeMap extends Texture {
-  public _isReadable: boolean;
+  // public _isReadable: boolean;
   public _images: Array<any>;
   private _mipMapLevel: number;
   public needUpdateCubeTextureFace: Array<boolean>;
@@ -24,12 +24,12 @@ export class TextureCubeMap extends Texture {
    * @param {Number} [config.minFilter=TextureFilter.LINEAR_MIPMAP_LINEAR] 缩小时的筛选器
    * @param {Number} [config.wrapS=TextureWrapMode.CLAMP_TO_EDGE] S方向纹理包裹选项
    * @param {Number} [config.wrapT=TextureWrapMode.CLAMP_TO_EDGE] T方向纹理包裹选项
-   * @param isReadable - 是否可读
+  //  * @param isReadable - 是否可读
    */
-  constructor(name: string, images?: Array<any>, config?: TextureConfig, isReadable: boolean = false) {
+  constructor(name: string, images?: Array<any>, config?: TextureConfig /*, isReadable: boolean = false*/) {
     super(name, config);
 
-    this._isReadable = isReadable;
+    // this._isReadable = isReadable;
     this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
 
     this.needUpdateCubeTextureFace = [];
