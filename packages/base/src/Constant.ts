@@ -605,9 +605,9 @@ export enum TextureCubeFace {
 }
 
 /**
- * 渲染纹理颜色格式枚举。
+ * 渲染缓冲颜色格式枚举。
  */
-export enum RenderTextureColorFormat {
+export enum RenderBufferColorFormat {
   /** RGB格式，每通道8 bits。*/
   R8G8B8 = 0,
   /** RGBA格式，每通道8 bits。*/
@@ -621,13 +621,24 @@ export enum RenderTextureColorFormat {
 }
 
 /**
- * 渲染纹理深度格式枚举。
+ * 渲染缓冲深度格式枚举。
  */
-export enum RenderTextureDepthFormat {
-  /** 至少16位深度缓冲，无模版缓冲。*/
-  Depth16 = 0,
-  /** 8位模板缓冲，无深度缓冲。*/
-  Stencil8 = 1,
-  /** 深度缓冲和模板缓冲。*/
-  DepthStencil = 2
+export enum RenderBufferDepthFormat {
+  /** 深度缓冲，自动选择精度 */
+  Depth = 0,
+  /** 深度模版缓冲，自动选择精度 */
+  DepthStencil = 1,
+  /** 模板缓冲 */
+  Stencil = 2,
+
+  /** 强制16位深度缓冲 */
+  Depth16 = 3,
+  /** 强制24位深度缓冲 */
+  Depth24 = 4,
+  /** 强制32位深度缓冲 */
+  Depth32 = 5,
+  /** 强制24位深度缓冲+8位模版缓冲 */
+  Depth24Stencil8 = 6,
+  /** 强制32位深度缓冲+8位模版缓冲 */
+  Depth32Stencil8 = 7
 }
