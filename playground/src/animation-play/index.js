@@ -11,6 +11,7 @@ import {RegistExtension} from '@alipay/o3-loader-gltf';
 import {PBRMaterial} from '@alipay/o3-pbr';
 
 import { AHUDLabel } from "../common/AHUDLabel";
+import "@alipay/o3-engine-stats";
 
 RegistExtension({PBRMaterial});
 

@@ -48,6 +48,11 @@ function enableRenderer(node: Node, enabled: boolean, key: string) {
  */
 export class Node extends EventDispatcher {
   /**
+   * 节点计数
+   */
+  static counter: number = 0;
+
+  /**
    * 所属的 Scene 对象
    * @member {Scene}
    * @readonly
@@ -122,6 +127,9 @@ export class Node extends EventDispatcher {
     this._isActiveInInHierarchy = isActiveInHierarchy;
     this.trigger(new Event("isActiveInHierarchyChange"));
     this.traverseAbilitiesTriggerEnabled(isActiveInHierarchy);
+
+    // 节点计数
+    isActiveInHierarchy ? Node.counter++ : Node.counter--;
   }
 
   /**
