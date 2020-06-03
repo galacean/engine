@@ -3,10 +3,6 @@ import { TextureFormat, TextureFilter, TextureWrapMode, GLCapabilityType, Logger
 import { mat3 } from "@alipay/o3-math";
 import { TextureFormatDetail, Texture2DConfig, Rect } from "./type";
 
-function isPowerOf2(v): boolean {
-  return (v & (v - 1)) === 0;
-}
-
 /**
  * 2D纹理
  */
@@ -40,7 +36,7 @@ export class Texture2D extends Texture {
       Logger.error("当前环境不支持浮点纹理,请先检测能力再使用");
       return;
     }
-    if (mipmap && (!isPowerOf2(width) || !isPowerOf2(height))) {
+    if (mipmap && (!Texture.isPowerOf2(width) || !Texture.isPowerOf2(height))) {
       Logger.warn("非二次幂纹理不支持开启 mipmap,已自动降级为非mipmap");
       mipmap = false;
     }
@@ -304,7 +300,7 @@ export class Texture2D extends Texture {
    * @private
    */
   configMipmap() {
-    if (isPowerOf2(this._image.width) && isPowerOf2(this._image.height)) {
+    if (Texture.isPowerOf2(this._image.width) && Texture.isPowerOf2(this._image.height)) {
       this.canMipmap =
         this.filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
         this.filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||

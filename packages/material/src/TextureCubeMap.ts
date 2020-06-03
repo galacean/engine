@@ -9,10 +9,6 @@ import {
 } from "@alipay/o3-base";
 import { TextureFormatDetail, TextureConfig } from "./type";
 
-function isPowerOf2(v): boolean {
-  return (v & (v - 1)) === 0;
-}
-
 /**
  * 立方体纹理
  */
@@ -39,7 +35,7 @@ export class TextureCubeMap extends Texture {
       Logger.error("当前环境不支持浮点纹理,请先检测能力再使用");
       return;
     }
-    if (mipmap && !isPowerOf2(size)) {
+    if (mipmap && !Texture.isPowerOf2(size)) {
       Logger.warn("非二次幂纹理不支持开启 mipmap,已自动降级为非mipmap");
       mipmap = false;
     }
@@ -300,7 +296,7 @@ export class TextureCubeMap extends Texture {
     if (this.images[1]) {
       this._mipMapLevel = Math.log2(this.images[0][0].width);
     } else {
-      if (isPowerOf2(this._images[0][0].width) && isPowerOf2(this._images[0][0].height)) {
+      if (Texture.isPowerOf2(this._images[0][0].width) && Texture.isPowerOf2(this._images[0][0].height)) {
         if (
           this.filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
           this.filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||

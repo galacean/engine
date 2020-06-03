@@ -6,6 +6,10 @@ import { TextureFormatDetail, TextureConfig } from "./type";
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
 export class Texture extends AssetObject {
+  static isPowerOf2(v: number): boolean {
+    return (v & (v - 1)) === 0;
+  }
+
   private _mipmapCount: number;
   private _wrapModeU: TextureWrapMode;
   private _wrapModeV: TextureWrapMode;
