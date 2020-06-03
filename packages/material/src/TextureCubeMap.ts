@@ -58,19 +58,23 @@ export class TextureCubeMap extends Texture {
     // 预开辟 mipmap 显存
     if (mipmap) {
       this.bind();
-      for (let i = 0; i < this.mipmapCount; i++) {
-        for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-          gl.texImage2D(
-            gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
-            i,
-            internalFormat,
-            size,
-            size,
-            0,
-            baseFormat,
-            dataType,
-            null
-          );
+      if (isWebGL2) {
+        gl.texStorage2D(this._target, this.mipmapCount, internalFormat, size, size);
+      } else {
+        for (let i = 0; i < this.mipmapCount; i++) {
+          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+            gl.texImage2D(
+              gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
+              i,
+              internalFormat,
+              size,
+              size,
+              0,
+              baseFormat,
+              dataType,
+              null
+            );
+          }
         }
       }
       this.unbind();

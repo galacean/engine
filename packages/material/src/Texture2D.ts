@@ -59,8 +59,12 @@ export class Texture2D extends Texture {
     // 预开辟 mipmap 显存
     if (mipmap) {
       this.bind();
-      for (let i = 0; i < this.mipmapCount; i++) {
-        gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
+      if (isWebGL2) {
+        gl.texStorage2D(this._target, this.mipmapCount, internalFormat, width, height);
+      } else {
+        for (let i = 0; i < this.mipmapCount; i++) {
+          gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
+        }
       }
       this.unbind();
     }
