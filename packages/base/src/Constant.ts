@@ -438,7 +438,10 @@ export enum GLCapabilityType {
   instancedArrays = "ANGLE_instanced_arrays",
   multipleSample = "multipleSampleOnlySupportedInWebGL2",
   textureFloat = "OES_texture_float",
+  textureHalfFloat = "OES_texture_half_float",
+  WEBGL_colorBufferFloat = "WEBGL_color_buffer_float",
   colorBufferFloat = "EXT_color_buffer_float",
+  colorBufferHalfFloat = "EXT_color_buffer_half_float",
   textureFilterAnisotropic = "EXT_texture_filter_anisotropic",
 
   astc = "WEBGL_compressed_texture_astc",
@@ -612,7 +615,9 @@ export enum RenderTextureColorFormat {
   /** 透明格式，8 bits。*/
   Alpha8 = 2,
   /** RGBA格式,每通道16 bits。*/
-  R16G16B16A16 = 3
+  R16G16B16A16 = 3,
+  /** RGBA格式，每个通道32 bits。*/
+  R32G32B32A32 = 4
 }
 
 /**

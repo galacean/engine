@@ -121,7 +121,10 @@ export class GLCapability {
       s3tc_webkit,
 
       textureFloat,
+      textureHalfFloat,
+      WEBGL_colorBufferFloat,
       colorBufferFloat,
+      colorBufferHalfFloat,
       textureFilterAnisotropic
     } = GLCapabilityType;
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
@@ -133,7 +136,15 @@ export class GLCapability {
     cap.set(multipleSample, isWebGL2);
     cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
     cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
-    cap.set(colorBufferFloat, isWebGL2 && !!requireExtension(colorBufferFloat));
+    cap.set(textureHalfFloat, isWebGL2 || !!requireExtension(textureHalfFloat));
+    cap.set(
+      colorBufferFloat,
+      (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(WEBGL_colorBufferFloat)
+    );
+    cap.set(
+      colorBufferHalfFloat,
+      (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(colorBufferHalfFloat)
+    );
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
 
     cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
@@ -179,7 +190,11 @@ export class GLCapability {
       vertexArrayObject,
       instancedArrays,
       drawBuffers,
-      textureFilterAnisotropic
+      textureFilterAnisotropic,
+      textureHalfFloat,
+      colorBufferHalfFloat,
+      colorBufferFloat,
+      WEBGL_colorBufferFloat
     } = GLCapabilityType;
 
     this.compatibleInterface(depthTexture, {
@@ -209,6 +224,15 @@ export class GLCapability {
     }
     this.compatibleInterface(textureFilterAnisotropic, {
       TEXTURE_MAX_ANISOTROPY_EXT: "TEXTURE_MAX_ANISOTROPY_EXT"
+    });
+    this.compatibleInterface(textureHalfFloat, {
+      HAFL_FLOAT: "HALF_FLOAT_OES"
+    });
+    this.compatibleInterface(colorBufferHalfFloat, {
+      RGBA16F: "RBGA16F_EXT"
+    });
+    this.compatibleInterface(WEBGL_colorBufferFloat, {
+      RGBA32F: "RBGA32F_EXT"
     });
   }
 }
