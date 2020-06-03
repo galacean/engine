@@ -86,7 +86,7 @@ export class NodeAbility extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-    return this._ownerNode.scene.engine;
+    return this._ownerNode?.scene?.engine;
   }
 
   get modelMatrix(): mat4Type {

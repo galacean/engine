@@ -26,7 +26,8 @@
   },
   "dependencies": {
     "@alipay/o3-base": "^2.2.0",
-    "@alipay/o3-math": "^2.2.0"
+    "@alipay/o3-math": "^2.2.0",
+    "@alipay/o3-renderer-basic": "^2.2.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

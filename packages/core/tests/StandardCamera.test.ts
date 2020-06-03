@@ -13,7 +13,7 @@ describe("projection test", function() {
   });
 
   it("perspective calculate", () => {
-    camera.viewport = [0, 0, 400, 400];
+    camera.viewportNormalized = [0, 0, 1, 1];
     camera.fieldOfView = 45;
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
@@ -30,7 +30,7 @@ describe("projection test", function() {
 
   it("reset perspective", () => {
     camera.resetProjectionMatrix();
-    camera.viewport = [0, 0, 400, 400];
+    camera.viewportNormalized = [0, 0, 1, 1];
     camera.fieldOfView = 60;
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
@@ -82,5 +82,26 @@ describe("projection test", function() {
     );
 
     expect(camera.projectionMatrix).not.toEqual(result);
+  });
+
+  it("screen to viewport point", () => {
+    camera.viewportNormalized = [0.5, 0.5, 0.5, 0.5];
+    const out = camera.screenToViewportPoint([0.5, 0.5], [1, 1]);
+    expect(out[0]).toBeCloseTo(0);
+    expect(out[1]).toBeCloseTo(0);
+  });
+
+  it("viewport to screen point", () => {
+    camera.viewportNormalized = [0.5, 0.5, 0.5, 0.5];
+    const out = camera.viewportToScreenPoint([0.5, 0.5], [1, 1]);
+    expect(out[0]).toBeCloseTo(0.75);
+    expect(out[1]).toBeCloseTo(0.75);
+  });
+
+  it.only("world to viewport", () => {
+    const out = camera.worldToViewportPoint([1, 1, 1], [0, 0, 0]);
+    console.log(out);
+    // camera.viewportToWorldPoint()
+    // camera.worldToViewportPoint()
   });
 });

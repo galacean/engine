@@ -1,6 +1,7 @@
 import { NodeAbility } from "./NodeAbility";
 import { mat4, vec4, vec3 } from "@alipay/o3-math";
-import { BasicSceneRenderer, GLRenderHardware } from "./type";
+import { GLRenderHardware } from "./type";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { Mat4 } from "@alipay/o3-math/types/type";
 import { ClearMode } from "@alipay/o3-base";
 import { Node } from "./Node";
@@ -37,7 +38,7 @@ type Sky = {};
 
 enum ClearFlags {
   SKYBOX, // 只保留天空盒
-  COLOR, // 只保留纯色
+  COLOR, // 纯色
   DEPTH_ONLY, // 只清除深度信息
   NONE // 不做任何清除
 }
@@ -56,7 +57,7 @@ export class StandardCamera extends NodeAbility {
   private isProjectionDirty = false;
   private isProjectionMatrixSetting = false;
   // todo 类型修改
-  private _viewMatrix: Matrix4;
+  private _viewMatrix: Matrix4 = mat4.create() as Matrix4;
   private _clearFlags: ClearFlags;
   // todo 类型修改
   private _clearParam: Vector4;
@@ -82,17 +83,21 @@ export class StandardCamera extends NodeAbility {
     const { RHI, SceneRenderer, canvas, attributes } = props;
     const engine = this.engine;
 
-    const settingCanvas = engine.config.canvas ?? canvas;
-    const settingAttribute = engine.config.attributes ?? attributes;
-    const Renderer = SceneRenderer;
+    const settingCanvas = engine?.config.canvas ?? canvas;
+    const settingAttribute = engine?.config.attributes ?? attributes;
+    const Renderer = SceneRenderer ?? BasicSceneRenderer;
 
     settingCanvas && this.attachToScene(settingCanvas, settingAttribute);
     // this._rhi = engine.requireRHI(RHI, engine.config.canvas ?? canvas, attributes);
-    this._sceneRenderer = new SceneRenderer(this);
-    this.node.scene.attachRenderCamera(this as any);
+    this._sceneRenderer = new Renderer(this);
+
+    if (this.node.scene) {
+      this.node.scene.attachRenderCamera(this as any);
+    }
 
     this.nearClipPlane = 0.1;
     this.farClipPlane = 100.0;
+    this.fieldOfView = 45;
 
     this.viewportNormalized = [0, 0, 1, 1];
   }
@@ -169,15 +174,36 @@ export class StandardCamera extends NodeAbility {
    * 世界坐标转换成屏幕坐标
    * @param worldPoint
    */
-  public worldToScreenPoint(worldPoint: Vector3): Vector3 {
+  public worldToScreenPoint(worldPoint: Vector3, out: Vector3): Vector3 {
+    this.worldToViewportPoint(worldPoint, out);
+    this.viewportToScreenPoint(out, out);
     return [0, 0, 0];
   }
 
   /**
    * 世界坐标转化成 viewport 坐标
+   * @param worldPoint 世界坐标
    */
-  public worldToViewportPoint(worldPoint: Vector3): Vector3 {
-    return [0, 0, 0];
+  public worldToViewportPoint(worldPoint: Vector3, out: Vector3): Vector3 {
+    const matViewProj = mat4.create();
+    mat4.mul(matViewProj, this.projectionMatrix, this.viewMatrix);
+
+    const worldPos = vec4.fromValues(worldPoint[0], worldPoint[1], worldPoint[2], 1.0);
+    const clipPos = vec4.create();
+    vec4.transformMat4(clipPos, worldPos, matViewProj);
+
+    const nx = clipPos[0] / clipPos[3];
+    const ny = clipPos[1] / clipPos[3];
+    const depth = clipPos[2] / clipPos[3];
+
+    // 坐标轴转换
+    const x = (nx + 1.0) * 0.5;
+    const y = (1.0 - ny) * 0.5;
+
+    out[0] = x;
+    out[1] = y;
+    out[2] = depth;
+    return out;
   }
 
   /**
@@ -192,8 +218,15 @@ export class StandardCamera extends NodeAbility {
    * 屏幕坐标转化成视图坐标
    * @param position
    */
-  public screenToViewportPoint(position: Vector3): Vector3 {
-    return [0, 0, 0];
+  public screenToViewportPoint<T extends Vector2 | Vector3>(position: Vector3 | Vector2, out: T): T {
+    const nx = position[0];
+    const ny = position[1];
+    const viewport = this.viewportNormalized;
+    const viewWidth = viewport[2];
+    const viewHeight = viewport[3];
+    out[0] = (nx - viewport[0]) / viewWidth;
+    out[1] = (ny - viewport[1]) / viewHeight;
+    return out;
   }
 
   /**
@@ -251,16 +284,23 @@ export class StandardCamera extends NodeAbility {
    * 相机视口坐标转化成射线转化成世界坐标
    * @param position
    */
-  public viewportToWorldPoint(position: Vector2): Vector3 {
-    return [0, 0, 0];
+  public viewportToWorldPoint(position: Vector3, out: Vector3): Vector3 {
+    return out;
   }
 
   /**
    * 相机视口坐标转化成屏幕点
    * @param position
    */
-  public viewportToScreenPoint(position: Vector3): Vector3 {
-    return [0, 0, 0];
+  public viewportToScreenPoint<T extends Vector2 | Vector3>(position: T, out: T): T {
+    const viewport = this.viewportNormalized;
+    const viewWidth = viewport[2];
+    const viewHeight = viewport[3];
+    const nx = position[0];
+    const ny = position[1];
+    out[0] = viewport[0] + viewWidth * nx;
+    out[1] = viewport[1] + viewHeight * ny;
+    return out;
   }
 
   /**
