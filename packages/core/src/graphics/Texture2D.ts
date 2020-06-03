@@ -24,90 +24,46 @@ export class Texture2D extends Texture {
   }
 
   /**
-   * 通过颜色缓冲数据和指定区域设置像素,如果mipmap属性为true会自动生成多级纹理数据。
-   * @param colorBuffer - 颜色缓冲数据
-   * @param x - 数据起始X坐标
-   * @param y - 数据起始Y坐标
-   * @param width - 数据宽度
-   * @param height - 数据高度
-   */
-  setPixelBuffer(colorBuffer: ArrayBufferView, x?: number, y?: number, width?: number, height?: number): void;
-
-  /**
    * 通过颜色缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
    * @param pixelBuffer - 颜色缓冲数据
+   * @param miplevel - 纹理层级
    * @param x - 数据起始X坐标
    * @param y - 数据起始Y坐标
    * @param width - 数据宽度
    * @param height - 数据高度
-   * @param miplevel - 纹理层级
    */
   setPixelBuffer(
     colorBuffer: ArrayBufferView,
+    miplevel: number = 0,
     x?: number,
     y?: number,
     width?: number,
-    height?: number,
-    miplevel?: number
-  );
-
-  /**
-   * @internal
-   */
-  setPixelBuffer(
-    colorBuffer: ArrayBufferView,
-    x?: number,
-    y?: number,
-    width?: number,
-    height?: number,
-    miplevel: number = 0
+    height?: number
   ): void {}
-
-  /**
-   * 通过图源和指定区域设置像素,如果mipmap属性为true会自动生成多级纹理数据。
-   * @param imageSource - 纹理源
-   * @param flipY - 是否翻转Y轴
-   * @param premultiplyAlpha - 是否预乘透明通道
-   * @param x - 区域起始X坐标
-   * @param y - 区域起始Y坐标
-   */
-  setImageSource(
-    imageSource: TexImageSource,
-    flipY?: boolean,
-    premultiplyAlpha?: boolean,
-    x?: number,
-    y?: number
-  ): void;
 
   /**
    * 通过图源、指定区域和纹理层级设置像素。
    * @param imageSource - 纹理源
    * @param flipY - 是否翻转Y轴
    * @param premultiplyAlpha - 是否预乘透明通道
+   * @param miplevel - 多级纹理层级
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
-   * @param miplevel - 多级纹理层级
-   */
-  setImageSource(
-    imageSource: TexImageSource,
-    flipY?: boolean,
-    premultiplyAlpha?: boolean,
-    x?: number,
-    y?: number,
-    miplevel?: number
-  ): void;
-
-  /**
-   * @internal
+   
    */
   setImageSource(
     imageSource: TexImageSource,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
+    miplevel: number = 0,
     x?: number,
-    y?: number,
-    miplevel: number = 0
+    y?: number
   ): void {}
+
+  /**
+   * 根据第0级数据生成多级纹理。
+   */
+  generateMipmaps(): void {}
 
   // /**
   //  * 根据坐标和纹理层级填充像素颜色。
