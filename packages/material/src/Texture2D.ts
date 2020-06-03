@@ -43,7 +43,7 @@ export class Texture2D extends Texture {
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
-    const formatDetail = this.getFormatDetail(format, gl, isWebGL2);
+    const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
     const { internalFormat, baseFormat, dataType, isCompressed } = formatDetail;
     const glTexture = gl.createTexture();
 
@@ -58,7 +58,7 @@ export class Texture2D extends Texture {
 
     // 预开辟 mipmap 显存
     if (mipmap) {
-      this.bind();
+      this._bind();
       if (isWebGL2) {
         gl.texStorage2D(this._target, this.mipmapCount, internalFormat, width, height);
       } else {
@@ -66,7 +66,7 @@ export class Texture2D extends Texture {
           gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
         }
       }
-      this.unbind();
+      this._unbind();
     }
   }
 
@@ -79,7 +79,7 @@ export class Texture2D extends Texture {
    * @param width - 数据宽度
    * @param height - 数据高度
    */
-  setPixelBuffer(
+  public setPixelBuffer(
     colorBuffer: ArrayBufferView,
     miplevel: number = 0,
     x?: number,
@@ -90,7 +90,7 @@ export class Texture2D extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
 
-    this.bind();
+    this._bind();
     gl.texSubImage2D(
       this._target,
       miplevel,
@@ -102,7 +102,7 @@ export class Texture2D extends Texture {
       dataType,
       colorBuffer
     );
-    this.unbind();
+    this._unbind();
   }
 
   /**
@@ -114,7 +114,7 @@ export class Texture2D extends Texture {
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    */
-  setImageSource(
+  public setImageSource(
     imageSource: TexImageSource,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
@@ -125,11 +125,11 @@ export class Texture2D extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
 
-    this.bind();
+    this._bind();
     gl.texSubImage2D(this._target, miplevel, x || 0, y || 0, baseFormat, dataType, imageSource);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
-    this.unbind();
+    this._unbind();
   }
 
   /** ----------------- @deprecated----------------- */

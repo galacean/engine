@@ -14,163 +14,11 @@ import { TextureFormatDetail, TextureConfig } from "./type";
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
 export class Texture extends AssetObject {
-  static isPowerOf2(v: number): boolean {
-    return (v & (v - 1)) === 0;
-  }
-
-  private _mipmapCount: number;
-  private _wrapModeU: TextureWrapMode;
-  private _wrapModeV: TextureWrapMode;
-  private _filterMode: TextureFilterMode;
-  private _anisoLevel: number = 1;
-
-  protected _rhi;
-  protected _glTexture: WebGLTexture;
-  protected _target: GLenum;
-  protected _mipmap: boolean;
-  protected _width: number;
-  protected _height: number;
-
-  /**
-   * 宽。
-   */
-  get width(): number {
-    return this._width;
-  }
-
-  /**
-   * 高。
-   */
-  get height(): number {
-    return this._height;
-  }
-
-  /**
-   * 纹理坐标 U 的循环模式。
-   */
-  get wrapModeU(): TextureWrapMode {
-    return this._wrapModeU;
-  }
-
-  set wrapModeU(value: TextureWrapMode) {
-    if (value === this._wrapModeU) return;
-
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-
-    this._wrapModeU = value;
-
-    this.bind();
-    switch (value) {
-      case TextureWrapMode.Clamp:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        break;
-      case TextureWrapMode.REPEAT:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        break;
-      case TextureWrapMode.Mirror:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
-        break;
-    }
-    this.unbind();
-  }
-
-  /**
-   * 纹理坐标 V 的循环模式。
-   */
-  get wrapModeV(): TextureWrapMode {
-    return this._wrapModeV;
-  }
-
-  set wrapModeV(value: TextureWrapMode) {
-    if (value === this._wrapModeV) return;
-
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-
-    this._wrapModeV = value;
-
-    this.bind();
-    switch (value) {
-      case TextureWrapMode.Clamp:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        break;
-      case TextureWrapMode.REPEAT:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        break;
-      case TextureWrapMode.Mirror:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
-        break;
-    }
-    this.unbind();
-  }
-
-  /**
-   * 分级纹理的数量。
-   */
-  get mipmapCount(): number {
-    return this._mipmapCount ? this._mipmapCount : this._mipmap ? Math.log2(this._width) : 1;
-  }
-
-  /**
-   * 纹理的过滤模式，
-   */
-  get filterMode(): TextureFilterMode {
-    return this._filterMode;
-  }
-
-  set filterMode(value: TextureFilterMode) {
-    if (value === this._filterMode) return;
-
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-
-    this._filterMode = value;
-
-    this.bind();
-    switch (value) {
-      case TextureFilterMode.Point:
-        gl.texParameteri(this._target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(this._target, gl.TEXTURE_MIN_FILTER, this._mipmap ? gl.NEAREST_MIPMAP_NEAREST : gl.NEAREST);
-        break;
-      case TextureFilterMode.Bilinear:
-        gl.texParameteri(this._target, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(this._target, gl.TEXTURE_MIN_FILTER, this._mipmap ? gl.LINEAR_MIPMAP_NEAREST : gl.LINEAR);
-        break;
-      case TextureFilterMode.Trilinear:
-        gl.texParameteri(this._target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(this._target, gl.TEXTURE_MIN_FILTER, this._mipmap ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
-        break;
-    }
-    this.unbind();
-  }
-
-  /**
-   * 各向异性过滤等级。
-   */
-  get anisoLevel(): number {
-    return this._anisoLevel;
-  }
-
-  set anisoLevel(value: number) {
-    if (value === this._anisoLevel) return;
-
-    const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
-
-    const max = this._rhi.capability.maxAnisoLevel;
-    if (value > max) {
-      Logger.warn(`anisoLevel 超出当前环境限制，已自动降级为最大值:${max}`);
-      value = max;
-    }
-    this._anisoLevel = value;
-
-    this.bind();
-    gl.texParameterf(this._target, gl.TEXTURE_MAX_ANISOTROPY_EXT, value);
-    this.unbind();
-  }
-
   /**
    * 根据 TextureFormat 获取具体信息
    * @return {TextureFormatDetail}
    */
-  protected getFormatDetail(
+  static _getFormatDetail(
     format: TextureFormat | RenderBufferColorFormat | RenderBufferDepthFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     isWebGL2: boolean
@@ -282,13 +130,166 @@ export class Texture extends AssetObject {
     }
   }
 
-  protected bind() {
+  static isPowerOf2(v: number): boolean {
+    return (v & (v - 1)) === 0;
+  }
+
+  private _mipmapCount: number;
+  private _wrapModeU: TextureWrapMode;
+  private _wrapModeV: TextureWrapMode;
+  private _filterMode: TextureFilterMode;
+  private _anisoLevel: number = 1;
+
+  protected _rhi;
+  protected _target: GLenum;
+  protected _mipmap: boolean;
+  protected _width: number;
+  protected _height: number;
+
+  public _glTexture: WebGLTexture;
+
+  /**
+   * 宽。
+   */
+  get width(): number {
+    return this._width;
+  }
+
+  /**
+   * 高。
+   */
+  get height(): number {
+    return this._height;
+  }
+
+  /**
+   * 纹理坐标 U 的循环模式。
+   */
+  get wrapModeU(): TextureWrapMode {
+    return this._wrapModeU;
+  }
+
+  set wrapModeU(value: TextureWrapMode) {
+    if (value === this._wrapModeU) return;
+
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+
+    this._wrapModeU = value;
+
+    this._bind();
+    switch (value) {
+      case TextureWrapMode.Clamp:
+        gl.texParameteri(this._target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        break;
+      case TextureWrapMode.REPEAT:
+        gl.texParameteri(this._target, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        break;
+      case TextureWrapMode.Mirror:
+        gl.texParameteri(this._target, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
+        break;
+    }
+    this._unbind();
+  }
+
+  /**
+   * 纹理坐标 V 的循环模式。
+   */
+  get wrapModeV(): TextureWrapMode {
+    return this._wrapModeV;
+  }
+
+  set wrapModeV(value: TextureWrapMode) {
+    if (value === this._wrapModeV) return;
+
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+
+    this._wrapModeV = value;
+
+    this._bind();
+    switch (value) {
+      case TextureWrapMode.Clamp:
+        gl.texParameteri(this._target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        break;
+      case TextureWrapMode.REPEAT:
+        gl.texParameteri(this._target, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        break;
+      case TextureWrapMode.Mirror:
+        gl.texParameteri(this._target, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
+        break;
+    }
+    this._unbind();
+  }
+
+  /**
+   * 分级纹理的数量。
+   */
+  get mipmapCount(): number {
+    return this._mipmapCount ? this._mipmapCount : this._mipmap ? Math.log2(this._width) : 1;
+  }
+
+  /**
+   * 纹理的过滤模式，
+   */
+  get filterMode(): TextureFilterMode {
+    return this._filterMode;
+  }
+
+  set filterMode(value: TextureFilterMode) {
+    if (value === this._filterMode) return;
+
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+
+    this._filterMode = value;
+
+    this._bind();
+    switch (value) {
+      case TextureFilterMode.Point:
+        gl.texParameteri(this._target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(this._target, gl.TEXTURE_MIN_FILTER, this._mipmap ? gl.NEAREST_MIPMAP_NEAREST : gl.NEAREST);
+        break;
+      case TextureFilterMode.Bilinear:
+        gl.texParameteri(this._target, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(this._target, gl.TEXTURE_MIN_FILTER, this._mipmap ? gl.LINEAR_MIPMAP_NEAREST : gl.LINEAR);
+        break;
+      case TextureFilterMode.Trilinear:
+        gl.texParameteri(this._target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(this._target, gl.TEXTURE_MIN_FILTER, this._mipmap ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+        break;
+    }
+    this._unbind();
+  }
+
+  /**
+   * 各向异性过滤等级。
+   */
+  get anisoLevel(): number {
+    return this._anisoLevel;
+  }
+
+  set anisoLevel(value: number) {
+    if (value === this._anisoLevel) return;
+
+    const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
+
+    const max = this._rhi.capability.maxAnisoLevel;
+    if (value > max) {
+      Logger.warn(`anisoLevel 超出当前环境限制，已自动降级为最大值:${max}`);
+      value = max;
+    }
+    this._anisoLevel = value;
+
+    this._bind();
+    gl.texParameterf(this._target, gl.TEXTURE_MAX_ANISOTROPY_EXT, value);
+    this._unbind();
+  }
+
+  public _bind() {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.bindTexture(this._target, this._glTexture);
   }
 
-  protected unbind() {
+  public _unbind() {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.bindTexture(this._target, null);
@@ -297,12 +298,12 @@ export class Texture extends AssetObject {
   /**
    * 根据第0级数据生成多级纹理。
    */
-  generateMipmaps(): void {
+  public generateMipmaps(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
-    this.bind();
+    this._bind();
     gl.generateMipmap(this._target);
-    this.unbind();
+    this._unbind();
   }
 
   /** -------------------@deprecated------------------------ */

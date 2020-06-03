@@ -9,6 +9,8 @@ export class RenderDepthTexture extends Texture {
   private _format: RenderBufferDepthFormat;
   private _autoMipmap: boolean = false;
 
+  public _formatDetail: TextureFormatDetail;
+
   /**
    * 格式。
    */
@@ -64,7 +66,7 @@ export class RenderDepthTexture extends Texture {
       mipmap = false;
     }
 
-    const formatDetail = this.getFormatDetail(format, gl, isWebGL2);
+    const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
     const { internalFormat, baseFormat, dataType, isCompressed } = formatDetail;
     const glTexture = gl.createTexture();
 
@@ -75,10 +77,11 @@ export class RenderDepthTexture extends Texture {
     this._height = height;
     this._mipmap = mipmap;
     this._format = format;
+    this._formatDetail = formatDetail;
 
     // 预开辟 mipmap 显存
     if (mipmap) {
-      this.bind();
+      this._bind();
       if (isWebGL2) {
         gl.texStorage2D(this._target, this.mipmapCount, internalFormat, width, height);
       } else {
@@ -86,7 +89,7 @@ export class RenderDepthTexture extends Texture {
           gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
         }
       }
-      this.unbind();
+      this._unbind();
     }
   }
 }

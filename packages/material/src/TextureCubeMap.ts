@@ -42,7 +42,7 @@ export class TextureCubeMap extends Texture {
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
-    const formatDetail = this.getFormatDetail(format, gl, isWebGL2);
+    const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
     const { internalFormat, baseFormat, dataType, isCompressed } = formatDetail;
     const glTexture = gl.createTexture();
 
@@ -57,7 +57,7 @@ export class TextureCubeMap extends Texture {
 
     // 预开辟 mipmap 显存
     if (mipmap) {
-      this.bind();
+      this._bind();
       if (isWebGL2) {
         gl.texStorage2D(this._target, this.mipmapCount, internalFormat, size, size);
       } else {
@@ -77,7 +77,7 @@ export class TextureCubeMap extends Texture {
           }
         }
       }
-      this.unbind();
+      this._unbind();
     }
   }
 
@@ -91,7 +91,7 @@ export class TextureCubeMap extends Texture {
    * @param width - 区域宽
    * @param height - 区域高
    */
-  setPixelBuffer(
+  public setPixelBuffer(
     face: TextureCubeFace,
     colorBuffer: ArrayBufferView,
     miplevel: number = 0,
@@ -103,7 +103,7 @@ export class TextureCubeMap extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
 
-    this.bind();
+    this._bind();
     gl.texSubImage2D(
       gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
       miplevel,
@@ -115,7 +115,7 @@ export class TextureCubeMap extends Texture {
       dataType,
       colorBuffer
     );
-    this.unbind();
+    this._unbind();
   }
 
   /**
@@ -128,7 +128,7 @@ export class TextureCubeMap extends Texture {
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    */
-  setImageSource(
+  public setImageSource(
     face: TextureCubeFace,
     imageSource: TexImageSource,
     flipY: boolean = false,
@@ -140,7 +140,7 @@ export class TextureCubeMap extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
 
-    this.bind();
+    this._bind();
     gl.texSubImage2D(
       gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
       miplevel,
@@ -152,7 +152,7 @@ export class TextureCubeMap extends Texture {
     );
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
-    this.unbind();
+    this._unbind();
   }
 
   /** ----------------- @deprecated----------------- */
