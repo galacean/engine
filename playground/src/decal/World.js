@@ -1,6 +1,5 @@
 import { Engine, EngineFeature } from "@alipay/o3-core";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
-import "@alipay/o3-engine-stats";
 import { Logger } from "@alipay/o3-base";
 
 Logger.enable();

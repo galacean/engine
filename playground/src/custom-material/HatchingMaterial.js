@@ -2,10 +2,8 @@ import { DataType, UniformSemantic } from '@alipay/o3-base';
 import { ADirectLight } from '@alipay/o3-lighting';
 import { Material, RenderTechnique } from '@alipay/o3-material';
 
-import VertShaderSource from './Vert.glsl';
-import FragShaderSource from './Frag.glsl';
-console.log(VertShaderSource+' a ');
-
+import VertShaderSource from './Vert.glsl.js';
+import FragShaderSource from './Frag.glsl.js';
 
 export class HatchingMaterial extends Material {
   constructor(name, mainLight) {

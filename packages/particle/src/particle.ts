@@ -547,8 +547,8 @@ export class AGPUParticleSystem extends AGeometryRenderer {
       [-0.5, 0.5]
     ];
     if (particleTex) {
-      const width = particleTex.image.width;
-      const height = particleTex.image.height;
+      const width = particleTex.image ? particleTex.image.width : particleTex.width;
+      const height = particleTex.image ? particleTex.image.height : particleTex.height;
 
       if (spriteSheet) {
         const { x, y, w, h } = spriteSheet[i % spriteSheet.length];

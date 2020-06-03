@@ -6,7 +6,7 @@ Page({
       engine.shutdown();
     }
   },
-  onOasisLoad(O3, canvas) {
+  onOasisLoad(o3, canvas) {
 
     <%= code %>
 
