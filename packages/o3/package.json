@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3",
-  "version": "2.2.7",
+  "version": "2.2.9",
   "description": "",
   "repository": {
     "type": "git",
@@ -31,7 +31,7 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-2d": "2.2.7",
+    "@alipay/o3-2d": "2.2.9",
     "@alipay/o3-animation": "2.2.7",
     "@alipay/o3-animator": "2.2.7",
     "@alipay/o3-base": "^2.2.4",
@@ -59,7 +59,7 @@
     "@alipay/o3-mesh": "2.2.7",
     "@alipay/o3-mobile-material": "2.2.7",
     "@alipay/o3-orbit-controls": "2.2.6",
-    "@alipay/o3-particle": "2.2.7",
+    "@alipay/o3-particle": "2.2.9",
     "@alipay/o3-pbr": "2.2.7",
     "@alipay/o3-primitive": "2.2.6",
     "@alipay/o3-raycast": "2.2.6",
