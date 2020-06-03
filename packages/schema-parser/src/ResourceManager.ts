@@ -166,4 +166,8 @@ export class ResourceManager {
   get isLocal(): boolean {
     return this.oasis.options.local;
   }
+
+  get useCompressedTexture(): boolean {
+    return this.oasis.options.useCompressedTexture ?? true;
+  }
 }
