@@ -22,7 +22,7 @@ export class Texture2D extends Texture {
    * @param rhi - GPU 硬件抽象层
    * @param width - 宽
    * @param height - 高
-   * @param format - 格式
+   * @param format - 格式,默认 TextureFormat.R8G8B8A8
    * @param mipmap - 是否使用多级纹理
    */
   constructorNew(

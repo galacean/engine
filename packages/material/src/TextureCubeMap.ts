@@ -27,7 +27,7 @@ export class TextureCubeMap extends Texture {
    * 创建立方体纹理。
    * @param rhi - GPU 硬件抽象层
    * @param size - 尺寸
-   * @param format - 格式
+   * @param format - 格式，默认 TextureFormat.R8G8B8A8
    * @param mipmap - 是否使用分级纹理
    */
   constructorNew(rhi, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = false) {

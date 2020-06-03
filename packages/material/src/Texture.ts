@@ -1,4 +1,11 @@
-import { TextureFormat, TextureFilterMode, TextureWrapMode, TextureFilter, Logger } from "@alipay/o3-base";
+import {
+  TextureFormat,
+  RenderTextureColorFormat,
+  TextureFilterMode,
+  TextureWrapMode,
+  TextureFilter,
+  Logger
+} from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { TextureFormatDetail, TextureConfig } from "./type";
 
@@ -163,21 +170,23 @@ export class Texture extends AssetObject {
    * @return {TextureFormatDetail}
    */
   protected getFormatDetail(
-    format: TextureFormat,
+    format: TextureFormat | RenderTextureColorFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     isWebGL2: boolean
   ): TextureFormatDetail {
     switch (format) {
       case TextureFormat.R8G8B8:
+      case RenderTextureColorFormat.R8G8B8:
         return {
-          internalFormat: gl.RGB,
+          internalFormat: isWebGL2 ? gl.RGB8 : gl.RGB,
           baseFormat: gl.RGB,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
       case TextureFormat.R8G8B8A8:
+      case RenderTextureColorFormat.R8G8B8A8:
         return {
-          internalFormat: gl.RGBA,
+          internalFormat: isWebGL2 ? gl.RGBA8 : gl.RGBA,
           baseFormat: gl.RGBA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
@@ -190,24 +199,26 @@ export class Texture extends AssetObject {
           isCompressed: false
         };
       case TextureFormat.Alpha8:
+      case RenderTextureColorFormat.Alpha8:
         return {
           internalFormat: gl.ALPHA,
           baseFormat: gl.ALPHA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
+      case RenderTextureColorFormat.R16G16B16A16:
+        return {
+          internalFormat: gl.RGBA16F,
+          baseFormat: gl.RGBA,
+          dataType: gl.HALF_FLOAT,
+          isCompressed: false
+        };
       case TextureFormat.R32G32B32A32:
+      case RenderTextureColorFormat.R32G32B32A32:
         return {
           internalFormat: gl.RGBA32F,
           baseFormat: gl.RGBA,
           dataType: gl.FLOAT,
-          isCompressed: false
-        };
-      default:
-        return {
-          internalFormat: gl.RGBA,
-          baseFormat: gl.RGBA,
-          dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
     }
