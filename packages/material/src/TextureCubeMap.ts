@@ -82,9 +82,10 @@ export class TextureCubeMap extends Texture {
   }
 
   /**
-   * 通过指定立方体面、像素缓冲数据和指定区域设置像，如果mipmap属性为true会自动生成多级纹理数据。
+   * 通过指定立方体面、像素缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
    * @param face - 立方体面
    * @param colorBuffer - 颜色缓冲
+   * @param miplevel - 分级纹理层级
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    * @param width - 区域宽
@@ -93,43 +94,11 @@ export class TextureCubeMap extends Texture {
   setPixelBuffer(
     face: TextureCubeFace,
     colorBuffer: ArrayBufferView,
+    miplevel: number = 0,
     x?: number,
     y?: number,
     width?: number,
     height?: number
-  ): void;
-
-  /**
-   * 通过指定立方体面、像素缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
-   * @param face - 立方体面
-   * @param colorBuffer - 颜色缓冲
-   * @param x - 区域起始X坐标
-   * @param y - 区域起始Y坐标
-   * @param width - 区域宽
-   * @param height - 区域高
-   * @param miplevel - 分级纹理层级
-   */
-  setPixelBuffer(
-    face: TextureCubeFace,
-    colorBuffer: ArrayBufferView,
-    x?: number,
-    y?: number,
-    width?: number,
-    height?: number,
-    miplevel?: number
-  ): void;
-
-  /**
-   * @internal
-   */
-  setPixelBuffer(
-    face: TextureCubeFace,
-    colorBuffer: ArrayBufferView,
-    x?: number,
-    y?: number,
-    width?: number,
-    height?: number,
-    miplevel: number = 0
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
@@ -138,37 +107,16 @@ export class TextureCubeMap extends Texture {
     gl.texSubImage2D(
       gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
       miplevel,
-      x,
-      y,
-      width,
-      height,
+      x || 0,
+      y || 0,
+      width || this._width,
+      height || this._height,
       baseFormat,
       dataType,
       colorBuffer
     );
-    if (this._mipmap && typeof arguments[6] !== "number") {
-      // gl.generateMipmap(this._target);
-    }
     this.unbind();
   }
-
-  /**
-   * 通过指定立方体面、图源和指定区域设置像素,如果mipmap属性为true会自动生成多级纹理数据。
-   * @param face - 立方体面
-   * @param imageSource - 纹理源
-   * @param flipY - 是否翻转Y轴
-   * @param premultipltAlpha - 是否预乘透明通道
-   * @param x - 区域起始X坐标
-   * @param y - 区域起始Y坐标
-   */
-  setImageSource(
-    face: TextureCubeFace,
-    imageSource: TexImageSource,
-    flipY?: boolean,
-    premultiplyAlpha?: boolean,
-    x?: number,
-    y?: number
-  ): void;
 
   /**
    * 通过指定立方体面、图源、指定区域和纹理层级设置像素。
@@ -176,42 +124,34 @@ export class TextureCubeMap extends Texture {
    * @param imageSource - 纹理源
    * @param flipY - 是否翻转Y轴
    * @param premultipltAlpha - 是否预乘透明通道
+   * @param miplevel - 分级纹理层级
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
-   * @param miplevel - 分级纹理层级
-   */
-  setImageSource(
-    face: TextureCubeFace,
-    imageSource: TexImageSource,
-    flipY?: boolean,
-    premultiplyAlpha?: boolean,
-    x?: number,
-    y?: number,
-    miplevel?: number
-  ): void;
-
-  /**
-   * @internal
    */
   setImageSource(
     face: TextureCubeFace,
     imageSource: TexImageSource,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
+    miplevel: number = 0,
     x?: number,
-    y?: number,
-    miplevel: number = 0
+    y?: number
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
 
     this.bind();
-    gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + face, miplevel, x, y, baseFormat, dataType, imageSource);
+    gl.texSubImage2D(
+      gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
+      miplevel,
+      x || 0,
+      y || 0,
+      baseFormat,
+      dataType,
+      imageSource
+    );
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
-    if (this._mipmap && typeof arguments[6] !== "number") {
-      // gl.generateMipmap(this._target);
-    }
     this.unbind();
   }
 

@@ -225,6 +225,17 @@ export class Texture extends AssetObject {
     gl.bindTexture(this._target, null);
   }
 
+  /**
+   * 根据第0级数据生成多级纹理。
+   */
+  generateMipmaps(): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+
+    this.bind();
+    gl.generateMipmap(this._target);
+    this.unbind();
+  }
+
   /** -------------------@deprecated------------------------ */
   public needUpdateFilers: boolean;
   public needUpdateWholeTexture: boolean;
