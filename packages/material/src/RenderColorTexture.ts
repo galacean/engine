@@ -1,6 +1,5 @@
 import { RenderBufferColorFormat, GLCapabilityType, Logger } from "@alipay/o3-base";
 import { Texture } from "./Texture";
-import { TextureFormatDetail } from "./type";
 
 /**
  * 类应用于渲染颜色纹理。
@@ -8,8 +7,6 @@ import { TextureFormatDetail } from "./type";
 export class RenderColorTexture extends Texture {
   private _format: RenderBufferColorFormat;
   private _autoMipmap: boolean = false;
-
-  public _formatDetail: TextureFormatDetail;
 
   /**
    * 格式。

@@ -205,43 +205,6 @@ export class RenderTarget extends AssetObject {
     return this._colorTextures[index];
   }
 
-  /**
-   * 根据指定区域获得像素颜色缓冲，只有WebGL2环境才能访问第n(n>0)个颜色缓冲
-   * @param index - 想要读取第几个颜色缓冲区,从0开始
-   * @param x - 区域起始X坐标
-   * @param y - 区域起始Y坐标
-   * @param width - 区域宽
-   * @param height - 区域高
-   * @param out - 颜色数据缓冲
-   */
-  public getPixelsBuffer(
-    index: number,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    out: ArrayBufferView
-  ): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    const isWebGL2: boolean = this._rhi.isWebGL2;
-
-    if (index >= this.colorTextureCount) {
-      Logger.error(`当前FBO只有${this.colorTextureCount}个颜色纹理,您想请求：${index}`);
-      return;
-    }
-    if (index > 0 && !isWebGL2) {
-      Logger.error("只有WebGL2环境才能访问多个颜色缓冲");
-      return;
-    }
-
-    const { baseFormat, dataType } = this._colorTextures[index]._formatDetail;
-
-    this._bind(true);
-    index > 0 && gl.readBuffer(gl.COLOR_ATTACHMENT0 + index);
-    gl.readPixels(x, y, width, height, baseFormat, dataType, out);
-    this._unbind();
-  }
-
   /** -------------------@deprecated------------------------ */
 
   public width: number;

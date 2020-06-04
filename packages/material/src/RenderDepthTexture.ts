@@ -1,6 +1,5 @@
 import { RenderBufferDepthFormat, GLCapabilityType, Logger } from "@alipay/o3-base";
 import { Texture } from "./Texture";
-import { TextureFormatDetail } from "./type";
 
 /**
  * 类应用于渲染深度纹理。
@@ -8,8 +7,6 @@ import { TextureFormatDetail } from "./type";
 export class RenderDepthTexture extends Texture {
   private _format: RenderBufferDepthFormat;
   private _autoMipmap: boolean = false;
-
-  public _formatDetail: TextureFormatDetail;
 
   /**
    * 格式。

@@ -7,14 +7,13 @@ import {
   GLCapabilityType,
   Logger
 } from "@alipay/o3-base";
-import { TextureFormatDetail, TextureConfig } from "./type";
+import { TextureConfig } from "./type";
 
 /**
  * 立方体纹理
  */
 export class TextureCubeMap extends Texture {
   private _format: TextureFormat;
-  private _formatDetail: TextureFormatDetail;
 
   /**
    * 纹理的格式。

@@ -1,14 +1,13 @@
 import { Texture } from "./Texture";
 import { TextureFormat, TextureFilter, TextureWrapMode, GLCapabilityType, Logger } from "@alipay/o3-base";
 import { mat3 } from "@alipay/o3-math";
-import { TextureFormatDetail, Texture2DConfig, Rect } from "./type";
+import { Texture2DConfig, Rect } from "./type";
 
 /**
  * 2D纹理
  */
 export class Texture2D extends Texture {
   private _format: TextureFormat;
-  private _formatDetail: TextureFormatDetail;
 
   /**
    * 纹理的格式。

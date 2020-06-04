@@ -5,6 +5,7 @@ import {
   TextureFilterMode,
   TextureWrapMode,
   TextureFilter,
+  TextureCubeFace,
   Logger
 } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
@@ -14,6 +15,8 @@ import { TextureFormatDetail, TextureConfig } from "./type";
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
 export class Texture extends AssetObject {
+  static _readFrameBuffer: WebGLFramebuffer = null;
+
   /**
    * 根据 TextureFormat 获取具体信息
    * @return {TextureFormatDetail}
@@ -147,6 +150,7 @@ export class Texture extends AssetObject {
   protected _height: number;
 
   public _glTexture: WebGLTexture;
+  public _formatDetail: TextureFormatDetail;
 
   /**
    * 宽。
@@ -304,6 +308,48 @@ export class Texture extends AssetObject {
     this._bind();
     gl.generateMipmap(this._target);
     this._unbind();
+  }
+
+  /**
+   * 根据指定区域获得像素颜色缓冲，只有WebGL2环境才能访问第n(n>0)个颜色缓冲
+   * @param x - 区域起始X坐标
+   * @param y - 区域起始Y坐标
+   * @param width - 区域宽
+   * @param height - 区域高
+   * @param out - 颜色数据缓冲
+   * @param face - 如果是立方体纹理，可以选择读取第几个面
+   */
+  public getPixelsBuffer(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    out: ArrayBufferView,
+    face: TextureCubeFace = -1
+  ): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const { baseFormat, dataType } = this._formatDetail;
+
+    if (!Texture._readFrameBuffer) {
+      Texture._readFrameBuffer = gl.createFramebuffer();
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, Texture._readFrameBuffer);
+
+    if (face > -1) {
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
+        this._glTexture,
+        0
+      );
+    } else {
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._glTexture, 0);
+    }
+    gl.readPixels(x, y, width, height, baseFormat, dataType, out);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   /** -------------------@deprecated------------------------ */
