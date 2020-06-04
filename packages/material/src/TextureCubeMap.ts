@@ -179,6 +179,10 @@ export class TextureCubeMap extends Texture {
     out: ArrayBufferView,
     face: TextureCubeFace = TextureCubeFace.PositiveX
   ): void {
+    if (this._formatDetail.isCompressed) {
+      Logger.error("无法读取压缩纹理");
+      return;
+    }
     super._getPixelsBuffer(x, y, width, height, out, face);
   }
 

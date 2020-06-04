@@ -436,11 +436,6 @@ export class Texture extends AssetObject {
     out: ArrayBufferView,
     face: TextureCubeFace = -1
   ): void {
-    if (this._formatDetail.isCompressed) {
-      Logger.error("无法读取压缩纹理");
-      return;
-    }
-
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { baseFormat, dataType } = this._formatDetail;
 
@@ -535,7 +530,7 @@ export class Texture extends AssetObject {
    * @internal
    * 获取相应size的最大mip级别
    */
-  private _getMaxMiplevel(size: number) {
+  protected _getMaxMiplevel(size: number) {
     return Math.round(Math.log(size) * Math.LOG2E);
   }
 

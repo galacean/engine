@@ -139,6 +139,10 @@ export class Texture2D extends Texture {
    * @param out - 颜色数据缓冲
    */
   public getPixelsBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {
+    if (this._formatDetail.isCompressed) {
+      Logger.error("无法读取压缩纹理");
+      return;
+    }
     super._getPixelsBuffer(x, y, width, height, out);
   }
 
