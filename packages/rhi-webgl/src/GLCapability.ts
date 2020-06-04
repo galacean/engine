@@ -8,7 +8,7 @@ type extensionKey = string;
  * */
 export class GLCapability {
   private _maxAnisoLevel: number;
-  private _maxSamples: number;
+  private _maxAntiAliasing: number;
 
   _rhi: GLRenderHardware;
   capabilityList: Map<GLCapabilityType, boolean>;
@@ -27,14 +27,14 @@ export class GLCapability {
   /**
    * 最大 MSAA 采样数量
    */
-  get maxSamples() {
-    if (!this._maxSamples) {
+  get maxAntiAliasing() {
+    if (!this._maxAntiAliasing) {
       const gl = this.rhi.gl;
       const canMSAA = this.rhi.canIUse(GLCapabilityType.multipleSample);
 
-      this._maxSamples = canMSAA ? gl.getParameter(gl.MAX_SAMPLES) : 1;
+      this._maxAntiAliasing = canMSAA ? gl.getParameter(gl.MAX_SAMPLES) : 1;
     }
-    return this._maxSamples;
+    return this._maxAntiAliasing;
   }
 
   get rhi() {

@@ -319,7 +319,7 @@ export class Texture extends AssetObject {
   }
 
   /**
-   * 根据指定区域获得像素颜色缓冲，只有WebGL2环境才能访问第n(n>0)个颜色缓冲
+   * 根据指定区域获得像素颜色缓冲
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    * @param width - 区域宽
