@@ -370,6 +370,8 @@ export class Texture extends AssetObject {
 
   public _glTexture: WebGLTexture;
   public _formatDetail: TextureFormatDetail;
+  public _isCube: boolean = false;
+  public _isCompressed: boolean = false;
 
   protected _rhi;
   protected _target: GLenum;
@@ -394,13 +396,13 @@ export class Texture extends AssetObject {
     this._unbind();
   }
 
-  public _bind() {
+  public _bind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.bindTexture(this._target, this._glTexture);
   }
 
-  public _unbind() {
+  public _unbind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.bindTexture(this._target, null);
@@ -423,6 +425,11 @@ export class Texture extends AssetObject {
     out: ArrayBufferView,
     face: TextureCubeFace = -1
   ): void {
+    if (this._isCompressed) {
+      Logger.error("无法读取压缩纹理");
+      return;
+    }
+
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { baseFormat, dataType } = this._formatDetail;
 

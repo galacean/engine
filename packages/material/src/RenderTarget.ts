@@ -161,12 +161,12 @@ export class RenderTarget extends AssetObject {
     this._colorTextures = [].concat.call([], renderTexture).filter((v: RenderColorTexture | null) => v);
 
     // todo: necessary to support MRT + Cube + [,MSAA] ?
-    if (this._colorTextures.length > 1 && this._colorTextures.some((v: RenderColorTexture) => v.isCube)) {
+    if (this._colorTextures.length > 1 && this._colorTextures.some((v: RenderColorTexture) => v._isCube)) {
       Logger.error("引擎暂不支持 MRT+Cube+[,MSAA]");
       return;
     }
 
-    if (this._colorTextures.length > 1 || (this._colorTextures.length === 0 && !this._colorTextures[0].isCube)) {
+    if (this._colorTextures.length > 1 || (this._colorTextures.length === 0 && !this._colorTextures[0]._isCube)) {
       this._colorTextures.forEach((colorTexture: RenderColorTexture, index: number) => {
         const attachment = gl.COLOR_ATTACHMENT0 + index;
 
@@ -188,7 +188,7 @@ export class RenderTarget extends AssetObject {
       depthFormat = internalFormat;
       this._depthTexture = depth;
 
-      if (!depth.isCube) {
+      if (!depth._isCube) {
         depth._bind();
         gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, depth._glTexture, 0);
         depth._unbind();
@@ -258,7 +258,7 @@ export class RenderTarget extends AssetObject {
     }
 
     // 绑定颜色纹理
-    if (colorTexture?.isCube) {
+    if (colorTexture?._isCube) {
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
@@ -269,7 +269,7 @@ export class RenderTarget extends AssetObject {
     }
 
     // 绑定深度纹理
-    if (depthTexture?.isCube) {
+    if (depthTexture?._isCube) {
       const { attachment } = depthTexture._formatDetail;
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,

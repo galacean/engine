@@ -54,6 +54,7 @@ export class Texture2D extends Texture {
     this._mipmap = mipmap;
     this._format = format;
     this._formatDetail = formatDetail;
+    this._isCompressed = isCompressed;
 
     // 预开辟 mipmap 显存
     if (mipmap) {

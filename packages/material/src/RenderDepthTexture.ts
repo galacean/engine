@@ -13,13 +13,6 @@ export class RenderDepthTexture extends Texture {
   }
 
   /**
-   * 当前渲染纹理是否为立方体纹理
-   */
-  get isCube(): boolean {
-    return this._isCube;
-  }
-
-  /**
    * 自动生成多级纹理。
    */
   get autoGenerateMipmaps(): boolean {
@@ -32,7 +25,6 @@ export class RenderDepthTexture extends Texture {
 
   private _format: RenderBufferDepthFormat;
   private _autoMipmap: boolean = false;
-  private _isCube: boolean = false;
 
   /**
    * 构造渲染深度纹理。
