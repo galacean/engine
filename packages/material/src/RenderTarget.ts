@@ -19,7 +19,11 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
  */
 export class RenderTarget extends AssetObject {
   private _rhi;
+  private _width: number;
+  private _height: number;
   private _frameBuffer: WebGLFramebuffer;
+  private _MSAAFrameBuffer: WebGLFramebuffer;
+  private _antiAliasing: number;
   private _colorTextures: Array<RenderColorTexture> = [];
   private _depthTexture: RenderDepthTexture | null;
 
@@ -41,10 +45,22 @@ export class RenderTarget extends AssetObject {
    * 抗锯齿级别。
    * 如果设置的抗锯齿级别大于硬件支持的最大级别，将使用硬件的最大级别。
    */
-  get antiAliasing(): number {
-    return 0;
-  }
-  set antiAliasing(value: number) {}
+  // get antiAliasing(): number {
+  //   return this._antiAliasing;
+  // }
+
+  // set antiAliasing(value: number) {
+  // if (value === this._antiAliasing) return;
+
+  // const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+  // const max = this._rhi.capability.maxAntiAliasing;
+
+  // if (value > max) {
+  //   Logger.warn(`antiAliasing 超出当前环境限制，已自动降级为最大值:${max}`);
+  //   value = max;
+  // }
+  // this._antiAliasing = value;
+  // }
 
   /**
    * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
@@ -53,13 +69,15 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
+   * @param antiAliasing - 抗锯齿级别
    */
   constructorNew(
     rhi,
     width: number,
     height: number,
     colorTexture: RenderColorTexture,
-    depthFormat: RenderBufferDepthFormat
+    depthFormat: RenderBufferDepthFormat,
+    antiAliasing?: number
   );
 
   /**
@@ -70,13 +88,15 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthTexture - 深度纹理
+   * @param antiAliasing - 抗锯齿级别
    */
   constructorNew(
     rhi,
     width: number,
     height: number,
     colorTexture: RenderColorTexture,
-    depthTexture: RenderDepthTexture
+    depthTexture: RenderDepthTexture,
+    antiAliasing?: number
   );
 
   /**
@@ -87,8 +107,16 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTexture - 颜色纹理为空
    * @param depthTexture - 深度纹理
+   * @param antiAliasing - 抗锯齿级别
    */
-  constructorNew(rhi, width: number, height: number, colorTexture: null, depthTexture: RenderDepthTexture);
+  constructorNew(
+    rhi,
+    width: number,
+    height: number,
+    colorTexture: null,
+    depthTexture: RenderDepthTexture,
+    antiAliasing?: number
+  );
 
   /**
    * 通过颜色纹理数组和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
@@ -97,13 +125,15 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthFormat - 深度格式
+   * @param antiAliasing - 抗锯齿级别
    */
   constructorNew(
     rhi,
     width: number,
     height: number,
     colorTextures: Array<RenderColorTexture>,
-    depthFormat: RenderBufferDepthFormat
+    depthFormat: RenderBufferDepthFormat,
+    antiAliasing?: number
   );
 
   /**
@@ -113,13 +143,15 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthTexture - 深度纹理
+   * @param antiAliasing - 抗锯齿级别
    */
   constructorNew(
     rhi,
     width: number,
     height: number,
     colorTextures: Array<RenderColorTexture>,
-    depthTexture: RenderDepthTexture
+    depthTexture: RenderDepthTexture,
+    antiAliasing?: number
   );
 
   /**
@@ -130,29 +162,40 @@ export class RenderTarget extends AssetObject {
     width: number,
     height: number,
     renderTexture: RenderColorTexture | Array<RenderColorTexture> | null,
-    depth: RenderDepthTexture | RenderBufferDepthFormat
+    depth: RenderDepthTexture | RenderBufferDepthFormat,
+    antiAliasing: number = 1
   ) {
+    const maxAntiAliasing = rhi.capability.maxAntiAliasing;
+
     if ((renderTexture as Array<RenderColorTexture>)?.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
       Logger.error("当前环境不支持 MRT,请先检测能力再使用");
       return;
+    }
+    if (antiAliasing > maxAntiAliasing) {
+      Logger.warn(`antiAliasing 超出当前环境限制，已自动降级为最大值:${maxAntiAliasing}`);
+      antiAliasing = maxAntiAliasing;
     }
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
     const frameBuffer = gl.createFramebuffer();
     const attachments = [];
+    let depthFormat: GLint;
 
     this._rhi = rhi;
+    this._width = width;
+    this._height = height;
     this._frameBuffer = frameBuffer;
+    this._antiAliasing = antiAliasing;
 
     this._bind();
 
     /** color render buffer */
     this._colorTextures = [].concat.call([], renderTexture).filter((v: RenderColorTexture | null) => v);
 
-    // necessary to support MRT Cube ?
+    // todo: necessary to support MRT + Cube + [,MSAA] ?
     if (this._colorTextures.length > 1 && this._colorTextures.some((v: RenderColorTexture) => v.isCube)) {
-      Logger.error("引擎暂不支持 MRT Cube");
+      Logger.error("引擎暂不支持 MRT+Cube+[,MSAA]");
       return;
     }
 
@@ -173,8 +216,9 @@ export class RenderTarget extends AssetObject {
 
     /** depth render buffer */
     if (depth instanceof RenderDepthTexture) {
-      const { attachment } = depth._formatDetail;
+      const { internalFormat, attachment } = depth._formatDetail;
 
+      depthFormat = internalFormat;
       this._depthTexture = depth;
 
       if (!depth.isCube) {
@@ -182,9 +226,11 @@ export class RenderTarget extends AssetObject {
         gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, depth._glTexture, 0);
         depth._unbind();
       }
-    } else {
+    } else if (antiAliasing <= 1) {
       const { internalFormat, attachment } = Texture._getFormatDetail(depth, gl, isWebGL2);
       const depthRenderBuffer = gl.createRenderbuffer();
+
+      depthFormat = internalFormat;
 
       gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
       gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
@@ -193,40 +239,77 @@ export class RenderTarget extends AssetObject {
 
     this._unbind();
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+    /** MSAA */
+    antiAliasing > 1 && this._initMSAA(depthFormat);
+  }
+
+  /**
+   * 更新 MSAA 抗锯齿，只有 WeGLl2 才支持
+   */
+  private _initMSAA(depthFormat: GLint): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const MSAAFrameBuffer = gl.createFramebuffer();
+    const MSAADepthRenderBuffer = gl.createRenderbuffer();
+
+    this._MSAAFrameBuffer = MSAAFrameBuffer;
+
+    this._bind(false, true);
+
+    // prepare MRT+MSAA color RBO
+    for (let i = 0; i < this._colorTextures.length; i++) {
+      const MSAAColorRenderBuffer = gl.createRenderbuffer();
+      const { internalFormat } = this._colorTextures[i]._formatDetail;
+      gl.bindRenderbuffer(gl.RENDERBUFFER, MSAAColorRenderBuffer);
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.RENDERBUFFER, MSAAColorRenderBuffer);
+    }
+
+    // prepare MSAA depth RBO
+    gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, depthFormat, this._width, this._height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, MSAADepthRenderBuffer);
+
+    this._unbind();
   }
 
   /**
    * 绑定 FBO
    * @param read  - 是否设置FBO作为读对象
+   * @param msaa  - 是否绑定 MSAA FBO
    */
-  public _bind(read: boolean = false) {
+  public _bind(read: boolean = false, msaa = false): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
 
     gl.bindFramebuffer(
       isWebGL2 ? (read ? gl.READ_FRAMEBUFFER : gl.DRAW_FRAMEBUFFER) : gl.FRAMEBUFFER,
-      this._frameBuffer
+      msaa ? this._MSAAFrameBuffer : this._frameBuffer
     );
   }
 
   /**
    * 解绑 FBO
    */
-  public _unbind() {
+  public _unbind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   /**
    * 设置渲染到立方体纹理的哪个面
-   * @param {number} faceIndex - 立方体纹理面
+   * @param faceIndex - 立方体纹理面
    * */
-  public _setRenderTargetFace(faceIndex: TextureCubeFace) {
+  public _setRenderTargetCubeFace(faceIndex: TextureCubeFace): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const colorTexture = this._colorTextures[0];
     const depthTexture = this._depthTexture;
 
-    this._bind();
+    if (this._antiAliasing > 1) {
+      this._bind(false, true);
+    } else {
+      this._bind();
+    }
 
     // 绑定颜色纹理
     if (colorTexture?.isCube) {
@@ -248,6 +331,58 @@ export class RenderTarget extends AssetObject {
         gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
         depthTexture._glTexture,
         0
+      );
+    }
+
+    this._unbind();
+  }
+
+  /** blit FBO */
+  public _blitRenderTarget(): void {
+    if (!this._MSAAFrameBuffer) return;
+
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const oriAttachments = this._colorTextures.map(
+      (v: RenderColorTexture, index: number) => gl.COLOR_ATTACHMENT0 + index
+    );
+
+    this._bind(true, true);
+    this._bind();
+
+    if (this._colorTextures.length > 1) {
+      for (let i = 0; i < this._colorTextures.length; i++) {
+        const attachments = this._colorTextures.map((v: RenderColorTexture, index: number) =>
+          index === i ? gl.COLOR_ATTACHMENT0 + i : gl.NONE
+        );
+        gl.readBuffer(gl.COLOR_ATTACHMENT0 + i);
+        gl.drawBuffers(attachments);
+        gl.blitFramebuffer(
+          0,
+          0,
+          this._width,
+          this._height,
+          0,
+          0,
+          this._width,
+          this._height,
+          gl.COLOR_BUFFER_BIT,
+          gl.NEAREST
+        );
+      }
+
+      gl.drawBuffers(oriAttachments);
+    } else {
+      gl.blitFramebuffer(
+        0,
+        0,
+        this._width,
+        this._height,
+        0,
+        0,
+        this._width,
+        this._height,
+        gl.COLOR_BUFFER_BIT,
+        gl.NEAREST
       );
     }
 
