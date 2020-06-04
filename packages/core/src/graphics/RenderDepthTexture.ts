@@ -1,4 +1,4 @@
-import { RenderTextureDepthFormat } from "./RenderTextureDepthFormat";
+import { RenderBufferDepthFormat } from "./RenderBufferDepthFormat";
 import { Texture } from "./Texture";
 
 /**
@@ -8,7 +8,7 @@ export class RenderDepthTexture extends Texture {
   /**
    * 格式。
    */
-  get format(): RenderTextureDepthFormat {
+  get format(): RenderBufferDepthFormat {
     return 0;
   }
 
@@ -27,7 +27,7 @@ export class RenderDepthTexture extends Texture {
    * @param format - 格式
    * @param mipmap - 是否使用多级纹理
    */
-  constructor(width: number, height: number, format: RenderTextureDepthFormat, mipmap: boolean = false) {
+  constructor(width: number, height: number, format: RenderBufferDepthFormat, mipmap: boolean = false) {
     super();
   }
 
