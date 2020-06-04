@@ -62,7 +62,17 @@ export class Texture2D extends Texture {
         gl.texStorage2D(this._target, this.mipmapCount, internalFormat, width, height);
       } else {
         for (let i = 0; i < this.mipmapCount; i++) {
-          gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
+          gl.texImage2D(
+            this._target,
+            i,
+            internalFormat,
+            width / (1 << i),
+            height / (1 << i),
+            0,
+            baseFormat,
+            dataType,
+            null
+          );
         }
       }
       this._unbind();
@@ -95,8 +105,8 @@ export class Texture2D extends Texture {
       miplevel,
       x || 0,
       y || 0,
-      width || this._width,
-      height || this._height,
+      width || this._width / (1 << miplevel),
+      height || this._height / (1 << miplevel),
       baseFormat,
       dataType,
       colorBuffer

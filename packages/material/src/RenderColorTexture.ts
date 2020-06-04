@@ -106,8 +106,8 @@ export class RenderColorTexture extends Texture {
                 gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
                 i,
                 internalFormat,
-                width,
-                height,
+                width / (1 << i),
+                height / (1 << i),
                 0,
                 baseFormat,
                 dataType,
@@ -117,7 +117,17 @@ export class RenderColorTexture extends Texture {
           }
         } else {
           for (let i = 0; i < this.mipmapCount; i++) {
-            gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
+            gl.texImage2D(
+              this._target,
+              i,
+              internalFormat,
+              width / (1 << i),
+              height / (1 << i),
+              0,
+              baseFormat,
+              dataType,
+              null
+            );
           }
         }
       }
