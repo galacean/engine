@@ -81,4 +81,5 @@ export interface TextureFormatDetail {
   baseFormat: GLenum;
   dataType: GLenum;
   isCompressed: boolean;
+  attachment?: GLenum;
 }

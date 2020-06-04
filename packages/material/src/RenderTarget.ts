@@ -1,4 +1,11 @@
-import { RenderBufferDepthFormat, TextureFilter, TextureWrapMode, GLCapabilityType, Logger } from "@alipay/o3-base";
+import {
+  TextureCubeFace,
+  RenderBufferDepthFormat,
+  TextureFilter,
+  TextureWrapMode,
+  GLCapabilityType,
+  Logger
+} from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Texture2D } from "./Texture2D";
 import { TextureCubeMap } from "./TextureCubeMap";
@@ -129,6 +136,7 @@ export class RenderTarget extends AssetObject {
       Logger.error("当前环境不支持 MRT,请先检测能力再使用");
       return;
     }
+
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
     const frameBuffer = gl.createFramebuffer();
@@ -141,34 +149,46 @@ export class RenderTarget extends AssetObject {
 
     /** color render buffer */
     this._colorTextures = [].concat.call([], renderTexture).filter((v: RenderColorTexture | null) => v);
-    this._colorTextures.forEach((colorTexture: RenderColorTexture, index: number) => {
-      const attachment = gl.COLOR_ATTACHMENT0 + index;
 
-      colorTexture._bind();
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, colorTexture._glTexture, 0);
-      colorTexture._unbind();
+    // necessary to support MRT Cube ?
+    if (this._colorTextures.length > 1 && this._colorTextures.some((v: RenderColorTexture) => v.isCube)) {
+      Logger.error("引擎暂不支持 MRT Cube");
+      return;
+    }
 
-      attachments.push(attachment);
-    });
+    if (this._colorTextures.length > 1 || (this._colorTextures.length === 0 && !this._colorTextures[0].isCube)) {
+      this._colorTextures.forEach((colorTexture: RenderColorTexture, index: number) => {
+        const attachment = gl.COLOR_ATTACHMENT0 + index;
 
+        colorTexture._bind();
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, colorTexture._glTexture, 0);
+        colorTexture._unbind();
+
+        attachments.push(attachment);
+      });
+    }
     if (this._colorTextures.length > 0) {
       gl.drawBuffers(attachments);
     }
 
     /** depth render buffer */
     if (depth instanceof RenderDepthTexture) {
+      const { attachment } = depth._formatDetail;
+
       this._depthTexture = depth;
 
-      depth._bind();
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depth._glTexture, 0);
-      depth._unbind();
+      if (!depth.isCube) {
+        depth._bind();
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, depth._glTexture, 0);
+        depth._unbind();
+      }
     } else {
-      const { internalFormat } = Texture._getFormatDetail(depth, gl, isWebGL2);
+      const { internalFormat, attachment } = Texture._getFormatDetail(depth, gl, isWebGL2);
       const depthRenderBuffer = gl.createRenderbuffer();
 
       gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
       gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthRenderBuffer);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
     }
 
     this._unbind();
@@ -195,6 +215,43 @@ export class RenderTarget extends AssetObject {
   public _unbind() {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /**
+   * 设置渲染到立方体纹理的哪个面
+   * @param {number} faceIndex - 立方体纹理面
+   * */
+  public _setRenderTargetFace(faceIndex: TextureCubeFace) {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const colorTexture = this._colorTextures[0];
+    const depthTexture = this._depthTexture;
+
+    this._bind();
+
+    // 绑定颜色纹理
+    if (colorTexture?.isCube) {
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
+        colorTexture._glTexture,
+        0
+      );
+    }
+
+    // 绑定深度纹理
+    if (depthTexture?.isCube) {
+      const { attachment } = depthTexture._formatDetail;
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        attachment,
+        gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
+        depthTexture._glTexture,
+        0
+      );
+    }
+
+    this._unbind();
   }
 
   /**
