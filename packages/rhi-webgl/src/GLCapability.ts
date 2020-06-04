@@ -7,9 +7,11 @@ type extensionKey = string;
  * GL 能力统一管理
  * */
 export class GLCapability {
+  private _maxAnisoLevel: number;
+  private _maxSamples: number;
+
   _rhi: GLRenderHardware;
   capabilityList: Map<GLCapabilityType, boolean>;
-  private _maxAnisoLevel: number;
 
   /**
    * 最大各向异性过滤等级。
@@ -20,6 +22,19 @@ export class GLCapability {
       this._maxAnisoLevel = ext ? this.rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 1;
     }
     return this._maxAnisoLevel;
+  }
+
+  /**
+   * 最大 MSAA 采样数量
+   */
+  get maxSamples() {
+    if (!this._maxSamples) {
+      const gl = this.rhi.gl;
+      const canMSAA = this.rhi.canIUse(GLCapabilityType.multipleSample);
+
+      this._maxSamples = canMSAA ? gl.getParameter(gl.MAX_SAMPLES) : 1;
+    }
+    return this._maxSamples;
   }
 
   get rhi() {
