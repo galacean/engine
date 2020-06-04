@@ -102,18 +102,38 @@ export class TextureCubeMap extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
 
+    x = x || 0;
+    y = y || 0;
+    width = width || width / (1 << miplevel);
+    height = height || height / (1 << miplevel);
+
     this._bind();
-    gl.texSubImage2D(
-      gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-      miplevel,
-      x || 0,
-      y || 0,
-      width || this._width / (1 << miplevel),
-      height || this._height / (1 << miplevel),
-      baseFormat,
-      dataType,
-      colorBuffer
-    );
+
+    if (isCompressed) {
+      gl.compressedTexSubImage2D(
+        gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
+        miplevel,
+        x,
+        y,
+        width,
+        height,
+        internalFormat,
+        colorBuffer
+      );
+    } else {
+      gl.texSubImage2D(
+        gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
+        miplevel,
+        x,
+        y,
+        width,
+        height,
+        baseFormat,
+        dataType,
+        colorBuffer
+      );
+    }
+
     this._unbind();
   }
 

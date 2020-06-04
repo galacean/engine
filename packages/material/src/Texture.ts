@@ -1,4 +1,5 @@
 import {
+  GLCompressedTextureInternalFormat,
   TextureFormat,
   RenderBufferColorFormat,
   RenderBufferDepthFormat,
@@ -141,6 +142,86 @@ export class Texture extends AssetObject {
           dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
+        };
+      case TextureFormat.DXT1:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT,
+          isCompressed: true
+        };
+      case TextureFormat.DXT5:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT,
+          isCompressed: true
+        };
+      case TextureFormat.ETC1_RGB:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGB_ETC1_WEBGL,
+          isCompressed: true
+        };
+      case TextureFormat.ETC2_RGB:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGB8_ETC2,
+          isCompressed: true
+        };
+      case TextureFormat.ETC2_RGBA5:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGB8_ETC2,
+          isCompressed: true
+        };
+      case TextureFormat.ETC2_RGBA8:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA8_ETC2_EAC,
+          isCompressed: true
+        };
+      case TextureFormat.PVRTC_RGB2:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGB_PVRTC_2BPPV1_IMG,
+          isCompressed: true
+        };
+      case TextureFormat.PVRTC_RGBA2:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_PVRTC_2BPPV1_IMG,
+          isCompressed: true
+        };
+      case TextureFormat.PVRTC_RGB4:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGB_PVRTC_4BPPV1_IMG,
+          isCompressed: true
+        };
+      case TextureFormat.PVRTC_RGBA4:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_PVRTC_4BPPV1_IMG,
+          isCompressed: true
+        };
+      case TextureFormat.ASTC_4x4:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_4X4_KHR,
+          isCompressed: true
+        };
+      case TextureFormat.ASTC_5x5:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_5X5_KHR,
+          isCompressed: true
+        };
+      case TextureFormat.ASTC_6x6:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_6X6_KHR,
+          isCompressed: true
+        };
+      case TextureFormat.ASTC_8x8:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_8X8_KHR,
+          isCompressed: true
+        };
+      case TextureFormat.ASTC_10x10:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_10X10_KHR,
+          isCompressed: true
+        };
+      case TextureFormat.ASTC_12x12:
+        return {
+          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR,
+          isCompressed: true
         };
     }
   }
