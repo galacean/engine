@@ -1,7 +1,6 @@
+import { RenderBufferDepthFormat } from "./RenderBufferDepthFormat";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
-import { RenderTextureDepthFormat } from "./RenderTextureDepthFormat";
-import { RenderTextureColorFormat } from "./RenderTextureColorFormat";
 
 /**
  * 用于离屏幕渲染的渲染目标。
@@ -37,7 +36,7 @@ export class RenderTarget {
    * @param colorTexture - 颜色纹理
    * @param depthFormat - 深度格式
    */
-  constructor(width: number, height: number, colorTexture: RenderColorTexture, depthFormat: RenderTextureDepthFormat);
+  constructor(width: number, height: number, colorTexture: RenderColorTexture, depthFormat: RenderBufferDepthFormat);
 
   /**
    * 通过颜色纹理和深度纹理创建渲染目标。
@@ -59,7 +58,7 @@ export class RenderTarget {
     width: number,
     height: number,
     colorTextures: Array<RenderColorTexture>,
-    depthFormat: RenderTextureDepthFormat
+    depthFormat: RenderBufferDepthFormat
   );
 
   /**
@@ -83,7 +82,7 @@ export class RenderTarget {
     width: number,
     height: number,
     renderTexture: RenderColorTexture | Array<RenderColorTexture> | null,
-    depth: RenderDepthTexture | RenderTextureDepthFormat
+    depth: RenderDepthTexture | RenderBufferDepthFormat
   ) {}
 
   /**

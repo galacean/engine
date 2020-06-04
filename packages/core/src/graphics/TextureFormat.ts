@@ -18,12 +18,30 @@ export enum TextureFormat {
   DXT5 = 6,
   /** RGB压缩格式，4 bits每像素。*/
   ETC1_RGB = 7,
-  /** RGB压缩格式，2 bits每像素。*/
-  PVRTC_RGB2 = 8,
-  /** RGBA压缩格式，2 bits每像素。*/
-  PVRTC_RGBA2 = 9,
   /** RGB压缩格式，4 bits每像素。*/
-  PVRTC_RGB4 = 10,
+  ETC2_RGB = 8,
+  /** RGBA压缩格式，5 bits每像素,RGB 4 bit,Alpha 1 bit。*/
+  ETC2_RGBA5 = 9,
+  /** RGB压缩格式，8 bits每像素。*/
+  ETC2_RGBA8 = 10,
+  /** RGB压缩格式，2 bits每像素。*/
+  PVRTC_RGB2 = 11,
+  /** RGBA压缩格式，2 bits每像素。*/
+  PVRTC_RGBA2 = 12,
+  /** RGB压缩格式，4 bits每像素。*/
+  PVRTC_RGB4 = 13,
   /** RGBA压缩格式，4 bits每像素。*/
-  PVRTC_RGBA4 = 11
+  PVRTC_RGBA4 = 14,
+  /** RGB(A)压缩格式，128 bits 每4x4像素块。*/
+  ASTC_4x4 = 15,
+  /** RGB(A)压缩格式，128 bits 每5x5像素块。*/
+  ASTC_5x5 = 16,
+  /** RGB(A)压缩格式，128 bits 每6x6像素块。*/
+  ASTC_6x6 = 17,
+  /** RGB(A)压缩格式，128 bits 每8x8像素块。*/
+  ASTC_8x8 = 18,
+  /** RGB(A)压缩格式，128 bits 每10x10像素块。*/
+  ASTC_10x10 = 19,
+  /** RGB(A)压缩格式，128 bits 每12x12像素块。*/
+  ASTC_12x12 = 20
 }

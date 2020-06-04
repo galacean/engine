@@ -1,4 +1,4 @@
-import { RenderTextureColorFormat } from "./RenderTextureColorFormat";
+import { RenderBufferColorFormat } from "./RenderBufferColorFormat";
 import { Texture } from "./Texture";
 
 /**
@@ -8,7 +8,7 @@ export class RenderColorTexture extends Texture {
   /**
    * 格式。
    */
-  get format(): RenderTextureColorFormat {
+  get format(): RenderBufferColorFormat {
     return 0;
   }
 
@@ -27,7 +27,7 @@ export class RenderColorTexture extends Texture {
    * @param format - 格式
    * @param mipmap - 是否使用多级纹理
    */
-  constructor(width: number, height: number, format: RenderTextureColorFormat, mipmap: boolean = false) {
+  constructor(width: number, height: number, format: RenderBufferColorFormat, mipmap: boolean = false) {
     super();
   }
 
