@@ -166,7 +166,7 @@ export class Texture extends AssetObject {
         };
       case TextureFormat.ETC2_RGBA5:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGB8_ETC2,
+          internalFormat: GLCompressedTextureInternalFormat.RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
           isCompressed: true
         };
       case TextureFormat.ETC2_RGBA8:
