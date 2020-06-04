@@ -60,7 +60,7 @@ export class Texture2D extends Texture {
       this._bind();
       if (isWebGL2) {
         gl.texStorage2D(this._target, this.mipmapCount, internalFormat, width, height);
-      } else {
+      } else if (!isCompressed) {
         for (let i = 0; i < this.mipmapCount; i++) {
           gl.texImage2D(
             this._target,

@@ -59,7 +59,7 @@ export class TextureCubeMap extends Texture {
       this._bind();
       if (isWebGL2) {
         gl.texStorage2D(this._target, this.mipmapCount, internalFormat, size, size);
-      } else {
+      } else if (!isCompressed) {
         for (let i = 0; i < this.mipmapCount; i++) {
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             gl.texImage2D(
