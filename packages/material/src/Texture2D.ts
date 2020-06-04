@@ -43,40 +43,21 @@ export class Texture2D extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
-    const { internalFormat, baseFormat, dataType, isCompressed } = formatDetail;
     const glTexture = gl.createTexture();
 
-    this._rhi = rhi;
     this._glTexture = glTexture;
+    this._formatDetail = formatDetail;
+    this._isCube = false;
+    this._rhi = rhi;
     this._target = gl.TEXTURE_2D;
+    this._mipmap = mipmap;
     this._width = width;
     this._height = height;
-    this._mipmap = mipmap;
     this._format = format;
-    this._formatDetail = formatDetail;
-    this._isCompressed = isCompressed;
 
     // 预开辟 mipmap 显存
     if (mipmap) {
-      this._bind();
-      if (isWebGL2) {
-        gl.texStorage2D(this._target, this.mipmapCount, internalFormat, width, height);
-      } else if (!isCompressed) {
-        for (let i = 0; i < this.mipmapCount; i++) {
-          gl.texImage2D(
-            this._target,
-            i,
-            internalFormat,
-            width / (1 << i),
-            height / (1 << i),
-            0,
-            baseFormat,
-            dataType,
-            null
-          );
-        }
-      }
-      this._unbind();
+      this._initMipmap();
     }
   }
 
@@ -99,18 +80,24 @@ export class Texture2D extends Texture {
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
+    const maxWidthMip = this._getMaxMiplevel(this._width);
+    const maxHeightMip = this._getMaxMiplevel(this._height);
+    const trueWidth = Math.pow(2, Math.max(maxWidthMip - miplevel, 0));
+    const trueHeight = Math.pow(2, Math.max(maxHeightMip - miplevel, 0));
+
+    if ((width && width !== trueWidth) || (height && height !== trueHeight)) {
+      Logger.warn(`当前miplevel:${miplevel},width应为:${trueWidth},height应为:${trueHeight}`);
+    }
 
     x = x || 0;
     y = y || 0;
-    width = width || width / (1 << miplevel);
-    height = height || height / (1 << miplevel);
 
     this._bind();
 
     if (isCompressed) {
-      gl.compressedTexSubImage2D(this._target, miplevel, x, y, width, height, internalFormat, colorBuffer);
+      gl.compressedTexSubImage2D(this._target, miplevel, x, y, trueWidth, trueHeight, internalFormat, colorBuffer);
     } else {
-      gl.texSubImage2D(this._target, miplevel, x, y, width, height, baseFormat, dataType, colorBuffer);
+      gl.texSubImage2D(this._target, miplevel, x, y, trueWidth, trueHeight, baseFormat, dataType, colorBuffer);
     }
 
     this._unbind();

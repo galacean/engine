@@ -71,58 +71,21 @@ export class RenderDepthTexture extends Texture {
     }
 
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
-    const { internalFormat, baseFormat, dataType, isCompressed } = formatDetail;
     const glTexture = gl.createTexture();
 
-    this._rhi = rhi;
     this._glTexture = glTexture;
-    this._target = isCube ? gl.TEXTURE_CUBE_MAP : gl.TEXTURE_2D;
-    this._width = width;
-    this._height = height;
-    this._mipmap = mipmap;
-    this._format = format;
     this._formatDetail = formatDetail;
     this._isCube = isCube;
+    this._rhi = rhi;
+    this._target = isCube ? gl.TEXTURE_CUBE_MAP : gl.TEXTURE_2D;
+    this._mipmap = mipmap;
+    this._width = width;
+    this._height = height;
+    this._format = format;
 
     // 预开辟 mipmap 显存
     if (mipmap) {
-      this._bind();
-      if (isWebGL2) {
-        gl.texStorage2D(this._target, this.mipmapCount, internalFormat, width, height);
-      } else {
-        if (isCube) {
-          for (let i = 0; i < this.mipmapCount; i++) {
-            for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-              gl.texImage2D(
-                gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
-                i,
-                internalFormat,
-                width / (1 << i),
-                height / (1 << i),
-                0,
-                baseFormat,
-                dataType,
-                null
-              );
-            }
-          }
-        } else {
-          for (let i = 0; i < this.mipmapCount; i++) {
-            gl.texImage2D(
-              this._target,
-              i,
-              internalFormat,
-              width / (1 << i),
-              height / (1 << i),
-              0,
-              baseFormat,
-              dataType,
-              null
-            );
-          }
-        }
-      }
-      this._unbind();
+      this._initMipmap();
     }
   }
 

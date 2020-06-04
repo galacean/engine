@@ -303,7 +303,12 @@ export class Texture extends AssetObject {
    * 分级纹理的数量。
    */
   get mipmapCount(): number {
-    return this._mipmapCount ? this._mipmapCount : this._mipmap ? Math.log2(this._width) : 1;
+    if (!this._mipmapCount) {
+      this._mipmapCount = this._mipmap
+        ? Math.max(this._getMaxMiplevel(this._width), this._getMaxMiplevel(this._height)) + 1
+        : 1;
+    }
+    return this._mipmapCount;
   }
 
   /**
@@ -371,7 +376,6 @@ export class Texture extends AssetObject {
   public _glTexture: WebGLTexture;
   public _formatDetail: TextureFormatDetail;
   public _isCube: boolean = false;
-  public _isCompressed: boolean = false;
 
   protected _rhi;
   protected _target: GLenum;
@@ -396,12 +400,18 @@ export class Texture extends AssetObject {
     this._unbind();
   }
 
+  /**
+   * @internal
+   */
   public _bind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.bindTexture(this._target, this._glTexture);
   }
 
+  /**
+   * @internal
+   */
   public _unbind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
@@ -409,6 +419,7 @@ export class Texture extends AssetObject {
   }
 
   /**
+   * @internal
    * 根据指定区域获得像素颜色缓冲
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
@@ -425,7 +436,7 @@ export class Texture extends AssetObject {
     out: ArrayBufferView,
     face: TextureCubeFace = -1
   ): void {
-    if (this._isCompressed) {
+    if (this._formatDetail.isCompressed) {
       Logger.error("无法读取压缩纹理");
       return;
     }
@@ -453,6 +464,79 @@ export class Texture extends AssetObject {
     gl.readPixels(x, y, width, height, baseFormat, dataType, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /**
+   * @internal
+   * 预开辟 mipmap 显存
+   */
+  protected _initMipmap(): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const isWebGL2 = this._rhi.isWebGL2;
+    const isCube = this._isCube;
+    const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
+
+    this._bind();
+
+    if (isWebGL2) {
+      gl.texStorage2D(this._target, this.mipmapCount, internalFormat, this._width, this._height);
+    } else {
+      const maxWidthMip = this._getMaxMiplevel(this._width);
+      const maxHeightMip = this._getMaxMiplevel(this._height);
+
+      if (!isCube) {
+        for (let i = 0; i < this.mipmapCount; i++) {
+          const width = Math.pow(2, Math.max(maxWidthMip - i, 0));
+          const height = Math.pow(2, Math.max(maxHeightMip - i, 0));
+
+          if (isCompressed) {
+            gl.compressedTexImage2D(this._target, i, internalFormat, width, height, 0, null);
+          } else {
+            gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
+          }
+        }
+      } else {
+        for (let i = 0; i < this.mipmapCount; i++) {
+          const size = Math.pow(2, Math.max(maxWidthMip - i, 0));
+
+          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+            if (isCompressed) {
+              gl.compressedTexImage2D(
+                gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
+                i,
+                internalFormat,
+                size,
+                size,
+                0,
+                null
+              );
+            } else {
+              gl.texImage2D(
+                gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
+                i,
+                internalFormat,
+                size,
+                size,
+                0,
+                baseFormat,
+                dataType,
+                null
+              );
+            }
+          }
+        }
+      }
+    }
+
+    this._unbind();
+  }
+
+  /**
+   * @internal
+   * 获取相应size的最大mip级别
+   */
+  private _getMaxMiplevel(size: number) {
+    return Math.round(Math.log(size) * Math.LOG2E);
   }
 
   /** -------------------@deprecated------------------------ */
