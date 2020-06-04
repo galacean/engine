@@ -7,7 +7,8 @@ import {
   TextureWrapMode,
   TextureFilter,
   TextureCubeFace,
-  Logger
+  Logger,
+  GLCapabilityType
 } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { TextureFormatDetail, TextureConfig } from "./type";
@@ -16,11 +17,11 @@ import { TextureFormatDetail, TextureConfig } from "./type";
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
 export class Texture extends AssetObject {
+  static _readFrameBuffer: WebGLFramebuffer = null;
+
   static _isPowerOf2(v: number): boolean {
     return (v & (v - 1)) === 0;
   }
-
-  static _readFrameBuffer: WebGLFramebuffer = null;
 
   /**
    * 根据 TextureFormat 获取具体信息
@@ -347,13 +348,19 @@ export class Texture extends AssetObject {
   set anisoLevel(value: number) {
     if (value === this._anisoLevel) return;
 
-    const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
+    if (!this._rhi.canIUse(GLCapabilityType.textureFilterAnisotropic)) {
+      Logger.error("当前环境不支持设置各向异性过滤等级");
+      return;
+    }
 
+    const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
     const max = this._rhi.capability.maxAnisoLevel;
+
     if (value > max) {
-      Logger.warn(`anisoLevel 超出当前环境限制，已自动降级为最大值:${max}`);
+      Logger.warn(`anisoLevel:${value}, 超出当前环境限制，已自动降级为最大值:${max}`);
       value = max;
     }
+
     this._anisoLevel = value;
 
     this._bind();
@@ -374,7 +381,7 @@ export class Texture extends AssetObject {
   private _wrapModeU: TextureWrapMode;
   private _wrapModeV: TextureWrapMode;
   private _filterMode: TextureFilterMode;
-  private _anisoLevel: number = 1;
+  private _anisoLevel: number;
 
   /**
    * 根据第0级数据生成多级纹理。

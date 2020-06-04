@@ -16,10 +16,10 @@ export class GLCapability {
   /**
    * 最大各向异性过滤等级。
    */
-  get maxAnisoLevel() {
+  get maxAnisoLevel(): number {
     if (!this._maxAnisoLevel) {
-      const ext = this.rhi.requireExtension(GLCapabilityType.textureFilterAnisotropic);
-      this._maxAnisoLevel = ext ? this.rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 1;
+      const ext = this._rhi.requireExtension(GLCapabilityType.textureFilterAnisotropic);
+      this._maxAnisoLevel = ext ? this._rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 1;
     }
     return this._maxAnisoLevel;
   }
@@ -27,10 +27,10 @@ export class GLCapability {
   /**
    * 最大 MSAA 采样数量
    */
-  get maxAntiAliasing() {
+  get maxAntiAliasing(): number {
     if (!this._maxAntiAliasing) {
-      const gl = this.rhi.gl;
-      const canMSAA = this.rhi.canIUse(GLCapabilityType.multipleSample);
+      const gl = this._rhi.gl;
+      const canMSAA = this._rhi.canIUse(GLCapabilityType.multipleSample);
 
       this._maxAntiAliasing = canMSAA ? gl.getParameter(gl.MAX_SAMPLES) : 1;
     }
