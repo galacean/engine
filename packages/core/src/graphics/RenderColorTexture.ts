@@ -52,9 +52,4 @@ export class RenderColorTexture extends Texture {
    * @param out - 颜色数据缓冲
    */
   getPixelsBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {}
-
-  /**
-   * 生成多级纹理。
-   */
-  generateMipmaps(): void {}
 }

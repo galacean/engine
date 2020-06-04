@@ -1,5 +1,4 @@
 import { TextureWrapMode } from "@alipay/o3-base";
-import { set } from "@alipay/o3-math/types/mat2/mat2";
 import { TextureFilterMode } from "./TextureFilterMode";
 
 /**
@@ -73,4 +72,9 @@ export class Texture {
   set anisoLevel(value: number) {
     //TODO:
   }
+
+  /**
+   * 生成多级纹理。
+   */
+  generateMipmaps(): void {}
 }

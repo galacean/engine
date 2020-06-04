@@ -60,11 +60,6 @@ export class Texture2D extends Texture {
     y?: number
   ): void {}
 
-  /**
-   * 根据第0级数据生成多级纹理。
-   */
-  generateMipmaps(): void {}
-
   // /**
   //  * 根据坐标和纹理层级填充像素颜色。
   //  * @param x - 像素

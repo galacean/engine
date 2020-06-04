@@ -56,11 +56,6 @@ export class TextureCube extends Texture {
     y?: number
   ): void {}
 
-  /**
-   * 根据第0级数据生成多级纹理。
-   */
-  generateMipmaps(): void {}
-
   // /**
   //  * 应用之前所有的像素变更操作，比较耗费性能。
   //  * @param recalculateMipmap - 是否根据第0级level重新计算分级纹理

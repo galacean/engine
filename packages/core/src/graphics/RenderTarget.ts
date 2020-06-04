@@ -16,7 +16,7 @@ export class RenderTarget {
   /**
    * 深度纹理。
    */
-  get depthTexture(): RenderDepthTexture {
+  get depthTexture(): RenderDepthTexture | null {
     return null;
   }
 
@@ -27,7 +27,6 @@ export class RenderTarget {
   get antiAliasing(): number {
     return 0;
   }
-  set antiAliasing(value: number) {}
 
   /**
    * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
@@ -39,7 +38,7 @@ export class RenderTarget {
   constructor(width: number, height: number, colorTexture: RenderColorTexture, depthFormat: RenderBufferDepthFormat);
 
   /**
-   * 通过颜色纹理和深度纹理创建渲染目标。
+   * 通过颜色纹理和深度纹理创建渲染目标,如果颜色纹理为null，则无法获取颜色纹理。
    * @param width - 宽
    * @param height - 高
    * @param colorTexture - 颜色纹理
@@ -89,7 +88,7 @@ export class RenderTarget {
    * 通过索引获取颜色纹理。
    * @param index
    */
-  getColorTexture(index: number = 0): RenderColorTexture {
+  getColorTexture(index: number = 0): RenderColorTexture | null {
     return null;
   }
 }
