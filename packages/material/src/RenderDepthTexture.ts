@@ -7,6 +7,7 @@ import { Texture } from "./Texture";
 export class RenderDepthTexture extends Texture {
   private _format: RenderBufferDepthFormat;
   private _autoMipmap: boolean = false;
+  private _isCube: boolean = false;
 
   /**
    * 格式。
@@ -16,11 +17,19 @@ export class RenderDepthTexture extends Texture {
   }
 
   /**
+   * 当前渲染纹理是否为立方体纹理
+   */
+  get isCube(): boolean {
+    return this._isCube;
+  }
+
+  /**
    * 自动生成多级纹理。
    */
   get autoGenerateMipmaps(): boolean {
     return this._autoMipmap;
   }
+
   set autoGenerateMipmaps(value: boolean) {
     this._autoMipmap = value;
   }
@@ -31,6 +40,7 @@ export class RenderDepthTexture extends Texture {
    * @param width - 宽
    * @param height - 高
    * @param format - 格式。默认 RenderBufferDepthFormat.Depth,深度纹理,自动选择精度
+   * @param isCube - 是否需要生成立方体纹理
    * @param mipmap - 是否使用多级纹理
    */
   constructor(
@@ -38,6 +48,7 @@ export class RenderDepthTexture extends Texture {
     width: number,
     height: number,
     format: RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
+    isCube: boolean = false,
     mipmap: boolean = false
   ) {
     // todo: delete super
@@ -58,6 +69,10 @@ export class RenderDepthTexture extends Texture {
       Logger.error("当前环境不支持高精度深度模版纹理,请先检测能力再使用");
       return;
     }
+    if (isCube && width !== height) {
+      Logger.error("立方体纹理的宽高必须一致");
+      return;
+    }
     if (mipmap && (!Texture.isPowerOf2(width) || !Texture.isPowerOf2(height))) {
       Logger.warn("非二次幂纹理不支持开启 mipmap,已自动降级为非mipmap");
       mipmap = false;
@@ -69,12 +84,13 @@ export class RenderDepthTexture extends Texture {
 
     this._rhi = rhi;
     this._glTexture = glTexture;
-    this._target = gl.TEXTURE_2D;
+    this._target = isCube ? gl.TEXTURE_CUBE_MAP : gl.TEXTURE_2D;
     this._width = width;
     this._height = height;
     this._mipmap = mipmap;
     this._format = format;
     this._formatDetail = formatDetail;
+    this._isCube = isCube;
 
     // 预开辟 mipmap 显存
     if (mipmap) {
@@ -82,8 +98,26 @@ export class RenderDepthTexture extends Texture {
       if (isWebGL2) {
         gl.texStorage2D(this._target, this.mipmapCount, internalFormat, width, height);
       } else {
-        for (let i = 0; i < this.mipmapCount; i++) {
-          gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
+        if (isCube) {
+          for (let i = 0; i < this.mipmapCount; i++) {
+            for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+              gl.texImage2D(
+                gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
+                i,
+                internalFormat,
+                width,
+                height,
+                0,
+                baseFormat,
+                dataType,
+                null
+              );
+            }
+          }
+        } else {
+          for (let i = 0; i < this.mipmapCount; i++) {
+            gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
+          }
         }
       }
       this._unbind();
