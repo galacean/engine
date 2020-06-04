@@ -13,14 +13,14 @@ import { TextureConfig } from "./type";
  * 立方体纹理
  */
 export class TextureCubeMap extends Texture {
-  private _format: TextureFormat;
-
   /**
    * 纹理的格式。
    */
   get format(): TextureFormat {
     return this._format;
   }
+
+  private _format: TextureFormat;
 
   /**
    * 创建立方体纹理。
@@ -34,7 +34,7 @@ export class TextureCubeMap extends Texture {
       Logger.error("当前环境不支持浮点纹理,请先检测能力再使用");
       return;
     }
-    if (mipmap && !Texture.isPowerOf2(size)) {
+    if (mipmap && !Texture._isPowerOf2(size)) {
       Logger.warn("非二次幂纹理不支持开启 mipmap,已自动降级为非mipmap");
       mipmap = false;
     }
@@ -154,6 +154,26 @@ export class TextureCubeMap extends Texture {
     this._unbind();
   }
 
+  /**
+   * 根据指定区域获得像素颜色缓冲
+   * @param x - 区域起始X坐标
+   * @param y - 区域起始Y坐标
+   * @param width - 区域宽
+   * @param height - 区域高
+   * @param out - 颜色数据缓冲
+   * @param face - 可以选择读取第几个面
+   */
+  public getPixelsBuffer(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    out: ArrayBufferView,
+    face: TextureCubeFace = TextureCubeFace.PositiveX
+  ): void {
+    super._getPixelsBuffer(x, y, width, height, out, face);
+  }
+
   /** ----------------- @deprecated----------------- */
   private _images: Array<any>;
   private _mipMapLevel: number;
@@ -239,7 +259,7 @@ export class TextureCubeMap extends Texture {
     if (this.images[1]) {
       this._mipMapLevel = Math.log2(this.images[0][0].width);
     } else {
-      if (Texture.isPowerOf2(this._images[0][0].width) && Texture.isPowerOf2(this._images[0][0].height)) {
+      if (Texture._isPowerOf2(this._images[0][0].width) && Texture._isPowerOf2(this._images[0][0].height)) {
         if (
           this.filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
           this.filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||

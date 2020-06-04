@@ -15,6 +15,10 @@ import { TextureFormatDetail, TextureConfig } from "./type";
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
 export class Texture extends AssetObject {
+  static _isPowerOf2(v: number): boolean {
+    return (v & (v - 1)) === 0;
+  }
+
   static _readFrameBuffer: WebGLFramebuffer = null;
 
   /**
@@ -140,25 +144,6 @@ export class Texture extends AssetObject {
         };
     }
   }
-
-  static isPowerOf2(v: number): boolean {
-    return (v & (v - 1)) === 0;
-  }
-
-  private _mipmapCount: number;
-  private _wrapModeU: TextureWrapMode;
-  private _wrapModeV: TextureWrapMode;
-  private _filterMode: TextureFilterMode;
-  private _anisoLevel: number = 1;
-
-  protected _rhi;
-  protected _target: GLenum;
-  protected _mipmap: boolean;
-  protected _width: number;
-  protected _height: number;
-
-  public _glTexture: WebGLTexture;
-  public _formatDetail: TextureFormatDetail;
 
   /**
    * 宽。
@@ -295,6 +280,32 @@ export class Texture extends AssetObject {
     this._unbind();
   }
 
+  public _glTexture: WebGLTexture;
+  public _formatDetail: TextureFormatDetail;
+
+  protected _rhi;
+  protected _target: GLenum;
+  protected _mipmap: boolean;
+  protected _width: number;
+  protected _height: number;
+
+  private _mipmapCount: number;
+  private _wrapModeU: TextureWrapMode;
+  private _wrapModeV: TextureWrapMode;
+  private _filterMode: TextureFilterMode;
+  private _anisoLevel: number = 1;
+
+  /**
+   * 根据第0级数据生成多级纹理。
+   */
+  public generateMipmaps(): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+
+    this._bind();
+    gl.generateMipmap(this._target);
+    this._unbind();
+  }
+
   public _bind() {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
@@ -308,17 +319,6 @@ export class Texture extends AssetObject {
   }
 
   /**
-   * 根据第0级数据生成多级纹理。
-   */
-  public generateMipmaps(): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-
-    this._bind();
-    gl.generateMipmap(this._target);
-    this._unbind();
-  }
-
-  /**
    * 根据指定区域获得像素颜色缓冲
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
@@ -327,7 +327,7 @@ export class Texture extends AssetObject {
    * @param out - 颜色数据缓冲
    * @param face - 如果是立方体纹理，可以选择读取第几个面
    */
-  public getPixelsBuffer(
+  protected _getPixelsBuffer(
     x: number,
     y: number,
     width: number,

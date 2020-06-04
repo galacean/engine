@@ -1,14 +1,10 @@
-import { RenderBufferColorFormat, GLCapabilityType, Logger } from "@alipay/o3-base";
+import { TextureCubeFace, RenderBufferColorFormat, GLCapabilityType, Logger } from "@alipay/o3-base";
 import { Texture } from "./Texture";
 
 /**
  * 类应用于渲染颜色纹理。
  */
 export class RenderColorTexture extends Texture {
-  private _format: RenderBufferColorFormat;
-  private _autoMipmap: boolean = false;
-  private _isCube: boolean = false;
-
   /**
    * 格式。
    */
@@ -33,6 +29,10 @@ export class RenderColorTexture extends Texture {
   set autoGenerateMipmaps(value: boolean) {
     this._autoMipmap = value;
   }
+
+  private _format: RenderBufferColorFormat;
+  private _autoMipmap: boolean = false;
+  private _isCube: boolean = false;
 
   /**
    * 构造渲染纹理。
@@ -72,7 +72,7 @@ export class RenderColorTexture extends Texture {
       Logger.error("立方体纹理的宽高必须一致");
       return;
     }
-    if (mipmap && (!Texture.isPowerOf2(width) || !Texture.isPowerOf2(height))) {
+    if (mipmap && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
       Logger.warn("非二次幂纹理不支持开启 mipmap,已自动降级为非mipmap");
       mipmap = false;
     }
@@ -123,5 +123,25 @@ export class RenderColorTexture extends Texture {
       }
       this._unbind();
     }
+  }
+
+  /**
+   * 根据指定区域获得像素颜色缓冲
+   * @param x - 区域起始X坐标
+   * @param y - 区域起始Y坐标
+   * @param width - 区域宽
+   * @param height - 区域高
+   * @param out - 颜色数据缓冲
+   * @param face - 如果是立方体纹理，可以选择读取第几个面
+   */
+  public getPixelsBuffer(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    out: ArrayBufferView,
+    face?: TextureCubeFace
+  ): void {
+    super._getPixelsBuffer(x, y, width, height, out, face);
   }
 }

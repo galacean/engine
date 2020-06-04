@@ -7,14 +7,14 @@ import { Texture2DConfig, Rect } from "./type";
  * 2D纹理
  */
 export class Texture2D extends Texture {
-  private _format: TextureFormat;
-
   /**
    * 纹理的格式。
    */
   get format(): TextureFormat {
     return this._format;
   }
+
+  private _format: TextureFormat;
 
   /**
    * 构建一个2D纹理。
@@ -35,7 +35,7 @@ export class Texture2D extends Texture {
       Logger.error("当前环境不支持浮点纹理,请先检测能力再使用");
       return;
     }
-    if (mipmap && (!Texture.isPowerOf2(width) || !Texture.isPowerOf2(height))) {
+    if (mipmap && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
       Logger.warn("非二次幂纹理不支持开启 mipmap,已自动降级为非mipmap");
       mipmap = false;
     }
@@ -129,6 +129,18 @@ export class Texture2D extends Texture {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
     this._unbind();
+  }
+
+  /**
+   * 根据指定区域获得像素颜色缓冲
+   * @param x - 区域起始X坐标
+   * @param y - 区域起始Y坐标
+   * @param width - 区域宽
+   * @param height - 区域高
+   * @param out - 颜色数据缓冲
+   */
+  public getPixelsBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {
+    super._getPixelsBuffer(x, y, width, height, out);
   }
 
   /** ----------------- @deprecated----------------- */
@@ -257,7 +269,7 @@ export class Texture2D extends Texture {
    * @private
    */
   configMipmap() {
-    if (Texture.isPowerOf2(this._image.width) && Texture.isPowerOf2(this._image.height)) {
+    if (Texture._isPowerOf2(this._image.width) && Texture._isPowerOf2(this._image.height)) {
       this.canMipmap =
         this.filterMin === TextureFilter.NEAREST_MIPMAP_NEAREST ||
         this.filterMin === TextureFilter.LINEAR_MIPMAP_NEAREST ||

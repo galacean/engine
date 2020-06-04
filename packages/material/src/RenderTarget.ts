@@ -18,15 +18,6 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
  * 用于离屏幕渲染的渲染目标。
  */
 export class RenderTarget extends AssetObject {
-  private _rhi;
-  private _width: number;
-  private _height: number;
-  private _frameBuffer: WebGLFramebuffer;
-  private _MSAAFrameBuffer: WebGLFramebuffer;
-  private _antiAliasing: number;
-  private _colorTextures: Array<RenderColorTexture> = [];
-  private _depthTexture: RenderDepthTexture | null;
-
   /**
    * 颜色纹理数量。
    */
@@ -45,22 +36,18 @@ export class RenderTarget extends AssetObject {
    * 抗锯齿级别。
    * 如果设置的抗锯齿级别大于硬件支持的最大级别，将使用硬件的最大级别。
    */
-  // get antiAliasing(): number {
-  //   return this._antiAliasing;
-  // }
+  get antiAliasing(): number {
+    return this._antiAliasing;
+  }
 
-  // set antiAliasing(value: number) {
-  // if (value === this._antiAliasing) return;
-
-  // const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-  // const max = this._rhi.capability.maxAntiAliasing;
-
-  // if (value > max) {
-  //   Logger.warn(`antiAliasing 超出当前环境限制，已自动降级为最大值:${max}`);
-  //   value = max;
-  // }
-  // this._antiAliasing = value;
-  // }
+  private _rhi;
+  private _width: number;
+  private _height: number;
+  private _frameBuffer: WebGLFramebuffer;
+  private _MSAAFrameBuffer: WebGLFramebuffer;
+  private _antiAliasing: number;
+  private _colorTextures: Array<RenderColorTexture> = [];
+  private _depthTexture: RenderDepthTexture | null;
 
   /**
    * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
@@ -81,8 +68,7 @@ export class RenderTarget extends AssetObject {
   );
 
   /**
-   * 通过颜色纹理和深度纹理创建渲染目标。
-   *
+   * 通过颜色纹理和深度纹理创建渲染目标。不传颜色纹理时，只生成深度纹理
    * @param rhi - GPU 硬件抽象层
    * @param width - 宽
    * @param height - 高
@@ -94,26 +80,7 @@ export class RenderTarget extends AssetObject {
     rhi,
     width: number,
     height: number,
-    colorTexture: RenderColorTexture,
-    depthTexture: RenderDepthTexture,
-    antiAliasing?: number
-  );
-
-  /**
-   * 只获取深度纹理
-   *
-   * @param rhi - GPU 硬件抽象层
-   * @param width - 宽
-   * @param height - 高
-   * @param colorTexture - 颜色纹理为空
-   * @param depthTexture - 深度纹理
-   * @param antiAliasing - 抗锯齿级别
-   */
-  constructorNew(
-    rhi,
-    width: number,
-    height: number,
-    colorTexture: null,
+    colorTexture: RenderColorTexture | null,
     depthTexture: RenderDepthTexture,
     antiAliasing?: number
   );
@@ -245,32 +212,11 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * 更新 MSAA 抗锯齿，只有 WeGLl2 才支持
+   * 通过索引获取颜色纹理。
+   * @param index
    */
-  private _initMSAA(depthFormat: GLint): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    const MSAAFrameBuffer = gl.createFramebuffer();
-    const MSAADepthRenderBuffer = gl.createRenderbuffer();
-
-    this._MSAAFrameBuffer = MSAAFrameBuffer;
-
-    this._bind(false, true);
-
-    // prepare MRT+MSAA color RBO
-    for (let i = 0; i < this._colorTextures.length; i++) {
-      const MSAAColorRenderBuffer = gl.createRenderbuffer();
-      const { internalFormat } = this._colorTextures[i]._formatDetail;
-      gl.bindRenderbuffer(gl.RENDERBUFFER, MSAAColorRenderBuffer);
-      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.RENDERBUFFER, MSAAColorRenderBuffer);
-    }
-
-    // prepare MSAA depth RBO
-    gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);
-    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, depthFormat, this._width, this._height);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, MSAADepthRenderBuffer);
-
-    this._unbind();
+  public getColorTexture(index: number = 0): RenderColorTexture | null {
+    return this._colorTextures[index];
   }
 
   /**
@@ -390,11 +336,32 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * 通过索引获取颜色纹理。
-   * @param index
+   * 更新 MSAA 抗锯齿，只有 WeGLl2 才支持
    */
-  public getColorTexture(index: number = 0): RenderColorTexture | null {
-    return this._colorTextures[index];
+  private _initMSAA(depthFormat: GLint): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const MSAAFrameBuffer = gl.createFramebuffer();
+    const MSAADepthRenderBuffer = gl.createRenderbuffer();
+
+    this._MSAAFrameBuffer = MSAAFrameBuffer;
+
+    this._bind(false, true);
+
+    // prepare MRT+MSAA color RBO
+    for (let i = 0; i < this._colorTextures.length; i++) {
+      const MSAAColorRenderBuffer = gl.createRenderbuffer();
+      const { internalFormat } = this._colorTextures[i]._formatDetail;
+      gl.bindRenderbuffer(gl.RENDERBUFFER, MSAAColorRenderBuffer);
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.RENDERBUFFER, MSAAColorRenderBuffer);
+    }
+
+    // prepare MSAA depth RBO
+    gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, depthFormat, this._width, this._height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, MSAADepthRenderBuffer);
+
+    this._unbind();
   }
 
   /** -------------------@deprecated------------------------ */
