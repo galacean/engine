@@ -11,7 +11,23 @@ class ShaderFactory {
   }
 
   static parsePrecision(p) {
-    return `precision ${p} float;\n` + `precision ${p} int;\n`;
+    if (p === "highp") {
+      return `
+#ifdef GL_ES
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    precision highp int;
+  #else
+   precision mediump float;
+   precision mediump int;
+  #endif
+#endif
+`;
+    }
+    return `
+precision ${p} float;
+precision ${p} int;
+    `;
   }
 
   static parseShaderName(name) {
