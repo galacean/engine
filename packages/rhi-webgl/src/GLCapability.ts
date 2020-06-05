@@ -73,7 +73,7 @@ export class GLCapability {
       RGB_ETC1_WEBGL,
       // etc
       R11_EAC,
-      SRGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+      SRGB8_ALPHA8_ETC2_EAC,
       // pvrtc
       RGB_PVRTC_4BPPV1_IMG,
       RGBA_PVRTC_2BPPV1_IMG,
@@ -88,7 +88,7 @@ export class GLCapability {
       return this.canIUse(GLCapabilityType.astc);
     } else if (internalType === RGB_ETC1_WEBGL) {
       return this.canIUse(GLCapabilityType.etc1);
-    } else if (internalType >= R11_EAC && internalType <= SRGB8_PUNCHTHROUGH_ALPHA1_ETC2) {
+    } else if (internalType >= R11_EAC && internalType <= SRGB8_ALPHA8_ETC2_EAC) {
       return this.canIUse(GLCapabilityType.etc);
     } else if (internalType >= RGB_PVRTC_4BPPV1_IMG && internalType <= RGBA_PVRTC_2BPPV1_IMG) {
       return this.canIUse(GLCapabilityType.pvrtc);
