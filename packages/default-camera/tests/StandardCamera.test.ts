@@ -44,15 +44,7 @@ describe("projection test", function() {
     const projectionMatrix = camera.projectionMatrix;
     const width = (camera.orthographicSize * 400) / 400;
     const height = camera.orthographicSize;
-    const result = mat4.ortho(
-      new Float32Array(16),
-      -width,
-      width,
-      -height,
-      height,
-      camera.nearClipPlane,
-      camera.farClipPlane
-    );
+    const result = mat4.ortho(new Float32Array(16), -width, width, -height, height, camera.nearClipPlane, camera.farClipPlane);
     expect(projectionMatrix).toEqual(result);
   });
 
@@ -71,15 +63,7 @@ describe("projection test", function() {
 
     const width = (camera.orthographicSize * 400) / 400;
     const height = camera.orthographicSize;
-    const result = mat4.ortho(
-      new Float32Array(16),
-      -width,
-      width,
-      -height,
-      height,
-      camera.nearClipPlane,
-      camera.farClipPlane
-    );
+    const result = mat4.ortho(new Float32Array(16), -width, width, -height, height, camera.nearClipPlane, camera.farClipPlane);
 
     expect(camera.projectionMatrix).not.toEqual(result);
   });
@@ -98,10 +82,29 @@ describe("projection test", function() {
     expect(out[1]).toBeCloseTo(0.75);
   });
 
-  it.only("world to viewport", () => {
-    const out = camera.worldToViewportPoint([1, 1, 1], [0, 0, 0]);
-    console.log(out);
-    // camera.viewportToWorldPoint()
-    // camera.worldToViewportPoint()
+  it("world to viewport", () => {
+    camera.projectionMatrix = [3.0807323455810547, 0, 0, 0, 0, 1.7320458889007568, 0, 0, 0, 0, -1.001001000404358, -1, 0, 0, -0.10010010004043579, 0];
+    const out = camera.worldToViewportPoint([1, 1, 100], [0, 0, 0]);
+    expect(out).toEqual([0.48459633827209475, 0.5086602294445037, -100]);
+  });
+
+  it("world to screen", () => {
+    camera.projectionMatrix = [3.0807323455810547, 0, 0, 0, 0, 1.7320458889007568, 0, 0, 0, 0, -1.001001000404358, -1, 0, 0, -0.10010010004043579, 0];
+    const out = camera.worldToScreenPoint([1, 1, -100], [0, 0, 0]);
+    expect(out).toEqual([0.5154036617279053, 0.4913397705554962, 100]);
+  });
+
+  it.only("viewport to world", () => {
+    camera.projectionMatrix = [3.0807409286499023, 0, 0, 0, 0, 1.7320507764816284, 0, 0, 0, 0, -1.0020020008087158, -1, 0, 0, -0.20020020008087158, 0];
+    const out = camera.worldToViewportPoint([1, 1, -100], [0, 0, 0]);
+    console.time("calculate");
+    const result = [0, 0, 0];
+    for (let i = 0; i < 1000000; i++) {
+      camera.viewportToWorldPoint(out, result as any);
+    }
+    // result
+    // expect()
+    // console.log(hello);
+    // console.log(out)
   });
 });
