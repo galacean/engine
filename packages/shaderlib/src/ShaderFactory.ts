@@ -10,24 +10,24 @@ class ShaderFactory {
     return `#version ${version}\n`;
   }
 
-  static parsePrecision(p) {
-    if (p === "highp") {
-      return `
-#ifdef GL_ES
-  #ifdef GL_FRAGMENT_PRECISION_HIGH
-    precision highp float;
-    precision highp int;
-  #else
-   precision mediump float;
-   precision mediump int;
-  #endif
-#endif
-`;
-    }
+  static parsePrecision(vertP: string, fragP: string, compileVert?: boolean) {
+    const downgrade = "mediump";
+
     return `
-precision ${p} float;
-precision ${p} int;
-    `;
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+          precision ${compileVert ? vertP : fragP} float;
+          precision ${compileVert ? vertP : fragP} int;
+
+          #define O3_VERTEX_PRECISION ${vertP}
+          #define O3_FRAGMENT_PRECISION ${fragP}
+        #else
+          precision ${downgrade} float;
+          precision ${downgrade} int;
+
+          #define O3_VERTEX_PRECISION ${downgrade}
+          #define O3_FRAGMENT_PRECISION ${downgrade}
+        #endif
+      `;
   }
 
   static parseShaderName(name) {

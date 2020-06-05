@@ -135,7 +135,7 @@ export class RenderTechnique extends AssetObject {
           ShaderFactory.parseVersion(this.version) +
           ShaderFactory.parseShaderName((this.name || "VOID").toUpperCase() + "_VERT") +
           "\n" +
-          ShaderFactory.parsePrecision(this.vertexPrecision) +
+          ShaderFactory.parsePrecision(this.vertexPrecision, this.fragmentPrecision, true) +
           "\n" +
           ShaderFactory.parseAttributeMacros(attribMacros) +
           "\n" +
@@ -152,7 +152,7 @@ export class RenderTechnique extends AssetObject {
           ShaderFactory.parseShaderName((this.name || "VOID").toUpperCase() + "_FRAG") +
           "\n" +
           ShaderFactory.parseExtension(isWebGL2 ? this.shaderExtension300 : this.shaderExtension100) +
-          ShaderFactory.parsePrecision(this.fragmentPrecision) +
+          ShaderFactory.parsePrecision(this.vertexPrecision, this.fragmentPrecision) +
           "\n" +
           ShaderFactory.parseAttributeMacros(attribMacros) +
           "\n" +
@@ -188,9 +188,6 @@ export class RenderTechnique extends AssetObject {
     if (!primitive) return _macros;
 
     const attribNames = Object.keys(primitive.vertexAttributes);
-
-    _macros.push(`O3_VERTEX_PRECISION ${this.vertexPrecision}`);
-    _macros.push(`O3_FRAGMENT_PRECISION ${this.fragmentPrecision}`);
 
     if (attribNames.indexOf("TEXCOORD_0") > -1) _macros.push("O3_HAS_UV");
     if (attribNames.indexOf("NORMAL") > -1) _macros.push("O3_HAS_NORMAL");
