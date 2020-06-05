@@ -121,13 +121,13 @@ export declare abstract class Camera extends NodeAbility {
   /**
    * 将一个位置坐标从世界空间变换到视口空间。
    * @param position - 世界空间坐标
-   * @param out - X和Y为视口空间坐标，Z为距离相机的世界单位距离
+   * @param out - X和Y为视口空间坐标，Z为视口深度，近裁剪面为0，远裁剪面为1，W为距离相机的世界单位距离
    */
-  worldToViewportPoint(position: Vector3, out: Vector3): Vector3;
+  worldToViewportPoint(position: Vector3, out: Vector4): Vector4;
 
   /**
    * 将一个位置坐标从视口空间变换到世界空间。
-   * @param position - X和Y为视口空间坐标，Z为距离相机的世界单位距离
+   * @param position - X和Y为视口空间坐标，Z为视口深度，近裁剪面为0，远裁剪面为1
    * @param out - 世界空间坐标
    */
   viewportToWorldPoint(position: Vector3, out: Vector3): Vector3;
@@ -142,7 +142,7 @@ export declare abstract class Camera extends NodeAbility {
   /**
    * 将一个位置的X和Y坐标从屏幕空间变换到视口空间,Z坐标忽略。
    * @param position - 屏幕空间坐标
-   * @param out - 视口空间坐标S
+   * @param out - 视口空间坐标
    */
   screenToViewportPoint(position: Vector3 | Vector2, out: Vector3 | Vector2): void;
 
