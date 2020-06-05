@@ -29,6 +29,8 @@ import { AnimationClip, InterpolationType } from "@alipay/o3-animation";
 
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 
+import { parseSingleKTX } from "@alipay/o3-compressed-texture";
+
 // 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
 //              https://github.com/KhronosGroup/glTF/pull/1223
@@ -249,7 +251,16 @@ export function parseTexture(gltfTexture, resources) {
 
   GLTF_TEX_COUNT++;
   const name = gltfTexture.name || gltfImage.name || gltfImage.uri || "GLTF_TEX_" + GLTF_TEX_COUNT;
-  const tex = new Texture2D(name, image, sampler);
+  let tex;
+  if (image.type) {
+    if (image.type === "ktx") {
+      tex = parseSingleKTX(name, image.data, sampler);
+    } else {
+      tex = new Texture2D(name, image.data, sampler);
+    }
+  } else {
+    tex = new Texture2D(name, image, sampler);
+  }
   tex.type = resources.assetType;
   return Promise.resolve(tex);
 }
@@ -851,6 +862,14 @@ export function buildSceneGraph(resources) {
 
 const BASE64_MARKER = ";base64,";
 
+function getReplaceImages(images) {
+  if (!images) return;
+  return images.map(image => ({
+    uri: image.url,
+    type: image.type === "ktx" ? "binary" : "image"
+  }));
+}
+
 class GLTFHandler {
   /**
    * 加载 glTF 及其内置的资源文件
@@ -881,7 +900,10 @@ class GLTFHandler {
 
           const dir = path.getDirectory(props.url);
           attachLoadingQueue(dir, loadQueue, gltfJSON.buffers, "binary", filesMap, { timeout: props.timeout });
-          attachLoadingQueue(dir, loadQueue, gltfJSON.images, "image", filesMap, { reSample, timeout: props.timeout });
+          attachLoadingQueue(dir, loadQueue, getReplaceImages(props.images) ?? gltfJSON.images, "image", filesMap, {
+            reSample,
+            timeout: props.timeout
+          });
           attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap, {});
 
           request.loadAll(loadQueue, function(err, resMap) {
@@ -903,7 +925,15 @@ class GLTFHandler {
               }
             }
 
-            if (gltfJSON.hasOwnProperty("images")) {
+            if (props.images) {
+              for (let i = 0; i < props.images.length; i++) {
+                const image = props.images[i];
+                data.images[i] = {
+                  type: image.type,
+                  data: resMap[image.url]
+                };
+              }
+            } else if (gltfJSON.hasOwnProperty("images")) {
               for (let i = 0; i < gltfJSON.images.length; i++) {
                 const image = gltfJSON.images[i];
                 if (image.uri)

@@ -1,9 +1,9 @@
 import { Resource } from "@alipay/o3-loader";
+import { TextureConfig } from "@alipay/o3-material";
 
 import { khronosTextureContainerParser } from "../KhronosTextureContainer";
 import { CompressedTexture2D } from "../CompressedTexture2D";
 import { CompressedTextureCubeMap } from "../CompressedTextureCubeMap";
-import { CompressedTextureData, CompressedCubeData } from "../type";
 /**
  * @private
  */
@@ -39,18 +39,16 @@ export class KTXTextureHandler {
   open(resource: Resource) {
     if (resource.data.length === 1) {
       const data = resource.data[0];
-      const texture = new CompressedTexture2D(resource.name, parseSingleKTX(data));
-      resource.asset = texture;
+      resource.asset = parseSingleKTX(resource.name, data);
     } else if (resource.data.length === 6) {
-      const texture = new CompressedTextureCubeMap(resource.name, parseCubeKTX(resource.data));
-      resource.asset = texture;
+      resource.asset = parseCubeKTX(resource.name, resource.data);
     } else {
       throw new Error("KTXTextureLoader: ktx texture should have 1 or 6 texture");
     }
   }
 }
 
-function parseCubeKTX(dataArray: ArrayBuffer[]): CompressedCubeData {
+export function parseCubeKTX(name: string, dataArray: ArrayBuffer[], config?: TextureConfig): CompressedTextureCubeMap {
   const mipmapsFaces = [];
   let internalFormat: number;
   let width: number;
@@ -64,20 +62,28 @@ function parseCubeKTX(dataArray: ArrayBuffer[]): CompressedCubeData {
       internalFormat = ktx.glInternalFormat;
     }
   }
-  return {
-    mipmapsFaces,
-    internalFormat,
-    width,
-    height
-  };
+  return new CompressedTextureCubeMap(
+    name,
+    {
+      mipmapsFaces,
+      internalFormat,
+      width,
+      height
+    },
+    config
+  );
 }
 
-function parseSingleKTX(data: ArrayBuffer): CompressedTextureData {
+export function parseSingleKTX(name: string, data: ArrayBuffer, config?: TextureConfig): CompressedTexture2D {
   const ktx = khronosTextureContainerParser.parse(data, 1, true);
-  return {
-    mipmaps: ktx.mipmaps,
-    internalFormat: ktx.glInternalFormat,
-    width: ktx.pixelWidth,
-    height: ktx.pixelHeight
-  };
+  return new CompressedTexture2D(
+    name,
+    {
+      mipmaps: ktx.mipmaps,
+      internalFormat: ktx.glInternalFormat,
+      width: ktx.pixelWidth,
+      height: ktx.pixelHeight
+    },
+    config
+  );
 }

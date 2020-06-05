@@ -198,7 +198,7 @@ export function attachLoadingQueue(dir, loadQueue, arr = [], type, filesMap, pro
 
     if (url || data)
       loadQueue[item.uri] = {
-        type,
+        type: item.type ?? type,
         props: {
           url,
           reSample: props.reSample,
