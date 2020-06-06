@@ -1,6 +1,7 @@
 import { NodeAbility } from ".";
 import { BasicSceneRenderer, GLRenderHardware } from "./type";
 import { RenderTarget } from "./graphics/RenderTarget";
+import { TextureCubeFace } from "./graphics/TextureCubeFace";
 
 /**
  * 摄像机组件，用于渲染场景。
@@ -155,8 +156,9 @@ export declare abstract class Camera extends NodeAbility {
 
   /**
    * 手动调用相机的渲染。
+   * @param cubeFaces 立方体的渲染面集合,如果renderTarget.isCube=true时生效
    */
-  render(): void;
+  render(cubeFaces?: TextureCubeFace): void;
 
   //---------------------------------------deprecated------------------------------------------
 

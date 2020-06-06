@@ -3,15 +3,15 @@
  */
 export enum TextureCubeFace {
   /** X轴正方向。 */
-  PositiveX,
+  PositiveX = 1,
   /** X轴负方向。 */
-  NegativeX,
+  NegativeX = 2,
   /** Y轴正方向。 */
-  PositiveY,
+  PositiveY = 4,
   /** Y轴负方向。 */
-  NegativeY,
+  NegativeY = 8,
   /** Z轴正方向。 */
-  PositiveZ,
+  PositiveZ = 16,
   /** Z轴负方向。 */
-  NegativeZ
+  NegativeZ = 32
 }
