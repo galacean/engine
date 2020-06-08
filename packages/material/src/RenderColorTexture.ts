@@ -1,4 +1,4 @@
-import { TextureCubeFace, RenderBufferColorFormat, GLCapabilityType, Logger } from "@alipay/o3-base";
+import { TextureCubeFace, RenderBufferColorFormat, GLCapabilityType, AssetType, Logger } from "@alipay/o3-base";
 import { Texture } from "./Texture";
 
 /**
@@ -32,16 +32,16 @@ export class RenderColorTexture extends Texture {
    * @param width - 宽
    * @param height - 高
    * @param format - 格式，默认 RenderBufferColorFormat.R8G8B8A8
-   * @param isCube - 是否需要生成立方体纹理
    * @param mipmap - 是否使用多级纹理
+   * @param isCube - 是否需要生成立方体纹理
    */
   constructor(
     rhi,
     width: number,
     height: number,
     format: RenderBufferColorFormat = RenderBufferColorFormat.R8G8B8A8,
-    isCube: boolean = false,
-    mipmap: boolean = false
+    mipmap: boolean = false,
+    isCube: boolean = false
   ) {
     // todo: delete super
     super("", null);
@@ -72,7 +72,13 @@ export class RenderColorTexture extends Texture {
       mipmap = false;
     }
 
-    const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
+    const formatDetail = Texture._getRenderBufferColorFormatDetail(format, gl, isWebGL2);
+
+    if (!formatDetail) {
+      Logger.error(`很抱歉，引擎不支持此格式: ${format}`);
+      return;
+    }
+
     const glTexture = gl.createTexture();
 
     this._glTexture = glTexture;

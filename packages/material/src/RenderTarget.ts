@@ -4,7 +4,9 @@ import {
   TextureFilter,
   TextureWrapMode,
   GLCapabilityType,
-  Logger
+  AssetType,
+  Logger,
+  RenderBufferColorFormat
 } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Texture2D } from "./Texture2D";
@@ -18,6 +20,16 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
  * 用于离屏幕渲染的渲染目标。
  */
 export class RenderTarget extends AssetObject {
+  /** 宽 */
+  get width(): number {
+    return this._width;
+  }
+
+  /** 高 */
+  get height(): number {
+    return this._height;
+  }
+
   /**
    * 颜色纹理数量。
    */
@@ -40,14 +52,16 @@ export class RenderTarget extends AssetObject {
     return this._antiAliasing;
   }
 
+  public _frameBuffer: WebGLFramebuffer;
+
   private _rhi;
   private _width: number;
   private _height: number;
-  private _frameBuffer: WebGLFramebuffer;
   private _MSAAFrameBuffer: WebGLFramebuffer;
   private _antiAliasing: number;
   private _colorTextures: Array<RenderColorTexture> = [];
   private _depthTexture: RenderDepthTexture | null;
+  private _oriDrawBuffers: Array<GLenum>;
 
   /**
    * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
@@ -132,22 +146,33 @@ export class RenderTarget extends AssetObject {
     depth: RenderDepthTexture | RenderBufferDepthFormat,
     antiAliasing: number = 1
   ) {
-    const maxAntiAliasing = rhi.capability.maxAntiAliasing;
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
+    const isWebGL2 = rhi.isWebGL2;
+
+    if (!(depth instanceof RenderDepthTexture)) {
+      if ((depth === RenderBufferDepthFormat.Depth24 || depth === RenderBufferDepthFormat.Depth32) && !isWebGL2) {
+        Logger.error("当前环境不支持高精度深度纹理,请先检测能力再使用");
+        return;
+      }
+      if (depth === RenderBufferDepthFormat.Depth32Stencil8 && !isWebGL2) {
+        Logger.error("当前环境不支持高精度深度模版纹理,请先检测能力再使用");
+        return;
+      }
+    }
 
     if ((renderTexture as Array<RenderColorTexture>)?.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
       Logger.error("当前环境不支持 MRT,请先检测能力再使用");
       return;
     }
+
+    const maxAntiAliasing = rhi.capability.maxAntiAliasing;
+
     if (antiAliasing > maxAntiAliasing) {
       Logger.warn(`antiAliasing 超出当前环境限制，已自动降级为最大值:${maxAntiAliasing}`);
       antiAliasing = maxAntiAliasing;
     }
 
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
-    const isWebGL2: boolean = rhi.isWebGL2;
     const frameBuffer = gl.createFramebuffer();
-    const attachments = [];
-    let depthFormat: GLint;
 
     this._rhi = rhi;
     this._width = width;
@@ -155,9 +180,6 @@ export class RenderTarget extends AssetObject {
     this._frameBuffer = frameBuffer;
     this._antiAliasing = antiAliasing;
 
-    this._bind();
-
-    /** color render buffer */
     this._colorTextures = [].concat.call([], renderTexture).filter((v: RenderColorTexture | null) => v);
 
     // todo: necessary to support MRT + Cube + [,MSAA] ?
@@ -166,49 +188,19 @@ export class RenderTarget extends AssetObject {
       return;
     }
 
-    if (this._colorTextures.length > 1 || (this._colorTextures.length === 0 && !this._colorTextures[0]._isCube)) {
-      this._colorTextures.forEach((colorTexture: RenderColorTexture, index: number) => {
-        const attachment = gl.COLOR_ATTACHMENT0 + index;
-
-        colorTexture._bind();
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, colorTexture._glTexture, 0);
-        colorTexture._unbind();
-
-        attachments.push(attachment);
-      });
-    }
-    if (this._colorTextures.length > 0) {
-      gl.drawBuffers(attachments);
-    }
-
-    /** depth render buffer */
     if (depth instanceof RenderDepthTexture) {
-      const { internalFormat, attachment } = depth._formatDetail;
-
-      depthFormat = internalFormat;
       this._depthTexture = depth;
-
-      if (!depth._isCube) {
-        depth._bind();
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, depth._glTexture, 0);
-        depth._unbind();
-      }
-    } else if (antiAliasing <= 1) {
-      const { internalFormat, attachment } = Texture._getFormatDetail(depth, gl, isWebGL2);
-      const depthRenderBuffer = gl.createRenderbuffer();
-
-      depthFormat = internalFormat;
-
-      gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
-      gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
     }
 
-    this._unbind();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    // 绑定主 FBO
+    this._bindMainFBO(this._colorTextures, depth);
 
-    /** MSAA */
-    antiAliasing > 1 && this._initMSAA(depthFormat);
+    // 绑定 MSAA FBO
+    if (antiAliasing > 1) {
+      this._MSAAFrameBuffer = gl.createFramebuffer();
+      this._bindMSAAFBO(this._colorTextures, depth);
+    }
+
     //todo: delete
     this.type = AssetType.Scene;
   }
@@ -222,42 +214,30 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * 绑定 FBO
-   * @param read  - 是否设置FBO作为读对象
-   * @param msaa  - 是否绑定 MSAA FBO
+   * 激活 RenderTarget 对象
+   * 如果开启 MSAA,则激活 MSAA FBO,后续进行 this._blitRenderTarget() 进行交换 FBO
+   * 如果未开启 MSAA,则激活主 FBO
    */
-  public _bind(read: boolean = false, msaa = false): void {
+  public _activeRenderTarget(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    const isWebGL2: boolean = this._rhi.isWebGL2;
 
-    gl.bindFramebuffer(
-      isWebGL2 ? (read ? gl.READ_FRAMEBUFFER : gl.DRAW_FRAMEBUFFER) : gl.FRAMEBUFFER,
-      msaa ? this._MSAAFrameBuffer : this._frameBuffer
-    );
-  }
-
-  /**
-   * 解绑 FBO
-   */
-  public _unbind(): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (this._MSAAFrameBuffer) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+    } else {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+    }
   }
 
   /**
    * 设置渲染到立方体纹理的哪个面
    * @param faceIndex - 立方体纹理面
    * */
-  public _setRenderTargetCubeFace(faceIndex: TextureCubeFace): void {
+  public _renderToCube(faceIndex: TextureCubeFace): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const colorTexture = this._colorTextures[0];
     const depthTexture = this._depthTexture;
 
-    if (this._antiAliasing > 1) {
-      this._bind(false, true);
-    } else {
-      this._bind();
-    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
     // 绑定颜色纹理
     if (colorTexture?._isCube) {
@@ -273,6 +253,7 @@ export class RenderTarget extends AssetObject {
     // 绑定深度纹理
     if (depthTexture?._isCube) {
       const { attachment } = depthTexture._formatDetail;
+
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         attachment,
@@ -282,7 +263,8 @@ export class RenderTarget extends AssetObject {
       );
     }
 
-    this._unbind();
+    // 还原当前激活的 FBO
+    this._activeRenderTarget();
   }
 
   /** blit FBO */
@@ -290,87 +272,161 @@ export class RenderTarget extends AssetObject {
     if (!this._MSAAFrameBuffer) return;
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    const oriAttachments = this._colorTextures.map(
-      (v: RenderColorTexture, index: number) => gl.COLOR_ATTACHMENT0 + index
-    );
+    const mask = gl.COLOR_BUFFER_BIT | (this._depthTexture ? gl.DEPTH_BUFFER_BIT : 0);
+    const length = this._colorTextures.length;
 
-    this._bind(true, true);
-    this._bind();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
 
-    if (this._colorTextures.length > 1) {
-      for (let i = 0; i < this._colorTextures.length; i++) {
-        const attachments = this._colorTextures.map((v: RenderColorTexture, index: number) =>
-          index === i ? gl.COLOR_ATTACHMENT0 + i : gl.NONE
-        );
-        gl.readBuffer(gl.COLOR_ATTACHMENT0 + i);
-        gl.drawBuffers(attachments);
-        gl.blitFramebuffer(
-          0,
-          0,
-          this._width,
-          this._height,
-          0,
-          0,
-          this._width,
-          this._height,
-          gl.COLOR_BUFFER_BIT,
-          gl.NEAREST
-        );
+    for (let textureIndex = 0; textureIndex < length; textureIndex++) {
+      const drawBuffers = [];
+
+      for (var i = 0; i < length; i++) {
+        drawBuffers[i] = gl.NONE;
       }
 
-      gl.drawBuffers(oriAttachments);
-    } else {
-      gl.blitFramebuffer(
-        0,
-        0,
-        this._width,
-        this._height,
-        0,
-        0,
-        this._width,
-        this._height,
-        gl.COLOR_BUFFER_BIT,
-        gl.NEAREST
-      );
+      drawBuffers[textureIndex] = gl.COLOR_ATTACHMENT0 + textureIndex;
+      gl.readBuffer(drawBuffers[textureIndex]);
+      gl.drawBuffers(drawBuffers);
+      gl.blitFramebuffer(0, 0, this._width, this._height, 0, 0, this._width, this._height, mask, gl.NEAREST);
     }
 
-    this._unbind();
+    // revert
+    gl.drawBuffers(this._oriDrawBuffers);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   /**
-   * 更新 MSAA 抗锯齿，只有 WeGLl2 才支持
+   * 绑定主 FBO
    */
-  private _initMSAA(depthFormat: GLint): void {
+  private _bindMainFBO(
+    renderColor: Array<RenderColorTexture>,
+    renderDepth: RenderDepthTexture | RenderBufferDepthFormat
+  ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    const MSAAFrameBuffer = gl.createFramebuffer();
+    const isWebGL2: boolean = this._rhi.isWebGL2;
+    const drawBuffers = [];
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+
+    /** color render buffer */
+    renderColor.forEach((colorTexture: RenderColorTexture, index: number) => {
+      const attachment = gl.COLOR_ATTACHMENT0 + index;
+
+      drawBuffers.push(attachment);
+
+      // 立方体纹理请调用 _renderToCube()
+      if (colorTexture._isCube) return;
+
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, colorTexture._glTexture, 0);
+    });
+
+    gl.drawBuffers(drawBuffers);
+    this._oriDrawBuffers = drawBuffers;
+
+    /** depth render buffer */
+    if (renderDepth instanceof RenderDepthTexture) {
+      // 立方体纹理请调用 _renderToCube()
+      if (renderDepth._isCube) return;
+
+      const { attachment } = renderDepth._formatDetail;
+
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, renderDepth._glTexture, 0);
+    } else if (this._antiAliasing <= 1) {
+      const { internalFormat, attachment } = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
+      const depthRenderBuffer = gl.createRenderbuffer();
+
+      gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
+      gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, this._width, this._height);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+
+  /**
+   * 绑定 MSAA FBO
+   */
+  private _bindMSAAFBO(
+    renderColor: Array<RenderColorTexture>,
+    renderDepth: RenderDepthTexture | RenderBufferDepthFormat
+  ): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const isWebGL2: boolean = this._rhi.isWebGL2;
     const MSAADepthRenderBuffer = gl.createRenderbuffer();
 
-    this._MSAAFrameBuffer = MSAAFrameBuffer;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
 
-    this._bind(false, true);
-
-    // prepare MRT+MSAA color RBO
-    for (let i = 0; i < this._colorTextures.length; i++) {
+    // prepare MRT+MSAA color RBOs
+    for (let i = 0; i < renderColor.length; i++) {
       const MSAAColorRenderBuffer = gl.createRenderbuffer();
-      const { internalFormat } = this._colorTextures[i]._formatDetail;
+      const attachmment = gl.COLOR_ATTACHMENT0 + i;
+      const { internalFormat } = renderColor[i]._formatDetail;
+
       gl.bindRenderbuffer(gl.RENDERBUFFER, MSAAColorRenderBuffer);
       gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.RENDERBUFFER, MSAAColorRenderBuffer);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachmment, gl.RENDERBUFFER, MSAAColorRenderBuffer);
     }
 
     // prepare MSAA depth RBO
+    let depthInternalFormat: GLint = null;
+    if (renderDepth instanceof RenderDepthTexture) {
+      depthInternalFormat = renderDepth._formatDetail.internalFormat;
+    } else {
+      depthInternalFormat = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2).internalFormat;
+    }
     gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);
-    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, depthFormat, this._width, this._height);
+    gl.renderbufferStorageMultisample(
+      gl.RENDERBUFFER,
+      this._antiAliasing,
+      depthInternalFormat,
+      this._width,
+      this._height
+    );
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, MSAADepthRenderBuffer);
 
-    this._unbind();
+    this._checkFrameBuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+
+  /** 检查 FBO  */
+  private _checkFrameBuffer(): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const isWebGL2: boolean = this._rhi.isWebGL2;
+    const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+
+    switch (e) {
+      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        Logger.error(
+          "The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete"
+        );
+        return;
+      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        Logger.error("There is no attachment");
+        return;
+      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+        Logger.error(" Height and width of the attachment are not the same.");
+        return;
+      case gl.FRAMEBUFFER_UNSUPPORTED:
+        Logger.error(
+          "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
+        );
+        return;
+    }
+
+    if (isWebGL2 && e === gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE) {
+      Logger.error(
+        "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
+      );
+    }
   }
 
   /** -------------------@deprecated------------------------ */
 
-  public width: number;
-  public height: number;
-  public clearColor: Array<number>;
+  public clearColor: Array<number> = [0, 0, 0, 0];
 
   public cubeTexture: TextureCubeMap;
   public texture: Texture2D;
@@ -425,13 +481,13 @@ export class RenderTarget extends AssetObject {
      * 宽度
      * @member {Number}
      */
-    this.width = config.width || 1024;
+    this._width = config.width || 1024;
 
     /**
      * 高度
      * @member {Number}
      */
-    this.height = config.height || 1024;
+    this._height = config.height || 1024;
 
     /**
      * 清空后的填充色

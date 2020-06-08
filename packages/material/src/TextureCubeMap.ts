@@ -5,6 +5,7 @@ import {
   TextureFilter,
   TextureWrapMode,
   GLCapabilityType,
+  AssetType,
   Logger
 } from "@alipay/o3-base";
 import { TextureConfig } from "./type";
@@ -43,6 +44,12 @@ export class TextureCubeMap extends Texture {
     }
 
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
+
+    if (!formatDetail) {
+      Logger.error(`很抱歉，引擎不支持此格式: ${format}`);
+      return;
+    }
+
     const glTexture = gl.createTexture();
 
     this._glTexture = glTexture;
@@ -139,7 +146,7 @@ export class TextureCubeMap extends Texture {
     y?: number
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
+    const { baseFormat, dataType } = this._formatDetail;
 
     this._bind();
     gl.texSubImage2D(

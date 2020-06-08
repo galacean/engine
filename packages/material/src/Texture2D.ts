@@ -1,5 +1,5 @@
 import { Texture } from "./Texture";
-import { TextureFormat, TextureFilter, TextureWrapMode, GLCapabilityType, Logger } from "@alipay/o3-base";
+import { TextureFormat, TextureFilter, TextureWrapMode, GLCapabilityType, AssetType, Logger } from "@alipay/o3-base";
 import { mat3 } from "@alipay/o3-math";
 import { Texture2DConfig, Rect } from "./type";
 
@@ -44,6 +44,12 @@ export class Texture2D extends Texture {
     }
 
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
+
+    if (!formatDetail) {
+      Logger.error(`很抱歉，引擎不支持此格式: ${format}`);
+      return;
+    }
+
     const glTexture = gl.createTexture();
 
     this._glTexture = glTexture;
@@ -120,7 +126,7 @@ export class Texture2D extends Texture {
     y?: number
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
+    const { baseFormat, dataType } = this._formatDetail;
 
     this._bind();
     gl.texSubImage2D(this._target, miplevel, x || 0, y || 0, baseFormat, dataType, imageSource);
@@ -218,6 +224,9 @@ export class Texture2D extends Texture {
    * 获取纹理 RTS 变换矩阵
    * */
   public get uvMatrix() {
+    if (this._glTexture) {
+      return this._uvMatrix;
+    }
     return mat3.fromUvTransform(
       this._uvMatrix,
       this.uOffset,
