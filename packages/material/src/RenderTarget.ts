@@ -11,7 +11,7 @@ import {
 import { AssetObject } from "@alipay/o3-core";
 import { Texture2D } from "./Texture2D";
 import { TextureCubeMap } from "./TextureCubeMap";
-import { RenderTargetConfig } from "./type";
+import { RenderTargetConfig, TextureFormatDetail } from "./type";
 import { Texture } from "./Texture";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
@@ -196,12 +196,12 @@ export class RenderTarget extends AssetObject {
     }
 
     // 绑定主 FBO
-    this._bindMainFBO(this._colorTextures, depth);
+    this._bindMainFBO(depth);
 
     // 绑定 MSAA FBO
     if (antiAliasing > 1) {
       this._MSAAFrameBuffer = gl.createFramebuffer();
-      this._bindMSAAFBO(this._colorTextures, depth);
+      this._bindMSAAFBO(depth);
     }
 
     //todo: delete
@@ -314,7 +314,7 @@ export class RenderTarget extends AssetObject {
     for (let textureIndex = 0; textureIndex < length; textureIndex++) {
       const drawBuffers = [];
 
-      for (var i = 0; i < length; i++) {
+      for (let i = 0; i < length; i++) {
         drawBuffers[i] = gl.NONE;
       }
 
@@ -333,10 +333,7 @@ export class RenderTarget extends AssetObject {
   /**
    * 绑定主 FBO
    */
-  private _bindMainFBO(
-    renderColor: Array<RenderColorTexture>,
-    renderDepth: RenderDepthTexture | RenderBufferDepthFormat
-  ): void {
+  private _bindMainFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
     const drawBuffers = [];
@@ -344,7 +341,7 @@ export class RenderTarget extends AssetObject {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
     /** color render buffer */
-    renderColor.forEach((colorTexture: RenderColorTexture, index: number) => {
+    this._colorTextures.forEach((colorTexture: RenderColorTexture, index: number) => {
       const attachment = gl.COLOR_ATTACHMENT0 + index;
 
       drawBuffers.push(attachment);
@@ -384,10 +381,7 @@ export class RenderTarget extends AssetObject {
   /**
    * 绑定 MSAA FBO
    */
-  private _bindMSAAFBO(
-    renderColor: Array<RenderColorTexture>,
-    renderDepth: RenderDepthTexture | RenderBufferDepthFormat
-  ): void {
+  private _bindMSAAFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
     const MSAADepthRenderBuffer = gl.createRenderbuffer();
@@ -397,10 +391,10 @@ export class RenderTarget extends AssetObject {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
 
     // prepare MRT+MSAA color RBOs
-    for (let i = 0; i < renderColor.length; i++) {
+    for (let i = 0; i < this._colorTextures.length; i++) {
       const MSAAColorRenderBuffer = gl.createRenderbuffer();
       const attachmment = gl.COLOR_ATTACHMENT0 + i;
-      const { internalFormat } = renderColor[i]._formatDetail;
+      const { internalFormat } = this._colorTextures[i]._formatDetail;
 
       this._MSAAColorRenderBuffers.push(MSAAColorRenderBuffer);
 
@@ -410,21 +404,18 @@ export class RenderTarget extends AssetObject {
     }
 
     // prepare MSAA depth RBO
-    let depthInternalFormat: GLint = null;
+    let depthFormatDetail: TextureFormatDetail = null;
     if (renderDepth instanceof RenderDepthTexture) {
-      depthInternalFormat = renderDepth._formatDetail.internalFormat;
+      depthFormatDetail = renderDepth._formatDetail;
     } else {
-      depthInternalFormat = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2).internalFormat;
+      depthFormatDetail = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
     }
+
+    const { internalFormat, attachment } = depthFormatDetail;
+
     gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);
-    gl.renderbufferStorageMultisample(
-      gl.RENDERBUFFER,
-      this._antiAliasing,
-      depthInternalFormat,
-      this._width,
-      this._height
-    );
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, MSAADepthRenderBuffer);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, MSAADepthRenderBuffer);
 
     this._checkFrameBuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
