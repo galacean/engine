@@ -46,6 +46,9 @@ export class RenderColorTexture extends Texture {
     // todo: delete super
     super("", null);
 
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
+    const isWebGL2: boolean = rhi.isWebGL2;
+
     if (
       format === RenderBufferColorFormat.R32G32B32A32 &&
       (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat))
@@ -64,13 +67,11 @@ export class RenderColorTexture extends Texture {
       Logger.error("立方体纹理的宽高必须一致");
       return;
     }
-    if (mipmap && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
-      Logger.warn("非二次幂纹理不支持开启 mipmap,已自动降级为非mipmap");
+    if (mipmap && !isWebGL2 && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
+      Logger.warn("WebGL1不支持非二次幂纹理开启 mipmap,已自动降级为非mipmap");
       mipmap = false;
     }
 
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
-    const isWebGL2: boolean = rhi.isWebGL2;
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
     const glTexture = gl.createTexture();
 
