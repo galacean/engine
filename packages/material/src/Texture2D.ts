@@ -58,6 +58,9 @@ export class Texture2D extends Texture {
     if (!this._formatDetail.isCompressed) {
       this._initMipmap();
     }
+
+    //todo: delete
+    this.type = AssetType.Scene;
   }
 
   /**

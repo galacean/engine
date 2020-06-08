@@ -209,6 +209,8 @@ export class RenderTarget extends AssetObject {
 
     /** MSAA */
     antiAliasing > 1 && this._initMSAA(depthFormat);
+    //todo: delete
+    this.type = AssetType.Scene;
   }
 
   /**

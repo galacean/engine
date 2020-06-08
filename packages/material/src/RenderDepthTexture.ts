@@ -104,5 +104,7 @@ export class RenderDepthTexture extends Texture {
   ): void {
     super._getPixelsBuffer(x, y, width, height, out, face);
     this._initMipmap();
+    //todo: delete
+    this.type = AssetType.Scene;
   }
 }

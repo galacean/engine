@@ -85,6 +85,8 @@ export class RenderColorTexture extends Texture {
     this._format = format;
 
     this._initMipmap();
+     //todo: delete
+    this.type = AssetType.Scene;
   }
 
   /**
