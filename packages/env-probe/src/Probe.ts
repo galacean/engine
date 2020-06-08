@@ -250,6 +250,12 @@ export abstract class Probe extends NodeAbility {
     super.destroy();
     // enable GC
     this.garbageCollection(true);
+
+    // todo:delete
+    if (this._isNew) {
+      this.renderTarget.destroy();
+      this.renderTargetSwap.destroy();
+    }
   }
 
   /**

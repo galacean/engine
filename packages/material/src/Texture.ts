@@ -443,6 +443,15 @@ export class Texture extends AssetObject {
     this._unbind();
   }
 
+  /** 销毁实例 */
+  public destroy() {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+
+    gl.deleteTexture(this._glTexture);
+
+    this._glTexture = null;
+  }
+
   /**
    * @internal
    */

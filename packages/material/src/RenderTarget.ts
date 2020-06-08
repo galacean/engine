@@ -57,10 +57,13 @@ export class RenderTarget extends AssetObject {
   private _rhi;
   private _width: number;
   private _height: number;
-  private _MSAAFrameBuffer: WebGLFramebuffer;
   private _antiAliasing: number;
   private _colorTextures: Array<RenderColorTexture> = [];
   private _depthTexture: RenderDepthTexture | null;
+  private _depthRenderBuffer: WebGLRenderbuffer | null;
+  private _MSAAFrameBuffer: WebGLFramebuffer | null;
+  private _MSAAColorRenderBuffers: Array<WebGLRenderbuffer> = [];
+  private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
   private _oriDrawBuffers: Array<GLenum>;
 
   /**
@@ -213,6 +216,36 @@ export class RenderTarget extends AssetObject {
     return this._colorTextures[index];
   }
 
+  /** 销毁实例 */
+  public destroy() {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+
+    gl.deleteFramebuffer(this._frameBuffer);
+    gl.deleteRenderbuffer(this._depthRenderBuffer);
+    gl.deleteFramebuffer(this._MSAAFrameBuffer);
+    gl.deleteRenderbuffer(this._MSAADepthRenderBuffer);
+
+    for (let i = 0; i < this._colorTextures.length; i++) {
+      this._colorTextures[i].destroy();
+    }
+
+    for (let i = 0; i < this._MSAAColorRenderBuffers.length; i++) {
+      gl.deleteRenderbuffer(this._MSAAColorRenderBuffers[i]);
+    }
+
+    if (this._depthTexture) {
+      this._depthTexture.destroy();
+    }
+
+    this._frameBuffer = null;
+    this._colorTextures = [];
+    this._depthTexture = null;
+    this._depthRenderBuffer = null;
+    this._MSAAFrameBuffer = null;
+    this._MSAAColorRenderBuffers = [];
+    this._MSAADepthRenderBuffer = null;
+  }
+
   /**
    * 激活 RenderTarget 对象
    * 如果开启 MSAA,则激活 MSAA FBO,后续进行 this._blitRenderTarget() 进行交换 FBO
@@ -337,6 +370,8 @@ export class RenderTarget extends AssetObject {
       const { internalFormat, attachment } = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
       const depthRenderBuffer = gl.createRenderbuffer();
 
+      this._depthRenderBuffer = depthRenderBuffer;
+
       gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
       gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, this._width, this._height);
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
@@ -357,6 +392,8 @@ export class RenderTarget extends AssetObject {
     const isWebGL2: boolean = this._rhi.isWebGL2;
     const MSAADepthRenderBuffer = gl.createRenderbuffer();
 
+    this._MSAADepthRenderBuffer = MSAADepthRenderBuffer;
+
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
 
     // prepare MRT+MSAA color RBOs
@@ -364,6 +401,8 @@ export class RenderTarget extends AssetObject {
       const MSAAColorRenderBuffer = gl.createRenderbuffer();
       const attachmment = gl.COLOR_ATTACHMENT0 + i;
       const { internalFormat } = renderColor[i]._formatDetail;
+
+      this._MSAAColorRenderBuffers.push(MSAAColorRenderBuffer);
 
       gl.bindRenderbuffer(gl.RENDERBUFFER, MSAAColorRenderBuffer);
       gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
