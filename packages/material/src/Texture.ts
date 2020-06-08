@@ -512,55 +512,37 @@ export class Texture extends AssetObject {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2 = this._rhi.isWebGL2;
     const isCube = this._isCube;
-    const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
+    let { internalFormat, baseFormat, dataType } = this._formatDetail;
 
     this._bind();
 
     if (isWebGL2) {
       gl.texStorage2D(this._target, this.mipmapCount, internalFormat, this._width, this._height);
     } else {
-      const maxWidthMip = this._getMaxMiplevel(this._width);
-      const maxHeightMip = this._getMaxMiplevel(this._height);
 
       if (!isCube) {
         for (let i = 0; i < this.mipmapCount; i++) {
-          const width = Math.pow(2, Math.max(maxWidthMip - i, 0));
-          const height = Math.pow(2, Math.max(maxHeightMip - i, 0));
+          const width = Math.max(1, this._width >> i);
+          const height = Math.max(1, this._height >> i);
 
-          if (isCompressed) {
-            gl.compressedTexImage2D(this._target, i, internalFormat, width, height, 0, null);
-          } else {
-            gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
-          }
+          gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
         }
       } else {
         for (let i = 0; i < this.mipmapCount; i++) {
-          const size = Math.pow(2, Math.max(maxWidthMip - i, 0));
+          const size = Math.max(1, this._width >> i);
 
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            if (isCompressed) {
-              gl.compressedTexImage2D(
-                gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
-                i,
-                internalFormat,
-                size,
-                size,
-                0,
-                null
-              );
-            } else {
-              gl.texImage2D(
-                gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
-                i,
-                internalFormat,
-                size,
-                size,
-                0,
-                baseFormat,
-                dataType,
-                null
-              );
-            }
+            gl.texImage2D(
+              gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
+              i,
+              internalFormat,
+              size,
+              size,
+              0,
+              baseFormat,
+              dataType,
+              null
+            );
           }
         }
       }

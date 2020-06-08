@@ -84,10 +84,7 @@ export class RenderColorTexture extends Texture {
     this._height = height;
     this._format = format;
 
-    // 预开辟 mipmap 显存
-    if (mipmap) {
-      this._initMipmap();
-    }
+    this._initMipmap();
   }
 
   /**

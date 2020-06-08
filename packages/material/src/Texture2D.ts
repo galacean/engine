@@ -55,8 +55,7 @@ export class Texture2D extends Texture {
     this._height = height;
     this._format = format;
 
-    // 预开辟 mipmap 显存
-    if (mipmap) {
+    if (!this._formatDetail.isCompressed) {
       this._initMipmap();
     }
   }

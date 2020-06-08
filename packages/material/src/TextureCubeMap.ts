@@ -54,8 +54,7 @@ export class TextureCubeMap extends Texture {
     this._height = size;
     this._format = format;
 
-    // 预开辟 mipmap 显存
-    if (mipmap) {
+    if (!this._formatDetail.isCompressed) {
       this._initMipmap();
     }
   }

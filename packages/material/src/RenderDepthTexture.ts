@@ -83,10 +83,6 @@ export class RenderDepthTexture extends Texture {
     this._height = height;
     this._format = format;
 
-    // 预开辟 mipmap 显存
-    if (mipmap) {
-      this._initMipmap();
-    }
   }
 
   /**
@@ -107,5 +103,6 @@ export class RenderDepthTexture extends Texture {
     face?: TextureCubeFace
   ): void {
     super._getPixelsBuffer(x, y, width, height, out, face);
+    this._initMipmap();
   }
 }
