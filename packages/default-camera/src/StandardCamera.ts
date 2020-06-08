@@ -54,14 +54,20 @@ export function turnAround(out, a) {
 }
 
 export class StandardCamera extends NodeAbility {
-  private _isOrthographic: boolean = false;
   /**
    * 设置优先级，数字越大渲染顺序越前
    * @todo scene._activeCameras
    */
   public priority: number = 0;
+  /**
+   * 渲染遮罩，位操作
+   * @todo 渲染管线实现
+   */
+  public cullingMask: number = 0;
+
+  private _isOrthographic: boolean = false;
   private _projectionMatrix: Matrix4 = mat4.create() as Matrix4;
-  private isProjectionDirty = false;
+  private _isProjectionDirty = false;
   private isProjectionMatrixSetting = false;
   private _viewMatrix: Matrix4 = mat4.create() as Matrix4;
   private _clearFlags: ClearFlags;
@@ -84,8 +90,13 @@ export class StandardCamera extends NodeAbility {
    * @deprecated
    * */
   private _rhi: GLRenderHardware;
-  private _aspectSetting: number = undefined;
+  private _customAspectRatio: number = undefined;
 
+  /**
+   * todo 注释
+   * @param node
+   * @param props
+   */
   constructor(node: Node, props: any) {
     super(node, props);
     const { SceneRenderer, canvas, attributes, clearParam, clearMode, near, far, fov } = props;
@@ -119,7 +130,7 @@ export class StandardCamera extends NodeAbility {
   /**
    * 视图矩阵
    */
-  public get viewMatrix(): ReadonlyArray<number> {
+  public get viewMatrix(): Readonly<Matrix4> {
     // todo 监听 node 的 transform 变换
     if (this.shouldViewMatrixUpdate) {
       const modelMatrix = this.node.getModelMatrix();
@@ -131,14 +142,7 @@ export class StandardCamera extends NodeAbility {
   }
 
   /**
-   * 视图矩阵逆矩阵
-   */
-  public get inverseViewMatrix(): Readonly<Matrix4> {
-    turnAround(this._inverseViewMatrix, this.node.getModelMatrix());
-    return this._inverseViewMatrix;
-  }
-
-  /**
+   * @todo 测试深度标准
    * 设置投影矩阵
    */
   public set projectionMatrix(p: Matrix4) {
@@ -152,17 +156,17 @@ export class StandardCamera extends NodeAbility {
    */
   public resetProjectionMatrix() {
     this.isProjectionMatrixSetting = false;
-    this.isProjectionDirty = true;
+    this._isProjectionDirty = true;
   }
 
   /**
    * 投影矩阵
    */
   public get projectionMatrix(): Matrix4 {
-    if (!this.isProjectionDirty || this.isProjectionMatrixSetting) {
+    if (!this._isProjectionDirty || this.isProjectionMatrixSetting) {
       return this._projectionMatrix;
     }
-    this.isProjectionDirty = false;
+    this._isProjectionDirty = false;
     this.shouldInvProjMatUpdate = true;
     const aspectRatio = this.aspectRatio;
     if (!this._isOrthographic) {
@@ -176,7 +180,7 @@ export class StandardCamera extends NodeAbility {
   }
 
   /**
-   * @deprecated
+   * @private
    * 投影矩阵逆矩阵
    */
   public get inverseProjectionMatrix(): Readonly<Matrix4> {
@@ -193,7 +197,7 @@ export class StandardCamera extends NodeAbility {
    */
   public set nearClipPlane(value: number) {
     this._nearClipPlane = value;
-    this.isProjectionDirty = true;
+    this._isProjectionDirty = true;
   }
 
   /**
@@ -215,7 +219,7 @@ export class StandardCamera extends NodeAbility {
    */
   public set farClipPlane(value: number) {
     this._farClipPlane = value;
-    this.isProjectionDirty = true;
+    this._isProjectionDirty = true;
   }
 
   /**
@@ -230,7 +234,7 @@ export class StandardCamera extends NodeAbility {
    */
   public set fieldOfView(value: number) {
     this._fieldOfView = value;
-    this.isProjectionDirty = true;
+    this._isProjectionDirty = true;
   }
 
   /**
@@ -245,7 +249,7 @@ export class StandardCamera extends NodeAbility {
    */
   public set orthographicSize(value: number) {
     this._orthographicSize = value;
-    this.isProjectionDirty = true;
+    this._isProjectionDirty = true;
   }
 
   /**
@@ -260,7 +264,7 @@ export class StandardCamera extends NodeAbility {
    */
   public set isOrthographic(value: boolean) {
     this._isOrthographic = value;
-    this.isProjectionDirty = true;
+    this._isProjectionDirty = true;
   }
 
   /**
@@ -289,6 +293,7 @@ export class StandardCamera extends NodeAbility {
     viewportNormalized[1] = v[1];
     viewportNormalized[2] = v[2];
     viewportNormalized[3] = v[3];
+    // todo rhi 修改
     if (this.renderHardware) {
       const canvas = this.renderHardware.canvas;
       const width = canvas.width;
@@ -299,7 +304,7 @@ export class StandardCamera extends NodeAbility {
       viewport[1] = height * v[1];
       viewport[2] = width * v[2];
       viewport[3] = height * v[3];
-      this.isProjectionDirty = true;
+      this._isProjectionDirty = true;
       // todo 底层每帧会调用
       // this.renderHardware.viewport(this._viewport[0], this._viewport[1], this._viewport[2], this._viewport[3]);
     }
@@ -308,37 +313,34 @@ export class StandardCamera extends NodeAbility {
   /**
    * 视口宽高比，默认通过 viewport 计算
    */
-  public get aspectRatio() {
-    return this._aspectSetting ?? this._viewport[2] / this._viewport[3];
+  public get aspectRatio(): number {
+    return this._customAspectRatio ?? this._viewport[2] / this._viewport[3];
   }
 
   /**
    * 手动设置视口宽高比，设置后则不通过 viewport 计算
    */
   public set aspectRatio(value: number) {
-    this._aspectSetting = value;
-    this.isProjectionDirty = true;
+    this._customAspectRatio = value;
+    this._isProjectionDirty = true;
   }
 
   /**
    * 重置手动设置的视口宽高比
    */
   public resetAspectRatio(): void {
-    this._aspectSetting = undefined;
-    this.isProjectionDirty = true;
+    this._customAspectRatio = undefined;
+    this._isProjectionDirty = true;
   }
 
   /**
-   * 获取清除背景颜色，当 clearFlags 为 SOLID_COLOR 时生效
+   * 清除背景颜色，当 clearFlags 为 SOLID_COLOR 时生效
    */
-  public get backgroundColor() {
+  public get backgroundColor(): Vector4 {
     return this._clearParam;
   }
 
-  /**
-   * 设置清除背景，当 clearFlags 为 SOLID_COLOR 时生效
-   */
-  public set backgroundColor(value) {
+  public set backgroundColor(value: Vector4) {
     this.setClearMode(this._clearMode, value);
   }
 
@@ -346,30 +348,33 @@ export class StandardCamera extends NodeAbility {
    * 清除天空，当 clearFlags 为 Sky 时生效
    * @todo 渲染管线修改
    */
-  public set clearSky(skyRenderer: Sky) {}
+  public get backgroundSky(): never {
+    throw new Error("接口未实现");
+  }
 
   /**
    * 是否开启HDR。
    * @todo 渲染管线修改
    */
-  public get enableHDR(): boolean {
-    return false;
+  public get enableHDR(): never {
+    throw new Error("接口未实现");
+  }
+
+  public set enableHDR(value: never) {
+    throw new Error("接口未实现");
   }
 
   /**
    * renderTarget 渲染对象，可以设多 ColorTexture
    * @todo 渲染管线修改
    */
-  public get renderTarget() {
-    return null;
+  public get renderTarget(): never {
+    throw new Error("接口未实现");
+    // return null;
   }
 
-  /**
-   * 裁剪遮罩，可以用来选择性地渲染场景
-   * @todo 渲染管线修改
-   */
-  public get cullingMask() {
-    return 0;
+  public set renderTarget(value: never) {
+    throw new Error("接口未实现");
   }
 
   /**
@@ -420,13 +425,9 @@ export class StandardCamera extends NodeAbility {
    * @param position
    */
   public screenToViewportPoint<T extends Vector2 | Vector3>(position: Vector3 | Vector2, out: T): T {
-    const nx = position[0];
-    const ny = position[1];
     const viewport = this.viewportNormalized;
-    const viewWidth = viewport[2];
-    const viewHeight = viewport[3];
-    out[0] = (nx - viewport[0]) / viewWidth;
-    out[1] = (ny - viewport[1]) / viewHeight;
+    out[0] = (position[0] - viewport[0]) / viewport[2];
+    out[1] = (position[1] - viewport[1]) / viewport[3];
     return out;
   }
 
@@ -444,7 +445,9 @@ export class StandardCamera extends NodeAbility {
    * @param position position[0] 是归一化的 viewport x，position[1] 是归一化的 viewport y
    */
   public viewportPointToRay(position: Vector2, ray: Ray): Ray {
+    // todo 使用 transform 的 worldPosition
     const modelMatrix = this.node.getModelMatrix();
+    // todo 使用近裁面的交点作为 origin
     const origin = vec3.set(ray.origin, modelMatrix[12], modelMatrix[13], modelMatrix[14]);
     const viewportPos = vec3.set(MathTemp.tempVec3, position[0], position[1], 0.5);
     const worldPoint = this.viewportToWorldPoint(viewportPos, MathTemp.tempVec3);
@@ -463,15 +466,17 @@ export class StandardCamera extends NodeAbility {
     const invProjMatrix = this.inverseProjectionMatrix;
     const invMatViewProj = mat4.mul(MathTemp.tempMat4, invViewMatrix, invProjMatrix);
 
-    // z 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
-    const z = position[2];
+    // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
+    const depth = position[2];
     // 变换到裁剪空间矩阵
-    const viewportLoc = vec4.set(MathTemp.tempVec4, position[0] * 2 - 1, 1 - position[1] * 2, z, 1);
+    const viewportLoc = vec4.set(MathTemp.tempVec4, position[0] * 2 - 1, 1 - position[1] * 2, depth, 1);
     // 计算逆矩阵结果
     const u = vec4.transformMat4(MathTemp.tempVec4, viewportLoc, invMatViewProj);
-    out[0] = u[0] / u[3];
-    out[1] = u[1] / u[3];
-    out[2] = u[2] / u[3];
+    const w = u[3];
+
+    out[0] = u[0] / w;
+    out[1] = u[1] / w;
+    out[2] = u[2] / w;
     return out;
   }
 
@@ -494,7 +499,7 @@ export class StandardCamera extends NodeAbility {
    * 渲染场景
    * @todo 渲染管线修改
    */
-  public render(): void {
+  public render(faceIndex?: number): void {
     this._sceneRenderer.render();
   }
 
@@ -518,6 +523,15 @@ export class StandardCamera extends NodeAbility {
    */
   public get sceneRenderer(): BasicSceneRenderer {
     return this._sceneRenderer;
+  }
+
+  /**
+   * @deprecated
+   * 视图矩阵逆矩阵
+   */
+  public get inverseViewMatrix(): Readonly<Matrix4> {
+    turnAround(this._inverseViewMatrix, this.node.getModelMatrix());
+    return this._inverseViewMatrix;
   }
 
   /**
