@@ -1,6 +1,14 @@
-import { AssetType } from "@alipay/o3-base";
+import { AssetType, RenderBufferDepthFormat } from "@alipay/o3-base";
 import { ACamera, Node, NodeAbility } from "@alipay/o3-core";
-import { Material, RenderTarget, Texture, Texture2D, TextureCubeMap } from "@alipay/o3-material";
+import {
+  Material,
+  RenderTarget,
+  Texture,
+  Texture2D,
+  TextureCubeMap,
+  RenderColorTexture,
+  RenderDepthTexture
+} from "@alipay/o3-material";
 import { BasicSceneRenderer, RenderPass } from "@alipay/o3-renderer-basic";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { ProbeConfig } from "./type";
@@ -30,6 +38,9 @@ export abstract class Probe extends NodeAbility {
   /** 裁剪面 */
   public clipPlanes: Vec4[];
 
+  /** 新版本 */
+  protected _isNew: boolean = false;
+
   public set camera(camera) {
     if (camera === this._camera) return;
     this._camera && this.sceneRenderer.removeRenderPass(this.renderPass);
@@ -44,22 +55,34 @@ export abstract class Probe extends NodeAbility {
   /**
    * 探针所得 2D 纹理
    * */
-  public get texture(): Texture2D {
-    return this.renderPass.renderTarget.texture;
+  public get texture(): Texture2D | RenderColorTexture {
+    //todo: delete
+    if (this._isNew) {
+      return this.renderPass.renderTarget?.getColorTexture();
+    }
+    return this.renderPass.renderTarget?.texture;
   }
 
   /**
    * 探针所得 深度 纹理
    * */
-  public get depthTexture(): Texture2D {
-    return this.renderPass.renderTarget.depthTexture;
+  public get depthTexture(): Texture2D | RenderDepthTexture {
+    //todo: delete
+    if (this._isNew) {
+      return this.renderPass.renderTarget?.depthTextureNew;
+    }
+    return this.renderPass.renderTarget?.depthTexture;
   }
 
   /**
    * 探针所得 立方体 纹理
    * */
-  public get cubeTexture(): TextureCubeMap {
-    return this.renderPass.renderTarget.cubeTexture;
+  public get cubeTexture(): TextureCubeMap | RenderColorTexture {
+    //todo: delete
+    if (this._isNew) {
+      return this.renderPass.renderTarget?.getColorTexture();
+    }
+    return this.renderPass.renderTarget?.cubeTexture;
   }
 
   protected get sceneRenderer(): BasicSceneRenderer {
@@ -103,9 +126,7 @@ export abstract class Probe extends NodeAbility {
     super(node, config);
     this.cacheId = cacheId++;
 
-    this.renderTarget = new RenderTarget("_renderTarget" + this.cacheId, config);
-    this.renderTargetSwap = new RenderTarget("_renderTarget_swap" + this.cacheId, config);
-    this.renderPass = new RenderPass("_renderPass" + this.cacheId, -10, this.renderTarget);
+    this.renderPass = new RenderPass("_renderPass" + this.cacheId, -10);
 
     /** 自定义渲染管道 */
     this.renderPass.renderOverride = true;
@@ -119,6 +140,36 @@ export abstract class Probe extends NodeAbility {
     this.renderAll = !!config.renderAll;
     this.renderList = config.renderList || [];
     this.clipPlanes = config.clipPlanes || [];
+
+    if (this.rhi) {
+      //todo: delete
+      this._isNew = true;
+      const width = config.width || 1024;
+      const height = config.height || 1024;
+      const samples = config.samples || 1;
+
+      this.renderTarget = new (RenderTarget as any)(
+        this.rhi,
+        width,
+        height,
+        new RenderColorTexture(this.rhi, width, height, undefined, false, this.isCube),
+        RenderBufferDepthFormat.Depth,
+        samples
+      );
+      this.renderTargetSwap = new (RenderTarget as any)(
+        this.rhi,
+        width,
+        height,
+        new RenderColorTexture(this.rhi, width, height, undefined, false, this.isCube),
+        RenderBufferDepthFormat.Depth,
+        samples
+      );
+    } else {
+      this.renderTarget = new RenderTarget("_renderTarget" + this.cacheId, config);
+      this.renderTargetSwap = new RenderTarget("_renderTarget_swap" + this.cacheId, config);
+    }
+
+    this.renderPass.renderTarget = this.renderTarget;
 
     /**
      * 继续 RTT
@@ -154,7 +205,6 @@ export abstract class Probe extends NodeAbility {
 
   protected postRender() {
     this.scene.clipPlanes = this.oriClipPlane;
-
     // 交换 FBO
     // prevent issue: Feedback Loops Between Textures and the Framebuffer.
     if (this.renderPass.enabled) {
@@ -177,8 +227,12 @@ export abstract class Probe extends NodeAbility {
 
   /** 切换 GC */
   garbageCollection(enable: boolean) {
+    //todo: delete
+    if (this._isNew) return;
+
     const assetType = enable ? AssetType.Cache : AssetType.Scene;
     this.renderTarget.type = this.renderTargetSwap.type = assetType;
+
     if (this.isCube) {
       this.renderTarget.cubeTexture.type = this.renderTargetSwap.cubeTexture.type = assetType;
     } else {
@@ -207,5 +261,5 @@ export abstract class Probe extends NodeAbility {
    *   skybox.specularMap = cubeTexture;
    * }
    * */
-  public onTextureChange(texture: Texture, depthTexture?: Texture2D) {}
+  public onTextureChange(texture: Texture | RenderColorTexture, depthTexture?: Texture2D | RenderDepthTexture) {}
 }
