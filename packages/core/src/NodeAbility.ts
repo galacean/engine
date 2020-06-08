@@ -68,14 +68,18 @@ export class NodeAbility extends EventDispatcher {
     }
     this._enabled = val;
     //TODO 把事件拆出来
-    if (val && this._started) {
-      this._ownerNode.activeInHierarchy && this._onEnable();
+    if (val) {
+      if (this._started) {
+        this._ownerNode.activeInHierarchy && this._onEnable();
+      }
     } else {
       this._ownerNode.activeInHierarchy && this._onDisable();
     }
     // @deprecated
-    if (val && this._started) {
-      this.trigger(new Event("enabled", this));
+    if (val) {
+      if (this._started) {
+        this.trigger(new Event("enabled", this));
+      }
     } else {
       this.trigger(new Event("disabled", this));
     }
@@ -91,7 +95,8 @@ export class NodeAbility extends EventDispatcher {
   public _props: object;
   public _ownerNode: Node;
   public _renderable: boolean;
-  protected _started: boolean = false;
+  public _started: boolean = false;
+  public _destroied: boolean = false;
   private _enabled: boolean = true;
   private _pendingDestroy: boolean;
   private _renderPriority: number;
@@ -127,9 +132,15 @@ export class NodeAbility extends EventDispatcher {
     if (this._ownerNode.activeInHierarchy) {
       this._enabled && this._onDisable();
     }
-    this._ownerNode.activeInHierarchy && this._onDestroy();
-    this.trigger(new Event("disabled", this));
-    this.trigger(new Event("destroy", this));
+    if (this._ownerNode.activeInHierarchy && !this._destroied) {
+      this._destroied = true;
+      this._onDestroy();
+      /**
+       * @deprecated
+       */
+      this.trigger(new Event("disabled", this));
+      this.trigger(new Event("destroy", this));
+    }
   }
 
   //--------------------------------------------TobeConfirmed--------------------------------------------------

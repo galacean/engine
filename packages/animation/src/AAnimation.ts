@@ -75,9 +75,44 @@ export class AAnimation extends NodeAbility {
     this._animSet = {}; // name : AnimationClip
     this._animLayers = [new AnimationLayer()];
     this._timeScale = 1.0;
+    this.scene._componentsManager.addComponent("onUpdate", this);
   }
 
   /**
+   * 动画更新计算
+   * @param {number} deltaTime
+   * @private
+   */
+  public onUpdate(deltaTime: number) {
+    super.update(deltaTime);
+    if (!this.isPlaying()) {
+      return;
+    }
+
+    deltaTime = deltaTime * this._timeScale;
+
+    // update state
+    for (let i = this._animLayers.length - 1; i >= 0; i--) {
+      const animLayer = this._animLayers[i];
+      animLayer.updateState(deltaTime);
+    }
+
+    // update value
+    this._updateValues();
+
+    // trigger events and destroy no use layer
+    for (let i = this._animLayers.length - 1; i >= 0; i--) {
+      const animLayer = this._animLayers[i];
+      animLayer.triggerEvents();
+      if (!animLayer.isPlaying && (animLayer.isFading || animLayer.isMixLayer)) {
+        this._animLayers.splice(i, 1);
+        this._removeRefMixLayers(animLayer);
+      }
+    }
+  }
+
+  /**
+   * @deprecated
    * 动画更新计算
    * @param {number} deltaTime
    * @private
@@ -413,5 +448,10 @@ export class AAnimation extends NodeAbility {
     // 其他情况，是暂时处理不了的
     Logger.error("Can not get channel value!");
     return false;
+  }
+
+  public _onDestroy() {
+    // this._des
+    this.scene._componentsManager.removeComponent("onUpdate", this);
   }
 }

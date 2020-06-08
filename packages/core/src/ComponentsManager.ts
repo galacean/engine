@@ -1,4 +1,4 @@
-import { NodeAbility } from "./NodeAbility";
+import { NodeAbility as Component } from "./NodeAbility";
 import { Script } from "./Script";
 
 /**
@@ -10,6 +10,26 @@ export class ComponentsManager {
   private _onLateUpdateScripts: Array<Script> = [];
   private _onPreRenderScripts: Array<Script> = [];
   private _onPostRenderScripts: Array<Script> = [];
+  // 其他组件
+  private _onUpdateComponents: Array<Component> = [];
+
+  addComponent(funcName: string, component: Component): void {
+    if (funcName === "onUpdate") {
+      this._onUpdateComponents.push(component);
+    }
+  }
+
+  removeComponent(funcName: string, component: Component): void {
+    let components = [];
+    if (funcName === "onUpdate") {
+      components = this._onUpdateComponents;
+    }
+    const index = components.indexOf(component);
+    if (index < 0) {
+      return;
+    }
+    components.splice(index, 1);
+  }
 
   addScript(funcName: string, script: Script): void {
     switch (funcName) {
@@ -65,6 +85,16 @@ export class ComponentsManager {
             script.onUpdate.apply(script, args);
           }
         }
+        length = this._onUpdateComponents.length;
+        for (let i = length - 1; i >= 0; --i) {
+          const component = this._onUpdateComponents[i];
+          if (component._ownerNode.activeInHierarchy && component.enabled) {
+            if (!component._started) {
+              component.onStart.apply(component, args);
+            }
+            component.onUpdate.apply(component, args);
+          }
+        }
         break;
       case "onLateUpdate":
         length = this._onLateUpdateScripts.length;
@@ -94,5 +124,55 @@ export class ComponentsManager {
         }
         break;
     }
+  }
+  _clearScripts() {
+    let length = this._onUpdateScripts.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const script = this._onUpdateScripts[i];
+      if (!script._destroied) {
+        script._onDestroy();
+      }
+    }
+    this._onUpdateScripts = [];
+    length = this._onLateUpdateScripts.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const script = this._onLateUpdateScripts[i];
+      if (!script._destroied) {
+        script._onDestroy();
+      }
+    }
+    this._onLateUpdateScripts = [];
+    length = this._onPreRenderScripts.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const script = this._onPreRenderScripts[i];
+      if (!script._destroied) {
+        script._onDestroy();
+      }
+    }
+    this._onPreRenderScripts = [];
+    length = this._onPostRenderScripts.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const script = this._onPostRenderScripts[i];
+      if (!script._destroied) {
+        script._onDestroy();
+      }
+    }
+    this._onPostRenderScripts = [];
+  }
+
+  _clearComponents() {
+    let length = this._onUpdateComponents.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const component = this._onUpdateComponents[i];
+      if (!component._destroied) {
+        component._onDestroy();
+      }
+    }
+    this._onUpdateComponents = [];
+  }
+
+  clear() {
+    this._clearScripts();
+    this._clearComponents();
   }
 }
