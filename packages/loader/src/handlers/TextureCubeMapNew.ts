@@ -53,14 +53,13 @@ export class TextureCubeMapNewHandler {
   open(resource: Resource, rhi) {
     const { data } = resource;
     const { width, height } = data[0][0];
-    const mipmap = data.length > 1;
 
     if (width !== height) {
       Logger.error("立方体纹理宽高必须相等");
       return;
     }
 
-    const tex = new (TextureCubeMap as any)(rhi, width, undefined, mipmap);
+    const tex = new TextureCubeMap(rhi, width);
 
     if (!tex._glTexture) return;
 
@@ -68,6 +67,10 @@ export class TextureCubeMapNewHandler {
       for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
         tex.setImageSource(TextureCubeFace.PositiveX + faceIndex, data[miplevel][faceIndex], false, false, miplevel);
       }
+    }
+
+    if (data.length === 1) {
+      tex.generateMipmaps();
     }
 
     tex.type = resource.assetType;

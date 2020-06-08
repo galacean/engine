@@ -22,10 +22,10 @@ function log(msg) {
   console.log(`%c ${msg}`, "color:orange");
 }
 
-const DEBUG_scene = false;
-const DEBUG_envLight = false;
+const DEBUG_scene = true;
+const DEBUG_envLight = true;
 const DEBUG_material = true;
-const DEBUG_WEBGL2 = true;
+const DEBUG_WEBGL2 = false;
 const DEBUG_texturePixelFetch = true;
 const DEBUG_cubeTexturePixelFetch = true;
 const DEBUG_compressedTexture = true;
@@ -115,7 +115,7 @@ resourceLoader.batchLoad(cubeTextureRes, (err, reses) => {
       log("debug cube set/get pixel");
       const buffer = new Uint8Array(100 * 4);
       cubeTextures[name].setPixelBuffer(TextureCubeFace.PositiveY, new Uint8Array([1, 2, 3, 4]), 0, 0, 0, 1, 1);
-      cubeTextures[name].getPixelsBuffer(0, 0, 10, 10, buffer, TextureCubeFace.PositiveY);
+      cubeTextures[name].getPixelsBuffer(TextureCubeFace.PositiveY, 0, 0, 10, 10, buffer);
       console.log(buffer);
     }
   });
