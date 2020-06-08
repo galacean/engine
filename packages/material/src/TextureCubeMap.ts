@@ -81,31 +81,23 @@ export class TextureCubeMap extends Texture {
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
-
-    const maxWidthMip = this._getMaxMiplevel(this._width);
-    const maxHeightMip = this._getMaxMiplevel(this._height);
-    const trueWidth = Math.pow(2, Math.max(maxWidthMip - miplevel, 0));
-    const trueHeight = Math.pow(2, Math.max(maxHeightMip - miplevel, 0));
-
-    if ((width && width !== trueWidth) || (height && height !== trueHeight)) {
-      Logger.warn(`当前miplevel:${miplevel},width应为:${trueWidth},height应为:${trueHeight}`);
-      return;
-    }
+    const mipSize = Math.max(1, this._width >> miplevel);
 
     x = x || 0;
     y = y || 0;
+    width = width || mipSize - x;
+    height = height || mipSize - y;
 
     this._bind();
 
     if (isCompressed) {
-      gl.compressedTexSubImage2D(
+      gl.compressedTexImage2D(
         gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
         miplevel,
-        x,
-        y,
-        trueWidth,
-        trueHeight,
         internalFormat,
+        width,
+        height,
+        0,
         colorBuffer
       );
     } else {
@@ -114,8 +106,8 @@ export class TextureCubeMap extends Texture {
         miplevel,
         x,
         y,
-        trueWidth,
-        trueHeight,
+        width,
+        height,
         baseFormat,
         dataType,
         colorBuffer

@@ -434,6 +434,8 @@ export class Texture extends AssetObject {
    * 根据第0级数据生成多级纹理。
    */
   public generateMipmaps(): void {
+    if (!this._mipmap) return;
+
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     this._bind();
@@ -569,10 +571,11 @@ export class Texture extends AssetObject {
 
   /**
    * @internal
-   * 获取相应size的最大mip级别
+   * 获取相应size的最大mip级别,rounding down
+   * http://download.nvidia.com/developer/Papers/2005/NP2_Mipmapping/NP2_Mipmap_Creation.pdf
    */
   protected _getMaxMiplevel(size: number) {
-    return Math.round(Math.log(size) * Math.LOG2E);
+    return Math.floor(Math.log2(size));
   }
 
   /** -------------------@deprecated------------------------ */

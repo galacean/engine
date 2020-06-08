@@ -80,24 +80,20 @@ export class Texture2D extends Texture {
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
-    const maxWidthMip = this._getMaxMiplevel(this._width);
-    const maxHeightMip = this._getMaxMiplevel(this._height);
-    const trueWidth = Math.pow(2, Math.max(maxWidthMip - miplevel, 0));
-    const trueHeight = Math.pow(2, Math.max(maxHeightMip - miplevel, 0));
-
-    if ((width && width !== trueWidth) || (height && height !== trueHeight)) {
-      Logger.warn(`当前miplevel:${miplevel},width应为:${trueWidth},height应为:${trueHeight}`);
-    }
+    const mipWidth = Math.max(1, this._width >> miplevel);
+    const mipHeight = Math.max(1, this._height >> miplevel);
 
     x = x || 0;
     y = y || 0;
+    width = width || mipWidth - x;
+    height = height || mipHeight - y;
 
     this._bind();
 
     if (isCompressed) {
-      gl.compressedTexSubImage2D(this._target, miplevel, x, y, trueWidth, trueHeight, internalFormat, colorBuffer);
+      gl.compressedTexImage2D(this._target, miplevel, internalFormat, width, height, 0, colorBuffer);
     } else {
-      gl.texSubImage2D(this._target, miplevel, x, y, trueWidth, trueHeight, baseFormat, dataType, colorBuffer);
+      gl.texSubImage2D(this._target, miplevel, x, y, width, height, baseFormat, dataType, colorBuffer);
     }
 
     this._unbind();
