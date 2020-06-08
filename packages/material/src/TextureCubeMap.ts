@@ -165,26 +165,26 @@ export class TextureCubeMap extends Texture {
 
   /**
    * 根据指定区域获得像素颜色缓冲
+   * @param face - 可以选择读取第几个面
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    * @param width - 区域宽
    * @param height - 区域高
    * @param out - 颜色数据缓冲
-   * @param face - 可以选择读取第几个面
    */
   public getPixelsBuffer(
+    face: TextureCubeFace = TextureCubeFace.PositiveX,
     x: number,
     y: number,
     width: number,
     height: number,
-    out: ArrayBufferView,
-    face: TextureCubeFace = TextureCubeFace.PositiveX
+    out: ArrayBufferView
   ): void {
     if (this._formatDetail.isCompressed) {
       Logger.error("无法读取压缩纹理");
       return;
     }
-    super._getPixelsBuffer(x, y, width, height, out, face);
+    super._getPixelsBuffer(face, x, y, width, height, out);
   }
 
   /** ----------------- @deprecated----------------- */

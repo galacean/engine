@@ -464,20 +464,20 @@ export class Texture extends AssetObject {
   /**
    * @internal
    * 根据指定区域获得像素颜色缓冲
+   * @param face - 如果是立方体纹理，可以选择读取第几个面
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    * @param width - 区域宽
    * @param height - 区域高
    * @param out - 颜色数据缓冲
-   * @param face - 如果是立方体纹理，可以选择读取第几个面
    */
   protected _getPixelsBuffer(
+    face: TextureCubeFace | null,
     x: number,
     y: number,
     width: number,
     height: number,
-    out: ArrayBufferView,
-    face: TextureCubeFace = -1
+    out: ArrayBufferView
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const { baseFormat, dataType } = this._formatDetail;
@@ -488,7 +488,7 @@ export class Texture extends AssetObject {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, Texture._readFrameBuffer);
 
-    if (face > -1) {
+    if (face > -1 && face != null) {
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,

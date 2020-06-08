@@ -148,7 +148,7 @@ export class Texture2D extends Texture {
       Logger.error("无法读取压缩纹理");
       return;
     }
-    super._getPixelsBuffer(x, y, width, height, out);
+    super._getPixelsBuffer(null, x, y, width, height, out);
   }
 
   /** ----------------- @deprecated----------------- */
