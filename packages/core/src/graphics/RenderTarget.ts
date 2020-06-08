@@ -47,7 +47,7 @@ export class RenderTarget {
     width: number,
     height: number,
     colorTexture: RenderColorTexture,
-    depthFormat: RenderBufferDepthFormat,
+    depthFormat?: RenderBufferDepthFormat,
     isCube?: boolean
   );
 
@@ -79,7 +79,7 @@ export class RenderTarget {
     width: number,
     height: number,
     colorTextures: Array<RenderColorTexture>,
-    depthFormat: RenderBufferDepthFormat,
+    depthFormat?: RenderBufferDepthFormat,
     isCube?: boolean
   );
 
@@ -106,7 +106,7 @@ export class RenderTarget {
     width: number,
     height: number,
     renderTexture: RenderColorTexture | Array<RenderColorTexture> | null,
-    depth: RenderDepthTexture | RenderBufferDepthFormat,
+    depth: RenderDepthTexture | RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
     isCube: boolean = false
   ) {}
 

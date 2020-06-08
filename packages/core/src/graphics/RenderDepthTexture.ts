@@ -42,14 +42,4 @@ export class RenderDepthTexture extends Texture {
   // getPixels(x: number, y: number, width: number, height: number, out: Color[]): void {
 
   // }
-
-  /**
-   * 根据指定区域获得像素颜色缓冲。
-   * @param x - 区域起始X坐标
-   * @param y - 区域起始Y坐标
-   * @param width - 区域宽
-   * @param height - 区域高
-   * @param out - 颜色数据缓冲
-   */
-  getPixelsBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {}
 }
