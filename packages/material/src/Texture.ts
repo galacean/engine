@@ -549,6 +549,9 @@ export class Texture extends AssetObject {
     }
 
     this._unbind();
+
+    this.filterMode = TextureFilterMode.Point;
+    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
   }
 
   /**
