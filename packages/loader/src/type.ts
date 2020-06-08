@@ -12,6 +12,7 @@ export type ResType =
   | "ktx"
   | "textureNew"
   | "cubemapNew"
+  | "ktxNew";
 export type HandlerType = "image" | "video";
 export type Prop = { [key: string]: any };
 export type Engine = any;
