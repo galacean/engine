@@ -123,6 +123,7 @@ export class StandardCamera extends NodeAbility {
     // todo 监听 node 的 transform 变换
     if (this.shouldViewMatrixUpdate) {
       const modelMatrix = this.node.getModelMatrix();
+      // todo 删除  turnAround
       turnAround(MathTemp.tempMat4, modelMatrix);
       mat4.invert(this._viewMatrix, MathTemp.tempMat4);
     }
@@ -175,6 +176,7 @@ export class StandardCamera extends NodeAbility {
   }
 
   /**
+   * @deprecated
    * 投影矩阵逆矩阵
    */
   public get inverseProjectionMatrix(): Readonly<Matrix4> {
