@@ -111,17 +111,17 @@ export class Texture2D extends Texture {
   /**
    * 通过图源、指定区域和纹理层级设置像素。
    * @param imageSource - 纹理源
+   * @param miplevel - 多级纹理层级
    * @param flipY - 是否翻转Y轴
    * @param premultiplyAlpha - 是否预乘透明通道
-   * @param miplevel - 多级纹理层级
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    */
   public setImageSource(
     imageSource: TexImageSource,
+    miplevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
-    miplevel: number = 0,
     x?: number,
     y?: number
   ): void {

@@ -65,7 +65,7 @@ export class TextureCubeMapNewHandler {
 
     for (let miplevel = 0; miplevel < data.length; miplevel++) {
       for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-        tex.setImageSource(TextureCubeFace.PositiveX + faceIndex, data[miplevel][faceIndex], false, false, miplevel);
+        tex.setImageSource(TextureCubeFace.PositiveX + faceIndex, data[miplevel][faceIndex], miplevel);
       }
     }
 
