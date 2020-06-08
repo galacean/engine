@@ -77,7 +77,7 @@ export class RenderTarget extends AssetObject {
     width: number,
     height: number,
     colorTexture: RenderColorTexture,
-    depthFormat: RenderBufferDepthFormat,
+    depthFormat?: RenderBufferDepthFormat,
     antiAliasing?: number
   );
 
@@ -105,7 +105,7 @@ export class RenderTarget extends AssetObject {
    * @param width - 宽
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
-   * @param depthFormat - 深度格式
+   * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
    * @param antiAliasing - 抗锯齿级别
    */
   constructorNew(
@@ -113,7 +113,7 @@ export class RenderTarget extends AssetObject {
     width: number,
     height: number,
     colorTextures: Array<RenderColorTexture>,
-    depthFormat: RenderBufferDepthFormat,
+    depthFormat?: RenderBufferDepthFormat,
     antiAliasing?: number
   );
 
@@ -143,7 +143,7 @@ export class RenderTarget extends AssetObject {
     width: number,
     height: number,
     renderTexture: RenderColorTexture | Array<RenderColorTexture> | null,
-    depth: RenderDepthTexture | RenderBufferDepthFormat,
+    depth: RenderDepthTexture | RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
     antiAliasing: number = 1
   ) {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
