@@ -13,6 +13,7 @@ const handlers: { [key: string]: Handler } = {};
 export class ResourceLoader extends EventDispatcher {
   public handlers: { [key: string]: Handler };
   public engine: Engine;
+  public rhi;
   public request: Request;
   private _urls: Prop;
   private _names: Prop;
@@ -23,7 +24,7 @@ export class ResourceLoader extends EventDispatcher {
    * @param {Engine} engine 引擎实例
    * @param request 自定义请求库 默认使用 o3-request
    */
-  constructor(engine: Engine, request: Request) {
+  constructor(engine: Engine, request: Request, rhi?) {
     super();
 
     this.handlers = handlers;
@@ -35,6 +36,8 @@ export class ResourceLoader extends EventDispatcher {
     this._resources = {};
 
     this.engine = engine;
+
+    this.rhi = rhi;
     // attach default handlers
 
     this.request = request || defaultRequest;
@@ -141,7 +144,7 @@ export class ResourceLoader extends EventDispatcher {
     resource.loading = true;
 
     const handler = this.handlers[resource.type];
-    if (resource.type === "texture") {
+    if (resource.type === "texture" || resource.type === "textureNew") {
       resource.config.handlerType = resource.handlerType || "image";
     }
 
@@ -187,7 +190,7 @@ export class ResourceLoader extends EventDispatcher {
       handler.patch(resource, this._resources);
     }
 
-    const result = Promise.resolve(handler.open(resource));
+    const result = Promise.resolve(handler.open(resource, this.rhi));
 
     result
       .then(() => {

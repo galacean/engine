@@ -9,14 +9,15 @@ export type ResType =
   | "canvastexture"
   | "gltf"
   | "glb"
-  | "ktx";
+  | "ktx"
+  | "textureNew"
 export type HandlerType = "image" | "video";
 export type Prop = { [key: string]: any };
 export type Engine = any;
 export type Handler = {
   [key: string]: any;
   load: (request: Request, props: Prop, callback: HandlerCb) => void;
-  open: (resource: Resource) => void | Promise<any>;
+  open: (resource: Resource, rhi?) => void | Promise<any>;
   patch?: (resource: Resource, resources: { [key: string]: Array<Resource> }) => void;
 };
 export type Request = {

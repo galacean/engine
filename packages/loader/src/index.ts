@@ -8,6 +8,7 @@ import { ImageHandler } from "./handlers/Image";
 import { VideoHandler } from "./handlers/video";
 import { TextureCubeMapHandler } from "./handlers/TextureCubeMap";
 import { CanvasTextureHandler } from "./handlers/CanvasTexture";
+import { TextureNewHandler } from "./handlers/TextureNew";
 
 // register default handlers
 ResourceLoader.registerHandler("texture", new TextureHandler());
@@ -17,6 +18,7 @@ ResourceLoader.registerHandler("video", new VideoHandler());
 ResourceLoader.registerHandler("cubemap", new TextureCubeMapHandler());
 ResourceLoader.registerHandler("canvastexture", new CanvasTextureHandler());
 
+ResourceLoader.registerHandler("textureNew", new TextureNewHandler());
 export { ResourceLoader, Resource, path };
 
 export { openTechnique } from "./handlers/Technique";
