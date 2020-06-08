@@ -609,17 +609,17 @@ export enum TextureFormat {
  */
 export enum TextureCubeFace {
   /** X轴正方向。 */
-  PositiveX,
+  PositiveX = 0,
   /** X轴负方向。 */
-  NegativeX,
+  NegativeX = 1,
   /** Y轴正方向。 */
-  PositiveY,
+  PositiveY = 2,
   /** Y轴负方向。 */
-  NegativeY,
+  NegativeY = 3,
   /** Z轴正方向。 */
-  PositiveZ,
+  PositiveZ = 4,
   /** Z轴负方向。 */
-  NegativeZ
+  NegativeZ = 5
 }
 
 /**
