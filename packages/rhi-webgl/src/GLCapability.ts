@@ -208,7 +208,6 @@ export class GLCapability {
       textureFilterAnisotropic,
       textureHalfFloat,
       colorBufferHalfFloat,
-      colorBufferFloat,
       WEBGL_colorBufferFloat
     } = GLCapabilityType;
 

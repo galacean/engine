@@ -29,6 +29,9 @@ export class GLTexture2D extends GLTexture {
    * @private
    */
   updateTexture() {
+    // todo: delete
+    if (this._isNew) return;
+
     const gl = this._gl;
     const { isWebGL2 } = this.rhi;
     const config = this._config as Texture2D;
@@ -117,6 +120,9 @@ export class GLTexture2D extends GLTexture {
    * @private
    */
   updateSubTexture(gl, texture, texSubRect, texSubImageData) {
+    // todo: delete
+    if (this._isNew) return;
+
     const imageData =
       texSubImageData || texture.getImageData(texSubRect.x, texSubRect.y, texSubRect.width, texSubRect.height);
     if (imageData) {
