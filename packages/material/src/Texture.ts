@@ -28,13 +28,12 @@ export class Texture extends AssetObject {
    * @return {TextureFormatDetail}
    */
   static _getFormatDetail(
-    format: TextureFormat | RenderBufferColorFormat | RenderBufferDepthFormat,
+    format: TextureFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     isWebGL2: boolean
   ): TextureFormatDetail {
     switch (format) {
       case TextureFormat.R8G8B8:
-      case RenderBufferColorFormat.R8G8B8:
         return {
           internalFormat: isWebGL2 ? gl.RGB8 : gl.RGB,
           baseFormat: gl.RGB,
@@ -42,7 +41,6 @@ export class Texture extends AssetObject {
           isCompressed: false
         };
       case TextureFormat.R8G8B8A8:
-      case RenderBufferColorFormat.R8G8B8A8:
         return {
           internalFormat: isWebGL2 ? gl.RGBA8 : gl.RGBA,
           baseFormat: gl.RGBA,
@@ -57,92 +55,18 @@ export class Texture extends AssetObject {
           isCompressed: false
         };
       case TextureFormat.Alpha8:
-      case RenderBufferColorFormat.Alpha8:
         return {
           internalFormat: gl.ALPHA,
           baseFormat: gl.ALPHA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
-      case RenderBufferColorFormat.R16G16B16A16:
-        return {
-          internalFormat: gl.RGBA16F,
-          baseFormat: gl.RGBA,
-          dataType: gl.HALF_FLOAT,
-          isCompressed: false
-        };
       case TextureFormat.R32G32B32A32:
-      case RenderBufferColorFormat.R32G32B32A32:
         return {
           internalFormat: gl.RGBA32F,
           baseFormat: gl.RGBA,
           dataType: gl.FLOAT,
           isCompressed: false
-        };
-      /** Depth */
-      case RenderBufferDepthFormat.Depth:
-        return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
-      case RenderBufferDepthFormat.DepthStencil:
-        return {
-          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
-          baseFormat: gl.DEPTH_STENCIL,
-          dataType: gl.UNSIGNED_INT_24_8,
-          isCompressed: false,
-          attachment: gl.DEPTH_STENCIL_ATTACHMENT
-        };
-      case RenderBufferDepthFormat.Stencil:
-        return {
-          internalFormat: gl.STENCIL_INDEX8,
-          baseFormat: gl.STENCIL_ATTACHMENT,
-          dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false,
-          attachment: gl.STENCIL_ATTACHMENT
-        };
-      case RenderBufferDepthFormat.Depth16:
-        return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.UNSIGNED_SHORT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
-      case RenderBufferDepthFormat.Depth24:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT24,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.UNSIGNED_SHORT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
-      case RenderBufferDepthFormat.Depth32:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT32F,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.UNSIGNED_SHORT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
-      case RenderBufferDepthFormat.Depth24Stencil8:
-        return {
-          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
-          baseFormat: gl.DEPTH_STENCIL,
-          dataType: gl.UNSIGNED_INT_24_8,
-          isCompressed: false,
-          attachment: gl.DEPTH_STENCIL_ATTACHMENT
-        };
-      case RenderBufferDepthFormat.Depth32Stencil8:
-        return {
-          internalFormat: gl.DEPTH32F_STENCIL8,
-          baseFormat: gl.DEPTH_STENCIL,
-          dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
-          isCompressed: false,
-          attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       case TextureFormat.DXT1:
         return {
@@ -223,6 +147,123 @@ export class Texture extends AssetObject {
         return {
           internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR,
           isCompressed: true
+        };
+    }
+  }
+
+  static _getRenderBufferColorFormatDetail(
+    format: RenderBufferColorFormat,
+    gl: WebGLRenderingContext & WebGL2RenderingContext,
+    isWebGL2: boolean
+  ): TextureFormatDetail {
+    switch (format) {
+      case RenderBufferColorFormat.R8G8B8:
+        return {
+          internalFormat: isWebGL2 ? gl.RGB8 : gl.RGB,
+          baseFormat: gl.RGB,
+          dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false
+        };
+      case RenderBufferColorFormat.R8G8B8A8:
+        return {
+          internalFormat: isWebGL2 ? gl.RGBA8 : gl.RGBA,
+          baseFormat: gl.RGBA,
+          dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false
+        };
+      case RenderBufferColorFormat.Alpha8:
+        return {
+          internalFormat: gl.ALPHA,
+          baseFormat: gl.ALPHA,
+          dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false
+        };
+      case RenderBufferColorFormat.R16G16B16A16:
+        return {
+          internalFormat: gl.RGBA16F,
+          baseFormat: gl.RGBA,
+          dataType: gl.HALF_FLOAT,
+          isCompressed: false
+        };
+      case RenderBufferColorFormat.R32G32B32A32:
+        return {
+          internalFormat: gl.RGBA32F,
+          baseFormat: gl.RGBA,
+          dataType: gl.FLOAT,
+          isCompressed: false
+        };
+    }
+  }
+
+  static _getRenderBufferDepthFormatDetail(
+    format: RenderBufferDepthFormat,
+    gl: WebGLRenderingContext & WebGL2RenderingContext,
+    isWebGL2: boolean
+  ): TextureFormatDetail {
+    switch (format) {
+      case RenderBufferDepthFormat.Depth:
+        return {
+          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_INT,
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
+        };
+      case RenderBufferDepthFormat.DepthStencil:
+        return {
+          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
+          baseFormat: gl.DEPTH_STENCIL,
+          dataType: gl.UNSIGNED_INT_24_8,
+          isCompressed: false,
+          attachment: gl.DEPTH_STENCIL_ATTACHMENT
+        };
+      case RenderBufferDepthFormat.Stencil:
+        return {
+          internalFormat: gl.STENCIL_INDEX8,
+          baseFormat: gl.STENCIL_ATTACHMENT,
+          dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false,
+          attachment: gl.STENCIL_ATTACHMENT
+        };
+      case RenderBufferDepthFormat.Depth16:
+        return {
+          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT16,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.UNSIGNED_INT,
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
+        };
+      case RenderBufferDepthFormat.Depth24:
+        return {
+          internalFormat: gl.DEPTH_COMPONENT24,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.UNSIGNED_INT,
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
+        };
+      case RenderBufferDepthFormat.Depth32:
+        return {
+          internalFormat: gl.DEPTH_COMPONENT32F,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.FLOAT,
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
+        };
+      case RenderBufferDepthFormat.Depth24Stencil8:
+        return {
+          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
+          baseFormat: gl.DEPTH_STENCIL,
+          dataType: gl.UNSIGNED_INT_24_8,
+          isCompressed: false,
+          attachment: gl.DEPTH_STENCIL_ATTACHMENT
+        };
+      case RenderBufferDepthFormat.Depth32Stencil8:
+        return {
+          internalFormat: gl.DEPTH32F_STENCIL8,
+          baseFormat: gl.DEPTH_STENCIL,
+          dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
+          isCompressed: false,
+          attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
     }
   }
