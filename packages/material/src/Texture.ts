@@ -519,6 +519,10 @@ export class Texture extends AssetObject {
     if (isWebGL2) {
       gl.texStorage2D(this._target, this.mipmapCount, internalFormat, this._width, this._height);
     } else {
+      // In WebGL 1, internalformat must be the same as baseFormat
+      if (baseFormat !== internalFormat) {
+        internalFormat = baseFormat;
+      }
 
       if (!isCube) {
         for (let i = 0; i < this.mipmapCount; i++) {
