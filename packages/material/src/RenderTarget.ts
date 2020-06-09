@@ -393,15 +393,17 @@ export class RenderTarget extends AssetObject {
     // prepare MRT+MSAA color RBOs
     for (let i = 0; i < this._colorTextures.length; i++) {
       const MSAAColorRenderBuffer = gl.createRenderbuffer();
-      const attachmment = gl.COLOR_ATTACHMENT0 + i;
+      const attachment = gl.COLOR_ATTACHMENT0 + i;
       const { internalFormat } = this._colorTextures[i]._formatDetail;
 
       this._MSAAColorRenderBuffers.push(MSAAColorRenderBuffer);
 
       gl.bindRenderbuffer(gl.RENDERBUFFER, MSAAColorRenderBuffer);
       gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachmment, gl.RENDERBUFFER, MSAAColorRenderBuffer);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, MSAAColorRenderBuffer);
     }
+
+    gl.drawBuffers(this._oriDrawBuffers);
 
     // prepare MSAA depth RBO
     let depthFormatDetail: TextureFormatDetail = null;

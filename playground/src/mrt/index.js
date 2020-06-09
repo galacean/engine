@@ -47,7 +47,7 @@ light.createAbility(APointLight, {
 });
 // root.scene.features.shift();
 // root.scene.features.pop();
-console.log(root.scene.constructor === Scene);
+// console.log(root.scene.constructor === Scene);
 
 const geometry1 = new PlaneGeometry(2.0, 2.0);
 const planeNode = root.createChild("plane");
