@@ -45,7 +45,7 @@ export class Node extends EventDispatcher {
     let node: Node = rootNode;
     for (const split of splits) {
       if (split) {
-        node = node.findByName(split); //TODO:待确认
+        node = node.findByName(split); //CM:该方法会查找多层，仍需优化
         if (node === null) {
           return null;
         }
@@ -83,7 +83,7 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _setActiveInHierarchy(): void {
-    this._activeInHierarchy = this.parent._activeInHierarchy && this._active; //TODO:结构稍微不合理，应该直接是true
+    this._activeInHierarchy = this.parent._activeInHierarchy && this._active; //CM:结构稍微不合理，应该直接是true
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child: Node = children[i];
@@ -106,6 +106,7 @@ export class Node extends EventDispatcher {
   }
 
   set parent(node: Node) {
+    //CM:activeInHierachy没处理
     if (node === this._parent) {
       return;
     }
@@ -141,7 +142,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * 子变换数量。
+   * 子节点数量。
    */
   get childCount(): number {
     return this._children.length;
@@ -254,6 +255,7 @@ export class Node extends EventDispatcher {
    * @returns 节点
    */
   findByName(name: string): Node {
+    //CM:应该封装内部方法，和静态方法公用
     // -- find in this
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -281,10 +283,8 @@ export class Node extends EventDispatcher {
    * @returns 节点
    */
   findByPath(path: string): Node {
+    //CM:应该封装内部方法，和静态方法公用
     const splits = path.split("/");
-    if (splits.length === 0) {
-      return null;
-    }
     let obj: Node = this;
     for (const split of splits) {
       if (split) {
