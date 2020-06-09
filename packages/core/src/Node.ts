@@ -24,7 +24,8 @@ export class Node extends EventDispatcher {
     const { _nodes } = Node;
     for (let i = _nodes.length - 1; i >= 0; i--) {
       const node = _nodes[i];
-      if (node._name && node._name === name) {
+      const nodeName = node._name;
+      if (nodeName && nodeName === name) {
         return node;
       }
     }
@@ -38,16 +39,14 @@ export class Node extends EventDispatcher {
    */
   static findByPath(path: string, scene: Scene /*@deprecated*/): Node {
     const splits = path.split("/");
-    if (splits.length === 0) {
-      return null;
-    }
+    //在哪return？
     const rootNode = scene.root;
     if (!rootNode) return null;
-    let obj: Node = rootNode;
+    let node: Node = rootNode;
     for (const split of splits) {
       if (split) {
-        obj = obj.findByName(split);
-        if (obj === null) {
+        node = node.findByName(split); //TODO:待确认
+        if (node === null) {
           return null;
         }
       }
@@ -68,7 +67,7 @@ export class Node extends EventDispatcher {
     if (value === this._active) return;
     this._active = value;
     this._setActiveInHierarchy();
-    if (this.activeInHierarchy) {
+    if (this._activeInHierarchy) {
       //TODO  待优化 延时处理
       const components = Object.assign({}, this._components);
       for (let index in components) {
@@ -83,15 +82,15 @@ export class Node extends EventDispatcher {
   /**
    * @internal
    */
-
   _setActiveInHierarchy(): void {
-    this._activeInHierarchy = this.parent._activeInHierarchy && this._active;
+    this._activeInHierarchy = this.parent._activeInHierarchy && this._active; //TODO:结构稍微不合理，应该直接是true
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-      if (!children[i].active) return;
-      children[i]._setActiveInHierarchy();
+      const child: Node = children[i];
+      child.active && child._setActiveInHierarchy();
     }
   }
+
   /**
    * 在层级中是否处于激活状态。
    */
@@ -111,28 +110,28 @@ export class Node extends EventDispatcher {
       return;
     }
     if (this._parent != null) {
-      const index = this._parent._children.indexOf(this);
+      const children = this._parent._children;
+      const index = children.indexOf(this);
       if (index > -1) {
-        this._parent._children.splice(index, 1);
+        children.splice(index, 1);
         // @deprecated
         this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-      } else {
-        Logger.debug("can not find this object in _parent._children");
       }
     }
     this._parent = node;
     if (this._ownerScene.root === this) {
       return;
     }
-    if (this._parent) {
-      this._parent._children.push(this);
+    if (node) {
+      node._children.push(this);
       if (this._ownerScene !== node._ownerScene) {
         // fixme: remove below code after gltf loader can set the right ownerScene
         this._ownerScene = node._ownerScene;
+        //@deprecated
         Node.traverseSetOwnerScene(this);
       }
       // @deprecated
-      this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
+      node.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
     } else {
       // @deprecated event
       this.traverseAbilitiesTriggerEnabled(false);
