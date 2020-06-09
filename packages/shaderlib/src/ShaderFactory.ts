@@ -96,6 +96,8 @@ class ShaderFactory {
     // 如果本来就是新版本着色器，则无需转换。
     if (isGLSL300) return shader;
 
+    if(RTCIceGatherer.)
+
     /** 替换版本 */
     shader = shader.replace(/#version 100/, "#version 300 es");
     /** 修饰符替换 */
