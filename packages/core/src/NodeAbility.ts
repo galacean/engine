@@ -10,6 +10,10 @@ import { mat4Type } from "./type";
  */
 export class NodeAbility extends EventDispatcher {
   /**
+   * @internal
+   */
+  private _inComponentsManager: boolean;
+  /**
    * 被激活后调用，可根据需要重写此方法
    * @internal
    */
@@ -40,6 +44,25 @@ export class NodeAbility extends EventDispatcher {
     //override it.
   }
 
+  _onActive(): void {
+    /**
+     * @deprecated 兼容
+     */
+    if (this.onUpdate !== NodeAbility.prototype.onUpdate || this.update !== NodeAbility.prototype.update) {
+      if (this.update !== NodeAbility.prototype.update) {
+        this.onUpdate = this.update;
+      }
+      this.scene && this.scene._componentsManager.addComponent("onUpdate", this);
+      this._inComponentsManager = true;
+    }
+  }
+
+  _onInActive(): void {
+    if (this._inComponentsManager) {
+      this.scene._componentsManager.removeComponent("onUpdate", this);
+    }
+  }
+
   /**
    * @internal
    */
@@ -49,9 +72,11 @@ export class NodeAbility extends EventDispatcher {
         this._awaked = true;
         this._onAwake();
       }
+      this._onActive();
       this._enabled && this._onEnable();
     } else {
       this._enabled && this._onDisable();
+      this._onInActive();
     }
   }
 
@@ -122,6 +147,11 @@ export class NodeAbility extends EventDispatcher {
     this._renderPassFlag = MaskList.EVERYTHING;
     this._passMasks = [MaskList.EVERYTHING];
     this._cullDistanceSq = 0; // 等于0，代表不进行 distance cull
+    console.log(this, node);
+    // if (this.constructor.name === "AAnimation") debugger;
+    if (node._activeInHierarchy) {
+      this._onActive();
+    }
   }
 
   /**
@@ -140,6 +170,9 @@ export class NodeAbility extends EventDispatcher {
        */
       this.trigger(new Event("disabled", this));
       this.trigger(new Event("destroy", this));
+    }
+    if (this._inComponentsManager) {
+      this.scene._componentsManager.removeComponent("onUpdate", this);
     }
   }
 
@@ -298,19 +331,7 @@ export class NodeAbility extends EventDispatcher {
   //  * @deprecated
   //  * 每帧调用，第一次调用会回调this.onStart()方法
   //  */
-  public update(deltaTime: number): void {
-    // if (!this._started) {
-    //   this._started = true;
-    //   if (this.onStart) {
-    //     this.onStart.call(this);
-    //   }
-    //   this.trigger(new Event("start", this));
-    //   if (this._enabled) {
-    //     this.trigger(new Event("enabled", this));
-    //   }
-    // }
-    // this.onUpdate(deltaTime);
-  }
+  public update(deltaTime: number): void {}
 
   /**
    * @deprecated

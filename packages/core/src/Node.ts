@@ -12,6 +12,7 @@ import { vec3Type } from "./type";
 export class Node extends EventDispatcher {
   private _components: NodeAbility[];
   private _parent: Node;
+  private _isRoot: boolean;
   private static _nodes = Array<Node>();
   public _activeInHierarchy: boolean;
 
@@ -66,16 +67,17 @@ export class Node extends EventDispatcher {
   set active(value: boolean) {
     if (value === this._active) return;
     this._active = value;
-    this._setActiveInHierarchy();
-    if (this._activeInHierarchy) {
-      //TODO  待优化 延时处理
-      const components = Object.assign({}, this._components);
-      for (let index in components) {
-        const component = components[index];
-        if (component) {
-          component._setActive(value);
+    if (value) {
+      const parent = this._parent;
+      if (this._isRoot) {
+        this._setActiveInHierarchy();
+      } else {
+        if (parent && parent._activeInHierarchy) {
+          this._setActiveInHierarchy();
         }
       }
+    } else {
+      this._setInActiveInHierarchy();
     }
   }
 
@@ -83,15 +85,38 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _setActiveInHierarchy(): void {
-    if (!this._parent) {
-      this._activeInHierarchy = this._active;
-    } else {
-      this._activeInHierarchy = this._parent._activeInHierarchy && this._active; //TODO:结构稍微不合理，应该直接是true
+    this._activeInHierarchy = true;
+    //TODO  待优化 延时处理
+    const components = Object.assign({}, this._components);
+    for (let index in components) {
+      const component = components[index];
+      if (component) {
+        component._setActive(true);
+      }
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child: Node = children[i];
       child.active && child._setActiveInHierarchy();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _setInActiveInHierarchy(): void {
+    this._activeInHierarchy = false;
+    const components = Object.assign({}, this._components);
+    for (let index in components) {
+      const component = components[index];
+      if (component) {
+        component._setActive(false);
+      }
+    }
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child: Node = children[i];
+      child.active && child._setInActiveInHierarchy();
     }
   }
 
@@ -127,10 +152,9 @@ export class Node extends EventDispatcher {
     const newParent = (this._parent = node);
     if (newParent) {
       newParent._children.push(this);
-      if (this._ownerScene !== newParent._ownerScene) {
+      if (this._scene !== newParent._scene) {
         // fixme: remove below code after gltf loader can set the right ownerScene
-        this._ownerScene = newParent._ownerScene;
-        //@deprecated
+        this._changeScene(newParent._scene);
         Node.traverseSetOwnerScene(this);
       }
       // @deprecated
@@ -139,7 +163,7 @@ export class Node extends EventDispatcher {
       if (oldParent) {
         // @deprecated event
         this.traverseAbilitiesTriggerEnabled(false);
-        this._ownerScene = null;
+        this._changeScene(null);
         Node.traverseSetOwnerScene(this);
       }
     }
@@ -161,18 +185,19 @@ export class Node extends EventDispatcher {
   constructor(scene?: Scene, parent?: Node, name?: string) {
     super();
     // -- 核心数据
-    this._ownerScene = scene;
+    this._isRoot = parent === null && name === "root";
+    this._scene = scene;
     this.name = name;
     console.log("name", name);
     this._children = [];
-    this._abilityArray = [];
+    this._components = [];
     this._components = [];
     this.parent = parent;
     // -- 状态变量
     this._pendingDestroy = false;
     this.active = true; // local active state of this Node
 
-    this._isActiveInInHierarchy = true;
+    // this._isActiveInInHierarchy = true;
     this._activeChangeFun = activeChange(this);
 
     // -- Transform
@@ -308,7 +333,7 @@ export class Node extends EventDispatcher {
       const child = children[i];
       child._parent = null;
       child.traverseAbilitiesTriggerEnabled(false);
-      child._ownerScene = null;
+      child._changeScene(null);
       Node.traverseSetOwnerScene(child);
       // @deprecated
       this.removeEventListener("isActiveInHierarchyChange", child._activeChangeFun);
@@ -319,11 +344,11 @@ export class Node extends EventDispatcher {
    * 克隆。
    */
   public clone(): Node {
-    const newNode = new Node(this._ownerScene, null, this.name);
+    const newNode = new Node(this._scene, null, this.name);
 
     newNode._pendingDestroy = this._pendingDestroy;
     newNode._active = this._active;
-    newNode._isActiveInInHierarchy = this._isActiveInInHierarchy;
+    newNode._activeInHierarchy = this._activeInHierarchy;
 
     // -- Transform
     newNode._position = vec3.clone(this._position);
@@ -338,7 +363,7 @@ export class Node extends EventDispatcher {
       newNode.addChild(childNode.clone());
     }
 
-    const abilityArray = this._abilityArray || [];
+    const abilityArray = this._components || [];
     const len = abilityArray.length;
     for (let i = 0; i < len; i++) {
       const ability = abilityArray[i];
@@ -355,11 +380,11 @@ export class Node extends EventDispatcher {
     this._pendingDestroy = true;
 
     // -- clear ability array
-    const abilityArray = this._abilityArray;
+    const abilityArray = this._components;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
       abilityArray[i].destroy();
     }
-    this._abilityArray = [];
+    this._components = [];
 
     // -- clear children
     const children = this._children;
@@ -382,25 +407,41 @@ export class Node extends EventDispatcher {
   }
 
   //--------------------------------------------TobeConfirmed--------------------------------------------------
-
   /**
    * 所属的场景对象。
    */
   get scene(): Scene {
-    return this._ownerScene;
+    return this._scene;
   }
 
-  private _ownerScene: Scene;
+  /**
+   * @internal
+   */
+  private _changeScene(val: Scene) {
+    const oldScene = this._scene;
+    const newScene = val;
+    if (oldScene === newScene) return;
+    this._scene = newScene;
+    if (oldScene) {
+      const currentScene = oldScene.engine.currentScene;
+      if (oldScene === currentScene) {
+        this._active && this._setInActiveInHierarchy();
+      }
+    }
+    if (newScene === newScene.engine.currentScene) {
+      this._active && this._setActiveInHierarchy();
+    }
+  }
+
+  private _scene: Scene;
 
   private _children: Node[];
 
-  private _abilityArray: NodeAbility[];
+  private _components: NodeAbility[];
 
   private _pendingDestroy: boolean;
 
   private _active: boolean;
-
-  private _isActiveInInHierarchy: boolean;
 
   private propertyChangeEvnet = new Event("propertyChange");
 
@@ -424,44 +465,9 @@ export class Node extends EventDispatcher {
    * @return {Node} 新创建的子节点对象
    */
   public createChild(name: string): Node {
-    const child = new Node(this._ownerScene, this, name);
+    const child = new Node(this._scene, this, name);
     return child;
   }
-
-  /**
-   * 添加子节点对象
-   * @param {Node} child
-   */
-  // public addChild(child: Node): void {
-  //   if (child._ownerScene !== this._ownerScene) {
-  //     // fixme: remove below code after gltf loader can set the right ownerScene
-  //     child._ownerScene = this._ownerScene;
-
-  //     Node.traverseSetOwnerScene(child);
-  //     // throw new Error( 'Node should NOT shared between scenes.' );
-  //   }
-  //   child.parent = this;
-  // }
-
-  // /**
-  //  * 删除子节点
-  //  * @param child
-  //  */
-  // public removeChild(child: Node) {
-  //   const index = this._children.indexOf(child);
-  //   if (index < 0) {
-  //     Logger.warn(`child's parent is not this node!`);
-  //     return;
-  //   }
-  //   this._children.splice(index, 1);
-  //   child._parent = null;
-
-  //   if (this._ownerScene) {
-  //     child.traverseAbilitiesTriggerEnabled(false);
-  //     child._ownerScene = null;
-  //     Node.traverseSetOwnerScene(child);
-  //   }
-  // }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
 
@@ -527,13 +533,12 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get isActiveInHierarchy(): boolean {
-    return this._isActiveInInHierarchy;
+    return this._activeInHierarchy;
   }
 
   set isActiveInHierarchy(isActiveInHierarchy: boolean) {
-    this._isActiveInInHierarchy = isActiveInHierarchy;
-    this.trigger(new Event("isActiveInHierarchyChange"));
-    this.traverseAbilitiesTriggerEnabled(isActiveInHierarchy);
+    this._activeInHierarchy = isActiveInHierarchy;
+    console.error("deprecated");
   }
 
   /**
@@ -563,7 +568,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-    return this._ownerScene.engine;
+    return this._scene.engine;
   }
 
   /**
@@ -573,7 +578,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get abilityCount(): number {
-    return this._abilityArray.length;
+    return this._components.length;
   }
 
   /**
@@ -591,7 +596,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get abilityArray(): NodeAbility[] {
-    return this._abilityArray;
+    return this._components;
   }
 
   /**
@@ -779,9 +784,8 @@ export class Node extends EventDispatcher {
     abilityType: new (node: Node, props?: object) => T,
     props: object = {}
   ): T {
-    const newAbility = new abilityType(this, props);
-    this._abilityArray.push(newAbility);
-    return newAbility;
+    const component = this.addComponent(abilityType, props);
+    return component;
   }
 
   /**
@@ -791,7 +795,7 @@ export class Node extends EventDispatcher {
    * @return {NodeAbility}
    */
   public findAbilityByType<T extends NodeAbility>(abilityType: new (node: Node, props?: object) => T): T {
-    const abilityArray = this._abilityArray;
+    const abilityArray = this._components;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
       const ability = abilityArray[i];
       if (ability instanceof abilityType) {
@@ -811,7 +815,7 @@ export class Node extends EventDispatcher {
       return;
     }
 
-    const abilityArray = this._abilityArray;
+    const abilityArray = this._components;
     if (abilityArray) {
       for (let i = abilityArray.length - 1; i >= 0; i--) {
         visitor.acceptAbility(abilityArray[i]);
@@ -828,60 +832,13 @@ export class Node extends EventDispatcher {
 
   /**
    * @deprecated
-   * 每帧状态更新，在Engine.tick()中被调用
-   * @param {number} deltaTime
-   * @private
-   */
-  public update(deltaTime: number): void {
-    if (!this._active) {
-      return;
-    }
-
-    // -- 检查并执行onUpdate函数
-    if (this.onUpdate) {
-      this.onUpdate(deltaTime);
-    }
-
-    // -- 更新所有 Ability
-    const abilityArray = this._abilityArray;
-    if (abilityArray) {
-      for (let i = abilityArray.length - 1; i >= 0; i--) {
-        const ability = abilityArray[i];
-
-        if (ability.isPendingDestroy) {
-          abilityArray.splice(i, 1);
-          continue;
-        }
-
-        if (ability.enabled) {
-          ability.update(deltaTime);
-        }
-      } // end of for
-    }
-
-    // -- 更新所有子节点
-    const children = this._children;
-    if (children) {
-      for (let i = children.length - 1; i >= 0; i--) {
-        const child = children[i];
-        if (child._pendingDestroy) {
-          children.splice(i, 1);
-          continue;
-        }
-        child.update(deltaTime);
-      } // end of for
-    } // end of if
-  }
-
-  /**
-   * @deprecated
    * 向节点添加一个已有的功能组件对象
    * @param {NodeAbility} abilityObject 功能组件对象
    */
   public attachAbility(abilityObject: NodeAbility): void {
-    const index = this._abilityArray.indexOf(abilityObject);
+    const index = this._components.indexOf(abilityObject);
     if (index !== -1) {
-      this._abilityArray.push(abilityObject);
+      this._components.push(abilityObject);
     }
   }
 
@@ -891,9 +848,9 @@ export class Node extends EventDispatcher {
    * @param {NodeAbility} abilityObject 功能组件对象
    */
   public detachAbility(abilityObject: NodeAbility): void {
-    const index = this._abilityArray.indexOf(abilityObject);
+    const index = this._components.indexOf(abilityObject);
     if (index !== -1) {
-      this._abilityArray.splice(index, 1);
+      this._components.splice(index, 1);
     }
   }
 
@@ -912,8 +869,8 @@ export class Node extends EventDispatcher {
    */
   private traverseAbilitiesTriggerEnabled(enabled: boolean) {
     const eventName = enabled ? "enabled" : "disabled";
-    for (let i = 0; i < this._abilityArray.length; i++) {
-      const abiltiy = this._abilityArray[i];
+    for (let i = 0; i < this._components.length; i++) {
+      const abiltiy = this._components[i];
       if (abiltiy && abiltiy.started && abiltiy.enabled) {
         abiltiy.trigger(new Event(eventName, this));
       }
@@ -926,10 +883,10 @@ export class Node extends EventDispatcher {
   private static traverseSetOwnerScene(node: Node) {
     for (let i = node.children.length - 1; i >= 0; i--) {
       const child = node.children[i];
-      const enabled = node._ownerScene ? false : true;
-      node.traverseAbilitiesTriggerEnabled(enabled);
-
-      child._ownerScene = node._ownerScene;
+      // const enabled = node._scene ? false : true;
+      // node.traverseAbilitiesTriggerEnabled(enabled);
+      child._changeScene(node._scene);
+      // child.
       this.traverseSetOwnerScene(node.children[i]);
     }
   }

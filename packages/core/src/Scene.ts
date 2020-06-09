@@ -98,7 +98,6 @@ export class Scene extends EventDispatcher {
     //TODO:@ 陆庄 update
     this._componentsManager.callComponentMethod("onUpdate", deltaTime);
     sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //TODO:移除
-    this._root.update(deltaTime); //TODO:移除
     sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //TODO:移除
     //TODO:@ 陆庄 inner logic
     //TODO:@ 陆庄 lateUpdate
