@@ -10,6 +10,7 @@ import { vec3Type } from "./type";
  * 节点类,可作为组件的容器。
  */
 export class Node extends EventDispatcher {
+  /* 名字 */
   name: string;
   /* @internal */
   _activeInHierarchy: boolean;
