@@ -30,7 +30,7 @@ export class GLCapability {
   get maxAntiAliasing(): number {
     if (!this._maxAntiAliasing) {
       const gl = this._rhi.gl;
-      const canMSAA = this._rhi.canIUse(GLCapabilityType.multipleSample);
+      const canMSAA = this.canIUse(GLCapabilityType.multipleSample);
 
       this._maxAntiAliasing = canMSAA ? gl.getParameter(gl.MAX_SAMPLES) : 1;
     }
