@@ -790,6 +790,9 @@ export class Node extends EventDispatcher {
     props: object = {}
   ): T {
     const component = this.addComponent(abilityType, props);
+    if (this._activeInHierarchy) {
+      component._setActive(true);
+    }
     return component;
   }
 

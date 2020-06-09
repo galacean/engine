@@ -67,7 +67,6 @@ export class AHUDWidget extends NodeAbility {
 
     this._canvasDirty = true;
     this._valid = false; // sprite 分配失败等情况下，可能为false，则控件无法绘制出来
-
     this._hudFeature = this.scene.findFeature(HUDFeature);
 
     /**
@@ -75,22 +74,19 @@ export class AHUDWidget extends NodeAbility {
      * @member {boolean}
      */
     this.separateDraw = false;
-
-    this.addEventListener("enabled", this.onEnable);
-    this.addEventListener("disabled", this.onDisable);
   }
 
   /** 在对象Enable的时候，挂载到当前的Scene
    * @private
    */
-  onEnable() {
+  _onEnable() {
     this._hudFeature.attachWidget(this);
   }
 
   /** 在对象Disable的时候，从当前的Scene移除
    * @private
    */
-  onDisable() {
+  _onDisable() {
     this._hudFeature.detachWidget(this);
   }
 

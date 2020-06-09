@@ -19,22 +19,19 @@ export class ACollider extends NodeAbility {
     super(node, props);
 
     this.tag = props.tag || MaskList.EVERYTHING;
-
-    this.addEventListener("enabled", this.onEnable);
-    this.addEventListener("disabled", this.onDisable);
   }
 
   /** 事件回调：在对象Enable的时候，挂载到当前的Scene
    * @private
    */
-  onEnable(): void {
+  _onEnable(): void {
     this.scene.findFeature(ColliderFeature).attachCollider(this);
   }
 
   /** 事件回调：在对象Disable的时候，从当前的Scene移除
    * @private
    */
-  onDisable(): void {
+  _onDisable(): void {
     this.scene.findFeature(ColliderFeature).detachCollider(this);
   }
 }
