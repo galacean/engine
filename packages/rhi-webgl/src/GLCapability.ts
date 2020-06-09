@@ -13,7 +13,7 @@ export class GLCapability {
 
   get maxDrawBuffers() {
     if (!this._maxDrawBuffers) {
-      if (this._rhi.canIUse(GLCapabilityType.drawBuffers)) {
+      if (this.canIUse(GLCapabilityType.drawBuffers)) {
         this._maxDrawBuffers = this._rhi.gl.getParameter(this._rhi.gl.MAX_DRAW_BUFFERS);
       } else {
         this._maxDrawBuffers = 1;
