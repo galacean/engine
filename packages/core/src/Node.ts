@@ -10,15 +10,7 @@ import { vec3Type } from "./type";
  * 节点类,可作为组件的容器。
  */
 export class Node extends EventDispatcher {
-  /* 名字 */
-  name: string;
-  /* @internal */
-  _activeInHierarchy: boolean;
-  private _components: NodeAbility[];
-  private _parent: Node;
-  private _isRoot: boolean;
   private static _nodes = Array<Node>();
-
   /**
    * 根据名字查找节点。
    * @param name - 名字
@@ -67,6 +59,15 @@ export class Node extends EventDispatcher {
       }
     }
   }
+
+  /* 名字 */
+  name: string;
+  /* @internal */
+  _activeInHierarchy: boolean;
+  private _components: NodeAbility[];
+  private _parent: Node;
+  private _isRoot: boolean;
+
   /**
    * 是否局部激活。
    */
