@@ -12,7 +12,7 @@ import { vec3Type } from "./type";
 export class Node extends EventDispatcher {
   private _components: NodeAbility[];
   private _parent: Node;
-  static _nodes = [];
+  private static _nodes = Array<Node>();
   public _activeInHierarchy: boolean;
 
   /**
