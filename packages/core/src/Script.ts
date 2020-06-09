@@ -7,6 +7,7 @@ import { NodeAbility } from "./NodeAbility";
 export class Script extends NodeAbility {
   /* @internal */
   _started: boolean = false;
+
   constructor(node: Node, props: object = {}) {
     super(node, props);
     if (this.onUpdate !== Script.prototype.onUpdate) {
