@@ -6,7 +6,6 @@ import { ACamera } from "./ACamera";
 import { SceneFeature } from "./SceneFeature";
 import { SceneVisitor } from "./SceneVisitor";
 import { Vec4 } from "@alipay/o3-math/types/type";
-import { NodeAbility as Component } from "./NodeAbility";
 import { ComponentsManager } from "./ComponentsManager";
 
 /*

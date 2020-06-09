@@ -22,51 +22,6 @@ export class Script extends NodeAbility {
       this.scene._componentsManager.addScript("onPostRender", this);
     }
   }
-  /**
-   * @internal
-   * @inheritDoc
-   * @override
-   */
-  _onAwake(): void {
-    this.onAwake();
-  }
-  /**
-   * @internal
-   * @inheritDoc
-   * @override
-   */
-  _onEnable(): void {
-    this.onEnable();
-  }
-  /**
-   * @internal
-   * @inheritDoc
-   * @override
-   */
-  _onStart(): void {
-    this._started = true;
-    this.onStart();
-  }
-
-  _onDisable(): void {
-    this.onDisable();
-  }
-
-  _onDestroy(): void {
-    this.onDisable();
-    if (this.onUpdate !== Script.prototype.onUpdate) {
-      this.scene._componentsManager.removeScript("onUpdate", this);
-    }
-    if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
-      this.scene._componentsManager.removeScript("onLateUpdate", this);
-    }
-    if (this.onPreRender !== Script.prototype.onPreRender) {
-      this.scene._componentsManager.removeScript("onPreRender", this);
-    }
-    if (this.onPostRender !== Script.prototype.onPostRender) {
-      this.scene._componentsManager.removeScript("onPostRender", this);
-    }
-  }
 
   /**
    * 脚本第一次被激活时调用,而且只调用一次。
@@ -112,4 +67,52 @@ export class Script extends NodeAbility {
    * 销毁时调用。
    */
   onDestroy(): void {}
+
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
+  _onAwake(): void {
+    this.onAwake();
+  }
+
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
+  _onEnable(): void {
+    this.onEnable();
+  }
+
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
+  _onStart(): void {
+    this._started = true;
+    this.onStart();
+  }
+
+  _onDisable(): void {
+    this.onDisable();
+  }
+
+  _onDestroy(): void {
+    this.onDisable();
+    if (this.onUpdate !== Script.prototype.onUpdate) {
+      this.scene._componentsManager.removeScript("onUpdate", this);
+    }
+    if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
+      this.scene._componentsManager.removeScript("onLateUpdate", this);
+    }
+    if (this.onPreRender !== Script.prototype.onPreRender) {
+      this.scene._componentsManager.removeScript("onPreRender", this);
+    }
+    if (this.onPostRender !== Script.prototype.onPostRender) {
+      this.scene._componentsManager.removeScript("onPostRender", this);
+    }
+  }
 }

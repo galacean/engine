@@ -199,45 +199,6 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * @internal
-   */
-  _setActiveInHierarchy(): void {
-    this._activeInHierarchy = true;
-    //TODO  待优化 延时处理
-    const components = Object.assign({}, this._components);
-    for (let index in components) {
-      const component = components[index];
-      if (component) {
-        component._setActive(true);
-      }
-    }
-    const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child: Node = children[i];
-      child.active && child._setActiveInHierarchy();
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _setInActiveInHierarchy(): void {
-    this._activeInHierarchy = false;
-    const components = Object.assign({}, this._components);
-    for (let index in components) {
-      const component = components[index];
-      if (component) {
-        component._setActive(false);
-      }
-    }
-    const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child: Node = children[i];
-      child.active && child._setInActiveInHierarchy();
-    }
-  }
-
-  /**
    * //TODO:组件通常不带构造函数参数，日后需要移除
    * 根据组件类型添加组件。
    * @returns	组件实例
@@ -415,6 +376,45 @@ export class Node extends EventDispatcher {
       }
     }
     this._parent = null;
+  }
+
+  /**
+   * @internal
+   */
+  _setActiveInHierarchy(): void {
+    this._activeInHierarchy = true;
+    //TODO  待优化 延时处理
+    const components = Object.assign({}, this._components);
+    for (let index in components) {
+      const component = components[index];
+      if (component) {
+        component._setActive(true);
+      }
+    }
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child: Node = children[i];
+      child.active && child._setActiveInHierarchy();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _setInActiveInHierarchy(): void {
+    this._activeInHierarchy = false;
+    const components = Object.assign({}, this._components);
+    for (let index in components) {
+      const component = components[index];
+      if (component) {
+        component._setActive(false);
+      }
+    }
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child: Node = children[i];
+      child.active && child._setInActiveInHierarchy();
+    }
   }
 
   //--------------------------------------------TobeConfirmed--------------------------------------------------

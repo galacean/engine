@@ -28,6 +28,89 @@ export class NodeAbility extends EventDispatcher {
   private _cullDistanceSq: number;
   private _awaked: boolean;
   private _inComponentsManager: boolean;
+
+  /**
+   * 是否激活
+   */
+  get enabled(): boolean {
+    return this._enabled;
+  }
+
+  set enabled(val: boolean) {
+    if (val === this._enabled) {
+      return;
+    }
+    this._enabled = val;
+    //TODO 把事件拆出来
+    if (val) {
+      if (this._started) {
+        this._ownerNode.activeInHierarchy && this._onEnable();
+      }
+    } else {
+      this._ownerNode.activeInHierarchy && this._onDisable();
+    }
+    // @deprecated
+    if (val) {
+      if (this._started) {
+        this.trigger(new Event("enabled", this));
+      }
+    } else {
+      this.trigger(new Event("disabled", this));
+    }
+  }
+
+  /**
+   * 所属节点对象。
+   */
+  get node(): Node {
+    return this._ownerNode;
+  }
+
+  /**
+   * 构造函数
+   * @param {Node} node 对象所在节点
+   * @param {Object} props  配置参数
+   */
+  constructor(node: Node, props: object = {}) {
+    super();
+    this._props = props;
+    this._ownerNode = node;
+    this._renderable = false;
+    this._pendingDestroy = false;
+    this._awaked = false;
+    this._renderPriority = 0;
+    this._renderPassFlag = MaskList.EVERYTHING;
+    this._passMasks = [MaskList.EVERYTHING];
+    this._cullDistanceSq = 0; // 等于0，代表不进行 distance cull
+    console.log(this, node);
+    // if (this.constructor.name === "AAnimation") debugger;
+    if (node._activeInHierarchy) {
+      this._onActive();
+    }
+  }
+
+  /**
+   * 销毁本组件对象
+   */
+  destroy(): void {
+    this._pendingDestroy = true;
+    if (this._ownerNode.activeInHierarchy) {
+      this._enabled && this._onDisable();
+    }
+    if (this._ownerNode.activeInHierarchy && !this._destroied) {
+      this._destroied = true;
+      this._onDestroy();
+      /**
+       * @deprecated
+       */
+      this.trigger(new Event("disabled", this));
+      this.trigger(new Event("destroy", this));
+    }
+    if (this._inComponentsManager) {
+      this.scene._componentsManager.removeComponent("onUpdate", this);
+    }
+  }
+
   /**
    * 被激活后调用，可根据需要重写此方法
    * @internal
@@ -94,89 +177,6 @@ export class NodeAbility extends EventDispatcher {
       this._onInActive();
     }
   }
-
-  /**
-   * 是否激活
-   */
-  get enabled(): boolean {
-    return this._enabled;
-  }
-
-  set enabled(val: boolean) {
-    if (val === this._enabled) {
-      return;
-    }
-    this._enabled = val;
-    //TODO 把事件拆出来
-    if (val) {
-      if (this._started) {
-        this._ownerNode.activeInHierarchy && this._onEnable();
-      }
-    } else {
-      this._ownerNode.activeInHierarchy && this._onDisable();
-    }
-    // @deprecated
-    if (val) {
-      if (this._started) {
-        this.trigger(new Event("enabled", this));
-      }
-    } else {
-      this.trigger(new Event("disabled", this));
-    }
-  }
-
-  /**
-   * 所属节点对象。
-   */
-  get node(): Node {
-    return this._ownerNode;
-  }
-
-  /**
-   * 构造函数
-   * @param {Node} node 对象所在节点
-   * @param {Object} props  配置参数
-   */
-  constructor(node: Node, props: object = {}) {
-    super();
-    this._props = props;
-    this._ownerNode = node;
-    this._renderable = false;
-    this._pendingDestroy = false;
-    this._awaked = false;
-    this._renderPriority = 0;
-    this._renderPassFlag = MaskList.EVERYTHING;
-    this._passMasks = [MaskList.EVERYTHING];
-    this._cullDistanceSq = 0; // 等于0，代表不进行 distance cull
-    console.log(this, node);
-    // if (this.constructor.name === "AAnimation") debugger;
-    if (node._activeInHierarchy) {
-      this._onActive();
-    }
-  }
-
-  /**
-   * 销毁本组件对象
-   */
-  public destroy(): void {
-    this._pendingDestroy = true;
-    if (this._ownerNode.activeInHierarchy) {
-      this._enabled && this._onDisable();
-    }
-    if (this._ownerNode.activeInHierarchy && !this._destroied) {
-      this._destroied = true;
-      this._onDestroy();
-      /**
-       * @deprecated
-       */
-      this.trigger(new Event("disabled", this));
-      this.trigger(new Event("destroy", this));
-    }
-    if (this._inComponentsManager) {
-      this.scene._componentsManager.removeComponent("onUpdate", this);
-    }
-  }
-
   //--------------------------------------------TobeConfirmed--------------------------------------------------
 
   /**
