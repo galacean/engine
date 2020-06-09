@@ -3,7 +3,14 @@ import { SphereGeometry } from "./Sphere";
 import { CylinderGeometry } from "./Cylinder";
 import { PlaneGeometry } from "./Plane";
 import { CuboidGeometry } from "./Cuboid";
-import { BlinnPhongMaterial } from "@alipay/o3-mobile-material";
+import {
+  ConstantMaterial,
+  LambertMaterial,
+  TransparentMaterial,
+  TextureMaterial,
+  BlinnPhongMaterial
+} from "@alipay/o3-mobile-material";
+import { PBRMaterial } from "@alipay/o3-pbr";
 
 export class Model extends AGeometryRenderer {
   set geometryType(value: GeometryType) {
@@ -19,7 +26,21 @@ export class Model extends AGeometryRenderer {
     return this._geometryType;
   }
 
+  set materialType(value: MaterialType) {
+    if (this.materialType === value) {
+      return;
+    }
+    const clazz = this._materialMap[value];
+    this.material = new (clazz as any)();
+    this._materialType = value;
+  }
+
+  get materialType() {
+    return this._materialType;
+  }
+
   private _geometryType: GeometryType;
+  private _materialType: MaterialType;
   private _geometryMap = {
     [GeometryType.Sphere]: SphereGeometry,
     [GeometryType.Cylinder]: CylinderGeometry,
@@ -27,12 +48,23 @@ export class Model extends AGeometryRenderer {
     [GeometryType.Box]: CuboidGeometry
   };
 
+  private _materialMap = {
+    [MaterialType.BlinnPhong]: BlinnPhongMaterial,
+    [MaterialType.PBR]: PBRMaterial,
+    [MaterialType.Constant]: ConstantMaterial,
+    [MaterialType.Lambert]: LambertMaterial,
+    [MaterialType.Transparent]: TransparentMaterial,
+    [MaterialType.Texture]: TextureMaterial
+  };
+
   constructor(node, props) {
     super(node, props);
 
     const { geometryType = GeometryType.Box } = props;
 
-    this.material = new BlinnPhongMaterial("default");
+    if (!props.material) {
+      this.materialType = MaterialType.BlinnPhong;
+    }
     this.geometryType = geometryType;
   }
 }
@@ -42,4 +74,13 @@ enum GeometryType {
   Cylinder = "Cylinder",
   Plane = "Plane",
   Sphere = "Sphere"
+}
+
+enum MaterialType {
+  BlinnPhong = "BlinnPhong",
+  PBR = "PBR",
+  Constant = "Constant",
+  Lambert = "Lambert",
+  Transparent = "Transparent",
+  Texture = "Texture"
 }

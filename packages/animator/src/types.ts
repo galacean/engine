@@ -8,3 +8,9 @@ export interface AnimationOptions {
 export type List = number[] | Float32Array;
 
 export type Value = number | List;
+
+export type NodeState = {
+  position: List;
+  rotation: List;
+  scale: List;
+};

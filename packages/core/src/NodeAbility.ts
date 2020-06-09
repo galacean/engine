@@ -5,13 +5,12 @@ import { Scene } from "./Scene";
 import { mat4Type } from "./type";
 
 /**
- * 所有组件的基类, 提供update(),render()等基础接口方法
- * @class
+ * TODO:命名暂时保留兼容性，未来替换为Component
+ * 所有组件的基类。
  */
 export class NodeAbility extends EventDispatcher {
   /**
    * 是否激活
-   * @member {boolean}
    */
   get enabled(): boolean {
     return this._enabled;
@@ -30,97 +29,13 @@ export class NodeAbility extends EventDispatcher {
     }
   }
 
-  get renderPassFlag(): MaskList {
-    return this._renderPassFlag;
-  }
-
-  set renderPassFlag(val: MaskList) {
-    this._renderPassFlag = val;
-  }
-
-  get cullDistanceSq(): number {
-    return this._cullDistanceSq;
-  }
-
-  get cullDistance(): number {
-    return Math.sqrt(this._cullDistanceSq);
-  }
-
-  set cullDistance(val: number) {
-    this._cullDistanceSq = val * val;
-  }
-
   /**
-   * 渲染优先级
-   * @member {number}
-   */
-  get renderPriority(): number {
-    return this._renderPriority;
-  }
-
-  set renderPriority(val: number) {
-    this._renderPriority = val;
-  }
-
-  /**
-   * 所属的SceneObject对象
-   * @member {Node}
-   * @readonly
+   * 所属节点对象。
    */
   get node(): Node {
     return this._ownerNode;
   }
 
-  /**
-   * 所属的Scene对象
-   * @member {Scene}
-   * @readonly
-   */
-  get scene(): Scene {
-    return this._ownerNode.scene;
-  }
-
-  /**
-   * 所属的Engine对象
-   * @member {Engine}
-   * @readonly
-   */
-  get engine(): Engine {
-    return this._ownerNode?.scene?.engine;
-  }
-
-  get modelMatrix(): mat4Type {
-    return this._ownerNode.getModelMatrix();
-  }
-
-  get invModelMatrix(): mat4Type {
-    return this._ownerNode.getInvModelMatrix();
-  }
-
-  /**
-   * 增加 parent 属性，主要是提供给事件的冒泡机制使用
-   */
-  get parent(): Node {
-    return this._ownerNode;
-  }
-
-  /** 是否被销毁
-   * @member {boolean}
-   * @readonly
-   * @private
-   */
-  get isPendingDestroy() {
-    return this._pendingDestroy;
-  }
-
-  /** 是否可渲染
-   * @member {boolean}
-   * @readonly
-   * @private
-   */
-  get isRenderable() {
-    return this._renderable;
-  }
   public _props: object;
   public _ownerNode: Node;
   public _renderable: boolean;
@@ -150,11 +65,117 @@ export class NodeAbility extends EventDispatcher {
     this._cullDistanceSq = 0; // 等于0，代表不进行 distance cull
   }
 
-  public onStart(): void {}
+  /**
+   * 销毁本组件对象
+   */
+  public destroy(): void {
+    this._pendingDestroy = true;
 
-  public onUpdate(deltaTime: number): void {}
+    this.trigger(new Event("disabled", this));
+    this.trigger(new Event("destroy", this));
+  }
+
+  //--------------------------------------------TobeConfirmed--------------------------------------------------
 
   /**
+   * 所属场景对象。
+   */
+  get scene(): Scene {
+    return this._ownerNode.scene;
+  }
+
+  //---------------------------------------------Deprecated-----------------------------------------------------------------
+
+  /**
+   * @deprecated
+   * 所属的Engine对象
+   * @member {Engine}
+   * @readonly
+   */
+  get engine(): Engine {
+    return this._ownerNode?.scene?.engine;
+  }
+
+  /**
+   * @deprecated
+   * 是否可渲染
+   * @member {boolean}
+   * @readonly
+   * @private
+   */
+  get isRenderable() {
+    return this._renderable;
+  }
+
+  /**
+   * @deprecated
+   */
+  set renderable(val: boolean) {
+    this._renderable = val;
+  }
+
+  /**
+   * @deprecated
+   * 渲染优先级
+   * @member {number}
+   */
+  get renderPriority(): number {
+    return this._renderPriority;
+  }
+  set renderPriority(val: number) {
+    this._renderPriority = val;
+  }
+
+  /**
+   * @deprecated
+   */
+  get started(): boolean {
+    return this._started;
+  }
+
+  /**
+   * @deprecated
+   */
+  get cullDistanceSq(): number {
+    return this._cullDistanceSq;
+  }
+
+  /**
+   * @deprecated
+   */
+  get cullDistance(): number {
+    return Math.sqrt(this._cullDistanceSq);
+  }
+  set cullDistance(val: number) {
+    this._cullDistanceSq = val * val;
+  }
+
+  /**
+   * @deprecated
+   */
+  get modelMatrix(): mat4Type {
+    return this._ownerNode.getModelMatrix();
+  }
+
+  /**
+   * @deprecated
+   */
+  get invModelMatrix(): mat4Type {
+    return this._ownerNode.getInvModelMatrix();
+  }
+
+  /**
+   * @deprecated
+   */
+  get renderPassFlag(): MaskList {
+    return this._renderPassFlag;
+  }
+  set renderPassFlag(val: MaskList) {
+    this._renderPassFlag = val;
+  }
+
+  /**
+   * @deprecated
    * 设置通过的 Pass Mask，
    * @param  {PassMask} masks 各个 mask
    */
@@ -164,6 +185,7 @@ export class NodeAbility extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 添加 Mask 到通过列表
    * @param  {PassMask} masks 各个 mask
    */
@@ -179,6 +201,7 @@ export class NodeAbility extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 从当前的通过列表移除 Mask
    * @param  {PassMask} masks 各个 mask
    */
@@ -193,7 +216,20 @@ export class NodeAbility extends EventDispatcher {
     this.setPassMasks(...this._passMasks);
   }
 
-  /** 每帧调用，第一次调用会回调this.onStart()方法 */
+  /**
+   * @deprecated
+   */
+  public onStart(): void {}
+
+  /**
+   * @deprecated
+   */
+  public onUpdate(deltaTime: number): void {}
+
+  /**
+   * @deprecated
+   * 每帧调用，第一次调用会回调this.onStart()方法
+   */
   public update(deltaTime: number): void {
     if (!this._started) {
       this._started = true;
@@ -212,21 +248,22 @@ export class NodeAbility extends EventDispatcher {
     this.onUpdate(deltaTime);
   }
 
-  set renderable(val: boolean) {
-    this._renderable = val;
-  }
-
-  get started(): boolean {
-    return this._started;
+  /**
+   * @deprecated
+   * 是否被销毁
+   * @member {boolean}
+   * @readonly
+   * @private
+   */
+  get isPendingDestroy() {
+    return this._pendingDestroy;
   }
 
   /**
-   * 销毁本组件对象
+   * @deprecated
+   * 增加 parent 属性，主要是提供给事件的冒泡机制使用
    */
-  public destroy(): void {
-    this._pendingDestroy = true;
-
-    this.trigger(new Event("disabled", this));
-    this.trigger(new Event("destroy", this));
+  get parent(): Node {
+    return this._ownerNode;
   }
 }
