@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-shadow",
-  "version": "2.2.10",
+  "version": "2.2.11",
   "description": "shadow module",
   "keywords": [
     "Oasis3D"
@@ -28,11 +28,11 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-base": "^2.2.10",
-    "@alipay/o3-core": "^2.2.10",
-    "@alipay/o3-lighting": "^2.2.10",
-    "@alipay/o3-material": "^2.2.10",
-    "@alipay/o3-math": "^2.2.10",
-    "@alipay/o3-renderer-basic": "^2.2.10"
+    "@alipay/o3-base": "^2.2.11",
+    "@alipay/o3-core": "^2.2.11",
+    "@alipay/o3-lighting": "^2.2.11",
+    "@alipay/o3-material": "^2.2.11",
+    "@alipay/o3-math": "^2.2.11",
+    "@alipay/o3-renderer-basic": "^2.2.11"
   }
 }
