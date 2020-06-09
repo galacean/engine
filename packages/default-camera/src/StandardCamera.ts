@@ -93,41 +93,6 @@ export class StandardCamera extends NodeAbility {
   private _customAspectRatio: number = undefined;
 
   /**
-   * todo 注释
-   * @param node
-   * @param props
-   */
-  constructor(node: Node, props: any) {
-    super(node, props);
-    const { SceneRenderer, canvas, attributes, clearParam, clearMode, near, far, fov } = props;
-    const engine = this.engine;
-
-    if (this.node.scene) {
-      this.node.scene.attachRenderCamera(this as any);
-    }
-
-    this.nearClipPlane = near ?? 0.1;
-    this.farClipPlane = far ?? 100;
-    this.fieldOfView = fov ?? 45;
-
-    this.viewportNormalized = [0, 0, 1, 1];
-
-    // 兼容旧 camera
-    const target = props.target || [0, 0, 0];
-    const up = props.up || [0, 1, 0];
-    node.position = props.position || [0, 10, 20];
-    node.lookAt(target, up);
-
-    const settingCanvas = engine?.config.canvas ?? canvas;
-    const settingAttribute = engine?.config.attributes ?? attributes ?? {};
-    const Renderer = SceneRenderer ?? BasicSceneRenderer;
-
-    settingCanvas && this.attachToScene(settingCanvas, settingAttribute);
-    this._sceneRenderer = new Renderer(this);
-
-    this.setClearMode(clearMode, clearParam);
-  }
-  /**
    * 视图矩阵
    */
   public get viewMatrix(): Readonly<Matrix4> {
@@ -149,14 +114,6 @@ export class StandardCamera extends NodeAbility {
     this._projectionMatrix = p;
     this.isProjectionMatrixSetting = true;
     this.shouldInvProjMatUpdate = true;
-  }
-
-  /**
-   * 重置投影矩阵设置，让 fieldOfView，nearClipPlane 和 farClipPlane 生效
-   */
-  public resetProjectionMatrix() {
-    this.isProjectionMatrixSetting = false;
-    this._isProjectionDirty = true;
   }
 
   /**
@@ -326,14 +283,6 @@ export class StandardCamera extends NodeAbility {
   }
 
   /**
-   * 重置手动设置的视口宽高比
-   */
-  public resetAspectRatio(): void {
-    this._customAspectRatio = undefined;
-    this._isProjectionDirty = true;
-  }
-
-  /**
    * 清除背景颜色，当 clearFlags 为 SOLID_COLOR 时生效
    */
   public get backgroundColor(): Vector4 {
@@ -375,6 +324,57 @@ export class StandardCamera extends NodeAbility {
 
   public set renderTarget(value: never) {
     throw new Error("接口未实现");
+  }
+
+  /**
+   * 创建 Camera 组件
+   * @param node
+   * @param props
+   */
+  constructor(node: Node, props: any) {
+    super(node, props);
+    const { SceneRenderer, canvas, attributes, clearParam, clearMode, near, far, fov } = props;
+    const engine = this.engine;
+    if (this.node.scene) {
+      this.node.scene.attachRenderCamera(this as any);
+    }
+
+    this.nearClipPlane = near ?? 0.1;
+    this.farClipPlane = far ?? 100;
+    this.fieldOfView = fov ?? 45;
+
+    this.viewportNormalized = [0, 0, 1, 1];
+
+    // 兼容旧 camera
+    const target = props.target || [0, 0, 0];
+    const up = props.up || [0, 1, 0];
+    node.position = props.position || [0, 10, 20];
+    node.lookAt(target, up);
+
+    const settingCanvas = engine?.config?.canvas ?? canvas;
+    const settingAttribute = engine?.config?.attributes ?? attributes ?? {};
+    const Renderer = SceneRenderer ?? BasicSceneRenderer;
+
+    settingCanvas && this.attachToScene(settingCanvas, settingAttribute);
+    this._sceneRenderer = new Renderer(this);
+
+    this.setClearMode(clearMode, clearParam);
+  }
+
+  /**
+   * 重置投影矩阵设置，让 fieldOfView，nearClipPlane 和 farClipPlane 生效
+   */
+  public resetProjectionMatrix() {
+    this.isProjectionMatrixSetting = false;
+    this._isProjectionDirty = true;
+  }
+
+  /**
+   * 重置手动设置的视口宽高比
+   */
+  public resetAspectRatio(): void {
+    this._customAspectRatio = undefined;
+    this._isProjectionDirty = true;
   }
 
   /**
