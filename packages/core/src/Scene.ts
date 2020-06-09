@@ -172,5 +172,6 @@ export class Scene extends EventDispatcher {
     this._root.destroy();
     this._root = null;
     this._activeCameras = null;
+    (sceneFeatureManager as any)._objects = [];
   }
 }
