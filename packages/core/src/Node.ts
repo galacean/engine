@@ -10,11 +10,13 @@ import { vec3Type } from "./type";
  * 节点类,可作为组件的容器。
  */
 export class Node extends EventDispatcher {
+  name: string;
+  /* @internal */
+  _activeInHierarchy: boolean;
   private _components: NodeAbility[];
   private _parent: Node;
   private _isRoot: boolean;
   private static _nodes = Array<Node>();
-  public _activeInHierarchy: boolean;
 
   /**
    * 根据名字查找节点。
@@ -46,7 +48,7 @@ export class Node extends EventDispatcher {
     let node: Node = rootNode;
     for (const split of splits) {
       if (split) {
-        node = node.findByName(split); //CM:该方法会查找多层，仍需优化
+        node = Node.findChildByName(node, split); //CM:该方法会查找多层，仍需优化
         if (node === null) {
           return null;
         }
@@ -55,9 +57,15 @@ export class Node extends EventDispatcher {
     return node;
   }
 
-  /** 名字。 */
-  public name: string;
-
+  static findChildByName(root: Node, name: string): Node {
+    const children = root._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      if (child.name && child.name === name) {
+        return child;
+      }
+    }
+  }
   /**
    * 是否局部激活。
    */
@@ -78,45 +86,6 @@ export class Node extends EventDispatcher {
       }
     } else {
       this._setInActiveInHierarchy();
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _setActiveInHierarchy(): void {
-    this._activeInHierarchy = true;
-    //TODO  待优化 延时处理
-    const components = Object.assign({}, this._components);
-    for (let index in components) {
-      const component = components[index];
-      if (component) {
-        component._setActive(true);
-      }
-    }
-    const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child: Node = children[i];
-      child.active && child._setActiveInHierarchy();
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _setInActiveInHierarchy(): void {
-    this._activeInHierarchy = false;
-    const components = Object.assign({}, this._components);
-    for (let index in components) {
-      const component = components[index];
-      if (component) {
-        component._setActive(false);
-      }
-    }
-    const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child: Node = children[i];
-      child.active && child._setInActiveInHierarchy();
     }
   }
 
@@ -157,6 +126,11 @@ export class Node extends EventDispatcher {
         this._changeScene(newParent._scene);
         Node.traverseSetOwnerScene(this);
       }
+      if (newParent._activeInHierarchy) {
+        !this._activeInHierarchy && this._active && this._setActiveInHierarchy();
+      } else {
+        this._activeInHierarchy && this._setInActiveInHierarchy();
+      }
       // @deprecated
       newParent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
     } else {
@@ -166,6 +140,7 @@ export class Node extends EventDispatcher {
         this._changeScene(null);
         Node.traverseSetOwnerScene(this);
       }
+      this._activeInHierarchy && this._setInActiveInHierarchy();
     }
   }
 
@@ -218,6 +193,45 @@ export class Node extends EventDispatcher {
      */
     this.onUpdate = null;
     Node._nodes.push(this);
+  }
+
+  /**
+   * @internal
+   */
+  _setActiveInHierarchy(): void {
+    this._activeInHierarchy = true;
+    //TODO  待优化 延时处理
+    const components = Object.assign({}, this._components);
+    for (let index in components) {
+      const component = components[index];
+      if (component) {
+        component._setActive(true);
+      }
+    }
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child: Node = children[i];
+      child.active && child._setActiveInHierarchy();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _setInActiveInHierarchy(): void {
+    this._activeInHierarchy = false;
+    const components = Object.assign({}, this._components);
+    for (let index in components) {
+      const component = components[index];
+      if (component) {
+        component._setActive(false);
+      }
+    }
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child: Node = children[i];
+      child.active && child._setInActiveInHierarchy();
+    }
   }
 
   /**
@@ -284,13 +298,8 @@ export class Node extends EventDispatcher {
     //CM:应该封装内部方法，和静态方法公用
     // -- find in this
     const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child.name && child.name === name) {
-        return child;
-      }
-    }
-
+    const child = Node.findChildByName(this, name);
+    if (child) return child;
     // -- 递归的查找所有子节点
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
@@ -311,16 +320,16 @@ export class Node extends EventDispatcher {
   findByPath(path: string): Node {
     //CM:应该封装内部方法，和静态方法公用
     const splits = path.split("/");
-    let obj: Node = this;
+    let node: Node = this;
     for (const split of splits) {
       if (split) {
-        obj = obj.findByName(split);
-        if (obj === null) {
+        node = Node.findChildByName(node, split);
+        if (node === null) {
           return null;
         }
       }
     }
-    return null;
+    return node;
   }
 
   /**
@@ -342,7 +351,7 @@ export class Node extends EventDispatcher {
   /**
    * 克隆。
    */
-  public clone(): Node {
+  clone(): Node {
     const newNode = new Node(this._scene, null, this.name);
 
     newNode._pendingDestroy = this._pendingDestroy;
@@ -375,7 +384,7 @@ export class Node extends EventDispatcher {
   /**
    * 销毁。
    */
-  public destroy(): void {
+  destroy(): void {
     this._pendingDestroy = true;
 
     // -- clear ability array

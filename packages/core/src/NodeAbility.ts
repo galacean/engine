@@ -9,9 +9,24 @@ import { mat4Type } from "./type";
  * 所有组件的基类。
  */
 export class NodeAbility extends EventDispatcher {
-  /**
-   * @internal
-   */
+  /* @internal */
+  _props: object;
+  /* @internal */
+  _ownerNode: Node;
+  /* @internal */
+  _renderable: boolean;
+  /* @internal */
+  _started: boolean = false;
+  /* @internal */
+  _destroied: boolean = false;
+
+  private _enabled: boolean = true;
+  private _pendingDestroy: boolean;
+  private _renderPriority: number;
+  private _renderPassFlag: MaskList;
+  private _passMasks: MaskList[];
+  private _cullDistanceSq: number;
+  private _awaked: boolean;
   private _inComponentsManager: boolean;
   /**
    * 被激活后调用，可根据需要重写此方法
@@ -116,20 +131,6 @@ export class NodeAbility extends EventDispatcher {
   get node(): Node {
     return this._ownerNode;
   }
-
-  public _props: object;
-  public _ownerNode: Node;
-  public _renderable: boolean;
-  public _started: boolean = false;
-  public _destroied: boolean = false;
-  private _enabled: boolean = true;
-  private _pendingDestroy: boolean;
-  private _renderPriority: number;
-  private _renderPassFlag: MaskList;
-  private _passMasks: MaskList[];
-  private _cullDistanceSq: number;
-  /** @internal */
-  private _awaked: boolean;
 
   /**
    * 构造函数

@@ -5,7 +5,8 @@ import { NodeAbility } from "./NodeAbility";
  * 脚本类，可进行逻辑编写。
  */
 export class Script extends NodeAbility {
-  public _started: boolean = false;
+  /* @internal */
+  _started: boolean = false;
   constructor(node: Node, props: object = {}) {
     super(node, props);
     if (this.onUpdate !== Script.prototype.onUpdate) {
