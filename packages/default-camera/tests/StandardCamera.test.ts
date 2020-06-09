@@ -1,4 +1,3 @@
-import { StandardCamera } from "../src/StandardCamera";
 import { Camera } from "../src/Camera";
 import { PerspectiveCamera } from "../src/PerspectiveCamera";
 import { Node } from "@alipay/o3-core";
@@ -6,12 +5,12 @@ import { mat4, MathUtil } from "@alipay/o3-math";
 
 describe("projection test", function() {
   let node: Node;
-  let camera: StandardCamera;
+  let camera: Camera;
   let oldCamera: PerspectiveCamera;
   let identityMatrix;
   beforeAll(() => {
     node = new Node();
-    camera = node.createAbility(StandardCamera);
+    camera = node.createAbility(Camera);
     oldCamera = node.createAbility(PerspectiveCamera);
     (oldCamera as any)._rhi = {
       canvas: {
