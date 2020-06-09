@@ -121,6 +121,22 @@ class ShaderFactory {
   }
 
   /**
+   * 返回相应 shaderCode 中的 draw buffer 长度
+   * @param shader - shader code
+   */
+  static getMaxDrawBuffers(shader: string): number {
+    const mrtIndexSet = new Set();
+    const result = shader.match(/\bgl_FragData\[.+?\]/g) || [];
+
+    for (let i = 0; i < result.length; i++) {
+      const res = result[i].match(/\bgl_FragData\[(.+?)\]/);
+      mrtIndexSet.add(res[1]);
+    }
+
+    return mrtIndexSet.size;
+  }
+
+  /**
    * 1. 兼容 gl_FragColor 和 gl_FragData 同时存在的报错
    * */
   static compatible(fragmentShader: string) {

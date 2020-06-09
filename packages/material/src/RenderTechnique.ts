@@ -168,9 +168,14 @@ export class RenderTechnique extends AssetObject {
        * 若 autoConvert = true,  WebGL 2 时着色器为旧版本，则升级到 300 版本
        * 若 WebGL1,兼容 gl_FragColor 和 gl_FragData 同时存在的报错
        * */
-      if (this.autoConvert && isWebGL2 && this.version !== "300 es" && rhi.canIuse(GLCapabilityType.drawBuffers)) {
-        this.vertexShader = ShaderFactory.convertTo300(this.vertexShader);
-        this.fragmentShader = ShaderFactory.convertTo300(this.fragmentShader, true);
+      if (this.autoConvert && isWebGL2 && this.version !== "300 es") {
+        const maxDrawBuffers = rhi.capability.maxDrawBuffers;
+        const shaderMaxDrawBuffers = ShaderFactory.getMaxDrawBuffers(this.fragmentShader);
+
+        if (shaderMaxDrawBuffers <= maxDrawBuffers) {
+          this.vertexShader = ShaderFactory.convertTo300(this.vertexShader);
+          this.fragmentShader = ShaderFactory.convertTo300(this.fragmentShader, true);
+        }
       } else if (!isWebGL2 && this.version !== "300es") {
         this.fragmentShader = ShaderFactory.compatible(this.fragmentShader);
       }
