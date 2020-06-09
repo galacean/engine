@@ -1,4 +1,4 @@
-import { UniformSemantic, DataType, Logger } from "@alipay/o3-base";
+import { UniformSemantic, DataType, Logger, GLCapabilityType } from "@alipay/o3-base";
 import { AssetObject, ACamera } from "@alipay/o3-core";
 import { ShaderFactory } from "@alipay/o3-shaderlib";
 import { Material } from "./Material";
@@ -118,7 +118,8 @@ export class RenderTechnique extends AssetObject {
     this.parseFog(camera);
 
     if (this._needCompile) {
-      const isWebGL2 = camera?.renderHardware?.isWebGL2;
+      const rhi = camera?.renderHardware;
+      const isWebGL2 = rhi?.isWebGL2;
 
       material.preCompile?.(this);
 
@@ -168,8 +169,13 @@ export class RenderTechnique extends AssetObject {
        * 若 WebGL1,兼容 gl_FragColor 和 gl_FragData 同时存在的报错
        * */
       if (this.autoConvert && isWebGL2 && this.version !== "300 es") {
-        this.vertexShader = ShaderFactory.convertTo300(this.vertexShader);
-        this.fragmentShader = ShaderFactory.convertTo300(this.fragmentShader, true);
+        const maxDrawBuffers = rhi.capability.maxDrawBuffers;
+        const shaderMaxDrawBuffers = ShaderFactory.getMaxDrawBuffers(this.fragmentShader);
+
+        if (shaderMaxDrawBuffers <= maxDrawBuffers) {
+          this.vertexShader = ShaderFactory.convertTo300(this.vertexShader);
+          this.fragmentShader = ShaderFactory.convertTo300(this.fragmentShader, true);
+        }
       } else if (!isWebGL2 && this.version !== "300es") {
         this.fragmentShader = ShaderFactory.compatible(this.fragmentShader);
       }
