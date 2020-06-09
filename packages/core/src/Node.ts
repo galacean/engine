@@ -171,7 +171,6 @@ export class Node extends EventDispatcher {
     this._isRoot = parent === null && name === "root";
     this._scene = scene;
     this.name = name;
-    console.log("name", name);
     this._children = [];
     this._components = [];
     this.parent = parent;

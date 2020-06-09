@@ -83,7 +83,7 @@ export class NodeAbility extends EventDispatcher {
     this._passMasks = [MaskList.EVERYTHING];
     this._cullDistanceSq = 0; // 等于0，代表不进行 distance cull
     if (node._activeInHierarchy) {
-      this._onActive();
+      this._setActive(true);
     }
   }
 
@@ -110,36 +110,45 @@ export class NodeAbility extends EventDispatcher {
   }
 
   /**
-   * 被激活后调用，可根据需要重写此方法
+   * @override
    * @internal
+   * 被激活后调用，可根据需要重写此方法
    */
   _onAwake(): void {
     //override it.
   }
   /**
-   * 被激活后调用，可根据需要重写此方法
+   * @override
    * @internal
+   * 被激活后调用，可根据需要重写此方法
    */
   _onEnable(): void {
     //override it.
   }
 
   /**
-   * 被禁用时调用，可根据需要重写此方法
+   * @override
    * @internal
+   * 被禁用时调用，可根据需要重写此方法
    */
   _onDisable(): void {
     //override it.
   }
 
   /**
-   * 被销毁时调用，可根据需要重写此方法
+   * @override
    * @internal
+   * 被销毁时调用，可根据需要重写此方法
    */
   _onDestroy(): void {
     //override it.
   }
 
+  /**
+   * @override
+   * @internal
+   * 被销毁时调用，可根据需要重写此方法
+   */
   _onActive(): void {
     /**
      * @deprecated 兼容
@@ -153,6 +162,11 @@ export class NodeAbility extends EventDispatcher {
     }
   }
 
+  /**
+   * @override
+   * @internal
+   * 被销毁时调用，可根据需要重写此方法
+   */
   _onInActive(): void {
     if (this._inComponentsManager) {
       this.scene._componentsManager.removeComponent("onUpdate", this);
@@ -160,7 +174,9 @@ export class NodeAbility extends EventDispatcher {
   }
 
   /**
+   * @override
    * @internal
+   * 被销毁时调用，可根据需要重写此方法
    */
   _setActive(value: boolean): void {
     if (value) {

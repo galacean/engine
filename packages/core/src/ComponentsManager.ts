@@ -80,6 +80,7 @@ export class ComponentsManager {
           const script = this._onUpdateScripts[i];
           if (script._ownerNode.activeInHierarchy && script.enabled) {
             if (!script._started) {
+              script._started = true;
               script.onStart.apply(script, args);
             }
             script.onUpdate.apply(script, args);
@@ -90,6 +91,7 @@ export class ComponentsManager {
           const component = this._onUpdateComponents[i];
           if (component._ownerNode.activeInHierarchy && component.enabled) {
             if (!component._started) {
+              component._started = true;
               component.onStart.apply(component, args);
             }
             component.onUpdate.apply(component, args);
