@@ -1,6 +1,6 @@
 import { vec3, vec4 } from "@alipay/o3-math";
 import { Engine } from "@alipay/o3-core";
-import { ADefaultCamera, StandardCamera } from "@alipay/o3-default-camera";
+import { ADefaultCamera, Camera } from "@alipay/o3-default-camera";
 import { AGeometryRenderer } from "@alipay/o3-geometry";
 import { SphereGeometry, CuboidGeometry } from "@alipay/o3-geometry-shape";
 import "@alipay/o3-engine-stats";
@@ -35,7 +35,7 @@ cubeRenderer2.setMaterial(mtl);
 
 //-- create camera
 let cameraNode = rootNode.createChild("camera_node");
-let camera = cameraNode.createAbility(StandardCamera, {
+let camera = cameraNode.createAbility(Camera, {
   canvas: "o3-demo",
   clearParam: [0.5, 0, 0, 1],
   position: [0, 0, 10],
