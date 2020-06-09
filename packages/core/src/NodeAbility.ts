@@ -82,8 +82,6 @@ export class NodeAbility extends EventDispatcher {
     this._renderPassFlag = MaskList.EVERYTHING;
     this._passMasks = [MaskList.EVERYTHING];
     this._cullDistanceSq = 0; // 等于0，代表不进行 distance cull
-    console.log(this, node);
-    // if (this.constructor.name === "AAnimation") debugger;
     if (node._activeInHierarchy) {
       this._onActive();
     }

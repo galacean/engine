@@ -75,7 +75,6 @@ export class AAnimation extends NodeAbility {
     this._animSet = {}; // name : AnimationClip
     this._animLayers = [new AnimationLayer()];
     this._timeScale = 1.0;
-    this.scene._componentsManager.addComponent("onUpdate", this);
   }
 
   /**
@@ -448,10 +447,5 @@ export class AAnimation extends NodeAbility {
     // 其他情况，是暂时处理不了的
     Logger.error("Can not get channel value!");
     return false;
-  }
-
-  public _onDestroy() {
-    // this._des
-    this.scene._componentsManager.removeComponent("onUpdate", this);
   }
 }
