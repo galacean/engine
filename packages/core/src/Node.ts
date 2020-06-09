@@ -11,6 +11,7 @@ import { vec3Type } from "./type";
  */
 export class Node extends EventDispatcher {
   private static _nodes = Array<Node>();
+
   /**
    * 根据名字查找节点。
    * @param name - 名字
@@ -41,7 +42,7 @@ export class Node extends EventDispatcher {
     let node: Node = rootNode;
     for (const split of splits) {
       if (split) {
-        node = Node.findChildByName(node, split); //CM:该方法会查找多层，仍需优化
+        node = Node._findChildByName(node, split); //CM:该方法会查找多层，仍需优化
         if (node === null) {
           return null;
         }
@@ -50,7 +51,10 @@ export class Node extends EventDispatcher {
     return node;
   }
 
-  static findChildByName(root: Node, name: string): Node {
+  /**
+   * @internal
+   */
+  static _findChildByName(root: Node, name: string): Node {
     const children = root._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
@@ -62,8 +66,10 @@ export class Node extends EventDispatcher {
 
   /* 名字 */
   name: string;
+
   /* @internal */
   _activeInHierarchy: boolean;
+
   private _components: NodeAbility[];
   private _parent: Node;
   private _isRoot: boolean;
@@ -189,11 +195,6 @@ export class Node extends EventDispatcher {
     this._right = vec3.fromValues(1, 0, 0);
     this._forward = vec3.fromValues(0, 0, 1);
 
-    /**
-     * 每帧执行的Update回调函数
-     * @member {function}
-     */
-    this.onUpdate = null;
     Node._nodes.push(this);
   }
 
@@ -478,9 +479,6 @@ export class Node extends EventDispatcher {
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
-
-  /** @deprecated */
-  public onUpdate: (t?: number) => void;
 
   /**
    * @deprecated
