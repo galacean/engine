@@ -23,6 +23,7 @@ export class Node extends EventDispatcher {
       const node = _nodes[i];
       const nodeName = node.name;
       if (nodeName && nodeName === name) {
+        //CM:“nodeName &&” 是否可以删掉
         return node;
       }
     }
@@ -36,14 +37,15 @@ export class Node extends EventDispatcher {
    */
   static findByPath(path: string, scene: Scene /*@deprecated*/): Node {
     const splits = path.split("/");
-    //在哪return？
     const rootNode = scene.root;
     if (!rootNode) return null;
     let node: Node = rootNode;
     for (const split of splits) {
+      //CM:这个比for（;;）循环快吗
       if (split) {
+        //CM:这是干啥
         node = Node._findChildByName(node, split); //CM:该方法会查找多层，仍需优化
-        if (node === null) {
+        if (!node) {
           return null;
         }
       }
@@ -59,20 +61,22 @@ export class Node extends EventDispatcher {
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
       if (child.name && child.name === name) {
+        //CM:"child.name &&” 是否可以删掉
         return child;
       }
     }
+    //CM:是不是落了一个return null
   }
 
   /* 名字 */
   name: string;
 
   /* @internal */
-  _activeInHierarchy: boolean;
+  _activeInHierarchy: boolean; //CM：应该给个默认值false吧
 
-  private _components: NodeAbility[];
+  private _components: NodeAbility[]; //CM:在这里初始化更好
   private _parent: Node;
-  private _isRoot: boolean;
+  private _isRoot: boolean; //TODO:由于目前场景管理机制不得不加
 
   /**
    * 是否局部激活。
@@ -81,19 +85,24 @@ export class Node extends EventDispatcher {
     return this._active;
   }
   set active(value: boolean) {
-    if (value === this._active) return;
-    this._active = value;
-    if (value) {
-      const parent = this._parent;
-      if (this._isRoot) {
-        this._setActiveInHierarchy();
-      } else {
-        if (parent && parent._activeInHierarchy) {
+    if (value !== this._active) {
+      this._active = value;
+      if (value) {
+        const parent = this._parent;
+        // if (this._isRoot) {//CM:咋写这么长呢
+        //   this._setActiveInHierarchy();
+        // } else {
+        //   if (parent && parent._activeInHierarchy) {
+        //     this._setActiveInHierarchy();
+        //   }
+        // }
+        if (this._isRoot || (parent && parent._activeInHierarchy)) {
           this._setActiveInHierarchy();
         }
+      } else {
+        //CM:这个不用加 this._isRoot || (parent && parent._activeInHierarchy)判断吗
+        this._setInActiveInHierarchy();
       }
-    } else {
-      this._setInActiveInHierarchy();
     }
   }
 
@@ -113,42 +122,46 @@ export class Node extends EventDispatcher {
 
   set parent(node: Node) {
     //CM:activeInHierachy没处理
-    if (node === this._parent) {
-      return;
-    }
-    const oldParent = this._parent;
-    if (oldParent != null) {
-      const children = oldParent._children;
-      const index = children.indexOf(this);
-      if (index > -1) {
-        children.splice(index, 1);
+    if (node !== this._parent) {
+      const oldParent = this._parent;
+      if (oldParent != null) {
+        const children = oldParent._children;
+        const index = children.indexOf(this);
+        if (index > -1) {
+          children.splice(index, 1);
+          // @deprecated
+          oldParent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun); //CM:是否可以删掉了
+        }
+      }
+      const newParent = (this._parent = node);
+      if (newParent) {
+        newParent._children.push(this);
+
+        if (this._scene !== newParent._scene) {
+          //@deprecated
+          // fixme: remove below code after gltf loader can set the right ownerScene
+          this._changeScene(newParent._scene);
+          Node.traverseSetOwnerScene(this);
+        }
+
+        if (newParent._activeInHierarchy) {
+          //CM：写得好
+          !this._activeInHierarchy && this._active && this._setActiveInHierarchy();
+        } else {
+          this._activeInHierarchy && this._setInActiveInHierarchy();
+        }
+
         // @deprecated
-        oldParent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-      }
-    }
-    const newParent = (this._parent = node);
-    if (newParent) {
-      newParent._children.push(this);
-      if (this._scene !== newParent._scene) {
-        // fixme: remove below code after gltf loader can set the right ownerScene
-        this._changeScene(newParent._scene);
-        Node.traverseSetOwnerScene(this);
-      }
-      if (newParent._activeInHierarchy) {
-        !this._activeInHierarchy && this._active && this._setActiveInHierarchy();
+        newParent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun); //CM:是否可以删掉了
       } else {
+        if (oldParent) {
+          // @deprecated event
+          this.traverseAbilitiesTriggerEnabled(false);
+          this._changeScene(null);
+          Node.traverseSetOwnerScene(this);
+        }
         this._activeInHierarchy && this._setInActiveInHierarchy();
       }
-      // @deprecated
-      newParent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-    } else {
-      if (oldParent) {
-        // @deprecated event
-        this.traverseAbilitiesTriggerEnabled(false);
-        this._changeScene(null);
-        Node.traverseSetOwnerScene(this);
-      }
-      this._activeInHierarchy && this._setInActiveInHierarchy();
     }
   }
 
@@ -203,6 +216,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   addComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T, props: object = {}): T {
+    //CM:看看能否删除node参数
     const component = new type(this, props);
     this._components.push(component);
     return component;
@@ -266,12 +280,11 @@ export class Node extends EventDispatcher {
     // -- 递归的查找所有子节点
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      const findObj = child.findByName(name);
-      if (findObj) {
-        return findObj;
+      const grandson = child.findByName(name);
+      if (grandson) {
+        return grandson;
       }
     }
-
     return null;
   }
 
@@ -285,7 +298,9 @@ export class Node extends EventDispatcher {
     const splits = path.split("/");
     let node: Node = this;
     for (const split of splits) {
+      //CM:这个比for（;;）循环快吗
       if (split) {
+        //CM:这是干啥
         node = Node._findChildByName(node, split);
         if (node === null) {
           return null;
@@ -302,11 +317,12 @@ export class Node extends EventDispatcher {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      child._parent = null;
+      child._parent = null; //CM:没触发activeInHierarchy的修改吧
+
+      // @deprecated
       child.traverseAbilitiesTriggerEnabled(false);
       child._changeScene(null);
       Node.traverseSetOwnerScene(child);
-      // @deprecated
       this.removeEventListener("isActiveInHierarchyChange", child._activeChangeFun);
     }
   }
@@ -383,7 +399,7 @@ export class Node extends EventDispatcher {
   _setActiveInHierarchy(): void {
     this._activeInHierarchy = true;
     //TODO  待优化 延时处理
-    const components = Object.assign({}, this._components);
+    const components = Object.assign({}, this._components); //CM:不能用object
     for (let index in components) {
       const component = components[index];
       if (component) {
@@ -402,7 +418,7 @@ export class Node extends EventDispatcher {
    */
   _setInActiveInHierarchy(): void {
     this._activeInHierarchy = false;
-    const components = Object.assign({}, this._components);
+    const components = Object.assign({}, this._components); //CM:不能用object
     for (let index in components) {
       const component = components[index];
       if (component) {

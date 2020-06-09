@@ -98,7 +98,7 @@ export class Scene extends EventDispatcher {
     this._componentsManager.callComponentMethod("onUpdate", deltaTime);
     sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //TODO:移除
     sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //TODO:移除
-    //TODO:@ 陆庄 inner logic
+    //TODO:@ 陆庄 inner logic CM:动画更新放哪了啊
     //TODO:@ 陆庄 lateUpdate
     this._componentsManager.callComponentMethod("onLateUpdate", deltaTime);
   }

@@ -72,16 +72,19 @@ export class ComponentsManager {
   }
 
   callComponentMethod(funcName: string, ...args): void {
+    //CM:2.使用switch没必要吧，增加性能开销（虽然不多），调用方法参数也不同,或者funcName写成枚举也行
+    //CM:...args不知道有啥用
     let length = 0;
     switch (funcName) {
-      case "onUpdate":
+      case "onUpdate": //CM:字符串当枚举很慢
         length = this._onUpdateScripts.length;
         for (let i = length - 1; i >= 0; --i) {
           const script = this._onUpdateScripts[i];
           if (script._ownerNode.activeInHierarchy && script.enabled) {
+            //CM:script._ownerNode.activeInHierarchy这个判断不应该存在，进入队列代表一定激活
             if (!script._started) {
               script._started = true;
-              script.onStart.apply(script, args);
+              script.onStart.apply(script, args); //CM:直接调用呢
             }
             script.onUpdate.apply(script, args);
           }
