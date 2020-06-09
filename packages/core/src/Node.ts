@@ -191,7 +191,6 @@ export class Node extends EventDispatcher {
     console.log("name", name);
     this._children = [];
     this._components = [];
-    this._components = [];
     this.parent = parent;
     // -- 状态变量
     this._pendingDestroy = false;
@@ -436,8 +435,6 @@ export class Node extends EventDispatcher {
   private _scene: Scene;
 
   private _children: Node[];
-
-  private _components: NodeAbility[];
 
   private _pendingDestroy: boolean;
 
