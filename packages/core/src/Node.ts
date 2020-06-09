@@ -262,7 +262,7 @@ export class Node extends EventDispatcher {
     //CM:应该封装内部方法，和静态方法公用
     // -- find in this
     const children = this._children;
-    const child = Node.findChildByName(this, name);
+    const child = Node._findChildByName(this, name);
     if (child) return child;
     // -- 递归的查找所有子节点
     for (let i = children.length - 1; i >= 0; i--) {
@@ -287,7 +287,7 @@ export class Node extends EventDispatcher {
     let node: Node = this;
     for (const split of splits) {
       if (split) {
-        node = Node.findChildByName(node, split);
+        node = Node._findChildByName(node, split);
         if (node === null) {
           return null;
         }
