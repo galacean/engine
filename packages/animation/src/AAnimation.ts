@@ -84,7 +84,7 @@ export class AAnimation extends NodeAbility {
    * @private
    */
   public onUpdate(deltaTime: number) {
-    super.update(deltaTime);
+    // super.update(deltaTime);
     if (!this.isPlaying()) {
       return;
     }

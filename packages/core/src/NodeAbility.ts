@@ -289,31 +289,27 @@ export class NodeAbility extends EventDispatcher {
    */
   public onStart(): void {}
 
-  /**
-   * @deprecated
-   */
+  // /**
+  //  * @deprecated
+  //  */
   public onUpdate(deltaTime: number): void {}
 
-  /**
-   * @deprecated
-   * 每帧调用，第一次调用会回调this.onStart()方法
-   */
+  // /**
+  //  * @deprecated
+  //  * 每帧调用，第一次调用会回调this.onStart()方法
+  //  */
   public update(deltaTime: number): void {
-    if (!this._started) {
-      this._started = true;
-
-      if (this.onStart) {
-        this.onStart.call(this);
-      }
-
-      this.trigger(new Event("start", this));
-
-      if (this._enabled) {
-        this.trigger(new Event("enabled", this));
-      }
-    }
-
-    this.onUpdate(deltaTime);
+    // if (!this._started) {
+    //   this._started = true;
+    //   if (this.onStart) {
+    //     this.onStart.call(this);
+    //   }
+    //   this.trigger(new Event("start", this));
+    //   if (this._enabled) {
+    //     this.trigger(new Event("enabled", this));
+    //   }
+    // }
+    // this.onUpdate(deltaTime);
   }
 
   /**

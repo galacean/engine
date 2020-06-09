@@ -24,7 +24,7 @@ export class Node extends EventDispatcher {
     const { _nodes } = Node;
     for (let i = _nodes.length - 1; i >= 0; i--) {
       const node = _nodes[i];
-      const nodeName = node._name;
+      const nodeName = node.name;
       if (nodeName && nodeName === name) {
         return node;
       }
@@ -51,11 +51,11 @@ export class Node extends EventDispatcher {
         }
       }
     }
-    return null;
+    return node;
   }
 
   /** 名字。 */
-  name: string;
+  public name: string;
 
   /**
    * 是否局部激活。
@@ -83,7 +83,11 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _setActiveInHierarchy(): void {
-    this._activeInHierarchy = this.parent._activeInHierarchy && this._active; //CM:结构稍微不合理，应该直接是true
+    if (!this._parent) {
+      this._activeInHierarchy = this._active;
+    } else {
+      this._activeInHierarchy = this._parent._activeInHierarchy && this._active; //TODO:结构稍微不合理，应该直接是true
+    }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child: Node = children[i];
@@ -102,7 +106,7 @@ export class Node extends EventDispatcher {
    * 父变换。
    */
   get parent(): Node {
-    return this._parent;
+    return this._parent || null;
   }
 
   set parent(node: Node) {
@@ -110,34 +114,34 @@ export class Node extends EventDispatcher {
     if (node === this._parent) {
       return;
     }
-    if (this._parent != null) {
-      const children = this._parent._children;
+    const oldParent = this._parent;
+    if (oldParent != null) {
+      const children = oldParent._children;
       const index = children.indexOf(this);
       if (index > -1) {
         children.splice(index, 1);
         // @deprecated
-        this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
+        oldParent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
       }
     }
-    this._parent = node;
-    if (this._ownerScene.root === this) {
-      return;
-    }
-    if (node) {
-      node._children.push(this);
-      if (this._ownerScene !== node._ownerScene) {
+    const newParent = (this._parent = node);
+    if (newParent) {
+      newParent._children.push(this);
+      if (this._ownerScene !== newParent._ownerScene) {
         // fixme: remove below code after gltf loader can set the right ownerScene
-        this._ownerScene = node._ownerScene;
+        this._ownerScene = newParent._ownerScene;
         //@deprecated
         Node.traverseSetOwnerScene(this);
       }
       // @deprecated
-      node.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
+      newParent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
     } else {
-      // @deprecated event
-      this.traverseAbilitiesTriggerEnabled(false);
-      this._ownerScene = null;
-      Node.traverseSetOwnerScene(this);
+      if (oldParent) {
+        // @deprecated event
+        this.traverseAbilitiesTriggerEnabled(false);
+        this._ownerScene = null;
+        Node.traverseSetOwnerScene(this);
+      }
     }
   }
 
@@ -156,14 +160,14 @@ export class Node extends EventDispatcher {
    */
   constructor(scene?: Scene, parent?: Node, name?: string) {
     super();
-
     // -- 核心数据
     this._ownerScene = scene;
-    this._name = name;
+    this.name = name;
+    console.log("name", name);
     this._children = [];
     this._abilityArray = [];
     this._components = [];
-
+    this.parent = parent;
     // -- 状态变量
     this._pendingDestroy = false;
     this.active = true; // local active state of this Node
@@ -179,8 +183,6 @@ export class Node extends EventDispatcher {
     this._invModelMatrix = mat4.create();
     this._modelMatrixDirty = true;
     this._invModelMatrixDirty = true;
-
-    this.parentNode = parent;
 
     this._up = vec3.fromValues(0, 1, 0);
     this._right = vec3.fromValues(1, 0, 0);
@@ -260,7 +262,7 @@ export class Node extends EventDispatcher {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      if (child._name && child._name === name) {
+      if (child.name && child.name === name) {
         return child;
       }
     }
@@ -389,8 +391,6 @@ export class Node extends EventDispatcher {
   }
 
   private _ownerScene: Scene;
-
-  private _name: string;
 
   private _children: Node[];
 
@@ -545,8 +545,7 @@ export class Node extends EventDispatcher {
   }
 
   set isActive(val: boolean) {
-    this._active = val;
-    this._activeChangeFun();
+    this.active = val;
   }
 
   /**
@@ -730,7 +729,7 @@ export class Node extends EventDispatcher {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      if (child._name && child._name === name) {
+      if (child.name && child.name === name) {
         return child;
       }
     }
