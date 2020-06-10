@@ -1,6 +1,6 @@
 import { vec2, vec3, vec4, quat } from "@alipay/o3-math";
 import { HUDFeature } from "./HUDFeature";
-import { NodeAbility } from "@alipay/o3-core";
+import { RenderableComponent } from "@alipay/o3-core";
 
 var widgetID = 1000;
 
@@ -8,7 +8,7 @@ var widgetID = 1000;
  * HUD控件的基类，封装2D和3D控件的通用属性和操作
  * @extends NodeAbility
  */
-export class AHUDWidget extends NodeAbility {
+export class AHUDWidget extends RenderableComponent {
   private _spriteRect;
   private _spriteID;
   private _renderMode;
@@ -48,9 +48,6 @@ export class AHUDWidget extends NodeAbility {
     this._renderMode = props.renderMode || "2D";
     this._screenSize = props.screenSize || props.textureSize;
     this._worldSize = props.worldSize || [1, 1];
-
-    //-- NodeAbility属性
-    this.renderable = true;
 
     this._anchor = [0.5, 0.5];
     this._rotationAngle = props.rotationAngle || 0;

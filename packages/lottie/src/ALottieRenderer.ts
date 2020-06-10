@@ -1,6 +1,6 @@
-import { NodeAbility } from "@alipay/o3-core";
+import { RenderableComponent } from "@alipay/o3-core";
 import { lottie } from "./oasis-lottie";
-export class ALottieRenderer extends NodeAbility {
+export class ALottieRenderer extends RenderableComponent {
   public loop: boolean;
   public autoplay: boolean;
   public animationData: any;

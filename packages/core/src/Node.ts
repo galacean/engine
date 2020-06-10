@@ -71,7 +71,7 @@ export class Node extends EventDispatcher {
 
   /* @internal */
   _activeInHierarchy: boolean = false;
-  private _components: NodeAbility[]; //CM:在这里初始化更好
+  private _components: NodeAbility[] = [];
   private _parent: Node;
   private _isRoot: boolean; //TODO:由于目前场景管理机制不得不加
 
@@ -86,18 +86,10 @@ export class Node extends EventDispatcher {
       this._active = value;
       if (value) {
         const parent = this._parent;
-        // if (this._isRoot) {//CM:咋写这么长呢
-        //   this._setActiveInHierarchy();
-        // } else {
-        //   if (parent && parent._activeInHierarchy) {
-        //     this._setActiveInHierarchy();
-        //   }
-        // }
         if (this._isRoot || (parent && parent._activeInHierarchy)) {
           this._setActiveInHierarchy();
         }
       } else {
-        //CM:这个不用加 this._isRoot || (parent && parent._activeInHierarchy)判断吗
         this._activeInHierarchy && this._setInActiveInHierarchy();
       }
     }
@@ -134,7 +126,7 @@ export class Node extends EventDispatcher {
         if (this._scene !== newParent._scene) {
           //@deprecated
           // fixme: remove below code after gltf loader can set the right ownerScene
-          this._changeScene(newParent._scene);
+          this._scene = newParent._scene;
           Node.traverseSetOwnerScene(this);
         }
 
@@ -147,7 +139,7 @@ export class Node extends EventDispatcher {
         if (oldParent) {
           // @deprecated event
           // this.traverseAbilitiesTriggerEnabled(false);
-          this._changeScene(null);
+          this._scene = null;
           Node.traverseSetOwnerScene(this);
         }
         this._activeInHierarchy && this._setInActiveInHierarchy();
@@ -174,8 +166,6 @@ export class Node extends EventDispatcher {
     this._isRoot = parent === null && name === "root";
     this._scene = scene;
     this.name = name;
-    this._children = [];
-    this._components = [];
     this.parent = parent;
     // -- 状态变量
     this._pendingDestroy = false;
@@ -206,7 +196,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   addComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T, props: object = {}): T {
-    //CM:看看能否删除node参数
+    //TODO :看看能否删除node参数
     const component = new type(this, props);
     this._components.push(component);
     if (this._activeInHierarchy) {
@@ -290,7 +280,6 @@ export class Node extends EventDispatcher {
     const spitLength = splits.length;
     for (let i = spitLength - 1; i >= 0; ++i) {
       const split = splits[i];
-      //CM:这是干啥
       if (split) {
         node = Node._findChildByName(node, split);
         if (!node) {
@@ -309,11 +298,11 @@ export class Node extends EventDispatcher {
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
       if (child._parent) {
-        child._changeScene(null);
+        child._scene = null;
         Node.traverseSetOwnerScene(child);
       }
-      child._parent = null; //CM:没触发activeInHierarchy的修改吧
-      this._activeInHierarchy && this._setInActiveInHierarchy();
+      child._parent = null;
+      child._activeInHierarchy && child._setInActiveInHierarchy();
     }
   }
 
@@ -431,28 +420,9 @@ export class Node extends EventDispatcher {
     return this._scene;
   }
 
-  /**
-   * @internal
-   */
-  private _changeScene(val: Scene) {
-    const oldScene = this._scene;
-    const newScene = val;
-    if (oldScene === newScene) return;
-    this._scene = newScene;
-    if (oldScene) {
-      const currentScene = oldScene.engine.currentScene;
-      if (oldScene === currentScene) {
-        this._active && this._setInActiveInHierarchy();
-      }
-    }
-    if (newScene === newScene.engine.currentScene) {
-      this._active && this._setActiveInHierarchy();
-    }
-  }
-
   private _scene: Scene;
 
-  private _children: Node[];
+  private _children: Node[] = [];
 
   private _pendingDestroy: boolean;
 
@@ -897,8 +867,9 @@ export class Node extends EventDispatcher {
       const child = node.children[i];
       // const enabled = node._scene ? false : true;
       // node.traverseAbilitiesTriggerEnabled(enabled);
-      child._changeScene(node._scene);
+      // child._changeScene(node._scene);
       // child.
+      child._scene = node._scene;
       this.traverseSetOwnerScene(node.children[i]);
     }
   }

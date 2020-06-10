@@ -14,19 +14,20 @@ export class NodeAbility extends EventDispatcher {
   /* @internal */
   _ownerNode: Node;
   /* @internal */
-  _renderable: boolean;
+  _renderable: boolean = false;
   /* @internal */
   _started: boolean = false;
   /* @internal */
   _destroied: boolean = false;
 
   private _enabled: boolean = true;
-  private _pendingDestroy: boolean;
-  private _renderPriority: number;
+  private _pendingDestroy: boolean = false;
+  private _renderPriority: number = 0;
   private _renderPassFlag: MaskList;
   private _passMasks: MaskList[];
-  private _cullDistanceSq: number;
-  private _awaked: boolean;
+  private _cullDistanceSq: number = 0; // 等于0，代表不进行 distance cull
+  private _awaked: boolean = false;
+  /* @internal */
   private _inComponentsManager: boolean;
 
   /**
@@ -75,13 +76,8 @@ export class NodeAbility extends EventDispatcher {
     super();
     this._props = props;
     this._ownerNode = node;
-    this._renderable = false;
-    this._pendingDestroy = false;
-    this._awaked = false;
-    this._renderPriority = 0;
     this._renderPassFlag = MaskList.EVERYTHING;
     this._passMasks = [MaskList.EVERYTHING];
-    this._cullDistanceSq = 0; // 等于0，代表不进行 distance cull
   }
 
   /**
@@ -91,6 +87,7 @@ export class NodeAbility extends EventDispatcher {
     this._pendingDestroy = true;
     if (this._ownerNode.activeInHierarchy) {
       this._enabled && this._onDisable();
+      this._onInActive();
     }
     if (this._ownerNode.activeInHierarchy && !this._destroied) {
       this._destroied = true;
@@ -98,11 +95,8 @@ export class NodeAbility extends EventDispatcher {
       /**
        * @deprecated
        */
-      this.trigger(new Event("disabled", this));
-      this.trigger(new Event("destroy", this));
-    }
-    if (this._inComponentsManager) {
-      this.scene._componentsManager.removeComponent("onUpdate", this);
+      // this.trigger(new Event("disabled", this));
+      // this.trigger(new Event("destroy", this));
     }
   }
 
@@ -132,7 +126,6 @@ export class NodeAbility extends EventDispatcher {
   /**
    * @override
    * @internal
-   * 被销毁时调用，可根据需要重写此方法
    */
   _onActive(): void {
     /**
@@ -142,7 +135,7 @@ export class NodeAbility extends EventDispatcher {
       if (this.update !== NodeAbility.prototype.update) {
         this.onUpdate = this.update;
       }
-      this.scene && this.scene._componentsManager.addComponent("onUpdate", this);
+      this.scene._componentsManager.addOnUpdateComponents(this);
       this._inComponentsManager = true;
     }
   }
@@ -150,18 +143,16 @@ export class NodeAbility extends EventDispatcher {
   /**
    * @override
    * @internal
-   * 被销毁时调用，可根据需要重写此方法
    */
   _onInActive(): void {
     if (this._inComponentsManager) {
-      this.scene._componentsManager.removeComponent("onUpdate", this);
+      this.scene._componentsManager.removeOnUpdateComponent(this);
     }
   }
 
   /**
    * @override
    * @internal
-   * 被销毁时调用，可根据需要重写此方法
    */
   _setActive(value: boolean): void {
     if (value) {

@@ -448,4 +448,22 @@ export class AAnimation extends NodeAbility {
     Logger.error("Can not get channel value!");
     return false;
   }
+
+  /**
+   * 被激活时调用
+   * @override
+   * @internal
+   */
+  _onActive(): void {
+    this.scene._componentsManager.addOnUpdateAnimations(this);
+  }
+
+  /**
+   * node inActiveInHierarchy时 或 组件销毁前调用
+   * @override
+   * @internal
+   */
+  _onInActive(): void {
+    this.scene._componentsManager.removeOnUpdateAnimations(this);
+  }
 }

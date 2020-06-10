@@ -62,8 +62,7 @@ export class MRTSceneRenderer extends SceneVisitor {
 
     //-- 遍历 Scene Graph，收集所有激活的渲染对象组件
     const scene = camera.scene;
-    scene.visitSceneGraph(this);
-
+    scene._componentsManager.callRender(camera);
     //-- 执行渲染队列
     opaqueQueue.sortByTechnique();
 

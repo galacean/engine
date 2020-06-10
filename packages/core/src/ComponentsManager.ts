@@ -1,4 +1,6 @@
+import { ACamera } from "./ACamera";
 import { NodeAbility as Component } from "./NodeAbility";
+import { RenderableComponent } from "./RenderableComponent";
 import { Script } from "./Script";
 
 /**
@@ -10,126 +12,153 @@ export class ComponentsManager {
   private _onLateUpdateScripts: Array<Script> = [];
   private _onPreRenderScripts: Array<Script> = [];
   private _onPostRenderScripts: Array<Script> = [];
+  private _onUpdateAnimations: Array<Component> = [];
+
   // 其他组件
   private _onUpdateComponents: Array<Component> = [];
 
-  addComponent(funcName: string, component: Component): void {
-    if (funcName === "onUpdate") {
-      this._onUpdateComponents.push(component);
+  // render
+  private _renderers: Array<RenderableComponent> = [];
+
+  addOnUpdateComponents(component: Component): void {
+    this._onUpdateComponents.push(component);
+  }
+
+  removeOnUpdateComponent(component: Component): void {
+    this._removeComponentFromArray(this._onUpdateComponents, component);
+  }
+
+  addRenderer(renderer: RenderableComponent) {
+    this._renderers.push(renderer);
+  }
+
+  removeRenderer(renderer: Component) {
+    this._removeComponentFromArray(this._renderers, renderer);
+  }
+
+  addOnUpdateScript(script: Script) {
+    this._onUpdateScripts.push(script);
+  }
+
+  removeOnUpdateScript(script: Script): void {
+    this._removeComponentFromArray(this._onUpdateScripts, script);
+  }
+
+  addOnLateUpdateScript(script: Script) {
+    this._onLateUpdateScripts.push(script);
+  }
+
+  removeOnLateUpdateScript(script: Script) {
+    this._removeComponentFromArray(this._onLateUpdateScripts, script);
+  }
+
+  addOnPreRenderScript(script: Script) {
+    this._onPreRenderScripts.push(script);
+  }
+
+  removeOnPreRenderScript(script: Script) {
+    this._removeComponentFromArray(this._onPreRenderScripts, script);
+  }
+
+  addOnPostRenderScript(script: Script) {
+    this._onLateUpdateScripts.push(script);
+  }
+
+  removeOnPostRenderScript(script: Script): void {
+    this._removeComponentFromArray(this._onPostRenderScripts, script);
+  }
+
+  addOnUpdateAnimations(animation: Component): void {
+    this._onUpdateAnimations.push(animation);
+  }
+
+  removeOnUpdateAnimations(animation: Component): void {
+    this._removeComponentFromArray(this._onUpdateAnimations, animation);
+  }
+
+  callScriptOnUpdate(deltaTime): void {
+    const length = this._onUpdateScripts.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const script = this._onUpdateScripts[i];
+      if (script.enabled) {
+        if (!script._started) {
+          script._started = true;
+          script.onStart();
+        }
+        script.onUpdate(deltaTime);
+      }
     }
   }
 
-  removeComponent(funcName: string, component: Component): void {
-    let components = [];
-    if (funcName === "onUpdate") {
-      components = this._onUpdateComponents;
-    }
-    const index = components.indexOf(component);
-    if (index < 0) {
-      return;
-    }
-    components.splice(index, 1);
-  }
-
-  addScript(funcName: string, script: Script): void {
-    switch (funcName) {
-      case "onUpdate":
-        this._onUpdateScripts.push(script);
-        break;
-      case "onLateUpdate":
-        this._onLateUpdateScripts.push(script);
-        break;
-      case "onPreRender":
-        this._onPreRenderScripts.push(script);
-        break;
-      case "onPostRender":
-        this._onPostRenderScripts.push(script);
-        break;
+  callScriptOnLateUpdate(): void {
+    const length = this._onUpdateScripts.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const script = this._onUpdateScripts[i];
+      if (script.enabled) {
+        script.onLateUpdate();
+      }
     }
   }
 
-  removeScript(funcName, script: Script): void {
-    let scripts = [];
-    switch (funcName) {
-      case "onUpdate":
-        scripts = this._onUpdateScripts;
-        break;
-      case "onLateUpdate":
-        scripts = this._onLateUpdateScripts;
-        break;
-      case "onPreRender":
-        scripts = this._onPreRenderScripts;
-        break;
-      case "onPostRender":
-        scripts = this._onPostRenderScripts;
-        break;
+  callScriptOnPreRender(): void {
+    const length = this._onUpdateScripts.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const script = this._onUpdateScripts[i];
+      if (script.enabled) {
+        script.onPreRender();
+      }
     }
-    const index = scripts.indexOf(script);
-    if (index < 0) {
-      return;
-    }
-    scripts.splice(index, 1);
   }
 
-  callComponentMethod(funcName: string, ...args): void {
-    //CM:2.使用switch没必要吧，增加性能开销（虽然不多），调用方法参数也不同,或者funcName写成枚举也行
-    //CM:...args不知道有啥用
-    let length = 0;
-    switch (funcName) {
-      case "onUpdate": //CM:字符串当枚举很慢
-        length = this._onUpdateScripts.length;
-        for (let i = length - 1; i >= 0; --i) {
-          const script = this._onUpdateScripts[i];
-          if (script._ownerNode.activeInHierarchy && script.enabled) {
-            //CM:script._ownerNode.activeInHierarchy这个判断不应该存在，进入队列代表一定激活
-            if (!script._started) {
-              script._started = true;
-              script.onStart.apply(script, args); //CM:直接调用呢
-            }
-            script.onUpdate.apply(script, args);
-          }
-        }
-        length = this._onUpdateComponents.length;
-        for (let i = length - 1; i >= 0; --i) {
-          const component = this._onUpdateComponents[i];
-          if (component._ownerNode.activeInHierarchy && component.enabled) {
-            if (!component._started) {
-              component._started = true;
-              component.onStart.apply(component, args);
-            }
-            component.onUpdate.apply(component, args);
-          }
-        }
-        break;
-      case "onLateUpdate":
-        length = this._onLateUpdateScripts.length;
-        for (let i = length - 1; i >= 0; --i) {
-          const script = this._onUpdateScripts[i];
-          if (script._ownerNode.activeInHierarchy && script.enabled) {
-            script.onLateUpdate.apply(script, args);
-          }
-        }
-        break;
-      case "onPreRender":
-        length = this._onPreRenderScripts.length;
-        for (let i = length - 1; i >= 0; --i) {
-          const script = this._onUpdateScripts[i];
-          if (script._ownerNode.activeInHierarchy && script.enabled) {
-            script.onPreRender.apply(script, args);
-          }
-        }
-        break;
-      case "onPostRender":
-        length = this._onPostRenderScripts.length;
-        for (let i = length - 1; i >= 0; --i) {
-          const script = this._onUpdateScripts[i];
-          if (script._ownerNode.activeInHierarchy && script.enabled) {
-            script.onPostRender.apply(script, args);
-          }
-        }
-        break;
+  callScriptOnPostRender(): void {
+    const length = this._onUpdateScripts.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const script = this._onUpdateScripts[i];
+      if (script.enabled) {
+        script.onPostRender();
+      }
     }
   }
+
+  callAnimationOnUpdate(deltaTime): void {
+    const length = this._onUpdateAnimations.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const animation = this._onUpdateAnimations[i];
+      if (animation.enabled) {
+        animation.onUpdate(deltaTime);
+      }
+    }
+  }
+
+  callComponentOnUpdate(deltaTime): void {
+    const length = this._onUpdateComponents.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const component = this._onUpdateComponents[i];
+      if (component.enabled) {
+        if (!component._started) {
+          component._started = true;
+          component.onStart();
+        }
+        component.onUpdate(deltaTime);
+      }
+    }
+  }
+
+  callRender(camera: ACamera): void {
+    const length = this._renderers.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const renderer = this._renderers[i];
+      if (renderer.enabled) {
+        renderer._render(camera);
+      }
+    }
+  }
+
+  clear() {
+    this._clearScripts();
+    this._clearComponents();
+  }
+
   _clearScripts() {
     let length = this._onUpdateScripts.length;
     for (let i = length - 1; i >= 0; --i) {
@@ -176,8 +205,8 @@ export class ComponentsManager {
     this._onUpdateComponents = [];
   }
 
-  clear() {
-    this._clearScripts();
-    this._clearComponents();
+  _removeComponentFromArray(components: Component[], component: Component) {
+    const index = components.indexOf(component);
+    components.splice(index, 1);
   }
 }

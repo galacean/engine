@@ -95,12 +95,14 @@ export class Scene extends EventDispatcher {
    */
   public update(deltaTime: number): void {
     //TODO:@ 陆庄 update
-    this._componentsManager.callComponentMethod("onUpdate", deltaTime);
+    this._componentsManager.callScriptOnUpdate(deltaTime);
+    this._componentsManager.callComponentOnUpdate(deltaTime);
+    this._componentsManager.callAnimationOnUpdate(deltaTime);
     sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //TODO:移除
     sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //TODO:移除
     //TODO:@ 陆庄 inner logic CM:动画更新放哪了啊
     //TODO:@ 陆庄 lateUpdate
-    this._componentsManager.callComponentMethod("onLateUpdate", deltaTime);
+    this._componentsManager.callScriptOnLateUpdate();
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
@@ -114,12 +116,12 @@ export class Scene extends EventDispatcher {
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
           //TODO:@ 陆庄 preRender
-          this._componentsManager.callComponentMethod("onPreRender");
+          this._componentsManager.callScriptOnPreRender();
           sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //TODO:移除
           camera.render();
           sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //TODO:移除
           //TODO:@ 陆庄 postRender
-          this._componentsManager.callComponentMethod("onPostRender");
+          this._componentsManager.callScriptOnPostRender();
         }
       }
     } else {
@@ -132,7 +134,6 @@ export class Scene extends EventDispatcher {
    * @param {SceneVisitor} visitor
    */
   public visitSceneGraph(visitor: SceneVisitor): void {
-    //CM:陆庄做优化
     this._root.visit(visitor);
   }
 
