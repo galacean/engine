@@ -1,10 +1,8 @@
-import { NodeAbility } from "@alipay/o3-core";
-import { mat4, vec4, vec3, MathUtil } from "@alipay/o3-math";
-import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
-import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
-import { Mat4 } from "@alipay/o3-math/types/type";
 import { ClearMode } from "@alipay/o3-base";
-import { Node } from "@alipay/o3-core";
+import { Node, NodeAbility } from "@alipay/o3-core";
+import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 
 // 数学库
 // 渲染管线
@@ -42,6 +40,7 @@ class MathTemp {
   static tempVec3 = vec3.create() as Vector3;
 }
 
+//CM:注释
 enum ClearFlags {
   SKYBOX, // 只保留天空盒
   COLOR, // 纯色
@@ -70,6 +69,7 @@ export function turnAround(out, a) {
   return out;
 }
 
+//CM:注释
 export class Camera extends NodeAbility {
   /**
    * 设置优先级，数字越大渲染顺序越前
@@ -85,7 +85,7 @@ export class Camera extends NodeAbility {
   private _isOrthographic: boolean = false;
   private _projectionMatrix: Matrix4 = mat4.create() as Matrix4;
   private _isProjectionDirty = false;
-  private isProjectionMatrixSetting = false;
+  private isProjectionMatrixSetting = false; //CM：要写下划线
   private _viewMatrix: Matrix4 = mat4.create() as Matrix4;
   private _clearFlags: ClearFlags;
   private _clearParam: Vector4;
@@ -99,9 +99,9 @@ export class Camera extends NodeAbility {
   private _orthographicSize: number = 10;
   private _inverseProjectionMatrix: Matrix4 = mat4.create() as Matrix4;
   private _inverseViewMatrix: Matrix4 = mat4.create() as Matrix4;
-  private shouldInvProjMatUpdate: boolean = false;
+  private shouldInvProjMatUpdate: boolean = false; //CM：要写下划线
   // todo 监听 node modelMatrix 修改设为 true
-  private shouldViewMatrixUpdate: boolean = true;
+  private shouldViewMatrixUpdate: boolean = true; //CM：命名太长 should viewMatrix update？ 快成一句话了。  要写下划线
   /**
    * 兼容旧的 api
    * @deprecated
@@ -110,12 +110,12 @@ export class Camera extends NodeAbility {
   private _customAspectRatio: number = undefined;
 
   /**
-   * 视图矩阵
+   * 视图矩阵。
    */
   public get viewMatrix(): Readonly<Matrix4> {
     // todo 监听 node 的 transform 变换
     if (this.shouldViewMatrixUpdate) {
-      const modelMatrix = this.node.getModelMatrix();
+      const modelMatrix = this.node.getModelMatrix(); //CM：等木鳐做好改成直接调用transform的方法
       // todo 删除  turnAround
       turnAround(MathTemp.tempMat4, modelMatrix);
       mat4.invert(this._viewMatrix, MathTemp.tempMat4);
@@ -128,8 +128,9 @@ export class Camera extends NodeAbility {
    * 设置投影矩阵
    */
   public set projectionMatrix(p: Matrix4) {
+    //CM:参数名要写value,set统一规范
     this._projectionMatrix = p;
-    this.isProjectionMatrixSetting = true;
+    this.isProjectionMatrixSetting = true; //CM:叫customProjectionMatrix吧 is ProjectionMatrix Setting？也快成一句话了
     this.shouldInvProjMatUpdate = true;
   }
 
@@ -148,8 +149,8 @@ export class Camera extends NodeAbility {
         this._projectionMatrix,
         MathUtil.toRadian(this.fieldOfView),
         aspectRatio,
-        this.nearClipPlane,
-        this.farClipPlane
+        this.nearClipPlane, //CM:要用下划线变量，绕过属性提升性能
+        this.farClipPlane //CM:要用下划线变量，绕过属性提升性能
       );
     } else {
       const width = this._orthographicSize * aspectRatio;
@@ -164,6 +165,7 @@ export class Camera extends NodeAbility {
    * 投影矩阵逆矩阵
    */
   public get inverseProjectionMatrix(): Readonly<Matrix4> {
+    //CM:这个方法先改成下划线吧
     // 触发更新
     const projectionMatrix = this.projectionMatrix;
     if (!this.shouldInvProjMatUpdate) {
@@ -194,24 +196,18 @@ export class Camera extends NodeAbility {
     return this._farClipPlane;
   }
 
-  /**
-   * 远裁剪平面
-   */
   public set farClipPlane(value: number) {
     this._farClipPlane = value;
     this._isProjectionDirty = true;
   }
 
   /**
-   * 视角，透视投影时生效
+   * 视场，单位是角度制，透视投影时生效。
    */
   public get fieldOfView(): number {
     return this._fieldOfView;
   }
 
-  /**
-   * 视角，透视投影时生效
-   */
   public set fieldOfView(value: number) {
     this._fieldOfView = value;
     this._isProjectionDirty = true;
@@ -235,14 +231,14 @@ export class Camera extends NodeAbility {
   /**
    * 是否正交，默认是 false。true 会使用正交投影，false 使用透视投影
    */
-  public get isOrthographic(): boolean {
+  public get orthographic(): boolean {
     return this._isOrthographic;
   }
 
   /**
    * 是否正交，默认是 false。true 会使用正交投影，false 使用透视投影
    */
-  public set isOrthographic(value: boolean) {
+  public set orthographic(value: boolean) {
     this._isOrthographic = value;
     this._isProjectionDirty = true;
   }
@@ -263,10 +259,6 @@ export class Camera extends NodeAbility {
     return this._viewportNormalized;
   }
 
-  /**
-   * 相机视口，归一化的 viewport [0 - 1]
-   * @todo 修改为 viewport
-   */
   public set viewportNormalized(v: Readonly<Vector4>) {
     const viewportNormalized = this._viewportNormalized;
     viewportNormalized[0] = v[0];
@@ -275,7 +267,7 @@ export class Camera extends NodeAbility {
     viewportNormalized[3] = v[3];
     // todo rhi 修改
     if (this.renderHardware) {
-      const canvas = this.renderHardware.canvas;
+      const canvas = this.renderHardware.canvas; //CM:这里的宽高还可能是RenderTarget,如果设置了RenderTarget的话
       const width = canvas.width;
       const height = canvas.height;
 
@@ -297,9 +289,6 @@ export class Camera extends NodeAbility {
     return this._customAspectRatio ?? this._viewport[2] / this._viewport[3];
   }
 
-  /**
-   * 手动设置视口宽高比，设置后则不通过 viewport 计算
-   */
   public set aspectRatio(value: number) {
     this._customAspectRatio = value;
     this._isProjectionDirty = true;
@@ -355,11 +344,12 @@ export class Camera extends NodeAbility {
    * @param props
    */
   constructor(node: Node, props: any) {
+    //CM:构造函数参数未来需要修改
     super(node, props);
     const { SceneRenderer, canvas, attributes, clearParam, clearMode, near, far, fov } = props;
     const engine = this.engine;
     if (this.node.scene) {
-      this.node.scene.attachRenderCamera(this as any);
+      this.node.scene.attachRenderCamera(this as any); //CM:修改为组件激活时加入，组件禁用时取消
     }
 
     this.nearClipPlane = near ?? 0.1;
@@ -419,7 +409,7 @@ export class Camera extends NodeAbility {
     const matViewProj = mat4.mul(MathTemp.tempMat4, this.projectionMatrix, this.viewMatrix);
 
     const worldPos = vec4.set(MathTemp.tempVec4, worldPoint[0], worldPoint[1], worldPoint[2], 1.0);
-    const clipPos = vec4.transformMat4(MathTemp.tempVec4, worldPos, matViewProj);
+    const clipPos = vec4.transformMat4(MathTemp.tempVec4, worldPos, matViewProj); //CM：可增加transformV3ToV4绕过worldPos转换的流程
 
     const w = clipPos[3];
     const nx = clipPos[0] / w;
