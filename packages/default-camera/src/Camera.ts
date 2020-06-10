@@ -40,7 +40,9 @@ class MathTemp {
   static tempVec3 = vec3.create() as Vector3;
 }
 
-//CM:注释
+/**
+ * 清理参数
+ */
 enum ClearFlags {
   SKYBOX, // 只保留天空盒
   COLOR, // 纯色
@@ -69,15 +71,19 @@ export function turnAround(out, a) {
   return out;
 }
 
-//CM:注释
+/**
+ * Camera 组件
+ *
+ * @see @todo 网站地址
+ */
 export class Camera extends NodeAbility {
   /**
-   * 设置优先级，数字越大渲染顺序越前
+   * 设置优先级，数字越大渲染顺序越前。
    * @todo scene._activeCameras
    */
   public priority: number = 0;
   /**
-   * 渲染遮罩，位操作
+   * 渲染遮罩，位操作。
    * @todo 渲染管线实现
    */
   public cullingMask: number = 0;
@@ -85,7 +91,7 @@ export class Camera extends NodeAbility {
   private _isOrthographic: boolean = false;
   private _projectionMatrix: Matrix4 = mat4.create() as Matrix4;
   private _isProjectionDirty = false;
-  private isProjectionMatrixSetting = false; //CM：要写下划线
+  private _isProjMatSetting = false; //CM：要写下划线
   private _viewMatrix: Matrix4 = mat4.create() as Matrix4;
   private _clearFlags: ClearFlags;
   private _clearParam: Vector4;
@@ -101,9 +107,9 @@ export class Camera extends NodeAbility {
   private _inverseViewMatrix: Matrix4 = mat4.create() as Matrix4;
   private shouldInvProjMatUpdate: boolean = false; //CM：要写下划线
   // todo 监听 node modelMatrix 修改设为 true
-  private shouldViewMatrixUpdate: boolean = true; //CM：命名太长 should viewMatrix update？ 快成一句话了。  要写下划线
+  private shouldViewMatUpdate: boolean = true; //CM：命名太长 should viewMatrix update？ 快成一句话了。  要写下划线
   /**
-   * 兼容旧的 api
+   * 兼容旧的 api。
    * @deprecated
    * */
   private _rhi: GLRenderHardware;
@@ -114,7 +120,7 @@ export class Camera extends NodeAbility {
    */
   public get viewMatrix(): Readonly<Matrix4> {
     // todo 监听 node 的 transform 变换
-    if (this.shouldViewMatrixUpdate) {
+    if (this.shouldViewMatUpdate) {
       const modelMatrix = this.node.getModelMatrix(); //CM：等木鳐做好改成直接调用transform的方法
       // todo 删除  turnAround
       turnAround(MathTemp.tempMat4, modelMatrix);
@@ -124,21 +130,20 @@ export class Camera extends NodeAbility {
   }
 
   /**
+   * 设置投影矩阵。
    * @todo 测试深度标准
-   * 设置投影矩阵
    */
-  public set projectionMatrix(p: Matrix4) {
-    //CM:参数名要写value,set统一规范
-    this._projectionMatrix = p;
-    this.isProjectionMatrixSetting = true; //CM:叫customProjectionMatrix吧 is ProjectionMatrix Setting？也快成一句话了
+  public set projectionMatrix(value: Matrix4) {
+    this._projectionMatrix = value;
+    this._isProjMatSetting = true;
     this.shouldInvProjMatUpdate = true;
   }
 
   /**
-   * 投影矩阵
+   * 投影矩阵。
    */
   public get projectionMatrix(): Matrix4 {
-    if (!this._isProjectionDirty || this.isProjectionMatrixSetting) {
+    if (!this._isProjectionDirty || this._isProjMatSetting) {
       return this._projectionMatrix;
     }
     this._isProjectionDirty = false;
@@ -149,8 +154,8 @@ export class Camera extends NodeAbility {
         this._projectionMatrix,
         MathUtil.toRadian(this.fieldOfView),
         aspectRatio,
-        this.nearClipPlane, //CM:要用下划线变量，绕过属性提升性能
-        this.farClipPlane //CM:要用下划线变量，绕过属性提升性能
+        this._nearClipPlane,
+        this._farClipPlane
       );
     } else {
       const width = this._orthographicSize * aspectRatio;
@@ -162,10 +167,9 @@ export class Camera extends NodeAbility {
 
   /**
    * @private
-   * 投影矩阵逆矩阵
+   * 投影矩阵逆矩阵。
    */
   public get inverseProjectionMatrix(): Readonly<Matrix4> {
-    //CM:这个方法先改成下划线吧
     // 触发更新
     const projectionMatrix = this.projectionMatrix;
     if (!this.shouldInvProjMatUpdate) {
@@ -175,22 +179,19 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 近裁剪平面
+   * 近裁剪平面。
    */
+  public get nearClipPlane(): number {
+    return this._nearClipPlane;
+  }
+
   public set nearClipPlane(value: number) {
     this._nearClipPlane = value;
     this._isProjectionDirty = true;
   }
 
   /**
-   * 近裁剪平面
-   */
-  public get nearClipPlane(): number {
-    return this._nearClipPlane;
-  }
-
-  /**
-   * 远裁剪平面
+   * 远裁剪平面。
    */
   public get farClipPlane(): number {
     return this._farClipPlane;
@@ -214,37 +215,31 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 正交模式下相机的一半尺寸
+   * 正交模式下相机的一半尺寸。
    */
   public get orthographicSize(): number {
     return this._orthographicSize;
   }
 
-  /**
-   * 正交模式下相机的一半尺寸
-   */
   public set orthographicSize(value: number) {
     this._orthographicSize = value;
     this._isProjectionDirty = true;
   }
 
   /**
-   * 是否正交，默认是 false。true 会使用正交投影，false 使用透视投影
+   * 是否正交，默认是 false。true 会使用正交投影，false 使用透视投影。
    */
   public get orthographic(): boolean {
     return this._isOrthographic;
   }
 
-  /**
-   * 是否正交，默认是 false。true 会使用正交投影，false 使用透视投影
-   */
   public set orthographic(value: boolean) {
     this._isOrthographic = value;
     this._isProjectionDirty = true;
   }
 
   /**
-   * 兼容旧的非归一化的 viewport
+   * 兼容旧的非归一化的 viewport。
    * @todo 修改为归一化的 viewport
    */
   public get viewport(): Readonly<Vector4> {
@@ -252,7 +247,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 相机视口，归一化的 viewport [0 - 1]
+   * 相机视口，归一化的 viewport [0 - 1]。
    * @todo 修改为 viewport
    */
   public get viewportNormalized(): Readonly<Vector4> {
@@ -267,7 +262,8 @@ export class Camera extends NodeAbility {
     viewportNormalized[3] = v[3];
     // todo rhi 修改
     if (this.renderHardware) {
-      const canvas = this.renderHardware.canvas; //CM:这里的宽高还可能是RenderTarget,如果设置了RenderTarget的话
+      // todo 合并慎思：这里的宽高还可能是RenderTarget,如果设置了RenderTarget的话
+      const canvas = this.renderHardware.canvas;
       const width = canvas.width;
       const height = canvas.height;
 
@@ -283,7 +279,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 视口宽高比，默认通过 viewport 计算
+   * 视口宽高比，默认通过 viewport 计算。
    */
   public get aspectRatio(): number {
     return this._customAspectRatio ?? this._viewport[2] / this._viewport[3];
@@ -295,7 +291,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 清除背景颜色，当 clearFlags 为 SOLID_COLOR 时生效
+   * 清除背景颜色，当 clearFlags 为 SOLID_COLOR 时生效。
    */
   public get backgroundColor(): Vector4 {
     return this._clearParam;
@@ -306,7 +302,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 清除天空，当 clearFlags 为 Sky 时生效
+   * 清除天空，当 clearFlags 为 Sky 时生效。
    * @todo 渲染管线修改
    */
   public get backgroundSky(): never {
@@ -326,12 +322,11 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * renderTarget 渲染对象，可以设多 ColorTexture
+   * renderTarget 渲染对象，可以设多 ColorTexture。
    * @todo 渲染管线修改
    */
   public get renderTarget(): never {
     throw new Error("接口未实现");
-    // return null;
   }
 
   public set renderTarget(value: never) {
@@ -339,17 +334,18 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 创建 Camera 组件
-   * @param node
-   * @param props
+   * 创建 Camera 组件。
+   * @param node 节点
+   * @param props camera 参数
    */
   constructor(node: Node, props: any) {
-    //CM:构造函数参数未来需要修改
+    // todo 修改构造函数参数
     super(node, props);
     const { SceneRenderer, canvas, attributes, clearParam, clearMode, near, far, fov } = props;
     const engine = this.engine;
     if (this.node.scene) {
-      this.node.scene.attachRenderCamera(this as any); //CM:修改为组件激活时加入，组件禁用时取消
+      // todo 合并陆庄代码修改
+      this.node.scene.attachRenderCamera(this as any);
     }
 
     this.nearClipPlane = near ?? 0.1;
@@ -375,15 +371,15 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 重置投影矩阵设置，让 fieldOfView，nearClipPlane 和 farClipPlane 生效 //CM:注释太白话
+   * 重置投影矩阵设置，使用 fieldOfView，nearClipPlane 和 farClipPlane 计算投影矩阵。
    */
   public resetProjectionMatrix() {
-    this.isProjectionMatrixSetting = false;
+    this._isProjMatSetting = false;
     this._isProjectionDirty = true;
   }
 
   /**
-   * 重置手动设置的视口宽高比
+   * 重置手动设置的视口宽高比。
    */
   public resetAspectRatio(): void {
     this._customAspectRatio = undefined;
@@ -391,7 +387,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 世界坐标转化成 viewport 坐标
+   * 世界坐标转化成 viewport 坐标。
    * @param worldPoint 世界坐标
    * @param out out[0] 是归一化的 viewport 的 x，out[1] 是归一化的 viewport 的 y，out[2] 是归一化的视口深度，0 是近裁面，1 是远裁面，out[3] 是距相机的深度
    */
@@ -415,7 +411,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 屏幕坐标转化成视图坐标
+   * 屏幕坐标转化成视图坐标。
    * @param position
    */
   public screenToViewportPoint<T extends Vector2 | Vector3>(position: Vector3 | Vector2, out: T): T {
@@ -426,7 +422,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 相机视口坐标转化成射线
+   * 相机视口坐标转化成射线。
    * @param position position[0] 是归一化的 viewport x，position[1] 是归一化的 viewport y
    */
   public viewportPointToRay(position: Vector2, ray: Ray): Ray {
@@ -443,7 +439,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 相机视口坐标转化成射线转化成世界坐标
+   * 相机视口坐标转化成射线转化成世界坐标。
    * @param position 视口坐标点，postion[0] 是归一化的 viewport 的 x，postion[1] 是归一化的 viewport 的 x，postion[2] 归一化的 z，0 是近裁面，1 是远裁面
    */
   public viewportToWorldPoint(position: Vector3, out: Vector3): Vector3 {
@@ -467,7 +463,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 相机视口坐标转化成屏幕点
+   * 相机视口坐标转化成屏幕点。
    * @param position
    */
   public viewportToScreenPoint<T extends Vector2 | Vector3 | Vector4>(position: T, out: T): T {
@@ -482,7 +478,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 渲染场景
+   * 渲染场景。
    * @todo 渲染管线修改
    */
   public render(faceIndex?: number): void {
@@ -490,7 +486,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 释放内部资源
+   * 释放内部资源。
    */
   public destroy(): void {
     super.destroy();
@@ -504,7 +500,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 渲染管线 todo 兼容
+   * 渲染管线 todo 兼容。
    * @deprecated
    */
   public get sceneRenderer(): BasicSceneRenderer {
@@ -513,7 +509,7 @@ export class Camera extends NodeAbility {
 
   /**
    * @deprecated
-   * 视图矩阵逆矩阵
+   * 视图矩阵逆矩阵。
    */
   public get inverseViewMatrix(): Readonly<Matrix4> {
     turnAround(this._inverseViewMatrix, this.node.getModelMatrix());
