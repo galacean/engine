@@ -70,7 +70,6 @@ export class Transform extends NodeAbility {
     this._initTRS(props);
     this._getParent(node);
     this._getChild(node, this._children);
-    console.log(this.node.name);
     node.transform = this;
   }
 
