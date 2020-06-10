@@ -27,7 +27,7 @@ function createCuboidGeometry(name, position,rotation, w, h, d) {
   let cubeRenderer = obj.createAbility(AGeometryRenderer);
   cubeRenderer.geometry = new CuboidGeometry(w, h, d);
   cubeRenderer.setMaterial(mtl);
-  cubeRenderer.recieveShadow = true;
+  // cubeRenderer.recieveShadow = true;
 }
 
 //-- create engine object
@@ -63,6 +63,7 @@ let spotLight = light1.createAbility(ASpotLight, {
 spotLight.enableShadow = true;
 spotLight.shadow.bias = 0.0001;
 spotLight.shadow.intensity = 0.2;
+
 
 let lgtMtl = new ConstantMaterial('test_mtl1', false);
 lgtMtl.emission = vec4.fromValues(0.85, 0.85, 0.85, 1);

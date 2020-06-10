@@ -188,12 +188,14 @@ export class Node extends EventDispatcher {
    * @member {vec3}
    */
   get position() {
-    return this._position;
+    // return this._position;
+    return this.transform.position;
   }
 
   set position(val) {
-    vec3.set(this._position, val[0], val[1], val[2]);
-    this._markTransformDirty();
+    // vec3.set(this._position, val[0], val[1], val[2]);
+    // this._markTransformDirty();
+    this.transform.position = val;
   }
 
   /**
@@ -202,7 +204,9 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get up() {
-    return this._up;
+    const tempVec3 = vec3.create();
+    const up = this.transform.getWorldUp(tempVec3);
+    return up;
   }
 
   /**
@@ -211,7 +215,9 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get forward() {
-    return this._forward;
+    const tempVec3 = vec3.create();
+    const forward = this.transform.getWorldForward(tempVec3);
+    return forward;
   }
 
   /**
@@ -220,7 +226,9 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get right() {
-    return this._right;
+    const tempVec3 = vec3.create();
+    const right = this.transform.getWorldRight(tempVec3);
+    return right;
   }
 
   /**
@@ -228,49 +236,55 @@ export class Node extends EventDispatcher {
    * @member {vec3}
    */
   get worldPosition() {
-    if (this._parent) {
-      const parentModel = this._parent.getModelMatrix();
-      const pos = vec3.create();
-      vec3.transformMat4(pos, this._position, parentModel);
-      return pos;
-    } else {
-      return this._position;
-    }
+    // if (this._parent) {
+    //   const parentModel = this._parent.getModelMatrix();
+    //   const pos = vec3.create();
+    //   vec3.transformMat4(pos, this._position, parentModel);
+    //   return pos;
+    // } else {
+    //   return this._position;
+    // }
+    return this.transform.worldPosition;
   }
 
   set worldPosition(val) {
-    const pos = vec3.fromValues(val[0], val[1], val[2]);
-    if (this._parent) {
-      const matWorldToLocal = this._parent.getInvModelMatrix();
-      vec3.transformMat4(this._position, pos, matWorldToLocal);
-    } else {
-      this._position = pos;
-    }
-    this._markTransformDirty();
+    // const pos = vec3.fromValues(val[0], val[1], val[2]);
+    // if (this._parent) {
+    //   const matWorldToLocal = this._parent.getInvModelMatrix();
+    //   vec3.transformMat4(this._position, pos, matWorldToLocal);
+    // } else {
+    //   this._position = pos;
+    // }
+    // this._markTransformDirty();
+    this.transform.worldPosition = val;
   }
 
   /** Property: 本节点的旋转四元数(Local Space)
    * @member {quat|Array}
    */
   get rotation() {
-    return this._rotation;
+    // return this._rotation;
+    return this.transform.rotationQuaternion;
   }
 
   set rotation(val) {
-    quat.set(this._rotation, val[0], val[1], val[2], val[3]);
-    this._markTransformDirty();
+    // quat.set(this._rotation, val[0], val[1], val[2], val[3]);
+    // this._markTransformDirty();
+    this.transform.rotationQuaternion = val;
   }
 
   /** 本节点的缩放系数(Local Space)
    * @member {vec3}
    */
   get scale() {
-    return this._scale;
+    // return this._scale;
+    return this.transform.scale;
   }
 
   set scale(val) {
-    vec3.set(this._scale, val[0], val[1], val[2]);
-    this._markTransformDirty();
+    // vec3.set(this._scale, val[0], val[1], val[2]);
+    // this._markTransformDirty();
+    this.transform.scale = val;
   }
 
   /**
@@ -381,8 +395,7 @@ export class Node extends EventDispatcher {
      * @member {function}
      */
     this.onUpdate = null;
-
-    this.transform = new Transform(this);
+    this.createAbility(Transform);
   }
 
   public clone(): Node {
@@ -667,8 +680,11 @@ export class Node extends EventDispatcher {
    * @param {quat} rot 旋转四元数
    */
   public rotateByQuat(rot: number[] | Float32Array) {
-    quat.multiply(this._rotation, this._rotation, rot);
-    this._markTransformDirty();
+    // quat.multiply(this._rotation, this._rotation, rot);
+    // this._markTransformDirty();
+    const tempVec3 = vec3.create();
+    const rotateEuler = quat.toEuler(tempVec3, rot);
+    this.transform.rotate(rotateEuler);
   }
 
   /**
@@ -678,15 +694,20 @@ export class Node extends EventDispatcher {
    * @param {number} roll Z轴的旋转角度
    */
   public rotateByAngles(pitch: number, yaw: number, roll: number): void {
-    const rot = quat.create();
-    if (Util.isArray(pitch)) {
-      quat.fromEuler(rot, pitch[0], pitch[1], pitch[2]);
-    } else {
-      quat.fromEuler(rot, pitch, yaw, roll);
-    }
+    // const rot = quat.create();
+    // if (Util.isArray(pitch)) {
+    //   quat.fromEuler(rot, pitch[0], pitch[1], pitch[2]);
+    // } else {
+    //   quat.fromEuler(rot, pitch, yaw, roll);
+    // }
 
-    quat.multiply(this._rotation, this._rotation, rot);
-    this._markTransformDirty();
+    // quat.multiply(this._rotation, this._rotation, rot);
+    // this._markTransformDirty();
+    if (Util.isArray(pitch)) {
+      this.transform.rotate([pitch[0], pitch[1], pitch[2]]);
+    } else {
+      this.transform.rotate([pitch, yaw, roll]);
+    }
   }
 
   /**
@@ -695,13 +716,18 @@ export class Node extends EventDispatcher {
    * @param {number} yaw 围绕Y轴的旋转
    * @param {number} roll 围绕Z轴的旋转
    */
-  public setRotationAngles(pitch: number, yaw: number, roll: number): void {
+  public setRotationAngles(pitch, yaw: number, roll: number): void {
+    // if (Util.isArray(pitch)) {
+    //   quat.fromEuler(this._rotation, pitch[0], pitch[1], pitch[2]);
+    // } else {
+    //   quat.fromEuler(this._rotation, pitch, yaw, roll);
+    // }
+    // this._markTransformDirty();
     if (Util.isArray(pitch)) {
-      quat.fromEuler(this._rotation, pitch[0], pitch[1], pitch[2]);
+      this.transform.rotation = pitch;
     } else {
-      quat.fromEuler(this._rotation, pitch, yaw, roll);
+      this.transform.rotation = [pitch, yaw, roll];
     }
-    this._markTransformDirty();
   }
 
   /**
@@ -710,32 +736,37 @@ export class Node extends EventDispatcher {
    * @param {number} deg 旋转角度
    */
   public setRotationAxisAngle(axis, deg: number) {
-    quat.setAxisAngle(this._rotation, axis, MathUtil.toRadian(deg));
-    this._markTransformDirty();
+    // quat.setAxisAngle(this._rotation, axis, MathUtil.toRadian(deg));
+    // this._markTransformDirty();
+    const tempQuat = quat.create();
+    const rotateQuat = quat.setAxisAngle(tempQuat, axis, MathUtil.toRadian(deg));
+    this.transform.rotationQuaternion = rotateQuat;
   }
 
   /** 获取本节点的前方方向
    * @return {vec3} 节点的前方方向向量
    */
-  public getForward(): number[] | Float32Array {
-    const modelMatrix = this.getModelMatrix();
-    return vec3.fromValues(modelMatrix[8], modelMatrix[9], modelMatrix[10]);
+  public getForward() {
+    // const modelMatrix = this.getModelMatrix();
+    // return vec3.fromValues(modelMatrix[8], modelMatrix[9], modelMatrix[10]);
+    return this.forward;
   }
 
   /**
    * 取得Local to World矩阵
    */
-  public getModelMatrix(): number[] | Float32Array {
-    if (this._modelMatrixDirty) {
-      this._updateModelMatrix();
-      vec3.set(this._right, this._modelMatrix[0], this._modelMatrix[1], this._modelMatrix[2]);
-      vec3.set(this._up, this._modelMatrix[4], this._modelMatrix[5], this._modelMatrix[6]);
-      vec3.set(this._forward, this._modelMatrix[8], this._modelMatrix[9], this._modelMatrix[10]);
-      vec3.normalize(this._right, this._right);
-      vec3.normalize(this._up, this._up);
-      vec3.normalize(this._forward, this._forward);
-    }
-    return this._modelMatrix;
+  public getModelMatrix() {
+    // if (this._modelMatrixDirty) {
+    //   this._updateModelMatrix();
+    //   vec3.set(this._right, this._modelMatrix[0], this._modelMatrix[1], this._modelMatrix[2]);
+    //   vec3.set(this._up, this._modelMatrix[4], this._modelMatrix[5], this._modelMatrix[6]);
+    //   vec3.set(this._forward, this._modelMatrix[8], this._modelMatrix[9], this._modelMatrix[10]);
+    //   vec3.normalize(this._right, this._right);
+    //   vec3.normalize(this._up, this._up);
+    //   vec3.normalize(this._forward, this._forward);
+    // }
+    // return this._modelMatrix;
+    return this.transform.worldMatrix;
   }
 
   /**
@@ -836,10 +867,12 @@ export class Node extends EventDispatcher {
    * @param {vec3} up 指向上方的单位向量
    */
   public lookAt(center: vec3Type, up: vec3Type) {
-    const position = this.worldPosition;
-    const modelMatrix = mat4.create();
-    mat4.lookAtR(modelMatrix, position, center, up);
-    this.setModelMatrix(modelMatrix);
+    // const position = this.worldPosition;
+    // const modelMatrix = mat4.create();
+    // mat4.lookAtR(modelMatrix, position, center, up);
+    // this.setModelMatrix(modelMatrix);
+    // return this;
+    this.transform.lookAt(center, up);
     return this;
   }
 
