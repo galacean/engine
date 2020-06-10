@@ -22,8 +22,7 @@ export class Node extends EventDispatcher {
     for (let i = _nodes.length - 1; i >= 0; i--) {
       const node = _nodes[i];
       const nodeName = node.name;
-      if (nodeName && nodeName === name) {
-        //CM:“nodeName &&” 是否可以删掉
+      if (nodeName === name) {
         return node;
       }
     }
@@ -40,11 +39,11 @@ export class Node extends EventDispatcher {
     const rootNode = scene.root;
     if (!rootNode) return null;
     let node: Node = rootNode;
-    for (const split of splits) {
-      //CM:这个比for（;;）循环快吗
+    const spitLength = splits.length;
+    for (let i = spitLength - 1; i >= 0; ++i) {
+      const split = splits[i];
       if (split) {
-        //CM:这是干啥
-        node = Node._findChildByName(node, split); //CM:该方法会查找多层，仍需优化
+        node = Node._findChildByName(node, split);
         if (!node) {
           return null;
         }
@@ -60,20 +59,18 @@ export class Node extends EventDispatcher {
     const children = root._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      if (child.name && child.name === name) {
-        //CM:"child.name &&” 是否可以删掉
+      if (child.name === name) {
         return child;
       }
     }
-    //CM:是不是落了一个return null
+    return null;
   }
 
   /* 名字 */
   name: string;
 
   /* @internal */
-  _activeInHierarchy: boolean; //CM：应该给个默认值false吧
-
+  _activeInHierarchy: boolean = false;
   private _components: NodeAbility[]; //CM:在这里初始化更好
   private _parent: Node;
   private _isRoot: boolean; //TODO:由于目前场景管理机制不得不加
@@ -101,7 +98,7 @@ export class Node extends EventDispatcher {
         }
       } else {
         //CM:这个不用加 this._isRoot || (parent && parent._activeInHierarchy)判断吗
-        this._setInActiveInHierarchy();
+        this._activeInHierarchy && this._setInActiveInHierarchy();
       }
     }
   }
@@ -121,7 +118,6 @@ export class Node extends EventDispatcher {
   }
 
   set parent(node: Node) {
-    //CM:activeInHierachy没处理
     if (node !== this._parent) {
       const oldParent = this._parent;
       if (oldParent != null) {
@@ -129,8 +125,6 @@ export class Node extends EventDispatcher {
         const index = children.indexOf(this);
         if (index > -1) {
           children.splice(index, 1);
-          // @deprecated
-          oldParent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun); //CM:是否可以删掉了
         }
       }
       const newParent = (this._parent = node);
@@ -145,18 +139,14 @@ export class Node extends EventDispatcher {
         }
 
         if (newParent._activeInHierarchy) {
-          //CM：写得好
           !this._activeInHierarchy && this._active && this._setActiveInHierarchy();
         } else {
           this._activeInHierarchy && this._setInActiveInHierarchy();
         }
-
-        // @deprecated
-        newParent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun); //CM:是否可以删掉了
       } else {
         if (oldParent) {
           // @deprecated event
-          this.traverseAbilitiesTriggerEnabled(false);
+          // this.traverseAbilitiesTriggerEnabled(false);
           this._changeScene(null);
           Node.traverseSetOwnerScene(this);
         }
@@ -219,6 +209,9 @@ export class Node extends EventDispatcher {
     //CM:看看能否删除node参数
     const component = new type(this, props);
     this._components.push(component);
+    if (this._activeInHierarchy) {
+      component._setActive(true);
+    }
     return component;
   }
 
@@ -272,8 +265,6 @@ export class Node extends EventDispatcher {
    * @returns 节点
    */
   findByName(name: string): Node {
-    //CM:应该封装内部方法，和静态方法公用
-    // -- find in this
     const children = this._children;
     const child = Node._findChildByName(this, name);
     if (child) return child;
@@ -294,15 +285,15 @@ export class Node extends EventDispatcher {
    * @returns 节点
    */
   findByPath(path: string): Node {
-    //CM:应该封装内部方法，和静态方法公用
     const splits = path.split("/");
     let node: Node = this;
-    for (const split of splits) {
-      //CM:这个比for（;;）循环快吗
+    const spitLength = splits.length;
+    for (let i = spitLength - 1; i >= 0; ++i) {
+      const split = splits[i];
+      //CM:这是干啥
       if (split) {
-        //CM:这是干啥
         node = Node._findChildByName(node, split);
-        if (node === null) {
+        if (!node) {
           return null;
         }
       }
@@ -317,13 +308,12 @@ export class Node extends EventDispatcher {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
+      if (child._parent) {
+        child._changeScene(null);
+        Node.traverseSetOwnerScene(child);
+      }
       child._parent = null; //CM:没触发activeInHierarchy的修改吧
-
-      // @deprecated
-      child.traverseAbilitiesTriggerEnabled(false);
-      child._changeScene(null);
-      Node.traverseSetOwnerScene(child);
-      this.removeEventListener("isActiveInHierarchyChange", child._activeChangeFun);
+      this._activeInHierarchy && this._setInActiveInHierarchy();
     }
   }
 
@@ -385,7 +375,6 @@ export class Node extends EventDispatcher {
       const index = this._parent._children.indexOf(this);
       if (index > -1) {
         this._parent._children.splice(index, 1);
-        this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
       } else {
         Logger.debug("can not find this object in _parent._children");
       }
@@ -399,9 +388,10 @@ export class Node extends EventDispatcher {
   _setActiveInHierarchy(): void {
     this._activeInHierarchy = true;
     //TODO  待优化 延时处理
-    const components = Object.assign({}, this._components); //CM:不能用object
-    for (let index in components) {
-      const component = components[index];
+    const components = this._components;
+    const componentsLength = this._components.length;
+    for (let i = componentsLength - 1; i >= 0; i--) {
+      const component = components[i];
       if (component) {
         component._setActive(true);
       }
@@ -418,9 +408,10 @@ export class Node extends EventDispatcher {
    */
   _setInActiveInHierarchy(): void {
     this._activeInHierarchy = false;
-    const components = Object.assign({}, this._components); //CM:不能用object
-    for (let index in components) {
-      const component = components[index];
+    const components = this._components;
+    const componentsLength = this._components.length;
+    for (let i = componentsLength - 1; i >= 0; i--) {
+      const component = components[i];
       if (component) {
         component._setActive(false);
       }
@@ -806,9 +797,6 @@ export class Node extends EventDispatcher {
     props: object = {}
   ): T {
     const component = this.addComponent(abilityType, props);
-    if (this._activeInHierarchy) {
-      component._setActive(true);
-    }
     return component;
   }
 

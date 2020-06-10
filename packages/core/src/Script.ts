@@ -8,22 +8,6 @@ export class Script extends NodeAbility {
   /* @internal */
   _started: boolean = false;
 
-  constructor(node: Node, props: object = {}) {
-    super(node, props);
-    if (this.onUpdate !== Script.prototype.onUpdate) {
-      this.scene._componentsManager.addScript("onUpdate", this); //CM：this.scene._componentsManager 提出来吧
-    }
-    if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
-      this.scene._componentsManager.addScript("onLateUpdate", this);
-    }
-    if (this.onPreRender !== Script.prototype.onPreRender) {
-      this.scene._componentsManager.addScript("onPreRender", this);
-    }
-    if (this.onPostRender !== Script.prototype.onPostRender) {
-      this.scene._componentsManager.addScript("onPostRender", this);
-    }
-  }
-
   /**
    * 脚本第一次被激活时调用,而且只调用一次。
    */
@@ -101,8 +85,22 @@ export class Script extends NodeAbility {
     this.onDisable();
   }
 
-  _onDestroy(): void {
-    this.onDisable();
+  _onActive(): void {
+    if (this.onUpdate !== Script.prototype.onUpdate) {
+      this.scene._componentsManager.addScript("onUpdate", this); //CM：this.scene._componentsManager 提出来吧
+    }
+    if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
+      this.scene._componentsManager.addScript("onLateUpdate", this);
+    }
+    if (this.onPreRender !== Script.prototype.onPreRender) {
+      this.scene._componentsManager.addScript("onPreRender", this);
+    }
+    if (this.onPostRender !== Script.prototype.onPostRender) {
+      this.scene._componentsManager.addScript("onPostRender", this);
+    }
+  }
+
+  _onInActive(): void {
     if (this.onUpdate !== Script.prototype.onUpdate) {
       this.scene._componentsManager.removeScript("onUpdate", this);
     }
@@ -115,5 +113,21 @@ export class Script extends NodeAbility {
     if (this.onPostRender !== Script.prototype.onPostRender) {
       this.scene._componentsManager.removeScript("onPostRender", this);
     }
+  }
+
+  _onDestroy(): void {
+    if (this.onUpdate !== Script.prototype.onUpdate) {
+      this.scene._componentsManager.removeScript("onUpdate", this);
+    }
+    if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
+      this.scene._componentsManager.removeScript("onLateUpdate", this);
+    }
+    if (this.onPreRender !== Script.prototype.onPreRender) {
+      this.scene._componentsManager.removeScript("onPreRender", this);
+    }
+    if (this.onPostRender !== Script.prototype.onPostRender) {
+      this.scene._componentsManager.removeScript("onPostRender", this);
+    }
+    this._onDestroy();
   }
 }

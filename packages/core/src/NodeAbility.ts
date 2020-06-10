@@ -109,37 +109,25 @@ export class NodeAbility extends EventDispatcher {
   /**
    * @override
    * @internal
-   * 被激活后调用，可根据需要重写此方法
    */
-  _onAwake(): void {
-    //override it.
-  }
+  _onAwake(): void {}
   /**
    * @override
    * @internal
-   * 被激活后调用，可根据需要重写此方法
    */
-  _onEnable(): void {
-    //override it.
-  }
+  _onEnable(): void {}
 
   /**
    * @override
    * @internal
-   * 被禁用时调用，可根据需要重写此方法
    */
-  _onDisable(): void {
-    //override it.
-  }
+  _onDisable(): void {}
 
   /**
    * @override
    * @internal
-   * 被销毁时调用，可根据需要重写此方法
    */
-  _onDestroy(): void {
-    //override it.
-  }
+  _onDestroy(): void {}
 
   /**
    * @override
