@@ -234,6 +234,7 @@ export class BasicSceneRenderer extends SceneVisitor {
 
       // distance cull
       if (nodeAbility.cullDistanceSq > 0) {
+        //CM:这里有裁剪,陆庄优化后，也需要先调用裁剪
         const distanceSq = vec3.squaredDistance(this._camera.eyePos, nodeAbility.node.worldPosition);
         culled = nodeAbility.cullDistanceSq < distanceSq;
       }
