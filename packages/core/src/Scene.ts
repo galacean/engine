@@ -66,7 +66,6 @@ export class Scene extends EventDispatcher {
    * */
   public clipPlanes: Vec4[] = [];
 
-  // @internal
   public _componentsManager: ComponentsManager;
 
   /**
@@ -94,14 +93,10 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
-    //TODO:@ 陆庄 update
     this._componentsManager.callScriptOnUpdate(deltaTime);
-    this._componentsManager.callComponentOnUpdate(deltaTime);
+    this._componentsManager.callComponentOnUpdate(deltaTime); //@deprecated //CM:这里混了渲染组件，渲染组件需要在更新之后调用
     this._componentsManager.callAnimationOnUpdate(deltaTime);
-    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //TODO:移除
-    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //TODO:移除
-    //TODO:@ 陆庄 inner logic CM:动画更新放哪了啊
-    //TODO:@ 陆庄 lateUpdate
+    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
     this._componentsManager.callScriptOnLateUpdate();
   }
 
@@ -115,26 +110,16 @@ export class Scene extends EventDispatcher {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          //TODO:@ 陆庄 preRender
           this._componentsManager.callScriptOnPreRender();
-          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //TODO:移除
+          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();
-          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //TODO:移除
-          //TODO:@ 陆庄 postRender
+          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //deprecated
           this._componentsManager.callScriptOnPostRender();
         }
       }
     } else {
       Logger.debug("NO active camera.");
     }
-  }
-
-  /**
-   * 访问整个 SceneGraph
-   * @param {SceneVisitor} visitor
-   */
-  public visitSceneGraph(visitor: SceneVisitor): void {
-    this._root.visit(visitor);
   }
 
   /**

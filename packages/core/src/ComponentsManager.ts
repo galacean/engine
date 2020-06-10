@@ -4,9 +4,8 @@ import { RenderableComponent } from "./RenderableComponent";
 import { Script } from "./Script";
 
 /**
- * @internal
+ *
  */
-
 export class ComponentsManager {
   private _onUpdateScripts: Array<Script> = [];
   private _onLateUpdateScripts: Array<Script> = [];

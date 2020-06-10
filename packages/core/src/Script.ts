@@ -2,6 +2,7 @@ import { NodeAbility } from "./NodeAbility";
 
 /**
  * 脚本类，可进行逻辑编写。
+ * CM:我们最后一起严格校对一下生命周期函数的执行顺序
  */
 export class Script extends NodeAbility {
   /* @internal */
@@ -80,10 +81,20 @@ export class Script extends NodeAbility {
     this.onStart();
   }
 
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
   _onDisable(): void {
     this.onDisable();
   }
 
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
   _onActive(): void {
     const componentsManager = this.scene._componentsManager;
     if (this.onUpdate !== Script.prototype.onUpdate) {
@@ -100,6 +111,11 @@ export class Script extends NodeAbility {
     }
   }
 
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
   _onInActive(): void {
     const componentsManager = this.scene._componentsManager;
     if (this.onUpdate !== Script.prototype.onUpdate) {
@@ -116,7 +132,12 @@ export class Script extends NodeAbility {
     }
   }
 
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
   _onDestroy(): void {
-    this._onDestroy();
+    this._onDestroy(); //CM:这不死循环了
   }
 }

@@ -3,7 +3,6 @@ import { mat4, MathUtil, quat, vec3 } from "@alipay/o3-math";
 import { Engine } from "./Engine";
 import { NodeAbility } from "./NodeAbility";
 import { Scene } from "./Scene";
-import { SceneVisitor } from "./SceneVisitor";
 import { vec3Type } from "./type";
 
 /**
@@ -71,6 +70,9 @@ export class Node extends EventDispatcher {
 
   /* @internal */
   _activeInHierarchy: boolean = false;
+
+  private _active: boolean;
+  private _children: Node[] = [];
   private _components: NodeAbility[] = [];
   private _parent: Node;
   private _isRoot: boolean; //TODO:由于目前场景管理机制不得不加
@@ -103,7 +105,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * 父变换。
+   * 父节点。
    */
   get parent(): Node {
     return this._parent || null;
@@ -162,19 +164,16 @@ export class Node extends EventDispatcher {
    */
   constructor(scene?: Scene, parent?: Node, name?: string) {
     super();
-    // -- 核心数据
-    this._isRoot = parent === null && name === "root";
     this._scene = scene;
+    this._isRoot = parent === null && name === "root";
     this.name = name;
     this.parent = parent;
-    // -- 状态变量
-    this._pendingDestroy = false;
     this.active = true; // local active state of this Node
+    Node._nodes.push(this);
 
-    // this._isActiveInInHierarchy = true;
+    //deprecated
+    this._pendingDestroy = false;
     this._activeChangeFun = activeChange(this);
-
-    // -- Transform
     this._position = vec3.create();
     this._rotation = quat.create();
     this._scale = vec3.fromValues(1, 1, 1);
@@ -182,12 +181,9 @@ export class Node extends EventDispatcher {
     this._invModelMatrix = mat4.create();
     this._modelMatrixDirty = true;
     this._invModelMatrixDirty = true;
-
     this._up = vec3.fromValues(0, 1, 0);
     this._right = vec3.fromValues(1, 0, 0);
     this._forward = vec3.fromValues(0, 0, 1);
-
-    Node._nodes.push(this);
   }
 
   /**
@@ -211,7 +207,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   getComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T): T {
-    return (this._components.filter(component => component instanceof type)[0] as T) || null;
+    return (this._components.filter(component => component instanceof type)[0] as T) || null; //CM:测一下自己for循环判断instanceof类型的性能
   }
 
   /**
@@ -220,7 +216,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例集合
    */
   getComponents<T extends NodeAbility>(type: new (node: Node, props?: object) => T, results: Array<T>): Array<T> {
-    results = this._components.filter(component => component instanceof type) as T[];
+    results = this._components.filter(component => component instanceof type) as T[]; //CM:测一下自己for循环判断instanceof类型的性能
     return results;
   }
 
@@ -375,8 +371,8 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _setActiveInHierarchy(): void {
+    //CM:需要做延时处理
     this._activeInHierarchy = true;
-    //TODO  待优化 延时处理
     const components = this._components;
     const componentsLength = this._components.length;
     for (let i = componentsLength - 1; i >= 0; i--) {
@@ -396,6 +392,7 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _setInActiveInHierarchy(): void {
+    //CM:需要做延时处理
     this._activeInHierarchy = false;
     const components = this._components;
     const componentsLength = this._components.length;
@@ -422,11 +419,7 @@ export class Node extends EventDispatcher {
 
   private _scene: Scene;
 
-  private _children: Node[] = [];
-
-  private _pendingDestroy: boolean;
-
-  private _active: boolean;
+  private _pendingDestroy: boolean; //CM:好像没用了
 
   private propertyChangeEvnet = new Event("propertyChange");
 
@@ -785,31 +778,6 @@ export class Node extends EventDispatcher {
       }
     }
     return null;
-  }
-
-  /**
-   * @deprecated
-   * 递归的访问自身&子节点
-   * @param {SceneVisitor} visitor
-   */
-  public visit(visitor: SceneVisitor): void {
-    if (!visitor.acceptNode(this)) {
-      return;
-    }
-
-    const abilityArray = this._components;
-    if (abilityArray) {
-      for (let i = abilityArray.length - 1; i >= 0; i--) {
-        visitor.acceptAbility(abilityArray[i]);
-      }
-    } // end of if
-
-    const children = this._children;
-    if (children) {
-      for (let i = children.length - 1; i >= 0; i--) {
-        children[i].visit(visitor);
-      } // end of for
-    } // end of if
   }
 
   /**
