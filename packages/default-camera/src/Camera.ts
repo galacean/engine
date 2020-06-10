@@ -375,7 +375,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 重置投影矩阵设置，让 fieldOfView，nearClipPlane 和 farClipPlane 生效
+   * 重置投影矩阵设置，让 fieldOfView，nearClipPlane 和 farClipPlane 生效 //CM:注释太白话
    */
   public resetProjectionMatrix() {
     this.isProjectionMatrixSetting = false;
