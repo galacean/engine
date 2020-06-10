@@ -391,16 +391,6 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 世界坐标转换成屏幕坐标
-   * @param worldPoint
-   * @param out out[0] 是归一化的 screen 的 x，out[1] 是归一化的 screen 的 y，out[2] 是归一化的视口深度，0 是近裁面，1 是远裁面，out[3] 是距相机的深度
-   */
-  public worldToScreenPoint(worldPoint: Vector3, out: Vector4): Vector4 {
-    this.worldToViewportPoint(worldPoint, out);
-    return this.viewportToScreenPoint(out, out);
-  }
-
-  /**
    * 世界坐标转化成 viewport 坐标
    * @param worldPoint 世界坐标
    * @param out out[0] 是归一化的 viewport 的 x，out[1] 是归一化的 viewport 的 y，out[2] 是归一化的视口深度，0 是近裁面，1 是远裁面，out[3] 是距相机的深度
@@ -425,15 +415,6 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 屏幕点转成射线
-   * @param position
-   */
-  public screenPointToRay(position: Vector2, ray: Ray): Ray {
-    const viewportPoint = this.viewportToScreenPoint(position, position);
-    return this.viewportPointToRay(viewportPoint, ray);
-  }
-
-  /**
    * 屏幕坐标转化成视图坐标
    * @param position
    */
@@ -445,19 +426,11 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 屏幕坐标转化成世界坐标
-   * @param position 屏幕坐标点，postion[0] 是归一化的 viewport 的 x，postion[1] 是归一化的 viewport 的 x，postion[2] 归一化的 z，0 是近裁面，1 是远裁面
-   */
-  public screenToWorldPoint(position: Vector3, out: Vector3): Vector3 {
-    const viewportPoint = this.screenToViewportPoint(position, MathTemp.tempVec3);
-    return this.viewportToWorldPoint(viewportPoint, out);
-  }
-
-  /**
    * 相机视口坐标转化成射线
    * @param position position[0] 是归一化的 viewport x，position[1] 是归一化的 viewport y
    */
   public viewportPointToRay(position: Vector2, ray: Ray): Ray {
+    //CM:好像不太对
     // todo 使用 transform 的 worldPosition
     const modelMatrix = this.node.getModelMatrix();
     // todo 使用近裁面的交点作为 origin
