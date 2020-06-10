@@ -132,6 +132,7 @@ export class Scene extends EventDispatcher {
    * @param {SceneVisitor} visitor
    */
   public visitSceneGraph(visitor: SceneVisitor): void {
+    //CM:陆庄做优化
     this._root.visit(visitor);
   }
 

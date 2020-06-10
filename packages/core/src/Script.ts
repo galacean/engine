@@ -11,7 +11,7 @@ export class Script extends NodeAbility {
   constructor(node: Node, props: object = {}) {
     super(node, props);
     if (this.onUpdate !== Script.prototype.onUpdate) {
-      this.scene._componentsManager.addScript("onUpdate", this);
+      this.scene._componentsManager.addScript("onUpdate", this); //CM：this.scene._componentsManager 提出来吧
     }
     if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
       this.scene._componentsManager.addScript("onLateUpdate", this);
