@@ -65,60 +65,6 @@ export class Transform extends NodeAbility {
   private _children: Transform[] = [];
   private _dirtyFlag: number = 0;
 
-  constructor(node: Node, props: TransformProps) {
-    super(node, props);
-    this._init(node, props);
-  }
-
-  private _init(node, props) {
-    this._initDirtyFlag();
-    this._initTRS(props);
-    this._getParent(node);
-    this._getChild(node, this._children);
-    node.transform = this;
-  }
-
-  private _initDirtyFlag() {
-    this._setDirtyFlag(
-      Transform.LOCAL_POSITION_FLAG |
-        Transform.LOCAL_ROTATION_FLAG |
-        Transform.LOCAL_ROTATION_QUAT_FLAG |
-        Transform.LOCAL_SCALE_FLAG |
-        Transform.LOCAL_MATRIX_FLAG,
-      false
-    );
-    this._setDirtyFlag(
-      Transform.WORLD_POSITION_FLAG |
-        Transform.WORLD_ROTATION_FLAG |
-        Transform.WORLD_ROTATION_QUAT_FLAG |
-        Transform.WORLD_SCALE_FLAG |
-        Transform.WORLD_MATRIX_FLAG,
-      true
-    );
-  }
-
-  private _initTRS(props) {
-    if (!props) return;
-    const { scale, position, rotation, rotationQuaternion } = props;
-    if (position) {
-      this.position = position;
-    }
-    if (rotation) {
-      this.rotation = rotation;
-    }
-    if (rotationQuaternion) {
-      this.rotationQuaternion = rotationQuaternion;
-    }
-    if (scale) {
-      this.scale = scale;
-    }
-  }
-
-  updateParentTransform() {
-    this._getParent(this.node);
-    this._updateAll();
-  }
-
   /**
    * 父变换
    */
@@ -131,48 +77,11 @@ export class Transform extends NodeAbility {
     this._parent._children.push(this);
   }
 
-  private _getParent(node): Transform {
-    let parent = node.parentNode;
-    let parentTransform = null;
-    while (parent) {
-      const transformAility = parent.transform;
-      if (transformAility) {
-        parentTransform = transformAility;
-        break;
-      } else {
-        parent = parent.parentNode;
-      }
-    }
-    this._parent = parentTransform;
-    return parentTransform;
-  }
-
   /**
    * 子变换数量
    */
   get childTransformCount(): number {
     return this._children.length;
-  }
-
-  /**
-   * 初始化子变换数量
-   */
-  private _getChild(node, children) {
-    if (node.children.length > 0) {
-      for (let i = 0; i < node.children.length; i++) {
-        const childNode = node.children[i];
-        if (childNode && childNode.transform) {
-          children.push(childNode.transform);
-        }
-      }
-    }
-  }
-
-  /**
-   * 获取子变换
-   */
-  getChildTransform(index: number): Transform {
-    return this._children[index];
   }
 
   /**
@@ -194,17 +103,6 @@ export class Transform extends NodeAbility {
     this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, true);
     // 局部位移变化，需要更新世界矩阵和世界位移
     this._updateWorldPosition();
-  }
-
-  private _updateWorldPosition(): void {
-    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
-    const worldPositionNeedUpdate = this._getDirtyFlag(Transform.WORLD_POSITION_FLAG);
-    if (!worldMatrixNeedUpdate || !worldPositionNeedUpdate) {
-      this._setDirtyFlag(Transform.WORLD_MATRIX_FLAG | Transform.WORLD_POSITION_FLAG, true);
-      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
-        this._children[i]._updateWorldPosition();
-      }
-    }
   }
 
   /**
@@ -264,45 +162,6 @@ export class Transform extends NodeAbility {
     this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG | Transform.LOCAL_ROTATION_QUAT_FLAG, true);
     this._setDirtyFlag(Transform.LOCAL_ROTATION_FLAG, false);
     this._updateWorldRotation();
-  }
-
-  private _updateWorldRotation() {
-    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
-    const worldRotationNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_FLAG);
-    const worldRotationQuatNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_QUAT_FLAG);
-    if (!worldMatrixNeedUpdate || !worldRotationNeedUpdate || !worldRotationQuatNeedUpdate) {
-      this._setDirtyFlag(
-        Transform.WORLD_MATRIX_FLAG | Transform.WORLD_ROTATION_FLAG | Transform.WORLD_ROTATION_QUAT_FLAG,
-        true
-      );
-      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
-        this._children[i]._updateWorldPositionAndRotation();
-      }
-    }
-  }
-
-  private _updateWorldPositionAndRotation() {
-    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
-    const worldPositionNeedUpdate = this._getDirtyFlag(Transform.WORLD_POSITION_FLAG);
-    const worldRotationNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_FLAG);
-    const worldRotationQuatNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_QUAT_FLAG);
-    if (
-      !worldMatrixNeedUpdate ||
-      !worldPositionNeedUpdate ||
-      !worldRotationNeedUpdate ||
-      !worldRotationQuatNeedUpdate
-    ) {
-      this._setDirtyFlag(
-        Transform.WORLD_MATRIX_FLAG |
-          Transform.WORLD_POSITION_FLAG |
-          Transform.WORLD_ROTATION_FLAG |
-          Transform.WORLD_ROTATION_QUAT_FLAG,
-        true
-      );
-    }
-    for (var i: number = 0, n: number = this._children.length; i < n; i++) {
-      this._children[i]._updateWorldPositionAndRotation();
-    }
   }
 
   /**
@@ -419,32 +278,6 @@ export class Transform extends NodeAbility {
     this._updateWorldScale();
   }
 
-  private _updateWorldScale() {
-    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
-    const worldScaleNeedUpdate = this._getDirtyFlag(Transform.WORLD_SCALE_FLAG);
-    if (worldMatrixNeedUpdate || worldScaleNeedUpdate) {
-      this._setDirtyFlag(Transform.WORLD_MATRIX_FLAG | Transform.WORLD_SCALE_FLAG, false);
-      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
-        this._children[i]._updateWorldPositionAndScale();
-      }
-    }
-  }
-
-  private _updateWorldPositionAndScale() {
-    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
-    const worldPositionNeedUpdate = this._getDirtyFlag(Transform.WORLD_POSITION_FLAG);
-    const worldScaleNeedUpdate = this._getDirtyFlag(Transform.WORLD_SCALE_FLAG);
-    if (worldMatrixNeedUpdate || worldPositionNeedUpdate || worldScaleNeedUpdate) {
-      this._setDirtyFlag(
-        Transform.WORLD_MATRIX_FLAG | Transform.WORLD_POSITION_FLAG | Transform.WORLD_SCALE_FLAG,
-        true
-      );
-      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
-        this._children[i]._updateWorldPositionAndScale();
-      }
-    }
-  }
-
   /**
    * 世界缩放
    */
@@ -459,18 +292,6 @@ export class Transform extends NodeAbility {
       this._setDirtyFlag(Transform.WORLD_SCALE_FLAG, false);
     }
     return this._lossyWorldScale;
-  }
-
-  private _getScaleMatrix(): mat3Type {
-    const invRotation = Transform._tempVec4;
-    const invRotationMat = Transform._tempMat3;
-    const worldRotScaMat = Transform._tempMat31;
-    let scaMat = Transform._tempMat32;
-    mat3.fromMat4(worldRotScaMat, this.worldMatrix);
-    quat.invert(invRotation, this.worldRotationQuaternion);
-    mat3.fromQuat(invRotation, invRotationMat);
-    mat3.multiply(scaMat, invRotationMat, worldRotScaMat);
-    return scaMat;
   }
 
   /**
@@ -497,33 +318,6 @@ export class Transform extends NodeAbility {
     );
     this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, false);
     this._updateAll();
-  }
-
-  private _updateAll() {
-    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
-    const worldPositionNeedUpdate = this._getDirtyFlag(Transform.WORLD_POSITION_FLAG);
-    const worldRotationNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_FLAG);
-    const worldRotationQuatNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_QUAT_FLAG);
-    const worldScaleNeedUpdate = this._getDirtyFlag(Transform.WORLD_SCALE_FLAG);
-    if (
-      worldMatrixNeedUpdate ||
-      worldPositionNeedUpdate ||
-      worldRotationNeedUpdate ||
-      worldRotationQuatNeedUpdate ||
-      worldScaleNeedUpdate
-    ) {
-      this._setDirtyFlag(
-        Transform.WORLD_MATRIX_FLAG |
-          Transform.WORLD_POSITION_FLAG |
-          Transform.WORLD_ROTATION_FLAG |
-          Transform.WORLD_ROTATION_QUAT_FLAG |
-          Transform.WORLD_SCALE_FLAG,
-        true
-      );
-      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
-        this._children[i]._updateAll();
-      }
-    }
   }
 
   /**
@@ -555,19 +349,21 @@ export class Transform extends NodeAbility {
     this._setDirtyFlag(Transform.WORLD_MATRIX_FLAG, false);
   }
 
-  /**
-   * 获取脏标记
-   */
-  private _getDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
+  constructor(node: Node, props: TransformProps) {
+    super(node, props);
+    this._init(node, props);
   }
 
-  private _setDirtyFlag(type: number, value: boolean): void {
-    if (value) {
-      this._dirtyFlag |= type;
-    } else {
-      this._dirtyFlag &= ~type;
-    }
+  /**
+   * 获取子变换
+   */
+  getChildTransform(index: number): Transform {
+    return this._children[index];
+  }
+
+  updateParentTransform() {
+    this._getParent(this.node);
+    this._updateAll();
   }
 
   /**
@@ -595,30 +391,6 @@ export class Transform extends NodeAbility {
   getWorldUp(up: vec3Type): vec3Type {
     up = vec3.set(up, this._worldMatrix[4], this._worldMatrix[5], this._worldMatrix[6]);
     return vec3.normalize(up, up);
-  }
-
-  /**
-   * 设置世界矩阵的前向量。
-   * @param forward - 前向量
-   */
-  setWorldForward(forward: vec3Type): vec3Type {
-    return;
-  }
-
-  /**
-   * 设置世界矩阵的右向量。
-   * @param right - 右向量
-   */
-  setWorldRight(right: vec3Type): vec3Type {
-    return;
-  }
-
-  /**
-   * 设置世界矩阵的上向量。
-   * @param up - 上向量
-   */
-  setWorldUp(up: vec3Type): vec3Type {
-    return;
   }
 
   /**
@@ -679,5 +451,209 @@ export class Transform extends NodeAbility {
     const position = this.worldPosition;
     const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp);
     this.worldMatrix = modelMatrix;
+  }
+
+  private _init(node, props) {
+    this._initDirtyFlag();
+    this._initTRS(props);
+    this._getParent(node);
+    this._getChild(node, this._children);
+    node.transform = this;
+  }
+
+  private _initDirtyFlag() {
+    this._setDirtyFlag(
+      Transform.LOCAL_POSITION_FLAG |
+        Transform.LOCAL_ROTATION_FLAG |
+        Transform.LOCAL_ROTATION_QUAT_FLAG |
+        Transform.LOCAL_SCALE_FLAG |
+        Transform.LOCAL_MATRIX_FLAG,
+      false
+    );
+    this._setDirtyFlag(
+      Transform.WORLD_POSITION_FLAG |
+        Transform.WORLD_ROTATION_FLAG |
+        Transform.WORLD_ROTATION_QUAT_FLAG |
+        Transform.WORLD_SCALE_FLAG |
+        Transform.WORLD_MATRIX_FLAG,
+      true
+    );
+  }
+
+  private _initTRS(props) {
+    if (!props) return;
+    const { scale, position, rotation, rotationQuaternion } = props;
+    if (position) {
+      this.position = position;
+    }
+    if (rotation) {
+      this.rotation = rotation;
+    }
+    if (rotationQuaternion) {
+      this.rotationQuaternion = rotationQuaternion;
+    }
+    if (scale) {
+      this.scale = scale;
+    }
+  }
+
+  private _getParent(node): Transform {
+    let parent = node.parentNode;
+    let parentTransform = null;
+    while (parent) {
+      const transformAility = parent.transform;
+      if (transformAility) {
+        parentTransform = transformAility;
+        break;
+      } else {
+        parent = parent.parentNode;
+      }
+    }
+    this._parent = parentTransform;
+    return parentTransform;
+  }
+
+  /**
+   * 初始化子变换数量
+   */
+  private _getChild(node, children) {
+    if (node.children.length > 0) {
+      for (let i = 0; i < node.children.length; i++) {
+        const childNode = node.children[i];
+        if (childNode && childNode.transform) {
+          children.push(childNode.transform);
+        }
+      }
+    }
+  }
+
+  private _updateWorldPosition(): void {
+    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
+    const worldPositionNeedUpdate = this._getDirtyFlag(Transform.WORLD_POSITION_FLAG);
+    if (!worldMatrixNeedUpdate || !worldPositionNeedUpdate) {
+      this._setDirtyFlag(Transform.WORLD_MATRIX_FLAG | Transform.WORLD_POSITION_FLAG, true);
+      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
+        this._children[i]._updateWorldPosition();
+      }
+    }
+  }
+
+  private _updateWorldRotation() {
+    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
+    const worldRotationNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_FLAG);
+    const worldRotationQuatNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_QUAT_FLAG);
+    if (!worldMatrixNeedUpdate || !worldRotationNeedUpdate || !worldRotationQuatNeedUpdate) {
+      this._setDirtyFlag(
+        Transform.WORLD_MATRIX_FLAG | Transform.WORLD_ROTATION_FLAG | Transform.WORLD_ROTATION_QUAT_FLAG,
+        true
+      );
+      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
+        this._children[i]._updateWorldPositionAndRotation();
+      }
+    }
+  }
+
+  private _updateWorldPositionAndRotation() {
+    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
+    const worldPositionNeedUpdate = this._getDirtyFlag(Transform.WORLD_POSITION_FLAG);
+    const worldRotationNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_FLAG);
+    const worldRotationQuatNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_QUAT_FLAG);
+    if (
+      !worldMatrixNeedUpdate ||
+      !worldPositionNeedUpdate ||
+      !worldRotationNeedUpdate ||
+      !worldRotationQuatNeedUpdate
+    ) {
+      this._setDirtyFlag(
+        Transform.WORLD_MATRIX_FLAG |
+          Transform.WORLD_POSITION_FLAG |
+          Transform.WORLD_ROTATION_FLAG |
+          Transform.WORLD_ROTATION_QUAT_FLAG,
+        true
+      );
+    }
+    for (var i: number = 0, n: number = this._children.length; i < n; i++) {
+      this._children[i]._updateWorldPositionAndRotation();
+    }
+  }
+
+  private _updateWorldScale() {
+    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
+    const worldScaleNeedUpdate = this._getDirtyFlag(Transform.WORLD_SCALE_FLAG);
+    if (worldMatrixNeedUpdate || worldScaleNeedUpdate) {
+      this._setDirtyFlag(Transform.WORLD_MATRIX_FLAG | Transform.WORLD_SCALE_FLAG, false);
+      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
+        this._children[i]._updateWorldPositionAndScale();
+      }
+    }
+  }
+
+  private _updateWorldPositionAndScale() {
+    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
+    const worldPositionNeedUpdate = this._getDirtyFlag(Transform.WORLD_POSITION_FLAG);
+    const worldScaleNeedUpdate = this._getDirtyFlag(Transform.WORLD_SCALE_FLAG);
+    if (worldMatrixNeedUpdate || worldPositionNeedUpdate || worldScaleNeedUpdate) {
+      this._setDirtyFlag(
+        Transform.WORLD_MATRIX_FLAG | Transform.WORLD_POSITION_FLAG | Transform.WORLD_SCALE_FLAG,
+        true
+      );
+      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
+        this._children[i]._updateWorldPositionAndScale();
+      }
+    }
+  }
+
+  private _getScaleMatrix(): mat3Type {
+    const invRotation = Transform._tempVec4;
+    const invRotationMat = Transform._tempMat3;
+    const worldRotScaMat = Transform._tempMat31;
+    let scaMat = Transform._tempMat32;
+    mat3.fromMat4(worldRotScaMat, this.worldMatrix);
+    quat.invert(invRotation, this.worldRotationQuaternion);
+    mat3.fromQuat(invRotation, invRotationMat);
+    mat3.multiply(scaMat, invRotationMat, worldRotScaMat);
+    return scaMat;
+  }
+
+  private _updateAll() {
+    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG);
+    const worldPositionNeedUpdate = this._getDirtyFlag(Transform.WORLD_POSITION_FLAG);
+    const worldRotationNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_FLAG);
+    const worldRotationQuatNeedUpdate = this._getDirtyFlag(Transform.WORLD_ROTATION_QUAT_FLAG);
+    const worldScaleNeedUpdate = this._getDirtyFlag(Transform.WORLD_SCALE_FLAG);
+    if (
+      worldMatrixNeedUpdate ||
+      worldPositionNeedUpdate ||
+      worldRotationNeedUpdate ||
+      worldRotationQuatNeedUpdate ||
+      worldScaleNeedUpdate
+    ) {
+      this._setDirtyFlag(
+        Transform.WORLD_MATRIX_FLAG |
+          Transform.WORLD_POSITION_FLAG |
+          Transform.WORLD_ROTATION_FLAG |
+          Transform.WORLD_ROTATION_QUAT_FLAG |
+          Transform.WORLD_SCALE_FLAG,
+        true
+      );
+      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
+        this._children[i]._updateAll();
+      }
+    }
+  }
+
+  /**
+   * 获取脏标记
+   */
+  private _getDirtyFlag(type: number): boolean {
+    return (this._dirtyFlag & type) != 0;
+  }
+
+  private _setDirtyFlag(type: number, value: boolean): void {
+    if (value) {
+      this._dirtyFlag |= type;
+    } else {
+      this._dirtyFlag &= ~type;
+    }
   }
 }
