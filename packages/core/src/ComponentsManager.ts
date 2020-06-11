@@ -7,16 +7,17 @@ import { Script } from "./Script";
  *
  */
 export class ComponentsManager {
-  private _onUpdateScripts: Array<Script> = [];
-  private _onLateUpdateScripts: Array<Script> = [];
-  private _onPreRenderScripts: Array<Script> = [];
-  private _onPostRenderScripts: Array<Script> = [];
-  private _onUpdateAnimations: Array<Component> = [];
+  //CM:自己实现一个数组类，并采用交换法实现，优化splice带来的巨幅性能损耗
+  private _onUpdateScripts: Script[] = [];
+  private _onLateUpdateScripts: Script[] = [];
+  private _onPreRenderScripts: Script[] = [];
+  private _onPostRenderScripts: Script[] = [];
+  private _onUpdateAnimations: Component[] = [];
 
   // 其他组件
-  private _onUpdateComponents: Array<Component> = [];
+  private _onUpdateComponents: Component[] = [];
   // render
-  private _renderers: Array<RenderableComponent> = [];
+  private _renderers: RenderableComponent[] = [];
 
   addOnUpdateComponents(component: Component): void {
     this._onUpdateComponents.push(component);
@@ -75,9 +76,9 @@ export class ComponentsManager {
   }
 
   callScriptOnUpdate(deltaTime): void {
-    const length = this._onUpdateScripts.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const script = this._onUpdateScripts[i];
+    const onUpdateScripts = this._onUpdateScripts;
+    for (let i = onUpdateScripts.length - 1; i >= 0; --i) {
+      const script = onUpdateScripts[i];
       if (script.enabled) {
         if (!script._started) {
           script._started = true;
@@ -120,8 +121,7 @@ export class ComponentsManager {
 
   callAnimationOnUpdate(deltaTime): void {
     const onUpdateAnimations = this._onUpdateAnimations;
-    const length = this._onUpdateAnimations.length;
-    for (let i = length - 1; i >= 0; --i) {
+    for (let i = onUpdateAnimations.length - 1; i >= 0; --i) {
       const animation = onUpdateAnimations[i];
       if (animation.enabled) {
         animation.onUpdate(deltaTime);
@@ -130,9 +130,9 @@ export class ComponentsManager {
   }
 
   callComponentOnUpdate(deltaTime): void {
-    const length = this._onUpdateComponents.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const component = this._onUpdateComponents[i];
+    const onUpdateComponents = this._onUpdateComponents;
+    for (let i = onUpdateComponents.length - 1; i >= 0; --i) {
+      const component = onUpdateComponents[i];
       if (component.enabled) {
         if (!component._started) {
           component._started = true;
@@ -144,9 +144,9 @@ export class ComponentsManager {
   }
 
   callRender(camera: ACamera): void {
-    const length = this._renderers.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const renderer = this._renderers[i];
+    const renders = this._renderers;
+    for (let i = renders.length - 1; i >= 0; --i) {
+      const renderer = renders[i];
       if (renderer.enabled) {
         renderer._render(camera);
       }
@@ -154,7 +154,7 @@ export class ComponentsManager {
   }
 
   clear() {
-    this._clearScripts();
+    this._clearScripts(); //CM:好像没有需要clear的场景
     this._clearComponents();
   }
 

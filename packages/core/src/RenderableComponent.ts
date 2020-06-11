@@ -10,7 +10,7 @@ export class RenderableComponent extends NodeAbility {
   /**
    * @override
    */
-  render(camera: ACamera): void {} //CM:应该写成抽象方法
+  render(camera: ACamera): void {} //CM:应该写成抽象方法,子类需要标记 @override，这里不需要
 
   _onActive() {
     super._onActive();
