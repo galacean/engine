@@ -138,6 +138,8 @@ export class Script extends NodeAbility {
    * @override
    */
   _onDestroy(): void {
-    this._onDestroy(); //CM:这不死循环了
+    //CM:这不死循环了
+    //CM:nDestroy需要在脚本生命周期的最后一帧调用，可以在ComponentManager加一个数组叫“销毁队列”，然后在一帧的最后统一调用，有人调用组件的destroy就塞到队列里
+    this._onDestroy();
   }
 }
