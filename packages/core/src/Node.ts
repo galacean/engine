@@ -374,11 +374,11 @@ export class Node extends EventDispatcher {
     //CM:需要做延时处理
     this._activeInHierarchy = true;
     const components = this._components;
-    const componentsLength = this._components.length;
-    for (let i = componentsLength - 1; i >= 0; i--) {
+    for (let i = components.length - 1; i >= 0; i--) {
       const component = components[i];
       if (component) {
-        component._setActive(true);
+        //CM:可能为空吗
+        component._setActive(true); //CM:这里需要延迟触发，和子节点组成一个临时队列,批量执行，并对主触发节点做保护
       }
     }
     const children = this._children;
@@ -395,11 +395,11 @@ export class Node extends EventDispatcher {
     //CM:需要做延时处理
     this._activeInHierarchy = false;
     const components = this._components;
-    const componentsLength = this._components.length;
-    for (let i = componentsLength - 1; i >= 0; i--) {
+    for (let i = components.length - 1; i >= 0; i--) {
       const component = components[i];
       if (component) {
-        component._setActive(false);
+        //CM:可能为空吗
+        component._setActive(false); //CM:这里需要延迟触发，和子节点组成一个临时队列,批量执行，并对主触发节点做保护
       }
     }
     const children = this._children;

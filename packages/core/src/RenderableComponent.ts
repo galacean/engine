@@ -4,12 +4,13 @@ import { vec3 } from "@alipay/o3-math";
 /**
  * 渲染组件
  */
+//CM:应该写成抽象类
 export class RenderableComponent extends NodeAbility {
   _renderable: boolean = true;
   /**
    * @override
    */
-  render(camera: ACamera): void {}
+  render(camera: ACamera): void {} //CM:应该写成抽象方法
 
   _onActive() {
     super._onActive();
