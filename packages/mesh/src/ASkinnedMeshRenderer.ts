@@ -136,6 +136,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
   }
 
   /**
+   * TODO 渲染之前
    * update matrix palette
    * @param {Number} deltaTime
    * @private
