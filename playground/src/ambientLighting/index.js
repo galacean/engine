@@ -44,6 +44,7 @@ let cameraNode = rootNode.createChild('camera_node');
 let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: 'o3-demo', position: [0, 5, 17], near: 0.1, far: 100
 });
+console.log(cameraNode.transform.worldMatrix);
 
 //-- run
 engine.run();

@@ -28,11 +28,6 @@ export class Transform extends NodeAbility {
   static _tempMat32: mat3Type = mat3.create();
   static _tempMat42: mat4Type = mat4.create();
 
-  static _tempVec33: vec3Type = vec3.create();
-  static _tempVec43: vec4Type = vec4.create();
-  static _tempMat33: mat3Type = mat3.create();
-  static _tempMat43: mat4Type = mat4.create();
-
   // dirty flag
   static LOCAL_POSITION_FLAG: number = 0x1;
   static LOCAL_ROTATION_FLAG: number = 0x2;
@@ -181,21 +176,14 @@ export class Transform extends NodeAbility {
   get position(): vec3Type {
     // localMatrix -> position
     if (this._getDirtyFlag(Transform.LOCAL_POSITION_FLAG)) {
-      if (this.node.name === "SphereNode") {
-        console.log("change");
-      }
       mat4.getTranslation(this._position, this._localMatrix);
       this._setDirtyFlag(Transform.LOCAL_POSITION_FLAG, false);
-    }
-    if (this.node.name === "SphereNode") {
-      console.log(this._position);
     }
     return this._position;
   }
 
   set position(value: vec3Type) {
     if (!vec3.equals(this.position, value)) {
-      console.log("posito", this.node.name, this._position, value);
       vec3.copy(this._position, value);
       this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, true);
       // 局部位移变化，需要更新世界矩阵和世界位移⬇️
@@ -220,6 +208,7 @@ export class Transform extends NodeAbility {
   get worldPosition(): vec3Type {
     // worldMatrix -> worldPosition
     if (this._getDirtyFlag(Transform.WORLD_POSITION_FLAG)) {
+      console.log(this.position);
       if (this._parent) {
         mat4.getTranslation(this._worldPosition, this.worldMatrix);
       } else {
@@ -232,8 +221,7 @@ export class Transform extends NodeAbility {
 
   set worldPosition(value: vec3Type) {
     if (!vec3.equals(this.worldPosition, value)) {
-      console.log("world posito", this.node.name, this._position);
-      vec3.copy(this._worldPosition, value);
+      vec3.copy(this.worldPosition, value);
       if (this._parent) {
         const matWorldToLocal = mat4.invert(Transform._tempMat4, this._parent.worldMatrix);
         vec3.transformMat4(Transform._tempVec3, value, matWorldToLocal);
@@ -486,7 +474,6 @@ export class Transform extends NodeAbility {
    */
   get localMatrix(): mat4Type {
     if (this._getDirtyFlag(Transform.LOCAL_MATRIX_FLAG)) {
-      console.log(this.position);
       mat4.fromRotationTranslationScale(this._localMatrix, this.rotationQuaternion, this.position, this.scale);
     }
     this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, false);
@@ -496,7 +483,6 @@ export class Transform extends NodeAbility {
   set localMatrix(value: mat4Type) {
     if (!mat4.equals(this.localMatrix, value)) {
       mat4.copy(this._localMatrix, value);
-      mat4.copy;
       this._setDirtyFlag(
         Transform.LOCAL_POSITION_FLAG |
           Transform.LOCAL_ROTATION_FLAG |
@@ -555,12 +541,12 @@ export class Transform extends NodeAbility {
     if (!mat4.equals(this.worldMatrix, value)) {
       mat4.copy(this._worldMatrix, value);
       if (this._parent) {
-        const matWorldToLocal = mat4.invert(Transform._tempMat42, this._parent.worldMatrix);
-        mat4.multiply(Transform._tempMat42, value, matWorldToLocal);
+        const matWorldToLocal = mat4.invert(Transform._tempMat4, this._parent.worldMatrix);
+        mat4.multiply(Transform._tempMat4, matWorldToLocal, value);
       } else {
-        mat4.copy(Transform._tempMat42, value);
+        mat4.copy(Transform._tempMat4, value);
       }
-      this.localMatrix = Transform._tempMat42;
+      this.localMatrix = Transform._tempMat4;
       this._setDirtyFlag(Transform.WORLD_MATRIX_FLAG, false);
     }
   }
@@ -654,10 +640,10 @@ export class Transform extends NodeAbility {
   rotate(rotation: vec3Type, relativeToLocal: boolean = true): void {
     const rotationQuat = quat.fromEuler(Transform._tempVec4, rotation[0], rotation[1], rotation[2]);
     if (relativeToLocal) {
-      quat.multiply(this._rotationQuaternion, this._rotationQuaternion, rotationQuat);
-      this.rotationQuaternion = this._rotationQuaternion;
+      quat.multiply(Transform._tempVec4, this._rotationQuaternion, rotationQuat);
+      this.rotationQuaternion = Transform._tempVec4;
     } else {
-      quat.multiply(rotationQuat, this.worldRotationQuaternion, this._worldRotationQuaternion);
+      quat.multiply(Transform._tempVec4, this._worldRotationQuaternion, rotationQuat);
       this.worldRotationQuaternion = this._worldRotationQuaternion;
     }
   }
@@ -687,7 +673,8 @@ export class Transform extends NodeAbility {
    */
   lookAt(worldPosition: vec3Type, worldUp: vec3Type): void {
     const position = this.worldPosition;
-    const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp);
+    const modelMatrix = mat4.lookAtR(Transform._tempMat4, position, worldPosition, worldUp);
     this.worldMatrix = modelMatrix;
+    return modelMatrix;
   }
 }
