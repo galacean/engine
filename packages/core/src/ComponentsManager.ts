@@ -4,9 +4,8 @@ import { RenderableComponent } from "./RenderableComponent";
 import { Script } from "./Script";
 
 /**
- * @internal
+ *
  */
-
 export class ComponentsManager {
   private _onUpdateScripts: Array<Script> = [];
   private _onLateUpdateScripts: Array<Script> = [];
@@ -16,7 +15,6 @@ export class ComponentsManager {
 
   // 其他组件
   private _onUpdateComponents: Array<Component> = [];
-
   // render
   private _renderers: Array<RenderableComponent> = [];
 
@@ -93,7 +91,7 @@ export class ComponentsManager {
   callScriptOnLateUpdate(): void {
     const length = this._onUpdateScripts.length;
     for (let i = length - 1; i >= 0; --i) {
-      const script = this._onUpdateScripts[i];
+      const script = this._onUpdateScripts[i]; //CM:是不是写错了
       if (script.enabled) {
         script.onLateUpdate();
       }
@@ -103,7 +101,7 @@ export class ComponentsManager {
   callScriptOnPreRender(): void {
     const length = this._onUpdateScripts.length;
     for (let i = length - 1; i >= 0; --i) {
-      const script = this._onUpdateScripts[i];
+      const script = this._onUpdateScripts[i]; //CM:是不是写错了
       if (script.enabled) {
         script.onPreRender();
       }
@@ -113,7 +111,7 @@ export class ComponentsManager {
   callScriptOnPostRender(): void {
     const length = this._onUpdateScripts.length;
     for (let i = length - 1; i >= 0; --i) {
-      const script = this._onUpdateScripts[i];
+      const script = this._onUpdateScripts[i]; //CM:是不是写错了
       if (script.enabled) {
         script.onPostRender();
       }
@@ -121,9 +119,10 @@ export class ComponentsManager {
   }
 
   callAnimationOnUpdate(deltaTime): void {
+    const onUpdateAnimations = this._onUpdateAnimations;
     const length = this._onUpdateAnimations.length;
     for (let i = length - 1; i >= 0; --i) {
-      const animation = this._onUpdateAnimations[i];
+      const animation = onUpdateAnimations[i];
       if (animation.enabled) {
         animation.onUpdate(deltaTime);
       }
