@@ -181,26 +181,19 @@ export class Transform extends NodeAbility {
   get position(): vec3Type {
     // localMatrix -> position
     if (this._getDirtyFlag(Transform.LOCAL_POSITION_FLAG)) {
-      if (this.node.name === "SphereNode") {
-        console.log("change");
-      }
       mat4.getTranslation(this._position, this._localMatrix);
       this._setDirtyFlag(Transform.LOCAL_POSITION_FLAG, false);
-    }
-    if (this.node.name === "SphereNode") {
-      console.log(this._position);
     }
     return this._position;
   }
 
   set position(value: vec3Type) {
-    if (!vec3.equals(this.position, value)) {
-      console.log("posito", this.node.name, this._position, value);
+    if (this._position !== value) {
       vec3.copy(this._position, value);
-      this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, true);
-      // 局部位移变化，需要更新世界矩阵和世界位移⬇️
-      this._updateWorldPosition();
     }
+    this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, true);
+    // 局部位移变化，需要更新世界矩阵和世界位移
+    this._updateWorldPosition();
   }
 
   private _updateWorldPosition(): void {
@@ -231,18 +224,17 @@ export class Transform extends NodeAbility {
   }
 
   set worldPosition(value: vec3Type) {
-    if (!vec3.equals(this.worldPosition, value)) {
-      console.log("world posito", this.node.name, this._position);
+    if (this._worldPosition !== value) {
       vec3.copy(this._worldPosition, value);
-      if (this._parent) {
-        const matWorldToLocal = mat4.invert(Transform._tempMat4, this._parent.worldMatrix);
-        vec3.transformMat4(Transform._tempVec3, value, matWorldToLocal);
-      } else {
-        vec3.copy(Transform._tempVec3, value);
-      }
-      this.position = Transform._tempVec3;
-      this._setDirtyFlag(Transform.WORLD_POSITION_FLAG, false);
     }
+    if (this._parent) {
+      const matWorldToLocal = mat4.invert(Transform._tempMat4, this._parent.worldMatrix);
+      vec3.transformMat4(Transform._tempVec3, value, matWorldToLocal);
+    } else {
+      vec3.copy(Transform._tempVec3, value);
+    }
+    this.position = Transform._tempVec3;
+    this._setDirtyFlag(Transform.WORLD_POSITION_FLAG, false);
   }
 
   /**
@@ -266,12 +258,12 @@ export class Transform extends NodeAbility {
   }
 
   set rotation(value: vec3Type) {
-    if (!vec3.equals(this.rotation, value)) {
+    if (this._rotation !== value) {
       vec3.copy(this._rotation, value);
-      this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG | Transform.LOCAL_ROTATION_QUAT_FLAG, true);
-      this._setDirtyFlag(Transform.LOCAL_ROTATION_FLAG, false);
-      this._updateWorldRotation();
     }
+    this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG | Transform.LOCAL_ROTATION_QUAT_FLAG, true);
+    this._setDirtyFlag(Transform.LOCAL_ROTATION_FLAG, false);
+    this._updateWorldRotation();
   }
 
   private _updateWorldRotation() {
@@ -334,12 +326,12 @@ export class Transform extends NodeAbility {
   }
 
   set worldRotation(value: vec3Type) {
-    if (!vec3.equals(this.worldRotation, value)) {
+    if (this._worldRotation !== value) {
       vec3.copy(this._worldRotation, value);
-      quat.fromEuler(Transform._tempVec4, value[0], value[1], value[2]);
-      this.worldRotationQuaternion = Transform._tempVec4;
-      this._setDirtyFlag(Transform.WORLD_ROTATION_FLAG, false);
     }
+    quat.fromEuler(Transform._tempVec4, value[0], value[1], value[2]);
+    this.worldRotationQuaternion = Transform._tempVec4;
+    this._setDirtyFlag(Transform.WORLD_ROTATION_FLAG, false);
   }
 
   /**
@@ -362,12 +354,12 @@ export class Transform extends NodeAbility {
   }
 
   set rotationQuaternion(value: vec4Type) {
-    if (!quat.equals(this.rotationQuaternion, value)) {
+    if (this._rotationQuaternion !== value) {
       quat.copy(this._rotationQuaternion, value);
-      this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG | Transform.LOCAL_ROTATION_FLAG, true);
-      this._setDirtyFlag(Transform.LOCAL_ROTATION_QUAT_FLAG, false);
-      this._updateWorldRotation();
     }
+    this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG | Transform.LOCAL_ROTATION_FLAG, true);
+    this._setDirtyFlag(Transform.LOCAL_ROTATION_QUAT_FLAG, false);
+    this._updateWorldRotation();
   }
 
   /**
@@ -395,17 +387,17 @@ export class Transform extends NodeAbility {
   }
 
   set worldRotationQuaternion(value: vec4Type) {
-    if (!quat.equals(this.worldRotationQuaternion, value)) {
+    if (this._worldRotation !== value) {
       quat.copy(this._worldRotationQuaternion, value);
-      if (this._parent) {
-        const quatWorldToLocal = mat4.invert(Transform._tempMat4, this._parent.worldRotationQuaternion);
-        quat.multiply(Transform._tempVec4, value, quatWorldToLocal);
-      } else {
-        quat.copy(Transform._tempVec4, value);
-      }
-      this.rotationQuaternion = Transform._tempVec4;
-      this._setDirtyFlag(Transform.WORLD_ROTATION_QUAT_FLAG, false);
     }
+    if (this._parent) {
+      const quatWorldToLocal = mat4.invert(Transform._tempMat4, this._parent.worldRotationQuaternion);
+      quat.multiply(Transform._tempVec4, value, quatWorldToLocal);
+    } else {
+      quat.copy(Transform._tempVec4, value);
+    }
+    this.rotationQuaternion = Transform._tempVec4;
+    this._setDirtyFlag(Transform.WORLD_ROTATION_QUAT_FLAG, false);
   }
 
   /**
@@ -420,11 +412,11 @@ export class Transform extends NodeAbility {
   }
 
   set scale(value: vec3Type) {
-    if (!vec3.equals(this.scale, value)) {
+    if (this._scale !== value) {
       vec3.copy(this._scale, value);
-      this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, true);
-      this._updateWorldScale();
     }
+    this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, true);
+    this._updateWorldScale();
   }
 
   private _updateWorldScale() {
@@ -486,7 +478,6 @@ export class Transform extends NodeAbility {
    */
   get localMatrix(): mat4Type {
     if (this._getDirtyFlag(Transform.LOCAL_MATRIX_FLAG)) {
-      console.log(this.position);
       mat4.fromRotationTranslationScale(this._localMatrix, this.rotationQuaternion, this.position, this.scale);
     }
     this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, false);
@@ -494,19 +485,18 @@ export class Transform extends NodeAbility {
   }
 
   set localMatrix(value: mat4Type) {
-    if (!mat4.equals(this.localMatrix, value)) {
+    if (this._localMatrix !== value) {
       mat4.copy(this._localMatrix, value);
-      mat4.copy;
-      this._setDirtyFlag(
-        Transform.LOCAL_POSITION_FLAG |
-          Transform.LOCAL_ROTATION_FLAG |
-          Transform.LOCAL_ROTATION_QUAT_FLAG |
-          Transform.LOCAL_SCALE_FLAG,
-        true
-      );
-      this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, false);
-      this._updateAll();
     }
+    this._setDirtyFlag(
+      Transform.LOCAL_POSITION_FLAG |
+        Transform.LOCAL_ROTATION_FLAG |
+        Transform.LOCAL_ROTATION_QUAT_FLAG |
+        Transform.LOCAL_SCALE_FLAG,
+      true
+    );
+    this._setDirtyFlag(Transform.LOCAL_MATRIX_FLAG, false);
+    this._updateAll();
   }
 
   private _updateAll() {
@@ -552,17 +542,17 @@ export class Transform extends NodeAbility {
   }
 
   set worldMatrix(value: mat4Type) {
-    if (!mat4.equals(this.worldMatrix, value)) {
+    if (this._worldMatrix !== value) {
       mat4.copy(this._worldMatrix, value);
-      if (this._parent) {
-        const matWorldToLocal = mat4.invert(Transform._tempMat42, this._parent.worldMatrix);
-        mat4.multiply(Transform._tempMat42, value, matWorldToLocal);
-      } else {
-        mat4.copy(Transform._tempMat42, value);
-      }
-      this.localMatrix = Transform._tempMat42;
-      this._setDirtyFlag(Transform.WORLD_MATRIX_FLAG, false);
     }
+    if (this._parent) {
+      const matWorldToLocal = mat4.invert(Transform._tempMat42, this._parent.worldMatrix);
+      mat4.multiply(Transform._tempMat42, value, matWorldToLocal);
+    } else {
+      mat4.copy(Transform._tempMat42, value);
+    }
+    this.localMatrix = Transform._tempMat42;
+    this._setDirtyFlag(Transform.WORLD_MATRIX_FLAG, false);
   }
 
   /**

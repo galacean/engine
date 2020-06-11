@@ -38,11 +38,11 @@ class AButterFlyMove extends NodeAbility {
     let y = Math.cos(t) * d;
     let z = -1;
 
-    // let pos = this.node.position;
-    // pos[0] = x;
-    // pos[1] = y;
-    // pos[2] = z;
-    this.node.position = [x,y,z];
+    let pos = this.node.position;
+    pos[0] = x;
+    pos[1] = y;
+    pos[2] = z;
+    this.node.position = pos;
   }
 }
 

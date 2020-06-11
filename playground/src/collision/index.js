@@ -16,9 +16,8 @@ class APingPong extends NodeAbility {
     let time = this.engine.time.timeSinceStartup;
     let x = Math.sin(time * 0.001) * 4;
     let pos = this.node.position;
-    // pos[0] = x;
-    // console.log(pos);
-    // this.node.position = pos;
+    pos[0] = x;
+    this.node.position = pos;
   }
 }
 
