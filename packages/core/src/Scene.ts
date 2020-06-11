@@ -104,13 +104,8 @@ export class Scene extends EventDispatcher {
     const cameras = this._activeCameras;
     if (cameras.length > 0) {
       // 针对 priority 进行排序
-      cameras.sort((camera1, camera2) => {
-        //@ts-ignore 兼容之前的 camera
-        const priority1 = camera1.priority ?? 0;
-        //@ts-ignore
-        const priority2 = camera2.priority ?? 0;
-        return priority2 - priority1;
-      });
+      //@ts-ignore
+      cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
         const cameraNode = camera.node;

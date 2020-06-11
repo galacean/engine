@@ -153,12 +153,11 @@ export class GLRenderHardware {
    * @param {number} height 用来设定视口的高度
    */
   viewport(x, y, width, height) {
-    const glHeight = this._gl.drawingBufferHeight;
-    const gl = this._gl;
-    const transformY = glHeight - y - height;
+    // 开启裁剪
     // gl.enable(gl.SCISSOR_TEST);
     // gl.scissor(x, transformY, width, height);
-    gl.viewport(x, transformY, width, height);
+    const gl = this._gl;
+    gl.viewport(x, gl.drawingBufferHeight - y - height, width, height);
   }
 
   colorMask(r, g, b, a) {
