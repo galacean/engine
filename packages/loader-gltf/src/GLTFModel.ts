@@ -16,11 +16,13 @@ export class GLTFModel extends NodeAbility {
   }
 
   set asset(value: GLTFAsset) {
-    (this.GLTFNode as any)._children = [];
-    if (value !== null) {
-      value.rootScene.nodes.forEach(node => {
-        this.GLTFNode.addChild(node.clone());
-      });
+    if (!this._hasBuiltNode) {
+      (this.GLTFNode as any)._children = [];
+      if (value !== null) {
+        value.rootScene.nodes.forEach(node => {
+          this.GLTFNode.addChild(node.clone());
+        });
+      }
     }
     this._asset = value;
   }
@@ -84,12 +86,27 @@ export class GLTFModel extends NodeAbility {
   private GLTFNode: Node;
   private _loop: number;
   private _autoPlay: string;
+  private _hasBuiltNode: boolean = false;
 
   constructor(node, props) {
     super(node, props);
 
-    this.GLTFNode = this.node.createChild("GLTF");
-    const { asset = null, isAnimate, autoPlay, loop } = props;
+    const { asset = null, isAnimate, autoPlay, loop, isClone } = props;
+    if (isClone) {
+      const rootName = (this._props as any).gltfRootName;
+      if (rootName) {
+        this.GLTFNode = this.node.findChildByName(rootName);
+      }
+    }
+    if (!this.GLTFNode) {
+      const rootName = `GLTF-${Date.now()}`;
+      (this._props as any).gltfRootName = rootName;
+      this.GLTFNode = this.node.createChild(rootName);
+      this._hasBuiltNode = false;
+    } else {
+      this._hasBuiltNode = true;
+    }
+
     this.asset = asset;
     this.isAnimate = isAnimate;
     this.loop = loop;

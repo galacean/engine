@@ -9,6 +9,7 @@ import { LambertMaterial } from "@alipay/o3-mobile-material";
 import { Texture2D } from "@alipay/o3-material";
 import { Node } from "@alipay/o3-core";
 import { DecalGeometry, DecalMaterial, Caster, transformDirection, getBoundingBoxByGLTF } from "@alipay/o3-decal";
+import "@alipay/o3-engine-stats";
 
 let point;
 let normal;

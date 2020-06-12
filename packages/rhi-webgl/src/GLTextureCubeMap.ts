@@ -1,8 +1,8 @@
-import { GLTexture } from "./GLTexture";
 import { CubeMapFace, Logger } from "@alipay/o3-base";
-import { GLRenderHardware } from "./GLRenderHardware";
-import { TextureCubeMap } from "@alipay/o3-material";
 import { CompressedTextureCubeMap } from "@alipay/o3-compressed-texture";
+import { TextureCubeMap } from "@alipay/o3-material";
+import { GLRenderHardware } from "./GLRenderHardware";
+import { GLTexture } from "./GLTexture";
 
 /**
  * GL CubeMap 资源管理
@@ -47,6 +47,9 @@ export class GLTextureCubeMap extends GLTexture {
         }
         super.generateMipmap();
       }
+      // if (!config._isReadable) {
+      //   config._images = null;
+      // }
     }
 
     config.needUpdateWholeTexture = false;

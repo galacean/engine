@@ -2,6 +2,7 @@
  * 插件抹平
  * */
 export interface WebGLExtension {
+  MAX_DRAW_BUFFERS: GLenum;
   UNSIGNED_INT_24_8: GLenum;
   MAX_SAMPLES: GLenum;
   RGBA8: GLenum;
