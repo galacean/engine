@@ -27,7 +27,7 @@ function createCuboidGeometry(name, position,rotation, w, h, d) {
   let cubeRenderer = obj.createAbility(AGeometryRenderer);
   cubeRenderer.geometry = new CuboidGeometry(w, h, d);
   cubeRenderer.setMaterial(mtl);
-  // cubeRenderer.recieveShadow = true;
+  cubeRenderer.recieveShadow = true;
 }
 
 //-- create engine object

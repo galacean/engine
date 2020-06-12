@@ -414,13 +414,15 @@ export class Node extends EventDispatcher {
     newNode._isActiveInInHierarchy = this._isActiveInInHierarchy;
 
     // -- Transform
-    newNode._position = vec3.clone(this._position);
-    newNode._rotation = quat.clone(this._rotation);
-    newNode._scale = vec3.clone(this._scale);
-    newNode._modelMatrix = mat4.clone(this._modelMatrix);
-    newNode._invModelMatrix = mat4.clone(this._invModelMatrix);
-    newNode._modelMatrixDirty = this._modelMatrixDirty;
-    newNode._invModelMatrixDirty = this._invModelMatrixDirty;
+    newNode._position = vec3.clone(this.position);
+    newNode._rotation = quat.clone(this.rotation);
+    newNode._scale = vec3.clone(this.scale);
+    const modelMatrix = this.getModelMatrix();
+    const invModelMatrix = mat4.invert(modelMatrix, modelMatrix);
+    newNode._modelMatrix = mat4.clone(modelMatrix);
+    newNode._invModelMatrix = mat4.clone(invModelMatrix);
+    // newNode._modelMatrixDirty = this._modelMatrixDirty;
+    // newNode._invModelMatrixDirty = this._invModelMatrixDirty;
 
     for (const childNode of this._children) {
       newNode.addChild(childNode.clone());
@@ -777,7 +779,9 @@ export class Node extends EventDispatcher {
     //   vec3.normalize(this._forward, this._forward);
     // }
     // return this._modelMatrix;
-    return this.transform.worldMatrix;
+    const worldMatrix = this.transform.worldMatrix;
+    this._modelMatrix = worldMatrix;
+    return this._modelMatrix;
   }
 
   /**
@@ -820,10 +824,12 @@ export class Node extends EventDispatcher {
    * @return {mat4}
    */
   public getInvModelMatrix(): number[] | Float32Array {
-    if (this._modelMatrixDirty || this._invModelMatrixDirty) {
-      this._updateInvModelMatrix();
-    }
-    return this._invModelMatrix;
+    // if (this._modelMatrixDirty || this._invModelMatrixDirty) {
+    //   this._updateInvModelMatrix();
+    // }
+    const modelMatrix = this.getModelMatrix();
+    const _invModelMatrix = mat4.invert(modelMatrix, modelMatrix);
+    return _invModelMatrix;
   }
 
   /**
