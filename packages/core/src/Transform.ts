@@ -193,7 +193,7 @@ export class Transform extends NodeAbility {
       if (this._parent != null) {
         quat.multiply(this._worldRotationQuaternion, this._parent.worldRotationQuaternion, this.rotationQuaternion);
       } else {
-        quat.copy(this.worldRotationQuaternion, this.rotationQuaternion);
+        quat.copy(this._worldRotationQuaternion, this.rotationQuaternion);
       }
       this._setDirtyFlag(Transform.WORLD_QUAT_FLAG, false);
     }
