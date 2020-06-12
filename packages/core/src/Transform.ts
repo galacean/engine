@@ -271,7 +271,7 @@ export class Transform extends NodeAbility {
   get worldMatrix(): mat4Type {
     if (this._getDirtyFlag(Transform.WORLD_MATRIX_FLAG)) {
       if (this._parent) {
-        mat4.multiply(this._worldMatrix, this.localMatrix, this._parent.worldMatrix);
+        mat4.multiply(this._worldMatrix, this._parent.worldMatrix, this.localMatrix);
       } else {
         this._worldMatrix = this.localMatrix;
       }

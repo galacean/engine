@@ -231,7 +231,6 @@ export class Node2 extends EventDispatcher {
     if (this._parent) {
       const parentModel = this._parent.getModelMatrix();
       const pos = vec3.create();
-      console.log(this._position);
       vec3.transformMat4(pos, this._position, parentModel);
       return pos;
     } else {

@@ -1,7 +1,6 @@
 import { Node } from "../src/Node";
 import { Node2 } from "../src/Node2";
-import { quat, mat4 } from "@alipay/o3-math";
-import { ADefaultCamera } from "../../default-camera/src/ADefaultCamera";
+import { quat, mat4, vec3 } from "@alipay/o3-math";
 
 describe.only("Node test", function() {
   describe("node lookat", () => {
@@ -48,11 +47,6 @@ describe.only("Node test", function() {
       node2.setModelMatrix(mat4.create());
     });
 
-    it.only("test lookAt", () => {
-      // const mat1 = node.lookAt([0, -3, 0], [0, 1, 0]);
-      // const mat2 = node2.lookAt([0, -3, 0], [0, 1, 0]);
-    });
-
     it("test setRotationAngles", () => {
       node.setRotationAngles(10, 20, 30);
       node2.setRotationAngles(10, 20, 30);
@@ -65,6 +59,30 @@ describe.only("Node test", function() {
       node2.rotation = quat.fromEuler(rotation, 10, 20, 30);
       testEqual(node, node2);
     });
+  });
+
+  describe("测试旋转node", () => {
+    const parent = new Node();
+    parent.rotateByAngles(-16, 0, 0);
+    parent.position = [0, 0, 0];
+    parent.scale = [0.8, 0.8, 0.8];
+
+    const child = parent.createChild("child");
+    child.position = [0, -3, 0];
+  });
+
+  describe("测试旋转node2", () => {
+    const parent = new Node2(null, null, "parent");
+    parent.rotateByAngles(-16, 0, 0);
+    parent.position = [0, 0, 0];
+    parent.scale = [0.8, 0.8, 0.8];
+
+    const child = parent.createChild("child");
+    child.rotateByAngles(0, 180, 0);
+    child.position = [0, -3, 0];
+    child.scale = [0.3, 0.3, 1];
+
+    child.getModelMatrix();
   });
 });
 
