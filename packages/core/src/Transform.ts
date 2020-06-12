@@ -78,7 +78,6 @@ export class Transform extends NodeAbility {
    * 子变换数量
    */
   get childTransformCount(): number {
-    console.log(this._children);
     return this._children.length;
   }
 

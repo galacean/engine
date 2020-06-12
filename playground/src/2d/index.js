@@ -69,8 +69,9 @@ resourceLoader.batchLoad([textureRes, circleRes], (err, res) => {
   circle.position = [0, 0, 0];
   circle.scale = [0.8, 0.8, 0.8];
 
-  // const center = circle.createChild("center");
-  addHeartNode(circle, res[0], 10);
+  const center = circle.createChild("center");
+  addHeartNode(center, res[0], 10);
+  console.log(circle, center);
 });
 
 //-- run
