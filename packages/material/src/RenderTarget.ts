@@ -337,12 +337,14 @@ export class RenderTarget extends AssetObject {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
     const drawBuffers = [];
+    const colorTextureLength = this._colorTextures.length;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
     /** color render buffer */
-    this._colorTextures.forEach((colorTexture: RenderColorTexture, index: number) => {
-      const attachment = gl.COLOR_ATTACHMENT0 + index;
+    for (let i = 0; i < colorTextureLength; i++) {
+      const colorTexture = this._colorTextures[i];
+      const attachment = gl.COLOR_ATTACHMENT0 + i;
 
       drawBuffers.push(attachment);
 
@@ -350,7 +352,7 @@ export class RenderTarget extends AssetObject {
       if (colorTexture._isCube) return;
 
       gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, colorTexture._glTexture, 0);
-    });
+    }
 
     gl.drawBuffers(drawBuffers);
     this._oriDrawBuffers = drawBuffers;
