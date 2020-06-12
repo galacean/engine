@@ -101,6 +101,9 @@ export class MRTSceneRenderer extends SceneVisitor {
     return node.isActive;
   }
 
+  /**
+   * @deprecated
+   */
   acceptAbility(nodeAbility) {
     if (nodeAbility.enabled && nodeAbility.isRenderable) {
       let culled = false;

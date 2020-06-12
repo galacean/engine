@@ -207,7 +207,12 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   getComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T): T {
-    return (this._components.filter(component => component instanceof type)[0] as T) || null; //CM:测一下自己for循环判断instanceof类型的性能
+    for (let i = this._components.length; i >= 0; i--) {
+      const component = this._components[i];
+      if (component instanceof type) {
+        return component;
+      }
+    }
   }
 
   /**
@@ -216,8 +221,14 @@ export class Node extends EventDispatcher {
    * @returns	组件实例集合
    */
   getComponents<T extends NodeAbility>(type: new (node: Node, props?: object) => T, results: Array<T>): Array<T> {
-    results = this._components.filter(component => component instanceof type) as T[]; //CM:测一下自己for循环判断instanceof类型的性能
-    return results;
+    const components = [];
+    for (let i = this._components.length; i >= 0; i--) {
+      const component = this._components[i];
+      if (component instanceof type) {
+        components.push(component);
+      }
+    }
+    return components;
   }
 
   /**

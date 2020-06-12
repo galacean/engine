@@ -138,6 +138,6 @@ export class Script extends NodeAbility {
    * @override
    */
   _onDestroy(): void {
-    this._onDestroy(); //CM:这不死循环了
+    this.onDestroy(); //CM:这不死循环了
   }
 }

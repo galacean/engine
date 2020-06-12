@@ -89,9 +89,9 @@ export class ComponentsManager {
   }
 
   callScriptOnLateUpdate(): void {
-    const length = this._onUpdateScripts.length;
+    const length = this._onLateUpdateScripts.length;
     for (let i = length - 1; i >= 0; --i) {
-      const script = this._onUpdateScripts[i]; //CM:是不是写错了
+      const script = this._onLateUpdateScripts[i];
       if (script.enabled) {
         script.onLateUpdate();
       }
@@ -99,9 +99,9 @@ export class ComponentsManager {
   }
 
   callScriptOnPreRender(): void {
-    const length = this._onUpdateScripts.length;
+    const length = this._onPreRenderScripts.length;
     for (let i = length - 1; i >= 0; --i) {
-      const script = this._onUpdateScripts[i]; //CM:是不是写错了
+      const script = this._onPreRenderScripts[i];
       if (script.enabled) {
         script.onPreRender();
       }
@@ -109,9 +109,9 @@ export class ComponentsManager {
   }
 
   callScriptOnPostRender(): void {
-    const length = this._onUpdateScripts.length;
+    const length = this._onPostRenderScripts.length;
     for (let i = length - 1; i >= 0; --i) {
-      const script = this._onUpdateScripts[i]; //CM:是不是写错了
+      const script = this._onPostRenderScripts[i];
       if (script.enabled) {
         script.onPostRender();
       }
