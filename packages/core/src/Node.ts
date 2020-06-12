@@ -414,15 +414,8 @@ export class Node extends EventDispatcher {
     newNode._isActiveInInHierarchy = this._isActiveInInHierarchy;
 
     // -- Transform
-    newNode._position = vec3.clone(this.position);
-    newNode._rotation = quat.clone(this.rotation);
-    newNode._scale = vec3.clone(this.scale);
-    const modelMatrix = this.getModelMatrix();
-    const invModelMatrix = mat4.invert(modelMatrix, modelMatrix);
-    newNode._modelMatrix = mat4.clone(modelMatrix);
-    newNode._invModelMatrix = mat4.clone(invModelMatrix);
-    // newNode._modelMatrixDirty = this._modelMatrixDirty;
-    // newNode._invModelMatrixDirty = this._invModelMatrixDirty;
+    const worldMatrix = this.getModelMatrix();
+    newNode.transform.worldMatrix = mat4.clone(worldMatrix);
 
     for (const childNode of this._children) {
       newNode.addChild(childNode.clone());
@@ -779,9 +772,7 @@ export class Node extends EventDispatcher {
     //   vec3.normalize(this._forward, this._forward);
     // }
     // return this._modelMatrix;
-    const worldMatrix = this.transform.worldMatrix;
-    this._modelMatrix = worldMatrix;
-    return this._modelMatrix;
+    return this.transform.worldMatrix;
   }
 
   /**

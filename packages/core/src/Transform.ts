@@ -285,7 +285,7 @@ export class Transform extends NodeAbility {
       mat4.copy(this._worldMatrix, value);
     }
     if (this._parent) {
-      const matWorldToLocal = mat4.invert(Transform._tempMat4, this._parent.worldMatrix);
+      const matWorldToLocal = mat4.invert(Transform._tempMat42, this._parent.worldMatrix);
       mat4.multiply(this._localMatrix, value, matWorldToLocal);
     } else {
       mat4.copy(this._localMatrix, value);
