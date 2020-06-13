@@ -229,11 +229,11 @@ export class Camera extends NodeAbility {
   /**
    * 是否正交，默认是 false。true 会使用正交投影，false 使用透视投影。
    */
-  public get orthographic(): boolean {
+  public get isOrthographic(): boolean {
     return this._isOrthographic;
   }
 
-  public set orthographic(value: boolean) {
+  public set isOrthographic(value: boolean) {
     this._isOrthographic = value;
     this._isProjectionDirty = true;
   }
@@ -426,12 +426,11 @@ export class Camera extends NodeAbility {
    * @param position position[0] 是归一化的 viewport x，position[1] 是归一化的 viewport y
    */
   public viewportPointToRay(position: Vector2, ray: Ray): Ray {
-    //CM:好像不太对
-    // todo 使用 transform 的 worldPosition
-    const modelMatrix = this.node.getModelMatrix();
-    // todo 使用近裁面的交点作为 origin
-    const origin = vec3.set(ray.origin, modelMatrix[12], modelMatrix[13], modelMatrix[14]);
-    const viewportPos = vec3.set(MathTemp.tempVec3, position[0], position[1], 0.5);
+    // 使用近裁面的交点作为 origin
+    vec3.set(MathTemp.tempVec3, position[0], position[1], 0.1);
+    const origin = this.viewportToWorldPoint(MathTemp.tempVec3, ray.origin);
+    // 使用远裁面的交点作为 origin
+    const viewportPos = vec3.set(MathTemp.tempVec3, position[0], position[1], 0.8);
     const worldPoint = this.viewportToWorldPoint(viewportPos, MathTemp.tempVec3);
     const direction = vec3.sub(ray.direction, worldPoint, origin);
     vec3.normalize(direction, direction);
@@ -440,7 +439,7 @@ export class Camera extends NodeAbility {
 
   /**
    * 相机视口坐标转化成射线转化成世界坐标。
-   * @param position 视口坐标点，postion[0] 是归一化的 viewport 的 x，postion[1] 是归一化的 viewport 的 x，postion[2] 归一化的 z，0 是近裁面，1 是远裁面
+   * @param position 视口坐标点，postion[0] 是归一化的 viewport 的 x，postion[1] 是归一化的 viewport 的 y，postion[2] 归一化的 z，0 是近裁面，1 是远裁面
    */
   public viewportToWorldPoint(position: Vector3, out: Vector3): Vector3 {
     // const viewportLoc = vec3.fromValues(position[0] * 2 - 1, -(position[1] * 2 - 1), 0.0);
