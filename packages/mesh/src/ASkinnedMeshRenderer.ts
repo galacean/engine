@@ -138,10 +138,9 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
   /**
    * TODO 渲染之前
    * update matrix palette
-   * @param {Number} deltaTime
    * @private
    */
-  onUpdate(deltaTime: number) {
+  onUpdate() {
     if (this._skin) {
       const joints = this.jointNodes;
       const ibms = this._skin.inverseBindMatrices;

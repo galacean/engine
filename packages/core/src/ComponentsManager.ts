@@ -2,28 +2,37 @@ import { ACamera } from "./ACamera";
 import { NodeAbility as Component } from "./NodeAbility";
 import { RenderableComponent } from "./RenderableComponent";
 import { Script } from "./Script";
-
+import { DisorderedArray } from "./DisorderedArray";
 /**
  *
  */
 export class ComponentsManager {
-  private _onUpdateScripts: Array<Script> = [];
-  private _onLateUpdateScripts: Array<Script> = [];
-  private _onPreRenderScripts: Array<Script> = [];
-  private _onPostRenderScripts: Array<Script> = [];
-  private _onUpdateAnimations: Array<Component> = [];
+  // 延时处理对象池
+  public _componentsContainerPool: Component[][] = [];
+
+  // 生命周期
+  private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
+  private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
+  private _onPreRenderScripts: DisorderedArray<Script> = new DisorderedArray();
+  private _onPostRenderScripts: DisorderedArray<Script> = new DisorderedArray();
+  private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
 
   // 其他组件
-  private _onUpdateComponents: Array<Component> = [];
+  private _onUpdateComponents: DisorderedArray<Component> = new DisorderedArray();
+
   // render
-  private _renderers: Array<RenderableComponent> = [];
+  private _renderers: DisorderedArray<RenderableComponent> = new DisorderedArray();
+  private _onUpdateRenderers: DisorderedArray<RenderableComponent> = new DisorderedArray();
+
+  // 延时销毁
+  private _destoryComponents: Component[] = [];
 
   addOnUpdateComponents(component: Component): void {
     this._onUpdateComponents.push(component);
   }
 
   removeOnUpdateComponent(component: Component): void {
-    this._removeComponentFromArray(this._onUpdateComponents, component);
+    this._onUpdateComponents.delete(component);
   }
 
   addRenderer(renderer: RenderableComponent) {
@@ -31,7 +40,7 @@ export class ComponentsManager {
   }
 
   removeRenderer(renderer: Component) {
-    this._removeComponentFromArray(this._renderers, renderer);
+    this._renderers.delete(renderer);
   }
 
   addOnUpdateScript(script: Script) {
@@ -39,7 +48,7 @@ export class ComponentsManager {
   }
 
   removeOnUpdateScript(script: Script): void {
-    this._removeComponentFromArray(this._onUpdateScripts, script);
+    this._onUpdateScripts.delete(script);
   }
 
   addOnLateUpdateScript(script: Script) {
@@ -47,7 +56,7 @@ export class ComponentsManager {
   }
 
   removeOnLateUpdateScript(script: Script) {
-    this._removeComponentFromArray(this._onLateUpdateScripts, script);
+    this._onLateUpdateScripts.delete(script);
   }
 
   addOnPreRenderScript(script: Script) {
@@ -55,7 +64,7 @@ export class ComponentsManager {
   }
 
   removeOnPreRenderScript(script: Script) {
-    this._removeComponentFromArray(this._onPreRenderScripts, script);
+    this._onPreRenderScripts.delete(script);
   }
 
   addOnPostRenderScript(script: Script) {
@@ -63,7 +72,7 @@ export class ComponentsManager {
   }
 
   removeOnPostRenderScript(script: Script): void {
-    this._removeComponentFromArray(this._onPostRenderScripts, script);
+    this._onPostRenderScripts.delete(script);
   }
 
   addOnUpdateAnimations(animation: Component): void {
@@ -71,13 +80,25 @@ export class ComponentsManager {
   }
 
   removeOnUpdateAnimations(animation: Component): void {
-    this._removeComponentFromArray(this._onUpdateAnimations, animation);
+    this._onUpdateAnimations.delete(animation);
+  }
+
+  addOnUpdateRenderers(renderer: RenderableComponent): void {
+    this._onUpdateRenderers.push(renderer);
+  }
+
+  removeOnUpdateRenderers(renderer: RenderableComponent): void {
+    this._onUpdateRenderers.delete(renderer);
+  }
+
+  addDestoryComponents(component): void {
+    this._destoryComponents.push(component);
   }
 
   callScriptOnUpdate(deltaTime): void {
-    const length = this._onUpdateScripts.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const script = this._onUpdateScripts[i];
+    const onUpdateScripts = this._onUpdateScripts;
+    for (let i = onUpdateScripts.length - 1; i >= 0; --i) {
+      const script = onUpdateScripts[i];
       if (script.enabled) {
         if (!script._started) {
           script._started = true;
@@ -120,8 +141,7 @@ export class ComponentsManager {
 
   callAnimationOnUpdate(deltaTime): void {
     const onUpdateAnimations = this._onUpdateAnimations;
-    const length = this._onUpdateAnimations.length;
-    for (let i = length - 1; i >= 0; --i) {
+    for (let i = onUpdateAnimations.length - 1; i >= 0; --i) {
       const animation = onUpdateAnimations[i];
       if (animation.enabled) {
         animation.onUpdate(deltaTime);
@@ -129,10 +149,24 @@ export class ComponentsManager {
     }
   }
 
+  callRendererOnUpdate(): void {
+    const onUpdateRenderers = this._onUpdateRenderers;
+    for (let i = onUpdateRenderers.length - 1; i >= 0; --i) {
+      const renderer = onUpdateRenderers[i];
+      if (renderer.enabled) {
+        if (!renderer._started) {
+          renderer._started = true;
+          renderer.onStart();
+        }
+        renderer.onUpdate();
+      }
+    }
+  }
+
   callComponentOnUpdate(deltaTime): void {
-    const length = this._onUpdateComponents.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const component = this._onUpdateComponents[i];
+    const onUpdateComponents = this._onUpdateComponents;
+    for (let i = onUpdateComponents.length - 1; i >= 0; --i) {
+      const component = onUpdateComponents[i];
       if (component.enabled) {
         if (!component._started) {
           component._started = true;
@@ -143,10 +177,17 @@ export class ComponentsManager {
     }
   }
 
+  callComponentDestory(): void {
+    const destoryComponents = this._destoryComponents;
+    for (let i = destoryComponents.length - 1; i >= 0; --i) {
+      destoryComponents[i].onDestroy();
+    }
+  }
+
   callRender(camera: ACamera): void {
-    const length = this._renderers.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const renderer = this._renderers[i];
+    const renders = this._renderers;
+    for (let i = renders.length - 1; i >= 0; --i) {
+      const renderer = renders[i];
       if (renderer.enabled) {
         renderer._render(camera);
       }
@@ -154,7 +195,9 @@ export class ComponentsManager {
   }
 
   clear() {
-    this._clearScripts();
+    this._clearRenderers();
+    this._clearScripts(); //CM:好像没有需要clear的场景
+    this._clearAnimations();
     this._clearComponents();
   }
 
@@ -166,7 +209,7 @@ export class ComponentsManager {
         script._onDestroy();
       }
     }
-    this._onUpdateScripts = [];
+    this._onUpdateScripts.length = 0;
     length = this._onLateUpdateScripts.length;
     for (let i = length - 1; i >= 0; --i) {
       const script = this._onLateUpdateScripts[i];
@@ -174,7 +217,7 @@ export class ComponentsManager {
         script._onDestroy();
       }
     }
-    this._onLateUpdateScripts = [];
+    this._onLateUpdateScripts.length = 0;
     length = this._onPreRenderScripts.length;
     for (let i = length - 1; i >= 0; --i) {
       const script = this._onPreRenderScripts[i];
@@ -182,7 +225,7 @@ export class ComponentsManager {
         script._onDestroy();
       }
     }
-    this._onPreRenderScripts = [];
+    this._onPreRenderScripts.length = 0;
     length = this._onPostRenderScripts.length;
     for (let i = length - 1; i >= 0; --i) {
       const script = this._onPostRenderScripts[i];
@@ -190,7 +233,18 @@ export class ComponentsManager {
         script._onDestroy();
       }
     }
-    this._onPostRenderScripts = [];
+    this._onPostRenderScripts.length = 0;
+  }
+
+  _clearAnimations() {
+    let length = this._onUpdateAnimations.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const animation = this._onUpdateAnimations[i];
+      if (!animation._destroied) {
+        animation._onDestroy();
+      }
+    }
+    this._onUpdateAnimations.length = 0;
   }
 
   _clearComponents() {
@@ -201,11 +255,31 @@ export class ComponentsManager {
         component._onDestroy();
       }
     }
-    this._onUpdateComponents = [];
+    this._onUpdateComponents.length = 0;
   }
 
-  _removeComponentFromArray(components: Component[], component: Component) {
-    const index = components.indexOf(component);
-    components.splice(index, 1);
+  _clearRenderers() {
+    let length = this._renderers.length;
+    for (let i = length - 1; i >= 0; --i) {
+      const renderer = this._renderers[i];
+      if (!renderer._destroied) {
+        renderer._onDestroy();
+      }
+    }
+    this._renderers.length = 0;
+  }
+
+  _getTempList() {
+    if (this._componentsContainerPool.length) {
+      const componentContainer = this._componentsContainerPool.pop();
+      return componentContainer;
+    } else {
+      const componentContainer: Component[] = [];
+      return componentContainer;
+    }
+  }
+
+  _putTempList(componentContainer: Component[]) {
+    this._componentsContainerPool.push(componentContainer);
   }
 }

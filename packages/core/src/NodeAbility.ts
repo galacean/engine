@@ -20,6 +20,9 @@ export class NodeAbility extends EventDispatcher {
   /* @internal */
   _destroied: boolean = false;
 
+  /* @internal */
+  protected _inComponentsManager: boolean;
+
   private _enabled: boolean = true;
   private _pendingDestroy: boolean = false;
   private _renderPriority: number = 0;
@@ -27,8 +30,6 @@ export class NodeAbility extends EventDispatcher {
   private _passMasks: MaskList[];
   private _cullDistanceSq: number = 0; // 等于0，代表不进行 distance cull
   private _awaked: boolean = false;
-  /* @internal */
-  private _inComponentsManager: boolean;
 
   /**
    * 是否激活
@@ -92,13 +93,14 @@ export class NodeAbility extends EventDispatcher {
     if (this._ownerNode.activeInHierarchy && !this._destroied) {
       this._destroied = true;
       this._onDestroy();
-      /**
-       * @deprecated
-       */
-      // this.trigger(new Event("disabled", this));
-      // this.trigger(new Event("destroy", this));
     }
   }
+
+  /**
+   * @override
+   * @internal
+   */
+  onDestroy(): void {}
 
   /**
    * @override

@@ -76,9 +76,9 @@ export class Scene extends EventDispatcher {
     super();
 
     this._engine = engine;
+    this._componentsManager = new ComponentsManager();
     this._root = new Node(this, null, "root");
     this._activeCameras = [];
-    this._componentsManager = new ComponentsManager();
 
     sceneFeatureManager.addObject(this);
   }
@@ -94,7 +94,7 @@ export class Scene extends EventDispatcher {
    */
   public update(deltaTime: number): void {
     this._componentsManager.callScriptOnUpdate(deltaTime);
-    this._componentsManager.callComponentOnUpdate(deltaTime); //@deprecated //CM:这里混了渲染组件，渲染组件需要在更新之后调用
+    this._componentsManager.callComponentOnUpdate(deltaTime);
     this._componentsManager.callAnimationOnUpdate(deltaTime);
     sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
     this._componentsManager.callScriptOnLateUpdate();
@@ -110,6 +110,7 @@ export class Scene extends EventDispatcher {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
+          this._componentsManager.callRendererOnUpdate();
           this._componentsManager.callScriptOnPreRender();
           sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();
@@ -117,6 +118,7 @@ export class Scene extends EventDispatcher {
           this._componentsManager.callScriptOnPostRender();
         }
       }
+      this._componentsManager.callComponentDestory();
     } else {
       Logger.debug("NO active camera.");
     }
@@ -172,5 +174,7 @@ export class Scene extends EventDispatcher {
     this._root.destroy();
     this._root = null;
     this._activeCameras = null;
+    this._componentsManager.clear();
+    this._componentsManager = null;
   }
 }

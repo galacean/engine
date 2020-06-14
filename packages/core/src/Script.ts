@@ -138,6 +138,6 @@ export class Script extends NodeAbility {
    * @override
    */
   _onDestroy(): void {
-    this.onDestroy(); //CM:这不死循环了
+    this.scene._componentsManager.addDestoryComponents(this);
   }
 }

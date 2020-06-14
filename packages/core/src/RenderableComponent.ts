@@ -4,20 +4,33 @@ import { vec3 } from "@alipay/o3-math";
 /**
  * 渲染组件
  */
+//CM:应该写成抽象类
 export class RenderableComponent extends NodeAbility {
   _renderable: boolean = true;
+  render(camera: ACamera): void {} //CM:应该写成抽象方法,子类需要标记 @override，这里不需要
   /**
-   * @override
+   * @deprecated 兼容
    */
-  render(camera: ACamera): void {}
-
+  update(): void {}
+  onUpdate(): void {}
   _onActive() {
-    super._onActive();
+    if (
+      this.onUpdate !== RenderableComponent.prototype.onUpdate ||
+      this.update !== RenderableComponent.prototype.update
+    ) {
+      if (this.update !== RenderableComponent.prototype.update) {
+        this.onUpdate = this.update;
+      }
+      this.scene._componentsManager.addOnUpdateRenderers(this);
+      this._inComponentsManager = true;
+    }
     this.scene._componentsManager.addRenderer(this);
   }
 
   _onInActive() {
-    super._onInActive();
+    if (this._inComponentsManager) {
+      this.scene._componentsManager.removeOnUpdateComponent(this);
+    }
     this.scene._componentsManager.removeRenderer(this);
   }
 

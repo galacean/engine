@@ -111,40 +111,6 @@ export class AAnimation extends NodeAbility {
   }
 
   /**
-   * @deprecated
-   * 动画更新计算
-   * @param {number} deltaTime
-   * @private
-   */
-  public update(deltaTime: number) {
-    super.update(deltaTime);
-    if (!this.isPlaying()) {
-      return;
-    }
-
-    deltaTime = deltaTime * this._timeScale;
-
-    // update state
-    for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      const animLayer = this._animLayers[i];
-      animLayer.updateState(deltaTime);
-    }
-
-    // update value
-    this._updateValues();
-
-    // trigger events and destroy no use layer
-    for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      const animLayer = this._animLayers[i];
-      animLayer.triggerEvents();
-      if (!animLayer.isPlaying && (animLayer.isFading || animLayer.isMixLayer)) {
-        this._animLayers.splice(i, 1);
-        this._removeRefMixLayers(animLayer);
-      }
-    }
-  }
-
-  /**
    * 加载一个animClip
    * @param {AnimationClip} animClip 动画片段对象
    * @param {string} name 动画片段名称
