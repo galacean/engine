@@ -2,7 +2,6 @@ import { NodeAbility } from "./NodeAbility";
 
 /**
  * 脚本类，可进行逻辑编写。
- * CM:我们最后一起严格校对一下生命周期函数的执行顺序
  */
 export class Script extends NodeAbility {
   /* @internal */
@@ -25,6 +24,7 @@ export class Script extends NodeAbility {
 
   /**
    * 更新，在执行引擎逻辑处理之前调用，逐帧调用。
+   * @param deltaTime 间隔时间 @deprecated
    */
   onUpdate(deltaTime: number): void {}
 
@@ -76,16 +76,6 @@ export class Script extends NodeAbility {
    * @inheritDoc
    * @override
    */
-  _onStart(): void {
-    this._started = true;
-    this.onStart();
-  }
-
-  /**
-   * @internal
-   * @inheritDoc
-   * @override
-   */
   _onDisable(): void {
     this.onDisable();
   }
@@ -97,16 +87,17 @@ export class Script extends NodeAbility {
    */
   _onActive(): void {
     const componentsManager = this.scene._componentsManager;
-    if (this.onUpdate !== Script.prototype.onUpdate) {
+    const prototype = Script.prototype;
+    if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.addOnUpdateScript(this);
     }
-    if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
+    if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.addOnLateUpdateScript(this);
     }
-    if (this.onPreRender !== Script.prototype.onPreRender) {
+    if (this.onPreRender !== prototype.onPreRender) {
       componentsManager.addOnPreRenderScript(this);
     }
-    if (this.onPostRender !== Script.prototype.onPostRender) {
+    if (this.onPostRender !== prototype.onPostRender) {
       componentsManager.addOnPostRenderScript(this);
     }
   }
@@ -118,16 +109,17 @@ export class Script extends NodeAbility {
    */
   _onInActive(): void {
     const componentsManager = this.scene._componentsManager;
-    if (this.onUpdate !== Script.prototype.onUpdate) {
+    const prototype = Script.prototype;
+    if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.removeOnUpdateScript(this);
     }
-    if (this.onLateUpdate !== Script.prototype.onLateUpdate) {
+    if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.removeOnLateUpdateScript(this);
     }
-    if (this.onPreRender !== Script.prototype.onPreRender) {
+    if (this.onPreRender !== prototype.onPreRender) {
       componentsManager.removeOnPreRenderScript(this);
     }
-    if (this.onPostRender !== Script.prototype.onPostRender) {
+    if (this.onPostRender !== prototype.onPostRender) {
       componentsManager.removeOnPostRenderScript(this);
     }
   }
