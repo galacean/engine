@@ -11,7 +11,7 @@ import { DisorderedArray } from "./DisorderedArray";
  */
 export class Node extends EventDispatcher {
   private static _nodes: DisorderedArray<Node> = new DisorderedArray();
-  private _activeChangedComponents: Component[];
+
   /**
    * 根据名字查找节点。
    * @param name - 名字
@@ -76,6 +76,7 @@ export class Node extends EventDispatcher {
   private _children: Array<Node> = [];
   private _components: Array<Component> = [];
   private _parent: Node;
+  private _activeChangedComponents: Component[];
   private _isRoot: boolean; //TODO:由于目前场景管理机制不得不加
 
   /**
@@ -87,7 +88,6 @@ export class Node extends EventDispatcher {
   set active(value: boolean) {
     if (this._activeChangedComponents && this._activeChangedComponents.length) {
       console.error("active state can't be changed while processing");
-      return;
     }
     if (value !== this._active) {
       this._active = value;
@@ -381,12 +381,11 @@ export class Node extends EventDispatcher {
   /**
    * @internal
    */
-  _setActiveInHierarchy(activeChangedComponents): void {
+  _setActiveInHierarchy(activeChangedComponents: Component[]): void {
     this._activeInHierarchy = true;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
-      const component = components[i];
-      activeChangedComponents.push(component);
+      activeChangedComponents.push(components[i]);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -398,12 +397,11 @@ export class Node extends EventDispatcher {
   /**
    * @internal
    */
-  _setInActiveInHierarchy(activeChangedComponents): void {
+  _setInActiveInHierarchy(activeChangedComponents: Component[]): void {
     this._activeInHierarchy = false;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
-      const component = components[i];
-      activeChangedComponents.push(component);
+      activeChangedComponents.push(components[i]);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
