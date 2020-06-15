@@ -172,7 +172,6 @@ export class Node extends EventDispatcher {
     Node._nodes.add(this);
 
     //deprecated
-    this._pendingDestroy = false;
     this._activeChangeFun = activeChange(this);
     this._position = vec3.create();
     this._rotation = quat.create();
@@ -317,7 +316,6 @@ export class Node extends EventDispatcher {
   clone(): Node {
     const newNode = new Node(this._scene, null, this.name);
 
-    newNode._pendingDestroy = this._pendingDestroy;
     newNode._active = this._active;
     newNode._activeInHierarchy = this._activeInHierarchy;
 
@@ -348,8 +346,6 @@ export class Node extends EventDispatcher {
    * 销毁。
    */
   destroy(): void {
-    this._pendingDestroy = true;
-
     // -- clear ability array
     const abilityArray = this._components;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
@@ -465,8 +461,6 @@ export class Node extends EventDispatcher {
 
   private _scene: Scene;
 
-  private _pendingDestroy: boolean; //CM:好像没用了
-
   private propertyChangeEvnet = new Event("propertyChange");
 
   private _activeChangeFun;
@@ -494,17 +488,6 @@ export class Node extends EventDispatcher {
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
-
-  /**
-   * @deprecated
-   * 是否被销毁
-   * @member {boolean}
-   * @readonly
-   * @private
-   */
-  get isPendingDestroy(): boolean {
-    return this._pendingDestroy;
-  }
 
   /**
    * @deprecated
