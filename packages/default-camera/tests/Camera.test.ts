@@ -182,8 +182,8 @@ describe("camera test", function() {
       origin: vec3.create() as any,
       direction: vec3.create() as any
     });
-    arrayCloseTo(ray.origin, Float32Array.from([-0.008294896222651005, 4.947319984436035, 16.78413963317871]));
-    arrayCloseTo(ray.direction, Float32Array.from([-0.037305865436792374, -0.2369239777326584, -0.970811665058136]));
+    arrayCloseTo(ray.origin, Float32Array.from([-0.008294896222651005, 4.975592136383057, 16.891372680664062]));
+    arrayCloseTo(ray.direction, Float32Array.from([-0.037305865436792374, -0.21910282969474792, -0.970811665058136]));
   });
 });
 
