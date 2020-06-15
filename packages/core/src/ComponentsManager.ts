@@ -5,6 +5,7 @@ import { Script } from "./Script";
 import { DisorderedArray } from "./DisorderedArray";
 
 /**
+ * @internal
  * 组件的管理员。
  */
 export class ComponentsManager {
@@ -15,9 +16,6 @@ export class ComponentsManager {
   private _onPostRenderScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
 
-  // 其他组件 @deprecated
-  private _onUpdateComponents: DisorderedArray<Component> = new DisorderedArray();
-
   // render
   private _renderers: DisorderedArray<RenderableComponent> = new DisorderedArray();
   private _onUpdateRenderers: DisorderedArray<RenderableComponent> = new DisorderedArray();
@@ -27,16 +25,6 @@ export class ComponentsManager {
 
   // 延时处理对象池
   private _componentsContainerPool: Component[][] = [];
-
-  addOnUpdateComponent(component: Component): void {
-    component._onUpdateIndex = this._onUpdateComponents.length;
-    this._onUpdateComponents.add(component);
-  }
-
-  removeOnUpdateComponent(component: Component): void {
-    this._onUpdateComponents.delete(component);
-    component._onUpdateIndex = -1;
-  }
 
   addRenderer(renderer: RenderableComponent) {
     renderer._rendererIndex = this._renderers.length;
@@ -201,9 +189,32 @@ export class ComponentsManager {
     }
   }
 
-  /**
-   * @deprecated
-   */
+  getTempList(): Component[] {
+    if (this._componentsContainerPool.length) {
+      return this._componentsContainerPool.pop();
+    } else {
+      return [];
+    }
+  }
+
+  putTempList(componentContainer: Component[]): void {
+    componentContainer.length = 0;
+    this._componentsContainerPool.push(componentContainer);
+  }
+
+  // ------------------------- @deprecated ------------------------------------------------
+  private _onUpdateComponents: DisorderedArray<Component> = new DisorderedArray();
+
+  addOnUpdateComponent(component: Component): void {
+    component._onUpdateIndex = this._onUpdateComponents.length;
+    this._onUpdateComponents.add(component);
+  }
+
+  removeOnUpdateComponent(component: Component): void {
+    this._onUpdateComponents.delete(component);
+    component._onUpdateIndex = -1;
+  }
+
   callComponentOnUpdate(deltaTime): void {
     const elements = this._onUpdateComponents._elements;
     for (let i = this._onUpdateComponents.length - 1; i >= 0; --i) {
@@ -216,18 +227,5 @@ export class ComponentsManager {
         component.onUpdate(deltaTime);
       }
     }
-  }
-
-  getTempList(): Component[] {
-    if (this._componentsContainerPool.length) {
-      return this._componentsContainerPool.pop();
-    } else {
-      return [];
-    }
-  }
-
-  putTempList(componentContainer: Component[]): void {
-    componentContainer.length = 0;
-    this._componentsContainerPool.push(componentContainer);
   }
 }
