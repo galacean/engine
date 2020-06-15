@@ -121,7 +121,7 @@ export abstract class NodeAbility extends EventDispatcher {
    * @internal
    */
   _onInActive(): void {
-    this.scene._componentsManager.removeOnUpdateComponent(this);
+    this.scene._componentsManager.removeOnUpdateComponent(this); //CM:和addOnUpdateRenderers加入队列条件不匹配,在这里加判断逻辑更好
   }
 
   /**

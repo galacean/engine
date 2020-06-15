@@ -1,18 +1,18 @@
 import { ACamera } from "./ACamera";
 import { NodeAbility } from "./NodeAbility";
 import { vec3 } from "@alipay/o3-math";
+
 /**
- * 渲染组件
+ * 可渲染的组件。
  */
-//CM:应该写成抽象类
-export class RenderableComponent extends NodeAbility {
+export abstract class RenderableComponent extends NodeAbility {
   _renderable: boolean = true;
+
   render(camera: ACamera): void {} //CM:应该写成抽象方法,子类需要标记 @override，这里不需要
-  /**
-   * @deprecated 兼容
-   */
-  update(): void {}
+
+  update(): void {} //CM:未来整合为update更合理
   onUpdate(): void {}
+
   _onActive() {
     if (
       this.onUpdate !== RenderableComponent.prototype.onUpdate ||
@@ -27,7 +27,7 @@ export class RenderableComponent extends NodeAbility {
   }
 
   _onInActive() {
-    this.scene._componentsManager.removeOnUpdateComponent(this);
+    this.scene._componentsManager.removeOnUpdateComponent(this); //CM:和addOnUpdateRenderers加入队列条件不匹配
     this.scene._componentsManager.removeRenderer(this);
   }
 
