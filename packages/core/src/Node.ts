@@ -32,12 +32,13 @@ export class Node extends EventDispatcher {
   /**
    * 根据路径查找节点，使用‘/’符号作为路径分割符。
    * @param path - 路径
+   * @param scene - @deprecated 兼容参数
    * @returns 节点
    */
   static findByPath(path: string, scene: Scene /*@deprecated*/): Node {
     const splits = path.split("/");
     const rootNode = scene.root;
-    if (!rootNode) return null;
+    if (!rootNode) return null; //CM:root可能为空吗，好像Scene.root只有get没有set，不可能为空
     let node: Node = rootNode;
     const spitLength = splits.length;
     for (let i = spitLength - 1; i >= 0; ++i) {
@@ -66,7 +67,7 @@ export class Node extends EventDispatcher {
     return null;
   }
 
-  /* 名字 */
+  /* 名字。 */
   name: string;
 
   /* @internal */
@@ -75,7 +76,7 @@ export class Node extends EventDispatcher {
   private _active: boolean;
   private _children: Array<Node> = [];
   private _components: Array<Component> = [];
-  private _parent: Node;
+  private _parent: Node = null;
   private _activeChangedComponents: Component[];
   private _isRoot: boolean; //TODO:由于目前场景管理机制不得不加
 
@@ -112,7 +113,7 @@ export class Node extends EventDispatcher {
    * 父节点。
    */
   get parent(): Node {
-    return this._parent || null;
+    return this._parent;
   }
 
   set parent(node: Node) {
@@ -164,12 +165,12 @@ export class Node extends EventDispatcher {
    */
   constructor(scene?: Scene, parent?: Node, name?: string) {
     super();
+    Node._nodes.add(this);
     this._scene = scene;
     this._isRoot = parent === null && name === "root";
     this.name = name;
     this.parent = parent;
     this.active = true; // local active state of this Node
-    Node._nodes.add(this);
 
     //deprecated
     this._activeChangeFun = activeChange(this);
@@ -317,7 +318,7 @@ export class Node extends EventDispatcher {
     const newNode = new Node(this._scene, null, this.name);
 
     newNode._active = this._active;
-    newNode._activeInHierarchy = this._activeInHierarchy;
+    newNode._activeInHierarchy = this._activeInHierarchy; //CM:这个不对吧ß
 
     // -- Transform
     newNode._position = vec3.clone(this._position);
@@ -369,10 +370,43 @@ export class Node extends EventDispatcher {
     Node._nodes.delete(this);
   }
 
-  /**
-   * @internal
-   */
-  _setActiveInHierarchy(activeChangedComponents: Component[]): void {
+  private _activeComponents(): void {
+    const activeChangedComponents = this._activeChangedComponents;
+    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
+      activeChangedComponents[i]._setActive(true);
+    }
+    this._scene._componentsManager.putTempList(activeChangedComponents);
+    this._activeChangedComponents = null;
+  }
+
+  private _inActiveComponents(): void {
+    const activeChangedComponents = this._activeChangedComponents;
+    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
+      activeChangedComponents[i]._setActive(false);
+    }
+    this._scene._componentsManager.putTempList(activeChangedComponents);
+    this._activeChangedComponents = null;
+  }
+
+  private _processActive(): void {
+    if (this._activeChangedComponents) {
+      throw "Node: can't set the 'main inActive node' active in hierarchy,if the operate is in main inActive node or it's children script's onDisable Event.";
+    }
+    this._activeChangedComponents = this._scene._componentsManager.getTempList();
+    this._setActiveInHierarchy(this._activeChangedComponents);
+    this._activeComponents();
+  }
+
+  private _processInActive(): void {
+    if (this._activeChangedComponents) {
+      throw "Node: can't set the 'main active node' inActive in hierarchy,if the operate is in main active node or it's children script's onEnable Event.";
+    }
+    this._activeChangedComponents = this._scene._componentsManager.getTempList();
+    this._setInActiveInHierarchy(this._activeChangedComponents);
+    this._inActiveComponents();
+  }
+
+  private _setActiveInHierarchy(activeChangedComponents: Component[]): void {
     this._activeInHierarchy = true;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
@@ -385,10 +419,7 @@ export class Node extends EventDispatcher {
     }
   }
 
-  /**
-   * @internal
-   */
-  _setInActiveInHierarchy(activeChangedComponents: Component[]): void {
+  private _setInActiveInHierarchy(activeChangedComponents: Component[]): void {
     this._activeInHierarchy = false;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
@@ -399,56 +430,6 @@ export class Node extends EventDispatcher {
       const child: Node = children[i];
       child.active && child._setInActiveInHierarchy(activeChangedComponents);
     }
-  }
-
-  /**
-   * @internal
-   */
-  _processActive(): void {
-    if (this._activeChangedComponents) {
-      throw "Node: can't set the 'main inActive node' active in hierarchy,if the operate is in main inActive node or it's children script's onDisable Event.";
-    }
-    this._activeChangedComponents = this._scene._componentsManager.getTempList();
-    this._setActiveInHierarchy(this._activeChangedComponents);
-    this._activeComponents();
-  }
-
-  /**
-   * @internal
-   */
-  _processInActive(): void {
-    if (this._activeChangedComponents) {
-      throw "Node: can't set the 'main active node' inActive in hierarchy,if the operate is in main active node or it's children script's onEnable Event.";
-    }
-    this._activeChangedComponents = this._scene._componentsManager.getTempList();
-    this._setInActiveInHierarchy(this._activeChangedComponents);
-    this._inActiveComponents();
-  }
-
-  /**
-   * @internal
-   */
-  _activeComponents(): void {
-    const activeChangedComponents = this._activeChangedComponents;
-    for (let i = 0, length = this._activeChangedComponents.length; i < length; ++i) {
-      const component = activeChangedComponents[i];
-      component._setActive(true);
-    }
-    this._scene._componentsManager.putTempList(this._activeChangedComponents);
-    this._activeChangedComponents = null;
-  }
-
-  /**
-   * @internal
-   */
-  _inActiveComponents(): void {
-    const activeChangedComponents = this._activeChangedComponents;
-    for (let i = 0, length = this._activeChangedComponents.length; i < length; ++i) {
-      const component = activeChangedComponents[i];
-      component._setActive(false);
-    }
-    this._scene._componentsManager.putTempList(this._activeChangedComponents);
-    this._activeChangedComponents = null;
   }
 
   //--------------------------------------------TobeConfirmed--------------------------------------------------

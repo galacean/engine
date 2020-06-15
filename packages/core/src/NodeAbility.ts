@@ -64,23 +64,22 @@ export abstract class NodeAbility extends EventDispatcher {
     super();
     this._props = props;
     this._node = node;
-    this._renderPassFlag = MaskList.EVERYTHING;
-    this._passMasks = [MaskList.EVERYTHING];
+
+    this._renderPassFlag = MaskList.EVERYTHING; // @deprecated
+    this._passMasks = [MaskList.EVERYTHING]; // @deprecated
   }
 
   /**
    * 销毁本组件对象
    */
   destroy(): void {
-    this._pendingDestroy = true;
+    if (!this._destroyed) return;
     if (this._node.activeInHierarchy) {
       this._enabled && this._onDisable();
       this._onInActive();
     }
-    if (this._node.activeInHierarchy && !this._destroyed) {
-      this._destroyed = true;
-      this._onDestroy();
-    }
+    this._destroyed = true;
+    this._onDestroy();
   }
 
   /**
@@ -155,7 +154,6 @@ export abstract class NodeAbility extends EventDispatcher {
   /* @internal */
   _started: boolean = false;
 
-  private _pendingDestroy: boolean = false;
   private _renderPriority: number = 0;
   private _renderPassFlag: MaskList;
   private _passMasks: MaskList[];
@@ -309,17 +307,6 @@ export abstract class NodeAbility extends EventDispatcher {
   //  * 每帧调用，第一次调用会回调this.onStart()方法
   //  */
   public update(deltaTime: number): void {}
-
-  /**
-   * @deprecated
-   * 是否被销毁
-   * @member {boolean}
-   * @readonly
-   * @private
-   */
-  get isPendingDestroy() {
-    return this._pendingDestroy;
-  }
 
   /**
    * @deprecated

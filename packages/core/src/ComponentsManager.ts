@@ -190,11 +190,7 @@ export class ComponentsManager {
   }
 
   getTempList(): Component[] {
-    if (this._componentsContainerPool.length) {
-      return this._componentsContainerPool.pop();
-    } else {
-      return [];
-    }
+    return this._componentsContainerPool.length ? this._componentsContainerPool.pop() : [];
   }
 
   putTempList(componentContainer: Component[]): void {
