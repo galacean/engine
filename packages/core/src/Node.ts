@@ -73,8 +73,8 @@ export class Node extends EventDispatcher {
   _activeInHierarchy: boolean = false;
 
   private _active: boolean;
-  private _children: DisorderedArray<Node> = new DisorderedArray();
-  private _components: DisorderedArray<Component> = new DisorderedArray();
+  private _children: Array<Node> = [];
+  private _components: Array<Component> = [];
   private _parent: Node;
   private _isRoot: boolean; //TODO:由于目前场景管理机制不得不加
 
@@ -122,7 +122,8 @@ export class Node extends EventDispatcher {
     if (node !== this._parent) {
       const oldParent = this._parent;
       if (oldParent != null) {
-        oldParent._children.delete(this);
+        const oldParentChildren = oldParent._children;
+        oldParentChildren.splice(oldParentChildren.indexOf(this), 1);
       }
       const newParent = (this._parent = node);
       if (newParent) {
@@ -174,7 +175,7 @@ export class Node extends EventDispatcher {
     if (scene) {
       this._activeChangedComponents = scene._componentsManager._getTempList();
     }
-    Node._nodes.push(this);
+    Node._nodes.add(this);
 
     //deprecated
     this._pendingDestroy = false;
@@ -373,7 +374,8 @@ export class Node extends EventDispatcher {
 
     // -- clear parent
     if (this._parent != null) {
-      this._parent._children.delete(this);
+      const parentChildren = this._parent._children;
+      parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
     Node._nodes.delete(this);
