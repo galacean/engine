@@ -25,7 +25,7 @@ export class ComponentsManager {
   private _onUpdateRenderers: DisorderedArray<RenderableComponent> = new DisorderedArray();
 
   // 延时销毁
-  private _destoryComponents: Component[] = [];
+  private _destoryComponents: Script[] = [];
 
   addOnUpdateComponents(component: Component): void {
     this._onUpdateComponents.push(component);
@@ -205,7 +205,7 @@ export class ComponentsManager {
     let length = this._onUpdateScripts.length;
     for (let i = length - 1; i >= 0; --i) {
       const script = this._onUpdateScripts[i];
-      if (!script._destroied) {
+      if (!script._destroyed) {
         script._onDestroy();
       }
     }
@@ -213,7 +213,7 @@ export class ComponentsManager {
     length = this._onLateUpdateScripts.length;
     for (let i = length - 1; i >= 0; --i) {
       const script = this._onLateUpdateScripts[i];
-      if (!script._destroied) {
+      if (!script._destroyed) {
         script._onDestroy();
       }
     }
@@ -221,7 +221,7 @@ export class ComponentsManager {
     length = this._onPreRenderScripts.length;
     for (let i = length - 1; i >= 0; --i) {
       const script = this._onPreRenderScripts[i];
-      if (!script._destroied) {
+      if (!script._destroyed) {
         script._onDestroy();
       }
     }
@@ -229,7 +229,7 @@ export class ComponentsManager {
     length = this._onPostRenderScripts.length;
     for (let i = length - 1; i >= 0; --i) {
       const script = this._onPostRenderScripts[i];
-      if (!script._destroied) {
+      if (!script._destroyed) {
         script._onDestroy();
       }
     }
@@ -240,7 +240,7 @@ export class ComponentsManager {
     let length = this._onUpdateAnimations.length;
     for (let i = length - 1; i >= 0; --i) {
       const animation = this._onUpdateAnimations[i];
-      if (!animation._destroied) {
+      if (!animation._destroyed) {
         animation._onDestroy();
       }
     }
@@ -251,7 +251,7 @@ export class ComponentsManager {
     let length = this._onUpdateComponents.length;
     for (let i = length - 1; i >= 0; --i) {
       const component = this._onUpdateComponents[i];
-      if (!component._destroied) {
+      if (!component._destroyed) {
         component._onDestroy();
       }
     }
@@ -262,7 +262,7 @@ export class ComponentsManager {
     let length = this._renderers.length;
     for (let i = length - 1; i >= 0; --i) {
       const renderer = this._renderers[i];
-      if (!renderer._destroied) {
+      if (!renderer._destroyed) {
         renderer._onDestroy();
       }
     }

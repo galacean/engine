@@ -22,15 +22,12 @@ export class RenderableComponent extends NodeAbility {
         this.onUpdate = this.update;
       }
       this.scene._componentsManager.addOnUpdateRenderers(this);
-      this._inComponentsManager = true;
     }
     this.scene._componentsManager.addRenderer(this);
   }
 
   _onInActive() {
-    if (this._inComponentsManager) {
-      this.scene._componentsManager.removeOnUpdateComponent(this);
-    }
+    this.scene._componentsManager.removeOnUpdateComponent(this);
     this.scene._componentsManager.removeRenderer(this);
   }
 

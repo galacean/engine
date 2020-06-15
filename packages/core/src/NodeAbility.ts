@@ -8,51 +8,39 @@ import { mat4Type } from "./type";
  * TODO:命名暂时保留兼容性，未来替换为Component
  * 所有组件的基类。
  */
-export class NodeAbility extends EventDispatcher {
+export abstract class NodeAbility extends EventDispatcher {
   /* @internal */
   _props: object;
   /* @internal */
-  _ownerNode: Node;
+  _node: Node;
   /* @internal */
-  _renderable: boolean = false;
-  /* @internal */
-  _started: boolean = false;
-  /* @internal */
-  _destroied: boolean = false;
-
-  /* @internal */
-  protected _inComponentsManager: boolean;
+  _destroyed: boolean = false;
 
   private _enabled: boolean = true;
-  private _pendingDestroy: boolean = false;
-  private _renderPriority: number = 0;
-  private _renderPassFlag: MaskList;
-  private _passMasks: MaskList[];
-  private _cullDistanceSq: number = 0; // 等于0，代表不进行 distance cull
   private _awaked: boolean = false;
 
   /**
-   * 是否激活
+   * 是否启用。
    */
   get enabled(): boolean {
     return this._enabled;
   }
 
-  set enabled(val: boolean) {
-    if (val === this._enabled) {
+  set enabled(value: boolean) {
+    if (value === this._enabled) {
       return;
     }
-    this._enabled = val;
-    //TODO 把事件拆出来
-    if (val) {
+    this._enabled = value;
+    if (value) {
       if (this._started) {
-        this._ownerNode.activeInHierarchy && this._onEnable();
+        //CM:这里为啥要用this._started判断
+        this._node.activeInHierarchy && this._onEnable();
       }
     } else {
-      this._ownerNode.activeInHierarchy && this._onDisable();
+      this._node.activeInHierarchy && this._onDisable();
     }
     // @deprecated
-    if (val) {
+    if (value) {
       if (this._started) {
         this.trigger(new Event("enabled", this));
       }
@@ -65,18 +53,18 @@ export class NodeAbility extends EventDispatcher {
    * 所属节点对象。
    */
   get node(): Node {
-    return this._ownerNode;
+    return this._node;
   }
 
   /**
-   * 构造函数
-   * @param {Node} node 对象所在节点
-   * @param {Object} props  配置参数
+   * 创建组件实例。
+   * @param node - 对象所在节点
+   * @param props - 配置参数
    */
   constructor(node: Node, props: object = {}) {
     super();
     this._props = props;
-    this._ownerNode = node;
+    this._node = node;
     this._renderPassFlag = MaskList.EVERYTHING;
     this._passMasks = [MaskList.EVERYTHING];
   }
@@ -86,74 +74,57 @@ export class NodeAbility extends EventDispatcher {
    */
   destroy(): void {
     this._pendingDestroy = true;
-    if (this._ownerNode.activeInHierarchy) {
+    if (this._node.activeInHierarchy) {
       this._enabled && this._onDisable();
       this._onInActive();
     }
-    if (this._ownerNode.activeInHierarchy && !this._destroied) {
-      this._destroied = true;
+    if (this._node.activeInHierarchy && !this._destroyed) {
+      this._destroyed = true;
       this._onDestroy();
     }
   }
 
   /**
-   * @override
-   * @internal
-   */
-  onDestroy(): void {}
-
-  /**
-   * @override
    * @internal
    */
   _onAwake(): void {}
+
   /**
-   * @override
    * @internal
    */
   _onEnable(): void {}
 
   /**
-   * @override
    * @internal
    */
   _onDisable(): void {}
 
   /**
-   * @override
    * @internal
    */
   _onDestroy(): void {}
 
   /**
-   * @override
    * @internal
    */
   _onActive(): void {
-    /**
-     * @deprecated 兼容
-     */
     if (this.onUpdate !== NodeAbility.prototype.onUpdate || this.update !== NodeAbility.prototype.update) {
+      //@deprecated 兼容
       if (this.update !== NodeAbility.prototype.update) {
         this.onUpdate = this.update;
       }
       this.scene._componentsManager.addOnUpdateComponents(this);
-      this._inComponentsManager = true;
     }
   }
 
   /**
-   * @override
    * @internal
    */
   _onInActive(): void {
-    if (this._inComponentsManager) {
-      this.scene._componentsManager.removeOnUpdateComponent(this);
-    }
+    this.scene._componentsManager.removeOnUpdateComponent(this);
   }
 
   /**
-   * @override
    * @internal
    */
   _setActive(value: boolean): void {
@@ -175,10 +146,22 @@ export class NodeAbility extends EventDispatcher {
    * 所属场景对象。
    */
   get scene(): Scene {
-    return this._ownerNode.scene;
+    return this._node.scene;
   }
 
   //---------------------------------------------Deprecated-----------------------------------------------------------------
+
+  /* @internal */
+  _started: boolean = false;
+
+  private _pendingDestroy: boolean = false;
+  private _renderPriority: number = 0;
+  private _renderPassFlag: MaskList;
+  private _passMasks: MaskList[];
+  private _cullDistanceSq: number = 0; // 等于0，代表不进行 distance cull
+
+  /* @internal */
+  _renderable: boolean = false;
 
   /**
    * @deprecated
@@ -187,7 +170,7 @@ export class NodeAbility extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-    return this._ownerNode.scene.engine;
+    return this._node.scene.engine;
   }
 
   /**
@@ -248,14 +231,14 @@ export class NodeAbility extends EventDispatcher {
    * @deprecated
    */
   get modelMatrix(): mat4Type {
-    return this._ownerNode.getModelMatrix();
+    return this._node.getModelMatrix();
   }
 
   /**
    * @deprecated
    */
   get invModelMatrix(): mat4Type {
-    return this._ownerNode.getInvModelMatrix();
+    return this._node.getInvModelMatrix();
   }
 
   /**
@@ -342,6 +325,6 @@ export class NodeAbility extends EventDispatcher {
    * 增加 parent 属性，主要是提供给事件的冒泡机制使用
    */
   get parent(): Node {
-    return this._ownerNode;
+    return this._node;
   }
 }
