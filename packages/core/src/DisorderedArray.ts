@@ -1,6 +1,6 @@
 /**
  * @internal
- * 高性能无序数组，delete采用交换法提升行,内部数只扩不缩
+ * 高性能无序数组，delete采用交换法提升行,内部数只扩不缩。
  */
 export class DisorderedArray<T> {
   _elements: T[];

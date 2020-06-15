@@ -8,7 +8,7 @@ import { vec3 } from "@alipay/o3-math";
 export abstract class RenderableComponent extends NodeAbility {
   _renderable: boolean = true;
 
-  render(camera: ACamera): void {} //CM:应该写成抽象方法,子类需要标记 @override，这里不需要
+  abstract render(camera: ACamera): void;
 
   update(): void {} //CM:未来整合为update更合理
   onUpdate(): void {}

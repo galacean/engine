@@ -32,10 +32,7 @@ export abstract class NodeAbility extends EventDispatcher {
     }
     this._enabled = value;
     if (value) {
-      if (this._started) {
-        //CM:这里为啥要用this._started判断
-        this._node.activeInHierarchy && this._onEnable();
-      }
+      this._node.activeInHierarchy && this._onEnable();
     } else {
       this._node.activeInHierarchy && this._onDisable();
     }
@@ -113,7 +110,7 @@ export abstract class NodeAbility extends EventDispatcher {
       if (this.update !== NodeAbility.prototype.update) {
         this.onUpdate = this.update;
       }
-      this.scene._componentsManager.addOnUpdateComponents(this);
+      this.scene._componentsManager.addOnUpdateComponent(this);
     }
   }
 

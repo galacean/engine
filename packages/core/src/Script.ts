@@ -130,6 +130,6 @@ export class Script extends NodeAbility {
    * @override
    */
   _onDestroy(): void {
-    this.scene._componentsManager.addDestoryComponents(this);
+    this.scene._componentsManager.addDestoryComponent(this);
   }
 }

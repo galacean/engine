@@ -15,7 +15,7 @@ export class ComponentsManager {
   private _onPostRenderScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
 
-  // 其他组件
+  // 其他组件 @deprecated
   private _onUpdateComponents: DisorderedArray<Component> = new DisorderedArray();
 
   // render
@@ -26,9 +26,9 @@ export class ComponentsManager {
   private _destoryComponents: Script[] = [];
 
   // 延时处理对象池
-  public _componentsContainerPool: Component[][] = [];
+  private _componentsContainerPool: Component[][] = [];
 
-  addOnUpdateComponents(component: Component): void {
+  addOnUpdateComponent(component: Component): void {
     this._onUpdateComponents.add(component);
   }
 
@@ -52,24 +52,24 @@ export class ComponentsManager {
     this._onUpdateScripts.delete(script);
   }
 
-  addOnLateUpdateScript(script: Script) {
+  addOnLateUpdateScript(script: Script): void {
     this._onLateUpdateScripts.add(script);
   }
 
-  removeOnLateUpdateScript(script: Script) {
+  removeOnLateUpdateScript(script: Script): void {
     this._onLateUpdateScripts.delete(script);
   }
 
-  addOnPreRenderScript(script: Script) {
+  addOnPreRenderScript(script: Script): void {
     this._onPreRenderScripts.add(script);
   }
 
-  removeOnPreRenderScript(script: Script) {
+  removeOnPreRenderScript(script: Script): void {
     this._onPreRenderScripts.delete(script);
   }
 
-  addOnPostRenderScript(script: Script) {
-    this._onLateUpdateScripts.add(script);
+  addOnPostRenderScript(script: Script): void {
+    this._onPostRenderScripts.add(script);
   }
 
   removeOnPostRenderScript(script: Script): void {
@@ -92,7 +92,7 @@ export class ComponentsManager {
     this._onUpdateRenderers.delete(renderer);
   }
 
-  addDestoryComponents(component): void {
+  addDestoryComponent(component): void {
     this._destoryComponents.push(component);
   }
 
@@ -164,6 +164,30 @@ export class ComponentsManager {
     }
   }
 
+  callRender(camera: ACamera): void {
+    const elements = this._renderers._elements;
+    for (let i = this._renderers.length - 1; i >= 0; --i) {
+      const renderer = elements[i];
+      if (renderer.enabled) {
+        renderer._render(camera);
+      }
+    }
+  }
+
+  callComponentDestory(): void {
+    const destoryComponents = this._destoryComponents;
+    const length = destoryComponents.length;
+    if (length > 0) {
+      for (let i = length - 1; i >= 0; --i) {
+        destoryComponents[i].onDestroy();
+      }
+      destoryComponents.length = 0;
+    }
+  }
+
+  /**
+   * @deprecated
+   */
   callComponentOnUpdate(deltaTime): void {
     const elements = this._onUpdateComponents._elements;
     for (let i = this._onUpdateComponents.length - 1; i >= 0; --i) {
@@ -178,109 +202,15 @@ export class ComponentsManager {
     }
   }
 
-  callComponentDestory(): void {
-    const destoryComponents = this._destoryComponents;
-    for (let i = destoryComponents.length - 1; i >= 0; --i) {
-      destoryComponents[i].onDestroy();
-    }
-  }
-
-  callRender(camera: ACamera): void {
-    const elements = this._renderers._elements;
-    for (let i = this._renderers.length - 1; i >= 0; --i) {
-      const renderer = elements[i];
-      if (renderer.enabled) {
-        renderer._render(camera);
-      }
-    }
-  }
-
-  clear() {
-    this._clearRenderers();
-    this._clearScripts(); //CM:好像没有需要clear的场景
-    this._clearAnimations();
-    this._clearComponents();
-  }
-
-  _clearScripts() {
-    let length = this._onUpdateScripts.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const script = this._onUpdateScripts[i];
-      if (!script._destroyed) {
-        script._onDestroy();
-      }
-    }
-    this._onUpdateScripts.length = 0;
-    length = this._onLateUpdateScripts.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const script = this._onLateUpdateScripts[i];
-      if (!script._destroyed) {
-        script._onDestroy();
-      }
-    }
-    this._onLateUpdateScripts.length = 0;
-    length = this._onPreRenderScripts.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const script = this._onPreRenderScripts[i];
-      if (!script._destroyed) {
-        script._onDestroy();
-      }
-    }
-    this._onPreRenderScripts.length = 0;
-    length = this._onPostRenderScripts.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const script = this._onPostRenderScripts[i];
-      if (!script._destroyed) {
-        script._onDestroy();
-      }
-    }
-    this._onPostRenderScripts.length = 0;
-  }
-
-  _clearAnimations() {
-    let length = this._onUpdateAnimations.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const animation = this._onUpdateAnimations[i];
-      if (!animation._destroyed) {
-        animation._onDestroy();
-      }
-    }
-    this._onUpdateAnimations.length = 0;
-  }
-
-  _clearComponents() {
-    let length = this._onUpdateComponents.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const component = this._onUpdateComponents[i];
-      if (!component._destroyed) {
-        component._onDestroy();
-      }
-    }
-    this._onUpdateComponents.length = 0;
-  }
-
-  _clearRenderers() {
-    let length = this._renderers.length;
-    for (let i = length - 1; i >= 0; --i) {
-      const renderer = this._renderers[i];
-      if (!renderer._destroyed) {
-        renderer._onDestroy();
-      }
-    }
-    this._renderers.length = 0;
-  }
-
-  _getTempList() {
+  _getTempList(): Component[] {
     if (this._componentsContainerPool.length) {
-      const componentContainer = this._componentsContainerPool.pop();
-      return componentContainer;
+      return this._componentsContainerPool.pop();
     } else {
-      const componentContainer: Component[] = [];
-      return componentContainer;
+      return [];
     }
   }
 
-  _putTempList(componentContainer: Component[]) {
+  _putTempList(componentContainer: Component[]): void {
     this._componentsContainerPool.push(componentContainer);
   }
 }
