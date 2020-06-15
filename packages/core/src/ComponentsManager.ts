@@ -202,7 +202,7 @@ export class ComponentsManager {
     }
   }
 
-  _getTempList(): Component[] {
+  getTempList(): Component[] {
     if (this._componentsContainerPool.length) {
       return this._componentsContainerPool.pop();
     } else {
@@ -210,7 +210,7 @@ export class ComponentsManager {
     }
   }
 
-  _putTempList(componentContainer: Component[]): void {
+  putTempList(componentContainer: Component[]): void {
     componentContainer.length = 0;
     this._componentsContainerPool.push(componentContainer);
   }

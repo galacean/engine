@@ -416,7 +416,7 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _processActive(): void {
-    this._activeChangedComponents || (this._activeChangedComponents = this._scene._componentsManager._getTempList());
+    this._activeChangedComponents || (this._activeChangedComponents = this._scene._componentsManager.getTempList());
     this._setActiveInHierarchy(this._activeChangedComponents);
     this._activeComponents();
   }
@@ -425,7 +425,7 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _processInActive(): void {
-    this._activeChangedComponents || (this._activeChangedComponents = this._scene._componentsManager._getTempList());
+    this._activeChangedComponents || (this._activeChangedComponents = this._scene._componentsManager.getTempList());
     this._setInActiveInHierarchy(this._activeChangedComponents);
     this._inActiveComponents();
   }
@@ -439,7 +439,7 @@ export class Node extends EventDispatcher {
       const component = activeChangedComponents[i];
       component._setActive(true);
     }
-    this._scene._componentsManager._putTempList(this._activeChangedComponents);
+    this._scene._componentsManager.putTempList(this._activeChangedComponents);
     this._activeChangedComponents = null;
   }
 
@@ -452,7 +452,7 @@ export class Node extends EventDispatcher {
       const component = activeChangedComponents[i];
       component._setActive(false);
     }
-    this._scene._componentsManager._putTempList(this._activeChangedComponents);
+    this._scene._componentsManager.putTempList(this._activeChangedComponents);
     this._activeChangedComponents = null;
   }
 
