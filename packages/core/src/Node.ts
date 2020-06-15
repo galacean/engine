@@ -86,9 +86,6 @@ export class Node extends EventDispatcher {
     return this._active;
   }
   set active(value: boolean) {
-    if (this._activeChangedComponents && this._activeChangedComponents.length) {
-      console.error("active state can't be changed while processing");
-    }
     if (value !== this._active) {
       this._active = value;
       if (value) {
@@ -128,8 +125,8 @@ export class Node extends EventDispatcher {
       const newParent = (this._parent = node);
       if (newParent) {
         newParent._children.push(this);
+        // @deprecated
         if (this._scene !== newParent._scene) {
-          //@deprecated
           // fixme: remove below code after gltf loader can set the right ownerScene
           this._scene = newParent._scene;
           Node.traverseSetOwnerScene(this);
@@ -141,8 +138,8 @@ export class Node extends EventDispatcher {
           this._activeInHierarchy && this._processInActive();
         }
       } else {
+        // @deprecated
         if (oldParent) {
-          // @deprecated event
           // this.traverseAbilitiesTriggerEnabled(false);
           this._scene = null;
           Node.traverseSetOwnerScene(this);
@@ -414,7 +411,10 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _processActive(): void {
-    this._activeChangedComponents || (this._activeChangedComponents = this._scene._componentsManager.getTempList());
+    if (this._activeChangedComponents) {
+      throw "Node: can't set the 'main inActive node' active in hierarchy,if the operate is in main inActive node or it's children script's onDisable Event.";
+    }
+    this._activeChangedComponents = this._scene._componentsManager.getTempList();
     this._setActiveInHierarchy(this._activeChangedComponents);
     this._activeComponents();
   }
@@ -423,7 +423,10 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _processInActive(): void {
-    this._activeChangedComponents || (this._activeChangedComponents = this._scene._componentsManager.getTempList());
+    if (this._activeChangedComponents) {
+      throw "Node: can't set the 'main active node' inActive in hierarchy,if the operate is in main active node or it's children script's onEnable Event.";
+    }
+    this._activeChangedComponents = this._scene._componentsManager.getTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);
     this._inActiveComponents();
   }
