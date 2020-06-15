@@ -7,8 +7,6 @@ import { vec3 } from "@alipay/o3-math";
  */
 export abstract class RenderableComponent extends NodeAbility {
   /* @internal */
-  _renderable: boolean = true;
-  /* @internal */
   _onUpdateIndex: number = -1;
   /* @internal */
   _rendererIndex: number = -1;
@@ -36,7 +34,7 @@ export abstract class RenderableComponent extends NodeAbility {
       this.onUpdate !== RenderableComponent.prototype.onUpdate ||
       this.update !== RenderableComponent.prototype.update
     ) {
-      this.scene._componentsManager.removeOnUpdateComponent(this); //CM:和addOnUpdateRenderers加入队列条件不匹配
+      this.scene._componentsManager.removeOnUpdateComponent(this);
     }
     this.scene._componentsManager.removeRenderer(this);
   }
@@ -54,4 +52,8 @@ export abstract class RenderableComponent extends NodeAbility {
       this.render(camera);
     }
   }
+
+  //----------------------------------------@deprecated----------------------------------------------------
+  /* @internal */
+  _renderable: boolean = true;
 }
