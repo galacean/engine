@@ -868,7 +868,7 @@ export class Node extends EventDispatcher {
     for (let i = node.children.length - 1; i >= 0; i--) {
       const child = node.children[i];
       const enabled = node._ownerScene ? true : false;
-      node.traverseAbilitiesTriggerEnabled(enabled);
+      child.traverseAbilitiesTriggerEnabled(enabled);
 
       child._ownerScene = node._ownerScene;
       this.traverseSetOwnerScene(node.children[i]);
