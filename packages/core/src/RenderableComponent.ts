@@ -6,7 +6,12 @@ import { vec3 } from "@alipay/o3-math";
  * 可渲染的组件。
  */
 export abstract class RenderableComponent extends NodeAbility {
+  /* @internal */
   _renderable: boolean = true;
+  /* @internal */
+  _onUpdateIndex: number = -1;
+  /* @internal */
+  _rendererIndex: number = -1;
 
   abstract render(camera: ACamera): void;
 
@@ -27,7 +32,12 @@ export abstract class RenderableComponent extends NodeAbility {
   }
 
   _onInActive() {
-    this.scene._componentsManager.removeOnUpdateComponent(this); //CM:和addOnUpdateRenderers加入队列条件不匹配
+    if (
+      this.onUpdate !== RenderableComponent.prototype.onUpdate ||
+      this.update !== RenderableComponent.prototype.update
+    ) {
+      this.scene._componentsManager.removeOnUpdateComponent(this); //CM:和addOnUpdateRenderers加入队列条件不匹配
+    }
     this.scene._componentsManager.removeRenderer(this);
   }
 

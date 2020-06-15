@@ -59,6 +59,9 @@ export class AAnimation extends NodeAbility {
     return outValue;
   }
 
+  /* @internal */
+  _onUpdateIndex: number = -1;
+
   private _animSet;
 
   private _animLayers: AnimationLayer[];

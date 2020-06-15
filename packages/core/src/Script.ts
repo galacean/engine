@@ -6,6 +6,14 @@ import { NodeAbility } from "./NodeAbility";
 export class Script extends NodeAbility {
   /* @internal */
   _started: boolean = false;
+  /* @internal */
+  _onUpdateIndex: number = -1;
+  /* @internal */
+  _onLateUpdateIndex: number = -1;
+  /* @internal */
+  _onPreRenderIndex: number = -1;
+  /* @internal */
+  _onPostRenderIndex: number = -1;
 
   /**
    * 脚本第一次被激活时调用,而且只调用一次。

@@ -29,67 +29,83 @@ export class ComponentsManager {
   private _componentsContainerPool: Component[][] = [];
 
   addOnUpdateComponent(component: Component): void {
+    component._onUpdateIndex = this._onUpdateComponents.length;
     this._onUpdateComponents.add(component);
   }
 
   removeOnUpdateComponent(component: Component): void {
     this._onUpdateComponents.delete(component);
+    component._onUpdateIndex = -1;
   }
 
   addRenderer(renderer: RenderableComponent) {
+    renderer._rendererIndex = this._renderers.length;
     this._renderers.add(renderer);
   }
 
   removeRenderer(renderer: RenderableComponent) {
     this._renderers.delete(renderer);
+    renderer._rendererIndex = -1;
   }
 
   addOnUpdateScript(script: Script) {
+    script._onUpdateIndex = this._onUpdateScripts.length;
     this._onUpdateScripts.add(script);
   }
 
   removeOnUpdateScript(script: Script): void {
-    this._onUpdateScripts.delete(script);
+    this._onUpdateScripts.deleteByIndex(script._onUpdateIndex);
+    script._onUpdateIndex = -1;
   }
 
   addOnLateUpdateScript(script: Script): void {
+    script._onLateUpdateIndex = this._onLateUpdateScripts.length;
     this._onLateUpdateScripts.add(script);
   }
 
   removeOnLateUpdateScript(script: Script): void {
-    this._onLateUpdateScripts.delete(script);
+    this._onLateUpdateScripts.deleteByIndex(script._onLateUpdateIndex);
+    script._onLateUpdateIndex = -1;
   }
 
   addOnPreRenderScript(script: Script): void {
+    script._onPreRenderIndex = this._onPreRenderScripts.length;
     this._onPreRenderScripts.add(script);
   }
 
   removeOnPreRenderScript(script: Script): void {
-    this._onPreRenderScripts.delete(script);
+    this._onPreRenderScripts.deleteByIndex(script._onPreRenderIndex);
+    script._onPreRenderIndex = -1;
   }
 
   addOnPostRenderScript(script: Script): void {
+    script._onPostRenderIndex = this._onPreRenderScripts.length;
     this._onPostRenderScripts.add(script);
   }
 
   removeOnPostRenderScript(script: Script): void {
-    this._onPostRenderScripts.delete(script);
+    this._onPostRenderScripts.deleteByIndex(script._onPostRenderIndex);
+    script._onPostRenderIndex = -1;
   }
 
   addOnUpdateAnimations(animation: Component): void {
+    animation._onUpdateIndex = this._onUpdateAnimations.length;
     this._onUpdateAnimations.add(animation);
   }
 
   removeOnUpdateAnimations(animation: Component): void {
-    this._onUpdateAnimations.delete(animation);
+    this._onUpdateAnimations.deleteByIndex(animation._onUpdateIndex);
+    animation._onUpdateIndex = -1;
   }
 
   addOnUpdateRenderers(renderer: RenderableComponent): void {
+    renderer._onUpdateIndex = this._onUpdateRenderers.length;
     this._onUpdateRenderers.add(renderer);
   }
 
   removeOnUpdateRenderers(renderer: RenderableComponent): void {
-    this._onUpdateRenderers.delete(renderer);
+    this._onUpdateRenderers.deleteByIndex(renderer._onUpdateIndex);
+    renderer._onUpdateIndex = -1;
   }
 
   addDestoryComponent(component): void {

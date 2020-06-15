@@ -5,7 +5,7 @@ import { Mesh } from "./Mesh";
 
 /**
  * 负责渲染一个Mesh对象的组件
- * @extends NodeAbility
+ * @extends RenderableComponent
  */
 export class AMeshRenderer extends RenderableComponent {
   private _mesh: Mesh;

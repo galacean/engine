@@ -15,6 +15,8 @@ export abstract class NodeAbility extends EventDispatcher {
   _node: Node;
   /* @internal */
   _destroyed: boolean = false;
+  /* @internal */
+  _onUpdateIndex: number = -1;
 
   private _enabled: boolean = true;
   private _awaked: boolean = false;
@@ -118,7 +120,9 @@ export abstract class NodeAbility extends EventDispatcher {
    * @internal
    */
   _onInActive(): void {
-    this.scene._componentsManager.removeOnUpdateComponent(this); //CM:和addOnUpdateRenderers加入队列条件不匹配,在这里加判断逻辑更好
+    if (this.onUpdate !== NodeAbility.prototype.onUpdate || this.update !== NodeAbility.prototype.update) {
+      this.scene._componentsManager.removeOnUpdateComponent(this);
+    }
   }
 
   /**
