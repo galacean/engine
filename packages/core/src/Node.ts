@@ -192,7 +192,6 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   addComponent<T extends Component>(type: new (node: Node, props?: object) => T, props: object = {}): T {
-    //TODO :看看能否删除node参数
     const component = new type(this, props);
     this._components.push(component);
     if (this._activeInHierarchy) {
@@ -207,7 +206,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   getComponent<T extends Component>(type: new (node: Node, props?: object) => T): T {
-    for (let i = this._components.length; i >= 0; i--) {
+    for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
         return component;
@@ -221,7 +220,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例集合
    */
   getComponents<T extends Component>(type: new (node: Node, props?: object) => T, results: Array<T>): Array<T> {
-    for (let i = this._components.length; i >= 0; i--) {
+    for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
         results.push(component);
