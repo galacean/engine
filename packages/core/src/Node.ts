@@ -221,14 +221,13 @@ export class Node extends EventDispatcher {
    * @returns	组件实例集合
    */
   getComponents<T extends Component>(type: new (node: Node, props?: object) => T, results: Array<T>): Array<T> {
-    const components = [];
     for (let i = this._components.length; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
-        components.push(component);
+        results.push(component);
       }
     }
-    return components;
+    return results;
   }
 
   /**

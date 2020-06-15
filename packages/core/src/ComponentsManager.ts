@@ -32,7 +32,7 @@ export class ComponentsManager {
   }
 
   removeRenderer(renderer: RenderableComponent) {
-    this._renderers.delete(renderer);
+    this._renderers.deleteByIndex(renderer._rendererIndex);
     renderer._rendererIndex = -1;
   }
 
