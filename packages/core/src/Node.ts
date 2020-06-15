@@ -172,9 +172,6 @@ export class Node extends EventDispatcher {
     this.name = name;
     this.parent = parent;
     this.active = true; // local active state of this Node
-    if (scene) {
-      this._activeChangedComponents = scene._componentsManager._getTempList();
-    }
     Node._nodes.add(this);
 
     //deprecated
@@ -440,11 +437,10 @@ export class Node extends EventDispatcher {
     const activeChangedComponents = this._activeChangedComponents;
     for (let i = 0, length = this._activeChangedComponents.length; i < length; ++i) {
       const component = activeChangedComponents[i];
-      console.log(component);
       component._setActive(true);
     }
-    this._activeChangedComponents.length = 0;
     this._scene._componentsManager._putTempList(this._activeChangedComponents);
+    this._activeChangedComponents = null;
   }
 
   /**
@@ -456,8 +452,8 @@ export class Node extends EventDispatcher {
       const component = activeChangedComponents[i];
       component._setActive(false);
     }
-    this._activeChangedComponents.length = 0;
     this._scene._componentsManager._putTempList(this._activeChangedComponents);
+    this._activeChangedComponents = null;
   }
 
   //--------------------------------------------TobeConfirmed--------------------------------------------------

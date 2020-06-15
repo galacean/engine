@@ -211,6 +211,7 @@ export class ComponentsManager {
   }
 
   _putTempList(componentContainer: Component[]): void {
+    componentContainer.length = 0;
     this._componentsContainerPool.push(componentContainer);
   }
 }
