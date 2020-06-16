@@ -1,36 +1,16 @@
 import { ClearMode } from "@alipay/o3-base";
 import { Node, NodeAbility } from "@alipay/o3-core";
 import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4, Matrix4 } from "@alipay/o3-math/types/type";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 
-// type 修改//CM：放到公共的数学库文件
-type Vector2 = [number, number];
-type Vector3 = [number, number, number];
-type Vector4 = [number, number, number, number];
-type Matrix4 = [
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number
-];
-
-type Ray = { origin: Vector3; direction: Vector3 }; //CM:直接实现一个类吧
+/**
+ * 数学库改造
+ */
+type Ray = { origin: Vector3; direction: Vector3 };
 type Sky = {}; //CM:直接实现一个类吧
 
-//CM：放到公共的数学库文件
 class MathTemp {
   static tempMat4 = mat4.create() as Matrix4;
   static tempVec4 = vec4.create() as Vector4;
@@ -40,11 +20,23 @@ class MathTemp {
 /**
  * 清理参数
  */
-enum ClearFlags { //CM：编写正式注释
-  DepthSky, // 只保留天空盒
-  DepthColor, // 纯色
-  Depth, // 只清除深度信息
-  None // 不做任何清除
+export enum ClearFlags {
+  /**
+   * 只保留天空盒
+   */
+  DepthSky,
+  /**
+   * 纯色
+   */
+  DepthColor,
+  /**
+   * 只清除深度信息
+   */
+  Depth,
+  /**
+   * 不做任何清除
+   */
+  None
 }
 
 /**
@@ -87,7 +79,7 @@ export class Camera extends NodeAbility {
 
   private _isOrthographic: boolean = false;
   private _projectionMatrix: Matrix4 = mat4.create() as Matrix4;
-  private _isProjectionDirty = false; //CM:可进一步区分透视和正交的dirty
+  private _isProjectionDirty = false;
   private _isProjMatSetting = false;
   private _viewMatrix: Matrix4 = mat4.create() as Matrix4;
   private _clearFlags: ClearFlags;
@@ -236,7 +228,6 @@ export class Camera extends NodeAbility {
 
   /**
    * 投影矩阵,默认由相机的相关参数计算计算，如果手动设置会保持手动值，调用resetProjectionMatrix()可恢复。
-   * @todo CM:测试深度标准,并🈯️深度标准
    */
   public set projectionMatrix(value: Matrix4) {
     this._projectionMatrix = value;
@@ -347,8 +338,8 @@ export class Camera extends NodeAbility {
   /**
    * 将一个点从世界空间变换到视口空间。
    * @param point - 世界空间中的点
-   * @param out - X和Y为视口空间坐标，Z为视口深度，近裁剪面为0，远裁剪面为1，W为距离相机的世界单位距离 @todo //CM:需要验证深度范围
-   * @returns X和Y为视口空间坐标，Z为视口深度，近裁剪面为0，远裁剪面为1，W为距离相机的世界单位距离
+   * @param out - X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1，W 为距离相机的世界单位距离
+   * @returns X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1，W 为距离相机的世界单位距离
    */
   public worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
     const matViewProj = mat4.mul(MathTemp.tempMat4, this.projectionMatrix, this.viewMatrix);
@@ -371,7 +362,7 @@ export class Camera extends NodeAbility {
 
   /**
    * 将一个点从视口空间变换到世界空间。
-   * @param point - X和Y为视口空间坐标，Z为视口深度，近裁剪面为0，远裁剪面为1
+   * @param point - X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1
    * @param out - 世界空间中的点
    * @returns 世界空间中的点
    */
@@ -396,17 +387,17 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 通过视口空间点的坐标获取射线，生成射线的起点在相机的近裁面并穿过点的X和Y坐标。
+   * 通过视口空间点的坐标获取射线，生成射线的起点在相机的近裁面并穿过点的 X 和 Y坐标。
    * @param point 视口空间中的点
    * @param out - 射线
    * @returns 射线
    */
   public viewportPointToRay(point: Vector2, out: Ray): Ray {
     // 使用近裁面的交点作为 origin
-    vec3.set(MathTemp.tempVec3, point[0], point[1], 0.1);
+    vec3.set(MathTemp.tempVec3, point[0], point[1], 0);
     const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
     // 使用远裁面的交点作为 origin
-    const viewportPos = vec3.set(MathTemp.tempVec3, point[0], point[1], 0.8); //CM:这个0.8是哈
+    const viewportPos = vec3.set(MathTemp.tempVec3, point[0], point[1], 1);
     const worldPoint = this.viewportToWorldPoint(viewportPos, MathTemp.tempVec3);
     const direction = vec3.sub(out.direction, worldPoint, origin);
     vec3.normalize(direction, direction);
@@ -558,10 +549,7 @@ export class Camera extends NodeAbility {
    * @param clearMode
    * @param clearParam
    */
-  public setClearMode(
-    clearMode: ClearMode = ClearMode.SOLID_COLOR,
-    clearParam: number[] = [0.25, 0.25, 0.25, 1]
-  ): void {
+  public setClearMode(clearMode: ClearMode = ClearMode.SOLID_COLOR, clearParam: Vector4 = [0.25, 0.25, 0.25, 1]): void {
     this._clearMode = clearMode;
     this._clearParam = clearParam as Vector4;
     this._sceneRenderer.defaultRenderPass.clearParam = clearParam;
