@@ -288,7 +288,7 @@ export class Camera extends NodeAbility {
     const settingAttribute = engine?.config?.attributes ?? attributes ?? {};
     const Renderer = SceneRenderer ?? BasicSceneRenderer;
 
-    settingCanvas && this.attachToScene(settingCanvas, settingAttribute);
+    settingCanvas && this.attachToScene(settingCanvas, settingAttribute); //CM:调整为激活时调用，可在重载_onActive方法内加入
     this._sceneRenderer = new Renderer(this);
 
     this.setClearMode(clearMode, clearParam);
@@ -423,7 +423,7 @@ export class Camera extends NodeAbility {
     super.destroy();
 
     // -- remove from scene
-    this._ownerNode.scene.detachRenderCamera(this as any);
+    this._ownerNode.scene.detachRenderCamera(this as any); //CM:调整为非激活时调用，可在重载_onInActive方法内加入
 
     if (this._sceneRenderer) {
       this._sceneRenderer.destroy();
