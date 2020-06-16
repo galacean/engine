@@ -14,14 +14,14 @@ import { TextureConfig } from "./type";
  * 立方体纹理
  */
 export class TextureCubeMap extends Texture {
+  private _format: TextureFormat;
+
   /**
    * 纹理的格式。
    */
   get format(): TextureFormat {
     return this._format;
   }
-
-  private _format: TextureFormat;
 
   /**
    * 创建立方体纹理。

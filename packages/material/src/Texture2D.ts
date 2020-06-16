@@ -7,14 +7,14 @@ import { Texture2DConfig, Rect } from "./type";
  * 2D纹理
  */
 export class Texture2D extends Texture {
+  private _format: TextureFormat;
+
   /**
    * 纹理的格式。
    */
   get format(): TextureFormat {
     return this._format;
   }
-
-  private _format: TextureFormat;
 
   /**
    * 构建一个2D纹理。

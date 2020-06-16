@@ -268,6 +268,22 @@ export class Texture extends AssetObject {
     }
   }
 
+  public _glTexture: WebGLTexture;
+  public _formatDetail: TextureFormatDetail;
+  public _isCube: boolean = false;
+
+  protected _rhi;
+  protected _target: GLenum;
+  protected _mipmap: boolean;
+  protected _width: number;
+  protected _height: number;
+
+  private _mipmapCount: number;
+  private _wrapModeU: TextureWrapMode;
+  private _wrapModeV: TextureWrapMode;
+  private _filterMode: TextureFilterMode;
+  private _anisoLevel: number;
+
   /**
    * 宽。
    */
@@ -412,22 +428,6 @@ export class Texture extends AssetObject {
     gl.texParameterf(this._target, gl.TEXTURE_MAX_ANISOTROPY_EXT, value);
     this._unbind();
   }
-
-  public _glTexture: WebGLTexture;
-  public _formatDetail: TextureFormatDetail;
-  public _isCube: boolean = false;
-
-  protected _rhi;
-  protected _target: GLenum;
-  protected _mipmap: boolean;
-  protected _width: number;
-  protected _height: number;
-
-  private _mipmapCount: number;
-  private _wrapModeU: TextureWrapMode;
-  private _wrapModeV: TextureWrapMode;
-  private _filterMode: TextureFilterMode;
-  private _anisoLevel: number;
 
   /**
    * 根据第0级数据生成多级纹理。

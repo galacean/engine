@@ -5,6 +5,9 @@ import { Texture } from "./Texture";
  * 类应用于渲染深度纹理。
  */
 export class RenderDepthTexture extends Texture {
+  private _format: RenderBufferDepthFormat;
+  private _autoMipmap: boolean = false;
+
   /**
    * 格式。
    */
@@ -22,9 +25,6 @@ export class RenderDepthTexture extends Texture {
   set autoGenerateMipmaps(value: boolean) {
     this._autoMipmap = value;
   }
-
-  private _format: RenderBufferDepthFormat;
-  private _autoMipmap: boolean = false;
 
   /**
    * 构造渲染深度纹理。

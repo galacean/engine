@@ -20,6 +20,20 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
  * 用于离屏幕渲染的渲染目标。
  */
 export class RenderTarget extends AssetObject {
+  public _frameBuffer: WebGLFramebuffer;
+
+  private _rhi;
+  private _width: number;
+  private _height: number;
+  private _antiAliasing: number;
+  private _colorTextures: Array<RenderColorTexture> = [];
+  private _depthTexture: RenderDepthTexture | null;
+  private _depthRenderBuffer: WebGLRenderbuffer | null;
+  private _MSAAFrameBuffer: WebGLFramebuffer | null;
+  private _MSAAColorRenderBuffers: Array<WebGLRenderbuffer> = [];
+  private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
+  private _oriDrawBuffers: Array<GLenum>;
+
   /** 宽 */
   get width(): number {
     return this._width;
@@ -51,20 +65,6 @@ export class RenderTarget extends AssetObject {
   get antiAliasing(): number {
     return this._antiAliasing;
   }
-
-  public _frameBuffer: WebGLFramebuffer;
-
-  private _rhi;
-  private _width: number;
-  private _height: number;
-  private _antiAliasing: number;
-  private _colorTextures: Array<RenderColorTexture> = [];
-  private _depthTexture: RenderDepthTexture | null;
-  private _depthRenderBuffer: WebGLRenderbuffer | null;
-  private _MSAAFrameBuffer: WebGLFramebuffer | null;
-  private _MSAAColorRenderBuffers: Array<WebGLRenderbuffer> = [];
-  private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
-  private _oriDrawBuffers: Array<GLenum>;
 
   /**
    * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
