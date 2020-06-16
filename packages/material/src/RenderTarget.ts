@@ -20,6 +20,20 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
  * 用于离屏幕渲染的渲染目标。
  */
 export class RenderTarget extends AssetObject {
+  public _frameBuffer: WebGLFramebuffer;
+
+  private _rhi;
+  private _width: number;
+  private _height: number;
+  private _antiAliasing: number;
+  private _colorTextures: Array<RenderColorTexture> = [];
+  private _depthTexture: RenderDepthTexture | null;
+  private _depthRenderBuffer: WebGLRenderbuffer | null;
+  private _MSAAFrameBuffer: WebGLFramebuffer | null;
+  private _MSAAColorRenderBuffers: Array<WebGLRenderbuffer> = [];
+  private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
+  private _oriDrawBuffers: Array<GLenum>;
+
   /** 宽 */
   get width(): number {
     return this._width;
@@ -51,20 +65,6 @@ export class RenderTarget extends AssetObject {
   get antiAliasing(): number {
     return this._antiAliasing;
   }
-
-  public _frameBuffer: WebGLFramebuffer;
-
-  private _rhi;
-  private _width: number;
-  private _height: number;
-  private _antiAliasing: number;
-  private _colorTextures: Array<RenderColorTexture> = [];
-  private _depthTexture: RenderDepthTexture | null;
-  private _depthRenderBuffer: WebGLRenderbuffer | null;
-  private _MSAAFrameBuffer: WebGLFramebuffer | null;
-  private _MSAAColorRenderBuffers: Array<WebGLRenderbuffer> = [];
-  private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
-  private _oriDrawBuffers: Array<GLenum>;
 
   /**
    * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
@@ -154,18 +154,15 @@ export class RenderTarget extends AssetObject {
 
     if (!(depth instanceof RenderDepthTexture)) {
       if ((depth === RenderBufferDepthFormat.Depth24 || depth === RenderBufferDepthFormat.Depth32) && !isWebGL2) {
-        Logger.error("当前环境不支持高精度深度纹理,请先检测能力再使用");
-        return;
+        throw new Error("当前环境不支持高精度深度纹理,请先检测能力再使用");
       }
       if (depth === RenderBufferDepthFormat.Depth32Stencil8 && !isWebGL2) {
-        Logger.error("当前环境不支持高精度深度模版纹理,请先检测能力再使用");
-        return;
+        throw new Error("当前环境不支持高精度深度模版纹理,请先检测能力再使用");
       }
     }
 
     if ((renderTexture as Array<RenderColorTexture>)?.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
-      Logger.error("当前环境不支持 MRT,请先检测能力再使用");
-      return;
+      throw new Error("当前环境不支持 MRT,请先检测能力再使用");
     }
 
     const maxAntiAliasing = rhi.capability.maxAntiAliasing;
@@ -187,8 +184,7 @@ export class RenderTarget extends AssetObject {
 
     // todo: necessary to support MRT + Cube + [,MSAA] ?
     if (this._colorTextures.length > 1 && this._colorTextures.some((v: RenderColorTexture) => v._isCube)) {
-      Logger.error("引擎暂不支持 MRT+Cube+[,MSAA]");
-      return;
+      throw new Error("引擎暂不支持 MRT+Cube+[,MSAA]");
     }
 
     if (depth instanceof RenderDepthTexture) {
@@ -434,25 +430,21 @@ export class RenderTarget extends AssetObject {
 
     switch (e) {
       case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-        Logger.error(
+        throw new Error(
           "The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete"
         );
-        return;
       case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-        Logger.error("There is no attachment");
-        return;
+        throw new Error("There is no attachment");
       case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
-        Logger.error(" Height and width of the attachment are not the same.");
-        return;
+        throw new Error(" Height and width of the attachment are not the same.");
       case gl.FRAMEBUFFER_UNSUPPORTED:
-        Logger.error(
+        throw new Error(
           "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
         );
-        return;
     }
 
     if (isWebGL2 && e === gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE) {
-      Logger.error(
+      throw new Error(
         "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
       );
     }

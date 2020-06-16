@@ -24,8 +24,8 @@ export class Texture extends AssetObject {
   }
 
   /**
-   * @internal
    * 根据 TextureFormat 获取具体信息
+   * @return {TextureFormatDetail}
    */
   static _getFormatDetail(
     format: TextureFormat,
@@ -268,6 +268,22 @@ export class Texture extends AssetObject {
     }
   }
 
+  public _glTexture: WebGLTexture;
+  public _formatDetail: TextureFormatDetail;
+  public _isCube: boolean = false;
+
+  protected _rhi;
+  protected _target: GLenum;
+  protected _mipmap: boolean;
+  protected _width: number;
+  protected _height: number;
+
+  private _mipmapCount: number;
+  private _wrapModeU: TextureWrapMode;
+  private _wrapModeV: TextureWrapMode;
+  private _filterMode: TextureFilterMode;
+  private _anisoLevel: number;
+
   /**
    * 宽。
    */
@@ -395,8 +411,7 @@ export class Texture extends AssetObject {
     if (value === this._anisoLevel) return;
 
     if (!this._rhi.canIUse(GLCapabilityType.textureFilterAnisotropic)) {
-      Logger.error("当前环境不支持设置各向异性过滤等级");
-      return;
+      throw new Error("当前环境不支持设置各向异性过滤等级");
     }
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
@@ -413,22 +428,6 @@ export class Texture extends AssetObject {
     gl.texParameterf(this._target, gl.TEXTURE_MAX_ANISOTROPY_EXT, value);
     this._unbind();
   }
-
-  public _glTexture: WebGLTexture;
-  public _formatDetail: TextureFormatDetail;
-  public _isCube: boolean = false; //CM:没必要存，可优化掉
-
-  protected _rhi;
-  protected _target: GLenum;
-  protected _mipmap: boolean;
-  protected _width: number;
-  protected _height: number;
-
-  private _mipmapCount: number;
-  private _wrapModeU: TextureWrapMode;
-  private _wrapModeV: TextureWrapMode;
-  private _filterMode: TextureFilterMode;
-  private _anisoLevel: number;
 
   /**
    * 根据第0级数据生成多级纹理。
