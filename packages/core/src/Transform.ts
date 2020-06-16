@@ -116,7 +116,7 @@ export class Transform extends NodeAbility {
       vec3.copy(this._worldPosition, value);
     }
     if (this._parent) {
-      const matWorldToLocal = mat4.invert(Transform._tempMat4, this._parent.worldMatrix);
+      const matWorldToLocal = mat4.invert(Transform._tempMat41, this._parent.worldMatrix);
       vec3.transformMat4(this._worldPosition, value, matWorldToLocal);
     } else {
       vec3.copy(this._worldPosition, value);

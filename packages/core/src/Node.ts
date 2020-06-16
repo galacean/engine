@@ -414,8 +414,9 @@ export class Node extends EventDispatcher {
     newNode._isActiveInInHierarchy = this._isActiveInInHierarchy;
 
     // -- Transform
-    const worldMatrix = this.getModelMatrix();
-    newNode.transform.worldMatrix = mat4.clone(worldMatrix);
+    // newNode.position = vec3.clone(this.transform.position);
+    // newNode.rotation = quat.clone(this.transform.rotationQuaternion);
+    // newNode.scale = vec3.clone(this.transform.scale);
 
     for (const childNode of this._children) {
       newNode.addChild(childNode.clone());
@@ -425,10 +426,12 @@ export class Node extends EventDispatcher {
     const len = abilityArray.length;
     for (let i = 0; i < len; i++) {
       const ability = abilityArray[i];
-      newNode.createAbility(ability.constructor as any, {
-        ...ability._props,
-        isClone: true
-      });
+      if (ability.constructor.name !== "Transform") {
+        newNode.createAbility(ability.constructor as any, {
+          ...ability._props,
+          isClone: true
+        });
+      }
     }
 
     return newNode;
