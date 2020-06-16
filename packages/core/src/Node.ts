@@ -180,7 +180,7 @@ export class Node extends EventDispatcher {
     super();
     Node._nodes.add(this);
     this._scene = scene;
-    this._isRoot = parent === null && name === "root"; //CM:这个判断条件容易出问题吧，不严谨，可否在scene的构造函数里直接修改 _isRoot 为false
+    this._isRoot = parent === null && name === "root"; //CM:这个判断条件容易出问题吧，不严谨，可否在scene的构造函数里直接修改 _isRoot 为true
     this.name = name;
     this.parent = parent;
     this.active = true;
