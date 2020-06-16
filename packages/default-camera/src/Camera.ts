@@ -202,7 +202,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 清楚视口的背景颜色，当 clearFlags 为 SOLID_COLOR 时生效。
+   * 清楚视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
    */
   public get backgroundColor(): Vector4 {
     return this._clearParam;
@@ -213,7 +213,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 清除视口的背景天空，当 clearFlags 为 Sky 时生效。
+   * 清除视口的背景天空，当 clearFlags 为 DepthSky 时生效。
    * @todo 渲染管线修改
    */
   public get backgroundSky(): Sky {
