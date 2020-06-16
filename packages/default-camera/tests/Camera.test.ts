@@ -155,7 +155,7 @@ describe("camera test", function() {
     ];
     camera.node.setModelMatrix(mat4.create());
     const out = camera.viewportToWorldPoint([0.48459633827209475, 0.4913397705554962, 1], [0, 0, 0]);
-    arrayCloseTo([1, 1, 100], out);
+    arrayCloseTo([1, 1, 100], out as any);
   });
 
   it("viewportToRay", () => {
@@ -182,8 +182,22 @@ describe("camera test", function() {
       origin: vec3.create() as any,
       direction: vec3.create() as any
     });
-    arrayCloseTo(ray.origin, Float32Array.from([-0.008294896222651005, 4.975592136383057, 16.891372680664062]));
-    arrayCloseTo(ray.direction, Float32Array.from([-0.037305865436792374, -0.21910282969474792, -0.970811665058136]));
+    arrayCloseTo(ray.origin as any, Float32Array.from([-0.008294896222651005, 4.975592136383057, 16.902225494384766]));
+    arrayCloseTo(
+      ray.direction as any,
+      Float32Array.from([-0.037305865436792374, -0.21910282969474792, -0.970811665058136])
+    );
+  });
+
+  it("test near clip plane and far clip plane", () => {
+    camera.node.setModelMatrix(mat4.create());
+    camera.nearClipPlane = 10;
+    camera.farClipPlane = 100;
+    camera.resetProjectionMatrix();
+    const nearClipPoint = camera.viewportToWorldPoint([0.5, 0.5, -1], [0, 0, 0]);
+    const farClipPoint = camera.viewportToWorldPoint([0.5, 0.5, 1], [0, 0, 0]);
+    expect(nearClipPoint[2]).toBeCloseTo(camera.nearClipPlane);
+    expect(farClipPoint[2]).toBeCloseTo(camera.farClipPlane);
   });
 });
 

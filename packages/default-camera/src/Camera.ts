@@ -6,10 +6,13 @@ import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 
 /**
- * 数学库改造
+ * @todo 数学库改造
  */
 type Ray = { origin: Vector3; direction: Vector3 };
-type Sky = {}; //CM:直接实现一个类吧
+/**
+ * @todo
+ */
+type Sky = {};
 
 class MathTemp {
   static tempMat4 = mat4.create() as Matrix4;
@@ -189,9 +192,11 @@ export class Camera extends NodeAbility {
   get clearFlags(): ClearFlags {
     return this._clearFlags;
   }
-  set clearFlags(value: ClearFlags) {
-    //CM:非sky模式目前可以实现
-  }
+
+  /**
+   * @todo 天空盒重构
+   */
+  set clearFlags(value: ClearFlags) {}
 
   /**
    * 清楚视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
@@ -367,8 +372,6 @@ export class Camera extends NodeAbility {
    * @returns 世界空间中的点
    */
   public viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
-    //CM:没归一化吧
-    // const viewportLoc = vec3.fromValues(position[0] * 2 - 1, -(position[1] * 2 - 1), 0.0);
     const invViewMatrix = this.inverseViewMatrix;
     const invProjMatrix = this.inverseProjectionMatrix;
     const invMatViewProj = mat4.mul(MathTemp.tempMat4, invViewMatrix, invProjMatrix);
@@ -388,13 +391,12 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 通过视口空间点的坐标获取射线，生成射线的起点在相机的近裁面并穿过点的 X 和 Y坐标。
+   * 通过视口空间点的坐标获取射线，生成射线的起点在相机的近裁面并穿过点的 X 和 Y 坐标。
    * @param point 视口空间中的点
    * @param out - 射线
    * @returns 射线
    */
   public viewportPointToRay(point: Vector2, out: Ray): Ray {
-    //CM:没归一化吧
     // 使用近裁面的交点作为 origin
     vec3.set(MathTemp.tempVec3, point[0], point[1], 0);
     const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
