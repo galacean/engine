@@ -67,6 +67,14 @@ export class Node extends EventDispatcher {
     return null;
   }
 
+  private static _traverseSetOwnerScene(node: Node, scene: Scene): void {
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      const child = node.children[i];
+      child._scene = scene;
+      this._traverseSetOwnerScene(node.children[i], scene);
+    }
+  }
+
   /* 名字。 */
   name: string;
 
@@ -127,11 +135,10 @@ export class Node extends EventDispatcher {
       const newParent = (this._parent = node);
       if (newParent) {
         newParent._children.push(this);
-        // @deprecated
-        if (this._scene !== newParent._scene) {
-          // fixme: remove below code after gltf loader can set the right ownerScene
-          this._scene = newParent._scene;
-          Node.traverseSetOwnerScene(this);
+        const parentScene = newParent._scene;
+        if (this._scene !== parentScene) {
+          this._scene = parentScene;
+          Node._traverseSetOwnerScene(this, parentScene);
         }
 
         if (newParent._activeInHierarchy) {
@@ -140,11 +147,9 @@ export class Node extends EventDispatcher {
           this._activeInHierarchy && this._processInActive();
         }
       } else {
-        // @deprecated
         if (oldParent) {
-          // this.traverseAbilitiesTriggerEnabled(false);
           this._scene = null;
-          Node.traverseSetOwnerScene(this);
+          Node._traverseSetOwnerScene(this, null);
         }
         this._activeInHierarchy && this._processInActive();
       }
@@ -312,7 +317,7 @@ export class Node extends EventDispatcher {
       const child = children[i];
       if (child._parent) {
         child._scene = null;
-        Node.traverseSetOwnerScene(child);
+        Node._traverseSetOwnerScene(child, null);
       }
       child._parent = null;
       child._activeInHierarchy && child._processInActive();
@@ -831,17 +836,6 @@ export class Node extends EventDispatcher {
       if (abiltiy && abiltiy.started && abiltiy.enabled) {
         abiltiy.trigger(new Event(eventName, this));
       }
-    }
-  }
-
-  /**
-   * @deprecated
-   */
-  private static traverseSetOwnerScene(node: Node) {
-    for (let i = node.children.length - 1; i >= 0; i--) {
-      const child = node.children[i];
-      child._scene = node._scene;
-      this.traverseSetOwnerScene(node.children[i]);
     }
   }
 
