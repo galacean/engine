@@ -118,7 +118,7 @@ export class Scene extends EventDispatcher {
           this._componentsManager.callScriptOnPostRender();
         }
       }
-      this._componentsManager.callComponentDestory();
+      this._componentsManager.callComponentDestory(); //CM:移动到render外面吧，destroy与渲染没有关联，外面更合理，而且这里cameras.length > 0才执行，有BUG
     } else {
       Logger.debug("NO active camera.");
     }

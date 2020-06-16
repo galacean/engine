@@ -34,7 +34,6 @@ export class ComponentsManager {
   removeRenderer(renderer: RenderableComponent) {
     const replaced = this._renderers.deleteByIndex(renderer._rendererIndex);
     replaced && (replaced._rendererIndex = renderer._rendererIndex);
-    console.log("delete", this._renderers, renderer);
     renderer._rendererIndex = -1;
   }
 
@@ -145,7 +144,7 @@ export class ComponentsManager {
   callScriptOnPostRender(): void {
     const elements = this._onPostRenderScripts._elements;
     for (let i = this._onPostRenderScripts.length - 1; i >= 0; --i) {
-      const script = this._onPostRenderScripts[i];
+      const script = elements[i];
       if (script.enabled) {
         script.onPostRender();
       }
