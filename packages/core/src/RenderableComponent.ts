@@ -3,6 +3,7 @@ import { NodeAbility } from "./NodeAbility";
 import { vec3 } from "@alipay/o3-math";
 
 /**
+ * @internal
  * 可渲染的组件。
  */
 export abstract class RenderableComponent extends NodeAbility {
@@ -17,11 +18,9 @@ export abstract class RenderableComponent extends NodeAbility {
   onUpdate(): void {}
 
   _onActive() {
-    if (
-      this.onUpdate !== RenderableComponent.prototype.onUpdate ||
-      this.update !== RenderableComponent.prototype.update
-    ) {
-      if (this.update !== RenderableComponent.prototype.update) {
+    const prototype = RenderableComponent.prototype;
+    if (this.onUpdate !== prototype.onUpdate || this.update !== prototype.update) {
+      if (this.update !== prototype.update) {
         this.onUpdate = this.update;
       }
       this.scene._componentsManager.addOnUpdateRenderers(this);
@@ -30,10 +29,8 @@ export abstract class RenderableComponent extends NodeAbility {
   }
 
   _onInActive() {
-    if (
-      this.onUpdate !== RenderableComponent.prototype.onUpdate ||
-      this.update !== RenderableComponent.prototype.update
-    ) {
+    const prototype = RenderableComponent.prototype;
+    if (this.onUpdate !== prototype.onUpdate || this.update !== prototype.update) {
       this.scene._componentsManager.removeOnUpdateComponent(this);
     }
     this.scene._componentsManager.removeRenderer(this);

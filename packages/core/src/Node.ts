@@ -318,7 +318,7 @@ export class Node extends EventDispatcher {
     const newNode = new Node(this._scene, null, this.name);
 
     newNode._active = this._active;
-    newNode._activeInHierarchy = this._activeInHierarchy; //CM:这个不对吧ß
+    newNode._activeInHierarchy = this._activeInHierarchy; //CM:这个不对吧
 
     // -- Transform
     newNode._position = vec3.clone(this._position);
