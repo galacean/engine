@@ -9,11 +9,13 @@ import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
  * @todo 数学库改造
  */
 type Ray = { origin: Vector3; direction: Vector3 };
+
 /**
  * @todo
  */
 type Sky = {};
 
+//CM：这个类可能需要搬家
 class MathTemp {
   static tempMat4 = mat4.create() as Matrix4;
   static tempVec4 = vec4.create() as Vector4;
@@ -21,49 +23,17 @@ class MathTemp {
 }
 
 /**
- * 清理参数
+ * 相机的清除标记。
  */
 export enum ClearFlags {
-  /**
-   * 只保留天空盒
-   */
+  /* 清理深度和天空。*/
   DepthSky,
-  /**
-   * 纯色
-   */
+  /* 清理深度和颜色。*/
   DepthColor,
-  /**
-   * 只清除深度信息
-   */
+  /* 只清除深度。*/
   Depth,
-  /**
-   * 不做任何清除
-   */
+  /* 不做任何清除。*/
   None
-}
-
-/**
- * @deprecated
- */
-export function turnAround(out, a) {
-  out[4] = a[4];
-  out[5] = a[5];
-  out[6] = a[6];
-  out[7] = a[7];
-  out[12] = a[12];
-  out[13] = a[13];
-  out[14] = a[14];
-  out[15] = a[15];
-
-  out[0] = -a[0];
-  out[1] = -a[1];
-  out[2] = -a[2];
-  out[3] = -a[3];
-  out[8] = -a[8];
-  out[9] = -a[9];
-  out[10] = -a[10];
-  out[11] = -a[11];
-  return out;
 }
 
 /**
@@ -377,7 +347,7 @@ export class Camera extends NodeAbility {
     const invMatViewProj = mat4.mul(MathTemp.tempMat4, invViewMatrix, invProjMatrix);
 
     // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
-    const depth = point[2];
+    const depth = point[2]; //CM:没做还原到（-1，1）之间的处理吧
     // 变换到裁剪空间矩阵
     const viewportLoc = vec4.set(MathTemp.tempVec4, point[0] * 2 - 1, 1 - point[1] * 2, depth, 1);
     // 计算逆矩阵结果
@@ -422,7 +392,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 将一个点的X和Y坐标从视口空间变换到屏幕空间,Z坐标忽略。
+   * 将一个点的X和Y坐标从视口空间变换到屏幕空间。
    * @param point - 视口空间的点
    * @param out - 屏幕空间的点
    * @returns 射线
@@ -604,4 +574,28 @@ export class Camera extends NodeAbility {
     // this.setPerspective(this.fov, width, height, this.near, this.far);
     // this.setViewport(0, 0, width, height);
   }
+}
+
+/**
+ * @deprecated
+ */
+export function turnAround(out, a) {
+  out[4] = a[4];
+  out[5] = a[5];
+  out[6] = a[6];
+  out[7] = a[7];
+  out[12] = a[12];
+  out[13] = a[13];
+  out[14] = a[14];
+  out[15] = a[15];
+
+  out[0] = -a[0];
+  out[1] = -a[1];
+  out[2] = -a[2];
+  out[3] = -a[3];
+  out[8] = -a[8];
+  out[9] = -a[9];
+  out[10] = -a[10];
+  out[11] = -a[11];
+  return out;
 }
