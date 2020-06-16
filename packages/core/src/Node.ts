@@ -38,7 +38,7 @@ export class Node extends EventDispatcher {
   static findByPath(path: string, scene: Scene /*@deprecated*/): Node {
     const splits = path.split("/");
     const rootNode = scene.root;
-    if (!rootNode) return null; //CM:root可能为空吗，好像Scene.root只有get没有set，不可能为空
+    if (!rootNode) return null; //scene或scene.root可能被销毁
     let node: Node = rootNode;
     const spitLength = splits.length;
     for (let i = spitLength - 1; i >= 0; ++i) {
@@ -318,7 +318,7 @@ export class Node extends EventDispatcher {
     const newNode = new Node(this._scene, null, this.name);
 
     newNode._active = this._active;
-    newNode._activeInHierarchy = this._activeInHierarchy; //CM:这个不对吧
+    newNode._activeInHierarchy = this._activeInHierarchy; //克隆后仍属于相同父节点
 
     // -- Transform
     newNode._position = vec3.clone(this._position);
