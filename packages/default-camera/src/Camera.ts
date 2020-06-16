@@ -191,11 +191,11 @@ export class Camera extends NodeAbility {
    * 视图矩阵。
    */
   public get viewMatrix(): Readonly<Matrix4> {
-    // todo:监听 node 的 transform 变换
+    //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
     if (this._shouldViewMatUpdate) {
+      // todo:监听 node 的 transform 变换
       const modelMatrix = this.node.getModelMatrix(); //CM：等木鳐做好改成直接调用transform的方法
-      // todo:以后删除  turnAround
-      turnAround(MathTemp.tempMat4, modelMatrix);
+      turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
       mat4.invert(this._viewMatrix, MathTemp.tempMat4);
     }
     return this._viewMatrix;
@@ -220,7 +220,7 @@ export class Camera extends NodeAbility {
     if (!this._isOrthographic) {
       mat4.perspective(
         this._projectionMatrix,
-        MathUtil.toRadian(this.fieldOfView),
+        MathUtil.toRadian(this.fieldOfView), //CM:this.fieldOfView用this._fieldOfView,可提升性能
         aspectRatio,
         this._nearClipPlane,
         this._farClipPlane
@@ -297,7 +297,7 @@ export class Camera extends NodeAbility {
   /**
    * 恢复通过 fieldOfView、nearClipPlane 和 farClipPlane 自动计算投影矩阵。
    */
-  public resetProjectionMatrix() {
+  public resetProjectionMatrix(): void {
     this._isProjMatSetting = false;
     this._isProjectionDirty = true;
   }
@@ -313,8 +313,8 @@ export class Camera extends NodeAbility {
   /**
    * 将一个点从世界空间变换到视口空间。
    * @param point - 世界空间中的点
-   * @param out - X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1，W 为距离相机的世界单位距离
-   * @returns X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1，W 为距离相机的世界单位距离
+   * @param out - 视口空间坐标，X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1，W 为距离相机的世界单位距离
+   * @returns 视口空间坐标
    */
   public worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
     const matViewProj = mat4.mul(MathTemp.tempMat4, this.projectionMatrix, this.viewMatrix);
@@ -344,14 +344,14 @@ export class Camera extends NodeAbility {
   public viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
     const invViewMatrix = this.inverseViewMatrix;
     const invProjMatrix = this.inverseProjectionMatrix;
-    const invMatViewProj = mat4.mul(MathTemp.tempMat4, invViewMatrix, invProjMatrix);
+    const invMatViewProj = mat4.mul(MathTemp.tempMat4, invViewMatrix, invProjMatrix); //CM:也可考虑之间缓存invMatViewProj
 
     // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
     const depth = point[2]; //CM:没做还原到（-1，1）之间的处理吧
     // 变换到裁剪空间矩阵
-    const viewportLoc = vec4.set(MathTemp.tempVec4, point[0] * 2 - 1, 1 - point[1] * 2, depth, 1);
+    const clipPoint = vec4.set(MathTemp.tempVec4, point[0] * 2 - 1, 1 - point[1] * 2, depth, 1);
     // 计算逆矩阵结果
-    const u = vec4.transformMat4(MathTemp.tempVec4, viewportLoc, invMatViewProj);
+    const u = vec4.transformMat4(MathTemp.tempVec4, clipPoint, invMatViewProj);
     const w = u[3];
 
     out[0] = u[0] / w;
@@ -369,11 +369,11 @@ export class Camera extends NodeAbility {
   public viewportPointToRay(point: Vector2, out: Ray): Ray {
     // 使用近裁面的交点作为 origin
     vec3.set(MathTemp.tempVec3, point[0], point[1], 0);
-    const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
+    const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin); //CM:可考虑this.viewportToWorldPoint替换为内部方法,外部传入invMatViewProj,这样避免invMatViewProj重复计算两次
     // 使用远裁面的交点作为 origin
     const viewportPos = vec3.set(MathTemp.tempVec3, point[0], point[1], 1);
-    const worldPoint = this.viewportToWorldPoint(viewportPos, MathTemp.tempVec3);
-    const direction = vec3.sub(out.direction, worldPoint, origin);
+    const farPoint = this.viewportToWorldPoint(viewportPos, MathTemp.tempVec3);
+    const direction = vec3.sub(out.direction, farPoint, origin);
     vec3.normalize(direction, direction);
     return out;
   }
