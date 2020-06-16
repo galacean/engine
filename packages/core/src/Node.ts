@@ -73,6 +73,7 @@ export class Node extends EventDispatcher {
   /* @internal */
   _activeInHierarchy: boolean = false;
 
+  private _scene: Scene;
   private _active: boolean;
   private _children: Array<Node> = [];
   private _components: Array<Component> = [];
@@ -155,6 +156,13 @@ export class Node extends EventDispatcher {
    */
   get childCount(): number {
     return this._children.length;
+  }
+
+  /**
+   * 所属的场景对象。
+   */
+  get scene(): Scene {
+    return this._scene;
   }
 
   /**
@@ -433,14 +441,6 @@ export class Node extends EventDispatcher {
   }
 
   //--------------------------------------------TobeConfirmed--------------------------------------------------
-  /**
-   * 所属的场景对象。
-   */
-  get scene(): Scene {
-    return this._scene;
-  }
-
-  private _scene: Scene;
 
   private propertyChangeEvnet = new Event("propertyChange");
 
