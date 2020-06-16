@@ -21,14 +21,21 @@ export class DisorderedArray<T> {
     const index = this._elements.indexOf(element); //CM:可修改为自定义二分查找等算法,目前this._elements>=this.length 浪费性能
     this.deleteByIndex(index);
   }
-
-  deleteByIndex(index: number): void {
+  /**
+   *
+   * @param index
+   * @returns 被替换过来的项 用于外部重置他的index
+   */
+  deleteByIndex(index: number): T {
     var elements: T[] = this._elements;
-    if (index !== this.length) {
-      var end: T = elements[this.length];
+    let end: T = null;
+    const lastIndex = this.length - 1;
+    if (index !== lastIndex) {
+      end = elements[lastIndex];
       elements[index] = end;
     }
     this.length--;
+    return end;
   }
 
   garbageCollection(): void {

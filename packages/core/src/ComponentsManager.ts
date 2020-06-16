@@ -32,7 +32,9 @@ export class ComponentsManager {
   }
 
   removeRenderer(renderer: RenderableComponent) {
-    this._renderers.deleteByIndex(renderer._rendererIndex);
+    const replaced = this._renderers.deleteByIndex(renderer._rendererIndex);
+    replaced && (replaced._rendererIndex = renderer._rendererIndex);
+    console.log("delete", this._renderers, renderer);
     renderer._rendererIndex = -1;
   }
 
@@ -42,7 +44,8 @@ export class ComponentsManager {
   }
 
   removeOnUpdateScript(script: Script): void {
-    this._onUpdateScripts.deleteByIndex(script._onUpdateIndex);
+    const replaced = this._onUpdateScripts.deleteByIndex(script._onUpdateIndex);
+    replaced && (replaced._onUpdateIndex = script._onUpdateIndex);
     script._onUpdateIndex = -1;
   }
 
@@ -52,7 +55,8 @@ export class ComponentsManager {
   }
 
   removeOnLateUpdateScript(script: Script): void {
-    this._onLateUpdateScripts.deleteByIndex(script._onLateUpdateIndex);
+    const replaced = this._onLateUpdateScripts.deleteByIndex(script._onLateUpdateIndex);
+    replaced && (replaced._onLateUpdateIndex = script._onLateUpdateIndex);
     script._onLateUpdateIndex = -1;
   }
 
@@ -62,7 +66,8 @@ export class ComponentsManager {
   }
 
   removeOnPreRenderScript(script: Script): void {
-    this._onPreRenderScripts.deleteByIndex(script._onPreRenderIndex);
+    const replaced = this._onPreRenderScripts.deleteByIndex(script._onPreRenderIndex);
+    replaced && (replaced._onPreRenderIndex = script._onPreRenderIndex);
     script._onPreRenderIndex = -1;
   }
 
@@ -72,7 +77,8 @@ export class ComponentsManager {
   }
 
   removeOnPostRenderScript(script: Script): void {
-    this._onPostRenderScripts.deleteByIndex(script._onPostRenderIndex);
+    const replaced = this._onPostRenderScripts.deleteByIndex(script._onPostRenderIndex);
+    replaced && (replaced._onPostRenderIndex = script._onPostRenderIndex);
     script._onPostRenderIndex = -1;
   }
 
@@ -82,7 +88,8 @@ export class ComponentsManager {
   }
 
   removeOnUpdateAnimations(animation: Component): void {
-    this._onUpdateAnimations.deleteByIndex(animation._onUpdateIndex);
+    const replaced = this._onUpdateAnimations.deleteByIndex(animation._onUpdateIndex);
+    replaced && (replaced._onUpdateIndex = animation._onUpdateIndex);
     animation._onUpdateIndex = -1;
   }
 
@@ -92,7 +99,8 @@ export class ComponentsManager {
   }
 
   removeOnUpdateRenderers(renderer: RenderableComponent): void {
-    this._onUpdateRenderers.deleteByIndex(renderer._onUpdateIndex);
+    const replaced = this._onUpdateRenderers.deleteByIndex(renderer._onUpdateIndex);
+    replaced && (replaced._onUpdateIndex = renderer._onUpdateIndex);
     renderer._onUpdateIndex = -1;
   }
 
