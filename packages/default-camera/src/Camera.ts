@@ -367,6 +367,7 @@ export class Camera extends NodeAbility {
    * @returns 世界空间中的点
    */
   public viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
+    //CM:没归一化吧
     // const viewportLoc = vec3.fromValues(position[0] * 2 - 1, -(position[1] * 2 - 1), 0.0);
     const invViewMatrix = this.inverseViewMatrix;
     const invProjMatrix = this.inverseProjectionMatrix;
@@ -393,6 +394,7 @@ export class Camera extends NodeAbility {
    * @returns 射线
    */
   public viewportPointToRay(point: Vector2, out: Ray): Ray {
+    //CM:没归一化吧
     // 使用近裁面的交点作为 origin
     vec3.set(MathTemp.tempVec3, point[0], point[1], 0);
     const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
