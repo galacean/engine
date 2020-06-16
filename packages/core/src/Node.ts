@@ -38,7 +38,7 @@ export class Node extends EventDispatcher {
   static findByPath(path: string, scene: Scene /*@deprecated*/): Node {
     const splits = path.split("/");
     const rootNode = scene.root;
-    if (!rootNode) return null; //scene或scene.root可能被销毁
+    if (!rootNode) return null; //scene or scene.root maybe destroyed
     let node: Node = rootNode;
     const spitLength = splits.length;
     for (let i = spitLength - 1; i >= 0; ++i) {
@@ -171,7 +171,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * 构造函数
+   * 创建一个节点。
    * @param scene - 所属的场景
    * @param parent - 父节点
    * @param name - 点名称
@@ -180,7 +180,7 @@ export class Node extends EventDispatcher {
     super();
     Node._nodes.add(this);
     this._scene = scene;
-    this._isRoot = parent === null && name === "root";
+    this._isRoot = parent === null && name === "root"; //CM:这个判断条件容易出问题吧，不严谨，可否在scene的构造函数里直接修改 _isRoot 为false
     this.name = name;
     this.parent = parent;
     this.active = true; // local active state of this Node
@@ -276,7 +276,6 @@ export class Node extends EventDispatcher {
     const children = this._children;
     const child = Node._findChildByName(this, name);
     if (child) return child;
-    // -- 递归的查找所有子节点
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
       const grandson = child.findByName(name);
@@ -333,7 +332,7 @@ export class Node extends EventDispatcher {
     newNode._active = this._active;
     newNode._activeInHierarchy = this._activeInHierarchy; //克隆后仍属于相同父节点
 
-    // -- Transform
+    // Transform
     newNode._position = vec3.clone(this._position);
     newNode._rotation = quat.clone(this._rotation);
     newNode._scale = vec3.clone(this._scale);
@@ -360,21 +359,21 @@ export class Node extends EventDispatcher {
    * 销毁。
    */
   destroy(): void {
-    // -- clear ability array
+    // clear ability array
     const abilityArray = this._components;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
       abilityArray[i].destroy();
     }
     this._components.length = 0;
 
-    // -- clear children
+    // clear children
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       children[i].destroy();
     }
     this._children.length = 0;
 
-    // -- clear parent
+    // clear parent
     if (this._parent != null) {
       const parentChildren = this._parent._children;
       parentChildren.splice(parentChildren.indexOf(this), 1);
