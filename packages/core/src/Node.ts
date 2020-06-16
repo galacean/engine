@@ -87,7 +87,7 @@ export class Node extends EventDispatcher {
   private _components: Array<Component> = [];
   private _parent: Node = null;
   private _activeChangedComponents: Component[];
-  private _isRoot: boolean; //TODO:由于目前场景管理机制不得不加
+  private _isRoot: boolean; //must add,because scene management mechanism
 
   /**
    * 是否局部激活。
@@ -183,7 +183,7 @@ export class Node extends EventDispatcher {
     this._isRoot = parent === null && name === "root"; //CM:这个判断条件容易出问题吧，不严谨，可否在scene的构造函数里直接修改 _isRoot 为false
     this.name = name;
     this.parent = parent;
-    this.active = true; // local active state of this Node
+    this.active = true;
 
     //deprecated
     this._activeChangeFun = activeChange(this);
@@ -325,6 +325,7 @@ export class Node extends EventDispatcher {
 
   /**
    * 克隆。
+   * @returns 克隆的节点
    */
   clone(): Node {
     const newNode = new Node(this._scene, null, this.name);
