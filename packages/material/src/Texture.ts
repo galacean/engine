@@ -24,8 +24,8 @@ export class Texture extends AssetObject {
   }
 
   /**
+   * @internal
    * 根据 TextureFormat 获取具体信息
-   * @return {TextureFormatDetail}
    */
   static _getFormatDetail(
     format: TextureFormat,
@@ -270,7 +270,7 @@ export class Texture extends AssetObject {
 
   public _glTexture: WebGLTexture;
   public _formatDetail: TextureFormatDetail;
-  public _isCube: boolean = false;
+  public _isCube: boolean = false; //CM:没必要存，可优化掉
 
   protected _rhi;
   protected _target: GLenum;

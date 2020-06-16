@@ -18,6 +18,7 @@ export class Texture2D extends Texture {
 
   /**
    * 构建一个2D纹理。
+   * @todo 删除兼容性API后直接替换构造函数
    * @param rhi - GPU 硬件抽象层
    * @param width - 宽
    * @param height - 高
@@ -35,17 +36,17 @@ export class Texture2D extends Texture {
     const isWebGL2: boolean = rhi.isWebGL2;
 
     if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
-      throw new Error("当前环境不支持浮点纹理,请先检测能力再使用");
+      throw new Error("当前环境不支持浮点纹理,请先检测能力再使用"); //CM：写英文
     }
     if (mipmap && !isWebGL2 && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
-      Logger.warn("WebGL1不支持非二次幂纹理开启 mipmap,已自动降级为非mipmap");
+      Logger.warn("WebGL1不支持非二次幂纹理开启 mipmap,已自动降级为非mipmap"); //CM：写英文
       mipmap = false;
     }
 
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
 
     if (!formatDetail) {
-      throw new Error(`很抱歉，引擎不支持此格式: ${format}`);
+      throw new Error(`很抱歉，引擎不支持此格式: ${format}`); //CM：写英文
     }
 
     const glTexture = gl.createTexture();
