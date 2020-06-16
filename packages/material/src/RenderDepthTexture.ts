@@ -50,25 +50,20 @@ export class RenderDepthTexture extends Texture {
     const isWebGL2: boolean = rhi.isWebGL2;
 
     if (format === RenderBufferDepthFormat.Stencil) {
-      Logger.error("webGL不能单独生成模板纹理,可以绑定到RBO");
-      return;
+      throw new Error("webGL不能单独生成模板纹理,可以绑定到RBO");
     }
 
     if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
-      Logger.error("当前环境不支持生成深度相关的纹理,请先检测能力再使用");
-      return;
+      throw new Error("当前环境不支持生成深度相关的纹理,请先检测能力再使用");
     }
     if ((format === RenderBufferDepthFormat.Depth24 || format === RenderBufferDepthFormat.Depth32) && !isWebGL2) {
-      Logger.error("当前环境不支持高精度深度纹理,请先检测能力再使用");
-      return;
+      throw new Error("当前环境不支持高精度深度纹理,请先检测能力再使用");
     }
     if (format === RenderBufferDepthFormat.Depth32Stencil8 && !isWebGL2) {
-      Logger.error("当前环境不支持高精度深度模版纹理,请先检测能力再使用");
-      return;
+      throw new Error("当前环境不支持高精度深度模版纹理,请先检测能力再使用");
     }
     if (isCube && width !== height) {
-      Logger.error("立方体纹理的宽高必须一致");
-      return;
+      throw new Error("立方体纹理的宽高必须一致");
     }
     if (mipmap && !isWebGL2 && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
       Logger.warn("WebGL1不支持非二次幂纹理开启 mipmap,已自动降级为非mipmap");
@@ -78,8 +73,7 @@ export class RenderDepthTexture extends Texture {
     const formatDetail = Texture._getRenderBufferDepthFormatDetail(format, gl, isWebGL2);
 
     if (!formatDetail) {
-      Logger.error(`很抱歉，引擎不支持此格式: ${format}`);
-      return;
+      throw new Error(`很抱歉，引擎不支持此格式: ${format}`);
     }
 
     const glTexture = gl.createTexture();

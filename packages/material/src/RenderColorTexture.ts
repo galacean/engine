@@ -53,19 +53,16 @@ export class RenderColorTexture extends Texture {
       format === RenderBufferColorFormat.R32G32B32A32 &&
       (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat))
     ) {
-      Logger.error("当前环境不支持浮点纹理,请先检测能力再使用");
-      return;
+      throw new Error("当前环境不支持浮点纹理,请先检测能力再使用");
     }
     if (
       format === RenderBufferColorFormat.R16G16B16A16 &&
       (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat))
     ) {
-      Logger.error("当前环境不支持半浮点纹理,请先检测能力再使用");
-      return;
+      throw new Error("当前环境不支持半浮点纹理,请先检测能力再使用");
     }
     if (isCube && width !== height) {
-      Logger.error("立方体纹理的宽高必须一致");
-      return;
+      throw new Error("立方体纹理的宽高必须一致");
     }
     if (mipmap && !isWebGL2 && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
       Logger.warn("WebGL1不支持非二次幂纹理开启 mipmap,已自动降级为非mipmap");
@@ -75,8 +72,7 @@ export class RenderColorTexture extends Texture {
     const formatDetail = Texture._getRenderBufferColorFormatDetail(format, gl, isWebGL2);
 
     if (!formatDetail) {
-      Logger.error(`很抱歉，引擎不支持此格式: ${format}`);
-      return;
+      throw new Error(`很抱歉，引擎不支持此格式: ${format}`);
     }
 
     const glTexture = gl.createTexture();

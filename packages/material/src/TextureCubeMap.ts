@@ -35,8 +35,7 @@ export class TextureCubeMap extends Texture {
     const isWebGL2: boolean = rhi.isWebGL2;
 
     if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
-      Logger.error("当前环境不支持浮点纹理,请先检测能力再使用");
-      return;
+      throw new Error("当前环境不支持浮点纹理,请先检测能力再使用");
     }
     if (mipmap && !isWebGL2 && !Texture._isPowerOf2(size)) {
       Logger.warn("WebGL1不支持非二次幂纹理开启 mipmap,已自动降级为非mipmap");
@@ -46,8 +45,7 @@ export class TextureCubeMap extends Texture {
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
 
     if (!formatDetail) {
-      Logger.error(`很抱歉，引擎不支持此格式: ${format}`);
-      return;
+      throw new Error(`很抱歉，引擎不支持此格式: ${format}`);
     }
 
     const glTexture = gl.createTexture();
@@ -181,8 +179,7 @@ export class TextureCubeMap extends Texture {
     out: ArrayBufferView
   ): void {
     if (this._formatDetail.isCompressed) {
-      Logger.error("无法读取压缩纹理");
-      return;
+      throw new Error("无法读取压缩纹理");
     }
     super._getPixelsBuffer(face, x, y, width, height, out);
   }

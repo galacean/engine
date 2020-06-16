@@ -395,8 +395,7 @@ export class Texture extends AssetObject {
     if (value === this._anisoLevel) return;
 
     if (!this._rhi.canIUse(GLCapabilityType.textureFilterAnisotropic)) {
-      Logger.error("当前环境不支持设置各向异性过滤等级");
-      return;
+      throw new Error("当前环境不支持设置各向异性过滤等级");
     }
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
