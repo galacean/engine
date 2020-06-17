@@ -43,23 +43,23 @@ describe("Texture2D", () => {
       rhi.isWebGL2 = true;
       rhi.gl.texStorage2D = function() {};
 
-      const texture1 = new Texture2D(rhi, width, height);
-      const texture2 = new Texture2D(rhi, width, height, undefined, true);
+      const texture1 = new Texture2D(rhi, 100, 100);
+      const texture2 = new Texture2D(rhi, 100, 100, undefined, true);
 
-      assert(texture1._mipmap === true);
-      assert(texture2._mipmap === true);
+      assert(texture1.mipmapCount !== 1);
+      assert(texture2.mipmapCount !== 1);
     });
     it("关闭 mipmap 成功", () => {
       const texture = new Texture2D(rhi, width, height, undefined, false);
 
-      assert(texture._mipmap === false);
+      assert(texture.mipmapCount === 1);
     });
     it("webgl1 开启 mipmap 失败自动降级 - 非2次幂图片", () => {
       const texture1 = new Texture2D(rhi, 100, 100);
       const texture2 = new Texture2D(rhi, 100, 100, undefined, true);
 
-      assert(texture1._mipmap === false);
-      assert(texture2._mipmap === false);
+      assert(texture1.mipmapCount === 1);
+      assert(texture2.mipmapCount === 1);
     });
   });
 
