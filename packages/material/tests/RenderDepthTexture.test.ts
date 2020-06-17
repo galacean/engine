@@ -3,7 +3,7 @@ import gl from "gl";
 import { RenderDepthTexture } from "../src/RenderDepthTexture";
 import { RenderBufferDepthFormat } from "@alipay/o3-base";
 
-describe("Texture2D", () => {
+describe("RenderDepthTexture", () => {
   const width = 1024;
   const height = 1024;
   const rhi: any = {

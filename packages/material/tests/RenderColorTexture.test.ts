@@ -3,7 +3,7 @@ import gl from "gl";
 import { RenderColorTexture } from "../src/RenderColorTexture";
 import { RenderBufferColorFormat } from "@alipay/o3-base";
 
-describe("Texture2D", () => {
+describe("RenderColorTexture", () => {
   const width = 1024;
   const height = 1024;
   const rhi: any = {

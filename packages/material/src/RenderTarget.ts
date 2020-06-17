@@ -153,10 +153,10 @@ export class RenderTarget extends AssetObject {
 
     if (!(depth instanceof RenderDepthTexture)) {
       if ((depth === RenderBufferDepthFormat.Depth24 || depth === RenderBufferDepthFormat.Depth32) && !isWebGL2) {
-        throw new Error("High precision depth texture is not supported");
+        throw new Error("High precision depth buffer is not supported");
       }
       if (depth === RenderBufferDepthFormat.Depth32Stencil8 && !isWebGL2) {
-        throw new Error("High precision depth stencil texture is not supported");
+        throw new Error("High precision depth stencil buffer is not supported");
       }
     }
 
