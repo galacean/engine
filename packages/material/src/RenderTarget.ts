@@ -153,21 +153,21 @@ export class RenderTarget extends AssetObject {
 
     if (!(depth instanceof RenderDepthTexture)) {
       if ((depth === RenderBufferDepthFormat.Depth24 || depth === RenderBufferDepthFormat.Depth32) && !isWebGL2) {
-        throw new Error("当前环境不支持高精度深度纹理,请先检测能力再使用");
+        throw new Error("High precision depth texture is not supported");
       }
       if (depth === RenderBufferDepthFormat.Depth32Stencil8 && !isWebGL2) {
-        throw new Error("当前环境不支持高精度深度模版纹理,请先检测能力再使用");
+        throw new Error("High precision depth stencil texture is not supported");
       }
     }
 
     if ((renderTexture as Array<RenderColorTexture>)?.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
-      throw new Error("当前环境不支持 MRT,请先检测能力再使用");
+      throw new Error("MRT is not supported");
     }
 
     const maxAntiAliasing = rhi.capability.maxAntiAliasing;
 
     if (antiAliasing > maxAntiAliasing) {
-      Logger.warn(`antiAliasing 超出当前环境限制，已自动降级为最大值:${maxAntiAliasing}`);
+      Logger.warn(`MSAA antiAliasing exceeds the limit and is automatically downgraded to:${maxAntiAliasing}`);
       antiAliasing = maxAntiAliasing;
     }
 
@@ -183,7 +183,7 @@ export class RenderTarget extends AssetObject {
 
     // todo: necessary to support MRT + Cube + [,MSAA] ?
     if (this._colorTextures.length > 1 && this._colorTextures.some((v: RenderColorTexture) => v._isCube)) {
-      throw new Error("引擎暂不支持 MRT+Cube+[,MSAA]");
+      throw new Error("MRT+Cube+[,MSAA] is not supported");
     }
 
     if (depth instanceof RenderDepthTexture) {
