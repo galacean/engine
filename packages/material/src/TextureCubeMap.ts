@@ -199,8 +199,9 @@ export class TextureCubeMap extends Texture {
    * @param {Number} [config.minFilter=TextureFilter.LINEAR_MIPMAP_LINEAR] 缩小时的筛选器
    * @param {Number} [config.wrapS=TextureWrapMode.CLAMP_TO_EDGE] S方向纹理包裹选项
    * @param {Number} [config.wrapT=TextureWrapMode.CLAMP_TO_EDGE] T方向纹理包裹选项
+  //  * @param isReadable - 是否可读
    */
-  constructor(name: string, images?: Array<any>, config?: TextureConfig) {
+  constructor(name: string, images?: Array<any>, config?: TextureConfig /*, isReadable: boolean = false*/) {
     super(name, config);
 
     // todo: delete
@@ -208,6 +209,8 @@ export class TextureCubeMap extends Texture {
       this.constructorNew.apply(this, arguments);
       return;
     }
+
+    // this._isReadable = isReadable;
 
     this.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
 

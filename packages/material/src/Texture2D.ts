@@ -153,8 +153,9 @@ export class Texture2D extends Texture {
   /** ----------------- @deprecated----------------- */
   public updateSubRects: Array<Rect>;
   public updateSubImageData: Array<any>;
-  private _image: any;
+  public _image: any;
   private _context: any;
+  // public _isReadable: boolean;
 
   /** uv transform */
   public uOffset: number;
@@ -175,7 +176,7 @@ export class Texture2D extends Texture {
    * @param {HTMLImageElement|ImageData|HTMLCanvasElement|ImageBitmap|ArrayBufferView|HTMLVideoElement} image 纹理内容
    * @param {Texture2DConfig} config 可选配置
    */
-  constructor(name: string, image?, config: Texture2DConfig = {}) {
+  constructor(name: string, image?, config: Texture2DConfig = {} /*, isReadable: boolean = false*/) {
     super(name, config);
 
     // todo: delete
@@ -197,6 +198,7 @@ export class Texture2D extends Texture {
       ...config
     };
 
+    // this._isReadable = isReadable;
     this.uOffset = config.uOffset;
     this.vOffset = config.vOffset;
     this.uScale = config.uScale;

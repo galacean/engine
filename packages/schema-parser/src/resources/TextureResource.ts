@@ -22,7 +22,7 @@ export class TextureResource extends SchemaResource {
     return new Promise((resolve, reject) => {
       let resource;
       let url;
-      if (assetConfig?.props?.compression?.compressions.length) {
+      if (this.resourceManager.useCompressedTexture && assetConfig?.props?.compression?.compressions.length) {
         const rhi = oasis.engine.getRHI(oasis.canvas);
         const compressions = assetConfig.props.compression.compressions;
         compressions.sort((a, b) => {
@@ -49,8 +49,8 @@ export class TextureResource extends SchemaResource {
             reject(err);
           } else {
             this._resource = res.asset;
-            this.setMeta();
             this._meta.url = url;
+            this.setMeta();
             resolve(this);
           }
         },

@@ -1,6 +1,6 @@
 import { isPowerOf2, resampleImage } from "./resampleImage";
 
-export function loadImage(url, callback, crossOrigin = true, reSample = true, timeout?: number) {
+export function loadImage(url, callback, crossOrigin = true, reSample = false, timeout?: number) {
   const img = new Image();
 
   let timer;

@@ -10,6 +10,8 @@ let tpl = `
     <dd>0</dd>
     <dt>Triangles</dt>
     <dd>0</dd>
+    <dt>Nodes</dt>
+    <dd>0</dd>
     <dt>Textures</dt>
     <dd>0</dd>
     <dt>Shaders</dt>
@@ -39,7 +41,8 @@ let css = `
   }
 
   .gl-perf dt {
-    color: orange;
+    color: #fff;
+    text-shadow: #000 0 0 1px;
   }
 
   .gl-perf dt .unit{
@@ -61,7 +64,7 @@ export default class Monitor {
   constructor(gl: WebGLRenderingContext | WebGL2RenderingContext) {
     this.core = new Core(gl);
     this.items = [];
-    this.items = ["fps", "memory", "drawCall", "triangles", "textures", "shaders", "webglContext"];
+    this.items = ["fps", "memory", "drawCall", "triangles", "nodes", "textures", "shaders", "webglContext"];
     this.createContainer();
     this.update = this.update.bind(this);
   }

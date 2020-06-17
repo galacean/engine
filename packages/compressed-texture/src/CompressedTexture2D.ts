@@ -68,8 +68,8 @@ export class CompressedTexture2D extends Texture2D {
 
   setCompressedData(data: CompressedTextureData) {
     this.mipmaps = data.mipmaps;
-    this._width = data.width;
-    this._height = data.height;
+    this.width = data.width;
+    this.height = data.height;
     this._internalFormat = data.internalFormat;
   }
 

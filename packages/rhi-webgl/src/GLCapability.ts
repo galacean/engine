@@ -12,6 +12,18 @@ export class GLCapability {
 
   _rhi: GLRenderHardware;
   capabilityList: Map<GLCapabilityType, boolean>;
+  private _maxDrawBuffers: number;
+
+  get maxDrawBuffers() {
+    if (!this._maxDrawBuffers) {
+      if (this.canIUse(GLCapabilityType.drawBuffers)) {
+        this._maxDrawBuffers = this._rhi.gl.getParameter(this._rhi.gl.MAX_DRAW_BUFFERS);
+      } else {
+        this._maxDrawBuffers = 1;
+      }
+    }
+    return this._maxDrawBuffers;
+  }
 
   /**
    * 最大各向异性过滤等级。
@@ -224,6 +236,9 @@ export class GLCapability {
       drawArraysInstanced: "drawArraysInstancedANGLE",
       drawElementsInstanced: "drawElementsInstancedANGLE",
       vertexAttribDivisor: "vertexAttribDivisorANGLE"
+    });
+    this.compatibleInterface(drawBuffers, {
+      MAX_DRAW_BUFFERS: "MAX_DRAW_BUFFERS_WEBGL"
     });
     const items = {};
     if (this.canIUse(GLCapabilityType.drawBuffers)) {
