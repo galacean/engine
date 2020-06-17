@@ -350,7 +350,9 @@ export class RenderTarget extends AssetObject {
       gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, colorTexture._glTexture, 0);
     }
 
-    gl.drawBuffers(drawBuffers);
+    if (colorTextureLength > 1) {
+      gl.drawBuffers(drawBuffers);
+    }
     this._oriDrawBuffers = drawBuffers;
 
     /** depth render buffer */
