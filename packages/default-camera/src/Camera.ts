@@ -285,9 +285,9 @@ export class Camera extends NodeAbility {
     this.viewportNormalized = [0, 0, 1, 1];
 
     // 兼容旧 camera
-    const target = props.target || [0, 0, 0];
-    const up = props.up || [0, 1, 0];
-    node.position = props.position || [0, 10, 20];
+    const target = props.target ?? [0, 0, 0];
+    const up = props.up ?? [0, 1, 0];
+    node.position = props.position ?? [0, 10, 20];
     node.lookAt(target, up);
 
     const settingCanvas = engine?.config?.canvas ?? canvas;
