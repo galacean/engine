@@ -105,12 +105,13 @@ export class Scene extends EventDispatcher {
    */
   public render(): void {
     const cameras = this._activeCameras;
+    const deltaTime = this._engine.time.deltaTime;
     if (cameras.length > 0) {
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          this._componentsManager.callRendererOnUpdate();
+          this._componentsManager.callRendererOnUpdate(deltaTime);
           this._componentsManager.callScriptOnPreRender();
           sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();

@@ -14,8 +14,8 @@ export abstract class RenderableComponent extends NodeAbility {
 
   abstract render(camera: ACamera): void;
 
-  update(): void {} //CM:未来整合为update更合理
-  onUpdate(): void {}
+  update(deltaTime: number): void {} //CM:未来整合为update更合理
+  onUpdate(deltaTime: number): void {}
 
   _onActive() {
     const prototype = RenderableComponent.prototype;

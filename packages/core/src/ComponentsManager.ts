@@ -161,7 +161,7 @@ export class ComponentsManager {
     }
   }
 
-  callRendererOnUpdate(): void {
+  callRendererOnUpdate(deltaTime: number): void {
     const elements = this._onUpdateRenderers._elements;
     for (let i = this._onUpdateRenderers.length - 1; i >= 0; --i) {
       const renderer = elements[i];
@@ -170,7 +170,7 @@ export class ComponentsManager {
           renderer._started = true;
           renderer.onStart();
         }
-        renderer.onUpdate();
+        renderer.onUpdate(deltaTime);
       }
     }
   }
