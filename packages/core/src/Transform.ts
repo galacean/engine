@@ -10,8 +10,8 @@ type TransformProps = {
   rotationQuaternion?: vec4Type;
 };
 
+//CM:vec3Type、vec4Type、mat3Type、mat4Type类型更换
 export class Transform extends NodeAbility {
-  // Statics
   // temp
   private static _tempVec3: vec3Type = vec3.create();
   private static _tempVec4: vec4Type = vec4.create();
@@ -52,7 +52,7 @@ export class Transform extends NodeAbility {
   private _localMatrix: mat4Type = mat4.create();
   private _worldMatrix: mat4Type = mat4.create();
 
-  private _parent = null;
+  private _parent = null; //CM:要写类型
   private _children: Transform[] = [];
   private _dirtyFlag: number = 0;
 
