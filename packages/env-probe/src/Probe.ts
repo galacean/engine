@@ -4,7 +4,7 @@ import { Material, RenderTarget, Texture, Texture2D, TextureCubeMap } from "@ali
 import { BasicSceneRenderer, RenderPass } from "@alipay/o3-renderer-basic";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { ProbeConfig } from "./type";
-import { Vec4 } from "@alipay/o3-math/types/type";
+import { Vector4 } from "@alipay/o3-math/types/type";
 
 let cacheId = 0;
 
@@ -14,7 +14,7 @@ let cacheId = 0;
 export abstract class Probe extends NodeAbility {
   protected readonly cacheId: number;
   private readonly isCube: boolean;
-  private oriClipPlane: Vec4[];
+  private oriClipPlane: Vector4[];
 
   private _camera: ACamera;
 
@@ -28,7 +28,7 @@ export abstract class Probe extends NodeAbility {
   protected renderTargetSwap: RenderTarget;
 
   /** 裁剪面 */
-  public clipPlanes: Vec4[];
+  public clipPlanes: Vector4[];
 
   public set camera(camera) {
     if (camera === this._camera) return;
