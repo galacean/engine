@@ -176,11 +176,11 @@ export class Node extends EventDispatcher {
    * @param parent - 父节点
    * @param name - 点名称
    */
-  constructor(scene?: Scene, parent?: Node, name?: string) {
+  constructor(scene?: Scene, parent?: Node, name?: string, _isRoot?: boolean) {
     super();
     Node._nodes.add(this);
     this._scene = scene;
-    this._isRoot = parent === null && name === "root"; //CM:这个判断条件容易出问题吧，不严谨，可否在scene的构造函数里直接修改 _isRoot 为true
+    this._isRoot = _isRoot;
     this.name = name;
     this.parent = parent;
     this.active = true;
