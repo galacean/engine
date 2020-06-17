@@ -10,7 +10,7 @@ import { DisorderedArray } from "./DisorderedArray";
  * 节点类,可作为组件的容器。
  */
 export class Node extends EventDispatcher {
-  private static _nodes: DisorderedArray<Node> = new DisorderedArray();
+  public static _nodes: DisorderedArray<Node> = new DisorderedArray();
 
   /**
    * 根据名字查找节点。
