@@ -38,8 +38,8 @@ export class ALottieRenderer extends RenderableComponent {
     this.node.addChild(this.animationItem.node);
   }
 
-  public onUpdate(deltaTime: number) {
-    lottie.update(deltaTime);
+  public render() {
+    lottie.update(this.engine.time.deltaTime);
   }
 
   public play() {
