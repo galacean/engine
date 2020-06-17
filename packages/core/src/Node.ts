@@ -5,7 +5,6 @@ import { SceneVisitor } from "./SceneVisitor";
 import { Scene } from "./Scene";
 import { Engine } from "./Engine";
 import { vec3Type } from "./type";
-import { Transform } from "./Transform";
 
 function activeChange(node: Node) {
   return () => {
@@ -314,7 +313,6 @@ export class Node extends EventDispatcher {
 
   public onUpdate: (t?: number) => void;
   public _parent: Node;
-  public transform: Transform;
 
   private _ownerScene: Scene;
 
@@ -389,8 +387,6 @@ export class Node extends EventDispatcher {
      * @member {function}
      */
     this.onUpdate = null;
-
-    this.transform = new Transform(this);
   }
 
   public clone(): Node {
