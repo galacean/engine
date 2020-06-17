@@ -17,6 +17,10 @@ export abstract class NodeAbility extends EventDispatcher {
   _destroyed: boolean = false;
   /* @internal */
   _onUpdateIndex: number = -1;
+  /* @internal */
+  protected _overrideOnUpdate: boolean = false;
+  /* @internal */
+  protected _overrideUpdate: boolean = false;
 
   private _enabled: boolean = true;
   private _awaked: boolean = false;
@@ -67,6 +71,9 @@ export abstract class NodeAbility extends EventDispatcher {
 
     this._renderPassFlag = MaskList.EVERYTHING; // @deprecated
     this._passMasks = [MaskList.EVERYTHING]; // @deprecated
+    const prototype = NodeAbility.prototype;
+    this._overrideOnUpdate = this.onUpdate !== NodeAbility.prototype.onUpdate;
+    this._overrideUpdate = this.update !== NodeAbility.prototype.update;
   }
 
   /**
@@ -106,9 +113,9 @@ export abstract class NodeAbility extends EventDispatcher {
    * @internal
    */
   _onActive(): void {
-    if (this.onUpdate !== NodeAbility.prototype.onUpdate || this.update !== NodeAbility.prototype.update) {
+    if (this._overrideOnUpdate || this._overrideUpdate) {
       //@deprecated 兼容
-      if (this.update !== NodeAbility.prototype.update) {
+      if (this._overrideUpdate) {
         this.onUpdate = this.update;
       }
       this.scene._componentsManager.addOnUpdateComponent(this);
@@ -119,7 +126,7 @@ export abstract class NodeAbility extends EventDispatcher {
    * @internal
    */
   _onInActive(): void {
-    if (this.onUpdate !== NodeAbility.prototype.onUpdate || this.update !== NodeAbility.prototype.update) {
+    if (this._overrideOnUpdate || this._overrideUpdate) {
       this.scene._componentsManager.removeOnUpdateComponent(this);
     }
   }

@@ -156,7 +156,7 @@ export class ComponentsManager {
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
       const animation = elements[i];
       if (animation.enabled) {
-        animation.onUpdate(deltaTime);
+        animation.update(deltaTime);
       }
     }
   }
@@ -196,11 +196,11 @@ export class ComponentsManager {
     }
   }
 
-  getTempList(): Component[] {
+  getActiveChangedTempList(): Component[] {
     return this._componentsContainerPool.length ? this._componentsContainerPool.pop() : [];
   }
 
-  putTempList(componentContainer: Component[]): void {
+  putActiveChangedTempList(componentContainer: Component[]): void {
     componentContainer.length = 0;
     this._componentsContainerPool.push(componentContainer);
   }

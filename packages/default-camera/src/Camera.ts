@@ -117,7 +117,6 @@ export class Camera extends NodeAbility {
   }
 
   public attachToScene(canvas: HTMLCanvasElement, attributes?) {
-    debugger;
     this._node.scene.attachRenderCamera(this as any);
     const engine = this._node.scene.engine;
     this._rhi = engine.requireRHI((this._props as any).RHI, canvas, {

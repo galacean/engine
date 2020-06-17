@@ -384,21 +384,12 @@ export class Node extends EventDispatcher {
     Node._nodes.delete(this);
   }
 
-  private _activeComponents(): void {
+  private _setActiveComponents(isActive: boolean): void {
     const activeChangedComponents = this._activeChangedComponents;
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-      activeChangedComponents[i]._setActive(true);
+      activeChangedComponents[i]._setActive(isActive);
     }
-    this._scene._componentsManager.putTempList(activeChangedComponents);
-    this._activeChangedComponents = null;
-  }
-
-  private _inActiveComponents(): void {
-    const activeChangedComponents = this._activeChangedComponents;
-    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-      activeChangedComponents[i]._setActive(false);
-    }
-    this._scene._componentsManager.putTempList(activeChangedComponents);
+    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
     this._activeChangedComponents = null;
   }
 
@@ -406,18 +397,18 @@ export class Node extends EventDispatcher {
     if (this._activeChangedComponents) {
       throw "Node: can't set the 'main inActive node' active in hierarchy,if the operate is in main inActive node or it's children script's onDisable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getTempList();
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setActiveInHierarchy(this._activeChangedComponents);
-    this._activeComponents();
+    this._setActiveComponents(true);
   }
 
   private _processInActive(): void {
     if (this._activeChangedComponents) {
       throw "Node: can't set the 'main active node' inActive in hierarchy,if the operate is in main active node or it's children script's onEnable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getTempList();
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);
-    this._inActiveComponents();
+    this._setActiveComponents(false);
   }
 
   private _setActiveInHierarchy(activeChangedComponents: Component[]): void {
@@ -448,7 +439,7 @@ export class Node extends EventDispatcher {
 
   //--------------------------------------------TobeConfirmed--------------------------------------------------
 
-  private propertyChangeEvnet = new Event("propertyChange");
+  private propertyChangeEvent = new Event("propertyChange");
 
   private _activeChangeFun;
 
@@ -974,7 +965,7 @@ export class Node extends EventDispatcher {
     }
 
     if (!mat4.equals(temp, this._modelMatrix)) {
-      this.trigger(this.propertyChangeEvnet);
+      this.trigger(this.propertyChangeEvent);
     }
 
     this._modelMatrixDirty = false;
