@@ -12,7 +12,7 @@ type TransformProps = {
 
 //CM:vec3Type、vec4Type、mat3Type、mat4Type类型更换
 export class Transform extends NodeAbility {
-  // temp
+  // Temp
   private static _tempVec3: vec3Type = vec3.create();
   private static _tempVec4: vec4Type = vec4.create();
   private static _tempMat3: mat3Type = mat3.create();
@@ -26,7 +26,7 @@ export class Transform extends NodeAbility {
 
   private static _tempMat43: mat4Type = mat4.create();
 
-  // dirty flag
+  // Dirty flag
   private static LOCAL_EULER_FLAG: number = 0x1;
   private static LOCAL_QUAT_FLAG: number = 0x2;
 
@@ -58,10 +58,12 @@ export class Transform extends NodeAbility {
 
   /**
    * 父变换
+   * TODO:后续直接更名为parent
    */
   get parentTransform(): Transform {
     return this._parent;
   }
+
   set parentTransform(value: Transform) {
     this._parent = value;
     this._parent._children.push(this);
@@ -70,6 +72,7 @@ export class Transform extends NodeAbility {
   /**
    * 子变换数量
    */
+  //CM:更名为childCount
   get childTransformCount(): number {
     return this._children.length;
   }
@@ -300,13 +303,9 @@ export class Transform extends NodeAbility {
   /**
    * 获取子变换
    */
+  //CM:修改为getChild
   getChildTransform(index: number): Transform {
     return this._children[index];
-  }
-
-  updateParentTransform() {
-    this._getParent(this.node);
-    this._updateAll();
   }
 
   /**
@@ -590,5 +589,11 @@ export class Transform extends NodeAbility {
     } else {
       this._dirtyFlag &= ~type;
     }
+  }
+
+  //---------------------@deprecated-----------------------
+  updateParentTransform() {
+    this._getParent(this.node);
+    this._updateAll();
   }
 }
