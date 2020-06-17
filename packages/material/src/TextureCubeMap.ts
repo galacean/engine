@@ -35,17 +35,19 @@ export class TextureCubeMap extends Texture {
     const isWebGL2: boolean = rhi.isWebGL2;
 
     if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
-      throw new Error("当前环境不支持浮点纹理,请先检测能力再使用");
+      throw new Error("Float Texture is not supported");
     }
     if (mipmap && !isWebGL2 && !Texture._isPowerOf2(size)) {
-      Logger.warn("WebGL1不支持非二次幂纹理开启 mipmap,已自动降级为非mipmap");
+      Logger.warn(
+        "non-power-2 texture is not supported for mipmap in WebGL1,and has automatically downgraded to non-mipmap"
+      );
       mipmap = false;
     }
 
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
 
     if (!formatDetail) {
-      throw new Error(`很抱歉，引擎不支持此格式: ${format}`);
+      throw new Error(`this format is not supported in Oasis Engine: ${format}`);
     }
 
     const glTexture = gl.createTexture();
@@ -178,7 +180,7 @@ export class TextureCubeMap extends Texture {
     out: ArrayBufferView
   ): void {
     if (this._formatDetail.isCompressed) {
-      throw new Error("无法读取压缩纹理");
+      throw new Error("Unable to read compressed texture");
     }
     super._getPixelsBuffer(face, x, y, width, height, out);
   }

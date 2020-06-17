@@ -409,14 +409,14 @@ export class Texture extends AssetObject {
     if (value === this._anisoLevel) return;
 
     if (!this._rhi.canIUse(GLCapabilityType.textureFilterAnisotropic)) {
-      throw new Error("当前环境不支持设置各向异性过滤等级");
+      throw new Error("Texture Filter Anisotropic is not supported");
     }
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
     const max = this._rhi.capability.maxAnisoLevel;
 
     if (value > max) {
-      Logger.warn(`anisoLevel:${value}, 超出当前环境限制，已自动降级为最大值:${max}`);
+      Logger.warn(`anisoLevel:${value}, exceeds the limit and is automatically downgraded to:${max}`);
       value = max;
     }
 

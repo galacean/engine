@@ -55,7 +55,7 @@ export class TextureCubeMapNewHandler {
     const { width, height } = data[0][0];
 
     if (width !== height) {
-      Logger.error("立方体纹理宽高必须相等");
+      Logger.error("The cube texture must have the same width and height");
       return;
     }
 

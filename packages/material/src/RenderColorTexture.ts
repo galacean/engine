@@ -55,26 +55,28 @@ export class RenderColorTexture extends Texture {
       format === RenderBufferColorFormat.R32G32B32A32 &&
       (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat))
     ) {
-      throw new Error("当前环境不支持浮点纹理,请先检测能力再使用");
+      throw new Error("Float Color Buffer is not supported");
     }
     if (
       format === RenderBufferColorFormat.R16G16B16A16 &&
       (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat))
     ) {
-      throw new Error("当前环境不支持半浮点纹理,请先检测能力再使用");
+      throw new Error("Half Float Color Buffer is not supported");
     }
     if (isCube && width !== height) {
-      throw new Error("立方体纹理的宽高必须一致");
+      throw new Error("The cube texture must have the same width and height");
     }
     if (mipmap && !isWebGL2 && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
-      Logger.warn("WebGL1不支持非二次幂纹理开启 mipmap,已自动降级为非mipmap");
+      Logger.warn(
+        "non-power-2 texture is not supported for mipmap in WebGL1,and has automatically downgraded to non-mipmap"
+      );
       mipmap = false;
     }
 
     const formatDetail = Texture._getRenderBufferColorFormatDetail(format, gl, isWebGL2);
 
     if (!formatDetail) {
-      throw new Error(`很抱歉，引擎不支持此格式: ${format}`);
+      throw new Error(`this format is not supported in Oasis Engine: ${format}`);
     }
 
     const glTexture = gl.createTexture();

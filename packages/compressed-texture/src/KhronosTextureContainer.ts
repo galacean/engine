@@ -108,7 +108,7 @@ function getEngineFormat(internalFormat: GLint): TextureFormat {
       return TextureFormat.ASTC_12x12;
     default:
       const formatName: any = GLCompressedTextureInternalFormat[internalFormat];
-      Logger.error(`很抱歉，引擎不支持此格式: ${formatName}`);
+      Logger.error(`this format is not supported in Oasis Engine: ${formatName}`);
       return formatName;
   }
 }

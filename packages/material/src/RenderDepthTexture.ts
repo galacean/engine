@@ -52,30 +52,32 @@ export class RenderDepthTexture extends Texture {
     const isWebGL2: boolean = rhi.isWebGL2;
 
     if (format === RenderBufferDepthFormat.Stencil) {
-      throw new Error("webGL不能单独生成模板纹理,可以绑定到RBO");
+      throw new Error("WebGL can't generate stencil texture alone, you can bind it to an RBO");
     }
 
     if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
-      throw new Error("当前环境不支持生成深度相关的纹理,请先检测能力再使用");
+      throw new Error("depth texture is not supported");
     }
     if ((format === RenderBufferDepthFormat.Depth24 || format === RenderBufferDepthFormat.Depth32) && !isWebGL2) {
-      throw new Error("当前环境不支持高精度深度纹理,请先检测能力再使用");
+      throw new Error("High precision depth texture is not supported");
     }
     if (format === RenderBufferDepthFormat.Depth32Stencil8 && !isWebGL2) {
-      throw new Error("当前环境不支持高精度深度模版纹理,请先检测能力再使用");
+      throw new Error("High precision depth stencil texture is not supported");
     }
     if (isCube && width !== height) {
-      throw new Error("立方体纹理的宽高必须一致");
+      throw new Error("The cube texture must have the same width and height");
     }
     if (mipmap && !isWebGL2 && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
-      Logger.warn("WebGL1不支持非二次幂纹理开启 mipmap,已自动降级为非mipmap");
+      Logger.warn(
+        "non-power-2 texture is not supported for mipmap in WebGL1,and has automatically downgraded to non-mipmap"
+      );
       mipmap = false;
     }
 
     const formatDetail = Texture._getRenderBufferDepthFormatDetail(format, gl, isWebGL2);
 
     if (!formatDetail) {
-      throw new Error(`很抱歉，引擎不支持此格式: ${format}`);
+      throw new Error(`this format is not supported in Oasis Engine: ${format}`);
     }
 
     const glTexture = gl.createTexture();
