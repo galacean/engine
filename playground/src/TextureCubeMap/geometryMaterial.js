@@ -39,7 +39,7 @@ function requireCubeTechnique(loader) {
   varying vec3 v_uv;
 
   void main() {
-    gl_FragColor = textureCube(u_cube, v_uv);
+    gl_FragColor =vec4(textureCube(u_cube, v_uv).rgb,1.0);
   }
   `;
 

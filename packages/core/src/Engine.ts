@@ -325,7 +325,14 @@ export class Engine extends EventDispatcher {
     }
     this.scenes = [];
 
+    this._currentScene = null;
+    this.features = [];
+    this._time = null;
+    this._animateTime = null;
+
     // --
     this.assetPool.clear();
+    this.assetPool = null;
+    (engineFeatureManager as any)._objects = [];
   }
 }

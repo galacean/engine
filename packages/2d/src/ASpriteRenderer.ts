@@ -132,8 +132,8 @@ export class ASpriteRenderer extends RenderableComponent {
     this._rect = rect || {
       x: 0,
       y: 0,
-      width: this._texture ? this._texture.image.width : 0,
-      height: this.texture ? this._texture.image.height : 0
+      width: this._texture?.image?.width ?? this._texture?.width ?? 0,
+      height: this._texture?.image?.height ?? this._texture?.height ?? 0
     };
   }
 

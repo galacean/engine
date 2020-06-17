@@ -10,8 +10,24 @@ class ShaderFactory {
     return `#version ${version}\n`;
   }
 
-  static parsePrecision(p) {
-    return `precision ${p} float;\n` + `precision ${p} int;\n`;
+  static parsePrecision(vertP: string, fragP: string, compileVert?: boolean) {
+    const downgrade = "mediump";
+
+    return `
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+          precision ${compileVert ? vertP : fragP} float;
+          precision ${compileVert ? vertP : fragP} int;
+
+          #define O3_VERTEX_PRECISION ${vertP}
+          #define O3_FRAGMENT_PRECISION ${fragP}
+        #else
+          precision ${downgrade} float;
+          precision ${downgrade} int;
+
+          #define O3_VERTEX_PRECISION ${downgrade}
+          #define O3_FRAGMENT_PRECISION ${downgrade}
+        #endif
+      `;
   }
 
   static parseShaderName(name) {
@@ -102,6 +118,22 @@ class ShaderFactory {
     }
 
     return shader;
+  }
+
+  /**
+   * 返回相应 shaderCode 中的 draw buffer 长度
+   * @param shader - shader code
+   */
+  static getMaxDrawBuffers(shader: string): number {
+    const mrtIndexSet = new Set();
+    const result = shader.match(/\bgl_FragData\[.+?\]/g) || [];
+
+    for (let i = 0; i < result.length; i++) {
+      const res = result[i].match(/\bgl_FragData\[(.+?)\]/);
+      mrtIndexSet.add(res[1]);
+    }
+
+    return mrtIndexSet.size;
   }
 
   /**
