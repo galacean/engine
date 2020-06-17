@@ -22,6 +22,9 @@ describe("Texture2D", () => {
 
     assert(texture._isCube == false);
     assert(cubeTexture._isCube === true);
+    assert.throws(() => {
+      new RenderColorTexture(rhi, 100, 200, undefined, undefined, true);
+    });
   });
 
   describe("格式测试", () => {
@@ -64,6 +67,4 @@ describe("Texture2D", () => {
       assert(texture.mipmapCount === 1);
     });
   });
-
-  // todo: dom test
 });
