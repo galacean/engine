@@ -26,22 +26,15 @@ describe("Texture2D", () => {
 
   describe("格式测试", () => {
     it("不支持浮点纹理", () => {
-      rhi.canIUse.mockReturnValueOnce(false);
-
-      try {
+      assert.throws(() => {
+        rhi.canIUse.mockReturnValueOnce(false);
         new Texture2D(rhi, width, height, TextureFormat.R32G32B32A32);
-        assert(false, "should throw error");
-      } catch (e) {
-        assert(e.message);
-      }
+      });
     });
     it("引擎不支持的格式", () => {
-      try {
+      assert.throws(() => {
         new Texture2D(rhi, width, height, 1234567);
-        assert(false, "should throw error");
-      } catch (e) {
-        assert(e.message);
-      }
+      });
     });
   });
 
@@ -70,6 +63,7 @@ describe("Texture2D", () => {
     });
   });
 
+  // todo: dom test
   // it("设置图源", () => {
   //   const img: HTMLImageElement = null;
   //   const texture = new Texture2D(rhi, width, height);
@@ -101,12 +95,12 @@ describe("Texture2D", () => {
 
   describe("读取颜色缓冲", () => {
     it("异常-无法读取压缩纹理", () => {
-      try {
-        new Texture2D(rhi, width, height, TextureFormat.ETC2_RGBA8);
-        assert(false, "should throw error");
-      } catch (e) {
-        assert(e.message);
-      }
+      assert.throws(() => {
+        const texture = new Texture2D(rhi, width, height, TextureFormat.ETC2_RGBA8);
+        const buffer = new Uint8Array(4);
+
+        texture.getPixelsBuffer(0, 0, 1, 1, buffer);
+      });
     });
     it("读取成功", () => {
       const texture = new Texture2D(rhi, width, height);
