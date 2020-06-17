@@ -58,12 +58,13 @@ export class Transform extends NodeAbility {
 
   /**
    * 父变换
-   * TODO:后续直接更名为parent
+   * @todo 后续直接更名为parent
    */
   get parentTransform(): Transform {
     return this._parent;
   }
 
+  //CM:应该做成内部方法，开发者不允许调用
   set parentTransform(value: Transform) {
     this._parent = value;
     this._parent._children.push(this);
