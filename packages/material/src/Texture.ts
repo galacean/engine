@@ -24,7 +24,6 @@ export class Texture extends AssetObject {
   }
 
   /**
-   * @internal
    * 根据 TextureFormat 获取具体信息
    */
   static _getFormatDetail(
@@ -450,18 +449,12 @@ export class Texture extends AssetObject {
     this._glTexture = null;
   }
 
-  /**
-   * @internal
-   */
   public _bind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.bindTexture(this._target, this._glTexture);
   }
 
-  /**
-   * @internal
-   */
   public _unbind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
@@ -569,7 +562,7 @@ export class Texture extends AssetObject {
    * 获取相应size的最大mip级别,rounding down
    * http://download.nvidia.com/developer/Papers/2005/NP2_Mipmapping/NP2_Mipmap_Creation.pdf
    */
-  protected _getMaxMiplevel(size: number) {
+  protected _getMaxMiplevel(size: number): number {
     return Math.floor(Math.log2(size));
   }
 

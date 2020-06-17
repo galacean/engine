@@ -212,7 +212,7 @@ export class RenderTarget extends AssetObject {
   }
 
   /** 销毁实例 */
-  public destroy() {
+  public destroy(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.deleteFramebuffer(this._frameBuffer);
@@ -326,6 +326,7 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
+   * @internal
    * 绑定主 FBO
    */
   private _bindMainFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
@@ -376,6 +377,7 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
+   * @internal
    * 绑定 MSAA FBO
    */
   private _bindMSAAFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
@@ -421,7 +423,10 @@ export class RenderTarget extends AssetObject {
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   }
 
-  /** 检查 FBO  */
+  /**
+   * @internal
+   * 检查 FBO
+   */
   private _checkFrameBuffer(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
