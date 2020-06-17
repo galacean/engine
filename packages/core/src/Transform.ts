@@ -13,37 +13,30 @@ type TransformProps = {
 export class Transform extends NodeAbility {
   // Statics
   // temp
-  static _tempVec3: vec3Type = vec3.create();
-  static _tempVec4: vec4Type = vec4.create();
-  static _tempMat3: mat3Type = mat3.create();
-  static _tempMat4: mat4Type = mat4.create();
+  private static _tempVec3: vec3Type = vec3.create();
+  private static _tempVec4: vec4Type = vec4.create();
+  private static _tempMat3: mat3Type = mat3.create();
+  private static _tempMat4: mat4Type = mat4.create();
 
-  static _tempVec31: vec3Type = vec3.create();
-  static _tempVec41: vec4Type = vec4.create();
-  static _tempMat31: mat3Type = mat3.create();
-  static _tempMat41: mat4Type = mat4.create();
+  private static _tempMat31: mat3Type = mat3.create();
+  private static _tempMat41: mat4Type = mat4.create();
 
-  static _tempVec32: vec3Type = vec3.create();
-  static _tempVec42: vec4Type = vec4.create();
-  static _tempMat32: mat3Type = mat3.create();
-  static _tempMat42: mat4Type = mat4.create();
+  private static _tempMat32: mat3Type = mat3.create();
+  private static _tempMat42: mat4Type = mat4.create();
 
-  static _tempVec33: vec3Type = vec3.create();
-  static _tempVec43: vec4Type = vec4.create();
-  static _tempMat33: mat3Type = mat3.create();
-  static _tempMat43: mat4Type = mat4.create();
+  private static _tempMat43: mat4Type = mat4.create();
 
   // dirty flag
-  static LOCAL_EULER_FLAG: number = 0x1;
-  static LOCAL_QUAT_FLAG: number = 0x2;
+  private static LOCAL_EULER_FLAG: number = 0x1;
+  private static LOCAL_QUAT_FLAG: number = 0x2;
 
-  static WORLD_POSITION_FLAG: number = 0x4;
-  static WORLD_EULER_FLAG: number = 0x8;
-  static WORLD_QUAT_FLAG: number = 0x10;
-  static WORLD_SCALE_FLAG: number = 0x20;
+  private static WORLD_POSITION_FLAG: number = 0x4;
+  private static WORLD_EULER_FLAG: number = 0x8;
+  private static WORLD_QUAT_FLAG: number = 0x10;
+  private static WORLD_SCALE_FLAG: number = 0x20;
 
-  static LOCAL_MATRIX_FLAG: number = 0x40;
-  static WORLD_MATRIX_FLAG: number = 0x80;
+  private static LOCAL_MATRIX_FLAG: number = 0x40;
+  private static WORLD_MATRIX_FLAG: number = 0x80;
 
   // Properties
   private _position: vec3Type = vec3.create();
