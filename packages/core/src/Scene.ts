@@ -6,6 +6,7 @@ import { ACamera } from "./ACamera";
 import { SceneFeature } from "./SceneFeature";
 import { SceneVisitor } from "./SceneVisitor";
 import { Vec4 } from "@alipay/o3-math/types/type";
+import { ComponentsManager } from "./ComponentsManager";
 
 /*
 Scene Feature:
@@ -65,6 +66,8 @@ export class Scene extends EventDispatcher {
    * */
   public clipPlanes: Vec4[] = [];
 
+  public _componentsManager: ComponentsManager;
+
   /**
    * 构造函数
    * @param {Engine} engine 引擎对象
@@ -73,6 +76,7 @@ export class Scene extends EventDispatcher {
     super();
 
     this._engine = engine;
+    this._componentsManager = new ComponentsManager();
     this._root = new Node(this, null, "root");
     this._activeCameras = [];
 
@@ -89,9 +93,11 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
-    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]);
-    this._root.update(deltaTime);
-    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]);
+    this._componentsManager.callScriptOnUpdate(deltaTime);
+    this._componentsManager.callComponentOnUpdate(deltaTime);
+    this._componentsManager.callAnimationOnUpdate(deltaTime);
+    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
+    this._componentsManager.callScriptOnLateUpdate();
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
@@ -104,22 +110,18 @@ export class Scene extends EventDispatcher {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]);
+          this._componentsManager.callRendererOnUpdate();
+          this._componentsManager.callScriptOnPreRender();
+          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();
-          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]);
+          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //deprecated
+          this._componentsManager.callScriptOnPostRender();
         }
       }
+      this._componentsManager.callComponentDestory(); //CM:移动到render外面吧，destroy与渲染没有关联，外面更合理，而且这里cameras.length > 0才执行，有BUG
     } else {
       Logger.debug("NO active camera.");
     }
-  }
-
-  /**
-   * 访问整个 SceneGraph
-   * @param {SceneVisitor} visitor
-   */
-  public visitSceneGraph(visitor: SceneVisitor): void {
-    this._root.visit(visitor);
   }
 
   /**
@@ -173,5 +175,6 @@ export class Scene extends EventDispatcher {
     this._root = null;
     this._activeCameras = null;
     (sceneFeatureManager as any)._objects = [];
+    this._componentsManager = null;
   }
 }

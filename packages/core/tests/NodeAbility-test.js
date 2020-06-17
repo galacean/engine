@@ -1,14 +1,14 @@
-import { Node } from '../src/Node';
-import { NodeAbility } from '../src/NodeAbility';
+import { Node } from "../src/Node";
+import { NodeAbility } from "../src/NodeAbility";
 
-describe("NodeAbility", ()=>{
-  describe("NodeAbility base class", ()=>{
-    it("constructor()", ()=>{
+describe("NodeAbility", () => {
+  describe("NodeAbility base class", () => {
+    it("constructor()", () => {
       let ability = new NodeAbility(new Node());
       expect(ability.node).is.instanceof(Node);
     });
 
-    it("update() trigger start/enabled event", ()=>{
+    it("update() trigger start/enabled event", () => {
       let ability = new NodeAbility(new Node());
       let onstart = sinon.spy();
       let onenabled = sinon.spy();
@@ -18,6 +18,5 @@ describe("NodeAbility", ()=>{
       expect(onstart).is.called;
       expect(onenabled).is.called;
     });
-    
-  }); 
+  });
 });
