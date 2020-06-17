@@ -42,6 +42,8 @@ function enableRenderer(node: Node, enabled: boolean, key: string) {
   } // end of if
 }
 
+const tempMat4 = mat4.create();
+
 /**
  * SceneGraph中的一个节点，也就是场景中的一个对象；主要功能是管理组件对象，并组成SceneGraph
  * @class
@@ -51,6 +53,25 @@ export class Node extends EventDispatcher {
    * 节点计数
    */
   static counter: number = 0;
+
+  public _parent: Node;
+
+  private _children: Node[] = [];
+  public transform: Transform = new Transform(this, {});
+
+  private _ownerScene: Scene;
+
+  private _name: string;
+
+  private _abilityArray: NodeAbility[] = [];
+
+  private _pendingDestroy: boolean = false;
+
+  private _activeSelf: boolean = true;
+
+  private _isActiveInInHierarchy: boolean = true;
+
+  private _activeChangeFun;
 
   /**
    * 所属的 Scene 对象
@@ -323,42 +344,10 @@ export class Node extends EventDispatcher {
    * matrix 是否发生变化
    * */
   get isDirty() {
-    return this._modelMatrixDirty;
+    return true;
   }
 
   public onUpdate: (t?: number) => void;
-  public _parent: Node;
-  public transform: Transform;
-
-  private _ownerScene: Scene;
-
-  private _name: string;
-
-  private _children: Node[];
-
-  private _abilityArray: NodeAbility[];
-
-  private _pendingDestroy: boolean;
-
-  private _activeSelf: boolean;
-
-  private _isActiveInInHierarchy: boolean;
-
-  private propertyChangeEvnet = new Event("propertyChange");
-
-  private _activeChangeFun;
-
-  private _position;
-
-  private _rotation;
-  private _scale;
-  private _modelMatrix;
-  private _invModelMatrix;
-  private _modelMatrixDirty;
-  private _invModelMatrixDirty;
-  private _up;
-  private _right;
-  private _forward;
 
   /**
    * 构造函数
@@ -373,31 +362,19 @@ export class Node extends EventDispatcher {
     this._ownerScene = scene;
     this._name = name;
 
-    this._children = [];
-    this._abilityArray = [];
-
     // -- 状态变量
-    this._pendingDestroy = false;
-    this._activeSelf = true; // local active state of this Node
-
-    this._isActiveInInHierarchy = true;
     this._activeChangeFun = activeChange(this);
 
     // -- Transform
-    this._position = vec3.create();
-    this._rotation = quat.create();
-    this._scale = vec3.fromValues(1, 1, 1);
-    this._modelMatrix = mat4.create();
-    this._invModelMatrix = mat4.create();
-    this._modelMatrixDirty = true;
-    this._invModelMatrixDirty = true;
+    // this._position = vec3.create();
+    // this._rotation = quat.create();
+    // this._scale = vec3.fromValues(1, 1, 1);
+    // this._modelMatrix = mat4.create();
+    // this._invModelMatrix = mat4.create();
+    // this._modelMatrixDirty = true;
+    // this._invModelMatrixDirty = true;
 
-    this.createAbility(Transform);
     this.parentNode = parent;
-
-    this._up = vec3.fromValues(0, 1, 0);
-    this._right = vec3.fromValues(1, 0, 0);
-    this._forward = vec3.fromValues(0, 0, 1);
 
     /**
      * 每帧执行的Update回调函数
@@ -414,9 +391,9 @@ export class Node extends EventDispatcher {
     newNode._isActiveInInHierarchy = this._isActiveInInHierarchy;
 
     // -- Transform
-    // newNode.position = vec3.clone(this.transform.position);
-    // newNode.rotation = quat.clone(this.transform.rotationQuaternion);
-    // newNode.scale = vec3.clone(this.transform.scale);
+    newNode.position = vec3.clone(this.transform.position);
+    newNode.rotation = quat.clone(this.transform.rotationQuaternion);
+    newNode.scale = vec3.clone(this.transform.scale);
 
     for (const childNode of this._children) {
       newNode.addChild(childNode.clone());
@@ -765,16 +742,6 @@ export class Node extends EventDispatcher {
    * 取得Local to World矩阵
    */
   public getModelMatrix() {
-    // if (this._modelMatrixDirty) {
-    //   this._updateModelMatrix();
-    //   vec3.set(this._right, this._modelMatrix[0], this._modelMatrix[1], this._modelMatrix[2]);
-    //   vec3.set(this._up, this._modelMatrix[4], this._modelMatrix[5], this._modelMatrix[6]);
-    //   vec3.set(this._forward, this._modelMatrix[8], this._modelMatrix[9], this._modelMatrix[10]);
-    //   vec3.normalize(this._right, this._right);
-    //   vec3.normalize(this._up, this._up);
-    //   vec3.normalize(this._forward, this._forward);
-    // }
-    // return this._modelMatrix;
     return this.transform.worldMatrix;
   }
 
@@ -784,33 +751,7 @@ export class Node extends EventDispatcher {
    * @deprecated
    */
   public setModelMatrix(m: number[] | Float32Array) {
-    // const transformMat = mat4.clone(m);
-    // if (this._parent) {
-    //   const parentInvMat = this._parent.getInvModelMatrix();
-    //   mat4.mul(transformMat, parentInvMat, transformMat);
-    // }
-
-    // mat4.getTranslation(this._position, transformMat);
-    // mat4.getRotation(this._rotation, transformMat);
-    // mat4.getScaling(this._scale, transformMat);
-
-    // this._markTransformDirty();
     this.transform.worldMatrix = m;
-  }
-
-  /**
-   * @deprecated
-   */
-  public setModelMatrixNew(m: number[] | Float32Array) {
-    const transformMat = mat4.clone(m);
-    if (this._parent) {
-      const parentInvMat = this._parent.getInvModelMatrix();
-      mat4.mul(transformMat, parentInvMat, transformMat);
-    }
-
-    mat4.decompose(transformMat, this._position, this._rotation, this._scale);
-
-    this._markTransformDirty();
   }
 
   /**
@@ -822,55 +763,8 @@ export class Node extends EventDispatcher {
     //   this._updateInvModelMatrix();
     // }
     const modelMatrix = this.getModelMatrix();
-    const _invModelMatrix = mat4.invert(modelMatrix, modelMatrix);
+    const _invModelMatrix = mat4.invert(tempMat4, modelMatrix);
     return _invModelMatrix;
-  }
-
-  /**
-   * 重新计算Local to World矩阵
-   * @private
-   */
-  public _updateModelMatrix(): void {
-    const temp = mat4.clone(this._modelMatrix);
-
-    mat4.fromRotationTranslationScale(this._modelMatrix, this._rotation, this._position, this._scale);
-    if (this._parent) {
-      const parentMat = this._parent.getModelMatrix();
-      mat4.mul(this._modelMatrix, parentMat, this._modelMatrix);
-    }
-
-    if (!mat4.equals(temp, this._modelMatrix)) {
-      this.trigger(this.propertyChangeEvnet);
-    }
-
-    this._modelMatrixDirty = false;
-  }
-
-  /**
-   * 重新计算World to Local矩阵
-   * @private
-   */
-  public _updateInvModelMatrix(): void {
-    mat4.invert(this._invModelMatrix, this.getModelMatrix());
-    this._invModelMatrixDirty = false;
-  }
-
-  /**
-   * 设置Transform Dirty标志，包括子节点
-   * @private
-   */
-  public _markTransformDirty(): void {
-    if (this._modelMatrixDirty && this._invModelMatrixDirty) {
-      return;
-    }
-
-    this._modelMatrixDirty = true;
-    this._invModelMatrixDirty = true;
-    const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      child._markTransformDirty();
-    }
   }
 
   /**

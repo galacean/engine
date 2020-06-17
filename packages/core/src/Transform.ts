@@ -299,6 +299,11 @@ export class Transform extends NodeAbility {
     this._init(node, props);
   }
 
+  public cloneTo(target: Transform): Transform {
+    target._position;
+    return target;
+  }
+
   /**
    * 获取子变换
    */
@@ -403,7 +408,6 @@ export class Transform extends NodeAbility {
     this._initTRS(props);
     this._getParent(node);
     this._getChild(node, this._children);
-    node.transform = this;
   }
 
   private _initDirtyFlag() {

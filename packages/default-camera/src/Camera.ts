@@ -60,7 +60,7 @@ export class Camera extends NodeAbility {
    * @readonly
    */
   get eyePos(): Float32Array {
-    return this._ownerNode.worldPosition;
+    return this._ownerNode.worldPosition as any;
   }
 
   public zNear: number;

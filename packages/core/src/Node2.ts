@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { mat4, vec3, quat, MathUtil } from "@alipay/o3-math";
 import { Logger, Util, Event, EventDispatcher } from "@alipay/o3-base";
 import { NodeAbility } from "./NodeAbility";
