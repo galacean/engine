@@ -180,7 +180,8 @@ export class Node extends EventDispatcher {
     super();
     Node._nodes.add(this);
     this._scene = scene;
-    this._isRoot = parent === null && name === "root"; //CM:这个判断条件容易出问题吧，不严谨，可否在scene的构造函数里直接修改 _isRoot 为true
+    //TODO 因现有机制scene的rootNode 在创建时需要知道自己为root(判断activeInHierarchy时不需要判断父节点)
+    this._isRoot = parent === null && name === "__root__";
     this.name = name;
     this.parent = parent;
     this.active = true;

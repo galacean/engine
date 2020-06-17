@@ -77,7 +77,7 @@ export class Scene extends EventDispatcher {
 
     this._engine = engine;
     this._componentsManager = new ComponentsManager();
-    this._root = new Node(this, null, "root");
+    this._root = new Node(this, null, "__root__");
     this._activeCameras = [];
 
     sceneFeatureManager.addObject(this);
