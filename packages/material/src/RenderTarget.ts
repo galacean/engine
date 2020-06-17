@@ -5,8 +5,7 @@ import {
   TextureWrapMode,
   GLCapabilityType,
   AssetType,
-  Logger,
-  RenderBufferColorFormat
+  Logger
 } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Texture2D } from "./Texture2D";

@@ -5,6 +5,8 @@ import { Texture } from "./Texture";
  * 类应用于渲染颜色纹理。
  */
 export class RenderColorTexture extends Texture {
+  public _isCube: boolean = false;
+
   private _format: RenderBufferColorFormat;
   private _autoMipmap: boolean = false;
 
@@ -87,7 +89,7 @@ export class RenderColorTexture extends Texture {
     this._height = height;
     this._format = format;
 
-    this._initMipmap();
+    this._initMipmap(isCube);
     //todo: delete
     this.type = AssetType.Scene;
   }

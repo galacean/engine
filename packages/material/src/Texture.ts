@@ -270,7 +270,6 @@ export class Texture extends AssetObject {
 
   public _glTexture: WebGLTexture;
   public _formatDetail: TextureFormatDetail;
-  public _isCube: boolean = false; //CM:没必要存，可优化掉
 
   protected _rhi;
   protected _target: GLenum;
@@ -516,10 +515,9 @@ export class Texture extends AssetObject {
    * @internal
    * 预开辟 mipmap 显存
    */
-  protected _initMipmap(): void {
+  protected _initMipmap(isCube: boolean): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2 = this._rhi.isWebGL2;
-    const isCube = this._isCube;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
 
     this._bind();

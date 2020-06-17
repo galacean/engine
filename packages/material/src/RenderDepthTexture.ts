@@ -1,10 +1,12 @@
-import { TextureCubeFace, RenderBufferDepthFormat, GLCapabilityType, AssetType, Logger } from "@alipay/o3-base";
+import { RenderBufferDepthFormat, GLCapabilityType, AssetType, Logger } from "@alipay/o3-base";
 import { Texture } from "./Texture";
 
 /**
  * 类应用于渲染深度纹理。
  */
 export class RenderDepthTexture extends Texture {
+  public _isCube: boolean = false;
+
   private _format: RenderBufferDepthFormat;
   private _autoMipmap: boolean = false;
 
@@ -88,7 +90,7 @@ export class RenderDepthTexture extends Texture {
     this._height = height;
     this._format = format;
 
-    this._initMipmap();
+    this._initMipmap(isCube);
     //todo: delete
     this.type = AssetType.Scene;
   }

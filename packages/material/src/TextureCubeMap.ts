@@ -52,7 +52,6 @@ export class TextureCubeMap extends Texture {
 
     this._glTexture = glTexture;
     this._formatDetail = formatDetail;
-    this._isCube = true;
     this._rhi = rhi;
     this._target = gl.TEXTURE_CUBE_MAP;
     this._mipmap = mipmap;
@@ -61,7 +60,7 @@ export class TextureCubeMap extends Texture {
     this._format = format;
 
     if (!this._formatDetail.isCompressed) {
-      this._initMipmap();
+      this._initMipmap(true);
     }
     //todo: delete
     this.type = AssetType.Scene;
