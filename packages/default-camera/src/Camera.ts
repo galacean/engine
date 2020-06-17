@@ -51,26 +51,33 @@ export class Camera extends NodeAbility {
   public cullingMask: number = 0;
 
   private _isOrthographic: boolean = false;
-  private _projectionMatrix: Matrix4 = mat4.create() as Matrix4;
-  private _isProjectionDirty = false;
+  private _projectionMatrix: Matrix4 = mat4.create();
   private _isProjMatSetting = false;
-  private _viewMatrix: Matrix4 = mat4.create() as Matrix4;
+  private _viewMatrix: Matrix4 = mat4.create();
   private _clearFlags: ClearFlags;
   private _clearParam: Vector4;
   private _clearMode: ClearMode;
   private _sceneRenderer: BasicSceneRenderer;
-  private _viewportNormalized: Vector4 = vec4.create() as Vector4;
+  private _viewportNormalized: Vector4 = vec4.create();
   private _viewport: Vector4 = [0, 0, 1, 1];
   private _nearClipPlane: number;
   private _farClipPlane: number;
   private _fieldOfView: number;
   private _orthographicSize: number = 10;
-  private _inverseProjectionMatrix: Matrix4 = mat4.create() as Matrix4;
-  private _inverseViewMatrix: Matrix4 = mat4.create() as Matrix4;
-  private _shouldInvProjMatUpdate: boolean = false;
+  private _inverseProjectionMatrix: Matrix4 = mat4.create();
+  private _inverseViewMatrix: Matrix4 = mat4.create();
   // todo:监听 node transform 修改设为 true
-  private _shouldViewMatUpdate: boolean = true;
+  // 投影矩阵脏标记
+  private _isProjectionDirty = false;
+  // 视图矩阵脏标记
+  private _isViewMatDirty: boolean = true;
+  // 投影视图矩阵逆矩阵脏标记
+  private _isInvViewProjDirty: boolean = true;
+  // 投影矩阵逆矩阵脏标记
+  private _isInvProjMatDirty: boolean = true;
+
   private _customAspectRatio: number = undefined;
+  private _invViewProjMat: Matrix4 = mat4.create();
 
   /**
    * 近裁剪平面。
@@ -81,7 +88,7 @@ export class Camera extends NodeAbility {
 
   public set nearClipPlane(value: number) {
     this._nearClipPlane = value;
-    this._isProjectionDirty = true;
+    this.projMatChange();
   }
 
   /**
@@ -93,7 +100,7 @@ export class Camera extends NodeAbility {
 
   public set farClipPlane(value: number) {
     this._farClipPlane = value;
-    this._isProjectionDirty = true;
+    this.projMatChange();
   }
 
   /**
@@ -105,7 +112,7 @@ export class Camera extends NodeAbility {
 
   public set fieldOfView(value: number) {
     this._fieldOfView = value;
-    this._isProjectionDirty = true;
+    this.projMatChange();
   }
 
   /**
@@ -117,7 +124,7 @@ export class Camera extends NodeAbility {
 
   public set aspectRatio(value: number) {
     this._customAspectRatio = value;
-    this._isProjectionDirty = true;
+    this.projMatChange();
   }
 
   /**
@@ -141,7 +148,7 @@ export class Camera extends NodeAbility {
 
   public set isOrthographic(value: boolean) {
     this._isOrthographic = value;
-    this._isProjectionDirty = true;
+    this.projMatChange();
   }
 
   /**
@@ -153,7 +160,7 @@ export class Camera extends NodeAbility {
 
   public set orthographicSize(value: number) {
     this._orthographicSize = value;
-    this._isProjectionDirty = true;
+    this.projMatChange();
   }
 
   /**
@@ -192,7 +199,7 @@ export class Camera extends NodeAbility {
    */
   public get viewMatrix(): Readonly<Matrix4> {
     //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
-    if (this._shouldViewMatUpdate) {
+    if (this._isViewMatDirty) {
       // todo:监听 node 的 transform 变换
       const modelMatrix = this.node.getModelMatrix(); //CM：等木鳐做好改成直接调用transform的方法
       turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
@@ -207,7 +214,7 @@ export class Camera extends NodeAbility {
   public set projectionMatrix(value: Matrix4) {
     this._projectionMatrix = value;
     this._isProjMatSetting = true;
-    this._shouldInvProjMatUpdate = true;
+    this.projMatChange();
   }
 
   public get projectionMatrix(): Matrix4 {
@@ -215,12 +222,11 @@ export class Camera extends NodeAbility {
       return this._projectionMatrix;
     }
     this._isProjectionDirty = false;
-    this._shouldInvProjMatUpdate = true;
     const aspectRatio = this.aspectRatio;
     if (!this._isOrthographic) {
       mat4.perspective(
         this._projectionMatrix,
-        MathUtil.toRadian(this.fieldOfView), //CM:this.fieldOfView用this._fieldOfView,可提升性能
+        MathUtil.toRadian(this._fieldOfView),
         aspectRatio,
         this._nearClipPlane,
         this._farClipPlane
@@ -299,7 +305,7 @@ export class Camera extends NodeAbility {
    */
   public resetProjectionMatrix(): void {
     this._isProjMatSetting = false;
-    this._isProjectionDirty = true;
+    this.projMatChange();
   }
 
   /**
@@ -307,7 +313,7 @@ export class Camera extends NodeAbility {
    */
   public resetAspectRatio(): void {
     this._customAspectRatio = undefined;
-    this._isProjectionDirty = true;
+    this.projMatChange();
   }
 
   /**
@@ -342,22 +348,8 @@ export class Camera extends NodeAbility {
    * @returns 世界空间中的点
    */
   public viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
-    const invViewMatrix = this.inverseViewMatrix;
-    const invProjMatrix = this.inverseProjectionMatrix;
-    const invMatViewProj = mat4.mul(MathTemp.tempMat4, invViewMatrix, invProjMatrix); //CM:也可考虑之间缓存invMatViewProj
-
-    // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
-    const depth = point[2]; //CM:没做还原到（-1，1）之间的处理吧
-    // 变换到裁剪空间矩阵
-    const clipPoint = vec4.set(MathTemp.tempVec4, point[0] * 2 - 1, 1 - point[1] * 2, depth, 1);
-    // 计算逆矩阵结果
-    const u = vec4.transformMat4(MathTemp.tempVec4, clipPoint, invMatViewProj);
-    const w = u[3];
-
-    out[0] = u[0] / w;
-    out[1] = u[1] / w;
-    out[2] = u[2] / w;
-    return out;
+    const invViewProjMat = this.invViewProjMat;
+    return this.innerViewportToWorldPoint(point, invViewProjMat, out);
   }
 
   /**
@@ -369,10 +361,10 @@ export class Camera extends NodeAbility {
   public viewportPointToRay(point: Vector2, out: Ray): Ray {
     // 使用近裁面的交点作为 origin
     vec3.set(MathTemp.tempVec3, point[0], point[1], 0);
-    const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin); //CM:可考虑this.viewportToWorldPoint替换为内部方法,外部传入invMatViewProj,这样避免invMatViewProj重复计算两次
+    const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
     // 使用远裁面的交点作为 origin
     const viewportPos = vec3.set(MathTemp.tempVec3, point[0], point[1], 1);
-    const farPoint = this.viewportToWorldPoint(viewportPos, MathTemp.tempVec3);
+    const farPoint = this.innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
     const direction = vec3.sub(out.direction, farPoint, origin);
     vec3.normalize(direction, direction);
     return out;
@@ -431,16 +423,26 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * @private
+   * 视图投影矩阵逆矩阵
+   */
+  public get invViewProjMat() {
+    if (this._isInvViewProjDirty) {
+      const invViewMatrix = this.inverseViewMatrix;
+      const invProjMatrix = this.inverseProjectionMatrix;
+      mat4.mul(this._invViewProjMat, invViewMatrix, invProjMatrix);
+    }
+    return this._invViewProjMat;
+  }
+
+  /**
    * 投影矩阵逆矩阵。
    */
   public get inverseProjectionMatrix(): Readonly<Matrix4> {
-    // 触发更新
-    const projectionMatrix = this.projectionMatrix;
-    if (!this._shouldInvProjMatUpdate) {
-      return this._inverseProjectionMatrix;
+    if (this._isInvProjMatDirty) {
+      const projectionMatrix = this.projectionMatrix;
+      mat4.invert(this._inverseProjectionMatrix, projectionMatrix);
     }
-    return mat4.invert(this._inverseProjectionMatrix, projectionMatrix);
+    return this._inverseProjectionMatrix;
   }
 
   /**
@@ -469,7 +471,7 @@ export class Camera extends NodeAbility {
       viewport[1] = height * v[1];
       viewport[2] = width * v[2];
       viewport[3] = height * v[3];
-      this._isProjectionDirty = true;
+      this.projMatChange();
       // todo 底层每帧会调用
       // this.renderHardware.viewport(this._viewport[0], this._viewport[1], this._viewport[2], this._viewport[3]);
     }
@@ -573,6 +575,34 @@ export class Camera extends NodeAbility {
     this.viewportNormalized = this.viewportNormalized;
     // this.setPerspective(this.fov, width, height, this.near, this.far);
     // this.setViewport(0, 0, width, height);
+  }
+
+  /**
+   * 投影具体应该修改时调用
+   */
+  private projMatChange() {
+    this._isProjectionDirty = true;
+    this._isInvViewProjDirty = true;
+    this._isInvProjMatDirty = true;
+  }
+
+  /**
+   * 通过缓存视图投影矩阵逆矩阵计算 viewportToWorldPoint
+   * @private
+   */
+  private innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix4, out: Vector3) {
+    // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
+    const depth = point[2] * 2 - 1;
+    // 变换到裁剪空间矩阵
+    const clipPoint = vec4.set(MathTemp.tempVec4, point[0] * 2 - 1, 1 - point[1] * 2, depth, 1);
+    // 计算逆矩阵结果
+    const u = vec4.transformMat4(MathTemp.tempVec4, clipPoint, invViewProjMat);
+    const w = u[3];
+
+    out[0] = u[0] / w;
+    out[1] = u[1] / w;
+    out[2] = u[2] / w;
+    return out;
   }
 }
 

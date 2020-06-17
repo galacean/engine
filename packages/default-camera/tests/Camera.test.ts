@@ -182,7 +182,7 @@ describe("camera test", function() {
       origin: vec3.create() as any,
       direction: vec3.create() as any
     });
-    arrayCloseTo(ray.origin as any, Float32Array.from([-0.008294896222651005, 4.975592136383057, 16.902225494384766]));
+    arrayCloseTo(ray.origin as any, Float32Array.from([-0.0017142787110060453, 4.989009380340576, 16.95108985900879]));
     arrayCloseTo(
       ray.direction as any,
       Float32Array.from([-0.037305865436792374, -0.21910282969474792, -0.970811665058136])
@@ -194,7 +194,7 @@ describe("camera test", function() {
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
     camera.resetProjectionMatrix();
-    const nearClipPoint = camera.viewportToWorldPoint([0.5, 0.5, -1], [0, 0, 0]);
+    const nearClipPoint = camera.viewportToWorldPoint([0.5, 0.5, 0], [0, 0, 0]);
     const farClipPoint = camera.viewportToWorldPoint([0.5, 0.5, 1], [0, 0, 0]);
     expect(nearClipPoint[2]).toBeCloseTo(camera.nearClipPlane);
     expect(farClipPoint[2]).toBeCloseTo(camera.farClipPlane);
