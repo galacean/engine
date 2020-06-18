@@ -89,16 +89,16 @@ export class Transform extends NodeAbility {
 
   private _dirtyFlag: number = 0;
   /**
-   * 是否往上查父节点
+   * 是否往上查父节点。
    */
   private _isParentDirty: boolean = true;
   /**
-   * 父 transform 缓存
+   * 父 transform 缓存。
    */
   private _parentTransformCache: Transform = null;
 
   /**
-   * 局部位置
+   * 局部位置。
    */
   get position(): vec3Type {
     return this._position;
@@ -113,11 +113,11 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 世界位置
+   * 世界位置。
    */
   get worldPosition(): vec3Type {
     if (this._getDirtyFlag(Transform._WORLD_POSITION_FLAG)) {
-      if (this.getParentTransform()) {
+      if (this._getParentTransform()) {
         mat4.getTranslation(this._worldPosition, this.worldMatrix);
       } else {
         vec3.copy(this._worldPosition, this._position);
@@ -131,8 +131,8 @@ export class Transform extends NodeAbility {
     if (this._worldPosition !== value) {
       vec3.copy(this._worldPosition, value);
     }
-    if (this.getParentTransform()) {
-      const matWorldToLocal = mat4.invert(Transform._tempMat41, this.getParentTransform().worldMatrix);
+    if (this._getParentTransform()) {
+      const matWorldToLocal = mat4.invert(Transform._tempMat41, this._getParentTransform().worldMatrix);
       vec3.transformMat4(this._worldPosition, value, matWorldToLocal);
     } else {
       vec3.copy(this._worldPosition, value);
@@ -142,7 +142,7 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 局部旋转，欧拉角表达,单位是角度制
+   * 局部旋转，欧拉角表达，单位是角度制。
    */
   get rotation(): vec3Type {
     if (this._getDirtyFlag(Transform._LOCAL_EULER_FLAG)) {
@@ -162,7 +162,7 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 世界旋转，欧拉角表达,单位是角度制
+   * 世界旋转，欧拉角表达，单位是角度制。
    */
   get worldRotation(): vec3Type {
     if (this._getDirtyFlag(Transform._WORLD_EULER_FLAG)) {
@@ -202,14 +202,14 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   *世界旋转，四元数表达
+   * 世界旋转，四元数表达
    */
   get worldRotationQuaternion(): vec4Type {
     if (this._getDirtyFlag(Transform._WORLD_QUAT_FLAG)) {
-      if (this.getParentTransform() != null) {
+      if (this._getParentTransform() != null) {
         quat.multiply(
           this._worldRotationQuaternion,
-          this.getParentTransform().worldRotationQuaternion,
+          this._getParentTransform().worldRotationQuaternion,
           this.rotationQuaternion
         );
       } else {
@@ -224,8 +224,8 @@ export class Transform extends NodeAbility {
     if (this._worldRotationQuaternion !== value) {
       quat.copy(this._worldRotationQuaternion, value);
     }
-    if (this.getParentTransform()) {
-      const quatWorldToLocal = mat4.invert(Transform._tempVec4, this.getParentTransform().worldRotationQuaternion);
+    if (this._getParentTransform()) {
+      const quatWorldToLocal = mat4.invert(Transform._tempVec4, this._getParentTransform().worldRotationQuaternion);
       quat.multiply(this._rotationQuaternion, value, quatWorldToLocal);
     } else {
       quat.copy(this._rotationQuaternion, value);
@@ -235,7 +235,7 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 局部缩放
+   * 局部缩放。
    */
   get scale(): vec3Type {
     return this._scale;
@@ -250,11 +250,11 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 世界缩放
+   * 世界缩放。
    */
   get lossyWorldScale(): vec3Type {
     if (this._getDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
-      if (this.getParentTransform()) {
+      if (this._getParentTransform()) {
         const scaleMat = this._getScaleMatrix();
         this._lossyWorldScale = [scaleMat[0], scaleMat[4], scaleMat[8]]; //CM:不能new数组
       } else {
@@ -266,7 +266,7 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 局部矩阵
+   * 局部矩阵。
    */
   get localMatrix(): mat4Type {
     if (this._getDirtyFlag(Transform._LOCAL_MATRIX_FLAG)) {
@@ -287,12 +287,12 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 世界矩阵
+   * 世界矩阵。
    */
   get worldMatrix(): mat4Type {
     if (this._getDirtyFlag(Transform._WORLD_MATRIX_FLAG)) {
-      if (this.getParentTransform()) {
-        mat4.multiply(this._worldMatrix, this.getParentTransform().worldMatrix, this.localMatrix);
+      if (this._getParentTransform()) {
+        mat4.multiply(this._worldMatrix, this._getParentTransform().worldMatrix, this.localMatrix);
       } else {
         mat4.copy(this._worldMatrix, this.localMatrix);
       }
@@ -305,8 +305,8 @@ export class Transform extends NodeAbility {
     if (this._worldMatrix !== value) {
       mat4.copy(this._worldMatrix, value);
     }
-    if (this.getParentTransform()) {
-      const matWorldToLocal = mat4.invert(Transform._tempMat42, this.getParentTransform().worldMatrix);
+    if (this._getParentTransform()) {
+      const matWorldToLocal = mat4.invert(Transform._tempMat42, this._getParentTransform().worldMatrix);
       mat4.multiply(this._localMatrix, value, matWorldToLocal);
     } else {
       mat4.copy(this._localMatrix, value);
@@ -316,6 +316,7 @@ export class Transform extends NodeAbility {
   }
 
   /**
+   * @internal
    * 构建一个变换组件。
    */
   constructor(node?: Node) {
@@ -423,11 +424,13 @@ export class Transform extends NodeAbility {
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为 false
    */
   private _updateWorldPositionFlag(): void {
-    const nodeChildren = this.node.children;
     if (!this._isContainDirtyFlags(Transform._WM_WP_FLAG)) {
       this._setDirtyFlag(Transform._WM_WP_FLAG, true);
-      for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-        nodeChildren[i].transform?._updateWorldPositionFlag();
+      if (this.node) {
+        const nodeChildren = this.node.children;
+        for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
+          nodeChildren[i].transform?._updateWorldPositionFlag();
+        }
       }
     }
   }
@@ -440,37 +443,39 @@ export class Transform extends NodeAbility {
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
    */
   private _updateWorldRotationFlag() {
-    const nodeChildren = this.node.children;
     if (!this._isContainDirtyFlags(Transform._WM_WE_WQ_FLAG)) {
       this._setDirtyFlag(Transform._WM_WE_WQ_FLAG, true);
-      for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-        nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
+      if (this.node) {
+        const nodeChildren = this.node.children;
+        for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
+          nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
+        }
       }
     }
   }
 
   /**
-   * 获取worldMatrix：会触发自身以及所有父节点的worldMatrix更新
-   * 获取worldPosition：会触发自身position和自身worldMatrix以及所有父节点的worldMatrix更新
-   * 获取worldRotationQuaternion：会触发自身以及所有父节点的worldRotationQuaternion更新
-   * 获取worldRotation：会触发自身worldRotation和自身worldRotationQuaternion以及所有父节点的worldRotationQuaternion更新
-   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
+   * 获取 worldMatrix：会触发自身以及所有父节点的 worldMatrix 更新
+   * 获取 worldPosition：会触发自身 position 和自身 worldMatrix 以及所有父节点的 worldMatrix 更新
+   * 获取 worldRotationQuaternion：会触发自身以及所有父节点的 worldRotationQuaternion 更新
+   * 获取 worldRotation：会触发自身 worldRotation 和自身 worldRotationQuaternion 以及所有父节点的worldRotationQuaternion更新
+   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix 或 worldRotationQuaternion）的脏标记为false
    */
   private _updateWorldPositionAndRotationFlag() {
-    const nodeChildren = this.node.children;
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_FLAG)) {
       this._setDirtyFlag(Transform._WM_WP_WE_WQ_FLAG, true);
-    }
-    for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-      nodeChildren[i].transform?._updateWorldPositionAndRotationFlag();
+      const nodeChildren = this.node.children;
+      for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
+        nodeChildren[i].transform?._updateWorldPositionAndRotationFlag();
+      }
     }
   }
 
   /**
-   * 获取worldMatrix：会触发自身以及所有父节点的worldMatrix更新
-   * 获取worldPosition：会触发自身position和自身worldMatrix以及所有父节点的worldMatrix更新
-   * 获取worldScale：会触发自身以及所有父节点的worldMatrix更新
-   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为false
+   * 获取 worldMatrix：会触发自身以及所有父节点的 worldMatrix 更新
+   * 获取 worldPosition：会触发自身 position 和自身 worldMatrix 以及所有父节点的 worldMatrix 更新
+   * 获取 worldScale：会触发自身以及所有父节点的 worldMatrix 更新
+   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为 false。
    */
   private _updateWorldScaleFlag() {
     const nodeChildren = this.node.children;
@@ -483,10 +488,10 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 获取worldMatrix：会触发自身以及所有父节点的worldMatrix更新
-   * 获取worldPosition：会触发自身position和自身worldMatrix以及所有父节点的worldMatrix更新
-   * 获取worldScale：会触发自身以及所有父节点的worldMatrix更新
-   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为false
+   * 获取 worldMatrix：会触发自身以及所有父节点的 worldMatrix 更新
+   * 获取 worldPosition：会触发自身 position 和自身 worldMatrix 以及所有父节点的 worldMatrix 更新
+   * 获取 worldScale：会触发自身以及所有父节点的worldMatrix更新
+   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为 false。
    */
   private _updateWorldPositionAndScaleFlag(): void {
     const nodeChildren = this.node.children;
@@ -494,25 +499,6 @@ export class Transform extends NodeAbility {
       this._setDirtyFlag(Transform._WM_WP_WS, true);
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
-      }
-    }
-  }
-
-  /**
-   * 获取父 transform
-   */
-  private getParentTransform(): Transform | undefined {
-    if (!this._isParentDirty) {
-      return this._parentTransformCache;
-    }
-    let parent = this.node.parentNode;
-    while (parent) {
-      const transform = parent.transform;
-      if (transform) {
-        this._parentTransformCache = transform;
-        return transform;
-      } else {
-        parent = parent._parent;
       }
     }
   }
@@ -526,6 +512,25 @@ export class Transform extends NodeAbility {
       this._setDirtyFlag(Transform._WM_WP_WE_WQ_WS, true);
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateAllWorldFlag();
+      }
+    }
+  }
+
+  /**
+   * 获取父 transform
+   */
+  private _getParentTransform(): Transform | undefined {
+    if (!this._isParentDirty) {
+      return this._parentTransformCache;
+    }
+    let parent = this.node.parentNode;
+    while (parent) {
+      const transform = parent.transform;
+      if (transform) {
+        this._parentTransformCache = transform;
+        return transform;
+      } else {
+        parent = parent._parent;
       }
     }
   }

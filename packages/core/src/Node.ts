@@ -179,7 +179,17 @@ export class Node extends EventDispatcher {
     parentObj._children.push(this);
     this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
     this._activeChangeFun();
-    this.transform?._setParentDirty();
+    this._setTransformDirty();
+  }
+
+  private _setTransformDirty() {
+    if (this.transform) {
+      this.transform._setParentDirty();
+    } else {
+      for (let i = 0, len = this._children.length; i < len; i++) {
+        this.children[i]._setTransformDirty();
+      }
+    }
   }
 
   /**
