@@ -3,13 +3,6 @@ import { Node } from "./Node";
 import { NodeAbility } from "./NodeAbility";
 import { vec3Type, vec4Type, mat4Type, mat3Type } from "./type";
 
-type TransformProps = {
-  scale?: vec3Type;
-  position?: vec3Type;
-  rotation?: vec3Type;
-  rotationQuaternion?: vec4Type;
-};
-
 //CM:vec3Type、vec4Type、mat3Type、mat4Type类型更换
 //CM:相关get方法修改为ReadOnly<T>类型
 export class Transform extends NodeAbility {
@@ -315,10 +308,9 @@ export class Transform extends NodeAbility {
   /**
    * 构建一个变换组件。
    */
-  constructor(node: Node, props?: TransformProps) {
-    super(node, props);
+  constructor(node: Node) {
+    super(node);
 
-    // this._initDirtyFlag();
     this._initParent();
     this._initChild(node);
   }
