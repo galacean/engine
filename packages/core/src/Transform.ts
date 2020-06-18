@@ -630,6 +630,9 @@ export class Transform extends NodeAbility {
   }
 
   //---------------------@deprecated-----------------------
+  /**
+   * @internal
+   */
   updateParentTransform() {
     this._getParent(this.node);
     this._updateAllWorldFlag();
