@@ -3,13 +3,6 @@ import { Node } from "./Node";
 import { NodeAbility } from "./NodeAbility";
 import { vec3Type, vec4Type, mat4Type, mat3Type } from "./type";
 
-type TransformProps = {
-  scale?: vec3Type;
-  position?: vec3Type;
-  rotation?: vec3Type;
-  rotationQuaternion?: vec4Type;
-};
-
 //CM:vec3Type、vec4Type、mat3Type、mat4Type类型更换
 //CM:相关get方法修改为ReadOnly<T>类型
 export class Transform extends NodeAbility {
@@ -93,31 +86,10 @@ export class Transform extends NodeAbility {
   private _localMatrix: mat4Type = mat4.create();
   private _worldMatrix: mat4Type = mat4.create();
 
-  private _parent = null; //CM:要写类型
+  private _parent: Transform = null; //CM:要写类型
+  //
   private _children: Transform[] = [];
   private _dirtyFlag: number = 0;
-
-  /**
-   * 父变换
-   * @todo 后续直接更名为parent
-   */
-  get parentTransform(): Transform {
-    return this._parent;
-  }
-
-  //CM:应该做成内部方法，开发者不允许调用
-  set parentTransform(value: Transform) {
-    this._parent = value;
-    this._parent._children.push(this);
-  }
-
-  /**
-   * 子变换数量
-   */
-  //CM:更名为childCount
-  get childTransformCount(): number {
-    return this._children.length;
-  }
 
   /**
    * 局部位置
@@ -336,17 +308,11 @@ export class Transform extends NodeAbility {
   /**
    * 构建一个变换组件。
    */
-  constructor(node: Node, props: TransformProps) {
-    super(node, props);
-    this._init(node, props); //CM：为啥封装了_init 而不直接在构造函数里写呢
-  }
+  constructor(node?: Node) {
+    super(node);
 
-  /**
-   * 获取子变换
-   */
-  //CM:修改为getChild
-  getChildTransform(index: number): Transform {
-    return this._children[index];
+    this._initParent();
+    this._initChild();
   }
 
   /**
@@ -444,46 +410,9 @@ export class Transform extends NodeAbility {
     return target;
   }
 
-  private _init(node: Node, props: TransformProps): void {
-    this._initDirtyFlag();
-    this._initTRS(props);
-    this._getParent(node);
-    this._getChild(node, this._children);
-  }
-
-  private _initDirtyFlag(): void {
-    this._setDirtyFlag(Transform._LOCAL_EULER_FLAG | Transform._LOCAL_QUAT_FLAG | Transform._LOCAL_MATRIX_FLAG, false); //CM:初始Dirty为0,不需要再次设置
-    this._setDirtyFlag(
-      //CM:初始也不需要设置,应该在更换parent时设置才对，初始化无需设置
-      Transform._WORLD_POSITION_FLAG |
-        Transform._WORLD_EULER_FLAG |
-        Transform._WORLD_QUAT_FLAG |
-        Transform._WORLD_SCALE_FLAG |
-        Transform._WORLD_MATRIX_FLAG,
-      true
-    );
-  }
-
-  private _initTRS(props) {
-    if (!props) return;
-    const { scale, position, rotation, rotationQuaternion } = props;
-    if (position) {
-      this.position = position;
-    }
-    if (rotation) {
-      this.rotation = rotation;
-    }
-    if (rotationQuaternion) {
-      this.rotationQuaternion = rotationQuaternion;
-    }
-    if (scale) {
-      this.scale = scale;
-    }
-  }
-
-  private _getParent(node: Node): Transform {
-    let parent = node.parentNode;
+  private _initParent() {
     let parentTransform = null;
+    let parent = this.node?.parentNode;
     while (parent) {
       const transformAility = parent.transform;
       if (transformAility) {
@@ -494,17 +423,16 @@ export class Transform extends NodeAbility {
       }
     }
     this._parent = parentTransform;
-    if (this._parent) {
-      this._parent._children.push(this);
-    }
-    return parentTransform;
+    this._parent?._children.push(this);
   }
 
   /**
    * 初始化子变换数量
    */
-  private _getChild(node: Node, children: Transform[]) {
-    if (node.children.length > 0) {
+  private _initChild() {
+    const node = this.node;
+    const children = this._children;
+    if (node?.children?.length > 0) {
       for (let i = 0; i < node.children.length; i++) {
         const childNode = node.children[i];
         if (childNode && childNode.transform) {
@@ -636,12 +564,14 @@ export class Transform extends NodeAbility {
     }
   }
 
-  //---------------------@deprecated-----------------------
   /**
    * @internal
    */
-  updateParentTransform() {
-    this._getParent(this.node);
+  _updateParentTransform() {
+    // if(this._parent) {
+    //   this._parent._children.splice()
+    // }
+    this._initParent();
     this._updateAllWorldFlag();
   }
 }
