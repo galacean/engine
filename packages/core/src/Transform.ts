@@ -255,9 +255,9 @@ export class Transform extends NodeAbility {
     if (this._getDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
       if (this._getParentTransform()) {
         const scaleMat = this._getScaleMatrix();
-        this._lossyWorldScale = [scaleMat[0], scaleMat[4], scaleMat[8]]; //CM:不能new数组
+        vec3.set(this._lossyWorldScale, scaleMat[0], scaleMat[4], scaleMat[8]);
       } else {
-        this._lossyWorldScale = this._scale; //CM:这里要克隆才行
+        vec3.copy(this._lossyWorldScale, this._scale);
       }
       this._setDirtyFlag(Transform._WORLD_SCALE_FLAG, false);
     }
@@ -328,7 +328,8 @@ export class Transform extends NodeAbility {
    * @param forward - 前向量
    */
   getWorldForward(forward: vec3Type): vec3Type {
-    forward = vec3.set(forward, this._worldMatrix[8], this._worldMatrix[9], this._worldMatrix[10]); //CM:应该用非下划线的
+    const worldMatrix = this.worldMatrix;
+    forward = vec3.set(forward, worldMatrix[8], worldMatrix[9], worldMatrix[10]);
     return vec3.normalize(forward, forward);
   }
 
@@ -337,7 +338,8 @@ export class Transform extends NodeAbility {
    * @param right - 右向量
    */
   getWorldRight(right: vec3Type): vec3Type {
-    right = vec3.set(right, this._worldMatrix[0], this._worldMatrix[1], this._worldMatrix[2]); //CM:应该用非下划线的
+    const worldMatrix = this.worldMatrix;
+    right = vec3.set(right, worldMatrix[0], worldMatrix[1], worldMatrix[2]);
     return vec3.normalize(right, right);
   }
 
@@ -346,7 +348,8 @@ export class Transform extends NodeAbility {
    * @param up - 上向量
    */
   getWorldUp(up: vec3Type): vec3Type {
-    up = vec3.set(up, this._worldMatrix[4], this._worldMatrix[5], this._worldMatrix[6]); //CM:应该用非下划线的
+    const worldMatrix = this.worldMatrix;
+    up = vec3.set(up, worldMatrix[4], worldMatrix[5], worldMatrix[6]);
     return vec3.normalize(up, up);
   }
 
@@ -362,7 +365,7 @@ export class Transform extends NodeAbility {
       translation = vec3.transformMat4(Transform._tempVec3, translation, rotationMat);
       this.position = vec3.add(this._position, this._position, translation);
     } else {
-      vec3.add(this.worldPosition, translation, this._worldPosition); //CM:这样触发不了worldPosition的set属性，有BUG
+      this.worldPosition = vec3.add(this.worldPosition, translation, this._worldPosition);
     }
   }
 
@@ -372,14 +375,8 @@ export class Transform extends NodeAbility {
    * @param relativeToLocal - 是否相对局部空间
    */
   rotate(rotation: vec3Type, relativeToLocal: boolean = true): void {
-    const rotationQuat = quat.fromEuler(Transform._tempVec4, rotation[0], rotation[1], rotation[2]);
-    if (relativeToLocal) {
-      quat.multiply(this._rotationQuaternion, this._rotationQuaternion, rotationQuat);
-      this.rotationQuaternion = this._rotationQuaternion;
-    } else {
-      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotationQuat); //CM：第2个参数应该使用this.worldRotationQuaternion，否则可能获取到的是错误旋转四元数
-      this.worldRotationQuaternion = this._worldRotationQuaternion;
-    }
+    const rotateQuat = quat.fromEuler(Transform._tempVec4, rotation[0], rotation[1], rotation[2]);
+    this._rotateByQuat(rotateQuat, relativeToLocal);
   }
 
   /**
@@ -388,17 +385,10 @@ export class Transform extends NodeAbility {
    * @param angle - 旋转角度，单位是角度制
    * @param relativeToLocal - 是否相对局部空间
    */
-  rotateAxis(axis: vec3Type, angle: number, relativeToLocal: boolean = true): void {
-    //CM:这个方法的部分代码可以和rotate()的部分代码进行合并
+  rotateByAxis(axis: vec3Type, angle: number, relativeToLocal: boolean = true): void {
     const rad = (angle * Math.PI) / 180;
     const rotateQuat = quat.setAxisAngle(Transform._tempVec4, axis, rad);
-    if (relativeToLocal) {
-      quat.multiply(this._rotationQuaternion, this._rotationQuaternion, rotateQuat);
-      this.rotationQuaternion = this._rotationQuaternion;
-    } else {
-      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotateQuat); //CM：第2个参数应该使用this.worldRotationQuaternion，否则可能获取到的是错误旋转四元数
-      this.worldRotationQuaternion = this._worldRotationQuaternion;
-    }
+    this._rotateByQuat(rotateQuat, relativeToLocal);
   }
 
   /**
@@ -412,9 +402,11 @@ export class Transform extends NodeAbility {
     this.worldMatrix = modelMatrix;
   }
 
-  //CM:还未实现
+  /**
+   * @internal
+   */
   _cloneTo(target: Transform): Transform {
-    target._position;
+    target.localMatrix = this.localMatrix;
     return target;
   }
 
@@ -426,11 +418,9 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_FLAG)) {
       this._setDirtyFlag(Transform._WM_WP_FLAG, true);
-      if (this.node) {
-        const nodeChildren = this.node.children;
-        for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-          nodeChildren[i].transform?._updateWorldPositionFlag();
-        }
+      const nodeChildren = this.node.children;
+      for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
+        nodeChildren[i].transform?._updateWorldPositionFlag();
       }
     }
   }
@@ -445,11 +435,9 @@ export class Transform extends NodeAbility {
   private _updateWorldRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WE_WQ_FLAG)) {
       this._setDirtyFlag(Transform._WM_WE_WQ_FLAG, true);
-      if (this.node) {
-        const nodeChildren = this.node.children;
-        for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-          nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
-        }
+      const nodeChildren = this.node.children;
+      for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
+        nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
       }
     }
   }
@@ -567,6 +555,16 @@ export class Transform extends NodeAbility {
       this._dirtyFlag |= type;
     } else {
       this._dirtyFlag &= ~type;
+    }
+  }
+
+  private _rotateByQuat(rotateQuat: vec4Type, relativeToLocal: boolean) {
+    if (relativeToLocal) {
+      quat.multiply(this._rotationQuaternion, this._rotationQuaternion, rotateQuat);
+      this.rotationQuaternion = this._rotationQuaternion;
+    } else {
+      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotateQuat); //CM：第2个参数应该使用this.worldRotationQuaternion，否则可能获取到的是错误旋转四元数
+      this.worldRotationQuaternion = this._worldRotationQuaternion;
     }
   }
 
