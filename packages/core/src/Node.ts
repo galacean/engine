@@ -179,7 +179,7 @@ export class Node extends EventDispatcher {
     parentObj._children.push(this);
     this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
     this._activeChangeFun();
-    this.transform.updateParentTransform();
+    this.transform._updateParentTransform();
     // this._markTransformDirty();
   }
 
@@ -702,18 +702,14 @@ export class Node extends EventDispatcher {
    * @param {number} yaw 围绕Y轴的旋转
    * @param {number} roll 围绕Z轴的旋转
    */
-  public setRotationAngles(pitch, yaw: number, roll: number): void {
+  public setRotationAngles(pitch: number, yaw: number, roll: number): void {
     // if (Util.isArray(pitch)) {
     //   quat.fromEuler(this._rotation, pitch[0], pitch[1], pitch[2]);
     // } else {
     //   quat.fromEuler(this._rotation, pitch, yaw, roll);
     // }
     // this._markTransformDirty();
-    if (Util.isArray(pitch)) {
-      this.transform.rotation = pitch;
-    } else {
-      this.transform.rotation = [pitch, yaw, roll];
-    }
+    this.transform.rotation = [pitch, yaw, roll];
   }
 
   /**
