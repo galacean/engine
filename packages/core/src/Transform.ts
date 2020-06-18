@@ -31,6 +31,7 @@ export class Transform extends NodeAbility {
 
   private static _LOCAL_MATRIX_FLAG: number = 0x40;
   private static _WORLD_MATRIX_FLAG: number = 0x80;
+
   /**
    * _WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG
    */
