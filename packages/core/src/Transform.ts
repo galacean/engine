@@ -442,7 +442,7 @@ export class Transform extends NodeAbility {
     return target;
   }
 
-  private _init(node, props): void {
+  private _init(node: Node, props: TransformProps): void {
     this._initDirtyFlag();
     this._initTRS(props);
     this._getParent(node);
