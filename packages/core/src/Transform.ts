@@ -403,7 +403,7 @@ export class Transform extends NodeAbility {
       quat.multiply(this._rotationQuaternion, this._rotationQuaternion, rotationQuat);
       this.rotationQuaternion = this._rotationQuaternion;
     } else {
-      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotationQuat);
+      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotationQuat); //CM：第2个参数应该使用this.worldRotationQuaternion，否则可能获取到的是错误旋转四元数
       this.worldRotationQuaternion = this._worldRotationQuaternion;
     }
   }
