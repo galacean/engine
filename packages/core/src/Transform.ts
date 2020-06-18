@@ -225,7 +225,7 @@ export class Transform extends NodeAbility {
     }
     const parent = this._getParentTransform();
     if (parent) {
-      const quatWorldToLocal = mat4.invert(Transform._tempVec4, parent.worldRotationQuaternion);
+      const quatWorldToLocal = quat.invert(Transform._tempVec4, parent.worldRotationQuaternion);
       quat.multiply(this._rotationQuaternion, value, quatWorldToLocal);
     } else {
       quat.copy(this._rotationQuaternion, value);
