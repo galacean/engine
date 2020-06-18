@@ -57,7 +57,7 @@ export class Node extends EventDispatcher {
   public _parent: Node;
 
   private _children: Node[] = [];
-  public transform: Transform = new Transform(this, {});
+  public transform: Transform = new Transform(this);
 
   private _ownerScene: Scene;
 
@@ -179,8 +179,7 @@ export class Node extends EventDispatcher {
     parentObj._children.push(this);
     this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
     this._activeChangeFun();
-    this.transform._updateParentTransform();
-    // this._markTransformDirty();
+    this.transform?._setParentDirty();
   }
 
   /**
