@@ -52,6 +52,26 @@ export class Transform extends NodeAbility {
     Transform._WORLD_POSITION_FLAG |
     Transform._WORLD_EULER_FLAG |
     Transform._WORLD_QUAT_FLAG;
+  /**
+   * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG
+   */
+  private static _WM_WS: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG;
+
+  /**
+   * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_SCALE_FLAG
+   */
+  private static _WM_WP_WS: number =
+    Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_SCALE_FLAG;
+
+  /**
+   * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG | Transform._WORLD_SCALE_FLAG
+   */
+  private static _WM_WP_WE_WQ_WS: number =
+    Transform._WORLD_MATRIX_FLAG |
+    Transform._WORLD_POSITION_FLAG |
+    Transform._WORLD_EULER_FLAG |
+    Transform._WORLD_QUAT_FLAG |
+    Transform._WORLD_SCALE_FLAG;
 
   // Properties
   private _position: vec3Type = vec3.create();
@@ -238,7 +258,7 @@ export class Transform extends NodeAbility {
       vec3.copy(this._scale, value);
     }
     this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG, true);
-    this._updateWorldScale();
+    this._updateWorldScaleFlag();
   }
 
   /**
@@ -248,9 +268,9 @@ export class Transform extends NodeAbility {
     if (this._getDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
       if (this._parent) {
         const scaleMat = this._getScaleMatrix();
-        this._lossyWorldScale = [scaleMat[0], scaleMat[4], scaleMat[8]];
+        this._lossyWorldScale = [scaleMat[0], scaleMat[4], scaleMat[8]]; //CM:不能new数组
       } else {
-        this._lossyWorldScale = this._scale;
+        this._lossyWorldScale = this._scale; //CM:这里要克隆才行
       }
       this._setDirtyFlag(Transform._WORLD_SCALE_FLAG, false);
     }
@@ -273,8 +293,9 @@ export class Transform extends NodeAbility {
       mat4.copy(this._localMatrix, value);
     }
     mat4.decompose(this._localMatrix, this._position, this._rotationQuaternion, this._scale);
+    this._setDirtyFlag(Transform._LOCAL_EULER_FLAG, true);
     this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG, false);
-    this._updateAll();
+    this._updateAllWorldFlag();
   }
 
   /**
@@ -483,7 +504,7 @@ export class Transform extends NodeAbility {
   /**
    * 获取worldMatrix：会触发自身以及所有父节点的worldMatrix更新
    * 获取worldPosition：会触发自身position和自身worldMatrix以及所有父节点的worldMatrix更新
-   * 综上所描：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为false
+   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为false
    */
   private _updateWorldPositionFlag(): void {
     if (!this._getDirtyFlag(Transform._WM_WP_FLAG)) {
@@ -499,7 +520,7 @@ export class Transform extends NodeAbility {
    * 获取worldPosition：会触发自身position和自身worldMatrix以及所有父节点的worldMatrix更新
    * 获取worldRotationQuaternion：会触发自身以及所有父节点的worldRotationQuaternion更新
    * 获取worldRotation：会触发自身worldRotation和自身worldRotationQuaternion以及所有父节点的worldRotationQuaternion更新
-   * 综上所描：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
+   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
    */
   private _updateWorldRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WE_WQ_FLAG)) {
@@ -515,7 +536,7 @@ export class Transform extends NodeAbility {
    * 获取worldPosition：会触发自身position和自身worldMatrix以及所有父节点的worldMatrix更新
    * 获取worldRotationQuaternion：会触发自身以及所有父节点的worldRotationQuaternion更新
    * 获取worldRotation：会触发自身worldRotation和自身worldRotationQuaternion以及所有父节点的worldRotationQuaternion更新
-   * 综上所描：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
+   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
    */
   private _updateWorldPositionAndRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_FLAG)) {
@@ -526,28 +547,55 @@ export class Transform extends NodeAbility {
     }
   }
 
-  private _updateWorldScale() {
-    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform._WORLD_MATRIX_FLAG);
-    const worldScaleNeedUpdate = this._getDirtyFlag(Transform._WORLD_SCALE_FLAG);
-    if (!worldMatrixNeedUpdate || !worldScaleNeedUpdate) {
-      this._setDirtyFlag(Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG, false);
+  /**
+   * 获取worldMatrix：会触发自身以及所有父节点的worldMatrix更新
+   * 获取worldPosition：会触发自身position和自身worldMatrix以及所有父节点的worldMatrix更新
+   * 获取worldScale：会触发自身以及所有父节点的worldMatrix更新
+   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为false
+   */
+  private _updateWorldScaleFlag() {
+    if (!this._getDirtyFlag(Transform._WM_WS)) {
+      this._setDirtyFlag(Transform._WM_WS, false);
       for (var i: number = 0, n: number = this._children.length; i < n; i++) {
-        this._children[i]._updateWorldPositionAndScale();
+        this._children[i]._updateWorldPositionAndScaleFlag();
       }
     }
   }
 
-  private _updateWorldPositionAndScale() {
+  /**
+   * 获取worldMatrix：会触发自身以及所有父节点的worldMatrix更新
+   * 获取worldPosition：会触发自身position和自身worldMatrix以及所有父节点的worldMatrix更新
+   * 获取worldScale：会触发自身以及所有父节点的worldMatrix更新
+   * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为false
+   */
+  private _updateWorldPositionAndScaleFlag() {
+    if (!this._getDirtyFlag(Transform._WM_WP_WS)) {
+      this._setDirtyFlag(Transform._WM_WP_WS, true);
+      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
+        this._children[i]._updateWorldPositionAndScaleFlag();
+      }
+    }
+  }
+
+  /**
+   * 更新所有世界标记，原理同上。
+   */
+  private _updateAllWorldFlag() {
     const worldMatrixNeedUpdate = this._getDirtyFlag(Transform._WORLD_MATRIX_FLAG);
     const worldPositionNeedUpdate = this._getDirtyFlag(Transform._WORLD_POSITION_FLAG);
+    const worldRotationNeedUpdate = this._getDirtyFlag(Transform._WORLD_EULER_FLAG);
+    const worldRotationQuatNeedUpdate = this._getDirtyFlag(Transform._WORLD_QUAT_FLAG);
     const worldScaleNeedUpdate = this._getDirtyFlag(Transform._WORLD_SCALE_FLAG);
-    if (!worldMatrixNeedUpdate || !worldPositionNeedUpdate || !worldScaleNeedUpdate) {
-      this._setDirtyFlag(
-        Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_SCALE_FLAG,
-        true
-      );
+    if (
+      !worldMatrixNeedUpdate ||
+      !worldPositionNeedUpdate ||
+      !worldRotationNeedUpdate ||
+      !worldRotationQuatNeedUpdate ||
+      !worldScaleNeedUpdate
+    ) {
+      this._setDirtyFlag(Transform._WM_WP_WE_WQ_WS, true);
       for (var i: number = 0, n: number = this._children.length; i < n; i++) {
-        this._children[i]._updateWorldPositionAndScale();
+        this._children[i]._updateAllWorldFlag();
       }
     }
   }
@@ -562,33 +610,6 @@ export class Transform extends NodeAbility {
     mat3.fromQuat(invRotation, invRotationMat);
     mat3.multiply(scaMat, invRotationMat, worldRotScaMat);
     return scaMat;
-  }
-
-  private _updateAll() {
-    const worldMatrixNeedUpdate = this._getDirtyFlag(Transform._WORLD_MATRIX_FLAG);
-    const worldPositionNeedUpdate = this._getDirtyFlag(Transform._WORLD_POSITION_FLAG);
-    const worldRotationNeedUpdate = this._getDirtyFlag(Transform._WORLD_EULER_FLAG);
-    const worldRotationQuatNeedUpdate = this._getDirtyFlag(Transform._WORLD_QUAT_FLAG);
-    const worldScaleNeedUpdate = this._getDirtyFlag(Transform._WORLD_SCALE_FLAG);
-    if (
-      !worldMatrixNeedUpdate ||
-      !worldPositionNeedUpdate ||
-      !worldRotationNeedUpdate ||
-      !worldRotationQuatNeedUpdate ||
-      !worldScaleNeedUpdate
-    ) {
-      this._setDirtyFlag(
-        Transform._WORLD_MATRIX_FLAG |
-          Transform._WORLD_POSITION_FLAG |
-          Transform._WORLD_EULER_FLAG |
-          Transform._WORLD_QUAT_FLAG |
-          Transform._WORLD_SCALE_FLAG,
-        true
-      );
-      for (var i: number = 0, n: number = this._children.length; i < n; i++) {
-        this._children[i]._updateAll();
-      }
-    }
   }
 
   /**
@@ -616,6 +637,6 @@ export class Transform extends NodeAbility {
   //---------------------@deprecated-----------------------
   updateParentTransform() {
     this._getParent(this.node);
-    this._updateAll();
+    this._updateAllWorldFlag();
   }
 }
