@@ -292,8 +292,9 @@ export class Transform extends NodeAbility {
    */
   get worldMatrix(): mat4Type {
     if (this._getDirtyFlag(Transform._WORLD_MATRIX_FLAG)) {
-      if (this._getParentTransform()) {
-        mat4.multiply(this._worldMatrix, this._getParentTransform().worldMatrix, this.localMatrix);
+      const parent = this._getParentTransform();
+      if (parent) {
+        mat4.multiply(this._worldMatrix, parent.worldMatrix, this.localMatrix);
       } else {
         mat4.copy(this._worldMatrix, this.localMatrix);
       }
@@ -523,17 +524,20 @@ export class Transform extends NodeAbility {
     if (!this._isParentDirty) {
       return this._parentTransformCache;
     }
+    let parentCache: Transform = null;
     let parent = this.node.parentNode;
     while (parent) {
       const transform = parent.transform;
       if (transform) {
-        this._parentTransformCache = transform;
-        return transform;
+        parentCache = transform;
+        break;
       } else {
         parent = parent._parent;
       }
     }
-    return null;
+    this._parentTransformCache = parentCache;
+    this._isParentDirty = false;
+    return parentCache;
   }
 
   private _getScaleMatrix(): mat3Type {
