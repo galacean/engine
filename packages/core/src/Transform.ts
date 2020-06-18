@@ -508,7 +508,7 @@ export class Transform extends NodeAbility {
    * 获取worldScale：会触发自身以及所有父节点的worldMatrix更新
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为false
    */
-  private _updateWorldPositionAndScaleFlag() {
+  private _updateWorldPositionAndScaleFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WS)) {
       this._setDirtyFlag(Transform._WM_WP_WS, true);
       for (let i: number = 0, n: number = this._children.length; i < n; i++) {
@@ -520,7 +520,7 @@ export class Transform extends NodeAbility {
   /**
    * 更新所有世界标记，原理同上。
    */
-  private _updateAllWorldFlag() {
+  private _updateAllWorldFlag(): void {
     if (this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS)) {
       this._setDirtyFlag(Transform._WM_WP_WE_WQ_WS, true);
       for (let i: number = 0, n: number = this._children.length; i < n; i++) {
@@ -566,7 +566,7 @@ export class Transform extends NodeAbility {
   /**
    * @internal
    */
-  _updateParentTransform() {
+  _updateParentTransform(): void {
     // if(this._parent) {
     //   this._parent._children.splice()
     // }
