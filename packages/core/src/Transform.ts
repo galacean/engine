@@ -38,17 +38,27 @@ export class Transform extends NodeAbility {
 
   private static _LOCAL_MATRIX_FLAG: number = 0x40;
   private static _WORLD_MATRIX_FLAG: number = 0x80;
+
+  /**
+   * _WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG
+   */
   private static _WM_WP_FLAG: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG;
+
   /**
    * _WORLD_MATRIX_FLAG | _WORLD_EULER_FLAG | _WORLD_QUAT_FLAG
    */
   private static _WM_WE_WQ_FLAG: number =
     Transform._WORLD_MATRIX_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG;
+
+  /**
+   * _WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG | _WORLD_EULER_FLAG ｜ _WORLD_QUAT_FLAG
+   */
   private static _WM_WP_WE_WQ_FLAG: number =
     Transform._WORLD_MATRIX_FLAG |
     Transform._WORLD_POSITION_FLAG |
     Transform._WORLD_EULER_FLAG |
     Transform._WORLD_QUAT_FLAG;
+
   /**
    * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG
    */
