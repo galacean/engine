@@ -501,7 +501,7 @@ export class Transform extends NodeAbility {
   /**
    * 初始化子变换数量
    */
-  private _getChild(node, children) {
+  private _getChild(node: Node, children: Transform[]) {
     if (node.children.length > 0) {
       for (let i = 0; i < node.children.length; i++) {
         const childNode = node.children[i];
