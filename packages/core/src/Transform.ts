@@ -394,9 +394,10 @@ export class Transform extends NodeAbility {
   /**
    * 旋转并且保证世界前向量指向目标世界位置。
    * @param worldPosition - 目标世界位置
-   * @param worldUp - 世界上向量
+   * @param worldUp - 世界上向量，默认是 [0, 1, 0]
    */
-  lookAt(worldPosition: vec3Type, worldUp: vec3Type): void {
+  lookAt(worldPosition: vec3Type, worldUp?: vec3Type): void {
+    worldUp = worldUp ?? vec3.set(Transform._tempVec3, 0, 1, 0);
     const position = this.worldPosition;
     const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp); //CM：这个实现不对 lookAt应该只修改旋转就行，使用矩阵都把缩放给重置了，可以参考下Laya的实现
     this.worldMatrix = modelMatrix;
@@ -560,10 +561,10 @@ export class Transform extends NodeAbility {
 
   private _rotateByQuat(rotateQuat: vec4Type, relativeToLocal: boolean) {
     if (relativeToLocal) {
-      quat.multiply(this._rotationQuaternion, this._rotationQuaternion, rotateQuat);
+      quat.multiply(this._rotationQuaternion, this.rotationQuaternion, rotateQuat);
       this.rotationQuaternion = this._rotationQuaternion;
     } else {
-      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotateQuat); //CM：第2个参数应该使用this.worldRotationQuaternion，否则可能获取到的是错误旋转四元数
+      quat.multiply(this._worldRotationQuaternion, this.worldRotationQuaternion, rotateQuat);
       this.worldRotationQuaternion = this._worldRotationQuaternion;
     }
   }
