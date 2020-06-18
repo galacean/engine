@@ -79,7 +79,7 @@ export class Node extends EventDispatcher {
   name: string;
 
   /* @internal */
-  _activeInHierarchy: boolean = false;
+  _isActiveInHierarchy: boolean = false;
 
   private _scene: Scene;
   private _active: boolean;
@@ -92,19 +92,19 @@ export class Node extends EventDispatcher {
   /**
    * 是否局部激活。
    */
-  get active(): boolean {
+  get isActive(): boolean {
     return this._active;
   }
-  set active(value: boolean) {
+  set isActive(value: boolean) {
     if (value !== this._active) {
       this._active = value;
       if (value) {
         const parent = this._parent;
-        if (this._isRoot || (parent && parent._activeInHierarchy)) {
+        if (this._isRoot || (parent && parent._isActiveInHierarchy)) {
           this._processActive();
         }
       } else {
-        if (this._activeInHierarchy) {
+        if (this._isActiveInHierarchy) {
           this._processInActive();
         }
       }
@@ -114,8 +114,8 @@ export class Node extends EventDispatcher {
   /**
    * 在层级中是否处于激活状态。
    */
-  get activeInHierarchy(): boolean {
-    return this._activeInHierarchy;
+  get isActiveInHierarchy(): boolean {
+    return this._isActiveInHierarchy;
   }
 
   /**
@@ -141,17 +141,17 @@ export class Node extends EventDispatcher {
           Node._traverseSetOwnerScene(this, parentScene);
         }
 
-        if (newParent._activeInHierarchy) {
-          !this._activeInHierarchy && this._active && this._processActive();
+        if (newParent._isActiveInHierarchy) {
+          !this._isActiveInHierarchy && this._active && this._processActive();
         } else {
-          this._activeInHierarchy && this._processInActive();
+          this._isActiveInHierarchy && this._processInActive();
         }
       } else {
         if (oldParent) {
           this._scene = null;
           Node._traverseSetOwnerScene(this, null);
         }
-        this._activeInHierarchy && this._processInActive();
+        this._isActiveInHierarchy && this._processInActive();
       }
     }
   }
@@ -184,7 +184,7 @@ export class Node extends EventDispatcher {
     this._isRoot = parent === null && name === "__root__";
     this.name = name;
     this.parent = parent;
-    this.active = true;
+    this.isActive = true;
 
     //deprecated
     this._activeChangeFun = activeChange(this);
@@ -208,7 +208,7 @@ export class Node extends EventDispatcher {
   addComponent<T extends Component>(type: new (node: Node, props?: object) => T, props: object = {}): T {
     const component = new type(this, props);
     this._components.push(component);
-    if (this._activeInHierarchy) {
+    if (this._isActiveInHierarchy) {
       component._setActive(true);
     }
     return component;
@@ -320,7 +320,7 @@ export class Node extends EventDispatcher {
         Node._traverseSetOwnerScene(child, null);
       }
       child._parent = null;
-      child._activeInHierarchy && child._processInActive();
+      child._isActiveInHierarchy && child._processInActive();
     }
   }
 
@@ -332,7 +332,7 @@ export class Node extends EventDispatcher {
     const newNode = new Node(this._scene, null, this.name);
 
     newNode._active = this._active;
-    newNode._activeInHierarchy = this._activeInHierarchy; //克隆后仍属于相同父节点
+    newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
 
     // Transform
     newNode._position = vec3.clone(this._position);
@@ -412,7 +412,7 @@ export class Node extends EventDispatcher {
   }
 
   private _setActiveInHierarchy(activeChangedComponents: Component[]): void {
-    this._activeInHierarchy = true;
+    this._isActiveInHierarchy = true;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       activeChangedComponents.push(components[i]);
@@ -420,12 +420,12 @@ export class Node extends EventDispatcher {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child: Node = children[i];
-      child.active && child._setActiveInHierarchy(activeChangedComponents);
+      child.isActive && child._setActiveInHierarchy(activeChangedComponents);
     }
   }
 
   private _setInActiveInHierarchy(activeChangedComponents: Component[]): void {
-    this._activeInHierarchy = false;
+    this._isActiveInHierarchy = false;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       activeChangedComponents.push(components[i]);
@@ -433,7 +433,7 @@ export class Node extends EventDispatcher {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child: Node = children[i];
-      child.active && child._setInActiveInHierarchy(activeChangedComponents);
+      child.isActive && child._setInActiveInHierarchy(activeChangedComponents);
     }
   }
 
@@ -506,33 +506,6 @@ export class Node extends EventDispatcher {
     this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
     this._activeChangeFun();
     this._markTransformDirty();
-  }
-
-  /**
-   * @deprecated
-   * 在SceneGraph中是否Active
-   * @member {boolean}
-   * @readonly
-   */
-  get isActiveInHierarchy(): boolean {
-    return this._activeInHierarchy;
-  }
-
-  set isActiveInHierarchy(isActiveInHierarchy: boolean) {
-    this._activeInHierarchy = isActiveInHierarchy;
-    console.error("deprecated");
-  }
-
-  /**
-   * @deprecated
-   * 本节点是否Active
-   */
-  get isActive(): boolean {
-    return this._active;
-  }
-
-  set isActive(val: boolean) {
-    this.active = val;
   }
 
   /**
@@ -1022,12 +995,12 @@ function activeChange(node: Node) {
   return () => {
     if (node.parentNode) {
       if (node.parentNode.isActiveInHierarchy) {
-        node.isActiveInHierarchy = node.isActive;
+        node._isActiveInHierarchy = node.isActive;
       } else {
-        node.isActiveInHierarchy = false;
+        node._isActiveInHierarchy = false;
       }
     } else {
-      node.isActiveInHierarchy = node.isActive;
+      node._isActiveInHierarchy = node.isActive;
     }
   };
 }
