@@ -411,19 +411,23 @@ export class Transform extends NodeAbility {
   }
 
   private _initParent() {
-    let parentTransform = null;
-    let parent = this.node?.parentNode;
+    let parentTransform;
+    let parent = this.node?.parentNode; //CM:这个地方不需要用?吧，组件实例无法脱离节点存在，parentNode也应该换成内部变量this._parent提升性能
     while (parent) {
       const transformAility = parent.transform;
       if (transformAility) {
         parentTransform = transformAility;
         break;
       } else {
-        parent = parent.parentNode;
+        parent = parent.parentNode; //CM:同上换成内部下划线变量
       }
     }
-    this._parent = parentTransform;
-    this._parent?._children.push(this);
+    if (parentTransform) {
+      this._parent = parentTransform;
+      this._parent._children.push(this);
+    } else {
+      this._parent = null;
+    }
   }
 
   /**
