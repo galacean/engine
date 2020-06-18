@@ -443,7 +443,7 @@ export class Transform extends NodeAbility {
     return target;
   }
 
-  private _init(node, props): void {
+  private _init(node: Node, props: TransformProps): void {
     this._initDirtyFlag();
     this._initTRS(props);
     this._getParent(node);
@@ -502,7 +502,7 @@ export class Transform extends NodeAbility {
   /**
    * 初始化子变换数量
    */
-  private _getChild(node, children) {
+  private _getChild(node: Node, children: Transform[]) {
     if (node.children.length > 0) {
       for (let i = 0; i < node.children.length; i++) {
         const childNode = node.children[i];
@@ -636,6 +636,9 @@ export class Transform extends NodeAbility {
   }
 
   //---------------------@deprecated-----------------------
+  /**
+   * @internal
+   */
   updateParentTransform() {
     this._getParent(this.node);
     this._updateAllWorldFlag();
