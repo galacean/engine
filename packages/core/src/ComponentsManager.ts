@@ -151,7 +151,7 @@ export class ComponentsManager {
     }
   }
 
-  callAnimationOnUpdate(deltaTime): void {
+  callAnimationUpdate(deltaTime): void {
     const elements = this._onUpdateAnimations._elements;
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
       const animation = elements[i];
