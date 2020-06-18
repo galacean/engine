@@ -415,13 +415,14 @@ export class Transform extends NodeAbility {
    * @param relativeToLocal - 是否相对局部空间
    */
   rotateAxis(axis: vec3Type, angle: number, relativeToLocal: boolean = true): void {
+    //CM:这个方法的部分代码可以和rotate()的部分代码进行合并
     const rad = (angle * Math.PI) / 180;
     const rotateQuat = quat.setAxisAngle(Transform._tempVec4, axis, rad);
     if (relativeToLocal) {
       quat.multiply(this._rotationQuaternion, this._rotationQuaternion, rotateQuat);
       this.rotationQuaternion = this._rotationQuaternion;
     } else {
-      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotateQuat);
+      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotateQuat); //CM：第2个参数应该使用this.worldRotationQuaternion，否则可能获取到的是错误旋转四元数
       this.worldRotationQuaternion = this._worldRotationQuaternion;
     }
   }
@@ -433,7 +434,7 @@ export class Transform extends NodeAbility {
    */
   lookAt(worldPosition: vec3Type, worldUp: vec3Type): void {
     const position = this.worldPosition;
-    const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp);
+    const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp); //CM：这个实现不对 lookAt应该只修改旋转就行，使用矩阵都把缩放给重置了，可以参考下Laya的实现
     this.worldMatrix = modelMatrix;
   }
 
