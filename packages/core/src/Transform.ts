@@ -479,9 +479,9 @@ export class Transform extends NodeAbility {
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为 false。
    */
   private _updateWorldScaleFlag() {
-    const nodeChildren = this.node.children;
     if (!this._isContainDirtyFlags(Transform._WM_WS_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WS_FLAGS, true);
+      const nodeChildren = this.node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
       }
@@ -495,9 +495,9 @@ export class Transform extends NodeAbility {
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为 false。
    */
   private _updateWorldPositionAndScaleFlag(): void {
-    const nodeChildren = this.node.children;
     if (!this._isContainDirtyFlags(Transform._WM_WP_WS_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WP_WS_FLAGS, true);
+      const nodeChildren = this.node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
       }
@@ -508,9 +508,9 @@ export class Transform extends NodeAbility {
    * 更新所有世界标记，原理同上。
    */
   private _updateAllWorldFlag(): void {
-    const nodeChildren = this.node.children;
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WP_WE_WQ_WS_FLAGS, true);
+      const nodeChildren = this.node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateAllWorldFlag();
       }
