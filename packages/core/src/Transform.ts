@@ -308,11 +308,11 @@ export class Transform extends NodeAbility {
   /**
    * 构建一个变换组件。
    */
-  constructor(node: Node) {
+  constructor(node?: Node) {
     super(node);
 
     this._initParent();
-    this._initChild(node);
+    this._initChild();
   }
 
   /**
@@ -428,9 +428,10 @@ export class Transform extends NodeAbility {
   /**
    * 初始化子变换数量
    */
-  private _initChild(node: Node) {
+  private _initChild() {
+    const node = this.node;
     const children = this._children;
-    if (node.children.length > 0) {
+    if (node?.children?.length > 0) {
       for (let i = 0; i < node.children.length; i++) {
         const childNode = node.children[i];
         if (childNode && childNode.transform) {
