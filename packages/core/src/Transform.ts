@@ -114,8 +114,7 @@ export class Transform extends NodeAbility {
   /**
    * 子变换数量
    */
-  //CM:更名为childCount
-  get childTransformCount(): number {
+  get childCount(): number {
     return this._children.length;
   }
 
@@ -336,9 +335,12 @@ export class Transform extends NodeAbility {
   /**
    * 构建一个变换组件。
    */
-  constructor(node: Node, props: TransformProps) {
+  constructor(node: Node, props?: TransformProps) {
     super(node, props);
-    this._init(node, props); //CM：为啥封装了_init 而不直接在构造函数里写呢
+
+    // this._initDirtyFlag();
+    this._initParent();
+    this._initChild(node);
   }
 
   /**
@@ -442,46 +444,9 @@ export class Transform extends NodeAbility {
     return target;
   }
 
-  private _init(node: Node, props: TransformProps): void {
-    this._initDirtyFlag();
-    this._initTRS(props);
-    this._getParent(node);
-    this._getChild(node, this._children);
-  }
-
-  private _initDirtyFlag(): void {
-    this._setDirtyFlag(Transform._LOCAL_EULER_FLAG | Transform._LOCAL_QUAT_FLAG | Transform._LOCAL_MATRIX_FLAG, false); //CM:初始Dirty为0,不需要再次设置
-    this._setDirtyFlag(
-      //CM:初始也不需要设置,应该在更换parent时设置才对，初始化无需设置
-      Transform._WORLD_POSITION_FLAG |
-        Transform._WORLD_EULER_FLAG |
-        Transform._WORLD_QUAT_FLAG |
-        Transform._WORLD_SCALE_FLAG |
-        Transform._WORLD_MATRIX_FLAG,
-      true
-    );
-  }
-
-  private _initTRS(props) {
-    if (!props) return;
-    const { scale, position, rotation, rotationQuaternion } = props;
-    if (position) {
-      this.position = position;
-    }
-    if (rotation) {
-      this.rotation = rotation;
-    }
-    if (rotationQuaternion) {
-      this.rotationQuaternion = rotationQuaternion;
-    }
-    if (scale) {
-      this.scale = scale;
-    }
-  }
-
-  private _getParent(node: Node): Transform {
-    let parent = node.parentNode;
+  private _initParent() {
     let parentTransform = null;
+    let parent = this.node?.parentNode;
     while (parent) {
       const transformAility = parent.transform;
       if (transformAility) {
@@ -492,16 +457,14 @@ export class Transform extends NodeAbility {
       }
     }
     this._parent = parentTransform;
-    if (this._parent) {
-      this._parent._children.push(this);
-    }
-    return parentTransform;
+    this._parent?._children.push(this);
   }
 
   /**
    * 初始化子变换数量
    */
-  private _getChild(node: Node, children: Transform[]) {
+  private _initChild(node: Node) {
+    const children = this._children;
     if (node.children.length > 0) {
       for (let i = 0; i < node.children.length; i++) {
         const childNode = node.children[i];
@@ -638,8 +601,8 @@ export class Transform extends NodeAbility {
   /**
    * @internal
    */
-  updateParentTransform() {
-    this._getParent(this.node);
+  _updateParentTransform() {
+    this._initParent();
     this._updateAllWorldFlag();
   }
 }
