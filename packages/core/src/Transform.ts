@@ -334,14 +334,12 @@ export class Transform extends NodeAbility {
     this._setDirtyFlag(Transform._WORLD_MATRIX_FLAG, false);
   }
 
+  /**
+   * 构建一个变换组件。
+   */
   constructor(node: Node, props: TransformProps) {
     super(node, props);
-    this._init(node, props);
-  }
-
-  public cloneTo(target: Transform): Transform {
-    target._position;
-    return target;
+    this._init(node, props); //CM：为啥封装了_init 而不直接在构造函数里写呢
   }
 
   /**
@@ -357,7 +355,7 @@ export class Transform extends NodeAbility {
    * @param forward - 前向量
    */
   getWorldForward(forward: vec3Type): vec3Type {
-    forward = vec3.set(forward, this._worldMatrix[8], this._worldMatrix[9], this._worldMatrix[10]);
+    forward = vec3.set(forward, this._worldMatrix[8], this._worldMatrix[9], this._worldMatrix[10]); //CM:应该用非下划线的
     return vec3.normalize(forward, forward);
   }
 
@@ -366,7 +364,7 @@ export class Transform extends NodeAbility {
    * @param right - 右向量
    */
   getWorldRight(right: vec3Type): vec3Type {
-    right = vec3.set(right, this._worldMatrix[0], this._worldMatrix[1], this._worldMatrix[2]);
+    right = vec3.set(right, this._worldMatrix[0], this._worldMatrix[1], this._worldMatrix[2]); //CM:应该用非下划线的
     return vec3.normalize(right, right);
   }
 
@@ -375,7 +373,7 @@ export class Transform extends NodeAbility {
    * @param up - 上向量
    */
   getWorldUp(up: vec3Type): vec3Type {
-    up = vec3.set(up, this._worldMatrix[4], this._worldMatrix[5], this._worldMatrix[6]);
+    up = vec3.set(up, this._worldMatrix[4], this._worldMatrix[5], this._worldMatrix[6]); //CM:应该用非下划线的
     return vec3.normalize(up, up);
   }
 
@@ -439,16 +437,23 @@ export class Transform extends NodeAbility {
     this.worldMatrix = modelMatrix;
   }
 
-  private _init(node, props) {
+  //CM:还未实现
+  _cloneTo(target: Transform): Transform {
+    target._position;
+    return target;
+  }
+
+  private _init(node, props): void {
     this._initDirtyFlag();
     this._initTRS(props);
     this._getParent(node);
     this._getChild(node, this._children);
   }
 
-  private _initDirtyFlag() {
-    this._setDirtyFlag(Transform._LOCAL_EULER_FLAG | Transform._LOCAL_QUAT_FLAG | Transform._LOCAL_MATRIX_FLAG, false);
+  private _initDirtyFlag(): void {
+    this._setDirtyFlag(Transform._LOCAL_EULER_FLAG | Transform._LOCAL_QUAT_FLAG | Transform._LOCAL_MATRIX_FLAG, false); //CM:初始Dirty为0,不需要再次设置
     this._setDirtyFlag(
+      //CM:初始也不需要设置,应该在更换parent时设置才对，初始化无需设置
       Transform._WORLD_POSITION_FLAG |
         Transform._WORLD_EULER_FLAG |
         Transform._WORLD_QUAT_FLAG |
