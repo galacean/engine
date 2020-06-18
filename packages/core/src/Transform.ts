@@ -401,6 +401,7 @@ export class Transform extends NodeAbility {
     const position = this.worldPosition;
     const EPSILON = MathUtil.EPSILON;
     if (
+      //todo:如果数学苦做保护了的话，可以删除
       Math.abs(position[0] - worldPosition[0]) < EPSILON &&
       Math.abs(position[1] - worldPosition[1]) < EPSILON &&
       Math.abs(position[2] - worldPosition[2]) < EPSILON
@@ -408,8 +409,8 @@ export class Transform extends NodeAbility {
       return;
     }
     worldUp = worldUp ?? vec3.set(Transform._tempVec3, 0, 1, 0);
-    const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp);
-    this.rotationQuaternion = mat4.getRotation(Transform._tempVec4, modelMatrix);
+    const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp); //CM:可采用3x3矩阵优化
+    this.worldRotationQuaternion = mat4.getRotation(Transform._tempVec4, modelMatrix);
   }
 
   /**
