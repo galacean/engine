@@ -181,6 +181,10 @@ cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById(
 let node = rootNode.createChild("gltf_node");
 
 class MorphAnimation extends NodeAbility {
+  public renderer: any;
+  public weights: any;
+  public currentTime: any;
+
   onStart() {
     const renderer = this.node.findAbilityByType(ASkinnedMeshRenderer);
     this.renderer = renderer;

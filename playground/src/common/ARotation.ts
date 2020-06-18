@@ -1,8 +1,12 @@
-'use strict';
+"use strict";
 
-import { NodeAbility } from '@alipay/o3-core';
+import { NodeAbility } from "@alipay/o3-core";
 
 export default class ARotation extends NodeAbility {
+  public axis: any;
+  public deg: any;
+  public dDeg: any;
+
   constructor(node) {
     super(node);
 

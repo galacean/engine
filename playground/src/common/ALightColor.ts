@@ -1,9 +1,12 @@
-'use strict';
+"use strict";
 
-import { NodeAbility } from '@alipay/o3-core';
-import { vec3 } from '@alipay/o3-math';
+import { NodeAbility } from "@alipay/o3-core";
+import { vec3 } from "@alipay/o3-math";
 
 export default class ALightColor extends NodeAbility {
+  public time: any;
+  public ALight: any;
+
   constructor(node, LightType) {
     super(node);
     this.time = 0;
@@ -12,7 +15,7 @@ export default class ALightColor extends NodeAbility {
 
   update(deltaTime) {
     this.time += deltaTime / 500;
-    if(this.time > Math.PI * 6) {
+    if (this.time > Math.PI * 6) {
       this.time = this.time - Math.PI * 6;
     }
     this.ALight.color = this.getColor();
@@ -21,9 +24,9 @@ export default class ALightColor extends NodeAbility {
 
   getColor() {
     let color;
-    if(this.time % (Math.PI * 6) < Math.PI * 2) {
+    if (this.time % (Math.PI * 6) < Math.PI * 2) {
       color = vec3.fromValues(1, 0.4, 0.2);
-    } else if(this.time % (Math.PI * 6) < Math.PI * 4) {
+    } else if (this.time % (Math.PI * 6) < Math.PI * 4) {
       color = vec3.fromValues(0.2, 1, 0.4);
     } else {
       color = vec3.fromValues(0.4, 0.2, 1);

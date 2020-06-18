@@ -1,10 +1,13 @@
-import { vec3 } from '@alipay/o3-math'
+import { vec3 } from "@alipay/o3-math";
 import { NodeAbility } from "@alipay/o3-core";
 import { Logger } from "@alipay/o3-base";
 /**
  * 指定范围内的往返运动
  */
 export class ARangeMove extends NodeAbility {
+  public _minRange: any;
+  public _maxRange: any;
+  public _moveDelta: any;
 
   constructor(node) {
     super(node);
@@ -16,14 +19,16 @@ export class ARangeMove extends NodeAbility {
 
   setRangeMove(minRange, maxRange, moveDelta) {
     if (minRange[0] > maxRange[0] || minRange[1] > maxRange[1] || minRange[2] > maxRange[2]) {
-      Logger.error('Wrong move range!');
+      Logger.error("Wrong move range!");
       return;
     }
 
-    if ((minRange[0] === maxRange[0] && Math.abs(moveDelta[0]) > 0)
-      || (minRange[1] === maxRange[1] && Math.abs(moveDelta[1]) > 0)
-      || (minRange[2] === maxRange[2] && Math.abs(moveDelta[2]) > 0)) {
-      Logger.error('Can not move in range!');
+    if (
+      (minRange[0] === maxRange[0] && Math.abs(moveDelta[0]) > 0) ||
+      (minRange[1] === maxRange[1] && Math.abs(moveDelta[1]) > 0) ||
+      (minRange[2] === maxRange[2] && Math.abs(moveDelta[2]) > 0)
+    ) {
+      Logger.error("Can not move in range!");
       return;
     }
     this._minRange = minRange;
@@ -53,4 +58,3 @@ export class ARangeMove extends NodeAbility {
     this.node.position = newPos;
   }
 }
-

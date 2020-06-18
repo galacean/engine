@@ -1,9 +1,13 @@
-'use strict';
+"use strict";
 
-import { DataType, BufferUsage, DrawMode } from '@alipay/o3-base';
-import { AGeometryRenderer, BufferGeometry } from '@alipay/o3-geometry';
+import { DataType, BufferUsage, DrawMode } from "@alipay/o3-base";
+import { AGeometryRenderer, BufferGeometry } from "@alipay/o3-geometry";
 
 export class AMarchingLineRenderer extends AGeometryRenderer {
+  public _lines: any;
+  public _maxPointNumber: any;
+  public _maxLineNum: any;
+
   constructor(node, props) {
     super(node);
 
@@ -18,9 +22,11 @@ export class AMarchingLineRenderer extends AGeometryRenderer {
 
   _initGeometry() {
     this.geometry = new BufferGeometry();
-    this.geometry.initialize([
-      { name: 'a_position', semantic: 'POSITION', size: 3, type: DataType.FLOAT, normalized: false}
-    ], this._maxPointNumber, BufferUsage.DYNAMIC_DRAW);
+    this.geometry.initialize(
+      [{ name: "a_position", semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false }],
+      this._maxPointNumber,
+      BufferUsage.DYNAMIC_DRAW
+    );
     this.geometry.mode = DrawMode.POINTS;
   }
 
@@ -39,7 +45,7 @@ export class AMarchingLineRenderer extends AGeometryRenderer {
     this._lines.forEach(line => {
       let point = line.march(allPoints);
       if (point) {
-        this.geometry.setValue('POSITION', count++, point);
+        this.geometry.setValue("POSITION", count++, point);
       }
     });
   }
@@ -49,5 +55,4 @@ export class AMarchingLineRenderer extends AGeometryRenderer {
       this._lines.push(line);
     }
   }
-
 }

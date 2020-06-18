@@ -88,7 +88,7 @@ function updateModelNode() {
   return modelNode;
 }
 
-function debugModel(modelUrl, onLoad) {
+function debugModel(modelUrl, onLoad?) {
   const gltfRes = new Resource("gltf", {
     type: "gltf",
     url: modelUrl

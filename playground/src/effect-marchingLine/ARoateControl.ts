@@ -1,7 +1,42 @@
-import { NodeAbility } from '@alipay/o3-core';
+import { NodeAbility } from "@alipay/o3-core";
 import { quat, vec2, vec3, MathUtil } from "@alipay/o3-math";
 
 export class ARoateControl extends NodeAbility {
+  public camera: any;
+  public canvas: any;
+  public domElement: any;
+  public target: any;
+  public minPolarAngle: any;
+  public maxPolarAngle: any;
+  public minAzimuthAngle: any;
+  public maxAzimuthAngle: any;
+  public enableDamping: any;
+  public dampingFactor: any;
+  public enableRotate: any;
+  public rotateSpeed: any;
+  public autoRotate: any;
+  public autoRotateSpeed: any;
+  public enableKeys: any;
+  public keys: any;
+  public mouseButtons: any;
+  public touchFingers: any;
+  public _position: any;
+  public _offset: any;
+  public _scale: any;
+  public _isMouseUp: any;
+  public _rotateStart: any;
+  public _rotateEnd: any;
+  public _rotateDelta: any;
+  public _spherical: any;
+  public _sphericalDelta: any;
+  public _sphericalDump: any;
+  public _rotation: any;
+  public _rotationDelta: any;
+  public STATE: any;
+  public _state: any;
+  public constEvents: any;
+  public mouseUpEvents: any;
+
   constructor(node, props) {
     super(node);
 
@@ -29,7 +64,7 @@ export class ARoateControl extends NodeAbility {
      * 垂直方向最小弧度，默认为负无穷
      * @member {Number}
      */
-    this.minAzimuthAngle = - Infinity;
+    this.minAzimuthAngle = -Infinity;
     /**
      * 垂直方向最小弧度，默认为正无穷
      * @member {Number}
@@ -60,7 +95,6 @@ export class ARoateControl extends NodeAbility {
      */
     this.rotateSpeed = 1.0;
 
-
     // 自动旋转
     /**
      * 是否自动旋转镜头，默认为false
@@ -80,15 +114,22 @@ export class ARoateControl extends NodeAbility {
      */
     this.enableKeys = false;
     this.keys = {
-      LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40,
+      LEFT: 37,
+      UP: 38,
+      RIGHT: 39,
+      BOTTOM: 40
     };
 
     // 控制键位
     this.mouseButtons = {
-      ORBIT: 0, ZOOM: 1, PAN: 2,
+      ORBIT: 0,
+      ZOOM: 1,
+      PAN: 2
     };
     this.touchFingers = {
-      ORBIT: 1, ZOOM: 2, PAN: 3,
+      ORBIT: 1,
+      ZOOM: 2,
+      PAN: 3
     };
 
     // 复用对象 防止栈分配过多
@@ -112,36 +153,36 @@ export class ARoateControl extends NodeAbility {
     this._rotationDelta = quat.create();
 
     this.STATE = {
-      NONE: - 1, ROTATE: 0, ZOOM: 1, PAN: 2, TOUCH_ROTATE: 3, TOUCH_ZOOM: 4, TOUCH_PAN: 5,
+      NONE: -1,
+      ROTATE: 0,
+      ZOOM: 1,
+      PAN: 2,
+      TOUCH_ROTATE: 3,
+      TOUCH_ZOOM: 4,
+      TOUCH_PAN: 5
     };
     this._state = this.STATE.NONE;
 
     this.constEvents = [
-      { type: 'mousedown', listener: this.onMouseDown.bind( this ) },
-      { type: 'touchstart', listener: this.onTouchStart.bind( this ) },
-      { type: 'touchmove', listener: this.onTouchMove.bind( this ) },
-      { type: 'touchend', listener: this.onTouchEnd.bind( this ) },
-      { type: 'contextmenu', listener: this.onContextMenu.bind( this ) },
+      { type: "mousedown", listener: this.onMouseDown.bind(this) },
+      { type: "touchstart", listener: this.onTouchStart.bind(this) },
+      { type: "touchmove", listener: this.onTouchMove.bind(this) },
+      { type: "touchend", listener: this.onTouchEnd.bind(this) },
+      { type: "contextmenu", listener: this.onContextMenu.bind(this) }
     ];
 
     this.mouseUpEvents = [
-      { type: 'mousemove', listener: this.onMouseMove.bind( this ) },
-      { type: 'mouseup', listener: this.onMouseUp.bind( this ) },
+      { type: "mousemove", listener: this.onMouseMove.bind(this) },
+      { type: "mouseup", listener: this.onMouseUp.bind(this) }
     ];
 
-    this.constEvents.forEach( ele => {
-
-      if( ele.element ) {
-
-        ele.element.addEventListener( ele.type, ele.listener, false );
-
+    this.constEvents.forEach(ele => {
+      if (ele.element) {
+        ele.element.addEventListener(ele.type, ele.listener, false);
       } else {
-
-        this.canvas.addEventListener( ele.type, ele.listener, false );
-
+        this.canvas.addEventListener(ele.type, ele.listener, false);
       }
-
-    } );
+    });
   }
 
   /**
@@ -149,38 +190,27 @@ export class ARoateControl extends NodeAbility {
    * @private
    */
   destroy() {
-
-    this.constEvents.forEach( ele => {
-
-      if( ele.element ) {
-
-        ele.element.removeEventListener( ele.type, ele.listener, false );
-
+    this.constEvents.forEach(ele => {
+      if (ele.element) {
+        ele.element.removeEventListener(ele.type, ele.listener, false);
       } else {
-
-        this.canvas.removeEventListener( ele.type, ele.listener, false );
-
+        this.canvas.removeEventListener(ele.type, ele.listener, false);
       }
-
-    } );
+    });
     const element = this.domElement === document ? this.domElement.body : this.domElement;
-    this.canvas.removeEventListener( this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false );
-    element.removeEventListener( this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false );
+    this.canvas.removeEventListener(this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false);
+    element.removeEventListener(this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false);
     super.destroy();
-
   }
 
   /**
    * 在触屏上用单指控制旋转，三指控制平移
    */
   setOneFingerRotate() {
-
     this.touchFingers.ORBIT = 1;
-
   }
 
   update(deltaTime) {
-
     // this._spherical.theta += this._sphericalDelta.theta;
     // this._spherical.phi += this._sphericalDelta.phi;
     //
@@ -188,179 +218,148 @@ export class ARoateControl extends NodeAbility {
     // this._spherical.phi = Math.max( this.minPolarAngle, Math.min( this.maxPolarAngle, this._spherical.phi ) );
     // this._spherical.phi = Math.max( MathUtil.EPSILON, Math.min( Math.PI - MathUtil.EPSILON, this._spherical.phi ) );
 
-
     if (this._sphericalDelta.theta !== 0 || this._sphericalDelta.phi !== 0) {
       const m = this.node.getModelMatrix();
-      const vx = vec3.fromValues( m[0], m[4], m[8] );
-      const vy = vec3.fromValues( m[1], m[5], m[9] );
+      const vx = vec3.fromValues(m[0], m[4], m[8]);
+      const vy = vec3.fromValues(m[1], m[5], m[9]);
 
       quat.copy(this._rotation, this.node.rotation);
 
       const rot = this._rotationDelta;
-      quat.setAxisAngle( rot, vx, -this._sphericalDelta.phi );
-      quat.multiply( this._rotation, this._rotation, rot );
+      quat.setAxisAngle(rot, vx, -this._sphericalDelta.phi);
+      quat.multiply(this._rotation, this._rotation, rot);
 
-      quat.setAxisAngle( rot, vy, -this._sphericalDelta.theta );
-      quat.multiply( this._rotation, this._rotation, rot );
+      quat.setAxisAngle(rot, vy, -this._sphericalDelta.theta);
+      quat.multiply(this._rotation, this._rotation, rot);
       quat.normalize(this._rotation, this._rotation);
       this.node.rotation = this._rotation;
 
       this._sphericalDelta.theta = 0;
       this._sphericalDelta.phi = 0;
     }
-
   }
 
   /**
    * 获取自动旋转的弧度
    * @private
    */
-  getAutoRotationAngle( dtime ) {
-
-    return 2 * Math.PI / this.autoRotateSpeed / 1000 * dtime;
-
+  getAutoRotationAngle(dtime) {
+    return ((2 * Math.PI) / this.autoRotateSpeed / 1000) * dtime;
   }
 
   /**
    * 向左旋转一定弧度
    * @property {Number} radian 旋转的弧度值
    */
-  rotateLeft( radian ) {
-
+  rotateLeft(radian) {
     this._sphericalDelta.theta -= radian;
-    if( this.enableDamping ) {
-
-      this._sphericalDump.theta = - radian;
-
+    if (this.enableDamping) {
+      this._sphericalDump.theta = -radian;
     }
-
   }
 
   /**
    * 向上旋转一定弧度
    * @property {Number} radian 旋转的弧度值
    */
-  rotateUp( radian ) {
-
+  rotateUp(radian) {
     this._sphericalDelta.phi -= radian;
-    if( this.enableDamping ) {
-
-      this._sphericalDump.phi = - radian;
-
+    if (this.enableDamping) {
+      this._sphericalDump.phi = -radian;
     }
-
   }
 
   /**
    * 鼠标点击时旋转参数更新
    * @private
    */
-  handleMouseDownRotate( event ) {
-
-    vec2.set( this._rotateStart, event.clientX, event.clientY );
-
+  handleMouseDownRotate(event) {
+    vec2.set(this._rotateStart, event.clientX, event.clientY);
   }
-
 
   /**
    * 鼠标移动时旋转参数更新
    * @private
    */
-  handleMouseMoveRotate( event ) {
-
-    vec2.set( this._rotateEnd, event.clientX, event.clientY );
-    vec2.sub( this._rotateDelta, this._rotateEnd, this._rotateStart );
+  handleMouseMoveRotate(event) {
+    vec2.set(this._rotateEnd, event.clientX, event.clientY);
+    vec2.sub(this._rotateDelta, this._rotateEnd, this._rotateStart);
 
     const element = this.domElement === document ? document.body : this.domElement;
 
-    this.rotateLeft( 2 * Math.PI * ( this._rotateDelta[0] / element.clientWidth ) * this.rotateSpeed );
-    this.rotateUp( 2 * Math.PI * ( this._rotateDelta[1] / element.clientHeight ) * this.rotateSpeed );
+    this.rotateLeft(2 * Math.PI * (this._rotateDelta[0] / element.clientWidth) * this.rotateSpeed);
+    this.rotateUp(2 * Math.PI * (this._rotateDelta[1] / element.clientHeight) * this.rotateSpeed);
 
-    vec2.copy( this._rotateStart, this._rotateEnd );
-
+    vec2.copy(this._rotateStart, this._rotateEnd);
   }
 
   /**
    * 触摸落下时旋转参数更新
    * @private
    */
-  handleTouchStartRotate( event ) {
-
-    vec2.set( this._rotateStart, event.touches[0].pageX, event.touches[0].pageY );
-
+  handleTouchStartRotate(event) {
+    vec2.set(this._rotateStart, event.touches[0].pageX, event.touches[0].pageY);
   }
 
   /**
    * 触摸移动时旋转参数更新
    * @private
    */
-  handleTouchMoveRotate( event ) {
-
-    vec2.set( this._rotateEnd, event.touches[0].pageX, event.touches[0].pageY );
-    vec2.sub( this._rotateDelta, this._rotateEnd, this._rotateStart );
+  handleTouchMoveRotate(event) {
+    vec2.set(this._rotateEnd, event.touches[0].pageX, event.touches[0].pageY);
+    vec2.sub(this._rotateDelta, this._rotateEnd, this._rotateStart);
 
     const element = this.domElement === document ? this.domElement.body : this.domElement;
 
-    this.rotateLeft( 2 * Math.PI * this._rotateDelta[0] / element.clientWidth * this.rotateSpeed );
-    this.rotateUp( 2 * Math.PI * this._rotateDelta[1] / element.clientHeight * this.rotateSpeed );
+    this.rotateLeft(((2 * Math.PI * this._rotateDelta[0]) / element.clientWidth) * this.rotateSpeed);
+    this.rotateUp(((2 * Math.PI * this._rotateDelta[1]) / element.clientHeight) * this.rotateSpeed);
 
-    vec2.copy( this._rotateStart, this._rotateEnd );
-
+    vec2.copy(this._rotateStart, this._rotateEnd);
   }
 
   /**
    * 鼠标按下事件总处理
    * @private
    */
-  onMouseDown( event ) {
-
-    if( this.enabled === false ) return;
+  onMouseDown(event) {
+    if (this.enabled === false) return;
 
     event.preventDefault();
 
     this._isMouseUp = false;
 
-    switch( event.button ) {
-
+    switch (event.button) {
       case this.mouseButtons.ORBIT:
-        if( this.enableRotate === false ) return;
+        if (this.enableRotate === false) return;
 
-        this.handleMouseDownRotate( event );
+        this.handleMouseDownRotate(event);
         this._state = this.STATE.ROTATE;
         break;
-
     }
 
-    if( this._state !== this.STATE.NONE ) {
-
+    if (this._state !== this.STATE.NONE) {
       const element = this.domElement === document ? this.domElement.body : this.domElement;
-      this.canvas.addEventListener( this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false );
-      element.addEventListener( this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false );
-
+      this.canvas.addEventListener(this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false);
+      element.addEventListener(this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false);
     }
-
   }
 
   /**
    * 鼠标移动事件总处理
    * @private
    */
-  onMouseMove( event ) {
-
-    if( this.enabled === false ) return;
+  onMouseMove(event) {
+    if (this.enabled === false) return;
 
     event.preventDefault();
 
-    switch( this._state ) {
-
+    switch (this._state) {
       case this.STATE.ROTATE:
-        if( this.enableRotate === false ) return;
+        if (this.enableRotate === false) return;
 
-        this.handleMouseMoveRotate( event );
+        this.handleMouseMoveRotate(event);
         break;
-
     }
-
   }
 
   /**
@@ -368,73 +367,61 @@ export class ARoateControl extends NodeAbility {
    * @private
    */
   onMouseUp() {
-
-    if( this.enabled === false ) return;
+    if (this.enabled === false) return;
 
     this._isMouseUp = true;
 
-    this.mouseUpEvents.forEach( ele => {
-
-      this.canvas.removeEventListener( ele.type, ele.listener, false );
-
-    } );
+    this.mouseUpEvents.forEach(ele => {
+      this.canvas.removeEventListener(ele.type, ele.listener, false);
+    });
 
     this._state = this.STATE.NONE;
-
   }
 
   /**
    * 触摸按下事件总处理
    * @private
    */
-  onTouchStart( event ) {
-
-    if( this.enabled === false ) return;
+  onTouchStart(event) {
+    if (this.enabled === false) return;
 
     this._isMouseUp = false;
 
-    switch( event.touches.length ) {
-
+    switch (event.touches.length) {
       case this.touchFingers.ORBIT:
-        if ( this.enableRotate === false ) return;
+        if (this.enableRotate === false) return;
 
-        this.handleTouchStartRotate( event );
+        this.handleTouchStartRotate(event);
         this._state = this.STATE.TOUCH_ROTATE;
 
         break;
 
       default:
         this._state = this.STATE.NONE;
-
     }
-
   }
 
   /**
    * 触摸移动事件总处理
    * @private
    */
-  onTouchMove( event ) {
-
-    if( this.enabled === false ) return;
+  onTouchMove(event) {
+    if (this.enabled === false) return;
 
     event.preventDefault();
     event.stopPropagation();
 
-    switch( event.touches.length ) {
-
+    switch (event.touches.length) {
       case this.touchFingers.ORBIT:
-        if( this.enableRotate === false ) return;
-        if( this._state !== this.STATE.TOUCH_ROTATE ) return;
-        this.handleTouchMoveRotate( event );
+        if (this.enableRotate === false) return;
+        if (this._state !== this.STATE.TOUCH_ROTATE) return;
+        this.handleTouchMoveRotate(event);
 
         break;
 
       default:
         this._state = this.STATE.NONE;
-
     }
-
   }
 
   /**
@@ -442,22 +429,18 @@ export class ARoateControl extends NodeAbility {
    * @private
    */
   onTouchEnd() {
-
-    if( this.enabled === false ) return;
+    if (this.enabled === false) return;
 
     this._isMouseUp = true;
     this._state = this.STATE.NONE;
-
   }
 
   /**
    * 上下文事件隐藏
    * @private
    */
-  onContextMenu( event ) {
-
-    if( this.enabled === false ) return;
+  onContextMenu(event) {
+    if (this.enabled === false) return;
     event.preventDefault();
-
   }
 }

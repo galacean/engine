@@ -1,28 +1,42 @@
 /**
  * 本示例展示如何使用几何体渲染器功能、如何创建几何体资源对象、如何创建材质对象
  */
-import { ClearMode, Logger, MaterialType, DrawMode } from '@alipay/o3-base';
-import { Engine } from '@alipay/o3-core';
-import { GLRenderHardware } from '@alipay/o3-rhi-webgl';
-import { BasicSceneRenderer } from '@alipay/o3-renderer-basic';
-import { AGeometryRenderer } from '@alipay/o3-geometry';
-import { vec3, vec4 } from '@alipay/o3-math';
-import '@alipay/o3-engine-stats';
-import createPlaneGeometry from './geometry';
-import getTechniqueData from './technique';
-import getWaveTechniqueData from './waveTechnique';
-import AWave from './AWave';
-import { ADirectLight } from '@alipay/o3-lighting';
-import { Resource, ResourceLoader } from '@alipay/o3-loader';
-import { Material } from '@alipay/o3-material';
-import { ADefaultCamera } from '@alipay/o3-default-camera';
+import { ClearMode, Logger, MaterialType, DrawMode } from "@alipay/o3-base";
+import { Engine } from "@alipay/o3-core";
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
+import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { vec3, vec4 } from "@alipay/o3-math";
+import "@alipay/o3-engine-stats";
+import createPlaneGeometry from "./geometry";
+import getTechniqueData from "./technique";
+import getWaveTechniqueData from "./waveTechnique";
+import AWave from "./AWave";
+import { ADirectLight } from "@alipay/o3-lighting";
+import { Resource, ResourceLoader } from "@alipay/o3-loader";
+import { Material } from "@alipay/o3-material";
+import { ADefaultCamera } from "@alipay/o3-default-camera";
 
 Logger.enable();
 
 export default class CardUIC {
+  public id: any;
+  public imgUrl: any;
+  public deltaX: any;
+  public onComplete: any;
+  public geometry: any;
+  public normalImg: any;
+  public resourceLoader: any;
+  public technique: any;
+  public waveTechnique: any;
+  public normal: any;
+  public cardWrapper: any;
+  public engine: any;
+  public backgroundNode: any;
+
   constructor(props) {
     props = props || {};
-    this.id = props.id || 'o3-demo';
+    this.id = props.id || "o3-demo";
     this.imgUrl = props.imgUrl;
     this.deltaX = props.deltaX || 250;
     this.onComplete = props.onComplete;
@@ -30,7 +44,7 @@ export default class CardUIC {
     const countX = props.countX || 75;
     const countY = props.countY || 48;
     this.geometry = createPlaneGeometry(countX, countY);
-    this.normalImg = 'https://gw.alipayobjects.com/zos/rmsportal/UbarSOVpGZDvKVcomySG.jpg';
+    this.normalImg = "https://gw.alipayobjects.com/zos/rmsportal/UbarSOVpGZDvKVcomySG.jpg";
 
     this.resourceLoader = new ResourceLoader();
     this.technique = this._loadTechnique();
@@ -38,18 +52,22 @@ export default class CardUIC {
 
     let textureRes = [];
 
-    for(let name in this.imgUrl) {
-      textureRes.push(new Resource(name, {
-        type: 'texture',
-        url: this.imgUrl[name],
-      }));
+    for (let name in this.imgUrl) {
+      textureRes.push(
+        new Resource(name, {
+          type: "texture",
+          url: this.imgUrl[name]
+        })
+      );
     }
-    textureRes.push(new Resource('normal', {
-      type: 'texture',
-      url: this.normalImg,
-    }));
+    textureRes.push(
+      new Resource("normal", {
+        type: "texture",
+        url: this.normalImg
+      })
+    );
 
-    this.resourceLoader.batchLoad(textureRes, (err, res)=>{
+    this.resourceLoader.batchLoad(textureRes, (err, res) => {
       this.normal = res[textureRes.length - 1].asset;
       this._myR3Program(res);
       this.onComplete && this.onComplete(this);
@@ -73,19 +91,19 @@ export default class CardUIC {
     this.engine = null;
   }
 
-  _loadTechnique(isBg) {
+  _loadTechnique(isBg?) {
     let techRes;
     let techniqueData;
-    if(isBg) {
-      techniqueData = getWaveTechniqueData('bg');
-      techRes = new Resource('bg', {
-        type: 'technique',
+    if (isBg) {
+      techniqueData = getWaveTechniqueData("bg");
+      techRes = new Resource("bg", {
+        type: "technique",
         data: techniqueData
       });
     } else {
-      techniqueData = getTechniqueData('card', this.imgUrl);
-      techRes = new Resource('card', {
-        type: 'technique',
+      techniqueData = getTechniqueData("card", this.imgUrl);
+      techRes = new Resource("card", {
+        type: "technique",
         data: techniqueData
       });
     }
@@ -106,20 +124,20 @@ export default class CardUIC {
     });
 
     //-- create camera
-    let cameraNode = rootNode.createChild('camera_node');
+    let cameraNode = rootNode.createChild("camera_node");
     let camera = cameraNode.createAbility(ADefaultCamera, {
       canvas: this.id,
       position: [0, 0, 250],
       clearParam: vec4.fromValues(0, 0, 0, 1)
     });
 
-    this.cardWrapper = rootNode.createChild('cardWrapper');
+    this.cardWrapper = rootNode.createChild("cardWrapper");
     let index = 0;
-    for(let name in this.imgUrl) {
+    for (let name in this.imgUrl) {
       this._createPlane(name, index, textureRes[index++].asset);
     }
 
-    this.backgroundNode = rootNode.createChild('background');
+    this.backgroundNode = rootNode.createChild("background");
     this._createBackground();
 
     // 启动引擎
@@ -149,16 +167,15 @@ export default class CardUIC {
     let mtl = new Material(name);
     mtl.technique = this.technique;
     // mtl.renderType = MaterialType.TRANSPARENT;
-    mtl.setValue('s_diffuse', texture);
-    mtl.setValue('s_normal', this.normal);
+    mtl.setValue("s_diffuse", texture);
+    mtl.setValue("s_normal", this.normal);
     return mtl;
   }
 
   _createBgMaterial() {
-    let mtl = new Material('bgMtl');
+    let mtl = new Material("bgMtl");
     mtl.technique = this.waveTechnique;
     // mtl.renderType = MaterialType.TRANSPARENT;
     return mtl;
   }
 }
-

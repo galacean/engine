@@ -1,13 +1,17 @@
-'use strict';
+"use strict";
 
-import { NodeAbility } from '@alipay/o3-core';
+import { NodeAbility } from "@alipay/o3-core";
 
 export default class AIndexUpdate extends NodeAbility {
+  public geometry: any;
+  public index: any;
+  public _time: any;
+
   constructor(node, props) {
     super(node);
     this.geometry = props.cubeGeometry;
     this.index = this.geometry.getAllIndex().slice(0);
-   this._time = 0;
+    this._time = 0;
   }
 
   update(deltaTime) {
@@ -18,7 +22,7 @@ export default class AIndexUpdate extends NodeAbility {
   setValues() {
     const geometry = this.geometry;
     let index = Array(this.index.length);
-    const count = Math.floor(this._time) % (this.index.length / 3) + 1;
+    const count = (Math.floor(this._time) % (this.index.length / 3)) + 1;
     index = this.index.slice(0).fill(0, count * 3);
     this.geometry.setAllIndex(index);
   }

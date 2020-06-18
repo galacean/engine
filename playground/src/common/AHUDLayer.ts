@@ -1,10 +1,9 @@
-'use strict';
+"use strict";
 
-import {
-  AHUDWidget
-} from '@alipay/o3-hud';
+import { AHUDWidget } from "@alipay/o3-hud";
 
 export class AHUDLayer extends AHUDWidget {
+  public _backgroundStyle: any;
 
   /**
    * @constructor
@@ -36,4 +35,4 @@ export class AHUDLayer extends AHUDWidget {
     let h = this._spriteRect.height;
     ctx2d.fillRect(x, y, w, h);
   }
-};
+}

@@ -15,7 +15,7 @@ const resourceLoader = new ResourceLoader(engine);
 let scene = engine.currentScene;
 let rootNode = scene.root;
 
-function createSphereGeometry(name, position, radius, segments, thetaStart, thetaLength) {
+function createSphereGeometry(name, position, radius, segments, thetaStart?, thetaLength?) {
   let obj = rootNode.createChild(name);
   obj.position = position;
   let renderer = obj.createAbility(AGeometryRenderer);

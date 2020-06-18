@@ -16,7 +16,7 @@ var runtime = (function(exports) {
   var asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator";
   var toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag";
 
-  function wrap(innerFn, outerFn, self, tryLocsList) {
+  function wrap(innerFn, outerFn?, self?, tryLocsList?) {
     // If outerFn provided and outerFn.prototype is a Generator, then outerFn.prototype instanceof Generator.
     var protoGenerator = outerFn && outerFn.prototype instanceof Generator ? outerFn : Generator;
     var generator = Object.create(protoGenerator.prototype);
@@ -168,7 +168,7 @@ var runtime = (function(exports) {
 
     var previousPromise;
 
-    function enqueue(method, arg) {
+    function enqueue(method, arg?) {
       function callInvokeWithMethodAndArg() {
         return new Promise(function(resolve, reject) {
           invoke(method, arg, resolve, reject);
@@ -222,7 +222,7 @@ var runtime = (function(exports) {
         });
   };
 
-  function makeInvokeMethod(innerFn, self, context) {
+  function makeInvokeMethod(innerFn, self?, context?) {
     var state = GenStateSuspendedStart;
 
     return function invoke(method, arg) {
@@ -299,7 +299,7 @@ var runtime = (function(exports) {
   // result, either by returning a { value, done } result from the
   // delegate iterator, or by modifying context.method and context.arg,
   // setting context.delegate to null, and returning the ContinueSentinel.
-  function maybeInvokeDelegate(delegate, context) {
+  function maybeInvokeDelegate(delegate, context?) {
     var method = delegate.iterator[context.method];
     if (method === undefined) {
       // A .throw or .return when the delegate iterator has no .throw
@@ -539,7 +539,7 @@ var runtime = (function(exports) {
       }
 
       var context = this;
-      function handle(loc, caught) {
+      function handle(loc, caught?) {
         record.type = "throw";
         record.arg = exception;
         context.next = loc;

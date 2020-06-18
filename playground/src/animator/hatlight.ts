@@ -128,6 +128,9 @@ function requireShapeTechnique(loader) {
 }
 
 class CustomAbility extends AGeometryRenderer {
+  public scale: any;
+  public angle: any;
+  public animType: any;
   static attributes = {};
 
   constructor(node, props) {

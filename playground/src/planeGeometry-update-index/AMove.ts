@@ -1,6 +1,11 @@
-import { NodeAbility } from '@alipay/o3-core';
+import { NodeAbility } from "@alipay/o3-core";
 
 export default class AMove extends NodeAbility {
+  public _time: any;
+  public range: any;
+  public velocity: any;
+  public _deltaTime: any;
+
   constructor(node, props) {
     super(node);
     this._time = 0;
@@ -18,11 +23,11 @@ export default class AMove extends NodeAbility {
     let positionY = this.node.position[1];
     let positionZ = this.node.position[2];
     positionZ += this._deltaTime * this.velocity;
-    if(positionZ > 100) {
+    if (positionZ > 100) {
       positionZ = -10;
     }
     const deltaP = this._time * 2 * Math.random();
-    positionY += (Math.sin(deltaP) * this.range);
-    this.node.position = [this.node.position[0], positionY,positionZ];
+    positionY += Math.sin(deltaP) * this.range;
+    this.node.position = [this.node.position[0], positionY, positionZ];
   }
 }

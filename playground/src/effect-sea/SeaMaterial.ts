@@ -1,8 +1,7 @@
-import { DataType } from '@alipay/o3-base';
-import { Material, RenderTechnique } from '@alipay/o3-material';
+import { DataType } from "@alipay/o3-base";
+import { Material, RenderTechnique } from "@alipay/o3-material";
 
-
- //-- 创建一个新的 Technique
+//-- 创建一个新的 Technique
 const VERT_SHADER = `
 uniform mat4 u_MVPMat;
 attribute vec3 a_position;
@@ -150,15 +149,13 @@ void main (void) {
 `;
 
 export class SeaMaterial extends Material {
-
   /**
    * 生成内部所使用的 Technique 对象
    * @private
    */
-  _generateTechnique( ) {
-
+  _generateTechnique() {
     //--
-    const tech = new RenderTechnique( 'sea_tech' );
+    const tech = new RenderTechnique("sea_tech");
     tech.isValid = true;
     tech.uniforms = this.getUniforms();
     tech.attributes = {};
@@ -173,48 +170,42 @@ export class SeaMaterial extends Material {
    * 重写基类方法
    * @private
    */
-  prepareDrawing( camera, component, primitive ) {
-
-
-    if ( this._technique === null ) {
-
-      this._generateTechnique( );
-
+  prepareDrawing(camera, component, primitive?) {
+    if (this._technique === null) {
+      this._generateTechnique();
     }
 
-    super.prepareDrawing( camera, component, primitive );
-
+    super.prepareDrawing(camera, component, primitive);
   }
 
   getUniforms() {
     let uniforms = {
       u_texture: {
-        name: 'u_texture',
-        type: DataType.SAMPLER_2D,
+        name: "u_texture",
+        type: DataType.SAMPLER_2D
       },
       u_sea_height: {
-        name: 'u_sea_height',
-        type: DataType.FLOAT,
+        name: "u_sea_height",
+        type: DataType.FLOAT
       },
       u_sea_base: {
-        name: 'u_sea_base',
-        type: DataType.FLOAT_VEC3,
+        name: "u_sea_base",
+        type: DataType.FLOAT_VEC3
       },
       u_water_color: {
-        name: 'u_water_color',
-        type: DataType.FLOAT_VEC3,
+        name: "u_water_color",
+        type: DataType.FLOAT_VEC3
       },
       u_water_speed: {
-        name: 'u_water_speed',
-        type: DataType.FLOAT,
+        name: "u_water_speed",
+        type: DataType.FLOAT
       },
       u_water_scale: {
-        name: 'u_water_scale',
-        type: DataType.FLOAT,
+        name: "u_water_scale",
+        type: DataType.FLOAT
       }
     };
 
     return uniforms;
   }
 }
-

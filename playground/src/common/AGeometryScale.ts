@@ -1,15 +1,56 @@
-'use strict';
+"use strict";
 
-import { NodeAbility } from '@alipay/o3-core';
+import { NodeAbility } from "@alipay/o3-core";
 
 export default class AGeometryScale extends NodeAbility {
+  public geometry: any;
+  public size: any;
+  public range: any;
+  public indexValues: any;
+  public _time: any;
+
   constructor(node, props) {
     super(node);
     this.geometry = props.cubeGeometry;
     this.size = props.size || 1;
     this.range = props.range || 0.3;
     this.indexValues = [
-      0,2,1,3,1,2,0,4,2,6,2,4,5,1,7,3,7,1,6,7,2,3,2,7,0,1,4,5,4,1,4,5,6,7,6,5
+      0,
+      2,
+      1,
+      3,
+      1,
+      2,
+      0,
+      4,
+      2,
+      6,
+      2,
+      4,
+      5,
+      1,
+      7,
+      3,
+      7,
+      1,
+      6,
+      7,
+      2,
+      3,
+      2,
+      7,
+      0,
+      1,
+      4,
+      5,
+      4,
+      1,
+      4,
+      5,
+      6,
+      7,
+      6,
+      5
     ];
     this._time = 0;
   }
@@ -41,7 +82,7 @@ export default class AGeometryScale extends NodeAbility {
     const geometry = this.geometry;
     const pos = this.getPos();
     this.indexValues.forEach((vertexIndex, i) => {
-      geometry.setValue('POSITION', i, pos[vertexIndex]);
+      geometry.setValue("POSITION", i, pos[vertexIndex]);
     });
   }
 }

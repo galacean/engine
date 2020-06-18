@@ -1,5 +1,5 @@
-import { UniformSemantic, DataType,  RenderState, BlendFunc } from '@alipay/o3-base';
-import { Material, RenderTechnique } from '@alipay/o3-material';
+import { UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-base";
+import { Material, RenderTechnique } from "@alipay/o3-material";
 
 //-- 创建一个新的 Technique
 const VERT_SHADER = `
@@ -14,7 +14,6 @@ void main() {
 
 }
  `;
-
 
 const FRAG_SHADER = `
 #include <common>
@@ -59,15 +58,13 @@ void main(void) {
 `;
 
 export class NoiseMaterial extends Material {
-
   /**
    * 生成内部所使用的 Technique 对象
    * @private
    */
   _generateTechnique() {
-
     //--
-    const tech = new RenderTechnique( this.name );
+    const tech = new RenderTechnique(this.name);
     tech.isValid = true;
     tech.uniforms = {};
     tech.attributes = {};
@@ -75,7 +72,7 @@ export class NoiseMaterial extends Material {
       enable: [RenderState.BLEND],
       functions: {
         blendFunc: [BlendFunc.SRC_ALPHA, BlendFunc.ONE],
-        depthMask: [false]//[gl.FALSE]
+        depthMask: [false] //[gl.FALSE]
       }
     };
     tech.customMacros = [];
@@ -83,24 +80,17 @@ export class NoiseMaterial extends Material {
     tech.fragmentShader = FRAG_SHADER;
 
     this._technique = tech;
-
   }
 
   /**
    * 重写基类方法
    * @private
    */
-  prepareDrawing( camera, component, primitive ) {
-
-
-    if ( this._technique === null ) {
-
+  prepareDrawing(camera, component, primitive?) {
+    if (this._technique === null) {
       this._generateTechnique();
-
     }
 
-    super.prepareDrawing( camera, component, primitive );
-
+    super.prepareDrawing(camera, component, primitive);
   }
-
 }

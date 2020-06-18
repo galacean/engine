@@ -11,6 +11,12 @@ import { RenderQueue } from "@alipay/o3-renderer-basic";
  * @class
  */
 export class MRTSceneRenderer extends SceneVisitor {
+  public _camera: any;
+  public _opaqueQueue: any;
+  public multiRenderTarget: any;
+  public mrtRenderPass: any;
+  public mainRenderPass: any;
+
   /**
    * 构造函数
    * @param {ACamera} camera 摄像机对象

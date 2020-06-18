@@ -1,17 +1,26 @@
-import { Engine, EngineFeature } from '@alipay/o3-core';
-import { ADefaultCamera } from '@alipay/o3-default-camera';
-import '@alipay/o3-engine-stats';
-import { Logger } from '@alipay/o3-base';
+import { Engine, EngineFeature } from "@alipay/o3-core";
+import { ADefaultCamera } from "@alipay/o3-default-camera";
+import "@alipay/o3-engine-stats";
+import { Logger } from "@alipay/o3-base";
 
 Logger.enable();
 
 class TickFeature extends EngineFeature {
+  public tick: any;
+
   preTick() {
-    if(this.tick) this.tick();
+    if (this.tick) this.tick();
   }
 }
 
 class World {
+  public engine: any;
+  public scene: any;
+  public rootNode: any;
+  public camera: any;
+  public cameraAb: any;
+  public resizeTimeout: any;
+
   constructor(canvas) {
     this.init(canvas);
   }
@@ -23,7 +32,7 @@ class World {
     this.scene = scene;
     const rootNode = scene.root;
     this.rootNode = rootNode;
-    const cameraNode = rootNode.createChild('camera_node');
+    const cameraNode = rootNode.createChild("camera_node");
     const cameraAb = cameraNode.createAbility(ADefaultCamera, {
       canvas,
       position: [0, 0, 10],
@@ -31,16 +40,16 @@ class World {
       clearParam: [1, 0, 0, 1],
       near: 0.1,
       far: 1000,
-      fov: 60,
+      fov: 60
     });
     this.camera = cameraNode;
     this.cameraAb = cameraAb;
-    window.addEventListener('resize', this.onResize.bind(this));
+    window.addEventListener("resize", this.onResize.bind(this));
     Engine.registerFeature(TickFeature);
   }
 
   onResize() {
-    if (!this.resizeTimeout ) {
+    if (!this.resizeTimeout) {
       this.resizeTimeout = setTimeout(() => {
         this.resizeTimeout = null;
         this.cameraAb && this.cameraAb.updateSizes();
@@ -57,7 +66,7 @@ class World {
     this.rootNode.addChild(node);
   }
 
-  start(tick) {
+  start(tick?) {
     if (tick) TickFeature.prototype.tick = tick;
     this.engine.run();
   }
@@ -74,7 +83,6 @@ class World {
   resume() {
     this.engine.resume();
   }
-
 }
 
 export default World;

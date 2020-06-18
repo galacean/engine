@@ -90,7 +90,7 @@ function updateNonInstanced() {
 // 启动引擎
 engine.run();
 
-function debounce(fn, wait, options) {
+function debounce(fn, wait, options?) {
   wait = wait || 0;
 
   function debounced() {

@@ -1,10 +1,13 @@
 import { NodeAbility } from "@alipay/o3-core";
-import { AHUDLayer } from '../common/AHUDLayer';
+import { AHUDLayer } from "../common/AHUDLayer";
 
 /**
  * 动态添加和删除HUD控件
  */
 export class ADynamicChange extends NodeAbility {
+  public _widgets: any;
+  public _changeTime: any;
+  public _changeInternal: any;
 
   constructor(node) {
     super(node);
@@ -12,7 +15,6 @@ export class ADynamicChange extends NodeAbility {
     this._widgets = [];
     this._changeTime = 0;
     this._changeInternal = 3000;
-
   }
 
   setWidgetsInfo(widgets) {
@@ -20,7 +22,6 @@ export class ADynamicChange extends NodeAbility {
   }
 
   update(deltaTime) {
-
     this._changeTime += deltaTime;
     if (this._changeTime > this._changeInternal) {
       this._changeTime = 0;
@@ -31,15 +32,15 @@ export class ADynamicChange extends NodeAbility {
       let g = Math.floor(Math.random() * 255);
       let b = Math.floor(Math.random() * 255);
       let a = 1;
-      let backgroundStyle = 'rgba(' + r + ',' +g + ',' + b + ',' + a + ')';
+      let backgroundStyle = "rgba(" + r + "," + g + "," + b + "," + a + ")";
 
       let width = 100 + Math.floor(Math.random() * 100);
       let height = 50 + Math.floor(Math.random() * 100);
-      let worldSize = [width/150, height/150];
+      let worldSize = [width / 150, height / 150];
       let layerProps = {
-        spriteID: 'layer' + idx,
+        spriteID: "layer" + idx,
         textureSize: [width, height],
-        renderMode: '3D',
+        renderMode: "3D",
         worldSize,
         backgroundStyle
       };
@@ -51,4 +52,3 @@ export class ADynamicChange extends NodeAbility {
     }
   }
 }
-

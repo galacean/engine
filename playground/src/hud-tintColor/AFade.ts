@@ -4,6 +4,11 @@ import { Logger } from "@alipay/o3-base";
  * 指定范围内的往返运动
  */
 export class AFade extends NodeAbility {
+  public _duration: any;
+  public _isFadeIn: any;
+  public _widget: any;
+  public _deltaTime: any;
+  public _colorIdx: any;
 
   constructor(node) {
     super(node);
@@ -15,12 +20,12 @@ export class AFade extends NodeAbility {
 
   setFade(widget, duration, colorIdx) {
     if (!widget) {
-      Logger.error('Widget should not be null!');
+      Logger.error("Widget should not be null!");
       return;
     }
 
     if (duration <= 0) {
-      Logger.error('Duration error!');
+      Logger.error("Duration error!");
       return;
     }
     this._widget = widget;
@@ -30,8 +35,7 @@ export class AFade extends NodeAbility {
   }
 
   update(deltaTime) {
-
-    this._deltaTime += this._isFadeIn ? deltaTime : (-deltaTime);
+    this._deltaTime += this._isFadeIn ? deltaTime : -deltaTime;
     if (this._deltaTime < 0) {
       this._deltaTime = 0;
       this._isFadeIn = true;
@@ -40,10 +44,9 @@ export class AFade extends NodeAbility {
       this._isFadeIn = false;
     }
 
-    let p = this._deltaTime/this._duration;
+    let p = this._deltaTime / this._duration;
     let color = [1, 1, 1, 1];
     color[this._colorIdx] = p;
     this._widget.tintColor = color;
   }
 }
-

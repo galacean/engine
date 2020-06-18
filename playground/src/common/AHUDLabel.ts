@@ -1,10 +1,11 @@
-'use strict';
+"use strict";
 
-import {
-  AHUDWidget
-} from '@alipay/o3-hud';
+import { AHUDWidget } from "@alipay/o3-hud";
 
 export class AHUDLabel extends AHUDWidget {
+  public _text: any;
+  public _backgroundStyle: any;
+  public _font: any;
 
   /**
    * @constructor
@@ -15,10 +16,10 @@ export class AHUDLabel extends AHUDWidget {
   constructor(node, props) {
     super(node, props);
 
-    this._text = ' ';
+    this._text = " ";
 
-    this._backgroundStyle = 'rgba(0, 0, 0, 0)';
-    this._font = '40px monospace';
+    this._backgroundStyle = "rgba(0, 0, 0, 0)";
+    this._font = "40px monospace";
   }
 
   get text() {
@@ -56,9 +57,9 @@ export class AHUDLabel extends AHUDWidget {
     ctx2d.fillRect(x, y, w, h);
 
     ctx2d.font = this._font;
-    ctx2d.fillStyle = 'white';
-    ctx2d.textAlign = 'center';
-    ctx2d.textBaseline = 'middle';
+    ctx2d.fillStyle = "white";
+    ctx2d.textAlign = "center";
+    ctx2d.textBaseline = "middle";
     ctx2d.fillText(this._text, x + w / 2, y + h / 2, w);
   }
-};
+}

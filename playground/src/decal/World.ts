@@ -5,12 +5,21 @@ import { Logger } from "@alipay/o3-base";
 Logger.enable();
 
 class TickFeature extends EngineFeature {
+  public tick: any;
+
   preTick() {
     if (this.tick) this.tick();
   }
 }
 
 class World {
+  public engine: any;
+  public scene: any;
+  public rootNode: any;
+  public camera: any;
+  public cameraAb: any;
+  public resizeTimeout: any;
+
   constructor(canvas) {
     this.init(canvas);
   }
@@ -56,7 +65,7 @@ class World {
     this.rootNode.addChild(node);
   }
 
-  start(tick) {
+  start(tick?) {
     if (tick) TickFeature.prototype.tick = tick;
     this.engine.run();
   }

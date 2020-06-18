@@ -4,6 +4,10 @@ import { Logger } from "@alipay/o3-base";
  * 指定范围内的往返运动
  */
 export class ACrossFadeControl extends NodeAbility {
+  public _animator: any;
+  public _aniNames: any;
+  public _aniDuration: any;
+  public _aniTime: any;
 
   constructor(node, props) {
     super(node);
@@ -16,7 +20,6 @@ export class ACrossFadeControl extends NodeAbility {
   }
 
   update(deltaTime) {
-
     this._aniTime += deltaTime / 1000;
     if (this._aniTime > this._aniDuration) {
       this._aniTime = 0;
@@ -27,4 +30,3 @@ export class ACrossFadeControl extends NodeAbility {
     }
   }
 }
-

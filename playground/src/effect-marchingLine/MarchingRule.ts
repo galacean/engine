@@ -32,6 +32,15 @@ function getAxis() {
 }
 
 export class SphereMarchingRule {
+  public _radius: any;
+  public _point: any;
+  public _axis: any;
+  public _rotation: any;
+  public _angle: any;
+  public _dir: any;
+  public _onHit: any;
+  public checkHit: any;
+
   constructor(radius, startPoint, axis, onHit) {
     this._radius = radius;
     this._point = startPoint || getStartPoint(radius);
@@ -91,6 +100,12 @@ export class SphereMarchingRule {
 }
 
 export class PlaneMarchingRule {
+  public w: any;
+  public tick: any;
+  public type: any;
+  public checkHit: any;
+  public _rotation: any;
+
   constructor(axis, angle, w, type) {
     this.w = w;
     this.tick = 0;
@@ -150,6 +165,9 @@ export class PlaneMarchingRule {
 
 //TODO 给定一组点，沿着这组点的轨迹蔓延
 export class PointArrayMarchingRule {
+  public pointArray: any;
+  public curTargetPoint: any;
+
   constructor(pointArray) {
     this.pointArray = pointArray;
     this.curTargetPoint = vec3.create();

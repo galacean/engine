@@ -1,8 +1,13 @@
-'use strict';
+"use strict";
 
-import { NodeAbility } from '@alipay/o3-core';
+import { NodeAbility } from "@alipay/o3-core";
 
 export default class AIndexGeometryScale extends NodeAbility {
+  public geometry: any;
+  public size: any;
+  public time: any;
+  public radius: any;
+
   constructor(node, props) {
     super(node);
     this.geometry = props.cubeGeometry;
@@ -37,8 +42,8 @@ export default class AIndexGeometryScale extends NodeAbility {
   setValues() {
     const geometry = this.geometry;
     const pos = this.getPos();
-    for(let i = 0;i < this.geometry.vertexCount; i++) {
-      geometry.setValue('POSITION', i, pos[i]);
+    for (let i = 0; i < this.geometry.vertexCount; i++) {
+      geometry.setValue("POSITION", i, pos[i]);
     }
   }
 }

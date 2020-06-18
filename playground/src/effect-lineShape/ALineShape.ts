@@ -1,11 +1,20 @@
-'use strict';
+"use strict";
 
-import { NodeAbility  } from '@alipay/o3-core';
+import { NodeAbility } from "@alipay/o3-core";
 import { vec3 } from "@alipay/o3-math";
 import { ALineRenderer } from "./ALineRenderer";
 import { APointRenderer } from "./APointRenderer";
 
 export class ALineShape extends NodeAbility {
+  public _canvas: any;
+  public _samplingNumber: any;
+  public _brightness: any;
+  public _offset: any;
+  public _time: any;
+  public _ballRenderer: any;
+  public _lineRenderer: any;
+  public _balls: any;
+
   constructor(node, props) {
     super(node);
 
@@ -24,27 +33,22 @@ export class ALineShape extends NodeAbility {
   }
 
   update(deltaTime) {
-
     if (this._balls.length === 0) {
-
       this._balls = this.createBalls(this._canvas, this._samplingNumber, this._brightness, this._offset);
-
     }
 
     this._time += deltaTime / 1000;
     this._balls.forEach(ball => {
       if (ball) {
         this._ballRenderer.drawPoint(ball.move(this._time));
-        this._lineRenderer.drawLines(ball.lineBetween(this._balls)) ;
+        this._lineRenderer.drawLines(ball.lineBetween(this._balls));
       }
     });
-
-
   }
 
   /**
-  * 通过对canvas采样获取需要显示的点的分布
-  */
+   * 通过对canvas采样获取需要显示的点的分布
+   */
   createBalls(canvas, num, brightness, offset) {
     let w = canvas.width;
     let h = canvas.height;
@@ -55,15 +59,15 @@ export class ALineShape extends NodeAbility {
     let balls = [];
     let isValid = true;
     let cycle = 0;
-    while(balls.length < num && isValid) {
-      let x = Math.floor(Math.random()*w);
-      let y = Math.floor(Math.random()*h);
+    while (balls.length < num && isValid) {
+      let x = Math.floor(Math.random() * w);
+      let y = Math.floor(Math.random() * h);
 
       // 取得透明度信息
       let idx = ((h - y) * w + x) * 4 + 2;
       let b = imageData.data[idx];
       if (b >= brightness) {
-        let org = vec3.fromValues(x/100.0, y/100.0, 0);
+        let org = vec3.fromValues(x / 100.0, y / 100.0, 0);
         vec3.add(org, org, offset);
 
         // console.log(validPoint);
@@ -76,8 +80,7 @@ export class ALineShape extends NodeAbility {
       }
 
       cycle++;
-      if (cycle > 200 && balls.length === 0)
-      {
+      if (cycle > 200 && balls.length === 0) {
         isValid = false;
       }
     }
@@ -87,6 +90,12 @@ export class ALineShape extends NodeAbility {
 }
 
 class Ball {
+  public org: any;
+  public pos: any;
+  public radius: any;
+  public dir: any;
+  public offset: any;
+  public d: any;
 
   constructor(org, pos, radius, dir, offset) {
     this.org = org;
@@ -99,22 +108,18 @@ class Ball {
   }
 
   move(theta) {
-    this.pos[0] = this.org[0] + Math.sin(theta*this.dir+this.offset) * this.radius;
-    this.pos[1] = this.org[1] + Math.cos(theta*this.dir+this.offset) * this.radius;
+    this.pos[0] = this.org[0] + Math.sin(theta * this.dir + this.offset) * this.radius;
+    this.pos[1] = this.org[1] + Math.cos(theta * this.dir + this.offset) * this.radius;
     return this.pos;
   }
 
   lineBetween(balls) {
-
     let linePoints = [];
     for (let i = balls.length - 1; i >= 0; i--) {
-
       let dist = vec3.distance(this.pos, balls[i].pos);
-      if (dist > 0 && dist < this.d ) {
-
+      if (dist > 0 && dist < this.d) {
         linePoints.push(this.pos);
         linePoints.push(balls[i].pos);
-
       }
       if (linePoints.length >= 8) {
         break;

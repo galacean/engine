@@ -2,6 +2,12 @@ import { NodeAbility } from "@alipay/o3-core";
 import { vec3 } from "@alipay/o3-math";
 
 export class MoveAbility extends NodeAbility {
+  public time: any;
+  public radius: any;
+  public onX: any;
+  public onY: any;
+  public onZ: any;
+
   constructor(node, props) {
     super(node);
     this.time = 0;

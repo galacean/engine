@@ -1,11 +1,18 @@
-import {
-  AHUDWidget
-} from '@alipay/o3-hud';
+import { AHUDWidget } from "@alipay/o3-hud";
 
 /**
  * 进度条控件
  */
 export class AHUDProgressBar extends AHUDWidget {
+  public _bgImage: any;
+  public _fgImage: any;
+  public _range: any;
+  public _value: any;
+  public _text: any;
+  public _font: any;
+  public _textFillStyle: any;
+  public autoUpdate: any;
+
   /**
    * @constructor
    * @param {Node} node
@@ -24,9 +31,9 @@ export class AHUDProgressBar extends AHUDWidget {
     this._range = [0, 100];
     this._value = 0;
 
-    this._text = '';
-    this._font = '48px monospace';
-    this._textFillStyle = 'white';
+    this._text = "";
+    this._font = "48px monospace";
+    this._textFillStyle = "white";
   }
 
   /**
@@ -44,9 +51,9 @@ export class AHUDProgressBar extends AHUDWidget {
     this._range = [0, 100];
     this._value = 0;
 
-    this._text = '';
-    this._font = '48px monospace';
-    this._textFillStyle = 'white';
+    this._text = "";
+    this._font = "48px monospace";
+    this._textFillStyle = "white";
   }
 
   get text() {
@@ -84,10 +91,8 @@ export class AHUDProgressBar extends AHUDWidget {
   }
   set currentValue(val) {
     this._value = val;
-    if (this._value < this._range[0])
-      this._value = this._range[0];
-    if (this._value > this._range[1])
-      this._value = this._range[1];
+    if (this._value < this._range[0]) this._value = this._range[0];
+    if (this._value > this._range[1]) this._value = this._range[1];
     this._canvasDirty = true;
   }
 
@@ -96,7 +101,6 @@ export class AHUDProgressBar extends AHUDWidget {
     if (this.autoUpdate) {
       this.currentValue = this.currentValue >= 19 ? 0 : this.currentValue + 1;
     }
-
   }
 
   /**
@@ -123,15 +127,15 @@ export class AHUDProgressBar extends AHUDWidget {
     // 画出文字
     if (this._text && this._text.length > 0) {
       ctx2d.font = this._font;
-      ctx2d.textAlign = 'center';
-      ctx2d.textBaseline = 'middle';
+      ctx2d.textAlign = "center";
+      ctx2d.textBaseline = "middle";
 
       let w = this._spriteRect.width;
       let h = this._spriteRect.height;
 
       ctx2d.lineWidth = 3;
 
-      ctx2d.strokeStyle = '#552F17';
+      ctx2d.strokeStyle = "#552F17";
       ctx2d.fillStyle = this._textFillStyle;
 
       ctx2d.strokeText(this._text, x + w / 2, y + h / 2, w);
@@ -139,4 +143,3 @@ export class AHUDProgressBar extends AHUDWidget {
     }
   }
 }
-

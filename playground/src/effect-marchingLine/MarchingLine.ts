@@ -3,7 +3,12 @@
 import { vec3, mat4, quat } from "@alipay/o3-math";
 
 export class MarchingLine {
-  constructor(rule, minDistance) {
+  public _rule: any;
+  public _minDistance: any;
+  public _points: any;
+  public _hasHit: any;
+
+  constructor(rule, minDistance?) {
     this._rule = rule;
     this._minDistance = minDistance || 0.01;
     this._points = [];

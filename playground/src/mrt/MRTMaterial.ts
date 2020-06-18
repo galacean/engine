@@ -48,7 +48,7 @@ export class MRTMaterial extends Material {
   /**
    * @private
    */
-  prepareDrawing(camera, component, primitive, originalMaterial) {
+  prepareDrawing(camera, component, primitive?, originalMaterial?) {
     if (!this._technique) this.generateTechnique();
 
     this._values = originalMaterial._values;

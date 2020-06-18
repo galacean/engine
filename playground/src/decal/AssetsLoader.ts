@@ -10,6 +10,9 @@ RegistExtension({
 });
 
 class AssetsLoader {
+  public assets: any;
+  public resourceLoader: any;
+
   constructor() {
     this.assets = [];
     this.resourceLoader = new ResourceLoader();

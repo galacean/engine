@@ -44,7 +44,7 @@ export class DeferredMaterial extends Material {
   /**
    * @private
    */
-  prepareDrawing(camera, component, primitive, originalMaterial) {
+  prepareDrawing(camera, component, primitive?, originalMaterial?) {
     if (!this._technique) {
       this.generateTechnique();
     }

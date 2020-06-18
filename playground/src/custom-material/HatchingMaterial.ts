@@ -6,6 +6,15 @@ import VertShaderSource from "./Vert.glsl";
 import FragShaderSource from "./Frag.glsl";
 
 export class HatchingMaterial extends Material {
+  public mainLight: any;
+  public texHatch0: any;
+  public texHatch1: any;
+  public texHatch2: any;
+  public texHatch3: any;
+  public texHatch4: any;
+  public texHatch5: any;
+  public titling: any;
+
   constructor(name, mainLight) {
     super(name);
 

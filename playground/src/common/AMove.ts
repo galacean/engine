@@ -1,9 +1,13 @@
-'use strict';
+"use strict";
 
-import { NodeAbility } from '@alipay/o3-core';
-import { vec3 } from '@alipay/o3-math';
+import { NodeAbility } from "@alipay/o3-core";
+import { vec3 } from "@alipay/o3-math";
 
 export default class AMove extends NodeAbility {
+  public time: any;
+  public y: any;
+  public range: any;
+
   constructor(node, props) {
     super(node);
     this.time = 0;

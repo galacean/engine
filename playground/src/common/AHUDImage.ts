@@ -1,13 +1,12 @@
-'use strict';
+"use strict";
 
-import {
-  AHUDWidget
-} from '@alipay/o3-hud';
+import { AHUDWidget } from "@alipay/o3-hud";
 
 /**
  * 进度条控件
  */
 export class AHUDImage extends AHUDWidget {
+  public _image: any;
 
   /**
    * @constructor
@@ -28,7 +27,7 @@ export class AHUDImage extends AHUDWidget {
   drawWidget(ctx2d) {
     super.drawWidget(ctx2d);
 
-    ctx2d.fillStyle = 'rgba(0, 0, 0, 0)';
+    ctx2d.fillStyle = "rgba(0, 0, 0, 0)";
     let x = this._spriteRect.x;
     let y = this._spriteRect.y;
     let w = this._spriteRect.width;
@@ -39,4 +38,3 @@ export class AHUDImage extends AHUDWidget {
     ctx2d.drawImage(this._image, x, y);
   }
 }
-
