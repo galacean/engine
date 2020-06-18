@@ -351,17 +351,18 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 在指定的方向和距离上位移
+   * 在指定的方向和距离上位移。
    * @param translation - 位移的方向和距离
    * @param relativeToLocal - 是否相对局部空间
    */
   translate(translation: vec3Type, relativeToLocal: boolean = true): void {
     if (relativeToLocal) {
-      mat4.fromQuat(Transform._tempMat4, this.rotationQuaternion);
-      translation = vec3.transformMat4(Transform._tempVec3, translation, Transform._tempMat4);
+      const rotationMat = Transform._tempMat4;
+      mat4.fromQuat(rotationMat, this.rotationQuaternion);
+      translation = vec3.transformMat4(Transform._tempVec3, translation, rotationMat);
       this.position = vec3.add(this._position, this._position, translation);
     } else {
-      vec3.add(this.worldPosition, translation, this._worldPosition);
+      vec3.add(this.worldPosition, translation, this._worldPosition); //CM:这样触发不了worldPosition的set属性，有BUG
     }
   }
 
@@ -376,7 +377,7 @@ export class Transform extends NodeAbility {
       quat.multiply(this._rotationQuaternion, this._rotationQuaternion, rotationQuat);
       this.rotationQuaternion = this._rotationQuaternion;
     } else {
-      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotationQuat);
+      quat.multiply(this._worldRotationQuaternion, this._worldRotationQuaternion, rotationQuat); //CM：第2个参数应该使用this.worldRotationQuaternion，否则可能获取到的是错误旋转四元数
       this.worldRotationQuaternion = this._worldRotationQuaternion;
     }
   }
