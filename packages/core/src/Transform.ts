@@ -35,18 +35,18 @@ export class Transform extends NodeAbility {
   /**
    * _WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG
    */
-  private static _WM_WP_FLAG: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG;
+  private static _WM_WP_FLAGS: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG;
 
   /**
    * _WORLD_MATRIX_FLAG | _WORLD_EULER_FLAG | _WORLD_QUAT_FLAG
    */
-  private static _WM_WE_WQ_FLAG: number =
+  private static _WM_WE_WQ_FLAGS: number =
     Transform._WORLD_MATRIX_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG;
 
   /**
    * _WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG | _WORLD_EULER_FLAG ｜ _WORLD_QUAT_FLAG
    */
-  private static _WM_WP_WE_WQ_FLAG: number =
+  private static _WM_WP_WE_WQ_FLAGS: number =
     Transform._WORLD_MATRIX_FLAG |
     Transform._WORLD_POSITION_FLAG |
     Transform._WORLD_EULER_FLAG |
@@ -55,18 +55,18 @@ export class Transform extends NodeAbility {
   /**
    * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG
    */
-  private static _WM_WS: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG;
+  private static _WM_WS_FLAGS: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG;
 
   /**
    * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_SCALE_FLAG
    */
-  private static _WM_WP_WS: number =
+  private static _WM_WP_WS_FLAGS: number =
     Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_SCALE_FLAG;
 
   /**
    * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG | Transform._WORLD_SCALE_FLAG
    */
-  private static _WM_WP_WE_WQ_WS: number =
+  private static _WM_WP_WE_WQ_WS_FLAGS: number =
     Transform._WORLD_MATRIX_FLAG |
     Transform._WORLD_POSITION_FLAG |
     Transform._WORLD_EULER_FLAG |
@@ -416,8 +416,8 @@ export class Transform extends NodeAbility {
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为 false
    */
   private _updateWorldPositionFlag(): void {
-    if (!this._isContainDirtyFlags(Transform._WM_WP_FLAG)) {
-      this._setDirtyFlag(Transform._WM_WP_FLAG, true);
+    if (!this._isContainDirtyFlags(Transform._WM_WP_FLAGS)) {
+      this._setDirtyFlag(Transform._WM_WP_FLAGS, true);
       const nodeChildren = this.node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionFlag();
@@ -433,8 +433,8 @@ export class Transform extends NodeAbility {
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
    */
   private _updateWorldRotationFlag() {
-    if (!this._isContainDirtyFlags(Transform._WM_WE_WQ_FLAG)) {
-      this._setDirtyFlag(Transform._WM_WE_WQ_FLAG, true);
+    if (!this._isContainDirtyFlags(Transform._WM_WE_WQ_FLAGS)) {
+      this._setDirtyFlag(Transform._WM_WE_WQ_FLAGS, true);
       const nodeChildren = this.node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
@@ -450,8 +450,8 @@ export class Transform extends NodeAbility {
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix 或 worldRotationQuaternion）的脏标记为false
    */
   private _updateWorldPositionAndRotationFlag() {
-    if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_FLAG)) {
-      this._setDirtyFlag(Transform._WM_WP_WE_WQ_FLAG, true);
+    if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_FLAGS)) {
+      this._setDirtyFlag(Transform._WM_WP_WE_WQ_FLAGS, true);
       const nodeChildren = this.node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag();
@@ -467,8 +467,8 @@ export class Transform extends NodeAbility {
    */
   private _updateWorldScaleFlag() {
     const nodeChildren = this.node.children;
-    if (!this._isContainDirtyFlags(Transform._WM_WS)) {
-      this._setDirtyFlag(Transform._WM_WS, false);
+    if (!this._isContainDirtyFlags(Transform._WM_WS_FLAGS)) {
+      this._setDirtyFlag(Transform._WM_WS_FLAGS, false);
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
       }
@@ -483,8 +483,8 @@ export class Transform extends NodeAbility {
    */
   private _updateWorldPositionAndScaleFlag(): void {
     const nodeChildren = this.node.children;
-    if (!this._isContainDirtyFlags(Transform._WM_WP_WS)) {
-      this._setDirtyFlag(Transform._WM_WP_WS, true);
+    if (!this._isContainDirtyFlags(Transform._WM_WP_WS_FLAGS)) {
+      this._setDirtyFlag(Transform._WM_WP_WS_FLAGS, true);
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
       }
@@ -496,8 +496,8 @@ export class Transform extends NodeAbility {
    */
   private _updateAllWorldFlag(): void {
     const nodeChildren = this.node.children;
-    if (this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS)) {
-      this._setDirtyFlag(Transform._WM_WP_WE_WQ_WS, true);
+    if (this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS_FLAGS)) {
+      this._setDirtyFlag(Transform._WM_WP_WE_WQ_WS_FLAGS, true);
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateAllWorldFlag();
       }
