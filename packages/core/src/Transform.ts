@@ -478,7 +478,7 @@ export class Transform extends NodeAbility {
   private _updateWorldScaleFlag() {
     const nodeChildren = this.node.children;
     if (!this._isContainDirtyFlags(Transform._WM_WS_FLAGS)) {
-      this._setDirtyFlag(Transform._WM_WS_FLAGS, false);
+      this._setDirtyFlag(Transform._WM_WS_FLAGS, true);
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
       }
@@ -506,7 +506,7 @@ export class Transform extends NodeAbility {
    */
   private _updateAllWorldFlag(): void {
     const nodeChildren = this.node.children;
-    if (this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS_FLAGS)) {
+    if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WP_WE_WQ_WS_FLAGS, true);
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateAllWorldFlag();
@@ -583,5 +583,6 @@ export class Transform extends NodeAbility {
    */
   _setParentDirty(): void {
     this._isParentDirty = true;
+    this._updateAllWorldFlag();
   }
 }

@@ -57,7 +57,7 @@ export class Node extends EventDispatcher {
   public _parent: Node;
 
   private _children: Node[] = [];
-  public transform: Transform = new Transform(this);
+  public readonly transform: Transform;
 
   private _ownerScene: Scene;
 
@@ -383,6 +383,7 @@ export class Node extends EventDispatcher {
     // this._modelMatrixDirty = true;
     // this._invModelMatrixDirty = true;
 
+    this.transform = new Transform(this);
     this.parentNode = parent;
 
     /**
