@@ -8,16 +8,16 @@ import { vec3Type, vec4Type, mat4Type, mat3Type } from "./type";
 export class Transform extends NodeAbility {
   // Temp
   private static _tempVec3: vec3Type = vec3.create();
+
   private static _tempVec4: vec4Type = vec4.create();
-  private static _tempMat3: mat3Type = mat3.create();
-  private static _tempMat4: mat4Type = mat4.create();
 
+  private static _tempMat30: mat3Type = mat3.create();
   private static _tempMat31: mat3Type = mat3.create();
-  private static _tempMat41: mat4Type = mat4.create();
-
   private static _tempMat32: mat3Type = mat3.create();
-  private static _tempMat42: mat4Type = mat4.create();
 
+  private static _tempMat40: mat4Type = mat4.create();
+  private static _tempMat41: mat4Type = mat4.create();
+  private static _tempMat42: mat4Type = mat4.create();
   private static _tempMat43: mat4Type = mat4.create();
 
   // Dirty flag
@@ -88,6 +88,7 @@ export class Transform extends NodeAbility {
   private _worldMatrix: mat4Type = mat4.create();
 
   private _dirtyFlag: number = 0;
+
   /**
    * 是否往上查父节点。
    */
@@ -360,7 +361,7 @@ export class Transform extends NodeAbility {
    */
   translate(translation: vec3Type, relativeToLocal: boolean = true): void {
     if (relativeToLocal) {
-      const rotationMat = Transform._tempMat4;
+      const rotationMat = Transform._tempMat40;
       mat4.fromQuat(rotationMat, this.rotationQuaternion);
       translation = vec3.transformMat4(Transform._tempVec3, translation, rotationMat);
       this.position = vec3.add(this._position, this._position, translation);
@@ -526,7 +527,7 @@ export class Transform extends NodeAbility {
 
   private _getScaleMatrix(): mat3Type {
     const invRotation = Transform._tempVec4;
-    const invRotationMat = Transform._tempMat3;
+    const invRotationMat = Transform._tempMat30;
     const worldRotScaMat = Transform._tempMat31;
     const scaMat = Transform._tempMat32;
     mat3.fromMat4(worldRotScaMat, this.worldMatrix);
