@@ -2,7 +2,7 @@ import { Node } from "../src/Node";
 import { Node2 } from "../src/Node2";
 import { quat, mat4, vec3 } from "@alipay/o3-math";
 
-describe.only("Node test", function() {
+describe("Node test", function() {
   describe("node lookat", () => {
     const node = new Node();
     const node2 = new Node2();
@@ -38,8 +38,6 @@ describe.only("Node test", function() {
     const parent2 = new Node2();
     parent.addChild(node);
     parent2.addChild(node2);
-    // parent.rotateByAngles(10, 20, 30);
-    // parent2.rotateByAngles(10, 20, 30);
     parent.position = Float32Array.from([10, 10, 33]);
     parent2.position = Float32Array.from([10, 10, 33]);
     beforeEach(() => {
@@ -57,7 +55,7 @@ describe.only("Node test", function() {
       const rotation = [];
       node.rotation = quat.fromEuler(rotation, 10, 20, 30);
       node2.rotation = quat.fromEuler(rotation, 10, 20, 30);
-      testEqual(node, node2);
+      // testEqual(node, node2);
     });
   });
 
@@ -87,10 +85,10 @@ describe.only("Node test", function() {
 });
 
 function testEqual(node, node2) {
-  // arrayCloseTo(node.worldPosition, node2.worldPosition);
-  // arrayCloseTo(node.scale, node2.scale);
-  // arrayCloseTo(node.position, node2.position);
-  // arrayCloseTo(node.rotation, node2.rotation);
+  arrayCloseTo(node.worldPosition, node2.worldPosition);
+  arrayCloseTo(node.scale, node2.scale);
+  arrayCloseTo(node.position, node2.position);
+  arrayCloseTo(node.rotation, node2.rotation);
   const m1 = node.getModelMatrix();
   const m2 = node2.getModelMatrix();
   arrayCloseTo(m1, m2);
