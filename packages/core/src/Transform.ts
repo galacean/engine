@@ -93,30 +93,10 @@ export class Transform extends NodeAbility {
   private _localMatrix: mat4Type = mat4.create();
   private _worldMatrix: mat4Type = mat4.create();
 
-  private _parent = null; //CM:要写类型
+  private _parent: Transform = null; //CM:要写类型
+  //
   private _children: Transform[] = [];
   private _dirtyFlag: number = 0;
-
-  /**
-   * 父变换
-   * @todo 后续直接更名为parent
-   */
-  get parentTransform(): Transform {
-    return this._parent;
-  }
-
-  //CM:应该做成内部方法，开发者不允许调用
-  set parentTransform(value: Transform) {
-    this._parent = value;
-    this._parent._children.push(this);
-  }
-
-  /**
-   * 子变换数量
-   */
-  get childCount(): number {
-    return this._children.length;
-  }
 
   /**
    * 局部位置
@@ -341,14 +321,6 @@ export class Transform extends NodeAbility {
     // this._initDirtyFlag();
     this._initParent();
     this._initChild(node);
-  }
-
-  /**
-   * 获取子变换
-   */
-  //CM:修改为getChild
-  getChildTransform(index: number): Transform {
-    return this._children[index];
   }
 
   /**
@@ -597,11 +569,13 @@ export class Transform extends NodeAbility {
     }
   }
 
-  //---------------------@deprecated-----------------------
   /**
    * @internal
    */
   _updateParentTransform() {
+    // if(this._parent) {
+    //   this._parent._children.splice()
+    // }
     this._initParent();
     this._updateAllWorldFlag();
   }
