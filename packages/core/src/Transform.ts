@@ -1,4 +1,4 @@
-import { vec3, quat, mat4, vec4, mat3 } from "@alipay/o3-math";
+import { vec3, quat, mat4, vec4, mat3, MathUtil } from "@alipay/o3-math";
 import { Node } from "./Node";
 import { NodeAbility } from "./NodeAbility";
 import { vec3Type, vec4Type, mat4Type, mat3Type } from "./type";
@@ -398,10 +398,18 @@ export class Transform extends NodeAbility {
    * @param worldUp - 世界上向量，默认是 [0, 1, 0]
    */
   lookAt(worldPosition: vec3Type, worldUp?: vec3Type): void {
-    worldUp = worldUp ?? vec3.set(Transform._tempVec3, 0, 1, 0);
     const position = this.worldPosition;
-    const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp); //CM：这个实现不对 lookAt应该只修改旋转就行，使用矩阵都把缩放给重置了，可以参考下Laya的实现
-    this.worldMatrix = modelMatrix;
+    const EPSILON = MathUtil.EPSILON;
+    if (
+      Math.abs(position[0] - worldPosition[0]) < EPSILON &&
+      Math.abs(position[1] - worldPosition[1]) < EPSILON &&
+      Math.abs(position[2] - worldPosition[2]) < EPSILON
+    ) {
+      return;
+    }
+    worldUp = worldUp ?? vec3.set(Transform._tempVec3, 0, 1, 0);
+    const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp);
+    this.rotationQuaternion = mat4.getRotation(Transform._tempVec4, modelMatrix);
   }
 
   /**
