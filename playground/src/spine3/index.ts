@@ -1,44 +1,40 @@
-import World from './World.js';
-import AssetsLoader from './AssetsLoader.js';
-import { vec3 } from '@alipay/o3-math';
-import { ADirectLight } from '@alipay/o3-lighting';
-import { AOrbitControls } from '@alipay/o3-orbit-controls';
-import { AGeometryRenderer } from '@alipay/o3-geometry';
-import { CuboidGeometry, CylinderGeometry } from '@alipay/o3-geometry-shape';
-import { LambertMaterial } from '@alipay/o3-mobile-material';
-import { Texture2D } from '@alipay/o3-material';
-import { Node } from '@alipay/o3-core';
-import {
-  spine,
-  AssetManager,
-  ASpineRenderer
-} from '@alipay/o3-spine';
+import World from "./World";
+import AssetsLoader from "./AssetsLoader";
+import { vec3 } from "@alipay/o3-math";
+import { ADirectLight } from "@alipay/o3-lighting";
+import { AOrbitControls } from "@alipay/o3-orbit-controls";
+import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { CuboidGeometry, CylinderGeometry } from "@alipay/o3-geometry-shape";
+import { LambertMaterial } from "@alipay/o3-mobile-material";
+import { Texture2D } from "@alipay/o3-material";
+import { Node } from "@alipay/o3-core";
+import { spine, AssetManager, ASpineRenderer } from "@alipay/o3-spine";
 
 let assetManager;
 let atlas;
 let atlasLoader;
 
 const atlasFile =
-"https://gw.alipayobjects.com/os/Naya/b9db5199-3254-46a2-91b2-1759b2141b6c/home/admin/release/app/controller/tmp/temp-dc76800d3a5904332bc6c8e0be83719a/bahe.atlas"
+  "https://gw.alipayobjects.com/os/Naya/b9db5199-3254-46a2-91b2-1759b2141b6c/home/admin/release/app/controller/tmp/temp-dc76800d3a5904332bc6c8e0be83719a/bahe.atlas";
 const skeletonFile =
-"https://gw.alipayobjects.com/os/Naya/1fa818e4-4af4-4d70-8291-a1eb2d54db5b/home/admin/release/app/controller/tmp/temp-dc76800d3a5904332bc6c8e0be83719a/bahe.json"
+  "https://gw.alipayobjects.com/os/Naya/1fa818e4-4af4-4d70-8291-a1eb2d54db5b/home/admin/release/app/controller/tmp/temp-dc76800d3a5904332bc6c8e0be83719a/bahe.json";
 const textureFile =
-"https://gw.alipayobjects.com/zos/Naya/e0d4fef1-9205-48a5-9e1d-9ac5f9c43959/home/admin/release/app/controller/tmp/temp-dc76800d3a5904332bc6c8e0be83719a/bahe.png"
+  "https://gw.alipayobjects.com/zos/Naya/e0d4fef1-9205-48a5-9e1d-9ac5f9c43959/home/admin/release/app/controller/tmp/temp-dc76800d3a5904332bc6c8e0be83719a/bahe.png";
 
-const canvas = document.getElementById('o3-demo');
+const canvas = document.getElementById("o3-demo");
 const world = new World(canvas);
 world.camera.createAbility(AOrbitControls, { canvas });
 world.camera.position = [0, 0, 300];
 
 const loader = new AssetsLoader();
-loader.addAsset('model', {
-  type: 'gltf',
-  url: 'https://gw.alipayobjects.com/os/basement_prod/4974b5b8-b2ba-4767-86e6-e3e61416c88f.gltf',
+loader.addAsset("model", {
+  type: "gltf",
+  url: "https://gw.alipayobjects.com/os/basement_prod/4974b5b8-b2ba-4767-86e6-e3e61416c88f.gltf"
 });
 
-loader.addAsset('decal_texture', {
-  type: 'texture',
-  url: 'https://gw.alicdn.com/tfs/TB1JsjnIBLoK1RjSZFuXXXn0XXa-300-300.png',
+loader.addAsset("decal_texture", {
+  type: "texture",
+  url: "https://gw.alicdn.com/tfs/TB1JsjnIBLoK1RjSZFuXXXn0XXa-300-300.png"
 });
 
 loader.load().then(res => {
@@ -54,18 +50,18 @@ function addShip(model) {
 }
 
 function addLight() {
-  const light = world.createChild('light');
+  const light = world.createChild("light");
   light.position = [3, 3, 5];
   light.setRotationAngles(30, 200, 0);
   light.createAbility(ADirectLight, {
     color: vec3.fromValues(1, 1, 1),
-    intensity: 1.2,
+    intensity: 1.2
   });
-  const light2 = world.createChild('light');
+  const light2 = world.createChild("light");
   light2.position = [3, 3, -5];
   light2.createAbility(ADirectLight, {
     color: vec3.fromValues(1, 1, 1),
-    intensity: 1.2,
+    intensity: 1.2
   });
 }
 

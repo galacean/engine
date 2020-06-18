@@ -1,5 +1,5 @@
-import World from "./World.js";
-import AssetsLoader from "./AssetsLoader.js";
+import World from "./World";
+import AssetsLoader from "./AssetsLoader";
 import { vec3 } from "@alipay/o3-math";
 import { ADirectLight } from "@alipay/o3-lighting";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
