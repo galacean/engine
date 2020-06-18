@@ -39,6 +39,9 @@ export class Transform extends NodeAbility {
   private static _LOCAL_MATRIX_FLAG: number = 0x40;
   private static _WORLD_MATRIX_FLAG: number = 0x80;
   private static _WM_WP_FLAG: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG;
+  /**
+   * _WORLD_MATRIX_FLAG | _WORLD_EULER_FLAG | _WORLD_QUAT_FLAG
+   */
   private static _WM_WE_WQ_FLAG: number =
     Transform._WORLD_MATRIX_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG;
   private static _WM_WP_WE_WQ_FLAG: number =
@@ -300,7 +303,7 @@ export class Transform extends NodeAbility {
       if (this._parent) {
         mat4.multiply(this._worldMatrix, this._parent.worldMatrix, this.localMatrix);
       } else {
-        this._worldMatrix = this.localMatrix;
+        mat4.copy(this._worldMatrix, this.localMatrix);
       }
       this._setDirtyFlag(Transform._WORLD_MATRIX_FLAG, false);
     }
@@ -462,7 +465,7 @@ export class Transform extends NodeAbility {
     }
   }
 
-  private _getParent(node): Transform {
+  private _getParent(node: Node): Transform {
     let parent = node.parentNode;
     let parentTransform = null;
     while (parent) {
@@ -517,7 +520,11 @@ export class Transform extends NodeAbility {
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
    */
   private _updateWorldRotationFlag() {
-    if (!this._getDirtyFlag(Transform._WM_WE_WQ_FLAG)) {
+    if (
+      !this._getDirtyFlag(Transform._WORLD_MATRIX_FLAG) ||
+      !this._getDirtyFlag(Transform._WORLD_EULER_FLAG) ||
+      !this._getDirtyFlag(Transform._WORLD_QUAT_FLAG)
+    ) {
       this._setDirtyFlag(Transform._WM_WE_WQ_FLAG, true);
       for (var i: number = 0, n: number = this._children.length; i < n; i++) {
         this._children[i]._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
