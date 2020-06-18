@@ -38,6 +38,14 @@ export class Transform extends NodeAbility {
 
   private static _LOCAL_MATRIX_FLAG: number = 0x40;
   private static _WORLD_MATRIX_FLAG: number = 0x80;
+  private static _WM_WP_FLAG: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG;
+  private static _WM_WE_WQ_FLAG: number =
+    Transform._WORLD_MATRIX_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG;
+  private static _WM_WP_WE_WQ_FLAG: number =
+    Transform._WORLD_MATRIX_FLAG |
+    Transform._WORLD_POSITION_FLAG |
+    Transform._WORLD_EULER_FLAG |
+    Transform._WORLD_QUAT_FLAG;
 
   // Properties
   private _position: vec3Type = vec3.create();
@@ -472,8 +480,8 @@ export class Transform extends NodeAbility {
    * 综上所描：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为false
    */
   private _updateWorldPositionFlag(): void {
-    if (!this._getDirtyFlag(132 /*_WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG*/)) {
-      this._setDirtyFlag(132 /*_WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG*/, true);
+    if (!this._getDirtyFlag(Transform._WM_WP_FLAG)) {
+      this._setDirtyFlag(Transform._WM_WP_FLAG, true);
       for (var i: number = 0, n: number = this._children.length; i < n; i++) {
         this._children[i]._updateWorldPositionFlag();
       }
@@ -488,8 +496,8 @@ export class Transform extends NodeAbility {
    * 综上所描：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
    */
   private _updateWorldRotationFlag() {
-    if (!this._getDirtyFlag(152 /*_WORLD_MATRIX_FLAG | _WORLD_EULER_FLAG | _WORLD_QUAT_FLAG*/)) {
-      this._setDirtyFlag(152 /*_WORLD_MATRIX_FLAG | _WORLD_EULER_FLAG | _WORLD_QUAT_FLAG*/, true);
+    if (!this._getDirtyFlag(Transform._WM_WE_WQ_FLAG)) {
+      this._setDirtyFlag(Transform._WM_WE_WQ_FLAG, true);
       for (var i: number = 0, n: number = this._children.length; i < n; i++) {
         this._children[i]._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
       }
@@ -504,8 +512,8 @@ export class Transform extends NodeAbility {
    * 综上所描：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix或orldRotationQuaternion）的脏标记为false
    */
   private _updateWorldPositionAndRotationFlag() {
-    if (!this._getDirtyFlag(156 /*_WORLD_MATRIX_FLAG |_WORLD_POSITION_FLAG |_WORLD_EULER_FLAG |_WORLD_QUAT_FLAG*/)) {
-      this._setDirtyFlag(156 /*_WORLD_MATRIX_FLAG |_WORLD_POSITION_FLAG |_WORLD_EULER_FLAG |_WORLD_QUAT_FLAG*/, true);
+    if (!this._getDirtyFlag(Transform._WM_WP_WE_WQ_FLAG)) {
+      this._setDirtyFlag(Transform._WM_WP_WE_WQ_FLAG, true);
     }
     for (var i: number = 0, n: number = this._children.length; i < n; i++) {
       this._children[i]._updateWorldPositionAndRotationFlag();
