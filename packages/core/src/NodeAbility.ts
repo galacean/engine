@@ -38,9 +38,9 @@ export abstract class NodeAbility extends EventDispatcher {
     }
     this._enabled = value;
     if (value) {
-      this._node.activeInHierarchy && this._onEnable();
+      this._node.isActiveInHierarchy && this._onEnable();
     } else {
-      this._node.activeInHierarchy && this._onDisable();
+      this._node.isActiveInHierarchy && this._onDisable();
     }
     // @deprecated
     if (value) {
@@ -81,7 +81,7 @@ export abstract class NodeAbility extends EventDispatcher {
    */
   destroy(): void {
     if (!this._destroyed) return;
-    if (this._node.activeInHierarchy) {
+    if (this._node.isActiveInHierarchy) {
       this._enabled && this._onDisable();
       this._onInActive();
     }
