@@ -109,7 +109,7 @@ export class Transform extends NodeAbility {
       vec3.copy(this._position, value);
     }
     this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG, true);
-    this.node && this._updateWorldPositionFlag();
+    this._updateWorldPositionFlag();
   }
 
   /**
@@ -131,8 +131,9 @@ export class Transform extends NodeAbility {
     if (this._worldPosition !== value) {
       vec3.copy(this._worldPosition, value);
     }
-    if (this._getParentTransform()) {
-      const matWorldToLocal = mat4.invert(Transform._tempMat41, this._getParentTransform().worldMatrix);
+    const parent = this._getParentTransform();
+    if (parent) {
+      const matWorldToLocal = mat4.invert(Transform._tempMat41, parent.worldMatrix);
       vec3.transformMat4(this._worldPosition, value, matWorldToLocal);
     } else {
       vec3.copy(this._worldPosition, value);
@@ -158,7 +159,7 @@ export class Transform extends NodeAbility {
     }
     this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG | Transform._LOCAL_QUAT_FLAG, true);
     this._setDirtyFlag(Transform._LOCAL_EULER_FLAG, false);
-    this.node && this._updateWorldRotationFlag();
+    this._updateWorldRotationFlag();
   }
 
   /**
@@ -206,12 +207,9 @@ export class Transform extends NodeAbility {
    */
   get worldRotationQuaternion(): vec4Type {
     if (this._getDirtyFlag(Transform._WORLD_QUAT_FLAG)) {
-      if (this._getParentTransform() != null) {
-        quat.multiply(
-          this._worldRotationQuaternion,
-          this._getParentTransform().worldRotationQuaternion,
-          this.rotationQuaternion
-        );
+      const parent = this._getParentTransform();
+      if (parent != null) {
+        quat.multiply(this._worldRotationQuaternion, parent.worldRotationQuaternion, this.rotationQuaternion);
       } else {
         quat.copy(this._worldRotationQuaternion, this.rotationQuaternion);
       }
@@ -224,8 +222,9 @@ export class Transform extends NodeAbility {
     if (this._worldRotationQuaternion !== value) {
       quat.copy(this._worldRotationQuaternion, value);
     }
-    if (this._getParentTransform()) {
-      const quatWorldToLocal = mat4.invert(Transform._tempVec4, this._getParentTransform().worldRotationQuaternion);
+    const parent = this._getParentTransform();
+    if (parent) {
+      const quatWorldToLocal = mat4.invert(Transform._tempVec4, parent.worldRotationQuaternion);
       quat.multiply(this._rotationQuaternion, value, quatWorldToLocal);
     } else {
       quat.copy(this._rotationQuaternion, value);
@@ -246,7 +245,7 @@ export class Transform extends NodeAbility {
       vec3.copy(this._scale, value);
     }
     this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG, true);
-    this.node && this._updateWorldScaleFlag();
+    this._updateWorldScaleFlag();
   }
 
   /**
@@ -283,7 +282,7 @@ export class Transform extends NodeAbility {
     mat4.decompose(this._localMatrix, this._position, this._rotationQuaternion, this._scale);
     this._setDirtyFlag(Transform._LOCAL_EULER_FLAG, true);
     this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG, false);
-    this.node && this._updateAllWorldFlag();
+    this._updateAllWorldFlag();
   }
 
   /**
@@ -305,8 +304,9 @@ export class Transform extends NodeAbility {
     if (this._worldMatrix !== value) {
       mat4.copy(this._worldMatrix, value);
     }
-    if (this._getParentTransform()) {
-      const matWorldToLocal = mat4.invert(Transform._tempMat42, this._getParentTransform().worldMatrix);
+    const parent = this._getParentTransform();
+    if (parent) {
+      const matWorldToLocal = mat4.invert(Transform._tempMat42, parent.worldMatrix);
       mat4.multiply(this._localMatrix, value, matWorldToLocal);
     } else {
       mat4.copy(this._localMatrix, value);
@@ -519,7 +519,7 @@ export class Transform extends NodeAbility {
   /**
    * 获取父 transform
    */
-  private _getParentTransform(): Transform | undefined {
+  private _getParentTransform(): Transform | null {
     if (!this._isParentDirty) {
       return this._parentTransformCache;
     }
@@ -533,6 +533,7 @@ export class Transform extends NodeAbility {
         parent = parent._parent;
       }
     }
+    return null;
   }
 
   private _getScaleMatrix(): mat3Type {
