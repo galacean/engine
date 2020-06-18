@@ -9,7 +9,8 @@ export class Transform extends NodeAbility {
   // Temp
   private static _tempVec3: vec3Type = vec3.create();
 
-  private static _tempVec4: vec4Type = vec4.create();
+  private static _tempVec41: vec4Type = vec4.create();
+  private static _tempVec40: vec4Type = vec4.create();
 
   private static _tempMat30: mat3Type = mat3.create();
   private static _tempMat31: mat3Type = mat3.create();
@@ -225,7 +226,7 @@ export class Transform extends NodeAbility {
     }
     const parent = this._getParentTransform();
     if (parent) {
-      const quatWorldToLocal = quat.invert(Transform._tempVec4, parent.worldRotationQuaternion);
+      const quatWorldToLocal = quat.invert(Transform._tempVec41, parent.worldRotationQuaternion);
       quat.multiply(this._rotationQuaternion, value, quatWorldToLocal);
     } else {
       quat.copy(this._rotationQuaternion, value);
@@ -376,7 +377,7 @@ export class Transform extends NodeAbility {
    * @param relativeToLocal - 是否相对局部空间
    */
   rotate(rotation: vec3Type, relativeToLocal: boolean = true): void {
-    const rotateQuat = quat.fromEuler(Transform._tempVec4, rotation[0], rotation[1], rotation[2]);
+    const rotateQuat = quat.fromEuler(Transform._tempVec40, rotation[0], rotation[1], rotation[2]);
     this._rotateByQuat(rotateQuat, relativeToLocal);
   }
 
@@ -388,7 +389,7 @@ export class Transform extends NodeAbility {
    */
   rotateByAxis(axis: vec3Type, angle: number, relativeToLocal: boolean = true): void {
     const rad = (angle * Math.PI) / 180;
-    const rotateQuat = quat.setAxisAngle(Transform._tempVec4, axis, rad);
+    const rotateQuat = quat.setAxisAngle(Transform._tempVec40, axis, rad);
     this._rotateByQuat(rotateQuat, relativeToLocal);
   }
 
@@ -410,7 +411,7 @@ export class Transform extends NodeAbility {
     }
     worldUp = worldUp ?? vec3.set(Transform._tempVec3, 0, 1, 0);
     const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp); //CM:可采用3x3矩阵优化
-    this.worldRotationQuaternion = mat4.getRotation(Transform._tempVec4, modelMatrix); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
+    this.worldRotationQuaternion = mat4.getRotation(Transform._tempVec40, modelMatrix); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
   }
 
   /**
@@ -536,7 +537,7 @@ export class Transform extends NodeAbility {
   }
 
   private _getScaleMatrix(): mat3Type {
-    const invRotation = Transform._tempVec4;
+    const invRotation = Transform._tempVec40;
     const invRotationMat = Transform._tempMat30;
     const worldRotScaMat = Transform._tempMat31;
     const scaMat = Transform._tempMat32;
