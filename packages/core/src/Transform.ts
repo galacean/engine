@@ -410,7 +410,7 @@ export class Transform extends NodeAbility {
     }
     worldUp = worldUp ?? vec3.set(Transform._tempVec3, 0, 1, 0);
     const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp); //CM:可采用3x3矩阵优化
-    this.worldRotationQuaternion = mat4.getRotation(Transform._tempVec4, modelMatrix);
+    this.worldRotationQuaternion = mat4.getRotation(Transform._tempVec4, modelMatrix); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
   }
 
   /**
