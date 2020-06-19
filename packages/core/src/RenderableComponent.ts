@@ -36,7 +36,7 @@ export abstract class RenderableComponent extends NodeAbility {
 
   _onInActive() {
     if (this._overrideOnUpdate || this._overrideUpdate) {
-      this.scene._componentsManager.removeOnUpdateComponent(this);
+      this.scene._componentsManager.removeOnUpdateRenderers(this);
     }
     this.scene._componentsManager.removeRenderer(this);
   }
