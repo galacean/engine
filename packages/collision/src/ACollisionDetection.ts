@@ -158,7 +158,7 @@ export class ACollisionDetection extends NodeAbility {
   /**
    * 在 start 事件时，查找其他组件并记录下来
    */
-  _onStart() {
+  _onAwake() {
     this._colliderManager = this.scene.findFeature(ColliderFeature);
     this._myCollider = this.node.findAbilityByType(ACollider);
   }
