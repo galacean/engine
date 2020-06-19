@@ -8,7 +8,7 @@ interface Props {
   data?: Prop;
   assetType?: AssetType;
   url?: string;
-  urls?: Array<string>;
+  urls?: Array<string> | string[][];
 }
 
 /**
@@ -24,7 +24,7 @@ export class Resource extends EventDispatcher {
   public assetType: AssetType;
   public loaded: boolean;
   public loading: boolean;
-  private _file: { url: string | void; urls: Array<string> | void };
+  private _file: { url: string | void; urls: Array<string> | string[][] | null };
 
   /**
    * 资源
@@ -93,7 +93,7 @@ export class Resource extends EventDispatcher {
    * 获取文件地址
    * @returns url 文件地址
    */
-  get fileUrl(): string | Array<string> | void {
+  get fileUrl(): string | Array<string> | string[][] | null {
     return this._file.url || this._file.urls;
   }
 
@@ -101,7 +101,7 @@ export class Resource extends EventDispatcher {
    * 获取资源对象
    * @returns asset 资源对象
    */
-  get asset(): Prop | void {
+  get asset(): Prop | null {
     // return default asset
     if (this.assets && this.assets[0]) {
       return this.assets[0];
@@ -112,7 +112,7 @@ export class Resource extends EventDispatcher {
    * 设置资源对象
    * @param asset 资源对象
    */
-  set asset(asset: Prop | void) {
+  set asset(asset: Prop | null) {
     if (!asset) {
       this.assets[0] = undefined;
     } else {

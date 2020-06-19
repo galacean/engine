@@ -29,15 +29,15 @@ export class CylinderGeometry extends BufferGeometry {
    * @param {number} thetaLength 圆形扇区的中心角，通常称为theta。 默认值为2 * Pi，这样可以获得完整的柱面。
    */
   constructor(
-    radiusTop,
-    radiusBottom,
-    height,
-    radialSegments,
-    heightSegments,
-    openEnded,
-    thetaStart,
-    thetaLength,
-    frontFace
+    radiusTop?: number,
+    radiusBottom?: number,
+    height?: number,
+    radialSegments?: number,
+    heightSegments?: number,
+    openEnded?: boolean,
+    thetaStart?: number,
+    thetaLength?: number,
+    frontFace?: FrontFace
   ) {
     super();
     this.FrontFace = frontFace || FrontFace.CCW;
