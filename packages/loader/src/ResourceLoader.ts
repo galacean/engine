@@ -23,7 +23,7 @@ export class ResourceLoader extends EventDispatcher {
    * @param {Engine} engine 引擎实例
    * @param request 自定义请求库 默认使用 o3-request
    */
-  constructor(engine: Engine, request: Request) {
+  constructor(engine: Engine, request?: Request) {
     super();
 
     this.handlers = handlers;
