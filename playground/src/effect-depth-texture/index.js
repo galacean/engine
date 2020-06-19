@@ -1,4 +1,4 @@
-import { Engine } from '@alipay/o3-core';
+import { Engine, Script } from '@alipay/o3-core';
 import { ADefaultCamera } from '@alipay/o3-default-camera';
 import { AGeometryRenderer } from '@alipay/o3-geometry';
 import { SphereGeometry } from '@alipay/o3-geometry-shape';
@@ -13,6 +13,17 @@ import { WaterMaterial } from "./WaterMaterial";
 import { PlaneGeometry } from "../common/PlaneGeometry";
 import { ASpriteRenderer } from "@alipay/o3-2d";
 import '@alipay/o3-loader-gltf';
+
+class MoveScript extends Script {
+  sphere;
+  engine;
+  onUpdate()
+  {
+    let p = this.sphere.position;
+    let t = this.engine.time.timeSinceStartup * 0.001;
+    this.sphere.position = vec3.fromValues(p[0], Math.sin(t) * 2 - 1, p[2]);
+  }
+}
 
 
 
@@ -90,13 +101,9 @@ waterMtl.setValue('u_depthTexture', renderTarget.depthTexture);
 // 创建球体, 控制球体上下运动
 let sphere = createSphereGeometry('sphere3', [0, 0, 0], 1, 20, 20);
 sphere.castShadow = true;
-sphere.onUpdate = ()=>{
-
-  let p = sphere.position;
-  let t = engine.time.timeSinceStartup * 0.001;
-  sphere.position = vec3.fromValues(p[0], Math.sin(t) * 2 - 1, p[2]);
-
-};
+const moveScript= sphere.addComponent(MoveScript);
+moveScript.sphere=sphere;
+moveScript.engine=engine;
 
 // 创建平面形的水面
 let plane = createPlaneGeometry('plane', [0, -2, 0], 6);
