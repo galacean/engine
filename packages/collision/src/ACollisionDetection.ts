@@ -27,7 +27,7 @@ export class ACollisionDetection extends NodeAbility {
     this._myCollider = null;
     this._overlopCollider = null;
 
-    this.addEventListener("start", this._onStart);
+    // this.addEventListener("start", this._onStart);
   }
 
   /**

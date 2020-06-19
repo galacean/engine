@@ -4,7 +4,6 @@ import { vec3 } from "@alipay/o3-math";
 import { Node } from "./Node";
 
 /**
- * @internal
  * 可渲染的组件。
  */
 export abstract class RenderableComponent extends NodeAbility {
