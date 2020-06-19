@@ -1,5 +1,5 @@
 import { Logger } from '@alipay/o3-base';
-import { Engine } from '@alipay/o3-core';
+import { Engine,Script} from '@alipay/o3-core';
 import { ADefaultCamera } from '@alipay/o3-default-camera';
 import { AGeometryRenderer } from '@alipay/o3-geometry';
 import { SphereGeometry, CuboidGeometry } from '@alipay/o3-geometry-shape';
@@ -11,6 +11,21 @@ import { ResourceLoader, Resource } from '@alipay/o3-loader';
 import { SeaMaterial } from './SeaMaterial';
 
 import * as dat from 'dat.gui';
+
+class OceanScript extends Script {
+  mtl;
+  onUpdate()
+  {
+    mtl.setValue('u_sea_height', controls.sea_height);
+    mtl.setValue('u_water_scale', controls.water_scale);
+    mtl.setValue('u_water_speed', controls.water_speed);
+  
+    let base = vec3.create();
+    mtl.setValue('u_sea_base', vec3.scale(base, controls.sea_base, 1.0 / 256.));
+    let wColor = vec3.create();
+    mtl.setValue('u_water_color', vec3.scale(wColor, controls.water_color, 1.0 / 256.));
+  }
+}
 
 
 Logger.enable();
@@ -64,16 +79,7 @@ gui.addColor(controls, 'water_color');
 gui.addColor(controls, 'sea_base');
 gui.domElement.style = 'position:absolute;top:0px;right:300px';
 
-rootNode.onUpdate = () => {
-  mtl.setValue('u_sea_height', controls.sea_height);
-  mtl.setValue('u_water_scale', controls.water_scale);
-  mtl.setValue('u_water_speed', controls.water_speed);
-
-  let base = vec3.create();
-  mtl.setValue('u_sea_base', vec3.scale(base, controls.sea_base, 1.0 / 256.));
-  let wColor = vec3.create();
-  mtl.setValue('u_water_color', vec3.scale(wColor, controls.water_color, 1.0 / 256.));
-};
+rootNode.addComponent(OceanScript).mtl=mtl;
 
 // 创建球体形的海面
 createSphereGeometry('sphere3', [0, 0, 0], 3, 50, 50);
