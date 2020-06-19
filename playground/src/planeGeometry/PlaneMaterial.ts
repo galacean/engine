@@ -1,15 +1,15 @@
-import { UniformSemantic, DataType, RenderState, BlendFunc } from '@alipay/o3-base';
-import { Material, RenderTechnique } from '@alipay/o3-material';
+import { UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-base";
+import { Material, RenderTechnique } from "@alipay/o3-material";
 
 export default function createShapeMaterial() {
-  let newMtl = new Material('shape_mtl');
+  let newMtl = new Material("shape_mtl");
   newMtl.technique = requireShapeTechnique();
   return newMtl;
 }
 
 function requireShapeTechnique() {
   /** Technique 对象的资源名称 */
-  const TECH_NAME = 'shape_tech';
+  const TECH_NAME = "shape_tech";
 
   //-- 创建一个新的 Technique
   const VERT_SHADER = `
@@ -46,43 +46,43 @@ function requireShapeTechnique() {
   const TECH_CONFIG = {
     attributes: {
       a_position: {
-        name: 'a_position',
-        semantic: 'POSITION',
+        name: "a_position",
+        semantic: "POSITION",
         type: DataType.FLOAT_VEC3
       },
       a_normal: {
-        name: 'a_normal',
-        semantic: 'NORMAL',
+        name: "a_normal",
+        semantic: "NORMAL",
         type: DataType.FLOAT_VEC3
       },
       a_uv: {
-        name: 'a_uv',
-        semantic: 'TEXCOORD_0',
+        name: "a_uv",
+        semantic: "TEXCOORD_0",
         type: DataType.FLOAT_VEC2
       }
     },
     uniforms: {
       matModelViewProjection: {
-        name: 'matModelViewProjection',
+        name: "matModelViewProjection",
         semantic: UniformSemantic.MODELVIEWPROJECTION,
-        type: DataType.FLOAT_MAT4,
+        type: DataType.FLOAT_MAT4
       },
       s_diffuse: {
-        name: 's_diffuse',
-        type: DataType.SAMPLER_2D,
+        name: "s_diffuse",
+        type: DataType.SAMPLER_2D
       }
     },
     states: {
-      disable:[RenderState.CULL_FACE],
+      disable: [RenderState.CULL_FACE],
       enable: [RenderState.BLEND],
       functions: {
         blendFunc: [BlendFunc.ONE, BlendFunc.ONE_MINUS_SRC_ALPHA],
-        depthMask: [DataType.FALSE]
+        depthMask: [false]
       }
     }
   };
 
-   //--
+  //--
   let tech = new RenderTechnique(TECH_NAME);
   tech.isValid = true;
   tech.vertexShader = VERT_SHADER;

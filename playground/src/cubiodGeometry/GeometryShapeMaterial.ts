@@ -4,7 +4,7 @@ import { Resource } from "@alipay/o3-loader";
 
 export default function createShapeMaterial(loader) {
   let newMtl = new Material("shape_mtl");
-  newMtl.technique = requireShapeTechnique(loader);
+  newMtl.technique = requireShapeTechnique(loader) as any;
   return newMtl;
 }
 

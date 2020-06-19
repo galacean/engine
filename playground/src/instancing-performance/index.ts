@@ -47,7 +47,7 @@ function initInstanced() {
 function initNonInstanced() {
   const cubeGroup = rootNode.createChild("cube");
   for (let i = 0; i < config.count; i++) {
-    const cube = cubeGroup.createChild();
+    const cube = cubeGroup.createChild("");
     const offset = [Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1];
     cube.position = [offset[0] * 13, offset[1] * 13, offset[2] * 13];
     const cubeRenderer = cube.createAbility(AGeometryRenderer);

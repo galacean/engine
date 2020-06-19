@@ -25,6 +25,6 @@ const textureRes = textureList.map(
     })
 );
 
-const cubeTextures = {};
-const textures = {};
+const cubeTextures: any = {};
+const textures: any = {};
 export { cubeTextureList, textureList, cubeTextureRes, textureRes, cubeTextures, textures };

@@ -52,7 +52,6 @@ resourceLoader.batchLoad(ResourceList, (err, res) => {
   }
 
   const lut = res[1].asset;
-  envLight.brdfMap = lut;
   envLight.diffuseMap = res[2].asset;
   envLight.specularMap = res[3].asset;
 

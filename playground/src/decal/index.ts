@@ -26,7 +26,7 @@ world.camera.lookAt([0, 0, 0], [0, 1, 0]);
 const mouseHelper = world.createChild("mouseHelper");
 const renderer = mouseHelper.createAbility(AGeometryRenderer);
 renderer.geometry = new CuboidGeometry(0.5, 0.5, 5);
-const mtl = new LambertMaterial("mouseHelper_mtl", false);
+const mtl = new LambertMaterial("mouseHelper_mtl");
 mtl.diffuse = [1, 0, 0, 1];
 renderer.setMaterial(mtl);
 mouseHelper.isActive = false;
@@ -66,7 +66,7 @@ loader.load().then(res => {
   addLight();
   initUI();
   rayCastEvent(model);
-  addGeometryEvent(model);
+  addGeometryEvent();
   world.start();
 });
 

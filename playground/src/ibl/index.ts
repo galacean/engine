@@ -57,8 +57,8 @@ const textureRes = textureList.map(
       url: `/static/texture/${name}`
     })
 );
-const cubeTextures = {};
-const textures = {};
+const cubeTextures: any = {};
+const textures: any = {};
 
 resourceLoader.batchLoad(cubeTextureRes, (err, reses) => {
   cubeTextureList.forEach((name, index) => {

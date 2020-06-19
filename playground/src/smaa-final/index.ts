@@ -1,16 +1,16 @@
 /**
  * 本示例展示如何使用几何体渲染器功能、如何创建几何体资源对象、如何创建材质对象
  */
-import { Engine } from '@alipay/o3-core';
-import { ADefaultCamera } from '@alipay/o3-default-camera';
-import { AGeometryRenderer } from '@alipay/o3-geometry';
-import '@alipay/o3-engine-stats';
-import createCubeGeometry from './geometry';
-import createCubeMaterial from '../common/geometryMaterial';
-import ARotation from '../common/ARotation';
-import { ResourceLoader } from '@alipay/o3-loader';
-import { PostProcessFeature, SMAAEffect, VignetteEffect } from '@alipay/o3-post-processing';
-import { Logger } from '@alipay/o3-base';
+import { Engine } from "@alipay/o3-core";
+import { ADefaultCamera } from "@alipay/o3-default-camera";
+import { AGeometryRenderer } from "@alipay/o3-geometry";
+import "@alipay/o3-engine-stats";
+import createCubeGeometry from "./geometry";
+import createCubeMaterial from "../common/geometryMaterial";
+import ARotation from "../common/ARotation";
+import { ResourceLoader } from "@alipay/o3-loader";
+import { PostProcessFeature, SMAAEffect, VignetteEffect } from "@alipay/o3-post-processing";
+import { Logger } from "@alipay/o3-base";
 
 Logger.enable();
 
@@ -28,28 +28,43 @@ const rootNode3 = scene3.root;
 const resourceLoader = new ResourceLoader(engine);
 
 // 在场景中创建相机节点、配置位置和目标方向
-const cameraNode = rootNode.createChild('camera_node');
+const cameraNode = rootNode.createChild("camera_node");
 const pixelRatio = 2;
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, 10, 20], target: [0, 0, 0], pixelRatio, attributes: { antialias: true }
+  canvas: "o3-demo",
+  position: [0, 10, 20],
+  target: [0, 0, 0],
+  pixelRatio,
+  attributes: { antialias: true }
 });
-camera.setViewport(0 * pixelRatio , 320 * pixelRatio , 240  * pixelRatio, 320 * pixelRatio );
+camera.setViewport(0 * pixelRatio, 320 * pixelRatio, 240 * pixelRatio, 320 * pixelRatio);
 
-const cameraNode1 = rootNode1.createChild('camera');
+const cameraNode1 = rootNode1.createChild("camera");
 let camera1 = cameraNode1.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, 10, 20], target: [0, 0, 0], pixelRatio, //clearMode: 0
+  canvas: "o3-demo",
+  position: [0, 10, 20],
+  target: [0, 0, 0],
+  pixelRatio //clearMode: 0
 });
-camera1.setViewport( 240 * pixelRatio , 320 * pixelRatio , 240 * pixelRatio , 320 * pixelRatio  );
+camera1.setViewport(240 * pixelRatio, 320 * pixelRatio, 240 * pixelRatio, 320 * pixelRatio);
 
-const cameraNode2 = rootNode2.createChild('camera_node');
+const cameraNode2 = rootNode2.createChild("camera_node");
 let camera2 = cameraNode2.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, 10, 20], target: [0, 0, 0], pixelRatio, attributes: { antialias: true }, clearMode:0
+  canvas: "o3-demo",
+  position: [0, 10, 20],
+  target: [0, 0, 0],
+  pixelRatio,
+  attributes: { antialias: true },
+  clearMode: 0
 });
 camera2.setViewport(0 * pixelRatio, 0 * pixelRatio, 240 * pixelRatio, 320 * pixelRatio);
 
-const cameraNode3 = rootNode3.createChild('camera_node');
+const cameraNode3 = rootNode3.createChild("camera_node");
 let camera3 = cameraNode3.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, 10, 20], target: [0, 0, 0], pixelRatio,
+  canvas: "o3-demo",
+  position: [0, 10, 20],
+  target: [0, 0, 0],
+  pixelRatio
 });
 camera3.setViewport(240 * pixelRatio, 0 * pixelRatio, 240 * pixelRatio, 320 * pixelRatio);
 
@@ -89,15 +104,15 @@ const cubeRenderer3 = cube3.createAbility(AGeometryRenderer);
 cubeRenderer3.geometry = createCubeGeometry(3);
 cubeRenderer3.setMaterial(createCubeMaterial(resourceLoader));
 
-const postProcess = scene1.findFeature(PostProcessFeature);
-postProcess.initRT(240 * pixelRatio, 320 * pixelRatio, {clearMode:0});
+const postProcess: any = scene1.findFeature(PostProcessFeature);
+postProcess.initRT(240 * pixelRatio, 320 * pixelRatio, { clearMode: 0 });
 
 const vignette = new VignetteEffect(postProcess);
 postProcess.addEffect(vignette);
 vignette.color = [0.1, 0, 0];
 
-const postProcess1 = scene3.findFeature(PostProcessFeature);
-postProcess1.initRT(240 * pixelRatio, 320 * pixelRatio, {clearMode:0});
+const postProcess1: any = scene3.findFeature(PostProcessFeature);
+postProcess1.initRT(240 * pixelRatio, 320 * pixelRatio, { clearMode: 0 });
 
 const smaa = new SMAAEffect(postProcess1);
 postProcess1.addEffect(smaa);

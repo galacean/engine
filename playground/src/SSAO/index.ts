@@ -34,7 +34,7 @@ let scene = engine.currentScene;
 let rootNode = scene.root;
 
 //-- create  material
-let mtl = new LambertMaterial("building_mtl", false);
+let mtl = new LambertMaterial("building_mtl");
 mtl.diffuse = vec4.fromValues(0.5, 0.5, 0.5, 1);
 mtl.ambient = vec4.fromValues(0.4, 0.6, 0.75, 1);
 
@@ -69,7 +69,7 @@ var camera = cameraNode.createAbility(ADefaultCamera, {
   fov: 90.0,
   clearParam: [0.0, 0.0, 0.0, 1.0]
 });
-cameraNode.lookAt(vec3.fromValues(0, 0, 0), (0, 1, 0));
+cameraNode.lookAt(vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
 cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("o3-demo") });
 
 let node = rootNode.createChild("gltf_node");
@@ -85,7 +85,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
 let rtSize = 2048;
 let depthPack = true;
 
-const postProcess = scene.findFeature(PostProcessFeature);
+const postProcess: any = scene.findFeature(PostProcessFeature);
 postProcess.initRT(rtSize, rtSize);
 
 const ssao = new SSAOEffect(postProcess, { depthPack: depthPack, rtSize: rtSize });

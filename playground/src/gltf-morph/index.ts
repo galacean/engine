@@ -188,7 +188,7 @@ class MorphAnimation extends NodeAbility {
   onStart() {
     const renderer = this.node.findAbilityByType(ASkinnedMeshRenderer);
     this.renderer = renderer;
-    this.weights = renderer._skin.joints.map(() => 0);
+    this.weights = renderer.skin.joints.map(() => 0);
     this.currentTime = 0;
   }
 

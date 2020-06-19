@@ -36,26 +36,6 @@ export class AHUDProgressBar extends AHUDWidget {
     this._textFillStyle = "white";
   }
 
-  /**
-
-   */
-  initialize(hudRenderer, spriteID, bgImage, fgImage, screenSize, textureSize) {
-    super.initialize(hudRenderer, spriteID);
-
-    this._bgImage = bgImage;
-    this._fgImage = fgImage;
-
-    this._spriteRect.width = textureSize[0];
-    this._spriteRect.height = textureSize[1];
-
-    this._range = [0, 100];
-    this._value = 0;
-
-    this._text = "";
-    this._font = "48px monospace";
-    this._textFillStyle = "white";
-  }
-
   get text() {
     return this._text;
   }

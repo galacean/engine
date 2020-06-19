@@ -2,6 +2,7 @@
 
 import { DataType, BufferUsage, DrawMode } from "@alipay/o3-base";
 import { AGeometryRenderer, BufferGeometry } from "@alipay/o3-geometry";
+import { vec3 } from "@alipay/o3-math";
 
 export class APointRenderer extends AGeometryRenderer {
   public _maxPointNumber: any;

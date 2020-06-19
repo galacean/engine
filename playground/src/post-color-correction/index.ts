@@ -54,13 +54,12 @@ resourceLoader.batchLoad(ResourceList, (err, res) => {
   const lut = res[1].asset;
   let envLightNode = rootNode.createChild("env_light");
   let envLight = envLightNode.createAbility(AEnvironmentMapLight);
-  envLight.brdfMap = lut;
   envLight.diffuseMap = res[2].asset;
   envLight.specularMap = res[3].asset;
   node.createAbility(ASkyBox, { skyBoxMap: res[4].asset });
 
   //-- post processing
-  const postProcess = scene.findFeature(PostProcessFeature);
+  const postProcess: any = scene.findFeature(PostProcessFeature);
   postProcess.initRT();
 
   const colorX = new ColorCorrectionEffect(postProcess);

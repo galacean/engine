@@ -37,10 +37,10 @@ let directLight = light2.createAbility(ADirectLight, {
   color: vec3.fromValues(0.25, 0.25, 0.25),
   intensity: 1.0
 });
-directLight.enableShadow = true;
-directLight.shadow.setMapSize(1024, 1024);
-directLight.shadow.intensity = 0.35;
-mat4.ortho(directLight.shadow.projectionMatrix, -200, 200, -200, 200, 0.1, 1000);
+directLight["enableShadow"] = true;
+directLight["shadow"].setMapSize(1024, 1024);
+directLight["shadow"].intensity = 0.35;
+mat4.ortho(directLight["shadow"].projectionMatrix, -200, 200, -200, 200, 0.1, 1000);
 
 let envLightNode = rootNode.createChild("env_light");
 let envLight = envLightNode.createAbility(AEnvironmentMapLight);
@@ -186,11 +186,10 @@ resourceLoader.batchLoad([gltfRes, lutRes, diffuseMapRes, specularMapRes, cubeMa
   const glb = res[0];
   const nodes = glb.asset.rootScene.nodes;
 
-  const postProcess = scene.findFeature(PostProcessFeature);
+  const postProcess: any = scene.findFeature(PostProcessFeature);
   postProcess.initRT(3000, 3000);
 
   const lut = res[1].asset;
-  envLight.brdfMap = lut;
   envLight.diffuseMap = res[2].asset;
   envLight.specularMap = res[3].asset;
 

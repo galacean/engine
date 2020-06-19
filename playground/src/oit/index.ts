@@ -124,7 +124,7 @@ function debugModel(modelUrl, onLoad?) {
       materials.push(material);
     });
 
-    addSceneGUI({ envLight, lights: [directLight, directLight2], skybox, meshes, materials });
+    addSceneGUI({ envLight, lights: [directLight, directLight2], skybox, meshes, materials, controler, camera });
     // addMobileGUI(materials);
     addPBRGUI(materials);
     onLoad && onLoad(res);

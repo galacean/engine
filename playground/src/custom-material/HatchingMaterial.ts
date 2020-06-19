@@ -6,59 +6,9 @@ import VertShaderSource from "./Vert.glsl";
 import FragShaderSource from "./Frag.glsl";
 
 export class HatchingMaterial extends Material {
-  public mainLight: any;
-  public texHatch0: any;
-  public texHatch1: any;
-  public texHatch2: any;
-  public texHatch3: any;
-  public texHatch4: any;
-  public texHatch5: any;
-  public titling: any;
-
-  constructor(name, mainLight) {
-    super(name);
-
-    const lgtUniforms = ADirectLight.getUniformDefine("u_mainLight");
-
-    //--
-    let tech = new RenderTechnique("hatching");
-    tech.isValid = true;
-    tech.vertexShader = HatchingMaterial.vertexShader;
-    tech.fragmentShader = HatchingMaterial.fragmentShader;
-    tech.attributes = HatchingMaterial.attributes;
-    tech.uniforms = { ...HatchingMaterial.uniforms, ...lgtUniforms };
-    this._technique = tech;
-
-    this.mainLight = mainLight;
-    this.texHatch0 = null;
-    this.texHatch1 = null;
-    this.texHatch2 = null;
-    this.texHatch3 = null;
-    this.texHatch4 = null;
-    this.texHatch5 = null;
-
-    this.titling = 1.0;
-  }
-
-  prepareDrawing(camera, component) {
-    this.setValue("u_hatch0", this.texHatch0);
-    this.setValue("u_hatch1", this.texHatch1);
-    this.setValue("u_hatch2", this.texHatch2);
-    this.setValue("u_hatch3", this.texHatch3);
-    this.setValue("u_hatch4", this.texHatch4);
-    this.setValue("u_hatch5", this.texHatch5);
-
-    this.setValue("u_titling", this.titling);
-    this.mainLight.bindMaterialValues(this, "u_mainLight");
-
-    super.prepareDrawing(camera, component);
-  }
-}
-
-Object.assign(HatchingMaterial, {
-  vertexShader: VertShaderSource,
-  fragmentShader: FragShaderSource,
-  attributes: {
+  static vertexShader = VertShaderSource;
+  static fragmentShader = FragShaderSource;
+  static attributes = {
     a_position: {
       name: "a_position",
       semantic: "POSITION",
@@ -74,8 +24,8 @@ Object.assign(HatchingMaterial, {
       semantic: "TEXCOORD_0",
       type: DataType.FLOAT_VEC2
     }
-  },
-  uniforms: {
+  };
+  static uniforms = {
     u_titling: {
       name: "u_titling",
       type: DataType.FLOAT
@@ -124,5 +74,52 @@ Object.assign(HatchingMaterial, {
       name: "u_hatch5",
       type: DataType.SAMPLER_2D
     }
+  };
+  public mainLight: any;
+  public texHatch0: any;
+  public texHatch1: any;
+  public texHatch2: any;
+  public texHatch3: any;
+  public texHatch4: any;
+  public texHatch5: any;
+  public titling: any;
+
+  constructor(name, mainLight) {
+    super(name);
+
+    const lgtUniforms = ADirectLight.getUniformDefine("u_mainLight");
+
+    //--
+    let tech = new RenderTechnique("hatching");
+    tech.isValid = true;
+    tech.vertexShader = HatchingMaterial.vertexShader;
+    tech.fragmentShader = HatchingMaterial.fragmentShader;
+    tech.attributes = HatchingMaterial.attributes;
+    tech.uniforms = { ...HatchingMaterial.uniforms, ...lgtUniforms };
+    this._technique = tech;
+
+    this.mainLight = mainLight;
+    this.texHatch0 = null;
+    this.texHatch1 = null;
+    this.texHatch2 = null;
+    this.texHatch3 = null;
+    this.texHatch4 = null;
+    this.texHatch5 = null;
+
+    this.titling = 1.0;
   }
-});
+
+  prepareDrawing(camera, component) {
+    this.setValue("u_hatch0", this.texHatch0);
+    this.setValue("u_hatch1", this.texHatch1);
+    this.setValue("u_hatch2", this.texHatch2);
+    this.setValue("u_hatch3", this.texHatch3);
+    this.setValue("u_hatch4", this.texHatch4);
+    this.setValue("u_hatch5", this.texHatch5);
+
+    this.setValue("u_titling", this.titling);
+    this.mainLight.bindMaterialValues(this, "u_mainLight");
+
+    super.prepareDrawing(camera, component, null);
+  }
+}

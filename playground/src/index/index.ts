@@ -1,16 +1,17 @@
-import './index.less';
+import "./index.less";
 // import {markdown} from 'markdown';
+declare let ITEMLIST: any;
 
-let iframe = document.getElementById('viewport');
-let container = document.getElementById('itemList');
-let searchBar = document.getElementById('searchBar');
-let prefab = document.getElementById('itemPrefab').cloneNode(true);
-prefab.classList.remove('hide');
+let iframe = document.getElementById("viewport");
+let container = document.getElementById("itemList");
+let searchBar: any = document.getElementById("searchBar");
+let prefab: any = document.getElementById("itemPrefab").cloneNode(true);
+prefab.classList.remove("hide");
 let doms = [];
 
 ITEMLIST.forEach(({ img, name, readme }, index) => {
-  let cloneNode = prefab.cloneNode(true);
-  let titleNode = cloneNode.getElementsByClassName('title')[0];
+  let cloneNode: any = prefab.cloneNode(true);
+  let titleNode = cloneNode.getElementsByClassName("title")[0];
   // let mdNode = cloneNode.getElementsByClassName('md')[0];
   // let content = markdown.toHTML(readme);
   // mdNode.innerHTML=content;
@@ -18,20 +19,18 @@ ITEMLIST.forEach(({ img, name, readme }, index) => {
     clickItem(name);
   };
   titleNode.innerHTML = name;
-  titleNode.setAttribute('title', name);
+  titleNode.setAttribute("title", name);
   if (img) {
-    let avatarNode = clone.getElementsByClassName('avatar')[0];
+    let avatarNode = cloneNode.getElementsByClassName("avatar")[0];
     let imgUrl = null;
-    if (img === 'jpg') {
+    if (img === "jpg") {
       imgUrl = require(`../${name}/avatar.jpg`);
-    } else if (img === 'png') {
+    } else if (img === "png") {
       imgUrl = require(`../${name}/avatar.png`);
     }
-    avatarNode.setAttribute('style',
-      `background-image:url(${imgUrl})`
-    );
+    avatarNode.setAttribute("style", `background-image:url(${imgUrl})`);
   } else {
-    cloneNode.classList.add('simple');
+    cloneNode.classList.add("simple");
   }
 
   container.appendChild(cloneNode);
@@ -48,19 +47,18 @@ ITEMLIST.forEach(({ img, name, readme }, index) => {
   }
 });
 
-searchBar.oninput = (() => {
+searchBar.oninput = () => {
   updateFilter(searchBar.value);
-});
+};
 
 function updateFilter(value) {
-  let reg = new RegExp(value, 'i');
+  let reg = new RegExp(value, "i");
   doms.forEach(({ dom, name, readme }) => {
     // if (reg.test(name) || reg.test(readme)) {
     if (reg.test(name)) {
-      dom.classList.remove('hide');
-    }
-    else {
-      dom.classList.add('hide');
+      dom.classList.remove("hide");
+    } else {
+      dom.classList.add("hide");
     }
   });
 }
@@ -75,22 +73,22 @@ function clickItem(itemName) {
 }
 
 function getPageNameFromHash() {
-  let pageName = '';
+  let pageName = "";
   let hash = window.location.hash;
   if (hash) {
-    pageName = hash.split('#')[1];
+    pageName = hash.split("#")[1];
   }
   return pageName;
 }
 
 function onHashChange() {
   let pageName = getPageNameFromHash();
-  iframe.setAttribute('src', pageName + '.html');
+  iframe.setAttribute("src", pageName + ".html");
   doms.forEach(({ dom, name }) => {
     if (name === pageName) {
-      dom.classList.add('pick');
+      dom.classList.add("pick");
     } else {
-      dom.classList.remove('pick');
+      dom.classList.remove("pick");
     }
   });
 }

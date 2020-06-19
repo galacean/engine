@@ -3,17 +3,16 @@ import { vec3 } from "@alipay/o3-math";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
-import { TextureFilter, TextureWrapMode } from "@alipay/o3-core";
 import { AAnimation, AnimationEvent, WrapMode } from "@alipay/o3-animation";
 import "@alipay/o3-hud";
-import { AAmbientLight } from '@alipay/o3-lighting';
-import {RegistExtension} from '@alipay/o3-loader-gltf';
-import {PBRMaterial} from '@alipay/o3-pbr';
+import { AAmbientLight } from "@alipay/o3-lighting";
+import { RegistExtension } from "@alipay/o3-loader-gltf";
+import { PBRMaterial } from "@alipay/o3-pbr";
 
 import { AHUDLabel } from "../common/AHUDLabel";
 import "@alipay/o3-engine-stats";
 
-RegistExtension({PBRMaterial});
+RegistExtension({ PBRMaterial });
 
 //-- create engine object
 let engine = new Engine();
@@ -24,10 +23,10 @@ let rootNode = scene.root;
 // 在节点树上创建一个灯光节点
 var props = {
   color: [1.0, 1.0, 1.0],
-  intensity: 3,
-}; 
+  intensity: 3
+};
 
-var ambientLight = rootNode.createChild("ambient"); 
+var ambientLight = rootNode.createChild("ambient");
 ambientLight.createAbility(AAmbientLight, props);
 
 //-- create camera
@@ -41,17 +40,19 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
 // load resource config
 const animationRes = new Resource("huabei", {
   type: "gltf",
-  url: "https://gw.alipayobjects.com/os/loanprod/bf055064-3eec-4d40-bce0-ddf11dfbb88a/5d78db60f211d21a43834e23/4f5e6bb277dd2fab8e2097d7a418c5bc.gltf"
+  url:
+    "https://gw.alipayobjects.com/os/loanprod/bf055064-3eec-4d40-bce0-ddf11dfbb88a/5d78db60f211d21a43834e23/4f5e6bb277dd2fab8e2097d7a418c5bc.gltf"
 });
 
-const textureRes = new Resource('baseColor', {
-  type: 'texture',
-  url: 'https://gw-office.alipayobjects.com/basement_prod/3c140e43-e7d8-4c51-999e-1f68218afc54.jpg'
+const textureRes = new Resource("baseColor", {
+  type: "texture",
+  url: "https://gw-office.alipayobjects.com/basement_prod/3c140e43-e7d8-4c51-999e-1f68218afc54.jpg"
 });
 
 const animationRes2 = new Resource("mayi", {
   type: "gltf",
-  url: "https://gw.alipayobjects.com/os/loanprod/238fd5a7-6018-40f3-8049-1e773049a322/5e06ed963a414a17a737e070/1a69181086191d564de6f8a891a610f8.gltf"
+  url:
+    "https://gw.alipayobjects.com/os/loanprod/238fd5a7-6018-40f3-8049-1e773049a322/5e06ed963a414a17a737e070/1a69181086191d564de6f8a891a610f8.gltf"
 });
 
 const resourceLoader = new ResourceLoader(engine);
@@ -64,15 +65,15 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
 
   // 加上纹理
   gltf.asset.meshes.forEach((mesh, i) => {
-    const {material} = mesh.primitives[0];
+    const { material } = mesh.primitives[0];
     material.baseColorTexture = texture.asset;
-  })
+  });
 
   huabei.rotateByAngles(0, -90, 0);
 
   let node = rootNode.createChild("gltf_node");
-  node.scale = [0.5, 0.5, 0.5]
-  node.position = [-1, 0, 0]
+  node.scale = [0.5, 0.5, 0.5];
+  node.position = [-1, 0, 0];
   node.addChild(huabei);
 
   const animator = huabei.createAbility(AAnimation);
@@ -84,7 +85,7 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
   animator.playAnimationClip("A");
 
   //......
-  setTimeout(()  => {
+  setTimeout(() => {
     const prefab2 = gltf2.asset.rootScene.nodes[0];
     const animations2 = gltf2.asset.animations;
 
@@ -93,8 +94,8 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
     mayi.rotateByAngles(0, -180, 0);
 
     let node2 = rootNode.createChild("gltf_node2");
-    node2.scale = [0.05, 0.05, 0.05]
-    node2.position = [1, 0, 0]
+    node2.scale = [0.05, 0.05, 0.05];
+    node2.position = [1, 0, 0];
     node2.addChild(mayi);
 
     const animator2 = mayi.createAbility(AAnimation);
@@ -110,10 +111,9 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
       node.isActive = false;
       setTimeout(() => {
         node.isActive = true;
-      }, 1000)
-    }, 1000)
+      }, 1000);
+    }, 1000);
   }, 1000);
-
 });
 
 //-- run

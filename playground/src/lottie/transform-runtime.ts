@@ -11,7 +11,7 @@ var runtime = (function(exports) {
   var Op = Object.prototype;
   var hasOwn = Op.hasOwnProperty;
   var undefined; // More compressible than void 0.
-  var $Symbol = typeof Symbol === "function" ? Symbol : {};
+  var $Symbol: any = typeof Symbol === "function" ? Symbol : {};
   var iteratorSymbol = $Symbol.iterator || "@@iterator";
   var asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator";
   var toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag";
@@ -396,7 +396,7 @@ var runtime = (function(exports) {
   };
 
   function pushTryEntry(locs) {
-    var entry = { tryLoc: locs[0] };
+    var entry: any = { tryLoc: locs[0] };
 
     if (1 in locs) {
       entry.catchLoc = locs[1];
@@ -439,8 +439,8 @@ var runtime = (function(exports) {
       while (keys.length) {
         var key = keys.pop();
         if (key in object) {
-          next.value = key;
-          next.done = false;
+          next["value"] = key;
+          next["done"] = false;
           return next;
         }
       }
@@ -448,7 +448,7 @@ var runtime = (function(exports) {
       // To avoid creating an additional object, we just hang the .value
       // and .done properties off the next function object itself. This
       // also ensures that the minifier will not anonymize the function.
-      next.done = true;
+      next["done"] = true;
       return next;
     };
   };
@@ -469,19 +469,19 @@ var runtime = (function(exports) {
           next = function next() {
             while (++i < iterable.length) {
               if (hasOwn.call(iterable, i)) {
-                next.value = iterable[i];
-                next.done = false;
+                next["value"] = iterable[i];
+                next["done"] = false;
                 return next;
               }
             }
 
-            next.value = undefined;
-            next.done = true;
+            next["value"] = undefined;
+            next["done"] = true;
 
             return next;
           };
 
-        return (next.next = next);
+        return (next["next"] = next);
       }
     }
 
@@ -699,7 +699,7 @@ var runtime = (function(exports) {
   // the regeneratorRuntime variable at the top of this file.
   typeof module === "object" ? module.exports : {}
 );
-
+declare let regeneratorRuntime: any;
 try {
   regeneratorRuntime = runtime;
 } catch (accidentalStrictMode) {

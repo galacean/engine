@@ -1,21 +1,21 @@
-'use strict';
+"use strict";
 
-import { Engine } from '@alipay/o3-core';
-import { Logger } from '@alipay/o3-base';
-import { vec3 } from '@alipay/o3-math';
-import { ADefaultCamera } from '@alipay/o3-default-camera';
-import '@alipay/o3-hud';
-import { ResourceLoader, Resource } from '@alipay/o3-loader';
+import { Engine } from "@alipay/o3-core";
+import { Logger } from "@alipay/o3-base";
+import { vec3 } from "@alipay/o3-math";
+import { ADefaultCamera } from "@alipay/o3-default-camera";
+import "@alipay/o3-hud";
+import { ResourceLoader, Resource } from "@alipay/o3-loader";
 
-import '@alipay/o3-engine-stats';
-import { AHUDImage } from '../common/AHUDImage';
+import "@alipay/o3-engine-stats";
+import { AHUDImage } from "../common/AHUDImage";
 import { AFade } from "./AFade";
 import { AHUDLabel } from "../common/AHUDLabel";
 
 Logger.enable();
 
-window.addEventListener('beforeunload', function (event) {
-  console.log('-- Begin Shutdown ------------------------------------');
+window.addEventListener("beforeunload", function(event) {
+  console.log("-- Begin Shutdown ------------------------------------");
   engine.shutdown();
 });
 
@@ -26,21 +26,23 @@ let scene = engine.currentScene;
 let rootNode = scene.root;
 
 //-- create camera
-let cameraNode = rootNode.createChild('camera_node');
+let cameraNode = rootNode.createChild("camera_node");
 let camera = cameraNode.createAbility(ADefaultCamera, {
-  canvas: 'o3-demo', position: [0, 0, 10], target: [0, 0, 0]
+  canvas: "o3-demo",
+  position: [0, 0, 10],
+  target: [0, 0, 0]
 });
 
 //-- create hud
-let testNode = rootNode.createChild('test');
+let testNode = rootNode.createChild("test");
 
 engine.run();
 
 const resourceLoader = new ResourceLoader(engine);
 
-const fgTextureRes = new Resource('fg_texture', {
-  type: 'image',
-  url: require('./bar_fg.png'),
+const fgTextureRes = new Resource("fg_texture", {
+  type: "image",
+  url: require("./bar_fg.png")
 });
 
 resourceLoader.load(fgTextureRes, (err, res) => {
@@ -49,28 +51,28 @@ resourceLoader.load(fgTextureRes, (err, res) => {
     return;
   }
 
-  let fadeChannels = ['r', 'g', 'b', 'a'];
+  let fadeChannels = ["r", "g", "b", "a"];
   for (let i = 0; i < 4; i++) {
-    const labelObj = testNode.createChild('LabelObj');
+    const labelObj = testNode.createChild("LabelObj");
     labelObj.position = [-1.1, 1 - i * 0.5, 0.1];
 
     let labelProps = {
-      spriteID: 'label' + i,
+      spriteID: "label" + i,
       textureSize: [200, 160],
-      renderMode: '3D',
-      worldSize: [1.0, 0.8],
+      renderMode: "3D",
+      worldSize: [1.0, 0.8]
     };
-    const label = labelObj.createAbility(AHUDLabel, labelProps);
+    const label: any = labelObj.createAbility(AHUDLabel, labelProps);
     label.worldOffset = vec3.fromValues(-1.1, 0, 0);
     label.text = "Fade " + fadeChannels[i];
 
-    const imageFadeObj = testNode.createChild('ImageObj');
+    const imageFadeObj = testNode.createChild("ImageObj");
     imageFadeObj.position = [0, 1 - i * 0.5, 0.1];
 
     let imageProps = {
-      spriteID: 'helpImage',
+      spriteID: "helpImage",
       textureSize: [400, 80],
-      renderMode: '3D',
+      renderMode: "3D",
       worldSize: [1.2, 0.24],
       image: helpImage
     };
@@ -79,6 +81,3 @@ resourceLoader.load(fgTextureRes, (err, res) => {
     fade.setFade(imageFade, 1000, i);
   }
 });
-
-
-

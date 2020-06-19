@@ -1,26 +1,26 @@
-import { UniformSemantic, DataType } from '@alipay/o3-base';
-import { Material } from '@alipay/o3-material';
-import { Resource } from '@alipay/o3-loader';
-import { NodeAbility } from '@alipay/o3-core';
+import { UniformSemantic, DataType } from "@alipay/o3-base";
+import { Material } from "@alipay/o3-material";
+import { Resource } from "@alipay/o3-loader";
+import { NodeAbility } from "@alipay/o3-core";
 
 export function createCubeMaterial(loader) {
-  let newMtl = new Material('cube_mtl');
-  newMtl.technique = requireCubeTechnique(loader);
+  let newMtl = new Material("cube_mtl");
+  newMtl.technique = requireCubeTechnique(loader) as any;
   return newMtl;
 }
 
 let time = 0;
 export class UpdateMaterialAbility extends NodeAbility {
   onUpdate(deltaTime) {
-    const material = this.node.abilityArray[1].material;
+    const material = (this.node.abilityArray[1] as any).material;
     time += deltaTime;
-    material.setValue('time', time * 0.001);
+    material.setValue("time", time * 0.001);
   }
 }
 
 function requireCubeTechnique(loader) {
   /** Technique 对象的资源名称 */
-  const TECH_NAME = 'cube_tech';
+  const TECH_NAME = "cube_tech";
 
   //-- 创建一个新的 Technique
   const VERT_SHADER = `
@@ -74,46 +74,41 @@ function requireCubeTechnique(loader) {
     name: TECH_NAME,
     attributes: {
       a_position: {
-        name: 'a_position',
-        semantic: 'POSITION',
+        name: "a_position",
+        semantic: "POSITION",
         type: DataType.FLOAT_VEC3
       },
       a_color: {
-        name: 'a_color',
-        semantic: 'COLOR',
-        type: DataType.FLOAT_VEC3
-      },
-      offset: {
-        name: 'a_color',
-        semantic: 'COLOR',
+        name: "a_color",
+        semantic: "COLOR",
         type: DataType.FLOAT_VEC3
       },
       random: {
-        name: 'random',
-        semantic: 'random',
+        name: "random",
+        semantic: "random",
         type: DataType.FLOAT_VEC3
       },
       offset: {
-        name: 'offset',
-        semantic: 'offset',
+        name: "offset",
+        semantic: "offset",
         type: DataType.FLOAT_VEC3
       }
     },
     uniforms: {
       matModelViewProjection: {
-        name: 'matModelViewProjection',
+        name: "matModelViewProjection",
         semantic: UniformSemantic.MODELVIEWPROJECTION,
-        type: DataType.FLOAT_MAT4,
+        type: DataType.FLOAT_MAT4
       },
       time: {
-        name: 'time',
-        type: DataType.FLOAT,
+        name: "time",
+        type: DataType.FLOAT
       }
     }
   };
 
   const techRes = new Resource(TECH_NAME, {
-    type: 'technique',
+    type: "technique",
     data: {
       technique: TECH_CONFIG,
       vertexShader: VERT_SHADER,

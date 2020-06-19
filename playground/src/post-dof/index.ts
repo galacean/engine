@@ -45,11 +45,11 @@ let directLight = light.createAbility(ADirectLight, {
   color: vec3.fromValues(0, 0, 0),
   intensity: 0.0
 });
-directLight.enableShadow = true;
-directLight.shadow.setMapSize(2048, 2048);
-directLight.shadow.intensity = 0.618;
-directLight.shadow.bias = 0.000001;
-mat4.ortho(directLight.shadow.projectionMatrix, -300, 300, -300, 300, 1, 1000);
+directLight["enableShadow"] = true;
+directLight["shadow"].setMapSize(2048, 2048);
+directLight["shadow"].intensity = 0.618;
+directLight["shadow"].bias = 0.000001;
+mat4.ortho(directLight["shadow"].projectionMatrix, -300, 300, -300, 300, 1, 1000);
 
 //--
 const resourceLoader = new ResourceLoader(engine);
@@ -69,13 +69,12 @@ resourceLoader.batchLoad(ResourceList, (err, res) => {
   const lut = res[1].asset;
   let envLightNode = rootNode.createChild("env_light");
   let envLight = envLightNode.createAbility(AEnvironmentMapLight);
-  envLight.brdfMap = lut;
   envLight.diffuseMap = res[2].asset;
   envLight.specularMap = res[3].asset;
   envLightNode.createAbility(ASkyBox, { skyBoxMap: res[4].asset });
 
   //-- post processing
-  const postProcess = scene.findFeature(PostProcessFeature);
+  const postProcess: any = scene.findFeature(PostProcessFeature);
   postProcess.initRT();
 
   const sceneDepthRT = addDepthPass(camera, 0, 1024);
@@ -104,6 +103,9 @@ engine.run();
 function enableChessShadow(scene) {
   //-- enable shadow
   class SceneShadowEnable extends SceneVisitor {
+    acceptNode(node) {
+      return true;
+    }
     acceptAbility(nodeAbility) {
       let node = nodeAbility.node;
       let p = node.name.indexOf("chess");

@@ -78,7 +78,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
   let cubeNode = rootNode.createChild("cube_node");
   let cube = cubeNode.createAbility(AGeometryRenderer, {
     geometry: new CuboidGeometry(),
-    material: new LambertMaterial()
+    material: new LambertMaterial("")
   });
   cubeNode.position = [-2, 0, 0];
   const modelAnimation = model.createAbility(AAnimation, {
@@ -188,15 +188,15 @@ resourceLoader.load(animationRes, (err, gltf) => {
   modelAnimation.addAnimationClip(3000, ac5);
   cubeAnimation.addAnimationClip(0, ac1);
   cubeAnimation.addAnimationClip(0, ac2);
-  cubeNode.on('animationFinished', e => {
-    console.log('cubeNode', e.data)
-  })
-  model.on('animationFinished', e => {
-    console.log('model', e.data)
-  })
-  engine.on('animatorFinished', e => {
-    console.log('animatorFinished', e.data)
-  })
+  cubeNode.addEventListener("animationFinished", e => {
+    console.log("cubeNode", e.data);
+  });
+  model.addEventListener("animationFinished", e => {
+    console.log("model", e.data);
+  });
+  engine.addEventListener("animatorFinished", e => {
+    console.log("animatorFinished", e.data);
+  });
   const animator = rootNode.createAbility(AAnimator, {
     duration: 4000
   });

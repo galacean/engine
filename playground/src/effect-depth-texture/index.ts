@@ -81,7 +81,7 @@ let directLight = light.createAbility(ADirectLight, {
   color: vec3.fromValues(0.4, 0.6, 0.75),
   intensity: 0.8
 });
-directLight.enableShadow = true;
+directLight["enableShadow"] = true;
 
 // 创建材质（可以水材质 和 BlinnPhong 材质）
 const waterMtl = new WaterMaterial("water_mtl"); //

@@ -31,7 +31,7 @@ console.log(light.getModelMatrix());
 // console.log(light.getModelMatrix());
 
 //-- create geometry objects
-let mtl = new BlinnPhongMaterial("test_mtl2", false);
+let mtl = new BlinnPhongMaterial("test_mtl2");
 mtl.ambient = vec4.fromValues(0.75, 0.25, 0.25, 1);
 mtl.shininess = 10;
 let obj1 = rootNode.createChild("obj1");

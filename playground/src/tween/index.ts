@@ -6,7 +6,6 @@ import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { SceneRenderer } from "@alipay/o3-renderer-cull";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
-import { TextureFilter, TextureWrapMode } from "@alipay/o3-core";
 import { AAnimation } from "@alipay/o3-animation";
 import { Tween, Tweener, LOOP_TYPE, Easing, doTransform, doMaterial } from "@alipay/o3-tween";
 import { ADefaultCamera } from "@alipay/o3-default-camera";

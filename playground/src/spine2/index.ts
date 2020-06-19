@@ -46,7 +46,7 @@ loader.addAsset("model", {
     "https://gw.alipayobjects.com/os/loanprod/c763bc03-2d3b-4c6a-bf3c-f6dce4571e3f/5e37c284932f32dd00533955/13261e302e3511d95065737482a53a29.gltf"
 });
 
-loader.load().then(res => {
+loader.load().then((res: any) => {
   const nodes = res.asset.rootScene.nodes;
   const cat = new Node();
   nodes.forEach(n => {

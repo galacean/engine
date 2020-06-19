@@ -46,7 +46,7 @@ export default class CardUIC {
     this.geometry = createPlaneGeometry(countX, countY);
     this.normalImg = "https://gw.alipayobjects.com/zos/rmsportal/UbarSOVpGZDvKVcomySG.jpg";
 
-    this.resourceLoader = new ResourceLoader();
+    this.resourceLoader = new ResourceLoader(null);
     this.technique = this._loadTechnique();
     this.waveTechnique = this._loadTechnique(true);
 
@@ -101,7 +101,7 @@ export default class CardUIC {
         data: techniqueData
       });
     } else {
-      techniqueData = getTechniqueData("card", this.imgUrl);
+      techniqueData = getTechniqueData("card");
       techRes = new Resource("card", {
         type: "technique",
         data: techniqueData

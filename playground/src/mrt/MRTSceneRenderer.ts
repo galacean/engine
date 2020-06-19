@@ -3,7 +3,6 @@ import { MRTRenderPass } from "./MRTRenderPass";
 import { MainRenderPass } from "./MainRenderPass";
 import { vec3 } from "@alipay/o3-math";
 import { SceneVisitor } from "@alipay/o3-core";
-import { ACamera } from "@alipay/o3-default-camera";
 import { RenderQueue } from "@alipay/o3-renderer-basic";
 
 /**

@@ -1,4 +1,4 @@
-import { Engine, AssetType } from "@alipay/o3-core";
+import { Engine } from "@alipay/o3-core";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
 import { Logger } from "@alipay/o3-base";
@@ -98,7 +98,7 @@ function addHeartNode(node, res, nums) {
 }
 
 function getHeartPosition(nums, index) {
-  const x = Math.sin((2 * parseFloat(Math.PI) * index) / nums) * heartRadius;
-  const y = -Math.cos((2 * parseFloat(Math.PI) * index) / nums) * heartRadius;
+  const x = Math.sin((2 * parseFloat(Math.PI + "") * index) / nums) * heartRadius;
+  const y = -Math.cos((2 * parseFloat(Math.PI + "") * index) / nums) * heartRadius;
   return [x, y, 0];
 }

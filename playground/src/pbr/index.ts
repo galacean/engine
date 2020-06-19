@@ -86,7 +86,6 @@ poiFolder.addColor(pointLightColor, "color").onChange(v => (pointLight.color = c
 poiFolder.add(pointLight, "intensity", 0, 1);
 poiFolder.add(pointLight, "distance", 0, 20);
 poiFolder.add(pointLight, "decay", 0, 2);
-window.poi = pointLight;
 
 let pointLightColor2 = { color: [Math.random() * 255, Math.random() * 255, Math.random() * 255] };
 let pointLightNode2 = rootNode.createChild("poi2_light");

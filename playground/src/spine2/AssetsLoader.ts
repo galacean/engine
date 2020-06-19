@@ -15,7 +15,7 @@ class AssetsLoader {
 
   constructor() {
     this.assets = [];
-    this.resourceLoader = new ResourceLoader();
+    this.resourceLoader = new ResourceLoader(null);
   }
 
   /**

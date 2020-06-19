@@ -75,7 +75,6 @@ export class HaloMaterial extends Material {
     tech.vertexShader = VERT_SHADER;
     tech.fragmentShader = FRAG_SHADER;
     tech.states = {
-      enable: [RenderState.CULL_FACE],
       enable: [RenderState.BLEND],
       functions: {
         blendFunc: [BlendFunc.SRC_ALPHA, BlendFunc.ONE],

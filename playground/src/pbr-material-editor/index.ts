@@ -14,8 +14,6 @@ import { Mesh, AMeshRenderer } from "@alipay/o3-mesh";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { RenderTarget, Texture2D } from "@alipay/o3-material";
 import { RenderPass } from "@alipay/o3-renderer-basic";
-import { Sprite, ASpriteRenderer } from "@alipay/o3-2d";
-import { PerturbationProbe } from "@alipay/o3-env-probe";
 
 RegistExtension({ PBRMaterial });
 
@@ -51,7 +49,6 @@ let camera = cameraNode.createAbility(ADefaultCamera, {
   position: [0, 0.2, 30],
   clearParam: [0.9, 0.9, 0.9, 1]
 });
-window.camera = camera;
 let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("r3-demo") });
 controler.target = [0, 0.1, 0];
 let meshes = [];
@@ -81,8 +78,8 @@ const textureRes = textureList.map(
       url: `/static/texture/${name}`
     })
 );
-const cubeTextures = {};
-const textures = {};
+const cubeTextures: any = {};
+const textures: any = {};
 
 resourceLoader.batchLoad(cubeTextureRes, (err, reses) => {
   cubeTextureList.forEach((name, index) => {

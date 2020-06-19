@@ -1,20 +1,20 @@
-import { UniformSemantic, DataType, RenderState, BlendFunc } from '@alipay/o3-base';
-import { Material, RenderTecnique } from '@alipay/o3-material';
-import { Resource } from '@alipay/o3-loader';
+import { UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-base";
+import { Material } from "@alipay/o3-material";
+import { Resource } from "@alipay/o3-loader";
 
 export function createLineMaterial(loader) {
- let newMtl = new Material('line_mtl');
- newMtl.technique = requireShapeTechnique(loader);
- newMtl.setValue('uTime', 1);
- return newMtl;
+  let newMtl = new Material("line_mtl");
+  newMtl.technique = requireShapeTechnique(loader) as any;
+  newMtl.setValue("uTime", 1);
+  return newMtl;
 }
 
 function requireShapeTechnique(loader) {
- /** Technique 对象的资源名称 */
- const TECH_NAME = 'center_tech';
+  /** Technique 对象的资源名称 */
+  const TECH_NAME = "center_tech";
 
- //-- 创建一个新的 Technique
- const VERT_SHADER = `
+  //-- 创建一个新的 Technique
+  const VERT_SHADER = `
 
         uniform mat4 matModelViewProjection;
         attribute vec3 a_position;
@@ -29,7 +29,7 @@ function requireShapeTechnique(loader) {
         }
  `;
 
- const FRAG_SHADER = `
+  const FRAG_SHADER = `
         precision highp float;
         precision highp int;
         
@@ -53,47 +53,46 @@ function requireShapeTechnique(loader) {
 
         }`;
 
- const TECH_CONFIG = {
-  name: TECH_NAME,
-  attributes: {
-    a_position: {
-      name: 'a_position',
-      semantic: 'POSITION',
-      type: DataType.FLOAT_VEC3
+  const TECH_CONFIG = {
+    name: TECH_NAME,
+    attributes: {
+      a_position: {
+        name: "a_position",
+        semantic: "POSITION",
+        type: DataType.FLOAT_VEC3
+      }
+    },
+    uniforms: {
+      matModelViewProjection: {
+        name: "matModelViewProjection",
+        semantic: UniformSemantic.MODELVIEWPROJECTION,
+        type: DataType.FLOAT_MAT4
+      },
+      uTime: {
+        name: "uTime",
+        type: DataType.FLOAT
+      },
+      uRadius: {
+        name: "uRadius",
+        type: DataType.FLOAT
+      },
+      uColor: {
+        name: "uColor",
+        type: DataType.FLOAT_VEC4
+      }
     }
-  },
-  uniforms: {
-    matModelViewProjection: {
-      name: 'matModelViewProjection',
-      semantic: UniformSemantic.MODELVIEWPROJECTION,
-      type: DataType.FLOAT_MAT4,
-    },
-    uTime: {
-      name: 'uTime',
-      type: DataType.FLOAT,
-    },
-    uRadius: {
-      name: 'uRadius',
-      type: DataType.FLOAT,
-    },
-    uColor: {
-      name: 'uColor',
-      type: DataType.FLOAT_VEC4,
+  };
+
+  const techRes = new Resource(TECH_NAME, {
+    type: "technique",
+    data: {
+      technique: TECH_CONFIG,
+      vertexShader: VERT_SHADER,
+      fragmentShader: FRAG_SHADER
     }
-  }
- };
+  });
 
- const techRes = new Resource(TECH_NAME, {
- type: 'technique',
- data: {
- technique: TECH_CONFIG,
- vertexShader: VERT_SHADER,
- fragmentShader: FRAG_SHADER,
- }
- });
+  loader.load(techRes);
 
- loader.load(techRes);
-
- return techRes.asset;
-
+  return techRes.asset;
 }

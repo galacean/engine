@@ -23,7 +23,7 @@ function unNormalRGB(color) {
   return v;
 }
 
-function addSceneGUI({ envLight, lights, skybox, meshes, materials }) {
+function addSceneGUI({ envLight, lights, skybox, meshes, materials, camera, controler }) {
   const state = {
     // display
     background: "None",

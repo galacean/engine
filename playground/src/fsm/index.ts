@@ -5,7 +5,6 @@ import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { SceneRenderer } from "@alipay/o3-renderer-cull";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
-import { TextureFilter, TextureWrapMode } from "@alipay/o3-core";
 import { AAnimation, AnimationEvent } from "@alipay/o3-animation";
 import { AMachine } from "@alipay/o3-fsm";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
@@ -71,7 +70,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
   // longidle03_over jump
   machine.addState({
     name: "moving",
-    onEnter: (deltaTime) => {
+    onEnter: deltaTime => {
       animator.playAnimationClip("walk");
     }
   });
@@ -85,24 +84,27 @@ resourceLoader.load(animationRes, (err, gltf) => {
 
   machine.addState({
     name: "jumping",
-    onEnter: (name) => {
+    onEnter: name => {
       animator.playAnimationClip("longidle03_over", {
-        events: [{
-          type: AnimationEvent.LOOP_END, callback: () => {
-            if (name === "moving") {
-              machine.dispatch("MOVE");
-            } else if (name === "idle") {
-              machine.dispatch("IDLE");
+        events: [
+          {
+            type: AnimationEvent.LOOP_END,
+            callback: () => {
+              if (name === "moving") {
+                machine.dispatch("MOVE");
+              } else if (name === "idle") {
+                machine.dispatch("IDLE");
+              }
             }
           }
-        }]
+        ]
       });
     }
   });
 
   machine.addState({
     name: "dancing",
-    onEnter: (name) => {
+    onEnter: name => {
       animator.playAnimationClip("dance");
     }
   });
@@ -116,19 +118,19 @@ resourceLoader.load(animationRes, (err, gltf) => {
 
   machine.dispatch("IDLE");
 
-  btn2.addEventListener("click", (e) => {
+  btn2.addEventListener("click", e => {
     machine.dispatch("JUMP");
   });
 
-  btn3.addEventListener("click", (e) => {
+  btn3.addEventListener("click", e => {
     machine.dispatch("DANCE");
   });
 
-  btn4.addEventListener("click", (e) => {
+  btn4.addEventListener("click", e => {
     machine.dispatch("IDLE");
   });
 
-  btn1.addEventListener("click", (e) => {
+  btn1.addEventListener("click", e => {
     machine.dispatch("MOVE");
     console.log("move");
   });
