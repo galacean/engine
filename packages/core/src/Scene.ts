@@ -93,11 +93,12 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
+    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
     this._componentsManager.callScriptOnUpdate(deltaTime);
     this._componentsManager.callComponentOnUpdate(deltaTime);
     this._componentsManager.callAnimationUpdate(deltaTime);
-    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
     this._componentsManager.callScriptOnLateUpdate();
+    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //deprecated
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
