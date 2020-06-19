@@ -29,11 +29,6 @@ var fog = rootNode.createAbility(ALinearFog, { color: [1, 0, 0], far: 10 });
 gui.add(fog, "far", 0.1, 100);
 gui.add(fog, "enabled");
 
-var fog2 = rootNode.createAbility(AEXP2Fog, { color: [1, 0, 1] });
-fog2.enabled = false;
-gui.add(fog2, "density", 0, 1);
-gui.add(fog2, "enabled");
-
 let envLightNode = rootNode.createChild("env_light");
 let envLight = envLightNode.createAbility(AEnvironmentMapLight);
 
