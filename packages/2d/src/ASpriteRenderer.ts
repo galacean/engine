@@ -67,8 +67,8 @@ export class ASpriteRenderer extends RenderableComponent {
       this.tintColor = sprite.tintColor;
     }
 
-    //-- Ability属性
-    this.renderable = true;
+    // //-- Ability属性
+    // this.renderable = true;
 
     //--
     this._positionQuad = {
