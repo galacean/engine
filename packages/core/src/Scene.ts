@@ -4,7 +4,7 @@ import { Node } from "./Node";
 import { Engine } from "./Engine";
 import { ACamera } from "./ACamera";
 import { SceneFeature } from "./SceneFeature";
-import { SceneVisitor } from "./SceneVisitor";
+import { ComponentsManager } from "./ComponentsManager";
 
 /*
 Scene Feature:
@@ -64,6 +64,8 @@ export class Scene extends EventDispatcher {
    * */
   public clipPlanes: any[] = [];
 
+  public _componentsManager: ComponentsManager;
+
   /**
    * 构造函数
    * @param {Engine} engine 引擎对象
@@ -72,7 +74,8 @@ export class Scene extends EventDispatcher {
     super();
 
     this._engine = engine;
-    this._root = new Node(this, null, "root");
+    this._componentsManager = new ComponentsManager();
+    this._root = new Node(this, null, "__root__");
     this._activeCameras = [];
 
     sceneFeatureManager.addObject(this);
@@ -88,9 +91,11 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
-    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]);
-    this._root.update(deltaTime);
-    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]);
+    this._componentsManager.callScriptOnUpdate(deltaTime);
+    this._componentsManager.callComponentOnUpdate(deltaTime);
+    this._componentsManager.callAnimationUpdate(deltaTime);
+    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
+    this._componentsManager.callScriptOnLateUpdate();
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
@@ -98,27 +103,23 @@ export class Scene extends EventDispatcher {
    */
   public render(): void {
     const cameras = this._activeCameras;
+    const deltaTime = this._engine.time.deltaTime;
     if (cameras.length > 0) {
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]);
+          this._componentsManager.callRendererOnUpdate(deltaTime);
+          this._componentsManager.callScriptOnPreRender();
+          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();
-          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]);
+          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //deprecated
+          this._componentsManager.callScriptOnPostRender();
         }
       }
     } else {
       Logger.debug("NO active camera.");
     }
-  }
-
-  /**
-   * 访问整个 SceneGraph
-   * @param {SceneVisitor} visitor
-   */
-  public visitSceneGraph(visitor: SceneVisitor): void {
-    this._root.visit(visitor);
   }
 
   /**
@@ -172,5 +173,6 @@ export class Scene extends EventDispatcher {
     this._root = null;
     this._activeCameras = null;
     (sceneFeatureManager as any)._objects = [];
+    this._componentsManager = null;
   }
 }

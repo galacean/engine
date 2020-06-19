@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-import { NodeAbility } from '@alipay/o3-core';
+import { NodeAbility } from "@alipay/o3-core";
 
 export default class ARotation extends NodeAbility {
   constructor(node) {
@@ -23,6 +23,6 @@ export default class ARotation extends NodeAbility {
 
   update(deltaTime) {
     this.deg += this.dDeg * (deltaTime / 1000);
-    this._ownerNode.setRotationAxisAngle(this.axis, this.deg);
+    this._node.setRotationAxisAngle(this.axis, this.deg);
   }
 }

@@ -79,7 +79,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    */
   set skin(skin) {
     this._skin = skin;
-    this._started = false; // force onStart callback
+    // this._started = false; // force onStart callback
   }
 
   get weights() {
@@ -136,11 +136,11 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
   }
 
   /**
+   * TODO 渲染之前
    * update matrix palette
-   * @param {Number} deltaTime
    * @private
    */
-  onUpdate(deltaTime: number) {
+  onUpdate() {
     if (this._skin) {
       const joints = this.jointNodes;
       const ibms = this._skin.inverseBindMatrices;

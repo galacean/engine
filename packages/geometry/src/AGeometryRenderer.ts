@@ -1,4 +1,4 @@
-import { NodeAbility, Node, ACamera } from "@alipay/o3-core";
+import { RenderableComponent, Node, ACamera } from "@alipay/o3-core";
 import { Logger, Event } from "@alipay/o3-base";
 import { BufferGeometry } from "./BufferGeometry";
 import { IndexBufferGeometry } from "./IndexBufferGeometry";
@@ -8,7 +8,7 @@ import { Material } from "@alipay/o3-material";
  * 几何体渲染类
  * @extends NodeAbility
  */
-export class AGeometryRenderer extends NodeAbility {
+export class AGeometryRenderer extends RenderableComponent {
   protected _geometry: BufferGeometry | IndexBufferGeometry;
 
   protected _material: Material;
@@ -20,8 +20,6 @@ export class AGeometryRenderer extends NodeAbility {
    */
   constructor(node: Node, props: any = {}) {
     super(node, props);
-    this.renderable = true; // 标记为可渲染对象
-
     this._geometry = props.geometry;
     this._material = props.material;
   }

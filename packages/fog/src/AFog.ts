@@ -15,22 +15,19 @@ export class AFog extends NodeAbility {
      * @member {Array}
      */
     this.color = props.color === undefined ? [1, 0, 0] : props.color;
-
-    this.addEventListener("enabled", this.onEnable);
-    this.addEventListener("disabled", this.onDisable);
   }
 
   /**
    * @private
    */
-  onEnable() {
+  _onEnable() {
     this.scene.findFeature(FogFeature).fog = this;
   }
 
   /**
    * @private
    */
-  onDisable() {
+  _onDisable() {
     this.scene.findFeature(FogFeature).fog = null;
   }
 
