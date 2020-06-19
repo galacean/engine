@@ -23,7 +23,7 @@ export class ALODGroup extends RenderableComponent {
    */
   addLod(distance, rendererAbility) {
     // 关闭原因的 Render，由 ALODGroup 接手
-    rendererAbility._renderable = false;
+    rendererAbility.enabled = false;
 
     this._lods.push({
       distance,
