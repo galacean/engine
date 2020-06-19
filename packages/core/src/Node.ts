@@ -11,7 +11,6 @@ import { Transform } from "./Transform";
 const _up = vec3.fromValues(0, 1, 0);
 const _right = vec3.fromValues(1, 0, 0);
 const _forward = vec3.fromValues(0, 0, 1);
-const tempVec4 = vec3.create();
 /**
  * 节点类,可作为组件的容器。
  */
@@ -164,6 +163,7 @@ export class Node extends EventDispatcher {
         this._isActiveInHierarchy && this._processInActive();
       }
     }
+    this._setTransformDirty();
   }
 
   /**
@@ -335,6 +335,7 @@ export class Node extends EventDispatcher {
     newNode._active = this._active;
     newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
 
+    newNode.transform.localMatrix = this.transform.localMatrix;
     // Transform
 
     for (const childNode of this._children) {
@@ -428,6 +429,16 @@ export class Node extends EventDispatcher {
     for (let i = children.length - 1; i >= 0; i--) {
       const child: Node = children[i];
       child.isActive && child._setInActiveInHierarchy(activeChangedComponents);
+    }
+  }
+
+  private _setTransformDirty() {
+    if (this.transform) {
+      this.transform._setParentDirty();
+    } else {
+      for (let i = 0, len = this._children.length; i < len; i++) {
+        this.children[i]._setTransformDirty();
+      }
     }
   }
 
@@ -547,7 +558,9 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get up() {
-    return _up;
+    const tempVec3 = vec3.create();
+    const up = this.transform.getWorldUp(tempVec3);
+    return up;
   }
 
   /**
@@ -557,7 +570,9 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get forward() {
-    return _forward;
+    const tempVec3 = vec3.create();
+    const forward = this.transform.getWorldForward(tempVec3);
+    return forward;
   }
 
   /**
@@ -567,7 +582,9 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get right() {
-    return _right;
+    const tempVec3 = vec3.create();
+    const right = this.transform.getWorldRight(tempVec3);
+    return right;
   }
 
   /**
@@ -744,19 +761,9 @@ export class Node extends EventDispatcher {
    */
   public rotateByQuat(rot: number[] | Float32Array) {
     // this.transform.rotateByAxis();
-  }
-
-  /**
-   * @deprecated
-   */
-  private traverseAbilitiesTriggerEnabled(enabled: boolean) {
-    const eventName = enabled ? "enabled" : "disabled";
-    for (let i = 0; i < this._components.length; i++) {
-      const abiltiy = this._components[i];
-      if (abiltiy && abiltiy.started && abiltiy.enabled) {
-        abiltiy.trigger(new Event(eventName, this));
-      }
-    }
+    const tempVec3 = vec3.create();
+    const rotateEuler = quat.toEuler(tempVec3, rot);
+    this.transform.rotate(rotateEuler);
   }
 
   /**
@@ -767,7 +774,11 @@ export class Node extends EventDispatcher {
    * @param {number} roll Z轴的旋转角度
    */
   public rotateByAngles(pitch: number, yaw: number, roll: number): void {
-    this.transform.rotate(vec3.set(tempVec4, pitch, yaw, roll));
+    if (Util.isArray(pitch)) {
+      this.transform.rotate([pitch[0], pitch[1], pitch[2]]);
+    } else {
+      this.transform.rotate([pitch, yaw, roll]);
+    }
   }
 
   /**
@@ -778,7 +789,7 @@ export class Node extends EventDispatcher {
    * @param {number} roll 围绕Z轴的旋转
    */
   public setRotationAngles(pitch: number, yaw: number, roll: number): void {
-    this.transform.rotation = vec3.set(tempVec4, pitch, yaw, roll);
+    this.transform.rotation = [pitch, yaw, roll];
   }
 
   /**
@@ -788,7 +799,9 @@ export class Node extends EventDispatcher {
    * @param {number} deg 旋转角度
    */
   public setRotationAxisAngle(axis: vec3Type, deg: number) {
-    this.transform.rotateByAxis(axis, deg);
+    const tempQuat = quat.create();
+    const rotateQuat = quat.setAxisAngle(tempQuat, axis, MathUtil.toRadian(deg));
+    this.transform.rotationQuaternion = rotateQuat;
   }
 
   /**
@@ -796,9 +809,8 @@ export class Node extends EventDispatcher {
    * 获取本节点的前方方向
    * @return {vec3} 节点的前方方向向量
    */
-  public getForward(): number[] | Float32Array {
-    const modelMatrix = this.getModelMatrix();
-    return vec3.fromValues(modelMatrix[8], modelMatrix[9], modelMatrix[10]);
+  public getForward(): vec3Type {
+    return this.forward;
   }
 
   /**
@@ -840,11 +852,8 @@ export class Node extends EventDispatcher {
    * @param {vec3} center 看向的点
    * @param {vec3} up 指向上方的单位向量
    */
-  public lookAt(center: vec3Type, up: vec3Type) {
-    const position = this.worldPosition;
-    const modelMatrix = mat4.create();
-    mat4.lookAtR(modelMatrix, position, center, up);
-    this.setModelMatrix(modelMatrix);
+  public lookAt(center: vec3Type, up?: vec3Type) {
+    this.transform.lookAt(center, up);
     return this;
   }
 }
