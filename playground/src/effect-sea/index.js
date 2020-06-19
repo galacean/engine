@@ -14,16 +14,17 @@ import * as dat from 'dat.gui';
 
 class OceanScript extends Script {
   mtl;
+  controls;
   onUpdate()
   {
-    mtl.setValue('u_sea_height', controls.sea_height);
-    mtl.setValue('u_water_scale', controls.water_scale);
-    mtl.setValue('u_water_speed', controls.water_speed);
+    this.mtl.setValue('u_sea_height', this.controls.sea_height);
+    this.mtl.setValue('u_water_scale', this.controls.water_scale);
+    this.mtl.setValue('u_water_speed', this.controls.water_speed);
   
     let base = vec3.create();
-    mtl.setValue('u_sea_base', vec3.scale(base, controls.sea_base, 1.0 / 256.));
+    this.mtl.setValue('u_sea_base', vec3.scale(base, this.controls.sea_base, 1.0 / 256.));
     let wColor = vec3.create();
-    mtl.setValue('u_water_color', vec3.scale(wColor, controls.water_color, 1.0 / 256.));
+    this.mtl.setValue('u_water_color', vec3.scale(wColor, this.controls.water_color, 1.0 / 256.));
   }
 }
 
@@ -79,7 +80,9 @@ gui.addColor(controls, 'water_color');
 gui.addColor(controls, 'sea_base');
 gui.domElement.style = 'position:absolute;top:0px;right:300px';
 
-rootNode.addComponent(OceanScript).mtl=mtl;
+const oceanScript= rootNode.addComponent(OceanScript);
+oceanScript.mtl=mtl;
+oceanScript.controls=controls;
 
 // 创建球体形的海面
 createSphereGeometry('sphere3', [0, 0, 0], 3, 50, 50);
