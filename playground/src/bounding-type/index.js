@@ -108,10 +108,7 @@ let state = {
   pz: obj.position[2],
   scaleX: obj.scale[0],
   scaleY: obj.scale[1],
-  scaleZ: obj.scale[2],
-  rotateX: obj.transform.rotation.x,
-  rotateY: obj.transform.rotation.y,
-  rotateZ: obj.transform.rotation.z
+  scaleZ: obj.scale[2]
 };
 
 function showBounding() {
@@ -157,18 +154,6 @@ function showGUI() {
   });
   gui.add(state, "scaleZ", 0, 5).onChange(val => {
     obj.scale = [obj.scale[0], obj.scale[1], val];
-    showBounding();
-  });
-  gui.add(state, "rotateX", -180, 180).onChange(val => {
-    obj.transform.rotation.x = val;
-    showBounding();
-  });
-  gui.add(state, "rotateY", -180, 180).onChange(val => {
-    obj.transform.rotation.y = val;
-    showBounding();
-  });
-  gui.add(state, "rotateZ", -180, 180).onChange(val => {
-    obj.transform.rotation.z = val;
     showBounding();
   });
 }

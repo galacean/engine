@@ -1,6 +1,6 @@
 import { vec2, vec3, vec4, quat } from "@alipay/o3-math";
 import { HUDFeature } from "./HUDFeature";
-import { NodeAbility } from "@alipay/o3-core";
+import { RenderableComponent } from "@alipay/o3-core";
 
 var widgetID = 1000;
 
@@ -8,7 +8,7 @@ var widgetID = 1000;
  * HUD控件的基类，封装2D和3D控件的通用属性和操作
  * @extends NodeAbility
  */
-export class AHUDWidget extends NodeAbility {
+export class AHUDWidget extends RenderableComponent {
   private _spriteRect;
   private _spriteID;
   private _renderMode;
@@ -49,9 +49,6 @@ export class AHUDWidget extends NodeAbility {
     this._screenSize = props.screenSize || props.textureSize;
     this._worldSize = props.worldSize || [1, 1];
 
-    //-- NodeAbility属性
-    this.renderable = true;
-
     this._anchor = [0.5, 0.5];
     this._rotationAngle = props.rotationAngle || 0;
     this._scale = props.scale || [1.0, 1.0];
@@ -67,7 +64,6 @@ export class AHUDWidget extends NodeAbility {
 
     this._canvasDirty = true;
     this._valid = false; // sprite 分配失败等情况下，可能为false，则控件无法绘制出来
-
     this._hudFeature = this.scene.findFeature(HUDFeature);
 
     /**
@@ -75,22 +71,19 @@ export class AHUDWidget extends NodeAbility {
      * @member {boolean}
      */
     this.separateDraw = false;
-
-    this.addEventListener("enabled", this.onEnable);
-    this.addEventListener("disabled", this.onDisable);
   }
 
   /** 在对象Enable的时候，挂载到当前的Scene
    * @private
    */
-  onEnable() {
+  _onEnable() {
     this._hudFeature.attachWidget(this);
   }
 
   /** 在对象Disable的时候，从当前的Scene移除
    * @private
    */
-  onDisable() {
+  _onDisable() {
     this._hudFeature.detachWidget(this);
   }
 

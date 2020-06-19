@@ -1,101 +1,193 @@
 import { Event, EventDispatcher, Logger, Util } from "@alipay/o3-base";
 import { mat4, MathUtil, quat, vec3 } from "@alipay/o3-math";
 import { Engine } from "./Engine";
-import { NodeAbility } from "./NodeAbility";
+import { NodeAbility as Component } from "./NodeAbility";
 import { Scene } from "./Scene";
-import { SceneVisitor } from "./SceneVisitor";
 import { vec3Type } from "./type";
+import { DisorderedArray } from "./DisorderedArray";
 
 /**
  * 节点类,可作为组件的容器。
  */
 export class Node extends EventDispatcher {
+  public static _nodes: DisorderedArray<Node> = new DisorderedArray();
+
   /**
    * 根据名字查找节点。
    * @param name - 名字
    * @returns 节点
    */
   static findByName(name: string): Node {
-    //TODO:
+    const { _nodes } = Node;
+    for (let i = _nodes.length - 1; i >= 0; i--) {
+      const node = _nodes[i];
+      const nodeName = node.name;
+      if (nodeName === name) {
+        return node;
+      }
+    }
     return null;
   }
 
   /**
    * 根据路径查找节点，使用‘/’符号作为路径分割符。
    * @param path - 路径
+   * @param scene - @deprecated 兼容参数
    * @returns 节点
    */
-  static findByPath(path: string): Node {
-    //TODO:
+  static findByPath(path: string, scene: Scene /*@deprecated*/): Node {
+    const splits = path.split("/");
+    const rootNode = scene.root;
+    if (!rootNode) return null; //scene or scene.root maybe destroyed
+    let node: Node = rootNode;
+    const spitLength = splits.length;
+    for (let i = spitLength - 1; i >= 0; ++i) {
+      const split = splits[i];
+      if (split) {
+        node = Node._findChildByName(node, split);
+        if (!node) {
+          return null;
+        }
+      }
+    }
+    return node;
+  }
+
+  /**
+   * @internal
+   */
+  static _findChildByName(root: Node, name: string): Node {
+    const children = root._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      if (child.name === name) {
+        return child;
+      }
+    }
     return null;
   }
 
-  /** 名字。 */
+  private static _traverseSetOwnerScene(node: Node, scene: Scene): void {
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      const child = node.children[i];
+      child._scene = scene;
+      this._traverseSetOwnerScene(node.children[i], scene);
+    }
+  }
+
+  /* 名字。 */
   name: string;
+
+  /* @internal */
+  _isActiveInHierarchy: boolean = false;
+
+  private _scene: Scene;
+  private _active: boolean;
+  private _children: Array<Node> = [];
+  private _components: Array<Component> = [];
+  private _parent: Node = null;
+  private _activeChangedComponents: Component[];
+  private _isRoot: boolean; //must add,because scene management mechanism
 
   /**
    * 是否局部激活。
    */
-  get active(): boolean {
-    //TODO:
-    return false;
+  get isActive(): boolean {
+    return this._active;
   }
-  set active(value: boolean) {
-    //TODO:
+  set isActive(value: boolean) {
+    if (value !== this._active) {
+      this._active = value;
+      if (value) {
+        const parent = this._parent;
+        if (this._isRoot || (parent && parent._isActiveInHierarchy)) {
+          this._processActive();
+        }
+      } else {
+        if (this._isActiveInHierarchy) {
+          this._processInActive();
+        }
+      }
+    }
   }
 
   /**
    * 在层级中是否处于激活状态。
    */
-  get activeInHierarchy(): boolean {
-    //TODO:
-    return false;
+  get isActiveInHierarchy(): boolean {
+    return this._isActiveInHierarchy;
   }
 
   /**
-   * 父变换。
+   * 父节点。
    */
   get parent(): Node {
-    //TODO:
-    return null;
+    return this._parent;
   }
-  set parent(value: Node) {
-    //TODO:
+
+  set parent(node: Node) {
+    if (node !== this._parent) {
+      const oldParent = this._parent;
+      if (oldParent != null) {
+        const oldParentChildren = oldParent._children;
+        oldParentChildren.splice(oldParentChildren.indexOf(this), 1);
+      }
+      const newParent = (this._parent = node);
+      if (newParent) {
+        newParent._children.push(this);
+        const parentScene = newParent._scene;
+        if (this._scene !== parentScene) {
+          this._scene = parentScene;
+          Node._traverseSetOwnerScene(this, parentScene);
+        }
+
+        if (newParent._isActiveInHierarchy) {
+          !this._isActiveInHierarchy && this._active && this._processActive();
+        } else {
+          this._isActiveInHierarchy && this._processInActive();
+        }
+      } else {
+        if (oldParent) {
+          this._scene = null;
+          Node._traverseSetOwnerScene(this, null);
+        }
+        this._isActiveInHierarchy && this._processInActive();
+      }
+    }
   }
 
   /**
-   * 子变换数量。
+   * 子节点数量。
    */
   get childCount(): number {
-    //TODO:
-    return 0;
+    return this._children.length;
   }
 
   /**
-   * 构造函数
+   * 所属的场景对象。
+   */
+  get scene(): Scene {
+    return this._scene;
+  }
+
+  /**
+   * 创建一个节点。
    * @param scene - 所属的场景
    * @param parent - 父节点
    * @param name - 点名称
    */
   constructor(scene?: Scene, parent?: Node, name?: string) {
     super();
+    Node._nodes.add(this);
+    this._scene = scene;
+    //TODO 因现有机制scene的rootNode 在创建时需要知道自己为root(判断activeInHierarchy时不需要判断父节点)
+    this._isRoot = parent === null && name === "__root__";
+    this.name = name;
+    this.parent = parent;
+    this.isActive = true;
 
-    // -- 核心数据
-    this._ownerScene = scene;
-    this._name = name;
-
-    this._children = [];
-    this._abilityArray = [];
-
-    // -- 状态变量
-    this._pendingDestroy = false;
-    this._activeSelf = true; // local active state of this Node
-
-    this._isActiveInInHierarchy = true;
+    //deprecated
     this._activeChangeFun = activeChange(this);
-    this.parentNode = parent;
-
-    //@deprecated
     this._position = vec3.create();
     this._rotation = quat.create();
     this._scale = vec3.fromValues(1, 1, 1);
@@ -106,7 +198,6 @@ export class Node extends EventDispatcher {
     this._up = vec3.fromValues(0, 1, 0);
     this._right = vec3.fromValues(1, 0, 0);
     this._forward = vec3.fromValues(0, 0, 1);
-    this.onUpdate = null;
   }
 
   /**
@@ -114,8 +205,13 @@ export class Node extends EventDispatcher {
    * 根据组件类型添加组件。
    * @returns	组件实例
    */
-  addComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T, props = {}): T {
-    return null;
+  addComponent<T extends Component>(type: new (node: Node, props?: object) => T, props: object = {}): T {
+    const component = new type(this, props);
+    this._components.push(component);
+    if (this._isActiveInHierarchy) {
+      component._setActive(true);
+    }
+    return component;
   }
 
   /**
@@ -123,8 +219,13 @@ export class Node extends EventDispatcher {
    * 根据组件类型获取组件。
    * @returns	组件实例
    */
-  getComponent<T extends NodeAbility>(type: new (node: Node, props?: object) => T): T {
-    return null;
+  getComponent<T extends Component>(type: new (node: Node, props?: object) => T): T {
+    for (let i = this._components.length - 1; i >= 0; i--) {
+      const component = this._components[i];
+      if (component instanceof type) {
+        return component;
+      }
+    }
   }
 
   /**
@@ -132,8 +233,14 @@ export class Node extends EventDispatcher {
    * 根据组件类型获取组件集合。
    * @returns	组件实例集合
    */
-  getComponents<T extends NodeAbility>(type: new (node: Node, props?: object) => T, results: Array<T>): void {
-    //TODO:
+  getComponents<T extends Component>(type: new (node: Node, props?: object) => T, results: Array<T>): Array<T> {
+    for (let i = this._components.length - 1; i >= 0; i--) {
+      const component = this._components[i];
+      if (component instanceof type) {
+        results.push(component);
+      }
+    }
+    return results;
   }
 
   /**
@@ -141,15 +248,7 @@ export class Node extends EventDispatcher {
    * @param child - 子节点
    */
   addChild(child: Node): void {
-    //TODO:优化
-    if (child._ownerScene !== this._ownerScene) {
-      // fixme: remove below code after gltf loader can set the right ownerScene
-      child._ownerScene = this._ownerScene;
-
-      Node.traverseSetOwnerScene(child);
-      // throw new Error( 'Node should NOT shared between scenes.' );
-    }
-    child.parentNode = this;
+    child.parent = this;
   }
 
   /**
@@ -157,20 +256,7 @@ export class Node extends EventDispatcher {
    * @param child - 子节点
    */
   removeChild(child: Node): void {
-    //TODO:优化
-    const index = this._children.indexOf(child);
-    if (index < 0) {
-      Logger.warn(`child's parent is not this node!`);
-      return;
-    }
-    this._children.splice(index, 1);
-    child._parent = null;
-
-    if (this._ownerScene) {
-      child.traverseAbilitiesTriggerEnabled(false);
-      child._ownerScene = null;
-      Node.traverseSetOwnerScene(child);
-    }
+    child.parent = null;
   }
 
   /**
@@ -179,17 +265,25 @@ export class Node extends EventDispatcher {
    * @returns 节点
    */
   getChild(index: number): Node {
-    //TODO:
-    return null;
+    return this._children[index];
   }
 
   /**
-   * 根据名字查找节点。
+   * 根据名字查找子节点。
    * @param name - 名字
    * @returns 节点
    */
   findByName(name: string): Node {
-    //TODO:
+    const children = this._children;
+    const child = Node._findChildByName(this, name);
+    if (child) return child;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      const grandson = child.findByName(name);
+      if (grandson) {
+        return grandson;
+      }
+    }
     return null;
   }
 
@@ -199,28 +293,48 @@ export class Node extends EventDispatcher {
    * @returns 节点
    */
   findByPath(path: string): Node {
-    //TODO:
-    return null;
+    const splits = path.split("/");
+    let node: Node = this;
+    const spitLength = splits.length;
+    for (let i = spitLength - 1; i >= 0; ++i) {
+      const split = splits[i];
+      if (split) {
+        node = Node._findChildByName(node, split);
+        if (!node) {
+          return null;
+        }
+      }
+    }
+    return node;
   }
 
   /**
    * 清空子节点。
    */
   clearChildren(): void {
-    //TODO:
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      if (child._parent) {
+        child._scene = null;
+        Node._traverseSetOwnerScene(child, null);
+      }
+      child._parent = null;
+      child._isActiveInHierarchy && child._processInActive();
+    }
   }
 
   /**
    * 克隆。
+   * @returns 克隆的节点
    */
-  public clone(): Node {
-    const newNode = new Node(this._ownerScene, null, this.name);
+  clone(): Node {
+    const newNode = new Node(this._scene, null, this.name);
 
-    newNode._pendingDestroy = this._pendingDestroy;
-    newNode._activeSelf = this._activeSelf;
-    newNode._isActiveInInHierarchy = this._isActiveInInHierarchy;
+    newNode._active = this._active;
+    newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
 
-    // -- Transform
+    // Transform
     newNode._position = vec3.clone(this._position);
     newNode._rotation = quat.clone(this._rotation);
     newNode._scale = vec3.clone(this._scale);
@@ -233,7 +347,7 @@ export class Node extends EventDispatcher {
       newNode.addChild(childNode.clone());
     }
 
-    const abilityArray = this._abilityArray || [];
+    const abilityArray = this._components || [];
     const len = abilityArray.length;
     for (let i = 0; i < len; i++) {
       const ability = abilityArray[i];
@@ -246,62 +360,86 @@ export class Node extends EventDispatcher {
   /**
    * 销毁。
    */
-  public destroy(): void {
-    this._pendingDestroy = true;
-
-    // -- clear ability array
-    const abilityArray = this._abilityArray;
+  destroy(): void {
+    // clear ability array
+    const abilityArray = this._components;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
       abilityArray[i].destroy();
     }
-    this._abilityArray = [];
+    this._components.length = 0;
 
-    // -- clear children
+    // clear children
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       children[i].destroy();
     }
-    this._children = [];
+    this._children.length = 0;
 
-    // -- clear parent
+    // clear parent
     if (this._parent != null) {
-      const index = this._parent._children.indexOf(this);
-      if (index > -1) {
-        this._parent._children.splice(index, 1);
-        this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-      } else {
-        Logger.debug("can not find this object in _parent._children");
-      }
+      const parentChildren = this._parent._children;
+      parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
+    Node._nodes.delete(this);
+  }
+
+  private _setActiveComponents(isActive: boolean): void {
+    const activeChangedComponents = this._activeChangedComponents;
+    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
+      activeChangedComponents[i]._setActive(isActive);
+    }
+    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    this._activeChangedComponents = null;
+  }
+
+  private _processActive(): void {
+    if (this._activeChangedComponents) {
+      throw "Node: can't set the 'main inActive node' active in hierarchy,if the operate is in main inActive node or it's children script's onDisable Event.";
+    }
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    this._setActiveInHierarchy(this._activeChangedComponents);
+    this._setActiveComponents(true);
+  }
+
+  private _processInActive(): void {
+    if (this._activeChangedComponents) {
+      throw "Node: can't set the 'main active node' inActive in hierarchy,if the operate is in main active node or it's children script's onEnable Event.";
+    }
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    this._setInActiveInHierarchy(this._activeChangedComponents);
+    this._setActiveComponents(false);
+  }
+
+  private _setActiveInHierarchy(activeChangedComponents: Component[]): void {
+    this._isActiveInHierarchy = true;
+    const components = this._components;
+    for (let i = components.length - 1; i >= 0; i--) {
+      activeChangedComponents.push(components[i]);
+    }
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child: Node = children[i];
+      child.isActive && child._setActiveInHierarchy(activeChangedComponents);
+    }
+  }
+
+  private _setInActiveInHierarchy(activeChangedComponents: Component[]): void {
+    this._isActiveInHierarchy = false;
+    const components = this._components;
+    for (let i = components.length - 1; i >= 0; i--) {
+      activeChangedComponents.push(components[i]);
+    }
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child: Node = children[i];
+      child.isActive && child._setInActiveInHierarchy(activeChangedComponents);
+    }
   }
 
   //--------------------------------------------TobeConfirmed--------------------------------------------------
 
-  /**
-   * 所属的场景对象。
-   */
-  get scene(): Scene {
-    return this._ownerScene;
-  }
-
-  public _parent: Node;
-
-  private _ownerScene: Scene;
-
-  private _name: string;
-
-  private _children: Node[];
-
-  private _abilityArray: NodeAbility[];
-
-  private _pendingDestroy: boolean;
-
-  private _activeSelf: boolean;
-
-  private _isActiveInInHierarchy: boolean;
-
-  private propertyChangeEvnet = new Event("propertyChange");
+  private propertyChangeEvent = new Event("propertyChange");
 
   private _activeChangeFun;
 
@@ -323,25 +461,11 @@ export class Node extends EventDispatcher {
    * @return {Node} 新创建的子节点对象
    */
   public createChild(name: string): Node {
-    const child = new Node(this._ownerScene, this, name);
+    const child = new Node(this._scene, this, name);
     return child;
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
-
-  /** @deprecated */
-  public onUpdate: (t?: number) => void;
-
-  /**
-   * @deprecated
-   * 是否被销毁
-   * @member {boolean}
-   * @readonly
-   * @private
-   */
-  get isPendingDestroy(): boolean {
-    return this._pendingDestroy;
-  }
 
   /**
    * @deprecated
@@ -386,35 +510,6 @@ export class Node extends EventDispatcher {
 
   /**
    * @deprecated
-   * 在SceneGraph中是否Active
-   * @member {boolean}
-   * @readonly
-   */
-  get isActiveInHierarchy(): boolean {
-    return this._isActiveInInHierarchy;
-  }
-
-  set isActiveInHierarchy(isActiveInHierarchy: boolean) {
-    this._isActiveInInHierarchy = isActiveInHierarchy;
-    this.trigger(new Event("isActiveInHierarchyChange"));
-    this.traverseAbilitiesTriggerEnabled(isActiveInHierarchy);
-  }
-
-  /**
-   * @deprecated
-   * 本节点是否Active
-   */
-  get isActive(): boolean {
-    return this._activeSelf;
-  }
-
-  set isActive(val: boolean) {
-    this._activeSelf = val;
-    this._activeChangeFun();
-  }
-
-  /**
-   * @deprecated
    * 子节点数组
    */
   get children(): Node[] {
@@ -428,7 +523,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-    return this._ownerScene.engine;
+    return this._scene.engine;
   }
 
   /**
@@ -438,7 +533,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get abilityCount(): number {
-    return this._abilityArray.length;
+    return this._components.length;
   }
 
   /**
@@ -455,8 +550,8 @@ export class Node extends EventDispatcher {
    * @member {Array}
    * @readonly
    */
-  get abilityArray(): NodeAbility[] {
-    return this._abilityArray;
+  get abilityArray(): Component[] {
+    return this._components;
   }
 
   /**
@@ -594,7 +689,7 @@ export class Node extends EventDispatcher {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      if (child._name && child._name === name) {
+      if (child.name && child.name === name) {
         return child;
       }
     }
@@ -638,25 +733,21 @@ export class Node extends EventDispatcher {
    * 为这个节点，创建一个功能组件
    * @param {Class} abilityType 组件的类型
    * @param {object} props 组件的额外参数
-   * @return {NodeAbility} 新创建的组件对象
+   * @return {Component} 新创建的组件对象
    */
-  public createAbility<T extends NodeAbility>(
-    abilityType: new (node: Node, props?: object) => T,
-    props: object = {}
-  ): T {
-    const newAbility = new abilityType(this, props);
-    this._abilityArray.push(newAbility);
-    return newAbility;
+  public createAbility<T extends Component>(abilityType: new (node: Node, props?: object) => T, props: object = {}): T {
+    const component = this.addComponent(abilityType, props);
+    return component;
   }
 
   /**
    * @deprecated
    * 在当前节点中，查找指定类型的功能组件
    * @param {Class} abilityType
-   * @return {NodeAbility}
+   * @return {Component}
    */
-  public findAbilityByType<T extends NodeAbility>(abilityType: new (node: Node, props?: object) => T): T {
-    const abilityArray = this._abilityArray;
+  public findAbilityByType<T extends Component>(abilityType: new (node: Node, props?: object) => T): T {
+    const abilityArray = this._components;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
       const ability = abilityArray[i];
       if (ability instanceof abilityType) {
@@ -668,97 +759,25 @@ export class Node extends EventDispatcher {
 
   /**
    * @deprecated
-   * 递归的访问自身&子节点
-   * @param {SceneVisitor} visitor
-   */
-  public visit(visitor: SceneVisitor): void {
-    if (!visitor.acceptNode(this)) {
-      return;
-    }
-
-    const abilityArray = this._abilityArray;
-    if (abilityArray) {
-      for (let i = abilityArray.length - 1; i >= 0; i--) {
-        visitor.acceptAbility(abilityArray[i]);
-      }
-    } // end of if
-
-    const children = this._children;
-    if (children) {
-      for (let i = children.length - 1; i >= 0; i--) {
-        children[i].visit(visitor);
-      } // end of for
-    } // end of if
-  }
-
-  /**
-   * @deprecated
-   * 每帧状态更新，在Engine.tick()中被调用
-   * @param {number} deltaTime
-   * @private
-   */
-  public update(deltaTime: number): void {
-    if (!this._activeSelf) {
-      return;
-    }
-
-    // -- 检查并执行onUpdate函数
-    if (this.onUpdate) {
-      this.onUpdate(deltaTime);
-    }
-
-    // -- 更新所有 Ability
-    const abilityArray = this._abilityArray;
-    if (abilityArray) {
-      for (let i = abilityArray.length - 1; i >= 0; i--) {
-        const ability = abilityArray[i];
-
-        if (ability.isPendingDestroy) {
-          abilityArray.splice(i, 1);
-          continue;
-        }
-
-        if (ability.enabled) {
-          ability.update(deltaTime);
-        }
-      } // end of for
-    }
-
-    // -- 更新所有子节点
-    const children = this._children;
-    if (children) {
-      for (let i = children.length - 1; i >= 0; i--) {
-        const child = children[i];
-        if (child._pendingDestroy) {
-          children.splice(i, 1);
-          continue;
-        }
-        child.update(deltaTime);
-      } // end of for
-    } // end of if
-  }
-
-  /**
-   * @deprecated
    * 向节点添加一个已有的功能组件对象
-   * @param {NodeAbility} abilityObject 功能组件对象
+   * @param {Component} abilityObject 功能组件对象
    */
-  public attachAbility(abilityObject: NodeAbility): void {
-    const index = this._abilityArray.indexOf(abilityObject);
+  public attachAbility(abilityObject: Component): void {
+    const index = this._components.indexOf(abilityObject);
     if (index !== -1) {
-      this._abilityArray.push(abilityObject);
+      this._components.push(abilityObject);
     }
   }
 
   /**
    * @deprecated
    * 把一个功能组件对象，从当前节点移除（不执行 destroy 操作）
-   * @param {NodeAbility} abilityObject 功能组件对象
+   * @param {Component} abilityObject 功能组件对象
    */
-  public detachAbility(abilityObject: NodeAbility): void {
-    const index = this._abilityArray.indexOf(abilityObject);
+  public detachAbility(abilityObject: Component): void {
+    const index = this._components.indexOf(abilityObject);
     if (index !== -1) {
-      this._abilityArray.splice(index, 1);
+      this._components.splice(index, 1);
     }
   }
 
@@ -777,25 +796,11 @@ export class Node extends EventDispatcher {
    */
   private traverseAbilitiesTriggerEnabled(enabled: boolean) {
     const eventName = enabled ? "enabled" : "disabled";
-    for (let i = 0; i < this._abilityArray.length; i++) {
-      const abiltiy = this._abilityArray[i];
+    for (let i = 0; i < this._components.length; i++) {
+      const abiltiy = this._components[i];
       if (abiltiy && abiltiy.started && abiltiy.enabled) {
         abiltiy.trigger(new Event(eventName, this));
       }
-    }
-  }
-
-  /**
-   * @deprecated
-   */
-  private static traverseSetOwnerScene(node: Node) {
-    for (let i = node.children.length - 1; i >= 0; i--) {
-      const child = node.children[i];
-      const enabled = node._ownerScene ? false : true;
-      node.traverseAbilitiesTriggerEnabled(enabled);
-
-      child._ownerScene = node._ownerScene;
-      this.traverseSetOwnerScene(node.children[i]);
     }
   }
 
@@ -933,7 +938,7 @@ export class Node extends EventDispatcher {
     }
 
     if (!mat4.equals(temp, this._modelMatrix)) {
-      this.trigger(this.propertyChangeEvnet);
+      this.trigger(this.propertyChangeEvent);
     }
 
     this._modelMatrixDirty = false;
@@ -990,12 +995,12 @@ function activeChange(node: Node) {
   return () => {
     if (node.parentNode) {
       if (node.parentNode.isActiveInHierarchy) {
-        node.isActiveInHierarchy = node.isActive;
+        node._isActiveInHierarchy = node.isActive;
       } else {
-        node.isActiveInHierarchy = false;
+        node._isActiveInHierarchy = false;
       }
     } else {
-      node.isActiveInHierarchy = node.isActive;
+      node._isActiveInHierarchy = node.isActive;
     }
   };
 }

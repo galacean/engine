@@ -59,6 +59,9 @@ export class AAnimation extends NodeAbility {
     return outValue;
   }
 
+  /* @internal */
+  _onUpdateIndex: number = -1;
+
   private _animSet;
 
   private _animLayers: AnimationLayer[];
@@ -83,7 +86,6 @@ export class AAnimation extends NodeAbility {
    * @private
    */
   public update(deltaTime: number) {
-    super.update(deltaTime);
     if (!this.isPlaying()) {
       return;
     }
@@ -413,5 +415,23 @@ export class AAnimation extends NodeAbility {
     // 其他情况，是暂时处理不了的
     Logger.error("Can not get channel value!");
     return false;
+  }
+
+  /**
+   * 被激活时调用
+   * @override
+   * @internal
+   */
+  _onActive(): void {
+    this.scene._componentsManager.addOnUpdateAnimations(this);
+  }
+
+  /**
+   * node inActiveInHierarchy时 或 组件销毁前调用
+   * @override
+   * @internal
+   */
+  _onInActive(): void {
+    this.scene._componentsManager.removeOnUpdateAnimations(this);
   }
 }

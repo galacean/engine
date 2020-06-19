@@ -1,10 +1,10 @@
 import { vec3 } from "@alipay/o3-math";
-import { NodeAbility } from "@alipay/o3-core";
+import { NodeAbility, RenderableComponent } from "@alipay/o3-core";
 
 /**
  * 离散 LOD 层级渲染控制：根据对象占用屏幕高度的百分比，切换不同的 Renderer
  */
-export class ALODGroup extends NodeAbility {
+export class ALODGroup extends RenderableComponent {
   private _lods;
   /**
    * 构造函数
@@ -13,8 +13,6 @@ export class ALODGroup extends NodeAbility {
    */
   constructor(node, props) {
     super(node, props);
-
-    this.renderable = true;
     this._lods = [];
   }
 
@@ -25,7 +23,7 @@ export class ALODGroup extends NodeAbility {
    */
   addLod(distance, rendererAbility) {
     // 关闭原因的 Render，由 ALODGroup 接手
-    rendererAbility._renderable = false;
+    rendererAbility.enabled = false;
 
     this._lods.push({
       distance,
