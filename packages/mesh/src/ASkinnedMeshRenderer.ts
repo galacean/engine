@@ -4,6 +4,7 @@ import { Node } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 import { Skin } from "./Skin";
 import { Texture2D } from "@alipay/o3-material";
+import { TextureFormat } from "@alipay/o3-base";
 
 /**
  * 负责渲染一个 Skinned Mesh 的组件
@@ -168,11 +169,10 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * */
   createJointTexture() {
     if (this.disableJointTexture) return;
-    this.jointTexture = new Texture2D("joint_texture", this.matrixPalette, {
-      isRaw: true,
-      isFloat: true,
-      width: 4,
-      height: this.jointNodes.length
-    });
+    if (!this.jointTexture) {
+      const rhi = this.node.scene.activeCameras[0].renderHardware;
+      this.jointTexture = new (Texture2D as any)(rhi, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
+    }
+    this.jointTexture.setPixelBuffer(this.matrixPalette);
   }
 }
