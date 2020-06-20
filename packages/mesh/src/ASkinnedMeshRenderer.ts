@@ -10,15 +10,16 @@ import { Texture2D } from "@alipay/o3-material";
  * @extends AMeshRenderer
  */
 export class ASkinnedMeshRenderer extends AMeshRenderer {
+  public matrixPalette: Float32Array;
+  public jointNodes: Node[];
+  public jointTexture: Texture2D;
+
   private _mat: Float32Array;
   private _weights: number[];
   private weightsIndices: number[] = [];
   private _skin: Skin;
-  public matrixPalette: Float32Array;
-  public jointNodes: Node[];
-  /** 是否禁用骨骼纹理技术，该技术能提高骨骼上限,若设备不支持，程序会自动改成 true */
-  public disableJointTexture: boolean = true;
-  public jointTexture: Texture2D;
+  /** 当超过设备最大骨骼数时，自动使用骨骼纹理技术，该技术能提高骨骼上限，但是性能会下降 */
+  private _useJointTexture: boolean = false;
 
   /**
    * constructor
@@ -102,6 +103,15 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
       } // end of for
       this.matrixPalette = new Float32Array(jointNodes.length * 16);
       this.jointNodes = jointNodes;
+
+      /** 是否使用骨骼纹理 */
+      const rhi = this.scene.activeCameras[0].renderHardware;
+      const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
+      const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
+
+      if (joints.length > maxJoints && rhi.canIUseMoreJoints) {
+        this._useJointTexture = true;
+      }
     }
   }
 
@@ -158,7 +168,9 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
         mat4.multiply(mat, worldToLocal, mat);
         matrixPalette.set(mat, i * 16);
       } // end of for
-      this.createJointTexture();
+      if (this._useJointTexture) {
+        this.createJointTexture();
+      }
     }
   }
 
@@ -167,12 +179,15 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * 格式：(4 * RGBA) * jointCont
    * */
   createJointTexture() {
-    if (this.disableJointTexture) return;
-    this.jointTexture = new Texture2D("joint_texture", this.matrixPalette, {
-      isRaw: true,
-      isFloat: true,
-      width: 4,
-      height: this.jointNodes.length
-    });
+    if (!this.jointTexture) {
+      this.jointTexture = new Texture2D("joint_texture", this.matrixPalette, {
+        isRaw: true,
+        isFloat: true,
+        width: 4,
+        height: this.jointNodes.length
+      });
+      return;
+    }
+    this.jointTexture.image = this.matrixPalette;
   }
 }
