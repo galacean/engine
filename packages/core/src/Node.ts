@@ -7,10 +7,6 @@ import { vec3Type, mat4Type } from "./type";
 import { DisorderedArray } from "./DisorderedArray";
 import { Transform } from "./Transform";
 
-/**@deprecated */
-const _up = vec3.fromValues(0, 1, 0);
-const _right = vec3.fromValues(1, 0, 0);
-const _forward = vec3.fromValues(0, 0, 1);
 /**
  * 节点类,可作为组件的容器。
  */
@@ -97,6 +93,13 @@ export class Node extends EventDispatcher {
 
   /** @deprecated */
   private _invModelMatrix: mat4Type = mat4.create();
+  private tempVec30 = vec3.create();
+  private tempVec31 = vec3.create();
+  private tempVec32 = vec3.create();
+  private tempVec33 = vec3.create();
+  private tempVec34 = vec3.create();
+  private tempVec35 = vec3.create();
+  private tempVec36 = vec3.create();
 
   /**
    * 是否局部激活。
@@ -558,9 +561,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get up() {
-    const tempVec3 = vec3.create();
-    const up = this.transform.getWorldUp(tempVec3);
-    return up;
+    return this.transform.getWorldUp(this.tempVec30);
   }
 
   /**
@@ -570,9 +571,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get forward() {
-    const tempVec3 = vec3.create();
-    const forward = this.transform.getWorldForward(tempVec3);
-    return forward;
+    return this.transform.getWorldForward(this.tempVec31);
   }
 
   /**
@@ -582,9 +581,7 @@ export class Node extends EventDispatcher {
    * @readonly
    */
   get right() {
-    const tempVec3 = vec3.create();
-    const right = this.transform.getWorldRight(tempVec3);
-    return right;
+    return this.transform.getWorldRight(this.tempVec32);
   }
 
   /**
@@ -760,9 +757,7 @@ export class Node extends EventDispatcher {
    * @param {quat} rot 旋转四元数
    */
   public rotateByQuat(rot: number[] | Float32Array) {
-    // this.transform.rotateByAxis();
-    const tempVec3 = vec3.create();
-    const rotateEuler = quat.toEuler(tempVec3, rot);
+    const rotateEuler = quat.toEuler(this.tempVec33, rot);
     this.transform.rotate(rotateEuler);
   }
 
@@ -775,10 +770,11 @@ export class Node extends EventDispatcher {
    */
   public rotateByAngles(pitch: number, yaw: number, roll: number): void {
     if (Util.isArray(pitch)) {
-      this.transform.rotate([pitch[0], pitch[1], pitch[2]]);
+      vec3.set(this.tempVec36, pitch[0], pitch[1], pitch[2]);
     } else {
-      this.transform.rotate([pitch, yaw, roll]);
+      vec3.set(this.tempVec36, pitch, yaw, roll);
     }
+    this.transform.rotate(this.tempVec36);
   }
 
   /**
@@ -789,7 +785,8 @@ export class Node extends EventDispatcher {
    * @param {number} roll 围绕Z轴的旋转
    */
   public setRotationAngles(pitch: number, yaw: number, roll: number): void {
-    this.transform.rotation = [pitch, yaw, roll];
+    vec3.set(this.tempVec34, pitch, yaw, roll);
+    this.transform.rotation = this.tempVec34;
   }
 
   /**
@@ -799,8 +796,7 @@ export class Node extends EventDispatcher {
    * @param {number} deg 旋转角度
    */
   public setRotationAxisAngle(axis: vec3Type, deg: number) {
-    const tempQuat = quat.create();
-    const rotateQuat = quat.setAxisAngle(tempQuat, axis, MathUtil.toRadian(deg));
+    const rotateQuat = quat.setAxisAngle(this.tempVec35, axis, MathUtil.toRadian(deg));
     this.transform.rotationQuaternion = rotateQuat;
   }
 
