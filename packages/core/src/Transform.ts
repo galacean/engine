@@ -8,7 +8,6 @@ import { vec3Type, vec4Type, mat4Type, mat3Type } from "./type";
  */
 class WorldChangeFlag {
   private flag = true;
-  constructor() {}
   /**
    * 重置标记。
    */
@@ -17,17 +16,17 @@ class WorldChangeFlag {
   }
 
   /**
-   * @internal
-   */
-  _mark() {
-    this.flag = true;
-  }
-
-  /**
    * 获取标记。
    */
   get() {
     return this.flag;
+  }
+
+  /**
+   * @internal
+   */
+  _mark() {
+    this.flag = true;
   }
 }
 //CM:vec3Type、vec4Type、mat3Type、mat4Type类型更换
@@ -443,8 +442,8 @@ export class Transform extends NodeAbility {
     this.worldRotationQuaternion = mat4.getRotation(Transform._tempVec40, modelMatrix); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
   }
   /**
-   * 注册 Transform ModelMatrix 修改标记。
-   * @returns 标记索引
+   * 注册 Transform WorldlMatrix 修改标记。
+   * @returns 世界修改标记
    */
   registerWorldChangeFlag(): WorldChangeFlag {
     const flag = new WorldChangeFlag();
