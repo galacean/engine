@@ -4,7 +4,7 @@ import { mat3 } from "@alipay/o3-math";
 import { Texture2DConfig, Rect } from "./type";
 
 /**
- * 2D纹理
+ * 2D纹理。
  */
 export class Texture2D extends Texture {
   private _format: TextureFormat;
@@ -19,7 +19,7 @@ export class Texture2D extends Texture {
   /**
    * 构建一个2D纹理。
    * @todo 删除兼容性API后直接替换构造函数
-   * @param rhi - GPU 硬件抽象层
+   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param format - 格式,默认 TextureFormat.R8G8B8A8
@@ -36,6 +36,7 @@ export class Texture2D extends Texture {
     const isWebGL2: boolean = rhi.isWebGL2;
 
     if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
+      //CM:可以写成更通用的提示和判断，比如提示某格式不支持，而非Float专属，以后会有更多非100%的格式
       throw new Error("Float Texture is not supported");
     }
     if (mipmap && !isWebGL2 && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
@@ -47,6 +48,7 @@ export class Texture2D extends Texture {
 
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
 
+    //CM:现在Format有明确的类型枚举,这个不加也行，我们内部应该维护好，不应该出现为null的情况
     if (!formatDetail) {
       throw new Error(`this format is not supported in Oasis Engine: ${format}`);
     }
@@ -136,7 +138,7 @@ export class Texture2D extends Texture {
   }
 
   /**
-   * 根据指定区域获得像素颜色缓冲
+   * 根据指定区域获得像素颜色缓冲。
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    * @param width - 区域宽

@@ -11,7 +11,8 @@ import {
 import { TextureConfig } from "./type";
 
 /**
- * 立方体纹理
+ * 立方体纹理。
+ * @todo 日后调整为TextureCube命名
  */
 export class TextureCubeMap extends Texture {
   private _format: TextureFormat;
@@ -25,16 +26,18 @@ export class TextureCubeMap extends Texture {
 
   /**
    * 创建立方体纹理。
-   * @param rhi - GPU 硬件抽象层
+   * @todo 删除兼容性API后直接替换构造函数
+   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param size - 尺寸
    * @param format - 格式，默认 TextureFormat.R8G8B8A8
-   * @param mipmap - 是否使用分级纹理
+   * @param mipmap - 是否使用多级纹理
    */
   constructorNew(rhi, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 
     if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
+      //CM:可以写成更通用的提示和判断，比如提示某格式不支持，而非Float专属，以后会有更多非100%的格式
       throw new Error("Float Texture is not supported");
     }
     if (mipmap && !isWebGL2 && !Texture._isPowerOf2(size)) {
@@ -46,6 +49,7 @@ export class TextureCubeMap extends Texture {
 
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
 
+    //CM:现在Format有明确的类型枚举,这个不加也行，我们内部应该维护好，不应该出现为null的情况
     if (!formatDetail) {
       throw new Error(`this format is not supported in Oasis Engine: ${format}`);
     }
@@ -72,7 +76,7 @@ export class TextureCubeMap extends Texture {
    * 通过指定立方体面、像素缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
    * @param face - 立方体面
    * @param colorBuffer - 颜色缓冲
-   * @param miplevel - 分级纹理层级
+   * @param miplevel - 多级纹理层级
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    * @param width - 区域宽
@@ -129,7 +133,7 @@ export class TextureCubeMap extends Texture {
    * 通过指定立方体面、图源、指定区域和纹理层级设置像素。
    * @param face - 立方体面
    * @param imageSource - 纹理源
-   * @param miplevel - 分级纹理层级
+   * @param miplevel - 多级纹理层级
    * @param flipY - 是否翻转Y轴
    * @param premultipltAlpha - 是否预乘透明通道
    * @param x - 区域起始X坐标
@@ -163,7 +167,7 @@ export class TextureCubeMap extends Texture {
   }
 
   /**
-   * 根据指定区域获得像素颜色缓冲
+   * 根据指定区域获得像素颜色缓冲。
    * @param face - 可以选择读取第几个面
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
@@ -172,7 +176,7 @@ export class TextureCubeMap extends Texture {
    * @param out - 颜色数据缓冲
    */
   public getPixelsBuffer(
-    face: TextureCubeFace = TextureCubeFace.PositiveX,
+    face: TextureCubeFace = TextureCubeFace.PositiveX, //CM:这个默认参数不加吧，没价值吧,默认参数会挑选最常用的情，而TextureCubeFace的六个面是平行关系，一样常用，加默认参数反而很怪
     x: number,
     y: number,
     width: number,

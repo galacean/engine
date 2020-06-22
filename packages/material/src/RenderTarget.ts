@@ -19,26 +19,26 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
  * 用于离屏幕渲染的渲染目标。
  */
 export class RenderTarget extends AssetObject {
-  public _frameBuffer: WebGLFramebuffer;
+  public _frameBuffer: WebGLFramebuffer; //CM:加internal
 
   private _rhi;
   private _width: number;
   private _height: number;
   private _antiAliasing: number;
-  private _colorTextures: Array<RenderColorTexture> = [];
+  private _colorTextures: RenderColorTexture[] = [];
   private _depthTexture: RenderDepthTexture | null;
   private _depthRenderBuffer: WebGLRenderbuffer | null;
   private _MSAAFrameBuffer: WebGLFramebuffer | null;
-  private _MSAAColorRenderBuffers: Array<WebGLRenderbuffer> = [];
+  private _MSAAColorRenderBuffers: WebGLRenderbuffer[] = [];
   private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
-  private _oriDrawBuffers: Array<GLenum>;
+  private _oriDrawBuffers: GLenum[];
 
-  /** 宽 */
+  /** 宽。 */
   get width(): number {
     return this._width;
   }
 
-  /** 高 */
+  /** 高。 */
   get height(): number {
     return this._height;
   }
@@ -52,6 +52,7 @@ export class RenderTarget extends AssetObject {
 
   /**
    * 深度纹理。
+   * @todo 以后命名调整为depthTexture
    */
   get depthTextureNew(): RenderDepthTexture | null {
     return this._depthTexture;
@@ -67,12 +68,13 @@ export class RenderTarget extends AssetObject {
 
   /**
    * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
-   * @param rhi - GPU 硬件抽象层
+   * @todo 删除兼容性API后直接替换构造函数
+   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
-   * @param antiAliasing - 抗锯齿级别
+   * @param antiAliasing - 抗锯齿级别 //CM:写个默认值吧
    */
   constructorNew(
     rhi,
@@ -90,7 +92,7 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthTexture - 深度纹理
-   * @param antiAliasing - 抗锯齿级别
+   * @param antiAliasing - 抗锯齿级别 //CM:写个默认值吧
    */
   constructorNew(
     rhi,
@@ -108,15 +110,15 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
-   * @param antiAliasing - 抗锯齿级别
+   * @param antiAliasing - 抗锯齿级别 //CM:写个默认值吧
    */
   constructorNew(
     rhi,
     width: number,
     height: number,
-    colorTextures: Array<RenderColorTexture>,
+    colorTextures: RenderColorTexture[],
     depthFormat?: RenderBufferDepthFormat,
-    antiAliasing?: number
+    antiAliasing?: number //CM:写个默认值吧
   );
 
   /**
@@ -126,13 +128,13 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthTexture - 深度纹理
-   * @param antiAliasing - 抗锯齿级别
+   * @param antiAliasing - 抗锯齿级别 //CM:写个默认值吧
    */
   constructorNew(
     rhi,
     width: number,
     height: number,
-    colorTextures: Array<RenderColorTexture>,
+    colorTextures: RenderColorTexture[],
     depthTexture: RenderDepthTexture,
     antiAliasing?: number
   );
@@ -148,6 +150,7 @@ export class RenderTarget extends AssetObject {
     depth: RenderDepthTexture | RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
     antiAliasing: number = 1
   ) {
+    //CM：在这里用todo说明一下未实现的几种情况枚举
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2 = rhi.isWebGL2;
 
@@ -165,7 +168,6 @@ export class RenderTarget extends AssetObject {
     }
 
     const maxAntiAliasing = rhi.capability.maxAntiAliasing;
-
     if (antiAliasing > maxAntiAliasing) {
       Logger.warn(`MSAA antiAliasing exceeds the limit and is automatically downgraded to:${maxAntiAliasing}`);
       antiAliasing = maxAntiAliasing;
@@ -173,13 +175,14 @@ export class RenderTarget extends AssetObject {
 
     const frameBuffer = gl.createFramebuffer();
 
+    //CM:width和height补充校验
     this._rhi = rhi;
     this._width = width;
     this._height = height;
     this._frameBuffer = frameBuffer;
     this._antiAliasing = antiAliasing;
 
-    this._colorTextures = [].concat.call([], renderTexture).filter((v: RenderColorTexture | null) => v);
+    this._colorTextures = [].concat.call([], renderTexture).filter((v: RenderColorTexture | null) => v); //CM:需要优化
 
     // todo: necessary to support MRT + Cube + [,MSAA] ?
     if (this._colorTextures.length > 1 && this._colorTextures.some((v: RenderColorTexture) => v._isCube)) {
@@ -211,7 +214,9 @@ export class RenderTarget extends AssetObject {
     return this._colorTextures[index];
   }
 
-  /** 销毁实例 */
+  /**
+   * 销毁。
+   */
   public destroy(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
@@ -242,6 +247,7 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
+   * @internal
    * 激活 RenderTarget 对象
    * 如果开启 MSAA,则激活 MSAA FBO,后续进行 this._blitRenderTarget() 进行交换 FBO
    * 如果未开启 MSAA,则激活主 FBO
@@ -293,10 +299,12 @@ export class RenderTarget extends AssetObject {
 
     // 还原当前激活的 FBO
     this._activeRenderTarget();
-  }
+  } //CM:这个要加internal
 
-  /** blit FBO */
-  public _blitRenderTarget(): void {
+  /**
+   * @internal
+   */
+  /** blit FBO */ public _blitRenderTarget(): void {
     if (!this._MSAAFrameBuffer) return;
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
@@ -326,7 +334,7 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * @internal
+   * @internal //CM:private 不用加internal
    * 绑定主 FBO
    */
   private _bindMainFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
@@ -379,7 +387,7 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * @internal
+   * @internal //CM:private 不用加internal
    * 绑定 MSAA FBO
    */
   private _bindMSAAFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
@@ -404,7 +412,7 @@ export class RenderTarget extends AssetObject {
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, MSAAColorRenderBuffer);
     }
 
-    gl.drawBuffers(this._oriDrawBuffers);
+    gl.drawBuffers(this._oriDrawBuffers); //CM: _bindMainFBO里面加了if (colorTextureLength > 1),这个怎么没加
 
     // prepare MSAA depth RBO
     let depthFormatDetail: TextureFormatDetail = null;
@@ -426,7 +434,7 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * @internal
+   * @internal //CM:private 不用加internal
    * 检查 FBO
    */
   private _checkFrameBuffer(): void {

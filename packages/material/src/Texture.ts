@@ -16,9 +16,13 @@ import { TextureFormatDetail, TextureConfig } from "./type";
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
+
+//CM:应该标记为 抽象类 abstract
 export class Texture extends AssetObject {
+  //CM:标记internal
   static _readFrameBuffer: WebGLFramebuffer = null;
 
+  //CM:标记internal
   static _isPowerOf2(v: number): boolean {
     return (v & (v - 1)) === 0;
   }
@@ -26,6 +30,7 @@ export class Texture extends AssetObject {
   /**
    * 根据 TextureFormat 获取具体信息
    */
+  //CM标记为internal 注释要加句号
   static _getFormatDetail(
     format: TextureFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
@@ -150,6 +155,7 @@ export class Texture extends AssetObject {
     }
   }
 
+  //CM:标记为internal
   static _getRenderBufferColorFormatDetail(
     format: RenderBufferColorFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
@@ -194,6 +200,7 @@ export class Texture extends AssetObject {
     }
   }
 
+  //CM:标记为internal
   static _getRenderBufferDepthFormatDetail(
     format: RenderBufferDepthFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
@@ -267,13 +274,20 @@ export class Texture extends AssetObject {
     }
   }
 
+  //CM:标记为internal
   public _glTexture: WebGLTexture;
+  //CM:标记为internal
   public _formatDetail: TextureFormatDetail;
 
+  //CM:标记为internal
   protected _rhi;
+  //CM:标记为internal
   protected _target: GLenum;
+  //CM:标记为internal
   protected _mipmap: boolean;
+  //CM:标记为internal
   protected _width: number;
+  //CM:标记为internal
   protected _height: number;
 
   private _mipmapCount: number;
@@ -367,7 +381,7 @@ export class Texture extends AssetObject {
   }
 
   /**
-   * 纹理的过滤模式，
+   * 纹理的过滤模式。
    */
   get filterMode(): TextureFilterMode {
     return this._filterMode;
@@ -408,6 +422,7 @@ export class Texture extends AssetObject {
   set anisoLevel(value: number) {
     if (value === this._anisoLevel) return;
 
+    //CM:这个不用报错，不支持其实 this._rhi.capability.maxAnisoLevel就为1
     if (!this._rhi.canIUse(GLCapabilityType.textureFilterAnisotropic)) {
       throw new Error("Texture Filter Anisotropic is not supported");
     }
@@ -447,14 +462,17 @@ export class Texture extends AssetObject {
     gl.deleteTexture(this._glTexture);
 
     this._glTexture = null;
+    //CM:非基本类型最好都释放 比如:this._formatDetail=null,可防止虽然纹理销毁，但由于纹理被引用，造成连锁引用
   }
 
+  //CM：internal
   public _bind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.bindTexture(this._target, this._glTexture);
   }
 
+  //CM：internal
   public _unbind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
@@ -463,7 +481,7 @@ export class Texture extends AssetObject {
 
   /**
    * @internal
-   * 根据指定区域获得像素颜色缓冲
+   * 根据指定区域获得像素颜色缓冲。
    * @param face - 如果是立方体纹理，可以选择读取第几个面
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
@@ -520,6 +538,7 @@ export class Texture extends AssetObject {
     } else {
       // In WebGL 1, internalformat must be the same as baseFormat
       if (baseFormat !== internalFormat) {
+        //CM：这个多余了吧，this._formatDetail已经初始化完成了
         internalFormat = baseFormat;
       }
 
@@ -533,7 +552,6 @@ export class Texture extends AssetObject {
       } else {
         for (let i = 0; i < this.mipmapCount; i++) {
           const size = Math.max(1, this._width >> i);
-
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             gl.texImage2D(
               gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
@@ -553,8 +571,8 @@ export class Texture extends AssetObject {
 
     this._unbind();
 
-    this.filterMode = TextureFilterMode.Point;
-    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
+    this.filterMode = TextureFilterMode.Point; //CM:这个不应该在初始化mipmap里面设置吧
+    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp; //CM:这个不应该在初始化mipmap里面设置吧
   }
 
   /**
