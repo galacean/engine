@@ -79,7 +79,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    */
   set skin(skin) {
     this._skin = skin;
-    this._started = false; // force onStart callback
+    // this._started = false; // force onStart callback
   }
 
   get weights() {

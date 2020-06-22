@@ -60,7 +60,7 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
   const prefab = gltf.asset.rootScene.nodes[0];
   const animations = gltf.asset.animations;
 
-  const huabei = prefab.clone();
+  const huabei = prefab
 
   // 加上纹理
   gltf.asset.meshes.forEach((mesh, i) => {
@@ -68,11 +68,11 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
     material.baseColorTexture = texture.asset;
   })
 
-  huabei.rotateByAngles(0, -90, 0);
+  // huabei.rotateByAngles(0, -90, 0);
 
   let node = rootNode.createChild("gltf_node");
-  node.scale = [0.5, 0.5, 0.5]
-  node.position = [-1, 0, 0]
+  // node.scale = [0.5, 0.5, 0.5]
+  // node.position = [-1, 0, 0]
   node.addChild(huabei);
 
   const animator = huabei.createAbility(AAnimation);

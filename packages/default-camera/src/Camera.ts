@@ -3,6 +3,7 @@ import { vec3, mat4, MathUtil, vec4 } from "@alipay/o3-math";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { Node } from "@alipay/o3-core";
+import { vec3Type } from "@alipay/o3-core/types/type";
 
 const vec3Cache = vec3.create();
 
@@ -59,8 +60,8 @@ export class Camera extends NodeAbility {
    * @member {Float32Array}
    * @readonly
    */
-  get eyePos(): Float32Array {
-    return this._node.worldPosition;
+  get eyePos(): vec3Type {
+    return this.node.worldPosition;
   }
 
   public zNear: number;
@@ -117,8 +118,8 @@ export class Camera extends NodeAbility {
   }
 
   public attachToScene(canvas: HTMLCanvasElement, attributes?) {
-    this._node.scene.attachRenderCamera(this as any);
-    const engine = this._node.scene.engine;
+    this.node.scene.attachRenderCamera(this as any);
+    const engine = this.node.scene.engine;
     this._rhi = engine.requireRHI((this._props as any).RHI, canvas, {
       ...(this._props as any).attributes,
       ...attributes
@@ -303,7 +304,7 @@ export class Camera extends NodeAbility {
     super.destroy();
 
     // -- remove from scene
-    this._node.scene.detachRenderCamera(this as any);
+    this.node.scene.detachRenderCamera(this as any);
 
     // --
     if (this._sceneRenderer) {
@@ -321,14 +322,14 @@ export class Camera extends NodeAbility {
     super.update(deltaTime);
 
     // make sure update directions
-    this._node.getModelMatrix();
+    this.node.getModelMatrix();
 
-    vec3.copy(vec3Cache, this._node.forward);
+    vec3.copy(vec3Cache, this.node.forward);
     if (this.leftHand) {
       vec3.scale(vec3Cache, vec3Cache, -1);
     }
-    vec3.add(vec3Cache, this._node.position, vec3Cache);
-    mat4.lookAt(this._viewMat, this._node.position, vec3Cache, this._node.up);
+    vec3.add(vec3Cache, this.node.position, vec3Cache);
+    mat4.lookAt(this._viewMat, this.node.position, vec3Cache, this.node.up);
     mat4.invert(this._inverseViewMatrix, this._viewMat);
   }
 }

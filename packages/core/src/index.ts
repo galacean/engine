@@ -12,3 +12,4 @@ export { Script } from "./Script";
 export { RenderableComponent } from "./RenderableComponent";
 
 export { ACamera } from "./ACamera";
+export { Transform } from "./Transform";

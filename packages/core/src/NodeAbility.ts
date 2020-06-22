@@ -10,8 +10,6 @@ import { mat4Type } from "./type";
  */
 export abstract class NodeAbility extends EventDispatcher {
   /* @internal */
-  _props: object;
-  /* @internal */
   _node: Node;
   /* @internal */
   _destroyed: boolean = false;
@@ -22,6 +20,7 @@ export abstract class NodeAbility extends EventDispatcher {
   /* @internal */
   protected _overrideUpdate: boolean = false;
 
+  protected _props: object;
   private _enabled: boolean = true;
   private _awaked: boolean = false;
 

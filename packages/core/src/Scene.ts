@@ -4,8 +4,6 @@ import { Node } from "./Node";
 import { Engine } from "./Engine";
 import { ACamera } from "./ACamera";
 import { SceneFeature } from "./SceneFeature";
-import { SceneVisitor } from "./SceneVisitor";
-import { Vec4 } from "@alipay/o3-math/types/type";
 import { ComponentsManager } from "./ComponentsManager";
 
 /*
@@ -63,8 +61,9 @@ export class Scene extends EventDispatcher {
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
    * @example
    * scene.clipPlanes = [[0,1,0,0]];
+   * @todo 类型修改
    * */
-  public clipPlanes: Vec4[] = [];
+  public clipPlanes: any[] = [];
 
   public _componentsManager: ComponentsManager;
 

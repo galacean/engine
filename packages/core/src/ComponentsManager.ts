@@ -5,7 +5,6 @@ import { Script } from "./Script";
 import { DisorderedArray } from "./DisorderedArray";
 
 /**
- * @internal
  * 组件的管理员。
  */
 export class ComponentsManager {

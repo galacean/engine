@@ -2,6 +2,7 @@ import { UniformSemantic, DataType } from '@alipay/o3-base';
 import { Material } from '@alipay/o3-material';
 import { Resource } from '@alipay/o3-loader';
 import { NodeAbility } from '@alipay/o3-core';
+import { AGeometryRenderer } from '@alipay/o3-geometry';
 
 export function createCubeMaterial(loader) {
   let newMtl = new Material('cube_mtl');
@@ -12,7 +13,7 @@ export function createCubeMaterial(loader) {
 let time = 0;
 export class UpdateMaterialAbility extends NodeAbility {
   onUpdate(deltaTime) {
-    const material = this.node.abilityArray[1].material;
+    const material = this.node.getComponent(AGeometryRenderer).material;
     time += deltaTime;
     material.setValue('time', time * 0.001);
   }
