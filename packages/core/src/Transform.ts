@@ -89,6 +89,7 @@ export class Transform extends NodeAbility {
   private _worldMatrix: mat4Type = mat4.create();
 
   private _dirtyFlag: number = 0;
+  private _changeFlags: boolean[] = [];
 
   /**
    * 是否往上查父节点。
@@ -413,6 +414,31 @@ export class Transform extends NodeAbility {
     worldUp = worldUp ?? vec3.set(Transform._tempVec3, 0, 1, 0);
     const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp); //CM:可采用3x3矩阵优化
     this.worldRotationQuaternion = mat4.getRotation(Transform._tempVec40, modelMatrix); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
+  }
+  /**
+   * 注册 Transform ModelMatrix 修改标记。
+   * @returns 标记索引
+   */
+  registerWorldChangeFlag(): number {
+    const len = this._changeFlags.length;
+    this._changeFlags.push(false);
+    return len;
+  }
+
+  /**
+   * 获取 Transform ModelMatrix 修改标记。
+   * @param index 标记索引
+   */
+  getWorldChangeFlag(index: number): boolean {
+    return this._changeFlags[index];
+  }
+
+  /**
+   * 重置 Transform ModelMatrix 修改标记。
+   * @param index 标记索引
+   */
+  resetWorldChaneFlag(index: number): void {
+    this._changeFlags[index] = false;
   }
 
   /**
