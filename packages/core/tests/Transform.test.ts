@@ -14,15 +14,55 @@ describe("Transform", () => {
     expect(transform.worldRotation).toEqual(vec3.create());
   });
 
-  it("set position", () => {
-    transform.position = [10, 20, 30];
-    console.log(transform.position);
-    console.log(transform.worldPosition);
-    console.log(transform.localMatrix);
-    console.log(transform.worldMatrix);
+  describe("single node", () => {
+    it("set position", () => {});
+
+    it("set rotation", () => {});
+
+    it("set rotation quat", () => {});
+
+    it("set scale", () => {});
+
+    it("set local matrix", () => {});
+
+    it("set world matrix", () => {});
+
+    it("set world postion", () => {});
+
+    it("set world rotation", () => {});
+
+    it("set world rotation quat", () => {});
+
+    it("rotate", () => {});
+
+    it("rotate by axis", () => {});
+
+    it("lookat", () => {});
   });
 
-  it("set rotation", () => {
-    transform.rotation = [10, 20, 30];
+  describe("has parent node", () => {
+    it("set position", () => {});
+
+    it("set rotation", () => {});
+
+    it("set rotation quat", () => {});
+
+    it("set scale", () => {});
+
+    it("set local matrix", () => {});
+
+    it("set world matrix", () => {});
+
+    it("set world postion", () => {});
+
+    it("set world rotation", () => {});
+
+    it("set world rotation quat", () => {});
+
+    it("rotate", () => {});
+
+    it("rotate by axis", () => {});
+
+    it("lookat", () => {});
   });
 });
