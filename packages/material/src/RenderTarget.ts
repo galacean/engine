@@ -15,7 +15,6 @@ import { RenderTargetConfig, TextureFormatDetail } from "./type";
 import { Texture } from "./Texture";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
-import { vec3 } from "@alipay/o3-math";
 
 /**
  * 用于离屏幕渲染的渲染目标。

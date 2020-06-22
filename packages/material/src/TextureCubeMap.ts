@@ -5,7 +5,6 @@ import {
   TextureFilter,
   TextureFilterMode,
   TextureWrapMode,
-  GLCapabilityType,
   AssetType,
   Logger
 } from "@alipay/o3-base";

@@ -1,11 +1,4 @@
-import {
-  RenderBufferDepthFormat,
-  GLCapabilityType,
-  TextureFilterMode,
-  TextureWrapMode,
-  AssetType,
-  Logger
-} from "@alipay/o3-base";
+import { RenderBufferDepthFormat, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
 import { Texture } from "./Texture";
 
 /**

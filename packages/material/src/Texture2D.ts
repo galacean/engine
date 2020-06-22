@@ -1,13 +1,5 @@
 import { Texture } from "./Texture";
-import {
-  TextureFormat,
-  TextureFilterMode,
-  TextureFilter,
-  TextureWrapMode,
-  GLCapabilityType,
-  AssetType,
-  Logger
-} from "@alipay/o3-base";
+import { TextureFormat, TextureFilterMode, TextureFilter, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
 import { mat3 } from "@alipay/o3-math";
 import { Texture2DConfig, Rect } from "./type";
 
