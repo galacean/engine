@@ -109,7 +109,7 @@ resourceLoader.batchLoad( [ gltfRes ], ( err, res ) => {
   }
 
   let gltfNode = gltfRes.rootScene.nodes[0];
-  gltfNode = gltfNode.clone();
+  gltfNode = gltfNode
   gltfNode.rotateByAngles(0, 180, 0);
   rootNode.addChild( gltfNode );
 

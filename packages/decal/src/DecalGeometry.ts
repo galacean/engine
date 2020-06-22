@@ -30,8 +30,8 @@ export class DecalGeometry extends BufferGeometry {
   public constructor(intersection: Intersection, position: FloatArray, orientation: FloatArray, size: FloatArray) {
     super();
     this.node = intersection.node;
-    const meshRenderer = this.node.abilityArray[0];
-    if (meshRenderer instanceof AMeshRenderer) {
+    const meshRenderer = this.node.getComponent(AMeshRenderer);
+    if (meshRenderer) {
       this.targetMesh = meshRenderer.mesh;
     } else {
       console.error("必须是mesh");
