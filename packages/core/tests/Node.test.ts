@@ -1,62 +1,44 @@
 import { Node } from "../src/Node";
-import { Node2 } from "../src/Node2";
 import { quat, mat4, vec3 } from "@alipay/o3-math";
 
 describe("Node test", function() {
   it("case", () => {});
   describe("node lookat", () => {
     const node = new Node();
-    const node2 = new Node2();
     beforeEach(() => {
       node.setModelMatrix(mat4.create());
-      node2.setModelMatrix(mat4.create());
     });
 
     it("test lookAt", () => {
       node.lookAt([0, -3, 0], [0, 1, 0]);
-      node2.lookAt([0, -3, 0], [0, 1, 0]);
-      testEqual(node, node2);
     });
 
     it("test setRotationAngles", () => {
       node.setRotationAngles(10, 20, 30);
-      node2.setRotationAngles(10, 20, 30);
-      testEqual(node, node2);
     });
 
     it("test set rotation", () => {
       const rotation = [];
       node.rotation = quat.fromEuler(rotation, 10, 20, 30);
-      node2.rotation = quat.fromEuler(rotation, 10, 20, 30);
-      testEqual(node, node2);
     });
   });
 
   describe("node parent", () => {
     const node = new Node();
-    const node2 = new Node2();
     const parent = new Node();
-    const parent2 = new Node2();
     parent.addChild(node);
-    parent2.addChild(node2);
     parent.position = Float32Array.from([10, 10, 33]);
-    parent2.position = Float32Array.from([10, 10, 33]);
     beforeEach(() => {
       node.setModelMatrix(mat4.create());
-      node2.setModelMatrix(mat4.create());
     });
 
     it("test setRotationAngles", () => {
       node.setRotationAngles(10, 20, 30);
-      node2.setRotationAngles(10, 20, 30);
-      testEqual(node, node2);
     });
 
     it("test set rotation", () => {
       const rotation = [];
       node.rotation = quat.fromEuler(rotation, 10, 20, 30);
-      node2.rotation = quat.fromEuler(rotation, 10, 20, 30);
-      testEqual(node, node2);
     });
   });
 });
