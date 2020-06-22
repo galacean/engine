@@ -67,9 +67,6 @@ let pointLight = lgtNode2.createAbility(APointLight, {
 });
 lgtNode2.position = [1, 2, 2];
 lgtNode2.lookAt([0, 0, 0], [0, 1, 0]);
-// lgtNode2.onUpdate = () => {
-// lgtNode2.lookAt([0, -1, 0], [0, 1, 0]);
-// };
 lgtNode2.createAbility(ACircleMove, { range: 2 });
 pointLight["enableShadow"] = true;
 pointLight["shadow"].setMapSize(1024, 1024);

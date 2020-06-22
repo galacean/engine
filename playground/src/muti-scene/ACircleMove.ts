@@ -19,5 +19,6 @@ export class ACircleMove extends NodeAbility {
     let y = this.node.position[1];
     let z = Math.sin(this.time) * this.range;
     this.node.position = vec3.fromValues(x, y, z);
+    this.node.lookAt([0, -1, 0], [0, 1, 0]);
   }
 }
