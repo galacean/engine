@@ -137,7 +137,7 @@ export class Transform extends NodeAbility {
     if (this._position !== value) {
       vec3.copy(this._position, value);
     }
-    this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG, true);
+    this._setDirtyFlagTrue(Transform._LOCAL_MATRIX_FLAG);
     this._updateWorldPositionFlag();
   }
 
@@ -151,7 +151,7 @@ export class Transform extends NodeAbility {
       } else {
         vec3.copy(this._worldPosition, this._position);
       }
-      this._setDirtyFlag(Transform._WORLD_POSITION_FLAG, false);
+      this._setDirtyFlagFalse(Transform._WORLD_POSITION_FLAG);
     }
     return this._worldPosition;
   }
@@ -168,7 +168,7 @@ export class Transform extends NodeAbility {
       vec3.copy(this._worldPosition, value);
     }
     this.position = this._worldPosition;
-    this._setDirtyFlag(Transform._WORLD_POSITION_FLAG, false);
+    this._setDirtyFlagFalse(Transform._WORLD_POSITION_FLAG);
   }
 
   /**
@@ -177,7 +177,7 @@ export class Transform extends NodeAbility {
   get rotation(): vec3Type {
     if (this._getDirtyFlag(Transform._LOCAL_EULER_FLAG)) {
       quat.toEuler(this._rotation, this._rotationQuaternion);
-      this._setDirtyFlag(Transform._LOCAL_EULER_FLAG, false);
+      this._setDirtyFlagFalse(Transform._LOCAL_EULER_FLAG);
     }
     return this._rotation;
   }
@@ -186,8 +186,8 @@ export class Transform extends NodeAbility {
     if (this._rotation !== value) {
       vec3.copy(this._rotation, value);
     }
-    this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG | Transform._LOCAL_QUAT_FLAG, true);
-    this._setDirtyFlag(Transform._LOCAL_EULER_FLAG, false);
+    this._setDirtyFlagTrue(Transform._LOCAL_MATRIX_FLAG | Transform._LOCAL_QUAT_FLAG);
+    this._setDirtyFlagFalse(Transform._LOCAL_EULER_FLAG);
     this._updateWorldRotationFlag();
   }
 
@@ -197,7 +197,7 @@ export class Transform extends NodeAbility {
   get worldRotation(): vec3Type {
     if (this._getDirtyFlag(Transform._WORLD_EULER_FLAG)) {
       quat.toEuler(this._worldRotation, this.worldRotationQuaternion);
-      this._setDirtyFlag(Transform._WORLD_EULER_FLAG, false);
+      this._setDirtyFlagFalse(Transform._WORLD_EULER_FLAG);
     }
     return this._worldRotation;
   }
@@ -208,7 +208,7 @@ export class Transform extends NodeAbility {
     }
     quat.fromEuler(this._worldRotationQuaternion, value[0], value[1], value[2]);
     this.worldRotationQuaternion = this._worldRotationQuaternion;
-    this._setDirtyFlag(Transform._WORLD_EULER_FLAG, false);
+    this._setDirtyFlagFalse(Transform._WORLD_EULER_FLAG);
   }
 
   /**
@@ -217,7 +217,7 @@ export class Transform extends NodeAbility {
   get rotationQuaternion(): vec4Type {
     if (this._getDirtyFlag(Transform._LOCAL_QUAT_FLAG)) {
       quat.fromEuler(this._rotationQuaternion, this._rotation[0], this._rotation[1], this._rotation[2]);
-      this._setDirtyFlag(Transform._LOCAL_QUAT_FLAG, false);
+      this._setDirtyFlagFalse(Transform._LOCAL_QUAT_FLAG);
     }
     return this._rotationQuaternion;
   }
@@ -226,8 +226,8 @@ export class Transform extends NodeAbility {
     if (this._rotationQuaternion !== value) {
       quat.copy(this._rotationQuaternion, value);
     }
-    this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG | Transform._LOCAL_EULER_FLAG, true);
-    this._setDirtyFlag(Transform._LOCAL_QUAT_FLAG, false);
+    this._setDirtyFlagTrue(Transform._LOCAL_MATRIX_FLAG | Transform._LOCAL_EULER_FLAG);
+    this._setDirtyFlagFalse(Transform._LOCAL_QUAT_FLAG);
     this._updateWorldRotationFlag();
   }
 
@@ -242,7 +242,7 @@ export class Transform extends NodeAbility {
       } else {
         quat.copy(this._worldRotationQuaternion, this.rotationQuaternion);
       }
-      this._setDirtyFlag(Transform._WORLD_QUAT_FLAG, false);
+      this._setDirtyFlagFalse(Transform._WORLD_QUAT_FLAG);
     }
     return this._worldRotationQuaternion;
   }
@@ -259,7 +259,7 @@ export class Transform extends NodeAbility {
       quat.copy(this._rotationQuaternion, value);
     }
     this.rotationQuaternion = this._rotationQuaternion;
-    this._setDirtyFlag(Transform._WORLD_QUAT_FLAG, false);
+    this._setDirtyFlagFalse(Transform._WORLD_QUAT_FLAG);
   }
 
   /**
@@ -273,7 +273,7 @@ export class Transform extends NodeAbility {
     if (this._scale !== value) {
       vec3.copy(this._scale, value);
     }
-    this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG, true);
+    this._setDirtyFlagTrue(Transform._LOCAL_MATRIX_FLAG);
     this._updateWorldScaleFlag();
   }
 
@@ -288,7 +288,7 @@ export class Transform extends NodeAbility {
       } else {
         vec3.copy(this._lossyWorldScale, this._scale);
       }
-      this._setDirtyFlag(Transform._WORLD_SCALE_FLAG, false);
+      this._setDirtyFlagFalse(Transform._WORLD_SCALE_FLAG);
     }
     return this._lossyWorldScale;
   }
@@ -299,7 +299,7 @@ export class Transform extends NodeAbility {
   get localMatrix(): mat4Type {
     if (this._getDirtyFlag(Transform._LOCAL_MATRIX_FLAG)) {
       mat4.fromRotationTranslationScale(this._localMatrix, this.rotationQuaternion, this._position, this._scale);
-      this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG, false);
+      this._setDirtyFlagFalse(Transform._LOCAL_MATRIX_FLAG);
     }
     return this._localMatrix;
   }
@@ -309,8 +309,8 @@ export class Transform extends NodeAbility {
       mat4.copy(this._localMatrix, value);
     }
     mat4.decompose(this._localMatrix, this._position, this._rotationQuaternion, this._scale);
-    this._setDirtyFlag(Transform._LOCAL_EULER_FLAG, true);
-    this._setDirtyFlag(Transform._LOCAL_MATRIX_FLAG, false);
+    this._setDirtyFlagTrue(Transform._LOCAL_EULER_FLAG);
+    this._setDirtyFlagFalse(Transform._LOCAL_MATRIX_FLAG);
     this._updateAllWorldFlag();
   }
 
@@ -325,7 +325,7 @@ export class Transform extends NodeAbility {
       } else {
         mat4.copy(this._worldMatrix, this.localMatrix);
       }
-      this._setDirtyFlag(Transform._WORLD_MATRIX_FLAG, false);
+      this._setDirtyFlagFalse(Transform._WORLD_MATRIX_FLAG);
     }
     return this._worldMatrix;
   }
@@ -342,7 +342,7 @@ export class Transform extends NodeAbility {
       mat4.copy(this._localMatrix, value);
     }
     this.localMatrix = this._localMatrix;
-    this._setDirtyFlag(Transform._WORLD_MATRIX_FLAG, false);
+    this._setDirtyFlagFalse(Transform._WORLD_MATRIX_FLAG);
   }
 
   /**
@@ -466,8 +466,7 @@ export class Transform extends NodeAbility {
    */
   private _updateWorldPositionFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_FLAGS)) {
-      this._setDirtyFlag(Transform._WM_WP_FLAGS, true);
-      this._setWorldChangeFlags();
+      this._worldAssociatedChange(Transform._WM_WP_FLAGS);
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionFlag();
@@ -484,8 +483,7 @@ export class Transform extends NodeAbility {
    */
   private _updateWorldRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WE_WQ_FLAGS)) {
-      this._setDirtyFlag(Transform._WM_WE_WQ_FLAGS, true);
-      this._setWorldChangeFlags();
+      this._worldAssociatedChange(Transform._WM_WE_WQ_FLAGS);
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
@@ -502,8 +500,7 @@ export class Transform extends NodeAbility {
    */
   private _updateWorldPositionAndRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_FLAGS)) {
-      this._setDirtyFlag(Transform._WM_WP_WE_WQ_FLAGS, true);
-      this._setWorldChangeFlags();
+      this._worldAssociatedChange(Transform._WM_WP_WE_WQ_FLAGS);
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag();
@@ -519,8 +516,7 @@ export class Transform extends NodeAbility {
    */
   private _updateWorldScaleFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WS_FLAGS)) {
-      this._setDirtyFlag(Transform._WM_WS_FLAGS, true);
-      this._setWorldChangeFlags();
+      this._worldAssociatedChange(Transform._WM_WS_FLAGS);
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
@@ -536,8 +532,7 @@ export class Transform extends NodeAbility {
    */
   private _updateWorldPositionAndScaleFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WS_FLAGS)) {
-      this._setDirtyFlag(Transform._WM_WP_WS_FLAGS, true);
-      this._setWorldChangeFlags();
+      this._worldAssociatedChange(Transform._WM_WP_WS_FLAGS);
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
@@ -550,8 +545,7 @@ export class Transform extends NodeAbility {
    */
   private _updateAllWorldFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS_FLAGS)) {
-      this._setDirtyFlag(Transform._WM_WP_WE_WQ_WS_FLAGS, true);
-      this._setWorldChangeFlags();
+      this._worldAssociatedChange(Transform._WM_WP_WE_WQ_WS_FLAGS);
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateAllWorldFlag();
@@ -608,18 +602,19 @@ export class Transform extends NodeAbility {
     return (this._dirtyFlag & type) != 0;
   }
 
-  private _setDirtyFlag(type: number, value: boolean): void {
-    if (value) {
-      this._dirtyFlag |= type;
-    } else {
-      this._dirtyFlag &= ~type;
-    }
+  private _setDirtyFlagTrue(type: number) {
+    this._dirtyFlag |= type;
+  }
+
+  private _setDirtyFlagFalse(type: number) {
+    this._dirtyFlag &= ~type;
   }
 
   /**
    * 设置对外派发的 world change flags
    */
-  private _setWorldChangeFlags() {
+  private _worldAssociatedChange(type: number): void {
+    this._dirtyFlag |= type;
     const len = this._changeFlags.length;
     for (let i = len - 1; i >= 0; i--) {
       this._changeFlags[i]._mark();
