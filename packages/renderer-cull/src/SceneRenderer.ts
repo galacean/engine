@@ -38,12 +38,12 @@ export class SceneRenderer extends BasicSceneRenderer {
     let isInFrustum = true;
 
     //-- 进行视锥剪裁
-    if (!primitive.boundingBox) {
-      const { min, max } = primitive.getMinMax();
-      primitive.boundingBox = new OBB(min, max, node.getModelMatrix());
-    } else if (node.isDirty) {
-      primitive.boundingBox.updateByModelMatrix(node.getModelMatrix());
-    }
+    // if (!primitive.boundingBox) {
+    //   const { min, max } = primitive.getMinMax();
+    //   primitive.boundingBox = new OBB(min, max, node.getModelMatrix());
+    // } else if (node.isDirty) {
+    primitive.boundingBox.updateByModelMatrix(node.getModelMatrix());
+    // }
 
     isInFrustum = primitive.boundingBox.isInFrustum(this.frustum.planes);
     primitive.isInFrustum = isInFrustum;
