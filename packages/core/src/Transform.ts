@@ -4,7 +4,7 @@ import { NodeAbility } from "./NodeAbility";
 import { vec3Type, vec4Type, mat4Type, mat3Type } from "./type";
 
 /**
- * 世界矩阵改变标记
+ * 世界矩阵改变标记。
  */
 class WorldChangeFlag {
   private flag = true;
@@ -619,7 +619,7 @@ export class Transform extends NodeAbility {
 
   private _setDispatchFlags() {
     const len = this._changeFlags.length;
-    for (let i = len; i >= 0; i--) {
+    for (let i = len - 1; i >= 0; i--) {
       this._changeFlags[i]._mark();
     }
   }
