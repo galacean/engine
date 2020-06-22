@@ -436,7 +436,7 @@ export class Node extends EventDispatcher {
 
   private _setTransformDirty() {
     if (this.transform) {
-      this.transform._setParentDirty();
+      this.transform._parentChange();
     } else {
       for (let i = 0, len = this._children.length; i < len; i++) {
         this.children[i]._setTransformDirty();
