@@ -42,7 +42,7 @@ export class SceneRenderer extends BasicSceneRenderer {
     //   const { min, max } = primitive.getMinMax();
     //   primitive.boundingBox = new OBB(min, max, node.getModelMatrix());
     // } else if (node.isDirty) {
-    primitive.boundingBox.updateByModelMatrix(node.getModelMatrix());
+    primitive.boundingBox?.updateByModelMatrix(node.getModelMatrix());
     // }
 
     isInFrustum = primitive.boundingBox.isInFrustum(this.frustum.planes);

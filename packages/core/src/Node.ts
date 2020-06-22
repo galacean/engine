@@ -199,9 +199,6 @@ export class Node extends EventDispatcher {
     this.transform = new Transform(this);
     this.parent = parent;
     this.isActive = true;
-
-    //deprecated
-    this._activeChangeFun = activeChange(this);
   }
 
   /**
@@ -445,12 +442,7 @@ export class Node extends EventDispatcher {
     }
   }
 
-  //--------------------------------------------TobeConfirmed--------------------------------------------------
-
-  private propertyChangeEvent = new Event("propertyChange");
-
-  private _activeChangeFun;
-
+  //--------------------------------------------TobeConfirmed-------------------------------------------------
   /**
    * 创建子节点
    * @param {string} name 子节点的名称
@@ -483,24 +475,7 @@ export class Node extends EventDispatcher {
   }
 
   set parentNode(parentObj: Node) {
-    if (!parentObj || parentObj === this._parent) {
-      return;
-    }
-
-    if (this._parent != null) {
-      const index = this._parent._children.indexOf(this);
-      if (index > -1) {
-        this._parent._children.splice(index, 1);
-        this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-      } else {
-        Logger.debug("can not find this object in _parent._children");
-      }
-    }
-
-    this._parent = parentObj;
-    parentObj._children.push(this);
-    this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-    this._activeChangeFun();
+    this.parent = parentObj;
   }
 
   /**
@@ -852,23 +827,6 @@ export class Node extends EventDispatcher {
     this.transform.lookAt(center, up);
     return this;
   }
-}
-
-/**
- * @deprecated
- */
-function activeChange(node: Node) {
-  return () => {
-    if (node.parentNode) {
-      if (node.parentNode.isActiveInHierarchy) {
-        node._isActiveInHierarchy = node.isActive;
-      } else {
-        node._isActiveInHierarchy = false;
-      }
-    } else {
-      node._isActiveInHierarchy = node.isActive;
-    }
-  };
 }
 
 /**
