@@ -7,10 +7,10 @@ import { vec3Type, vec4Type, mat4Type, mat3Type } from "./type";
  * 世界矩阵改变标记
  */
 class WorldChangeFlag {
-  private flag = false;
+  private flag = true;
   constructor() {}
   /**
-   * 重置标记
+   * 重置标记。
    */
   reset() {
     this.flag = false;
@@ -24,7 +24,7 @@ class WorldChangeFlag {
   }
 
   /**
-   * 获取标记
+   * 获取标记。
    */
   get() {
     return this.flag;
@@ -561,7 +561,7 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 获取父 transform
+   * 获取父 transform。
    */
   private _getParentTransform(): Transform | null {
     if (!this._isParentDirty) {
