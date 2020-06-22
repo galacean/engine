@@ -3,6 +3,33 @@ import { Node } from "./Node";
 import { NodeAbility } from "./NodeAbility";
 import { vec3Type, vec4Type, mat4Type, mat3Type } from "./type";
 
+/**
+ * 世界矩阵改变标记
+ */
+class WorldChangeFlag {
+  private flag = false;
+  constructor() {}
+  /**
+   * 重置标记
+   */
+  reset() {
+    this.flag = false;
+  }
+
+  /**
+   * @internal
+   */
+  mark() {
+    this.flag = true;
+  }
+
+  /**
+   * 获取标记
+   */
+  get() {
+    return this.flag;
+  }
+}
 //CM:vec3Type、vec4Type、mat3Type、mat4Type类型更换
 //CM:相关get方法修改为ReadOnly<T>类型
 export class Transform extends NodeAbility {
@@ -89,7 +116,7 @@ export class Transform extends NodeAbility {
   private _worldMatrix: mat4Type = mat4.create();
 
   private _dirtyFlag: number = 0;
-  private _changeFlags: boolean[] = [];
+  private _changeFlags: WorldChangeFlag[] = [];
 
   /**
    * 是否往上查父节点。
@@ -419,26 +446,10 @@ export class Transform extends NodeAbility {
    * 注册 Transform ModelMatrix 修改标记。
    * @returns 标记索引
    */
-  registerWorldChangeFlag(): number {
-    const len = this._changeFlags.length;
-    this._changeFlags.push(false);
-    return len;
-  }
-
-  /**
-   * 获取 Transform ModelMatrix 修改标记。
-   * @param index 标记索引
-   */
-  getWorldChangeFlag(index: number): boolean {
-    return this._changeFlags[index];
-  }
-
-  /**
-   * 重置 Transform ModelMatrix 修改标记。
-   * @param index 标记索引
-   */
-  resetWorldChaneFlag(index: number): void {
-    this._changeFlags[index] = false;
+  registerWorldChangeFlag(): Omit<WorldChangeFlag, "mark"> {
+    const flag = new WorldChangeFlag();
+    this._changeFlags.push(flag);
+    return flag;
   }
 
   /**
@@ -609,7 +620,7 @@ export class Transform extends NodeAbility {
   private _setDispatchFlags() {
     const len = this._changeFlags.length;
     for (let i = len; i >= 0; i--) {
-      this._changeFlags[i] = true;
+      this._changeFlags[i].mark();
     }
   }
 
