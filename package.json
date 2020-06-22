@@ -78,7 +78,7 @@
     "babel-plugin-external-helpers": "^6.22.0",
     "chalk": "^2.4.2",
     "copy-dir": "^1.1.0",
-    "copy-webpack-plugin": "^5.0.4",
+    "copy-webpack-plugin": "^6.0.2",
     "cross-env": "^5.2.0",
     "eslint": "^6.6.0",
     "eslint-config-prettier": "^6.5.0",
@@ -113,8 +113,8 @@
     "url-loader": "^1.1.2",
     "urllib": "^2.34.1",
     "webpack": "^4.31.0",
-    "webpack-cli": "^3.3.2",
-    "webpack-dev-server": "^3.3.1"
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.11.0"
   },
   "husky": {
     "hooks": {

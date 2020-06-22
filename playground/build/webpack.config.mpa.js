@@ -56,6 +56,9 @@ let config = {
   externals: {
     "@alipay/o3-plus": "o3"
   },
+  resolve: {
+    extensions: [".ts", ".tsx", ".js"]
+  },
   optimization: {
     splitChunks: {
       cacheGroups: {
@@ -174,13 +177,14 @@ if (isDev) {
 } else {
   config.mode = "production";
   config.plugins.push(
-    new CopyWebpackPlugin([
-      {
-        from: path.resolve(__dirname, "../static"),
-        to: path.resolve(__dirname, "../dist/static"),
-        ignore: [".*"]
-      }
-    ])
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, "../static"),
+          to: path.resolve(__dirname, "../dist/static")
+        }
+      ]
+    })
   );
   module.exports = config;
 }
