@@ -247,7 +247,6 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * @internal
    * 激活 RenderTarget 对象
    * 如果开启 MSAA,则激活 MSAA FBO,后续进行 this._blitRenderTarget() 进行交换 FBO
    * 如果未开启 MSAA,则激活主 FBO
@@ -302,9 +301,9 @@ export class RenderTarget extends AssetObject {
   } //CM:这个要加internal
 
   /**
-   * @internal
+  /* blit FBO
    */
-  /** blit FBO */ public _blitRenderTarget(): void {
+  public _blitRenderTarget(): void {
     if (!this._MSAAFrameBuffer) return;
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
