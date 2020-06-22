@@ -326,7 +326,6 @@ export abstract class Texture extends AssetObject {
     return true;
   }
 
-  /** @internal */
   public _glTexture: WebGLTexture;
   /** @internal */
   public _formatDetail: TextureFormatDetail;

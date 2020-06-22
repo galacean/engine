@@ -20,7 +20,6 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
  * 用于离屏幕渲染的渲染目标。
  */
 export class RenderTarget extends AssetObject {
-  /** @internal */
   public _frameBuffer: WebGLFramebuffer;
 
   private _rhi;
