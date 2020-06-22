@@ -8,7 +8,6 @@ import { vec3Type, vec4Type, mat4Type, mat3Type } from "./type";
  */
 class WorldChangeFlag {
   private flag = true;
-
   /**
    * 重置标记。
    */
@@ -561,7 +560,7 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 获取父 transform
+   * 获取父 transform。
    */
   private _getParentTransform(): Transform | null {
     if (!this._isParentDirty) {
@@ -619,7 +618,7 @@ export class Transform extends NodeAbility {
 
   private _setDispatchFlags() {
     const len = this._changeFlags.length;
-    for (let i = len; i >= 0; i--) {
+    for (let i = len - 1; i >= 0; i--) {
       this._changeFlags[i]._mark();
     }
   }

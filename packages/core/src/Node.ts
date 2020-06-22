@@ -196,7 +196,7 @@ export class Node extends EventDispatcher {
     //TODO 因现有机制scene的rootNode 在创建时需要知道自己为root(判断activeInHierarchy时不需要判断父节点)
     this._isRoot = parent === null && name === "__root__";
     this.name = name;
-    this.transform = new Transform(this);
+    this.transform = this.addComponent(Transform);
     this.parent = parent;
     this.isActive = true;
   }
@@ -346,7 +346,9 @@ export class Node extends EventDispatcher {
     const len = abilityArray.length;
     for (let i = 0; i < len; i++) {
       const ability = abilityArray[i];
-      newNode.createAbility(ability.constructor as any, (ability as any)._props);
+      if (!(ability instanceof Transform)) {
+        newNode.createAbility(ability.constructor as any, (ability as any)._props);
+      }
     }
 
     return newNode;
