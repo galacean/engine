@@ -16,7 +16,6 @@ import "@alipay/o3-loader-gltf";
 
 class MoveScript extends Script {
   sphere;
-  engine;
   onUpdate() {
     let p = this.sphere.position;
     let t = this.engine.time.timeSinceStartup * 0.001;
@@ -104,7 +103,7 @@ waterMtl.setValue("u_depthTexture", renderTarget.depthTexture);
 // 创建球体, 控制球体上下运动
 let sphere = createSphereGeometry("sphere3", [0, 0, 0], 1, 20, 20);
 sphere.castShadow = true;
-const moveScript: any = sphere.addComponent(MoveScript);
+const moveScript = sphere.addComponent(MoveScript);
 moveScript.sphere = sphere;
 
 // 创建平面形的水面
