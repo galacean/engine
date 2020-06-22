@@ -317,10 +317,10 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-  /* blit FBO
+   * blit FBO
    */
   public _blitRenderTarget(): void {
-    if (!this._MSAAFrameBuffer) return;
+    if (!this._MSAAFrameBuffer) return; //CM:这个判断应该加在外层
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const mask = gl.COLOR_BUFFER_BIT | (this._depthTexture ? gl.DEPTH_BUFFER_BIT : 0);

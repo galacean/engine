@@ -64,7 +64,7 @@ export class Texture2D extends Texture {
     }
 
     this.filterMode = TextureFilterMode.Bilinear;
-    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
+    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp; //CM:Texture2D不同与其他 Reapeat更常用一些
 
     //todo: delete
     this.type = AssetType.Scene;

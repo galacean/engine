@@ -278,6 +278,7 @@ export abstract class Texture extends AssetObject {
    * 检测是否支持相应纹理格式。
    */
   static _supportTextureFormat(format: TextureFormat, rhi): boolean {
+    //CM：写switch case更好吧，if太丑，还费性能
     if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
       return false;
     }
@@ -287,6 +288,7 @@ export abstract class Texture extends AssetObject {
 
   /** @internal */
   static _supportRenderBufferColorFormat(format: RenderBufferColorFormat, rhi): boolean {
+    //CM：写switch case更好吧，if太丑，还费性能
     if (
       format === RenderBufferColorFormat.R32G32B32A32 &&
       (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat))
@@ -305,6 +307,7 @@ export abstract class Texture extends AssetObject {
 
   /** @internal */
   static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi): boolean {
+    //CM：写switch case更好吧，if太丑，还费性能
     const isWebGL2: boolean = rhi.isWebGL2;
 
     if (format === RenderBufferDepthFormat.Stencil) {
@@ -374,6 +377,8 @@ export abstract class Texture extends AssetObject {
 
     this._wrapModeU = value;
 
+    //CM: wrapModeU和wrapModeV这部分代码差不多,封个函数呗
+    //CM:TextureWrapMode.REPEAT和 TextureWrapMode.Mirror 在webgl1.0下必须是2的N次方，不降级吗孩子，webgl2.0是否需要降低需要你调研
     this._bind();
     switch (value) {
       case TextureWrapMode.Clamp:
@@ -403,6 +408,7 @@ export abstract class Texture extends AssetObject {
 
     this._wrapModeV = value;
 
+    //CM: wrapModeU和wrapModeV这部分代码差不多,封个函数呗
     this._bind();
     switch (value) {
       case TextureWrapMode.Clamp:
@@ -425,7 +431,7 @@ export abstract class Texture extends AssetObject {
     if (!this._mipmapCount) {
       this._mipmapCount = this._mipmap
         ? Math.max(this._getMaxMiplevel(this._width), this._getMaxMiplevel(this._height)) + 1
-        : 1;
+        : 1; //CM:大哥，放下执念，改了吧
     }
     return this._mipmapCount;
   }
@@ -470,9 +476,16 @@ export abstract class Texture extends AssetObject {
   }
 
   set anisoLevel(value: number) {
-    if (value === this._anisoLevel) return;
+    if (value === this._anisoLevel) return; //CM:这个应该放到 491行之后，增加判断成功率
 
     if (!this._rhi.canIUse(GLCapabilityType.textureFilterAnisotropic)) {
+      //CM:不支持this._rhi.capability.maxAnisoLevel就是0啊，直接走下面的警告就行了，这里就不用写了,还有你的this._anisoLevel没写默认值，如果这里return掉了,get属性就是undifine
+
+      //CM:
+      //0这里的代码可以都删掉
+      //1)你的this._anisoLevel默认值应该写成0
+      //2)如果不支持的话this._rhi.capability.maxAnisoLevel也是0,先写493行降级代码（提炼思想：记住排重判断写在降级之后会提高排重命中率）
+      //3)然后再写478行的判断代码
       Logger.warn("Texture Filter Anisotropic is not supported");
       return;
     }
@@ -558,6 +571,7 @@ export abstract class Texture extends AssetObject {
     gl.bindFramebuffer(gl.FRAMEBUFFER, Texture._readFrameBuffer);
 
     if (face > -1 && face != null) {
+      //CM:face是枚举，一般不会设置小于0的x，这么写的话你要写成大于等于0，小于等于5对吧？face > -1可以删掉
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
@@ -589,6 +603,7 @@ export abstract class Texture extends AssetObject {
     } else {
       // In WebGL 1, internalformat must be the same as baseFormat
       if (baseFormat !== internalFormat) {
+        //CM：internalFormat在this._formatDetail中已经保证维护正确了吧，这里不用再判断了
         internalFormat = baseFormat;
       }
 
