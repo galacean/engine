@@ -3,6 +3,7 @@ import { vec3, mat4, MathUtil, vec4 } from "@alipay/o3-math";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { Node } from "@alipay/o3-core";
+import { vec3Type } from "@alipay/o3-core/types/type";
 
 const vec3Cache = vec3.create();
 
@@ -59,7 +60,7 @@ export class Camera extends NodeAbility {
    * @member {Float32Array}
    * @readonly
    */
-  get eyePos(): Float32Array {
+  get eyePos(): vec3Type {
     return this.node.worldPosition;
   }
 
