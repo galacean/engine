@@ -60,7 +60,7 @@ export class Camera extends NodeAbility {
    * @readonly
    */
   get eyePos(): Float32Array {
-    return this._ownerNode.worldPosition;
+    return this._node.worldPosition;
   }
 
   public zNear: number;
@@ -117,8 +117,8 @@ export class Camera extends NodeAbility {
   }
 
   public attachToScene(canvas: HTMLCanvasElement, attributes?) {
-    this._ownerNode.scene.attachRenderCamera(this as any);
-    const engine = this._ownerNode.scene.engine;
+    this._node.scene.attachRenderCamera(this as any);
+    const engine = this._node.scene.engine;
     this._rhi = engine.requireRHI((this._props as any).RHI, canvas, {
       ...(this._props as any).attributes,
       ...attributes
@@ -303,7 +303,7 @@ export class Camera extends NodeAbility {
     super.destroy();
 
     // -- remove from scene
-    this._ownerNode.scene.detachRenderCamera(this as any);
+    this._node.scene.detachRenderCamera(this as any);
 
     // --
     if (this._sceneRenderer) {
@@ -321,14 +321,14 @@ export class Camera extends NodeAbility {
     super.update(deltaTime);
 
     // make sure update directions
-    this._ownerNode.getModelMatrix();
+    this._node.getModelMatrix();
 
-    vec3.copy(vec3Cache, this._ownerNode.forward);
+    vec3.copy(vec3Cache, this._node.forward);
     if (this.leftHand) {
       vec3.scale(vec3Cache, vec3Cache, -1);
     }
-    vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
-    mat4.lookAt(this._viewMat, this._ownerNode.position, vec3Cache, this._ownerNode.up);
+    vec3.add(vec3Cache, this._node.position, vec3Cache);
+    mat4.lookAt(this._viewMat, this._node.position, vec3Cache, this._node.up);
     mat4.invert(this._inverseViewMatrix, this._viewMat);
   }
 }

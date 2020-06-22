@@ -1,13 +1,13 @@
 import { Logger } from "@alipay/o3-base";
 import { Material } from "@alipay/o3-material";
-import { NodeAbility, Node, ACamera } from "@alipay/o3-core";
+import { Node, ACamera, RenderableComponent } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 
 /**
  * 负责渲染一个Mesh对象的组件
- * @extends NodeAbility
+ * @extends RenderableComponent
  */
-export class AMeshRenderer extends NodeAbility {
+export class AMeshRenderer extends RenderableComponent {
   private _mesh: Mesh;
   private _instanceMaterials: Material[];
   private _sharedMaterials: Material[];
@@ -20,7 +20,6 @@ export class AMeshRenderer extends NodeAbility {
   constructor(node: Node, props: { mesh?: Mesh } = {}) {
     super(node, props);
 
-    this.renderable = true; // 标记为可渲染对象
     this._mesh = null; // Mesh Asset Object
 
     this._instanceMaterials = []; // 这个组件独有的材质，用来单独控制材质参数

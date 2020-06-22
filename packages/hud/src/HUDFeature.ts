@@ -45,6 +45,10 @@ export class HUDFeature extends SceneFeature {
    * @private
    */
   attachWidget(widget) {
+    if (!this._texture) {
+      this.initTexture();
+    }
+
     const index = this._widgets.indexOf(widget);
     if (index === -1) {
       this._widgets.push(widget);

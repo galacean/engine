@@ -31,6 +31,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
   const animations = gltf.asset.animations;
 
   const pig = pigPrefab.clone();
+  console.log("pigPrefab", pigPrefab);
   pig.rotateByAngles(0, 180, 0);
 
   let node = rootNode.createChild("gltf_node");
