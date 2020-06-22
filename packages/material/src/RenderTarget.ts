@@ -19,7 +19,8 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
  * 用于离屏幕渲染的渲染目标。
  */
 export class RenderTarget extends AssetObject {
-  public _frameBuffer: WebGLFramebuffer; //CM:加internal
+  /** @internal */
+  public _frameBuffer: WebGLFramebuffer;
 
   private _rhi;
   private _width: number;
@@ -298,7 +299,7 @@ export class RenderTarget extends AssetObject {
 
     // 还原当前激活的 FBO
     this._activeRenderTarget();
-  } //CM:这个要加internal
+  }
 
   /**
   /* blit FBO
@@ -333,7 +334,6 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * @internal //CM:private 不用加internal
    * 绑定主 FBO
    */
   private _bindMainFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
@@ -386,7 +386,6 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * @internal //CM:private 不用加internal
    * 绑定 MSAA FBO
    */
   private _bindMSAAFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
@@ -433,7 +432,6 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * @internal //CM:private 不用加internal
    * 检查 FBO
    */
   private _checkFrameBuffer(): void {

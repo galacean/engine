@@ -5,6 +5,7 @@ import { Texture } from "./Texture";
  * 类应用于渲染颜色纹理。
  */
 export class RenderColorTexture extends Texture {
+  /** @internal */
   public _isCube: boolean = false;
 
   private _format: RenderBufferColorFormat;

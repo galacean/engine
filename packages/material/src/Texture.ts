@@ -19,18 +19,18 @@ import { TextureFormatDetail, TextureConfig } from "./type";
 
 //CM:应该标记为 抽象类 abstract
 export class Texture extends AssetObject {
-  //CM:标记internal
+  /** @internal */
   static _readFrameBuffer: WebGLFramebuffer = null;
 
-  //CM:标记internal
+  /** @internal */
   static _isPowerOf2(v: number): boolean {
     return (v & (v - 1)) === 0;
   }
 
   /**
-   * 根据 TextureFormat 获取具体信息
+   * @internal
+   * 根据 TextureFormat 获取具体信息。
    */
-  //CM标记为internal 注释要加句号
   static _getFormatDetail(
     format: TextureFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
@@ -155,7 +155,7 @@ export class Texture extends AssetObject {
     }
   }
 
-  //CM:标记为internal
+  /** @internal */
   static _getRenderBufferColorFormatDetail(
     format: RenderBufferColorFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
@@ -200,7 +200,7 @@ export class Texture extends AssetObject {
     }
   }
 
-  //CM:标记为internal
+  /** @internal */
   static _getRenderBufferDepthFormatDetail(
     format: RenderBufferDepthFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
@@ -274,20 +274,19 @@ export class Texture extends AssetObject {
     }
   }
 
-  //CM:标记为internal
+  /** @internal */
   public _glTexture: WebGLTexture;
-  //CM:标记为internal
+  /** @internal */
   public _formatDetail: TextureFormatDetail;
 
-  //CM:标记为internal
+  /** @internal */
   protected _rhi;
-  //CM:标记为internal
+  /** @internal */
   protected _target: GLenum;
-  //CM:标记为internal
+  /** @internal */
   protected _mipmap: boolean;
-  //CM:标记为internal
+
   protected _width: number;
-  //CM:标记为internal
   protected _height: number;
 
   private _mipmapCount: number;

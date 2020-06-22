@@ -5,6 +5,7 @@ import { Texture } from "./Texture";
  * 类应用于渲染深度纹理。
  */
 export class RenderDepthTexture extends Texture {
+  /** @internal */
   public _isCube: boolean = false;
 
   private _format: RenderBufferDepthFormat;
