@@ -19,7 +19,7 @@ class WorldChangeFlag {
   /**
    * @internal
    */
-  mark() {
+  _mark() {
     this.flag = true;
   }
 
@@ -446,7 +446,7 @@ export class Transform extends NodeAbility {
    * 注册 Transform ModelMatrix 修改标记。
    * @returns 标记索引
    */
-  registerWorldChangeFlag(): Omit<WorldChangeFlag, "mark"> {
+  registerWorldChangeFlag(): WorldChangeFlag {
     const flag = new WorldChangeFlag();
     this._changeFlags.push(flag);
     return flag;
@@ -620,7 +620,7 @@ export class Transform extends NodeAbility {
   private _setDispatchFlags() {
     const len = this._changeFlags.length;
     for (let i = len; i >= 0; i--) {
-      this._changeFlags[i].mark();
+      this._changeFlags[i]._mark();
     }
   }
 
