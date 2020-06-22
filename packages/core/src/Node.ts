@@ -98,8 +98,8 @@ export class Node extends EventDispatcher {
   private tempVec32 = vec3.create();
   private tempVec33 = vec3.create();
   private tempVec34 = vec3.create();
-  private tempVec35 = vec3.create();
   private tempVec36 = vec3.create();
+  private tempQuat = quat.create();
 
   /**
    * 是否局部激活。
@@ -773,7 +773,7 @@ export class Node extends EventDispatcher {
    * @param {number} deg 旋转角度
    */
   public setRotationAxisAngle(axis: vec3Type, deg: number) {
-    const rotateQuat = quat.setAxisAngle(this.tempVec35, axis, MathUtil.toRadian(deg));
+    const rotateQuat = quat.setAxisAngle(this.tempQuat, axis, MathUtil.toRadian(deg));
     this.transform.rotationQuaternion = rotateQuat;
   }
 
