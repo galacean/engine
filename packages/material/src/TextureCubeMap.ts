@@ -3,6 +3,7 @@ import {
   TextureFormat,
   TextureCubeFace,
   TextureFilter,
+  TextureFilterMode,
   TextureWrapMode,
   GLCapabilityType,
   AssetType,
@@ -36,10 +37,10 @@ export class TextureCubeMap extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 
-    if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
-      //CM:可以写成更通用的提示和判断，比如提示某格式不支持，而非Float专属，以后会有更多非100%的格式
-      throw new Error("Float Texture is not supported");
+    if (!Texture._supportTextureFormat(format, rhi)) {
+      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
+
     if (mipmap && !isWebGL2 && !Texture._isPowerOf2(size)) {
       Logger.warn(
         "non-power-2 texture is not supported for mipmap in WebGL1,and has automatically downgraded to non-mipmap"
@@ -48,11 +49,6 @@ export class TextureCubeMap extends Texture {
     }
 
     const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
-
-    //CM:现在Format有明确的类型枚举,这个不加也行，我们内部应该维护好，不应该出现为null的情况
-    if (!formatDetail) {
-      throw new Error(`this format is not supported in Oasis Engine: ${format}`);
-    }
 
     const glTexture = gl.createTexture();
 
@@ -68,6 +64,10 @@ export class TextureCubeMap extends Texture {
     if (!this._formatDetail.isCompressed) {
       this._initMipmap(true);
     }
+
+    this.filterMode = TextureFilterMode.Bilinear;
+    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
+
     //todo: delete
     this.type = AssetType.Scene;
   }
@@ -176,7 +176,7 @@ export class TextureCubeMap extends Texture {
    * @param out - 颜色数据缓冲
    */
   public getPixelsBuffer(
-    face: TextureCubeFace = TextureCubeFace.PositiveX, //CM:这个默认参数不加吧，没价值吧,默认参数会挑选最常用的情，而TextureCubeFace的六个面是平行关系，一样常用，加默认参数反而很怪
+    face: TextureCubeFace,
     x: number,
     y: number,
     width: number,

@@ -17,8 +17,7 @@ import { TextureFormatDetail, TextureConfig } from "./type";
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
 
-//CM:应该标记为 抽象类 abstract
-export class Texture extends AssetObject {
+export abstract class Texture extends AssetObject {
   /** @internal */
   static _readFrameBuffer: WebGLFramebuffer = null;
 
@@ -274,6 +273,59 @@ export class Texture extends AssetObject {
     }
   }
 
+  /**
+   * @internal
+   * 检测是否支持相应纹理格式。
+   */
+  static _supportTextureFormat(format: TextureFormat, rhi): boolean {
+    if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /** @internal */
+  static _supportRenderBufferColorFormat(format: RenderBufferColorFormat, rhi): boolean {
+    if (
+      format === RenderBufferColorFormat.R32G32B32A32 &&
+      (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat))
+    ) {
+      return false;
+    }
+    if (
+      format === RenderBufferColorFormat.R16G16B16A16 &&
+      (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat))
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /** @internal */
+  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi): boolean {
+    const isWebGL2: boolean = rhi.isWebGL2;
+
+    if (format === RenderBufferDepthFormat.Stencil) {
+      return false;
+    }
+
+    if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
+      return false;
+    }
+
+    if ((format === RenderBufferDepthFormat.Depth24 || format === RenderBufferDepthFormat.Depth32) && !isWebGL2) {
+      return false;
+    }
+
+    if (format === RenderBufferDepthFormat.Depth32Stencil8 && !isWebGL2) {
+      return false;
+    }
+
+    return true;
+  }
+
   /** @internal */
   public _glTexture: WebGLTexture;
   /** @internal */
@@ -421,9 +473,9 @@ export class Texture extends AssetObject {
   set anisoLevel(value: number) {
     if (value === this._anisoLevel) return;
 
-    //CM:这个不用报错，不支持其实 this._rhi.capability.maxAnisoLevel就为1
     if (!this._rhi.canIUse(GLCapabilityType.textureFilterAnisotropic)) {
-      throw new Error("Texture Filter Anisotropic is not supported");
+      Logger.warn("Texture Filter Anisotropic is not supported");
+      return;
     }
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
@@ -461,17 +513,18 @@ export class Texture extends AssetObject {
     gl.deleteTexture(this._glTexture);
 
     this._glTexture = null;
-    //CM:非基本类型最好都释放 比如:this._formatDetail=null,可防止虽然纹理销毁，但由于纹理被引用，造成连锁引用
+    this._formatDetail = null;
+    this._rhi = null;
   }
 
-  //CM：internal
+  /** @internal */
   public _bind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.bindTexture(this._target, this._glTexture);
   }
 
-  //CM：internal
+  /** @internal */
   public _unbind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
@@ -537,7 +590,6 @@ export class Texture extends AssetObject {
     } else {
       // In WebGL 1, internalformat must be the same as baseFormat
       if (baseFormat !== internalFormat) {
-        //CM：这个多余了吧，this._formatDetail已经初始化完成了
         internalFormat = baseFormat;
       }
 
@@ -569,9 +621,6 @@ export class Texture extends AssetObject {
     }
 
     this._unbind();
-
-    this.filterMode = TextureFilterMode.Point; //CM:这个不应该在初始化mipmap里面设置吧
-    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp; //CM:这个不应该在初始化mipmap里面设置吧
   }
 
   /**

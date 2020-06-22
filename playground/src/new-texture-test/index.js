@@ -119,8 +119,6 @@ resourceLoader.batchLoad(cubeTextureRes, (err, reses) => {
       console.log(buffer);
     }
   });
-
-  envLight.specularMap = cubeTextures.minisampler;
 });
 
 resourceLoader.batchLoad(textureRes, (err, reses) => {

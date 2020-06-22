@@ -1,4 +1,11 @@
-import { TextureCubeFace, RenderBufferColorFormat, GLCapabilityType, AssetType, Logger } from "@alipay/o3-base";
+import {
+  TextureCubeFace,
+  RenderBufferColorFormat,
+  TextureFilterMode,
+  TextureWrapMode,
+  AssetType,
+  Logger
+} from "@alipay/o3-base";
 import { Texture } from "./Texture";
 
 /**
@@ -31,7 +38,7 @@ export class RenderColorTexture extends Texture {
 
   /**
    * 构造渲染纹理。
-   * @param rhi - GPU 硬件抽象层 //CM:标注deprecated
+   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param format - 格式，默认 RenderBufferColorFormat.R8G8B8A8
@@ -52,20 +59,10 @@ export class RenderColorTexture extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 
-    //CM:写成更通用的判断
-    if (
-      format === RenderBufferColorFormat.R32G32B32A32 &&
-      (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat))
-    ) {
-      throw new Error("Float Color Buffer is not supported");
+    if (!Texture._supportRenderBufferColorFormat(format, rhi)) {
+      throw new Error(`RenderBufferColorFormat is not supported:${RenderBufferColorFormat[format]}`);
     }
-    if (
-      //CM:写成更通用的判断，可以和上面的合并
-      format === RenderBufferColorFormat.R16G16B16A16 &&
-      (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat))
-    ) {
-      throw new Error("Half Float Color Buffer is not supported");
-    }
+
     if (isCube && width !== height) {
       throw new Error("The cube texture must have the same width and height");
     }
@@ -77,11 +74,6 @@ export class RenderColorTexture extends Texture {
     }
 
     const formatDetail = Texture._getRenderBufferColorFormatDetail(format, gl, isWebGL2);
-
-    //CM:现在Format有明确的类型枚举,这个不用加，我们内部应该维护好，不应该出现为null的情况
-    if (!formatDetail) {
-      throw new Error(`this format is not supported in Oasis Engine: ${format}`);
-    }
 
     const glTexture = gl.createTexture();
 
@@ -96,13 +88,17 @@ export class RenderColorTexture extends Texture {
     this._format = format;
 
     this._initMipmap(isCube);
+
+    this.filterMode = TextureFilterMode.Bilinear;
+    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
+
     //todo: delete
     this.type = AssetType.Scene;
   }
 
   /**
    * 根据指定区域获得像素颜色缓冲
-   * @param face - 如果是立方体纹理，可以选择读取第几个面//CM:立方体纹理读取面，isCube=true时生效
+   * @param face - 如果是立方体纹理，可以选择读取第几个面;立方体纹理读取面，isCube=true时生效
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    * @param width - 区域宽

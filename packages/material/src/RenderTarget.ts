@@ -5,7 +5,8 @@ import {
   TextureWrapMode,
   GLCapabilityType,
   AssetType,
-  Logger
+  Logger,
+  Util
 } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Texture2D } from "./Texture2D";
@@ -14,6 +15,7 @@ import { RenderTargetConfig, TextureFormatDetail } from "./type";
 import { Texture } from "./Texture";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
+import { vec3 } from "@alipay/o3-math";
 
 /**
  * 用于离屏幕渲染的渲染目标。
@@ -75,7 +77,7 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
-   * @param antiAliasing - 抗锯齿级别 //CM:写个默认值吧
+   * @param antiAliasing - 抗锯齿级别,默认 1
    */
   constructorNew(
     rhi,
@@ -93,7 +95,7 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthTexture - 深度纹理
-   * @param antiAliasing - 抗锯齿级别 //CM:写个默认值吧
+   * @param antiAliasing - 抗锯齿级别,默认 1
    */
   constructorNew(
     rhi,
@@ -111,7 +113,7 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
-   * @param antiAliasing - 抗锯齿级别 //CM:写个默认值吧
+   * @param antiAliasing - 抗锯齿级别,默认 1
    */
   constructorNew(
     rhi,
@@ -119,7 +121,7 @@ export class RenderTarget extends AssetObject {
     height: number,
     colorTextures: RenderColorTexture[],
     depthFormat?: RenderBufferDepthFormat,
-    antiAliasing?: number //CM:写个默认值吧
+    antiAliasing?: number
   );
 
   /**
@@ -129,7 +131,7 @@ export class RenderTarget extends AssetObject {
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthTexture - 深度纹理
-   * @param antiAliasing - 抗锯齿级别 //CM:写个默认值吧
+   * @param antiAliasing - 抗锯齿级别,默认 1
    */
   constructorNew(
     rhi,
@@ -151,21 +153,44 @@ export class RenderTarget extends AssetObject {
     depth: RenderDepthTexture | RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
     antiAliasing: number = 1
   ) {
-    //CM：在这里用todo说明一下未实现的几种情况枚举
+    /** todo
+     * MRT + Cube + [,MSAA]
+     * MRT + MSAA
+     */
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
-    const isWebGL2 = rhi.isWebGL2;
 
-    if (!(depth instanceof RenderDepthTexture)) {
-      if ((depth === RenderBufferDepthFormat.Depth24 || depth === RenderBufferDepthFormat.Depth32) && !isWebGL2) {
-        throw new Error("High precision depth buffer is not supported");
-      }
-      if (depth === RenderBufferDepthFormat.Depth32Stencil8 && !isWebGL2) {
-        throw new Error("High precision depth stencil buffer is not supported");
-      }
+    if (!(depth instanceof RenderDepthTexture) && !Texture._supportRenderBufferDepthFormat(depth, rhi)) {
+      throw new Error(`RenderBufferDepthFormat is not supported:${RenderBufferDepthFormat[depth]}`);
     }
 
     if ((renderTexture as Array<RenderColorTexture>)?.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
       throw new Error("MRT is not supported");
+    }
+
+    // handle this._colorTextures
+    if (renderTexture) {
+      if (Util.isArrayLike(renderTexture)) {
+        const length = (renderTexture as RenderColorTexture[]).length;
+        for (let i = 0; i < length; i++) {
+          const texture = renderTexture[i];
+          texture && this._colorTextures.push(texture);
+        }
+      } else {
+        this._colorTextures.push(renderTexture as RenderColorTexture);
+      }
+    }
+
+    if (this._colorTextures.some((v: RenderColorTexture) => v.width !== width || v.height !== height)) {
+      throw new Error("RenderColorTexture's size must as same as RenderTarget");
+    }
+
+    if (depth instanceof RenderDepthTexture && (depth.width !== width || depth.height !== height)) {
+      throw new Error("RenderDepthTexture's size must as same as RenderTarget");
+    }
+
+    // todo: necessary to support MRT + Cube + [,MSAA] ?
+    if (this._colorTextures.length > 1 && this._colorTextures.some((v: RenderColorTexture) => v._isCube)) {
+      throw new Error("MRT+Cube+[,MSAA] is not supported");
     }
 
     const maxAntiAliasing = rhi.capability.maxAntiAliasing;
@@ -176,19 +201,11 @@ export class RenderTarget extends AssetObject {
 
     const frameBuffer = gl.createFramebuffer();
 
-    //CM:width和height补充校验
     this._rhi = rhi;
     this._width = width;
     this._height = height;
     this._frameBuffer = frameBuffer;
     this._antiAliasing = antiAliasing;
-
-    this._colorTextures = [].concat.call([], renderTexture).filter((v: RenderColorTexture | null) => v); //CM:需要优化
-
-    // todo: necessary to support MRT + Cube + [,MSAA] ?
-    if (this._colorTextures.length > 1 && this._colorTextures.some((v: RenderColorTexture) => v._isCube)) {
-      throw new Error("MRT+Cube+[,MSAA] is not supported");
-    }
 
     if (depth instanceof RenderDepthTexture) {
       this._depthTexture = depth;
@@ -352,9 +369,9 @@ export class RenderTarget extends AssetObject {
       drawBuffers.push(attachment);
 
       // 立方体纹理请调用 _renderToCube()
-      if (colorTexture._isCube) return;
-
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, colorTexture._glTexture, 0);
+      if (!colorTexture._isCube) {
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, colorTexture._glTexture, 0);
+      }
     }
 
     if (colorTextureLength > 1) {
@@ -365,11 +382,11 @@ export class RenderTarget extends AssetObject {
     /** depth render buffer */
     if (renderDepth instanceof RenderDepthTexture) {
       // 立方体纹理请调用 _renderToCube()
-      if (renderDepth._isCube) return;
+      if (!renderDepth._isCube) {
+        const { attachment } = renderDepth._formatDetail;
 
-      const { attachment } = renderDepth._formatDetail;
-
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, renderDepth._glTexture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, renderDepth._glTexture, 0);
+      }
     } else if (this._antiAliasing <= 1) {
       const { internalFormat, attachment } = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
       const depthRenderBuffer = gl.createRenderbuffer();
@@ -409,8 +426,7 @@ export class RenderTarget extends AssetObject {
       gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, MSAAColorRenderBuffer);
     }
-
-    gl.drawBuffers(this._oriDrawBuffers); //CM: _bindMainFBO里面加了if (colorTextureLength > 1),这个怎么没加
+    gl.drawBuffers(this._oriDrawBuffers);
 
     // prepare MSAA depth RBO
     let depthFormatDetail: TextureFormatDetail = null;
