@@ -61,6 +61,7 @@ export class Scene extends EventDispatcher {
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
    * @example
    * scene.clipPlanes = [[0,1,0,0]];
+   * @todo 类型修改
    * */
   public clipPlanes: any[] = [];
 

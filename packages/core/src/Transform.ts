@@ -467,7 +467,7 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WP_FLAGS, true);
-      this._setDispatchFlags();
+      this._setWorldChangeFlags();
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionFlag();
@@ -485,7 +485,7 @@ export class Transform extends NodeAbility {
   private _updateWorldRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WE_WQ_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WE_WQ_FLAGS, true);
-      this._setDispatchFlags();
+      this._setWorldChangeFlags();
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
@@ -503,7 +503,7 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionAndRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WP_WE_WQ_FLAGS, true);
-      this._setDispatchFlags();
+      this._setWorldChangeFlags();
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag();
@@ -520,7 +520,7 @@ export class Transform extends NodeAbility {
   private _updateWorldScaleFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WS_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WS_FLAGS, true);
-      this._setDispatchFlags();
+      this._setWorldChangeFlags();
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
@@ -537,7 +537,7 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionAndScaleFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WS_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WP_WS_FLAGS, true);
-      this._setDispatchFlags();
+      this._setWorldChangeFlags();
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
@@ -551,7 +551,7 @@ export class Transform extends NodeAbility {
   private _updateAllWorldFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS_FLAGS)) {
       this._setDirtyFlag(Transform._WM_WP_WE_WQ_WS_FLAGS, true);
-      this._setDispatchFlags();
+      this._setWorldChangeFlags();
       const nodeChildren = this._node.children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateAllWorldFlag();
@@ -616,7 +616,10 @@ export class Transform extends NodeAbility {
     }
   }
 
-  private _setDispatchFlags() {
+  /**
+   * 设置对外派发的 world change flags
+   */
+  private _setWorldChangeFlags() {
     const len = this._changeFlags.length;
     for (let i = len - 1; i >= 0; i--) {
       this._changeFlags[i]._mark();
@@ -636,7 +639,7 @@ export class Transform extends NodeAbility {
   /**
    * @internal
    */
-  _setParentDirty(): void {
+  _parentChange(): void {
     this._isParentDirty = true;
     this._updateAllWorldFlag();
   }
