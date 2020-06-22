@@ -198,6 +198,7 @@ export class ResourceLoader extends EventDispatcher {
         resource.trigger(new Event("loaded", resource));
       })
       .catch(e => {
+        console.error(e);
         callback(e);
       });
   }

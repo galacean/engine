@@ -1,131 +1,194 @@
-import { Node } from "./Node";
-import { quat, vec3 } from "@alipay/o3-math";
+import { NodeAbility } from "./NodeAbility";
 
-abstract class BasePoint {
-  constructor(protected node: Node) {}
-
-  abstract get x(): number;
-  abstract set x(value: number);
-
-  abstract get y(): number;
-  abstract set y(value: number);
-
-  abstract get z(): number;
-  abstract set z(value: number);
-}
-
-class PositionPoint extends BasePoint {
-  get x(): number {
-    return this.node.position[0];
-  }
-  set x(value: number) {
-    this.node.position[0] = value;
-    this.node._markTransformDirty();
-  }
-
-  get y(): number {
-    return this.node.position[1];
-  }
-  set y(value: number) {
-    this.node.position[1] = value;
-    this.node._markTransformDirty();
-  }
-
-  get z(): number {
-    return this.node.position[2];
-  }
-  set z(value: number) {
-    this.node.position[2] = value;
-    this.node._markTransformDirty();
-  }
-}
-
-class ScalePoint extends BasePoint {
-  get x(): number {
-    return this.node.scale[0];
-  }
-  set x(value: number) {
-    this.node.scale[0] = value;
-    this.node._markTransformDirty();
-  }
-
-  get y(): number {
-    return this.node.scale[1];
-  }
-  set y(value: number) {
-    this.node.scale[1] = value;
-    this.node._markTransformDirty();
-  }
-
-  get z(): number {
-    return this.node.scale[2];
-  }
-  set z(value: number) {
-    this.node.scale[2] = value;
-    this.node._markTransformDirty();
-  }
-}
-
-class RotationPoint extends BasePoint {
+/**
+ * 变换组件，用于变换相关的操作和层级的子父关联。
+ */
+export class Transform extends NodeAbility {
   /**
-   * @deprecated
+   * @todo 由于父类命名冲突，暂时命名为transformParent，待引擎整理后调整为parent
+   * 父变换。
    */
-  get x(): number {
-    const e = vec3.create();
-    quat.toEuler(e, this.node.rotation);
-    return e[0];
-  }
-
-  set x(value: number) {
-    this.node.setRotationAxisAngle([1, 0, 0], value);
+  get transformParent(): Transform {
+    return null;
   }
 
   /**
-   * @deprecated
+   * 子变换数量。
    */
-  get y(): number {
-    const e = vec3.create();
-    quat.toEuler(e, this.node.rotation);
-    return e[1];
-  }
-
-  set y(value: number) {
-    this.node.setRotationAxisAngle([0, 1, 0], value);
+  get childCount(): number {
+    return 0;
   }
 
   /**
-   * @deprecated
+   * 局部位置。
    */
-  get z(): number {
-    const euler = vec3.create();
-    quat.toEuler(euler, this.node.rotation);
-    return euler[2];
+  get position(): Vector3 {
+    return null;
+  }
+  set position(value: Vector3) {}
+
+  /**
+   * 局部旋转，欧拉角表达,单位是角度制。
+   */
+  get rotation(): Vector3 {
+    return null;
+  }
+  set rotation(value: Vector3) {}
+
+  /**
+   * 局部缩放。
+   */
+  get scale(): Vector3 {
+    return null;
+  }
+  set scale(value: Vector3) {}
+
+  /**
+   * 局部旋转，四元数表达。
+   */
+  get rotationQuaternion(): Quaternion {
+    return null;
+  }
+  set rotationQuaternion(value: Quaternion) {}
+
+  /**
+   * 局部矩阵。
+   */
+  get localMatrix(): Matrix {
+    return null;
+  }
+  set localMatrix(value) {}
+
+  /**
+   * 世界位置。
+   */
+  get worldPosition(): Vector3 {
+    return null;
+  }
+  set worldPosition(value: Vector3) {}
+
+  /**
+   * 世界旋转，欧拉角表达,,单位是角度制。
+   */
+  get worldRotation(): Vector3 {
+    return null;
+  }
+  set worldRotation(value: Vector3) {}
+
+  /**
+   * 世界缩放。
+   * 某种条件下获取该值可能不正确（例如：父节点有缩放，子节点有旋转），缩放会倾斜，无法使用Vector3正确表示,必须使用Matrix3x3矩阵才能正确表示。
+   */
+  get lossyWorldScale(): Vector3 {
+    return null;
   }
 
-  set z(value: number) {
-    this.node.setRotationAxisAngle([0, 0, 1], value);
+  /**
+   * 世界旋转，四元数表达。
+   */
+  get worldRotationQuaternion(): Quaternion {
+    return null;
   }
+  set worldRotationQuaternion(value: Quaternion) {}
+
+  /**
+   * 世界矩阵。
+   */
+  get worldMatrix(): Matrix {
+    return null;
+  }
+  set worldMatrix(value: Matrix) {}
+
+  /**
+   * 通过索引获取子变换。
+   * @param index - 索引
+   */
+  getChild(index: number): void {}
+
+  /**
+   * 获取世界矩阵的前向量。
+   * @param forward - 前向量
+   */
+  getWorldForward(forward: Vector3): void {}
+
+  /**
+   * 设置世界矩阵的前向量。
+   * @param forward - 前向量
+   */
+  setWorldForward(forward: Vector3): void {}
+
+  /**
+   * 获取世界矩阵的右向量。
+   * @param right - 右向量
+   */
+  getWorldRight(right: Vector3): void {}
+
+  /**
+   * 设置世界矩阵的右向量。
+   * @param right - 右向量
+   */
+  setWorldRight(right: Vector3): void {}
+
+  /**
+   * 获取世界矩阵的上向量。
+   * @param up - 上向量
+   */
+  getWorldUp(up: Vector3): void {}
+
+  /**
+   * 设置世界矩阵的上向量。
+   * @param up - 上向量
+   */
+  setWorldUp(up: Vector3): void {}
+
+  /**
+   * 在指定的方向和距离上位移。
+   * @param translation - 位移的方向和距离
+   * @param relativeToLocal - 是否相对局部空间
+   */
+  translate(translation: Vector3, relativeToLocal: boolean = true): void {}
+
+  /**
+   * 根据指定欧拉角旋转。
+   * @param rotation - 旋转角度，欧拉角表达，单位是角度制
+   * @param relativeToLocal - 是否相对局部空间
+   */
+  rotate(rotation: Vector3, relativeToLocal: boolean = true): void {}
+
+  /**
+   * 根据指定角度围绕指定轴进行旋转。
+   * @param axis - 旋转轴
+   * @param angle - 旋转角度，单位是角度制
+   * @param relativeToLocal - 是否相对局部空间
+   */
+  rotateAxis(axis: Vector3, angle: number, relativeToLocal: boolean = true): void {}
+
+  /**
+   * 旋转并且保证世界前向量指向目标世界位置。
+   * @param worldPosition - 目标世界位置
+   * @param worldUp - 世界上向量
+   */
+  lookAt(worldPosition: Vector3, worldUp: Vector3): void {}
 }
 
-export class Transform {
-  private _position: PositionPoint;
-  private _rotation: RotationPoint;
-  private _scale: ScalePoint;
-  constructor(node: Node) {
-    this._position = new PositionPoint(node);
-    this._rotation = new RotationPoint(node);
-    this._scale = new ScalePoint(node);
-  }
-
-  public get position(): PositionPoint {
-    return this._position;
-  }
-
-  public get rotation(): RotationPoint {
-    return this._rotation;
-  }
-
-  public get scale(): ScalePoint {
-    return this._scale;
-  }
-}
+//-------------------------------------------------------------Temp Type Convert--------------------------------------------------------
+type Vector3 = [number, number, number];
+type Quaternion = [number, number, number, number];
+type Matrix = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number
+];

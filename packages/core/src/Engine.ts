@@ -297,6 +297,7 @@ export class Engine extends EventDispatcher {
     for (const scene of this.scenes) {
       scene.update(deltaTime);
       scene.render();
+      scene._componentsManager.callComponentDestory();
     }
 
     for (const rhi of this._rhis) {

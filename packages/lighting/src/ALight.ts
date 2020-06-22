@@ -36,24 +36,20 @@ export abstract class ALight extends NodeAbility {
    */
   constructor(node: Node, props?: any) {
     super(node, props);
-
-    this.addEventListener("enabled", this.onEnable);
-    this.addEventListener("disabled", this.onDisable);
-
-    node.addEventListener("removedFromScene", this.onDisable.bind(this));
+    node.addEventListener("removedFromScene", this._onDisable.bind(this));
   }
 
   /** 在对象Enable的时候，挂载到当前的Scene
    * @private
    */
-  onEnable() {
+  _onEnable() {
     this.scene.findFeature(LightFeature).attachRenderLight(this);
   }
 
   /** 在对象Disable的时候，从当前的Scene移除
    * @private
    */
-  onDisable() {
+  _onDisable() {
     this.scene.findFeature(LightFeature).detachRenderLight(this);
   }
 
