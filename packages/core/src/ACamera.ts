@@ -40,7 +40,7 @@ export class ACamera extends NodeAbility {
    * @readonly
    */
   get eyePos() {
-    return this._ownerNode.worldPosition;
+    return this._node.worldPosition;
   }
 
   /**
@@ -100,7 +100,7 @@ export class ACamera extends NodeAbility {
     super(node, props);
 
     const { RHI, SceneRenderer, canvas, attributes } = props;
-    const engine = this._ownerNode.scene.engine;
+    const engine = this._node.scene.engine;
 
     this._rhi = engine.requireRHI(RHI, canvas, attributes);
     this._sceneRenderer = new SceneRenderer(this);
@@ -305,7 +305,7 @@ export class ACamera extends NodeAbility {
     super.destroy();
 
     // -- remove from scene
-    this._ownerNode.scene.detachRenderCamera(this);
+    this._node.scene.detachRenderCamera(this);
 
     // --
     if (this._sceneRenderer) {
@@ -325,13 +325,12 @@ export class ACamera extends NodeAbility {
     // make sure update directions
     this.node.getModelMatrix();
 
-    vec3.copy(vec3Cache, this._ownerNode.forward);
+    vec3.copy(vec3Cache, this._node.forward);
     if (this.leftHand) {
       vec3.scale(vec3Cache, vec3Cache, -1);
     }
-    vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
-    // todo 每帧都会有运算
-    mat4.lookAt(this.viewMatrix, this._ownerNode.position, vec3Cache, this._ownerNode.up);
+    vec3.add(vec3Cache, this._node.position, vec3Cache);
+    mat4.lookAt(this.viewMatrix, this._node.position, vec3Cache, this._node.up);
     mat4.invert(this.inverseViewMatrix, this.viewMatrix);
   }
 }

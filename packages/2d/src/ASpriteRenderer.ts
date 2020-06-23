@@ -1,4 +1,4 @@
-import { NodeAbility } from "@alipay/o3-core";
+import { RenderableComponent } from "@alipay/o3-core";
 import { vec3, vec4, quat, mat4 } from "@alipay/o3-math";
 import { Texture2D } from "@alipay/o3-material";
 
@@ -27,7 +27,7 @@ interface IPositionQuad {
  * Sprite渲染管理器
  * @class
  */
-export class ASpriteRenderer extends NodeAbility {
+export class ASpriteRenderer extends RenderableComponent {
   private _uvRect: IUvRect;
   private _worldSize: number[] = [];
   private _positionQuad: IPositionQuad;
@@ -67,8 +67,8 @@ export class ASpriteRenderer extends NodeAbility {
       this.tintColor = sprite.tintColor;
     }
 
-    //-- Ability属性
-    this.renderable = true;
+    // //-- Ability属性
+    // this.renderable = true;
 
     //--
     this._positionQuad = {

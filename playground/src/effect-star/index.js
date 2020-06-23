@@ -1,5 +1,5 @@
 import { Logger } from '@alipay/o3-base';
-import { Engine } from '@alipay/o3-core';
+import { Engine,Script } from '@alipay/o3-core';
 import { ADefaultCamera } from '@alipay/o3-default-camera';
 import { AGeometryRenderer } from '@alipay/o3-geometry';
 import { SphereGeometry } from '@alipay/o3-geometry-shape';
@@ -13,6 +13,34 @@ import { StarMaterial } from './StarMaterial';
 import { HaloMaterial } from './HaloMaterial';
 import { CoronaMaterial } from './CoronaMaterial';
 import * as dat from 'dat.gui';
+
+class StarScript extends Script {
+  starMaterial;
+  haloMaterial;
+  coronaMaterial;
+  haloNode;
+  coronaNode;
+  controls;
+  camera;
+  onUpdate()
+  {
+    this.starMaterial.setValue('spectralLookup', this.controls.star_color);
+    this.starMaterial.setValue('u_rotate_speed', this.controls.rotate_speed);
+    this.starMaterial.setValue('u_burn', this.controls.burn);
+
+    this.haloMaterial.setValue('spectralLookup', this.controls.star_color);
+    this.haloMaterial.setValue('u_intensity', this.controls.halo_intensity);
+
+    this.coronaMaterial.setValue('spectralLookup', this.controls.star_color);
+    this.coronaMaterial.setValue('u_intensity', this.controls.corona_intensity);
+    this.coronaMaterial.setValue('u_backDecay', this.controls.back_decay);
+
+    this.haloNode.lookAt(this.camera.eyePos, [0, 1, 0]);
+    this.coronaNode.lookAt(this.camera.eyePos, [0, 1, 0]);
+    //
+    this.coronaNode.scale = [this.controls.corona_scale, this.controls.corona_scale, this.controls.corona_scale];
+  }
+}
 
 Logger.enable();
 
@@ -135,21 +163,12 @@ function addControls() {
 
   gui.domElement.style = 'position:absolute;top:0px;right:300px';
 
-  rootNode.onUpdate = () => {
-    starMaterial.setValue('spectralLookup', controls.star_color);
-    starMaterial.setValue('u_rotate_speed', controls.rotate_speed);
-    starMaterial.setValue('u_burn', controls.burn);
-
-    haloMaterial.setValue('spectralLookup', controls.star_color);
-    haloMaterial.setValue('u_intensity', controls.halo_intensity);
-
-    coronaMaterial.setValue('spectralLookup', controls.star_color);
-    coronaMaterial.setValue('u_intensity', controls.corona_intensity);
-    coronaMaterial.setValue('u_backDecay', controls.back_decay);
-
-    haloNode.lookAt(camera.eyePos, [0, 1, 0]);
-    coronaNode.lookAt(camera.eyePos, [0, 1, 0]);
-    //
-    coronaNode.scale = [controls.corona_scale, controls.corona_scale, controls.corona_scale];
-  };
+  const starScript=rootNode.addComponent(StarScript);
+  starScript.controls=controls;
+  starScript.starMaterial=starMaterial;
+  starScript.haloMaterial=haloMaterial;
+  starScript.coronaMaterial=coronaMaterial;
+  starScript.haloNode=haloNode;
+  starScript.coronaNode=coronaNode;
+  starScript.camera=camera;
 }
