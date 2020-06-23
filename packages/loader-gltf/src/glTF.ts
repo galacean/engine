@@ -252,8 +252,8 @@ export function parseTexture(gltfTexture, resources) {
   GLTF_TEX_COUNT++;
   const name = gltfTexture.name || gltfImage.name || gltfImage.uri || "GLTF_TEX_" + GLTF_TEX_COUNT;
   let tex;
-  if (image.type) {
-    if (image.type === "ktx") {
+  if (image.fileType) {
+    if (image.fileType === "ktx") {
       tex = parseSingleKTX(name, image.data, sampler);
     } else {
       tex = new Texture2D(name, image.data, sampler);
@@ -866,7 +866,7 @@ function getReplaceImages(images) {
   if (!images) return;
   return images.map(image => ({
     uri: image.url,
-    type: image.type === "ktx" ? "binary" : "image"
+    fileType: image.fileType === "ktx" ? "binary" : "image"
   }));
 }
 
@@ -929,7 +929,7 @@ class GLTFHandler {
               for (let i = 0; i < props.images.length; i++) {
                 const image = props.images[i];
                 data.images[i] = {
-                  type: image.type,
+                  fileType: image.fileType,
                   data: resMap[image.url]
                 };
               }

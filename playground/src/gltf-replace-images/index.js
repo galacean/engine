@@ -34,7 +34,7 @@ if (rhi.canIUse(GLCapabilityType.s3tc)) {
   replaceImages = [
     {
       url: "https://gw.alipayobjects.com/os/bmw-prod/f37edf96-88a5-402e-8c35-28820f2f3358.ktx",
-      type: "ktx"
+      fileType: "ktx"
     }
   ];
 } else if (rhi.canIUse(GLCapabilityType.astc)) {
@@ -42,7 +42,7 @@ if (rhi.canIUse(GLCapabilityType.s3tc)) {
     {
       url:
         "https://gw.alipayobjects.com/os/OasisHub/46bf8263-af6c-446f-a603-4c856cb1e0f8/48000049/0.8797747653168839.ktx",
-      type: "ktx"
+        fileType: "ktx"
     }
   ];
 } else if (rhi.canIUse(GLCapabilityType.pvrtc)) {
@@ -50,14 +50,14 @@ if (rhi.canIUse(GLCapabilityType.s3tc)) {
     {
       url:
         "https://gw.alipayobjects.com/os/OasisHub/ac97feec-a669-46ac-bd23-5b8ae2417ebe/48000049/0.5431618269006637.ktx",
-      type: "ktx"
+        fileType: "ktx"
     }
   ];
 } else {
   replaceImages = [
     {
       url: "https://gw.alipayobjects.com/mdn/rms_45d093/afts/img/A*u8GNQbr43LIAAAAAAAAAAABkARQnAQ",
-      type: "image"
+      fileType: "image"
     }
   ];
 }
