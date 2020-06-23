@@ -88,29 +88,14 @@ export abstract class NodeAbility extends EventDispatcher {
     this._onDestroy();
   }
 
-  /**
-   * @internal
-   */
   _onAwake(): void {}
 
-  /**
-   * @internal
-   */
   _onEnable(): void {}
 
-  /**
-   * @internal
-   */
   _onDisable(): void {}
 
-  /**
-   * @internal
-   */
   _onDestroy(): void {}
 
-  /**
-   * @internal
-   */
   _onActive(): void {
     if (this._overrideOnUpdate || this._overrideUpdate) {
       //@deprecated 兼容
@@ -121,9 +106,6 @@ export abstract class NodeAbility extends EventDispatcher {
     }
   }
 
-  /**
-   * @internal
-   */
   _onInActive(): void {
     if (this._overrideOnUpdate || this._overrideUpdate) {
       this.scene._componentsManager.removeOnUpdateComponent(this);

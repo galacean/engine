@@ -409,20 +409,6 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 释放内部资源。
-   */
-  public destroy(): void {
-    super.destroy();
-
-    // -- remove from scene
-    this._ownerNode.scene.detachRenderCamera(this as any); //CM:调整为非激活时调用，可在重载_onInActive方法内加入
-
-    if (this._sceneRenderer) {
-      this._sceneRenderer.destroy();
-    }
-  }
-
-  /**
    * 视图投影矩阵逆矩阵
    */
   public get invViewProjMat() {
@@ -475,6 +461,22 @@ export class Camera extends NodeAbility {
       // todo 底层每帧会调用
       // this.renderHardware.viewport(this._viewport[0], this._viewport[1], this._viewport[2], this._viewport[3]);
     }
+  }
+
+  _onActive() {
+    super._onActive();
+    // TODO: change any
+    this.node.scene.attachRenderCamera(this as any);
+  }
+
+  _onInActive() {
+    super._onInActive();
+    this.node.scene.detachRenderCamera(this as any);
+  }
+
+  _onDestroy() {
+    // this.node.scene.detachRenderCamera(this as any); //CM:调整为非激活时调用，可在重载_onInActive方法内加入
+    this._sceneRenderer?.destroy();
   }
 
   //-------------------------------------------------deprecated---------------------------------------------------
@@ -540,8 +542,8 @@ export class Camera extends NodeAbility {
     if (typeof canvas === "string") {
       canvas = document.getElementById(canvas) as HTMLCanvasElement;
     }
-    this._ownerNode.scene.attachRenderCamera(this as any);
-    const engine = this._ownerNode.scene.engine;
+    this.node.scene.attachRenderCamera(this as any);
+    const engine = this.node.scene.engine;
     this._rhi = engine.requireRHI((this._props as any).RHI ?? GLRenderHardware, canvas, {
       ...(this._props as any).attributes,
       ...attributes
