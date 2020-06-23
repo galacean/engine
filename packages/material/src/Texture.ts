@@ -657,7 +657,7 @@ export abstract class Texture extends AssetObject {
       case TextureWrapMode.Clamp:
         gl.texParameteri(this._target, pname, gl.CLAMP_TO_EDGE);
         break;
-      case TextureWrapMode.REPEAT:
+      case TextureWrapMode.Repeat:
         gl.texParameteri(this._target, pname, gl.REPEAT);
         break;
       case TextureWrapMode.Mirror:
