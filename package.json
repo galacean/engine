@@ -90,6 +90,7 @@
     "increase-memory-limit": "^1.0.7",
     "inquirer": "^6.5.1",
     "jest": "^24.8.0",
+    "jest-electron": "^0.1.11",
     "jsdoc-babel": "^0.5.0",
     "jsdoc-to-markdown": "^5.0.0",
     "lerna": "^3.13.4",
