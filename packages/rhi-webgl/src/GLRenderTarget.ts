@@ -84,7 +84,7 @@ export class GLRenderTarget extends GLAsset {
   public setRenderTargetFace(faceIndex: number) {
     // todo:delete
     if (this._isNew) {
-      this.renderTarget._renderToCube(faceIndex);
+      this.renderTarget._setRenderTargetFace(faceIndex);
       return;
     }
 
