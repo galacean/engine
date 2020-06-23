@@ -2,7 +2,7 @@ import { Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { Node } from "./Node";
 import { Engine } from "./Engine";
 import { Scene } from "./Scene";
-import { mat4Type } from "./type";
+import { Matrix4 } from "@alipay/o3-math/types/type";
 
 /**
  * TODO:命名暂时保留兼容性，未来替换为Component
@@ -217,14 +217,14 @@ export abstract class NodeAbility extends EventDispatcher {
   /**
    * @deprecated
    */
-  get modelMatrix(): mat4Type {
+  get modelMatrix(): Readonly<Matrix4> {
     return this._node.getModelMatrix();
   }
 
   /**
    * @deprecated
    */
-  get invModelMatrix(): mat4Type {
+  get invModelMatrix(): Readonly<Matrix4> {
     return this._node.getInvModelMatrix();
   }
 

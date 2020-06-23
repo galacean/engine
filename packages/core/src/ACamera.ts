@@ -1,8 +1,9 @@
 import { ClearMode } from "@alipay/o3-base";
 import { NodeAbility } from "./NodeAbility";
-import { mat4, vec4, vec3, vec2, MathUtil } from "@alipay/o3-math";
+import { mat4, vec4, vec3, MathUtil } from "@alipay/o3-math";
 import { Node } from "./Node";
-import { ICameraProps, RHIOption } from "./type";
+import { ICameraProps } from "./type";
+import { Matrix4 } from "@alipay/o3-math/types/type";
 
 const vec3Cache = vec3.create();
 
@@ -48,28 +49,28 @@ export class ACamera extends NodeAbility {
    * @member {mat4}
    * @readonly
    */
-  public viewMatrix;
+  public viewMatrix: Matrix4;
 
   /**
    * View 矩阵的逆矩阵
    * @member {mat4}
    * @readonly
    */
-  public inverseViewMatrix;
+  public inverseViewMatrix: Matrix4;
 
   /**
    * 投影矩阵
    * @member {mat4}
    * @readonly
    */
-  public projectionMatrix;
+  public projectionMatrix: Matrix4;
 
   /**
    * 投影矩阵的逆矩阵
    * @member {mat4}
    * @readonly
    */
-  public inverseProjectionMatrix;
+  public inverseProjectionMatrix: Matrix4;
 
   public zNear: number;
 

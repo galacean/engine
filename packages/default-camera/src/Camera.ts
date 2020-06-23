@@ -273,10 +273,6 @@ export class Camera extends NodeAbility {
     super(node, props);
     const { SceneRenderer, canvas, attributes, clearParam, clearMode, near, far, fov } = props;
     const engine = this.engine;
-    if (this.node.scene) {
-      // todo 合并陆庄代码修改
-      this.node.scene.attachRenderCamera(this as any);
-    }
 
     this.nearClipPlane = near ?? 0.1;
     this.farClipPlane = far ?? 100;
