@@ -64,7 +64,6 @@ const position = vec2.create();
 const ray = { origin: vec3.create(), direction: vec3.create() };
 document.getElementById("o3-demo").addEventListener("click", e => {
   vec2.set(position, e.offsetX / e.target.clientWidth, e.offsetY / e.target.clientHeight);
-  console.log(e);
   console.log(position);
   camera.viewportPointToRay(position, ray);
   let pos = vec3.create();
@@ -75,11 +74,11 @@ document.getElementById("o3-demo").addEventListener("click", e => {
   boxMtl.emission = COLOR_GRAY;
 
   if (collider) {
-    if (collider.node._name === "BoxNode") {
+    if (collider.node.name === "BoxNode") {
       boxMtl.emission = COLOR_RED;
     }
 
-    if (collider.node._name === "SphereNode") {
+    if (collider.node.name === "SphereNode") {
       sphereMtl.emission = COLOR_RED;
     }
 
