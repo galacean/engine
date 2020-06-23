@@ -88,7 +88,7 @@ export class RenderTarget extends AssetObject {
 
   /**
    * 通过颜色纹理和深度纹理创建渲染目标。不传颜色纹理时，只生成深度纹理
-   * @param rhi - GPU 硬件抽象层
+   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param colorTexture - 颜色纹理
@@ -106,7 +106,7 @@ export class RenderTarget extends AssetObject {
 
   /**
    * 通过颜色纹理数组和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
-   * @param rhi - GPU 硬件抽象层
+   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
@@ -124,7 +124,7 @@ export class RenderTarget extends AssetObject {
 
   /**
    * 通过颜色纹理数组和深度纹理创建渲染目标。
-   * @param rhi - GPU 硬件抽象层
+   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
@@ -161,6 +161,7 @@ export class RenderTarget extends AssetObject {
       throw new Error(`RenderBufferDepthFormat is not supported:${RenderBufferDepthFormat[depth]}`);
     }
 
+    //CM:Array<RenderColorTexture>要写成RenderColorTexture[],详见一般规约
     if ((renderTexture as Array<RenderColorTexture>)?.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
       throw new Error("MRT is not supported");
     }
@@ -197,7 +198,7 @@ export class RenderTarget extends AssetObject {
       antiAliasing = maxAntiAliasing;
     }
 
-    const frameBuffer = gl.createFramebuffer();
+    const frameBuffer = gl.createFramebuffer(); //CM:变量没有复用过，直接和“this._frameBuffer = frameBuffer”合并吧
 
     this._rhi = rhi;
     this._width = width;
@@ -280,8 +281,9 @@ export class RenderTarget extends AssetObject {
   /**
    * 设置渲染到立方体纹理的哪个面
    * @param faceIndex - 立方体纹理面
-   * */
+   */
   public _renderToCube(faceIndex: TextureCubeFace): void {
+    //CM:方法名起的不好，这个方法更多强调的是激活绑定，而非渲染，可以起类似_activeCubeRenderTarget的名字
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const colorTexture = this._colorTextures[0];
     const depthTexture = this._depthTexture;
@@ -317,7 +319,7 @@ export class RenderTarget extends AssetObject {
   }
 
   /**
-   * blit FBO
+   * Blit FBO.
    */
   public _blitRenderTarget(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
@@ -327,17 +329,21 @@ export class RenderTarget extends AssetObject {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
 
+    //CM：一下CM连起来看
     for (let textureIndex = 0; textureIndex < length; textureIndex++) {
-      const drawBuffers = [];
+      const drawBuffers = []; //CM：这个可不行，逐帧new数组，你要上天啊,实在不行可以判断如果有MSAA存个私有数组，初始化长度直接等于length，并且直接赋值【gl.None，gl.NONE，gl.NONE】
 
       for (let i = 0; i < length; i++) {
+        //CM:这个逻辑需要优化，你品，你细品,根据上面提示可在帧循环里移除
         drawBuffers[i] = gl.NONE;
       }
 
       drawBuffers[textureIndex] = gl.COLOR_ATTACHMENT0 + textureIndex;
-      gl.readBuffer(drawBuffers[textureIndex]);
+      gl.readBuffer(drawBuffers[textureIndex]); //CM：应该缓存一个 const bufferIndex=gl.COLOR_ATTACHMENT0 + textureIndex;
+      //CM：这里this._drawBuffers[textureIndex]=bufferIndex;
       gl.drawBuffers(drawBuffers);
       gl.blitFramebuffer(0, 0, this._width, this._height, 0, 0, this._width, this._height, mask, gl.NEAREST);
+      //CM:这里this._drawBuffers[textureIndex]=gl.None;
     }
 
     // revert
@@ -352,7 +358,7 @@ export class RenderTarget extends AssetObject {
   private _bindMainFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
-    const drawBuffers = [];
+    const drawBuffers = []; //CM:new的时候直接给colorTextureLength,有利于提升性能
     const colorTextureLength = this._colorTextures.length;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
@@ -362,7 +368,7 @@ export class RenderTarget extends AssetObject {
       const colorTexture = this._colorTextures[i];
       const attachment = gl.COLOR_ATTACHMENT0 + i;
 
-      drawBuffers.push(attachment);
+      drawBuffers.push(attachment); //CM:直接通过[i]赋值，性能更好
 
       // 立方体纹理请调用 _renderToCube()
       if (!colorTexture._isCube) {
@@ -379,7 +385,7 @@ export class RenderTarget extends AssetObject {
     if (renderDepth instanceof RenderDepthTexture) {
       // 立方体纹理请调用 _renderToCube()
       if (!renderDepth._isCube) {
-        const { attachment } = renderDepth._formatDetail;
+        const { attachment } = renderDepth._formatDetail; //CM:只用了一次可以直接和gl.framebufferTexture2D合并为一行
 
         gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, renderDepth._glTexture, 0);
       }
@@ -422,10 +428,10 @@ export class RenderTarget extends AssetObject {
       gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, MSAAColorRenderBuffer);
     }
-    gl.drawBuffers(this._oriDrawBuffers);
+    gl.drawBuffers(this._oriDrawBuffers); //CM：gl.drawBuffers没有被修改过吧，是不是不用调用了
 
     // prepare MSAA depth RBO
-    let depthFormatDetail: TextureFormatDetail = null;
+    let depthFormatDetail: TextureFormatDetail = null; //CM:用 "？："表达式合并诚一行吧
     if (renderDepth instanceof RenderDepthTexture) {
       depthFormatDetail = renderDepth._formatDetail;
     } else {
