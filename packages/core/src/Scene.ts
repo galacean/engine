@@ -4,7 +4,6 @@ import { Node } from "./Node";
 import { Engine } from "./Engine";
 import { ACamera } from "./ACamera";
 import { SceneFeature } from "./SceneFeature";
-import { SceneVisitor } from "./SceneVisitor";
 import { Vector4 } from "@alipay/o3-math/types/type";
 import { ComponentsManager } from "./ComponentsManager";
 
@@ -65,7 +64,7 @@ export class Scene extends EventDispatcher {
    * scene.clipPlanes = [[0,1,0,0]];
    * @todo 类型修改
    * */
-  public clipPlanes: any[] = [];
+  public clipPlanes: Vector4[] = [];
 
   public _componentsManager: ComponentsManager;
 
