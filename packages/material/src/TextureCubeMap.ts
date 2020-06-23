@@ -51,7 +51,7 @@ export class TextureCubeMap extends Texture {
 
     const glTexture = gl.createTexture();
 
-    this._glTexture = glTexture;
+    this._glTexture = glTexture; //CM:glTexture没复用过，可以直接写 this._glTexture = gl.createTexture()； 省一行代码
     this._formatDetail = formatDetail;
     this._rhi = rhi;
     this._target = gl.TEXTURE_CUBE_MAP;
@@ -61,6 +61,9 @@ export class TextureCubeMap extends Texture {
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
+    //CM:这种一般建议是直接使用formatDetail.isCompressed,优点：1.代码更美观 2.代码可压缩 3.性能理论性更好
+    //CM:可以优化这样写一行代码 formatDetail.isCompressed || this._initMipmap(true);
+    //CM:纹理压缩也可以预开辟显存,webgl2下好像也是直接调用texStorage2D,可以验证一下 https://developer.mozilla.org/en-US/docs/Web/API/WebGL2RenderingContext/texStorage2D，webgl1下调用compressedTexImage2D
     if (!this._formatDetail.isCompressed) {
       this._initMipmap(true);
     }
@@ -97,12 +100,13 @@ export class TextureCubeMap extends Texture {
 
     x = x || 0;
     y = y || 0;
-    width = width || mipSize - x;
-    height = height || mipSize - y;
+    width = width || mipSize - x; //CM：减去x这个操作需要在 width的注释里说明一下width推算规则，不然开发者可能猜不到
+    height = height || mipSize - y; //CM：减去y这个操作需要在 height的注释里说明一下height推算规则，不然开发者可能猜不到
 
     this._bind();
 
     if (isCompressed) {
+      //CM:这个应该调用compressedTexSubImage2D方法吧，compressedTexImage2D应该用于预开辟显存
       gl.compressedTexImage2D(
         gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
         miplevel,

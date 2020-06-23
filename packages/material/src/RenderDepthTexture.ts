@@ -70,8 +70,8 @@ export class RenderDepthTexture extends Texture {
 
     const glTexture = gl.createTexture();
 
-    this._glTexture = glTexture;
-    this._formatDetail = formatDetail;
+    this._glTexture = glTexture; //CM:glTexture没复用过，可以直接合并
+    this._formatDetail = formatDetail; //CM:formatDetail没复用过，可以直接合并
     this._isCube = isCube;
     this._rhi = rhi;
     this._target = isCube ? gl.TEXTURE_CUBE_MAP : gl.TEXTURE_2D;
