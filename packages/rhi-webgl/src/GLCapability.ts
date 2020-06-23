@@ -7,12 +7,12 @@ type extensionKey = string;
  * GL 能力统一管理
  * */
 export class GLCapability {
+  private _maxDrawBuffers: number;
   private _maxAnisoLevel: number;
   private _maxAntiAliasing: number;
 
   _rhi: GLRenderHardware;
   capabilityList: Map<GLCapabilityType, boolean>;
-  private _maxDrawBuffers: number;
 
   get maxDrawBuffers() {
     if (!this._maxDrawBuffers) {
@@ -29,9 +29,9 @@ export class GLCapability {
    * 最大各向异性过滤等级。
    */
   get maxAnisoLevel(): number {
-    if (!this._maxAnisoLevel) {
+    if (this._maxAnisoLevel == null) {
       const ext = this._rhi.requireExtension(GLCapabilityType.textureFilterAnisotropic);
-      this._maxAnisoLevel = ext ? this._rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 1;
+      this._maxAnisoLevel = ext ? this._rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 0;
     }
     return this._maxAnisoLevel;
   }

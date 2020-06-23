@@ -278,55 +278,78 @@ export abstract class Texture extends AssetObject {
    * 检测是否支持相应纹理格式。
    */
   static _supportTextureFormat(format: TextureFormat, rhi): boolean {
-    //CM：写switch case更好吧，if太丑，还费性能
-    if (format === TextureFormat.R32G32B32A32 && !rhi.canIUse(GLCapabilityType.textureFloat)) {
-      return false;
+    let isSupported = true;
+
+    switch (format) {
+      case TextureFormat.R32G32B32A32:
+        {
+          if (!rhi.canIUse(GLCapabilityType.textureFloat)) {
+            isSupported = false;
+          }
+        }
+        break;
     }
 
-    return true;
+    return isSupported;
   }
 
   /** @internal */
   static _supportRenderBufferColorFormat(format: RenderBufferColorFormat, rhi): boolean {
-    //CM：写switch case更好吧，if太丑，还费性能
-    if (
-      format === RenderBufferColorFormat.R32G32B32A32 &&
-      (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat))
-    ) {
-      return false;
-    }
-    if (
-      format === RenderBufferColorFormat.R16G16B16A16 &&
-      (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat))
-    ) {
-      return false;
+    let isSupported = true;
+
+    switch (format) {
+      case RenderBufferColorFormat.R32G32B32A32:
+        {
+          if (!rhi.canIUse(GLCapabilityType.colorBufferFloat) || !rhi.canIUse(GLCapabilityType.textureFloat)) {
+            isSupported = false;
+          }
+        }
+        break;
+      case RenderBufferColorFormat.R16G16B16A16:
+        {
+          if (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
+            isSupported = false;
+          }
+        }
+        break;
     }
 
-    return true;
+    return isSupported;
   }
 
   /** @internal */
-  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi): boolean {
-    //CM：写switch case更好吧，if太丑，还费性能
+  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi, isTexture: boolean): boolean {
     const isWebGL2: boolean = rhi.isWebGL2;
+    let isSupported = true;
 
-    if (format === RenderBufferDepthFormat.Stencil) {
+    if (isTexture && !rhi.canIUse(GLCapabilityType.depthTexture)) {
       return false;
     }
 
-    if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
-      return false;
+    switch (format) {
+      case RenderBufferDepthFormat.Stencil:
+        {
+          isSupported = false;
+        }
+        break;
+      case RenderBufferDepthFormat.Depth24:
+      case RenderBufferDepthFormat.Depth32:
+        {
+          if (!isWebGL2) {
+            isSupported = false;
+          }
+        }
+        break;
+      case RenderBufferDepthFormat.Depth32Stencil8:
+        {
+          if (!isWebGL2) {
+            isSupported = false;
+          }
+        }
+        break;
     }
 
-    if ((format === RenderBufferDepthFormat.Depth24 || format === RenderBufferDepthFormat.Depth32) && !isWebGL2) {
-      return false;
-    }
-
-    if (format === RenderBufferDepthFormat.Depth32Stencil8 && !isWebGL2) {
-      return false;
-    }
-
-    return true;
+    return isSupported;
   }
 
   public _glTexture: WebGLTexture;
@@ -339,15 +362,16 @@ export abstract class Texture extends AssetObject {
   protected _target: GLenum;
   /** @internal */
   protected _mipmap: boolean;
+  /** @internal */
+  protected _mipmapCount: number;
 
   protected _width: number;
   protected _height: number;
 
-  private _mipmapCount: number;
   private _wrapModeU: TextureWrapMode;
   private _wrapModeV: TextureWrapMode;
   private _filterMode: TextureFilterMode;
-  private _anisoLevel: number;
+  private _anisoLevel: number = 0;
 
   /**
    * 宽。
@@ -377,20 +401,8 @@ export abstract class Texture extends AssetObject {
 
     this._wrapModeU = value;
 
-    //CM: wrapModeU和wrapModeV这部分代码差不多,封个函数呗
-    //CM:TextureWrapMode.REPEAT和 TextureWrapMode.Mirror 在webgl1.0下必须是2的N次方，不降级吗孩子，webgl2.0是否需要降低需要你调研
     this._bind();
-    switch (value) {
-      case TextureWrapMode.Clamp:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        break;
-      case TextureWrapMode.REPEAT:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        break;
-      case TextureWrapMode.Mirror:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
-        break;
-    }
+    this._setWrapMode(value, gl.TEXTURE_WRAP_S);
     this._unbind();
   }
 
@@ -408,19 +420,8 @@ export abstract class Texture extends AssetObject {
 
     this._wrapModeV = value;
 
-    //CM: wrapModeU和wrapModeV这部分代码差不多,封个函数呗
     this._bind();
-    switch (value) {
-      case TextureWrapMode.Clamp:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        break;
-      case TextureWrapMode.REPEAT:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        break;
-      case TextureWrapMode.Mirror:
-        gl.texParameteri(this._target, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
-        break;
-    }
+    this._setWrapMode(value, gl.TEXTURE_WRAP_T);
     this._unbind();
   }
 
@@ -428,11 +429,6 @@ export abstract class Texture extends AssetObject {
    * 分级纹理的数量。
    */
   get mipmapCount(): number {
-    if (!this._mipmapCount) {
-      this._mipmapCount = this._mipmap
-        ? Math.max(this._getMaxMiplevel(this._width), this._getMaxMiplevel(this._height)) + 1
-        : 1; //CM:大哥，放下执念，改了吧
-    }
     return this._mipmapCount;
   }
 
@@ -476,20 +472,6 @@ export abstract class Texture extends AssetObject {
   }
 
   set anisoLevel(value: number) {
-    if (value === this._anisoLevel) return; //CM:这个应该放到 491行之后，增加判断成功率
-
-    if (!this._rhi.canIUse(GLCapabilityType.textureFilterAnisotropic)) {
-      //CM:不支持this._rhi.capability.maxAnisoLevel就是0啊，直接走下面的警告就行了，这里就不用写了,还有你的this._anisoLevel没写默认值，如果这里return掉了,get属性就是undifine
-
-      //CM:
-      //0这里的代码可以都删掉
-      //1)你的this._anisoLevel默认值应该写成0
-      //2)如果不支持的话this._rhi.capability.maxAnisoLevel也是0,先写493行降级代码（提炼思想：记住排重判断写在降级之后会提高排重命中率）
-      //3)然后再写478行的判断代码
-      Logger.warn("Texture Filter Anisotropic is not supported");
-      return;
-    }
-
     const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
     const max = this._rhi.capability.maxAnisoLevel;
 
@@ -497,6 +479,8 @@ export abstract class Texture extends AssetObject {
       Logger.warn(`anisoLevel:${value}, exceeds the limit and is automatically downgraded to:${max}`);
       value = max;
     }
+
+    if (value === this._anisoLevel) return;
 
     this._anisoLevel = value;
 
@@ -570,8 +554,7 @@ export abstract class Texture extends AssetObject {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, Texture._readFrameBuffer);
 
-    if (face > -1 && face != null) {
-      //CM:face是枚举，一般不会设置小于0的x，这么写的话你要写成大于等于0，小于等于5对吧？face > -1可以删掉
+    if (face != null) {
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
@@ -599,23 +582,22 @@ export abstract class Texture extends AssetObject {
     this._bind();
 
     if (isWebGL2) {
-      gl.texStorage2D(this._target, this.mipmapCount, internalFormat, this._width, this._height);
+      gl.texStorage2D(this._target, this._mipmapCount, internalFormat, this._width, this._height);
     } else {
       // In WebGL 1, internalformat must be the same as baseFormat
       if (baseFormat !== internalFormat) {
-        //CM：internalFormat在this._formatDetail中已经保证维护正确了吧，这里不用再判断了
         internalFormat = baseFormat;
       }
 
       if (!isCube) {
-        for (let i = 0; i < this.mipmapCount; i++) {
+        for (let i = 0; i < this._mipmapCount; i++) {
           const width = Math.max(1, this._width >> i);
           const height = Math.max(1, this._height >> i);
 
           gl.texImage2D(this._target, i, internalFormat, width, height, 0, baseFormat, dataType, null);
         }
       } else {
-        for (let i = 0; i < this.mipmapCount; i++) {
+        for (let i = 0; i < this._mipmapCount; i++) {
           const size = Math.max(1, this._width >> i);
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             gl.texImage2D(
@@ -644,6 +626,44 @@ export abstract class Texture extends AssetObject {
    */
   protected _getMaxMiplevel(size: number): number {
     return Math.floor(Math.log2(size));
+  }
+
+  /**
+   * @internal
+   */
+  protected _getMipmapCount(): number {
+    return this._mipmap ? Math.floor(Math.log2(Math.max(this._width, this._height))) + 1 : 1;
+  }
+
+  /**
+   * @internal
+   */
+  private _setWrapMode(value: TextureWrapMode, pname: GLenum): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const isWebGL2: boolean = this._rhi.isWebGL2;
+
+    if (
+      !isWebGL2 &&
+      value !== TextureWrapMode.Clamp &&
+      (!Texture._isPowerOf2(this._width) || !Texture._isPowerOf2(this._height))
+    ) {
+      Logger.warn(
+        "non-power-2 texture is not supported for REPEAT or MIRRORED_REPEAT in WebGL1,and has automatically downgraded to CLAMP_TO_EDGE"
+      );
+      value = TextureWrapMode.Clamp;
+    }
+
+    switch (value) {
+      case TextureWrapMode.Clamp:
+        gl.texParameteri(this._target, pname, gl.CLAMP_TO_EDGE);
+        break;
+      case TextureWrapMode.REPEAT:
+        gl.texParameteri(this._target, pname, gl.REPEAT);
+        break;
+      case TextureWrapMode.Mirror:
+        gl.texParameteri(this._target, pname, gl.MIRRORED_REPEAT);
+        break;
+    }
   }
 
   /** -------------------@deprecated------------------------ */

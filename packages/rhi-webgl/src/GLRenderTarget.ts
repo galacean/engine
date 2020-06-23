@@ -160,7 +160,7 @@ export class GLRenderTarget extends GLAsset {
   /** blit FBO */
   blitRenderTarget() {
     // todo:delete
-    if (this._isNew) {
+    if (this._isNew && this.renderTarget._MSAAFrameBuffer) {
       this.renderTarget._blitRenderTarget();
       return;
     }

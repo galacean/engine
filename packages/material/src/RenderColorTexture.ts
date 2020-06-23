@@ -86,6 +86,7 @@ export class RenderColorTexture extends Texture {
     this._width = width;
     this._height = height;
     this._format = format;
+    this._mipmapCount = this._getMipmapCount();
 
     this._initMipmap(isCube);
 

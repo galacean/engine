@@ -21,6 +21,7 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
  */
 export class RenderTarget extends AssetObject {
   public _frameBuffer: WebGLFramebuffer;
+  public _MSAAFrameBuffer: WebGLFramebuffer | null;
 
   private _rhi;
   private _width: number;
@@ -29,7 +30,6 @@ export class RenderTarget extends AssetObject {
   private _colorTextures: RenderColorTexture[] = [];
   private _depthTexture: RenderDepthTexture | null;
   private _depthRenderBuffer: WebGLRenderbuffer | null;
-  private _MSAAFrameBuffer: WebGLFramebuffer | null;
   private _MSAAColorRenderBuffers: WebGLRenderbuffer[] = [];
   private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
   private _oriDrawBuffers: GLenum[];
@@ -157,7 +157,7 @@ export class RenderTarget extends AssetObject {
      */
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
 
-    if (!(depth instanceof RenderDepthTexture) && !Texture._supportRenderBufferDepthFormat(depth, rhi)) {
+    if (!(depth instanceof RenderDepthTexture) && !Texture._supportRenderBufferDepthFormat(depth, rhi, false)) {
       throw new Error(`RenderBufferDepthFormat is not supported:${RenderBufferDepthFormat[depth]}`);
     }
 
@@ -320,8 +320,6 @@ export class RenderTarget extends AssetObject {
    * blit FBO
    */
   public _blitRenderTarget(): void {
-    if (!this._MSAAFrameBuffer) return; //CM:这个判断应该加在外层
-
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const mask = gl.COLOR_BUFFER_BIT | (this._depthTexture ? gl.DEPTH_BUFFER_BIT : 0);
     const length = this._colorTextures.length;

@@ -52,7 +52,7 @@ export class RenderDepthTexture extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 
-    if (!Texture._supportRenderBufferDepthFormat(format, rhi)) {
+    if (!Texture._supportRenderBufferDepthFormat(format, rhi, true)) {
       throw new Error(`RenderBufferDepthFormat is not supported:${RenderBufferDepthFormat[format]}`);
     }
 
@@ -79,6 +79,7 @@ export class RenderDepthTexture extends Texture {
     this._width = width;
     this._height = height;
     this._format = format;
+    this._mipmapCount = this._getMipmapCount();
 
     this._initMipmap(isCube);
 

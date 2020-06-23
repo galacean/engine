@@ -58,13 +58,14 @@ export class Texture2D extends Texture {
     this._width = width;
     this._height = height;
     this._format = format;
+    this._mipmapCount = this._getMipmapCount();
 
     if (!this._formatDetail.isCompressed) {
       this._initMipmap(false);
     }
 
     this.filterMode = TextureFilterMode.Bilinear;
-    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp; //CM:Texture2D不同与其他 Reapeat更常用一些
+    this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
 
     //todo: delete
     this.type = AssetType.Scene;
