@@ -81,8 +81,6 @@ export abstract class NodeAbility extends EventDispatcher {
    */
   destroy(): void {
     if (this._destroyed) return;
-
-    ComponentsDependencies._removeCheck(this.node, this.constructor as any);
     this._node._removeComponent(this);
     if (this._node.isActiveInHierarchy) {
       this._enabled && this._onDisable();
