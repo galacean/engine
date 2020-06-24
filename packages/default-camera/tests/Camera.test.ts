@@ -1,4 +1,4 @@
-import { Camera } from "../src/Camera";
+import { Camera, ClearFlags } from "../src/Camera";
 import { PerspectiveCamera } from "../src/PerspectiveCamera";
 import { Node, Transform } from "@alipay/o3-core";
 import { mat4, MathUtil, vec2, vec3 } from "@alipay/o3-math";
@@ -24,6 +24,17 @@ describe("camera test", function () {
     };
     (oldCamera as any).viewport = [0, 0, 750, 1334];
     identityMatrix = mat4.create();
+  });
+
+  it("constructor", () => {
+    expect(camera.aspect).toEqual(1);
+    expect(camera.sceneRenderer).not.toBeUndefined();
+    expect(camera.eyePos).not.toBeUndefined();
+    // TODO: deprecated
+    expect(camera.backgroundColor).toEqual([0.25, 0.25, 0.25, 1]);
+    expect(camera.viewport).toEqual([0, 0, 1, 1]);
+    expect(camera.fieldOfView).toEqual(45);
+    expect(camera.isOrthographic).toEqual(false);
   });
 
   it("camera awake without transform", () => {
@@ -232,6 +243,15 @@ describe("camera test", function () {
     }).toThrow();
     expect(() => {
       camera.viewport = [0, 0, 1, 1];
+    }).toThrow();
+    expect(() => {
+      camera.backgroundSky;
+    }).toThrow();
+    expect(() => {
+      camera.clearFlags = ClearFlags.DepthSky;
+    }).toThrow();
+    expect(() => {
+      camera.clearFlags;
     }).toThrow();
     // expect(camera.enableHDR).rejects.toThrow('not implemention')
   });

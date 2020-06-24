@@ -172,13 +172,15 @@ export class Camera extends NodeAbility {
    * 背景清除标记。
    */
   get clearFlags(): ClearFlags {
-    return this._clearFlags;
+    throw "not implemented";
   }
 
   /**
    * @todo 天空盒重构
    */
-  set clearFlags(value: ClearFlags) {}
+  set clearFlags(value: ClearFlags) {
+    throw "not implemented";
+  }
 
   /**
    * 清楚视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
@@ -277,7 +279,7 @@ export class Camera extends NodeAbility {
   constructor(node: Node, props: any) {
     // todo 修改构造函数参数
     super(node, props);
-    const { SceneRenderer, canvas, attributes, clearParam, clearMode, near, far, fov } = props;
+    const { SceneRenderer, canvas, attributes, clearParam = [0.25, 0.25, 0.25, 1], clearMode, near, far, fov } = props;
     const engine = this.engine;
 
     this.nearClipPlane = near ?? 0.1;
