@@ -80,8 +80,10 @@ export abstract class NodeAbility extends EventDispatcher {
    * 销毁本组件对象
    */
   destroy(): void {
-    ComponentsDependencies._removeCheck(this.node, this.constructor as any);
     if (this._destroyed) return;
+
+    ComponentsDependencies._removeCheck(this.node, this.constructor as any);
+    this._node._removeComponent(this);
     if (this._node.isActiveInHierarchy) {
       this._enabled && this._onDisable();
       this._onInActive();

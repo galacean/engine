@@ -2,6 +2,10 @@ import { NodeAbility } from "./NodeAbility";
 import { Node } from "./Node";
 
 type NodeAbilityConstructor = { new (...args: any): NodeAbility };
+
+/**
+ * 用于组件依赖注册。
+ */
 export class ComponentsDependencies {
   /**
    * @internal
@@ -10,7 +14,7 @@ export class ComponentsDependencies {
   private static _invDependenciesMap = new Map<NodeAbilityConstructor, NodeAbilityConstructor[]>();
 
   /**
-   * 注册组件依赖关系，
+   * 注册组件依赖关系。
    * @param currentComponent
    * @param dependentComponent
    */
@@ -19,26 +23,29 @@ export class ComponentsDependencies {
     this._addDependency(dependentComponent, currentComponent, this._invDependenciesMap);
   }
 
+  /**
+   * @internal
+   */
   static _addCheck(node: Node, type: NodeAbilityConstructor) {
     // 检查是否有被依赖组件
     const dependencies = ComponentsDependencies._dependenciesMap.get(type);
     if (dependencies) {
-      // console.log(`${type.name} need ${JSON.stringify(dependencies)}`);
       for (let i = 0, len = dependencies.length; i < len; i++) {
-        const comp = node.getComponent(dependencies[i]);
-        if (!comp || comp._destroyed) {
+        if (!node.getComponent(dependencies[i])) {
           throw `you should add ${dependencies[i]} before adding ${type}`;
         }
       }
     }
   }
 
+  /**
+   * @internal
+   */
   static _removeCheck(node: Node, type: NodeAbilityConstructor) {
     const invDenpendencies = ComponentsDependencies._invDependenciesMap.get(type);
     if (invDenpendencies) {
       for (let i = 0, len = invDenpendencies.length; i < len; i++) {
-        const comp = node.getComponent(invDenpendencies[i]);
-        if (comp && !comp._destroyed) {
+        if (node.getComponent(invDenpendencies[i])) {
           throw `you should remove ${invDenpendencies[i]} before adding ${type}`;
         }
       }

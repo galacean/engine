@@ -1,12 +1,12 @@
 import { EventDispatcher, Util } from "@alipay/o3-base";
 import { mat4, MathUtil, quat, vec3 } from "@alipay/o3-math";
-import { Engine } from "./Engine";
-import { NodeAbility as Component } from "./NodeAbility";
-import { Scene } from "./Scene";
-import { Vector3, Matrix4, Vector4 } from "@alipay/o3-math/types/type";
-import { DisorderedArray } from "./DisorderedArray";
-import { Transform } from "./Transform";
+import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { ComponentsDependencies } from "./ComponentsDependencies";
+import { DisorderedArray } from "./DisorderedArray";
+import { Engine } from "./Engine";
+import { NodeAbility as Component, NodeAbility } from "./NodeAbility";
+import { Scene } from "./Scene";
+import { Transform } from "./Transform";
 
 /**
  * 节点类,可作为组件的容器。
@@ -381,6 +381,14 @@ export class Node extends EventDispatcher {
     }
     this._parent = null;
     Node._nodes.delete(this);
+  }
+
+  /**
+   * @internal
+   */
+  _removeComponent(component: NodeAbility): void {
+    const components = this._components;
+    components.splice(components.indexOf(component), 1);
   }
 
   private _setActiveComponents(isActive: boolean): void {
