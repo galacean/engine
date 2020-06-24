@@ -8,6 +8,8 @@ import { Texture2DConfig, Rect } from "./type";
  */
 export class Texture2D extends Texture {
   private _format: TextureFormat;
+  // 向下兼容 WebGL1.0
+  private _compressedMipFilled: number = 0;
 
   /**
    * 纹理的格式。
@@ -99,10 +101,12 @@ export class Texture2D extends Texture {
     this._bind();
 
     if (isCompressed) {
-      if (isWebGL2) {
+      const mipBit = 1 << miplevel;
+      if (isWebGL2 || this._compressedMipFilled & mipBit) {
         gl.compressedTexSubImage2D(this._target, miplevel, x, y, width, height, internalFormat, colorBuffer);
       } else {
         gl.compressedTexImage2D(this._target, miplevel, internalFormat, width, height, 0, colorBuffer);
+        this._compressedMipFilled |= mipBit;
       }
     } else {
       gl.texSubImage2D(this._target, miplevel, x, y, width, height, baseFormat, dataType, colorBuffer);

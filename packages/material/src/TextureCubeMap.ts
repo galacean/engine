@@ -16,6 +16,8 @@ import { TextureConfig } from "./type";
  */
 export class TextureCubeMap extends Texture {
   private _format: TextureFormat;
+  // 向下兼容 WebGL1.0
+  private _compressedFaceFilled: number[] = [0, 0, 0, 0, 0, 0];
 
   /**
    * 纹理的格式。
@@ -70,7 +72,7 @@ export class TextureCubeMap extends Texture {
 
   /**
    * 通过指定立方体面、像素缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
-   * 压缩纹理只有 WebGL2 才能修改子区域，WebGL1 必须填满纹理
+   * 压缩纹理在 WebGL1 时必须先填满纹理，才能写子区域
    * @param face - 立方体面
    * @param colorBuffer - 颜色缓冲
    * @param miplevel - 多级纹理层级
@@ -101,7 +103,8 @@ export class TextureCubeMap extends Texture {
     this._bind();
 
     if (isCompressed) {
-      if (isWebGL2) {
+      const mipBit = 1 << miplevel;
+      if (isWebGL2 || this._compressedFaceFilled[face] & mipBit) {
         gl.compressedTexSubImage2D(
           gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
           miplevel,
@@ -122,6 +125,7 @@ export class TextureCubeMap extends Texture {
           0,
           colorBuffer
         );
+        this._compressedFaceFilled[face] |= mipBit;
       }
     } else {
       gl.texSubImage2D(
