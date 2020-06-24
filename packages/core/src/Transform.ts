@@ -12,7 +12,7 @@ export class WorldChangeFlag {
   /**
    * 获取标记。
    */
-  get() {
+  get(): boolean {
     return this.flag;
   }
 
@@ -20,14 +20,14 @@ export class WorldChangeFlag {
    * 设置标记。
    * @param value 标记值
    */
-  set(value: boolean) {
+  set(value: boolean): void {
     this.flag = value;
   }
 
   /**
-   * 移除标记
+   * 销毁标记。
    */
-  remove() {
+  destroy(): void {
     const flags = this._flags;
     const index = flags.indexOf(this);
     const last = flags.length - 1;
@@ -464,7 +464,7 @@ export class Transform extends NodeAbility {
 
   _onDestroy() {
     for (let i = 0, len = this._changeFlags.length; i < len; i++) {
-      this._changeFlags[i].remove();
+      this._changeFlags[i].destroy();
     }
   }
 

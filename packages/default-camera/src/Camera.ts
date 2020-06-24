@@ -490,8 +490,8 @@ export class Camera extends NodeAbility {
    */
   _onDestroy() {
     this._sceneRenderer?.destroy();
-    this._isInvViewProjDirty.remove();
-    this._isViewMatrixDirty.remove();
+    this._isInvViewProjDirty.destroy();
+    this._isViewMatrixDirty.destroy();
   }
 
   //-------------------------------------------------deprecated---------------------------------------------------
