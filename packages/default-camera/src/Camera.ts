@@ -66,18 +66,15 @@ export class Camera extends NodeAbility {
   private _orthographicSize: number = 10;
   private _inverseProjectionMatrix: Matrix4 = mat4.create();
   private _inverseViewMatrix: Matrix4 = mat4.create();
-  // todo:监听 node transform 修改设为 true
-  // 投影矩阵脏标记
+  /** 投影矩阵脏标记 */
   private _isProjectionDirty = false;
-  // 投影矩阵逆矩阵脏标记
+  /** 投影矩阵逆矩阵脏标记 */
   private _isInvProjMatDirty: boolean = true;
-
   private _customAspectRatio: number = undefined;
   private _invViewProjMat: Matrix4 = mat4.create();
-
   private _transform: Transform;
   private _isViewMatrixDirty: WorldChangeFlag;
-  // 投影视图矩阵逆矩阵脏标记
+  /** 投影视图矩阵逆矩阵脏标记 */
   private _isInvViewProjDirty: WorldChangeFlag;
 
   /**
