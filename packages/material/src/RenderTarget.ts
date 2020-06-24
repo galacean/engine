@@ -230,7 +230,7 @@ export class RenderTarget extends AssetObject {
 
     gl.deleteFramebuffer(this._frameBuffer);
     gl.deleteRenderbuffer(this._depthRenderBuffer);
-    gl.deleteFramebuffer(this._MSAAFrameBuffer);
+    this._MSAAFrameBuffer && gl.deleteFramebuffer(this._MSAAFrameBuffer);
     gl.deleteRenderbuffer(this._MSAADepthRenderBuffer);
 
     for (let i = 0; i < this._colorTextures.length; i++) {
