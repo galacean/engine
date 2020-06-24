@@ -467,6 +467,9 @@ export class Camera extends NodeAbility {
     }
   }
 
+  /**
+   * @innernal
+   */
   _onAwake() {
     this._transform = this.node.transform;
     if (!this._transform) {
@@ -476,17 +479,26 @@ export class Camera extends NodeAbility {
     this._isInvViewMatrixDirty = this._transform.registerWorldChangeFlag();
   }
 
+  /**
+   * @innernal
+   */
   _onActive() {
     super._onActive();
     // TODO: change any
     this.node.scene.attachRenderCamera(this as any);
   }
 
+  /**
+   * @innernal
+   */
   _onInActive() {
     super._onInActive();
     this.node.scene.detachRenderCamera(this as any);
   }
 
+  /**
+   * @innernal
+   */
   _onDestroy() {
     // this.node.scene.detachRenderCamera(this as any); //CM:调整为非激活时调用，可在重载_onInActive方法内加入
     this._sceneRenderer?.destroy();

@@ -3,14 +3,16 @@ import { PerspectiveCamera } from "../src/PerspectiveCamera";
 import { Node } from "@alipay/o3-core";
 import { mat4, MathUtil, vec2, vec3 } from "@alipay/o3-math";
 
-describe("camera test", function() {
+describe("camera test", function () {
   let node: Node;
   let camera: Camera;
   let oldCamera: PerspectiveCamera;
   let identityMatrix;
+
   beforeAll(() => {
     node = new Node();
     camera = node.createAbility(Camera);
+    (camera as any)._onAwake();
     oldCamera = node.createAbility(PerspectiveCamera);
     (oldCamera as any)._rhi = {
       canvas: {
