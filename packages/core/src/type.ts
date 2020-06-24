@@ -28,14 +28,14 @@ type array16<T> = {
 type TypedArray = Array<number> | Float32Array;
 
 /**等math全部重构完后，| 改成 &*/
-export type vec2Type = TypedArray | array2<number>;
-export type vec3Type = TypedArray | array3<number>;
-export type vec4Type = TypedArray | array4<number>;
-export type quatType = TypedArray | array4<number>;
-export type mat2Type = TypedArray | array4<number>;
-export type mat2dType = TypedArray | array5<number>;
-export type mat3Type = TypedArray | array9<number>;
-export type mat4Type = TypedArray | array16<number>;
+// export type vec2Type = TypedArray | array2<number>;
+// export type vec3Type = TypedArray | array3<number>;
+// export type vec4Type = TypedArray | array4<number>;
+// export type quatType = TypedArray | array4<number>;
+// export type mat2Type = TypedArray | array4<number>;
+// export type mat2dType = TypedArray | array5<number>;
+// export type mat3Type = TypedArray | array9<number>;
+// export type mat4Type = TypedArray | array16<number>;
 
 export type Canvas = object;
 export type BasicSceneRenderer = any;

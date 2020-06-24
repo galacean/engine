@@ -12,7 +12,7 @@ import {
 import { BasicSceneRenderer, RenderPass } from "@alipay/o3-renderer-basic";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { ProbeConfig } from "./type";
-import { Vec4 } from "@alipay/o3-math/types/type";
+import { Vector4 } from "@alipay/o3-math/types/type";
 
 let cacheId = 0;
 
@@ -22,7 +22,7 @@ let cacheId = 0;
 export abstract class Probe extends NodeAbility {
   protected readonly cacheId: number;
   private readonly isCube: boolean;
-  private oriClipPlane: Vec4[];
+  private oriClipPlane: Vector4[];
 
   private _camera: ACamera;
 
@@ -36,7 +36,7 @@ export abstract class Probe extends NodeAbility {
   protected renderTargetSwap: RenderTarget;
 
   /** 裁剪面 */
-  public clipPlanes: Vec4[];
+  public clipPlanes: Vector4[];
 
   /** 新版本 */
   protected _isNew: boolean = false;
@@ -100,7 +100,7 @@ export abstract class Probe extends NodeAbility {
   protected get renderItems() {
     const opaqueQueue = this.sceneRenderer.opaqueQueue;
     const transparentQueue = this.sceneRenderer.transparentQueue;
-    return opaqueQueue.items.concat(transparentQueue.items).filter(item => {
+    return opaqueQueue.items.concat(transparentQueue.items).filter((item) => {
       if (!item.primitive) return false;
       if (this.excludeRenderList.includes(item.mtl)) return false;
       if (this.renderAll) return true;
@@ -195,7 +195,7 @@ export abstract class Probe extends NodeAbility {
   }
 
   protected render() {
-    this.renderItems.forEach(item => {
+    this.renderItems.forEach((item) => {
       const { nodeAbility, primitive, mtl } = item;
       if (!(nodeAbility.renderPassFlag & this.renderPassFlag)) return;
       mtl.prepareDrawing(this.camera, nodeAbility, primitive);

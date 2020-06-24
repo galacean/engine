@@ -1,21 +1,16 @@
-import { ClearMode } from "@alipay/o3-base";
-import { NodeAbility } from "./NodeAbility";
-import { mat4, vec4, vec3, MathUtil } from "@alipay/o3-math";
-import { Node } from "./Node";
-import { ICameraProps } from "./type";
-import { Matrix4 } from "@alipay/o3-math/types/type";
+import { NodeAbility } from "@alipay/o3-core";
+import { vec3, mat4, MathUtil, vec4 } from "@alipay/o3-math";
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
+import { Node } from "@alipay/o3-core";
+import { Vector3 } from "@alipay/o3-math/types/type";
 
 const vec3Cache = vec3.create();
 
 /**
  * 3D 摄像机组件，添加到一个 Node 上，以 Node 的空间作为 Camera Space
- * @extends NodeAbility
  */
-export class ACamera extends NodeAbility {
-  get aspect() {
-    return this.viewport[2] / this.viewport[3];
-  }
-
+export class OldCamera extends NodeAbility {
   get renderHardware() {
     return this._rhi;
   }
@@ -24,94 +19,86 @@ export class ACamera extends NodeAbility {
     return this._sceneRenderer;
   }
 
-  set sceneRenderer(v) {
-    const {
-      defaultRenderPass: { clearMode, clearParam }
-    } = this.sceneRenderer;
+  /**
+   * View 矩阵
+   * @member {Float32Array}
+   * @readonly
+   */
+  get viewMatrix(): Float32Array | number[] {
+    return this._viewMat;
+  }
 
-    this._sceneRenderer = v;
-    if (!v.defaultRenderPass.clearParam) {
-      this.setClearMode(clearMode, clearParam);
-    }
+  /**
+   * View 矩阵的逆矩阵
+   * @member {Float32Array}
+   * @readonly
+   */
+  get inverseViewMatrix(): Float32Array | number[] {
+    return this._inverseViewMatrix;
+  }
+
+  /**
+   * 投影矩阵
+   * @member {Float32Array}
+   * @readonly
+   */
+  get projectionMatrix(): Float32Array | number[] {
+    return this._matProjection;
+  }
+
+  /**
+   * 投影矩阵的逆矩阵
+   * @member {Float32Array}
+   * @readonly
+   */
+  get inverseProjectionMatrix(): Float32Array | number[] {
+    return this._matInverseProjection;
   }
 
   /**
    * 摄像机的位置(World Space)
-   * @member {mat4}
+   * @member {Float32Array}
    * @readonly
    */
-  get eyePos() {
-    return this._node.worldPosition;
+  get eyePos(): Readonly<Vector3> {
+    return this.node.worldPosition;
   }
-
-  /**
-   * View 矩阵
-   * @member {mat4}
-   * @readonly
-   */
-  public viewMatrix: Matrix4;
-
-  /**
-   * View 矩阵的逆矩阵
-   * @member {mat4}
-   * @readonly
-   */
-  public inverseViewMatrix: Matrix4;
-
-  /**
-   * 投影矩阵
-   * @member {mat4}
-   * @readonly
-   */
-  public projectionMatrix: Matrix4;
-
-  /**
-   * 投影矩阵的逆矩阵
-   * @member {mat4}
-   * @readonly
-   */
-  public inverseProjectionMatrix: Matrix4;
 
   public zNear: number;
 
   public zFar: number;
 
-  public colorWriteMask: boolean[];
+  public colorWriteMask;
 
   public viewport;
 
   public leftHand;
 
-  public _rhi;
+  public _rhi: GLRenderHardware;
 
-  private _sceneRenderer;
+  private readonly _sceneRenderer: BasicSceneRenderer;
 
   private _isOrtho: boolean;
 
-  /**
-   * 构造函数
-   * @param {Node} node 对象所在节点
-   * @param {Object} props  相机配置参数，包含以下项
-   * @property {Canvas|String} props.canvas 画布对象，可以是 HTML Canvas Element 或者对象的 id
-   * @property {RHIOption} [props.attributes] - RHI 操作参数
-   * @property {SceneRenderer} [props.SceneRenderer] 渲染器类型，{@link BasicSceneRenderer} 和 {@link SceneRenderer}
-   * @property {GLRenderHardware} [props.RHI] 硬件抽象层类型，{@link GLRenderHardware}
-   */
-  constructor(node: Node, props: ICameraProps) {
+  private readonly _viewMat: Float32Array | any[];
+
+  private readonly _matProjection: Float32Array | any[];
+
+  private readonly _inverseViewMatrix: Float32Array | any[];
+
+  private readonly _matInverseProjection: Float32Array | any[];
+
+  constructor(node: Node, props) {
     super(node, props);
 
-    const { RHI, SceneRenderer, canvas, attributes } = props;
-    const engine = this._node.scene.engine;
+    const { SceneRenderer, canvas } = props;
 
-    this._rhi = engine.requireRHI(RHI, canvas, attributes);
     this._sceneRenderer = new SceneRenderer(this);
     this._isOrtho = false; // 逸瞻：标记是不是ortho，用于射线检测时区分处理
-    this.viewMatrix = mat4.create();
-    this.projectionMatrix = mat4.create();
-    this.inverseViewMatrix = mat4.create();
-    this.inverseProjectionMatrix = mat4.create();
-
-    this.node.scene.attachRenderCamera(this);
+    this._viewMat = mat4.create();
+    this._matProjection = mat4.create();
+    this._inverseViewMatrix = mat4.create();
+    this._matInverseProjection = mat4.create();
 
     this.zNear = 1.0;
     this.zFar = 100.0;
@@ -122,15 +109,25 @@ export class ACamera extends NodeAbility {
     this.colorWriteMask = [true, true, true, true];
 
     /**
-     * View port: [x, y, width, height]
-     */
-    this.viewport = [0, 0, this._rhi.canvas.width, this._rhi.canvas.height];
-
-    /**
      * 是否为左手系相机，默认为 false
      * @member {Boolean}
      */
     this.leftHand = false;
+
+    canvas && this.attachToScene(canvas);
+  }
+
+  public attachToScene(canvas: HTMLCanvasElement, attributes?) {
+    this.node.scene.attachRenderCamera(this as any);
+    const engine = this.node.scene.engine;
+    this._rhi = engine.requireRHI((this._props as any).RHI, canvas, {
+      ...(this._props as any).attributes,
+      ...attributes
+    });
+    /**
+     * View port: [x, y, width, height]
+     */
+    this.viewport = [0, 0, this._rhi.canvas.width, this._rhi.canvas.height];
   }
 
   /**
@@ -142,10 +139,10 @@ export class ACamera extends NodeAbility {
 
   /**
    * 设置 Render Target 的清空模式
-   * @param {ClearMode} mode
+   * @param mode
    * @param {*} clearParam 其类型根据 Mode 而不同
    */
-  public setClearMode(mode: ClearMode, clearParam: number[]) {
+  public setClearMode(mode, clearParam) {
     const defaultRP = this._sceneRenderer.defaultRenderPass;
     defaultRP.clearMode = mode;
     defaultRP.clearParam = clearParam;
@@ -154,19 +151,20 @@ export class ACamera extends NodeAbility {
   /**
    * 设置透视矩阵
    * @param {number} degFOV 视角（field of view），使用角度
-   * @param {number} aspect View Port 的宽高比
+   * @param viewWidth
+   * @param viewHeight
    * @param {number} zNear 视锥的近剪裁面
    * @param {number} zFar 视锥的远剪裁面
    */
-  public setPerspective(degFOV: number, viewWidth: number, viewHeight: number, zNear: number, zFar: number): void {
+  public setPerspective(degFOV, viewWidth, viewHeight, zNear, zFar) {
     this._isOrtho = false; // 逸瞻：标记变更
 
     this.zNear = zNear;
     this.zFar = zFar;
 
     const aspect = viewWidth / viewHeight;
-    mat4.perspective(this.projectionMatrix, MathUtil.toRadian(degFOV), aspect, zNear, zFar);
-    mat4.invert(this.inverseProjectionMatrix, this.projectionMatrix);
+    mat4.perspective(this._matProjection, MathUtil.toRadian(degFOV), aspect, zNear, zFar);
+    mat4.invert(this._matInverseProjection, this._matProjection);
   }
 
   /**
@@ -176,7 +174,7 @@ export class ACamera extends NodeAbility {
    * @param {number} width 视口的宽度
    * @param {number} height 视口的高度
    */
-  public setViewport(x: number, y: number, width: number, height: number): void {
+  public setViewport(x, y, width, height) {
     this.viewport = [x, y, width, height];
     this._rhi.viewport(x, y, width, height);
   }
@@ -190,22 +188,22 @@ export class ACamera extends NodeAbility {
    * @param {number} near 视锥的近端范围
    * @param {number} far 视锥的远端范围
    */
-  public setOrtho(left: number, right: number, bottom: number, top: number, near: number, far: number): void {
+  public setOrtho(left, right, bottom, top, near, far) {
     this._isOrtho = true; // 逸瞻：标记变更
 
     this.zNear = near;
     this.zFar = far;
 
-    mat4.ortho(this.projectionMatrix, left, right, bottom, top, near, far);
-    mat4.invert(this.inverseProjectionMatrix, this.projectionMatrix); // 逸瞻：逻辑补全，否则无法正确渲染场景
+    mat4.ortho(this._matProjection, left, right, bottom, top, near, far);
+    mat4.invert(this._matInverseProjection, this._matProjection); // 逸瞻：逻辑补全，否则无法正确渲染场景
   }
 
   /**
    * 把一个 3D 世界坐标，转换到屏幕坐标
-   * @param {vec3} worldPoint 世界空间的坐标点
-   * @return {vec3} [屏幕坐标X, 屏幕坐标Y, 深度值]
+   * @param {Float32Array | Array<number>} worldPoint 世界空间的坐标点
+   * @return {Float32Array} [屏幕坐标X, 屏幕坐标Y, 深度值]
    */
-  public worldToScreen(worldPoint) {
+  public worldToScreen(worldPoint: Float32Array | number[]): Float32Array | any[] {
     const viewport = this.viewport;
     const width = viewport[2] - viewport[0];
     const height = viewport[3] - viewport[1];
@@ -238,9 +236,9 @@ export class ACamera extends NodeAbility {
 
   /**
    * 将一个屏幕坐标，转换到3D世界空间
-   * @param {vec2} screenPoint 屏幕像素坐标
+   * @param screenPoint 屏幕像素坐标
    * @param {Number} depth 深度
-   * @return {vec3} 世界坐标
+   * @return 世界坐标
    */
   public screenToWorld(screenPoint, depth) {
     if (depth === undefined) {
@@ -257,8 +255,8 @@ export class ACamera extends NodeAbility {
     const py = (screenPoint[1] / clientHeight) * canvasHeight;
 
     const viewport = this.viewport;
-    const viewWidth = viewport[2];
-    const viewHeight = viewport[3];
+    const viewWidth = viewport[2] - viewport[0];
+    const viewHeight = viewport[3] - viewport[1];
 
     const nx = ((px - viewport[0]) / viewWidth) * 2 - 1;
     const ny = 1 - ((py - viewport[1]) / viewHeight) * 2;
@@ -282,7 +280,7 @@ export class ACamera extends NodeAbility {
    * @param {number} screenPointX 屏幕X坐标
    * @param {number} screenPointY 屏幕Y坐标
    */
-  public screenPointToRay(screenPointX: number, screenPointY: number): { origin; direction } {
+  public screenPointToRay(screenPointX, screenPointY) {
     // 逸瞻：区分camera类型设置origin
     let origin;
     if (this._isOrtho) {
@@ -302,11 +300,11 @@ export class ACamera extends NodeAbility {
   /**
    * 释放内部资源
    */
-  public destroy(): void {
+  public destroy() {
     super.destroy();
 
     // -- remove from scene
-    this._node.scene.detachRenderCamera(this);
+    this.node.scene.detachRenderCamera(this as any);
 
     // --
     if (this._sceneRenderer) {
@@ -320,18 +318,18 @@ export class ACamera extends NodeAbility {
   }
 
   // 每一帧更新相机所需的矩阵
-  public update(deltaTime: number): void {
+  public update(deltaTime) {
     super.update(deltaTime);
 
     // make sure update directions
     this.node.getModelMatrix();
 
-    vec3.copy(vec3Cache, this._node.forward);
+    vec3.copy(vec3Cache, this.node.forward);
     if (this.leftHand) {
       vec3.scale(vec3Cache, vec3Cache, -1);
     }
-    vec3.add(vec3Cache, this._node.position, vec3Cache);
-    mat4.lookAt(this.viewMatrix, this._node.position, vec3Cache, this._node.up);
-    mat4.invert(this.inverseViewMatrix, this.viewMatrix);
+    vec3.add(vec3Cache, this.node.position, vec3Cache);
+    mat4.lookAt(this._viewMat, this.node.position, vec3Cache, this.node.up);
+    mat4.invert(this._inverseViewMatrix, this._viewMat);
   }
 }

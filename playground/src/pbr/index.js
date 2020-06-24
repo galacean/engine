@@ -3,7 +3,7 @@ import { Engine } from "@alipay/o3-core";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { AAnimation } from "@alipay/o3-animation";
-import { ADefaultCamera } from "@alipay/o3-default-camera";
+import { Camera } from "@alipay/o3-default-camera";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { ASkyBox } from "@alipay/o3-skybox";
@@ -273,7 +273,7 @@ let cameraProps = {
   position: [0, 0, 5],
   near: 0.01
 };
-let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
+let camera = cameraNode.createAbility(Camera, cameraProps);
 let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("o3-demo") });
 
 let node = rootNode.createChild("gltf_node");
