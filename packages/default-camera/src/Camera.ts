@@ -412,31 +412,6 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 视图投影矩阵逆矩阵
-   */
-  public get invViewProjMat() {
-    if (this._isInvViewProjDirty.get()) {
-      this._isInvViewProjDirty.set(false);
-      const invViewMatrix = this.inverseViewMatrix;
-      const invProjMatrix = this.inverseProjectionMatrix;
-      mat4.mul(this._invViewProjMat, invViewMatrix, invProjMatrix);
-    }
-    return this._invViewProjMat;
-  }
-
-  /**
-   * 投影矩阵逆矩阵。
-   */
-  public get inverseProjectionMatrix(): Readonly<Matrix4> {
-    if (this._isInvProjMatDirty) {
-      this._isInvProjMatDirty = false;
-      const projectionMatrix = this.projectionMatrix;
-      mat4.invert(this._inverseProjectionMatrix, projectionMatrix);
-    }
-    return this._inverseProjectionMatrix;
-  }
-
-  /**
    * 相机视口，归一化的 viewport [0 - 1]。
    * @todo 删除兼容性API后修改为 viewport
    */
@@ -492,6 +467,33 @@ export class Camera extends NodeAbility {
     this._sceneRenderer?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
+  }
+
+  /**
+   * @private
+   * 视图投影矩阵逆矩阵
+   */
+  public get invViewProjMat() {
+    if (this._isInvViewProjDirty.get()) {
+      this._isInvViewProjDirty.set(false);
+      const invViewMatrix = this.inverseViewMatrix;
+      const invProjMatrix = this.inverseProjectionMatrix;
+      mat4.mul(this._invViewProjMat, invViewMatrix, invProjMatrix);
+    }
+    return this._invViewProjMat;
+  }
+
+  /**
+   * @private
+   * 投影矩阵逆矩阵。
+   */
+  public get inverseProjectionMatrix(): Readonly<Matrix4> {
+    if (this._isInvProjMatDirty) {
+      this._isInvProjMatDirty = false;
+      const projectionMatrix = this.projectionMatrix;
+      mat4.invert(this._inverseProjectionMatrix, projectionMatrix);
+    }
+    return this._inverseProjectionMatrix;
   }
 
   //-------------------------------------------------deprecated---------------------------------------------------
