@@ -32,9 +32,8 @@ export class WorldChangeFlag {
     const index = flags.indexOf(this);
     const last = flags.length - 1;
     if (index !== last) {
-      const temp = flags[last];
-      flags[last] = this;
-      flags[index] = temp;
+      const end = flags[last];
+      flags[index] = end;
     }
     flags.length--;
     this._flags = null;
