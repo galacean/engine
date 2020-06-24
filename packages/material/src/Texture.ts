@@ -199,7 +199,10 @@ export abstract class Texture extends AssetObject {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   * In WebGL 1, internalformat must be the same as baseFormat when call texImage2D
+   */
   static _getRenderBufferDepthFormatDetail(
     format: RenderBufferDepthFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,

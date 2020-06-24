@@ -338,9 +338,6 @@ export class RenderTarget extends AssetObject {
       this._blitDrawBuffers[textureIndex] = gl.NONE;
     }
 
-    // revert
-    gl.drawBuffers(this._oriDrawBuffers);
-
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
