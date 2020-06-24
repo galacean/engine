@@ -2,7 +2,8 @@ import { Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { Node } from "./Node";
 import { Engine } from "./Engine";
 import { Scene } from "./Scene";
-import { mat4Type } from "./type";
+import { Matrix4 } from "@alipay/o3-math/types/type";
+import { ComponentsDependencies } from "./ComponentsDependencies";
 
 /**
  * TODO:命名暂时保留兼容性，未来替换为Component
@@ -79,7 +80,8 @@ export abstract class NodeAbility extends EventDispatcher {
    * 销毁本组件对象
    */
   destroy(): void {
-    if (!this._destroyed) return;
+    if (this._destroyed) return;
+    this._node._removeComponent(this);
     if (this._node.isActiveInHierarchy) {
       this._enabled && this._onDisable();
       this._onInActive();
@@ -88,29 +90,14 @@ export abstract class NodeAbility extends EventDispatcher {
     this._onDestroy();
   }
 
-  /**
-   * @internal
-   */
   _onAwake(): void {}
 
-  /**
-   * @internal
-   */
   _onEnable(): void {}
 
-  /**
-   * @internal
-   */
   _onDisable(): void {}
 
-  /**
-   * @internal
-   */
   _onDestroy(): void {}
 
-  /**
-   * @internal
-   */
   _onActive(): void {
     if (this._overrideOnUpdate || this._overrideUpdate) {
       //@deprecated 兼容
@@ -121,9 +108,6 @@ export abstract class NodeAbility extends EventDispatcher {
     }
   }
 
-  /**
-   * @internal
-   */
   _onInActive(): void {
     if (this._overrideOnUpdate || this._overrideUpdate) {
       this.scene._componentsManager.removeOnUpdateComponent(this);
@@ -175,7 +159,7 @@ export abstract class NodeAbility extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-    return this._node.scene.engine;
+    return this._node?.scene?.engine;
   }
 
   /**
@@ -235,14 +219,14 @@ export abstract class NodeAbility extends EventDispatcher {
   /**
    * @deprecated
    */
-  get modelMatrix(): mat4Type {
+  get modelMatrix(): Readonly<Matrix4> {
     return this._node.getModelMatrix();
   }
 
   /**
    * @deprecated
    */
-  get invModelMatrix(): mat4Type {
+  get invModelMatrix(): Readonly<Matrix4> {
     return this._node.getInvModelMatrix();
   }
 

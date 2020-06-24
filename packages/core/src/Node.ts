@@ -1,10 +1,11 @@
-import { Event, EventDispatcher, Logger, Util } from "@alipay/o3-base";
+import { EventDispatcher, Util } from "@alipay/o3-base";
 import { mat4, MathUtil, quat, vec3 } from "@alipay/o3-math";
-import { Engine } from "./Engine";
-import { NodeAbility as Component } from "./NodeAbility";
-import { Scene } from "./Scene";
-import { vec3Type, mat4Type } from "./type";
+import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
+import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
+import { Engine } from "./Engine";
+import { NodeAbility as Component, NodeAbility } from "./NodeAbility";
+import { Scene } from "./Scene";
 import { Transform } from "./Transform";
 
 /**
@@ -92,7 +93,7 @@ export class Node extends EventDispatcher {
   public readonly transform: Transform;
 
   /** @deprecated */
-  private _invModelMatrix: mat4Type = mat4.create();
+  private _invModelMatrix: Matrix4 = mat4.create();
   private tempVec30 = vec3.create();
   private tempVec31 = vec3.create();
   private tempVec32 = vec3.create();
@@ -207,6 +208,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   addComponent<T extends Component>(type: new (node: Node, props?: object) => T, props: object = {}): T {
+    ComponentsDependencies._addCheck(this, type);
     const component = new type(this, props);
     this._components.push(component);
     if (this._isActiveInHierarchy) {
@@ -381,6 +383,15 @@ export class Node extends EventDispatcher {
     Node._nodes.delete(this);
   }
 
+  /**
+   * @internal
+   */
+  _removeComponent(component: NodeAbility): void {
+    ComponentsDependencies._removeCheck(this, component.constructor as any);
+    const components = this._components;
+    components.splice(components.indexOf(component), 1);
+  }
+
   private _setActiveComponents(isActive: boolean): void {
     const activeChangedComponents = this._activeChangedComponents;
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
@@ -392,7 +403,7 @@ export class Node extends EventDispatcher {
 
   private _processActive(): void {
     if (this._activeChangedComponents) {
-      throw "Node: can't set the 'main inActive node' active in hierarchy,if the operate is in main inActive node or it's children script's onDisable Event.";
+      throw "Note: can't set the 'main inActive node' active in hierarchy, if the operation is in main inActive node or it's children script's onDisable Event.";
     }
     this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setActiveInHierarchy(this._activeChangedComponents);
@@ -401,7 +412,7 @@ export class Node extends EventDispatcher {
 
   private _processInActive(): void {
     if (this._activeChangedComponents) {
-      throw "Node: can't set the 'main active node' inActive in hierarchy,if the operate is in main active node or it's children script's onEnable Event.";
+      throw "Note: can't set the 'main active node' inActive in hierarchy, if the operation is in main active node or it's children script's onEnable Event.";
     }
     this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);
@@ -523,11 +534,11 @@ export class Node extends EventDispatcher {
    * 本节点的位置(Local Space)
    * @member {vec3}
    */
-  get position() {
+  get position(): Readonly<Vector3> {
     return this.transform.position;
   }
 
-  set position(val) {
+  set position(val: Readonly<Vector3>) {
     this.transform.position = val;
   }
 
@@ -537,7 +548,7 @@ export class Node extends EventDispatcher {
    * @type {Array}
    * @readonly
    */
-  get up() {
+  get up(): Readonly<Vector3> {
     return this.transform.getWorldUp(this.tempVec30);
   }
 
@@ -547,7 +558,7 @@ export class Node extends EventDispatcher {
    * @type {Array}
    * @readonly
    */
-  get forward() {
+  get forward(): Readonly<Vector3> {
     return this.transform.getWorldForward(this.tempVec31);
   }
 
@@ -557,7 +568,7 @@ export class Node extends EventDispatcher {
    * @type {Array}
    * @readonly
    */
-  get right() {
+  get right(): Readonly<Vector3> {
     return this.transform.getWorldRight(this.tempVec32);
   }
 
@@ -566,22 +577,22 @@ export class Node extends EventDispatcher {
    * 本节点的世界坐标系位置
    * @member {vec3}
    */
-  get worldPosition() {
+  get worldPosition(): Readonly<Vector3> {
     return this.transform.worldPosition;
   }
 
-  set worldPosition(val) {
+  set worldPosition(val: Readonly<Vector3>) {
     this.transform.worldPosition = val;
   }
 
   /** Property: 本节点的旋转四元数(Local Space)
    * @member {quat|Array}
    */
-  get rotation() {
+  get rotation(): Readonly<Vector4> {
     return this.transform.rotationQuaternion;
   }
 
-  set rotation(val) {
+  set rotation(val: Readonly<Vector4>) {
     this.transform.rotationQuaternion = val;
   }
 
@@ -590,11 +601,11 @@ export class Node extends EventDispatcher {
    * 本节点的缩放系数(Local Space)
    * @member {vec3}
    */
-  get scale() {
+  get scale(): Readonly<Vector3> {
     return this.transform.scale;
   }
 
-  set scale(val) {
+  set scale(val: Readonly<Vector3>) {
     this.transform.scale = val;
   }
 
@@ -612,7 +623,7 @@ export class Node extends EventDispatcher {
    * 设置是否接收阴影，只有导入 ShadowFeature 时生效
    * @member {boolean}
    */
-  set recieveShadow(enabled) {
+  set recieveShadow(enabled: boolean) {
     enableRenderer(this, enabled, "recieveShadow");
   }
 
@@ -733,7 +744,7 @@ export class Node extends EventDispatcher {
    * 使用四元数对对象进行增量旋转
    * @param {quat} rot 旋转四元数
    */
-  public rotateByQuat(rot: number[] | Float32Array) {
+  public rotateByQuat(rot: Vector4) {
     const rotateEuler = quat.toEuler(this.tempVec33, rot);
     this.transform.rotate(rotateEuler);
   }
@@ -772,7 +783,7 @@ export class Node extends EventDispatcher {
    * @param {Vec3} axis 旋转轴
    * @param {number} deg 旋转角度
    */
-  public setRotationAxisAngle(axis: vec3Type, deg: number) {
+  public setRotationAxisAngle(axis: Vector3, deg: number) {
     const rotateQuat = quat.setAxisAngle(this.tempQuat, axis, MathUtil.toRadian(deg));
     this.transform.rotationQuaternion = rotateQuat;
   }
@@ -782,7 +793,7 @@ export class Node extends EventDispatcher {
    * 获取本节点的前方方向
    * @return {vec3} 节点的前方方向向量
    */
-  public getForward(): vec3Type {
+  public getForward(): Readonly<Vector3> {
     return this.forward;
   }
 
@@ -790,7 +801,7 @@ export class Node extends EventDispatcher {
    * @deprecated
    * 取得Local to World矩阵
    */
-  public getModelMatrix(): mat4Type {
+  public getModelMatrix(): Readonly<Matrix4> {
     return this.transform.worldMatrix;
   }
 
@@ -799,14 +810,14 @@ export class Node extends EventDispatcher {
    * 使用 Local to World 更新内部 Transform 数据，效率较低
    * @param {mat4} m 变换矩阵
    */
-  public setModelMatrix(m: number[] | Float32Array) {
+  public setModelMatrix(m: Readonly<Matrix4>) {
     this.transform.worldMatrix = m;
   }
 
   /**
    * @deprecated
    */
-  public setModelMatrixNew(m: number[] | Float32Array) {
+  public setModelMatrixNew(m: Readonly<Matrix4>) {
     this.transform.worldMatrix = m;
   }
 
@@ -815,7 +826,7 @@ export class Node extends EventDispatcher {
    * 取得World to Local矩阵
    * @return {mat4}
    */
-  public getInvModelMatrix(): number[] | Float32Array {
+  public getInvModelMatrix(): Readonly<Matrix4> {
     return mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
   }
 
@@ -825,7 +836,7 @@ export class Node extends EventDispatcher {
    * @param {vec3} center 看向的点
    * @param {vec3} up 指向上方的单位向量
    */
-  public lookAt(center: vec3Type, up?: vec3Type) {
+  public lookAt(center: Vector3, up?: Vector3) {
     this.transform.lookAt(center, up);
     return this;
   }

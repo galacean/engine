@@ -1,16 +1,13 @@
 import { Engine } from "@alipay/o3-core";
-import { vec3 } from "@alipay/o3-math";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
-import { TextureFilter, TextureWrapMode } from "@alipay/o3-core";
-import { AAnimation, AnimationEvent, WrapMode } from "@alipay/o3-animation";
+import { AAnimation } from "@alipay/o3-animation";
 import "@alipay/o3-hud";
 import { AAmbientLight } from '@alipay/o3-lighting';
 import {RegistExtension} from '@alipay/o3-loader-gltf';
 import {PBRMaterial} from '@alipay/o3-pbr';
 
-import { AHUDLabel } from "../common/AHUDLabel";
 import "@alipay/o3-engine-stats";
 
 RegistExtension({PBRMaterial});
@@ -60,7 +57,7 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
   const prefab = gltf.asset.rootScene.nodes[0];
   const animations = gltf.asset.animations;
 
-  const huabei = prefab
+  const huabei = prefab.clone();
 
   // 加上纹理
   gltf.asset.meshes.forEach((mesh, i) => {
@@ -68,11 +65,11 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
     material.baseColorTexture = texture.asset;
   })
 
-  // huabei.rotateByAngles(0, -90, 0);
+  huabei.rotateByAngles(0, -90, 0);
 
   let node = rootNode.createChild("gltf_node");
-  // node.scale = [0.5, 0.5, 0.5]
-  // node.position = [-1, 0, 0]
+  node.scale = [0.5, 0.5, 0.5]
+  node.position = [-1, 0, 0]
   node.addChild(huabei);
 
   const animator = huabei.createAbility(AAnimation);

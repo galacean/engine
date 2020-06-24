@@ -1,9 +1,9 @@
 import { Logger } from "@alipay/o3-base";
 import { NodeAbility, Node } from "@alipay/o3-core";
 import { vec3, MathUtil, Spherical } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math/types/type";
 import { Tween, Easing, doTransform } from "@alipay/o3-tween";
 import { vec3Type } from "./type";
-
 // 防止万向锁
 const ESP = MathUtil.EPSILON;
 
@@ -296,12 +296,14 @@ export class AFreeControls extends NodeAbility {
   /**
    * transform vec3 on axis by distance
    * */
-  translateOnAxis(axis: vec3Type, distance: number, v3: vec3Type = this.camera.position): void {
+  translateOnAxis(axis: Readonly<Vector3>, distance: number, v3: Readonly<Vector3> = this.camera.position): void {
     let diff = vec3.create();
     vec3.normalize(diff, axis);
     vec3.scale(diff, diff, distance);
     vec3.add(v3, v3, diff);
   }
+
+  private tempVec3 = vec3.create();
 
   /**
    * translate camera per tick
@@ -325,9 +327,12 @@ export class AFreeControls extends NodeAbility {
     }
 
     tween.update(delta);
+    const position = this.camera.transform.position;
 
     if (this.floorMock && !this._moveJump) {
-      this.camera.position[1] = this.floorY;
+      // this.camera.position[1] = this.floorY;
+
+      this.camera.transform.position = vec3.set(this.tempVec3, position[0], this.floorY, position[2]);
     }
   }
 

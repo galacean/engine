@@ -1,4 +1,4 @@
-import { Camera } from "./Camera";
+import { OldCamera } from "./OldCamera";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { Node } from "@alipay/o3-core";
@@ -24,7 +24,7 @@ interface Props {
  * @alias ADefaultCamera
  * @constructor
  */
-export class PerspectiveCamera extends Camera {
+export class PerspectiveCamera extends OldCamera {
   public canvas: HTMLCanvasElement;
   private _fov: number;
   private _near: number;

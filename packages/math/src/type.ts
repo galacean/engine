@@ -22,10 +22,10 @@ type array16<T> = {
 };
 type TypedArray = Array<number> | Float32Array;
 
-export type Vec2 = TypedArray | array2<number>;
-export type Vec3 = TypedArray | array3<number>;
-export type Vec4 = TypedArray | array4<number>;
-export type Quat = TypedArray | array4<number>;
-export type Mat2 = TypedArray | array4<number>;
-export type Mat3 = TypedArray | array9<number>;
-export type Mat4 = TypedArray | array16<number>;
+export type Vector2 = TypedArray | array2<number>;
+export type Vector3 = TypedArray | array3<number>;
+export type Vector4 = TypedArray | array4<number>;
+export type Quaternion = TypedArray | array4<number>;
+export type Matrix2 = TypedArray | array4<number>;
+export type Matrix3 = TypedArray | array9<number>;
+export type Matrix4 = TypedArray | array16<number>;
