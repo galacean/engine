@@ -12,7 +12,7 @@ describe("camera test", function () {
   beforeAll(() => {
     node = new Node();
     camera = node.addComponent(Camera);
-    (camera as any)._onAwake();
+    camera._onAwake();
     oldCamera = node.addComponent(PerspectiveCamera);
     (oldCamera as any)._rhi = {
       canvas: {

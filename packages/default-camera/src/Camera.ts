@@ -4,7 +4,6 @@ import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
 import { Vector2, Vector3, Vector4, Matrix4 } from "@alipay/o3-math/types/type";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
-import { ComponentsManager } from "@alipay/o3-core/types/ComponentsManager";
 
 /**
  * @todo 数学库改造
@@ -70,10 +69,6 @@ export class Camera extends NodeAbility {
   // todo:监听 node transform 修改设为 true
   // 投影矩阵脏标记
   private _isProjectionDirty = false;
-  // 视图矩阵脏标记
-  private _isViewMatDirty: boolean = true;
-  // 投影视图矩阵逆矩阵脏标记
-  private _isInvViewProjDirty: boolean = true;
   // 投影矩阵逆矩阵脏标记
   private _isInvProjMatDirty: boolean = true;
 
@@ -82,7 +77,8 @@ export class Camera extends NodeAbility {
 
   private _transform: Transform;
   private _isViewMatrixDirty: WorldChangeFlag;
-  private _isInvViewMatrixDirty: WorldChangeFlag;
+  // 投影视图矩阵逆矩阵脏标记
+  private _isInvViewProjDirty: WorldChangeFlag;
 
   /**
    * 近裁剪平面。
@@ -207,8 +203,7 @@ export class Camera extends NodeAbility {
   public get viewMatrix(): Readonly<Matrix4> {
     //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
     if (this._isViewMatrixDirty.get()) {
-      this._isViewMatrixDirty.reset();
-      this._isInvViewProjDirty = true;
+      this._isViewMatrixDirty.set(false);
       const modelMatrix = this._transform.worldMatrix;
       turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
       mat4.invert(this._viewMatrix, MathTemp.tempMat4);
@@ -279,6 +274,11 @@ export class Camera extends NodeAbility {
   constructor(node: Node, props: any) {
     // todo 修改构造函数参数
     super(node, props);
+
+    this._transform = this.node.transform;
+    this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
+    this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
+
     const { SceneRenderer, canvas, attributes, clearParam = [0.25, 0.25, 0.25, 1], clearMode, near, far, fov } = props;
     const engine = this.engine;
 
@@ -416,9 +416,8 @@ export class Camera extends NodeAbility {
    * 视图投影矩阵逆矩阵
    */
   public get invViewProjMat() {
-    if (this._isInvViewProjDirty || this._isInvViewMatrixDirty.get()) {
-      this._isInvViewProjDirty = false;
-      this._isInvViewMatrixDirty.reset();
+    if (this._isInvViewProjDirty.get()) {
+      this._isInvViewProjDirty.set(false);
       const invViewMatrix = this.inverseViewMatrix;
       const invProjMatrix = this.inverseProjectionMatrix;
       mat4.mul(this._invViewProjMat, invViewMatrix, invProjMatrix);
@@ -468,15 +467,6 @@ export class Camera extends NodeAbility {
       // todo 底层每帧会调用
       // this.renderHardware.viewport(this._viewport[0], this._viewport[1], this._viewport[2], this._viewport[3]);
     }
-  }
-
-  /**
-   * @innernal
-   */
-  _onAwake() {
-    this._transform = this.node.transform;
-    this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
-    this._isInvViewMatrixDirty = this._transform.registerWorldChangeFlag();
   }
 
   /**
@@ -600,8 +590,6 @@ export class Camera extends NodeAbility {
     canvas.width = width;
     canvas.height = height;
     this.viewportNormalized = this.viewportNormalized;
-    // this.setPerspective(this.fov, width, height, this.near, this.far);
-    // this.setViewport(0, 0, width, height);
   }
 
   /**
@@ -609,8 +597,8 @@ export class Camera extends NodeAbility {
    */
   private projMatChange() {
     this._isProjectionDirty = true;
-    this._isInvViewProjDirty = true;
     this._isInvProjMatDirty = true;
+    this._isInvViewProjDirty.set(true);
   }
 
   /**

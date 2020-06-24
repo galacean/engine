@@ -9,13 +9,6 @@ import { NodeAbility } from "./NodeAbility";
 export class WorldChangeFlag {
   private flag = true;
   /**
-   * 重置标记。
-   */
-  reset() {
-    this.flag = false;
-  }
-
-  /**
    * 获取标记。
    */
   get() {
@@ -23,10 +16,11 @@ export class WorldChangeFlag {
   }
 
   /**
-   * @internal
+   * 设置标记。
+   * @param value 标记值
    */
-  _mark() {
-    this.flag = true;
+  set(value: boolean) {
+    this.flag = value;
   }
 }
 //CM:Vector3、Vector4、Matrix3、Matrix4类型更换
@@ -617,7 +611,7 @@ export class Transform extends NodeAbility {
     this._dirtyFlag |= type;
     const len = this._changeFlags.length;
     for (let i = len - 1; i >= 0; i--) {
-      this._changeFlags[i]._mark();
+      this._changeFlags[i].set(true);
     }
   }
 
