@@ -7,13 +7,13 @@ import { NodeAbility } from "./NodeAbility";
  * 世界矩阵改变标记。
  */
 export class WorldChangeFlag {
-  private flag = true;
+  private _flag = true;
   constructor(private _flags = []) {}
   /**
    * 获取标记。
    */
   get(): boolean {
-    return this.flag;
+    return this._flag;
   }
 
   /**
@@ -21,7 +21,7 @@ export class WorldChangeFlag {
    * @param value 标记值
    */
   set(value: boolean): void {
-    this.flag = value;
+    this._flag = value;
   }
 
   /**
