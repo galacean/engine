@@ -1,7 +1,7 @@
 import { Node } from "../src/Node";
 import { quat, mat4, vec3 } from "@alipay/o3-math";
 
-describe("Node test", function() {
+describe("Node test", function () {
   it("case", () => {});
   describe("node lookat", () => {
     const node = new Node();

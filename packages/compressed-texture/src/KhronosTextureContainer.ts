@@ -4,6 +4,7 @@
  */
 
 import { Mipmap, KTXContainer } from "./type";
+import { GLCompressedTextureInternalFormat, TextureFormat, Logger } from "@alipay/o3-base";
 
 const HEADER_LEN = 12 + 13 * 4; // identifier + header elements (not including key value meta-data pairs)
 
@@ -71,6 +72,45 @@ function isValid(data: ArrayBuffer): boolean {
   return false;
 }
 
+function getEngineFormat(internalFormat: GLint): TextureFormat {
+  switch (internalFormat) {
+    case GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT:
+      return TextureFormat.DXT1;
+    case GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT:
+      return TextureFormat.DXT5;
+    case GLCompressedTextureInternalFormat.RGB_ETC1_WEBGL:
+      return TextureFormat.ETC1_RGB;
+    case GLCompressedTextureInternalFormat.RGB8_ETC2:
+      return TextureFormat.ETC2_RGB;
+    case GLCompressedTextureInternalFormat.RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+      return TextureFormat.ETC2_RGBA5;
+    case GLCompressedTextureInternalFormat.RGBA8_ETC2_EAC:
+      return TextureFormat.ETC2_RGBA8;
+    case GLCompressedTextureInternalFormat.RGB_PVRTC_2BPPV1_IMG:
+      return TextureFormat.PVRTC_RGB2;
+    case GLCompressedTextureInternalFormat.RGBA_PVRTC_2BPPV1_IMG:
+      return TextureFormat.PVRTC_RGBA2;
+    case GLCompressedTextureInternalFormat.RGB_PVRTC_4BPPV1_IMG:
+      return TextureFormat.PVRTC_RGB4;
+    case GLCompressedTextureInternalFormat.RGBA_PVRTC_4BPPV1_IMG:
+      return TextureFormat.PVRTC_RGBA4;
+    case GLCompressedTextureInternalFormat.RGBA_ASTC_4X4_KHR:
+      return TextureFormat.ASTC_4x4;
+    case GLCompressedTextureInternalFormat.RGBA_ASTC_5X5_KHR:
+      return TextureFormat.ASTC_5x5;
+    case GLCompressedTextureInternalFormat.RGBA_ASTC_6X6_KHR:
+      return TextureFormat.ASTC_6x6;
+    case GLCompressedTextureInternalFormat.RGBA_ASTC_8X8_KHR:
+      return TextureFormat.ASTC_8x8;
+    case GLCompressedTextureInternalFormat.RGBA_ASTC_10X10_KHR:
+      return TextureFormat.ASTC_10x10;
+    case GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR:
+      return TextureFormat.ASTC_12x12;
+    default:
+      const formatName: any = GLCompressedTextureInternalFormat[internalFormat];
+      throw new Error(`this format is not supported in Oasis Engine: ${formatName}`);
+  }
+}
 /**
  * for description see https://www.khronos.org/opengles/sdk/tools/KTX/
  * for file layout see https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/
@@ -82,8 +122,14 @@ export const khronosTextureContainerParser = {
    * @param facesExpected should be either 1 or 6, based whether a cube texture or or
    * @param threeDExpected provision for indicating that data should be a 3D texture, not implemented
    * @param textureArrayExpected provision for indicating that data should be a texture array, not implemented
+   * @param mapEngineFormat get Oasis Engine native TextureFormat?
    */
-  parse(buffer: ArrayBuffer, facesExpected: number, withMipmaps: boolean): KTXContainer {
+  parse(
+    buffer: ArrayBuffer,
+    facesExpected: number,
+    withMipmaps: boolean,
+    mapEngineFormat: boolean = false
+  ): KTXContainer {
     if (!isValid(buffer)) {
       throw new Error("khronosTextureContainerParser: invalid KTX file, texture missing KTX identifier");
     }
@@ -136,6 +182,9 @@ export const khronosTextureContainerParser = {
       parsedResult.mipmaps = getMipmaps(parsedResult, true);
     }
 
+    if (mapEngineFormat) {
+      parsedResult.engineFormat = getEngineFormat(parsedResult.glInternalFormat);
+    }
     return parsedResult;
   }
 };

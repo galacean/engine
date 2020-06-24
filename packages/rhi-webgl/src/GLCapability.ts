@@ -7,9 +7,12 @@ type extensionKey = string;
  * GL 能力统一管理
  * */
 export class GLCapability {
+  private _maxDrawBuffers: number;
+  private _maxAnisoLevel: number;
+  private _maxAntiAliasing: number;
+
   _rhi: GLRenderHardware;
   capabilityList: Map<GLCapabilityType, boolean>;
-  private _maxDrawBuffers: number;
 
   get maxDrawBuffers() {
     if (!this._maxDrawBuffers) {
@@ -20,6 +23,30 @@ export class GLCapability {
       }
     }
     return this._maxDrawBuffers;
+  }
+
+  /**
+   * 最大各向异性过滤等级。
+   */
+  get maxAnisoLevel(): number {
+    if (this._maxAnisoLevel == null) {
+      const ext = this._rhi.requireExtension(GLCapabilityType.textureFilterAnisotropic);
+      this._maxAnisoLevel = ext ? this._rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 0;
+    }
+    return this._maxAnisoLevel;
+  }
+
+  /**
+   * 最大 MSAA 采样数量
+   */
+  get maxAntiAliasing(): number {
+    if (!this._maxAntiAliasing) {
+      const gl = this._rhi.gl;
+      const canMSAA = this.canIUse(GLCapabilityType.multipleSample);
+
+      this._maxAntiAliasing = canMSAA ? gl.getParameter(gl.MAX_SAMPLES) : 1;
+    }
+    return this._maxAntiAliasing;
   }
 
   get rhi() {
@@ -121,7 +148,11 @@ export class GLCapability {
       s3tc_webkit,
 
       textureFloat,
-      colorBufferFloat
+      textureHalfFloat,
+      WEBGL_colorBufferFloat,
+      colorBufferFloat,
+      colorBufferHalfFloat,
+      textureFilterAnisotropic
     } = GLCapabilityType;
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
     cap.set(shaderTextureLod, isWebGL2 || !!requireExtension(shaderTextureLod));
@@ -132,7 +163,16 @@ export class GLCapability {
     cap.set(multipleSample, isWebGL2);
     cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
     cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
-    cap.set(colorBufferFloat, isWebGL2 && !!requireExtension(colorBufferFloat));
+    cap.set(textureHalfFloat, isWebGL2 || !!requireExtension(textureHalfFloat));
+    cap.set(
+      colorBufferFloat,
+      (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(WEBGL_colorBufferFloat)
+    );
+    cap.set(
+      colorBufferHalfFloat,
+      (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(colorBufferHalfFloat)
+    );
+    cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
 
     cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
@@ -172,7 +212,16 @@ export class GLCapability {
   /** 兼容 WebGL 1和 WebGL 2,抹平接口差异 */
   private compatibleAllInterface() {
     // 需要兼容的能力
-    const { depthTexture, vertexArrayObject, instancedArrays, drawBuffers } = GLCapabilityType;
+    const {
+      depthTexture,
+      vertexArrayObject,
+      instancedArrays,
+      drawBuffers,
+      textureFilterAnisotropic,
+      textureHalfFloat,
+      colorBufferHalfFloat,
+      WEBGL_colorBufferFloat
+    } = GLCapabilityType;
 
     this.compatibleInterface(depthTexture, {
       UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
@@ -202,5 +251,17 @@ export class GLCapability {
         ...items
       });
     }
+    this.compatibleInterface(textureFilterAnisotropic, {
+      TEXTURE_MAX_ANISOTROPY_EXT: "TEXTURE_MAX_ANISOTROPY_EXT"
+    });
+    this.compatibleInterface(textureHalfFloat, {
+      HAFL_FLOAT: "HALF_FLOAT_OES"
+    });
+    this.compatibleInterface(colorBufferHalfFloat, {
+      RGBA16F: "RBGA16F_EXT"
+    });
+    this.compatibleInterface(WEBGL_colorBufferFloat, {
+      RGBA32F: "RBGA32F_EXT"
+    });
   }
 }

@@ -155,6 +155,9 @@ export enum TextureFilter {
   LINEAR_MIPMAP_LINEAR = 9987 // gl.LINEAR_MIPMAP_LINEAR
 }
 
+/**
+ * @deprecated
+ */
 export enum TextureWrapMode {
   REPEAT = 10497, // gl.REPEAT
   CLAMP_TO_EDGE = 33071, // gl.CLAMP_TO_EDGE
@@ -163,6 +166,7 @@ export enum TextureWrapMode {
 
 /**
  * Cube Map 的各个表面的值
+ * @deprecated
  */
 export const CubeMapFace = [
   0x8515, // gl.TEXTURE_CUBE_MAP_POSITIVE_X;
@@ -434,7 +438,11 @@ export enum GLCapabilityType {
   instancedArrays = "ANGLE_instanced_arrays",
   multipleSample = "multipleSampleOnlySupportedInWebGL2",
   textureFloat = "OES_texture_float",
+  textureHalfFloat = "OES_texture_half_float",
+  WEBGL_colorBufferFloat = "WEBGL_color_buffer_float",
   colorBufferFloat = "EXT_color_buffer_float",
+  colorBufferHalfFloat = "EXT_color_buffer_half_float",
+  textureFilterAnisotropic = "EXT_texture_filter_anisotropic",
 
   astc = "WEBGL_compressed_texture_astc",
   astc_webkit = "WEBKIT_WEBGL_compressed_texture_astc",
@@ -450,6 +458,9 @@ export enum GLCapabilityType {
   // s3tc_srgb = "WEBGL_compressed_texture_s3tc_srgb"
 }
 
+/**
+ * @deprecated
+ */
 export enum GLCompressedTextureInternalFormat {
   // astc
   RGBA_ASTC_4X4_KHR = 0x93b0,
@@ -510,14 +521,6 @@ export enum GLCompressedTextureInternalFormat {
 }
 
 /**
- * GL 纹理格式
- */
-export enum GLTextureFormat {
-  RGB = 6407,
-  RGBA = 6408
-}
-
-/**
  * OIT 模式
  * */
 export enum OITMode {
@@ -527,4 +530,133 @@ export enum OITMode {
   DEPTH_PEEL,
   /** 双层深度剥离，性能更好，强依赖 MRT */
   DUAL_DEPTH_PEEL
+}
+
+/**
+ * 纹理的循环模式。
+ */
+export enum TextureWrapMode {
+  /** 截取模式，超过纹理边界使用边缘像素的颜色。 */
+  Clamp = 0,
+  /** 重复模式，超过纹理边界会循环平铺。*/
+  Repeat = 1,
+  /** 镜像重复模式，超过纹理边界会镜像循环平铺。*/
+  Mirror = 2
+}
+
+/**
+ * 纹理的过滤模式。
+ */
+export enum TextureFilterMode {
+  /** 点过滤。*/
+  Point = 0,
+  /** 双线性过滤。*/
+  Bilinear = 1,
+  /** 三线性过滤。*/
+  Trilinear = 2
+}
+
+/**
+ * 纹理格式枚举。
+ */
+export enum TextureFormat {
+  /** RGB格式，每通道8 bits。*/
+  R8G8B8 = 0,
+  /** RGBA格式，每通道8 bits。*/
+  R8G8B8A8 = 1,
+  /** RGB格式,R通道5 bits，G通道6 bits，B通道5 bits。*/
+  R5G6B5 = 2,
+  /** 透明格式，8 bits。*/
+  Alpha8 = 3,
+  /** RGBA格式，每个通道32 bits。*/
+  R32G32B32A32 = 4,
+  /** RGB压缩格式的压缩格式。*/
+  DXT1 = 5,
+  /** RGBA压缩格式的压缩格式。*/
+  DXT5 = 6,
+  /** RGB压缩格式，4 bits每像素。*/
+  ETC1_RGB = 7,
+  /** RGB压缩格式，4 bits每像素。*/
+  ETC2_RGB = 8,
+  /** RGBA压缩格式，5 bits每像素,RGB 4 bit,Alpha 1 bit。*/
+  ETC2_RGBA5 = 9,
+  /** RGB压缩格式，8 bits每像素。*/
+  ETC2_RGBA8 = 10,
+  /** RGB压缩格式，2 bits每像素。*/
+  PVRTC_RGB2 = 11,
+  /** RGBA压缩格式，2 bits每像素。*/
+  PVRTC_RGBA2 = 12,
+  /** RGB压缩格式，4 bits每像素。*/
+  PVRTC_RGB4 = 13,
+  /** RGBA压缩格式，4 bits每像素。*/
+  PVRTC_RGBA4 = 14,
+  /** RGB(A)压缩格式，128 bits 每4x4像素块。*/
+  ASTC_4x4 = 15,
+  /** RGB(A)压缩格式，128 bits 每5x5像素块。*/
+  ASTC_5x5 = 16,
+  /** RGB(A)压缩格式，128 bits 每6x6像素块。*/
+  ASTC_6x6 = 17,
+  /** RGB(A)压缩格式，128 bits 每8x8像素块。*/
+  ASTC_8x8 = 18,
+  /** RGB(A)压缩格式，128 bits 每10x10像素块。*/
+  ASTC_10x10 = 19,
+  /** RGB(A)压缩格式，128 bits 每12x12像素块。*/
+  ASTC_12x12 = 20
+}
+
+/**
+ * 立方体纹理面。
+ */
+export enum TextureCubeFace {
+  /** X轴正方向。 */
+  PositiveX = 0,
+  /** X轴负方向。 */
+  NegativeX = 1,
+  /** Y轴正方向。 */
+  PositiveY = 2,
+  /** Y轴负方向。 */
+  NegativeY = 3,
+  /** Z轴正方向。 */
+  PositiveZ = 4,
+  /** Z轴负方向。 */
+  NegativeZ = 5
+}
+
+/**
+ * 渲染缓冲颜色格式枚举。
+ */
+export enum RenderBufferColorFormat {
+  /** RGB格式，每通道8 bits。*/
+  R8G8B8 = 0,
+  /** RGBA格式，每通道8 bits。*/
+  R8G8B8A8 = 1,
+  /** 透明格式，8 bits。*/
+  Alpha8 = 2,
+  /** RGBA格式,每通道16 bits。*/
+  R16G16B16A16 = 3,
+  /** RGBA格式，每个通道32 bits。*/
+  R32G32B32A32 = 4
+}
+
+/**
+ * 渲染缓冲深度格式枚举。
+ */
+export enum RenderBufferDepthFormat {
+  /** 深度缓冲，自动选择精度 */
+  Depth = 0,
+  /** 深度模版缓冲，自动选择精度 */
+  DepthStencil = 1,
+  /** 模板缓冲 */
+  Stencil = 2,
+
+  /** 强制16位深度缓冲 */
+  Depth16 = 3,
+  /** 强制24位深度缓冲 */
+  Depth24 = 4,
+  /** 强制32位深度缓冲 */
+  Depth32 = 5,
+  /** 强制24位深度缓冲+8位模版缓冲 */
+  Depth24Stencil8 = 6,
+  /** 强制32位深度缓冲+8位模版缓冲 */
+  Depth32Stencil8 = 7
 }

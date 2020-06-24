@@ -9,6 +9,8 @@ export class GLMultiRenderTarget extends GLRenderTarget {
 
   constructor(rhi: GLRenderHardware, config: MultiRenderTarget) {
     super(rhi, config);
+    // todo:delete
+    if (this._isNew) return;
 
     this.activeRenderTarget();
     if (config.depthTexture) {
@@ -28,6 +30,9 @@ export class GLMultiRenderTarget extends GLRenderTarget {
   }
 
   finalize() {
+    // todo:delete
+    if (this._isNew) return;
+
     super.finalize();
     this._glTextures.forEach(texture => {
       texture.finalize();

@@ -8,7 +8,7 @@ import { vec3Type } from "./type";
 const ESP = MathUtil.EPSILON;
 
 function includes(array, ...filterArray) {
-  return filterArray.some(e => array.indexOf(e) !== -1);
+  return filterArray.some((e) => array.indexOf(e) !== -1);
 }
 
 const tween = new Tween();
@@ -338,7 +338,7 @@ export class AFreeControls extends NodeAbility {
 
   /**注册浏览器事件*/
   initEvents(): void {
-    this._events.forEach(ele => {
+    this._events.forEach((ele) => {
       if (ele.element) {
         ele.element.addEventListener(ele.type, ele.listener, false);
       } else {
@@ -351,7 +351,7 @@ export class AFreeControls extends NodeAbility {
    * dispose all events
    * */
   destroy(): void {
-    this._events.forEach(ele => {
+    this._events.forEach((ele) => {
       if (ele.element) {
         ele.element.removeEventListener(ele.type, ele.listener, false);
       } else {

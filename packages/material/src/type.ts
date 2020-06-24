@@ -75,3 +75,11 @@ export interface Uniforms {
     type: DataType;
   };
 }
+
+export interface TextureFormatDetail {
+  internalFormat: GLint;
+  baseFormat?: GLenum;
+  dataType?: GLenum;
+  isCompressed: boolean;
+  attachment?: GLenum;
+}

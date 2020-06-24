@@ -8,8 +8,6 @@ import { CompressedCubeData, Mipmap } from "./type";
  */
 export class CompressedTextureCubeMap extends TextureCubeMap {
   private _mipmapsFaces: Mipmap[][];
-  private _width: number;
-  private _height: number;
   private _internalFormat: GLCompressedTextureInternalFormat;
 
   public isCompressed: boolean = true;
@@ -43,14 +41,6 @@ export class CompressedTextureCubeMap extends TextureCubeMap {
   set mipmapsFaces(mipmapsFaces: Mipmap[][]) {
     this._mipmapsFaces = mipmapsFaces;
     this.updateTexture();
-  }
-
-  get width(): number {
-    return this._width;
-  }
-
-  get height(): number {
-    return this._height;
   }
 
   get internalFormat(): GLCompressedTextureInternalFormat {

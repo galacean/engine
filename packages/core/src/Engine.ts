@@ -43,7 +43,7 @@ export class Engine extends EventDispatcher {
       this._currentScene = scene;
 
       if (
-        !this.scenes.find(s => {
+        !this.scenes.find((s) => {
           return s === scene;
         })
       ) {
