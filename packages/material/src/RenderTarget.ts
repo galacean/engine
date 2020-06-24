@@ -229,9 +229,9 @@ export class RenderTarget extends AssetObject {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
     gl.deleteFramebuffer(this._frameBuffer);
-    gl.deleteRenderbuffer(this._depthRenderBuffer);
+    this._depthRenderBuffer && gl.deleteRenderbuffer(this._depthRenderBuffer);
     this._MSAAFrameBuffer && gl.deleteFramebuffer(this._MSAAFrameBuffer);
-    gl.deleteRenderbuffer(this._MSAADepthRenderBuffer);
+    this._MSAADepthRenderBuffer && gl.deleteRenderbuffer(this._MSAADepthRenderBuffer);
 
     for (let i = 0; i < this._colorTextures.length; i++) {
       this._colorTextures[i].destroy();
@@ -241,9 +241,7 @@ export class RenderTarget extends AssetObject {
       gl.deleteRenderbuffer(this._MSAAColorRenderBuffers[i]);
     }
 
-    if (this._depthTexture) {
-      this._depthTexture.destroy();
-    }
+    this._depthTexture && this._depthTexture.destroy();
 
     this._frameBuffer = null;
     this._colorTextures.length = 0;
