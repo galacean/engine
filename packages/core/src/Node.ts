@@ -387,7 +387,7 @@ export class Node extends EventDispatcher {
    * @internal
    */
   _removeComponent(component: NodeAbility): void {
-    ComponentsDependencies._removeCheck(this, component as any);
+    ComponentsDependencies._removeCheck(this, component.constructor as any);
     const components = this._components;
     components.splice(components.indexOf(component), 1);
   }
