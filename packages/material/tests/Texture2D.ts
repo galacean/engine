@@ -41,7 +41,7 @@ describe("Texture2D", () => {
   describe("mipmap", () => {
     it("webgl2 支持非2次幂开启 mipmap ", () => {
       rhi.isWebGL2 = true;
-      rhi.gl.texStorage2D = function() {};
+      rhi.gl.texStorage2D = function () {};
 
       const texture1 = new Texture2D(rhi, 100, 100);
       const texture2 = new Texture2D(rhi, 100, 100, undefined, true);

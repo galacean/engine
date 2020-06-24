@@ -50,7 +50,7 @@ describe("RenderColorTexture", () => {
   describe("mipmap", () => {
     it("webgl2 支持非2次幂开启 mipmap ", () => {
       rhi.isWebGL2 = true;
-      rhi.gl.texStorage2D = function() {};
+      rhi.gl.texStorage2D = function () {};
 
       const texture = new RenderColorTexture(rhi, 100, 100, undefined, true);
 

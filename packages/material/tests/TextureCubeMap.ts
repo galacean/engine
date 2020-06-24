@@ -42,7 +42,7 @@ describe("TextureCubeMap", () => {
   describe("mipmap", () => {
     it("webgl2 支持非2次幂开启 mipmap ", () => {
       rhi.isWebGL2 = true;
-      rhi.gl.texStorage2D = function() {};
+      rhi.gl.texStorage2D = function () {};
 
       const texture1 = new TextureCubeMap(rhi, 100);
       const texture2 = new TextureCubeMap(rhi, 100, undefined, true);
