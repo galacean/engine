@@ -6,7 +6,7 @@ import { NodeAbility } from "./NodeAbility";
 /**
  * 世界矩阵改变标记。
  */
-class WorldChangeFlag {
+export class WorldChangeFlag {
   private flag = true;
   /**
    * 重置标记。

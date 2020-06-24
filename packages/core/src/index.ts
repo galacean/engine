@@ -13,3 +13,4 @@ export { RenderableComponent } from "./RenderableComponent";
 
 export { ACamera } from "./ACamera";
 export { Transform } from "./Transform";
+export type { WorldChangeFlag } from "./Transform";

@@ -1,5 +1,5 @@
 import { ClearMode } from "@alipay/o3-base";
-import { Node, NodeAbility } from "@alipay/o3-core";
+import { Node, NodeAbility, Transform, WorldChangeFlag } from "@alipay/o3-core";
 import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
 import { Vector2, Vector3, Vector4, Matrix4 } from "@alipay/o3-math/types/type";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
@@ -78,6 +78,10 @@ export class Camera extends NodeAbility {
 
   private _customAspectRatio: number = undefined;
   private _invViewProjMat: Matrix4 = mat4.create();
+
+  private _transform: Transform;
+  private _isViewMatrixDirty: WorldChangeFlag;
+  private _isInvViewMatrixDirty: WorldChangeFlag;
 
   /**
    * 近裁剪平面。
@@ -199,9 +203,10 @@ export class Camera extends NodeAbility {
    */
   public get viewMatrix(): Readonly<Matrix4> {
     //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
-    if (this._isViewMatDirty) {
-      // todo:监听 node 的 transform 变换
-      const modelMatrix = this.node.getModelMatrix(); //CM：等木鳐做好改成直接调用transform的方法
+    if (this._isViewMatrixDirty.get()) {
+      this._isViewMatrixDirty.reset();
+      this._isInvViewProjDirty = true;
+      const modelMatrix = this._transform.worldMatrix;
       turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
       mat4.invert(this._viewMatrix, MathTemp.tempMat4);
     }
@@ -408,7 +413,9 @@ export class Camera extends NodeAbility {
    * 视图投影矩阵逆矩阵
    */
   public get invViewProjMat() {
-    if (this._isInvViewProjDirty) {
+    if (this._isInvViewProjDirty || this._isInvViewMatrixDirty.get()) {
+      this._isInvViewProjDirty = false;
+      this._isInvViewMatrixDirty.reset();
       const invViewMatrix = this.inverseViewMatrix;
       const invProjMatrix = this.inverseProjectionMatrix;
       mat4.mul(this._invViewProjMat, invViewMatrix, invProjMatrix);
@@ -421,6 +428,7 @@ export class Camera extends NodeAbility {
    */
   public get inverseProjectionMatrix(): Readonly<Matrix4> {
     if (this._isInvProjMatDirty) {
+      this._isInvProjMatDirty = false;
       const projectionMatrix = this.projectionMatrix;
       mat4.invert(this._inverseProjectionMatrix, projectionMatrix);
     }
@@ -459,6 +467,15 @@ export class Camera extends NodeAbility {
     }
   }
 
+  _onAwake() {
+    this._transform = this.node.transform;
+    if (!this._transform) {
+      throw "You should create transform component before camera component.";
+    }
+    this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
+    this._isInvViewMatrixDirty = this._transform.registerWorldChangeFlag();
+  }
+
   _onActive() {
     super._onActive();
     // TODO: change any
@@ -495,7 +512,7 @@ export class Camera extends NodeAbility {
    * 视图矩阵逆矩阵。
    */
   public get inverseViewMatrix(): Readonly<Matrix4> {
-    turnAround(this._inverseViewMatrix, this.node.getModelMatrix());
+    turnAround(this._inverseViewMatrix, this._transform.worldMatrix);
     return this._inverseViewMatrix;
   }
 
@@ -506,7 +523,7 @@ export class Camera extends NodeAbility {
    * @readonly
    */
   public get eyePos() {
-    return this.node.worldPosition;
+    return this._transform.worldPosition;
   }
 
   /**
@@ -626,4 +643,9 @@ export function turnAround(out, a) {
   out[10] = -a[10];
   out[11] = -a[11];
   return out;
+}
+
+interface ITransform {
+  worldMatrix: Readonly<Matrix4>;
+  worldPosition: Readonly<Vector3>;
 }
