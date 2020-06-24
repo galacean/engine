@@ -36,7 +36,7 @@ export class RenderDepthTexture extends Texture {
    * @param height - 高
    * @param format - 格式。默认 RenderBufferDepthFormat.Depth,深度纹理,自动选择精度
    * @param mipmap - 是否使用多级纹理
-   * @param isCube - 是否需要生成立方体纹理
+   * @param isCube - 是否为立方体模式
    */
   constructor(
     rhi,

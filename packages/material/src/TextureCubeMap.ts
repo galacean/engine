@@ -16,7 +16,7 @@ import { TextureConfig } from "./type";
  */
 export class TextureCubeMap extends Texture {
   private _format: TextureFormat;
-  // 向下兼容 WebGL1.0
+  /** 向下兼容 WebGL1.0 */
   private _compressedFaceFilled: number[] = [0, 0, 0, 0, 0, 0];
 
   /**
@@ -78,8 +78,8 @@ export class TextureCubeMap extends Texture {
    * @param miplevel - 多级纹理层级
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
-   * @param width - 区域宽。width + x <= mipWidth
-   * @param height - 区域高。height + y <= mipHeight
+   * @param width - 区域宽。如果为空的话 width 为 miplevel 对应的宽度减去 x , miplevel 对应的宽度为 Math.max(1, this.width >> miplevel)
+   * @param height - 区域高。如果为空的话 height 为 miplevel 对应的高度减去 y , miplevel 对应的高度为 Math.max(1, this.height >> miplevel)
    */
   public setPixelBuffer(
     face: TextureCubeFace,

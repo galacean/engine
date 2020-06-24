@@ -43,7 +43,7 @@ export class RenderColorTexture extends Texture {
    * @param height - 高
    * @param format - 格式，默认 RenderBufferColorFormat.R8G8B8A8
    * @param mipmap - 是否使用多级纹理
-   * @param isCube - 是否需要生成立方体纹理
+   * @param isCube - 是否为立方体模式
    */
   constructor(
     rhi,
@@ -94,7 +94,7 @@ export class RenderColorTexture extends Texture {
   }
 
   /**
-   * 根据指定区域获得像素颜色缓冲
+   * 根据指定区域获得像素颜色缓冲。
    * @param face - 如果是立方体纹理，可以选择读取第几个面;立方体纹理读取面，isCube=true时生效
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标

@@ -359,6 +359,9 @@ export abstract class Texture extends AssetObject {
   /** @internal */
   public _formatDetail: TextureFormatDetail;
 
+  protected _width: number;
+  protected _height: number;
+
   /** @internal */
   protected _rhi;
   /** @internal */
@@ -367,9 +370,6 @@ export abstract class Texture extends AssetObject {
   protected _mipmap: boolean;
   /** @internal */
   protected _mipmapCount: number;
-
-  protected _width: number;
-  protected _height: number;
 
   private _wrapModeU: TextureWrapMode;
   private _wrapModeV: TextureWrapMode;

@@ -8,7 +8,7 @@ import { Texture2DConfig, Rect } from "./type";
  */
 export class Texture2D extends Texture {
   private _format: TextureFormat;
-  // 向下兼容 WebGL1.0
+  /** 向下兼容 WebGL1.0。 */
   private _compressedMipFilled: number = 0;
 
   /**
@@ -76,8 +76,8 @@ export class Texture2D extends Texture {
    * @param miplevel - 纹理层级
    * @param x - 数据起始X坐标
    * @param y - 数据起始Y坐标
-   * @param width - 数据宽度。width + x <= mipWidth
-   * @param height - 数据高度。 height + y <= mipHeight
+   * @param width - 数据宽度。如果为空的话 width 为 miplevel 对应的宽度减去 x , miplevel 对应的宽度为 Math.max(1, this.width >> miplevel)
+   * @param height - 数据高度。如果为空的话 height 为 miplevel 对应的高度减去 y , miplevel 对应的高度为 Math.max(1, this.height >> miplevel)
    */
   public setPixelBuffer(
     colorBuffer: ArrayBufferView,
