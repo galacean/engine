@@ -1,6 +1,6 @@
 import { Camera } from "../src/Camera";
 import { PerspectiveCamera } from "../src/PerspectiveCamera";
-import { Node } from "@alipay/o3-core";
+import { Node, Transform } from "@alipay/o3-core";
 import { mat4, MathUtil, vec2, vec3 } from "@alipay/o3-math";
 
 describe("camera test", function () {
@@ -11,9 +11,9 @@ describe("camera test", function () {
 
   beforeAll(() => {
     node = new Node();
-    camera = node.createAbility(Camera);
+    camera = node.addComponent(Camera);
     (camera as any)._onAwake();
-    oldCamera = node.createAbility(PerspectiveCamera);
+    oldCamera = node.addComponent(PerspectiveCamera);
     (oldCamera as any)._rhi = {
       canvas: {
         clientWidth: 375,
@@ -24,6 +24,21 @@ describe("camera test", function () {
     };
     (oldCamera as any).viewport = [0, 0, 750, 1334];
     identityMatrix = mat4.create();
+  });
+
+  it("camera awake without transform", () => {
+    const testNode = new Node(null, null, "testNode");
+    const transform = testNode.getComponent(Transform);
+    transform.destroy();
+    expect(() => {
+      const camera = testNode.addComponent(Camera);
+    }).toThrow();
+
+    const newTransform = testNode.addComponent(Transform);
+    testNode.addComponent(Camera);
+    expect(() => {
+      newTransform.destroy();
+    }).toThrow();
   });
 
   it("perspective calculate", () => {
@@ -200,6 +215,25 @@ describe("camera test", function () {
     const farClipPoint = camera.viewportToWorldPoint([0.5, 0.5, 1], [0, 0, 0]);
     expect(nearClipPoint[2]).toBeCloseTo(camera.nearClipPlane);
     expect(farClipPoint[2]).toBeCloseTo(camera.farClipPlane);
+  });
+
+  it("todo implemention", () => {
+    expect(() => {
+      camera.enableHDR;
+    }).toThrow();
+    expect(() => {
+      camera.enableHDR = true;
+    }).toThrow();
+    expect(() => {
+      camera.renderTarget;
+    }).toThrow();
+    expect(() => {
+      camera.renderTarget = {};
+    }).toThrow();
+    expect(() => {
+      camera.viewport = [0, 0, 1, 1];
+    }).toThrow();
+    // expect(camera.enableHDR).rejects.toThrow('not implemention')
   });
 });
 

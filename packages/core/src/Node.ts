@@ -6,6 +6,7 @@ import { Scene } from "./Scene";
 import { Vector3, Matrix4, Vector4 } from "@alipay/o3-math/types/type";
 import { DisorderedArray } from "./DisorderedArray";
 import { Transform } from "./Transform";
+import { ComponentsDependencies } from "./ComponentsDependencies";
 
 /**
  * 节点类,可作为组件的容器。
@@ -207,6 +208,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   addComponent<T extends Component>(type: new (node: Node, props?: object) => T, props: object = {}): T {
+    ComponentsDependencies._addCheck(this, type);
     const component = new type(this, props);
     this._components.push(component);
     if (this._isActiveInHierarchy) {

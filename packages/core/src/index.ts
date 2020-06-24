@@ -10,6 +10,7 @@ export { Node } from "./Node";
 export { NodeAbility } from "./NodeAbility";
 export { Script } from "./Script";
 export { RenderableComponent } from "./RenderableComponent";
+export { ComponentsDependencies } from "./ComponentsDependencies";
 
 export { ACamera } from "./ACamera";
 export { Transform } from "./Transform";

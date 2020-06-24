@@ -1,9 +1,10 @@
 import { ClearMode } from "@alipay/o3-base";
-import { Node, NodeAbility, Transform, WorldChangeFlag } from "@alipay/o3-core";
+import { Node, NodeAbility, Transform, WorldChangeFlag, ComponentsDependencies } from "@alipay/o3-core";
 import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
 import { Vector2, Vector3, Vector4, Matrix4 } from "@alipay/o3-math/types/type";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { ComponentsManager } from "@alipay/o3-core/types/ComponentsManager";
 
 /**
  * @todo 数学库改造
@@ -140,7 +141,7 @@ export class Camera extends NodeAbility {
   }
 
   public set viewport(value: Readonly<Vector4>) {
-    throw "Not implemented.";
+    throw "not implemented.";
   }
 
   /**
@@ -249,23 +250,23 @@ export class Camera extends NodeAbility {
    * @todo 渲染管线修改
    */
   public get enableHDR(): boolean {
-    throw new Error("接口未实现");
+    throw new Error("not implemention");
   }
 
   public set enableHDR(value: boolean) {
-    throw new Error("接口未实现");
+    throw new Error("not implemention");
   }
 
   /**
    * 渲染目标，设置后会渲染到渲染目标上，如果为空则渲染到屏幕上。
    * @todo 渲染管线修改
    */
-  public get renderTarget(): never {
-    throw new Error("接口未实现");
+  public get renderTarget(): any {
+    throw new Error("not implemention");
   }
 
-  public set renderTarget(value: never) {
-    throw new Error("接口未实现");
+  public set renderTarget(value: any) {
+    throw new Error("not implemention");
   }
 
   /**
@@ -472,9 +473,6 @@ export class Camera extends NodeAbility {
    */
   _onAwake() {
     this._transform = this.node.transform;
-    if (!this._transform) {
-      throw "You should create transform component before camera component.";
-    }
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
     this._isInvViewMatrixDirty = this._transform.registerWorldChangeFlag();
   }
@@ -632,6 +630,8 @@ export class Camera extends NodeAbility {
     return out;
   }
 }
+
+ComponentsDependencies.register(Camera, Transform);
 
 /**
  * @deprecated

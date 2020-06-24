@@ -3,6 +3,7 @@ import { Node } from "./Node";
 import { Engine } from "./Engine";
 import { Scene } from "./Scene";
 import { Matrix4 } from "@alipay/o3-math/types/type";
+import { ComponentsDependencies } from "./ComponentsDependencies";
 
 /**
  * TODO:命名暂时保留兼容性，未来替换为Component
@@ -79,7 +80,8 @@ export abstract class NodeAbility extends EventDispatcher {
    * 销毁本组件对象
    */
   destroy(): void {
-    if (!this._destroyed) return;
+    ComponentsDependencies._removeCheck(this.node, this.constructor as any);
+    if (this._destroyed) return;
     if (this._node.isActiveInHierarchy) {
       this._enabled && this._onDisable();
       this._onInActive();
