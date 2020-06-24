@@ -1,5 +1,5 @@
 import { ClearMode } from "@alipay/o3-base";
-import { Node, NodeAbility, Transform, WorldChangeFlag, ComponentsDependencies } from "@alipay/o3-core";
+import { Node, NodeAbility, Transform, WorldChangeFlag, dependencies } from "@alipay/o3-core";
 import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
 import { Vector2, Vector3, Vector4, Matrix4 } from "@alipay/o3-math/types/type";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
@@ -39,6 +39,7 @@ export enum ClearFlags {
 /**
  * Camera 组件，作为渲染三位世界的入口。
  */
+@dependencies(Transform)
 export class Camera extends NodeAbility {
   /**
    * 渲染优先级，数字越大越先渲染。
@@ -619,8 +620,6 @@ export class Camera extends NodeAbility {
     return out;
   }
 }
-
-ComponentsDependencies.register(Camera, Transform);
 
 /**
  * @deprecated
