@@ -386,21 +386,16 @@ function debugEnvLight(envLightNode) {
 
 function debugCompressedTexture() {
   if (rhi.canIUse(GLCapabilityType.s3tc)) {
-    const dxt1MipmapUrl = "https://gw.alipayobjects.com/os/bmw-prod/b38cb09e-154c-430e-98c8-81dc19d4fb8e.ktx";
-    const dxt1aMipmapUrl = "https://gw.alipayobjects.com/os/bmw-prod/05d5fbfe-44e7-4348-a0ec-37a46ddc94d1.ktx";
-    const dxt3MipmapUrl = "https://gw.alipayobjects.com/os/bmw-prod/1fdf3bee-dcf6-4a7e-b7ed-311e637de8bb.ktx";
     const dxt5MipmapUrl = "https://gw.alipayobjects.com/os/bmw-prod/269eae01-13d9-43fc-80a5-cc5a784eae7a.ktx";
     resourceLoader.batchLoad(
-      [dxt1MipmapUrl, dxt1aMipmapUrl, dxt3MipmapUrl, dxt5MipmapUrl].map(
-        url => new Resource("dxt", { type: "ktxNew", url })
-      ),
+      [dxt5MipmapUrl].map(url => new Resource("dxt", { type: "ktxNew", url })),
       (err, resources) => {
         if (err) {
           console.error(err);
         } else {
           log("压缩纹理加载成功");
           console.log(resources);
-          materials[0].baseColorTexture = resources[3].asset;
+          materials[0].baseColorTexture = resources[0].asset;
         }
       }
     );

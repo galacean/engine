@@ -58,7 +58,7 @@ export class Texture2D extends Texture {
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
-    formatDetail.isCompressed || this._initMipmap(false);
+    (formatDetail.isCompressed && !isWebGL2) || this._initMipmap(false);
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
@@ -69,6 +69,7 @@ export class Texture2D extends Texture {
 
   /**
    * 通过颜色缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
+   * 压缩纹理只有 WebGL2 才能修改子区域，WebGL1 必须填满纹理
    * @param pixelBuffer - 颜色缓冲数据
    * @param miplevel - 纹理层级
    * @param x - 数据起始X坐标
@@ -85,6 +86,7 @@ export class Texture2D extends Texture {
     height?: number
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const isWebGL2: boolean = this._rhi.isWebGL2;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
     const mipWidth = Math.max(1, this._width >> miplevel);
     const mipHeight = Math.max(1, this._height >> miplevel);
@@ -97,7 +99,11 @@ export class Texture2D extends Texture {
     this._bind();
 
     if (isCompressed) {
-      gl.compressedTexImage2D(this._target, miplevel, internalFormat, width, height, 0, colorBuffer);
+      if (isWebGL2) {
+        gl.compressedTexSubImage2D(this._target, miplevel, x, y, width, height, internalFormat, colorBuffer);
+      } else {
+        gl.compressedTexImage2D(this._target, miplevel, internalFormat, width, height, 0, colorBuffer);
+      }
     } else {
       gl.texSubImage2D(this._target, miplevel, x, y, width, height, baseFormat, dataType, colorBuffer);
     }

@@ -59,7 +59,7 @@ export class TextureCubeMap extends Texture {
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
-    formatDetail.isCompressed || this._initMipmap(true);
+    (formatDetail.isCompressed && !isWebGL2) || this._initMipmap(true);
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
@@ -70,6 +70,7 @@ export class TextureCubeMap extends Texture {
 
   /**
    * 通过指定立方体面、像素缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
+   * 压缩纹理只有 WebGL2 才能修改子区域，WebGL1 必须填满纹理
    * @param face - 立方体面
    * @param colorBuffer - 颜色缓冲
    * @param miplevel - 多级纹理层级
@@ -88,6 +89,7 @@ export class TextureCubeMap extends Texture {
     height?: number
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    const isWebGL2: boolean = this._rhi.isWebGL2;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
     const mipSize = Math.max(1, this._width >> miplevel);
 
@@ -99,15 +101,28 @@ export class TextureCubeMap extends Texture {
     this._bind();
 
     if (isCompressed) {
-      gl.compressedTexImage2D(
-        gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-        miplevel,
-        internalFormat,
-        width,
-        height,
-        0,
-        colorBuffer
-      );
+      if (isWebGL2) {
+        gl.compressedTexSubImage2D(
+          gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
+          miplevel,
+          x,
+          y,
+          width,
+          height,
+          internalFormat,
+          colorBuffer
+        );
+      } else {
+        gl.compressedTexImage2D(
+          gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
+          miplevel,
+          internalFormat,
+          width,
+          height,
+          0,
+          colorBuffer
+        );
+      }
     } else {
       gl.texSubImage2D(
         gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
