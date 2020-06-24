@@ -8,6 +8,7 @@ import { NodeAbility } from "./NodeAbility";
  */
 export class WorldChangeFlag {
   private flag = true;
+  constructor(private _flags = []) {}
   /**
    * 获取标记。
    */
@@ -21,6 +22,22 @@ export class WorldChangeFlag {
    */
   set(value: boolean) {
     this.flag = value;
+  }
+
+  /**
+   * 移除标记
+   */
+  remove() {
+    const flags = this._flags;
+    const index = flags.indexOf(this);
+    const last = flags.length - 1;
+    if (index !== last) {
+      const temp = flags[last];
+      flags[last] = this;
+      flags[index] = temp;
+    }
+    flags.length--;
+    this._flags = null;
   }
 }
 //CM:Vector3、Vector4、Matrix3、Matrix4类型更换
@@ -440,9 +457,15 @@ export class Transform extends NodeAbility {
    * @returns 世界修改标记
    */
   registerWorldChangeFlag(): WorldChangeFlag {
-    const flag = new WorldChangeFlag();
+    const flag = new WorldChangeFlag(this._changeFlags);
     this._changeFlags.push(flag);
     return flag;
+  }
+
+  _onDestroy() {
+    for (let i = 0, len = this._changeFlags.length; i < len; i++) {
+      this._changeFlags[i].remove();
+    }
   }
 
   /**

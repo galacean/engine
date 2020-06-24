@@ -66,18 +66,15 @@ export class Camera extends NodeAbility {
   private _orthographicSize: number = 10;
   private _inverseProjectionMatrix: Matrix4 = mat4.create();
   private _inverseViewMatrix: Matrix4 = mat4.create();
-  // todo:监听 node transform 修改设为 true
-  // 投影矩阵脏标记
-  private _isProjectionDirty = false;
-  // 投影矩阵逆矩阵脏标记
+  /** 投影矩阵脏标记 */
+  private _isProjectionDirty = true;
+  /** 投影矩阵逆矩阵脏标记 */
   private _isInvProjMatDirty: boolean = true;
-
   private _customAspectRatio: number = undefined;
   private _invViewProjMat: Matrix4 = mat4.create();
-
   private _transform: Transform;
   private _isViewMatrixDirty: WorldChangeFlag;
-  // 投影视图矩阵逆矩阵脏标记
+  /** 投影视图矩阵逆矩阵脏标记 */
   private _isInvViewProjDirty: WorldChangeFlag;
 
   /**
@@ -272,7 +269,7 @@ export class Camera extends NodeAbility {
    * @param props camera 参数
    */
   constructor(node: Node, props: any) {
-    // todo 修改构造函数参数
+    // TODO: 修改构造函数参数
     super(node, props);
 
     this._transform = this.node.transform;
@@ -282,25 +279,27 @@ export class Camera extends NodeAbility {
     const { SceneRenderer, canvas, attributes, clearParam = [0.25, 0.25, 0.25, 1], clearMode, near, far, fov } = props;
     const engine = this.engine;
 
-    this.nearClipPlane = near ?? 0.1;
-    this.farClipPlane = far ?? 100;
-    this.fieldOfView = fov ?? 45;
+    this._nearClipPlane = near ?? 0.1;
+    this._farClipPlane = far ?? 100;
+    this._fieldOfView = fov ?? 45;
 
-    this.viewportNormalized = [0, 0, 1, 1];
+    this._viewportNormalized = [0, 0, 1, 1];
 
-    // 兼容旧 camera
+    // TODO: 删除，兼容旧 camera，decaprated
     const target = props.target ?? [0, 0, 0];
     const up = props.up ?? [0, 1, 0];
     node.position = props.position ?? [0, 10, 20];
     node.lookAt(target, up);
 
+    // TODO: 可在重载_onActive方法内加入，待 rhi 重构剥离后修改
     const settingCanvas = engine?.config?.canvas ?? canvas;
     const settingAttribute = engine?.config?.attributes ?? attributes ?? {};
     const Renderer = SceneRenderer ?? BasicSceneRenderer;
 
-    settingCanvas && this.attachToScene(settingCanvas, settingAttribute); //CM:调整为激活时调用，可在重载_onActive方法内加入
+    settingCanvas && this.attachToScene(settingCanvas, settingAttribute);
     this._sceneRenderer = new Renderer(this);
 
+    // TODO: 修改为 ClearFlags
     this.setClearMode(clearMode, clearParam);
   }
 
@@ -490,8 +489,9 @@ export class Camera extends NodeAbility {
    * @innernal
    */
   _onDestroy() {
-    // this.node.scene.detachRenderCamera(this as any); //CM:调整为非激活时调用，可在重载_onInActive方法内加入
     this._sceneRenderer?.destroy();
+    this._isInvViewProjDirty.remove();
+    this._isViewMatrixDirty.remove();
   }
 
   //-------------------------------------------------deprecated---------------------------------------------------
@@ -574,7 +574,6 @@ export class Camera extends NodeAbility {
    */
   public get renderHardware(): GLRenderHardware {
     return this._rhi;
-    // return this.engine.requireRHI(this.rhi.);
   }
 
   /**
