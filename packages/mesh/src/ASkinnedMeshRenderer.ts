@@ -93,26 +93,26 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * @private
    */
   onStart() {
-    if (this._skin) {
-      const skin = this._skin;
-      //-- init
+    if (!this._skin) return;
+    const skin = this._skin;
+    //-- init
 
-      const joints = skin.joints;
-      const jointNodes = [];
-      for (let i = joints.length - 1; i >= 0; i--) {
-        jointNodes[i] = this.findByNodeName(this.node, joints[i]);
-      } // end of for
-      this.matrixPalette = new Float32Array(jointNodes.length * 16);
-      this.jointNodes = jointNodes;
+    const joints = skin.joints;
+    const jointNodes = [];
+    for (let i = joints.length - 1; i >= 0; i--) {
+      jointNodes[i] = this.findByNodeName(this.node, joints[i]);
+    } // end of for
+    this.matrixPalette = new Float32Array(jointNodes.length * 16);
+    this.jointNodes = jointNodes;
 
-      /** 是否使用骨骼纹理 */
-      const rhi = this.scene.activeCameras[0].renderHardware;
-      const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-      const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
+    /** 是否使用骨骼纹理 */
+    const rhi = this.scene.activeCameras[0]?.renderHardware;
+    if (!rhi) return;
+    const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
+    const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
 
-      if (joints.length > maxJoints && rhi.canIUseMoreJoints) {
-        this._useJointTexture = true;
-      }
+    if (joints.length > maxJoints && rhi.canIUseMoreJoints) {
+      this._useJointTexture = true;
     }
   }
 
@@ -181,7 +181,8 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * */
   createJointTexture() {
     if (!this.jointTexture) {
-      const rhi = this.node.scene.activeCameras[0].renderHardware;
+      const rhi = this.node.scene.activeCameras[0]?.renderHardware;
+      if (!rhi) return;
       this.jointTexture = new (Texture2D as any)(rhi, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);

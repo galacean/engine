@@ -5,13 +5,12 @@ import {
   TextureWrapMode,
   GLCapabilityType,
   AssetType,
-  Logger,
-  Util
+  Logger
 } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Texture2D } from "./Texture2D";
 import { TextureCubeMap } from "./TextureCubeMap";
-import { RenderTargetConfig, TextureFormatDetail } from "./type";
+import { RenderTargetConfig } from "./type";
 import { Texture } from "./Texture";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
@@ -27,7 +26,7 @@ export class RenderTarget extends AssetObject {
   private _width: number;
   private _height: number;
   private _antiAliasing: number;
-  private _colorTextures: RenderColorTexture[] = [];
+  private _colorTextures: RenderColorTexture[];
   private _depthTexture: RenderDepthTexture | null;
   private _depthRenderBuffer: WebGLRenderbuffer | null;
   private _MSAAColorRenderBuffers: WebGLRenderbuffer[] = [];
@@ -168,17 +167,9 @@ export class RenderTarget extends AssetObject {
 
     // handle this._colorTextures
     if (renderTexture) {
-      if (Util.isArrayLike(renderTexture)) {
-        const length = (renderTexture as RenderColorTexture[]).length;
-        for (let i = 0; i < length; i++) {
-          const texture = renderTexture[i];
-          if (texture) {
-            this._colorTextures[i] = texture;
-          }
-        }
-      } else {
-        this._colorTextures[0] = renderTexture as RenderColorTexture;
-      }
+      this._colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
+    } else {
+      this._colorTextures = [];
     }
 
     if (this._colorTextures.some((v: RenderColorTexture) => v.width !== width || v.height !== height)) {
