@@ -6,7 +6,7 @@ import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
 import { NodeAbility as Component, NodeAbility } from "./NodeAbility";
 import { Scene } from "./Scene";
-import { Transform } from "./Transform";
+import { Transform, WorldChangeFlag } from "./Transform";
 
 /**
  * 节点类,可作为组件的容器。
@@ -200,6 +200,7 @@ export class Node extends EventDispatcher {
     this.transform = this.addComponent(Transform);
     this.parent = parent;
     this.isActive = true;
+    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
   }
 
   /**
@@ -380,6 +381,7 @@ export class Node extends EventDispatcher {
       parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
+    this._inverseWorldMatFlag.destroy();
     Node._nodes.delete(this);
   }
 
@@ -467,6 +469,7 @@ export class Node extends EventDispatcher {
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
+  private _inverseWorldMatFlag: WorldChangeFlag;
 
   /**
    * @deprecated
@@ -827,7 +830,11 @@ export class Node extends EventDispatcher {
    * @return {mat4}
    */
   public getInvModelMatrix(): Readonly<Matrix4> {
-    return mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
+    if (this._inverseWorldMatFlag.get()) {
+      mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
+      this._inverseWorldMatFlag.set(false);
+    }
+    return this._invModelMatrix;
   }
 
   /**
