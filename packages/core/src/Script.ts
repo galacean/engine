@@ -21,7 +21,7 @@ export class Script extends NodeAbility {
   onAwake(): void {}
 
   /**
-   * 当节点触发为活动状态时调用。
+   * 触发为可用状态时调用。
    */
   onEnable(): void {}
 
@@ -42,22 +42,22 @@ export class Script extends NodeAbility {
   onLateUpdate(): void {}
 
   /**
-   * 相机渲染前调用。
+   * 相机渲染前调用，逐相机调用。
    */
   onPreRender(): void {}
 
   /**
-   * 相机完成渲染后调用。
+   * 相机完成渲染后调用，逐相机调用。
    */
   onPostRender(): void {}
 
   /**
-   * 当节点触发为非活动状态时调用。
+   * 触发为禁用状态时调用。
    */
   onDisable(): void {}
 
   /**
-   * 销毁时调用。
+   * 如果销毁被触发。
    */
   onDestroy(): void {}
 
