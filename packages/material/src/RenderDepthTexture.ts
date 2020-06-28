@@ -19,7 +19,7 @@ export class RenderDepthTexture extends Texture {
   }
 
   /**
-   * 自动生成多级纹理。
+   * 是否自动生成多级纹理。
    */
   get autoGenerateMipmaps(): boolean {
     return this._autoMipmap;
