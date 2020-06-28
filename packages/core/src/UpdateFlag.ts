@@ -2,20 +2,10 @@
  * 由于更新标记。
  */
 export class UpdateFlag {
-  private _flag = true;
+  /** 标记。 */
+  flag = true;
 
   constructor(private _flags: UpdateFlag[] = []) {}
-
-  /**
-   * 标记。
-   */
-  get flag(): boolean {
-    return this._flag;
-  }
-
-  set flag(value: boolean) {
-    this._flag = value;
-  }
 
   /**
    * 销毁。
