@@ -57,7 +57,7 @@ export class Script extends NodeAbility {
   onDisable(): void {}
 
   /**
-   * 在触发销毁帧的最后调用。
+   * 在触发销毁的一帧中最后调用。
    */
   onDestroy(): void {}
 
