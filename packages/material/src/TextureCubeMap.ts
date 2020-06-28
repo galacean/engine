@@ -71,7 +71,7 @@ export class TextureCubeMap extends Texture {
   }
 
   /**
-   * 通过指定立方体面、像素缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
+   * 通过指定立方体面、像素缓冲数据、区域和纹理层级设置像素，同样适用于压缩格式。
    * 压缩纹理在 WebGL1 时必须先填满纹理，才能写子区域
    * @param face - 立方体面
    * @param colorBuffer - 颜色缓冲
@@ -145,7 +145,7 @@ export class TextureCubeMap extends Texture {
   }
 
   /**
-   * 通过指定立方体面、图源、指定区域和纹理层级设置像素。
+   * 通过指定立方体面、图源、区域和纹理层级设置像素。
    * @param face - 立方体面
    * @param imageSource - 纹理源
    * @param miplevel - 多级纹理层级
@@ -182,7 +182,7 @@ export class TextureCubeMap extends Texture {
   }
 
   /**
-   * 根据指定区域获得像素颜色缓冲。
+   * 根据立方体面和指定区域获得像素颜色缓冲。
    * @param face - 可以选择读取第几个面
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
