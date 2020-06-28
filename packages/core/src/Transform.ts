@@ -9,6 +9,7 @@ import { NodeAbility } from "./NodeAbility";
 export class WorldChangeFlag {
   private _flag = true;
   constructor(private _flags: WorldChangeFlag[] = []) {}
+
   /**
    * 获取标记。
    */
