@@ -16,7 +16,7 @@ export class Script extends NodeAbility {
   _onPostRenderIndex: number = -1;
 
   /**
-   * 脚本第一次被激活时调用,且只调用一次。
+   * 脚本第一次触发可用状态时调用,且只调用一次。
    */
   onAwake(): void {}
 
@@ -57,7 +57,7 @@ export class Script extends NodeAbility {
   onDisable(): void {}
 
   /**
-   * 如果销毁被触发。
+   * 在触发销毁帧的最后调用。
    */
   onDestroy(): void {}
 
