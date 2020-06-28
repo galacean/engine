@@ -150,11 +150,11 @@ export class Texture2D extends Texture {
    * @param height - 区域高
    * @param out - 颜色数据缓冲
    */
-  public getPixelsBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {
+  public getPixelBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {
     if (this._formatDetail.isCompressed) {
       throw new Error("Unable to read compressed texture");
     }
-    super._getPixelsBuffer(null, x, y, width, height, out);
+    super._getPixelBuffer(null, x, y, width, height, out);
   }
 
   /** ----------------- @deprecated----------------- */

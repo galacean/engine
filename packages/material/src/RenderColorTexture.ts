@@ -102,7 +102,7 @@ export class RenderColorTexture extends Texture {
    * @param height - 区域高
    * @param out - 颜色数据缓冲
    */
-  public getPixelsBuffer(
+  public getPixelBuffer(
     face: TextureCubeFace | null,
     x: number,
     y: number,
@@ -110,6 +110,6 @@ export class RenderColorTexture extends Texture {
     height: number,
     out: ArrayBufferView
   ): void {
-    super._getPixelsBuffer(face, x, y, width, height, out);
+    super._getPixelBuffer(face, x, y, width, height, out);
   }
 }

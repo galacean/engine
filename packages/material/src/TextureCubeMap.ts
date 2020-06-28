@@ -190,7 +190,7 @@ export class TextureCubeMap extends Texture {
    * @param height - 区域高
    * @param out - 颜色数据缓冲
    */
-  public getPixelsBuffer(
+  public getPixelBuffer(
     face: TextureCubeFace,
     x: number,
     y: number,
@@ -201,7 +201,7 @@ export class TextureCubeMap extends Texture {
     if (this._formatDetail.isCompressed) {
       throw new Error("Unable to read compressed texture");
     }
-    super._getPixelsBuffer(face, x, y, width, height, out);
+    super._getPixelBuffer(face, x, y, width, height, out);
   }
 
   /** ----------------- @deprecated----------------- */

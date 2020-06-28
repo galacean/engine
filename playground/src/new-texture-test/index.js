@@ -115,7 +115,7 @@ resourceLoader.batchLoad(cubeTextureRes, (err, reses) => {
       log("debug cube set/get pixel");
       const buffer = new Uint8Array(100 * 4);
       cubeTextures[name].setPixelBuffer(TextureCubeFace.PositiveY, new Uint8Array([1, 2, 3, 4]), 0, 0, 0, 1, 1);
-      cubeTextures[name].getPixelsBuffer(TextureCubeFace.PositiveY, 0, 0, 10, 10, buffer);
+      cubeTextures[name].getPixelBuffer(TextureCubeFace.PositiveY, 0, 0, 10, 10, buffer);
       console.log(buffer);
     }
   });
@@ -131,7 +131,7 @@ resourceLoader.batchLoad(textureRes, (err, reses) => {
       const buffer = new Uint8Array(100 * 4);
       textures[name].setPixelBuffer(new Uint8Array([1, 2, 3, 4]), 0, 0, 0, 1, 1);
       // textures[name].setPixelBuffer(new Uint8Array(200 * 200 * 4), 1, 0, 0, 127, 15);
-      textures[name].getPixelsBuffer(0, 0, 10, 10, buffer);
+      textures[name].getPixelBuffer(0, 0, 10, 10, buffer);
       console.log(buffer);
     }
   });

@@ -540,7 +540,7 @@ export abstract class Texture extends AssetObject {
    * @param height - 区域高
    * @param out - 颜色数据缓冲
    */
-  protected _getPixelsBuffer(
+  protected _getPixelBuffer(
     face: TextureCubeFace | null,
     x: number,
     y: number,
