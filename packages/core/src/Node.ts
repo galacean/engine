@@ -16,7 +16,7 @@ export class Node extends EventDispatcher {
   public static _nodes: DisorderedArray<Node> = new DisorderedArray();
 
   /**
-   * 根据名字查找节点。
+   * 根据名字全局查找节点。
    * @param name - 名字
    * @returns 节点
    */
@@ -33,7 +33,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * 根据路径查找节点，使用‘/’符号作为路径分割符。
+   * 根据路径全局查找节点，使用‘/’符号作为路径分割符。
    * @param path - 路径
    * @param scene - @deprecated 兼容参数
    * @returns 节点
