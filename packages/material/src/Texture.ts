@@ -429,7 +429,7 @@ export abstract class Texture extends AssetObject {
   }
 
   /**
-   * 分级纹理的数量。
+   * 多级纹理的数量。
    */
   get mipmapCount(): number {
     return this._mipmapCount;
