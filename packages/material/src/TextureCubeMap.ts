@@ -75,16 +75,16 @@ export class TextureCubeMap extends Texture {
    * 压缩纹理在 WebGL1 时必须先填满纹理，才能写子区域
    * @param face - 立方体面
    * @param colorBuffer - 颜色缓冲
-   * @param miplevel - 多级纹理层级
+   * @param mipLevel - 多级纹理层级
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
-   * @param width - 区域宽。如果为空的话 width 为 miplevel 对应的宽度减去 x , miplevel 对应的宽度为 Math.max(1, this.width >> miplevel)
-   * @param height - 区域高。如果为空的话 height 为 miplevel 对应的高度减去 y , miplevel 对应的高度为 Math.max(1, this.height >> miplevel)
+   * @param width - 区域宽。如果为空的话 width 为 mipLevel 对应的宽度减去 x , mipLevel 对应的宽度为 Math.max(1, this.width >> mipLevel)
+   * @param height - 区域高。如果为空的话 height 为 mipLevel 对应的高度减去 y , mipLevel 对应的高度为 Math.max(1, this.height >> mipLevel)
    */
   public setPixelBuffer(
     face: TextureCubeFace,
     colorBuffer: ArrayBufferView,
-    miplevel: number = 0,
+    mipLevel: number = 0,
     x?: number,
     y?: number,
     width?: number,
@@ -93,7 +93,7 @@ export class TextureCubeMap extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
-    const mipSize = Math.max(1, this._width >> miplevel);
+    const mipSize = Math.max(1, this._width >> mipLevel);
 
     x = x || 0;
     y = y || 0;
@@ -103,11 +103,11 @@ export class TextureCubeMap extends Texture {
     this._bind();
 
     if (isCompressed) {
-      const mipBit = 1 << miplevel;
+      const mipBit = 1 << mipLevel;
       if (isWebGL2 || this._compressedFaceFilled[face] & mipBit) {
         gl.compressedTexSubImage2D(
           gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-          miplevel,
+          mipLevel,
           x,
           y,
           width,
@@ -118,7 +118,7 @@ export class TextureCubeMap extends Texture {
       } else {
         gl.compressedTexImage2D(
           gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-          miplevel,
+          mipLevel,
           internalFormat,
           width,
           height,
@@ -130,7 +130,7 @@ export class TextureCubeMap extends Texture {
     } else {
       gl.texSubImage2D(
         gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-        miplevel,
+        mipLevel,
         x,
         y,
         width,
@@ -148,7 +148,7 @@ export class TextureCubeMap extends Texture {
    * 通过指定立方体面、图源、区域和纹理层级设置像素。
    * @param face - 立方体面
    * @param imageSource - 纹理源
-   * @param miplevel - 多级纹理层级
+   * @param mipLevel - 多级纹理层级
    * @param flipY - 是否翻转Y轴
    * @param premultipltAlpha - 是否预乘透明通道
    * @param x - 区域起始X坐标
@@ -157,7 +157,7 @@ export class TextureCubeMap extends Texture {
   public setImageSource(
     face: TextureCubeFace,
     imageSource: TexImageSource,
-    miplevel: number = 0,
+    mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
     x?: number,
@@ -169,7 +169,7 @@ export class TextureCubeMap extends Texture {
     this._bind();
     gl.texSubImage2D(
       gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-      miplevel,
+      mipLevel,
       x || 0,
       y || 0,
       baseFormat,

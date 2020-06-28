@@ -73,15 +73,15 @@ export class Texture2D extends Texture {
    * 通过颜色缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
    * 如果为WebGL1.0平台且纹理格式为压缩格式，第一次上传必须填满纹理。
    * @param pixelBuffer - 颜色缓冲数据
-   * @param miplevel - 纹理层级
+   * @param mipLevel - 纹理层级
    * @param x - 数据起始X坐标
    * @param y - 数据起始Y坐标
-   * @param width - 数据宽度。如果为空的话 width 为 miplevel 对应的宽度减去 x , miplevel 对应的宽度为 Math.max(1, this.width >> miplevel)
-   * @param height - 数据高度。如果为空的话 height 为 miplevel 对应的高度减去 y , miplevel 对应的高度为 Math.max(1, this.height >> miplevel)
+   * @param width - 数据宽度。如果为空的话 width 为 mipLevel 对应的宽度减去 x , mipLevel 对应的宽度为 Math.max(1, this.width >> mipLevel)
+   * @param height - 数据高度。如果为空的话 height 为 mipLevel 对应的高度减去 y , mipLevel 对应的高度为 Math.max(1, this.height >> mipLevel)
    */
   public setPixelBuffer(
     colorBuffer: ArrayBufferView,
-    miplevel: number = 0,
+    mipLevel: number = 0,
     x?: number,
     y?: number,
     width?: number,
@@ -90,8 +90,8 @@ export class Texture2D extends Texture {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
-    const mipWidth = Math.max(1, this._width >> miplevel);
-    const mipHeight = Math.max(1, this._height >> miplevel);
+    const mipWidth = Math.max(1, this._width >> mipLevel);
+    const mipHeight = Math.max(1, this._height >> mipLevel);
 
     x = x || 0;
     y = y || 0;
@@ -101,15 +101,15 @@ export class Texture2D extends Texture {
     this._bind();
 
     if (isCompressed) {
-      const mipBit = 1 << miplevel;
+      const mipBit = 1 << mipLevel;
       if (isWebGL2 || this._compressedMipFilled & mipBit) {
-        gl.compressedTexSubImage2D(this._target, miplevel, x, y, width, height, internalFormat, colorBuffer);
+        gl.compressedTexSubImage2D(this._target, mipLevel, x, y, width, height, internalFormat, colorBuffer);
       } else {
-        gl.compressedTexImage2D(this._target, miplevel, internalFormat, width, height, 0, colorBuffer);
+        gl.compressedTexImage2D(this._target, mipLevel, internalFormat, width, height, 0, colorBuffer);
         this._compressedMipFilled |= mipBit;
       }
     } else {
-      gl.texSubImage2D(this._target, miplevel, x, y, width, height, baseFormat, dataType, colorBuffer);
+      gl.texSubImage2D(this._target, mipLevel, x, y, width, height, baseFormat, dataType, colorBuffer);
     }
 
     this._unbind();
@@ -118,7 +118,7 @@ export class Texture2D extends Texture {
   /**
    * 通过图源、指定区域和纹理层级设置像素。
    * @param imageSource - 纹理源
-   * @param miplevel - 多级纹理层级
+   * @param mipLevel - 多级纹理层级
    * @param flipY - 是否翻转Y轴
    * @param premultiplyAlpha - 是否预乘透明通道
    * @param x - 区域起始X坐标
@@ -126,7 +126,7 @@ export class Texture2D extends Texture {
    */
   public setImageSource(
     imageSource: TexImageSource,
-    miplevel: number = 0,
+    mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
     x?: number,
@@ -136,7 +136,7 @@ export class Texture2D extends Texture {
     const { baseFormat, dataType } = this._formatDetail;
 
     this._bind();
-    gl.texSubImage2D(this._target, miplevel, x || 0, y || 0, baseFormat, dataType, imageSource);
+    gl.texSubImage2D(this._target, mipLevel, x || 0, y || 0, baseFormat, dataType, imageSource);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
     this._unbind();
