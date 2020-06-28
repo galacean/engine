@@ -177,7 +177,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 清楚视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
+   * 清除视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
    */
   public get backgroundColor(): Vector4 {
     return this._clearParam;
