@@ -3,14 +3,7 @@ import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
 import _ from "lodash";
-
-const loadOrder = {
-  astc: 1,
-  s3tc: 2,
-  pvrtc: 3,
-  etc: 4,
-  etc1: 5
-};
+import { compressedTextureLoadOrder } from "../utils";
 
 const imageOrderMap = {
   px: 0,
@@ -30,7 +23,7 @@ export class TextureCubeMapResource extends SchemaResource {
         const rhi = oasis.engine.getRHI(oasis.canvas);
         const compressions = assetConfig.props.compression.compressions;
         compressions.sort((a, b) => {
-          return loadOrder[a.type] - loadOrder[b.type];
+          return compressedTextureLoadOrder[a.type] - compressedTextureLoadOrder[b.type];
         });
         for (let i = 0; i < compressions.length; i++) {
           const compression = compressions[i];
