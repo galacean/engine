@@ -16,7 +16,7 @@ export class Script extends NodeAbility {
   _onPostRenderIndex: number = -1;
 
   /**
-   * 脚本第一次被激活时调用,而且只调用一次。
+   * 脚本第一次被激活时调用,且只调用一次。
    */
   onAwake(): void {}
 
@@ -26,7 +26,7 @@ export class Script extends NodeAbility {
   onEnable(): void {}
 
   /**
-   * 首次调用Update之前调用。
+   * 首次调用Update之前调用，且只要调用一次。
    */
   onStart(): void {}
 

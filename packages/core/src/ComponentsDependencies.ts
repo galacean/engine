@@ -71,7 +71,7 @@ export class ComponentsDependencies {
 }
 
 export function dependencies(...abilityClass: NodeAbilityConstructor[]) {
-  return function <T extends NodeAbilityConstructor>(target: T) {
+  return function <T extends NodeAbilityConstructor>(target: T): void {
     abilityClass.forEach((ability) => ComponentsDependencies.register(target, ability));
   };
 }
