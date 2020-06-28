@@ -2,44 +2,7 @@ import { vec3, quat, mat4, vec4, mat3, MathUtil } from "@alipay/o3-math";
 import { Vector3, Vector4, Matrix4, Matrix3 } from "@alipay/o3-math/types/type";
 import { Node } from "./Node";
 import { NodeAbility } from "./NodeAbility";
-
-/**
- * 世界矩阵改变标记。
- */
-export class WorldChangeFlag {
-  private _flag = true;
-  constructor(private _flags: WorldChangeFlag[] = []) {}
-
-  /**
-   * 获取标记。
-   */
-  get(): boolean {
-    return this._flag;
-  }
-
-  /**
-   * 设置标记。
-   * @param value 标记值
-   */
-  set(value: boolean): void {
-    this._flag = value;
-  }
-
-  /**
-   * 销毁标记。
-   */
-  destroy(): void {
-    const flags = this._flags;
-    const index = flags.indexOf(this);
-    const last = flags.length - 1;
-    if (index !== last) {
-      const end = flags[last];
-      flags[index] = end;
-    }
-    flags.length--;
-    this._flags = null;
-  }
-}
+import { UpdateFlag } from "./UpdateFlag";
 
 /**
  * 用于实现变换相关功能。
@@ -128,7 +91,7 @@ export class Transform extends NodeAbility {
   private _worldMatrix: Matrix4 = mat4.create();
 
   private _dirtyFlag: number = 0;
-  private _changeFlags: WorldChangeFlag[] = [];
+  private _changeFlags: UpdateFlag[] = [];
 
   /**
    * 是否往上查父节点。
@@ -459,8 +422,8 @@ export class Transform extends NodeAbility {
    * 注册世界相关变换改变标记。
    * @returns 改变标记
    */
-  registerWorldChangeFlag(): WorldChangeFlag {
-    const flag = new WorldChangeFlag(this._changeFlags);
+  registerWorldChangeFlag(): UpdateFlag {
+    const flag = new UpdateFlag(this._changeFlags);
     this._changeFlags.push(flag);
     return flag;
   }
@@ -637,7 +600,7 @@ export class Transform extends NodeAbility {
     this._dirtyFlag |= type;
     const len = this._changeFlags.length;
     for (let i = len - 1; i >= 0; i--) {
-      this._changeFlags[i].set(true);
+      this._changeFlags[i].flag = true;
     }
   }
 
