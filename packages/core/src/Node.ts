@@ -320,13 +320,12 @@ export class Node extends EventDispatcher {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      if (child._parent) {
-        child._scene = null;
-        Node._traverseSetOwnerScene(child, null);
-      }
       child._parent = null;
       child._isActiveInHierarchy && child._processInActive();
+      child._scene = null; // must after child._processInActive()
+      Node._traverseSetOwnerScene(child, null);
     }
+    children.length = 0;
   }
 
   /**

@@ -76,6 +76,10 @@ export class Script extends NodeAbility {
    * @override
    */
   _onEnable(): void {
+    if (!this._started && this.onStart !== Script.prototype.onStart) {
+      this.scene._componentsManager.addOnStartScript(this);
+      this._started = true;
+    }
     this.onEnable();
   }
 
@@ -116,6 +120,7 @@ export class Script extends NodeAbility {
    * @override
    */
   _onInActive(): void {
+    //CM:考虑一下在onUpdate内禁用会否应立即移除，应该不移除才对
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
     if (this.onUpdate !== prototype.onUpdate) {
