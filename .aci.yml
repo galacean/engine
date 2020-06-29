@@ -12,6 +12,7 @@ beforeScript:
     echo $PATH
     time enclose install tnpm:tnpm
     tnpm -v
+    yum install -y pango.x86_64 libXcomposite.x86_64 libXcursor.x86_64 libXdamage.x86_64 libXext.x86_64 libXi.x86_64 libXtst.x86_64 cups-libs.x86_64 libXScrnSaver.x86_64 libXrandr.x86_64 GConf2.x86_64 alsa-lib.x86_64 atk.x86_64 gtk3.x86_64 ipa-gothic-fonts xorg-x11-fonts-100dpi xorg-x11-fonts-75dpi xorg-x11-utils xorg-x11-fonts-cyrillic xorg-x11-fonts-Type1 xorg-x11-fonts-misc
 node-8:
   stage: test
   aciTags: DOCKER
@@ -31,8 +32,8 @@ node-8:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
-      artifacts: 'coverage/'
+    archiveArtifacts:
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
@@ -56,8 +57,8 @@ node-10:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
-      artifacts: 'coverage/'
+    archiveArtifacts:
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
@@ -81,8 +82,8 @@ node-12:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
-      artifacts: 'coverage/'
+    archiveArtifacts:
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
