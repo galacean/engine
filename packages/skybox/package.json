@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-skybox",
-  "version": "2.3.0",
+  "version": "2.3.0-alpha.0",
   "description": "Sky box",
   "repository": {
     "type": "git",
@@ -24,11 +24,11 @@
   },
   "types": "types/index.d.ts",
   "dependencies": {
-    "@alipay/o3-base": "2.3.0",
-    "@alipay/o3-geometry": "2.3.0",
-    "@alipay/o3-geometry-shape": "2.3.0",
-    "@alipay/o3-material": "2.3.0",
-    "@alipay/o3-math": "2.3.0"
+    "@alipay/o3-base": "2.3.0-alpha.0",
+    "@alipay/o3-geometry": "2.3.0-alpha.0",
+    "@alipay/o3-geometry-shape": "2.3.0-alpha.0",
+    "@alipay/o3-material": "2.3.0-alpha.0",
+    "@alipay/o3-math": "2.3.0-alpha.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
