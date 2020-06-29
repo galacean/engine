@@ -21,8 +21,9 @@ export class Node extends EventDispatcher {
    */
   static findByName(name: string): Node {
     const { _nodes } = Node;
-    for (let i = _nodes.length - 1; i >= 0; i--) {
-      const node = _nodes[i];
+    const nodes = _nodes._elements;
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const node = nodes[i];
       const nodeName = node.name;
       if (nodeName === name) {
         return node;
@@ -42,8 +43,7 @@ export class Node extends EventDispatcher {
     const rootNode = scene.root;
     if (!rootNode) return null; //scene or scene.root maybe destroyed
     let node: Node = rootNode;
-    const spitLength = splits.length;
-    for (let i = spitLength - 1; i >= 0; ++i) {
+    for (let i = 0, spitLength = splits.length; i < spitLength; ++i) {
       const split = splits[i];
       if (split) {
         node = Node._findChildByName(node, split);
@@ -197,9 +197,9 @@ export class Node extends EventDispatcher {
     //TODO 因现有机制scene的rootNode 在创建时需要知道自己为root(判断activeInHierarchy时不需要判断父节点)
     this._isRoot = parent === null && name === "__root__";
     this.name = name;
-    this.transform = this.addComponent(Transform);
     this.parent = parent;
     this.isActive = true;
+    this.transform = this.addComponent(Transform);
   }
 
   /**
@@ -298,8 +298,7 @@ export class Node extends EventDispatcher {
   findByPath(path: string): Node {
     const splits = path.split("/");
     let node: Node = this;
-    const spitLength = splits.length;
-    for (let i = spitLength - 1; i >= 0; ++i) {
+    for (let i = 0, length = splits.length; i < length; ++i) {
       const split = splits[i];
       if (split) {
         node = Node._findChildByName(node, split);
@@ -325,6 +324,7 @@ export class Node extends EventDispatcher {
       child._parent = null;
       child._isActiveInHierarchy && child._processInActive();
     }
+    children.length = 0;
   }
 
   /**
@@ -340,7 +340,9 @@ export class Node extends EventDispatcher {
     newNode.transform.localMatrix = this.transform.localMatrix;
     // Transform
 
-    for (const childNode of this._children) {
+    const children = this._children;
+    for (let i = 0, len = this._children.length; i < len; i++) {
+      const childNode = children[i];
       newNode.addChild(childNode.clone());
     }
 
@@ -397,7 +399,9 @@ export class Node extends EventDispatcher {
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
       activeChangedComponents[i]._setActive(isActive);
     }
-    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    if (this.scene) {
+      this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    }
     this._activeChangedComponents = null;
   }
 
@@ -405,7 +409,11 @@ export class Node extends EventDispatcher {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive node' active in hierarchy, if the operation is in main inActive node or it's children script's onDisable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    if (this._scene) {
+      this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    } else {
+      this._activeChangedComponents = [];
+    }
     this._setActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(true);
   }
@@ -414,7 +422,11 @@ export class Node extends EventDispatcher {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active node' inActive in hierarchy, if the operation is in main active node or it's children script's onEnable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    if (this._scene) {
+      this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    } else {
+      this._activeChangedComponents = [];
+    }
     this._setInActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(false);
   }

@@ -27,6 +27,7 @@ export class Script extends NodeAbility {
 
   /**
    * 首次调用Update之前调用。
+   * 必须重写onUpdate才会调用
    */
   onStart(): void {}
 
