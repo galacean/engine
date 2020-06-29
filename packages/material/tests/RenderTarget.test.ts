@@ -3,7 +3,7 @@ import gl from "gl";
 import { RenderTarget } from "../src/RenderTarget";
 import { RenderColorTexture } from "../src/RenderColorTexture";
 import { RenderDepthTexture } from "../src/RenderDepthTexture";
-import { TextureFormat, RenderBufferDepthFormat } from "@alipay/o3-base";
+import { RenderBufferDepthFormat } from "@alipay/o3-base";
 
 describe("RenderTarget", () => {
   const width = 1024;
