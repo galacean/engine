@@ -1,5 +1,5 @@
 import { ACamera } from "./ACamera";
-import { NodeAbility as Component } from "./NodeAbility";
+import { NodeAbility as Component, NodeAbility } from "./NodeAbility";
 import { RenderableComponent } from "./RenderableComponent";
 import { Script } from "./Script";
 import { DisorderedArray } from "./DisorderedArray";
@@ -13,14 +13,16 @@ export class ComponentsManager {
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onPreRenderScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onPostRenderScripts: DisorderedArray<Script> = new DisorderedArray();
+  // onStart queue
+  private _onStartScripts: Script[] = [];
+  // destroy queue
+  private _destoryComponents: Script[] = [];
+
   private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
 
   // render
   private _renderers: DisorderedArray<RenderableComponent> = new DisorderedArray();
   private _onUpdateRenderers: DisorderedArray<RenderableComponent> = new DisorderedArray();
-
-  // 延时销毁
-  private _destoryComponents: Script[] = [];
 
   // 延时处理对象池
   private _componentsContainerPool: Component[][] = [];
@@ -102,6 +104,10 @@ export class ComponentsManager {
     renderer._onUpdateIndex = -1;
   }
 
+  addOnStartScript(component: Script): void {
+    this._onStartScripts.push(component);
+  }
+
   addDestoryComponent(component): void {
     this._destoryComponents.push(component);
   }
@@ -111,10 +117,6 @@ export class ComponentsManager {
     for (let i = this._onUpdateScripts.length - 1; i >= 0; --i) {
       const script = elements[i];
       if (script.enabled) {
-        if (!script._started) {
-          script._started = true;
-          script.onStart();
-        }
         script.onUpdate(deltaTime);
       }
     }
@@ -165,10 +167,6 @@ export class ComponentsManager {
     for (let i = this._onUpdateRenderers.length - 1; i >= 0; --i) {
       const renderer = elements[i];
       if (renderer.enabled) {
-        if (!renderer._started) {
-          renderer._started = true;
-          renderer.onStart();
-        }
         renderer.onUpdate(deltaTime);
       }
     }
@@ -181,6 +179,17 @@ export class ComponentsManager {
       if (renderer.enabled) {
         renderer._render(camera);
       }
+    }
+  }
+
+  callScriptOnStart(): void {
+    const onStartScripts = this._onStartScripts;
+    const length = onStartScripts.length;
+    if (length > 0) {
+      for (let i = length - 1; i >= 0; --i) {
+        onStartScripts[i].onStart();
+      }
+      onStartScripts.length = 0;
     }
   }
 
@@ -222,10 +231,6 @@ export class ComponentsManager {
     for (let i = this._onUpdateComponents.length - 1; i >= 0; --i) {
       const component = elements[i];
       if (component.enabled) {
-        if (!component._started) {
-          component._started = true;
-          component.onStart();
-        }
         component.onUpdate(deltaTime);
       }
     }

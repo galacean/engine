@@ -322,7 +322,7 @@ export class Node extends EventDispatcher {
       const child = children[i];
       child._parent = null;
       child._isActiveInHierarchy && child._processInActive();
-      child._scene = null; //must after child._processInActive()
+      child._scene = null; // must after child._processInActive()
       Node._traverseSetOwnerScene(child, null);
     }
     children.length = 0;

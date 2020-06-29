@@ -92,7 +92,12 @@ export abstract class NodeAbility extends EventDispatcher {
 
   _onAwake(): void {}
 
-  _onEnable(): void {}
+  _onEnable(): void {
+    if (!this._started && this.onStart !== NodeAbility.prototype.onStart) {
+      this.scene._componentsManager.addOnStartScript(this as any);
+      this._started = true;
+    }
+  }
 
   _onDisable(): void {}
 
