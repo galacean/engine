@@ -14,4 +14,4 @@ export { dependencies } from "./ComponentsDependencies";
 
 export { ACamera } from "./ACamera";
 export { Transform } from "./Transform";
-export type { WorldChangeFlag } from "./Transform";
+export { UpdateFlag } from "./UpdateFlag";

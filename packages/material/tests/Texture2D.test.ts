@@ -41,7 +41,7 @@ describe("Texture2D", () => {
   describe("mipmap", () => {
     it("webgl2 支持非2次幂开启 mipmap ", () => {
       rhi.isWebGL2 = true;
-      rhi.gl.texStorage2D = function() {};
+      rhi.gl.texStorage2D = function () {};
 
       const texture1 = new Texture2D(rhi, 100, 100);
       const texture2 = new Texture2D(rhi, 100, 100, undefined, true);
@@ -99,7 +99,7 @@ describe("Texture2D", () => {
         const texture = new Texture2D(rhi, width, height, TextureFormat.ETC2_RGBA8);
         const buffer = new Uint8Array(4);
 
-        texture.getPixelsBuffer(0, 0, 1, 1, buffer);
+        texture.getPixelBuffer(0, 0, 1, 1, buffer);
       });
     });
     it("读取成功", () => {
@@ -107,7 +107,7 @@ describe("Texture2D", () => {
       const buffer = new Uint8Array(4);
 
       texture.setPixelBuffer(new Uint8Array([1, 2, 3, 4]), 0, 5, 0, 1, 1);
-      texture.getPixelsBuffer(5, 0, 1, 1, buffer);
+      texture.getPixelBuffer(5, 0, 1, 1, buffer);
       assert(buffer[0] === 1);
       assert(buffer[1] === 2);
       assert(buffer[2] === 3);

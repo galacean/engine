@@ -133,7 +133,7 @@ debugModel("/static/model/water-bottle/scene.gltf", res => {
   // debug render texture fetch pixel
   // probe.onTextureChange = texture => {
   //   const buffer = new Uint8Array(100 * 4);
-  //   texture.getPixelsBuffer(50, 50, 10, 10, buffer);
+  //   texture.getPixelBuffer(50, 50, 10, 10, buffer);
   //   console.log(buffer);
   // };
   water.refractionTexture = probe.texture;

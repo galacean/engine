@@ -1,5 +1,5 @@
 import { ClearMode } from "@alipay/o3-base";
-import { Node, NodeAbility, Transform, WorldChangeFlag, dependencies } from "@alipay/o3-core";
+import { Node, NodeAbility, Transform, UpdateFlag, dependencies } from "@alipay/o3-core";
 import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
 import { Vector2, Vector3, Vector4, Matrix4 } from "@alipay/o3-math/types/type";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
@@ -74,9 +74,9 @@ export class Camera extends NodeAbility {
   private _customAspectRatio: number = undefined;
   private _invViewProjMat: Matrix4 = mat4.create();
   private _transform: Transform;
-  private _isViewMatrixDirty: WorldChangeFlag;
+  private _isViewMatrixDirty: UpdateFlag;
   /** 投影视图矩阵逆矩阵脏标记 */
-  private _isInvViewProjDirty: WorldChangeFlag;
+  private _isInvViewProjDirty: UpdateFlag;
 
   /**
    * 近裁剪平面。
@@ -177,7 +177,7 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 清楚视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
+   * 清除视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
    */
   public get backgroundColor(): Vector4 {
     return this._clearParam;
@@ -200,8 +200,8 @@ export class Camera extends NodeAbility {
    */
   public get viewMatrix(): Readonly<Matrix4> {
     //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
-    if (this._isViewMatrixDirty.get()) {
-      this._isViewMatrixDirty.set(false);
+    if (this._isViewMatrixDirty.flag) {
+      this._isViewMatrixDirty.flag = false;
       const modelMatrix = this._transform.worldMatrix;
       turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
       mat4.invert(this._viewMatrix, MathTemp.tempMat4);
@@ -475,8 +475,8 @@ export class Camera extends NodeAbility {
    * 视图投影矩阵逆矩阵
    */
   public get invViewProjMat() {
-    if (this._isInvViewProjDirty.get()) {
-      this._isInvViewProjDirty.set(false);
+    if (this._isInvViewProjDirty.flag) {
+      this._isInvViewProjDirty.flag = false;
       const invViewMatrix = this.inverseViewMatrix;
       const invProjMatrix = this.inverseProjectionMatrix;
       mat4.mul(this._invViewProjMat, invViewMatrix, invProjMatrix);
@@ -560,7 +560,6 @@ export class Camera extends NodeAbility {
     if (typeof canvas === "string") {
       canvas = document.getElementById(canvas) as HTMLCanvasElement;
     }
-    this.node.scene.attachRenderCamera(this as any);
     const engine = this.node.scene.engine;
     this._rhi = engine.requireRHI((this._props as any).RHI ?? GLRenderHardware, canvas, {
       ...(this._props as any).attributes,
@@ -600,7 +599,7 @@ export class Camera extends NodeAbility {
   private projMatChange() {
     this._isProjectionDirty = true;
     this._isInvProjMatDirty = true;
-    this._isInvViewProjDirty.set(true);
+    this._isInvViewProjDirty.flag = true;
   }
 
   /**

@@ -34,12 +34,12 @@ export class RenderTarget extends AssetObject {
   private _oriDrawBuffers: GLenum[];
   private _blitDrawBuffers: GLenum[] | null;
 
-  /** 宽。 */
+  /** 渲染目标宽。 */
   get width(): number {
     return this._width;
   }
 
-  /** 高。 */
+  /** 渲染目标高。 */
   get height(): number {
     return this._height;
   }

@@ -36,6 +36,14 @@ export class Model extends AGeometryRenderer {
     }
     this.geometryType = geometryType;
   }
+
+  set material(mtl) {
+    if (!mtl) {
+      this.material = new BlinnPhongMaterial("mtl");
+    } else {
+      this._material = mtl;
+    }
+  }
 }
 
 enum GeometryType {

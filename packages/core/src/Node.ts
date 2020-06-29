@@ -7,6 +7,7 @@ import { Engine } from "./Engine";
 import { NodeAbility as Component, NodeAbility } from "./NodeAbility";
 import { Scene } from "./Scene";
 import { Transform } from "./Transform";
+import { UpdateFlag } from "./UpdateFlag";
 
 /**
  * 节点类,可作为组件的容器。
@@ -15,7 +16,7 @@ export class Node extends EventDispatcher {
   public static _nodes: DisorderedArray<Node> = new DisorderedArray();
 
   /**
-   * 根据名字查找节点。
+   * 根据名字全局查找节点。
    * @param name - 名字
    * @returns 节点
    */
@@ -32,7 +33,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * 根据路径查找节点，使用‘/’符号作为路径分割符。
+   * 根据路径全局查找节点，使用‘/’符号作为路径分割符。
    * @param path - 路径
    * @param scene - @deprecated 兼容参数
    * @returns 节点
@@ -200,6 +201,7 @@ export class Node extends EventDispatcher {
     this.transform = this.addComponent(Transform);
     this.parent = parent;
     this.isActive = true;
+    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
   }
 
   /**
@@ -380,6 +382,7 @@ export class Node extends EventDispatcher {
       parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
+    this._inverseWorldMatFlag.destroy();
     Node._nodes.delete(this);
   }
 
@@ -467,6 +470,7 @@ export class Node extends EventDispatcher {
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
+  private _inverseWorldMatFlag: UpdateFlag;
 
   /**
    * @deprecated
@@ -827,7 +831,11 @@ export class Node extends EventDispatcher {
    * @return {mat4}
    */
   public getInvModelMatrix(): Readonly<Matrix4> {
-    return mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
+    if (this._inverseWorldMatFlag.flag) {
+      mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
+      this._inverseWorldMatFlag.flag = false;
+    }
+    return this._invModelMatrix;
   }
 
   /**
