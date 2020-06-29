@@ -560,7 +560,6 @@ export class Camera extends NodeAbility {
     if (typeof canvas === "string") {
       canvas = document.getElementById(canvas) as HTMLCanvasElement;
     }
-    this.node.scene.attachRenderCamera(this as any);
     const engine = this.node.scene.engine;
     this._rhi = engine.requireRHI((this._props as any).RHI ?? GLRenderHardware, canvas, {
       ...(this._props as any).attributes,
