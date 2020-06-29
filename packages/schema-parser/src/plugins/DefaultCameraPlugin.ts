@@ -1,10 +1,17 @@
-import { Camera } from "@alipay/o3";
+import { Camera, OldCamera, vec3 } from "@alipay/o3";
 import { Plugin } from "./Plugin";
-export const defaultCameraPlugin: Plugin = oasis => {
+export const defaultCameraPlugin: Plugin = (oasis) => {
+  const position = [];
   return {
-    abilityAdded: ability => {
-      if (ability instanceof Camera) {
+    beforeAbilityAdded: (conf) => {
+      if (conf.type === "Camera") {
+        vec3.copy(position, oasis.options.config.nodes[conf.node].position);
+      }
+    },
+    abilityAdded: (ability) => {
+      if (ability instanceof Camera || ability instanceof OldCamera) {
         ability.attachToScene(oasis.canvas, oasis.options.rhiAttr);
+        ability.node.transform.position = position;
       }
     }
   };

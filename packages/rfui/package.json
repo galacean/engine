@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-rfui",
-  "version": "2.2.15-alpha.0",
+  "version": "2.3.0-alpha.0",
   "description": "buffer rfui && index buffer rfui",
   "keywords": [
     "Oasis3D",
@@ -28,14 +28,14 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-base": "^2.2.15-alpha.0",
-    "@alipay/o3-core": "^2.2.15-alpha.0",
-    "@alipay/o3-geometry": "^2.2.15-alpha.0",
-    "@alipay/o3-geometry-shape": "^2.2.15-alpha.0",
-    "@alipay/o3-hud": "^2.2.15-alpha.0",
-    "@alipay/o3-material": "^2.2.15-alpha.0",
-    "@alipay/o3-math": "^2.2.15-alpha.0",
-    "@alipay/o3-mobile-material": "^2.2.15-alpha.0",
-    "@alipay/o3-tween": "^2.2.15-alpha.0"
+    "@alipay/o3-base": "2.3.0-alpha.0",
+    "@alipay/o3-core": "2.3.0-alpha.0",
+    "@alipay/o3-geometry": "2.3.0-alpha.0",
+    "@alipay/o3-geometry-shape": "2.3.0-alpha.0",
+    "@alipay/o3-hud": "2.3.0-alpha.0",
+    "@alipay/o3-material": "2.3.0-alpha.0",
+    "@alipay/o3-math": "2.3.0-alpha.0",
+    "@alipay/o3-mobile-material": "2.3.0-alpha.0",
+    "@alipay/o3-tween": "2.3.0-alpha.0"
   }
 }
