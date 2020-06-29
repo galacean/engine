@@ -124,6 +124,9 @@ export class BasicSceneRenderer extends SceneVisitor {
    */
   render() {
     const camera = this._camera;
+    if (!camera.renderHardware) {
+      return;
+    }
     const opaqueQueue = this._opaqueQueue;
     const transparentQueue = this._transparentQueue;
 
