@@ -32,17 +32,21 @@ export class Model extends AGeometryRenderer {
 
     const { geometryType = GeometryType.Box } = props;
     if (!props.material) {
-      this.material = new BlinnPhongMaterial("mtl");
+      this._material = new BlinnPhongMaterial("mtl");
     }
     this.geometryType = geometryType;
   }
 
   set material(mtl) {
     if (!mtl) {
-      this.material = new BlinnPhongMaterial("mtl");
+      this._material = new BlinnPhongMaterial("mtl");
     } else {
       this._material = mtl;
     }
+  }
+
+  get material() {
+    return this._material;
   }
 }
 
