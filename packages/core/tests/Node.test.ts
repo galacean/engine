@@ -1,48 +1,63 @@
-import { Node } from "../src";
-import { mat4, vec3, quat, MathUtil } from "@alipay/o3-math";
+import { Node } from "../src/Node";
+import { quat, mat4, vec3 } from "@alipay/o3-math";
 
-describe("Node test", function() {
-  const start = [
-    -0.9509319067001343,
-    -3.110358238220215,
-    -0,
-    0,
-    3.1103549003601074,
-    -0.9509308338165283,
-    0,
-    0,
-    0,
-    -0,
-    2.999999761581421,
-    0,
-    0.1212138682603836,
-    0.742961585521698,
-    0.02145298570394516,
-    1
-  ];
+describe("Node test", function () {
+  it("case", () => {});
+  describe("node lookat", () => {
+    const node = new Node();
+    beforeEach(() => {
+      node.setModelMatrix(mat4.create());
+    });
 
-  it("test", () => {
-    const position = [];
-    const rotation = [];
-    const scale = [];
-    mat4.decompose(start, position, rotation, scale);
-    console.log("start position: ", position);
-    console.log("start rotation: ", rotation);
-    console.log("start scale: ", scale);
+    it("test lookAt", () => {
+      node.lookAt([0, -3, 0], [0, 1, 0]);
+    });
 
-    const out = [];
-    mat4.fromRotationTranslationScale(out, rotation, position, scale);
-    mat4.decompose(out, position, rotation, scale);
-    // console.log(position);
-    // console.log(rotation);
-    // console.log(scale);
-    // console.log(model);
+    it("test setRotationAngles", () => {
+      node.setRotationAngles(10, 20, 30);
+    });
+
+    it("test set rotation", () => {
+      const rotation = [];
+      node.rotation = quat.fromEuler(rotation, 10, 20, 30);
+    });
   });
 
-  it("test node", () => {
+  describe("node parent", () => {
     const node = new Node();
-    node.setModelMatrix(start);
-    const model = node.getModelMatrix();
-    // console.log(model);
+    const parent = new Node();
+    parent.addChild(node);
+    parent.position = Float32Array.from([10, 10, 33]);
+    beforeEach(() => {
+      node.setModelMatrix(mat4.create());
+    });
+
+    it("test setRotationAngles", () => {
+      node.setRotationAngles(10, 20, 30);
+    });
+
+    it("test set rotation", () => {
+      const rotation = [];
+      node.rotation = quat.fromEuler(rotation, 10, 20, 30);
+    });
   });
 });
+
+function testEqual(node, node2) {
+  arrayCloseTo(node.worldPosition, node2.worldPosition);
+  arrayCloseTo(node.scale, node2.scale);
+  arrayCloseTo(node.position, node2.position);
+  arrayCloseTo(node.rotation, node2.rotation);
+  const m1 = node.getModelMatrix();
+  const m2 = node2.getModelMatrix();
+  arrayCloseTo(m1, m2);
+}
+
+function arrayCloseTo(arr1, arr2) {
+  expect(arr1.length).toEqual(arr2.length);
+  for (let i = 0; i < arr1.length; i++) {
+    const m1 = arr1[i];
+    const m2 = arr2[i];
+    expect(m1).toBeCloseTo(m2);
+  }
+}

@@ -3,7 +3,7 @@ import { Engine } from "@alipay/o3-core";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { AAnimation } from "@alipay/o3-animation";
-import { ADefaultCamera } from "@alipay/o3-default-camera";
+import { Camera } from "@alipay/o3-default-camera";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { ASkyBox } from "@alipay/o3-skybox";
@@ -146,13 +146,11 @@ spotFolder2.add(spotLight2, "decay", 0, 2);
 spotFolder2.add(spotLight2, "angle", 0, Math.PI / 3);
 spotFolder2.add(spotLight2, "penumbra", 0, 1);
 
-const resourceLoader = new ResourceLoader(engine);
-
 //-- create camera
 let cameraNode = rootNode.createChild("camera_node");
 
 let diffuseMapRes = new Resource("dif", {
-  type: "cubemap",
+  type: "cubemapNew",
   urls: [
     "/static/env/papermill/diffuse/diffuse_right_0.jpg",
     "/static/env/papermill/diffuse/diffuse_left_0.jpg",
@@ -164,7 +162,7 @@ let diffuseMapRes = new Resource("dif", {
 });
 
 let environmentMapRes = new Resource("environment", {
-  type: "cubemap",
+  type: "cubemapNew",
   urls: [
     "/static/env/papermill/environment/environment_right_0.jpg",
     "/static/env/papermill/environment/environment_left_0.jpg",
@@ -176,7 +174,7 @@ let environmentMapRes = new Resource("environment", {
 });
 
 let specularMapRes = new Resource("env", {
-  type: "cubemap",
+  type: "cubemapNew",
   urls: [
     [
       "/static/env/papermill/specular/specular_right_0.jpg",
@@ -275,10 +273,13 @@ let cameraProps = {
   position: [0, 0, 5],
   near: 0.01
 };
-let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
+let camera = cameraNode.createAbility(Camera, cameraProps);
 let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("o3-demo") });
 
 let node = rootNode.createChild("gltf_node");
+
+const rhi = engine.getRHI("o3-demo");
+const resourceLoader = new ResourceLoader(engine, null, rhi);
 
 resourceLoader.batchLoad([gltfRes, diffuseMapRes, specularMapRes, environmentMapRes], (err, res) => {
   const glb = res[0];

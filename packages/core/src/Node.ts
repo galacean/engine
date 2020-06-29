@@ -1,10 +1,13 @@
-import { Event, EventDispatcher, Logger, Util } from "@alipay/o3-base";
+import { EventDispatcher, Util } from "@alipay/o3-base";
 import { mat4, MathUtil, quat, vec3 } from "@alipay/o3-math";
-import { Engine } from "./Engine";
-import { NodeAbility as Component } from "./NodeAbility";
-import { Scene } from "./Scene";
-import { vec3Type } from "./type";
+import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
+import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
+import { Engine } from "./Engine";
+import { NodeAbility as Component, NodeAbility } from "./NodeAbility";
+import { Scene } from "./Scene";
+import { Transform } from "./Transform";
+import { UpdateFlag } from "./UpdateFlag";
 
 /**
  * 节点类,可作为组件的容器。
@@ -13,7 +16,7 @@ export class Node extends EventDispatcher {
   public static _nodes: DisorderedArray<Node> = new DisorderedArray();
 
   /**
-   * 根据名字查找节点。
+   * 根据名字全局查找节点。
    * @param name - 名字
    * @returns 节点
    */
@@ -30,7 +33,7 @@ export class Node extends EventDispatcher {
   }
 
   /**
-   * 根据路径查找节点，使用‘/’符号作为路径分割符。
+   * 根据路径全局查找节点，使用‘/’符号作为路径分割符。
    * @param path - 路径
    * @param scene - @deprecated 兼容参数
    * @returns 节点
@@ -88,6 +91,17 @@ export class Node extends EventDispatcher {
   private _parent: Node = null;
   private _activeChangedComponents: Component[];
   private _isRoot: boolean; //must add,because scene management mechanism
+  public readonly transform: Transform;
+
+  /** @deprecated */
+  private _invModelMatrix: Matrix4 = mat4.create();
+  private tempVec30 = vec3.create();
+  private tempVec31 = vec3.create();
+  private tempVec32 = vec3.create();
+  private tempVec33 = vec3.create();
+  private tempVec34 = vec3.create();
+  private tempVec36 = vec3.create();
+  private tempQuat = quat.create();
 
   /**
    * 是否局部激活。
@@ -154,6 +168,7 @@ export class Node extends EventDispatcher {
         this._isActiveInHierarchy && this._processInActive();
       }
     }
+    this._setTransformDirty();
   }
 
   /**
@@ -183,21 +198,10 @@ export class Node extends EventDispatcher {
     //TODO 因现有机制scene的rootNode 在创建时需要知道自己为root(判断activeInHierarchy时不需要判断父节点)
     this._isRoot = parent === null && name === "__root__";
     this.name = name;
+    this.transform = this.addComponent(Transform);
     this.parent = parent;
     this.isActive = true;
-
-    //deprecated
-    this._activeChangeFun = activeChange(this);
-    this._position = vec3.create();
-    this._rotation = quat.create();
-    this._scale = vec3.fromValues(1, 1, 1);
-    this._modelMatrix = mat4.create();
-    this._invModelMatrix = mat4.create();
-    this._modelMatrixDirty = true;
-    this._invModelMatrixDirty = true;
-    this._up = vec3.fromValues(0, 1, 0);
-    this._right = vec3.fromValues(1, 0, 0);
-    this._forward = vec3.fromValues(0, 0, 1);
+    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
   }
 
   /**
@@ -206,6 +210,7 @@ export class Node extends EventDispatcher {
    * @returns	组件实例
    */
   addComponent<T extends Component>(type: new (node: Node, props?: object) => T, props: object = {}): T {
+    ComponentsDependencies._addCheck(this, type);
     const component = new type(this, props);
     this._components.push(component);
     if (this._isActiveInHierarchy) {
@@ -334,14 +339,8 @@ export class Node extends EventDispatcher {
     newNode._active = this._active;
     newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
 
+    newNode.transform.localMatrix = this.transform.localMatrix;
     // Transform
-    newNode._position = vec3.clone(this._position);
-    newNode._rotation = quat.clone(this._rotation);
-    newNode._scale = vec3.clone(this._scale);
-    newNode._modelMatrix = mat4.clone(this._modelMatrix);
-    newNode._invModelMatrix = mat4.clone(this._invModelMatrix);
-    newNode._modelMatrixDirty = this._modelMatrixDirty;
-    newNode._invModelMatrixDirty = this._invModelMatrixDirty;
 
     for (const childNode of this._children) {
       newNode.addChild(childNode.clone());
@@ -351,7 +350,9 @@ export class Node extends EventDispatcher {
     const len = abilityArray.length;
     for (let i = 0; i < len; i++) {
       const ability = abilityArray[i];
-      newNode.createAbility(ability.constructor as any, ability._props);
+      if (!(ability instanceof Transform)) {
+        newNode.createAbility(ability.constructor as any, (ability as any)._props);
+      }
     }
 
     return newNode;
@@ -381,7 +382,17 @@ export class Node extends EventDispatcher {
       parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
+    this._inverseWorldMatFlag.destroy();
     Node._nodes.delete(this);
+  }
+
+  /**
+   * @internal
+   */
+  _removeComponent(component: NodeAbility): void {
+    ComponentsDependencies._removeCheck(this, component.constructor as any);
+    const components = this._components;
+    components.splice(components.indexOf(component), 1);
   }
 
   private _setActiveComponents(isActive: boolean): void {
@@ -395,7 +406,7 @@ export class Node extends EventDispatcher {
 
   private _processActive(): void {
     if (this._activeChangedComponents) {
-      throw "Node: can't set the 'main inActive node' active in hierarchy,if the operate is in main inActive node or it's children script's onDisable Event.";
+      throw "Note: can't set the 'main inActive node' active in hierarchy, if the operation is in main inActive node or it's children script's onDisable Event.";
     }
     this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setActiveInHierarchy(this._activeChangedComponents);
@@ -404,7 +415,7 @@ export class Node extends EventDispatcher {
 
   private _processInActive(): void {
     if (this._activeChangedComponents) {
-      throw "Node: can't set the 'main active node' inActive in hierarchy,if the operate is in main active node or it's children script's onEnable Event.";
+      throw "Note: can't set the 'main active node' inActive in hierarchy, if the operation is in main active node or it's children script's onEnable Event.";
     }
     this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);
@@ -437,24 +448,17 @@ export class Node extends EventDispatcher {
     }
   }
 
-  //--------------------------------------------TobeConfirmed--------------------------------------------------
+  private _setTransformDirty() {
+    if (this.transform) {
+      this.transform._parentChange();
+    } else {
+      for (let i = 0, len = this._children.length; i < len; i++) {
+        this.children[i]._setTransformDirty();
+      }
+    }
+  }
 
-  private propertyChangeEvent = new Event("propertyChange");
-
-  private _activeChangeFun;
-
-  private _position;
-
-  private _rotation;
-  private _scale;
-  private _modelMatrix;
-  private _invModelMatrix;
-  private _modelMatrixDirty;
-  private _invModelMatrixDirty;
-  private _up;
-  private _right;
-  private _forward;
-
+  //--------------------------------------------TobeConfirmed-------------------------------------------------
   /**
    * 创建子节点
    * @param {string} name 子节点的名称
@@ -466,6 +470,7 @@ export class Node extends EventDispatcher {
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
+  private _inverseWorldMatFlag: UpdateFlag;
 
   /**
    * @deprecated
@@ -487,25 +492,7 @@ export class Node extends EventDispatcher {
   }
 
   set parentNode(parentObj: Node) {
-    if (!parentObj || parentObj === this._parent) {
-      return;
-    }
-
-    if (this._parent != null) {
-      const index = this._parent._children.indexOf(this);
-      if (index > -1) {
-        this._parent._children.splice(index, 1);
-        this._parent.removeEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-      } else {
-        Logger.debug("can not find this object in _parent._children");
-      }
-    }
-
-    this._parent = parentObj;
-    parentObj._children.push(this);
-    this._parent.addEventListener("isActiveInHierarchyChange", this._activeChangeFun);
-    this._activeChangeFun();
-    this._markTransformDirty();
+    this.parent = parentObj;
   }
 
   /**
@@ -538,14 +525,6 @@ export class Node extends EventDispatcher {
 
   /**
    * @deprecated
-   * matrix 是否发生变化
-   */
-  get isDirty() {
-    return this._modelMatrixDirty;
-  }
-
-  /**
-   * @deprecated
    * 功能组件数组
    * @member {Array}
    * @readonly
@@ -559,13 +538,12 @@ export class Node extends EventDispatcher {
    * 本节点的位置(Local Space)
    * @member {vec3}
    */
-  get position() {
-    return this._position;
+  get position(): Readonly<Vector3> {
+    return this.transform.position;
   }
 
-  set position(val) {
-    vec3.set(this._position, val[0], val[1], val[2]);
-    this._markTransformDirty();
+  set position(val: Readonly<Vector3>) {
+    this.transform.position = val;
   }
 
   /**
@@ -574,8 +552,8 @@ export class Node extends EventDispatcher {
    * @type {Array}
    * @readonly
    */
-  get up() {
-    return this._up;
+  get up(): Readonly<Vector3> {
+    return this.transform.getWorldUp(this.tempVec30);
   }
 
   /**
@@ -584,8 +562,8 @@ export class Node extends EventDispatcher {
    * @type {Array}
    * @readonly
    */
-  get forward() {
-    return this._forward;
+  get forward(): Readonly<Vector3> {
+    return this.transform.getWorldForward(this.tempVec31);
   }
 
   /**
@@ -594,8 +572,8 @@ export class Node extends EventDispatcher {
    * @type {Array}
    * @readonly
    */
-  get right() {
-    return this._right;
+  get right(): Readonly<Vector3> {
+    return this.transform.getWorldRight(this.tempVec32);
   }
 
   /**
@@ -603,38 +581,23 @@ export class Node extends EventDispatcher {
    * 本节点的世界坐标系位置
    * @member {vec3}
    */
-  get worldPosition() {
-    if (this._parent) {
-      const parentModel = this._parent.getModelMatrix();
-      const pos = vec3.create();
-      vec3.transformMat4(pos, this._position, parentModel);
-      return pos;
-    } else {
-      return this._position;
-    }
+  get worldPosition(): Readonly<Vector3> {
+    return this.transform.worldPosition;
   }
 
-  set worldPosition(val) {
-    const pos = vec3.fromValues(val[0], val[1], val[2]);
-    if (this._parent) {
-      const matWorldToLocal = this._parent.getInvModelMatrix();
-      vec3.transformMat4(this._position, pos, matWorldToLocal);
-    } else {
-      this._position = pos;
-    }
-    this._markTransformDirty();
+  set worldPosition(val: Readonly<Vector3>) {
+    this.transform.worldPosition = val;
   }
 
   /** Property: 本节点的旋转四元数(Local Space)
    * @member {quat|Array}
    */
-  get rotation() {
-    return this._rotation;
+  get rotation(): Readonly<Vector4> {
+    return this.transform.rotationQuaternion;
   }
 
-  set rotation(val) {
-    quat.set(this._rotation, val[0], val[1], val[2], val[3]);
-    this._markTransformDirty();
+  set rotation(val: Readonly<Vector4>) {
+    this.transform.rotationQuaternion = val;
   }
 
   /**
@@ -642,13 +605,12 @@ export class Node extends EventDispatcher {
    * 本节点的缩放系数(Local Space)
    * @member {vec3}
    */
-  get scale() {
-    return this._scale;
+  get scale(): Readonly<Vector3> {
+    return this.transform.scale;
   }
 
-  set scale(val) {
-    vec3.set(this._scale, val[0], val[1], val[2]);
-    this._markTransformDirty();
+  set scale(val: Readonly<Vector3>) {
+    this.transform.scale = val;
   }
 
   /**
@@ -665,7 +627,7 @@ export class Node extends EventDispatcher {
    * 设置是否接收阴影，只有导入 ShadowFeature 时生效
    * @member {boolean}
    */
-  set recieveShadow(enabled) {
+  set recieveShadow(enabled: boolean) {
     enableRenderer(this, enabled, "recieveShadow");
   }
 
@@ -786,22 +748,9 @@ export class Node extends EventDispatcher {
    * 使用四元数对对象进行增量旋转
    * @param {quat} rot 旋转四元数
    */
-  public rotateByQuat(rot: number[] | Float32Array) {
-    quat.multiply(this._rotation, this._rotation, rot);
-    this._markTransformDirty();
-  }
-
-  /**
-   * @deprecated
-   */
-  private traverseAbilitiesTriggerEnabled(enabled: boolean) {
-    const eventName = enabled ? "enabled" : "disabled";
-    for (let i = 0; i < this._components.length; i++) {
-      const abiltiy = this._components[i];
-      if (abiltiy && abiltiy.started && abiltiy.enabled) {
-        abiltiy.trigger(new Event(eventName, this));
-      }
-    }
+  public rotateByQuat(rot: Vector4) {
+    const rotateEuler = quat.toEuler(this.tempVec33, rot);
+    this.transform.rotate(rotateEuler);
   }
 
   /**
@@ -812,15 +761,12 @@ export class Node extends EventDispatcher {
    * @param {number} roll Z轴的旋转角度
    */
   public rotateByAngles(pitch: number, yaw: number, roll: number): void {
-    const rot = quat.create();
     if (Util.isArray(pitch)) {
-      quat.fromEuler(rot, pitch[0], pitch[1], pitch[2]);
+      vec3.set(this.tempVec36, pitch[0], pitch[1], pitch[2]);
     } else {
-      quat.fromEuler(rot, pitch, yaw, roll);
+      vec3.set(this.tempVec36, pitch, yaw, roll);
     }
-
-    quat.multiply(this._rotation, this._rotation, rot);
-    this._markTransformDirty();
+    this.transform.rotate(this.tempVec36);
   }
 
   /**
@@ -831,12 +777,8 @@ export class Node extends EventDispatcher {
    * @param {number} roll 围绕Z轴的旋转
    */
   public setRotationAngles(pitch: number, yaw: number, roll: number): void {
-    if (Util.isArray(pitch)) {
-      quat.fromEuler(this._rotation, pitch[0], pitch[1], pitch[2]);
-    } else {
-      quat.fromEuler(this._rotation, pitch, yaw, roll);
-    }
-    this._markTransformDirty();
+    vec3.set(this.tempVec34, pitch, yaw, roll);
+    this.transform.rotation = this.tempVec34;
   }
 
   /**
@@ -845,9 +787,9 @@ export class Node extends EventDispatcher {
    * @param {Vec3} axis 旋转轴
    * @param {number} deg 旋转角度
    */
-  public setRotationAxisAngle(axis, deg: number) {
-    quat.setAxisAngle(this._rotation, axis, MathUtil.toRadian(deg));
-    this._markTransformDirty();
+  public setRotationAxisAngle(axis: Vector3, deg: number) {
+    const rotateQuat = quat.setAxisAngle(this.tempQuat, axis, MathUtil.toRadian(deg));
+    this.transform.rotationQuaternion = rotateQuat;
   }
 
   /**
@@ -855,26 +797,16 @@ export class Node extends EventDispatcher {
    * 获取本节点的前方方向
    * @return {vec3} 节点的前方方向向量
    */
-  public getForward(): number[] | Float32Array {
-    const modelMatrix = this.getModelMatrix();
-    return vec3.fromValues(modelMatrix[8], modelMatrix[9], modelMatrix[10]);
+  public getForward(): Readonly<Vector3> {
+    return this.forward;
   }
 
   /**
    * @deprecated
    * 取得Local to World矩阵
    */
-  public getModelMatrix(): number[] | Float32Array {
-    if (this._modelMatrixDirty) {
-      this._updateModelMatrix();
-      vec3.set(this._right, this._modelMatrix[0], this._modelMatrix[1], this._modelMatrix[2]);
-      vec3.set(this._up, this._modelMatrix[4], this._modelMatrix[5], this._modelMatrix[6]);
-      vec3.set(this._forward, this._modelMatrix[8], this._modelMatrix[9], this._modelMatrix[10]);
-      vec3.normalize(this._right, this._right);
-      vec3.normalize(this._up, this._up);
-      vec3.normalize(this._forward, this._forward);
-    }
-    return this._modelMatrix;
+  public getModelMatrix(): Readonly<Matrix4> {
+    return this.transform.worldMatrix;
   }
 
   /**
@@ -882,33 +814,15 @@ export class Node extends EventDispatcher {
    * 使用 Local to World 更新内部 Transform 数据，效率较低
    * @param {mat4} m 变换矩阵
    */
-  public setModelMatrix(m: number[] | Float32Array) {
-    const transformMat = mat4.clone(m);
-    if (this._parent) {
-      const parentInvMat = this._parent.getInvModelMatrix();
-      mat4.mul(transformMat, parentInvMat, transformMat);
-    }
-
-    mat4.getTranslation(this._position, transformMat);
-    mat4.getRotation(this._rotation, transformMat);
-    mat4.getScaling(this._scale, transformMat);
-
-    this._markTransformDirty();
+  public setModelMatrix(m: Readonly<Matrix4>) {
+    this.transform.worldMatrix = m;
   }
 
   /**
    * @deprecated
    */
-  public setModelMatrixNew(m: number[] | Float32Array) {
-    const transformMat = mat4.clone(m);
-    if (this._parent) {
-      const parentInvMat = this._parent.getInvModelMatrix();
-      mat4.mul(transformMat, parentInvMat, transformMat);
-    }
-
-    mat4.decompose(transformMat, this._position, this._rotation, this._scale);
-
-    this._markTransformDirty();
+  public setModelMatrixNew(m: Readonly<Matrix4>) {
+    this.transform.worldMatrix = m;
   }
 
   /**
@@ -916,61 +830,12 @@ export class Node extends EventDispatcher {
    * 取得World to Local矩阵
    * @return {mat4}
    */
-  public getInvModelMatrix(): number[] | Float32Array {
-    if (this._modelMatrixDirty || this._invModelMatrixDirty) {
-      this._updateInvModelMatrix();
+  public getInvModelMatrix(): Readonly<Matrix4> {
+    if (this._inverseWorldMatFlag.flag) {
+      mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
+      this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
-  }
-
-  /**
-   * @deprecated
-   * 重新计算Local to World矩阵
-   * @private
-   */
-  public _updateModelMatrix(): void {
-    const temp = mat4.clone(this._modelMatrix);
-
-    mat4.fromRotationTranslationScale(this._modelMatrix, this._rotation, this._position, this._scale);
-    if (this._parent) {
-      const parentMat = this._parent.getModelMatrix();
-      mat4.mul(this._modelMatrix, parentMat, this._modelMatrix);
-    }
-
-    if (!mat4.equals(temp, this._modelMatrix)) {
-      this.trigger(this.propertyChangeEvent);
-    }
-
-    this._modelMatrixDirty = false;
-  }
-
-  /**
-   * @deprecated
-   * 重新计算World to Local矩阵
-   * @private
-   */
-  public _updateInvModelMatrix(): void {
-    mat4.invert(this._invModelMatrix, this.getModelMatrix());
-    this._invModelMatrixDirty = false;
-  }
-
-  /**
-   * @deprecated
-   * 设置Transform Dirty标志，包括子节点
-   * @private
-   */
-  public _markTransformDirty(): void {
-    if (this._modelMatrixDirty && this._invModelMatrixDirty) {
-      return;
-    }
-
-    this._modelMatrixDirty = true;
-    this._invModelMatrixDirty = true;
-    const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      child._markTransformDirty();
-    }
   }
 
   /**
@@ -979,30 +844,10 @@ export class Node extends EventDispatcher {
    * @param {vec3} center 看向的点
    * @param {vec3} up 指向上方的单位向量
    */
-  public lookAt(center: vec3Type, up: vec3Type) {
-    const position = this.worldPosition;
-    const modelMatrix = mat4.create();
-    mat4.lookAtR(modelMatrix, position, center, up);
-    this.setModelMatrix(modelMatrix);
+  public lookAt(center: Vector3, up?: Vector3) {
+    this.transform.lookAt(center, up);
     return this;
   }
-}
-
-/**
- * @deprecated
- */
-function activeChange(node: Node) {
-  return () => {
-    if (node.parentNode) {
-      if (node.parentNode.isActiveInHierarchy) {
-        node._isActiveInHierarchy = node.isActive;
-      } else {
-        node._isActiveInHierarchy = false;
-      }
-    } else {
-      node._isActiveInHierarchy = node.isActive;
-    }
-  };
 }
 
 /**

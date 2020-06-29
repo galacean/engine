@@ -153,7 +153,11 @@ export class GLRenderHardware {
    * @param {number} height 用来设定视口的高度
    */
   viewport(x, y, width, height) {
-    this._gl.viewport(x, y, width, height);
+    // 开启裁剪
+    // gl.enable(gl.SCISSOR_TEST);
+    // gl.scissor(x, transformY, width, height);
+    const gl = this._gl;
+    gl.viewport(x, gl.drawingBufferHeight - y - height, width, height);
   }
 
   colorMask(r, g, b, a) {
@@ -261,7 +265,7 @@ export class GLRenderHardware {
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(camera.viewport[0], camera.viewport[1], camera.viewport[2], camera.viewport[3]);
+      this.viewport(camera.viewport[0], camera.viewport[1], camera.viewport[2], camera.viewport[3]);
     }
   }
 

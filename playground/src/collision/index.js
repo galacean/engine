@@ -35,7 +35,7 @@ scene.addEventListener('fixedUpdate', function(e){
   let interval = nowTime-lastUpdateTime;
   lastUpdateTime = nowTime;
 
-  console.log(interval);
+  // console.log(interval);
 
   if(n > 100){
     engine.setFixedUpdateInterval(1000);

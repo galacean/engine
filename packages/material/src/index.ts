@@ -6,4 +6,6 @@ export { RenderTechnique } from "./RenderTechnique";
 export { TextureCubeMap } from "./TextureCubeMap";
 export { RenderTarget } from "./RenderTarget";
 export { MultiRenderTarget } from "./MultiRenderTarget";
+export { RenderColorTexture } from "./RenderColorTexture";
+export { RenderDepthTexture } from "./RenderDepthTexture";
 export * from "./type";

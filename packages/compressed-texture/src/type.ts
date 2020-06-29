@@ -1,4 +1,4 @@
-import { GLCompressedTextureInternalFormat } from "@alipay/o3-base";
+import { GLCompressedTextureInternalFormat, TextureFormat } from "@alipay/o3-base";
 
 export type CompressedTextureData = {
   internalFormat: GLCompressedTextureInternalFormat;
@@ -13,6 +13,14 @@ export type CompressedCubeData = {
   height: number;
   mipmapsFaces: Mipmap[][];
 };
+
+export interface CompressedTextureDataNew extends CompressedTextureData {
+  engineFormat: TextureFormat;
+}
+
+export interface CompressedCubeDataNew extends CompressedCubeData {
+  engineFormat: TextureFormat;
+}
 
 export type Mipmap = {
   data: ArrayBuffer;
@@ -81,4 +89,8 @@ export type KTXContainer = {
    * parsed mipmap data
    */
   mipmaps?: Mipmap[];
+  /**
+   * Oasis Engine native TextureFormat
+   */
+  engineFormat?: TextureFormat;
 };

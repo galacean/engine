@@ -12,10 +12,20 @@ export class GLTexture extends GLAsset {
   private _glTexture: WebGLTexture;
   protected _config: Texture;
   protected _type;
+  //todo: delete
+  protected _isNew: boolean;
+
   constructor(rhi: GLRenderHardware, config: Texture, type) {
     super(rhi, config);
+
     this._gl = rhi.gl;
-    this._glTexture = rhi.gl.createTexture(); // WebGLTexture
+    //todo: delete
+    if (config._glTexture) {
+      this._isNew = true;
+      this._glTexture = config._glTexture;
+    } else {
+      this._glTexture = rhi.gl.createTexture(); // WebGLTexture
+    }
     this._config = config;
     this._type = type;
   }
@@ -44,6 +54,9 @@ export class GLTexture extends GLAsset {
    * gl.pixelStorei 相关操作，updateTexture 前进行
    * */
   setPixelStore() {
+    //todo: delete
+    if (this._isNew) return;
+
     const gl = this._gl;
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +this._config.flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +this._config.premultiplyAlpha);
@@ -54,6 +67,9 @@ export class GLTexture extends GLAsset {
    * @private
    */
   setFilters() {
+    // todo: delete
+    if (this._isNew) return;
+
     const gl = this._gl;
 
     if (this._config.needUpdateFilers) {
@@ -70,6 +86,9 @@ export class GLTexture extends GLAsset {
    * @private
    */
   generateMipmap() {
+    // todo: delete
+    if (this._isNew) return;
+
     if (this._config.canMipmap) {
       this._gl.generateMipmap(this._type);
     }
@@ -80,6 +99,9 @@ export class GLTexture extends GLAsset {
    * @private
    */
   finalize() {
+    // todo: delete
+    if (this._isNew) return;
+
     const gl = this._gl;
     if (this._glTexture) {
       gl.deleteTexture(this._glTexture);

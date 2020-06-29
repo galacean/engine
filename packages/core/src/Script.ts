@@ -16,17 +16,17 @@ export class Script extends NodeAbility {
   _onPostRenderIndex: number = -1;
 
   /**
-   * 脚本第一次被激活时调用,而且只调用一次。
+   * 脚本第一次触发可用状态时调用,且只调用一次。
    */
   onAwake(): void {}
 
   /**
-   * 当节点触发为活动状态时调用。
+   * 触发为可用状态时调用。
    */
   onEnable(): void {}
 
   /**
-   * 首次调用Update之前调用。
+   * 首次调用Update之前调用，且只要调用一次。
    */
   onStart(): void {}
 
@@ -42,22 +42,22 @@ export class Script extends NodeAbility {
   onLateUpdate(): void {}
 
   /**
-   * 相机渲染前调用。
+   * 相机渲染前调用，逐相机调用。
    */
   onPreRender(): void {}
 
   /**
-   * 相机完成渲染后调用。
+   * 相机完成渲染后调用，逐相机调用。
    */
   onPostRender(): void {}
 
   /**
-   * 当节点触发为非活动状态时调用。
+   * 触发为禁用状态时调用。
    */
   onDisable(): void {}
 
   /**
-   * 销毁时调用。
+   * 在触发销毁的一帧中最后调用。
    */
   onDestroy(): void {}
 
