@@ -49,10 +49,6 @@ export class Model extends AGeometryRenderer {
       this._material = mtl;
     }
   }
-
-  get material() {
-    return this._material;
-  }
 }
 
 enum GeometryType {
