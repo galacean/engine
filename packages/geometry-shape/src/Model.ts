@@ -4,7 +4,6 @@ import { CylinderGeometry } from "./Cylinder";
 import { PlaneGeometry } from "./Plane";
 import { CuboidGeometry } from "./Cuboid";
 import { BlinnPhongMaterial } from "@alipay/o3-mobile-material";
-import { Material } from "@alipay/o3-material/types/Material";
 
 export class Model extends AGeometryRenderer {
   set geometryType(value: GeometryType) {
@@ -38,7 +37,7 @@ export class Model extends AGeometryRenderer {
     this.geometryType = geometryType;
   }
 
-  get material(): Material {
+  get material() {
     return this._material;
   }
 
