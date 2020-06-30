@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-skybox",
-  "version": "2.2.15",
+  "version": "2.2.17",
   "description": "Sky box",
   "repository": {
     "type": "git",
@@ -26,7 +26,7 @@
   "dependencies": {
     "@alipay/o3-base": "^2.2.15",
     "@alipay/o3-geometry": "^2.2.15",
-    "@alipay/o3-geometry-shape": "^2.2.15",
+    "@alipay/o3-geometry-shape": "^2.2.17",
     "@alipay/o3-material": "^2.2.15",
     "@alipay/o3-math": "^2.2.15"
   },
