@@ -38,11 +38,11 @@ export class Model extends AGeometryRenderer {
     this.geometryType = geometryType;
   }
 
-  get material() {
+  get material(): any {
     return this._material;
   }
 
-  set material(mtl) {
+  set material(mtl: any) {
     if (!mtl) {
       this._material = new BlinnPhongMaterial("mtl");
     } else {
