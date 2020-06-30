@@ -26,12 +26,10 @@ export class Transform extends NodeAbility {
   // Dirty flag
   private static _LOCAL_EULER_FLAG: number = 0x1;
   private static _LOCAL_QUAT_FLAG: number = 0x2;
-
   private static _WORLD_POSITION_FLAG: number = 0x4;
   private static _WORLD_EULER_FLAG: number = 0x8;
   private static _WORLD_QUAT_FLAG: number = 0x10;
   private static _WORLD_SCALE_FLAG: number = 0x20;
-
   private static _LOCAL_MATRIX_FLAG: number = 0x40;
   private static _WORLD_MATRIX_FLAG: number = 0x80;
 
@@ -90,7 +88,7 @@ export class Transform extends NodeAbility {
   private _localMatrix: Matrix4 = mat4.create();
   private _worldMatrix: Matrix4 = mat4.create();
 
-  private _dirtyFlag: number = 0;
+  private _dirtyFlag: number = Transform._WM_WP_WE_WQ_WS_FLAGS;
   private _changeFlags: UpdateFlag[] = [];
 
   /**
