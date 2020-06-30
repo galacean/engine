@@ -8,6 +8,14 @@ describe("DisorderedArray", () => {
     expect(array.length).toEqual(2);
   });
 
+  it("add&delete", () => {
+    const array = new DisorderedArray<string>();
+    array.add("test1");
+    array.delete("test1");
+    array.add("test2");
+    expect(array.length).toEqual(1);
+  });
+
   it("delete", () => {
     const array = new DisorderedArray<string>();
     array.add("test1");
