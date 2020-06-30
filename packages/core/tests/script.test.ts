@@ -47,16 +47,30 @@ describe("Script", () => {
   });
 
   describe("destroy", () => {
-    it("normal", () => {
+    it("onDisable", () => {
       class TheScript extends Script {}
       const node = new Node(scene, scene.root, "node");
       TheScript.prototype.onDisable = jest.fn();
-      TheScript.prototype._onInActive = jest.fn();
-      TheScript.prototype._onDestroy = jest.fn();
       const component = node.addComponent(TheScript);
       component.destroy();
       expect(component.onDisable).toHaveBeenCalledTimes(1);
+    });
+
+    it("_onInActive", () => {
+      class TheScript extends Script {}
+      const node = new Node(scene, scene.root, "node");
+      TheScript.prototype._onInActive = jest.fn();
+      const component = node.addComponent(TheScript);
+      component.destroy();
       expect(component._onInActive).toHaveBeenCalledTimes(1);
+    });
+
+    it("_onDestroy", () => {
+      class TheScript extends Script {}
+      const node = new Node(scene, scene.root, "node");
+      TheScript.prototype._onDestroy = jest.fn();
+      const component = node.addComponent(TheScript);
+      component.destroy();
       expect(component._onDestroy).toHaveBeenCalledTimes(1);
     });
   });
@@ -117,7 +131,6 @@ describe("Script", () => {
     it("normal", () => {
       class TheScript extends Script {
         onStart() {}
-        onUpdate() {}
       }
       const node = new Node(scene, scene.root, "node");
       TheScript.prototype.onStart = jest.fn();
@@ -129,7 +142,6 @@ describe("Script", () => {
     it("once", () => {
       class TheScript extends Script {
         onStart() {}
-        onUpdate() {}
       }
       const node = new Node(scene, scene.root, "node");
       TheScript.prototype.onStart = jest.fn();
@@ -137,6 +149,18 @@ describe("Script", () => {
       scene.update(16.7);
       scene.update(16.7);
       expect(component.onStart).toHaveBeenCalledTimes(1);
+    });
+
+    it("inActive", () => {
+      class TheScript extends Script {
+        onStart() {}
+      }
+      const node = new Node(scene, scene.root, "node");
+      TheScript.prototype.onStart = jest.fn();
+      const component = node.addComponent(TheScript);
+      node.isActive = false;
+      scene.update(16.7);
+      expect(component.onStart).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -152,6 +176,19 @@ describe("Script", () => {
       scene.update(16.7);
       expect(component.onUpdate).toHaveBeenCalledTimes(2);
     });
+
+    it("inActive", () => {
+      class TheScript extends Script {
+        onUpdate() {}
+      }
+      const node = new Node(scene, scene.root, "node");
+      TheScript.prototype.onUpdate = jest.fn();
+      const component = node.addComponent(TheScript);
+      node.isActive = false;
+      scene.update(16.7);
+      scene.update(16.7);
+      expect(component.onUpdate).toHaveBeenCalledTimes(0);
+    });
   });
 
   describe("onLateUpdate", () => {
@@ -165,6 +202,19 @@ describe("Script", () => {
       scene.update(16.7);
       scene.update(16.7);
       expect(component.onLateUpdate).toHaveBeenCalledTimes(2);
+    });
+
+    it("inActive", () => {
+      class TheScript extends Script {
+        onLateUpdate() {}
+      }
+      const node = new Node(scene, scene.root, "node");
+      TheScript.prototype.onLateUpdate = jest.fn();
+      const component = node.addComponent(TheScript);
+      node.isActive = false;
+      scene.update(16.7);
+      scene.update(16.7);
+      expect(component.onLateUpdate).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -180,6 +230,19 @@ describe("Script", () => {
       scene._componentsManager.callScriptOnPreRender();
       expect(component.onPreRender).toHaveBeenCalledTimes(2);
     });
+
+    it("inActive", () => {
+      class TheScript extends Script {
+        onPreRender() {}
+      }
+      const node = new Node(scene, scene.root, "node");
+      TheScript.prototype.onPreRender = jest.fn();
+      const component = node.addComponent(TheScript);
+      node.isActive = false;
+      scene._componentsManager.callScriptOnPreRender();
+      scene._componentsManager.callScriptOnPreRender();
+      expect(component.onPreRender).toHaveBeenCalledTimes(0);
+    });
   });
 
   describe("onPostRender", () => {
@@ -193,6 +256,33 @@ describe("Script", () => {
       scene._componentsManager.callScriptOnPostRender();
       scene._componentsManager.callScriptOnPostRender();
       expect(component.onPostRender).toHaveBeenCalledTimes(2);
+    });
+
+    it("inActive", () => {
+      class TheScript extends Script {
+        onPostRender() {}
+      }
+      const node = new Node(scene, scene.root, "node");
+      TheScript.prototype.onPostRender = jest.fn();
+      const component = node.addComponent(TheScript);
+      node.isActive = false;
+      scene._componentsManager.callScriptOnPostRender();
+      scene._componentsManager.callScriptOnPostRender();
+      expect(component.onPostRender).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe("onDestroy", () => {
+    it("normal", () => {
+      class TheScript extends Script {
+        onDestroy() {}
+      }
+      const node = new Node(scene, scene.root, "node");
+      TheScript.prototype.onDestroy = jest.fn();
+      const component = node.addComponent(TheScript);
+      component.destroy();
+      scene._componentsManager.callComponentDestory();
+      expect(component.onDestroy).toHaveBeenCalledTimes(1);
     });
   });
 });
