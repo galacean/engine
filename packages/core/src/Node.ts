@@ -200,8 +200,8 @@ export class Node extends EventDispatcher {
     this.name = name;
     this.parent = parent;
     this.isActive = true;
-    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
     this.transform = this.addComponent(Transform);
+    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
   }
 
   /**
