@@ -1,4 +1,3 @@
-import assert from "power-assert";
 import gl from "gl";
 import { Texture2D } from "../src/Texture2D";
 import { TextureFormat } from "@alipay/o3-base";
@@ -20,21 +19,21 @@ describe("Texture2D", () => {
     const oldTexture = new Texture2D("old");
     const newTexture = new Texture2D(rhi, width, height);
 
-    assert(oldTexture.format == null);
-    assert(newTexture.format === TextureFormat.R8G8B8A8);
+    expect(oldTexture.format).toBeUndefined();
+    expect(newTexture.format).toBe(TextureFormat.R8G8B8A8);
   });
 
   describe("格式测试", () => {
     it("不支持浮点纹理", () => {
-      assert.throws(() => {
+      expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
         new Texture2D(rhi, width, height, TextureFormat.R32G32B32A32);
-      });
+      }).toThrow();
     });
     it("引擎不支持的格式", () => {
-      assert.throws(() => {
+      expect(() => {
         new Texture2D(rhi, width, height, 1234567);
-      });
+      }).toThrow();
     });
   });
 
@@ -46,20 +45,20 @@ describe("Texture2D", () => {
       const texture1 = new Texture2D(rhi, 100, 100);
       const texture2 = new Texture2D(rhi, 100, 100, undefined, true);
 
-      assert(texture1.mipmapCount !== 1);
-      assert(texture2.mipmapCount !== 1);
+      expect(texture1.mipmapCount).not.toBe(1);
+      expect(texture2.mipmapCount).not.toBe(1);
     });
     it("关闭 mipmap 成功", () => {
       const texture = new Texture2D(rhi, width, height, undefined, false);
 
-      assert(texture.mipmapCount === 1);
+      expect(texture.mipmapCount).toBe(1);
     });
     it("webgl1 开启 mipmap 失败自动降级 - 非2次幂图片", () => {
       const texture1 = new Texture2D(rhi, 100, 100);
       const texture2 = new Texture2D(rhi, 100, 100, undefined, true);
 
-      assert(texture1.mipmapCount === 1);
-      assert(texture2.mipmapCount === 1);
+      expect(texture1.mipmapCount).toBe(1);
+      expect(texture2.mipmapCount).toBe(1);
     });
   });
 
@@ -95,12 +94,12 @@ describe("Texture2D", () => {
 
   describe("读取颜色缓冲", () => {
     it("异常-无法读取压缩纹理", () => {
-      assert.throws(() => {
+      expect(() => {
         const texture = new Texture2D(rhi, width, height, TextureFormat.ETC2_RGBA8);
         const buffer = new Uint8Array(4);
 
         texture.getPixelBuffer(0, 0, 1, 1, buffer);
-      });
+      }).toThrow();
     });
     it("读取成功", () => {
       const texture = new Texture2D(rhi, width, height);
@@ -108,10 +107,11 @@ describe("Texture2D", () => {
 
       texture.setPixelBuffer(new Uint8Array([1, 2, 3, 4]), 0, 5, 0, 1, 1);
       texture.getPixelBuffer(5, 0, 1, 1, buffer);
-      assert(buffer[0] === 1);
-      assert(buffer[1] === 2);
-      assert(buffer[2] === 3);
-      assert(buffer[3] === 4);
+
+      expect(buffer[0]).toBe(1);
+      expect(buffer[1]).toBe(2);
+      expect(buffer[2]).toBe(3);
+      expect(buffer[3]).toBe(4);
     });
   });
 });

@@ -1,4 +1,3 @@
-import assert from "power-assert";
 import gl from "gl";
 import { RenderDepthTexture } from "../src/RenderDepthTexture";
 import { RenderBufferDepthFormat } from "@alipay/o3-base";
@@ -20,39 +19,39 @@ describe("RenderDepthTexture", () => {
     const texture = new RenderDepthTexture(rhi, width, height);
     const cubeTexture = new RenderDepthTexture(rhi, width, height, undefined, undefined, true);
 
-    assert(texture._isCube == false);
-    assert(cubeTexture._isCube === true);
-    assert.throws(() => {
+    expect(texture._isCube).toBe(false);
+    expect(cubeTexture._isCube).toBe(true);
+    expect(() => {
       new RenderDepthTexture(rhi, 100, 200, undefined, undefined, true);
-    });
+    }).toThrow();
   });
 
   describe("格式测试", () => {
     it("不支持单独生成模版纹理", () => {
-      assert.throws(() => {
+      expect(() => {
         new RenderDepthTexture(rhi, width, height, RenderBufferDepthFormat.Stencil);
-      });
+      }).toThrow();
     });
     it("不支持生成深度纹理", () => {
-      assert.throws(() => {
+      expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
         new RenderDepthTexture(rhi, width, height, RenderBufferDepthFormat.Depth);
-      });
+      }).toThrow();
     });
     it("不支持生成高精度深度纹理", () => {
-      assert.throws(() => {
+      expect(() => {
         new RenderDepthTexture(rhi, width, height, RenderBufferDepthFormat.Depth32);
-      });
+      }).toThrow();
     });
     it("不支持生成高精度深度模版纹理", () => {
-      assert.throws(() => {
+      expect(() => {
         new RenderDepthTexture(rhi, width, height, RenderBufferDepthFormat.Depth32Stencil8);
-      });
+      }).toThrow();
     });
     it("引擎不支持的格式", () => {
-      assert.throws(() => {
+      expect(() => {
         new RenderDepthTexture(rhi, width, height, 1234567);
-      });
+      }).toThrow();
     });
   });
 
@@ -62,18 +61,15 @@ describe("RenderDepthTexture", () => {
       rhi.gl.texStorage2D = function () {};
 
       const texture = new RenderDepthTexture(rhi, 100, 100, undefined, true);
-
-      assert(texture.mipmapCount !== 1);
+      expect(texture.mipmapCount).not.toBe(1);
     });
     it("关闭 mipmap 成功", () => {
       const texture = new RenderDepthTexture(rhi, width, height, undefined, false);
-
-      assert(texture.mipmapCount === 1);
+      expect(texture.mipmapCount).toBe(1);
     });
     it("webgl1 开启 mipmap 失败自动降级 - 非2次幂图片", () => {
       const texture = new RenderDepthTexture(rhi, 100, 100, undefined, true);
-
-      assert(texture.mipmapCount === 1);
+      expect(texture.mipmapCount).toBe(1);
     });
   });
 });

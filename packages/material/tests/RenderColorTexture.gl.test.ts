@@ -1,4 +1,3 @@
-import assert from "power-assert";
 import gl from "gl";
 import { RenderColorTexture } from "../src/RenderColorTexture";
 import { RenderBufferColorFormat } from "@alipay/o3-base";
@@ -19,31 +18,30 @@ describe("RenderColorTexture", () => {
   it("cube", () => {
     const texture = new RenderColorTexture(rhi, width, height);
     const cubeTexture = new RenderColorTexture(rhi, width, height, undefined, undefined, true);
-
-    assert(texture._isCube == false);
-    assert(cubeTexture._isCube === true);
-    assert.throws(() => {
+    expect(texture._isCube).toBe(false);
+    expect(cubeTexture._isCube).toBe(true);
+    expect(() => {
       new RenderColorTexture(rhi, 100, 200, undefined, undefined, true);
-    });
+    }).toThrow();
   });
 
   describe("格式测试", () => {
     it("不支持浮点纹理", () => {
-      assert.throws(() => {
+      expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
         new RenderColorTexture(rhi, width, height, RenderBufferColorFormat.R32G32B32A32);
-      });
+      }).toThrow();
     });
     it("不支持半浮点纹理", () => {
-      assert.throws(() => {
+      expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
         new RenderColorTexture(rhi, width, height, RenderBufferColorFormat.R16G16B16A16);
-      });
+      }).toThrow();
     });
     it("引擎不支持的格式", () => {
-      assert.throws(() => {
+      expect(() => {
         new RenderColorTexture(rhi, width, height, 1234567);
-      });
+      }).toThrow();
     });
   });
 
@@ -53,18 +51,15 @@ describe("RenderColorTexture", () => {
       rhi.gl.texStorage2D = function () {};
 
       const texture = new RenderColorTexture(rhi, 100, 100, undefined, true);
-
-      assert(texture.mipmapCount !== 1);
+      expect(texture.mipmapCount).not.toBe(1);
     });
     it("关闭 mipmap 成功", () => {
       const texture = new RenderColorTexture(rhi, width, height, undefined, false);
-
-      assert(texture.mipmapCount === 1);
+      expect(texture.mipmapCount).toBe(1);
     });
     it("webgl1 开启 mipmap 失败自动降级 - 非2次幂图片", () => {
       const texture = new RenderColorTexture(rhi, 100, 100, undefined, true);
-
-      assert(texture.mipmapCount === 1);
+      expect(texture.mipmapCount).toBe(1);
     });
   });
 });
