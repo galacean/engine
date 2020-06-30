@@ -1,4 +1,5 @@
 import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { Node } from "@alipay/o3-core";
 import { SphereGeometry } from "./Sphere";
 import { CylinderGeometry } from "./Cylinder";
 import { PlaneGeometry } from "./Plane";
@@ -27,7 +28,7 @@ export class Model extends AGeometryRenderer {
     [GeometryType.Box]: CuboidGeometry
   };
 
-  constructor(node, props) {
+  constructor(node: Node, props) {
     super(node, props);
 
     const { geometryType = GeometryType.Box } = props;
