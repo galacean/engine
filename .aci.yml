@@ -12,7 +12,7 @@ beforeScript:
     echo $PATH
     time enclose install tnpm:tnpm
     tnpm -v
-    yum install clang dbus-devel gtk3-devel libnotify-devel libgnome-keyring-devel xorg-x11-server-utils libcap-devel cups-devel libXtst-devel alsa-lib-devel libXrandr-devel nss-devel python-dbusmock openjdk-8-jre
+    yum install -y clang dbus-devel gtk3-devel libnotify-devel libgnome-keyring-devel xorg-x11-server-utils libcap-devel cups-devel libXtst-devel alsa-lib-devel libXrandr-devel nss-devel python-dbusmock openjdk-8-jre
 node-8:
   stage: test
   aciTags: DOCKER
