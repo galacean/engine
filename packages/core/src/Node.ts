@@ -382,7 +382,6 @@ export class Node extends EventDispatcher {
       parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
-    this._inverseWorldMatFlag.destroy();
     Node._nodes.delete(this);
   }
 
