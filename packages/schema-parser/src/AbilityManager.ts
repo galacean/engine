@@ -29,7 +29,9 @@ export class AbilityManager {
     }
 
     for (let k in abilityProps) {
-      ability[k] = abilityProps[k];
+      if (abilityProps[k] !== null) {
+        ability[k] = abilityProps[k];
+      }
     }
 
     const abilityArray = node.abilityArray;

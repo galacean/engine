@@ -16,7 +16,7 @@ export class Script extends NodeAbility {
   _onPostRenderIndex: number = -1;
 
   /**
-   * 脚本第一次触发可用状态时调用,且只调用一次。
+   * 第一次触发可用状态时调用,只调用一次。
    */
   onAwake(): void {}
 
@@ -26,18 +26,18 @@ export class Script extends NodeAbility {
   onEnable(): void {}
 
   /**
-   * 首次调用Update之前调用，且只要调用一次。
+   * 第一次执行帧级循环前调用，只调用一次。
    */
   onStart(): void {}
 
   /**
-   * 更新，在执行引擎逻辑处理之前调用，逐帧调用。
+   * 主更新，在执行内部动画逻辑前调用，逐帧调用。
    * @param deltaTime 间隔时间 @deprecated
    */
   onUpdate(deltaTime: number): void {}
 
   /**
-   * 延迟更新，在执行引擎逻辑处理后调用，逐帧调用。
+   * 延迟更新，在执行内部动画逻辑后调用，逐帧调用。
    */
   onLateUpdate(): void {}
 
@@ -57,7 +57,7 @@ export class Script extends NodeAbility {
   onDisable(): void {}
 
   /**
-   * 在触发销毁的一帧中最后调用。
+   * 在被销毁帧的最后调用。
    */
   onDestroy(): void {}
 
@@ -76,6 +76,10 @@ export class Script extends NodeAbility {
    * @override
    */
   _onEnable(): void {
+    if (!this._started && this.onStart !== Script.prototype.onStart) {
+      this.scene._componentsManager.addOnStartScript(this);
+      this._started = true;
+    }
     this.onEnable();
   }
 
@@ -116,6 +120,7 @@ export class Script extends NodeAbility {
    * @override
    */
   _onInActive(): void {
+    //CM:考虑一下在onUpdate内禁用会否应立即移除，应该不移除才对
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
     if (this.onUpdate !== prototype.onUpdate) {

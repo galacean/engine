@@ -1,4 +1,5 @@
 import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { Node } from "@alipay/o3-core";
 import { SphereGeometry } from "./Sphere";
 import { CylinderGeometry } from "./Cylinder";
 import { PlaneGeometry } from "./Plane";
@@ -27,19 +28,23 @@ export class Model extends AGeometryRenderer {
     [GeometryType.Box]: CuboidGeometry
   };
 
-  constructor(node, props) {
+  constructor(node: Node, props) {
     super(node, props);
 
     const { geometryType = GeometryType.Box } = props;
     if (!props.material) {
-      this.material = new BlinnPhongMaterial("mtl");
+      this._material = new BlinnPhongMaterial("mtl");
     }
     this.geometryType = geometryType;
   }
 
-  set material(mtl) {
+  get material(): any {
+    return this._material;
+  }
+
+  set material(mtl: any) {
     if (!mtl) {
-      this.material = new BlinnPhongMaterial("mtl");
+      this._material = new BlinnPhongMaterial("mtl");
     } else {
       this._material = mtl;
     }
