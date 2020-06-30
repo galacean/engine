@@ -408,10 +408,7 @@ export class Node extends EventDispatcher {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive node' active in hierarchy, if the operation is in main inActive node or it's children script's onDisable Event.";
     }
-    if (this._scene) {
-    } else {
-      this._activeChangedComponents = [];
-    }
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(true);
   }
