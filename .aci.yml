@@ -12,8 +12,7 @@ beforeScript:
     echo $PATH
     time enclose install tnpm:tnpm
     tnpm -v
-    apt-get update -y
-    apt-get install xserver-xorg-dev libxi-dev libxext-dev -y
+    yum install -y install xserver-xorg-dev libxi-dev libxext-dev
 node-8:
   stage: test
   aciTags: DOCKER
@@ -34,7 +33,7 @@ node-8:
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
     archiveArtifacts:
-      artifacts: 'coverage/'
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
@@ -59,7 +58,7 @@ node-10:
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
     archiveArtifacts:
-      artifacts: 'coverage/'
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
@@ -84,7 +83,7 @@ node-12:
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
     archiveArtifacts:
-      artifacts: 'coverage/'
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
