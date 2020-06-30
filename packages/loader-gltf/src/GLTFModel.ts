@@ -17,9 +17,9 @@ export class GLTFModel extends NodeAbility {
 
   set asset(value: GLTFAsset) {
     if (!this._hasBuiltNode) {
-      (this.GLTFNode as any)._children = [];
+      (this.GLTFNode as any).clearChildren();
       if (value !== null) {
-        value.rootScene.nodes.forEach(node => {
+        value.rootScene.nodes.forEach((node) => {
           this.GLTFNode.addChild(node.clone());
         });
       }

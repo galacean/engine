@@ -30,7 +30,9 @@ export class AbilityManager {
 
     for (let k in abilityProps) {
       if (abilityProps[k] !== null) {
-        ability[k] = abilityProps[k];
+        if (ability[k] !== null) {
+          ability[k] = abilityProps[k];
+        }
       }
     }
 
