@@ -21,7 +21,7 @@ export class Model extends AGeometryRenderer {
           sphereAlphaRange,
           sphereThetaStart,
           sphereThetaRange
-        } = this._props;
+        } = this._props as any;
         this.geometry = new SphereGeometry(
           sphereRadius,
           sphereHorizontalSegments,
@@ -41,7 +41,7 @@ export class Model extends AGeometryRenderer {
           cylinderRadialSegments,
           cylinderHeightSegments,
           cylinderOpenEnded
-        } = this._props;
+        } = this._props as any;
         this.geometry = new CylinderGeometry(
           cylinderRadiusTop,
           cylinderRadiusBottom,
@@ -53,12 +53,12 @@ export class Model extends AGeometryRenderer {
         break;
 
       case "Plane":
-        const { planeWidth, planeHeight, planeHorizontalSegments, planeVerticalSegments } = this._props;
+        const { planeWidth, planeHeight, planeHorizontalSegments, planeVerticalSegments } = this._props as any;
         this.geometry = new PlaneGeometry(planeWidth, planeHeight, planeHorizontalSegments, planeVerticalSegments);
         break;
 
       case "Box":
-        var { boxWidth, boxHeight, boxDepth } = this._props;
+        var { boxWidth, boxHeight, boxDepth } = this._props as any;
         this.geometry = new CuboidGeometry(boxWidth, boxHeight, boxDepth);
         break;
     }
