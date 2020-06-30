@@ -1,4 +1,4 @@
-import { Node, Script, Engine, Scene } from "@alipay/o3-core";
+import { Node, Script, Engine, Scene } from "../src/index";
 
 describe("Script", () => {
   let engine = null;

@@ -1,6 +1,7 @@
-import { Node, Engine, Scene } from "@alipay/o3-core";
+import { Node, Engine, Scene, NodeAbility } from "../src/index";
 import { quat, mat4, vec3 } from "@alipay/o3-math";
-import { ABoxCollider } from "@alipay/o3-collider";
+
+class TestComponent extends NodeAbility {}
 
 describe("Node test", function () {
   it("case", () => {});
@@ -233,15 +234,15 @@ describe("Node", () => {
   describe("component", () => {
     it("addComponent getComponent", () => {
       const node = new Node(scene, scene.root, "node");
-      const component = node.addComponent(ABoxCollider);
-      expect(node.getComponent(ABoxCollider)).toBe(component);
+      const component = node.addComponent(TestComponent);
+      expect(node.getComponent(TestComponent)).toBe(component);
     });
 
     it("addComponent getComponents", () => {
       const node = new Node(scene, scene.root, "node");
-      const component = node.addComponent(ABoxCollider);
+      const component = node.addComponent(TestComponent);
       const res = [];
-      node.getComponents(ABoxCollider, res);
+      node.getComponents(TestComponent, res);
       expect(res[0]).toBe(component);
     });
   });

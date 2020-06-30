@@ -209,7 +209,7 @@ export class Node extends EventDispatcher {
    * 根据组件类型添加组件。
    * @returns	组件实例
    */
-  addComponent<T extends Component>(type: new (node: Node, props?: object) => T, props: object = {}): T {
+  addComponent<T extends Component>(type: new (node: any, props?: object) => T, props: object = {}): T {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, props);
     this._components.push(component);
