@@ -1,9 +1,8 @@
 import { Event, EventDispatcher, MaskList } from "@alipay/o3-base";
-import { Node } from "./Node";
-import { Engine } from "./Engine";
-import { Scene } from "./Scene";
 import { Matrix4 } from "@alipay/o3-math/types/type";
-import { ComponentsDependencies } from "./ComponentsDependencies";
+import { Engine } from "./Engine";
+import { Node } from "./Node";
+import { Scene } from "./Scene";
 
 /**
  * TODO:命名暂时保留兼容性，未来替换为Component
@@ -14,6 +13,8 @@ export abstract class NodeAbility extends EventDispatcher {
   _node: Node;
   /* @internal */
   _destroyed: boolean = false;
+  /* @internal */
+  _onStartIndex: number = -1;
   /* @internal */
   _onUpdateIndex: number = -1;
   /* @internal */
@@ -93,31 +94,36 @@ export abstract class NodeAbility extends EventDispatcher {
   _onAwake(): void {}
 
   _onEnable(): void {
-    if (!this._started && this.onStart !== NodeAbility.prototype.onStart) {
-      this.scene._componentsManager.addOnStartScript(this as any);
-      this._started = true;
+    const componentsManager = this.scene._componentsManager;
+    const prototype = NodeAbility.prototype;
+    if (!this._started && this.onStart !== prototype.onStart) {
+      componentsManager.addOnStartScript(this as any);
     }
-  }
-
-  _onDisable(): void {}
-
-  _onDestroy(): void {}
-
-  _onActive(): void {
     if (this._overrideOnUpdate || this._overrideUpdate) {
       //@deprecated 兼容
       if (this._overrideUpdate) {
         this.onUpdate = this.update;
       }
-      this.scene._componentsManager.addOnUpdateComponent(this);
+      componentsManager.addOnUpdateComponent(this);
     }
   }
 
-  _onInActive(): void {
+  _onDisable(): void {
+    const componentsManager = this.scene._componentsManager;
+    const prototype = NodeAbility.prototype;
+    if (!this._started && this.onStart !== prototype.onStart) {
+      componentsManager.removeOnStartScript(this as any);
+    }
     if (this._overrideOnUpdate || this._overrideUpdate) {
-      this.scene._componentsManager.removeOnUpdateComponent(this);
+      componentsManager.removeOnUpdateComponent(this);
     }
   }
+
+  _onDestroy(): void {}
+
+  _onActive(): void {}
+
+  _onInActive(): void {}
 
   /**
    * @internal
