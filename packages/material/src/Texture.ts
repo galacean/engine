@@ -154,7 +154,9 @@ export abstract class Texture extends AssetObject {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _getRenderBufferColorFormatDetail(
     format: RenderBufferColorFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
@@ -296,7 +298,9 @@ export abstract class Texture extends AssetObject {
     return isSupported;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _supportRenderBufferColorFormat(format: RenderBufferColorFormat, rhi): boolean {
     let isSupported = true;
 
@@ -320,7 +324,9 @@ export abstract class Texture extends AssetObject {
     return isSupported;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi, isTexture: boolean): boolean {
     const isWebGL2: boolean = rhi.isWebGL2;
     let isSupported = true;
@@ -356,6 +362,7 @@ export abstract class Texture extends AssetObject {
   }
 
   public _glTexture: WebGLTexture;
+
   /** @internal */
   public _formatDetail: TextureFormatDetail;
 
@@ -377,14 +384,14 @@ export abstract class Texture extends AssetObject {
   private _anisoLevel: number = 0;
 
   /**
-   * 宽。
+   * 纹理宽。
    */
   get width(): number {
     return this._width;
   }
 
   /**
-   * 高。
+   * 纹理高。
    */
   get height(): number {
     return this._height;
@@ -429,7 +436,7 @@ export abstract class Texture extends AssetObject {
   }
 
   /**
-   * 分级纹理的数量。
+   * 多级纹理的数量。
    */
   get mipmapCount(): number {
     return this._mipmapCount;
@@ -540,7 +547,7 @@ export abstract class Texture extends AssetObject {
    * @param height - 区域高
    * @param out - 颜色数据缓冲
    */
-  protected _getPixelsBuffer(
+  protected _getPixelBuffer(
     face: TextureCubeFace | null,
     x: number,
     y: number,

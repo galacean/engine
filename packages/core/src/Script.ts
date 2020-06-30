@@ -16,49 +16,49 @@ export class Script extends NodeAbility {
   _onPostRenderIndex: number = -1;
 
   /**
-   * 脚本第一次被激活时调用,而且只调用一次。
+   * 第一次触发可用状态时调用,只调用一次。
    */
   onAwake(): void {}
 
   /**
-   * 当节点触发为活动状态时调用。
+   * 触发为可用状态时调用。
    */
   onEnable(): void {}
 
   /**
-   * 首次调用Update之前调用。
+   * 第一次执行帧级循环前调用，只调用一次。
    * 必须重写onUpdate才会调用
    */
   onStart(): void {}
 
   /**
-   * 更新，在执行引擎逻辑处理之前调用，逐帧调用。
+   * 主更新，在执行内部动画逻辑前调用，逐帧调用。
    * @param deltaTime 间隔时间 @deprecated
    */
   onUpdate(deltaTime: number): void {}
 
   /**
-   * 延迟更新，在执行引擎逻辑处理后调用，逐帧调用。
+   * 延迟更新，在执行内部动画逻辑后调用，逐帧调用。
    */
   onLateUpdate(): void {}
 
   /**
-   * 相机渲染前调用。
+   * 相机渲染前调用，逐相机调用。
    */
   onPreRender(): void {}
 
   /**
-   * 相机完成渲染后调用。
+   * 相机完成渲染后调用，逐相机调用。
    */
   onPostRender(): void {}
 
   /**
-   * 当节点触发为非活动状态时调用。
+   * 触发为禁用状态时调用。
    */
   onDisable(): void {}
 
   /**
-   * 销毁时调用。
+   * 在被销毁帧的最后调用。
    */
   onDestroy(): void {}
 
@@ -77,6 +77,10 @@ export class Script extends NodeAbility {
    * @override
    */
   _onEnable(): void {
+    if (!this._started && this.onStart !== Script.prototype.onStart) {
+      this.scene._componentsManager.addOnStartScript(this);
+      this._started = true;
+    }
     this.onEnable();
   }
 
@@ -117,6 +121,7 @@ export class Script extends NodeAbility {
    * @override
    */
   _onInActive(): void {
+    //CM:考虑一下在onUpdate内禁用会否应立即移除，应该不移除才对
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
     if (this.onUpdate !== prototype.onUpdate) {

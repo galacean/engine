@@ -2,45 +2,11 @@ import { vec3, quat, mat4, vec4, mat3, MathUtil } from "@alipay/o3-math";
 import { Vector3, Vector4, Matrix4, Matrix3 } from "@alipay/o3-math/types/type";
 import { Node } from "./Node";
 import { NodeAbility } from "./NodeAbility";
+import { UpdateFlag } from "./UpdateFlag";
 
 /**
- * 世界矩阵改变标记。
+ * 用于实现变换相关功能。
  */
-export class WorldChangeFlag {
-  private _flag = true;
-  constructor(private _flags = []) {}
-  /**
-   * 获取标记。
-   */
-  get(): boolean {
-    return this._flag;
-  }
-
-  /**
-   * 设置标记。
-   * @param value 标记值
-   */
-  set(value: boolean): void {
-    this._flag = value;
-  }
-
-  /**
-   * 销毁标记。
-   */
-  destroy(): void {
-    const flags = this._flags;
-    const index = flags.indexOf(this);
-    const last = flags.length - 1;
-    if (index !== last) {
-      const end = flags[last];
-      flags[index] = end;
-    }
-    flags.length--;
-    this._flags = null;
-  }
-}
-//CM:Vector3、Vector4、Matrix3、Matrix4类型更换
-//CM:相关get方法修改为ReadOnly<T>类型
 export class Transform extends NodeAbility {
   // Temp
   private static _tempVec3: Vector3 = vec3.create();
@@ -125,7 +91,7 @@ export class Transform extends NodeAbility {
   private _worldMatrix: Matrix4 = mat4.create();
 
   private _dirtyFlag: number = 0;
-  private _changeFlags: WorldChangeFlag[] = [];
+  private _changeFlags: UpdateFlag[] = [];
 
   /**
    * 是否往上查父节点。
@@ -288,7 +254,7 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 世界缩放。
+   * 世界有损缩放。
    */
   get lossyWorldScale(): Readonly<Vector3> {
     if (this._getDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
@@ -451,12 +417,13 @@ export class Transform extends NodeAbility {
     const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp); //CM:可采用3x3矩阵优化
     this.worldRotationQuaternion = mat4.getRotation(Transform._tempVec40, modelMatrix); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
   }
+
   /**
-   * 注册 Transform WorldlMatrix 修改标记。
-   * @returns 世界修改标记
+   * 注册世界相关变换改变标记。
+   * @returns 改变标记
    */
-  registerWorldChangeFlag(): WorldChangeFlag {
-    const flag = new WorldChangeFlag(this._changeFlags);
+  registerWorldChangeFlag(): UpdateFlag {
+    const flag = new UpdateFlag(this._changeFlags);
     this._changeFlags.push(flag);
     return flag;
   }
@@ -633,7 +600,7 @@ export class Transform extends NodeAbility {
     this._dirtyFlag |= type;
     const len = this._changeFlags.length;
     for (let i = len - 1; i >= 0; i--) {
-      this._changeFlags[i].set(true);
+      this._changeFlags[i].flag = true;
     }
   }
 

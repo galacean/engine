@@ -162,7 +162,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
       for (let i = joints.length - 1; i >= 0; i--) {
         mat4.identity(mat);
         if (joints[i]) {
-          mat4.multiply(mat, joints[i].getModelMatrix(), ibms[i]);
+          mat4.multiply(mat, joints[i].transform.worldMatrix, ibms[i]);
         } else {
           mat4.copy(mat, ibms[i]);
         }

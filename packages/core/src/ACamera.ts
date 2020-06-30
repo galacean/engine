@@ -323,9 +323,6 @@ export class ACamera extends NodeAbility {
   public update(deltaTime: number): void {
     super.update(deltaTime);
 
-    // make sure update directions
-    this.node.getModelMatrix();
-
     vec3.copy(vec3Cache, this._node.forward);
     if (this.leftHand) {
       vec3.scale(vec3Cache, vec3Cache, -1);

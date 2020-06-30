@@ -21,11 +21,19 @@ export class AbilityManager {
       o3.Logger.error(`${type} abiltiy is not defined`);
       return;
     }
-    const ability = node.createAbility(AbilityConstructor, this.mixPropsToExplicitProps(props));
-    const { enabled } = props;
+    const abilityProps = this.mixPropsToExplicitProps(props);
+    const ability = node.createAbility(AbilityConstructor, abilityProps);
+    const { enabled } = abilityProps;
     if (enabled !== undefined) {
       ability.enabled = enabled;
     }
+
+    for (let k in abilityProps) {
+      if (abilityProps[k] !== null) {
+        ability[k] = abilityProps[k];
+      }
+    }
+
     const abilityArray = node.abilityArray;
     const currentIndex = abilityArray.length - 1;
     switchElementsIndex(abilityArray, currentIndex, index);

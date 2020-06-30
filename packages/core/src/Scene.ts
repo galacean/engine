@@ -94,6 +94,7 @@ export class Scene extends EventDispatcher {
    */
   public update(deltaTime: number): void {
     sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
+    this._componentsManager.callScriptOnStart();
     this._componentsManager.callScriptOnUpdate(deltaTime);
     this._componentsManager.callComponentOnUpdate(deltaTime);
     this._componentsManager.callAnimationUpdate(deltaTime);
@@ -107,6 +108,7 @@ export class Scene extends EventDispatcher {
   public render(): void {
     const cameras = this._activeCameras;
     const deltaTime = this._engine.time.deltaTime;
+    this._componentsManager.callRendererOnUpdate(deltaTime);
     if (cameras.length > 0) {
       // 针对 priority 进行排序
       //@ts-ignore
@@ -115,7 +117,6 @@ export class Scene extends EventDispatcher {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          this._componentsManager.callRendererOnUpdate(deltaTime);
           this._componentsManager.callScriptOnPreRender();
           sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();

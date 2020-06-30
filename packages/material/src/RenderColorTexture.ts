@@ -26,7 +26,7 @@ export class RenderColorTexture extends Texture {
   }
 
   /**
-   * 自动生成多级纹理。
+   * 是否自动生成多级纹理。
    */
   get autoGenerateMipmaps(): boolean {
     return this._autoMipmap;
@@ -94,15 +94,15 @@ export class RenderColorTexture extends Texture {
   }
 
   /**
-   * 根据指定区域获得像素颜色缓冲。
+   * 根据立方体面和指定区域获得颜色像素缓冲。
    * @param face - 如果是立方体纹理，可以选择读取第几个面;立方体纹理读取面，isCube=true时生效
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    * @param width - 区域宽
    * @param height - 区域高
-   * @param out - 颜色数据缓冲
+   * @param out - 颜色像素缓冲
    */
-  public getPixelsBuffer(
+  public getPixelBuffer(
     face: TextureCubeFace | null,
     x: number,
     y: number,
@@ -110,6 +110,6 @@ export class RenderColorTexture extends Texture {
     height: number,
     out: ArrayBufferView
   ): void {
-    super._getPixelsBuffer(face, x, y, width, height, out);
+    super._getPixelBuffer(face, x, y, width, height, out);
   }
 }

@@ -103,7 +103,7 @@ describe("TextureCubeMap", () => {
         const texture = new TextureCubeMap(rhi, size, TextureFormat.ETC2_RGBA8);
         const buffer = new Uint8Array(4);
 
-        texture.getPixelsBuffer(TextureCubeFace.PositiveX, 0, 0, 1, 1, buffer);
+        texture.getPixelBuffer(TextureCubeFace.PositiveX, 0, 0, 1, 1, buffer);
       });
     });
     it("读取成功", () => {
@@ -117,32 +117,32 @@ describe("TextureCubeMap", () => {
       texture.setPixelBuffer(TextureCubeFace.PositiveZ, new Uint8Array([5, 5, 5, 5]), 0, 0, 0, 1, 1);
       texture.setPixelBuffer(TextureCubeFace.NegativeZ, new Uint8Array([6, 6, 6, 6]), 0, 0, 0, 1, 1);
 
-      texture.getPixelsBuffer(TextureCubeFace.PositiveX, 0, 0, 1, 1, buffer);
+      texture.getPixelBuffer(TextureCubeFace.PositiveX, 0, 0, 1, 1, buffer);
       assert(buffer[0] === 1);
       assert(buffer[1] === 1);
       assert(buffer[2] === 1);
       assert(buffer[3] === 1);
-      texture.getPixelsBuffer(TextureCubeFace.NegativeX, 0, 0, 1, 1, buffer);
+      texture.getPixelBuffer(TextureCubeFace.NegativeX, 0, 0, 1, 1, buffer);
       assert(buffer[0] === 2);
       assert(buffer[1] === 2);
       assert(buffer[2] === 2);
       assert(buffer[3] === 2);
-      texture.getPixelsBuffer(TextureCubeFace.PositiveY, 0, 0, 1, 1, buffer);
+      texture.getPixelBuffer(TextureCubeFace.PositiveY, 0, 0, 1, 1, buffer);
       assert(buffer[0] === 3);
       assert(buffer[1] === 3);
       assert(buffer[2] === 3);
       assert(buffer[3] === 3);
-      texture.getPixelsBuffer(TextureCubeFace.NegativeY, 0, 0, 1, 1, buffer);
+      texture.getPixelBuffer(TextureCubeFace.NegativeY, 0, 0, 1, 1, buffer);
       assert(buffer[0] === 4);
       assert(buffer[1] === 4);
       assert(buffer[2] === 4);
       assert(buffer[3] === 4);
-      texture.getPixelsBuffer(TextureCubeFace.PositiveZ, 0, 0, 1, 1, buffer);
+      texture.getPixelBuffer(TextureCubeFace.PositiveZ, 0, 0, 1, 1, buffer);
       assert(buffer[0] === 5);
       assert(buffer[1] === 5);
       assert(buffer[2] === 5);
       assert(buffer[3] === 5);
-      texture.getPixelsBuffer(TextureCubeFace.NegativeZ, 0, 0, 1, 1, buffer);
+      texture.getPixelBuffer(TextureCubeFace.NegativeZ, 0, 0, 1, 1, buffer);
       assert(buffer[0] === 6);
       assert(buffer[1] === 6);
       assert(buffer[2] === 6);
