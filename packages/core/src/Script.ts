@@ -7,6 +7,8 @@ export class Script extends NodeAbility {
   /* @internal */
   _started: boolean = false;
   /* @internal */
+  _onStartIndex: number = -1;
+  /* @internal */
   _onUpdateIndex: number = -1;
   /* @internal */
   _onLateUpdateIndex: number = -1;
@@ -76,30 +78,11 @@ export class Script extends NodeAbility {
    * @override
    */
   _onEnable(): void {
-    if (!this._started && this.onStart !== Script.prototype.onStart) {
-      this.scene._componentsManager.addOnStartScript(this);
-      this._started = true;
-    }
-    this.onEnable();
-  }
-
-  /**
-   * @internal
-   * @inheritDoc
-   * @override
-   */
-  _onDisable(): void {
-    this.onDisable();
-  }
-
-  /**
-   * @internal
-   * @inheritDoc
-   * @override
-   */
-  _onActive(): void {
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
+    if (!this._started && this.onStart !== prototype.onStart) {
+      componentsManager.addOnStartScript(this);
+    }
     if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.addOnUpdateScript(this);
     }
@@ -112,6 +95,7 @@ export class Script extends NodeAbility {
     if (this.onPostRender !== prototype.onPostRender) {
       componentsManager.addOnPostRenderScript(this);
     }
+    this.onEnable();
   }
 
   /**
@@ -119,10 +103,12 @@ export class Script extends NodeAbility {
    * @inheritDoc
    * @override
    */
-  _onInActive(): void {
-    //CM:考虑一下在onUpdate内禁用会否应立即移除，应该不移除才对
+  _onDisable(): void {
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
+    if (!this._started && this.onStart !== prototype.onStart) {
+      componentsManager.removeOnStartScript(this);
+    }
     if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.removeOnUpdateScript(this);
     }
@@ -135,6 +121,7 @@ export class Script extends NodeAbility {
     if (this.onPostRender !== prototype.onPostRender) {
       componentsManager.removeOnPostRenderScript(this);
     }
+    this.onDisable();
   }
 
   /**
