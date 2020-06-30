@@ -12,7 +12,7 @@ beforeScript:
     echo $PATH
     time enclose install tnpm:tnpm
     tnpm -v
-    yum install -y install xserver-xorg-dev libxi-dev libxext-dev
+    yum install -y install xorg-x11-server-devel.x86_64 libXi.x86_64 libXext.x86_64
 node-8:
   stage: test
   aciTags: DOCKER
