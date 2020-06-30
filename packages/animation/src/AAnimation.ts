@@ -422,7 +422,7 @@ export class AAnimation extends NodeAbility {
    * @override
    * @internal
    */
-  _onActive(): void {
+  _onEnable(): void {
     this.scene._componentsManager.addOnUpdateAnimations(this);
   }
 
@@ -431,7 +431,7 @@ export class AAnimation extends NodeAbility {
    * @override
    * @internal
    */
-  _onInActive(): void {
+  _onDisable(): void {
     this.scene._componentsManager.removeOnUpdateAnimations(this);
   }
 }
