@@ -31,7 +31,7 @@ node-8:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
+    archiveArtifacts:
       artifacts: 'coverage/'
       allowEmptyArchive: true
     html:
@@ -56,7 +56,7 @@ node-10:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
+    archiveArtifacts:
       artifacts: 'coverage/'
       allowEmptyArchive: true
     html:
@@ -81,7 +81,7 @@ node-12:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
+    archiveArtifacts:
       artifacts: 'coverage/'
       allowEmptyArchive: true
     html:

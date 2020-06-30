@@ -187,7 +187,8 @@ export class ComponentsManager {
     const length = onStartScripts.length;
     if (length > 0) {
       for (let i = length - 1; i >= 0; --i) {
-        onStartScripts[i].onStart();
+        const script = onStartScripts[i];
+        if (script?.node._isActiveInHierarchy && script.enabled) script.onStart();
       }
       onStartScripts.length = 0;
     }
