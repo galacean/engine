@@ -12,7 +12,6 @@ beforeScript:
     echo $PATH
     time enclose install tnpm:tnpm
     tnpm -v
-    yum install -y xvfb
 node-8:
   stage: test
   aciTags: DOCKER
@@ -75,8 +74,6 @@ node-12:
         ephemeral-storage: 30
   script:
     - |
-      export DISPLAY=':99.0'
-      Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
       export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
       time tnpm i --install-node=12 --no-cache --internal-oss-cache
       node -e "console.log('%j, %j', process.versions, process.execPath)"
