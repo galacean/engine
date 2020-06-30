@@ -27,7 +27,6 @@ export class Script extends NodeAbility {
 
   /**
    * 第一次执行帧级循环前调用，只调用一次。
-   * 必须重写onUpdate才会调用
    */
   onStart(): void {}
 

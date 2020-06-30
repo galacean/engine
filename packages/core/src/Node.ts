@@ -161,11 +161,11 @@ export class Node extends EventDispatcher {
           this._isActiveInHierarchy && this._processInActive();
         }
       } else {
+        this._isActiveInHierarchy && this._processInActive();
         if (oldParent) {
           this._scene = null;
           Node._traverseSetOwnerScene(this, null);
         }
-        this._isActiveInHierarchy && this._processInActive();
       }
     }
     this._setTransformDirty();
@@ -201,6 +201,7 @@ export class Node extends EventDispatcher {
     this.parent = parent;
     this.isActive = true;
     this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
+    this.transform = this.addComponent(Transform);
   }
 
   /**
@@ -399,9 +400,7 @@ export class Node extends EventDispatcher {
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
       activeChangedComponents[i]._setActive(isActive);
     }
-    if (this.scene) {
-      this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
-    }
+    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
     this._activeChangedComponents = null;
   }
 
@@ -410,7 +409,6 @@ export class Node extends EventDispatcher {
       throw "Note: can't set the 'main inActive node' active in hierarchy, if the operation is in main inActive node or it's children script's onDisable Event.";
     }
     if (this._scene) {
-      this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     } else {
       this._activeChangedComponents = [];
     }
@@ -422,11 +420,7 @@ export class Node extends EventDispatcher {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active node' inActive in hierarchy, if the operation is in main active node or it's children script's onEnable Event.";
     }
-    if (this._scene) {
-      this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
-    } else {
-      this._activeChangedComponents = [];
-    }
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(false);
   }
