@@ -33,13 +33,13 @@ export class Script extends NodeAbility {
   onStart(): void {}
 
   /**
-   * 主更新，在执行内部动画逻辑前调用，逐帧调用。
+   * 主更新，逐帧调用。
    * @param deltaTime 间隔时间 @deprecated
    */
   onUpdate(deltaTime: number): void {}
 
   /**
-   * 延迟更新，在执行内部动画逻辑后调用，逐帧调用。
+   * 延迟更新，逐帧调用。
    */
   onLateUpdate(): void {}
 
