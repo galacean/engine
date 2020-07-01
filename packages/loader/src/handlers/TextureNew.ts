@@ -8,7 +8,7 @@ import { Resource } from "../Resource";
  */
 export class TextureNewHandler {
   load(request: Request, props: Prop, callback: HandlerCb) {
-    request.load(props.handlerType, props, function(err, img) {
+    request.load(props.handlerType, props, function (err, img) {
       if (!err) {
         callback(null, img);
       } else {
@@ -18,9 +18,10 @@ export class TextureNewHandler {
   }
 
   open(resource: Resource, rhi) {
-    const { data } = resource;
+    const { data, name } = resource;
     const { width, height } = data;
     const tex = new Texture2D(rhi, width, height);
+    tex.name = name;
 
     if (!tex._glTexture) return;
 
