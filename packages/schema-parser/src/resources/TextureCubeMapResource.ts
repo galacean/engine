@@ -34,7 +34,7 @@ export class TextureCubeMapResource extends SchemaResource {
               }
             }
             resource = new o3.Resource(assetConfig.name, {
-              type: compression.container,
+              type: "ktxNew",
               urls: imageUrls
             });
             break;
@@ -49,7 +49,7 @@ export class TextureCubeMapResource extends SchemaResource {
           }
         }
         resource = new o3.Resource(assetConfig.name, {
-          type: "cubemap",
+          type: "cubemapNew",
           urls: imageUrls
         });
       }
