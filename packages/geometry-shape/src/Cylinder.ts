@@ -35,9 +35,9 @@ export class CylinderGeometry extends BufferGeometry {
     radialSegments,
     heightSegments,
     openEnded,
-    thetaStart,
-    thetaLength,
-    frontFace
+    thetaStart?,
+    thetaLength?,
+    frontFace?
   ) {
     super();
     this.FrontFace = frontFace || FrontFace.CCW;
