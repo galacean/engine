@@ -12,8 +12,6 @@ export class ComponentsManager {
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onPreRenderScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onPostRenderScripts: DisorderedArray<Script> = new DisorderedArray();
   private _destoryComponents: Script[] = [];
 
   // Animation
@@ -68,28 +66,6 @@ export class ComponentsManager {
     const replaced = this._onLateUpdateScripts.deleteByIndex(script._onLateUpdateIndex);
     replaced && (replaced._onLateUpdateIndex = script._onLateUpdateIndex);
     script._onLateUpdateIndex = -1;
-  }
-
-  addOnPreRenderScript(script: Script): void {
-    script._onPreRenderIndex = this._onPreRenderScripts.length;
-    this._onPreRenderScripts.add(script);
-  }
-
-  removeOnPreRenderScript(script: Script): void {
-    const replaced = this._onPreRenderScripts.deleteByIndex(script._onPreRenderIndex);
-    replaced && (replaced._onPreRenderIndex = script._onPreRenderIndex);
-    script._onPreRenderIndex = -1;
-  }
-
-  addOnPostRenderScript(script: Script): void {
-    script._onPostRenderIndex = this._onPreRenderScripts.length;
-    this._onPostRenderScripts.add(script);
-  }
-
-  removeOnPostRenderScript(script: Script): void {
-    const replaced = this._onPostRenderScripts.deleteByIndex(script._onPostRenderIndex);
-    replaced && (replaced._onPostRenderIndex = script._onPostRenderIndex);
-    script._onPostRenderIndex = -1;
   }
 
   addOnUpdateAnimations(animation: Component): void {
@@ -149,20 +125,6 @@ export class ComponentsManager {
       if (element._started) {
         element.onLateUpdate();
       }
-    }
-  }
-
-  callScriptOnPreRender(): void {
-    const elements = this._onPreRenderScripts._elements;
-    for (let i = this._onPreRenderScripts.length - 1; i >= 0; --i) {
-      elements[i].onPreRender();
-    }
-  }
-
-  callScriptOnPostRender(): void {
-    const elements = this._onPostRenderScripts._elements;
-    for (let i = this._onPostRenderScripts.length - 1; i >= 0; --i) {
-      elements[i].onPostRender();
     }
   }
 
