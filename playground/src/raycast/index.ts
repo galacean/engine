@@ -1,6 +1,7 @@
-import { vec3, vec4 } from "@alipay/o3-math";
+import { vec3, vec4, vec2 } from "@alipay/o3-math";
 import { Engine } from "@alipay/o3-core";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
+import { Camera } from "@alipay/o3-default-camera";
 import { AGeometryRenderer } from "@alipay/o3-geometry";
 import { SphereGeometry, CuboidGeometry } from "@alipay/o3-geometry-shape";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
@@ -52,16 +53,20 @@ boxCollider.setBoxCenterSize([0, 0, 0], [cubeSize, cubeSize, cubeSize]);
 
 //-- create camera
 let cameraNode = rootNode.createChild("CameraNode");
-let camera = cameraNode.createAbility(ADefaultCamera, {
+let camera = cameraNode.createAbility(Camera, {
   canvas: "o3-demo",
   position: [0, 5, 17],
   target: [0, 0, 0]
 });
 
 //-- input
-document.getElementById("o3-demo").addEventListener("click", e => {
-  let ray = camera.screenPointToRay(e.offsetX, e.offsetY);
-  let pos: any = vec3.create();
+const position = vec2.create();
+const ray = { origin: vec3.create(), direction: vec3.create() };
+document.getElementById("o3-demo").addEventListener("click", (e) => {
+  vec2.set(position, e.offsetX / e.target.clientWidth, e.offsetY / e.target.clientHeight);
+  console.log(position);
+  camera.viewportPointToRay(position, ray);
+  let pos = vec3.create();
   let collider = scene.raycast(ray, pos, MaskList.MASK1 | MaskList.MASK2);
 
   // change color of pick node
@@ -77,7 +82,8 @@ document.getElementById("o3-demo").addEventListener("click", e => {
       sphereMtl.emission = COLOR_RED;
     }
 
-    console.log(pos);
+    console.log(collider.node);
+    // console.log(pos);
   }
 });
 

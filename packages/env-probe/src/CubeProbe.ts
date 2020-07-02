@@ -133,7 +133,12 @@ export class CubeProbe extends Probe {
   }
 
   public set size(size: number) {
-    this.renderTarget.width = this.renderTargetSwap.width = this.renderTarget.height = this.renderTargetSwap.height = size;
-    this.renderTarget.needRecreate = this.renderTargetSwap.needRecreate = true;
+    //todo:delete
+    if (this._isNew) return;
+    const renderTarget: any = this.renderTarget;
+    const renderTargetSwap: any = this.renderTargetSwap;
+
+    renderTarget.width = renderTargetSwap.width = renderTarget.height = renderTargetSwap.height = size;
+    renderTarget.needRecreate = renderTargetSwap.needRecreate = true;
   }
 }

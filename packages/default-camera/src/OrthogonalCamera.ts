@@ -1,7 +1,7 @@
 import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 import { Node } from "@alipay/o3-core";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
-import { Camera } from "./Camera";
+import { OldCamera } from "./OldCamera";
 import { ClearMode } from "@alipay/o3-base";
 
 interface Props {
@@ -24,7 +24,7 @@ interface Props {
  * @alias OrthographicCamera
  * @constructor
  */
-export class OrthographicCamera extends Camera {
+export class OrthographicCamera extends OldCamera {
   public canvas: HTMLCanvasElement;
   /**
    * 相机近裁剪面

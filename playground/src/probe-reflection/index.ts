@@ -11,10 +11,12 @@ import { AAmbientLight, ADirectLight, APointLight, ASpotLight, AEnvironmentMapLi
 import * as dat from "dat.gui";
 import "@alipay/o3-engine-stats";
 import { Mesh, AMeshRenderer } from "@alipay/o3-mesh";
+import { Logger } from "@alipay/o3-base";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { CubeProbe } from "@alipay/o3-env-probe";
 import { MoveAbility } from "./MoveAbility";
 
+Logger.enable();
 RegistExtension({ PBRMaterial });
 const gui = new dat.GUI();
 const engine = new Engine();
@@ -79,7 +81,7 @@ function load(modelUrl, onLoad) {
     skybox = rootNode.createAbility(ASkyBox, { skyBoxMap: reses[1].asset });
     const gltf = reses[0].asset;
     const modelNode = rootNode.createChild("modelNode");
-    gltf.rootScene.nodes.forEach(n => modelNode.addChild(n));
+    gltf.rootScene.nodes.forEach((n) => modelNode.addChild(n));
     onLoad && onLoad(reses);
   });
 }
@@ -118,27 +120,26 @@ function reflectionDemo() {
   });
   const aMove3 = sphere3.createAbility(MoveAbility, {
     onZ: () => 0,
-    onX: time => Math.sin(time + 2) * 5,
-    onY: time => Math.cos(time + 2) * 5
+    onX: (time) => Math.sin(time + 2) * 5,
+    onY: (time) => Math.cos(time + 2) * 5
   });
 
-  const probe = rootNode.createAbility(CubeProbe, {
+  let probe = rootNode.createAbility(CubeProbe, {
     // renderAll: true
     renderList: [sphere1Mat, sphere2Mat, sphere3Mat, skybox.material]
   });
-  probe.onTextureChange = cubeTexture => {
-    envLight.specularMap = cubeTexture;
-  };
+  envLight.specularMap = probe.cubeTexture;
 
   // debug
   const state = {
     enableAnimate: true,
     enableProbe: true,
-    size: 1024
+    size: 1024,
+    samples: 1
   };
   gui
     .add(state, "enableAnimate")
-    .onChange(v => {
+    .onChange((v) => {
       aMove1.enabled = v;
       aMove2.enabled = v;
       aMove3.enabled = v;
@@ -146,14 +147,21 @@ function reflectionDemo() {
     .name("动画开关");
   gui
     .add(state, "enableProbe")
-    .onChange(v => {
+    .onChange((v) => {
       probe.enabled = v;
     })
     .name("动态反射开关");
   gui
     .add(state, "size", 1, 2048)
-    .onChange(size => {
-      probe.size = size;
+    .onChange((size) => {
+      probe.destroy();
+      probe = rootNode.createAbility(CubeProbe, {
+        // renderAll: true
+        width: size,
+        height: size,
+        renderList: [sphere1Mat, sphere2Mat, sphere3Mat, skybox.material]
+      });
+      envLight.specularMap = probe.cubeTexture;
     })
     .name("分辨率");
 
@@ -163,7 +171,20 @@ function reflectionDemo() {
     alert("本案例需要 WebGL2 支持");
   } else {
     const max = gl.getParameter(gl.MAX_SAMPLES);
-    gui.add(probe, "samples", 0, max, 1).name("MSAA");
+    gui
+      .add(state, "samples", 0, max, 1)
+      .name("MSAA")
+      .onChange((samples) => {
+        probe.destroy();
+        probe = rootNode.createAbility(CubeProbe, {
+          // renderAll: true
+          width: state.size,
+          height: state.size,
+          samples,
+          renderList: [sphere1Mat, sphere2Mat, sphere3Mat, skybox.material]
+        });
+        envLight.specularMap = probe.cubeTexture;
+      });
   }
 }
 

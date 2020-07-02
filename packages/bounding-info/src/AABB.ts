@@ -1,40 +1,40 @@
 import { vec3 } from "@alipay/o3-math";
 import { IntersectInfo } from "@alipay/o3-base";
-import { Vec3, Vec4 } from "@alipay/o3-math/types/type";
+import { Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { pointDistanceToPlane } from "./util";
 
 /**
  * 轴对齐的包围盒(Axis Aligned Bound Box)
  * */
 export class AABB {
-  public min: Vec3 = vec3.create();
-  public max: Vec3 = vec3.create();
+  public min: Vector3 = vec3.create();
+  public max: Vector3 = vec3.create();
 
   /**
    * AABB 的 min/max 基于世界坐标系，且不能通过 modelMatrix 缓存计算
-   * @param {Vec3} minWorld - 世界坐标系的最小坐标
-   * @param {Vec3} maxWorld - 世界坐标系的最大坐标
+   * @param {Vector3} minWorld - 世界坐标系的最小坐标
+   * @param {Vector3} maxWorld - 世界坐标系的最大坐标
    * */
-  constructor(minWorld: Vec3, maxWorld: Vec3) {
+  constructor(minWorld: Vector3, maxWorld: Vector3) {
     this.update(minWorld, maxWorld);
   }
 
   /**
    * 更新 AABB
-   * @param {Vec3} minWorld - 世界坐标系的最小坐标
-   * @param {Vec3} maxWorld - 世界坐标系的最大坐标
+   * @param {Vector3} minWorld - 世界坐标系的最小坐标
+   * @param {Vector3} maxWorld - 世界坐标系的最大坐标
    * */
-  update(minWorld: Vec3, maxWorld: Vec3) {
+  update(minWorld: Vector3, maxWorld: Vector3) {
     vec3.copy(this.min, minWorld);
     vec3.copy(this.max, maxWorld);
   }
 
   /**
    * 使用中心点和 Size 的方式来计算 AABB 包围盒
-   * @param {Vec3} center - 包围盒的中心点
-   * @param {Vec3} size - 包围盒的3个轴向的大小
+   * @param {Vector3} center - 包围盒的中心点
+   * @param {Vector3} size - 包围盒的3个轴向的大小
    */
-  setFromCenterAndSize(center: Vec3, size: Vec3) {
+  setFromCenterAndSize(center: Vector3, size: Vector3) {
     let halfSize = vec3.create();
     vec3.scale(halfSize, size, 0.5);
 
@@ -44,10 +44,10 @@ export class AABB {
 
   /**
    * 获取与视锥体的 具体相交状态
-   * @param { Vec4[] } frustumPlanes - Oasis 视锥体的6个平面方程
+   * @param { Vector4[] } frustumPlanes - Oasis 视锥体的6个平面方程
    * @return {IntersectInfo} 返回相交状态
    * */
-  intersectsFrustum(frustumPlanes: Vec4[]): IntersectInfo {
+  intersectsFrustum(frustumPlanes: Vector4[]): IntersectInfo {
     const min = this.min;
     const max = this.max;
     const p1 = [],
@@ -80,10 +80,10 @@ export class AABB {
 
   /**
    * 是否在视锥体内部（包含或者交叉）
-   * @param { Vec4[] } frustumPlanes -  Oasis 视锥体的6个平面方程
+   * @param { Vector4[] } frustumPlanes -  Oasis 视锥体的6个平面方程
    * @return {boolean}
    * */
-  isInFrustum(frustumPlanes: Vec4[]): boolean {
+  isInFrustum(frustumPlanes: Vector4[]): boolean {
     const min = this.min;
     const max = this.max;
     const p = [];

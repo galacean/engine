@@ -3,7 +3,7 @@ import { Engine } from "@alipay/o3-core";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { AAnimation } from "@alipay/o3-animation";
-import { ADefaultCamera } from "@alipay/o3-default-camera";
+import { Camera } from "@alipay/o3-default-camera";
 import { AOrbitControls } from "@alipay/o3-orbit-controls";
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { ASkyBox } from "@alipay/o3-skybox";
@@ -21,8 +21,8 @@ let engine = new Engine();
 let scene = engine.currentScene;
 let rootNode = scene.root;
 
-const color2glColor = color => [color[0] / 255, color[1] / 255, color[2] / 255];
-const glColor2Color = color => [color[0] * 255, color[1] * 255, color[2] * 255];
+const color2glColor = (color) => [color[0] / 255, color[1] / 255, color[2] / 255];
+const glColor2Color = (color) => [color[0] * 255, color[1] * 255, color[2] * 255];
 const gui = new dat.GUI();
 gui.domElement.style = "position:absolute;top:0px;left:50vw";
 
@@ -43,7 +43,7 @@ let ambientLight = ambientLightNode.createAbility(AAmbientLight, {
 ambientLight.enabled = false;
 let ambFolder = gui.addFolder("AmbientLight");
 ambFolder.add(ambientLight, "enabled");
-ambFolder.addColor(ambientLightColor, "color").onChange(v => (ambientLight.color = color2glColor(v)));
+ambFolder.addColor(ambientLightColor, "color").onChange((v) => (ambientLight.color = color2glColor(v)));
 ambFolder.add(ambientLight, "intensity", 0, 1);
 
 let directLightColor = { color: [Math.random() * 255, Math.random() * 255, Math.random() * 255] };
@@ -55,7 +55,7 @@ let directLight = directLightNode.createAbility(ADirectLight, {
 directLight.enabled = false;
 let dirFolder = gui.addFolder("DirectionalLight1");
 dirFolder.add(directLight, "enabled");
-dirFolder.addColor(directLightColor, "color").onChange(v => (directLight.color = color2glColor(v)));
+dirFolder.addColor(directLightColor, "color").onChange((v) => (directLight.color = color2glColor(v)));
 dirFolder.add(directLight, "intensity", 0, 1);
 
 let directLightColor2 = { color: [Math.random() * 255, Math.random() * 255, Math.random() * 255] };
@@ -68,7 +68,7 @@ directLightNode2.rotateByAngles(125, 0, 0);
 directLight2.enabled = false;
 let dirFolder2 = gui.addFolder("DirectionalLight2");
 dirFolder2.add(directLight2, "enabled");
-dirFolder2.addColor(directLightColor2, "color").onChange(v => (directLight2.color = color2glColor(v)));
+dirFolder2.addColor(directLightColor2, "color").onChange((v) => (directLight2.color = color2glColor(v)));
 dirFolder2.add(directLight2, "intensity", 0, 1);
 
 let pointLightColor = { color: [Math.random() * 255, Math.random() * 255, Math.random() * 255] };
@@ -82,7 +82,7 @@ let pointLight = pointLightNode.createAbility(APointLight, {
 pointLight.enabled = false;
 let poiFolder = gui.addFolder("PointLight1");
 poiFolder.add(pointLight, "enabled");
-poiFolder.addColor(pointLightColor, "color").onChange(v => (pointLight.color = color2glColor(v)));
+poiFolder.addColor(pointLightColor, "color").onChange((v) => (pointLight.color = color2glColor(v)));
 poiFolder.add(pointLight, "intensity", 0, 1);
 poiFolder.add(pointLight, "distance", 0, 20);
 poiFolder.add(pointLight, "decay", 0, 2);
@@ -98,7 +98,7 @@ let pointLight2 = pointLightNode2.createAbility(APointLight, {
 pointLight2.enabled = false;
 let poiFolder2 = gui.addFolder("PointLight2");
 poiFolder2.add(pointLight2, "enabled");
-poiFolder2.addColor(pointLightColor2, "color").onChange(v => (pointLight2.color = color2glColor(v)));
+poiFolder2.addColor(pointLightColor2, "color").onChange((v) => (pointLight2.color = color2glColor(v)));
 poiFolder2.add(pointLight2, "intensity", 0, 1);
 poiFolder2.add(pointLight2, "distance", 0, 20);
 poiFolder2.add(pointLight2, "decay", 0, 2);
@@ -117,7 +117,7 @@ let spotLight = spotLightNode.createAbility(ASpotLight, {
 spotLight.enabled = false;
 let spotFolder = gui.addFolder("SpotLight1");
 spotFolder.add(spotLight, "enabled");
-spotFolder.addColor(spotLightColor, "color").onChange(v => (spotLight.color = color2glColor(v)));
+spotFolder.addColor(spotLightColor, "color").onChange((v) => (spotLight.color = color2glColor(v)));
 spotFolder.add(spotLight, "intensity", 0, 1);
 spotFolder.add(spotLight, "distance", 0, 20);
 spotFolder.add(spotLight, "decay", 0, 2);
@@ -138,20 +138,18 @@ let spotLight2 = spotLightNode2.createAbility(ASpotLight, {
 spotLight2.enabled = false;
 let spotFolder2 = gui.addFolder("SpotLight2");
 spotFolder2.add(spotLight2, "enabled");
-spotFolder2.addColor(spotLightColor2, "color").onChange(v => (spotLight2.color = color2glColor(v)));
+spotFolder2.addColor(spotLightColor2, "color").onChange((v) => (spotLight2.color = color2glColor(v)));
 spotFolder2.add(spotLight2, "intensity", 0, 1);
 spotFolder2.add(spotLight2, "distance", 0, 20);
 spotFolder2.add(spotLight2, "decay", 0, 2);
 spotFolder2.add(spotLight2, "angle", 0, Math.PI / 3);
 spotFolder2.add(spotLight2, "penumbra", 0, 1);
 
-const resourceLoader = new ResourceLoader(engine);
-
 //-- create camera
 let cameraNode = rootNode.createChild("camera_node");
 
 let diffuseMapRes = new Resource("dif", {
-  type: "cubemap",
+  type: "cubemapNew",
   urls: [
     "/static/env/papermill/diffuse/diffuse_right_0.jpg",
     "/static/env/papermill/diffuse/diffuse_left_0.jpg",
@@ -163,7 +161,7 @@ let diffuseMapRes = new Resource("dif", {
 });
 
 let environmentMapRes = new Resource("environment", {
-  type: "cubemap",
+  type: "cubemapNew",
   urls: [
     "/static/env/papermill/environment/environment_right_0.jpg",
     "/static/env/papermill/environment/environment_left_0.jpg",
@@ -175,7 +173,7 @@ let environmentMapRes = new Resource("environment", {
 });
 
 let specularMapRes = new Resource("env", {
-  type: "cubemap",
+  type: "cubemapNew",
   urls: [
     [
       "/static/env/papermill/specular/specular_right_0.jpg",
@@ -274,15 +272,18 @@ let cameraProps = {
   position: [0, 0, 5],
   near: 0.01
 };
-let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
+let camera = cameraNode.createAbility(Camera, cameraProps);
 let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("o3-demo") });
 
 let node = rootNode.createChild("gltf_node");
 
+const rhi = engine.getRHI("o3-demo");
+const resourceLoader = new ResourceLoader(engine, null, rhi);
+
 resourceLoader.batchLoad([gltfRes, diffuseMapRes, specularMapRes, environmentMapRes], (err, res) => {
   const glb = res[0];
   const nodes = glb.asset.rootScene.nodes;
-  nodes.forEach(n => {
+  nodes.forEach((n) => {
     node.addChild(n);
   });
 
@@ -293,7 +294,7 @@ resourceLoader.batchLoad([gltfRes, diffuseMapRes, specularMapRes, environmentMap
   const animations = glb.asset.animations;
   const animator = node.createAbility(AAnimation);
 
-  animations.forEach(clip => {
+  animations.forEach((clip) => {
     animator.addAnimationClip(clip, clip.name);
   });
 

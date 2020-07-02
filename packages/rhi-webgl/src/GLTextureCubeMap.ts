@@ -29,6 +29,9 @@ export class GLTextureCubeMap extends GLTexture {
    * @private
    */
   updateTexture() {
+    // todo: delete
+    if (this._isNew) return;
+
     const gl = this._gl;
     let config = this._config as TextureCubeMap;
     if (config.isCompressed) {
@@ -60,6 +63,9 @@ export class GLTextureCubeMap extends GLTexture {
    * @private
    */
   private updateCompressedTexture() {
+    // todo: delete
+    if (this._isNew) return;
+
     const gl = this._gl;
     const compressedConfig = this._config as CompressedTextureCubeMap;
     const mipmapsFaces = compressedConfig.mipmapsFaces;

@@ -1,7 +1,7 @@
 import { Material } from "@alipay/o3-material";
 import { ACamera } from "@alipay/o3-core";
 import { RenderTargetConfig } from "@alipay/o3-material/types/type";
-import { Vec4 } from "@alipay/o3-math/types/type";
+import { Vector4 } from "@alipay/o3-math/types/type";
 
 export interface ProbeConfig extends RenderTargetConfig {
   /** 需要渲染的相机,默认为 activeCameras[0] */
@@ -13,7 +13,7 @@ export interface ProbeConfig extends RenderTargetConfig {
   /** 排除渲染某些物体，适用于 renderAll:true 的情况下想排除某些物体 */
   excludeRenderList?: Material[];
   /** 裁剪面*/
-  clipPlanes?: Vec4[];
+  clipPlanes?: Vector4[];
 }
 
 export interface PlaneProbeConfig extends ProbeConfig {}

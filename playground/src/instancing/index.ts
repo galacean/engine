@@ -1,11 +1,3 @@
-/*
- * @Author: your name
- * @Date: 2020-03-20 11:22:17
- * @LastEditTime: 2020-03-22 16:33:54
- * @LastEditors: Please set LastEditors
- * @Description: In User Settings Edit
- * @FilePath: /oasis3d/playground/src/instancing/index
- */
 /**
  * 本示例展示如何使用几何体渲染器功能、如何创建几何体资源对象、如何创建材质对象
  */

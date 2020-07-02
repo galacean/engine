@@ -4,8 +4,7 @@ import { Node } from "./Node";
 import { Engine } from "./Engine";
 import { ACamera } from "./ACamera";
 import { SceneFeature } from "./SceneFeature";
-import { SceneVisitor } from "./SceneVisitor";
-import { Vec4 } from "@alipay/o3-math/types/type";
+import { Vector4 } from "@alipay/o3-math/types/type";
 import { ComponentsManager } from "./ComponentsManager";
 
 /*
@@ -63,8 +62,9 @@ export class Scene extends EventDispatcher {
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
    * @example
    * scene.clipPlanes = [[0,1,0,0]];
+   * @todo 类型修改
    * */
-  public clipPlanes: Vec4[] = [];
+  public clipPlanes: Vector4[] = [];
 
   public _componentsManager: ComponentsManager;
 
@@ -94,6 +94,7 @@ export class Scene extends EventDispatcher {
    */
   public update(deltaTime: number): void {
     sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
+    this._componentsManager.callScriptOnStart();
     this._componentsManager.callScriptOnUpdate(deltaTime);
     this._componentsManager.callComponentOnUpdate(deltaTime);
     this._componentsManager.callAnimationUpdate(deltaTime);
@@ -107,12 +108,15 @@ export class Scene extends EventDispatcher {
   public render(): void {
     const cameras = this._activeCameras;
     const deltaTime = this._engine.time.deltaTime;
+    this._componentsManager.callRendererOnUpdate(deltaTime);
     if (cameras.length > 0) {
+      // 针对 priority 进行排序
+      //@ts-ignore
+      cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          this._componentsManager.callRendererOnUpdate(deltaTime);
           this._componentsManager.callScriptOnPreRender();
           sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();

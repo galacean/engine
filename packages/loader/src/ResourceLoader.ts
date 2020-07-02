@@ -3,7 +3,7 @@ import { Resource } from "./Resource";
 import * as defaultRequest from "@alipay/o3-request";
 import { Engine, ResType, Handler, Prop, Request, ResCb, ResArrayCb } from "./type";
 
-const noop = function() {};
+const noop = function () {};
 
 const handlers: { [key: string]: Handler } = {};
 
@@ -13,6 +13,7 @@ const handlers: { [key: string]: Handler } = {};
 export class ResourceLoader extends EventDispatcher {
   public handlers: { [key: string]: Handler };
   public engine: Engine;
+  public rhi;
   public request: Request;
   private _urls: Prop;
   private _names: Prop;
@@ -23,7 +24,7 @@ export class ResourceLoader extends EventDispatcher {
    * @param {Engine} engine 引擎实例
    * @param request 自定义请求库 默认使用 o3-request
    */
-  constructor(engine: Engine, request?: Request) {
+  constructor(engine: Engine, request: Request, rhi?) {
     super();
 
     this.handlers = handlers;
@@ -35,6 +36,8 @@ export class ResourceLoader extends EventDispatcher {
     this._resources = {};
 
     this.engine = engine;
+
+    this.rhi = rhi;
     // attach default handlers
 
     this.request = request || defaultRequest;
@@ -79,7 +82,7 @@ export class ResourceLoader extends EventDispatcher {
    */
   findResource(type: ResType, name: string): Resource | void {
     if (this._resources[type]) {
-      return this._resources[type].find(r => {
+      return this._resources[type].find((r) => {
         return r.name === name;
       });
     }
@@ -115,10 +118,10 @@ export class ResourceLoader extends EventDispatcher {
     }
 
     Promise.all(promises).then(
-      res => {
+      (res) => {
         callback(null, resources);
       },
-      err => {
+      (err) => {
         callback(err);
       }
     );
@@ -141,7 +144,7 @@ export class ResourceLoader extends EventDispatcher {
     resource.loading = true;
 
     const handler = this.handlers[resource.type];
-    if (resource.type === "texture") {
+    if (resource.type === "texture" || resource.type === "textureNew") {
       resource.config.handlerType = resource.handlerType || "image";
     }
 
@@ -158,7 +161,7 @@ export class ResourceLoader extends EventDispatcher {
         const url = resource.fileUrl;
         const config = resource.config;
 
-        handler.load(this.request, { url, timeout, ...config }, function(err, data) {
+        handler.load(this.request, { url, timeout, ...config }, function (err, data) {
           if (!err) {
             resource.data = data;
             self._onLoadSuccess(resource, handler, callback);
@@ -187,7 +190,7 @@ export class ResourceLoader extends EventDispatcher {
       handler.patch(resource, this._resources);
     }
 
-    const result = Promise.resolve(handler.open(resource));
+    const result = Promise.resolve(handler.open(resource, this.rhi));
 
     result
       .then(() => {
@@ -197,7 +200,7 @@ export class ResourceLoader extends EventDispatcher {
         callback(null, resource);
         resource.trigger(new Event("loaded", resource));
       })
-      .catch(e => {
+      .catch((e) => {
         console.error(e);
         callback(e);
       });

@@ -29,13 +29,13 @@ let rootNode = scene.root;
 // test fixed update
 let lastUpdateTime = performance.now();
 let n = 0;
-scene.addEventListener("fixedUpdate", function(e) {
+scene.addEventListener("fixedUpdate", function (e) {
   n++;
   let nowTime = performance.now();
   let interval = nowTime - lastUpdateTime;
   lastUpdateTime = nowTime;
 
-  console.log(interval);
+  // console.log(interval);
 
   if (n > 100) {
     engine.setFixedUpdateInterval(1000);
@@ -74,11 +74,11 @@ boxCollider.setBoxCenterSize([0, 0, 0], [cubeSize, cubeSize, cubeSize]);
 
 //-- Collision
 let cd = sphereObj.createAbility(ACollisionDetection);
-sphereObj.addEventListener("begin_overlop", e => {
+sphereObj.addEventListener("begin_overlop", (e) => {
   sphereMtl.emission = COLOR_RED;
 });
 
-sphereObj.addEventListener("end_overlop", e => {
+sphereObj.addEventListener("end_overlop", (e) => {
   sphereMtl.emission = COLOR_GRAY;
 });
 

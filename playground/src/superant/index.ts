@@ -107,7 +107,7 @@ resourceLoader.batchLoad([gltfRes], (err, res) => {
   }
 
   let gltfNode = gltfRes.rootScene.nodes[0];
-  gltfNode = gltfNode.clone();
+  gltfNode = gltfNode;
   gltfNode.rotateByAngles(0, 180, 0);
   rootNode.addChild(gltfNode);
 
@@ -116,7 +116,7 @@ resourceLoader.batchLoad([gltfRes], (err, res) => {
   // 模型所在节点创建动画播放组件
   const animator = gltfNode.createAbility(AAnimation);
   // 将动画信息添加到播放组件中
-  animations.forEach(clip => {
+  animations.forEach((clip) => {
     animator.addAnimationClip(clip, clip.name);
   });
   // 播放动画片段

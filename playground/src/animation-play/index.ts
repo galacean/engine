@@ -1,15 +1,13 @@
 import { Engine } from "@alipay/o3-core";
-import { vec3 } from "@alipay/o3-math";
 import { ADefaultCamera } from "@alipay/o3-default-camera";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
-import { AAnimation, AnimationEvent, WrapMode } from "@alipay/o3-animation";
+import { AAnimation } from "@alipay/o3-animation";
 import "@alipay/o3-hud";
 import { AAmbientLight } from "@alipay/o3-lighting";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { PBRMaterial } from "@alipay/o3-pbr";
 
-import { AHUDLabel } from "../common/AHUDLabel";
 import "@alipay/o3-engine-stats";
 
 RegistExtension({ PBRMaterial });
@@ -78,7 +76,7 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
 
   const animator = huabei.createAbility(AAnimation);
 
-  animations.forEach(clip => {
+  animations.forEach((clip) => {
     animator.addAnimationClip(clip, clip.name);
   });
 
@@ -100,7 +98,7 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
 
     const animator2 = mayi.createAbility(AAnimation);
 
-    animations2.forEach(clip => {
+    animations2.forEach((clip) => {
       animator2.addAnimationClip(clip, clip.name);
     });
 

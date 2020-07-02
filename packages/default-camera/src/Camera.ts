@@ -1,334 +1,674 @@
-import { NodeAbility } from "@alipay/o3-core";
-import { vec3, mat4, MathUtil, vec4 } from "@alipay/o3-math";
-import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { ClearMode } from "@alipay/o3-base";
+import { Node, NodeAbility, Transform, UpdateFlag, dependencies } from "@alipay/o3-core";
+import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4, Matrix4 } from "@alipay/o3-math/types/type";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
-import { Node } from "@alipay/o3-core";
-
-const vec3Cache = vec3.create();
+import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
 
 /**
- * 3D 摄像机组件，添加到一个 Node 上，以 Node 的空间作为 Camera Space
+ * @todo 数学库改造
  */
+type Ray = { origin: Vector3; direction: Vector3 };
+
+/**
+ * @todo
+ */
+type Sky = {};
+
+//CM：这个类可能需要搬家
+class MathTemp {
+  static tempMat4 = mat4.create() as Matrix4;
+  static tempVec4 = vec4.create() as Vector4;
+  static tempVec3 = vec3.create() as Vector3;
+}
+
+/**
+ * 相机的清除标记。
+ */
+export enum ClearFlags {
+  /* 清理深度和天空。*/
+  DepthSky,
+  /* 清理深度和颜色。*/
+  DepthColor,
+  /* 只清除深度。*/
+  Depth,
+  /* 不做任何清除。*/
+  None
+}
+
+/**
+ * Camera 组件，作为渲染三位世界的入口。
+ */
+@dependencies(Transform)
 export class Camera extends NodeAbility {
-  get renderHardware() {
-    return this._rhi;
+  /**
+   * 渲染优先级，数字越大越先渲染。
+   */
+  public priority: number = 0;
+  /**
+   * 渲染遮罩，位操作。
+   * @todo 渲染管线剔除管理实现
+   */
+  public cullingMask: number = 0;
+
+  private _isOrthographic: boolean = false;
+  private _projectionMatrix: Matrix4 = mat4.create();
+  private _isProjMatSetting = false;
+  private _viewMatrix: Matrix4 = mat4.create();
+  private _clearFlags: ClearFlags;
+  private _clearParam: Vector4;
+  private _clearMode: ClearMode;
+  private _sceneRenderer: BasicSceneRenderer;
+  private _viewportNormalized: Vector4 = vec4.create();
+  private _viewport: Vector4 = [0, 0, 1, 1];
+  private _nearClipPlane: number;
+  private _farClipPlane: number;
+  private _fieldOfView: number;
+  private _orthographicSize: number = 10;
+  private _inverseProjectionMatrix: Matrix4 = mat4.create();
+  private _inverseViewMatrix: Matrix4 = mat4.create();
+  /** 投影矩阵脏标记 */
+  private _isProjectionDirty = true;
+  /** 投影矩阵逆矩阵脏标记 */
+  private _isInvProjMatDirty: boolean = true;
+  private _customAspectRatio: number = undefined;
+  private _invViewProjMat: Matrix4 = mat4.create();
+  private _transform: Transform;
+  private _isViewMatrixDirty: UpdateFlag;
+  /** 投影视图矩阵逆矩阵脏标记 */
+  private _isInvViewProjDirty: UpdateFlag;
+
+  /**
+   * 近裁剪平面。
+   */
+  public get nearClipPlane(): number {
+    return this._nearClipPlane;
   }
 
-  get sceneRenderer() {
-    return this._sceneRenderer;
+  public set nearClipPlane(value: number) {
+    this._nearClipPlane = value;
+    this.projMatChange();
   }
 
   /**
-   * View 矩阵
-   * @member {Float32Array}
-   * @readonly
+   * 远裁剪平面。
    */
-  get viewMatrix(): Float32Array | number[] {
-    return this._viewMat;
+  public get farClipPlane(): number {
+    return this._farClipPlane;
+  }
+
+  public set farClipPlane(value: number) {
+    this._farClipPlane = value;
+    this.projMatChange();
   }
 
   /**
-   * View 矩阵的逆矩阵
-   * @member {Float32Array}
-   * @readonly
+   * 视场，单位是角度制，透视投影时生效。
    */
-  get inverseViewMatrix(): Float32Array | number[] {
-    return this._inverseViewMatrix;
+  public get fieldOfView(): number {
+    return this._fieldOfView;
+  }
+
+  public set fieldOfView(value: number) {
+    this._fieldOfView = value;
+    this.projMatChange();
   }
 
   /**
-   * 投影矩阵
-   * @member {Float32Array}
-   * @readonly
+   * 横纵比，默认由视口的宽高比自动计算，如果手动设置会保持手动值，调用resetAspectRatio()可恢复。
    */
-  get projectionMatrix(): Float32Array | number[] {
-    return this._matProjection;
+  public get aspectRatio(): number {
+    return this._customAspectRatio ?? this._viewport[2] / this._viewport[3];
+  }
+
+  public set aspectRatio(value: number) {
+    this._customAspectRatio = value;
+    this.projMatChange();
   }
 
   /**
-   * 投影矩阵的逆矩阵
-   * @member {Float32Array}
-   * @readonly
+   * 归一化视口，左上角为（0，0）坐标，右下角为（1，1）。
+   * @todo 目前为兼容旧接口，以后修改为归一化的 viewport
    */
-  get inverseProjectionMatrix(): Float32Array | number[] {
-    return this._matInverseProjection;
+  public get viewport(): Readonly<Vector4> {
+    return this._viewport;
+  }
+
+  public set viewport(value: Readonly<Vector4>) {
+    throw "not implemented.";
   }
 
   /**
-   * 摄像机的位置(World Space)
-   * @member {Float32Array}
-   * @readonly
+   * 是否正交，默认是 false。true 会使用正交投影，false 使用透视投影。
    */
-  get eyePos(): Float32Array {
-    return this._node.worldPosition;
+  public get isOrthographic(): boolean {
+    return this._isOrthographic;
   }
 
-  public zNear: number;
+  public set isOrthographic(value: boolean) {
+    this._isOrthographic = value;
+    this.projMatChange();
+  }
 
-  public zFar: number;
+  /**
+   * 正交模式下相机的一半尺寸。
+   */
+  public get orthographicSize(): number {
+    return this._orthographicSize;
+  }
 
-  public colorWriteMask;
+  public set orthographicSize(value: number) {
+    this._orthographicSize = value;
+    this.projMatChange();
+  }
 
-  public viewport;
+  /**
+   * 背景清除标记。
+   */
+  get clearFlags(): ClearFlags {
+    throw "not implemented";
+  }
 
-  public leftHand;
+  /**
+   * @todo 天空盒重构
+   */
+  set clearFlags(value: ClearFlags) {
+    throw "not implemented";
+  }
 
-  public _rhi: GLRenderHardware;
+  /**
+   * 清除视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
+   */
+  public get backgroundColor(): Vector4 {
+    return this._clearParam;
+  }
 
-  private readonly _sceneRenderer: BasicSceneRenderer;
+  public set backgroundColor(value: Vector4) {
+    this.setClearMode(this._clearMode, value);
+  }
 
-  private _isOrtho: boolean;
+  /**
+   * 清除视口的背景天空，当 clearFlags 为 DepthSky 时生效。
+   * @todo 渲染管线修改
+   */
+  public get backgroundSky(): Sky {
+    throw new Error("接口未实现");
+  }
 
-  private readonly _viewMat: Float32Array | any[];
+  /**
+   * 视图矩阵。
+   */
+  public get viewMatrix(): Readonly<Matrix4> {
+    //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
+    if (this._isViewMatrixDirty.flag) {
+      this._isViewMatrixDirty.flag = false;
+      const modelMatrix = this._transform.worldMatrix;
+      turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
+      mat4.invert(this._viewMatrix, MathTemp.tempMat4);
+    }
+    return this._viewMatrix;
+  }
 
-  private readonly _matProjection: Float32Array | any[];
+  /**
+   * 投影矩阵,默认由相机的相关参数计算计算，如果手动设置会保持手动值，调用resetProjectionMatrix()可恢复。
+   */
+  public set projectionMatrix(value: Matrix4) {
+    this._projectionMatrix = value;
+    this._isProjMatSetting = true;
+    this.projMatChange();
+  }
 
-  private readonly _inverseViewMatrix: Float32Array | any[];
+  public get projectionMatrix(): Matrix4 {
+    if (!this._isProjectionDirty || this._isProjMatSetting) {
+      return this._projectionMatrix;
+    }
+    this._isProjectionDirty = false;
+    const aspectRatio = this.aspectRatio;
+    if (!this._isOrthographic) {
+      mat4.perspective(
+        this._projectionMatrix,
+        MathUtil.toRadian(this._fieldOfView),
+        aspectRatio,
+        this._nearClipPlane,
+        this._farClipPlane
+      );
+    } else {
+      const width = this._orthographicSize * aspectRatio;
+      const height = this._orthographicSize;
+      mat4.ortho(this._projectionMatrix, -width, width, -height, height, this._nearClipPlane, this._farClipPlane);
+    }
+    return this._projectionMatrix;
+  }
 
-  private readonly _matInverseProjection: Float32Array | any[];
+  /**
+   * 是否开启HDR。
+   * @todo 渲染管线修改
+   */
+  public get enableHDR(): boolean {
+    throw new Error("not implemention");
+  }
 
-  constructor(node: Node, props) {
+  public set enableHDR(value: boolean) {
+    throw new Error("not implemention");
+  }
+
+  /**
+   * 渲染目标，设置后会渲染到渲染目标上，如果为空则渲染到屏幕上。
+   * @todo 渲染管线修改
+   */
+  public get renderTarget(): any {
+    throw new Error("not implemention");
+  }
+
+  public set renderTarget(value: any) {
+    throw new Error("not implemention");
+  }
+
+  /**
+   * 创建 Camera 组件。
+   * @param node 节点
+   * @param props camera 参数
+   */
+  constructor(node: Node, props: any) {
+    // TODO: 修改构造函数参数
     super(node, props);
 
-    const { SceneRenderer, canvas } = props;
+    this._transform = this.node.transform;
+    this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
+    this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
 
-    this._sceneRenderer = new SceneRenderer(this);
-    this._isOrtho = false; // 逸瞻：标记是不是ortho，用于射线检测时区分处理
-    this._viewMat = mat4.create();
-    this._matProjection = mat4.create();
-    this._inverseViewMatrix = mat4.create();
-    this._matInverseProjection = mat4.create();
+    const { SceneRenderer, canvas, attributes, clearParam = [0.25, 0.25, 0.25, 1], clearMode, near, far, fov } = props;
+    const engine = this.engine;
 
-    this.zNear = 1.0;
-    this.zFar = 100.0;
+    this._nearClipPlane = near ?? 0.1;
+    this._farClipPlane = far ?? 100;
+    this._fieldOfView = fov ?? 45;
+    this._pixelRatio = props.pixelRatio ?? null;
 
-    /**
-     * 颜色通道写入控制
-     */
-    this.colorWriteMask = [true, true, true, true];
+    this._viewportNormalized = [0, 0, 1, 1];
 
-    /**
-     * 是否为左手系相机，默认为 false
-     * @member {Boolean}
-     */
-    this.leftHand = false;
+    // TODO: 删除，兼容旧 camera，decaprated
+    const target = props.target ?? [0, 0, 0];
+    const up = props.up ?? [0, 1, 0];
+    node.position = props.position ?? [0, 10, 20];
+    node.lookAt(target, up);
 
-    canvas && this.attachToScene(canvas);
-  }
+    // TODO: 可在重载_onActive方法内加入，待 rhi 重构剥离后修改
+    const settingCanvas = engine?.config?.canvas ?? canvas;
+    const settingAttribute = engine?.config?.attributes ?? attributes ?? {};
+    const Renderer = SceneRenderer ?? BasicSceneRenderer;
 
-  public attachToScene(canvas: HTMLCanvasElement, attributes?) {
-    this._node.scene.attachRenderCamera(this as any);
-    const engine = this._node.scene.engine;
-    this._rhi = engine.requireRHI((this._props as any).RHI, canvas, {
-      ...(this._props as any).attributes,
-      ...attributes
-    });
-    /**
-     * View port: [x, y, width, height]
-     */
-    this.viewport = [0, 0, this._rhi.canvas.width, this._rhi.canvas.height];
+    settingCanvas && this.attachToScene(settingCanvas, settingAttribute);
+    this._sceneRenderer = new Renderer(this);
+
+    // TODO: 修改为 ClearFlags
+    this.setClearMode(clearMode, clearParam);
   }
 
   /**
-   * 渲染场景
+   * 恢复通过 fieldOfView、nearClipPlane 和 farClipPlane 自动计算投影矩阵。
    */
-  public render() {
+  public resetProjectionMatrix(): void {
+    this._isProjMatSetting = false;
+    this.projMatChange();
+  }
+
+  /**
+   * 恢复通过视口宽高比自动计算横纵比。
+   */
+  public resetAspectRatio(): void {
+    this._customAspectRatio = undefined;
+    this.projMatChange();
+  }
+
+  /**
+   * 将一个点从世界空间变换到视口空间。
+   * @param point - 世界空间中的点
+   * @param out - 视口空间坐标，X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1，W 为距离相机的世界单位距离
+   * @returns 视口空间坐标
+   */
+  public worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
+    const matViewProj = mat4.mul(MathTemp.tempMat4, this.projectionMatrix, this.viewMatrix);
+
+    const worldPos = vec4.set(MathTemp.tempVec4, point[0], point[1], point[2], 1.0);
+    const clipPos = vec4.transformMat4(MathTemp.tempVec4, worldPos, matViewProj); //CM：可增加transformV3ToV4绕过worldPos转换的流程
+
+    const w = clipPos[3];
+    const nx = clipPos[0] / w;
+    const ny = clipPos[1] / w;
+    const nz = clipPos[2] / w;
+
+    // 坐标轴转换
+    out[0] = (nx + 1.0) * 0.5;
+    out[1] = (1.0 - ny) * 0.5;
+    out[2] = nz;
+    out[3] = w;
+    return out;
+  }
+
+  /**
+   * 将一个点从视口空间变换到世界空间。
+   * @param point - X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1
+   * @param out - 世界空间中的点
+   * @returns 世界空间中的点
+   */
+  public viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
+    const invViewProjMat = this.invViewProjMat;
+    return this.innerViewportToWorldPoint(point, invViewProjMat, out);
+  }
+
+  /**
+   * 通过视口空间点的坐标获取射线，生成射线的起点在相机的近裁面并穿过点的 X 和 Y 坐标。
+   * @param point 视口空间中的点
+   * @param out - 射线
+   * @returns 射线
+   */
+  public viewportPointToRay(point: Vector2, out: Ray): Ray {
+    // 使用近裁面的交点作为 origin
+    vec3.set(MathTemp.tempVec3, point[0], point[1], 0);
+    const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
+    // 使用远裁面的交点作为 origin
+    const viewportPos = vec3.set(MathTemp.tempVec3, point[0], point[1], 1);
+    const farPoint = this.innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
+    const direction = vec3.sub(out.direction, farPoint, origin);
+    vec3.normalize(direction, direction);
+    return out;
+  }
+
+  /**
+   * 将一个点的X和Y坐标从屏幕空间变换到视口空间
+   * @param point - 屏幕空间点
+   * @param out - 视口空间点
+   * @returns 射线
+   */
+  public screenToViewportPoint<T extends Vector2 | Vector3>(point: Vector3 | Vector2, out: T): T {
+    const viewport = this.viewportNormalized;
+    out[0] = (point[0] - viewport[0]) / viewport[2];
+    out[1] = (point[1] - viewport[1]) / viewport[3];
+    return out;
+  }
+
+  /**
+   * 将一个点的X和Y坐标从视口空间变换到屏幕空间。
+   * @param point - 视口空间的点
+   * @param out - 屏幕空间的点
+   * @returns 射线
+   */
+  public viewportToScreenPoint<T extends Vector2 | Vector3 | Vector4>(point: T, out: T): T {
+    const viewport = this.viewportNormalized;
+    const viewWidth = viewport[2];
+    const viewHeight = viewport[3];
+    const nx = point[0];
+    const ny = point[1];
+    out[0] = viewport[0] + viewWidth * nx;
+    out[1] = viewport[1] + viewHeight * ny;
+    return out;
+  }
+
+  /**
+   * 手动调用相机的渲染。
+   * @param cubeFaces 立方体的渲染面集合,如果设置了renderTarget并且renderTarget.isCube=true时生效
+   */
+  public render(cubeFaces?: number /*todo:修改为TextureCubeFace类型*/): void {
     this._sceneRenderer.render();
   }
 
   /**
-   * 设置 Render Target 的清空模式
-   * @param mode
-   * @param {*} clearParam 其类型根据 Mode 而不同
+   * 相机视口，归一化的 viewport [0 - 1]。
+   * @todo 删除兼容性API后修改为 viewport
    */
-  public setClearMode(mode, clearParam) {
-    const defaultRP = this._sceneRenderer.defaultRenderPass;
-    defaultRP.clearMode = mode;
-    defaultRP.clearParam = clearParam;
+  public get viewportNormalized(): Readonly<Vector4> {
+    return this._viewportNormalized;
   }
 
-  /**
-   * 设置透视矩阵
-   * @param {number} degFOV 视角（field of view），使用角度
-   * @param viewWidth
-   * @param viewHeight
-   * @param {number} zNear 视锥的近剪裁面
-   * @param {number} zFar 视锥的远剪裁面
-   */
-  public setPerspective(degFOV, viewWidth, viewHeight, zNear, zFar) {
-    this._isOrtho = false; // 逸瞻：标记变更
+  public set viewportNormalized(v: Readonly<Vector4>) {
+    const viewportNormalized = this._viewportNormalized;
+    viewportNormalized[0] = v[0];
+    viewportNormalized[1] = v[1];
+    viewportNormalized[2] = v[2];
+    viewportNormalized[3] = v[3];
+    // todo rhi 修改
+    if (this.renderHardware) {
+      // todo 合并慎思：这里的宽高还可能是RenderTarget,如果设置了RenderTarget的话
+      const canvas = this.renderHardware.canvas;
+      const width = canvas.width;
+      const height = canvas.height;
 
-    this.zNear = zNear;
-    this.zFar = zFar;
-
-    const aspect = viewWidth / viewHeight;
-    mat4.perspective(this._matProjection, MathUtil.toRadian(degFOV), aspect, zNear, zFar);
-    mat4.invert(this._matInverseProjection, this._matProjection);
-  }
-
-  /**
-   * 设置视口区域
-   * @param {number} x 视口的左下角水平坐标
-   * @param {number} y 视口的左下角垂直坐标
-   * @param {number} width 视口的宽度
-   * @param {number} height 视口的高度
-   */
-  public setViewport(x, y, width, height) {
-    this.viewport = [x, y, width, height];
-    this._rhi.viewport(x, y, width, height);
-  }
-
-  /**
-   * 设置平行投影矩阵
-   * @param {number} left 视锥的左侧范围
-   * @param {number} right 视锥的右侧范围
-   * @param {number} bottom 视锥的下方范围
-   * @param {number} top 视锥的上方范围
-   * @param {number} near 视锥的近端范围
-   * @param {number} far 视锥的远端范围
-   */
-  public setOrtho(left, right, bottom, top, near, far) {
-    this._isOrtho = true; // 逸瞻：标记变更
-
-    this.zNear = near;
-    this.zFar = far;
-
-    mat4.ortho(this._matProjection, left, right, bottom, top, near, far);
-    mat4.invert(this._matInverseProjection, this._matProjection); // 逸瞻：逻辑补全，否则无法正确渲染场景
-  }
-
-  /**
-   * 把一个 3D 世界坐标，转换到屏幕坐标
-   * @param {Float32Array | Array<number>} worldPoint 世界空间的坐标点
-   * @return {Float32Array} [屏幕坐标X, 屏幕坐标Y, 深度值]
-   */
-  public worldToScreen(worldPoint: Float32Array | number[]): Float32Array | any[] {
-    const viewport = this.viewport;
-    const width = viewport[2] - viewport[0];
-    const height = viewport[3] - viewport[1];
-
-    const matViewProj = mat4.create();
-    mat4.mul(matViewProj, this.projectionMatrix, this.viewMatrix);
-
-    const worldPos = vec4.fromValues(worldPoint[0], worldPoint[1], worldPoint[2], 1.0);
-    const clipPos = vec4.create();
-    vec4.transformMat4(clipPos, worldPos, matViewProj);
-
-    const nx = clipPos[0] / clipPos[3];
-    const ny = clipPos[1] / clipPos[3];
-    const depth = clipPos[2] / clipPos[3];
-
-    let x = (nx + 1.0) * 0.5 * width;
-    let y = (1.0 - ny) * 0.5 * height;
-
-    const canvas = this._rhi.canvas;
-    const clientWidth = canvas.clientWidth;
-    const clientHeight = canvas.clientHeight;
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-
-    x = (x * clientWidth) / canvasWidth;
-    y = (y * clientHeight) / canvasHeight;
-
-    return vec3.fromValues(x, y, depth);
-  }
-
-  /**
-   * 将一个屏幕坐标，转换到3D世界空间
-   * @param screenPoint 屏幕像素坐标
-   * @param {Number} depth 深度
-   * @return 世界坐标
-   */
-  public screenToWorld(screenPoint, depth) {
-    if (depth === undefined) {
-      depth = 0.0;
-    }
-
-    const canvas = this._rhi.canvas;
-    const clientWidth = canvas.clientWidth;
-    const clientHeight = canvas.clientHeight;
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-
-    const px = (screenPoint[0] / clientWidth) * canvasWidth;
-    const py = (screenPoint[1] / clientHeight) * canvasHeight;
-
-    const viewport = this.viewport;
-    const viewWidth = viewport[2] - viewport[0];
-    const viewHeight = viewport[3] - viewport[1];
-
-    const nx = ((px - viewport[0]) / viewWidth) * 2 - 1;
-    const ny = 1 - ((py - viewport[1]) / viewHeight) * 2;
-
-    const p = vec4.fromValues(nx, ny, depth, 1.0);
-
-    const matViewProj = mat4.create();
-    mat4.mul(matViewProj, this.projectionMatrix, this.viewMatrix);
-
-    const matInv = mat4.create();
-    mat4.invert(matInv, matViewProj);
-
-    const u = vec4.create();
-    vec4.transformMat4(u, p, matInv);
-
-    return vec3.fromValues(u[0] / u[3], u[1] / u[3], u[2] / u[3]);
-  }
-
-  /**
-   * 计算屏幕坐标对应的射线
-   * @param {number} screenPointX 屏幕X坐标
-   * @param {number} screenPointY 屏幕Y坐标
-   */
-  public screenPointToRay(screenPointX, screenPointY) {
-    // 逸瞻：区分camera类型设置origin
-    let origin;
-    if (this._isOrtho) {
-      origin = this.worldToScreen([screenPointX, screenPointY]);
-    } else {
-      origin = this.eyePos;
-    }
-    const tmp = this.screenToWorld([screenPointX, screenPointY], 0.5); // world position on depth=0.5
-    vec3.sub(tmp, tmp, origin); // ray direction
-    vec3.normalize(tmp, tmp);
-    return {
-      origin,
-      direction: tmp
-    };
-  }
-
-  /**
-   * 释放内部资源
-   */
-  public destroy() {
-    super.destroy();
-
-    // -- remove from scene
-    this._node.scene.detachRenderCamera(this as any);
-
-    // --
-    if (this._sceneRenderer) {
-      this._sceneRenderer.destroy();
-    }
-
-    // -- destroy render hardware
-    if (this._rhi) {
-      this._rhi.destroy();
+      const viewport = this._viewport;
+      viewport[0] = width * v[0];
+      viewport[1] = height * v[1];
+      viewport[2] = width * v[2];
+      viewport[3] = height * v[3];
+      this.projMatChange();
+      // todo 底层每帧会调用
+      // this.renderHardware.viewport(this._viewport[0], this._viewport[1], this._viewport[2], this._viewport[3]);
     }
   }
 
-  // 每一帧更新相机所需的矩阵
-  public update(deltaTime) {
-    super.update(deltaTime);
-
-    // make sure update directions
-    this._node.getModelMatrix();
-
-    vec3.copy(vec3Cache, this._node.forward);
-    if (this.leftHand) {
-      vec3.scale(vec3Cache, vec3Cache, -1);
-    }
-    vec3.add(vec3Cache, this._node.position, vec3Cache);
-    mat4.lookAt(this._viewMat, this._node.position, vec3Cache, this._node.up);
-    mat4.invert(this._inverseViewMatrix, this._viewMat);
+  /**
+   * @innernal
+   */
+  _onActive() {
+    super._onActive();
+    // TODO: change any
+    this.node.scene.attachRenderCamera(this as any);
   }
+
+  /**
+   * @innernal
+   */
+  _onInActive() {
+    super._onInActive();
+    this.node.scene.detachRenderCamera(this as any);
+  }
+
+  /**
+   * @innernal
+   */
+  _onDestroy() {
+    this._sceneRenderer?.destroy();
+    this._isInvViewProjDirty.destroy();
+    this._isViewMatrixDirty.destroy();
+  }
+
+  /**
+   * @private
+   * 视图投影矩阵逆矩阵
+   */
+  public get invViewProjMat() {
+    if (this._isInvViewProjDirty.flag) {
+      this._isInvViewProjDirty.flag = false;
+      const invViewMatrix = this.inverseViewMatrix;
+      const invProjMatrix = this.inverseProjectionMatrix;
+      mat4.mul(this._invViewProjMat, invViewMatrix, invProjMatrix);
+    }
+    return this._invViewProjMat;
+  }
+
+  /**
+   * @private
+   * 投影矩阵逆矩阵。
+   */
+  public get inverseProjectionMatrix(): Readonly<Matrix4> {
+    if (this._isInvProjMatDirty) {
+      this._isInvProjMatDirty = false;
+      const projectionMatrix = this.projectionMatrix;
+      mat4.invert(this._inverseProjectionMatrix, projectionMatrix);
+    }
+    return this._inverseProjectionMatrix;
+  }
+
+  //-------------------------------------------------deprecated---------------------------------------------------
+  /**
+   * 兼容旧的 api。
+   * @deprecated
+   * */
+  private _rhi: GLRenderHardware;
+
+  private _pixelRatio: number = 1;
+
+  /**
+   * 渲染管线 todo 兼容。
+   * @deprecated
+   */
+  public get sceneRenderer(): BasicSceneRenderer {
+    return this._sceneRenderer;
+  }
+
+  /**
+   * @deprecated
+   * 视图矩阵逆矩阵。
+   */
+  public get inverseViewMatrix(): Readonly<Matrix4> {
+    turnAround(this._inverseViewMatrix, this._transform.worldMatrix);
+    return this._inverseViewMatrix;
+  }
+
+  /**
+   * @deprecated
+   * 摄像机的位置(World Space)
+   * @member {mat4}
+   * @readonly
+   */
+  public get eyePos() {
+    return this._transform.worldPosition;
+  }
+
+  /**
+   * 兼容旧的 aspect。
+   * @deprecated
+   */
+  public get aspect(): number {
+    return this.aspectRatio;
+  }
+
+  /**
+   * 像素比率。
+   * @deprecated
+   */
+  public get pixelRatio(): number {
+    return this._pixelRatio;
+  }
+
+  /**
+   * 像素比率
+   * @deprecated
+   */
+  public set pixelRatio(value: number) {
+    this._pixelRatio = value;
+    if (this.renderHardware) {
+      this.updateSizes(value, this.renderHardware.canvas);
+    }
+  }
+
+  /**
+   * @deprecated
+   * @todo 涉及渲染管线修改 rhi.clearRenderTarget 方法
+   * @param clearMode
+   * @param clearParam
+   */
+  public setClearMode(clearMode: ClearMode = ClearMode.SOLID_COLOR, clearParam: Vector4 = [0.25, 0.25, 0.25, 1]): void {
+    this._clearMode = clearMode;
+    this._clearParam = clearParam as Vector4;
+    this._sceneRenderer.defaultRenderPass.clearParam = clearParam;
+    this._sceneRenderer.defaultRenderPass.clearMode = clearMode;
+  }
+
+  /**
+   * @deprecated
+   * 兼容之前的 api
+   */
+  public attachToScene(canvas: HTMLCanvasElement | string, attributes?: WebGLContextAttributes): void {
+    if (typeof canvas === "string") {
+      canvas = document.getElementById(canvas) as HTMLCanvasElement;
+    }
+    const engine = this.node.scene.engine;
+    this._rhi = engine.requireRHI((this._props as any).RHI ?? GLRenderHardware, canvas, {
+      ...(this._props as any).attributes,
+      ...attributes
+    });
+    // 触发 rhi viewport 设置
+    this.updateSizes(this._pixelRatio ?? window.devicePixelRatio, canvas);
+    // this.viewportNormalized = this.viewportNormalized;
+  }
+
+  /**
+   * @deprecated
+   * 兼容旧的 renderHardware
+   */
+  public get renderHardware(): GLRenderHardware {
+    return this._rhi;
+  }
+
+  /**
+   * @deprecated
+   * 更新画布大小和透视矩阵
+   * @param [pixelRatio=this.pixelRatio] 像素比率
+   * @param
+   */
+  private updateSizes(pixelRatio: number, canvas: HTMLCanvasElement): void {
+    const width = (canvas.clientWidth * pixelRatio) | 0;
+    const height = (canvas.clientHeight * pixelRatio) | 0;
+
+    canvas.width = width;
+    canvas.height = height;
+    this.viewportNormalized = this.viewportNormalized;
+  }
+
+  /**
+   * 投影具体应该修改时调用
+   */
+  private projMatChange() {
+    this._isProjectionDirty = true;
+    this._isInvProjMatDirty = true;
+    this._isInvViewProjDirty.flag = true;
+  }
+
+  /**
+   * 通过缓存视图投影矩阵逆矩阵计算 viewportToWorldPoint
+   * @private
+   */
+  private innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix4, out: Vector3) {
+    // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
+    const depth = point[2] * 2 - 1;
+    // 变换到裁剪空间矩阵
+    const clipPoint = vec4.set(MathTemp.tempVec4, point[0] * 2 - 1, 1 - point[1] * 2, depth, 1);
+    // 计算逆矩阵结果
+    const u = vec4.transformMat4(MathTemp.tempVec4, clipPoint, invViewProjMat);
+    const w = u[3];
+
+    out[0] = u[0] / w;
+    out[1] = u[1] / w;
+    out[2] = u[2] / w;
+    return out;
+  }
+}
+
+/**
+ * @deprecated
+ */
+export function turnAround(out, a) {
+  out[4] = a[4];
+  out[5] = a[5];
+  out[6] = a[6];
+  out[7] = a[7];
+  out[12] = a[12];
+  out[13] = a[13];
+  out[14] = a[14];
+  out[15] = a[15];
+
+  out[0] = -a[0];
+  out[1] = -a[1];
+  out[2] = -a[2];
+  out[3] = -a[3];
+  out[8] = -a[8];
+  out[9] = -a[9];
+  out[10] = -a[10];
+  out[11] = -a[11];
+  return out;
+}
+
+interface ITransform {
+  worldMatrix: Readonly<Matrix4>;
+  worldPosition: Readonly<Vector3>;
 }

@@ -88,7 +88,7 @@ resourceLoader.load(animationRes, (err, gltf) => {
     duration: 1000
   });
   const actionMap = {};
-  animations.forEach(clip => {
+  animations.forEach((clip) => {
     actionMap[clip.name] = clip;
   });
   const options = {
@@ -140,45 +140,65 @@ resourceLoader.load(animationRes, (err, gltf) => {
       "0": [
         {
           value: 0,
-          property: "position",
-          subProperty: "y",
-          interpolation: "0,0,1,1"
-        }
-      ],
-      "1000": [
-        {
-          value: 1,
-          property: "position",
-          subProperty: "y",
-          interpolation: "0,0,1,1"
-        }
-      ],
-      "2000": [
-        {
-          value: 0,
-          property: "position",
-          subProperty: "y",
-          interpolation: "0,0,1,1"
-        }
-      ],
-      "3000": [
-        {
-          value: -1,
-          property: "position",
+          property: "rotation",
           subProperty: "y",
           interpolation: "0,0,1,1"
         }
       ],
       "4000": [
         {
-          value: -2,
-          property: "position",
+          value: 360,
+          property: "rotation",
           subProperty: "y",
           interpolation: "0,0,1,1"
         }
       ]
     }
   };
+  // const options2 = {
+  //   keyframes: {
+  //     "0": [
+  //       {
+  //         value: 0,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ],
+  //     "1000": [
+  //       {
+  //         value: 1,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ],
+  //     "2000": [
+  //       {
+  //         value: 0,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ],
+  //     "3000": [
+  //       {
+  //         value: -1,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ],
+  //     "4000": [
+  //       {
+  //         value: -2,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ]
+  //   }
+  // };
   const ac1 = new AnimationClip("translate1", Interpolation, options);
   const ac2 = new AnimationClip("translate2", Interpolation, options2);
   const ac5 = new AnimationClip("B", Skeleton, actionMap["B"]);
@@ -188,13 +208,13 @@ resourceLoader.load(animationRes, (err, gltf) => {
   modelAnimation.addAnimationClip(3000, ac5);
   cubeAnimation.addAnimationClip(0, ac1);
   cubeAnimation.addAnimationClip(0, ac2);
-  cubeNode.addEventListener("animationFinished", e => {
+  cubeNode.addEventListener("animationFinished", (e) => {
     console.log("cubeNode", e.data);
   });
-  model.addEventListener("animationFinished", e => {
+  model.addEventListener("animationFinished", (e) => {
     console.log("model", e.data);
   });
-  engine.addEventListener("animatorFinished", e => {
+  engine.addEventListener("animatorFinished", (e) => {
     console.log("animatorFinished", e.data);
   });
   const animator = rootNode.createAbility(AAnimator, {

@@ -12,6 +12,7 @@ beforeScript:
     echo $PATH
     time enclose install tnpm:tnpm
     tnpm -v
+    yum install -y install xorg-x11-server-devel.x86_64 libXi.x86_64 libXext.x86_64
 node-8:
   stage: test
   aciTags: DOCKER
@@ -31,8 +32,8 @@ node-8:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
-      artifacts: 'coverage/'
+    archiveArtifacts:
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
@@ -56,8 +57,8 @@ node-10:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
-      artifacts: 'coverage/'
+    archiveArtifacts:
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
@@ -81,8 +82,8 @@ node-12:
   coverage: '(?<=Statements\s{1,10}:\s{1,10})\d{1,10}.\d{1,10}'
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
-    archiveArtifacts: 
-      artifacts: 'coverage/'
+    archiveArtifacts:
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html

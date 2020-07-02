@@ -1,6 +1,6 @@
 import { vec3 } from "@alipay/o3-math";
 import { IntersectInfo } from "@alipay/o3-base";
-import { Mat4, Vec3, Vec4 } from "@alipay/o3-math/types/type";
+import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { pointDistanceToPlane } from "./util";
 
 /**
@@ -8,21 +8,21 @@ import { pointDistanceToPlane } from "./util";
  * */
 export class OBB {
   /** 本地坐标系 */
-  public min: Vec3 = vec3.create();
-  public max: Vec3 = vec3.create();
-  public corners: Vec3[] = [];
+  public min: Vector3 = vec3.create();
+  public max: Vector3 = vec3.create();
+  public corners: Vector3[] = [];
   /** 世界坐标系 */
-  public minWorld: Vec3 = vec3.create();
-  public maxWorld: Vec3 = vec3.create();
-  public cornersWorld: Vec3[] = [];
+  public minWorld: Vector3 = vec3.create();
+  public maxWorld: Vector3 = vec3.create();
+  public cornersWorld: Vector3[] = [];
 
   /**
    * 初始化 OBB, 之后可以通过 modelMatrix 缓存计算
-   * @param {Vec3} minLocal - 本地坐标系的最小坐标
-   * @param {Vec3} maxLocal - 本地坐标系的最大坐标
-   * @param {Mat4} modelMatrix - Local to World矩阵
+   * @param {Vector3} minLocal - 本地坐标系的最小坐标
+   * @param {Vector3} maxLocal - 本地坐标系的最大坐标
+   * @param {Matrix4} modelMatrix - Local to World矩阵
    * */
-  constructor(minLocal: Vec3, maxLocal: Vec3, modelMatrix: Mat4) {
+  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix4) {
     vec3.copy(this.min, minLocal);
     vec3.copy(this.max, maxLocal);
     this.corners = this.getCornersFromMinMax(minLocal, maxLocal);
@@ -33,10 +33,10 @@ export class OBB {
 
   /**
    * 根据 min/max ,取得八个顶点的位置
-   * @param {Vec3} min - 最小坐标
-   * @param {Vec3} max - 最大坐标
+   * @param {Vector3} min - 最小坐标
+   * @param {Vector3} max - 最大坐标
    */
-  getCornersFromMinMax(min: Vec3, max: Vec3) {
+  getCornersFromMinMax(min: Vector3, max: Vector3) {
     const minX = min[0],
       minY = min[1],
       minZ = min[2],
@@ -58,14 +58,14 @@ export class OBB {
 
   /**
    * 通过模型矩阵，和缓存的本地坐标系 OBB，获取新的世界坐标系 OBB
-   * @param {Mat4} modelMatrix - Local to World矩阵
+   * @param {Matrix4} modelMatrix - Local to World矩阵
    * */
-  updateByModelMatrix(modelMatrix: Mat4) {
+  updateByModelMatrix(modelMatrix: Matrix4) {
     let min = [Infinity, Infinity, Infinity];
     let max = [-Infinity, -Infinity, -Infinity];
     for (let i = 0; i < 8; ++i) {
-      const corner: Vec3 = this.corners[i];
-      const cornerWorld: Vec3 = vec3.create();
+      const corner: Vector3 = this.corners[i];
+      const cornerWorld: Vector3 = vec3.create();
       vec3.transformMat4(cornerWorld, corner, modelMatrix);
       vec3.min(min, min, cornerWorld);
       vec3.max(max, max, cornerWorld);
@@ -77,10 +77,10 @@ export class OBB {
 
   /**
    * 获取与视锥体的 具体相交状态
-   * @param { Vec4[] } frustumPlanes - Oasis 视锥体的6个平面方程
+   * @param { Vector4[] } frustumPlanes - Oasis 视锥体的6个平面方程
    * @return {IntersectInfo} 返回相交状态
    * */
-  intersectsFrustum(frustumPlanes: Vec4[]): IntersectInfo {
+  intersectsFrustum(frustumPlanes: Vector4[]): IntersectInfo {
     const cornersWorld = this.cornersWorld;
 
     for (let i = 0; i < 6; i++) {
@@ -103,10 +103,10 @@ export class OBB {
 
   /**
    * 是否在视锥体内部（包含或者交叉）
-   * @param { Vec4[] } frustumPlanes - Oasis 视锥体的6个平面方程
+   * @param { Vector4[] } frustumPlanes - Oasis 视锥体的6个平面方程
    * @return {boolean}
    * */
-  isInFrustum(frustumPlanes: Vec4[]): boolean {
+  isInFrustum(frustumPlanes: Vector4[]): boolean {
     const cornersWorld = this.cornersWorld;
 
     for (let i = 0; i < 6; i++) {

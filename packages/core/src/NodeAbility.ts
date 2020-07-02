@@ -1,8 +1,8 @@
 import { Event, EventDispatcher, MaskList } from "@alipay/o3-base";
-import { Node } from "./Node";
+import { Matrix4 } from "@alipay/o3-math/types/type";
 import { Engine } from "./Engine";
+import { Node } from "./Node";
 import { Scene } from "./Scene";
-import { mat4Type } from "./type";
 
 /**
  * TODO:命名暂时保留兼容性，未来替换为Component
@@ -10,11 +10,11 @@ import { mat4Type } from "./type";
  */
 export abstract class NodeAbility extends EventDispatcher {
   /* @internal */
-  _props: object;
-  /* @internal */
   _node: Node;
   /* @internal */
   _destroyed: boolean = false;
+  /* @internal */
+  _onStartIndex: number = -1;
   /* @internal */
   _onUpdateIndex: number = -1;
   /* @internal */
@@ -22,6 +22,7 @@ export abstract class NodeAbility extends EventDispatcher {
   /* @internal */
   protected _overrideUpdate: boolean = false;
 
+  protected _props: object;
   private _enabled: boolean = true;
   private _awaked: boolean = false;
 
@@ -80,7 +81,8 @@ export abstract class NodeAbility extends EventDispatcher {
    * 销毁本组件对象
    */
   destroy(): void {
-    if (!this._destroyed) return;
+    if (this._destroyed) return;
+    this._node._removeComponent(this);
     if (this._node.isActiveInHierarchy) {
       this._enabled && this._onDisable();
       this._onInActive();
@@ -89,47 +91,39 @@ export abstract class NodeAbility extends EventDispatcher {
     this._onDestroy();
   }
 
-  /**
-   * @internal
-   */
   _onAwake(): void {}
 
-  /**
-   * @internal
-   */
-  _onEnable(): void {}
-
-  /**
-   * @internal
-   */
-  _onDisable(): void {}
-
-  /**
-   * @internal
-   */
-  _onDestroy(): void {}
-
-  /**
-   * @internal
-   */
-  _onActive(): void {
+  _onEnable(): void {
+    const componentsManager = this.scene._componentsManager;
+    const prototype = NodeAbility.prototype;
+    if (!this._started && this.onStart !== prototype.onStart) {
+      componentsManager.addOnStartScript(this as any);
+    }
     if (this._overrideOnUpdate || this._overrideUpdate) {
       //@deprecated 兼容
       if (this._overrideUpdate) {
         this.onUpdate = this.update;
       }
-      this.scene._componentsManager.addOnUpdateComponent(this);
+      componentsManager.addOnUpdateComponent(this);
     }
   }
 
-  /**
-   * @internal
-   */
-  _onInActive(): void {
+  _onDisable(): void {
+    const componentsManager = this.scene._componentsManager;
+    const prototype = NodeAbility.prototype;
+    if (!this._started && this.onStart !== prototype.onStart) {
+      componentsManager.removeOnStartScript(this as any);
+    }
     if (this._overrideOnUpdate || this._overrideUpdate) {
-      this.scene._componentsManager.removeOnUpdateComponent(this);
+      componentsManager.removeOnUpdateComponent(this);
     }
   }
+
+  _onDestroy(): void {}
+
+  _onActive(): void {}
+
+  _onInActive(): void {}
 
   /**
    * @internal
@@ -176,7 +170,7 @@ export abstract class NodeAbility extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-    return this._node.scene.engine;
+    return this._node?.scene?.engine;
   }
 
   /**
@@ -236,14 +230,14 @@ export abstract class NodeAbility extends EventDispatcher {
   /**
    * @deprecated
    */
-  get modelMatrix(): mat4Type {
+  get modelMatrix(): Readonly<Matrix4> {
     return this._node.getModelMatrix();
   }
 
   /**
    * @deprecated
    */
-  get invModelMatrix(): mat4Type {
+  get invModelMatrix(): Readonly<Matrix4> {
     return this._node.getInvModelMatrix();
   }
 

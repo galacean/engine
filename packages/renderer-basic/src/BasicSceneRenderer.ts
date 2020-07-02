@@ -64,7 +64,7 @@ export class BasicSceneRenderer extends SceneVisitor {
       this._renderPassArray.push(nameOrPass);
     }
 
-    this._renderPassArray.sort(function(p1, p2) {
+    this._renderPassArray.sort(function (p1, p2) {
       return p1.priority - p2.priority;
     });
   }
@@ -124,6 +124,9 @@ export class BasicSceneRenderer extends SceneVisitor {
    */
   render() {
     const camera = this._camera;
+    if (!camera.renderHardware) {
+      return;
+    }
     const opaqueQueue = this._opaqueQueue;
     const transparentQueue = this._transparentQueue;
 
@@ -131,7 +134,6 @@ export class BasicSceneRenderer extends SceneVisitor {
     opaqueQueue.clear();
     transparentQueue.clear();
 
-    //-- 遍历 Scene Graph，收集所有激活的渲染对象组件
     const scene = camera.scene;
     scene._componentsManager.callRender(camera);
     //-- 执行渲染队列

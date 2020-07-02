@@ -201,23 +201,23 @@ export class RenderTechnique extends AssetObject {
     if (attribNames.indexOf("JOINTS_0") > -1) {
       _macros.push("O3_HAS_SKIN");
       if (component.jointNodes?.length) {
-        /** 是否使用骨骼纹理 */
-        if (!component.disableJointTexture && rhi.canIUseMoreJoints) {
-          _macros.push("O3_USE_JOINT_TEXTURE");
-        } else {
-          component.disableJointTexture = true;
-          const maxAttribUniformVec4 = rhi.renderStates.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
-          const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
-          const joints = component.jointNodes.length;
-          if (maxJoints < joints) {
+        const maxAttribUniformVec4 = rhi.renderStates.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
+        const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
+        const joints = component.jointNodes.length;
+
+        if (joints > maxJoints) {
+          /** 是否使用骨骼纹理 */
+          if (rhi.canIUseMoreJoints) {
+            _macros.push("O3_USE_JOINT_TEXTURE");
+          } else {
             Logger.error(
               `component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, suggest joint count less than ${maxJoints}.`,
               component
             );
-          } else if (material.maxJointsNum > 0) {
-            // 使用最大关节数，保证所有 ASkinnedMeshRenderer 都可以共用材质
-            _macros.push(`O3_JOINTS_NUM ${material.maxJointsNum}`);
           }
+        } else if (material.maxJointsNum > 0) {
+          // 使用最大关节数，保证所有 ASkinnedMeshRenderer 都可以共用材质
+          _macros.push(`O3_JOINTS_NUM ${material.maxJointsNum}`);
         }
       }
     }

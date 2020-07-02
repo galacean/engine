@@ -42,7 +42,10 @@ let envLight = envLightNode.createAbility(AEnvironmentMapLight, {});
 let camera = cameraNode.createAbility(ADefaultCamera, {
   canvas: "o3-demo",
   position: [0, 0.2, 0.5],
-  clearParam: [0.9, 0.9, 0.9, 1]
+  clearParam: [0.9, 0.9, 0.9, 1],
+  attributes: {
+    disableWebGL2: false
+  }
 });
 let controler = cameraNode.createAbility(AOrbitControls, { mainElement: document.getElementById("r3-demo") });
 controler.target = [0, 0.1, 0];
@@ -82,9 +85,9 @@ function debugModel(modelUrl, onLoad) {
 
     updateModelNode();
     // modelNode.position[0] += 0.1;
-    asset.rootScene.nodes.forEach(n => modelNode.addChild(n));
-    asset.meshes.forEach(mesh => {
-      mesh.primitives.forEach(p => materials.push(p.material));
+    asset.rootScene.nodes.forEach((n) => modelNode.addChild(n));
+    asset.meshes.forEach((mesh) => {
+      mesh.primitives.forEach((p) => materials.push(p.material));
     });
     onLoad && onLoad(res);
   });
@@ -93,7 +96,7 @@ function debugModel(modelUrl, onLoad) {
 //-- run
 engine.run();
 
-debugModel("/static/model/water-bottle/scene.gltf", res => {
+debugModel("/static/model/water-bottle/scene.gltf", (res) => {
   let pingshen = materials[0];
   let logo = materials[1];
   let water = materials[2];
@@ -113,22 +116,39 @@ debugModel("/static/model/water-bottle/scene.gltf", res => {
     BlendFunc.SRC_ALPHA,
     BlendFunc.ONE_MINUS_SRC_ALPHA
   ];
-  const probe = rootNode.createAbility(PlaneProbe, {
+
+  let debugInfo = {
+    size: 1024,
+    samples: 1
+  };
+
+  let probe = rootNode.createAbility(PlaneProbe, {
     width: 1024,
     height: 1024,
     renderList: [pingshen, cap, logo]
   });
   // water.refractionTexture = probe.texture;
   water.refractionDepth = 0.025; // 瓶身的厚度
-  probe.onTextureChange = texture => {
-    water.refractionTexture = texture;
-  };
+
+  // debug render texture fetch pixel
+  // probe.onTextureChange = texture => {
+  //   const buffer = new Uint8Array(100 * 4);
+  //   texture.getPixelBuffer(50, 50, 10, 10, buffer);
+  //   console.log(buffer);
+  // };
+  water.refractionTexture = probe.texture;
 
   gui.add(water, "refractionRatio", 0, 1, 0.01).name("折射率");
   gui
-    .add({ size: 1024 }, "size", 1, 2048, 1)
-    .onChange(v => {
-      probe.width = probe.height = v;
+    .add(debugInfo, "size", 1, 2048, 1)
+    .onChange((v) => {
+      probe.destroy();
+      probe = rootNode.createAbility(PlaneProbe, {
+        width: v,
+        height: v,
+        renderList: [pingshen, cap, logo]
+      });
+      water.refractionTexture = probe.texture;
     })
     .name("分辨率");
   const rhi = camera.renderHardware;
@@ -137,6 +157,18 @@ debugModel("/static/model/water-bottle/scene.gltf", res => {
     alert("本案例需要 WebGL2 支持");
   } else {
     const max = gl.getParameter(gl.MAX_SAMPLES);
-    gui.add(probe, "samples", 0, max, 1).name("MSAA");
+    gui
+      .add(debugInfo, "samples", 0, max, 1)
+      .name("MSAA")
+      .onChange((v) => {
+        probe.destroy();
+        probe = rootNode.createAbility(PlaneProbe, {
+          width: debugInfo.size,
+          height: debugInfo.size,
+          samples: v,
+          renderList: [pingshen, cap, logo]
+        });
+        water.refractionTexture = probe.texture;
+      });
   }
 });

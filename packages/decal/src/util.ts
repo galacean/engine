@@ -140,8 +140,9 @@ export function getBoundingBoxByGLTF(node) {
 }
 
 function getAllMeshRender(node, rendererGroup) {
-  if (node.abilityArray.length > 0 && node.abilityArray[0] instanceof AMeshRenderer) {
-    rendererGroup.push(node.abilityArray[0]);
+  const render = node.getComponent(AMeshRenderer);
+  if (render) {
+    rendererGroup.push(render);
   }
   if (node.children.length > 0) {
     for (let i = 0; i < node.children.length; i += 1) {

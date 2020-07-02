@@ -143,7 +143,7 @@ export interface Options {
   // engine run 的 fps
   fps?: number;
   // 是否使用压缩纹理
-  useCompressedTexture: boolean;
+  useCompressedTexture?: boolean;
 }
 
 export interface LoadAttachedResourceResult {

@@ -2,17 +2,18 @@ import { UniformSemantic, DataType } from "@alipay/o3-base";
 import { Material } from "@alipay/o3-material";
 import { Resource } from "@alipay/o3-loader";
 import { NodeAbility } from "@alipay/o3-core";
+import { AGeometryRenderer } from "@alipay/o3-geometry";
 
 export function createCubeMaterial(loader) {
   let newMtl = new Material("cube_mtl");
-  newMtl.technique = requireCubeTechnique(loader) as any;
+  newMtl.technique = requireCubeTechnique(loader);
   return newMtl;
 }
 
 let time = 0;
 export class UpdateMaterialAbility extends NodeAbility {
   onUpdate(deltaTime) {
-    const material = (this.node.abilityArray[1] as any).material;
+    const material = this.node.getComponent(AGeometryRenderer).material;
     time += deltaTime;
     material.setValue("time", time * 0.001);
   }
@@ -79,6 +80,11 @@ function requireCubeTechnique(loader) {
         type: DataType.FLOAT_VEC3
       },
       a_color: {
+        name: "a_color",
+        semantic: "COLOR",
+        type: DataType.FLOAT_VEC3
+      },
+      offset: {
         name: "a_color",
         semantic: "COLOR",
         type: DataType.FLOAT_VEC3

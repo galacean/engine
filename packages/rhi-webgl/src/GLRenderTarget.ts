@@ -26,9 +26,18 @@ export class GLRenderTarget extends GLAsset {
   private MSAAColorRenderBuffer: WebGLRenderbuffer;
   private MSAADepthRenderBuffer: WebGLRenderbuffer;
 
+  protected _isNew: boolean = false;
+
   constructor(rhi: GLRenderHardware, renderTarget: RenderTarget) {
     super(rhi, renderTarget);
+
     this.renderTarget = renderTarget;
+
+    // todo:delete
+    if (renderTarget._frameBuffer) {
+      this._isNew = true;
+      return;
+    }
     this.initialize();
   }
 
@@ -40,7 +49,10 @@ export class GLRenderTarget extends GLAsset {
     const gl = this.rhi.gl;
     const { width, height, isMulti } = this.renderTarget;
 
-    if (this.MSAAFrameBuffer) {
+    // todo:delete
+    if (this._isNew) {
+      this.renderTarget._activeRenderTarget();
+    } else if (this.MSAAFrameBuffer) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.MSAAFrameBuffer);
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
@@ -50,6 +62,9 @@ export class GLRenderTarget extends GLAsset {
   }
 
   private activeTexture() {
+    // todo:delete
+    if (this._isNew) return;
+
     const { texture, cubeTexture, depthTexture } = this.renderTarget;
     // 激活一下Texture资源, 否则可能会被释放掉
     if (cubeTexture) {
@@ -67,6 +82,12 @@ export class GLRenderTarget extends GLAsset {
    * @param {number} faceIndex - gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex
    * */
   public setRenderTargetFace(faceIndex: number) {
+    // todo:delete
+    if (this._isNew) {
+      this.renderTarget._setRenderTargetFace(faceIndex);
+      return;
+    }
+
     if (!this.glCubeTexture) return;
 
     const gl = this.rhi.gl;
@@ -104,6 +125,9 @@ export class GLRenderTarget extends GLAsset {
 
   /** 初始化硬件层 MSAA  */
   private initMSAA() {
+    // todo:delete
+    if (this._isNew) return;
+
     const gl = this.rhi.gl;
     const { width, height, samples } = this.renderTarget;
 
@@ -135,6 +159,12 @@ export class GLRenderTarget extends GLAsset {
 
   /** blit FBO */
   blitRenderTarget() {
+    // todo:delete
+    if (this._isNew && this.renderTarget._MSAAFrameBuffer) {
+      this.renderTarget._blitRenderTarget();
+      return;
+    }
+
     if (!this.MSAAFrameBuffer) return;
 
     const gl = this.rhi.gl;
@@ -153,6 +183,9 @@ export class GLRenderTarget extends GLAsset {
    * @private
    */
   private initialize() {
+    // todo: delete
+    if (this._isNew) return;
+
     const gl = this.rhi.gl;
 
     this.frameBuffer = gl.createFramebuffer();
@@ -171,6 +204,9 @@ export class GLRenderTarget extends GLAsset {
   }
 
   protected bindFBO() {
+    // todo:delete
+    if (this._isNew) return;
+
     const gl = this.rhi.gl;
     const { width, height, texture, cubeTexture, depthTexture } = this.renderTarget;
     if (cubeTexture) {
@@ -220,6 +256,9 @@ export class GLRenderTarget extends GLAsset {
    * 初始化颜色纹理
    */
   protected initColorTexture(texture: Texture2D, index: number = 0) {
+    // todo:delete
+    if (this._isNew) return;
+
     const { gl } = this.rhi;
     const canIUse = this.rhi.canIUse.bind(this.rhi);
     const { width, height, colorBufferFloat } = this.renderTarget;
@@ -247,6 +286,9 @@ export class GLRenderTarget extends GLAsset {
    * 初始化深度纹理
    */
   protected initDepthTexture(depthTexture: Texture2D) {
+    // todo:delete
+    if (this._isNew) return;
+
     const { gl, isWebGL2 } = this.rhi;
     if (!this.rhi.canIUse(GLCapabilityType.depthTexture)) {
       return null;
@@ -273,6 +315,9 @@ export class GLRenderTarget extends GLAsset {
   }
 
   protected initDepthRenderBuffer() {
+    // todo:delete
+    if (this._isNew) return;
+
     const { gl, isWebGL2 } = this.rhi;
     const { width, height } = this.renderTarget;
     const depthRenderBuffer = gl.createRenderbuffer();
@@ -296,6 +341,9 @@ export class GLRenderTarget extends GLAsset {
    * @private
    */
   finalize() {
+    // todo:delete
+    if (this._isNew) return;
+
     const gl = this.rhi.gl;
 
     if (this.glTexture) {
