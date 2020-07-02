@@ -467,7 +467,7 @@ export abstract class Texture extends AssetObject {
         gl.texParameteri(this._target, gl.TEXTURE_MIN_FILTER, this._mipmap ? gl.LINEAR_MIPMAP_NEAREST : gl.LINEAR);
         break;
       case TextureFilterMode.Trilinear:
-        gl.texParameteri(this._target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(this._target, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(this._target, gl.TEXTURE_MIN_FILTER, this._mipmap ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
         break;
     }
