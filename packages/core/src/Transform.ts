@@ -413,18 +413,18 @@ export class Transform extends NodeAbility {
     return flag;
   }
 
+  _onDestroy() {
+    for (let i = 0, len = this._changeFlags.length; i < len; i++) {
+      this._changeFlags[i].destroy();
+    }
+  }
+
   /**
    * @internal
    */
   _parentChange(): void {
     this._isParentDirty = true;
     this._updateAllWorldFlag();
-  }
-
-  _onDestroy() {
-    for (let i = 0, len = this._changeFlags.length; i < len; i++) {
-      this._changeFlags[i].destroy();
-    }
   }
 
   /**
