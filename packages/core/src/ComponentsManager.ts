@@ -135,14 +135,20 @@ export class ComponentsManager {
   callScriptOnUpdate(deltaTime): void {
     const elements = this._onUpdateScripts._elements;
     for (let i = this._onUpdateScripts.length - 1; i >= 0; --i) {
-      elements[i].onUpdate(deltaTime);
+      const element = elements[i];
+      if (element._started) {
+        element.onUpdate(deltaTime);
+      }
     }
   }
 
   callScriptOnLateUpdate(): void {
     const elements = this._onLateUpdateScripts._elements;
     for (let i = this._onLateUpdateScripts.length - 1; i >= 0; --i) {
-      elements[i].onLateUpdate();
+      const element = elements[i];
+      if (element._started) {
+        element.onLateUpdate();
+      }
     }
   }
 
@@ -170,14 +176,20 @@ export class ComponentsManager {
   callRendererOnUpdate(deltaTime: number): void {
     const elements = this._onUpdateRenderers._elements;
     for (let i = this._onUpdateRenderers.length - 1; i >= 0; --i) {
-      elements[i].onUpdate(deltaTime);
+      const element = elements[i];
+      if (element._started) {
+        element.onUpdate(deltaTime);
+      }
     }
   }
 
   callRender(camera: ACamera): void {
     const elements = this._renderers._elements;
     for (let i = this._renderers.length - 1; i >= 0; --i) {
-      elements[i]._render(camera);
+      const element = elements[i];
+      if (element._started) {
+        element._render(camera);
+      }
     }
   }
 
@@ -217,7 +229,10 @@ export class ComponentsManager {
   callComponentOnUpdate(deltaTime): void {
     const elements = this._onUpdateComponents._elements;
     for (let i = this._onUpdateComponents.length - 1; i >= 0; --i) {
-      elements[i].onUpdate(deltaTime);
+      const element = elements[i];
+      if (element._started) {
+        element.onUpdate(deltaTime);
+      }
     }
   }
 }

@@ -80,7 +80,7 @@ export class Script extends NodeAbility {
   _onEnable(): void {
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
-    if (!this._started && this.onStart !== prototype.onStart) {
+    if (!this._started) {
       componentsManager.addOnStartScript(this);
     }
     if (this.onUpdate !== prototype.onUpdate) {
@@ -106,7 +106,7 @@ export class Script extends NodeAbility {
   _onDisable(): void {
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
-    if (!this._started && this.onStart !== prototype.onStart) {
+    if (!this._started) {
       componentsManager.removeOnStartScript(this);
     }
     if (this.onUpdate !== prototype.onUpdate) {
