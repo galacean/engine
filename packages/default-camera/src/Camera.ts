@@ -504,6 +504,8 @@ export class Camera extends NodeAbility {
    * */
   private _rhi: GLRenderHardware;
 
+  private _pixelRatio: number = 1;
+
   /**
    * 渲染管线 todo 兼容。
    * @deprecated
@@ -532,11 +534,28 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * 兼容旧的 aspect
+   * 兼容旧的 aspect。
    * @deprecated
    */
   public get aspect(): number {
     return this.aspectRatio;
+  }
+
+  /**
+   * 像素比率。
+   * @deprecated
+   */
+  public get pixelRatio(): number {
+    return this._pixelRatio;
+  }
+
+  /**
+   * 像素比率
+   * @deprecated
+   */
+  public set pixelRatio(value: number) {
+    this._pixelRatio = value;
+    this.updateSizes(value, this.renderHardware.canvas);
   }
 
   /**
