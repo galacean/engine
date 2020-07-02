@@ -283,6 +283,7 @@ export class Camera extends NodeAbility {
     this._nearClipPlane = near ?? 0.1;
     this._farClipPlane = far ?? 100;
     this._fieldOfView = fov ?? 45;
+    this._pixelRatio = props.pixelRatio ?? 0;
 
     this._viewportNormalized = [0, 0, 1, 1];
 
@@ -585,7 +586,7 @@ export class Camera extends NodeAbility {
       ...attributes
     });
     // 触发 rhi viewport 设置
-    this.updateSizes((this._props as any).pixelRatio ?? window.devicePixelRatio, canvas);
+    this.updateSizes(this._pixelRatio ?? window.devicePixelRatio, canvas);
     // this.viewportNormalized = this.viewportNormalized;
   }
 
