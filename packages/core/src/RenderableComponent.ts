@@ -24,21 +24,31 @@ export abstract class RenderableComponent extends NodeAbility {
   update(deltaTime: number): void {} //CM:未来整合为update更合理
   onUpdate(deltaTime: number): void {}
 
-  _onActive() {
+  _onEnable() {
+    const componentsManager = this.scene._componentsManager;
+    const prototype = RenderableComponent.prototype;
+    if (!this._started && this.onStart !== prototype.onStart) {
+      componentsManager.addOnStartScript(this as any);
+    }
     if (this._overrideOnUpdate || this._overrideUpdate) {
       if (this._overrideUpdate) {
         this.onUpdate = this.update;
       }
-      this.scene._componentsManager.addOnUpdateRenderers(this);
+      componentsManager.addOnUpdateRenderers(this);
     }
-    this.scene._componentsManager.addRenderer(this);
+    componentsManager.addRenderer(this);
   }
 
-  _onInActive() {
-    if (this._overrideOnUpdate || this._overrideUpdate) {
-      this.scene._componentsManager.removeOnUpdateRenderers(this);
+  _onDisable() {
+    const componentsManager = this.scene._componentsManager;
+    const prototype = RenderableComponent.prototype;
+    if (!this._started && this.onStart !== prototype.onStart) {
+      componentsManager.removeOnStartScript(this as any);
     }
-    this.scene._componentsManager.removeRenderer(this);
+    if (this._overrideOnUpdate || this._overrideUpdate) {
+      componentsManager.removeOnUpdateRenderers(this);
+    }
+    componentsManager.removeRenderer(this);
   }
 
   _render(camera: ACamera) {

@@ -22,8 +22,9 @@ export class Node extends EventDispatcher {
    */
   static findByName(name: string): Node {
     const { _nodes } = Node;
-    for (let i = _nodes.length - 1; i >= 0; i--) {
-      const node = _nodes[i];
+    const nodes = _nodes._elements;
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const node = nodes[i];
       const nodeName = node.name;
       if (nodeName === name) {
         return node;
@@ -43,8 +44,7 @@ export class Node extends EventDispatcher {
     const rootNode = scene.root;
     if (!rootNode) return null; //scene or scene.root maybe destroyed
     let node: Node = rootNode;
-    const spitLength = splits.length;
-    for (let i = spitLength - 1; i >= 0; ++i) {
+    for (let i = 0, spitLength = splits.length; i < spitLength; ++i) {
       const split = splits[i];
       if (split) {
         node = Node._findChildByName(node, split);
@@ -161,11 +161,11 @@ export class Node extends EventDispatcher {
           this._isActiveInHierarchy && this._processInActive();
         }
       } else {
+        this._isActiveInHierarchy && this._processInActive();
         if (oldParent) {
           this._scene = null;
           Node._traverseSetOwnerScene(this, null);
         }
-        this._isActiveInHierarchy && this._processInActive();
       }
     }
     this._setTransformDirty();
@@ -198,9 +198,9 @@ export class Node extends EventDispatcher {
     //TODO 因现有机制scene的rootNode 在创建时需要知道自己为root(判断activeInHierarchy时不需要判断父节点)
     this._isRoot = parent === null && name === "__root__";
     this.name = name;
-    this.transform = this.addComponent(Transform);
     this.parent = parent;
     this.isActive = true;
+    this.transform = this.addComponent(Transform);
     this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
   }
 
@@ -209,7 +209,7 @@ export class Node extends EventDispatcher {
    * 根据组件类型添加组件。
    * @returns	组件实例
    */
-  addComponent<T extends Component>(type: new (node: Node, props?: object) => T, props: object = {}): T {
+  addComponent<T extends Component>(type: new (node: any, props?: object) => T, props: object = {}): T {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, props);
     this._components.push(component);
@@ -300,8 +300,7 @@ export class Node extends EventDispatcher {
   findByPath(path: string): Node {
     const splits = path.split("/");
     let node: Node = this;
-    const spitLength = splits.length;
-    for (let i = spitLength - 1; i >= 0; ++i) {
+    for (let i = 0, length = splits.length; i < length; ++i) {
       const split = splits[i];
       if (split) {
         node = Node._findChildByName(node, split);
@@ -320,13 +319,12 @@ export class Node extends EventDispatcher {
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      if (child._parent) {
-        child._scene = null;
-        Node._traverseSetOwnerScene(child, null);
-      }
       child._parent = null;
       child._isActiveInHierarchy && child._processInActive();
+      child._scene = null; // must after child._processInActive()
+      Node._traverseSetOwnerScene(child, null);
     }
+    children.length = 0;
   }
 
   /**
@@ -342,7 +340,9 @@ export class Node extends EventDispatcher {
     newNode.transform.localMatrix = this.transform.localMatrix;
     // Transform
 
-    for (const childNode of this._children) {
+    const children = this._children;
+    for (let i = 0, len = this._children.length; i < len; i++) {
+      const childNode = children[i];
       newNode.addChild(childNode.clone());
     }
 
@@ -382,7 +382,6 @@ export class Node extends EventDispatcher {
       parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
-    this._inverseWorldMatFlag.destroy();
     Node._nodes.delete(this);
   }
 
