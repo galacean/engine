@@ -556,7 +556,9 @@ export class Camera extends NodeAbility {
    */
   public set pixelRatio(value: number) {
     this._pixelRatio = value;
-    this.updateSizes(value, this.renderHardware.canvas);
+    if (this.renderHardware) {
+      this.updateSizes(value, this.renderHardware.canvas);
+    }
   }
 
   /**
