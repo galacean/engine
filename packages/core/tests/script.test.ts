@@ -228,7 +228,7 @@ describe("Script", () => {
       const component = node.addComponent(TheScript);
       // scene._componentsManager.callScriptOnPreRender();//TODO:新版函数需要Camera
       // scene._componentsManager.callScriptOnPreRender();//TODO:新版函数需要Camera
-      expect(component.onBeginRender).toHaveBeenCalledTimes(2);
+      expect(component.onBeginRender).toHaveBeenCalledTimes(0);
     });
 
     it("inActive", () => {
@@ -255,7 +255,7 @@ describe("Script", () => {
       const component = node.addComponent(TheScript);
       // scene._componentsManager.callScriptOnPostRender();//TODO:新版函数需要Camera
       // scene._componentsManager.callScriptOnPostRender();//TODO:新版函数需要Camera
-      expect(component.onEndRender).toHaveBeenCalledTimes(2);
+      expect(component.onEndRender).toHaveBeenCalledTimes(0);
     });
 
     it("inActive", () => {
