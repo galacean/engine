@@ -25,7 +25,7 @@ const RESOURCE_CLASS = {
   // 'image': TextureResource,
   cubeTexture: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
-  PBRMaterialSpecular: PBRMaterialResource,
+  PBRSpecularMaterial: PBRMaterialResource,
   unlitMaterial: PBRMaterialResource,
   ShaderMaterial: ShaderMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
