@@ -283,7 +283,7 @@ export class Camera extends NodeAbility {
     this._nearClipPlane = near ?? 0.1;
     this._farClipPlane = far ?? 100;
     this._fieldOfView = fov ?? 45;
-    this._pixelRatio = props.pixelRatio ?? 0;
+    this._pixelRatio = props.pixelRatio ?? null;
 
     this._viewportNormalized = [0, 0, 1, 1];
 
