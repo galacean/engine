@@ -42,7 +42,9 @@ describe("ComponentsManager", () => {
       const node = new Node(scene, scene.root, "node");
       TestComponent.prototype.update = jest.fn();
       const component = node.addComponent(TestComponent);
+      scene._componentsManager.callScriptOnStart();
       scene._componentsManager.callRendererOnUpdate(16.7);
+      scene._componentsManager.callScriptOnStart();
       scene._componentsManager.callRendererOnUpdate(16.7);
       expect(component.update).toHaveBeenCalledTimes(2);
     });
@@ -55,7 +57,9 @@ describe("ComponentsManager", () => {
       const node = new Node(scene, scene.root, "node");
       TestComponent.prototype.render = jest.fn();
       const component = node.addComponent(TestComponent);
+      scene._componentsManager.callScriptOnStart();
       scene._componentsManager.callRender();
+      scene._componentsManager.callScriptOnStart();
       scene._componentsManager.callRender();
       expect(component.render).toHaveBeenCalledTimes(2);
     });
