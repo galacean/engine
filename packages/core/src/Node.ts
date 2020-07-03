@@ -83,11 +83,12 @@ export class Node extends EventDispatcher {
 
   /* @internal */
   _isActiveInHierarchy: boolean = false;
+  /* @internal */
+  _components: Array<Component> = [];
 
   private _scene: Scene;
   private _active: boolean;
   private _children: Array<Node> = [];
-  private _components: Array<Component> = [];
   private _parent: Node = null;
   private _activeChangedComponents: Component[];
   private _isRoot: boolean; //must add,because scene management mechanism
