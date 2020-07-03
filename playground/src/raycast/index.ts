@@ -61,12 +61,12 @@ let camera = cameraNode.createAbility(Camera, {
 
 //-- input
 const position = vec2.create();
-const ray = { origin: vec3.create(), direction: vec3.create() };
-document.getElementById("o3-demo").addEventListener("click", (e) => {
+const ray: any = { origin: vec3.create(), direction: vec3.create() };
+document.getElementById("o3-demo").addEventListener("click", (e: any) => {
   vec2.set(position, e.offsetX / e.target.clientWidth, e.offsetY / e.target.clientHeight);
   console.log(position);
   camera.viewportPointToRay(position, ray);
-  let pos = vec3.create();
+  let pos: any = vec3.create();
   let collider = scene.raycast(ray, pos, MaskList.MASK1 | MaskList.MASK2);
 
   // change color of pick node

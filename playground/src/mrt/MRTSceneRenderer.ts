@@ -33,7 +33,7 @@ export class MRTSceneRenderer extends SceneVisitor {
 
     const size = 1024;
     const rhi = camera.renderHardware;
-    const multiRenderTarget = new RenderTarget(
+    const multiRenderTarget = new (RenderTarget as any)(
       rhi,
       size,
       size,

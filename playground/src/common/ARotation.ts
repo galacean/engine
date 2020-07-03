@@ -27,6 +27,6 @@ export default class ARotation extends NodeAbility {
 
   update(deltaTime) {
     this.deg += this.dDeg * (deltaTime / 1000);
-    this._node.setRotationAxisAngle(this.axis, this.deg);
+    this.node.setRotationAxisAngle(this.axis, this.deg);
   }
 }

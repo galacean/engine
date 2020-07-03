@@ -6,7 +6,7 @@ import { AGeometryRenderer } from "@alipay/o3-geometry";
 
 export function createCubeMaterial(loader) {
   let newMtl = new Material("cube_mtl");
-  newMtl.technique = requireCubeTechnique(loader);
+  newMtl.technique = requireCubeTechnique(loader) as any;
   return newMtl;
 }
 
@@ -80,11 +80,6 @@ function requireCubeTechnique(loader) {
         type: DataType.FLOAT_VEC3
       },
       a_color: {
-        name: "a_color",
-        semantic: "COLOR",
-        type: DataType.FLOAT_VEC3
-      },
-      offset: {
         name: "a_color",
         semantic: "COLOR",
         type: DataType.FLOAT_VEC3

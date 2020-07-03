@@ -9,15 +9,14 @@ import { ACollisionDetection } from "@alipay/o3-collision";
 
 const COLOR_GRAY = vec4.fromValues(0.75, 0.75, 0.75, 1);
 const COLOR_RED = vec4.fromValues(0.95, 0.05, 0.05, 1);
-
+const tempPos = [];
 // 控制 node 往复运动
 class APingPong extends NodeAbility {
   update(deltaTime) {
     let time = this.engine.time.timeSinceStartup;
     let x = Math.sin(time * 0.001) * 4;
     let pos = this.node.position;
-    pos[0] = x;
-    this.node.position = pos;
+    this.node.position = [x, pos[1], pos[2]];
   }
 }
 
