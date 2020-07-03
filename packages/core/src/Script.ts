@@ -33,13 +33,13 @@ export class Script extends NodeAbility {
   onStart(): void {}
 
   /**
-   * 主更新，在执行内部动画逻辑前调用，逐帧调用。
+   * 主更新，逐帧调用。
    * @param deltaTime 间隔时间 @deprecated
    */
   onUpdate(deltaTime: number): void {}
 
   /**
-   * 延迟更新，在执行内部动画逻辑后调用，逐帧调用。
+   * 延迟更新，逐帧调用。
    */
   onLateUpdate(): void {}
 
@@ -80,7 +80,7 @@ export class Script extends NodeAbility {
   _onEnable(): void {
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
-    if (!this._started && this.onStart !== prototype.onStart) {
+    if (!this._started) {
       componentsManager.addOnStartScript(this);
     }
     if (this.onUpdate !== prototype.onUpdate) {
@@ -106,7 +106,7 @@ export class Script extends NodeAbility {
   _onDisable(): void {
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
-    if (!this._started && this.onStart !== prototype.onStart) {
+    if (!this._started) {
       componentsManager.removeOnStartScript(this);
     }
     if (this.onUpdate !== prototype.onUpdate) {

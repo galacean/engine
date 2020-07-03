@@ -95,8 +95,7 @@ export abstract class NodeAbility extends EventDispatcher {
 
   _onEnable(): void {
     const componentsManager = this.scene._componentsManager;
-    const prototype = NodeAbility.prototype;
-    if (!this._started && this.onStart !== prototype.onStart) {
+    if (!this._started) {
       componentsManager.addOnStartScript(this as any);
     }
     if (this._overrideOnUpdate || this._overrideUpdate) {
@@ -110,8 +109,7 @@ export abstract class NodeAbility extends EventDispatcher {
 
   _onDisable(): void {
     const componentsManager = this.scene._componentsManager;
-    const prototype = NodeAbility.prototype;
-    if (!this._started && this.onStart !== prototype.onStart) {
+    if (!this._started) {
       componentsManager.removeOnStartScript(this as any);
     }
     if (this._overrideOnUpdate || this._overrideUpdate) {

@@ -3,7 +3,7 @@ import { Resource } from "./Resource";
 import * as defaultRequest from "@alipay/o3-request";
 import { Engine, ResType, Handler, Prop, Request, ResCb, ResArrayCb } from "./type";
 
-const noop = function() {};
+const noop = function () {};
 
 const handlers: { [key: string]: Handler } = {};
 
@@ -24,7 +24,7 @@ export class ResourceLoader extends EventDispatcher {
    * @param {Engine} engine 引擎实例
    * @param request 自定义请求库 默认使用 o3-request
    */
-  constructor(engine: Engine, request: Request, rhi?) {
+  constructor(engine: Engine, request?: Request, rhi?) {
     super();
 
     this.handlers = handlers;
@@ -82,7 +82,7 @@ export class ResourceLoader extends EventDispatcher {
    */
   findResource(type: ResType, name: string): Resource | void {
     if (this._resources[type]) {
-      return this._resources[type].find(r => {
+      return this._resources[type].find((r) => {
         return r.name === name;
       });
     }
@@ -118,10 +118,10 @@ export class ResourceLoader extends EventDispatcher {
     }
 
     Promise.all(promises).then(
-      res => {
+      (res) => {
         callback(null, resources);
       },
-      err => {
+      (err) => {
         callback(err);
       }
     );
@@ -161,7 +161,7 @@ export class ResourceLoader extends EventDispatcher {
         const url = resource.fileUrl;
         const config = resource.config;
 
-        handler.load(this.request, { url, timeout, ...config }, function(err, data) {
+        handler.load(this.request, { url, timeout, ...config }, function (err, data) {
           if (!err) {
             resource.data = data;
             self._onLoadSuccess(resource, handler, callback);
@@ -200,7 +200,7 @@ export class ResourceLoader extends EventDispatcher {
         callback(null, resource);
         resource.trigger(new Event("loaded", resource));
       })
-      .catch(e => {
+      .catch((e) => {
         console.error(e);
         callback(e);
       });
