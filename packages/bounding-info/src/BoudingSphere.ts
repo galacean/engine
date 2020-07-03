@@ -20,7 +20,7 @@ export class BoundingSphere {
    * @param {Vector3} maxLocal - 本地坐标系的最大坐标
    * @param {Matrix4} modelMatrix - Local to World矩阵
    * */
-  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix4) {
+  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Readonly<Matrix4>) {
     // 先计算local
     let distance = vec3.distance(minLocal, maxLocal);
     this.radius = distance * 0.5;
@@ -36,7 +36,7 @@ export class BoundingSphere {
    * 通过模型矩阵，和缓存的本地坐标系包围球，获取新的世界坐标系包围球
    * @param {Matrix4} modelMatrix - Local to World矩阵
    * */
-  updateByModelMatrix(modelMatrix: Matrix4) {
+  updateByModelMatrix(modelMatrix: Readonly<Matrix4>) {
     vec3.transformMat4(this.centerWorld, this.center, modelMatrix);
     this.radiusWorld = this.radius * getMaxScaleByModelMatrix(modelMatrix);
   }
