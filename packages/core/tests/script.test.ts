@@ -1,4 +1,4 @@
-import { Node, Script, Engine, Scene } from "../src/index";
+import { Node, Script, Engine, Scene, NodeAbility } from "../src/index";
 
 describe("Script", () => {
   let engine = null;
@@ -220,55 +220,33 @@ describe("Script", () => {
 
   describe("onBeginRender", () => {
     it("normal", () => {
+      class TestCamera extends NodeAbility {}
       class TheScript extends Script {
         onBeginRender() {}
       }
-      const node = new Node(scene, scene.root, "node");
+      const node = new Node(scene, scene.root, "camera");
       TheScript.prototype.onBeginRender = jest.fn();
       const component = node.addComponent(TheScript);
-      // scene._componentsManager.callScriptOnPreRender();//TODO:新版函数需要Camera
-      // scene._componentsManager.callScriptOnPreRender();//TODO:新版函数需要Camera
-      expect(component.onBeginRender).toHaveBeenCalledTimes(0);
-    });
-
-    it("inActive", () => {
-      class TheScript extends Script {
-        onBeginRender() {}
-      }
-      const node = new Node(scene, scene.root, "node");
-      TheScript.prototype.onBeginRender = jest.fn();
-      const component = node.addComponent(TheScript);
-      node.isActive = false;
-      // scene._componentsManager.callScriptOnPreRender();//TODO:新版函数需要Camera
-      // scene._componentsManager.callScriptOnPreRender();//TODO:新版函数需要Camera
-      expect(component.onBeginRender).toHaveBeenCalledTimes(0);
+      const camera = node.addComponent(TestCamera);
+      scene._componentsManager.callCameraOnBeginRender(camera); //TODO:新版函数需要Camera
+      scene._componentsManager.callCameraOnBeginRender(camera); //TODO:新版函数需要Camera
+      expect(component.onBeginRender).toHaveBeenCalledTimes(2);
     });
   });
 
   describe("onEndRender", () => {
     it("normal", () => {
+      class TestCamera extends NodeAbility {}
       class TheScript extends Script {
         onEndRender() {}
       }
-      const node = new Node(scene, scene.root, "node");
+      const node = new Node(scene, scene.root, "camera");
       TheScript.prototype.onEndRender = jest.fn();
       const component = node.addComponent(TheScript);
-      // scene._componentsManager.callScriptOnPostRender();//TODO:新版函数需要Camera
-      // scene._componentsManager.callScriptOnPostRender();//TODO:新版函数需要Camera
-      expect(component.onEndRender).toHaveBeenCalledTimes(0);
-    });
-
-    it("inActive", () => {
-      class TheScript extends Script {
-        onEndRender() {}
-      }
-      const node = new Node(scene, scene.root, "node");
-      TheScript.prototype.onEndRender = jest.fn();
-      const component = node.addComponent(TheScript);
-      node.isActive = false;
-      // scene._componentsManager.callScriptOnPostRender();//TODO:新版函数需要Camera
-      // scene._componentsManager.callScriptOnPostRender();//TODO:新版函数需要Camera
-      expect(component.onEndRender).toHaveBeenCalledTimes(0);
+      const camera = node.addComponent(TestCamera);
+      scene._componentsManager.callCameraOnEndRender(camera); //TODO:新版函数需要Camera
+      scene._componentsManager.callCameraOnEndRender(camera); //TODO:新版函数需要Camera
+      expect(component.onEndRender).toHaveBeenCalledTimes(2);
     });
   });
 

@@ -160,6 +160,22 @@ export class ComponentsManager {
     }
   }
 
+  callCameraOnBeginRender(camera: ACamera) {
+    const camComps = camera.node._components;
+    for (let i = camComps.length - 1; i >= 0; --i) {
+      const camComp = camComps[i];
+      (camComp as any).onBeginRender && (camComp as any).onBeginRender();
+    }
+  }
+
+  callCameraOnEndRender(camera: ACamera) {
+    const camComps = camera.node._components;
+    for (let i = camComps.length - 1; i >= 0; --i) {
+      const camComp = camComps[i];
+      (camComp as any).onBeginRender && (camComp as any).onEndRender();
+    }
+  }
+
   getActiveChangedTempList(): Component[] {
     return this._componentsContainerPool.length ? this._componentsContainerPool.pop() : [];
   }
