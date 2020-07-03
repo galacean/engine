@@ -14,7 +14,7 @@ export function pointDistanceToPlane(plane, pt) {
  * 从列主序矩阵获取最大轴向的 scale
  * @param {Matrix4} modelMatrix - Local to World矩阵
  * */
-export function getMaxScaleByModelMatrix(modelMatrix: Matrix4): number {
+export function getMaxScaleByModelMatrix(modelMatrix: Readonly<Matrix4>): number {
   let m = modelMatrix;
   let scaleXSq = m[0] * m[0] + m[1] * m[1] + m[2] * m[2];
   let scaleYSq = m[4] * m[4] + m[5] * m[5] + m[6] * m[6];
