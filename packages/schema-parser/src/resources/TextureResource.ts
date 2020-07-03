@@ -19,7 +19,7 @@ export class TextureResource extends SchemaResource {
           const compression = compressions[i];
           if (compression.container === "ktx" && rhi.canIUse(o3.GLCapabilityType[compression.type])) {
             url = compression.url;
-            resource = new o3.Resource(assetConfig.name, { type: compression.container, url: compression.url });
+            resource = new o3.Resource(assetConfig.name, { type: "ktxNew", url: compression.url });
             break;
           }
         }
@@ -27,7 +27,7 @@ export class TextureResource extends SchemaResource {
 
       if (!resource) {
         url = assetConfig.url;
-        resource = new o3.Resource(assetConfig.name, { type: assetConfig.type as any, url: assetConfig.url });
+        resource = new o3.Resource(assetConfig.name, { type: "textureNew", url: assetConfig.url });
       }
       resourceLoader.load(
         resource,
