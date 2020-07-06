@@ -145,11 +145,10 @@ describe.only("Transform", () => {
 
     it("set world position", () => {
       const node = new Node();
-      const transform = node.transform;
-      transform.worldPosition = [10, 20, 30];
-      arrayCloseTo(transform.position, [10, 20, 30]);
-      arrayCloseTo(transform.localMatrix, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 30, 1]);
-      arrayCloseTo(transform.localMatrix, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 30, 1]);
+      node.transform.worldPosition = [10, 20, 30];
+      arrayCloseTo(node.transform.position, [10, 20, 30]);
+      arrayCloseTo(node.transform.localMatrix, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 30, 1]);
+      arrayCloseTo(node.transform.worldMatrix, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 30, 1]);
     });
 
     it("set world rotation", () => {
@@ -600,17 +599,16 @@ describe.only("Transform", () => {
       parent.addChild(child);
       child.transform.position = [10, 0, 0];
       parent.transform.rotateByAxis([0, 0, 1], 90, true);
-      console.log(child.transform.worldPosition);
       arrayCloseTo(child.transform.worldPosition, [0, 10, 0]);
-
       child.transform.rotateByAxis([0, 0, 1], 180, false);
-      console.log(child.transform.worldPosition);
+      arrayCloseTo(child.transform.worldPosition, [0, 10, 0]);
     });
 
-    it.only("lookAt", () => {
+    it("lookAt", () => {
       const node = new Node();
       node.transform.position = [0, 0, 1];
       node.transform.lookAt([0, 0, 0], [0, 1, 0]);
+      arrayCloseTo(node.transform.worldRotation, [180, 0, 180]);
     });
   });
 });
