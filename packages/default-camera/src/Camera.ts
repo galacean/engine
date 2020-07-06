@@ -525,24 +525,6 @@ export class Camera extends NodeAbility {
   }
 
   /**
-   * @deprecated
-   * 摄像机的位置(World Space)
-   * @member {mat4}
-   * @readonly
-   */
-  public get eyePos() {
-    return this._transform.worldPosition;
-  }
-
-  /**
-   * 兼容旧的 aspect。
-   * @deprecated
-   */
-  public get aspect(): number {
-    return this.aspectRatio;
-  }
-
-  /**
    * 像素比率。
    * @deprecated
    */
