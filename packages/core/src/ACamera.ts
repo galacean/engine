@@ -1,8 +1,9 @@
 import { ClearMode } from "@alipay/o3-base";
 import { NodeAbility } from "./NodeAbility";
-import { mat4, vec4, vec3, vec2, MathUtil } from "@alipay/o3-math";
+import { mat4, vec4, vec3, MathUtil } from "@alipay/o3-math";
 import { Node } from "./Node";
-import { ICameraProps, RHIOption } from "./type";
+import { ICameraProps } from "./type";
+import { Matrix4 } from "@alipay/o3-math/types/type";
 
 const vec3Cache = vec3.create();
 
@@ -40,7 +41,7 @@ export class ACamera extends NodeAbility {
    * @readonly
    */
   get eyePos() {
-    return this._ownerNode.worldPosition;
+    return this._node.worldPosition;
   }
 
   /**
@@ -48,28 +49,28 @@ export class ACamera extends NodeAbility {
    * @member {mat4}
    * @readonly
    */
-  public viewMatrix;
+  public viewMatrix: Matrix4;
 
   /**
    * View 矩阵的逆矩阵
    * @member {mat4}
    * @readonly
    */
-  public inverseViewMatrix;
+  public inverseViewMatrix: Matrix4;
 
   /**
    * 投影矩阵
    * @member {mat4}
    * @readonly
    */
-  public projectionMatrix;
+  public projectionMatrix: Matrix4;
 
   /**
    * 投影矩阵的逆矩阵
    * @member {mat4}
    * @readonly
    */
-  public inverseProjectionMatrix;
+  public inverseProjectionMatrix: Matrix4;
 
   public zNear: number;
 
@@ -100,7 +101,7 @@ export class ACamera extends NodeAbility {
     super(node, props);
 
     const { RHI, SceneRenderer, canvas, attributes } = props;
-    const engine = this._ownerNode.scene.engine;
+    const engine = this._node.scene.engine;
 
     this._rhi = engine.requireRHI(RHI, canvas, attributes);
     this._sceneRenderer = new SceneRenderer(this);
@@ -305,7 +306,7 @@ export class ACamera extends NodeAbility {
     super.destroy();
 
     // -- remove from scene
-    this._ownerNode.scene.detachRenderCamera(this);
+    this._node.scene.detachRenderCamera(this);
 
     // --
     if (this._sceneRenderer) {
@@ -322,15 +323,12 @@ export class ACamera extends NodeAbility {
   public update(deltaTime: number): void {
     super.update(deltaTime);
 
-    // make sure update directions
-    this.node.getModelMatrix();
-
-    vec3.copy(vec3Cache, this._ownerNode.forward);
+    vec3.copy(vec3Cache, this._node.forward);
     if (this.leftHand) {
       vec3.scale(vec3Cache, vec3Cache, -1);
     }
-    vec3.add(vec3Cache, this._ownerNode.position, vec3Cache);
-    mat4.lookAt(this.viewMatrix, this._ownerNode.position, vec3Cache, this._ownerNode.up);
+    vec3.add(vec3Cache, this._node.position, vec3Cache);
+    mat4.lookAt(this.viewMatrix, this._node.position, vec3Cache, this._node.up);
     mat4.invert(this.inverseViewMatrix, this.viewMatrix);
   }
 }

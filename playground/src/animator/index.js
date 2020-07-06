@@ -140,45 +140,67 @@ resourceLoader.load(animationRes, (err, gltf) => {
       "0": [
         {
           value: 0,
-          property: "position",
+          property: "rotation",
           subProperty: "y",
           interpolation: "0,0,1,1"
-        }
-      ],
-      "1000": [
-        {
-          value: 1,
-          property: "position",
-          subProperty: "y",
-          interpolation: "0,0,1,1"
-        }
-      ],
-      "2000": [
-        {
-          value: 0,
-          property: "position",
-          subProperty: "y",
-          interpolation: "0,0,1,1"
-        }
-      ],
-      "3000": [
-        {
-          value: -1,
-          property: "position",
-          subProperty: "y",
-          interpolation: "0,0,1,1"
+
         }
       ],
       "4000": [
         {
-          value: -2,
-          property: "position",
+          value: 360,
+          property: "rotation",
           subProperty: "y",
           interpolation: "0,0,1,1"
+
         }
       ]
     }
   };
+  // const options2 = {
+  //   keyframes: {
+  //     "0": [
+  //       {
+  //         value: 0,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ],
+  //     "1000": [
+  //       {
+  //         value: 1,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ],
+  //     "2000": [
+  //       {
+  //         value: 0,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ],
+  //     "3000": [
+  //       {
+  //         value: -1,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ],
+  //     "4000": [
+  //       {
+  //         value: -2,
+  //         property: "position",
+  //         subProperty: "y",
+  //         interpolation: "0,0,1,1"
+  //       }
+  //     ]
+  //   }
+  // };
   const ac1 = new AnimationClip("translate1", Interpolation, options);
   const ac2 = new AnimationClip("translate2", Interpolation, options2);
   const ac5 = new AnimationClip("B", Skeleton, actionMap["B"]);

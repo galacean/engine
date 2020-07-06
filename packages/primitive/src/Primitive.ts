@@ -1,7 +1,7 @@
 import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
-import { Mat4 } from "@alipay/o3-math/types/type";
+import { Matrix4 } from "@alipay/o3-math/types/type";
 import { vec3 } from "@alipay/o3-math";
 
 export interface Attribute {
@@ -121,10 +121,10 @@ export class Primitive extends AssetObject {
 
   /**
    * 通过 primitive 计算本地/世界坐标系的 min/max
-   * @param {Mat4} modelMatrix - Local to World矩阵,如果传此值，则计算min/max时将考虑RTS变换，如果不传，则计算local min/max
+   * @param {Matrix4} modelMatrix - Local to World矩阵,如果传此值，则计算min/max时将考虑RTS变换，如果不传，则计算local min/max
    * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
    * */
-  getMinMax(modelMatrix?: Mat4, littleEndian = true) {
+  getMinMax(modelMatrix?: Matrix4, littleEndian = true) {
     let {
       vertexCount,
       vertexBuffers,

@@ -1,4 +1,5 @@
-import { MultiRenderTarget } from "@alipay/o3-material";
+import { MultiRenderTarget, RenderTarget, RenderColorTexture, RenderDepthTexture } from "@alipay/o3-material";
+import { RenderBufferDepthFormat } from "@alipay/o3-base";
 import { MRTRenderPass } from "./MRTRenderPass";
 import { MainRenderPass } from "./MainRenderPass";
 import { vec3 } from "@alipay/o3-math";
@@ -21,9 +22,26 @@ export class MRTSceneRenderer extends SceneVisitor {
     this._camera = camera;
     this._opaqueQueue = new RenderQueue(); // 不透明对象的渲染队列
 
-    const multiRenderTarget = new MultiRenderTarget("multi-render-target", {
-      enableDepthTexture: true
-    });
+    // const multiRenderTarget = new MultiRenderTarget("multi-render-target", {
+    //   enableDepthTexture: true
+    // });
+
+    const size = 1024;
+    const rhi = camera.renderHardware;
+    const multiRenderTarget = new RenderTarget(
+      rhi,
+      size,
+      size,
+      [
+        new RenderColorTexture(rhi, size, size),
+        new RenderColorTexture(rhi, size, size),
+        new RenderColorTexture(rhi, size, size),
+        new RenderColorTexture(rhi, size, size)
+      ],
+      RenderBufferDepthFormat.Depth,
+      1
+    );
+
     this.multiRenderTarget = multiRenderTarget;
     this.mrtRenderPass = new MRTRenderPass("default", 0, multiRenderTarget);
     this.mainRenderPass = new MainRenderPass("default", 0);
@@ -62,16 +80,15 @@ export class MRTSceneRenderer extends SceneVisitor {
 
     //-- 遍历 Scene Graph，收集所有激活的渲染对象组件
     const scene = camera.scene;
-    scene.visitSceneGraph(this);
-
+    scene._componentsManager.callRender(camera);
     //-- 执行渲染队列
     opaqueQueue.sortByTechnique();
 
     this._drawRenderPass(this.defaultRenderPass, camera);
-    this.mainRenderPass.setDiffuse(this.mrtRenderPass.renderTarget.textures[0]);
-    this.mainRenderPass.setNormal(this.mrtRenderPass.renderTarget.textures[2]);
-    this.mainRenderPass.setShiniess(this.mrtRenderPass.renderTarget.textures[1]);
-    this.mainRenderPass.setPosition(this.mrtRenderPass.renderTarget.textures[3]);
+    this.mainRenderPass.setDiffuse(this.mrtRenderPass.renderTarget.getColorTexture(0));
+    this.mainRenderPass.setNormal(this.mrtRenderPass.renderTarget.getColorTexture(2));
+    this.mainRenderPass.setShiniess(this.mrtRenderPass.renderTarget.getColorTexture(1));
+    this.mainRenderPass.setPosition(this.mrtRenderPass.renderTarget.getColorTexture(3));
     this._drawRenderPass(this.mainRenderPass, camera);
   }
 
@@ -89,6 +106,7 @@ export class MRTSceneRenderer extends SceneVisitor {
         this.opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
     }
+    rhi.blitRenderTarget(pass.renderTarget);
     pass.postRender(camera, this.opaqueQueue, null);
   }
 
@@ -102,6 +120,9 @@ export class MRTSceneRenderer extends SceneVisitor {
     return node.isActive;
   }
 
+  /**
+   * @deprecated
+   */
   acceptAbility(nodeAbility) {
     if (nodeAbility.enabled && nodeAbility.isRenderable) {
       let culled = false;

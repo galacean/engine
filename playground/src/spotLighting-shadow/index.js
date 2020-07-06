@@ -64,7 +64,6 @@ spotLight.enableShadow = true;
 spotLight.shadow.bias = 0.0001;
 spotLight.shadow.intensity = 0.2;
 
-
 let lgtMtl = new ConstantMaterial('test_mtl1', false);
 lgtMtl.emission = vec4.fromValues(0.85, 0.85, 0.85, 1);
 

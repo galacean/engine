@@ -7,9 +7,12 @@ type extensionKey = string;
  * GL 能力统一管理
  * */
 export class GLCapability {
+  private _maxDrawBuffers: number;
+  private _maxAnisoLevel: number;
+  private _maxAntiAliasing: number;
+
   _rhi: GLRenderHardware;
   capabilityList: Map<GLCapabilityType, boolean>;
-  private _maxDrawBuffers: number;
 
   get maxDrawBuffers() {
     if (!this._maxDrawBuffers) {
@@ -22,6 +25,30 @@ export class GLCapability {
     return this._maxDrawBuffers;
   }
 
+  /**
+   * 最大各向异性过滤等级。
+   */
+  get maxAnisoLevel(): number {
+    if (this._maxAnisoLevel == null) {
+      const ext = this._rhi.requireExtension(GLCapabilityType.textureFilterAnisotropic);
+      this._maxAnisoLevel = ext ? this._rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 0;
+    }
+    return this._maxAnisoLevel;
+  }
+
+  /**
+   * 最大 MSAA 采样数量
+   */
+  get maxAntiAliasing(): number {
+    if (!this._maxAntiAliasing) {
+      const gl = this._rhi.gl;
+      const canMSAA = this.canIUse(GLCapabilityType.multipleSample);
+
+      this._maxAntiAliasing = canMSAA ? gl.getParameter(gl.MAX_SAMPLES) : 1;
+    }
+    return this._maxAntiAliasing;
+  }
+
   get rhi() {
     return this._rhi;
   }
@@ -32,9 +59,7 @@ export class GLCapability {
 
     this.init();
     // 抹平接口差异
-    if (!this.rhi.isWebGL2) {
-      this.compatibleAllInterface();
-    }
+    this.compatibleAllInterface();
   }
 
   /**
@@ -58,7 +83,7 @@ export class GLCapability {
       RGB_ETC1_WEBGL,
       // etc
       R11_EAC,
-      SRGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+      SRGB8_ALPHA8_ETC2_EAC,
       // pvrtc
       RGB_PVRTC_4BPPV1_IMG,
       RGBA_PVRTC_2BPPV1_IMG,
@@ -73,7 +98,7 @@ export class GLCapability {
       return this.canIUse(GLCapabilityType.astc);
     } else if (internalType === RGB_ETC1_WEBGL) {
       return this.canIUse(GLCapabilityType.etc1);
-    } else if (internalType >= R11_EAC && internalType <= SRGB8_PUNCHTHROUGH_ALPHA1_ETC2) {
+    } else if (internalType >= R11_EAC && internalType <= SRGB8_ALPHA8_ETC2_EAC) {
       return this.canIUse(GLCapabilityType.etc);
     } else if (internalType >= RGB_PVRTC_4BPPV1_IMG && internalType <= RGBA_PVRTC_2BPPV1_IMG) {
       return this.canIUse(GLCapabilityType.pvrtc);
@@ -121,7 +146,11 @@ export class GLCapability {
       s3tc_webkit,
 
       textureFloat,
-      colorBufferFloat
+      textureHalfFloat,
+      WEBGL_colorBufferFloat,
+      colorBufferFloat,
+      colorBufferHalfFloat,
+      textureFilterAnisotropic
     } = GLCapabilityType;
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
     cap.set(shaderTextureLod, isWebGL2 || !!requireExtension(shaderTextureLod));
@@ -132,7 +161,16 @@ export class GLCapability {
     cap.set(multipleSample, isWebGL2);
     cap.set(drawBuffers, isWebGL2 || !!requireExtension(drawBuffers));
     cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
-    cap.set(colorBufferFloat, isWebGL2 && !!requireExtension(colorBufferFloat));
+    cap.set(textureHalfFloat, isWebGL2 || !!requireExtension(textureHalfFloat));
+    cap.set(
+      colorBufferFloat,
+      (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(WEBGL_colorBufferFloat)
+    );
+    cap.set(
+      colorBufferHalfFloat,
+      (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(colorBufferHalfFloat)
+    );
+    cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
 
     cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
@@ -142,7 +180,7 @@ export class GLCapability {
   }
 
   /**
-   * 如果不是 WebGL2 环境,但是有插件能补充该能力，则抹平该差异
+   * 如果有插件能补充该能力，则抹平该差异
    * @example
    * compatible(GLCapabilityType.depthTexture,{
    *    UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
@@ -154,8 +192,8 @@ export class GLCapability {
     const gl = rhi.gl;
     let ext = null;
 
-    /** 如果不是 WebGL2 环境,但是有插件能补充该能力，则抹平该差异 */
-    if (!rhi.isWebGL2 && (ext = rhi.requireExtension(capabilityType))) {
+    /** 如果有插件能补充该能力，则抹平该差异 */
+    if ((ext = rhi.requireExtension(capabilityType))) {
       for (let glKey in flatItem) {
         const extensionKey = flatItem[glKey];
         const extensionVal = ext[extensionKey];
@@ -169,38 +207,65 @@ export class GLCapability {
     }
   }
 
-  /** 兼容 WebGL 1和 WebGL 2,抹平接口差异 */
+  /** 抹平接口差异 */
   private compatibleAllInterface() {
     // 需要兼容的能力
-    const { depthTexture, vertexArrayObject, instancedArrays, drawBuffers } = GLCapabilityType;
+    const {
+      depthTexture,
+      vertexArrayObject,
+      instancedArrays,
+      drawBuffers,
+      textureFilterAnisotropic,
+      textureHalfFloat,
+      colorBufferHalfFloat,
+      WEBGL_colorBufferFloat
+    } = GLCapabilityType;
+    const { isWebGL2 } = this.rhi;
 
-    this.compatibleInterface(depthTexture, {
-      UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
-    });
-    this.compatibleInterface(vertexArrayObject, {
-      createVertexArray: "createVertexArrayOES",
-      deleteVertexArray: "deleteVertexArrayOES",
-      isVertexArray: "isVertexArrayOES",
-      bindVertexArray: "bindVertexArrayOES"
-    });
-    this.compatibleInterface(instancedArrays, {
-      drawArraysInstanced: "drawArraysInstancedANGLE",
-      drawElementsInstanced: "drawElementsInstancedANGLE",
-      vertexAttribDivisor: "vertexAttribDivisorANGLE"
-    });
-    this.compatibleInterface(drawBuffers, {
-      MAX_DRAW_BUFFERS: "MAX_DRAW_BUFFERS_WEBGL"
-    });
-    const items = {};
-    if (this.canIUse(GLCapabilityType.drawBuffers)) {
-      for (let i = 0; i < this.rhi.requireExtension(drawBuffers).MAX_DRAW_BUFFERS_WEBGL; i++) {
-        i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
-        items[`DRAW_BUFFER0${i}`] = `DRAW_BUFFER${i}_WEBGL`;
-      }
+    //  以下能力 WebGL2.0 必有，不需要插件
+    if (!isWebGL2) {
+      this.compatibleInterface(depthTexture, {
+        UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
+      });
+      this.compatibleInterface(vertexArrayObject, {
+        createVertexArray: "createVertexArrayOES",
+        deleteVertexArray: "deleteVertexArrayOES",
+        isVertexArray: "isVertexArrayOES",
+        bindVertexArray: "bindVertexArrayOES"
+      });
+      this.compatibleInterface(instancedArrays, {
+        drawArraysInstanced: "drawArraysInstancedANGLE",
+        drawElementsInstanced: "drawElementsInstancedANGLE",
+        vertexAttribDivisor: "vertexAttribDivisorANGLE"
+      });
       this.compatibleInterface(drawBuffers, {
-        drawBuffers: "drawBuffersWEBGL",
-        ...items
+        MAX_DRAW_BUFFERS: "MAX_DRAW_BUFFERS_WEBGL"
+      });
+      const items = {};
+      if (this.canIUse(GLCapabilityType.drawBuffers)) {
+        for (let i = 0; i < this.rhi.requireExtension(drawBuffers).MAX_DRAW_BUFFERS_WEBGL; i++) {
+          i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
+          items[`DRAW_BUFFER0${i}`] = `DRAW_BUFFER${i}_WEBGL`;
+        }
+        this.compatibleInterface(drawBuffers, {
+          drawBuffers: "drawBuffersWEBGL",
+          ...items
+        });
+      }
+      this.compatibleInterface(textureHalfFloat, {
+        HAFL_FLOAT: "HALF_FLOAT_OES"
+      });
+      this.compatibleInterface(colorBufferHalfFloat, {
+        RGBA16F: "RBGA16F_EXT"
+      });
+      this.compatibleInterface(WEBGL_colorBufferFloat, {
+        RGBA32F: "RBGA32F_EXT"
       });
     }
+
+    // 以下能力依赖插件，不依赖 WebGL 环境
+    this.compatibleInterface(textureFilterAnisotropic, {
+      TEXTURE_MAX_ANISOTROPY_EXT: "TEXTURE_MAX_ANISOTROPY_EXT"
+    });
   }
 }

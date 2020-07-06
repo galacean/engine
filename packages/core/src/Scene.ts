@@ -4,7 +4,8 @@ import { Node } from "./Node";
 import { Engine } from "./Engine";
 import { ACamera } from "./ACamera";
 import { SceneFeature } from "./SceneFeature";
-import { SceneVisitor } from "./SceneVisitor";
+import { Vector4 } from "@alipay/o3-math/types/type";
+import { ComponentsManager } from "./ComponentsManager";
 
 /*
 Scene Feature:
@@ -61,8 +62,11 @@ export class Scene extends EventDispatcher {
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
    * @example
    * scene.clipPlanes = [[0,1,0,0]];
+   * @todo 类型修改
    * */
-  public clipPlanes: any[] = [];
+  public clipPlanes: Vector4[] = [];
+
+  public _componentsManager: ComponentsManager;
 
   /**
    * 构造函数
@@ -72,7 +76,8 @@ export class Scene extends EventDispatcher {
     super();
 
     this._engine = engine;
-    this._root = new Node(this, null, "root");
+    this._componentsManager = new ComponentsManager();
+    this._root = new Node(this, null, "__root__");
     this._activeCameras = [];
 
     sceneFeatureManager.addObject(this);
@@ -88,9 +93,13 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
-    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]);
-    this._root.update(deltaTime);
-    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]);
+    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
+    this._componentsManager.callScriptOnStart();
+    this._componentsManager.callScriptOnUpdate(deltaTime);
+    this._componentsManager.callComponentOnUpdate(deltaTime);
+    this._componentsManager.callAnimationUpdate(deltaTime);
+    this._componentsManager.callScriptOnLateUpdate();
+    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //deprecated
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
@@ -98,27 +107,28 @@ export class Scene extends EventDispatcher {
    */
   public render(): void {
     const cameras = this._activeCameras;
+    const deltaTime = this._engine.time.deltaTime;
+    this._componentsManager.callRendererOnUpdate(deltaTime);
     if (cameras.length > 0) {
+      // 针对 priority 进行排序
+      //@ts-ignore
+      cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]);
+          //@todo 后续优化
+          this._componentsManager.callCameraOnBeginRender(camera);
+          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();
-          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]);
+          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //deprecated
+          //@todo 后续优化
+          this._componentsManager.callCameraOnEndRender(camera);
         }
       }
     } else {
       Logger.debug("NO active camera.");
     }
-  }
-
-  /**
-   * 访问整个 SceneGraph
-   * @param {SceneVisitor} visitor
-   */
-  public visitSceneGraph(visitor: SceneVisitor): void {
-    this._root.visit(visitor);
   }
 
   /**
@@ -172,5 +182,6 @@ export class Scene extends EventDispatcher {
     this._root = null;
     this._activeCameras = null;
     (sceneFeatureManager as any)._objects = [];
+    this._componentsManager = null;
   }
 }

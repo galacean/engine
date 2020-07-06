@@ -25,6 +25,8 @@ const RESOURCE_CLASS = {
   // 'image': TextureResource,
   cubeTexture: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
+  PBRSpecularMaterial: PBRMaterialResource,
+  unlitMaterial: PBRMaterialResource,
   ShaderMaterial: ShaderMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
   AnimationClip: AnimationClip,
@@ -52,7 +54,11 @@ const resourceFactory = {
 export class ResourceManager {
   private resourceMap: { [id: string]: SchemaResource } = {};
   private resourceIdMap: WeakMap<SchemaResource, string> = new WeakMap();
-  private resourceLoader: o3.ResourceLoader = new o3.ResourceLoader(this.oasis.engine, null);
+  private resourceLoader: o3.ResourceLoader = new o3.ResourceLoader(
+    this.oasis.engine,
+    null,
+    this.oasis.engine.getRHI(this.oasis.canvas)
+  );
   private maxId = 0;
 
   constructor(private oasis: Oasis) {}
@@ -73,9 +79,9 @@ export class ResourceManager {
   // 新增资源
   add(asset: AssetConfig): Promise<any> {
     const resource = resourceFactory.createResource(this, asset.type);
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       //TODO 脏代码
-      resource.loadWithAttachedResources(this.resourceLoader, asset, this.oasis).then(result => {
+      resource.loadWithAttachedResources(this.resourceLoader, asset, this.oasis).then((result) => {
         resolve(this.getAddResourceResult(result.resources, result.structure));
       });
     });
@@ -83,7 +89,7 @@ export class ResourceManager {
 
   @pluginHook({ before: "beforeResourceRemove" })
   remove(id: string): Promise<Array<string>> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const resource = this.resourceMap[id];
       const result = [id];
       let hasAttachedResource = false;
@@ -95,7 +101,7 @@ export class ResourceManager {
           const attachedResourceId = this.resourceIdMap.get(attachedResource);
           if (attachedResourceId) {
             hasAttachedResource = true;
-            this.remove(attachedResourceId).then(attachedResourceRemoveResult => {
+            this.remove(attachedResourceId).then((attachedResourceRemoveResult) => {
               result.push(...attachedResourceRemoveResult);
               resolve(result);
             });
@@ -153,7 +159,7 @@ export class ResourceManager {
         const element = structure.props[key];
         if (element) {
           if (Array.isArray(element)) {
-            addResourceResult.props[key] = element.map(child => this.getAddResourceResult(resources, child));
+            addResourceResult.props[key] = element.map((child) => this.getAddResourceResult(resources, child));
           } else {
             addResourceResult.props[key] = this.getAddResourceResult(resources, element);
           }

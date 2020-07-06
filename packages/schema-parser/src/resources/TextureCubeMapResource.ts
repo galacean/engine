@@ -1,9 +1,8 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
-import { ResourceLoader, Logger } from "@alipay/o3";
-import { TextureResource } from "./TextureResource";
+import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
-import { AssetConfig, LoadAttachedResourceResult } from "../types";
+import { compressedTextureLoadOrder } from "../utils";
 
 const imageOrderMap = {
   px: 0,
@@ -15,58 +14,54 @@ const imageOrderMap = {
 };
 
 export class TextureCubeMapResource extends SchemaResource {
-  private imageAssets = {};
-  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<TextureCubeMapResource> {
+  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<TextureCubeMapResource> {
     return new Promise((resolve, reject) => {
-      this._resource = new o3.TextureCubeMap(assetConfig.name, null, assetConfig.props);
-      for (const key in imageOrderMap) {
-        if (imageOrderMap.hasOwnProperty(key)) {
-          this.imageAssets[key] = assetConfig.props[key];
+      const imageUrls = [];
+      let resource;
+      if (this.resourceManager.useCompressedTexture && assetConfig?.props?.compression?.compressions.length) {
+        const rhi = oasis.engine.getRHI(oasis.canvas);
+        const compressions = assetConfig.props.compression.compressions;
+        compressions.sort((a, b) => {
+          return compressedTextureLoadOrder[a.type] - compressedTextureLoadOrder[b.type];
+        });
+        for (let i = 0; i < compressions.length; i++) {
+          const compression = compressions[i];
+          if (compression.container === "ktx" && rhi.canIUse(o3.GLCapabilityType[compression.type])) {
+            for (const key in compression.files) {
+              if (compression.files.hasOwnProperty(key)) {
+                const image = compression.files[key];
+                imageUrls[imageOrderMap[key]] = image.url;
+              }
+            }
+            resource = new o3.Resource(assetConfig.name, {
+              type: "ktxNew",
+              urls: imageUrls
+            });
+            break;
+          }
         }
       }
-      this.imageAssets = assetConfig.props;
-      this.setMeta();
-      resolve(this);
-    });
-  }
-
-  loadWithAttachedResources(
-    resourceLoader: ResourceLoader,
-    assetConfig: AssetConfig,
-    oasis: Oasis
-  ): Promise<LoadAttachedResourceResult> {
-    return new Promise(resolve => {
-      const result: LoadAttachedResourceResult = {
-        resources: [this],
-        structure: {
-          index: 0,
-          props: {}
+      if (!resource) {
+        for (const key in assetConfig.props.images) {
+          if (assetConfig.props.images.hasOwnProperty(key)) {
+            const image = assetConfig.props.images[key];
+            imageUrls[imageOrderMap[key]] = image.url;
+          }
         }
-      };
-      const textureResources = [];
-      const configs = [];
-      for (const key in assetConfig.props) {
-        if (assetConfig.props.hasOwnProperty(key)) {
-          const element = assetConfig.props[key];
-          configs[imageOrderMap[key]] = element;
-          const textureResource = new TextureResource(this.resourceManager);
-          result.resources.push(textureResource);
-          result.structure.props[key] = {
-            index: result.resources.length - 1
-          };
-          textureResources[imageOrderMap[key]] = textureResource;
-          this._attachedResources.push(textureResource);
-        }
+        resource = new o3.Resource(assetConfig.name, {
+          type: "cubemapNew",
+          urls: imageUrls
+        });
       }
-      const promises = textureResources.map((textureResource, index) => {
-        return textureResource.load(resourceLoader, configs[index], oasis);
-      });
 
-      Promise.all(promises).then(textureResources => {
-        const images = textureResources.map(textureResource => textureResource.resource.image);
-        this._resource = new o3.TextureCubeMap(assetConfig.name, [images], assetConfig.props);
-        this.setMeta();
-        resolve(result);
+      resourceLoader.load(resource, (err, res) => {
+        if (err) {
+          reject(err);
+        } else {
+          this._resource = res.asset;
+          this.setMeta();
+          resolve(this);
+        }
       });
     });
   }
@@ -74,34 +69,6 @@ export class TextureCubeMapResource extends SchemaResource {
   setMeta() {
     if (this.resource) {
       this.meta.name = this.resource.name;
-    }
-  }
-
-  bind() {
-    const cubeMap = this._resource;
-    const imageAssets = this.imageAssets;
-    const images = [];
-    Object.keys(imageAssets).forEach(key => {
-      if (imageAssets[key]) {
-        const textureResource = this.resourceManager.get(imageAssets[key].id);
-        if (textureResource && textureResource instanceof TextureResource) {
-          images[imageOrderMap[key]] = textureResource.resource.image;
-          this._attachedResources.push(textureResource);
-        } else {
-          Logger.warn(
-            `TextureCubeMapResource: ${this.meta.name} can't find asset "${key}", which id is: ${imageAssets[key].id}`
-          );
-        }
-      }
-    });
-    cubeMap.images = [images];
-  }
-
-  update(key: string, value: any) {
-    const resource = this.resourceManager.get(value.id);
-    if (resource && resource instanceof TextureResource) {
-      this.resource.updateImage(imageOrderMap[key], resource.resource.image);
-      this.resource.updateTexture();
     }
   }
 }

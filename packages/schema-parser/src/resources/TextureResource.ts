@@ -2,20 +2,7 @@ import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
-
-// https://github.com/BabylonJS/Babylon.js/blob/d780145531ac1b1cee85cbfba4d836dcc24ab58e/src/Engines/Extensions/engine.textureSelector.ts#L70
-// Intelligently add supported compressed formats in order to check for.
-// Check for ASTC support first as it is most powerful and to be very cross platform.
-// Next PVRTC & DXT, which are probably superior to ETC1/2.
-// Likely no hardware which supports both PVR & DXT, so order matters little.
-// ETC2 is newer and handles ETC1 (no alpha capability), so check for first.
-const loadOrder = {
-  astc: 1,
-  s3tc: 2,
-  pvrtc: 3,
-  etc: 4,
-  etc1: 5
-};
+import { compressedTextureLoadOrder } from "../utils";
 
 export class TextureResource extends SchemaResource {
   load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<TextureResource> {
@@ -26,13 +13,13 @@ export class TextureResource extends SchemaResource {
         const rhi = oasis.engine.getRHI(oasis.canvas);
         const compressions = assetConfig.props.compression.compressions;
         compressions.sort((a, b) => {
-          return loadOrder[a.type] - loadOrder[b.type];
+          return compressedTextureLoadOrder[a.type] - compressedTextureLoadOrder[b.type];
         });
         for (let i = 0; i < compressions.length; i++) {
           const compression = compressions[i];
           if (compression.container === "ktx" && rhi.canIUse(o3.GLCapabilityType[compression.type])) {
             url = compression.url;
-            resource = new o3.Resource(assetConfig.name, { type: compression.container, url: compression.url });
+            resource = new o3.Resource(assetConfig.name, { type: "ktxNew", url: compression.url });
             break;
           }
         }
@@ -40,7 +27,7 @@ export class TextureResource extends SchemaResource {
 
       if (!resource) {
         url = assetConfig.url;
-        resource = new o3.Resource(assetConfig.name, { type: assetConfig.type as any, url: assetConfig.url });
+        resource = new o3.Resource(assetConfig.name, { type: "textureNew", url: assetConfig.url });
       }
       resourceLoader.load(
         resource,

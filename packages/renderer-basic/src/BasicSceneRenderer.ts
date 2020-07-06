@@ -64,7 +64,7 @@ export class BasicSceneRenderer extends SceneVisitor {
       this._renderPassArray.push(nameOrPass);
     }
 
-    this._renderPassArray.sort(function(p1, p2) {
+    this._renderPassArray.sort(function (p1, p2) {
       return p1.priority - p2.priority;
     });
   }
@@ -124,6 +124,9 @@ export class BasicSceneRenderer extends SceneVisitor {
    */
   render() {
     const camera = this._camera;
+    if (!camera.renderHardware) {
+      return;
+    }
     const opaqueQueue = this._opaqueQueue;
     const transparentQueue = this._transparentQueue;
 
@@ -131,10 +134,8 @@ export class BasicSceneRenderer extends SceneVisitor {
     opaqueQueue.clear();
     transparentQueue.clear();
 
-    //-- 遍历 Scene Graph，收集所有激活的渲染对象组件
     const scene = camera.scene;
-    scene.visitSceneGraph(this);
-
+    scene._componentsManager.callRender(camera);
     //-- 执行渲染队列
     opaqueQueue.sortByTechnique();
     transparentQueue.sortByDistance(camera.eyePos);
@@ -226,12 +227,12 @@ export class BasicSceneRenderer extends SceneVisitor {
   }
 
   /**
+   * @deprecated
    * SceneVisitor 的 Node 组件访问接口
    */
   acceptAbility(nodeAbility: NodeAbility) {
     if (nodeAbility.enabled && nodeAbility.isRenderable) {
       let culled = false;
-
       // distance cull
       if (nodeAbility.cullDistanceSq > 0) {
         const distanceSq = vec3.squaredDistance(this._camera.eyePos, nodeAbility.node.worldPosition);
