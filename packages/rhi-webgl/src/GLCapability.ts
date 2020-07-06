@@ -29,9 +29,9 @@ export class GLCapability {
    * 最大各向异性过滤等级。
    */
   get maxAnisoLevel(): number {
-    if (this._maxAnisoLevel == null) {
+    if (!this._maxAnisoLevel) {
       const ext = this._rhi.requireExtension(GLCapabilityType.textureFilterAnisotropic);
-      this._maxAnisoLevel = ext ? this._rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 0;
+      this._maxAnisoLevel = ext ? this._rhi.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 1;
     }
     return this._maxAnisoLevel;
   }
