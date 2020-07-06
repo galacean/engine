@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-decal",
-  "version": "2.3.0-alpha.0",
+  "version": "2.3.0",
   "description": "Oasis3D decal",
   "keywords": [
     "Oasis3D",
@@ -26,12 +26,12 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-base": "2.3.0-alpha.0",
-    "@alipay/o3-core": "2.3.0-alpha.0",
-    "@alipay/o3-geometry": "2.3.0-alpha.0",
-    "@alipay/o3-material": "2.3.0-alpha.0",
-    "@alipay/o3-math": "2.3.0-alpha.0",
-    "@alipay/o3-mesh": "2.3.0-alpha.0",
-    "@alipay/o3-primitive": "2.3.0-alpha.0"
+    "@alipay/o3-base": "2.3.0",
+    "@alipay/o3-core": "2.3.0",
+    "@alipay/o3-geometry": "2.3.0",
+    "@alipay/o3-material": "2.3.0",
+    "@alipay/o3-math": "2.3.0",
+    "@alipay/o3-mesh": "2.3.0",
+    "@alipay/o3-primitive": "2.3.0"
   }
 }
