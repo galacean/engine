@@ -34,7 +34,7 @@ export class GLMultiRenderTarget extends GLRenderTarget {
     if (this._isNew) return;
 
     super.finalize();
-    this._glTextures.forEach(texture => {
+    this._glTextures.forEach((texture) => {
       texture.finalize();
     });
     this._glTextures = [];
