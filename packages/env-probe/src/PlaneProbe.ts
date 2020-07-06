@@ -20,7 +20,7 @@ export class PlaneProbe extends Probe {
    * 预处理材质，保存初始状态
    * */
   private storeMaterial() {
-    this.renderItems.forEach(item => {
+    this.renderItems.forEach((item) => {
       const material = item.mtl;
       item.initialSide = material.side;
       material.side = Side.BACK;
@@ -31,7 +31,7 @@ export class PlaneProbe extends Probe {
    * 后处理材质，还原初始状态
    * */
   private restoreMaterial() {
-    this.renderItems.forEach(item => {
+    this.renderItems.forEach((item) => {
       const material = item.mtl;
       material.side = item.initialSide;
       delete item.initialSide;
