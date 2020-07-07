@@ -51,7 +51,7 @@ let nodeCount = 0;
 const RegistedObjs = {};
 const RegistedCustomMaterials = {};
 
-const getDefaultMaterial = (function() {
+const getDefaultMaterial = (function () {
   let defaultMateril: ConstantMaterial;
   return () => {
     if (!defaultMateril) {
@@ -90,7 +90,7 @@ const extensionParsers = {
  * @param {Object} extobj 需要添加的扩展
  */
 export function RegistExtension(extobj) {
-  Object.keys(extobj).forEach(name => {
+  Object.keys(extobj).forEach((name) => {
     if (RegistedObjs[name] === undefined) {
       RegistedObjs[name] = extobj[name];
 
@@ -206,7 +206,7 @@ function parseResources(resources, name, handler) {
     for (let i = entities.length - 1; i >= 0; i--) {
       promises.push(handler(entities[i], resources));
     }
-    return Promise.all(promises).then(results => {
+    return Promise.all(promises).then((results) => {
       for (let i = 0; i < results.length; i++) {
         asset[name].push(results[i]);
       }
@@ -648,13 +648,13 @@ export function parseMesh(gltfMesh, resources) {
             parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
             resolve(primitive);
           })
-          .catch(e => {
+          .catch((e) => {
             reject(e);
           });
       })
     );
   }
-  return Promise.all(primitivePromises).then(primitives => {
+  return Promise.all(primitivePromises).then((primitives) => {
     for (let i = 0; i < primitives.length; i++) {
       mesh.primitives.push(primitives[i]);
     }
@@ -851,9 +851,9 @@ export function buildSceneGraph(resources) {
       if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
         const skin = getItemByIdx("skins", gltfNode.skin, resources);
         const weights = mesh.weights;
-        node.createAbility(ASkinnedMeshRenderer, { skin, mesh, weights });
+        node.addComponent(ASkinnedMeshRenderer, { skin, mesh, weights });
       } else {
-        node.createAbility(AMeshRenderer, { mesh });
+        node.addComponent(AMeshRenderer, { mesh });
       }
     }
   }
@@ -864,7 +864,7 @@ const BASE64_MARKER = ";base64,";
 
 function getReplaceImages(images) {
   if (!images) return;
-  return images.map(image => ({
+  return images.map((image) => ({
     uri: image.url,
     fileType: image.fileType === "ktx" ? "binary" : "image"
   }));
@@ -891,7 +891,7 @@ class GLTFHandler {
     request.load(
       "json",
       props,
-      function(err, gltfJSON) {
+      function (err, gltfJSON) {
         if (!err) {
           data.gltf = gltfJSON;
           // load images & buffers & shader texts
@@ -906,7 +906,7 @@ class GLTFHandler {
           });
           attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap, {});
 
-          request.loadAll(loadQueue, function(err, resMap) {
+          request.loadAll(loadQueue, function (err, resMap) {
             if (err) {
               callback(err);
               return;
@@ -968,7 +968,7 @@ class GLTFHandler {
               }
             }
 
-            request.loadAll(loadImageQue, function(err, imgMap) {
+            request.loadAll(loadImageQue, function (err, imgMap) {
               if (gltfJSON.hasOwnProperty("images")) {
                 for (let i = 0; i < gltfJSON.images.length; i++) {
                   const image = gltfJSON.images[i];

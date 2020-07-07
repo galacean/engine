@@ -297,7 +297,7 @@ export class AnimationLayer extends EventDispatcher {
    */
   public triggerEvents() {
     this._activedEvents &&
-      this._activedEvents.forEach(event => {
+      this._activedEvents.forEach((event) => {
         this.trigger(event);
       });
 
@@ -387,7 +387,7 @@ export class AnimationLayer extends EventDispatcher {
             triggered: false
           });
         }
-        this.addEventListener(eventType, e => {
+        this.addEventListener(eventType, (e) => {
           event.callback();
         });
       } // end of for
@@ -446,7 +446,7 @@ export class AnimationLayer extends EventDispatcher {
     if (rootNode.name === targetID) {
       targetSceneObject = rootNode;
     } else {
-      targetSceneObject = rootNode.findChildByName(targetID);
+      targetSceneObject = rootNode.findByName(targetID);
     }
 
     if (target.path === "weights") {

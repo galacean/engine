@@ -36,15 +36,6 @@ export class ACamera extends NodeAbility {
   }
 
   /**
-   * 摄像机的位置(World Space)
-   * @member {mat4}
-   * @readonly
-   */
-  get eyePos() {
-    return this._node.worldPosition;
-  }
-
-  /**
    * View 矩阵
    * @member {mat4}
    * @readonly
@@ -283,20 +274,7 @@ export class ACamera extends NodeAbility {
    * @param {number} screenPointY 屏幕Y坐标
    */
   public screenPointToRay(screenPointX: number, screenPointY: number): { origin; direction } {
-    // 逸瞻：区分camera类型设置origin
-    let origin;
-    if (this._isOrtho) {
-      origin = this.worldToScreen([screenPointX, screenPointY]);
-    } else {
-      origin = this.eyePos;
-    }
-    const tmp = this.screenToWorld([screenPointX, screenPointY], 0.5); // world position on depth=0.5
-    vec3.sub(tmp, tmp, origin); // ray direction
-    vec3.normalize(tmp, tmp);
-    return {
-      origin,
-      direction: tmp
-    };
+    return null;
   }
 
   /**
@@ -320,15 +298,5 @@ export class ACamera extends NodeAbility {
   }
 
   // 每一帧更新相机所需的矩阵
-  public update(deltaTime: number): void {
-    super.update(deltaTime);
-
-    vec3.copy(vec3Cache, this._node.forward);
-    if (this.leftHand) {
-      vec3.scale(vec3Cache, vec3Cache, -1);
-    }
-    vec3.add(vec3Cache, this._node.position, vec3Cache);
-    mat4.lookAt(this.viewMatrix, this._node.position, vec3Cache, this._node.up);
-    mat4.invert(this.inverseViewMatrix, this.viewMatrix);
-  }
+  public update(deltaTime: number): void {}
 }
