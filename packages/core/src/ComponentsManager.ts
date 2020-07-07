@@ -1,4 +1,4 @@
-import { ACamera } from "./ACamera";
+import { Camera } from "./Camera";
 import { DisorderedArray } from "./DisorderedArray";
 import { NodeAbility as Component } from "./NodeAbility";
 import { RenderableComponent } from "./RenderableComponent";
@@ -142,7 +142,7 @@ export class ComponentsManager {
     }
   }
 
-  callRender(camera: ACamera): void {
+  callRender(camera: Camera): void {
     const elements = this._renderers._elements;
     for (let i = this._renderers.length - 1; i >= 0; --i) {
       elements[i]._render(camera);
@@ -160,7 +160,7 @@ export class ComponentsManager {
     }
   }
 
-  callCameraOnBeginRender(camera: ACamera) {
+  callCameraOnBeginRender(camera: Camera) {
     const camComps = camera.node._components;
     for (let i = camComps.length - 1; i >= 0; --i) {
       const camComp = camComps[i];
@@ -168,7 +168,7 @@ export class ComponentsManager {
     }
   }
 
-  callCameraOnEndRender(camera: ACamera) {
+  callCameraOnEndRender(camera: Camera) {
     const camComps = camera.node._components;
     for (let i = camComps.length - 1; i >= 0; --i) {
       const camComp = camComps[i];

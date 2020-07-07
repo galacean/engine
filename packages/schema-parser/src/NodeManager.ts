@@ -48,7 +48,7 @@ export class NodeManager {
     const node = new o3.Node(null, null, name);
     node.isActive = isActive;
     node.position = position;
-    node.setRotationAngles(rotation[0], rotation[1], rotation[2]);
+    node.transform.rotation = rotation;
     node.scale = scale;
     (node as any).id = id;
     this.nodeMap[id] = node;
@@ -65,7 +65,8 @@ export class NodeManager {
     const child = this.nodeMap[childId];
     const parent = this.nodeMap[parentId] || this.root;
     parent.addChild(child);
-    const children = parent.children;
+    //@ts-ignore
+    const children = parent._children;
     const currentIndex = children.length - 1;
     switchElementsIndex(children, currentIndex, index);
   }

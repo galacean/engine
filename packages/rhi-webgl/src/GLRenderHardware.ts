@@ -10,7 +10,7 @@ import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLExtensions } from "./GLExtensions";
 import { GLCapability } from "./GLCapability";
-import { ACamera } from "@alipay/o3-core";
+import { Camera } from "@alipay/o3-core";
 import { GLMultiRenderTarget } from "./GLMultiRenderTarget";
 import { WebGLExtension } from "./type";
 
@@ -257,7 +257,7 @@ export class GLRenderHardware {
    * 激活指定的RenderTarget
    * @param {RenderTarget} renderTarget  需要被激活的RenderTarget对象，如果未设置，则渲染到屏幕帧
    */
-  activeRenderTarget(renderTarget: RenderTarget, camera: ACamera) {
+  activeRenderTarget(renderTarget: RenderTarget, camera: Camera) {
     if (renderTarget) {
       const TargetClazz = renderTarget.isMulti ? GLMultiRenderTarget : GLRenderTarget;
       const glRenderTarget = this._assetsCache.requireObject(renderTarget, TargetClazz);

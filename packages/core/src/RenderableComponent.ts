@@ -1,4 +1,4 @@
-import { ACamera } from "./ACamera";
+import { Camera } from "./Camera";
 import { NodeAbility } from "./NodeAbility";
 import { vec3 } from "@alipay/o3-math";
 import { Node } from "./Node";
@@ -19,7 +19,7 @@ export abstract class RenderableComponent extends NodeAbility {
     this._overrideUpdate = this.update !== prototype.update;
   }
 
-  abstract render(camera: ACamera): void;
+  abstract render(camera: Camera): void;
   update(deltaTime: number): void {} //CM:未来整合为update更合理
   onUpdate(deltaTime: number): void {}
 
@@ -48,12 +48,12 @@ export abstract class RenderableComponent extends NodeAbility {
     componentsManager.removeRenderer(this);
   }
 
-  _render(camera: ACamera) {
+  _render(camera: Camera) {
     let culled = false;
 
     // distance cull
     if (this.cullDistanceSq > 0) {
-      const distanceSq = vec3.squaredDistance(camera.eyePos, this.node.worldPosition);
+      const distanceSq = vec3.squaredDistance(camera._node.transform.worldPosition, this.node.transform.worldPosition);
       culled = this.cullDistanceSq < distanceSq;
     }
 

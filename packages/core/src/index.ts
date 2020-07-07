@@ -12,6 +12,6 @@ export { Script } from "./Script";
 export { RenderableComponent } from "./RenderableComponent";
 export { dependencies } from "./ComponentsDependencies";
 
-export { ACamera } from "./ACamera";
+export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { UpdateFlag } from "./UpdateFlag";

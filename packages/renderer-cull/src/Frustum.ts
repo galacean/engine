@@ -2,7 +2,7 @@
 
 import { mat4 } from "@alipay/o3-math";
 import { Vector4 } from "@alipay/o3-math/types/type";
-import { ACamera } from "@alipay/o3-core";
+import { Camera } from "@alipay/o3-core";
 
 /**
  * 视锥体（平截头体）
@@ -29,7 +29,7 @@ export class Frustum {
    * 从摄像机矩阵中提取出平截头体的六个平面
    * @param {ACamera} camera
    */
-  update(camera: ACamera) {
+  update(camera: Camera) {
     const planes = this._planes;
 
     const vpm = mat4.create();

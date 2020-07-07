@@ -1,7 +1,7 @@
 import { vec3 } from "@alipay/o3-math";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { SceneVisitor, NodeAbility, Node, ACamera } from "@alipay/o3-core";
+import { SceneVisitor, NodeAbility, Node, Camera } from "@alipay/o3-core";
 import { SeparateSpritePass } from "./SeparateSpritePass";
 import { MaterialType, ClearMode, MaskList } from "@alipay/o3-base";
 import { RenderTarget, Material } from "@alipay/o3-material";
@@ -11,7 +11,7 @@ import { RenderTarget, Material } from "@alipay/o3-material";
  * @class
  */
 export class BasicSceneRenderer extends SceneVisitor {
-  protected _camera: ACamera;
+  protected _camera: Camera;
   private _opaqueQueue: RenderQueue;
   private _transparentQueue: RenderQueue;
   private _defaultPass: RenderPass;
@@ -21,7 +21,7 @@ export class BasicSceneRenderer extends SceneVisitor {
 
   /**
    * 构造函数
-   * @param {ACamera} camera 摄像机对象
+   * @param {Camera} camera 摄像机对象
    */
   constructor(camera) {
     super();
@@ -138,7 +138,7 @@ export class BasicSceneRenderer extends SceneVisitor {
     scene._componentsManager.callRender(camera);
     //-- 执行渲染队列
     opaqueQueue.sortByTechnique();
-    transparentQueue.sortByDistance(camera.eyePos);
+    transparentQueue.sortByDistance(camera.node.transform.worldPosition);
 
     //-- 为sprite提供canvas上的深度信息
     if (this._canvasDepthPass) this._canvasDepthPass.enabled = false;
@@ -160,7 +160,7 @@ export class BasicSceneRenderer extends SceneVisitor {
     }
   }
 
-  private _drawRenderPass(pass: RenderPass, camera: ACamera) {
+  private _drawRenderPass(pass: RenderPass, camera: Camera) {
     pass.preRender(camera, this.opaqueQueue, this.transparentQueue);
 
     const rhi = camera.renderHardware;
@@ -235,7 +235,10 @@ export class BasicSceneRenderer extends SceneVisitor {
       let culled = false;
       // distance cull
       if (nodeAbility.cullDistanceSq > 0) {
-        const distanceSq = vec3.squaredDistance(this._camera.eyePos, nodeAbility.node.worldPosition);
+        const distanceSq = vec3.squaredDistance(
+          this._camera.node.transform.worldPosition,
+          nodeAbility.node.worldPosition
+        );
         culled = nodeAbility.cullDistanceSq < distanceSq;
       }
 

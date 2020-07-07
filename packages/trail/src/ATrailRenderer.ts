@@ -100,7 +100,7 @@ export class ATrailRenderer extends AGeometryRenderer {
 
   /**
    * 更新位置，将数据对象加入渲染队列
-   * @param {ACamera} camera
+   * @param {Camera} camera
    * @private
    */
   render(camera) {

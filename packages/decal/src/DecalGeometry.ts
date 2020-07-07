@@ -144,7 +144,7 @@ export class DecalGeometry extends BufferGeometry {
     const projectorMatrixInverse = this.projectorMatrixInverse;
 
     // transform the vertex to world space, then to projector space
-    const targetMatrix = this.node.getModelMatrix();
+    const targetMatrix = this.node.transform.worldMatrix;
     const temp1 = vec3.create();
     const temp2 = vec3.create();
     const temp3 = vec3.create();

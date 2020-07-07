@@ -2,7 +2,7 @@ import { Logger, Util, Event, EventDispatcher, MaskList } from "@alipay/o3-base"
 import { FeatureManager } from "./FeatureManager";
 import { Node } from "./Node";
 import { Engine } from "./Engine";
-import { ACamera } from "./ACamera";
+import { Camera } from "./Camera";
 import { SceneFeature } from "./SceneFeature";
 import { Vector4 } from "@alipay/o3-math/types/type";
 import { ComponentsManager } from "./ComponentsManager";
@@ -42,7 +42,7 @@ export class Scene extends EventDispatcher {
     return this._root;
   }
 
-  get activeCameras(): ACamera[] {
+  get activeCameras(): Camera[] {
     return this._activeCameras;
   }
 
@@ -52,7 +52,7 @@ export class Scene extends EventDispatcher {
 
   public features: SceneFeature[] = [];
 
-  private _activeCameras: ACamera[];
+  private _activeCameras: Camera[];
 
   private _engine: Engine;
 
@@ -136,7 +136,7 @@ export class Scene extends EventDispatcher {
    * @param {CameraComponent} camera 摄像机对象
    * @private
    */
-  public attachRenderCamera(camera: ACamera): void {
+  public attachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index === -1) {
       this._activeCameras.push(camera);
@@ -150,7 +150,7 @@ export class Scene extends EventDispatcher {
    * @param {CameraComponent} camera 摄像机对象
    * @private
    */
-  public detachRenderCamera(camera: ACamera): void {
+  public detachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index !== -1) {
       this._activeCameras.splice(index, 1);
@@ -166,7 +166,7 @@ export class Scene extends EventDispatcher {
     if (this._root.name === name) {
       return this._root;
     }
-    return this._root.findChildByName(name);
+    return this._root.findByName(name);
   }
 
   /**

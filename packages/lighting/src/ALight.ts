@@ -71,7 +71,7 @@ export abstract class ALight extends NodeAbility {
    */
   get inverseViewMatrix() {
     if (!this._modelMat) this._modelMat = mat4.create();
-    mat4.rotate(this._modelMat, this.node.getModelMatrix(), Math.PI, [0, 1, 0]);
+    mat4.rotate(this._modelMat, this.node.transform.worldMatrix, Math.PI, [0, 1, 0]);
 
     return this._modelMat;
   }

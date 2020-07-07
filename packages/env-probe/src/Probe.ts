@@ -1,5 +1,5 @@
 import { AssetType, RenderBufferDepthFormat } from "@alipay/o3-base";
-import { ACamera, Node, NodeAbility } from "@alipay/o3-core";
+import { Camera, Node, NodeAbility } from "@alipay/o3-core";
 import {
   Material,
   RenderTarget,
@@ -24,7 +24,7 @@ export abstract class Probe extends NodeAbility {
   private readonly isCube: boolean;
   private oriClipPlane: Vector4[];
 
-  private _camera: ACamera;
+  private _camera: Camera;
 
   /** 优先级 excludeRenderList > renderAll > renderList */
   public excludeRenderList: Material[];

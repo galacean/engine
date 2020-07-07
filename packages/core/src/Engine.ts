@@ -1,9 +1,9 @@
-import { Scene } from "./Scene";
+import { Event, EventDispatcher, Logger, Time } from "@alipay/o3-base";
 import { AssetPool } from "./AssetPool";
-import { FeatureManager } from "./FeatureManager";
-import { Time, Logger, Event, EventDispatcher } from "@alipay/o3-base";
-import { ACamera } from "./ACamera";
 import { EngineFeature } from "./EngineFeature";
+import { FeatureManager } from "./FeatureManager";
+import { Scene } from "./Scene";
+import { Camera } from "./Camera";
 
 const MAX_FPS: number = 60;
 
@@ -281,7 +281,7 @@ export class Engine extends EventDispatcher {
     this.trigger(new Event("run", this));
   }
 
-  public render(scene: Scene, camera: ACamera): void {}
+  public render(scene: Scene, camera: Camera): void {}
 
   /** 更新当前场景中对象的状态，并渲染当前帧画面
    * @private

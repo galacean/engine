@@ -1,7 +1,7 @@
 import { RenderPass } from "@alipay/o3-renderer-basic";
 import { ColorMaterial } from "./ColorMaterial";
 import { MaskList } from "@alipay/o3-base";
-import { ACamera } from "@alipay/o3-core";
+import { Camera } from "@alipay/o3-core";
 import { RenderTarget } from "@alipay/o3-material";
 
 /**
@@ -35,7 +35,7 @@ class ColorRenderPass extends RenderPass {
    * @private
    * 判断是否需要拾取
    */
-  postRender(camera: ACamera, opaquaQueue, transparentQueue) {
+  postRender(camera: Camera, opaquaQueue, transparentQueue) {
     if (this._needPick) {
       const color = this.readColorFromRenderTarget(camera);
       const object = this.replaceMaterial.getObjectByColor(color);

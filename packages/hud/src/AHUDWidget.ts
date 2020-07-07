@@ -188,7 +188,7 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * 真正执行GL绘制的地方
-   * @param {ACamera} camera
+   * @param {Camera} camera
    */
   render(camera) {
     if (!this._valid) {

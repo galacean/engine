@@ -1,5 +1,6 @@
 "use strict";
 import { NodeAbility } from "@alipay/o3-core";
+import { MathUtil, quat } from "@alipay/o3-math";
 
 export default class ARotation extends NodeAbility {
   public axis;
@@ -26,6 +27,8 @@ export default class ARotation extends NodeAbility {
 
   update(deltaTime) {
     this.deg += this.dDeg * (deltaTime / 1000);
-    this.node.setRotationAxisAngle(this.axis, this.deg);
+    const rotationQua = this.node.transform.rotationQuaternion;
+    quat.setAxisAngle(rotationQua, this.axis, MathUtil.toRadian(this.deg));
+    this.node.transform.rotationQuaternion = rotationQua;
   }
 }

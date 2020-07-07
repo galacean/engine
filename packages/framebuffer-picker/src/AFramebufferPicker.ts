@@ -1,4 +1,4 @@
-import { NodeAbility, Node, ACamera } from "@alipay/o3-core";
+import { NodeAbility, Node, Camera } from "@alipay/o3-core";
 import { RenderTarget } from "@alipay/o3-material";
 import { MaskList } from "@alipay/o3-base";
 import { ColorRenderPass } from "./ColorRenderPass";
@@ -7,7 +7,7 @@ import { ColorRenderPass } from "./ColorRenderPass";
  * Framebuffer 对象选择组件
  */
 class AFramebufferPicker extends NodeAbility {
-  public camera: ACamera;
+  public camera: Camera;
   public colorRenderTarget: RenderTarget;
   public colorRenderPass: ColorRenderPass;
 
@@ -18,7 +18,7 @@ class AFramebufferPicker extends NodeAbility {
    * 构造函数
    * @param {Node} node 组件节点
    * @param {Object} props 组件参数，包含以下项
-   * @param {ACamera} props.camera 相机对象
+   * @param {Camera} props.camera 相机对象
    * @param {number} [props.width=1024] RenderTarget 的宽度
    * @param {number} [props.height=1024] RenderTarget 的高度
    * @param {MaskList} [props.mask=0] 掩膜，用来过滤不需要选取的物体
@@ -27,7 +27,7 @@ class AFramebufferPicker extends NodeAbility {
   constructor(
     node: Node,
     props: {
-      camera: ACamera;
+      camera: Camera;
       mask?: MaskList;
       width?: number;
       height?: number;
