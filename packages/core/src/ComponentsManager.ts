@@ -12,8 +12,6 @@ export class ComponentsManager {
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onPreRenderScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onPostRenderScripts: DisorderedArray<Script> = new DisorderedArray();
   private _destoryComponents: Script[] = [];
 
   // Animation
@@ -68,28 +66,6 @@ export class ComponentsManager {
     const replaced = this._onLateUpdateScripts.deleteByIndex(script._onLateUpdateIndex);
     replaced && (replaced._onLateUpdateIndex = script._onLateUpdateIndex);
     script._onLateUpdateIndex = -1;
-  }
-
-  addOnPreRenderScript(script: Script): void {
-    script._onPreRenderIndex = this._onPreRenderScripts.length;
-    this._onPreRenderScripts.add(script);
-  }
-
-  removeOnPreRenderScript(script: Script): void {
-    const replaced = this._onPreRenderScripts.deleteByIndex(script._onPreRenderIndex);
-    replaced && (replaced._onPreRenderIndex = script._onPreRenderIndex);
-    script._onPreRenderIndex = -1;
-  }
-
-  addOnPostRenderScript(script: Script): void {
-    script._onPostRenderIndex = this._onPreRenderScripts.length;
-    this._onPostRenderScripts.add(script);
-  }
-
-  removeOnPostRenderScript(script: Script): void {
-    const replaced = this._onPostRenderScripts.deleteByIndex(script._onPostRenderIndex);
-    replaced && (replaced._onPostRenderIndex = script._onPostRenderIndex);
-    script._onPostRenderIndex = -1;
   }
 
   addOnUpdateAnimations(animation: Component): void {
@@ -152,20 +128,6 @@ export class ComponentsManager {
     }
   }
 
-  callScriptOnPreRender(): void {
-    const elements = this._onPreRenderScripts._elements;
-    for (let i = this._onPreRenderScripts.length - 1; i >= 0; --i) {
-      elements[i].onPreRender();
-    }
-  }
-
-  callScriptOnPostRender(): void {
-    const elements = this._onPostRenderScripts._elements;
-    for (let i = this._onPostRenderScripts.length - 1; i >= 0; --i) {
-      elements[i].onPostRender();
-    }
-  }
-
   callAnimationUpdate(deltaTime): void {
     const elements = this._onUpdateAnimations._elements;
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
@@ -176,20 +138,14 @@ export class ComponentsManager {
   callRendererOnUpdate(deltaTime: number): void {
     const elements = this._onUpdateRenderers._elements;
     for (let i = this._onUpdateRenderers.length - 1; i >= 0; --i) {
-      const element = elements[i];
-      if (element._started) {
-        element.onUpdate(deltaTime);
-      }
+      elements[i].onUpdate(deltaTime);
     }
   }
 
   callRender(camera: ACamera): void {
     const elements = this._renderers._elements;
     for (let i = this._renderers.length - 1; i >= 0; --i) {
-      const element = elements[i];
-      if (element._started) {
-        element._render(camera);
-      }
+      elements[i]._render(camera);
     }
   }
 
@@ -201,6 +157,22 @@ export class ComponentsManager {
         destoryComponents[i].onDestroy();
       }
       destoryComponents.length = 0;
+    }
+  }
+
+  callCameraOnBeginRender(camera: ACamera) {
+    const camComps = camera.node._components;
+    for (let i = camComps.length - 1; i >= 0; --i) {
+      const camComp = camComps[i];
+      (camComp as any).onBeginRender && (camComp as any).onBeginRender();
+    }
+  }
+
+  callCameraOnEndRender(camera: ACamera) {
+    const camComps = camera.node._components;
+    for (let i = camComps.length - 1; i >= 0; --i) {
+      const camComp = camComps[i];
+      (camComp as any).onBeginRender && (camComp as any).onEndRender();
     }
   }
 

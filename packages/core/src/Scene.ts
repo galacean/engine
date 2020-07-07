@@ -117,11 +117,13 @@ export class Scene extends EventDispatcher {
         const camera = cameras[i];
         const cameraNode = camera.node;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          this._componentsManager.callScriptOnPreRender();
+          //@todo 后续优化
+          this._componentsManager.callCameraOnBeginRender(camera);
           sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();
           sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //deprecated
-          this._componentsManager.callScriptOnPostRender();
+          //@todo 后续优化
+          this._componentsManager.callCameraOnEndRender(camera);
         }
       }
     } else {

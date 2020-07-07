@@ -41,6 +41,7 @@ export class KTXTextureNewHandler {
       const parsedData = parseSingleKTX(resource.data[0]);
       const { width, height, mipmaps, engineFormat } = parsedData;
       const texture = new (Texture2D as any)(rhi, width, height, engineFormat);
+      texture.name = resource.name;
 
       if (!texture._glTexture) return;
 
@@ -55,6 +56,7 @@ export class KTXTextureNewHandler {
       const parsedData = parseCubeKTX(resource.data);
       const { width, height, mipmapsFaces, engineFormat } = parsedData;
       const texture = new (TextureCubeMap as any)(rhi, width, engineFormat, true);
+      texture.name = resource.name;
 
       if (!texture._glTexture) return;
 

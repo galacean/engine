@@ -381,7 +381,7 @@ export abstract class Texture extends AssetObject {
   private _wrapModeU: TextureWrapMode;
   private _wrapModeV: TextureWrapMode;
   private _filterMode: TextureFilterMode;
-  private _anisoLevel: number = 0;
+  private _anisoLevel: number = 1;
 
   /**
    * 纹理宽。
@@ -482,7 +482,6 @@ export abstract class Texture extends AssetObject {
   }
 
   set anisoLevel(value: number) {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
     const max = this._rhi.capability.maxAnisoLevel;
 
     if (value > max) {
@@ -490,7 +489,14 @@ export abstract class Texture extends AssetObject {
       value = max;
     }
 
+    if (value < 1) {
+      Logger.warn(`anisoLevel:${value}, must be greater than 0, and is automatically downgraded to 1`);
+      value = 1;
+    }
+
     if (value === this._anisoLevel) return;
+
+    const gl: WebGLRenderingContext & WebGL2RenderingContext & EXT_texture_filter_anisotropic = this._rhi.gl;
 
     this._anisoLevel = value;
 
