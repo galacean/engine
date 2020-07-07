@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-pbr",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "PBR material",
   "repository": {
     "type": "git",
@@ -27,9 +27,9 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-base": "2.3.0",
-    "@alipay/o3-core": "2.3.0",
-    "@alipay/o3-lighting": "2.3.0",
-    "@alipay/o3-material": "2.3.0"
+    "@alipay/o3-base": "2.3.1",
+    "@alipay/o3-core": "2.3.1",
+    "@alipay/o3-lighting": "2.3.1",
+    "@alipay/o3-material": "2.3.1"
   }
 }
