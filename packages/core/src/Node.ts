@@ -464,7 +464,7 @@ export class Node extends EventDispatcher {
    * @param {string} name 子节点的名称
    * @return {Node} 新创建的子节点对象
    */
-  public createChild(name: string): Node {
+  public createChild(name?: string): Node {
     const child = new Node(this._scene, this, name);
     return child;
   }

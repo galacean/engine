@@ -9,7 +9,9 @@ var widgetID = 1000;
  * @extends NodeAbility
  */
 export class AHUDWidget extends RenderableComponent {
-  private _spriteRect;
+  protected _spriteRect;
+  protected _canvasDirty;
+
   private _spriteID;
   private _renderMode;
   private _screenSize;
@@ -20,7 +22,6 @@ export class AHUDWidget extends RenderableComponent {
   private _positionQuad;
   private _uvRect;
   private _tintColor;
-  private _canvasDirty;
   private _valid;
   private _hudFeature;
   private separateDraw;

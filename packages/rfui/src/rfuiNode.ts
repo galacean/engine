@@ -123,7 +123,7 @@ export class RfuiNode extends Node {
     }
   }
 
-  animationIn(onComplete) {
+  animationIn(onComplete?) {
     this.inAnimations.forEach(inAnimation => {
       inAnimation.animations.forEach(animation => {
         animation.tweener = inAnimation.manager[animation.type](animation.param);
@@ -131,7 +131,7 @@ export class RfuiNode extends Node {
     });
   }
 
-  animationInStop(onComplete) {
+  animationInStop(onComplete?) {
     this.inAnimations.forEach(inAnimation => {
       inAnimation.animations.forEach(animation => {
         animation.tweener && animation.tweener.stop();
@@ -139,7 +139,7 @@ export class RfuiNode extends Node {
     });
   }
 
-  animationOut(onComplete) {
+  animationOut(onComplete?) {
     this.outAnimations.forEach(outAnimation => {
       outAnimation.animations.forEach(animation => {
         animation.tweener = outAnimation.manager[animation.type](animation.param);
@@ -147,7 +147,7 @@ export class RfuiNode extends Node {
     });
   }
 
-  animationOutStop(onComplete) {
+  animationOutStop(onComplete?) {
     this.outAnimations.forEach(outAnimation => {
       outAnimation.animations.forEach(animation => {
         animation.tweener && animation.tweener.stop();
