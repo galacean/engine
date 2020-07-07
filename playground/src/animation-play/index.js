@@ -25,11 +25,11 @@ var props = {
 };
 
 var ambientLight = rootNode.createChild("ambient");
-ambientLight.createAbility(AAmbientLight, props);
+ambientLight.addComponent(AAmbientLight, props);
 
 //-- create camera
 let cameraNode = rootNode.createChild("camera_node");
-let camera = cameraNode.createAbility(Camera, {
+let camera = cameraNode.addComponent(Camera, {
   canvas: "o3-demo",
   position: [0, 1.35, 5.5],
   target: [0, 1.1, 0]
@@ -67,14 +67,14 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
     material.baseColorTexture = texture.asset;
   });
 
-  huabei.rotateByAngles(0, -90, 0);
+  huabei.transform.rotate([0, -90, 0]);
 
   let node = rootNode.createChild("gltf_node");
   node.scale = [0.5, 0.5, 0.5];
   node.position = [-1, 0, 0];
   node.addChild(huabei);
 
-  const animator = huabei.createAbility(AAnimation);
+  const animator = huabei.addComponent(AAnimation);
 
   animations.forEach((clip) => {
     animator.addAnimationClip(clip, clip.name);
@@ -89,14 +89,14 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
 
     const mayi = prefab2.clone();
 
-    mayi.rotateByAngles(0, -180, 0);
+    mayi.transform.rotate([0, -180, 0]);
 
     let node2 = rootNode.createChild("gltf_node2");
     node2.scale = [0.05, 0.05, 0.05];
     node2.position = [1, 0, 0];
     node2.addChild(mayi);
 
-    const animator2 = mayi.createAbility(AAnimation);
+    const animator2 = mayi.addComponent(AAnimation);
 
     animations2.forEach((clip) => {
       animator2.addAnimationClip(clip, clip.name);

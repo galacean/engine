@@ -71,10 +71,10 @@ export class Node extends EventDispatcher {
   }
 
   private static _traverseSetOwnerScene(node: Node, scene: Scene): void {
-    for (let i = node.children.length - 1; i >= 0; i--) {
-      const child = node.children[i];
+    for (let i = node.childCount - 1; i >= 0; i--) {
+      const child = node._children[i];
       child._scene = scene;
-      this._traverseSetOwnerScene(node.children[i], scene);
+      this._traverseSetOwnerScene(child, scene);
     }
   }
 
@@ -85,10 +85,11 @@ export class Node extends EventDispatcher {
   _isActiveInHierarchy: boolean = false;
   /* @internal */
   _components: Array<Component> = [];
+  /* @internal */
+  _children: Array<Node> = [];
 
   private _scene: Scene;
   private _active: boolean;
-  private _children: Array<Node> = [];
   private _parent: Node = null;
   private _activeChangedComponents: Component[];
   private _isRoot: boolean; //must add,because scene management mechanism
@@ -96,9 +97,6 @@ export class Node extends EventDispatcher {
 
   /** @deprecated */
   private _invModelMatrix: Matrix4 = mat4.create();
-  private tempVec30 = vec3.create();
-  private tempVec31 = vec3.create();
-  private tempVec32 = vec3.create();
   private tempVec33 = vec3.create();
   private tempVec34 = vec3.create();
   private tempVec36 = vec3.create();
@@ -352,7 +350,7 @@ export class Node extends EventDispatcher {
     for (let i = 0; i < len; i++) {
       const ability = abilityArray[i];
       if (!(ability instanceof Transform)) {
-        newNode.createAbility(ability.constructor as any, (ability as any)._props);
+        newNode.addComponent(ability.constructor as any, (ability as any)._props);
       }
     }
 
@@ -453,7 +451,7 @@ export class Node extends EventDispatcher {
       this.transform._parentChange();
     } else {
       for (let i = 0, len = this._children.length; i < len; i++) {
-        this.children[i]._setTransformDirty();
+        this._children[i]._setTransformDirty();
       }
     }
   }
@@ -474,63 +472,12 @@ export class Node extends EventDispatcher {
 
   /**
    * @deprecated
-   * 子节点的数量
-   * @member {number}
-   * @readonly
-   */
-  get childrenCount(): number {
-    return this._children.length;
-  }
-
-  /**
-   * @deprecated
-   * 父节点
-   * @member {Node}
-   */
-  get parentNode(): Node {
-    return this._parent;
-  }
-
-  set parentNode(parentObj: Node) {
-    this.parent = parentObj;
-  }
-
-  /**
-   * @deprecated
-   * 子节点数组
-   */
-  get children(): Node[] {
-    return this._children;
-  }
-
-  /**
-   * @deprecated
    * 引擎对象
    * @member
    * @readonly
    */
   get engine(): Engine {
     return this._scene.engine;
-  }
-
-  /**
-   * @deprecated
-   * 所包含的组件的数量
-   * @member {number}
-   * @readonly
-   */
-  get abilityCount(): number {
-    return this._components.length;
-  }
-
-  /**
-   * @deprecated
-   * 功能组件数组
-   * @member {Array}
-   * @readonly
-   */
-  get abilityArray(): Component[] {
-    return this._components;
   }
 
   /**
@@ -544,36 +491,6 @@ export class Node extends EventDispatcher {
 
   set position(val: Vector3) {
     this.transform.position = val;
-  }
-
-  /**
-   * @deprecated
-   * 节点的上方向
-   * @type {Array}
-   * @readonly
-   */
-  get up(): Readonly<Vector3> {
-    return this.transform.getWorldUp(this.tempVec30);
-  }
-
-  /**
-   * @deprecated
-   * 节点的前方向
-   * @type {Array}
-   * @readonly
-   */
-  get forward(): Readonly<Vector3> {
-    return this.transform.getWorldForward(this.tempVec31);
-  }
-
-  /**
-   * @deprecated
-   * 节点的右方向
-   * @type {Array}
-   * @readonly
-   */
-  get right(): Readonly<Vector3> {
-    return this.transform.getWorldRight(this.tempVec32);
   }
 
   /**
@@ -642,191 +559,6 @@ export class Node extends EventDispatcher {
 
   /**
    * @deprecated
-   * 按照名称查找子节点
-   * @param {string} name 对象名称
-   * @return {Node}
-   */
-  public findChildByName(name: string): Node {
-    // -- find in this
-    const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child.name && child.name === name) {
-        return child;
-      }
-    }
-
-    // -- 递归的查找所有子节点
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      const findObj = child.findChildByName(name);
-      if (findObj) {
-        return findObj;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * @deprecated
-   * 按照路径查找子节点
-   * @param {string} path 斜线分割的路径, 例如：'chicken/obj1/obj2'
-   * @return {Node}
-   */
-  public findChildByPath(path: string): Node {
-    const splits = path.split("/");
-    if (splits.length === 0) {
-      return null;
-    }
-
-    let obj: Node = this;
-    for (const split of splits) {
-      obj = obj.findChildByName(split);
-      if (obj === null) {
-        return null;
-      }
-    }
-    return obj;
-  }
-
-  /**
-   * @deprecated
-   * 为这个节点，创建一个功能组件
-   * @param {Class} abilityType 组件的类型
-   * @param {object} props 组件的额外参数
-   * @return {Component} 新创建的组件对象
-   */
-  public createAbility<T extends Component>(abilityType: new (node: Node, props?: object) => T, props: object = {}): T {
-    const component = this.addComponent(abilityType, props);
-    return component;
-  }
-
-  /**
-   * @deprecated
-   * 在当前节点中，查找指定类型的功能组件
-   * @param {Class} abilityType
-   * @return {Component}
-   */
-  public findAbilityByType<T extends Component>(abilityType: new (node: Node, props?: object) => T): T {
-    const abilityArray = this._components;
-    for (let i = abilityArray.length - 1; i >= 0; i--) {
-      const ability = abilityArray[i];
-      if (ability instanceof abilityType) {
-        return ability;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * @deprecated
-   * 向节点添加一个已有的功能组件对象
-   * @param {Component} abilityObject 功能组件对象
-   */
-  public attachAbility(abilityObject: Component): void {
-    const index = this._components.indexOf(abilityObject);
-    if (index !== -1) {
-      this._components.push(abilityObject);
-    }
-  }
-
-  /**
-   * @deprecated
-   * 把一个功能组件对象，从当前节点移除（不执行 destroy 操作）
-   * @param {Component} abilityObject 功能组件对象
-   */
-  public detachAbility(abilityObject: Component): void {
-    const index = this._components.indexOf(abilityObject);
-    if (index !== -1) {
-      this._components.splice(index, 1);
-    }
-  }
-
-  /**
-   * @deprecated
-   * 使用四元数对对象进行增量旋转
-   * @param {quat} rot 旋转四元数
-   */
-  public rotateByQuat(rot: Vector4) {
-    const rotateEuler = quat.toEuler(this.tempVec33, rot);
-    this.transform.rotate(rotateEuler);
-  }
-
-  /**
-   * @deprecated
-   * 使用 Euler 角度对对象进行增量旋转, 单位：角度
-   * @param {Array | vec3 | number} pitch 如果是number：围绕X轴的旋转；如果是数组：[x, y, z]或者[pitch, yaw, roll]
-   * @param {number} yaw Y轴的旋转角度
-   * @param {number} roll Z轴的旋转角度
-   */
-  public rotateByAngles(pitch: number, yaw: number, roll: number): void {
-    if (Util.isArray(pitch)) {
-      vec3.set(this.tempVec36, pitch[0], pitch[1], pitch[2]);
-    } else {
-      vec3.set(this.tempVec36, pitch, yaw, roll);
-    }
-    this.transform.rotate(this.tempVec36);
-  }
-
-  /**
-   * @deprecated
-   * 使用Euler角度的方式设置旋转, 单位：角度
-   * @param {Array|vec3|number} pitch 如果是number：围绕X轴的旋转；如果是数组：[x, y, z]或者[pitch, yaw, roll]
-   * @param {number} yaw 围绕Y轴的旋转
-   * @param {number} roll 围绕Z轴的旋转
-   */
-  public setRotationAngles(pitch: number, yaw: number, roll: number): void {
-    vec3.set(this.tempVec34, pitch, yaw, roll);
-    this.transform.rotation = this.tempVec34;
-  }
-
-  /**
-   * @deprecated
-   * 使用Axis-Angle的方式设置旋转：围绕某个向量为轴，旋转一定角度
-   * @param {Vec3} axis 旋转轴
-   * @param {number} deg 旋转角度
-   */
-  public setRotationAxisAngle(axis: Vector3, deg: number) {
-    const rotateQuat = quat.setAxisAngle(this.tempQuat, axis, MathUtil.toRadian(deg));
-    this.transform.rotationQuaternion = rotateQuat;
-  }
-
-  /**
-   * @deprecated
-   * 获取本节点的前方方向
-   * @return {vec3} 节点的前方方向向量
-   */
-  public getForward(): Readonly<Vector3> {
-    return this.forward;
-  }
-
-  /**
-   * @deprecated
-   * 取得Local to World矩阵
-   */
-  public getModelMatrix(): Readonly<Matrix4> {
-    return this.transform.worldMatrix;
-  }
-
-  /**
-   * @deprecated
-   * 使用 Local to World 更新内部 Transform 数据，效率较低
-   * @param {mat4} m 变换矩阵
-   */
-  public setModelMatrix(m: Matrix4) {
-    this.transform.worldMatrix = m;
-  }
-
-  /**
-   * @deprecated
-   */
-  public setModelMatrixNew(m: Matrix4) {
-    this.transform.worldMatrix = m;
-  }
-
-  /**
-   * @deprecated
    * 取得World to Local矩阵
    * @return {mat4}
    */
@@ -837,24 +569,13 @@ export class Node extends EventDispatcher {
     }
     return this._invModelMatrix;
   }
-
-  /**
-   * @deprecated
-   * 设置Model矩阵，使得本节点‘看向’一个点
-   * @param {vec3} center 看向的点
-   * @param {vec3} up 指向上方的单位向量
-   */
-  public lookAt(center: Vector3, up?: Vector3) {
-    this.transform.lookAt(center, up);
-    return this;
-  }
 }
 
 /**
  * @deprecated
  */
 function enableRenderer(node: Node, enabled: boolean, key: string) {
-  const abilityArray = node.abilityArray;
+  const abilityArray = node._components;
 
   if (abilityArray) {
     for (let i = abilityArray.length - 1; i >= 0; i--) {
@@ -865,7 +586,7 @@ function enableRenderer(node: Node, enabled: boolean, key: string) {
     } // end of for
   }
 
-  const children = node.children;
+  const children = node._children;
   if (children) {
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];

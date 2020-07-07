@@ -290,8 +290,8 @@ export class Camera extends NodeAbility {
     // TODO: 删除，兼容旧 camera，decaprated
     const target = props.target ?? [0, 0, 0];
     const up = props.up ?? [0, 1, 0];
-    node.position = props.position ?? [0, 10, 20];
-    node.lookAt(target, up);
+    node.transform.position = props.position ?? [0, 10, 20];
+    node.transform.lookAt(target, up);
 
     // TODO: 可在重载_onActive方法内加入，待 rhi 重构剥离后修改
     const settingCanvas = engine?.config?.canvas ?? canvas;

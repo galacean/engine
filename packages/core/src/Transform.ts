@@ -452,7 +452,7 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WP_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._node._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionFlag();
       }
@@ -469,7 +469,7 @@ export class Transform extends NodeAbility {
   private _updateWorldRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WE_WQ_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WE_WQ_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._node._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
       }
@@ -486,7 +486,7 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionAndRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WP_WE_WQ_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._node._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag();
       }
@@ -502,7 +502,7 @@ export class Transform extends NodeAbility {
   private _updateWorldScaleFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WS_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WS_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._node._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
       }
@@ -518,7 +518,7 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionAndScaleFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WS_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WP_WS_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._node._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
       }
@@ -531,7 +531,7 @@ export class Transform extends NodeAbility {
   private _updateAllWorldFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WP_WE_WQ_WS_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._node._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateAllWorldFlag();
       }
@@ -543,7 +543,7 @@ export class Transform extends NodeAbility {
       return this._parentTransformCache;
     }
     let parentCache: Transform = null;
-    let parent = this._node.parentNode;
+    let parent = this._node.parent;
     while (parent) {
       const transform = parent.transform;
       if (transform) {
