@@ -1,5 +1,5 @@
 import { UniformSemantic, DataType, Logger, GLCapabilityType } from "@alipay/o3-base";
-import { AssetObject, ACamera } from "@alipay/o3-core";
+import { AssetObject, Camera } from "@alipay/o3-core";
 import { ShaderFactory } from "@alipay/o3-shaderlib";
 import { Material } from "./Material";
 import { TechniqueStates, Attributes, Uniforms } from "./type";
@@ -187,7 +187,7 @@ export class RenderTechnique extends AssetObject {
     }
   }
 
-  getAttributeDefines(camera: ACamera, component, primitive, material) {
+  getAttributeDefines(camera: Camera, component, primitive, material) {
     const rhi = camera._rhi;
     const gl = rhi.gl;
     const _macros = [];

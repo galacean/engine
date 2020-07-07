@@ -1,6 +1,5 @@
 import { AAnimation } from "@alipay/o3-animation";
-import { Engine } from "@alipay/o3-core";
-import { Camera } from "@alipay/o3-default-camera";
+import { Engine,Camera } from "@alipay/o3-core";
 import "@alipay/o3-engine-stats";
 import "@alipay/o3-hud";
 import { AAmbientLight } from "@alipay/o3-lighting";
@@ -8,6 +7,8 @@ import { Resource, ResourceLoader } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { PBRMaterial } from "@alipay/o3-pbr";
+import {GLRenderHardware} from "@alipay/o3-rhi-webgl"
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic"
 
 
 RegistExtension({ PBRMaterial });
@@ -32,7 +33,9 @@ let cameraNode = rootNode.createChild("camera_node");
 let camera = cameraNode.addComponent(Camera, {
   canvas: "o3-demo",
   position: [0, 1.35, 5.5],
-  target: [0, 1.1, 0]
+  target: [0, 1.1, 0],
+  RHI: GLRenderHardware,
+  SceneRenderer: BasicSceneRenderer
 });
 
 // load resource config

@@ -229,7 +229,7 @@ export abstract class NodeAbility extends EventDispatcher {
    * @deprecated
    */
   get modelMatrix(): Readonly<Matrix4> {
-    return this._node.getModelMatrix();
+    return this._node.transform.worldMatrix;
   }
 
   /**

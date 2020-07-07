@@ -17,6 +17,8 @@ const tween = new Tween();
  * 相机的的漫游控制器，可以上下左右位移，转转视角。
  */
 export class AFreeControls extends NodeAbility {
+  _forward = [0, 0, 0];
+  _right = [0, 0, 0];
   camera: Node;
   mainElement: any;
   domElement: any;
@@ -263,7 +265,7 @@ export class AFreeControls extends NodeAbility {
     this._spherical.phi = this._phi;
     this._spherical.setToVec3(this._v3Cache);
     vec3.add(this._v3Cache, this.camera.position, this._v3Cache);
-    this.camera.lookAt(this._v3Cache, [0, 1, 0]);
+    this.camera.transform.lookAt(this._v3Cache, [0, 1, 0]);
   }
 
   /**
@@ -313,17 +315,19 @@ export class AFreeControls extends NodeAbility {
     if (this.enabled === false) return;
 
     const actualMoveSpeed = (delta / 1000) * this.movementSpeed;
+    this.camera.transform.getWorldForward(this._forward);
+    this.camera.transform.getWorldRight(this._right);
     if (this._moveForward) {
-      this.translateOnAxis(this.camera.forward, actualMoveSpeed);
+      this.translateOnAxis(this._forward, actualMoveSpeed);
     }
     if (this._moveBackward) {
-      this.translateOnAxis(this.camera.forward, -actualMoveSpeed);
+      this.translateOnAxis(this._forward, -actualMoveSpeed);
     }
     if (this._moveLeft) {
-      this.translateOnAxis(this.camera.right, actualMoveSpeed);
+      this.translateOnAxis(this._right, actualMoveSpeed);
     }
     if (this._moveRight) {
-      this.translateOnAxis(this.camera.right, -actualMoveSpeed);
+      this.translateOnAxis(this._right, -actualMoveSpeed);
     }
 
     tween.update(delta);
@@ -367,7 +371,7 @@ export class AFreeControls extends NodeAbility {
    * @param {vec3} up
    * */
   lookAt(target: vec3Type, up?: vec3Type): void {
-    this.camera.lookAt(target, up || [0, 1, 0]);
+    this.camera.transform.lookAt(target, up || [0, 1, 0]);
 
     this.updateSpherical();
   }

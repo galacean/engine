@@ -160,6 +160,6 @@ export class ACollisionDetection extends NodeAbility {
    */
   _onAwake() {
     this._colliderManager = this.scene.findFeature(ColliderFeature);
-    this._myCollider = this.node.findAbilityByType(ACollider);
+    this._myCollider = this.node.getComponent(ACollider);
   }
 }

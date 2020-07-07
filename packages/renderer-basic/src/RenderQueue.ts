@@ -1,6 +1,6 @@
 import { vec3 } from "@alipay/o3-math";
 import { Logger, MaskList } from "@alipay/o3-base";
-import { ACamera, NodeAbility } from "@alipay/o3-core";
+import { Camera, NodeAbility } from "@alipay/o3-core";
 import { Material } from "@alipay/o3-material";
 
 /**
@@ -50,7 +50,7 @@ export class RenderQueue {
     const items = this._items;
 
     if (items.length > 1) {
-      this._items = items.sort(function(item1, item2) {
+      this._items = items.sort(function (item1, item2) {
         if (item1.nodeAbility.renderPriority === item2.nodeAbility.renderPriority) {
           const pos1 = item1.nodeAbility.node.worldPosition;
           const pos2 = item2.nodeAbility.node.worldPosition;
@@ -71,7 +71,7 @@ export class RenderQueue {
     const items = this._items;
 
     if (items.length > 1) {
-      this._items = items.sort(function(item1, item2) {
+      this._items = items.sort(function (item1, item2) {
         if (item1.nodeAbility.renderPriority === item2.nodeAbility.renderPriority) {
           const tech1 = item1.mtl.technique;
           const tech2 = item2.mtl.technique;
@@ -115,7 +115,7 @@ export class RenderQueue {
    * @param {Material} replaceMaterial 替换模型自身的材质
    * @param {number} mask 渲染过滤使用的mask
    */
-  render(camera: ACamera, replaceMaterial: Material, mask: MaskList) {
+  render(camera: Camera, replaceMaterial: Material, mask: MaskList) {
     const rhi = camera.renderHardware;
     const items = this._items;
 

@@ -47,7 +47,7 @@ export class ASpineRenderer extends NodeAbility {
       const animData = new AnimationStateData(asset);
       this.state = new AnimationState(animData);
       const animations = animData.skeletonData.animations;
-      this.animationNames = animations.map(item => item.name);
+      this.animationNames = animations.map((item) => item.name);
       this.getVertexCount();
     } else {
       console.log("需要传入skeletondata");
@@ -137,7 +137,7 @@ export class ASpineRenderer extends NodeAbility {
   nextBatch() {
     if (this.batches.length == this.nextBatchIndex) {
       const batchNode = this.node.createChild("batch");
-      const batch = batchNode.createAbility(MeshBatcher, { maxVertices: this.vertexCount });
+      const batch = batchNode.addComponent(MeshBatcher, { maxVertices: this.vertexCount });
       this.batches.push(batch);
     }
     let batch = this.batches[this.nextBatchIndex++];

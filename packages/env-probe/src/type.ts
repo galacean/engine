@@ -1,11 +1,11 @@
 import { Material } from "@alipay/o3-material";
-import { ACamera } from "@alipay/o3-core";
+import { Camera } from "@alipay/o3-core";
 import { RenderTargetConfig } from "@alipay/o3-material/types/type";
 import { Vector4 } from "@alipay/o3-math/types/type";
 
 export interface ProbeConfig extends RenderTargetConfig {
   /** 需要渲染的相机,默认为 activeCameras[0] */
-  camera?: ACamera;
+  camera?: Camera;
   /** 需要渲染的列表,优先级 excludeRenderList > renderAll > renderList */
   renderList?: Material[];
   /** renderAll 可以渲染场景中所有符合条件的物体，不需要填写 renderList，但可能增加性能消耗 */

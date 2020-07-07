@@ -766,7 +766,7 @@ export function parseNode(gltfNode, resources) {
       const lightIdx = gltfNode.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
         const light = getItemByIdx("lights", lightIdx, resources);
-        if (light) node.createAbility(light.ability, light.props);
+        if (light) node.addComponent(light.ability, light.props);
       }
     }
   }

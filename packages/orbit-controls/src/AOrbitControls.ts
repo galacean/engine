@@ -297,7 +297,7 @@ export class AOrbitControls extends NodeAbility {
       { type: "mouseup", listener: this.onMouseUp.bind(this) }
     ];
 
-    this.constEvents.forEach(ele => {
+    this.constEvents.forEach((ele) => {
       if (ele.element) {
         ele.element.addEventListener(ele.type, ele.listener, false);
       } else {
@@ -317,7 +317,7 @@ export class AOrbitControls extends NodeAbility {
    * @private
    */
   destroy() {
-    this.constEvents.forEach(ele => {
+    this.constEvents.forEach((ele) => {
       if (ele.element) {
         ele.element.removeEventListener(ele.type, ele.listener, false);
       } else {
@@ -386,7 +386,7 @@ export class AOrbitControls extends NodeAbility {
     vec3.copy(this._position, this.target);
     vec3.add(this._position, this._position, this._offset);
     this.camera.position = this._position;
-    this.camera.lookAt(this.target, this.up);
+    this.camera.transform.lookAt(this.target, this.up);
 
     if (this.enableDamping === true) {
       this._sphericalDump.theta *= 1 - this.dampingFactor;
@@ -482,8 +482,8 @@ export class AOrbitControls extends NodeAbility {
 
     targetDistance *= (this.fov / 2) * (Math.PI / 180);
 
-    this.panLeft(2 * deltaX * (targetDistance / element.clientHeight), this.camera.getModelMatrix());
-    this.panUp(2 * deltaY * (targetDistance / element.clientHeight), this.camera.getModelMatrix());
+    this.panLeft(2 * deltaX * (targetDistance / element.clientHeight), this.camera.transform.worldMatrix);
+    this.panUp(2 * deltaY * (targetDistance / element.clientHeight), this.camera.transform.worldMatrix);
   }
 
   /**
@@ -769,7 +769,7 @@ export class AOrbitControls extends NodeAbility {
 
     this._isMouseUp = true;
 
-    this.mouseUpEvents.forEach(ele => {
+    this.mouseUpEvents.forEach((ele) => {
       const element = this.domElement === document ? this.domElement.body : this.domElement;
       element.removeEventListener(ele.type, ele.listener, false);
       this.mainElement.removeEventListener(ele.type, ele.listener, false);

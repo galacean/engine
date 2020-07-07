@@ -21,7 +21,7 @@ export class SkeltonHandler extends AnimationClipHandler {
     this.enabled = true;
     this.actionName = animClip.skeltonAnim.name;
     const skeltoAnimationRenderer = (this.skeltoAnimationRenderer =
-      node.findAbilityByType(SkeltonAnimation) || node.createAbility(SkeltonAnimation));
+      node.getComponent(SkeltonAnimation) || node.addComponent(SkeltonAnimation));
     skeltoAnimationRenderer.enabled = false;
     skeltoAnimationRenderer.addAnimationClip(animClip.skeltonAnim, this.actionName);
     this.skeltoAnimationRenderer.playAnimationClip(this.actionName, {

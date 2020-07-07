@@ -134,7 +134,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
       if (!parent) return null;
       if (parent.name === nodeName) return parent;
 
-      const brother = parent.findChildByName(nodeName);
+      const brother = parent.findByName(nodeName);
       if (brother) return brother;
 
       return this._findParent(parent, nodeName);

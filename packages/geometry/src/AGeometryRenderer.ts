@@ -1,4 +1,4 @@
-import { RenderableComponent, Node, ACamera } from "@alipay/o3-core";
+import { RenderableComponent, Node, Camera } from "@alipay/o3-core";
 import { Logger, Event } from "@alipay/o3-base";
 import { BufferGeometry } from "./BufferGeometry";
 import { IndexBufferGeometry } from "./IndexBufferGeometry";
@@ -74,7 +74,7 @@ export class AGeometryRenderer extends RenderableComponent {
    * @param {CameraComponent} camera
    * @private
    */
-  render(camera: ACamera) {
+  render(camera: Camera) {
     const geometry = this._geometry;
     if (!geometry) {
       return;

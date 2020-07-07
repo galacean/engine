@@ -450,7 +450,7 @@ export class AnimationLayer extends EventDispatcher {
     }
 
     if (target.path === "weights") {
-      return targetSceneObject.findAbilityByType(ASkinnedMeshRenderer);
+      return targetSceneObject.getComponent(ASkinnedMeshRenderer);
     } else {
       return targetSceneObject;
     }

@@ -158,7 +158,7 @@ class AEnvironmentMapLight extends ALight {
     }
 
     // 支持旋转
-    const transformMatrix = this.node.getModelMatrix();
+    const transformMatrix = this.node.transform.worldMatrix;
     mtl.setValue(uniformName + ".transformMatrix", mat3.fromMat4(cacheMat3, transformMatrix));
   }
 }

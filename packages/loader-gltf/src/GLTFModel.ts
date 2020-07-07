@@ -36,7 +36,7 @@ export class GLTFModel extends NodeAbility {
       if (!this._animator) {
         const animations = this._asset.animations;
         // 加载动画
-        this._animator = this.node.createAbility(AAnimation);
+        this._animator = this.node.addComponent(AAnimation);
         animations.forEach((clip: AnimationClip) => {
           this._animator.addAnimationClip(clip, clip.name);
         });
@@ -46,7 +46,7 @@ export class GLTFModel extends NodeAbility {
         }
       }
     } else {
-      this.node.detachAbility(this._animator);
+      this._animator.destroy();
       this._animator = null;
     }
   }
@@ -95,7 +95,7 @@ export class GLTFModel extends NodeAbility {
     if (isClone) {
       const rootName = (this._props as any).gltfRootName;
       if (rootName) {
-        this.GLTFNode = this.node.findChildByName(rootName);
+        this.GLTFNode = this.node.findByName(rootName);
       }
     }
     if (!this.GLTFNode) {

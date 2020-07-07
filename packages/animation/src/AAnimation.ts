@@ -273,7 +273,7 @@ export class AAnimation extends NodeAbility {
       return;
     }
 
-    const mixNode = this.node.findChildByName(mixBoneName);
+    const mixNode = this.node.findByName(mixBoneName);
     if (!mixNode) {
       Logger.error("can not find mix bone!");
       return;
@@ -352,8 +352,8 @@ export class AAnimation extends NodeAbility {
         if (
           animLayer.isMixLayer &&
           (animLayer.mixNode === mixNode ||
-            animLayer.mixNode.findChildByName(mixNode) ||
-            mixNode.findChildByName(animLayer.mixNode))
+            animLayer.mixNode.findByName(mixNode) ||
+            mixNode.findByName(animLayer.mixNode))
         ) {
           animLayer.removeMixWeight();
           this._animLayers.splice(i, 1);

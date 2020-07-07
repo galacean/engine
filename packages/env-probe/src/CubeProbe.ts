@@ -128,7 +128,7 @@ export class CubeProbe extends Probe {
     vec3.add(cacheTarget, this.position, cacheDir);
     mat4.lookAt(this.camera.viewMatrix, this.position, cacheTarget, cacheUp);
     mat4.invert(this.camera.inverseViewMatrix, this.camera.viewMatrix);
-    mat4.perspective(this.camera.projectionMatrix, fovRadian, 1, this.camera.zNear, this.camera.zFar);
+    mat4.perspective(this.camera.projectionMatrix, fovRadian, 1, this.camera.nearClipPlane, this.camera.farClipPlane);
     mat4.invert(this.camera.inverseProjectionMatrix, this.camera.projectionMatrix);
   }
 

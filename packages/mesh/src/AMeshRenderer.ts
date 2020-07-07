@@ -1,6 +1,6 @@
 import { Logger } from "@alipay/o3-base";
 import { Material } from "@alipay/o3-material";
-import { Node, ACamera, RenderableComponent } from "@alipay/o3-core";
+import { Node, Camera, RenderableComponent } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 
 /**
@@ -81,7 +81,7 @@ export class AMeshRenderer extends RenderableComponent {
    * 执行渲染
    * @param {CameraComponent} camera
    */
-  render(camera: ACamera) {
+  render(camera: Camera) {
     const mesh = this._mesh;
     if (!mesh) {
       return;

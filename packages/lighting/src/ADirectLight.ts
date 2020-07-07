@@ -7,6 +7,7 @@ import { ALight } from "./ALight";
  * @extends ALight
  */
 export class ADirectLight extends ALight {
+  private _forward = [0, 0, 0];
   private _lightColor;
   private _reverseDirection;
   public color;
@@ -46,7 +47,8 @@ export class ADirectLight extends ALight {
    * @readonly
    */
   get direction() {
-    return this.node.getForward();
+    this.node.transform.getWorldForward(this._forward);
+    return this._forward;
   }
 
   /** 获取方向光最终颜色

@@ -7,6 +7,7 @@ import { ALight } from "./ALight";
  * @extends ALight
  */
 export class ASpotLight extends ALight {
+  private _forward = [0, 0, 0];
   private _lightColor;
   private _inverseDirection;
   public color;
@@ -84,7 +85,8 @@ export class ASpotLight extends ALight {
    * @readonly
    */
   get direction() {
-    return this.node.getForward();
+    this.node.transform.getWorldForward(this._forward);
+    return this._forward;
   }
 
   /** 获取聚光灯方向的反方向

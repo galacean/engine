@@ -30,7 +30,7 @@ export class ASkyBox extends AGeometryRenderer {
   }
 
   onUpdate() {
-    (this.material as SkyBoxMaterial).setModel(this.node.getModelMatrix());
+    (this.material as SkyBoxMaterial).setModel(this.node.transform.worldMatrix);
   }
 
   render(camera) {
