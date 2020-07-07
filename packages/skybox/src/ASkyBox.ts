@@ -33,6 +33,11 @@ export class ASkyBox extends AGeometryRenderer {
     (this.material as SkyBoxMaterial).setModel(this.node.getModelMatrix());
   }
 
+  render(camera) {
+    if (!this._skyBoxMap) return;
+    super.render(camera);
+  }
+
   /**
    * 天空盒贴图
    * @type {TextureCubeMap}
@@ -42,7 +47,6 @@ export class ASkyBox extends AGeometryRenderer {
   }
 
   set skyBoxMap(v) {
-    this.enabled = !!v;
     this._skyBoxMap = v;
     this.getMaterial().setValue("u_cube", v);
   }

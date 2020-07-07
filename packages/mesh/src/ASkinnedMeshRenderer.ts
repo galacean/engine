@@ -88,11 +88,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
     return this._weights;
   }
 
-  /**
-   * callback, create interal objects, bind bones
-   * @private
-   */
-  onStart() {
+  _onAwake() {
     if (!this._skin) return;
     const skin = this._skin;
     //-- init

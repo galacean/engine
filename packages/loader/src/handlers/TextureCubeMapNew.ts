@@ -51,7 +51,7 @@ export class TextureCubeMapNewHandler {
    * @private
    */
   open(resource: Resource, rhi) {
-    const { data } = resource;
+    const { data, name } = resource;
     const { width, height } = data[0][0];
 
     if (width !== height) {
@@ -60,6 +60,7 @@ export class TextureCubeMapNewHandler {
     }
 
     const tex = new TextureCubeMap(rhi, width);
+    tex.name = name;
 
     if (!tex._glTexture) return;
 

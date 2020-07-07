@@ -18,9 +18,10 @@ export class TextureNewHandler {
   }
 
   open(resource: Resource, rhi) {
-    const { data } = resource;
+    const { data, name } = resource;
     const { width, height } = data;
     const tex = new Texture2D(rhi, width, height);
+    tex.name = name;
 
     if (!tex._glTexture) return;
 

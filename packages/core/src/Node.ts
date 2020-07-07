@@ -83,11 +83,12 @@ export class Node extends EventDispatcher {
 
   /* @internal */
   _isActiveInHierarchy: boolean = false;
+  /* @internal */
+  _components: Array<Component> = [];
 
   private _scene: Scene;
   private _active: boolean;
   private _children: Array<Node> = [];
-  private _components: Array<Component> = [];
   private _parent: Node = null;
   private _activeChangedComponents: Component[];
   private _isRoot: boolean; //must add,because scene management mechanism
@@ -537,11 +538,11 @@ export class Node extends EventDispatcher {
    * 本节点的位置(Local Space)
    * @member {vec3}
    */
-  get position(): Readonly<Vector3> {
+  get position(): Vector3 {
     return this.transform.position;
   }
 
-  set position(val: Readonly<Vector3>) {
+  set position(val: Vector3) {
     this.transform.position = val;
   }
 
@@ -580,22 +581,22 @@ export class Node extends EventDispatcher {
    * 本节点的世界坐标系位置
    * @member {vec3}
    */
-  get worldPosition(): Readonly<Vector3> {
+  get worldPosition(): Vector3 {
     return this.transform.worldPosition;
   }
 
-  set worldPosition(val: Readonly<Vector3>) {
+  set worldPosition(val: Vector3) {
     this.transform.worldPosition = val;
   }
 
   /** Property: 本节点的旋转四元数(Local Space)
    * @member {quat|Array}
    */
-  get rotation(): Readonly<Vector4> {
+  get rotation(): Vector4 {
     return this.transform.rotationQuaternion;
   }
 
-  set rotation(val: Readonly<Vector4>) {
+  set rotation(val: Vector4) {
     this.transform.rotationQuaternion = val;
   }
 
@@ -604,11 +605,11 @@ export class Node extends EventDispatcher {
    * 本节点的缩放系数(Local Space)
    * @member {vec3}
    */
-  get scale(): Readonly<Vector3> {
+  get scale(): Vector3 {
     return this.transform.scale;
   }
 
-  set scale(val: Readonly<Vector3>) {
+  set scale(val: Vector3) {
     this.transform.scale = val;
   }
 
@@ -813,14 +814,14 @@ export class Node extends EventDispatcher {
    * 使用 Local to World 更新内部 Transform 数据，效率较低
    * @param {mat4} m 变换矩阵
    */
-  public setModelMatrix(m: Readonly<Matrix4>) {
+  public setModelMatrix(m: Matrix4) {
     this.transform.worldMatrix = m;
   }
 
   /**
    * @deprecated
    */
-  public setModelMatrixNew(m: Readonly<Matrix4>) {
+  public setModelMatrixNew(m: Matrix4) {
     this.transform.worldMatrix = m;
   }
 
@@ -829,7 +830,7 @@ export class Node extends EventDispatcher {
    * 取得World to Local矩阵
    * @return {mat4}
    */
-  public getInvModelMatrix(): Readonly<Matrix4> {
+  public getInvModelMatrix(): Matrix4 {
     if (this._inverseWorldMatFlag.flag) {
       mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
       this._inverseWorldMatFlag.flag = false;

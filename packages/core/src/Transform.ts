@@ -86,12 +86,13 @@ export class Transform extends NodeAbility {
 
   /**
    * 局部位置。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get position(): Readonly<Vector3> {
+  get position(): Vector3 {
     return this._position;
   }
 
-  set position(value: Readonly<Vector3>) {
+  set position(value: Vector3) {
     if (this._position !== value) {
       vec3.copy(this._position, value);
     }
@@ -101,8 +102,9 @@ export class Transform extends NodeAbility {
 
   /**
    * 世界位置。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get worldPosition(): Readonly<Vector3> {
+  get worldPosition(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_POSITION_FLAG)) {
       if (this._getParentTransform()) {
         mat4.getTranslation(this._worldPosition, this.worldMatrix);
@@ -114,7 +116,7 @@ export class Transform extends NodeAbility {
     return this._worldPosition;
   }
 
-  set worldPosition(value: Readonly<Vector3>) {
+  set worldPosition(value: Vector3) {
     if (this._worldPosition !== value) {
       vec3.copy(this._worldPosition, value);
     }
@@ -131,8 +133,9 @@ export class Transform extends NodeAbility {
 
   /**
    * 局部旋转，欧拉角表达，单位是角度制。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get rotation(): Readonly<Vector3> {
+  get rotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._LOCAL_EULER_FLAG)) {
       quat.toEuler(this._rotation, this._rotationQuaternion);
       this._setDirtyFlagFalse(Transform._LOCAL_EULER_FLAG);
@@ -140,7 +143,7 @@ export class Transform extends NodeAbility {
     return this._rotation;
   }
 
-  set rotation(value: Readonly<Vector3>) {
+  set rotation(value: Vector3) {
     if (this._rotation !== value) {
       vec3.copy(this._rotation, value);
     }
@@ -151,8 +154,9 @@ export class Transform extends NodeAbility {
 
   /**
    * 世界旋转，欧拉角表达，单位是角度制。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get worldRotation(): Readonly<Vector3> {
+  get worldRotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_EULER_FLAG)) {
       quat.toEuler(this._worldRotation, this.worldRotationQuaternion);
       this._setDirtyFlagFalse(Transform._WORLD_EULER_FLAG);
@@ -160,7 +164,7 @@ export class Transform extends NodeAbility {
     return this._worldRotation;
   }
 
-  set worldRotation(value: Readonly<Vector3>) {
+  set worldRotation(value: Vector3) {
     if (this._worldRotation !== value) {
       vec3.copy(this._worldRotation, value);
     }
@@ -170,9 +174,10 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 局部旋转，四元数表达
+   * 局部旋转，四元数表达。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get rotationQuaternion(): Readonly<Vector4> {
+  get rotationQuaternion(): Vector4 {
     if (this._isContainDirtyFlag(Transform._LOCAL_QUAT_FLAG)) {
       quat.fromEuler(this._rotationQuaternion, this._rotation[0], this._rotation[1], this._rotation[2]);
       this._setDirtyFlagFalse(Transform._LOCAL_QUAT_FLAG);
@@ -180,7 +185,7 @@ export class Transform extends NodeAbility {
     return this._rotationQuaternion;
   }
 
-  set rotationQuaternion(value: Readonly<Vector4>) {
+  set rotationQuaternion(value: Vector4) {
     if (this._rotationQuaternion !== value) {
       quat.copy(this._rotationQuaternion, value);
     }
@@ -190,9 +195,10 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 世界旋转，四元数表达
+   * 世界旋转，四元数表达。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get worldRotationQuaternion(): Readonly<Vector4> {
+  get worldRotationQuaternion(): Vector4 {
     if (this._isContainDirtyFlag(Transform._WORLD_QUAT_FLAG)) {
       const parent = this._getParentTransform();
       if (parent != null) {
@@ -205,7 +211,7 @@ export class Transform extends NodeAbility {
     return this._worldRotationQuaternion;
   }
 
-  set worldRotationQuaternion(value: Readonly<Vector4>) {
+  set worldRotationQuaternion(value: Vector4) {
     if (this._worldRotationQuaternion !== value) {
       quat.copy(this._worldRotationQuaternion, value);
     }
@@ -222,12 +228,13 @@ export class Transform extends NodeAbility {
 
   /**
    * 局部缩放。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get scale(): Readonly<Vector3> {
+  get scale(): Vector3 {
     return this._scale;
   }
 
-  set scale(value: Readonly<Vector3>) {
+  set scale(value: Vector3) {
     if (this._scale !== value) {
       vec3.copy(this._scale, value);
     }
@@ -238,7 +245,7 @@ export class Transform extends NodeAbility {
   /**
    * 世界有损缩放。
    */
-  get lossyWorldScale(): Readonly<Vector3> {
+  get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
       if (this._getParentTransform()) {
         const scaleMat = this._getScaleMatrix();
@@ -253,8 +260,9 @@ export class Transform extends NodeAbility {
 
   /**
    * 局部矩阵。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get localMatrix(): Readonly<Matrix4> {
+  get localMatrix(): Matrix4 {
     if (this._isContainDirtyFlag(Transform._LOCAL_MATRIX_FLAG)) {
       mat4.fromRotationTranslationScale(this._localMatrix, this.rotationQuaternion, this._position, this._scale);
       this._setDirtyFlagFalse(Transform._LOCAL_MATRIX_FLAG);
@@ -262,7 +270,7 @@ export class Transform extends NodeAbility {
     return this._localMatrix;
   }
 
-  set localMatrix(value: Readonly<Matrix4>) {
+  set localMatrix(value: Matrix4) {
     if (this._localMatrix !== value) {
       mat4.copy(this._localMatrix, value);
     }
@@ -274,8 +282,9 @@ export class Transform extends NodeAbility {
 
   /**
    * 世界矩阵。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get worldMatrix(): Readonly<Matrix4> {
+  get worldMatrix(): Matrix4 {
     if (this._isContainDirtyFlag(Transform._WORLD_MATRIX_FLAG)) {
       const parent = this._getParentTransform();
       if (parent) {
@@ -288,7 +297,7 @@ export class Transform extends NodeAbility {
     return this._worldMatrix;
   }
 
-  set worldMatrix(value: Readonly<Matrix4>) {
+  set worldMatrix(value: Matrix4) {
     if (this._worldMatrix !== value) {
       mat4.copy(this._worldMatrix, value);
     }
