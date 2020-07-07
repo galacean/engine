@@ -17,7 +17,7 @@ export class CuboidGeometry extends BufferGeometry {
    * @param {number} height 高
    * @param {number} depth 长
    */
-  constructor(width, height, depth) {
+  constructor(width?: number, height?: number, depth?: number) {
     super();
     this._parameters = {
       width: width || 1,

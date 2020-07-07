@@ -464,7 +464,7 @@ export class Node extends EventDispatcher {
    * @param {string} name 子节点的名称
    * @return {Node} 新创建的子节点对象
    */
-  public createChild(name: string): Node {
+  public createChild(name?: string): Node {
     const child = new Node(this._scene, this, name);
     return child;
   }
@@ -552,7 +552,7 @@ export class Node extends EventDispatcher {
    * @type {Array}
    * @readonly
    */
-  get up(): Readonly<Vector3> {
+  get up(): Vector3 {
     return this.transform.getWorldUp(this.tempVec30);
   }
 
@@ -562,7 +562,7 @@ export class Node extends EventDispatcher {
    * @type {Array}
    * @readonly
    */
-  get forward(): Readonly<Vector3> {
+  get forward(): Vector3 {
     return this.transform.getWorldForward(this.tempVec31);
   }
 
@@ -572,7 +572,7 @@ export class Node extends EventDispatcher {
    * @type {Array}
    * @readonly
    */
-  get right(): Readonly<Vector3> {
+  get right(): Vector3 {
     return this.transform.getWorldRight(this.tempVec32);
   }
 
@@ -797,7 +797,7 @@ export class Node extends EventDispatcher {
    * 获取本节点的前方方向
    * @return {vec3} 节点的前方方向向量
    */
-  public getForward(): Readonly<Vector3> {
+  public getForward(): Vector3 {
     return this.forward;
   }
 
@@ -805,7 +805,7 @@ export class Node extends EventDispatcher {
    * @deprecated
    * 取得Local to World矩阵
    */
-  public getModelMatrix(): Readonly<Matrix4> {
+  public getModelMatrix(): Matrix4 {
     return this.transform.worldMatrix;
   }
 
