@@ -5,8 +5,7 @@
     "hoist": true
   },
   "packages": [
-    "packages/*",
-    "playground"
+    "packages/*"
   ],
   "loglevel": "verbose"
 }
