@@ -124,7 +124,7 @@ export class Primitive extends AssetObject {
    * @param {Matrix4} modelMatrix - Local to World矩阵,如果传此值，则计算min/max时将考虑RTS变换，如果不传，则计算local min/max
    * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
    * */
-  getMinMax(modelMatrix?: Readonly<Matrix4>, littleEndian = true) {
+  getMinMax(modelMatrix?: Matrix4, littleEndian = true) {
     let {
       vertexCount,
       vertexBuffers,

@@ -22,7 +22,7 @@ export class OBB {
    * @param {Vector3} maxLocal - 本地坐标系的最大坐标
    * @param {Matrix4} modelMatrix - Local to World矩阵
    * */
-  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Readonly<Matrix4>) {
+  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix4) {
     vec3.copy(this.min, minLocal);
     vec3.copy(this.max, maxLocal);
     this.corners = this.getCornersFromMinMax(minLocal, maxLocal);
@@ -60,7 +60,7 @@ export class OBB {
    * 通过模型矩阵，和缓存的本地坐标系 OBB，获取新的世界坐标系 OBB
    * @param {Matrix4} modelMatrix - Local to World矩阵
    * */
-  updateByModelMatrix(modelMatrix: Readonly<Matrix4>) {
+  updateByModelMatrix(modelMatrix: Matrix4) {
     let min = [Infinity, Infinity, Infinity];
     let max = [-Infinity, -Infinity, -Infinity];
     for (let i = 0; i < 8; ++i) {
