@@ -1,2 +1,2 @@
-export { AGPUParticleSystem } from "./particle";
+export { GPUParticleSystem } from "./particle";
 export { Particle } from "./particle-editor";

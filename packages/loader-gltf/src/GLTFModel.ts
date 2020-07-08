@@ -1,4 +1,4 @@
-import { AnimationClip, AAnimation, WrapMode } from "@alipay/o3-animation";
+import { AnimationClip, Animation, WrapMode } from "@alipay/o3-animation";
 import { Component, Node } from "@alipay/o3-core";
 
 interface GLTFAsset {
@@ -36,7 +36,7 @@ export class GLTFModel extends Component {
       if (!this._animator) {
         const animations = this._asset.animations;
         // 加载动画
-        this._animator = this.node.addComponent(AAnimation);
+        this._animator = this.node.addComponent(Animation);
         animations.forEach((clip: AnimationClip) => {
           this._animator.addAnimationClip(clip, clip.name);
         });
@@ -79,7 +79,7 @@ export class GLTFModel extends Component {
     this._loop = value;
   }
 
-  public _animator: AAnimation;
+  public _animator: Animation;
   public animationsNames: String[];
 
   private _asset: GLTFAsset;

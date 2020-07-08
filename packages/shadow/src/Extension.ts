@@ -1,5 +1,5 @@
 import { Logger } from "@alipay/o3-base";
-import { AAmbientLight, ALight } from "@alipay/o3-lighting";
+import { AmbientLight, Light } from "@alipay/o3-lighting";
 import { LightShadow } from "./LightShadow";
 import { Component } from "@alipay/o3-core";
 
@@ -7,7 +7,7 @@ import { Component } from "@alipay/o3-core";
  * 设置是否产生阴影
  * @param {boolean} enabled
  */
-Object.defineProperty(ALight.prototype, "enableShadow", {
+Object.defineProperty(Light.prototype, "enableShadow", {
   get: function () {
     return this._enableShadow;
   },
@@ -15,7 +15,7 @@ Object.defineProperty(ALight.prototype, "enableShadow", {
     this._enableShadow = enabled;
 
     if (this._enableShadow) {
-      if (this instanceof AAmbientLight) {
+      if (this instanceof AmbientLight) {
         Logger.warn("Has no shadow!");
         return;
       }

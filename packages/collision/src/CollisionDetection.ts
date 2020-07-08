@@ -9,7 +9,7 @@ import { intersectBox2Box, intersectSphere2Sphere, intersectSphere2Box } from ".
  * 检测当前 Node 上的 Collider 与场景中其他 Collider 的碰撞
  * 发出事件：collision
  */
-export class ACollisionDetection extends Script {
+export class CollisionDetection extends Script {
   private _colliderManager;
   private _myCollider;
   private _overlopCollider;

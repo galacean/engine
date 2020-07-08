@@ -1,1 +1,1 @@
-export { FreeControls as AFreeControls } from "./FreeControls";
+export { FreeControls } from "./FreeControls";

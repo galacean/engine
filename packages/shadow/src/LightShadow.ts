@@ -1,7 +1,7 @@
 import { DataType } from "@alipay/o3-base";
 import { RenderTarget } from "@alipay/o3-material";
 import { mat4, MathUtil } from "@alipay/o3-math";
-import { ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
+import { DirectLight, PointLight, SpotLight } from "@alipay/o3-lighting";
 import { vec2 } from "@alipay/o3-math";
 /**
  * 阴影的管理类
@@ -80,21 +80,21 @@ export class LightShadow {
     /**
      * 方向光初始化投影矩阵，默认覆盖区域 left: -5, right: 5, bottom: -5, up: 5, near: 0.5, far: 50
      */
-    if (light instanceof ADirectLight) {
+    if (light instanceof DirectLight) {
       mat4.ortho(this.projectionMatrix, -5, 5, -5, 5, 0.1, 50);
     }
 
     /**
      * 点光源初始化投影矩阵，默认配置：fov: 50, aspect: 1, near: 0.5, far: 50
      */
-    if (light instanceof APointLight) {
+    if (light instanceof PointLight) {
       mat4.perspective(this.projectionMatrix, MathUtil.toRadian(50), 1, 0.5, 50);
     }
 
     /**
      * 聚光灯初始化投影矩阵，默认配置：fov: this.angle * 2 * Math.sqrt(2), aspect: 1, near: 0.1, far: this.distance + 5
      */
-    if (light instanceof ASpotLight) {
+    if (light instanceof SpotLight) {
       const fov = Math.min(Math.PI / 2, light.angle * 2 * Math.sqrt(2));
       mat4.perspective(this.projectionMatrix, fov, 1, 0.1, light.distance + 5);
     }

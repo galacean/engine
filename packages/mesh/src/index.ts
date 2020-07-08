@@ -3,6 +3,6 @@ export { Mesh } from "./Mesh";
 export { Skin } from "./Skin";
 
 //-- NodeAbility 类
-export { AMeshRenderer } from "./AMeshRenderer";
-export { ASkinnedMeshRenderer } from "./ASkinnedMeshRenderer";
-export { ALODGroup } from "./ALODGroup";
+export { MeshRenderer } from "./MeshRenderer";
+export { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
+export { LODGroup } from "./LODGroup";

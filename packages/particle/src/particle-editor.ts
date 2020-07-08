@@ -1,10 +1,10 @@
-import { AGPUParticleSystem } from "./particle";
+import { GPUParticleSystem } from "./particle";
 import { BlendFunc } from "@alipay/o3-base";
 
 /**
  * 暂时只为编辑器使用
  */
-export class Particle extends AGPUParticleSystem {
+export class Particle extends GPUParticleSystem {
   private _config;
   private _options;
 

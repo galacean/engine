@@ -1,6 +1,6 @@
 import { RenderableComponent } from "@alipay/o3-core";
 import { lottie } from "./oasis-lottie";
-export class ALottieRenderer extends RenderableComponent {
+export class LottieRenderer extends RenderableComponent {
   public loop: boolean;
   public autoplay: boolean;
   public animationData: any;

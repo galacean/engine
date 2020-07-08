@@ -6,7 +6,7 @@ import { ColorRenderPass } from "./ColorRenderPass";
 /**
  * Framebuffer 对象选择组件
  */
-class AFramebufferPicker extends Script {
+class FramebufferPicker extends Script {
   public camera: Camera;
   public colorRenderTarget: RenderTarget;
   public colorRenderPass: ColorRenderPass;
@@ -92,4 +92,4 @@ class AFramebufferPicker extends Script {
   }
 }
 
-export { AFramebufferPicker };
+export { FramebufferPicker };

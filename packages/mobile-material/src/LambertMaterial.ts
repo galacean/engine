@@ -2,7 +2,7 @@ import { vec4 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
 import { Texture2D } from "@alipay/o3-material";
 import { CommonMaterial } from "./CommonMaterial";
-import { LightFeature, ADirectLight } from "@alipay/o3-lighting";
+import { LightFeature, DirectLight } from "@alipay/o3-lighting";
 import LambertShader from "./shader/Lambert.glsl";
 
 /**

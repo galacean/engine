@@ -2,12 +2,16 @@ import { SchemaResource } from "./SchemaResource";
 import { AbilityManager } from "../AbilityManager";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
-const { Animator: AnimatorAsset } = o3;
-export class Animator extends SchemaResource {
+const { AnimatorAsset } = o3;
+export class AnimatorSchemaResource extends SchemaResource {
   private config: AssetConfig;
   private abilityManager: AbilityManager;
-  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig, { abilityManager }): Promise<Animator> {
-    return new Promise(resolve => {
+  load(
+    resourceLoader: o3.ResourceLoader,
+    assetConfig: AssetConfig,
+    { abilityManager }
+  ): Promise<AnimatorSchemaResource> {
+    return new Promise((resolve) => {
       this.config = assetConfig;
       this.abilityManager = abilityManager;
       const { name, props } = assetConfig;
@@ -28,10 +32,10 @@ export class Animator extends SchemaResource {
   parseDate(value) {
     const { keyframes = {} } = value;
     const parseData = {};
-    Object.keys(keyframes).forEach(keyframeTime => {
+    Object.keys(keyframes).forEach((keyframeTime) => {
       const keyframeList = keyframes[keyframeTime];
       parseData[keyframeTime] = parseData[keyframeTime] || [];
-      keyframeList.forEach(animationId => {
+      keyframeList.forEach((animationId) => {
         const animation = this.abilityManager.get(animationId);
         parseData[keyframeTime].push(animation);
       });

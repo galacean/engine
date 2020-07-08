@@ -1,10 +1,10 @@
 export * from "@alipay/o3-2d";
 export * from "@alipay/o3-animation";
 export {
-  AAnimation as AAnimationNew,
-  AAnimator,
+  AnimationAsset,
+  AnimatorAsset,
   Animation,
-  AnimationClip as AnimationClipNew,
+  AnimationClip,
   AnimationClipType,
   Animator
 } from "@alipay/o3-animator";

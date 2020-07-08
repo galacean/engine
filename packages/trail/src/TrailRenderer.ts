@@ -1,14 +1,13 @@
-import { DataType, BufferUsage, DrawMode } from "@alipay/o3-base";
-import { AGeometryRenderer, BufferGeometry } from "@alipay/o3-geometry";
-import { vec3, vec2, quat } from "@alipay/o3-math";
+import { BufferUsage, DataType, DrawMode } from "@alipay/o3-base";
+import { BufferGeometry, GeometryRenderer } from "@alipay/o3-geometry";
+import { Material, Texture2D } from "@alipay/o3-material";
+import { quat, vec2, vec3 } from "@alipay/o3-math";
 import { TrailMaterial } from "./TrailMaterial";
-import { Texture2D } from "@alipay/o3-material";
-import { Material } from "@alipay/o3-material";
 
 /**
  * 拖尾效果渲染组件
  */
-export class ATrailRenderer extends AGeometryRenderer {
+export class TrailRenderer extends GeometryRenderer {
   private _stroke;
   private _minSeg;
   private _lifetime;

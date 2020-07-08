@@ -1,4 +1,4 @@
-import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { GeometryRenderer } from "@alipay/o3-geometry";
 import { CuboidGeometry } from "@alipay/o3-geometry-shape";
 import { SkyBoxMaterial } from "./SkyBoxMaterial";
 
@@ -6,7 +6,7 @@ import { SkyBoxMaterial } from "./SkyBoxMaterial";
  * 天空盒组件
  * @class
  */
-export class ASkyBox extends AGeometryRenderer {
+export class SkyBox extends GeometryRenderer {
   private _skyBoxMap: any;
 
   /**

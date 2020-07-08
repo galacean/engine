@@ -1,5 +1,5 @@
 import { mat4 } from "@alipay/o3-math";
-import { AMeshRenderer } from "./AMeshRenderer";
+import { MeshRenderer } from "./MeshRenderer";
 import { Node } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 import { Skin } from "./Skin";
@@ -8,9 +8,9 @@ import { TextureFormat } from "@alipay/o3-base";
 
 /**
  * 负责渲染一个 Skinned Mesh 的组件
- * @extends AMeshRenderer
+ * @extends MeshRenderer
  */
-export class ASkinnedMeshRenderer extends AMeshRenderer {
+export class SkinnedMeshRenderer extends MeshRenderer {
   public matrixPalette: Float32Array;
   public jointNodes: Node[];
   public jointTexture: Texture2D;

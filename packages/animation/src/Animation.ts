@@ -4,7 +4,7 @@ import { AnimationLayer } from "./AnimationLayer";
 import { AnimationClip } from "./AnimationClip";
 import { quat } from "@alipay/o3-math";
 import { AnimationOptions, IChannelTarget } from "./types";
-import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
+import { SkinnedMeshRenderer } from "@alipay/o3-mesh";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
  */
@@ -376,8 +376,8 @@ export class Animation extends Component {
       const path = channelTarget.path;
 
       if (path === "weights") {
-        // ASkinnedMeshRenderer
-        (targetObject as ASkinnedMeshRenderer).setWeights(val as any);
+        // SkinnedMeshRenderer
+        (targetObject as SkinnedMeshRenderer).setWeights(val as any);
       } else {
         // Node[property]
         targetObject[path] = val;

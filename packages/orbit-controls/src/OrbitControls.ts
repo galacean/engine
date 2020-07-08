@@ -7,7 +7,7 @@ import { vec2, vec3, Spherical } from "@alipay/o3-math";
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
  */
-export class AOrbitControls extends Script {
+export class OrbitControls extends Script {
   public camera: Node;
   public domElement: HTMLElement | Document;
   public mainElement: HTMLCanvasElement;

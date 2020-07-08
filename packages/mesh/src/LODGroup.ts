@@ -4,7 +4,7 @@ import { Component, RenderableComponent } from "@alipay/o3-core";
 /**
  * 离散 LOD 层级渲染控制：根据对象占用屏幕高度的百分比，切换不同的 Renderer
  */
-export class ALODGroup extends RenderableComponent {
+export class LODGroup extends RenderableComponent {
   private _lods;
   /**
    * 构造函数
@@ -19,7 +19,7 @@ export class ALODGroup extends RenderableComponent {
   /**
    * 添加一个 LOD 层级
    * @param {number} distance 对象距离Camera的距离
-   * @param {NodeAbility} rendererAbility 当前 LOD 层级激活时的 Renderer 组件对象，可以是 AMeshRenderer 或者 ASkinnedMeshRenderer 等
+   * @param {NodeAbility} rendererAbility 当前 LOD 层级激活时的 Renderer 组件对象，可以是 MeshRenderer 或者 SkinnedMeshRenderer 等
    */
   addLod(distance, rendererAbility) {
     // 关闭原因的 Render，由 ALODGroup 接手

@@ -6,9 +6,9 @@ Scene.registerFeature(LightFeature);
 
 //-- 数据类
 export { LightFeature };
-export { AmbientLight as AAmbientLight } from "./AmbientLight";
-export { DirectLight as ADirectLight } from "./DirectLight";
-export { PointLight as APointLight } from "./PointLight";
-export { SpotLight as ASpotLight } from "./SpotLight";
+export { AmbientLight } from "./AmbientLight";
+export { DirectLight } from "./DirectLight";
+export { PointLight } from "./PointLight";
+export { SpotLight } from "./SpotLight";
 export { AEnvironmentMapLight } from "./EnvironmentMapLight";
-export { Light as ALight } from "./Light";
+export { Light } from "./Light";

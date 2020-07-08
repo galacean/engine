@@ -8,9 +8,9 @@ import {
   ScriptResource,
   BlinnPhongMaterialResource,
   TextureCubeMapResource,
-  AnimationClip,
-  Animation,
-  Animator,
+  AnimationClipSchemaResource,
+  AnimationSchemaResource,
+  AnimatorSchemaResource,
   BaseResource,
   SpineResource
 } from "./resources";
@@ -29,9 +29,9 @@ const RESOURCE_CLASS = {
   unlitMaterial: PBRMaterialResource,
   ShaderMaterial: ShaderMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
-  AnimationClip: AnimationClip,
+  AnimationClip: AnimationClipSchemaResource,
   Animation: Animation,
-  Animator: Animator,
+  Animator: AnimatorSchemaResource,
   spine: SpineResource,
   base: BaseResource
 };

@@ -164,7 +164,7 @@ export class RenderQueue {
       const { nodeAbility, mtl } = items[i];
 
       const materialControl = replaceMaterial ? replaceMaterial : mtl;
-      // 仅当 nodeAbility 为 ASkinnedMeshRenderer 时需要计算
+      // 仅当 nodeAbility 为 SkinnedMeshRenderer 时需要计算
       if (nodeAbility.jointNodes) {
         materialControl.maxJointsNum = Math.max(materialControl.maxJointsNum, nodeAbility.jointNodes.length);
       }

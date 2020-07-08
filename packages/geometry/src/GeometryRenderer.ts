@@ -7,7 +7,7 @@ import { Material } from "@alipay/o3-material";
 /**
  * 几何体渲染类
  */
-export class AGeometryRenderer extends RenderableComponent {
+export class GeometryRenderer extends RenderableComponent {
   protected _geometry: BufferGeometry | IndexBufferGeometry;
 
   protected _material: Material;
@@ -32,7 +32,7 @@ export class AGeometryRenderer extends RenderableComponent {
   }
 
   /**
-   * 指定需要渲染的几何体对象；多个 AGeometryRenderer 对象可以引用同一个几何体对象
+   * 指定需要渲染的几何体对象；多个 GeometryRenderer 对象可以引用同一个几何体对象
    * @param {BufferGeometry|IndexBufferGeometry} geometry 几何体对象
    */
   set geometry(geometry: BufferGeometry | IndexBufferGeometry) {
