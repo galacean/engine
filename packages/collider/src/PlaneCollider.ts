@@ -1,12 +1,12 @@
-import { ACollider } from "./ACollider";
+import { Collider } from "./Collider";
 import { vec3 } from "@alipay/o3-math";
 import { Node } from "@alipay/o3-core";
 
 /**
  * 平面（无限大）碰撞体组件，平面的位置和朝向与SceneObject一致
- * @extends ACollider
+ * @extends Collider
  */
-export class APlaneCollider extends ACollider {
+export class PlaneCollider extends Collider {
   planePoint: Float32Array | number[];
 
   normal: Float32Array | number[];

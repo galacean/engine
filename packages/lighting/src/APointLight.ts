@@ -1,12 +1,12 @@
 import { vec3 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
-import { ALight } from "./ALight";
+import { Light } from "./Light";
 
 /**
  * 点光源创建类
- * @extends ALight
+ * @extends Light
  */
-export class APointLight extends ALight {
+export class APointLight extends Light {
   public color;
   public intensity;
   public distance;

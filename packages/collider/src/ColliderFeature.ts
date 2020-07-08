@@ -1,8 +1,8 @@
 import { SceneFeature } from "@alipay/o3-core";
-import { ACollider } from "./ACollider";
+import { Collider } from "./Collider";
 
 export class ColliderFeature extends SceneFeature {
-  colliders: ACollider[];
+  colliders: Collider[];
   constructor() {
     super();
 
@@ -11,19 +11,19 @@ export class ColliderFeature extends SceneFeature {
 
   /**
    * 添加一个 Collider 组件
-   * @param {ACollider} collider 碰撞体对象
+   * @param {Collider} collider 碰撞体对象
    * @private
    */
-  attachCollider(collider: ACollider) {
+  attachCollider(collider: Collider) {
     this.colliders.push(collider);
   }
 
   /**
    * 移除一个Collider组件
-   * @param {ACollider} collider 碰撞体对象
+   * @param {Collider} collider 碰撞体对象
    * @private
    */
-  detachCollider(collider: ACollider) {
+  detachCollider(collider: Collider) {
     const index = this.colliders.indexOf(collider);
     if (index != -1) {
       this.colliders.splice(index, 1);

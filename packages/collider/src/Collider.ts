@@ -4,9 +4,8 @@ import { MaskList } from "@alipay/o3-base";
 
 /**
  * 碰撞体组件的基类, 定义碰撞体的数据
- * @extends Component
  */
-export class ACollider extends Component {
+export class Collider extends Component {
   /**
    * collider flg
    */

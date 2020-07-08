@@ -2,4 +2,4 @@
 export { Primitive } from "./Primitive";
 
 //-- NodeAbility 类
-export { APrimitiveRenderer } from "./APrimitiveRenderer";
+export { PrimitiveRenderer as APrimitiveRenderer } from "./PrimitiveRenderer";

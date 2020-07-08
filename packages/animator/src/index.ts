@@ -1,6 +1,6 @@
-export { AAnimation } from "./AAnimation";
-export { AAnimator } from "./AAnimator";
-export { Animation } from "./Animation";
+export { Animation as AAnimation } from "./Animation";
+export { Animator as AAnimator } from "./Animator";
+export { AnimationAsset as Animation } from "./AnimationAsset";
 export { AnimationClip } from "./AnimationClip";
 export { AnimationClipType, AnimationEvent, WrapMode } from "./AnimationConst";
-export { Animator } from "./Animator";
+export { AnimatorAsset as Animator } from "./AnimatorAsset";

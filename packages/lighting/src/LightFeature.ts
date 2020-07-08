@@ -1,6 +1,6 @@
 import { SceneFeature } from "@alipay/o3-core";
 import { Logger } from "@alipay/o3-base";
-import { ALight } from "./ALight";
+import { Light } from "./Light";
 import { AAmbientLight } from "./AAmbientLight";
 import { ADirectLight } from "./ADirectLight";
 import { APointLight } from "./APointLight";
@@ -22,7 +22,7 @@ export function hasLight() {
  * @private
  */
 export class LightFeature extends SceneFeature {
-  private visibleLights: ALight[];
+  private visibleLights: Light[];
 
   /**
    * 获取光源种类的相应数量
@@ -79,10 +79,10 @@ export class LightFeature extends SceneFeature {
 
   /**
    * 向当前场景注册一个灯光对象
-   * @param {ALight} light 灯光对象
+   * @param {Light} light 灯光对象
    * @private
    */
-  attachRenderLight(light: ALight) {
+  attachRenderLight(light: Light) {
     const index = this.visibleLights.indexOf(light);
     if (index == -1) {
       this.visibleLights.push(light);
@@ -93,10 +93,10 @@ export class LightFeature extends SceneFeature {
 
   /**
    * 从当前场景移除一个灯光对象
-   * @param {ALight} light 灯光对象
+   * @param {Light} light 灯光对象
    * @private
    */
-  detachRenderLight(light: ALight) {
+  detachRenderLight(light: Light) {
     const index = this.visibleLights.indexOf(light);
     if (index != -1) {
       this.visibleLights.splice(index, 1);

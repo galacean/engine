@@ -1,5 +1,5 @@
 import { Logger } from "@alipay/o3-base";
-import { Component, Node } from "@alipay/o3-core";
+import { Component, Node, Script } from "@alipay/o3-core";
 import { vec3, MathUtil, Spherical } from "@alipay/o3-math";
 import { Vector3 } from "@alipay/o3-math/types/type";
 import { Tween, Easing, doTransform } from "@alipay/o3-tween";
@@ -16,7 +16,7 @@ const tween = new Tween();
 /**
  * 相机的的漫游控制器，可以上下左右位移，转转视角。
  */
-export class AFreeControls extends Component {
+export class FreeControls extends Script {
   _forward = [0, 0, 0];
   _right = [0, 0, 0];
   camera: Node;
@@ -308,10 +308,11 @@ export class AFreeControls extends Component {
   private tempVec3 = vec3.create();
 
   /**
+   * @override
    * translate camera per tick
-   * @param {number} delta - tick gap
+   * @param  delta - tick gap
    * */
-  update(delta: number): void {
+  onUpdate(delta: number): void {
     if (this.enabled === false) return;
 
     const actualMoveSpeed = (delta / 1000) * this.movementSpeed;

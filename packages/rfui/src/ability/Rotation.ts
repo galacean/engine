@@ -1,8 +1,7 @@
-"use strict";
-import { Component } from "@alipay/o3-core";
+import { Script } from "@alipay/o3-core";
 import { MathUtil, quat } from "@alipay/o3-math";
 
-export default class ARotation extends Component {
+export default class Rotation extends Script {
   public axis;
   public deg;
   public dDeg;
@@ -25,7 +24,7 @@ export default class ARotation extends Component {
     this.dDeg = dDeg;
   }
 
-  update(deltaTime) {
+  onUpdate(deltaTime) {
     this.deg += this.dDeg * (deltaTime / 1000);
     const rotationQua = this.node.transform.rotationQuaternion;
     quat.setAxisAngle(rotationQua, this.axis, MathUtil.toRadian(this.deg));

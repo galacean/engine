@@ -4,9 +4,8 @@ import { mat4 } from "@alipay/o3-math";
 
 /**
  * 灯光基类
- * @extends Component
  */
-export abstract class ALight extends Component {
+export abstract class Light extends Component {
   protected _viewMat;
   protected _modelMat;
   protected name: string;

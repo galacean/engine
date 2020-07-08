@@ -4,7 +4,7 @@ import { FogFeature } from "./FogFeature";
 /**
  * 雾基类
  */
-export class AFog extends Component {
+export class Fog extends Component {
   public color;
 
   constructor(node, props) {

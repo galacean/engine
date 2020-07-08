@@ -1,11 +1,11 @@
+import { RenderableComponent } from "@alipay/o3-core";
 import { vec4 } from "@alipay/o3-math";
-import { Component } from "@alipay/o3-core";
-import { MeshBatcher } from "./core/MeshBatcher";
 import { spine } from "@alipay/spine-core";
+import { MeshBatcher } from "./core/MeshBatcher";
 
 const { Skeleton, AnimationStateData, AnimationState, RegionAttachment, MeshAttachment } = spine;
 
-export class ASpineRenderer extends Component {
+export class SpineRenderer extends RenderableComponent {
   skeleton;
   state;
   zOffset: number = 0.1;
@@ -98,7 +98,7 @@ export class ASpineRenderer extends Component {
       if (!attachment) {
         continue;
       } else if (attachment instanceof RegionAttachment) {
-        vertexCount += ASpineRenderer.QUAD_TRIANGLES.length;
+        vertexCount += SpineRenderer.QUAD_TRIANGLES.length;
       } else if (attachment instanceof MeshAttachment) {
         let mesh = attachment;
         vertexCount += mesh.triangles.length;
@@ -109,7 +109,7 @@ export class ASpineRenderer extends Component {
 
   render() {}
 
-  onUpdate(delta) {
+  update(delta) {
     if (this._asset) {
       this.updateState(delta * 0.001);
     }
@@ -156,7 +156,7 @@ export class ASpineRenderer extends Component {
     batch.begin();
     let z = 0;
     let zOffset = this.zOffset;
-    const vertexSize = ASpineRenderer.VERTEX_SIZE;
+    const vertexSize = SpineRenderer.VERTEX_SIZE;
     for (let i = 0, n = drawOrder.length; i < n; i++) {
       let slot = drawOrder[i];
       if (!slot.bone.active) continue;
@@ -172,7 +172,7 @@ export class ASpineRenderer extends Component {
         vertices = this.vertices;
         numFloats = vertexSize * 4;
         region.computeWorldVertices(slot.bone, vertices, 0, vertexSize);
-        triangles = ASpineRenderer.QUAD_TRIANGLES;
+        triangles = SpineRenderer.QUAD_TRIANGLES;
         uvs = region.uvs;
         texture = region.region.renderObject.texture;
       } else if (attachment instanceof MeshAttachment) {

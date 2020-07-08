@@ -11,4 +11,4 @@ export { ADirectLight } from "./ADirectLight";
 export { APointLight } from "./APointLight";
 export { ASpotLight } from "./ASpotLight";
 export { AEnvironmentMapLight } from "./AEnvironmentMapLight";
-export { ALight } from "./ALight";
+export { Light as ALight } from "./Light";

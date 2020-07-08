@@ -1,12 +1,12 @@
-import { ACollider } from "./ACollider";
+import { Collider } from "./Collider";
 import { vec3 } from "@alipay/o3-math";
 import { Node } from "@alipay/o3-core";
 
 /**
  * 轴对齐的包围盒（AABBox）碰撞体组件
- * @extends ACollider
+ * @extends Collider
  */
-export class ABoxCollider extends ACollider {
+export class ABoxCollider extends Collider {
   public boxMin: number[] | Float32Array;
 
   public boxMax: number[] | Float32Array;

@@ -7,7 +7,6 @@ import { Material } from "@alipay/o3-material";
 
 /**
  * 拖尾效果渲染组件
- * @extends Component
  */
 export class ATrailRenderer extends AGeometryRenderer {
   private _stroke;

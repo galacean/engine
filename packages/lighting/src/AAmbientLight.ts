@@ -1,12 +1,12 @@
 import { vec3 } from "@alipay/o3-math";
-import { ALight } from "./ALight";
+import { Light } from "./Light";
 import { DataType } from "@alipay/o3-base";
 
 /**
  * 环境光创建类
- * @extends ALight
+ * @extends Light
  */
-export class AAmbientLight extends ALight {
+export class AAmbientLight extends Light {
   private _lightColor;
   public color;
   public intensity;

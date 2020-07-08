@@ -1,7 +1,7 @@
 import { SceneFeature } from "@alipay/o3-core";
-import { ALinearFog } from "./ALinearFog";
-import { AEXP2Fog } from "./AEXP2Fog";
-import { AFog } from "./AFog";
+import { LinearFog } from "./LinearFog";
+import { EXP2Fog } from "./EXP2Fog";
+import { Fog } from "./Fog";
 
 /**
  * 是否有雾效特性
@@ -53,10 +53,10 @@ export class FogFeature extends SceneFeature {
     if (v !== this._fog) {
       this._fog = v;
       const macro = [];
-      if (v instanceof AFog) {
+      if (v instanceof Fog) {
         macro.push("O3_HAS_FOG");
 
-        if (v instanceof AEXP2Fog) {
+        if (v instanceof EXP2Fog) {
           macro.push("O3_FOG_EXP2");
         }
       }

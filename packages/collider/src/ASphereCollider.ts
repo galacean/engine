@@ -1,11 +1,11 @@
-import { ACollider } from "./ACollider";
+import { Collider } from "./Collider";
 import { vec3 } from "@alipay/o3-math";
 import { Node } from "@alipay/o3-core";
 /**
  * 球型碰撞体组件
- * @extends ACollider
+ * @extends Collider
  */
-export class ASphereCollider extends ACollider {
+export class ASphereCollider extends Collider {
   center: number[] | Float32Array;
 
   radius: number;

@@ -7,10 +7,8 @@ import { AnimationOptions, IChannelTarget } from "./types";
 import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
- * @extends Component
- * @see class AnimationClip
  */
-export class AAnimation extends Component {
+export class Animation extends Component {
   /**
    * 缩放播放速度
    * @member {number}
@@ -409,7 +407,7 @@ export class AAnimation extends Component {
       return values[0];
     } else if (values.length === 2) {
       // 两个值生效，插值返回
-      return AAnimation.lerp(values[0], values[0], values[1], weights[1], outputSize);
+      return Animation.lerp(values[0], values[0], values[1], weights[1], outputSize);
     }
 
     // 其他情况，是暂时处理不了的

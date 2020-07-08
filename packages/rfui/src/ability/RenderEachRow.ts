@@ -1,7 +1,6 @@
-"use strict";
-import { Component } from "@alipay/o3-core";
+import { Script } from "@alipay/o3-core";
 
-export class ARenderEachRow extends Component {
+export class RenderEachRow extends Script {
   public geometry;
   public hCount;
   public vCount;
@@ -27,7 +26,7 @@ export class ARenderEachRow extends Component {
     this.geometry.setAllIndex(this.index.slice(0).fill(0));
   }
 
-  update(deltaTime) {
+  onUpdate(deltaTime) {
     if (this["switch"]) {
       this._time += deltaTime / 1000;
       this.setValues();

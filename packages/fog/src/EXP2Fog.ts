@@ -1,10 +1,9 @@
-import { AFog } from "./AFog";
+import { Fog } from "./Fog";
 
 /**
  * 指数雾
- * @extends AFog
  */
-export class AEXP2Fog extends AFog {
+export class EXP2Fog extends Fog {
   public density;
   /**
    * 指数变换的雾

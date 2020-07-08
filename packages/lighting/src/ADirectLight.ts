@@ -1,12 +1,12 @@
 import { vec3 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
-import { ALight } from "./ALight";
+import { Light } from "./Light";
 
 /**
  * 方向光创建类
- * @extends ALight
+ * @extends Light
  */
-export class ADirectLight extends ALight {
+export class ADirectLight extends Light {
   private _forward = [0, 0, 0];
   private _lightColor;
   private _reverseDirection;

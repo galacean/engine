@@ -1,11 +1,10 @@
-import { Component } from "@alipay/o3-core";
 import { Logger } from "@alipay/o3-base";
+import { RenderableComponent } from "@alipay/o3-core";
 
 /**
  * 负责渲染一个Mesh对象的组件
- * @extends Component
  */
-export class APrimitiveRenderer extends Component {
+export class PrimitiveRenderer extends RenderableComponent {
   private primitive: any;
 
   /**

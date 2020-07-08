@@ -1,11 +1,10 @@
-import { Component } from "@alipay/o3-core";
-import { Machine } from "./Machine";
+import { Script } from "@alipay/o3-core";
+import { Machine } from "./StateMachine";
 
 /**
  * 有限状态机类
- * @extends Component
  */
-class AMachine extends Component {
+export class FSM extends Script {
   private _machine;
 
   /**
@@ -33,9 +32,7 @@ class AMachine extends Component {
    * @param {number} deltaTime 两帧之间的时间
    * @private
    */
-  update(deltaTime) {
-    this.machine.update(deltaTime);
+  onUpdate(deltaTime) {
+    this.machine.onUpdate(deltaTime);
   }
 }
-
-export { AMachine };

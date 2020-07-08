@@ -1,5 +1,5 @@
 import { DataType } from "@alipay/o3-base";
-import { ALight } from "./ALight";
+import { Light } from "./Light";
 import { mat3 } from "@alipay/o3-math";
 
 const cacheMat3 = mat3.create();
@@ -7,7 +7,7 @@ const cacheMat3 = mat3.create();
 /**
  * 环境光源
  */
-class AEnvironmentMapLight extends ALight {
+class AEnvironmentMapLight extends Light {
   public diffuseMap;
   public specularMap;
   public diffuse;

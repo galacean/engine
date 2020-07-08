@@ -1,11 +1,11 @@
-const noop = function() {};
+const noop = function () {};
 
 /**
  * 状态机类
  * @class
  * @private
  */
-class Machine {
+class StateMachine {
   public name;
   public currentState;
   public machineTime;
@@ -140,4 +140,4 @@ class Machine {
   }
 }
 
-export { Machine };
+export { StateMachine as Machine };

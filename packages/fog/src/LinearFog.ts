@@ -1,10 +1,9 @@
-import { AFog } from "./AFog";
+import { Fog } from "./Fog";
 
 /**
  * 线性雾，根据镜头距离线性差值雾浓度
- * @extends AFog
  */
-export class ALinearFog extends AFog {
+export class LinearFog extends Fog {
   public near;
   public far;
   public color;
