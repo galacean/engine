@@ -120,7 +120,7 @@ export class LightShadow {
    * 将阴影参数值提交到阴影材质对象
    * @param {Material} mtl
    * @param {number} index
-   * @param {NodeAbility} component
+   * @param {Component} component
    * @param {ALight} light
    */
   bindShadowValues(mtl, index, light) {

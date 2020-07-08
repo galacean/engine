@@ -2,7 +2,7 @@
 export { Mesh } from "./Mesh";
 export { Skin } from "./Skin";
 
-//-- NodeAbility 类
+//-- Component 类
 export { MeshRenderer } from "./MeshRenderer";
 export { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 export { LODGroup } from "./LODGroup";

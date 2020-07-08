@@ -2,7 +2,7 @@
 export { BufferGeometry } from "./BufferGeometry";
 export { IndexBufferGeometry } from "./IndexBufferGeometry";
 
-//-- NodeAbility 类
+//-- Component 类
 export { GeometryRenderer } from "./GeometryRenderer";
 
 //-- Geometry 合并功能

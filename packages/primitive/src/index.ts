@@ -1,5 +1,5 @@
 //-- 数据类
 export { Primitive } from "./Primitive";
 
-//-- NodeAbility 类
+//-- Component 类
 export { PrimitiveRenderer } from "./PrimitiveRenderer";

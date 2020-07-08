@@ -1,8 +1,8 @@
 import { Node } from "../src/Node";
 import { Component } from "../src/Component";
 
-describe("NodeAbility", () => {
-  describe("NodeAbility base class", () => {
+describe("Component", () => {
+  describe("Component base class", () => {
     it("constructor()", () => {
       let ability = new Component(new Node());
       expect(ability.node).is.instanceof(Node);

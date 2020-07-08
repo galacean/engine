@@ -19,7 +19,7 @@ export class LODGroup extends RenderableComponent {
   /**
    * 添加一个 LOD 层级
    * @param {number} distance 对象距离Camera的距离
-   * @param {NodeAbility} rendererAbility 当前 LOD 层级激活时的 Renderer 组件对象，可以是 MeshRenderer 或者 SkinnedMeshRenderer 等
+   * @param {Component} rendererAbility 当前 LOD 层级激活时的 Renderer 组件对象，可以是 MeshRenderer 或者 SkinnedMeshRenderer 等
    */
   addLod(distance, rendererAbility) {
     // 关闭原因的 Render，由 ALODGroup 接手

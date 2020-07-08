@@ -196,9 +196,9 @@ export abstract class Probe extends Component {
 
   protected render() {
     this.renderItems.forEach((item) => {
-      const { nodeAbility, primitive, mtl } = item;
-      if (!(nodeAbility.renderPassFlag & this.renderPassFlag)) return;
-      mtl.prepareDrawing(this.camera, nodeAbility, primitive);
+      const { component, primitive, mtl } = item;
+      if (!(component.renderPassFlag & this.renderPassFlag)) return;
+      mtl.prepareDrawing(this.camera, component, primitive);
       this.rhi.drawPrimitive(primitive, mtl);
     });
   }

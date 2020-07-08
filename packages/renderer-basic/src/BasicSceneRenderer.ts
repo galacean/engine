@@ -47,7 +47,7 @@ export class BasicSceneRenderer extends SceneVisitor {
    * @param {number} priority 优先级，小于0在默认Pass之前，大于0在默认Pass之后
    * @param {RenderTarget} renderTarget 指定的 Render Target
    * @param {Material} replaceMaterial 替换模型的默认材质
-   * @param {MaskList} mask 与 NodeAbility.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
+   * @param {MaskList} mask 与 Component.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
    */
   addRenderPass(
     nameOrPass: string | RenderPass,
@@ -182,21 +182,21 @@ export class BasicSceneRenderer extends SceneVisitor {
 
   /**
    * 将一个 Primitive 对象添加到渲染队列
-   * @param {NodeAbility} nodeAbility
+   * @param {Component} component
    * @param {Primitive} primitive
    * @param {Material} mtl
    */
-  pushPrimitive(nodeAbility: Component, primitive, mtl: Material) {
+  pushPrimitive(component: Component, primitive, mtl: Material) {
     if (mtl.renderType === MaterialType.TRANSPARENT) {
-      this._transparentQueue.pushPrimitive(nodeAbility, primitive, mtl);
+      this._transparentQueue.pushPrimitive(component, primitive, mtl);
     } else {
-      this._opaqueQueue.pushPrimitive(nodeAbility, primitive, mtl);
+      this._opaqueQueue.pushPrimitive(component, primitive, mtl);
     }
   }
 
   /**
    * 将一个 Sprite 绘制信息添加到渲染队列
-   * @param {NodeAbility} nodeAbility
+   * @param {Component} component
    * @param {Object} positionQuad  Sprite四个顶点的位置
    * @param {Object} uvRect        Sprite在texture上的纹理坐标
    * @param {vec4}   tintColor     颜色
@@ -204,17 +204,17 @@ export class BasicSceneRenderer extends SceneVisitor {
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
    * @param {ACamera}   camera        相机信息
    */
-  pushSprite(nodeAbility: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
-    if ((nodeAbility as any).separateDraw) {
+  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+    if ((component as any).separateDraw) {
       if (!this._separateSpritePass) {
         this._separateSpritePass = new SeparateSpritePass();
         this.addRenderPass(this._separateSpritePass);
       }
 
-      this._separateSpritePass.pushSprite(nodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera);
+      this._separateSpritePass.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
       return;
     }
 
-    this._transparentQueue.pushSprite(nodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera);
+    this._transparentQueue.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
   }
 }
