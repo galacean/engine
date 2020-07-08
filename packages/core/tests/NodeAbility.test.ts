@@ -1,6 +1,6 @@
-import { Node, NodeAbility, Engine, Scene } from "../src/index";
+import { Node, Component, Engine, Scene } from "../src/index";
 
-class TestComponent extends NodeAbility {}
+class TestComponent extends Component {}
 
 describe("Component", () => {
   let engine = null;

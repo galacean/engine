@@ -7,7 +7,7 @@ import { scriptAbility } from "./resources";
 import { Logger } from "@alipay/o3";
 
 export class AbilityManager {
-  private abilityMap: { [id: string]: o3.NodeAbility } = {};
+  private abilityMap: { [id: string]: o3.Component } = {};
 
   constructor(private oasis: Oasis) {}
 
@@ -55,7 +55,7 @@ export class AbilityManager {
     return { id, key, value };
   }
 
-  public get(id: string): o3.NodeAbility {
+  public get(id: string): o3.Component {
     return this.abilityMap[id];
   }
 

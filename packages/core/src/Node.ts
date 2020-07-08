@@ -1,10 +1,10 @@
-import { EventDispatcher, Util } from "@alipay/o3-base";
-import { mat4, MathUtil, quat, vec3 } from "@alipay/o3-math";
+import { EventDispatcher } from "@alipay/o3-base";
+import { mat4, quat, vec3 } from "@alipay/o3-math";
 import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
-import { NodeAbility as Component, NodeAbility } from "./NodeAbility";
+import { Component } from "./Component";
 import { Scene } from "./Scene";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
@@ -387,7 +387,7 @@ export class Node extends EventDispatcher {
   /**
    * @internal
    */
-  _removeComponent(component: NodeAbility): void {
+  _removeComponent(component: Component): void {
     ComponentsDependencies._removeCheck(this, component.constructor as any);
     const components = this._components;
     components.splice(components.indexOf(component), 1);

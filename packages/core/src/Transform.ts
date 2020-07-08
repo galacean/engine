@@ -1,13 +1,13 @@
 import { vec3, quat, mat4, vec4, mat3, MathUtil } from "@alipay/o3-math";
 import { Vector3, Vector4, Matrix4, Matrix3 } from "@alipay/o3-math/types/type";
 import { Node } from "./Node";
-import { NodeAbility } from "./NodeAbility";
+import { Component } from "./Component";
 import { UpdateFlag } from "./UpdateFlag";
 
 /**
  * 用于实现变换相关功能。
  */
-export class Transform extends NodeAbility {
+export class Transform extends Component {
   private static _tempVec3: Vector3 = vec3.create();
   private static _tempVec41: Vector4 = vec4.create();
   private static _tempVec40: Vector4 = vec4.create();

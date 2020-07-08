@@ -1,12 +1,12 @@
 import { Camera } from "./Camera";
-import { NodeAbility } from "./NodeAbility";
+import { Component } from "./Component";
 import { vec3 } from "@alipay/o3-math";
 import { Node } from "./Node";
 
 /**
  * 可渲染的组件。
  */
-export abstract class RenderableComponent extends NodeAbility {
+export abstract class RenderableComponent extends Component {
   /* @internal */
   _onUpdateIndex: number = -1;
   /* @internal */

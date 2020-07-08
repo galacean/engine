@@ -1,15 +1,15 @@
 import { Node } from "../src/Node";
-import { NodeAbility } from "../src/NodeAbility";
+import { Component } from "../src/Component";
 
 describe("NodeAbility", () => {
   describe("NodeAbility base class", () => {
     it("constructor()", () => {
-      let ability = new NodeAbility(new Node());
+      let ability = new Component(new Node());
       expect(ability.node).is.instanceof(Node);
     });
 
     it("update() trigger start/enabled event", () => {
-      let ability = new NodeAbility(new Node());
+      let ability = new Component(new Node());
       let onstart = sinon.spy();
       let onenabled = sinon.spy();
       ability.addEventListener("start", onstart);

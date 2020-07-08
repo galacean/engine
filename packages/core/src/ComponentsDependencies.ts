@@ -1,7 +1,7 @@
-import { NodeAbility } from "./NodeAbility";
+import { Component } from "./Component";
 import { Node } from "./Node";
 
-type NodeAbilityConstructor = { new (...args: any): NodeAbility };
+type NodeAbilityConstructor = { new (...args: any): Component };
 
 /**
  * 用于组件依赖注册。

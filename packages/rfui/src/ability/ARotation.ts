@@ -1,8 +1,8 @@
 "use strict";
-import { NodeAbility } from "@alipay/o3-core";
+import { Component } from "@alipay/o3-core";
 import { MathUtil, quat } from "@alipay/o3-math";
 
-export default class ARotation extends NodeAbility {
+export default class ARotation extends Component {
   public axis;
   public deg;
   public dDeg;

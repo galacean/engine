@@ -30,7 +30,7 @@ export class PluginManager implements PluginHook {
   }
 
   private delegateMethod(name: keyof PluginHook, ...args) {
-    this.plugins.forEach(plugin => plugin[name] && (plugin[name] as any)(...args));
+    this.plugins.forEach((plugin) => plugin[name] && (plugin[name] as any)(...args));
   }
 }
 
@@ -39,7 +39,7 @@ export interface PluginHook {
   nodeAdded?(node: o3.Node): any;
   beforeNodeUpdated?(id: string, key: string, value: any): any;
   nodeUpdated?(updateConfig?: { id: string; key: string; value: any }): any;
-  abilityAdded?(ability: o3.NodeAbility): any;
+  abilityAdded?(ability: o3.Component): any;
   beforeAbilityAdded?(config: any): any;
   beforeAbilityUpdated?(id: string, key: string, value: any): any;
   abilityUpdated?(updateConfig?: { id: string; key: string; value: any }): any;
@@ -56,12 +56,12 @@ export interface PluginHook {
 }
 
 export function pluginHook(options: Partial<{ before: keyof PluginHook; after: keyof PluginHook }>): MethodDecorator {
-  return function(target: any, propertyName: string, descriptor: TypedPropertyDescriptor<any>) {
+  return function (target: any, propertyName: string, descriptor: TypedPropertyDescriptor<any>) {
     const method = descriptor.value;
 
-    descriptor.value = function(...args: any[]) {
+    descriptor.value = function (...args: any[]) {
       options.before && this.oasis.pluginManager.delegateMethod(options.before, ...args);
-      return Promise.resolve(method.apply(this, arguments)).then(returnObj => {
+      return Promise.resolve(method.apply(this, arguments)).then((returnObj) => {
         options.after && this.oasis.pluginManager.delegateMethod(options.after, returnObj);
         return returnObj;
       });

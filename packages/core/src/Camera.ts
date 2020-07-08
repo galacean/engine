@@ -3,7 +3,7 @@ import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
 import { Matrix4, Vector2, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
-import { NodeAbility } from "./NodeAbility";
+import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Node } from "./Node";
 
@@ -42,7 +42,7 @@ export enum ClearFlags {
  * Camera 组件，作为渲染三位世界的入口。
  */
 @dependencies(Transform)
-export class Camera extends NodeAbility {
+export class Camera extends Component {
   /**
    * 渲染优先级，数字越大越先渲染。
    */

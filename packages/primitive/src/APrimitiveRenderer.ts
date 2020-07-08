@@ -1,11 +1,11 @@
-import { NodeAbility } from "@alipay/o3-core";
+import { Component } from "@alipay/o3-core";
 import { Logger } from "@alipay/o3-base";
 
 /**
  * 负责渲染一个Mesh对象的组件
- * @extends NodeAbility
+ * @extends Component
  */
-export class APrimitiveRenderer extends NodeAbility {
+export class APrimitiveRenderer extends Component {
   private primitive: any;
 
   /**

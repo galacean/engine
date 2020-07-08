@@ -1,22 +1,22 @@
-import { Node, Engine, Scene, NodeAbility } from "../src/index";
+import { Node, Engine, Scene, Component } from "../src/index";
 import { quat, mat4, vec3 } from "@alipay/o3-math";
 
-class TestComponent extends NodeAbility {}
+class TestComponent extends Component {}
 
 describe("Node test", function () {
   it("case", () => {});
   describe("node lookat", () => {
     const node = new Node();
     beforeEach(() => {
-      node.setModelMatrix(mat4.create());
+      // node.setModelMatrix(mat4.create());//transform负责，可删除
     });
 
     it("test lookAt", () => {
-      node.lookAt([0, -3, 0], [0, 1, 0]);
+      //node.lookAt([0, -3, 0], [0, 1, 0]);// transform负责，可删除
     });
 
     it("test setRotationAngles", () => {
-      node.setRotationAngles(10, 20, 30);
+      //node.setRotationAngles(10, 20, 30);// transform负责，可删除
     });
 
     it("test set rotation", () => {
@@ -31,11 +31,11 @@ describe("Node test", function () {
     parent.addChild(node);
     parent.position = Float32Array.from([10, 10, 33]);
     beforeEach(() => {
-      node.setModelMatrix(mat4.create());
+      // node.setModelMatrix(mat4.create());// transform负责，可删除
     });
 
     it("test setRotationAngles", () => {
-      node.setRotationAngles(10, 20, 30);
+      // node.setRotationAngles(10, 20, 30);// transform负责，可删除
     });
 
     it("test set rotation", () => {

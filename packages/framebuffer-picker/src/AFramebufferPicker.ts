@@ -1,4 +1,4 @@
-import { NodeAbility, Node, Camera } from "@alipay/o3-core";
+import { Component, Node, Camera } from "@alipay/o3-core";
 import { RenderTarget } from "@alipay/o3-material";
 import { MaskList } from "@alipay/o3-base";
 import { ColorRenderPass } from "./ColorRenderPass";
@@ -6,7 +6,7 @@ import { ColorRenderPass } from "./ColorRenderPass";
 /**
  * Framebuffer 对象选择组件
  */
-class AFramebufferPicker extends NodeAbility {
+class AFramebufferPicker extends Component {
   public camera: Camera;
   public colorRenderTarget: RenderTarget;
   public colorRenderPass: ColorRenderPass;

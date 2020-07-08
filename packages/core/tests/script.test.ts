@@ -1,4 +1,4 @@
-import { Node, Script, Engine, Scene, NodeAbility } from "../src/index";
+import { Node, Script, Engine, Scene, Component } from "../src/index";
 
 describe("Script", () => {
   let engine = null;
@@ -220,7 +220,7 @@ describe("Script", () => {
 
   describe("onBeginRender", () => {
     it("normal", () => {
-      class TestCamera extends NodeAbility {}
+      class TestCamera extends Component {}
       class TheScript extends Script {
         onBeginRender() {}
       }
@@ -236,7 +236,7 @@ describe("Script", () => {
 
   describe("onEndRender", () => {
     it("normal", () => {
-      class TestCamera extends NodeAbility {}
+      class TestCamera extends Component {}
       class TheScript extends Script {
         onEndRender() {}
       }

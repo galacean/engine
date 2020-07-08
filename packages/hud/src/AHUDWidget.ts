@@ -6,7 +6,7 @@ var widgetID = 1000;
 
 /**
  * HUD控件的基类，封装2D和3D控件的通用属性和操作
- * @extends NodeAbility
+ * @extends Component
  */
 export class AHUDWidget extends RenderableComponent {
   private _spriteRect;

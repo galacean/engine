@@ -1,6 +1,6 @@
 import { vec3 } from "@alipay/o3-math";
 import { Logger, MaskList } from "@alipay/o3-base";
-import { Camera, NodeAbility } from "@alipay/o3-core";
+import { Camera, Component } from "@alipay/o3-core";
 import { Material } from "@alipay/o3-material";
 
 /**
@@ -97,7 +97,7 @@ export class RenderQueue {
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
    * @param {ACamera}   camera        相机信息
    */
-  pushSprite(nodeAbility: NodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(nodeAbility: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
     this._items.push({
       nodeAbility,
       positionQuad,

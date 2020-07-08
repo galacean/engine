@@ -1,5 +1,5 @@
 import { vec3 } from "@alipay/o3-math";
-import { NodeAbility, RenderableComponent } from "@alipay/o3-core";
+import { Component, RenderableComponent } from "@alipay/o3-core";
 
 /**
  * 离散 LOD 层级渲染控制：根据对象占用屏幕高度的百分比，切换不同的 Renderer

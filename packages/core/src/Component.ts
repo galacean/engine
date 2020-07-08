@@ -5,10 +5,9 @@ import { Node } from "./Node";
 import { Scene } from "./Scene";
 
 /**
- * TODO:命名暂时保留兼容性，未来替换为Component
- * 所有组件的基类。
+ * 组件的基类。
  */
-export abstract class NodeAbility extends EventDispatcher {
+export abstract class Component extends EventDispatcher {
   /* @internal */
   _node: Node;
   /* @internal */
@@ -72,9 +71,9 @@ export abstract class NodeAbility extends EventDispatcher {
 
     this._renderPassFlag = MaskList.EVERYTHING; // @deprecated
     this._passMasks = [MaskList.EVERYTHING]; // @deprecated
-    const prototype = NodeAbility.prototype;
-    this._overrideOnUpdate = this.onUpdate !== NodeAbility.prototype.onUpdate;
-    this._overrideUpdate = this.update !== NodeAbility.prototype.update;
+    const prototype = Component.prototype;
+    this._overrideOnUpdate = this.onUpdate !== Component.prototype.onUpdate;
+    this._overrideUpdate = this.update !== Component.prototype.update;
   }
 
   /**
@@ -223,13 +222,6 @@ export abstract class NodeAbility extends EventDispatcher {
   }
   set cullDistance(val: number) {
     this._cullDistanceSq = val * val;
-  }
-
-  /**
-   * @deprecated
-   */
-  get modelMatrix(): Readonly<Matrix4> {
-    return this._node.transform.worldMatrix;
   }
 
   /**

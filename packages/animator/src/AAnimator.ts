@@ -1,12 +1,12 @@
 import { Event } from "@alipay/o3-base";
-import { Node, NodeAbility } from "@alipay/o3-core";
+import { Node, Component } from "@alipay/o3-core";
 import { AAnimation } from "./AAnimation";
 import { PlayState, WrapMode } from "./AnimationConst";
 
 /**
  * 全局动画控制器
  */
-export class AAnimator extends NodeAbility {
+export class AAnimator extends Component {
   public currentTime: number;
   public duration: number;
   public startTimeAnimationMap: any;
@@ -78,7 +78,7 @@ export class AAnimator extends NodeAbility {
     this.animatorData = animatorData;
     this.state = PlayState.INIT;
     if (animatorData) {
-      animatorData.onAttach = data => {
+      animatorData.onAttach = (data) => {
         this.animatorData = data;
         if (autoPlay) {
           this.play();
@@ -100,10 +100,10 @@ export class AAnimator extends NodeAbility {
       }
     }
     this.currentTime += deltaTime;
-    Object.keys(startTimeAnimationMap).forEach(startTime => {
+    Object.keys(startTimeAnimationMap).forEach((startTime) => {
       if (this.currentTime - Number(startTime) >= 0) {
         const animationList = startTimeAnimationMap[startTime];
-        animationList.forEach(animation => {
+        animationList.forEach((animation) => {
           animation.onAnimUpdate(deltaTime);
         });
       }
@@ -124,9 +124,9 @@ export class AAnimator extends NodeAbility {
   protected parseAnimatorData() {
     const { options: { keyframes = {}, timeScale = 1, duration = Infinity } = {} } = this.animatorData;
     this.removeAllAnimation();
-    Object.keys(keyframes).forEach(startTime => {
+    Object.keys(keyframes).forEach((startTime) => {
       const keyframesList = keyframes[startTime] || [];
-      keyframesList.forEach(keyframe => {
+      keyframesList.forEach((keyframe) => {
         this.addAnimationByStartTime(Number(startTime), keyframe);
       });
     });
@@ -142,7 +142,7 @@ export class AAnimator extends NodeAbility {
       if (this.animatorData) {
         this.parseAnimatorData();
       }
-      this.animationList.forEach(animation => {
+      this.animationList.forEach((animation) => {
         animation.playByAnimator();
       });
     }
@@ -160,13 +160,13 @@ export class AAnimator extends NodeAbility {
    */
   public pause() {
     this.state = PlayState.PAUSUE;
-    this.animationList.forEach(animation => {
+    this.animationList.forEach((animation) => {
       animation.pause();
     });
   }
 
   public stop() {
-    this.animationList.forEach(animation => {
+    this.animationList.forEach((animation) => {
       animation.stop();
     });
     this.reset();
@@ -189,7 +189,7 @@ export class AAnimator extends NodeAbility {
   public reset() {
     this.currentTime = 0;
     this.pause();
-    this.animationList.forEach(animation => {
+    this.animationList.forEach((animation) => {
       animation.reset();
     });
     this.state = PlayState.INIT;

@@ -1,7 +1,7 @@
 "use strict";
-import { NodeAbility } from "@alipay/o3-core";
+import { Component } from "@alipay/o3-core";
 
-export class ARenderEachRow extends NodeAbility {
+export class ARenderEachRow extends Component {
   public geometry;
   public hCount;
   public vCount;
@@ -60,7 +60,7 @@ export class ARenderEachRow extends NodeAbility {
       }
     }
 
-    vIndexList.forEach(vIndex => {
+    vIndexList.forEach((vIndex) => {
       index = concatenate(Uint16Array, index, vIndex);
     });
 

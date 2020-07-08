@@ -6,7 +6,7 @@ import { Material } from "@alipay/o3-material";
 
 /**
  * 几何体渲染类
- * @extends NodeAbility
+ * @extends Component
  */
 export class AGeometryRenderer extends RenderableComponent {
   protected _geometry: BufferGeometry | IndexBufferGeometry;

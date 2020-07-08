@@ -1,9 +1,9 @@
-import { NodeAbility } from "./NodeAbility";
+import { Component } from "./Component";
 
 /**
  * 脚本类，可进行逻辑编写。
  */
-export class Script extends NodeAbility {
+export class Script extends Component {
   /* @internal */
   _started: boolean = false;
   /* @internal */

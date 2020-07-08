@@ -1,10 +1,9 @@
-import { vec3 } from "@alipay/o3-math";
+import { ClearMode, MaskList, MaterialType } from "@alipay/o3-base";
+import { Camera, SceneVisitor, Component } from "@alipay/o3-core";
+import { Material, RenderTarget } from "@alipay/o3-material";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { SceneVisitor, NodeAbility, Node, Camera } from "@alipay/o3-core";
 import { SeparateSpritePass } from "./SeparateSpritePass";
-import { MaterialType, ClearMode, MaskList } from "@alipay/o3-base";
-import { RenderTarget, Material } from "@alipay/o3-material";
 
 /**
  * 使用指定的CameraComponent对象，渲染当前场景中的所有可见对象
@@ -187,7 +186,7 @@ export class BasicSceneRenderer extends SceneVisitor {
    * @param {Primitive} primitive
    * @param {Material} mtl
    */
-  pushPrimitive(nodeAbility: NodeAbility, primitive, mtl: Material) {
+  pushPrimitive(nodeAbility: Component, primitive, mtl: Material) {
     if (mtl.renderType === MaterialType.TRANSPARENT) {
       this._transparentQueue.pushPrimitive(nodeAbility, primitive, mtl);
     } else {
@@ -205,7 +204,7 @@ export class BasicSceneRenderer extends SceneVisitor {
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
    * @param {ACamera}   camera        相机信息
    */
-  pushSprite(nodeAbility: NodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(nodeAbility: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
     if ((nodeAbility as any).separateDraw) {
       if (!this._separateSpritePass) {
         this._separateSpritePass = new SeparateSpritePass();
@@ -217,34 +216,5 @@ export class BasicSceneRenderer extends SceneVisitor {
     }
 
     this._transparentQueue.pushSprite(nodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera);
-  }
-
-  /**
-   * SceneVisitor 的 Node 访问接口
-   */
-  acceptNode(node: Node) {
-    return node.isActive;
-  }
-
-  /**
-   * @deprecated
-   * SceneVisitor 的 Node 组件访问接口
-   */
-  acceptAbility(nodeAbility: NodeAbility) {
-    if (nodeAbility.enabled && nodeAbility.isRenderable) {
-      let culled = false;
-      // distance cull
-      if (nodeAbility.cullDistanceSq > 0) {
-        const distanceSq = vec3.squaredDistance(
-          this._camera.node.transform.worldPosition,
-          nodeAbility.node.worldPosition
-        );
-        culled = nodeAbility.cullDistanceSq < distanceSq;
-      }
-
-      if (!culled) {
-        (nodeAbility as any).render(this._camera);
-      }
-    }
   }
 }

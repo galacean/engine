@@ -1,6 +1,6 @@
 import { Logger, Event, EventDispatcher } from "@alipay/o3-base";
 import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
-import { Node, NodeAbility } from "@alipay/o3-core";
+import { Node, Component } from "@alipay/o3-core";
 import { AnimationEvent, WrapMode } from "./AnimationConst";
 import { AnimationClip } from "./AnimationClip";
 import { IChannelState, AnimationOptions, IChannelTarget } from "./types";
@@ -440,7 +440,7 @@ export class AnimationLayer extends EventDispatcher {
    * @param {object} target
    * @private
    */
-  private _findChannelTarget(rootNode: Node, target: any): Node | NodeAbility {
+  private _findChannelTarget(rootNode: Node, target: any): Node | Component {
     const targetID = target.id;
     let targetSceneObject: Node = null;
     if (rootNode.name === targetID) {
