@@ -69,13 +69,17 @@ export class ComponentsManager {
   }
 
   addOnUpdateAnimations(animation: Component): void {
+    //@ts-ignore
     animation._onUpdateIndex = this._onUpdateAnimations.length;
     this._onUpdateAnimations.add(animation);
   }
 
   removeOnUpdateAnimations(animation: Component): void {
+    //@ts-ignore
     const replaced = this._onUpdateAnimations.deleteByIndex(animation._onUpdateIndex);
+    //@ts-ignore
     replaced && (replaced._onUpdateIndex = animation._onUpdateIndex);
+    //@ts-ignore
     animation._onUpdateIndex = -1;
   }
 
@@ -131,6 +135,7 @@ export class ComponentsManager {
   callAnimationUpdate(deltaTime): void {
     const elements = this._onUpdateAnimations._elements;
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
+      //@ts-ignore
       elements[i].update(deltaTime);
     }
   }
@@ -138,7 +143,7 @@ export class ComponentsManager {
   callRendererOnUpdate(deltaTime: number): void {
     const elements = this._onUpdateRenderers._elements;
     for (let i = this._onUpdateRenderers.length - 1; i >= 0; --i) {
-      elements[i].onUpdate(deltaTime);
+      elements[i].update(deltaTime);
     }
   }
 
@@ -183,28 +188,5 @@ export class ComponentsManager {
   putActiveChangedTempList(componentContainer: Component[]): void {
     componentContainer.length = 0;
     this._componentsContainerPool.push(componentContainer);
-  }
-
-  // ------------------------- @deprecated ------------------------------------------------
-  private _onUpdateComponents: DisorderedArray<Component> = new DisorderedArray();
-
-  addOnUpdateComponent(component: Component): void {
-    component._onUpdateIndex = this._onUpdateComponents.length;
-    this._onUpdateComponents.add(component);
-  }
-
-  removeOnUpdateComponent(component: Component): void {
-    this._onUpdateComponents.delete(component);
-    component._onUpdateIndex = -1;
-  }
-
-  callComponentOnUpdate(deltaTime): void {
-    const elements = this._onUpdateComponents._elements;
-    for (let i = this._onUpdateComponents.length - 1; i >= 0; --i) {
-      const element = elements[i];
-      if (element._started) {
-        element.onUpdate(deltaTime);
-      }
-    }
   }
 }
