@@ -1,11 +1,11 @@
-import { NodeAbility } from "@alipay/o3-core";
+import { Component } from "@alipay/o3-core";
 import { Machine } from "./Machine";
 
 /**
  * 有限状态机类
- * @extends NodeAbility
+ * @extends Component
  */
-class AMachine extends NodeAbility {
+class AMachine extends Component {
   private _machine;
 
   /**

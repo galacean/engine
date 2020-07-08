@@ -1,5 +1,5 @@
 import { InterpolationType, WrapMode } from "./AnimationConst";
-import { Node, NodeAbility } from "@alipay/o3-core";
+import { Node, Component } from "@alipay/o3-core";
 import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
 
 export interface AnimationOptions {
@@ -31,7 +31,7 @@ export interface ITarget {
 }
 
 export type IChannelTarget = {
-  targetObject: Node | NodeAbility | ASkinnedMeshRenderer;
+  targetObject: Node | Component | ASkinnedMeshRenderer;
   path: string;
   outputSize: number;
 };

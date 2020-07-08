@@ -1,5 +1,5 @@
 import { AssetType, RenderBufferDepthFormat } from "@alipay/o3-base";
-import { Camera, Node, NodeAbility } from "@alipay/o3-core";
+import { Camera, Node, Component } from "@alipay/o3-core";
 import {
   Material,
   RenderTarget,
@@ -19,7 +19,7 @@ let cacheId = 0;
 /**
  * 环境探针类，提供诸如反射折射等需要的功能
  * */
-export abstract class Probe extends NodeAbility {
+export abstract class Probe extends Component {
   protected readonly cacheId: number;
   private readonly isCube: boolean;
   private oriClipPlane: Vector4[];

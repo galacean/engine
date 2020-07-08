@@ -1,11 +1,11 @@
 import { vec4 } from "@alipay/o3-math";
-import { NodeAbility } from "@alipay/o3-core";
+import { Component } from "@alipay/o3-core";
 import { MeshBatcher } from "./core/MeshBatcher";
 import { spine } from "@alipay/spine-core";
 
 const { Skeleton, AnimationStateData, AnimationState, RegionAttachment, MeshAttachment } = spine;
 
-export class ASpineRenderer extends NodeAbility {
+export class ASpineRenderer extends Component {
   skeleton;
   state;
   zOffset: number = 0.1;

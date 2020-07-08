@@ -1,6 +1,6 @@
 import { Camera } from "./Camera";
 import { DisorderedArray } from "./DisorderedArray";
-import { NodeAbility as Component } from "./NodeAbility";
+import { Component } from "./Component";
 import { RenderableComponent } from "./RenderableComponent";
 import { Script } from "./Script";
 

@@ -1,5 +1,5 @@
 import { AnimationClip, AAnimation, WrapMode } from "@alipay/o3-animation";
-import { NodeAbility, Node } from "@alipay/o3-core";
+import { Component, Node } from "@alipay/o3-core";
 
 interface GLTFAsset {
   nodes: [Node];
@@ -10,7 +10,7 @@ interface GLTFAsset {
 /**
  * 暂时只为编辑器使用
  */
-export class GLTFModel extends NodeAbility {
+export class GLTFModel extends Component {
   get asset() {
     return this._asset;
   }

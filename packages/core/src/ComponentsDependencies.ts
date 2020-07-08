@@ -1,7 +1,7 @@
-import { NodeAbility } from "./NodeAbility";
+import { Component } from "./Component";
 import { Node } from "./Node";
 
-type NodeAbilityConstructor = { new (...args: any): NodeAbility };
+type componentConstructor = { new (...args: any): Component };
 
 /**
  * 用于组件依赖注册。
@@ -10,15 +10,15 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  private static _dependenciesMap = new Map<NodeAbilityConstructor, NodeAbilityConstructor[]>();
-  private static _invDependenciesMap = new Map<NodeAbilityConstructor, NodeAbilityConstructor[]>();
+  private static _dependenciesMap = new Map<componentConstructor, componentConstructor[]>();
+  private static _invDependenciesMap = new Map<componentConstructor, componentConstructor[]>();
 
   /**
    * 注册组件依赖关系。
    * @param currentComponent
    * @param dependentComponent
    */
-  static register(currentComponent: NodeAbilityConstructor, dependentComponent: NodeAbilityConstructor) {
+  static register(currentComponent: componentConstructor, dependentComponent: componentConstructor) {
     this._addDependency(currentComponent, dependentComponent, this._dependenciesMap);
     this._addDependency(dependentComponent, currentComponent, this._invDependenciesMap);
   }
@@ -26,7 +26,7 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _addCheck(node: Node, type: NodeAbilityConstructor) {
+  static _addCheck(node: Node, type: componentConstructor) {
     // 检查是否有被依赖组件
     const dependencies = ComponentsDependencies._dependenciesMap.get(type);
     if (dependencies) {
@@ -41,7 +41,7 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _removeCheck(node: Node, type: NodeAbilityConstructor) {
+  static _removeCheck(node: Node, type: componentConstructor) {
     const invDenpendencies = ComponentsDependencies._invDependenciesMap.get(type);
     if (invDenpendencies) {
       for (let i = 0, len = invDenpendencies.length; i < len; i++) {
@@ -53,8 +53,8 @@ export class ComponentsDependencies {
   }
 
   private static _addDependency(
-    currentComponent: NodeAbilityConstructor,
-    dependentComponent: NodeAbilityConstructor,
+    currentComponent: componentConstructor,
+    dependentComponent: componentConstructor,
     map: Map<any, any>
   ) {
     let components = map.get(currentComponent);
@@ -70,8 +70,8 @@ export class ComponentsDependencies {
   private constructor() {}
 }
 
-export function dependencies(...abilityClass: NodeAbilityConstructor[]) {
-  return function <T extends NodeAbilityConstructor>(target: T): void {
+export function dependencies(...abilityClass: componentConstructor[]) {
+  return function <T extends componentConstructor>(target: T): void {
     abilityClass.forEach((ability) => ComponentsDependencies.register(target, ability));
   };
 }

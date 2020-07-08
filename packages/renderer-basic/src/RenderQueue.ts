@@ -1,6 +1,6 @@
 import { vec3 } from "@alipay/o3-math";
 import { Logger, MaskList } from "@alipay/o3-base";
-import { Camera, NodeAbility } from "@alipay/o3-core";
+import { Camera, Component } from "@alipay/o3-core";
 import { Material } from "@alipay/o3-material";
 
 /**
@@ -89,7 +89,7 @@ export class RenderQueue {
 
   /**
    * 把一个 Sprite 绘制需要的信息传进来
-   * @param {NodeAbility} nodeAbility
+   * @param {Component} component
    * @param {object} positionQuad  Sprite四个顶点的位置
    * @param {object} uvRect        Sprite在texture上的纹理坐标
    * @param {vec4}   tintColor     颜色
@@ -97,9 +97,9 @@ export class RenderQueue {
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
    * @param {ACamera}   camera        相机信息
    */
-  pushSprite(nodeAbility: NodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
     this._items.push({
-      nodeAbility,
+      nodeAbility: component,
       positionQuad,
       uvRect,
       tintColor,

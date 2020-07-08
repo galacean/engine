@@ -1,12 +1,12 @@
-import { NodeAbility, Node } from "@alipay/o3-core";
+import { Component, Node } from "@alipay/o3-core";
 import { ColliderFeature } from "./ColliderFeature";
 import { MaskList } from "@alipay/o3-base";
 
 /**
  * 碰撞体组件的基类, 定义碰撞体的数据
- * @extends NodeAbility
+ * @extends Component
  */
-export class ACollider extends NodeAbility {
+export class ACollider extends Component {
   /**
    * collider flg
    */

@@ -7,7 +7,7 @@ export { SceneVisitor } from "./SceneVisitor";
 export { SceneFeature } from "./SceneFeature";
 
 export { Node } from "./Node";
-export { NodeAbility } from "./NodeAbility";
+export { Component } from "./Component";
 export { Script } from "./Script";
 export { RenderableComponent } from "./RenderableComponent";
 export { dependencies } from "./ComponentsDependencies";

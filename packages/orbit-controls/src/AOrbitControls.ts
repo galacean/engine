@@ -1,13 +1,13 @@
 "use strict";
 
 import { Logger } from "@alipay/o3-base";
-import { NodeAbility, Node } from "@alipay/o3-core";
+import { Component, Node } from "@alipay/o3-core";
 import { vec2, vec3, Spherical } from "@alipay/o3-math";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
  */
-export class AOrbitControls extends NodeAbility {
+export class AOrbitControls extends Component {
   public camera: Node;
   public domElement: HTMLElement | Document;
   public mainElement: HTMLCanvasElement;

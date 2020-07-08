@@ -1,5 +1,5 @@
 import { vec3 } from "@alipay/o3-math";
-import { NodeAbility } from "@alipay/o3-core";
+import { Component } from "@alipay/o3-core";
 import { Event } from "@alipay/o3-base";
 import { ColliderFeature, ACollider, ABoxCollider, ASphereCollider } from "@alipay/o3-collider";
 
@@ -9,7 +9,7 @@ import { intersectBox2Box, intersectSphere2Sphere, intersectSphere2Box } from ".
  * 检测当前 Node 上的 Collider 与场景中其他 Collider 的碰撞
  * 发出事件：collision
  */
-export class ACollisionDetection extends NodeAbility {
+export class ACollisionDetection extends Component {
   private _colliderManager;
   private _myCollider;
   private _overlopCollider;

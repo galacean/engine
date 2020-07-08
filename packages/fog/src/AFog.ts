@@ -1,10 +1,10 @@
-import { NodeAbility } from "@alipay/o3-core";
+import { Component } from "@alipay/o3-core";
 import { FogFeature } from "./FogFeature";
 
 /**
  * 雾基类
  */
-export class AFog extends NodeAbility {
+export class AFog extends Component {
   public color;
 
   constructor(node, props) {

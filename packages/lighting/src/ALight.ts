@@ -1,12 +1,12 @@
-import { NodeAbility, Node } from "@alipay/o3-core";
+import { Component, Node } from "@alipay/o3-core";
 import { LightFeature } from "./LightFeature";
 import { mat4 } from "@alipay/o3-math";
 
 /**
  * 灯光基类
- * @extends NodeAbility
+ * @extends Component
  */
-export abstract class ALight extends NodeAbility {
+export abstract class ALight extends Component {
   protected _viewMat;
   protected _modelMat;
   protected name: string;

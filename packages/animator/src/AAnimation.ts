@@ -1,15 +1,15 @@
 import { Event } from "@alipay/o3-base";
-import { Node, NodeAbility } from "@alipay/o3-core";
+import { Node, Component } from "@alipay/o3-core";
 import { AnimationClip } from "./AnimationClip";
 import { PlayState, WrapMode } from "./AnimationConst";
 import { AnimationClipHandler } from "./handler/animationClipHandler";
 import { getAnimationClipHander } from "./handler/index";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
- * @extends NodeAbility
+ * @extends Component
  * @see class AnimationClip
  */
-export class AAnimation extends NodeAbility {
+export class AAnimation extends Component {
   /**
    * 当前播放时间
    */
@@ -107,7 +107,7 @@ export class AAnimation extends NodeAbility {
       }
     }
     this.currentTime += deltaTime;
-    this.handlerList.forEach(handler => {
+    this.handlerList.forEach((handler) => {
       const handlerStartTime = handlerStartTimeMap.get(handler);
       if (this.currentTime > handlerStartTime) {
         handler.update(deltaTime);
@@ -170,7 +170,7 @@ export class AAnimation extends NodeAbility {
   public removeAnimationClip(name: string) {
     const animClip = this.animClipSet[name];
     if (animClip) {
-      Object.keys(this.startTimeAnimClipSet).forEach(startTime => {
+      Object.keys(this.startTimeAnimClipSet).forEach((startTime) => {
         let deletIndex = null;
         this.startTimeAnimClipSet[startTime].forEach((animClip, index) => {
           if (animClip.name === name) {
@@ -187,7 +187,7 @@ export class AAnimation extends NodeAbility {
 
   public removeAllAnimationClip() {
     const { animClipSet } = this;
-    Object.keys(animClipSet).forEach(name => {
+    Object.keys(animClipSet).forEach((name) => {
       this.removeAnimationClip(name);
     });
   }
@@ -195,9 +195,9 @@ export class AAnimation extends NodeAbility {
   protected parseAnimationData() {
     const { keyframes = {}, timeScale = 1, duration = Infinity } = this.animationData || {};
     this.removeAllAnimationClip();
-    Object.keys(keyframes).forEach(startTime => {
+    Object.keys(keyframes).forEach((startTime) => {
       const keyframesList = keyframes[startTime];
-      keyframesList.forEach(keyframe => {
+      keyframesList.forEach((keyframe) => {
         this.addAnimationClip(Number(startTime), keyframe);
       });
     });
@@ -247,7 +247,7 @@ export class AAnimation extends NodeAbility {
   public reset() {
     this.currentTime = 0;
     this.pause();
-    this.handlerList.reverse().forEach(handler => {
+    this.handlerList.reverse().forEach((handler) => {
       handler.reset();
     });
     this.state = PlayState.INIT;
