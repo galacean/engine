@@ -89,7 +89,7 @@ export class RenderQueue {
 
   /**
    * 把一个 Sprite 绘制需要的信息传进来
-   * @param {NodeAbility} nodeAbility
+   * @param {NodeAbility} comonent
    * @param {object} positionQuad  Sprite四个顶点的位置
    * @param {object} uvRect        Sprite在texture上的纹理坐标
    * @param {vec4}   tintColor     颜色
@@ -97,9 +97,9 @@ export class RenderQueue {
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
    * @param {ACamera}   camera        相机信息
    */
-  pushSprite(nodeAbility: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(comonent: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
     this._items.push({
-      nodeAbility,
+      nodeAbility: comonent,
       positionQuad,
       uvRect,
       tintColor,
