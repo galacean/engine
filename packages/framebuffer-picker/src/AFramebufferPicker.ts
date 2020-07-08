@@ -1,4 +1,4 @@
-import { Component, Node, Camera } from "@alipay/o3-core";
+import { Component, Node, Camera, Script } from "@alipay/o3-core";
 import { RenderTarget } from "@alipay/o3-material";
 import { MaskList } from "@alipay/o3-base";
 import { ColorRenderPass } from "./ColorRenderPass";
@@ -6,7 +6,7 @@ import { ColorRenderPass } from "./ColorRenderPass";
 /**
  * Framebuffer 对象选择组件
  */
-class AFramebufferPicker extends Component {
+class AFramebufferPicker extends Script {
   public camera: Camera;
   public colorRenderTarget: RenderTarget;
   public colorRenderPass: ColorRenderPass;
@@ -74,8 +74,8 @@ class AFramebufferPicker extends Component {
   /**
    * @private
    */
-  update(deltaTime: number) {
-    super.update(deltaTime);
+  onUpdate(deltaTime: number) {
+    super.onUpdate(deltaTime);
 
     if (this.enabled && this._needPick) {
       this.colorRenderPass.pick(this._pickPos[0], this._pickPos[1]);

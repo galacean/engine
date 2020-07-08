@@ -1,13 +1,13 @@
 "use strict";
 
 import { Logger } from "@alipay/o3-base";
-import { Component, Node } from "@alipay/o3-core";
+import { Node, Script } from "@alipay/o3-core";
 import { vec2, vec3, Spherical } from "@alipay/o3-math";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
  */
-export class AOrbitControls extends Component {
+export class AOrbitControls extends Script {
   public camera: Node;
   public domElement: HTMLElement | Document;
   public mainElement: HTMLCanvasElement;
@@ -353,10 +353,10 @@ export class AOrbitControls extends Component {
    * @private
    * @param {Number} dtime 和上次绘制的事件间隔 ms
    */
-  update(dtime) {
+  onUpdate(dtime) {
     if (!this.enabled) return;
 
-    super.update(dtime);
+    super.onUpdate(dtime);
 
     const position = this.camera.position;
     vec3.copy(this._offset, position);

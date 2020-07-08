@@ -93,13 +93,10 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
-    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
     this._componentsManager.callScriptOnStart();
     this._componentsManager.callScriptOnUpdate(deltaTime);
-    this._componentsManager.callComponentOnUpdate(deltaTime);
     this._componentsManager.callAnimationUpdate(deltaTime);
     this._componentsManager.callScriptOnLateUpdate();
-    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //deprecated
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
@@ -119,9 +116,7 @@ export class Scene extends EventDispatcher {
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
           //@todo 后续优化
           this._componentsManager.callCameraOnBeginRender(camera);
-          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
           camera.render();
-          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //deprecated
           //@todo 后续优化
           this._componentsManager.callCameraOnEndRender(camera);
         }

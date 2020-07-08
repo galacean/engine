@@ -1,12 +1,12 @@
 import { Event } from "@alipay/o3-base";
-import { Node, Component } from "@alipay/o3-core";
+import { Node, Component, Script } from "@alipay/o3-core";
 import { AAnimation } from "./AAnimation";
 import { PlayState, WrapMode } from "./AnimationConst";
 
 /**
  * 全局动画控制器
  */
-export class AAnimator extends Component {
+export class AAnimator extends Script {
   public currentTime: number;
   public duration: number;
   public startTimeAnimationMap: any;
@@ -87,11 +87,11 @@ export class AAnimator extends Component {
     }
   }
 
-  public update(deltaTime: number) {
+  public onUpdate(deltaTime: number) {
     if (this.state !== PlayState.PLAYING) return;
     const { duration, startTimeAnimationMap, wrapMode } = this;
     deltaTime = deltaTime * this._timeScale;
-    super.update(deltaTime);
+    super.onUpdate(deltaTime);
     if (this.currentTime > duration) {
       if (wrapMode === WrapMode.LOOP) {
         this.replay();

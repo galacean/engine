@@ -1,4 +1,4 @@
-import { Node, Component, Engine, Scene, RenderableComponent } from "../src/index";
+import { Node, Component, Engine, Scene, RenderableComponent, Script } from "../src/index";
 describe("ComponentsManager", () => {
   let engine = null;
   let scene = null;
@@ -10,7 +10,7 @@ describe("ComponentsManager", () => {
   });
 
   describe("Component", () => {
-    class TestComponent extends Component {
+    class TestComponent extends Script {
       onUpdate() {}
     }
     it("onUpdate", () => {

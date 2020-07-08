@@ -97,10 +97,6 @@ export class Node extends EventDispatcher {
 
   /** @deprecated */
   private _invModelMatrix: Matrix4 = mat4.create();
-  private tempVec33 = vec3.create();
-  private tempVec34 = vec3.create();
-  private tempVec36 = vec3.create();
-  private tempQuat = quat.create();
 
   /**
    * 是否局部激活。

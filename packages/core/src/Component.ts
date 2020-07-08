@@ -12,16 +12,9 @@ export abstract class Component extends EventDispatcher {
   _node: Node;
   /* @internal */
   _destroyed: boolean = false;
-  /* @internal */
-  _onStartIndex: number = -1;
-  /* @internal */
-  _onUpdateIndex: number = -1;
-  /* @internal */
-  protected _overrideOnUpdate: boolean = false;
-  /* @internal */
-  protected _overrideUpdate: boolean = false;
 
   protected _props: object;
+
   private _enabled: boolean = true;
   private _awaked: boolean = false;
 
@@ -41,14 +34,6 @@ export abstract class Component extends EventDispatcher {
       this._node.isActiveInHierarchy && this._onEnable();
     } else {
       this._node.isActiveInHierarchy && this._onDisable();
-    }
-    // @deprecated
-    if (value) {
-      if (this._started) {
-        this.trigger(new Event("enabled", this));
-      }
-    } else {
-      this.trigger(new Event("disabled", this));
     }
   }
 
@@ -71,9 +56,6 @@ export abstract class Component extends EventDispatcher {
 
     this._renderPassFlag = MaskList.EVERYTHING; // @deprecated
     this._passMasks = [MaskList.EVERYTHING]; // @deprecated
-    const prototype = Component.prototype;
-    this._overrideOnUpdate = this.onUpdate !== Component.prototype.onUpdate;
-    this._overrideUpdate = this.update !== Component.prototype.update;
   }
 
   /**
@@ -92,29 +74,9 @@ export abstract class Component extends EventDispatcher {
 
   _onAwake(): void {}
 
-  _onEnable(): void {
-    const componentsManager = this.scene._componentsManager;
-    if (!this._started) {
-      componentsManager.addOnStartScript(this as any);
-    }
-    if (this._overrideOnUpdate || this._overrideUpdate) {
-      //@deprecated 兼容
-      if (this._overrideUpdate) {
-        this.onUpdate = this.update;
-      }
-      componentsManager.addOnUpdateComponent(this);
-    }
-  }
+  _onEnable(): void {}
 
-  _onDisable(): void {
-    const componentsManager = this.scene._componentsManager;
-    if (!this._started) {
-      componentsManager.removeOnStartScript(this as any);
-    }
-    if (this._overrideOnUpdate || this._overrideUpdate) {
-      componentsManager.removeOnUpdateComponent(this);
-    }
-  }
+  _onDisable(): void {}
 
   _onDestroy(): void {}
 
@@ -148,9 +110,6 @@ export abstract class Component extends EventDispatcher {
   }
 
   //---------------------------------------------Deprecated-----------------------------------------------------------------
-
-  /* @internal */
-  _started: boolean = false;
 
   private _renderPriority: number = 0;
   private _renderPassFlag: MaskList;
@@ -198,13 +157,6 @@ export abstract class Component extends EventDispatcher {
   }
   set renderPriority(val: number) {
     this._renderPriority = val;
-  }
-
-  /**
-   * @deprecated
-   */
-  get started(): boolean {
-    return this._started;
   }
 
   /**
@@ -282,22 +234,6 @@ export abstract class Component extends EventDispatcher {
 
     this.setPassMasks(...this._passMasks);
   }
-
-  /**
-   * @deprecated
-   */
-  public onStart(): void {}
-
-  // /**
-  //  * @deprecated
-  //  */
-  public onUpdate(deltaTime: number): void {}
-
-  // /**
-  //  * @deprecated
-  //  * 每帧调用，第一次调用会回调this.onStart()方法
-  //  */
-  public update(deltaTime: number): void {}
 
   /**
    * @deprecated

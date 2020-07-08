@@ -12,26 +12,21 @@ export abstract class RenderableComponent extends Component {
   /* @internal */
   _rendererIndex: number = -1;
 
+  /* @internal */
+  protected _overrideUpdate: boolean = false;
+
   constructor(node: Node, props: object = {}) {
     super(node, props);
     const prototype = RenderableComponent.prototype;
-    this._overrideOnUpdate = this.onUpdate !== prototype.onUpdate;
     this._overrideUpdate = this.update !== prototype.update;
   }
 
   abstract render(camera: Camera): void;
-  update(deltaTime: number): void {} //CM:未来整合为update更合理
-  onUpdate(deltaTime: number): void {}
+  update(deltaTime: number): void {}
 
   _onEnable() {
     const componentsManager = this.scene._componentsManager;
-    if (!this._started) {
-      componentsManager.addOnStartScript(this as any);
-    }
-    if (this._overrideOnUpdate || this._overrideUpdate) {
-      if (this._overrideUpdate) {
-        this.onUpdate = this.update;
-      }
+    if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
     }
     componentsManager.addRenderer(this);
@@ -39,10 +34,7 @@ export abstract class RenderableComponent extends Component {
 
   _onDisable() {
     const componentsManager = this.scene._componentsManager;
-    if (!this._started) {
-      componentsManager.removeOnStartScript(this as any);
-    }
-    if (this._overrideOnUpdate || this._overrideUpdate) {
+    if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }
     componentsManager.removeRenderer(this);
