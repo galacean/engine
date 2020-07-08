@@ -1,11 +1,11 @@
 import { SceneFeature } from "@alipay/o3-core";
 import { Logger } from "@alipay/o3-base";
 import { Light } from "./Light";
-import { AAmbientLight } from "./AAmbientLight";
-import { ADirectLight } from "./ADirectLight";
-import { APointLight } from "./APointLight";
-import { ASpotLight } from "./ASpotLight";
-import { AEnvironmentMapLight } from "./AEnvironmentMapLight";
+import { AmbientLight } from "./AmbientLight";
+import { DirectLight } from "./DirectLight";
+import { PointLight } from "./PointLight";
+import { SpotLight } from "./SpotLight";
+import { AEnvironmentMapLight } from "./EnvironmentMapLight";
 
 /**
  * 判断场景中是否有灯光
@@ -47,13 +47,13 @@ export class LightFeature extends SceneFeature {
     let lights = this.visibleLights;
     for (let i = 0, len = lights.length; i < len; i++) {
       const light = lights[i];
-      if (light instanceof AAmbientLight) {
+      if (light instanceof AmbientLight) {
         ambientLightCount++;
-      } else if (light instanceof ADirectLight) {
+      } else if (light instanceof DirectLight) {
         directLightCount++;
-      } else if (light instanceof APointLight) {
+      } else if (light instanceof PointLight) {
         pointLightCount++;
-      } else if (light instanceof ASpotLight) {
+      } else if (light instanceof SpotLight) {
         spotLightCount++;
       } else if (light instanceof AEnvironmentMapLight) {
         envMapLightCount++;
@@ -121,14 +121,14 @@ export class LightFeature extends SceneFeature {
     let lights = this.visibleLights;
     for (let i = 0, len = lights.length; i < len; i++) {
       const light = lights[i];
-      if (light instanceof AAmbientLight) {
+      if (light instanceof AmbientLight) {
         light.bindMaterialValues(mtl, `u_ambientLight`);
         ambientLightCount++;
-      } else if (light instanceof ADirectLight) {
+      } else if (light instanceof DirectLight) {
         light.bindMaterialValues(mtl, `u_directLights[${directLightCount++}]`);
-      } else if (light instanceof APointLight) {
+      } else if (light instanceof PointLight) {
         light.bindMaterialValues(mtl, `u_pointLights[${pointLightCount++}]`);
-      } else if (light instanceof ASpotLight) {
+      } else if (light instanceof SpotLight) {
         light.bindMaterialValues(mtl, `u_spotLights[${spotLightCount++}]`);
       } else if (light instanceof AEnvironmentMapLight) {
         light.bindMaterialValues(mtl, `u_envMapLight`);
@@ -151,14 +151,14 @@ export class LightFeature extends SceneFeature {
     let lights = this.visibleLights;
     for (let i = 0, len = lights.length; i < len; i++) {
       const light = lights[i];
-      if (light instanceof AAmbientLight && !ambientLightCount++) {
-        uniforms = { ...uniforms, ...AAmbientLight.getUniformDefine(`u_ambientLight`) };
-      } else if (light instanceof ADirectLight) {
-        uniforms = { ...uniforms, ...ADirectLight.getUniformDefine(`u_directLights[${directLightCount++}]`) };
-      } else if (light instanceof APointLight) {
-        uniforms = { ...uniforms, ...APointLight.getUniformDefine(`u_pointLights[${pointLightCount++}]`) };
-      } else if (light instanceof ASpotLight) {
-        uniforms = { ...uniforms, ...ASpotLight.getUniformDefine(`u_spotLights[${spotLightCount++}]`) };
+      if (light instanceof AmbientLight && !ambientLightCount++) {
+        uniforms = { ...uniforms, ...AmbientLight.getUniformDefine(`u_ambientLight`) };
+      } else if (light instanceof DirectLight) {
+        uniforms = { ...uniforms, ...DirectLight.getUniformDefine(`u_directLights[${directLightCount++}]`) };
+      } else if (light instanceof PointLight) {
+        uniforms = { ...uniforms, ...PointLight.getUniformDefine(`u_pointLights[${pointLightCount++}]`) };
+      } else if (light instanceof SpotLight) {
+        uniforms = { ...uniforms, ...SpotLight.getUniformDefine(`u_spotLights[${spotLightCount++}]`) };
       } else if (light instanceof AEnvironmentMapLight && !envMapLightCount++) {
         uniforms = { ...uniforms, ...AEnvironmentMapLight.getUniformDefine(`u_envMapLight`) };
       }

@@ -6,7 +6,7 @@ import { DataType } from "@alipay/o3-base";
  * 环境光创建类
  * @extends Light
  */
-export class AAmbientLight extends Light {
+export class AmbientLight extends Light {
   private _lightColor;
   public color;
   public intensity;

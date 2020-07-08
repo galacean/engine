@@ -6,7 +6,7 @@ import { Light } from "./Light";
  * 方向光创建类
  * @extends Light
  */
-export class ADirectLight extends Light {
+export class DirectLight extends Light {
   private _forward = [0, 0, 0];
   private _lightColor;
   private _reverseDirection;

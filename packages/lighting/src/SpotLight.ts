@@ -6,7 +6,7 @@ import { Light } from "./Light";
  * 聚光灯创建类
  * @extends Light
  */
-export class ASpotLight extends Light {
+export class SpotLight extends Light {
   private _forward = [0, 0, 0];
   private _lightColor;
   private _inverseDirection;

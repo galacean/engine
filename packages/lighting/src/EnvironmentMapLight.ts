@@ -7,7 +7,7 @@ const cacheMat3 = mat3.create();
 /**
  * 环境光源
  */
-class AEnvironmentMapLight extends Light {
+class EnvironmentMapLight extends Light {
   public diffuseMap;
   public specularMap;
   public diffuse;
@@ -163,4 +163,4 @@ class AEnvironmentMapLight extends Light {
   }
 }
 
-export { AEnvironmentMapLight };
+export { EnvironmentMapLight as AEnvironmentMapLight };
