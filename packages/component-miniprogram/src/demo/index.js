@@ -20,7 +20,7 @@ Page({
     let rootNode = scene.root;
 
     let cameraNode = rootNode.createChild('camera_node');
-    let camera = cameraNode.createAbility(ADefaultCamera, {
+    let camera = cameraNode.addComponent(ADefaultCamera, {
       canvas, position: [0, 10, 200],
       clearParam: [1, 1, 0, 1],
       attributes: {
@@ -28,16 +28,16 @@ Page({
       },
     });
     // control
-    this.controler = cameraNode.createAbility(AOrbitControls);
+    this.controler = cameraNode.addComponent(AOrbitControls);
 
     // light
     let pointLightNode1 = rootNode.createChild('point_light1');
     let pointLightNode2 = rootNode.createChild('point_light2');
-    let pointLight1 = pointLightNode1.createAbility(APointLight, {
+    let pointLight1 = pointLightNode1.addComponent(APointLight, {
       color: [1, 1, 1],
       intensity: 0.5,
     });
-    let pointLight2 = pointLightNode2.createAbility(APointLight, {
+    let pointLight2 = pointLightNode2.addComponent(APointLight, {
       color: [1, 1, 1],
       intensity: 0.5,
     });

@@ -2,7 +2,7 @@ import { Animation } from "@alipay/o3-animation";
 import { Engine,Camera } from "@alipay/o3-core";
 import "@alipay/o3-engine-stats";
 import "@alipay/o3-hud";
-import { AAmbientLight } from "@alipay/o3-lighting";
+import {AmbientLight } from "@alipay/o3-lighting";
 import { Resource, ResourceLoader } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
@@ -26,7 +26,7 @@ var props = {
 };
 
 var ambientLight = rootNode.createChild("ambient");
-ambientLight.addComponent(AAmbientLight, props);
+ambientLight.addComponent(AmbientLight, props);
 
 //-- create camera
 let cameraNode = rootNode.createChild("camera_node");

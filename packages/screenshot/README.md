@@ -7,5 +7,5 @@ let cameraProps = {
     preserveDrawingBuffer: true
   }
 };
-let camera = cameraNode.createAbility(ADefaultCamera, cameraProps);
+let camera = cameraNode.addComponent(ADefaultCamera, cameraProps);
 ```

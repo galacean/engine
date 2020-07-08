@@ -83,7 +83,7 @@ function parseAnimationClip(currentScene, animClipData, resources) {
 function parseAnimation(currentScene, animData, resources) {
   const { name, node: nodeIndex, keyframes } = animData;
   const node = resources._assets["nodes"][nodeIndex];
-  const animation = node.createAbility(Animation, {
+  const animation = node.addComponent(Animation, {
     name: name || `Animation_${animCount++}`
   });
   const animClips = resources._assets["animationClips"];
@@ -100,7 +100,7 @@ function buildAnimation(currentScene, resources) {
   const { type, options } = animatorData;
   const { keyframes } = options;
   const rootNode = currentScene.root;
-  const animator = rootNode.createAbility(Animator);
+  const animator = rootNode.addComponent(Animator);
   const animations = resources._assets["animations"];
   if (type === "timeline") {
     Object.keys(keyframes).forEach((keyframe) => {

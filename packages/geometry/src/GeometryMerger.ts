@@ -16,7 +16,7 @@ import { DataType, BufferUsage } from "@alipay/o3-base";
  *   let mergedGeometry = new GeometryMerger(geometries).merge(); // 这样用
  *
  *   for (let geometry of mergedGeometry) { // add to scene
- *     let renderer = rootNode.createChild('node_name').createAbility(GeometryRenderer);
+ *     let renderer = rootNode.createChild('node_name').addComponent(GeometryRenderer);
  *     renderer.geometry = geometry;
  *     renderer.setMaterial(geometry.primitive.material);
  *   }

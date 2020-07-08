@@ -25,7 +25,7 @@ export class AnimationComponentHandler extends AnimationClipHandler {
 // bindAnimationComponentAnimClip(animClip) {
 //   const { animationComponentAbility } = animClip;
 //   const { params } = animClip.options;
-//   const animationComponent = this.node.createAbility(animationComponentAbility, params);
+//   const animationComponent = this.node.addComponent(animationComponentAbility, params);
 //   const handler = {
 //     type: AnimationComponent,
 //     _handler: animationComponent,

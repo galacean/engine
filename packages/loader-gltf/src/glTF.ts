@@ -793,7 +793,7 @@ export function parseScene(gltfScene, resources) {
       const lightIdx = gltfScene.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
         const light = getItemByIdx("lights", lightIdx, resources);
-        if (light) sceneNodes[0].createAbility(light.ability, light.props);
+        if (light) sceneNodes[0].addComponent(light.ability, light.props);
       }
     }
   }

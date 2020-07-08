@@ -6,7 +6,7 @@ OIT(Order Independent Transparency,次序无关透明度渲染)
 ```
 import { OITSceneRenderer } from "@alipay/o3-renderer-oit";
 
-const camera = cameraNode.createAbility(ADefaultCamera, {
+const camera = cameraNode.addComponent(ADefaultCamera, {
   SceneRenderer: OITSceneRenderer,
   canvas: "***",
 });

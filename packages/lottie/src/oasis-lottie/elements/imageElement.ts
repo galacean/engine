@@ -23,7 +23,7 @@ export class ImageElement extends IImageElement {
   }
   createContent() {
     super.createContent();
-    this.renderer = this.node.createAbility(SpriteRenderer, {
+    this.renderer = this.node.addComponent(SpriteRenderer, {
       texture: this.img.asset,
       anchor: [0, 0],
       worldSizeFactor: 2
