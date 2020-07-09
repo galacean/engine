@@ -61,8 +61,8 @@ export class Camera extends Component {
   private _clearParam: Vector4;
   private _clearMode: ClearMode;
   private _sceneRenderer: any;
-  private _viewportNormalized: Vector4 = vec4.create();
   private _viewport: Vector4 = [0, 0, 1, 1];
+  private _pixelViewport: Vector4 = [0, 0, 1, 1];
   private _nearClipPlane: number;
   private _farClipPlane: number;
   private _fieldOfView: number;
@@ -89,7 +89,7 @@ export class Camera extends Component {
 
   public set nearClipPlane(value: number) {
     this._nearClipPlane = value;
-    this.projMatChange();
+    this._projMatChange();
   }
 
   /**
@@ -101,7 +101,7 @@ export class Camera extends Component {
 
   public set farClipPlane(value: number) {
     this._farClipPlane = value;
-    this.projMatChange();
+    this._projMatChange();
   }
 
   /**
@@ -113,31 +113,51 @@ export class Camera extends Component {
 
   public set fieldOfView(value: number) {
     this._fieldOfView = value;
-    this.projMatChange();
+    this._projMatChange();
   }
 
   /**
    * 横纵比，默认由视口的宽高比自动计算，如果手动设置会保持手动值，调用resetAspectRatio()可恢复。
    */
   public get aspectRatio(): number {
-    return this._customAspectRatio ?? this._viewport[2] / this._viewport[3];
+    return this._customAspectRatio ?? this._pixelViewport[2] / this._pixelViewport[3];
   }
 
   public set aspectRatio(value: number) {
     this._customAspectRatio = value;
-    this.projMatChange();
+    this._projMatChange();
   }
 
   /**
-   * 归一化视口，左上角为（0，0）坐标，右下角为（1，1）。
-   * @todo 目前为兼容旧接口，以后修改为归一化的 viewport
+   * 视口，归一化表达，左上角为（0，0）坐标，右下角为（1，1）。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  public get viewport(): Readonly<Vector4> {
+  public get viewport(): Vector4 {
     return this._viewport;
   }
 
-  public set viewport(value: Readonly<Vector4>) {
-    throw "not implemented.";
+  public set viewport(value: Vector4) {
+    const viewport = this._viewport;
+    viewport[0] = value[0];
+    viewport[1] = value[1];
+    viewport[2] = value[2];
+    viewport[3] = value[3];
+    // todo rhi 修改
+    if (this.renderHardware) {
+      // todo 合并慎思：这里的宽高还可能是RenderTarget,如果设置了RenderTarget的话
+      const canvas = this.renderHardware.canvas;
+      const width = canvas.width;
+      const height = canvas.height;
+
+      const pixelViewport = this._pixelViewport;
+      pixelViewport[0] = width * value[0];
+      pixelViewport[1] = height * value[1];
+      pixelViewport[2] = width * value[2];
+      pixelViewport[3] = height * value[3];
+      this._projMatChange();
+      // todo 底层每帧会调用
+      // this.renderHardware.viewport(this._viewport[0], this._viewport[1], this._viewport[2], this._viewport[3]);
+    }
   }
 
   /**
@@ -149,7 +169,7 @@ export class Camera extends Component {
 
   public set isOrthographic(value: boolean) {
     this._isOrthographic = value;
-    this.projMatChange();
+    this._projMatChange();
   }
 
   /**
@@ -161,7 +181,7 @@ export class Camera extends Component {
 
   public set orthographicSize(value: number) {
     this._orthographicSize = value;
-    this.projMatChange();
+    this._projMatChange();
   }
 
   /**
@@ -217,7 +237,7 @@ export class Camera extends Component {
   public set projectionMatrix(value: Matrix4) {
     this._projectionMatrix = value;
     this._isProjMatSetting = true;
-    this.projMatChange();
+    this._projMatChange();
   }
 
   public get projectionMatrix(): Matrix4 {
@@ -287,8 +307,6 @@ export class Camera extends Component {
     this._fieldOfView = fov ?? 45;
     this._pixelRatio = props.pixelRatio ?? null;
 
-    this._viewportNormalized = [0, 0, 1, 1];
-
     // TODO: 删除，兼容旧 camera，decaprated
     const target = props.target ?? [0, 0, 0];
     const up = props.up ?? [0, 1, 0];
@@ -312,7 +330,7 @@ export class Camera extends Component {
    */
   public resetProjectionMatrix(): void {
     this._isProjMatSetting = false;
-    this.projMatChange();
+    this._projMatChange();
   }
 
   /**
@@ -320,7 +338,7 @@ export class Camera extends Component {
    */
   public resetAspectRatio(): void {
     this._customAspectRatio = undefined;
-    this.projMatChange();
+    this._projMatChange();
   }
 
   /**
@@ -356,7 +374,7 @@ export class Camera extends Component {
    */
   public viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
     const invViewProjMat = this.invViewProjMat;
-    return this.innerViewportToWorldPoint(point, invViewProjMat, out);
+    return this._innerViewportToWorldPoint(point, invViewProjMat, out);
   }
 
   /**
@@ -371,7 +389,7 @@ export class Camera extends Component {
     const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
     // 使用远裁面的交点作为 origin
     const viewportPos = vec3.set(MathTemp.tempVec3, point[0], point[1], 1);
-    const farPoint = this.innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
+    const farPoint = this._innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
     const direction = vec3.sub(out.direction, farPoint, origin);
     vec3.normalize(direction, direction);
     return out;
@@ -384,7 +402,7 @@ export class Camera extends Component {
    * @returns 射线
    */
   public screenToViewportPoint<T extends Vector2 | Vector3>(point: Vector3 | Vector2, out: T): T {
-    const viewport = this.viewportNormalized;
+    const viewport = this.viewport;
     out[0] = (point[0] - viewport[0]) / viewport[2];
     out[1] = (point[1] - viewport[1]) / viewport[3];
     return out;
@@ -397,7 +415,7 @@ export class Camera extends Component {
    * @returns 射线
    */
   public viewportToScreenPoint<T extends Vector2 | Vector3 | Vector4>(point: T, out: T): T {
-    const viewport = this.viewportNormalized;
+    const viewport = this.viewport;
     const viewWidth = viewport[2];
     const viewHeight = viewport[3];
     const nx = point[0];
@@ -416,52 +434,17 @@ export class Camera extends Component {
   }
 
   /**
-   * 相机视口，归一化的 viewport [0 - 1]。
-   * @todo 删除兼容性API后修改为 viewport
-   */
-  public get viewportNormalized(): Readonly<Vector4> {
-    return this._viewportNormalized;
-  }
-
-  public set viewportNormalized(v: Readonly<Vector4>) {
-    const viewportNormalized = this._viewportNormalized;
-    viewportNormalized[0] = v[0];
-    viewportNormalized[1] = v[1];
-    viewportNormalized[2] = v[2];
-    viewportNormalized[3] = v[3];
-    // todo rhi 修改
-    if (this.renderHardware) {
-      // todo 合并慎思：这里的宽高还可能是RenderTarget,如果设置了RenderTarget的话
-      const canvas = this.renderHardware.canvas;
-      const width = canvas.width;
-      const height = canvas.height;
-
-      const viewport = this._viewport;
-      viewport[0] = width * v[0];
-      viewport[1] = height * v[1];
-      viewport[2] = width * v[2];
-      viewport[3] = height * v[3];
-      this.projMatChange();
-      // todo 底层每帧会调用
-      // this.renderHardware.viewport(this._viewport[0], this._viewport[1], this._viewport[2], this._viewport[3]);
-    }
-  }
-
-  /**
    * @innernal
    */
   _onActive() {
-    super._onActive();
-    // TODO: change any
-    this.node.scene.attachRenderCamera(this as any);
+    this.node.scene.attachRenderCamera(this);
   }
 
   /**
    * @innernal
    */
   _onInActive() {
-    super._onInActive();
-    this.node.scene.detachRenderCamera(this as any);
+    this.node.scene.detachRenderCamera(this);
   }
 
   /**
@@ -471,6 +454,27 @@ export class Camera extends Component {
     this._sceneRenderer?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
+  }
+
+  private _projMatChange() {
+    this._isProjectionDirty = true;
+    this._isInvProjMatDirty = true;
+    this._isInvViewProjDirty.flag = true;
+  }
+
+  private _innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix4, out: Vector3) {
+    // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
+    const depth = point[2] * 2 - 1;
+    // 变换到裁剪空间矩阵
+    const clipPoint = vec4.set(MathTemp.tempVec4, point[0] * 2 - 1, 1 - point[1] * 2, depth, 1);
+    // 计算逆矩阵结果
+    const u = vec4.transformMat4(MathTemp.tempVec4, clipPoint, invViewProjMat);
+    const w = u[3];
+
+    out[0] = u[0] / w;
+    out[1] = u[1] / w;
+    out[2] = u[2] / w;
+    return out;
   }
 
   /**
@@ -596,35 +600,7 @@ export class Camera extends Component {
 
     canvas.width = width;
     canvas.height = height;
-    this.viewportNormalized = this.viewportNormalized;
-  }
-
-  /**
-   * 投影具体应该修改时调用
-   */
-  private projMatChange() {
-    this._isProjectionDirty = true;
-    this._isInvProjMatDirty = true;
-    this._isInvViewProjDirty.flag = true;
-  }
-
-  /**
-   * 通过缓存视图投影矩阵逆矩阵计算 viewportToWorldPoint
-   * @private
-   */
-  private innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix4, out: Vector3) {
-    // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
-    const depth = point[2] * 2 - 1;
-    // 变换到裁剪空间矩阵
-    const clipPoint = vec4.set(MathTemp.tempVec4, point[0] * 2 - 1, 1 - point[1] * 2, depth, 1);
-    // 计算逆矩阵结果
-    const u = vec4.transformMat4(MathTemp.tempVec4, clipPoint, invViewProjMat);
-    const w = u[3];
-
-    out[0] = u[0] / w;
-    out[1] = u[1] / w;
-    out[2] = u[2] / w;
-    return out;
+    this.viewport = this.viewport;
   }
 }
 
