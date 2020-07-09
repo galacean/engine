@@ -216,7 +216,7 @@ export class RenderTechnique extends AssetObject {
             );
           }
         } else if (material.maxJointsNum > 0) {
-          // 使用最大关节数，保证所有 ASkinnedMeshRenderer 都可以共用材质
+          // 使用最大关节数，保证所有 SkinnedMeshRenderer 都可以共用材质
           _macros.push(`O3_JOINTS_NUM ${material.maxJointsNum}`);
         }
       }

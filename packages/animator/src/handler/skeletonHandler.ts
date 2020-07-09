@@ -1,5 +1,5 @@
 import { Node } from "@alipay/o3-core";
-import { AAnimation as SkeltonAnimation, WrapMode } from "@alipay/o3-animation";
+import { Animation as SkeltonAnimation, WrapMode } from "@alipay/o3-animation";
 import { AnimationClipType } from "../AnimationConst";
 import { AnimationClip } from "../AnimationClip";
 import { AnimationClipHandler } from "./animationClipHandler";

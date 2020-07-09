@@ -1,8 +1,8 @@
-import { AGeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
+import { GeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
 import { DataType, BufferUsage, UpdateType } from "@alipay/o3-base";
 import { SkeletonMeshMaterial } from "./SkeletonMeshMaterial";
 
-export class MeshBatcher extends AGeometryRenderer {
+export class MeshBatcher extends GeometryRenderer {
   private static VERTEX_SIZE = 9;
   private vertexCount;
   private vertices;

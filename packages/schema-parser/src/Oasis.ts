@@ -86,7 +86,7 @@ export class Oasis extends o3.EventDispatcher {
   }
 
   /**
-   * 解析 NodeAbility
+   * 解析 Component
    */
   private parseNodeAbilities(): void {
     const { abilities } = this.schema;

@@ -1,8 +1,8 @@
 import { Logger } from "@alipay/o3-base";
-import { AAmbientLight } from "./AAmbientLight";
-import { ADirectLight } from "./ADirectLight";
-import { APointLight } from "./APointLight";
-import { ASpotLight } from "./ASpotLight";
+import { AmbientLight } from "./AmbientLight";
+import { DirectLight } from "./DirectLight";
+import { PointLight } from "./PointLight";
+import { SpotLight } from "./SpotLight";
 
 class KHR_lights {
   static parseLights(lights) {
@@ -17,19 +17,19 @@ class KHR_lights {
       intensity = intensity === undefined ? 1 : intensity;
       switch (type) {
         case "ambient":
-          ability = AAmbientLight;
+          ability = AmbientLight;
           props = { name, color, intensity };
           break;
         case "directional":
-          ability = ADirectLight;
+          ability = DirectLight;
           props = { name, color, intensity };
           break;
         case "point":
-          ability = APointLight;
+          ability = PointLight;
           props = { name, color, intensity };
           break;
         case "spot":
-          ability = ASpotLight;
+          ability = SpotLight;
           props = { name, color, intensity, angle: spot.outerConeAngle };
           break;
         default:

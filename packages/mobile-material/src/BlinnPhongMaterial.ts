@@ -1,7 +1,7 @@
 import { vec3, vec4 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
 import { RenderTechnique, Texture2D, Material } from "@alipay/o3-material";
-import { LightFeature, AAmbientLight, ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
+import { LightFeature, AmbientLight, DirectLight, PointLight, SpotLight } from "@alipay/o3-lighting";
 import { CommonMaterial } from "./CommonMaterial";
 
 import BlinnPhongShader from "./shader/BlinnPhong.glsl";

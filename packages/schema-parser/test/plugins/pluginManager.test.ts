@@ -7,7 +7,7 @@ describe("plugin manager test", () => {
   });
 
   it("plugin boot", () => {
-    // const ability = new o3.NodeAbility(null, {});
+    // const ability = new o3.Component(null, {});
     // pluginManager.abilityAdded(ability);
   });
 });

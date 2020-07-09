@@ -1,5 +1,5 @@
 import { Node } from "@alipay/o3-core";
-import { AAnimation, AAnimator, AnimationClip, AnimationClipType } from "@alipay/o3-animator";
+import { Animation, Animator, AnimationClip, AnimationClipType } from "@alipay/o3-animator";
 import { Easing } from "@alipay/o3-tween";
 const { Interpolation, Skeleton, AnimationComponent } = AnimationClipType;
 
@@ -83,12 +83,12 @@ function parseAnimationClip(currentScene, animClipData, resources) {
 function parseAnimation(currentScene, animData, resources) {
   const { name, node: nodeIndex, keyframes } = animData;
   const node = resources._assets["nodes"][nodeIndex];
-  const animation = node.createAbility(AAnimation, {
+  const animation = node.addComponent(Animation, {
     name: name || `Animation_${animCount++}`
   });
   const animClips = resources._assets["animationClips"];
-  Object.keys(keyframes).forEach(keyframe => {
-    keyframes[keyframe].forEach(animClipIndex => {
+  Object.keys(keyframes).forEach((keyframe) => {
+    keyframes[keyframe].forEach((animClipIndex) => {
       animation.addAnimationClip(keyframe, animClips[animClipIndex]);
     });
   });
@@ -100,11 +100,11 @@ function buildAnimation(currentScene, resources) {
   const { type, options } = animatorData;
   const { keyframes } = options;
   const rootNode = currentScene.root;
-  const animator = rootNode.createAbility(AAnimator);
+  const animator = rootNode.addComponent(Animator);
   const animations = resources._assets["animations"];
   if (type === "timeline") {
-    Object.keys(keyframes).forEach(keyframe => {
-      keyframes[keyframe].forEach(animIndex => {
+    Object.keys(keyframes).forEach((keyframe) => {
+      keyframes[keyframe].forEach((animIndex) => {
         animator.addAnimationByStartTime(parseFloat(keyframe), animations[animIndex]);
       });
     });

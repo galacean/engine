@@ -1,5 +1,5 @@
 import { vec3, mat4 } from "@alipay/o3-math";
-import { AMeshRenderer } from "@alipay/o3-mesh";
+import { MeshRenderer } from "@alipay/o3-mesh";
 
 export function transformDirection(out, a, m) {
   const x = a[0];
@@ -140,7 +140,7 @@ export function getBoundingBoxByGLTF(node) {
 }
 
 function getAllMeshRender(node, rendererGroup) {
-  const render = node.getComponent(AMeshRenderer);
+  const render = node.getComponent(MeshRenderer);
   if (render) {
     rendererGroup.push(render);
   }

@@ -1,8 +1,8 @@
-import { AAnimation } from "@alipay/o3-animation";
+import { Animation } from "@alipay/o3-animation";
 import { Engine,Camera } from "@alipay/o3-core";
 import "@alipay/o3-engine-stats";
 import "@alipay/o3-hud";
-import { AAmbientLight } from "@alipay/o3-lighting";
+import {AmbientLight } from "@alipay/o3-lighting";
 import { Resource, ResourceLoader } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
@@ -26,7 +26,7 @@ var props = {
 };
 
 var ambientLight = rootNode.createChild("ambient");
-ambientLight.addComponent(AAmbientLight, props);
+ambientLight.addComponent(AmbientLight, props);
 
 //-- create camera
 let cameraNode = rootNode.createChild("camera_node");
@@ -77,7 +77,7 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
   node.position = [-1, 0, 0];
   node.addChild(huabei);
 
-  const animator = huabei.addComponent(AAnimation);
+  const animator = huabei.addComponent(Animation);
 
   animations.forEach((clip) => {
     animator.addAnimationClip(clip, clip.name);
@@ -99,7 +99,7 @@ resourceLoader.batchLoad([animationRes, textureRes, animationRes2], (err, [gltf,
     node2.position = [1, 0, 0];
     node2.addChild(mayi);
 
-    const animator2 = mayi.addComponent(AAnimation);
+    const animator2 = mayi.addComponent(Animation);
 
     animations2.forEach((clip) => {
       animator2.addAnimationClip(clip, clip.name);

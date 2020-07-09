@@ -1,3 +1,3 @@
 import lottie from "./lottie-core/module";
-export { ALottieRenderer } from "./ALottieRenderer";
+export { LottieRenderer } from "./LottieRenderer";
 export { lottie as originLottie };

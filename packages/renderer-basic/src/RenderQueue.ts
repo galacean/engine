@@ -34,9 +34,9 @@ export class RenderQueue {
   /**
    * 把一个 Primitive 对象添加进来
    */
-  pushPrimitive(nodeAbility, primitive, mtl) {
+  pushPrimitive(component, primitive, mtl) {
     this._items.push({
-      nodeAbility,
+      component,
       primitive,
       mtl
     });
@@ -51,14 +51,14 @@ export class RenderQueue {
 
     if (items.length > 1) {
       this._items = items.sort(function (item1, item2) {
-        if (item1.nodeAbility.renderPriority === item2.nodeAbility.renderPriority) {
-          const pos1 = item1.nodeAbility.node.worldPosition;
-          const pos2 = item2.nodeAbility.node.worldPosition;
+        if (item1.component.renderPriority === item2.component.renderPriority) {
+          const pos1 = item1.component.node.worldPosition;
+          const pos2 = item2.component.node.worldPosition;
 
           const dis = vec3.squaredDistance(pos2, eyePos) - vec3.squaredDistance(pos1, eyePos);
           return dis;
         } else {
-          return item1.nodeAbility.renderPriority - item2.nodeAbility.renderPriority;
+          return item1.component.renderPriority - item2.component.renderPriority;
         }
       });
     } // end of if
@@ -72,7 +72,7 @@ export class RenderQueue {
 
     if (items.length > 1) {
       this._items = items.sort(function (item1, item2) {
-        if (item1.nodeAbility.renderPriority === item2.nodeAbility.renderPriority) {
+        if (item1.component.renderPriority === item2.component.renderPriority) {
           const tech1 = item1.mtl.technique;
           const tech2 = item2.mtl.technique;
           if (tech1 && tech2) {
@@ -81,7 +81,7 @@ export class RenderQueue {
             return 0;
           }
         } else {
-          return item1.nodeAbility.renderPriority - item2.nodeAbility.renderPriority;
+          return item1.component.renderPriority - item2.component.renderPriority;
         }
       });
     } // end of if
@@ -99,7 +99,7 @@ export class RenderQueue {
    */
   pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
     this._items.push({
-      nodeAbility: component,
+      component,
       positionQuad,
       uvRect,
       tintColor,
@@ -128,10 +128,10 @@ export class RenderQueue {
 
     for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
-      const { nodeAbility, primitive, mtl } = item;
+      const { component, primitive, mtl } = item;
 
       //-- filter by mask
-      const renderPassFlag = nodeAbility.renderPassFlag;
+      const renderPassFlag = component.renderPassFlag;
       if (!(renderPassFlag & mask)) continue;
 
       //-- draw
@@ -140,12 +140,12 @@ export class RenderQueue {
         rhi.flushSprite();
 
         const material = replaceMaterial ? replaceMaterial : mtl;
-        material.preRender?.(item.nodeAbility, item.primitive);
+        material.preRender?.(item.component, item.primitive);
 
-        material.prepareDrawing(camera, item.nodeAbility, item.primitive, mtl);
+        material.prepareDrawing(camera, item.component, item.primitive, mtl);
         rhi.drawPrimitive(item.primitive, material);
 
-        material.postRender?.(item.nodeAbility, item.primitive);
+        material.postRender?.(item.component, item.primitive);
       } else {
         rhi.drawSprite(item.positionQuad, item.uvRect, item.tintColor, item.texture, item.renderMode, item.camera);
       }
@@ -161,12 +161,12 @@ export class RenderQueue {
    */
   updateMaxJointsNum(items, replaceMaterial: Material) {
     for (let i = 0, len = items.length; i < len; i++) {
-      const { nodeAbility, mtl } = items[i];
+      const { component, mtl } = items[i];
 
       const materialControl = replaceMaterial ? replaceMaterial : mtl;
-      // 仅当 nodeAbility 为 ASkinnedMeshRenderer 时需要计算
-      if (nodeAbility.jointNodes) {
-        materialControl.maxJointsNum = Math.max(materialControl.maxJointsNum, nodeAbility.jointNodes.length);
+      // 仅当 component 为 SkinnedMeshRenderer 时需要计算
+      if (component.jointNodes) {
+        materialControl.maxJointsNum = Math.max(materialControl.maxJointsNum, component.jointNodes.length);
       }
     }
   }

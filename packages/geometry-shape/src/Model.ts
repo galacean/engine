@@ -1,4 +1,4 @@
-import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { GeometryRenderer } from "@alipay/o3-geometry";
 import { Node } from "@alipay/o3-core";
 import { SphereGeometry } from "./Sphere";
 import { CylinderGeometry } from "./Cylinder";
@@ -6,7 +6,7 @@ import { PlaneGeometry } from "./Plane";
 import { CuboidGeometry } from "./Cuboid";
 import { BlinnPhongMaterial } from "@alipay/o3-mobile-material";
 
-export class Model extends AGeometryRenderer {
+export class Model extends GeometryRenderer {
   set geometryType(value: GeometryType) {
     if (this._geometryType === value) {
       return;

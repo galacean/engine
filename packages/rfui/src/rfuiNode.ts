@@ -1,5 +1,5 @@
 import { Node } from "@alipay/o3-core";
-import { ARfuiRenderer } from "./rfuiRenderer";
+import { RfuiRenderer } from "./rfuiRenderer";
 import { ARenderEachRow } from "./ability";
 
 /**
@@ -72,7 +72,7 @@ export class RfuiNode extends Node {
   initRenderer(node, nodeConfig) {
     const animationParam = Object.assign({}, this.animationParam, nodeConfig.rendererConfig.animationParam || {});
     nodeConfig.rendererConfig.animationParam = animationParam;
-    return node.createAbility(ARfuiRenderer, nodeConfig.rendererConfig);
+    return node.addComponent(RfuiRenderer, nodeConfig.rendererConfig);
   }
 
   initAniamtion(node, nodeConfig, renderer) {
@@ -100,7 +100,7 @@ export class RfuiNode extends Node {
     if (nodeConfig.abilities) {
       nodeConfig.abilities.forEach((type) => {
         if (type === "ARenderEachRow") {
-          const aType = node.createAbility(ARenderEachRow, {
+          const aType = node.addComponent(ARenderEachRow, {
             geometry: renderer.geometry
           });
           if (inAnimation.animations.length > 0) {

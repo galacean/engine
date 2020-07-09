@@ -9,7 +9,7 @@
 import {PlaneProbe} from '@alipay/o3-env-probe';
 
 
-const probe = rootNode.createAbility(PlaneProbe, {
+const probe = rootNode.addComponent(PlaneProbe, {
     renderList: [pingshen, cap, logo]
   });
 
@@ -22,7 +22,7 @@ const probe = rootNode.createAbility(PlaneProbe, {
 ```
 import {CubeProbe} from '@alipay/o3-env-probe';
 
-const probe = rootNode.createAbility(CubeProbe, {
+const probe = rootNode.addComponent(CubeProbe, {
      renderAll: true
   });
 

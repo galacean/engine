@@ -13,7 +13,7 @@ import { Node } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
-import { Mesh, Skin, AMeshRenderer, ASkinnedMeshRenderer } from "@alipay/o3-mesh";
+import { Mesh, Skin, MeshRenderer, SkinnedMeshRenderer } from "@alipay/o3-mesh";
 import { vec3, mat4, quat } from "@alipay/o3-math";
 import {
   attachLoadingQueue,
@@ -793,7 +793,7 @@ export function parseScene(gltfScene, resources) {
       const lightIdx = gltfScene.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
         const light = getItemByIdx("lights", lightIdx, resources);
-        if (light) sceneNodes[0].createAbility(light.ability, light.props);
+        if (light) sceneNodes[0].addComponent(light.ability, light.props);
       }
     }
   }
@@ -851,9 +851,9 @@ export function buildSceneGraph(resources) {
       if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
         const skin = getItemByIdx("skins", gltfNode.skin, resources);
         const weights = mesh.weights;
-        node.addComponent(ASkinnedMeshRenderer, { skin, mesh, weights });
+        node.addComponent(SkinnedMeshRenderer, { skin, mesh, weights });
       } else {
-        node.addComponent(AMeshRenderer, { mesh });
+        node.addComponent(MeshRenderer, { mesh });
       }
     }
   }

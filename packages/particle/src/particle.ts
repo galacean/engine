@@ -9,14 +9,14 @@ import {
   TextureWrapMode
 } from "@alipay/o3-base";
 import { Material, RenderTechnique } from "@alipay/o3-material";
-import { AGeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
+import { GeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
 import { vec3 } from "@alipay/o3-math";
 
 /**
  * GPU粒子系统渲染类
- * @extends AGeometryRenderer
+ * @extends GeometryRenderer
  */
-export class AGPUParticleSystem extends AGeometryRenderer {
+export class GPUParticleSystem extends GeometryRenderer {
   private _time: number;
   private _isInit: boolean;
   private _isStart: boolean;

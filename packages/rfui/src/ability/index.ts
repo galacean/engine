@@ -1,1 +1,1 @@
-export { ARenderEachRow } from "./ARenderEachRow";
+export { RenderEachRow as ARenderEachRow } from "./RenderEachRow";

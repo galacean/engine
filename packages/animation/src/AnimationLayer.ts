@@ -1,5 +1,5 @@
 import { Logger, Event, EventDispatcher } from "@alipay/o3-base";
-import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
+import { SkinnedMeshRenderer } from "@alipay/o3-mesh";
 import { Node, Component } from "@alipay/o3-core";
 import { AnimationEvent, WrapMode } from "./AnimationConst";
 import { AnimationClip } from "./AnimationClip";
@@ -450,7 +450,7 @@ export class AnimationLayer extends EventDispatcher {
     }
 
     if (target.path === "weights") {
-      return targetSceneObject.getComponent(ASkinnedMeshRenderer);
+      return targetSceneObject.getComponent(SkinnedMeshRenderer);
     } else {
       return targetSceneObject;
     }

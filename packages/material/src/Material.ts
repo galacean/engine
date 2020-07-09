@@ -182,15 +182,15 @@ export class Material {
 
   /**
    * 材质渲染前钩子
-   * @param {NodeAbility} nodeAbility
+   * @param {Component} component
    * @param {Primitive} primitive
    * */
-  preRender(nodeAbility, primitive) {}
+  preRender(component, primitive) {}
 
   /**
    * 材质渲染后钩子
    * */
-  postRender(nodeAbility, primitive) {}
+  postRender(component, primitive) {}
 
   /**
    * 按照Uniform的Semantic，自动更新部分参数值

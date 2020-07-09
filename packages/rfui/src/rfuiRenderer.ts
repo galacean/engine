@@ -1,5 +1,5 @@
 import { BlendFunc, RenderState, FrontFace } from "@alipay/o3-base";
-import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { GeometryRenderer } from "@alipay/o3-geometry";
 import { PlaneGeometry, CylinderGeometry } from "@alipay/o3-geometry-shape";
 import { vec4 } from "@alipay/o3-math";
 import { RfuiMaterial } from "./rfuiMaterial";
@@ -7,9 +7,9 @@ import { RfuiAnimation } from "./animation/rfuiAnimation";
 
 /**
  * Rfui 渲染类
- * @extends AGeometryRenderer
+ * @extends GeometryRenderer
  */
-export class ARfuiRenderer extends AGeometryRenderer {
+export class RfuiRenderer extends GeometryRenderer {
   public type;
   public texrureType;
   public geometryType;

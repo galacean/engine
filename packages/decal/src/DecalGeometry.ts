@@ -4,7 +4,7 @@ import { DataType } from "@alipay/o3-base";
 import { Node } from "@alipay/o3-core";
 import { Mesh } from "@alipay/o3-mesh";
 import { Primitive } from "@alipay/o3-primitive";
-import { AMeshRenderer } from "@alipay/o3-mesh";
+import { MeshRenderer } from "@alipay/o3-mesh";
 import { setPosition, transformDirection, fromBufferAttribute, makeRotationFromQuaternion } from "./util";
 
 type FloatArray = Array<number> | Float32Array;
@@ -30,7 +30,7 @@ export class DecalGeometry extends BufferGeometry {
   public constructor(intersection: Intersection, position: FloatArray, orientation: FloatArray, size: FloatArray) {
     super();
     this.node = intersection.node;
-    const meshRenderer = this.node.getComponent(AMeshRenderer);
+    const meshRenderer = this.node.getComponent(MeshRenderer);
     if (meshRenderer) {
       this.targetMesh = meshRenderer.mesh;
     } else {
