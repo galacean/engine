@@ -53,6 +53,8 @@ export class Camera extends Component {
    */
   public cullingMask: number = 0;
 
+  _pixelViewport: Vector4 = [0, 0, 1, 1];
+
   private _isOrthographic: boolean = false;
   private _projectionMatrix: Matrix4 = mat4.create();
   private _isProjMatSetting = false;
@@ -62,7 +64,6 @@ export class Camera extends Component {
   private _clearMode: ClearMode;
   private _sceneRenderer: any;
   private _viewport: Vector4 = [0, 0, 1, 1];
-  private _pixelViewport: Vector4 = [0, 0, 1, 1];
   private _nearClipPlane: number;
   private _farClipPlane: number;
   private _fieldOfView: number;
@@ -137,11 +138,10 @@ export class Camera extends Component {
   }
 
   public set viewport(value: Vector4) {
-    const viewport = this._viewport;
-    viewport[0] = value[0];
-    viewport[1] = value[1];
-    viewport[2] = value[2];
-    viewport[3] = value[3];
+    if (value !== this._viewport) {
+      vec4.copy(this._viewport, value);
+    }
+
     // todo rhi 修改
     if (this.renderHardware) {
       // todo 合并慎思：这里的宽高还可能是RenderTarget,如果设置了RenderTarget的话
