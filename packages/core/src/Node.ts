@@ -1,10 +1,10 @@
 import { EventDispatcher } from "@alipay/o3-base";
-import { mat4, quat, vec3 } from "@alipay/o3-math";
+import { mat4 } from "@alipay/o3-math";
 import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
+import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
-import { Component } from "./Component";
 import { Scene } from "./Scene";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
@@ -333,7 +333,6 @@ export class Node extends EventDispatcher {
     newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
 
     newNode.transform.localMatrix = this.transform.localMatrix;
-    // Transform
 
     const children = this._children;
     for (let i = 0, len = this._children.length; i < len; i++) {
@@ -357,21 +356,18 @@ export class Node extends EventDispatcher {
    * 销毁。
    */
   destroy(): void {
-    // clear ability array
     const abilityArray = this._components;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
       abilityArray[i].destroy();
     }
     this._components.length = 0;
 
-    // clear children
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       children[i].destroy();
     }
     this._children.length = 0;
 
-    // clear parent
     if (this._parent != null) {
       const parentChildren = this._parent._children;
       parentChildren.splice(parentChildren.indexOf(this), 1);
@@ -528,33 +524,6 @@ export class Node extends EventDispatcher {
 
   /**
    * @deprecated
-   * 设置是否投射阴影，只有导入 ShadowFeature 时生效
-   * @member {boolean}
-   */
-  set castShadow(enabled: boolean) {
-    enableRenderer(this, enabled, "castShadow");
-  }
-
-  /**
-   * @deprecated
-   * 设置是否接收阴影，只有导入 ShadowFeature 时生效
-   * @member {boolean}
-   */
-  set recieveShadow(enabled: boolean) {
-    enableRenderer(this, enabled, "recieveShadow");
-  }
-
-  /**
-   * @deprecated
-   * 设置产生深度纹理时是否忽略该纹理，只有导入 DepthFeature 时生效
-   * @member {boolean}
-   */
-  set ignoreInDepthTexture(enabled: boolean) {
-    enableRenderer(this, enabled, "ignoreInDepthTexture");
-  }
-
-  /**
-   * @deprecated
    * 取得World to Local矩阵
    * @return {mat4}
    */
@@ -565,28 +534,4 @@ export class Node extends EventDispatcher {
     }
     return this._invModelMatrix;
   }
-}
-
-/**
- * @deprecated
- */
-function enableRenderer(node: Node, enabled: boolean, key: string) {
-  const abilityArray = node._components;
-
-  if (abilityArray) {
-    for (let i = abilityArray.length - 1; i >= 0; i--) {
-      const ability = abilityArray[i];
-      if (ability.isRenderable) {
-        ability[key] = enabled;
-      }
-    } // end of for
-  }
-
-  const children = node._children;
-  if (children) {
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      child[key] = enabled;
-    } // end of for
-  } // end of if
 }

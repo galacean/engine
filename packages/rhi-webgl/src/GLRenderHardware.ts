@@ -265,7 +265,8 @@ export class GLRenderHardware {
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      this.viewport(camera.viewport[0], camera.viewport[1], camera.viewport[2], camera.viewport[3]);
+      const pixelViewport = camera._pixelViewport;
+      this.viewport(pixelViewport[0], pixelViewport[1], pixelViewport[2], pixelViewport[3]);
     }
   }
 
