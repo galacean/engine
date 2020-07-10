@@ -11,6 +11,8 @@ import { TextureFormat } from "@alipay/o3-base";
  * @extends AMeshRenderer
  */
 export class ASkinnedMeshRenderer extends AMeshRenderer {
+  private _hasInitJoints: boolean = false;
+
   public matrixPalette: Float32Array;
   public jointNodes: Node[];
   public jointTexture: Texture2D;
@@ -88,7 +90,7 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
     return this._weights;
   }
 
-  _onAwake() {
+  _initJoints() {
     if (!this._skin) return;
     const skin = this._skin;
     //-- init
@@ -148,6 +150,10 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    * @private
    */
   onUpdate() {
+    if (!this._hasInitJoints) {
+      this._initJoints();
+      this._hasInitJoints = true;
+    }
     if (this._skin) {
       const joints = this.jointNodes;
       const ibms = this._skin.inverseBindMatrices;
