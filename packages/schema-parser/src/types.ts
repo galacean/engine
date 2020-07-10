@@ -119,6 +119,7 @@ export interface Schema {
   assets: {
     [assetId: string]: AssetConfig;
   };
+  version: number;
   [name: string]: any;
 }
 

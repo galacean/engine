@@ -6,6 +6,7 @@ tmp
 /packages/*/node_modules
 /packages/*/types
 /packages/*/doc
+/playground/node_modules
 types
 /packages/*/test/fixtures/**/node_modules
 /boilerplates/*/node_modules
