@@ -4,6 +4,7 @@ import { EngineFeature } from "./EngineFeature";
 import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
 import { Camera } from "./Camera";
+import { ResourceManager } from "./AssetDesign/ResourceManager";
 
 const MAX_FPS: number = 60;
 
@@ -20,6 +21,18 @@ const engineFeatureManager = new FeatureManager<EngineFeature>();
  * @class
  */
 export class Engine extends EventDispatcher {
+  static _instanceIDCounter: number = 0;
+  static _lastCreateEngine: Engine = null;
+
+  private _assetManager: ResourceManager = new ResourceManager();
+
+  /**
+   * 资产管理器。
+   */
+  get assetManager(): ResourceManager {
+    return this._assetManager;
+  }
+
   /**
    * 计时器对象
    * @member {Time}
