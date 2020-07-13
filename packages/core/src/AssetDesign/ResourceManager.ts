@@ -112,21 +112,21 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _getGPUAssetPath(id: number): string {
+  _getAssetPath(id: number): string {
     return this._assetPathPool[id];
   }
 
   /**
    * @internal
    */
-  _addGPUAsset(id: number, asset: ReferenceObject): void {
+  _addReferenceObject(id: number, asset: ReferenceObject): void {
     this._referenceObjectPool[id] = asset;
   }
 
   /**
    * @internal
    */
-  _deleteGPUAsset(id: number): void {
+  _deleteReferenceObject(id: number): void {
     delete this._referenceObjectPool[id];
   }
 }
