@@ -3,7 +3,7 @@ import { LoadItem } from "./LoadItem";
 import { ReferenceObject } from "./ReferenceObject";
 import { Engine } from "..";
 /**
- * 资产管理员。
+ * 资源管理员。
  */
 export class ResourceManager {
   /**
