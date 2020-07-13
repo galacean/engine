@@ -40,7 +40,7 @@ export abstract class ReferenceObject {
     if (!resEngine) throw "asset must belone to an engine.";
     this._engine = resEngine;
     this._instanceID = ++Engine._instanceIDCounter;
-    resEngine.assetManager._addGPUAsset(this.instanceID, this);
+    resEngine.assetManager._addReferenceObject(this.instanceID, this);
   }
 
   /**
@@ -53,7 +53,7 @@ export abstract class ReferenceObject {
     if (!force && this._referenceCount !== 0) return false;
 
     this._engine.assetManager._deleteAsset(this);
-    this._engine.assetManager._deleteGPUAsset(this.instanceID);
+    this._engine.assetManager._deleteReferenceObject(this.instanceID);
     this._destroyed = true;
     return true;
   }
