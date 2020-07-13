@@ -19,8 +19,6 @@ export class ResourceManager {
   /** 引用计数对象池,key为对象ID，引用计数的对象均放入该池中。*/
   private _referenceObjectPool: { [key: number]: ReferenceObject } = {};
 
-  /** 最大的并发加载线程。 */
-  maxAssetConcurrentCount: number = 6;
   /** 加载失败后的重试次数。*/
   retryCount: number = 1;
   /** 加载失败后的重试延迟时间，单位是毫秒。*/
