@@ -182,7 +182,7 @@ export class Node extends EventDispatcher {
 
   /**
    * 创建一个节点。
-   * @param scene - 所属的场景
+   * @param scene - 所属的场景 @deprecated
    * @param parent - 父节点
    * @param name - 点名称
    */

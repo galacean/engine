@@ -1,7 +1,7 @@
 /**
  * 用于异步请求。
  */
-class AsyncRequest<T> extends Promise<T> {
+export class AsyncRequest<T> extends Promise<T> {
   /** @internal */
   _isDone: boolean = false;
   /** @internal */

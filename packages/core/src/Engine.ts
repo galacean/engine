@@ -5,6 +5,7 @@ import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
 import { Camera } from "./Camera";
 import { ResourceManager } from "./AssetDesign/ResourceManager";
+import { SceneManager } from "./SceneDesign/SceneManager";
 
 const MAX_FPS: number = 60;
 
@@ -24,13 +25,21 @@ export class Engine extends EventDispatcher {
   static _instanceIDCounter: number = 0;
   static _lastCreateEngine: Engine = null;
 
-  private _assetManager: ResourceManager = new ResourceManager();
+  private _resourceManager: ResourceManager = new ResourceManager();
+  private _sceneManager: SceneManager = new SceneManager();
 
   /**
-   * 资产管理器。
+   * 资源管理器。
    */
-  get assetManager(): ResourceManager {
-    return this._assetManager;
+  get resourceManager(): ResourceManager {
+    return this._resourceManager;
+  }
+
+  /**
+   * 场景管理器。
+   */
+  get sceneManager(): SceneManager {
+    return this._sceneManager;
   }
 
   /**
