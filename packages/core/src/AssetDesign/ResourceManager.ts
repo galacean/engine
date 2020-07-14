@@ -68,7 +68,7 @@ export class ResourceManager {
    * 垃圾回收，会释放受引用计数管理的资源对象。
    * @remarks 释放原则为没有被组件实例引用，包含直接引用和间接引用。
    */
-  garbageCollection(): void {}
+  gc(): void {}
 
   /**
    * @internal

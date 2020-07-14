@@ -6,7 +6,7 @@ import { ResourceManager } from "./ResourceManager";
  */
 export abstract class ReferenceObject {
   /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.garbageCollection() 影响。*/
-  ignoreGarbageCollection: boolean = false;
+  ignoreGG: boolean = false;
 
   protected _engine: Engine;
 
