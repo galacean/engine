@@ -68,7 +68,7 @@ describe("Asset Promise Test", function () {
     });
     return expect(
       promise.catch((e) => {
-        expect(promise.status).toEqual(AssetPromiseStatus.Fail);
+        expect(promise.status).toEqual(AssetPromiseStatus.Failed);
         throw e;
       })
     ).rejects.toEqual("test");

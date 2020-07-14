@@ -6,7 +6,7 @@ import { Loader } from "./Loader";
 import { AssetType } from "./AssetType";
 
 /**
- * 资产管理员。
+ * 资源管理员。
  */
 export class ResourceManager {
   /**

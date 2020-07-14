@@ -5,6 +5,7 @@ import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
 import { Camera } from "./Camera";
 import { ResourceManager } from "./AssetDesign/ResourceManager";
+import { SceneManager } from "./SceneDesign/SceneManager";
 
 const MAX_FPS: number = 60;
 
@@ -25,12 +26,20 @@ export class Engine extends EventDispatcher {
   static _lastCreateEngine: Engine = null;
 
   private _resourceManager: ResourceManager = new ResourceManager();
+  private _sceneManager: SceneManager = new SceneManager();
 
   /**
-   * 资产管理器。
+   * 资源管理器。
    */
   get resourceManager(): ResourceManager {
     return this._resourceManager;
+  }
+
+  /**
+   * 场景管理器。
+   */
+  get sceneManager(): SceneManager {
+    return this._sceneManager;
   }
 
   /**
@@ -108,6 +117,15 @@ export class Engine extends EventDispatcher {
   private _fixedUpdateInterval: number = 1000 / 30.0;
 
   private _animate: () => void;
+
+  // /**
+  //  * 创建引擎。
+  //  * @param canvas - 渲染画布 @todo 未来抽象为画布接口,做跨平台
+  //  * @param hardwareRenderer - 渲染器
+  //  * @param options - 引擎初始化选项
+  //  */
+  // constructor(canvas:HTMLCanvasElement,hardwareRenderer:HardwareRenderer,options？:EngineOptions)
+
   /**
    * 构造函数
    * @constructor

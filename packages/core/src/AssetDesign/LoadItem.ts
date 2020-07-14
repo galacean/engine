@@ -1,7 +1,7 @@
 import { AssetType } from "./AssetType";
 
 /**
- * 用于描述资源加载项。
+ * 用于描述资产加载项。
  */
 export interface LoadItem {
   /**
