@@ -19,5 +19,7 @@ export enum AssetType {
   /** 动画文件。*/
   AnimationClip = 7,
   /** 预设。*/
-  Perfab = 8
+  Perfab = 8 // 先走 GLTFLoader
+  /** @todo 场景。 */
+  // Scene = 9
 }

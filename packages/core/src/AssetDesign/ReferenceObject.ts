@@ -1,12 +1,16 @@
 import { Engine } from "../Engine";
 import { ResourceManager } from "./ResourceManager";
 
+// const xhr = new XMLHttpRequest();
+// const img = new Image();
+// img.
 /**
  * 资产的基类，具有引用计数能力。
  */
 export abstract class ReferenceObject {
   /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.garbageCollection() 影响。*/
-  ignoreGarbageCollection: boolean = false;
+  // ignoreGarbageCollection: boolean = false;
+  isGCIgnored: boolean = false;
 
   protected _engine: Engine;
 
@@ -40,7 +44,7 @@ export abstract class ReferenceObject {
     if (!resEngine) throw "asset must belone to an engine.";
     this._engine = resEngine;
     this._instanceID = ++Engine._instanceIDCounter;
-    resEngine.assetManager._addReferenceObject(this.instanceID, this);
+    resEngine.resourceManager._addReferenceObject(this.instanceID, this);
   }
 
   /**
@@ -52,8 +56,8 @@ export abstract class ReferenceObject {
     if (this._destroyed) return true;
     if (!force && this._referenceCount !== 0) return false;
 
-    this._engine.assetManager._deleteAsset(this);
-    this._engine.assetManager._deleteReferenceObject(this.instanceID);
+    this._engine.resourceManager._deleteAsset(this);
+    this._engine.resourceManager._deleteReferenceObject(this.instanceID);
     this._destroyed = true;
     return true;
   }
@@ -62,7 +66,7 @@ export abstract class ReferenceObject {
    * @internal
    */
   _addToAssetManager(path: string): void {
-    this._engine.assetManager._addAsset(path, this);
+    this._engine.resourceManager._addAsset(path, this);
   }
 
   /**

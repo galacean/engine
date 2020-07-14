@@ -24,13 +24,13 @@ export class Engine extends EventDispatcher {
   static _instanceIDCounter: number = 0;
   static _lastCreateEngine: Engine = null;
 
-  private _assetManager: ResourceManager = new ResourceManager();
+  private _resourceManager: ResourceManager = new ResourceManager();
 
   /**
    * 资产管理器。
    */
-  get assetManager(): ResourceManager {
-    return this._assetManager;
+  get resourceManager(): ResourceManager {
+    return this._resourceManager;
   }
 
   /**

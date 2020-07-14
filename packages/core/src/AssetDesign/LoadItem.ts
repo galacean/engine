@@ -3,20 +3,25 @@ import { AssetType } from "./AssetType";
 /**
  * 用于描述资源加载项。
  */
-export class LoadItem {
-  /** @internal */
-  _path: string;
-  /** @internal */
-  _type: AssetType;
-
+export interface LoadItem {
   /**
-   * 创建资源描述项。
-   * @param path - 资源路径
-   * @param type - 资源类型
-   * @param priority - 加载优先级
+   * 加载的 url。
    */
-  constructor(path: string, type?: AssetType) {
-    this._path = path;
-    this._type = type;
-  }
+  url: string;
+  /**
+   * 资源类型。
+   */
+  type?: AssetType;
+  /**
+   * 加载失败后的重试次数
+   */
+  retryCount?: number;
+  /**
+   * 超时时间。
+   */
+  timeout?: number;
+  /**
+   * 重试间隔时间。
+   */
+  retryInterval?: number;
 }

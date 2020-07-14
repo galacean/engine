@@ -1,7 +1,10 @@
-import { SingalAssetRequest, MultiAssetRequest } from "./AssetRequest";
+import { AssetPromise } from "./AssetPromise";
 import { LoadItem } from "./LoadItem";
 import { ReferenceObject } from "./ReferenceObject";
 import { Engine } from "..";
+import { Loader } from "./Loader";
+import { AssetType } from "./AssetType";
+
 /**
  * 资产管理员。
  */
@@ -12,87 +15,111 @@ export class ResourceManager {
    */
   static defaultCreateAssetEngine: Engine = null;
 
+  private static _loaders: { [key: number]: Loader<any> } = {};
+  private static _extTypeMapping: { [key: string]: AssetType } = {};
+
+  /** @internal */
+  static _addLoader(type: AssetType, loader: Loader<any>, extnames: string[]) {
+    this._loaders[type] = loader;
+    for (let i = 0, len = extnames.length; i < len; i++) {
+      this._extTypeMapping[extnames[i]] = type;
+    }
+  }
+
+  private static _getTypeByUrl(url: string): AssetType {
+    return this._extTypeMapping[url.substring(url.lastIndexOf(".") + 1)];
+  }
+
   /** 资产路径池,key为资产ID，值为资产路径，通过路径加载的资源均放入该池中，用于资源文件管理。*/
-  private _assetPathPool: { [key: number]: string } = {};
+  private _assetPool: { [key: number]: string } = Object.create(null);
   /** 资产池,key为资产路径，值为资产，通过路径加载的资源均放入该池中，用于资产文件管理。*/
-  private _assetPool: { [key: string]: Object } = {};
+  private _assetUrlPool: { [key: string]: Object } = Object.create(null);
   /** 引用计数对象池,key为对象ID，引用计数的对象均放入该池中。*/
-  private _referenceObjectPool: { [key: number]: ReferenceObject } = {};
+  private _referenceObjectPool: { [key: number]: ReferenceObject } = Object.create(null);
 
   /** 加载失败后的重试次数。*/
   retryCount: number = 1;
   /** 加载失败后的重试延迟时间，单位是毫秒。*/
-  retryDelay: number = 0;
+  retryInterval: number = 0;
+  /** 资源默认超时时间 */
+  timeout: number = 10000;
 
   /**
    * 通过路径异步加载资源。
    * @param path - 路径
    * @returns 资源请求
    */
-  loadAsset<T>(path: string): SingalAssetRequest<T>;
+  load<T>(path: string): AssetPromise<T>;
 
   /**
    * 通过路径集合异步加载资源集合。
    * @param path - 路径集合
    * @returns 资源请求
    */
-  loadAsset(pathes: string[]): MultiAssetRequest<Object>;
+  load(pathes: string[]): AssetPromise<Object>;
 
   /**
    * 通过加载信息集合异步加载资源集合。
    * @param assetItem - 资源加载项
    * @returns 资源请求
    */
-  loadAsset<T>(assetItem: LoadItem): SingalAssetRequest<T>;
+  load<T>(assetItem: LoadItem): AssetPromise<T>;
 
   /**
    * 通过加载信息集合异步加载资源集合。
    * @param assetItems - 资源加载项集合
    * @returns 资源请求
    */
-  loadAsset(assetItems: LoadItem[]): MultiAssetRequest<Object>;
+  load(assetItems: LoadItem[]): AssetPromise<Object>;
 
   /**
    * @internal
    */
-  loadAsset<T>(assetInfo: string | string[] | LoadItem | LoadItem[]): SingalAssetRequest<T> | MultiAssetRequest<T> {
-    return null;
+  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | T[]> | never {
+    // 单个资源加载
+    if (!Array.isArray(assetInfo)) {
+      return this.loadSingleItem(assetInfo);
+    }
+    // 数组资源加载
+    const promises = assetInfo.map((item) => this.loadSingleItem<T>(item));
+
+    return AssetPromise.all<T>(promises);
   }
 
   /**
    * 通过路径取消未完成加载的资产。
    * @param - path 资产路径
    */
-  cancelNotLoadedAsset(path: string): void;
+  cancelUnLoaded(path: string): void;
 
   /**
    * 通过路径集合取消未完成加载的资产。
    * @param - pathes 资产路径集合
    */
-  cancelNotLoadedAsset(pathes: string[]): void;
+  cancelUnLoaded(pathes: string[]): void;
 
   /**
    * 取消所有未完成加载的资产。
    */
-  cancelNotLoadedAsset(): void;
+  cancelUnLoaded(): void;
 
   /**
    * @internal
    */
-  cancelNotLoadedAsset(path?: string | string[]): void {}
+  cancelUnLoaded(path?: string | string[]): void {}
 
   /**
    * 垃圾回收，会释放受引用计数管理的资源对象。
    * @remarks 释放原则为没有被组件实例引用，包含直接引用和间接引用。
    */
-  garbageCollection(): void {}
+  gc(): void {}
 
   /**
    * @internal
    */
   _addAsset(path: string, asset: ReferenceObject): void {
-    this._assetPathPool[asset.instanceID] = path;
-    this._assetPool[path] = asset;
+    this._assetPool[asset.instanceID] = path;
+    this._assetUrlPool[path] = asset;
   }
 
   /**
@@ -100,10 +127,10 @@ export class ResourceManager {
    */
   _deleteAsset(asset: ReferenceObject): void {
     const id = asset.instanceID;
-    const path = this._assetPathPool[id];
+    const path = this._assetPool[id];
     if (path) {
-      delete this._assetPathPool[id];
-      delete this._assetPool[path];
+      delete this._assetPool[id];
+      delete this._assetUrlPool[path];
     }
   }
 
@@ -111,7 +138,7 @@ export class ResourceManager {
    * @internal
    */
   _getAssetPath(id: number): string {
-    return this._assetPathPool[id];
+    return this._assetPool[id];
   }
 
   /**
@@ -127,4 +154,32 @@ export class ResourceManager {
   _deleteReferenceObject(id: number): void {
     delete this._referenceObjectPool[id];
   }
+
+  private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
+    assetInfo.type = assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+    if (assetInfo.type === undefined) {
+      throw `asset type should be specified: ${assetInfo.url}`;
+    }
+    assetInfo.retryCount = assetInfo.retryCount ?? this.retryCount;
+    assetInfo.timeout = assetInfo.timeout ?? this.timeout;
+    assetInfo.retryInterval = assetInfo.retryInterval ?? this.retryInterval;
+    return assetInfo;
+  }
+
+  private loadSingleItem<T>(item: LoadItem | string): AssetPromise<T> | never {
+    let info: LoadItem;
+    if (typeof item === "string") {
+      info = this._assignDefaultOptions({ url: item });
+    } else {
+      info = this._assignDefaultOptions(item);
+    }
+    return ResourceManager._loaders[info.type].load(info);
+  }
+}
+
+export function resourceLoader(assetType: AssetType, extnames: string[]) {
+  return <T extends Loader<any>>(Target: { new (): T }) => {
+    //@ts-ignore
+    ResourceManager._addLoader(assetType, new Target(), extnames);
+  };
 }
