@@ -11,7 +11,7 @@ export enum AssetPromiseStatus {
 }
 
 /**
- * 用于异步请求。
+ * 资源异步请求。
  */
 export class AssetPromise<T> extends Promise<T> {
   /** @internal */
@@ -20,14 +20,14 @@ export class AssetPromise<T> extends Promise<T> {
   _progress: number = 0;
 
   /**
-   * 加载是否完成。
+   * 请求状态。
    */
   get status(): AssetPromiseStatus {
     return this._status;
   }
 
   /**
-   * 加载的进度。
+   * 加载进度。
    */
   get progress(): number {
     return this._progress;
@@ -40,7 +40,7 @@ export class AssetPromise<T> extends Promise<T> {
     return this;
   }
 
-  /** 取消 Promise 请求 */
+  /** 取消所有 Promise 请求 */
   cancel(): AssetPromise<T> {
     return this;
   }
