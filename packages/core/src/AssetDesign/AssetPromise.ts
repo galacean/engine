@@ -1,11 +1,14 @@
 type PromiseNotifier = (progress: number) => void;
 /**
- * y
+ * 资源 Promise 状态
  */
 export enum AssetPromiseStatus {
+  /** 成功。 */
   Success,
+  /** 请求中。 */
   Pending,
-  Fail
+  /** 失败。 */
+  Failed
 }
 /**
  * 资源加载的 Promise，有 progress 和 isDone。
@@ -69,7 +72,8 @@ export class AssetPromise<T> extends Promise<T> {
     return this;
   }
 
-  cancel() {
+  /** 取消 Promise 请求 */
+  cancel(): AssetPromise<T> {
     if (this._status !== AssetPromiseStatus.Pending) {
       return this;
     }
@@ -97,7 +101,8 @@ export class AssetPromise<T> extends Promise<T> {
       if (progress <= this._progress) {
         return;
       }
-
+      // console.log(`set progress ${progress}`);
+      // console.log(`cur progress ${this._progress}`);
       this._progress = progress;
 
       for (const listener of this._listeners) {
@@ -107,16 +112,17 @@ export class AssetPromise<T> extends Promise<T> {
 
     super((resolve, reject) => {
       newReject = (reason?: any) => {
-        // 加入到微任务重，避免直接调用找不到 this 报错
+        // 加入到微任务中，避免直接调用找不到 this 报错
         Promise.resolve().then(() => {
-          this._status = AssetPromiseStatus.Fail;
+          this._status = AssetPromiseStatus.Failed;
           reject(reason);
         });
       };
       executor(
         (value: T) => {
-          // 加入到微任务重，避免直接调用找不到 this 报错
+          // 加入到微任务中，避免直接调用找不到 this 报错
           Promise.resolve().then(() => {
+            // console.log('done')
             setProgress(1);
             this._status = AssetPromiseStatus.Success;
             resolve(value);
@@ -124,8 +130,9 @@ export class AssetPromise<T> extends Promise<T> {
         },
         newReject,
         (progress: number) => {
-          // 加入到微任务重，避免直接调用找不到 this 报错
+          // 加入到微任务中，避免直接调用找不到 this 报错
           Promise.resolve().then(() => {
+            // console.log('on progress')
             setProgress(progress);
           });
         }
