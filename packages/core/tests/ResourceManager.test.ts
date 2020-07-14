@@ -6,7 +6,7 @@ import { Engine } from "../src";
 import { AssetPromise } from "../src/AssetDesign/AssetPromise";
 
 @resourceLoader(AssetType.Text, ["txt"])
-class TestLoader implements Loader<string> {
+class TestLoader extends Loader<string> {
   load(item: LoadItem): AssetPromise<string> {
     return new AssetPromise((resolve) => {
       resolve("test");
