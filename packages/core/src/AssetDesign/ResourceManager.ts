@@ -85,28 +85,15 @@ export class ResourceManager {
 
     return AssetPromise.all<T>(promises);
   }
-
-  /**
-   * 通过路径取消未完成加载的资产。
-   * @param - path 资产路径
-   */
-  cancelUnLoaded(path: string): void;
-
-  /**
-   * 通过路径集合取消未完成加载的资产。
-   * @param - pathes 资产路径集合
-   */
-  cancelUnLoaded(pathes: string[]): void;
-
   /**
    * 取消所有未完成加载的资产。
    */
-  cancelUnLoaded(): void;
+  cancelNotLoaded(): void;
 
   /**
    * @internal
    */
-  cancelUnLoaded(path?: string | string[]): void {}
+  cancelNotLoaded(path?: string | string[]): void {}
 
   /**
    * 垃圾回收，会释放受引用计数管理的资源对象。
@@ -173,7 +160,7 @@ export class ResourceManager {
     } else {
       info = this._assignDefaultOptions(item);
     }
-    return ResourceManager._loaders[info.type].load(info);
+    return ResourceManager._loaders[info.type].load(info, this);
   }
 }
 
