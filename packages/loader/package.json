@@ -26,6 +26,8 @@
   "module": "dist/module.js",
   "dependencies": {
     "@alipay/o3-base": "2.3.0",
+    "@alipay/o3-rhi-webgl": "2.3.0",
+    "@alipay/o3-core": "2.3.0",
     "@alipay/o3-material": "2.3.0",
     "@alipay/o3-request": "2.3.0"
   },
