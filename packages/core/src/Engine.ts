@@ -117,6 +117,15 @@ export class Engine extends EventDispatcher {
   private _fixedUpdateInterval: number = 1000 / 30.0;
 
   private _animate: () => void;
+
+  // /**
+  //  * 创建引擎。
+  //  * @param canvas - 渲染画布 @todo 未来抽象为画布接口,做跨平台
+  //  * @param hardwareRenderer - 渲染器
+  //  * @param options - 引擎初始化选项
+  //  */
+  // constructor(canvas:HTMLCanvasElement,hardwareRenderer:HardwareRenderer,options？:EngineOptions)
+
   /**
    * 构造函数
    * @constructor
