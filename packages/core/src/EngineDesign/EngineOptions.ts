@@ -1,4 +1,4 @@
 /**
  * 引擎参数选项。
  */
-export class EngineOptions {}
+export interface EngineOptions {}

@@ -1,5 +1,5 @@
 import { Scene } from "./Scene";
-import { AsyncRequest } from "../AssetDesign/AssetRequest";
+import { AssetPromise } from "../AssetDesign/AssetPromise";
 
 /**
  * 场景管理员。
@@ -39,7 +39,7 @@ export class SceneManager {
    * @param isAdditive - 是否为叠加模式，true 会叠加到当前场景集合,false 会关闭当前所有场景并切换载入场景
    * @returns 场景请求
    */
-  loadScene(url: string, isAdditive: boolean = false): AsyncRequest<Scene> {
+  loadScene(url: string, isAdditive: boolean = false): AssetPromise<Scene> {
     return null;
   }
 }
