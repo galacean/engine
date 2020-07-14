@@ -5,7 +5,7 @@ import { ResourceManager } from "./ResourceManager";
  * 资产的基类，具有引用计数能力。
  */
 export abstract class ReferenceObject {
-  /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.garbageCollection() 影响。*/
+  /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.gc() 影响。*/
   ignoreGG: boolean = false;
 
   protected _engine: Engine;
