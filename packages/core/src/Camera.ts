@@ -298,10 +298,7 @@ export class Camera extends Component {
     node.transform.position = props.position ?? [0, 10, 20];
     node.transform.lookAt(target, up);
 
-    // TODO: 可在重载_onActive方法内加入，待 rhi 重构剥离后修改
-    const Renderer = SceneRenderer;
-
-    this._sceneRenderer = new Renderer(this);
+    this._sceneRenderer = new SceneRenderer(this);
 
     // TODO: 修改为 ClearFlags
     this.setClearMode(clearMode, clearParam);

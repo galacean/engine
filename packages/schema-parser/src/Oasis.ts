@@ -24,7 +24,7 @@ export class Oasis extends o3.EventDispatcher {
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
     // todo: resourceLoader 与 RHI 解绑
-    // this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr || {}); 临时屏蔽
+    // this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr || {}); CM: 临时屏蔽
     this.resourceManager = new ResourceManager(this);
     _options.fps && this.engine.setFPS(_options.fps);
   }
