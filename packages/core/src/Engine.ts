@@ -1,13 +1,13 @@
 import { Event, EventDispatcher, Logger, Time } from "@alipay/o3-base";
+import { ResourceManager } from "./AssetDesign/ResourceManager";
 import { AssetPool } from "./AssetPool";
+import { EngineOptions } from "./EngineDesign/EngineOptions";
+import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
 import { EngineFeature } from "./EngineFeature";
 import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
-import { Camera } from "./Camera";
-import { ResourceManager } from "./AssetDesign/ResourceManager";
 import { SceneManager } from "./SceneDesign/SceneManager";
-import { EngineOptions } from "./EngineDesign/EngineOptions";
-import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
+import { VSyncMode } from "./EngineDesign/VSyncMode";
 
 const MAX_FPS: number = 60;
 
@@ -27,12 +27,14 @@ export class Engine extends EventDispatcher {
   static _instanceIDCounter: number = 0;
   static _lastCreateEngine: Engine = null;
 
+  private _vSyncMode: VSyncMode = VSyncMode.EveryVBlank;
+  private _targetTrameRate: number;
   private _canvas: HTMLCanvasElement;
   private _resourceManager: ResourceManager = new ResourceManager();
   private _sceneManager: SceneManager = new SceneManager();
 
   /**
-   * 画布。
+   * 渲染画布。
    */
   get canvas(): HTMLCanvasElement {
     return this._canvas;
@@ -60,60 +62,40 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * 计时器对象
-   * @member {Time}
-   * @readonly
+   * 计时器。
    */
   get time(): Time {
     return this._time;
   }
 
   /**
-   * 当前场景
-   * @member {Scene}
-   * @readonly
-   */
-  get currentScene(): Scene {
-    return this._currentScene;
-  }
-
-  set currentScene(scene: Scene) {
-    if (scene) {
-      this._currentScene = scene;
-
-      if (
-        !this.scenes.find((s) => {
-          return s === scene;
-        })
-      ) {
-        this.scenes.push(scene);
-      }
-    }
-  }
-
-  /**
-   * 是否处于暂停状态
-   * @member {boolean}
-   * @readonly
+   * 是否暂停。
    */
   get isPaused(): boolean {
     return this._paused;
   }
 
-  public static registerFeature(Feature: new () => EngineFeature): void {
-    engineFeatureManager.registerFeature(Feature);
+  /**
+   * 垂直同步模式。
+   */
+  get vSyncMode(): VSyncMode {
+    return this._vSyncMode;
   }
 
-  public features: EngineFeature[] = [];
+  set vSyncMode(value: VSyncMode) {
+    this._vSyncMode = value;
+  }
 
-  public scenes: Scene[];
   /**
-   * 资源池
-   * @member
+   * 目标帧率,vSyncMode = VSyncMode.None 时生效。
    */
-  public assetPool: AssetPool = new AssetPool();
+  get targetFrameRate(): number {
+    return this._targetTrameRate;
+  }
 
-  public requestId: number;
+  set targetFrameRate(value: number) {
+    this._targetTrameRate = value;
+  }
 
   private _FPS: number = MAX_FPS;
 
@@ -128,8 +110,6 @@ export class Engine extends EventDispatcher {
   private _animateTime: Time = new Time();
 
   private _currentScene: Scene = new Scene(this);
-
-  private _fixedUpdateInterval: number = 1000 / 30.0;
 
   private _animate: () => void;
 
@@ -152,58 +132,9 @@ export class Engine extends EventDispatcher {
     this._canvas = canvas;
   }
 
-  public findFeature(Feature) {
-    return engineFeatureManager.findFeature(this, Feature);
-  }
-
   /**
-   * 添加一个场景
-   * @return {Scene} 新的场景
+   * 暂停引擎循环。
    */
-  public addScene(): Scene {
-    const scene = new Scene(this);
-    this.scenes.push(scene);
-    return scene;
-  }
-
-  /**
-   * 设置当前渲染的场景
-   * @param {number} index scenes 数组的索引
-   */
-  public setCurrentSceneByIndex(index: number): void {
-    if (index >= 0 && index < this.scenes.length) {
-      this._currentScene = this.scenes[index];
-    } else {
-      Logger.error("Engine -- bad scene index: " + index);
-    }
-  }
-
-  /**
-   * 设置 fixedUpdate 事件触发的间隔时间
-   * @param {number} t 间隔时间，单位：毫秒
-   */
-  public setFixedUpdateInterval(t: number): void {
-    this._fixedUpdateInterval = t;
-  }
-
-  /**
-   * 设置/限制帧速率，一般情况下FPS取值范围[15,60]
-   * @param {number} FPS 帧速率，Frame per Second
-   * @default 60
-   */
-  public setFPS(FPS: number): void {
-    if (FPS >= MAX_FPS) {
-      this._FPS = MAX_FPS;
-      this._FPSTime = 0;
-      this._tickTime = 0;
-    } else {
-      this._FPS = FPS;
-      this._FPSTime = 1000 / FPS;
-      this._tickTime = 0;
-    }
-  }
-
-  /** 暂停渲染 */
   public pause(): void {
     this._paused = true;
     if (this.requestId) {
@@ -212,41 +143,29 @@ export class Engine extends EventDispatcher {
     }
   }
 
-  /** 继续（暂停后的）渲染 */
+  /**
+   * 恢复引擎循环。
+   */
   public resume(): void {
     if (!this._paused) {
       return;
     }
     this._paused = false;
 
-    let fixedUpdateAccumulator = 0;
-
     if (!this._animate) {
       this._animate = () => {
         const animateTime = this._animateTime;
         animateTime.tick();
 
-        if (this._currentScene) {
-          const interval = this._fixedUpdateInterval;
-          fixedUpdateAccumulator += animateTime.deltaTime;
-          // let updCount = 0;
-          while (fixedUpdateAccumulator >= interval) {
-            this._currentScene.trigger(new Event("fixedUpdate", this));
-            fixedUpdateAccumulator -= interval;
-            // updCount ++;
-          }
-          // console.log( 'updCount: ' + updCount  + ', ' + fixedUpdateAccumulator );
-        }
-
         // -- tick
         if (this._FPSTime) {
           if (this._tickTime >= this._FPSTime) {
-            this.tick();
+            this._tick();
             this._tickTime -= this._FPSTime;
           }
           this._tickTime += animateTime.deltaTime;
         } else {
-          this.tick();
+          this._tick();
         }
 
         this.requestId = requestAnimationFrame(this._animate);
@@ -260,19 +179,21 @@ export class Engine extends EventDispatcher {
     });
   }
 
-  /** 运行引擎，驱动每帧动画更新 */
+  /**
+   * 执行引擎循环。
+   */
   public run(): void {
     engineFeatureManager.callFeatureMethod(this, "preLoad", [this]);
     this.resume();
     this.trigger(new Event("run", this));
   }
 
-  public render(scene: Scene, camera: Camera): void {}
-
-  /** 更新当前场景中对象的状态，并渲染当前帧画面
-   * @private
+  /**
+   * 销毁引擎。
    */
-  public tick(): void {
+  public destroy(): void {}
+
+  private _tick(): void {
     if (this._paused) {
       return;
     }
@@ -291,6 +212,97 @@ export class Engine extends EventDispatcher {
     this._rhi.endFrame();
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this.scenes]);
+  }
+
+  //-----------------------------------------@deprecated-----------------------------------
+
+  /**
+   * @deprecated
+   */
+  public assetPool: AssetPool = new AssetPool();
+
+  /**
+   * @deprecated
+   */
+  public requestId: number;
+
+  public static registerPipline() {}
+
+  /**
+   * @deprecated
+   * 当前场景
+   * @member {Scene}
+   * @readonly
+   */
+  get currentScene(): Scene {
+    return this._currentScene;
+  }
+
+  set currentScene(scene: Scene) {
+    if (scene) {
+      this._currentScene = scene;
+
+      if (
+        !this.scenes.find(s => {
+          return s === scene;
+        })
+      ) {
+        this.scenes.push(scene);
+      }
+    }
+  }
+
+  /**
+   * @deprecated
+   * 添加一个场景
+   * @return {Scene} 新的场景
+   */
+  public addScene(): Scene {
+    const scene = new Scene(this);
+    this.scenes.push(scene);
+    return scene;
+  }
+
+  /**
+   * @deprecated
+   * 设置当前渲染的场景
+   * @param {number} index scenes 数组的索引
+   */
+  public setCurrentSceneByIndex(index: number): void {
+    if (index >= 0 && index < this.scenes.length) {
+      this._currentScene = this.scenes[index];
+    } else {
+      Logger.error("Engine -- bad scene index: " + index);
+    }
+  }
+
+  public findFeature(Feature) {
+    return engineFeatureManager.findFeature(this, Feature);
+  }
+
+  public static registerFeature(Feature: new () => EngineFeature): void {
+    engineFeatureManager.registerFeature(Feature);
+  }
+
+  public features: EngineFeature[] = [];
+
+  public scenes: Scene[];
+
+  /**
+   * 设置/限制帧速率，一般情况下FPS取值范围[15,60]
+   * @param {number} FPS 帧速率，Frame per Second
+   * @default 60
+   */
+  public setFPS(FPS: number): void {
+    if (FPS >= MAX_FPS) {
+      this._FPS = MAX_FPS;
+      this._FPSTime = 0;
+      this._tickTime = 0;
+    } else {
+      this._FPS = FPS;
+      this._FPSTime = 1000 / FPS;
+      this._tickTime = 0;
+    }
   }
 
   /** 关闭当前引擎 */
@@ -322,6 +334,4 @@ export class Engine extends EventDispatcher {
     this.assetPool = null;
     (engineFeatureManager as any)._objects = [];
   }
-
-  public static registerPipline() {}
 }
