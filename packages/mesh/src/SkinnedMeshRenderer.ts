@@ -1,5 +1,5 @@
 import { mat4 } from "@alipay/o3-math";
-import { MeshRenderer } from "./MeshRenderer";
+import { AMeshRenderer } from "./AMeshRenderer";
 import { Node } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 import { Skin } from "./Skin";
@@ -8,9 +8,11 @@ import { TextureFormat } from "@alipay/o3-base";
 
 /**
  * 负责渲染一个 Skinned Mesh 的组件
- * @extends MeshRenderer
+ * @extends AMeshRenderer
  */
-export class SkinnedMeshRenderer extends MeshRenderer {
+export class ASkinnedMeshRenderer extends AMeshRenderer {
+  private _hasInitJoints: boolean = false;
+
   public matrixPalette: Float32Array;
   public jointNodes: Node[];
   public jointTexture: Texture2D;
@@ -88,7 +90,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     return this._weights;
   }
 
-  _onAwake() {
+  _initJoints() {
     if (!this._skin) return;
     const skin = this._skin;
     //-- init
@@ -115,11 +117,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private findByNodeName(node: Node, nodeName: string) {
     if (!node) return null;
 
-    const n = node.findByName(nodeName);
+    const n = node.findChildByName(nodeName);
 
     if (n) return n;
 
-    return this.findByNodeName(node.parent, nodeName);
+    return this.findByNodeName(node.parentNode, nodeName);
   }
 
   /**
@@ -130,11 +132,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   _findParent(node: Node, nodeName: string) {
     if (node) {
-      const parent = node.parent;
+      const parent = node.parentNode;
       if (!parent) return null;
       if (parent.name === nodeName) return parent;
 
-      const brother = parent.findByName(nodeName);
+      const brother = parent.findChildByName(nodeName);
       if (brother) return brother;
 
       return this._findParent(parent, nodeName);
@@ -143,10 +145,15 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * @override
+   * TODO 渲染之前
+   * update matrix palette
    * @private
    */
-  update() {
+  onUpdate() {
+    if (!this._hasInitJoints) {
+      this._initJoints();
+      this._hasInitJoints = true;
+    }
     if (this._skin) {
       const joints = this.jointNodes;
       const ibms = this._skin.inverseBindMatrices;
