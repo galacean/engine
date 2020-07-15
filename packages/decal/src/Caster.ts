@@ -38,9 +38,9 @@ export class Caster {
     if (meshRenderer) {
       this.rendererGroup.push(meshRenderer);
     }
-    if (node.children.length > 0) {
-      for (let i = 0; i < node.children.length; i += 1) {
-        this.getAllMeshRender(node.children[i]);
+    if (node.childCount > 0) {
+      for (let i = 0; i < node.childCount; i += 1) {
+        this.getAllMeshRender(node._children[i]);
       }
     }
   }

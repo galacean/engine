@@ -118,7 +118,7 @@ export function getBoundingBoxByGLTF(node) {
   for (let i = 0; i < rendererGroup.length; i += 1) {
     const primitives = rendererGroup[i].mesh.primitives;
     for (let j = 0; j < primitives.length; j += 1) {
-      const { min, max } = primitives[j].getMinMax(node.getModelMatrix());
+      const { min, max } = primitives[j].getMinMax(node.transform.worldMatrix);
       maxGroup.push(max);
       minGroup.push(min);
     }
@@ -144,9 +144,9 @@ function getAllMeshRender(node, rendererGroup) {
   if (render) {
     rendererGroup.push(render);
   }
-  if (node.children.length > 0) {
-    for (let i = 0; i < node.children.length; i += 1) {
-      getAllMeshRender(node.children[i], rendererGroup);
+  if (node.childCount > 0) {
+    for (let i = 0; i < node.childCount; i += 1) {
+      getAllMeshRender(node._children[i], rendererGroup);
     }
   }
 }
