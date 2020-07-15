@@ -5,7 +5,7 @@ import { AmbientLight } from "./AmbientLight";
 import { DirectLight } from "./DirectLight";
 import { PointLight } from "./PointLight";
 import { SpotLight } from "./SpotLight";
-import { AEnvironmentMapLight } from "./EnvironmentMapLight";
+import { EnvironmentMapLight } from "./EnvironmentMapLight";
 
 /**
  * 判断场景中是否有灯光
@@ -55,7 +55,7 @@ export class LightFeature extends SceneFeature {
         pointLightCount++;
       } else if (light instanceof SpotLight) {
         spotLightCount++;
-      } else if (light instanceof AEnvironmentMapLight) {
+      } else if (light instanceof EnvironmentMapLight) {
         envMapLightCount++;
         useDiffuseEnv = light.useDiffuseMap;
         useSpecularEnv = light.useSpecularMap;
@@ -130,7 +130,7 @@ export class LightFeature extends SceneFeature {
         light.bindMaterialValues(mtl, `u_pointLights[${pointLightCount++}]`);
       } else if (light instanceof SpotLight) {
         light.bindMaterialValues(mtl, `u_spotLights[${spotLightCount++}]`);
-      } else if (light instanceof AEnvironmentMapLight) {
+      } else if (light instanceof EnvironmentMapLight) {
         light.bindMaterialValues(mtl, `u_envMapLight`);
         envMapLightCount++;
       }
@@ -159,8 +159,8 @@ export class LightFeature extends SceneFeature {
         uniforms = { ...uniforms, ...PointLight.getUniformDefine(`u_pointLights[${pointLightCount++}]`) };
       } else if (light instanceof SpotLight) {
         uniforms = { ...uniforms, ...SpotLight.getUniformDefine(`u_spotLights[${spotLightCount++}]`) };
-      } else if (light instanceof AEnvironmentMapLight && !envMapLightCount++) {
-        uniforms = { ...uniforms, ...AEnvironmentMapLight.getUniformDefine(`u_envMapLight`) };
+      } else if (light instanceof EnvironmentMapLight && !envMapLightCount++) {
+        uniforms = { ...uniforms, ...EnvironmentMapLight.getUniformDefine(`u_envMapLight`) };
       }
     }
     return uniforms;
