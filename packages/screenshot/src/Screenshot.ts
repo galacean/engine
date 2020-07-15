@@ -14,7 +14,7 @@ export class Screenshot {
    * @return {ScreenshotSize} - 最终计算出来的的截图宽高
    * */
   public static getScreenShotSize(camera: Camera, width?: number, height?: number): ScreenshotSize {
-    const canvas = camera.renderHardware.canvas;
+    const canvas = camera.scene.engine.canvas;
     const aspect = camera.aspectRatio;
     if (width && height) {
       return { width, height };
@@ -139,7 +139,7 @@ export class Screenshot {
     } = Screenshot.getCanvasDataSizeAndOffset(camera, screenshotWidth, screenshotHeight);
 
     Screenshot.drawImage(
-      camera.renderHardware.canvas,
+      camera.scene.engine.canvas,
       screenshotWidth,
       screenshotHeight,
       canvasDataWidth,

@@ -1,7 +1,7 @@
 import { CubeMapFace, Logger } from "@alipay/o3-base";
 import { CompressedTextureCubeMap } from "@alipay/o3-compressed-texture";
 import { TextureCubeMap } from "@alipay/o3-material";
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { GLTexture } from "./GLTexture";
 
 /**
@@ -9,7 +9,7 @@ import { GLTexture } from "./GLTexture";
  * @private
  */
 export class GLTextureCubeMap extends GLTexture {
-  constructor(rhi: GLRenderHardware, config) {
+  constructor(rhi: WebGLRenderer, config) {
     super(rhi, config, rhi.gl.TEXTURE_CUBE_MAP);
   }
 

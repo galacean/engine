@@ -188,7 +188,7 @@ export class RenderTechnique extends AssetObject {
   }
 
   getAttributeDefines(camera: Camera, component, primitive, material) {
-    const rhi = camera._rhi;
+    const rhi = camera.scene.engine._rhi;
     const gl = rhi.gl;
     const _macros = [];
     if (!primitive) return _macros;

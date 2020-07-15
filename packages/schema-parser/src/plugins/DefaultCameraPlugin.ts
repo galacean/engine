@@ -10,7 +10,7 @@ export const defaultCameraPlugin: Plugin = (oasis) => {
     },
     abilityAdded: (ability) => {
       if (ability instanceof Camera) {
-        ability.attachToScene(oasis.canvas, oasis.options.rhiAttr);
+        // ability.attachToScene(oasis.canvas, oasis.options.rhiAttr);
         if (ability instanceof Camera) {
           ability.node.transform.position = position;
         }

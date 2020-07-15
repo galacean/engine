@@ -4,7 +4,7 @@ import { MathUtil } from "@alipay/o3-math";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { GLAsset } from "./GLAsset";
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * GL 层的 RenderTarget 资源管理和渲染调用处理
@@ -28,7 +28,7 @@ export class GLRenderTarget extends GLAsset {
 
   protected _isNew: boolean = false;
 
-  constructor(rhi: GLRenderHardware, renderTarget: RenderTarget) {
+  constructor(rhi: WebGLRenderer, renderTarget: RenderTarget) {
     super(rhi, renderTarget);
 
     this.renderTarget = renderTarget;

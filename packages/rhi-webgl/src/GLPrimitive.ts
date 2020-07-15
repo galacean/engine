@@ -1,8 +1,27 @@
 import { Logger, UpdateType, GLCapabilityType } from "@alipay/o3-base";
 import { Primitive } from "@alipay/o3-primitive";
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { GLTechnique } from "./GLTechnique";
 import { GLAsset } from "./GLAsset";
+
+/**
+ * WebGL模式。
+ */
+export declare enum WebGLMode {
+  /** 自动，如果设备支持优先选择WebGL2.0，不支持 WebGL2.0 会回滚至WebGL1.0 */
+  Auto = 0,
+  /** 使用 WebGL2.0 */
+  WebGL2 = 1,
+  /** 使用 WebGL1.0 */
+  WebGL1 = 2
+}
+/**
+ * WebGLRenderer的参数选项。
+ */
+export interface WebGLRendererOptions extends WebGLContextAttributes {
+  /** WebGL API 模式。*/
+  webGLMode?: WebGLMode;
+}
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
@@ -16,7 +35,7 @@ export class GLPrimitive extends GLAsset {
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
-  constructor(rhi: GLRenderHardware, primitive: Primitive) {
+  constructor(rhi: WebGLRenderer, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
     this.attribLocArray = [];

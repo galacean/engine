@@ -4,7 +4,7 @@ import { GLShaderProgram } from "./GLShaderProgram";
 import { Logger } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { RenderTechnique, Material } from "@alipay/o3-material";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAsset } from "./GLAsset";
@@ -33,7 +33,7 @@ export class GLTechnique extends GLAsset {
   private _attributes;
   private _uniforms;
 
-  constructor(rhi: GLRenderHardware, tech: RenderTechnique) {
+  constructor(rhi: WebGLRenderer, tech: RenderTechnique) {
     super(rhi, tech);
     this._tech = tech;
     this._activeTextureCount = 0;

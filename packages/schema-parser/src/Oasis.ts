@@ -6,7 +6,7 @@ import * as o3 from "@alipay/o3";
 import { Schema, Options } from "./types";
 
 export class Oasis extends o3.EventDispatcher {
-  public readonly engine = new o3.Engine();
+  public readonly engine = null;
   public readonly nodeManager: NodeManager = new NodeManager(this);
   public readonly abilityManager: AbilityManager = new AbilityManager(this);
   public resourceManager: ResourceManager;
@@ -24,7 +24,7 @@ export class Oasis extends o3.EventDispatcher {
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
     // todo: resourceLoader 与 RHI 解绑
-    this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr || {});
+    // this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr || {}); 临时屏蔽
     this.resourceManager = new ResourceManager(this);
     _options.fps && this.engine.setFPS(_options.fps);
   }

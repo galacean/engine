@@ -1,5 +1,5 @@
 import { GLPrimitive } from "./GLPrimitive";
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { Primitive } from "@alipay/o3-primitive";
 import { GLTechnique } from "./GLTechnique";
 import { Logger } from "@alipay/o3-base";
@@ -10,7 +10,7 @@ import { Logger } from "@alipay/o3-base";
 export class GLVAOPrimitive extends GLPrimitive {
   private vao: Map<number, WebGLVertexArrayObject>;
 
-  constructor(rhi: GLRenderHardware, primitive: Primitive) {
+  constructor(rhi: WebGLRenderer, primitive: Primitive) {
     super(rhi, primitive);
     this.vao = new Map();
   }
@@ -93,7 +93,7 @@ export class GLVAOPrimitive extends GLPrimitive {
     super.finalize();
     const gl = this.rhi.gl;
     // 释放 vao
-    this.vao.forEach(vao => {
+    this.vao.forEach((vao) => {
       gl.deleteVertexArray(vao);
     });
   }

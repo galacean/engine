@@ -10,15 +10,35 @@ import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLExtensions } from "./GLExtensions";
 import { GLCapability } from "./GLCapability";
-import { Camera } from "@alipay/o3-core";
+import { Camera, HardwareRenderer } from "@alipay/o3-core";
 import { GLMultiRenderTarget } from "./GLMultiRenderTarget";
 import { WebGLExtension } from "./type";
 
 /**
- * GPU 硬件抽象层的 WebGL 的实现
- * @private
+ * WebGL模式。
  */
-export class GLRenderHardware {
+export enum WebGLMode {
+  /** 自动，如果设备支持优先选择WebGL2.0，不支持 WebGL2.0 会回滚至WebGL1.0 */
+  Auto = 0,
+  /** 使用 WebGL2.0 */
+  WebGL2 = 1,
+  /** 使用 WebGL1.0 */
+  WebGL1 = 2
+}
+
+/**
+ * WebGLRenderer的参数选项。
+ */
+export interface WebGLRendererOptions extends WebGLContextAttributes {
+  /** WebGL API 模式。*/
+  webGLMode?: WebGLMode;
+}
+
+/**
+ * WebGL渲染器实现，包含了WebGL1.0/和WebGL2.0。
+ */
+export class WebGLRenderer implements HardwareRenderer {
+  private _options: WebGLRendererOptions;
   private _canvas: HTMLCanvasElement;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
@@ -34,15 +54,17 @@ export class GLRenderHardware {
     return this._isWebGL2;
   }
 
-  constructor(canvas: HTMLCanvasElement, option: RHIOption) {
-    if (typeof canvas === "string") {
-      this._canvas = document.getElementById(canvas) as HTMLCanvasElement;
-    } else {
-      this._canvas = canvas;
-    }
+  constructor(options: WebGLRendererOptions = {}) {
+    this._options = options;
+  }
 
+  init(canvas: HTMLCanvasElement) {
+    const option = this._options;
+    this._canvas = canvas;
+
+    const webGLMode = option.webGLMode || WebGLMode.Auto;
     /** 若不设置 disableWebGL2 为 true，则默认自动优先使用 WebGL 2.0 */
-    if (!option.disableWebGL2) {
+    if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
       this._gl = <WebGL2RenderingContext>(
         (this._canvas.getContext("webgl2", option) || this._canvas.getContext("experimental-webgl2", option))
       );
@@ -50,12 +72,15 @@ export class GLRenderHardware {
     }
 
     if (!this._gl) {
-      this._gl = <WebGLRenderingContext & WebGLExtension>(
-        (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
-      );
-      this._isWebGL2 = false;
+      if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
+        this._gl = <WebGLRenderingContext & WebGLExtension>(
+          (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
+        );
+        this._isWebGL2 = false;
+      }
     }
-
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
     if (!this._gl) {
       throw new Error("Get GL Context FAILED.");
     }
@@ -69,6 +94,7 @@ export class GLRenderHardware {
     this._capability = new GLCapability(this);
 
     this._frameCount = 0;
+    this._options = null;
   }
 
   /**
@@ -265,7 +291,14 @@ export class GLRenderHardware {
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      const viewport = camera.viewport;
       const pixelViewport = camera._pixelViewport;
+      const width = gl.drawingBufferWidth;
+      const height = gl.drawingBufferHeight;
+      pixelViewport[0] = viewport[0] * width;
+      pixelViewport[1] = viewport[1] * height;
+      pixelViewport[2] = viewport[2] * width;
+      pixelViewport[3] = viewport[3] * height;
       this.viewport(pixelViewport[0], pixelViewport[1], pixelViewport[2], pixelViewport[3]);
     }
   }

@@ -1,4 +1,6 @@
 export { Engine } from "./Engine";
+export type { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
+export type { EngineOptions } from "./EngineDesign/EngineOptions";
 export { EngineFeature } from "./EngineFeature";
 export { AssetObject } from "./AssetObject";
 

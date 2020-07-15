@@ -1,4 +1,4 @@
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { GLCapabilityType } from "@alipay/o3-base";
 
 /**
@@ -6,10 +6,10 @@ import { GLCapabilityType } from "@alipay/o3-base";
  * @private
  */
 export class GLExtensions {
-  private rhi: GLRenderHardware;
+  private rhi: WebGLRenderer;
   private _requireResult;
 
-  constructor(rhi: GLRenderHardware) {
+  constructor(rhi: WebGLRenderer) {
     this.rhi = rhi;
     this._requireResult = {};
   }

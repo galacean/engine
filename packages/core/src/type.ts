@@ -39,7 +39,7 @@ type TypedArray = Array<number> | Float32Array;
 
 export type Canvas = object;
 export type BasicSceneRenderer = any;
-export type GLRenderHardware = any;
+export type WebGLRenderer = any;
 export type Feature = EngineFeature | SceneFeature;
 
 export interface ICameraProps {
