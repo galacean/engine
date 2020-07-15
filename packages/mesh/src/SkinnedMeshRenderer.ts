@@ -8,7 +8,7 @@ import { TextureFormat } from "@alipay/o3-base";
 
 /**
  * 负责渲染一个 Skinned Mesh 的组件
- * @extends AMeshRenderer
+ * @extends MeshRenderer
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
   private _hasInitJoints: boolean = false;
@@ -149,7 +149,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * update matrix palette
    * @private
    */
-  onUpdate() {
+  update() {
     if (!this._hasInitJoints) {
       this._initJoints();
       this._hasInitJoints = true;
