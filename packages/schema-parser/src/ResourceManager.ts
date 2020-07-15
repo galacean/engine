@@ -54,11 +54,7 @@ const resourceFactory = {
 export class ResourceManager {
   private resourceMap: { [id: string]: SchemaResource } = {};
   private resourceIdMap: WeakMap<SchemaResource, string> = new WeakMap();
-  private resourceLoader: o3.ResourceLoader = new o3.ResourceLoader(
-    this.oasis.engine,
-    null,
-    this.oasis.engine.getRHI(this.oasis.canvas)
-  );
+  private resourceLoader: o3.ResourceLoader = new o3.ResourceLoader(this.oasis.engine, null, this.oasis.engine._rhi);
   private maxId = 0;
 
   constructor(private oasis: Oasis) {}

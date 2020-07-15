@@ -121,7 +121,9 @@ export class Camera extends Component {
    * 横纵比，默认由视口的宽高比自动计算，如果手动设置会保持手动值，调用resetAspectRatio()可恢复。
    */
   public get aspectRatio(): number {
-    return this._customAspectRatio ?? this._pixelViewport[2] / this._pixelViewport[3];
+    // @todo: 修改为监听canvas尺寸变化事件或者脏标记
+    const canvas: HTMLCanvasElement = this._node.scene?.engine?.canvas;
+    return this._customAspectRatio ?? (canvas.width * this._viewport[2]) / (canvas.height * this._viewport[3]);
   }
 
   public set aspectRatio(value: number) {
@@ -141,23 +143,7 @@ export class Camera extends Component {
     if (value !== this._viewport) {
       vec4.copy(this._viewport, value);
     }
-
-    // todo rhi 修改
-    if (this.renderHardware) {
-      // todo 合并慎思：这里的宽高还可能是RenderTarget,如果设置了RenderTarget的话
-      const canvas = this.renderHardware.canvas;
-      const width = canvas.width;
-      const height = canvas.height;
-
-      const pixelViewport = this._pixelViewport;
-      pixelViewport[0] = width * value[0];
-      pixelViewport[1] = height * value[1];
-      pixelViewport[2] = width * value[2];
-      pixelViewport[3] = height * value[3];
-      this._projMatChange();
-      // todo 底层每帧会调用
-      // this.renderHardware.viewport(this._viewport[0], this._viewport[1], this._viewport[2], this._viewport[3]);
-    }
+    this._projMatChange();
   }
 
   /**
@@ -299,8 +285,7 @@ export class Camera extends Component {
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
 
-    const { SceneRenderer, canvas, attributes, clearParam = [0.25, 0.25, 0.25, 1], clearMode, near, far, fov } = props;
-    const engine = this.engine;
+    const { SceneRenderer, clearParam = [0.25, 0.25, 0.25, 1], clearMode, near, far, fov } = props;
 
     this._nearClipPlane = near ?? 0.1;
     this._farClipPlane = far ?? 100;
@@ -313,13 +298,7 @@ export class Camera extends Component {
     node.transform.position = props.position ?? [0, 10, 20];
     node.transform.lookAt(target, up);
 
-    // TODO: 可在重载_onActive方法内加入，待 rhi 重构剥离后修改
-    const settingCanvas = engine?.config?.canvas ?? canvas;
-    const settingAttribute = engine?.config?.attributes ?? attributes ?? {};
-    const Renderer = SceneRenderer;
-
-    settingCanvas && this.attachToScene(settingCanvas, settingAttribute);
-    this._sceneRenderer = new Renderer(this);
+    this._sceneRenderer = new SceneRenderer(this);
 
     // TODO: 修改为 ClearFlags
     this.setClearMode(clearMode, clearParam);
@@ -505,11 +484,6 @@ export class Camera extends Component {
   }
 
   //-------------------------------------------------deprecated---------------------------------------------------
-  /**
-   * 兼容旧的 api。
-   * @deprecated
-   * */
-  _rhi: any;
 
   private _pixelRatio: number = 1;
 
@@ -544,9 +518,6 @@ export class Camera extends Component {
    */
   public set pixelRatio(value: number) {
     this._pixelRatio = value;
-    if (this.renderHardware) {
-      this.updateSizes(value, this.renderHardware.canvas);
-    }
   }
 
   /**
@@ -560,47 +531,6 @@ export class Camera extends Component {
     this._clearParam = clearParam as Vector4;
     this._sceneRenderer.defaultRenderPass.clearParam = clearParam;
     this._sceneRenderer.defaultRenderPass.clearMode = clearMode;
-  }
-
-  /**
-   * @deprecated
-   * 兼容之前的 api
-   */
-  public attachToScene(canvas: HTMLCanvasElement | string, attributes?: WebGLContextAttributes): void {
-    if (typeof canvas === "string") {
-      canvas = document.getElementById(canvas) as HTMLCanvasElement;
-    }
-    const engine = this.node.scene.engine;
-    this._rhi = engine.requireRHI((this._props as any).RHI, canvas, {
-      ...(this._props as any).attributes,
-      ...attributes
-    });
-    // 触发 rhi viewport 设置
-    this.updateSizes(this._pixelRatio ?? window.devicePixelRatio, canvas);
-    // this.viewportNormalized = this.viewportNormalized;
-  }
-
-  /**
-   * @deprecated
-   * 兼容旧的 renderHardware
-   */
-  public get renderHardware(): any {
-    return this._rhi;
-  }
-
-  /**
-   * @deprecated
-   * 更新画布大小和透视矩阵
-   * @param [pixelRatio=this.pixelRatio] 像素比率
-   * @param
-   */
-  private updateSizes(pixelRatio: number, canvas: HTMLCanvasElement): void {
-    const width = (canvas.clientWidth * pixelRatio) | 0;
-    const height = (canvas.clientHeight * pixelRatio) | 0;
-
-    canvas.width = width;
-    canvas.height = height;
-    this.viewport = this.viewport;
   }
 }
 
