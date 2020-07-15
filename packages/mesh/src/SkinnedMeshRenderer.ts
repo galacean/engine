@@ -1,5 +1,5 @@
 import { mat4 } from "@alipay/o3-math";
-import { AMeshRenderer } from "./AMeshRenderer";
+import { MeshRenderer } from "./MeshRenderer";
 import { Node } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 import { Skin } from "./Skin";
@@ -10,7 +10,7 @@ import { TextureFormat } from "@alipay/o3-base";
  * 负责渲染一个 Skinned Mesh 的组件
  * @extends AMeshRenderer
  */
-export class ASkinnedMeshRenderer extends AMeshRenderer {
+export class SkinnedMeshRenderer extends MeshRenderer {
   private _hasInitJoints: boolean = false;
 
   public matrixPalette: Float32Array;
@@ -117,11 +117,11 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
   private findByNodeName(node: Node, nodeName: string) {
     if (!node) return null;
 
-    const n = node.findChildByName(nodeName);
+    const n = node.findByName(nodeName);
 
     if (n) return n;
 
-    return this.findByNodeName(node.parentNode, nodeName);
+    return this.findByNodeName(node.parent, nodeName);
   }
 
   /**
@@ -132,11 +132,11 @@ export class ASkinnedMeshRenderer extends AMeshRenderer {
    */
   _findParent(node: Node, nodeName: string) {
     if (node) {
-      const parent = node.parentNode;
+      const parent = node.parent;
       if (!parent) return null;
       if (parent.name === nodeName) return parent;
 
-      const brother = parent.findChildByName(nodeName);
+      const brother = parent.findByName(nodeName);
       if (brother) return brother;
 
       return this._findParent(parent, nodeName);
