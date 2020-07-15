@@ -1,7 +1,7 @@
 import { GLCapabilityType, Logger } from "@alipay/o3-base";
 import { CompressedTexture2D } from "@alipay/o3-compressed-texture";
 import { Texture2D } from "@alipay/o3-material";
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { GLTexture } from "./GLTexture";
 
 /**
@@ -9,7 +9,7 @@ import { GLTexture } from "./GLTexture";
  * @private
  */
 export class GLTexture2D extends GLTexture {
-  constructor(rhi: GLRenderHardware, config) {
+  constructor(rhi: WebGLRenderer, config) {
     super(rhi, config, rhi.gl.TEXTURE_2D);
   }
 

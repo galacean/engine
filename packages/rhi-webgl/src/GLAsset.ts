@@ -1,11 +1,11 @@
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { AssetObject } from "@alipay/o3-core";
 
 /**
  * GL 资源对象，通过 GLAssetsCache 管理
  * */
 export abstract class GLAsset {
-  private readonly _rhi: GLRenderHardware;
+  private readonly _rhi: WebGLRenderer;
 
   /** @member {AssetObject} -  引擎 js 部分的资源对象 */
   public asset: AssetObject;
@@ -13,10 +13,10 @@ export abstract class GLAsset {
   public cacheID: number;
 
   /**
-   * @param {GLRenderHardware} rhi - GPU 硬件抽象层的 WebGL
+   * @param {WebGLRenderer} rhi - GPU 硬件抽象层的 WebGL
    * @param {AssetObject} asset - 引擎 js 部分的资源对象
    * */
-  protected constructor(rhi: GLRenderHardware, asset: AssetObject) {
+  protected constructor(rhi: WebGLRenderer, asset: AssetObject) {
     this._rhi = rhi;
     this.asset = asset;
   }

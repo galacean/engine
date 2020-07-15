@@ -6,6 +6,8 @@ import { Scene } from "./Scene";
 import { Camera } from "./Camera";
 import { ResourceManager } from "./AssetDesign/ResourceManager";
 import { SceneManager } from "./SceneDesign/SceneManager";
+import { EngineOptions } from "./EngineDesign/EngineOptions";
+import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
 
 const MAX_FPS: number = 60;
 
@@ -25,8 +27,23 @@ export class Engine extends EventDispatcher {
   static _instanceIDCounter: number = 0;
   static _lastCreateEngine: Engine = null;
 
+  private _canvas: HTMLCanvasElement;
   private _resourceManager: ResourceManager = new ResourceManager();
   private _sceneManager: SceneManager = new SceneManager();
+
+  /**
+   * 画布。
+   */
+  get canvas(): HTMLCanvasElement {
+    return this._canvas;
+  }
+
+  /**
+   * 渲染器。
+   */
+  get hardwareRenderer(): any {
+    return this._rhi;
+  }
 
   /**
    * 资源管理器。
@@ -100,8 +117,6 @@ export class Engine extends EventDispatcher {
 
   private _FPS: number = MAX_FPS;
 
-  private _rhis: any[] = [];
-
   private _time: Time = new Time();
 
   private _paused: boolean = true;
@@ -118,87 +133,27 @@ export class Engine extends EventDispatcher {
 
   private _animate: () => void;
 
-  // /**
-  //  * 创建引擎。
-  //  * @param canvas - 渲染画布 @todo 未来抽象为画布接口,做跨平台
-  //  * @param hardwareRenderer - 渲染器
-  //  * @param options - 引擎初始化选项
-  //  */
-  // constructor(canvas:HTMLCanvasElement,hardwareRenderer:HardwareRenderer,options？:EngineOptions)
+  _rhi: any;
 
   /**
-   * 构造函数
-   * @constructor
-   * @todo canvas 后续会修改成必传参数
+   * 创建引擎。
+   * @param canvas - 渲染画布 @todo 未来抽象为画布接口,做跨平台
+   * @param hardwareRenderer - 渲染器
+   * @param options - 引擎初始化选项
    */
-  constructor(
-    private _config: {
-      canvas?: HTMLCanvasElement;
-      attributes?: WebGLContextAttributes & { enableCollect?: boolean };
-    } = {}
-  ) {
+  constructor(canvas: HTMLCanvasElement, hardwareRenderer: HardwareRenderer, engineOptions?: EngineOptions) {
     super();
 
     // 加入 Feature 管理
     engineFeatureManager.addObject(this);
-
-    // -- members -------------------------------------
-    /**
-     * 加载的所有场景的存储数组
-     * @member
-     */
     this.scenes = [this._currentScene];
+    this._rhi = hardwareRenderer;
+    this._rhi.init(canvas);
+    this._canvas = canvas;
   }
 
   public findFeature(Feature) {
     return engineFeatureManager.findFeature(this, Feature);
-  }
-
-  /**
-   * 请求 RHI
-   * @param {Function} T RHI类型
-   * @param {String|HTMLCanvasElement} canvas 画布
-   * @param {Object} attributes 配置信息
-   * @private
-   */
-  public requireRHI<T>(
-    RHI: new (canvas: string | HTMLCanvasElement, attributes: object) => T,
-    canvas: string | HTMLCanvasElement,
-    attributes: object
-  ): T {
-    let rhi = this.getRHI(canvas);
-    if (rhi === undefined) {
-      return;
-    }
-    if (rhi === null) {
-      rhi = new RHI(canvas, attributes);
-      this._rhis.push(rhi);
-    }
-    return rhi;
-  }
-
-  /**
-   * 得到 canvas 对应的 RHI 实例
-   * @param {String|HTMLCanvasElement} canvas 画布
-   */
-  public getRHI(canvas: string | HTMLCanvasElement): any {
-    let c: HTMLCanvasElement;
-    if (typeof canvas === "string") {
-      c = document.getElementById(canvas) as HTMLCanvasElement;
-    } else if (canvas instanceof HTMLCanvasElement) {
-      c = canvas;
-    }
-
-    if (c) {
-      for (const _rhi of this._rhis) {
-        if (_rhi.canvas === c) {
-          return _rhi;
-        }
-      }
-      return null;
-    } else {
-      Logger.warn(`unknown canvas parameter:  ${canvas}`);
-    }
   }
 
   /**
@@ -327,19 +282,13 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this.scenes]);
 
-    for (const rhi of this._rhis) {
-      rhi.beginFrame();
-    }
-
+    this._rhi.beginFrame();
     for (const scene of this.scenes) {
       scene.update(deltaTime);
       scene.render();
       scene._componentsManager.callComponentDestory();
     }
-
-    for (const rhi of this._rhis) {
-      rhi.endFrame();
-    }
+    this._rhi.endFrame();
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this.scenes]);
   }
@@ -372,10 +321,6 @@ export class Engine extends EventDispatcher {
     this.assetPool.clear();
     this.assetPool = null;
     (engineFeatureManager as any)._objects = [];
-  }
-
-  public get config() {
-    return this._config;
   }
 
   public static registerPipline() {}

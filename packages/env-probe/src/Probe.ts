@@ -10,7 +10,7 @@ import {
   RenderDepthTexture
 } from "@alipay/o3-material";
 import { BasicSceneRenderer, RenderPass } from "@alipay/o3-renderer-basic";
-import { GLRenderHardware } from "@alipay/o3-rhi-webgl";
+import { WebGLRenderer } from "@alipay/o3-rhi-webgl";
 import { ProbeConfig } from "./type";
 import { Vector4 } from "@alipay/o3-math/types/type";
 
@@ -89,8 +89,8 @@ export abstract class Probe extends Component {
     return this.camera.sceneRenderer;
   }
 
-  protected get rhi(): GLRenderHardware {
-    return this.camera.renderHardware;
+  protected get rhi(): WebGLRenderer {
+    return this.camera.scene.engine.hardwareRenderer;
   }
 
   /**

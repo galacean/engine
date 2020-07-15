@@ -123,7 +123,7 @@ export class BasicSceneRenderer extends SceneVisitor {
    */
   render() {
     const camera = this._camera;
-    if (!camera.renderHardware) {
+    if (!camera.scene.engine.hardwareRenderer) {
       return;
     }
     const opaqueQueue = this._opaqueQueue;
@@ -162,7 +162,7 @@ export class BasicSceneRenderer extends SceneVisitor {
   private _drawRenderPass(pass: RenderPass, camera: Camera) {
     pass.preRender(camera, this.opaqueQueue, this.transparentQueue);
 
-    const rhi = camera.renderHardware;
+    const rhi = camera.scene.engine._rhi;
     rhi.activeRenderTarget(pass.renderTarget, camera); // keep require rendertarget in case of GC
 
     if (pass.enabled) {

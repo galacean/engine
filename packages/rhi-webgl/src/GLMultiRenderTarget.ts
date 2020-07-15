@@ -1,4 +1,4 @@
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { MultiRenderTarget } from "@alipay/o3-material";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLRenderTarget } from "./GLRenderTarget";
@@ -7,7 +7,7 @@ export class GLMultiRenderTarget extends GLRenderTarget {
   private _glTextures: GLTexture2D[] = [];
   private buffers: number[] = [];
 
-  constructor(rhi: GLRenderHardware, config: MultiRenderTarget) {
+  constructor(rhi: WebGLRenderer, config: MultiRenderTarget) {
     super(rhi, config);
     // todo:delete
     if (this._isNew) return;

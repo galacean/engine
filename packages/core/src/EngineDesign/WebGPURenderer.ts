@@ -1,3 +1,5 @@
+import { HardwareRenderer } from "./HardwareRenderer";
+
 /**
  * WebGLGPU的参数选项。
  */

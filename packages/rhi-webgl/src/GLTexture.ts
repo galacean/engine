@@ -1,5 +1,5 @@
 import { GLAsset } from "./GLAsset";
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { Texture } from "@alipay/o3-material";
 
 /**
@@ -15,7 +15,7 @@ export class GLTexture extends GLAsset {
   //todo: delete
   protected _isNew: boolean;
 
-  constructor(rhi: GLRenderHardware, config: Texture, type) {
+  constructor(rhi: WebGLRenderer, config: Texture, type) {
     super(rhi, config);
 
     this._gl = rhi.gl;

@@ -138,7 +138,7 @@ class PBRMaterial extends Material {
       envMapModeRefract: false
     };
 
-    Object.keys(this._uniformObj).forEach(k => this.setValueByParamName(k, this._uniformObj[k]));
+    Object.keys(this._uniformObj).forEach((k) => this.setValueByParamName(k, this._uniformObj[k]));
   }
 
   /**
@@ -147,7 +147,7 @@ class PBRMaterial extends Material {
    * @private
    */
   setUniforms(obj) {
-    Object.keys(obj).forEach(key => {
+    Object.keys(obj).forEach((key) => {
       switch (key) {
         case "baseColorFactor":
           this.baseColorFactor = obj[key];
@@ -248,7 +248,7 @@ class PBRMaterial extends Material {
    * @private
    */
   setStates(obj) {
-    Object.keys(obj).forEach(key => {
+    Object.keys(obj).forEach((key) => {
       switch (key) {
         case "doubleSided":
           this.doubleSided = obj[key];
@@ -299,7 +299,7 @@ class PBRMaterial extends Material {
    */
   setValueByParamName(paramName, value) {
     const uniforms = PBRMaterial.TECH_CONFIG.uniforms;
-    const uniformName = Object.keys(uniforms).find(key => uniforms[key].paramName === paramName);
+    const uniformName = Object.keys(uniforms).find((key) => uniforms[key].paramName === paramName);
     if (uniformName) {
       this.setValue(uniformName, value);
     }
@@ -901,13 +901,14 @@ class PBRMaterial extends Material {
    */
   prepareDrawing(camera, component, primitive) {
     const scene = camera.scene;
+    const canvas = scene.engine.canvas;
     const lightMgr = scene.findFeature(LightFeature);
     const canOIT = camera.sceneRenderer.canOIT;
 
     /** 光源 uniform values */
     lightMgr.bindMaterialValues(this);
     /** 分辨率 */
-    this.setValue("u_resolution", [camera._rhi.canvas.width, camera._rhi.canvas.height]);
+    this.setValue("u_resolution", [canvas.width, canvas.height]);
     /** clipPlane */
     for (let i = 0; i < this._clipPlaneCount; i++) {
       this.setValue(`u_clipPlanes[${i}]`, scene.clipPlanes[i]);
@@ -989,7 +990,7 @@ class PBRMaterial extends Material {
    * @private
    */
   _generateShaderMacros(camera, component, primitive) {
-    const rhi = camera._rhi;
+    const rhi = camera.scene.engine._rhi;
 
     const _macros = ["O3_NEED_WORLDPOS"];
 
