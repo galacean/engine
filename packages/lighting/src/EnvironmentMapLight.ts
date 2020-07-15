@@ -7,7 +7,7 @@ const cacheMat3 = mat3.create();
 /**
  * 环境光源
  */
-class EnvironmentMapLight extends Light {
+export class EnvironmentMapLight extends Light {
   public diffuseMap;
   public specularMap;
   public diffuse;
@@ -162,5 +162,3 @@ class EnvironmentMapLight extends Light {
     mtl.setValue(uniformName + ".transformMatrix", mat3.fromMat4(cacheMat3, transformMatrix));
   }
 }
-
-export { EnvironmentMapLight as AEnvironmentMapLight };
