@@ -10,5 +10,5 @@ export { AmbientLight } from "./AmbientLight";
 export { DirectLight } from "./DirectLight";
 export { PointLight } from "./PointLight";
 export { SpotLight } from "./SpotLight";
-export { AEnvironmentMapLight } from "./EnvironmentMapLight";
+export { EnvironmentMapLight } from "./EnvironmentMapLight";
 export { Light } from "./Light";

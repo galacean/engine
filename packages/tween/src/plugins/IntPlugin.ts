@@ -1,4 +1,4 @@
-const IntPlugin = {
+export const IntPlugin = {
   reset() {},
 
   /**
