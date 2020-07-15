@@ -1,7 +1,0 @@
-{
-  "defaultTitle": "<%= defaultTitle %>",
-  "allowsBounceVertical": "NO",
-  "usingComponents": {
-    "oasis-3d": "@alipay/o3-component-miniprogram/dist/index"
-  }
-}
