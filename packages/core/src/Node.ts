@@ -181,6 +181,16 @@ export class Node extends EventDispatcher {
   }
 
   /**
+   * 所属引擎。
+   */
+  get engine(): Engine {
+    return this._scene.engine;
+  }
+
+  //CM:scene修改为engine,并放到嘴周,scene为可替换参数
+  //constructor(parent?: Node, name?: string，engine?: Engine)
+
+  /**
    * 创建一个节点。
    * @param scene - 所属的场景 @deprecated
    * @param parent - 父节点
@@ -461,16 +471,6 @@ export class Node extends EventDispatcher {
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   private _inverseWorldMatFlag: UpdateFlag;
-
-  /**
-   * @deprecated
-   * 引擎对象
-   * @member
-   * @readonly
-   */
-  get engine(): Engine {
-    return this._scene.engine;
-  }
 
   /**
    * @deprecated

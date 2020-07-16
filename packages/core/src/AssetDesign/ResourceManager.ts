@@ -6,12 +6,6 @@ import { Engine } from "..";
  * 资源管理员。
  */
 export class ResourceManager {
-  /**
-   * 当前创建资产所属的默认引擎对象。
-   * @remarks 最后创建的引擎实例会自动赋值该属性。
-   */
-  static defaultCreateAssetEngine: Engine = null;
-
   /** 资产路径池,key为资产ID，值为资产路径，通过路径加载的资源均放入该池中，用于资源文件管理。*/
   private _assetPathPool: { [key: number]: string } = {};
   /** 资产池,key为资产路径，值为资产，通过路径加载的资源均放入该池中，用于资产文件管理。*/

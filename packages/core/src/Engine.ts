@@ -23,6 +23,12 @@ const engineFeatureManager = new FeatureManager<EngineFeature>();
  * @class
  */
 export class Engine extends EventDispatcher {
+  /**
+   * 当前创建对象所属的默认引擎对象。
+   * @remarks 最后创建的引擎实例会自动赋值该属性。
+   */
+  static defaultCreateObjectEngine: Engine = null;
+
   static _instanceIDCounter: number = 0;
   static _lastCreateEngine: Engine = null;
 
