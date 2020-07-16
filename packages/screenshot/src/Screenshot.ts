@@ -139,7 +139,8 @@ export class Screenshot {
     } = Screenshot.getCanvasDataSizeAndOffset(camera, screenshotWidth, screenshotHeight);
 
     Screenshot.drawImage(
-      camera.scene.engine.canvas,
+      //@ts-ignore
+      camera.engine.canvas._htmlCanvas,
       screenshotWidth,
       screenshotHeight,
       canvasDataWidth,

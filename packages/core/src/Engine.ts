@@ -1,14 +1,13 @@
 import { Event, EventDispatcher, Logger, Time } from "@alipay/o3-base";
 import { ResourceManager } from "./AssetDesign/ResourceManager";
 import { AssetPool } from "./AssetPool";
+import { Canvas } from "./EngineDesign/Canvas";
 import { EngineOptions } from "./EngineDesign/EngineOptions";
 import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
 import { EngineFeature } from "./EngineFeature";
 import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneDesign/SceneManager";
-import { VSyncMode } from "./EngineDesign/VSyncMode";
-
 const MAX_FPS: number = 60;
 
 /*
@@ -27,16 +26,16 @@ export class Engine extends EventDispatcher {
   static _instanceIDCounter: number = 0;
   static _lastCreateEngine: Engine = null;
 
-  private _vSyncMode: VSyncMode = VSyncMode.EveryVBlank;
+  private _vSyncCount: number = 1;
   private _targetTrameRate: number;
-  private _canvas: HTMLCanvasElement;
+  private _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager();
   private _sceneManager: SceneManager = new SceneManager();
 
   /**
    * 渲染画布。
    */
-  get canvas(): HTMLCanvasElement {
+  get canvas(): Canvas {
     return this._canvas;
   }
 
@@ -44,7 +43,7 @@ export class Engine extends EventDispatcher {
    * 渲染器。
    */
   get hardwareRenderer(): any {
-    return this._rhi;
+    return this._hardwareRenderer;
   }
 
   /**
@@ -76,18 +75,18 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * 垂直同步模式。
+   * 垂直同步数量,表示执行一帧的垂直消隐数量,0表示关闭垂直同步。
    */
-  get vSyncMode(): VSyncMode {
-    return this._vSyncMode;
+  get vSyncCount(): number {
+    return this._vSyncCount;
   }
 
-  set vSyncMode(value: VSyncMode) {
-    this._vSyncMode = value;
+  set vSyncCount(value: number) {
+    this._vSyncCount = Math.max(0, Math.floor(value));
   }
 
   /**
-   * 目标帧率,vSyncMode = VSyncMode.None 时生效。
+   * 目标帧率,vSyncCount = 0 时生效。
    */
   get targetFrameRate(): number {
     return this._targetTrameRate;
@@ -113,22 +112,21 @@ export class Engine extends EventDispatcher {
 
   private _animate: () => void;
 
-  _rhi: any;
+  _hardwareRenderer: any;
 
   /**
    * 创建引擎。
-   * @param canvas - 渲染画布 @todo 未来抽象为画布接口,做跨平台
+   * @param canvas - 渲染画布
    * @param hardwareRenderer - 渲染器
    * @param options - 引擎初始化选项
    */
-  constructor(canvas: HTMLCanvasElement, hardwareRenderer: HardwareRenderer, engineOptions?: EngineOptions) {
+  constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer, engineOptions?: EngineOptions) {
     super();
-
     // 加入 Feature 管理
     engineFeatureManager.addObject(this);
     this.scenes = [this._currentScene];
-    this._rhi = hardwareRenderer;
-    this._rhi.init(canvas);
+    this._hardwareRenderer = hardwareRenderer;
+    this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
   }
 
@@ -203,13 +201,13 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this.scenes]);
 
-    this._rhi.beginFrame();
+    this._hardwareRenderer.beginFrame();
     for (const scene of this.scenes) {
       scene.update(deltaTime);
       scene.render();
       scene._componentsManager.callComponentDestory();
     }
-    this._rhi.endFrame();
+    this._hardwareRenderer.endFrame();
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this.scenes]);
   }
@@ -243,7 +241,7 @@ export class Engine extends EventDispatcher {
       this._currentScene = scene;
 
       if (
-        !this.scenes.find(s => {
+        !this.scenes.find((s) => {
           return s === scene;
         })
       ) {

@@ -162,7 +162,7 @@ export class BasicSceneRenderer extends SceneVisitor {
   private _drawRenderPass(pass: RenderPass, camera: Camera) {
     pass.preRender(camera, this.opaqueQueue, this.transparentQueue);
 
-    const rhi = camera.scene.engine._rhi;
+    const rhi = camera.scene.engine._hardwareRenderer;
     rhi.activeRenderTarget(pass.renderTarget, camera); // keep require rendertarget in case of GC
 
     if (pass.enabled) {
