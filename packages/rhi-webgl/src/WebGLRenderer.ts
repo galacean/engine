@@ -59,29 +59,23 @@ export class WebGLRenderer implements HardwareRenderer {
 
   init(canvas: Canvas) {
     const option = this._options;
-    const htmlCanvas = (canvas as WebCanvas)._htmlCanvas;
+    const webCanvas = (canvas as WebCanvas)._webCanvas;
     const webGLMode = option.webGLMode || WebGLMode.Auto;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
 
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      if (htmlCanvas instanceof HTMLCanvasElement) {
-        gl =
-          htmlCanvas.getContext("webgl2", option) ||
-          <WebGL2RenderingContext>htmlCanvas.getContext("experimental-webgl2", option);
-      } else {
-        gl = htmlCanvas.getContext("webgl2", option);
+      gl = webCanvas.getContext("webgl2", option);
+      if (!gl && webCanvas instanceof HTMLCanvasElement) {
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", option);
       }
       this._isWebGL2 = true;
     }
 
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        if (htmlCanvas instanceof HTMLCanvasElement) {
-          gl = <WebGLRenderingContext & WebGLExtension>(
-            (htmlCanvas.getContext("webgl", option) || htmlCanvas.getContext("experimental-webgl", option))
-          );
-        } else {
-          gl = <WebGLRenderingContext & WebGLExtension>htmlCanvas.getContext("webgl", option);
+        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", option);
+        if (!gl && webCanvas instanceof HTMLCanvasElement) {
+          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", option);
         }
         this._isWebGL2 = false;
       }
@@ -91,6 +85,7 @@ export class WebGLRenderer implements HardwareRenderer {
       throw new Error("Get GL Context FAILED.");
     }
 
+    this._gl = gl;
     this._renderStates = new GLRenderStates(gl);
     this._assetsCache = new GLAssetsCache(this, option);
     this._extensions = new GLExtensions(this);
@@ -98,7 +93,6 @@ export class WebGLRenderer implements HardwareRenderer {
 
     this._frameCount = 0;
     this._options = null;
-    this._gl = gl;
   }
 
   /**
