@@ -1,4 +1,7 @@
 import { Canvas } from "@alipay/o3-core";
+/**
+ * Web端使用的画布,可以支持HTMLCanvasElement和OffscreenCanvas。
+ */
 export class WebCanvas implements Canvas {
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
@@ -45,17 +48,5 @@ export class WebCanvas implements Canvas {
     this._width = webCanvas.width;
     this._height = webCanvas.height;
     this._webCanvas = webCanvas;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  setResolution(width: number, height: number): void {
-    if (this._width !== width || this._height !== height) {
-      this._webCanvas.width = width;
-      this._webCanvas.height = height;
-      this._width = width;
-      this._height = height;
-    }
   }
 }
