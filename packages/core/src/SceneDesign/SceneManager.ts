@@ -15,13 +15,6 @@ export class SceneManager {
   set scene(scene: Scene) {}
 
   /**
-   * 合并场景，将源场景合并到目标场景。
-   * @param sourceScene - 源场景
-   * @param destScene - 目标场景
-   */
-  mergeScenes(sourceScene: Scene, destScene: Scene) {}
-
-  /**
    * 加载并激活场景场景。
    * @param url - 场景路径
    * @param isAdditive - 是否为叠加模式，true 会将节点叠加到当前场景,false 会关闭当前所有场景并切换为载入场景
@@ -30,4 +23,11 @@ export class SceneManager {
   loadScene(url: string, isAdditive: boolean = false): AssetPromise<Scene> {
     return null;
   }
+
+  /**
+   * 合并场景，将源场景合并到目标场景。
+   * @param sourceScene - 源场景
+   * @param destScene - 目标场景
+   */
+  mergeScenes(sourceScene: Scene, destScene: Scene) {}
 }
