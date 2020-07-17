@@ -3,7 +3,7 @@
  */
 export interface Canvas {
   /** 宽。*/
-  readonly width: number;
+  width: number;
   /** 高。*/
-  readonly height: number;
+  height: number;
 }
