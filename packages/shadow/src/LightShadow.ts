@@ -1,5 +1,5 @@
 import { DataType } from "@alipay/o3-base";
-import { RenderTarget } from "@alipay/o3-material";
+import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
 import { mat4, MathUtil } from "@alipay/o3-math";
 import { DirectLight, PointLight, SpotLight } from "@alipay/o3-lighting";
 import { vec2 } from "@alipay/o3-math";
@@ -8,6 +8,7 @@ import { vec2 } from "@alipay/o3-math";
  * @private
  */
 export class LightShadow {
+  private rhi;
   private _mapSize;
   private _renderTarget;
   public bias;
@@ -15,10 +16,15 @@ export class LightShadow {
   public radius;
   public projectionMatrix;
 
-  constructor(props = { width: 512, height: 512 }) {
+  constructor(rhi, props = { width: 512, height: 512 }) {
     this._mapSize = vec2.fromValues(props.width, props.height);
-
-    this._renderTarget = new RenderTarget("shadowMap", { ...props, clearColor: [1.0, 1.0, 1.0, 1.0] });
+    this.rhi = rhi;
+    this._renderTarget = new RenderTarget(
+      rhi,
+      props.width,
+      props.height,
+      new RenderColorTexture(rhi, props.width, props.height)
+    );
 
     /**
      * （偏斜）
@@ -60,7 +66,7 @@ export class LightShadow {
    * @readonly
    */
   get map() {
-    return this._renderTarget.texture;
+    return this._renderTarget.getColorTexture();
   }
 
   /**
@@ -112,7 +118,7 @@ export class LightShadow {
       (this._mapSize.width !== width || this._mapSize.height !== height)
     ) {
       this._mapSize = vec2.fromValues(width, height);
-      this._renderTarget = new RenderTarget("shadowMap", { width, height, clearColor: [1.0, 1.0, 1.0, 1.0] });
+      this._renderTarget = new RenderTarget(this.rhi, width, height, new RenderColorTexture(this.rhi, width, height));
     }
   }
 

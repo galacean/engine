@@ -1129,9 +1129,8 @@ class PBRMaterial extends Material {
   /**
    * 创建一个副本
    * @param {string} name - name
-   * @param {boolean} cloneTexture - 是否复制纹理，默认复制
    */
-  clone(name?: string, cloneTexture: boolean = true) {
+  clone(name?: string) {
     const newMtl = new PBRMaterial(name || this.name);
 
     newMtl.renderType = this.renderType;
@@ -1139,18 +1138,7 @@ class PBRMaterial extends Material {
 
     for (const name in this._uniformObj) {
       const value = this._uniformObj[name];
-      if (value instanceof Texture2D) {
-        if (cloneTexture) {
-          const { name: textureName, image, type, config } = value;
-          const newTexture = new Texture2D(textureName, image, config);
-          newTexture.type = type;
-          newMtl[name] = newTexture;
-        } else {
-          newMtl[name] = value;
-        }
-      } else {
-        newMtl[name] = Util.clone(value);
-      }
+      newMtl[name] = Util.clone(value);
     }
 
     if (this._stateObj) {

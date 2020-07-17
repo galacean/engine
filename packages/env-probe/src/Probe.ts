@@ -38,9 +38,6 @@ export abstract class Probe extends Component {
   /** 裁剪面 */
   public clipPlanes: Vector4[];
 
-  /** 新版本 */
-  protected _isNew: boolean = false;
-
   public set camera(camera) {
     if (camera === this._camera) return;
     this._camera && this.sceneRenderer.removeRenderPass(this.renderPass);
@@ -56,21 +53,13 @@ export abstract class Probe extends Component {
    * 探针所得 2D 纹理
    * */
   public get texture(): Texture2D | RenderColorTexture {
-    //todo: delete
-    if (this._isNew) {
-      return this.renderPass.renderTarget?.getColorTexture();
-    }
-    return this.renderPass.renderTarget?.texture;
+    return this.renderPass.renderTarget?.getColorTexture();
   }
 
   /**
    * 探针所得 深度 纹理
    * */
   public get depthTexture(): Texture2D | RenderDepthTexture {
-    //todo: delete
-    if (this._isNew) {
-      return this.renderPass.renderTarget?.depthTextureNew;
-    }
     return this.renderPass.renderTarget?.depthTexture;
   }
 
@@ -78,11 +67,7 @@ export abstract class Probe extends Component {
    * 探针所得 立方体 纹理
    * */
   public get cubeTexture(): TextureCubeMap | RenderColorTexture {
-    //todo: delete
-    if (this._isNew) {
-      return this.renderPass.renderTarget?.getColorTexture();
-    }
-    return this.renderPass.renderTarget?.cubeTexture;
+    return this.renderPass.renderTarget?.getColorTexture();
   }
 
   protected get sceneRenderer(): BasicSceneRenderer {
@@ -113,11 +98,7 @@ export abstract class Probe extends Component {
 
   /** WebGL2 时，可以开启硬件层的 MSAA */
   public get samples() {
-    return this.renderTarget.samples;
-  }
-
-  public set samples(v: number) {
-    this.renderTarget.samples = this.renderTargetSwap.samples = v;
+    return this.renderTarget.antiAliasing;
   }
 
   /**
@@ -144,33 +125,26 @@ export abstract class Probe extends Component {
     this.renderList = config.renderList || [];
     this.clipPlanes = config.clipPlanes || [];
 
-    if (this.rhi) {
-      //todo: delete
-      this._isNew = true;
-      const width = config.width || 1024;
-      const height = config.height || 1024;
-      const samples = config.samples || 1;
+    const width = config.width || 1024;
+    const height = config.height || 1024;
+    const samples = config.samples || 1;
 
-      this.renderTarget = new (RenderTarget as any)(
-        this.rhi,
-        width,
-        height,
-        new RenderColorTexture(this.rhi, width, height, undefined, false, this.isCube),
-        RenderBufferDepthFormat.Depth,
-        samples
-      );
-      this.renderTargetSwap = new (RenderTarget as any)(
-        this.rhi,
-        width,
-        height,
-        new RenderColorTexture(this.rhi, width, height, undefined, false, this.isCube),
-        RenderBufferDepthFormat.Depth,
-        samples
-      );
-    } else {
-      this.renderTarget = new RenderTarget("_renderTarget" + this.cacheId, config);
-      this.renderTargetSwap = new RenderTarget("_renderTarget_swap" + this.cacheId, config);
-    }
+    this.renderTarget = new RenderTarget(
+      this.rhi,
+      width,
+      height,
+      new RenderColorTexture(this.rhi, width, height, undefined, false, this.isCube),
+      RenderBufferDepthFormat.Depth,
+      samples
+    );
+    this.renderTargetSwap = new RenderTarget(
+      this.rhi,
+      width,
+      height,
+      new RenderColorTexture(this.rhi, width, height, undefined, false, this.isCube),
+      RenderBufferDepthFormat.Depth,
+      samples
+    );
 
     this.renderPass.renderTarget = this.renderTarget;
 
@@ -187,9 +161,6 @@ export abstract class Probe extends Component {
     this.addEventListener("disabled", () => {
       this.renderPass.enabled = false;
     });
-
-    // disable GC
-    this.garbageCollection(false);
   }
 
   protected preRender() {
@@ -228,21 +199,6 @@ export abstract class Probe extends Component {
     }
   }
 
-  /** 切换 GC */
-  garbageCollection(enable: boolean) {
-    //todo: delete
-    if (this._isNew) return;
-
-    const assetType = enable ? AssetType.Cache : AssetType.Scene;
-    this.renderTarget.type = this.renderTargetSwap.type = assetType;
-
-    if (this.isCube) {
-      this.renderTarget.cubeTexture.type = this.renderTargetSwap.cubeTexture.type = assetType;
-    } else {
-      this.renderTarget.texture.type = this.renderTargetSwap.texture.type = assetType;
-    }
-  }
-
   /**
    * 销毁 probe 以及 renderPass
    */
@@ -251,14 +207,10 @@ export abstract class Probe extends Component {
     this.sceneRenderer.removeRenderPass(this.renderPass);
 
     super.destroy();
-    // enable GC
-    this.garbageCollection(true);
 
     // todo:delete
-    if (this._isNew) {
-      this.renderTarget.destroy();
-      this.renderTargetSwap.destroy();
-    }
+    this.renderTarget.destroy();
+    this.renderTargetSwap.destroy();
   }
 
   /**
