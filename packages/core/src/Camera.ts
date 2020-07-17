@@ -121,8 +121,7 @@ export class Camera extends Component {
    * 横纵比，默认由视口的宽高比自动计算，如果手动设置会保持手动值，调用resetAspectRatio()可恢复。
    */
   public get aspectRatio(): number {
-    // @todo: 修改为监听canvas尺寸变化事件或者脏标记
-    const canvas: HTMLCanvasElement = this._node.scene?.engine?.canvas;
+    const canvas = this._node.engine.canvas;
     return this._customAspectRatio ?? (canvas.width * this._viewport[2]) / (canvas.height * this._viewport[3]);
   }
 
@@ -290,7 +289,6 @@ export class Camera extends Component {
     this._nearClipPlane = near ?? 0.1;
     this._farClipPlane = far ?? 100;
     this._fieldOfView = fov ?? 45;
-    this._pixelRatio = props.pixelRatio ?? null;
 
     // TODO: 删除，兼容旧 camera，decaprated
     const target = props.target ?? [0, 0, 0];
@@ -298,10 +296,7 @@ export class Camera extends Component {
     node.transform.position = props.position ?? [0, 10, 20];
     node.transform.lookAt(target, up);
 
-    // TODO: 可在重载_onActive方法内加入，待 rhi 重构剥离后修改
-    const Renderer = SceneRenderer;
-
-    this._sceneRenderer = new Renderer(this);
+    this._sceneRenderer = new SceneRenderer(this);
 
     // TODO: 修改为 ClearFlags
     this.setClearMode(clearMode, clearParam);
@@ -487,9 +482,6 @@ export class Camera extends Component {
   }
 
   //-------------------------------------------------deprecated---------------------------------------------------
-
-  private _pixelRatio: number = 1;
-
   /**
    * 渲染管线 todo 兼容。
    * @deprecated
@@ -505,22 +497,6 @@ export class Camera extends Component {
   public get inverseViewMatrix(): Readonly<Matrix4> {
     turnAround(this._inverseViewMatrix, this._transform.worldMatrix);
     return this._inverseViewMatrix;
-  }
-
-  /**
-   * 像素比率。
-   * @deprecated
-   */
-  public get pixelRatio(): number {
-    return this._pixelRatio;
-  }
-
-  /**
-   * 像素比率
-   * @deprecated
-   */
-  public set pixelRatio(value: number) {
-    this._pixelRatio = value;
   }
 
   /**

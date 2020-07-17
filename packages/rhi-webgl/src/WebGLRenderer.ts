@@ -1,18 +1,18 @@
-import { Logger, ClearMode, GLCapabilityType } from "@alipay/o3-base";
+import { ClearMode, GLCapabilityType, Logger } from "@alipay/o3-base";
+import { Camera, HardwareRenderer, Canvas } from "@alipay/o3-core";
 import { RenderTarget } from "@alipay/o3-material";
-import { RHIOption } from "@alipay/o3-core/types/type";
-import { GLRenderStates } from "./GLRenderStates";
 import { GLAssetsCache } from "./GLAssetsCache";
-import { GLPrimitive } from "./GLPrimitive";
-import { GLVAOPrimitive } from "./GLVAOPrimitive";
-import { GLTechnique } from "./GLTechnique";
-import { GLSpriteBatcher } from "./GLSpriteBatcher";
-import { GLRenderTarget } from "./GLRenderTarget";
-import { GLExtensions } from "./GLExtensions";
 import { GLCapability } from "./GLCapability";
-import { Camera, HardwareRenderer } from "@alipay/o3-core";
+import { GLExtensions } from "./GLExtensions";
 import { GLMultiRenderTarget } from "./GLMultiRenderTarget";
+import { GLPrimitive } from "./GLPrimitive";
+import { GLRenderStates } from "./GLRenderStates";
+import { GLRenderTarget } from "./GLRenderTarget";
+import { GLSpriteBatcher } from "./GLSpriteBatcher";
+import { GLTechnique } from "./GLTechnique";
+import { GLVAOPrimitive } from "./GLVAOPrimitive";
 import { WebGLExtension } from "./type";
+import { WebCanvas } from "./WebCanvas";
 
 /**
  * WebGL模式。
@@ -39,7 +39,6 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
  */
 export class WebGLRenderer implements HardwareRenderer {
   private _options: WebGLRendererOptions;
-  private _canvas: HTMLCanvasElement;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _assetsCache: GLAssetsCache;
@@ -58,39 +57,38 @@ export class WebGLRenderer implements HardwareRenderer {
     this._options = options;
   }
 
-  init(canvas: HTMLCanvasElement) {
+  init(canvas: Canvas) {
     const option = this._options;
-    this._canvas = canvas;
-
+    const webCanvas = (canvas as WebCanvas)._webCanvas;
     const webGLMode = option.webGLMode || WebGLMode.Auto;
-    /** 若不设置 disableWebGL2 为 true，则默认自动优先使用 WebGL 2.0 */
+    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      this._gl = <WebGL2RenderingContext>(
-        (this._canvas.getContext("webgl2", option) || this._canvas.getContext("experimental-webgl2", option))
-      );
+      gl = webCanvas.getContext("webgl2", option);
+      if (!gl && webCanvas instanceof HTMLCanvasElement) {
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", option);
+      }
       this._isWebGL2 = true;
     }
 
-    if (!this._gl) {
+    if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        this._gl = <WebGLRenderingContext & WebGLExtension>(
-          (this._canvas.getContext("webgl", option) || this._canvas.getContext("experimental-webgl", option))
-        );
+        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", option);
+        if (!gl && webCanvas instanceof HTMLCanvasElement) {
+          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", option);
+        }
         this._isWebGL2 = false;
       }
     }
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-    if (!this._gl) {
+
+    if (!gl) {
       throw new Error("Get GL Context FAILED.");
     }
 
-    this._renderStates = new GLRenderStates(this._gl);
-
+    this._gl = gl;
+    this._renderStates = new GLRenderStates(gl);
     this._assetsCache = new GLAssetsCache(this, option);
-
     this._extensions = new GLExtensions(this);
-
     this._capability = new GLCapability(this);
 
     this._frameCount = 0;
@@ -104,15 +102,6 @@ export class WebGLRenderer implements HardwareRenderer {
    */
   get gl() {
     return this._gl;
-  }
-
-  /**
-   * Canvas 对象
-   * @member
-   * @readonly
-   */
-  get canvas() {
-    return this._canvas;
   }
 
   /**

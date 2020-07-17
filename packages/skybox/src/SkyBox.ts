@@ -29,7 +29,7 @@ export class SkyBox extends GeometryRenderer {
     this.skyBoxMap = skyBoxMap;
   }
 
-  onUpdate() {
+  update() {
     (this.material as SkyBoxMaterial).setModel(this.node.transform.worldMatrix);
   }
 

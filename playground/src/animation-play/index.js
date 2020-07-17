@@ -7,13 +7,13 @@ import { Resource, ResourceLoader } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { PBRMaterial } from "@alipay/o3-pbr";
-import { WebGLRenderer } from "@alipay/o3-rhi-webgl";
+import { WebGLRenderer, WebCanvas } from "@alipay/o3-rhi-webgl";
 import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 
 RegistExtension({ PBRMaterial });
 
 //-- create engine object
-const canvas = document.getElementById("o3-demo");
+const canvas = new WebCanvas(document.getElementById("o3-demo"));
 let engine = new Engine(canvas, new WebGLRenderer());
 
 let scene = engine.currentScene;
