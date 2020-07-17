@@ -114,11 +114,11 @@ export class RenderTechnique extends AssetObject {
     this._uniforms = Object.assign({}, RenderTechnique.commonUniforms, v);
   }
 
-  compile(camera, component, primitive, material: Material) {
+  compile(camera: Camera, component, primitive, material: Material) {
     this.parseFog(camera);
 
     if (this._needCompile) {
-      const rhi = camera?.renderHardware;
+      const rhi = camera.engine._hardwareRenderer;
       const isWebGL2 = rhi?.isWebGL2;
 
       material.preCompile?.(this);
