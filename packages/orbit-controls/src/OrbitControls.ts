@@ -96,7 +96,7 @@ export class OrbitControls extends Script {
     this.fov = props.fov || 45;
 
     if (!(this.mainElement instanceof HTMLCanvasElement)) {
-      Logger.warn("AOrbitControls must have a legal mainElement");
+      Logger.warn("OrbitControls must have a legal mainElement");
       return null;
     }
     // 目标点
