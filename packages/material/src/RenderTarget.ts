@@ -44,7 +44,7 @@ export class RenderTarget extends AssetObject {
    * 深度纹理。
    * @todo 以后命名调整为depthTexture
    */
-  get depthTextureNew(): RenderDepthTexture | null {
+  get depthTexture(): RenderDepthTexture | null {
     return this._depthTexture;
   }
 
@@ -66,7 +66,7 @@ export class RenderTarget extends AssetObject {
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
    * @param antiAliasing - 抗锯齿级别,默认 1
    */
-  constructorNew(
+  constructor(
     rhi,
     width: number,
     height: number,
@@ -84,7 +84,7 @@ export class RenderTarget extends AssetObject {
    * @param depthTexture - 深度纹理
    * @param antiAliasing - 抗锯齿级别,默认 1
    */
-  constructorNew(
+  constructor(
     rhi,
     width: number,
     height: number,
@@ -102,7 +102,7 @@ export class RenderTarget extends AssetObject {
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
    * @param antiAliasing - 抗锯齿级别,默认 1
    */
-  constructorNew(
+  constructor(
     rhi,
     width: number,
     height: number,
@@ -120,7 +120,7 @@ export class RenderTarget extends AssetObject {
    * @param depthTexture - 深度纹理
    * @param antiAliasing - 抗锯齿级别,默认 1
    */
-  constructorNew(
+  constructor(
     rhi,
     width: number,
     height: number,
@@ -132,7 +132,7 @@ export class RenderTarget extends AssetObject {
   /**
    * @internal
    */
-  constructorNew(
+  constructor(
     rhi,
     width: number,
     height: number,
@@ -140,6 +140,7 @@ export class RenderTarget extends AssetObject {
     depth: RenderDepthTexture | RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
     antiAliasing: number = 1
   ) {
+    super("");
     /** todo
      * MRT + Cube + [,MSAA]
      * MRT + MSAA

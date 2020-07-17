@@ -53,7 +53,7 @@ class RenderPass {
    * @type {*}
    */
   get clearParam() {
-    return (this.renderTarget && this.renderTarget.clearColor) || this._clearParam;
+    return this._clearParam;
   }
 
   set clearParam(v) {

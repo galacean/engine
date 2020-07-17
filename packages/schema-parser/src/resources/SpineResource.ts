@@ -36,21 +36,21 @@ export class SpineResource extends SchemaResource {
           }
         }
       }
-      // const assetManager: any = new AssetManager();
-      // assetManager.loadText(jsonUrl);
-      // assetManager.loadTexture(textureUrl);
-      // assetManager.loadText(atlasUrl);
-      // assetManager.onLoad().then(() => {
-      //   const atlas = new spine.TextureAtlas(assetManager.get(atlasUrl), path => {
-      //     return assetManager.get(textureUrl);
-      //   });
-      //   const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
-      //   const skeletonJson = new spine.SkeletonJson(atlasLoader);
-      //   const skeletonData = skeletonJson.readSkeletonData(assetManager.get(jsonUrl));
-      //   this._resource = skeletonData;
-      //   this.setMeta();
-      //   resolve(this);
-      // });
+      const assetManager: any = new AssetManager(resourceLoader.rhi);
+      assetManager.loadText(jsonUrl);
+      assetManager.loadTexture(textureUrl);
+      assetManager.loadText(atlasUrl);
+      assetManager.onLoad().then(() => {
+        const atlas = new spine.TextureAtlas(assetManager.get(atlasUrl), (path) => {
+          return assetManager.get(textureUrl);
+        });
+        const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
+        const skeletonJson = new spine.SkeletonJson(atlasLoader);
+        const skeletonData = skeletonJson.readSkeletonData(assetManager.get(jsonUrl));
+        this._resource = skeletonData;
+        this.setMeta();
+        resolve(this);
+      });
     });
   }
 

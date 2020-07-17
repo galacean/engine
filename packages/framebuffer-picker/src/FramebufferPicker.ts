@@ -1,5 +1,5 @@
 import { Component, Node, Camera, Script } from "@alipay/o3-core";
-import { RenderTarget } from "@alipay/o3-material";
+import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
 import { MaskList } from "@alipay/o3-base";
 import { ColorRenderPass } from "./ColorRenderPass";
 
@@ -37,11 +37,10 @@ class FramebufferPicker extends Script {
     super(node, props);
 
     this.camera = props.camera;
-    this.colorRenderTarget = new RenderTarget("ColorRenderTarget_FBP", {
-      width: props.width || 1024,
-      height: props.height || 1024,
-      clearColor: [1, 1, 1, 1] // [0,0,0,1] & [1,1,1,1] are not used
-    });
+    const rhi = this.node.engine.hardwareRenderer;
+    const width = props.width || 1024;
+    const height = props.height || 1024;
+    this.colorRenderTarget = new RenderTarget(rhi, width, height, new RenderColorTexture(rhi, width, height));
     this.colorRenderPass = new ColorRenderPass("ColorRenderTarget_FBP", -1, this.colorRenderTarget, props.mask || 0);
     this.camera.sceneRenderer.addRenderPass(this.colorRenderPass);
     if (props.onPick) {

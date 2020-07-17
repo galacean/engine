@@ -1,6 +1,6 @@
 import { ClearMode } from "@alipay/o3-base";
 import { RenderPass } from "@alipay/o3-renderer-basic";
-import { RenderTarget } from "@alipay/o3-material";
+import { RenderTarget, RenderDepthTexture } from "@alipay/o3-material";
 import { DepthMaterial } from "./DepthMaterial";
 
 /**
@@ -9,13 +9,9 @@ import { DepthMaterial } from "./DepthMaterial";
  * 2. 渲染 opaque 到深度纹理
  * */
 export class OpaqueRenderPass extends RenderPass {
-  constructor(width: number, height: number) {
+  constructor(rhi, width: number, height: number) {
     super("opaque renderPass", -2, null);
-    this.renderTarget = new RenderTarget("opaque depth", {
-      width,
-      height,
-      enableDepthTexture: true
-    });
+    this.renderTarget = new RenderTarget(rhi, width, height, null, new RenderDepthTexture(rhi, width, height));
     this.replaceMaterial = new DepthMaterial("DepthMaterial");
     this.renderOverride = true;
   }
@@ -27,7 +23,7 @@ export class OpaqueRenderPass extends RenderPass {
     const defaultRenderPass = camera.sceneRenderer.defaultRenderPass;
     const rhi = camera.renderHardware;
 
-    this.clearParam = this.renderTarget.clearColor = defaultRenderPass.clearParam;
+    this.clearParam = defaultRenderPass.clearParam;
     this.mask = defaultRenderPass.mask;
 
     // render to screen

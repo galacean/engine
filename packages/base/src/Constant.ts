@@ -156,28 +156,6 @@ export enum TextureFilter {
 }
 
 /**
- * @deprecated
- */
-export enum TextureWrapMode {
-  REPEAT = 10497, // gl.REPEAT
-  CLAMP_TO_EDGE = 33071, // gl.CLAMP_TO_EDGE
-  MIRRORED_REPEAT = 33648 // gl.MIRRORED_REPEAT
-}
-
-/**
- * Cube Map 的各个表面的值
- * @deprecated
- */
-export const CubeMapFace = [
-  0x8515, // gl.TEXTURE_CUBE_MAP_POSITIVE_X;
-  0x8516, // gl.TEXTURE_CUBE_MAP_NEGATIVE_X
-  0x8517, // gl.TEXTURE_CUBE_MAP_POSITIVE_Y
-  0x8518, // gl.TEXTURE_CUBE_MAP_NEGATIVE_Y
-  0x8519, // gl.TEXTURE_CUBE_MAP_POSITIVE_Z
-  0x851a // gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
-];
-
-/**
  * 数据类型枚举
  */
 export enum DataType {

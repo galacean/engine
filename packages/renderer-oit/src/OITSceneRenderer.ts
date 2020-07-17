@@ -22,8 +22,9 @@ export class OITSceneRenderer extends BasicSceneRenderer {
   private opaqueRenderPass: OpaqueRenderPass;
   private weightedAverageRenderPass: WeightedAverageRenderPass;
   private screenRenderPass: ScreenRenderPass;
+  private rhi;
 
-  public get mode() {
+  public get mode(): OITMode {
     return this._mode;
   }
 
@@ -48,6 +49,8 @@ export class OITSceneRenderer extends BasicSceneRenderer {
 
   constructor(camera) {
     super(camera);
+    // todo: delete
+    this.rhi = camera.node.engine.hardwareRenderer;
     const canMRT = camera.renderHardware.canIUse(GLCapabilityType.drawBuffers);
     if (!canMRT) {
       Logger.warn("检测到当前环境不支持 MRT, 性能考虑不建议开启 OIT。已为您自动降级为 BasicSceneRenderer");
@@ -103,8 +106,8 @@ export class OITSceneRenderer extends BasicSceneRenderer {
   private initWeightedAverage() {
     this.clearWeightedAverage();
 
-    this.opaqueRenderPass = new OpaqueRenderPass(this.width, this.height);
-    this.weightedAverageRenderPass = new WeightedAverageRenderPass(this.width, this.height);
+    this.opaqueRenderPass = new OpaqueRenderPass(this.rhi, this.width, this.height);
+    this.weightedAverageRenderPass = new WeightedAverageRenderPass(this.rhi, this.width, this.height);
     this.screenRenderPass = new ScreenRenderPass(this.weightedAverageRenderPass.textures);
 
     this.addRenderPass(this.opaqueRenderPass);

@@ -124,7 +124,7 @@ export class RfuiAnimation {
     this.material.opacity = 0;
     return fade(
       0,
-      value => {
+      (value) => {
         this.material.opacity = value;
       },
       1,
@@ -145,14 +145,11 @@ export class RfuiAnimation {
     });
 
     this.material.uvOffset = config.uvOffset || vec2.fromValues(-1, 0);
-    this.material.diffuse.setWrapMode(
-      config.wrapS || TextureWrapMode.CLAMP_TO_EDGE,
-      config.wrapT || TextureWrapMode.CLAMP_TO_EDGE
-    );
+    this.material.diffuse.wrapModeU = this.material.diffuse.wrapModeV = TextureWrapMode.Clamp;
 
     return slide(
       this.material.uvOffset,
-      value => {
+      (value) => {
         this.material.uvOffset = value;
       },
       vec2.fromValues(0, 0),
@@ -174,14 +171,11 @@ export class RfuiAnimation {
     });
 
     this.material.maskUvOffset = vec2.fromValues(0, 0);
-    this.material.mask.setWrapMode(
-      config.wrapS || TextureWrapMode.CLAMP_TO_EDGE,
-      config.wrapT || TextureWrapMode.CLAMP_TO_EDGE
-    );
+    this.material.mask.wrapModeU = this.material.mask.wrapModeV = TextureWrapMode.Clamp;
 
     return slide(
       vec2.fromValues(0, 0),
-      value => {
+      (value) => {
         this.material.maskUvOffset = value;
       },
       maskUvOffset,
@@ -268,7 +262,7 @@ export class RfuiAnimation {
     this.material.opacity = origin;
     return fade(
       origin,
-      value => {
+      (value) => {
         this.material.opacity = value;
       },
       0,
@@ -288,13 +282,11 @@ export class RfuiAnimation {
 
     const uvOffset = config.uvOffset || vec2.fromValues(-1, 0);
     this.material.uvOffset = origin;
-    this.material.diffuse.setWrapMode(
-      config.wrapS || TextureWrapMode.CLAMP_TO_EDGE,
-      config.wrapT || TextureWrapMode.CLAMP_TO_EDGE
-    );
+
+    this.material.diffuse.wrapModeU = this.material.diffuse.wrapModeV = TextureWrapMode.Clamp;
     return slide(
       origin,
-      value => {
+      (value) => {
         this.material.uvOffset = value;
       },
       uvOffset,
@@ -313,14 +305,11 @@ export class RfuiAnimation {
     });
 
     this.material.maskUvOffset = origin;
-    this.material.mask.setWrapMode(
-      config.wrapS || TextureWrapMode.CLAMP_TO_EDGE,
-      config.wrapT || TextureWrapMode.CLAMP_TO_EDGE
-    );
+    this.material.mask.wrapModeU = this.material.mask.wrapModeV = TextureWrapMode.Clamp;
 
     return slide(
       origin,
-      value => {
+      (value) => {
         this.material.maskUvOffset = value;
       },
       vec2.fromValues(0, 0),
