@@ -17,7 +17,7 @@ export class SceneManager {
   /**
    * 加载并激活场景场景。
    * @param url - 场景路径
-   * @param isAdditive - 是否为叠加模式，true 会将节点叠加到当前场景,false 会关闭当前所有场景并切换为载入场景
+   * @param isAdditive - 是否为叠加模式，true 会将节点叠加到当前场景并使用当前场景的光照信息,false 会关闭当前所有场景并切换为载入场景
    * @returns 场景请求
    */
   loadScene(url: string, isAdditive: boolean = false): AssetPromise<Scene> {

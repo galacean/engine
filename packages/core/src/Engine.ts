@@ -25,7 +25,6 @@ const engineFeatureManager = new FeatureManager<EngineFeature>();
 export class Engine extends EventDispatcher {
   /**
    * 当前创建对象所属的默认引擎对象。
-   * @remarks 最后创建的引擎实例会自动赋值该属性。
    */
   static defaultCreateObjectEngine: Engine = null;
 
@@ -196,6 +195,10 @@ export class Engine extends EventDispatcher {
    * 销毁引擎。
    */
   public destroy(): void {}
+
+  _getDefaultEngine(): Engine {
+    return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
+  }
 
   private _tick(): void {
     if (this._paused) {

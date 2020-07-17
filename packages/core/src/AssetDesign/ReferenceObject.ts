@@ -36,7 +36,7 @@ export abstract class ReferenceObject {
   }
 
   protected constructor(engine?: Engine) {
-    const resEngine = engine || Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
+    const resEngine = engine; /*|| Engine._getDefaultEngine()*/
     if (!resEngine) throw "asset must belone to an engine.";
     this._engine = resEngine;
     this._instanceID = ++Engine._instanceIDCounter;
