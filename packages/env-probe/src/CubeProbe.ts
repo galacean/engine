@@ -32,7 +32,6 @@ export class CubeProbe extends Probe {
     });
 
     this.position = config.position || [0, 0, 0];
-    this.size = config.size || 1024;
   }
 
   /**
@@ -130,15 +129,5 @@ export class CubeProbe extends Probe {
     mat4.invert(this.camera.inverseViewMatrix, this.camera.viewMatrix);
     mat4.perspective(this.camera.projectionMatrix, fovRadian, 1, this.camera.nearClipPlane, this.camera.farClipPlane);
     mat4.invert(this.camera.inverseProjectionMatrix, this.camera.projectionMatrix);
-  }
-
-  public set size(size: number) {
-    //todo:delete
-    if (this._isNew) return;
-    const renderTarget: any = this.renderTarget;
-    const renderTargetSwap: any = this.renderTargetSwap;
-
-    renderTarget.width = renderTargetSwap.width = renderTarget.height = renderTargetSwap.height = size;
-    renderTarget.needRecreate = renderTargetSwap.needRecreate = true;
   }
 }

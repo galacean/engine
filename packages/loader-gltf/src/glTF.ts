@@ -28,7 +28,6 @@ import {
 import { AnimationClip, InterpolationType } from "@alipay/o3-animation";
 
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
-
 import { parseSingleKTX } from "@alipay/o3-compressed-texture";
 
 // 踩在浪花儿上
@@ -232,16 +231,16 @@ export function parseTexture(gltfTexture, resources) {
     sampler = {
       magFilter: TextureFilter.NEAREST,
       minFilter: TextureFilter.NEAREST,
-      wrapS: TextureWrapMode.REPEAT,
-      wrapT: TextureWrapMode.REPEAT
+      wrapS: TextureWrapMode.Repeat,
+      wrapT: TextureWrapMode.Repeat
     };
   } else {
     sampler = Object.assign(
       {
         magFilter: TextureFilter.LINEAR,
         minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
-        wrapS: TextureWrapMode.REPEAT,
-        wrapT: TextureWrapMode.REPEAT
+        wrapS: TextureWrapMode.Repeat,
+        wrapT: TextureWrapMode.Repeat
       },
       gltf.samplers[gltfTexture.sampler]
     );
@@ -254,12 +253,14 @@ export function parseTexture(gltfTexture, resources) {
   let tex;
   if (image.fileType) {
     if (image.fileType === "ktx") {
-      tex = parseSingleKTX(name, image.data, sampler);
+      tex = parseSingleKTX(image.data);
     } else {
-      tex = new Texture2D(name, image.data, sampler);
+      // todo: rhi 获取
+      // tex = new Texture2D(name, image.data, sampler);
     }
   } else {
-    tex = new Texture2D(name, image, sampler);
+    // todo: rhi 获取
+    // tex = new Texture2D(name, image, sampler);
   }
   tex.type = resources.assetType;
   return Promise.resolve(tex);

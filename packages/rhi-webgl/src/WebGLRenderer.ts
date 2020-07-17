@@ -4,7 +4,6 @@ import { RenderTarget } from "@alipay/o3-material";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
-import { GLMultiRenderTarget } from "./GLMultiRenderTarget";
 import { GLPrimitive } from "./GLPrimitive";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLRenderTarget } from "./GLRenderTarget";
@@ -274,8 +273,7 @@ export class WebGLRenderer implements HardwareRenderer {
    */
   activeRenderTarget(renderTarget: RenderTarget, camera: Camera) {
     if (renderTarget) {
-      const TargetClazz = renderTarget.isMulti ? GLMultiRenderTarget : GLRenderTarget;
-      const glRenderTarget = this._assetsCache.requireObject(renderTarget, TargetClazz);
+      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
       glRenderTarget.activeRenderTarget();
     } else {
       const gl = this._gl;

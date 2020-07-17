@@ -203,11 +203,11 @@ export class GPUParticleSystem extends GeometryRenderer {
     material.setValue("uOnce", this.once ? 1.0 : 0.0);
 
     if (this.particleTex) {
-      this.particleTex.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
+      this.particleTex.wrapModeU = this.particleTex.wrapModeV = TextureWrapMode.Clamp;
       material.setValue("particleTex", this.particleTex);
     }
     if (this.particleMaskTex) {
-      this.particleMaskTex.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
+      this.particleMaskTex.wrapModeU = this.particleTex.wrapModeV = TextureWrapMode.Clamp;
       material.setValue("particleMaskTex", this.particleMaskTex);
     }
     super.setMaterial(material);
