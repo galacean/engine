@@ -25,7 +25,8 @@ export class TextureCubeMap extends Texture {
    * @param format - 格式，默认 TextureFormat.R8G8B8A8
    * @param mipmap - 是否使用多级纹理
    */
-  constructorNew(rhi, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {
+  constructor(rhi, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {
+    super();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 
@@ -56,9 +57,6 @@ export class TextureCubeMap extends Texture {
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
-
-    //todo: delete
-    this.type = AssetType.Scene;
   }
 
   /**

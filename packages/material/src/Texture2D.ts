@@ -25,13 +25,14 @@ export class Texture2D extends Texture {
    * @param format - 格式,默认 TextureFormat.R8G8B8A8
    * @param mipmap - 是否使用多级纹理
    */
-  constructorNew(
+  constructor(
     rhi,
     width: number,
     height: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
     mipmap: boolean = true
   ) {
+    super();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 
@@ -62,9 +63,6 @@ export class Texture2D extends Texture {
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
-
-    //todo: delete
-    this.type = AssetType.Scene;
   }
 
   /**

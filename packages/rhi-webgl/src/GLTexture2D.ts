@@ -1,5 +1,5 @@
 import { GLCapabilityType, Logger } from "@alipay/o3-base";
-import { CompressedTexture2D } from "@alipay/o3-compressed-texture";
+// import { CompressedTexture2D } from "@alipay/o3-compressed-texture";
 import { Texture2D } from "@alipay/o3-material";
 import { WebGLRenderer } from "./WebGLRenderer";
 import { GLTexture } from "./GLTexture";
@@ -96,7 +96,7 @@ export class GLTexture2D extends GLTexture {
       }
       /** compressed */
     } else if (isCompressed && needUpdateWholeTexture) {
-      const compressedConfig = config as CompressedTexture2D;
+      const compressedConfig = config as any;
       if (!this.rhi.canIUseCompressedTextureInternalFormat(compressedConfig.internalFormat)) {
         Logger.warn("GLTexture2D: Attempt to load unsupport compressed texture format");
       }

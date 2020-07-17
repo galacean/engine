@@ -23,5 +23,10 @@ ResourceLoader.registerHandler("textureNew", new TextureNewHandler());
 ResourceLoader.registerHandler("cubemapNew", new TextureCubeMapNewHandler());
 
 export { ResourceLoader, Resource, path };
+import "./GLTFLoader";
+import "./BufferLoader";
+import "./Texture2DLoader";
+import "./JSONLoader";
+import "./KTXLoader";
 
 export { openTechnique } from "./handlers/Technique";

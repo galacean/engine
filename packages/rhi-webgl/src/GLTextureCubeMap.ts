@@ -1,5 +1,5 @@
 import { CubeMapFace, Logger } from "@alipay/o3-base";
-import { CompressedTextureCubeMap } from "@alipay/o3-compressed-texture";
+// import { CompressedTextureCubeMap } from "@alipay/o3-compressed-texture";
 import { TextureCubeMap } from "@alipay/o3-material";
 import { WebGLRenderer } from "./WebGLRenderer";
 import { GLTexture } from "./GLTexture";
@@ -67,7 +67,7 @@ export class GLTextureCubeMap extends GLTexture {
     if (this._isNew) return;
 
     const gl = this._gl;
-    const compressedConfig = this._config as CompressedTextureCubeMap;
+    const compressedConfig = this._config as any;
     const mipmapsFaces = compressedConfig.mipmapsFaces;
     if (compressedConfig.needUpdateWholeTexture || compressedConfig.needUpdateCubeTextureFace.includes(true)) {
       if (!this.rhi.canIUseCompressedTextureInternalFormat(compressedConfig.internalFormat)) {

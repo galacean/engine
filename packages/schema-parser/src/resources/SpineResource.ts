@@ -1,6 +1,6 @@
 import { SchemaResource } from "./SchemaResource";
 import { BaseResource } from "./BaseResource";
-import { ResourceLoader, AssetManager, spine } from "@alipay/o3";
+import { ResourceLoader } from "@alipay/o3";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
 export class SpineResource extends SchemaResource {
@@ -36,27 +36,27 @@ export class SpineResource extends SchemaResource {
           }
         }
       }
-      const assetManager: any = new AssetManager();
-      assetManager.loadText(jsonUrl);
-      assetManager.loadTexture(textureUrl);
-      assetManager.loadText(atlasUrl);
-      assetManager.onLoad().then(() => {
-        const atlas = new spine.TextureAtlas(assetManager.get(atlasUrl), path => {
-          return assetManager.get(textureUrl);
-        });
-        const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
-        const skeletonJson = new spine.SkeletonJson(atlasLoader);
-        const skeletonData = skeletonJson.readSkeletonData(assetManager.get(jsonUrl));
-        this._resource = skeletonData;
-        this.setMeta();
-        resolve(this);
-      });
+      // const assetManager: any = new AssetManager();
+      // assetManager.loadText(jsonUrl);
+      // assetManager.loadTexture(textureUrl);
+      // assetManager.loadText(atlasUrl);
+      // assetManager.onLoad().then(() => {
+      //   const atlas = new spine.TextureAtlas(assetManager.get(atlasUrl), path => {
+      //     return assetManager.get(textureUrl);
+      //   });
+      //   const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
+      //   const skeletonJson = new spine.SkeletonJson(atlasLoader);
+      //   const skeletonData = skeletonJson.readSkeletonData(assetManager.get(jsonUrl));
+      //   this._resource = skeletonData;
+      //   this.setMeta();
+      //   resolve(this);
+      // });
     });
   }
 
   loadWithAttachedResources(resourceLoader, assetConfig: AssetConfig): Promise<LoadAttachedResourceResult> {
-    return new Promise(resolve => {
-      this.load(resourceLoader, assetConfig).then(res => {
+    return new Promise((resolve) => {
+      this.load(resourceLoader, assetConfig).then((res) => {
         const result: any = {
           resources: [this],
           structure: {
