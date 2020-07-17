@@ -26,7 +26,7 @@ export class Texture2D extends Texture {
    * @param mipmap - 是否使用多级纹理
    */
   constructor(
-    rhi,
+    rhi, //CM:放到最后一个参数并改为可选参数,如果不设置则使用Engine._getDefaultEngine()，相关的纹理类都改一下
     width: number,
     height: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
