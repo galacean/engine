@@ -100,7 +100,7 @@ export class FreeControls extends Script {
     super(node);
     this.camera = node;
     const acamera = node.scene.activeCameras[0];
-    //@ts-ignore
+    //@ts-ignore @todo 未来移除对html元素的依赖，通过封装引擎的input实现
     this.mainElement = props.mainElement || acamera.scene.engine.canvas._webCanvas;
     this.domElement = props.domElement || document;
 

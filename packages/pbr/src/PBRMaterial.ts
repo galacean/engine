@@ -15,6 +15,7 @@ import { LightFeature } from "@alipay/o3-lighting";
 
 import vs from "./pbr.vs.glsl";
 import fs from "./pbr.fs.glsl";
+import { Camera } from "../../material/node_modules/@alipay/o3-core/types";
 
 /**
  * PBR（Physically-Based Rendering）材质
@@ -989,8 +990,8 @@ class PBRMaterial extends Material {
    * @param {Ability} component 组件
    * @private
    */
-  _generateShaderMacros(camera, component, primitive) {
-    const rhi = camera.scene.engine._rhi;
+  _generateShaderMacros(camera: Camera, component, primitive) {
+    const rhi = camera.scene.engine._hardwareRenderer;
 
     const _macros = ["O3_NEED_WORLDPOS"];
 
