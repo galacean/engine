@@ -100,7 +100,8 @@ export class FreeControls extends Script {
     super(node);
     this.camera = node;
     const acamera = node.scene.activeCameras[0];
-    this.mainElement = props.mainElement || acamera.scene.engine.canvas;
+    //@ts-ignore
+    this.mainElement = props.mainElement || acamera.scene.engine.canvas._webCanvas;
     this.domElement = props.domElement || document;
 
     if (!(this.mainElement instanceof HTMLCanvasElement)) {

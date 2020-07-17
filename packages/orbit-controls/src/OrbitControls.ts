@@ -90,8 +90,8 @@ export class OrbitControls extends Script {
     super(node);
 
     this.camera = node;
-    const acamera = (node.scene as any)._activeCameras[0];
-    this.mainElement = props.mainElement || acamera._rhi.canvas;
+    const camera = (node.scene as any)._activeCameras[0];
+    this.mainElement = props.mainElement || camera.engine.canvas._webCanvas;
     this.domElement = props.domElement || document;
     this.fov = props.fov || 45;
 
