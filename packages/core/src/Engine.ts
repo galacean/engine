@@ -28,7 +28,7 @@ export class Engine extends EventDispatcher {
   static _lastCreateEngine: Engine = null;
 
   private _canvas: HTMLCanvasElement;
-  private _resourceManager: ResourceManager = new ResourceManager();
+  private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager();
 
   /**

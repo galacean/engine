@@ -3,7 +3,7 @@ import { LoadItem } from "./LoadItem";
 import { ReferenceObject } from "./ReferenceObject";
 import { Engine } from "..";
 import { Loader } from "./Loader";
-import { AssetType } from "./AssetType";
+import { LoaderType } from "./LoaderType";
 
 /**
  * 资源管理员。
@@ -16,17 +16,17 @@ export class ResourceManager {
   static defaultCreateAssetEngine: Engine = null;
 
   private static _loaders: { [key: number]: Loader<any> } = {};
-  private static _extTypeMapping: { [key: string]: AssetType } = {};
+  private static _extTypeMapping: { [key: string]: LoaderType } = {};
 
   /** @internal */
-  static _addLoader(type: AssetType, loader: Loader<any>, extnames: string[]) {
+  static _addLoader(type: LoaderType, loader: Loader<any>, extnames: string[]) {
     this._loaders[type] = loader;
     for (let i = 0, len = extnames.length; i < len; i++) {
       this._extTypeMapping[extnames[i]] = type;
     }
   }
 
-  private static _getTypeByUrl(url: string): AssetType {
+  private static _getTypeByUrl(url: string): LoaderType {
     return this._extTypeMapping[url.substring(url.lastIndexOf(".") + 1)];
   }
 
@@ -43,6 +43,12 @@ export class ResourceManager {
   retryInterval: number = 0;
   /** 资源默认超时时间 */
   timeout: number = 10000;
+
+  /**
+   * 创建资源管理员。
+   * @param engine 当前资源管理所属的 engine
+   */
+  constructor(public readonly engine: Engine) {}
 
   /**
    * 通过路径异步加载资源。
@@ -81,9 +87,9 @@ export class ResourceManager {
       return this.loadSingleItem(assetInfo);
     }
     // 数组资源加载
-    const promises = assetInfo.map((item) => this.loadSingleItem<T>(item));
+    const promises: any = assetInfo.map((item) => this.loadSingleItem<T>(item));
 
-    return AssetPromise.all<T>(promises);
+    return AssetPromise.all<T, T, T, T, T, T, T, T, T, T>(promises);
   }
   /**
    * 取消所有未完成加载的资产。
@@ -164,7 +170,7 @@ export class ResourceManager {
   }
 }
 
-export function resourceLoader(assetType: AssetType, extnames: string[]) {
+export function resourceLoader(assetType: LoaderType, extnames: string[]) {
   return <T extends Loader<any>>(Target: { new (): T }) => {
     //@ts-ignore
     ResourceManager._addLoader(assetType, new Target(), extnames);

@@ -22,4 +22,4 @@ export { Loader } from "./AssetDesign/Loader";
 export { ResourceManager, resourceLoader } from "./AssetDesign/ResourceManager";
 export { AssetPromise, AssetPromiseStatus } from "./AssetDesign/AssetPromise";
 export type { LoadItem } from "./AssetDesign/LoadItem";
-export { AssetType } from "./AssetDesign/AssetType";
+export { LoaderType } from "./AssetDesign/LoaderType";
