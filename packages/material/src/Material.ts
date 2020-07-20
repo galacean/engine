@@ -2,12 +2,13 @@ import { mat4, mat3 } from "@alipay/o3-math";
 import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
+import { ReferenceObject } from "@alipay/o3-core";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
  * @class
  */
-export class Material {
+export class Material extends ReferenceObject {
   /**
    * 名称
    * @member {string}
@@ -37,6 +38,7 @@ export class Material {
    * @param {string} name 名称
    */
   constructor(name: string) {
+    super();
     this.name = name;
 
     this.renderType = MaterialType.OPAQUE;
@@ -116,6 +118,13 @@ export class Material {
     const oriValue = this.getValue(name);
     const oriIsTexture = oriValue instanceof Texture;
     const curIsTexture = value instanceof Texture;
+    // if (oriIsTexture) {
+    //   (<Texture>oriValue)._addReference(-1);
+    // }
+    // if (curIsTexture) {
+    //   (<Texture>value)._addReference(1);
+    // }
+
     if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {
       this._technique = null;
     }

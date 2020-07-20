@@ -1,6 +1,8 @@
 import { Texture } from "./Texture";
 import { TextureFormat, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
 
+// const tex = new Texture2D(1000, 1000, undefined, undefined, engine)
+// const tex = new Texture2D(()=>{})
 /**
  * 2D纹理。
  */
@@ -26,11 +28,11 @@ export class Texture2D extends Texture {
    * @param mipmap - 是否使用多级纹理
    */
   constructor(
-    rhi,
     width: number,
     height: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
-    mipmap: boolean = true
+    mipmap: boolean = true,
+    rhi
   ) {
     super();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;

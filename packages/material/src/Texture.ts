@@ -9,14 +9,14 @@ import {
   Logger,
   GLCapabilityType
 } from "@alipay/o3-base";
-import { AssetObject } from "@alipay/o3-core";
+import { ReferenceObject } from "@alipay/o3-core";
 import { TextureFormatDetail } from "./type";
 
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
 
-export abstract class Texture extends AssetObject {
+export abstract class Texture extends ReferenceObject {
   /** @internal */
   static _readFrameBuffer: WebGLFramebuffer = null;
 
@@ -518,14 +518,16 @@ export abstract class Texture extends AssetObject {
   }
 
   /** 销毁实例 */
-  public destroy() {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-
-    gl.deleteTexture(this._glTexture);
-
-    this._glTexture = null;
-    this._formatDetail = null;
-    this._rhi = null;
+  public destroy(force?: boolean): boolean {
+    if (super.destroy(force)) {
+      const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+      gl.deleteTexture(this._glTexture);
+      this._glTexture = null;
+      this._formatDetail = null;
+      this._rhi = null;
+      return true;
+    }
+    return false;
   }
 
   /** @internal */
@@ -679,5 +681,10 @@ export abstract class Texture extends AssetObject {
         gl.texParameteri(this._target, pname, gl.MIRRORED_REPEAT);
         break;
     }
+  }
+
+  // TODO: delete
+  constructor() {
+    super();
   }
 }
