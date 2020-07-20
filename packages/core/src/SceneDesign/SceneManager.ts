@@ -15,19 +15,20 @@ export class SceneManager {
   set scene(scene: Scene) {}
 
   /**
-   * 加载并激活场景场景。
+   * 加载并激活场景。
    * @param url - 场景路径
-   * @param isAdditive - 是否为叠加模式，true 会将节点叠加到当前场景并使用当前场景的光照信息,false 会关闭当前所有场景并切换为载入场景
+   * @param destroyOldScene - 是否销毁旧场景信息
    * @returns 场景请求
    */
-  loadScene(url: string, isAdditive: boolean = false): AssetPromise<Scene> {
+  loadScene(url: string, destroyOldScene: boolean = true): AssetPromise<Scene> {
     return null;
   }
 
   /**
    * 合并场景，将源场景合并到目标场景。
+   * @remarks 合并后将使用 destScene 的全局信息,lightingMap 信息会进行合并。
    * @param sourceScene - 源场景
    * @param destScene - 目标场景
    */
-  mergeScenes(sourceScene: Scene, destScene: Scene) {}
+  mergeScenes(sourceScene: Scene, destScene: Scene): void {}
 }
