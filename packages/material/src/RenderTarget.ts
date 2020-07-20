@@ -1,5 +1,5 @@
 import { TextureCubeFace, RenderBufferDepthFormat, GLCapabilityType, AssetType, Logger } from "@alipay/o3-base";
-import { AssetObject } from "@alipay/o3-core";
+import { AssetObject, Engine } from "@alipay/o3-core";
 import { Texture } from "./Texture";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
@@ -58,89 +58,91 @@ export class RenderTarget extends AssetObject {
 
   /**
    * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
-   * @todo 删除兼容性API后直接替换构造函数
-   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
    * @param antiAliasing - 抗锯齿级别,默认 1
+   * @param engine - 可选引擎
    */
   constructor(
-    rhi,
     width: number,
     height: number,
     colorTexture: RenderColorTexture,
     depthFormat?: RenderBufferDepthFormat,
-    antiAliasing?: number
+    antiAliasing?: number,
+    engine?: Engine
   );
 
   /**
    * 通过颜色纹理和深度纹理创建渲染目标。不传颜色纹理时，只生成深度纹理
-   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthTexture - 深度纹理
    * @param antiAliasing - 抗锯齿级别,默认 1
+   * @param engine - 可选引擎
    */
   constructor(
-    rhi,
     width: number,
     height: number,
     colorTexture: RenderColorTexture | null,
     depthTexture: RenderDepthTexture,
-    antiAliasing?: number
+    antiAliasing?: number,
+    engine?: Engine
   );
 
   /**
    * 通过颜色纹理数组和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
-   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
    * @param antiAliasing - 抗锯齿级别,默认 1
+   * @param engine - 可选引擎
    */
   constructor(
-    rhi,
     width: number,
     height: number,
     colorTextures: RenderColorTexture[],
     depthFormat?: RenderBufferDepthFormat,
-    antiAliasing?: number
+    antiAliasing?: number,
+    engine?: Engine
   );
 
   /**
    * 通过颜色纹理数组和深度纹理创建渲染目标。
-   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthTexture - 深度纹理
    * @param antiAliasing - 抗锯齿级别,默认 1
+   * @param engine - 可选引擎
    */
   constructor(
-    rhi,
     width: number,
     height: number,
     colorTextures: RenderColorTexture[],
     depthTexture: RenderDepthTexture,
-    antiAliasing?: number
+    antiAliasing?: number,
+    engine?: Engine
   );
 
   /**
    * @internal
    */
   constructor(
-    rhi,
     width: number,
     height: number,
     renderTexture: RenderColorTexture | Array<RenderColorTexture> | null,
     depth: RenderDepthTexture | RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
-    antiAliasing: number = 1
+    antiAliasing: number = 1,
+    engine?: Engine
   ) {
     super("");
+    engine = engine || Engine._getDefaultEngine();
+    const rhi = engine.hardwareRenderer;
+
     /** todo
      * MRT + Cube + [,MSAA]
      * MRT + MSAA

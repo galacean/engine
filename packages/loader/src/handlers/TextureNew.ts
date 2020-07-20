@@ -17,10 +17,10 @@ export class TextureNewHandler {
     });
   }
 
-  open(resource: Resource, rhi) {
+  open(resource: Resource) {
     const { data, name } = resource;
     const { width, height } = data;
-    const tex = new Texture2D(rhi, width, height);
+    const tex = new Texture2D(width, height);
     tex.name = name;
 
     if (!tex._glTexture) return;
