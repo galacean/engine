@@ -11,6 +11,8 @@ import { TextureFormat } from "@alipay/o3-base";
  * @extends MeshRenderer
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
+  private _hasInitJoints: boolean = false;
+
   public matrixPalette: Float32Array;
   public jointNodes: Node[];
   public jointTexture: Texture2D;
@@ -88,7 +90,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     return this._weights;
   }
 
-  _onAwake() {
+  _initJoints() {
     if (!this._skin) return;
     const skin = this._skin;
     //-- init
@@ -102,7 +104,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this.jointNodes = jointNodes;
 
     /** 是否使用骨骼纹理 */
-    const rhi = this.scene.activeCameras[0]?.renderHardware;
+    const rhi = this.scene.engine.hardwareRenderer;
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
     const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
@@ -143,10 +145,15 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * @override
+   * TODO 渲染之前
+   * update matrix palette
    * @private
    */
   update() {
+    if (!this._hasInitJoints) {
+      this._initJoints();
+      this._hasInitJoints = true;
+    }
     if (this._skin) {
       const joints = this.jointNodes;
       const ibms = this._skin.inverseBindMatrices;
@@ -176,7 +183,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * */
   createJointTexture() {
     if (!this.jointTexture) {
-      const rhi = this.node.scene.activeCameras[0]?.renderHardware;
+      const rhi = this.node.scene.engine.hardwareRenderer;
       if (!rhi) return;
       this.jointTexture = new (Texture2D as any)(rhi, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
     }

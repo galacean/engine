@@ -1,6 +1,6 @@
 import { ClearMode } from "@alipay/o3-base";
 import { RenderPass } from "@alipay/o3-renderer-basic";
-import { Texture2D } from "@alipay/o3-material";
+import { RenderColorTexture } from "@alipay/o3-material";
 import { ScreenQuadGeometry } from "@alipay/o3-geometry-shape";
 import { ScreenMaterial } from "./ScreenMaterial";
 
@@ -10,7 +10,7 @@ import { ScreenMaterial } from "./ScreenMaterial";
 export class ScreenRenderPass extends RenderPass {
   private screenQuadGeometry = new ScreenQuadGeometry();
 
-  constructor(textures: Texture2D[]) {
+  constructor(textures: RenderColorTexture[]) {
     super("screen renderPass", 1, null);
     this.replaceMaterial = new ScreenMaterial("ScreenMaterial", textures);
     this.renderOverride = true;

@@ -1,5 +1,5 @@
 import { RenderableComponent } from "@alipay/o3-core";
-import { vec3, vec4, quat, mat4 } from "@alipay/o3-math";
+import { vec3, vec4, quat } from "@alipay/o3-math";
 import { Texture2D } from "@alipay/o3-material";
 import { Logger } from "@alipay/o3-base";
 
@@ -145,8 +145,8 @@ export class SpriteRenderer extends RenderableComponent {
     this._rect = rect || {
       x: 0,
       y: 0,
-      width: this._texture?.image?.width ?? this._texture?.width ?? 0,
-      height: this._texture?.image?.height ?? this._texture?.height ?? 0
+      width: this._texture?.width ?? 0,
+      height: this._texture?.height ?? 0
     };
   }
 
@@ -162,9 +162,9 @@ export class SpriteRenderer extends RenderableComponent {
   protected setUvRect() {
     let w, h;
 
-    if (this._texture && this._texture.image) {
-      w = this._texture.image.width;
-      h = this._texture.image.height;
+    if (this._texture) {
+      w = this._texture.width;
+      h = this._texture.height;
     } else {
       w = this._rect.width;
       h = this._rect.height;

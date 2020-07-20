@@ -5,8 +5,8 @@ import { ResourceManager } from "./ResourceManager";
  * 资产的基类，具有引用计数能力。
  */
 export abstract class ReferenceObject {
-  /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.garbageCollection() 影响。*/
-  ignoreGarbageCollection: boolean = false;
+  /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.gc() 影响。*/
+  ignoreGG: boolean = false;
 
   protected _engine: Engine;
 
@@ -36,7 +36,7 @@ export abstract class ReferenceObject {
   }
 
   protected constructor(engine?: Engine) {
-    const resEngine = engine || ResourceManager.defaultCreateAssetEngine || Engine._lastCreateEngine;
+    const resEngine = engine; /*|| Engine._getDefaultEngine()*/
     if (!resEngine) throw "asset must belone to an engine.";
     this._engine = resEngine;
     this._instanceID = ++Engine._instanceIDCounter;

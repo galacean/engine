@@ -36,12 +36,12 @@ export class SpineResource extends SchemaResource {
           }
         }
       }
-      const assetManager: any = new AssetManager();
+      const assetManager: any = new AssetManager(resourceLoader.rhi);
       assetManager.loadText(jsonUrl);
       assetManager.loadTexture(textureUrl);
       assetManager.loadText(atlasUrl);
       assetManager.onLoad().then(() => {
-        const atlas = new spine.TextureAtlas(assetManager.get(atlasUrl), path => {
+        const atlas = new spine.TextureAtlas(assetManager.get(atlasUrl), (path) => {
           return assetManager.get(textureUrl);
         });
         const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
@@ -55,8 +55,8 @@ export class SpineResource extends SchemaResource {
   }
 
   loadWithAttachedResources(resourceLoader, assetConfig: AssetConfig): Promise<LoadAttachedResourceResult> {
-    return new Promise(resolve => {
-      this.load(resourceLoader, assetConfig).then(res => {
+    return new Promise((resolve) => {
+      this.load(resourceLoader, assetConfig).then((res) => {
         const result: any = {
           resources: [this],
           structure: {

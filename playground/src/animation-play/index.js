@@ -1,20 +1,20 @@
 import { Animation } from "@alipay/o3-animation";
-import { Engine,Camera } from "@alipay/o3-core";
+import { Camera, Engine } from "@alipay/o3-core";
 import "@alipay/o3-engine-stats";
 import "@alipay/o3-hud";
-import {AmbientLight } from "@alipay/o3-lighting";
+import { AmbientLight } from "@alipay/o3-lighting";
 import { Resource, ResourceLoader } from "@alipay/o3-loader";
 import "@alipay/o3-loader-gltf";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
 import { PBRMaterial } from "@alipay/o3-pbr";
-import {GLRenderHardware} from "@alipay/o3-rhi-webgl"
-import { BasicSceneRenderer } from "@alipay/o3-renderer-basic"
-
+import { WebGLRenderer, WebCanvas } from "@alipay/o3-rhi-webgl";
+import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
 
 RegistExtension({ PBRMaterial });
 
 //-- create engine object
-let engine = new Engine();
+const canvas = new WebCanvas(document.getElementById("o3-demo"));
+let engine = new Engine(canvas, new WebGLRenderer());
 
 let scene = engine.currentScene;
 let rootNode = scene.root;
@@ -31,10 +31,8 @@ ambientLight.addComponent(AmbientLight, props);
 //-- create camera
 let cameraNode = rootNode.createChild("camera_node");
 let camera = cameraNode.addComponent(Camera, {
-  canvas: "o3-demo",
   position: [0, 1.35, 5.5],
   target: [0, 1.1, 0],
-  RHI: GLRenderHardware,
   SceneRenderer: BasicSceneRenderer
 });
 

@@ -8,7 +8,9 @@ var widgetID = 1000;
  * HUD控件的基类，封装2D和3D控件的通用属性和操作
  */
 export class AHUDWidget extends RenderableComponent {
-  private _spriteRect;
+  protected _spriteRect;
+  protected _canvasDirty;
+
   private _spriteID;
   private _renderMode;
   private _screenSize;
@@ -19,7 +21,6 @@ export class AHUDWidget extends RenderableComponent {
   private _positionQuad;
   private _uvRect;
   private _tintColor;
-  private _canvasDirty;
   private _valid;
   private _hudFeature;
   private separateDraw;
@@ -76,7 +77,7 @@ export class AHUDWidget extends RenderableComponent {
    * @private
    */
   _onEnable() {
-    this._hudFeature.attachWidget(this);
+    this._hudFeature.attachWidget(this.node.engine.hardwareRenderer, this);
   }
 
   /** 在对象Disable的时候，从当前的Scene移除
