@@ -166,7 +166,18 @@ export class ResourceManager {
     } else {
       info = this._assignDefaultOptions(item);
     }
-    return ResourceManager._loaders[info.type].load(info, this);
+
+    if (this._assetUrlPool[info.url]) {
+      return new AssetPromise((resolve) => {
+        resolve(this._assetUrlPool[info.url] as T);
+      });
+    }
+
+    const promise = ResourceManager._loaders[info.type].load(info, this);
+    promise.then((res) => {
+      this._addAsset(info.url, res);
+    });
+    return promise;
   }
 }
 

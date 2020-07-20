@@ -134,6 +134,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
+    Engine._lastCreateEngine = this;
   }
 
   /**

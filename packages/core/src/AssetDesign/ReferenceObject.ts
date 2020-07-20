@@ -70,7 +70,7 @@ export abstract class ReferenceObject {
   }
 
   /**
-   * @internal
+   * @private
    */
   _addReference(referenceCount: number): void {
     this._referenceCount += referenceCount;

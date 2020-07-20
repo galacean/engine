@@ -86,17 +86,17 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
     config.method = config.method ?? "get";
     xhr.onload = () => {
       if (xhr.status < 200 || xhr.status >= 300) {
-        reject(new Error("request failed"));
+        reject(new Error(`request failed from: ${url}`));
         return;
       }
       const result = xhr.response ?? xhr.responseText;
       resolve(result);
     };
     xhr.onerror = () => {
-      reject(new Error("request failed"));
+      reject(new Error(`request failed from: ${url}`));
     };
     xhr.ontimeout = () => {
-      reject(new Error("request timeout"));
+      reject(new Error(`request timeout from: ${url}`));
     };
     xhr.onprogress = (e) => {
       setProgress(e.loaded / e.total);

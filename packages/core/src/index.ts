@@ -24,3 +24,4 @@ export { ResourceManager, resourceLoader } from "./AssetDesign/ResourceManager";
 export { AssetPromise, AssetPromiseStatus } from "./AssetDesign/AssetPromise";
 export type { LoadItem } from "./AssetDesign/LoadItem";
 export { LoaderType } from "./AssetDesign/LoaderType";
+export { ReferenceObject } from "./AssetDesign/ReferenceObject";
