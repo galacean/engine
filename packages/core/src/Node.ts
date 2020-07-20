@@ -87,12 +87,15 @@ export class Node extends EventDispatcher {
   _components: Component[] = [];
   /* @internal */
   _children: Node[] = [];
+  /* @internal */
+  _scene: Scene;
+  /* @internal */
+  _isRoot: boolean = false;
 
-  private _scene: Scene;
-  private _active: boolean;
+  private _engine: Engine;
+  private _active: boolean = true;
   private _parent: Node = null;
   private _activeChangedComponents: Component[];
-  private _isRoot: boolean; //must add,because scene management mechanism
   public readonly transform: Transform;
 
   /** @deprecated */
@@ -109,7 +112,8 @@ export class Node extends EventDispatcher {
       this._active = value;
       if (value) {
         const parent = this._parent;
-        if (this._isRoot || (parent && parent._isActiveInHierarchy)) {
+        //CM:还需要判断场景是否激活,具体逻辑可为先判断parent是否为空,不为空判断parent._isActiveInHierarch，为空判断scene._isActive
+        if ((parent && parent._isActiveInHierarchy) || this._isRoot) {
           this._processActive();
         }
       } else {
@@ -187,24 +191,16 @@ export class Node extends EventDispatcher {
     return this._scene.engine;
   }
 
-  //CM:scene修改为engine,并放到嘴周,scene为可替换参数
-  //constructor(parent?: Node, name?: string，engine?: Engine)
-
   /**
    * 创建一个节点。
-   * @param scene - 所属的场景 @deprecated CM:调整为engine
-   * @param parent - 父节点
-   * @param name - 点名称
+   * @param name - 名字
+   * @param engine - 所属Engine
    */
-  constructor(scene?: Scene, parent?: Node, name?: string) {
+  constructor(name?: string, engine?: Engine) {
     super();
     Node._nodes.add(this);
-    this._scene = scene;
-    //TODO 因现有机制scene的rootNode 在创建时需要知道自己为root(判断activeInHierarchy时不需要判断父节点)
-    this._isRoot = parent === null && name === "__root__";
+    this._engine = engine || Engine._getDefaultEngine();
     this.name = name;
-    this.parent = parent;
-    this.isActive = true;
     this.transform = this.addComponent(Transform);
     this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
   }
@@ -337,7 +333,7 @@ export class Node extends EventDispatcher {
    * @returns 克隆的节点
    */
   clone(): Node {
-    const newNode = new Node(this._scene, null, this.name);
+    const newNode = new Node(this.name, this._engine);
 
     newNode._active = this._active;
     newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
@@ -465,7 +461,8 @@ export class Node extends EventDispatcher {
    * @return {Node} 新创建的子节点对象
    */
   public createChild(name: string): Node {
-    const child = new Node(this._scene, this, name);
+    const child = new Node(name, this.engine);
+    child.parent = this;
     return child;
   }
 

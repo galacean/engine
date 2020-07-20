@@ -5,15 +5,15 @@ import { Engine } from "../Engine";
  * 场景类。
  */
 export class Scene {
-  private _rootNodesCount: number = 0;
-
   /** 场景名字。 */
   name: string;
 
   /** @internal */
   _engine: Engine;
 
+  private _isActive: boolean = true;
   private _destroyed: boolean = false;
+  private _rootNodesCount: number = 0;
 
   /**
    * 所属引擎。
@@ -30,10 +30,26 @@ export class Scene {
   }
 
   /**
+   * 局部激活。
+   */
+  get isActive(): boolean {
+    return this._isActive;
+  }
+
+  /**
    * 是否已销毁。
    */
   get destroyed(): boolean {
     return this._destroyed;
+  }
+
+  /**
+   * 创建场景。
+   * @param name - 名字
+   * @param engine - 所属引擎
+   */
+  constructor(name?: string, engine?: Engine) {
+    //CM:实现需要考虑当前激活场景切换和增加/删除根节点 导致的节点激活状态变化
   }
 
   /**
