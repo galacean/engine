@@ -1,7 +1,7 @@
 /**
  * 资产类型。
  */
-export enum AssetType {
+export enum LoaderType {
   /** 文本。*/
   Text = 0,
   /** JSON。*/
@@ -19,7 +19,10 @@ export enum AssetType {
   /** 动画文件。*/
   AnimationClip = 7,
   /** 预设。*/
-  Perfab = 8 // 先走 GLTFLoader
+  Perfab = 8, // 先走 GLTFLoader
+  /** 压缩纹理 */
+  KTX = 9
   /** @todo 场景。 */
+
   // Scene = 9
 }
