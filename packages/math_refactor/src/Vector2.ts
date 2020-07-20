@@ -164,12 +164,15 @@ export class Vector2 {
   y: number;
 
   /**
-   * 创建一个Vector2实例 merge~fromValues
+   * 创建一个Vector2实例
    *
-   * @param x - X轴坐标
-   * @param y - Y轴坐标
+   * @param x - X轴坐标，默认值0
+   * @param y - Y轴坐标，默认值0
    */
-  constructor(x: number = 0, y: number = 0) {}
+  constructor(x: number = 0, y: number = 0) {
+    this.x = x;
+    this.y = y;
+  }
 
   /**
    * 设置x, y的值，并返回当前向量

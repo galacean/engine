@@ -1,4 +1,4 @@
-import { Vector3, Matrix4x4 } from ".";
+import { Vector3 } from "./Vector3";
 
 /**
  * 四元数
@@ -148,10 +148,10 @@ export class Quaternion {
   /**
    * 创建四元数实例 merge~create merge~fromValues
    *
-   * @param x
-   * @param y
-   * @param z
-   * @param w
+   * @param x - 默认值0
+   * @param y - 默认值0
+   * @param z - 默认值0
+   * @param w - 默认值1
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
     this.x = x;

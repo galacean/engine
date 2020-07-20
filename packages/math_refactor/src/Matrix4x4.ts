@@ -205,10 +205,27 @@ export class Matrix4x4 {
   static transpose(a: Matrix4x4, out: Matrix4x4): void {}
 
   /** 矩阵元素数组 */
-  elements: Float32Array;
+  elements: Float32Array = new Float32Array(16);
 
   /**
-   * 创建4x4矩阵实例 merge~create,fromValues
+   * 创建4x4矩阵实例，默认创建单位矩阵
+   *
+   * @param m11 默认值1
+   * @param m12 默认值0
+   * @param m13 默认值0
+   * @param m14 默认值0
+   * @param m21 默认值0
+   * @param m22 默认值1
+   * @param m23 默认值0
+   * @param m24 默认值0
+   * @param m31 默认值0
+   * @param m32 默认值0
+   * @param m33 默认值1
+   * @param m34 默认值0
+   * @param m41 默认值0
+   * @param m42 默认值0
+   * @param m43 默认值0
+   * @param m44 默认值1
    */
   constructor(
     m11: number = 1,
@@ -226,10 +243,10 @@ export class Matrix4x4 {
     m41: number = 0,
     m42: number = 0,
     m43: number = 0,
-    m44: number = 1,
-    elements: Float32Array = null
+    m44: number = 1
   ) {
-    const e: Float32Array = elements ? (this.elements = elements) : (this.elements = new Float32Array(16));
+    const e: Float32Array = this.elements;
+
     e[0] = m11;
     e[1] = m12;
     e[2] = m13;
@@ -262,22 +279,22 @@ export class Matrix4x4 {
    * @param m22
    */
   setValue(
-    m11: number = 1,
-    m12: number = 0,
-    m13: number = 0,
-    m14: number = 0,
-    m21: number = 0,
-    m22: number = 1,
-    m23: number = 0,
-    m24: number = 0,
-    m31: number = 0,
-    m32: number = 0,
-    m33: number = 1,
-    m34: number = 0,
-    m41: number = 0,
-    m42: number = 0,
-    m43: number = 0,
-    m44: number = 1
+    m11: number,
+    m12: number,
+    m13: number,
+    m14: number,
+    m21: number,
+    m22: number,
+    m23: number,
+    m24: number,
+    m31: number,
+    m32: number,
+    m33: number,
+    m34: number,
+    m41: number,
+    m42: number,
+    m43: number,
+    m44: number
   ): Matrix4x4 {}
 
   /**

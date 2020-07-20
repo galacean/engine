@@ -1,6 +1,7 @@
 import { Matrix3x3 } from "./Matrix3x3";
 import { Matrix4x4 } from "./Matrix4x4";
 import { Quaternion } from "./Quaternion";
+import { Vector2 } from "./Vector2";
 
 /**
  * 三维向量
@@ -202,13 +203,17 @@ export class Vector3 {
   z: number;
 
   /**
-   * 创建一个Vector3实例 merge~fromValues
+   * 创建一个Vector3实例
    *
-   * @param x - X轴坐标
-   * @param y - Y轴坐标
-   * @param z - Z轴坐标
+   * @param x - X轴坐标，默认值0
+   * @param y - Y轴坐标，默认值0
+   * @param z - Z轴坐标，默认值0
    */
-  constructor(x: number = 0, y: number = 0, z: number = 0) {}
+  constructor(x: number = 0, y: number = 0, z: number = 0) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
 
   /**
    * 设置x, y, z的值，并返回当前向量

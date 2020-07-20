@@ -154,22 +154,43 @@ export class Matrix3x3 {
   static transpose(a: Matrix3x3, out: Matrix3x3): void {}
 
   /** 矩阵元素数组 */
-  elements: Float32Array;
+  elements: Float32Array = new Float32Array(9);
 
   /**
-   * 创建3x3矩阵实例 merge~create
+   * 创建3x3矩阵实例，默认创建单位矩阵
+   *
+   * @param m11 - 默认值1
+   * @param m12 - 默认值0
+   * @param m13 - 默认值0
+   * @param m21 - 默认值0
+   * @param m22 - 默认值1
+   * @param m23 - 默认值0
+   * @param m31 - 默认值0
+   * @param m32 - 默认值0
+   * @param m33 - 默认值1
    */
-  constructor() {
-    const e: Float32Array = (this.elements = new Float32Array(9));
-    e[0] = 1;
-    e[1] = 0;
-    e[2] = 0;
-    e[3] = 0;
-    e[4] = 1;
-    e[5] = 0;
-    e[6] = 0;
-    e[7] = 0;
-    e[8] = 1;
+  constructor(
+    m11: number = 1,
+    m12: number = 0,
+    m13: number = 0,
+    m21: number = 0,
+    m22: number = 1,
+    m23: number = 0,
+    m31: number = 0,
+    m32: number = 0,
+    m33: number = 1
+  ) {
+    const e: Float32Array = this.elements;
+
+    e[0] = m11;
+    e[1] = m12;
+    e[2] = m13;
+    e[3] = m21;
+    e[4] = m22;
+    e[5] = m23;
+    e[6] = m31;
+    e[7] = m32;
+    e[8] = m33;
   }
 
   /**
