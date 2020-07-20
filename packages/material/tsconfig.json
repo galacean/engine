@@ -9,7 +9,8 @@
     "declarationDir": "types",
     "emitDeclarationOnly": true,
     "sourceMap": true,
-    "stripInternal": true
+    "stripInternal": true,
+    "incremental": true
   },
   "include": [
     "src/**/*"
