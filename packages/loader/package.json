@@ -18,18 +18,23 @@
   "license": "MIT",
   "types": "types/index.d.ts",
   "scripts": {
-    "b:types": "tsc",
-    "test": "ruban test",
-    "debug": "ruban debug"
+    "b:types": "tsc"
   },
   "main": "dist/main.js",
   "module": "dist/module.js",
   "dependencies": {
-    "@alipay/o3-base": "2.3.0",
-    "@alipay/o3-rhi-webgl": "2.3.0",
-    "@alipay/o3-core": "2.3.0",
-    "@alipay/o3-material": "2.3.0",
-    "@alipay/o3-request": "2.3.0"
+    "@alipay/o3-base": "2.3.2",
+    "@alipay/o3-rhi-webgl": "2.3.2",
+    "@alipay/o3-core": "2.3.2",
+    "@alipay/o3-material": "2.3.2",
+    "@alipay/o3-pbr": "2.3.2",
+    "@alipay/o3-request": "2.3.2",
+    "@alipay/o3-mobile-material": "2.3.2",
+    "@alipay/o3-primitive": "2.3.2",
+    "@alipay/o3-mesh": "2.3.3",
+    "@alipay/o3-math": "2.3.2",
+    "@alipay/o3-animation": "2.3.3",
+    "@alipay/o3-draco": "2.3.2"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

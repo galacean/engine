@@ -1,5 +1,5 @@
 import { Logger, Util, DrawMode, DataType, TextureFilter, TextureWrapMode } from "@alipay/o3-base";
-import { Node, Scene, ResourceManager, LoaderType } from "@alipay/o3-core";
+import { Node, Scene, ResourceManager, LoaderType, Engine } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
@@ -12,7 +12,6 @@ import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { LoadedGLTFResource, GlTf } from "../GLTF";
-import { parseSingleKTX } from "../compressed-texture";
 
 // 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
@@ -104,8 +103,9 @@ export interface GLTFParsed extends LoadedGLTFResource {
     scenes?: Scene[];
     skins?: Skin[];
     textures?: Texture2D[];
-    rootNode: Node;
+    rootNode?: Node;
   };
+  engine?: Engine;
 }
 
 /**
@@ -114,9 +114,10 @@ export interface GLTFParsed extends LoadedGLTFResource {
  * @returns {*}
  * @private
  */
-export function parseGLTF(data: LoadedGLTFResource): GLTFParsed {
+export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFParsed {
   // 开始处理 glTF 数据
-  const resources = {
+  const resources: GLTFParsed = {
+    engine,
     images: data.images,
     gltf: data.gltf,
     buffers: data.buffers,
@@ -191,7 +192,7 @@ function parseExtensions(resources) {
  * @param handler 资源解析器
  * @private
  */
-function parseResources(resources, name, handler) {
+function parseResources(resources: GLTFParsed, name: string, handler) {
   const { gltf, asset } = resources;
   if (!asset[name]) {
     asset[name] = [];
@@ -220,45 +221,37 @@ var GLTF_TEX_COUNT = 0;
  * @param resources
  * @private
  */
-export function parseTexture(gltfTexture, resources) {
-  const { gltf, images } = resources;
+export function parseTexture(gltfTexture, resources: GLTFParsed) {
+  const { images } = resources;
 
-  // get sampler & image
-  let sampler;
-  if (gltfTexture.sampler === undefined) {
-    sampler = {
-      magFilter: TextureFilter.NEAREST,
-      minFilter: TextureFilter.NEAREST,
-      wrapS: TextureWrapMode.REPEAT,
-      wrapT: TextureWrapMode.REPEAT
-    };
-  } else {
-    sampler = Object.assign(
-      {
-        magFilter: TextureFilter.LINEAR,
-        minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
-        wrapS: TextureWrapMode.REPEAT,
-        wrapT: TextureWrapMode.REPEAT
-      },
-      gltf.samplers[gltfTexture.sampler]
-    );
-  }
+  // TODO: 暂不支持 gltf wrapS、wrapT 和 minFilter、magFilter 设置
+  // if (gltfTexture.sampler === undefined) {
+  //   sampler = {
+  //     magFilter: TextureFilter.NEAREST,
+  //     minFilter: TextureFilter.NEAREST,
+  //     wrapS: TextureWrapMode.REPEAT,
+  //     wrapT: TextureWrapMode.REPEAT
+  //   };
+  // } else {
+  //   sampler = Object.assign(
+  //     {
+  //       magFilter: TextureFilter.LINEAR,
+  //       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
+  //       wrapS: TextureWrapMode.REPEAT,
+  //       wrapT: TextureWrapMode.REPEAT
+  //     },
+  //     gltf.samplers[gltfTexture.sampler]
+  //   );
+  // }
   const image = images[gltfTexture.source];
-  const gltfImage = gltf.images[gltfTexture.source];
+  // const gltfImage = gltf.images[gltfTexture.source];
 
   GLTF_TEX_COUNT++;
-  const name = gltfTexture.name || gltfImage.name || gltfImage.uri || "GLTF_TEX_" + GLTF_TEX_COUNT;
-  let tex;
-  if (image.fileType) {
-    if (image.fileType === "ktx") {
-      tex = parseSingleKTX(name, image.data, sampler);
-    } else {
-      tex = new Texture2D(name, image.data, sampler);
-    }
-  } else {
-    tex = new Texture2D(name, image, sampler);
-  }
-  tex.type = resources.assetType;
+  // const name = gltfTexture.name || gltfImage.name || gltfImage.uri || "GLTF_TEX_" + GLTF_TEX_COUNT;
+  // TODO: support gltf texture compress
+  // TODO: modify to engine and order
+  const tex = new Texture2D(resources.engine.hardwareRenderer, image.width, image.height);
+  tex.setImageSource(image);
   return Promise.resolve(tex);
 }
 

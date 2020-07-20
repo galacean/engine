@@ -28,11 +28,11 @@ export class Texture2D extends Texture {
    * @param mipmap - 是否使用多级纹理
    */
   constructor(
+    rhi,
     width: number,
     height: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
     mipmap: boolean = true,
-    rhi
   ) {
     super();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;

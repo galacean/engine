@@ -1,5 +1,6 @@
 import { Engine } from "../Engine";
 import { ResourceManager } from "./ResourceManager";
+import { AssetObject } from "../AssetObject";
 
 // const xhr = new XMLHttpRequest();
 // const img = new Image();
@@ -7,7 +8,7 @@ import { ResourceManager } from "./ResourceManager";
 /**
  * 资产的基类，具有引用计数能力。
  */
-export abstract class ReferenceObject {
+export abstract class ReferenceObject extends AssetObject {
   /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.garbageCollection() 影响。*/
   // ignoreGarbageCollection: boolean = false;
   isGCIgnored: boolean = false;
@@ -40,6 +41,7 @@ export abstract class ReferenceObject {
   }
 
   protected constructor(engine?: Engine) {
+    super("x");
     const resEngine = engine || Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
     if (!resEngine) throw "asset must belone to an engine.";
     this._engine = resEngine;
