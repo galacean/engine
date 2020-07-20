@@ -186,7 +186,7 @@ export class Animation extends Component {
    * @param {String} name 动画片段的名称
    * @param {AnimationOptions} options 动画参数
    */
-  public playAnimationClip(name: string, options: AnimationOptions) {
+  public playAnimationClip(name: string, options?: AnimationOptions) {
     const animClip = this._animSet[name];
     if (!animClip) {
       Logger.error("can not find anim clip: " + name);
