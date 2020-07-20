@@ -37,10 +37,9 @@ class FramebufferPicker extends Script {
     super(node, props);
 
     this.camera = props.camera;
-    const rhi = this.node.engine.hardwareRenderer;
     const width = props.width || 1024;
     const height = props.height || 1024;
-    this.colorRenderTarget = new RenderTarget(rhi, width, height, new RenderColorTexture(rhi, width, height));
+    this.colorRenderTarget = new RenderTarget(width, height, new RenderColorTexture(width, height));
     this.colorRenderPass = new ColorRenderPass("ColorRenderTarget_FBP", -1, this.colorRenderTarget, props.mask || 0);
     this.camera.sceneRenderer.addRenderPass(this.colorRenderPass);
     if (props.onPick) {

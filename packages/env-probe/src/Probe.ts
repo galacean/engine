@@ -130,18 +130,16 @@ export abstract class Probe extends Component {
     const samples = config.samples || 1;
 
     this.renderTarget = new RenderTarget(
-      this.rhi,
       width,
       height,
-      new RenderColorTexture(this.rhi, width, height, undefined, false, this.isCube),
+      new RenderColorTexture(width, height, undefined, false, this.isCube),
       RenderBufferDepthFormat.Depth,
       samples
     );
     this.renderTargetSwap = new RenderTarget(
-      this.rhi,
       width,
       height,
-      new RenderColorTexture(this.rhi, width, height, undefined, false, this.isCube),
+      new RenderColorTexture(width, height, undefined, false, this.isCube),
       RenderBufferDepthFormat.Depth,
       samples
     );

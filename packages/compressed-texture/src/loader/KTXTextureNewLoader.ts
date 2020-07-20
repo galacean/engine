@@ -36,11 +36,11 @@ export class KTXTextureNewHandler {
       });
   }
 
-  open(resource: Resource, rhi) {
+  open(resource: Resource) {
     if (resource.data.length === 1) {
       const parsedData = parseSingleKTX(resource.data[0]);
       const { width, height, mipmaps, engineFormat } = parsedData;
-      const texture = new Texture2D(rhi, width, height, engineFormat);
+      const texture = new Texture2D(width, height, engineFormat);
       texture.name = resource.name;
 
       if (!texture._glTexture) return;
@@ -55,7 +55,7 @@ export class KTXTextureNewHandler {
     } else if (resource.data.length === 6) {
       const parsedData = parseCubeKTX(resource.data);
       const { width, height, mipmapsFaces, engineFormat } = parsedData;
-      const texture = new TextureCubeMap(rhi, width, engineFormat, true);
+      const texture = new TextureCubeMap(width, engineFormat, true);
       texture.name = resource.name;
 
       if (!texture._glTexture) return;
