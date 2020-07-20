@@ -31,6 +31,10 @@ export class Engine extends EventDispatcher {
   static _instanceIDCounter: number = 0;
   static _lastCreateEngine: Engine = null;
 
+  static _getDefaultEngine(): Engine {
+    return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
+  }
+
   private _vSyncCount: number = 1;
   private _targetTrameRate: number;
   private _canvas: Canvas;
@@ -133,6 +137,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
+    Engine._lastCreateEngine = this;
   }
 
   /**
@@ -195,10 +200,6 @@ export class Engine extends EventDispatcher {
    * 销毁引擎。
    */
   public destroy(): void {}
-
-  _getDefaultEngine(): Engine {
-    return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
-  }
 
   private _tick(): void {
     if (this._paused) {

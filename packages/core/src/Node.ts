@@ -84,9 +84,9 @@ export class Node extends EventDispatcher {
   /* @internal */
   _isActiveInHierarchy: boolean = false;
   /* @internal */
-  _components: Array<Component> = [];
+  _components: Component[] = [];
   /* @internal */
-  _children: Array<Node> = [];
+  _children: Node[] = [];
 
   private _scene: Scene;
   private _active: boolean;
@@ -192,7 +192,7 @@ export class Node extends EventDispatcher {
 
   /**
    * 创建一个节点。
-   * @param scene - 所属的场景 @deprecated
+   * @param scene - 所属的场景 @deprecated CM:调整为engine
    * @param parent - 父节点
    * @param name - 点名称
    */
