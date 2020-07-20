@@ -11,71 +11,6 @@ export class Vector3 {
   /** @internal 一向量，readonly */
   static One = new Vector3(1.0, 1.0, 1.0);
 
-  /** X轴坐标 */
-  x: number;
-  /** Y轴坐标 */
-  y: number;
-  /** Z轴坐标 */
-  z: number;
-
-  /**
-   * 创建一个Vector3实例 merge~fromValues
-   *
-   * @param x - X轴坐标
-   * @param y - Y轴坐标
-   * @param z - Z轴坐标
-   */
-  constructor(x: number = 0, y: number = 0, z: number = 0) {}
-
-  /**
-   * 设置x, y, z的值，并返回当前向量
-   *
-   * @param x - X轴坐标
-   * @param y - Y轴坐标
-   * @param z - Z轴坐标
-   */
-  setValue(x: number, y: number, z: number): Vector3 {}
-
-  /**
-   * 创建一个新的三维向量，并用当前向量值初始化
-   */
-  clone(): Vector3 {}
-
-  /**
-   * 将当前向量值拷贝给out向量 rename~copy
-   *
-   * @param out - 目标向量
-   */
-  cloneTo(out: Vector3): void {}
-
-  /**
-   * 将当前向量加上给定的向量a，并返回当前向量
-   *
-   * @param a - 给定的向量
-   */
-  add(a: Vector3): Vector3 {}
-
-  /**
-   * 将当前向量减去给定的向量a，并返回当前向量
-   *
-   * @param a - 给定的向量
-   */
-  subtract(a: Vector3): Vector3 {}
-
-  /**
-   * 将当前向量乘以给定的向量a，并返回当前向量
-   *
-   * @param a - 给定的向量
-   */
-  multiply(a: Vector3): Vector3 {}
-
-  /**
-   * 将当前向量除以给定的向量a，并返回当前向量
-   *
-   * @param a - 给定的向量
-   */
-  divide(a: Vector3): Vector3 {}
-
   /**
    * 将两个向量相加
    *
@@ -162,18 +97,6 @@ export class Vector3 {
   static equals(a: Vector3, b: Vector3): boolean {}
 
   /**
-   * 计算一个三维向量的标量长度 merge～len
-   *
-   * @param a - 向量
-   */
-  length(): number {}
-
-  /**
-   * 计算一个三维向量的标量长度的平方 merge~sqrLen rename~squaredLength
-   */
-  lengthSquared(): number {}
-
-  /**
    * 插值三维向量
    *
    * @param a - 左向量
@@ -210,22 +133,12 @@ export class Vector3 {
   static negate(a: Vector3, out: Vector3): void {}
 
   /**
-   * 当前向量取反，并返回
-   */
-  negate(): Vector3 {}
-
-  /**
    * 将向量a归一化，并将结果输出到out
    *
    * @param a - 向量
    * @param out - 向量归一化的结果
    */
   static normalize(a: Vector3, out: Vector3): void {}
-
-  /**
-   * 当前向量归一化，并返回
-   */
-  normalize(): Vector3 {}
 
   /**
    * 将向量a投影到和法向量n正交的平面上
@@ -255,13 +168,6 @@ export class Vector3 {
   static scale(a: Vector3, scale: number, out: Vector3): void {}
 
   /**
-   * 当前向量缩放，并返回
-   *
-   * @param scale - 缩放因子
-   */
-  scale(scale: number): Vector3 {}
-
-  /**
    * 通过3x3矩阵将一个三维向量转换到另一个三维向量
    *
    * @param a - 向量
@@ -287,4 +193,98 @@ export class Vector3 {
    * @param out - 通过矩阵转换后的向量
    */
   static trnasformQuat(a: Vector3, q: Quaternion, out: Vector3): void {}
+
+  /** X轴坐标 */
+  x: number;
+  /** Y轴坐标 */
+  y: number;
+  /** Z轴坐标 */
+  z: number;
+
+  /**
+   * 创建一个Vector3实例 merge~fromValues
+   *
+   * @param x - X轴坐标
+   * @param y - Y轴坐标
+   * @param z - Z轴坐标
+   */
+  constructor(x: number = 0, y: number = 0, z: number = 0) {}
+
+  /**
+   * 设置x, y, z的值，并返回当前向量
+   *
+   * @param x - X轴坐标
+   * @param y - Y轴坐标
+   * @param z - Z轴坐标
+   */
+  setValue(x: number, y: number, z: number): Vector3 {}
+
+  /**
+   * 创建一个新的三维向量，并用当前向量值初始化
+   */
+  clone(): Vector3 {}
+
+  /**
+   * 将当前向量值拷贝给out向量 rename~copy
+   *
+   * @param out - 目标向量
+   */
+  cloneTo(out: Vector3): void {}
+
+  /**
+   * 将当前向量加上给定的向量a，并返回当前向量
+   *
+   * @param a - 给定的向量
+   */
+  add(a: Vector3): Vector3 {}
+
+  /**
+   * 将当前向量减去给定的向量a，并返回当前向量
+   *
+   * @param a - 给定的向量
+   */
+  subtract(a: Vector3): Vector3 {}
+
+  /**
+   * 将当前向量乘以给定的向量a，并返回当前向量
+   *
+   * @param a - 给定的向量
+   */
+  multiply(a: Vector3): Vector3 {}
+
+  /**
+   * 将当前向量除以给定的向量a，并返回当前向量
+   *
+   * @param a - 给定的向量
+   */
+  divide(a: Vector3): Vector3 {}
+
+  /**
+   * 计算一个三维向量的标量长度 merge～len
+   *
+   * @param a - 向量
+   */
+  length(): number {}
+
+  /**
+   * 计算一个三维向量的标量长度的平方 merge~sqrLen rename~squaredLength
+   */
+  lengthSquared(): number {}
+
+  /**
+   * 当前向量取反，并返回
+   */
+  negate(): Vector3 {}
+
+  /**
+   * 当前向量归一化，并返回
+   */
+  normalize(): Vector3 {}
+
+  /**
+   * 当前向量缩放，并返回
+   *
+   * @param scale - 缩放因子
+   */
+  scale(scale: number): Vector3 {}
 }

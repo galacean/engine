@@ -4,52 +4,6 @@ import { Vector3, Matrix4x4 } from ".";
  * 四元数
  */
 export class Quaternion {
-  /** X轴坐标 */
-  x: number;
-  /** Y轴坐标 */
-  y: number;
-  /** Z轴坐标 */
-  z: number;
-  /** W轴坐标 */
-  w: number;
-
-  /**
-   * 创建四元数实例 merge~create merge~fromValues
-   *
-   * @param x
-   * @param y
-   * @param z
-   * @param w
-   */
-  constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.w = w;
-  }
-
-  /**
-   * 设置x, y, z, w的值
-   *
-   * @param x
-   * @param y
-   * @param z
-   * @param w
-   */
-  setValue(x: number, y: number, z: number, w: number): void {}
-
-  /**
-   * 创建一个新的四元数，并用当前四元数初始化
-   */
-  clone(): Quaternion {}
-
-  /**
-   * 将当前四元数值拷贝给out四元数 rename~copy
-   *
-   * @param out - 目标四元数
-   */
-  cloneTo(out: Quaternion): void {}
-
   /**
    * 将两个四元数相加
    *
@@ -103,35 +57,12 @@ export class Quaternion {
   static fromEuler(x: number, y: number, z: number, out: Quaternion): void {}
 
   /**
-   * 从四元数分解欧拉角，并返回角度
-   *
-   * @param out - 输出欧拉角
-   * @param q - 输入
-   */
-  getAxisAngle(out: Vector3): number {}
-
-  /**
-   * 将四元数设置为单位四元数
-   */
-  identity(): void {}
-
-  /**
    * 计算四元数的逆
    *
    * @param a - 四元数的逆
    * @param out - 四元数的逆
    */
   static invert(a: Quaternion, out: Quaternion): void {}
-
-  /**
-   * 计算一个四元数的标量长度 merge～len
-   */
-  length(): number {}
-
-  /**
-   * 计算一个四元数的标量长度的平方 merge~sqrLen rename~squaredLength
-   */
-  lengthSquared(): number {}
 
   /**
    * 插值四元数
@@ -198,18 +129,87 @@ export class Quaternion {
   static scale(a: Quaternion, scale: number, out: Quaternion): void {}
 
   /**
-   * 通过旋转的欧拉角设置四元数
-   *
-   * @param axis - 旋转轴向量
-   * @param rad - 旋转角度
-   */
-  setAxisAngle(axis: Vector3, rad: number): void {}
-
-  /**
    * 获取四元数的欧拉角
    *
    * @param a - 四元数
    * @param out - 欧拉角
    */
   static toEuler(a: Quaternion, out: Vector3): void {}
+
+  /** X轴坐标 */
+  x: number;
+  /** Y轴坐标 */
+  y: number;
+  /** Z轴坐标 */
+  z: number;
+  /** W轴坐标 */
+  w: number;
+
+  /**
+   * 创建四元数实例 merge~create merge~fromValues
+   *
+   * @param x
+   * @param y
+   * @param z
+   * @param w
+   */
+  constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.w = w;
+  }
+
+  /**
+   * 设置x, y, z, w的值
+   *
+   * @param x
+   * @param y
+   * @param z
+   * @param w
+   */
+  setValue(x: number, y: number, z: number, w: number): void {}
+
+  /**
+   * 创建一个新的四元数，并用当前四元数初始化
+   */
+  clone(): Quaternion {}
+
+  /**
+   * 将当前四元数值拷贝给out四元数 rename~copy
+   *
+   * @param out - 目标四元数
+   */
+  cloneTo(out: Quaternion): void {}
+
+  /**
+   * 从四元数分解欧拉角，并返回角度
+   *
+   * @param out - 输出欧拉角
+   * @param q - 输入
+   */
+  getAxisAngle(out: Vector3): number {}
+
+  /**
+   * 将四元数设置为单位四元数
+   */
+  identity(): void {}
+
+  /**
+   * 计算一个四元数的标量长度 merge～len
+   */
+  length(): number {}
+
+  /**
+   * 计算一个四元数的标量长度的平方 merge~sqrLen rename~squaredLength
+   */
+  lengthSquared(): number {}
+
+  /**
+   * 通过旋转的欧拉角设置四元数
+   *
+   * @param axis - 旋转轴向量
+   * @param rad - 旋转角度
+   */
+  setAxisAngle(axis: Vector3, rad: number): void {}
 }

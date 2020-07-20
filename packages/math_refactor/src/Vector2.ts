@@ -10,67 +10,6 @@ export class Vector2 {
   /** @internal 一向量，readonly */
   static readonly _One = new Vector2(1.0, 1.0);
 
-  /** X轴坐标。 */
-  x: number;
-  /** Y轴坐标 */
-  y: number;
-
-  /**
-   * 创建一个Vector2实例 merge~fromValues
-   *
-   * @param x - X轴坐标
-   * @param y - Y轴坐标
-   */
-  constructor(x: number = 0, y: number = 0) {}
-
-  /**
-   * 设置x, y的值，并返回当前向量
-   *
-   * @param x - X轴坐标
-   * @param y - Y轴坐标
-   */
-  setValue(x: number, y: number): Vector2 {}
-
-  /**
-   * 创建一个新的二维向量，并用当前向量值初始化
-   */
-  clone(): Vector2 {}
-
-  /**
-   * 将当前向量值拷贝给out向量 rename~copy
-   *
-   * @param out - 目标向量
-   */
-  cloneTo(out: Vector2): void {}
-
-  /**
-   * 将当前向量加上给定的向量a，并返回当前向量
-   *
-   * @param a - 给定的向量
-   */
-  add(a: Vector2): Vector2 {}
-
-  /**
-   * 将当前向量减去给定的向量a，并返回当前向量
-   *
-   * @param a - 给定的向量
-   */
-  subtract(a: Vector2): Vector2 {}
-
-  /**
-   * 将当前向量乘以给定的向量a，并返回当前向量
-   *
-   * @param a - 给定的向量
-   */
-  multiply(a: Vector2): Vector2 {}
-
-  /**
-   * 将当前向量除以给定的向量a，并返回当前向量
-   *
-   * @param a - 给定的向量
-   */
-  divide(a: Vector2): Vector2 {}
-
   /**
    * 将两个向量相加，并输出结果out
    *
@@ -149,17 +88,6 @@ export class Vector2 {
   static equals(a: Vector2, b: Vector2): boolean {}
 
   /**
-   * 计算一个二维向量的标量长度 merge～len
-   *
-   */
-  length(): number {}
-
-  /**
-   * 计算一个二维向量的标量长度的平方 merge~sqrLen rename~squaredLength
-   */
-  lengthSquared(): number {}
-
-  /**
    * 插值二维向量
    *
    * @param a - 左向量
@@ -196,22 +124,12 @@ export class Vector2 {
   static negate(a: Vector2, out: Vector2): void {}
 
   /**
-   * 当前向量取反，并返回
-   */
-  negate(): Vector2 {}
-
-  /**
    * 将向量a归一化，并将结果输出到out
    *
    * @param a - 向量
    * @param out - 向量归一化的结果
    */
   static normalize(a: Vector2, out: Vector2): void {}
-
-  /**
-   * 当前向量归一化，并返回
-   */
-  normalize(): Vector2 {}
 
   /**
    * 将向量a缩放，并将结果输出到out
@@ -221,13 +139,6 @@ export class Vector2 {
    * @param out - 向量缩放的结果
    */
   static scale(a: Vector2, scale: number, out: Vector2): void {}
-
-  /**
-   * 当前向量缩放，并返回
-   *
-   * @param scale - 缩放因子
-   */
-  scale(scale: number): Vector2 {}
 
   /**
    * 通过3x3矩阵将一个二维向量转换到另一个二维向量
@@ -246,4 +157,93 @@ export class Vector2 {
    * @param out - 通过矩阵转换后的向量
    */
   static transformMat4x4(a: Vector2, m: Matrix4x4, out: Vector2): void {}
+
+  /** X轴坐标。 */
+  x: number;
+  /** Y轴坐标 */
+  y: number;
+
+  /**
+   * 创建一个Vector2实例 merge~fromValues
+   *
+   * @param x - X轴坐标
+   * @param y - Y轴坐标
+   */
+  constructor(x: number = 0, y: number = 0) {}
+
+  /**
+   * 设置x, y的值，并返回当前向量
+   *
+   * @param x - X轴坐标
+   * @param y - Y轴坐标
+   */
+  setValue(x: number, y: number): Vector2 {}
+
+  /**
+   * 创建一个新的二维向量，并用当前向量值初始化
+   */
+  clone(): Vector2 {}
+
+  /**
+   * 将当前向量值拷贝给out向量 rename~copy
+   *
+   * @param out - 目标向量
+   */
+  cloneTo(out: Vector2): void {}
+
+  /**
+   * 将当前向量加上给定的向量a，并返回当前向量
+   *
+   * @param a - 给定的向量
+   */
+  add(a: Vector2): Vector2 {}
+
+  /**
+   * 将当前向量减去给定的向量a，并返回当前向量
+   *
+   * @param a - 给定的向量
+   */
+  subtract(a: Vector2): Vector2 {}
+
+  /**
+   * 将当前向量乘以给定的向量a，并返回当前向量
+   *
+   * @param a - 给定的向量
+   */
+  multiply(a: Vector2): Vector2 {}
+
+  /**
+   * 将当前向量除以给定的向量a，并返回当前向量
+   *
+   * @param a - 给定的向量
+   */
+  divide(a: Vector2): Vector2 {}
+
+  /**
+   * 计算一个二维向量的标量长度 merge～len
+   *
+   */
+  length(): number {}
+
+  /**
+   * 计算一个二维向量的标量长度的平方 merge~sqrLen rename~squaredLength
+   */
+  lengthSquared(): number {}
+
+  /**
+   * 当前向量取反，并返回
+   */
+  negate(): Vector2 {}
+
+  /**
+   * 当前向量归一化，并返回
+   */
+  normalize(): Vector2 {}
+
+  /**
+   * 当前向量缩放，并返回
+   *
+   * @param scale - 缩放因子
+   */
+  scale(scale: number): Vector2 {}
 }
