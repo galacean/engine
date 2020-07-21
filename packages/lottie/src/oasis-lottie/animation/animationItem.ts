@@ -20,7 +20,7 @@ export class AnimationItem extends IAnimationItem {
   constructor(engine) {
     super();
     this.imagePreloader = new ResourceLoader(engine, null);
-    this.node = new Node(null, null, `LOTTIE_ROOT_NODE_${lottieAnimationItem++}`);
+    this.node = new Node(`LOTTIE_ROOT_NODE_${lottieAnimationItem++}`);
   }
 
   setRenderer(animationItem, rendererSettings) {
@@ -28,7 +28,7 @@ export class AnimationItem extends IAnimationItem {
   }
 
   imagesLoaded(err, resources) {
-    resources.forEach(resouce => {
+    resources.forEach((resouce) => {
       const { name } = resouce;
       this.renderer.globalData.resources[name] = resouce;
     });
@@ -37,7 +37,7 @@ export class AnimationItem extends IAnimationItem {
   }
 
   preloadImages() {
-    const TextureResources = this.animationData.assets.map(item => {
+    const TextureResources = this.animationData.assets.map((item) => {
       return new Resource(item.id, {
         type: "texture",
         url: item.p,
