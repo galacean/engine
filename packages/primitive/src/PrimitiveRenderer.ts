@@ -9,10 +9,10 @@ export class PrimitiveRenderer extends RenderableComponent {
 
   /**
    * 构造函数
-   * @param {Node} node 对象所在节点
+   * @param {Entity} entity 对象所在节点
    */
-  constructor(node) {
-    super(node);
+  constructor(entity) {
+    super(entity);
 
     this.renderable = true; // 标记为可渲染对象
 

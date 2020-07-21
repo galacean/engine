@@ -11,7 +11,7 @@ export class SkyBox extends GeometryRenderer {
 
   /**
    * 天空盒组件
-   * @param {Node} node 挂载节点
+   * @param {Entity} node 挂载节点
    * @param {Object} props Object对象包含以下参数
    * @param {TextureCubeMap} props.skyBoxMap 天空盒纹理
    */
@@ -30,7 +30,7 @@ export class SkyBox extends GeometryRenderer {
   }
 
   update() {
-    (this.material as SkyBoxMaterial).setModel(this.node.transform.worldMatrix);
+    (this.material as SkyBoxMaterial).setModel(this.entity.transform.worldMatrix);
   }
 
   render(camera) {

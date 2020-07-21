@@ -1,7 +1,7 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { vec3 } from "@alipay/o3-math";
-import { Node } from "./Node";
+import { Entity } from "./Entity";
 
 /**
  * 可渲染的组件。
@@ -15,7 +15,7 @@ export abstract class RenderableComponent extends Component {
   /* @internal */
   protected _overrideUpdate: boolean = false;
 
-  constructor(node: Node, props: object = {}) {
+  constructor(node: Entity, props: object = {}) {
     super(node, props);
     const prototype = RenderableComponent.prototype;
     this._overrideUpdate = this.update !== prototype.update;
@@ -45,7 +45,10 @@ export abstract class RenderableComponent extends Component {
 
     // distance cull
     if (this.cullDistanceSq > 0) {
-      const distanceSq = vec3.squaredDistance(camera._node.transform.worldPosition, this.node.transform.worldPosition);
+      const distanceSq = vec3.squaredDistance(
+        camera._entity.transform.worldPosition,
+        this.entity.transform.worldPosition
+      );
       culled = this.cullDistanceSq < distanceSq;
     }
 

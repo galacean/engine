@@ -1,10 +1,10 @@
-import { Node, Transform } from "../src/index";
+import { Entity, Transform } from "../src/index";
 import { vec3, quat, mat4 } from "@alipay/o3-math";
 
 describe.only("Transform", () => {
   describe("no parent", () => {
     it("constructor", () => {
-      const node = new Node();
+      const node = new Entity();
       const transform = node.transform;
       expect(transform.position).toEqual(vec3.create());
       expect(transform.rotation).toEqual(vec3.create());
@@ -15,7 +15,7 @@ describe.only("Transform", () => {
     });
 
     it("set position", () => {
-      const node = new Node();
+      const node = new Entity();
       const transform = node.transform;
       transform.position = [10, 20, 30];
       arrayCloseTo(transform.position, [10, 20, 30]);
@@ -25,7 +25,7 @@ describe.only("Transform", () => {
     });
 
     it("set rotation", () => {
-      const node = new Node();
+      const node = new Entity();
       const transform = node.transform;
       transform.rotation = [10, 20, 30];
       arrayCloseTo(transform.worldRotation, [10, 20, 30]);
@@ -80,7 +80,7 @@ describe.only("Transform", () => {
     });
 
     it("set quat", () => {
-      const node = new Node();
+      const node = new Entity();
       const transform = node.transform;
       transform.rotationQuaternion = [
         0.03813457489013672,
@@ -135,7 +135,7 @@ describe.only("Transform", () => {
     });
 
     it("set scale", () => {
-      const node = new Node();
+      const node = new Entity();
       const transform = node.transform;
       transform.scale = [1, 2, 3];
       arrayCloseTo(transform.lossyWorldScale, [1, 2, 3]);
@@ -144,7 +144,7 @@ describe.only("Transform", () => {
     });
 
     it("set world position", () => {
-      const node = new Node();
+      const node = new Entity();
       node.transform.worldPosition = [10, 20, 30];
       arrayCloseTo(node.transform.position, [10, 20, 30]);
       arrayCloseTo(node.transform.localMatrix, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 30, 1]);
@@ -152,7 +152,7 @@ describe.only("Transform", () => {
     });
 
     it("set world rotation", () => {
-      const node = new Node();
+      const node = new Entity();
       const transform = node.transform;
       transform.worldRotation = [10, 20, 30];
       arrayCloseTo(transform.rotation, [10, 20, 30]);
@@ -207,7 +207,7 @@ describe.only("Transform", () => {
     });
 
     it("set world quat", () => {
-      const node = new Node();
+      const node = new Entity();
       const transform = node.transform;
       transform.worldRotationQuaternion = [
         0.03813457489013672,
@@ -262,7 +262,7 @@ describe.only("Transform", () => {
     });
 
     it("set local matrix", () => {
-      const node = new Node();
+      const node = new Entity();
       const transform = node.transform;
       transform.localMatrix = [
         0.813797652721405,
@@ -319,7 +319,7 @@ describe.only("Transform", () => {
     });
 
     it("set world matrix", () => {
-      const node = new Node();
+      const node = new Entity();
       const transform = node.transform;
       transform.worldMatrix = [
         0.813797652721405,
@@ -376,7 +376,7 @@ describe.only("Transform", () => {
     });
 
     it("get up, right, forward", () => {
-      const node = new Node();
+      const node = new Entity();
       const up = vec3.create();
       const right = vec3.create();
       const forward = vec3.create();
@@ -391,8 +391,8 @@ describe.only("Transform", () => {
 
   describe("with parent", () => {
     it("set parent position, child position", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.position = [10, 20, 30];
       child.transform.position = [10, 20, 30];
@@ -400,8 +400,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent rotation, child rotation", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.rotation = [90, 0, 0];
       child.transform.rotation = [90, 0, 0];
@@ -409,8 +409,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent rotation, child position", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.rotation = [90, 0, 0];
       child.transform.position = [0, 0, 10];
@@ -419,8 +419,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent scale, child position", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.scale = [2, 2, 2];
       child.transform.position = [0, 0, 10];
@@ -428,8 +428,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent local matrix, child position", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       child.transform.position = [0, 0, 10];
       parent.transform.localMatrix = [
@@ -456,8 +456,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent world matrix, child position", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       child.transform.position = [0, 0, 10];
       parent.transform.worldMatrix = [
@@ -484,8 +484,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent position, child world position", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.position = [10, 0, 0];
       child.transform.worldPosition = [20, 10, 0];
@@ -493,8 +493,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent position, child world rotation", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.position = [10, 0, 0];
       child.transform.worldRotation = [0, 90, 0];
@@ -502,8 +502,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent rotation, child world rotation", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.rotation = [0, 90, 0];
       child.transform.worldRotation = [0, 100, 0];
@@ -511,8 +511,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent rotation, child world quat", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.rotation = [10, 20, 30];
       child.transform.worldRotationQuaternion = [
@@ -525,8 +525,8 @@ describe.only("Transform", () => {
     });
 
     it("set parent local matrix, child world matrix", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.localMatrix = [
         0.813797652721405,
@@ -572,8 +572,8 @@ describe.only("Transform", () => {
 
   describe("func", () => {
     it("translate", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.translate([10, 20, 30], false);
       child.transform.translate([10, 20, 30], true);
@@ -583,8 +583,8 @@ describe.only("Transform", () => {
     });
 
     it("rotate", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       parent.transform.rotate([0, 0, 180], false);
       child.transform.rotate([0, 0, 45], true);
@@ -594,8 +594,8 @@ describe.only("Transform", () => {
     });
 
     it("rotateByAxis", () => {
-      const parent = new Node(null, null, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      const child = new Entity("child");
       parent.addChild(child);
       child.transform.position = [10, 0, 0];
       parent.transform.rotateByAxis([0, 0, 1], 90, true);
@@ -605,7 +605,7 @@ describe.only("Transform", () => {
     });
 
     it("lookAt", () => {
-      const node = new Node();
+      const node = new Entity();
       node.transform.position = [0, 0, 1];
       node.transform.lookAt([0, 0, 0], [0, 1, 0]);
       arrayCloseTo(node.transform.worldRotation, [180, 0, 180]);

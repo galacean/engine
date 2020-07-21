@@ -1,4 +1,4 @@
-import { Node, Component, Engine, Scene } from "../src/index";
+import { Entity, Component, Engine, Scene } from "../src/index";
 
 class TestComponent extends Component {}
 
@@ -8,31 +8,35 @@ describe("Component", () => {
   beforeEach(() => {
     engine = new Engine();
     scene = new Scene(engine);
-    Node._nodes.length = 0;
-    Node._nodes._elements.length = 0;
+    Entity._nodes.length = 0;
+    Entity._nodes._elements.length = 0;
   });
 
   describe("enabled", () => {
     it("enabled", () => {
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.root;
       TestComponent.prototype._onEnable = jest.fn();
-      const component = node.addComponent(TestComponent);
+      const component = entity.addComponent(TestComponent);
       expect(component.enabled).toBeTruthy();
       expect(component._onEnable).toHaveBeenCalledTimes(1);
     });
 
     it("disabled", () => {
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.root;
       TestComponent.prototype._onDisable = jest.fn();
-      const component = node.addComponent(TestComponent);
+      const component = entity.addComponent(TestComponent);
       component.enabled = false;
       expect(component.enabled).toBeFalsy();
       expect(component._onDisable).toHaveBeenCalledTimes(1);
     });
 
     it("not trigger", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       parent.isActive = false;
       TestComponent.prototype._onEnable = jest.fn();
       TestComponent.prototype._onDisable = jest.fn();
@@ -44,27 +48,30 @@ describe("Component", () => {
     });
   });
 
-  describe("node scene", () => {
-    it("node", () => {
-      const node = new Node(scene, scene.root, "node");
-      const component = node.addComponent(TestComponent);
-      expect(component.node).toBe(node);
+  describe("entity scene", () => {
+    it("entity", () => {
+      const entity = new Entity("entity");
+      entity.parent = scene.root;
+      const component = entity.addComponent(TestComponent);
+      expect(component.entity).toBe(entity);
     });
 
     it("scene", () => {
-      const node = new Node(scene, scene.root, "node");
-      const component = node.addComponent(TestComponent);
+      const entity = new Entity("entity");
+      entity.parent = scene.root;
+      const component = entity.addComponent(TestComponent);
       expect(component.scene).toBe(scene);
     });
   });
 
   describe("destroy", () => {
     it("normal", () => {
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.root;
       TestComponent.prototype._onDisable = jest.fn();
       TestComponent.prototype._onInActive = jest.fn();
       TestComponent.prototype._onDestroy = jest.fn();
-      const component = node.addComponent(TestComponent);
+      const component = entity.addComponent(TestComponent);
       component.destroy();
       expect(component._onDisable).toHaveBeenCalledTimes(1);
       expect(component._onInActive).toHaveBeenCalledTimes(1);
@@ -74,45 +81,51 @@ describe("Component", () => {
 
   describe("awake", () => {
     it("normal", () => {
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.root;
       TestComponent.prototype._onAwake = jest.fn();
-      const component = node.addComponent(TestComponent);
+      const component = entity.addComponent(TestComponent);
       expect(component._onAwake).toHaveBeenCalledTimes(1);
     });
 
-    it("node changeActive", () => {
-      const node = new Node(scene, scene.root, "node");
-      node.isActive = false;
+    it("entity changeActive", () => {
+      const entity = new Entity("entity");
+      entity.parent = scene.root;
+      entity.isActive = false;
       TestComponent.prototype._onAwake = jest.fn();
-      const component = node.addComponent(TestComponent);
+      const component = entity.addComponent(TestComponent);
       expect(component._onAwake).toHaveBeenCalledTimes(0);
-      node.isActive = true;
+      entity.isActive = true;
       expect(component._onAwake).toHaveBeenCalledTimes(1);
-      node.isActive = false;
-      node.isActive = true;
+      entity.isActive = false;
+      entity.isActive = true;
       expect(component._onAwake).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("active", () => {
     it("onActive", () => {
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.root;
       TestComponent.prototype._onActive = jest.fn();
-      const component = node.addComponent(TestComponent);
+      const component = entity.addComponent(TestComponent);
       expect(component._onActive).toHaveBeenCalledTimes(1);
     });
 
     it("onInActive", () => {
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.root;
       TestComponent.prototype._onInActive = jest.fn();
-      const component = node.addComponent(TestComponent);
-      node.isActive = false;
+      const component = entity.addComponent(TestComponent);
+      entity.isActive = false;
       expect(component._onInActive).toHaveBeenCalledTimes(1);
     });
 
     it("inActiveHierarchy", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      parent.parent = child;
       TestComponent.prototype._onInActive = jest.fn();
       const component = child.addComponent(TestComponent);
       parent.isActive = false;

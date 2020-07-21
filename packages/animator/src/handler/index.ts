@@ -1,4 +1,4 @@
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { AnimationClipType } from "../AnimationConst";
 import { AnimationClip } from "../AnimationClip";
 import { InterpolationHandler } from "./interpolationHandler";
@@ -10,7 +10,7 @@ const handlerMap = {
   [AnimationClipType.AnimationComponent]: AnimationComponentHandler
 };
 let maxId = 0;
-export function getAnimationClipHander(node: Node, animClip: AnimationClip) {
+export function getAnimationClipHander(entity: Entity, animClip: AnimationClip) {
   const { AnimationClipType: type } = animClip;
-  return new handlerMap[type](++maxId, type, node, animClip);
+  return new handlerMap[type](++maxId, type, entity, animClip);
 }

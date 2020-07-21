@@ -50,11 +50,11 @@ export class SpriteRenderer extends RenderableComponent {
 
   /**
    * 构造函数
-   * @param {Node} node
+   * @param {Entity} entity
    * @param {Sprite} sprite
    */
-  constructor(node, sprite) {
-    super(node);
+  constructor(entity, sprite) {
+    super(entity);
 
     const { texture, rect, anchor, worldSizeFactor } = sprite;
     this._worldSizeFactor = worldSizeFactor || 100;
@@ -248,9 +248,9 @@ export class SpriteRenderer extends RenderableComponent {
       const vx = vec3.fromValues(m[0], m[4], m[8]);
       const vy = vec3.fromValues(m[1], m[5], m[9]);
       //-- center pos
-      const c = vec3.clone(this.node.worldPosition);
+      const c = vec3.clone(this.entity.worldPosition);
       const s = this._worldSize;
-      const ns = this.node.scale;
+      const ns = this.entity.scale;
 
       vec3.scale(vx, vx, s[0] * ns[0]);
       vec3.scale(vy, vy, s[1] * ns[1]);

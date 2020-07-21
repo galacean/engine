@@ -35,7 +35,7 @@ export class LottieRenderer extends RenderableComponent {
       loop,
       autoplay
     });
-    this.node.addChild(this.animationItem.node);
+    this.entity.addChild(this.animationItem.node);
   }
 
   public update(deltaTime: number) {
