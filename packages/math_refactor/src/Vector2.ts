@@ -26,7 +26,7 @@ export class Vector2 {
   /**
    * 将两个向量相减 并输出结果out
    *
-   * @param a - 做向量
+   * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个二维向量的相减结果
    */
@@ -38,7 +38,7 @@ export class Vector2 {
   /**
    * 将两个向量相乘 并输出结果out
    *
-   * @param a - 做向量
+   * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个二维向量的相乘结果
    */
