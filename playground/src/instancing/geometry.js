@@ -8,7 +8,7 @@ import { BufferGeometry } from "@alipay/o3-geometry";
 export default function createInstancedGeometry(size) {
   //-- crete object
   const geometry = new BufferGeometry("cubeGeometry");
-  geometry.instancedCount = 50;
+  geometry.instancedCount = 51;
   geometry.initialize(
     [
       { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
@@ -85,7 +85,7 @@ export default function createInstancedGeometry(size) {
     geometry.setValue("COLOR", i, colors[vertexIndex]);
   });
 
-  const num = geometry.instancedCount;
+  const num = geometry.instancedCount * 12;
   const instancedValues = [];
   for (let i = 0; i < num; i++) {
     const offset = [Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1];
