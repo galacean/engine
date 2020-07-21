@@ -2,8 +2,6 @@ import { Texture } from "./Texture";
 import { TextureFormat, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
 import { Engine } from "@alipay/o3-core";
 
-// const tex = new Texture2D(1000, 1000, undefined, undefined, engine)
-// const tex = new Texture2D(()=>{})
 /**
  * 2D纹理。
  */

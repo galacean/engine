@@ -1,4 +1,4 @@
-import { Logger, Util, DrawMode, DataType, TextureFilter, TextureWrapMode } from "@alipay/o3-base";
+import { Logger, Util, DrawMode, DataType, TextureFilter, TextureWrapMode, TextureFormat } from "@alipay/o3-base";
 import { Node, Scene, ResourceManager, LoaderType, Engine } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
@@ -250,8 +250,9 @@ export function parseTexture(gltfTexture, resources: GLTFParsed) {
   // const name = gltfTexture.name || gltfImage.name || gltfImage.uri || "GLTF_TEX_" + GLTF_TEX_COUNT;
   // TODO: support gltf texture compress
   // TODO: modify to engine and order
-  const tex = new Texture2D(resources.engine.hardwareRenderer, image.width, image.height);
+  const tex = new Texture2D(image.width, image.height, undefined, undefined, resources.engine);
   tex.setImageSource(image);
+  tex.generateMipmaps();
   return Promise.resolve(tex);
 }
 
@@ -280,6 +281,7 @@ export function parseMaterial(gltfMaterial, resources) {
       extensions
     } = gltfMaterial;
 
+    console.log(pbrMetallicRoughness);
     if (pbrMetallicRoughness) {
       const {
         baseColorFactor,
