@@ -683,6 +683,6 @@ export abstract class Texture extends ReferenceObject {
   constructor() {
     super();
 
-    this.gcPriority = 900;
+    this._gcPriority = 900;
   }
 }

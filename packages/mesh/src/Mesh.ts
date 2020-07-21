@@ -18,7 +18,7 @@ export class Mesh extends ReferenceObject {
 
     /** @member {Array} */
     this.primitives = []; // Primitive array
-    this.gcPriority = 1000;
+    this._gcPriority = 1000;
   }
 
   updatePrimitiveWeightsIndices(weightsIndices: number[]) {

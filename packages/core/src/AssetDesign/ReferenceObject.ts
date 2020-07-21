@@ -14,10 +14,16 @@ export abstract class ReferenceObject extends AssetObject {
   isGCIgnored: boolean = false;
 
   protected _engine: Engine;
+  protected _gcPriority: number = 0;
 
   private _instanceID: number;
   private _referenceCount: number = 0;
   private _destroyed: boolean = false;
+
+  /** @internal */
+  get gcPriority(): number {
+    return this._gcPriority;
+  }
 
   /**
    * 实例ID。

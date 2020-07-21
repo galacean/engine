@@ -105,7 +105,15 @@ export class ResourceManager {
    * 垃圾回收，会释放受引用计数管理的资源对象。
    * @remarks 释放原则为没有被组件实例引用，包含直接引用和间接引用。
    */
-  gc(): void {}
+  gc(): void {
+    const objects = Object.values(this._referenceObjectPool);
+    objects.sort((refObj1, refObj2) => refObj1.gcPriority - refObj2.gcPriority);
+    for (let i = 0, len = objects.length; i < len; i++) {
+      if (!objects[i].isGCIgnored) {
+        objects[i].destroy();
+      }
+    }
+  }
 
   /**
    * @internal
