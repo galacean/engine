@@ -60,10 +60,6 @@ import perturbation_frag from "./shaderlib/perturbation_frag.glsl";
 import refraction_share from "./shaderlib/refraction_share.glsl";
 import refraction_frag from "./shaderlib/refraction_frag.glsl";
 
-import uv_transform_share_define from "./shaderlib/uv_transform_share_define.glsl";
-import uv_transform_vert_define from "./shaderlib/uv_transform_vert_define.glsl";
-import uv_transform_vert from "./shaderlib/uv_transform_vert.glsl";
-
 import clipPlane_vert_define from "./shaderlib/clipPlane_vert_define.glsl";
 import clipPlane_vert from "./shaderlib/clipPlane_vert.glsl";
 import clipPlane_frag_define from "./shaderlib/clipPlane_frag_define.glsl";
@@ -137,10 +133,6 @@ export const ShaderLib = {
   perturbation_frag,
   refraction_share,
   refraction_frag,
-
-  uv_transform_share_define,
-  uv_transform_vert_define,
-  uv_transform_vert,
 
   clipPlane_vert_define,
   clipPlane_vert,

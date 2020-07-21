@@ -6,7 +6,6 @@
 #include <fog_share>
 
 #include <uv_share>
-#include <uv_transform_share_define>
 #include <normal_share>
 #include <color_share>
 #include <worldpos_share>
@@ -59,4 +58,6 @@ void main() {
     #include <fog_frag>
 
     #include <oit_frag>
+
+    // gl_FragColor = texture2D( u_baseColorSampler, v_uv );
 }
