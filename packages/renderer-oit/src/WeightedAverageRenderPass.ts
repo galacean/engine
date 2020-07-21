@@ -8,12 +8,12 @@ import { BlendFunc, RenderBufferColorFormat } from "@alipay/o3-base";
 export class WeightedAverageRenderPass extends RenderPass {
   private stateMap = new Map();
 
-  constructor(rhi, width: number, height: number) {
+  constructor(width: number, height: number) {
     super("Weighted-Average renderPass", -1);
 
-    const renderTarget = new RenderTarget(rhi, width, height, [
-      new RenderColorTexture(rhi, width, height, RenderBufferColorFormat.R32G32B32A32),
-      new RenderColorTexture(rhi, width, height, RenderBufferColorFormat.R32G32B32A32)
+    const renderTarget = new RenderTarget(width, height, [
+      new RenderColorTexture(width, height, RenderBufferColorFormat.R32G32B32A32),
+      new RenderColorTexture(width, height, RenderBufferColorFormat.R32G32B32A32)
     ]);
 
     this.renderTarget = renderTarget;

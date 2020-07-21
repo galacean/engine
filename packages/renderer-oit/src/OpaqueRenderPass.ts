@@ -9,9 +9,9 @@ import { DepthMaterial } from "./DepthMaterial";
  * 2. 渲染 opaque 到深度纹理
  * */
 export class OpaqueRenderPass extends RenderPass {
-  constructor(rhi, width: number, height: number) {
+  constructor(width: number, height: number) {
     super("opaque renderPass", -2, null);
-    this.renderTarget = new RenderTarget(rhi, width, height, null, new RenderDepthTexture(rhi, width, height));
+    this.renderTarget = new RenderTarget(width, height, null, new RenderDepthTexture(width, height));
     this.replaceMaterial = new DepthMaterial("DepthMaterial");
     this.renderOverride = true;
   }

@@ -19,7 +19,7 @@ export class ImageElement extends IImageElement {
   }
 
   createContainerElements() {
-    this.node = new Node(null, null, `LOTTIE_IMAGE_${nodeCount++}`);
+    this.node = new Node(null, null);
   }
   createContent() {
     super.createContent();

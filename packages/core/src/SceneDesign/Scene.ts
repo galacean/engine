@@ -5,13 +5,15 @@ import { Engine } from "../Engine";
  * 场景类。
  */
 export class Scene {
-  private _rootNodesCount: number = 0;
+  /** 场景名字。 */
+  name: string;
 
   /** @internal */
   _engine: Engine;
 
-  /** 场景名字。 */
-  name: string;
+  private _isActive: boolean = true;
+  private _destroyed: boolean = false;
+  private _rootNodesCount: number = 0;
 
   /**
    * 所属引擎。
@@ -25,6 +27,29 @@ export class Scene {
    */
   get rootNodesCount(): number {
     return this._rootNodesCount;
+  }
+
+  /**
+   * 局部激活。
+   */
+  get isActive(): boolean {
+    return this._isActive;
+  }
+
+  /**
+   * 是否已销毁。
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
+  }
+
+  /**
+   * 创建场景。
+   * @param name - 名字
+   * @param engine - 所属引擎
+   */
+  constructor(name?: string, engine?: Engine) {
+    //CM:实现需要考虑当前激活场景切换和增加/删除根节点 导致的节点激活状态变化
   }
 
   /**
@@ -51,7 +76,7 @@ export class Scene {
    * 销毁场景。
    */
   destroy(): void {
-    this._engine.sceneManager.removeScene(this);
+    if (this._engine.sceneManager.scene === this) this._engine.sceneManager.scene = null;
     //继续销毁所有根节点
   }
 }

@@ -51,7 +51,7 @@ export class Material extends ReferenceObject {
     this._technique = null;
     this._values = {};
 
-    this.gcPriority = 1000;
+    this._gcPriority = 1000;
   }
 
   /** 创建一个本材质对象的深拷贝对象

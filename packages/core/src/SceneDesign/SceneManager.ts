@@ -6,40 +6,29 @@ import { AssetPromise } from "../AssetDesign/AssetPromise";
  */
 export class SceneManager {
   /**
-   * 场景数量。
+   * 当前激活场景。
    */
-  get sceneCount(): number {
-    return 0;
-  }
-
-  /**
-   * 通过索引获取场景。
-   * @param index - 索引
-   * @returns 场景
-   */
-  getScene(index: number): Scene {
+  get scene(): Scene {
     return null;
   }
 
-  /**
-   * 添加场景。
-   * @param scene - 场景
-   */
-  addScene(scene: Scene): void {}
+  set scene(scene: Scene) {}
 
   /**
-   * 移除场景。
-   * @param scene - 场景
-   */
-  removeScene(scene: Scene): void {}
-
-  /**
-   * 加载并添加场景。
+   * 加载并激活场景。
    * @param url - 场景路径
-   * @param isAdditive - 是否为叠加模式，true 会叠加到当前场景集合,false 会关闭当前所有场景并切换载入场景
+   * @param destroyOldScene - 是否销毁旧场景信息
    * @returns 场景请求
    */
-  loadScene(url: string, isAdditive: boolean = false): AssetPromise<Scene> {
+  loadScene(url: string, destroyOldScene: boolean = true): AssetPromise<Scene> {
     return null;
   }
+
+  /**
+   * 合并场景，将源场景合并到目标场景。
+   * @remarks 合并后将使用 destScene 的全局信息,lightingMap 信息会进行合并。
+   * @param sourceScene - 源场景
+   * @param destScene - 目标场景
+   */
+  mergeScenes(sourceScene: Scene, destScene: Scene): void {}
 }

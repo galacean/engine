@@ -1,6 +1,5 @@
 import { Event, EventDispatcher, Logger, Time } from "@alipay/o3-base";
 import { ResourceManager } from "./AssetDesign/ResourceManager";
-import { AssetPool } from "./AssetPool";
 import { Canvas } from "./EngineDesign/Canvas";
 import { EngineOptions } from "./EngineDesign/EngineOptions";
 import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
@@ -25,12 +24,15 @@ const engineFeatureManager = new FeatureManager<EngineFeature>();
 export class Engine extends EventDispatcher {
   /**
    * 当前创建对象所属的默认引擎对象。
-   * @remarks 最后创建的引擎实例会自动赋值该属性。
    */
   static defaultCreateObjectEngine: Engine = null;
 
   static _instanceIDCounter: number = 0;
   static _lastCreateEngine: Engine = null;
+
+  static _getDefaultEngine(): Engine {
+    return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
+  }
 
   private _vSyncCount: number = 1;
   private _targetTrameRate: number;
@@ -224,11 +226,6 @@ export class Engine extends EventDispatcher {
   /**
    * @deprecated
    */
-  public assetPool: AssetPool = new AssetPool();
-
-  /**
-   * @deprecated
-   */
   public requestId: number;
 
   public static registerPipline() {}
@@ -335,8 +332,6 @@ export class Engine extends EventDispatcher {
     this._animateTime = null;
 
     // --
-    this.assetPool.clear();
-    this.assetPool = null;
     (engineFeatureManager as any)._objects = [];
   }
 }

@@ -77,9 +77,12 @@ export class Scene extends EventDispatcher {
 
     this._engine = engine;
     this._componentsManager = new ComponentsManager();
-    this._root = new Node(this, null, "__root__");
+    const root = new Node("__root__", engine);
+    root._isRoot = true;
+    root._isActiveInHierarchy = true; //CM:需要根据判断场景是否激活决定ï
+    root._scene = this;
+    this._root = root;
     this._activeCameras = [];
-
     sceneFeatureManager.addObject(this);
   }
 

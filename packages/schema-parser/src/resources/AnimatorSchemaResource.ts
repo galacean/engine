@@ -2,7 +2,7 @@ import { SchemaResource } from "./SchemaResource";
 import { AbilityManager } from "../AbilityManager";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
-const { AnimatorAsset } = o3;
+// const { AnimatorAsset } = o3;
 export class AnimatorSchemaResource extends SchemaResource {
   private config: AssetConfig;
   private abilityManager: AbilityManager;
@@ -16,8 +16,8 @@ export class AnimatorSchemaResource extends SchemaResource {
       this.abilityManager = abilityManager;
       const { name, props } = assetConfig;
       const { keyframes } = props || {};
-      const assetObj = new AnimatorAsset(name, keyframes);
-      this._resource = assetObj;
+      // const assetObj = new AnimatorAsset(name, keyframes);
+      // this._resource = assetObj;
       this.setMeta();
       resolve(this);
     });

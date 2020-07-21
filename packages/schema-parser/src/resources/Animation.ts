@@ -2,7 +2,7 @@ import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Logger } from "@alipay/o3";
-const { AnimationAsset } = o3;
+// const { AnimationAsset } = o3;
 
 export class AnimationSchemaResource extends SchemaResource {
   private config: AssetConfig;
@@ -10,8 +10,8 @@ export class AnimationSchemaResource extends SchemaResource {
     return new Promise((resolve) => {
       this.config = assetConfig;
       const { name, props } = assetConfig;
-      const assetObj = new AnimationAsset(name, props);
-      this._resource = assetObj;
+      // const assetObj = new AnimationAsset(name, props);
+      // this._resource = assetObj;
       this.setMeta();
       resolve(this);
     });

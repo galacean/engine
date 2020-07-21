@@ -35,7 +35,7 @@ export class AnimationClip extends AssetObject {
    * @param {AnimationClipType} AnimationClipType
    */
   constructor(name: string, AnimationClipType: AnimationClipType, options: any = null) {
-    super(name);
+    super();
     this.AnimationClipType = AnimationClipType || Interpolation;
     this.options = options;
     this.handlerMap = {};
@@ -99,7 +99,7 @@ export class AnimationClip extends AssetObject {
   }
 
   removeAllHandler() {
-    Object.keys(this.handlerMap).forEach(id => {
+    Object.keys(this.handlerMap).forEach((id) => {
       this.removeHandler(id);
     });
   }

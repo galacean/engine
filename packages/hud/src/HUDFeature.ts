@@ -29,12 +29,12 @@ export class HUDFeature extends SceneFeature {
     this._dirtyRects = [];
   }
 
-  initTexture(rhi, width?, height?) {
+  initTexture(width?, height?) {
     width = width || 512;
     height = height || 512;
 
     //-- HUD控件绘制的所需纹理，内置一个Canvas
-    this._texture = new HUDTexture(rhi, width, height);
+    this._texture = new HUDTexture(width, height);
     //-- 负责给HUD控件分配Texture空间
     this._textureMapper = new HUDTextureMapper(width, height);
   }
@@ -117,7 +117,7 @@ export class HUDFeature extends SceneFeature {
    */
   preUpdate(scene) {
     if (!this._texture) {
-      this.initTexture(scene.engine.hardwareRenderer);
+      this.initTexture();
     }
 
     //-- 给HUD控件分配Canvas区域

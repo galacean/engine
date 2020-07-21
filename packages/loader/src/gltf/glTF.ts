@@ -654,7 +654,7 @@ export function parseAnimation(gltfAnimation, resources) {
 export function parseNode(gltfNode, resources) {
   // TODO: undefined name?
 
-  const node = new Node(null, null, gltfNode.name || `GLTF_NODE_${nodeCount++}`);
+  const node = new Node(null, null);
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
@@ -792,7 +792,7 @@ export function buildSceneGraph(resources) {
     if (nodes.length === 1) {
       asset.rootNode = nodes[0];
     } else {
-      const rootNode = new Node(null, null, `GLTF_ROOT_NODE`);
+      const rootNode = new Node(null, null);
       for (let i = 0; i < nodes.length; i++) {
         rootNode.addChild(node[i]);
       }

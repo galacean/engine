@@ -16,15 +16,9 @@ export class LightShadow {
   public radius;
   public projectionMatrix;
 
-  constructor(rhi, props = { width: 512, height: 512 }) {
+  constructor(props = { width: 512, height: 512 }) {
     this._mapSize = vec2.fromValues(props.width, props.height);
-    this.rhi = rhi;
-    this._renderTarget = new RenderTarget(
-      rhi,
-      props.width,
-      props.height,
-      new RenderColorTexture(rhi, props.width, props.height)
-    );
+    this._renderTarget = new RenderTarget(props.width, props.height, new RenderColorTexture(props.width, props.height));
 
     /**
      * （偏斜）
@@ -118,7 +112,7 @@ export class LightShadow {
       (this._mapSize.width !== width || this._mapSize.height !== height)
     ) {
       this._mapSize = vec2.fromValues(width, height);
-      this._renderTarget = new RenderTarget(this.rhi, width, height, new RenderColorTexture(this.rhi, width, height));
+      this._renderTarget = new RenderTarget(width, height, new RenderColorTexture(width, height));
     }
   }
 

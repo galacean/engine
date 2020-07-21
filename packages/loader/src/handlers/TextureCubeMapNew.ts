@@ -50,7 +50,7 @@ export class TextureCubeMapNewHandler {
    * @param {Resource} resource 资源数据
    * @private
    */
-  open(resource: Resource, rhi) {
+  open(resource: Resource) {
     const { data, name } = resource;
     const { width, height } = data[0][0];
 
@@ -59,7 +59,7 @@ export class TextureCubeMapNewHandler {
       return;
     }
 
-    const tex = new TextureCubeMap(rhi, width);
+    const tex = new TextureCubeMap(width);
     tex.name = name;
 
     if (!tex._glTexture) return;
