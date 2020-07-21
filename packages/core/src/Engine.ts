@@ -2,7 +2,6 @@ import { Event, EventDispatcher, Logger, Time } from "@alipay/o3-base";
 import { ResourceManager } from "./AssetDesign/ResourceManager";
 import { AssetPool } from "./AssetPool";
 import { Canvas } from "./EngineDesign/Canvas";
-import { EngineOptions } from "./EngineDesign/EngineOptions";
 import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
 import { EngineFeature } from "./EngineFeature";
 import { FeatureManager } from "./FeatureManager";
@@ -129,7 +128,7 @@ export class Engine extends EventDispatcher {
    * @param hardwareRenderer - 渲染器
    * @param options - 引擎初始化选项
    */
-  constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer, engineOptions?: EngineOptions) {
+  constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
     super();
     // 加入 Feature 管理
     engineFeatureManager.addObject(this);
