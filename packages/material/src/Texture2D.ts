@@ -1,5 +1,6 @@
 import { Texture } from "./Texture";
 import { TextureFormat, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
+import { Engine } from "@alipay/o3-core";
 
 /**
  * 2D纹理。
@@ -18,21 +19,22 @@ export class Texture2D extends Texture {
 
   /**
    * 构建一个2D纹理。
-   * @todo 删除兼容性API后直接替换构造函数
-   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param format - 格式,默认 TextureFormat.R8G8B8A8
    * @param mipmap - 是否使用多级纹理
+   * @param engine - 可选引擎
    */
   constructor(
-    rhi, //CM:放到最后一个参数并改为可选参数,如果不设置则使用Engine._getDefaultEngine()，相关的纹理类都改一下
     width: number,
     height: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
-    mipmap: boolean = true
+    mipmap: boolean = true,
+    engine?: Engine
   ) {
     super("");
+    engine = engine || Engine._getDefaultEngine();
+    const rhi = engine.hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 

@@ -7,7 +7,7 @@ export function createTextureFromCanvas(name, width, height, drawFunc, rhi) {
   canvas.height = height;
   context.clearRect(0, 0, width, height);
   drawFunc && drawFunc(context);
-  const texture = new Texture2D(rhi, width, height);
+  const texture = new Texture2D(width, height);
   texture.setImageSource(canvas);
   return texture;
 }

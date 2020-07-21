@@ -7,6 +7,7 @@ import {
   Logger
 } from "@alipay/o3-base";
 import { Texture } from "./Texture";
+import { Engine } from "@alipay/o3-core";
 
 /**
  * 类应用于渲染颜色纹理。
@@ -38,22 +39,24 @@ export class RenderColorTexture extends Texture {
 
   /**
    * 构造渲染纹理。
-   * @param rhi - GPU 硬件抽象层 @deprecated
    * @param width - 宽
    * @param height - 高
    * @param format - 格式，默认 RenderBufferColorFormat.R8G8B8A8
    * @param mipmap - 是否使用多级纹理
    * @param isCube - 是否为立方体模式
+   * @param engine - 可选引擎
    */
   constructor(
-    rhi,
     width: number,
     height: number,
     format: RenderBufferColorFormat = RenderBufferColorFormat.R8G8B8A8,
     mipmap: boolean = false,
-    isCube: boolean = false
+    isCube: boolean = false,
+    engine?: Engine
   ) {
     super("");
+    engine = engine || Engine._getDefaultEngine();
+    const rhi = engine.hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 

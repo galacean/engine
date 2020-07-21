@@ -36,7 +36,7 @@ export class SpineResource extends SchemaResource {
           }
         }
       }
-      const assetManager: any = new AssetManager(resourceLoader.rhi);
+      const assetManager: any = new AssetManager();
       assetManager.loadText(jsonUrl);
       assetManager.loadTexture(textureUrl);
       assetManager.loadText(atlasUrl);

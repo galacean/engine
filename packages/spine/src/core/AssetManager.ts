@@ -3,9 +3,9 @@ import { spine } from "@alipay/spine-core";
 
 export class AssetManager extends spine.AssetManager {
   private checkRaf;
-  constructor(rhi, pathPrefix: string = "") {
+  constructor(pathPrefix: string = "") {
     super((image: HTMLImageElement) => {
-      return new OasisTextrure(rhi, image);
+      return new OasisTextrure(image);
     }, pathPrefix);
   }
 
