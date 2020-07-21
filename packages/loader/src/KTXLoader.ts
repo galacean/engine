@@ -13,7 +13,7 @@ export class KTXLoader extends Loader<Texture2D> {
         .then((bin) => {
           const parsedData = parseSingleKTX(bin);
           const { width, height, mipmaps, engineFormat } = parsedData;
-          const texture = new (Texture2D as any)(resourceManager.engine.hardwareRenderer, width, height, engineFormat);
+          const texture = new Texture2D(width, height, engineFormat, undefined, resourceManager.engine);
 
           if (texture._glTexture) {
             for (let miplevel = 0; miplevel < mipmaps.length; miplevel++) {

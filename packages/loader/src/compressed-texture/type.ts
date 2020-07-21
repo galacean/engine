@@ -22,7 +22,7 @@ export interface CompressedCubeDataNew extends CompressedCubeData {
 }
 
 export type Mipmap = {
-  data: ArrayBuffer;
+  data: ArrayBufferView;
   width: number;
   height: number;
 };
