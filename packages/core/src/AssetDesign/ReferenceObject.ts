@@ -41,7 +41,7 @@ export abstract class ReferenceObject extends AssetObject {
   }
 
   protected constructor(engine?: Engine) {
-    super("x");
+    super();
     const resEngine = engine || Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
     if (!resEngine) throw "asset must belone to an engine.";
     this._engine = resEngine;
@@ -58,11 +58,19 @@ export abstract class ReferenceObject extends AssetObject {
     if (this._destroyed) return true;
     if (!force && this._referenceCount !== 0) return false;
 
+    this.onDestroy();
+
     this._engine.resourceManager._deleteAsset(this);
     this._engine.resourceManager._deleteReferenceObject(this.instanceID);
     this._destroyed = true;
+    this._engine = null;
     return true;
   }
+
+  /**
+   * 当资源真正销毁时调。交由子类重写
+   */
+  protected abstract onDestroy(): void;
 
   /**
    * @internal

@@ -517,17 +517,13 @@ export abstract class Texture extends ReferenceObject {
     this._unbind();
   }
 
-  /** 销毁实例 */
-  public destroy(force?: boolean): boolean {
-    if (super.destroy(force)) {
-      const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-      gl.deleteTexture(this._glTexture);
-      this._glTexture = null;
-      this._formatDetail = null;
-      this._rhi = null;
-      return true;
-    }
-    return false;
+  onDestroy() {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
+    gl.deleteTexture(this._glTexture);
+    this._glTexture = null;
+    this._formatDetail = null;
+    // TODO: delete
+    this._rhi = null;
   }
 
   /** @internal */

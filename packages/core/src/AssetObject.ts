@@ -14,7 +14,7 @@ export class AssetObject {
    * 构造函数
    * @constructor
    */
-  constructor(name: string) {
+  constructor() {
     this.name = name;
 
     /**

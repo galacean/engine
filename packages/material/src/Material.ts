@@ -118,12 +118,12 @@ export class Material extends ReferenceObject {
     const oriValue = this.getValue(name);
     const oriIsTexture = oriValue instanceof Texture;
     const curIsTexture = value instanceof Texture;
-    // if (oriIsTexture) {
-    //   (<Texture>oriValue)._addReference(-1);
-    // }
-    // if (curIsTexture) {
-    //   (<Texture>value)._addReference(1);
-    // }
+    if (oriIsTexture) {
+      (<Texture>oriValue)._addReference(-1);
+    }
+    if (curIsTexture) {
+      (<Texture>value)._addReference(1);
+    }
 
     if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {
       this._technique = null;
@@ -332,5 +332,18 @@ export class Material extends ReferenceObject {
         values[uniform.name] = component.engine.time.timeSinceStartup * 0.001;
         break;
     } // end of switch
+  }
+
+  onDestroy() {
+    // TODO: 待材质重构
+    const values = Object.values(this._values);
+    for (let i = 0, len = values.length; i < len; i++) {
+      const value = values[i];
+      if (value instanceof Texture) {
+        value._addReference(-1);
+      }
+    }
+
+    this._technique._finalize();
   }
 }
