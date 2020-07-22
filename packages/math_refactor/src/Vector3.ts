@@ -1,7 +1,7 @@
+import { MathUtil } from "./MathUtil";
+import { Quaternion } from "./Quaternion";
 import { Matrix3x3 } from "./Matrix3x3";
 import { Matrix4x4 } from "./Matrix4x4";
-import { Quaternion } from "./Quaternion";
-import { MathUtil } from "./MathUtil";
 
 /**
  * 三维向量
