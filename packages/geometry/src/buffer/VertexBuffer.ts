@@ -9,8 +9,8 @@ import { getVertexDataTypeSize } from "../Constant";
 export class VertexBuffer {
   attributes: BufferAttribute[];
   buffers: ArrayBuffer[];
-  bufferMap: {};
   private _startBufferIndex: number | undefined;
+  private _semanticList: string[] = [];
   readonly isInterleaved: boolean = false;
 
   set startBufferIndex(value) {
@@ -24,6 +24,10 @@ export class VertexBuffer {
     return this._startBufferIndex;
   }
 
+  get semanticList() {
+    return this._semanticList;
+  }
+
   constructor(attributes: BufferAttribute[], vertexCount: number) {
     this.initialize(attributes, vertexCount);
   }
@@ -32,9 +36,13 @@ export class VertexBuffer {
     this.attributes = attributes;
     for (let i = 0; i < attributes.length; i += 1) {
       const attribute = attributes[i];
-      attribute.vertexBufferIndex = this.startBufferIndex + i;
+      const { instanced, semantic } = attribute;
+      this._semanticList.push(semantic);
       const stride = this._getSizeInByte(attribute.size, attribute.type);
-      const buffer = new ArrayBuffer(vertexCount * stride);
+      attribute.stride = stride;
+      attribute.vertexBufferIndex = this.startBufferIndex + i;
+      const bufferLength = instanced ? (vertexCount / instanced) * stride : vertexCount * stride;
+      const buffer = new ArrayBuffer(bufferLength);
       this.buffers.push(buffer);
     }
   }

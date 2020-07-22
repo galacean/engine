@@ -3,7 +3,7 @@ import { AssetObject } from "@alipay/o3-core";
 import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 import { Matrix4 } from "@alipay/o3-math/types/type";
 import { vec3 } from "@alipay/o3-math";
-import { VertexBuffer } from "@alipay/o3-geometry";
+import { VertexBuffer, IndexBuffer } from "@alipay/o3-geometry";
 
 export interface Attribute {
   name?: string;
@@ -45,12 +45,15 @@ export class Primitive extends AssetObject {
   vertexOffset: number = 0;
   vertexCount: number = 0;
 
-  indexBuffers = null;
+  indexBuffers: IndexBuffer[] = [];
   indexOffset: number = 0;
   indexNeedUpdate: boolean = false;
 
   isInstanced: boolean = false;
   instancedCount: number;
+
+  // 需要更新的vertex buffer序号
+  updateIndex: number;
 
   public material = null;
   public materialIndex: number;

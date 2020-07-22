@@ -24,6 +24,10 @@ export class InterleavedBuffer extends VertexBuffer {
       attribute[i].vertexBufferIndex = this.startBufferIndex;
       stride += this._getSizeInByte(attribute.size, attribute.type);
     }
+    for (let i = 0; i < attribCount; i++) {
+      const attribute = attributes[i];
+      attribute.stride = stride;
+    }
     const buffer = new ArrayBuffer(vertexCount * stride);
     this.buffers[0] = buffer;
   }

@@ -30,9 +30,16 @@ export class IndexBuffer {
     this.buffer = buffer;
   }
 
-  getAllIndex() {}
+  setData(
+    data,
+    bufferOffset: number = 0,
+    dataStartIndex: number = 0,
+    dataCount: number = 4294967295 /*uint.MAX_VALUE*/
+  ) {}
 
-  setAllIndex(values) {}
+  setDataByIndex(index, value) {}
 
-  getIndex(index) {}
+  getData() {}
+
+  getDataByIndex(index) {}
 }

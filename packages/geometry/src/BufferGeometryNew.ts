@@ -1,7 +1,8 @@
 import { Logger } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Primitive } from "@alipay/o3-primitive";
-import { VertexBuffer, IndexBuffer } from "./buffer";
+import { VertexBuffer, IndexBuffer } from "./index";
+import { getVertexDataTypeDataView } from "./Constant";
 
 let geometryCount = 0;
 
@@ -12,8 +13,20 @@ let geometryCount = 0;
 export class BufferGeometry extends AssetObject {
   primitive: Primitive;
   attributes: {};
-  private vertexBufferCount: number;
-  private indexBufferCount: number;
+  private _vertexBufferCount: number;
+  private _indexBufferIndex: number;
+  private _vertexBuffers: VertexBuffer[];
+  private _indexBuffers: IndexBuffer[];
+
+  get indexBufferIndex() {
+    return this._indexBufferIndex;
+  }
+
+  set indexBufferIndex(value: number) {
+    this._indexBufferIndex = value;
+    this.primitive.indexBufferIndex = value;
+    this.primitive.indexNeedUpdate = true;
+  }
 
   /**
    * @constructor
@@ -22,8 +35,10 @@ export class BufferGeometry extends AssetObject {
   constructor(name?: string) {
     name = name || "bufferGeometry" + geometryCount++;
     super(name);
-    this.vertexBufferCount = 0;
-    this.indexBufferCount = 0;
+    this._vertexBufferCount = 0;
+    this._indexBufferIndex = 0;
+    this._vertexBuffers = [];
+    this._indexBuffers = [];
     this.primitive = new Primitive();
   }
 
@@ -31,64 +46,92 @@ export class BufferGeometry extends AssetObject {
   addVertexBufferParam(vertexBuffer: VertexBuffer) {
     const attrList = vertexBuffer.attributes;
     const attrCount = attrList.length;
-    vertexBuffer.startBufferIndex = this.vertexBufferCount;
+    vertexBuffer.startBufferIndex = this._vertexBufferCount;
     if (vertexBuffer.isInterleaved) {
-      this.vertexBufferCount += 1;
+      this._vertexBufferCount += 1;
     } else {
-      this.vertexBufferCount += attrCount;
+      this._vertexBufferCount += attrCount;
     }
     for (let i = 0; i < attrCount; i += 1) {
       const attr = vertexBuffer.attributes[i];
       this.primitive.addAttribute(attr);
     }
-    this.primitive.vertexBuffer = this.primitive.vertexBuffer.concat(vertexBuffer.buffers);
+    this._vertexBuffers.push(vertexBuffer);
+    this.primitive.vertexBuffers = this.primitive.vertexBuffers.concat(vertexBuffer.buffers);
   }
 
   // 设置 vertex buffer 数据
   setVertexBufferData(
     semantic: string,
-    vertexValues,
+    vertexValues: number[] | Float32Array,
     bufferOffset: number = 0,
     dataStartIndex: number = 0,
     dataCount: number = Number.MAX_SAFE_INTEGER
   ) {
-    const attributes = this.primitive.attributes;
-    const vertexAttrib = attributes[semantic];
-    if (vertexAttrib === undefined) {
-      Logger.error("UNKNOWN semantic: " + name);
-      return null;
+    const vertexBuffer = this._matchBufferBySemantic(semantic);
+    if (vertexBuffer) {
+      vertexBuffer.setData(semantic, vertexValues, bufferOffset, dataStartIndex, dataCount);
     }
-    const { vertexBufferIndex, interleaved } = vertexAttrib;
   }
 
   // 根据 vertexIndex 设置 buffer数据
-  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {}
+  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
+    const vertexBuffer = this._matchBufferBySemantic(semantic);
+    if (vertexBuffer) {
+      vertexBuffer.setDataByIndex(semantic, vertexIndex, value);
+    }
+  }
 
   // 获取buffer数据
-  getVertexBufferData(semantic: string) {}
-  getVertexBufferDataByIndex(semantic: string, index: number) {}
+  getVertexBufferData(semantic: string) {
+    const vertexBuffer = this._matchBufferBySemantic(semantic);
+    if (vertexBuffer) {
+      return vertexBuffer.getData(semantic);
+    }
+  }
+
+  // 根据顶点序号获取buffer数据
+  getVertexBufferDataByIndex(semantic: string, index: number) {
+    const vertexBuffer = this._matchBufferBySemantic(semantic);
+    if (vertexBuffer) {
+      return vertexBuffer.getDataByIndex(semantic, index);
+    }
+  }
 
   // 添加 index buffer
   addIndexBufferParam(indexBuffer: IndexBuffer) {
-    indexBuffer.index = this.indexBufferCount;
-    this.indexBufferCount += 1;
+    this._indexBuffers.push(indexBuffer);
     this.primitive.indexBuffers = this.primitive.indexBuffers.concat(indexBuffer.buffer);
   }
 
   // 设置 index buffer 数据
   setIndexBufferData(
-    bufferIndex,
     indexValues,
     bufferOffset: number = 0,
     dataStartIndex: number = 0,
     dataCount: number = 4294967295 /*uint.MAX_VALUE*/
-  ) {}
+  ) {
+    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
+    if (indexBuffer) {
+      indexBuffer.setData(indexValues, bufferOffset, dataStartIndex, dataCount);
+    }
+  }
 
   // 获取所有三角形顶点对应的几何体顶点序号
-  getIndexBufferData() {}
+  getIndexBufferData() {
+    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
+    if (indexBuffer) {
+      return indexBuffer.getData();
+    }
+  }
 
   // 获取三角形顶点序号的几何体顶点序号
-  getIndexBufferDataByIndex(index: number) {}
+  getIndexBufferDataByIndex(index: number) {
+    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
+    if (indexBuffer) {
+      return indexBuffer.getDataByIndex(index);
+    }
+  }
 
   // 设置绘制模式
   set mode(value) {}
@@ -104,5 +147,22 @@ export class BufferGeometry extends AssetObject {
     super._finalize();
     this.primitive.finalize();
     this.primitive = null;
+  }
+
+  private _matchBufferBySemantic(semantic: string): VertexBuffer | undefined {
+    const attributes = this.primitive.attributes;
+    const vertexAttrib = attributes[semantic];
+    if (vertexAttrib === undefined) {
+      Logger.error("UNKNOWN semantic: " + name);
+      return;
+    }
+
+    const matchBuffer = this._vertexBuffers.filter((vertexBuffer) => vertexBuffer.semanticList.includes(semantic));
+    if (matchBuffer.length > 1) {
+      Logger.error("Duplicated semantic: " + name);
+      return;
+    }
+
+    return matchBuffer[0];
   }
 }
