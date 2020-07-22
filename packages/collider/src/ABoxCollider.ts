@@ -1,6 +1,6 @@
 import { Collider } from "./Collider";
 import { vec3 } from "@alipay/o3-math";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 
 /**
  * 轴对齐的包围盒（AABBox）碰撞体组件
@@ -14,10 +14,10 @@ export class ABoxCollider extends Collider {
   private _corners: Array<number[] | Float32Array>;
   /**
    * 构造函数
-   * @param {Node} node 对象所在节点
+   * @param {Entity} entity 对象所在节点
    */
-  constructor(node: Node, props: any) {
-    super(node, props);
+  constructor(entity: Entity, props: any) {
+    super(entity, props);
     this.boxMin = vec3.fromValues(-0.5, -0.5, -0.5);
     this.boxMax = vec3.fromValues(0.5, 0.5, 0.5);
   }

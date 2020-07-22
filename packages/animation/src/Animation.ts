@@ -1,12 +1,12 @@
 import { Logger } from "@alipay/o3-base";
-import { Component, Node } from "@alipay/o3-core";
+import { Component, Entity } from "@alipay/o3-core";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationClip } from "./AnimationClip";
 import { quat } from "@alipay/o3-math";
 import { AnimationOptions, IChannelTarget } from "./types";
 import { SkinnedMeshRenderer } from "@alipay/o3-mesh";
 /**
- * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
+ * 播放动画片段，动画片段所引用的对象必须是此组件的 Entity 及其子物体
  */
 export class Animation extends Component {
   /**
@@ -69,10 +69,10 @@ export class Animation extends Component {
   private _channelTargets: IChannelTarget[] | false;
   /**
    * @constructor
-   * @param {Node} node
+   * @param {Entity} entity
    */
-  constructor(node: Node) {
-    super(node);
+  constructor(entity: Entity) {
+    super(entity);
     this._animSet = {}; // name : AnimationClip
     this._animLayers = [new AnimationLayer()];
     this._timeScale = 1.0;
@@ -206,7 +206,7 @@ export class Animation extends Component {
       this._animLayers.push(animLayer);
     }
     this._removeRefMixLayers(animLayer);
-    this._channelTargets = animLayer.play(animClip, this.node, options);
+    this._channelTargets = animLayer.play(animClip, this.entity, options);
   }
 
   /**
@@ -230,7 +230,7 @@ export class Animation extends Component {
     // 寻找可以进行混合的目标
     let targetAnimLayer = null;
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      if (this._animLayers[i].canMix(animClip, this.node)) {
+      if (this._animLayers[i].canMix(animClip, this.entity)) {
         targetAnimLayer = this._animLayers[i];
         break;
       }
@@ -251,7 +251,7 @@ export class Animation extends Component {
       const animLayer = new AnimationLayer();
       animLayer.crossFadeDuration = crossFadeDuration;
       animLayer.crossFadeDeltaTime = 0;
-      animLayer.play(animClip, this.node, options);
+      animLayer.play(animClip, this.entity, options);
       this._animLayers.push(animLayer);
     } else {
       this.playAnimationClip(name, options);
@@ -271,7 +271,7 @@ export class Animation extends Component {
       return;
     }
 
-    const mixNode = this.node.findByName(mixBoneName);
+    const mixNode = this.entity.findByName(mixBoneName);
     if (!mixNode) {
       Logger.error("can not find mix bone!");
       return;
@@ -280,7 +280,7 @@ export class Animation extends Component {
     // 寻找可以进行混合的目标
     let targetAnimLayer = null;
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      if (this._animLayers[i].canMix(animClip, this.node)) {
+      if (this._animLayers[i].canMix(animClip, this.entity)) {
         targetAnimLayer = this._animLayers[i];
         break;
       }
@@ -294,8 +294,8 @@ export class Animation extends Component {
       const animLayer = new AnimationLayer();
       animLayer.isMixLayer = true;
       animLayer.mixTagetLayer = targetAnimLayer;
-      animLayer.mixNode = mixNode;
-      animLayer.mix(animClip, targetAnimLayer, this.node, mixNode, options);
+      animLayer.mixEntity = mixNode;
+      animLayer.mix(animClip, targetAnimLayer, this.entity, mixNode, options);
       this._animLayers.push(animLayer);
     }
   }
@@ -349,9 +349,9 @@ export class Animation extends Component {
         const animLayer = this._animLayers[i];
         if (
           animLayer.isMixLayer &&
-          (animLayer.mixNode === mixNode ||
-            animLayer.mixNode.findByName(mixNode) ||
-            mixNode.findByName(animLayer.mixNode))
+          (animLayer.mixEntity === mixNode ||
+            animLayer.mixEntity.findByName(mixNode) ||
+            mixNode.findByName(animLayer.mixEntity))
         ) {
           animLayer.removeMixWeight();
           this._animLayers.splice(i, 1);
@@ -379,7 +379,7 @@ export class Animation extends Component {
         // SkinnedMeshRenderer
         (targetObject as SkinnedMeshRenderer).setWeights(val as any);
       } else {
-        // Node[property]
+        // Entity[property]
         targetObject[path] = val;
       }
     } // end of for

@@ -1,5 +1,5 @@
 import { InterpolationType, WrapMode } from "./AnimationConst";
-import { Node, Component } from "@alipay/o3-core";
+import { Entity, Component } from "@alipay/o3-core";
 
 export interface AnimationOptions {
   wrapMode?: WrapMode;

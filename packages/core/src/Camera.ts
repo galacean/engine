@@ -5,7 +5,7 @@ import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
-import { Node } from "./Node";
+import { Entity } from "./Entity";
 
 /**
  * @todo 数学库改造
@@ -121,7 +121,7 @@ export class Camera extends Component {
    * 横纵比，默认由视口的宽高比自动计算，如果手动设置会保持手动值，调用resetAspectRatio()可恢复。
    */
   public get aspectRatio(): number {
-    const canvas = this._node.engine.canvas;
+    const canvas = this._entity.engine.canvas;
     return this._customAspectRatio ?? (canvas.width * this._viewport[2]) / (canvas.height * this._viewport[3]);
   }
 
@@ -276,11 +276,11 @@ export class Camera extends Component {
    * @param node 节点
    * @param props camera 参数
    */
-  constructor(node: Node, props: any) {
+  constructor(node: Entity, props: any) {
     // TODO: 修改构造函数参数
     super(node, props);
 
-    this._transform = this.node.transform;
+    this._transform = this.entity.transform;
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
 
@@ -414,14 +414,14 @@ export class Camera extends Component {
    * @innernal
    */
   _onActive() {
-    this.node.scene.attachRenderCamera(this);
+    this.entity.scene.attachRenderCamera(this);
   }
 
   /**
    * @innernal
    */
   _onInActive() {
-    this.node.scene.detachRenderCamera(this);
+    this.entity.scene.detachRenderCamera(this);
   }
 
   /**

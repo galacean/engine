@@ -1,6 +1,6 @@
 import { Collider } from "./Collider";
 import { vec3 } from "@alipay/o3-math";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 
 /**
  * 平面（无限大）碰撞体组件，平面的位置和朝向与SceneObject一致
@@ -12,10 +12,10 @@ export class PlaneCollider extends Collider {
   normal: Float32Array | number[];
   /**
    * @constructor
-   * @param {Node} node
+   * @param {Entity} entity
    */
-  constructor(node: Node, props: any) {
-    super(node, props);
+  constructor(entity: Entity, props: any) {
+    super(entity, props);
 
     /**
      * 平面经过点的坐标(在Local坐标系)

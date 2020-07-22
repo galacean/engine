@@ -1,4 +1,4 @@
-import { Node } from "./../Node";
+import { Entity } from "../Entity";
 import { Engine } from "../Engine";
 
 /**
@@ -56,19 +56,19 @@ export class Scene {
    * 添加根节点。
    * @param node - 根节点
    */
-  addRootNode(node: Node): void {}
+  addRootNode(node: Entity): void {}
 
   /**
    * 移除根节点。
    * @param node - 根节点
    */
-  removeRootNode(node: Node): void {}
+  removeRootNode(node: Entity): void {}
 
   /**
    * 通过索引获取根节点。
    * @param index - 索引
    */
-  getRootNode(index: number): Node {
+  getRootNode(index: number): Entity {
     return null;
   }
 

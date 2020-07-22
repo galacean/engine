@@ -1,6 +1,6 @@
 import { Logger, Util, Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { FeatureManager } from "./FeatureManager";
-import { Node } from "./Node";
+import { Entity } from "./Entity";
 import { Engine } from "./Engine";
 import { Camera } from "./Camera";
 import { SceneFeature } from "./SceneFeature";
@@ -35,10 +35,10 @@ export class Scene extends EventDispatcher {
   /**
    * SceneGraph 的 Root 节点
    * @remarks 一般情况下，Root节点的Transform应该保持默认值，其值为单位矩阵
-   * @member {Node}
+   * @member {Entity}
    * @readonly
    */
-  get root(): Node {
+  get root(): Entity {
     return this._root;
   }
 
@@ -56,7 +56,7 @@ export class Scene extends EventDispatcher {
 
   private _engine: Engine;
 
-  private _root: Node;
+  private _root: Entity;
 
   /**
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
@@ -77,7 +77,7 @@ export class Scene extends EventDispatcher {
 
     this._engine = engine;
     this._componentsManager = new ComponentsManager();
-    const root = new Node("__root__", engine);
+    const root = new Entity("__root__", engine);
     root._isRoot = true;
     root._isActiveInHierarchy = true; //CM:需要根据判断场景是否激活决定ï
     root._scene = this;
@@ -115,7 +115,7 @@ export class Scene extends EventDispatcher {
       cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
-        const cameraNode = camera.node;
+        const cameraNode = camera.entity;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
           //@todo 后续优化
           this._componentsManager.callCameraOnBeginRender(camera);
@@ -156,11 +156,11 @@ export class Scene extends EventDispatcher {
   }
 
   /**
-   * 使用名称查找 Node 对象
+   * 使用名称查找 Entity 对象
    * @param {string} name 对象名称
-   * @return {Node}
+   * @return {Entity}
    */
-  public findObjectByName(name: string): Node {
+  public findObjectByName(name: string): Entity {
     if (this._root.name === name) {
       return this._root;
     }
