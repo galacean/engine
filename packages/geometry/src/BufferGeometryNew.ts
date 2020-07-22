@@ -28,6 +28,26 @@ export class BufferGeometry extends AssetObject {
     this.primitive.indexNeedUpdate = true;
   }
 
+  get vertexCount() {
+    return this.primitive.vertexCount;
+  }
+
+  get instancedCount() {
+    return this.primitive.instancedCount;
+  }
+
+  set instancedCount(count: number) {
+    this.primitive.instancedCount = count;
+  }
+
+  set mode(mode) {
+    this.primitive.mode = mode;
+  }
+
+  get mode() {
+    return this.primitive.mode;
+  }
+
   /**
    * @constructor
    * @param {string} name 名称
@@ -138,12 +158,6 @@ export class BufferGeometry extends AssetObject {
     if (indexBuffer) {
       return indexBuffer.getDataByIndex(index);
     }
-  }
-
-  // 设置绘制模式
-  set mode(value) {}
-  get mode() {
-    return;
   }
 
   /**
