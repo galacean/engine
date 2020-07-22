@@ -1,3 +1,4 @@
+import { Logger } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Primitive } from "@alipay/o3-primitive";
 import { VertexBuffer, IndexBuffer } from "./buffer";
@@ -44,9 +45,28 @@ export class BufferGeometry extends AssetObject {
   }
 
   // 设置 vertex buffer 数据
-  setVertexBufferData(semantic: string, vertexValue) {
-    // 根据semantic获取primitive中的attr，能够得到offset,stride,size,vertexBufferIndex
+  setVertexBufferData(
+    semantic: string,
+    vertexValues,
+    bufferOffset: number = 0,
+    dataStartIndex: number = 0,
+    dataCount: number = Number.MAX_SAFE_INTEGER
+  ) {
+    const attributes = this.primitive.attributes;
+    const vertexAttrib = attributes[semantic];
+    if (vertexAttrib === undefined) {
+      Logger.error("UNKNOWN semantic: " + name);
+      return null;
+    }
+    const { vertexBufferIndex, interleaved } = vertexAttrib;
   }
+
+  // 根据 vertexIndex 设置 buffer数据
+  setVertexDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {}
+
+  // 获取buffer数据
+  getVertexBufferData(semantic: string) {}
+  getVertexBufferDataByIndex(semantic: string, index: number) {}
 
   // 添加 index buffer
   addIndexBufferParam(indexBuffer: IndexBuffer) {
@@ -56,23 +76,25 @@ export class BufferGeometry extends AssetObject {
   }
 
   // 设置 index buffer 数据
-  setIndexBufferData(bufferIndex, indexValues) {}
+  setIndexBufferData(
+    bufferIndex,
+    indexValues,
+    bufferOffset: number = 0,
+    dataStartIndex: number = 0,
+    dataCount: number = 4294967295 /*uint.MAX_VALUE*/
+  ) {}
 
-  // index操作
-  getIndex() {} // 传了序号获取三角形顶点序号的
+  // 获取所有三角形顶点对应的几何体顶点序号
+  getIndexBufferData() {}
 
-  // 数值设置
-  setValue() {}
-  // 数值获取
-  getValue() {}
+  // 获取三角形顶点序号的几何体顶点序号
+  getIndexBufferDataByIndex(index: number) {}
 
+  // 设置绘制模式
   set mode(value) {}
   get mode() {
     return;
   }
-
-  _getUpdateRange() {}
-  _getSizeInByte() {}
 
   /**
    * 释放内部资源对象

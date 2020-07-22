@@ -1,5 +1,5 @@
 import { VertexBuffer } from "./VertexBuffer";
-import { BufferAttribute } from "./index";
+import { BufferAttribute } from "../index";
 
 /**
  * InterleavedBuffer
@@ -20,10 +20,13 @@ export class InterleavedBuffer extends VertexBuffer {
     for (let i = 0; i < attribCount; i++) {
       const attribute = attributes[i];
       attribute.offset = stride;
+      attribute.interleaved = true;
       attribute[i].vertexBufferIndex = this.startBufferIndex;
       stride += this._getSizeInByte(attribute.size, attribute.type);
     }
     const buffer = new ArrayBuffer(vertexCount * stride);
     this.buffers[0] = buffer;
   }
+
+  getIndex() {}
 }

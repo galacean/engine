@@ -1,7 +1,6 @@
 import { BufferUsage } from "@alipay/o3-base";
-import { IndexFormat } from "./index";
-import { VertexBuffer } from "./VertexBuffer";
-import { getVertexDataTypeDataView, getVertexDataTypeSize } from "../Constant";
+import { IndexFormat } from "../index";
+import { getVertexDataTypeSize } from "../Constant";
 
 /**
  * IndexBuffer

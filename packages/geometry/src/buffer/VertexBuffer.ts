@@ -1,5 +1,5 @@
 import { Logger } from "@alipay/o3-base";
-import { BufferAttribute } from "./index";
+import { BufferAttribute } from "../index";
 import { getVertexDataTypeSize } from "../Constant";
 
 /**
@@ -39,13 +39,27 @@ export class VertexBuffer {
     }
   }
 
+  setData(
+    semantic: string,
+    vertexValues,
+    bufferOffset: number = 0,
+    dataStartIndex: number = 0,
+    dataCount: number = Number.MAX_SAFE_INTEGER
+  ) {}
+
+  getData(semantic) {}
+
+  setDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {}
+
+  getDataByIndex(semantic: string, vertexIndex: number) {}
+
   /**
    * 获取当前类型的数据所占字节数
    * @param {Number} size 所占空间长度
    * @param {Number} type 数据类型常量
    * @private
    */
-  _getSizeInByte(size, type) {
+  protected _getSizeInByte(size, type) {
     const num = getVertexDataTypeSize(type);
     if (num) {
       return size * num;
