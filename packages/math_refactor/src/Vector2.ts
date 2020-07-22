@@ -319,8 +319,8 @@ export class Vector2 {
    * 当前向量取反，并返回
    */
   negate(): Vector2 {
-    this.x = -this.x;
-    this.y = -this.y;
+    this.x *= -1;
+    this.y *= -1;
     return this;
   }
 

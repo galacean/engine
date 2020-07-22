@@ -381,10 +381,10 @@ export class Vector4 {
    * 当前向量取反，并返回
    */
   negate(): Vector4 {
-    this.x = -this.x;
-    this.y = -this.y;
-    this.z = -this.z;
-    this.w = -this.w;
+    this.x *= -1;
+    this.y *= -1;
+    this.z *= -1;
+    this.w *= -1;
     return this;
   }
 

@@ -448,9 +448,9 @@ export class Vector3 {
    * 当前向量取反，并返回
    */
   negate(): Vector3 {
-    this.x = -this.x;
-    this.y = -this.y;
-    this.z = -this.z;
+    this.x *= -1;
+    this.y *= -1;
+    this.z *= -1;
     return this;
   }
 
