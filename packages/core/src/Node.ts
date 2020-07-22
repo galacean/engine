@@ -41,7 +41,8 @@ export class Node extends EventDispatcher {
    */
   static findByPath(path: string, scene: Scene /*@deprecated*/): Node {
     const splits = path.split("/");
-    const rootNode = scene.root;
+    // todo: multi rootNode
+    const rootNode = scene.getRootNode();
     if (!rootNode) return null; //scene or scene.root maybe destroyed
     let node: Node = rootNode;
     for (let i = 0, spitLength = splits.length; i < spitLength; ++i) {
@@ -92,9 +93,9 @@ export class Node extends EventDispatcher {
   /* @internal */
   _isRoot: boolean = false;
 
-  private _engine: Engine;
-  private _active: boolean = true;
   private _parent: Node = null;
+  private _active: boolean = true;
+  private _engine: Engine;
   private _activeChangedComponents: Component[];
   public readonly transform: Transform;
 
@@ -188,13 +189,13 @@ export class Node extends EventDispatcher {
    * 所属引擎。
    */
   get engine(): Engine {
-    return this._scene.engine;
+    return this._engine;
   }
 
   /**
    * 创建一个节点。
    * @param name - 名字
-   * @param engine - 所属Engine
+   * @param engine - 所属 Engine
    */
   constructor(name?: string, engine?: Engine) {
     super();
@@ -461,7 +462,7 @@ export class Node extends EventDispatcher {
    * @return {Node} 新创建的子节点对象
    */
   public createChild(name: string): Node {
-    const child = new Node(name, this.engine);
+    const child = new Node(name, this._engine);
     child.parent = this;
     return child;
   }

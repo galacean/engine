@@ -104,7 +104,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this.jointNodes = jointNodes;
 
     /** 是否使用骨骼纹理 */
-    const rhi = this.scene.engine.hardwareRenderer;
+    const rhi = this.scene.engine._hardwareRenderer;
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
     const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
@@ -183,7 +183,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * */
   createJointTexture() {
     if (!this.jointTexture) {
-      const rhi = this.node.scene.engine.hardwareRenderer;
+      const rhi = this.node.scene.engine._hardwareRenderer;
       if (!rhi) return;
       this.jointTexture = new (Texture2D as any)(rhi, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
     }

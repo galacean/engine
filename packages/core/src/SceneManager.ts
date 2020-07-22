@@ -1,21 +1,26 @@
 import { Scene } from "./Scene";
-import { AssetPromise } from "../AssetDesign/AssetPromise";
+import { AssetPromise } from "./AssetDesign/AssetPromise";
 
 /**
  * 场景管理员。
  */
 export class SceneManager {
+  public _scene: Scene;
+
   /**
    * 当前激活场景。
    */
-  get scene(): Scene {
-    return null;
+  get scene(): Scene | null {
+    return this._scene;
   }
 
-  set scene(scene: Scene) {}
+  set scene(scene: Scene) {
+    this._scene = scene;
+  }
 
   /**
    * 加载并激活场景。
+   * @todo implements
    * @param url - 场景路径
    * @param destroyOldScene - 是否销毁旧场景信息
    * @returns 场景请求
@@ -26,6 +31,7 @@ export class SceneManager {
 
   /**
    * 合并场景，将源场景合并到目标场景。
+   * @todo implements
    * @remarks 合并后将使用 destScene 的全局信息,lightingMap 信息会进行合并。
    * @param sourceScene - 源场景
    * @param destScene - 目标场景

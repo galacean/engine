@@ -116,7 +116,7 @@ export class RenderQueue {
    * @param {number} mask 渲染过滤使用的mask
    */
   render(camera: Camera, replaceMaterial: Material, mask: MaskList) {
-    const rhi = camera.scene.engine.hardwareRenderer;
+    const rhi = camera.scene.engine._hardwareRenderer;
     const items = this._items;
 
     // 如果没有items不需要渲染

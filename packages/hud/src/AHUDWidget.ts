@@ -77,7 +77,7 @@ export class AHUDWidget extends RenderableComponent {
    * @private
    */
   _onEnable() {
-    this._hudFeature.attachWidget(this.node.engine.hardwareRenderer);
+    this._hudFeature.attachWidget();
   }
 
   /** 在对象Disable的时候，从当前的Scene移除

@@ -6,8 +6,10 @@ import { WebGLRenderer, WebGLRendererOptions } from "./WebGLRenderer";
  * Web 端引擎
  */
 export class WebEngine extends Engine {
-  constructor(canvas: HTMLCanvasElement | OffscreenCanvas, webGLRendererOptions?: WebGLRendererOptions) {
-    const webCanvas = new WebCanvas(canvas);
+  constructor(canvas: string | HTMLCanvasElement | OffscreenCanvas, webGLRendererOptions?: WebGLRendererOptions) {
+    const webCanvas = new WebCanvas(
+      <HTMLCanvasElement | OffscreenCanvas>(typeof canvas === "string" ? document.getElementById(canvas) : canvas)
+    );
     const hardwareRenderer = new WebGLRenderer(webGLRendererOptions);
 
     super(webCanvas, hardwareRenderer);

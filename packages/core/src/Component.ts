@@ -126,7 +126,7 @@ export abstract class Component extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-    return this._node?.scene?.engine;
+    return this._node?.engine;
   }
 
   /**

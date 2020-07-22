@@ -14,7 +14,7 @@ import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
 
 /**
- * WebGL模式。
+ * WebGL模式。默认 Auto
  */
 export enum WebGLMode {
   /** 自动，如果设备支持优先选择WebGL2.0，不支持 WebGL2.0 会回滚至WebGL1.0 */

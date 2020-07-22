@@ -1,4 +1,4 @@
-import { Logger, Util, Event, EventDispatcher, MaskList } from "@alipay/o3-base";
+import { Logger, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { FeatureManager } from "./FeatureManager";
 import { Node } from "./Node";
 import { Engine } from "./Engine";
@@ -8,6 +8,7 @@ import { Vector4 } from "@alipay/o3-math/types/type";
 import { ComponentsManager } from "./ComponentsManager";
 
 /*
+@todo: delete
 Scene Feature:
 {
  type: "type_name",
@@ -24,6 +25,20 @@ const sceneFeatureManager = new FeatureManager<SceneFeature>();
  * @class
  */
 export class Scene extends EventDispatcher {
+  /**
+   * @todo: migrate to camera
+   * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
+   * @example
+   * scene.clipPlanes = [[0,1,0,0]];
+   * */
+  public clipPlanes: Vector4[] = [];
+  public _componentsManager: ComponentsManager = new ComponentsManager();
+
+  private _engine: Engine;
+  private _destroyed: boolean = false;
+  private _rootNodes: Node[] = [];
+  private _activeCameras: Camera[];
+
   /** 当前的 Engine 对象
    * @member {Engine}
    * @readonly
@@ -32,62 +47,84 @@ export class Scene extends EventDispatcher {
     return this._engine;
   }
 
-  /**
-   * SceneGraph 的 Root 节点
-   * @remarks 一般情况下，Root节点的Transform应该保持默认值，其值为单位矩阵
-   * @member {Node}
-   * @readonly
-   */
-  get root(): Node {
-    return this._root;
-  }
-
   get activeCameras(): Camera[] {
     return this._activeCameras;
   }
 
-  public static registerFeature(Feature: new () => SceneFeature) {
-    sceneFeatureManager.registerFeature(Feature);
+  /**
+   * 根节点的数量。
+   */
+  get rootNodesCount(): number {
+    return this._rootNodes.length;
   }
 
-  public features: SceneFeature[] = [];
-
-  private _activeCameras: Camera[];
-
-  private _engine: Engine;
-
-  private _root: Node;
-
   /**
-   * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
-   * @example
-   * scene.clipPlanes = [[0,1,0,0]];
-   * @todo 类型修改
-   * */
-  public clipPlanes: Vector4[] = [];
-
-  public _componentsManager: ComponentsManager;
+   * 是否已销毁。
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
+  }
 
   /**
    * 构造函数
    * @param {Engine} engine 引擎对象
    */
-  constructor(engine: Engine) {
+  constructor(engine?: Engine) {
     super();
 
-    this._engine = engine;
-    this._componentsManager = new ComponentsManager();
-    const root = new Node("__root__", engine);
-    root._isRoot = true;
-    root._isActiveInHierarchy = true; //CM:需要根据判断场景是否激活决定ï
-    root._scene = this;
-    this._root = root;
+    this._engine = engine || Engine._getDefaultEngine();
     this._activeCameras = [];
     sceneFeatureManager.addObject(this);
   }
 
-  public findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
-    return sceneFeatureManager.findFeature(this, Feature) as T;
+  /**
+   * 添加根节点。
+   * @param node - 根节点
+   */
+  public addRootNode(node: Node): void {
+    node._isRoot = true;
+    node._scene = this;
+    node.parent = null;
+    node.isActive = true;
+    // todo: isActive ->should set _isActiveInHierarchy automatically
+    node._isActiveInHierarchy = true;
+    this._rootNodes.push(node);
+  }
+
+  /**
+   * 移除根节点。
+   * @param node - 根节点
+   */
+  public removeRootNode(node: Node): void {
+    const index = this._rootNodes.indexOf(node);
+    if (index !== -1) {
+      this._rootNodes.splice(index, 1);
+    }
+  }
+
+  /**
+   * 通过索引获取根节点。
+   * @param index - 索引
+   */
+  public getRootNode(index: number = 0): Node | null {
+    return this._rootNodes[index];
+  }
+
+  /**
+   * 销毁场景。
+   */
+  public destroy(): void {
+    // if (this._engine.sceneManager.scene === this) this._engine.sceneManager.scene = null;
+    //继续销毁所有根节点
+    sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
+    this._rootNodes.forEach((rootNode) => {
+      rootNode.destroy();
+    });
+    this._rootNodes.length = 0;
+    this._activeCameras.length = 0;
+    (sceneFeatureManager as any)._objects = [];
+    this._componentsManager = null;
+    this._destroyed = true;
   }
 
   /**
@@ -155,31 +192,14 @@ export class Scene extends EventDispatcher {
     }
   }
 
-  /**
-   * 使用名称查找 Node 对象
-   * @param {string} name 对象名称
-   * @return {Node}
-   */
-  public findObjectByName(name: string): Node {
-    if (this._root.name === name) {
-      return this._root;
-    }
-    return this._root.findByName(name);
+  //-----------------------------------------@deprecated-----------------------------------
+  public static registerFeature(Feature: new () => SceneFeature) {
+    sceneFeatureManager.registerFeature(Feature);
   }
 
-  /**
-   * 射线
-   * @param ray
-   */
-  public raycast(ray: { origin: number[]; direction: number[] }, outPos?: number[], tag?: MaskList): any {}
-
-  /** 销毁当前场景中的数据 */
-  public destroy(): void {
-    sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
-    this._root.destroy();
-    this._root = null;
-    this._activeCameras = null;
-    (sceneFeatureManager as any)._objects = [];
-    this._componentsManager = null;
+  public findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
+    return sceneFeatureManager.findFeature(this, Feature) as T;
   }
+
+  public features: SceneFeature[] = [];
 }

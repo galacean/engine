@@ -283,8 +283,7 @@ export class Camera extends Component {
     this._transform = this.node.transform;
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
-
-    const { SceneRenderer, clearParam = [0.25, 0.25, 0.25, 1], clearMode, near, far, fov } = props;
+    const { RenderPipeline, clearParam = [0.25, 0.25, 0.25, 1], clearMode, near, far, fov } = props;
 
     this._nearClipPlane = near ?? 0.1;
     this._farClipPlane = far ?? 100;
@@ -296,7 +295,7 @@ export class Camera extends Component {
     node.transform.position = props.position ?? [0, 10, 20];
     node.transform.lookAt(target, up);
 
-    this._sceneRenderer = new SceneRenderer(this);
+    this._sceneRenderer = new RenderPipeline(this);
 
     // TODO: 修改为 ClearFlags
     this.setClearMode(clearMode, clearParam);
