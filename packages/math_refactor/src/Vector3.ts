@@ -320,9 +320,9 @@ export class Vector3 {
     const iw = -qx * x - qy * y - qz * z;
 
     // calculate result * inverse quat
-    out.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
-    out.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
-    out.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+    out.x = ix * qw - iw * qx - iy * qz + iz * qy;
+    out.y = iy * qw - iw * qy - iz * qx + ix * qz;
+    out.z = iz * qw - iw * qz - ix * qy + iy * qx;
   }
 
   /** X轴坐标 */
