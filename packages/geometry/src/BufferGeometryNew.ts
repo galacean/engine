@@ -117,6 +117,13 @@ export class BufferGeometry extends AssetObject {
     }
   }
 
+  setIndexBufferDataByIndex(index: number, value) {
+    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
+    if (indexBuffer) {
+      indexBuffer.setData(index, value);
+    }
+  }
+
   // 获取所有三角形顶点对应的几何体顶点序号
   getIndexBufferData() {
     const indexBuffer = this._indexBuffers[this._indexBufferIndex];
