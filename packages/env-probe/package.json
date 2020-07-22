@@ -33,7 +33,6 @@
     "@alipay/o3-core": "2.3.2",
     "@alipay/o3-material": "2.3.2",
     "@alipay/o3-math": "2.3.2",
-    "@alipay/o3-renderer-basic": "2.3.2",
     "@alipay/o3-rhi-webgl": "2.3.2"
   }
 }

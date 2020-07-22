@@ -1,5 +1,8 @@
 import { ClearMode, MaskList } from "@alipay/o3-base";
-import { RenderTarget } from "@alipay/o3-material";
+
+/** @todo: monorepo circle dependence */
+type RenderTarget = any;
+type Material = any;
 
 let passNum = 0;
 

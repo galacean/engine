@@ -1,5 +1,5 @@
 import { GLCapabilityType, Logger, OITMode } from "@alipay/o3-base";
-import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
+import { BasicRenderPipeline } from "@alipay/o3-core";
 import { OpaqueRenderPass } from "./OpaqueRenderPass";
 import { WeightedAverageRenderPass } from "./WeightedAverageRenderPass";
 import { ScreenRenderPass } from "./ScreenRenderPass";
@@ -9,7 +9,7 @@ import { ScreenRenderPass } from "./ScreenRenderPass";
  * 开启后，场景中的 PBR 透明材质将自动使用 OIT.
  * // todo: 目前 OIT 依赖于 MRT ，待定: 非 MRT 时是否需要支持开启 OIT
  * */
-export class OITSceneRenderer extends BasicSceneRenderer {
+export class OITRenderPipeline extends BasicRenderPipeline {
   /** 是否支持 OIT  */
   public canOIT = true;
 

@@ -6,6 +6,7 @@ import { UpdateFlag } from "./UpdateFlag";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Node } from "./Node";
+import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 
 /**
  * @todo 数学库改造
@@ -283,7 +284,14 @@ export class Camera extends Component {
     this._transform = this.node.transform;
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
-    const { RenderPipeline, clearParam = [0.25, 0.25, 0.25, 1], clearMode, near, far, fov } = props;
+    const {
+      RenderPipeline = BasicRenderPipeline,
+      clearParam = [0.25, 0.25, 0.25, 1],
+      clearMode,
+      near,
+      far,
+      fov
+    } = props;
 
     this._nearClipPlane = near ?? 0.1;
     this._farClipPlane = far ?? 100;

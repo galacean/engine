@@ -1,11 +1,10 @@
 import { MaskList } from "@alipay/o3-base";
-import { SceneFeature, Component } from "@alipay/o3-core";
+import { SceneFeature, Component, RenderQueue } from "@alipay/o3-core";
 import { LightFeature } from "@alipay/o3-lighting";
 import { ShadowMapMaterial } from "./ShadowMapMaterial";
 import { ShadowMaterial } from "./ShadowMaterial";
 import { ShadowPass } from "./ShadowPass";
 import { ShadowMapPass } from "./ShadowMapPass";
-import { RenderQueue } from "@alipay/o3-renderer-basic";
 
 /**
  * Shadow Feature：场景中 Shadow 特性

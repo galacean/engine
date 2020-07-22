@@ -1,4 +1,4 @@
-import { RenderPass } from "@alipay/o3-renderer-basic";
+import { RenderPass } from "@alipay/o3-core";
 
 /**
  * RednerPass 对象

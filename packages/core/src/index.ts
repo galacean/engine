@@ -17,3 +17,7 @@ export { dependencies } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { UpdateFlag } from "./UpdateFlag";
+
+export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+export { RenderQueue } from "./RenderPipeline//RenderQueue";
+export { RenderPass } from "./RenderPipeline/RenderPass";

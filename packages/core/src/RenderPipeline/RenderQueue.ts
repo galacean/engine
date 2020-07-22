@@ -1,7 +1,11 @@
+import { MaskList } from "@alipay/o3-base";
 import { vec3 } from "@alipay/o3-math";
-import { Logger, MaskList } from "@alipay/o3-base";
-import { Camera, Component } from "@alipay/o3-core";
-import { Material } from "@alipay/o3-material";
+import { Camera } from "../Camera";
+import { Component } from "../Component";
+
+/** @todo: monorepo circle dependence */
+type RenderTarget = any;
+type Material = any;
 
 /**
  * 渲染队列管理

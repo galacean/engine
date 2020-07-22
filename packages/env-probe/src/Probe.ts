@@ -1,18 +1,17 @@
-import { AssetType, RenderBufferDepthFormat } from "@alipay/o3-base";
-import { Camera, Node, Component } from "@alipay/o3-core";
+import { RenderBufferDepthFormat } from "@alipay/o3-base";
+import { BasicRenderPipeline, Camera, Component, Node, RenderPass } from "@alipay/o3-core";
 import {
   Material,
+  RenderColorTexture,
+  RenderDepthTexture,
   RenderTarget,
   Texture,
   Texture2D,
-  TextureCubeMap,
-  RenderColorTexture,
-  RenderDepthTexture
+  TextureCubeMap
 } from "@alipay/o3-material";
-import { BasicSceneRenderer, RenderPass } from "@alipay/o3-renderer-basic";
+import { Vector4 } from "@alipay/o3-math/types/type";
 import { WebGLRenderer } from "@alipay/o3-rhi-webgl";
 import { ProbeConfig } from "./type";
-import { Vector4 } from "@alipay/o3-math/types/type";
 
 let cacheId = 0;
 
@@ -70,7 +69,7 @@ export abstract class Probe extends Component {
     return this.renderPass.renderTarget?.getColorTexture();
   }
 
-  protected get sceneRenderer(): BasicSceneRenderer {
+  protected get sceneRenderer(): BasicRenderPipeline {
     return this.camera.sceneRenderer;
   }
 

@@ -1,15 +1,20 @@
 import { ClearMode, MaskList, MaterialType } from "@alipay/o3-base";
-import { Camera, SceneVisitor, Component } from "@alipay/o3-core";
-import { Material, RenderTarget } from "@alipay/o3-material";
+import { Camera } from "../Camera";
+import { SceneVisitor } from "../SceneVisitor";
+import { Component } from "../Component";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 import { SeparateSpritePass } from "./SeparateSpritePass";
+
+/** @todo: monorepo circle dependence */
+type RenderTarget = any;
+type Material = any;
 
 /**
  * 使用指定的CameraComponent对象，渲染当前场景中的所有可见对象
  * @class
  */
-export class BasicSceneRenderer extends SceneVisitor {
+export class BasicRenderPipeline extends SceneVisitor {
   protected _camera: Camera;
   private _opaqueQueue: RenderQueue;
   private _transparentQueue: RenderQueue;

@@ -35,7 +35,6 @@ export * from "@alipay/o3-particle";
 export * from "@alipay/o3-pbr";
 // export * from '@alipay/o3-post-processing';
 export * from "@alipay/o3-primitive";
-export * from "@alipay/o3-renderer-basic";
 export * from "@alipay/o3-renderer-cull";
 export * from "@alipay/o3-request";
 export * from "@alipay/o3-rfui";

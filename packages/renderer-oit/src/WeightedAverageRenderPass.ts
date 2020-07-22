@@ -1,4 +1,4 @@
-import { RenderPass } from "@alipay/o3-renderer-basic";
+import { RenderPass } from "@alipay/o3-core";
 import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
 import { BlendFunc, RenderBufferColorFormat } from "@alipay/o3-base";
 
