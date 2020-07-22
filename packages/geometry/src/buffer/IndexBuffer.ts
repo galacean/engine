@@ -29,4 +29,10 @@ export class IndexBuffer {
     const buffer = new ArrayBuffer(indexCount * stride);
     this.buffer = buffer;
   }
+
+  getAllIndex() {}
+
+  setAllIndex(values) {}
+
+  getIndex(index) {}
 }

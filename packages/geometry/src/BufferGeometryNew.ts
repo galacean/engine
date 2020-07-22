@@ -62,7 +62,7 @@ export class BufferGeometry extends AssetObject {
   }
 
   // 根据 vertexIndex 设置 buffer数据
-  setVertexDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {}
+  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {}
 
   // 获取buffer数据
   getVertexBufferData(semantic: string) {}
@@ -72,7 +72,7 @@ export class BufferGeometry extends AssetObject {
   addIndexBufferParam(indexBuffer: IndexBuffer) {
     indexBuffer.index = this.indexBufferCount;
     this.indexBufferCount += 1;
-    this.primitive.indexBuffer = this.primitive.indexBuffer.concat(indexBuffer.buffer);
+    this.primitive.indexBuffers = this.primitive.indexBuffers.concat(indexBuffer.buffer);
   }
 
   // 设置 index buffer 数据
