@@ -42,7 +42,7 @@ export class Entity extends EventDispatcher {
   static findByPath(path: string, scene: Scene /*@deprecated*/): Entity {
     const splits = path.split("/");
     // todo: multi rootNode
-    const rootNode = scene.getRootNode();
+    const rootNode = scene.getRootEntity();
     if (!rootNode) return null; //scene or scene.root maybe destroyed
     let node: Entity = rootNode;
     for (let i = 0, spitLength = splits.length; i < spitLength; ++i) {

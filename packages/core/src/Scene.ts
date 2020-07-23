@@ -36,7 +36,7 @@ export class Scene extends EventDispatcher {
 
   private _engine: Engine;
   private _destroyed: boolean = false;
-  private _rootNodes: Entity[] = [];
+  private _rootEntities: Entity[] = [];
   private _activeCameras: Camera[];
 
   /** 当前的 Engine 对象
@@ -54,8 +54,8 @@ export class Scene extends EventDispatcher {
   /**
    * 根节点的数量。
    */
-  get rootNodesCount(): number {
-    return this._rootNodes.length;
+  get rootEntitiesCount(): number {
+    return this._rootEntities.length;
   }
 
   /**
@@ -79,26 +79,27 @@ export class Scene extends EventDispatcher {
 
   /**
    * 添加根节点。
-   * @param node - 根节点
+   * @param entity - 根节点
    */
-  public addRootNode(node: Entity): void {
-    node._isRoot = true;
-    node._scene = this;
-    node.parent = null;
-    node.isActive = true;
+  public addRootEntity(entity: Entity): void {
+    entity._isRoot = true;
+    entity._scene = this;
+    entity.parent = null;
+    entity.isActive = true;
     // todo: isActive ->should set _isActiveInHierarchy automatically
-    node._isActiveInHierarchy = true;
-    this._rootNodes.push(node);
+    entity._isActiveInHierarchy = true;
+    this._rootEntities.push(entity);
   }
 
   /**
    * 移除根节点。
-   * @param node - 根节点
+   * @param entity - 根节点
    */
-  public removeRootNode(node: Entity): void {
-    const index = this._rootNodes.indexOf(node);
+  public removeRootEntity(entity: Entity): void {
+    const index = this._rootEntities.indexOf(entity);
     if (index !== -1) {
-      this._rootNodes.splice(index, 1);
+      this._rootEntities[index].isActive = false;
+      this._rootEntities.splice(index, 1);
     }
   }
 
@@ -106,8 +107,8 @@ export class Scene extends EventDispatcher {
    * 通过索引获取根节点。
    * @param index - 索引
    */
-  public getRootNode(index: number = 0): Entity | null {
-    return this._rootNodes[index];
+  public getRootEntity(index: number = 0): Entity | null {
+    return this._rootEntities[index];
   }
 
   /**
@@ -117,10 +118,10 @@ export class Scene extends EventDispatcher {
     if (this._engine.sceneManager._scene === this) this._engine.sceneManager.scene = null;
     //继续销毁所有根节点
     sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
-    this._rootNodes.forEach((rootNode) => {
-      rootNode.destroy();
+    this._rootEntities.forEach((rootEntity) => {
+      rootEntity.destroy();
     });
-    this._rootNodes.length = 0;
+    this._rootEntities.length = 0;
     this._activeCameras.length = 0;
     (sceneFeatureManager as any)._objects = [];
     this._componentsManager = null;
@@ -152,8 +153,8 @@ export class Scene extends EventDispatcher {
       cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
-        const cameraNode = camera.entity;
-        if (camera.enabled && cameraNode.isActiveInHierarchy) {
+        const cameraEntity = camera.entity;
+        if (camera.enabled && cameraEntity.isActiveInHierarchy) {
           //@todo 后续优化
           this._componentsManager.callCameraOnBeginRender(camera);
           camera.render();
