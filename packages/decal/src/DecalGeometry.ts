@@ -1,7 +1,7 @@
 import { BufferGeometry } from "@alipay/o3-geometry";
 import { vec3, mat4 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { Mesh } from "@alipay/o3-mesh";
 import { Primitive } from "@alipay/o3-primitive";
 import { MeshRenderer } from "@alipay/o3-mesh";
@@ -10,7 +10,7 @@ import { setPosition, transformDirection, fromBufferAttribute, makeRotationFromQ
 type FloatArray = Array<number> | Float32Array;
 
 interface Intersection {
-  node: Node;
+  entity: Entity;
   distance: Number;
   point: FloatArray;
   normal: FloatArray;
@@ -20,7 +20,7 @@ interface Intersection {
 
 export class DecalGeometry extends BufferGeometry {
   public size: FloatArray;
-  public readonly node: Node;
+  public readonly node: Entity;
   public readonly targetMesh: Mesh;
   public readonly targetPrimitive: Primitive;
   public readonly position: FloatArray;
@@ -29,7 +29,7 @@ export class DecalGeometry extends BufferGeometry {
   public readonly projectorMatrixInverse: FloatArray;
   public constructor(intersection: Intersection, position: FloatArray, orientation: FloatArray, size: FloatArray) {
     super();
-    this.node = intersection.node;
+    this.node = intersection.entity;
     const meshRenderer = this.node.getComponent(MeshRenderer);
     if (meshRenderer) {
       this.targetMesh = meshRenderer.mesh;

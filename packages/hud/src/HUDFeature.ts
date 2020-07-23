@@ -44,9 +44,9 @@ export class HUDFeature extends SceneFeature {
    * @param {AHUDWidget} widget HUD控件
    * @private
    */
-  attachWidget(rhi, widget) {
+  attachWidget(widget) {
     if (!this._texture) {
-      this.initTexture(rhi);
+      this.initTexture();
     }
 
     const index = this._widgets.indexOf(widget);

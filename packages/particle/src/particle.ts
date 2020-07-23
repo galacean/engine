@@ -40,10 +40,10 @@ export class GPUParticleSystem extends GeometryRenderer {
 
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    */
-  constructor(node) {
-    super(node);
+  constructor(entity) {
+    super(entity);
     this._time = 0; // 渲染时间，单位秒
     this._isInit = false; // 是否完成初始化
     this._isStart = false; // 是否开始粒子动画

@@ -67,7 +67,7 @@ export class EnvironmentMapLight extends Light {
 
   /**
    * 环境光源
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    * @param {Object} props 包含以下参数
    * @param {TextureCubeMap} [props.diffuseMap=undefined] 环境光贴图
    * @param {TextureCubeMap} [props.specularMap=undefined] 高光贴图
@@ -76,8 +76,8 @@ export class EnvironmentMapLight extends Light {
    * @param {Number} [props.diffuseIntensity=1] 环境光强度
    * @param {Number} [props.specularIntensity=1] 高光强度
    */
-  constructor(node, props) {
-    super(node);
+  constructor(entity, props) {
+    super(entity);
 
     const { name, diffuseMap, specularMap, diffuse, specular, diffuseIntensity, specularIntensity } = props;
     this.name = name;
@@ -158,7 +158,7 @@ export class EnvironmentMapLight extends Light {
     }
 
     // 支持旋转
-    const transformMatrix = this.node.transform.worldMatrix;
+    const transformMatrix = this.entity.transform.worldMatrix;
     mtl.setValue(uniformName + ".transformMatrix", mat3.fromMat4(cacheMat3, transformMatrix));
   }
 }

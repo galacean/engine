@@ -1,5 +1,5 @@
 import { RenderBufferDepthFormat } from "@alipay/o3-base";
-import { BasicRenderPipeline, Camera, Component, Node, RenderPass } from "@alipay/o3-core";
+import { BasicRenderPipeline, Camera, Component, Entity, RenderPass } from "@alipay/o3-core";
 import {
   Material,
   RenderColorTexture,
@@ -102,11 +102,11 @@ export abstract class Probe extends Component {
 
   /**
    *探针基类
-   * @param {Node} node
+   * @param {Entity} entity
    * @param {ProbeConfig} config
    * */
-  protected constructor(node: Node, config: ProbeConfig = {}) {
-    super(node, config);
+  protected constructor(entity: Entity, config: ProbeConfig = {}) {
+    super(entity, config);
     this.cacheId = cacheId++;
 
     this.renderPass = new RenderPass("_renderPass" + this.cacheId, -10);

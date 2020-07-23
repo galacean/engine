@@ -1,5 +1,5 @@
 import { Event } from "@alipay/o3-base";
-import { Node, Component, Script } from "@alipay/o3-core";
+import { Entity, Script } from "@alipay/o3-core";
 import { Animation } from "./Animation";
 import { PlayState, WrapMode } from "./AnimationConst";
 
@@ -63,10 +63,10 @@ export class Animator extends Script {
 
   /**
    * @constructor
-   * @param {Node} node
+   * @param {Entity} entity
    */
-  constructor(node: Node, props: any) {
-    super(node, props);
+  constructor(entity: Entity, props: any) {
+    super(entity, props);
     const { animatorData, duration, wrapMode, autoPlay } = props;
     this.animationList = [];
     this.startTimeAnimationMap = {}; // startTime: AnimationList

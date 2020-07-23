@@ -1,6 +1,6 @@
 import { Logger } from "@alipay/o3-base";
 import { Material } from "@alipay/o3-material";
-import { Node, Camera, RenderableComponent } from "@alipay/o3-core";
+import { Entity, Camera, RenderableComponent } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 
 /**
@@ -14,11 +14,11 @@ export class MeshRenderer extends RenderableComponent {
 
   /**
    * @constructor
-   * @param {Node} node 所属的Node对象
+   * @param {Entity} entity 所属的Node对象
    * @param props
    */
-  constructor(node: Node, props: { mesh?: Mesh } = {}) {
-    super(node, props);
+  constructor(entity: Entity, props: { mesh?: Mesh } = {}) {
+    super(entity, props);
 
     this._mesh = null; // Mesh Asset Object
 

@@ -26,7 +26,7 @@ export class SpineRenderer extends RenderableComponent {
 
   /**
    * 构造函数
-   * @param {Node} node
+   * @param {Entity} node
    * @param {Sprite} sprite
    */
   constructor(node, prop) {
@@ -70,7 +70,7 @@ export class SpineRenderer extends RenderableComponent {
     this._asset = null;
     this.clearBatches();
     this.batches = [];
-    const children = (this.node as any).children;
+    const children = (this.entity as any).children;
     for (let i = 0; i < children.length; i += 1) {
       if (children[i].name === "batch") {
         children[i].destroy();
@@ -136,7 +136,7 @@ export class SpineRenderer extends RenderableComponent {
 
   nextBatch() {
     if (this.batches.length == this.nextBatchIndex) {
-      const batchNode = this.node.createChild("batch");
+      const batchNode = this.entity.createChild("batch");
       const batch = batchNode.addComponent(MeshBatcher, { maxVertices: this.vertexCount });
       this.batches.push(batch);
     }

@@ -9,7 +9,7 @@ import {
   RenderState
 } from "@alipay/o3-base";
 import { openTechnique, path } from "@alipay/o3-loader";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
@@ -724,7 +724,7 @@ export function parseAnimation(gltfAnimation, resources) {
  */
 export function parseNode(gltfNode, resources) {
   // TODO: undefined name?
-  const node = new Node(gltfNode.name || `GLTF_NODE_${nodeCount++}`);
+  const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`);
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
@@ -751,13 +751,13 @@ export function parseNode(gltfNode, resources) {
     const rot = quat.create();
     mat4.decompose(mat, pos, rot, scale);
 
-    node.position = pos;
-    node.rotation = rot;
-    node.scale = scale;
+    entity.position = pos;
+    entity.rotation = rot;
+    entity.scale = scale;
   } else {
     for (const key in TARGET_PATH_MAP) {
       if (gltfNode.hasOwnProperty(key)) {
-        node[TARGET_PATH_MAP[key]] = gltfNode[key];
+        entity[TARGET_PATH_MAP[key]] = gltfNode[key];
       }
     }
   }
@@ -767,12 +767,12 @@ export function parseNode(gltfNode, resources) {
       const lightIdx = gltfNode.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
         const light = getItemByIdx("lights", lightIdx, resources);
-        if (light) node.addComponent(light.ability, light.props);
+        if (light) entity.addComponent(light.ability, light.props);
       }
     }
   }
 
-  return Promise.resolve(node);
+  return Promise.resolve(entity);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { Side } from "@alipay/o3-base";
 import { Probe } from "./Probe";
 import { PlaneProbeConfig } from "./type";
@@ -9,10 +9,10 @@ import { PlaneProbeConfig } from "./type";
 export class PlaneProbe extends Probe {
   /**
    * 创建探针
-   * @param {Node} node
+   * @param {Entity} node
    * @param {PlaneProbeConfig} config
    * */
-  constructor(node: Node, config: PlaneProbeConfig = {}) {
+  constructor(node: Entity, config: PlaneProbeConfig = {}) {
     super(node, config);
   }
 

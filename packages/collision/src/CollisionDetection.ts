@@ -6,7 +6,7 @@ import { ColliderFeature, ACollider, ABoxCollider, ASphereCollider } from "@alip
 import { intersectBox2Box, intersectSphere2Sphere, intersectSphere2Box } from "./intersect";
 
 /**
- * 检测当前 Node 上的 Collider 与场景中其他 Collider 的碰撞
+ * 检测当前 Entity 上的 Collider 与场景中其他 Collider 的碰撞
  * 发出事件：collision
  */
 export class CollisionDetection extends Script {
@@ -18,10 +18,10 @@ export class CollisionDetection extends Script {
 
   /**
    * 构造函数
-   * @param {Node} node 对象所在节点
+   * @param {Entity} entity 对象所在节点
    */
-  constructor(node) {
-    super(node);
+  constructor(entity) {
+    super(entity);
 
     this._colliderManager = null;
     this._myCollider = null;
@@ -31,7 +31,7 @@ export class CollisionDetection extends Script {
   }
 
   /**
-   * 和当前 Node 上的 Collider 相交的 Collider 对象
+   * 和当前 Entity 上的 Collider 相交的 Collider 对象
    */
   get overlopCollider() {
     return this._overlopCollider;
@@ -160,6 +160,6 @@ export class CollisionDetection extends Script {
    */
   _onAwake() {
     this._colliderManager = this.scene.findFeature(ColliderFeature);
-    this._myCollider = this.node.getComponent(ACollider);
+    this._myCollider = this.entity.getComponent(ACollider);
   }
 }

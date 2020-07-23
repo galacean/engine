@@ -1,12 +1,12 @@
-import { Node, Engine, Scene, Component } from "../src/index";
+import { Entity, Engine, Scene, Component } from "../src/index";
 import { quat, mat4, vec3 } from "@alipay/o3-math";
 
 class TestComponent extends Component {}
 
-describe("Node test", function () {
+describe("Entity test", function () {
   it("case", () => {});
   describe("node lookat", () => {
-    const node = new Node();
+    const node = new Entity();
     beforeEach(() => {
       // node.setModelMatrix(mat4.create());//transform负责，可删除
     });
@@ -26,8 +26,8 @@ describe("Node test", function () {
   });
 
   describe("node parent", () => {
-    const node = new Node();
-    const parent = new Node();
+    const node = new Entity();
+    const parent = new Entity();
     parent.addChild(node);
     parent.position = Float32Array.from([10, 10, 33]);
     beforeEach(() => {
@@ -64,57 +64,63 @@ function arrayCloseTo(arr1, arr2) {
   }
 }
 
-describe("Node", () => {
+describe("Entity", () => {
   let engine = null;
   let scene = null;
   beforeEach(() => {
     engine = new Engine();
     scene = new Scene(engine);
-    Node._nodes.length = 0;
-    Node._nodes._elements.length = 0;
+    Entity._nodes.length = 0;
+    Entity._nodes._elements.length = 0;
   });
-  describe("Node.findByName", () => {
+  describe("Entity.findByName", () => {
     it("normal", () => {
-      const node = new Node(null, null, "test1");
-      const node2 = new Node(null, null, "test2");
-      expect(Node.findByName("test1")).toBe(node);
-      expect(Node.findByName("test2")).toBe(node2);
+      const node = new Entity("test1");
+      const node2 = new Entity("test2");
+      expect(Entity.findByName("test1")).toBe(node);
+      expect(Entity.findByName("test2")).toBe(node2);
     });
     it("null", () => {
-      const node = new Node(null, null, null);
-      const node2 = new Node(null, null, null);
-      const node3 = new Node(null, null, undefined);
-      const node4 = new Node(null, null, undefined);
-      expect(Node.findByName(null)).toEqual(node);
-      expect(Node.findByName(undefined)).toEqual(node3);
+      const node = new Entity(null);
+      const node2 = new Entity(null);
+      const node3 = new Entity(undefined);
+      const node4 = new Entity(undefined);
+      expect(Entity.findByName(null)).toEqual(node);
+      expect(Entity.findByName(undefined)).toEqual(node3);
     });
     it("not found", () => {
-      const node = new Node(null, null, "test1");
-      expect(Node.findByName("test2")).toEqual(null);
+      const node = new Entity("test1");
+      expect(Entity.findByName("test2")).toEqual(null);
     });
   });
 
-  describe("Node.findByPath", () => {
+  describe("Entity.findByPath", () => {
     it("normal", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
-      expect(Node.findByPath("/parent", scene)).toBe(parent);
-      expect(Node.findByPath("/parent/child", scene)).toBe(child);
-      expect(Node.findByPath("parent", scene)).toBe(parent);
-      expect(Node.findByPath("parent/child", scene)).toBe(child);
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
+      expect(Entity.findByPath("/parent", scene)).toBe(parent);
+      expect(Entity.findByPath("/parent/child", scene)).toBe(child);
+      expect(Entity.findByPath("parent", scene)).toBe(parent);
+      expect(Entity.findByPath("parent/child", scene)).toBe(child);
     });
     it("not found", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
-      expect(Node.findByPath("child", scene)).toEqual(null);
-      expect(Node.findByPath("parent/test", scene)).toEqual(null);
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
+      expect(Entity.findByPath("child", scene)).toEqual(null);
+      expect(Entity.findByPath("parent/test", scene)).toEqual(null);
     });
   });
 
   describe("isActive", () => {
     it("normal", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       parent.isActive = false;
       child.isActive = true;
       expect(parent.isActive).toBeFalsy();
@@ -124,8 +130,10 @@ describe("Node", () => {
 
   describe("isActiveInHierarchy", () => {
     it("normal", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       parent.isActive = true;
       child.isActive = true;
       expect(parent.isActiveInHierarchy).toBeTruthy();
@@ -133,8 +141,10 @@ describe("Node", () => {
     });
 
     it("child false", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       parent.isActive = true;
       child.isActive = false;
       expect(parent.isActiveInHierarchy).toBeTruthy();
@@ -142,8 +152,10 @@ describe("Node", () => {
     });
 
     it("parent false", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       parent.isActive = false;
       child.isActive = true;
       expect(parent.isActiveInHierarchy).toBeFalsy();
@@ -153,23 +165,30 @@ describe("Node", () => {
 
   describe("parent", () => {
     it("normal", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, null, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       child.parent = parent;
       expect(child.parent).toBe(parent);
     });
 
     it("null", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       child.parent = null;
       expect(child.parent).toBe(null);
     });
 
     it("change", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const parent2 = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const parent2 = new Entity("parent");
+      parent2.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       child.parent = parent2;
       expect(child.parent).toBe(parent2);
     });
@@ -177,22 +196,29 @@ describe("Node", () => {
 
   describe("childCount", () => {
     it("normal", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       expect(parent.childCount).toEqual(1);
     });
 
     it("null", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       child.parent = null;
       expect(parent.childCount).toEqual(0);
     });
 
     it("change", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const parent2 = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const parent2 = new Entity("parent");
+      parent2.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       child.parent = parent2;
       expect(parent2.childCount).toEqual(1);
       expect(parent.childCount).toEqual(0);
@@ -201,15 +227,19 @@ describe("Node", () => {
 
   describe("scene", () => {
     it("normal", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       expect(parent.scene).toBe(scene);
       expect(child.scene).toBe(scene);
     });
 
     it("change parent", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(null, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       expect(parent.scene).toBe(scene);
       expect(child.scene).toBe(scene);
     });
@@ -217,15 +247,18 @@ describe("Node", () => {
 
   describe("scene", () => {
     it("normal", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
-      expect(parent.scene).toBe(scene);
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       expect(child.scene).toBe(scene);
     });
 
     it("change parent", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(null, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       expect(parent.scene).toBe(scene);
       expect(child.scene).toBe(scene);
     });
@@ -233,13 +266,15 @@ describe("Node", () => {
 
   describe("component", () => {
     it("addComponent getComponent", () => {
-      const node = new Node(scene, scene.root, "node");
+      const node = new Entity("node");
+      node.parent = scene.root;
       const component = node.addComponent(TestComponent);
       expect(node.getComponent(TestComponent)).toBe(component);
     });
 
     it("addComponent getComponents", () => {
-      const node = new Node(scene, scene.root, "node");
+      const node = new Entity("node");
+      node.parent = scene.root;
       const component = node.addComponent(TestComponent);
       const res = [];
       node.getComponents(TestComponent, res);
@@ -249,55 +284,72 @@ describe("Node", () => {
 
   describe("child", () => {
     it("addChild", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(null, null, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       parent.addChild(child);
       expect(child.parent).toBe(parent);
       expect(child.scene).toBe(scene);
     });
 
     it("removeChild", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       parent.removeChild(child);
       expect(child.parent).toEqual(null);
       expect(child.scene).toEqual(null);
     });
 
     it("getChild", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       const theChild = parent.getChild(0);
       expect(theChild).toBe(child);
     });
 
     it("getChild", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       const theChild = parent.getChild(0);
       expect(theChild).toBe(child);
     });
 
     it("findByName", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
-      const child2 = new Node(scene, parent, "child2");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
+      const child2 = new Entity("child2");
+      child2.parent = parent;
       expect(parent.findByName("child")).toBe(child);
       expect(parent.findByName("child2")).toBe(child2);
     });
 
     it("findByPath", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
-      const child2 = new Node(scene, parent, "child2");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
+      const child2 = new Entity("child2");
+      child2.parent = parent;
       expect(parent.findByPath("/child")).toBe(child);
       expect(parent.findByPath("child2")).toBe(child2);
     });
 
     it("clearChildren", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
-      const child2 = new Node(scene, parent, "child2");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
+      const child2 = new Entity("child2");
+      child2.parent = parent;
       parent.clearChildren();
       expect(parent.childCount).toEqual(0);
     });
@@ -305,8 +357,10 @@ describe("Node", () => {
 
   describe("clone", () => {
     it("normal", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       const cloneParent = parent.clone();
       expect(cloneParent.childCount).toEqual(parent.childCount);
       expect(cloneParent.findByName("child").name).toEqual(child.name);
@@ -316,8 +370,10 @@ describe("Node", () => {
 
   describe("destroy", () => {
     it("normal", () => {
-      const parent = new Node(scene, scene.root, "parent");
-      const child = new Node(scene, parent, "child");
+      const parent = new Entity("parent");
+      parent.parent = scene.root;
+      const child = new Entity("child");
+      child.parent = parent;
       child.destroy();
       expect(parent.childCount).toEqual(0);
     });

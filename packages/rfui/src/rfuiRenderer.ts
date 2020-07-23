@@ -46,7 +46,7 @@ export class RfuiRenderer extends GeometryRenderer {
 
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    * @param {Props} props 渲染类配置
    * @param {string} [props.texrureType = image]  贴图类型
    * @param {string} [props.geometryType = plane]  几何体类型
@@ -58,8 +58,8 @@ export class RfuiRenderer extends GeometryRenderer {
    * @param {vec2} [props.uvVelocity]  UV 动画速度
    * @param {boolean} [props.isAnimatingTexture = false]  是否为动画贴图（需要每帧刷新贴图内容）
    */
-  constructor(node, props) {
-    super(node, props);
+  constructor(entity, props) {
+    super(entity, props);
     this.type = "rfui";
     this.texrureType = props.texrureType || "image";
     this.geometryType = props.geometryType || "plane";
@@ -119,7 +119,7 @@ export class RfuiRenderer extends GeometryRenderer {
   }
 
   initAnimation() {
-    this.animationManager = new RfuiAnimation(this.node, {
+    this.animationManager = new RfuiAnimation(this.entity, {
       material: this.getMaterial(),
       param: this._animationParam
     });

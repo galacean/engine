@@ -1,4 +1,4 @@
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { IAnimationItem } from "../../lottie-core/animation/IAnimationItem";
 import { ResourceLoader, Resource } from "@alipay/o3-loader";
 import { Renderer } from "../renderers/renderer";
@@ -16,11 +16,11 @@ export class AnimationItem extends IAnimationItem {
   resouce: any;
   renderer: any;
   assetsLoaded: boolean;
-  node: Node;
+  entity: Entity;
   constructor(engine) {
     super();
     this.imagePreloader = new ResourceLoader(engine, null);
-    this.node = new Node(`LOTTIE_ROOT_NODE_${lottieAnimationItem++}`);
+    this.entity = new Entity(`LOTTIE_ROOT_NODE_${lottieAnimationItem++}`);
   }
 
   setRenderer(animationItem, rendererSettings) {

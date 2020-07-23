@@ -1,14 +1,14 @@
 import { Camera, ClearFlags } from "../src/Camera";
-import { Node } from "../src/Node";
+import { Entity } from "../src/Entity";
 import { Transform } from "../src/Transform";
 import { mat4, MathUtil, vec2, vec3 } from "@alipay/o3-math";
 
 describe("camera test", function () {
-  let node: Node;
+  let node: Entity;
   let camera: Camera;
   let identityMatrix;
   beforeAll(() => {
-    node = new Node();
+    node = new Entity();
     camera = node.addComponent(Camera);
     camera._onAwake();
     identityMatrix = mat4.create();
@@ -17,7 +17,7 @@ describe("camera test", function () {
   it("constructor", () => {
     expect(camera.aspectRatio).toEqual(1);
     expect(camera.sceneRenderer).not.toBeUndefined();
-    expect(camera.node.transform.worldPosition).not.toBeUndefined();
+    expect(camera.entity.transform.worldPosition).not.toBeUndefined();
     // TODO: deprecated
     expect(camera.backgroundColor).toEqual([0.25, 0.25, 0.25, 1]);
     expect(camera.viewport).toEqual([0, 0, 1, 1]);
@@ -26,7 +26,7 @@ describe("camera test", function () {
   });
 
   it("camera awake without transform", () => {
-    const testNode = new Node(null, null, "testNode");
+    const testNode = new Entity("testNode");
     const transform = testNode.getComponent(Transform);
     transform.destroy();
     expect(() => {
@@ -41,7 +41,7 @@ describe("camera test", function () {
   });
 
   it("perspective calculate", () => {
-    camera.viewportNormalized = [0, 0, 1, 1];
+    camera.viewport = [0, 0, 1, 1];
     camera.fieldOfView = 45;
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
@@ -58,7 +58,7 @@ describe("camera test", function () {
 
   it("reset perspective", () => {
     camera.resetProjectionMatrix();
-    camera.viewportNormalized = [0, 0, 1, 1];
+    camera.viewport = [0, 0, 1, 1];
     camera.fieldOfView = 60;
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
@@ -113,14 +113,14 @@ describe("camera test", function () {
   });
 
   it("screen to viewport point", () => {
-    camera.viewportNormalized = [0.5, 0.5, 0.5, 0.5];
+    camera.viewport = [0.5, 0.5, 0.5, 0.5];
     const out = camera.screenToViewportPoint([0.5, 0.5], [1, 1]);
     expect(out[0]).toBeCloseTo(0);
     expect(out[1]).toBeCloseTo(0);
   });
 
   it("viewport to screen point", () => {
-    camera.viewportNormalized = [0.5, 0.5, 0.5, 0.5];
+    camera.viewport = [0.5, 0.5, 0.5, 0.5];
     const out = camera.viewportToScreenPoint([0.5, 0.5], [1, 1]);
     expect(out[0]).toBeCloseTo(0.75);
     expect(out[1]).toBeCloseTo(0.75);
@@ -145,7 +145,7 @@ describe("camera test", function () {
       -0.10010010004043579,
       0
     ];
-    camera.node.transform.worldMatrix = mat4.create();
+    camera.entity.transform.worldMatrix = mat4.create();
     const out = camera.worldToViewportPoint([1, 1, 100], [0, 0, 0, 0]);
     expect(out).toEqual([0.48459633827209475, 0.4913397705554962, 1, 100]);
   });
@@ -169,7 +169,7 @@ describe("camera test", function () {
       -0.10010010004043579,
       0
     ];
-    camera.node.transform.worldMatrix = mat4.create();
+    camera.entity.transform.worldMatrix = mat4.create();
     const out = camera.viewportToWorldPoint([0.48459633827209475, 0.4913397705554962, 1], [0, 0, 0]);
     arrayCloseTo([1, 1, 100], out as any);
   });
@@ -193,7 +193,7 @@ describe("camera test", function () {
       17,
       1
     ]);
-    camera.node.transform.worldMatrix = mat;
+    camera.entity.transform.worldMatrix = mat;
     const ray = camera.viewportPointToRay(vec2.set(vec2.create(), 0.4472140669822693, 0.4436090290546417), {
       origin: vec3.create() as any,
       direction: vec3.create() as any
@@ -206,7 +206,7 @@ describe("camera test", function () {
   });
 
   it("test near clip plane and far clip plane", () => {
-    camera.node.transform.worldMatrix = mat4.create();
+    camera.entity.transform.worldMatrix = mat4.create();
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
     camera.resetProjectionMatrix();

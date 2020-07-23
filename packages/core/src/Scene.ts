@@ -1,6 +1,6 @@
 import { Logger, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { FeatureManager } from "./FeatureManager";
-import { Node } from "./Node";
+import { Entity } from "./Entity";
 import { Engine } from "./Engine";
 import { Camera } from "./Camera";
 import { SceneFeature } from "./SceneFeature";
@@ -36,7 +36,7 @@ export class Scene extends EventDispatcher {
 
   private _engine: Engine;
   private _destroyed: boolean = false;
-  private _rootNodes: Node[] = [];
+  private _rootNodes: Entity[] = [];
   private _activeCameras: Camera[];
 
   /** 当前的 Engine 对象
@@ -81,7 +81,7 @@ export class Scene extends EventDispatcher {
    * 添加根节点。
    * @param node - 根节点
    */
-  public addRootNode(node: Node): void {
+  public addRootNode(node: Entity): void {
     node._isRoot = true;
     node._scene = this;
     node.parent = null;
@@ -95,7 +95,7 @@ export class Scene extends EventDispatcher {
    * 移除根节点。
    * @param node - 根节点
    */
-  public removeRootNode(node: Node): void {
+  public removeRootNode(node: Entity): void {
     const index = this._rootNodes.indexOf(node);
     if (index !== -1) {
       this._rootNodes.splice(index, 1);
@@ -106,7 +106,7 @@ export class Scene extends EventDispatcher {
    * 通过索引获取根节点。
    * @param index - 索引
    */
-  public getRootNode(index: number = 0): Node | null {
+  public getRootNode(index: number = 0): Entity | null {
     return this._rootNodes[index];
   }
 
@@ -114,7 +114,7 @@ export class Scene extends EventDispatcher {
    * 销毁场景。
    */
   public destroy(): void {
-    // if (this._engine.sceneManager.scene === this) this._engine.sceneManager.scene = null;
+    if (this._engine.sceneManager._scene === this) this._engine.sceneManager.scene = null;
     //继续销毁所有根节点
     sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
     this._rootNodes.forEach((rootNode) => {
@@ -152,7 +152,7 @@ export class Scene extends EventDispatcher {
       cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
-        const cameraNode = camera.node;
+        const cameraNode = camera.entity;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
           //@todo 后续优化
           this._componentsManager.callCameraOnBeginRender(camera);

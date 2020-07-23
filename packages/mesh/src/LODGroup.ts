@@ -8,11 +8,11 @@ export class LODGroup extends RenderableComponent {
   private _lods;
   /**
    * 构造函数
-   * @param {Node} node 对象所在节点
+   * @param {Entity} entity 对象所在节点
    * @param {Object} props  配置参数
    */
-  constructor(node, props) {
-    super(node, props);
+  constructor(entity, props) {
+    super(entity, props);
     this._lods = [];
   }
 
@@ -40,7 +40,7 @@ export class LODGroup extends RenderableComponent {
     if (this._lods.length <= 0) return;
 
     const eyePos = camera.eyePos;
-    const myPos = this.node.worldPosition;
+    const myPos = this.entity.worldPosition;
     const dist = vec3.distance(eyePos, myPos);
 
     const lods = this._lods;

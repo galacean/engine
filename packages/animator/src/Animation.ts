@@ -1,11 +1,11 @@
 import { Event } from "@alipay/o3-base";
-import { Node, Component } from "@alipay/o3-core";
+import { Entity, Component } from "@alipay/o3-core";
 import { AnimationClip } from "./AnimationClip";
 import { PlayState, WrapMode } from "./AnimationConst";
 import { AnimationClipHandler } from "./handler/animationClipHandler";
 import { getAnimationClipHander } from "./handler/index";
 /**
- * 播放动画片段，动画片段所引用的对象必须是此组件的 Node 及其子节点
+ * 播放动画片段，动画片段所引用的对象必须是此组件的 Entity 及其子节点
  */
 export class Animation extends Component {
   /**
@@ -70,10 +70,10 @@ export class Animation extends Component {
 
   /**
    * @constructor
-   * @param {Node} node
+   * @param {Entity} entity
    */
-  constructor(node: Node, props: any) {
-    super(node, props);
+  constructor(entity: Entity, props: any) {
+    super(entity, props);
     const { animationData, duration, wrapMode, autoPlay } = props;
     this.animClipSet = {}; // name : AnimationClip
     this.uniqueAnimClipSet = {};
@@ -142,7 +142,7 @@ export class Animation extends Component {
     this.binHandlerMap[name] = this.binHandlerMap[name] || {};
     const hasBind = this.binHandlerMap[name][startTime];
     if (!hasBind) {
-      const handler = getAnimationClipHander(this.node, animClip);
+      const handler = getAnimationClipHander(this.entity, animClip);
       this.handlerStartTimeMap.set(handler, startTime);
       this.handlerList.push(handler);
       this.binHandlerMap[name][startTime] = handler;
@@ -255,6 +255,6 @@ export class Animation extends Component {
     this.state = PlayState.STOP;
     const event = new Event("animationFinished");
     event.data = this;
-    this.node.trigger(event);
+    this.entity.trigger(event);
   }
 }

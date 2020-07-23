@@ -12,16 +12,16 @@ import { UpdateFlag } from "./UpdateFlag";
 /**
  * 节点类,可作为组件的容器。
  */
-export class Node extends EventDispatcher {
-  public static _nodes: DisorderedArray<Node> = new DisorderedArray();
+export class Entity extends EventDispatcher {
+  public static _nodes: DisorderedArray<Entity> = new DisorderedArray();
 
   /**
    * 根据名字全局查找节点。
    * @param name - 名字
    * @returns 节点
    */
-  static findByName(name: string): Node {
-    const { _nodes } = Node;
+  static findByName(name: string): Entity {
+    const { _nodes } = Entity;
     const nodes = _nodes._elements;
     for (let i = nodes.length - 1; i >= 0; i--) {
       const node = nodes[i];
@@ -39,16 +39,16 @@ export class Node extends EventDispatcher {
    * @param scene - @deprecated 兼容参数
    * @returns 节点
    */
-  static findByPath(path: string, scene: Scene /*@deprecated*/): Node {
+  static findByPath(path: string, scene: Scene /*@deprecated*/): Entity {
     const splits = path.split("/");
     // todo: multi rootNode
     const rootNode = scene.getRootNode();
     if (!rootNode) return null; //scene or scene.root maybe destroyed
-    let node: Node = rootNode;
+    let node: Entity = rootNode;
     for (let i = 0, spitLength = splits.length; i < spitLength; ++i) {
       const split = splits[i];
       if (split) {
-        node = Node._findChildByName(node, split);
+        node = Entity._findChildByName(node, split);
         if (!node) {
           return null;
         }
@@ -60,7 +60,7 @@ export class Node extends EventDispatcher {
   /**
    * @internal
    */
-  static _findChildByName(root: Node, name: string): Node {
+  static _findChildByName(root: Entity, name: string): Entity {
     const children = root._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
@@ -71,7 +71,7 @@ export class Node extends EventDispatcher {
     return null;
   }
 
-  private static _traverseSetOwnerScene(node: Node, scene: Scene): void {
+  private static _traverseSetOwnerScene(node: Entity, scene: Scene): void {
     for (let i = node.childCount - 1; i >= 0; i--) {
       const child = node._children[i];
       child._scene = scene;
@@ -87,15 +87,15 @@ export class Node extends EventDispatcher {
   /* @internal */
   _components: Component[] = [];
   /* @internal */
-  _children: Node[] = [];
+  _children: Entity[] = [];
   /* @internal */
   _scene: Scene;
   /* @internal */
   _isRoot: boolean = false;
 
-  private _parent: Node = null;
-  private _active: boolean = true;
   private _engine: Engine;
+  private _active: boolean = true;
+  private _parent: Entity = null;
   private _activeChangedComponents: Component[];
   public readonly transform: Transform;
 
@@ -135,11 +135,11 @@ export class Node extends EventDispatcher {
   /**
    * 父节点。
    */
-  get parent(): Node {
+  get parent(): Entity {
     return this._parent;
   }
 
-  set parent(node: Node) {
+  set parent(node: Entity) {
     if (node !== this._parent) {
       const oldParent = this._parent;
       if (oldParent != null) {
@@ -152,7 +152,7 @@ export class Node extends EventDispatcher {
         const parentScene = newParent._scene;
         if (this._scene !== parentScene) {
           this._scene = parentScene;
-          Node._traverseSetOwnerScene(this, parentScene);
+          Entity._traverseSetOwnerScene(this, parentScene);
         }
 
         if (newParent._isActiveInHierarchy) {
@@ -164,7 +164,7 @@ export class Node extends EventDispatcher {
         this._isActiveInHierarchy && this._processInActive();
         if (oldParent) {
           this._scene = null;
-          Node._traverseSetOwnerScene(this, null);
+          Entity._traverseSetOwnerScene(this, null);
         }
       }
     }
@@ -199,7 +199,7 @@ export class Node extends EventDispatcher {
    */
   constructor(name?: string, engine?: Engine) {
     super();
-    Node._nodes.add(this);
+    Entity._nodes.add(this);
     this._engine = engine || Engine._getDefaultEngine();
     this.name = name;
     this.transform = this.addComponent(Transform);
@@ -226,7 +226,7 @@ export class Node extends EventDispatcher {
    * 根据组件类型获取组件。
    * @returns	组件实例
    */
-  getComponent<T extends Component>(type: new (node: Node, props?: object) => T): T {
+  getComponent<T extends Component>(type: new (node: Entity, props?: object) => T): T {
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
@@ -240,7 +240,7 @@ export class Node extends EventDispatcher {
    * 根据组件类型获取组件集合。
    * @returns	组件实例集合
    */
-  getComponents<T extends Component>(type: new (node: Node, props?: object) => T, results: Array<T>): Array<T> {
+  getComponents<T extends Component>(type: new (node: Entity, props?: object) => T, results: Array<T>): Array<T> {
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
@@ -254,7 +254,7 @@ export class Node extends EventDispatcher {
    * 添加子节点对象。
    * @param child - 子节点
    */
-  addChild(child: Node): void {
+  addChild(child: Entity): void {
     child.parent = this;
   }
 
@@ -262,7 +262,7 @@ export class Node extends EventDispatcher {
    * 删除子节点。
    * @param child - 子节点
    */
-  removeChild(child: Node): void {
+  removeChild(child: Entity): void {
     child.parent = null;
   }
 
@@ -271,7 +271,7 @@ export class Node extends EventDispatcher {
    * @param index - 索引
    * @returns 节点
    */
-  getChild(index: number): Node {
+  getChild(index: number): Entity {
     return this._children[index];
   }
 
@@ -280,9 +280,9 @@ export class Node extends EventDispatcher {
    * @param name - 名字
    * @returns 节点
    */
-  findByName(name: string): Node {
+  findByName(name: string): Entity {
     const children = this._children;
-    const child = Node._findChildByName(this, name);
+    const child = Entity._findChildByName(this, name);
     if (child) return child;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
@@ -299,13 +299,13 @@ export class Node extends EventDispatcher {
    * @param path - 路径
    * @returns 节点
    */
-  findByPath(path: string): Node {
+  findByPath(path: string): Entity {
     const splits = path.split("/");
-    let node: Node = this;
+    let node: Entity = this;
     for (let i = 0, length = splits.length; i < length; ++i) {
       const split = splits[i];
       if (split) {
-        node = Node._findChildByName(node, split);
+        node = Entity._findChildByName(node, split);
         if (!node) {
           return null;
         }
@@ -324,7 +324,7 @@ export class Node extends EventDispatcher {
       child._parent = null;
       child._isActiveInHierarchy && child._processInActive();
       child._scene = null; // must after child._processInActive()
-      Node._traverseSetOwnerScene(child, null);
+      Entity._traverseSetOwnerScene(child, null);
     }
     children.length = 0;
   }
@@ -333,8 +333,8 @@ export class Node extends EventDispatcher {
    * 克隆。
    * @returns 克隆的节点
    */
-  clone(): Node {
-    const newNode = new Node(this.name, this._engine);
+  clone(): Entity {
+    const newNode = new Entity(this.name, this._engine);
 
     newNode._active = this._active;
     newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
@@ -380,7 +380,7 @@ export class Node extends EventDispatcher {
       parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
-    Node._nodes.delete(this);
+    Entity._nodes.delete(this);
   }
 
   /**
@@ -427,7 +427,7 @@ export class Node extends EventDispatcher {
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-      const child: Node = children[i];
+      const child: Entity = children[i];
       child.isActive && child._setActiveInHierarchy(activeChangedComponents);
     }
   }
@@ -440,7 +440,7 @@ export class Node extends EventDispatcher {
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-      const child: Node = children[i];
+      const child: Entity = children[i];
       child.isActive && child._setInActiveInHierarchy(activeChangedComponents);
     }
   }
@@ -459,10 +459,10 @@ export class Node extends EventDispatcher {
   /**
    * 创建子节点
    * @param {string} name 子节点的名称
-   * @return {Node} 新创建的子节点对象
+   * @return {Entity} 新创建的子节点对象
    */
-  public createChild(name: string): Node {
-    const child = new Node(name, this._engine);
+  public createChild(name: string): Entity {
+    const child = new Entity(name, this.engine);
     child.parent = this;
     return child;
   }

@@ -1,4 +1,4 @@
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { Animation, Animator, AnimationClip, AnimationClipType } from "@alipay/o3-animator";
 import { Easing } from "@alipay/o3-tween";
 const { Interpolation, Skeleton, AnimationComponent } = AnimationClipType;

@@ -142,7 +142,7 @@ export class BasicRenderPipeline extends SceneVisitor {
     scene._componentsManager.callRender(camera);
     //-- 执行渲染队列
     opaqueQueue.sortByTechnique();
-    transparentQueue.sortByDistance(camera.node.transform.worldPosition);
+    transparentQueue.sortByDistance(camera.entity.transform.worldPosition);
 
     //-- 为sprite提供canvas上的深度信息
     if (this._canvasDepthPass) this._canvasDepthPass.enabled = false;
