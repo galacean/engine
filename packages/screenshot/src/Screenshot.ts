@@ -1,14 +1,14 @@
-import { Camera } from "@alipay/o3-core";
 import { Util } from "@alipay/o3-base";
+import { Camera } from "@alipay/o3-core";
 import { cacheCanvas } from "./cacheCanvas";
-import { Prop, ScreenshotSize, CanvasDataSizeAndOffset } from "./type";
+import { CanvasDataSizeAndOffset, Prop, ScreenshotSize } from "./type";
 
 export class Screenshot {
   camera: Camera;
 
   /**
    * 根据 prop 获取截图的宽高
-   * @param {ACamera} camera - 相机
+   * @param {Camera} camera - 相机
    * @param {number} width - 用户传入的宽
    * @param {number} height - 用户传入的高
    * @return {ScreenshotSize} - 最终计算出来的的截图宽高
@@ -38,7 +38,7 @@ export class Screenshot {
 
   /**
    * 根据截图宽高计算 canvasData 宽高和偏移。自动调整比例缩放并居中
-   * @param {ACamera} camera - 相机
+   * @param {Camera} camera - 相机
    * @param {number} width - 截图的宽
    * @param {number} height - 截图的高
    * @return {CanvasDataSizeAndOffset} - 最终计算出来的 canvasData 宽高和偏移
@@ -124,7 +124,7 @@ export class Screenshot {
 
   /**
    * 根据 camera 和相应配置生成截图
-   * @param {ACamera} camera - 用于截图的相机
+   * @param {Camera} camera - 用于截图的相机
    * @param {Prop} prop - 截图配置选项
    * */
   constructor(camera: Camera, prop?: Prop) {

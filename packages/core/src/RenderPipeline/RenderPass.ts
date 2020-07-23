@@ -1,4 +1,5 @@
 import { ClearMode, MaskList } from "@alipay/o3-base";
+import { Camera } from "../Camera";
 
 /** @todo: monorepo circle dependence */
 type RenderTarget = any;
@@ -65,27 +66,27 @@ class RenderPass {
 
   /**
    * 用于自定义的渲染过程，若 renderOverride 设为了 true 将被执行到
-   * @param {ACamera} camera 相机
+   * @param {Camera} camera 相机
    * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
    * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  render(camera, opaqueQueue, transparentQueue) {}
+  render(camera: Camera, opaqueQueue, transparentQueue) {}
 
   /**
    * Pass 渲染前调用
-   * @param {ACamera} camera 相机
+   * @param {Camera} camera 相机
    * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
    * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  preRender(camera, opaqueQueue, transparentQueue) {}
+  preRender(camera: Camera, opaqueQueue, transparentQueue) {}
 
   /**
    * Pass 渲染后调用
-   * @param {ACamera} camera 相机
+   * @param {Camera} camera 相机
    * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
    * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  postRender(camera, opaqueQueue, transparentQueue) {}
+  postRender(camera: Camera, opaqueQueue, transparentQueue) {}
 }
 
 export { RenderPass };

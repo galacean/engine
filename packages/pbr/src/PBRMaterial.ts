@@ -983,7 +983,7 @@ class PBRMaterial extends Material {
 
   /**
    * 创建宏
-   * @param {ACamera} camera 相机
+   * @param {Camera} camera 相机
    * @param {Ability} component 组件
    * @private
    */

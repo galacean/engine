@@ -1,5 +1,5 @@
 import { ClearMode, GLCapabilityType, Logger } from "@alipay/o3-base";
-import { Camera, HardwareRenderer, Canvas } from "@alipay/o3-core";
+import { Camera, Canvas, HardwareRenderer } from "@alipay/o3-core";
 import { RenderTarget } from "@alipay/o3-material";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLCapability } from "./GLCapability";
@@ -247,9 +247,9 @@ export class WebGLRenderer implements HardwareRenderer {
    * @param {vec4}   tintColor     颜色
    * @param {Texture}   texture    纹理信息
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
-   * @param {ACamera}   camera        相机信息
+   * @param {Camera}   camera        相机信息
    */
-  drawSprite(positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  drawSprite(positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
     // _spriteBatcher只有在需要的时候才会创建
     if (!this._spriteBatcher) {
       this._spriteBatcher = new GLSpriteBatcher(this);

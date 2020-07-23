@@ -207,9 +207,9 @@ export class BasicRenderPipeline extends SceneVisitor {
    * @param {vec4}   tintColor     颜色
    * @param {Texture}   texture    纹理信息
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
-   * @param {ACamera}   camera        相机信息
+   * @param {Camera}   camera        相机信息
    */
-  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
     if ((component as any).separateDraw) {
       if (!this._separateSpritePass) {
         this._separateSpritePass = new SeparateSpritePass();

@@ -231,10 +231,10 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * 更新HUD控件四个顶点的位置
-   * @param {ACamera} camera
+   * @param {Camera} camera
    * @private
    */
-  _updatePositionQuad(camera) {
+  _updatePositionQuad(camera: Camera) {
     const m = camera.viewMatrix;
     const vx = vec3.fromValues(m[0], m[4], m[8]);
     const vy = vec3.fromValues(m[1], m[5], m[9]);
