@@ -87,7 +87,7 @@ export class MeshRenderer extends RenderableComponent {
       return;
     }
 
-    const sceneRenderer = camera.sceneRenderer;
+    const renderPipeline = camera.renderPipeline;
     const primitives = mesh.primitives;
 
     //-- render every primitive
@@ -95,7 +95,7 @@ export class MeshRenderer extends RenderableComponent {
       const primitive = primitives[i];
       const mtl = this._instanceMaterials[i] || this._sharedMaterials[i];
       if (mtl) {
-        sceneRenderer.pushPrimitive(this, primitive, mtl);
+        renderPipeline.pushPrimitive(this, primitive, mtl);
       } else {
         Logger.error("Primitive has no material: " + primitive.name);
       }

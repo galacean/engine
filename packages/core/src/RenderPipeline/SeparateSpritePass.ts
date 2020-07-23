@@ -19,7 +19,7 @@ export class SeparateSpritePass extends RenderPass {
   }
 
   /**
-   * 给 SceneRenderer 调用，判断是否需要绘制 Sprite
+   * 给 RenderPipeline 调用，判断是否需要绘制 Sprite
    */
   get isUsed() {
     return this._spriteItems.length > 0;

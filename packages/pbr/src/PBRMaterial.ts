@@ -1,21 +1,18 @@
 import {
-  Logger,
-  DataType,
-  RenderState,
-  MaterialType,
   BlendFunc,
   CullFace,
-  Side,
-  Util,
+  DataType,
   GLCapabilityType,
-  OITMode
+  MaterialType,
+  RenderState,
+  Side,
+  Util
 } from "@alipay/o3-base";
-import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
+import { Camera, Component } from "@alipay/o3-core";
 import { LightFeature } from "@alipay/o3-lighting";
-
-import vs from "./pbr.vs.glsl";
+import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import fs from "./pbr.fs.glsl";
-import { Camera } from "../../material/node_modules/@alipay/o3-core/types";
+import vs from "./pbr.vs.glsl";
 
 /**
  * PBR（Physically-Based Rendering）材质
@@ -896,15 +893,15 @@ class PBRMaterial extends Material {
 
   /**
    * 绘制前准备
-   * @param {ACamera} camera 相机
-   * @param {Ability} component 组件
+   * @param {Camera} camera 相机
+   * @param {Component} component 组件
    * @private
    */
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(camera: Camera, component: Component, primitive) {
     const scene = camera.scene;
     const canvas = scene.engine.canvas;
     const lightMgr = scene.findFeature(LightFeature);
-    const canOIT = camera.sceneRenderer.canOIT;
+    const canOIT = (<any>camera.renderPipeline).canOIT;
 
     /** 光源 uniform values */
     lightMgr.bindMaterialValues(this);
@@ -917,7 +914,7 @@ class PBRMaterial extends Material {
 
     /** oit  depth texture */
     if (canOIT) {
-      this.setValue("u_depthSampler", camera.sceneRenderer.depthTexture);
+      this.setValue("u_depthSampler", (<any>camera.renderPipeline).depthTexture);
     }
 
     /** 是否需要重新编译 technique */
@@ -959,11 +956,11 @@ class PBRMaterial extends Material {
 
   /**
    * 创建Technique
-   * @param {ACamera} camera 相机
+   * @param {Camera} camera 相机
    * @param {Ability} component 组件
    * @private
    */
-  _generateTechnique(camera, component, primitive) {
+  _generateTechnique(camera: Camera, component, primitive) {
     const customMacros = this._generateShaderMacros(camera, component, primitive);
     const techName = PBRMaterial.TECHNIQUE_NAME;
     const vertex = PBRMaterial.STATIC_VERTEX_SHADER;
@@ -1068,7 +1065,7 @@ class PBRMaterial extends Material {
     if (this._stateObj.isMetallicWorkflow) _macros.push("IS_METALLIC_WORKFLOW");
     if (this._stateObj.envMapModeRefract) _macros.push("ENVMAPMODE_REFRACT");
 
-    if (camera.sceneRenderer.canOIT) {
+    if ((<any>camera.renderPipeline).canOIT) {
       _macros.push("OIT_ENABLE");
     }
     return _macros;

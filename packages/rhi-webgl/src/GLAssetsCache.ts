@@ -2,7 +2,6 @@ import { AssetType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { WebGLRenderer } from "./WebGLRenderer";
 import { GLAsset } from "./GLAsset";
-import { RHIOption } from "@alipay/o3-core/types/type";
 
 interface ObjectSet {
   [key: number]: GLAsset;
@@ -19,7 +18,7 @@ export class GLAssetsCache {
   private _nextID: number;
   private readonly _enableCollect: boolean;
 
-  constructor(rhi: WebGLRenderer, props: RHIOption = {}) {
+  constructor(rhi: WebGLRenderer, props: any = {}) {
     this._rhi = rhi;
     this._objectSet = {}; // 所有资源对象的集合
     this._checkList = []; // 需要检测生命周期的对象列表

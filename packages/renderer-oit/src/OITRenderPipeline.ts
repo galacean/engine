@@ -1,8 +1,8 @@
 import { GLCapabilityType, Logger, OITMode } from "@alipay/o3-base";
-import { BasicRenderPipeline } from "@alipay/o3-core";
+import { BasicRenderPipeline, Camera } from "@alipay/o3-core";
 import { OpaqueRenderPass } from "./OpaqueRenderPass";
-import { WeightedAverageRenderPass } from "./WeightedAverageRenderPass";
 import { ScreenRenderPass } from "./ScreenRenderPass";
+import { WeightedAverageRenderPass } from "./WeightedAverageRenderPass";
 
 /**
  * OIT(Order Independent Transparency,次序无关透明度渲染)
@@ -46,18 +46,18 @@ export class OITRenderPipeline extends BasicRenderPipeline {
     return this.opaqueRenderPass.renderTarget.depthTexture;
   }
 
-  constructor(camera) {
+  constructor(camera: Camera) {
     super(camera);
-    const canMRT = camera.renderHardware.canIUse(GLCapabilityType.drawBuffers);
+    const canMRT = camera.engine.hardwareRenderer.canIUse(GLCapabilityType.drawBuffers);
     if (!canMRT) {
-      Logger.warn("检测到当前环境不支持 MRT, 性能考虑不建议开启 OIT。已为您自动降级为 BasicSceneRenderer");
+      Logger.warn("检测到当前环境不支持 MRT, 性能考虑不建议开启 OIT。已为您自动降级为 BasicRenderPipeline");
       this.canOIT = false;
       return;
     }
 
     // 放到 JS 任务队列最后，获取真实分辨率
     setTimeout(() => {
-      const { drawingBufferWidth, drawingBufferHeight } = camera.renderHardware.gl;
+      const { drawingBufferWidth, drawingBufferHeight } = camera.engine.hardwareRenderer.gl;
 
       this.width = drawingBufferWidth;
       this.height = drawingBufferHeight;

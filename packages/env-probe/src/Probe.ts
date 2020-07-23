@@ -37,11 +37,11 @@ export abstract class Probe extends Component {
   /** 裁剪面 */
   public clipPlanes: Vector4[];
 
-  public set camera(camera) {
+  public set camera(camera: Camera) {
     if (camera === this._camera) return;
-    this._camera && this.sceneRenderer.removeRenderPass(this.renderPass);
+    this._camera && this.renderPipeline.removeRenderPass(this.renderPass);
     this._camera = camera;
-    camera && this.sceneRenderer.addRenderPass(this.renderPass);
+    camera && this.renderPipeline.addRenderPass(this.renderPass);
   }
 
   public get camera() {
@@ -69,8 +69,8 @@ export abstract class Probe extends Component {
     return this.renderPass.renderTarget?.getColorTexture();
   }
 
-  protected get sceneRenderer(): BasicRenderPipeline {
-    return this.camera.sceneRenderer;
+  protected get renderPipeline(): BasicRenderPipeline {
+    return this.camera.renderPipeline;
   }
 
   /**
@@ -85,8 +85,8 @@ export abstract class Probe extends Component {
    * 优先级 excludeRenderList > renderAll > renderList
    */
   protected get renderItems() {
-    const opaqueQueue = this.sceneRenderer.opaqueQueue;
-    const transparentQueue = this.sceneRenderer.transparentQueue;
+    const opaqueQueue = this.renderPipeline.opaqueQueue;
+    const transparentQueue = this.renderPipeline.transparentQueue;
     return opaqueQueue.items.concat(transparentQueue.items).filter((item) => {
       if (!item.primitive) return false;
       if (this.excludeRenderList.includes(item.mtl)) return false;
@@ -201,7 +201,7 @@ export abstract class Probe extends Component {
    */
   public destroy(): void {
     this.enabled = false;
-    this.sceneRenderer.removeRenderPass(this.renderPass);
+    this.renderPipeline.removeRenderPass(this.renderPass);
 
     super.destroy();
 

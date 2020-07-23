@@ -22,7 +22,7 @@ export function hasLight() {
  * @private
  */
 export class LightFeature extends SceneFeature {
-  private visibleLights: Light[];
+  public visibleLights: Light[];
 
   /**
    * 获取光源种类的相应数量

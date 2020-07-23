@@ -38,21 +38,5 @@ type TypedArray = Array<number> | Float32Array;
 // export type mat4Type = TypedArray | array16<number>;
 
 export type Canvas = object;
-export type BasicSceneRenderer = any;
 export type WebGLRenderer = any;
 export type Feature = EngineFeature | SceneFeature;
-
-export interface ICameraProps {
-  canvas: string | HTMLCanvasElement;
-  attributes: RHIOption;
-  SceneRenderer: { new (camera: Camera) };
-  RHI: { new (canvas: string | HTMLCanvasElement, option: RHIOption) };
-}
-
-/** RHI prop*/
-export interface RHIOption extends WebGLContextAttributes {
-  /** 是否启用回收机制 */
-  enableCollect?: boolean;
-  /** 是否禁止使用 WebGL2 */
-  disableWebGL2?: boolean;
-}

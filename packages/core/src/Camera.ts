@@ -4,9 +4,9 @@ import { Matrix4, Vector2, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
+import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 
 /**
  * @todo 数学库改造
@@ -63,7 +63,7 @@ export class Camera extends Component {
   private _clearFlags: ClearFlags;
   private _clearParam: Vector4;
   private _clearMode: ClearMode;
-  private _sceneRenderer: any;
+  private _renderPipeline: BasicRenderPipeline;
   private _viewport: Vector4 = [0, 0, 1, 1];
   private _nearClipPlane: number;
   private _farClipPlane: number;
@@ -81,6 +81,13 @@ export class Camera extends Component {
   private _isViewMatrixDirty: UpdateFlag;
   /** 投影视图矩阵逆矩阵脏标记 */
   private _isInvViewProjDirty: UpdateFlag;
+
+  /**
+   * 渲染管线
+   */
+  public get renderPipeline(): BasicRenderPipeline {
+    return this._renderPipeline;
+  }
 
   /**
    * 近裁剪平面。
@@ -303,7 +310,7 @@ export class Camera extends Component {
     node.transform.position = props.position ?? [0, 10, 20];
     node.transform.lookAt(target, up);
 
-    this._sceneRenderer = new RenderPipeline(this);
+    this._renderPipeline = new RenderPipeline(this);
 
     // TODO: 修改为 ClearFlags
     this.setClearMode(clearMode, clearParam);
@@ -414,7 +421,7 @@ export class Camera extends Component {
    * @param cubeFaces 立方体的渲染面集合,如果设置了renderTarget并且renderTarget.isCube=true时生效
    */
   public render(cubeFaces?: number /*todo:修改为TextureCubeFace类型*/): void {
-    this._sceneRenderer.render();
+    this._renderPipeline.render();
   }
 
   /**
@@ -435,7 +442,7 @@ export class Camera extends Component {
    * @innernal
    */
   _onDestroy() {
-    this._sceneRenderer?.destroy();
+    this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
   }
@@ -489,13 +496,6 @@ export class Camera extends Component {
   }
 
   //-------------------------------------------------deprecated---------------------------------------------------
-  /**
-   * 渲染管线 todo 兼容。
-   * @deprecated
-   */
-  public get sceneRenderer(): any {
-    return this._sceneRenderer;
-  }
 
   /**
    * @deprecated
@@ -515,8 +515,8 @@ export class Camera extends Component {
   public setClearMode(clearMode: ClearMode = ClearMode.SOLID_COLOR, clearParam: Vector4 = [0.25, 0.25, 0.25, 1]): void {
     this._clearMode = clearMode;
     this._clearParam = clearParam as Vector4;
-    this._sceneRenderer.defaultRenderPass.clearParam = clearParam;
-    this._sceneRenderer.defaultRenderPass.clearMode = clearMode;
+    this._renderPipeline.defaultRenderPass.clearParam = clearParam;
+    this._renderPipeline.defaultRenderPass.clearMode = clearMode;
   }
 }
 

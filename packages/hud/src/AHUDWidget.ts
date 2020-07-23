@@ -1,6 +1,6 @@
 import { vec2, vec3, vec4, quat } from "@alipay/o3-math";
 import { HUDFeature } from "./HUDFeature";
-import { RenderableComponent } from "@alipay/o3-core";
+import { RenderableComponent, Camera } from "@alipay/o3-core";
 
 var widgetID = 1000;
 
@@ -190,7 +190,7 @@ export class AHUDWidget extends RenderableComponent {
    * 真正执行GL绘制的地方
    * @param {Camera} camera
    */
-  render(camera) {
+  render(camera: Camera) {
     if (!this._valid) {
       return;
     }
@@ -204,7 +204,7 @@ export class AHUDWidget extends RenderableComponent {
       this._hudFeature.addDirtyRect(this._spriteRect);
     }
 
-    camera.sceneRenderer.pushSprite(
+    camera.renderPipeline.pushSprite(
       this,
       this._positionQuad,
       this._uvRect,
@@ -288,13 +288,13 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * 取得HUD控件在世界空间中的大小
-   * @param {ACamera} camera
+   * @param {Camera} camera
    * @private
    */
-  _getHalfWorldSize(camera) {
+  _getHalfWorldSize(camera: Camera) {
     let halfWorldSize = null;
     if (this._renderMode === "2D") {
-      const canvas = camera.renderHardware.canvas;
+      const canvas = (<any>this.engine.canvas)._webCanvas;
       const clientWidth = canvas.clientWidth;
       const clientHeight = canvas.clientHeight;
       const canvasWidth = canvas.width;
@@ -307,8 +307,9 @@ export class AHUDWidget extends RenderableComponent {
       const viewport = camera.viewport;
       const nx = px / viewport[2];
       const ny = py / viewport[3];
-
-      const screenPos = camera.worldToScreen(this.entity.worldPosition);
+      const screenPos = [];
+      camera.worldToViewportPoint(this.entity.worldPosition, screenPos);
+      camera.viewportToScreenPoint(screenPos, screenPos);
       const depth = screenPos[2];
       const u = vec4.fromValues(nx, ny, depth, 1.0);
 
