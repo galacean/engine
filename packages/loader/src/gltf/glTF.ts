@@ -281,7 +281,6 @@ export function parseMaterial(gltfMaterial, resources) {
       extensions
     } = gltfMaterial;
 
-    console.log(pbrMetallicRoughness);
     if (pbrMetallicRoughness) {
       const {
         baseColorFactor,

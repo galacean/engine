@@ -1,5 +1,3 @@
-import * as path from "../path";
-
 const WEBGL_COMPONENT_TYPES = {
   5120: Int8Array,
   5121: Uint8Array,
@@ -172,69 +170,6 @@ export function createAttribute(gltf, semantic, accessor, idx) {
     offset: 0,
     vertexBufferIndex: idx || 0
   };
-}
-
-/**
- * 处理 glTF 中资源对象 并生成资源请求数据
- * @param dir 相对 url
- * @param loadQueue 加载队列
- * @param arr 资源对象数组
- * @param type 使用 request 库请求资源的类型
- * @param filesMap 资源链接查找表
- * @param props 资源额外配置
- * @private
- */
-export function attachLoadingQueue(dir, loadQueue, arr = [], type, filesMap, props: any) {
-  for (let i = 0; i < arr.length; i++) {
-    const item = arr[i];
-
-    const uri = item.uri;
-    if (!uri) return;
-    let data;
-    let url = path.isRelativePath(item.uri) ? path.join(dir, item.uri) : item.uri;
-
-    if (filesMap[uri]) url = filesMap[uri];
-    else if (uri.substr(0, 5) === "data:") url = null;
-
-    if (url || data)
-      loadQueue[item.uri] = {
-        type: item.fileType ?? type,
-        props: {
-          url,
-          reSample: props.reSample,
-          timeout: props.timeout,
-          data
-        }
-      };
-  }
-}
-
-/**
- * 载入 loader 中已存在的 technique
- * @param resource
- * @param resources
- * @private
- */
-export function attachAsset(resource, resources) {
-  resource.asset = {
-    techniques: [], // RenderTechnique array
-    textures: [], // Texture2D array
-    meshes: [], // Mesh array
-    skins: [], // Skin array
-    materials: [], // Material array
-    animations: [], // AnimationClip array
-    scenes: [], // Scene array
-    nodes: [],
-    rootScene: {}
-  };
-
-  // attach preload techniques
-  const techniques = resources.technique || [];
-  for (let i = 0; i < techniques.length; i++) {
-    const technique = techniques[i];
-
-    resource.asset.techniques.push(technique.asset);
-  }
 }
 
 /**

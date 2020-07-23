@@ -9,17 +9,12 @@ export type CompressedTextureData = {
 };
 
 export type CompressedCubeData = {
+  engineFormat: TextureFormat;
   internalFormat: number;
   width: number;
   height: number;
   mipmapsFaces: Mipmap[][];
 };
-
-export interface CompressedTextureDataNew extends CompressedTextureData {}
-
-export interface CompressedCubeDataNew extends CompressedCubeData {
-  engineFormat: TextureFormat;
-}
 
 export type Mipmap = {
   data: ArrayBufferView;
