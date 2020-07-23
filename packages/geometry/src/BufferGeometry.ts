@@ -215,6 +215,7 @@ export class BufferGeometry extends AssetObject {
    * @param {number[]} value 属性值
    */
   setValue(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
+    console.log(111);
     const vertexAttrib = this.primitive.vertexAttributes[semantic];
     if (vertexAttrib == undefined) {
       Logger.error("UNKNOWN semantic: " + semantic);

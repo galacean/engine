@@ -54,21 +54,36 @@ export class VertexBuffer {
     bufferOffset: number = 0,
     dataCount: number = Number.MAX_SAFE_INTEGER
   ) {
-    // 非插值
-    const vertexAttrib = this.attributes.find((item) => (item.semantic = semantic));
-    const { vertexBufferIndex } = vertexAttrib;
-    const bufferIndex = vertexBufferIndex - this.startBufferIndex;
-    const buffer = this.buffers[bufferIndex];
+    const vertexAttrib = this._getAttributeBySemantic(semantic);
+    const buffer = this._getBufferBySemantic(semantic);
     const constructor = getVertexDataTypeDataView(vertexAttrib.type);
     const view = new constructor(buffer, dataStartIndex, dataCount);
     view.set(vertexValues);
   }
 
-  getData(semantic) {}
+  getData(semantic) {
+    const vertexAttrib = this._getAttributeBySemantic(semantic);
+    const buffer = this._getBufferBySemantic(semantic);
+    const constructor = getVertexDataTypeDataView(vertexAttrib.type);
+    return new constructor(buffer);
+  }
 
-  setDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {}
+  setDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
+    const vertexAttrib = this._getAttributeBySemantic(semantic);
+    const { stride, size } = vertexAttrib;
+    const buffer = this._getBufferBySemantic(semantic);
+    const constructor = getVertexDataTypeDataView(vertexAttrib.type);
+    const view = new constructor(buffer, vertexIndex * stride, size);
+    view.set(value);
+  }
 
-  getDataByIndex(semantic: string, vertexIndex: number) {}
+  getDataByIndex(semantic: string, vertexIndex: number) {
+    const vertexAttrib = this._getAttributeBySemantic(semantic);
+    const { stride, size } = vertexAttrib;
+    const buffer = this._getBufferBySemantic(semantic);
+    const constructor = getVertexDataTypeDataView(vertexAttrib.type);
+    return new constructor(buffer, vertexIndex * stride, size);
+  }
 
   /**
    * 获取当前类型的数据所占字节数
@@ -84,5 +99,17 @@ export class VertexBuffer {
       Logger.error("UNKNOWN vertex attribute type: " + type);
       return 0;
     }
+  }
+
+  protected _getAttributeBySemantic(semantic: string) {
+    return this.attributes.find((item) => (item.semantic = semantic));
+  }
+
+  protected _getBufferBySemantic(semantic: string) {
+    const vertexAttrib = this.attributes.find((item) => (item.semantic = semantic));
+    const { vertexBufferIndex } = vertexAttrib;
+    const bufferIndex = vertexBufferIndex - this.startBufferIndex;
+    const buffer = this.buffers[bufferIndex];
+    return buffer;
   }
 }
