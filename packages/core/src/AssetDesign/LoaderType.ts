@@ -21,8 +21,9 @@ export enum LoaderType {
   /** 预设。*/
   Perfab = 8, // 先走 GLTFLoader
   /** 压缩纹理 */
-  KTX = 9
+  KTX = 9,
+  /** 立方压缩纹理 */
+  KTXCube = 10
   /** @todo 场景。 */
-
   // Scene = 9
 }
