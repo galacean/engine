@@ -1,8 +1,6 @@
 #include <common>
 #include <common_vert>
 #include <uv_share>
-#include <uv_transform_share_define>
-#include <uv_transform_vert_define>
 #include <color_share>
 #include <normal_share>
 #include <worldpos_share>
@@ -19,7 +17,6 @@ void main() {
     #include <morph_vert>
     #include <skinning_vert>
     #include <uv_vert>
-    #include <uv_transform_vert>
     #include <color_vert>
     #include <normal_vert>
     #include <worldpos_vert>
@@ -27,5 +24,4 @@ void main() {
     #include <position_vert>
 
     #include <fog_vert>
-
 }

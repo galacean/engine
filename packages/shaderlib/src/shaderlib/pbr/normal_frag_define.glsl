@@ -27,7 +27,7 @@ vec3 getNormal()
     #else
         mat3 tbn = v_TBN;
     #endif
-        vec3 n = texture2D(u_normalSampler, v_uv_normalTexture ).rgb;
+        vec3 n = texture2D(u_normalSampler, v_uv ).rgb;
         n = normalize(tbn * ((2.0 * n - 1.0) * vec3(u_normalScale, u_normalScale, 1.0)));
   #else
     #ifdef O3_HAS_NORMAL
