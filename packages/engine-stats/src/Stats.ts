@@ -18,8 +18,9 @@ export class Stats extends EngineFeature {
    */
   preTick(engine: Engine, currentScene: Scene): void {
     if (!this.monitor) {
-      if (currentScene?.[0]?.activeCameras?.[0]?.renderHardware?.gl) {
-        this.monitor = new Monitor(currentScene[0].activeCameras[0].renderHardware.gl);
+      const gl = currentScene?.engine?._hardwareRenderer.gl;
+      if (gl) {
+        this.monitor = new Monitor(gl);
       }
     }
   }
