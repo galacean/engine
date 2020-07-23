@@ -83,7 +83,7 @@ export class Resource extends EventDispatcher {
     if (this.assets) {
       callback.call(this, this);
     } else {
-      this.once("loaded", function(resource) {
+      this.once("loaded", function (resource) {
         callback.call(this, resource);
       });
     }
