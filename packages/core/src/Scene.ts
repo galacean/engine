@@ -33,11 +33,11 @@ export class Scene extends EventDispatcher {
    * */
   public clipPlanes: Vector4[] = [];
   public _componentsManager: ComponentsManager = new ComponentsManager();
+  public _activeCameras: Camera[] = [];
 
   private _engine: Engine;
   private _destroyed: boolean = false;
   private _rootEntities: Entity[] = [];
-  private _activeCameras: Camera[];
 
   /** 当前的 Engine 对象
    * @member {Engine}
@@ -45,10 +45,6 @@ export class Scene extends EventDispatcher {
    */
   get engine(): Engine {
     return this._engine;
-  }
-
-  get activeCameras(): Camera[] {
-    return this._activeCameras;
   }
 
   /**
@@ -73,7 +69,7 @@ export class Scene extends EventDispatcher {
     super();
 
     this._engine = engine || Engine._getDefaultEngine();
-    this._activeCameras = [];
+
     sceneFeatureManager.addObject(this);
   }
 

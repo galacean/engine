@@ -118,7 +118,7 @@ export abstract class Probe extends Component {
     this.renderPass.postRender = this.postRender.bind(this);
 
     this.isCube = !!config.isCube;
-    this.camera = config.camera || this.scene.activeCameras[0];
+    this.camera = config.camera || this.scene._activeCameras[0];
     this.excludeRenderList = config.excludeRenderList || [];
     this.renderAll = !!config.renderAll;
     this.renderList = config.renderList || [];
