@@ -1,6 +1,6 @@
 import { Logger } from "@alipay/o3-base";
 import { BufferAttribute } from "../index";
-import { getVertexDataTypeSize } from "../Constant";
+import { getVertexDataTypeSize, getVertexDataTypeDataView } from "../Constant";
 
 /**
  * VertexBuffer
@@ -50,10 +50,19 @@ export class VertexBuffer {
   setData(
     semantic: string,
     vertexValues,
-    bufferOffset: number = 0,
     dataStartIndex: number = 0,
+    bufferOffset: number = 0,
     dataCount: number = Number.MAX_SAFE_INTEGER
-  ) {}
+  ) {
+    // 非插值
+    const vertexAttrib = this.attributes.find((item) => (item.semantic = semantic));
+    const { vertexBufferIndex } = vertexAttrib;
+    const bufferIndex = vertexBufferIndex - this.startBufferIndex;
+    const buffer = this.buffers[bufferIndex];
+    const constructor = getVertexDataTypeDataView(vertexAttrib.type);
+    const view = new constructor(buffer, dataStartIndex, dataCount);
+    view.set(vertexValues);
+  }
 
   getData(semantic) {}
 

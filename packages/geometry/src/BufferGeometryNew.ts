@@ -84,13 +84,13 @@ export class BufferGeometry extends AssetObject {
   setVertexBufferData(
     semantic: string,
     vertexValues: number[] | Float32Array,
-    bufferOffset: number = 0,
     dataStartIndex: number = 0,
+    bufferOffset: number = 0,
     dataCount: number = Number.MAX_SAFE_INTEGER
   ) {
     const vertexBuffer = this._matchBufferBySemantic(semantic);
     if (vertexBuffer) {
-      vertexBuffer.setData(semantic, vertexValues, bufferOffset, dataStartIndex, dataCount);
+      vertexBuffer.setData(semantic, vertexValues, dataStartIndex, bufferOffset, dataCount);
     }
   }
 
@@ -127,13 +127,13 @@ export class BufferGeometry extends AssetObject {
   // 设置 index buffer 数据
   setIndexBufferData(
     indexValues,
-    bufferOffset: number = 0,
     dataStartIndex: number = 0,
+    bufferOffset: number = 0,
     dataCount: number = 4294967295 /*uint.MAX_VALUE*/
   ) {
     const indexBuffer = this._indexBuffers[this._indexBufferIndex];
     if (indexBuffer) {
-      indexBuffer.setData(indexValues, bufferOffset, dataStartIndex, dataCount);
+      indexBuffer.setData(indexValues, dataStartIndex, bufferOffset, dataCount);
     }
   }
 

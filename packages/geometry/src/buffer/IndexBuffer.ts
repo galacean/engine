@@ -32,8 +32,8 @@ export class IndexBuffer {
 
   setData(
     data,
-    bufferOffset: number = 0,
     dataStartIndex: number = 0,
+    bufferOffset: number = 0,
     dataCount: number = 4294967295 /*uint.MAX_VALUE*/
   ) {}
 
