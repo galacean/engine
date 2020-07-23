@@ -9,11 +9,11 @@ import {
   RenderState
 } from "@alipay/o3-base";
 import { openTechnique, path } from "@alipay/o3-loader";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
-import { Mesh, Skin, AMeshRenderer, ASkinnedMeshRenderer } from "@alipay/o3-mesh";
+import { Mesh, Skin, MeshRenderer, SkinnedMeshRenderer } from "@alipay/o3-mesh";
 import { vec3, mat4, quat } from "@alipay/o3-math";
 import {
   attachLoadingQueue,
@@ -28,7 +28,6 @@ import {
 import { AnimationClip, InterpolationType } from "@alipay/o3-animation";
 
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
-
 import { parseSingleKTX } from "@alipay/o3-compressed-texture";
 
 // 踩在浪花儿上
@@ -51,7 +50,7 @@ let nodeCount = 0;
 const RegistedObjs = {};
 const RegistedCustomMaterials = {};
 
-const getDefaultMaterial = (function() {
+const getDefaultMaterial = (function () {
   let defaultMateril: ConstantMaterial;
   return () => {
     if (!defaultMateril) {
@@ -90,7 +89,7 @@ const extensionParsers = {
  * @param {Object} extobj 需要添加的扩展
  */
 export function RegistExtension(extobj) {
-  Object.keys(extobj).forEach(name => {
+  Object.keys(extobj).forEach((name) => {
     if (RegistedObjs[name] === undefined) {
       RegistedObjs[name] = extobj[name];
 
@@ -206,7 +205,7 @@ function parseResources(resources, name, handler) {
     for (let i = entities.length - 1; i >= 0; i--) {
       promises.push(handler(entities[i], resources));
     }
-    return Promise.all(promises).then(results => {
+    return Promise.all(promises).then((results) => {
       for (let i = 0; i < results.length; i++) {
         asset[name].push(results[i]);
       }
@@ -232,16 +231,16 @@ export function parseTexture(gltfTexture, resources) {
     sampler = {
       magFilter: TextureFilter.NEAREST,
       minFilter: TextureFilter.NEAREST,
-      wrapS: TextureWrapMode.REPEAT,
-      wrapT: TextureWrapMode.REPEAT
+      wrapS: TextureWrapMode.Repeat,
+      wrapT: TextureWrapMode.Repeat
     };
   } else {
     sampler = Object.assign(
       {
         magFilter: TextureFilter.LINEAR,
         minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
-        wrapS: TextureWrapMode.REPEAT,
-        wrapT: TextureWrapMode.REPEAT
+        wrapS: TextureWrapMode.Repeat,
+        wrapT: TextureWrapMode.Repeat
       },
       gltf.samplers[gltfTexture.sampler]
     );
@@ -254,12 +253,14 @@ export function parseTexture(gltfTexture, resources) {
   let tex;
   if (image.fileType) {
     if (image.fileType === "ktx") {
-      tex = parseSingleKTX(name, image.data, sampler);
+      tex = parseSingleKTX(image.data);
     } else {
-      tex = new Texture2D(name, image.data, sampler);
+      // todo: rhi 获取
+      // tex = new Texture2D(name, image.data, sampler);
     }
   } else {
-    tex = new Texture2D(name, image, sampler);
+    // todo: rhi 获取
+    // tex = new Texture2D(name, image, sampler);
   }
   tex.type = resources.assetType;
   return Promise.resolve(tex);
@@ -648,13 +649,13 @@ export function parseMesh(gltfMesh, resources) {
             parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
             resolve(primitive);
           })
-          .catch(e => {
+          .catch((e) => {
             reject(e);
           });
       })
     );
   }
-  return Promise.all(primitivePromises).then(primitives => {
+  return Promise.all(primitivePromises).then((primitives) => {
     for (let i = 0; i < primitives.length; i++) {
       mesh.primitives.push(primitives[i]);
     }
@@ -723,7 +724,7 @@ export function parseAnimation(gltfAnimation, resources) {
  */
 export function parseNode(gltfNode, resources) {
   // TODO: undefined name?
-  const node = new Node(null, null, gltfNode.name || `GLTF_NODE_${nodeCount++}`);
+  const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`);
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
@@ -750,13 +751,13 @@ export function parseNode(gltfNode, resources) {
     const rot = quat.create();
     mat4.decompose(mat, pos, rot, scale);
 
-    node.position = pos;
-    node.rotation = rot;
-    node.scale = scale;
+    entity.position = pos;
+    entity.rotation = rot;
+    entity.scale = scale;
   } else {
     for (const key in TARGET_PATH_MAP) {
       if (gltfNode.hasOwnProperty(key)) {
-        node[TARGET_PATH_MAP[key]] = gltfNode[key];
+        entity[TARGET_PATH_MAP[key]] = gltfNode[key];
       }
     }
   }
@@ -766,12 +767,12 @@ export function parseNode(gltfNode, resources) {
       const lightIdx = gltfNode.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
         const light = getItemByIdx("lights", lightIdx, resources);
-        if (light) node.createAbility(light.ability, light.props);
+        if (light) entity.addComponent(light.ability, light.props);
       }
     }
   }
 
-  return Promise.resolve(node);
+  return Promise.resolve(entity);
 }
 
 /**
@@ -793,7 +794,7 @@ export function parseScene(gltfScene, resources) {
       const lightIdx = gltfScene.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
         const light = getItemByIdx("lights", lightIdx, resources);
-        if (light) sceneNodes[0].createAbility(light.ability, light.props);
+        if (light) sceneNodes[0].addComponent(light.ability, light.props);
       }
     }
   }
@@ -851,9 +852,9 @@ export function buildSceneGraph(resources) {
       if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
         const skin = getItemByIdx("skins", gltfNode.skin, resources);
         const weights = mesh.weights;
-        node.createAbility(ASkinnedMeshRenderer, { skin, mesh, weights });
+        node.addComponent(SkinnedMeshRenderer, { skin, mesh, weights });
       } else {
-        node.createAbility(AMeshRenderer, { mesh });
+        node.addComponent(MeshRenderer, { mesh });
       }
     }
   }
@@ -864,7 +865,7 @@ const BASE64_MARKER = ";base64,";
 
 function getReplaceImages(images) {
   if (!images) return;
-  return images.map(image => ({
+  return images.map((image) => ({
     uri: image.url,
     fileType: image.fileType === "ktx" ? "binary" : "image"
   }));
@@ -891,7 +892,7 @@ class GLTFHandler {
     request.load(
       "json",
       props,
-      function(err, gltfJSON) {
+      function (err, gltfJSON) {
         if (!err) {
           data.gltf = gltfJSON;
           // load images & buffers & shader texts
@@ -906,7 +907,7 @@ class GLTFHandler {
           });
           attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap, {});
 
-          request.loadAll(loadQueue, function(err, resMap) {
+          request.loadAll(loadQueue, function (err, resMap) {
             if (err) {
               callback(err);
               return;
@@ -968,7 +969,7 @@ class GLTFHandler {
               }
             }
 
-            request.loadAll(loadImageQue, function(err, imgMap) {
+            request.loadAll(loadImageQue, function (err, imgMap) {
               if (gltfJSON.hasOwnProperty("images")) {
                 for (let i = 0; i < gltfJSON.images.length; i++) {
                   const image = gltfJSON.images[i];

@@ -1,29 +1,24 @@
 import { vec3, quat, mat4, vec4, mat3, MathUtil } from "@alipay/o3-math";
 import { Vector3, Vector4, Matrix4, Matrix3 } from "@alipay/o3-math/types/type";
-import { Node } from "./Node";
-import { NodeAbility } from "./NodeAbility";
+import { Entity } from "./Entity";
+import { Component } from "./Component";
 import { UpdateFlag } from "./UpdateFlag";
 
 /**
  * 用于实现变换相关功能。
  */
-export class Transform extends NodeAbility {
-  // Temp
+export class Transform extends Component {
   private static _tempVec3: Vector3 = vec3.create();
-
   private static _tempVec41: Vector4 = vec4.create();
   private static _tempVec40: Vector4 = vec4.create();
-
   private static _tempMat30: Matrix3 = mat3.create();
   private static _tempMat31: Matrix3 = mat3.create();
   private static _tempMat32: Matrix3 = mat3.create();
-
   private static _tempMat40: Matrix4 = mat4.create();
   private static _tempMat41: Matrix4 = mat4.create();
   private static _tempMat42: Matrix4 = mat4.create();
   private static _tempMat43: Matrix4 = mat4.create();
 
-  // Dirty flag
   private static _LOCAL_EULER_FLAG: number = 0x1;
   private static _LOCAL_QUAT_FLAG: number = 0x2;
   private static _WORLD_POSITION_FLAG: number = 0x4;
@@ -74,40 +69,30 @@ export class Transform extends NodeAbility {
     Transform._WORLD_QUAT_FLAG |
     Transform._WORLD_SCALE_FLAG;
 
-  // Properties
   private _position: Vector3 = vec3.create();
   private _rotation: Vector3 = vec3.create();
   private _rotationQuaternion: Vector4 = quat.create();
   private _scale: Vector3 = vec3.fromValues(1, 1, 1);
-
   private _worldPosition: Vector3 = vec3.create();
   private _worldRotation: Vector3 = vec3.create();
   private _worldRotationQuaternion: Vector4 = quat.create();
   private _lossyWorldScale: Vector3 = vec3.fromValues(1, 1, 1);
-
   private _localMatrix: Matrix4 = mat4.create();
   private _worldMatrix: Matrix4 = mat4.create();
-
   private _dirtyFlag: number = Transform._WM_WP_WE_WQ_WS_FLAGS;
   private _changeFlags: UpdateFlag[] = [];
-
-  /**
-   * 是否往上查父节点。
-   */
   private _isParentDirty: boolean = true;
-  /**
-   * 父 transform 缓存。
-   */
   private _parentTransformCache: Transform = null;
 
   /**
    * 局部位置。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get position(): Readonly<Vector3> {
+  get position(): Vector3 {
     return this._position;
   }
 
-  set position(value: Readonly<Vector3>) {
+  set position(value: Vector3) {
     if (this._position !== value) {
       vec3.copy(this._position, value);
     }
@@ -117,9 +102,10 @@ export class Transform extends NodeAbility {
 
   /**
    * 世界位置。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get worldPosition(): Readonly<Vector3> {
-    if (this._getDirtyFlag(Transform._WORLD_POSITION_FLAG)) {
+  get worldPosition(): Vector3 {
+    if (this._isContainDirtyFlag(Transform._WORLD_POSITION_FLAG)) {
       if (this._getParentTransform()) {
         mat4.getTranslation(this._worldPosition, this.worldMatrix);
       } else {
@@ -130,7 +116,7 @@ export class Transform extends NodeAbility {
     return this._worldPosition;
   }
 
-  set worldPosition(value: Readonly<Vector3>) {
+  set worldPosition(value: Vector3) {
     if (this._worldPosition !== value) {
       vec3.copy(this._worldPosition, value);
     }
@@ -147,16 +133,17 @@ export class Transform extends NodeAbility {
 
   /**
    * 局部旋转，欧拉角表达，单位是角度制。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get rotation(): Readonly<Vector3> {
-    if (this._getDirtyFlag(Transform._LOCAL_EULER_FLAG)) {
+  get rotation(): Vector3 {
+    if (this._isContainDirtyFlag(Transform._LOCAL_EULER_FLAG)) {
       quat.toEuler(this._rotation, this._rotationQuaternion);
       this._setDirtyFlagFalse(Transform._LOCAL_EULER_FLAG);
     }
     return this._rotation;
   }
 
-  set rotation(value: Readonly<Vector3>) {
+  set rotation(value: Vector3) {
     if (this._rotation !== value) {
       vec3.copy(this._rotation, value);
     }
@@ -167,16 +154,17 @@ export class Transform extends NodeAbility {
 
   /**
    * 世界旋转，欧拉角表达，单位是角度制。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get worldRotation(): Readonly<Vector3> {
-    if (this._getDirtyFlag(Transform._WORLD_EULER_FLAG)) {
+  get worldRotation(): Vector3 {
+    if (this._isContainDirtyFlag(Transform._WORLD_EULER_FLAG)) {
       quat.toEuler(this._worldRotation, this.worldRotationQuaternion);
       this._setDirtyFlagFalse(Transform._WORLD_EULER_FLAG);
     }
     return this._worldRotation;
   }
 
-  set worldRotation(value: Readonly<Vector3>) {
+  set worldRotation(value: Vector3) {
     if (this._worldRotation !== value) {
       vec3.copy(this._worldRotation, value);
     }
@@ -186,17 +174,18 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 局部旋转，四元数表达
+   * 局部旋转，四元数表达。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get rotationQuaternion(): Readonly<Vector4> {
-    if (this._getDirtyFlag(Transform._LOCAL_QUAT_FLAG)) {
+  get rotationQuaternion(): Vector4 {
+    if (this._isContainDirtyFlag(Transform._LOCAL_QUAT_FLAG)) {
       quat.fromEuler(this._rotationQuaternion, this._rotation[0], this._rotation[1], this._rotation[2]);
       this._setDirtyFlagFalse(Transform._LOCAL_QUAT_FLAG);
     }
     return this._rotationQuaternion;
   }
 
-  set rotationQuaternion(value: Readonly<Vector4>) {
+  set rotationQuaternion(value: Vector4) {
     if (this._rotationQuaternion !== value) {
       quat.copy(this._rotationQuaternion, value);
     }
@@ -206,10 +195,11 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 世界旋转，四元数表达
+   * 世界旋转，四元数表达。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get worldRotationQuaternion(): Readonly<Vector4> {
-    if (this._getDirtyFlag(Transform._WORLD_QUAT_FLAG)) {
+  get worldRotationQuaternion(): Vector4 {
+    if (this._isContainDirtyFlag(Transform._WORLD_QUAT_FLAG)) {
       const parent = this._getParentTransform();
       if (parent != null) {
         quat.multiply(this._worldRotationQuaternion, parent.worldRotationQuaternion, this.rotationQuaternion);
@@ -221,7 +211,7 @@ export class Transform extends NodeAbility {
     return this._worldRotationQuaternion;
   }
 
-  set worldRotationQuaternion(value: Readonly<Vector4>) {
+  set worldRotationQuaternion(value: Vector4) {
     if (this._worldRotationQuaternion !== value) {
       quat.copy(this._worldRotationQuaternion, value);
     }
@@ -238,12 +228,13 @@ export class Transform extends NodeAbility {
 
   /**
    * 局部缩放。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get scale(): Readonly<Vector3> {
+  get scale(): Vector3 {
     return this._scale;
   }
 
-  set scale(value: Readonly<Vector3>) {
+  set scale(value: Vector3) {
     if (this._scale !== value) {
       vec3.copy(this._scale, value);
     }
@@ -254,8 +245,8 @@ export class Transform extends NodeAbility {
   /**
    * 世界有损缩放。
    */
-  get lossyWorldScale(): Readonly<Vector3> {
-    if (this._getDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
+  get lossyWorldScale(): Vector3 {
+    if (this._isContainDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
       if (this._getParentTransform()) {
         const scaleMat = this._getScaleMatrix();
         vec3.set(this._lossyWorldScale, scaleMat[0], scaleMat[4], scaleMat[8]);
@@ -269,16 +260,17 @@ export class Transform extends NodeAbility {
 
   /**
    * 局部矩阵。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get localMatrix(): Readonly<Matrix4> {
-    if (this._getDirtyFlag(Transform._LOCAL_MATRIX_FLAG)) {
+  get localMatrix(): Matrix4 {
+    if (this._isContainDirtyFlag(Transform._LOCAL_MATRIX_FLAG)) {
       mat4.fromRotationTranslationScale(this._localMatrix, this.rotationQuaternion, this._position, this._scale);
       this._setDirtyFlagFalse(Transform._LOCAL_MATRIX_FLAG);
     }
     return this._localMatrix;
   }
 
-  set localMatrix(value: Readonly<Matrix4>) {
+  set localMatrix(value: Matrix4) {
     if (this._localMatrix !== value) {
       mat4.copy(this._localMatrix, value);
     }
@@ -290,9 +282,10 @@ export class Transform extends NodeAbility {
 
   /**
    * 世界矩阵。
+   * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get worldMatrix(): Readonly<Matrix4> {
-    if (this._getDirtyFlag(Transform._WORLD_MATRIX_FLAG)) {
+  get worldMatrix(): Matrix4 {
+    if (this._isContainDirtyFlag(Transform._WORLD_MATRIX_FLAG)) {
       const parent = this._getParentTransform();
       if (parent) {
         mat4.multiply(this._worldMatrix, parent.worldMatrix, this.localMatrix);
@@ -304,7 +297,7 @@ export class Transform extends NodeAbility {
     return this._worldMatrix;
   }
 
-  set worldMatrix(value: Readonly<Matrix4>) {
+  set worldMatrix(value: Matrix4) {
     if (this._worldMatrix !== value) {
       mat4.copy(this._worldMatrix, value);
     }
@@ -323,13 +316,14 @@ export class Transform extends NodeAbility {
    * @internal
    * 构建一个变换组件。
    */
-  constructor(node?: Node) {
+  constructor(node?: Entity) {
     super(node);
   }
 
   /**
    * 获取世界矩阵的前向量。
    * @param forward - 前向量
+   * @returns 前向量
    */
   getWorldForward(forward: Vector3): Vector3 {
     const worldMatrix = this.worldMatrix;
@@ -340,6 +334,7 @@ export class Transform extends NodeAbility {
   /**
    * 获取世界矩阵的右向量。
    * @param right - 右向量
+   * @returns 右向量
    */
   getWorldRight(right: Vector3): Vector3 {
     const worldMatrix = this.worldMatrix;
@@ -350,6 +345,7 @@ export class Transform extends NodeAbility {
   /**
    * 获取世界矩阵的上向量。
    * @param up - 上向量
+   * @returns 上向量
    */
   getWorldUp(up: Vector3): Vector3 {
     const worldMatrix = this.worldMatrix;
@@ -417,7 +413,7 @@ export class Transform extends NodeAbility {
   }
 
   /**
-   * 注册世界相关变换改变标记。
+   * 注册世界变换改变标记。
    * @returns 改变标记
    */
   registerWorldChangeFlag(): UpdateFlag {
@@ -430,6 +426,14 @@ export class Transform extends NodeAbility {
     for (let i = 0, len = this._changeFlags.length; i < len; i++) {
       this._changeFlags[i].destroy();
     }
+  }
+
+  /**
+   * @internal
+   */
+  _parentChange(): void {
+    this._isParentDirty = true;
+    this._updateAllWorldFlag();
   }
 
   /**
@@ -448,7 +452,7 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WP_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._entity._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionFlag();
       }
@@ -465,7 +469,7 @@ export class Transform extends NodeAbility {
   private _updateWorldRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WE_WQ_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WE_WQ_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._entity._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); //父节点旋转发生变化，子节点的世界位置和旋转都需要更新
       }
@@ -482,7 +486,7 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionAndRotationFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WP_WE_WQ_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._entity._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndRotationFlag();
       }
@@ -498,7 +502,7 @@ export class Transform extends NodeAbility {
   private _updateWorldScaleFlag() {
     if (!this._isContainDirtyFlags(Transform._WM_WS_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WS_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._entity._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
       }
@@ -514,7 +518,7 @@ export class Transform extends NodeAbility {
   private _updateWorldPositionAndScaleFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WS_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WP_WS_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._entity._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
       }
@@ -527,22 +531,19 @@ export class Transform extends NodeAbility {
   private _updateAllWorldFlag(): void {
     if (!this._isContainDirtyFlags(Transform._WM_WP_WE_WQ_WS_FLAGS)) {
       this._worldAssociatedChange(Transform._WM_WP_WE_WQ_WS_FLAGS);
-      const nodeChildren = this._node.children;
+      const nodeChildren = this._entity._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateAllWorldFlag();
       }
     }
   }
 
-  /**
-   * 获取父 transform。
-   */
   private _getParentTransform(): Transform | null {
     if (!this._isParentDirty) {
       return this._parentTransformCache;
     }
     let parentCache: Transform = null;
-    let parent = this._node.parentNode;
+    let parent = this._entity.parent;
     while (parent) {
       const transform = parent.transform;
       if (transform) {
@@ -569,17 +570,11 @@ export class Transform extends NodeAbility {
     return scaMat;
   }
 
-  /**
-   * 是否包含所有的脏标记。
-   */
   private _isContainDirtyFlags(targetDirtyFlags: number): boolean {
     return (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags;
   }
 
-  /**
-   * 获取脏标记
-   */
-  private _getDirtyFlag(type: number): boolean {
+  private _isContainDirtyFlag(type: number): boolean {
     return (this._dirtyFlag & type) != 0;
   }
 
@@ -591,9 +586,6 @@ export class Transform extends NodeAbility {
     this._dirtyFlag &= ~type;
   }
 
-  /**
-   * 设置对外派发的 world change flags
-   */
   private _worldAssociatedChange(type: number): void {
     this._dirtyFlag |= type;
     const len = this._changeFlags.length;
@@ -610,13 +602,5 @@ export class Transform extends NodeAbility {
       quat.multiply(this._worldRotationQuaternion, this.worldRotationQuaternion, rotateQuat);
       this.worldRotationQuaternion = this._worldRotationQuaternion;
     }
-  }
-
-  /**
-   * @internal
-   */
-  _parentChange(): void {
-    this._isParentDirty = true;
-    this._updateAllWorldFlag();
   }
 }

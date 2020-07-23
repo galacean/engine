@@ -1,8 +1,8 @@
 import { Logger, Util, Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { FeatureManager } from "./FeatureManager";
-import { Node } from "./Node";
+import { Entity } from "./Entity";
 import { Engine } from "./Engine";
-import { ACamera } from "./ACamera";
+import { Camera } from "./Camera";
 import { SceneFeature } from "./SceneFeature";
 import { Vector4 } from "@alipay/o3-math/types/type";
 import { ComponentsManager } from "./ComponentsManager";
@@ -35,14 +35,14 @@ export class Scene extends EventDispatcher {
   /**
    * SceneGraph 的 Root 节点
    * @remarks 一般情况下，Root节点的Transform应该保持默认值，其值为单位矩阵
-   * @member {Node}
+   * @member {Entity}
    * @readonly
    */
-  get root(): Node {
+  get root(): Entity {
     return this._root;
   }
 
-  get activeCameras(): ACamera[] {
+  get activeCameras(): Camera[] {
     return this._activeCameras;
   }
 
@@ -52,11 +52,11 @@ export class Scene extends EventDispatcher {
 
   public features: SceneFeature[] = [];
 
-  private _activeCameras: ACamera[];
+  private _activeCameras: Camera[];
 
   private _engine: Engine;
 
-  private _root: Node;
+  private _root: Entity;
 
   /**
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
@@ -77,9 +77,12 @@ export class Scene extends EventDispatcher {
 
     this._engine = engine;
     this._componentsManager = new ComponentsManager();
-    this._root = new Node(this, null, "__root__");
+    const root = new Entity("__root__", engine);
+    root._isRoot = true;
+    root._isActiveInHierarchy = true; //CM:需要根据判断场景是否激活决定ï
+    root._scene = this;
+    this._root = root;
     this._activeCameras = [];
-
     sceneFeatureManager.addObject(this);
   }
 
@@ -93,13 +96,10 @@ export class Scene extends EventDispatcher {
    * @private
    */
   public update(deltaTime: number): void {
-    sceneFeatureManager.callFeatureMethod(this, "preUpdate", [this]); //deprecated
     this._componentsManager.callScriptOnStart();
     this._componentsManager.callScriptOnUpdate(deltaTime);
-    this._componentsManager.callComponentOnUpdate(deltaTime);
     this._componentsManager.callAnimationUpdate(deltaTime);
     this._componentsManager.callScriptOnLateUpdate();
-    sceneFeatureManager.callFeatureMethod(this, "postUpdate", [this]); //deprecated
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
@@ -115,13 +115,13 @@ export class Scene extends EventDispatcher {
       cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
-        const cameraNode = camera.node;
+        const cameraNode = camera.entity;
         if (camera.enabled && cameraNode.isActiveInHierarchy) {
-          this._componentsManager.callScriptOnPreRender();
-          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //deprecated
+          //@todo 后续优化
+          this._componentsManager.callCameraOnBeginRender(camera);
           camera.render();
-          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //deprecated
-          this._componentsManager.callScriptOnPostRender();
+          //@todo 后续优化
+          this._componentsManager.callCameraOnEndRender(camera);
         }
       }
     } else {
@@ -134,7 +134,7 @@ export class Scene extends EventDispatcher {
    * @param {CameraComponent} camera 摄像机对象
    * @private
    */
-  public attachRenderCamera(camera: ACamera): void {
+  public attachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index === -1) {
       this._activeCameras.push(camera);
@@ -148,7 +148,7 @@ export class Scene extends EventDispatcher {
    * @param {CameraComponent} camera 摄像机对象
    * @private
    */
-  public detachRenderCamera(camera: ACamera): void {
+  public detachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index !== -1) {
       this._activeCameras.splice(index, 1);
@@ -156,15 +156,15 @@ export class Scene extends EventDispatcher {
   }
 
   /**
-   * 使用名称查找 Node 对象
+   * 使用名称查找 Entity 对象
    * @param {string} name 对象名称
-   * @return {Node}
+   * @return {Entity}
    */
-  public findObjectByName(name: string): Node {
+  public findObjectByName(name: string): Entity {
     if (this._root.name === name) {
       return this._root;
     }
-    return this._root.findChildByName(name);
+    return this._root.findByName(name);
   }
 
   /**

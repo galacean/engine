@@ -1,9 +1,9 @@
-import { Node } from "@alipay/o3-core";
-import { ASpriteRenderer } from "@alipay/o3-2d";
+import { Entity } from "@alipay/o3-core";
+import { SpriteRenderer } from "@alipay/o3-2d";
 import { IImageElement } from "../../lottie-core/elements/IElements/IImageElement";
 let nodeCount = 0;
 export class ImageElement extends IImageElement {
-  node: any;
+  entity: any;
   renderer: any;
   img: any;
   assetData: any;
@@ -19,11 +19,11 @@ export class ImageElement extends IImageElement {
   }
 
   createContainerElements() {
-    this.node = new Node(null, null, `LOTTIE_IMAGE_${nodeCount++}`);
+    this.entity = new Entity(`LOTTIE_IMAGE_${nodeCount++}`);
   }
   createContent() {
     super.createContent();
-    this.renderer = this.node.createAbility(ASpriteRenderer, {
+    this.renderer = this.entity.addComponent(SpriteRenderer, {
       texture: this.img.asset,
       anchor: [0, 0],
       worldSizeFactor: 2

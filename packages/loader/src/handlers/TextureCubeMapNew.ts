@@ -26,7 +26,7 @@ export class TextureCubeMapNewHandler {
       data[i] = [];
       for (let j = 0; j < urls[i].length; j++) {
         const promise = new Promise((resolve, reject) => {
-          request.load("image", Object.assign({}, props, { url: urls[i][j] }), function(err, img) {
+          request.load("image", Object.assign({}, props, { url: urls[i][j] }), function (err, img) {
             if (!err) {
               data[i][j] = img;
               resolve();
@@ -50,8 +50,8 @@ export class TextureCubeMapNewHandler {
    * @param {Resource} resource 资源数据
    * @private
    */
-  open(resource: Resource, rhi) {
-    const { data } = resource;
+  open(resource: Resource) {
+    const { data, name } = resource;
     const { width, height } = data[0][0];
 
     if (width !== height) {
@@ -59,7 +59,8 @@ export class TextureCubeMapNewHandler {
       return;
     }
 
-    const tex = new TextureCubeMap(rhi, width);
+    const tex = new TextureCubeMap(width);
+    tex.name = name;
 
     if (!tex._glTexture) return;
 

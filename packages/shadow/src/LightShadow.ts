@@ -1,13 +1,14 @@
 import { DataType } from "@alipay/o3-base";
-import { RenderTarget } from "@alipay/o3-material";
+import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
 import { mat4, MathUtil } from "@alipay/o3-math";
-import { ADirectLight, APointLight, ASpotLight } from "@alipay/o3-lighting";
+import { DirectLight, PointLight, SpotLight } from "@alipay/o3-lighting";
 import { vec2 } from "@alipay/o3-math";
 /**
  * 阴影的管理类
  * @private
  */
 export class LightShadow {
+  private rhi;
   private _mapSize;
   private _renderTarget;
   public bias;
@@ -17,8 +18,7 @@ export class LightShadow {
 
   constructor(props = { width: 512, height: 512 }) {
     this._mapSize = vec2.fromValues(props.width, props.height);
-
-    this._renderTarget = new RenderTarget("shadowMap", { ...props, clearColor: [1.0, 1.0, 1.0, 1.0] });
+    this._renderTarget = new RenderTarget(props.width, props.height, new RenderColorTexture(props.width, props.height));
 
     /**
      * （偏斜）
@@ -60,7 +60,7 @@ export class LightShadow {
    * @readonly
    */
   get map() {
-    return this._renderTarget.texture;
+    return this._renderTarget.getColorTexture();
   }
 
   /**
@@ -80,21 +80,21 @@ export class LightShadow {
     /**
      * 方向光初始化投影矩阵，默认覆盖区域 left: -5, right: 5, bottom: -5, up: 5, near: 0.5, far: 50
      */
-    if (light instanceof ADirectLight) {
+    if (light instanceof DirectLight) {
       mat4.ortho(this.projectionMatrix, -5, 5, -5, 5, 0.1, 50);
     }
 
     /**
      * 点光源初始化投影矩阵，默认配置：fov: 50, aspect: 1, near: 0.5, far: 50
      */
-    if (light instanceof APointLight) {
+    if (light instanceof PointLight) {
       mat4.perspective(this.projectionMatrix, MathUtil.toRadian(50), 1, 0.5, 50);
     }
 
     /**
      * 聚光灯初始化投影矩阵，默认配置：fov: this.angle * 2 * Math.sqrt(2), aspect: 1, near: 0.1, far: this.distance + 5
      */
-    if (light instanceof ASpotLight) {
+    if (light instanceof SpotLight) {
       const fov = Math.min(Math.PI / 2, light.angle * 2 * Math.sqrt(2));
       mat4.perspective(this.projectionMatrix, fov, 1, 0.1, light.distance + 5);
     }
@@ -112,7 +112,7 @@ export class LightShadow {
       (this._mapSize.width !== width || this._mapSize.height !== height)
     ) {
       this._mapSize = vec2.fromValues(width, height);
-      this._renderTarget = new RenderTarget("shadowMap", { width, height, clearColor: [1.0, 1.0, 1.0, 1.0] });
+      this._renderTarget = new RenderTarget(width, height, new RenderColorTexture(width, height));
     }
   }
 
@@ -120,7 +120,7 @@ export class LightShadow {
    * 将阴影参数值提交到阴影材质对象
    * @param {Material} mtl
    * @param {number} index
-   * @param {NodeAbility} component
+   * @param {Component} component
    * @param {ALight} light
    */
   bindShadowValues(mtl, index, light) {

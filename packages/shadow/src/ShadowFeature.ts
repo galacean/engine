@@ -1,5 +1,5 @@
 import { MaskList } from "@alipay/o3-base";
-import { SceneFeature, NodeAbility } from "@alipay/o3-core";
+import { SceneFeature, Component } from "@alipay/o3-core";
 import { LightFeature } from "@alipay/o3-lighting";
 import { ShadowMapMaterial } from "./ShadowMapMaterial";
 import { ShadowMaterial } from "./ShadowMaterial";
@@ -88,7 +88,7 @@ export class ShadowFeature extends SceneFeature {
     const items = renderQueue.items;
     for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
-      const ability: NodeAbility = item.nodeAbility;
+      const ability: Component = item.component;
 
       if ((ability as any).recieveShadow) {
         ability.addPassMasks(MaskList.SHADOW);

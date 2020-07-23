@@ -1,18 +1,69 @@
-import { AGeometryRenderer } from "@alipay/o3-geometry";
-import { Node } from "@alipay/o3-core";
+import { GeometryRenderer } from "@alipay/o3-geometry";
+import { Entity } from "@alipay/o3-core";
 import { SphereGeometry } from "./Sphere";
 import { CylinderGeometry } from "./Cylinder";
 import { PlaneGeometry } from "./Plane";
 import { CuboidGeometry } from "./Cuboid";
 import { BlinnPhongMaterial } from "@alipay/o3-mobile-material";
 
-export class Model extends AGeometryRenderer {
+export class Model extends GeometryRenderer {
   set geometryType(value: GeometryType) {
     if (this._geometryType === value) {
       return;
     }
-    const clazz = this._geometryMap[value];
-    this.geometry = new (clazz as any)();
+
+    switch (value) {
+      case "Sphere":
+        const {
+          sphereRadius,
+          sphereHorizontalSegments,
+          sphereVerticalSegments,
+          sphereAlphaStart,
+          sphereAlphaRange,
+          sphereThetaStart,
+          sphereThetaRange
+        } = this._props as any;
+        this.geometry = new SphereGeometry(
+          sphereRadius,
+          sphereHorizontalSegments,
+          sphereVerticalSegments,
+          sphereAlphaStart,
+          sphereAlphaRange,
+          sphereThetaStart,
+          sphereThetaRange
+        );
+        break;
+
+      case "Cylinder":
+        const {
+          cylinderRadiusTop,
+          cylinderRadiusBottom,
+          cylinderHeight,
+          cylinderRadialSegments,
+          cylinderHeightSegments,
+          cylinderOpenEnded
+        } = this._props as any;
+        this.geometry = new CylinderGeometry(
+          cylinderRadiusTop,
+          cylinderRadiusBottom,
+          cylinderHeight,
+          cylinderRadialSegments,
+          cylinderHeightSegments,
+          cylinderOpenEnded
+        );
+        break;
+
+      case "Plane":
+        const { planeWidth, planeHeight, planeHorizontalSegments, planeVerticalSegments } = this._props as any;
+        this.geometry = new PlaneGeometry(planeWidth, planeHeight, planeHorizontalSegments, planeVerticalSegments);
+        break;
+
+      case "Box":
+        var { boxWidth, boxHeight, boxDepth } = this._props as any;
+        this.geometry = new CuboidGeometry(boxWidth, boxHeight, boxDepth);
+        break;
+    }
+
     this._geometryType = value;
   }
 
@@ -21,15 +72,9 @@ export class Model extends AGeometryRenderer {
   }
 
   private _geometryType: GeometryType;
-  private _geometryMap = {
-    [GeometryType.Sphere]: SphereGeometry,
-    [GeometryType.Cylinder]: CylinderGeometry,
-    [GeometryType.Plane]: PlaneGeometry,
-    [GeometryType.Box]: CuboidGeometry
-  };
 
-  constructor(node: Node, props) {
-    super(node, props);
+  constructor(entity: Entity, props) {
+    super(entity, props);
 
     const { geometryType = GeometryType.Box } = props;
     if (!props.material) {

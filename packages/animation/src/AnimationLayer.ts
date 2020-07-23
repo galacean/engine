@@ -1,6 +1,6 @@
 import { Logger, Event, EventDispatcher } from "@alipay/o3-base";
-import { ASkinnedMeshRenderer } from "@alipay/o3-mesh";
-import { Node, NodeAbility } from "@alipay/o3-core";
+import { SkinnedMeshRenderer } from "@alipay/o3-mesh";
+import { Entity, Component } from "@alipay/o3-core";
 import { AnimationEvent, WrapMode } from "./AnimationConst";
 import { AnimationClip } from "./AnimationClip";
 import { IChannelState, AnimationOptions, IChannelTarget } from "./types";
@@ -37,7 +37,7 @@ export class AnimationLayer extends EventDispatcher {
 
   public hasMixLayer: boolean;
 
-  public mixNode: Node;
+  public mixEntity: Entity;
 
   private _activedEvents: Event[];
 
@@ -66,10 +66,10 @@ export class AnimationLayer extends EventDispatcher {
 
   /**
    * @param {AnimationClip} nextAnimClip, anim clip to playback next
-   * @param {Node} rootNode
+   * @param {Entity} rootEntity
    * @return can mix with current AnimationClip
    */
-  public canMix(nextAnimClip: AnimationClip, rootNode: Node): boolean {
+  public canMix(nextAnimClip: AnimationClip, rootEntity: Entity): boolean {
     if (!this._animClip || !this._isPlaying || this.isMixLayer || this.isFading) {
       return false;
     }
@@ -81,10 +81,10 @@ export class AnimationLayer extends EventDispatcher {
     const count = this._animClip.getChannelCount();
     for (let i = count - 1; i >= 0; i--) {
       const curChannel = this._animClip.getChannelObject(i);
-      const curTargetObject = this._findChannelTarget(rootNode, curChannel.target);
+      const curTargetObject = this._findChannelTarget(rootEntity, curChannel.target);
 
       const nextChannel = nextAnimClip.getChannelObject(i);
-      const nextTargetObject = this._findChannelTarget(rootNode, nextChannel.target);
+      const nextTargetObject = this._findChannelTarget(rootEntity, nextChannel.target);
 
       if (curTargetObject !== nextTargetObject) {
         return false;
@@ -98,15 +98,15 @@ export class AnimationLayer extends EventDispatcher {
    * mix animClip with target animationLayer
    * @param {AnimationClip} animClip, anim clip to mix
    * @param {AnimationLayer} targetLayer, target animationLayer
-   * @param {Node} rootNode, root node of skeleton animation
-   * @param {Node} mixNode, mix bone node
+   * @param {Entity} rootEntity, root node of skeleton animation
+   * @param {Entity} mixNode, mix bone node
    * @param {AnimationOptions} options, animation events options
    */
   public mix(
     animClip: AnimationClip,
     targetLayer: AnimationLayer,
-    rootNode: Node,
-    mixNode: Node,
+    rootEntity: Entity,
+    mixEntity: Entity,
     options: { wrapMode?: WrapMode } = {}
   ) {
     this._isPlaying = targetLayer.isPlaying;
@@ -124,7 +124,7 @@ export class AnimationLayer extends EventDispatcher {
       const count = this._animClip.getChannelCount();
       for (let i = count - 1; i >= 0; i--) {
         const channel = this._animClip.getChannelObject(i);
-        const targetObject = this._findChannelTarget(mixNode, channel.target);
+        const targetObject = this._findChannelTarget(mixEntity, channel.target);
         this._channelStates[i] = {
           frameTime: 0.0,
           currentFrame: 0,
@@ -160,12 +160,12 @@ export class AnimationLayer extends EventDispatcher {
   /**
    * play specify anim clip
    * @param {AnimationClip} animClip, anim clip to playback
-   * @param {Node} rootNode, root node of Skeleton Animation
+   * @param {Entity} rootEntity, root node of Skeleton Animation
    * @param {AnimationOptions} options
    */
   public play(
     animClip: AnimationClip,
-    rootNode: Node,
+    rootEntity: Entity,
     options: AnimationOptions = { wrapMode: WrapMode.LOOP }
   ): false | IChannelTarget[] {
     this._isPlaying = !!animClip;
@@ -183,7 +183,7 @@ export class AnimationLayer extends EventDispatcher {
       const channelTargets: IChannelTarget[] = [];
       for (let i = count - 1; i >= 0; i--) {
         const channel = this._animClip.getChannelObject(i);
-        const targetObject = this._findChannelTarget(rootNode, channel.target);
+        const targetObject = this._findChannelTarget(rootEntity, channel.target);
         if (!targetObject) {
           Logger.warn("Can not find channel target:" + channel.target.id);
         }
@@ -297,7 +297,7 @@ export class AnimationLayer extends EventDispatcher {
    */
   public triggerEvents() {
     this._activedEvents &&
-      this._activedEvents.forEach(event => {
+      this._activedEvents.forEach((event) => {
         this.trigger(event);
       });
 
@@ -387,7 +387,7 @@ export class AnimationLayer extends EventDispatcher {
             triggered: false
           });
         }
-        this.addEventListener(eventType, e => {
+        this.addEventListener(eventType, (e) => {
           event.callback();
         });
       } // end of for
@@ -436,21 +436,21 @@ export class AnimationLayer extends EventDispatcher {
 
   /**
    * update state of channel
-   * @param {Node} rootNode
+   * @param {Entity} rootNode
    * @param {object} target
    * @private
    */
-  private _findChannelTarget(rootNode: Node, target: any): Node | NodeAbility {
+  private _findChannelTarget(rootNode: Entity, target: any): Entity | Component {
     const targetID = target.id;
-    let targetSceneObject: Node = null;
+    let targetSceneObject: Entity = null;
     if (rootNode.name === targetID) {
       targetSceneObject = rootNode;
     } else {
-      targetSceneObject = rootNode.findChildByName(targetID);
+      targetSceneObject = rootNode.findByName(targetID);
     }
 
     if (target.path === "weights") {
-      return targetSceneObject.findAbilityByType(ASkinnedMeshRenderer);
+      return targetSceneObject.getComponent(SkinnedMeshRenderer);
     } else {
       return targetSceneObject;
     }

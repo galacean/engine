@@ -9,14 +9,14 @@ import {
   TextureWrapMode
 } from "@alipay/o3-base";
 import { Material, RenderTechnique } from "@alipay/o3-material";
-import { AGeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
+import { GeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
 import { vec3 } from "@alipay/o3-math";
 
 /**
  * GPU粒子系统渲染类
- * @extends AGeometryRenderer
+ * @extends GeometryRenderer
  */
-export class AGPUParticleSystem extends AGeometryRenderer {
+export class GPUParticleSystem extends GeometryRenderer {
   private _time: number;
   private _isInit: boolean;
   private _isStart: boolean;
@@ -40,10 +40,10 @@ export class AGPUParticleSystem extends AGeometryRenderer {
 
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    */
-  constructor(node) {
-    super(node);
+  constructor(entity) {
+    super(entity);
     this._time = 0; // 渲染时间，单位秒
     this._isInit = false; // 是否完成初始化
     this._isStart = false; // 是否开始粒子动画
@@ -203,11 +203,11 @@ export class AGPUParticleSystem extends AGeometryRenderer {
     material.setValue("uOnce", this.once ? 1.0 : 0.0);
 
     if (this.particleTex) {
-      this.particleTex.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
+      this.particleTex.wrapModeU = this.particleTex.wrapModeV = TextureWrapMode.Clamp;
       material.setValue("particleTex", this.particleTex);
     }
     if (this.particleMaskTex) {
-      this.particleMaskTex.setWrapMode(TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode.CLAMP_TO_EDGE);
+      this.particleMaskTex.wrapModeU = this.particleTex.wrapModeV = TextureWrapMode.Clamp;
       material.setValue("particleMaskTex", this.particleMaskTex);
     }
     super.setMaterial(material);

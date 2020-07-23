@@ -6,6 +6,6 @@ Scene.registerFeature(FogFeature);
 (Scene.prototype as any).getFogMacro = getFogMacro;
 (Scene.prototype as any).bindFogToMaterial = bindFogToMaterial;
 
-export { ALinearFog } from "./ALinearFog";
-export { AEXP2Fog } from "./AEXP2Fog";
+export { LinearFog } from "./LinearFog";
+export { EXP2Fog } from "./EXP2Fog";
 export { FogFeature };

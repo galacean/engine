@@ -15,9 +15,9 @@ export class KTXTextureNewHandler {
       callback(new Error("KTXTextureLoader: ktx texture should have 1 or 6 url"));
       return;
     }
-    const promises = urls.map(url => {
+    const promises = urls.map((url) => {
       return new Promise((resolve, reject) => {
-        request.load("binary", Object.assign({}, props, { url }), function(err, buffer) {
+        request.load("binary", Object.assign({}, props, { url }), function (err, buffer) {
           if (!err) {
             resolve(buffer);
           } else {
@@ -28,19 +28,20 @@ export class KTXTextureNewHandler {
     });
 
     Promise.all(promises)
-      .then(res => {
+      .then((res) => {
         callback(null, res);
       })
-      .catch(err => {
+      .catch((err) => {
         callback(err);
       });
   }
 
-  open(resource: Resource, rhi) {
+  open(resource: Resource) {
     if (resource.data.length === 1) {
       const parsedData = parseSingleKTX(resource.data[0]);
       const { width, height, mipmaps, engineFormat } = parsedData;
-      const texture = new (Texture2D as any)(rhi, width, height, engineFormat);
+      const texture = new Texture2D(width, height, engineFormat);
+      texture.name = resource.name;
 
       if (!texture._glTexture) return;
 
@@ -54,7 +55,8 @@ export class KTXTextureNewHandler {
     } else if (resource.data.length === 6) {
       const parsedData = parseCubeKTX(resource.data);
       const { width, height, mipmapsFaces, engineFormat } = parsedData;
-      const texture = new (TextureCubeMap as any)(rhi, width, engineFormat, true);
+      const texture = new TextureCubeMap(width, engineFormat, true);
+      texture.name = resource.name;
 
       if (!texture._glTexture) return;
 
@@ -110,3 +112,5 @@ function parseSingleKTX(data: ArrayBuffer): CompressedTextureDataNew {
     height: ktx.pixelHeight
   };
 }
+
+export { parseSingleKTX, parseCubeKTX };

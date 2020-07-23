@@ -1,16 +1,16 @@
 import { BufferGeometry } from "@alipay/o3-geometry";
 import { vec3, mat4 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { Mesh } from "@alipay/o3-mesh";
 import { Primitive } from "@alipay/o3-primitive";
-import { AMeshRenderer } from "@alipay/o3-mesh";
+import { MeshRenderer } from "@alipay/o3-mesh";
 import { setPosition, transformDirection, fromBufferAttribute, makeRotationFromQuaternion } from "./util";
 
 type FloatArray = Array<number> | Float32Array;
 
 interface Intersection {
-  node: Node;
+  entity: Entity;
   distance: Number;
   point: FloatArray;
   normal: FloatArray;
@@ -20,7 +20,7 @@ interface Intersection {
 
 export class DecalGeometry extends BufferGeometry {
   public size: FloatArray;
-  public readonly node: Node;
+  public readonly node: Entity;
   public readonly targetMesh: Mesh;
   public readonly targetPrimitive: Primitive;
   public readonly position: FloatArray;
@@ -29,8 +29,8 @@ export class DecalGeometry extends BufferGeometry {
   public readonly projectorMatrixInverse: FloatArray;
   public constructor(intersection: Intersection, position: FloatArray, orientation: FloatArray, size: FloatArray) {
     super();
-    this.node = intersection.node;
-    const meshRenderer = this.node.getComponent(AMeshRenderer);
+    this.node = intersection.entity;
+    const meshRenderer = this.node.getComponent(MeshRenderer);
     if (meshRenderer) {
       this.targetMesh = meshRenderer.mesh;
     } else {
@@ -144,7 +144,7 @@ export class DecalGeometry extends BufferGeometry {
     const projectorMatrixInverse = this.projectorMatrixInverse;
 
     // transform the vertex to world space, then to projector space
-    const targetMatrix = this.node.getModelMatrix();
+    const targetMatrix = this.node.transform.worldMatrix;
     const temp1 = vec3.create();
     const temp2 = vec3.create();
     const temp3 = vec3.create();

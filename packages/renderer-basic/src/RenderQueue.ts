@@ -1,6 +1,6 @@
 import { vec3 } from "@alipay/o3-math";
 import { Logger, MaskList } from "@alipay/o3-base";
-import { ACamera, NodeAbility } from "@alipay/o3-core";
+import { Camera, Component } from "@alipay/o3-core";
 import { Material } from "@alipay/o3-material";
 
 /**
@@ -34,9 +34,9 @@ export class RenderQueue {
   /**
    * 把一个 Primitive 对象添加进来
    */
-  pushPrimitive(nodeAbility, primitive, mtl) {
+  pushPrimitive(component, primitive, mtl) {
     this._items.push({
-      nodeAbility,
+      component,
       primitive,
       mtl
     });
@@ -50,15 +50,15 @@ export class RenderQueue {
     const items = this._items;
 
     if (items.length > 1) {
-      this._items = items.sort(function(item1, item2) {
-        if (item1.nodeAbility.renderPriority === item2.nodeAbility.renderPriority) {
-          const pos1 = item1.nodeAbility.node.worldPosition;
-          const pos2 = item2.nodeAbility.node.worldPosition;
+      this._items = items.sort(function (item1, item2) {
+        if (item1.component.renderPriority === item2.component.renderPriority) {
+          const pos1 = item1.component.node.worldPosition;
+          const pos2 = item2.component.node.worldPosition;
 
           const dis = vec3.squaredDistance(pos2, eyePos) - vec3.squaredDistance(pos1, eyePos);
           return dis;
         } else {
-          return item1.nodeAbility.renderPriority - item2.nodeAbility.renderPriority;
+          return item1.component.renderPriority - item2.component.renderPriority;
         }
       });
     } // end of if
@@ -71,8 +71,8 @@ export class RenderQueue {
     const items = this._items;
 
     if (items.length > 1) {
-      this._items = items.sort(function(item1, item2) {
-        if (item1.nodeAbility.renderPriority === item2.nodeAbility.renderPriority) {
+      this._items = items.sort(function (item1, item2) {
+        if (item1.component.renderPriority === item2.component.renderPriority) {
           const tech1 = item1.mtl.technique;
           const tech2 = item2.mtl.technique;
           if (tech1 && tech2) {
@@ -81,7 +81,7 @@ export class RenderQueue {
             return 0;
           }
         } else {
-          return item1.nodeAbility.renderPriority - item2.nodeAbility.renderPriority;
+          return item1.component.renderPriority - item2.component.renderPriority;
         }
       });
     } // end of if
@@ -89,7 +89,7 @@ export class RenderQueue {
 
   /**
    * 把一个 Sprite 绘制需要的信息传进来
-   * @param {NodeAbility} nodeAbility
+   * @param {Component} component
    * @param {object} positionQuad  Sprite四个顶点的位置
    * @param {object} uvRect        Sprite在texture上的纹理坐标
    * @param {vec4}   tintColor     颜色
@@ -97,9 +97,9 @@ export class RenderQueue {
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
    * @param {ACamera}   camera        相机信息
    */
-  pushSprite(nodeAbility: NodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
     this._items.push({
-      nodeAbility,
+      component,
       positionQuad,
       uvRect,
       tintColor,
@@ -115,8 +115,8 @@ export class RenderQueue {
    * @param {Material} replaceMaterial 替换模型自身的材质
    * @param {number} mask 渲染过滤使用的mask
    */
-  render(camera: ACamera, replaceMaterial: Material, mask: MaskList) {
-    const rhi = camera.renderHardware;
+  render(camera: Camera, replaceMaterial: Material, mask: MaskList) {
+    const rhi = camera.scene.engine.hardwareRenderer;
     const items = this._items;
 
     // 如果没有items不需要渲染
@@ -128,10 +128,10 @@ export class RenderQueue {
 
     for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
-      const { nodeAbility, primitive, mtl } = item;
+      const { component, primitive, mtl } = item;
 
       //-- filter by mask
-      const renderPassFlag = nodeAbility.renderPassFlag;
+      const renderPassFlag = component.renderPassFlag;
       if (!(renderPassFlag & mask)) continue;
 
       //-- draw
@@ -140,12 +140,12 @@ export class RenderQueue {
         rhi.flushSprite();
 
         const material = replaceMaterial ? replaceMaterial : mtl;
-        material.preRender?.(item.nodeAbility, item.primitive);
+        material.preRender?.(item.component, item.primitive);
 
-        material.prepareDrawing(camera, item.nodeAbility, item.primitive, mtl);
+        material.prepareDrawing(camera, item.component, item.primitive, mtl);
         rhi.drawPrimitive(item.primitive, material);
 
-        material.postRender?.(item.nodeAbility, item.primitive);
+        material.postRender?.(item.component, item.primitive);
       } else {
         rhi.drawSprite(item.positionQuad, item.uvRect, item.tintColor, item.texture, item.renderMode, item.camera);
       }
@@ -161,12 +161,12 @@ export class RenderQueue {
    */
   updateMaxJointsNum(items, replaceMaterial: Material) {
     for (let i = 0, len = items.length; i < len; i++) {
-      const { nodeAbility, mtl } = items[i];
+      const { component, mtl } = items[i];
 
       const materialControl = replaceMaterial ? replaceMaterial : mtl;
-      // 仅当 nodeAbility 为 ASkinnedMeshRenderer 时需要计算
-      if (nodeAbility.jointNodes) {
-        materialControl.maxJointsNum = Math.max(materialControl.maxJointsNum, nodeAbility.jointNodes.length);
+      // 仅当 component 为 SkinnedMeshRenderer 时需要计算
+      if (component.jointNodes) {
+        materialControl.maxJointsNum = Math.max(materialControl.maxJointsNum, component.jointNodes.length);
       }
     }
   }

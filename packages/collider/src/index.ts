@@ -5,9 +5,9 @@ Scene.registerFeature(ColliderFeature);
 
 //-- colliders
 export { ColliderFeature };
-export { ACollider } from "./ACollider";
+export { Collider as ACollider } from "./Collider";
 export { ABoxCollider } from "./ABoxCollider";
-export { APlaneCollider } from "./APlaneCollider";
+export { PlaneCollider } from "./PlaneCollider";
 export { ASphereCollider } from "./ASphereCollider";
 export { BoxCollider } from "./BoxCollider";
 export { SphereCollider } from "./SphereCollider";

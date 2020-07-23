@@ -16,7 +16,7 @@ describe('AmbientLighting', function () {
       intensity: 0.1
     }
 
-    let ALight = lightNode.createAbility(AmbientLighting, lightCfg);
+    let ALight = lightNode.addComponent(AmbientLighting, lightCfg);
 
     expect(ALight != null).to.be.true;
     expect(ALight._name === 'ambientLight').to.be.true;

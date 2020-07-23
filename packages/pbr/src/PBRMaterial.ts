@@ -15,6 +15,7 @@ import { LightFeature } from "@alipay/o3-lighting";
 
 import vs from "./pbr.vs.glsl";
 import fs from "./pbr.fs.glsl";
+import { Camera } from "../../material/node_modules/@alipay/o3-core/types";
 
 /**
  * PBR（Physically-Based Rendering）材质
@@ -138,7 +139,7 @@ class PBRMaterial extends Material {
       envMapModeRefract: false
     };
 
-    Object.keys(this._uniformObj).forEach(k => this.setValueByParamName(k, this._uniformObj[k]));
+    Object.keys(this._uniformObj).forEach((k) => this.setValueByParamName(k, this._uniformObj[k]));
   }
 
   /**
@@ -147,7 +148,7 @@ class PBRMaterial extends Material {
    * @private
    */
   setUniforms(obj) {
-    Object.keys(obj).forEach(key => {
+    Object.keys(obj).forEach((key) => {
       switch (key) {
         case "baseColorFactor":
           this.baseColorFactor = obj[key];
@@ -248,7 +249,7 @@ class PBRMaterial extends Material {
    * @private
    */
   setStates(obj) {
-    Object.keys(obj).forEach(key => {
+    Object.keys(obj).forEach((key) => {
       switch (key) {
         case "doubleSided":
           this.doubleSided = obj[key];
@@ -299,7 +300,7 @@ class PBRMaterial extends Material {
    */
   setValueByParamName(paramName, value) {
     const uniforms = PBRMaterial.TECH_CONFIG.uniforms;
-    const uniformName = Object.keys(uniforms).find(key => uniforms[key].paramName === paramName);
+    const uniformName = Object.keys(uniforms).find((key) => uniforms[key].paramName === paramName);
     if (uniformName) {
       this.setValue(uniformName, value);
     }
@@ -901,13 +902,14 @@ class PBRMaterial extends Material {
    */
   prepareDrawing(camera, component, primitive) {
     const scene = camera.scene;
+    const canvas = scene.engine.canvas;
     const lightMgr = scene.findFeature(LightFeature);
     const canOIT = camera.sceneRenderer.canOIT;
 
     /** 光源 uniform values */
     lightMgr.bindMaterialValues(this);
     /** 分辨率 */
-    this.setValue("u_resolution", [camera._rhi.canvas.width, camera._rhi.canvas.height]);
+    this.setValue("u_resolution", [canvas.width, canvas.height]);
     /** clipPlane */
     for (let i = 0; i < this._clipPlaneCount; i++) {
       this.setValue(`u_clipPlanes[${i}]`, scene.clipPlanes[i]);
@@ -988,8 +990,8 @@ class PBRMaterial extends Material {
    * @param {Ability} component 组件
    * @private
    */
-  _generateShaderMacros(camera, component, primitive) {
-    const rhi = camera._rhi;
+  _generateShaderMacros(camera: Camera, component, primitive) {
+    const rhi = camera.scene.engine._hardwareRenderer;
 
     const _macros = ["O3_NEED_WORLDPOS"];
 
@@ -1128,9 +1130,8 @@ class PBRMaterial extends Material {
   /**
    * 创建一个副本
    * @param {string} name - name
-   * @param {boolean} cloneTexture - 是否复制纹理，默认复制
    */
-  clone(name?: string, cloneTexture: boolean = true) {
+  clone(name?: string) {
     const newMtl = new PBRMaterial(name || this.name);
 
     newMtl.renderType = this.renderType;
@@ -1138,18 +1139,7 @@ class PBRMaterial extends Material {
 
     for (const name in this._uniformObj) {
       const value = this._uniformObj[name];
-      if (value instanceof Texture2D) {
-        if (cloneTexture) {
-          const { name: textureName, image, type, config } = value;
-          const newTexture = new Texture2D(textureName, image, config);
-          newTexture.type = type;
-          newMtl[name] = newTexture;
-        } else {
-          newMtl[name] = value;
-        }
-      } else {
-        newMtl[name] = Util.clone(value);
-      }
+      newMtl[name] = Util.clone(value);
     }
 
     if (this._stateObj) {

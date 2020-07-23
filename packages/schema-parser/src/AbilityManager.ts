@@ -7,7 +7,7 @@ import { scriptAbility } from "./resources";
 import { Logger } from "@alipay/o3";
 
 export class AbilityManager {
-  private abilityMap: { [id: string]: o3.NodeAbility } = {};
+  private abilityMap: { [id: string]: o3.Component } = {};
 
   constructor(private oasis: Oasis) {}
 
@@ -22,7 +22,7 @@ export class AbilityManager {
       return;
     }
     const abilityProps = this.mixPropsToExplicitProps(props);
-    const ability = node.createAbility(AbilityConstructor, abilityProps);
+    const ability = node.addComponent(AbilityConstructor, abilityProps);
     const { enabled } = abilityProps;
     if (enabled !== undefined) {
       ability.enabled = enabled;
@@ -36,7 +36,8 @@ export class AbilityManager {
       }
     }
 
-    const abilityArray = node.abilityArray;
+    //@ts-ignore
+    const abilityArray = node._components;
     const currentIndex = abilityArray.length - 1;
     switchElementsIndex(abilityArray, currentIndex, index);
     (ability as any).id = id;
@@ -54,7 +55,7 @@ export class AbilityManager {
     return { id, key, value };
   }
 
-  public get(id: string): o3.NodeAbility {
+  public get(id: string): o3.Component {
     return this.abilityMap[id];
   }
 

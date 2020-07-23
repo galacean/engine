@@ -1,20 +1,20 @@
-import { ACollider } from "./ACollider";
+import { Collider } from "./Collider";
 import { vec3 } from "@alipay/o3-math";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 /**
  * 球型碰撞体组件
- * @extends ACollider
+ * @extends Collider
  */
-export class ASphereCollider extends ACollider {
+export class ASphereCollider extends Collider {
   center: number[] | Float32Array;
 
   radius: number;
   /**
    * @constructor
-   * @param {Node} node
+   * @param {Entity} entity
    */
-  constructor(node: Node, props: any) {
-    super(node, props);
+  constructor(entity: Entity, props: any) {
+    super(entity, props);
 
     /**
      * 球心的坐标(在Local坐标系)

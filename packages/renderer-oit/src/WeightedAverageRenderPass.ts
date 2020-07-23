@@ -1,6 +1,6 @@
 import { RenderPass } from "@alipay/o3-renderer-basic";
-import { MultiRenderTarget, Texture2D } from "@alipay/o3-material";
-import { BlendFunc, TextureFilter, TextureWrapMode } from "@alipay/o3-base";
+import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
+import { BlendFunc, RenderBufferColorFormat } from "@alipay/o3-base";
 
 /**
  * Weighted-Average renderPass
@@ -11,33 +11,24 @@ export class WeightedAverageRenderPass extends RenderPass {
   constructor(width: number, height: number) {
     super("Weighted-Average renderPass", -1);
 
-    const renderTarget = new MultiRenderTarget("Weighted-Average MRT", {
-      width,
-      height,
-      colorBufferFloat: true
-    });
-    const config = {
-      magFilter: TextureFilter.LINEAR,
-      minFilter: TextureFilter.LINEAR,
-      wrapS: TextureWrapMode.CLAMP_TO_EDGE,
-      wrapT: TextureWrapMode.CLAMP_TO_EDGE
-    };
-    renderTarget.addTexColor(new Texture2D("mrt_0", null, config));
-    renderTarget.addTexColor(new Texture2D("mrt_1", null, config));
+    const renderTarget = new RenderTarget(width, height, [
+      new RenderColorTexture(width, height, RenderBufferColorFormat.R32G32B32A32),
+      new RenderColorTexture(width, height, RenderBufferColorFormat.R32G32B32A32)
+    ]);
 
     this.renderTarget = renderTarget;
     this.renderOverride = true;
   }
 
-  get textures(): Texture2D[] {
-    return (this.renderTarget as MultiRenderTarget).textures;
+  get textures(): RenderColorTexture[] {
+    return [this.renderTarget.getColorTexture(0), this.renderTarget.getColorTexture(1)];
   }
 
   preRender(camera, opaqueQueue, transparentQueue) {
     const defaultRenderPass = camera.sceneRenderer.defaultRenderPass;
 
     // 防止 clearParam 改动
-    this.clearParam = this.renderTarget.clearColor = [0, 0, 0, 0];
+    this.clearParam = [0, 0, 0, 0];
 
     // 保持原 mask
     this.mask = defaultRenderPass.mask;

@@ -1,5 +1,5 @@
 import { UniformSemantic, DataType, Logger, GLCapabilityType } from "@alipay/o3-base";
-import { AssetObject, ACamera } from "@alipay/o3-core";
+import { AssetObject, Camera } from "@alipay/o3-core";
 import { ShaderFactory } from "@alipay/o3-shaderlib";
 import { Material } from "./Material";
 import { TechniqueStates, Attributes, Uniforms } from "./type";
@@ -114,11 +114,11 @@ export class RenderTechnique extends AssetObject {
     this._uniforms = Object.assign({}, RenderTechnique.commonUniforms, v);
   }
 
-  compile(camera, component, primitive, material: Material) {
+  compile(camera: Camera, component, primitive, material: Material) {
     this.parseFog(camera);
 
     if (this._needCompile) {
-      const rhi = camera?.renderHardware;
+      const rhi = camera.engine._hardwareRenderer;
       const isWebGL2 = rhi?.isWebGL2;
 
       material.preCompile?.(this);
@@ -187,8 +187,8 @@ export class RenderTechnique extends AssetObject {
     }
   }
 
-  getAttributeDefines(camera: ACamera, component, primitive, material) {
-    const rhi = camera._rhi;
+  getAttributeDefines(camera: Camera, component, primitive, material) {
+    const rhi = camera.scene.engine._hardwareRenderer;
     const gl = rhi.gl;
     const _macros = [];
     if (!primitive) return _macros;
@@ -216,7 +216,7 @@ export class RenderTechnique extends AssetObject {
             );
           }
         } else if (material.maxJointsNum > 0) {
-          // 使用最大关节数，保证所有 ASkinnedMeshRenderer 都可以共用材质
+          // 使用最大关节数，保证所有 SkinnedMeshRenderer 都可以共用材质
           _macros.push(`O3_JOINTS_NUM ${material.maxJointsNum}`);
         }
       }

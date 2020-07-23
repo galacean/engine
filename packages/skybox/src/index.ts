@@ -1,1 +1,1 @@
-export { ASkyBox } from "./ASkyBox";
+export { SkyBox as ASkyBox } from "./SkyBox";

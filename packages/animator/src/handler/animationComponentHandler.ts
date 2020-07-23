@@ -1,4 +1,4 @@
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { vec3 } from "@alipay/o3-math";
 import { AnimationClipType } from "../AnimationConst";
 import { AnimationClip } from "../AnimationClip";
@@ -8,10 +8,10 @@ export class AnimationComponentHandler extends AnimationClipHandler {
   handler: any;
   type: AnimationClipType;
   animClip: AnimationClip;
-  node: Node;
+  entity: Entity;
   currentTime: number;
-  constructor(id: number, type: AnimationClipType, node: Node, animClip: AnimationClip) {
-    super(id, type, node, animClip);
+  constructor(id: number, type: AnimationClipType, entity: Entity, animClip: AnimationClip) {
+    super(id, type, entity, animClip);
   }
 }
 
@@ -25,7 +25,7 @@ export class AnimationComponentHandler extends AnimationClipHandler {
 // bindAnimationComponentAnimClip(animClip) {
 //   const { animationComponentAbility } = animClip;
 //   const { params } = animClip.options;
-//   const animationComponent = this.node.createAbility(animationComponentAbility, params);
+//   const animationComponent = this.node.addComponent(animationComponentAbility, params);
 //   const handler = {
 //     type: AnimationComponent,
 //     _handler: animationComponent,

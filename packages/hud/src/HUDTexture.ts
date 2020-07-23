@@ -20,8 +20,8 @@ export class HUDTexture extends Texture2D {
    * @param {number} width 内部Canvas的宽度
    * @param {number} height 内部Canvas的高度
    */
-  constructor(name, width, height) {
-    super(name);
+  constructor(width: number, height: number) {
+    super(width, height);
 
     //-- 创建2D绘制相关对象
     this._canvas = document.createElement("canvas");
@@ -30,8 +30,6 @@ export class HUDTexture extends Texture2D {
 
     this.context = this._canvas.getContext("2d");
 
-    //-- Texture Altas
-    this.image = this._canvas;
     this._resetWholeTexture = true;
     //-- 限制刷新canvas区域的大小，保证用来刷新的内存最大不超过1M
     this._maxTexSubWidth = Math.min(1, 512 / width);
@@ -65,13 +63,17 @@ export class HUDTexture extends Texture2D {
     }
 
     if (this._resetWholeTexture) {
-      this.updateTexture();
+      this.setImageSource(null);
       this._resetWholeTexture = false;
     } else {
       // 刷新子区域
       const subRects = this._getMergedTexSubRects(dirtyRects);
       for (let i = 0, size = subRects.length; i < size; i++) {
-        this.updateSubTexture(subRects[i]);
+        const x = subRects[i].x;
+        const y = subRects[i].y;
+        const w = subRects[i].width;
+        const h = subRects[i].height;
+        this.setPixelBuffer(null, x, y, w, h);
       }
     }
   }
@@ -87,7 +89,7 @@ export class HUDTexture extends Texture2D {
       const w = rect.width;
       const h = rect.height;
       this.context.clearRect(x, y, w, h);
-      this.updateSubTexture(rect);
+      this.setPixelBuffer(null, 0, x, y, w, h);
     }
   }
 

@@ -1,12 +1,11 @@
 {
   "npmClient": "tnpm",
-  "version": "2.3.0-alpha.0",
+  "version": "2.3.3",
   "bootstrap": {
     "hoist": true
   },
   "packages": [
-    "packages/*",
-    "playground"
+    "packages/*"
   ],
   "loglevel": "verbose"
 }

@@ -19,7 +19,15 @@ export class SphereGeometry extends IndexBufferGeometry {
    * @param {number} thetaStart 垂直开始角度
    * @param {number} thetaRange 垂直角度范围
    */
-  constructor(radius, horizontalSegments, verticalSegments, alphaStart, alphaRange, thetaStart, thetaRange) {
+  constructor(
+    radius?: number,
+    horizontalSegments?: number,
+    verticalSegments?: number,
+    alphaStart?: number,
+    alphaRange?: number,
+    thetaStart?: number,
+    thetaRange?: number
+  ) {
     super();
     this._parameters = {
       radius: radius || 1,

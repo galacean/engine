@@ -1,1 +1,1 @@
-export { AOrbitControls } from "./AOrbitControls";
+export { OrbitControls } from "./OrbitControls";

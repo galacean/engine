@@ -1,13 +1,14 @@
 import { Texture2D } from "@alipay/o3-material";
 
-export function createTextureFromCanvas(name, width, height, drawFunc) {
+export function createTextureFromCanvas(name, width, height, drawFunc, rhi) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   canvas.width = width;
   canvas.height = height;
   context.clearRect(0, 0, width, height);
   drawFunc && drawFunc(context);
-  const texture = new Texture2D(name, canvas);
+  const texture = new Texture2D(width, height);
+  texture.setImageSource(canvas);
   return texture;
 }
 
@@ -35,7 +36,7 @@ export function drawText(context, text, position, config) {
 export function drawLine(context, startPoint, pathPoint, config) {
   context.save();
   context.moveTo(startPoint.x, startPoint.y);
-  pathPoint.forEach(point => {
+  pathPoint.forEach((point) => {
     context.lineTo(point.x, point.y);
   });
   Object.assign(context, config);

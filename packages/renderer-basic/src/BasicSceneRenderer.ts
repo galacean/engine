@@ -1,17 +1,16 @@
-import { vec3 } from "@alipay/o3-math";
+import { ClearMode, MaskList, MaterialType } from "@alipay/o3-base";
+import { Camera, SceneVisitor, Component } from "@alipay/o3-core";
+import { Material, RenderTarget } from "@alipay/o3-material";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { SceneVisitor, NodeAbility, Node, ACamera } from "@alipay/o3-core";
 import { SeparateSpritePass } from "./SeparateSpritePass";
-import { MaterialType, ClearMode, MaskList } from "@alipay/o3-base";
-import { RenderTarget, Material } from "@alipay/o3-material";
 
 /**
  * 使用指定的CameraComponent对象，渲染当前场景中的所有可见对象
  * @class
  */
 export class BasicSceneRenderer extends SceneVisitor {
-  protected _camera: ACamera;
+  protected _camera: Camera;
   private _opaqueQueue: RenderQueue;
   private _transparentQueue: RenderQueue;
   private _defaultPass: RenderPass;
@@ -21,7 +20,7 @@ export class BasicSceneRenderer extends SceneVisitor {
 
   /**
    * 构造函数
-   * @param {ACamera} camera 摄像机对象
+   * @param {Camera} camera 摄像机对象
    */
   constructor(camera) {
     super();
@@ -48,7 +47,7 @@ export class BasicSceneRenderer extends SceneVisitor {
    * @param {number} priority 优先级，小于0在默认Pass之前，大于0在默认Pass之后
    * @param {RenderTarget} renderTarget 指定的 Render Target
    * @param {Material} replaceMaterial 替换模型的默认材质
-   * @param {MaskList} mask 与 NodeAbility.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
+   * @param {MaskList} mask 与 Component.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
    */
   addRenderPass(
     nameOrPass: string | RenderPass,
@@ -124,7 +123,7 @@ export class BasicSceneRenderer extends SceneVisitor {
    */
   render() {
     const camera = this._camera;
-    if (!camera.renderHardware) {
+    if (!camera.scene.engine.hardwareRenderer) {
       return;
     }
     const opaqueQueue = this._opaqueQueue;
@@ -138,7 +137,7 @@ export class BasicSceneRenderer extends SceneVisitor {
     scene._componentsManager.callRender(camera);
     //-- 执行渲染队列
     opaqueQueue.sortByTechnique();
-    transparentQueue.sortByDistance(camera.eyePos);
+    transparentQueue.sortByDistance(camera.entity.transform.worldPosition);
 
     //-- 为sprite提供canvas上的深度信息
     if (this._canvasDepthPass) this._canvasDepthPass.enabled = false;
@@ -160,10 +159,10 @@ export class BasicSceneRenderer extends SceneVisitor {
     }
   }
 
-  private _drawRenderPass(pass: RenderPass, camera: ACamera) {
+  private _drawRenderPass(pass: RenderPass, camera: Camera) {
     pass.preRender(camera, this.opaqueQueue, this.transparentQueue);
 
-    const rhi = camera.renderHardware;
+    const rhi = camera.scene.engine._hardwareRenderer;
     rhi.activeRenderTarget(pass.renderTarget, camera); // keep require rendertarget in case of GC
 
     if (pass.enabled) {
@@ -183,21 +182,21 @@ export class BasicSceneRenderer extends SceneVisitor {
 
   /**
    * 将一个 Primitive 对象添加到渲染队列
-   * @param {NodeAbility} nodeAbility
+   * @param {Component} component
    * @param {Primitive} primitive
    * @param {Material} mtl
    */
-  pushPrimitive(nodeAbility: NodeAbility, primitive, mtl: Material) {
+  pushPrimitive(component: Component, primitive, mtl: Material) {
     if (mtl.renderType === MaterialType.TRANSPARENT) {
-      this._transparentQueue.pushPrimitive(nodeAbility, primitive, mtl);
+      this._transparentQueue.pushPrimitive(component, primitive, mtl);
     } else {
-      this._opaqueQueue.pushPrimitive(nodeAbility, primitive, mtl);
+      this._opaqueQueue.pushPrimitive(component, primitive, mtl);
     }
   }
 
   /**
    * 将一个 Sprite 绘制信息添加到渲染队列
-   * @param {NodeAbility} nodeAbility
+   * @param {Component} component
    * @param {Object} positionQuad  Sprite四个顶点的位置
    * @param {Object} uvRect        Sprite在texture上的纹理坐标
    * @param {vec4}   tintColor     颜色
@@ -205,43 +204,17 @@ export class BasicSceneRenderer extends SceneVisitor {
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
    * @param {ACamera}   camera        相机信息
    */
-  pushSprite(nodeAbility: NodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
-    if ((nodeAbility as any).separateDraw) {
+  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+    if ((component as any).separateDraw) {
       if (!this._separateSpritePass) {
         this._separateSpritePass = new SeparateSpritePass();
         this.addRenderPass(this._separateSpritePass);
       }
 
-      this._separateSpritePass.pushSprite(nodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera);
+      this._separateSpritePass.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
       return;
     }
 
-    this._transparentQueue.pushSprite(nodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera);
-  }
-
-  /**
-   * SceneVisitor 的 Node 访问接口
-   */
-  acceptNode(node: Node) {
-    return node.isActive;
-  }
-
-  /**
-   * @deprecated
-   * SceneVisitor 的 Node 组件访问接口
-   */
-  acceptAbility(nodeAbility: NodeAbility) {
-    if (nodeAbility.enabled && nodeAbility.isRenderable) {
-      let culled = false;
-      // distance cull
-      if (nodeAbility.cullDistanceSq > 0) {
-        const distanceSq = vec3.squaredDistance(this._camera.eyePos, nodeAbility.node.worldPosition);
-        culled = nodeAbility.cullDistanceSq < distanceSq;
-      }
-
-      if (!culled) {
-        (nodeAbility as any).render(this._camera);
-      }
-    }
+    this._transparentQueue.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
   }
 }

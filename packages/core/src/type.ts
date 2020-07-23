@@ -1,6 +1,6 @@
 import { EngineFeature } from "./EngineFeature";
 import { SceneFeature } from "./SceneFeature";
-import { ACamera } from "./ACamera";
+import { Camera } from "./Camera";
 
 type array2<T> = { 0: T; 1: T };
 type array3<T> = { 0: T; 1: T; 2: T };
@@ -39,13 +39,13 @@ type TypedArray = Array<number> | Float32Array;
 
 export type Canvas = object;
 export type BasicSceneRenderer = any;
-export type GLRenderHardware = any;
+export type WebGLRenderer = any;
 export type Feature = EngineFeature | SceneFeature;
 
 export interface ICameraProps {
   canvas: string | HTMLCanvasElement;
   attributes: RHIOption;
-  SceneRenderer: { new (camera: ACamera) };
+  SceneRenderer: { new (camera: Camera) };
   RHI: { new (canvas: string | HTMLCanvasElement, option: RHIOption) };
 }
 

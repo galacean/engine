@@ -1,10 +1,13 @@
-import { Scene } from "./Scene";
+import { Event, EventDispatcher, Logger, Time } from "@alipay/o3-base";
+import { ResourceManager } from "./AssetDesign/ResourceManager";
 import { AssetPool } from "./AssetPool";
-import { FeatureManager } from "./FeatureManager";
-import { Time, Logger, Event, EventDispatcher } from "@alipay/o3-base";
-import { ACamera } from "./ACamera";
+import { Canvas } from "./EngineDesign/Canvas";
+import { EngineOptions } from "./EngineDesign/EngineOptions";
+import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
 import { EngineFeature } from "./EngineFeature";
-
+import { FeatureManager } from "./FeatureManager";
+import { Scene } from "./Scene";
+import { SceneManager } from "./SceneDesign/SceneManager";
 const MAX_FPS: number = 60;
 
 /*
@@ -21,15 +24,220 @@ const engineFeatureManager = new FeatureManager<EngineFeature>();
  */
 export class Engine extends EventDispatcher {
   /**
-   * 计时器对象
-   * @member {Time}
-   * @readonly
+   * 当前创建对象所属的默认引擎对象。
+   */
+  static defaultCreateObjectEngine: Engine = null;
+
+  static _instanceIDCounter: number = 0;
+  static _lastCreateEngine: Engine = null;
+
+  static _getDefaultEngine(): Engine {
+    return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
+  }
+
+  private _vSyncCount: number = 1;
+  private _targetTrameRate: number;
+  private _canvas: Canvas;
+  private _resourceManager: ResourceManager = new ResourceManager();
+  private _sceneManager: SceneManager = new SceneManager();
+
+  /**
+   * 渲染画布。
+   */
+  get canvas(): Canvas {
+    return this._canvas;
+  }
+
+  /**
+   * 渲染器。
+   */
+  get hardwareRenderer(): any {
+    return this._hardwareRenderer;
+  }
+
+  /**
+   * 资源管理器。
+   */
+  get resourceManager(): ResourceManager {
+    return this._resourceManager;
+  }
+
+  /**
+   * 场景管理器。
+   */
+  get sceneManager(): SceneManager {
+    return this._sceneManager;
+  }
+
+  /**
+   * 计时器。
    */
   get time(): Time {
     return this._time;
   }
 
   /**
+   * 是否暂停。
+   */
+  get isPaused(): boolean {
+    return this._paused;
+  }
+
+  /**
+   * 垂直同步数量,表示执行一帧的垂直消隐数量,0表示关闭垂直同步。
+   */
+  get vSyncCount(): number {
+    return this._vSyncCount;
+  }
+
+  set vSyncCount(value: number) {
+    this._vSyncCount = Math.max(0, Math.floor(value));
+  }
+
+  /**
+   * 目标帧率,vSyncCount = 0 时生效。
+   */
+  get targetFrameRate(): number {
+    return this._targetTrameRate;
+  }
+
+  set targetFrameRate(value: number) {
+    this._targetTrameRate = value;
+  }
+
+  private _FPS: number = MAX_FPS;
+
+  private _time: Time = new Time();
+
+  private _paused: boolean = true;
+
+  private _FPSTime: number = 0;
+
+  private _tickTime: number = 0;
+
+  private _animateTime: Time = new Time();
+
+  private _currentScene: Scene = new Scene(this);
+
+  private _animate: () => void;
+
+  _hardwareRenderer: any;
+
+  /**
+   * 创建引擎。
+   * @param canvas - 渲染画布
+   * @param hardwareRenderer - 渲染器
+   * @param options - 引擎初始化选项
+   */
+  constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer, engineOptions?: EngineOptions) {
+    super();
+    // 加入 Feature 管理
+    engineFeatureManager.addObject(this);
+    this.scenes = [this._currentScene];
+    this._hardwareRenderer = hardwareRenderer;
+    this._hardwareRenderer.init(canvas);
+    this._canvas = canvas;
+    Engine._lastCreateEngine = this;
+  }
+
+  /**
+   * 暂停引擎循环。
+   */
+  public pause(): void {
+    this._paused = true;
+    if (this.requestId) {
+      cancelAnimationFrame(this.requestId);
+      this.requestId = 0;
+    }
+  }
+
+  /**
+   * 恢复引擎循环。
+   */
+  public resume(): void {
+    if (!this._paused) {
+      return;
+    }
+    this._paused = false;
+
+    if (!this._animate) {
+      this._animate = () => {
+        const animateTime = this._animateTime;
+        animateTime.tick();
+
+        // -- tick
+        if (this._FPSTime) {
+          if (this._tickTime >= this._FPSTime) {
+            this._tick();
+            this._tickTime -= this._FPSTime;
+          }
+          this._tickTime += animateTime.deltaTime;
+        } else {
+          this._tick();
+        }
+
+        this.requestId = requestAnimationFrame(this._animate);
+      };
+    }
+    // 防止场景在后台渲染
+    this.requestId = requestAnimationFrame(() => {
+      // fix lastTickTime every time before animating, otherwise the 1st frame after resuming may gets a too large dt.
+      this._animateTime.tick();
+      this._animate();
+    });
+  }
+
+  /**
+   * 执行引擎循环。
+   */
+  public run(): void {
+    engineFeatureManager.callFeatureMethod(this, "preLoad", [this]);
+    this.resume();
+    this.trigger(new Event("run", this));
+  }
+
+  /**
+   * 销毁引擎。
+   */
+  public destroy(): void {}
+
+  private _tick(): void {
+    if (this._paused) {
+      return;
+    }
+
+    const time = this._time;
+    time.tick();
+    const deltaTime = time.deltaTime;
+    engineFeatureManager.callFeatureMethod(this, "preTick", [this, this.scenes]);
+
+    this._hardwareRenderer.beginFrame();
+    for (const scene of this.scenes) {
+      scene.update(deltaTime);
+      scene.render();
+      scene._componentsManager.callComponentDestory();
+    }
+    this._hardwareRenderer.endFrame();
+
+    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this.scenes]);
+  }
+
+  //-----------------------------------------@deprecated-----------------------------------
+
+  /**
+   * @deprecated
+   */
+  public assetPool: AssetPool = new AssetPool();
+
+  /**
+   * @deprecated
+   */
+  public requestId: number;
+
+  public static registerPipline() {}
+
+  /**
+   * @deprecated
    * 当前场景
    * @member {Scene}
    * @readonly
@@ -53,124 +261,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * 是否处于暂停状态
-   * @member {boolean}
-   * @readonly
-   */
-  get isPaused(): boolean {
-    return this._paused;
-  }
-
-  public static registerFeature(Feature: new () => EngineFeature): void {
-    engineFeatureManager.registerFeature(Feature);
-  }
-
-  public features: EngineFeature[] = [];
-
-  public scenes: Scene[];
-  /**
-   * 资源池
-   * @member
-   */
-  public assetPool: AssetPool = new AssetPool();
-
-  public requestId: number;
-
-  private _FPS: number = MAX_FPS;
-
-  private _rhis: any[] = [];
-
-  private _time: Time = new Time();
-
-  private _paused: boolean = true;
-
-  private _FPSTime: number = 0;
-
-  private _tickTime: number = 0;
-
-  private _animateTime: Time = new Time();
-
-  private _currentScene: Scene = new Scene(this);
-
-  private _fixedUpdateInterval: number = 1000 / 30.0;
-
-  private _animate: () => void;
-  /**
-   * 构造函数
-   * @constructor
-   * @todo canvas 后续会修改成必传参数
-   */
-  constructor(
-    private _config: {
-      canvas?: HTMLCanvasElement;
-      attributes?: WebGLContextAttributes & { enableCollect?: boolean };
-    } = {}
-  ) {
-    super();
-
-    // 加入 Feature 管理
-    engineFeatureManager.addObject(this);
-
-    // -- members -------------------------------------
-    /**
-     * 加载的所有场景的存储数组
-     * @member
-     */
-    this.scenes = [this._currentScene];
-  }
-
-  public findFeature(Feature) {
-    return engineFeatureManager.findFeature(this, Feature);
-  }
-
-  /**
-   * 请求 RHI
-   * @param {Function} T RHI类型
-   * @param {String|HTMLCanvasElement} canvas 画布
-   * @param {Object} attributes 配置信息
-   * @private
-   */
-  public requireRHI<T>(
-    RHI: new (canvas: string | HTMLCanvasElement, attributes: object) => T,
-    canvas: string | HTMLCanvasElement,
-    attributes: object
-  ): T {
-    let rhi = this.getRHI(canvas);
-    if (rhi === undefined) {
-      return;
-    }
-    if (rhi === null) {
-      rhi = new RHI(canvas, attributes);
-      this._rhis.push(rhi);
-    }
-    return rhi;
-  }
-
-  /**
-   * 得到 canvas 对应的 RHI 实例
-   * @param {String|HTMLCanvasElement} canvas 画布
-   */
-  public getRHI(canvas: string | HTMLCanvasElement): any {
-    let c: HTMLCanvasElement;
-    if (typeof canvas === "string") {
-      c = document.getElementById(canvas) as HTMLCanvasElement;
-    } else if (canvas instanceof HTMLCanvasElement) {
-      c = canvas;
-    }
-
-    if (c) {
-      for (const _rhi of this._rhis) {
-        if (_rhi.canvas === c) {
-          return _rhi;
-        }
-      }
-      return null;
-    } else {
-      Logger.warn(`unknown canvas parameter:  ${canvas}`);
-    }
-  }
-
-  /**
+   * @deprecated
    * 添加一个场景
    * @return {Scene} 新的场景
    */
@@ -181,6 +272,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * @deprecated
    * 设置当前渲染的场景
    * @param {number} index scenes 数组的索引
    */
@@ -192,13 +284,17 @@ export class Engine extends EventDispatcher {
     }
   }
 
-  /**
-   * 设置 fixedUpdate 事件触发的间隔时间
-   * @param {number} t 间隔时间，单位：毫秒
-   */
-  public setFixedUpdateInterval(t: number): void {
-    this._fixedUpdateInterval = t;
+  public findFeature(Feature) {
+    return engineFeatureManager.findFeature(this, Feature);
   }
+
+  public static registerFeature(Feature: new () => EngineFeature): void {
+    engineFeatureManager.registerFeature(Feature);
+  }
+
+  public features: EngineFeature[] = [];
+
+  public scenes: Scene[];
 
   /**
    * 设置/限制帧速率，一般情况下FPS取值范围[15,60]
@@ -215,102 +311,6 @@ export class Engine extends EventDispatcher {
       this._FPSTime = 1000 / FPS;
       this._tickTime = 0;
     }
-  }
-
-  /** 暂停渲染 */
-  public pause(): void {
-    this._paused = true;
-    if (this.requestId) {
-      cancelAnimationFrame(this.requestId);
-      this.requestId = 0;
-    }
-  }
-
-  /** 继续（暂停后的）渲染 */
-  public resume(): void {
-    if (!this._paused) {
-      return;
-    }
-    this._paused = false;
-
-    let fixedUpdateAccumulator = 0;
-
-    if (!this._animate) {
-      this._animate = () => {
-        const animateTime = this._animateTime;
-        animateTime.tick();
-
-        if (this._currentScene) {
-          const interval = this._fixedUpdateInterval;
-          fixedUpdateAccumulator += animateTime.deltaTime;
-          // let updCount = 0;
-          while (fixedUpdateAccumulator >= interval) {
-            this._currentScene.trigger(new Event("fixedUpdate", this));
-            fixedUpdateAccumulator -= interval;
-            // updCount ++;
-          }
-          // console.log( 'updCount: ' + updCount  + ', ' + fixedUpdateAccumulator );
-        }
-
-        // -- tick
-        if (this._FPSTime) {
-          if (this._tickTime >= this._FPSTime) {
-            this.tick();
-            this._tickTime -= this._FPSTime;
-          }
-          this._tickTime += animateTime.deltaTime;
-        } else {
-          this.tick();
-        }
-
-        this.requestId = requestAnimationFrame(this._animate);
-      };
-    }
-    // 防止场景在后台渲染
-    this.requestId = requestAnimationFrame(() => {
-      // fix lastTickTime every time before animating, otherwise the 1st frame after resuming may gets a too large dt.
-      this._animateTime.tick();
-      this._animate();
-    });
-  }
-
-  /** 运行引擎，驱动每帧动画更新 */
-  public run(): void {
-    engineFeatureManager.callFeatureMethod(this, "preLoad", [this]);
-    this.resume();
-    this.trigger(new Event("run", this));
-  }
-
-  public render(scene: Scene, camera: ACamera): void {}
-
-  /** 更新当前场景中对象的状态，并渲染当前帧画面
-   * @private
-   */
-  public tick(): void {
-    if (this._paused) {
-      return;
-    }
-
-    const time = this._time;
-    time.tick();
-    const deltaTime = time.deltaTime;
-    engineFeatureManager.callFeatureMethod(this, "preTick", [this, this.scenes]);
-
-    for (const rhi of this._rhis) {
-      rhi.beginFrame();
-    }
-
-    for (const scene of this.scenes) {
-      scene.update(deltaTime);
-      scene.render();
-      scene._componentsManager.callComponentDestory();
-    }
-
-    for (const rhi of this._rhis) {
-      rhi.endFrame();
-    }
-
-    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this.scenes]);
   }
 
   /** 关闭当前引擎 */
@@ -342,10 +342,4 @@ export class Engine extends EventDispatcher {
     this.assetPool = null;
     (engineFeatureManager as any)._objects = [];
   }
-
-  public get config() {
-    return this._config;
-  }
-
-  public static registerPipline() {}
 }

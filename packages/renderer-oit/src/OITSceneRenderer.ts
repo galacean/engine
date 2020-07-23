@@ -23,7 +23,7 @@ export class OITSceneRenderer extends BasicSceneRenderer {
   private weightedAverageRenderPass: WeightedAverageRenderPass;
   private screenRenderPass: ScreenRenderPass;
 
-  public get mode() {
+  public get mode(): OITMode {
     return this._mode;
   }
 

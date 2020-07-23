@@ -23,7 +23,7 @@ class RenderPass {
    * @param {number} priority 优先级，小于0在默认Pass之前，大于0在默认Pass之后
    * @param {RenderTarget} renderTarget 指定的 Render Target
    * @param {Material} replaceMaterial 替换模型的默认材质
-   * @param {MaskList} mask 与 NodeAbility.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
+   * @param {MaskList} mask 与 Component.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
    */
   constructor(
     name = `RENDER_PASS${passNum++}`,
@@ -53,7 +53,7 @@ class RenderPass {
    * @type {*}
    */
   get clearParam() {
-    return (this.renderTarget && this.renderTarget.clearColor) || this._clearParam;
+    return this._clearParam;
   }
 
   set clearParam(v) {

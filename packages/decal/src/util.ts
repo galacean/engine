@@ -1,5 +1,5 @@
 import { vec3, mat4 } from "@alipay/o3-math";
-import { AMeshRenderer } from "@alipay/o3-mesh";
+import { MeshRenderer } from "@alipay/o3-mesh";
 
 export function transformDirection(out, a, m) {
   const x = a[0];
@@ -118,7 +118,7 @@ export function getBoundingBoxByGLTF(node) {
   for (let i = 0; i < rendererGroup.length; i += 1) {
     const primitives = rendererGroup[i].mesh.primitives;
     for (let j = 0; j < primitives.length; j += 1) {
-      const { min, max } = primitives[j].getMinMax(node.getModelMatrix());
+      const { min, max } = primitives[j].getMinMax(node.transform.worldMatrix);
       maxGroup.push(max);
       minGroup.push(min);
     }
@@ -140,13 +140,13 @@ export function getBoundingBoxByGLTF(node) {
 }
 
 function getAllMeshRender(node, rendererGroup) {
-  const render = node.getComponent(AMeshRenderer);
+  const render = node.getComponent(MeshRenderer);
   if (render) {
     rendererGroup.push(render);
   }
-  if (node.children.length > 0) {
-    for (let i = 0; i < node.children.length; i += 1) {
-      getAllMeshRender(node.children[i], rendererGroup);
+  if (node.childCount > 0) {
+    for (let i = 0; i < node.childCount; i += 1) {
+      getAllMeshRender(node._children[i], rendererGroup);
     }
   }
 }

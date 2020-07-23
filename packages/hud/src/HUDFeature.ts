@@ -34,7 +34,7 @@ export class HUDFeature extends SceneFeature {
     height = height || 512;
 
     //-- HUD控件绘制的所需纹理，内置一个Canvas
-    this._texture = new HUDTexture("hud_texture", width, height);
+    this._texture = new HUDTexture(width, height);
     //-- 负责给HUD控件分配Texture空间
     this._textureMapper = new HUDTextureMapper(width, height);
   }
@@ -44,9 +44,9 @@ export class HUDFeature extends SceneFeature {
    * @param {AHUDWidget} widget HUD控件
    * @private
    */
-  attachWidget(widget) {
+  attachWidget(rhi, widget) {
     if (!this._texture) {
-      this.initTexture();
+      this.initTexture(rhi);
     }
 
     const index = this._widgets.indexOf(widget);

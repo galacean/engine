@@ -6,10 +6,10 @@ import * as o3 from "@alipay/o3";
 import { Schema, Options } from "./types";
 
 export class Oasis extends o3.EventDispatcher {
-  public readonly engine = new o3.Engine();
+  public readonly engine = null;
   public readonly nodeManager: NodeManager = new NodeManager(this);
   public readonly abilityManager: AbilityManager = new AbilityManager(this);
-  public readonly resourceManager: ResourceManager = new ResourceManager(this);
+  public resourceManager: ResourceManager;
   public _canvas: HTMLCanvasElement;
   private schema: Schema;
   public timeout: number; // 全局资源超时配置
@@ -23,6 +23,9 @@ export class Oasis extends o3.EventDispatcher {
     this.timeout = _options.timeout;
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
+    // todo: resourceLoader 与 RHI 解绑
+    // this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr || {}); CM: 临时屏蔽
+    this.resourceManager = new ResourceManager(this);
     _options.fps && this.engine.setFPS(_options.fps);
   }
 
@@ -43,7 +46,7 @@ export class Oasis extends o3.EventDispatcher {
   @pluginHook({ after: "schemaParsed" })
   private init(): Promise<any> {
     this.pluginManager.boot(this);
-    this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr || {});
+
     return this.loadResources().then(() => {
       this.bindResources();
       this.parseNodes();
@@ -59,7 +62,7 @@ export class Oasis extends o3.EventDispatcher {
   private loadResources(): Promise<any> {
     const { assets = {} } = this.schema;
 
-    const loadingPromises = Object.values(assets).map(asset => this.resourceManager.load(asset));
+    const loadingPromises = Object.values(assets).map((asset) => this.resourceManager.load(asset));
 
     return Promise.all(loadingPromises);
   }
@@ -68,7 +71,7 @@ export class Oasis extends o3.EventDispatcher {
    * 资源绑定
    */
   private bindResources() {
-    this.resourceManager.getAll().forEach(resource => {
+    this.resourceManager.getAll().forEach((resource) => {
       resource.bind();
     });
   }
@@ -79,16 +82,16 @@ export class Oasis extends o3.EventDispatcher {
   private parseNodes(): void {
     const { nodes } = this.schema;
     const indices = this.bfsNodes();
-    indices.map(index => nodes[index]).forEach(this.nodeManager.add);
+    indices.map((index) => nodes[index]).forEach(this.nodeManager.add);
   }
 
   /**
-   * 解析 NodeAbility
+   * 解析 Component
    */
   private parseNodeAbilities(): void {
     const { abilities } = this.schema;
     Object.keys(abilities)
-      .map(id => ({ id, ...abilities[id] }))
+      .map((id) => ({ id, ...abilities[id] }))
       .forEach(this.abilityManager.add);
   }
 
@@ -98,13 +101,13 @@ export class Oasis extends o3.EventDispatcher {
   private bfsNodes(): number[] {
     const { nodes } = this.schema;
     const roots = Object.values(nodes)
-      .filter(node => !nodes[node.parent])
-      .map(node => node.id);
+      .filter((node) => !nodes[node.parent])
+      .map((node) => node.id);
 
     let result = [];
     const traverseChildren = (roots: string[]) => {
       result = result.concat(roots);
-      roots.forEach(id => {
+      roots.forEach((id) => {
         const children = nodes[id].children;
         children && traverseChildren(children);
       });
@@ -126,7 +129,7 @@ export class Oasis extends o3.EventDispatcher {
     (scene as any).bindFogToMaterial = undefined;
   }
   private attach() {
-    this.resourceManager.getAll().forEach(resource => {
+    this.resourceManager.getAll().forEach((resource) => {
       resource.attach();
     });
   }

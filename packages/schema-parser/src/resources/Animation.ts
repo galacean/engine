@@ -2,15 +2,16 @@ import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Logger } from "@alipay/o3";
-const { Animation: AnimationAsset } = o3;
+// const { AnimationAsset } = o3;
 
-export class Animation extends SchemaResource {
+export class AnimationSchemaResource extends SchemaResource {
   private config: AssetConfig;
-  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<Animation> {
-    return new Promise(resolve => {
+  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<AnimationSchemaResource> {
+    return new Promise((resolve) => {
       this.config = assetConfig;
       const { name, props } = assetConfig;
-      const assetObj = new AnimationAsset(name, props);
+      // const assetObj = new AnimationAsset(name, props);//CM:松哥说先注释掉
+      const assetObj = null;
       this._resource = assetObj;
       this.setMeta();
       resolve(this);
@@ -24,10 +25,10 @@ export class Animation extends SchemaResource {
 
   parseDate(value) {
     const parseData = {};
-    Object.keys(value).forEach(keyframeTime => {
+    Object.keys(value).forEach((keyframeTime) => {
       const keyframeList = value[keyframeTime];
       parseData[keyframeTime] = parseData[keyframeTime] || [];
-      keyframeList.forEach(animationClipId => {
+      keyframeList.forEach((animationClipId) => {
         const animationClipResource = this.resourceManager.get(animationClipId);
         if (animationClipResource) {
           const animationClip = animationClipResource.resource;

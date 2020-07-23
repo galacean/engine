@@ -1,9 +1,9 @@
-import { NodeAbility } from "./NodeAbility";
+import { Component } from "./Component";
 
 /**
  * 脚本类，可进行逻辑编写。
  */
-export class Script extends NodeAbility {
+export class Script extends Component {
   /* @internal */
   _started: boolean = false;
   /* @internal */
@@ -46,12 +46,12 @@ export class Script extends NodeAbility {
   /**
    * 相机渲染前调用，逐相机调用。
    */
-  onPreRender(): void {}
+  onBeginRender(): void {}
 
   /**
    * 相机完成渲染后调用，逐相机调用。
    */
-  onPostRender(): void {}
+  onEndRender(): void {}
 
   /**
    * 触发为禁用状态时调用。
@@ -80,7 +80,7 @@ export class Script extends NodeAbility {
   _onEnable(): void {
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
-    if (!this._started && this.onStart !== prototype.onStart) {
+    if (!this._started) {
       componentsManager.addOnStartScript(this);
     }
     if (this.onUpdate !== prototype.onUpdate) {
@@ -88,12 +88,6 @@ export class Script extends NodeAbility {
     }
     if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.addOnLateUpdateScript(this);
-    }
-    if (this.onPreRender !== prototype.onPreRender) {
-      componentsManager.addOnPreRenderScript(this);
-    }
-    if (this.onPostRender !== prototype.onPostRender) {
-      componentsManager.addOnPostRenderScript(this);
     }
     this.onEnable();
   }
@@ -106,7 +100,7 @@ export class Script extends NodeAbility {
   _onDisable(): void {
     const componentsManager = this.scene._componentsManager;
     const prototype = Script.prototype;
-    if (!this._started && this.onStart !== prototype.onStart) {
+    if (!this._started) {
       componentsManager.removeOnStartScript(this);
     }
     if (this.onUpdate !== prototype.onUpdate) {
@@ -114,12 +108,6 @@ export class Script extends NodeAbility {
     }
     if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.removeOnLateUpdateScript(this);
-    }
-    if (this.onPreRender !== prototype.onPreRender) {
-      componentsManager.removeOnPreRenderScript(this);
-    }
-    if (this.onPostRender !== prototype.onPostRender) {
-      componentsManager.removeOnPostRenderScript(this);
     }
     this.onDisable();
   }

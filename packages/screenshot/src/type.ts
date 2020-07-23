@@ -10,7 +10,7 @@ interface Prop {
   /** 如果下载截屏，可以设置文件名字 */
   downloadName?: string;
   /** 回调函数，返回base64 */
-  onSuccess?: (base64: string) => {};
+  onSuccess?: (base64: string) => void;
 }
 
 interface ScreenshotSize {

@@ -29,12 +29,12 @@ export class SceneRenderer extends BasicSceneRenderer {
 
   /**
    * 通过视锥剪裁，决定是否将一个 Primitive 对象添加到渲染队列
-   * @param nodeAbility
+   * @param component
    * @param {Primitive} primitive
    * @param {Material} mtl
    */
-  pushPrimitive(nodeAbility, primitive: Primitive, mtl) {
-    const { node } = nodeAbility;
+  pushPrimitive(component, primitive: Primitive, mtl) {
+    const { node } = component;
     let isInFrustum = true;
 
     //-- 进行视锥剪裁
@@ -51,7 +51,7 @@ export class SceneRenderer extends BasicSceneRenderer {
 
     //-- 添加到渲染队列
     if (isInFrustum) {
-      super.pushPrimitive(nodeAbility, primitive, mtl);
+      super.pushPrimitive(component, primitive, mtl);
     }
   }
 }

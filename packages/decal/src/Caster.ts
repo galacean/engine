@@ -1,7 +1,7 @@
 import { raycast } from "./cast";
-import { AMeshRenderer } from "@alipay/o3-mesh";
+import { MeshRenderer } from "@alipay/o3-mesh";
 
-type RendererArray = Array<AMeshRenderer>;
+type RendererArray = Array<MeshRenderer>;
 
 export class Caster {
   public rendererGroup: RendererArray;
@@ -34,13 +34,13 @@ export class Caster {
   }
 
   getAllMeshRender(node) {
-    const meshRenderer = node.getComponent(AMeshRenderer);
+    const meshRenderer = node.getComponent(MeshRenderer);
     if (meshRenderer) {
       this.rendererGroup.push(meshRenderer);
     }
-    if (node.children.length > 0) {
-      for (let i = 0; i < node.children.length; i += 1) {
-        this.getAllMeshRender(node.children[i]);
+    if (node.childCount > 0) {
+      for (let i = 0; i < node.childCount; i += 1) {
+        this.getAllMeshRender(node._children[i]);
       }
     }
   }

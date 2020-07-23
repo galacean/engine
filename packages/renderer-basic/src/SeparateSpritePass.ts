@@ -56,15 +56,15 @@ export class SeparateSpritePass extends RenderPass {
    */
   _sortByDistance(eyePos) {
     if (this._spriteItems.length > 1) {
-      this._spriteItems = this._spriteItems.sort(function(item1, item2) {
-        if (item1.nodeAbility.renderPriority === item2.nodeAbility.renderPriority) {
-          const pos1 = item1.nodeAbility.node.worldPosition;
-          const pos2 = item2.nodeAbility.node.worldPosition;
+      this._spriteItems = this._spriteItems.sort(function (item1, item2) {
+        if (item1.component.renderPriority === item2.component.renderPriority) {
+          const pos1 = item1.component.node.worldPosition;
+          const pos2 = item2.component.node.worldPosition;
 
           const dis = vec3.squaredDistance(pos2, eyePos) - vec3.squaredDistance(pos1, eyePos);
           return dis;
         } else {
-          return item1.nodeAbility.renderPriority - item2.nodeAbility.renderPriority;
+          return item1.component.renderPriority - item2.component.renderPriority;
         }
       });
     } // end of if
@@ -72,7 +72,7 @@ export class SeparateSpritePass extends RenderPass {
 
   /**
    * 把一个 Sprite 绘制需要的信息传进来
-   * @param {NodeAbility} nodeAbility
+   * @param {Component} component
    * @param {Object} positionQuad  Sprite四个顶点的位置
    * @param {Object} uvRect        Sprite在texture上的纹理坐标
    * @param {vec4}   tintColor     颜色
@@ -80,9 +80,9 @@ export class SeparateSpritePass extends RenderPass {
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
    * @param {ACamera}   camera        相机信息
    */
-  pushSprite(nodeAbility, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
     this._spriteItems.push({
-      nodeAbility,
+      component,
       positionQuad,
       uvRect,
       tintColor,

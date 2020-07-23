@@ -1,5 +1,5 @@
-import { Node } from "@alipay/o3-core";
-import { AAnimation as SkeltonAnimation, WrapMode } from "@alipay/o3-animation";
+import { Entity } from "@alipay/o3-core";
+import { Animation as SkeltonAnimation, WrapMode } from "@alipay/o3-animation";
 import { AnimationClipType } from "../AnimationConst";
 import { AnimationClip } from "../AnimationClip";
 import { AnimationClipHandler } from "./animationClipHandler";
@@ -8,20 +8,20 @@ export class SkeltonHandler extends AnimationClipHandler {
   actionName: string;
   skeltoAnimationRenderer: SkeltonAnimation;
   ownClip: boolean;
-  constructor(id: number, type: AnimationClipType, node: Node, animClip: AnimationClip) {
-    super(id, type, node, animClip);
+  constructor(id: number, type: AnimationClipType, entity: Entity, animClip: AnimationClip) {
+    super(id, type, entity, animClip);
   }
 
   init() {
     super.init();
-    const { node, animClip } = this;
+    const { entity: node, animClip } = this;
     //骨骼动画解绑之前所有的控制器
     animClip.removeAllHandler();
     animClip.addHandler(this.id, this);
     this.enabled = true;
     this.actionName = animClip.skeltonAnim.name;
     const skeltoAnimationRenderer = (this.skeltoAnimationRenderer =
-      node.findAbilityByType(SkeltonAnimation) || node.createAbility(SkeltonAnimation));
+      node.getComponent(SkeltonAnimation) || node.addComponent(SkeltonAnimation));
     skeltoAnimationRenderer.enabled = false;
     skeltoAnimationRenderer.addAnimationClip(animClip.skeltonAnim, this.actionName);
     this.skeltoAnimationRenderer.playAnimationClip(this.actionName, {

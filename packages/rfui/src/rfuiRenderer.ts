@@ -1,5 +1,5 @@
 import { BlendFunc, RenderState, FrontFace } from "@alipay/o3-base";
-import { AGeometryRenderer } from "@alipay/o3-geometry";
+import { GeometryRenderer } from "@alipay/o3-geometry";
 import { PlaneGeometry, CylinderGeometry } from "@alipay/o3-geometry-shape";
 import { vec4 } from "@alipay/o3-math";
 import { RfuiMaterial } from "./rfuiMaterial";
@@ -7,9 +7,9 @@ import { RfuiAnimation } from "./animation/rfuiAnimation";
 
 /**
  * Rfui 渲染类
- * @extends AGeometryRenderer
+ * @extends GeometryRenderer
  */
-export class ARfuiRenderer extends AGeometryRenderer {
+export class RfuiRenderer extends GeometryRenderer {
   public type;
   public texrureType;
   public geometryType;
@@ -46,7 +46,7 @@ export class ARfuiRenderer extends AGeometryRenderer {
 
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    * @param {Props} props 渲染类配置
    * @param {string} [props.texrureType = image]  贴图类型
    * @param {string} [props.geometryType = plane]  几何体类型
@@ -58,8 +58,8 @@ export class ARfuiRenderer extends AGeometryRenderer {
    * @param {vec2} [props.uvVelocity]  UV 动画速度
    * @param {boolean} [props.isAnimatingTexture = false]  是否为动画贴图（需要每帧刷新贴图内容）
    */
-  constructor(node, props) {
-    super(node, props);
+  constructor(entity, props) {
+    super(entity, props);
     this.type = "rfui";
     this.texrureType = props.texrureType || "image";
     this.geometryType = props.geometryType || "plane";
@@ -119,7 +119,7 @@ export class ARfuiRenderer extends AGeometryRenderer {
   }
 
   initAnimation() {
-    this.animationManager = new RfuiAnimation(this.node, {
+    this.animationManager = new RfuiAnimation(this.entity, {
       material: this.getMaterial(),
       param: this._animationParam
     });

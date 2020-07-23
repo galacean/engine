@@ -16,7 +16,7 @@ import { DataType, BufferUsage } from "@alipay/o3-base";
  *   let mergedGeometry = new GeometryMerger(geometries).merge(); // 这样用
  *
  *   for (let geometry of mergedGeometry) { // add to scene
- *     let renderer = rootNode.createChild('node_name').createAbility(AGeometryRenderer);
+ *     let renderer = rootNode.createChild('node_name').addComponent(GeometryRenderer);
  *     renderer.geometry = geometry;
  *     renderer.setMaterial(geometry.primitive.material);
  *   }
@@ -98,14 +98,14 @@ export class GeometryMerger {
         matMap.get(prim.material).push(g);
       }
     }
-    matMap.forEach(iter => {
+    matMap.forEach((iter) => {
       const mat = iter[0];
       const m = iter[1];
       if (m.length == 1) {
         merged.push(m[0]);
       } else {
         console.assert(
-          m.every(function(g: any) {
+          m.every(function (g: any) {
             return (
               g.primitive.mode == m[0].primitive.mode &&
               g.primitive.targets.length == 0 &&
@@ -146,14 +146,14 @@ export class GeometryMerger {
         matMap.get(prim.material).push(g);
       }
     }
-    matMap.forEach(iter => {
+    matMap.forEach((iter) => {
       const mat = iter[0];
       const m = iter[1];
       if (m.length == 1) {
         merged.push(m[0]);
       } else {
         console.assert(
-          m.every(function(g) {
+          m.every(function (g) {
             return (
               g.primitive.mode == m[0].primitive.mode &&
               g.primitive.targets.length == 0 &&
@@ -186,12 +186,12 @@ export class GeometryMerger {
           const origIBView = new origIndexConstructor(g.primitive.indexBuffer);
           const newIBView = new indexConstructor(ib, ibByteOffset);
           if (origIndexConstructor == indexConstructor) {
-            newIBView.set(origIBView.map(x => x + indexOffset));
+            newIBView.set(origIBView.map((x) => x + indexOffset));
           } else {
             // 在 origIBView 上面计算16位整数会有可能溢出
 
             newIBView.set(origIBView);
-            newIBView.set(newIBView.map(x => x + indexOffset));
+            newIBView.set(newIBView.map((x) => x + indexOffset));
           }
 
           vbByteOffset += byteLen;

@@ -6,6 +6,7 @@ tmp
 /packages/*/node_modules
 /packages/*/types
 /packages/*/doc
+/playground/node_modules
 types
 /packages/*/test/fixtures/**/node_modules
 /boilerplates/*/node_modules
@@ -18,7 +19,7 @@ coverage
 npm-debug.log*
 lerna-debug.log
 .changelog
-playground/node_modules
-playground/src/test
 AUTHORS
 .vscode
+stats.html
+tsconfig.tsbuildinfo
