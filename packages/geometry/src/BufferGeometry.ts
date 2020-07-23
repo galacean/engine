@@ -48,8 +48,8 @@ export class BufferGeometry extends AssetObject {
    * @param {number} usage 数据绘制类型常量，默认为静态类型 STATIC_DRAW，需要更新数据时使用动态类型 DYNAMIC_DRAW
    */
   initialize(attributes: Attribute[], vertexCount, usage?) {
-    const instancedAttributes = attributes.filter(item => item.instanced);
-    const vertexAttributes = attributes.filter(item => !item.instanced);
+    const instancedAttributes = attributes.filter((item) => item.instanced);
+    const vertexAttributes = attributes.filter((item) => !item.instanced);
     const isInstanced = instancedAttributes.length > 0;
     if (isInstanced && !this.instancedCount) {
       Logger.error("Need set instanced count");
@@ -215,6 +215,7 @@ export class BufferGeometry extends AssetObject {
    * @param {number[]} value 属性值
    */
   setValue(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
+    console.log(111);
     const vertexAttrib = this.primitive.vertexAttributes[semantic];
     if (vertexAttrib == undefined) {
       Logger.error("UNKNOWN semantic: " + semantic);
@@ -243,6 +244,7 @@ export class BufferGeometry extends AssetObject {
       this.primitive.updateVertex = true;
     }
     // 设置更新范围
+    console.log(1);
     if (this.primitive.updateType === UpdateType.UPDATE_RANGE) {
       const byteLength = this._getSizeInByte(vertexAttrib.size, vertexAttrib.type);
       if (this.primitive.updateRange.byteOffset < 0) {
@@ -338,6 +340,7 @@ export class BufferGeometry extends AssetObject {
         this.primitive.updateRange.byteOffset = byteOffset;
         this.primitive.updateRange.byteLength = byteLength;
       } else {
+        // 当byteOffset > 0时
         this._getUpdateRange(byteOffset, byteLength);
       }
     }
@@ -354,8 +357,11 @@ export class BufferGeometry extends AssetObject {
   _getUpdateRange(byteOffset, byteLength) {
     const updateRange = this.primitive.updateRange;
     const rangeEnd1 = updateRange.byteOffset + updateRange.byteLength;
+    console.log(rangeEnd1);
+    console.log(byteOffset, updateRange.byteOffset);
     updateRange.byteOffset = Math.min(byteOffset, updateRange.byteOffset);
     const rangeEnd2 = byteOffset + byteLength;
+    console.log(rangeEnd2);
     updateRange.byteLength =
       rangeEnd1 <= rangeEnd2 ? rangeEnd2 - updateRange.byteOffset : rangeEnd1 - updateRange.byteOffset;
   }
