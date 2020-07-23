@@ -1,13 +1,3 @@
-/* Generated from official JSON schema using `npm run generate-interface`
- * on 2018-02-24
- */
-
-import { Texture2D } from "@alipay/o3-material";
-import { AnimationClip } from "@alipay/o3-animation";
-
-// tslint:disable:quotemark
-// tslint:disable:max-line-length
-
 export type GlTfId = number;
 /**
  * Indices of those attributes that deviate from their initialization value.

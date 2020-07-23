@@ -6,6 +6,9 @@ import { loadImageBuffer, getBufferData } from "./gltf/Util";
 
 @resourceLoader(LoaderType.Perfab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<object> {
+  constructor() {
+    super();
+  }
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<object> {
     return new AssetPromise((resolve, reject) => {
       const requestGLTFResource = this.isGLB(item.url) ? this.requestGLB : this.requestGLTF;
@@ -68,7 +71,7 @@ export class GLTFLoader extends Loader<object> {
     return Promise.resolve({ gltf });
   }
 
-  private _loadImages({ gltf, buffers }: LoadedGLTFResource): Promise<any> {
+  private _loadImages = ({ gltf, buffers }: LoadedGLTFResource): Promise<any> => {
     if (gltf.images) {
       return Promise.all(
         gltf.images.map(({ uri, bufferView: bufferViewIndex, mimeType }) => {
@@ -87,5 +90,5 @@ export class GLTFLoader extends Loader<object> {
       });
     }
     return Promise.resolve({ gltf, buffers });
-  }
+  };
 }
