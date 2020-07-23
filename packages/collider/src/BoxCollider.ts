@@ -1,13 +1,13 @@
 import { ABoxCollider } from "./ABoxCollider";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 
 export class BoxCollider extends ABoxCollider {
   private _center: number[] = [0, 0, 0];
   private _size: number[] = [1, 1, 1];
   private isShowCollider: boolean = true;
 
-  constructor(node: Node, props?: any) {
-    super(node, props);
+  constructor(entity: Entity, props?: any) {
+    super(entity, props);
 
     const { center, size, isShowCollider } = props;
 

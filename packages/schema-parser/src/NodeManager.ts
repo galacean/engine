@@ -5,8 +5,8 @@ import { switchElementsIndex } from "./utils";
 import { NodeConfig } from "./types";
 
 export class NodeManager {
-  private nodeMap: { [id: string]: o3.Node } = {};
-  private readonly root: o3.Node;
+  private nodeMap: { [id: string]: o3.Entity } = {};
+  private readonly root: o3.Entity;
 
   constructor(private oasis: Oasis) {
     this.root = this.oasis.engine.currentScene.root.createChild("runtime-root");
@@ -25,7 +25,7 @@ export class NodeManager {
     return { id, key, value };
   }
 
-  public get(id: string): o3.Node {
+  public get(id: string): o3.Entity {
     return this.nodeMap[id];
   }
 
@@ -43,9 +43,9 @@ export class NodeManager {
    * 创建节点
    * @param nodeConfig
    */
-  private create(nodeConfig: NodeConfig): o3.Node {
+  private create(nodeConfig: NodeConfig): o3.Entity {
     const { isActive, position, rotation, scale, id, name } = nodeConfig;
-    const node = new o3.Node(name, null);
+    const node = new o3.Entity(name);
     node.isActive = isActive;
     node.position = position;
     node.transform.rotation = rotation;

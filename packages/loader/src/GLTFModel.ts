@@ -1,9 +1,9 @@
-import { AnimationClip, WrapMode, Animation } from "@alipay/o3-animation";
-import { Component, Node } from "@alipay/o3-core";
+import { AnimationClip, Animation, WrapMode } from "@alipay/o3-animation";
+import { Component, Entity } from "@alipay/o3-core";
 
 interface GLTFAsset {
-  nodes: [Node];
-  rootScene: { nodes: [Node] };
+  nodes: [Entity];
+  rootScene: { nodes: [Entity] };
   animations: [AnimationClip];
 }
 
@@ -38,7 +38,7 @@ export class GLTFModel extends Component {
       if (!this._animator) {
         const animations = this._asset.animations;
         // 加载动画
-        this._animator = this.node.addComponent(Animation);
+        this._animator = this.entity.addComponent(Animation);
         animations.forEach((clip: AnimationClip) => {
           this._animator.addAnimationClip(clip, clip.name);
         });
@@ -88,7 +88,7 @@ export class GLTFModel extends Component {
   public animationsNames: String[];
 
   private _asset: GLTFAsset;
-  private GLTFNode: Node;
+  private GLTFNode: Entity;
   private _loop: number;
   private _autoPlay: string;
   private _hasBuiltNode: boolean = false;
@@ -100,13 +100,13 @@ export class GLTFModel extends Component {
     if (isClone) {
       const rootName = (this._props as any).gltfRootName;
       if (rootName) {
-        this.GLTFNode = this.node.findByName(rootName);
+        this.GLTFNode = this.entity.findByName(rootName);
       }
     }
     if (!this.GLTFNode) {
       const rootName = `GLTF-${Date.now()}`;
       (this._props as any).gltfRootName = rootName;
-      this.GLTFNode = this.node.createChild(rootName);
+      this.GLTFNode = this.entity.createChild(rootName);
       this._hasBuiltNode = false;
     } else {
       this._hasBuiltNode = true;

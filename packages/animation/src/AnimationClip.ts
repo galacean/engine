@@ -60,7 +60,7 @@ export class AnimationClip extends AssetObject {
   /**
    * 添加 channel
    * @param {number} samplerIndex
-   * @param {string} targetID, Node name
+   * @param {string} targetID, Entity name
    * @param {string} targetPath, Transform property name: position, rotation, scale
    */
   public addChannel(samplerIndex: number, targetID: string, targetPath: string) {

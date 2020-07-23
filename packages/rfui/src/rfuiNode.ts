@@ -1,12 +1,12 @@
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { RfuiRenderer } from "./rfuiRenderer";
 import { ARenderEachRow } from "./ability";
 
 /**
  * RfuiNode 节点类
- * @extends Node
+ * @extends Entity
  */
-export class RfuiNode extends Node {
+export class RfuiNode extends Entity {
   public outAnimations;
   public nodesConfig;
   public animationParam;
@@ -42,7 +42,7 @@ export class RfuiNode extends Node {
    * @param {AnimationParam} [props.animationParam]  转场动画参数
    */
   constructor(name, props) {
-    super(props.scene, props.parent);
+    super(name);
     this.nodesConfig = props.nodesConfig;
     this.animationParam = props.animationParam || {};
     this.inAnimations = [];

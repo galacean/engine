@@ -1,5 +1,14 @@
-import { Logger, Util, DrawMode, DataType, TextureFilter, TextureWrapMode, TextureFormat } from "@alipay/o3-base";
-import { Node, Scene, ResourceManager, LoaderType, Engine } from "@alipay/o3-core";
+import {
+  Logger,
+  Util,
+  DrawMode,
+  DataType,
+  TextureFilter,
+  TextureWrapMode,
+  MaterialType,
+  RenderState
+} from "@alipay/o3-base";
+import { Entity, Scene, Engine } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
@@ -98,12 +107,12 @@ export interface GLTFParsed extends LoadedGLTFResource {
     animations?: AnimationClip[];
     materials?: Material[];
     meshes?: Mesh[];
-    nodes?: Node[];
+    nodes?: Entity[];
     rootScene?: Scene;
     scenes?: Scene[];
     skins?: Skin[];
     textures?: Texture2D[];
-    rootNode?: Node;
+    root?: Entity;
   };
   engine?: Engine;
 }
@@ -654,8 +663,7 @@ export function parseAnimation(gltfAnimation, resources) {
  */
 export function parseNode(gltfNode, resources) {
   // TODO: undefined name?
-
-  const node = new Node(null, null);
+  const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`);
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
@@ -682,13 +690,13 @@ export function parseNode(gltfNode, resources) {
     const rot = quat.create();
     mat4.decompose(mat, pos, rot, scale);
 
-    node.position = pos;
-    node.rotation = rot;
-    node.scale = scale;
+    entity.position = pos;
+    entity.rotation = rot;
+    entity.scale = scale;
   } else {
     for (const key in TARGET_PATH_MAP) {
       if (gltfNode.hasOwnProperty(key)) {
-        node[TARGET_PATH_MAP[key]] = gltfNode[key];
+        entity[TARGET_PATH_MAP[key]] = gltfNode[key];
       }
     }
   }
@@ -698,12 +706,12 @@ export function parseNode(gltfNode, resources) {
       const lightIdx = gltfNode.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
         const light = getItemByIdx("lights", lightIdx, resources);
-        if (light) node.addComponent(light.ability, light.props);
+        if (light) entity.addComponent(light.ability, light.props);
       }
     }
   }
 
-  return Promise.resolve(node);
+  return Promise.resolve(entity);
 }
 
 /**
@@ -755,7 +763,7 @@ export function getItemByIdx(name, idx, resources) {
  * @param resources
  * @private
  */
-export function buildSceneGraph(resources) {
+export function buildSceneGraph(resources: GLTFParsed) {
   const { asset, gltf } = resources;
 
   const gltfNodes = gltf.nodes || [];
@@ -789,17 +797,18 @@ export function buildSceneGraph(resources) {
       }
     }
 
+    //@ts-ignore
     const nodes = asset.rootScene.nodes;
     if (nodes.length === 1) {
-      asset.rootNode = nodes[0];
+      asset.root = nodes[0];
     } else {
-      const rootNode = new Node(null, null);
+      const rootNode = new Entity(null, resources.engine);
       for (let i = 0; i < nodes.length; i++) {
         rootNode.addChild(node[i]);
       }
-      asset.rootNode = rootNode;
+      asset.root = rootNode;
     }
-    const animator = asset.rootNode.addComponent(Animation);
+    const animator = asset.root.addComponent(Animation);
     const animations = asset.animations;
     if (animations) {
       animations.forEach((clip: AnimationClip) => {

@@ -1,19 +1,19 @@
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { AnimationClipType } from "../AnimationConst";
 import { AnimationClip } from "../AnimationClip";
 
 export class AnimationClipHandler {
   protected type: AnimationClipType;
   protected animClip: AnimationClip;
-  protected node: Node;
+  protected entity: Entity;
   public currentTime: number;
   protected hasInit: boolean;
   enabled: boolean;
   id: number;
-  constructor(id: number, type: AnimationClipType, node: Node, animClip: AnimationClip) {
+  constructor(id: number, type: AnimationClipType, entity: Entity, animClip: AnimationClip) {
     this.id = id;
     this.type = type;
-    this.node = node;
+    this.entity = entity;
     this.animClip = animClip;
     this.hasInit = false;
   }

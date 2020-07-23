@@ -15,15 +15,15 @@ export class DirectLight extends Light {
 
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    * @param {Object} props 参数对象
    * @param {string} [props.name = directLight] 名称
    * @param {Vec3} [ props.color = vec3.fromValues(1, 1, 1)]颜色，默认 vec3.fromValues(1, 1, 1)
    * @param {number} [props.intensity = 1] 光照强度
    * @param {Vec3} [props.direction] 光照方向，默认节点forward方向
    */
-  constructor(node, props) {
-    super(node);
+  constructor(entity, props) {
+    super(entity);
     this.name = props.name || "directLight";
 
     /**
@@ -47,7 +47,7 @@ export class DirectLight extends Light {
    * @readonly
    */
   get direction() {
-    this.node.transform.getWorldForward(this._forward);
+    this.entity.transform.getWorldForward(this._forward);
     return this._forward;
   }
 

@@ -27,7 +27,7 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * @constructor
-   * @param {Node} node
+   * @param {Entity} entity
    * @param {Object} props 参数对象
    * @param {string} props.spriteID 控件内部使用的Sprite ID，如果Sprite ID相同的话，则会共享Canvas中的同一区域
    * @param {vec2} props.textureSize 在内置Canvas上的纹理大小
@@ -35,8 +35,8 @@ export class AHUDWidget extends RenderableComponent {
    * @param {vec2} props.screenSize 屏幕上的像素大小，2D模式下生效
    * @param {vec2} props.worldSize  世界空间下大小，3D模式下生效
    */
-  constructor(node, props) {
-    super(node);
+  constructor(entity, props) {
+    super(entity);
 
     this._spriteRect = { x: 0, y: 0, width: 10, height: 10 }; // 控件在Canvas上的像素坐标, 像素大小
     this._spriteRect.width = props.textureSize[0];
@@ -77,7 +77,7 @@ export class AHUDWidget extends RenderableComponent {
    * @private
    */
   _onEnable() {
-    this._hudFeature.attachWidget(this.node.engine.hardwareRenderer);
+    this._hudFeature.attachWidget(this.entity.engine.hardwareRenderer);
   }
 
   /** 在对象Disable的时候，从当前的Scene移除
@@ -240,7 +240,7 @@ export class AHUDWidget extends RenderableComponent {
     const vy = vec3.fromValues(m[1], m[5], m[9]);
 
     //-- center pos
-    const c = this.node.worldPosition;
+    const c = this.entity.worldPosition;
     const s = this._getHalfWorldSize(camera);
     vec3.scale(vx, vx, s[0] * this._scale[0]);
     vec3.scale(vy, vy, s[1] * this._scale[1]);
@@ -308,7 +308,7 @@ export class AHUDWidget extends RenderableComponent {
       const nx = px / viewport[2];
       const ny = py / viewport[3];
 
-      const screenPos = camera.worldToScreen(this.node.worldPosition);
+      const screenPos = camera.worldToScreen(this.entity.worldPosition);
       const depth = screenPos[2];
       const u = vec4.fromValues(nx, ny, depth, 1.0);
 

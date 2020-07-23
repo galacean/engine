@@ -166,7 +166,7 @@ export class ComponentsManager {
   }
 
   callCameraOnBeginRender(camera: Camera) {
-    const camComps = camera.node._components;
+    const camComps = camera.entity._components;
     for (let i = camComps.length - 1; i >= 0; --i) {
       const camComp = camComps[i];
       (camComp as any).onBeginRender && (camComp as any).onBeginRender();
@@ -174,7 +174,7 @@ export class ComponentsManager {
   }
 
   callCameraOnEndRender(camera: Camera) {
-    const camComps = camera.node._components;
+    const camComps = camera.entity._components;
     for (let i = camComps.length - 1; i >= 0; --i) {
       const camComp = camComps[i];
       (camComp as any).onBeginRender && (camComp as any).onEndRender();

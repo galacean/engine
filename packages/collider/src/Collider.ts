@@ -1,4 +1,4 @@
-import { Component, Node } from "@alipay/o3-core";
+import { Component, Entity } from "@alipay/o3-core";
 import { ColliderFeature } from "./ColliderFeature";
 import { MaskList } from "@alipay/o3-base";
 
@@ -12,10 +12,10 @@ export class Collider extends Component {
   tag: MaskList;
   /**
    * @constructor
-   * @param {Node} node
+   * @param {Entity} entity
    */
-  constructor(node: Node, props?: any) {
-    super(node, props);
+  constructor(entity: Entity, props?: any) {
+    super(entity, props);
 
     this.tag = props.tag || MaskList.EVERYTHING;
   }

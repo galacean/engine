@@ -25,7 +25,7 @@ export class PluginManager implements PluginHook {
     this.plugins = [];
   }
 
-  nodeAdded(node: o3.Node) {
+  nodeAdded(node: o3.Entity) {
     this.delegateMethod("nodeAdded", node);
   }
 
@@ -36,7 +36,7 @@ export class PluginManager implements PluginHook {
 
 export interface PluginHook {
   oasis?: Oasis;
-  nodeAdded?(node: o3.Node): any;
+  nodeAdded?(node: o3.Entity): any;
   beforeNodeUpdated?(id: string, key: string, value: any): any;
   nodeUpdated?(updateConfig?: { id: string; key: string; value: any }): any;
   abilityAdded?(ability: o3.Component): any;

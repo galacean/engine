@@ -216,12 +216,12 @@ export class Material extends ReferenceObject {
     switch (uniform.semantic) {
       // Transforms from the node's coordinate system to its parent's.
       case UniformSemantic.LOCAL: {
-        values[uniform.name] = component._node.transform.localMatrix;
+        values[uniform.name] = component._entity.transform.localMatrix;
         break;
       }
       // Transforms from model to world coordinates
       case UniformSemantic.MODEL:
-        values[uniform.name] = component._node.transform.worldMatrix;
+        values[uniform.name] = component._entity.transform.worldMatrix;
         break;
       // Transforms from world to view coordinates
       case UniformSemantic.VIEW:
@@ -234,7 +234,7 @@ export class Material extends ReferenceObject {
       // Combined MODEL and VIEW.
       case UniformSemantic.MODELVIEW: {
         const view = camera.viewMatrix;
-        const model = component._node.transform.worldMatrix;
+        const model = component._entity.transform.worldMatrix;
         let modelView = values[uniform.name];
         if (!modelView) modelView = mat4.create();
         mat4.mul(modelView, view, model);
@@ -245,7 +245,7 @@ export class Material extends ReferenceObject {
       case UniformSemantic.MODELVIEWPROJECTION: {
         const view = camera.viewMatrix;
         const proj = camera.projectionMatrix;
-        const model = component._node.transform.worldMatrix;
+        const model = component._entity.transform.worldMatrix;
         let MVP = values[uniform.name];
         if (!MVP) MVP = mat4.create();
         mat4.mul(MVP, view, model);
@@ -280,7 +280,7 @@ export class Material extends ReferenceObject {
       case UniformSemantic.MODELVIEWPROJECTIONINVERSE: {
         const view = camera.viewMatrix;
         const proj = camera.projectionMatrix;
-        const model = component._node.transform.worldMatrix;
+        const model = component._entity.transform.worldMatrix;
         let invMVP = values[uniform.name];
         if (!invMVP) invMVP = mat4.create();
         mat4.mul(invMVP, view, model);
@@ -293,7 +293,7 @@ export class Material extends ReferenceObject {
       case UniformSemantic.MODELINVERSETRANSPOSE: {
         let modelIT = values[uniform.name];
         if (!modelIT) modelIT = mat3.create();
-        mat3.normalFromMat4(modelIT, component._node.transform.worldMatrix);
+        mat3.normalFromMat4(modelIT, component._entity.transform.worldMatrix);
         values[uniform.name] = modelIT;
         break;
       }

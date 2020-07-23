@@ -1,4 +1,4 @@
-import { Component, Node } from "@alipay/o3-core";
+import { Component, Entity } from "@alipay/o3-core";
 import { LightFeature } from "./LightFeature";
 import { mat4 } from "@alipay/o3-math";
 
@@ -31,11 +31,11 @@ export abstract class Light extends Component {
 
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    */
-  constructor(node: Node, props?: any) {
-    super(node, props);
-    node.addEventListener("removedFromScene", this._onDisable.bind(this));
+  constructor(entity: Entity, props?: any) {
+    super(entity, props);
+    entity.addEventListener("removedFromScene", this._onDisable.bind(this));
   }
 
   /** 在对象Enable的时候，挂载到当前的Scene
@@ -70,7 +70,7 @@ export abstract class Light extends Component {
    */
   get inverseViewMatrix() {
     if (!this._modelMat) this._modelMat = mat4.create();
-    mat4.rotate(this._modelMat, this.node.transform.worldMatrix, Math.PI, [0, 1, 0]);
+    mat4.rotate(this._modelMat, this.entity.transform.worldMatrix, Math.PI, [0, 1, 0]);
 
     return this._modelMat;
   }

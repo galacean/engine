@@ -1,5 +1,5 @@
 import { Component } from "./Component";
-import { Node } from "./Node";
+import { Entity } from "./Entity";
 
 type ComponentConstructor = { new (...args: any): Component };
 
@@ -26,7 +26,7 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _addCheck(node: Node, type: ComponentConstructor) {
+  static _addCheck(node: Entity, type: ComponentConstructor) {
     // 检查是否有被依赖组件
     const dependencies = ComponentsDependencies._dependenciesMap.get(type);
     if (dependencies) {
@@ -41,7 +41,7 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _removeCheck(node: Node, type: ComponentConstructor) {
+  static _removeCheck(node: Entity, type: ComponentConstructor) {
     const invDenpendencies = ComponentsDependencies._invDependenciesMap.get(type);
     if (invDenpendencies) {
       for (let i = 0, len = invDenpendencies.length; i < len; i++) {

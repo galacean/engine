@@ -1,6 +1,6 @@
-import { Component, Node, Camera, Script } from "@alipay/o3-core";
-import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
 import { MaskList } from "@alipay/o3-base";
+import { Camera, Entity, Script } from "@alipay/o3-core";
+import { RenderColorTexture, RenderTarget } from "@alipay/o3-material";
 import { ColorRenderPass } from "./ColorRenderPass";
 
 /**
@@ -16,7 +16,7 @@ class FramebufferPicker extends Script {
 
   /**
    * 构造函数
-   * @param {Node} node 组件节点
+   * @param {Entity} entity 组件节点
    * @param {Object} props 组件参数，包含以下项
    * @param {Camera} props.camera 相机对象
    * @param {number} [props.width=1024] RenderTarget 的宽度
@@ -25,7 +25,7 @@ class FramebufferPicker extends Script {
    * @param {Function} [props.onPick] 选取物体后的回调函数
    */
   constructor(
-    node: Node,
+    entity: Entity,
     props: {
       camera: Camera;
       mask?: MaskList;
@@ -34,7 +34,7 @@ class FramebufferPicker extends Script {
       onPick: Function;
     }
   ) {
-    super(node, props);
+    super(entity, props);
 
     this.camera = props.camera;
     const width = props.width || 1024;

@@ -1,14 +1,14 @@
 "use strict";
 
 import { Logger } from "@alipay/o3-base";
-import { Node, Script } from "@alipay/o3-core";
+import { Entity, Script } from "@alipay/o3-core";
 import { vec2, vec3, Spherical } from "@alipay/o3-math";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
  */
 export class OrbitControls extends Script {
-  public camera: Node;
+  public camera: Entity;
   public domElement: HTMLElement | Document;
   public mainElement: HTMLCanvasElement;
   public fov: number;
@@ -71,7 +71,7 @@ export class OrbitControls extends Script {
 
   /**
    * 轨道控制器构造函数
-   * @param {Node} node 挂载节点
+   * @param {Entity} entity 挂载节点
    * @param {Object} props 轨道控制器参数，包含以下项
    * @property {Canvas|HTMLElement} [props.mainElement=RHI.canvas] 获取事件的HTMLElement对象，推荐使用绘制的canvas
    * @property {HTMLElement} [props.domElement=document] 获取顶级事件的HTMLElement对象。
@@ -79,7 +79,7 @@ export class OrbitControls extends Script {
    * @property {Vec3} [props.target=[0,0,0]] 围绕的目标点，默认原点
    */
   constructor(
-    node: Node,
+    entity: Entity,
     props?: {
       domElement?: HTMLElement | Document;
       fov?: number;
@@ -87,10 +87,10 @@ export class OrbitControls extends Script {
       mainElement?: HTMLCanvasElement;
     }
   ) {
-    super(node);
+    super(entity);
 
-    this.camera = node;
-    const camera = (node.scene as any)._activeCameras[0];
+    this.camera = entity;
+    const camera = (entity.scene as any)._activeCameras[0];
     //@ts-ignore @todo 未来移除对html元素的依赖，通过封装引擎的input实现
     this.mainElement = props.mainElement || camera.engine.canvas._webCanvas;
     this.domElement = props.domElement || document;

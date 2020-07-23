@@ -1,10 +1,10 @@
-import { Node } from '../src/Node.js';
+import { Entity } from '../src/Entity.js';
 
-describe("Node", ()=>{
-  describe("Node worked!", ()=>{
-    let node = new Node();
+describe("Entity", ()=>{
+  describe("Entity worked!", ()=>{
+    let node = new Entity();
     it("constructor()", ()=>{
-      expect(node).is.instanceof(Node);
+      expect(node).is.instanceof(Entity);
       expect(node.position).is.instanceof(Float32Array);
       expect(node.position.length).is.equal(3);
       expect(node.rotation).is.instanceof(Float32Array);
@@ -19,11 +19,11 @@ describe("Node", ()=>{
 
     it("createChild()", ()=>{
       let son = node.createChild("son");
-      expect(son).is.instanceof(Node);
+      expect(son).is.instanceof(Entity);
       expect(son.name).is.equal("son");
       expect(son.parentNode).is.equal(node);
       let grandson = son.createChild("grandson");
-      expect(grandson).is.instanceof(Node);
+      expect(grandson).is.instanceof(Entity);
       expect(grandson.name).is.equal("grandson");
       expect(grandson.parentNode).is.equal(son);
     });
@@ -55,17 +55,17 @@ describe("Node", ()=>{
 
   describe("isActiveInHierarchy", ()=>{
     let scene = {};
-    let nodeRoot = new Node(scene);
-      let layer11 = new Node(scene, nodeRoot);
-        let layer211 = new Node(scene, layer11);
-        let layer212 = new Node(scene, layer11);
-        let layer213 = new Node(scene, layer11);
-      let layer12 = new Node(scene, nodeRoot);
-        let layer221 = new Node(scene, layer12);
-        let layer222 = new Node(scene, layer12);
-      let layer13 = new Node(scene, nodeRoot);
-        let layer231 = new Node(scene, layer13);
-        let layer232 = new Node(scene, layer13);
+    let nodeRoot = new Entity(scene);
+      let layer11 = new Entity(scene, nodeRoot);
+        let layer211 = new Entity(scene, layer11);
+        let layer212 = new Entity(scene, layer11);
+        let layer213 = new Entity(scene, layer11);
+      let layer12 = new Entity(scene, nodeRoot);
+        let layer221 = new Entity(scene, layer12);
+        let layer222 = new Entity(scene, layer12);
+      let layer13 = new Entity(scene, nodeRoot);
+        let layer231 = new Entity(scene, layer13);
+        let layer232 = new Entity(scene, layer13);
 
 
     it("isActiveInHierarchy initial", ()=>{
