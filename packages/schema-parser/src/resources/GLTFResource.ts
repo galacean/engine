@@ -1,42 +1,31 @@
 import { SchemaResource } from "./SchemaResource";
-import { ResourceLoader, Logger } from "@alipay/o3";
+import { Logger, LoaderType, ResourceManager } from "@alipay/o3";
 
-import * as o3 from "@alipay/o3";
 import { PBRMaterialResource } from "./PBRMaterialResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { Oasis } from "../Oasis";
 
 export class GLTFResource extends SchemaResource {
-  load(resourceLoader: ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<GLTFResource> {
-    return new Promise((resolve, reject) => {
-      const resource = new o3.Resource(assetConfig.name, { type: assetConfig.type as any, url: assetConfig.url });
-
-      resourceLoader.load(
-        resource,
-        (err, res) => {
-          if (err) {
-            reject(err);
-          } else {
-            if (assetConfig.props) {
-              (res.asset as any).newMaterial = (assetConfig.props as any).newMaterial;
-            }
-            this._resource = res.asset;
-            this.setMeta(assetConfig);
-            resolve(this);
-          }
-        },
-        oasis.options.timeout
-      );
-    });
+  load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<any> {
+    return resourceManager
+      .load<any>({ url: assetConfig.url, type: LoaderType.Perfab })
+      .then((res) => {
+        const gltf = res.asset;
+        if (assetConfig.props) {
+          gltf.newMaterial = (assetConfig.props as any).newMaterial;
+        }
+        this._resource = gltf;
+      });
   }
 
   loadWithAttachedResources(
-    resourceLoader: ResourceLoader,
+    resourceManager: ResourceManager,
     assetConfig: AssetConfig,
     oasis: Oasis
   ): Promise<LoadAttachedResourceResult> {
-    return new Promise(resolve => {
-      this.load(resourceLoader, assetConfig, oasis).then(() => {
+    return new Promise((resolve) => {
+      console.log("load gltf");
+      this.load(resourceManager, assetConfig, oasis).then(() => {
         const gltf = this.resource;
         const { materials } = gltf;
         const loadPromises = [];
@@ -55,16 +44,16 @@ export class GLTFResource extends SchemaResource {
           const materialResource = new PBRMaterialResource(this.resourceManager);
           this._attachedResources.push(materialResource);
           loadPromises.push(
-            materialResource.loadWithAttachedResources(resourceLoader, {
+            materialResource.loadWithAttachedResources(resourceManager, {
               type: "PBRMaterial",
               name: material.name,
               resource: material
             })
           );
         }
-        Promise.all(loadPromises).then(res => {
+        Promise.all(loadPromises).then((res) => {
           const newMaterial = result.structure.props.newMaterial;
-          res.forEach(mat => {
+          res.forEach((mat) => {
             const matStructure = mat.structure;
             const matResource = mat.resources[matStructure.index];
             result.resources.push(matResource);
