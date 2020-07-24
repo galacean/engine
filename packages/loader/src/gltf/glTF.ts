@@ -804,7 +804,7 @@ export function buildSceneGraph(resources: GLTFParsed) {
     } else {
       const rootNode = new Entity(null, resources.engine);
       for (let i = 0; i < nodes.length; i++) {
-        rootNode.addChild(node[i]);
+        rootNode.addChild(nodes[i]);
       }
       asset.root = rootNode;
     }
