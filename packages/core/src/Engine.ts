@@ -1,5 +1,5 @@
 import { Event, EventDispatcher, Logger, Time } from "@alipay/o3-base";
-import { ResourceManager } from "./AssetDesign/ResourceManager";
+import { ResourceManager } from "./asset/ResourceManager";
 import { Canvas } from "./EngineDesign/Canvas";
 import { EngineOptions } from "./EngineDesign/EngineOptions";
 import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
