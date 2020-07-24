@@ -211,10 +211,14 @@ export class Engine extends EventDispatcher {
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._scene]);
 
     this._hardwareRenderer.beginFrame();
+
     const scene = this._sceneManager._scene;
-    scene.update(deltaTime);
-    scene.render();
-    scene._componentsManager.callComponentDestory();
+    if (scene) {
+      scene.update(deltaTime);
+      scene.render();
+      scene._componentsManager.callComponentDestory();
+    }
+
     this._hardwareRenderer.endFrame();
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._scene]);
