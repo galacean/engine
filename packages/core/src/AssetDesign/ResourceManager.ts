@@ -36,6 +36,8 @@ export class ResourceManager {
   private _assetUrlPool: { [key: string]: Object } = Object.create(null);
   /** 引用计数对象池,key为对象ID，引用计数的对象均放入该池中。*/
   private _referenceObjectPool: { [key: number]: ReferenceObject } = Object.create(null);
+  /** 加载中的资源 */
+  private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
 
   /** 加载失败后的重试次数。*/
   retryCount: number = 1;
@@ -97,9 +99,32 @@ export class ResourceManager {
   cancelNotLoaded(): void;
 
   /**
+   * 取消 url 未完成加载的资产。
+   * @param url 资源链接
+   */
+  cancelNotLoaded(url: string): void;
+
+  /**
+   * 取消加载 urls 中未完成加载的资产。
+   * @param urls 资源链接数组
+   */
+  cancelNotLoaded(urls: string[]): void;
+  /**
    * @internal
    */
-  cancelNotLoaded(path?: string | string[]): void {}
+  cancelNotLoaded(url?: string | string[]): void {
+    if (!url) {
+      Object.values(this._loadingPromises).forEach((promise) => {
+        promise.cancel();
+      });
+    } else if (typeof url === "string") {
+      this._loadingPromises[url]?.cancel();
+    } else {
+      url.forEach((p) => {
+        this._loadingPromises[p]?.cancel();
+      });
+    }
+  }
 
   /**
    * 垃圾回收，会释放受引用计数管理的资源对象。
@@ -164,6 +189,7 @@ export class ResourceManager {
     assetInfo.retryCount = assetInfo.retryCount ?? this.retryCount;
     assetInfo.timeout = assetInfo.timeout ?? this.timeout;
     assetInfo.retryInterval = assetInfo.retryInterval ?? this.retryInterval;
+    assetInfo.url = assetInfo.url ?? assetInfo.urls.join(",");
     return assetInfo;
   }
 
@@ -175,20 +201,35 @@ export class ResourceManager {
       info = this._assignDefaultOptions(item);
     }
 
-    if (this._assetUrlPool[info.url]) {
+    const url = info.url;
+
+    // 已经有加载缓存
+    if (this._assetUrlPool[url]) {
       return new AssetPromise((resolve) => {
-        resolve(this._assetUrlPool[info.url] as T);
+        resolve(this._assetUrlPool[url] as T);
       });
     }
 
+    // 正在加载中
+    if (this._loadingPromises[url]) {
+      return this._loadingPromises[info.url];
+    }
+
     const promise = ResourceManager._loaders[info.type].load(info, this);
+    this._loadingPromises[url] = promise;
     promise.then((res) => {
-      this._addAsset(info.url, res);
+      this._addAsset(url, res);
+      delete this._loadingPromises[url];
     });
     return promise;
   }
 }
 
+/**
+ * 声明 resourceLoader 的装饰器。
+ * @param assetType 资源类型
+ * @param extnames 扩展名
+ */
 export function resourceLoader(assetType: LoaderType, extnames: string[]) {
   return <T extends Loader<any>>(Target: { new (): T }) => {
     //@ts-ignore

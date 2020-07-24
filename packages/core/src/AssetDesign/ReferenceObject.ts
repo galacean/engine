@@ -9,8 +9,7 @@ import { AssetObject } from "../AssetObject";
  * 资产的基类，具有引用计数能力。
  */
 export abstract class ReferenceObject extends AssetObject {
-  /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.garbageCollection() 影响。*/
-  // ignoreGarbageCollection: boolean = false;
+  /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.gc() 影响。*/
   isGCIgnored: boolean = false;
 
   protected _engine: Engine;

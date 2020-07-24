@@ -23,6 +23,11 @@ export type RequestConfig = {
   timeout?: number;
 } & RequestInit;
 
+/**
+ * web端 请求
+ * @param url 链接
+ * @param config 加载配置
+ */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setProgress) => {
     const retryCount = config.retryCount ?? defaultRetryCount;
