@@ -1,6 +1,6 @@
 import { Logger, UpdateType, GLCapabilityType } from "@alipay/o3-base";
 import { Primitive } from "@alipay/o3-primitive";
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { GLTechnique } from "./GLTechnique";
 import { GLAsset } from "./GLAsset";
 
@@ -12,10 +12,11 @@ export class GLPrimitive extends GLAsset {
   protected readonly _primitive;
   protected _glIndexBuffer: WebGLBuffer;
   protected _glVertBuffers: WebGLBuffer[];
+  protected _glInstancedBuffer: WebGLBuffer;
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
-  constructor(rhi: GLRenderHardware, primitive: Primitive) {
+  constructor(rhi: WebGLRenderer, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
     this.attribLocArray = [];

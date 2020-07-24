@@ -3,7 +3,6 @@ import { AssetObject } from "@alipay/o3-core";
 import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 import { Matrix4 } from "@alipay/o3-math/types/type";
 import { vec3 } from "@alipay/o3-math";
-import { VertexBuffer, IndexBuffer } from "@alipay/o3-geometry";
 
 export interface Attribute {
   name?: string;
@@ -40,12 +39,12 @@ export class Primitive extends AssetObject {
     byteLength: 0
   };
 
-  readonly vertexAttributes: {};
-  vertexBuffers: VertexBuffer[] = [];
+  readonly vertexAttributes = <any>{};
+  vertexBuffers;
   vertexOffset: number = 0;
   vertexCount: number = 0;
 
-  indexBuffers: IndexBuffer[] = [];
+  indexBuffers = [];
   indexOffset: number = 0;
   indexNeedUpdate: boolean = false;
 

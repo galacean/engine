@@ -27,7 +27,7 @@ export class GLPrimitive extends GLAsset {
   protected initBuffers() {
     const gl = this.rhi.gl;
     const { indexBuffer, vertexBuffers, instancedBuffer, usage } = this._primitive;
-
+    console.log(indexBuffer);
     /** index buffer */
     if (indexBuffer) {
       this._glIndexBuffer = gl.createBuffer();
@@ -38,6 +38,7 @@ export class GLPrimitive extends GLAsset {
 
     /** vertex buffers*/
     this._glVertBuffers = [];
+    console.log(vertexBuffers);
     for (let i = 0, len = vertexBuffers.length; i < len; i++) {
       this._glVertBuffers[i] = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this._glVertBuffers[i]);

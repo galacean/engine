@@ -42,6 +42,7 @@ export class Primitive extends AssetObject {
   public indexType: DataType.UNSIGNED_BYTE | DataType.UNSIGNED_SHORT | DataType.UNSIGNED_INT = DataType.UNSIGNED_SHORT;
   public indexCount: number = 0;
   public indexBuffer = null;
+  indexBuffers = [];
   public indexOffset: number = 0;
   public indexNeedUpdate: boolean = false;
 

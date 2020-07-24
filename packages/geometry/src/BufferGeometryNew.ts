@@ -2,7 +2,6 @@ import { Logger } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { Primitive } from "@alipay/o3-primitive";
 import { VertexBuffer, IndexBuffer } from "./index";
-import { getVertexDataTypeDataView } from "./Constant";
 
 let geometryCount = 0;
 
@@ -10,10 +9,9 @@ let geometryCount = 0;
  * BufferGeometry 几何体创建类
  * @extends AssetObject
  */
-export class BufferGeometry extends AssetObject {
+export class BufferGeometryNew extends AssetObject {
   primitive: Primitive;
   attributes: {};
-  private _vertexBufferCount: number;
   private _indexBufferIndex: number;
   private _vertexBuffers: VertexBuffer[];
   private _indexBuffers: IndexBuffer[];
@@ -30,6 +28,10 @@ export class BufferGeometry extends AssetObject {
 
   get vertexCount() {
     return this.primitive.vertexCount;
+  }
+
+  set vertexCount(value: number) {
+    this.primitive.vertexCount = value;
   }
 
   get instancedCount() {
@@ -55,7 +57,6 @@ export class BufferGeometry extends AssetObject {
   constructor(name?: string) {
     name = name || "bufferGeometry" + geometryCount++;
     super(name);
-    this._vertexBufferCount = 0;
     this._indexBufferIndex = 0;
     this._vertexBuffers = [];
     this._indexBuffers = [];
@@ -66,12 +67,7 @@ export class BufferGeometry extends AssetObject {
   addVertexBufferParam(vertexBuffer: VertexBuffer) {
     const attrList = vertexBuffer.attributes;
     const attrCount = attrList.length;
-    vertexBuffer.startBufferIndex = this._vertexBufferCount;
-    if (vertexBuffer.isInterleaved) {
-      this._vertexBufferCount += 1;
-    } else {
-      this._vertexBufferCount += attrCount;
-    }
+    vertexBuffer._initialize(this.primitive.vertexBuffers.length);
     for (let i = 0; i < attrCount; i += 1) {
       const attr = vertexBuffer.attributes[i];
       this.primitive.addAttribute(attr);
@@ -88,7 +84,7 @@ export class BufferGeometry extends AssetObject {
     bufferOffset: number = 0,
     dataCount: number = Number.MAX_SAFE_INTEGER
   ) {
-    const vertexBuffer = this._matchBufferBySemantic(semantic);
+    const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
       vertexBuffer.setData(semantic, vertexValues, dataStartIndex, bufferOffset, dataCount);
     }
@@ -96,7 +92,7 @@ export class BufferGeometry extends AssetObject {
 
   // 根据 vertexIndex 设置 buffer数据
   setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
-    const vertexBuffer = this._matchBufferBySemantic(semantic);
+    const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
       vertexBuffer.setDataByIndex(semantic, vertexIndex, value);
     }
@@ -104,7 +100,7 @@ export class BufferGeometry extends AssetObject {
 
   // 获取buffer数据
   getVertexBufferData(semantic: string) {
-    const vertexBuffer = this._matchBufferBySemantic(semantic);
+    const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
       return vertexBuffer.getData(semantic);
     }
@@ -112,7 +108,7 @@ export class BufferGeometry extends AssetObject {
 
   // 根据顶点序号获取buffer数据
   getVertexBufferDataByIndex(semantic: string, index: number) {
-    const vertexBuffer = this._matchBufferBySemantic(semantic);
+    const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
       return vertexBuffer.getDataByIndex(semantic, index);
     }
@@ -121,7 +117,9 @@ export class BufferGeometry extends AssetObject {
   // 添加 index buffer
   addIndexBufferParam(indexBuffer: IndexBuffer) {
     this._indexBuffers.push(indexBuffer);
+    this.primitive.indexCount = indexBuffer.indexCount;
     this.primitive.indexBuffers = this.primitive.indexBuffers.concat(indexBuffer.buffer);
+    this.primitive.indexBuffer = indexBuffer.buffer;
   }
 
   // 设置 index buffer 数据
@@ -134,6 +132,7 @@ export class BufferGeometry extends AssetObject {
     const indexBuffer = this._indexBuffers[this._indexBufferIndex];
     if (indexBuffer) {
       indexBuffer.setData(indexValues, dataStartIndex, bufferOffset, dataCount);
+      this.primitive.indexNeedUpdate = true;
     }
   }
 
@@ -170,7 +169,7 @@ export class BufferGeometry extends AssetObject {
     this.primitive = null;
   }
 
-  private _matchBufferBySemantic(semantic: string): VertexBuffer | undefined {
+  private _getBufferBySemantic(semantic: string): VertexBuffer | undefined {
     const attributes = this.primitive.attributes;
     const vertexAttrib = attributes[semantic];
     if (vertexAttrib === undefined) {

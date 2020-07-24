@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger, UpdateType } from "@alipay/o3-base";
 import { BufferAttribute } from "../index";
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from "../Constant";
 
@@ -8,39 +8,32 @@ import { getVertexDataTypeSize, getVertexDataTypeDataView } from "../Constant";
  */
 export class VertexBuffer {
   attributes: BufferAttribute[];
-  buffers: ArrayBuffer[];
-  private _startBufferIndex: number | undefined;
+  buffers: ArrayBuffer[] = [];
+  vertexCount: number;
   private _semanticList: string[] = [];
+  private _startBufferIndex: number;
   readonly isInterleaved: boolean = false;
-
-  set startBufferIndex(value) {
-    // 只能够set一次
-    if (this._startBufferIndex === undefined) {
-      this._startBufferIndex = value;
-    }
-  }
-
-  get startBufferIndex() {
-    return this._startBufferIndex;
-  }
 
   get semanticList() {
     return this._semanticList;
   }
 
   constructor(attributes: BufferAttribute[], vertexCount: number) {
-    this.initialize(attributes, vertexCount);
+    this.attributes = attributes;
+    this.vertexCount = vertexCount;
   }
 
-  initialize(attributes: BufferAttribute[], vertexCount: number) {
-    this.attributes = attributes;
+  _initialize(startBufferIndex) {
+    this._startBufferIndex = startBufferIndex;
+    const { attributes, vertexCount } = this;
     for (let i = 0; i < attributes.length; i += 1) {
       const attribute = attributes[i];
       const { instanced, semantic } = attribute;
       this._semanticList.push(semantic);
       const stride = this._getSizeInByte(attribute.size, attribute.type);
       attribute.stride = stride;
-      attribute.vertexBufferIndex = this.startBufferIndex + i;
+      console.log(this._startBufferIndex + i);
+      attribute.vertexBufferIndex = this._startBufferIndex + i;
       const bufferLength = instanced ? (vertexCount / instanced) * stride : vertexCount * stride;
       const buffer = new ArrayBuffer(bufferLength);
       this.buffers.push(buffer);
@@ -56,9 +49,24 @@ export class VertexBuffer {
   ) {
     const vertexAttrib = this._getAttributeBySemantic(semantic);
     const buffer = this._getBufferBySemantic(semantic);
+    console.log("fdafds", buffer);
+    const { stride, updateType } = vertexAttrib;
     const constructor = getVertexDataTypeDataView(vertexAttrib.type);
     const view = new constructor(buffer, dataStartIndex, dataCount);
     view.set(vertexValues);
+    const byteOffset = dataStartIndex * stride;
+    const byteLength = dataCount * stride;
+    const bufferByteOffset = bufferOffset * stride;
+    if (updateType === UpdateType.NO_UPDATE) {
+      vertexAttrib.updateType = UpdateType.UPDATE_RANGE;
+    }
+    if (updateType === UpdateType.UPDATE_RANGE) {
+      vertexAttrib.updateRange = {
+        byteOffset,
+        byteLength,
+        bufferByteOffset
+      };
+    }
   }
 
   getData(semantic) {
@@ -70,11 +78,28 @@ export class VertexBuffer {
 
   setDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
     const vertexAttrib = this._getAttributeBySemantic(semantic);
-    const { stride, size } = vertexAttrib;
+    const { stride, size, updateType, updateRange } = vertexAttrib;
     const buffer = this._getBufferBySemantic(semantic);
     const constructor = getVertexDataTypeDataView(vertexAttrib.type);
     const view = new constructor(buffer, vertexIndex * stride, size);
     view.set(value);
+    const byteOffset = vertexAttrib.offset + vertexAttrib.stride * vertexIndex;
+    const byteLength = vertexAttrib.stride;
+    if (updateType === UpdateType.NO_UPDATE) {
+      vertexAttrib.updateType = UpdateType.UPDATE_RANGE;
+    }
+    if (updateType === UpdateType.UPDATE_RANGE) {
+      if (updateRange.byteLength === -1 && updateRange.byteOffset === 0) {
+        vertexAttrib.updateRange = {
+          byteOffset,
+          byteLength,
+          bufferByteOffset: byteOffset
+        };
+      } else {
+        const updateRange = this._getUpdateRange(vertexAttrib, byteOffset, byteLength);
+        vertexAttrib.updateRange = updateRange;
+      }
+    }
   }
 
   getDataByIndex(semantic: string, vertexIndex: number) {
@@ -107,9 +132,26 @@ export class VertexBuffer {
 
   protected _getBufferBySemantic(semantic: string) {
     const vertexAttrib = this.attributes.find((item) => (item.semantic = semantic));
+    console.log(vertexAttrib);
     const { vertexBufferIndex } = vertexAttrib;
-    const bufferIndex = vertexBufferIndex - this.startBufferIndex;
+    const bufferIndex = vertexBufferIndex - this._startBufferIndex;
+    console.log(vertexBufferIndex);
     const buffer = this.buffers[bufferIndex];
     return buffer;
+  }
+
+  /**
+   * 获取更新范围
+   * @param {number} offset 字节偏移
+   * @param {number} length 字节长度
+   * @private
+   */
+  protected _getUpdateRange(vertexAttrib, offset, length) {
+    const updateRange = vertexAttrib.updateRange;
+    const rangeEnd1 = updateRange.byteOffset + updateRange.byteLength;
+    const byteOffset = Math.min(offset, updateRange.byteOffset);
+    const rangeEnd2 = offset + length;
+    const byteLength = rangeEnd1 <= rangeEnd2 ? rangeEnd2 - updateRange.byteOffset : rangeEnd1 - updateRange.byteOffset;
+    return { byteOffset, byteLength, bufferByteOffset: byteOffset };
   }
 }
