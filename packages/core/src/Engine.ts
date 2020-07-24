@@ -27,7 +27,7 @@ export class Engine extends EventDispatcher {
     return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
   }
 
-  public _hardwareRenderer: any;
+  public _hardwareRenderer: HardwareRenderer;
 
   private _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager();
@@ -73,7 +73,7 @@ export class Engine extends EventDispatcher {
    * @todo implements interface HardwareRenderer
    * 渲染器。
    */
-  get hardwareRenderer(): any {
+  get hardwareRenderer(): HardwareRenderer {
     return this._hardwareRenderer;
   }
 
@@ -168,6 +168,7 @@ export class Engine extends EventDispatcher {
    * 执行引擎循环。
    */
   public run(): void {
+    //  todo: delete
     engineFeatureManager.callFeatureMethod(this, "preLoad", [this]);
     this.resume();
     this.trigger(new Event("run", this));
@@ -186,7 +187,7 @@ export class Engine extends EventDispatcher {
 
     this._animate = null;
 
-    this._sceneManager.scene.destroy();
+    this._sceneManager._scene.destroy();
     this._sceneManager = null;
     this._resourceManager.gc();
     this._resourceManager = null;
@@ -196,7 +197,7 @@ export class Engine extends EventDispatcher {
     this.features = [];
     this._time = null;
 
-    // --
+    // todo: delete
     (engineFeatureManager as any)._objects = [];
   }
 
