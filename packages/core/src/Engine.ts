@@ -41,21 +41,6 @@ export class Engine extends EventDispatcher {
   private _timeCounter: number = 0;
 
   /**
-   * @internal
-   */
-  private _animate = () => {
-    if (this._vSyncCount) {
-      if (this._timeCounter++ % this._vSyncCount === 0) {
-        this._tick();
-      }
-      this._requestId = requestAnimationFrame(this._animate);
-    } else {
-      this._tick();
-      this._timeoutId = window.setTimeout(this._animate, 1000 / this._targetFrameRate);
-    }
-  };
-
-  /**
    * 引擎当前场景
    */
   get scene(): Scene {
@@ -200,6 +185,21 @@ export class Engine extends EventDispatcher {
     // todo: delete
     (engineFeatureManager as any)._objects = [];
   }
+
+  /**
+   * @internal
+   */
+  private _animate = () => {
+    if (this._vSyncCount) {
+      if (this._timeCounter++ % this._vSyncCount === 0) {
+        this._tick();
+      }
+      this._requestId = requestAnimationFrame(this._animate);
+    } else {
+      this._tick();
+      this._timeoutId = window.setTimeout(this._animate, 1000 / this._targetFrameRate);
+    }
+  };
 
   /**
    * @internal
