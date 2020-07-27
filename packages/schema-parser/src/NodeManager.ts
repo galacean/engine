@@ -45,14 +45,14 @@ export class NodeManager {
    */
   private create(nodeConfig: NodeConfig): o3.Entity {
     const { isActive, position, rotation, scale, id, name } = nodeConfig;
-    const node = new o3.Entity(name);
-    node.isActive = isActive;
-    node.position = position;
-    node.transform.rotation = rotation;
-    node.scale = scale;
-    (node as any).id = id;
-    this.nodeMap[id] = node;
-    return node;
+    const entity = new o3.Entity(name);
+    entity.isActive = isActive;
+    entity.position = position;
+    entity.transform.rotation = rotation;
+    entity.scale = scale;
+    (entity as any).id = id;
+    this.nodeMap[id] = entity;
+    return entity;
   }
 
   /**

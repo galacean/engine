@@ -26,11 +26,11 @@ export class SpineRenderer extends RenderableComponent {
 
   /**
    * 构造函数
-   * @param {Entity} node
+   * @param {Entity} entity
    * @param {Sprite} sprite
    */
-  constructor(node, prop) {
-    super(node);
+  constructor(entity, prop) {
+    super(entity);
     const { asset, animation } = prop;
     this.setSkeletonData(asset);
     if (animation) {

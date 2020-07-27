@@ -53,16 +53,16 @@ export class Scene {
   }
 
   /**
-   * 添加根节点。
-   * @param node - 根节点
+   * 添加根实体。
+   * @param entity - 根节点
    */
-  addRootNode(node: Entity): void {}
+  addRootEntity(entity: Entity): void {}
 
   /**
-   * 移除根节点。
-   * @param node - 根节点
+   * 移除根实体。
+   * @param entity - 根节点
    */
-  removeRootNode(node: Entity): void {}
+  removeRootEntity(entity: Entity): void {}
 
   /**
    * 通过索引获取根节点。
