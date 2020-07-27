@@ -59,7 +59,7 @@ export class Engine extends EventDispatcher {
    * 引擎当前场景
    */
   get scene(): Scene {
-    return this._sceneManager._scene;
+    return this._sceneManager?._scene;
   }
 
   /**

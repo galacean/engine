@@ -78,11 +78,13 @@ export class Scene extends EventDispatcher {
    * @param entity - 根节点
    */
   public addRootEntity(entity: Entity): void {
+    const index = this._rootEntities.indexOf(entity);
+    if (index !== -1) return;
+
     entity._isRoot = true;
     entity._scene = this;
     entity.parent = null;
     entity.isActive = true;
-    // todo: isActive ->should set _isActiveInHierarchy automatically
     entity._isActiveInHierarchy = true;
     this._rootEntities.push(entity);
   }
