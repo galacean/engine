@@ -7,5 +7,10 @@ module.exports = {
     "@babel/proposal-object-rest-spread",
     "@babel/plugin-proposal-optional-chaining",
     "@babel/plugin-transform-object-assign"
-  ]
+  ],
+  env: {
+    test: {
+      plugins: ["@babel/plugin-transform-runtime"]
+    }
+  }
 };
