@@ -19,8 +19,8 @@ export class Engine extends EventDispatcher {
    * 当前创建对象所属的默认引擎对象。
    */
   static defaultCreateObjectEngine: Engine = null;
-  static _lastCreateEngine: Engine = null;
 
+  static _lastCreateEngine: Engine = null;
   static _instanceIDCounter: number = 0;
 
   static _getDefaultEngine(): Engine {
