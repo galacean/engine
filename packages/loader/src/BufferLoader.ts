@@ -3,7 +3,7 @@ import { resourceLoader, Loader, AssetPromise, LoaderType, LoadItem } from "@ali
 function isBase64(url) {
   return /^data:(.+?);base64,/.test(url);
 }
-@resourceLoader(LoaderType.Buffer, ["bin", "r3bin"])
+@resourceLoader(LoaderType.Buffer, ["bin", "r3bin"], false)
 class BufferLoader extends Loader<ArrayBuffer> {
   load(item: LoadItem): AssetPromise<ArrayBuffer> {
     const url = item.url;

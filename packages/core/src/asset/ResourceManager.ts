@@ -144,7 +144,7 @@ export class ResourceManager {
    * @internal
    */
   _addAsset(path: string, asset: ReferenceObject): void {
-    this._assetPool[asset.instanceID] = path;
+    this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
   }
 
@@ -152,7 +152,7 @@ export class ResourceManager {
    * @internal
    */
   _deleteAsset(asset: ReferenceObject): void {
-    const id = asset.instanceID;
+    const id = asset.instanceId;
     const path = this._assetPool[id];
     if (path) {
       delete this._assetPool[id];
@@ -214,11 +214,11 @@ export class ResourceManager {
     if (this._loadingPromises[url]) {
       return this._loadingPromises[info.url];
     }
-
-    const promise = ResourceManager._loaders[info.type].load(info, this);
+    const loader = ResourceManager._loaders[info.type];
+    const promise = loader.load(info, this);
     this._loadingPromises[url] = promise;
     promise.then((res) => {
-      this._addAsset(url, res);
+      if (loader.useCache) this._addAsset(url, res);
       delete this._loadingPromises[url];
     });
     return promise;
@@ -230,9 +230,9 @@ export class ResourceManager {
  * @param assetType 资源类型
  * @param extnames 扩展名
  */
-export function resourceLoader(assetType: LoaderType, extnames: string[]) {
-  return <T extends Loader<any>>(Target: { new (): T }) => {
-    //@ts-ignore
-    ResourceManager._addLoader(assetType, new Target(), extnames);
+export function resourceLoader(assetType: LoaderType, extnames: string[], useCache: boolean = true) {
+  return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
+    const loader = new Target(useCache);
+    ResourceManager._addLoader(assetType, loader, extnames);
   };
 }

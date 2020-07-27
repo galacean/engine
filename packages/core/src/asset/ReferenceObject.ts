@@ -1,10 +1,6 @@
 import { Engine } from "../Engine";
-import { ResourceManager } from "./ResourceManager";
-import { AssetObject } from "../AssetObject";
+import { AssetObject } from "./AssetObject";
 
-// const xhr = new XMLHttpRequest();
-// const img = new Image();
-// img.
 /**
  * 资产的基类，具有引用计数能力。
  */
@@ -15,20 +11,12 @@ export abstract class ReferenceObject extends AssetObject {
   protected _engine: Engine;
   protected _gcPriority: number = 0;
 
-  private _instanceID: number;
   private _referenceCount: number = 0;
   private _destroyed: boolean = false;
 
   /** @internal */
   get gcPriority(): number {
     return this._gcPriority;
-  }
-
-  /**
-   * 实例ID。
-   */
-  get instanceID(): number {
-    return this._instanceID;
   }
 
   /**
@@ -50,8 +38,7 @@ export abstract class ReferenceObject extends AssetObject {
     const resEngine = engine || Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
     if (!resEngine) throw "asset must belone to an engine.";
     this._engine = resEngine;
-    this._instanceID = ++Engine._instanceIDCounter;
-    resEngine.resourceManager._addReferenceObject(this.instanceID, this);
+    resEngine.resourceManager._addReferenceObject(this.instanceId, this);
   }
 
   /**
@@ -66,7 +53,7 @@ export abstract class ReferenceObject extends AssetObject {
     this.onDestroy();
 
     this._engine.resourceManager._deleteAsset(this);
-    this._engine.resourceManager._deleteReferenceObject(this.instanceID);
+    this._engine.resourceManager._deleteReferenceObject(this.instanceId);
     this._destroyed = true;
     this._engine = null;
     return true;

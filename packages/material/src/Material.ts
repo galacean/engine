@@ -346,7 +346,7 @@ export class Material extends ReferenceObject {
       }
     }
 
-    this._technique._finalize();
+    // this._technique._finalize();
     this._technique = null;
   }
 }

@@ -1,4 +1,4 @@
-import { MultiExecutor, request } from "../src/AssetDesign/request";
+import { MultiExecutor, request } from "../src/asset/request";
 
 describe("MultiExecute", () => {
   it("multiple execute function", () => {
@@ -79,28 +79,26 @@ describe("request", () => {
   });
 
   it("request timeout", () => {
-    const promise = request<HTMLImageElement>(
-      "https://gw.alipayobjects.com/os/OasisHub/b73b0309-3227-4b24-849a-8ec010fc7f7f/48000126/0.8387082619152928.bin",
-      {
-        timeout: 10,
-        retryCount: 1
-      }
-    ).catch((e) => {
+    const url =
+      "https://gw.alipayobjects.com/os/OasisHub/b73b0309-3227-4b24-849a-8ec010fc7f7f/48000126/0.8387082619152928.bin";
+    const promise = request<HTMLImageElement>(url, {
+      timeout: 10,
+      retryCount: 1
+    }).catch((e) => {
       return e;
     });
-    return expect(promise).resolves.toEqual(new Error("request timeout"));
+    return expect(promise).resolves.toEqual(new Error(`request timeout from: ${url}`));
   });
 
   it("request onerror", () => {
-    const promise = request<HTMLImageElement>(
-      "https://gw.alipayobjects.com/os/OasisHub/b73b0309-3227-4b24-849a-8ec010fc7f7f/48000126/0.8387082619152928",
-      {
-        retryCount: 1,
-        headers: {
-          key: "value"
-        }
+    const url =
+      "https://gw.alipayobjects.com/os/OasisHub/b73b0309-3227-4b24-849a-8ec010fc7f7f/48000126/0.8387082619152928";
+    const promise = request<HTMLImageElement>(url, {
+      retryCount: 1,
+      headers: {
+        key: "value"
       }
-    );
-    return expect(promise).rejects.toEqual(new Error("request failed"));
+    });
+    return expect(promise).rejects.toEqual(new Error(`request failed from: ${url}`));
   });
 });

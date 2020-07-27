@@ -381,7 +381,6 @@ export class BufferGeometry extends AssetObject {
    * @private
    */
   _finalize() {
-    super._finalize();
     this.primitive.finalize();
     this.primitive = null;
   }

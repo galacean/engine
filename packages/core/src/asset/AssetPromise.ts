@@ -210,7 +210,6 @@ export class AssetPromise<T> extends Promise<T> {
         (progress: number) => {
           // 加入到微任务中，避免直接调用找不到 this 报错
           Promise.resolve().then(() => {
-            // console.log('on progress')
             setProgress(progress);
           });
         }

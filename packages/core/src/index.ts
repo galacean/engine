@@ -3,7 +3,7 @@ export type { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
 export type { EngineOptions } from "./EngineDesign/EngineOptions";
 export type { Canvas } from "./EngineDesign/Canvas";
 export { EngineFeature } from "./EngineFeature";
-export { AssetObject } from "./AssetObject";
+export { AssetObject } from "./asset/AssetObject";
 
 export { Scene } from "./Scene";
 export { SceneVisitor } from "./SceneVisitor";

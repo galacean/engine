@@ -263,7 +263,6 @@ export class RenderTechnique extends AssetObject {
       if (this._fogMacro !== fogMacro) {
         this._needCompile = true;
         this._recreateHeader = true;
-        this.needRecreate = true;
         this._fogMacro = fogMacro;
       }
     }

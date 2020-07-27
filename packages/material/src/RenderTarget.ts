@@ -201,9 +201,6 @@ export class RenderTarget extends AssetObject {
       this._MSAAFrameBuffer = gl.createFramebuffer();
       this._bindMSAAFBO(depth);
     }
-
-    //todo: delete
-    this.type = AssetType.Scene;
   }
 
   /**

@@ -6,16 +6,12 @@ import { loadImageBuffer, getBufferData } from "./gltf/Util";
 
 @resourceLoader(LoaderType.Perfab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<object> {
-  constructor() {
-    super();
-  }
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<object> {
     return new AssetPromise((resolve, reject) => {
       const requestGLTFResource = this.isGLB(item.url) ? this.requestGLB : this.requestGLTF;
       requestGLTFResource(item, resourceManager)
         .then((res) => {
           const gltf = parseGLTF(res, resourceManager.engine);
-          // resourceManager.a
           resolve(gltf);
         })
         .catch((e) => {

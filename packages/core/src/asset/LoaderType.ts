@@ -2,11 +2,11 @@
  * 资产类型。
  */
 export enum LoaderType {
-  /** 文本。*/
+  /** 文本，不进入资源 url 缓存。*/
   Text = 0,
-  /** JSON。*/
+  /** JSON，不进入资源 url 缓存。。*/
   JSON = 1,
-  /** 缓冲。*/
+  /** 缓冲，不进入资源 url 缓存。。*/
   Buffer = 2,
   /** 2D纹理。*/
   Texture2D = 3,
