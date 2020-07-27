@@ -273,12 +273,12 @@ export class Camera extends Component {
 
   /**
    * 创建 Camera 组件。
-   * @param node 节点
+   * @param entity 实体
    * @param props camera 参数
    */
-  constructor(node: Entity, props: any) {
+  constructor(entity: Entity, props: any) {
     // TODO: 修改构造函数参数
-    super(node, props);
+    super(entity, props);
 
     this._transform = this.entity.transform;
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
@@ -293,8 +293,8 @@ export class Camera extends Component {
     // TODO: 删除，兼容旧 camera，decaprated
     const target = props.target ?? [0, 0, 0];
     const up = props.up ?? [0, 1, 0];
-    node.transform.position = props.position ?? [0, 10, 20];
-    node.transform.lookAt(target, up);
+    entity.transform.position = props.position ?? [0, 10, 20];
+    entity.transform.lookAt(target, up);
 
     this._sceneRenderer = new SceneRenderer(this);
 

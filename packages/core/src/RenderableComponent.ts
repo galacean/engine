@@ -15,8 +15,8 @@ export abstract class RenderableComponent extends Component {
   /* @internal */
   protected _overrideUpdate: boolean = false;
 
-  constructor(node: Entity, props: object = {}) {
-    super(node, props);
+  constructor(entity: Entity, props: object = {}) {
+    super(entity, props);
     const prototype = RenderableComponent.prototype;
     this._overrideUpdate = this.update !== prototype.update;
   }
