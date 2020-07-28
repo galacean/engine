@@ -9,4 +9,7 @@ export class AssetObject extends OasisObject {
   public name: string;
   public cacheID: number;
   public needRecreate: boolean;
+  constructor() {
+    super();
+  }
 }

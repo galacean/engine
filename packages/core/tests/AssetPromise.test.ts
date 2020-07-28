@@ -1,4 +1,4 @@
-import { AssetPromise, AssetPromiseStatus } from "../src/AssetDesign/AssetPromise";
+import { AssetPromise, AssetPromiseStatus } from "../src/asset/AssetPromise";
 
 describe("Asset Promise Test", function () {
   it("test promise all", () => {
@@ -12,6 +12,7 @@ describe("Asset Promise Test", function () {
       promises.push(promise);
     }
     let out = 0.1;
+    //@ts-ignore
     const allPromise = AssetPromise.all(promises).onProgress((p) => {
       expect(p).toBeCloseTo(out);
       out += 0.1;
@@ -38,6 +39,7 @@ describe("Asset Promise Test", function () {
     setTimeout(() => {
       promises[0].cancel();
     }, 500);
+    // @ts-ignore
     return expect(AssetPromise.all(promises)).rejects.toEqual("Promise Canceled");
   });
 
@@ -72,5 +74,23 @@ describe("Asset Promise Test", function () {
         throw e;
       })
     ).rejects.toEqual("test");
+  });
+
+  it("test multi promie reject", () => {
+    const promise = new AssetPromise((resolve, reject) => {
+      setTimeout(() => {
+        reject("test");
+      });
+    });
+    promise.catch((e) => {
+      return e;
+    });
+    const promise1 = new AssetPromise((resolve, reject) => {
+      setTimeout(() => {
+        resolve("test 1");
+      }, 1000);
+    });
+
+    return expect(promise).rejects.toEqual("test");
   });
 });
