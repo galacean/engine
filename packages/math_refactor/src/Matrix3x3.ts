@@ -205,23 +205,23 @@ export class Matrix3x3 {
   /**
    * 通过指定缩放生成3x3矩阵
    *
-   * @param scale - 缩放向量
+   * @param s - 缩放向量
    * @param out - 指定缩放后矩阵
    */
-  static fromScaling(scale: Vector3, out: Matrix3x3): void {
+  static fromScaling(s: Vector2, out: Matrix3x3): void {
     const oe = out.elements;
 
-    oe[0] = scale.x;
+    oe[0] = s.x;
     oe[1] = 0;
     oe[2] = 0;
 
     oe[3] = 0;
-    oe[4] = scale.y;
+    oe[4] = s.y;
     oe[5] = 0;
 
     oe[6] = 0;
     oe[7] = 0;
-    oe[8] = scale.z;
+    oe[8] = 1;
   }
 
   /**
