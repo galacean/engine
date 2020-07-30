@@ -36,7 +36,7 @@ export class Entity extends EventDispatcher {
   /**
    * 根据路径全局查找节点，使用‘/’符号作为路径分割符。
    * @param path - 路径
-   * @param scene - 查找场景，如果为则使用最新创建 Engine 的激活场景
+   * @param scene - 查找场景，如果为空则使用最新创建 Engine 的激活场景
    * @returns 节点
    */
   static findByPath(path: string, scene?: Scene): Entity | null {
@@ -199,8 +199,9 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * //TODO:组件通常不带构造函数参数，日后需要移除
    * 根据组件类型添加组件。
+   * @param type - 组件类型
+   * @param props - 组件属性 @deprecated
    * @returns	组件实例
    */
   addComponent<T extends Component>(type: new (entity: any, props?: object) => T, props: object = {}): T {
@@ -214,8 +215,8 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * //TODO:组件通常不带构造函数参数，日后需要移除
    * 根据组件类型获取组件。
+   * @param type - 组件类型
    * @returns	组件实例
    */
   getComponent<T extends Component>(type: new (entity: Entity, props?: object) => T): T {
@@ -228,11 +229,13 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * //TODO:组件通常不带构造函数参数，日后需要移除
    * 根据组件类型获取组件集合。
+   * @param type - 组件类型
+   * @param results - 组件实例集合
    * @returns	组件实例集合
    */
   getComponents<T extends Component>(type: new (entity: Entity, props?: object) => T, results: Array<T>): Array<T> {
+    results.length = 0;
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
