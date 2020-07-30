@@ -480,8 +480,7 @@ export class Entity extends EventDispatcher {
 
   /**
    * @deprecated
-   * 本节点的位置(Local Space)
-   * @member {vec3}
+   * 请使用 transform.position 代替。
    */
   get position(): Vector3 {
     return this.transform.position;
@@ -493,8 +492,7 @@ export class Entity extends EventDispatcher {
 
   /**
    * @deprecated
-   * 本节点的世界坐标系位置
-   * @member {vec3}
+   * 请使用 transform.worldPosition 代替
    */
   get worldPosition(): Vector3 {
     return this.transform.worldPosition;
@@ -504,8 +502,9 @@ export class Entity extends EventDispatcher {
     this.transform.worldPosition = val;
   }
 
-  /** Property: 本节点的旋转四元数(Local Space)
-   * @member {quat|Array}
+  /**
+   * @deprecated
+   * 请使用 transform.rotationQuaternion 代替
    */
   get rotation(): Vector4 {
     return this.transform.rotationQuaternion;
@@ -517,8 +516,7 @@ export class Entity extends EventDispatcher {
 
   /**
    * @deprecated
-   * 本节点的缩放系数(Local Space)
-   * @member {vec3}
+   * 请使用 transform.scale 代替
    */
   get scale(): Vector3 {
     return this.transform.scale;
@@ -530,8 +528,6 @@ export class Entity extends EventDispatcher {
 
   /**
    * @deprecated
-   * 取得World to Local矩阵
-   * @return {mat4}
    */
   getInvModelMatrix(): Matrix4 {
     if (this._inverseWorldMatFlag.flag) {
