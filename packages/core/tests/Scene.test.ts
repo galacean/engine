@@ -1,5 +1,5 @@
+import { WebGLEngine } from "../../rhi-webgl/src";
 import { Entity, Camera, RenderableComponent } from "../";
-import { WebGLEngine } from "../../rhi-webgl";
 
 async function delay(ms: number) {
   return new Promise((resolve) => {

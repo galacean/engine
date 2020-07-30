@@ -1,4 +1,4 @@
-import { WebGLEngine, WebCanvas, WebGLRenderer } from "../../rhi-webgl";
+import { WebGLEngine, WebCanvas, WebGLRenderer } from "../../rhi-webgl/src";
 import { Engine, Scene } from "../";
 
 async function delay(ms: number) {
@@ -68,7 +68,7 @@ describe("Engine test", () => {
         const engine = new WebGLEngine(canvasDOM);
 
         engine.destroy();
-        expect(engine.sceneManager.scene).toBeUndefined();
+        expect(engine.sceneManager).toBeNull();
         expect(engine.isPaused).toBeTruthy();
       });
     });
