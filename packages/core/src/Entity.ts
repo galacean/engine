@@ -112,7 +112,7 @@ export class Entity extends EventDispatcher {
       this._isActive = value;
       if (value) {
         const parent = this._parent;
-        if ((parent && parent._isActiveInHierarchy) || (this._isRoot && this._scene?._isActiveInEngine)) {
+        if (parent?._isActiveInHierarchy || (this._isRoot && this._scene._isActiveInEngine)) {
           this._processActive();
         }
       } else {
