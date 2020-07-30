@@ -26,7 +26,7 @@ export class Engine extends EventDispatcher {
     return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
   }
 
-  public _hardwareRenderer: HardwareRenderer;
+  _hardwareRenderer: HardwareRenderer;
 
   private _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager();
@@ -134,7 +134,7 @@ export class Engine extends EventDispatcher {
   /**
    * 暂停引擎循环。
    */
-  public pause(): void {
+  pause(): void {
     this._paused = true;
     cancelAnimationFrame(this._requestId);
     clearTimeout(this._timeoutId);
@@ -144,7 +144,7 @@ export class Engine extends EventDispatcher {
   /**
    * 恢复引擎循环。
    */
-  public resume(): void {
+  resume(): void {
     if (!this._paused) return;
     this._paused = false;
 
@@ -154,7 +154,7 @@ export class Engine extends EventDispatcher {
   /**
    * 执行引擎循环。
    */
-  public run(): void {
+  run(): void {
     //  todo: delete
     engineFeatureManager.callFeatureMethod(this, "preLoad", [this]);
     this.resume();
@@ -164,7 +164,7 @@ export class Engine extends EventDispatcher {
   /**
    * 销毁引擎。
    */
-  public destroy(): void {
+  destroy(): void {
     // -- event
     this.trigger(new Event("shutdown", this));
     engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
@@ -213,13 +213,13 @@ export class Engine extends EventDispatcher {
 
   //-----------------------------------------@deprecated-----------------------------------
 
-  public findFeature(Feature) {
+  findFeature(Feature) {
     return engineFeatureManager.findFeature(this, Feature);
   }
 
-  public static registerFeature(Feature: new () => EngineFeature): void {
+  static registerFeature(Feature: new () => EngineFeature): void {
     engineFeatureManager.registerFeature(Feature);
   }
 
-  public features: EngineFeature[] = [];
+  features: EngineFeature[] = [];
 }

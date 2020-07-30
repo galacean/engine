@@ -25,17 +25,17 @@ const sceneFeatureManager = new FeatureManager<SceneFeature>();
  */
 export class Scene extends EventDispatcher {
   /** 场景名字 */
-  public name: string;
-
+  name: string;
   /**
    * @todo: migrate to camera
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
    * @example
    * scene.clipPlanes = [[0,1,0,0]];
    * */
-  public clipPlanes: Vector4[] = [];
-  public _componentsManager: ComponentsManager = new ComponentsManager();
-  public _activeCameras: Camera[] = [];
+  clipPlanes: Vector4[] = [];
+
+  _componentsManager: ComponentsManager = new ComponentsManager();
+  _activeCameras: Camera[] = [];
 
   private _engine: Engine;
   private _destroyed: boolean = false;
@@ -78,7 +78,7 @@ export class Scene extends EventDispatcher {
    * 添加根节点。
    * @param entity - 根节点
    */
-  public addRootEntity(entity: Entity): void {
+  addRootEntity(entity: Entity): void {
     const isRoot = entity._isRoot;
 
     //let entity become root
@@ -111,7 +111,7 @@ export class Scene extends EventDispatcher {
    * 移除根节点。
    * @param entity - 根节点
    */
-  public removeRootEntity(entity: Entity): void {
+  removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
       this._removeEntity(entity);
       this._engine.sceneManager._scene == this && entity._processInActive();
@@ -123,14 +123,14 @@ export class Scene extends EventDispatcher {
    * 通过索引获取根节点。
    * @param index - 索引
    */
-  public getRootEntity(index: number = 0): Entity | null {
+  getRootEntity(index: number = 0): Entity | null {
     return this._rootEntities[index];
   }
 
   /**
    * 销毁场景。
    */
-  public destroy(): void {
+  destroy(): void {
     if (this._engine.sceneManager._scene === this) this._engine.sceneManager.scene = null;
     //继续销毁所有根节点
     sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
@@ -150,7 +150,7 @@ export class Scene extends EventDispatcher {
    * @param {number} deltaTime 两帧之间的时间
    * @private
    */
-  public update(deltaTime: number): void {
+  update(deltaTime: number): void {
     this._componentsManager.callScriptOnStart();
     this._componentsManager.callScriptOnUpdate(deltaTime);
     this._componentsManager.callAnimationUpdate(deltaTime);
@@ -160,7 +160,7 @@ export class Scene extends EventDispatcher {
   /** 渲染：场景中的每个摄像机执行一次渲染
    * @private
    */
-  public render(): void {
+  render(): void {
     const cameras = this._activeCameras;
     const deltaTime = this._engine.time.deltaTime;
     this._componentsManager.callRendererOnUpdate(deltaTime);
@@ -189,7 +189,7 @@ export class Scene extends EventDispatcher {
    * @param {CameraComponent} camera 摄像机对象
    * @private
    */
-  public attachRenderCamera(camera: Camera): void {
+  attachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index === -1) {
       this._activeCameras.push(camera);
@@ -203,7 +203,7 @@ export class Scene extends EventDispatcher {
    * @param {CameraComponent} camera 摄像机对象
    * @private
    */
-  public detachRenderCamera(camera: Camera): void {
+  detachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index !== -1) {
       this._activeCameras.splice(index, 1);
@@ -229,13 +229,13 @@ export class Scene extends EventDispatcher {
   }
 
   //-----------------------------------------@deprecated-----------------------------------
-  public static registerFeature(Feature: new () => SceneFeature) {
+  static registerFeature(Feature: new () => SceneFeature) {
     sceneFeatureManager.registerFeature(Feature);
   }
 
-  public findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
+  findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
     return sceneFeatureManager.findFeature(this, Feature) as T;
   }
 
-  public features: SceneFeature[] = [];
+  features: SceneFeature[] = [];
 }

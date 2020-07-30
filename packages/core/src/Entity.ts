@@ -13,7 +13,7 @@ import { UpdateFlag } from "./UpdateFlag";
  * 节点类,可作为组件的容器。
  */
 export class Entity extends EventDispatcher {
-  public static _nodes: DisorderedArray<Entity> = new DisorderedArray();
+  static _nodes: DisorderedArray<Entity> = new DisorderedArray();
 
   /**
    * 根据名字全局查找节点。
@@ -78,8 +78,10 @@ export class Entity extends EventDispatcher {
     }
   }
 
-  /* 名字。 */
+  /* 名字。*/
   name: string;
+  /* 变换。*/
+  readonly transform: Transform;
 
   /* @internal */
   _isActiveInHierarchy: boolean = false;
@@ -97,7 +99,6 @@ export class Entity extends EventDispatcher {
   private _engine: Engine;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
-  public readonly transform: Transform;
 
   /** @deprecated */
   private _invModelMatrix: Matrix4 = mat4.create();
@@ -467,7 +468,7 @@ export class Entity extends EventDispatcher {
    * @param {string} name 子节点的名称
    * @return {Entity} 新创建的子节点对象
    */
-  public createChild(name: string): Entity {
+  createChild(name: string): Entity {
     const child = new Entity(name, this.engine);
     child.parent = this;
     return child;
@@ -531,7 +532,7 @@ export class Entity extends EventDispatcher {
    * 取得World to Local矩阵
    * @return {mat4}
    */
-  public getInvModelMatrix(): Matrix4 {
+  getInvModelMatrix(): Matrix4 {
     if (this._inverseWorldMatFlag.flag) {
       mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
       this._inverseWorldMatFlag.flag = false;

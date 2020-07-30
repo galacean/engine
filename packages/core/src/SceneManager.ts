@@ -5,7 +5,7 @@ import { AssetPromise } from "./AssetDesign/AssetPromise";
  * 场景管理员。
  */
 export class SceneManager {
-  public _scene: Scene;
+  _scene: Scene;
 
   /**
    * 当前激活场景。
