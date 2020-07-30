@@ -21,10 +21,10 @@ export class Entity extends EventDispatcher {
    * @returns 节点
    */
   static findByName(name: string): Entity {
-    const { _entitys: _nodes } = Entity;
-    const entitys = _nodes._elements;
-    for (let i = entitys.length - 1; i >= 0; i--) {
-      const entity = entitys[i];
+    const { _entitys } = Entity;
+    const elements = _entitys._elements;
+    for (let i = _entitys.length - 1; i >= 0; i--) {
+      const entity = elements[i];
       const nodeName = entity.name;
       if (nodeName === name) {
         return entity;
