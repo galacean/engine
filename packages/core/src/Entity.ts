@@ -10,7 +10,7 @@ import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 
 /**
- * 节点类,可作为组件的容器。
+ * 实体,可作为组件的容器。
  */
 export class Entity extends EventDispatcher {
   static _entitys: DisorderedArray<Entity> = new DisorderedArray();
