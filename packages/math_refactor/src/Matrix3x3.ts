@@ -586,19 +586,7 @@ export class Matrix3x3 {
    * @param b - 给定的向量，右操作数
    */
   add(b: Matrix3x3): Matrix3x3 {
-    const be = b.elements;
-    const e = this.elements;
-
-    e[0] += be[0];
-    e[1] += be[1];
-    e[2] += be[2];
-    e[3] += be[3];
-    e[4] += be[4];
-    e[5] += be[5];
-    e[6] += be[6];
-    e[7] += be[7];
-    e[8] += be[8];
-
+    Matrix3x3.add(this, b, this);
     return this;
   }
 
@@ -608,19 +596,7 @@ export class Matrix3x3 {
    * @param b - 给定的向量，右操作数
    */
   subtract(b: Matrix3x3): Matrix3x3 {
-    const be = b.elements;
-    const e = this.elements;
-
-    e[0] -= be[0];
-    e[1] -= be[1];
-    e[2] -= be[2];
-    e[3] -= be[3];
-    e[4] -= be[4];
-    e[5] -= be[5];
-    e[6] -= be[6];
-    e[7] -= be[7];
-    e[8] -= be[8];
-
+    Matrix3x3.subtract(this, b, this);
     return this;
   }
 
@@ -630,41 +606,7 @@ export class Matrix3x3 {
    * @param b - 给定的向量，右操作数
    */
   multiply(b: Matrix3x3): Matrix3x3 {
-    const be = b.elements;
-    const e = this.elements;
-
-    const a11 = e[0];
-    const a12 = e[1];
-    const a13 = e[2];
-    const a21 = e[3];
-    const a22 = e[4];
-    const a23 = e[5];
-    const a31 = e[6];
-    const a32 = e[7];
-    const a33 = e[8];
-
-    const b11 = be[0];
-    const b12 = be[1];
-    const b13 = be[2];
-    const b21 = be[3];
-    const b22 = be[4];
-    const b23 = be[5];
-    const b31 = be[6];
-    const b32 = be[7];
-    const b33 = be[8];
-
-    e[0] = a11 * b11 + a21 * b12 + a31 * b13;
-    e[1] = a12 * b11 + a22 * b12 + a32 * b13;
-    e[2] = a13 * b11 + a23 * b12 + a33 * b13;
-
-    e[3] = a11 * b21 + a21 * b22 + a31 * b23;
-    e[4] = a12 * b21 + a22 * b22 + a32 * b23;
-    e[5] = a13 * b21 + a23 * b22 + a33 * b23;
-
-    e[6] = a11 * b31 + a21 * b32 + a31 * b33;
-    e[7] = a12 * b31 + a22 * b32 + a32 * b33;
-    e[8] = a13 * b31 + a23 * b32 + a33 * b33;
-
+    Matrix3x3.multiply(this, b, this);
     return this;
   }
 
@@ -714,38 +656,7 @@ export class Matrix3x3 {
    * 计算当前矩阵的逆矩阵，并返回
    */
   invert(): Matrix3x3 {
-    const ae = this.elements;
-
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a21 = ae[3];
-    const a22 = ae[4];
-    const a23 = ae[5];
-    const a31 = ae[6];
-    const a32 = ae[7];
-    const a33 = ae[8];
-
-    const b12 = a33 * a22 - a23 * a32;
-    const b22 = -a33 * a21 + a23 * a31;
-    const b32 = a32 * a21 - a22 * a31;
-
-    let det = a11 * b12 + a12 * b22 + a13 * b32;
-    if (!det) {
-      return;
-    }
-    det = 1.0 / det;
-
-    ae[0] = b12 * det;
-    ae[1] = (-a33 * a12 + a13 * a32) * det;
-    ae[2] = (a23 * a12 - a13 * a22) * det;
-    ae[3] = b22 * det;
-    ae[4] = (a33 * a11 - a13 * a31) * det;
-    ae[5] = (-a23 * a11 + a13 * a21) * det;
-    ae[6] = b32 * det;
-    ae[7] = (-a32 * a11 + a12 * a31) * det;
-    ae[8] = (a22 * a11 - a12 * a21) * det;
-
+    Matrix3x3.invert(this, this);
     return this;
   }
 
@@ -755,25 +666,7 @@ export class Matrix3x3 {
    * @param r - 给定的旋转角度
    */
   rotate(r: number): Matrix3x3 {
-    const ae = this.elements;
-    const s = Math.sin(r);
-    const c = Math.cos(r);
-
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a21 = ae[3];
-    const a22 = ae[4];
-    const a23 = ae[5];
-
-    ae[0] = c * a11 + s * a21;
-    ae[1] = c * a12 + s * a22;
-    ae[2] = c * a13 + s * a23;
-
-    ae[3] = c * a21 - s * a11;
-    ae[4] = c * a22 - s * a12;
-    ae[5] = c * a23 - s * a13;
-
+    Matrix3x3.rotate(this, r, this);
     return this;
   }
 
@@ -783,17 +676,7 @@ export class Matrix3x3 {
    * @param s - 缩放向量
    */
   scale(s: Vector2): Matrix3x3 {
-    const { x, y } = s;
-    const ae = this.elements;
-
-    ae[0] *= x;
-    ae[1] *= x;
-    ae[2] *= x;
-
-    ae[3] *= y;
-    ae[4] *= y;
-    ae[5] *= y;
-
+    Matrix3x3.scale(this, s, this);
     return this;
   }
 
@@ -803,23 +686,7 @@ export class Matrix3x3 {
    * @param v - 转换向量
    */
   translate(v: Vector2): Matrix3x3 {
-    const { x, y } = v;
-    const ae = this.elements;
-
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a21 = ae[3];
-    const a22 = ae[4];
-    const a23 = ae[5];
-    const a31 = ae[6];
-    const a32 = ae[7];
-    const a33 = ae[8];
-
-    ae[6] = x * a11 + y * a21 + a31;
-    ae[7] = x * a12 + y * a22 + a32;
-    ae[8] = x * a13 + y * a23 + a33;
-
+    Matrix3x3.translate(this, v, this);
     return this;
   }
 
@@ -827,18 +694,7 @@ export class Matrix3x3 {
    * 计算当前矩阵的转置矩阵，并返回
    */
   transpose(): Matrix3x3 {
-    const ae = this.elements;
-
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a23 = ae[5];
-    ae[1] = ae[3];
-    ae[2] = ae[6];
-    ae[3] = a12;
-    ae[5] = ae[7];
-    ae[6] = a13;
-    ae[7] = a23;
-
+    Matrix3x3.transpose(this, this);
     return this;
   }
 }
