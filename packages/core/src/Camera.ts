@@ -1,4 +1,4 @@
-import { ClearMode } from "@alipay/o3-base";
+import { ClearMode, TextureCubeFace } from "@alipay/o3-base";
 import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
 import { Matrix4, Vector2, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { Component } from "./Component";
@@ -420,7 +420,7 @@ export class Camera extends Component {
    * 手动调用相机的渲染。
    * @param cubeFaces - 立方体的渲染面集合,如果设置了renderTarget并且renderTarget.isCube=true时生效
    */
-  public render(cubeFaces?: number /*todo:修改为TextureCubeFace类型*/): void {
+  public render(cubeFaces?: TextureCubeFace): void {
     this._renderPipeline.render();
   }
 
