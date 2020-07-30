@@ -94,7 +94,7 @@ export class RenderTechnique extends AssetObject {
    * 构造函数
    * @param {string} name 名称
    */
-  constructor(name: string) {
+  constructor(public name: string) {
     super();
   }
 
