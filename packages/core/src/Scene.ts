@@ -21,12 +21,12 @@ Scene Feature:
 const sceneFeatureManager = new FeatureManager<SceneFeature>();
 
 /**
- * 场景：管理 SceneGraph 中的所有对象，并执行每帧的更新计算和渲染操作
- * @class
+ * 场景。
  */
 export class Scene extends EventDispatcher {
   /** 场景名字 */
   public name: string;
+
   /**
    * @todo: migrate to camera
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
@@ -41,9 +41,8 @@ export class Scene extends EventDispatcher {
   private _destroyed: boolean = false;
   private _rootEntities: Entity[] = [];
 
-  /** 当前的 Engine 对象
-   * @member {Engine}
-   * @readonly
+  /**
+   * 当前的所属 Engine。
    */
   get engine(): Engine {
     return this._engine;
