@@ -1,4 +1,4 @@
-import { WebEngine, WebCanvas, WebGLRenderer } from "../../rhi-webgl";
+import { WebGLEngine, WebCanvas, WebGLRenderer } from "../../rhi-webgl";
 import { Engine, Scene } from "../";
 
 async function delay(ms: number) {
@@ -43,14 +43,14 @@ describe("Engine test", () => {
         const engine = new Engine(canvas, rhi);
 
         expect(engine.canvas).toBe(canvas);
-        expect(engine.hardwareRenderer).toBe(rhi);
+        expect(engine._hardwareRenderer).toBe(rhi);
         expect(Engine._getDefaultEngine()).toBe(engine);
       });
 
-      it("使用封装的 WebEngine", () => {
-        const engine = new WebEngine(canvasDOM);
+      it("使用封装的 WebGLEngine", () => {
+        const engine = new WebGLEngine(canvasDOM);
 
-        expect(engine.hardwareRenderer).toBeInstanceOf(WebGLRenderer);
+        expect(engine._hardwareRenderer).toBeInstanceOf(WebGLRenderer);
       });
 
       it("离屏 canvas", () => {
@@ -59,13 +59,13 @@ describe("Engine test", () => {
         const engine = new Engine(canvas, rhi);
 
         expect(engine.canvas).toBe(canvas);
-        expect(engine.hardwareRenderer).toBeInstanceOf(WebGLRenderer);
+        expect(engine._hardwareRenderer).toBeInstanceOf(WebGLRenderer);
         expect(canvas.width).toBe(1024);
         expect(canvas.height).toBe(1024);
       });
 
       it("销毁", () => {
-        const engine = new WebEngine(canvasDOM);
+        const engine = new WebGLEngine(canvasDOM);
 
         engine.destroy();
         expect(engine.scene).toBeUndefined();
@@ -76,12 +76,12 @@ describe("Engine test", () => {
 
   describe("test - sceneManager", () => {
     it("默认 scene", () => {
-      const engine = new WebEngine(canvasDOM);
+      const engine = new WebGLEngine(canvasDOM);
 
       expect(engine.scene).toBeInstanceOf(Scene);
     });
     it("销毁 scene", () => {
-      const engine = new WebEngine(canvasDOM);
+      const engine = new WebGLEngine(canvasDOM);
       const scene = engine.scene;
       scene.destroy();
 
@@ -90,7 +90,7 @@ describe("Engine test", () => {
   });
 
   describe("test - tick/垂直同步", () => {
-    const engine = new WebEngine(canvasDOM);
+    const engine = new WebGLEngine(canvasDOM);
     const mockTick = ((<any>engine)._tick = jest.fn());
 
     it("默认垂直同步 pause/resume", async () => {

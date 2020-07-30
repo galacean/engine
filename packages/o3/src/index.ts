@@ -1,6 +1,11 @@
 export * from "@alipay/o3-2d";
 export * from "@alipay/o3-animation";
-export { Animation, AnimationClip, AnimationClipType, Animator } from "@alipay/o3-animator";
+export {
+  Animation as AnimationNew,
+  AnimationClip as AnimationClipNew,
+  AnimationClipType,
+  Animator
+} from "@alipay/o3-animator";
 export * from "@alipay/o3-base";
 export * from "@alipay/o3-bounding-info";
 export * from "@alipay/o3-collider";

@@ -76,7 +76,7 @@ export abstract class Probe extends Component {
   /**
    * @deperated
    */
-  protected get rhi(): WebGLRenderer {
+  protected get rhi(): any {
     return this.camera.scene.engine._hardwareRenderer;
   }
 

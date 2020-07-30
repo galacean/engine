@@ -25,6 +25,8 @@ const sceneFeatureManager = new FeatureManager<SceneFeature>();
  * @class
  */
 export class Scene extends EventDispatcher {
+  /** 场景名字 */
+  public name: string;
   /**
    * @todo: migrate to camera
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
@@ -62,12 +64,12 @@ export class Scene extends EventDispatcher {
   }
 
   /**
-   * 构造函数
-   * @param {Engine} engine 引擎对象
+   * @param name - 名称
+   * @param engine - 引擎
    */
-  constructor(engine?: Engine) {
+  constructor(name?: string, engine?: Engine) {
     super();
-
+    this.name = name || "";
     this._engine = engine || Engine._getDefaultEngine();
 
     sceneFeatureManager.addObject(this);
@@ -116,9 +118,9 @@ export class Scene extends EventDispatcher {
     if (this._engine.sceneManager._scene === this) this._engine.sceneManager.scene = null;
     //继续销毁所有根节点
     sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
-    this._rootEntities.forEach((rootEntity) => {
-      rootEntity.destroy();
-    });
+    for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
+      this._rootEntities[i].destroy();
+    }
     this._rootEntities.length = 0;
     this._activeCameras.length = 0;
     (sceneFeatureManager as any)._objects = [];

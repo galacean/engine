@@ -1,7 +1,7 @@
 import { SchemaResource } from "./SchemaResource";
 import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
-import { AnimationClip, AnimationClipType, Logger } from "@alipay/o3";
+import { AnimationClipNew, AnimationClipType, Logger } from "@alipay/o3";
 export class AnimationClipSchemaResource extends SchemaResource {
   config: AssetConfig;
   load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig): Promise<AnimationClipSchemaResource> {
@@ -9,7 +9,7 @@ export class AnimationClipSchemaResource extends SchemaResource {
       this.config = assetConfig;
       const { name, props } = assetConfig;
       const { type = "Interpolation", options = {} } = props || {};
-      const assetObj = new AnimationClip(name, type, options);
+      const assetObj = new AnimationClipNew(name, type, options);
       this._resource = assetObj;
       this.setMeta();
       resolve(this);

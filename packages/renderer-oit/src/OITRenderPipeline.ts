@@ -48,7 +48,7 @@ export class OITRenderPipeline extends BasicRenderPipeline {
 
   constructor(camera: Camera) {
     super(camera);
-    const canMRT = camera.engine.hardwareRenderer.canIUse(GLCapabilityType.drawBuffers);
+    const canMRT = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.drawBuffers);
     if (!canMRT) {
       Logger.warn("检测到当前环境不支持 MRT, 性能考虑不建议开启 OIT。已为您自动降级为 BasicRenderPipeline");
       this.canOIT = false;
@@ -57,7 +57,7 @@ export class OITRenderPipeline extends BasicRenderPipeline {
 
     // 放到 JS 任务队列最后，获取真实分辨率
     setTimeout(() => {
-      const { drawingBufferWidth, drawingBufferHeight } = camera.engine.hardwareRenderer.gl;
+      const { drawingBufferWidth, drawingBufferHeight } = camera.engine._hardwareRenderer.gl;
 
       this.width = drawingBufferWidth;
       this.height = drawingBufferHeight;

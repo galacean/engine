@@ -21,7 +21,7 @@ export class OpaqueRenderPass extends RenderPass {
    * */
   preRender(camera: Camera, opaqueQueue, transparentQueue) {
     const defaultRenderPass = camera.renderPipeline.defaultRenderPass;
-    const rhi = camera.engine.hardwareRenderer;
+    const rhi = camera.engine._hardwareRenderer;
 
     this.clearParam = defaultRenderPass.clearParam;
     this.mask = defaultRenderPass.mask;

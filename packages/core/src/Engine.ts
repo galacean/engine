@@ -11,8 +11,7 @@ import { SceneManager } from "./SceneManager";
 const engineFeatureManager = new FeatureManager<EngineFeature>();
 
 /**
- * 引擎包装类，管理一组场景，并对当前的一个场景执行渲染
- * @class
+ * 引擎。
  */
 export class Engine extends EventDispatcher {
   /**
@@ -38,20 +37,21 @@ export class Engine extends EventDispatcher {
   private _paused: boolean = true;
   private _requestId: number;
   private _timeoutId: number;
-  private _timeCounter: number = 0;
+  private _loopCounter: number = 0;
+  private _interval: number = 1000 / 60;
 
   /**
    * @internal
    */
-  private _animate: FrameRequestCallback | TimerHandler = () => {
+  private _animate = () => {
     if (this._vSyncCount) {
-      if (this._timeCounter++ % this._vSyncCount === 0) {
+      if (this._loopCounter++ % this._vSyncCount === 0) {
         this._tick();
       }
-      this._requestId = requestAnimationFrame(<FrameRequestCallback>this._animate);
+      this._requestId = requestAnimationFrame(this._animate);
     } else {
       this._tick();
-      this._timeoutId = window.setTimeout(this._animate, 1000 / this._targetFrameRate);
+      this._timeoutId = window.setTimeout(this._animate, this._interval);
     }
   };
 
@@ -67,14 +67,6 @@ export class Engine extends EventDispatcher {
    */
   get canvas(): Canvas {
     return this._canvas;
-  }
-
-  /**
-   * @todo implements interface HardwareRenderer
-   * 渲染器。
-   */
-  get hardwareRenderer(): HardwareRenderer {
-    return this._hardwareRenderer;
   }
 
   /**
@@ -118,26 +110,28 @@ export class Engine extends EventDispatcher {
 
   /**
    * 目标帧率,vSyncCount = 0（即关闭垂直同步） 时生效。
+   * 值越大，目标帧率越高。 Number.POSITIVE_INFINIT 表示无穷大目标帧率
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;
   }
 
   set targetFrameRate(value: number) {
-    this._targetFrameRate = Math.max(0.1, value);
+    value = Math.max(0.000001, value);
+    this._targetFrameRate = value;
+    this._interval = 1000 / value;
   }
 
   /**
    * 创建引擎。
    * @param canvas - 渲染画布
    * @param hardwareRenderer - 渲染器
-   * @param options - 引擎初始化选项
    */
   constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
     super();
     // 加入 Feature 管理
     engineFeatureManager.addObject(this);
-    this._sceneManager.scene = new Scene(this);
+    this._sceneManager.scene = new Scene("", this);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
@@ -151,7 +145,7 @@ export class Engine extends EventDispatcher {
     this._paused = true;
     cancelAnimationFrame(this._requestId);
     clearTimeout(this._timeoutId);
-    this._timeCounter = 0;
+    this._loopCounter = 0;
   }
 
   /**

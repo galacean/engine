@@ -418,7 +418,7 @@ export class Camera extends Component {
 
   /**
    * 手动调用相机的渲染。
-   * @param cubeFaces 立方体的渲染面集合,如果设置了renderTarget并且renderTarget.isCube=true时生效
+   * @param cubeFaces - 立方体的渲染面集合,如果设置了renderTarget并且renderTarget.isCube=true时生效
    */
   public render(cubeFaces?: number /*todo:修改为TextureCubeFace类型*/): void {
     this._renderPipeline.render();

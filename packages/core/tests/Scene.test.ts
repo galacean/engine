@@ -1,5 +1,5 @@
 import { Entity, Camera, RenderableComponent } from "../";
-import { WebEngine } from "../../rhi-webgl";
+import { WebGLEngine } from "../../rhi-webgl";
 
 async function delay(ms: number) {
   return new Promise((resolve) => {
@@ -33,7 +33,7 @@ describe("Scene test", () => {
   const canvasDOM = document.createElement("canvas");
   canvasDOM.getContext = getContext;
 
-  const engine = new WebEngine(canvasDOM);
+  const engine = new WebGLEngine(canvasDOM);
   const scene = engine.scene;
   engine.run();
 
