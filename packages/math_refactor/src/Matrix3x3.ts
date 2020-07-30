@@ -2,7 +2,6 @@ import { MathUtil } from "./MathUtil";
 import { Matrix4x4 } from "./Matrix4x4";
 import { Quaternion } from "./Quaternion";
 import { Vector2 } from "./Vector2";
-import { Vector3 } from "./Vector3";
 
 /**
  * 3x3矩阵
@@ -181,13 +180,13 @@ export class Matrix3x3 {
   /**
    * 通过指定旋转生成3x3矩阵
    *
-   * @param rad - 旋转角度
+   * @param r - 旋转角度
    * @param out - 指定旋转后矩阵
    */
-  static fromRotation(rad: number, out: Matrix3x3): void {
+  static fromRotation(r: number, out: Matrix3x3): void {
     const oe = out.elements;
-    const s = Math.sin(rad);
-    const c = Math.cos(rad);
+    const s = Math.sin(r);
+    const c = Math.cos(r);
 
     oe[0] = c;
     oe[1] = s;
@@ -348,14 +347,14 @@ export class Matrix3x3 {
    * 将矩阵a按给定角度旋转，并将结果输出到out
    *
    * @param a - 矩阵
-   * @param rad - 给定的旋转角度
+   * @param r - 给定的旋转角度
    * @param out - 旋转后的矩阵
    */
-  static rotate(a: Matrix3x3, rad: number, out: Matrix3x3): void {
+  static rotate(a: Matrix3x3, r: number, out: Matrix3x3): void {
     const ae = a.elements;
     const oe = out.elements;
-    const s = Math.sin(rad);
-    const c = Math.cos(rad);
+    const s = Math.sin(r);
+    const c = Math.cos(r);
 
     const a11 = ae[0];
     const a12 = ae[1];
@@ -753,12 +752,12 @@ export class Matrix3x3 {
   /**
    * 将当前矩阵按给定角度旋转，并返回
    *
-   * @param rad - 给定的旋转角度
+   * @param r - 给定的旋转角度
    */
-  rotate(rad: number): Matrix3x3 {
+  rotate(r: number): Matrix3x3 {
     const ae = this.elements;
-    const s = Math.sin(rad);
-    const c = Math.cos(rad);
+    const s = Math.sin(r);
+    const c = Math.cos(r);
 
     const a11 = ae[0];
     const a12 = ae[1];
