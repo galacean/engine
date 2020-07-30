@@ -47,6 +47,7 @@ export class Engine extends EventDispatcher {
     if (this._vSyncCount) {
       if (this._loopCounter++ % this._vSyncCount === 0) {
         this._tick();
+        this._loopCounter = 0;
       }
       this._requestId = requestAnimationFrame(this._animate);
     } else {
