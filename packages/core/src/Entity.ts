@@ -40,7 +40,7 @@ export class Entity extends EventDispatcher {
    * @returns 节点
    */
   static findByPath(path: string, scene?: Scene): Entity | null {
-    scene || (scene = Engine._lastCreateEngine?.sceneManager.scene);
+    scene || (scene = Engine._lastCreateEngine?.sceneManager.activeScene);
     if (scene) {
       const splits = path.split("/").filter(Boolean);
       for (let i = 0, n = scene.rootEntitiesCount; i < n; i++) {

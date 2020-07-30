@@ -124,7 +124,7 @@ export class Engine extends EventDispatcher {
     super();
     // 加入 Feature 管理
     engineFeatureManager.addObject(this);
-    this._sceneManager.scene = new Scene("", this);
+    this._sceneManager.activeScene = new Scene("", this);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;

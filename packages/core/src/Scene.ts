@@ -123,7 +123,7 @@ export class Scene extends EventDispatcher {
    * 销毁场景。
    */
   destroy(): void {
-    this._isActiveInEngine && (this._engine.sceneManager.scene = null);
+    this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
     sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
       this._rootEntities[i].destroy();
