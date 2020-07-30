@@ -70,6 +70,9 @@ export class Entity extends EventDispatcher {
     return null;
   }
 
+  /**
+   * @internal
+   */
   static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
     entity._scene = scene;
     const children = entity._children;
@@ -410,15 +413,9 @@ export class Entity extends EventDispatcher {
     return oldParent;
   }
 
-  private _setActiveComponents(isActive: boolean): void {
-    const activeChangedComponents = this._activeChangedComponents;
-    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-      activeChangedComponents[i]._setActive(isActive);
-    }
-    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
-    this._activeChangedComponents = null;
-  }
-
+  /**
+   * @internal
+   */
   _processActive(): void {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
@@ -428,6 +425,9 @@ export class Entity extends EventDispatcher {
     this._setActiveComponents(true);
   }
 
+  /**
+   * @internal
+   */
   _processInActive(): void {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
@@ -435,6 +435,15 @@ export class Entity extends EventDispatcher {
     this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(false);
+  }
+
+  private _setActiveComponents(isActive: boolean): void {
+    const activeChangedComponents = this._activeChangedComponents;
+    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
+      activeChangedComponents[i]._setActive(isActive);
+    }
+    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    this._activeChangedComponents = null;
   }
 
   private _setActiveInHierarchy(activeChangedComponents: Component[]): void {
