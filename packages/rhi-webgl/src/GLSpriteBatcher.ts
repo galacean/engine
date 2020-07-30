@@ -1,8 +1,8 @@
 import { Logger } from "@alipay/o3-base";
+import { Camera } from "@alipay/o3-core";
 import { GLSprite } from "./GLSprite";
 import { createSpriteMaterial, SpriteTechnique } from "./GLSpriteMaterial";
 import { GLTechnique } from "./GLTechnique";
-import { RenderTechnique } from "@alipay/o3-material";
 
 /**
  * GL 层的 Technique 资源管理和渲染调用处理
@@ -71,9 +71,9 @@ export class GLSpriteBatcher {
    * 检查一个Sprite绘制的时候，能否和上一个Sprite合并绘制
    * @param {Texture}   texture    纹理信息
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
-   * @param {ACamera}   camera        相机信息
+   * @param {Camera}   camera        相机信息
    */
-  canBatch(texture, renderMode, camera) {
+  canBatch(texture, renderMode, camera: Camera) {
     if (this._targetTexture === null) {
       return true;
     }
@@ -87,9 +87,9 @@ export class GLSpriteBatcher {
    * @param {vec4}   tintColor     颜色
    * @param {Texture}   texture    纹理信息
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
-   * @param {ACamera}   camera        相机信息
+   * @param {Camera}   camera        相机信息
    */
-  drawSprite(positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  drawSprite(positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
     if (!this.canBatch(texture, renderMode, camera)) {
       this.flush();
     }

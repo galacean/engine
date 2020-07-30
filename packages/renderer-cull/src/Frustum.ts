@@ -27,7 +27,7 @@ export class Frustum {
 
   /**
    * 从摄像机矩阵中提取出平截头体的六个平面
-   * @param {ACamera} camera
+   * @param {Camera} camera
    */
   update(camera: Camera) {
     const planes = this._planes;

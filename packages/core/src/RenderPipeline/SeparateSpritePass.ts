@@ -1,6 +1,7 @@
 import { ClearMode } from "@alipay/o3-base";
-import { RenderPass } from "./RenderPass";
 import { vec3 } from "@alipay/o3-math";
+import { Camera } from "../Camera";
+import { RenderPass } from "./RenderPass";
 
 /**
  * Sprite 的 RenderPass，在后处理后绘制，不受后处理影响
@@ -19,7 +20,7 @@ export class SeparateSpritePass extends RenderPass {
   }
 
   /**
-   * 给 SceneRenderer 调用，判断是否需要绘制 Sprite
+   * 给 RenderPipeline 调用，判断是否需要绘制 Sprite
    */
   get isUsed() {
     return this._spriteItems.length > 0;
@@ -78,9 +79,9 @@ export class SeparateSpritePass extends RenderPass {
    * @param {vec4}   tintColor     颜色
    * @param {Texture}   texture    纹理信息
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
-   * @param {ACamera}   camera        相机信息
+   * @param {Camera}   camera        相机信息
    */
-  pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
     this._spriteItems.push({
       component,
       positionQuad,

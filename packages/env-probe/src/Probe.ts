@@ -1,18 +1,17 @@
-import { AssetType, RenderBufferDepthFormat } from "@alipay/o3-base";
-import { Camera, Entity, Component } from "@alipay/o3-core";
+import { RenderBufferDepthFormat } from "@alipay/o3-base";
+import { BasicRenderPipeline, Camera, Component, Entity, RenderPass } from "@alipay/o3-core";
 import {
   Material,
+  RenderColorTexture,
+  RenderDepthTexture,
   RenderTarget,
   Texture,
   Texture2D,
-  TextureCubeMap,
-  RenderColorTexture,
-  RenderDepthTexture
+  TextureCubeMap
 } from "@alipay/o3-material";
-import { BasicSceneRenderer, RenderPass } from "@alipay/o3-renderer-basic";
+import { Vector4 } from "@alipay/o3-math/types/type";
 import { WebGLRenderer } from "@alipay/o3-rhi-webgl";
 import { ProbeConfig } from "./type";
-import { Vector4 } from "@alipay/o3-math/types/type";
 
 let cacheId = 0;
 
@@ -38,11 +37,11 @@ export abstract class Probe extends Component {
   /** 裁剪面 */
   public clipPlanes: Vector4[];
 
-  public set camera(camera) {
+  public set camera(camera: Camera) {
     if (camera === this._camera) return;
-    this._camera && this.sceneRenderer.removeRenderPass(this.renderPass);
+    this._camera && this.renderPipeline.removeRenderPass(this.renderPass);
     this._camera = camera;
-    camera && this.sceneRenderer.addRenderPass(this.renderPass);
+    camera && this.renderPipeline.addRenderPass(this.renderPass);
   }
 
   public get camera() {
@@ -70,15 +69,15 @@ export abstract class Probe extends Component {
     return this.renderPass.renderTarget?.getColorTexture();
   }
 
-  protected get sceneRenderer(): BasicSceneRenderer {
-    return this.camera.sceneRenderer;
+  protected get renderPipeline(): BasicRenderPipeline {
+    return this.camera._renderPipeline;
   }
 
   /**
    * @deperated
    */
-  protected get rhi(): WebGLRenderer {
-    return this.camera.scene.engine.hardwareRenderer;
+  protected get rhi(): any {
+    return this.camera.scene.engine._hardwareRenderer;
   }
 
   /**
@@ -86,8 +85,8 @@ export abstract class Probe extends Component {
    * 优先级 excludeRenderList > renderAll > renderList
    */
   protected get renderItems() {
-    const opaqueQueue = this.sceneRenderer.opaqueQueue;
-    const transparentQueue = this.sceneRenderer.transparentQueue;
+    const opaqueQueue = this.renderPipeline.opaqueQueue;
+    const transparentQueue = this.renderPipeline.transparentQueue;
     return opaqueQueue.items.concat(transparentQueue.items).filter((item) => {
       if (!item.primitive) return false;
       if (this.excludeRenderList.includes(item.mtl)) return false;
@@ -119,7 +118,7 @@ export abstract class Probe extends Component {
     this.renderPass.postRender = this.postRender.bind(this);
 
     this.isCube = !!config.isCube;
-    this.camera = config.camera || this.scene.activeCameras[0];
+    this.camera = config.camera || this.scene._activeCameras[0];
     this.excludeRenderList = config.excludeRenderList || [];
     this.renderAll = !!config.renderAll;
     this.renderList = config.renderList || [];
@@ -202,7 +201,7 @@ export abstract class Probe extends Component {
    */
   public destroy(): void {
     this.enabled = false;
-    this.sceneRenderer.removeRenderPass(this.renderPass);
+    this.renderPipeline.removeRenderPass(this.renderPass);
 
     super.destroy();
 

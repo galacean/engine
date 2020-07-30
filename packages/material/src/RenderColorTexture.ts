@@ -56,7 +56,7 @@ export class RenderColorTexture extends Texture {
   ) {
     super();
     engine = engine || Engine._getDefaultEngine();
-    const rhi = engine.hardwareRenderer;
+    const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 

@@ -26,12 +26,12 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _addCheck(node: Entity, type: ComponentConstructor) {
+  static _addCheck(entity: Entity, type: ComponentConstructor) {
     // 检查是否有被依赖组件
     const dependencies = ComponentsDependencies._dependenciesMap.get(type);
     if (dependencies) {
       for (let i = 0, len = dependencies.length; i < len; i++) {
-        if (!node.getComponent(dependencies[i])) {
+        if (!entity.getComponent(dependencies[i])) {
           throw `you should add ${dependencies[i]} before adding ${type}`;
         }
       }
@@ -41,11 +41,11 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _removeCheck(node: Entity, type: ComponentConstructor) {
+  static _removeCheck(entity: Entity, type: ComponentConstructor) {
     const invDenpendencies = ComponentsDependencies._invDependenciesMap.get(type);
     if (invDenpendencies) {
       for (let i = 0, len = invDenpendencies.length; i < len; i++) {
-        if (node.getComponent(invDenpendencies[i])) {
+        if (entity.getComponent(invDenpendencies[i])) {
           throw `you should remove ${invDenpendencies[i]} before adding ${type}`;
         }
       }

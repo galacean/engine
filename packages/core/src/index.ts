@@ -1,6 +1,5 @@
 export { Engine } from "./Engine";
 export type { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
-export type { EngineOptions } from "./EngineDesign/EngineOptions";
 export type { Canvas } from "./EngineDesign/Canvas";
 export { EngineFeature } from "./EngineFeature";
 export { AssetObject } from "./asset/AssetObject";
@@ -25,3 +24,7 @@ export { AssetPromise, AssetPromiseStatus } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { LoaderType } from "./asset/LoaderType";
 export { ReferenceObject } from "./asset/ReferenceObject";
+
+export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+export { RenderQueue } from "./RenderPipeline//RenderQueue";
+export { RenderPass } from "./RenderPipeline/RenderPass";

@@ -1,8 +1,8 @@
 import { Logger } from "@alipay/o3-base";
-import { Component, Entity, Script } from "@alipay/o3-core";
-import { vec3, MathUtil, Spherical } from "@alipay/o3-math";
+import { Entity, Script } from "@alipay/o3-core";
+import { MathUtil, Spherical, vec3 } from "@alipay/o3-math";
 import { Vector3 } from "@alipay/o3-math/types/type";
-import { Tween, Easing, doTransform } from "@alipay/o3-tween";
+import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 import { vec3Type } from "./type";
 // 防止万向锁
 const ESP = MathUtil.EPSILON;
@@ -99,9 +99,8 @@ export class FreeControls extends Script {
   constructor(entity: Entity, props: { mainElement?; domElement? }) {
     super(entity);
     this.camera = entity;
-    const acamera = entity.scene.activeCameras[0];
     //@ts-ignore @todo 未来移除对html元素的依赖，通过封装引擎的input实现
-    this.mainElement = props.mainElement || acamera.scene.engine.canvas._webCanvas;
+    this.mainElement = props.mainElement || this.scene.engine.canvas._webCanvas;
     this.domElement = props.domElement || document;
 
     if (!(this.mainElement instanceof HTMLCanvasElement)) {

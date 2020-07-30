@@ -5,11 +5,11 @@ import { AnimationClipHandler } from "./animationClipHandler";
 import { LinkList } from "./linkList";
 import { NodeState } from "../types";
 
-function cloneNodeState(node): NodeState {
+function cloneNodeState(entity): NodeState {
   return {
-    position: vec3.clone(node.position),
-    rotation: vec4.clone(node.rotation),
-    scale: vec3.clone(node.scale)
+    position: vec3.clone(entity.position),
+    rotation: vec4.clone(entity.rotation),
+    scale: vec3.clone(entity.scale)
   };
 }
 export class InterpolationHandler extends AnimationClipHandler {

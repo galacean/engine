@@ -1,15 +1,20 @@
 import { ClearMode, MaskList, MaterialType } from "@alipay/o3-base";
-import { Camera, SceneVisitor, Component } from "@alipay/o3-core";
-import { Material, RenderTarget } from "@alipay/o3-material";
+import { Camera } from "../Camera";
+import { SceneVisitor } from "../SceneVisitor";
+import { Component } from "../Component";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 import { SeparateSpritePass } from "./SeparateSpritePass";
+
+/** @todo: monorepo circle dependence */
+type RenderTarget = any;
+type Material = any;
 
 /**
  * 使用指定的CameraComponent对象，渲染当前场景中的所有可见对象
  * @class
  */
-export class BasicSceneRenderer extends SceneVisitor {
+export class BasicRenderPipeline extends SceneVisitor {
   protected _camera: Camera;
   private _opaqueQueue: RenderQueue;
   private _transparentQueue: RenderQueue;
@@ -123,7 +128,7 @@ export class BasicSceneRenderer extends SceneVisitor {
    */
   render() {
     const camera = this._camera;
-    if (!camera.scene.engine.hardwareRenderer) {
+    if (!camera.scene.engine._hardwareRenderer) {
       return;
     }
     const opaqueQueue = this._opaqueQueue;
@@ -202,9 +207,9 @@ export class BasicSceneRenderer extends SceneVisitor {
    * @param {vec4}   tintColor     颜色
    * @param {Texture}   texture    纹理信息
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
-   * @param {ACamera}   camera        相机信息
+   * @param {Camera}   camera        相机信息
    */
-  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
     if ((component as any).separateDraw) {
       if (!this._separateSpritePass) {
         this._separateSpritePass = new SeparateSpritePass();

@@ -6,8 +6,8 @@ export default class Rotation extends Script {
   public deg;
   public dDeg;
 
-  constructor(node) {
-    super(node);
+  constructor(entity) {
+    super(entity);
 
     this.axis = new Float32Array([0, 1, 0]);
     this.deg = 0;

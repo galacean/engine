@@ -1,7 +1,7 @@
-import { SceneFeature } from "@alipay/o3-core";
 import { Logger } from "@alipay/o3-base";
-import { HUDTextureMapper } from "./HUDTextureMapper";
+import { Camera, SceneFeature } from "@alipay/o3-core";
 import { HUDTexture } from "./HUDTexture";
+import { HUDTextureMapper } from "./HUDTextureMapper";
 
 /**
  * 判断场景中是否有灯光
@@ -44,9 +44,9 @@ export class HUDFeature extends SceneFeature {
    * @param {AHUDWidget} widget HUD控件
    * @private
    */
-  attachWidget(rhi, widget) {
+  attachWidget(widget) {
     if (!this._texture) {
-      this.initTexture(rhi);
+      this.initTexture();
     }
 
     const index = this._widgets.indexOf(widget);
@@ -127,9 +127,9 @@ export class HUDFeature extends SceneFeature {
   /**
    * 场景渲染前的回调
    * @param {Scene} scene
-   * @param {ACamera} camera
+   * @param {Camera} camera
    */
-  preRender(scene, camera) {
+  preRender(scene, camera: Camera) {
     //-- update texture
     if (this._dirtyRects.length > 0) {
       this._texture.updateDirtyRects(this._dirtyRects);

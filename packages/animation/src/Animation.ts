@@ -425,7 +425,7 @@ export class Animation extends Component {
   }
 
   /**
-   * node inActiveInHierarchy时 或 组件销毁前调用
+   * entity inActiveInHierarchy时 或 组件销毁前调用
    * @override
    * @internal
    */

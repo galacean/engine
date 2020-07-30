@@ -1,15 +1,15 @@
 import { GLCapabilityType, Logger, OITMode } from "@alipay/o3-base";
-import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
+import { BasicRenderPipeline, Camera } from "@alipay/o3-core";
 import { OpaqueRenderPass } from "./OpaqueRenderPass";
-import { WeightedAverageRenderPass } from "./WeightedAverageRenderPass";
 import { ScreenRenderPass } from "./ScreenRenderPass";
+import { WeightedAverageRenderPass } from "./WeightedAverageRenderPass";
 
 /**
  * OIT(Order Independent Transparency,次序无关透明度渲染)
  * 开启后，场景中的 PBR 透明材质将自动使用 OIT.
  * // todo: 目前 OIT 依赖于 MRT ，待定: 非 MRT 时是否需要支持开启 OIT
  * */
-export class OITSceneRenderer extends BasicSceneRenderer {
+export class OITRenderPipeline extends BasicRenderPipeline {
   /** 是否支持 OIT  */
   public canOIT = true;
 
@@ -46,18 +46,18 @@ export class OITSceneRenderer extends BasicSceneRenderer {
     return this.opaqueRenderPass.renderTarget.depthTexture;
   }
 
-  constructor(camera) {
+  constructor(camera: Camera) {
     super(camera);
-    const canMRT = camera.renderHardware.canIUse(GLCapabilityType.drawBuffers);
+    const canMRT = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.drawBuffers);
     if (!canMRT) {
-      Logger.warn("检测到当前环境不支持 MRT, 性能考虑不建议开启 OIT。已为您自动降级为 BasicSceneRenderer");
+      Logger.warn("检测到当前环境不支持 MRT, 性能考虑不建议开启 OIT。已为您自动降级为 BasicRenderPipeline");
       this.canOIT = false;
       return;
     }
 
     // 放到 JS 任务队列最后，获取真实分辨率
     setTimeout(() => {
-      const { drawingBufferWidth, drawingBufferHeight } = camera.renderHardware.gl;
+      const { drawingBufferWidth, drawingBufferHeight } = camera.engine._hardwareRenderer.gl;
 
       this.width = drawingBufferWidth;
       this.height = drawingBufferHeight;
