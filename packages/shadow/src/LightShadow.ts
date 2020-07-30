@@ -88,7 +88,7 @@ export class LightShadow {
      * 点光源初始化投影矩阵，默认配置：fov: 50, aspect: 1, near: 0.5, far: 50
      */
     if (light instanceof PointLight) {
-      mat4.perspective(this.projectionMatrix, MathUtil.toRadian(50), 1, 0.5, 50);
+      mat4.perspective(this.projectionMatrix, MathUtil.degreeToRadian(50), 1, 0.5, 50);
     }
 
     /**

@@ -235,7 +235,7 @@ export class Camera extends Component {
     if (!this._isOrthographic) {
       mat4.perspective(
         this._projectionMatrix,
-        MathUtil.toRadian(this._fieldOfView),
+        MathUtil.degreeToRadian(this._fieldOfView),
         aspectRatio,
         this._nearClipPlane,
         this._farClipPlane

@@ -398,7 +398,7 @@ export class Transform extends Component {
    */
   lookAt(worldPosition: Vector3, worldUp?: Vector3): void {
     const position = this.worldPosition;
-    const EPSILON = MathUtil.EPSILON;
+    const EPSILON = MathUtil.ZeroTolerance;
     if (
       //todo:如果数学苦做保护了的话，可以删除
       Math.abs(position[0] - worldPosition[0]) < EPSILON &&

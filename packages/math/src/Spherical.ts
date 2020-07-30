@@ -1,4 +1,5 @@
-import { Vector3, MathUtil } from "./index";
+import { MathUtil } from "./MathUtil";
+import { Vector3 } from "./Vector3";
 
 // 防止万向锁
 const ESP = MathUtil.ZeroTolerance;

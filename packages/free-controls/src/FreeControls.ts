@@ -5,10 +5,10 @@ import { Vector3 } from "@alipay/o3-math/types/type";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 import { vec3Type } from "./type";
 // 防止万向锁
-const ESP = MathUtil.EPSILON;
+const ESP = MathUtil.ZeroTolerance;
 
 function includes(array, ...filterArray) {
-  return filterArray.some((e) => array.indexOf(e) !== -1);
+  return filterArray.some(e => array.indexOf(e) !== -1);
 }
 
 const tween = new Tween();
@@ -258,8 +258,8 @@ export class FreeControls extends Script {
    * @param {number} beta - 绕x轴旋转的deg
    * */
   rotate(alpha: number = 0, beta: number = 0): void {
-    this._theta += MathUtil.toRadian(alpha);
-    this._phi += MathUtil.toRadian(beta);
+    this._theta += MathUtil.degreeToRadian(alpha);
+    this._phi += MathUtil.degreeToRadian(beta);
     this._phi = MathUtil.clamp(this._phi, ESP, Math.PI - ESP);
     this._spherical.theta = this._theta;
     this._spherical.phi = this._phi;
@@ -343,7 +343,7 @@ export class FreeControls extends Script {
 
   /**注册浏览器事件*/
   initEvents(): void {
-    this._events.forEach((ele) => {
+    this._events.forEach(ele => {
       if (ele.element) {
         ele.element.addEventListener(ele.type, ele.listener, false);
       } else {
@@ -356,7 +356,7 @@ export class FreeControls extends Script {
    * dispose all events
    * */
   destroy(): void {
-    this._events.forEach((ele) => {
+    this._events.forEach(ele => {
       if (ele.element) {
         ele.element.removeEventListener(ele.type, ele.listener, false);
       } else {
