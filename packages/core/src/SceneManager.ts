@@ -10,11 +10,11 @@ export class SceneManager {
   /**
    * 当前激活场景。
    */
-  get scene(): Scene {
+  get activeScene(): Scene {
     return this._scene;
   }
 
-  set scene(scene: Scene) {
+  set activeScene(scene: Scene) {
     const oldScene = this._scene;
     if (oldScene !== scene) {
       oldScene && oldScene._processActive(false);
