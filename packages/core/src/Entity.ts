@@ -310,6 +310,17 @@ export class Entity extends EventDispatcher {
   }
 
   /**
+   * 创建子节点。
+   * @param name - 名称
+   * @returns 子节点
+   */
+  createChild(name?: string): Entity {
+    const child = new Entity(name, this.engine);
+    child.parent = this;
+    return child;
+  }
+
+  /**
    * 清空子节点。
    */
   clearChildren(): void {
@@ -460,18 +471,6 @@ export class Entity extends EventDispatcher {
         this._children[i]._setTransformDirty();
       }
     }
-  }
-
-  //--------------------------------------------TobeConfirmed-------------------------------------------------
-  /**
-   * 创建子节点
-   * @param {string} name 子节点的名称
-   * @return {Entity} 新创建的子节点对象
-   */
-  createChild(name: string): Entity {
-    const child = new Entity(name, this.engine);
-    child.parent = this;
-    return child;
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
