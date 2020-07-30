@@ -56,13 +56,6 @@ export class Engine extends EventDispatcher {
   };
 
   /**
-   * 引擎当前场景
-   */
-  get scene(): Scene {
-    return this._sceneManager?._scene;
-  }
-
-  /**
    * 渲染画布。
    */
   get canvas(): Canvas {

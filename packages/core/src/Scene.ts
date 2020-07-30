@@ -101,7 +101,7 @@ export class Scene extends EventDispatcher {
     }
 
     //process entity active/inActive
-    if (this._engine.scene == this) {
+    if (this._engine.sceneManager._scene == this) {
       !entity._isActiveInHierarchy && entity._isActive && entity._processActive();
     } else {
       entity._isActiveInHierarchy && entity._processInActive();
@@ -115,7 +115,7 @@ export class Scene extends EventDispatcher {
   public removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
       this._removeEntity(entity);
-      this._engine.scene == this && entity._processInActive();
+      this._engine.sceneManager._scene == this && entity._processInActive();
       Entity._traverseSetOwnerScene(entity, null);
     }
   }

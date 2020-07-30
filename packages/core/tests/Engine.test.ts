@@ -68,7 +68,7 @@ describe("Engine test", () => {
         const engine = new WebGLEngine(canvasDOM);
 
         engine.destroy();
-        expect(engine.scene).toBeUndefined();
+        expect(engine.sceneManager.scene).toBeUndefined();
         expect(engine.isPaused).toBeTruthy();
       });
     });
@@ -78,14 +78,14 @@ describe("Engine test", () => {
     it("默认 scene", () => {
       const engine = new WebGLEngine(canvasDOM);
 
-      expect(engine.scene).toBeInstanceOf(Scene);
+      expect(engine.sceneManager.scene).toBeInstanceOf(Scene);
     });
     it("销毁 scene", () => {
       const engine = new WebGLEngine(canvasDOM);
-      const scene = engine.scene;
+      const scene = engine.sceneManager.scene;
       scene.destroy();
 
-      expect(engine.scene).toBeNull();
+      expect(engine.sceneManager.scene).toBeNull();
     });
   });
 
