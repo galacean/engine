@@ -1,6 +1,5 @@
 export { Engine } from "./Engine";
 export type { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
-export type { EngineOptions } from "./EngineDesign/EngineOptions";
 export type { Canvas } from "./EngineDesign/Canvas";
 export { EngineFeature } from "./EngineFeature";
 export { AssetObject } from "./AssetObject";
@@ -18,3 +17,7 @@ export { dependencies } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { UpdateFlag } from "./UpdateFlag";
+
+export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+export { RenderQueue } from "./RenderPipeline//RenderQueue";
+export { RenderPass } from "./RenderPipeline/RenderPass";

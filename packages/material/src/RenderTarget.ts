@@ -42,7 +42,6 @@ export class RenderTarget extends AssetObject {
 
   /**
    * 深度纹理。
-   * @todo 以后命名调整为depthTexture
    */
   get depthTexture(): RenderDepthTexture | null {
     return this._depthTexture;
@@ -141,7 +140,7 @@ export class RenderTarget extends AssetObject {
   ) {
     super("");
     engine = engine || Engine._getDefaultEngine();
-    const rhi = engine.hardwareRenderer;
+    const rhi = engine._hardwareRenderer;
 
     /** todo
      * MRT + Cube + [,MSAA]

@@ -63,7 +63,6 @@
     "@alipay/o3-pbr": "2.3.2",
     "@alipay/o3-primitive": "2.3.2",
     "@alipay/o3-raycast": "2.3.2",
-    "@alipay/o3-renderer-basic": "2.3.2",
     "@alipay/o3-renderer-cull": "2.3.2",
     "@alipay/o3-request": "2.3.2",
     "@alipay/o3-rfui": "2.3.2",

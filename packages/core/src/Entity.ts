@@ -13,7 +13,7 @@ import { UpdateFlag } from "./UpdateFlag";
  * 节点类,可作为组件的容器。
  */
 export class Entity extends EventDispatcher {
-  public static _entitys: DisorderedArray<Entity> = new DisorderedArray();
+  static _entitys: DisorderedArray<Entity> = new DisorderedArray();
 
   /**
    * 根据名字全局查找节点。
@@ -36,24 +36,24 @@ export class Entity extends EventDispatcher {
   /**
    * 根据路径全局查找节点，使用‘/’符号作为路径分割符。
    * @param path - 路径
-   * @param scene - @deprecated 兼容参数
+   * @param scene - 查找场景，如果为则使用最新创建 Engine 的激活场景
    * @returns 节点
    */
-  static findByPath(path: string, scene: Scene /*@deprecated*/): Entity {
-    const splits = path.split("/");
-    const rootNode = scene.root;
-    if (!rootNode) return null; //scene or scene.root maybe destroyed
-    let entity: Entity = rootNode;
-    for (let i = 0, spitLength = splits.length; i < spitLength; ++i) {
-      const split = splits[i];
-      if (split) {
-        entity = Entity._findChildByName(entity, split);
-        if (!entity) {
-          return null;
+  static findByPath(path: string, scene?: Scene): Entity | null {
+    scene || (scene = Engine._lastCreateEngine?.sceneManager.scene);
+    if (scene) {
+      const splits = path.split("/").filter(Boolean);
+      for (let i = 0, n = scene.rootEntitiesCount; i < n; i++) {
+        let findEntity = scene.getRootEntity(i);
+        if (findEntity.name != splits[0]) continue;
+        for (let j = 1, m = splits.length; j < m; ++j) {
+          findEntity = Entity._findChildByName(findEntity, splits[j]);
+          if (!findEntity) break;
         }
+        return findEntity;
       }
     }
-    return entity;
+    return null;
   }
 
   /**
@@ -70,16 +70,18 @@ export class Entity extends EventDispatcher {
     return null;
   }
 
-  private static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
+  static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
+    entity._scene = scene;
+    const children = entity._children;
     for (let i = entity.childCount - 1; i >= 0; i--) {
-      const child = entity._children[i];
-      child._scene = scene;
-      this._traverseSetOwnerScene(child, scene);
+      this._traverseSetOwnerScene(children[i], scene);
     }
   }
 
-  /* 名字。 */
+  /* 名字。*/
   name: string;
+  /* 变换。*/
+  readonly transform: Transform;
 
   /* @internal */
   _isActiveInHierarchy: boolean = false;
@@ -91,12 +93,12 @@ export class Entity extends EventDispatcher {
   _scene: Scene;
   /* @internal */
   _isRoot: boolean = false;
+  /* @internal */
+  _isActive: boolean = true;
 
   private _engine: Engine;
-  private _active: boolean = true;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
-  public readonly transform: Transform;
 
   /** @deprecated */
   private _invModelMatrix: Matrix4 = mat4.create();
@@ -105,11 +107,11 @@ export class Entity extends EventDispatcher {
    * 是否局部激活。
    */
   get isActive(): boolean {
-    return this._active;
+    return this._isActive;
   }
   set isActive(value: boolean) {
-    if (value !== this._active) {
-      this._active = value;
+    if (value !== this._isActive) {
+      this._isActive = value;
       if (value) {
         const parent = this._parent;
         //CM:还需要判断场景是否激活,具体逻辑可为先判断parent是否为空,不为空判断parent._isActiveInHierarch，为空判断scene._isActive
@@ -140,34 +142,28 @@ export class Entity extends EventDispatcher {
 
   set parent(entity: Entity) {
     if (entity !== this._parent) {
-      const oldParent = this._parent;
-      if (oldParent != null) {
-        const oldParentChildren = oldParent._children;
-        oldParentChildren.splice(oldParentChildren.indexOf(this), 1);
-      }
+      const oldParent = this._removeFromParent();
       const newParent = (this._parent = entity);
       if (newParent) {
         newParent._children.push(this);
         const parentScene = newParent._scene;
         if (this._scene !== parentScene) {
-          this._scene = parentScene;
           Entity._traverseSetOwnerScene(this, parentScene);
         }
 
         if (newParent._isActiveInHierarchy) {
-          !this._isActiveInHierarchy && this._active && this._processActive();
+          !this._isActiveInHierarchy && this._isActive && this._processActive();
         } else {
           this._isActiveInHierarchy && this._processInActive();
         }
       } else {
         this._isActiveInHierarchy && this._processInActive();
         if (oldParent) {
-          this._scene = null;
           Entity._traverseSetOwnerScene(this, null);
         }
       }
+      this._setTransformDirty();
     }
-    this._setTransformDirty();
   }
 
   /**
@@ -188,13 +184,13 @@ export class Entity extends EventDispatcher {
    * 所属引擎。
    */
   get engine(): Engine {
-    return this._scene.engine;
+    return this._engine;
   }
 
   /**
    * 创建一个节点。
    * @param name - 名字
-   * @param engine - 所属Engine
+   * @param engine - 所属 Engine
    */
   constructor(name?: string, engine?: Engine) {
     super();
@@ -322,8 +318,7 @@ export class Entity extends EventDispatcher {
       const child = children[i];
       child._parent = null;
       child._isActiveInHierarchy && child._processInActive();
-      child._scene = null; // must after child._processInActive()
-      Entity._traverseSetOwnerScene(child, null);
+      Entity._traverseSetOwnerScene(child, null); // must after child._processInActive()
     }
     children.length = 0;
   }
@@ -335,7 +330,7 @@ export class Entity extends EventDispatcher {
   clone(): Entity {
     const newNode = new Entity(this.name, this._engine);
 
-    newNode._active = this._active;
+    newNode._isActive = this._isActive;
     newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
 
     newNode.transform.localMatrix = this.transform.localMatrix;
@@ -391,6 +386,19 @@ export class Entity extends EventDispatcher {
     components.splice(components.indexOf(component), 1);
   }
 
+  /**
+   * @internal
+   */
+  _removeFromParent(): Entity {
+    const oldParent = this._parent;
+    if (oldParent != null) {
+      const oldParentChildren = oldParent._children;
+      oldParentChildren.splice(oldParentChildren.indexOf(this), 1);
+      this._parent = null;
+    }
+    return oldParent;
+  }
+
   private _setActiveComponents(isActive: boolean): void {
     const activeChangedComponents = this._activeChangedComponents;
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
@@ -400,7 +408,7 @@ export class Entity extends EventDispatcher {
     this._activeChangedComponents = null;
   }
 
-  private _processActive(): void {
+  _processActive(): void {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
@@ -409,7 +417,7 @@ export class Entity extends EventDispatcher {
     this._setActiveComponents(true);
   }
 
-  private _processInActive(): void {
+  _processInActive(): void {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
     }
@@ -460,7 +468,7 @@ export class Entity extends EventDispatcher {
    * @param {string} name 子节点的名称
    * @return {Entity} 新创建的子节点对象
    */
-  public createChild(name: string): Entity {
+  createChild(name: string): Entity {
     const child = new Entity(name, this.engine);
     child.parent = this;
     return child;
@@ -524,7 +532,7 @@ export class Entity extends EventDispatcher {
    * 取得World to Local矩阵
    * @return {mat4}
    */
-  public getInvModelMatrix(): Matrix4 {
+  getInvModelMatrix(): Matrix4 {
     if (this._inverseWorldMatFlag.flag) {
       mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
       this._inverseWorldMatFlag.flag = false;

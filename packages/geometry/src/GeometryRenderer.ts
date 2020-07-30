@@ -80,7 +80,7 @@ export class GeometryRenderer extends RenderableComponent {
     }
 
     if (geometry.primitive && this._material) {
-      camera.sceneRenderer.pushPrimitive(this, geometry.primitive, this._material);
+      camera._renderPipeline.pushPrimitive(this, geometry.primitive, this._material);
     } else {
       Logger.error("primitive or  material is null");
     }

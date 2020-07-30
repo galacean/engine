@@ -1,4 +1,4 @@
-import { RenderableComponent } from "@alipay/o3-core";
+import { RenderableComponent, Camera, Entity } from "@alipay/o3-core";
 import { vec3, vec4, quat } from "@alipay/o3-math";
 import { Texture2D } from "@alipay/o3-material";
 import { Logger } from "@alipay/o3-base";
@@ -53,7 +53,7 @@ export class SpriteRenderer extends RenderableComponent {
    * @param {Entity} entity
    * @param {Sprite} sprite
    */
-  constructor(entity, sprite) {
+  constructor(entity: Entity, sprite) {
     super(entity);
 
     const { texture, rect, anchor, worldSizeFactor } = sprite;
@@ -179,12 +179,12 @@ export class SpriteRenderer extends RenderableComponent {
 
   /**
    * 更新位置，将数据对象加入渲染队列
-   * @param {ACamera} camera
+   * @param {Camera} camera
    */
-  render(camera) {
+  render(camera: Camera) {
     this._updatePositionQuad(camera);
     this._transformByMatrix();
-    camera.sceneRenderer.pushSprite(
+    camera._renderPipeline.pushSprite(
       this,
       this._positionQuad,
       this._uvRect,
@@ -239,7 +239,7 @@ export class SpriteRenderer extends RenderableComponent {
 
   /**
    * 更新顶点位置
-   * @param {ACamera} camera
+   * @param {Camera} camera
    * @private
    */
   _updatePositionQuad(camera) {

@@ -28,7 +28,7 @@ export class TextureCubeMap extends Texture {
   constructor(size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true, engine?: Engine) {
     super("");
     engine = engine || Engine._getDefaultEngine();
-    const rhi = engine.hardwareRenderer;
+    const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 
@@ -75,7 +75,7 @@ export class TextureCubeMap extends Texture {
    * @param width - 区域宽。如果为空的话 width 为 mipLevel 对应的宽度减去 x , mipLevel 对应的宽度为 Math.max(1, this.width >> mipLevel)
    * @param height - 区域高。如果为空的话 height 为 mipLevel 对应的高度减去 y , mipLevel 对应的高度为 Math.max(1, this.height >> mipLevel)
    */
-  public setPixelBuffer(
+  setPixelBuffer(
     face: TextureCubeFace,
     colorBuffer: ArrayBufferView,
     mipLevel: number = 0,
@@ -148,7 +148,7 @@ export class TextureCubeMap extends Texture {
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    */
-  public setImageSource(
+  setImageSource(
     face: TextureCubeFace,
     imageSource: TexImageSource,
     mipLevel: number = 0,
@@ -184,7 +184,7 @@ export class TextureCubeMap extends Texture {
    * @param height - 区域高
    * @param out - 颜色数据缓冲
    */
-  public getPixelBuffer(
+  getPixelBuffer(
     face: TextureCubeFace,
     x: number,
     y: number,

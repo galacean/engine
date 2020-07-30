@@ -1,7 +1,11 @@
+import { MaskList } from "@alipay/o3-base";
 import { vec3 } from "@alipay/o3-math";
-import { Logger, MaskList } from "@alipay/o3-base";
-import { Camera, Component } from "@alipay/o3-core";
-import { Material } from "@alipay/o3-material";
+import { Camera } from "../Camera";
+import { Component } from "../Component";
+
+/** @todo: monorepo circle dependence */
+type RenderTarget = any;
+type Material = any;
 
 /**
  * 渲染队列管理
@@ -95,9 +99,9 @@ export class RenderQueue {
    * @param {vec4}   tintColor     颜色
    * @param {Texture}   texture    纹理信息
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
-   * @param {ACamera}   camera        相机信息
+   * @param {Camera}   camera        相机信息
    */
-  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
     this._items.push({
       component,
       positionQuad,
@@ -111,12 +115,12 @@ export class RenderQueue {
 
   /**
    * 执行渲染操作
-   * @param {ACamera} camera 当前的摄像机
+   * @param {Camera} camera 当前的摄像机
    * @param {Material} replaceMaterial 替换模型自身的材质
    * @param {number} mask 渲染过滤使用的mask
    */
   render(camera: Camera, replaceMaterial: Material, mask: MaskList) {
-    const rhi = camera.scene.engine.hardwareRenderer;
+    const rhi = camera.scene.engine._hardwareRenderer;
     const items = this._items;
 
     // 如果没有items不需要渲染

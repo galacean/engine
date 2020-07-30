@@ -1,4 +1,4 @@
-import { RenderPass } from "@alipay/o3-renderer-basic";
+import { Camera, RenderPass } from "@alipay/o3-core";
 
 /**
  * RednerPass 对象
@@ -22,11 +22,11 @@ export class ShadowMapPass extends RenderPass {
 
   /**
    * Pass 渲染前调用
-   * @param {ACamera} camera 相机
+   * @param {Camera} camera 相机
    * @param {RenderQueue} opaqueQueue 不透明物体渲染队列
    * @param {RenderQueue} transparentQueue 透明物体渲染队列
    */
-  preRender(camera, opaqueQueue, transparentQueue) {
+  preRender(camera: Camera, opaqueQueue, transparentQueue) {
     // 光源视点 VP 矩阵
     this.replaceMaterial.setValue("u_viewMatFromLight", this.light.viewMatrix);
     this.replaceMaterial.setValue("u_projMatFromLight", this.light.shadow.projectionMatrix);

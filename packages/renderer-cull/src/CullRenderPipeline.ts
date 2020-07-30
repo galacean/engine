@@ -1,11 +1,11 @@
 "use strict";
 
-import { BasicSceneRenderer } from "@alipay/o3-renderer-basic";
+import { BasicRenderPipeline } from "@alipay/o3-core";
 import { Frustum } from "./Frustum";
 import { OBB } from "@alipay/o3-bounding-info";
 import { Primitive } from "@alipay/o3-primitive";
 
-export class SceneRenderer extends BasicSceneRenderer {
+export class CullRenderPipeline extends BasicRenderPipeline {
   private _frustum: Frustum;
 
   constructor(camera) {

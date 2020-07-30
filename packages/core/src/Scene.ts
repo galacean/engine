@@ -1,4 +1,4 @@
-import { Logger, Util, Event, EventDispatcher, MaskList } from "@alipay/o3-base";
+import { Logger, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { FeatureManager } from "./FeatureManager";
 import { Entity } from "./Entity";
 import { Engine } from "./Engine";
@@ -8,6 +8,7 @@ import { Vector4 } from "@alipay/o3-math/types/type";
 import { ComponentsManager } from "./ComponentsManager";
 
 /*
+@todo: delete
 Scene Feature:
 {
  type: "type_name",
@@ -20,74 +21,130 @@ Scene Feature:
 const sceneFeatureManager = new FeatureManager<SceneFeature>();
 
 /**
- * 场景：管理 SceneGraph 中的所有对象，并执行每帧的更新计算和渲染操作
- * @class
+ * 场景。
  */
 export class Scene extends EventDispatcher {
-  /** 当前的 Engine 对象
-   * @member {Engine}
-   * @readonly
+  /** 场景名字 */
+  name: string;
+  /**
+   * @private
+   * @deprecated
+   * @todo: migrate to camera
+   * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
+   * @example
+   * scene.clipPlanes = [[0,1,0,0]];
+   * */
+  clipPlanes: Vector4[] = [];
+
+  _componentsManager: ComponentsManager = new ComponentsManager();
+  _activeCameras: Camera[] = [];
+
+  private _engine: Engine;
+  private _destroyed: boolean = false;
+  private _rootEntities: Entity[] = [];
+
+  /**
+   * 当前的所属 Engine。
    */
   get engine(): Engine {
     return this._engine;
   }
 
   /**
-   * SceneGraph 的 Root 节点
-   * @remarks 一般情况下，Root节点的Transform应该保持默认值，其值为单位矩阵
-   * @member {Entity}
-   * @readonly
+   * 根节点的数量。
    */
-  get root(): Entity {
-    return this._root;
+  get rootEntitiesCount(): number {
+    return this._rootEntities.length;
   }
-
-  get activeCameras(): Camera[] {
-    return this._activeCameras;
-  }
-
-  public static registerFeature(Feature: new () => SceneFeature) {
-    sceneFeatureManager.registerFeature(Feature);
-  }
-
-  public features: SceneFeature[] = [];
-
-  private _activeCameras: Camera[];
-
-  private _engine: Engine;
-
-  private _root: Entity;
 
   /**
-   * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
-   * @example
-   * scene.clipPlanes = [[0,1,0,0]];
-   * @todo 类型修改
-   * */
-  public clipPlanes: Vector4[] = [];
-
-  public _componentsManager: ComponentsManager;
+   * 是否已销毁。
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
+  }
 
   /**
-   * 构造函数
-   * @param {Engine} engine 引擎对象
+   * @param name - 名称
+   * @param engine - 引擎
    */
-  constructor(engine: Engine) {
+  constructor(name?: string, engine?: Engine) {
     super();
+    this.name = name || "";
+    this._engine = engine || Engine._getDefaultEngine();
 
-    this._engine = engine;
-    this._componentsManager = new ComponentsManager();
-    const root = new Entity("__root__", engine);
-    root._isRoot = true;
-    root._isActiveInHierarchy = true; //CM:需要根据判断场景是否激活决定ï
-    root._scene = this;
-    this._root = root;
-    this._activeCameras = [];
     sceneFeatureManager.addObject(this);
   }
 
-  public findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
-    return sceneFeatureManager.findFeature(this, Feature) as T;
+  /**
+   * 添加根节点。
+   * @param entity - 根节点
+   */
+  addRootEntity(entity: Entity): void {
+    const isRoot = entity._isRoot;
+
+    //let entity become root
+    if (!isRoot) {
+      entity._isRoot = true;
+      entity._removeFromParent();
+    }
+
+    //add or remove from scene's rootEntities
+    const oldScene = entity._scene;
+    if (oldScene !== this) {
+      if (oldScene && isRoot) {
+        oldScene._removeEntity(entity);
+      }
+      this._rootEntities.push(entity);
+      Entity._traverseSetOwnerScene(entity, this);
+    } else if (!isRoot) {
+      this._rootEntities.push(entity);
+    }
+
+    //process entity active/inActive
+    if (this._engine.sceneManager._scene == this) {
+      !entity._isActiveInHierarchy && entity._isActive && entity._processActive();
+    } else {
+      entity._isActiveInHierarchy && entity._processInActive();
+    }
+  }
+
+  /**
+   * 移除根节点。
+   * @param entity - 根节点
+   */
+  removeRootEntity(entity: Entity): void {
+    if (entity._isRoot && entity._scene == this) {
+      this._removeEntity(entity);
+      this._engine.sceneManager._scene == this && entity._processInActive();
+      Entity._traverseSetOwnerScene(entity, null);
+    }
+  }
+
+  /**
+   * 通过索引获取根节点。
+   * @param index - 索引
+   */
+  getRootEntity(index: number = 0): Entity | null {
+    return this._rootEntities[index];
+  }
+
+  /**
+   * 销毁场景。
+   */
+  destroy(): void {
+    if (this._engine.sceneManager._scene === this) this._engine.sceneManager.scene = null;
+    //继续销毁所有根节点
+    sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
+    for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
+      this._rootEntities[i].destroy();
+    }
+    this._rootEntities.length = 0;
+    this._activeCameras.length = 0;
+    (sceneFeatureManager as any)._objects = [];
+    this._componentsManager.callComponentDestory();
+    this._componentsManager = null;
+    this._destroyed = true;
   }
 
   /**
@@ -95,7 +152,7 @@ export class Scene extends EventDispatcher {
    * @param {number} deltaTime 两帧之间的时间
    * @private
    */
-  public update(deltaTime: number): void {
+  update(deltaTime: number): void {
     this._componentsManager.callScriptOnStart();
     this._componentsManager.callScriptOnUpdate(deltaTime);
     this._componentsManager.callAnimationUpdate(deltaTime);
@@ -105,7 +162,7 @@ export class Scene extends EventDispatcher {
   /** 渲染：场景中的每个摄像机执行一次渲染
    * @private
    */
-  public render(): void {
+  render(): void {
     const cameras = this._activeCameras;
     const deltaTime = this._engine.time.deltaTime;
     this._componentsManager.callRendererOnUpdate(deltaTime);
@@ -115,8 +172,8 @@ export class Scene extends EventDispatcher {
       cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
-        const cameraNode = camera.entity;
-        if (camera.enabled && cameraNode.isActiveInHierarchy) {
+        const cameraEntity = camera.entity;
+        if (camera.enabled && cameraEntity.isActiveInHierarchy) {
           //@todo 后续优化
           this._componentsManager.callCameraOnBeginRender(camera);
           camera.render();
@@ -134,7 +191,7 @@ export class Scene extends EventDispatcher {
    * @param {CameraComponent} camera 摄像机对象
    * @private
    */
-  public attachRenderCamera(camera: Camera): void {
+  attachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index === -1) {
       this._activeCameras.push(camera);
@@ -148,7 +205,7 @@ export class Scene extends EventDispatcher {
    * @param {CameraComponent} camera 摄像机对象
    * @private
    */
-  public detachRenderCamera(camera: Camera): void {
+  detachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index !== -1) {
       this._activeCameras.splice(index, 1);
@@ -156,30 +213,31 @@ export class Scene extends EventDispatcher {
   }
 
   /**
-   * 使用名称查找 Entity 对象
-   * @param {string} name 对象名称
-   * @return {Entity}
+   * @internal
    */
-  public findObjectByName(name: string): Entity {
-    if (this._root.name === name) {
-      return this._root;
+  _processActive(active: boolean): void {
+    const rootEntities = this._rootEntities;
+    for (let i = rootEntities.length - 1; i >= 0; i--) {
+      const entity = rootEntities[i];
+      if (entity._isActive) {
+        active ? entity._processActive() : entity._processInActive();
+      }
     }
-    return this._root.findByName(name);
   }
 
-  /**
-   * 射线
-   * @param ray
-   */
-  public raycast(ray: { origin: number[]; direction: number[] }, outPos?: number[], tag?: MaskList): any {}
-
-  /** 销毁当前场景中的数据 */
-  public destroy(): void {
-    sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
-    this._root.destroy();
-    this._root = null;
-    this._activeCameras = null;
-    (sceneFeatureManager as any)._objects = [];
-    this._componentsManager = null;
+  private _removeEntity(entity: Entity): void {
+    const oldRootEntities = this._rootEntities;
+    oldRootEntities.splice(oldRootEntities.indexOf(entity), 1);
   }
+
+  //-----------------------------------------@deprecated-----------------------------------
+  static registerFeature(Feature: new () => SceneFeature) {
+    sceneFeatureManager.registerFeature(Feature);
+  }
+
+  findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
+    return sceneFeatureManager.findFeature(this, Feature) as T;
+  }
+
+  features: SceneFeature[] = [];
 }

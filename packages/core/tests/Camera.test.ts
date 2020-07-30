@@ -16,7 +16,7 @@ describe("camera test", function () {
 
   it("constructor", () => {
     expect(camera.aspectRatio).toEqual(1);
-    expect(camera.sceneRenderer).not.toBeUndefined();
+    expect(camera._renderPipeline).not.toBeUndefined();
     expect(camera.entity.transform.worldPosition).not.toBeUndefined();
     // TODO: deprecated
     expect(camera.backgroundColor).toEqual([0.25, 0.25, 0.25, 1]);

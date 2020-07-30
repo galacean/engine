@@ -1,2 +1,2 @@
-export { SceneRenderer } from "./SceneRenderer";
+export { CullRenderPipeline } from "./CullRenderPipeline";
 export { Frustum } from "./Frustum";

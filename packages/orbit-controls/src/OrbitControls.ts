@@ -2,7 +2,7 @@
 
 import { Logger } from "@alipay/o3-base";
 import { Entity, Script } from "@alipay/o3-core";
-import { vec2, vec3, Spherical } from "@alipay/o3-math";
+import { Spherical, vec2, vec3 } from "@alipay/o3-math";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
@@ -90,9 +90,8 @@ export class OrbitControls extends Script {
     super(entity);
 
     this.camera = entity;
-    const camera = (entity.scene as any)._activeCameras[0];
     //@ts-ignore @todo 未来移除对html元素的依赖，通过封装引擎的input实现
-    this.mainElement = props.mainElement || camera.engine.canvas._webCanvas;
+    this.mainElement = props.mainElement || this.scene.engine.canvas._webCanvas;
     this.domElement = props.domElement || document;
     this.fov = props.fov || 45;
 
