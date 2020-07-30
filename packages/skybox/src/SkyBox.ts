@@ -11,12 +11,12 @@ export class SkyBox extends GeometryRenderer {
 
   /**
    * 天空盒组件
-   * @param {Entity} node 挂载节点
+   * @param {Entity} entity 挂载节点
    * @param {Object} props Object对象包含以下参数
    * @param {TextureCubeMap} props.skyBoxMap 天空盒纹理
    */
-  constructor(node, props) {
-    super(node, props);
+  constructor(entity, props) {
+    super(entity, props);
 
     const { skyBoxMap } = props;
 

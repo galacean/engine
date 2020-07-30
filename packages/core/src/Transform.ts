@@ -316,8 +316,8 @@ export class Transform extends Component {
    * @internal
    * 构建一个变换组件。
    */
-  constructor(node?: Entity) {
-    super(node);
+  constructor(entity?: Entity) {
+    super(entity);
   }
 
   /**

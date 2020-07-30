@@ -13,7 +13,7 @@ import { UpdateFlag } from "./UpdateFlag";
  * 节点类,可作为组件的容器。
  */
 export class Entity extends EventDispatcher {
-  static _nodes: DisorderedArray<Entity> = new DisorderedArray();
+  static _entitys: DisorderedArray<Entity> = new DisorderedArray();
 
   /**
    * 根据名字全局查找节点。
@@ -21,13 +21,13 @@ export class Entity extends EventDispatcher {
    * @returns 节点
    */
   static findByName(name: string): Entity {
-    const { _nodes } = Entity;
-    const nodes = _nodes._elements;
-    for (let i = nodes.length - 1; i >= 0; i--) {
-      const node = nodes[i];
-      const nodeName = node.name;
+    const { _entitys: _nodes } = Entity;
+    const entitys = _nodes._elements;
+    for (let i = entitys.length - 1; i >= 0; i--) {
+      const entity = entitys[i];
+      const nodeName = entity.name;
       if (nodeName === name) {
-        return node;
+        return entity;
       }
     }
     return null;
@@ -44,13 +44,13 @@ export class Entity extends EventDispatcher {
     if (scene) {
       const splits = path.split("/").filter(Boolean);
       for (let i = 0, n = scene.rootEntitiesCount; i < n; i++) {
-        let findNode = scene.getRootEntity(i);
-        if (findNode.name != splits[0]) continue;
+        let findEntity = scene.getRootEntity(i);
+        if (findEntity.name != splits[0]) continue;
         for (let j = 1, m = splits.length; j < m; ++j) {
-          findNode = Entity._findChildByName(findNode, splits[j]);
-          if (!findNode) break;
+          findEntity = Entity._findChildByName(findEntity, splits[j]);
+          if (!findEntity) break;
         }
-        return findNode;
+        return findEntity;
       }
     }
     return null;
@@ -70,10 +70,10 @@ export class Entity extends EventDispatcher {
     return null;
   }
 
-  static _traverseSetOwnerScene(node: Entity, scene: Scene): void {
-    node._scene = scene;
-    const children = node._children;
-    for (let i = node.childCount - 1; i >= 0; i--) {
+  static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
+    entity._scene = scene;
+    const children = entity._children;
+    for (let i = entity.childCount - 1; i >= 0; i--) {
       this._traverseSetOwnerScene(children[i], scene);
     }
   }
@@ -140,10 +140,10 @@ export class Entity extends EventDispatcher {
     return this._parent;
   }
 
-  set parent(node: Entity) {
-    if (node !== this._parent) {
+  set parent(entity: Entity) {
+    if (entity !== this._parent) {
       const oldParent = this._removeFromParent();
-      const newParent = (this._parent = node);
+      const newParent = (this._parent = entity);
       if (newParent) {
         newParent._children.push(this);
         const parentScene = newParent._scene;
@@ -194,7 +194,7 @@ export class Entity extends EventDispatcher {
    */
   constructor(name?: string, engine?: Engine) {
     super();
-    Entity._nodes.add(this);
+    Entity._entitys.add(this);
     this._engine = engine || Engine._getDefaultEngine();
     this.name = name;
     this.transform = this.addComponent(Transform);
@@ -206,7 +206,7 @@ export class Entity extends EventDispatcher {
    * 根据组件类型添加组件。
    * @returns	组件实例
    */
-  addComponent<T extends Component>(type: new (node: any, props?: object) => T, props: object = {}): T {
+  addComponent<T extends Component>(type: new (entity: any, props?: object) => T, props: object = {}): T {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, props);
     this._components.push(component);
@@ -221,7 +221,7 @@ export class Entity extends EventDispatcher {
    * 根据组件类型获取组件。
    * @returns	组件实例
    */
-  getComponent<T extends Component>(type: new (node: Entity, props?: object) => T): T {
+  getComponent<T extends Component>(type: new (entity: Entity, props?: object) => T): T {
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
@@ -235,7 +235,7 @@ export class Entity extends EventDispatcher {
    * 根据组件类型获取组件集合。
    * @returns	组件实例集合
    */
-  getComponents<T extends Component>(type: new (node: Entity, props?: object) => T, results: Array<T>): Array<T> {
+  getComponents<T extends Component>(type: new (entity: Entity, props?: object) => T, results: Array<T>): Array<T> {
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
@@ -296,17 +296,17 @@ export class Entity extends EventDispatcher {
    */
   findByPath(path: string): Entity {
     const splits = path.split("/");
-    let node: Entity = this;
+    let entity: Entity = this;
     for (let i = 0, length = splits.length; i < length; ++i) {
       const split = splits[i];
       if (split) {
-        node = Entity._findChildByName(node, split);
-        if (!node) {
+        entity = Entity._findChildByName(entity, split);
+        if (!entity) {
           return null;
         }
       }
     }
-    return node;
+    return entity;
   }
 
   /**
@@ -374,7 +374,7 @@ export class Entity extends EventDispatcher {
       parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
-    Entity._nodes.delete(this);
+    Entity._entitys.delete(this);
   }
 
   /**
@@ -410,7 +410,7 @@ export class Entity extends EventDispatcher {
 
   _processActive(): void {
     if (this._activeChangedComponents) {
-      throw "Note: can't set the 'main inActive node' active in hierarchy, if the operation is in main inActive node or it's children script's onDisable Event.";
+      throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
     this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setActiveInHierarchy(this._activeChangedComponents);
@@ -419,7 +419,7 @@ export class Entity extends EventDispatcher {
 
   _processInActive(): void {
     if (this._activeChangedComponents) {
-      throw "Note: can't set the 'main active node' inActive in hierarchy, if the operation is in main active node or it's children script's onEnable Event.";
+      throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
     }
     this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);

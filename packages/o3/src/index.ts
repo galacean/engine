@@ -39,7 +39,6 @@ export * from "@alipay/o3-rfui";
 export * from "@alipay/o3-rhi-webgl";
 export * from "@alipay/o3-shaderlib";
 export * from "@alipay/o3-skybox";
-export * from "@alipay/o3-spine";
 export * from "@alipay/o3-trail";
 export * from "@alipay/o3-tween";
 import { RegistExtension } from "@alipay/o3-loader-gltf";
