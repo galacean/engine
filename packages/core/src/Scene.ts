@@ -27,6 +27,8 @@ export class Scene extends EventDispatcher {
   /** 场景名字 */
   name: string;
   /**
+   * @private
+   * @deprecated
    * @todo: migrate to camera
    * 裁剪面，平面方程组。裁剪面以下的片元将被剔除绘制
    * @example
