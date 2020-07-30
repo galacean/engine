@@ -63,7 +63,7 @@ describe("Scene test", () => {
       const testComponent = child.getComponent(TestComponent);
       await delay(100);
 
-      expect(camera.renderPipeline).toBeDefined();
+      expect(camera._renderPipeline).toBeDefined();
       expect(testComponent.render).toBeCalled();
 
       // remove root

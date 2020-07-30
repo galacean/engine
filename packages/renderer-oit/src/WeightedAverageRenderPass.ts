@@ -25,7 +25,7 @@ export class WeightedAverageRenderPass extends RenderPass {
   }
 
   preRender(camera: Camera, opaqueQueue, transparentQueue) {
-    const defaultRenderPass = camera.renderPipeline.defaultRenderPass;
+    const defaultRenderPass = camera._renderPipeline.defaultRenderPass;
 
     // 防止 clearParam 改动
     this.clearParam = [0, 0, 0, 0];

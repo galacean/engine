@@ -70,7 +70,7 @@ export abstract class Probe extends Component {
   }
 
   protected get renderPipeline(): BasicRenderPipeline {
-    return this.camera.renderPipeline;
+    return this.camera._renderPipeline;
   }
 
   /**

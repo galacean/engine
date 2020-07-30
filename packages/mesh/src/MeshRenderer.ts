@@ -87,7 +87,7 @@ export class MeshRenderer extends RenderableComponent {
       return;
     }
 
-    const renderPipeline = camera.renderPipeline;
+    const renderPipeline = camera._renderPipeline;
     const primitives = mesh.primitives;
 
     //-- render every primitive

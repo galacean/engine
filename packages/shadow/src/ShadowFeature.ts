@@ -34,14 +34,14 @@ export class ShadowFeature extends SceneFeature {
         if (lgt.enableShadow && !lgt.shadowMapPass) {
           lgt.shadowMapPass = this.addShadowMapPass(camera, lgt);
         } else if (!lgt.enableShadow && lgt.shadowMapPass) {
-          const renderer = camera.renderPipeline;
+          const renderer = camera._renderPipeline;
           renderer.removeRenderPass(lgt.shadowMapPass);
           lgt.shadowMapPass = null;
         }
       } // end of for
 
-      this.updatePassRenderFlag(camera.renderPipeline.opaqueQueue);
-      this.updatePassRenderFlag(camera.renderPipeline.transparentQueue);
+      this.updatePassRenderFlag(camera._renderPipeline.opaqueQueue);
+      this.updatePassRenderFlag(camera._renderPipeline.transparentQueue);
     } // end of if
   }
 
@@ -52,7 +52,7 @@ export class ShadowFeature extends SceneFeature {
   addShadowPass(camera: Camera) {
     const shadowMaterial = new ShadowMaterial("shadowMaterial");
     this._shadowPass = new ShadowPass("ShadowPass", 1, null, shadowMaterial, MaskList.SHADOW);
-    const renderer = camera.renderPipeline;
+    const renderer = camera._renderPipeline;
     renderer.addRenderPass(this._shadowPass);
   }
 
@@ -73,7 +73,7 @@ export class ShadowFeature extends SceneFeature {
       MaskList.SHADOW_MAP,
       light
     );
-    const renderer = camera.renderPipeline;
+    const renderer = camera._renderPipeline;
     renderer.addRenderPass(shadowMapPass);
 
     return shadowMapPass;

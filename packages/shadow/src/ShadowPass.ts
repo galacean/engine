@@ -23,7 +23,7 @@ export class ShadowPass extends RenderPass {
     const lightMgr = camera.scene.findFeature(LightFeature);
     if (lightMgr) {
       // keep render based on default render pass
-      const pass = camera.renderPipeline.defaultRenderPass;
+      const pass = camera._renderPipeline.defaultRenderPass;
       this.renderTarget = pass.renderTarget;
 
       const lights = lightMgr.visibleLights;

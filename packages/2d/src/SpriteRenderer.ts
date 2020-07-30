@@ -184,7 +184,7 @@ export class SpriteRenderer extends RenderableComponent {
   render(camera: Camera) {
     this._updatePositionQuad(camera);
     this._transformByMatrix();
-    camera.renderPipeline.pushSprite(
+    camera._renderPipeline.pushSprite(
       this,
       this._positionQuad,
       this._uvRect,

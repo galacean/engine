@@ -53,6 +53,7 @@ export class Camera extends Component {
    * @todo 渲染管线剔除管理实现
    */
   public cullingMask: number = 0;
+  _renderPipeline: BasicRenderPipeline;
 
   _pixelViewport: Vector4 = [0, 0, 1, 1];
 
@@ -63,7 +64,6 @@ export class Camera extends Component {
   private _clearFlags: ClearFlags;
   private _clearParam: Vector4;
   private _clearMode: ClearMode;
-  private _renderPipeline: BasicRenderPipeline;
   private _viewport: Vector4 = [0, 0, 1, 1];
   private _nearClipPlane: number;
   private _farClipPlane: number;
@@ -81,13 +81,6 @@ export class Camera extends Component {
   private _isViewMatrixDirty: UpdateFlag;
   /** 投影视图矩阵逆矩阵脏标记 */
   private _isInvViewProjDirty: UpdateFlag;
-
-  /**
-   * 渲染管线
-   */
-  public get renderPipeline(): BasicRenderPipeline {
-    return this._renderPipeline;
-  }
 
   /**
    * 近裁剪平面。

@@ -204,7 +204,7 @@ export class AHUDWidget extends RenderableComponent {
       this._hudFeature.addDirtyRect(this._spriteRect);
     }
 
-    camera.renderPipeline.pushSprite(
+    camera._renderPipeline.pushSprite(
       this,
       this._positionQuad,
       this._uvRect,

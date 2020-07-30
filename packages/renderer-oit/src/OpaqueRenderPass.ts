@@ -20,7 +20,7 @@ export class OpaqueRenderPass extends RenderPass {
    *  保持 defaultRenderPass 的状态，渲染 opaque 到屏幕
    * */
   preRender(camera: Camera, opaqueQueue, transparentQueue) {
-    const defaultRenderPass = camera.renderPipeline.defaultRenderPass;
+    const defaultRenderPass = camera._renderPipeline.defaultRenderPass;
     const rhi = camera.engine._hardwareRenderer;
 
     this.clearParam = defaultRenderPass.clearParam;

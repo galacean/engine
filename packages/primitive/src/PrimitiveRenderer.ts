@@ -29,7 +29,7 @@ export class PrimitiveRenderer extends RenderableComponent {
    */
   render(camera: Camera) {
     if (this.primitive && this.primitive.material) {
-      camera.renderPipeline.pushPrimitive(this, this.primitive, this.primitive.material);
+      camera._renderPipeline.pushPrimitive(this, this.primitive, this.primitive.material);
     } else {
       Logger.error("primitive or  material is null ");
     } // end of else

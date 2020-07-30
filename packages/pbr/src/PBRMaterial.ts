@@ -901,7 +901,7 @@ class PBRMaterial extends Material {
     const scene = camera.scene;
     const canvas = scene.engine.canvas;
     const lightMgr = scene.findFeature(LightFeature);
-    const canOIT = (<any>camera.renderPipeline).canOIT;
+    const canOIT = (<any>camera._renderPipeline).canOIT;
 
     /** 光源 uniform values */
     lightMgr.bindMaterialValues(this);
@@ -914,7 +914,7 @@ class PBRMaterial extends Material {
 
     /** oit  depth texture */
     if (canOIT) {
-      this.setValue("u_depthSampler", (<any>camera.renderPipeline).depthTexture);
+      this.setValue("u_depthSampler", (<any>camera._renderPipeline).depthTexture);
     }
 
     /** 是否需要重新编译 technique */
@@ -1065,7 +1065,7 @@ class PBRMaterial extends Material {
     if (this._stateObj.isMetallicWorkflow) _macros.push("IS_METALLIC_WORKFLOW");
     if (this._stateObj.envMapModeRefract) _macros.push("ENVMAPMODE_REFRACT");
 
-    if ((<any>camera.renderPipeline).canOIT) {
+    if ((<any>camera._renderPipeline).canOIT) {
       _macros.push("OIT_ENABLE");
     }
     return _macros;
