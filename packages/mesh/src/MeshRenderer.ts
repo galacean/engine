@@ -1,6 +1,6 @@
 import { Logger } from "@alipay/o3-base";
 import { Material } from "@alipay/o3-material";
-import { Node, Camera, RenderableComponent } from "@alipay/o3-core";
+import { Entity, Camera, RenderableComponent } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 
 /**
@@ -14,11 +14,11 @@ export class MeshRenderer extends RenderableComponent {
 
   /**
    * @constructor
-   * @param {Node} node 所属的Node对象
+   * @param {Entity} entity 所属的Node对象
    * @param props
    */
-  constructor(node: Node, props: { mesh?: Mesh } = {}) {
-    super(node, props);
+  constructor(entity: Entity, props: { mesh?: Mesh } = {}) {
+    super(entity, props);
 
     this._mesh = null; // Mesh Asset Object
 
@@ -87,7 +87,7 @@ export class MeshRenderer extends RenderableComponent {
       return;
     }
 
-    const sceneRenderer = camera.sceneRenderer;
+    const renderPipeline = camera._renderPipeline;
     const primitives = mesh.primitives;
 
     //-- render every primitive
@@ -95,7 +95,7 @@ export class MeshRenderer extends RenderableComponent {
       const primitive = primitives[i];
       const mtl = this._instanceMaterials[i] || this._sharedMaterials[i];
       if (mtl) {
-        sceneRenderer.pushPrimitive(this, primitive, mtl);
+        renderPipeline.pushPrimitive(this, primitive, mtl);
       } else {
         Logger.error("Primitive has no material: " + primitive.name);
       }

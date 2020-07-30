@@ -11,7 +11,7 @@
     vec4 ambient = vec4(0);
     #ifdef O3_HAS_AMBIENT_LIGHT
         #ifdef O3_AMBIENT_TEXTURE
-            ambient = texture2D(u_ambient, v_uv_ambientTexture) * vec4(u_ambientLight.lightColor, 1.0);
+            ambient = texture2D(u_ambient, v_uv) * vec4(u_ambientLight.lightColor, 1.0);
          #else
             ambient = u_ambient * vec4(u_ambientLight.lightColor, 1.0);
          #endif

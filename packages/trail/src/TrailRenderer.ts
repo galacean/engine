@@ -19,20 +19,20 @@ export class TrailRenderer extends GeometryRenderer {
   private _prePointsNum;
   /**
    * 纹理对象基类
-   * @param {Node} node 所属的Node对象
+   * @param {Entity} entity 所属的Node对象
    * @param {Object} props 可选配置，包含以下参数
    * @param {float} [props.stroke=0.2] 拖尾的宽度
    * @param {float} [props.minSeg=0.02] 拖尾形状由物体运动轨迹上的点构成，描述相邻点之间最小间隔距离
    * @param {Number} [props.lifetime=1000] 物体运动时，拖尾效果持续的时长
    * @param {Material} [props.material=TrailMaterial] 拖尾使用的材质，默认使用内置的TrailMaterial
    */
-  constructor(node, props) {
-    super(node);
+  constructor(entity, props) {
+    super(entity);
 
     this._stroke = props.stroke || 0.2;
     this._minSeg = props.minSeg || 0.02;
     this._lifetime = props.lifetime || 1000;
-    this._maxPointNum = (this._lifetime / 1000.0) * node.engine._FPS;
+    this._maxPointNum = (this._lifetime / 1000.0) * entity.engine._FPS;
 
     this._points = [];
     this._pointStates = [];
@@ -81,7 +81,7 @@ export class TrailRenderer extends GeometryRenderer {
       appendNewPoint = false;
     } else if (this._curPointNum > 0) {
       const lastPoint = this._points[this._points.length - 1];
-      if (vec3.distance(this.node.worldPosition, lastPoint) < this._minSeg) {
+      if (vec3.distance(this.entity.worldPosition, lastPoint) < this._minSeg) {
         appendNewPoint = false;
       } else {
         // debugger
@@ -90,7 +90,7 @@ export class TrailRenderer extends GeometryRenderer {
 
     if (appendNewPoint) {
       this._pointStates[this._curPointNum] = this._lifetime;
-      vec3.copy(this._points[this._curPointNum], this.node.worldPosition);
+      vec3.copy(this._points[this._curPointNum], this.entity.worldPosition);
 
       this._curPointNum++;
     }

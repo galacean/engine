@@ -18,7 +18,7 @@ export class SpotLight extends Light {
   public angle;
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    * @param {Object} props 参数对象
    * @param {string} [props.name = spotLight] 名称
    * @param {Vec3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
@@ -28,8 +28,8 @@ export class SpotLight extends Light {
    * @param {number} [props.angle = Math.PI / 6] 散射角度
    * @param {number} [props.penumbra = 0] 半影衰减系数 ( 0 - 1 )
    */
-  constructor(node, props) {
-    super(node);
+  constructor(entity, props) {
+    super(entity);
     this.name = props.name || "spotLight";
 
     /**
@@ -77,7 +77,7 @@ export class SpotLight extends Light {
    * @readonly
    */
   get position() {
-    return this.node.worldPosition;
+    return this.entity.worldPosition;
   }
 
   /** 获取聚光灯方向
@@ -85,7 +85,7 @@ export class SpotLight extends Light {
    * @readonly
    */
   get direction() {
-    this.node.transform.getWorldForward(this._forward);
+    this.entity.transform.getWorldForward(this._forward);
     return this._forward;
   }
 

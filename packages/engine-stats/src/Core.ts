@@ -2,7 +2,7 @@ import DrawCallHook from "./hooks/DrawCallHook";
 import TextureHook from "./hooks/TextureHook";
 import ShaderHook from "./hooks/ShaderHook";
 import { log, errorLog } from "./log";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 
 declare global {
   interface Performance {
@@ -61,7 +61,7 @@ export default class Core {
       memory: performance.memory && (performance.memory.usedJSHeapSize / 1048576) >> 0,
       drawCall: this.drawCallHook.drawCall,
       triangles: this.drawCallHook.triangles,
-      nodes: Node._nodes.length,
+      nodes: Entity._entitys.length,
       lines: this.drawCallHook.lines,
       points: this.drawCallHook.points,
       textures: this.textureHook.textures,

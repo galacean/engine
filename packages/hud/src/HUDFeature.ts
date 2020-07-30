@@ -1,7 +1,7 @@
-import { SceneFeature } from "@alipay/o3-core";
 import { Logger } from "@alipay/o3-base";
-import { HUDTextureMapper } from "./HUDTextureMapper";
+import { Camera, SceneFeature } from "@alipay/o3-core";
 import { HUDTexture } from "./HUDTexture";
+import { HUDTextureMapper } from "./HUDTextureMapper";
 
 /**
  * 判断场景中是否有灯光
@@ -29,12 +29,12 @@ export class HUDFeature extends SceneFeature {
     this._dirtyRects = [];
   }
 
-  initTexture(rhi, width?, height?) {
+  initTexture(width?, height?) {
     width = width || 512;
     height = height || 512;
 
     //-- HUD控件绘制的所需纹理，内置一个Canvas
-    this._texture = new HUDTexture(rhi, width, height);
+    this._texture = new HUDTexture(width, height);
     //-- 负责给HUD控件分配Texture空间
     this._textureMapper = new HUDTextureMapper(width, height);
   }
@@ -44,9 +44,9 @@ export class HUDFeature extends SceneFeature {
    * @param {AHUDWidget} widget HUD控件
    * @private
    */
-  attachWidget(rhi, widget) {
+  attachWidget(widget) {
     if (!this._texture) {
-      this.initTexture(rhi);
+      this.initTexture();
     }
 
     const index = this._widgets.indexOf(widget);
@@ -117,7 +117,7 @@ export class HUDFeature extends SceneFeature {
    */
   preUpdate(scene) {
     if (!this._texture) {
-      this.initTexture(scene.engine.hardwareRenderer);
+      this.initTexture();
     }
 
     //-- 给HUD控件分配Canvas区域
@@ -127,9 +127,9 @@ export class HUDFeature extends SceneFeature {
   /**
    * 场景渲染前的回调
    * @param {Scene} scene
-   * @param {ACamera} camera
+   * @param {Camera} camera
    */
-  preRender(scene, camera) {
+  preRender(scene, camera: Camera) {
     //-- update texture
     if (this._dirtyRects.length > 0) {
       this._texture.updateDirtyRects(this._dirtyRects);

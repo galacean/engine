@@ -1,4 +1,4 @@
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { ASphereCollider } from "./ASphereCollider";
 
 export class SphereCollider extends ASphereCollider {
@@ -6,8 +6,8 @@ export class SphereCollider extends ASphereCollider {
   private __radius: number = 1.0;
   private isShowCollider: boolean = true;
 
-  constructor(node: Node, props?: any) {
-    super(node, props);
+  constructor(entity: Entity, props?: any) {
+    super(entity, props);
 
     const { _center, _radius, isShowCollider } = props;
 

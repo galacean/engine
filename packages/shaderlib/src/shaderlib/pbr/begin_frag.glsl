@@ -13,7 +13,7 @@
 
     #ifdef HAS_BASECOLORMAP
 
-        vec4 baseMapColor = texture2D( u_baseColorSampler, v_uv_baseColorTexture );
+        vec4 baseMapColor = texture2D( u_baseColorSampler, v_uv );
         baseMapColor = SRGBtoLINEAR( baseMapColor );
         diffuseColor *= baseMapColor;
 
@@ -43,9 +43,9 @@
     #if defined(ALPHA_BLEND) && defined(HAS_OPACITYMAP)
 
         #ifdef GETOPACITYFROMRGB
-            diffuseColor.a *= getLuminance(texture2D( u_opacitySampler, v_uv_opacityTexture ).rgb);
+            diffuseColor.a *= getLuminance(texture2D( u_opacitySampler, v_opacityTexture ).rgb);
         #else
-            diffuseColor.a *= texture2D( u_opacitySampler, v_uv_opacityTexture ).a;
+            diffuseColor.a *= texture2D( u_opacitySampler, v_opacityTexture ).a;
         #endif
 
     #endif
@@ -60,21 +60,21 @@
 
         #ifdef HAS_METALROUGHNESSMAP
 
-            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, v_uv_metallicRoughnessTexture );
+            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, v_uv );
             metalnessFactor *= metalRoughMapColor.b;
             roughnessFactor *= metalRoughMapColor.g;
 
         #else
             #ifdef HAS_METALMAP
 
-            vec4 metalMapColor = texture2D( u_metallicSampler, v_uv_metallicTexture );
+            vec4 metalMapColor = texture2D( u_metallicSampler, v_uv );
             metalnessFactor *= metalMapColor.b;
 
             #endif
 
             #ifdef HAS_ROUGHNESSMAP
 
-            vec4 roughMapColor = texture2D( u_roughnessSampler, v_uv_roughnessTexture );
+            vec4 roughMapColor = texture2D( u_roughnessSampler, v_uv );
             roughnessFactor *= roughMapColor.g;
 
             #endif
@@ -82,7 +82,7 @@
 
         #ifdef HAS_SPECULARGLOSSINESSMAP
 
-            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv_specularGlossinessTexture );
+            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv );
             specularFactor *= specularGlossinessColor.rgb;
             glossinessFactor *= specularGlossinessColor.a;
 

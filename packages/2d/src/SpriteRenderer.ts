@@ -1,4 +1,4 @@
-import { RenderableComponent } from "@alipay/o3-core";
+import { RenderableComponent, Camera, Entity } from "@alipay/o3-core";
 import { vec3, vec4, quat } from "@alipay/o3-math";
 import { Texture2D } from "@alipay/o3-material";
 import { Logger } from "@alipay/o3-base";
@@ -50,11 +50,11 @@ export class SpriteRenderer extends RenderableComponent {
 
   /**
    * 构造函数
-   * @param {Node} node
+   * @param {Entity} entity
    * @param {Sprite} sprite
    */
-  constructor(node, sprite) {
-    super(node);
+  constructor(entity: Entity, sprite) {
+    super(entity);
 
     const { texture, rect, anchor, worldSizeFactor } = sprite;
     this._worldSizeFactor = worldSizeFactor || 100;
@@ -179,12 +179,12 @@ export class SpriteRenderer extends RenderableComponent {
 
   /**
    * 更新位置，将数据对象加入渲染队列
-   * @param {ACamera} camera
+   * @param {Camera} camera
    */
-  render(camera) {
+  render(camera: Camera) {
     this._updatePositionQuad(camera);
     this._transformByMatrix();
-    camera.sceneRenderer.pushSprite(
+    camera._renderPipeline.pushSprite(
       this,
       this._positionQuad,
       this._uvRect,
@@ -239,7 +239,7 @@ export class SpriteRenderer extends RenderableComponent {
 
   /**
    * 更新顶点位置
-   * @param {ACamera} camera
+   * @param {Camera} camera
    * @private
    */
   _updatePositionQuad(camera) {
@@ -248,9 +248,9 @@ export class SpriteRenderer extends RenderableComponent {
       const vx = vec3.fromValues(m[0], m[4], m[8]);
       const vy = vec3.fromValues(m[1], m[5], m[9]);
       //-- center pos
-      const c = vec3.clone(this.node.worldPosition);
+      const c = vec3.clone(this.entity.worldPosition);
       const s = this._worldSize;
-      const ns = this.node.scale;
+      const ns = this.entity.scale;
 
       vec3.scale(vx, vx, s[0] * ns[0]);
       vec3.scale(vy, vy, s[1] * ns[1]);

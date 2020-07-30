@@ -1,5 +1,5 @@
 import { Component } from "./Component";
-import { Node } from "./Node";
+import { Entity } from "./Entity";
 
 /**
  * Scene 访问者接口

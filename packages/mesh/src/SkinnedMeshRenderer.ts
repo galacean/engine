@@ -1,6 +1,6 @@
 import { mat4 } from "@alipay/o3-math";
 import { MeshRenderer } from "./MeshRenderer";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 import { Skin } from "./Skin";
 import { Texture2D } from "@alipay/o3-material";
@@ -14,7 +14,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _hasInitJoints: boolean = false;
 
   public matrixPalette: Float32Array;
-  public jointNodes: Node[];
+  public jointNodes: Entity[];
   public jointTexture: Texture2D;
 
   private _mat: Float32Array;
@@ -26,11 +26,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   /**
    * constructor
-   * @param node
+   * @param entity
    * @param props
    */
-  constructor(node: Node, props: { mesh?: Mesh; skin?: Skin; weights?: number[]; rootNodes?: Node[] } = {}) {
-    super(node, props);
+  constructor(entity: Entity, props: { mesh?: Mesh; skin?: Skin; weights?: number[]; rootNodes?: Entity[] } = {}) {
+    super(entity, props);
     this._mat = mat4.create() as Float32Array;
     this._weights = null;
     this._skin = null;
@@ -98,13 +98,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const joints = skin.joints;
     const jointNodes = [];
     for (let i = joints.length - 1; i >= 0; i--) {
-      jointNodes[i] = this.findByNodeName(this.node, joints[i]);
+      jointNodes[i] = this.findByNodeName(this.entity, joints[i]);
     } // end of for
     this.matrixPalette = new Float32Array(jointNodes.length * 16);
     this.jointNodes = jointNodes;
 
     /** 是否使用骨骼纹理 */
-    const rhi = this.scene.engine.hardwareRenderer;
+    const rhi = this.entity.engine._hardwareRenderer;
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
     const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
@@ -114,25 +114,25 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  private findByNodeName(node: Node, nodeName: string) {
-    if (!node) return null;
+  private findByNodeName(entity: Entity, nodeName: string) {
+    if (!entity) return null;
 
-    const n = node.findByName(nodeName);
+    const n = entity.findByName(nodeName);
 
     if (n) return n;
 
-    return this.findByNodeName(node.parent, nodeName);
+    return this.findByNodeName(entity.parent, nodeName);
   }
 
   /**
    * 在SceneGraph的树形结构中中向上查找
-   * @param {SceneNode} node
+   * @param {SceneNode} entity
    * @param {string} nodeName
    * @private
    */
-  _findParent(node: Node, nodeName: string) {
-    if (node) {
-      const parent = node.parent;
+  _findParent(entity: Entity, nodeName: string) {
+    if (entity) {
+      const parent = entity.parent;
       if (!parent) return null;
       if (parent.name === nodeName) return parent;
 
@@ -158,7 +158,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       const joints = this.jointNodes;
       const ibms = this._skin.inverseBindMatrices;
       const matrixPalette = this.matrixPalette;
-      const worldToLocal = this.node.getInvModelMatrix();
+      const worldToLocal = this.entity.getInvModelMatrix();
 
       const mat = this._mat;
       for (let i = joints.length - 1; i >= 0; i--) {
@@ -183,7 +183,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * */
   createJointTexture() {
     if (!this.jointTexture) {
-      const rhi = this.node.scene.engine.hardwareRenderer;
+      const rhi = this.entity.engine._hardwareRenderer;
       if (!rhi) return;
       this.jointTexture = new (Texture2D as any)(rhi, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
     }

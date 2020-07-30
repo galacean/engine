@@ -1,12 +1,19 @@
 import { vec3 } from "@alipay/o3-math";
 import { Component, Script } from "@alipay/o3-core";
 import { Event } from "@alipay/o3-base";
-import { ColliderFeature, ACollider, ABoxCollider, ASphereCollider } from "@alipay/o3-collider";
+import {
+  ColliderFeature,
+  ACollider,
+  ABoxCollider,
+  ASphereCollider,
+  BoxCollider,
+  SphereCollider
+} from "@alipay/o3-collider";
 
 import { intersectBox2Box, intersectSphere2Sphere, intersectSphere2Box } from "./intersect";
 
 /**
- * 检测当前 Node 上的 Collider 与场景中其他 Collider 的碰撞
+ * 检测当前 Entity 上的 Collider 与场景中其他 Collider 的碰撞
  * 发出事件：collision
  */
 export class CollisionDetection extends Script {
@@ -18,10 +25,10 @@ export class CollisionDetection extends Script {
 
   /**
    * 构造函数
-   * @param {Node} node 对象所在节点
+   * @param {Entity} entity 对象所在节点
    */
-  constructor(node) {
-    super(node);
+  constructor(entity) {
+    super(entity);
 
     this._colliderManager = null;
     this._myCollider = null;
@@ -31,7 +38,7 @@ export class CollisionDetection extends Script {
   }
 
   /**
-   * 和当前 Node 上的 Collider 相交的 Collider 对象
+   * 和当前 Entity 上的 Collider 相交的 Collider 对象
    */
   get overlopCollider() {
     return this._overlopCollider;
@@ -84,10 +91,10 @@ export class CollisionDetection extends Script {
 
   /**
    * 获得世界空间中的 Box 坐标
-   * @param {ABoxCollider} boxCollider
+   * @param boxCollider
    */
   _getWorldBox(boxCollider) {
-    const mat = boxCollider.node.getModelMatrix();
+    const mat = boxCollider.entity.transform.worldMatrix;
     const max = vec3.create();
     const min = vec3.create();
     vec3.transformMat4(max, boxCollider.boxMax, mat);
@@ -114,11 +121,11 @@ export class CollisionDetection extends Script {
 
   /**
    * 获得世界空间中的 Sphere 坐标
-   * @param {ASphereCollider} sphereCollider
+   * @param {SphereCollider} sphereCollider
    */
   _getWorldSphere(sphereCollider) {
     const center = vec3.create();
-    vec3.transformMat4(center, sphereCollider.center, sphereCollider.node.getModelMatrix());
+    vec3.transformMat4(center, sphereCollider.center, sphereCollider.entity.transform.worldMatrix);
     return {
       radius: sphereCollider.radius,
       center
@@ -160,6 +167,6 @@ export class CollisionDetection extends Script {
    */
   _onAwake() {
     this._colliderManager = this.scene.findFeature(ColliderFeature);
-    this._myCollider = this.node.getComponent(ACollider);
+    this._myCollider = this.entity.getComponent(ACollider);
   }
 }

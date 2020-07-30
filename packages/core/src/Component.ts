@@ -1,7 +1,7 @@
 import { Event, EventDispatcher, MaskList } from "@alipay/o3-base";
 import { Matrix4 } from "@alipay/o3-math/types/type";
 import { Engine } from "./Engine";
-import { Node } from "./Node";
+import { Entity } from "./Entity";
 import { Scene } from "./Scene";
 
 /**
@@ -9,7 +9,7 @@ import { Scene } from "./Scene";
  */
 export abstract class Component extends EventDispatcher {
   /* @internal */
-  _node: Node;
+  _entity: Entity;
   /* @internal */
   _destroyed: boolean = false;
 
@@ -31,28 +31,28 @@ export abstract class Component extends EventDispatcher {
     }
     this._enabled = value;
     if (value) {
-      this._node.isActiveInHierarchy && this._onEnable();
+      this._entity.isActiveInHierarchy && this._onEnable();
     } else {
-      this._node.isActiveInHierarchy && this._onDisable();
+      this._entity.isActiveInHierarchy && this._onDisable();
     }
   }
 
   /**
    * 所属节点对象。
    */
-  get node(): Node {
-    return this._node;
+  get entity(): Entity {
+    return this._entity;
   }
 
   /**
    * 创建组件实例。
-   * @param node - 对象所在节点
+   * @param entity - 对象所在实体
    * @param props - 配置参数
    */
-  constructor(node: Node, props: object = {}) {
+  constructor(entity: Entity, props: object = {}) {
     super();
     this._props = props;
-    this._node = node;
+    this._entity = entity;
 
     this._renderPassFlag = MaskList.EVERYTHING; // @deprecated
     this._passMasks = [MaskList.EVERYTHING]; // @deprecated
@@ -63,8 +63,8 @@ export abstract class Component extends EventDispatcher {
    */
   destroy(): void {
     if (this._destroyed) return;
-    this._node._removeComponent(this);
-    if (this._node.isActiveInHierarchy) {
+    this._entity._removeComponent(this);
+    if (this._entity.isActiveInHierarchy) {
       this._enabled && this._onDisable();
       this._onInActive();
     }
@@ -106,7 +106,7 @@ export abstract class Component extends EventDispatcher {
    * 所属场景对象。
    */
   get scene(): Scene {
-    return this._node.scene;
+    return this._entity.scene;
   }
 
   //---------------------------------------------Deprecated-----------------------------------------------------------------
@@ -126,7 +126,7 @@ export abstract class Component extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-    return this._node?.scene?.engine;
+    return this._entity?.scene?.engine;
   }
 
   /**
@@ -180,7 +180,7 @@ export abstract class Component extends EventDispatcher {
    * @deprecated
    */
   get invModelMatrix(): Readonly<Matrix4> {
-    return this._node.getInvModelMatrix();
+    return this._entity.getInvModelMatrix();
   }
 
   /**
@@ -239,7 +239,7 @@ export abstract class Component extends EventDispatcher {
    * @deprecated
    * 增加 parent 属性，主要是提供给事件的冒泡机制使用
    */
-  get parent(): Node {
-    return this._node;
+  get parent(): Entity {
+    return this._entity;
   }
 }

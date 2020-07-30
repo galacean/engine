@@ -20,8 +20,8 @@ export class HUDTexture extends Texture2D {
    * @param {number} width 内部Canvas的宽度
    * @param {number} height 内部Canvas的高度
    */
-  constructor(rhi, width: number, height: number) {
-    super(rhi, width, height);
+  constructor(width: number, height: number) {
+    super(width, height);
 
     //-- 创建2D绘制相关对象
     this._canvas = document.createElement("canvas");

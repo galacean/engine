@@ -1,10 +1,8 @@
 export * from "@alipay/o3-2d";
 export * from "@alipay/o3-animation";
 export {
-  AnimationAsset,
-  AnimatorAsset,
-  Animation,
-  AnimationClip,
+  Animation as AnimationNew,
+  AnimationClip as AnimationClipNew,
   AnimationClipType,
   Animator
 } from "@alipay/o3-animator";
@@ -35,14 +33,12 @@ export * from "@alipay/o3-particle";
 export * from "@alipay/o3-pbr";
 // export * from '@alipay/o3-post-processing';
 export * from "@alipay/o3-primitive";
-export * from "@alipay/o3-renderer-basic";
 export * from "@alipay/o3-renderer-cull";
 export * from "@alipay/o3-request";
 export * from "@alipay/o3-rfui";
 export * from "@alipay/o3-rhi-webgl";
 export * from "@alipay/o3-shaderlib";
 export * from "@alipay/o3-skybox";
-export * from "@alipay/o3-spine";
 export * from "@alipay/o3-trail";
 export * from "@alipay/o3-tween";
 import { RegistExtension } from "@alipay/o3-loader-gltf";

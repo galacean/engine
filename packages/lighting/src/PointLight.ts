@@ -14,7 +14,7 @@ export class PointLight extends Light {
   private _lightColor;
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    * @param {Object} props 参数对象
    * @param {string} [props.name = pointLight] 名称
    * @param {Vec3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
@@ -22,8 +22,8 @@ export class PointLight extends Light {
    * @param {number} [props.distance=0] 辐射距离
    * @param {number} [props.decay=0] 衰减系数
    */
-  constructor(node, props) {
-    super(node, props);
+  constructor(entity, props) {
+    super(entity, props);
     this.name = props.name || "pointLight";
 
     /**
@@ -58,7 +58,7 @@ export class PointLight extends Light {
    * @readonly
    */
   get position() {
-    return this.node.worldPosition;
+    return this.entity.worldPosition;
   }
 
   /** 获取点光源最终颜色

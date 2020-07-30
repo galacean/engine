@@ -1,5 +1,5 @@
 import { Probe } from "./Probe";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { mat4, vec3 } from "@alipay/o3-math";
 import { CubeProbeConfig } from "./type";
 
@@ -22,10 +22,10 @@ export class CubeProbe extends Probe {
 
   /**
    * 创建探针
-   * @param {Node} node
+   * @param {Entity} node
    * @param {CubeProbeConfig} config - 可选配置
    * */
-  constructor(node: Node, config: CubeProbeConfig = {}) {
+  constructor(node: Entity, config: CubeProbeConfig = {}) {
     super(node, {
       ...config,
       isCube: true

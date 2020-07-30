@@ -1,8 +1,8 @@
 import { Logger } from "@alipay/o3-base";
-import { Component, Node, Script } from "@alipay/o3-core";
-import { vec3, MathUtil, Spherical } from "@alipay/o3-math";
+import { Entity, Script } from "@alipay/o3-core";
+import { MathUtil, Spherical, vec3 } from "@alipay/o3-math";
 import { Vector3 } from "@alipay/o3-math/types/type";
-import { Tween, Easing, doTransform } from "@alipay/o3-tween";
+import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 import { vec3Type } from "./type";
 // 防止万向锁
 const ESP = MathUtil.EPSILON;
@@ -19,7 +19,7 @@ const tween = new Tween();
 export class FreeControls extends Script {
   _forward = [0, 0, 0];
   _right = [0, 0, 0];
-  camera: Node;
+  camera: Entity;
   mainElement: any;
   domElement: any;
 
@@ -91,17 +91,16 @@ export class FreeControls extends Script {
 
   /**
    * 漫游控制器构造函数
-   * @param {Node} node 挂载节点
+   * @param {Entity} entity 挂载节点
    * @param {Object} props 轨道控制器参数，包含以下项
    * @property {Canvas|HTMLElement} [props.mainElement=RHI.canvas] 获取事件的HTMLElement对象，推荐使用绘制的canvas
    * @property {HTMLElement} [props.domElement=document] 获取顶级事件的HTMLElement对象。
    */
-  constructor(node: Node, props: { mainElement?; domElement? }) {
-    super(node);
-    this.camera = node;
-    const acamera = node.scene.activeCameras[0];
+  constructor(entity: Entity, props: { mainElement?; domElement? }) {
+    super(entity);
+    this.camera = entity;
     //@ts-ignore @todo 未来移除对html元素的依赖，通过封装引擎的input实现
-    this.mainElement = props.mainElement || acamera.scene.engine.canvas._webCanvas;
+    this.mainElement = props.mainElement || this.scene.engine.canvas._webCanvas;
     this.domElement = props.domElement || document;
 
     if (!(this.mainElement instanceof HTMLCanvasElement)) {
@@ -381,7 +380,7 @@ export class FreeControls extends Script {
   /**
    * must updateSpherical after quaternion has been changed
    * @example
-   * Node#lookAt([0,1,0],[0,1,0]);
+   * Entity#lookAt([0,1,0],[0,1,0]);
    * AFreeControls#updateSpherical();
    * */
   updateSpherical(): void {

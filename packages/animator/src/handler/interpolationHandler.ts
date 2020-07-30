@@ -1,15 +1,15 @@
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { quat, vec3, vec4 } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 import { AnimationClipHandler } from "./animationClipHandler";
 import { LinkList } from "./linkList";
 import { NodeState } from "../types";
 
-function cloneNodeState(node): NodeState {
+function cloneNodeState(entity): NodeState {
   return {
-    position: vec3.clone(node.position),
-    rotation: vec4.clone(node.rotation),
-    scale: vec3.clone(node.scale)
+    position: vec3.clone(entity.position),
+    rotation: vec4.clone(entity.rotation),
+    scale: vec3.clone(entity.scale)
   };
 }
 export class InterpolationHandler extends AnimationClipHandler {
@@ -20,7 +20,7 @@ export class InterpolationHandler extends AnimationClipHandler {
   private changedProperty: any;
   init() {
     super.init();
-    const { animClip, node } = this;
+    const { animClip, entity: node } = this;
     const { keyframes } = animClip;
     this.tween = new Tween();
     this.changedProperty = {};
@@ -29,11 +29,11 @@ export class InterpolationHandler extends AnimationClipHandler {
     this.curNodeState = cloneNodeState(node);
     this.curNodeState.rotation = quat.toEuler(vec3.create(), this.curNodeState.rotation);
     const keyframeTimeQueue = Object.keys(animClip.keyframes)
-      .map(startTime => Number(startTime))
+      .map((startTime) => Number(startTime))
       .sort((a, b) => a - b);
-    keyframeTimeQueue.forEach(keyframeTime => {
+    keyframeTimeQueue.forEach((keyframeTime) => {
       let keyframeList = keyframes[keyframeTime];
-      keyframeList = keyframeList.forEach(keyframe => {
+      keyframeList = keyframeList.forEach((keyframe) => {
         const { property, subProperty } = keyframe;
         const key = `${property}.${subProperty}`;
         keyframe.keyframeTime = keyframeTime;
@@ -51,7 +51,7 @@ export class InterpolationHandler extends AnimationClipHandler {
       y: 1,
       z: 2
     };
-    Object.keys(keyframeLinkListMap).forEach(key => {
+    Object.keys(keyframeLinkListMap).forEach((key) => {
       let temp = key.split(".");
       const keyframeLinkList = keyframeLinkListMap[key];
       const property = temp[0];
@@ -77,7 +77,7 @@ export class InterpolationHandler extends AnimationClipHandler {
         if (duration > 0) {
           const tweener = DataType(
             startValue,
-            val => {
+            (val) => {
               curNodeState[property][subPropertyMap[subProperty]] = val;
               this.changedProperty[property] = true;
             },
@@ -105,8 +105,8 @@ export class InterpolationHandler extends AnimationClipHandler {
   }
 
   affectNode() {
-    const { node, curNodeState } = this;
-    Object.keys(this.changedProperty).forEach(property => {
+    const { entity: node, curNodeState } = this;
+    Object.keys(this.changedProperty).forEach((property) => {
       if (property === "rotation") {
         const euler = curNodeState[property];
         node[property] = quat.fromEuler(quat.create(), euler[0], euler[1], euler[2]);
@@ -120,7 +120,7 @@ export class InterpolationHandler extends AnimationClipHandler {
     const { curNodeState, originNodeState, tween } = this;
     super.reset();
     if (!curNodeState) return;
-    Object.keys(this.changedProperty).forEach(property => {
+    Object.keys(this.changedProperty).forEach((property) => {
       if (property === "rotation") {
         curNodeState[property] = quat.clone(originNodeState[property]);
       } else {

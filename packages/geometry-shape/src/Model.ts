@@ -1,5 +1,5 @@
 import { GeometryRenderer } from "@alipay/o3-geometry";
-import { Node } from "@alipay/o3-core";
+import { Entity } from "@alipay/o3-core";
 import { SphereGeometry } from "./Sphere";
 import { CylinderGeometry } from "./Cylinder";
 import { PlaneGeometry } from "./Plane";
@@ -73,8 +73,8 @@ export class Model extends GeometryRenderer {
 
   private _geometryType: GeometryType;
 
-  constructor(node: Node, props) {
-    super(node, props);
+  constructor(entity: Entity, props) {
+    super(entity, props);
 
     const { geometryType = GeometryType.Box } = props;
     if (!props.material) {

@@ -34,14 +34,14 @@ export class AmbientLight extends Light {
 
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    * @param {Object} props 参数对象
    * @param {string} [props.name = ambientLight] props.name 名称
    * @param {Vec3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
    * @param {number} [props.intensity = 1] 光照强度
    */
-  constructor(node, props) {
-    super(node);
+  constructor(entity, props) {
+    super(entity);
     this.name = props.name || "ambientLight";
 
     /**
