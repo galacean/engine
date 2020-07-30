@@ -27,7 +27,7 @@ export class Scene extends EventDispatcher {
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _activeCameras: Camera[] = [];
-  _isActive: boolean = false;
+  _isActiveInEngine: boolean = false;
 
   private _engine: Engine;
   private _destroyed: boolean = false;
@@ -92,7 +92,7 @@ export class Scene extends EventDispatcher {
     }
 
     //process entity active/inActive
-    if (this._isActive) {
+    if (this._isActiveInEngine) {
       !entity._isActiveInHierarchy && entity._isActive && entity._processActive();
     } else {
       entity._isActiveInHierarchy && entity._processInActive();
@@ -106,7 +106,7 @@ export class Scene extends EventDispatcher {
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
       this._removeEntity(entity);
-      this._isActive && entity._processInActive();
+      this._isActiveInEngine && entity._processInActive();
       Entity._traverseSetOwnerScene(entity, null);
     }
   }
@@ -123,7 +123,7 @@ export class Scene extends EventDispatcher {
    * 销毁场景。
    */
   destroy(): void {
-    this._isActive && (this._engine.sceneManager.scene = null);
+    this._isActiveInEngine && (this._engine.sceneManager.scene = null);
     sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
       this._rootEntities[i].destroy();
@@ -205,7 +205,7 @@ export class Scene extends EventDispatcher {
    * @internal
    */
   _processActive(active: boolean): void {
-    this._isActive = active;
+    this._isActiveInEngine = active;
     const rootEntities = this._rootEntities;
     for (let i = rootEntities.length - 1; i >= 0; i--) {
       const entity = rootEntities[i];
