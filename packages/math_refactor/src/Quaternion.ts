@@ -1,5 +1,6 @@
 import { MathUtil } from "./MathUtil";
 import { Vector3 } from "./Vector3";
+import { Matrix3x3 } from "./Matrix3x3";
 
 /**
  * 四元数
@@ -93,6 +94,43 @@ export class Quaternion {
     out.y = cx * sy * cz + sx * cy * sz;
     out.z = cx * cy * sz - sx * sy * cz;
     out.w = cx * cy * cz + sx * sy * sz;
+  }
+
+  /**
+   * 通过矩阵得出对应的四元数
+   *
+   * @param a - 3x3矩阵
+   * @param out - 生成的四元数
+   */
+  static fromMat3(a: Matrix3x3, out: Quaternion): void {
+    const ae = a.elements;
+    let fTrace = ae[0] + ae[4] + ae[8];
+    let fRoot;
+
+    if (fTrace > 0.0) {
+      // |w| > 1/2, may as well choose w > 1/2
+      fRoot = Math.sqrt(fTrace + 1.0); // 2w
+      out.w = 0.5 * fRoot;
+      fRoot = 0.5 / fRoot; // 1/(4w)
+      out.x = (ae[5] - ae[7]) * fRoot;
+      out.y = (ae[6] - ae[2]) * fRoot;
+      out.z = (ae[1] - ae[3]) * fRoot;
+    } else {
+      // |w| <= 1/2
+      const qMap = ["x", "y", "z", "w"]; // TODO 待优化
+      let i = 0;
+      if (ae[4] > ae[0]) i = 1;
+      if (ae[8] > ae[i * 3 + i]) i = 2;
+      let j = (i + 1) % 3;
+      let k = (i + 2) % 3;
+
+      fRoot = Math.sqrt(ae[i * 3 + i] - ae[j * 3 + j] - ae[k * 3 + k] + 1.0);
+      out[qMap[i]] = 0.5 * fRoot;
+      fRoot = 0.5 / fRoot;
+      out.w = (ae[j * 3 + k] - ae[k * 3 + j]) * fRoot;
+      out[qMap[j]] = (ae[j * 3 + i] + ae[i * 3 + j]) * fRoot;
+      out[qMap[k]] = (ae[k * 3 + i] + ae[i * 3 + k]) * fRoot;
+    }
   }
 
   /**
