@@ -139,7 +139,6 @@ export class Engine extends EventDispatcher {
     this._paused = true;
     cancelAnimationFrame(this._requestId);
     clearTimeout(this._timeoutId);
-    this._loopCounter = 0;
   }
 
   /**
