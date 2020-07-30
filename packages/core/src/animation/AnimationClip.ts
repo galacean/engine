@@ -148,14 +148,8 @@ export class AnimationClip extends AssetObject {
    */
   public createChannelValue(channelIndex: number): number | Float32Array | number[] {
     const sampler = this.channels[channelIndex].sampler;
-    switch (sampler.outputSize) {
-      case 1:
-        return 0.0;
-      // break;
-      default:
-        return new Float32Array(sampler.outputSize);
-      // break;
-    } // end of switch
+
+    return new Float32Array(sampler.outputSize);
   }
 
   /**
@@ -224,7 +218,7 @@ export class AnimationClip extends AssetObject {
   ) {
     switch (outputSize) {
       case 1:
-        outValue = output[frameIndex] * (1 - alpha) + output[nextFrameIndex] * alpha;
+        outValue[0] = output[frameIndex] * (1 - alpha) + output[nextFrameIndex] * alpha;
         break;
       case 4:
         // const start = new Quaternion(
