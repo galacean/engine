@@ -100,22 +100,19 @@ export class Entity extends EventDispatcher {
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
 
-  /** @deprecated */
-  private _invModelMatrix: Matrix4 = mat4.create();
-
   /**
    * 是否局部激活。
    */
   get isActive(): boolean {
     return this._isActive;
   }
+
   set isActive(value: boolean) {
     if (value !== this._isActive) {
       this._isActive = value;
       if (value) {
         const parent = this._parent;
-        //CM:还需要判断场景是否激活,具体逻辑可为先判断parent是否为空,不为空判断parent._isActiveInHierarch，为空判断scene._isActive
-        if ((parent && parent._isActiveInHierarchy) || this._isRoot) {
+        if ((parent && parent._isActiveInHierarchy) || (this._isRoot && this._scene?._isActive)) {
           this._processActive();
         }
       } else {
@@ -475,6 +472,7 @@ export class Entity extends EventDispatcher {
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
+  private _invModelMatrix: Matrix4 = mat4.create();
   private _inverseWorldMatFlag: UpdateFlag;
 
   /**

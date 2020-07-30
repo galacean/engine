@@ -7,17 +7,6 @@ import { SceneFeature } from "./SceneFeature";
 import { Vector4 } from "@alipay/o3-math/types/type";
 import { ComponentsManager } from "./ComponentsManager";
 
-/*
-@todo: delete
-Scene Feature:
-{
- type: "type_name",
- preUpdate : function(scene) {},
- postUpdate : function(scene) {},
- preRender : function(scene, camera) {},
- postRender : function(scene, camera) {},
-}
-*/
 const sceneFeatureManager = new FeatureManager<SceneFeature>();
 
 /**
@@ -38,6 +27,7 @@ export class Scene extends EventDispatcher {
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _activeCameras: Camera[] = [];
+  _isActive: boolean = false;
 
   private _engine: Engine;
   private _destroyed: boolean = false;
@@ -102,7 +92,7 @@ export class Scene extends EventDispatcher {
     }
 
     //process entity active/inActive
-    if (this._engine.sceneManager._scene == this) {
+    if (this._isActive) {
       !entity._isActiveInHierarchy && entity._isActive && entity._processActive();
     } else {
       entity._isActiveInHierarchy && entity._processInActive();
@@ -116,7 +106,7 @@ export class Scene extends EventDispatcher {
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
       this._removeEntity(entity);
-      this._engine.sceneManager._scene == this && entity._processInActive();
+      this._isActive && entity._processInActive();
       Entity._traverseSetOwnerScene(entity, null);
     }
   }
@@ -133,8 +123,7 @@ export class Scene extends EventDispatcher {
    * 销毁场景。
    */
   destroy(): void {
-    if (this._engine.sceneManager._scene === this) this._engine.sceneManager.scene = null;
-    //继续销毁所有根节点
+    this._isActive && (this._engine.sceneManager.scene = null);
     sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
       this._rootEntities[i].destroy();
@@ -216,6 +205,7 @@ export class Scene extends EventDispatcher {
    * @internal
    */
   _processActive(active: boolean): void {
+    this._isActive = active;
     const rootEntities = this._rootEntities;
     for (let i = rootEntities.length - 1; i >= 0; i--) {
       const entity = rootEntities[i];
