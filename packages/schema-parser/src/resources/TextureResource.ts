@@ -10,7 +10,7 @@ export class TextureResource extends SchemaResource {
     return new Promise((resolve, reject) => {
       let url: string;
       if (this.resourceManager.useCompressedTexture && assetConfig?.props?.compression?.compressions.length) {
-        const rhi = oasis.engine.hardwareRenderer;
+        const rhi = oasis.engine._hardwareRenderer;
         const compressions = assetConfig.props.compression.compressions;
         compressions.sort((a: any, b: any) => compressedTextureLoadOrder[a.type] - compressedTextureLoadOrder[b.type]);
         for (let i = 0; i < compressions.length; i++) {

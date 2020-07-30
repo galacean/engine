@@ -27,7 +27,10 @@ export class Oasis extends o3.EventDispatcher {
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
     this.resourceManager = new SchemaResourceManager(this);
-    _options.fps && this.engine.setFPS(_options.fps);
+    if (_options.fps) {
+      this.engine.targetFrameRate = _options.fps;
+      this.engine.vSyncCount = 0;
+    }
   }
 
   public get canvas(): HTMLCanvasElement {
@@ -122,7 +125,7 @@ export class Oasis extends o3.EventDispatcher {
    */
   private resetFeature() {
     // TODO 脏代码，delete
-    const scene = this.engine.currentScene;
+    const scene = this.engine.sceneManager.activeScene;
     scene.features.splice(1, 1);
     scene.features.splice(3, 1);
     (scene as any).hasFogFeature = undefined;

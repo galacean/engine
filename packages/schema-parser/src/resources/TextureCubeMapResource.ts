@@ -20,7 +20,7 @@ export class TextureCubeMapResource extends SchemaResource {
       const imageUrls = [];
       let type = LoaderType.TextureCube;
       if (this.resourceManager.useCompressedTexture && assetConfig?.props?.compression?.compressions.length) {
-        const rhi = oasis.engine.hardwareRenderer;
+        const rhi = oasis.engine._hardwareRenderer;
         const compressions = assetConfig.props.compression.compressions;
         compressions.sort((a: any, b: any) => {
           return compressedTextureLoadOrder[a.type] - compressedTextureLoadOrder[b.type];
