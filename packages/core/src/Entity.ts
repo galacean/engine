@@ -10,7 +10,7 @@ import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 
 /**
- * 节点类,可作为组件的容器。
+ * 实体,可作为组件的容器。
  */
 export class Entity extends EventDispatcher {
   static _entitys: DisorderedArray<Entity> = new DisorderedArray();
@@ -21,10 +21,10 @@ export class Entity extends EventDispatcher {
    * @returns 节点
    */
   static findByName(name: string): Entity {
-    const { _entitys: _nodes } = Entity;
-    const entitys = _nodes._elements;
-    for (let i = entitys.length - 1; i >= 0; i--) {
-      const entity = entitys[i];
+    const { _entitys } = Entity;
+    const elements = _entitys._elements;
+    for (let i = _entitys.length - 1; i >= 0; i--) {
+      const entity = elements[i];
       const nodeName = entity.name;
       if (nodeName === name) {
         return entity;
@@ -310,6 +310,17 @@ export class Entity extends EventDispatcher {
   }
 
   /**
+   * 创建子节点。
+   * @param name - 名称
+   * @returns 子节点
+   */
+  createChild(name?: string): Entity {
+    const child = new Entity(name, this.engine);
+    child.parent = this;
+    return child;
+  }
+
+  /**
    * 清空子节点。
    */
   clearChildren(): void {
@@ -462,26 +473,13 @@ export class Entity extends EventDispatcher {
     }
   }
 
-  //--------------------------------------------TobeConfirmed-------------------------------------------------
-  /**
-   * 创建子节点
-   * @param {string} name 子节点的名称
-   * @return {Entity} 新创建的子节点对象
-   */
-  createChild(name: string): Entity {
-    const child = new Entity(name, this.engine);
-    child.parent = this;
-    return child;
-  }
-
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   private _invModelMatrix: Matrix4 = mat4.create();
   private _inverseWorldMatFlag: UpdateFlag;
 
   /**
    * @deprecated
-   * 本节点的位置(Local Space)
-   * @member {vec3}
+   * 请使用 transform.position 代替。
    */
   get position(): Vector3 {
     return this.transform.position;
@@ -493,8 +491,7 @@ export class Entity extends EventDispatcher {
 
   /**
    * @deprecated
-   * 本节点的世界坐标系位置
-   * @member {vec3}
+   * 请使用 transform.worldPosition 代替
    */
   get worldPosition(): Vector3 {
     return this.transform.worldPosition;
@@ -504,8 +501,9 @@ export class Entity extends EventDispatcher {
     this.transform.worldPosition = val;
   }
 
-  /** Property: 本节点的旋转四元数(Local Space)
-   * @member {quat|Array}
+  /**
+   * @deprecated
+   * 请使用 transform.rotationQuaternion 代替
    */
   get rotation(): Vector4 {
     return this.transform.rotationQuaternion;
@@ -517,8 +515,7 @@ export class Entity extends EventDispatcher {
 
   /**
    * @deprecated
-   * 本节点的缩放系数(Local Space)
-   * @member {vec3}
+   * 请使用 transform.scale 代替
    */
   get scale(): Vector3 {
     return this.transform.scale;
@@ -530,8 +527,6 @@ export class Entity extends EventDispatcher {
 
   /**
    * @deprecated
-   * 取得World to Local矩阵
-   * @return {mat4}
    */
   getInvModelMatrix(): Matrix4 {
     if (this._inverseWorldMatFlag.flag) {
