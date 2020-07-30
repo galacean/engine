@@ -36,25 +36,24 @@ export class Entity extends EventDispatcher {
   /**
    * 根据路径全局查找节点，使用‘/’符号作为路径分割符。
    * @param path - 路径
-   * @param scene - @deprecated 兼容参数
+   * @param scene - 查找场景，如果为则使用最新创建 Engine 的激活场景
    * @returns 节点
    */
-  static findByPath(path: string, scene: Scene /*@deprecated*/): Entity {
-    const splits = path.split("/");
-    // todo: multi rootNode
-    const rootNode = scene.getRootEntity();
-    if (!rootNode) return null; //scene or scene.root maybe destroyed
-    let node: Entity = rootNode;
-    for (let i = 0, spitLength = splits.length; i < spitLength; ++i) {
-      const split = splits[i];
-      if (split) {
-        node = Entity._findChildByName(node, split);
-        if (!node) {
-          return null;
+  static findByPath(path: string, scene?: Scene): Entity | null {
+    scene || (scene = Engine._lastCreateEngine?.scene);
+    if (scene) {
+      const splits = path.split("/").filter(Boolean);
+      for (let i = 0, n = scene.rootEntitiesCount; i < n; i++) {
+        let findNode = scene.getRootEntity(i);
+        if (findNode.name != splits[0]) continue;
+        for (let j = 1, m = splits.length; j < m; ++j) {
+          findNode = Entity._findChildByName(findNode, splits[j]);
+          if (!findNode) break;
         }
+        return findNode;
       }
     }
-    return node;
+    return null;
   }
 
   /**
@@ -71,11 +70,11 @@ export class Entity extends EventDispatcher {
     return null;
   }
 
-  private static _traverseSetOwnerScene(node: Entity, scene: Scene): void {
+  static _traverseSetOwnerScene(node: Entity, scene: Scene): void {
+    node._scene = scene;
+    const children = node._children;
     for (let i = node.childCount - 1; i >= 0; i--) {
-      const child = node._children[i];
-      child._scene = scene;
-      this._traverseSetOwnerScene(child, scene);
+      this._traverseSetOwnerScene(children[i], scene);
     }
   }
 
@@ -92,9 +91,10 @@ export class Entity extends EventDispatcher {
   _scene: Scene;
   /* @internal */
   _isRoot: boolean = false;
+  /* @internal */
+  _isActive: boolean = true;
 
   private _engine: Engine;
-  private _active: boolean = true;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
   public readonly transform: Transform;
@@ -106,11 +106,11 @@ export class Entity extends EventDispatcher {
    * 是否局部激活。
    */
   get isActive(): boolean {
-    return this._active;
+    return this._isActive;
   }
   set isActive(value: boolean) {
-    if (value !== this._active) {
-      this._active = value;
+    if (value !== this._isActive) {
+      this._isActive = value;
       if (value) {
         const parent = this._parent;
         //CM:还需要判断场景是否激活,具体逻辑可为先判断parent是否为空,不为空判断parent._isActiveInHierarch，为空判断scene._isActive
@@ -141,34 +141,28 @@ export class Entity extends EventDispatcher {
 
   set parent(node: Entity) {
     if (node !== this._parent) {
-      const oldParent = this._parent;
-      if (oldParent != null) {
-        const oldParentChildren = oldParent._children;
-        oldParentChildren.splice(oldParentChildren.indexOf(this), 1);
-      }
+      const oldParent = this._removeFromParent();
       const newParent = (this._parent = node);
       if (newParent) {
         newParent._children.push(this);
         const parentScene = newParent._scene;
         if (this._scene !== parentScene) {
-          this._scene = parentScene;
           Entity._traverseSetOwnerScene(this, parentScene);
         }
 
         if (newParent._isActiveInHierarchy) {
-          !this._isActiveInHierarchy && this._active && this._processActive();
+          !this._isActiveInHierarchy && this._isActive && this._processActive();
         } else {
           this._isActiveInHierarchy && this._processInActive();
         }
       } else {
         this._isActiveInHierarchy && this._processInActive();
         if (oldParent) {
-          this._scene = null;
           Entity._traverseSetOwnerScene(this, null);
         }
       }
+      this._setTransformDirty();
     }
-    this._setTransformDirty();
   }
 
   /**
@@ -323,8 +317,7 @@ export class Entity extends EventDispatcher {
       const child = children[i];
       child._parent = null;
       child._isActiveInHierarchy && child._processInActive();
-      child._scene = null; // must after child._processInActive()
-      Entity._traverseSetOwnerScene(child, null);
+      Entity._traverseSetOwnerScene(child, null); // must after child._processInActive()
     }
     children.length = 0;
   }
@@ -336,7 +329,7 @@ export class Entity extends EventDispatcher {
   clone(): Entity {
     const newNode = new Entity(this.name, this._engine);
 
-    newNode._active = this._active;
+    newNode._isActive = this._isActive;
     newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
 
     newNode.transform.localMatrix = this.transform.localMatrix;
@@ -392,6 +385,19 @@ export class Entity extends EventDispatcher {
     components.splice(components.indexOf(component), 1);
   }
 
+  /**
+   * @internal
+   */
+  _removeFromParent(): Entity {
+    const oldParent = this._parent;
+    if (oldParent != null) {
+      const oldParentChildren = oldParent._children;
+      oldParentChildren.splice(oldParentChildren.indexOf(this), 1);
+      this._parent = null;
+    }
+    return oldParent;
+  }
+
   private _setActiveComponents(isActive: boolean): void {
     const activeChangedComponents = this._activeChangedComponents;
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
@@ -401,7 +407,7 @@ export class Entity extends EventDispatcher {
     this._activeChangedComponents = null;
   }
 
-  private _processActive(): void {
+  _processActive(): void {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive node' active in hierarchy, if the operation is in main inActive node or it's children script's onDisable Event.";
     }
@@ -410,7 +416,7 @@ export class Entity extends EventDispatcher {
     this._setActiveComponents(true);
   }
 
-  private _processInActive(): void {
+  _processInActive(): void {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active node' inActive in hierarchy, if the operation is in main active node or it's children script's onEnable Event.";
     }

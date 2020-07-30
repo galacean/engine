@@ -80,15 +80,32 @@ export class Scene extends EventDispatcher {
    * @param entity - 根节点
    */
   public addRootEntity(entity: Entity): void {
-    const index = this._rootEntities.indexOf(entity);
-    if (index !== -1) return;
+    const isRoot = entity._isRoot;
 
-    entity._isRoot = true;
-    entity._scene = this;
-    entity.parent = null;
-    entity.isActive = true;
-    entity._isActiveInHierarchy = true;
-    this._rootEntities.push(entity);
+    //let entity become root
+    if (!isRoot) {
+      entity._isRoot = true;
+      entity._removeFromParent();
+    }
+
+    //add or remove from scene's rootEntities
+    const oldScene = entity._scene;
+    if (oldScene !== this) {
+      if (oldScene && isRoot) {
+        oldScene._removeEntity(entity);
+      }
+      this._rootEntities.push(entity);
+      Entity._traverseSetOwnerScene(entity, this);
+    } else if (!isRoot) {
+      this._rootEntities.push(entity);
+    }
+
+    //process entity active/inActive
+    if (this._engine.scene == this) {
+      !entity._isActiveInHierarchy && entity._isActive && entity._processActive();
+    } else {
+      entity._isActiveInHierarchy && entity._processInActive();
+    }
   }
 
   /**
@@ -96,10 +113,10 @@ export class Scene extends EventDispatcher {
    * @param entity - 根节点
    */
   public removeRootEntity(entity: Entity): void {
-    const index = this._rootEntities.indexOf(entity);
-    if (index !== -1) {
-      this._rootEntities[index].isActive = false;
-      this._rootEntities.splice(index, 1);
+    if (entity._isRoot && entity._scene == this) {
+      this._removeEntity(entity);
+      this._engine.scene == this && entity._processInActive();
+      Entity._traverseSetOwnerScene(entity, null);
     }
   }
 
@@ -192,6 +209,24 @@ export class Scene extends EventDispatcher {
     if (index !== -1) {
       this._activeCameras.splice(index, 1);
     }
+  }
+
+  /**
+   * @internal
+   */
+  _processActive(active: boolean): void {
+    const rootEntities = this._rootEntities;
+    for (let i = rootEntities.length - 1; i >= 0; i--) {
+      const entity = rootEntities[i];
+      if (entity._isActive) {
+        active ? entity._processActive() : entity._processInActive();
+      }
+    }
+  }
+
+  private _removeEntity(entity: Entity): void {
+    const oldRootEntities = this._rootEntities;
+    oldRootEntities.splice(oldRootEntities.indexOf(entity), 1);
   }
 
   //-----------------------------------------@deprecated-----------------------------------

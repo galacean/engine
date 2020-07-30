@@ -10,12 +10,17 @@ export class SceneManager {
   /**
    * 当前激活场景。
    */
-  get scene(): Scene | null {
+  get scene(): Scene {
     return this._scene;
   }
 
   set scene(scene: Scene) {
-    this._scene = scene;
+    const oldScene = this._scene;
+    if (oldScene !== scene) {
+      oldScene && oldScene._processActive(false);
+      scene && scene._processActive(true);
+      this._scene = scene;
+    }
   }
 
   /**
