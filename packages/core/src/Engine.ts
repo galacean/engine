@@ -120,9 +120,9 @@ export class Engine extends EventDispatcher {
    */
   constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
     super();
-    // 加入 Feature 管理
+    // @todo delete
     engineFeatureManager.addObject(this);
-    this._sceneManager.activeScene = new Scene("", this);
+    this._sceneManager.activeScene = new Scene("DefaultScene", this);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
@@ -153,7 +153,7 @@ export class Engine extends EventDispatcher {
    * 执行引擎循环。
    */
   run(): void {
-    //  todo: delete
+    // @todo: delete
     engineFeatureManager.callFeatureMethod(this, "preLoad", [this]);
     this.resume();
     this.trigger(new Event("run", this));
