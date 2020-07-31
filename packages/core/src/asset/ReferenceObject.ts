@@ -35,7 +35,7 @@ export abstract class ReferenceObject extends AssetObject {
 
   protected constructor(engine?: Engine) {
     super();
-    const resEngine = engine || Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
+    const resEngine = engine ?? Engine._getDefaultEngine();
     if (!resEngine) throw "asset must belone to an engine.";
     this._engine = resEngine;
     resEngine.resourceManager._addReferenceObject(this.instanceId, this);
