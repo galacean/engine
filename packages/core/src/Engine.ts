@@ -34,8 +34,8 @@ export class Engine extends EventDispatcher {
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
-  private _paused: boolean = true;
-  private _requestId: number;
+  private _isPaused: boolean = true;
+  private _requestId: number; //CM:这俩ID是否可以合并为一个属性，统称loopID
   private _timeoutId: number;
   private _loopCounter: number = 0;
   private _targetFrameInterval: number = 1000 / 60;
@@ -85,7 +85,7 @@ export class Engine extends EventDispatcher {
    * 是否暂停。
    */
   get isPaused(): boolean {
-    return this._paused;
+    return this._isPaused;
   }
 
   /**
@@ -133,7 +133,8 @@ export class Engine extends EventDispatcher {
    * 暂停引擎循环。
    */
   pause(): void {
-    this._paused = true;
+    this._isPaused = true;
+    //CM:实现的有点暴力
     cancelAnimationFrame(this._requestId);
     clearTimeout(this._timeoutId);
   }
@@ -142,8 +143,8 @@ export class Engine extends EventDispatcher {
    * 恢复引擎循环。
    */
   resume(): void {
-    if (!this._paused) return;
-    this._paused = false;
+    if (!this._isPaused) return;
+    this._isPaused = false;
 
     this._animate();
   }
