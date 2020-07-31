@@ -59,7 +59,7 @@ export class ResourceManager {
    * @param path - 路径集合
    * @returns 资源请求
    */
-  load(pathes: string[]): AssetPromise<Object>;
+  load(pathes: string[]): AssetPromise<Object[]>;
 
   /**
    * 通过加载信息集合异步加载资源集合。
@@ -73,12 +73,12 @@ export class ResourceManager {
    * @param assetItems - 资源加载项集合
    * @returns 资源请求
    */
-  load(assetItems: LoadItem[]): AssetPromise<Object>;
+  load(assetItems: LoadItem[]): AssetPromise<Object[]>;
 
   /**
    * @internal
    */
-  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | T[]> | never {
+  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | T[]> {
     // 单个资源加载
     if (!Array.isArray(assetInfo)) {
       return this._loadSingleItem(assetInfo);
