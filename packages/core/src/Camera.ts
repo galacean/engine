@@ -1,6 +1,5 @@
 import { ClearMode, TextureCubeFace } from "@alipay/o3-base";
-import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
-import { Matrix4, Vector2, Vector3, Vector4 } from "@alipay/o3-math/types/type";
+import { Matrix4x4, MathUtil, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
@@ -20,9 +19,9 @@ type Sky = {};
 
 //CM：这个类可能需要搬家
 class MathTemp {
-  static tempMat4 = mat4.create() as Matrix4;
-  static tempVec4 = vec4.create() as Vector4;
-  static tempVec3 = vec3.create() as Vector3;
+  static tempMat4 = new Matrix4x4();
+  static tempVec4 = new Vector4();
+  static tempVec3 = new Vector3();
 }
 
 /**
@@ -369,13 +368,14 @@ export class Camera extends Component {
    */
   viewportPointToRay(point: Vector2, out: Ray): Ray {
     // 使用近裁面的交点作为 origin
-    vec3.set(MathTemp.tempVec3, point[0], point[1], 0);
+    MathTemp.tempVec3.setValue(point.x, point.y, 0);
     const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
     // 使用远裁面的交点作为 origin
-    const viewportPos = vec3.set(MathTemp.tempVec3, point[0], point[1], 1);
-    const farPoint = this._innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
-    const direction = vec3.sub(out.direction, farPoint, origin);
-    vec3.normalize(direction, direction);
+    const viewportPos: Vector3 = MathTemp.tempVec3.setValue(point.x, point.y, 1);
+    const farPoint: Vector3 = this._innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
+    Vector3.subtract(farPoint, origin, out.direction);
+    out.direction.normalize();
+
     return out;
   }
 

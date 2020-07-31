@@ -1,14 +1,13 @@
-import { vec3 } from "@alipay/o3-math";
+import { Vector3, Vector4 } from "@alipay/o3-math";
 import { IntersectInfo } from "@alipay/o3-base";
-import { Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { pointDistanceToPlane } from "./util";
 
 /**
  * 轴对齐的包围盒(Axis Aligned Bound Box)
  * */
 export class AABB {
-  public min: Vector3 = vec3.create();
-  public max: Vector3 = vec3.create();
+  public min: Vector3 = new Vector3();
+  public max: Vector3 = new Vector3();
 
   /**
    * AABB 的 min/max 基于世界坐标系，且不能通过 modelMatrix 缓存计算
@@ -25,8 +24,8 @@ export class AABB {
    * @param {Vector3} maxWorld - 世界坐标系的最大坐标
    * */
   update(minWorld: Vector3, maxWorld: Vector3) {
-    vec3.copy(this.min, minWorld);
-    vec3.copy(this.max, maxWorld);
+    minWorld.cloneTo(this.min);
+    maxWorld.cloneTo(this.max);
   }
 
   /**
@@ -35,11 +34,11 @@ export class AABB {
    * @param {Vector3} size - 包围盒的3个轴向的大小
    */
   setFromCenterAndSize(center: Vector3, size: Vector3) {
-    let halfSize = vec3.create();
-    vec3.scale(halfSize, size, 0.5);
+    let halfSize = new Vector3();
+    Vector3.scale(size, 0.5, halfSize);
 
-    vec3.subtract(this.min, center, halfSize);
-    vec3.add(this.max, center, halfSize);
+    Vector3.subtract(center, halfSize, this.min);
+    Vector3.add(center, halfSize, this.max);
   }
 
   /**
@@ -48,19 +47,18 @@ export class AABB {
    * @return {IntersectInfo} 返回相交状态
    * */
   intersectsFrustum(frustumPlanes: Vector4[]): IntersectInfo {
-    const min = this.min;
-    const max = this.max;
-    const p1 = [],
-      p2 = [];
+    const { min, max } = this;
+    const p1: Vector3 = new Vector3();
+    const p2: Vector3 = new Vector3();
 
     for (let i = 0; i < 6; i++) {
-      const plane = frustumPlanes[i];
-      p1[0] = plane[0] > 0 ? min[0] : max[0];
-      p2[0] = plane[0] > 0 ? max[0] : min[0];
-      p1[1] = plane[1] > 0 ? min[1] : max[1];
-      p2[1] = plane[1] > 0 ? max[1] : min[1];
-      p1[2] = plane[2] > 0 ? min[2] : max[2];
-      p2[2] = plane[2] > 0 ? max[2] : min[2];
+      const plane: Vector4 = frustumPlanes[i];
+      p1.x = plane.x > 0 ? min.x : max.x;
+      p2.x = plane.x > 0 ? max.x : min.x;
+      p1.y = plane.y > 0 ? min.y : max.y;
+      p2.y = plane.y > 0 ? max.y : min.y;
+      p1.z = plane.z > 0 ? min.z : max.z;
+      p2.z = plane.z > 0 ? max.z : min.z;
 
       const d1 = pointDistanceToPlane(plane, p1);
       const d2 = pointDistanceToPlane(plane, p2);
@@ -86,13 +84,13 @@ export class AABB {
   isInFrustum(frustumPlanes: Vector4[]): boolean {
     const min = this.min;
     const max = this.max;
-    const p = [];
+    const p: Vector3 = new Vector3();
 
     for (let i = 0; i < 6; i++) {
-      const plane = frustumPlanes[i];
-      p[0] = plane[0] > 0 ? max[0] : min[0];
-      p[1] = plane[1] > 0 ? max[1] : min[1];
-      p[2] = plane[2] > 0 ? max[2] : min[2];
+      const plane: Vector4 = frustumPlanes[i];
+      p.x = plane.x > 0 ? max.x : min.x;
+      p.y = plane.y > 0 ? max.y : min.y;
+      p.z = plane.z > 0 ? max.z : min.z;
 
       if (pointDistanceToPlane(plane, p) < 0) {
         return false;

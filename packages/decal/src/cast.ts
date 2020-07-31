@@ -1,10 +1,10 @@
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { Logger } from "@alipay/o3-base";
 import { Ray } from "./Ray";
-import { getNormal, distanceTo, getXFromIndex, fromBufferAttribute } from "./util";
+import { getNormal, distanceTo, fromBufferAttribute } from "./util";
 
-const _intersectPoint = vec3.create();
-const _intersectPointWorld = vec3.create();
+const _intersectPoint = new Vector3();
+const _intersectPointWorld = new Vector3();
 
 export function raycast(meshRenderer, ray) {
   const intersects = [];
@@ -25,9 +25,9 @@ export function raycast(meshRenderer, ray) {
     const positionAttribute = primitive.vertexBuffers[positionAttributeIndex];
     const indexAttribute = primitive.indexBuffer;
     for (let i = 0; i < indexAttribute.length; i += 3) {
-      const a = getXFromIndex(indexAttribute, i);
-      const b = getXFromIndex(indexAttribute, i + 1);
-      const c = getXFromIndex(indexAttribute, i + 2);
+      const a = indexAttribute[i];
+      const b = indexAttribute[i + 1];
+      const c = indexAttribute[i + 2];
       intersection = checkBufferGeometryIntersection(
         meshRenderer.node, // 父节点
         ray,
@@ -65,10 +65,10 @@ function checkIntersection(node, ray, localRay, pA, pB, pC, point, primitive) {
   if (intersect === null) {
     return null;
   }
-  const temp = vec3.create();
-  const pointCopy = vec3.copy(_intersectPointWorld, point);
-  const intersectPointWorld = vec3.transformMat4(temp, pointCopy, node.getModelMatrix());
-  const distance = distanceTo(ray.origin, intersectPointWorld);
+  const temp = new Vector3();
+  point.cloneTo(_intersectPointWorld);
+  Vector3.transformMat4x4(_intersectPointWorld, node.getModelMatrix(), temp);
+  const distance = distanceTo(ray.origin, temp);
 
   return {
     node,

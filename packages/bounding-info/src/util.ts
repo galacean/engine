@@ -1,21 +1,22 @@
-import { Matrix4 } from "@alipay/o3-math/types/type";
+import { Vector3, Vector4, Matrix4x4 } from "@alipay/o3-math";
 
 /**
  * 一个点到一个平面的距离
- * @param {Vec4} plane - 平面方程
- * @param {Vec3} pt - 点的位置矢量
+ * @param {Vector4} plane - 平面方程
+ * @param {Vector3} pt - 点的位置矢量
  * @private
  */
-export function pointDistanceToPlane(plane, pt) {
-  return plane[0] * pt[0] + plane[1] * pt[1] + plane[2] * pt[2] + plane[3];
+export function pointDistanceToPlane(plane: Vector4, pt: Vector3) {
+  // TODO chengkong.zxx
+  return plane.x * pt.x + plane.y * pt.y + plane.z * pt.z + plane.w;
 }
 
 /**
  * 从列主序矩阵获取最大轴向的 scale
- * @param {Matrix4} modelMatrix - Local to World矩阵
+ * @param {Matrix4x4} modelMatrix - Local to World矩阵
  * */
-export function getMaxScaleByModelMatrix(modelMatrix: Matrix4): number {
-  let m = modelMatrix;
+export function getMaxScaleByModelMatrix(modelMatrix: Matrix4x4): number {
+  let m = modelMatrix.elements;
   let scaleXSq = m[0] * m[0] + m[1] * m[1] + m[2] * m[2];
   let scaleYSq = m[4] * m[4] + m[5] * m[5] + m[6] * m[6];
   let scaleZSq = m[8] * m[8] + m[9] * m[9] + m[10] * m[10];

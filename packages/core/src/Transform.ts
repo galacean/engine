@@ -1,5 +1,4 @@
-import { vec3, quat, mat4, vec4, mat3, MathUtil } from "@alipay/o3-math";
-import { Vector3, Vector4, Matrix4, Matrix3 } from "@alipay/o3-math/types/type";
+import { Vector3, Quaternion, Matrix4x4, Vector4, Matrix3x3, MathUtil } from "@alipay/o3-math";
 import { Entity } from "./Entity";
 import { Component } from "./Component";
 import { UpdateFlag } from "./UpdateFlag";
@@ -8,7 +7,7 @@ import { UpdateFlag } from "./UpdateFlag";
  * 用于实现变换相关功能。
  */
 export class Transform extends Component {
-  private static _tempVec3: Vector3 = vec3.create();
+  private static _tempVec3: Vector3 = new Vector3();
   private static _tempVec41: Vector4 = vec4.create();
   private static _tempVec40: Vector4 = vec4.create();
   private static _tempMat30: Matrix3 = mat3.create();
@@ -69,14 +68,14 @@ export class Transform extends Component {
     Transform._WORLD_QUAT_FLAG |
     Transform._WORLD_SCALE_FLAG;
 
-  private _position: Vector3 = vec3.create();
-  private _rotation: Vector3 = vec3.create();
+  private _position: Vector3 = new Vector3();
+  private _rotation: Vector3 = new Vector3();
   private _rotationQuaternion: Vector4 = quat.create();
-  private _scale: Vector3 = vec3.fromValues(1, 1, 1);
-  private _worldPosition: Vector3 = vec3.create();
-  private _worldRotation: Vector3 = vec3.create();
+  private _scale: Vector3 = new Vector3(1, 1, 1);
+  private _worldPosition: Vector3 = new Vector3();
+  private _worldRotation: Vector3 = new Vector3();
   private _worldRotationQuaternion: Vector4 = quat.create();
-  private _lossyWorldScale: Vector3 = vec3.fromValues(1, 1, 1);
+  private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
   private _localMatrix: Matrix4 = mat4.create();
   private _worldMatrix: Matrix4 = mat4.create();
   private _dirtyFlag: number = Transform._WM_WP_WE_WQ_WS_FLAGS;
@@ -94,7 +93,7 @@ export class Transform extends Component {
 
   set position(value: Vector3) {
     if (this._position !== value) {
-      vec3.copy(this._position, value);
+      value.cloneTo(this._position);
     }
     this._setDirtyFlagTrue(Transform._LOCAL_MATRIX_FLAG);
     this._updateWorldPositionFlag();
@@ -109,7 +108,7 @@ export class Transform extends Component {
       if (this._getParentTransform()) {
         mat4.getTranslation(this._worldPosition, this.worldMatrix);
       } else {
-        vec3.copy(this._worldPosition, this._position);
+        this._position.cloneTo(this._worldPosition);
       }
       this._setDirtyFlagFalse(Transform._WORLD_POSITION_FLAG);
     }
@@ -118,14 +117,14 @@ export class Transform extends Component {
 
   set worldPosition(value: Vector3) {
     if (this._worldPosition !== value) {
-      vec3.copy(this._worldPosition, value);
+      value.cloneTo(this._worldPosition);
     }
     const parent = this._getParentTransform();
     if (parent) {
       const matWorldToLocal = mat4.invert(Transform._tempMat41, parent.worldMatrix);
-      vec3.transformMat4(this._worldPosition, value, matWorldToLocal);
+      Vector3.transformMat4x4(value, matWorldToLocal, this._position);
     } else {
-      vec3.copy(this._worldPosition, value);
+      value.cloneTo(this._worldPosition);
     }
     this.position = this._worldPosition;
     this._setDirtyFlagFalse(Transform._WORLD_POSITION_FLAG);
@@ -145,7 +144,7 @@ export class Transform extends Component {
 
   set rotation(value: Vector3) {
     if (this._rotation !== value) {
-      vec3.copy(this._rotation, value);
+      value.cloneTo(this._rotation);
     }
     this._setDirtyFlagTrue(Transform._LOCAL_MATRIX_FLAG | Transform._LOCAL_QUAT_FLAG);
     this._setDirtyFlagFalse(Transform._LOCAL_EULER_FLAG);
@@ -166,7 +165,7 @@ export class Transform extends Component {
 
   set worldRotation(value: Vector3) {
     if (this._worldRotation !== value) {
-      vec3.copy(this._worldRotation, value);
+      value.cloneTo(this._worldRotation);
     }
     quat.fromEuler(this._worldRotationQuaternion, value[0], value[1], value[2]);
     this.worldRotationQuaternion = this._worldRotationQuaternion;
@@ -236,7 +235,7 @@ export class Transform extends Component {
 
   set scale(value: Vector3) {
     if (this._scale !== value) {
-      vec3.copy(this._scale, value);
+      value.cloneTo(this._scale);
     }
     this._setDirtyFlagTrue(Transform._LOCAL_MATRIX_FLAG);
     this._updateWorldScaleFlag();
@@ -249,9 +248,9 @@ export class Transform extends Component {
     if (this._isContainDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
       if (this._getParentTransform()) {
         const scaleMat = this._getScaleMatrix();
-        vec3.set(this._lossyWorldScale, scaleMat[0], scaleMat[4], scaleMat[8]);
+        this._lossyWorldScale.setValue(scaleMat[0], scaleMat[4], scaleMat[8]);
       } else {
-        vec3.copy(this._lossyWorldScale, this._scale);
+        this._scale.cloneTo(this._lossyWorldScale);
       }
       this._setDirtyFlagFalse(Transform._WORLD_SCALE_FLAG);
     }
@@ -327,8 +326,8 @@ export class Transform extends Component {
    */
   getWorldForward(forward: Vector3): Vector3 {
     const worldMatrix = this.worldMatrix;
-    forward = vec3.set(forward, worldMatrix[8], worldMatrix[9], worldMatrix[10]);
-    return vec3.normalize(forward, forward);
+    forward.setValue(worldMatrix[8], worldMatrix[9], worldMatrix[10]);
+    return forward.normalize();
   }
 
   /**
@@ -338,8 +337,8 @@ export class Transform extends Component {
    */
   getWorldRight(right: Vector3): Vector3 {
     const worldMatrix = this.worldMatrix;
-    right = vec3.set(right, worldMatrix[0], worldMatrix[1], worldMatrix[2]);
-    return vec3.normalize(right, right);
+    right.setValue(worldMatrix[0], worldMatrix[1], worldMatrix[2]);
+    return right.normalize();
   }
 
   /**
@@ -349,8 +348,8 @@ export class Transform extends Component {
    */
   getWorldUp(up: Vector3): Vector3 {
     const worldMatrix = this.worldMatrix;
-    up = vec3.set(up, worldMatrix[4], worldMatrix[5], worldMatrix[6]);
-    return vec3.normalize(up, up);
+    up.setValue(worldMatrix[4], worldMatrix[5], worldMatrix[6]);
+    return up.normalize();
   }
 
   /**
@@ -362,10 +361,10 @@ export class Transform extends Component {
     if (relativeToLocal) {
       const rotationMat = Transform._tempMat40;
       mat4.fromQuat(rotationMat, this.rotationQuaternion);
-      translation = vec3.transformMat4(Transform._tempVec3, translation, rotationMat);
-      this.position = vec3.add(this._position, this._position, translation);
+      Vector3.transformMat4x4(translation, rotationMat, Transform._tempVec3);
+      this.position = this._position.add(Transform._tempVec3);
     } else {
-      this.worldPosition = vec3.add(this.worldPosition, translation, this._worldPosition);
+      this.worldPosition = this._worldPosition.add(translation);
     }
   }
 
@@ -407,7 +406,7 @@ export class Transform extends Component {
     ) {
       return;
     }
-    worldUp = worldUp ?? vec3.set(Transform._tempVec3, 0, 1, 0);
+    worldUp = worldUp ?? Transform._tempVec3.setValue(0, 1, 0);
     const modelMatrix = mat4.lookAtR(Transform._tempMat43, position, worldPosition, worldUp); //CM:可采用3x3矩阵优化
     this.worldRotationQuaternion = mat4.getRotation(Transform._tempVec40, modelMatrix); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
   }

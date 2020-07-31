@@ -1,4 +1,4 @@
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 
 /**
  * AABBox = {
@@ -17,13 +17,14 @@ import { vec3 } from "@alipay/o3-math";
  * @private
  */
 export function intersectBox2Box(boxA, boxB) {
+  // TODO chengkong.zxx
   return (
-    boxA.min[0] <= boxB.max[0] &&
-    boxA.max[0] >= boxB.min[0] &&
-    boxA.min[1] <= boxB.max[1] &&
-    boxA.max[1] >= boxB.min[1] &&
-    boxA.min[2] <= boxB.max[2] &&
-    boxA.max[2] >= boxB.min[2]
+    boxA.min.x <= boxB.max.x &&
+    boxA.max.x >= boxB.min.x &&
+    boxA.min.y <= boxB.max.y &&
+    boxA.max.y >= boxB.min.y &&
+    boxA.min.z <= boxB.max.z &&
+    boxA.max.z >= boxB.min.z
   );
 }
 
@@ -32,7 +33,8 @@ export function intersectBox2Box(boxA, boxB) {
  * @private
  */
 export function intersectSphere2Sphere(sphereA, sphereB) {
-  const distance = vec3.distance(sphereA.center, sphereB.center);
+  // TODO chengkong.zxx
+  const distance = Vector3.distance(sphereA.center, sphereB.center);
   return distance < sphereA.radius + sphereA.radius;
 }
 
@@ -41,13 +43,15 @@ export function intersectSphere2Sphere(sphereA, sphereB) {
  * @private
  */
 export function intersectSphere2Box(sphere, box) {
-  const center = sphere.center;
+  // TODO chengkong.zxx
+  const center: Vector3 = sphere.center;
 
-  const closestPoint = [];
-  closestPoint[0] = Math.max(box.min[0], Math.min(center[0], box.max[0]));
-  closestPoint[1] = Math.max(box.min[1], Math.min(center[1], box.max[1]));
-  closestPoint[2] = Math.max(box.min[2], Math.min(center[2], box.max[2]));
+  const closestPoint: Vector3 = new Vector3(
+    Math.max(box.min.x, Math.min(center.x, box.max.x)),
+    Math.max(box.min.y, Math.min(center.y, box.max.y)),
+    Math.max(box.min.z, Math.min(center.z, box.max.z))
+  );
 
-  const distance = vec3.distance(center, closestPoint);
+  const distance = Vector3.distance(center, closestPoint);
   return distance < sphere.radius;
 }

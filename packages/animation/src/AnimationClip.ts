@@ -1,6 +1,6 @@
 import { AssetObject } from "@alipay/o3-core";
 import { InterpolationType } from "./AnimationConst";
-import { vec2, vec3, quat } from "@alipay/o3-math";
+import { quat } from "@alipay/o3-math";
 import { List, Value, ISample, IChannel } from "./types";
 
 /**
