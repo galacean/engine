@@ -40,9 +40,6 @@ export class Engine extends EventDispatcher {
   private _loopCounter: number = 0;
   private _interval: number = 1000 / 60;
 
-  /**
-   * @internal
-   */
   private _animate = () => {
     if (this._vSyncCount) {
       if (this._loopCounter++ % this._vSyncCount === 0) {
@@ -188,9 +185,6 @@ export class Engine extends EventDispatcher {
     (engineFeatureManager as any)._objects = [];
   }
 
-  /**
-   * @internal
-   */
   private _tick(): void {
     const time = this._time;
     time.tick();
