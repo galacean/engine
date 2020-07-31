@@ -2,11 +2,20 @@
  * 资产类型。
  */
 export enum LoaderType {
-  /** 文本，不进入资源 url 缓存。*/
+  /**
+   * 文本。
+   * @remarks 在资源管理器中不会根据 url 缓存。
+   */
   Text = 0,
-  /** JSON，不进入资源 url 缓存。。*/
+  /**
+   * JSON。
+   * @remarks 在资源管理器中不会根据 url 缓存。
+   */
   JSON = 1,
-  /** 缓冲，不进入资源 url 缓存。。*/
+  /**
+   * 缓冲。
+   * @remarks 在资源管理器中不会根据 url 缓存。
+   */
   Buffer = 2,
   /** 2D纹理。*/
   Texture2D = 3,
@@ -20,10 +29,10 @@ export enum LoaderType {
   AnimationClip = 7,
   /** 预设。*/
   Perfab = 8, // 先走 GLTFLoader
-  /** 压缩纹理 */
+  /** 压缩纹理。*/
   KTX = 9,
-  /** 立方压缩纹理 */
+  /** 立方压缩纹理。*/
   KTXCube = 10
-  /** @todo 场景。 */
+  /** @todo 场景。*/
   // Scene = 9
 }
