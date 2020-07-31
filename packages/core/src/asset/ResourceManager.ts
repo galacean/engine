@@ -78,7 +78,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | T[]> {
+  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | Object[]> {
     // 单个资源加载
     if (!Array.isArray(assetInfo)) {
       return this._loadSingleItem(assetInfo);
