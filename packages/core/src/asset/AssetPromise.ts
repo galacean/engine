@@ -181,8 +181,6 @@ export class AssetPromise<T> extends Promise<T> {
       if (progress <= this._progress) {
         return;
       }
-      // console.log(`set progress ${progress}`);
-      // console.log(`cur progress ${this._progress}`);
       this._progress = progress;
 
       for (const listener of this._listeners) {
@@ -202,7 +200,6 @@ export class AssetPromise<T> extends Promise<T> {
         (value: T) => {
           // 加入到微任务中，避免直接调用找不到 this 报错
           Promise.resolve().then(() => {
-            // console.log('done')
             setProgress(1);
             this._status = AssetPromiseStatus.Success;
             resolve(value);
