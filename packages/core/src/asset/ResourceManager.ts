@@ -9,12 +9,7 @@ import { LoaderType } from "./LoaderType";
  * 资源管理员。
  */
 export class ResourceManager {
-  /**
-   * 当前创建资产所属的默认引擎对象。
-   * @remarks 最后创建的引擎实例会自动赋值该属性。
-   */
-  static defaultCreateAssetEngine: Engine = null;
-
+  /** loader 集合 */
   private static _loaders: { [key: number]: Loader<any> } = {};
   private static _extTypeMapping: { [key: string]: LoaderType } = {};
 
