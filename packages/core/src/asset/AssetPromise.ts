@@ -90,6 +90,8 @@ export class AssetPromise<T> extends Promise<T> {
     values: readonly [T1 | PromiseLike<T1>, T2 | PromiseLike<T2>, T3 | PromiseLike<T3>]
   ): AssetPromise<[T1, T2, T3]>;
   static all<T1, T2>(values: readonly [T1 | PromiseLike<T1>, T2 | PromiseLike<T2>]): AssetPromise<[T1, T2]>;
+
+  static all<T>(values: readonly (T | PromiseLike<T>)[]): AssetPromise<T[]>;
   /**
    * 重写 promise all，返回 AssetPromise
    * @param promises
@@ -131,7 +133,7 @@ export class AssetPromise<T> extends Promise<T> {
   private _listeners: Set<PromiseNotifier>;
 
   /**
-   * 加载是否完成。
+   * 当前 promise 状态。
    */
   get status(): AssetPromiseStatus {
     return this._status;
