@@ -43,7 +43,7 @@ export class ResourceManager {
   retryCount: number = 1;
   /** 加载失败后的重试延迟时间，单位是毫秒。*/
   retryInterval: number = 0;
-  /** 资源默认超时时间 */
+  /** 资源默认超时时间，单位是毫秒(ms) */
   timeout: number = 10000;
 
   /**
@@ -86,12 +86,12 @@ export class ResourceManager {
   load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | T[]> | never {
     // 单个资源加载
     if (!Array.isArray(assetInfo)) {
-      return this.loadSingleItem(assetInfo);
+      return this._loadSingleItem(assetInfo);
     }
     // 数组资源加载
-    const promises: any = assetInfo.map((item) => this.loadSingleItem<T>(item));
+    const promises = assetInfo.map((item) => this._loadSingleItem<T>(item));
 
-    return AssetPromise.all<T, T, T, T, T, T, T, T, T, T>(promises);
+    return AssetPromise.all(promises);
   }
   /**
    * 取消所有未完成加载的资产。
@@ -193,16 +193,9 @@ export class ResourceManager {
     return assetInfo;
   }
 
-  private loadSingleItem<T>(item: LoadItem | string): AssetPromise<T> | never {
-    let info: LoadItem;
-    if (typeof item === "string") {
-      info = this._assignDefaultOptions({ url: item });
-    } else {
-      info = this._assignDefaultOptions(item);
-    }
-
+  private _loadSingleItem<T>(item: LoadItem | string): AssetPromise<T> {
+    const info = this._assignDefaultOptions(typeof item === "string" ? { url: item } : item);
     const url = info.url;
-
     // 已经有加载缓存
     if (this._assetUrlPool[url]) {
       return new AssetPromise((resolve) => {
