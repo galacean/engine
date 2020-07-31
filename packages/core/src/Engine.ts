@@ -146,7 +146,7 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
 
-    this._animate();
+    this._animate(); //CM:据了解，之前有个子鱼查了1周的BUG，需要保护一下
   }
 
   /**
