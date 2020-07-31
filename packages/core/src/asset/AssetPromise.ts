@@ -1,17 +1,18 @@
 type PromiseNotifier = (progress: number) => void;
+
 /**
  * 资源 Promise 状态
  */
 export enum AssetPromiseStatus {
-  /** 成功。 */
+  /** 成功。*/
   Success,
-  /** 请求中。 */
+  /** 请求中。*/
   Pending,
-  /** 失败。 */
+  /** 失败。*/
   Failed
 }
 /**
- * 资源加载的 Promise，有 progress 和 isDone。
+ * 资源加载的 Promise。
  */
 export class AssetPromise<T> extends Promise<T> {
   static all<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
@@ -28,6 +29,7 @@ export class AssetPromise<T> extends Promise<T> {
       T10 | PromiseLike<T10>
     ]
   ): AssetPromise<[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]>;
+
   static all<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
     values: readonly [
       T1 | PromiseLike<T1>,
@@ -41,6 +43,7 @@ export class AssetPromise<T> extends Promise<T> {
       T9 | PromiseLike<T9>
     ]
   ): AssetPromise<[T1, T2, T3, T4, T5, T6, T7, T8, T9]>;
+
   static all<T1, T2, T3, T4, T5, T6, T7, T8>(
     values: readonly [
       T1 | PromiseLike<T1>,
@@ -53,6 +56,7 @@ export class AssetPromise<T> extends Promise<T> {
       T8 | PromiseLike<T8>
     ]
   ): AssetPromise<[T1, T2, T3, T4, T5, T6, T7, T8]>;
+
   static all<T1, T2, T3, T4, T5, T6, T7>(
     values: readonly [
       T1 | PromiseLike<T1>,
@@ -64,6 +68,7 @@ export class AssetPromise<T> extends Promise<T> {
       T7 | PromiseLike<T7>
     ]
   ): AssetPromise<[T1, T2, T3, T4, T5, T6, T7]>;
+
   static all<T1, T2, T3, T4, T5, T6>(
     values: readonly [
       T1 | PromiseLike<T1>,
@@ -74,6 +79,7 @@ export class AssetPromise<T> extends Promise<T> {
       T6 | PromiseLike<T6>
     ]
   ): AssetPromise<[T1, T2, T3, T4, T5, T6]>;
+
   static all<T1, T2, T3, T4, T5>(
     values: readonly [
       T1 | PromiseLike<T1>,
@@ -83,28 +89,34 @@ export class AssetPromise<T> extends Promise<T> {
       T5 | PromiseLike<T5>
     ]
   ): AssetPromise<[T1, T2, T3, T4, T5]>;
+
   static all<T1, T2, T3, T4>(
     values: readonly [T1 | PromiseLike<T1>, T2 | PromiseLike<T2>, T3 | PromiseLike<T3>, T4 | PromiseLike<T4>]
   ): AssetPromise<[T1, T2, T3, T4]>;
+
   static all<T1, T2, T3>(
     values: readonly [T1 | PromiseLike<T1>, T2 | PromiseLike<T2>, T3 | PromiseLike<T3>]
   ): AssetPromise<[T1, T2, T3]>;
+
   static all<T1, T2>(values: readonly [T1 | PromiseLike<T1>, T2 | PromiseLike<T2>]): AssetPromise<[T1, T2]>;
 
   static all<T>(values: readonly (T | PromiseLike<T>)[]): AssetPromise<T[]>;
+
   /**
-   * 重写 promise all，返回 AssetPromise
-   * @param promises
-   * @returns AssetPromise
+   * 通过提供的资源 Promise 集合返回一个新的资源 Promise。
+   * 当提供集合中所有的 Promise 完成时会触发新资源 Promise 的 resolved。
+   * @param - 资源 Promise 集合
+   * @returns 资源 Promise
    */
   static all<T>(promises: T | PromiseLike<T>[]): AssetPromise<T[]> {
     return new AssetPromise((resolve, reject, setProgress) => {
       if (!Array.isArray(promises)) {
         return resolve([promises]);
       }
-      let results = [];
+
       let completed = 0;
       let total = promises.length;
+      let results = new Array<T>(total);
 
       promises.forEach((value, index) => {
         Promise.resolve(value)
@@ -123,13 +135,9 @@ export class AssetPromise<T> extends Promise<T> {
     });
   }
 
-  /** @internal */
   private _status: AssetPromiseStatus;
-  /** @internal */
   private _progress: number;
-  /** @internal */
   private _reject: (reason?: any) => void;
-  /** @internal */
   private _listeners: Set<PromiseNotifier>;
 
   /**
@@ -140,19 +148,26 @@ export class AssetPromise<T> extends Promise<T> {
   }
 
   /**
-   * 加载的进度。
+   * 加载进度。
    */
   get progress(): number {
     return this._progress;
   }
 
-  /** 进度回调。 */
+  /**
+   * 进度回调。
+   * @param callback - 进度回调
+   * @returns 资源 Promise
+   */
   onProgress(callback: (progress?: number) => any): AssetPromise<T> {
     this._listeners.add(callback);
     return this;
   }
 
-  /** 取消 Promise 请求 */
+  /**
+   * 取消 Promise 请求。
+   * @returns 资源 Promise
+   */
   cancel(): AssetPromise<T> {
     if (this._status !== AssetPromiseStatus.Pending) {
       return this;
@@ -163,7 +178,7 @@ export class AssetPromise<T> extends Promise<T> {
 
   /**
    * 创建一个资源加载的 Promise。
-   * @param executor A callback used to initialize the promise. This callback is passed two arguments:
+   * @param executor - A callback used to initialize the promise. This callback is passed two arguments:
    * a resolve callback used to resolve the promise with a value or the result of another promise,
    * and a reject callback used to reject the promise with a provided reason or error.
    * and a setProgress callback used to set promise progress with a percent.
