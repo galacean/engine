@@ -171,7 +171,7 @@ export class Engine extends EventDispatcher {
 
     this._animate = null;
 
-    this._sceneManager._scene.destroy();
+    this._sceneManager._activeScene.destroy();
     this._sceneManager = null;
     this._resourceManager.gc();
     this._resourceManager = null;
@@ -189,11 +189,11 @@ export class Engine extends EventDispatcher {
     const time = this._time;
     time.tick();
     const deltaTime = time.deltaTime;
-    engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._scene]);
+    engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
     this._hardwareRenderer.beginFrame();
 
-    const scene = this._sceneManager._scene;
+    const scene = this._sceneManager._activeScene;
     if (scene) {
       scene.update(deltaTime);
       scene.render();
@@ -202,7 +202,7 @@ export class Engine extends EventDispatcher {
 
     this._hardwareRenderer.endFrame();
 
-    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._scene]);
+    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
   }
 
   //-----------------------------------------@deprecated-----------------------------------
