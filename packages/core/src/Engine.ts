@@ -20,7 +20,7 @@ export class Engine extends EventDispatcher {
   static defaultCreateObjectEngine: Engine = null;
 
   static _lastCreateEngine: Engine = null;
-  static _instanceIDCounter: number = 0;
+  static _instanceIDCounter: number = 0; //CM:需要删除
 
   static _getDefaultEngine(): Engine {
     return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
