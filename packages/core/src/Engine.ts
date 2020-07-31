@@ -103,8 +103,8 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * 目标帧率,vSyncCount = 0（即关闭垂直同步） 时生效。
-   * 值越大，目标帧率越高。 Number.POSITIVE_INFINIT 表示无穷大目标帧率
+   * 目标帧率，vSyncCount = 0（即关闭垂直同步）时生效。
+   * 值越大，目标帧率越高，Number.POSITIVE_INFINIT 表示无穷大目标帧率。
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;
