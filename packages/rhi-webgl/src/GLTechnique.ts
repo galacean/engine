@@ -1,5 +1,5 @@
 import { DataType } from "@alipay/o3-base";
-import { mat4 } from "@alipay/o3-math";
+import { Matrix3x3, Matrix4x4, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 import { GLShaderProgram } from "./GLShaderProgram";
 import { Logger } from "@alipay/o3-base";
 import { GLTexture2D } from "./GLTexture2D";
@@ -11,10 +11,11 @@ import { GLAsset } from "./GLAsset";
 
 const UniformDefaults = {};
 UniformDefaults[DataType.FLOAT] = 0.0;
-UniformDefaults[DataType.FLOAT_VEC2] = new Float32Array([0.0, 0.0]);
-UniformDefaults[DataType.FLOAT_VEC3] = new Float32Array([0.0, 0.0, 0.0]);
-UniformDefaults[DataType.FLOAT_VEC4] = new Float32Array([0.0, 0.0, 0.0, 0.0]);
-UniformDefaults[DataType.FLOAT_MAT4] = mat4.create();
+UniformDefaults[DataType.FLOAT_VEC2] = new Vector2();
+UniformDefaults[DataType.FLOAT_VEC3] = new Vector3();
+UniformDefaults[DataType.FLOAT_VEC4] = new Vector4();
+UniformDefaults[DataType.FLOAT_MAT3] = new Matrix3x3();
+UniformDefaults[DataType.FLOAT_MAT4] = new Matrix4x4();
 
 /**
  * GL 层的 Technique 资源管理和渲染调用处理
@@ -196,13 +197,13 @@ export class GLTechnique extends GLAsset {
         else gl.uniform1i(location, value);
         break;
       case DataType.FLOAT_VEC2:
-        gl.uniform2fv(location, value);
+        gl.uniform2f(location, value.x, value.y);
         break;
       case DataType.FLOAT_VEC3:
-        gl.uniform3fv(location, value);
+        gl.uniform3f(location, value.x, value.y, value.z);
         break;
       case DataType.FLOAT_VEC4:
-        gl.uniform4fv(location, value);
+        gl.uniform4f(location, value.x, value.y, value.z, value.w);
         break;
       case DataType.INT_VEC2:
         gl.uniform2iv(location, value);

@@ -2,7 +2,7 @@
 
 import { Logger } from "@alipay/o3-base";
 import { Entity, Script } from "@alipay/o3-core";
-import { Spherical, vec2, vec3 } from "@alipay/o3-math";
+import { Spherical, Vector2, vec3 } from "@alipay/o3-math";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
@@ -46,18 +46,18 @@ export class OrbitControls extends Script {
   private _scale: number;
   private _panOffset: any[] | Float32Array;
   private _isMouseUp: boolean;
-  private _rotateStart: any[] | Float32Array;
   private _vPan: any[] | Float32Array;
   public constEvents: { listener: any; type: string; element?: Window }[];
   private _state: any;
-  private _rotateEnd: any[] | Float32Array;
-  private _rotateDelta: any[] | Float32Array;
-  private _panStart: any[] | Float32Array;
-  private _panEnd: any[] | Float32Array;
-  private _zoomStart: any[] | Float32Array;
-  private _panDelta: any[] | Float32Array;
-  private _zoomEnd: any[] | Float32Array;
-  private _zoomDelta: any[] | Float32Array;
+  private _rotateStart: Vector2;
+  private _rotateEnd: Vector2;
+  private _rotateDelta: Vector2;
+  private _panStart: Vector2;
+  private _panEnd: Vector2;
+  private _panDelta: Vector2;
+  private _zoomStart: Vector2;
+  private _zoomEnd: Vector2;
+  private _zoomDelta: Vector2;
   public STATE: {
     TOUCH_ROTATE: number;
     ROTATE: number;
@@ -259,17 +259,17 @@ export class OrbitControls extends Script {
     this._vPan = vec3.create();
 
     // state
-    this._rotateStart = vec2.create();
-    this._rotateEnd = vec2.create();
-    this._rotateDelta = vec2.create();
+    this._rotateStart = new Vector2();
+    this._rotateEnd = new Vector2();
+    this._rotateDelta = new Vector2();
 
-    this._panStart = vec2.create();
-    this._panEnd = vec2.create();
-    this._panDelta = vec2.create();
+    this._panStart = new Vector2();
+    this._panEnd = new Vector2();
+    this._panDelta = new Vector2();
 
-    this._zoomStart = vec2.create();
-    this._zoomEnd = vec2.create();
-    this._zoomDelta = vec2.create();
+    this._zoomStart = new Vector2();
+    this._zoomEnd = new Vector2();
+    this._zoomDelta = new Vector2();
 
     this.STATE = {
       NONE: -1,
@@ -297,7 +297,7 @@ export class OrbitControls extends Script {
       { type: "mouseup", listener: this.onMouseUp.bind(this) }
     ];
 
-    this.constEvents.forEach((ele) => {
+    this.constEvents.forEach(ele => {
       if (ele.element) {
         ele.element.addEventListener(ele.type, ele.listener, false);
       } else {
@@ -317,7 +317,7 @@ export class OrbitControls extends Script {
    * @private
    */
   destroy() {
-    this.constEvents.forEach((ele) => {
+    this.constEvents.forEach(ele => {
       if (ele.element) {
         ele.element.removeEventListener(ele.type, ele.listener, false);
       } else {
@@ -509,7 +509,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseDownRotate(event) {
-    vec2.set(this._rotateStart, event.clientX, event.clientY);
+    this._rotateStart.setValue(event.clientX, event.clientY);
   }
 
   /**
@@ -517,7 +517,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseDownZoom(event) {
-    vec2.set(this._zoomStart, event.clientX, event.clientY);
+    this._zoomStart.setValue(event.clientX, event.clientY);
   }
 
   /**
@@ -525,7 +525,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseDownPan(event) {
-    vec2.set(this._panStart, event.clientX, event.clientY);
+    this._panStart.setValue(event.clientX, event.clientY);
   }
 
   /**
@@ -533,15 +533,15 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseMoveRotate(event) {
-    vec2.set(this._rotateEnd, event.clientX, event.clientY);
-    vec2.sub(this._rotateDelta, this._rotateEnd, this._rotateStart);
+    this._rotateEnd.setValue(event.clientX, event.clientY);
+    Vector2.subtract(this._rotateEnd, this._rotateStart, this._rotateDelta);
 
     const element = this.domElement === document ? document.body : (this.domElement as HTMLElement);
 
     this.rotateLeft(2 * Math.PI * (this._rotateDelta[0] / element.clientWidth) * this.rotateSpeed);
     this.rotateUp(2 * Math.PI * (this._rotateDelta[1] / element.clientHeight) * this.rotateSpeed);
 
-    vec2.copy(this._rotateStart, this._rotateEnd);
+    this._rotateEnd.cloneTo(this._rotateStart);
   }
 
   /**
@@ -549,8 +549,8 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseMoveZoom(event) {
-    vec2.set(this._zoomEnd, event.clientX, event.clientY);
-    vec2.sub(this._zoomDelta, this._zoomEnd, this._zoomStart);
+    this._zoomEnd.setValue(event.clientX, event.clientY);
+    Vector2.subtract(this._zoomEnd, this._zoomStart, this._zoomDelta);
 
     if (this._zoomDelta[1] > 0) {
       this.zoomOut(this.getZoomScale());
@@ -558,7 +558,7 @@ export class OrbitControls extends Script {
       this.zoomIn(this.getZoomScale());
     }
 
-    vec2.copy(this._zoomStart, this._zoomEnd);
+    this._zoomEnd.cloneTo(this._zoomStart);
   }
 
   /**
@@ -566,12 +566,12 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseMovePan(event: MouseEvent): void {
-    vec2.set(this._panEnd, event.clientX, event.clientY);
-    vec2.sub(this._panDelta, this._panEnd, this._panStart);
+    this._panEnd.setValue(event.clientX, event.clientY);
+    Vector2.subtract(this._panEnd, this._panStart, this._panDelta);
 
     this.pan(this._panDelta[0], this._panDelta[1]);
 
-    vec2.copy(this._panStart, this._panEnd);
+    this._panEnd.cloneTo(this._panStart);
   }
 
   /**
@@ -612,7 +612,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleTouchStartRotate(event: TouchEvent) {
-    vec2.set(this._rotateStart, event.touches[0].pageX, event.touches[0].pageY);
+    this._rotateStart.setValue(event.touches[0].pageX, event.touches[0].pageY);
   }
 
   /**
@@ -625,7 +625,7 @@ export class OrbitControls extends Script {
 
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    vec2.set(this._zoomStart, 0, distance);
+    this._zoomStart.setValue(0, distance);
   }
 
   /**
@@ -633,7 +633,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleTouchStartPan(event: TouchEvent) {
-    vec2.set(this._panStart, event.touches[0].pageX, event.touches[0].pageY);
+    this._panStart.setValue(event.touches[0].pageX, event.touches[0].pageY);
   }
 
   /**
@@ -641,15 +641,15 @@ export class OrbitControls extends Script {
    * @private
    */
   handleTouchMoveRotate(event: TouchEvent) {
-    vec2.set(this._rotateEnd, event.touches[0].pageX, event.touches[0].pageY);
-    vec2.sub(this._rotateDelta, this._rotateEnd, this._rotateStart);
+    this._rotateEnd.setValue(event.touches[0].pageX, event.touches[0].pageY);
+    Vector2.subtract(this._rotateEnd, this._rotateStart, this._rotateDelta);
 
     const element = this.domElement === document ? this.domElement.body : (this.domElement as HTMLElement);
 
     this.rotateLeft(((2 * Math.PI * this._rotateDelta[0]) / element.clientWidth) * this.rotateSpeed);
     this.rotateUp(((2 * Math.PI * this._rotateDelta[1]) / element.clientHeight) * this.rotateSpeed);
 
-    vec2.copy(this._rotateStart, this._rotateEnd);
+    this._rotateEnd.cloneTo(this._rotateStart);
   }
 
   /**
@@ -662,9 +662,9 @@ export class OrbitControls extends Script {
 
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    vec2.set(this._zoomEnd, 0, distance);
+    this._zoomEnd.setValue(0, distance);
 
-    vec2.sub(this._zoomDelta, this._zoomEnd, this._zoomStart);
+    Vector2.subtract(this._zoomEnd, this._zoomStart, this._zoomDelta);
 
     if (this._zoomDelta[1] > 0) {
       this.zoomIn(this.getZoomScale());
@@ -672,7 +672,7 @@ export class OrbitControls extends Script {
       this.zoomOut(this.getZoomScale());
     }
 
-    vec2.copy(this._zoomStart, this._zoomEnd);
+    this._zoomEnd.cloneTo(this._zoomStart);
   }
 
   /**
@@ -680,13 +680,13 @@ export class OrbitControls extends Script {
    * @private
    */
   handleTouchMovePan(event: TouchEvent) {
-    vec2.set(this._panEnd, event.touches[0].pageX, event.touches[0].pageY);
+    this._panEnd.setValue(event.touches[0].pageX, event.touches[0].pageY);
 
-    vec2.sub(this._panDelta, this._panEnd, this._panStart);
+    Vector2.subtract(this._panEnd, this._panStart, this._panDelta);
 
     this.pan(this._panDelta[0], this._panDelta[1]);
 
-    vec2.copy(this._panStart, this._panEnd);
+    this._panEnd.cloneTo(this._panStart);
   }
 
   /**
@@ -769,7 +769,7 @@ export class OrbitControls extends Script {
 
     this._isMouseUp = true;
 
-    this.mouseUpEvents.forEach((ele) => {
+    this.mouseUpEvents.forEach(ele => {
       const element = this.domElement === document ? this.domElement.body : this.domElement;
       element.removeEventListener(ele.type, ele.listener, false);
       this.mainElement.removeEventListener(ele.type, ele.listener, false);

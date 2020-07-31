@@ -1,7 +1,7 @@
 import { BufferUsage, DataType, DrawMode } from "@alipay/o3-base";
 import { BufferGeometry, GeometryRenderer } from "@alipay/o3-geometry";
 import { Material, Texture2D } from "@alipay/o3-material";
-import { quat, vec2, vec3 } from "@alipay/o3-math";
+import { quat, Vector2, vec3 } from "@alipay/o3-math";
 import { TrailMaterial } from "./TrailMaterial";
 
 /**
@@ -207,11 +207,11 @@ export class TrailRenderer extends GeometryRenderer {
 
     const count = this._curPointNum;
     const texDelta = 1.0 / count;
-    const v = vec2.create();
+    const v: Vector2 = new Vector2();
     for (let i = 0; i < count; i++) {
       const d = 1.0 - i * texDelta;
-      this.geometry.setValue("TEXCOORD_0", i * 2, vec2.set(v, 0, d));
-      this.geometry.setValue("TEXCOORD_0", i * 2 + 1, vec2.set(v, 1.0, d));
+      this.geometry.setValue("TEXCOORD_0", i * 2, v.setValue(0, d));
+      this.geometry.setValue("TEXCOORD_0", i * 2 + 1, v.setValue(1.0, d));
     }
   }
 }

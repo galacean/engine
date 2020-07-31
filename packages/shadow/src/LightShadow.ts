@@ -1,8 +1,8 @@
 import { DataType } from "@alipay/o3-base";
 import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
-import { mat4, MathUtil } from "@alipay/o3-math";
+import { mat4, MathUtil, Vector2 } from "@alipay/o3-math";
 import { DirectLight, PointLight, SpotLight } from "@alipay/o3-lighting";
-import { vec2 } from "@alipay/o3-math";
+
 /**
  * 阴影的管理类
  * @private
@@ -17,7 +17,7 @@ export class LightShadow {
   public projectionMatrix;
 
   constructor(props = { width: 512, height: 512 }) {
-    this._mapSize = vec2.fromValues(props.width, props.height);
+    this._mapSize = new Vector2(props.width, props.height);
     this._renderTarget = new RenderTarget(props.width, props.height, new RenderColorTexture(props.width, props.height));
 
     /**
@@ -65,7 +65,7 @@ export class LightShadow {
 
   /**
    * shadow map 纹理大小
-   * @member {vec2}
+   * @member {Vector2}
    * @readonly
    */
   get mapSize() {
@@ -97,22 +97,6 @@ export class LightShadow {
     if (light instanceof SpotLight) {
       const fov = Math.min(Math.PI / 2, light.angle * 2 * Math.sqrt(2));
       mat4.perspective(this.projectionMatrix, fov, 1, 0.1, light.distance + 5);
-    }
-  }
-
-  /**
-   * 设置 Shadow Map 的大小, 取值需要是2的整数次幂
-   * @param {number} width
-   * @param {number} height
-   */
-  setMapSize(width, height) {
-    if (
-      MathUtil.isPowerOf2(width) &&
-      MathUtil.isPowerOf2(height) &&
-      (this._mapSize.width !== width || this._mapSize.height !== height)
-    ) {
-      this._mapSize = vec2.fromValues(width, height);
-      this._renderTarget = new RenderTarget(width, height, new RenderColorTexture(width, height));
     }
   }
 

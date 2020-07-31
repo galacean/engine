@@ -1,6 +1,5 @@
 import { DataType, DrawMode } from "@alipay/o3-base";
 import { BufferGeometry } from "@alipay/o3-geometry";
-import { vec2 } from "@alipay/o3-math";
 
 /**
  * 覆盖整个屏幕的一个矩形
@@ -24,17 +23,17 @@ export class ScreenQuadGeometry extends BufferGeometry {
       4
     );
 
-    this.setValue("POSITION", 0, vec2.fromValues(-1, -1));
-    this.setValue("TEXCOORD_0", 0, vec2.fromValues(0, 0));
+    this.setValue("POSITION", 0, Float32Array.from([-1, -1]));
+    this.setValue("TEXCOORD_0", 0, Float32Array.from([0, 0]));
 
-    this.setValue("POSITION", 1, vec2.fromValues(1, -1));
-    this.setValue("TEXCOORD_0", 1, vec2.fromValues(1, 0));
+    this.setValue("POSITION", 1, Float32Array.from([1, -1]));
+    this.setValue("TEXCOORD_0", 1, Float32Array.from([1, 0]));
 
-    this.setValue("POSITION", 2, vec2.fromValues(1, 1));
-    this.setValue("TEXCOORD_0", 2, vec2.fromValues(1, 1));
+    this.setValue("POSITION", 2, Float32Array.from([1, 1]));
+    this.setValue("TEXCOORD_0", 2, Float32Array.from([1, 1]));
 
-    this.setValue("POSITION", 3, vec2.fromValues(-1, 1));
-    this.setValue("TEXCOORD_0", 3, vec2.fromValues(0, 1));
+    this.setValue("POSITION", 3, Float32Array.from([-1, 1]));
+    this.setValue("TEXCOORD_0", 3, Float32Array.from([0, 1]));
 
     this.primitive.mode = DrawMode.TRIANGLE_FAN;
   }
