@@ -33,14 +33,14 @@ export class ResourceManager {
   private _assetUrlPool: { [key: string]: Object } = Object.create(null);
   /** 引用计数对象池,key为对象ID，引用计数的对象均放入该池中。*/
   private _referenceObjectPool: { [key: number]: ReferenceObject } = Object.create(null);
-  /** 加载中的资源。 */
+  /** 加载中的资源。*/
   private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
 
   /** 加载失败后的重试次数。*/
   retryCount: number = 1;
   /** 加载失败后的重试延迟时间，单位是毫秒(ms)。*/
   retryInterval: number = 0;
-  /** 资源默认超时时间，单位是毫秒(ms)。 */
+  /** 资源默认超时时间，单位是毫秒(ms)。*/
   timeout: number = 10000;
 
   /**
