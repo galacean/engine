@@ -38,7 +38,7 @@ export class Engine extends EventDispatcher {
   private _requestId: number;
   private _timeoutId: number;
   private _loopCounter: number = 0;
-  private _interval: number = 1000 / 60;
+  private _targetFrameInterval: number = 1000 / 60;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -49,7 +49,7 @@ export class Engine extends EventDispatcher {
       this._requestId = requestAnimationFrame(this._animate);
     } else {
       this._tick();
-      this._timeoutId = window.setTimeout(this._animate, this._interval);
+      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
     }
   };
 
@@ -110,7 +110,7 @@ export class Engine extends EventDispatcher {
   set targetFrameRate(value: number) {
     value = Math.max(0.000001, value);
     this._targetFrameRate = value;
-    this._interval = 1000 / value;
+    this._targetFrameInterval = 1000 / value;
   }
 
   /**
