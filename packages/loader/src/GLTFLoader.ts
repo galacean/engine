@@ -1,12 +1,12 @@
 import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@alipay/o3-core";
 import { GlTf, LoadedGLTFResource } from "./GLTF";
-import { parseGLTF } from "./gltf/glTF";
+import { parseGLTF, GLTFResource } from "./gltf/glTF";
 import { parseGLB } from "./gltf/glb";
 import { loadImageBuffer, getBufferData } from "./gltf/Util";
 
 @resourceLoader(AssetType.Perfab, ["gltf", "glb"])
-export class GLTFLoader extends Loader<object> {
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<object> {
+export class GLTFLoader extends Loader<GLTFResource> {
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
       const requestGLTFResource = this.isGLB(item.url) ? this.requestGLB : this.requestGLTF;
       requestGLTFResource(item, resourceManager)
