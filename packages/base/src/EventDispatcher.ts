@@ -1,11 +1,11 @@
 import { Listener, Event } from "./Event";
-import { OasisObject } from "./OasisObject";
+import { EngineObject } from "./EngineObject";
 
 /**
  * 事件派发管理，可作为基类继承
  * @class
  */
-export class EventDispatcher extends OasisObject {
+export class EventDispatcher extends EngineObject {
   private _listeners: { [k: string]: Listener[] };
 
   constructor() {
