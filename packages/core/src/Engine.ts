@@ -20,7 +20,7 @@ export class Engine extends EventDispatcher {
   static defaultCreateObjectEngine: Engine = null;
 
   static _lastCreateEngine: Engine = null;
-  static _instanceIDCounter: number = 0;
+  static _instanceIDCounter: number = 0; //CM:需要删除
 
   static _getDefaultEngine(): Engine {
     return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
@@ -34,15 +34,12 @@ export class Engine extends EventDispatcher {
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
-  private _paused: boolean = true;
-  private _requestId: number;
+  private _isPaused: boolean = true;
+  private _requestId: number; //CM:这俩ID是否可以合并为一个属性，统称loopID
   private _timeoutId: number;
   private _loopCounter: number = 0;
-  private _interval: number = 1000 / 60;
+  private _targetFrameInterval: number = 1000 / 60;
 
-  /**
-   * @internal
-   */
   private _animate = () => {
     if (this._vSyncCount) {
       if (this._loopCounter++ % this._vSyncCount === 0) {
@@ -52,7 +49,7 @@ export class Engine extends EventDispatcher {
       this._requestId = requestAnimationFrame(this._animate);
     } else {
       this._tick();
-      this._timeoutId = window.setTimeout(this._animate, this._interval);
+      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
     }
   };
 
@@ -88,7 +85,7 @@ export class Engine extends EventDispatcher {
    * 是否暂停。
    */
   get isPaused(): boolean {
-    return this._paused;
+    return this._isPaused;
   }
 
   /**
@@ -103,8 +100,8 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * 目标帧率,vSyncCount = 0（即关闭垂直同步） 时生效。
-   * 值越大，目标帧率越高。 Number.POSITIVE_INFINIT 表示无穷大目标帧率
+   * 目标帧率，vSyncCount = 0（即关闭垂直同步）时生效。
+   * 值越大，目标帧率越高，Number.POSITIVE_INFINIT 表示无穷大目标帧率。
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;
@@ -113,7 +110,7 @@ export class Engine extends EventDispatcher {
   set targetFrameRate(value: number) {
     value = Math.max(0.000001, value);
     this._targetFrameRate = value;
-    this._interval = 1000 / value;
+    this._targetFrameInterval = 1000 / value;
   }
 
   /**
@@ -123,9 +120,9 @@ export class Engine extends EventDispatcher {
    */
   constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
     super();
-    // 加入 Feature 管理
+    // @todo delete
     engineFeatureManager.addObject(this);
-    this._sceneManager.activeScene = new Scene("", this);
+    this._sceneManager.activeScene = new Scene("DefaultScene", this);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
@@ -136,27 +133,27 @@ export class Engine extends EventDispatcher {
    * 暂停引擎循环。
    */
   pause(): void {
-    this._paused = true;
+    this._isPaused = true;
+    //CM:实现的有点暴力
     cancelAnimationFrame(this._requestId);
     clearTimeout(this._timeoutId);
-    this._loopCounter = 0;
   }
 
   /**
    * 恢复引擎循环。
    */
   resume(): void {
-    if (!this._paused) return;
-    this._paused = false;
+    if (!this._isPaused) return;
+    this._isPaused = false;
 
-    this._animate();
+    this._animate(); //CM:据了解，之前有个子鱼查了1周的BUG，需要保护一下
   }
 
   /**
    * 执行引擎循环。
    */
   run(): void {
-    //  todo: delete
+    // @todo: delete
     engineFeatureManager.callFeatureMethod(this, "preLoad", [this]);
     this.resume();
     this.trigger(new Event("run", this));
@@ -175,7 +172,7 @@ export class Engine extends EventDispatcher {
 
     this._animate = null;
 
-    this._sceneManager._scene.destroy();
+    this._sceneManager._activeScene.destroy();
     this._sceneManager = null;
     this._resourceManager.gc();
     this._resourceManager = null;
@@ -189,18 +186,15 @@ export class Engine extends EventDispatcher {
     (engineFeatureManager as any)._objects = [];
   }
 
-  /**
-   * @internal
-   */
   private _tick(): void {
     const time = this._time;
     time.tick();
     const deltaTime = time.deltaTime;
-    engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._scene]);
+    engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
     this._hardwareRenderer.beginFrame();
 
-    const scene = this._sceneManager._scene;
+    const scene = this._sceneManager._activeScene;
     if (scene) {
       scene.update(deltaTime);
       scene.render();
@@ -209,7 +203,7 @@ export class Engine extends EventDispatcher {
 
     this._hardwareRenderer.endFrame();
 
-    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._scene]);
+    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
   }
 
   //-----------------------------------------@deprecated-----------------------------------

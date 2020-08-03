@@ -5,21 +5,21 @@ import { AssetPromise } from "./AssetDesign/AssetPromise";
  * 场景管理员。
  */
 export class SceneManager {
-  _scene: Scene;
+  _activeScene: Scene;
 
   /**
    * 当前激活场景。
    */
   get activeScene(): Scene {
-    return this._scene;
+    return this._activeScene;
   }
 
   set activeScene(scene: Scene) {
-    const oldScene = this._scene;
+    const oldScene = this._activeScene;
     if (oldScene !== scene) {
       oldScene && oldScene._processActive(false);
       scene && scene._processActive(true);
-      this._scene = scene;
+      this._activeScene = scene;
     }
   }
 
