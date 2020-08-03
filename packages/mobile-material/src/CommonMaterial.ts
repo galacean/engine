@@ -1,4 +1,4 @@
-import { vec4 } from "@alipay/o3-math";
+import { Vector4 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
 import { Texture2D } from "@alipay/o3-material";
 import { Material, RenderTechnique } from "@alipay/o3-material";
@@ -24,9 +24,9 @@ export abstract class CommonMaterial extends Material {
   constructor(name: string) {
     super(name);
 
-    this.emission = vec4.fromValues(0, 0, 0, 1);
+    this.emission = new Vector4(0, 0, 0, 1);
 
-    this.ambient = vec4.fromValues(0, 0, 0, 1);
+    this.ambient = new Vector4(0, 0, 0, 1);
 
     /**
      * Technique 渲染状态控制
@@ -37,7 +37,7 @@ export abstract class CommonMaterial extends Material {
 
   /**
    * 自发光属性
-   * @member {vec4|Texture2D}
+   * @member {Vector4|Texture2D}
    */
   get emission() {
     return this.getValue("u_emission");

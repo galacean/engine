@@ -12,6 +12,7 @@ import { GLTechnique } from "./GLTechnique";
 import { GLVAOPrimitive } from "./GLVAOPrimitive";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
+import { Vector4 } from "@alipay/o3-math";
 
 /**
  * WebGL模式。默认 Auto
@@ -278,15 +279,15 @@ export class WebGLRenderer implements HardwareRenderer {
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      const viewport = camera.viewport;
-      const pixelViewport = camera._pixelViewport;
+      const viewport: Vector4 = camera.viewport;
+      const pixelViewport: Vector4 = camera._pixelViewport;
       const width = gl.drawingBufferWidth;
       const height = gl.drawingBufferHeight;
-      pixelViewport[0] = viewport[0] * width;
-      pixelViewport[1] = viewport[1] * height;
-      pixelViewport[2] = viewport[2] * width;
-      pixelViewport[3] = viewport[3] * height;
-      this.viewport(pixelViewport[0], pixelViewport[1], pixelViewport[2], pixelViewport[3]);
+      pixelViewport.x = viewport.x * width;
+      pixelViewport.y = viewport.y * height;
+      pixelViewport.z = viewport.z * width;
+      pixelViewport.w = viewport.w * height;
+      this.viewport(pixelViewport.x, pixelViewport.y, pixelViewport.z, pixelViewport.w);
     }
   }
 

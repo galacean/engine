@@ -1,4 +1,4 @@
-import { Vector2, vec4 } from "@alipay/o3-math";
+import { Vector2, Vector4 } from "@alipay/o3-math";
 import { DataType, MaterialType } from "@alipay/o3-base";
 import { Texture2D } from "@alipay/o3-material";
 import { CommonMaterial } from "@alipay/o3-mobile-material";
@@ -22,12 +22,12 @@ export class RfuiMaterial extends CommonMaterial {
    */
   constructor(name: string) {
     super(name);
-    this.emission = vec4.fromValues(0, 0, 0, 0);
-    this.ambient = vec4.fromValues(0, 0, 0, 0);
+    this.emission = new Vector4();
+    this.ambient = new Vector4();
     this.transparent = true;
     this.renderType = MaterialType.TRANSPARENT;
 
-    this._diffuse = vec4.fromValues(1, 1, 1, 1);
+    this._diffuse = new Vector4(1, 1, 1, 1);
     this._opacity = 1;
     this._uvOffset = new Vector2();
     this._maskUvOffset = new Vector2();
@@ -35,7 +35,7 @@ export class RfuiMaterial extends CommonMaterial {
 
   /**
    * 获取环境光反射颜色
-   * @return {vec4|Texture2D} 反射颜色
+   * @return {Vector4|Texture2D} 反射颜色
    */
   get diffuse() {
     return this._diffuse;
@@ -43,7 +43,7 @@ export class RfuiMaterial extends CommonMaterial {
 
   /**
    * 设置境光反射颜色
-   * @param {vec4|Texture2D} 反射颜色
+   * @param {Vector4|Texture2D} 反射颜色
    */
   set diffuse(val) {
     this._diffuse = val;
@@ -122,7 +122,7 @@ export class RfuiMaterial extends CommonMaterial {
    * 获取uv动画速度
    * @return {Vector2} uv动画速度
    */
-  get uvVelocity() {
+  get uvVelocity(): Vector2 {
     return this._uvVelocity;
   }
 
@@ -130,7 +130,7 @@ export class RfuiMaterial extends CommonMaterial {
    * 设置uv动画速度
    * @param {Vector2} uv动画速度
    */
-  set uvVelocity(val) {
+  set uvVelocity(val: Vector2) {
     this._uvVelocity = val;
     this.setValue("u_uvVelocity", val);
   }

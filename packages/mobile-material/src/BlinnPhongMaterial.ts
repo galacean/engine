@@ -1,4 +1,4 @@
-import { vec3, vec4 } from "@alipay/o3-math";
+import { Vector3, Vector4 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
 import { RenderTechnique, Texture2D, Material } from "@alipay/o3-material";
 import { LightFeature, AmbientLight, DirectLight, PointLight, SpotLight } from "@alipay/o3-lighting";
@@ -27,16 +27,16 @@ export class BlinnPhongMaterial extends CommonMaterial {
     this._pointLightCount = 0;
     this._spotLightCount = 0;
 
-    this.diffuse = vec4.fromValues(1, 1, 1, 1);
+    this.diffuse = new Vector4(1, 1, 1, 1);
 
-    this.specular = vec4.fromValues(1, 1, 1, 1);
+    this.specular = new Vector4(1, 1, 1, 1);
 
     this.shininess = 16.0;
   }
 
   /**
    * 环境光反射颜色
-   * @member {vec4|Texture2D}
+   * @member {Vector4|Texture2D}
    */
   get diffuse() {
     return this.getValue("u_diffuse");
@@ -48,7 +48,7 @@ export class BlinnPhongMaterial extends CommonMaterial {
 
   /**
    * 高光反射颜色
-   * @member {vec4|Texture2D}
+   * @member {Vector4|Texture2D}
    */
   get specular() {
     return this.getValue("u_specular");

@@ -1,5 +1,5 @@
 import { RenderableComponent, Camera, Entity } from "@alipay/o3-core";
-import { Vector3, Vector4, Quaternion } from "@alipay/o3-math";
+import { Vector3, Vector4, Quaternion, Matrix4x4 } from "@alipay/o3-math";
 import { Texture2D } from "@alipay/o3-material";
 import { Logger } from "@alipay/o3-base";
 
@@ -51,7 +51,7 @@ export class SpriteRenderer extends RenderableComponent {
    * 调节色，控制 Sprite 颜色变化
    */
   public tintColor: number[] = [1, 1, 1, 1];
-  public transformMatrix: any;
+  public transformMatrix: Matrix4x4;
 
   /**
    * 构造函数
@@ -127,7 +127,7 @@ export class SpriteRenderer extends RenderableComponent {
 
   /**
    * 旋转角度
-   * @member {vec4}
+   * @member {Vector4}
    */
   get rotationAngle() {
     return this._rotationAngle;
@@ -220,10 +220,10 @@ export class SpriteRenderer extends RenderableComponent {
     const rightBottom: Vector4 = SpriteRenderer._tempVec43;
     rightBottom.setValue(temp.x, temp.y, temp.z, 1);
 
-    vec4.transformMat4(leftTop, leftTop, matrix);
-    vec4.transformMat4(leftBottom, leftBottom, matrix);
-    vec4.transformMat4(rightTop, rightTop, matrix);
-    vec4.transformMat4(rightBottom, rightBottom, matrix);
+    Vector4.transformMat4x4(leftTop, matrix, leftTop);
+    Vector4.transformMat4x4(leftBottom, matrix, leftBottom);
+    Vector4.transformMat4x4(rightTop, matrix, rightTop);
+    Vector4.transformMat4x4(rightBottom, matrix, rightBottom);
 
     this._positionQuad.leftTop.setValue(leftTop.x, leftTop.y, leftTop.z);
     this._positionQuad.leftBottom.setValue(leftBottom.x, leftBottom.y, leftBottom.z);

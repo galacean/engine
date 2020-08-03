@@ -20,7 +20,7 @@ export class AHUDWidget extends RenderableComponent {
   private _scale: Vector2;
   private _positionQuad;
   private _uvRect;
-  private _tintColor;
+  private _tintColor: Vector4;
   private _valid;
   private _hudFeature;
   private separateDraw;
@@ -60,7 +60,7 @@ export class AHUDWidget extends RenderableComponent {
       rightBottom: new Vector3()
     };
     this._uvRect = { u: 0, v: 0, width: 1, height: 1 };
-    this._tintColor = vec4.fromValues(1, 1, 1, 1);
+    this._tintColor = new Vector4(1, 1, 1, 1);
 
     this._canvasDirty = true;
     this._valid = false; // sprite 分配失败等情况下，可能为false，则控件无法绘制出来
@@ -127,18 +127,18 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * 变色
-   * @member {vec4}
+   * @member {Vector4}
    */
-  get tintColor() {
+  get tintColor(): Vector4 {
     return this._tintColor;
   }
-  set tintColor(val) {
-    this._tintColor = vec4.fromValues(val[0], val[1], val[2], val[3]);
+  set tintColor(val: Vector4) {
+    this._tintColor.setValue(val.x, val.y, val.z, val.w);
   }
 
   /**
    * 旋转角度
-   * @member {vec4}
+   * @member {Vector4}
    */
   get rotationAngle() {
     return this._rotationAngle;
@@ -306,18 +306,18 @@ export class AHUDWidget extends RenderableComponent {
       const py = (size.y / clientHeight) * canvasHeight;
 
       const viewport = camera.viewport;
-      const nx = px / viewport[2];
-      const ny = py / viewport[3];
-      const screenPos = [];
+      const nx = px / viewport.z;
+      const ny = py / viewport.w;
+      const screenPos = new Vector4();
       camera.worldToViewportPoint(this.entity.worldPosition, screenPos);
       camera.viewportToScreenPoint(screenPos, screenPos);
-      const depth = screenPos[2];
-      const u = vec4.fromValues(nx, ny, depth, 1.0);
+      const depth = screenPos.z;
+      const u = new Vector4(nx, ny, depth, 1.0);
 
-      const w = vec4.create();
-      vec4.transformMat4(w, u, camera.inverseProjectionMatrix);
+      const w = new Vector4();
+      Vector4.transformMat4x4(u, camera.inverseProjectionMatrix, w);
 
-      halfWorldSize.setValue(Math.abs(w[0] / w[3]), Math.abs(w[1] / w[3]));
+      halfWorldSize.setValue(Math.abs(w.x / w.w), Math.abs(w.y / w.w));
     } else {
       Vector2.scale(this._worldSize, 0.5, halfWorldSize);
     }
