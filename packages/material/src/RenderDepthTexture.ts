@@ -1,6 +1,6 @@
-import { RenderBufferDepthFormat, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
-import { Texture } from "./Texture";
+import { Logger, RenderBufferDepthFormat, TextureFilterMode, TextureWrapMode } from "@alipay/o3-base";
 import { Engine } from "@alipay/o3-core";
+import { Texture } from "./Texture";
 
 /**
  * 类应用于渲染深度纹理。

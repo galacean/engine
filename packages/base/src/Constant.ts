@@ -1,7 +1,7 @@
 /**
  * 资源的类型，主要用来处理资源对象关联的GL对象的回收
  */
-export enum AssetType {
+export enum InternalAssetType {
   /** 属于当前场景的，场景切换时，GL资源会被自动释放 */
   Scene = 1,
   /** Cache自动处理，在一段时间内没有用到，则GL资源会被释放 */

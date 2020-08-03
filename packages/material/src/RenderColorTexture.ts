@@ -1,13 +1,6 @@
-import {
-  TextureCubeFace,
-  RenderBufferColorFormat,
-  TextureFilterMode,
-  TextureWrapMode,
-  AssetType,
-  Logger
-} from "@alipay/o3-base";
-import { Texture } from "./Texture";
+import { Logger, RenderBufferColorFormat, TextureCubeFace, TextureFilterMode, TextureWrapMode } from "@alipay/o3-base";
 import { Engine } from "@alipay/o3-core";
+import { Texture } from "./Texture";
 
 /**
  * 类应用于渲染颜色纹理。

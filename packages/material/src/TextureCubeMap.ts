@@ -1,6 +1,6 @@
-import { Texture } from "./Texture";
-import { TextureFormat, TextureCubeFace, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
+import { Logger, TextureCubeFace, TextureFilterMode, TextureFormat, TextureWrapMode } from "@alipay/o3-base";
 import { Engine } from "@alipay/o3-core";
+import { Texture } from "./Texture";
 
 /**
  * 立方体纹理。

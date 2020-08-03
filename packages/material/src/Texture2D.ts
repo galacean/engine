@@ -1,6 +1,6 @@
-import { Texture } from "./Texture";
-import { TextureFormat, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
+import { Logger, TextureFilterMode, TextureFormat, TextureWrapMode } from "@alipay/o3-base";
 import { Engine } from "@alipay/o3-core";
+import { Texture } from "./Texture";
 
 /**
  * 2D纹理。

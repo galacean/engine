@@ -1,8 +1,8 @@
-import { TextureCubeFace, RenderBufferDepthFormat, GLCapabilityType, AssetType, Logger } from "@alipay/o3-base";
+import { GLCapabilityType, Logger, RenderBufferDepthFormat, TextureCubeFace } from "@alipay/o3-base";
 import { AssetObject, Engine } from "@alipay/o3-core";
-import { Texture } from "./Texture";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
+import { Texture } from "./Texture";
 
 /**
  * 用于离屏幕渲染的渲染目标。
