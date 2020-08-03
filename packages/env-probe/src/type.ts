@@ -1,7 +1,7 @@
 import { Material } from "@alipay/o3-material";
 import { Camera } from "@alipay/o3-core";
 import { RenderTargetConfig } from "@alipay/o3-material/types/type";
-import { Vector4 } from "@alipay/o3-math/types/type";
+import { Vector3, Vector4 } from "@alipay/o3-math";
 
 export interface ProbeConfig extends RenderTargetConfig {
   /** 需要渲染的相机,默认为 activeCameras[0] */
@@ -22,5 +22,5 @@ export interface CubeProbeConfig extends ProbeConfig {
   /** 分辨率，一般默认的 1024 够用了 */
   size?: number;
   /** 可以设置探针的位置，默认为原点 [0,0,0] */
-  position?;
+  position?: Vector3;
 }

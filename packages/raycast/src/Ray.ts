@@ -1,39 +1,38 @@
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 
 /**
  * 射线定义&相交运算
  * @class
  */
 export class Ray {
-  public direction;
-  public origin;
+  public direction: Vector3;
+  public origin: Vector3;
 
   /**
    * @constructor
-   * @param {vec3} origin
-   * @param {vec3} direction
+   * @param {Vector3} origin
+   * @param {Vector3} direction
    */
-  constructor(origin, direction) {
+  constructor(origin: Vector3, direction: Vector3) {
     this.origin = origin;
-    this.direction = vec3.create();
-    vec3.normalize(this.direction, direction);
+    this.direction = new Vector3();
+    Vector3.normalize(direction, this.direction);
   }
 
   /**
    * 检测本射线与平面相交
-   * @param {vec3} point 平面上的一个点：(p-p0)·n = 0
-   * @param {vec3} normal 平面的法线
+   * @param {Vector3} point 平面上的一个点：(p-p0)·n = 0
+   * @param {Vector3} normal 平面的法线
    */
-  intersectPlane(point, normal) {
-    const dir = this.direction;
+  intersectPlane(point: Vector3, normal: Vector3) {
     const origin = this.origin;
 
-    const denom = vec3.dot(normal, dir);
+    const denom = Vector3.dot(normal, this.direction);
     if (Math.abs(denom) > 1e-6) {
-      const p0l0 = vec3.create();
-      vec3.subtract(p0l0, point, origin);
+      const p0l0 = new Vector3();
+      Vector3.subtract(point, origin, p0l0);
 
-      const t = vec3.dot(p0l0, normal) / denom;
+      const t = Vector3.dot(p0l0, normal) / denom;
       if (t >= 0) {
         return t;
       }
@@ -46,28 +45,27 @@ export class Ray {
    * 射线方向上，距离起点指定距离的坐标
    * @param {number} distance 距离
    */
-  getPoint(distance) {
+  getPoint(distance: number): Vector3 {
     // origin + direction * distance;
-    const point = vec3.create();
-    vec3.scale(point, this.direction, distance);
-    vec3.add(point, this.origin, point);
-    return point;
+    const point = new Vector3();
+    Vector3.scale(this.direction, distance, point);
+    return point.add(this.origin);
   }
 
   /**
    * 检测本射线与球体相交
-   * @param {vec3} center 球心坐标
+   * @param {Vector3} center 球心坐标
    * @param {number} radius 球的半径
    */
-  intersectSphere(center, radius) {
+  intersectSphere(center: Vector3, radius: number) {
     // analytic solution
     const dir = this.direction;
-    const L = vec3.create();
-    vec3.sub(L, this.origin, center);
+    const L = new Vector3();
+    Vector3.subtract(this.origin, center, L);
 
-    const a = vec3.dot(dir, dir);
-    const b = 2 * vec3.dot(dir, L);
-    const c = vec3.dot(L, L) - radius * radius;
+    const a = Vector3.dot(dir, dir);
+    const b = 2 * Vector3.dot(dir, L);
+    const c = Vector3.dot(L, L) - radius * radius;
 
     const s = _solveQuadratic(a, b, c);
     if (s) {
@@ -79,21 +77,21 @@ export class Ray {
 
   /**
    * 检测本射线与轴对齐的Box的相交
-   * @param {vec3} max Box的最大点
-   * @param {vec3} min Box的最小点
+   * @param {Vector3} max Box的最大点
+   * @param {Vector3} min Box的最小点
    */
-  intersectAABB(max, min) {
+  intersectAABB(max: Vector3, min: Vector3) {
     const dir = this.direction;
     const orig = this.origin;
-    const invdir = [1 / dir[0], 1 / dir[1], 1 / dir[2]];
+    const invdir = new Vector3(1 / dir.x, 1 / dir.y, 1 / dir.z);
 
     const bounds = [min, max];
-    const sign = [dir[0] < 0 ? 1 : 0, dir[1] < 0 ? 1 : 0, dir[2] < 0 ? 1 : 0];
+    const sign = [dir.x < 0 ? 1 : 0, dir.y < 0 ? 1 : 0, dir.z < 0 ? 1 : 0];
 
-    let tmin = (bounds[sign[0]][0] - orig[0]) * invdir[0];
-    let tmax = (bounds[1 - sign[0]][0] - orig[0]) * invdir[0];
-    const tymin = (bounds[sign[1]][1] - orig[1]) * invdir[1];
-    const tymax = (bounds[1 - sign[1]][1] - orig[1]) * invdir[1];
+    let tmin = (bounds[sign[0]].x - orig.x) * invdir.x;
+    let tmax = (bounds[1 - sign[0]].x - orig.x) * invdir.x;
+    const tymin = (bounds[sign[1]].y - orig.y) * invdir.y;
+    const tymax = (bounds[1 - sign[1]].y - orig.y) * invdir.y;
 
     if (tmin > tymax || tymin > tmax) {
       return false;
@@ -106,8 +104,8 @@ export class Ray {
       tmax = tymax;
     }
 
-    const tzmin = (bounds[sign[2]][2] - orig[2]) * invdir[2];
-    const tzmax = (bounds[1 - sign[2]][2] - orig[2]) * invdir[2];
+    const tzmin = (bounds[sign[2]].z - orig.z) * invdir.z;
+    const tzmax = (bounds[1 - sign[2]].z - orig.z) * invdir.z;
 
     if (tmin > tzmax || tzmin > tmax) {
       return false;

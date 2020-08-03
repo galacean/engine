@@ -1,9 +1,8 @@
 import { Logger } from "@alipay/o3-base";
 import { Entity, Script } from "@alipay/o3-core";
-import { MathUtil, Spherical, vec3 } from "@alipay/o3-math";
-import { Vector3 } from "@alipay/o3-math/types/type";
+import { MathUtil, Spherical, Vector3 } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
-import { vec3Type } from "./type";
+
 // 防止万向锁
 const ESP = MathUtil.ZeroTolerance;
 
@@ -84,7 +83,7 @@ export class FreeControls extends Script {
   private _moveRight: boolean;
   private _moveJump: boolean;
 
-  private _v3Cache: any;
+  private _v3Cache: Vector3;
   private _spherical: Spherical;
   private _rotateOri: Array<number>;
   private _events: Array<{ type: string; listener: () => {}; element?: any }>;
@@ -134,7 +133,7 @@ export class FreeControls extends Script {
     this._moveRight = false;
     this._moveJump = false;
 
-    this._v3Cache = vec3.create();
+    this._v3Cache = new Vector3();
     this._spherical = new Spherical();
     this._rotateOri = [0, 0];
 
@@ -264,7 +263,7 @@ export class FreeControls extends Script {
     this._spherical.theta = this._theta;
     this._spherical.phi = this._phi;
     this._spherical.setToVec3(this._v3Cache);
-    vec3.add(this._v3Cache, this.camera.position, this._v3Cache);
+    Vector3.add(this.camera.position, this._v3Cache, this._v3Cache);
     this.camera.transform.lookAt(this._v3Cache, [0, 1, 0]);
   }
 
@@ -279,11 +278,11 @@ export class FreeControls extends Script {
     let p = this.camera.position;
 
     doTransform
-      .Translate(this.camera, [p[0], this.jumpY, p[2]], this.jumpDuration / 2, {
+      .Translate(this.camera, [p.x, this.jumpY, p.z], this.jumpDuration / 2, {
         easing: Easing.easeOutSine,
         onComplete: () => {
           doTransform
-            .Translate(this.camera, [p[0], this.floorY, p[2]], this.jumpDuration / 2, {
+            .Translate(this.camera, [p.x, this.floorY, p.z], this.jumpDuration / 2, {
               easing: Easing.easeInSine,
               onComplete: () => {
                 this._moveJump = false;
@@ -299,13 +298,12 @@ export class FreeControls extends Script {
    * transform vec3 on axis by distance
    * */
   translateOnAxis(axis: Readonly<Vector3>, distance: number, v3: Readonly<Vector3> = this.camera.position): void {
-    let diff = vec3.create();
-    vec3.normalize(diff, axis);
-    vec3.scale(diff, diff, distance);
-    vec3.add(v3, v3, diff);
+    const diff: Vector3 = new Vector3();
+    Vector3.normalize(axis, diff);
+    v3.add(diff.scale(distance));
   }
 
-  private tempVec3 = vec3.create();
+  private tempVec3 = new Vector3();
 
   /**
    * @override
@@ -337,7 +335,7 @@ export class FreeControls extends Script {
     if (this.floorMock && !this._moveJump) {
       // this.camera.position[1] = this.floorY;
 
-      this.camera.transform.position = vec3.set(this.tempVec3, position[0], this.floorY, position[2]);
+      this.camera.transform.position.setValue(position.x, this.floorY, position.z);
     }
   }
 
@@ -368,10 +366,10 @@ export class FreeControls extends Script {
 
   /**
    * automatically updateSpherical after lookAt
-   * @param {vec3} target
-   * @param {vec3} up
+   * @param {Vector3} target
+   * @param {Vector3} up
    * */
-  lookAt(target: vec3Type, up?: vec3Type): void {
+  lookAt(target: Vector3, up?: Vector3): void {
     this.camera.transform.lookAt(target, up || [0, 1, 0]);
 
     this.updateSpherical();
@@ -384,8 +382,8 @@ export class FreeControls extends Script {
    * AFreeControls#updateSpherical();
    * */
   updateSpherical(): void {
-    vec3.set(this._v3Cache, 0, 0, 1);
-    vec3.transformQuat(this._v3Cache, this._v3Cache, this.camera.rotation);
+    this._v3Cache.setValue(0, 0, 1);
+    Vector3.transformQuat(this._v3Cache, this.camera.rotation, this._v3Cache);
     this._spherical.setFromVec3(this._v3Cache);
     this._theta = this._spherical.theta;
     this._phi = this._spherical.phi;

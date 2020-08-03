@@ -14,7 +14,7 @@ import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
 import { Mesh, Skin, MeshRenderer, SkinnedMeshRenderer } from "@alipay/o3-mesh";
-import { vec3, mat4, quat } from "@alipay/o3-math";
+import { Vector3, Matrix4x4, Quaternion } from "@alipay/o3-math";
 import {
   attachLoadingQueue,
   getAccessorData,
@@ -50,7 +50,7 @@ let nodeCount = 0;
 const RegistedObjs = {};
 const RegistedCustomMaterials = {};
 
-const getDefaultMaterial = (function () {
+const getDefaultMaterial = (function() {
   let defaultMateril: ConstantMaterial;
   return () => {
     if (!defaultMateril) {
@@ -89,7 +89,7 @@ const extensionParsers = {
  * @param {Object} extobj 需要添加的扩展
  */
 export function RegistExtension(extobj) {
-  Object.keys(extobj).forEach((name) => {
+  Object.keys(extobj).forEach(name => {
     if (RegistedObjs[name] === undefined) {
       RegistedObjs[name] = extobj[name];
 
@@ -205,7 +205,7 @@ function parseResources(resources, name, handler) {
     for (let i = entities.length - 1; i >= 0; i--) {
       promises.push(handler(entities[i], resources));
     }
-    return Promise.all(promises).then((results) => {
+    return Promise.all(promises).then(results => {
       for (let i = 0; i < results.length; i++) {
         asset[name].push(results[i]);
       }
@@ -649,13 +649,13 @@ export function parseMesh(gltfMesh, resources) {
             parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
             resolve(primitive);
           })
-          .catch((e) => {
+          .catch(e => {
             reject(e);
           });
       })
     );
   }
-  return Promise.all(primitivePromises).then((primitives) => {
+  return Promise.all(primitivePromises).then(primitives => {
     for (let i = 0; i < primitives.length; i++) {
       mesh.primitives.push(primitives[i]);
     }
@@ -728,7 +728,7 @@ export function parseNode(gltfNode, resources) {
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
-    const mat = mat4.fromValues(
+    const mat = new Matrix4x4(
       m[0],
       m[1],
       m[2],
@@ -746,10 +746,10 @@ export function parseNode(gltfNode, resources) {
       m[14],
       m[15]
     );
-    const pos = vec3.create();
-    const scale = vec3.fromValues(1, 1, 1);
-    const rot = quat.create();
-    mat4.decompose(mat, pos, rot, scale);
+    const pos = new Vector3();
+    const scale = new Vector3(1, 1, 1);
+    const rot = new Quaternion();
+    mat.decompose(pos, rot, scale);
 
     entity.position = pos;
     entity.rotation = rot;
@@ -865,7 +865,7 @@ const BASE64_MARKER = ";base64,";
 
 function getReplaceImages(images) {
   if (!images) return;
-  return images.map((image) => ({
+  return images.map(image => ({
     uri: image.url,
     fileType: image.fileType === "ktx" ? "binary" : "image"
   }));
@@ -892,7 +892,7 @@ class GLTFHandler {
     request.load(
       "json",
       props,
-      function (err, gltfJSON) {
+      function(err, gltfJSON) {
         if (!err) {
           data.gltf = gltfJSON;
           // load images & buffers & shader texts
@@ -907,7 +907,7 @@ class GLTFHandler {
           });
           attachLoadingQueue(dir, loadQueue, gltfJSON.shaders, "text", filesMap, {});
 
-          request.loadAll(loadQueue, function (err, resMap) {
+          request.loadAll(loadQueue, function(err, resMap) {
             if (err) {
               callback(err);
               return;
@@ -969,7 +969,7 @@ class GLTFHandler {
               }
             }
 
-            request.loadAll(loadImageQue, function (err, imgMap) {
+            request.loadAll(loadImageQue, function(err, imgMap) {
               if (gltfJSON.hasOwnProperty("images")) {
                 for (let i = 0; i < gltfJSON.images.length; i++) {
                   const image = gltfJSON.images[i];

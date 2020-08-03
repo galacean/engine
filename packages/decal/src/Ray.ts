@@ -1,46 +1,46 @@
-import { vec3 } from "@alipay/o3-math";
+import { Vector3, Matrix4x4 } from "@alipay/o3-math";
 import { transformDirection } from "./util";
 
-const edge1 = vec3.create();
-const edge2 = vec3.create();
-const normal = vec3.create();
-const diff = vec3.create();
-const temp1 = vec3.create();
-const temp2 = vec3.create();
-
-type FloatArray = Array<number> | Float32Array;
+const edge1: Vector3 = new Vector3();
+const edge2: Vector3 = new Vector3();
+const normal: Vector3 = new Vector3();
+const diff: Vector3 = new Vector3();
+const temp1: Vector3 = new Vector3();
+const temp2: Vector3 = new Vector3();
 
 export class Ray {
-  public origin: FloatArray;
-  public direction: FloatArray;
-  public constructor(origin, direction) {
-    this.origin = origin !== undefined ? origin.slice(0) : vec3.create();
-    this.direction = direction !== undefined ? direction.slice(0) : vec3.create();
+  public origin: Vector3;
+  public direction: Vector3;
+
+  constructor(origin: Vector3, direction: Vector3) {
+    this.origin = origin !== undefined ? new Vector3(origin.x, origin.y, origin.z) : new Vector3();
+    this.direction = direction !== undefined ? new Vector3(direction.x, direction.y, direction.z) : new Vector3();
   }
 
-  at(t, target) {
-    const directionCopy = this.direction.slice(0);
-    const mDirection = [directionCopy[0] * t, directionCopy[1] * t, directionCopy[2] * t];
-    vec3.add(target, mDirection, this.origin);
+  at(t: number, target: Vector3): Vector3 {
+    const { x, y, z } = this.direction;
+    const mDirection = new Vector3(x * t, y * t, z * t);
+    Vector3.add(mDirection, this.origin, target);
     return target;
   }
 
-  intersectTriangle(_a, _b, _c, backfaceCulling, target) {
+  intersectTriangle(_a: Vector3, _b: Vector3, _c: Vector3, backfaceCulling: boolean, target: Vector3): Vector3 {
     // Compute the offset origin, edges, and normal.
     // from http://www.geometrictools.com/GTEngine/Include/Mathematics/GteIntrRay3Triangle3.h
 
-    const _edge1 = vec3.subtract(edge1, _b, _a);
-    const _edge2 = vec3.subtract(edge2, _c, _a);
-    const _normal = vec3.cross(normal, _edge1, _edge2);
+    Vector3.subtract(_b, _a, edge1);
+    Vector3.subtract(_c, _b, edge2);
+    Vector3.cross(edge1, edge2, normal);
 
     // Solve Q + t*D = b1*E1 + b2*E2 (Q = kDiff, D = ray direction,
     // E1 = kEdge1, E2 = kEdge2, N = Cross(E1,E2)) by
     //   |Dot(D,N)|*b1 = sign(Dot(D,N))*Dot(D,Cross(Q,E2))
     //   |Dot(D,N)|*b2 = sign(Dot(D,N))*Dot(D,Cross(E1,Q))
     //   |Dot(D,N)|*t = -sign(Dot(D,N))*Dot(Q,N)
-    const _direction = this.direction;
-    const _origin = this.origin;
-    let DdN = vec3.dot(_direction, _normal);
+    const direction = this.direction;
+    const origin = this.origin;
+
+    let DdN = Vector3.dot(direction, normal);
     let sign;
 
     if (DdN > 0) {
@@ -53,17 +53,17 @@ export class Ray {
       return null;
     }
 
-    const _diff = vec3.subtract(diff, _origin, _a);
-    const cde = vec3.cross(temp1, _diff, _edge2);
-    const DdQxE2 = sign * vec3.dot(_direction, cde);
+    Vector3.subtract(origin, _a, diff);
+    Vector3.cross(diff, edge2, temp1);
+    const DdQxE2 = sign * Vector3.dot(direction, temp1);
 
     // b1 < 0, no intersection
     if (DdQxE2 < 0) {
       return null;
     }
 
-    const ced = vec3.cross(temp2, _edge1, _diff);
-    const DdE1xQ = sign * vec3.dot(_direction, ced);
+    Vector3.cross(edge1, diff, temp2);
+    const DdE1xQ = sign * Vector3.dot(direction, temp2);
 
     // b2 < 0, no intersection
     if (DdE1xQ < 0) {
@@ -76,7 +76,7 @@ export class Ray {
     }
 
     // Line intersects triangle, check if ray does.
-    var QdN = -sign * vec3.dot(_diff, _normal);
+    var QdN = -sign * Vector3.dot(diff, normal);
 
     // t < 0, no intersection
     if (QdN < 0) {
@@ -86,14 +86,14 @@ export class Ray {
     return this.at(QdN / DdN, target);
   }
 
-  copy(ray) {
-    this.origin = ray.origin.slice(0);
-    this.direction = ray.direction.slice(0);
+  copy(ray: Ray): Ray {
+    ray.origin.cloneTo(this.origin);
+    ray.direction.cloneTo(this.direction);
     return this;
   }
 
-  applyMatrix4(matrix4) {
-    vec3.transformMat4(this.origin, this.origin, matrix4);
+  applyMatrix4(matrix4: Matrix4x4): Ray {
+    Vector3.transformMat4x4(this.origin, matrix4, this.origin);
     transformDirection(this.direction, this.direction, matrix4);
     return this;
   }

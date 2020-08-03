@@ -1,4 +1,4 @@
-import { Vector2, vec3, vec4, quat } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4, Quaternion, Matrix4x4 } from "@alipay/o3-math";
 import { HUDFeature } from "./HUDFeature";
 import { RenderableComponent, Camera } from "@alipay/o3-core";
 
@@ -54,10 +54,10 @@ export class AHUDWidget extends RenderableComponent {
     this._scale = props.scale || new Vector2(1.0, 1.0);
 
     this._positionQuad = {
-      leftTop: vec3.create(),
-      leftBottom: vec3.create(),
-      rightTop: vec3.create(),
-      rightBottom: vec3.create()
+      leftTop: new Vector3(),
+      leftBottom: new Vector3(),
+      rightTop: new Vector3(),
+      rightBottom: new Vector3()
     };
     this._uvRect = { u: 0, v: 0, width: 1, height: 1 };
     this._tintColor = vec4.fromValues(1, 1, 1, 1);
@@ -235,49 +235,49 @@ export class AHUDWidget extends RenderableComponent {
    * @private
    */
   _updatePositionQuad(camera: Camera) {
-    const m = camera.viewMatrix;
-    const vx = vec3.fromValues(m[0], m[4], m[8]);
-    const vy = vec3.fromValues(m[1], m[5], m[9]);
+    const m: Matrix4x4 = camera.viewMatrix;
+    const me = m.elements;
+    const vx = new Vector3(me[0], me[4], me[8]);
+    const vy = new Vector3(me[1], me[5], me[9]);
 
     //-- center pos
-    const c = this.entity.worldPosition;
+    const c: Vector3 = this.entity.worldPosition;
     const s: Vector2 = this._getHalfWorldSize(camera);
-    vec3.scale(vx, vx, s.x * this._scale.x);
-    vec3.scale(vy, vy, s.y * this._scale.y);
+    vx.scale(s.x * this._scale.x);
+    vy.scale(s.y * this._scale.y);
 
     if (this._rotationAngle !== 0) {
-      const vz = vec3.fromValues(m[2], m[6], m[10]);
-      const rotation = quat.create();
-      quat.setAxisAngle(rotation, vz, this._rotationAngle);
+      const vz = new Vector3(me[2], me[6], me[10]);
+      const rotation = new Quaternion();
+      rotation.setAxisAngle(vz, this._rotationAngle);
 
-      vec3.transformQuat(vx, vx, rotation);
-      vec3.transformQuat(vy, vy, rotation);
+      Vector3.transformQuat(vx, rotation, vx);
+      Vector3.transformQuat(vy, rotation, vy);
     }
 
-    const cx = vec3.create();
-    const cy = vec3.create();
-    vec3.scale(cx, vx, (this._anchor.x - 0.5) * 2);
-    vec3.scale(cy, vy, (this._anchor.y - 0.5) * 2);
+    const cx = new Vector3();
+    const cy = new Vector3();
+    Vector3.scale(vx, (this._anchor.x - 0.5) * 2, cx);
+    Vector3.scale(vy, (this._anchor.y - 0.5) * 2, cy);
 
-    vec3.sub(c, c, cx);
-    vec3.add(c, c, cy);
+    c.subtract(cx).add(cy);
 
     //-- quad pos
-    const leftTop = vec3.create();
-    vec3.sub(leftTop, c, vx);
-    vec3.add(leftTop, leftTop, vy);
+    const leftTop = new Vector3();
+    Vector3.subtract(c, vx, leftTop);
+    leftTop.add(vy);
 
-    const leftBottom = vec3.create();
-    vec3.sub(leftBottom, c, vx);
-    vec3.sub(leftBottom, leftBottom, vy);
+    const leftBottom = new Vector3();
+    Vector3.subtract(c, vx, leftBottom);
+    leftBottom.subtract(vy);
 
-    const rightBottom = vec3.create();
-    vec3.add(rightBottom, c, vx);
-    vec3.sub(rightBottom, rightBottom, vy);
+    const rightBottom = new Vector3();
+    Vector3.add(c, vx, rightBottom);
+    rightBottom.subtract(vy);
 
-    const rightTop = vec3.create();
-    vec3.add(rightTop, c, vx);
-    vec3.add(rightTop, rightTop, vy);
+    const rightTop = new Vector3();
+    Vector3.add(c, vx, rightTop);
+    rightTop.add(vy);
 
     // update quad position
     this._positionQuad.leftTop = leftTop;

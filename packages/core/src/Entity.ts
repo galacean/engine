@@ -1,5 +1,5 @@
 import { EventDispatcher } from "@alipay/o3-base";
-import { mat4 } from "@alipay/o3-math";
+import { mat4, Quaternion } from "@alipay/o3-math";
 import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
@@ -514,11 +514,11 @@ export class Entity extends EventDispatcher {
    * @deprecated
    * 请使用 transform.rotationQuaternion 代替
    */
-  get rotation(): Vector4 {
+  get rotation(): Quaternion {
     return this.transform.rotationQuaternion;
   }
 
-  set rotation(val: Vector4) {
+  set rotation(val: Quaternion) {
     this.transform.rotationQuaternion = val;
   }
 

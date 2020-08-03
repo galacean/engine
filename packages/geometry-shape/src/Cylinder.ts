@@ -1,5 +1,5 @@
 import { DataType, FrontFace } from "@alipay/o3-base";
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { BufferGeometry } from "@alipay/o3-geometry";
 
 /**
@@ -95,7 +95,7 @@ export class CylinderGeometry extends BufferGeometry {
 
   generateTorso() {
     let x, y;
-    const normal = vec3.create();
+    const normal: Vector3 = new Vector3();
     const slope = (this._parameters.radiusBottom - this._parameters.radiusTop) / this._parameters.height;
     for (y = 0; y <= this._parameters.heightSegments; y++) {
       const indexRow = [];
@@ -114,9 +114,9 @@ export class CylinderGeometry extends BufferGeometry {
         this._verts.push([vertX, vertY, vertZ]);
 
         // normal
-        vec3.set(normal, sinTheta, slope, cosTheta);
-        vec3.normalize(normal, normal);
-        this._normals.push([normal[0], normal[1], normal[2]]);
+        normal.setValue(sinTheta, slope, cosTheta);
+        normal.normalize();
+        this._normals.push([normal.x, normal.y, normal.z]);
 
         // uv
         if (this.FrontFace === FrontFace.CCW) {

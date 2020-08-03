@@ -10,7 +10,7 @@ import {
 } from "@alipay/o3-base";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { GeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
-import { vec3 } from "@alipay/o3-math";
+import { Vector3, MathUtil } from "@alipay/o3-math";
 
 /**
  * GPU粒子系统渲染类
@@ -52,19 +52,19 @@ export class GPUParticleSystem extends GeometryRenderer {
   /**
    * 粒子发射参数
    * @typedef {Object} ParticleParam
-   * @property {Array/vec3} position 位置，默认[0, 0, 0]
-   * @property {Array/vec3} velocity 速度，默认[0, 0, 0]
-   * @property {Array/vec3} acceleration 加速度，默认[0, 0, 0]
-   * @property {Array/number} color  颜色，默认[1, 1, 1]，范围 0 ~ 1
+   * @property {Vector3} position 位置，默认[0, 0, 0]
+   * @property {Vector3} velocity 速度，默认[0, 0, 0]
+   * @property {Vector3} acceleration 加速度，默认[0, 0, 0]
+   * @property {Vector3} color  颜色，默认[1, 1, 1]，范围 0 ~ 1
    * @property {number} size  大小，默认 10，范围  >0
    * @property {number} startAngle  初始旋转角度，默认0，范围 0 ~ 2*PI
    * @property {number} rotateRate  自转旋转角速率，默认0
    * @property {number} lifetime  生命周期，默认5，范围  >0
    * @property {number} alpha 透明度，默认1，范围 0 ~ 1
-   * @property {Array/number} positionRandomness  位置随机因子，默认[0,0,0]，范围  >0
+   * @property {Vector3} positionRandomness  位置随机因子，默认[0,0,0]，范围  >0
    * @property {Array} positionArray  固定位置数组
-   * @property {Array/number} velocityRandomness  速度随机因子，默认[0, 0, 0]，范围  >0
-   * @property {Array/number} accelerationRandomness  加速度随机因子，默认[0, 0, 0]，范围  >0
+   * @property {Vector3} velocityRandomness  速度随机因子，默认[0, 0, 0]，范围  >0
+   * @property {Vector3} accelerationRandomness  加速度随机因子，默认[0, 0, 0]，范围  >0
    * @property {number} colorRandomness  颜色随机因子，默认0，范围  0 ~ 1
    * @property {number} sizeRandomness  大小随机因子，默认0，范围  0 ~ 1
    * @property {number} alphaRandomness  透明度随机因子，默认0，范围 0 ~ 1
@@ -435,14 +435,14 @@ export class GPUParticleSystem extends GeometryRenderer {
    * @private
    */
   _spawnParticle(options, i) {
-    const position = options.position !== undefined ? vec3.clone(options.position) : vec3.fromValues(0, 0, 0);
-    const positionRandomness =
-      options.positionRandomness !== undefined ? this._get3DData(options.positionRandomness) : [0, 0, 0];
+    const position: Vector3 = options.position !== undefined ? options.position.clone() : new Vector3();
+    const positionRandomness: Vector3 =
+      options.positionRandomness !== undefined ? options.positionRandomness.clone() : new Vector3();
     const positionArray = options.positionArray;
-    const velocity = options.velocity !== undefined ? vec3.clone(options.velocity) : vec3.fromValues(0, 0, 0);
-    const velocityRandomness =
-      options.velocityRandomness !== undefined ? this._get3DData(options.velocityRandomness) : [0, 0, 0];
-    const color = options.color !== undefined ? this._getColor(options.color) : vec3.fromValues(1, 1, 1);
+    const velocity: Vector3 = options.velocity !== undefined ? options.velocity.clone() : new Vector3();
+    const velocityRandomness: Vector3 =
+      options.velocityRandomness !== undefined ? options.velocityRandomness.clone() : new Vector3();
+    const color: Vector3 = options.color !== undefined ? options.color.clone() : new Vector3(1, 1, 1);
     const colorRandomness = options.colorRandomness !== undefined ? options.colorRandomness : 1;
     const alpha = options.alpha !== undefined ? options.alpha : 1;
     const alphaRandomness = options.alphaRandomness !== undefined ? options.alphaRandomness : 0;
@@ -452,55 +452,55 @@ export class GPUParticleSystem extends GeometryRenderer {
     const smoothPosition = options.smoothPosition !== undefined ? options.smoothPosition : false;
     const startTimeRandomness = options.startTimeRandomness !== undefined ? options.startTimeRandomness : 0;
 
-    const acceleration = options.acceleration !== undefined ? this._get3DData(options.acceleration) : [0, 0, 0];
-    const accelerationRandomness =
-      options.accelerationRandomness !== undefined ? this._get3DData(options.accelerationRandomness) : [0, 0, 0];
+    const acceleration: Vector3 = options.acceleration !== undefined ? options.acceleration.clone() : new Vector3();
+    const accelerationRandomness: Vector3 =
+      options.accelerationRandomness !== undefined ? options.accelerationRandomness.clone() : new Vector3();
     const startAngle = options.startAngle !== undefined ? options.startAngle : 0;
     const startAngleRandomness = options.startAngleRandomness !== undefined ? options.startAngleRandomness : 0;
     const rotateRate = options.rotateRate !== undefined ? options.rotateRate : 0;
     const rotateRateRandomness = options.rotateRateRandomness !== undefined ? options.rotateRateRandomness : 0;
     const scaleFactor = options.scaleFactor !== undefined ? options.scaleFactor : 1;
 
-    let x = position[0];
-    let y = position[1];
-    let z = position[2];
+    let x = position.x;
+    let y = position.y;
+    let z = position.z;
 
     if (positionArray) {
       if (positionArray.length !== this.maxCount) {
         throw Error("The length of positionArray must be equal to maxCount.");
       }
 
-      x += positionArray[i][0];
-      y += positionArray[i][1];
-      z += positionArray[i][2];
+      x += positionArray[i].x;
+      y += positionArray[i].y;
+      z += positionArray[i].z;
     } else {
-      x += this._getRandom() * positionRandomness[0];
-      y += this._getRandom() * positionRandomness[1];
-      z += this._getRandom() * positionRandomness[2];
+      x += this._getRandom() * positionRandomness.x;
+      y += this._getRandom() * positionRandomness.y;
+      z += this._getRandom() * positionRandomness.z;
     }
 
     if (smoothPosition === true) {
-      x += -(velocity[0] * this._getRandom());
-      y += -(velocity[1] * this._getRandom());
-      z += -(velocity[2] * this._getRandom());
+      x += -(velocity.x * this._getRandom());
+      y += -(velocity.y * this._getRandom());
+      z += -(velocity.z * this._getRandom());
     }
 
-    const velX = velocity[0] + this._getRandom() * velocityRandomness[0];
-    const velY = velocity[1] + this._getRandom() * velocityRandomness[1];
-    const velZ = velocity[2] + this._getRandom() * velocityRandomness[2];
+    const velX = velocity.x + this._getRandom() * velocityRandomness.x;
+    const velY = velocity.y + this._getRandom() * velocityRandomness.y;
+    const velZ = velocity.z + this._getRandom() * velocityRandomness.z;
 
-    const accX = acceleration[0] + this._getRandom() * accelerationRandomness[0];
-    const accY = acceleration[1] + this._getRandom() * accelerationRandomness[1];
-    const accZ = acceleration[2] + this._getRandom() * accelerationRandomness[2];
+    const accX = acceleration.x + this._getRandom() * accelerationRandomness.x;
+    const accY = acceleration.y + this._getRandom() * accelerationRandomness.y;
+    const accZ = acceleration.z + this._getRandom() * accelerationRandomness.z;
 
-    color[0] = this._clamp(color[0] + this._getRandom() * colorRandomness, 0, 1);
-    color[1] = this._clamp(color[1] + this._getRandom() * colorRandomness, 0, 1);
-    color[2] = this._clamp(color[2] + this._getRandom() * colorRandomness, 0, 1);
+    color.x = MathUtil.clamp(color.x + this._getRandom() * colorRandomness, 0, 1);
+    color.y = MathUtil.clamp(color.y + this._getRandom() * colorRandomness, 0, 1);
+    color.z = MathUtil.clamp(color.z + this._getRandom() * colorRandomness, 0, 1);
     size = Math.max(size + this._getRandom() * sizeRandomness * size * 2, 0);
     const lifeTime = [lifetime + this._getRandom() * lifetime];
     const sa = [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2];
     const rr = [rotateRate + this._getRandom() * rotateRateRandomness];
-    const particleAlpha = this._clamp(alpha + this._getRandom() * alphaRandomness, 0, 1);
+    const particleAlpha = MathUtil.clamp(alpha + this._getRandom() * alphaRandomness, 0, 1);
     const startTime = [Math.random() * startTimeRandomness];
 
     for (let j = 0; j < 4; j++) {
@@ -515,7 +515,7 @@ export class GPUParticleSystem extends GeometryRenderer {
 
       this.geometry.setValue("ACCELERATION", k, [accX, accY, accZ]);
 
-      this.geometry.setValue("COLOR", k, [color[0], color[1], color[2]]);
+      this.geometry.setValue("COLOR", k, [color.x, color.y, color.z]);
 
       this.geometry.setValue("SIZE", k, [size]);
       this.geometry.setValue("LIFETIME", k, lifeTime);
@@ -858,69 +858,5 @@ export class GPUParticleSystem extends GeometryRenderer {
       fragmentShader += "}";
     }
     return fragmentShader;
-  }
-
-  /**
-   * 将值的大小限制在最大值和最小值之间
-   * @param {number} value 计算值
-   * @param {number} min 最小值
-   * @param {number} max 最大值
-   * @returns 限制后的值
-   * @private
-   */
-  _clamp(value, min, max) {
-    if (value > max) {
-      return max;
-    }
-    if (value < min) {
-      return min;
-    }
-    return value;
-  }
-
-  /**
-   * 将十六进制值颜色转换为颜色向量
-   * @param {number} hex
-   * @private
-   */
-  _getRGBFromHex(hex) {
-    hex = Math.floor(hex);
-    const r = ((hex >> 16) & 255) / 255;
-    const g = ((hex >> 8) & 255) / 255;
-    const b = (hex & 255) / 255;
-    return vec3.fromValues(r, g, b);
-  }
-
-  /**
-   * 将颜色格式转换为向量
-   * @param {number|Array|Vec3} value 颜色
-   * @private
-   */
-  _getColor(value) {
-    if (typeof value === "number") {
-      return this._getRGBFromHex(value);
-    } else if (Array.isArray(value)) {
-      return vec3.fromValues(value[0], value[1], value[2]);
-    } else {
-      return vec3.clone(value);
-    }
-  }
-
-  /**
-   * 将一维数据扩展为三维数据
-   * @param {number} value 一维数据
-   * @returns {Array} 三维数据
-   * @private
-   */
-  _get3DData(value) {
-    let res = [];
-    if (!Array.isArray(value)) {
-      res.push(value);
-      res.push(value);
-      res.push(value);
-    } else {
-      res = value;
-    }
-    return res;
   }
 }

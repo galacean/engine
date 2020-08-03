@@ -1,11 +1,11 @@
 import { Probe } from "./Probe";
 import { Entity } from "@alipay/o3-core";
-import { mat4, vec3 } from "@alipay/o3-math";
+import { Matrix4x4, Vector3 } from "@alipay/o3-math";
 import { CubeProbeConfig } from "./type";
 
-const cacheTarget = vec3.create();
-const cacheUp = vec3.create();
-const cacheDir = vec3.create();
+const cacheTarget: Vector3 = new Vector3();
+const cacheUp: Vector3 = new Vector3();
+const cacheDir: Vector3 = new Vector3();
 const fovRadian = (90 * Math.PI) / 180;
 
 /**
@@ -13,7 +13,7 @@ const fovRadian = (90 * Math.PI) / 180;
  * */
 export class CubeProbe extends Probe {
   /** 可以设置探针的位置，默认为原点 [0,0,0] */
-  public position = [0, 0, 0];
+  public position: Vector3;
 
   private oriViewMatrix = mat4.create();
   private oriInverseViewMatrix = mat4.create();
@@ -31,7 +31,7 @@ export class CubeProbe extends Probe {
       isCube: true
     });
 
-    this.position = config.position || [0, 0, 0];
+    this.position = config.position || new Vector3();
   }
 
   /**
@@ -94,37 +94,37 @@ export class CubeProbe extends Probe {
     switch (faceIndex) {
       // positive_x
       case 0:
-        vec3.set(cacheUp, 0, -1, 0);
-        vec3.set(cacheDir, 1, 0, 0);
+        cacheUp.setValue(0, -1, 0);
+        cacheDir.setValue(1, 0, 0);
         break;
       // negative_x
       case 1:
-        vec3.set(cacheUp, 0, -1, 0);
-        vec3.set(cacheDir, -1, 0, 0);
+        cacheUp.setValue(0, -1, 0);
+        cacheDir.setValue(-1, 0, 0);
         break;
       // positive_y
       case 2:
-        vec3.set(cacheUp, 0, 0, 1);
-        vec3.set(cacheDir, 0, 1, 0);
+        cacheUp.setValue(0, 0, 1);
+        cacheDir.setValue(0, 1, 0);
         break;
       // negative_y
       case 3:
-        vec3.set(cacheUp, 0, 0, -1);
-        vec3.set(cacheDir, 0, -1, 0);
+        cacheUp.setValue(0, 0, -1);
+        cacheDir.setValue(0, -1, 0);
         break;
       // positive_z
       case 4:
-        vec3.set(cacheUp, 0, -1, 0);
-        vec3.set(cacheDir, 0, 0, 1);
+        cacheUp.setValue(0, -1, 0);
+        cacheDir.setValue(0, 0, 1);
         break;
       // negative_z
       case 5:
-        vec3.set(cacheUp, 0, -1, 0);
-        vec3.set(cacheDir, 0, 0, -1);
+        cacheUp.setValue(0, -1, 0);
+        cacheDir.setValue(0, 0, -1);
         break;
     }
 
-    vec3.add(cacheTarget, this.position, cacheDir);
+    Vector3.add(this.position, cacheDir, cacheTarget);
     mat4.lookAt(this.camera.viewMatrix, this.position, cacheTarget, cacheUp);
     mat4.invert(this.camera.inverseViewMatrix, this.camera.viewMatrix);
     mat4.perspective(this.camera.projectionMatrix, fovRadian, 1, this.camera.nearClipPlane, this.camera.farClipPlane);

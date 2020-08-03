@@ -1,7 +1,7 @@
 import { BufferUsage, DataType, DrawMode } from "@alipay/o3-base";
 import { BufferGeometry, GeometryRenderer } from "@alipay/o3-geometry";
 import { Material, Texture2D } from "@alipay/o3-material";
-import { quat, Vector2, vec3 } from "@alipay/o3-math";
+import { Quaternion, Vector2, Vector3, Matrix4x4 } from "@alipay/o3-math";
 import { TrailMaterial } from "./TrailMaterial";
 
 /**
@@ -12,9 +12,9 @@ export class TrailRenderer extends GeometryRenderer {
   private _minSeg;
   private _lifetime;
   private _maxPointNum;
-  private _points;
-  private _pointStates;
-  private _strapPoints;
+  private _points: Array<Vector3>;
+  private _pointStates: Array<number>;
+  private _strapPoints: Array<Vector3>;
   private _curPointNum;
   private _prePointsNum;
   /**
@@ -38,11 +38,11 @@ export class TrailRenderer extends GeometryRenderer {
     this._pointStates = [];
     this._strapPoints = [];
     for (let i = 0; i < this._maxPointNum; i++) {
-      this._points.push(vec3.create());
+      this._points.push(new Vector3());
       this._pointStates.push(this._lifetime);
 
-      this._strapPoints.push(vec3.create());
-      this._strapPoints.push(vec3.create());
+      this._strapPoints.push(new Vector3());
+      this._strapPoints.push(new Vector3());
     }
     this._curPointNum = 0;
 
@@ -71,7 +71,7 @@ export class TrailRenderer extends GeometryRenderer {
         this._pointStates[newIdx] = this._pointStates[i];
 
         // Move point
-        vec3.copy(this._points[newIdx], this._points[i]);
+        this._points[i].cloneTo(this._points[newIdx]);
       }
     }
     this._curPointNum -= mov;
@@ -81,7 +81,7 @@ export class TrailRenderer extends GeometryRenderer {
       appendNewPoint = false;
     } else if (this._curPointNum > 0) {
       const lastPoint = this._points[this._points.length - 1];
-      if (vec3.distance(this.entity.worldPosition, lastPoint) < this._minSeg) {
+      if (Vector3.distance(this.entity.worldPosition, lastPoint) < this._minSeg) {
         appendNewPoint = false;
       } else {
         // debugger
@@ -90,7 +90,7 @@ export class TrailRenderer extends GeometryRenderer {
 
     if (appendNewPoint) {
       this._pointStates[this._curPointNum] = this._lifetime;
-      vec3.copy(this._points[this._curPointNum], this.entity.worldPosition);
+      this.entity.worldPosition.cloneTo(this._points[this._curPointNum]);
 
       this._curPointNum++;
     }
@@ -140,53 +140,56 @@ export class TrailRenderer extends GeometryRenderer {
    * 更新拖尾顶点位置
    * @private
    */
-  _updateStrapVertices(camera, points) {
-    const m = camera.viewMatrix;
-    const vx = vec3.fromValues(m[0], m[4], m[8]);
-    const vy = vec3.fromValues(m[1], m[5], m[9]);
-    const vz = vec3.fromValues(m[2], m[6], m[10]);
+  _updateStrapVertices(camera, points: Array<Vector3>) {
+    const m: Matrix4x4 = camera.viewMatrix;
+    const e = m.elements;
+    const vx = new Vector3(e[0], e[4], e[8]);
+    const vy = new Vector3(e[1], e[5], e[9]);
+    const vz = new Vector3(e[2], e[6], e[10]);
     const s = this._stroke;
 
-    vec3.scale(vy, vy, s);
+    vy.scale(s);
 
-    const up = vec3.create();
-    const down = vec3.create();
+    const up = new Vector3();
+    const down = new Vector3();
 
-    const rotation = quat.create();
+    const rotation = new Quaternion();
 
-    vec3.transformQuat(vx, vx, rotation);
-    vec3.transformQuat(vy, vy, rotation);
+    Vector3.transformQuat(vx, rotation, vx);
+    Vector3.transformQuat(vy, rotation, vy);
 
-    const dy = vec3.create();
-    const cross = vec3.create();
-    vec3.normalize(vx, vx);
+    const dy = new Vector3();
+    const cross = new Vector3();
+    const perpVector = new Vector3();
+
+    vx.normalize();
 
     //-- quad pos
     for (let i = 0; i < this._maxPointNum; i++) {
       //-- center pos
       if (i < this._curPointNum) {
         const p = points[i];
-        const perpVector = vec3.create();
+
         if (i === this._curPointNum - 1 && i !== 0) {
-          vec3.sub(perpVector, p, points[i - 1]);
+          Vector3.subtract(p, points[i - 1], perpVector);
         } else {
-          vec3.sub(perpVector, points[i + 1], p);
+          Vector3.subtract(points[i + 1], p, perpVector);
         }
 
-        vec3.projectOnPlane(perpVector, perpVector, vz);
-        vec3.normalize(perpVector, perpVector);
+        Vector3.projectOnPlane(perpVector, vz, perpVector);
+        perpVector.normalize();
 
         // Calculate angle between vectors
-        let angle = Math.acos(vec3.dot(vx, perpVector));
-        vec3.cross(cross, vx, perpVector);
-        if (vec3.dot(cross, vz) <= 0) {
+        let angle = Math.acos(Vector3.dot(vx, perpVector));
+        Vector3.cross(vx, perpVector, cross);
+        if (Vector3.dot(cross, vz) <= 0) {
           angle = Math.PI * 2 - angle;
         }
-        quat.setAxisAngle(rotation, vz, angle);
-        vec3.transformQuat(dy, vy, rotation);
+        rotation.setAxisAngle(vz, angle);
+        Vector3.transformQuat(vy, rotation, dy);
 
-        vec3.add(up, p, dy);
-        vec3.sub(down, p, dy);
+        Vector3.add(p, dy, up);
+        Vector3.subtract(p, dy, down);
       }
 
       this.geometry.setValue("POSITION", i * 2, up);
