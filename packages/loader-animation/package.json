@@ -28,7 +28,6 @@
   "dependencies": {
     "@alipay/o3-animation": "2.3.3",
     "@alipay/o3-animator": "2.3.3",
-    "@alipay/o3-base": "2.3.2",
     "@alipay/o3-core": "2.3.2",
     "@alipay/o3-loader": "2.3.2",
     "@alipay/o3-material": "2.3.2",

@@ -1,5 +1,5 @@
 import { SceneFeature } from "@alipay/o3-core";
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Light } from "./Light";
 import { AmbientLight } from "./AmbientLight";
 import { DirectLight } from "./DirectLight";

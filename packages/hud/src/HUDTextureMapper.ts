@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 
 /**
  * 创建一个三叉树节点

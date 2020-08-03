@@ -1,5 +1,5 @@
 import { Entity } from "@alipay/o3-core";
-import { Side } from "@alipay/o3-base";
+import { Side } from "@alipay/o3-core";
 import { Probe } from "./Probe";
 import { PlaneProbeConfig } from "./type";
 

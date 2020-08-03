@@ -1,4 +1,4 @@
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 import { ComplexMaterial, RenderTechnique } from "@alipay/o3-material";
 
 import vs from "./shaders/vertex.glsl";

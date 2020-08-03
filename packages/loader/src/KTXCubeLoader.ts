@@ -1,6 +1,6 @@
 import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@alipay/o3-core";
 import { Texture2D, TextureCubeMap } from "@alipay/o3-material";
-import { TextureCubeFace } from "@alipay/o3-base";
+import { TextureCubeFace } from "@alipay/o3-core";
 import { parseCubeKTX } from "./compressed-texture";
 
 @resourceLoader(AssetType.KTXCube, [])

@@ -1,6 +1,6 @@
 export * from "@alipay/o3-2d";
 export * from "@alipay/o3-animation";
-export * from "@alipay/o3-base";
+export * from "@alipay/o3-core";
 export * from "@alipay/o3-bounding-info";
 export * from "@alipay/o3-collider";
 export * from "@alipay/o3-collision";

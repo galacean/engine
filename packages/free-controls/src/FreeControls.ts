@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Entity, Script } from "@alipay/o3-core";
 import { MathUtil, Spherical, vec3 } from "@alipay/o3-math";
 import { Vector3 } from "@alipay/o3-math/types/type";

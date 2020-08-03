@@ -1,4 +1,4 @@
-import { InternalAssetType } from "@alipay/o3-base";
+import { InternalAssetType } from "@alipay/o3-core";
 import { AssetObject } from "@alipay/o3-core";
 import { WebGLRenderer } from "./WebGLRenderer";
 import { GLAsset } from "./GLAsset";

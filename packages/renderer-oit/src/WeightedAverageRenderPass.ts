@@ -1,6 +1,6 @@
 import { RenderPass, Camera } from "@alipay/o3-core";
 import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
-import { BlendFunc, RenderBufferColorFormat } from "@alipay/o3-base";
+import { BlendFunc, RenderBufferColorFormat } from "@alipay/o3-core";
 
 /**
  * Weighted-Average renderPass

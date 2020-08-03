@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Material } from "@alipay/o3-material";
 import { Entity, Camera, RenderableComponent } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";

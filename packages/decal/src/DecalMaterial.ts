@@ -1,4 +1,4 @@
-import { MaterialType, UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-base";
+import { MaterialType, UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-core";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 
 const VERT_SHADER = `

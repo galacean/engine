@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Camera, SceneFeature } from "@alipay/o3-core";
 import { HUDTexture } from "./HUDTexture";
 import { HUDTextureMapper } from "./HUDTextureMapper";

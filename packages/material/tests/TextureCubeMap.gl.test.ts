@@ -1,4 +1,4 @@
-import { TextureCubeFace, TextureFormat } from "@alipay/o3-base";
+import { TextureCubeFace, TextureFormat } from "@alipay/o3-core";
 import { Engine } from "@alipay/o3-core";
 import gl from "gl";
 import { TextureCubeMap } from "../src/TextureCubeMap";

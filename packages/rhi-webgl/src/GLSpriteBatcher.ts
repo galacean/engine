@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Camera } from "@alipay/o3-core";
 import { GLSprite } from "./GLSprite";
 import { createSpriteMaterial, SpriteTechnique } from "./GLSpriteMaterial";

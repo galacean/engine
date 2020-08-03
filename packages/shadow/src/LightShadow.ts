@@ -1,4 +1,4 @@
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
 import { mat4, MathUtil } from "@alipay/o3-math";
 import { DirectLight, PointLight, SpotLight } from "@alipay/o3-lighting";

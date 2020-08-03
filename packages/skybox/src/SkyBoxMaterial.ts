@@ -1,4 +1,4 @@
-import { DataType, RenderState, CompFunc } from "@alipay/o3-base";
+import { DataType, RenderState, CompFunc } from "@alipay/o3-core";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { mat4 } from "@alipay/o3-math";
 import vs from "./skybox.vs.glsl";

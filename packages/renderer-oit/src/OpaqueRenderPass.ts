@@ -1,4 +1,4 @@
-import { ClearMode } from "@alipay/o3-base";
+import { ClearMode } from "@alipay/o3-core";
 import { RenderPass, Camera } from "@alipay/o3-core";
 import { RenderTarget, RenderDepthTexture } from "@alipay/o3-material";
 import { DepthMaterial } from "./DepthMaterial";

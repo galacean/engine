@@ -1,4 +1,4 @@
-import { TextureWrapMode } from "@alipay/o3-base";
+import { TextureWrapMode } from "@alipay/o3-core";
 import { vec2, quat } from "@alipay/o3-math";
 import { translate, scale, rotate, fade, slide } from "./rfuiTween";
 

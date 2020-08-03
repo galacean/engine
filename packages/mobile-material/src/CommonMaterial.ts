@@ -1,5 +1,5 @@
 import { vec4 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 import { Texture2D } from "@alipay/o3-material";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { TechniqueStates } from "@alipay/o3-material/types/type";

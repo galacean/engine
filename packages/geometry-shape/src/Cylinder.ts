@@ -1,4 +1,4 @@
-import { DataType, FrontFace } from "@alipay/o3-base";
+import { DataType, FrontFace } from "@alipay/o3-core";
 import { vec3 } from "@alipay/o3-math";
 import { BufferGeometry } from "@alipay/o3-geometry";
 

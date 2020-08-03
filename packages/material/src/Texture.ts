@@ -8,7 +8,7 @@ import {
   TextureCubeFace,
   Logger,
   GLCapabilityType
-} from "@alipay/o3-base";
+} from "@alipay/o3-core";
 import { ReferenceObject } from "@alipay/o3-core";
 import { TextureFormatDetail } from "./type";
 

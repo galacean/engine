@@ -1,4 +1,4 @@
-import { Logger, Util, DrawMode, DataType } from "@alipay/o3-base";
+import { Logger, Util, DrawMode, DataType } from "@alipay/o3-core";
 import { Entity, Scene, Engine } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";

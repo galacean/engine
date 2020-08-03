@@ -1,6 +1,6 @@
 import { BufferGeometry } from "@alipay/o3-geometry";
 import { vec3, mat4 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 import { Entity } from "@alipay/o3-core";
 import { Mesh } from "@alipay/o3-mesh";
 import { Primitive } from "@alipay/o3-primitive";

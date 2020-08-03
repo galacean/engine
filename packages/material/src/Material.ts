@@ -1,5 +1,5 @@
 import { mat4, mat3 } from "@alipay/o3-math";
-import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
+import { MaterialType, UniformSemantic, Util } from "@alipay/o3-core";
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
 import { ReferenceObject } from "@alipay/o3-core";

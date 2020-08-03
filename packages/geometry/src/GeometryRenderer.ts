@@ -1,5 +1,5 @@
 import { RenderableComponent, Entity, Camera } from "@alipay/o3-core";
-import { Logger, Event } from "@alipay/o3-base";
+import { Logger, Event } from "@alipay/o3-core";
 import { BufferGeometry } from "./BufferGeometry";
 import { IndexBufferGeometry } from "./IndexBufferGeometry";
 import { Material } from "@alipay/o3-material";

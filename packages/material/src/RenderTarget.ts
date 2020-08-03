@@ -1,4 +1,4 @@
-import { GLCapabilityType, Logger, RenderBufferDepthFormat, TextureCubeFace } from "@alipay/o3-base";
+import { GLCapabilityType, Logger, RenderBufferDepthFormat, TextureCubeFace } from "@alipay/o3-core";
 import { AssetObject, Engine } from "@alipay/o3-core";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";

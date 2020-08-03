@@ -1,4 +1,4 @@
-import { DataType, RenderState, BlendFunc, MaterialType } from "@alipay/o3-base";
+import { DataType, RenderState, BlendFunc, MaterialType } from "@alipay/o3-core";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 
 import VERT_SHADER from "./trail.vs.glsl";

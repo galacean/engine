@@ -1,4 +1,4 @@
-import { UniformSemantic, DataType, Logger, GLCapabilityType } from "@alipay/o3-base";
+import { UniformSemantic, DataType, Logger, GLCapabilityType } from "@alipay/o3-core";
 import { AssetObject, Camera } from "@alipay/o3-core";
 import { ShaderFactory } from "@alipay/o3-shaderlib";
 import { Material } from "./Material";

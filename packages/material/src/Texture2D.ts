@@ -1,4 +1,4 @@
-import { Logger, TextureFilterMode, TextureFormat, TextureWrapMode } from "@alipay/o3-base";
+import { Logger, TextureFilterMode, TextureFormat, TextureWrapMode } from "@alipay/o3-core";
 import { Engine } from "@alipay/o3-core";
 import { Texture } from "./Texture";
 

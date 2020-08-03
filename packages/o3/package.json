@@ -34,7 +34,6 @@
     "@alipay/o3-2d": "2.3.2",
     "@alipay/o3-animation": "2.3.3",
     "@alipay/o3-animator": "2.3.3",
-    "@alipay/o3-base": "2.3.2",
     "@alipay/o3-bounding-info": "2.3.2",
     "@alipay/o3-collider": "2.3.2",
     "@alipay/o3-collision": "2.3.2",

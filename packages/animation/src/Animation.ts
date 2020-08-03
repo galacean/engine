@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Component, Entity } from "@alipay/o3-core";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationClip } from "./AnimationClip";

@@ -1,4 +1,4 @@
-import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-base";
+import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-core";
 import { AssetObject } from "@alipay/o3-core";
 import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 import { Matrix4 } from "@alipay/o3-math/types/type";

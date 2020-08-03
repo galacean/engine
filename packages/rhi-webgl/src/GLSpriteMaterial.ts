@@ -1,6 +1,6 @@
 "use strict";
 
-import { DataType, UniformSemantic, RenderState, BlendFunc } from "@alipay/o3-base";
+import { DataType, UniformSemantic, RenderState, BlendFunc } from "@alipay/o3-core";
 
 const SpriteVertShader = `
 precision highp float;
@@ -99,7 +99,7 @@ export function createSpriteMaterial() {
     setValue: (key, val) => {
       values[key] = val;
     },
-    getValue: key => {
+    getValue: (key) => {
       return values[key];
     }
   };

@@ -1,4 +1,4 @@
-import { Event, EventDispatcher, Time } from "@alipay/o3-base";
+import { Event, EventDispatcher, Time } from "./base";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Canvas } from "./EngineDesign/Canvas";
 import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
