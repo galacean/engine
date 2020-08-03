@@ -1,4 +1,4 @@
-import { mat4, mat3 } from "@alipay/o3-math";
+import { Matrix4x4, Matrix3x3 } from "@alipay/o3-math";
 import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
@@ -281,8 +281,8 @@ export class Material {
       // The inverse-transpose of MODEL without the translation
       case UniformSemantic.MODELINVERSETRANSPOSE: {
         let modelIT = values[uniform.name];
-        if (!modelIT) modelIT = mat3.create();
-        mat3.normalFromMat4(modelIT, component._entity.transform.worldMatrix);
+        if (!modelIT) modelIT = new Matrix3x3();
+        Matrix3x3.normalFromMat4(component._entity.transform.worldMatrix, modelIT);
         values[uniform.name] = modelIT;
         break;
       }

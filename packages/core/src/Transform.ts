@@ -1,4 +1,4 @@
-import { Vector3, Quaternion, Matrix4x4x4, Vector4, Matrix3x3x3, MathUtil } from "@alipay/o3-math";
+import { Vector3, Quaternion, Matrix3x3, Vector4, Matrix4x4, MathUtil } from "@alipay/o3-math";
 import { Entity } from "./Entity";
 import { Component } from "./Component";
 import { UpdateFlag } from "./UpdateFlag";
@@ -7,16 +7,17 @@ import { UpdateFlag } from "./UpdateFlag";
  * 用于实现变换相关功能。
  */
 export class Transform extends Component {
+  private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempVec3: Vector3 = new Vector3();
   private static _tempVec41: Vector4 = new Vector4();
   private static _tempVec40: Vector4 = new Vector4();
-  private static _tempMat30: Matrix3x3 = mat3.create();
-  private static _tempMat31: Matrix3x3 = mat3.create();
-  private static _tempMat32: Matrix3x3 = mat3.create();
-  private static _tempMat40: Matrix4x4 = mat4.create();
-  private static _tempMat41: Matrix4x4 = mat4.create();
-  private static _tempMat42: Matrix4x4 = mat4.create();
-  private static _tempMat43: Matrix4x4 = mat4.create();
+  private static _tempMat30: Matrix3x3 = new Matrix3x3();
+  private static _tempMat31: Matrix3x3 = new Matrix3x3();
+  private static _tempMat32: Matrix3x3 = new Matrix3x3();
+  private static _tempMat40: Matrix4x4 = new Matrix4x4();
+  private static _tempMat41: Matrix4x4 = new Matrix4x4();
+  private static _tempMat42: Matrix4x4 = new Matrix4x4();
+  private static _tempMat43: Matrix4x4 = new Matrix4x4();
 
   private static _LOCAL_EULER_FLAG: number = 0x1;
   private static _LOCAL_QUAT_FLAG: number = 0x2;
@@ -70,14 +71,14 @@ export class Transform extends Component {
 
   private _position: Vector3 = new Vector3();
   private _rotation: Vector3 = new Vector3();
-  private _rotationQuaternion: Vector4 = quat.create();
+  private _rotationQuaternion: Quaternion = new Quaternion();
   private _scale: Vector3 = new Vector3(1, 1, 1);
   private _worldPosition: Vector3 = new Vector3();
   private _worldRotation: Vector3 = new Vector3();
-  private _worldRotationQuaternion: Vector4 = quat.create();
+  private _worldRotationQuaternion: Quaternion = new Quaternion();
   private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
-  private _localMatrix: Matrix4x4 = mat4.create();
-  private _worldMatrix: Matrix4x4 = mat4.create();
+  private _localMatrix: Matrix4x4 = new Matrix4x4();
+  private _worldMatrix: Matrix4x4 = new Matrix4x4();
   private _dirtyFlag: number = Transform._WM_WP_WE_WQ_WS_FLAGS;
   private _changeFlags: UpdateFlag[] = [];
   private _isParentDirty: boolean = true;
@@ -197,7 +198,7 @@ export class Transform extends Component {
    * 世界旋转，四元数表达。
    * @remarks 修改后需要重新赋值,保证修改生效。
    */
-  get worldRotationQuaternion(): Vector4 {
+  get worldRotationQuaternion(): Quaternion {
     if (this._isContainDirtyFlag(Transform._WORLD_QUAT_FLAG)) {
       const parent = this._getParentTransform();
       if (parent != null) {
@@ -558,14 +559,14 @@ export class Transform extends Component {
   }
 
   private _getScaleMatrix(): Matrix3x3 {
-    const invRotation = Transform._tempVec40;
+    const invRotation = Transform._tempQuat0;
     const invRotationMat = Transform._tempMat30;
     const worldRotScaMat = Transform._tempMat31;
     const scaMat = Transform._tempMat32;
-    mat3.fromMat4(worldRotScaMat, this.worldMatrix);
+    Matrix3x3.fromMat4(this.worldMatrix, worldRotScaMat);
     quat.invert(invRotation, this.worldRotationQuaternion);
-    mat3.fromQuat(invRotation, invRotationMat);
-    mat3.multiply(scaMat, invRotationMat, worldRotScaMat);
+    Matrix3x3.fromQuat(invRotation, invRotationMat);
+    Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
     return scaMat;
   }
 
