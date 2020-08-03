@@ -15,10 +15,10 @@ export class CubeProbe extends Probe {
   /** 可以设置探针的位置，默认为原点 [0,0,0] */
   public position: Vector3;
 
-  private oriViewMatrix = mat4.create();
-  private oriInverseViewMatrix = mat4.create();
-  private oriProjectionMatrix = mat4.create();
-  private oriInverseProjectionMatrix = mat4.create();
+  private oriViewMatrix = new Matrix4x4();
+  private oriInverseViewMatrix = new Matrix4x4();
+  private oriProjectionMatrix = new Matrix4x4();
+  private oriInverseProjectionMatrix = new Matrix4x4();
 
   /**
    * 创建探针
@@ -38,20 +38,20 @@ export class CubeProbe extends Probe {
    * 贮藏原相机参数
    * */
   private storeCamera() {
-    mat4.copy(this.oriViewMatrix, this.camera.viewMatrix);
-    mat4.copy(this.oriInverseViewMatrix, this.camera.inverseViewMatrix);
-    mat4.copy(this.oriProjectionMatrix, this.camera.projectionMatrix);
-    mat4.copy(this.oriInverseProjectionMatrix, this.camera.inverseProjectionMatrix);
+    this.camera.viewMatrix.cloneTo(this.oriViewMatrix);
+    this.camera.inverseViewMatrix.cloneTo(this.oriInverseViewMatrix);
+    this.camera.projectionMatrix.cloneTo(this.oriProjectionMatrix);
+    this.camera.inverseProjectionMatrix.cloneTo(this.oriInverseProjectionMatrix);
   }
 
   /**
    * 还原相机参数
    * */
   private restoreCamera() {
-    mat4.copy(this.camera.viewMatrix, this.oriViewMatrix);
-    mat4.copy(this.camera.inverseViewMatrix, this.oriInverseViewMatrix);
-    mat4.copy(this.camera.projectionMatrix, this.oriProjectionMatrix);
-    mat4.copy(this.camera.inverseProjectionMatrix, this.oriInverseProjectionMatrix);
+    this.oriViewMatrix.cloneTo(this.camera.viewMatrix);
+    this.oriInverseViewMatrix.cloneTo(this.camera.inverseViewMatrix);
+    this.oriProjectionMatrix.cloneTo(this.camera.projectionMatrix);
+    this.oriInverseProjectionMatrix.cloneTo(this.camera.inverseProjectionMatrix);
   }
 
   protected preRender() {
@@ -125,9 +125,15 @@ export class CubeProbe extends Probe {
     }
 
     Vector3.add(this.position, cacheDir, cacheTarget);
-    mat4.lookAt(this.camera.viewMatrix, this.position, cacheTarget, cacheUp);
-    mat4.invert(this.camera.inverseViewMatrix, this.camera.viewMatrix);
-    mat4.perspective(this.camera.projectionMatrix, fovRadian, 1, this.camera.nearClipPlane, this.camera.farClipPlane);
-    mat4.invert(this.camera.inverseProjectionMatrix, this.camera.projectionMatrix);
+    Matrix4x4.lookAt(this.position, cacheTarget, cacheUp, this.camera.viewMatrix);
+    Matrix4x4.invert(this.camera.viewMatrix, this.camera.inverseViewMatrix);
+    Matrix4x4.perspective(
+      fovRadian,
+      1,
+      this.camera.nearClipPlane,
+      this.camera.farClipPlane,
+      this.camera.projectionMatrix
+    );
+    Matrix4x4.invert(this.camera.projectionMatrix, this.camera.inverseProjectionMatrix);
   }
 }

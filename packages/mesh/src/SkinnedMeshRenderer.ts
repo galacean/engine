@@ -1,4 +1,4 @@
-import { mat4 } from "@alipay/o3-math";
+import { Matrix4x4 } from "@alipay/o3-math";
 import { MeshRenderer } from "./MeshRenderer";
 import { Entity } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
@@ -17,7 +17,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   public jointNodes: Entity[];
   public jointTexture: Texture2D;
 
-  private _mat: Float32Array;
+  private _mat: Matrix4x4;
   private _weights: number[];
   private weightsIndices: number[] = [];
   private _skin: Skin;
@@ -31,7 +31,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   constructor(entity: Entity, props: { mesh?: Mesh; skin?: Skin; weights?: number[]; rootNodes?: Entity[] } = {}) {
     super(entity, props);
-    this._mat = mat4.create() as Float32Array;
+    this._mat = new Matrix4x4();
     this._weights = null;
     this._skin = null;
 
@@ -162,14 +162,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
       const mat = this._mat;
       for (let i = joints.length - 1; i >= 0; i--) {
-        mat4.identity(mat);
+        mat.identity();
         if (joints[i]) {
-          mat4.multiply(mat, joints[i].transform.worldMatrix, ibms[i]);
+          Matrix4x4.multiply(joints[i].transform.worldMatrix, ibms[i], mat);
         } else {
-          mat4.copy(mat, ibms[i]);
+          ibms[i].cloneTo(mat);
         }
-        mat4.multiply(mat, worldToLocal, mat);
-        matrixPalette.set(mat, i * 16);
+        Matrix4x4.multiply(worldToLocal, mat, mat);
+        matrixPalette.set(mat.elements, i * 16);
       } // end of for
       if (this._useJointTexture) {
         this.createJointTexture();

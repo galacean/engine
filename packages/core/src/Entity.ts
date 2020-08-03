@@ -1,6 +1,5 @@
 import { EventDispatcher } from "@alipay/o3-base";
-import { mat4, Quaternion } from "@alipay/o3-math";
-import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
+import { Matrix4x4, Quaternion, Vector3 } from "@alipay/o3-math";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
@@ -483,7 +482,7 @@ export class Entity extends EventDispatcher {
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
-  private _invModelMatrix: Matrix4 = mat4.create();
+  private _invModelMatrix: Matrix4x4 = new Matrix4x4();
   private _inverseWorldMatFlag: UpdateFlag;
 
   /**
@@ -537,9 +536,9 @@ export class Entity extends EventDispatcher {
   /**
    * @deprecated
    */
-  getInvModelMatrix(): Matrix4 {
+  getInvModelMatrix(): Matrix4x4 {
     if (this._inverseWorldMatFlag.flag) {
-      mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
+      Matrix4x4.invert(this.transform.worldMatrix, this._invModelMatrix);
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;

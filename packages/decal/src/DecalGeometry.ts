@@ -46,9 +46,7 @@ export class DecalGeometry extends BufferGeometry {
     setPosition(this.projectorMatrix, position);
 
     // get projectorMatrixInverse
-    const tempMat = mat4.create();
-    const projectorMatrixInverse = mat4.invert(tempMat, projectorMatrix);
-    this.projectorMatrixInverse = projectorMatrixInverse;
+    Matrix4x4.invert(this.projectorMatrix, this.projectorMatrixInverse);
 
     const vertexValues = this.generate();
     const vertexCount = vertexValues.length;

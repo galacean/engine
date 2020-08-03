@@ -162,10 +162,10 @@ export class Vector4 {
   }
 
   /**
-   * 将向量a取反，并将结果输出到out
+   * 将向量a反转，并将结果输出到out
    *
    * @param a - 向量
-   * @param out - 向量取反的结果
+   * @param out - 向量反转的结果
    */
   static negate(a: Vector4, out: Vector4): void {
     out.x = -a.x;
@@ -378,7 +378,7 @@ export class Vector4 {
   }
 
   /**
-   * 当前向量取反，并返回
+   * 当前向量反转，并返回
    */
   negate(): Vector4 {
     this.x *= -1;

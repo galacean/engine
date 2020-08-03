@@ -1,6 +1,6 @@
 import { DataType } from "@alipay/o3-base";
 import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
-import { mat4, MathUtil, Vector2 } from "@alipay/o3-math";
+import { Matrix4x4, MathUtil, Vector2 } from "@alipay/o3-math";
 import { DirectLight, PointLight, SpotLight } from "@alipay/o3-lighting";
 
 /**
@@ -40,9 +40,9 @@ export class LightShadow {
 
     /**
      * 生成 shadow map 使用的投影矩阵
-     * @member {mat4}
+     * @member {Matrix4x4}
      */
-    this.projectionMatrix = mat4.create();
+    this.projectionMatrix = new Matrix4x4();
   }
 
   /**
@@ -81,14 +81,14 @@ export class LightShadow {
      * 方向光初始化投影矩阵，默认覆盖区域 left: -5, right: 5, bottom: -5, up: 5, near: 0.5, far: 50
      */
     if (light instanceof DirectLight) {
-      mat4.ortho(this.projectionMatrix, -5, 5, -5, 5, 0.1, 50);
+      Matrix4x4.ortho(-5, 5, -5, 5, 0.1, 50, this.projectionMatrix);
     }
 
     /**
      * 点光源初始化投影矩阵，默认配置：fov: 50, aspect: 1, near: 0.5, far: 50
      */
     if (light instanceof PointLight) {
-      mat4.perspective(this.projectionMatrix, MathUtil.degreeToRadian(50), 1, 0.5, 50);
+      Matrix4x4.perspective(MathUtil.degreeToRadian(50), 1, 0.5, 50, this.projectionMatrix);
     }
 
     /**
@@ -96,7 +96,7 @@ export class LightShadow {
      */
     if (light instanceof SpotLight) {
       const fov = Math.min(Math.PI / 2, light.angle * 2 * Math.sqrt(2));
-      mat4.perspective(this.projectionMatrix, fov, 1, 0.1, light.distance + 5);
+      Matrix4x4.perspective(fov, 1, 0.1, light.distance + 5, this.projectionMatrix);
     }
   }
 

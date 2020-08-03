@@ -368,6 +368,7 @@ describe("Matrix4x4 test", () => {
 
   it("decompose", () => {
     const a = new Matrix4x4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
+    // const a = new Matrix4x4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     const pos = new Vector3();
     const quat = new Quaternion();
     const scale = new Vector3();

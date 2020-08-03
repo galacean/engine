@@ -204,13 +204,13 @@ export class Camera extends Component {
   /**
    * 视图矩阵。
    */
-  get viewMatrix(): Readonly<Matrix4> {
+  get viewMatrix(): Readonly<Matrix4x4> {
     //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
       const modelMatrix = this._transform.worldMatrix;
       turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
-      mat4.invert(this._viewMatrix, MathTemp.tempMat4);
+      Matrix4x4.invert(MathTemp.tempMat4, this._viewMatrix);
     }
     return this._viewMatrix;
   }
@@ -218,30 +218,30 @@ export class Camera extends Component {
   /**
    * 投影矩阵,默认由相机的相关参数计算计算，如果手动设置会保持手动值，调用resetProjectionMatrix()可恢复。
    */
-  set projectionMatrix(value: Matrix4) {
+  set projectionMatrix(value: Matrix4x4) {
     this._projectionMatrix = value;
     this._isProjMatSetting = true;
     this._projMatChange();
   }
 
-  get projectionMatrix(): Matrix4 {
+  get projectionMatrix(): Matrix4x4 {
     if (!this._isProjectionDirty || this._isProjMatSetting) {
       return this._projectionMatrix;
     }
     this._isProjectionDirty = false;
     const aspectRatio = this.aspectRatio;
     if (!this._isOrthographic) {
-      mat4.perspective(
-        this._projectionMatrix,
+      Matrix4x4.perspective(
         MathUtil.degreeToRadian(this._fieldOfView),
         aspectRatio,
         this._nearClipPlane,
-        this._farClipPlane
+        this._farClipPlane,
+        this._projectionMatrix
       );
     } else {
       const width = this._orthographicSize * aspectRatio;
       const height = this._orthographicSize;
-      mat4.ortho(this._projectionMatrix, -width, width, -height, height, this._nearClipPlane, this._farClipPlane);
+      Matrix4x4.ortho(-width, width, -height, height, this._nearClipPlane, this._farClipPlane, this._projectionMatrix);
     }
     return this._projectionMatrix;
   }
@@ -330,10 +330,9 @@ export class Camera extends Component {
    * @returns 视口空间坐标
    */
   worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
-    const matViewProj = mat4.mul(MathTemp.tempMat4, this.projectionMatrix, this.viewMatrix);
-
+    Matrix4x4.multiply(this.projectionMatrix, this.viewMatrix, MathTemp.tempMat4);
     MathTemp.tempVec4.setValue(point.x, point.y, point.z, 1.0);
-    Vector4.transformMat4x4(MathTemp.tempVec4, matViewProj, MathTemp.tempVec4);
+    Vector4.transformMat4x4(MathTemp.tempVec4, MathTemp.tempMat4, MathTemp.tempVec4);
 
     const w = MathTemp.tempVec4.w;
     const nx = MathTemp.tempVec4.x / w;
@@ -465,12 +464,10 @@ export class Camera extends Component {
    * @private
    * 视图投影矩阵逆矩阵
    */
-  get invViewProjMat() {
+  get invViewProjMat(): Matrix4x4 {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      const invViewMatrix = this.inverseViewMatrix;
-      const invProjMatrix = this.inverseProjectionMatrix;
-      mat4.mul(this._invViewProjMat, invViewMatrix, invProjMatrix);
+      Matrix4x4.multiply(this.inverseViewMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
     }
     return this._invViewProjMat;
   }
@@ -482,8 +479,7 @@ export class Camera extends Component {
   get inverseProjectionMatrix(): Readonly<Matrix4x4> {
     if (this._isInvProjMatDirty) {
       this._isInvProjMatDirty = false;
-      const projectionMatrix = this.projectionMatrix;
-      mat4.invert(this._inverseProjectionMatrix, projectionMatrix);
+      Matrix4x4.invert(this.projectionMatrix, this._inverseProjectionMatrix);
     }
     return this._inverseProjectionMatrix;
   }
@@ -538,6 +534,6 @@ export function turnAround(out, a) {
 }
 
 interface ITransform {
-  worldMatrix: Readonly<Matrix4>;
+  worldMatrix: Readonly<Matrix4x4>;
   worldPosition: Readonly<Vector3>;
 }

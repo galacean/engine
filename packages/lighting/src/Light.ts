@@ -1,13 +1,15 @@
 import { Component, Entity } from "@alipay/o3-core";
 import { LightFeature } from "./LightFeature";
-import { mat4 } from "@alipay/o3-math";
+import { Matrix4x4, Vector3 } from "@alipay/o3-math";
+
+const _tempVec3 = new Vector3(0, 1, 0);
 
 /**
  * 灯光基类
  */
 export abstract class Light extends Component {
-  protected _viewMat;
-  protected _modelMat;
+  protected _viewMat: Matrix4x4;
+  protected _modelMat: Matrix4x4;
   protected name: string;
 
   /**
@@ -54,23 +56,23 @@ export abstract class Light extends Component {
 
   /**
    * View 矩阵
-   * @member {mat4}
+   * @member {Matrix4x4}
    * @readonly
    */
   get viewMatrix() {
-    if (!this._viewMat) this._viewMat = mat4.create();
-    mat4.invert(this._viewMat, this.inverseViewMatrix);
+    if (!this._viewMat) this._viewMat = new Matrix4x4();
+    Matrix4x4.invert(this.inverseViewMatrix, this._viewMat);
     return this._viewMat;
   }
 
   /**
    * View 矩阵的逆矩阵
-   * @member {mat4}
+   * @member {Matrix4x4}
    * @readonly
    */
   get inverseViewMatrix() {
-    if (!this._modelMat) this._modelMat = mat4.create();
-    mat4.rotate(this._modelMat, this.entity.transform.worldMatrix, Math.PI, [0, 1, 0]);
+    if (!this._modelMat) this._modelMat = new Matrix4x4();
+    Matrix4x4.rotate(this.entity.transform.worldMatrix, Math.PI, _tempVec3, this._modelMat);
 
     return this._modelMat;
   }

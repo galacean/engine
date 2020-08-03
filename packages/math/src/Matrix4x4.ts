@@ -20,6 +20,26 @@ export class Matrix4x4 {
   /** @internal */
   private static _tempMat40: Matrix4x4 = new Matrix4x4();
 
+  /** @internal 单位矩阵，readonly */
+  static Identity: Matrix4x4 = new Matrix4x4(
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+  );
+
   /**
    * 将两个矩阵相乘 merge~mul
    *
@@ -1131,34 +1151,42 @@ export class Matrix4x4 {
     this.cloneTo(t);
     const te = t.elements;
 
-    let sx = Math.sqrt(te[0] * te[0] + te[1] * te[1] + te[2] * te[2]);
-    const sy = Math.sqrt(te[4] * te[4] + te[5] * te[5] + te[6] * te[6]);
-    const sz = Math.sqrt(te[8] * te[8] + te[9] * te[9] + te[10] * te[10]);
-
-    // if determine is negative, we need to invert one scale
-    const det = t.determinant();
-    if (det < 0) sx = -sx;
-
     pos.x = te[12];
     pos.y = te[13];
     pos.z = te[14];
 
-    // scale the rotation part
-    const invSX = 1 / sx;
-    const invSY = 1 / sy;
-    const invSZ = 1 / sz;
+    let sx = Math.sqrt(te[0] * te[0] + te[1] * te[1] + te[2] * te[2]);
+    const sy = Math.sqrt(te[4] * te[4] + te[5] * te[5] + te[6] * te[6]);
+    const sz = Math.sqrt(te[8] * te[8] + te[9] * te[9] + te[10] * te[10]);
 
-    te[0] *= invSX;
-    te[1] *= invSX;
-    te[2] *= invSX;
+    if (
+      Math.abs(sx) < MathUtil.ZeroTolerance ||
+      Math.abs(sy) < MathUtil.ZeroTolerance ||
+      Math.abs(sz) < MathUtil.ZeroTolerance
+    ) {
+      // TODO
+    } else {
+      // if determine is negative, we need to invert one scale
+      const det = t.determinant();
+      if (det < 0) sx = -sx;
 
-    te[4] *= invSY;
-    te[5] *= invSY;
-    te[6] *= invSY;
+      // scale the rotation part
+      const invSX = 1 / sx;
+      const invSY = 1 / sy;
+      const invSZ = 1 / sz;
 
-    te[8] *= invSZ;
-    te[9] *= invSZ;
-    te[10] *= invSZ;
+      te[0] *= invSX;
+      te[1] *= invSX;
+      te[2] *= invSX;
+
+      te[4] *= invSY;
+      te[5] *= invSY;
+      te[6] *= invSY;
+
+      te[8] *= invSZ;
+      te[9] *= invSZ;
+      te[10] *= invSZ;
+    }
 
     const m3: Matrix3x3 = Matrix4x4._tempMat30;
     Matrix3x3.fromMat4(t, m3);

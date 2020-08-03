@@ -1,5 +1,5 @@
 import { TextureWrapMode } from "@alipay/o3-base";
-import { vec2, quat } from "@alipay/o3-math";
+import { Vector2, Quaternion } from "@alipay/o3-math";
 import { translate, scale, rotate, fade, slide } from "./rfuiTween";
 
 const ScaleMin = 1e-12;
@@ -139,12 +139,12 @@ export class RfuiAnimation {
       onTick: this.onStart.bind(this),
       onComplete: () => {
         this.node.isActive = true;
-        this.material.uvOffset = vec2.fromValues(0, 0);
+        this.material.uvOffset = new Vector2(0, 0);
         param.onComplete && param.onComplete();
       }
     });
 
-    this.material.uvOffset = config.uvOffset || vec2.fromValues(-1, 0);
+    this.material.uvOffset = config.uvOffset || new Vector2(-1, 0);
     this.material.diffuse.wrapModeU = this.material.diffuse.wrapModeV = TextureWrapMode.Clamp;
 
     return slide(
@@ -152,7 +152,7 @@ export class RfuiAnimation {
       (value) => {
         this.material.uvOffset = value;
       },
-      vec2.fromValues(0, 0),
+      new Vector2(),
       config
     );
   }
@@ -160,7 +160,7 @@ export class RfuiAnimation {
   maskSlideIn(param: any = {}) {
     this.started = false;
 
-    const maskUvOffset = param.maskUvOffset || vec2.fromValues(0, -1);
+    const maskUvOffset = param.maskUvOffset || new Vector2(0, -1);
     const config = Object.assign({}, this.defaultParam, param, {
       onTick: this.onStart.bind(this),
       onComplete: () => {
@@ -170,11 +170,11 @@ export class RfuiAnimation {
       }
     });
 
-    this.material.maskUvOffset = vec2.fromValues(0, 0);
+    this.material.maskUvOffset = new Vector2(0, 0);
     this.material.mask.wrapModeU = this.material.mask.wrapModeV = TextureWrapMode.Clamp;
 
     return slide(
-      vec2.fromValues(0, 0),
+      new Vector2(),
       (value) => {
         this.material.maskUvOffset = value;
       },
@@ -271,7 +271,7 @@ export class RfuiAnimation {
   }
 
   slideOut(param: any = {}) {
-    const origin = vec2.fromValues(0, 0);
+    const origin = new Vector2();
     const config = Object.assign({}, this.defaultParam, param, {
       onComplete: () => {
         this.material.uvOffset = origin;
@@ -280,7 +280,7 @@ export class RfuiAnimation {
       }
     });
 
-    const uvOffset = config.uvOffset || vec2.fromValues(-1, 0);
+    const uvOffset = config.uvOffset || new Vector2(-1, 0);
     this.material.uvOffset = origin;
 
     this.material.diffuse.wrapModeU = this.material.diffuse.wrapModeV = TextureWrapMode.Clamp;
@@ -295,7 +295,7 @@ export class RfuiAnimation {
   }
 
   maskSlideOut(param: any = {}) {
-    const origin = param.maskUvOffset || vec2.fromValues(0, -1);
+    const origin = param.maskUvOffset || new Vector2(0, -1);
     const config = Object.assign({}, this.defaultParam, param, {
       onComplete: () => {
         this.material.maskUvOffset = origin;
@@ -312,7 +312,7 @@ export class RfuiAnimation {
       (value) => {
         this.material.maskUvOffset = value;
       },
-      vec2.fromValues(0, 0),
+      new Vector2(),
       config
     );
   }
