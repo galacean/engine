@@ -7,10 +7,10 @@ import { Matrix4x4 } from "./Matrix4x4";
  * 三维向量
  */
 export class Vector3 {
-  /** @internal 零向量，readonly */
-  static Zero = new Vector3(0.0, 0.0, 0.0);
-  /** @internal 一向量，readonly */
-  static One = new Vector3(1.0, 1.0, 1.0);
+  /** @internal 零向量 */
+  static readonly Zero = new Vector3(0.0, 0.0, 0.0);
+  /** @internal 一向量 */
+  static readonly One = new Vector3(1.0, 1.0, 1.0);
   /** @internal 临时向量，减少反复创建 */
   static tempVector3 = new Vector3();
 
