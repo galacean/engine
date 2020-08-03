@@ -77,7 +77,6 @@ export function RegistExtension(extobj) {
 
       switch (name) {
         case HandledExtensions.PBRMaterial:
-          // PBRMaterial = extobj[name];
           extensionParsers.KHR_materials_unlit = PBRMaterial;
           break;
         case HandledExtensions.KHR_lights:
@@ -123,7 +122,6 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResourc
     gltf: data.gltf,
     buffers: data.buffers,
     asset: {}
-    // shaders: data.shaders
   };
 
   if (resources.gltf.asset && resources.gltf.asset.version) {
@@ -135,17 +133,14 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResourc
 
   // parse all related resources
   // @ts-ignore
-  return (
-    parseResources(resources, "textures", parseTexture)
-      // .then(() => parseResources(resources, "techniques", parseTechnique))
-      .then(() => parseResources(resources, "materials", parseMaterial))
-      .then(() => parseResources(resources, "meshes", parseMesh))
-      .then(() => parseResources(resources, "nodes", parseNode))
-      .then(() => parseResources(resources, "scenes", parseScene))
-      .then(() => parseResources(resources, "skins", parseSkin))
-      .then(() => parseResources(resources, "animations", parseAnimation))
-      .then(() => buildSceneGraph(resources))
-  );
+  return parseResources(resources, "textures", parseTexture)
+    .then(() => parseResources(resources, "materials", parseMaterial))
+    .then(() => parseResources(resources, "meshes", parseMesh))
+    .then(() => parseResources(resources, "nodes", parseNode))
+    .then(() => parseResources(resources, "scenes", parseScene))
+    .then(() => parseResources(resources, "skins", parseSkin))
+    .then(() => parseResources(resources, "animations", parseAnimation))
+    .then(() => buildSceneGraph(resources));
 }
 
 function parseExtensions(resources) {
@@ -226,29 +221,10 @@ export function parseTexture(gltfTexture, resources: GLTFParsed) {
   const { images } = resources;
 
   // TODO: 暂不支持 gltf wrapS、wrapT 和 minFilter、magFilter 设置
-  // if (gltfTexture.sampler === undefined) {
-  //   sampler = {
-  //     magFilter: TextureFilter.NEAREST,
-  //     minFilter: TextureFilter.NEAREST,
-  //     wrapS: TextureWrapMode.REPEAT,
-  //     wrapT: TextureWrapMode.REPEAT
-  //   };
-  // } else {
-  //   sampler = Object.assign(
-  //     {
-  //       magFilter: TextureFilter.LINEAR,
-  //       minFilter: TextureFilter.LINEAR_MIPMAP_LINEAR,
-  //       wrapS: TextureWrapMode.REPEAT,
-  //       wrapT: TextureWrapMode.REPEAT
-  //     },
-  //     gltf.samplers[gltfTexture.sampler]
-  //   );
-  // }
   const image = images[gltfTexture.source];
   // const gltfImage = gltf.images[gltfTexture.source];
 
   GLTF_TEX_COUNT++;
-  // const name = gltfTexture.name || gltfImage.name || gltfImage.uri || "GLTF_TEX_" + GLTF_TEX_COUNT;
   // TODO: support gltf texture compress
   // TODO: modify to engine and order
   const tex = new Texture2D(image.width, image.height, undefined, undefined, resources.engine);

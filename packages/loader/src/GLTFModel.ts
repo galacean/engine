@@ -33,29 +33,6 @@ export class GLTFModel extends Component {
     return this._animator;
   }
 
-  set isAnimate(value: boolean) {
-    if (this._asset && this._asset && this._asset.animations && this._asset.animations.length && value) {
-      if (!this._animator) {
-        const animations = this._asset.animations;
-        // 加载动画
-        this._animator = this.entity.addComponent(Animation);
-        animations.forEach((clip: AnimationClip) => {
-          this._animator.addAnimationClip(clip, clip.name);
-        });
-
-        if (this._autoPlay) {
-          this.autoPlay = this._autoPlay;
-        }
-      }
-    } else {
-      if (this._animator) {
-        this._animator.destroy();
-      }
-      // this.node.detachAbility(this._animator);
-      this._animator = null;
-    }
-  }
-
   get autoPlay() {
     return this._autoPlay;
   }
@@ -96,7 +73,7 @@ export class GLTFModel extends Component {
   constructor(node, props) {
     super(node, props);
 
-    const { asset = null, isAnimate, autoPlay, loop, isClone } = props;
+    const { asset = null, autoPlay, loop, isClone } = props;
     if (isClone) {
       const rootName = (this._props as any).gltfRootName;
       if (rootName) {
@@ -113,7 +90,6 @@ export class GLTFModel extends Component {
     }
 
     this.asset = asset;
-    this.isAnimate = isAnimate;
     this.loop = loop;
     this.autoPlay = autoPlay;
 

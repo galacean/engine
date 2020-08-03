@@ -9,7 +9,4 @@ export class AssetObject extends EngineObject {
   public name: string;
   public cacheID: number;
   public needRecreate: boolean;
-  constructor() {
-    super();
-  }
 }
