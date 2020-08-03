@@ -41,8 +41,7 @@ export class Matrix4x4 {
   );
 
   /**
-   * 将两个矩阵相乘 merge~mul
-   *
+   * 将两个矩阵相乘 merge~mul。
    * @param a - 矩阵
    * @param b - 矩阵
    * @param out - 矩阵相乘的结果
@@ -108,10 +107,10 @@ export class Matrix4x4 {
   }
 
   /**
-   * 判断两个四维矩阵的值是否相等 merge~exactEquals
-   *
+   * 判断两个四维矩阵的值是否相等 merge~exactEquals。
    * @param a - 矩阵
    * @param b - 矩阵
+   * @returns 返回两个矩阵是否相等，是返回 true，否则返回 false
    */
   static equals(a: Matrix4x4, b: Matrix4x4): boolean {
     const ae = a.elements;
@@ -138,8 +137,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 从四元数转换为一个4x4矩阵
-   *
+   * 从四元数转换为一个4x4矩阵。
    * @param q - 四元数
    * @param out - 转换后的4x4矩阵
    */
@@ -182,8 +180,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 通过指定旋转生成4x4矩阵
-   *
+   * 通过指定旋转生成4x4矩阵。
    * @param r - 旋转角度
    * @param axis - 旋转轴
    * @param out - 指定旋转后矩阵
@@ -227,8 +224,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 通过指定的旋转四元数,转换向量生成4x4矩阵
-   *
+   * 通过指定的旋转四元数,转换向量生成4x4矩阵。
    * @param q - 旋转四元数
    * @param v - 转换向量
    * @param out - 生成的4x4矩阵
@@ -269,8 +265,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 通过指定的旋转四元数,转换向量,缩放向量生成4x4矩阵
-   *
+   * 通过指定的旋转四元数,转换向量,缩放向量生成4x4矩阵。
    * @param q - 旋转四元数
    * @param trans - 转换向量
    * @param s - 缩放向量
@@ -315,8 +310,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 通过指定的旋转四元数,转换向量,缩放向量,原点向量生成4x4矩阵
-   *
+   * 通过指定的旋转四元数,转换向量,缩放向量,原点向量生成4x4矩阵。
    * @param q - 旋转四元数
    * @param trans - 转换向量
    * @param s - 缩放向量
@@ -373,8 +367,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 通过指定缩放生成4x4矩阵
-   *
+   * 通过指定缩放生成4x4矩阵。
    * @param s - 缩放向量
    * @param out - 指定缩放后矩阵
    */
@@ -399,8 +392,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 通过指定平移生成4x4矩阵
-   *
+   * 通过指定平移生成4x4矩阵。
    * @param trans - 平移向量
    * @param out - 指定平移后矩阵
    */
@@ -425,8 +417,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 计算矩阵a的逆矩阵，并将结果输出到out
-   *
+   * 计算矩阵a的逆矩阵，并将结果输出到out。
    * @param a - 矩阵
    * @param out - 逆矩阵
    */
@@ -489,8 +480,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 计算观察矩阵
-   *
+   * 计算观察矩阵。
    * @param eye - 观察者视点位置
    * @param center - 视点目标
    * @param up - 向上向量
@@ -573,8 +563,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 计算观察矩阵
-   *
+   * 计算观察矩阵。
    * @param eye - 观察者视点位置
    * @param target - 视点目标
    * @param up - 向上向量
@@ -623,8 +612,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 计算正交投影矩阵
-   *
+   * 计算正交投影矩阵。
    * @param left - 视锥左边界
    * @param right - 视锥右边界
    * @param bottom - 视锥底边界
@@ -666,8 +654,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 计算透视投影矩阵
-   *
+   * 计算透视投影矩阵。
    * @param fovy - 视角
    * @param aspect - 视图的宽高比
    * @param near - 近裁面
@@ -698,8 +685,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将矩阵a按给定角度旋转，并将结果输出到out
-   *
+   * 将矩阵a按给定角度旋转，并将结果输出到out。
    * @param a - 矩阵
    * @param r - 给定的旋转角度
    * @param axis - 旋转轴
@@ -780,8 +766,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将矩阵a按给定向量v缩放，并将结果输出到out
-   *
+   * 将矩阵a按给定向量v缩放，并将结果输出到out。
    * @param a - 矩阵
    * @param s - 缩放向量
    * @param out - 缩放后的矩阵
@@ -810,8 +795,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将矩阵a按给定向量v转换，并将结果输出到out
-   *
+   * 将矩阵a按给定向量v转换，并将结果输出到out。
    * @param a - 矩阵
    * @param v - 转换向量
    * @param out - 转换后的结果
@@ -866,8 +850,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 计算矩阵a的转置矩阵，并将结果输出到out
-   *
+   * 计算矩阵a的转置矩阵，并将结果输出到out。
    * @param a - 矩阵
    * @param out - 转置矩阵
    */
@@ -919,8 +902,7 @@ export class Matrix4x4 {
   elements: Float32Array = new Float32Array(16);
 
   /**
-   * 创建4x4矩阵实例，默认创建单位矩阵，我们采用列矩阵
-   *
+   * 创建4x4矩阵实例，默认创建单位矩阵，我们采用列矩阵。
    * @param m11 默认值1 column 1, row 1
    * @param m12 默认值0 column 1, row 2
    * @param m13 默认值0 column 1, row 3
@@ -977,8 +959,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 给矩阵设置值，并返回当前值
-   *
+   * 给矩阵设置值，并返回当前值。
    * @param m11
    * @param m12
    * @param m13
@@ -995,6 +976,7 @@ export class Matrix4x4 {
    * @param m42
    * @param m43
    * @param m44
+   * @returns 返回当前矩阵
    */
   setValue(
     m11: number,
@@ -1037,7 +1019,8 @@ export class Matrix4x4 {
   }
 
   /**
-   * 创建一个新的四维矩阵，并用当前矩阵值初始化
+   * 创建一个新的四维矩阵，并用当前矩阵值初始化。
+   * @returns 返回一个新的矩阵，并且拷贝当前矩阵的值
    */
   clone(): Matrix4x4 {
     const e = this.elements;
@@ -1063,8 +1046,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将当前矩阵值拷贝给out矩阵 rename~copy
-   *
+   * 将当前矩阵值拷贝给out矩阵。
    * @param out - 目标矩阵
    */
   cloneTo(out: Matrix4x4): void {
@@ -1090,9 +1072,9 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将当前矩阵乘以给定的向量a，并返回当前矩阵
-   *
+   * 将当前矩阵乘以给定的向量a，并返回当前矩阵。
    * @param b - 给定的向量，右操作数
+   * @returns 返回当前矩阵
    */
   multiply(b: Matrix4x4): Matrix4x4 {
     Matrix4x4.multiply(this, b, this);
@@ -1100,7 +1082,8 @@ export class Matrix4x4 {
   }
 
   /**
-   * 计算4x4矩阵的行列式
+   * 计算4x4矩阵的行列式。
+   * @returns 返回当前矩阵的行列式
    */
   determinant(): number {
     const e = this.elements;
@@ -1140,8 +1123,7 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将矩阵分解为平移向量、旋转四元数、缩放向量
-   *
+   * 将矩阵分解为平移向量、旋转四元数、缩放向量。
    * @param pos - 平移向量
    * @param q - 旋转四元数
    * @param s - 缩放向量
@@ -1198,10 +1180,10 @@ export class Matrix4x4 {
   }
 
   /**
-   * 从矩阵中返回表示旋转的四元数
-   *
+   * 从矩阵中返回表示旋转的四元数。
    * @param a - 转换矩阵
    * @param out - 表示旋转的四元数
+   * @returns 返回当前矩阵的旋转四元数
    */
   getRotation(out: Quaternion): Quaternion {
     const e = this.elements;
@@ -1238,9 +1220,9 @@ export class Matrix4x4 {
   }
 
   /**
-   * 从矩阵中返回缩放向量
-   *
+   * 从矩阵中返回缩放向量。
    * @param out - 缩放向量
+   * @returns 返回当前矩阵的缩放向量
    */
   getScaling(out: Vector3): Vector3 {
     const e = this.elements;
@@ -1262,9 +1244,9 @@ export class Matrix4x4 {
   }
 
   /**
-   * 从矩阵中返回转换向量
-   *
+   * 从矩阵中返回转换向量。
    * @param out - 转换向量
+   * @returns 返回当前矩阵的转换向量
    */
   getTranslation(out: Vector3): Vector3 {
     const e = this.elements;
@@ -1277,7 +1259,8 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将矩阵设置为单位矩阵
+   * 将矩阵设置为单位矩阵。
+   * @returns 返回当前矩阵
    */
   identity(): void {
     const e = this.elements;
@@ -1298,10 +1281,13 @@ export class Matrix4x4 {
     e[13] = 0;
     e[14] = 0;
     e[15] = 1;
+
+    return this;
   }
 
   /**
-   * 计算当前矩阵的逆矩阵，并返回
+   * 计算当前矩阵的逆矩阵，并返。
+   * @returns 返回当前矩阵
    */
   invert(): Matrix4x4 {
     Matrix4x4.invert(this, this);
@@ -1309,10 +1295,10 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将当前矩阵按给定角度旋转，并返回
-   *
+   * 将当前矩阵按给定角度旋转，并返回。
    * @param r - 给定的旋转角度
    * @param axis - 旋转轴
+   * @returns 返回当前矩阵
    */
   rotate(r: number, axis: Vector3): Matrix4x4 {
     Matrix4x4.rotate(this, r, axis, this);
@@ -1320,9 +1306,9 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将当前矩阵按给定向量v缩放，并返回
-   *
+   * 将当前矩阵按给定向量v缩放，并返回。
    * @param s
+   * @returns 返回当前矩阵
    */
   scale(s: Vector3): Matrix4x4 {
     Matrix4x4.scale(this, s, this);
@@ -1330,9 +1316,9 @@ export class Matrix4x4 {
   }
 
   /**
-   * 将当前矩阵按给定向量v转换，并返回
-   *
+   * 将当前矩阵按给定向量v转换，并返回。
    * @param v - 转换向量
+   * @returns 返回当前矩阵
    */
   translate(v: Vector3): Matrix4x4 {
     Matrix4x4.translate(this, v, this);
@@ -1340,7 +1326,8 @@ export class Matrix4x4 {
   }
 
   /**
-   * 计算当前矩阵的转置矩阵，并返回
+   * 计算当前矩阵的转置矩阵，并返回。
+   * @returns 返回当前矩阵
    */
   transpose(): Matrix4x4 {
     Matrix4x4.transpose(this, this);

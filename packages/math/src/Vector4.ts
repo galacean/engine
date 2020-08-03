@@ -12,8 +12,7 @@ export class Vector4 {
   static readonly One = new Vector4(1.0, 1.0, 1.0, 1.0);
 
   /**
-   * 将两个向量相加
-   *
+   * 将两个向量相加。
    * @param a - 向量
    * @param b - 向量
    * @param out - 向量相加结果
@@ -26,8 +25,7 @@ export class Vector4 {
   }
 
   /**
-   * 将两个向量相减 merge~sub
-   *
+   * 将两个向量相减。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个四维向量的相减结果
@@ -40,8 +38,7 @@ export class Vector4 {
   }
 
   /**
-   * 将两个向量相乘 merge~mul
-   *
+   * 将两个向量相乘。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个四维向量的相乘结果
@@ -54,8 +51,7 @@ export class Vector4 {
   }
 
   /**
-   * 将两个四维向量相除 merge~div
-   *
+   * 将两个四维向量相除。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个四维向量的相除结果
@@ -68,20 +64,20 @@ export class Vector4 {
   }
 
   /**
-   * 计算两个四维向量的点积
-   *
+   * 计算两个四维向量的点积。
    * @param a - 左向量
    * @param b - 右向量
+   * @returns 返回两个向量的点积
    */
   static dot(a: Vector4, b: Vector4): number {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
   }
 
   /**
-   * 计算两个四维向量的距离 merge~dist
-   *
+   * 计算两个四维向量的距离。
    * @param a - 向量
    * @param b - 向量
+   * @returns 返回两个向量的距离
    */
   static distance(a: Vector4, b: Vector4): number {
     const x = b.x - a.x;
@@ -92,10 +88,10 @@ export class Vector4 {
   }
 
   /**
-   * 计算两个四维向量的距离的平方
-   *
+   * 计算两个四维向量的距离的平方。
    * @param a - 向量
    * @param b - 向量
+   * @returns 返回两个向量的距离的平方
    */
   static distanceSquared(a: Vector4, b: Vector4): number {
     const x = b.x - a.x;
@@ -106,10 +102,10 @@ export class Vector4 {
   }
 
   /**
-   * 判断两个四维向量的值是否相等 merge~exactEquals
-   *
+   * 判断两个四维向量的值是否相等。
    * @param a - 向量
    * @param b - 向量
+   * @returns 返回两个向量是否相等，是返回 true，否则返回 false
    */
   static equals(a: Vector4, b: Vector4): boolean {
     return (
@@ -118,8 +114,7 @@ export class Vector4 {
   }
 
   /**
-   * 插值四维向量
-   *
+   * 插值四维向量。
    * @param a - 左向量
    * @param b - 右向量
    * @param t - 插值比例
@@ -134,8 +129,7 @@ export class Vector4 {
   }
 
   /**
-   * 分别取两个四维向量x、y的最大值计算新的四维向量
-   *
+   * 分别取两个四维向量x、y的最大值计算新的四维向量。
    * @param a - 向量
    * @param b - 向量
    * @param out - 结果向量
@@ -148,8 +142,7 @@ export class Vector4 {
   }
 
   /**
-   * 分别取两个四维向量x、y的最小值计算新的四维向量
-   *
+   * 分别取两个四维向量x、y的最小值计算新的四维向量。
    * @param a - 向量
    * @param b - 向量
    * @param out - 结果向量
@@ -162,8 +155,7 @@ export class Vector4 {
   }
 
   /**
-   * 将向量a反转，并将结果输出到out
-   *
+   * 将向量a反转，并将结果输出到out。
    * @param a - 向量
    * @param out - 向量反转的结果
    */
@@ -175,8 +167,7 @@ export class Vector4 {
   }
 
   /**
-   * 将向量a归一化，并将结果输出到out
-   *
+   * 将向量a归一化，并将结果输出到out。
    * @param a - 向量
    * @param out - 向量归一化的结果
    */
@@ -193,8 +184,7 @@ export class Vector4 {
   }
 
   /**
-   * 将向量a缩放，并将结果输出到out
-   *
+   * 将向量a缩放，并将结果输出到out。
    * @param a - 向量
    * @param s - 缩放因子
    * @param out - 向量缩放的结果
@@ -207,8 +197,7 @@ export class Vector4 {
   }
 
   /**
-   * 通过4x4矩阵将一个四维向量转换到另一个四维向量
-   *
+   * 通过4x4矩阵将一个四维向量转换到另一个四维向量。
    * @param a - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
@@ -223,8 +212,7 @@ export class Vector4 {
   }
 
   /**
-   * 通过四元数将一个四维向量转换到另一个四维向量
-   *
+   * 通过四元数将一个四维向量转换到另一个四维向量。
    * @param a - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
@@ -259,8 +247,7 @@ export class Vector4 {
   w: number;
 
   /**
-   * 创建一个Vector4实例
-   *
+   * 创建一个Vector4实例。
    * @param x - X轴坐标，默认值0
    * @param y - Y轴坐标，默认值0
    * @param z - Z轴坐标，默认值0
@@ -274,12 +261,12 @@ export class Vector4 {
   }
 
   /**
-   * 设置x, y, z, w的值，并返回当前向量
-   *
+   * 设置x, y, z, w的值，并返回当前向量。
    * @param x - X轴坐标
    * @param y - Y轴坐标
    * @param z - Z轴坐标
    * @param w - W轴坐标
+   * @returns 返回当前向量
    */
   setValue(x: number, y: number, z: number, w: number): Vector4 {
     this.x = x;
@@ -290,7 +277,8 @@ export class Vector4 {
   }
 
   /**
-   * 创建一个新的四维向量，并用当前向量值初始化
+   * 创建一个新的四维向量，并用当前向量值初始化。
+   * @returns 返回一个新的向量，并且拷贝当前向量的值
    */
   clone(): Vector4 {
     let ret = new Vector4(this.x, this.y, this.z, this.w);
@@ -298,8 +286,7 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量值拷贝给out向量 rename~copy
-   *
+   * 将当前向量值拷贝给out向量。
    * @param out - 目标向量
    */
   cloneTo(out: Vector4): void {
@@ -310,9 +297,9 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量加上给定的向量a，并返回当前向量
-   *
+   * 将当前向量加上给定的向量a，并返回当前向量。
    * @param a - 给定的向量
+   * @returns 返回当前向量
    */
   add(a: Vector4): Vector4 {
     this.x += a.x;
@@ -323,9 +310,9 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量减去给定的向量a，并返回当前向量
-   *
+   * 将当前向量减去给定的向量a，并返回当前向量。
    * @param a - 给定的向量
+   * @returns 返回当前向量
    */
   subtract(a: Vector4): Vector4 {
     this.x -= a.x;
@@ -336,9 +323,9 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量乘以给定的向量a，并返回当前向量
-   *
+   * 将当前向量乘以给定的向量a，并返回当前向量。
    * @param a - 给定的向量
+   * @returns 返回当前向量
    */
   multiply(a: Vector4): Vector4 {
     this.x *= a.x;
@@ -349,9 +336,9 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量除以给定的向量a，并返回当前向量
-   *
+   * 将当前向量除以给定的向量a，并返回当前向量。
    * @param a - 给定的向量
+   * @returns 返回当前向量
    */
   divide(a: Vector4): Vector4 {
     this.x /= a.x;
@@ -362,7 +349,8 @@ export class Vector4 {
   }
 
   /**
-   * 计算一个四维向量的标量长度 merge～len
+   * 计算一个四维向量的标量长度。
+   * @returns 返回当前向量的标量长度
    */
   length(): number {
     const { x, y, z, w } = this;
@@ -370,7 +358,8 @@ export class Vector4 {
   }
 
   /**
-   * 计算一个四维向量的标量长度的平方 merge~sqrLen rename~squaredLength
+   * 计算一个四维向量的标量长度的平方。
+   * @returns 返回当前向量的标量长度的平方
    */
   lengthSquared(): number {
     const { x, y, z, w } = this;
@@ -378,7 +367,8 @@ export class Vector4 {
   }
 
   /**
-   * 当前向量反转，并返回
+   * 当前向量反转，并返回。
+   * @returns 返回当前向量
    */
   negate(): Vector4 {
     this.x *= -1;
@@ -389,7 +379,8 @@ export class Vector4 {
   }
 
   /**
-   * 当前向量归一化，并返回
+   * 当前向量归一化，并返回。
+   * @returns 返回当前向量
    */
   normalize(): Vector4 {
     const { x, y, z, w } = this;
@@ -405,9 +396,9 @@ export class Vector4 {
   }
 
   /**
-   * 当前向量缩放，并返回
-   *
+   * 当前向量缩放，并返回。
    * @param s - 缩放因子
+   * @returns 返回当前向量
    */
   scale(s: number): Vector4 {
     this.x *= s;

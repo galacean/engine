@@ -7,8 +7,7 @@ import { Matrix3x3 } from "./Matrix3x3";
  */
 export class Quaternion {
   /**
-   * 将两个四元数相加
-   *
+   * 将两个四元数相加。
    * @param a - 左四元数
    * @param b - 右四元数
    * @param out - 四元数相加结果
@@ -21,8 +20,7 @@ export class Quaternion {
   }
 
   /**
-   * 将两个四元数相乘 merge~mul
-   *
+   * 将两个四元数相乘。
    * @param a - 左四元数
    * @param b - 右四元数
    * @param out - 四元数相乘结果
@@ -35,8 +33,7 @@ export class Quaternion {
   }
 
   /**
-   * 计算共轭四元数
-   *
+   * 计算共轭四元数。
    * @param a - 输入四元数
    * @param out - 输出的共轭四元数
    */
@@ -48,20 +45,20 @@ export class Quaternion {
   }
 
   /**
-   * 计算两个四元数的点积
-   *
+   * 计算两个四元数的点积。
    * @param a - 左四元数
    * @param b - 右四元数
+   * @returns 返回两个四元数的点积
    */
   static dot(a: Quaternion, b: Quaternion): number {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
   }
 
   /**
-   * 判断两个四元数是否相等 merge~exactEquals
-   *
+   * 判断两个四元数是否相等。
    * @param a - 四元数
    * @param b - 四元数
+   * @returns 返回两个四元数是否相等，是返回 true，否则返回 false
    */
   static equals(a: Quaternion, b: Quaternion): boolean {
     return (
@@ -70,8 +67,7 @@ export class Quaternion {
   }
 
   /**
-   * 通过x,y,z轴的旋转生成四元数
-   *
+   * 通过x,y,z轴的旋转生成四元数。
    * @param x - 绕X轴旋转的角度 pitch
    * @param y - 绕Y轴旋转的角度 yaw
    * @param z - 绕Z轴旋转的角度 roll
@@ -97,8 +93,7 @@ export class Quaternion {
   }
 
   /**
-   * 通过矩阵得出对应的四元数
-   *
+   * 通过矩阵得出对应的四元数。
    * @param a - 3x3矩阵
    * @param out - 生成的四元数
    */
@@ -134,8 +129,7 @@ export class Quaternion {
   }
 
   /**
-   * 计算四元数的逆
-   *
+   * 计算四元数的逆。
    * @param a - 四元数的逆
    * @param out - 四元数的逆
    */
@@ -151,8 +145,7 @@ export class Quaternion {
   }
 
   /**
-   * 插值四元数
-   *
+   * 插值四元数。
    * @param a - 左四元数
    * @param b - 右四元数
    * @param t - 插值比例
@@ -167,8 +160,7 @@ export class Quaternion {
   }
 
   /**
-   * 球面插值四元数
-   *
+   * 球面插值四元数。
    * @param a - 左四元数
    * @param b - 右四元数
    * @param t - 插值比例
@@ -217,8 +209,7 @@ export class Quaternion {
   }
 
   /**
-   * 将一个四元数归一化
-   *
+   * 将一个四元数归一化。
    * @param a - 四元数
    * @param out - 四元数归一化的结果
    */
@@ -235,8 +226,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕X轴旋转四元数
-   *
+   * 绕X轴旋转四元数。
    * @param a - 四元数
    * @param rad - 旋转角度
    * @param out - 旋转后的四元数
@@ -254,8 +244,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕Y轴旋转四元数
-   *
+   * 绕Y轴旋转四元数。
    * @param a - 四元数
    * @param rad - 旋转角度
    * @param out - 旋转后的四元数
@@ -273,8 +262,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕Z轴旋转四元数
-   *
+   * 绕Z轴旋转四元数。
    * @param a - 四元数
    * @param rad - 旋转角度
    * @param out - 旋转后的四元数
@@ -292,8 +280,7 @@ export class Quaternion {
   }
 
   /**
-   * 将一个四元数缩放
-   *
+   * 将一个四元数缩放。
    * @param a - 四元数
    * @param s - 缩放因子
    * @param out - 四元数缩放的结果
@@ -306,8 +293,7 @@ export class Quaternion {
   }
 
   /**
-   * 获取四元数的欧拉角
-   *
+   * 获取四元数的欧拉角。
    * @param a - 四元数
    * @param out - 欧拉角
    */
@@ -345,8 +331,7 @@ export class Quaternion {
   w: number;
 
   /**
-   * 创建四元数实例 merge~create merge~fromValues
-   *
+   * 创建四元数实例。
    * @param x - 默认值0
    * @param y - 默认值0
    * @param z - 默认值0
@@ -360,12 +345,12 @@ export class Quaternion {
   }
 
   /**
-   * 设置x, y, z, w的值
-   *
+   * 设置x, y, z, w的值。
    * @param x
    * @param y
    * @param z
    * @param w
+   * @returns 返回当前四元数
    */
   setValue(x: number, y: number, z: number, w: number): Quaternion {
     this.x = x;
@@ -377,7 +362,8 @@ export class Quaternion {
   }
 
   /**
-   * 创建一个新的四元数，并用当前四元数初始化
+   * 创建一个新的四元数，并用当前四元数初始化。
+   * @returns 返回一个新的四元数，并且拷贝当前四元数的值
    */
   clone(): Quaternion {
     let ret = new Quaternion(this.x, this.y, this.z, this.w);
@@ -385,8 +371,7 @@ export class Quaternion {
   }
 
   /**
-   * 将当前四元数值拷贝给out四元数 rename~copy
-   *
+   * 将当前四元数值拷贝给out四元数。
    * @param out - 目标四元数
    */
   cloneTo(out: Quaternion): void {
@@ -398,6 +383,7 @@ export class Quaternion {
 
   /**
    * 共轭四元数
+   * @returns 返回当前四元数
    */
   conjugate(): Quaternion {
     this.x *= -1;
@@ -408,10 +394,10 @@ export class Quaternion {
   }
 
   /**
-   * 从四元数分解欧拉角，并返回角度
-   *
+   * 从四元数分解欧拉角，并返回角度。
    * @param out - 输出欧拉角
    * @param q - 输入
+   * @returns 返回当前四元数的欧拉角(单位：度)
    */
   getAxisAngle(out: Vector3): number {
     let rad = Math.acos(this.w) * 2.0;
@@ -430,7 +416,7 @@ export class Quaternion {
   }
 
   /**
-   * 将四元数设置为单位四元数
+   * 将四元数设置为单位四元数。
    */
   identity(): void {
     this.x = 0;
@@ -440,7 +426,8 @@ export class Quaternion {
   }
 
   /**
-   * 计算一个四元数的标量长度 merge～len
+   * 计算一个四元数的标量长度。
+   * @returns 返回当前四元数的标量长度
    */
   length(): number {
     const { x, y, z, w } = this;
@@ -448,7 +435,8 @@ export class Quaternion {
   }
 
   /**
-   * 计算一个四元数的标量长度的平方 merge~sqrLen rename~squaredLength
+   * 计算一个四元数的标量长度的平方。
+   * @returns 返回当前四元数的标量长度的平方
    */
   lengthSquared(): number {
     const { x, y, z, w } = this;
@@ -456,10 +444,10 @@ export class Quaternion {
   }
 
   /**
-   * 通过旋转的欧拉角设置四元数
-   *
+   * 通过旋转的欧拉角设置四元数。
    * @param axis - 旋转轴向量
    * @param rad - 旋转角度
+   * @returns 返回当前四元数
    */
   setAxisAngle(axis: Vector3, rad: number): Quaternion {
     rad *= 0.5;
