@@ -2,7 +2,7 @@ import { Logger } from "@alipay/o3-base";
 import { Component, Entity } from "@alipay/o3-core";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationClip } from "./AnimationClip";
-import { quat } from "@alipay/o3-math";
+import { Quaternion } from "@alipay/o3-math";
 import { AnimationOptions, IChannelTarget } from "./types";
 import { SkinnedMeshRenderer } from "@alipay/o3-mesh";
 /**
@@ -34,18 +34,18 @@ export class Animation extends Component {
    * @private
    */
   public static lerp(
-    outValue: Float32Array | number,
-    startValue: number,
-    endValue: number,
+    outValue: Quaternion,
+    startValue: number | Quaternion,
+    endValue: number | Quaternion,
     alpha: number,
     outputSize: number
-  ): Float32Array | number {
+  ): number | Quaternion {
     switch (outputSize) {
       case 1:
         outValue = startValue * (1 - alpha) + endValue * alpha;
         break;
       case 4:
-        quat.slerp(outValue, startValue, endValue, alpha);
+        Quaternion.slerp(startValue, endValue, alpha, outValue);
         break;
       default:
         for (let i = outputSize; i >= 0; i--) {
