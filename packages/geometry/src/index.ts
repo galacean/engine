@@ -12,5 +12,3 @@ export { GeometryMerger } from "./GeometryMerger";
 export { VertexBuffer } from "./buffer/VertexBuffer";
 export { IndexBuffer } from "./buffer/IndexBuffer";
 export { InterleavedBuffer } from "./buffer/InterleavedBuffer";
-
-export { BufferAttribute, IndexFormat } from "./buffer/types";

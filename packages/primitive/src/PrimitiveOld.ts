@@ -26,33 +26,25 @@ let primitiveID = 0;
  */
 export class Primitive extends AssetObject {
   public readonly id: number;
-
-  // draw mode, triangles, lines etc.;
-  mode: DrawMode = DrawMode.TRIANGLES;
-
-  usage: BufferUsage = BufferUsage.STATIC_DRAW;
-
-  updateType: UpdateType = UpdateType.UPDATE_ALL;
-
-  updateRange: { byteOffset: number; byteLength: number } = {
+  public mode: DrawMode = DrawMode.TRIANGLES; // draw mode, triangles, lines etc.;
+  public usage: BufferUsage = BufferUsage.STATIC_DRAW;
+  public updateType: UpdateType = UpdateType.UPDATE_ALL;
+  public updateRange: { byteOffset: number; byteLength: number } = {
     byteOffset: -1,
     byteLength: 0
   };
 
-  readonly vertexAttributes = <any>{};
-  vertexBuffers;
-  vertexOffset: number = 0;
-  vertexCount: number = 0;
+  public vertexBuffers = [];
+  public vertexAttributes = <any>{};
+  public vertexOffset: number = 0;
+  public vertexCount: number = 0;
 
+  public indexType: DataType.UNSIGNED_BYTE | DataType.UNSIGNED_SHORT | DataType.UNSIGNED_INT = DataType.UNSIGNED_SHORT;
+  public indexCount: number = 0;
+  public indexBuffer = null;
   indexBuffers = [];
-  indexOffset: number = 0;
-  indexNeedUpdate: boolean = false;
-
-  isInstanced: boolean = false;
-  instancedCount: number;
-
-  // 需要更新的vertex buffer序号
-  updateIndex: number;
+  public indexOffset: number = 0;
+  public indexNeedUpdate: boolean = false;
 
   public material = null;
   public materialIndex: number;
@@ -60,6 +52,14 @@ export class Primitive extends AssetObject {
   public boundingBox: OBB = null;
   public boundingSphere: BoundingSphere = null;
   public isInFrustum: boolean = true;
+
+  public instancedBuffer = null;
+  public instancedAttributes = {};
+  public isInstanced: boolean = false;
+
+  public updateVertex: boolean;
+  public updateInstanced: boolean;
+  public instancedCount: number;
 
   /**
    * @constructor
@@ -90,7 +90,7 @@ export class Primitive extends AssetObject {
     instanced = 0,
     vertexBufferIndex = 0
   }: Attribute) {
-    this.vertexAttributes[semantic] = {
+    this[instanced ? "instancedAttributes" : "vertexAttributes"][semantic] = {
       size,
       type,
       stride,
@@ -171,6 +171,13 @@ export class Primitive extends AssetObject {
     return {
       min,
       max
+    };
+  }
+
+  get attributes() {
+    return {
+      ...this.vertexAttributes,
+      ...this.instancedAttributes
     };
   }
 

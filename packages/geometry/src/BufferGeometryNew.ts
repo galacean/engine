@@ -73,7 +73,9 @@ export class BufferGeometryNew extends AssetObject {
       this.primitive.addAttribute(attr);
     }
     this._vertexBuffers.push(vertexBuffer);
-    this.primitive.vertexBuffers = this.primitive.vertexBuffers.concat(vertexBuffer.buffers);
+    this.primitive.vertexBuffers.push(vertexBuffer);
+    this.primitive.updateVertex = true;
+    this.vertexCount = vertexBuffer.vertexCount;
   }
 
   // 设置 vertex buffer 数据
@@ -82,7 +84,7 @@ export class BufferGeometryNew extends AssetObject {
     vertexValues: number[] | Float32Array,
     dataStartIndex: number = 0,
     bufferOffset: number = 0,
-    dataCount: number = Number.MAX_SAFE_INTEGER
+    dataCount: number
   ) {
     const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
@@ -117,29 +119,22 @@ export class BufferGeometryNew extends AssetObject {
   // 添加 index buffer
   addIndexBufferParam(indexBuffer: IndexBuffer) {
     this._indexBuffers.push(indexBuffer);
-    this.primitive.indexCount = indexBuffer.indexCount;
-    this.primitive.indexBuffers = this.primitive.indexBuffers.concat(indexBuffer.buffer);
-    this.primitive.indexBuffer = indexBuffer.buffer;
+    this.primitive.indexBuffers.push(indexBuffer);
+    this.primitive.updateIndex = true;
   }
 
   // 设置 index buffer 数据
-  setIndexBufferData(
-    indexValues,
-    dataStartIndex: number = 0,
-    bufferOffset: number = 0,
-    dataCount: number = 4294967295 /*uint.MAX_VALUE*/
-  ) {
+  setIndexBufferData(indexValues, dataStartIndex: number = 0, bufferOffset: number = 0, dataCount: number) {
     const indexBuffer = this._indexBuffers[this._indexBufferIndex];
     if (indexBuffer) {
       indexBuffer.setData(indexValues, dataStartIndex, bufferOffset, dataCount);
-      this.primitive.indexNeedUpdate = true;
     }
   }
 
   setIndexBufferDataByIndex(index: number, value) {
     const indexBuffer = this._indexBuffers[this._indexBufferIndex];
     if (indexBuffer) {
-      indexBuffer.setData(index, value);
+      indexBuffer.setDataByIndex(index, value);
     }
   }
 

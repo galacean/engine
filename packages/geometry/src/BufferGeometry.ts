@@ -1,7 +1,6 @@
 import { Logger, UpdateType } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
-import { Primitive } from "@alipay/o3-primitive";
-import { Attribute } from "@alipay/o3-primitive/types/type";
+import { Primitive, Attribute } from "@alipay/o3-primitive";
 
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from "./Constant";
 
@@ -238,11 +237,13 @@ export class BufferGeometry extends AssetObject {
     view.set(value);
 
     // 数据更新时修改更新状态为 UPDATE_RANGE
+    console.log(this.primitive.updateType, vertexIndex);
     if (this.primitive.updateType === UpdateType.NO_UPDATE) {
       this.primitive.updateType = UpdateType.UPDATE_RANGE;
       this.primitive.updateVertex = true;
     }
     // 设置更新范围
+    console.log(this.primitive.updateType, vertexIndex);
     if (this.primitive.updateType === UpdateType.UPDATE_RANGE) {
       // 由于通过循环函数来设置值时，更新的范围要从开始到结束
       const byteLength = this._getSizeInByte(vertexAttrib.size, vertexAttrib.type);

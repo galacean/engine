@@ -1,21 +1,9 @@
-import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-base";
+import { DrawMode } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 import { Matrix4 } from "@alipay/o3-math/types/type";
 import { vec3 } from "@alipay/o3-math";
-
-export interface Attribute {
-  name?: string;
-  semantic: string;
-  size: number;
-  type: DataType;
-  normalized?: boolean;
-  instanced?: number;
-  interleaved?: boolean;
-  stride?: number;
-  offset?: number;
-  vertexBufferIndex?: number;
-}
+import { BufferAttribute } from "./index";
 
 let primitiveID = 0;
 
@@ -26,24 +14,13 @@ let primitiveID = 0;
  */
 export class Primitive extends AssetObject {
   public readonly id: number;
-  public mode: DrawMode = DrawMode.TRIANGLES; // draw mode, triangles, lines etc.;
-  public usage: BufferUsage = BufferUsage.STATIC_DRAW;
-  public updateType: UpdateType = UpdateType.UPDATE_ALL;
-  public updateRange: { byteOffset: number; byteLength: number } = {
-    byteOffset: -1,
-    byteLength: 0
-  };
+  public mode: DrawMode = DrawMode.TRIANGLES;
 
-  public vertexBuffers = [];
-  public vertexAttributes = <any>{};
-  public vertexOffset: number = 0;
+  vertexAttributes = {};
+  vertexBuffers = [];
   public vertexCount: number = 0;
 
-  public indexType: DataType.UNSIGNED_BYTE | DataType.UNSIGNED_SHORT | DataType.UNSIGNED_INT = DataType.UNSIGNED_SHORT;
-  public indexCount: number = 0;
-  public indexBuffer = null;
   indexBuffers = [];
-  public indexOffset: number = 0;
   public indexNeedUpdate: boolean = false;
 
   public material = null;
@@ -53,13 +30,37 @@ export class Primitive extends AssetObject {
   public boundingSphere: BoundingSphere = null;
   public isInFrustum: boolean = true;
 
-  public instancedBuffer = null;
-  public instancedAttributes = {};
   public isInstanced: boolean = false;
 
-  public updateVertex: boolean;
-  public updateInstanced: boolean;
   public instancedCount: number;
+
+  indexBufferIndex: number = 0;
+
+  updateVertex: boolean = false;
+  updateIndex: boolean = false;
+
+  private _vertexArrayBuffers = [];
+  private _indexArrayBuffers = [];
+
+  get vertexArrayBuffers() {
+    if (this.updateVertex) {
+      this._vertexArrayBuffers = this._createArrayBuffers(this.vertexBuffers);
+      this.updateVertex = false;
+    }
+    return this._vertexArrayBuffers;
+  }
+
+  get indexArrayBuffers() {
+    if (this.updateIndex) {
+      this._indexArrayBuffers = this._createArrayBuffers(this.indexBuffers);
+      this.updateIndex = false;
+    }
+    return this._indexArrayBuffers;
+  }
+
+  get attributes() {
+    return this.vertexAttributes;
+  }
 
   /**
    * @constructor
@@ -79,28 +80,9 @@ export class Primitive extends AssetObject {
    * @param {number} offset
    * @param {number} vertexBufferIndex
    */
-  addAttribute({
-    size,
-    type,
-    stride,
-    offset,
-    semantic,
-    normalized,
-    interleaved,
-    instanced = 0,
-    vertexBufferIndex = 0
-  }: Attribute) {
-    this[instanced ? "instancedAttributes" : "vertexAttributes"][semantic] = {
-      size,
-      type,
-      stride,
-      offset,
-      semantic,
-      instanced,
-      interleaved,
-      normalized,
-      vertexBufferIndex
-    };
+  addAttribute(attribute: BufferAttribute) {
+    const { semantic, instanced } = attribute;
+    this.vertexAttributes[semantic] = attribute;
     if (instanced) {
       this.isInstanced = true;
     }
@@ -122,14 +104,6 @@ export class Primitive extends AssetObject {
 
   updateAttribBufferIndex(semantic: string, index: number) {
     this.vertexAttributes[semantic].vertexBufferIndex = index;
-  }
-
-  /**
-   * 重置更新范围对象
-   */
-  resetUpdateRange() {
-    this.updateRange.byteOffset = -1;
-    this.updateRange.byteLength = 0;
   }
 
   /**
@@ -174,11 +148,13 @@ export class Primitive extends AssetObject {
     };
   }
 
-  get attributes() {
-    return {
-      ...this.vertexAttributes,
-      ...this.instancedAttributes
-    };
+  private _createArrayBuffers(buffers) {
+    let bufferArray = [];
+    for (let i = 0; i < buffers.length; i += 1) {
+      const arrayBuffers = buffers[i].buffers;
+      bufferArray = bufferArray.concat(arrayBuffers);
+    }
+    return bufferArray;
   }
 
   finalize() {}
