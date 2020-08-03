@@ -3,7 +3,7 @@ import { LoadItem } from "./LoadItem";
 import { ReferenceObject } from "./ReferenceObject";
 import { Engine } from "..";
 import { Loader } from "./Loader";
-import { LoaderType } from "./LoaderType";
+import { AssetType } from "./AssetType";
 
 /**
  * 资源管理员。
@@ -11,19 +11,19 @@ import { LoaderType } from "./LoaderType";
 export class ResourceManager {
   /** loader 集合。*/
   private static _loaders: { [key: number]: Loader<any> } = {};
-  private static _extTypeMapping: { [key: string]: LoaderType } = {};
+  private static _extTypeMapping: { [key: string]: AssetType } = {};
 
   /**
    * @internal
    */
-  static _addLoader(type: LoaderType, loader: Loader<any>, extnames: string[]) {
+  static _addLoader(type: AssetType, loader: Loader<any>, extnames: string[]) {
     this._loaders[type] = loader;
     for (let i = 0, len = extnames.length; i < len; i++) {
       this._extTypeMapping[extnames[i]] = type;
     }
   }
 
-  private static _getTypeByUrl(url: string): LoaderType {
+  private static _getTypeByUrl(url: string): AssetType {
     return this._extTypeMapping[url.substring(url.lastIndexOf(".") + 1)];
   }
 
@@ -220,7 +220,7 @@ export class ResourceManager {
  * @param assetType - 资源类型
  * @param extnames - 扩展名
  */
-export function resourceLoader(assetType: LoaderType, extnames: string[], useCache: boolean = true) {
+export function resourceLoader(assetType: AssetType, extnames: string[], useCache: boolean = true) {
   return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
     const loader = new Target(useCache);
     ResourceManager._addLoader(assetType, loader, extnames);

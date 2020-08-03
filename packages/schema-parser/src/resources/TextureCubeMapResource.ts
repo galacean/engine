@@ -3,7 +3,7 @@ import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
 import { compressedTextureLoadOrder } from "../utils";
-import { ResourceManager, LoaderType } from "@alipay/o3";
+import { ResourceManager, AssetType } from "@alipay/o3";
 
 const imageOrderMap = {
   px: 0,
@@ -18,7 +18,7 @@ export class TextureCubeMapResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<TextureCubeMapResource> {
     return new Promise((resolve, reject) => {
       const imageUrls = [];
-      let type = LoaderType.TextureCube;
+      let type = AssetType.TextureCube;
       if (this.resourceManager.useCompressedTexture && assetConfig?.props?.compression?.compressions.length) {
         const rhi = oasis.engine._hardwareRenderer;
         const compressions = assetConfig.props.compression.compressions;
@@ -35,13 +35,13 @@ export class TextureCubeMapResource extends SchemaResource {
               }
             }
             console.warn(compression.type);
-            type = LoaderType.KTXCube;
+            type = AssetType.KTXCube;
             break;
           }
         }
       }
 
-      if (type === LoaderType.TextureCube) {
+      if (type === AssetType.TextureCube) {
         for (const key in assetConfig.props.images) {
           if (assetConfig.props.images.hasOwnProperty(key)) {
             const image = assetConfig.props.images[key];

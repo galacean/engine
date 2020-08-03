@@ -1,9 +1,9 @@
-import { resourceLoader, Loader, AssetPromise, LoaderType, LoadItem } from "@alipay/o3-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem } from "@alipay/o3-core";
 
 function isBase64(url) {
   return /^data:(.+?);base64,/.test(url);
 }
-@resourceLoader(LoaderType.Buffer, ["bin", "r3bin"], false)
+@resourceLoader(AssetType.Buffer, ["bin", "r3bin"], false)
 class BufferLoader extends Loader<ArrayBuffer> {
   load(item: LoadItem): AssetPromise<ArrayBuffer> {
     const url = item.url;

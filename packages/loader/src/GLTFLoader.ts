@@ -1,10 +1,10 @@
-import { resourceLoader, Loader, AssetPromise, LoaderType, LoadItem, ResourceManager } from "@alipay/o3-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@alipay/o3-core";
 import { GlTf, LoadedGLTFResource } from "./GLTF";
 import { parseGLTF } from "./gltf/glTF";
 import { parseGLB } from "./gltf/glb";
 import { loadImageBuffer, getBufferData } from "./gltf/Util";
 
-@resourceLoader(LoaderType.Perfab, ["gltf", "glb"])
+@resourceLoader(AssetType.Perfab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<object> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<object> {
     return new AssetPromise((resolve, reject) => {
@@ -58,7 +58,7 @@ export class GLTFLoader extends Loader<object> {
           if (item instanceof ArrayBuffer) {
             return Promise.resolve(item);
           }
-          return resourceManager.load<ArrayBuffer>({ url: item.uri, type: LoaderType.Buffer });
+          return resourceManager.load<ArrayBuffer>({ url: item.uri, type: AssetType.Buffer });
         })
       ).then((buffers) => {
         return { buffers, gltf };

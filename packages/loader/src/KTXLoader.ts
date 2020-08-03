@@ -1,8 +1,8 @@
-import { resourceLoader, Loader, AssetPromise, LoaderType, LoadItem, ResourceManager } from "@alipay/o3-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@alipay/o3-core";
 import { Texture2D } from "@alipay/o3-material";
 import { parseSingleKTX } from "./compressed-texture";
 
-@resourceLoader(LoaderType.KTX, ["ktx"])
+@resourceLoader(AssetType.KTX, ["ktx"])
 export class KTXLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {

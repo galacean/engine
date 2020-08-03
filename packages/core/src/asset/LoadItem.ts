@@ -1,4 +1,4 @@
-import { LoaderType } from "./LoaderType";
+import { AssetType } from "./AssetType";
 
 /**
  * 用于描述资产加载项。
@@ -9,13 +9,13 @@ export type LoadItem = {
    */
   url?: string;
   /**
-   * 当 LoaderType 为 TextureCube 时可用
+   * 当 AssetType 为 TextureCube 时可用
    */
   urls?: string[];
   /**
    * 资源类型。
    */
-  type?: LoaderType;
+  type?: AssetType;
   /**
    * 加载失败后的重试次数
    */

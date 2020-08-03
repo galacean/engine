@@ -1,13 +1,4 @@
-import {
-  Logger,
-  Util,
-  DrawMode,
-  DataType,
-  TextureFilter,
-  TextureWrapMode,
-  MaterialType,
-  RenderState
-} from "@alipay/o3-base";
+import { Logger, Util, DrawMode, DataType } from "@alipay/o3-base";
 import { Entity, Scene, Engine } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
@@ -20,7 +11,7 @@ import { AnimationClip, InterpolationType, Animation } from "@alipay/o3-animatio
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 
 import { PBRMaterial } from "@alipay/o3-pbr";
-import { LoadedGLTFResource, GlTf } from "../GLTF";
+import { LoadedGLTFResource } from "../GLTF";
 
 // 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
@@ -103,18 +94,19 @@ export function RegistExtension(extobj) {
 }
 
 export interface GLTFParsed extends LoadedGLTFResource {
-  asset: {
-    animations?: AnimationClip[];
-    materials?: Material[];
-    meshes?: Mesh[];
-    nodes?: Entity[];
-    rootScene?: Scene;
-    scenes?: Scene[];
-    skins?: Skin[];
-    textures?: Texture2D[];
-    root?: Entity;
-  };
+  asset: Partial<GLTFResource>;
   engine?: Engine;
+}
+
+export interface GLTFResource {
+  defaultSceneRoot: Entity;
+  defaultScene: Scene;
+  scenes: Scene[];
+  textures?: Texture2D[];
+  animations?: AnimationClip[];
+  materials?: Material[];
+  meshes?: Mesh[];
+  skins?: Skin[];
 }
 
 /**
@@ -123,7 +115,7 @@ export interface GLTFParsed extends LoadedGLTFResource {
  * @returns {*}
  * @private
  */
-export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFParsed {
+export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResource {
   // 开始处理 glTF 数据
   const resources: GLTFParsed = {
     engine,
@@ -763,12 +755,12 @@ export function getItemByIdx(name, idx, resources) {
  * @param resources
  * @private
  */
-export function buildSceneGraph(resources: GLTFParsed) {
+export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
   const { asset, gltf } = resources;
 
   const gltfNodes = gltf.nodes || [];
 
-  asset.rootScene = getItemByIdx("scenes", gltf.scene ?? 0, resources);
+  asset.defaultSceneRoot = getItemByIdx("scenes", gltf.scene ?? 0, resources);
 
   for (let i = gltfNodes.length - 1; i >= 0; i--) {
     const gltfNode = gltfNodes[i];
@@ -800,15 +792,15 @@ export function buildSceneGraph(resources: GLTFParsed) {
     //@ts-ignore
     const nodes = asset.rootScene.nodes;
     if (nodes.length === 1) {
-      asset.root = nodes[0];
+      asset.defaultScene = nodes[0];
     } else {
       const rootNode = new Entity(null, resources.engine);
       for (let i = 0; i < nodes.length; i++) {
         rootNode.addChild(nodes[i]);
       }
-      asset.root = rootNode;
+      asset.defaultSceneRoot = rootNode;
     }
-    const animator = asset.root.addComponent(Animation);
+    const animator = asset.defaultSceneRoot.addComponent(Animation);
     const animations = asset.animations;
     if (animations) {
       animations.forEach((clip: AnimationClip) => {
@@ -816,5 +808,5 @@ export function buildSceneGraph(resources: GLTFParsed) {
       });
     }
   }
-  return resources;
+  return resources.asset as GLTFResource;
 }

@@ -1,5 +1,5 @@
 import "../src/BufferLoader";
-import { Engine, LoaderType } from "@alipay/o3-core";
+import { Engine, AssetType } from "@alipay/o3-core";
 
 describe("text loader test", () => {
   // const engine = new Engine(new WebCanvas);
@@ -15,7 +15,7 @@ describe("text loader test", () => {
   //   const promise = engine.resourceManager
   //     .load<ArrayBuffer>({
   //       url: "data:application/octet-stream;base64,AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAA=",
-  //       type: LoaderType.Buffer
+  //       type: AssetType.Buffer
   //     })
   //     .then((res) => {
   //       return new Float32Array(res);

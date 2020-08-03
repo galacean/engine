@@ -1,12 +1,12 @@
 import { Loader } from "../src/asset/Loader";
 import { LoadItem } from "../src/asset/LoadItem";
 import { resourceLoader, ResourceManager } from "../src/asset/ResourceManager";
-import { LoaderType } from "../src/asset/LoaderType";
+import { AssetType } from "../src/asset/AssetType";
 import { Engine } from "../src";
 import { AssetPromise } from "../src/asset/AssetPromise";
 import { ReferenceObject } from "../src/asset/ReferenceObject";
 
-@resourceLoader(LoaderType.Text, ["txt"], false)
+@resourceLoader(AssetType.Text, ["txt"], false)
 class TestLoader extends Loader<string> {
   load(item: LoadItem): AssetPromise<string> {
     return new AssetPromise((resolve) => {
@@ -24,7 +24,7 @@ class TestRefObject extends ReferenceObject {
   onDestroy() {}
 }
 
-@resourceLoader(LoaderType.JSON, ["json"])
+@resourceLoader(AssetType.JSON, ["json"])
 class TestJsonLoader extends Loader<ReferenceObject> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<ReferenceObject> {
     return new AssetPromise((resolve) => {
@@ -46,7 +46,7 @@ describe("test resource manager", () => {
       return expect(engine.resourceManager.load({ url: "xx.txt" })).resolves.toEqual("test");
     });
     it("load custom loader specify type", () => {
-      return expect(engine.resourceManager.load({ url: "xx", type: LoaderType.Text })).resolves.toEqual("test");
+      return expect(engine.resourceManager.load({ url: "xx", type: AssetType.Text })).resolves.toEqual("test");
     });
     it("load url loader type undefined", () => {
       return expect(() => {

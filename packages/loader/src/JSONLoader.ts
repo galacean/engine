@@ -1,6 +1,6 @@
-import { resourceLoader, Loader, AssetPromise, LoaderType, LoadItem } from "@alipay/o3-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem } from "@alipay/o3-core";
 
-@resourceLoader(LoaderType.JSON, ["json"], false)
+@resourceLoader(AssetType.JSON, ["json"], false)
 class JSONLoader extends Loader<string> {
   load(item: LoadItem): AssetPromise<string> {
     return this.request(item.url, {

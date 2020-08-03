@@ -1,5 +1,5 @@
 import { SchemaResource } from "./SchemaResource";
-import { Logger, LoaderType, ResourceManager } from "@alipay/o3";
+import { Logger, AssetType, ResourceManager } from "@alipay/o3";
 
 import { PBRMaterialResource } from "./PBRMaterialResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
@@ -8,7 +8,7 @@ import { Oasis } from "../Oasis";
 export class GLTFResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<any> {
     return resourceManager
-      .load<any>({ url: assetConfig.url, type: LoaderType.Perfab })
+      .load<any>({ url: assetConfig.url, type: AssetType.Perfab })
       .then((res) => {
         const gltf = res.asset;
         if (assetConfig.props) {

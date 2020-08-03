@@ -1,7 +1,7 @@
 /**
  * 资产类型。
  */
-export enum LoaderType {
+export enum AssetType {
   /**
    * 文本。
    * @remarks 在资源管理器中不会根据 url 缓存。

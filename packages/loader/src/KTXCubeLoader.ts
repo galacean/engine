@@ -1,9 +1,9 @@
-import { resourceLoader, Loader, AssetPromise, LoaderType, LoadItem, ResourceManager } from "@alipay/o3-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@alipay/o3-core";
 import { Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import { TextureCubeFace } from "@alipay/o3-base";
 import { parseCubeKTX } from "./compressed-texture";
 
-@resourceLoader(LoaderType.KTXCube, [])
+@resourceLoader(AssetType.KTXCube, [])
 class KTXCubeLoader extends Loader<TextureCubeMap> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCubeMap> {
     return new AssetPromise((resolve, reject) => {

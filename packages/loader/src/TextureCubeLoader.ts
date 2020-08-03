@@ -1,8 +1,8 @@
-import { resourceLoader, Loader, AssetPromise, LoaderType, LoadItem, ResourceManager } from "@alipay/o3-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@alipay/o3-core";
 import { Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import { TextureCubeFace } from "@alipay/o3-base";
 
-@resourceLoader(LoaderType.TextureCube, [""])
+@resourceLoader(AssetType.TextureCube, [""])
 class TextureCubeLoader extends Loader<TextureCubeMap> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCubeMap> {
     return new AssetPromise((resolve, reject) => {
