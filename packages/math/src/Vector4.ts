@@ -7,9 +7,9 @@ import { Matrix4x4 } from "./Matrix4x4";
  */
 export class Vector4 {
   /** @internal 零向量 */
-  static readonly Zero = new Vector4(0.0, 0.0, 0.0, 0.0);
+  static readonly _Zero = new Vector4(0.0, 0.0, 0.0, 0.0);
   /** @internal 一向量 */
-  static readonly One = new Vector4(1.0, 1.0, 1.0, 1.0);
+  static readonly _One = new Vector4(1.0, 1.0, 1.0, 1.0);
 
   /**
    * 将两个向量相加。

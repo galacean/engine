@@ -8,11 +8,11 @@ import { Matrix4x4 } from "./Matrix4x4";
  */
 export class Vector3 {
   /** @internal 零向量 */
-  static readonly Zero = new Vector3(0.0, 0.0, 0.0);
+  static readonly _Zero = new Vector3(0.0, 0.0, 0.0);
   /** @internal 一向量 */
-  static readonly One = new Vector3(1.0, 1.0, 1.0);
+  static readonly _One = new Vector3(1.0, 1.0, 1.0);
   /** @internal 临时向量，减少反复创建 */
-  static tempVector3 = new Vector3();
+  static _tempVector3 = new Vector3();
 
   /**
    * 将两个向量相加。
@@ -214,8 +214,8 @@ export class Vector3 {
    * @param out - 投影到平面上的向量
    */
   static projectOnPlane(a: Vector3, n: Vector3, out: Vector3): void {
-    Vector3.projectOnVector(a, n, Vector3.tempVector3);
-    Vector3.subtract(a, Vector3.tempVector3, out);
+    Vector3.projectOnVector(a, n, Vector3._tempVector3);
+    Vector3.subtract(a, Vector3._tempVector3, out);
   }
 
   /**
