@@ -102,7 +102,7 @@ export class Quaternion {
     let fTrace = ae[0] + ae[4] + ae[8];
     let fRoot;
 
-    if (fTrace > 0.0) {
+    if (fTrace > MathUtil.ZeroTolerance) {
       // |w| > 1/2, may as well choose w > 1/2
       fRoot = Math.sqrt(fTrace + 1.0); // 2w
       out.w = 0.5 * fRoot;
@@ -189,7 +189,7 @@ export class Quaternion {
       bw = -bw;
     }
     // calculate coefficients
-    if (1.0 - cosom > 0.000001) {
+    if (1.0 - cosom > MathUtil.ZeroTolerance) {
       // standard case (slerp)
       omega = Math.acos(cosom);
       sinom = Math.sin(omega);
@@ -216,7 +216,7 @@ export class Quaternion {
   static normalize(a: Quaternion, out: Quaternion): void {
     const { x, y, z, w } = a;
     let len: number = x * x + y * y + z * z + w * w;
-    if (len > 0) {
+    if (len > MathUtil.ZeroTolerance) {
       len = 1 / Math.sqrt(len);
       out.x = x * len;
       out.y = y * len;
@@ -321,21 +321,21 @@ export class Quaternion {
     out.z *= radToDegrees;
   }
 
-  /** X轴坐标 */
+  /** 四元数的X分量 */
   x: number;
-  /** Y轴坐标 */
+  /** 四元数的Y分量 */
   y: number;
-  /** Z轴坐标 */
+  /** 四元数的Z分量 */
   z: number;
-  /** W轴坐标 */
+  /** 四元数的W分量 */
   w: number;
 
   /**
    * 创建四元数实例。
-   * @param x - 默认值0
-   * @param y - 默认值0
-   * @param z - 默认值0
-   * @param w - 默认值1
+   * @param x - 四元数的X分量，默认值0
+   * @param y - 四元数的Y分量，默认值0
+   * @param z - 四元数的Z分量，默认值0
+   * @param w - 四元数的W分量，默认值0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
     this.x = x;
@@ -346,10 +346,10 @@ export class Quaternion {
 
   /**
    * 设置x, y, z, w的值。
-   * @param x
-   * @param y
-   * @param z
-   * @param w
+   * @param x - 四元数的X分量
+   * @param y - 四元数的Y分量
+   * @param z - 四元数的Z分量
+   * @param w - 四元数的W分量
    * @returns 返回当前四元数
    */
   setValue(x: number, y: number, z: number, w: number): Quaternion {
@@ -402,7 +402,7 @@ export class Quaternion {
   getAxisAngle(out: Vector3): number {
     let rad = Math.acos(this.w) * 2.0;
     let s = Math.sin(rad / 2.0);
-    if (s != 0.0) {
+    if (!MathUtil.equals(s, 0)) {
       out.x = this.x / s;
       out.y = this.y / s;
       out.z = this.z / s;

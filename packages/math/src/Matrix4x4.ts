@@ -20,8 +20,8 @@ export class Matrix4x4 {
   /** @internal */
   private static _tempMat40: Matrix4x4 = new Matrix4x4();
 
-  /** @internal 单位矩阵，readonly */
-  static Identity: Matrix4x4 = new Matrix4x4(
+  /** @internal 单位矩阵 */
+  static readonly _Identity: Matrix4x4 = new Matrix4x4(
     1.0,
     0.0,
     0.0,
@@ -42,8 +42,8 @@ export class Matrix4x4 {
 
   /**
    * 将两个矩阵相乘 merge~mul。
-   * @param a - 矩阵
-   * @param b - 矩阵
+   * @param a - 左矩阵
+   * @param b - 右矩阵
    * @param out - 矩阵相乘的结果
    */
   static multiply(a: Matrix4x4, b: Matrix4x4, out: Matrix4x4): void {
@@ -51,39 +51,39 @@ export class Matrix4x4 {
     const be = b.elements;
     const oe = out.elements;
 
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a14 = ae[3];
-    const a21 = ae[4];
-    const a22 = ae[5];
-    const a23 = ae[6];
-    const a24 = ae[7];
-    const a31 = ae[8];
-    const a32 = ae[9];
-    const a33 = ae[10];
-    const a34 = ae[11];
-    const a41 = ae[12];
-    const a42 = ae[13];
-    const a43 = ae[14];
-    const a44 = ae[15];
+    const a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2],
+      a14 = ae[3];
+    const a21 = ae[4],
+      a22 = ae[5],
+      a23 = ae[6],
+      a24 = ae[7];
+    const a31 = ae[8],
+      a32 = ae[9],
+      a33 = ae[10],
+      a34 = ae[11];
+    const a41 = ae[12],
+      a42 = ae[13],
+      a43 = ae[14],
+      a44 = ae[15];
 
-    const b11 = be[0];
-    const b12 = be[1];
-    const b13 = be[2];
-    const b14 = be[3];
-    const b21 = be[4];
-    const b22 = be[5];
-    const b23 = be[6];
-    const b24 = be[7];
-    const b31 = be[8];
-    const b32 = be[9];
-    const b33 = be[10];
-    const b34 = be[11];
-    const b41 = be[12];
-    const b42 = be[13];
-    const b43 = be[14];
-    const b44 = be[15];
+    const b11 = be[0],
+      b12 = be[1],
+      b13 = be[2],
+      b14 = be[3];
+    const b21 = be[4],
+      b22 = be[5],
+      b23 = be[6],
+      b24 = be[7];
+    const b31 = be[8],
+      b32 = be[9],
+      b33 = be[10],
+      b34 = be[11];
+    const b41 = be[12],
+      b42 = be[13],
+      b43 = be[14],
+      b44 = be[15];
 
     oe[0] = a11 * b11 + a21 * b12 + a31 * b13 + a41 * b14;
     oe[1] = a12 * b11 + a22 * b12 + a32 * b13 + a42 * b14;
@@ -108,8 +108,8 @@ export class Matrix4x4 {
 
   /**
    * 判断两个四维矩阵的值是否相等 merge~exactEquals。
-   * @param a - 矩阵
-   * @param b - 矩阵
+   * @param a - 左矩阵
+   * @param b - 右矩阵
    * @returns 返回两个矩阵是否相等，是返回 true，否则返回 false
    */
   static equals(a: Matrix4x4, b: Matrix4x4): boolean {
@@ -209,14 +209,17 @@ export class Matrix4x4 {
     oe[1] = y * x * t + z * s;
     oe[2] = z * x * t - y * s;
     oe[3] = 0;
+
     oe[4] = x * y * t - z * s;
     oe[5] = y * y * t + c;
     oe[6] = z * y * t + x * s;
     oe[7] = 0;
+
     oe[8] = x * z * t + y * s;
     oe[9] = y * z * t - x * s;
     oe[10] = z * z * t + c;
     oe[11] = 0;
+
     oe[12] = 0;
     oe[13] = 0;
     oe[14] = 0;
@@ -250,14 +253,17 @@ export class Matrix4x4 {
     oe[1] = xy + wz;
     oe[2] = xz - wy;
     oe[3] = 0;
+
     oe[4] = xy - wz;
     oe[5] = 1 - (xx + zz);
     oe[6] = yz + wx;
     oe[7] = 0;
+
     oe[8] = xz + wy;
     oe[9] = yz - wx;
     oe[10] = 1 - (xx + yy);
     oe[11] = 0;
+
     oe[12] = trans.x;
     oe[13] = trans.y;
     oe[14] = trans.z;
@@ -295,14 +301,17 @@ export class Matrix4x4 {
     oe[1] = (xy + wz) * sx;
     oe[2] = (xz - wy) * sx;
     oe[3] = 0;
+
     oe[4] = (xy - wz) * sy;
     oe[5] = (1 - (xx + zz)) * sy;
     oe[6] = (yz + wx) * sy;
     oe[7] = 0;
+
     oe[8] = (xz + wy) * sz;
     oe[9] = (yz - wx) * sz;
     oe[10] = (1 - (xx + yy)) * sz;
     oe[11] = 0;
+
     oe[12] = trans.x;
     oe[13] = trans.y;
     oe[14] = trans.z;
@@ -352,14 +361,17 @@ export class Matrix4x4 {
     oe[1] = (xy + wz) * sx;
     oe[2] = (xz - wy) * sx;
     oe[3] = 0;
+
     oe[4] = (xy - wz) * sy;
     oe[5] = (1 - (xx + zz)) * sy;
     oe[6] = (yz + wx) * sy;
     oe[7] = 0;
+
     oe[8] = (xz + wy) * sz;
     oe[9] = (yz - wx) * sz;
     oe[10] = (1 - (xx + yy)) * sz;
     oe[11] = 0;
+
     oe[12] = trans.x + ox - (oe[0] * ox + oe[4] * oy + oe[8] * oz);
     oe[13] = trans.y + oy - (oe[1] * ox + oe[5] * oy + oe[9] * oz);
     oe[14] = trans.z + oz - (oe[2] * ox + oe[6] * oy + oe[10] * oz);
@@ -377,14 +389,17 @@ export class Matrix4x4 {
     oe[1] = 0;
     oe[2] = 0;
     oe[3] = 0;
+
     oe[4] = 0;
     oe[5] = s.y;
     oe[6] = 0;
     oe[7] = 0;
+
     oe[8] = 0;
     oe[9] = 0;
     oe[10] = s.z;
     oe[11] = 0;
+
     oe[12] = 0;
     oe[13] = 0;
     oe[14] = 0;
@@ -402,14 +417,17 @@ export class Matrix4x4 {
     oe[1] = 0;
     oe[2] = 0;
     oe[3] = 0;
+
     oe[4] = 0;
     oe[5] = 1;
     oe[6] = 0;
     oe[7] = 0;
+
     oe[8] = 0;
     oe[9] = 0;
     oe[10] = 1;
     oe[11] = 0;
+
     oe[12] = trans.x;
     oe[13] = trans.y;
     oe[14] = trans.z;
@@ -425,22 +443,22 @@ export class Matrix4x4 {
     const ae = a.elements;
     const oe = out.elements;
 
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a14 = ae[3];
-    const a21 = ae[4];
-    const a22 = ae[5];
-    const a23 = ae[6];
-    const a24 = ae[7];
-    const a31 = ae[8];
-    const a32 = ae[9];
-    const a33 = ae[10];
-    const a34 = ae[11];
-    const a41 = ae[12];
-    const a42 = ae[13];
-    const a43 = ae[14];
-    const a44 = ae[15];
+    const a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2],
+      a14 = ae[3];
+    const a21 = ae[4],
+      a22 = ae[5],
+      a23 = ae[6],
+      a24 = ae[7];
+    const a31 = ae[8],
+      a32 = ae[9],
+      a33 = ae[10],
+      a34 = ae[11];
+    const a41 = ae[12],
+      a42 = ae[13],
+      a43 = ae[14],
+      a44 = ae[15];
 
     const b00 = a11 * a22 - a12 * a21;
     const b01 = a11 * a23 - a13 * a21;
@@ -465,14 +483,17 @@ export class Matrix4x4 {
     oe[1] = (a13 * b10 - a12 * b11 - a14 * b09) * det;
     oe[2] = (a42 * b05 - a43 * b04 + a44 * b03) * det;
     oe[3] = (a33 * b04 - a32 * b05 - a34 * b03) * det;
+
     oe[4] = (a23 * b08 - a21 * b11 - a24 * b07) * det;
     oe[5] = (a11 * b11 - a13 * b08 + a14 * b07) * det;
     oe[6] = (a43 * b02 - a41 * b05 - a44 * b01) * det;
     oe[7] = (a31 * b05 - a33 * b02 + a34 * b01) * det;
+
     oe[8] = (a21 * b10 - a22 * b08 + a24 * b06) * det;
     oe[9] = (a12 * b08 - a11 * b10 - a14 * b06) * det;
     oe[10] = (a41 * b04 - a42 * b02 + a44 * b00) * det;
     oe[11] = (a32 * b02 - a31 * b04 - a34 * b00) * det;
+
     oe[12] = (a22 * b07 - a21 * b09 - a23 * b06) * det;
     oe[13] = (a11 * b09 - a12 * b07 + a13 * b06) * det;
     oe[14] = (a42 * b01 - a41 * b03 - a43 * b00) * det;
@@ -548,14 +569,17 @@ export class Matrix4x4 {
     oe[1] = y0;
     oe[2] = z0;
     oe[3] = 0;
+
     oe[4] = x1;
     oe[5] = y1;
     oe[6] = z1;
     oe[7] = 0;
+
     oe[8] = x2;
     oe[9] = y2;
     oe[10] = z2;
     oe[11] = 0;
+
     oe[12] = -(x0 * eyex + x1 * eyey + x2 * eyez);
     oe[13] = -(y0 * eyex + y1 * eyey + y2 * eyez);
     oe[14] = -(z0 * eyex + z1 * eyey + z2 * eyez);
@@ -577,14 +601,14 @@ export class Matrix4x4 {
     const makeSafe: Vector3 = Matrix4x4._tempVec3;
 
     Vector3.subtract(target, eye, zAxis);
-    if (zAxis.lengthSquared() === 0) zAxis.z = 1;
+    if (MathUtil.equals(zAxis.lengthSquared(), 0)) zAxis.z = 1;
 
     zAxis.normalize();
     // make safe
     up.normalize();
     Vector3.subtract(up, zAxis, makeSafe);
     const l = makeSafe.length();
-    if (l === 0 || l === 2) {
+    if (MathUtil.equals(l, 0) || MathUtil.equals(l, 2)) {
       zAxis.z += MathUtil.ZeroTolerance;
       zAxis.normalize();
     }
@@ -597,14 +621,17 @@ export class Matrix4x4 {
     oe[1] = xAxis.y;
     oe[2] = xAxis.z;
     oe[3] = 0;
+
     oe[4] = yAxis.x;
     oe[5] = yAxis.y;
     oe[6] = yAxis.z;
     oe[7] = 0;
+
     oe[8] = zAxis.x;
     oe[9] = zAxis.y;
     oe[10] = zAxis.z;
     oe[11] = 0;
+
     oe[12] = eye.x;
     oe[13] = eye.y;
     oe[14] = eye.z;
@@ -639,14 +666,17 @@ export class Matrix4x4 {
     oe[1] = 0;
     oe[2] = 0;
     oe[3] = 0;
+
     oe[4] = 0;
     oe[5] = -2 * bt;
     oe[6] = 0;
     oe[7] = 0;
+
     oe[8] = 0;
     oe[9] = 0;
     oe[10] = 2 * nf;
     oe[11] = 0;
+
     oe[12] = (left + right) * lr;
     oe[13] = (top + bottom) * bt;
     oe[14] = (far + near) * nf;
@@ -670,14 +700,17 @@ export class Matrix4x4 {
     oe[1] = 0;
     oe[2] = 0;
     oe[3] = 0;
+
     oe[4] = 0;
     oe[5] = f;
     oe[6] = 0;
     oe[7] = 0;
+
     oe[8] = 0;
     oe[9] = 0;
     oe[10] = (far + near) * nf;
     oe[11] = -1;
+
     oe[12] = 0;
     oe[13] = 0;
     oe[14] = 2 * far * near * nf;
@@ -692,22 +725,16 @@ export class Matrix4x4 {
    * @param out - 旋转后的矩阵
    */
   static rotate(a: Matrix4x4, r: number, axis: Vector3, out: Matrix4x4): void {
-    const ae = a.elements;
-    const oe = out.elements;
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
-    let s, c, t;
-    let a11, a21, a31;
-    let a12, a22, a32;
-    let a13, a23, a33;
-    let a14, a24, a34;
-    let b11, b21, b31;
-    let b12, b22, b32;
-    let b13, b23, b33;
 
     if (Math.abs(len) < MathUtil.ZeroTolerance) {
       return;
     }
+
+    const ae = a.elements;
+    const oe = out.elements;
+    let s, c, t;
 
     len = 1 / len;
     x *= len;
@@ -718,39 +745,41 @@ export class Matrix4x4 {
     c = Math.cos(r);
     t = 1 - c;
 
-    a11 = ae[0];
-    a12 = ae[1];
-    a13 = ae[2];
-    a14 = ae[3];
-    a21 = ae[4];
-    a22 = ae[5];
-    a23 = ae[6];
-    a24 = ae[7];
-    a31 = ae[8];
-    a32 = ae[9];
-    a33 = ae[10];
-    a34 = ae[11];
+    let a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2],
+      a14 = ae[3];
+    let a21 = ae[4],
+      a22 = ae[5],
+      a23 = ae[6],
+      a24 = ae[7];
+    let a31 = ae[8],
+      a32 = ae[9],
+      a33 = ae[10],
+      a34 = ae[11];
 
     // Construct the elements of the rotation matrix
-    b11 = x * x * t + c;
-    b12 = y * x * t + z * s;
-    b13 = z * x * t - y * s;
-    b21 = x * y * t - z * s;
-    b22 = y * y * t + c;
-    b23 = z * y * t + x * s;
-    b31 = x * z * t + y * s;
-    b32 = y * z * t - x * s;
-    b33 = z * z * t + c;
+    let b11 = x * x * t + c;
+    let b12 = y * x * t + z * s;
+    let b13 = z * x * t - y * s;
+    let b21 = x * y * t - z * s;
+    let b22 = y * y * t + c;
+    let b23 = z * y * t + x * s;
+    let b31 = x * z * t + y * s;
+    let b32 = y * z * t - x * s;
+    let b33 = z * z * t + c;
 
     // Perform rotation-specific matrix multiplication
     oe[0] = a11 * b11 + a21 * b12 + a31 * b13;
     oe[1] = a12 * b11 + a22 * b12 + a32 * b13;
     oe[2] = a13 * b11 + a23 * b12 + a33 * b13;
     oe[3] = a14 * b11 + a24 * b12 + a34 * b13;
+
     oe[4] = a11 * b21 + a21 * b22 + a31 * b23;
     oe[5] = a12 * b21 + a22 * b22 + a32 * b23;
     oe[6] = a13 * b21 + a23 * b22 + a33 * b23;
     oe[7] = a14 * b21 + a24 * b22 + a34 * b23;
+
     oe[8] = a11 * b31 + a21 * b32 + a31 * b33;
     oe[9] = a12 * b31 + a22 * b32 + a32 * b33;
     oe[10] = a13 * b31 + a23 * b32 + a33 * b33;
@@ -780,14 +809,17 @@ export class Matrix4x4 {
     oe[1] = ae[1] * x;
     oe[2] = ae[2] * x;
     oe[3] = ae[3] * x;
+
     oe[4] = ae[4] * y;
     oe[5] = ae[5] * y;
     oe[6] = ae[6] * y;
     oe[7] = ae[7] * y;
+
     oe[8] = ae[8] * z;
     oe[9] = ae[9] * z;
     oe[10] = ae[10] * z;
     oe[11] = ae[11] * z;
+
     oe[12] = ae[12];
     oe[13] = ae[13];
     oe[14] = ae[14];
@@ -805,42 +837,28 @@ export class Matrix4x4 {
     const oe = out.elements;
     const { x, y, z } = v;
 
-    let a11, a21, a31;
-    let a12, a22, a32;
-    let a13, a23, a33;
-    let a14, a24, a34;
-
     if (a === out) {
       oe[12] = ae[0] * x + ae[4] * y + ae[8] * z + ae[12];
       oe[13] = ae[1] * x + ae[5] * y + ae[9] * z + ae[13];
       oe[14] = ae[2] * x + ae[6] * y + ae[10] * z + ae[14];
       oe[15] = ae[3] * x + ae[7] * y + ae[11] * z + ae[15];
     } else {
-      a11 = ae[0];
-      a12 = ae[1];
-      a13 = ae[2];
-      a14 = ae[3];
-      a21 = ae[4];
-      a22 = ae[5];
-      a23 = ae[6];
-      a24 = ae[7];
-      a31 = ae[8];
-      a32 = ae[9];
-      a33 = ae[10];
-      a34 = ae[11];
+      const a11 = ae[0],
+        a12 = ae[1],
+        a13 = ae[2],
+        a14 = ae[3];
+      const a21 = ae[4],
+        a22 = ae[5],
+        a23 = ae[6],
+        a24 = ae[7];
+      const a31 = ae[8],
+        a32 = ae[9],
+        a33 = ae[10],
+        a34 = ae[11];
 
-      oe[0] = a11;
-      oe[1] = a12;
-      oe[2] = a13;
-      oe[3] = a14;
-      oe[4] = a21;
-      oe[5] = a22;
-      oe[6] = a23;
-      oe[7] = a24;
-      oe[8] = a31;
-      oe[9] = a32;
-      oe[10] = a33;
-      oe[11] = a34;
+      (oe[0] = a11), (oe[1] = a12), (oe[2] = a13), (oe[3] = a14);
+      (oe[4] = a21), (oe[5] = a22), (oe[6] = a23), (oe[7] = a24);
+      (oe[8] = a31), (oe[9] = a32), (oe[10] = a33), (oe[11] = a34);
 
       oe[12] = a11 * x + a21 * y + a31 * z + ae[12];
       oe[13] = a12 * x + a22 * y + a32 * z + ae[13];
@@ -869,12 +887,15 @@ export class Matrix4x4 {
       oe[1] = ae[4];
       oe[2] = ae[8];
       oe[3] = ae[12];
+
       oe[4] = a12;
       oe[6] = ae[9];
       oe[7] = ae[13];
+
       oe[8] = a13;
       oe[9] = a23;
       oe[11] = ae[14];
+
       oe[12] = a14;
       oe[13] = a24;
       oe[14] = a34;
@@ -883,14 +904,17 @@ export class Matrix4x4 {
       oe[1] = ae[4];
       oe[2] = ae[8];
       oe[3] = ae[12];
+
       oe[4] = ae[1];
       oe[5] = ae[5];
       oe[6] = ae[9];
       oe[7] = ae[13];
+
       oe[8] = ae[2];
       oe[9] = ae[6];
       oe[10] = ae[10];
       oe[11] = ae[14];
+
       oe[12] = ae[3];
       oe[13] = ae[7];
       oe[14] = ae[11];
@@ -944,14 +968,17 @@ export class Matrix4x4 {
     e[1] = m12;
     e[2] = m13;
     e[3] = m14;
+
     e[4] = m21;
     e[5] = m22;
     e[6] = m23;
     e[7] = m24;
+
     e[8] = m31;
     e[9] = m32;
     e[10] = m33;
     e[11] = m34;
+
     e[12] = m41;
     e[13] = m42;
     e[14] = m43;
@@ -1002,14 +1029,17 @@ export class Matrix4x4 {
     e[1] = m12;
     e[2] = m13;
     e[3] = m14;
+
     e[4] = m21;
     e[5] = m22;
     e[6] = m23;
     e[7] = m24;
+
     e[8] = m31;
     e[9] = m32;
     e[10] = m33;
     e[11] = m34;
+
     e[12] = m41;
     e[13] = m42;
     e[14] = m43;
@@ -1057,14 +1087,17 @@ export class Matrix4x4 {
     oe[1] = e[1];
     oe[2] = e[2];
     oe[3] = e[3];
+
     oe[4] = e[4];
     oe[5] = e[5];
     oe[6] = e[6];
     oe[7] = e[7];
+
     oe[8] = e[8];
     oe[9] = e[9];
     oe[10] = e[10];
     oe[11] = e[11];
+
     oe[12] = e[12];
     oe[13] = e[13];
     oe[14] = e[14];
@@ -1088,22 +1121,22 @@ export class Matrix4x4 {
   determinant(): number {
     const e = this.elements;
 
-    const a11 = e[0];
-    const a12 = e[1];
-    const a13 = e[2];
-    const a14 = e[3];
-    const a21 = e[4];
-    const a22 = e[5];
-    const a23 = e[6];
-    const a24 = e[7];
-    const a31 = e[8];
-    const a32 = e[9];
-    const a33 = e[10];
-    const a34 = e[11];
-    const a41 = e[12];
-    const a42 = e[13];
-    const a43 = e[14];
-    const a44 = e[15];
+    const a11 = e[0],
+      a12 = e[1],
+      a13 = e[2],
+      a14 = e[3];
+    const a21 = e[4],
+      a22 = e[5],
+      a23 = e[6],
+      a24 = e[7];
+    const a31 = e[8],
+      a32 = e[9],
+      a33 = e[10],
+      a34 = e[11];
+    const a41 = e[12],
+      a42 = e[13],
+      a43 = e[14],
+      a44 = e[15];
 
     const b00 = a11 * a22 - a12 * a21;
     const b01 = a11 * a23 - a13 * a21;
@@ -1190,7 +1223,7 @@ export class Matrix4x4 {
     let trace = e[0] + e[5] + e[10];
     let S = 0;
 
-    if (trace > 0) {
+    if (trace > MathUtil.ZeroTolerance) {
       S = Math.sqrt(trace + 1.0) * 2;
       out.w = 0.25 * S;
       out.x = (e[6] - e[9]) / S;
@@ -1226,15 +1259,15 @@ export class Matrix4x4 {
    */
   getScaling(out: Vector3): Vector3 {
     const e = this.elements;
-    let m11 = e[0];
-    let m12 = e[1];
-    let m13 = e[2];
-    let m21 = e[4];
-    let m22 = e[5];
-    let m23 = e[6];
-    let m31 = e[8];
-    let m32 = e[9];
-    let m33 = e[10];
+    const m11 = e[0],
+      m12 = e[1],
+      m13 = e[2];
+    const m21 = e[4],
+      m22 = e[5],
+      m23 = e[6];
+    const m31 = e[8],
+      m32 = e[9],
+      m33 = e[10];
 
     out.x = Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
     out.y = Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
@@ -1262,21 +1295,24 @@ export class Matrix4x4 {
    * 将矩阵设置为单位矩阵。
    * @returns 返回当前矩阵
    */
-  identity(): void {
+  identity(): Matrix4x4 {
     const e = this.elements;
 
     e[0] = 1;
     e[1] = 0;
     e[2] = 0;
     e[3] = 0;
+
     e[4] = 0;
     e[5] = 1;
     e[6] = 0;
     e[7] = 0;
+
     e[8] = 0;
     e[9] = 0;
     e[10] = 1;
     e[11] = 0;
+
     e[12] = 0;
     e[13] = 0;
     e[14] = 0;

@@ -13,8 +13,8 @@ export class Vector2 {
 
   /**
    * 将两个向量相加，并输出结果out。
-   * @param a - 向量
-   * @param b - 向量
+   * @param a - 左向量
+   * @param b - 右向量
    * @param out - 向量相加结果
    */
   static add(a: Vector2, b: Vector2, out: Vector2): void {
@@ -152,7 +152,7 @@ export class Vector2 {
   static normalize(a: Vector2, out: Vector2): void {
     const { x, y } = a;
     let len: number = x * x + y * y;
-    if (len > 0) {
+    if (len > MathUtil.ZeroTolerance) {
       len = 1 / Math.sqrt(len);
       out.x = x * len;
       out.y = y * len;
@@ -196,15 +196,15 @@ export class Vector2 {
     out.y = x * e[1] + y * e[5] + e[13];
   }
 
-  /** X轴坐标 */
+  /** 向量的X分量 */
   x: number;
-  /** Y轴坐标 */
+  /** 向量的Y分量 */
   y: number;
 
   /**
    * 创建一个Vector2实例。
-   * @param x - X轴坐标，默认值0
-   * @param y - Y轴坐标，默认值0
+   * @param x - 向量的X分量，默认值0
+   * @param y - 向量的Y分量，默认值0
    */
   constructor(x: number = 0, y: number = 0) {
     this.x = x;
@@ -213,8 +213,8 @@ export class Vector2 {
 
   /**
    * 设置x, y的值，并返回当前向量。
-   * @param x - X轴坐标
-   * @param y - Y轴坐标
+   * @param x - 向量的X分量
+   * @param y - 向量的Y分量
    * @returns 返回当前向量
    */
   setValue(x: number, y: number): Vector2 {
@@ -320,7 +320,7 @@ export class Vector2 {
   normalize(): Vector2 {
     const { x, y } = this;
     let len: number = x * x + y * y;
-    if (len > 0) {
+    if (len > MathUtil.ZeroTolerance) {
       len = 1 / Math.sqrt(len);
       this.x = x * len;
       this.y = y * len;

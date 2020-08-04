@@ -13,8 +13,8 @@ export class Vector4 {
 
   /**
    * 将两个向量相加。
-   * @param a - 向量
-   * @param b - 向量
+   * @param a - 左向量
+   * @param b - 右向量
    * @param out - 向量相加结果
    */
   static add(a: Vector4, b: Vector4, out: Vector4): void {
@@ -174,7 +174,7 @@ export class Vector4 {
   static normalize(a: Vector4, out: Vector4): void {
     const { x, y, z, w } = a;
     let len: number = x * x + y * y + z * z + w * w;
-    if (len > 0) {
+    if (len > MathUtil.ZeroTolerance) {
       len = 1 / Math.sqrt(len);
       out.x = x * len;
       out.y = y * len;
@@ -237,21 +237,21 @@ export class Vector4 {
     out.w = w;
   }
 
-  /** X轴坐标 */
+  /** 向量的X分量 */
   x: number;
-  /** Y轴坐标 */
+  /** 向量的Y分量 */
   y: number;
-  /** Z轴坐标 */
+  /** 向量的Z分量 */
   z: number;
-  /** W轴坐标 */
+  /** 向量的W分量 */
   w: number;
 
   /**
    * 创建一个Vector4实例。
-   * @param x - X轴坐标，默认值0
-   * @param y - Y轴坐标，默认值0
-   * @param z - Z轴坐标，默认值0
-   * @param w - W轴坐标，默认值0
+   * @param x - 向量的X分量，默认值0
+   * @param y - 向量的Y分量，默认值0
+   * @param z - 向量的Z分量，默认值0
+   * @param w - 向量的W分量，默认值0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 0) {
     this.x = x;
@@ -262,10 +262,10 @@ export class Vector4 {
 
   /**
    * 设置x, y, z, w的值，并返回当前向量。
-   * @param x - X轴坐标
-   * @param y - Y轴坐标
-   * @param z - Z轴坐标
-   * @param w - W轴坐标
+   * @param x - 向量的X分量
+   * @param y - 向量的Y分量
+   * @param z - 向量的Z分量
+   * @param w - 向量的W分量
    * @returns 返回当前向量
    */
   setValue(x: number, y: number, z: number, w: number): Vector4 {
@@ -385,7 +385,7 @@ export class Vector4 {
   normalize(): Vector4 {
     const { x, y, z, w } = this;
     let len: number = x * x + y * y + z * z + w * w;
-    if (len > 0) {
+    if (len > MathUtil.ZeroTolerance) {
       len = 1 / Math.sqrt(len);
       this.x = x * len;
       this.y = y * len;

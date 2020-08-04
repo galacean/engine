@@ -9,8 +9,8 @@ import { Vector2 } from "./Vector2";
 export class Matrix3x3 {
   /**
    * 将两个矩阵相加。
-   * @param a - 矩阵
-   * @param b - 矩阵
+   * @param a - 左矩阵
+   * @param b - 右矩阵
    * @param out - 矩阵相加的结果
    */
   static add(a: Matrix3x3, b: Matrix3x3, out: Matrix3x3): void {
@@ -21,9 +21,11 @@ export class Matrix3x3 {
     oe[0] = ae[0] + be[0];
     oe[1] = ae[1] + be[1];
     oe[2] = ae[2] + be[2];
+
     oe[3] = ae[3] + be[3];
     oe[4] = ae[4] + be[4];
     oe[5] = ae[5] + be[5];
+
     oe[6] = ae[6] + be[6];
     oe[7] = ae[7] + be[7];
     oe[8] = ae[8] + be[8];
@@ -31,8 +33,8 @@ export class Matrix3x3 {
 
   /**
    * 将两个矩阵相减 merge~sub。
-   * @param a - 矩阵
-   * @param b - 矩阵
+   * @param a - 左矩阵
+   * @param b - 右矩阵
    * @param out - 矩阵相减的结果
    */
   static subtract(a: Matrix3x3, b: Matrix3x3, out: Matrix3x3): void {
@@ -43,9 +45,11 @@ export class Matrix3x3 {
     oe[0] = ae[0] - be[0];
     oe[1] = ae[1] - be[1];
     oe[2] = ae[2] - be[2];
+
     oe[3] = ae[3] - be[3];
     oe[4] = ae[4] - be[4];
     oe[5] = ae[5] - be[5];
+
     oe[6] = ae[6] - be[6];
     oe[7] = ae[7] - be[7];
     oe[8] = ae[8] - be[8];
@@ -53,8 +57,8 @@ export class Matrix3x3 {
 
   /**
    * 将两个矩阵相乘。
-   * @param a - 矩阵
-   * @param b - 矩阵
+   * @param a - 左矩阵
+   * @param b - 右矩阵
    * @param out - 矩阵相乘的结果
    */
   static multiply(a: Matrix3x3, b: Matrix3x3, out: Matrix3x3): void {
@@ -62,25 +66,25 @@ export class Matrix3x3 {
     const be = b.elements;
     const oe = out.elements;
 
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a21 = ae[3];
-    const a22 = ae[4];
-    const a23 = ae[5];
-    const a31 = ae[6];
-    const a32 = ae[7];
-    const a33 = ae[8];
+    const a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2];
+    const a21 = ae[3],
+      a22 = ae[4],
+      a23 = ae[5];
+    const a31 = ae[6],
+      a32 = ae[7],
+      a33 = ae[8];
 
-    const b11 = be[0];
-    const b12 = be[1];
-    const b13 = be[2];
-    const b21 = be[3];
-    const b22 = be[4];
-    const b23 = be[5];
-    const b31 = be[6];
-    const b32 = be[7];
-    const b33 = be[8];
+    const b11 = be[0],
+      b12 = be[1],
+      b13 = be[2];
+    const b21 = be[3],
+      b22 = be[4],
+      b23 = be[5];
+    const b31 = be[6],
+      b32 = be[7],
+      b33 = be[8];
 
     oe[0] = a11 * b11 + a21 * b12 + a31 * b13;
     oe[1] = a12 * b11 + a22 * b12 + a32 * b13;
@@ -97,8 +101,8 @@ export class Matrix3x3 {
 
   /**
    * 判断两个三维矩阵的值是否相等。
-   * @param a - 矩阵
-   * @param b - 矩阵
+   * @param a - 左矩阵
+   * @param b - 右矩阵
    * @returns 返回两个矩阵是否相等，是返回 true，否则返回 false
    */
   static equals(a: Matrix3x3, b: Matrix3x3): boolean {
@@ -130,9 +134,11 @@ export class Matrix3x3 {
     oe[0] = ae[0];
     oe[1] = ae[1];
     oe[2] = ae[2];
+
     oe[3] = ae[4];
     oe[4] = ae[5];
     oe[5] = ae[6];
+
     oe[6] = ae[8];
     oe[7] = ae[9];
     oe[8] = ae[10];
@@ -227,9 +233,11 @@ export class Matrix3x3 {
     oe[0] = 1;
     oe[1] = 0;
     oe[2] = 0;
+
     oe[3] = 0;
     oe[4] = 1;
     oe[5] = 0;
+
     oe[6] = trans.x;
     oe[7] = trans.y;
     oe[8] = 1;
@@ -244,15 +252,15 @@ export class Matrix3x3 {
     const ae = a.elements;
     const oe = out.elements;
 
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a21 = ae[3];
-    const a22 = ae[4];
-    const a23 = ae[5];
-    const a31 = ae[6];
-    const a32 = ae[7];
-    const a33 = ae[8];
+    const a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2];
+    const a21 = ae[3],
+      a22 = ae[4],
+      a23 = ae[5];
+    const a31 = ae[6],
+      a32 = ae[7],
+      a33 = ae[8];
 
     const b12 = a33 * a22 - a23 * a32;
     const b22 = -a33 * a21 + a23 * a31;
@@ -267,9 +275,11 @@ export class Matrix3x3 {
     oe[0] = b12 * det;
     oe[1] = (-a33 * a12 + a13 * a32) * det;
     oe[2] = (a23 * a12 - a13 * a22) * det;
+
     oe[3] = b22 * det;
     oe[4] = (a33 * a11 - a13 * a31) * det;
     oe[5] = (-a23 * a11 + a13 * a21) * det;
+
     oe[6] = b32 * det;
     oe[7] = (-a32 * a11 + a12 * a31) * det;
     oe[8] = (a22 * a11 - a12 * a21) * det;
@@ -284,22 +294,22 @@ export class Matrix3x3 {
     const ae = a.elements;
     const oe = out.elements;
 
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a14 = ae[3];
-    const a21 = ae[4];
-    const a22 = ae[5];
-    const a23 = ae[6];
-    const a24 = ae[7];
-    const a31 = ae[8];
-    const a32 = ae[9];
-    const a33 = ae[10];
-    const a34 = ae[11];
-    const a41 = ae[12];
-    const a42 = ae[13];
-    const a43 = ae[14];
-    const a44 = ae[15];
+    const a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2],
+      a14 = ae[3];
+    const a21 = ae[4],
+      a22 = ae[5],
+      a23 = ae[6],
+      a24 = ae[7];
+    const a31 = ae[8],
+      a32 = ae[9],
+      a33 = ae[10],
+      a34 = ae[11];
+    const a41 = ae[12],
+      a42 = ae[13],
+      a43 = ae[14],
+      a44 = ae[15];
 
     const b00 = a11 * a22 - a12 * a21;
     const b01 = a11 * a23 - a13 * a21;
@@ -345,15 +355,15 @@ export class Matrix3x3 {
     const s = Math.sin(r);
     const c = Math.cos(r);
 
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a21 = ae[3];
-    const a22 = ae[4];
-    const a23 = ae[5];
-    const a31 = ae[6];
-    const a32 = ae[7];
-    const a33 = ae[8];
+    const a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2];
+    const a21 = ae[3],
+      a22 = ae[4],
+      a23 = ae[5];
+    const a31 = ae[6],
+      a32 = ae[7],
+      a33 = ae[8];
 
     oe[0] = c * a11 + s * a21;
     oe[1] = c * a12 + s * a22;
@@ -403,15 +413,15 @@ export class Matrix3x3 {
     const ae = a.elements;
     const oe = out.elements;
 
-    const a11 = ae[0];
-    const a12 = ae[1];
-    const a13 = ae[2];
-    const a21 = ae[3];
-    const a22 = ae[4];
-    const a23 = ae[5];
-    const a31 = ae[6];
-    const a32 = ae[7];
-    const a33 = ae[8];
+    const a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2];
+    const a21 = ae[3],
+      a22 = ae[4],
+      a23 = ae[5];
+    const a31 = ae[6],
+      a32 = ae[7],
+      a33 = ae[8];
 
     oe[0] = a11;
     oe[1] = a12;
@@ -449,9 +459,11 @@ export class Matrix3x3 {
       oe[0] = ae[0];
       oe[1] = ae[3];
       oe[2] = ae[6];
+
       oe[3] = ae[1];
       oe[4] = ae[4];
       oe[5] = ae[7];
+
       oe[6] = ae[2];
       oe[7] = ae[5];
       oe[8] = ae[8];
@@ -489,9 +501,11 @@ export class Matrix3x3 {
     e[0] = m11;
     e[1] = m12;
     e[2] = m13;
+
     e[3] = m21;
     e[4] = m22;
     e[5] = m23;
+
     e[6] = m31;
     e[7] = m32;
     e[8] = m33;
@@ -526,9 +540,11 @@ export class Matrix3x3 {
     e[0] = m11;
     e[1] = m12;
     e[2] = m13;
+
     e[3] = m21;
     e[4] = m22;
     e[5] = m23;
+
     e[6] = m31;
     e[7] = m32;
     e[8] = m33;
@@ -557,9 +573,11 @@ export class Matrix3x3 {
     oe[0] = e[0];
     oe[1] = e[1];
     oe[2] = e[2];
+
     oe[3] = e[3];
     oe[4] = e[4];
     oe[5] = e[5];
+
     oe[6] = e[6];
     oe[7] = e[7];
     oe[8] = e[8];
@@ -602,15 +620,15 @@ export class Matrix3x3 {
   determinant(): number {
     const e = this.elements;
 
-    const a11 = e[0];
-    const a12 = e[1];
-    const a13 = e[2];
-    const a21 = e[3];
-    const a22 = e[4];
-    const a23 = e[5];
-    const a31 = e[6];
-    const a32 = e[7];
-    const a33 = e[8];
+    const a11 = e[0],
+      a12 = e[1],
+      a13 = e[2];
+    const a21 = e[3],
+      a22 = e[4],
+      a23 = e[5];
+    const a31 = e[6],
+      a32 = e[7],
+      a33 = e[8];
 
     const b12 = a33 * a22 - a23 * a32;
     const b22 = -a33 * a21 + a23 * a31;
@@ -629,9 +647,11 @@ export class Matrix3x3 {
     e[0] = 1;
     e[1] = 0;
     e[2] = 0;
+
     e[3] = 0;
     e[4] = 1;
     e[5] = 0;
+
     e[6] = 0;
     e[7] = 0;
     e[8] = 1;
