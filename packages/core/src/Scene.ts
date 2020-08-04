@@ -74,6 +74,17 @@ export class Scene extends EventDispatcher {
   }
 
   /**
+   * 创建根实体。
+   * @param name - 实体名称
+   * @returns 实体
+   */
+  createRootEntity(name?: string): Entity {
+    const entity = new Entity(name, this._engine);
+    this.addRootEntity(entity);
+    return entity;
+  }
+
+  /**
    * 添加根节点。
    * @param entity - 根节点
    */
