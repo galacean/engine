@@ -58,11 +58,30 @@ describe("Quaternion test", () => {
   });
 
   it("static fromMat3", () => {
-    const a = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    const a1 = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    const a2 = new Matrix3x3(1, 2, 3, 4, -5, 6, 7, 8, -9);
+    const a3 = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, -9);
+    const a4 = new Matrix3x3(-7, 2, 3, 4, -5, 6, 7, 8, 9);
     const out = new Quaternion();
 
-    Quaternion.fromMat3(a, out);
+    Quaternion.fromMat3(a1, out);
     expect(Quaternion.equals(out, new Quaternion(-0.25, 0.5, -0.25, 2))).toEqual(true);
+    Quaternion.fromMat3(a2, out);
+    expect(Quaternion.equals(out, new Quaternion(2, 0.75, 1.25, -0.25))).toEqual(true);
+    Quaternion.fromMat3(a3, out);
+    expect(
+      Quaternion.equals(
+        out,
+        new Quaternion(0.8017837257372732, 1.8708286933869707, 1.8708286933869709, 0.5345224838248488)
+      )
+    ).toEqual(true);
+    Quaternion.fromMat3(a4, out);
+    expect(
+      Quaternion.equals(
+        out,
+        new Quaternion(1.066003581778052, 1.4924050144892729, 2.345207879911715, -0.21320071635561041)
+      )
+    ).toEqual(true);
   });
 
   it("static invert", () => {

@@ -94,37 +94,55 @@ export class Quaternion {
 
   /**
    * 通过矩阵得出对应的四元数。
-   * @param a - 3x3矩阵
+   * @param m - 3x3矩阵
    * @param out - 生成的四元数
    */
-  static fromMat3(a: Matrix3x3, out: Quaternion): void {
-    const ae = a.elements;
-    let fTrace = ae[0] + ae[4] + ae[8];
-    let fRoot;
+  static fromMat3(m: Matrix3x3, out: Quaternion): void {
+    const me = m.elements;
+    const m11 = me[0],
+      m12 = me[1],
+      m13 = me[2];
+    const m21 = me[3],
+      m22 = me[4],
+      m23 = me[5];
+    const m31 = me[6],
+      m32 = me[7],
+      m33 = me[8];
+    const scale = m11 + m22 + m33;
+    let sqrt, half;
 
-    if (fTrace > MathUtil.ZeroTolerance) {
-      // |w| > 1/2, may as well choose w > 1/2
-      fRoot = Math.sqrt(fTrace + 1.0); // 2w
-      out.w = 0.5 * fRoot;
-      fRoot = 0.5 / fRoot; // 1/(4w)
-      out.x = (ae[5] - ae[7]) * fRoot;
-      out.y = (ae[6] - ae[2]) * fRoot;
-      out.z = (ae[1] - ae[3]) * fRoot;
+    if (scale > 0) {
+      sqrt = Math.sqrt(scale + 1.0);
+      out.w = sqrt * 0.5;
+      sqrt = 0.5 / sqrt;
+
+      out.x = (m23 - m32) * sqrt;
+      out.y = (m31 - m13) * sqrt;
+      out.z = (m12 - m21) * sqrt;
+    } else if (m11 >= m22 && m11 >= m33) {
+      sqrt = Math.sqrt(1.0 + m11 - m22 - m33);
+      half = 0.5 / sqrt;
+
+      out.x = 0.5 * sqrt;
+      out.y = (m12 + m21) * half;
+      out.z = (m13 + m31) * half;
+      out.w = (m23 - m32) * half;
+    } else if (m22 > m33) {
+      sqrt = Math.sqrt(1.0 + m22 - m11 - m33);
+      half = 0.5 / sqrt;
+
+      out.x = (m21 + m12) * half;
+      out.y = 0.5 * sqrt;
+      out.z = (m32 + m23) * half;
+      out.w = (m31 - m13) * half;
     } else {
-      // |w| <= 1/2
-      const qMap = ["x", "y", "z", "w"]; // TODO 待优化
-      let i = 0;
-      if (ae[4] > ae[0]) i = 1;
-      if (ae[8] > ae[i * 3 + i]) i = 2;
-      let j = (i + 1) % 3;
-      let k = (i + 2) % 3;
+      sqrt = Math.sqrt(1.0 + m33 - m11 - m22);
+      half = 0.5 / sqrt;
 
-      fRoot = Math.sqrt(ae[i * 3 + i] - ae[j * 3 + j] - ae[k * 3 + k] + 1.0);
-      out[qMap[i]] = 0.5 * fRoot;
-      fRoot = 0.5 / fRoot;
-      out.w = (ae[j * 3 + k] - ae[k * 3 + j]) * fRoot;
-      out[qMap[j]] = (ae[j * 3 + i] + ae[i * 3 + j]) * fRoot;
-      out[qMap[k]] = (ae[k * 3 + i] + ae[i * 3 + k]) * fRoot;
+      out.x = (m13 + m31) * half;
+      out.y = (m23 + m32) * half;
+      out.z = 0.5 * sqrt;
+      out.w = (m12 - m21) * half;
     }
   }
 
