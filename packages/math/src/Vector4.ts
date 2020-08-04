@@ -1,6 +1,6 @@
 import { MathUtil } from "./MathUtil";
 import { Quaternion } from "./Quaternion";
-import { Matrix4x4 } from "./Matrix4x4";
+import { Matrix } from "./Matrix";
 
 /**
  * 四维向量
@@ -202,7 +202,7 @@ export class Vector4 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformMat4x4(a: Vector4, m: Matrix4x4, out: Vector4): void {
+  static transformMat4x4(a: Vector4, m: Matrix, out: Vector4): void {
     const { x, y, z, w } = a;
     const e = m.elements;
     out.x = x * e[0] + y * e[4] + z * e[8] + w * e[12];

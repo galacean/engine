@@ -1,6 +1,6 @@
 "use strict";
 
-import { Matrix4x4, Vector4 } from "@alipay/o3-math";
+import { Matrix, Vector4 } from "@alipay/o3-math";
 import { Camera } from "@alipay/o3-core";
 
 /**
@@ -31,8 +31,8 @@ export class Frustum {
   update(camera: Camera) {
     const planes = this._planes;
 
-    const vpm = new Matrix4x4();
-    Matrix4x4.multiply(camera.projectionMatrix, camera.viewMatrix, vpm);
+    const vpm = new Matrix();
+    Matrix.multiply(camera.projectionMatrix, camera.viewMatrix, vpm);
     const vpme = vpm.elements;
 
     // Extract the numbers for the RIGHT plane

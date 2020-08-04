@@ -1,5 +1,5 @@
 import { Matrix3x3 } from "../src/Matrix3x3";
-import { Matrix4x4 } from "../src/Matrix4x4";
+import { Matrix } from "../src/Matrix";
 import { Quaternion } from "../src/Quaternion";
 import { Vector2 } from "../src/Vector2";
 import { Vector3 } from "../src/Vector3";
@@ -43,9 +43,9 @@ describe("Matrix3x3 test", () => {
 
   it("static fromXXX", () => {
     const out = new Matrix3x3();
-    const a = new Matrix4x4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+    const a = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
-    // matrix4x4
+    // Matrix
     Matrix3x3.fromMat4(a, out);
     expect(Matrix3x3.equals(out, new Matrix3x3(1, 2, 3, 5, 6, 7, 9, 10, 11))).toEqual(true);
 
@@ -81,7 +81,7 @@ describe("Matrix3x3 test", () => {
 
   it("static normalFromMat4", () => {
     const out = new Matrix3x3();
-    const mat4 = new Matrix4x4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+    const mat4 = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
     Matrix3x3.normalFromMat4(mat4, out);
     expect(Matrix3x3.equals(out, new Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1))).toEqual(true);

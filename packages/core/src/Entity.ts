@@ -1,4 +1,4 @@
-import { Matrix4x4, Quaternion, Vector3 } from "@alipay/o3-math";
+import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { EventDispatcher } from "./base";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
@@ -482,7 +482,7 @@ export class Entity extends EventDispatcher {
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
-  private _invModelMatrix: Matrix4x4 = new Matrix4x4();
+  private _invModelMatrix: Matrix = new Matrix();
   private _inverseWorldMatFlag: UpdateFlag;
 
   /**
@@ -536,9 +536,9 @@ export class Entity extends EventDispatcher {
   /**
    * @deprecated
    */
-  getInvModelMatrix(): Matrix4x4 {
+  getInvModelMatrix(): Matrix {
     if (this._inverseWorldMatFlag.flag) {
-      Matrix4x4.invert(this.transform.worldMatrix, this._invModelMatrix);
+      Matrix.invert(this.transform.worldMatrix, this._invModelMatrix);
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;

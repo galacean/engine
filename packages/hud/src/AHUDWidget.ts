@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4, Quaternion, Matrix4x4 } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4, Quaternion, Matrix } from "@alipay/o3-math";
 import { HUDFeature } from "./HUDFeature";
 import { RenderableComponent, Camera } from "@alipay/o3-core";
 
@@ -235,7 +235,7 @@ export class AHUDWidget extends RenderableComponent {
    * @private
    */
   _updatePositionQuad(camera: Camera) {
-    const m: Matrix4x4 = camera.viewMatrix;
+    const m: Matrix = camera.viewMatrix;
     const me = m.elements;
     const vx = new Vector3(me[0], me[4], me[8]);
     const vy = new Vector3(me[1], me[5], me[9]);

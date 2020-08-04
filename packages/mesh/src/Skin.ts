@@ -1,5 +1,5 @@
 import { AssetObject } from "@alipay/o3-core";
-import { Matrix4x4 } from "@alipay/o3-math";
+import { Matrix } from "@alipay/o3-math";
 
 let skinID = 0;
 
@@ -8,7 +8,7 @@ let skinID = 0;
  * @class
  */
 export class Skin extends AssetObject {
-  public inverseBindMatrices: Matrix4x4[]; // TODO chengkong.zxx
+  public inverseBindMatrices: Matrix[]; // TODO chengkong.zxx
   public joints: string[];
   public skeleton: string;
   /**

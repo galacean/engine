@@ -1,9 +1,9 @@
-import { Vector3, Matrix4x4, Quaternion } from "@alipay/o3-math";
+import { Vector3, Matrix, Quaternion } from "@alipay/o3-math";
 import { MeshRenderer } from "@alipay/o3-mesh";
 
 // TODO chengkong.zxx
 
-export function transformDirection(out: Vector3, a: Vector3, m: Matrix4x4): Vector3 {
+export function transformDirection(out: Vector3, a: Vector3, m: Matrix): Vector3 {
   const { x, y, z } = a;
   const me = m.elements;
   out.x = x * me[0] + y * me[4] + z * me[8];
@@ -37,7 +37,7 @@ export function distanceTo(a: Vector3, b: Vector3) {
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-export function setPosition(out: Matrix4x4, v: Vector3) {
+export function setPosition(out: Matrix, v: Vector3) {
   const oe = out.elements;
   oe[12] = v.x;
   oe[13] = v.y;
@@ -46,8 +46,8 @@ export function setPosition(out: Matrix4x4, v: Vector3) {
   return out;
 }
 
-export function makeRotationFromQuaternion(q: Quaternion): Matrix4x4 {
-  const out = new Matrix4x4();
-  Matrix4x4.fromQuat(q, out);
+export function makeRotationFromQuaternion(q: Quaternion): Matrix {
+  const out = new Matrix();
+  Matrix.fromQuat(q, out);
   return out;
 }

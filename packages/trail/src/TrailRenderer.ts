@@ -1,7 +1,7 @@
 import { BufferUsage, DataType, DrawMode } from "@alipay/o3-core";
 import { BufferGeometry, GeometryRenderer } from "@alipay/o3-geometry";
 import { Material, Texture2D } from "@alipay/o3-material";
-import { Quaternion, Vector2, Vector3, Matrix4x4 } from "@alipay/o3-math";
+import { Quaternion, Vector2, Vector3, Matrix } from "@alipay/o3-math";
 import { TrailMaterial } from "./TrailMaterial";
 
 /**
@@ -141,7 +141,7 @@ export class TrailRenderer extends GeometryRenderer {
    * @private
    */
   _updateStrapVertices(camera, points: Array<Vector3>) {
-    const m: Matrix4x4 = camera.viewMatrix;
+    const m: Matrix = camera.viewMatrix;
     const e = m.elements;
     const vx = new Vector3(e[0], e[4], e[8]);
     const vy = new Vector3(e[1], e[5], e[9]);

@@ -1,6 +1,6 @@
 import { Probe } from "./Probe";
 import { Entity } from "@alipay/o3-core";
-import { Matrix4x4, Vector3 } from "@alipay/o3-math";
+import { Matrix, Vector3 } from "@alipay/o3-math";
 import { CubeProbeConfig } from "./type";
 
 const cacheTarget: Vector3 = new Vector3();
@@ -15,10 +15,10 @@ export class CubeProbe extends Probe {
   /** 可以设置探针的位置，默认为原点 [0,0,0] */
   public position: Vector3;
 
-  private oriViewMatrix = new Matrix4x4();
-  private oriInverseViewMatrix = new Matrix4x4();
-  private oriProjectionMatrix = new Matrix4x4();
-  private oriInverseProjectionMatrix = new Matrix4x4();
+  private oriViewMatrix = new Matrix();
+  private oriInverseViewMatrix = new Matrix();
+  private oriProjectionMatrix = new Matrix();
+  private oriInverseProjectionMatrix = new Matrix();
 
   /**
    * 创建探针
@@ -125,15 +125,9 @@ export class CubeProbe extends Probe {
     }
 
     Vector3.add(this.position, cacheDir, cacheTarget);
-    Matrix4x4.lookAt(this.position, cacheTarget, cacheUp, this.camera.viewMatrix);
-    Matrix4x4.invert(this.camera.viewMatrix, this.camera.inverseViewMatrix);
-    Matrix4x4.perspective(
-      fovRadian,
-      1,
-      this.camera.nearClipPlane,
-      this.camera.farClipPlane,
-      this.camera.projectionMatrix
-    );
-    Matrix4x4.invert(this.camera.projectionMatrix, this.camera.inverseProjectionMatrix);
+    Matrix.lookAt(this.position, cacheTarget, cacheUp, this.camera.viewMatrix);
+    Matrix.invert(this.camera.viewMatrix, this.camera.inverseViewMatrix);
+    Matrix.perspective(fovRadian, 1, this.camera.nearClipPlane, this.camera.farClipPlane, this.camera.projectionMatrix);
+    Matrix.invert(this.camera.projectionMatrix, this.camera.inverseProjectionMatrix);
   }
 }

@@ -1,5 +1,5 @@
 import { MathUtil } from "./MathUtil";
-import { Matrix4x4 } from "./Matrix4x4";
+import { Matrix } from "./Matrix";
 import { Quaternion } from "./Quaternion";
 import { Vector2 } from "./Vector2";
 
@@ -127,7 +127,7 @@ export class Matrix3x3 {
    * @param a - 4x4矩阵
    * @param out - 转换后的3x3矩阵
    */
-  static fromMat4(a: Matrix4x4, out: Matrix3x3): void {
+  static fromMat4(a: Matrix, out: Matrix3x3): void {
     const oe = out.elements;
     const ae = a.elements;
 
@@ -290,7 +290,7 @@ export class Matrix3x3 {
    * @param a - 4x4矩阵
    * @param out - 计算出来的3x3法线矩阵
    */
-  static normalFromMat4(a: Matrix4x4, out: Matrix3x3): void {
+  static normalFromMat4(a: Matrix, out: Matrix3x3): void {
     const ae = a.elements;
     const oe = out.elements;
 

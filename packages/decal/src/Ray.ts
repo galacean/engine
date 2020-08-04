@@ -1,4 +1,4 @@
-import { Vector3, Matrix4x4 } from "@alipay/o3-math";
+import { Vector3, Matrix } from "@alipay/o3-math";
 import { transformDirection } from "./util";
 
 const edge1: Vector3 = new Vector3();
@@ -92,7 +92,7 @@ export class Ray {
     return this;
   }
 
-  applyMatrix4(matrix4: Matrix4x4): Ray {
+  applyMatrix4(matrix4: Matrix): Ray {
     Vector3.transformMat4x4Coordinate(this.origin, matrix4, this.origin);
     transformDirection(this.direction, this.direction, matrix4);
     return this;

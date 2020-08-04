@@ -3,7 +3,7 @@ import { Vector3 } from "../src/Vector3";
 import { Vector4 } from "../src/Vector4";
 import { Quaternion } from "../src/Quaternion";
 import { Matrix3x3 } from "../src/Matrix3x3";
-import { Matrix4x4 } from "../src/Matrix4x4";
+import { Matrix } from "../src/Matrix";
 
 function toString(v: Vector3): string {
   return `vec3(${v.x}, ${v.y}, ${v.z})`;
@@ -182,7 +182,7 @@ describe("Vector3 test", () => {
 
     const b = new Vector4(2, 3, 4, 1);
     const out4 = new Vector4();
-    const m4 = new Matrix4x4();
+    const m4 = new Matrix();
     m4.setValue(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1);
     Vector3.transformMat4x4Coordinate(a, m4, out);
     Vector4.transformMat4x4(b, m4, out4);

@@ -1,5 +1,5 @@
 import { ClearMode, TextureCubeFace } from "./base";
-import { Matrix4x4, MathUtil, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { Matrix, MathUtil, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
@@ -19,7 +19,7 @@ type Sky = {};
 
 //CM：这个类可能需要搬家
 class MathTemp {
-  static tempMat4 = new Matrix4x4();
+  static tempMat4 = new Matrix();
   static tempVec4 = new Vector4();
   static tempVec3 = new Vector3();
 }
@@ -57,9 +57,9 @@ export class Camera extends Component {
   _pixelViewport: Vector4 = new Vector4(0, 0, 1, 1);
 
   private _isOrthographic: boolean = false;
-  private _projectionMatrix: Matrix4x4 = new Matrix4x4();
+  private _projectionMatrix: Matrix = new Matrix();
   private _isProjMatSetting = false;
-  private _viewMatrix: Matrix4x4 = new Matrix4x4();
+  private _viewMatrix: Matrix = new Matrix();
   private _clearParam: Vector4;
   private _clearMode: ClearMode;
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
@@ -67,14 +67,14 @@ export class Camera extends Component {
   private _farClipPlane: number;
   private _fieldOfView: number;
   private _orthographicSize: number = 10;
-  private _inverseProjectionMatrix: Matrix4x4 = new Matrix4x4();
-  private _inverseViewMatrix: Matrix4x4 = new Matrix4x4();
+  private _inverseProjectionMatrix: Matrix = new Matrix();
+  private _inverseViewMatrix: Matrix = new Matrix();
   /** 投影矩阵脏标记 */
   private _isProjectionDirty = true;
   /** 投影矩阵逆矩阵脏标记 */
   private _isInvProjMatDirty: boolean = true;
   private _customAspectRatio: number = undefined;
-  private _invViewProjMat: Matrix4x4 = new Matrix4x4();
+  private _invViewProjMat: Matrix = new Matrix();
   private _transform: Transform;
   private _isViewMatrixDirty: UpdateFlag;
   /** 投影视图矩阵逆矩阵脏标记 */
@@ -204,13 +204,13 @@ export class Camera extends Component {
   /**
    * 视图矩阵。
    */
-  get viewMatrix(): Readonly<Matrix4x4> {
+  get viewMatrix(): Readonly<Matrix> {
     //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
       const modelMatrix = this._transform.worldMatrix;
       turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
-      Matrix4x4.invert(MathTemp.tempMat4, this._viewMatrix);
+      Matrix.invert(MathTemp.tempMat4, this._viewMatrix);
     }
     return this._viewMatrix;
   }
@@ -218,20 +218,20 @@ export class Camera extends Component {
   /**
    * 投影矩阵,默认由相机的相关参数计算计算，如果手动设置会保持手动值，调用resetProjectionMatrix()可恢复。
    */
-  set projectionMatrix(value: Matrix4x4) {
+  set projectionMatrix(value: Matrix) {
     this._projectionMatrix = value;
     this._isProjMatSetting = true;
     this._projMatChange();
   }
 
-  get projectionMatrix(): Matrix4x4 {
+  get projectionMatrix(): Matrix {
     if (!this._isProjectionDirty || this._isProjMatSetting) {
       return this._projectionMatrix;
     }
     this._isProjectionDirty = false;
     const aspectRatio = this.aspectRatio;
     if (!this._isOrthographic) {
-      Matrix4x4.perspective(
+      Matrix.perspective(
         MathUtil.degreeToRadian(this._fieldOfView),
         aspectRatio,
         this._nearClipPlane,
@@ -241,7 +241,7 @@ export class Camera extends Component {
     } else {
       const width = this._orthographicSize * aspectRatio;
       const height = this._orthographicSize;
-      Matrix4x4.ortho(-width, width, -height, height, this._nearClipPlane, this._farClipPlane, this._projectionMatrix);
+      Matrix.ortho(-width, width, -height, height, this._nearClipPlane, this._farClipPlane, this._projectionMatrix);
     }
     return this._projectionMatrix;
   }
@@ -330,7 +330,7 @@ export class Camera extends Component {
    * @returns 视口空间坐标
    */
   worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
-    Matrix4x4.multiply(this.projectionMatrix, this.viewMatrix, MathTemp.tempMat4);
+    Matrix.multiply(this.projectionMatrix, this.viewMatrix, MathTemp.tempMat4);
     MathTemp.tempVec4.setValue(point.x, point.y, point.z, 1.0);
     Vector4.transformMat4x4(MathTemp.tempVec4, MathTemp.tempMat4, MathTemp.tempVec4);
 
@@ -444,7 +444,7 @@ export class Camera extends Component {
     this._isInvViewProjDirty.flag = true;
   }
 
-  private _innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix4x4, out: Vector3): Vector3 {
+  private _innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix, out: Vector3): Vector3 {
     // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
     const depth = point[2] * 2 - 1;
     // 变换到裁剪空间矩阵
@@ -464,10 +464,10 @@ export class Camera extends Component {
    * @private
    * 视图投影矩阵逆矩阵
    */
-  get invViewProjMat(): Matrix4x4 {
+  get invViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      Matrix4x4.multiply(this.inverseViewMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
+      Matrix.multiply(this.inverseViewMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
     }
     return this._invViewProjMat;
   }
@@ -476,10 +476,10 @@ export class Camera extends Component {
    * @private
    * 投影矩阵逆矩阵。
    */
-  get inverseProjectionMatrix(): Readonly<Matrix4x4> {
+  get inverseProjectionMatrix(): Readonly<Matrix> {
     if (this._isInvProjMatDirty) {
       this._isInvProjMatDirty = false;
-      Matrix4x4.invert(this.projectionMatrix, this._inverseProjectionMatrix);
+      Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
     }
     return this._inverseProjectionMatrix;
   }
@@ -490,7 +490,7 @@ export class Camera extends Component {
    * @deprecated
    * 视图矩阵逆矩阵。
    */
-  get inverseViewMatrix(): Readonly<Matrix4x4> {
+  get inverseViewMatrix(): Readonly<Matrix> {
     turnAround(this._inverseViewMatrix, this._transform.worldMatrix);
     return this._inverseViewMatrix;
   }
@@ -537,6 +537,6 @@ export function turnAround(out, a) {
 }
 
 interface ITransform {
-  worldMatrix: Readonly<Matrix4x4>;
+  worldMatrix: Readonly<Matrix>;
   worldPosition: Readonly<Vector3>;
 }

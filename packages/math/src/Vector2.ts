@@ -1,6 +1,6 @@
 import { MathUtil } from "./MathUtil";
 import { Matrix3x3 } from "./Matrix3x3";
-import { Matrix4x4 } from "./Matrix4x4";
+import { Matrix } from "./Matrix";
 
 /**
  * 二维向量

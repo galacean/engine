@@ -1,4 +1,4 @@
-import { Matrix4x4 } from "@alipay/o3-math";
+import { Matrix } from "@alipay/o3-math";
 import { MeshRenderer } from "./MeshRenderer";
 import { Entity } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
@@ -17,7 +17,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   public jointNodes: Entity[];
   public jointTexture: Texture2D;
 
-  private _mat: Matrix4x4;
+  private _mat: Matrix;
   private _weights: number[];
   private weightsIndices: number[] = [];
   private _skin: Skin;
@@ -31,7 +31,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   constructor(entity: Entity, props: { mesh?: Mesh; skin?: Skin; weights?: number[]; rootNodes?: Entity[] } = {}) {
     super(entity, props);
-    this._mat = new Matrix4x4();
+    this._mat = new Matrix();
     this._weights = null;
     this._skin = null;
 
@@ -164,11 +164,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       for (let i = joints.length - 1; i >= 0; i--) {
         mat.identity();
         if (joints[i]) {
-          Matrix4x4.multiply(joints[i].transform.worldMatrix, ibms[i], mat);
+          Matrix.multiply(joints[i].transform.worldMatrix, ibms[i], mat);
         } else {
           ibms[i].cloneTo(mat);
         }
-        Matrix4x4.multiply(worldToLocal, mat, mat);
+        Matrix.multiply(worldToLocal, mat, mat);
         matrixPalette.set(mat.elements, i * 16);
       } // end of for
       if (this._useJointTexture) {

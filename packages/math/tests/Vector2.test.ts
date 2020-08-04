@@ -1,7 +1,5 @@
 import { MathUtil } from "../src/MathUtil";
 import { Vector2 } from "../src/Vector2";
-import { Matrix3x3 } from "../src/Matrix3x3";
-import { Matrix4x4 } from "../src/Matrix4x4";
 
 function toString(v: Vector2): string {
   return `vec2(${v.x}, ${v.y})`;

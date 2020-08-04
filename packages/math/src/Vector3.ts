@@ -2,7 +2,7 @@ import { MathUtil } from "./MathUtil";
 import { Vector4 } from "./Vector4";
 import { Quaternion } from "./Quaternion";
 import { Matrix3x3 } from "./Matrix3x3";
-import { Matrix4x4 } from "./Matrix4x4";
+import { Matrix } from "./Matrix";
 
 /**
  * 三维向量
@@ -251,7 +251,7 @@ export class Vector3 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformMat4x4(a: Vector3, m: Matrix4x4, out: Vector3): void {
+  static transformMat4x4(a: Vector3, m: Matrix, out: Vector3): void {
     const { x, y, z } = a;
     const e = m.elements;
 
@@ -266,7 +266,7 @@ export class Vector3 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的四维向量
    */
-  static transformMat4x4ToVec4(a: Vector3, m: Matrix4x4, out: Vector4): void {
+  static transformMat4x4ToVec4(a: Vector3, m: Matrix, out: Vector4): void {
     const { x, y, z } = a;
     const e = m.elements;
 
@@ -282,7 +282,7 @@ export class Vector3 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量，此向量为齐次
    */
-  static transformMat4x4Coordinate(a: Vector3, m: Matrix4x4, out: Vector3): void {
+  static transformMat4x4Coordinate(a: Vector3, m: Matrix, out: Vector3): void {
     const { x, y, z } = a;
     const e = m.elements;
     let w = x * e[3] + y * e[7] + z * e[11] + e[15];

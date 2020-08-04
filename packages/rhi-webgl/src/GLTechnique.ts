@@ -1,4 +1,4 @@
-import { Matrix3x3, Matrix4x4, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { Matrix3x3, Matrix, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-core";
 
 import { GLShaderProgram } from "./GLShaderProgram";
@@ -16,7 +16,7 @@ UniformDefaults[DataType.FLOAT_VEC2] = new Vector2();
 UniformDefaults[DataType.FLOAT_VEC3] = new Vector3();
 UniformDefaults[DataType.FLOAT_VEC4] = new Vector4();
 UniformDefaults[DataType.FLOAT_MAT3] = new Matrix3x3();
-UniformDefaults[DataType.FLOAT_MAT4] = new Matrix4x4();
+UniformDefaults[DataType.FLOAT_MAT4] = new Matrix();
 
 /**
  * GL 层的 Technique 资源管理和渲染调用处理

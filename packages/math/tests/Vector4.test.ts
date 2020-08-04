@@ -1,7 +1,7 @@
 import { MathUtil } from "../src/MathUtil";
 import { Vector4 } from "../src/Vector4";
 import { Quaternion } from "../src/Quaternion";
-import { Matrix4x4 } from "../src/Matrix4x4";
+import { Matrix } from "../src/Matrix";
 
 function toString(v: Vector4): string {
   return `vec4(${v.x}, ${v.y}, ${v.z}, ${v.w})`;
@@ -120,7 +120,7 @@ describe("Vector4 test", () => {
   it("static transform", () => {
     const a = new Vector4(2, 3, 4, 5);
     const out = new Vector4();
-    const m4 = new Matrix4x4();
+    const m4 = new Matrix();
     m4.setValue(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0);
     Vector4.transformMat4x4(a, m4, out);
     expect(toString(out)).toEqual("vec4(2, 3, 9, 0)");

@@ -1,5 +1,5 @@
 import { IntersectInfo } from "@alipay/o3-core";
-import { Vector3, Vector4, Matrix4x4 } from "@alipay/o3-math";
+import { Vector3, Vector4, Matrix } from "@alipay/o3-math";
 
 import { pointDistanceToPlane } from "./util";
 
@@ -22,9 +22,9 @@ export class OBB {
    * 初始化 OBB, 之后可以通过 modelMatrix 缓存计算
    * @param {Vector3} minLocal - 本地坐标系的最小坐标
    * @param {Vector3} maxLocal - 本地坐标系的最大坐标
-   * @param {Matrix4x4} modelMatrix - Local to World矩阵
+   * @param {Matrix} modelMatrix - Local to World矩阵
    * */
-  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix4x4) {
+  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix) {
     minLocal.cloneTo(this.min);
     maxLocal.cloneTo(this.max);
 
@@ -61,9 +61,9 @@ export class OBB {
 
   /**
    * 通过模型矩阵，和缓存的本地坐标系 OBB，获取新的世界坐标系 OBB
-   * @param {Matrix4x4} modelMatrix - Local to World矩阵
+   * @param {Matrix} modelMatrix - Local to World矩阵
    * */
-  updateByModelMatrix(modelMatrix: Matrix4x4) {
+  updateByModelMatrix(modelMatrix: Matrix) {
     const min = this.minWorld;
     const max = this.maxWorld;
     min.setValue(Infinity, Infinity, Infinity);

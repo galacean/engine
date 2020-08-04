@@ -2,7 +2,7 @@
 
 import { Logger } from "@alipay/o3-core";
 import { Entity, Script } from "@alipay/o3-core";
-import { Spherical, Vector2, Vector3, Matrix4x4 } from "@alipay/o3-math";
+import { Spherical, Vector2, Vector3, Matrix } from "@alipay/o3-math";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
@@ -450,7 +450,7 @@ export class OrbitControls extends Script {
    * 向左平移
    * @private
    */
-  panLeft(distance: number, worldMatrix: Matrix4x4) {
+  panLeft(distance: number, worldMatrix: Matrix) {
     const e = worldMatrix.elements;
     this._vPan.setValue(e[0], e[1], e[2]);
     this._vPan.scale(distance);
@@ -461,7 +461,7 @@ export class OrbitControls extends Script {
    * 向右平移
    * @private
    */
-  panUp(distance: number, worldMatrix: Matrix4x4) {
+  panUp(distance: number, worldMatrix: Matrix) {
     const e = worldMatrix.elements;
     this._vPan.setValue(e[4], e[5], e[6]);
     this._vPan.scale(distance);

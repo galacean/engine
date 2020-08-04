@@ -1,5 +1,5 @@
 import { BufferGeometry } from "@alipay/o3-geometry";
-import { Vector3, Matrix4x4, Quaternion, Vector2 } from "@alipay/o3-math";
+import { Vector3, Matrix, Quaternion, Vector2 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-core";
 
 import { Entity } from "@alipay/o3-core";
@@ -26,8 +26,8 @@ export class DecalGeometry extends BufferGeometry {
   public readonly targetPrimitive: Primitive;
   public readonly position: Vector3;
   public readonly orientation: Quaternion;
-  public readonly projectorMatrix: Matrix4x4;
-  public readonly projectorMatrixInverse: Matrix4x4;
+  public readonly projectorMatrix: Matrix;
+  public readonly projectorMatrixInverse: Matrix;
   public constructor(intersection: Intersection, position: Vector3, orientation: Quaternion, size: Vector3) {
     super();
     this.node = intersection.entity;
@@ -47,7 +47,7 @@ export class DecalGeometry extends BufferGeometry {
     setPosition(this.projectorMatrix, position);
 
     // get projectorMatrixInverse
-    Matrix4x4.invert(this.projectorMatrix, this.projectorMatrixInverse);
+    Matrix.invert(this.projectorMatrix, this.projectorMatrixInverse);
 
     const vertexValues = this.generate();
     const vertexCount = vertexValues.length;
@@ -132,10 +132,10 @@ export class DecalGeometry extends BufferGeometry {
 
   pushDecalVertex(decalVertices, vertexInput: Vector3, normalInput: Vector3) {
     // 投影矩阵的逆
-    const projectorMatrixInverse: Matrix4x4 = this.projectorMatrixInverse;
+    const projectorMatrixInverse: Matrix = this.projectorMatrixInverse;
 
     // transform the vertex to world space, then to projector space
-    const targetMatrix: Matrix4x4 = this.node.transform.worldMatrix;
+    const targetMatrix: Matrix = this.node.transform.worldMatrix;
     const local: Vector3 = new Vector3();
     const vertex: Vector3 = new Vector3();
     const normal: Vector3 = new Vector3();

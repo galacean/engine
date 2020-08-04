@@ -1,5 +1,5 @@
 import { IntersectInfo } from "@alipay/o3-core";
-import { Vector3, Vector4, Matrix4x4 } from "@alipay/o3-math";
+import { Vector3, Vector4, Matrix } from "@alipay/o3-math";
 
 import { pointDistanceToPlane, getMaxScaleByModelMatrix } from "./util";
 
@@ -18,9 +18,9 @@ export class BoundingSphere {
    * 初始化包围球, 之后可以通过 modelMatrix 缓存计算
    * @param {Vector3} minLocal - 本地坐标系的最小坐标
    * @param {Vector3} maxLocal - 本地坐标系的最大坐标
-   * @param {Matrix4x4} modelMatrix - Local to World矩阵
+   * @param {Matrix} modelMatrix - Local to World矩阵
    * */
-  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix4x4) {
+  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix) {
     // 先计算local
     let distance = Vector3.distance(minLocal, maxLocal);
     this.radius = distance * 0.5;
@@ -34,9 +34,9 @@ export class BoundingSphere {
 
   /**
    * 通过模型矩阵，和缓存的本地坐标系包围球，获取新的世界坐标系包围球
-   * @param {Matrix4x4} modelMatrix - Local to World矩阵
+   * @param {Matrix} modelMatrix - Local to World矩阵
    * */
-  updateByModelMatrix(modelMatrix: Matrix4x4) {
+  updateByModelMatrix(modelMatrix: Matrix) {
     Vector3.transformMat4x4Coordinate(this.center, modelMatrix, this.centerWorld);
     this.radiusWorld = this.radius * getMaxScaleByModelMatrix(modelMatrix);
   }

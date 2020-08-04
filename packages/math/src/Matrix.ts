@@ -6,7 +6,7 @@ import { Vector3 } from "./Vector3";
 /**
  * 4x4矩阵
  */
-export class Matrix4x4 {
+export class Matrix {
   /** @internal */
   private static _tempVec0: Vector3 = new Vector3();
   /** @internal */
@@ -18,10 +18,10 @@ export class Matrix4x4 {
   /** @internal */
   private static _tempMat30: Matrix3x3 = new Matrix3x3();
   /** @internal */
-  private static _tempMat40: Matrix4x4 = new Matrix4x4();
+  private static _tempMat40: Matrix = new Matrix();
 
   /** @internal 单位矩阵 */
-  static readonly _Identity: Matrix4x4 = new Matrix4x4(
+  static readonly _Identity: Matrix = new Matrix(
     1.0,
     0.0,
     0.0,
@@ -46,7 +46,7 @@ export class Matrix4x4 {
    * @param b - 右矩阵
    * @param out - 矩阵相乘的结果
    */
-  static multiply(a: Matrix4x4, b: Matrix4x4, out: Matrix4x4): void {
+  static multiply(a: Matrix, b: Matrix, out: Matrix): void {
     const ae = a.elements;
     const be = b.elements;
     const oe = out.elements;
@@ -112,7 +112,7 @@ export class Matrix4x4 {
    * @param b - 右矩阵
    * @returns 两个矩阵是否相等，是返回 true，否则返回 false
    */
-  static equals(a: Matrix4x4, b: Matrix4x4): boolean {
+  static equals(a: Matrix, b: Matrix): boolean {
     const ae = a.elements;
     const be = b.elements;
 
@@ -141,7 +141,7 @@ export class Matrix4x4 {
    * @param q - 四元数
    * @param out - 转换后的4x4矩阵
    */
-  static fromQuat(q: Quaternion, out: Matrix4x4): void {
+  static fromQuat(q: Quaternion, out: Matrix): void {
     const oe = out.elements;
     const { x, y, z, w } = q;
     let x2 = x + x;
@@ -185,7 +185,7 @@ export class Matrix4x4 {
    * @param axis - 旋转轴
    * @param out - 指定旋转后矩阵
    */
-  static fromRotation(r: number, axis: Vector3, out: Matrix4x4): void {
+  static fromRotation(r: number, axis: Vector3, out: Matrix): void {
     const oe = out.elements;
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
@@ -232,7 +232,7 @@ export class Matrix4x4 {
    * @param v - 转换向量
    * @param out - 生成的4x4矩阵
    */
-  static fromRotationTranslation(q: Quaternion, trans: Vector3, out: Matrix4x4): void {
+  static fromRotationTranslation(q: Quaternion, trans: Vector3, out: Matrix): void {
     const oe = out.elements;
     const { x, y, z, w } = q;
     let x2 = x + x;
@@ -277,7 +277,7 @@ export class Matrix4x4 {
    * @param s - 缩放向量
    * @param out - 生成的4x4矩阵
    */
-  static fromRotationTranslationScale(q: Quaternion, trans: Vector3, s: Vector3, out: Matrix4x4): void {
+  static fromRotationTranslationScale(q: Quaternion, trans: Vector3, s: Vector3, out: Matrix): void {
     const oe = out.elements;
     const { x, y, z, w } = q;
     let x2 = x + x;
@@ -326,13 +326,7 @@ export class Matrix4x4 {
    * @param o - 原点向量
    * @param out - 生成的4x4矩阵
    */
-  static fromRotationTranslationScaleOrigin(
-    q: Quaternion,
-    trans: Vector3,
-    s: Vector3,
-    o: Vector3,
-    out: Matrix4x4
-  ): void {
+  static fromRotationTranslationScaleOrigin(q: Quaternion, trans: Vector3, s: Vector3, o: Vector3, out: Matrix): void {
     const oe = out.elements;
     const { x, y, z, w } = q;
     let x2 = x + x;
@@ -383,7 +377,7 @@ export class Matrix4x4 {
    * @param s - 缩放向量
    * @param out - 指定缩放后矩阵
    */
-  static fromScaling(s: Vector3, out: Matrix4x4): void {
+  static fromScaling(s: Vector3, out: Matrix): void {
     const oe = out.elements;
     oe[0] = s.x;
     oe[1] = 0;
@@ -411,7 +405,7 @@ export class Matrix4x4 {
    * @param trans - 平移向量
    * @param out - 指定平移后矩阵
    */
-  static fromTranslation(trans: Vector3, out: Matrix4x4): void {
+  static fromTranslation(trans: Vector3, out: Matrix): void {
     const oe = out.elements;
     oe[0] = 1;
     oe[1] = 0;
@@ -439,7 +433,7 @@ export class Matrix4x4 {
    * @param a - 矩阵
    * @param out - 逆矩阵
    */
-  static invert(a: Matrix4x4, out: Matrix4x4): void {
+  static invert(a: Matrix, out: Matrix): void {
     const ae = a.elements;
     const oe = out.elements;
 
@@ -507,7 +501,7 @@ export class Matrix4x4 {
    * @param up - 向上向量
    * @param out - 观察矩阵
    */
-  static lookAt(eye: Vector3, center: Vector3, up: Vector3, out: Matrix4x4): void {
+  static lookAt(eye: Vector3, center: Vector3, up: Vector3, out: Matrix): void {
     const oe = out.elements;
     let x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
     const eyex = eye.x;
@@ -593,12 +587,12 @@ export class Matrix4x4 {
    * @param up - 向上向量
    * @param out - 观察矩阵
    */
-  static lookAtR(eye: Vector3, target: Vector3, up: Vector3, out: Matrix4x4): void {
+  static lookAtR(eye: Vector3, target: Vector3, up: Vector3, out: Matrix): void {
     const oe = out.elements;
-    const xAxis: Vector3 = Matrix4x4._tempVec0;
-    const yAxis: Vector3 = Matrix4x4._tempVec1;
-    const zAxis: Vector3 = Matrix4x4._tempVec2;
-    const makeSafe: Vector3 = Matrix4x4._tempVec3;
+    const xAxis: Vector3 = Matrix._tempVec0;
+    const yAxis: Vector3 = Matrix._tempVec1;
+    const zAxis: Vector3 = Matrix._tempVec2;
+    const makeSafe: Vector3 = Matrix._tempVec3;
 
     Vector3.subtract(target, eye, zAxis);
     if (MathUtil.equals(zAxis.lengthSquared(), 0)) zAxis.z = 1;
@@ -648,15 +642,7 @@ export class Matrix4x4 {
    * @param far - 视锥远边界
    * @param out - 正交投影矩阵
    */
-  static ortho(
-    left: number,
-    right: number,
-    bottom: number,
-    top: number,
-    near: number,
-    far: number,
-    out: Matrix4x4
-  ): void {
+  static ortho(left: number, right: number, bottom: number, top: number, near: number, far: number, out: Matrix): void {
     const oe = out.elements;
     const lr = 1 / (left - right);
     const bt = 1 / (bottom - top);
@@ -691,7 +677,7 @@ export class Matrix4x4 {
    * @param far - 远裁面
    * @param out - 透视投影矩阵
    */
-  static perspective(fovy: number, aspect: number, near: number, far: number, out: Matrix4x4): void {
+  static perspective(fovy: number, aspect: number, near: number, far: number, out: Matrix): void {
     const oe = out.elements;
     const f = 1.0 / Math.tan(fovy / 2);
     const nf = 1 / (near - far);
@@ -724,7 +710,7 @@ export class Matrix4x4 {
    * @param axis - 旋转轴
    * @param out - 旋转后的矩阵
    */
-  static rotate(a: Matrix4x4, r: number, axis: Vector3, out: Matrix4x4): void {
+  static rotate(a: Matrix, r: number, axis: Vector3, out: Matrix): void {
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
@@ -800,7 +786,7 @@ export class Matrix4x4 {
    * @param s - 缩放向量
    * @param out - 缩放后的矩阵
    */
-  static scale(a: Matrix4x4, s: Vector3, out: Matrix4x4): void {
+  static scale(a: Matrix, s: Vector3, out: Matrix): void {
     const ae = a.elements;
     const oe = out.elements;
     const { x, y, z } = s;
@@ -832,7 +818,7 @@ export class Matrix4x4 {
    * @param v - 转换向量
    * @param out - 转换后的结果
    */
-  static translate(a: Matrix4x4, v: Vector3, out: Matrix4x4): void {
+  static translate(a: Matrix, v: Vector3, out: Matrix): void {
     const ae = a.elements;
     const oe = out.elements;
     const { x, y, z } = v;
@@ -872,7 +858,7 @@ export class Matrix4x4 {
    * @param a - 矩阵
    * @param out - 转置矩阵
    */
-  static transpose(a: Matrix4x4, out: Matrix4x4): void {
+  static transpose(a: Matrix, out: Matrix): void {
     const ae = a.elements;
     const oe = out.elements;
 
@@ -1022,7 +1008,7 @@ export class Matrix4x4 {
     m42: number,
     m43: number,
     m44: number
-  ): Matrix4x4 {
+  ): Matrix {
     const e = this.elements;
 
     e[0] = m11;
@@ -1052,9 +1038,9 @@ export class Matrix4x4 {
    * 创建一个新的四维矩阵，并用当前矩阵值初始化。
    * @returns 一个新的矩阵，并且拷贝当前矩阵的值
    */
-  clone(): Matrix4x4 {
+  clone(): Matrix {
     const e = this.elements;
-    let ret = new Matrix4x4(
+    let ret = new Matrix(
       e[0],
       e[1],
       e[2],
@@ -1079,7 +1065,7 @@ export class Matrix4x4 {
    * 将当前矩阵值拷贝给out矩阵。
    * @param out - 目标矩阵
    */
-  cloneTo(out: Matrix4x4): void {
+  cloneTo(out: Matrix): void {
     const e = this.elements;
     const oe = out.elements;
 
@@ -1109,8 +1095,8 @@ export class Matrix4x4 {
    * @param b - 给定的向量，右操作数
    * @returns 当前矩阵
    */
-  multiply(b: Matrix4x4): Matrix4x4 {
-    Matrix4x4.multiply(this, b, this);
+  multiply(b: Matrix): Matrix {
+    Matrix.multiply(this, b, this);
     return this;
   }
 
@@ -1162,7 +1148,7 @@ export class Matrix4x4 {
    * @param s - 缩放向量
    */
   decompose(pos: Vector3, q: Quaternion, s: Vector3): void {
-    const t: Matrix4x4 = Matrix4x4._tempMat40;
+    const t: Matrix = Matrix._tempMat40;
     this.cloneTo(t);
     const te = t.elements;
 
@@ -1203,7 +1189,7 @@ export class Matrix4x4 {
       te[10] *= invSZ;
     }
 
-    const m3: Matrix3x3 = Matrix4x4._tempMat30;
+    const m3: Matrix3x3 = Matrix._tempMat30;
     Matrix3x3.fromMat4(t, m3);
     Quaternion.fromMat3(m3, q);
 
@@ -1295,7 +1281,7 @@ export class Matrix4x4 {
    * 将矩阵设置为单位矩阵。
    * @returns 当前矩阵
    */
-  identity(): Matrix4x4 {
+  identity(): Matrix {
     const e = this.elements;
 
     e[0] = 1;
@@ -1325,8 +1311,8 @@ export class Matrix4x4 {
    * 计算当前矩阵的逆矩阵，并返。
    * @returns 当前矩阵
    */
-  invert(): Matrix4x4 {
-    Matrix4x4.invert(this, this);
+  invert(): Matrix {
+    Matrix.invert(this, this);
     return this;
   }
 
@@ -1336,8 +1322,8 @@ export class Matrix4x4 {
    * @param axis - 旋转轴
    * @returns 当前矩阵
    */
-  rotate(r: number, axis: Vector3): Matrix4x4 {
-    Matrix4x4.rotate(this, r, axis, this);
+  rotate(r: number, axis: Vector3): Matrix {
+    Matrix.rotate(this, r, axis, this);
     return this;
   }
 
@@ -1346,8 +1332,8 @@ export class Matrix4x4 {
    * @param s
    * @returns 当前矩阵
    */
-  scale(s: Vector3): Matrix4x4 {
-    Matrix4x4.scale(this, s, this);
+  scale(s: Vector3): Matrix {
+    Matrix.scale(this, s, this);
     return this;
   }
 
@@ -1356,8 +1342,8 @@ export class Matrix4x4 {
    * @param v - 转换向量
    * @returns 当前矩阵
    */
-  translate(v: Vector3): Matrix4x4 {
-    Matrix4x4.translate(this, v, this);
+  translate(v: Vector3): Matrix {
+    Matrix.translate(this, v, this);
     return this;
   }
 
@@ -1365,8 +1351,8 @@ export class Matrix4x4 {
    * 计算当前矩阵的转置矩阵，并返回。
    * @returns 当前矩阵
    */
-  transpose(): Matrix4x4 {
-    Matrix4x4.transpose(this, this);
+  transpose(): Matrix {
+    Matrix.transpose(this, this);
     return this;
   }
 }

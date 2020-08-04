@@ -1,5 +1,5 @@
 import { Ray } from "./Ray";
-import { Vector3, Matrix4x4 } from "@alipay/o3-math";
+import { Vector3, Matrix } from "@alipay/o3-math";
 import { Scene } from "@alipay/o3-core";
 import { RaycastHit } from "./RaycastHit";
 import { ColliderFeature, ABoxCollider, PlaneCollider, ASphereCollider } from "@alipay/o3-collider";
@@ -118,7 +118,7 @@ function _getLocalRay(collider, ray: Ray) {
 // a: vec3
 // m: mat4
 // return m * vec3(a, 0)
-function _transformDirection(out: Vector3, a: Vector3, m: Matrix4x4) {
+function _transformDirection(out: Vector3, a: Vector3, m: Matrix) {
   const x = a.x;
   const y = a.y;
   const z = a.z;

@@ -1,5 +1,5 @@
 import { RenderableComponent, Camera, Entity } from "@alipay/o3-core";
-import { Vector3, Vector4, Quaternion, Matrix4x4 } from "@alipay/o3-math";
+import { Vector3, Vector4, Quaternion, Matrix } from "@alipay/o3-math";
 import { Texture2D } from "@alipay/o3-material";
 import { Logger } from "@alipay/o3-core";
 
@@ -51,7 +51,7 @@ export class SpriteRenderer extends RenderableComponent {
    * 调节色，控制 Sprite 颜色变化
    */
   public tintColor: number[] = [1, 1, 1, 1];
-  public transformMatrix: Matrix4x4;
+  public transformMatrix: Matrix;
 
   /**
    * 构造函数
