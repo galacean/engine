@@ -36,11 +36,11 @@ export class ResourceManager {
   /** 加载中的资源。*/
   private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
 
-  /** 加载失败后的重试次数。*/
+  /** 加载资产失败后的重试次数。*/
   retryCount: number = 1;
-  /** 加载失败后的重试延迟时间，单位是毫秒(ms)。*/
+  /** 加载资产失败后的重试延迟时间，单位是毫秒(ms)。*/
   retryInterval: number = 0;
-  /** 资源默认超时时间，单位是毫秒(ms)。*/
+  /** 加载资产默认的超时时间，单位是毫秒(ms)。*/
   timeout: number = 10000;
 
   /**
