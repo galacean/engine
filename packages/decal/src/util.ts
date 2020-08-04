@@ -1,7 +1,4 @@
 import { Vector3, Matrix, Quaternion } from "@alipay/o3-math";
-import { MeshRenderer } from "@alipay/o3-mesh";
-
-// TODO chengkong.zxx
 
 export function transformDirection(out: Vector3, a: Vector3, m: Matrix): Vector3 {
   const { x, y, z } = a;
@@ -9,9 +6,8 @@ export function transformDirection(out: Vector3, a: Vector3, m: Matrix): Vector3
   out.x = x * me[0] + y * me[4] + z * me[8];
   out.y = x * me[1] + y * me[5] + z * me[9];
   out.z = x * me[2] + y * me[6] + z * me[10];
-  // const normalized = vec3.create();
-  // vec3.normalize(normalized, out);
-  out.normalize(); // TODO chengkong.zxx ??? @木鳐
+
+  out.normalize();
   return out;
 }
 
