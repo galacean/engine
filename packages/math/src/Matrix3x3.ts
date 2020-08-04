@@ -103,7 +103,7 @@ export class Matrix3x3 {
    * 判断两个三维矩阵的值是否相等。
    * @param a - 左矩阵
    * @param b - 右矩阵
-   * @returns 返回两个矩阵是否相等，是返回 true，否则返回 false
+   * @returns 两个矩阵是否相等，是返回 true，否则返回 false
    */
   static equals(a: Matrix3x3, b: Matrix3x3): boolean {
     const ae = a.elements;
@@ -522,7 +522,7 @@ export class Matrix3x3 {
    * @param m31
    * @param m32
    * @param m33
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   setValue(
     m11: number,
@@ -554,7 +554,7 @@ export class Matrix3x3 {
 
   /**
    * 创建一个新的三维矩阵，并用当前矩阵值初始化。
-   * @returns 返回一个新的矩阵，并且拷贝当前矩阵的值
+   * @returns 一个新的矩阵，并且拷贝当前矩阵的值
    */
   clone(): Matrix3x3 {
     const e = this.elements;
@@ -586,7 +586,7 @@ export class Matrix3x3 {
   /**
    * 将当前矩阵加上给定的向量a，并返回当前矩阵。
    * @param b - 给定的向量，右操作数
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   add(b: Matrix3x3): Matrix3x3 {
     Matrix3x3.add(this, b, this);
@@ -596,7 +596,7 @@ export class Matrix3x3 {
   /**
    * 将当前矩阵减去给定的向量a，并返回当前矩阵。
    * @param b - 给定的向量，右操作数
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   subtract(b: Matrix3x3): Matrix3x3 {
     Matrix3x3.subtract(this, b, this);
@@ -606,7 +606,7 @@ export class Matrix3x3 {
   /**
    * 将当前矩阵乘以给定的向量a，并返回当前矩阵。
    * @param b - 给定的向量，右操作数
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   multiply(b: Matrix3x3): Matrix3x3 {
     Matrix3x3.multiply(this, b, this);
@@ -615,7 +615,7 @@ export class Matrix3x3 {
 
   /**
    * 计算3x3矩阵的行列式。
-   * @returns 返回当前矩阵的行列式
+   * @returns 当前矩阵的行列式
    */
   determinant(): number {
     const e = this.elements;
@@ -639,7 +639,7 @@ export class Matrix3x3 {
 
   /**
    * 将矩阵设置为单位矩阵，并返回。
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   identity(): Matrix3x3 {
     const e = this.elements;
@@ -661,7 +661,7 @@ export class Matrix3x3 {
 
   /**
    * 计算当前矩阵的逆矩阵，并返回。
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   invert(): Matrix3x3 {
     Matrix3x3.invert(this, this);
@@ -671,7 +671,7 @@ export class Matrix3x3 {
   /**
    * 将当前矩阵按给定角度旋转，并返回。
    * @param r - 给定的旋转角度
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   rotate(r: number): Matrix3x3 {
     Matrix3x3.rotate(this, r, this);
@@ -681,7 +681,7 @@ export class Matrix3x3 {
   /**
    * 将当前矩阵按给定向量v缩放，并返回。
    * @param s - 缩放向量
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   scale(s: Vector2): Matrix3x3 {
     Matrix3x3.scale(this, s, this);
@@ -691,7 +691,7 @@ export class Matrix3x3 {
   /**
    * 将当前矩阵按给定向量v转换，并返回。
    * @param v - 转换向量
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   translate(v: Vector2): Matrix3x3 {
     Matrix3x3.translate(this, v, this);
@@ -700,7 +700,7 @@ export class Matrix3x3 {
 
   /**
    * 计算当前矩阵的转置矩阵，并返回。
-   * @returns 返回当前矩阵
+   * @returns 当前矩阵
    */
   transpose(): Matrix3x3 {
     Matrix3x3.transpose(this, this);

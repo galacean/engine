@@ -67,7 +67,7 @@ export class Vector4 {
    * 计算两个四维向量的点积。
    * @param a - 左向量
    * @param b - 右向量
-   * @returns 返回两个向量的点积
+   * @returns 两个向量的点积
    */
   static dot(a: Vector4, b: Vector4): number {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
@@ -77,7 +77,7 @@ export class Vector4 {
    * 计算两个四维向量的距离。
    * @param a - 向量
    * @param b - 向量
-   * @returns 返回两个向量的距离
+   * @returns 两个向量的距离
    */
   static distance(a: Vector4, b: Vector4): number {
     const x = b.x - a.x;
@@ -91,7 +91,7 @@ export class Vector4 {
    * 计算两个四维向量的距离的平方。
    * @param a - 向量
    * @param b - 向量
-   * @returns 返回两个向量的距离的平方
+   * @returns 两个向量的距离的平方
    */
   static distanceSquared(a: Vector4, b: Vector4): number {
     const x = b.x - a.x;
@@ -105,7 +105,7 @@ export class Vector4 {
    * 判断两个四维向量的值是否相等。
    * @param a - 向量
    * @param b - 向量
-   * @returns 返回两个向量是否相等，是返回 true，否则返回 false
+   * @returns 两个向量是否相等，是返回 true，否则返回 false
    */
   static equals(a: Vector4, b: Vector4): boolean {
     return (
@@ -266,7 +266,7 @@ export class Vector4 {
    * @param y - 向量的Y分量
    * @param z - 向量的Z分量
    * @param w - 向量的W分量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   setValue(x: number, y: number, z: number, w: number): Vector4 {
     this.x = x;
@@ -278,7 +278,7 @@ export class Vector4 {
 
   /**
    * 创建一个新的四维向量，并用当前向量值初始化。
-   * @returns 返回一个新的向量，并且拷贝当前向量的值
+   * @returns 一个新的向量，并且拷贝当前向量的值
    */
   clone(): Vector4 {
     let ret = new Vector4(this.x, this.y, this.z, this.w);
@@ -299,7 +299,7 @@ export class Vector4 {
   /**
    * 将当前向量加上给定的向量a，并返回当前向量。
    * @param a - 给定的向量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   add(a: Vector4): Vector4 {
     this.x += a.x;
@@ -312,7 +312,7 @@ export class Vector4 {
   /**
    * 将当前向量减去给定的向量a，并返回当前向量。
    * @param a - 给定的向量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   subtract(a: Vector4): Vector4 {
     this.x -= a.x;
@@ -325,7 +325,7 @@ export class Vector4 {
   /**
    * 将当前向量乘以给定的向量a，并返回当前向量。
    * @param a - 给定的向量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   multiply(a: Vector4): Vector4 {
     this.x *= a.x;
@@ -338,7 +338,7 @@ export class Vector4 {
   /**
    * 将当前向量除以给定的向量a，并返回当前向量。
    * @param a - 给定的向量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   divide(a: Vector4): Vector4 {
     this.x /= a.x;
@@ -350,7 +350,7 @@ export class Vector4 {
 
   /**
    * 计算一个四维向量的标量长度。
-   * @returns 返回当前向量的标量长度
+   * @returns 当前向量的标量长度
    */
   length(): number {
     const { x, y, z, w } = this;
@@ -359,7 +359,7 @@ export class Vector4 {
 
   /**
    * 计算一个四维向量的标量长度的平方。
-   * @returns 返回当前向量的标量长度的平方
+   * @returns 当前向量的标量长度的平方
    */
   lengthSquared(): number {
     const { x, y, z, w } = this;
@@ -368,7 +368,7 @@ export class Vector4 {
 
   /**
    * 当前向量反转，并返回。
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   negate(): Vector4 {
     this.x *= -1;
@@ -380,7 +380,7 @@ export class Vector4 {
 
   /**
    * 当前向量归一化，并返回。
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   normalize(): Vector4 {
     const { x, y, z, w } = this;
@@ -398,7 +398,7 @@ export class Vector4 {
   /**
    * 当前向量缩放，并返回。
    * @param s - 缩放因子
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   scale(s: number): Vector4 {
     this.x *= s;

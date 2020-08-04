@@ -59,7 +59,7 @@ export class Vector2 {
    * 计算两个二维向量的点积。
    * @param a - 左向量
    * @param b - 右向量
-   * @returns 返回两个向量的点积
+   * @returns 两个向量的点积
    */
   static dot(a: Vector2, b: Vector2): number {
     return a.x * b.x + a.y * b.y;
@@ -69,7 +69,7 @@ export class Vector2 {
    * 计算两个二维向量的距离。
    * @param a - 向量
    * @param b - 向量
-   * @returns 返回两个向量的距离
+   * @returns 两个向量的距离
    */
   static distance(a: Vector2, b: Vector2): number {
     const x = b.x - a.x;
@@ -81,7 +81,7 @@ export class Vector2 {
    * 计算两个二维向量的距离的平方。
    * @param a - 向量
    * @param b - 向量
-   * @returns 返回两个向量的距离的平方
+   * @returns 两个向量的距离的平方
    */
   static distanceSquared(a: Vector2, b: Vector2): number {
     const x = b.x - a.x;
@@ -93,7 +93,7 @@ export class Vector2 {
    * 判断两个二维向量的值是否相等。
    * @param a - 向量
    * @param b - 向量
-   * @returns 返回两个向量是否相等，是返回 true，否则返回 false
+   * @returns 两个向量是否相等，是返回 true，否则返回 false
    */
   static equals(a: Vector2, b: Vector2): boolean {
     return MathUtil.equals(a.x, b.x) && MathUtil.equals(a.y, b.y);
@@ -215,7 +215,7 @@ export class Vector2 {
    * 设置x, y的值，并返回当前向量。
    * @param x - 向量的X分量
    * @param y - 向量的Y分量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   setValue(x: number, y: number): Vector2 {
     this.x = x;
@@ -225,7 +225,7 @@ export class Vector2 {
 
   /**
    * 创建一个新的二维向量，并用当前向量值初始化。
-   * @returns 返回一个新的向量，并且拷贝当前向量的值
+   * @returns 一个新的向量，并且拷贝当前向量的值
    */
   clone(): Vector2 {
     let ret = new Vector2(this.x, this.y);
@@ -244,7 +244,7 @@ export class Vector2 {
   /**
    * 将当前向量加上给定的向量a，并返回当前向量。
    * @param a - 给定的向量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   add(a: Vector2): Vector2 {
     this.x += a.x;
@@ -255,7 +255,7 @@ export class Vector2 {
   /**
    * 将当前向量减去给定的向量a，并返回当前向量。
    * @param a - 给定的向量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   subtract(a: Vector2): Vector2 {
     this.x -= a.x;
@@ -266,7 +266,7 @@ export class Vector2 {
   /**
    * 将当前向量乘以给定的向量a，并返回当前向量。
    * @param a - 给定的向量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   multiply(a: Vector2): Vector2 {
     this.x *= a.x;
@@ -277,7 +277,7 @@ export class Vector2 {
   /**
    * 将当前向量除以给定的向量a，并返回当前向量。
    * @param a - 给定的向量
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   divide(a: Vector2): Vector2 {
     this.x /= a.x;
@@ -287,7 +287,7 @@ export class Vector2 {
 
   /**
    * 计算一个二维向量的标量长度。
-   * @returns 返回当前向量的标量长度
+   * @returns 当前向量的标量长度
    */
   length(): number {
     const { x, y } = this;
@@ -296,7 +296,7 @@ export class Vector2 {
 
   /**
    * 计算一个二维向量的标量长度的平方。
-   * @returns 返回当前向量的标量长度的平方
+   * @returns 当前向量的标量长度的平方
    */
   lengthSquared(): number {
     const { x, y } = this;
@@ -305,7 +305,7 @@ export class Vector2 {
 
   /**
    * 当前向量反转，并返回。
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   negate(): Vector2 {
     this.x *= -1;
@@ -315,7 +315,7 @@ export class Vector2 {
 
   /**
    * 当前向量归一化，并返回。
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   normalize(): Vector2 {
     const { x, y } = this;
@@ -331,7 +331,7 @@ export class Vector2 {
   /**
    * 当前向量缩放，并返回。
    * @param s - 缩放因子
-   * @returns 返回当前向量
+   * @returns 当前向量
    */
   scale(s: number): Vector2 {
     this.x *= s;
