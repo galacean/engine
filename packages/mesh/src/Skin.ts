@@ -8,7 +8,7 @@ let skinID = 0;
  * @class
  */
 export class Skin extends AssetObject {
-  public inverseBindMatrices: Matrix[]; // TODO chengkong.zxx
+  public inverseBindMatrices: Matrix[];
   public joints: string[];
   public skeleton: string;
   /**
