@@ -1,4 +1,4 @@
-import { DataType, TextureFilter } from '@alipay/o3-base';
+import { DataType, TextureFilter } from '@alipay/o3-core';
 import { Texture2D } from '@alipay/o3-material';
 import { PostEffectNode } from '../PostEffectNode';
 

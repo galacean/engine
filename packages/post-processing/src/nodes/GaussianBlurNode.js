@@ -1,4 +1,4 @@
-import { DataType } from '@alipay/o3-base';
+import { DataType } from '@alipay/o3-core';
 import { PostEffectNode } from '../PostEffectNode';
 
 import GaussianBlurShader from '../shaders/GaussianBlur.glsl';

@@ -1,6 +1,6 @@
 
 import { SceneFeature } from '@alipay/o3-core';
-import { DataType } from '@alipay/o3-base';
+import { DataType } from '@alipay/o3-core';
 import { RenderTarget } from '@alipay/o3-material';
 
 import { ScreenQuadGeometry as ScreenQuad } from "@alipay/o3-geometry-shape";
