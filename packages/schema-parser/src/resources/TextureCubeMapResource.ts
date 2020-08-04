@@ -3,6 +3,7 @@ import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
 import { compressedTextureLoadOrder } from "../utils";
+import { ResourceManager, AssetType } from "@alipay/o3";
 
 const imageOrderMap = {
   px: 0,
@@ -14,14 +15,14 @@ const imageOrderMap = {
 };
 
 export class TextureCubeMapResource extends SchemaResource {
-  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<TextureCubeMapResource> {
+  load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<TextureCubeMapResource> {
     return new Promise((resolve, reject) => {
       const imageUrls = [];
-      let resource;
+      let type = AssetType.TextureCube;
       if (this.resourceManager.useCompressedTexture && assetConfig?.props?.compression?.compressions.length) {
-        const rhi = oasis.engine._rhi;
+        const rhi = oasis.engine._hardwareRenderer;
         const compressions = assetConfig.props.compression.compressions;
-        compressions.sort((a, b) => {
+        compressions.sort((a: any, b: any) => {
           return compressedTextureLoadOrder[a.type] - compressedTextureLoadOrder[b.type];
         });
         for (let i = 0; i < compressions.length; i++) {
@@ -33,36 +34,31 @@ export class TextureCubeMapResource extends SchemaResource {
                 imageUrls[imageOrderMap[key]] = image.url;
               }
             }
-            resource = new o3.Resource(assetConfig.name, {
-              type: "ktxNew",
-              urls: imageUrls
-            });
+            console.warn(compression.type);
+            type = AssetType.KTXCube;
             break;
           }
         }
       }
-      if (!resource) {
+
+      if (type === AssetType.TextureCube) {
         for (const key in assetConfig.props.images) {
           if (assetConfig.props.images.hasOwnProperty(key)) {
             const image = assetConfig.props.images[key];
             imageUrls[imageOrderMap[key]] = image.url;
           }
         }
-        resource = new o3.Resource(assetConfig.name, {
-          type: "cubemapNew",
-          urls: imageUrls
-        });
       }
 
-      resourceLoader.load(resource, (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          this._resource = res.asset;
-          this.setMeta();
+      resourceManager
+        .load({
+          urls: imageUrls,
+          type: type
+        })
+        .then((res) => {
+          this._resource = res;
           resolve(this);
-        }
-      });
+        });
     });
   }
 

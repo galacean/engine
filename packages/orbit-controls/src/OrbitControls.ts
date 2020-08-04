@@ -1,6 +1,6 @@
 "use strict";
 
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Entity, Script } from "@alipay/o3-core";
 import { Spherical, vec2, vec3 } from "@alipay/o3-math";
 

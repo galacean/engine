@@ -1,6 +1,6 @@
 import { vec3 } from "@alipay/o3-math";
 import { Light } from "./Light";
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 
 /**
  * 环境光创建类

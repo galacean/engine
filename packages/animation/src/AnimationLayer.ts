@@ -1,4 +1,4 @@
-import { Logger, Event, EventDispatcher } from "@alipay/o3-base";
+import { Logger, Event, EventDispatcher } from "@alipay/o3-core";
 import { SkinnedMeshRenderer } from "@alipay/o3-mesh";
 import { Entity, Component } from "@alipay/o3-core";
 import { AnimationEvent, WrapMode } from "./AnimationConst";

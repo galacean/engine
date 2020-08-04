@@ -1,4 +1,4 @@
-import { AssetType } from "@alipay/o3-base";
+import { InternalAssetType } from "@alipay/o3-core";
 import { AssetObject } from "@alipay/o3-core";
 import { WebGLRenderer } from "./WebGLRenderer";
 import { GLAsset } from "./GLAsset";
@@ -53,7 +53,7 @@ export class GLAssetsCache {
       asset.needRecreate = false;
 
       //-- 处理运行时资源释放
-      if (this._enableCollect && asset.type === AssetType.Cache) {
+      if (this._enableCollect && asset.type === InternalAssetType.Cache) {
         this._checkList.push(cachedObject);
       }
     }

@@ -1,4 +1,4 @@
-import { GLCapabilityType, Logger, OITMode } from "@alipay/o3-base";
+import { GLCapabilityType, Logger, OITMode } from "@alipay/o3-core";
 import { BasicRenderPipeline, Camera } from "@alipay/o3-core";
 import { OpaqueRenderPass } from "./OpaqueRenderPass";
 import { ScreenRenderPass } from "./ScreenRenderPass";

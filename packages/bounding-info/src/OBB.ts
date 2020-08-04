@@ -1,5 +1,5 @@
 import { vec3 } from "@alipay/o3-math";
-import { IntersectInfo } from "@alipay/o3-base";
+import { IntersectInfo } from "@alipay/o3-core";
 import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { pointDistanceToPlane } from "./util";
 

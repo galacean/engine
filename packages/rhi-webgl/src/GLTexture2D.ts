@@ -1,3 +1,6 @@
+import { GLCapabilityType, Logger } from "@alipay/o3-core";
+// import { CompressedTexture2D } from "@alipay/o3-compressed-texture";
+import { Texture2D } from "@alipay/o3-material";
 import { WebGLRenderer } from "./WebGLRenderer";
 import { GLTexture } from "./GLTexture";
 

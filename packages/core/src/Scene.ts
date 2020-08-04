@@ -1,4 +1,4 @@
-import { Logger, EventDispatcher, MaskList } from "@alipay/o3-base";
+import { Logger, EventDispatcher, MaskList } from "./base";
 import { FeatureManager } from "./FeatureManager";
 import { Entity } from "./Entity";
 import { Engine } from "./Engine";

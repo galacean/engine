@@ -1,6 +1,6 @@
-import { RenderBufferDepthFormat, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
-import { Texture } from "./Texture";
+import { Logger, RenderBufferDepthFormat, TextureFilterMode, TextureWrapMode } from "@alipay/o3-core";
 import { Engine } from "@alipay/o3-core";
+import { Texture } from "./Texture";
 
 /**
  * 类应用于渲染深度纹理。
@@ -47,7 +47,7 @@ export class RenderDepthTexture extends Texture {
     isCube: boolean = false,
     engine?: Engine
   ) {
-    super("");
+    super();
     engine = engine || Engine._getDefaultEngine();
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
@@ -82,8 +82,5 @@ export class RenderDepthTexture extends Texture {
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
-
-    //todo: delete
-    this.type = AssetType.Scene;
   }
 }

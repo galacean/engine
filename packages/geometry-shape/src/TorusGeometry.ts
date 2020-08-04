@@ -1,6 +1,6 @@
 import { IndexBufferGeometry } from "@alipay/o3-geometry";
 import { vec3 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 
 export class TorusGeometry extends IndexBufferGeometry {
   constructor(

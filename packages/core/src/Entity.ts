@@ -1,4 +1,4 @@
-import { EventDispatcher } from "@alipay/o3-base";
+import { EventDispatcher } from "./base";
 import { mat4 } from "@alipay/o3-math";
 import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { Component } from "./Component";

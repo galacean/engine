@@ -1,6 +1,6 @@
-import { Texture } from "./Texture";
-import { TextureFormat, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
+import { Logger, TextureFilterMode, TextureFormat, TextureWrapMode } from "@alipay/o3-core";
 import { Engine } from "@alipay/o3-core";
+import { Texture } from "./Texture";
 
 /**
  * 2D纹理。
@@ -32,7 +32,7 @@ export class Texture2D extends Texture {
     mipmap: boolean = true,
     engine?: Engine
   ) {
-    super("");
+    super();
     engine = engine || Engine._getDefaultEngine();
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
@@ -65,9 +65,6 @@ export class Texture2D extends Texture {
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
-
-    //todo: delete
-    this.type = AssetType.Scene;
   }
 
   /**

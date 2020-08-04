@@ -1,4 +1,4 @@
-import { UniformSemantic, DataType, Logger, GLCapabilityType } from "@alipay/o3-base";
+import { UniformSemantic, DataType, Logger, GLCapabilityType } from "@alipay/o3-core";
 import { AssetObject, Camera } from "@alipay/o3-core";
 import { ShaderFactory } from "@alipay/o3-shaderlib";
 import { Material } from "./Material";
@@ -94,8 +94,8 @@ export class RenderTechnique extends AssetObject {
    * 构造函数
    * @param {string} name 名称
    */
-  constructor(name: string) {
-    super(name);
+  constructor(public name: string) {
+    super();
   }
 
   get attributes() {
@@ -263,7 +263,6 @@ export class RenderTechnique extends AssetObject {
       if (this._fogMacro !== fogMacro) {
         this._needCompile = true;
         this._recreateHeader = true;
-        this.needRecreate = true;
         this._fogMacro = fogMacro;
       }
     }

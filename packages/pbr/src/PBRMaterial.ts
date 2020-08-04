@@ -7,7 +7,7 @@ import {
   RenderState,
   Side,
   Util
-} from "@alipay/o3-base";
+} from "@alipay/o3-core";
 import { Camera, Component } from "@alipay/o3-core";
 import { LightFeature } from "@alipay/o3-lighting";
 import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";

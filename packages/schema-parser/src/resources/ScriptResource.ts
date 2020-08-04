@@ -17,8 +17,8 @@ export class ScriptResource extends SchemaResource {
       return;
     }
     this.isInit = true;
-    (window as any).__r3_script_context__ = {
-      r3: o3,
+    (window as any).__o3_script_context__ = {
+      o3: o3,
       script: (name: string) => {
         return (target: any) => {
           scriptAbility[name] = target;
@@ -27,9 +27,9 @@ export class ScriptResource extends SchemaResource {
     };
   }
 
-  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<ScriptResource> {
+  load(resourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<ScriptResource> {
     this.initScriptContext();
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const config = assetConfig as any;
       const name = config.props.scripts[0].name;
       if (!this.resourceManager.isLocal) {

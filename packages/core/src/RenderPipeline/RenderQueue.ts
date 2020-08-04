@@ -1,4 +1,4 @@
-import { MaskList } from "@alipay/o3-base";
+import { MaskList } from "../base";
 import { vec3 } from "@alipay/o3-math";
 import { Camera } from "../Camera";
 import { Component } from "../Component";

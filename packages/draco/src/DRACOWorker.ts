@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 
 export class DRACOWorker {
   // worker 实例
@@ -14,7 +14,7 @@ export class DRACOWorker {
 
   constructor(workerSourceURL: string, decoderWASMBinary?: ArrayBuffer) {
     this._worker = new Worker(workerSourceURL);
-    this._worker.onmessage = e => {
+    this._worker.onmessage = (e) => {
       const message = e.data;
       switch (message.type) {
         case "decode":

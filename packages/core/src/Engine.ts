@@ -1,5 +1,5 @@
-import { Event, EventDispatcher, Time } from "@alipay/o3-base";
-import { ResourceManager } from "./AssetDesign/ResourceManager";
+import { Event, EventDispatcher, Time } from "./base";
+import { ResourceManager } from "./asset/ResourceManager";
 import { Canvas } from "./EngineDesign/Canvas";
 import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
 import { EngineFeature } from "./EngineFeature";
@@ -29,7 +29,7 @@ export class Engine extends EventDispatcher {
   _hardwareRenderer: HardwareRenderer;
 
   private _canvas: Canvas;
-  private _resourceManager: ResourceManager = new ResourceManager();
+  private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager();
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;

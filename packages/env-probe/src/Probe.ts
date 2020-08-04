@@ -1,4 +1,4 @@
-import { RenderBufferDepthFormat } from "@alipay/o3-base";
+import { RenderBufferDepthFormat } from "@alipay/o3-core";
 import { BasicRenderPipeline, Camera, Component, Entity, RenderPass } from "@alipay/o3-core";
 import {
   Material,

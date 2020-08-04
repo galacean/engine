@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { vec3 } from "@alipay/o3-math";
 
 /**

@@ -1,4 +1,4 @@
-import { ClearMode, TextureCubeFace } from "@alipay/o3-base";
+import { ClearMode, TextureCubeFace } from "./base";
 import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
 import { Matrix4, Vector2, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { Component } from "./Component";

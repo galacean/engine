@@ -1,8 +1,10 @@
-import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-base";
+import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-core";
 import { AssetObject } from "@alipay/o3-core";
 import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 import { Matrix4 } from "@alipay/o3-math/types/type";
 import { vec3 } from "@alipay/o3-math";
+
+// TODO Destroy VAO and Buffer，ref to rhi refactor
 
 export interface Attribute {
   name?: string;
@@ -63,7 +65,7 @@ export class Primitive extends AssetObject {
    * @constructor
    */
   constructor(name?: string) {
-    super(name !== undefined ? name : "DEFAULT_PRIMITIVENAME_" + primitiveID);
+    super();
     this.id = primitiveID++;
   }
 

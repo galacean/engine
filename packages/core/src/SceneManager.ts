@@ -1,5 +1,5 @@
 import { Scene } from "./Scene";
-import { AssetPromise } from "./AssetDesign/AssetPromise";
+import { AssetPromise } from "./asset/AssetPromise";
 
 /**
  * 场景管理员。

@@ -1,4 +1,4 @@
-import { ClearMode, MaskList, MaterialType } from "@alipay/o3-base";
+import { ClearMode, MaskList, MaterialType } from "../base";
 import { Camera } from "../Camera";
 import { SceneVisitor } from "../SceneVisitor";
 import { Component } from "../Component";

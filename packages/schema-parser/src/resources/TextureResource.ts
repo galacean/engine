@@ -3,46 +3,31 @@ import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
 import { compressedTextureLoadOrder } from "../utils";
+import { ResourceManager } from "@alipay/o3";
 
 export class TextureResource extends SchemaResource {
-  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<TextureResource> {
+  load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<TextureResource> {
     return new Promise((resolve, reject) => {
-      let resource;
-      let url;
+      let url: string;
       if (this.resourceManager.useCompressedTexture && assetConfig?.props?.compression?.compressions.length) {
-        const rhi = oasis.engine._rhi;
+        const rhi = oasis.engine._hardwareRenderer;
         const compressions = assetConfig.props.compression.compressions;
-        compressions.sort((a, b) => {
-          return compressedTextureLoadOrder[a.type] - compressedTextureLoadOrder[b.type];
-        });
+        compressions.sort((a: any, b: any) => compressedTextureLoadOrder[a.type] - compressedTextureLoadOrder[b.type]);
         for (let i = 0; i < compressions.length; i++) {
           const compression = compressions[i];
           if (compression.container === "ktx" && rhi.canIUse(o3.GLCapabilityType[compression.type])) {
             url = compression.url;
-            resource = new o3.Resource(assetConfig.name, { type: "ktxNew", url: compression.url });
             break;
           }
         }
       }
 
-      if (!resource) {
-        url = assetConfig.url;
-        resource = new o3.Resource(assetConfig.name, { type: "textureNew", url: assetConfig.url });
-      }
-      resourceLoader.load(
-        resource,
-        (err, res) => {
-          if (err) {
-            reject(err);
-          } else {
-            this._resource = res.asset;
-            this._meta.url = url;
-            this.setMeta();
-            resolve(this);
-          }
-        },
-        oasis.options.timeout
-      );
+      url = url ?? assetConfig.url;
+
+      resourceManager.load(url).then((res) => {
+        this._resource = res;
+        resolve(this);
+      });
     });
   }
 

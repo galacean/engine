@@ -1,4 +1,4 @@
-import { Util } from "@alipay/o3-base";
+import { Util } from "@alipay/o3-core";
 import { Camera } from "@alipay/o3-core";
 import { cacheCanvas } from "./cacheCanvas";
 import { CanvasDataSizeAndOffset, Prop, ScreenshotSize } from "./type";

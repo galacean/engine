@@ -1,6 +1,6 @@
 import * as TweenPlugins from "../plugins";
 import { Tweener } from "../Tweener";
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 
 import { vec2, vec3, vec4, quat } from "@alipay/o3-math";
 
@@ -15,7 +15,7 @@ const doTransformRotate = (obj, endValue, interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.QuaternionPlugin;
   return new Tweener(
     () => quat.clone(obj.rotation),
-    value => (obj.rotation = value),
+    (value) => (obj.rotation = value),
     endValue,
     interval,
     options,
@@ -35,7 +35,7 @@ const doTransformTranslate = (obj, endValue, interval, options: any = {}) => {
 
   return new Tweener(
     () => vec3.clone(obj.position),
-    value => (obj.position = value),
+    (value) => (obj.position = value),
     endValue,
     interval,
     options,
@@ -54,7 +54,7 @@ const doTransformScale = (obj, endValue, interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
   return new Tweener(
     () => vec3.clone(obj.scale),
-    value => (obj.scale = value),
+    (value) => (obj.scale = value),
     endValue,
     interval,
     options,
@@ -75,7 +75,7 @@ const doMaterialValue = (mtl, endValue, property = "", interval, options: any = 
 
   return new Tweener(
     () => mtl.getValue(property),
-    value => mtl.setValue(property, value),
+    (value) => mtl.setValue(property, value),
     endValue,
     interval,
     options,
@@ -96,7 +96,7 @@ const doMaterialColor = (mtl, endValue, property = "", interval, options: any = 
 
   return new Tweener(
     () => mtl.getValue(property),
-    value => {
+    (value) => {
       mtl.setValue(property, [value[0] / 255, value[1] / 255, value[2] / 255]);
     },
     endValue,

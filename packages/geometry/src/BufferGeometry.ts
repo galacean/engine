@@ -1,4 +1,4 @@
-import { Logger, UpdateType } from "@alipay/o3-base";
+import { Logger, UpdateType } from "@alipay/o3-core";
 import { AssetObject } from "@alipay/o3-core";
 import { Primitive } from "@alipay/o3-primitive";
 import { Attribute } from "@alipay/o3-primitive/types/type";
@@ -25,7 +25,7 @@ export class BufferGeometry extends AssetObject {
    */
   constructor(name?: string) {
     name = name || "bufferGeometry" + geometryCount++;
-    super(name);
+    super();
 
     this.primitive = new Primitive();
     this.stride = 0;
@@ -48,8 +48,8 @@ export class BufferGeometry extends AssetObject {
    * @param {number} usage 数据绘制类型常量，默认为静态类型 STATIC_DRAW，需要更新数据时使用动态类型 DYNAMIC_DRAW
    */
   initialize(attributes: Attribute[], vertexCount, usage?) {
-    const instancedAttributes = attributes.filter(item => item.instanced);
-    const vertexAttributes = attributes.filter(item => !item.instanced);
+    const instancedAttributes = attributes.filter((item) => item.instanced);
+    const vertexAttributes = attributes.filter((item) => !item.instanced);
     const isInstanced = instancedAttributes.length > 0;
     if (isInstanced && !this.instancedCount) {
       Logger.error("Need set instanced count");
@@ -381,7 +381,6 @@ export class BufferGeometry extends AssetObject {
    * @private
    */
   _finalize() {
-    super._finalize();
     this.primitive.finalize();
     this.primitive = null;
   }

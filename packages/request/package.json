@@ -22,6 +22,9 @@
     "test": "ruban test",
     "debug": "ruban debug"
   },
+  "dependencies": {
+    "@alipay/o3-material": "2.3.2"
+  },
   "main": "dist/main.js",
   "module": "dist/module.js",
   "publishConfig": {

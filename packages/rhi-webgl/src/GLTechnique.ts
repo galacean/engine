@@ -1,7 +1,7 @@
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 import { mat4 } from "@alipay/o3-math";
 import { GLShaderProgram } from "./GLShaderProgram";
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { WebGLRenderer } from "./WebGLRenderer";

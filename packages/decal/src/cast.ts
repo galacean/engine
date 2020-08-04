@@ -1,5 +1,5 @@
 import { vec3 } from "@alipay/o3-math";
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Ray } from "./Ray";
 import { getNormal, distanceTo, getXFromIndex, fromBufferAttribute } from "./util";
 

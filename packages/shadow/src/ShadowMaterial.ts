@@ -1,5 +1,5 @@
 import { ComplexMaterial, RenderTechnique } from "@alipay/o3-material";
-import { RenderState, BlendFunc, CompFunc } from "@alipay/o3-base";
+import { RenderState, BlendFunc, CompFunc } from "@alipay/o3-core";
 import { LightShadow } from "./LightShadow";
 
 import vs from "./shaders/vertex.glsl";

@@ -22,6 +22,9 @@ export class AbilityManager {
       return;
     }
     const abilityProps = this.mixPropsToExplicitProps(props);
+    if (AbilityConstructor === o3.Camera) {
+      abilityProps.SceneRenderer = o3.BasicRenderPipeline;
+    }
     const ability = node.addComponent(AbilityConstructor, abilityProps);
     const { enabled } = abilityProps;
     if (enabled !== undefined) {

@@ -1,4 +1,4 @@
-import { DataType, TextureFilter, TextureWrapMode, UniformSemantic } from "@alipay/o3-base";
+import { DataType, TextureFilter, TextureWrapMode, UniformSemantic } from "@alipay/o3-core";
 
 export type TextureConfig = {
   magFilter?: TextureFilter;

@@ -8,15 +8,11 @@ import {
   ScriptResource,
   BlinnPhongMaterialResource,
   TextureCubeMapResource,
-  AnimationClipSchemaResource,
-  AnimationSchemaResource,
-  AnimatorSchemaResource,
-  BaseResource,
-  SpineResource
+  BaseResource
 } from "./resources";
-import * as o3 from "@alipay/o3";
 import { AssetConfig } from "./types";
 import { pluginHook } from "./plugins/PluginManager";
+import { ResourceManager } from "@alipay/o3";
 
 const RESOURCE_CLASS = {
   script: ScriptResource,
@@ -29,10 +25,7 @@ const RESOURCE_CLASS = {
   unlitMaterial: PBRMaterialResource,
   ShaderMaterial: ShaderMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
-  AnimationClip: AnimationClipSchemaResource,
   Animation: Animation,
-  Animator: AnimatorSchemaResource,
-  spine: SpineResource,
   base: BaseResource
 };
 
@@ -45,25 +38,30 @@ for (const key in RESOURCE_CLASS) {
 }
 
 const resourceFactory = {
-  createResource(resourceManager: ResourceManager, type: string): SchemaResource {
+  createResource(resourceManager: SchemaResourceManager, type: string): SchemaResource {
     const ResourceConstructor = RESOURCE_CLASS[type];
+    if (!ResourceConstructor) {
+      console.warn(type, "!!!");
+    }
     return new ResourceConstructor(resourceManager);
   }
 };
 
-export class ResourceManager {
+export class SchemaResourceManager {
   private resourceMap: { [id: string]: SchemaResource } = {};
   private resourceIdMap: WeakMap<SchemaResource, string> = new WeakMap();
-  private resourceLoader: o3.ResourceLoader = new o3.ResourceLoader(this.oasis.engine, null, this.oasis.engine._rhi);
   private maxId = 0;
+  private readonly engineResourceManager: ResourceManager;
 
-  constructor(private oasis: Oasis) {}
+  constructor(private oasis: Oasis) {
+    this.engineResourceManager = this.oasis.engine.resourceManager;
+  }
 
   // 从schema中加载资源
   load(asset: AssetConfig): Promise<SchemaResource> {
     const resource = resourceFactory.createResource(this, asset.type);
     //TODO 脏代码
-    const loadPromise = resource.load(this.resourceLoader, asset, this.oasis);
+    const loadPromise = resource.load(this.oasis.engine.resourceManager, asset, this.oasis);
     this.maxId = Math.max(+asset.id, this.maxId);
     loadPromise.then(() => {
       this.resourceMap[asset.id] = resource;
@@ -77,7 +75,7 @@ export class ResourceManager {
     const resource = resourceFactory.createResource(this, asset.type);
     return new Promise((resolve) => {
       //TODO 脏代码
-      resource.loadWithAttachedResources(this.resourceLoader, asset, this.oasis).then((result) => {
+      resource.loadWithAttachedResources(this.oasis.resourceManager, asset, this.oasis).then((result) => {
         resolve(this.getAddResourceResult(result.resources, result.structure));
       });
     });
