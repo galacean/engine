@@ -4,7 +4,7 @@ import { Entity } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
 import { Skin } from "./Skin";
 import { Texture2D } from "@alipay/o3-material";
-import { TextureFormat } from "@alipay/o3-base";
+import { TextureFormat } from "@alipay/o3-core";
 
 /**
  * 负责渲染一个 Skinned Mesh 的组件

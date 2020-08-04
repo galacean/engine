@@ -8,7 +8,7 @@ export class AnimationAsset extends AssetObject {
   _keyframes: any;
   _duration: number;
   constructor(name: string, props: any) {
-    super(name);
+    super();
     const { keyframes, duration } = props;
     this.keyframes = keyframes;
     this.duration = duration;

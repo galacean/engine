@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Entity, Script } from "@alipay/o3-core";
 import { MathUtil, Spherical, Vector3 } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
@@ -7,7 +7,7 @@ import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 const ESP = MathUtil.ZeroTolerance;
 
 function includes(array, ...filterArray) {
-  return filterArray.some(e => array.indexOf(e) !== -1);
+  return filterArray.some((e) => array.indexOf(e) !== -1);
 }
 
 const tween = new Tween();
@@ -341,7 +341,7 @@ export class FreeControls extends Script {
 
   /**注册浏览器事件*/
   initEvents(): void {
-    this._events.forEach(ele => {
+    this._events.forEach((ele) => {
       if (ele.element) {
         ele.element.addEventListener(ele.type, ele.listener, false);
       } else {
@@ -354,7 +354,7 @@ export class FreeControls extends Script {
    * dispose all events
    * */
   destroy(): void {
-    this._events.forEach(ele => {
+    this._events.forEach((ele) => {
       if (ele.element) {
         ele.element.removeEventListener(ele.type, ele.listener, false);
       } else {

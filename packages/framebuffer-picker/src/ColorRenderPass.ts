@@ -1,4 +1,4 @@
-import { MaskList } from "@alipay/o3-base";
+import { MaskList } from "@alipay/o3-core";
 import { Camera, RenderPass } from "@alipay/o3-core";
 import { RenderTarget } from "@alipay/o3-material";
 import { ColorMaterial } from "./ColorMaterial";

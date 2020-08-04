@@ -16,7 +16,7 @@ export class AnimationClip extends AssetObject {
    * @param {string} name
    */
   constructor(name: string) {
-    super(name);
+    super();
 
     /** @member {Array} */
     this.samplers = [];

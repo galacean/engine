@@ -1,4 +1,4 @@
-import { BlendFunc, RenderState, FrontFace } from "@alipay/o3-base";
+import { BlendFunc, RenderState, FrontFace } from "@alipay/o3-core";
 import { GeometryRenderer } from "@alipay/o3-geometry";
 import { PlaneGeometry, CylinderGeometry } from "@alipay/o3-geometry-shape";
 import { Vector4, Vector2 } from "@alipay/o3-math";

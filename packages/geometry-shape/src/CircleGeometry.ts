@@ -1,5 +1,5 @@
 import { IndexBufferGeometry } from "@alipay/o3-geometry";
-import { BufferUsage, DataType, DrawMode } from "@alipay/o3-base";
+import { BufferUsage, DataType, DrawMode } from "@alipay/o3-core";
 
 interface CircleGeometryOptions {
   radius?: number;

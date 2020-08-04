@@ -1,5 +1,5 @@
 import { GPUParticleSystem } from "./particle";
-import { BlendFunc } from "@alipay/o3-base";
+import { BlendFunc } from "@alipay/o3-core";
 
 /**
  * 暂时只为编辑器使用

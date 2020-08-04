@@ -3,13 +3,15 @@ import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { NodeConfig } from "./types";
+import { Entity } from "@alipay/o3";
 
 export class NodeManager {
   private nodeMap: { [id: string]: o3.Entity } = {};
   private readonly root: o3.Entity;
 
   constructor(private oasis: Oasis) {
-    this.root = this.oasis.engine.currentScene.root.createChild("runtime-root");
+    this.root = new Entity("root", this.oasis.engine);
+    this.oasis.engine.sceneManager.activeScene.addRootEntity(this.root);
   }
 
   @pluginHook({ after: "nodeAdded" })

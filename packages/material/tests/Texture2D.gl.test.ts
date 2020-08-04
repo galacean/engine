@@ -1,4 +1,4 @@
-import { TextureFormat } from "@alipay/o3-base";
+import { TextureFormat } from "@alipay/o3-core";
 import { Engine } from "@alipay/o3-core";
 import gl from "gl";
 import { Texture2D } from "../src/Texture2D";

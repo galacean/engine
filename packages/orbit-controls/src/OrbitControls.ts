@@ -1,6 +1,6 @@
 "use strict";
 
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Entity, Script } from "@alipay/o3-core";
 import { Spherical, Vector2, Vector3, Matrix4x4 } from "@alipay/o3-math";
 
@@ -297,7 +297,7 @@ export class OrbitControls extends Script {
       { type: "mouseup", listener: this.onMouseUp.bind(this) }
     ];
 
-    this.constEvents.forEach(ele => {
+    this.constEvents.forEach((ele) => {
       if (ele.element) {
         ele.element.addEventListener(ele.type, ele.listener, false);
       } else {
@@ -317,7 +317,7 @@ export class OrbitControls extends Script {
    * @private
    */
   destroy() {
-    this.constEvents.forEach(ele => {
+    this.constEvents.forEach((ele) => {
       if (ele.element) {
         ele.element.removeEventListener(ele.type, ele.listener, false);
       } else {
@@ -771,7 +771,7 @@ export class OrbitControls extends Script {
 
     this._isMouseUp = true;
 
-    this.mouseUpEvents.forEach(ele => {
+    this.mouseUpEvents.forEach((ele) => {
       const element = this.domElement === document ? this.domElement.body : this.domElement;
       element.removeEventListener(ele.type, ele.listener, false);
       this.mainElement.removeEventListener(ele.type, ele.listener, false);

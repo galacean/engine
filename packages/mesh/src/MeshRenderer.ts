@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Material } from "@alipay/o3-material";
 import { Entity, Camera, RenderableComponent } from "@alipay/o3-core";
 import { Mesh } from "./Mesh";
@@ -40,12 +40,16 @@ export class MeshRenderer extends RenderableComponent {
    * @param {Mesh} mesh Mesh 对象
    */
   set mesh(mesh: Mesh) {
+    if (this._mesh) {
+      this._mesh._addReference(-1);
+    }
+    mesh._addReference(1);
     this._mesh = mesh;
-
     const primitives = mesh.primitives;
     this._sharedMaterials = [];
     this._instanceMaterials = [];
     for (const primitive of primitives) {
+      primitive.material._addReference(1);
       this._sharedMaterials.push(primitive.material);
     } // end of for
   }
@@ -56,6 +60,10 @@ export class MeshRenderer extends RenderableComponent {
    * @param {Material} mtl 材质对象
    */
   setMaterial(primitiveIndex: number, mtl: Material) {
+    if (this._instanceMaterials[primitiveIndex]) {
+      this._instanceMaterials[primitiveIndex]._addReference(-1);
+    }
+    mtl._addReference(1);
     this._instanceMaterials[primitiveIndex] = mtl;
   }
 
@@ -114,5 +122,21 @@ export class MeshRenderer extends RenderableComponent {
     //-- materials
     this._instanceMaterials = [];
     this._sharedMaterials = [];
+
+    // 删除引用计数
+    for (let i = 0; i < this._instanceMaterials.length; i++) {
+      this._instanceMaterials[i]._addReference(-1);
+    }
+
+    // 删除引用计数
+    for (let i = 0; i < this._sharedMaterials.length; i++) {
+      this._sharedMaterials[i]._addReference(-1);
+    }
+
+    if (this._mesh) {
+      this._mesh._addReference(-1);
+    }
+    // TODO: primitive reference decrease
+    // const primitives = this._mesh.primitives;
   }
 }

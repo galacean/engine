@@ -1,4 +1,4 @@
-import { ClearMode, MaskList } from "@alipay/o3-base";
+import { ClearMode, MaskList } from "../base";
 import { Camera } from "../Camera";
 
 /** @todo: monorepo circle dependence */

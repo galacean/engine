@@ -1,5 +1,6 @@
 import { Vector4 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
+
 import { Texture2D } from "@alipay/o3-material";
 import { CommonMaterial } from "./CommonMaterial";
 import { LightFeature, DirectLight } from "@alipay/o3-lighting";

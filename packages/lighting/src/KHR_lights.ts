@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { AmbientLight } from "./AmbientLight";
 import { DirectLight } from "./DirectLight";
 import { PointLight } from "./PointLight";

@@ -1,5 +1,5 @@
 import { ShaderLib, InjectShaderSlices } from "./ShaderLib";
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 
 class ShaderFactory {
   /**
@@ -37,14 +37,16 @@ class ShaderFactory {
   static parseAttributeMacros(macros) {
     return (
       "#define O3_ATTRIBUTE_MACROS_START\n" +
-      macros.map(m => `#define ${m}\n`).join("") +
+      macros.map((m) => `#define ${m}\n`).join("") +
       "#define O3_ATTRIBUTE_MACROS_END\n"
     );
   }
 
   static parseCustomMacros(macros) {
     return (
-      "#define O3_CUSTOM_MACROS_START\n" + macros.map(m => `#define ${m}\n`).join("") + "#define O3_CUSTOM_MACROS_END\n"
+      "#define O3_CUSTOM_MACROS_START\n" +
+      macros.map((m) => `#define ${m}\n`).join("") +
+      "#define O3_CUSTOM_MACROS_END\n"
     );
   }
 
@@ -80,7 +82,7 @@ class ShaderFactory {
   static parseExtension(extensions: string[]) {
     return (
       `#define O3_EXTENSION_START\n` +
-      extensions.map(e => `#extension ${e} : enable\n`).join("") +
+      extensions.map((e) => `#extension ${e} : enable\n`).join("") +
       `#define O3_EXTENSION_END\n`
     );
   }
@@ -156,7 +158,7 @@ class ShaderFactory {
       mrtIndexSet.add(res[1]);
     }
 
-    mrtIndexSet.forEach(index => {
+    mrtIndexSet.forEach((index) => {
       declaration += `layout(location=${index}) out vec4 fragOutColor${index};\n`;
     });
     declaration += `void main(`;

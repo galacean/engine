@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { AmbientLight, Light } from "@alipay/o3-lighting";
 import { LightShadow } from "./LightShadow";
 import { Component } from "@alipay/o3-core";

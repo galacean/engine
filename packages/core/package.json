@@ -25,7 +25,6 @@
     "b:types": "tsc"
   },
   "dependencies": {
-    "@alipay/o3-base": "2.3.2",
     "@alipay/o3-math": "2.3.2"
   },
   "publishConfig": {

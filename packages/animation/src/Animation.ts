@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Component, Entity } from "@alipay/o3-core";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationClip } from "./AnimationClip";
@@ -186,7 +186,7 @@ export class Animation extends Component {
    * @param {String} name 动画片段的名称
    * @param {AnimationOptions} options 动画参数
    */
-  public playAnimationClip(name: string, options: AnimationOptions) {
+  public playAnimationClip(name: string, options?: AnimationOptions) {
     const animClip = this._animSet[name];
     if (!animClip) {
       Logger.error("can not find anim clip: " + name);

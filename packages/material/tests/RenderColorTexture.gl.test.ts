@@ -1,4 +1,4 @@
-import { RenderBufferColorFormat } from "@alipay/o3-base";
+import { RenderBufferColorFormat } from "@alipay/o3-core";
 import { Engine } from "@alipay/o3-core";
 import gl from "gl";
 import { RenderColorTexture } from "../src/RenderColorTexture";

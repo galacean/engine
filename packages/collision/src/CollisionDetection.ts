@@ -1,6 +1,6 @@
 import { Vector3 } from "@alipay/o3-math";
 import { Component, Script } from "@alipay/o3-core";
-import { Event } from "@alipay/o3-base";
+import { Event } from "@alipay/o3-core";
 import {
   ColliderFeature,
   ACollider,

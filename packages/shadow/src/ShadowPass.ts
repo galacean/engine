@@ -1,4 +1,4 @@
-import { ClearMode } from "@alipay/o3-base";
+import { ClearMode } from "@alipay/o3-core";
 import { RenderPass, Camera } from "@alipay/o3-core";
 import { LightFeature } from "@alipay/o3-lighting";
 

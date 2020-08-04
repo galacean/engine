@@ -2,7 +2,7 @@ import { GLPrimitive } from "./GLPrimitive";
 import { WebGLRenderer } from "./WebGLRenderer";
 import { Primitive } from "@alipay/o3-primitive";
 import { GLTechnique } from "./GLTechnique";
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 
 /**
  * 基于 VAO 的 GLPrimitive

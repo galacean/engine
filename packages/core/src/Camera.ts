@@ -1,4 +1,4 @@
-import { ClearMode, TextureCubeFace } from "@alipay/o3-base";
+import { ClearMode, TextureCubeFace } from "./base";
 import { Matrix4x4, MathUtil, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
@@ -501,7 +501,10 @@ export class Camera extends Component {
    * @param clearMode
    * @param clearParam
    */
-  setClearMode(clearMode: ClearMode = ClearMode.SOLID_COLOR, clearParam: Vector4 = [0.25, 0.25, 0.25, 1]): void {
+  setClearMode(
+    clearMode: ClearMode = ClearMode.SOLID_COLOR,
+    clearParam: Vector4 = new Vector4(0.25, 0.25, 0.25, 1)
+  ): void {
     this._clearMode = clearMode;
     this._clearParam = clearParam as Vector4;
     this._renderPipeline.defaultRenderPass.clearParam = clearParam;

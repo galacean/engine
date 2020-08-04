@@ -13,7 +13,7 @@ export class ShaderMaterialResource extends SchemaResource {
   private scripts: Array<any>;
 
   private loadShaderDefine(oasis?: Oasis) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const name = this.scripts[0].name;
       if (this.resourceManager.isLocal) {
         resolve(oasis.options?.scripts[name] ?? {});
@@ -54,7 +54,7 @@ export class ShaderMaterialResource extends SchemaResource {
     this._resource = material;
   }
 
-  load(resourceLoader: o3.ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<ShaderMaterialResource> {
+  load(resourceLoader: any, assetConfig: AssetConfig, oasis: Oasis): Promise<ShaderMaterialResource> {
     this.setMeta(assetConfig);
     this.scripts = assetConfig.props.scripts;
     this.createMaterial();

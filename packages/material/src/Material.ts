@@ -1,13 +1,15 @@
 import { Matrix4x4, Matrix3x3 } from "@alipay/o3-math";
-import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
+import { MaterialType, UniformSemantic, Util } from "@alipay/o3-core";
+
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
+import { ReferenceObject } from "@alipay/o3-core";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
  * @class
  */
-export class Material {
+export class Material extends ReferenceObject {
   /**
    * 名称
    * @member {string}
@@ -37,6 +39,7 @@ export class Material {
    * @param {string} name 名称
    */
   constructor(name: string) {
+    super();
     this.name = name;
 
     this.renderType = MaterialType.OPAQUE;
@@ -48,6 +51,8 @@ export class Material {
     //--
     this._technique = null;
     this._values = {};
+
+    this._gcPriority = 1000;
   }
 
   /** 创建一个本材质对象的深拷贝对象
@@ -116,6 +121,13 @@ export class Material {
     const oriValue = this.getValue(name);
     const oriIsTexture = oriValue instanceof Texture;
     const curIsTexture = value instanceof Texture;
+    if (oriIsTexture) {
+      (<Texture>oriValue)._addReference(-1);
+    }
+    if (curIsTexture) {
+      (<Texture>value)._addReference(1);
+    }
+
     if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {
       this._technique = null;
     }
@@ -323,5 +335,19 @@ export class Material {
         values[uniform.name] = component.engine.time.timeSinceStartup * 0.001;
         break;
     } // end of switch
+  }
+
+  onDestroy() {
+    // TODO: 待材质重构
+    const values = Object.values(this._values);
+    for (let i = 0, len = values.length; i < len; i++) {
+      const value = values[i];
+      if (value instanceof Texture) {
+        value._addReference(-1);
+      }
+    }
+
+    // this._technique._finalize();
+    this._technique = null;
   }
 }

@@ -1,4 +1,4 @@
-import { DataType, DrawMode } from "@alipay/o3-base";
+import { DataType, DrawMode } from "@alipay/o3-core";
 import { BufferGeometry } from "@alipay/o3-geometry";
 
 /**

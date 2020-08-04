@@ -1,5 +1,6 @@
-import { TextureWrapMode } from "@alipay/o3-base";
 import { Vector2, Quaternion } from "@alipay/o3-math";
+import { TextureWrapMode } from "@alipay/o3-core";
+
 import { translate, scale, rotate, fade, slide } from "./rfuiTween";
 
 const ScaleMin = 1e-12;
@@ -244,8 +245,11 @@ export class RfuiAnimation {
         param.onComplete && param.onComplete();
       }
     });
-    const end = quat.create();
-    config.end ? quat.fromEuler(end, ...(config.end as [number, number, number])) : quat.fromEuler(end, 0, 0, 180);
+    const end = new Quaternion();
+
+    config.end
+      ? Quaternion.fromEuler(config.end[0], config.end[1], config[2], end)
+      : Quaternion.fromEuler(0, 0, 180, end);
     return rotate(this.node, end, config);
   }
 

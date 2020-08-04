@@ -1,4 +1,4 @@
-import { ClearMode, GLCapabilityType, Logger } from "@alipay/o3-base";
+import { ClearMode, GLCapabilityType, Logger } from "@alipay/o3-core";
 import { Camera, Canvas, HardwareRenderer } from "@alipay/o3-core";
 import { RenderTarget } from "@alipay/o3-material";
 import { GLAssetsCache } from "./GLAssetsCache";

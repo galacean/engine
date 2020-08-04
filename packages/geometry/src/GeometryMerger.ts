@@ -1,7 +1,7 @@
 import { BufferGeometry } from "./BufferGeometry";
 import { IndexBufferGeometry } from "./IndexBufferGeometry";
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from "./Constant";
-import { DataType, BufferUsage } from "@alipay/o3-base";
+import { DataType, BufferUsage } from "@alipay/o3-core";
 
 /**
  * GeometryMerger 用于合并相同材质的静态 Geometry, 减少 draw call 开销

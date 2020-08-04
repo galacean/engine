@@ -1,5 +1,5 @@
-import { EventDispatcher } from "@alipay/o3-base";
 import { Matrix4x4, Quaternion, Vector3 } from "@alipay/o3-math";
+import { EventDispatcher } from "./base";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";

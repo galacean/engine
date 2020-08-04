@@ -1,4 +1,4 @@
-import { BufferUsage, DataType, DrawMode } from "@alipay/o3-base";
+import { BufferUsage, DataType, DrawMode } from "@alipay/o3-core";
 import { BufferGeometry, GeometryRenderer } from "@alipay/o3-geometry";
 import { Material, Texture2D } from "@alipay/o3-material";
 import { Quaternion, Vector2, Vector3, Matrix4x4 } from "@alipay/o3-math";

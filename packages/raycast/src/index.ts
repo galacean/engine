@@ -3,7 +3,7 @@ import { Vector3, Matrix4x4 } from "@alipay/o3-math";
 import { Scene } from "@alipay/o3-core";
 import { RaycastHit } from "./RaycastHit";
 import { ColliderFeature, ABoxCollider, PlaneCollider, ASphereCollider } from "@alipay/o3-collider";
-import { MaskList } from "@alipay/o3-base";
+import { MaskList } from "@alipay/o3-core";
 
 /**
  * 对场景中所有 Collider 进行射线检测，返回离射线起点最近的一个
@@ -11,7 +11,7 @@ import { MaskList } from "@alipay/o3-base";
  * @param {Vector3} _outPos 射线和碰撞体的交点
  * @return {ACollider} 射线检测结果
  */
-(Scene.prototype as any).raycast = function(_ray, _outPos: Vector3, tag: MaskList = MaskList.EVERYTHING) {
+(Scene.prototype as any).raycast = function (_ray, _outPos: Vector3, tag: MaskList = MaskList.EVERYTHING) {
   const ray = new Ray(_ray.origin, _ray.direction);
   const cf = this.findFeature(ColliderFeature);
   const colliders = cf.colliders;
@@ -47,7 +47,7 @@ import { MaskList } from "@alipay/o3-base";
  * @param {Ray} ray
  * @param {RaycastHit} hit
  */
-(ABoxCollider.prototype as any).raycast = function(ray, hit) {
+(ABoxCollider.prototype as any).raycast = function (ray, hit) {
   const localRay = _getLocalRay(this, ray);
   const intersect = localRay.intersectAABB(this.boxMax, this.boxMin);
   if (intersect) {
@@ -58,7 +58,7 @@ import { MaskList } from "@alipay/o3-base";
   } // end of else
 };
 
-(ASphereCollider.prototype as any).raycast = function(ray, hit) {
+(ASphereCollider.prototype as any).raycast = function (ray, hit) {
   const localRay = _getLocalRay(this, ray);
   const intersect = localRay.intersectSphere(this.center, this.radius);
   if (intersect) {
@@ -69,7 +69,7 @@ import { MaskList } from "@alipay/o3-base";
   } // end of else
 };
 
-(PlaneCollider.prototype as any).raycast = function(ray, hit) {
+(PlaneCollider.prototype as any).raycast = function (ray, hit) {
   const localRay = _getLocalRay(this, ray);
   const intersect = localRay.intersectPlane(this.planePoint, this.normal);
   if (intersect) {

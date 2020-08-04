@@ -1,5 +1,5 @@
-import { ResourceLoader, Logger } from "@alipay/o3";
-import { ResourceManager } from "../ResourceManager";
+import { Logger, ResourceManager } from "@alipay/o3";
+import { SchemaResourceManager } from "../ResourceManager";
 
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { Oasis } from "../Oasis";
@@ -16,11 +16,14 @@ export abstract class SchemaResource {
   protected _meta: IResourceMeta = {};
   protected _attachedResources: Array<SchemaResource> = [];
 
+  /**
+   * 资源
+   */
   get resource() {
     return this._resource;
   }
 
-  get meta() {
+  get meta(): IResourceMeta {
     return this._meta;
   }
 
@@ -30,17 +33,17 @@ export abstract class SchemaResource {
 
   protected setMeta() {}
 
-  constructor(protected resourceManager: ResourceManager, protected _resource?: any) {
+  constructor(protected resourceManager: SchemaResourceManager, protected _resource?: any) {
     this.setMeta();
   }
 
-  abstract load(resourceLoader: ResourceLoader, assetConfig: AssetConfig, oasis: Oasis): Promise<SchemaResource>;
+  abstract load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<SchemaResource>;
   loadWithAttachedResources(
-    resourceLoader: ResourceLoader,
+    resourceLoader: any,
     assetConfig: AssetConfig,
     oasis: Oasis
   ): Promise<LoadAttachedResourceResult> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.load(resourceLoader, assetConfig, oasis).then(() => {
         resolve({
           resources: [this],

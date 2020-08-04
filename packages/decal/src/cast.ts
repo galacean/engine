@@ -1,5 +1,5 @@
 import { Vector3 } from "@alipay/o3-math";
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Ray } from "./Ray";
 import { getNormal, distanceTo, fromBufferAttribute } from "./util";
 
@@ -73,7 +73,7 @@ function checkIntersection(node, ray, localRay, pA, pB, pC, point, primitive) {
   return {
     node,
     distance,
-    point: intersectPointWorld.slice(0),
+    point: _intersectPointWorld.clone(),
     normal: null,
     materialName: primitive.material.name,
     primitive

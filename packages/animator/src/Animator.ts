@@ -1,4 +1,4 @@
-import { Event } from "@alipay/o3-base";
+import { Event } from "@alipay/o3-core";
 import { Entity, Script } from "@alipay/o3-core";
 import { Animation } from "./Animation";
 import { PlayState, WrapMode } from "./AnimationConst";
