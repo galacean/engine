@@ -7,7 +7,6 @@ import { Vector3, Vector4, Matrix } from "@alipay/o3-math";
  * @private
  */
 export function pointDistanceToPlane(plane: Vector4, pt: Vector3) {
-  // TODO chengkong.zxx
   return plane.x * pt.x + plane.y * pt.y + plane.z * pt.z + plane.w;
 }
 

@@ -2,6 +2,15 @@ import { Collider } from "./Collider";
 import { Vector3 } from "@alipay/o3-math";
 import { Entity } from "@alipay/o3-core";
 
+const _tempVec30 = new Vector3();
+const _tempVec31 = new Vector3();
+const _tempVec32 = new Vector3();
+const _tempVec33 = new Vector3();
+const _tempVec34 = new Vector3();
+const _tempVec35 = new Vector3();
+const _tempVec36 = new Vector3();
+const _tempVec37 = new Vector3();
+
 /**
  * 轴对齐的包围盒（AABBox）碰撞体组件
  * @extends Collider
@@ -52,7 +61,7 @@ export class ABoxCollider extends Collider {
   /**
    * 取得八个顶点的位置
    */
-  getCorners() {
+  getCorners(): Vector3[] {
     if (this._corners.length === 0) {
       const minX = this.boxMin.x;
       const minY = this.boxMin.y;
@@ -61,17 +70,17 @@ export class ABoxCollider extends Collider {
       const h = this.boxMax.y - minY;
       const d = this.boxMax.z - minZ;
 
-      // follow the same order as the old TODO chengkong.zxx 是否需要缓存避免创建？
-      this._corners = [
-        new Vector3(minX + w, minY + h, minZ + d),
-        new Vector3(minX, minY + h, minZ + d),
-        new Vector3(minX, minY, minZ + d),
-        new Vector3(minX + w, minY, minZ + d),
-        new Vector3(minX + w, minY + h, minZ),
-        new Vector3(minX, minY + h, minZ),
-        new Vector3(minX, minY, minZ),
-        new Vector3(minX + w, minY, minZ)
-      ];
+      // follow the same order as the old
+      _tempVec30.setValue(minX + w, minY + h, minZ + d);
+      _tempVec31.setValue(minX, minY + h, minZ + d);
+      _tempVec32.setValue(minX, minY, minZ + d);
+      _tempVec33.setValue(minX + w, minY, minZ + d);
+      _tempVec34.setValue(minX + w, minY + h, minZ);
+      _tempVec35.setValue(minX, minY + h, minZ);
+      _tempVec36.setValue(minX, minY, minZ);
+      _tempVec37.setValue(minX + w, minY, minZ);
+
+      this._corners = [_tempVec30, _tempVec31, _tempVec32, _tempVec33, _tempVec34, _tempVec35, _tempVec36, _tempVec37];
     }
 
     return this._corners;
