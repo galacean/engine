@@ -78,14 +78,14 @@ describe("Engine test", () => {
     it("默认 scene", () => {
       const engine = new WebGLEngine(canvasDOM);
 
-      expect(engine.sceneManager.scene).toBeInstanceOf(Scene);
+      expect(engine.sceneManager.activeScene).toBeInstanceOf(Scene);
     });
     it("销毁 scene", () => {
       const engine = new WebGLEngine(canvasDOM);
-      const scene = engine.sceneManager.scene;
+      const scene = engine.sceneManager.activeScene;
       scene.destroy();
 
-      expect(engine.sceneManager.scene).toBeNull();
+      expect(engine.sceneManager.activeScene).toBeNull();
     });
   });
 

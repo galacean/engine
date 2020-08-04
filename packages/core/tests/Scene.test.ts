@@ -34,7 +34,7 @@ describe("Scene test", () => {
   canvasDOM.getContext = getContext;
 
   const engine = new WebGLEngine(canvasDOM);
-  const scene = engine.sceneManager.scene;
+  const scene = engine.sceneManager.activeScene;
   engine.run();
 
   describe("test - 根节点", () => {
@@ -94,6 +94,6 @@ describe("Scene test", () => {
     scene.destroy();
     expect(scene.destroy).toBeTruthy();
     expect(scene.rootEntitiesCount).toBe(0);
-    expect(scene.engine.sceneManager.scene).not.toBe(scene);
+    expect(scene.engine.sceneManager.activeScene).not.toBe(scene);
   });
 });
