@@ -736,7 +736,7 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
 
   const gltfNodes = gltf.nodes || [];
 
-  asset.defaultSceneRoot = getItemByIdx("scenes", gltf.scene ?? 0, resources);
+  asset.defaultScene = getItemByIdx("scenes", gltf.scene ?? 0, resources);
 
   for (let i = gltfNodes.length - 1; i >= 0; i--) {
     const gltfNode = gltfNodes[i];
@@ -766,9 +766,9 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
     }
 
     //@ts-ignore
-    const nodes = asset.rootScene.nodes;
+    const nodes = asset.defaultScene.nodes;
     if (nodes.length === 1) {
-      asset.defaultScene = nodes[0];
+      asset.defaultSceneRoot = nodes[0];
     } else {
       const rootNode = new Entity(null, resources.engine);
       for (let i = 0; i < nodes.length; i++) {
