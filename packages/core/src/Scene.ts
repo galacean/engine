@@ -4,7 +4,7 @@ import { Entity } from "./Entity";
 import { Engine } from "./Engine";
 import { Camera } from "./Camera";
 import { SceneFeature } from "./SceneFeature";
-import { Vector4 } from "@alipay/o3-math/types/type";
+import { Vector4 } from "@alipay/o3-math";
 import { ComponentsManager } from "./ComponentsManager";
 
 const sceneFeatureManager = new FeatureManager<SceneFeature>();

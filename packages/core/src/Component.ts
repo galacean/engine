@@ -1,5 +1,5 @@
 import { Event, EventDispatcher, MaskList } from "./base";
-import { Matrix4 } from "@alipay/o3-math/types/type";
+import { Matrix } from "@alipay/o3-math";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { Scene } from "./Scene";
@@ -179,7 +179,7 @@ export abstract class Component extends EventDispatcher {
   /**
    * @deprecated
    */
-  get invModelMatrix(): Readonly<Matrix4> {
+  get invModelMatrix(): Readonly<Matrix> {
     return this._entity.getInvModelMatrix();
   }
 
