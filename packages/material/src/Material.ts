@@ -1,8 +1,7 @@
-import { mat4, mat3 } from "@alipay/o3-math";
-import { MaterialType, UniformSemantic, Util } from "@alipay/o3-core";
+import { Camera, MaterialType, ReferenceObject, UniformSemantic, Util } from "@alipay/o3-core";
+import { mat3, mat4 } from "@alipay/o3-math";
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
-import { ReferenceObject } from "@alipay/o3-core";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
@@ -210,7 +209,7 @@ export class Material extends ReferenceObject {
    * @param {Component} component
    * @private
    */
-  _updateValueBySemantic(uniform, camera, component) {
+  _updateValueBySemantic(uniform, camera: Camera, component) {
     const values = this._values;
 
     switch (uniform.semantic) {
@@ -327,7 +326,7 @@ export class Material extends ReferenceObject {
 
       // Camera 的世界坐标位置
       case UniformSemantic.EYEPOS:
-        values[uniform.name] = camera.eyePos;
+        values[uniform.name] = camera.entity.transform.worldPosition;
         break;
       // 页面启动之后的总时长，单位：秒
       case UniformSemantic.TIME:
