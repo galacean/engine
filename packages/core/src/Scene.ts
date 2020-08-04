@@ -48,6 +48,13 @@ export class Scene extends EventDispatcher {
   }
 
   /**
+   * 根节点集合。
+   */
+  get rootEntities(): Readonly<Entity[]> {
+    return this._rootEntities;
+  }
+
+  /**
    * 是否已销毁。
    */
   get destroyed(): boolean {
