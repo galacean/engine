@@ -1,4 +1,4 @@
-import { DataType, TextureWrapMode } from '@alipay/o3-base';
+import { DataType, TextureWrapMode } from '@alipay/o3-core';
 import { PostEffectNode } from './PostEffectNode';
 
 /**
