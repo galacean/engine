@@ -232,12 +232,12 @@ export class Vector3 {
 
   /**
    * 通过3x3矩阵将一个三维向量转换到另一个三维向量。
-   * @param a - 向量
+   * @param v - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformNormal(a: Vector3, m: Matrix, out: Vector3): void {
-    const { x, y, z } = a;
+  static transformNormal(v: Vector3, m: Matrix, out: Vector3): void {
+    const { x, y, z } = v;
     const e = m.elements;
     out.x = x * e[0] + y * e[4] + z * e[8];
     out.y = x * e[1] + y * e[5] + z * e[9];
@@ -246,12 +246,12 @@ export class Vector3 {
 
   /**
    * 通过4x4矩阵将一个三维向量转换到另一个三维向量。
-   * @param a - 向量
+   * @param v - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformToVec3(a: Vector3, m: Matrix, out: Vector3): void {
-    const { x, y, z } = a;
+  static transformToVec3(v: Vector3, m: Matrix, out: Vector3): void {
+    const { x, y, z } = v;
     const e = m.elements;
 
     out.x = x * e[0] + y * e[4] + z * e[8] + e[12];
@@ -261,12 +261,12 @@ export class Vector3 {
 
   /**
    * 通过4x4矩阵将一个三维向量转换到一个四维向量。
-   * @param a - 向量
+   * @param v - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformToVec4(a: Vector3, m: Matrix, out: Vector4): void {
-    const { x, y, z } = a;
+  static transformToVec4(v: Vector3, m: Matrix, out: Vector4): void {
+    const { x, y, z } = v;
     const e = m.elements;
 
     out.x = x * e[0] + y * e[4] + z * e[8] + e[12];
@@ -277,12 +277,12 @@ export class Vector3 {
 
   /**
    * 通过4x4矩阵将一个三维向量转换到另一个三维向量。
-   * @param a - 向量
+   * @param v - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量，此向量为齐次
    */
-  static transformCoordinate(a: Vector3, m: Matrix, out: Vector3): void {
-    const { x, y, z } = a;
+  static transformCoordinate(v: Vector3, m: Matrix, out: Vector3): void {
+    const { x, y, z } = v;
     const e = m.elements;
     let w = x * e[3] + y * e[7] + z * e[11] + e[15];
     w = w || 1.0;
@@ -294,12 +294,12 @@ export class Vector3 {
 
   /**
    * 通过四元数将一个三维向量转换到另一个三维向量。
-   * @param a - 向量
+   * @param v - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformByQuat(a: Vector3, q: Quaternion, out: Vector3): void {
-    const { x, y, z } = a;
+  static transformByQuat(v: Vector3, q: Quaternion, out: Vector3): void {
+    const { x, y, z } = v;
     const qx = q.x;
     const qy = q.y;
     const qz = q.z;

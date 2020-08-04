@@ -705,12 +705,12 @@ export class Matrix {
 
   /**
    * 将矩阵a按给定角度旋转，并将结果输出到out。
-   * @param a - 矩阵
+   * @param m - 矩阵
    * @param r - 给定的旋转角度
    * @param axis - 旋转轴
    * @param out - 旋转后的矩阵
    */
-  static rotate(a: Matrix, r: number, axis: Vector3, out: Matrix): void {
+  static rotate(m: Matrix, r: number, axis: Vector3, out: Matrix): void {
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
@@ -718,7 +718,7 @@ export class Matrix {
       return;
     }
 
-    const ae = a.elements;
+    const me = m.elements;
     const oe = out.elements;
     let s, c, t;
 
@@ -731,18 +731,18 @@ export class Matrix {
     c = Math.cos(r);
     t = 1 - c;
 
-    let a11 = ae[0],
-      a12 = ae[1],
-      a13 = ae[2],
-      a14 = ae[3];
-    let a21 = ae[4],
-      a22 = ae[5],
-      a23 = ae[6],
-      a24 = ae[7];
-    let a31 = ae[8],
-      a32 = ae[9],
-      a33 = ae[10],
-      a34 = ae[11];
+    let a11 = me[0],
+      a12 = me[1],
+      a13 = me[2],
+      a14 = me[3];
+    let a21 = me[4],
+      a22 = me[5],
+      a23 = me[6],
+      a24 = me[7];
+    let a31 = me[8],
+      a32 = me[9],
+      a33 = me[10],
+      a34 = me[11];
 
     // Construct the elements of the rotation matrix
     let b11 = x * x * t + c;
@@ -771,85 +771,85 @@ export class Matrix {
     oe[10] = a13 * b31 + a23 * b32 + a33 * b33;
     oe[11] = a14 * b31 + a24 * b32 + a34 * b33;
 
-    if (a !== out) {
+    if (m !== out) {
       // If the source and destination differ, copy the unchanged last row
-      oe[12] = ae[12];
-      oe[13] = ae[13];
-      oe[14] = ae[14];
-      oe[15] = ae[15];
+      oe[12] = me[12];
+      oe[13] = me[13];
+      oe[14] = me[14];
+      oe[15] = me[15];
     }
   }
 
   /**
    * 将矩阵a按给定向量v缩放，并将结果输出到out。
-   * @param a - 矩阵
+   * @param m - 矩阵
    * @param s - 缩放向量
    * @param out - 缩放后的矩阵
    */
-  static scale(a: Matrix, s: Vector3, out: Matrix): void {
-    const ae = a.elements;
+  static scale(m: Matrix, s: Vector3, out: Matrix): void {
+    const me = m.elements;
     const oe = out.elements;
     const { x, y, z } = s;
 
-    oe[0] = ae[0] * x;
-    oe[1] = ae[1] * x;
-    oe[2] = ae[2] * x;
-    oe[3] = ae[3] * x;
+    oe[0] = me[0] * x;
+    oe[1] = me[1] * x;
+    oe[2] = me[2] * x;
+    oe[3] = me[3] * x;
 
-    oe[4] = ae[4] * y;
-    oe[5] = ae[5] * y;
-    oe[6] = ae[6] * y;
-    oe[7] = ae[7] * y;
+    oe[4] = me[4] * y;
+    oe[5] = me[5] * y;
+    oe[6] = me[6] * y;
+    oe[7] = me[7] * y;
 
-    oe[8] = ae[8] * z;
-    oe[9] = ae[9] * z;
-    oe[10] = ae[10] * z;
-    oe[11] = ae[11] * z;
+    oe[8] = me[8] * z;
+    oe[9] = me[9] * z;
+    oe[10] = me[10] * z;
+    oe[11] = me[11] * z;
 
-    oe[12] = ae[12];
-    oe[13] = ae[13];
-    oe[14] = ae[14];
-    oe[15] = ae[15];
+    oe[12] = me[12];
+    oe[13] = me[13];
+    oe[14] = me[14];
+    oe[15] = me[15];
   }
 
   /**
    * 将矩阵a按给定向量v转换，并将结果输出到out。
-   * @param a - 矩阵
+   * @param m - 矩阵
    * @param v - 转换向量
    * @param out - 转换后的结果
    */
-  static translate(a: Matrix, v: Vector3, out: Matrix): void {
-    const ae = a.elements;
+  static translate(m: Matrix, v: Vector3, out: Matrix): void {
+    const me = m.elements;
     const oe = out.elements;
     const { x, y, z } = v;
 
-    if (a === out) {
-      oe[12] = ae[0] * x + ae[4] * y + ae[8] * z + ae[12];
-      oe[13] = ae[1] * x + ae[5] * y + ae[9] * z + ae[13];
-      oe[14] = ae[2] * x + ae[6] * y + ae[10] * z + ae[14];
-      oe[15] = ae[3] * x + ae[7] * y + ae[11] * z + ae[15];
+    if (m === out) {
+      oe[12] = me[0] * x + me[4] * y + me[8] * z + me[12];
+      oe[13] = me[1] * x + me[5] * y + me[9] * z + me[13];
+      oe[14] = me[2] * x + me[6] * y + me[10] * z + me[14];
+      oe[15] = me[3] * x + me[7] * y + me[11] * z + me[15];
     } else {
-      const a11 = ae[0],
-        a12 = ae[1],
-        a13 = ae[2],
-        a14 = ae[3];
-      const a21 = ae[4],
-        a22 = ae[5],
-        a23 = ae[6],
-        a24 = ae[7];
-      const a31 = ae[8],
-        a32 = ae[9],
-        a33 = ae[10],
-        a34 = ae[11];
+      const a11 = me[0],
+        a12 = me[1],
+        a13 = me[2],
+        a14 = me[3];
+      const a21 = me[4],
+        a22 = me[5],
+        a23 = me[6],
+        a24 = me[7];
+      const a31 = me[8],
+        a32 = me[9],
+        a33 = me[10],
+        a34 = me[11];
 
       (oe[0] = a11), (oe[1] = a12), (oe[2] = a13), (oe[3] = a14);
       (oe[4] = a21), (oe[5] = a22), (oe[6] = a23), (oe[7] = a24);
       (oe[8] = a31), (oe[9] = a32), (oe[10] = a33), (oe[11] = a34);
 
-      oe[12] = a11 * x + a21 * y + a31 * z + ae[12];
-      oe[13] = a12 * x + a22 * y + a32 * z + ae[13];
-      oe[14] = a13 * x + a23 * y + a33 * z + ae[14];
-      oe[15] = a14 * x + a24 * y + a34 * z + ae[15];
+      oe[12] = a11 * x + a21 * y + a31 * z + me[12];
+      oe[13] = a12 * x + a22 * y + a32 * z + me[13];
+      oe[14] = a13 * x + a23 * y + a33 * z + me[14];
+      oe[15] = a14 * x + a24 * y + a34 * z + me[15];
     }
   }
 

@@ -380,13 +380,13 @@ export class Matrix3x3 {
 
   /**
    * 将矩阵a按给定向量v缩放，并将结果输出到out。
-   * @param a - 矩阵
+   * @param m - 矩阵
    * @param s - 缩放向量
    * @param out - 缩放后的矩阵
    */
-  static scale(a: Matrix3x3, s: Vector2, out: Matrix3x3): void {
+  static scale(m: Matrix3x3, s: Vector2, out: Matrix3x3): void {
     const { x, y } = s;
-    const ae = a.elements;
+    const ae = m.elements;
     const oe = out.elements;
 
     oe[0] = x * ae[0];
@@ -404,13 +404,13 @@ export class Matrix3x3 {
 
   /**
    * 将矩阵a按给定向量v转换，并将结果输出到out。
-   * @param a - 矩阵
-   * @param v - 转换向量
+   * @param m - 矩阵
+   * @param trans - 转换向量
    * @param out - 转换后的结果
    */
-  static translate(a: Matrix3x3, v: Vector2, out: Matrix3x3): void {
-    const { x, y } = v;
-    const ae = a.elements;
+  static translate(m: Matrix3x3, trans: Vector2, out: Matrix3x3): void {
+    const { x, y } = trans;
+    const ae = m.elements;
     const oe = out.elements;
 
     const a11 = ae[0],
@@ -690,11 +690,11 @@ export class Matrix3x3 {
 
   /**
    * 将当前矩阵按给定向量v转换，并返回。
-   * @param v - 转换向量
+   * @param trans - 转换向量
    * @returns 当前矩阵
    */
-  translate(v: Vector2): Matrix3x3 {
-    Matrix3x3.translate(this, v, this);
+  translate(trans: Vector2): Matrix3x3 {
+    Matrix3x3.translate(this, trans, this);
     return this;
   }
 

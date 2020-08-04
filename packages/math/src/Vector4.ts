@@ -198,12 +198,12 @@ export class Vector4 {
 
   /**
    * 通过4x4矩阵将一个四维向量转换到另一个四维向量。
-   * @param a - 向量
+   * @param v - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformByMat4x4(a: Vector4, m: Matrix, out: Vector4): void {
-    const { x, y, z, w } = a;
+  static transformByMat4x4(v: Vector4, m: Matrix, out: Vector4): void {
+    const { x, y, z, w } = v;
     const e = m.elements;
     out.x = x * e[0] + y * e[4] + z * e[8] + w * e[12];
     out.y = x * e[1] + y * e[5] + z * e[9] + w * e[13];
@@ -213,12 +213,12 @@ export class Vector4 {
 
   /**
    * 通过四元数将一个四维向量转换到另一个四维向量。
-   * @param a - 向量
+   * @param v - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformByQuat(a: Vector4, q: Quaternion, out: Vector4): void {
-    const { x, y, z, w } = a;
+  static transformByQuat(v: Vector4, q: Quaternion, out: Vector4): void {
+    const { x, y, z, w } = v;
     const qx = q.x;
     const qy = q.y;
     const qz = q.z;
