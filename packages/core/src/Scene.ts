@@ -41,14 +41,14 @@ export class Scene extends EventDispatcher {
   }
 
   /**
-   * 根节点的数量。
+   * 根实体的数量。
    */
   get rootEntitiesCount(): number {
     return this._rootEntities.length;
   }
 
   /**
-   * 根节点集合。
+   * 根实体集合。
    */
   get rootEntities(): Readonly<Entity[]> {
     return this._rootEntities;
@@ -85,8 +85,8 @@ export class Scene extends EventDispatcher {
   }
 
   /**
-   * 添加根节点。
-   * @param entity - 根节点
+   * 添加根实体。
+   * @param entity - 根实体
    */
   addRootEntity(entity: Entity): void {
     const isRoot = entity._isRoot;
@@ -118,8 +118,8 @@ export class Scene extends EventDispatcher {
   }
 
   /**
-   * 移除根节点。
-   * @param entity - 根节点
+   * 移除根实体。
+   * @param entity - 根实体
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
@@ -130,7 +130,7 @@ export class Scene extends EventDispatcher {
   }
 
   /**
-   * 通过索引获取根节点。
+   * 通过索引获取根实体。
    * @param index - 索引
    */
   getRootEntity(index: number = 0): Entity | null {
