@@ -20,7 +20,6 @@ export class Engine extends EventDispatcher {
   static defaultCreateObjectEngine: Engine = null;
 
   static _lastCreateEngine: Engine = null;
-  static _instanceIDCounter: number = 0; //CM:需要删除
 
   static _getDefaultEngine(): Engine {
     return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
@@ -35,21 +34,21 @@ export class Engine extends EventDispatcher {
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
   private _isPaused: boolean = true;
-  private _requestId: number; //CM:这俩ID是否可以合并为一个属性，统称loopID
+  private _requestId: number;
   private _timeoutId: number;
   private _loopCounter: number = 0;
   private _targetFrameInterval: number = 1000 / 60;
 
   private _animate = () => {
     if (this._vSyncCount) {
+      this._requestId = requestAnimationFrame(this._animate);
       if (this._loopCounter++ % this._vSyncCount === 0) {
         this._tick();
         this._loopCounter = 0;
       }
-      this._requestId = requestAnimationFrame(this._animate);
     } else {
-      this._tick();
       this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+      this._tick();
     }
   };
 
@@ -134,7 +133,6 @@ export class Engine extends EventDispatcher {
    */
   pause(): void {
     this._isPaused = true;
-    //CM:实现的有点暴力
     cancelAnimationFrame(this._requestId);
     clearTimeout(this._timeoutId);
   }
@@ -145,8 +143,7 @@ export class Engine extends EventDispatcher {
   resume(): void {
     if (!this._isPaused) return;
     this._isPaused = false;
-
-    this._animate(); //CM:据了解，之前有个子鱼查了1周的BUG，需要保护一下
+    requestAnimationFrame(this._animate);
   }
 
   /**

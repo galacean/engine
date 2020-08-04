@@ -87,20 +87,6 @@ export function getAccessorData(gltf, accessor, buffers) {
   const accessorTypeSize = getAccessorTypeSize(accessor.type);
   const length = accessorTypeSize * accessor.count;
   const byteStride = bufferView.byteStride ?? 0;
-  // const CTOR_MAP = {
-  //   // 5120 (BYTE)	1
-  //   // 5121(UNSIGNED_BYTE)	1
-  //   // 5122 (SHORT)	2
-  //   // 5123 (UNSIGNED_SHORT)	2
-  //   // 5125 (UNSIGNED_INT)	4
-  //   // 5126 (FLOAT)	4
-  //   5120: Int8Array,
-  //   5121: Uint8Array,
-  //   5122: Int16Array,
-  //   5123: Uint16Array,
-  //   5125: Uint32Array,
-  //   5126: Float32Array
-  // };
 
   const arrayType = getComponentType(accessor.componentType);
   let uint8Array;
@@ -192,4 +178,21 @@ export function loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise
       resolve(img);
     };
   });
+}
+
+function isRelativeUrl(url: string): boolean {
+  // 47 is /
+  return url.charCodeAt(0) !== 47 && url.match(/:\/\//) === null;
+}
+
+function isAbsoluteUrl(url: string): boolean {
+  return /^(?:http|blob|data:|\/)/.test(url);
+}
+
+export function parseRelativeUrl(baseUrl: string, relativeUrl: string): string {
+  if (isAbsoluteUrl(relativeUrl)) {
+    return relativeUrl;
+  }
+  // TODO: implement ../path
+  return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
 }

@@ -2,10 +2,11 @@ import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceMana
 import { GlTf, LoadedGLTFResource } from "./GLTF";
 import { parseGLTF, GLTFResource } from "./gltf/glTF";
 import { parseGLB } from "./gltf/glb";
-import { loadImageBuffer, getBufferData } from "./gltf/Util";
+import { loadImageBuffer, getBufferData, parseRelativeUrl } from "./gltf/Util";
 
 @resourceLoader(AssetType.Perfab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
+  private baseUrl: string;
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
       const requestGLTFResource = this.isGLB(item.url) ? this.requestGLB : this.requestGLTF;
@@ -25,7 +26,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     return this.request<GlTf>(item.url, {
       ...item,
       type: "json"
-    }).then((res) => this._loadGLTFResources(res, resourceManager));
+    }).then((res) => this._loadGLTFResources(item, res, resourceManager));
   };
 
   private requestGLB = (item: LoadItem, resourceManager: ResourceManager): Promise<LoadedGLTFResource> => {
@@ -34,6 +35,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
       type: "arraybuffer"
     })
       .then(parseGLB)
+      .then((res) => {
+        return { ...res, baseUrl: item.url };
+      })
       .then(this._loadImages);
   };
 
@@ -46,34 +50,41 @@ export class GLTFLoader extends Loader<GLTFResource> {
    * @param gltf
    * @param resourceManager
    */
-  private _loadGLTFResources(gltf: GlTf, resourceManager: ResourceManager): Promise<LoadedGLTFResource> {
+  private _loadGLTFResources(
+    item: LoadItem,
+    gltf: GlTf,
+    resourceManager: ResourceManager
+  ): Promise<LoadedGLTFResource> {
     // 必须先加载 Buffer 再加载图片
-    return this._loadBuffers(gltf, resourceManager).then(this._loadImages);
+    return this._loadBuffers(item.url, gltf, resourceManager).then(this._loadImages);
   }
 
-  private _loadBuffers(gltf: GlTf, resourceManager: ResourceManager): Promise<LoadedGLTFResource> {
+  private _loadBuffers(baseUrl: string, gltf: GlTf, resourceManager: ResourceManager): Promise<LoadedGLTFResource> {
     if (gltf.buffers) {
       return Promise.all(
         gltf.buffers.map((item) => {
           if (item instanceof ArrayBuffer) {
             return Promise.resolve(item);
           }
-          return resourceManager.load<ArrayBuffer>({ url: item.uri, type: AssetType.Buffer });
+          return resourceManager.load<ArrayBuffer>({
+            url: parseRelativeUrl(baseUrl, item.uri),
+            type: AssetType.Buffer
+          });
         })
       ).then((buffers) => {
-        return { buffers, gltf };
+        return { buffers, gltf, baseUrl };
       });
     }
-    return Promise.resolve({ gltf });
+    return Promise.resolve({ baseUrl, gltf });
   }
 
-  private _loadImages = ({ gltf, buffers }: LoadedGLTFResource): Promise<any> => {
+  private _loadImages = ({ gltf, buffers, baseUrl }: LoadedGLTFResource & { baseUrl: string }): Promise<any> => {
     if (gltf.images) {
       return Promise.all(
         gltf.images.map(({ uri, bufferView: bufferViewIndex, mimeType }) => {
           if (uri) {
             // 使用 base64 或 url
-            return this.request<HTMLImageElement>(uri, { type: "image" });
+            return this.request<HTMLImageElement>(parseRelativeUrl(baseUrl, uri), { type: "image" });
           } else {
             // 使用 bufferView
             const bufferView = gltf.bufferViews[bufferViewIndex];
