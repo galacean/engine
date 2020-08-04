@@ -17,7 +17,6 @@ import { Vector3 } from "@alipay/o3-math";
  * @private
  */
 export function intersectBox2Box(boxA, boxB) {
-  // TODO chengkong.zxx
   return (
     boxA.min.x <= boxB.max.x &&
     boxA.max.x >= boxB.min.x &&
@@ -33,7 +32,6 @@ export function intersectBox2Box(boxA, boxB) {
  * @private
  */
 export function intersectSphere2Sphere(sphereA, sphereB) {
-  // TODO chengkong.zxx
   const distance = Vector3.distance(sphereA.center, sphereB.center);
   return distance < sphereA.radius + sphereA.radius;
 }
@@ -43,7 +41,6 @@ export function intersectSphere2Sphere(sphereA, sphereB) {
  * @private
  */
 export function intersectSphere2Box(sphere, box) {
-  // TODO chengkong.zxx
   const center: Vector3 = sphere.center;
 
   const closestPoint: Vector3 = new Vector3(
