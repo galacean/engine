@@ -46,14 +46,6 @@ describe("Vector3 test", () => {
     expect(toString(out)).toEqual("vec3(-0.5, 0.6, 0.25)");
   });
 
-  it("static angle", () => {
-    const a = new Vector3(1, 0, 0);
-    const b = new Vector3(1, 1, 0);
-
-    const r = Vector3.angle(a, b);
-    expect(MathUtil.equals(r, Math.PI * 0.25)).toEqual(true);
-  });
-
   it("static dot", () => {
     const a = new Vector3(2, 3, 1);
     const b = new Vector3(-4, 5, 1);
