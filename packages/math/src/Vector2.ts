@@ -170,32 +170,6 @@ export class Vector2 {
     out.y = a.y * s;
   }
 
-  /**
-   * 通过3x3矩阵将一个二维向量转换到另一个二维向量。
-   * @param a - 向量
-   * @param m - 转换矩阵
-   * @param out - 通过矩阵转换后的向量
-   */
-  static transformMat3x3(a: Vector2, m: Matrix3x3, out: Vector2): void {
-    const { x, y } = a;
-    const e = m.elements;
-    out.x = x * e[0] + y * e[3] + e[6];
-    out.y = x * e[1] + y * e[4] + e[7];
-  }
-
-  /**
-   * 通过4x4矩阵将一个二维向量转换到另一个二维向量。
-   * @param a - 向量
-   * @param m - 转换矩阵
-   * @param out - 通过矩阵转换后的向量
-   */
-  static transformMat4x4(a: Vector2, m: Matrix4x4, out: Vector2): void {
-    const { x, y } = a;
-    const e = m.elements;
-    out.x = x * e[0] + y * e[4] + e[12];
-    out.y = x * e[1] + y * e[5] + e[13];
-  }
-
   /** 向量的X分量 */
   x: number;
   /** 向量的Y分量 */

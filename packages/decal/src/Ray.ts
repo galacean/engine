@@ -93,7 +93,7 @@ export class Ray {
   }
 
   applyMatrix4(matrix4: Matrix4x4): Ray {
-    Vector3.transformMat4x4(this.origin, matrix4, this.origin);
+    Vector3.transformMat4x4Coordinate(this.origin, matrix4, this.origin);
     transformDirection(this.direction, this.direction, matrix4);
     return this;
   }

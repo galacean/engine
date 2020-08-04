@@ -184,7 +184,7 @@ describe("Vector3 test", () => {
     const out4 = new Vector4();
     const m4 = new Matrix4x4();
     m4.setValue(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1);
-    Vector3.transformMat4x4(a, m4, out);
+    Vector3.transformMat4x4Coordinate(a, m4, out);
     Vector4.transformMat4x4(b, m4, out4);
     expect(out.x).toEqual(out4.x / out4.w);
     expect(out.y).toEqual(out4.y / out4.w);

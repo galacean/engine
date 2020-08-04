@@ -123,24 +123,6 @@ describe("Vector2 test", () => {
     expect(toString(out)).toEqual("vec2(9, 12)");
   });
 
-  it("static transformMat3x3", () => {
-    const a = new Vector2(3, 4);
-    const m = new Matrix3x3();
-    const out = new Vector2();
-
-    Vector2.transformMat3x3(a, m, out);
-    expect(toString(out)).toEqual("vec2(3, 4)");
-  });
-
-  it("static transformMat4x4", () => {
-    const a = new Vector2(3, 4);
-    const m = new Matrix4x4();
-    const out = new Vector2();
-
-    Vector2.transformMat4x4(a, m, out);
-    expect(toString(out)).toEqual("vec2(3, 4)");
-  });
-
   it("setValue", () => {
     const a = new Vector2(3, 4);
     expect(toString(a.setValue(5, 6))).toEqual("vec2(5, 6)");
