@@ -99,14 +99,14 @@ export class CollisionDetection extends Script {
     const mat = boxCollider.entity.transform.worldMatrix;
     const max: Vector3 = new Vector3();
     const min: Vector3 = new Vector3();
-    Vector3.transformMat4x4Coordinate(boxCollider.boxMax, mat, max);
-    Vector3.transformMat4x4Coordinate(boxCollider.boxMin, mat, min);
+    Vector3.transformCoordinate(boxCollider.boxMax, mat, max);
+    Vector3.transformCoordinate(boxCollider.boxMin, mat, min);
 
     //--
     const temp: Vector3 = CollisionDetection._tempVec3;
     const corners = boxCollider.getCorners();
     for (let i = 0; i < 8; i++) {
-      Vector3.transformMat4x4Coordinate(corners[i], mat, temp);
+      Vector3.transformCoordinate(corners[i], mat, temp);
       if (temp.x > max.x) max.x = temp.x;
       if (temp.y > max.y) max.y = temp.y;
       if (temp.z > max.z) max.z = temp.z;
@@ -127,7 +127,7 @@ export class CollisionDetection extends Script {
    */
   _getWorldSphere(sphereCollider) {
     const center: Vector3 = new Vector3();
-    Vector3.transformMat4x4Coordinate(sphereCollider.center, sphereCollider.entity.transform.worldMatrix, center);
+    Vector3.transformCoordinate(sphereCollider.center, sphereCollider.entity.transform.worldMatrix, center);
     return {
       radius: sphereCollider.radius,
       center

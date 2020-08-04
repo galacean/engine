@@ -151,7 +151,7 @@ export class Primitive extends AssetObject {
         dataView.getFloat32(base + 4, littleEndian),
         dataView.getFloat32(base + 8, littleEndian)
       );
-      modelMatrix && Vector3.transformMat4x4Coordinate(position, modelMatrix, position);
+      modelMatrix && Vector3.transformCoordinate(position, modelMatrix, position);
       Vector3.min(min, position, min);
       Vector3.max(max, position, max);
     }

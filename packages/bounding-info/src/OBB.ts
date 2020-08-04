@@ -73,7 +73,7 @@ export class OBB {
       const corner: Vector3 = this.corners[i];
       const cornerWorld: Vector3 = OBB._tempVec3;
 
-      Vector3.transformMat4x4Coordinate(corner, modelMatrix, cornerWorld);
+      Vector3.transformCoordinate(corner, modelMatrix, cornerWorld);
       Vector3.min(min, cornerWorld, min);
       Vector3.max(max, cornerWorld, max);
 

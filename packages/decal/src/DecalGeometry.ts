@@ -113,7 +113,7 @@ export class DecalGeometry extends BufferGeometry {
       const uv = [uvx, 1 - uvy];
 
       // transform the vertex back to world space
-      Vector3.transformMat4x4Coordinate(decalVertex.position, this.projectorMatrix, decalVertex.position);
+      Vector3.transformCoordinate(decalVertex.position, this.projectorMatrix, decalVertex.position);
 
       // now create vertex and normal buffer data
 
@@ -140,8 +140,8 @@ export class DecalGeometry extends BufferGeometry {
     const vertex: Vector3 = new Vector3();
     const normal: Vector3 = new Vector3();
 
-    Vector3.transformMat4x4Coordinate(vertexInput, targetMatrix, local);
-    Vector3.transformMat4x4Coordinate(local, projectorMatrixInverse, vertex);
+    Vector3.transformCoordinate(vertexInput, targetMatrix, local);
+    Vector3.transformCoordinate(local, projectorMatrixInverse, vertex);
 
     if (normalInput) {
       transformDirection(normal, normalInput, targetMatrix);

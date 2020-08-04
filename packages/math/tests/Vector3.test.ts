@@ -176,23 +176,23 @@ describe("Vector3 test", () => {
     const a = new Vector3(2, 3, 4);
     const out = new Vector3();
 
-    const m3 = new Matrix3x3(2, 7, 17, 3, 11, 19, 5, 13, 23);
-    Vector3.transformMat3x3(a, m3, out);
+    const m44 = new Matrix(2, 7, 17, 0, 3, 11, 19, 0, 5, 13, 23, 0, 0, 0, 0, 1);
+    Vector3.transformNormal(a, m44, out);
     expect(toString(out)).toEqual("vec3(33, 99, 183)");
 
     const b = new Vector4(2, 3, 4, 1);
     const out4 = new Vector4();
     const m4 = new Matrix();
     m4.setValue(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1);
-    Vector3.transformMat4x4Coordinate(a, m4, out);
-    Vector4.transformMat4x4(b, m4, out4);
+    Vector3.transformCoordinate(a, m4, out);
+    Vector4.transformByMat4x4(b, m4, out4);
     expect(out.x).toEqual(out4.x / out4.w);
     expect(out.y).toEqual(out4.y / out4.w);
     expect(out.z).toEqual(out4.z / out4.w);
 
-    Vector3.transformQuat(a, new Quaternion(), out);
+    Vector3.transformByQuat(a, new Quaternion(), out);
     expect(toString(a)).toEqual(toString(out));
-    Vector3.transformQuat(a, new Quaternion(2, 3, 4, 5), out);
+    Vector3.transformByQuat(a, new Quaternion(2, 3, 4, 5), out);
     expect(toString(out)).toEqual("vec3(108, 162, 216)");
   });
 

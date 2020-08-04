@@ -155,8 +155,8 @@ export class TrailRenderer extends GeometryRenderer {
 
     const rotation = new Quaternion();
 
-    Vector3.transformQuat(vx, rotation, vx);
-    Vector3.transformQuat(vy, rotation, vy);
+    Vector3.transformByQuat(vx, rotation, vx);
+    Vector3.transformByQuat(vy, rotation, vy);
 
     const dy = new Vector3();
     const cross = new Vector3();
@@ -186,7 +186,7 @@ export class TrailRenderer extends GeometryRenderer {
           angle = Math.PI * 2 - angle;
         }
         rotation.setAxisAngle(vz, angle);
-        Vector3.transformQuat(vy, rotation, dy);
+        Vector3.transformByQuat(vy, rotation, dy);
 
         Vector3.add(p, dy, up);
         Vector3.subtract(p, dy, down);

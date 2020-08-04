@@ -202,7 +202,7 @@ export class Vector4 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformMat4x4(a: Vector4, m: Matrix, out: Vector4): void {
+  static transformByMat4x4(a: Vector4, m: Matrix, out: Vector4): void {
     const { x, y, z, w } = a;
     const e = m.elements;
     out.x = x * e[0] + y * e[4] + z * e[8] + w * e[12];
@@ -217,7 +217,7 @@ export class Vector4 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformQuat(a: Vector4, q: Quaternion, out: Vector4): void {
+  static transformByQuat(a: Vector4, q: Quaternion, out: Vector4): void {
     const { x, y, z, w } = a;
     const qx = q.x;
     const qy = q.y;

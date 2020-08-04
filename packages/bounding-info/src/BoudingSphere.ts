@@ -37,7 +37,7 @@ export class BoundingSphere {
    * @param {Matrix} modelMatrix - Local to World矩阵
    * */
   updateByModelMatrix(modelMatrix: Matrix) {
-    Vector3.transformMat4x4Coordinate(this.center, modelMatrix, this.centerWorld);
+    Vector3.transformCoordinate(this.center, modelMatrix, this.centerWorld);
     this.radiusWorld = this.radius * getMaxScaleByModelMatrix(modelMatrix);
   }
 

@@ -122,12 +122,12 @@ describe("Vector4 test", () => {
     const out = new Vector4();
     const m4 = new Matrix();
     m4.setValue(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0);
-    Vector4.transformMat4x4(a, m4, out);
+    Vector4.transformByMat4x4(a, m4, out);
     expect(toString(out)).toEqual("vec4(2, 3, 9, 0)");
 
-    Vector4.transformQuat(a, new Quaternion(), out);
+    Vector4.transformByQuat(a, new Quaternion(), out);
     expect(toString(a)).toEqual(toString(out));
-    Vector4.transformQuat(a, new Quaternion(2, 3, 4, 5), out);
+    Vector4.transformByQuat(a, new Quaternion(2, 3, 4, 5), out);
     expect(toString(out)).toEqual("vec4(108, 162, 216, 5)");
   });
 

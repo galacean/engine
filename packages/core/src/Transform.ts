@@ -122,7 +122,7 @@ export class Transform extends Component {
     const parent = this._getParentTransform();
     if (parent) {
       Matrix.invert(parent.worldMatrix, Transform._tempMat41);
-      Vector3.transformMat4x4Coordinate(value, Transform._tempMat41, this._position);
+      Vector3.transformCoordinate(value, Transform._tempMat41, this._position);
     } else {
       value.cloneTo(this._worldPosition);
     }
@@ -361,7 +361,7 @@ export class Transform extends Component {
     if (relativeToLocal) {
       const rotationMat = Transform._tempMat40;
       Matrix.fromQuat(this.rotationQuaternion, rotationMat);
-      Vector3.transformMat4x4Coordinate(translation, rotationMat, Transform._tempVec3);
+      Vector3.transformCoordinate(translation, rotationMat, Transform._tempVec3);
       this.position = this._position.add(Transform._tempVec3);
     } else {
       this.worldPosition = this._worldPosition.add(translation);

@@ -67,7 +67,7 @@ function checkIntersection(node, ray, localRay, pA, pB, pC, point, primitive) {
   }
   const temp = new Vector3();
   point.cloneTo(_intersectPointWorld);
-  Vector3.transformMat4x4Coordinate(_intersectPointWorld, node.getModelMatrix(), temp);
+  Vector3.transformCoordinate(_intersectPointWorld, node.getModelMatrix(), temp);
   const distance = distanceTo(ray.origin, temp);
 
   return {

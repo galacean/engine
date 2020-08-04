@@ -1,7 +1,6 @@
 import { MathUtil } from "./MathUtil";
 import { Vector4 } from "./Vector4";
 import { Quaternion } from "./Quaternion";
-import { Matrix3x3 } from "./Matrix3x3";
 import { Matrix } from "./Matrix";
 
 /**
@@ -237,12 +236,12 @@ export class Vector3 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformMat3x3(a: Vector3, m: Matrix3x3, out: Vector3): void {
+  static transformNormal(a: Vector3, m: Matrix, out: Vector3): void {
     const { x, y, z } = a;
     const e = m.elements;
-    out.x = x * e[0] + y * e[3] + z * e[6];
-    out.y = x * e[1] + y * e[4] + z * e[7];
-    out.z = x * e[2] + y * e[5] + z * e[8];
+    out.x = x * e[0] + y * e[4] + z * e[8];
+    out.y = x * e[1] + y * e[5] + z * e[9];
+    out.z = x * e[2] + y * e[6] + z * e[10];
   }
 
   /**
@@ -251,7 +250,7 @@ export class Vector3 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformMat4x4(a: Vector3, m: Matrix, out: Vector3): void {
+  static transformToVec3(a: Vector3, m: Matrix, out: Vector3): void {
     const { x, y, z } = a;
     const e = m.elements;
 
@@ -262,11 +261,11 @@ export class Vector3 {
 
   /**
    * 通过4x4矩阵将一个三维向量转换到一个四维向量。
-   * @param a - 三维向量
+   * @param a - 向量
    * @param m - 转换矩阵
-   * @param out - 通过矩阵转换后的四维向量
+   * @param out - 通过矩阵转换后的向量
    */
-  static transformMat4x4ToVec4(a: Vector3, m: Matrix, out: Vector4): void {
+  static transformToVec4(a: Vector3, m: Matrix, out: Vector4): void {
     const { x, y, z } = a;
     const e = m.elements;
 
@@ -282,7 +281,7 @@ export class Vector3 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量，此向量为齐次
    */
-  static transformMat4x4Coordinate(a: Vector3, m: Matrix, out: Vector3): void {
+  static transformCoordinate(a: Vector3, m: Matrix, out: Vector3): void {
     const { x, y, z } = a;
     const e = m.elements;
     let w = x * e[3] + y * e[7] + z * e[11] + e[15];
@@ -299,7 +298,7 @@ export class Vector3 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformQuat(a: Vector3, q: Quaternion, out: Vector3): void {
+  static transformByQuat(a: Vector3, q: Quaternion, out: Vector3): void {
     const { x, y, z } = a;
     const qx = q.x;
     const qy = q.y;
