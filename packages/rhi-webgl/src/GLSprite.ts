@@ -1,5 +1,5 @@
 import { Logger } from "@alipay/o3-core";
-import { vec3 } from "@alipay/o3-math";
+import { Vector2, Vector3, vector4 } from "@alipay/o3-math";
 
 /**
  * 管理HUD控件Batch绘制时，需要处理的几何体数据
@@ -151,28 +151,28 @@ export class GLSprite {
 
   /**
    * 向当前的顶点缓冲中添加一个顶点
-   * @param {vec3} pos 位置坐标
-   * @param {vec2} uv 贴图坐标
-   * @param {vec4} color 颜色RGBA
+   * @param {Vector3} pos 位置坐标
+   * @param {Vector2} uv 贴图坐标
+   * @param {Vector4} color 颜色RGBA
    */
-  _pushVertex(pos, uv, color) {
+  _pushVertex(pos: Vector3, uv: Vector2, color: Vector4) {
     const vb = this._vertBuffer;
     const id = this._vertCursor;
 
     //-- pos
-    vb[id] = pos[0];
-    vb[id + 1] = pos[1];
-    vb[id + 2] = pos[2];
+    vb[id] = pos.x;
+    vb[id + 1] = pos.y;
+    vb[id + 2] = pos.z;
 
     //-- uv
-    vb[id + 3] = uv[0];
-    vb[id + 4] = uv[1];
+    vb[id + 3] = uv.x;
+    vb[id + 4] = uv.y;
 
     //-- color
-    vb[id + 5] = color[0];
-    vb[id + 6] = color[1];
-    vb[id + 7] = color[2];
-    vb[id + 8] = color[3];
+    vb[id + 5] = color.x;
+    vb[id + 6] = color.y;
+    vb[id + 7] = color.z;
+    vb[id + 8] = color.w;
 
     //--
     this._vertCursor += 9;
