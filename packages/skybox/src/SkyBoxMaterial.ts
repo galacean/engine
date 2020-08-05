@@ -1,6 +1,6 @@
-import { DataType, RenderState, CompFunc } from "@alipay/o3-base";
+import { DataType, RenderState, CompFunc } from "@alipay/o3-core";
 import { Material, RenderTechnique } from "@alipay/o3-material";
-import { mat4 } from "@alipay/o3-math";
+import { Matrix } from "@alipay/o3-math";
 import vs from "./skybox.vs.glsl";
 import fs from "./skybox.fs.glsl";
 
@@ -10,15 +10,15 @@ import fs from "./skybox.fs.glsl";
  * @private
  */
 export class SkyBoxMaterial extends Material {
-  private _cacheMat1;
-  private _cacheMat2;
-  private modelMatrix;
+  private _cacheMat1: Matrix;
+  private _cacheMat2: Matrix;
+  private modelMatrix: Matrix;
 
   constructor(name = SkyBoxMaterial.defaultName) {
     super(name);
   }
 
-  public setModel(modelMatrix) {
+  public setModel(modelMatrix: Matrix) {
     this.modelMatrix = modelMatrix;
   }
 
@@ -32,15 +32,16 @@ export class SkyBoxMaterial extends Material {
     }
 
     if (!this._cacheMat1) {
-      this._cacheMat1 = mat4.create();
-      this._cacheMat2 = mat4.create();
+      this._cacheMat1 = new Matrix();
+      this._cacheMat2 = new Matrix();
     }
     const view = camera.viewMatrix;
     const proj = camera.projectionMatrix;
 
-    mat4.mul(this._cacheMat1, view, this.modelMatrix);
-    this._cacheMat1[12] = this._cacheMat1[13] = this._cacheMat1[14] = 0;
-    mat4.mul(this._cacheMat2, proj, this._cacheMat1);
+    Matrix.multiply(view, this.modelMatrix, this._cacheMat1);
+    const e = this._cacheMat1.elements;
+    e[12] = e[13] = e[14] = 0;
+    Matrix.multiply(proj, this._cacheMat1, this._cacheMat2);
     this.setValue("u_mvpNoscale", this._cacheMat2);
 
     super.prepareDrawing(camera, component, undefined);

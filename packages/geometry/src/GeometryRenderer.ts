@@ -1,5 +1,5 @@
 import { RenderableComponent, Entity, Camera } from "@alipay/o3-core";
-import { Logger, Event } from "@alipay/o3-base";
+import { Logger, Event } from "@alipay/o3-core";
 import { BufferGeometry } from "./BufferGeometry";
 import { Material } from "@alipay/o3-material";
 
@@ -79,7 +79,7 @@ export class GeometryRenderer extends RenderableComponent {
     }
 
     if (geometry.primitive && this._material) {
-      camera.sceneRenderer.pushPrimitive(this, geometry.primitive, this._material);
+      camera._renderPipeline.pushPrimitive(this, geometry.primitive, this._material);
     } else {
       Logger.error("primitive or  material is null");
     }

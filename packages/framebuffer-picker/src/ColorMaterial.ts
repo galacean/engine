@@ -1,4 +1,4 @@
-import { Logger, DataType } from "@alipay/o3-base";
+import { Logger, DataType } from "@alipay/o3-core";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import vs from "./color.vs.glsl";
 import fs from "./color.fs.glsl";

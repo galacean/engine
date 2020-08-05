@@ -1,7 +1,8 @@
-import { DataType } from "@alipay/o3-base";
-import { mat4 } from "@alipay/o3-math";
+import { Matrix3x3, Matrix, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-core";
+
 import { GLShaderProgram } from "./GLShaderProgram";
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -11,16 +12,11 @@ import { GLAsset } from "./GLAsset";
 
 const UniformDefaults = {};
 UniformDefaults[DataType.FLOAT] = 0.0;
-UniformDefaults[DataType.FLOAT_VEC2] = new Float32Array([0.0, 0.0]);
-UniformDefaults[DataType.FLOAT_VEC3] = new Float32Array([0.0, 0.0, 0.0]);
-UniformDefaults[DataType.FLOAT_VEC4] = new Float32Array([0.0, 0.0, 0.0, 0.0]);
-UniformDefaults[DataType.FLOAT_MAT4] = mat4.create();
-
-/** uv变换矩阵 的 uniform 名字在相应纹理的 uniform 后面添加后缀
- * @example
- *  u_diffuse -> u_diffuseMatrix
- *  */
-const UV_MATRIX_POSTFIX = "Matrix";
+UniformDefaults[DataType.FLOAT_VEC2] = new Vector2();
+UniformDefaults[DataType.FLOAT_VEC3] = new Vector3();
+UniformDefaults[DataType.FLOAT_VEC4] = new Vector4();
+UniformDefaults[DataType.FLOAT_MAT3] = new Matrix3x3();
+UniformDefaults[DataType.FLOAT_MAT4] = new Matrix();
 
 /**
  * GL 层的 Technique 资源管理和渲染调用处理
@@ -202,37 +198,36 @@ export class GLTechnique extends GLAsset {
         else gl.uniform1i(location, value);
         break;
       case DataType.FLOAT_VEC2:
-        gl.uniform2fv(location, value);
+        gl.uniform2f(location, value.x, value.y);
         break;
       case DataType.FLOAT_VEC3:
-        gl.uniform3fv(location, value);
+        gl.uniform3f(location, value.x, value.y, value.z);
         break;
       case DataType.FLOAT_VEC4:
-        gl.uniform4fv(location, value);
+        gl.uniform4f(location, value.x, value.y, value.z, value.w);
         break;
       case DataType.INT_VEC2:
-        gl.uniform2iv(location, value);
+        gl.uniform2i(location, value.x, value.y);
         break;
       case DataType.INT_VEC3:
-        gl.uniform3iv(location, value);
+        gl.uniform3i(location, value.x, value.y, value.z);
         break;
       case DataType.INT_VEC4:
-        gl.uniform4iv(location, value);
+        gl.uniform4i(location, value.x, value.y, value.z, value.w);
         break;
       case DataType.FLOAT_MAT2:
-        gl.uniformMatrix2fv(location, false, value);
+        gl.uniformMatrix2fv(location, false, value.elements);
         break;
       case DataType.FLOAT_MAT3:
-        gl.uniformMatrix3fv(location, false, value);
+        gl.uniformMatrix3fv(location, false, value.elements);
         break;
       case DataType.FLOAT_MAT4:
-        gl.uniformMatrix4fv(location, false, value);
+        gl.uniformMatrix4fv(location, false, value.elements);
         break;
       case DataType.SAMPLER_2D: {
         const texture = value;
         if (texture) {
           this._uploadTexture(texture, location, GLTexture2D);
-          this.bindUvMatrix(texture.uvMatrix, uniform.name);
         }
         break;
       }
@@ -247,29 +242,6 @@ export class GLTechnique extends GLAsset {
         Logger.warn("UNKNOWN uniform type: " + uniform.type);
         break;
     } // end of switch
-  }
-
-  /**
-   * 绑定 uv 变换矩阵
-   * */
-  bindUvMatrix(uvMatrix, textureUniformName: string) {
-    const uvMatrixUniformName = textureUniformName + UV_MATRIX_POSTFIX;
-    // 若不存在，则新建
-    if (!this._uniforms[uvMatrixUniformName]) {
-      const glProgram = this._program.program;
-      const loc = this._program.getUniformLocation(glProgram, uvMatrixUniformName);
-      if (!(loc !== 0 && !loc)) {
-        this._uniforms[uvMatrixUniformName] = {
-          name: uvMatrixUniformName,
-          location: loc
-        };
-      }
-    }
-    // 若存在，则绑定
-    if (this._uniforms[uvMatrixUniformName]) {
-      const location = this._uniforms[uvMatrixUniformName].location;
-      this.rhi.gl.uniformMatrix3fv(location, false, uvMatrix);
-    }
   }
 
   /**

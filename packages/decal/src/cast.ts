@@ -1,10 +1,10 @@
-import { vec3 } from "@alipay/o3-math";
-import { Logger } from "@alipay/o3-base";
+import { Vector3 } from "@alipay/o3-math";
+import { Logger, Entity } from "@alipay/o3-core";
 import { Ray } from "./Ray";
-import { getNormal, distanceTo, getXFromIndex, fromBufferAttribute } from "./util";
+import { getNormal, distanceTo, fromBufferAttribute } from "./util";
 
-const _intersectPoint = vec3.create();
-const _intersectPointWorld = vec3.create();
+const _intersectPoint = new Vector3();
+const _intersectPointWorld = new Vector3();
 
 export function raycast(meshRenderer, ray) {
   const intersects = [];
@@ -25,9 +25,9 @@ export function raycast(meshRenderer, ray) {
     const positionAttribute = primitive.vertexBuffers[positionAttributeIndex];
     const indexAttribute = primitive.indexBuffer;
     for (let i = 0; i < indexAttribute.length; i += 3) {
-      const a = getXFromIndex(indexAttribute, i);
-      const b = getXFromIndex(indexAttribute, i + 1);
-      const c = getXFromIndex(indexAttribute, i + 2);
+      const a = indexAttribute[i];
+      const b = indexAttribute[i + 1];
+      const c = indexAttribute[i + 2];
       intersection = checkBufferGeometryIntersection(
         meshRenderer.node, // 父节点
         ray,
@@ -47,11 +47,11 @@ export function raycast(meshRenderer, ray) {
   return intersects;
 }
 
-function checkBufferGeometryIntersection(node, ray, localRay, positionAttribute, a, b, c, primitive) {
+function checkBufferGeometryIntersection(entity, ray, localRay, positionAttribute, a, b, c, primitive) {
   const vA = fromBufferAttribute(positionAttribute, a);
   const vB = fromBufferAttribute(positionAttribute, b);
   const vC = fromBufferAttribute(positionAttribute, c);
-  const intersection = checkIntersection(node, ray, localRay, vA, vB, vC, _intersectPoint, primitive);
+  const intersection = checkIntersection(entity, ray, localRay, vA, vB, vC, _intersectPoint, primitive);
 
   if (intersection) {
     const normal = getNormal(vA, vB, vC);
@@ -60,20 +60,29 @@ function checkBufferGeometryIntersection(node, ray, localRay, positionAttribute,
   return intersection;
 }
 
-function checkIntersection(node, ray, localRay, pA, pB, pC, point, primitive) {
+function checkIntersection(
+  entity: Entity,
+  ray: Ray,
+  localRay: Ray,
+  pA: Vector3,
+  pB: Vector3,
+  pC: Vector3,
+  point: Vector3,
+  primitive
+) {
   const intersect = localRay.intersectTriangle(pA, pB, pC, false, point);
   if (intersect === null) {
     return null;
   }
-  const temp = vec3.create();
-  const pointCopy = vec3.copy(_intersectPointWorld, point);
-  const intersectPointWorld = vec3.transformMat4(temp, pointCopy, node.getModelMatrix());
-  const distance = distanceTo(ray.origin, intersectPointWorld);
+  const temp = new Vector3();
+  point.cloneTo(_intersectPointWorld);
+  Vector3.transformCoordinate(_intersectPointWorld, entity.transform.worldMatrix, temp);
+  const distance = distanceTo(ray.origin, temp);
 
   return {
-    node,
+    entity,
     distance,
-    point: intersectPointWorld.slice(0),
+    point: _intersectPointWorld.clone(),
     normal: null,
     materialName: primitive.material.name,
     primitive

@@ -1,6 +1,6 @@
 #ifdef HAS_OCCLUSIONMAP
 
-    float ambientOcclusion = (texture2D(u_occlusionSampler, v_uv_occlusionTexture).r - 1.0) * u_occlusionStrength + 1.0;
+    float ambientOcclusion = (texture2D(u_occlusionSampler, v_uv).r - 1.0) * u_occlusionStrength + 1.0;
     reflectedLight.indirectDiffuse *= ambientOcclusion;
 
     #if defined(O3_USE_SPECULAR_ENV)
@@ -14,7 +14,7 @@
 
 #ifdef HAS_EMISSIVEMAP
 
-    vec4 emissiveMapColor = texture2D(u_emissiveSampler, v_uv_emissiveTexture);
+    vec4 emissiveMapColor = texture2D(u_emissiveSampler, v_uv);
     emissiveMapColor = SRGBtoLINEAR(emissiveMapColor);
     totalEmissiveRadiance += u_emissiveFactor * emissiveMapColor.rgb;
 

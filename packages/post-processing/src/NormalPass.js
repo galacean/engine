@@ -1,4 +1,4 @@
-import { DataType, RenderState, UniformSemantic } from '@alipay/o3-base';
+import { DataType, RenderState, UniformSemantic } from '@alipay/o3-core';
 import { RenderTarget } from '@alipay/o3-material';
 import { Material, RenderTechnique, ComplexMaterial } from '@alipay/o3-material';
 

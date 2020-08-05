@@ -1,8 +1,8 @@
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 import { Light } from "./Light";
-import { mat3 } from "@alipay/o3-math";
+import { Matrix3x3 } from "@alipay/o3-math";
 
-const cacheMat3 = mat3.create();
+const cacheMat3 = new Matrix3x3();
 
 /**
  * 环境光源
@@ -159,6 +159,7 @@ export class EnvironmentMapLight extends Light {
 
     // 支持旋转
     const transformMatrix = this.entity.transform.worldMatrix;
-    mtl.setValue(uniformName + ".transformMatrix", mat3.fromMat4(cacheMat3, transformMatrix));
+    Matrix3x3.fromMat4(transformMatrix, cacheMat3);
+    mtl.setValue(uniformName + ".transformMatrix", cacheMat3);
   }
 }

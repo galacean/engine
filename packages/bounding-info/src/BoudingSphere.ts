@@ -1,6 +1,6 @@
-import { vec3 } from "@alipay/o3-math";
-import { IntersectInfo } from "@alipay/o3-base";
-import { Vector3, Vector4, Matrix4 } from "@alipay/o3-math/types/type";
+import { IntersectInfo } from "@alipay/o3-core";
+import { Vector3, Vector4, Matrix } from "@alipay/o3-math";
+
 import { pointDistanceToPlane, getMaxScaleByModelMatrix } from "./util";
 
 /**
@@ -8,25 +8,25 @@ import { pointDistanceToPlane, getMaxScaleByModelMatrix } from "./util";
  * */
 export class BoundingSphere {
   /** 本地坐标系 */
-  public center: Vector3 = vec3.create();
+  public center: Vector3 = new Vector3();
   public radius: number = 0;
   /** 世界坐标系 */
-  public centerWorld: Vector3 = vec3.create();
+  public centerWorld: Vector3 = new Vector3();
   public radiusWorld: number = 0;
 
   /**
    * 初始化包围球, 之后可以通过 modelMatrix 缓存计算
    * @param {Vector3} minLocal - 本地坐标系的最小坐标
    * @param {Vector3} maxLocal - 本地坐标系的最大坐标
-   * @param {Matrix4} modelMatrix - Local to World矩阵
+   * @param {Matrix} modelMatrix - Local to World矩阵
    * */
-  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix4) {
+  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix) {
     // 先计算local
-    let distance = vec3.distance(minLocal, maxLocal);
+    let distance = Vector3.distance(minLocal, maxLocal);
     this.radius = distance * 0.5;
 
-    vec3.add(this.center, minLocal, maxLocal);
-    vec3.scale(this.center, this.center, 0.5);
+    Vector3.add(minLocal, maxLocal, this.center);
+    this.center.scale(0.5);
 
     // 计算world
     this.updateByModelMatrix(modelMatrix);
@@ -34,10 +34,10 @@ export class BoundingSphere {
 
   /**
    * 通过模型矩阵，和缓存的本地坐标系包围球，获取新的世界坐标系包围球
-   * @param {Matrix4} modelMatrix - Local to World矩阵
+   * @param {Matrix} modelMatrix - Local to World矩阵
    * */
-  updateByModelMatrix(modelMatrix: Matrix4) {
-    vec3.transformMat4(this.centerWorld, this.center, modelMatrix);
+  updateByModelMatrix(modelMatrix: Matrix) {
+    Vector3.transformCoordinate(this.center, modelMatrix, this.centerWorld);
     this.radiusWorld = this.radius * getMaxScaleByModelMatrix(modelMatrix);
   }
 

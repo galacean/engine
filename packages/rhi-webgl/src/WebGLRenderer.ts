@@ -1,5 +1,5 @@
-import { ClearMode, GLCapabilityType, Logger } from "@alipay/o3-base";
-import { Camera, HardwareRenderer, Canvas } from "@alipay/o3-core";
+import { ClearMode, GLCapabilityType, Logger } from "@alipay/o3-core";
+import { Camera, Canvas, HardwareRenderer } from "@alipay/o3-core";
 import { RenderTarget } from "@alipay/o3-material";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLCapability } from "./GLCapability";
@@ -12,9 +12,10 @@ import { GLTechnique } from "./GLTechnique";
 import { GLVAOPrimitive } from "./GLVAOPrimitive";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
+import { Vector4 } from "@alipay/o3-math";
 
 /**
- * WebGL模式。
+ * WebGL模式。默认 Auto
  */
 export enum WebGLMode {
   /** 自动，如果设备支持优先选择WebGL2.0，不支持 WebGL2.0 会回滚至WebGL1.0 */
@@ -248,9 +249,9 @@ export class WebGLRenderer implements HardwareRenderer {
    * @param {vec4}   tintColor     颜色
    * @param {Texture}   texture    纹理信息
    * @param {String}    renderMode    绘制方式， '2D' 或者 '3D'
-   * @param {ACamera}   camera        相机信息
+   * @param {Camera}   camera        相机信息
    */
-  drawSprite(positionQuad, uvRect, tintColor, texture, renderMode, camera) {
+  drawSprite(positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
     // _spriteBatcher只有在需要的时候才会创建
     if (!this._spriteBatcher) {
       this._spriteBatcher = new GLSpriteBatcher(this);
@@ -279,15 +280,15 @@ export class WebGLRenderer implements HardwareRenderer {
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      const viewport = camera.viewport;
-      const pixelViewport = camera._pixelViewport;
+      const viewport: Vector4 = camera.viewport;
+      const pixelViewport: Vector4 = camera._pixelViewport;
       const width = gl.drawingBufferWidth;
       const height = gl.drawingBufferHeight;
-      pixelViewport[0] = viewport[0] * width;
-      pixelViewport[1] = viewport[1] * height;
-      pixelViewport[2] = viewport[2] * width;
-      pixelViewport[3] = viewport[3] * height;
-      this.viewport(pixelViewport[0], pixelViewport[1], pixelViewport[2], pixelViewport[3]);
+      pixelViewport.x = viewport.x * width;
+      pixelViewport.y = viewport.y * height;
+      pixelViewport.z = viewport.z * width;
+      pixelViewport.w = viewport.w * height;
+      this.viewport(pixelViewport.x, pixelViewport.y, pixelViewport.z, pixelViewport.w);
     }
   }
 

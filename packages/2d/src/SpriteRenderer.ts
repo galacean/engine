@@ -1,7 +1,7 @@
-import { RenderableComponent } from "@alipay/o3-core";
-import { vec3, vec4, quat } from "@alipay/o3-math";
+import { RenderableComponent, Camera, Entity } from "@alipay/o3-core";
+import { Vector3, Vector4, Quaternion, Matrix } from "@alipay/o3-math";
 import { Texture2D } from "@alipay/o3-material";
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 
 interface IUvRect {
   u: number;
@@ -18,10 +18,10 @@ interface IRect {
 }
 
 interface IPositionQuad {
-  leftTop: any;
-  leftBottom: any;
-  rightTop: any;
-  rightBottom: any;
+  leftTop: Vector3;
+  leftBottom: Vector3;
+  rightTop: Vector3;
+  rightBottom: Vector3;
 }
 
 /**
@@ -29,6 +29,11 @@ interface IPositionQuad {
  * @class
  */
 export class SpriteRenderer extends RenderableComponent {
+  private static _tempVec40: Vector4 = new Vector4();
+  private static _tempVec41: Vector4 = new Vector4();
+  private static _tempVec42: Vector4 = new Vector4();
+  private static _tempVec43: Vector4 = new Vector4();
+
   private _uvRect: IUvRect;
   private _worldSize: number[] = [];
   private _positionQuad: IPositionQuad;
@@ -46,14 +51,14 @@ export class SpriteRenderer extends RenderableComponent {
    * 调节色，控制 Sprite 颜色变化
    */
   public tintColor: number[] = [1, 1, 1, 1];
-  public transformMatrix: any;
+  public transformMatrix: Matrix;
 
   /**
    * 构造函数
    * @param {Entity} entity
    * @param {Sprite} sprite
    */
-  constructor(entity, sprite) {
+  constructor(entity: Entity, sprite) {
     super(entity);
 
     const { texture, rect, anchor, worldSizeFactor } = sprite;
@@ -73,10 +78,10 @@ export class SpriteRenderer extends RenderableComponent {
 
     //--
     this._positionQuad = {
-      leftTop: vec3.create(),
-      leftBottom: vec3.create(),
-      rightTop: vec3.create(),
-      rightBottom: vec3.create()
+      leftTop: new Vector3(),
+      leftBottom: new Vector3(),
+      rightTop: new Vector3(),
+      rightBottom: new Vector3()
     };
 
     this._rotationAngle = 0;
@@ -122,7 +127,7 @@ export class SpriteRenderer extends RenderableComponent {
 
   /**
    * 旋转角度
-   * @member {vec4}
+   * @member {Vector4}
    */
   get rotationAngle() {
     return this._rotationAngle;
@@ -179,12 +184,12 @@ export class SpriteRenderer extends RenderableComponent {
 
   /**
    * 更新位置，将数据对象加入渲染队列
-   * @param {ACamera} camera
+   * @param {Camera} camera
    */
-  render(camera) {
+  render(camera: Camera) {
     this._updatePositionQuad(camera);
     this._transformByMatrix();
-    camera.sceneRenderer.pushSprite(
+    camera._renderPipeline.pushSprite(
       this,
       this._positionQuad,
       this._uvRect,
@@ -198,104 +203,85 @@ export class SpriteRenderer extends RenderableComponent {
   _transformByMatrix() {
     if (!this.transformMatrix) return;
     const matrix = this.transformMatrix;
-    const leftTop = vec4.set(
-      vec4.create(),
-      this._positionQuad.leftTop[0],
-      this._positionQuad.leftTop[1],
-      this._positionQuad.leftTop[2],
-      1
-    );
-    const leftBottom = vec4.set(
-      vec4.create(),
-      this._positionQuad.leftBottom[0],
-      this._positionQuad.leftBottom[1],
-      this._positionQuad.leftBottom[2],
-      1
-    );
 
-    const rightTop = vec4.set(
-      vec4.create(),
-      this._positionQuad.rightTop[0],
-      this._positionQuad.rightTop[1],
-      this._positionQuad.rightTop[2],
-      1
-    );
-    const rightBottom = vec4.set(
-      vec4.create(),
-      this._positionQuad.rightBottom[0],
-      this._positionQuad.rightBottom[1],
-      this._positionQuad.rightBottom[2],
-      1
-    );
-    vec4.transformMat4(leftTop, leftTop, matrix);
-    vec4.transformMat4(leftBottom, leftBottom, matrix);
-    vec4.transformMat4(rightTop, rightTop, matrix);
-    vec4.transformMat4(rightBottom, rightBottom, matrix);
-    this._positionQuad.leftTop = vec3.clone([leftTop[0], leftTop[1], leftTop[2]]);
-    this._positionQuad.leftBottom = vec3.clone([leftBottom[0], leftBottom[1], leftBottom[2]]);
-    this._positionQuad.rightTop = vec3.clone([rightTop[0], rightTop[1], rightTop[2]]);
-    this._positionQuad.rightBottom = vec3.clone([rightBottom[0], rightBottom[1], rightBottom[2]]);
+    let temp: Vector3 = this._positionQuad.leftTop;
+    const leftTop: Vector4 = SpriteRenderer._tempVec40;
+    leftTop.setValue(temp.x, temp.y, temp.z, 1);
+
+    temp = this._positionQuad.leftBottom;
+    const leftBottom: Vector4 = SpriteRenderer._tempVec41;
+    leftBottom.setValue(temp.x, temp.y, temp.z, 1);
+
+    temp = this._positionQuad.rightTop;
+    const rightTop: Vector4 = SpriteRenderer._tempVec42;
+    rightTop.setValue(temp.x, temp.y, temp.z, 1);
+
+    temp = this._positionQuad.rightBottom;
+    const rightBottom: Vector4 = SpriteRenderer._tempVec43;
+    rightBottom.setValue(temp.x, temp.y, temp.z, 1);
+
+    Vector3.transformByMat4x4(leftTop, matrix, leftTop);
+    Vector3.transformByMat4x4(leftBottom, matrix, leftBottom);
+    Vector3.transformByMat4x4(rightTop, matrix, rightTop);
+    Vector3.transformByMat4x4(rightBottom, matrix, rightBottom);
+
+    this._positionQuad.leftTop.setValue(leftTop.x, leftTop.y, leftTop.z);
+    this._positionQuad.leftBottom.setValue(leftBottom.x, leftBottom.y, leftBottom.z);
+    this._positionQuad.rightTop.setValue(rightTop.x, rightTop.y, rightTop.z);
+    this._positionQuad.rightBottom.setValue(rightBottom.x, rightBottom.y, rightBottom.z);
   }
 
   /**
    * 更新顶点位置
-   * @param {ACamera} camera
+   * @param {Camera} camera
    * @private
    */
   _updatePositionQuad(camera) {
     if (this.renderMode === "2D") {
       const m = camera.viewMatrix;
-      const vx = vec3.fromValues(m[0], m[4], m[8]);
-      const vy = vec3.fromValues(m[1], m[5], m[9]);
+      const vx = new Vector3(m[0], m[4], m[8]);
+      const vy = new Vector3(m[1], m[5], m[9]);
       //-- center pos
-      const c = vec3.clone(this.entity.worldPosition);
+      const c: Vector3 = this.entity.worldPosition.clone();
       const s = this._worldSize;
       const ns = this.entity.scale;
 
-      vec3.scale(vx, vx, s[0] * ns[0]);
-      vec3.scale(vy, vy, s[1] * ns[1]);
+      vx.scale(s[0] * ns[0]);
+      vy.scale(s[1] * ns[1]);
 
       if (this._rotationAngle !== 0) {
-        const vz = vec3.fromValues(m[2], m[6], m[10]);
+        const vz = new Vector3(m[2], m[6], m[10]);
 
-        const rotation = quat.create();
-        quat.setAxisAngle(rotation, vz, this._rotationAngle);
+        const rotation: Quaternion = new Quaternion();
+        rotation.setAxisAngle(vz, this._rotationAngle);
 
-        vec3.transformQuat(vx, vx, rotation);
-        vec3.transformQuat(vy, vy, rotation);
+        Vector3.transformByQuat(vx, rotation, vx);
+        Vector3.transformByQuat(vy, rotation, vy);
       }
 
-      const cx = vec3.create();
-      const cy = vec3.create();
-      vec3.scale(cx, vx, (this.anchor[0] - 0.5) * 2);
-      vec3.scale(cy, vy, (this.anchor[1] - 0.5) * 2);
+      const cx: Vector3 = new Vector3();
+      const cy: Vector3 = new Vector3();
+      Vector3.scale(vx, (this.anchor[0] - 0.5) * 2, cx);
+      Vector3.scale(vy, (this.anchor[1] - 0.5) * 2, cy);
 
-      vec3.sub(c, c, cx);
-      vec3.add(c, c, cy);
+      c.subtract(cx).add(cy);
 
       //-- quad pos
-      const leftTop = vec3.create();
-      vec3.sub(leftTop, c, vx);
-      vec3.add(leftTop, leftTop, vy);
+      const leftTop: Vector3 = this._positionQuad.leftTop;
+      Vector3.subtract(c, vx, leftTop);
+      leftTop.add(vy);
 
-      const leftBottom = vec3.create();
-      vec3.sub(leftBottom, c, vx);
-      vec3.sub(leftBottom, leftBottom, vy);
+      const leftBottom: Vector3 = this._positionQuad.leftBottom;
+      Vector3.subtract(c, vx, leftBottom);
+      leftBottom.subtract(vy);
 
-      const rightBottom = vec3.create();
-      vec3.add(rightBottom, c, vx);
-      vec3.sub(rightBottom, rightBottom, vy);
+      const rightBottom: Vector3 = this._positionQuad.rightBottom;
+      Vector3.add(c, vx, rightBottom);
+      rightBottom.subtract(vy);
 
-      const rightTop = vec3.create();
-      vec3.add(rightTop, c, vx);
-      vec3.add(rightTop, rightTop, vy);
-
-      // update quad position
-      this._positionQuad.leftTop = leftTop;
-      this._positionQuad.leftBottom = leftBottom;
-      this._positionQuad.rightTop = rightTop;
-      this._positionQuad.rightBottom = rightBottom;
-      // console.log(3333, ns[0], leftTop, leftBottom);
+      const rightTop: Vector3 = this._positionQuad.rightTop;
+      Vector3.add(c, vx, rightTop);
+      rightTop.add(vy);
     } else {
       // TODO: 3D
     }

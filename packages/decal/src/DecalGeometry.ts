@@ -1,6 +1,7 @@
 import { BufferGeometry } from "@alipay/o3-geometry";
-import { vec3, mat4 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-base";
+import { Vector3, Matrix, Quaternion, Vector2 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-core";
+
 import { Entity } from "@alipay/o3-core";
 import { Mesh } from "@alipay/o3-mesh";
 import { Primitive } from "@alipay/o3-primitive";
@@ -19,15 +20,15 @@ interface Intersection {
 }
 
 export class DecalGeometry extends BufferGeometry {
-  public size: FloatArray;
+  public size: Vector3;
   public readonly node: Entity;
   public readonly targetMesh: Mesh;
   public readonly targetPrimitive: Primitive;
-  public readonly position: FloatArray;
-  public readonly orientation: FloatArray;
-  public readonly projectorMatrix: FloatArray;
-  public readonly projectorMatrixInverse: FloatArray;
-  public constructor(intersection: Intersection, position: FloatArray, orientation: FloatArray, size: FloatArray) {
+  public readonly position: Vector3;
+  public readonly orientation: Quaternion;
+  public readonly projectorMatrix: Matrix;
+  public readonly projectorMatrixInverse: Matrix;
+  public constructor(intersection: Intersection, position: Vector3, orientation: Quaternion, size: Vector3) {
     super();
     this.node = intersection.entity;
     const meshRenderer = this.node.getComponent(MeshRenderer);
@@ -42,14 +43,11 @@ export class DecalGeometry extends BufferGeometry {
     this.size = size;
 
     // get projectorMatrix
-    const quatMat = makeRotationFromQuaternion(orientation);
-    const projectorMatrix = setPosition(quatMat, position);
-    this.projectorMatrix = projectorMatrix;
+    this.projectorMatrix = makeRotationFromQuaternion(orientation);
+    setPosition(this.projectorMatrix, position);
 
     // get projectorMatrixInverse
-    const tempMat = mat4.create();
-    const projectorMatrixInverse = mat4.invert(tempMat, projectorMatrix);
-    this.projectorMatrixInverse = projectorMatrixInverse;
+    Matrix.invert(this.projectorMatrix, this.projectorMatrixInverse);
 
     const vertexValues = this.generate();
     const vertexCount = vertexValues.length;
@@ -85,8 +83,6 @@ export class DecalGeometry extends BufferGeometry {
     // three consecutive 'DecalVertex' objects represent a single face
     //
     // this data structure will be later used to perform the clipping
-    let vertex;
-    let normal;
     for (let i = 0; i < count; i += 1) {
       const vertex = fromBufferAttribute(positionAttribute, index[i]);
       let normal;
@@ -97,12 +93,12 @@ export class DecalGeometry extends BufferGeometry {
       this.pushDecalVertex(decalVertices, vertex, normal);
     }
     // second, clip the geometry so that it doesn't extend out from the projector
-    decalVertices = this.clipGeometry(decalVertices, [1, 0, 0]);
-    decalVertices = this.clipGeometry(decalVertices, [-1, 0, 0]);
-    decalVertices = this.clipGeometry(decalVertices, [0, 1, 0]);
-    decalVertices = this.clipGeometry(decalVertices, [0, -1, 0]);
-    decalVertices = this.clipGeometry(decalVertices, [0, 0, 1]);
-    decalVertices = this.clipGeometry(decalVertices, [0, 0, -1]);
+    decalVertices = this.clipGeometry(decalVertices, new Vector3(1, 0, 0));
+    decalVertices = this.clipGeometry(decalVertices, new Vector3(-1, 0, 0));
+    decalVertices = this.clipGeometry(decalVertices, new Vector3(0, 1, 0));
+    decalVertices = this.clipGeometry(decalVertices, new Vector3(0, -1, 0));
+    decalVertices = this.clipGeometry(decalVertices, new Vector3(0, 0, 1));
+    decalVertices = this.clipGeometry(decalVertices, new Vector3(0, 0, -1));
 
     // third, generate final vertices, normals and uvs
     const size = this.size;
@@ -111,21 +107,18 @@ export class DecalGeometry extends BufferGeometry {
 
       // create texture coordinates (we are still in projector space)
       // 旋转180度
-      const uvx = 0.5 + decalVertex.position[0] / size[0];
-      const uvy = 0.5 + decalVertex.position[1] / size[1];
+      const uvx = 0.5 + decalVertex.position.x / size.x;
+      const uvy = 0.5 + decalVertex.position.y / size.y;
 
       const uv = [uvx, 1 - uvy];
 
       // transform the vertex back to world space
-      const projectorMatrix = this.projectorMatrix;
-      const o = vec3.create();
-      const local = vec3.transformMat4(o, decalVertex.position, projectorMatrix);
-      decalVertex.position = local;
+      Vector3.transformCoordinate(decalVertex.position, this.projectorMatrix, decalVertex.position);
 
       // now create vertex and normal buffer data
 
-      const position = [decalVertex.position[0], decalVertex.position[1], decalVertex.position[2]];
-      const normal = [decalVertex.normal[0], decalVertex.normal[1], decalVertex.normal[2]];
+      const position = [decalVertex.position.x, decalVertex.position.y, decalVertex.position.z];
+      const normal = [decalVertex.normal.x, decalVertex.normal.y, decalVertex.normal.z];
 
       vertexValues.push({
         POSITION: position,
@@ -137,35 +130,31 @@ export class DecalGeometry extends BufferGeometry {
     return vertexValues;
   }
 
-  pushDecalVertex(decalVertices, vertexInput, normalInput) {
-    // 目标mesh
-    const mesh = this.targetMesh;
+  pushDecalVertex(decalVertices, vertexInput: Vector3, normalInput: Vector3) {
     // 投影矩阵的逆
-    const projectorMatrixInverse = this.projectorMatrixInverse;
+    const projectorMatrixInverse: Matrix = this.projectorMatrixInverse;
 
     // transform the vertex to world space, then to projector space
-    const targetMatrix = this.node.transform.worldMatrix;
-    const temp1 = vec3.create();
-    const temp2 = vec3.create();
-    const temp3 = vec3.create();
+    const targetMatrix: Matrix = this.node.transform.worldMatrix;
+    const local: Vector3 = new Vector3();
+    const vertex: Vector3 = new Vector3();
+    const normal: Vector3 = new Vector3();
 
-    const local = vec3.transformMat4(temp1, vertexInput, targetMatrix);
-    const vertex = vec3.transformMat4(temp2, local, projectorMatrixInverse);
+    Vector3.transformCoordinate(vertexInput, targetMatrix, local);
+    Vector3.transformCoordinate(local, projectorMatrixInverse, vertex);
 
-    let normal;
     if (normalInput) {
-      normal = transformDirection(temp3, normalInput, targetMatrix);
+      transformDirection(normal, normalInput, targetMatrix);
     } else {
-      normal = [0, 0, 0];
+      normal.setValue(0, 0, 0);
     }
 
     decalVertices.push(new DecalVertex(vertex, normal));
   }
 
-  clipGeometry(inVertices, plane) {
+  clipGeometry(inVertices, plane: Vector3) {
     const outVertices = [];
-    const size = this.size;
-    const s = 0.5 * Math.abs(vec3.dot(size, plane));
+    const s = 0.5 * Math.abs(Vector3.dot(this.size, plane));
 
     // a single iteration clips one face,
     // which consists of three consecutive 'DecalVertex' objects
@@ -180,9 +169,9 @@ export class DecalGeometry extends BufferGeometry {
       let nV3;
       let nV4;
 
-      const d1 = vec3.dot(inVertices[i + 0].position, plane) - s;
-      const d2 = vec3.dot(inVertices[i + 1].position, plane) - s;
-      const d3 = vec3.dot(inVertices[i + 2].position, plane) - s;
+      const d1 = Vector3.dot(inVertices[i + 0].position, plane) - s;
+      const d2 = Vector3.dot(inVertices[i + 1].position, plane) - s;
+      const d3 = Vector3.dot(inVertices[i + 2].position, plane) - s;
       v1Out = d1 > 0;
       v2Out = d2 > 0;
       v3Out = d3 > 0;
@@ -282,23 +271,23 @@ export class DecalGeometry extends BufferGeometry {
     return outVertices;
   }
 
-  clip(v0, v1, p, s) {
-    const d0 = vec3.dot(v0.position, p) - s;
-    const d1 = vec3.dot(v1.position, p) - s;
+  clip(v0: DecalVertex, v1: DecalVertex, p: Vector3, s: number) {
+    const d0: number = Vector3.dot(v0.position, p) - s;
+    const d1: number = Vector3.dot(v1.position, p) - s;
 
-    const s0 = d0 / (d0 - d1);
+    const s0: number = d0 / (d0 - d1);
 
     const v = new DecalVertex(
-      [
-        v0.position[0] + s0 * (v1.position[0] - v0.position[0]),
-        v0.position[1] + s0 * (v1.position[1] - v0.position[1]),
-        v0.position[2] + s0 * (v1.position[2] - v0.position[2])
-      ],
-      [
-        v0.normal[0] + s0 * (v1.normal[0] - v0.normal[0]),
-        v0.normal[1] + s0 * (v1.normal[1] - v0.normal[1]),
-        v0.normal[2] + s0 * (v1.normal[2] - v0.normal[2])
-      ]
+      new Vector3(
+        v0.position.x + s0 * (v1.position.x - v0.position.x),
+        v0.position.y + s0 * (v1.position.y - v0.position.y),
+        v0.position.z + s0 * (v1.position.z - v0.position.z)
+      ),
+      new Vector3(
+        v0.normal.x + s0 * (v1.normal.x - v0.normal.x),
+        v0.normal.y + s0 * (v1.normal.y - v0.normal.y),
+        v0.normal.z + s0 * (v1.normal.z - v0.normal.z)
+      )
     );
 
     // need to clip more values (texture coordinates)? do it this way:
@@ -308,14 +297,19 @@ export class DecalGeometry extends BufferGeometry {
 }
 
 class DecalVertex {
-  public position;
-  public normal;
-  public constructor(position, normal = [0, 0, 0]) {
+  public position: Vector3;
+  public normal: Vector3;
+  public constructor(position: Vector3, normal: Vector3) {
     this.position = position;
     this.normal = normal;
   }
 
   clone() {
-    return new DecalVertex(this.position.slice(0), this.normal.slice(0));
+    const pos = new Vector3();
+    this.position.cloneTo(pos);
+    const normal = new Vector3();
+    this.normal.cloneTo(normal);
+
+    return new DecalVertex(pos, normal);
   }
 }

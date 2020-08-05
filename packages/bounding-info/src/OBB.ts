@@ -1,30 +1,33 @@
-import { vec3 } from "@alipay/o3-math";
-import { IntersectInfo } from "@alipay/o3-base";
-import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
+import { IntersectInfo } from "@alipay/o3-core";
+import { Vector3, Vector4, Matrix } from "@alipay/o3-math";
+
 import { pointDistanceToPlane } from "./util";
 
 /**
  * 方向包围盒(Oriented Bounding Box)
  * */
 export class OBB {
+  private static _tempVec3: Vector3 = new Vector3();
+
   /** 本地坐标系 */
-  public min: Vector3 = vec3.create();
-  public max: Vector3 = vec3.create();
+  public min: Vector3 = new Vector3();
+  public max: Vector3 = new Vector3();
   public corners: Vector3[] = [];
   /** 世界坐标系 */
-  public minWorld: Vector3 = vec3.create();
-  public maxWorld: Vector3 = vec3.create();
+  public minWorld: Vector3 = new Vector3();
+  public maxWorld: Vector3 = new Vector3();
   public cornersWorld: Vector3[] = [];
 
   /**
    * 初始化 OBB, 之后可以通过 modelMatrix 缓存计算
    * @param {Vector3} minLocal - 本地坐标系的最小坐标
    * @param {Vector3} maxLocal - 本地坐标系的最大坐标
-   * @param {Matrix4} modelMatrix - Local to World矩阵
+   * @param {Matrix} modelMatrix - Local to World矩阵
    * */
-  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix4) {
-    vec3.copy(this.min, minLocal);
-    vec3.copy(this.max, maxLocal);
+  constructor(minLocal: Vector3, maxLocal: Vector3, modelMatrix: Matrix) {
+    minLocal.cloneTo(this.min);
+    maxLocal.cloneTo(this.max);
+
     this.corners = this.getCornersFromMinMax(minLocal, maxLocal);
 
     // world
@@ -37,41 +40,44 @@ export class OBB {
    * @param {Vector3} max - 最大坐标
    */
   getCornersFromMinMax(min: Vector3, max: Vector3) {
-    const minX = min[0],
-      minY = min[1],
-      minZ = min[2],
-      maxX = max[0],
-      maxY = max[1],
-      maxZ = max[2];
+    const minX = min.x,
+      minY = min.y,
+      minZ = min.z,
+      maxX = max.x,
+      maxY = max.y,
+      maxZ = max.z;
     const corners = [
-      vec3.fromValues(minX, minY, minZ),
-      vec3.fromValues(maxX, maxY, maxZ),
-      vec3.fromValues(maxX, minY, minZ),
-      vec3.fromValues(minX, maxY, minZ),
-      vec3.fromValues(minX, minY, maxZ),
-      vec3.fromValues(maxX, maxY, minZ),
-      vec3.fromValues(minX, maxY, maxZ),
-      vec3.fromValues(maxX, minY, maxZ)
+      new Vector3(minX, minY, minZ),
+      new Vector3(maxX, maxY, maxZ),
+      new Vector3(maxX, minY, minZ),
+      new Vector3(minX, maxY, minZ),
+      new Vector3(minX, minY, maxZ),
+      new Vector3(maxX, maxY, minZ),
+      new Vector3(minX, maxY, maxZ),
+      new Vector3(maxX, minY, maxZ)
     ];
     return corners;
   }
 
   /**
    * 通过模型矩阵，和缓存的本地坐标系 OBB，获取新的世界坐标系 OBB
-   * @param {Matrix4} modelMatrix - Local to World矩阵
+   * @param {Matrix} modelMatrix - Local to World矩阵
    * */
-  updateByModelMatrix(modelMatrix: Matrix4) {
-    let min = [Infinity, Infinity, Infinity];
-    let max = [-Infinity, -Infinity, -Infinity];
+  updateByModelMatrix(modelMatrix: Matrix) {
+    const min = this.minWorld;
+    const max = this.maxWorld;
+    min.setValue(Infinity, Infinity, Infinity);
+    max.setValue(-Infinity, -Infinity, -Infinity);
+
     for (let i = 0; i < 8; ++i) {
       const corner: Vector3 = this.corners[i];
-      const cornerWorld: Vector3 = vec3.create();
-      vec3.transformMat4(cornerWorld, corner, modelMatrix);
-      vec3.min(min, min, cornerWorld);
-      vec3.max(max, max, cornerWorld);
-      this.minWorld = min;
-      this.maxWorld = max;
-      this.cornersWorld[i] = cornerWorld;
+      const cornerWorld: Vector3 = OBB._tempVec3;
+
+      Vector3.transformCoordinate(corner, modelMatrix, cornerWorld);
+      Vector3.min(min, cornerWorld, min);
+      Vector3.max(max, cornerWorld, max);
+
+      cornerWorld.cloneTo(this.cornersWorld[i]);
     }
   }
 

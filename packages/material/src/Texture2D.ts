@@ -1,6 +1,6 @@
-import { Texture } from "./Texture";
-import { TextureFormat, TextureFilterMode, TextureWrapMode, AssetType, Logger } from "@alipay/o3-base";
+import { Logger, TextureFilterMode, TextureFormat, TextureWrapMode } from "@alipay/o3-core";
 import { Engine } from "@alipay/o3-core";
+import { Texture } from "./Texture";
 
 /**
  * 2D纹理。
@@ -32,9 +32,9 @@ export class Texture2D extends Texture {
     mipmap: boolean = true,
     engine?: Engine
   ) {
-    super("");
+    super();
     engine = engine || Engine._getDefaultEngine();
-    const rhi = engine.hardwareRenderer;
+    const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 
@@ -65,9 +65,6 @@ export class Texture2D extends Texture {
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
-
-    //todo: delete
-    this.type = AssetType.Scene;
   }
 
   /**
@@ -80,7 +77,7 @@ export class Texture2D extends Texture {
    * @param width - 数据宽度。如果为空的话 width 为 mipLevel 对应的宽度减去 x , mipLevel 对应的宽度为 Math.max(1, this.width >> mipLevel)
    * @param height - 数据高度。如果为空的话 height 为 mipLevel 对应的高度减去 y , mipLevel 对应的高度为 Math.max(1, this.height >> mipLevel)
    */
-  public setPixelBuffer(
+  setPixelBuffer(
     colorBuffer: ArrayBufferView,
     mipLevel: number = 0,
     x?: number,
@@ -125,7 +122,7 @@ export class Texture2D extends Texture {
    * @param x - 区域起始X坐标
    * @param y - 区域起始Y坐标
    */
-  public setImageSource(
+  setImageSource(
     imageSource: TexImageSource,
     mipLevel: number = 0,
     flipY: boolean = false,
@@ -151,7 +148,7 @@ export class Texture2D extends Texture {
    * @param height - 区域高
    * @param out - 颜色数据缓冲
    */
-  public getPixelBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {
+  getPixelBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {
     if (this._formatDetail.isCompressed) {
       throw new Error("Unable to read compressed texture");
     }

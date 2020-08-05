@@ -1,6 +1,6 @@
-import { RenderPass } from "@alipay/o3-renderer-basic";
+import { RenderPass, Camera } from "@alipay/o3-core";
 import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
-import { BlendFunc, RenderBufferColorFormat } from "@alipay/o3-base";
+import { BlendFunc, RenderBufferColorFormat } from "@alipay/o3-core";
 
 /**
  * Weighted-Average renderPass
@@ -24,8 +24,8 @@ export class WeightedAverageRenderPass extends RenderPass {
     return [this.renderTarget.getColorTexture(0), this.renderTarget.getColorTexture(1)];
   }
 
-  preRender(camera, opaqueQueue, transparentQueue) {
-    const defaultRenderPass = camera.sceneRenderer.defaultRenderPass;
+  preRender(camera: Camera, opaqueQueue, transparentQueue) {
+    const defaultRenderPass = camera._renderPipeline.defaultRenderPass;
 
     // 防止 clearParam 改动
     this.clearParam = [0, 0, 0, 0];

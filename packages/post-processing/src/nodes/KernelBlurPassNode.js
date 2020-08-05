@@ -1,4 +1,4 @@
-import { DataType, RenderState } from '@alipay/o3-base';
+import { DataType, RenderState } from '@alipay/o3-core';
 import { PostEffectNode } from '../PostEffectNode';
 import { Material, RenderTechnique } from '@alipay/o3-material';
 

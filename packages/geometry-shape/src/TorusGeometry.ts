@@ -1,7 +1,6 @@
 import { BufferGeometry, InterleavedBuffer, IndexBuffer } from "@alipay/o3-geometry";
 import { BufferAttribute } from "@alipay/o3-primitive";
-import { vec3 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 
 export class TorusGeometry extends BufferGeometry {
   constructor(
@@ -32,9 +31,9 @@ export class TorusGeometry extends BufferGeometry {
 
     // helper variables
 
-    const center = Float32Array.from([0, 0, 0]);
-    const vertex = Float32Array.from([0, 0, 0]);
-    const normal = Float32Array.from([0, 0, 0]);
+    const center: Vector3 = new Vector3();
+    const vertex: Vector3 = new Vector3();
+    const normal: Vector3 = new Vector3();
 
     // generate vertices, normals and uvs
 
@@ -45,20 +44,20 @@ export class TorusGeometry extends BufferGeometry {
 
         // vertex
 
-        vertex[0] = (radius + tube * Math.cos(v)) * Math.cos(u);
-        vertex[1] = (radius + tube * Math.cos(v)) * Math.sin(u);
-        vertex[2] = tube * Math.sin(v);
+        vertex.x = (radius + tube * Math.cos(v)) * Math.cos(u);
+        vertex.y = (radius + tube * Math.cos(v)) * Math.sin(u);
+        vertex.z = tube * Math.sin(v);
 
-        vertices.push([vertex[0], vertex[1], vertex[2]]);
+        vertices.push([vertex.x, vertex.y, vertex.z]);
 
         // normal
 
-        center[0] = radius * Math.cos(u);
-        center[1] = radius * Math.sin(u);
-        vec3.sub(normal, vertex, center);
-        vec3.normalize(normal, normal);
+        center.x = radius * Math.cos(u);
+        center.y = radius * Math.sin(u);
+        Vector3.subtract(vertex, center, normal);
+        normal.normalize();
 
-        normals.push(normal[0], normal[1], normal[2]);
+        normals.push(normal.x, normal.y, normal.z);
 
         // uv
 

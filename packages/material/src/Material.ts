@@ -1,5 +1,6 @@
-import { mat4, mat3 } from "@alipay/o3-math";
-import { MaterialType, UniformSemantic, Util } from "@alipay/o3-base";
+import { Matrix, Matrix3x3 } from "@alipay/o3-math";
+import { Camera, MaterialType, ReferenceObject, UniformSemantic, Util } from "@alipay/o3-core";
+
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
 
@@ -7,7 +8,7 @@ import { Texture } from "./Texture";
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
  * @class
  */
-export class Material {
+export class Material extends ReferenceObject {
   /**
    * 名称
    * @member {string}
@@ -37,6 +38,7 @@ export class Material {
    * @param {string} name 名称
    */
   constructor(name: string) {
+    super();
     this.name = name;
 
     this.renderType = MaterialType.OPAQUE;
@@ -48,6 +50,8 @@ export class Material {
     //--
     this._technique = null;
     this._values = {};
+
+    this._gcPriority = 1000;
   }
 
   /** 创建一个本材质对象的深拷贝对象
@@ -116,6 +120,13 @@ export class Material {
     const oriValue = this.getValue(name);
     const oriIsTexture = oriValue instanceof Texture;
     const curIsTexture = value instanceof Texture;
+    if (oriIsTexture) {
+      (<Texture>oriValue)._addReference(-1);
+    }
+    if (curIsTexture) {
+      (<Texture>value)._addReference(1);
+    }
+
     if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {
       this._technique = null;
     }
@@ -199,7 +210,7 @@ export class Material {
    * @param {Component} component
    * @private
    */
-  _updateValueBySemantic(uniform, camera, component) {
+  _updateValueBySemantic(uniform, camera: Camera, component) {
     const values = this._values;
 
     switch (uniform.semantic) {
@@ -225,8 +236,8 @@ export class Material {
         const view = camera.viewMatrix;
         const model = component._entity.transform.worldMatrix;
         let modelView = values[uniform.name];
-        if (!modelView) modelView = mat4.create();
-        mat4.mul(modelView, view, model);
+        if (!modelView) modelView = new Matrix();
+        Matrix.multiply(view, model, modelView);
         values[uniform.name] = modelView;
         break;
       }
@@ -236,9 +247,9 @@ export class Material {
         const proj = camera.projectionMatrix;
         const model = component._entity.transform.worldMatrix;
         let MVP = values[uniform.name];
-        if (!MVP) MVP = mat4.create();
-        mat4.mul(MVP, view, model);
-        mat4.mul(MVP, proj, MVP);
+        if (!MVP) MVP = new Matrix();
+        Matrix.multiply(view, model, MVP);
+        Matrix.multiply(proj, MVP, MVP);
         values[uniform.name] = MVP;
         break;
       }
@@ -259,9 +270,9 @@ export class Material {
         const view = camera.viewMatrix;
         const model = component.modelMatrix;
         let invMV = values[uniform.name];
-        if (!invMV) invMV = mat4.create();
-        mat4.mul(invMV, view, model);
-        mat4.invert(invMV, invMV);
+        if (!invMV) invMV = new Matrix();
+        Matrix.multiply(view, model, invMV);
+        Matrix.invert(invMV, invMV);
         values[uniform.name] = invMV;
         break;
       }
@@ -271,28 +282,28 @@ export class Material {
         const proj = camera.projectionMatrix;
         const model = component._entity.transform.worldMatrix;
         let invMVP = values[uniform.name];
-        if (!invMVP) invMVP = mat4.create();
-        mat4.mul(invMVP, view, model);
-        mat4.mul(invMVP, proj, invMVP);
-        mat4.invert(invMVP, invMVP);
+        if (!invMVP) invMVP = new Matrix();
+        Matrix.multiply(view, model, invMVP);
+        Matrix.multiply(proj, invMVP, invMVP);
+        Matrix.invert(invMVP, invMVP);
         values[uniform.name] = invMVP;
         break;
       }
       // The inverse-transpose of MODEL without the translation
       case UniformSemantic.MODELINVERSETRANSPOSE: {
         let modelIT = values[uniform.name];
-        if (!modelIT) modelIT = mat3.create();
-        mat3.normalFromMat4(modelIT, component._entity.transform.worldMatrix);
+        if (!modelIT) modelIT = new Matrix3x3();
+        Matrix3x3.normalFromMat4(component._entity.transform.worldMatrix, modelIT);
         values[uniform.name] = modelIT;
         break;
       }
       // The inverse-transpose of MODELVIEW without the translation.
       case UniformSemantic.MODELVIEWINVERSETRANSPOSE: {
         let modelViewIT = values[uniform.name];
-        if (!modelViewIT) modelViewIT = mat4.create();
-        mat4.multiply(modelViewIT, camera.viewMatrix, component.modelMatrix);
-        mat4.invert(modelViewIT, modelViewIT);
-        mat4.transpose(modelViewIT, modelViewIT);
+        if (!modelViewIT) modelViewIT = new Matrix();
+        Matrix.multiply(camera.viewMatrix, component.modelMatrix, modelViewIT);
+        Matrix.invert(modelViewIT, modelViewIT);
+        Matrix.transpose(modelViewIT, modelViewIT);
         values[uniform.name] = modelViewIT;
         break;
       }
@@ -316,12 +327,26 @@ export class Material {
 
       // Camera 的世界坐标位置
       case UniformSemantic.EYEPOS:
-        values[uniform.name] = camera.eyePos;
+        values[uniform.name] = camera.entity.transform.worldPosition;
         break;
       // 页面启动之后的总时长，单位：秒
       case UniformSemantic.TIME:
         values[uniform.name] = component.engine.time.timeSinceStartup * 0.001;
         break;
     } // end of switch
+  }
+
+  onDestroy() {
+    // TODO: 待材质重构
+    const values = Object.values(this._values);
+    for (let i = 0, len = values.length; i < len; i++) {
+      const value = values[i];
+      if (value instanceof Texture) {
+        value._addReference(-1);
+      }
+    }
+
+    // this._technique._finalize();
+    this._technique = null;
   }
 }

@@ -1,6 +1,6 @@
-import { vec2, vec3, vec4, quat } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4, Quaternion, Matrix } from "@alipay/o3-math";
 import { HUDFeature } from "./HUDFeature";
-import { RenderableComponent } from "@alipay/o3-core";
+import { RenderableComponent, Camera } from "@alipay/o3-core";
 
 var widgetID = 1000;
 
@@ -13,14 +13,14 @@ export class AHUDWidget extends RenderableComponent {
 
   private _spriteID;
   private _renderMode;
-  private _screenSize;
-  private _worldSize;
-  private _anchor;
+  private _screenSize: Vector2;
+  private _worldSize: Vector2;
+  private _anchor: Vector2;
   private _rotationAngle;
-  private _scale;
+  private _scale: Vector2;
   private _positionQuad;
   private _uvRect;
-  private _tintColor;
+  private _tintColor: Vector4;
   private _valid;
   private _hudFeature;
   private separateDraw;
@@ -30,37 +30,37 @@ export class AHUDWidget extends RenderableComponent {
    * @param {Entity} entity
    * @param {Object} props 参数对象
    * @param {string} props.spriteID 控件内部使用的Sprite ID，如果Sprite ID相同的话，则会共享Canvas中的同一区域
-   * @param {vec2} props.textureSize 在内置Canvas上的纹理大小
+   * @param {Vector2} props.textureSize 在内置Canvas上的纹理大小
    * @param {string} props.renderMode 渲染方式，2D或3D，默认是2D
-   * @param {vec2} props.screenSize 屏幕上的像素大小，2D模式下生效
-   * @param {vec2} props.worldSize  世界空间下大小，3D模式下生效
+   * @param {Vector2} props.screenSize 屏幕上的像素大小，2D模式下生效
+   * @param {Vector2} props.worldSize  世界空间下大小，3D模式下生效
    */
   constructor(entity, props) {
     super(entity);
 
     this._spriteRect = { x: 0, y: 0, width: 10, height: 10 }; // 控件在Canvas上的像素坐标, 像素大小
-    this._spriteRect.width = props.textureSize[0];
-    this._spriteRect.height = props.textureSize[1];
+    this._spriteRect.width = props.textureSize.x;
+    this._spriteRect.height = props.textureSize.y;
 
     this._spriteID = props.spriteID ? props.spriteID : "widget_" + widgetID++;
 
     // 设置渲染方式
     this._renderMode = props.renderMode || "2D";
-    this._screenSize = props.screenSize || props.textureSize;
-    this._worldSize = props.worldSize || [1, 1];
+    this._screenSize = props.screenSize || props.textureSize || new Vector2();
+    this._worldSize = props.worldSize || new Vector2(1, 1);
 
-    this._anchor = [0.5, 0.5];
+    this._anchor = new Vector2(0.5, 0.5);
     this._rotationAngle = props.rotationAngle || 0;
-    this._scale = props.scale || [1.0, 1.0];
+    this._scale = props.scale || new Vector2(1.0, 1.0);
 
     this._positionQuad = {
-      leftTop: vec3.create(),
-      leftBottom: vec3.create(),
-      rightTop: vec3.create(),
-      rightBottom: vec3.create()
+      leftTop: new Vector3(),
+      leftBottom: new Vector3(),
+      rightTop: new Vector3(),
+      rightBottom: new Vector3()
     };
     this._uvRect = { u: 0, v: 0, width: 1, height: 1 };
-    this._tintColor = vec4.fromValues(1, 1, 1, 1);
+    this._tintColor = new Vector4(1, 1, 1, 1);
 
     this._canvasDirty = true;
     this._valid = false; // sprite 分配失败等情况下，可能为false，则控件无法绘制出来
@@ -77,7 +77,7 @@ export class AHUDWidget extends RenderableComponent {
    * @private
    */
   _onEnable() {
-    this._hudFeature.attachWidget(this.entity.engine.hardwareRenderer);
+    this._hudFeature.attachWidget();
   }
 
   /** 在对象Disable的时候，从当前的Scene移除
@@ -98,13 +98,13 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * 锚点信息
-   * @member {vec2}
+   * @member {Vector2}
    */
-  get anchor() {
+  get anchor(): Vector2 {
     return this._anchor;
   }
-  set anchor(val) {
-    this._anchor = vec2.fromValues(val[0], val[1]);
+  set anchor(val: Vector2) {
+    this._anchor.setValue(val.x, val.y);
   }
 
   /**
@@ -127,18 +127,18 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * 变色
-   * @member {vec4}
+   * @member {Vector4}
    */
-  get tintColor() {
+  get tintColor(): Vector4 {
     return this._tintColor;
   }
-  set tintColor(val) {
-    this._tintColor = vec4.fromValues(val[0], val[1], val[2], val[3]);
+  set tintColor(val: Vector4) {
+    this._tintColor.setValue(val.x, val.y, val.z, val.w);
   }
 
   /**
    * 旋转角度
-   * @member {vec4}
+   * @member {Vector4}
    */
   get rotationAngle() {
     return this._rotationAngle;
@@ -150,14 +150,14 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * 缩放值
-   * @member {vec2}
+   * @member {Vector2}
    */
-  get scale() {
+  get scale(): Vector2 {
     return this._scale;
   }
 
-  set scale(v) {
-    this._scale = v;
+  set scale(v: Vector2) {
+    this._scale.setValue(v.x, v.y);
   }
 
   /**
@@ -173,15 +173,15 @@ export class AHUDWidget extends RenderableComponent {
   /**
    * Component的Render接口实现
    * @param {String} 控件的渲染模式：2D或3D
-   * @param {vec2}   控件在该渲染模式下的尺寸，2D模式下代表screen size, 3D模式下代表world size
+   * @param {Vector2}   控件在该渲染模式下的尺寸，2D模式下代表screen size, 3D模式下代表world size
    */
-  setRenderMode(renderMode, size) {
+  setRenderMode(renderMode: string, size: Vector2) {
     if (renderMode === "2D" || renderMode === "3D") {
       this._renderMode = renderMode;
       if (renderMode === "2D") {
-        this._screenSize = size;
+        this._screenSize.setValue(size.x, size.y);
       } else {
-        this._worldSize = size;
+        this._worldSize.setValue(size.x, size.y);
       }
     }
   }
@@ -190,7 +190,7 @@ export class AHUDWidget extends RenderableComponent {
    * 真正执行GL绘制的地方
    * @param {Camera} camera
    */
-  render(camera) {
+  render(camera: Camera) {
     if (!this._valid) {
       return;
     }
@@ -204,7 +204,7 @@ export class AHUDWidget extends RenderableComponent {
       this._hudFeature.addDirtyRect(this._spriteRect);
     }
 
-    camera.sceneRenderer.pushSprite(
+    camera._renderPipeline.pushSprite(
       this,
       this._positionQuad,
       this._uvRect,
@@ -231,53 +231,53 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * 更新HUD控件四个顶点的位置
-   * @param {ACamera} camera
+   * @param {Camera} camera
    * @private
    */
-  _updatePositionQuad(camera) {
-    const m = camera.viewMatrix;
-    const vx = vec3.fromValues(m[0], m[4], m[8]);
-    const vy = vec3.fromValues(m[1], m[5], m[9]);
+  _updatePositionQuad(camera: Camera) {
+    const m: Matrix = camera.viewMatrix;
+    const me = m.elements;
+    const vx = new Vector3(me[0], me[4], me[8]);
+    const vy = new Vector3(me[1], me[5], me[9]);
 
     //-- center pos
-    const c = this.entity.worldPosition;
-    const s = this._getHalfWorldSize(camera);
-    vec3.scale(vx, vx, s[0] * this._scale[0]);
-    vec3.scale(vy, vy, s[1] * this._scale[1]);
+    const c: Vector3 = this.entity.worldPosition;
+    const s: Vector2 = this._getHalfWorldSize(camera);
+    vx.scale(s.x * this._scale.x);
+    vy.scale(s.y * this._scale.y);
 
     if (this._rotationAngle !== 0) {
-      const vz = vec3.fromValues(m[2], m[6], m[10]);
-      const rotation = quat.create();
-      quat.setAxisAngle(rotation, vz, this._rotationAngle);
+      const vz = new Vector3(me[2], me[6], me[10]);
+      const rotation = new Quaternion();
+      rotation.setAxisAngle(vz, this._rotationAngle);
 
-      vec3.transformQuat(vx, vx, rotation);
-      vec3.transformQuat(vy, vy, rotation);
+      Vector3.transformByQuat(vx, rotation, vx);
+      Vector3.transformByQuat(vy, rotation, vy);
     }
 
-    const cx = vec3.create();
-    const cy = vec3.create();
-    vec3.scale(cx, vx, (this._anchor[0] - 0.5) * 2);
-    vec3.scale(cy, vy, (this._anchor[1] - 0.5) * 2);
+    const cx = new Vector3();
+    const cy = new Vector3();
+    Vector3.scale(vx, (this._anchor.x - 0.5) * 2, cx);
+    Vector3.scale(vy, (this._anchor.y - 0.5) * 2, cy);
 
-    vec3.sub(c, c, cx);
-    vec3.add(c, c, cy);
+    c.subtract(cx).add(cy);
 
     //-- quad pos
-    const leftTop = vec3.create();
-    vec3.sub(leftTop, c, vx);
-    vec3.add(leftTop, leftTop, vy);
+    const leftTop = new Vector3();
+    Vector3.subtract(c, vx, leftTop);
+    leftTop.add(vy);
 
-    const leftBottom = vec3.create();
-    vec3.sub(leftBottom, c, vx);
-    vec3.sub(leftBottom, leftBottom, vy);
+    const leftBottom = new Vector3();
+    Vector3.subtract(c, vx, leftBottom);
+    leftBottom.subtract(vy);
 
-    const rightBottom = vec3.create();
-    vec3.add(rightBottom, c, vx);
-    vec3.sub(rightBottom, rightBottom, vy);
+    const rightBottom = new Vector3();
+    Vector3.add(c, vx, rightBottom);
+    rightBottom.subtract(vy);
 
-    const rightTop = vec3.create();
-    vec3.add(rightTop, c, vx);
-    vec3.add(rightTop, rightTop, vy);
+    const rightTop = new Vector3();
+    Vector3.add(c, vx, rightTop);
+    rightTop.add(vy);
 
     // update quad position
     this._positionQuad.leftTop = leftTop;
@@ -288,37 +288,38 @@ export class AHUDWidget extends RenderableComponent {
 
   /**
    * 取得HUD控件在世界空间中的大小
-   * @param {ACamera} camera
+   * @param {Camera} camera
    * @private
    */
-  _getHalfWorldSize(camera) {
-    let halfWorldSize = null;
+  _getHalfWorldSize(camera: Camera): Vector2 {
+    let halfWorldSize = new Vector2();
+
     if (this._renderMode === "2D") {
-      const canvas = camera.renderHardware.canvas;
+      const canvas = (<any>this.engine.canvas)._webCanvas;
       const clientWidth = canvas.clientWidth;
       const clientHeight = canvas.clientHeight;
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
 
       const size = this._screenSize;
-      const px = (size[0] / clientWidth) * canvasWidth;
-      const py = (size[1] / clientHeight) * canvasHeight;
+      const px = (size.x / clientWidth) * canvasWidth;
+      const py = (size.y / clientHeight) * canvasHeight;
 
       const viewport = camera.viewport;
-      const nx = px / viewport[2];
-      const ny = py / viewport[3];
+      const nx = px / viewport.z;
+      const ny = py / viewport.w;
+      const screenPos = new Vector4();
+      camera.worldToViewportPoint(this.entity.worldPosition, screenPos);
+      camera.viewportToScreenPoint(screenPos, screenPos);
+      const depth = screenPos.z;
+      const u = new Vector4(nx, ny, depth, 1.0);
 
-      const screenPos = camera.worldToScreen(this.entity.worldPosition);
-      const depth = screenPos[2];
-      const u = vec4.fromValues(nx, ny, depth, 1.0);
+      const w = new Vector4();
+      Vector3.transformByMat4x4(u, camera.inverseProjectionMatrix, w);
 
-      const w = vec4.create();
-      vec4.transformMat4(w, u, camera.inverseProjectionMatrix);
-
-      halfWorldSize = [Math.abs(w[0] / w[3]), Math.abs(w[1] / w[3])];
+      halfWorldSize.setValue(Math.abs(w.x / w.w), Math.abs(w.y / w.w));
     } else {
-      halfWorldSize = vec2.create();
-      vec2.scale(halfWorldSize, this._worldSize, 0.5);
+      Vector2.scale(this._worldSize, 0.5, halfWorldSize);
     }
 
     return halfWorldSize;

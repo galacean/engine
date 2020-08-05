@@ -1,5 +1,5 @@
-import { ClearMode } from "@alipay/o3-base";
-import { RenderPass } from "@alipay/o3-renderer-basic";
+import { ClearMode } from "@alipay/o3-core";
+import { RenderPass, Camera } from "@alipay/o3-core";
 import { RenderTarget, RenderDepthTexture } from "@alipay/o3-material";
 import { DepthMaterial } from "./DepthMaterial";
 
@@ -19,9 +19,9 @@ export class OpaqueRenderPass extends RenderPass {
   /**
    *  保持 defaultRenderPass 的状态，渲染 opaque 到屏幕
    * */
-  preRender(camera, opaqueQueue, transparentQueue) {
-    const defaultRenderPass = camera.sceneRenderer.defaultRenderPass;
-    const rhi = camera.renderHardware;
+  preRender(camera: Camera, opaqueQueue, transparentQueue) {
+    const defaultRenderPass = camera._renderPipeline.defaultRenderPass;
+    const rhi = camera.engine._hardwareRenderer;
 
     this.clearParam = defaultRenderPass.clearParam;
     this.mask = defaultRenderPass.mask;

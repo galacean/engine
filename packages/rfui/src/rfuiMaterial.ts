@@ -1,5 +1,6 @@
-import { vec2, vec4 } from "@alipay/o3-math";
-import { DataType, MaterialType } from "@alipay/o3-base";
+import { Vector2, Vector4 } from "@alipay/o3-math";
+import { DataType, MaterialType } from "@alipay/o3-core";
+
 import { Texture2D } from "@alipay/o3-material";
 import { CommonMaterial } from "@alipay/o3-mobile-material";
 import RfuiShader from "./shader/fragment.glsl";
@@ -11,8 +12,8 @@ import RfuiShader from "./shader/fragment.glsl";
 export class RfuiMaterial extends CommonMaterial {
   private _diffuse;
   private _opacity;
-  private _uvOffset;
-  private _maskUvOffset;
+  private _uvOffset: Vector2;
+  private _maskUvOffset: Vector2;
   private _mask;
   private _uvVelocity;
 
@@ -22,20 +23,20 @@ export class RfuiMaterial extends CommonMaterial {
    */
   constructor(name: string) {
     super(name);
-    this.emission = vec4.fromValues(0, 0, 0, 0);
-    this.ambient = vec4.fromValues(0, 0, 0, 0);
+    this.emission = new Vector4();
+    this.ambient = new Vector4();
     this.transparent = true;
     this.renderType = MaterialType.TRANSPARENT;
 
-    this._diffuse = vec4.fromValues(1, 1, 1, 1);
+    this._diffuse = new Vector4(1, 1, 1, 1);
     this._opacity = 1;
-    this._uvOffset = vec2.fromValues(0, 0);
-    this._maskUvOffset = vec2.fromValues(0, 0);
+    this._uvOffset = new Vector2();
+    this._maskUvOffset = new Vector2();
   }
 
   /**
    * 获取环境光反射颜色
-   * @return {vec4|Texture2D} 反射颜色
+   * @return {Vector4|Texture2D} 反射颜色
    */
   get diffuse() {
     return this._diffuse;
@@ -43,7 +44,7 @@ export class RfuiMaterial extends CommonMaterial {
 
   /**
    * 设置境光反射颜色
-   * @param {vec4|Texture2D} 反射颜色
+   * @param {Vector4|Texture2D} 反射颜色
    */
   set diffuse(val) {
     this._diffuse = val;
@@ -71,7 +72,7 @@ export class RfuiMaterial extends CommonMaterial {
    * 获取材质透明度
    * @return {number} 透明度
    */
-  get uvOffset() {
+  get uvOffset(): Vector2 {
     return this._uvOffset;
   }
 
@@ -79,7 +80,7 @@ export class RfuiMaterial extends CommonMaterial {
    * 设置材质透明度
    * @param {number} 透明度
    */
-  set uvOffset(val) {
+  set uvOffset(val: Vector2) {
     this._uvOffset = val;
     this.setValue("u_uvOffset", val);
   }
@@ -88,7 +89,7 @@ export class RfuiMaterial extends CommonMaterial {
    * 获取材质透明度
    * @return {number} 透明度
    */
-  get maskUvOffset() {
+  get maskUvOffset(): Vector2 {
     return this._maskUvOffset;
   }
 
@@ -96,7 +97,7 @@ export class RfuiMaterial extends CommonMaterial {
    * 设置材质透明度
    * @param {number} 透明度
    */
-  set maskUvOffset(val) {
+  set maskUvOffset(val: Vector2) {
     this._maskUvOffset = val;
     this.setValue("u_maskUvOffset", val);
   }
@@ -120,17 +121,17 @@ export class RfuiMaterial extends CommonMaterial {
 
   /**
    * 获取uv动画速度
-   * @return {Vec2} uv动画速度
+   * @return {Vector2} uv动画速度
    */
-  get uvVelocity() {
+  get uvVelocity(): Vector2 {
     return this._uvVelocity;
   }
 
   /**
    * 设置uv动画速度
-   * @param {Vec2} uv动画速度
+   * @param {Vector2} uv动画速度
    */
-  set uvVelocity(val) {
+  set uvVelocity(val: Vector2) {
     this._uvVelocity = val;
     this.setValue("u_uvVelocity", val);
   }

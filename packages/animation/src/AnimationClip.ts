@@ -1,6 +1,6 @@
 import { AssetObject } from "@alipay/o3-core";
 import { InterpolationType } from "./AnimationConst";
-import { vec2, vec3, quat } from "@alipay/o3-math";
+import { Quaternion } from "@alipay/o3-math";
 import { List, Value, ISample, IChannel } from "./types";
 
 /**
@@ -16,7 +16,7 @@ export class AnimationClip extends AssetObject {
    * @param {string} name
    */
   constructor(name: string) {
-    super(name);
+    super();
 
     /** @member {Array} */
     this.samplers = [];
@@ -213,19 +213,19 @@ export class AnimationClip extends AssetObject {
         outValue = output[frameIndex] * (1 - alpha) + output[nextFrameIndex] * alpha;
         break;
       case 4:
-        const a = quat.fromValues(
+        const a = new Quaternion(
           output[frameIndex * outputSize],
           output[frameIndex * outputSize + 1],
           output[frameIndex * outputSize + 2],
           output[frameIndex * outputSize + 3]
         );
-        const b = quat.fromValues(
+        const b = new Quaternion(
           output[nextFrameIndex * outputSize],
           output[nextFrameIndex * outputSize + 1],
           output[nextFrameIndex * outputSize + 2],
           output[nextFrameIndex * outputSize + 3]
         );
-        quat.slerp(outValue, a, b, alpha);
+        Quaternion.slerp(a, b, alpha, outValue);
         break;
       default:
         for (let i = outputSize; i >= 0; i--) {

@@ -1,8 +1,8 @@
 "use strict";
 
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Entity, Script } from "@alipay/o3-core";
-import { vec2, vec3, Spherical } from "@alipay/o3-math";
+import { Spherical, Vector2, Vector3, Matrix } from "@alipay/o3-math";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
@@ -12,8 +12,8 @@ export class OrbitControls extends Script {
   public domElement: HTMLElement | Document;
   public mainElement: HTMLCanvasElement;
   public fov: number;
-  public target: Array<number> | Float32Array;
-  public up: Array<number> | Float32Array;
+  public target: Vector3;
+  public up: Vector3;
   public minDistance: number;
   public maxDistance: number;
   public minZoom: number;
@@ -37,27 +37,27 @@ export class OrbitControls extends Script {
   public keys: { LEFT: number; RIGHT: number; UP: number; BOTTOM: number };
   public mouseButtons: { ORBIT: number; ZOOM: number; PAN: number };
   public touchFingers: { ORBIT: number; ZOOM: number; PAN: number };
-  private _position: any[] | Float32Array;
-  private _offset: any[] | Float32Array;
+  private _position: Vector3;
+  private _offset: Vector3;
   private _spherical: Spherical;
   private _sphericalDelta: Spherical;
   private _sphericalDump: Spherical;
   private _zoomFrag: number;
   private _scale: number;
-  private _panOffset: any[] | Float32Array;
+  private _panOffset: Vector3;
   private _isMouseUp: boolean;
-  private _rotateStart: any[] | Float32Array;
-  private _vPan: any[] | Float32Array;
+  private _vPan: Vector3;
   public constEvents: { listener: any; type: string; element?: Window }[];
   private _state: any;
-  private _rotateEnd: any[] | Float32Array;
-  private _rotateDelta: any[] | Float32Array;
-  private _panStart: any[] | Float32Array;
-  private _panEnd: any[] | Float32Array;
-  private _zoomStart: any[] | Float32Array;
-  private _panDelta: any[] | Float32Array;
-  private _zoomEnd: any[] | Float32Array;
-  private _zoomDelta: any[] | Float32Array;
+  private _rotateStart: Vector2;
+  private _rotateEnd: Vector2;
+  private _rotateDelta: Vector2;
+  private _panStart: Vector2;
+  private _panEnd: Vector2;
+  private _panDelta: Vector2;
+  private _zoomStart: Vector2;
+  private _zoomEnd: Vector2;
+  private _zoomDelta: Vector2;
   public STATE: {
     TOUCH_ROTATE: number;
     ROTATE: number;
@@ -76,23 +76,22 @@ export class OrbitControls extends Script {
    * @property {Canvas|HTMLElement} [props.mainElement=RHI.canvas] 获取事件的HTMLElement对象，推荐使用绘制的canvas
    * @property {HTMLElement} [props.domElement=document] 获取顶级事件的HTMLElement对象。
    * @property {fov} [props.fov=45] 透视相机的视场角大小，影响控制器的控制精度
-   * @property {Vec3} [props.target=[0,0,0]] 围绕的目标点，默认原点
+   * @property {Vector3} [props.target=[0,0,0]] 围绕的目标点，默认原点
    */
   constructor(
     entity: Entity,
     props?: {
       domElement?: HTMLElement | Document;
       fov?: number;
-      target?: Array<number>;
+      target?: Vector3;
       mainElement?: HTMLCanvasElement;
     }
   ) {
     super(entity);
 
     this.camera = entity;
-    const camera = (entity.scene as any)._activeCameras[0];
     //@ts-ignore @todo 未来移除对html元素的依赖，通过封装引擎的input实现
-    this.mainElement = props.mainElement || camera.engine.canvas._webCanvas;
+    this.mainElement = props.mainElement || this.scene.engine.canvas._webCanvas;
     this.domElement = props.domElement || document;
     this.fov = props.fov || 45;
 
@@ -101,10 +100,10 @@ export class OrbitControls extends Script {
       return null;
     }
     // 目标点
-    this.target = props.target || vec3.create();
+    this.target = props.target || new Vector3();
 
     // up向量
-    this.up = vec3.fromValues(0, 1, 0);
+    this.up = new Vector3(0, 1, 0);
 
     // 最大最小距离
     /**
@@ -246,31 +245,31 @@ export class OrbitControls extends Script {
 
     // 复用对象 防止栈分配过多
     // update
-    this._position = vec3.create();
-    this._offset = vec3.create();
+    this._position = new Vector3();
+    this._offset = new Vector3();
     this._spherical = new Spherical();
     this._sphericalDelta = new Spherical();
     this._sphericalDump = new Spherical();
     this._zoomFrag = 0;
     this._scale = 1;
-    this._panOffset = vec3.create();
+    this._panOffset = new Vector3();
     this._isMouseUp = true;
 
     // pan
-    this._vPan = vec3.create();
+    this._vPan = new Vector3();
 
     // state
-    this._rotateStart = vec2.create();
-    this._rotateEnd = vec2.create();
-    this._rotateDelta = vec2.create();
+    this._rotateStart = new Vector2();
+    this._rotateEnd = new Vector2();
+    this._rotateDelta = new Vector2();
 
-    this._panStart = vec2.create();
-    this._panEnd = vec2.create();
-    this._panDelta = vec2.create();
+    this._panStart = new Vector2();
+    this._panEnd = new Vector2();
+    this._panDelta = new Vector2();
 
-    this._zoomStart = vec2.create();
-    this._zoomEnd = vec2.create();
-    this._zoomDelta = vec2.create();
+    this._zoomStart = new Vector2();
+    this._zoomEnd = new Vector2();
+    this._zoomDelta = new Vector2();
 
     this.STATE = {
       NONE: -1,
@@ -359,9 +358,9 @@ export class OrbitControls extends Script {
 
     super.onUpdate(dtime);
 
-    const position = this.camera.position;
-    vec3.copy(this._offset, position);
-    vec3.sub(this._offset, this._offset, this.target);
+    const position: Vector3 = this.camera.position;
+    position.cloneTo(this._offset);
+    this._offset.subtract(this.target);
     this._spherical.setFromVec3(this._offset);
 
     if (this.autoRotate && this._state === this.STATE.NONE) {
@@ -382,10 +381,10 @@ export class OrbitControls extends Script {
     this._spherical.radius += this._zoomFrag;
     this._spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, this._spherical.radius));
 
-    vec3.add(this.target, this.target, this._panOffset);
+    this.target.add(this._panOffset);
     this._spherical.setToVec3(this._offset);
-    vec3.copy(this._position, this.target);
-    vec3.add(this._position, this._position, this._offset);
+    this.target.cloneTo(this._position);
+    this._position.add(this._offset);
     this.camera.position = this._position;
     this.camera.transform.lookAt(this.target, this.up);
 
@@ -406,7 +405,7 @@ export class OrbitControls extends Script {
     }
 
     this._scale = 1;
-    vec3.set(this._panOffset, 0, 0, 0);
+    this._panOffset.setValue(0, 0, 0);
   }
 
   /**
@@ -451,20 +450,22 @@ export class OrbitControls extends Script {
    * 向左平移
    * @private
    */
-  panLeft(distance, worldMatrix) {
-    vec3.set(this._vPan, worldMatrix[0], worldMatrix[1], worldMatrix[2]);
-    vec3.scale(this._vPan, this._vPan, distance); // WARN: camera left is positive x
-    vec3.add(this._panOffset, this._panOffset, this._vPan);
+  panLeft(distance: number, worldMatrix: Matrix) {
+    const e = worldMatrix.elements;
+    this._vPan.setValue(e[0], e[1], e[2]);
+    this._vPan.scale(distance);
+    this._panOffset.add(this._vPan);
   }
 
   /**
    * 向右平移
    * @private
    */
-  panUp(distance, worldMatrix) {
-    vec3.set(this._vPan, worldMatrix[4], worldMatrix[5], worldMatrix[6]);
-    vec3.scale(this._vPan, this._vPan, distance);
-    vec3.add(this._panOffset, this._panOffset, this._vPan);
+  panUp(distance: number, worldMatrix: Matrix) {
+    const e = worldMatrix.elements;
+    this._vPan.setValue(e[4], e[5], e[6]);
+    this._vPan.scale(distance);
+    this._panOffset.add(this._vPan);
   }
 
   /**
@@ -476,10 +477,10 @@ export class OrbitControls extends Script {
     const element = this.domElement === document ? this.domElement.body : (this.domElement as HTMLElement);
 
     // perspective only
-    const position = this.camera.position;
-    vec3.copy(this._vPan, position);
-    vec3.sub(this._vPan, this._vPan, this.target);
-    let targetDistance = vec3.len(this._vPan);
+    const position: Vector3 = this.camera.position;
+    position.cloneTo(this._vPan);
+    this._vPan.subtract(this.target);
+    let targetDistance = this._vPan.length();
 
     targetDistance *= (this.fov / 2) * (Math.PI / 180);
 
@@ -510,7 +511,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseDownRotate(event) {
-    vec2.set(this._rotateStart, event.clientX, event.clientY);
+    this._rotateStart.setValue(event.clientX, event.clientY);
   }
 
   /**
@@ -518,7 +519,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseDownZoom(event) {
-    vec2.set(this._zoomStart, event.clientX, event.clientY);
+    this._zoomStart.setValue(event.clientX, event.clientY);
   }
 
   /**
@@ -526,7 +527,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseDownPan(event) {
-    vec2.set(this._panStart, event.clientX, event.clientY);
+    this._panStart.setValue(event.clientX, event.clientY);
   }
 
   /**
@@ -534,15 +535,15 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseMoveRotate(event) {
-    vec2.set(this._rotateEnd, event.clientX, event.clientY);
-    vec2.sub(this._rotateDelta, this._rotateEnd, this._rotateStart);
+    this._rotateEnd.setValue(event.clientX, event.clientY);
+    Vector2.subtract(this._rotateEnd, this._rotateStart, this._rotateDelta);
 
     const element = this.domElement === document ? document.body : (this.domElement as HTMLElement);
 
-    this.rotateLeft(2 * Math.PI * (this._rotateDelta[0] / element.clientWidth) * this.rotateSpeed);
-    this.rotateUp(2 * Math.PI * (this._rotateDelta[1] / element.clientHeight) * this.rotateSpeed);
+    this.rotateLeft(2 * Math.PI * (this._rotateDelta.x / element.clientWidth) * this.rotateSpeed);
+    this.rotateUp(2 * Math.PI * (this._rotateDelta.y / element.clientHeight) * this.rotateSpeed);
 
-    vec2.copy(this._rotateStart, this._rotateEnd);
+    this._rotateEnd.cloneTo(this._rotateStart);
   }
 
   /**
@@ -550,8 +551,8 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseMoveZoom(event) {
-    vec2.set(this._zoomEnd, event.clientX, event.clientY);
-    vec2.sub(this._zoomDelta, this._zoomEnd, this._zoomStart);
+    this._zoomEnd.setValue(event.clientX, event.clientY);
+    Vector2.subtract(this._zoomEnd, this._zoomStart, this._zoomDelta);
 
     if (this._zoomDelta[1] > 0) {
       this.zoomOut(this.getZoomScale());
@@ -559,7 +560,7 @@ export class OrbitControls extends Script {
       this.zoomIn(this.getZoomScale());
     }
 
-    vec2.copy(this._zoomStart, this._zoomEnd);
+    this._zoomEnd.cloneTo(this._zoomStart);
   }
 
   /**
@@ -567,12 +568,12 @@ export class OrbitControls extends Script {
    * @private
    */
   handleMouseMovePan(event: MouseEvent): void {
-    vec2.set(this._panEnd, event.clientX, event.clientY);
-    vec2.sub(this._panDelta, this._panEnd, this._panStart);
+    this._panEnd.setValue(event.clientX, event.clientY);
+    Vector2.subtract(this._panEnd, this._panStart, this._panDelta);
 
-    this.pan(this._panDelta[0], this._panDelta[1]);
+    this.pan(this._panDelta.x, this._panDelta.y);
 
-    vec2.copy(this._panStart, this._panEnd);
+    this._panEnd.cloneTo(this._panStart);
   }
 
   /**
@@ -613,7 +614,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleTouchStartRotate(event: TouchEvent) {
-    vec2.set(this._rotateStart, event.touches[0].pageX, event.touches[0].pageY);
+    this._rotateStart.setValue(event.touches[0].pageX, event.touches[0].pageY);
   }
 
   /**
@@ -626,7 +627,7 @@ export class OrbitControls extends Script {
 
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    vec2.set(this._zoomStart, 0, distance);
+    this._zoomStart.setValue(0, distance);
   }
 
   /**
@@ -634,7 +635,7 @@ export class OrbitControls extends Script {
    * @private
    */
   handleTouchStartPan(event: TouchEvent) {
-    vec2.set(this._panStart, event.touches[0].pageX, event.touches[0].pageY);
+    this._panStart.setValue(event.touches[0].pageX, event.touches[0].pageY);
   }
 
   /**
@@ -642,15 +643,15 @@ export class OrbitControls extends Script {
    * @private
    */
   handleTouchMoveRotate(event: TouchEvent) {
-    vec2.set(this._rotateEnd, event.touches[0].pageX, event.touches[0].pageY);
-    vec2.sub(this._rotateDelta, this._rotateEnd, this._rotateStart);
+    this._rotateEnd.setValue(event.touches[0].pageX, event.touches[0].pageY);
+    Vector2.subtract(this._rotateEnd, this._rotateStart, this._rotateDelta);
 
     const element = this.domElement === document ? this.domElement.body : (this.domElement as HTMLElement);
 
-    this.rotateLeft(((2 * Math.PI * this._rotateDelta[0]) / element.clientWidth) * this.rotateSpeed);
-    this.rotateUp(((2 * Math.PI * this._rotateDelta[1]) / element.clientHeight) * this.rotateSpeed);
+    this.rotateLeft(((2 * Math.PI * this._rotateDelta.x) / element.clientWidth) * this.rotateSpeed);
+    this.rotateUp(((2 * Math.PI * this._rotateDelta.y) / element.clientHeight) * this.rotateSpeed);
 
-    vec2.copy(this._rotateStart, this._rotateEnd);
+    this._rotateEnd.cloneTo(this._rotateStart);
   }
 
   /**
@@ -663,9 +664,9 @@ export class OrbitControls extends Script {
 
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    vec2.set(this._zoomEnd, 0, distance);
+    this._zoomEnd.setValue(0, distance);
 
-    vec2.sub(this._zoomDelta, this._zoomEnd, this._zoomStart);
+    Vector2.subtract(this._zoomEnd, this._zoomStart, this._zoomDelta);
 
     if (this._zoomDelta[1] > 0) {
       this.zoomIn(this.getZoomScale());
@@ -673,7 +674,7 @@ export class OrbitControls extends Script {
       this.zoomOut(this.getZoomScale());
     }
 
-    vec2.copy(this._zoomStart, this._zoomEnd);
+    this._zoomEnd.cloneTo(this._zoomStart);
   }
 
   /**
@@ -681,13 +682,13 @@ export class OrbitControls extends Script {
    * @private
    */
   handleTouchMovePan(event: TouchEvent) {
-    vec2.set(this._panEnd, event.touches[0].pageX, event.touches[0].pageY);
+    this._panEnd.setValue(event.touches[0].pageX, event.touches[0].pageY);
 
-    vec2.sub(this._panDelta, this._panEnd, this._panStart);
+    Vector2.subtract(this._panEnd, this._panStart, this._panDelta);
 
-    this.pan(this._panDelta[0], this._panDelta[1]);
+    this.pan(this._panDelta.x, this._panDelta.y);
 
-    vec2.copy(this._panStart, this._panEnd);
+    this._panEnd.cloneTo(this._panStart);
   }
 
   /**

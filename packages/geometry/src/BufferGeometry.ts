@@ -1,5 +1,4 @@
-import { Logger } from "@alipay/o3-base";
-import { AssetObject } from "@alipay/o3-core";
+import { AssetObject, Logger } from "@alipay/o3-core";
 import { Primitive } from "@alipay/o3-primitive";
 import { VertexBuffer, IndexBuffer } from "./index";
 
@@ -159,7 +158,6 @@ export class BufferGeometry extends AssetObject {
    * @private
    */
   _finalize() {
-    super._finalize();
     this.primitive.finalize();
     this.primitive = null;
   }

@@ -1,4 +1,4 @@
-import { DataType, UpdateType, BufferUsage } from "@alipay/o3-base";
+import { DataType, UpdateType, BufferUsage } from "@alipay/o3-core";
 
 interface AttributeParam {
   semantic: string;

@@ -1,8 +1,8 @@
-import { TextureCubeFace, RenderBufferDepthFormat, GLCapabilityType, AssetType, Logger } from "@alipay/o3-base";
+import { GLCapabilityType, Logger, RenderBufferDepthFormat, TextureCubeFace } from "@alipay/o3-core";
 import { AssetObject, Engine } from "@alipay/o3-core";
-import { Texture } from "./Texture";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
+import { Texture } from "./Texture";
 
 /**
  * 用于离屏幕渲染的渲染目标。
@@ -42,7 +42,6 @@ export class RenderTarget extends AssetObject {
 
   /**
    * 深度纹理。
-   * @todo 以后命名调整为depthTexture
    */
   get depthTexture(): RenderDepthTexture | null {
     return this._depthTexture;
@@ -139,9 +138,9 @@ export class RenderTarget extends AssetObject {
     antiAliasing: number = 1,
     engine?: Engine
   ) {
-    super("");
+    super();
     engine = engine || Engine._getDefaultEngine();
-    const rhi = engine.hardwareRenderer;
+    const rhi = engine._hardwareRenderer;
 
     /** todo
      * MRT + Cube + [,MSAA]
@@ -201,9 +200,6 @@ export class RenderTarget extends AssetObject {
       this._MSAAFrameBuffer = gl.createFramebuffer();
       this._bindMSAAFBO(depth);
     }
-
-    //todo: delete
-    this.type = AssetType.Scene;
   }
 
   /**

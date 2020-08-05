@@ -1,5 +1,5 @@
 import { EnableConfig, DisableConfig, FunctionConfig } from "./type";
-import { UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-base";
+import { UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-core";
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { TechniqueStates } from "@alipay/o3-material/types/type";
 
@@ -65,7 +65,7 @@ export class ShaderMaterial extends Material {
   }
 
   removeState(key: string, state: any) {
-    this.renderStates[key] = this.renderStates[key].filter(value => value !== state);
+    this.renderStates[key] = this.renderStates[key].filter((value) => value !== state);
   }
 
   get renderStates() {
@@ -75,8 +75,8 @@ export class ShaderMaterial extends Material {
   set renderStates(value) {
     const { enable = [], disable = [], functions = {} } = value;
     // 为了防止冲突，把预置的几个属性放在_enableConfig里面，此处需过滤掉
-    const enableState = enable.filter(value => ShaderMaterial.commonEnable.indexOf(value) < 0);
-    const disableState = disable.filter(value => ShaderMaterial.commonDisable.indexOf(value) < 0);
+    const enableState = enable.filter((value) => ShaderMaterial.commonEnable.indexOf(value) < 0);
+    const disableState = disable.filter((value) => ShaderMaterial.commonDisable.indexOf(value) < 0);
     this._renderStates.enable = union(enableState, this._enableConfig);
     this._renderStates.disable = union(disableState, this._disableConfig);
     this._renderStates.functions = Object.assign({}, functions, this._functionsConfig);
@@ -95,7 +95,7 @@ export class ShaderMaterial extends Material {
     if (value) {
       this._enableConfig = union(this._enableConfig, [RenderState.BLEND]);
     } else {
-      this._enableConfig = this._enableConfig.filter(state => state !== RenderState.BLEND);
+      this._enableConfig = this._enableConfig.filter((state) => state !== RenderState.BLEND);
       this.removeState("enable", RenderState.BLEND);
     }
     this.renderStates = this._renderStates;
@@ -118,7 +118,7 @@ export class ShaderMaterial extends Material {
     if (value) {
       this._disableConfig = union(this._disableConfig, [RenderState.CULL_FACE]);
     } else {
-      this._disableConfig = this._disableConfig.filter(state => state !== RenderState.CULL_FACE);
+      this._disableConfig = this._disableConfig.filter((state) => state !== RenderState.CULL_FACE);
       this.removeState("disable", RenderState.CULL_FACE);
     }
     this.renderStates = this._renderStates;
@@ -129,7 +129,7 @@ export class ShaderMaterial extends Material {
     if (!value) {
       this._disableConfig = union(this._disableConfig, [RenderState.DEPTH_TEST]);
     } else {
-      this._disableConfig = this._disableConfig.filter(state => state !== RenderState.DEPTH_TEST);
+      this._disableConfig = this._disableConfig.filter((state) => state !== RenderState.DEPTH_TEST);
       this.removeState("disable", RenderState.DEPTH_TEST);
     }
     this.renderStates = this._renderStates;
@@ -153,5 +153,5 @@ export class ShaderMaterial extends Material {
 }
 
 export function union(arr1: Array<any>, arr2: Array<any>): Array<any> {
-  return arr1.concat(arr2.filter(v => !(arr1.indexOf(v) > -1)));
+  return arr1.concat(arr2.filter((v) => !(arr1.indexOf(v) > -1)));
 }

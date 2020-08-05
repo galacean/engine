@@ -21,14 +21,12 @@
   "main": "./dist/main.js",
   "module": "./dist/module.js",
   "dependencies": {
-    "@alipay/o3-base": "2.3.2",
     "@alipay/o3-core": "2.3.2",
     "@alipay/o3-geometry": "2.3.2",
     "@alipay/o3-geometry-shape": "2.3.2",
     "@alipay/o3-material": "2.3.2",
     "@alipay/o3-math": "2.3.2",
     "@alipay/o3-primitive": "2.3.2",
-    "@alipay/o3-renderer-basic": "2.3.2",
     "@alipay/o3-shaderlib": "2.3.2"
   },
   "publishConfig": {

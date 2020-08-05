@@ -1,5 +1,6 @@
-import { vec4 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-base";
+import { Vector4 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-core";
+
 import { Texture2D } from "@alipay/o3-material";
 import { CommonMaterial } from "./CommonMaterial";
 import { LightFeature, DirectLight } from "@alipay/o3-lighting";
@@ -21,12 +22,12 @@ export class LambertMaterial extends CommonMaterial {
 
     this._directLightCount = 0;
 
-    this.diffuse = vec4.fromValues(1, 1, 1, 1);
+    this.diffuse = new Vector4(1, 1, 1, 1);
   }
 
   /**
    * 环境光反射颜色
-   * @member {vec4|Texture2D}
+   * @member {Vector4|Texture2D}
    */
   get diffuse() {
     return this.getValue("u_diffuse");

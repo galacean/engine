@@ -1,15 +1,15 @@
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { Light } from "./Light";
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 
 /**
  * 环境光创建类
  * @extends Light
  */
 export class AmbientLight extends Light {
-  private _lightColor;
-  public color;
-  public intensity;
+  private _lightColor: Vector3;
+  public color: Vector3;
+  public intensity: number;
 
   /**
    * 生成 Technique 所需的 uniform 定义
@@ -37,7 +37,7 @@ export class AmbientLight extends Light {
    * @param {Entity} entity 节点对象
    * @param {Object} props 参数对象
    * @param {string} [props.name = ambientLight] props.name 名称
-   * @param {Vec3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
+   * @param {Vector3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
    * @param {number} [props.intensity = 1] 光照强度
    */
   constructor(entity, props) {
@@ -46,9 +46,9 @@ export class AmbientLight extends Light {
 
     /**
      * 颜色
-     * @member {Vec3}
+     * @member {Vector3}
      */
-    this.color = props.color || vec3.fromValues(1, 1, 1);
+    this.color = props.color || new Vector3(1, 1, 1);
 
     /**
      * 光照强度
@@ -56,15 +56,15 @@ export class AmbientLight extends Light {
      */
     this.intensity = props.intensity || 1.0;
 
-    this._lightColor = vec3.create();
+    this._lightColor = new Vector3();
   }
 
   /** 获取环境光最终颜色
-   * @return {vec3} 颜色
+   * @return {Vector3} 颜色
    * @readonly
    */
   get lightColor() {
-    vec3.scale(this._lightColor, this.color, this.intensity);
+    Vector3.scale(this.color, this.intensity, this._lightColor);
     return this._lightColor;
   }
 

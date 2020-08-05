@@ -1,4 +1,4 @@
-import { MaskList } from "@alipay/o3-base";
+import { MaskList } from "@alipay/o3-core";
 import { Camera, Entity, Script } from "@alipay/o3-core";
 import { RenderColorTexture, RenderTarget } from "@alipay/o3-material";
 import { ColorRenderPass } from "./ColorRenderPass";
@@ -41,7 +41,7 @@ class FramebufferPicker extends Script {
     const height = props.height || 1024;
     this.colorRenderTarget = new RenderTarget(width, height, new RenderColorTexture(width, height));
     this.colorRenderPass = new ColorRenderPass("ColorRenderTarget_FBP", -1, this.colorRenderTarget, props.mask || 0);
-    this.camera.sceneRenderer.addRenderPass(this.colorRenderPass);
+    this.camera._renderPipeline.addRenderPass(this.colorRenderPass);
     if (props.onPick) {
       this.onPick = props.onPick;
     }
@@ -86,7 +86,7 @@ class FramebufferPicker extends Script {
    */
   destroy() {
     super.destroy();
-    this.camera.sceneRenderer.removeRenderPass(this.colorRenderPass);
+    this.camera._renderPipeline.removeRenderPass(this.colorRenderPass);
   }
 }
 

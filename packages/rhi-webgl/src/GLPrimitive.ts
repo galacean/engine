@@ -1,4 +1,4 @@
-import { Logger, UpdateType, GLCapabilityType } from "@alipay/o3-base";
+import { Logger, UpdateType, GLCapabilityType } from "@alipay/o3-core";
 import { Primitive, BufferAttribute } from "@alipay/o3-primitive";
 import { WebGLRenderer } from "./WebGLRenderer";
 import { GLTechnique } from "./GLTechnique";

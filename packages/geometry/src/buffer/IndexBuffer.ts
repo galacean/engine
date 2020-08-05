@@ -1,4 +1,4 @@
-import { BufferUsage, UpdateType } from "@alipay/o3-base";
+import { BufferUsage, UpdateType } from "@alipay/o3-core";
 import { IndexFormat, UpdateRange } from "@alipay/o3-primitive";
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from "../Constant";
 

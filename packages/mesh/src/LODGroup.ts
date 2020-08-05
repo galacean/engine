@@ -1,4 +1,4 @@
-import { vec3 } from "@alipay/o3-math";
+import { vec3, Vector3 } from "@alipay/o3-math";
 import { Component, RenderableComponent } from "@alipay/o3-core";
 
 /**
@@ -39,9 +39,7 @@ export class LODGroup extends RenderableComponent {
   render(camera) {
     if (this._lods.length <= 0) return;
 
-    const eyePos = camera.eyePos;
-    const myPos = this.entity.worldPosition;
-    const dist = vec3.distance(eyePos, myPos);
+    const dist = Vector3.distance(camera.eyePos, this.entity.worldPosition);
 
     const lods = this._lods;
     let activeLevel = 0;

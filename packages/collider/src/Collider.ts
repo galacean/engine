@@ -1,6 +1,6 @@
 import { Component, Entity } from "@alipay/o3-core";
 import { ColliderFeature } from "./ColliderFeature";
-import { MaskList } from "@alipay/o3-base";
+import { MaskList } from "@alipay/o3-core";
 
 /**
  * 碰撞体组件的基类, 定义碰撞体的数据

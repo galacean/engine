@@ -1,15 +1,15 @@
 import { NodeManager } from "./NodeManager";
 import { AbilityManager } from "./AbilityManager";
-import { ResourceManager } from "./ResourceManager";
+import { SchemaResourceManager } from "./ResourceManager";
 import { PluginManager, pluginHook } from "./plugins/PluginManager";
 import * as o3 from "@alipay/o3";
 import { Schema, Options } from "./types";
 
 export class Oasis extends o3.EventDispatcher {
-  public readonly engine = null;
-  public readonly nodeManager: NodeManager = new NodeManager(this);
-  public readonly abilityManager: AbilityManager = new AbilityManager(this);
-  public resourceManager: ResourceManager;
+  public readonly engine: o3.Engine = null;
+  public readonly nodeManager: NodeManager;
+  public readonly abilityManager: AbilityManager;
+  public resourceManager: SchemaResourceManager;
   public _canvas: HTMLCanvasElement;
   private schema: Schema;
   public timeout: number; // 全局资源超时配置
@@ -18,15 +18,19 @@ export class Oasis extends o3.EventDispatcher {
 
   private constructor(private _options: Readonly<Options>, public readonly pluginManager: PluginManager) {
     super();
+    this.engine = new o3.Engine(new o3.WebCanvas(_options.canvas), new o3.WebGLRenderer(_options.rhiAttr));
     this.resetFeature();
     this.schema = _options.config;
     this.timeout = _options.timeout;
+    this.nodeManager = new NodeManager(this);
+    this.abilityManager = new AbilityManager(this);
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
-    // todo: resourceLoader 与 RHI 解绑
-    // this.engine.requireRHI(o3.GLRenderHardware, this.canvas, this.options.rhiAttr || {}); CM: 临时屏蔽
-    this.resourceManager = new ResourceManager(this);
-    _options.fps && this.engine.setFPS(_options.fps);
+    this.resourceManager = new SchemaResourceManager(this);
+    if (_options.fps) {
+      this.engine.targetFrameRate = _options.fps;
+      this.engine.vSyncCount = 0;
+    }
   }
 
   public get canvas(): HTMLCanvasElement {
@@ -121,7 +125,7 @@ export class Oasis extends o3.EventDispatcher {
    */
   private resetFeature() {
     // TODO 脏代码，delete
-    const scene = this.engine.currentScene;
+    const scene = this.engine.sceneManager.activeScene;
     scene.features.splice(1, 1);
     scene.features.splice(3, 1);
     (scene as any).hasFogFeature = undefined;

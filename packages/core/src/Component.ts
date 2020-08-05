@@ -1,5 +1,5 @@
-import { Event, EventDispatcher, MaskList } from "@alipay/o3-base";
-import { Matrix4 } from "@alipay/o3-math/types/type";
+import { Event, EventDispatcher, MaskList } from "./base";
+import { Matrix } from "@alipay/o3-math";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { Scene } from "./Scene";
@@ -46,13 +46,13 @@ export abstract class Component extends EventDispatcher {
 
   /**
    * 创建组件实例。
-   * @param node - 对象所在节点
+   * @param entity - 对象所在实体
    * @param props - 配置参数
    */
-  constructor(node: Entity, props: object = {}) {
+  constructor(entity: Entity, props: object = {}) {
     super();
     this._props = props;
-    this._entity = node;
+    this._entity = entity;
 
     this._renderPassFlag = MaskList.EVERYTHING; // @deprecated
     this._passMasks = [MaskList.EVERYTHING]; // @deprecated
@@ -179,7 +179,7 @@ export abstract class Component extends EventDispatcher {
   /**
    * @deprecated
    */
-  get invModelMatrix(): Readonly<Matrix4> {
+  get invModelMatrix(): Readonly<Matrix> {
     return this._entity.getInvModelMatrix();
   }
 

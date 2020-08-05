@@ -43,6 +43,7 @@ export class RfuiNode extends Entity {
    */
   constructor(name, props) {
     super(name);
+    this.parent = props.parent;
     this.nodesConfig = props.nodesConfig;
     this.animationParam = props.animationParam || {};
     this.inAnimations = [];

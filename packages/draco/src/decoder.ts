@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { loadAll } from "@alipay/o3-request";
 
 import { DRACOWorker, ITaskConfig } from "./DRACOWorker";
@@ -56,12 +56,12 @@ export class DRACODecoder {
   }
 
   private getWorker(): Promise<DRACOWorker> {
-    return this.preloadLib().then(worderResources => {
+    return this.preloadLib().then((worderResources) => {
       if (this.pool.length < this.workerLimit) {
         const dracoWorker = new DRACOWorker(worderResources.workerSourceURL, worderResources.decoderWASMBinary);
         this.pool.push(dracoWorker);
       } else {
-        this.pool.sort(function(a, b) {
+        this.pool.sort(function (a, b) {
           return a.currentLoad > b.currentLoad ? -1 : 1;
         });
       }
@@ -96,7 +96,7 @@ export class DRACODecoder {
     let taskWorker;
     const task = new Promise((resolve, reject) => {
       this.getWorker()
-        .then(worker => {
+        .then((worker) => {
           taskWorker = worker;
           worker.setCosts(taskId, cost);
           worker.addCurrentLoad(cost);
@@ -104,7 +104,7 @@ export class DRACODecoder {
           worker.setCallback(taskId, resolve, reject);
           worker.decode(taskId, taskConfig, buffer);
         })
-        .catch(e => {
+        .catch((e) => {
           reject(e);
         });
     });

@@ -1,6 +1,7 @@
+import { TextureFormat } from "@alipay/o3-core";
+import { Engine } from "@alipay/o3-core";
 import gl from "gl";
 import { Texture2D } from "../src/Texture2D";
-import { TextureFormat } from "@alipay/o3-base";
 
 describe("Texture2D", () => {
   const width = 1024;
@@ -9,30 +10,26 @@ describe("Texture2D", () => {
     gl: gl(width, height),
     canIUse: jest.fn().mockReturnValue(true)
   };
+  // mock engine
+  Engine.defaultCreateObjectEngine = <any>{
+    _hardwareRenderer: rhi
+  };
 
   beforeEach(() => {
     rhi.isWebGL2 = false;
     delete rhi.gl.texStorage2D;
   });
 
-  it("向下兼容", () => {
-    const oldTexture = new Texture2D("old");
-    const newTexture = new Texture2D(rhi, width, height);
-
-    expect(oldTexture.format).toBeUndefined();
-    expect(newTexture.format).toBe(TextureFormat.R8G8B8A8);
-  });
-
   describe("格式测试", () => {
     it("不支持浮点纹理", () => {
       expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
-        new Texture2D(rhi, width, height, TextureFormat.R32G32B32A32);
+        new Texture2D(width, height, TextureFormat.R32G32B32A32);
       }).toThrow();
     });
     it("引擎不支持的格式", () => {
       expect(() => {
-        new Texture2D(rhi, width, height, 1234567);
+        new Texture2D(width, height, 1234567);
       }).toThrow();
     });
   });
@@ -42,36 +39,28 @@ describe("Texture2D", () => {
       rhi.isWebGL2 = true;
       rhi.gl.texStorage2D = function () {};
 
-      const texture1 = new Texture2D(rhi, 100, 100);
-      const texture2 = new Texture2D(rhi, 100, 100, undefined, true);
+      const texture1 = new Texture2D(100, 100);
+      const texture2 = new Texture2D(100, 100, undefined, true);
 
       expect(texture1.mipmapCount).not.toBe(1);
       expect(texture2.mipmapCount).not.toBe(1);
     });
     it("关闭 mipmap 成功", () => {
-      const texture = new Texture2D(rhi, width, height, undefined, false);
+      const texture = new Texture2D(width, height, undefined, false);
 
       expect(texture.mipmapCount).toBe(1);
     });
     it("webgl1 开启 mipmap 失败自动降级 - 非2次幂图片", () => {
-      const texture1 = new Texture2D(rhi, 100, 100);
-      const texture2 = new Texture2D(rhi, 100, 100, undefined, true);
+      const texture1 = new Texture2D(100, 100);
+      const texture2 = new Texture2D(100, 100, undefined, true);
 
       expect(texture1.mipmapCount).toBe(1);
       expect(texture2.mipmapCount).toBe(1);
     });
   });
 
-  // todo: dom test
-  // it("设置图源", () => {
-  //   const img: HTMLImageElement = null;
-  //   const texture = new Texture2D(rhi, width, height);
-
-  //   texture.setImageSource(img);
-  // });
-
   describe("设置颜色缓冲", () => {
-    const texture = new Texture2D(rhi, width, height);
+    const texture = new Texture2D(width, height);
     const buffer = new Uint8Array(width * height * 4);
 
     it("默认匹配大小", () => {
@@ -84,7 +73,7 @@ describe("Texture2D", () => {
       texture.setPixelBuffer(buffer, 1, 0, 0, width, height);
     });
     it("浮点纹理写入数据", () => {
-      const texture = new Texture2D(rhi, width, height, TextureFormat.R32G32B32A32);
+      const texture = new Texture2D(width, height, TextureFormat.R32G32B32A32);
       const buffer = new Float32Array(4);
 
       texture.setPixelBuffer(buffer);
@@ -95,14 +84,14 @@ describe("Texture2D", () => {
   describe("读取颜色缓冲", () => {
     it("异常-无法读取压缩纹理", () => {
       expect(() => {
-        const texture = new Texture2D(rhi, width, height, TextureFormat.ETC2_RGBA8);
+        const texture = new Texture2D(width, height, TextureFormat.ETC2_RGBA8);
         const buffer = new Uint8Array(4);
 
         texture.getPixelBuffer(0, 0, 1, 1, buffer);
       }).toThrow();
     });
     it("读取成功", () => {
-      const texture = new Texture2D(rhi, width, height);
+      const texture = new Texture2D(width, height);
       const buffer = new Uint8Array(4);
 
       texture.setPixelBuffer(new Uint8Array([1, 2, 3, 4]), 0, 5, 0, 1, 1);

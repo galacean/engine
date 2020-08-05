@@ -1,4 +1,4 @@
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 import { BufferGeometry, InterleavedBuffer, IndexBuffer } from "@alipay/o3-geometry";
 import { BufferAttribute } from "@alipay/o3-primitive";
 

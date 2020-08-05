@@ -1,5 +1,5 @@
-import { vec3 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-base";
+import { Vector3 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-core";
 import { Light } from "./Light";
 
 /**
@@ -7,17 +7,17 @@ import { Light } from "./Light";
  * @extends Light
  */
 export class PointLight extends Light {
-  public color;
-  public intensity;
-  public distance;
-  public decay;
-  private _lightColor;
+  public color: Vector3;
+  public intensity: number;
+  public distance: number;
+  public decay: number;
+  private _lightColor: Vector3;
   /**
    * @constructor
    * @param {Entity} entity 节点对象
    * @param {Object} props 参数对象
    * @param {string} [props.name = pointLight] 名称
-   * @param {Vec3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
+   * @param {Vector3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
    * @param {number} [props.intensity=1] 光照强度
    * @param {number} [props.distance=0] 辐射距离
    * @param {number} [props.decay=0] 衰减系数
@@ -28,9 +28,9 @@ export class PointLight extends Light {
 
     /**
      * 颜色
-     * @member {Vec3}
+     * @member {Vector3}
      */
-    this.color = props.color || vec3.fromValues(1, 1, 1);
+    this.color = props.color || new Vector3(1, 1, 1);
 
     /**
      * 光照强度
@@ -50,23 +50,23 @@ export class PointLight extends Light {
      */
     this.decay = props.decay !== undefined ? props.decay : 0;
 
-    this._lightColor = vec3.create();
+    this._lightColor = new Vector3();
   }
 
   /** 获取点光源位置
-   * @return {vec3} 位置坐标
+   * @return {Vector3} 位置坐标
    * @readonly
    */
-  get position() {
+  get position(): Vector3 {
     return this.entity.worldPosition;
   }
 
   /** 获取点光源最终颜色
-   * @return {vec3} 光源最终颜色
+   * @return {Vector3} 光源最终颜色
    * @readonly
    */
-  get lightColor() {
-    vec3.scale(this._lightColor, this.color, this.intensity);
+  get lightColor(): Vector3 {
+    Vector3.scale(this.color, this.intensity, this._lightColor);
     return this._lightColor;
   }
 

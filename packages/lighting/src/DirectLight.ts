@@ -1,5 +1,6 @@
-import { vec3 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-base";
+import { Vector3 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3-core";
+
 import { Light } from "./Light";
 
 /**
@@ -7,20 +8,20 @@ import { Light } from "./Light";
  * @extends Light
  */
 export class DirectLight extends Light {
-  private _forward = [0, 0, 0];
-  private _lightColor;
-  private _reverseDirection;
-  public color;
-  public intensity;
+  private _forward: Vector3 = new Vector3();
+  private _lightColor: Vector3;
+  private _reverseDirection: Vector3;
+  public color: Vector3;
+  public intensity: number;
 
   /**
    * @constructor
    * @param {Entity} entity 节点对象
    * @param {Object} props 参数对象
    * @param {string} [props.name = directLight] 名称
-   * @param {Vec3} [ props.color = vec3.fromValues(1, 1, 1)]颜色，默认 vec3.fromValues(1, 1, 1)
+   * @param {Vector3} [ props.color = vec3.fromValues(1, 1, 1)]颜色，默认 vec3.fromValues(1, 1, 1)
    * @param {number} [props.intensity = 1] 光照强度
-   * @param {Vec3} [props.direction] 光照方向，默认节点forward方向
+   * @param {Vector3} [props.direction] 光照方向，默认节点forward方向
    */
   constructor(entity, props) {
     super(entity);
@@ -28,9 +29,9 @@ export class DirectLight extends Light {
 
     /**
      * 颜色
-     * @member {Vec3}
+     * @member {Vector3}
      */
-    this.color = props.color || vec3.fromValues(1, 1, 1);
+    this.color = props.color || new Vector3(1, 1, 1);
 
     /**
      * 光照强度
@@ -38,34 +39,34 @@ export class DirectLight extends Light {
      */
     this.intensity = props.intensity || 1.0;
 
-    this._lightColor = vec3.create();
-    this._reverseDirection = vec3.create();
+    this._lightColor = new Vector3();
+    this._reverseDirection = new Vector3();
   }
 
   /** 获取方向光方向
-   * @return {vec3} 方向向量
+   * @return {Vector3} 方向向量
    * @readonly
    */
-  get direction() {
+  get direction(): Vector3 {
     this.entity.transform.getWorldForward(this._forward);
     return this._forward;
   }
 
   /** 获取方向光最终颜色
-   * @return {vec3} 颜色
+   * @return {Vector3} 颜色
    * @readonly
    */
-  get lightColor() {
-    vec3.scale(this._lightColor, this.color, this.intensity);
+  get lightColor(): Vector3 {
+    Vector3.scale(this.color, this.intensity, this._lightColor);
     return this._lightColor;
   }
 
   /** 方向光方向的反方向
-   * @return {vec3} 方向向量
+   * @return {Vector3} 方向向量
    * @readonly
    */
-  get reverseDirection() {
-    vec3.scale(this._reverseDirection, this.direction, -1);
+  get reverseDirection(): Vector3 {
+    Vector3.scale(this.direction, -1, this._reverseDirection);
     return this._reverseDirection;
   }
 

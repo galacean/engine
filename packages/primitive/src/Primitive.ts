@@ -1,9 +1,22 @@
-import { DrawMode } from "@alipay/o3-base";
 import { AssetObject } from "@alipay/o3-core";
 import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
-import { Matrix4 } from "@alipay/o3-math/types/type";
-import { vec3 } from "@alipay/o3-math";
 import { BufferAttribute } from "./index";
+import { DataType, DrawMode } from "@alipay/o3-core";
+import { Vector3, Matrix } from "@alipay/o3-math";
+
+// TODO Destroy VAO and Buffer，ref to rhi refactor
+
+export interface Attribute {
+  name?: string;
+  semantic: string;
+  size: number;
+  type: DataType;
+  normalized?: boolean;
+  instanced?: number;
+  stride?: number;
+  offset?: number;
+  vertexBufferIndex?: number;
+}
 
 let primitiveID = 0;
 
@@ -65,7 +78,7 @@ export class Primitive extends AssetObject {
    * @constructor
    */
   constructor(name?: string) {
-    super(name !== undefined ? name : "DEFAULT_PRIMITIVENAME_" + primitiveID);
+    super();
     this.id = primitiveID++;
   }
 
@@ -107,10 +120,10 @@ export class Primitive extends AssetObject {
 
   /**
    * 通过 primitive 计算本地/世界坐标系的 min/max
-   * @param {Matrix4} modelMatrix - Local to World矩阵,如果传此值，则计算min/max时将考虑RTS变换，如果不传，则计算local min/max
+   * @param {Matrix} modelMatrix - Local to World矩阵,如果传此值，则计算min/max时将考虑RTS变换，如果不传，则计算local min/max
    * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
    * */
-  getMinMax(modelMatrix?: Matrix4, littleEndian = true) {
+  getMinMax(modelMatrix?: Matrix, littleEndian = true) {
     let {
       vertexCount,
       vertexBuffers,
@@ -127,18 +140,18 @@ export class Primitive extends AssetObject {
     }
     const dataView = new DataView(arrayBuffer, offset);
 
-    let min = [Infinity, Infinity, Infinity];
-    let max = [-Infinity, -Infinity, -Infinity];
+    let min = new Vector3(Infinity, Infinity, Infinity);
+    let max = new Vector3(-Infinity, -Infinity, -Infinity);
     for (let i = 0; i < vertexCount; i++) {
       const base = offset + stride * i;
-      const position = [
+      const position = new Vector3(
         dataView.getFloat32(base, littleEndian),
         dataView.getFloat32(base + 4, littleEndian),
         dataView.getFloat32(base + 8, littleEndian)
-      ];
-      modelMatrix && vec3.transformMat4(position, position, modelMatrix);
-      vec3.min(min, min, position);
-      vec3.max(max, max, position);
+      );
+      modelMatrix && Vector3.transformCoordinate(position, modelMatrix, position);
+      Vector3.min(min, position, min);
+      Vector3.max(max, position, max);
     }
 
     return {

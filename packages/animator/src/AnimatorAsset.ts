@@ -7,7 +7,7 @@ import { AssetObject } from "@alipay/o3-core";
 export class AnimatorAsset extends AssetObject {
   _options: any;
   constructor(name: string, options: any) {
-    super(name);
+    super();
     this.options = options;
   }
   get options() {

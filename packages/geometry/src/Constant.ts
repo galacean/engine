@@ -1,4 +1,4 @@
-import { DataType } from "@alipay/o3-base";
+import { DataType } from "@alipay/o3-core";
 
 const vertexDataTypeSizeHash = {};
 vertexDataTypeSizeHash[DataType.BYTE] = 1;

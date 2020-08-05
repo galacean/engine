@@ -1,5 +1,5 @@
 import { SceneFeature } from "@alipay/o3-core";
-import { Logger } from "@alipay/o3-base";
+import { Logger } from "@alipay/o3-core";
 import { Light } from "./Light";
 import { AmbientLight } from "./AmbientLight";
 import { DirectLight } from "./DirectLight";
@@ -22,7 +22,7 @@ export function hasLight() {
  * @private
  */
 export class LightFeature extends SceneFeature {
-  private visibleLights: Light[];
+  public visibleLights: Light[];
 
   /**
    * 获取光源种类的相应数量

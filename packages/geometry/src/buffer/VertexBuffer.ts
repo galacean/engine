@@ -1,4 +1,4 @@
-import { Logger, UpdateType } from "@alipay/o3-base";
+import { Logger, UpdateType } from "@alipay/o3-core";
 import { BufferAttribute } from "@alipay/o3-primitive";
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from "../Constant";
 

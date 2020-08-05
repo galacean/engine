@@ -1,5 +1,5 @@
 import { WebGLRenderer } from "./WebGLRenderer";
-import { GLCapabilityType } from "@alipay/o3-base";
+import { GLCapabilityType } from "@alipay/o3-core";
 
 /**
  * GLContext 扩展管理
