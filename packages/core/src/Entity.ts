@@ -167,6 +167,13 @@ export class Entity extends EventDispatcher {
   }
 
   /**
+   * 子节点集合。
+   */
+  get children(): Readonly<Entity[]> {
+    return this._children;
+  }
+
+  /**
    * 子节点数量。
    */
   get childCount(): number {
