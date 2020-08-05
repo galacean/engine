@@ -260,8 +260,8 @@ export class Transform extends Component {
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
       if (this._getParentTransform()) {
-        const scaleMat = this._getScaleMatrix();
-        this._lossyWorldScale.setValue(scaleMat.x, scaleMat[4], scaleMat[8]);
+        const scaleMat = this._getScaleMatrix().elements;
+        this._lossyWorldScale.setValue(scaleMat[0], scaleMat[4], scaleMat[8]);
       } else {
         this._scale.cloneTo(this._lossyWorldScale);
       }
@@ -350,7 +350,7 @@ export class Transform extends Component {
    */
   getWorldRight(right: Vector3): Vector3 {
     const worldMatrix = this.worldMatrix;
-    right.setValue(worldMatrix.x, worldMatrix.y, worldMatrix.z);
+    right.setValue(worldMatrix[0], worldMatrix[1], worldMatrix[3]);
     return right.normalize();
   }
 
