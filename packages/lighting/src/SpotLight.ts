@@ -22,7 +22,7 @@ export class SpotLight extends Light {
    * @param {Entity} entity 节点对象
    * @param {Object} props 参数对象
    * @param {string} [props.name = spotLight] 名称
-   * @param {Vector3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
+   * @param {Vector3} [props.color = new Vector3(1, 1, 1)] 颜色
    * @param {number} [props.intensity = 1] 光照强度
    * @param {number} [props.distance = 0] 辐射距离
    * @param {number} [props.decay = 0] 衰减系数

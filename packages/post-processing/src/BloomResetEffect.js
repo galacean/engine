@@ -1,5 +1,6 @@
 
 import { RenderTarget } from '@alipay/o3-material';
+import { Vector3 } from '@alipay/o3-math';
 import { PostEffectNode } from './PostEffectNode';
 import { ExtractHighlightPassNode } from './nodes/ExtractHighlightPassNode';
 import { KernelBlurPassNode } from './nodes/KernelBlurPassNode';
@@ -22,7 +23,7 @@ export class BloomResetEffect extends PostEffectNode {
    * @param {Number} [props.weight=0.8] Bloom 的强度
    * @param {Number} [props.horizontalBlur=1] 水平方向拉伸
    * @param {Number} [props.verticalBlur=1] 垂直方向拉伸
-   * @param {Number} [props.tintColor=[1,1,1]] Bloom 颜色修正
+   * @param {Vector3} [props.tintColor=new Vector3(1,1,1)] Bloom 颜色修正
    */
   constructor( manager, props = {} ){
 
@@ -67,7 +68,7 @@ export class BloomResetEffect extends PostEffectNode {
     this.weight = props.weight || 0.8;
     this.horizontalBlur = props.horizontalBlur || 1;
     this.verticalBlur = props.verticalBlur || 1;
-    this.tintColor = props.tintColor || [ 1, 1, 1 ];
+    this.tintColor = props.tintColor || new Vector3(1, 1, 1);
 
   }
 

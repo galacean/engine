@@ -1,4 +1,4 @@
-import { Vector4 } from "@alipay/o3-math";
+import { Vector4, Vector3 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-core";
 
 import { Texture2D } from "@alipay/o3-material";
@@ -40,11 +40,11 @@ export abstract class CommonMaterial extends Material {
    * 自发光属性
    * @member {Vector4|Texture2D}
    */
-  get emission() {
+  get emission(): Vector4 {
     return this.getValue("u_emission");
   }
 
-  set emission(val) {
+  set emission(val: Vector4) {
     this.setValue("u_emission", val);
   }
 
@@ -52,11 +52,11 @@ export abstract class CommonMaterial extends Material {
    * 环境光反射属性
    * @member {vec4|Texture2D}
    */
-  get ambient() {
+  get ambient(): Vector4 {
     return this.getValue("u_ambient");
   }
 
-  set ambient(val) {
+  set ambient(val: Vector4) {
     this.setValue("u_ambient", val);
   }
 

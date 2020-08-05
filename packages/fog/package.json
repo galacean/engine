@@ -21,7 +21,8 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "dependencies": {
-    "@alipay/o3-core": "2.3.2"
+    "@alipay/o3-core": "2.3.2",
+    "@alipay/o3-math": "2.3.2"
   },
   "scripts": {
     "b:types": "tsc"
