@@ -315,7 +315,7 @@ export class AHUDWidget extends RenderableComponent {
       const u = new Vector4(nx, ny, depth, 1.0);
 
       const w = new Vector4();
-      Vector3.transformByMat4x4(u, camera.inverseProjectionMatrix, w);
+      Vector4.transformByMat4x4(u, camera.inverseProjectionMatrix, w);
 
       halfWorldSize.setValue(Math.abs(w.x / w.w), Math.abs(w.y / w.w));
     } else {

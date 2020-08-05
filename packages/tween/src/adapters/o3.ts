@@ -2,8 +2,6 @@ import * as TweenPlugins from "../plugins";
 import { Tweener } from "../Tweener";
 import { DataType } from "@alipay/o3-core";
 
-import { vec2, vec3, vec4, quat } from "@alipay/o3-math";
-
 /***  做旋转的插值变换
  * @param {Object}  obj 物体
  * @param {quat} endValue 旋转终值(四元数)
@@ -14,7 +12,7 @@ import { vec2, vec3, vec4, quat } from "@alipay/o3-math";
 const doTransformRotate = (obj, endValue, interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.QuaternionPlugin;
   return new Tweener(
-    () => quat.clone(obj.rotation),
+    () => obj.rotation.clone(),
     (value) => (obj.rotation = value),
     endValue,
     interval,
@@ -25,7 +23,7 @@ const doTransformRotate = (obj, endValue, interval, options: any = {}) => {
 
 /*** 做平移的插值变换
  * @param {Object}  obj 物体
- * @param {vec3} endValue 平移终值
+ * @param {Vector3} endValue 平移终值
  * @param {number} interval 时间区间
  * @param {Object} options 选项
  * @param {function} options.onComplete 完成后调用函数
@@ -34,7 +32,7 @@ const doTransformTranslate = (obj, endValue, interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
 
   return new Tweener(
-    () => vec3.clone(obj.position),
+    () => obj.position.clone(),
     (value) => (obj.position = value),
     endValue,
     interval,
@@ -45,7 +43,7 @@ const doTransformTranslate = (obj, endValue, interval, options: any = {}) => {
 
 /*** 做缩放的插值变换
  * @param {Object}  obj 物体
- * @param {vec3} endValue 缩放终值
+ * @param {Vector3} endValue 缩放终值
  * @param {number} interval 时间区间
  * @param {Object} options 选项
  * @param {function} options.onComplete 完成后调用函数
@@ -53,7 +51,7 @@ const doTransformTranslate = (obj, endValue, interval, options: any = {}) => {
 const doTransformScale = (obj, endValue, interval, options: any = {}) => {
   options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
   return new Tweener(
-    () => vec3.clone(obj.scale),
+    () => obj.scale.clone(),
     (value) => (obj.scale = value),
     endValue,
     interval,
@@ -85,7 +83,7 @@ const doMaterialValue = (mtl, endValue, property = "", interval, options: any = 
 
 /*** 做材质颜色的插值变换
  * @param {Material}  mtl 材质
- * @param {vec3} endValue 材质颜色终值
+ * @param {Vector3} endValue 材质颜色终值
  * @param {string} property 材质属性
  * @param {number} interval 时间区间
  * @param {Object} options 选项
@@ -107,9 +105,9 @@ const doMaterialColor = (mtl, endValue, property = "", interval, options: any = 
 };
 
 /*** 做一般数值的插值变换
- * @param {number|vec2|vec3|vec4}  startValue 起始值
+ * @param {number|Vector2|Vector3|Vector4}  startValue 起始值
  * @param {function} setter 设置函数
- * @param {number|vec2|vec3|vec4} endValue 终止值
+ * @param {number|Vector2|Vector3|Vector4} endValue 终止值
  * @param interval
  * @param {Object} options 选项
  * @param {DataType} options.dataType
@@ -118,13 +116,13 @@ const doMaterialColor = (mtl, endValue, property = "", interval, options: any = 
 const doTransformByDataType = (startValue, setter, endValue, interval, options: any = {}) => {
   if (options.dataType === DataType.FLOAT_VEC2) {
     options.plugin = options.plugin || TweenPlugins.Vector2Plugin;
-    return new Tweener(() => vec2.clone(startValue), setter, endValue, interval, options);
+    return new Tweener(() => startValue.clone(), setter, endValue, interval, options);
   } else if (options.dataType === DataType.FLOAT_VEC3) {
     options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
-    return new Tweener(() => vec3.clone(startValue), setter, endValue, interval, options);
+    return new Tweener(() => startValue.clone(), setter, endValue, interval, options);
   } else if (options.dataType === DataType.FLOAT_VEC4) {
     options.plugin = options.plugin || TweenPlugins.Vector3Plugin;
-    return new Tweener(() => vec4.clone(startValue), setter, endValue, interval, options);
+    return new Tweener(() => startValue.clone(), setter, endValue, interval, options);
   } else {
     options.plugin = options.plugin || TweenPlugins.FloatPlugin;
     return new Tweener(() => startValue, setter, endValue, interval, options);

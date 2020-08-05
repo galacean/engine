@@ -48,9 +48,9 @@ export class RenderQueue {
 
   /**
    * 对于透明对象，按照离摄像机由远及近的顺序渲染，有助于减少视觉错误
-   * @param {vec3} eyePos
+   * @param {Vector3} eyePos
    */
-  sortByDistance(eyePos) {
+  sortByDistance(eyePos: Vector3) {
     const items = this._items;
 
     if (items.length > 1) {

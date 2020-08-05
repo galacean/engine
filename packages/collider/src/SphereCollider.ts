@@ -20,7 +20,7 @@ export class SphereCollider extends ASphereCollider {
     return this.__center;
   }
 
-  set _center(value: number[]) {
+  set _center(value) {
     this.__center = value;
     this.setSphere(this.__center, this.__radius);
   }
