@@ -1,5 +1,4 @@
-import { ClearMode } from "@alipay/o3-core";
-import { RenderPass } from "@alipay/o3-core";
+import { ClearMode, RenderPass } from "@alipay/o3-core";
 
 /**
  * 后处理 RenderPass
@@ -25,7 +24,7 @@ export class PostProcessRenderPass extends RenderPass {
    */
   preRender(camera) {
     // 确保画布清除颜色一致
-    this.clearParam = camera.sceneRenderer.defaultRenderPass.clearParam;
+    this.clearParam = camera._renderPipeline.defaultRenderPass.clearParam;
   }
 
   /**
@@ -37,15 +36,15 @@ export class PostProcessRenderPass extends RenderPass {
 
     const feature = this.feature;
     const root = this.feature.root;
-    const rhi = camera.renderHardware;
+    const rhi = camera.engine.renderhardware;
 
     // 执行所有的 Post Process
     const result = root.draw(feature, camera);
     const sceneColor = root.renderTarget;
 
     // 将执行结果，拷贝到屏幕缓冲
-    feature.copyMtl.setValue("s_resultRT", result.texture);
-    feature.copyMtl.setValue("s_sceneRT", sceneColor.texture);
+    feature.copyMtl.setValue("s_resultRT", result.getColorTexture());
+    feature.copyMtl.setValue("s_sceneRT", sceneColor.getColorTexture());
 
     rhi.activeRenderTarget(feature.originRenderTarget, camera);
     rhi.drawPrimitive(feature.quads.screen.primitive, feature.copyMtl);

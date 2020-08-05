@@ -183,7 +183,9 @@ export class Scene extends EventDispatcher {
         if (camera.enabled && cameraEntity.isActiveInHierarchy) {
           //@todo 后续优化
           this._componentsManager.callCameraOnBeginRender(camera);
+          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //TODO:移除
           camera.render();
+          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //TODO:移除
           //@todo 后续优化
           this._componentsManager.callCameraOnEndRender(camera);
         }
@@ -248,4 +250,11 @@ export class Scene extends EventDispatcher {
   }
 
   features: SceneFeature[] = [];
+
+  /**
+   * @deprecated
+   * 射线
+   * @param ray
+   */
+  public raycast(ray: { origin: number[]; direction: number[] }, outPos?: number[], tag?: MaskList): any {}
 }
