@@ -1,4 +1,4 @@
-import { vec3, Vector3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { Component, RenderableComponent } from "@alipay/o3-core";
 
 /**

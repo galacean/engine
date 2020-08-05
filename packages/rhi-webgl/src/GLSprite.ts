@@ -1,5 +1,5 @@
 import { Logger } from "@alipay/o3-core";
-import { Vector2, Vector3, vector4 } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 
 /**
  * 管理HUD控件Batch绘制时，需要处理的几何体数据
@@ -73,13 +73,13 @@ export class GLSprite {
     const p = uvRect.u + uvRect.width;
     const q = uvRect.v + uvRect.height;
 
-    this._pushVertex(positionQuad.leftTop, [u, v], color);
-    this._pushVertex(positionQuad.leftBottom, [u, q], color);
-    this._pushVertex(positionQuad.rightBottom, [p, q], color);
+    this._pushVertex(positionQuad.leftTop, new Vector2(u, v), color);
+    this._pushVertex(positionQuad.leftBottom, new Vector2(u, q), color);
+    this._pushVertex(positionQuad.rightBottom, new Vector2(p, q), color);
 
-    this._pushVertex(positionQuad.rightBottom, [p, q], color);
-    this._pushVertex(positionQuad.rightTop, [p, v], color);
-    this._pushVertex(positionQuad.leftTop, [u, v], color);
+    this._pushVertex(positionQuad.rightBottom, new Vector2(p, q), color);
+    this._pushVertex(positionQuad.rightTop, new Vector2(p, v), color);
+    this._pushVertex(positionQuad.leftTop, new Vector2(u, v), color);
   }
 
   /**

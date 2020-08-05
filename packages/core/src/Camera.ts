@@ -296,9 +296,9 @@ export class Camera extends Component {
     this._fieldOfView = fov ?? 45;
 
     // TODO: 删除，兼容旧 camera，decaprated
-    const target = props.target ?? [0, 0, 0];
-    const up = props.up ?? [0, 1, 0];
-    entity.transform.position = props.position ?? [0, 10, 20];
+    const target = props.target ?? new Vector3();
+    const up = props.up ?? new Vector3(0, 1, 0);
+    entity.transform.position = props.position ?? new Vector3(0, 10, 20);
     entity.transform.lookAt(target, up);
 
     this._renderPipeline = new RenderPipeline(this);

@@ -16,8 +16,8 @@ const tween = new Tween();
  * 相机的的漫游控制器，可以上下左右位移，转转视角。
  */
 export class FreeControls extends Script {
-  _forward = [0, 0, 0];
-  _right = [0, 0, 0];
+  _forward = new Vector3();
+  _right = new Vector3();
   camera: Entity;
   mainElement: any;
   domElement: any;
@@ -264,7 +264,7 @@ export class FreeControls extends Script {
     this._spherical.phi = this._phi;
     this._spherical.setToVec3(this._v3Cache);
     Vector3.add(this.camera.position, this._v3Cache, this._v3Cache);
-    this.camera.transform.lookAt(this._v3Cache, [0, 1, 0]);
+    this.camera.transform.lookAt(this._v3Cache, new Vector3(0, 1, 0));
   }
 
   /**
@@ -370,7 +370,7 @@ export class FreeControls extends Script {
    * @param {Vector3} up
    * */
   lookAt(target: Vector3, up?: Vector3): void {
-    this.camera.transform.lookAt(target, up || [0, 1, 0]);
+    this.camera.transform.lookAt(target, up || new Vector3(0, 1, 0));
 
     this.updateSpherical();
   }

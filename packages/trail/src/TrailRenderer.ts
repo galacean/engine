@@ -192,8 +192,8 @@ export class TrailRenderer extends GeometryRenderer {
         Vector3.subtract(p, dy, down);
       }
 
-      this.geometry.setValue("POSITION", i * 2, up);
-      this.geometry.setValue("POSITION", i * 2 + 1, down);
+      this.geometry.setValue("POSITION", i * 2, [up.x, up.y, up.z]);
+      this.geometry.setValue("POSITION", i * 2 + 1, [down.x, down.y, down.z]);
     }
   }
 
@@ -210,11 +210,10 @@ export class TrailRenderer extends GeometryRenderer {
 
     const count = this._curPointNum;
     const texDelta = 1.0 / count;
-    const v: Vector2 = new Vector2();
     for (let i = 0; i < count; i++) {
       const d = 1.0 - i * texDelta;
-      this.geometry.setValue("TEXCOORD_0", i * 2, v.setValue(0, d));
-      this.geometry.setValue("TEXCOORD_0", i * 2 + 1, v.setValue(1.0, d));
+      this.geometry.setValue("TEXCOORD_0", i * 2, [0, d]);
+      this.geometry.setValue("TEXCOORD_0", i * 2 + 1, [1.0, d]);
     }
   }
 }
