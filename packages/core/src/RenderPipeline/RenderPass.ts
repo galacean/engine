@@ -23,18 +23,20 @@ class RenderPass {
 
   /**
    * RenderPass 构造函数
-   * @param {string} name 这个 Pass 的名称
-   * @param {number} priority 优先级，小于0在默认Pass之前，大于0在默认Pass之后
-   * @param {RenderTarget} renderTarget 指定的 Render Target
-   * @param {Material} replaceMaterial 替换模型的默认材质
-   * @param {MaskList} mask 与 Component.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
+   * @param name 这个 Pass 的名称
+   * @param priority 优先级，小于0在默认Pass之前，大于0在默认Pass之后
+   * @param renderTarget 指定的 Render Target
+   * @param replaceMaterial 替换模型的默认材质
+   * @param mask 与 Component.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
+   * @param clearParam 清除renderTarget的背景颜色
    */
   constructor(
     name = `RENDER_PASS${passNum++}`,
     priority = 0,
     renderTarget = null,
     replaceMaterial = null,
-    mask = null
+    mask = null,
+    clearParam = [0, 0, 0, 0]
   ) {
     this.name = name;
     this.enabled = true;
@@ -49,7 +51,7 @@ class RenderPass {
      * @member {number}
      */
     this.clearMode = ClearMode.SOLID_COLOR;
-    this._clearParam = [0, 0, 0, 0]; // PASS use render target's clearParam
+    this._clearParam = clearParam; // PASS use render target's clearParam
   }
 
   /**
