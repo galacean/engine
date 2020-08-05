@@ -260,8 +260,9 @@ export class Transform extends Component {
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
       if (this._getParentTransform()) {
-        const scaleMat = this._getScaleMatrix().elements;
-        this._lossyWorldScale.setValue(scaleMat[0], scaleMat[4], scaleMat[8]);
+        const scaleMat = this._getScaleMatrix();
+        const e = scaleMat.elements;
+        this._lossyWorldScale.setValue(e[0], e[4], e[8]);
       } else {
         this._scale.cloneTo(this._lossyWorldScale);
       }
