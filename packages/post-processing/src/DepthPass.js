@@ -1,13 +1,11 @@
-import { DataType } from '@alipay/o3-core';
-import { RenderTarget } from '@alipay/o3-material';
-import { Material, RenderTechnique, ComplexMaterial } from '@alipay/o3-material';
+import { DataType } from "@alipay/o3-core";
+import { ComplexMaterial, RenderColorTexture, RenderTarget, RenderTechnique } from "@alipay/o3-material";
+import { ShaderFactory } from "@alipay/o3-shaderlib";
+import DepthPackingShader from "./shaderLib/depth_packing.glsl";
 
-import { ShaderFactory } from '@alipay/o3-shaderlib';
-import DepthPackingShader from './shaderLib/depth_packing.glsl';
-ShaderFactory.InjectShaderSlices( {
-  depth_packing:DepthPackingShader
-} );
-
+ShaderFactory.InjectShaderSlices({
+  depth_packing: DepthPackingShader
+});
 
 const VERT_SHADER = `
 precision highp float;
@@ -52,21 +50,18 @@ void main() {
 }
 `;
 
-
-export class DepthMaterial extends ComplexMaterial{
-
-  _generateTechnique( caemra, component ) {
-
+export class DepthMaterial extends ComplexMaterial {
+  _generateTechnique(caemra, component) {
     //debugger;
-    const tech = new RenderTechnique( 'DepthPassTech' );
+    const tech = new RenderTechnique("DepthPassTech");
     tech.isValid = true;
     tech.uniforms = {
       u_zNear: {
-        name: 'u_zNear',
+        name: "u_zNear",
         type: DataType.FLOAT
       },
       u_zFar: {
-        name: 'u_zFar',
+        name: "u_zFar",
         type: DataType.FLOAT
       }
     };
@@ -76,28 +71,23 @@ export class DepthMaterial extends ComplexMaterial{
     tech.fragmentShader = FRAG_SHADER;
 
     return tech;
-
   }
-
 }
 
-export function addDepthPass( camera, mask, renderTargetSize ){
-
-  const mtl = new DepthMaterial( 'DepthPassMtl' );
+export function addDepthPass(camera, mask, renderTargetSize) {
+  const mtl = new DepthMaterial("DepthPassMtl");
   // mtl.technique = tech;
-  mtl.setValue( 'u_zNear', camera.zNear );
-  mtl.setValue( 'u_zFar', camera.zFar );
-
+  mtl.setValue("u_zNear", camera.nearClipPlane);
+  mtl.setValue("u_zFar", camera.farClipPlane);
 
   //--
-  const renderTarget = new RenderTarget( 'depthTarget', {
-    width: renderTargetSize,
-    height: renderTargetSize,
-    clearColor: [ 1.0, 1.0, 1.0, 1.0 ],
-  } );
+  const renderTarget = new RenderTarget(
+    renderTargetSize,
+    renderTargetSize,
+    new RenderColorTexture(renderTargetSize, renderTargetSize)
+  );
 
-  camera.sceneRenderer.addRenderPass( 'DepthPass', -1, renderTarget, mtl, mask );
+  camera._renderPipeline.addRenderPass("DepthPass", -1, renderTarget, mtl, mask, [1, 1, 1, 1]);
 
   return renderTarget;
-
 }
