@@ -1,4 +1,5 @@
 import { Component } from "./Component";
+import { Camera } from "./Camera";
 
 /**
  * 脚本类，可进行逻辑编写。
@@ -34,7 +35,7 @@ export class Script extends Component {
 
   /**
    * 主更新，逐帧调用。
-   * @param deltaTime 间隔时间 @deprecated
+   * @param deltaTime - 间隔时间
    */
   onUpdate(deltaTime: number): void {}
 
@@ -45,13 +46,15 @@ export class Script extends Component {
 
   /**
    * 相机渲染前调用，逐相机调用。
+   * @param camera - 当前渲染相机
    */
-  onBeginRender(): void {}
+  onBeginRender(camera: Camera): void {}
 
   /**
    * 相机完成渲染后调用，逐相机调用。
+   * @param camera - 当前渲染相机
    */
-  onEndRender(): void {}
+  onEndRender(camera: Camera): void {}
 
   /**
    * 触发为禁用状态时调用。
