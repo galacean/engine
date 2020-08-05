@@ -43,12 +43,12 @@ export class Engine extends EventDispatcher {
     if (this._vSyncCount) {
       this._requestId = requestAnimationFrame(this._animate);
       if (this._loopCounter++ % this._vSyncCount === 0) {
-        this._tick();
+        this.update();
         this._loopCounter = 0;
       }
     } else {
       this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
-      this._tick();
+      this.update();
     }
   };
 
@@ -155,6 +155,29 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * 引擎手动更新，如果调用 run() 则一般无需调用该函数。
+   */
+  update(): void {
+    const time = this._time;
+    time.tick();
+    const deltaTime = time.deltaTime;
+    engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
+
+    this._hardwareRenderer.beginFrame();
+
+    const scene = this._sceneManager._activeScene;
+    if (scene) {
+      scene.update(deltaTime);
+      scene.render();
+      scene._componentsManager.callComponentDestory();
+    }
+
+    this._hardwareRenderer.endFrame();
+
+    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
+  }
+
+  /**
    * 执行引擎循环。
    */
   run(): void {
@@ -189,26 +212,6 @@ export class Engine extends EventDispatcher {
 
     // todo: delete
     (engineFeatureManager as any)._objects = [];
-  }
-
-  private _tick(): void {
-    const time = this._time;
-    time.tick();
-    const deltaTime = time.deltaTime;
-    engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
-
-    this._hardwareRenderer.beginFrame();
-
-    const scene = this._sceneManager._activeScene;
-    if (scene) {
-      scene.update(deltaTime);
-      scene.render();
-      scene._componentsManager.callComponentDestory();
-    }
-
-    this._hardwareRenderer.endFrame();
-
-    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
   }
 
   //-----------------------------------------@deprecated-----------------------------------
