@@ -261,7 +261,8 @@ export class Transform extends Component {
     if (this._isContainDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
       if (this._getParentTransform()) {
         const scaleMat = this._getScaleMatrix();
-        this._lossyWorldScale.setValue(scaleMat.x, scaleMat[4], scaleMat[8]);
+        const e = scaleMat.elements;
+        this._lossyWorldScale.setValue(e[0], e[4], e[8]);
       } else {
         this._scale.cloneTo(this._lossyWorldScale);
       }
