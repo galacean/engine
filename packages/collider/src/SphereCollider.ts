@@ -1,8 +1,9 @@
 import { Entity } from "@alipay/o3-core";
 import { ASphereCollider } from "./ASphereCollider";
+import { Vector3 } from "@alipay/o3-math";
 
 export class SphereCollider extends ASphereCollider {
-  private __center: number[] = [0, 0, 0];
+  private __center: Vector3 = new Vector3();
   private __radius: number = 1.0;
   private isShowCollider: boolean = true;
 
@@ -16,11 +17,11 @@ export class SphereCollider extends ASphereCollider {
     this.isShowCollider = isShowCollider;
   }
 
-  get _center() {
+  get _center(): Vector3 {
     return this.__center;
   }
 
-  set _center(value) {
+  set _center(value: Vector3) {
     this.__center = value;
     this.setSphere(this.__center, this.__radius);
   }

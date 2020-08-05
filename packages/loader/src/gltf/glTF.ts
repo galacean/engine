@@ -4,7 +4,7 @@ import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
 import { Mesh, Skin, MeshRenderer, SkinnedMeshRenderer } from "@alipay/o3-mesh";
-import { Vector3, Matrix4x4, Quaternion } from "@alipay/o3-math";
+import { Vector3, Matrix, Quaternion } from "@alipay/o3-math";
 import { getAccessorData, getAccessorTypeSize, createAttribute, findByKeyValue } from "./Util";
 import { AnimationClip, InterpolationType, Animation } from "@alipay/o3-animation";
 
@@ -640,7 +640,7 @@ export function parseNode(gltfNode, resources) {
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
-    const mat = new Matrix4x4(
+    const mat = new Matrix(
       m[0],
       m[1],
       m[2],
