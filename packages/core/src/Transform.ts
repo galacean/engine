@@ -338,8 +338,8 @@ export class Transform extends Component {
    * @returns 前向量
    */
   getWorldForward(forward: Vector3): Vector3 {
-    const worldMatrix = this.worldMatrix;
-    forward.setValue(worldMatrix[8], worldMatrix[9], worldMatrix[10]);
+    const e = this.worldMatrix.elements;
+    forward.setValue(e[8], e[9], e[10]);
     return forward.normalize();
   }
 
@@ -349,8 +349,8 @@ export class Transform extends Component {
    * @returns 右向量
    */
   getWorldRight(right: Vector3): Vector3 {
-    const worldMatrix = this.worldMatrix;
-    right.setValue(worldMatrix.x, worldMatrix.y, worldMatrix.z);
+    const e = this.worldMatrix.elements;
+    right.setValue(e[0], e[1], e[2]);
     return right.normalize();
   }
 
@@ -360,8 +360,8 @@ export class Transform extends Component {
    * @returns 上向量
    */
   getWorldUp(up: Vector3): Vector3 {
-    const worldMatrix = this.worldMatrix;
-    up.setValue(worldMatrix[4], worldMatrix[5], worldMatrix[6]);
+    const e = this.worldMatrix.elements;
+    up.setValue(e[4], e[5], e[6]);
     return up.normalize();
   }
 
