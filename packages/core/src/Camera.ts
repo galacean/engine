@@ -332,7 +332,7 @@ export class Camera extends Component {
   worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, MathTemp.tempMat4);
     MathTemp.tempVec4.setValue(point.x, point.y, point.z, 1.0);
-    Vector3.transformByMat4x4(MathTemp.tempVec4, MathTemp.tempMat4, MathTemp.tempVec4);
+    Vector4.transformByMat4x4(MathTemp.tempVec4, MathTemp.tempMat4, MathTemp.tempVec4);
 
     const w = MathTemp.tempVec4.w;
     const nx = MathTemp.tempVec4.x / w;
@@ -450,7 +450,7 @@ export class Camera extends Component {
     // 变换到裁剪空间矩阵
     MathTemp.tempVec4.setValue(point.x * 2 - 1, 1 - point.y * 2, depth, 1);
     // 计算逆矩阵结果
-    Vector3.transformByMat4x4(MathTemp.tempVec4, invViewProjMat, MathTemp.tempVec4);
+    Vector4.transformByMat4x4(MathTemp.tempVec4, invViewProjMat, MathTemp.tempVec4);
     const u = MathTemp.tempVec4;
     const w = u.w;
 

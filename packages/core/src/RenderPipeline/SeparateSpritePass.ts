@@ -1,5 +1,5 @@
 import { ClearMode } from "../base";
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { Camera } from "../Camera";
 import { RenderPass } from "./RenderPass";
 
@@ -62,7 +62,7 @@ export class SeparateSpritePass extends RenderPass {
           const pos1 = item1.component.node.worldPosition;
           const pos2 = item2.component.node.worldPosition;
 
-          const dis = vec3.squaredDistance(pos2, eyePos) - vec3.squaredDistance(pos1, eyePos);
+          const dis = Vector3.distanceSquared(pos2, eyePos) - Vector3.distanceSquared(pos1, eyePos);
           return dis;
         } else {
           return item1.component.renderPriority - item2.component.renderPriority;

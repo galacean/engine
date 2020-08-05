@@ -1,15 +1,15 @@
 import { Entity } from "@alipay/o3-core";
-import { quat, vec3, vec4, MathUtil } from "@alipay/o3-math";
+import { Quaternion, Vector3, Vector4, MathUtil } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 import { AnimationClipHandler } from "./animationClipHandler";
 import { LinkList } from "./linkList";
 import { NodeState } from "../types";
 
-function cloneNodeState(entity): NodeState {
+function cloneNodeState(entity: Entity): NodeState {
   return {
-    position: vec3.clone(entity.position),
-    rotation: vec4.clone(entity.rotation),
-    scale: vec3.clone(entity.scale)
+    position: entity.position.clone(),
+    rotation: entity.rotation.clone(),
+    scale: entity.scale.clone()
   };
 }
 export class InterpolationHandler extends AnimationClipHandler {
@@ -27,7 +27,7 @@ export class InterpolationHandler extends AnimationClipHandler {
     this.keyframeLinkListMap = {};
     this.originNodeState = cloneNodeState(node);
     this.curNodeState = cloneNodeState(node);
-    this.curNodeState.rotation = quat.toEuler(vec3.create(), this.curNodeState.rotation);
+    Quaternion.toEuler(this.curNodeState.rotation, this.curNodeState.rotation);
     this.curNodeState.rotation.scale(MathUtil.RadToDegree); // 弧度转角度
     const keyframeTimeQueue = Object.keys(animClip.keyframes)
       .map((startTime) => Number(startTime))
@@ -110,14 +110,14 @@ export class InterpolationHandler extends AnimationClipHandler {
     Object.keys(this.changedProperty).forEach((property) => {
       if (property === "rotation") {
         const euler = curNodeState[property];
-        node[property] = quat.fromEuler(
-          quat.create(),
+        Quaternion.fromEuler(
           MathUtil.degreeToRadian(euler[0]),
           MathUtil.degreeToRadian(euler[1]),
-          MathUtil.degreeToRadian(euler[2])
+          MathUtil.degreeToRadian(euler[2]),
+          node[property]
         );
       } else {
-        node[property] = vec3.clone(curNodeState[property]);
+        node[property] = curNodeState[property].clone();
       }
     });
   }
@@ -128,9 +128,9 @@ export class InterpolationHandler extends AnimationClipHandler {
     if (!curNodeState) return;
     Object.keys(this.changedProperty).forEach((property) => {
       if (property === "rotation") {
-        curNodeState[property] = quat.clone(originNodeState[property]);
+        curNodeState[property] = originNodeState[property].clone();
       } else {
-        curNodeState[property] = vec3.clone(originNodeState[property]);
+        curNodeState[property] = originNodeState[property].clone();
       }
     });
     this.affectNode();

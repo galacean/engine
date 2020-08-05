@@ -220,10 +220,10 @@ export class SpriteRenderer extends RenderableComponent {
     const rightBottom: Vector4 = SpriteRenderer._tempVec43;
     rightBottom.setValue(temp.x, temp.y, temp.z, 1);
 
-    Vector3.transformByMat4x4(leftTop, matrix, leftTop);
-    Vector3.transformByMat4x4(leftBottom, matrix, leftBottom);
-    Vector3.transformByMat4x4(rightTop, matrix, rightTop);
-    Vector3.transformByMat4x4(rightBottom, matrix, rightBottom);
+    Vector4.transformByMat4x4(leftTop, matrix, leftTop);
+    Vector4.transformByMat4x4(leftBottom, matrix, leftBottom);
+    Vector4.transformByMat4x4(rightTop, matrix, rightTop);
+    Vector4.transformByMat4x4(rightBottom, matrix, rightBottom);
 
     this._positionQuad.leftTop.setValue(leftTop.x, leftTop.y, leftTop.z);
     this._positionQuad.leftBottom.setValue(leftBottom.x, leftBottom.y, leftBottom.z);
