@@ -248,4 +248,11 @@ export class Scene extends EventDispatcher {
   }
 
   features: SceneFeature[] = [];
+
+  /**
+   * @deprecated
+   * 射线
+   * @param ray
+   */
+  public raycast(ray: { origin: number[]; direction: number[] }, outPos?: number[], tag?: MaskList): any {}
 }
