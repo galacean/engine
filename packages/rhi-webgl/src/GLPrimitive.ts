@@ -12,7 +12,6 @@ export class GLPrimitive extends GLAsset {
   protected readonly _primitive;
   protected _glIndexBuffer: WebGLBuffer;
   protected _glVertBuffers: WebGLBuffer[];
-  protected _glInstancedBuffer: WebGLBuffer;
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 

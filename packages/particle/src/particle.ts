@@ -9,8 +9,9 @@ import {
   TextureWrapMode
 } from "@alipay/o3-base";
 import { Material, RenderTechnique } from "@alipay/o3-material";
-import { GeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
+import { GeometryRenderer, BufferGeometry, IndexBuffer, VertexBuffer, InterleavedBuffer } from "@alipay/o3-geometry";
 import { vec3 } from "@alipay/o3-math";
+import { BufferAttribute } from "@alipay/o3-primitive";
 
 /**
  * GPU粒子系统渲染类
@@ -37,6 +38,7 @@ export class GPUParticleSystem extends GeometryRenderer {
   public scaleFactor: number;
   public spriteSheet: any[];
   public is2d: boolean;
+  public interleaved: boolean;
 
   /**
    * @constructor
@@ -117,6 +119,7 @@ export class GPUParticleSystem extends GeometryRenderer {
     this.scaleFactor = props.scaleFactor || 1;
     this.spriteSheet = props.spriteSheet || null;
     this.is2d = props.is2d === undefined ? true : props.is2d;
+    this.interleaved = props.spriteSheet || true;
 
     this.setMaterial();
 
@@ -387,7 +390,7 @@ export class GPUParticleSystem extends GeometryRenderer {
    * @private
    */
   _createGeometry() {
-    const geometry = new IndexBufferGeometry("particleGeometry");
+    const geometry = new BufferGeometry("particleGeometry");
     geometry.mode = DrawMode.TRIANGLES;
     const FLOAT = DataType.FLOAT;
 
@@ -406,26 +409,125 @@ export class GPUParticleSystem extends GeometryRenderer {
       indices[idx++] = startIndex + 3;
     }
 
-    geometry.initialize(
-      [
-        { semantic: "POSITIONSTART", size: 3, type: FLOAT, normalized: false },
-        { semantic: "VELOCITY", size: 3, type: FLOAT, normalized: false },
-        { semantic: "ACCELERATION", size: 3, type: FLOAT, normalized: false },
-        { semantic: "COLOR", size: 3, type: FLOAT, normalized: false },
-        { semantic: "ALPHA", size: 1, type: FLOAT, normalized: false },
-        { semantic: "SIZE", size: 1, type: FLOAT, normalized: false },
-        { semantic: "ROTATERATE", size: 1, type: FLOAT, normalized: false },
-        { semantic: "STARTTIME", size: 1, type: FLOAT, normalized: false },
-        { semantic: "LIFETIME", size: 1, type: FLOAT, normalized: false },
-        { semantic: "STARTANGLE", size: 1, type: FLOAT, normalized: false },
-        { semantic: "SCALEFACTOR", size: 1, type: FLOAT, normalized: false },
-        { semantic: "UV", size: 3, type: FLOAT, normalized: false },
-        { semantic: "NORMALIZED_UV", size: 2, type: FLOAT, normalized: false }
-      ],
-      this.maxCount * 4,
-      indices,
-      BufferUsage.DYNAMIC_DRAW
-    );
+    const positionStart = new BufferAttribute({
+      semantic: "POSITIONSTART",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const velocity = new BufferAttribute({
+      semantic: "VELOCITY",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const acceleration = new BufferAttribute({
+      semantic: "ACCELERATION",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const color = new BufferAttribute({
+      semantic: "COLOR",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const alpha = new BufferAttribute({
+      semantic: "ALPHA",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const size = new BufferAttribute({
+      semantic: "SIZE",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const rotaterate = new BufferAttribute({
+      semantic: "ROTATERATE",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const startTime = new BufferAttribute({
+      semantic: "STARTTIME",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const lifetime = new BufferAttribute({
+      semantic: "LIFETIME",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const startAngle = new BufferAttribute({
+      semantic: "STARTANGLE",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const scaleFactor = new BufferAttribute({
+      semantic: "SCALEFACTOR",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const uv = new BufferAttribute({
+      semantic: "UV",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const normalizedUv = new BufferAttribute({
+      semantic: "NORMALIZED_UV",
+      size: 3,
+      type: FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+
+    let buffer;
+    const attributes = [
+      positionStart,
+      velocity,
+      acceleration,
+      color,
+      alpha,
+      size,
+      rotaterate,
+      startTime,
+      lifetime,
+      startAngle,
+      scaleFactor,
+      uv,
+      normalizedUv
+    ];
+    if (this.interleaved) {
+      buffer = new InterleavedBuffer(attributes, this.maxCount * 4);
+    } else {
+      buffer = new VertexBuffer(attributes, this.maxCount * 4);
+    }
+    geometry.addVertexBufferParam(buffer);
+
+    const indexBuffer = new IndexBuffer(indices.length);
+    geometry.addIndexBufferParam(indexBuffer);
+    geometry.setIndexBufferData(indices);
+
     return geometry;
   }
 
@@ -506,25 +608,23 @@ export class GPUParticleSystem extends GeometryRenderer {
     for (let j = 0; j < 4; j++) {
       const k = i * 4 + j;
 
-      // this.geometry.setValue('POSITIONSTART', k, [_x, _y, z]);
-      this.geometry.setValue("POSITIONSTART", k, [x, y, z]);
+      this.geometry.setVertexBufferDataByIndex("POSITIONSTART", k, [x, y, z]);
+      this.geometry.setVertexBufferDataByIndex("STARTTIME", k, startTime);
 
-      this.geometry.setValue("STARTTIME", k, startTime);
+      this.geometry.setVertexBufferDataByIndex("VELOCITY", k, [velX, velY, velZ]);
 
-      this.geometry.setValue("VELOCITY", k, [velX, velY, velZ]);
+      this.geometry.setVertexBufferDataByIndex("ACCELERATION", k, [accX, accY, accZ]);
 
-      this.geometry.setValue("ACCELERATION", k, [accX, accY, accZ]);
+      this.geometry.setVertexBufferDataByIndex("COLOR", k, [color[0], color[1], color[2]]);
 
-      this.geometry.setValue("COLOR", k, [color[0], color[1], color[2]]);
+      this.geometry.setVertexBufferDataByIndex("SIZE", k, [size]);
+      this.geometry.setVertexBufferDataByIndex("LIFETIME", k, lifeTime);
 
-      this.geometry.setValue("SIZE", k, [size]);
-      this.geometry.setValue("LIFETIME", k, lifeTime);
+      this.geometry.setVertexBufferDataByIndex("STARTANGLE", k, sa);
+      this.geometry.setVertexBufferDataByIndex("ROTATERATE", k, rr);
+      this.geometry.setVertexBufferDataByIndex("SCALEFACTOR", k, [scaleFactor]);
 
-      this.geometry.setValue("STARTANGLE", k, sa);
-      this.geometry.setValue("ROTATERATE", k, rr);
-      this.geometry.setValue("SCALEFACTOR", k, [scaleFactor]);
-
-      this.geometry.setValue("ALPHA", k, [particleAlpha]);
+      this.geometry.setVertexBufferDataByIndex("ALPHA", k, [particleAlpha]);
 
       this._setUvs(i, j, k);
     }
@@ -580,8 +680,8 @@ export class GPUParticleSystem extends GeometryRenderer {
         [0, 1, 1]
       ];
     }
-    this.geometry.setValue("UV", k, rects[j]);
-    this.geometry.setValue("NORMALIZED_UV", k, normalizedRects[j]);
+    this.geometry.setVertexBufferDataByIndex("UV", k, rects[j]);
+    this.geometry.setVertexBufferDataByIndex("NORMALIZED_UV", k, normalizedRects[j]);
   }
 
   /**

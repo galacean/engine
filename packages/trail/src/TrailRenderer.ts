@@ -1,7 +1,7 @@
 import { BufferUsage, DataType, DrawMode } from "@alipay/o3-base";
-import { BufferGeometry, GeometryRenderer } from "@alipay/o3-geometry";
-import { Material, Texture2D } from "@alipay/o3-material";
+import { BufferGeometry, GeometryRenderer, InterleavedBuffer } from "@alipay/o3-geometry";
 import { quat, vec2, vec3 } from "@alipay/o3-math";
+import { BufferAttribute } from "@alipay/o3-primitive";
 import { TrailMaterial } from "./TrailMaterial";
 
 /**
@@ -81,7 +81,7 @@ export class TrailRenderer extends GeometryRenderer {
       appendNewPoint = false;
     } else if (this._curPointNum > 0) {
       const lastPoint = this._points[this._points.length - 1];
-      if (vec3.distance(this.entity.worldPosition, lastPoint) < this._minSeg) {
+      if (vec3.distance(this.entity.transform.worldPosition, lastPoint) < this._minSeg) {
         appendNewPoint = false;
       } else {
         // debugger
@@ -125,15 +125,21 @@ export class TrailRenderer extends GeometryRenderer {
    */
   _initGeometry() {
     this.geometry = new BufferGeometry();
-    this.geometry.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      this._maxPointNum * 2,
-      BufferUsage.DYNAMIC_DRAW
-    );
     this.geometry.mode = DrawMode.TRIANGLE_STRIP;
+    const position = new BufferAttribute({
+      semantic: "POSITION",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: false
+    });
+    const uv = new BufferAttribute({
+      semantic: "TEXCOORD_0",
+      size: 2,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+    const buffer = new InterleavedBuffer([position, uv], this._maxPointNum * 2);
+    this.geometry.addVertexBufferParam(buffer);
   }
 
   /**
@@ -189,8 +195,8 @@ export class TrailRenderer extends GeometryRenderer {
         vec3.sub(down, p, dy);
       }
 
-      this.geometry.setValue("POSITION", i * 2, up);
-      this.geometry.setValue("POSITION", i * 2 + 1, down);
+      this.geometry.setVertexBufferDataByIndex("POSITION", i * 2, up);
+      this.geometry.setVertexBufferDataByIndex("POSITION", i * 2 + 1, down);
     }
   }
 
@@ -210,8 +216,8 @@ export class TrailRenderer extends GeometryRenderer {
     const v = vec2.create();
     for (let i = 0; i < count; i++) {
       const d = 1.0 - i * texDelta;
-      this.geometry.setValue("TEXCOORD_0", i * 2, vec2.set(v, 0, d));
-      this.geometry.setValue("TEXCOORD_0", i * 2 + 1, vec2.set(v, 1.0, d));
+      this.geometry.setVertexBufferDataByIndex("TEXCOORD_0", i * 2, vec2.set(v, 0, d));
+      this.geometry.setVertexBufferDataByIndex("TEXCOORD_0", i * 2 + 1, vec2.set(v, 1.0, d));
     }
   }
 }

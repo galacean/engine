@@ -1,7 +1,5 @@
 //-- 数据类
 export { BufferGeometry } from "./BufferGeometry";
-export { IndexBufferGeometry } from "./IndexBufferGeometry";
-export { BufferGeometryNew } from "./BufferGeometryNew";
 
 //-- Component 类
 export { GeometryRenderer } from "./GeometryRenderer";

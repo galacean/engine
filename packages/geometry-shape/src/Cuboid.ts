@@ -1,5 +1,6 @@
 import { DataType } from "@alipay/o3-base";
-import { BufferGeometry } from "@alipay/o3-geometry";
+import { BufferGeometry, InterleavedBuffer } from "@alipay/o3-geometry";
+import { BufferAttribute } from "@alipay/o3-primitive";
 
 /**
  * CubeGeometry 长方体创建类
@@ -109,14 +110,27 @@ export class CuboidGeometry extends BufferGeometry {
    * @private
    */
   initialize() {
-    super.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "NORMAL", size: 3, type: DataType.FLOAT, normalized: true },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      36
-    );
+    const position = new BufferAttribute({
+      semantic: "POSITION",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: false
+    });
+    const normal = new BufferAttribute({
+      semantic: "NORMAL",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+    const uv = new BufferAttribute({
+      semantic: "TEXCOORD_0",
+      size: 2,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+
+    const buffer = new InterleavedBuffer([position, normal, uv], 36);
+    this.addVertexBufferParam(buffer);
 
     const widthHalf = this._parameters.width / 2;
     const heightHalf = this._parameters.height / 2;
@@ -126,11 +140,11 @@ export class CuboidGeometry extends BufferGeometry {
       const pos = [vert[0] * widthHalf, vert[1] * heightHalf, vert[2] * depthHalf];
       const normalIndex = Math.floor(i / 6);
       const uvIndex = Math.ceil(i % 6);
-      this.setVertexValues(i, {
-        POSITION: pos,
-        NORMAL: this._normals[normalIndex],
-        TEXCOORD_0: this._uvs[uvIndex]
-      });
+      const normal = this._normals[normalIndex];
+      const uv = this._uvs[uvIndex];
+      this.setVertexBufferDataByIndex("POSITION", i, pos);
+      this.setVertexBufferDataByIndex("NORMAL", i, normal);
+      this.setVertexBufferDataByIndex("TEXCOORD_0", i, uv);
     });
   }
 }

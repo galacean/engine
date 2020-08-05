@@ -13,26 +13,25 @@ let primitiveID = 0;
  * @private
  */
 export class Primitive extends AssetObject {
-  public readonly id: number;
-  public mode: DrawMode = DrawMode.TRIANGLES;
+  readonly id: number;
+  mode: DrawMode = DrawMode.TRIANGLES;
 
-  vertexAttributes = {};
+  vertexAttributes = <any>{};
   vertexBuffers = [];
-  public vertexCount: number = 0;
+  vertexCount: number = 0;
 
   indexBuffers = [];
-  public indexNeedUpdate: boolean = false;
+  indexNeedUpdate: boolean = false;
 
-  public material = null;
-  public materialIndex: number;
-  public targets: any[] = [];
-  public boundingBox: OBB = null;
-  public boundingSphere: BoundingSphere = null;
-  public isInFrustum: boolean = true;
+  material = null;
+  materialIndex: number;
+  targets: any[] = [];
+  boundingBox: OBB = null;
+  boundingSphere: BoundingSphere = null;
+  isInFrustum: boolean = true;
 
-  public isInstanced: boolean = false;
-
-  public instancedCount: number;
+  isInstanced: boolean = false;
+  instancedCount: number;
 
   indexBufferIndex: number = 0;
 

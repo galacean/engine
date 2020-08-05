@@ -1,5 +1,13 @@
 import { DataType, UpdateType, BufferUsage } from "@alipay/o3-base";
 
+interface AttributeParam {
+  semantic: string;
+  size: number;
+  type: DataType;
+  normalized: boolean;
+  instanced?: number;
+  usage?: BufferUsage;
+}
 export class BufferAttribute {
   name: string;
   semantic: string;
@@ -18,14 +26,16 @@ export class BufferAttribute {
     bufferByteOffset: 0
   };
   usage: BufferUsage = BufferUsage.STATIC_DRAW;
-  constructor({ semantic, size, type, normalized, instanced, usage }) {
-    this.semantic = semantic;
-    this.size = size;
-    this.type = type;
-    this.normalized = normalized;
-    this.instanced = instanced;
-    if (usage) {
-      this.usage = usage;
+  constructor(param: AttributeParam) {
+    this.semantic = param.semantic;
+    this.size = param.size;
+    this.type = param.type;
+    this.normalized = param.normalized;
+    if (param.instanced !== undefined) {
+      this.instanced = param.instanced;
+    }
+    if (param.usage !== undefined) {
+      this.usage = param.usage;
     }
   }
 

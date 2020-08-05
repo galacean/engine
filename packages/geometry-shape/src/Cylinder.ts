@@ -1,6 +1,7 @@
 import { DataType, FrontFace } from "@alipay/o3-base";
 import { vec3 } from "@alipay/o3-math";
-import { BufferGeometry } from "@alipay/o3-geometry";
+import { BufferGeometry, InterleavedBuffer } from "@alipay/o3-geometry";
+import { BufferAttribute } from "@alipay/o3-primitive";
 
 /**
  * SphereGeometry 球体创建类
@@ -75,21 +76,35 @@ export class CylinderGeometry extends BufferGeometry {
       if (this._parameters.radiusBottom > 0) this.generateCap(false);
     }
 
-    super.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "NORMAL", size: 3, type: DataType.FLOAT, normalized: true },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      this._indexs.length
-    );
+    const position = new BufferAttribute({
+      semantic: "POSITION",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: false
+    });
+    const normal = new BufferAttribute({
+      semantic: "NORMAL",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+    const uv = new BufferAttribute({
+      semantic: "TEXCOORD_0",
+      size: 2,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+
+    const buffer = new InterleavedBuffer([position, normal, uv], this._indexs.length);
+    this.addVertexBufferParam(buffer);
 
     this._indexs.forEach((vertIndex, i) => {
-      this.setVertexValues(i, {
-        POSITION: this._verts[vertIndex],
-        NORMAL: this._normals[vertIndex],
-        TEXCOORD_0: this._uvs[vertIndex]
-      });
+      const pos = this._verts[vertIndex];
+      const normal = this._normals[vertIndex];
+      const uv = this._uvs[vertIndex];
+      this.setVertexBufferDataByIndex("POSITION", i, pos);
+      this.setVertexBufferDataByIndex("NORMAL", i, normal);
+      this.setVertexBufferDataByIndex("TEXCOORD_0", i, uv);
     });
   }
 

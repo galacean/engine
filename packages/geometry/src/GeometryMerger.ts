@@ -1,5 +1,4 @@
 import { BufferGeometry } from "./BufferGeometry";
-import { IndexBufferGeometry } from "./IndexBufferGeometry";
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from "./Constant";
 import { DataType, BufferUsage } from "@alipay/o3-base";
 
@@ -66,14 +65,17 @@ export class GeometryMerger {
 
     for (const geo of this._geometryList) {
       // 只合并静态物件
-      if (geo.primitive.usage != BufferUsage.STATIC_DRAW) {
+      const isStatic = this._isStatic(geo.primitive);
+      if (!isStatic) {
         untouchedGeos.push(geo);
         continue;
       }
-      if (geo instanceof IndexBufferGeometry) {
-        indexBufferGeos.push(geo);
-      } else if (geo instanceof BufferGeometry) {
-        bufferGeos.push(geo);
+      if (geo instanceof BufferGeometry) {
+        if (this._isIndexBufferGeometry(geo)) {
+          indexBufferGeos.push(geo);
+        } else {
+          bufferGeos.push(geo);
+        }
       } else {
         untouchedGeos.push(geo);
         console.assert(false, "unknown geometry type");
@@ -86,6 +88,27 @@ export class GeometryMerger {
     this._mergeBufferGeometry(mergedBufferGeos, bufferGeos);
     this._mergeIndexBufferGeometry(mergedIndexBufferGeos, indexBufferGeos);
     return [...mergedBufferGeos, ...mergedIndexBufferGeos, ...untouchedGeos];
+  }
+
+  _isStatic(primitive) {
+    const { attributes } = primitive;
+    const semanticList = Object.keys(attributes);
+    let isStatic = true;
+    for (let i = 0; i < semanticList.length; i += 1) {
+      const semantic = semanticList[i];
+      const attribute = attributes[semantic];
+      if (attribute.usage === BufferUsage.DYNAMIC_DRAW) {
+        isStatic = false;
+      }
+    }
+    return isStatic;
+  }
+
+  _isIndexBufferGeometry(geo) {
+    if (geo.primitive.indexBuffers.length === 0) {
+      return false;
+    }
+    return true;
   }
 
   _mergeBufferGeometry(merged, raw) {
@@ -109,7 +132,7 @@ export class GeometryMerger {
             return (
               g.primitive.mode == m[0].primitive.mode &&
               g.primitive.targets.length == 0 &&
-              g.primitive.indexBuffer == null &&
+              g.primitive.indexBuffers.length == 0 &&
               g.stride == m[0].stride
             );
           })
@@ -117,7 +140,7 @@ export class GeometryMerger {
 
         const newGeo = new BufferGeometry("merged-geometry");
         const vertexCount = m.reduce((s, g) => s + g.primitive.vertexCount, 0);
-        newGeo.initialize(m[0].attributes, vertexCount);
+        // newGeo.initialize(m[0].attributes, vertexCount);
         newGeo.primitive.material = mat;
         newGeo.primitive.vertexBuffers[0] = new ArrayBuffer(
           m.reduce((s, g) => s + g.primitive.vertexBuffers[0].byteLength, 0)
@@ -198,12 +221,12 @@ export class GeometryMerger {
           ibByteOffset += g.primitive.indexCount * indexStride;
           indexOffset += g.primitive.vertexCount;
         }
-        const newGeo = new IndexBufferGeometry("merged-index-geometry");
-        newGeo.initialize(m[0].attributes, sumVertexCount, [], m[0].usage);
+        const newGeo = new BufferGeometry("merged-index-geometry");
+        // newGeo.initialize(m[0].attributes, sumVertexCount, [], m[0].usage);
         newGeo.primitive.material = mat;
         newGeo.primitive.vertexBuffers[0] = vb;
-        newGeo.primitive.indexBuffer = ib;
-        newGeo.primitive.indexCount = sumIndexCount;
+        // newGeo.primitive.indexBuffer = ib;
+        // newGeo.primitive.indexCount = sumIndexCount;
 
         merged.push(newGeo);
       }

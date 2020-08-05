@@ -1,2 +1,2 @@
-export { TrailRenderer as ATrailRenderer } from "./TrailRenderer";
+export { TrailRenderer } from "./TrailRenderer";
 export { TrailMaterial } from "./TrailMaterial";

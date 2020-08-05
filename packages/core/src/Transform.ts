@@ -123,11 +123,11 @@ export class Transform extends Component {
     const parent = this._getParentTransform();
     if (parent) {
       const matWorldToLocal = mat4.invert(Transform._tempMat41, parent.worldMatrix);
-      vec3.transformMat4(this._worldPosition, value, matWorldToLocal);
+      vec3.transformMat4(this._position, value, matWorldToLocal);
     } else {
-      vec3.copy(this._worldPosition, value);
+      vec3.copy(this._position, value);
     }
-    this.position = this._worldPosition;
+    this.position = this._position;
     this._setDirtyFlagFalse(Transform._WORLD_POSITION_FLAG);
   }
 

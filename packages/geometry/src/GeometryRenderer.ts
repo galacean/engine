@@ -1,14 +1,13 @@
 import { RenderableComponent, Entity, Camera } from "@alipay/o3-core";
 import { Logger, Event } from "@alipay/o3-base";
 import { BufferGeometry } from "./BufferGeometry";
-import { IndexBufferGeometry } from "./IndexBufferGeometry";
 import { Material } from "@alipay/o3-material";
 
 /**
  * 几何体渲染类
  */
 export class GeometryRenderer extends RenderableComponent {
-  protected _geometry: BufferGeometry | IndexBufferGeometry;
+  protected _geometry: BufferGeometry;
 
   protected _material: Material;
 
@@ -25,17 +24,17 @@ export class GeometryRenderer extends RenderableComponent {
 
   /**
    * 当前绑定的 geometry 对象
-   * @returns {BufferGeometry|IndexBufferGeometry} 几何体对象
+   * @returns {BufferGeometry} 几何体对象
    */
-  get geometry(): BufferGeometry | IndexBufferGeometry {
+  get geometry(): BufferGeometry {
     return this._geometry;
   }
 
   /**
    * 指定需要渲染的几何体对象；多个 GeometryRenderer 对象可以引用同一个几何体对象
-   * @param {BufferGeometry|IndexBufferGeometry} geometry 几何体对象
+   * @param {BufferGeometry} geometry 几何体对象
    */
-  set geometry(geometry: BufferGeometry | IndexBufferGeometry) {
+  set geometry(geometry: BufferGeometry) {
     this._geometry = geometry;
     if (geometry && geometry.primitive && geometry.primitive.material) {
       this._material = geometry.primitive.material;

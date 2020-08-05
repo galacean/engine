@@ -1,5 +1,6 @@
-import { GeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
+import { GeometryRenderer, BufferGeometry, InterleavedBuffer, IndexBuffer } from "@alipay/o3-geometry";
 import { DataType, BufferUsage, UpdateType } from "@alipay/o3-base";
+import { BufferAttribute } from "@alipay/o3-primitive";
 import { SkeletonMeshMaterial } from "./SkeletonMeshMaterial";
 
 export class MeshBatcher extends GeometryRenderer {
@@ -23,18 +24,36 @@ export class MeshBatcher extends GeometryRenderer {
     this.vertices = new Float32Array(maxVertices * MeshBatcher.VERTEX_SIZE);
     const vertexCount = maxVertices;
     this.vertexCount = vertexCount;
-    const geo = new IndexBufferGeometry();
+    const geo = new BufferGeometry();
     const indices = (this.indices = new Uint16Array(maxVertices * 3));
-    geo.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "COLOR", size: 4, type: DataType.FLOAT, normalized: false },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      vertexCount,
-      indices,
-      BufferUsage.DYNAMIC_DRAW
-    );
+    const position = new BufferAttribute({
+      semantic: "POSITION",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const color = new BufferAttribute({
+      semantic: "COLOR",
+      size: 4,
+      type: DataType.FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+    const uv = new BufferAttribute({
+      semantic: "TEXCOORD_0",
+      size: 2,
+      type: DataType.FLOAT,
+      normalized: false,
+      usage: BufferUsage.DYNAMIC_DRAW
+    });
+
+    const vertexBuffer = new InterleavedBuffer([position, color, uv], vertexCount);
+    const indexBuffer = new IndexBuffer(indices.length, BufferUsage.DYNAMIC_DRAW);
+
+    geo.addVertexBufferParam(vertexBuffer);
+    geo.addIndexBufferParam(indexBuffer);
+
     this._geometry = geo;
     this._material = new SkeletonMeshMaterial("skeletion_material");
   }
@@ -75,7 +94,7 @@ export class MeshBatcher extends GeometryRenderer {
       indicesArray[i] = indices[j] + indexStart;
     }
     this.indicesLength += indicesLength;
-    this._geometry.setAllIndex(indicesArray);
+    this._geometry.setIndexBufferData(indicesArray);
   }
 
   setValueFromBuffer() {
@@ -84,11 +103,9 @@ export class MeshBatcher extends GeometryRenderer {
       const position = [vertexBuffer[j], vertexBuffer[j + 1], vertexBuffer[j + 2]];
       const color = [vertexBuffer[j + 3], vertexBuffer[j + 4], vertexBuffer[j + 5], vertexBuffer[j + 6]];
       const uv = [vertexBuffer[j + 7], vertexBuffer[j + 8]];
-      this._geometry.setVertexValues(i, {
-        POSITION: position,
-        COLOR: color,
-        TEXCOORD_0: uv
-      });
+      this.geometry.setVertexBufferDataByIndex("POSITION", i, position);
+      this.geometry.setVertexBufferDataByIndex("COLOR", i, color);
+      this.geometry.setVertexBufferDataByIndex("TEXCOORD_0", i, uv);
     }
   }
 

@@ -1,5 +1,6 @@
-import { IndexBufferGeometry } from "@alipay/o3-geometry";
 import { BufferUsage, DataType, DrawMode } from "@alipay/o3-base";
+import { BufferGeometry, InterleavedBuffer, IndexBuffer } from "@alipay/o3-geometry";
+import { BufferAttribute } from "@alipay/o3-primitive";
 
 interface CircleGeometryOptions {
   radius?: number;
@@ -7,7 +8,7 @@ interface CircleGeometryOptions {
   thetaStart?: number;
   thetaLength?: number;
 }
-export class CircleGeometry extends IndexBufferGeometry {
+export class CircleGeometry extends BufferGeometry {
   /**
    * 顶点
    */
@@ -67,42 +68,42 @@ export class CircleGeometry extends IndexBufferGeometry {
   }
 
   initialize(vertexCount: number) {
-    super.initialize(
-      [
-        {
-          name: "a_position",
-          semantic: "POSITION",
-          size: 3,
-          type: DataType.FLOAT,
-          normalized: false
-        },
-        {
-          semantic: "NORMAL",
-          size: 3,
-          type: DataType.FLOAT,
-          normalized: true
-        },
-        {
-          semantic: "TEXCOORD_0",
-          size: 2,
-          type: DataType.FLOAT,
-          normalized: true
-        }
-      ],
-      vertexCount,
-      this.indices,
-      BufferUsage.STATIC_DRAW
-    );
+    const position = new BufferAttribute({
+      semantic: "POSITION",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: false
+    });
+    const normal = new BufferAttribute({
+      semantic: "NORMAL",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+    const uv = new BufferAttribute({
+      semantic: "TEXCOORD_0",
+      size: 2,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+
+    const buffer = new InterleavedBuffer([position, normal, uv], vertexCount);
+    this.addVertexBufferParam(buffer);
+
+    const indexBuffer = new IndexBuffer(this.indices.length);
+    this.addIndexBufferParam(indexBuffer);
+    this.setIndexBufferData(this.indices);
+
     this.vertices.forEach((value, index) => {
-      this.setValue("POSITION", index, Float32Array.from(value));
+      this.setVertexBufferDataByIndex("POSITION", index, Float32Array.from(value));
     });
 
     this.uvs.forEach((value, index) => {
-      this.setValue("TEXCOORD_0", index, Float32Array.from(value));
+      this.setVertexBufferDataByIndex("TEXCOORD_0", index, Float32Array.from(value));
     });
 
     this.normals.forEach((value, index) => {
-      this.setValue("NORMAL", index, Float32Array.from(value));
+      this.setVertexBufferDataByIndex("NORMAL", index, Float32Array.from(value));
     });
   }
 }

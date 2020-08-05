@@ -1,8 +1,9 @@
-import { IndexBufferGeometry } from "@alipay/o3-geometry";
+import { BufferGeometry, InterleavedBuffer, IndexBuffer } from "@alipay/o3-geometry";
+import { BufferAttribute } from "@alipay/o3-primitive";
 import { vec3 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-base";
 
-export class TorusGeometry extends IndexBufferGeometry {
+export class TorusGeometry extends BufferGeometry {
   constructor(
     private parameters: {
       radius?: number;
@@ -83,16 +84,26 @@ export class TorusGeometry extends IndexBufferGeometry {
         indices.push(b, c, d);
       }
     }
+    this.initialize(vertices, indices);
+  }
 
-    // build geometry
+  initialize(vertices, indices) {
+    const position = new BufferAttribute({
+      semantic: "POSITION",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: false
+    });
 
-    this.initialize(
-      [{ semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false }],
-      vertices.length,
-      indices
-    );
+    const buffer = new InterleavedBuffer([position], vertices.length);
+    this.addVertexBufferParam(buffer);
+
+    const indexBuffer = new IndexBuffer(indices.length);
+    this.addIndexBufferParam(indexBuffer);
+    this.setIndexBufferData(indices);
+
     vertices.forEach((value, index) => {
-      this.setValue("POSITION", index, value);
+      this.setVertexBufferDataByIndex("POSITION", index, value);
     });
   }
 }

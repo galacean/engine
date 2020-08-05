@@ -1,11 +1,12 @@
 import { DataType } from "@alipay/o3-base";
-import { IndexBufferGeometry } from "@alipay/o3-geometry";
+import { BufferGeometry, InterleavedBuffer, IndexBuffer } from "@alipay/o3-geometry";
+import { BufferAttribute } from "@alipay/o3-primitive";
 
 /**
  * SphereGeometry 球体创建类
- * @extends IndexBufferGeometry
+ * @extends BufferGeometry
  */
-export class SphereGeometry extends IndexBufferGeometry {
+export class SphereGeometry extends BufferGeometry {
   private _parameters;
   private _thetaEnd;
 
@@ -109,15 +110,39 @@ export class SphereGeometry extends IndexBufferGeometry {
       }
     }
 
-    super.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "NORMAL", size: 3, type: DataType.FLOAT, normalized: true },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      vertexCount,
-      indexValues
-    );
-    this.setAllVertexValues(vertexValues);
+    const position = new BufferAttribute({
+      semantic: "POSITION",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: false
+    });
+    const normal = new BufferAttribute({
+      semantic: "NORMAL",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+    const uv = new BufferAttribute({
+      semantic: "TEXCOORD_0",
+      size: 2,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+
+    const buffer = new InterleavedBuffer([position, normal, uv], vertexCount);
+    this.addVertexBufferParam(buffer);
+
+    const indexBuffer = new IndexBuffer(indexValues.length);
+    this.addIndexBufferParam(indexBuffer);
+    this.setIndexBufferData(indexValues);
+
+    vertexValues.forEach((values, index) => {
+      const pos = values["POSITION"];
+      const normal = values["NORMAL"];
+      const uv = values["TEXCOORD_0"];
+      this.setVertexBufferDataByIndex("POSITION", index, pos);
+      this.setVertexBufferDataByIndex("NORMAL", index, normal);
+      this.setVertexBufferDataByIndex("TEXCOORD_0", index, uv);
+    });
   }
 }

@@ -52,8 +52,8 @@ export class RenderQueue {
     if (items.length > 1) {
       this._items = items.sort(function (item1, item2) {
         if (item1.component.renderPriority === item2.component.renderPriority) {
-          const pos1 = item1.component.node.worldPosition;
-          const pos2 = item2.component.node.worldPosition;
+          const pos1 = item1.component.entity.transform.worldPosition;
+          const pos2 = item2.component.entity.transform.worldPosition;
 
           const dis = vec3.squaredDistance(pos2, eyePos) - vec3.squaredDistance(pos1, eyePos);
           return dis;

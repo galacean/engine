@@ -1,5 +1,6 @@
 import { DataType, DrawMode } from "@alipay/o3-base";
-import { BufferGeometry } from "@alipay/o3-geometry";
+import { BufferGeometry, InterleavedBuffer } from "@alipay/o3-geometry";
+import { BufferAttribute } from "@alipay/o3-primitive";
 import { vec2 } from "@alipay/o3-math";
 
 /**
@@ -16,25 +17,33 @@ export class ScreenQuadGeometry extends BufferGeometry {
    * 初始化，构造两个三角形组成的矩形
    */
   initialize() {
-    super.initialize(
-      [
-        { name: "a_position", semantic: "POSITION", size: 2, type: DataType.FLOAT, normalized: false },
-        { name: "a_uv", semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: false }
-      ],
-      4
-    );
+    const position = new BufferAttribute({
+      semantic: "POSITION",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: false
+    });
+    const uv = new BufferAttribute({
+      semantic: "TEXCOORD_0",
+      size: 2,
+      type: DataType.FLOAT,
+      normalized: true
+    });
 
-    this.setValue("POSITION", 0, vec2.fromValues(-1, -1));
-    this.setValue("TEXCOORD_0", 0, vec2.fromValues(0, 0));
+    const buffer = new InterleavedBuffer([position, uv], 4);
+    this.addVertexBufferParam(buffer);
 
-    this.setValue("POSITION", 1, vec2.fromValues(1, -1));
-    this.setValue("TEXCOORD_0", 1, vec2.fromValues(1, 0));
+    this.setVertexBufferDataByIndex("POSITION", 0, [-1, -1]);
+    this.setVertexBufferDataByIndex("TEXCOORD_0", 0, [0, 0]);
 
-    this.setValue("POSITION", 2, vec2.fromValues(1, 1));
-    this.setValue("TEXCOORD_0", 2, vec2.fromValues(1, 1));
+    this.setVertexBufferDataByIndex("POSITION", 1, [1, -1]);
+    this.setVertexBufferDataByIndex("TEXCOORD_0", 1, [1, 0]);
 
-    this.setValue("POSITION", 3, vec2.fromValues(-1, 1));
-    this.setValue("TEXCOORD_0", 3, vec2.fromValues(0, 1));
+    this.setVertexBufferDataByIndex("POSITION", 2, [1, 1]);
+    this.setVertexBufferDataByIndex("TEXCOORD_0", 2, [1, 1]);
+
+    this.setVertexBufferDataByIndex("POSITION", 1, [-1, 1]);
+    this.setVertexBufferDataByIndex("TEXCOORD_0", 1, [0, 1]);
 
     this.primitive.mode = DrawMode.TRIANGLE_FAN;
   }

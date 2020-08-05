@@ -53,15 +53,15 @@ export class DecalGeometry extends BufferGeometry {
 
     const vertexValues = this.generate();
     const vertexCount = vertexValues.length;
-    super.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "NORMAL", size: 3, type: DataType.FLOAT, normalized: true },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      vertexCount
-    );
-    this.setAllVertexValues(vertexValues);
+    // super.initialize(
+    //   [
+    //     { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
+    //     { semantic: "NORMAL", size: 3, type: DataType.FLOAT, normalized: true },
+    //     { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
+    //   ],
+    //   vertexCount
+    // );
+    // this.setAllVertexValues(vertexValues);
   }
 
   generate() {
@@ -78,8 +78,8 @@ export class DecalGeometry extends BufferGeometry {
       normalAttribute = primitive.vertexBuffers[normalAttributeIndex];
     }
 
-    const index = primitive.indexBuffer;
-    const count = primitive.indexBuffer.length;
+    const index = primitive.indexBuffers[0];
+    const count = primitive.indexBuffers.length;
 
     // first, create an array of 'DecalVertex' objects
     // three consecutive 'DecalVertex' objects represent a single face
