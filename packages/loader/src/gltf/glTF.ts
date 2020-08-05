@@ -243,7 +243,7 @@ export function parseMaterial(gltfMaterial, resources) {
   const { gltf, asset } = resources;
   let material;
 
-  if (gltf.isGltf2 && typeof gltfMaterial.technique === "undefined" && PBRMaterial) {
+  if (gltf.isGltf2 && typeof gltfMaterial.technique === "undefined") {
     const uniformObj: any = {};
     const stateObj: any = {};
     const {
@@ -355,6 +355,11 @@ export function parseMaterial(gltfMaterial, resources) {
     if (depthMask !== undefined) stateObj.depthMask = depthMask;
 
     material = new PBRMaterial(gltfMaterial.name || PBRMaterial.MATERIAL_NAME, Object.assign({}, uniformObj, stateObj));
+  } else {
+    const techniqueName = gltfMaterial.technique;
+    Logger.warn("Deprecated: Please use a model that meets the glTF 2.0 specification");
+    const MaterialType = RegistedCustomMaterials[techniqueName];
+    material = new MaterialType();
   }
 
   if (gltfMaterial.hasOwnProperty("values")) {
