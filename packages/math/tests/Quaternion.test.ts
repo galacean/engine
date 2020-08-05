@@ -51,7 +51,7 @@ describe("Quaternion test", () => {
   it("static fromEuler", () => {
     const out = new Quaternion();
 
-    Quaternion.fromEuler(0, 60, 60, out);
+    Quaternion.fromEuler(0, Math.PI / 3, Math.PI / 3, out);
     expect(
       Quaternion.equals(out, new Quaternion(-0.24999999999999994, 0.4330127018922193, 0.4330127018922193, 0.75))
     ).toEqual(true);
@@ -162,7 +162,7 @@ describe("Quaternion test", () => {
 
   it("static toEuler", () => {
     const a = new Quaternion();
-    Quaternion.fromEuler(0, 60, 0, a);
+    Quaternion.fromEuler(0, Math.PI / 3, 0, a);
     const euler = new Vector3();
     Quaternion.toEuler(a, euler);
     expect(Vector3.equals(euler, new Vector3(0, 60, 0))).toEqual(true);

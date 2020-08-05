@@ -1,5 +1,5 @@
 import { Entity } from "@alipay/o3-core";
-import { quat, vec3, vec4 } from "@alipay/o3-math";
+import { quat, vec3, vec4, MathUtil } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 import { AnimationClipHandler } from "./animationClipHandler";
 import { LinkList } from "./linkList";
@@ -109,7 +109,12 @@ export class InterpolationHandler extends AnimationClipHandler {
     Object.keys(this.changedProperty).forEach((property) => {
       if (property === "rotation") {
         const euler = curNodeState[property];
-        node[property] = quat.fromEuler(quat.create(), euler[0], euler[1], euler[2]);
+        node[property] = quat.fromEuler(
+          quat.create(),
+          MathUtil.degreeToRadian(euler[0]),
+          MathUtil.degreeToRadian(euler[1]),
+          MathUtil.degreeToRadian(euler[2])
+        );
       } else {
         node[property] = vec3.clone(curNodeState[property]);
       }

@@ -1,4 +1,4 @@
-import { Vector2, Quaternion } from "@alipay/o3-math";
+import { Vector2, Quaternion, MathUtil } from "@alipay/o3-math";
 import { TextureWrapMode } from "@alipay/o3-core";
 
 import { translate, scale, rotate, fade, slide } from "./rfuiTween";
@@ -248,8 +248,13 @@ export class RfuiAnimation {
     const end = new Quaternion();
 
     config.end
-      ? Quaternion.fromEuler(config.end[0], config.end[1], config[2], end)
-      : Quaternion.fromEuler(0, 0, 180, end);
+      ? Quaternion.fromEuler(
+          MathUtil.degreeToRadian(config.end[0]),
+          MathUtil.degreeToRadian(config.end[1]),
+          MathUtil.degreeToRadian(config.end[2]),
+          end
+        )
+      : Quaternion.fromEuler(0, 0, Math.PI, end);
     return rotate(this.node, end, config);
   }
 

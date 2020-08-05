@@ -67,17 +67,16 @@ export class Quaternion {
   }
 
   /**
-   * 通过x,y,z轴的旋转生成四元数。
-   * @param x - 绕X轴旋转的角度 pitch
-   * @param y - 绕Y轴旋转的角度 yaw
-   * @param z - 绕Z轴旋转的角度 roll
+   * 通过x,y,z轴的旋转欧拉角(弧度)生成四元数，欧拉角顺序 pitch yaw roll。
+   * @param x - 绕X轴旋转的弧度 pitch
+   * @param y - 绕Y轴旋转的弧度 yaw
+   * @param z - 绕Z轴旋转的弧度 roll
    * @param out - 生成的四元数
    */
   static fromEuler(x: number, y: number, z: number, out: Quaternion): void {
-    const halfToRad = (0.5 * Math.PI) / 180.0;
-    x *= halfToRad;
-    y *= halfToRad;
-    z *= halfToRad;
+    x *= 0.5;
+    y *= 0.5;
+    z *= 0.5;
 
     const sx = Math.sin(x);
     const cx = Math.cos(x);
