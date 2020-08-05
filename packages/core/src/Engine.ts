@@ -113,6 +113,14 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * @deprecated
+   * 图形API渲染器。
+   */
+  get renderhardware(): HardwareRenderer {
+    return this._hardwareRenderer;
+  }
+
+  /**
    * 创建引擎。
    * @param canvas - 渲染画布
    * @param hardwareRenderer - 渲染器

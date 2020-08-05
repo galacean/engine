@@ -15,7 +15,7 @@ export class AnimationClip extends AssetObject {
    * @constructor
    * @param {string} name
    */
-  constructor(name: string) {
+  constructor(public readonly name: string) {
     super();
 
     /** @member {Array} */
