@@ -45,6 +45,13 @@ export abstract class Component extends EventDispatcher {
   }
 
   /**
+   * 所属场景对象。
+   */
+  get scene(): Scene {
+    return this._entity.scene;
+  }
+
+  /**
    * 创建组件实例。
    * @param entity - 对象所在实体
    * @param props - 配置参数
@@ -99,14 +106,6 @@ export abstract class Component extends EventDispatcher {
       this._enabled && this._onDisable();
       this._onInActive();
     }
-  }
-  //--------------------------------------------TobeConfirmed--------------------------------------------------
-
-  /**
-   * 所属场景对象。
-   */
-  get scene(): Scene {
-    return this._entity.scene;
   }
 
   //---------------------------------------------Deprecated-----------------------------------------------------------------
