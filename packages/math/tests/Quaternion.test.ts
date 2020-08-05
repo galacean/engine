@@ -165,7 +165,7 @@ describe("Quaternion test", () => {
     Quaternion.fromEuler(0, Math.PI / 3, 0, a);
     const euler = new Vector3();
     Quaternion.toEuler(a, euler);
-    expect(Vector3.equals(euler, new Vector3(0, 60, 0))).toEqual(true);
+    expect(Vector3.equals(euler, new Vector3(0, Math.PI / 3, 0))).toEqual(true);
   });
 
   it("clone", () => {

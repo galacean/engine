@@ -4,6 +4,10 @@
 export class MathUtil {
   /** 单精度浮点零容差 */
   static ZeroTolerance: number = 1e-6;
+  /** 弧度转角度的转换因子 */
+  static RadToDegree: number = 180 / Math.PI;
+  /** 角度转弧度的转换因子 */
+  static DegreeToRad: number = Math.PI / 180;
 
   /**
    * 求指定范围内的值。
@@ -41,7 +45,7 @@ export class MathUtil {
    * @returns 角度
    */
   static radianToDegree(r: number): number {
-    return (r * 180) / Math.PI;
+    return r * MathUtil.RadToDegree;
   }
 
   /**
@@ -50,6 +54,6 @@ export class MathUtil {
    * @returns 弧度
    */
   static degreeToRadian(d: number): number {
-    return (d * Math.PI) / 180;
+    return d * MathUtil.DegreeToRad;
   }
 }

@@ -310,9 +310,9 @@ export class Quaternion {
   }
 
   /**
-   * 获取四元数的欧拉角。
+   * 获取四元数的欧拉角(弧度)，欧拉角顺序为 pitch yaw roll。
    * @param a - 四元数
-   * @param out - 欧拉角
+   * @param out - 欧拉角(弧度) pitch yaw roll
    */
   static toEuler(a: Quaternion, out: Vector3): void {
     const { x, y, z, w } = a;
@@ -323,19 +323,14 @@ export class Quaternion {
       // 奇异姿态,俯仰角为±90°
       let sign = Math.sign(t);
 
-      out.z = -2 * sign * Math.atan2(x, w); // yaw
-      out.y = sign * (Math.PI / 2.0); // pitch
-      out.x = 0; // roll
+      out.z = -2 * sign * Math.atan2(x, w);
+      out.y = sign * (Math.PI / 2.0);
+      out.x = 0;
     } else {
       out.x = Math.atan2(2 * (x * w + y * z), 1 - 2 * (x * x + y * y));
       out.y = Math.asin(2 * (w * y - z * x));
       out.z = Math.atan2(2 * (x * y + z * w), 1 - 2 * (y * y + z * z));
     }
-
-    let radToDegrees = 180.0 / Math.PI;
-    out.x *= radToDegrees;
-    out.y *= radToDegrees;
-    out.z *= radToDegrees;
   }
 
   /** 四元数的X分量 */

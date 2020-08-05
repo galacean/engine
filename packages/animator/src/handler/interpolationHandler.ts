@@ -28,6 +28,7 @@ export class InterpolationHandler extends AnimationClipHandler {
     this.originNodeState = cloneNodeState(node);
     this.curNodeState = cloneNodeState(node);
     this.curNodeState.rotation = quat.toEuler(vec3.create(), this.curNodeState.rotation);
+    this.curNodeState.rotation.scale(MathUtil.RadToDegree); // 弧度转角度
     const keyframeTimeQueue = Object.keys(animClip.keyframes)
       .map((startTime) => Number(startTime))
       .sort((a, b) => a - b);
