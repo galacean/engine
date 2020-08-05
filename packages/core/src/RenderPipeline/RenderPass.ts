@@ -49,7 +49,7 @@ class RenderPass {
      * @member {number}
      */
     this.clearMode = ClearMode.SOLID_COLOR;
-    this._clearParam = null; // PASS use render target's clearParam
+    this._clearParam = [0, 0, 0, 0]; // PASS use render target's clearParam
   }
 
   /**
