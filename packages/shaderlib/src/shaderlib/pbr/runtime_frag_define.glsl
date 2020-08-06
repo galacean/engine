@@ -18,6 +18,4 @@ struct PhysicalMaterial {
     vec3    diffuseColor;
     float   specularRoughness;
     vec3    specularColor;
-    float   clearCoat;
-    float   clearCoatRoughness;
 };
