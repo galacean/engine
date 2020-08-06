@@ -34,7 +34,7 @@ class ColorMaterial extends Material {
   id2Color(id): Vector3 {
     if (id >= 0xffffff) {
       Logger.warn("Framebuffer Picker encounter primitive's id greater than " + 0xffffff);
-      return new Float32Array([0, 0, 0]);
+      return new Vector3(0, 0, 0);
     }
 
     const color = new Vector3((id & 0xff) / 255, ((id & 0xff00) >> 8) / 255, ((id & 0xff0000) >> 16) / 255);
