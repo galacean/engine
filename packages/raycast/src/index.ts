@@ -24,7 +24,7 @@ import { MaskList } from "@alipay/o3-core";
 
   for (let i = 0, len = colliders.length; i < len; i++) {
     const collider = colliders[i];
-    if (!collider.node.isActiveInHierarchy) {
+    if (!collider.entity.isActiveInHierarchy) {
       continue;
     }
 
@@ -93,7 +93,7 @@ import { MaskList } from "@alipay/o3-core";
  */
 function _updateHitResult(collider, ray, distance, outHit, origin) {
   const hitPos = ray.getPoint(distance);
-  vec3.transformMat4(hitPos, hitPos, collider.node.getModelMatrix());
+  vec3.transformMat4(hitPos, hitPos, collider.entity.transform.worldMatrix);
 
   outHit.distance = vec3.distance(origin, hitPos);
   outHit.collider = collider;
@@ -106,7 +106,7 @@ function _updateHitResult(collider, ray, distance, outHit, origin) {
  * @private
  */
 function _getLocalRay(collider, ray) {
-  const worldToLocal = collider.node.getInvModelMatrix();
+  const worldToLocal = collider.entity.getInvModelMatrix();
 
   // o = worldToLocal * vec4(ray.origin, 1)
   const o = vec3.create();
