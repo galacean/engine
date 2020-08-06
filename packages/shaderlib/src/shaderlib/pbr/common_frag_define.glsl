@@ -15,4 +15,3 @@
 #define RE_IndirectSpecular		RE_IndirectSpecular_Physical
 
 #define Material_BlinnShininessExponent( material )   GGXRoughnessToBlinnExponent( material.specularRoughness )
-#define Material_ClearCoat_BlinnShininessExponent( material )   GGXRoughnessToBlinnExponent( material.clearCoatRoughness )

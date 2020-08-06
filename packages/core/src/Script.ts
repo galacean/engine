@@ -35,14 +35,15 @@ export class Script extends Component {
 
   /**
    * 主更新，逐帧调用。
-   * @param deltaTime - 间隔时间
+   * @param deltaTime - 帧间隔时间
    */
   onUpdate(deltaTime: number): void {}
 
   /**
    * 延迟更新，逐帧调用。
+   * @param deltaTime - 帧间隔时间
    */
-  onLateUpdate(): void {}
+  onLateUpdate(deltaTime: number): void {}
 
   /**
    * 相机渲染前调用，逐相机调用。

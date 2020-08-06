@@ -1,5 +1,7 @@
 import {
   BlendFunc,
+  Camera,
+  Component,
   CullFace,
   DataType,
   GLCapabilityType,
@@ -8,7 +10,6 @@ import {
   Side,
   Util
 } from "@alipay/o3-core";
-import { Camera, Component } from "@alipay/o3-core";
 import { LightFeature } from "@alipay/o3-lighting";
 import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import fs from "./pbr.fs.glsl";
@@ -55,8 +56,6 @@ class PBRMaterial extends Material {
    * @param {Boolean} [props.srgb=false] 是否为 SRGB 色彩空间
    * @param {Boolean} [props.srgbFast=true] sRGB线性校正是否使用近似快速算法
    * @param {Boolean} [props.gamma=false] 是否使用 Gamma 纠正
-   * @param {Number} [props.clearCoat=0] 清漆
-   * @param {Number} [props.clearCoatRoughness=1] 清漆粗糙度
    * @param {Number} [props.opacity=1] 透明度
    * @param {Texture2D} [props.opacityTexture] 透明度贴图
    * @param {boolean} [props.getOpacityFromRGB=false] true:取透明度贴图的rgb亮度，false:取alpha通道
@@ -103,8 +102,6 @@ class PBRMaterial extends Material {
       emissiveFactor: [0, 0, 0],
       occlusionStrength: 1,
       alphaCutoff: 0.5,
-      clearCoat: 0,
-      clearCoatRoughness: 1,
 
       // specular-glossiness workflow
       specularFactor: [1, 1, 1],
@@ -194,12 +191,6 @@ class PBRMaterial extends Material {
           break;
         case "alphaCutoff":
           this.alphaCutoff = obj[key];
-          break;
-        case "clearCoat":
-          this.clearCoat = obj[key];
-          break;
-        case "clearCoatRoughness":
-          this.clearCoatRoughness = obj[key];
           break;
         case "specularFactor":
           this.specularFactor = obj[key];
@@ -557,32 +548,6 @@ class PBRMaterial extends Material {
   set alphaCutoff(v) {
     this._uniformObj.alphaCutoff = v;
     this.setValueByParamName("alphaCutoff", v);
-  }
-
-  /**
-   * 清漆 （0-1）
-   * @type {Number}
-   */
-  get clearCoat() {
-    return this._uniformObj.clearCoat;
-  }
-
-  set clearCoat(v) {
-    this._uniformObj.clearCoat = v;
-    this.setValueByParamName("clearCoat", v);
-  }
-
-  /**
-   * 清漆粗糙度 （0-1）
-   * @type {Number}
-   */
-  get clearCoatRoughness() {
-    return this._uniformObj.clearCoatRoughness;
-  }
-
-  set clearCoatRoughness(v) {
-    this._uniformObj.clearCoatRoughness = v;
-    this.setValueByParamName("clearCoatRoughness", v);
   }
 
   /**
@@ -1252,16 +1217,6 @@ class PBRMaterial extends Material {
       u_alphaCutoff: {
         name: "u_alphaCutoff",
         paramName: "alphaCutoff",
-        type: DataType.FLOAT
-      },
-      u_clearCoat: {
-        name: "u_clearCoat",
-        paramName: "clearCoat",
-        type: DataType.FLOAT
-      },
-      u_clearCoatRoughness: {
-        name: "u_clearCoatRoughness",
-        paramName: "clearCoatRoughness",
         type: DataType.FLOAT
       },
       u_opacitySampler: {
