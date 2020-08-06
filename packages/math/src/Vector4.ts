@@ -6,10 +6,10 @@ import { Matrix } from "./Matrix";
  * 四维向量
  */
 export class Vector4 {
-  /** @internal 零向量 */
-  static readonly _Zero = new Vector4(0.0, 0.0, 0.0, 0.0);
-  /** @internal 一向量 */
-  static readonly _One = new Vector4(1.0, 1.0, 1.0, 1.0);
+  /** @internal 零向量。*/
+  static readonly _zero = new Vector4(0.0, 0.0, 0.0, 0.0);
+  /** @internal 一向量。*/
+  static readonly _one = new Vector4(1.0, 1.0, 1.0, 1.0);
 
   /**
    * 将两个向量相加。

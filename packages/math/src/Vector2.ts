@@ -4,10 +4,10 @@ import { MathUtil } from "./MathUtil";
  * 二维向量
  */
 export class Vector2 {
-  /** @internal 零向量 */
-  static readonly _Zero = new Vector2(0.0, 0.0);
-  /** @internal 一向量 */
-  static readonly _One = new Vector2(1.0, 1.0);
+  /** @internal 零向量。*/
+  static readonly _zero = new Vector2(0.0, 0.0);
+  /** @internal 一向量。*/
+  static readonly _one = new Vector2(1.0, 1.0);
 
   /**
    * 将两个向量相加，并输出结果out。
