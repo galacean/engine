@@ -91,7 +91,7 @@ describe("Engine test", () => {
 
   describe("test - tick/垂直同步", () => {
     const engine = new WebGLEngine(canvasDOM);
-    const mockTick = ((<any>engine)._tick = jest.fn());
+    const mockTick = (engine.update = jest.fn());
 
     it("默认垂直同步 pause/resume", async () => {
       mockTick.mockReset();
@@ -100,8 +100,8 @@ describe("Engine test", () => {
 
       expect(mockTick).toBeCalled();
 
-      mockTick.mockReset();
       engine.pause();
+      mockTick.mockReset();
       await delay(100);
       expect(mockTick).not.toBeCalled();
       expect(engine.isPaused).toBeTruthy();
