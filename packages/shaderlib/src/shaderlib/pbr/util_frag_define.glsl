@@ -68,10 +68,6 @@ float GGXRoughnessToBlinnExponent( const in float ggxRoughness ) {
     return ( 2.0 / pow2( ggxRoughness + 0.0001 ) - 2.0 );
 }
 
-float clearCoatDHRApprox( const in float roughness, const in float dotNL ) {
-    return DEFAULT_SPECULAR_COEFFICIENT + ( 1.0 - DEFAULT_SPECULAR_COEFFICIENT ) * ( pow( 1.0 - dotNL, 5.0 ) * pow( 1.0 - roughness, 2.0 ) );
-}
-
 
 float computeSpecularOcclusion( const in float dotNV, const in float ambientOcclusion, const in float roughness ) {
 
