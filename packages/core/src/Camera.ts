@@ -284,7 +284,7 @@ export class Camera extends Component {
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
     const {
       RenderPipeline = BasicRenderPipeline,
-      clearParam = [0.25, 0.25, 0.25, 1],
+      clearParam = new Vector4(0.25, 0.25, 0.25, 1),
       clearMode,
       near,
       far,
@@ -515,24 +515,26 @@ export class Camera extends Component {
 /**
  * @deprecated
  */
-export function turnAround(out, a) {
-  out[4] = a[4];
-  out[5] = a[5];
-  out[6] = a[6];
-  out[7] = a[7];
-  out[12] = a[12];
-  out[13] = a[13];
-  out[14] = a[14];
-  out[15] = a[15];
+export function turnAround(out: Matrix, a: Matrix) {
+  const oe = out.elements;
+  const ae = a.elements;
+  oe[4] = ae[4];
+  oe[5] = ae[5];
+  oe[6] = ae[6];
+  oe[7] = ae[7];
+  oe[12] = ae[12];
+  oe[13] = ae[13];
+  oe[14] = ae[14];
+  oe[15] = ae[15];
 
-  out[0] = -a[0];
-  out[1] = -a[1];
-  out[2] = -a[2];
-  out[3] = -a[3];
-  out[8] = -a[8];
-  out[9] = -a[9];
-  out[10] = -a[10];
-  out[11] = -a[11];
+  oe[0] = -ae[0];
+  oe[1] = -ae[1];
+  oe[2] = -ae[2];
+  oe[3] = -ae[3];
+  oe[8] = -ae[8];
+  oe[9] = -ae[9];
+  oe[10] = -ae[10];
+  oe[11] = -ae[11];
   return out;
 }
 

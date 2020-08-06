@@ -246,10 +246,28 @@ export class Material extends ReferenceObject {
         const view = camera.viewMatrix;
         const proj = camera.projectionMatrix;
         const model = component._entity.transform.worldMatrix;
-        let MVP = values[uniform.name];
-        if (!MVP) MVP = new Matrix();
-        Matrix.multiply(view, model, MVP);
-        Matrix.multiply(proj, MVP, MVP);
+        // let MVP = values[uniform.name];
+        // if (!MVP) MVP = new Matrix();
+        // Matrix.multiply(view, model, MVP);
+        // Matrix.multiply(proj, MVP, MVP);
+        let MVP = new Matrix(
+          1.7007,
+          0,
+          0,
+          0,
+          0,
+          2.1593,
+          -0.4481,
+          -0.4472,
+          0,
+          -1.0797,
+          -0.8962,
+          -0.8944,
+          0,
+          0.0,
+          22.2052,
+          22.3607
+        );
         values[uniform.name] = MVP;
         break;
       }
