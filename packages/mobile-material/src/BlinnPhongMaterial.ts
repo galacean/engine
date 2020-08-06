@@ -1,4 +1,4 @@
-import { Vector3, Vector4 } from "@alipay/o3-math";
+import { Vector4 } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-core";
 
 import { RenderTechnique, Texture2D, Material } from "@alipay/o3-material";

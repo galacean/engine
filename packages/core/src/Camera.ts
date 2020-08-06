@@ -284,7 +284,7 @@ export class Camera extends Component {
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
     const {
       RenderPipeline = BasicRenderPipeline,
-      clearParam = [0.25, 0.25, 0.25, 1],
+      clearParam = new Vector4(0.25, 0.25, 0.25, 1),
       clearMode,
       near,
       far,

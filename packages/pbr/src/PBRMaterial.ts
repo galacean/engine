@@ -13,6 +13,7 @@ import { LightFeature } from "@alipay/o3-lighting";
 import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
 import fs from "./pbr.fs.glsl";
 import vs from "./pbr.vs.glsl";
+import { Vector2 } from "@alipay/o3-math";
 
 /**
  * PBR（Physically-Based Rendering）材质
@@ -906,7 +907,7 @@ class PBRMaterial extends Material {
     /** 光源 uniform values */
     lightMgr.bindMaterialValues(this);
     /** 分辨率 */
-    this.setValue("u_resolution", [canvas.width, canvas.height]);
+    this.setValue("u_resolution", new Vector2(canvas.width, canvas.height));
     /** clipPlane */
     for (let i = 0; i < this._clipPlaneCount; i++) {
       this.setValue(`u_clipPlanes[${i}]`, scene.clipPlanes[i]);

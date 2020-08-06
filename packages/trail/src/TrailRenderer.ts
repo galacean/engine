@@ -1,7 +1,7 @@
-import { BufferUsage, DataType, DrawMode } from "@alipay/o3-core";
-import { BufferGeometry, GeometryRenderer } from "@alipay/o3-geometry";
-import { Material, Texture2D } from "@alipay/o3-material";
-import { Quaternion, Vector2, Vector3, Matrix } from "@alipay/o3-math";
+import { DataType, DrawMode } from "@alipay/o3-core";
+import { BufferGeometry, GeometryRenderer, InterleavedBuffer } from "@alipay/o3-geometry";
+import { Quaternion, Vector3, Matrix } from "@alipay/o3-math";
+import { BufferAttribute } from "@alipay/o3-primitive";
 import { TrailMaterial } from "./TrailMaterial";
 
 /**
@@ -198,8 +198,8 @@ export class TrailRenderer extends GeometryRenderer {
         Vector3.subtract(p, dy, down);
       }
 
-      this.geometry.setVertexBufferDataByIndex("POSITION", i * 2, up);
-      this.geometry.setVertexBufferDataByIndex("POSITION", i * 2 + 1, down);
+      this.geometry.setVertexBufferDataByIndex("POSITION", i * 2, [up.x, up.y, up.z]);
+      this.geometry.setVertexBufferDataByIndex("POSITION", i * 2 + 1, [down.x, down.y, down.z]);
     }
   }
 
@@ -216,11 +216,10 @@ export class TrailRenderer extends GeometryRenderer {
 
     const count = this._curPointNum;
     const texDelta = 1.0 / count;
-    const v: Vector2 = new Vector2();
     for (let i = 0; i < count; i++) {
       const d = 1.0 - i * texDelta;
-      this.geometry.setVertexBufferDataByIndex("TEXCOORD_0", i * 2, v.setValue(0, d));
-      this.geometry.setVertexBufferDataByIndex("TEXCOORD_0", i * 2 + 1, v.setValue(1.0, d));
+      this.geometry.setVertexBufferDataByIndex("TEXCOORD_0", i * 2, [0, d]);
+      this.geometry.setVertexBufferDataByIndex("TEXCOORD_0", i * 2 + 1, [1.0, d]);
     }
   }
 }

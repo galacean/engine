@@ -53,16 +53,18 @@ export class BasicRenderPipeline extends SceneVisitor {
    * @param {RenderTarget} renderTarget 指定的 Render Target
    * @param {Material} replaceMaterial 替换模型的默认材质
    * @param {MaskList} mask 与 Component.renderPassFlag 进行 bit and 操作，对这个 Pass 需要渲染的对象进行筛选
+   * @param clearParam 清除renderTarget的背景颜色
    */
   addRenderPass(
     nameOrPass: string | RenderPass,
     priority: number = null,
     renderTarget: RenderTarget = null,
     replaceMaterial: Material = null,
-    mask: MaskList = null
+    mask: MaskList = null,
+    clearParam = [0, 0, 0, 0]
   ) {
     if (typeof nameOrPass === "string") {
-      const renderPass = new RenderPass(nameOrPass, priority, renderTarget, replaceMaterial, mask);
+      const renderPass = new RenderPass(nameOrPass, priority, renderTarget, replaceMaterial, mask, clearParam);
       this._renderPassArray.push(renderPass);
     } else if (nameOrPass instanceof RenderPass) {
       this._renderPassArray.push(nameOrPass);

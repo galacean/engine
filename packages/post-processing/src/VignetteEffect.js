@@ -1,6 +1,7 @@
 import { DataType, TextureWrapMode } from '@alipay/o3-core';
 import { PostEffectNode } from './PostEffectNode';
 import VignetteShader from './shaders/Vignette.glsl';
+import { Vector2, Vector3 } from '@alipay/o3-math';
 
 
 /**
@@ -72,12 +73,12 @@ export class VignetteEffect extends PostEffectNode{
     mtl.setValue( 'u_aspect', renderTarget.width / renderTarget.height );
 
     mtl.setValue( 'u_coloredNoise', -1.0 );
-    mtl.setValue( 'u_smoothing', [ -0.5, 1.0 ] );
-    this._smoothing = [ -0.5, 1.0 ];
+    mtl.setValue( 'u_smoothing', new Vector2(-0.5, 1.0) );
+    this._smoothing = new Vector2(-0.5, 1.0);
     mtl.setValue( 'u_noiseAlpha', 0.35 );
 
-    mtl.setValue( 'u_color', [ 0.0, 0.0, 0.0 ] );
-    this._color = [ 0.0, 0.0, 0.0 ];
+    mtl.setValue( 'u_color', new Vector3(0.0, 0.0, 0.0) );
+    this._color = new Vector3(0.0, 0.0, 0.0);
 
   }
 
@@ -103,13 +104,13 @@ export class VignetteEffect extends PostEffectNode{
 
   get colorR(){
 
-    return this._color[0];
+    return this._color.x;
 
   }
 
   set colorR( value ){
 
-    this._color[0] = value;
+    this._color.x = value;
     if( this._color ){
 
       this.material.setValue( 'u_color', this._color );
@@ -120,13 +121,13 @@ export class VignetteEffect extends PostEffectNode{
 
   get colorG(){
 
-    return this._color[1];
+    return this._color.y;
 
   }
 
   set colorG( value ){
 
-    this._color[1] = value;
+    this._color.y = value;
     if( this._color ){
 
       this.material.setValue( 'u_color', this._color );
@@ -137,13 +138,13 @@ export class VignetteEffect extends PostEffectNode{
 
   get colorB(){
 
-    return this._color[2];
+    return this._color.z;
 
   }
 
   set colorB( value ){
 
-    this._color[2] = value;
+    this._color.z = value;
     if( this._color ){
 
       this.material.setValue( 'u_color', this._color );
@@ -157,13 +158,13 @@ export class VignetteEffect extends PostEffectNode{
    */
   get smoothingX(){
 
-    return this._smoothing[0];
+    return this._smoothing.x;
 
   }
 
   set smoothingX( value ){
 
-    this._smoothing[0] = value;
+    this._smoothing.x = value;
     if( this._smoothing ){
 
       this.material.setValue( 'u_smoothing', this._smoothing );
@@ -177,13 +178,13 @@ export class VignetteEffect extends PostEffectNode{
    */
   get smoothingY(){
 
-    return this._smoothing[1];
+    return this._smoothing.y;
 
   }
 
   set smoothingY( value ){
 
-    this._smoothing[1] = value;
+    this._smoothing.y = value;
     if( this._smoothing ){
 
       this.material.setValue( 'u_smoothing', this._smoothing );

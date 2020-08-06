@@ -1,6 +1,7 @@
 import { BufferGeometry, InterleavedBuffer, IndexBuffer } from "@alipay/o3-geometry";
 import { BufferAttribute } from "@alipay/o3-primitive";
 import { DataType } from "@alipay/o3-core";
+import { Vector3 } from "@alipay/o3-math";
 
 export class TorusGeometry extends BufferGeometry {
   constructor(

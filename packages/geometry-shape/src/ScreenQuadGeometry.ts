@@ -1,7 +1,6 @@
 import { DataType, DrawMode } from "@alipay/o3-core";
 import { BufferGeometry, InterleavedBuffer } from "@alipay/o3-geometry";
 import { BufferAttribute } from "@alipay/o3-primitive";
-import { vec2 } from "@alipay/o3-math";
 
 /**
  * 覆盖整个屏幕的一个矩形

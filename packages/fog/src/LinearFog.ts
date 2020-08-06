@@ -1,17 +1,18 @@
 import { Fog } from "./Fog";
+import { Vector3 } from "@alipay/o3-math";
 
 /**
  * 线性雾，根据镜头距离线性差值雾浓度
  */
 export class LinearFog extends Fog {
-  public near;
-  public far;
-  public color;
+  public near: number;
+  public far: number;
+  public color: Vector3;
   /**
    * 线性雾
    * @param {*} node 节点
    * @param {Object} [props] 包含以下参数
-   * @param {Array} [props.color=[1, 1, 1]] 雾颜色
+   * @param {Vector3} [props.color=[1, 1, 1]] 雾颜色
    * @param {Number} [props.near=1] 最近距离
    * @param {Number} [props.far=1000] 最远距离
    */

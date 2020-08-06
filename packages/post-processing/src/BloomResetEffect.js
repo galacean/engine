@@ -1,16 +1,17 @@
-
 import { RenderTarget } from '@alipay/o3-material';
+import { Vector3 } from '@alipay/o3-math';
 import { PostEffectNode } from './PostEffectNode';
 import { ExtractHighlightPassNode } from './nodes/ExtractHighlightPassNode';
 import { KernelBlurPassNode } from './nodes/KernelBlurPassNode';
 import { BloomMergePassNode } from './nodes/BloomMergePassNode';
+
+
 
 /**
  * Bloom Reset 版后处理效果
  * 参考 https://github.com/BabylonJS/Babylon.js/blob/master/src/PostProcess/babylon.bloomEffect.ts
  */
 export class BloomResetEffect extends PostEffectNode {
-
   /**
    * Bloom Reset 版
    * @param {PostProcessFeature} manager 后处理管理器
@@ -22,39 +23,26 @@ export class BloomResetEffect extends PostEffectNode {
    * @param {Number} [props.weight=0.8] Bloom 的强度
    * @param {Number} [props.horizontalBlur=1] 水平方向拉伸
    * @param {Number} [props.verticalBlur=1] 垂直方向拉伸
-   * @param {Number} [props.tintColor=[1,1,1]] Bloom 颜色修正
+   * @param {Vector3} [props.tintColor=new Vector3(1,1,1)] Bloom 颜色修正
    */
-  constructor( manager, props = {} ){
-
-    super( 'Bloom', null, null, null );
+  constructor(manager, props = {}) {
+    super("Bloom", null, null, null);
 
     const rtSize = 1;
-    const brightRT = new RenderTarget( 'bright', {
-      width: rtSize,
-      height: rtSize,
-      clearColor: [ 0.0, 0.0, 0.0, 1.0 ]
-    } );
-    const hRT = new RenderTarget( 'hBlur', {
-      width: rtSize,
-      height: rtSize,
-      clearColor: [ 0.0, 0.0, 0.0, 1.0 ]
-    } );
-    const vRT = new RenderTarget( 'vBlur', {
-      width: rtSize,
-      height: rtSize,
-      clearColor: [ 0.0, 0.0, 0.0, 1.0 ]
-    } );
+    const brightRT = new RenderTarget(rtSize, rtSize, new RenderColorTexture(rtSize, rtSize));
+    const hRT = new RenderTarget(rtSize, rtSize, new RenderColorTexture(rtSize, rtSize));
+    const vRT = new RenderTarget(rtSize, rtSize, new RenderColorTexture(rtSize, rtSize));
 
-    const brightPass = new ExtractHighlightPassNode( 'BrightPass', brightRT, this );
+    const brightPass = new ExtractHighlightPassNode("BrightPass", brightRT, this);
 
-    const horizontalBlurPass = new KernelBlurPassNode( 'kernelBlur', hRT, brightPass );
-    horizontalBlurPass.direction = [ 1, 0 ];
+    const horizontalBlurPass = new KernelBlurPassNode("kernelBlur", hRT, brightPass);
+    horizontalBlurPass.direction = [1, 0];
 
-    const verticalBlurPass = new KernelBlurPassNode( 'kernelBlur', vRT, horizontalBlurPass );
-    verticalBlurPass.direction = [ 0, 1 ];
+    const verticalBlurPass = new KernelBlurPassNode("kernelBlur", vRT, horizontalBlurPass);
+    verticalBlurPass.direction = [0, 1];
 
-    const mergePass = new BloomMergePassNode( 'merge', hRT, this );
-    mergePass.setBlurRenderTarget( verticalBlurPass.renderTarget );
+    const mergePass = new BloomMergePassNode("merge", hRT, this);
+    mergePass.setBlurRenderTarget(verticalBlurPass.renderTarget);
 
     this.brightPass = brightPass;
     this.horizontalBlurPass = horizontalBlurPass;
@@ -67,44 +55,27 @@ export class BloomResetEffect extends PostEffectNode {
     this.weight = props.weight || 0.8;
     this.horizontalBlur = props.horizontalBlur || 1;
     this.verticalBlur = props.verticalBlur || 1;
-    this.tintColor = props.tintColor || [ 1, 1, 1 ];
-
+    this.tintColor = props.tintColor || new Vector3(1, 1, 1);
   }
 
-  draw( feature, camera ) {
-
+  draw(feature, camera) {
     const parentRT = this.getSourceRenderTarget();
     const sourceWidth = parentRT && parentRT.width;
     const sourceHeight = parentRT && parentRT.height;
 
-    if( this.brightPass.renderTarget.width !== sourceWidth || this.brightPass.renderTarget.height !== sourceHeight ){
-
-      const brightRT = new RenderTarget( 'bright', {
-        width: sourceWidth,
-        height: sourceHeight,
-        clearColor: [ 0.0, 0.0, 0.0, 1.0 ]
-      } );
-      const hRT = new RenderTarget( 'hBlur', {
-        width: sourceWidth,
-        height: sourceHeight,
-        clearColor: [ 0.0, 0.0, 0.0, 1.0 ]
-      } );
-      const vRT = new RenderTarget( 'vBlur', {
-        width: sourceWidth,
-        height: sourceHeight,
-        clearColor: [ 0.0, 0.0, 0.0, 1.0 ]
-      } );
+    if (this.brightPass.renderTarget.width !== sourceWidth || this.brightPass.renderTarget.height !== sourceHeight) {
+      const brightRT = new RenderTarget(sourceWidth, sourceHeight, new RenderColorTexture(sourceWidth, sourceHeight));
+      const hRT = new RenderTarget(sourceWidth, sourceHeight, new RenderColorTexture(sourceWidth, sourceHeight));
+      const vRT = new RenderTarget(sourceWidth, sourceHeight, new RenderColorTexture(sourceWidth, sourceHeight));
 
       this.brightPass.renderTarget = brightRT;
       this.horizontalBlurPass.renderTarget = hRT;
       this.verticalBlurPass.renderTarget = vRT;
       this.mergePass.renderTarget = hRT;
-      this.mergePass.setBlurRenderTarget( this.verticalBlurPass.renderTarget );
-
+      this.mergePass.setBlurRenderTarget(this.verticalBlurPass.renderTarget);
     }
 
-    return super.draw( feature, camera );
-
+    return super.draw(feature, camera);
   }
 
   /**
@@ -112,15 +83,11 @@ export class BloomResetEffect extends PostEffectNode {
    * 提取高光时画面曝光度
    */
   get exposure() {
-
     return this.brightPass.exposure;
-
   }
 
-  set exposure( v ) {
-
+  set exposure(v) {
     this.brightPass.exposure = v;
-
   }
 
   /**
@@ -128,15 +95,11 @@ export class BloomResetEffect extends PostEffectNode {
    * 提取高光时的阈值
    */
   get threshold() {
-
     return this.brightPass.threshold;
-
   }
 
-  set threshold( v ){
-
+  set threshold(v) {
     this.brightPass.threshold = v;
-
   }
 
   /**
@@ -144,16 +107,12 @@ export class BloomResetEffect extends PostEffectNode {
    * 模糊算子的核数
    */
   get kernel() {
-
     return this.horizontalBlurPass.kernel;
-
   }
 
-  set kernel( v ) {
-
+  set kernel(v) {
     this.horizontalBlurPass.kernel = v;
     this.verticalBlurPass.kernel = v;
-
   }
 
   /**
@@ -161,15 +120,11 @@ export class BloomResetEffect extends PostEffectNode {
    * Bloom 的强度
    */
   get weight() {
-
     return this.mergePass.weight;
-
   }
 
-  set weight( v ) {
-
+  set weight(v) {
     this.mergePass.weight = v;
-
   }
 
   /**
@@ -177,15 +132,11 @@ export class BloomResetEffect extends PostEffectNode {
    * 水平方向拉伸
    */
   get horizontalBlur() {
-
     return this.horizontalBlurPass.direction[0];
-
   }
 
-  set horizontalBlur( v ) {
-
-    this.horizontalBlurPass.direction = [ v, 0 ];
-
+  set horizontalBlur(v) {
+    this.horizontalBlurPass.direction = [v, 0];
   }
 
   /**
@@ -193,15 +144,11 @@ export class BloomResetEffect extends PostEffectNode {
    * 垂直方向拉伸
    */
   get verticalBlur() {
-
     return this.verticalBlurPass.direction[1];
-
   }
 
-  set verticalBlur( v ) {
-
-    this.verticalBlurPass.direction = [ 0, v ];
-
+  set verticalBlur(v) {
+    this.verticalBlurPass.direction = [0, v];
   }
 
   /**
@@ -209,15 +156,10 @@ export class BloomResetEffect extends PostEffectNode {
    * Bloom 颜色修正
    */
   get tintColor() {
-
     return this.mergePass.tintColor;
-
   }
 
-  set tintColor( v ) {
-
+  set tintColor(v) {
     this.mergePass.tintColor = v;
-
   }
-
-};
+}

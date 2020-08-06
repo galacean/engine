@@ -11,6 +11,7 @@ import {
 import { Material, RenderTechnique } from "@alipay/o3-material";
 import { GeometryRenderer, BufferGeometry, IndexBuffer, VertexBuffer, InterleavedBuffer } from "@alipay/o3-geometry";
 import { BufferAttribute } from "@alipay/o3-primitive";
+import { Vector3, MathUtil } from "@alipay/o3-math";
 
 /**
  * GPU粒子系统渲染类

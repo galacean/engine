@@ -4,6 +4,7 @@ import { PlaneGeometry, CylinderGeometry } from "@alipay/o3-geometry-shape";
 import { Vector4, Vector2 } from "@alipay/o3-math";
 import { RfuiMaterial } from "./rfuiMaterial";
 import { RfuiAnimation } from "./animation/rfuiAnimation";
+import { Texture2D } from "@alipay/o3-material";
 
 /**
  * Rfui 渲染类
@@ -125,11 +126,11 @@ export class RfuiRenderer extends GeometryRenderer {
     });
   }
 
-  update(deltaTime) {
-    if (this._isAnimatingTexture) {
-      this._diffuse.updateTexture();
-    }
-  }
+  // update(deltaTime) {
+  //   if (this._isAnimatingTexture) {
+  //     this._diffuse.updateTexture();
+  //   }
+  // }
 
   set diffuse(diffuse) {
     this._diffuse = diffuse;

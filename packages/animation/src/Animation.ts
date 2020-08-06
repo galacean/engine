@@ -34,7 +34,7 @@ export class Animation extends Component {
    * @private
    */
   public static lerp(
-    outValue: Quaternion,
+    outValue: number | Quaternion,
     startValue: number | Quaternion,
     endValue: number | Quaternion,
     alpha: number,
@@ -42,10 +42,10 @@ export class Animation extends Component {
   ): number | Quaternion {
     switch (outputSize) {
       case 1:
-        outValue = startValue * (1 - alpha) + endValue * alpha;
+        outValue = <number>startValue * (1 - alpha) + <number>endValue * alpha;
         break;
       case 4:
-        Quaternion.slerp(startValue, endValue, alpha, outValue);
+        Quaternion.slerp(<Quaternion>startValue, <Quaternion>endValue, alpha, <Quaternion>outValue);
         break;
       default:
         for (let i = outputSize; i >= 0; i--) {
@@ -391,7 +391,7 @@ export class Animation extends Component {
    * @param {number} outputSize
    * @private
    */
-  public _getChannelValue(channelIndex: number, outputSize: number): number | Float32Array | boolean {
+  public _getChannelValue(channelIndex: number, outputSize: number): number | Quaternion | boolean {
     const weights = [];
     const values = [];
     for (let i = this._animLayers.length - 1; i >= 0; i--) {

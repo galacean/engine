@@ -1,5 +1,5 @@
 import { DataType, FrontFace } from "@alipay/o3-core";
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { BufferGeometry, InterleavedBuffer } from "@alipay/o3-geometry";
 import { BufferAttribute } from "@alipay/o3-primitive";
 

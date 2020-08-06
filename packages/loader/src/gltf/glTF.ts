@@ -4,7 +4,7 @@ import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
 import { Mesh, Skin, MeshRenderer, SkinnedMeshRenderer } from "@alipay/o3-mesh";
-import { Vector3, Matrix, Quaternion } from "@alipay/o3-math";
+import { Vector3, Matrix, Quaternion, Vector4 } from "@alipay/o3-math";
 import { getAccessorData, getAccessorTypeSize, createAttribute, findByKeyValue } from "./Util";
 import { AnimationClip, InterpolationType, Animation } from "@alipay/o3-animation";
 
@@ -38,7 +38,7 @@ const getDefaultMaterial = (function () {
   return () => {
     if (!defaultMateril) {
       defaultMateril = new ConstantMaterial("default");
-      defaultMateril.emission = [0.749, 0.749, 0.749, 1];
+      defaultMateril.emission = new Vector4(0.749, 0.749, 0.749, 1);
     }
     return defaultMateril;
   };
@@ -115,6 +115,7 @@ export interface GLTFResource {
  * @private
  */
 export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResource {
+  console.log(data);
   // 开始处理 glTF 数据
   const resources: GLTFParsed = {
     engine,
@@ -130,7 +131,6 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResourc
   }
 
   parseExtensions(resources);
-
   // parse all related resources
   // @ts-ignore
   return parseResources(resources, "textures", parseTexture)
@@ -635,6 +635,7 @@ export function parseAnimation(gltfAnimation, resources) {
  * @private
  */
 export function parseNode(gltfNode, resources) {
+  console.log(gltfNode);
   // TODO: undefined name?
   const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`);
 
@@ -654,7 +655,6 @@ export function parseNode(gltfNode, resources) {
       m[10],
       m[11],
       m[12],
-      m[13],
       m[14],
       m[15]
     );
@@ -669,7 +669,12 @@ export function parseNode(gltfNode, resources) {
   } else {
     for (const key in TARGET_PATH_MAP) {
       if (gltfNode.hasOwnProperty(key)) {
-        entity[TARGET_PATH_MAP[key]] = gltfNode[key];
+        const mapKey = TARGET_PATH_MAP[key];
+        if (mapKey === "weights") {
+          entity[mapKey] = gltfNode[key];
+        } else {
+          entity[mapKey].setValue(...gltfNode[key]);
+        }
       }
     }
   }

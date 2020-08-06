@@ -26,7 +26,7 @@ export class CircleGeometry extends BufferGeometry {
    * @param radius 半径
    */
   constructor(options: CircleGeometryOptions = {}) {
-    super("name");
+    super();
 
     this.mode = DrawMode.TRIANGLES;
 

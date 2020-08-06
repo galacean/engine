@@ -50,7 +50,7 @@ export class SpriteRenderer extends RenderableComponent {
   /**
    * 调节色，控制 Sprite 颜色变化
    */
-  public tintColor: number[] = [1, 1, 1, 1];
+  public tintColor: Vector4 = new Vector4(1, 1, 1, 1);
   public transformMatrix: Matrix;
 
   /**
