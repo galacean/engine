@@ -163,7 +163,7 @@ export class Scene extends EventDispatcher {
     this._componentsManager.callScriptOnStart();
     this._componentsManager.callScriptOnUpdate(deltaTime);
     this._componentsManager.callAnimationUpdate(deltaTime);
-    this._componentsManager.callScriptOnLateUpdate();
+    this._componentsManager.callScriptOnLateUpdate(deltaTime);
   }
 
   /** 渲染：场景中的每个摄像机执行一次渲染
