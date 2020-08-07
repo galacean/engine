@@ -55,8 +55,6 @@ export class Camera extends Component {
   cullingMask: number = 0;
   _renderPipeline: BasicRenderPipeline;
 
-  _pixelViewport: Vector4 = [0, 0, 1, 1];
-
   private _isOrthographic: boolean = false;
   private _projectionMatrix: Matrix4 = mat4.create();
   private _isProjMatSetting = false;
