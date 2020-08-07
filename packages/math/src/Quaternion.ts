@@ -202,10 +202,9 @@ export class Quaternion {
     let bz = b.z;
     let bw = b.w;
 
-    let omega, cosom, sinom, scale0, scale1;
-
+    let scale0, scale1;
     // calc cosine
-    cosom = ax * bx + ay * by + az * bz + aw * bw;
+    let cosom = ax * bx + ay * by + az * bz + aw * bw;
     // adjust signs (if necessary)
     if (cosom < 0.0) {
       cosom = -cosom;
@@ -217,8 +216,8 @@ export class Quaternion {
     // calculate coefficients
     if (1.0 - cosom > MathUtil.zeroTolerance) {
       // standard case (slerp)
-      omega = Math.acos(cosom);
-      sinom = Math.sin(omega);
+      const omega = Math.acos(cosom);
+      const sinom = Math.sin(omega);
       scale0 = Math.sin((1.0 - t) * omega) / sinom;
       scale1 = Math.sin(t * omega) / sinom;
     } else {
