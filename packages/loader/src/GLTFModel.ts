@@ -1,11 +1,6 @@
 import { AnimationClip, Animation, WrapMode } from "@alipay/o3-animation";
 import { Component, Entity } from "@alipay/o3-core";
-
-interface GLTFAsset {
-  nodes: [Entity];
-  rootScene: { nodes: [Entity] };
-  animations: [AnimationClip];
-}
+import { GLTFResource } from "./gltf/glTF";
 
 /**
  * @deprecated
@@ -17,13 +12,15 @@ export class GLTFModel extends Component {
     return this._asset;
   }
 
-  set asset(value: GLTFAsset) {
+  set asset(value: GLTFResource) {
     if (!this._hasBuiltNode) {
       (this.GLTFNode as any).clearChildren();
       if (value !== null) {
-        value.rootScene.nodes.forEach((node) => {
-          this.GLTFNode.addChild(node.clone());
-        });
+        if (this.GLTFNode) {
+          this.GLTFNode.destroy();
+        }
+        this.GLTFNode = value.defaultSceneRoot;
+        this.entity.addChild(this.GLTFNode);
       }
     }
     this._asset = value;
@@ -64,14 +61,14 @@ export class GLTFModel extends Component {
   public _animator: Animation;
   public animationsNames: String[];
 
-  private _asset: GLTFAsset;
+  private _asset: GLTFResource;
   private GLTFNode: Entity;
   private _loop: number;
   private _autoPlay: string;
   private _hasBuiltNode: boolean = false;
 
-  constructor(node, props) {
-    super(node, props);
+  constructor(entity, props) {
+    super(entity, props);
 
     const { asset = null, autoPlay, loop, isClone } = props;
     if (isClone) {

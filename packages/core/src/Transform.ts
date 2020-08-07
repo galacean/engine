@@ -136,7 +136,7 @@ export class Transform extends Component {
    */
   get rotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._LOCAL_EULER_FLAG)) {
-      Quaternion.toEuler(this._rotationQuaternion, this._rotation);
+      this._rotation = this._rotationQuaternion.toEuler();
       this._rotation.scale(MathUtil.radToDegree); // 弧度转角度
 
       this._setDirtyFlagFalse(Transform._LOCAL_EULER_FLAG);
@@ -159,7 +159,7 @@ export class Transform extends Component {
    */
   get worldRotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_EULER_FLAG)) {
-      Quaternion.toEuler(this.worldRotationQuaternion, this._worldRotation);
+      this._worldRotation = this.worldRotationQuaternion.toEuler();
       this._worldRotation.scale(MathUtil.radToDegree); // 弧度转角度
       this._setDirtyFlagFalse(Transform._WORLD_EULER_FLAG);
     }
@@ -170,7 +170,7 @@ export class Transform extends Component {
     if (this._worldRotation !== value) {
       value.cloneTo(this._worldRotation);
     }
-    Quaternion.fromEuler(
+    Quaternion.rotationEuler(
       MathUtil.degreeToRadian(value.x),
       MathUtil.degreeToRadian(value.y),
       MathUtil.degreeToRadian(value.z),
@@ -186,7 +186,7 @@ export class Transform extends Component {
    */
   get rotationQuaternion(): Quaternion {
     if (this._isContainDirtyFlag(Transform._LOCAL_QUAT_FLAG)) {
-      Quaternion.fromEuler(
+      Quaternion.rotationEuler(
         MathUtil.degreeToRadian(this._rotation.x),
         MathUtil.degreeToRadian(this._rotation.y),
         MathUtil.degreeToRadian(this._rotation.z),
@@ -388,7 +388,7 @@ export class Transform extends Component {
    * @param relativeToLocal - 是否相对局部空间
    */
   rotate(rotation: Vector3, relativeToLocal: boolean = true): void {
-    Quaternion.fromEuler(
+    Quaternion.rotationEuler(
       MathUtil.degreeToRadian(rotation.x),
       MathUtil.degreeToRadian(rotation.y),
       MathUtil.degreeToRadian(rotation.z),

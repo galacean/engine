@@ -48,13 +48,16 @@ describe("Quaternion test", () => {
     expect(Quaternion.equals(a, b)).toEqual(true);
   });
 
-  it("static fromEuler", () => {
-    const out = new Quaternion();
+  it("static rotationEuler | rotationYawPitchRoll", () => {
+    const out1 = new Quaternion();
+    const out2 = new Quaternion();
+    Quaternion.rotationEuler(0, Math.PI / 3, Math.PI / 2, out1);
+    Quaternion.rotationYawPitchRoll(0, Math.PI / 3, Math.PI / 2, out2);
 
-    Quaternion.fromEuler(0, Math.PI / 3, Math.PI / 3, out);
-    expect(
-      Quaternion.equals(out, new Quaternion(-0.24999999999999994, 0.4330127018922193, 0.4330127018922193, 0.75))
-    ).toEqual(true);
+    const a = out1.toEuler();
+    const b = out2.toYawPitchRoll();
+    expect(Vector3.equals(a, new Vector3(0, Math.PI / 3, Math.PI / 2))).toEqual(true);
+    expect(Vector3.equals(b, new Vector3(0, Math.PI / 3, Math.PI / 2))).toEqual(true);
   });
 
   it("static fromMat3", () => {
@@ -100,10 +103,11 @@ describe("Quaternion test", () => {
   it("static lerp", () => {
     const a = new Quaternion(0, 1, 2, 0);
     const b = new Quaternion(2, 2, 0, 0);
+    const normal = new Quaternion(1, 1.5, 1, 0);
     const out = new Quaternion();
 
     Quaternion.lerp(a, b, 0.5, out);
-    expect(toString(out)).toEqual("quat(1, 1.5, 1, 0)");
+    expect(Quaternion.equals(out, normal.normalize())).toEqual(true);
   });
 
   it("static slerp", () => {
@@ -146,10 +150,11 @@ describe("Quaternion test", () => {
 
   it("static toEuler", () => {
     const a = new Quaternion();
-    Quaternion.fromEuler(0, Math.PI / 3, 0, a);
-    const euler = new Vector3();
-    Quaternion.toEuler(a, euler);
+    Quaternion.rotationEuler(0, Math.PI / 3, 0, a);
+    const euler = a.toEuler();
+    const ypr = a.toYawPitchRoll();
     expect(Vector3.equals(euler, new Vector3(0, Math.PI / 3, 0))).toEqual(true);
+    expect(Vector3.equals(ypr, new Vector3(Math.PI / 3, 0, 0))).toEqual(true);
   });
 
   it("clone", () => {

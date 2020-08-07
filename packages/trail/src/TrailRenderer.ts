@@ -4,6 +4,8 @@ import { Material, Texture2D } from "@alipay/o3-material";
 import { Quaternion, Vector2, Vector3, Matrix } from "@alipay/o3-math";
 import { TrailMaterial } from "./TrailMaterial";
 
+const _tempVector3 = new Vector3();
+
 /**
  * 拖尾效果渲染组件
  */
@@ -176,7 +178,7 @@ export class TrailRenderer extends GeometryRenderer {
           Vector3.subtract(points[i + 1], p, perpVector);
         }
 
-        Vector3.projectOnPlane(perpVector, vz, perpVector);
+        this._projectOnPlane(perpVector, vz, perpVector);
         perpVector.normalize();
 
         // Calculate angle between vectors
@@ -215,5 +217,31 @@ export class TrailRenderer extends GeometryRenderer {
       this.geometry.setValue("TEXCOORD_0", i * 2, [0, d]);
       this.geometry.setValue("TEXCOORD_0", i * 2 + 1, [1.0, d]);
     }
+  }
+
+  /**
+   * 将向量 a 投影到向 p 上。
+   * @param a - 要投影的向量
+   * @param p - 目标向量
+   * @param out - 向量 a 投影到向量 p 的结果向量
+   */
+  _projectOnVector(a: Vector3, p: Vector3, out: Vector3): void {
+    const n_p = p.clone();
+    Vector3.normalize(n_p, n_p);
+    const cosine = Vector3.dot(a, n_p);
+    out.x = n_p.x * cosine;
+    out.y = n_p.y * cosine;
+    out.z = n_p.z * cosine;
+  }
+
+  /**
+   * 将向量 a 投影到和法向量 n 正交的平面上。
+   * @param a - 输入向量
+   * @param n - 法向量
+   * @param out - 投影到平面上的向量
+   */
+  _projectOnPlane(a: Vector3, n: Vector3, out: Vector3) {
+    this._projectOnVector(a, n, _tempVector3);
+    Vector3.subtract(a, _tempVector3, out);
   }
 }

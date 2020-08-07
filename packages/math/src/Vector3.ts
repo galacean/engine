@@ -193,32 +193,6 @@ export class Vector3 {
   }
 
   /**
-   * 将向量 a 投影到向 p 上。
-   * @param a - 要投影的向量
-   * @param p - 目标向量
-   * @param out - 向量 a 投影到向量 p 的结果向量
-   */
-  static projectOnVector(a: Vector3, p: Vector3, out: Vector3): void {
-    const n_p = p.clone();
-    Vector3.normalize(n_p, n_p);
-    const cosine = Vector3.dot(a, n_p);
-    out.x = n_p.x * cosine;
-    out.y = n_p.y * cosine;
-    out.z = n_p.z * cosine;
-  }
-
-  /**
-   * 将向量 a 投影到和法向量 n 正交的平面上。
-   * @param a - 输入向量
-   * @param n - 法向量
-   * @param out - 投影到平面上的向量
-   */
-  static projectOnPlane(a: Vector3, n: Vector3, out: Vector3): void {
-    Vector3.projectOnVector(a, n, Vector3._tempVector3);
-    Vector3.subtract(a, Vector3._tempVector3, out);
-  }
-
-  /**
    * 将向量 a 缩放的结果输出到 out。
    * @param a - 向量
    * @param s - 缩放因子
@@ -285,11 +259,11 @@ export class Vector3 {
     const { x, y, z } = v;
     const e = m.elements;
     let w = x * e[3] + y * e[7] + z * e[11] + e[15];
-    w = w || 1.0;
+    w = 1.0 / w;
 
-    out.x = (x * e[0] + y * e[4] + z * e[8] + e[12]) / w;
-    out.y = (x * e[1] + y * e[5] + z * e[9] + e[13]) / w;
-    out.z = (x * e[2] + y * e[6] + z * e[10] + e[14]) / w;
+    out.x = (x * e[0] + y * e[4] + z * e[8] + e[12]) * w;
+    out.y = (x * e[1] + y * e[5] + z * e[9] + e[13]) * w;
+    out.z = (x * e[2] + y * e[6] + z * e[10] + e[14]) * w;
   }
 
   /**
