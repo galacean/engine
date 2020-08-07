@@ -166,7 +166,7 @@ export class Vector3 {
   }
 
   /**
-   * 将向量a反转，并将结果输出到out。
+   * 将向量a反转的结果输出到out。
    * @param a - 向量
    * @param out - 向量反转的结果
    */
@@ -177,7 +177,7 @@ export class Vector3 {
   }
 
   /**
-   * 将向量a归一化，并将结果输出到out。
+   * 将向量a归一化的结果输出到out。
    * @param a - 向量
    * @param out - 向量归一化的结果
    */
@@ -219,7 +219,7 @@ export class Vector3 {
   }
 
   /**
-   * 将向量a缩放，并将结果输出到out。
+   * 将向量a缩放的结果输出到out。
    * @param a - 向量
    * @param s - 缩放因子
    * @param out - 向量缩放的结果
@@ -436,7 +436,7 @@ export class Vector3 {
   }
 
   /**
-   * 当前向量反转，并返回。
+   * 向量反转。
    * @returns 当前向量
    */
   negate(): Vector3 {
@@ -447,7 +447,7 @@ export class Vector3 {
   }
 
   /**
-   * 当前向量归一化，并返回。
+   * 向量归一化。
    * @returns 当前向量
    */
   normalize(): Vector3 {
@@ -463,7 +463,7 @@ export class Vector3 {
   }
 
   /**
-   * 当前向量缩放，并返回。
+   * 向量缩放。
    * @param s - 缩放因子
    * @returns 当前向量
    */
