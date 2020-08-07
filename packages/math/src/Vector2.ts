@@ -290,13 +290,7 @@ export class Vector2 {
    * @returns 当前向量
    */
   normalize(): Vector2 {
-    const { x, y } = this;
-    let len: number = x * x + y * y;
-    if (len > MathUtil.zeroTolerance) {
-      len = 1 / Math.sqrt(len);
-      this.x = x * len;
-      this.y = y * len;
-    }
+    Vector2.normalize(this, this);
     return this;
   }
 

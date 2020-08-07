@@ -383,15 +383,7 @@ export class Vector4 {
    * @returns 当前向量
    */
   normalize(): Vector4 {
-    const { x, y, z, w } = this;
-    let len: number = x * x + y * y + z * z + w * w;
-    if (len > MathUtil.zeroTolerance) {
-      len = 1 / Math.sqrt(len);
-      this.x = x * len;
-      this.y = y * len;
-      this.z = z * len;
-      this.w = w * len;
-    }
+    Vector4.normalize(this, this);
     return this;
   }
 
