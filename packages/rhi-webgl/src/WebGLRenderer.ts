@@ -279,14 +279,9 @@ export class WebGLRenderer implements HardwareRenderer {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       const viewport = camera.viewport;
-      const pixelViewport = camera._pixelViewport;
       const width = gl.drawingBufferWidth;
       const height = gl.drawingBufferHeight;
-      pixelViewport[0] = viewport[0] * width;
-      pixelViewport[1] = viewport[1] * height;
-      pixelViewport[2] = viewport[2] * width;
-      pixelViewport[3] = viewport[3] * height;
-      this.viewport(pixelViewport[0], pixelViewport[1], pixelViewport[2], pixelViewport[3]);
+      this.viewport(viewport[0] * width, viewport[1] * height, viewport[2] * width, viewport[3] * height);
     }
   }
 
