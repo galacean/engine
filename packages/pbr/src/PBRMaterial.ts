@@ -11,7 +11,7 @@ import {
   Util
 } from "@alipay/o3-core";
 import { LightFeature } from "@alipay/o3-lighting";
-import { Material, RenderTechnique, Texture2D, TextureCubeMap } from "@alipay/o3-material";
+import { Material, RenderTechnique, Texture, TextureCubeMap } from "@alipay/o3-material";
 import fs from "./pbr.fs.glsl";
 import vs from "./pbr.vs.glsl";
 
@@ -1101,7 +1101,11 @@ class PBRMaterial extends Material {
 
     for (const name in this._uniformObj) {
       const value = this._uniformObj[name];
-      newMtl[name] = Util.clone(value);
+      if (value instanceof Texture) {
+        newMtl[name] = value;
+      } else {
+        newMtl[name] = Util.clone(value);
+      }
     }
 
     if (this._stateObj) {
