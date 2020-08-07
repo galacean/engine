@@ -76,6 +76,23 @@ export class Quaternion {
   }
 
   /**
+   * 通过旋转的欧拉角设置四元数。
+   * @param axis - 旋转轴向量
+   * @param rad - 旋转角度(单位：弧度)
+   * @param out - 生成的四元数
+   */
+  static setAxisAngle(axis: Vector3, rad: number, out: Quaternion): void {
+    const normalAxis = new Vector3();
+    Vector3.normalize(axis, normalAxis);
+    rad *= 0.5;
+    const s = Math.sin(rad);
+    out.x = normalAxis.x * s;
+    out.y = normalAxis.y * s;
+    out.z = normalAxis.z * s;
+    out.w = Math.cos(rad);
+  }
+
+  /**
    * 根据 x,y,z 轴的旋转欧拉角(弧度)生成四元数，欧拉角顺序 pitch yaw roll。
    * @param x - 绕X轴旋转的弧度 pitch
    * @param y - 绕Y轴旋转的弧度 yaw
@@ -469,24 +486,6 @@ export class Quaternion {
    */
   normalize(): Quaternion {
     Quaternion.normalize(this, this);
-    return this;
-  }
-
-  /**
-   * 通过旋转的欧拉角设置四元数。
-   * @param axis - 旋转轴向量
-   * @param rad - 旋转角度(单位：弧度)
-   * @returns 当前四元数
-   */
-  setAxisAngle(axis: Vector3, rad: number): Quaternion {
-    const normalAxis = new Vector3();
-    Vector3.normalize(axis, normalAxis);
-    rad *= 0.5;
-    const s = Math.sin(rad);
-    this.x = normalAxis.x * s;
-    this.y = normalAxis.y * s;
-    this.z = normalAxis.z * s;
-    this.w = Math.cos(rad);
     return this;
   }
 

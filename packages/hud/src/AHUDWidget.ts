@@ -249,7 +249,7 @@ export class AHUDWidget extends RenderableComponent {
     if (this._rotationAngle !== 0) {
       const vz = new Vector3(me[2], me[6], me[10]);
       const rotation = new Quaternion();
-      rotation.setAxisAngle(vz, this._rotationAngle);
+      Quaternion.setAxisAngle(vz, this._rotationAngle, rotation);
 
       Vector3.transformByQuat(vx, rotation, vx);
       Vector3.transformByQuat(vy, rotation, vy);

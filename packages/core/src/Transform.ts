@@ -405,7 +405,7 @@ export class Transform extends Component {
    */
   rotateByAxis(axis: Vector3, angle: number, relativeToLocal: boolean = true): void {
     const rad = (angle * Math.PI) / 180;
-    Transform._tempQuat0.setAxisAngle(axis, rad);
+    Quaternion.setAxisAngle(axis, rad, Transform._tempQuat0);
     this._rotateByQuat(Transform._tempQuat0, relativeToLocal);
   }
 

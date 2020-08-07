@@ -187,7 +187,7 @@ export class TrailRenderer extends GeometryRenderer {
         if (Vector3.dot(cross, vz) <= 0) {
           angle = Math.PI * 2 - angle;
         }
-        rotation.setAxisAngle(vz, angle);
+        Quaternion.setAxisAngle(vz, angle, rotation);
         Vector3.transformByQuat(vy, rotation, dy);
 
         Vector3.add(p, dy, up);
