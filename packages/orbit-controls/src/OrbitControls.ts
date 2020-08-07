@@ -1,6 +1,7 @@
 "use strict";
 
-import { Entity, Logger, Script } from "@alipay/o3-core";
+import { Logger } from "@alipay/o3-core";
+import { Entity, Script } from "@alipay/o3-core";
 import { Spherical, vec2, vec3 } from "@alipay/o3-math";
 
 /**
@@ -99,8 +100,7 @@ export class OrbitControls extends Script {
       return null;
     }
     // 目标点
-    const target = vec3.create();
-    this.target = props.target || vec3.add(target, entity.transform.position, entity.transform.getWorldForward(target));
+    this.target = props.target || vec3.create();
 
     // up向量
     this.up = vec3.fromValues(0, 1, 0);
