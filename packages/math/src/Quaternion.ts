@@ -257,7 +257,7 @@ export class Quaternion {
    * @param rad - 旋转角度
    * @param out - 旋转后的四元数
    */
-  static rotateX(a: Quaternion, rad: number, out: Quaternion): void {
+  static rotationX(a: Quaternion, rad: number, out: Quaternion): void {
     rad *= 0.5;
     const { x, y, z, w } = a;
     const bx = Math.sin(rad);
@@ -275,7 +275,7 @@ export class Quaternion {
    * @param rad - 旋转角度
    * @param out - 旋转后的四元数
    */
-  static rotateY(a: Quaternion, rad: number, out: Quaternion): void {
+  static rotationY(a: Quaternion, rad: number, out: Quaternion): void {
     rad *= 0.5;
     const { x, y, z, w } = a;
     const by = Math.sin(rad);
@@ -293,7 +293,7 @@ export class Quaternion {
    * @param rad - 旋转角度
    * @param out - 旋转后的四元数
    */
-  static rotateZ(a: Quaternion, rad: number, out: Quaternion): void {
+  static rotationZ(a: Quaternion, rad: number, out: Quaternion): void {
     rad *= 0.5;
     const { x, y, z, w } = a;
     const bz = Math.sin(rad);
