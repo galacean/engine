@@ -99,16 +99,17 @@ export class ComponentsManager {
   }
 
   callScriptOnStart(): void {
-    const length = this._onStartScripts.length;
-    if (length > 0) {
-      const elements = this._onStartScripts._elements;
-      for (let i = length - 1; i >= 0; --i) {
+    const onStartScripts = this._onStartScripts;
+    if (onStartScripts.length > 0) {
+      const elements = onStartScripts._elements;
+      // onStartScripts's length maybe add if you add some Script with addComponent() in some Script's onStart()
+      for (let i = 0; i < onStartScripts.length; i++) {
         const script = elements[i];
-        script.onStart();
         script._started = true;
         script._onStartIndex = -1;
+        script.onStart();
       }
-      this._onStartScripts.length = 0;
+      onStartScripts.length = 0;
     }
   }
 
