@@ -24,7 +24,6 @@ export class GLTFResource extends SchemaResource {
     oasis: Oasis
   ): Promise<LoadAttachedResourceResult> {
     return new Promise((resolve) => {
-      console.log("load gltf");
       this.load(resourceManager, assetConfig, oasis).then(() => {
         const gltf = this.resource;
         const { materials } = gltf;
