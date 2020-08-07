@@ -11,15 +11,15 @@ describe("MathUtil test", () => {
     expect(MathUtil.equals(10, 10)).toEqual(true);
 
     let scale = 0.9;
-    expect(MathUtil.equals(10, 10 - MathUtil.ZeroTolerance * scale)).toEqual(true);
-    expect(MathUtil.equals(10, 10 + MathUtil.ZeroTolerance * scale)).toEqual(true);
+    expect(MathUtil.equals(10, 10 - MathUtil.zeroTolerance * scale)).toEqual(true);
+    expect(MathUtil.equals(10, 10 + MathUtil.zeroTolerance * scale)).toEqual(true);
 
-    expect(MathUtil.equals(10, 10 - MathUtil.ZeroTolerance)).toEqual(true);
-    expect(MathUtil.equals(10, 10 + MathUtil.ZeroTolerance)).toEqual(true);
+    expect(MathUtil.equals(10, 10 - MathUtil.zeroTolerance)).toEqual(true);
+    expect(MathUtil.equals(10, 10 + MathUtil.zeroTolerance)).toEqual(true);
 
     scale = 1.2;
-    expect(MathUtil.equals(10, 10 - MathUtil.ZeroTolerance * scale)).toEqual(false);
-    expect(MathUtil.equals(10, 10 + MathUtil.ZeroTolerance * scale)).toEqual(false);
+    expect(MathUtil.equals(10, 10 - MathUtil.zeroTolerance * scale)).toEqual(false);
+    expect(MathUtil.equals(10, 10 + MathUtil.zeroTolerance * scale)).toEqual(false);
   });
 
   it("isPowerOf2", () => {

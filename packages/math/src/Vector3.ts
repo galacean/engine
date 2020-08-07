@@ -184,7 +184,7 @@ export class Vector3 {
   static normalize(a: Vector3, out: Vector3): void {
     const { x, y, z } = a;
     let len: number = x * x + y * y + z * z;
-    if (len > MathUtil.ZeroTolerance) {
+    if (len > MathUtil.zeroTolerance) {
       len = 1 / Math.sqrt(len);
       out.x = x * len;
       out.y = y * len;
@@ -453,7 +453,7 @@ export class Vector3 {
   normalize(): Vector3 {
     const { x, y, z } = this;
     let len: number = x * x + y * y + z * z;
-    if (len > MathUtil.ZeroTolerance) {
+    if (len > MathUtil.zeroTolerance) {
       len = 1 / Math.sqrt(len);
       this.x = x * len;
       this.y = y * len;

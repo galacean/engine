@@ -43,7 +43,7 @@ describe("Quaternion test", () => {
 
   it("static equals", () => {
     const a = new Quaternion(1, 2, 3, 4);
-    const b = new Quaternion(1 + MathUtil.ZeroTolerance * 0.9, 2, 3, 4);
+    const b = new Quaternion(1 + MathUtil.zeroTolerance * 0.9, 2, 3, 4);
 
     expect(Quaternion.equals(a, b)).toEqual(true);
   });

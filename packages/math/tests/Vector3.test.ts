@@ -72,7 +72,7 @@ describe("Vector3 test", () => {
 
   it("static equals", () => {
     const a = new Vector3(1, 2, 3);
-    const b = new Vector3(1 + MathUtil.ZeroTolerance * 0.9, 2, 3);
+    const b = new Vector3(1 + MathUtil.zeroTolerance * 0.9, 2, 3);
 
     expect(Vector3.equals(a, b)).toEqual(true);
   });

@@ -215,7 +215,7 @@ export class Quaternion {
       bw = -bw;
     }
     // calculate coefficients
-    if (1.0 - cosom > MathUtil.ZeroTolerance) {
+    if (1.0 - cosom > MathUtil.zeroTolerance) {
       // standard case (slerp)
       omega = Math.acos(cosom);
       sinom = Math.sin(omega);
@@ -242,7 +242,7 @@ export class Quaternion {
   static normalize(a: Quaternion, out: Quaternion): void {
     const { x, y, z, w } = a;
     let len: number = x * x + y * y + z * z + w * w;
-    if (len > MathUtil.ZeroTolerance) {
+    if (len > MathUtil.zeroTolerance) {
       len = 1 / Math.sqrt(len);
       out.x = x * len;
       out.y = y * len;
@@ -322,7 +322,7 @@ export class Quaternion {
    */
   static toEuler(a: Quaternion, out: Vector3): void {
     const { x, y, z, w } = a;
-    let Threshold = 0.5 - MathUtil.ZeroTolerance;
+    let Threshold = 0.5 - MathUtil.zeroTolerance;
     let t = w * y - x * z;
 
     if (t < -Threshold || t > Threshold) {
@@ -420,7 +420,7 @@ export class Quaternion {
     const { x, y, z } = this;
     const length = x * x + y * y + z * z;
 
-    if (length < MathUtil.ZeroTolerance) {
+    if (length < MathUtil.zeroTolerance) {
       out.x = 1;
       out.y = 0;
       out.z = 0;

@@ -61,7 +61,7 @@ describe("Vector4 test", () => {
 
   it("static equals", () => {
     const a = new Vector4(1, 2, 3, 4);
-    const b = new Vector4(1 + MathUtil.ZeroTolerance * 0.9, 2, 3, 4);
+    const b = new Vector4(1 + MathUtil.zeroTolerance * 0.9, 2, 3, 4);
 
     expect(Vector4.equals(a, b)).toEqual(true);
   });

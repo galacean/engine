@@ -150,7 +150,7 @@ export class Vector2 {
   static normalize(a: Vector2, out: Vector2): void {
     const { x, y } = a;
     let len: number = x * x + y * y;
-    if (len > MathUtil.ZeroTolerance) {
+    if (len > MathUtil.zeroTolerance) {
       len = 1 / Math.sqrt(len);
       out.x = x * len;
       out.y = y * len;
@@ -292,7 +292,7 @@ export class Vector2 {
   normalize(): Vector2 {
     const { x, y } = this;
     let len: number = x * x + y * y;
-    if (len > MathUtil.ZeroTolerance) {
+    if (len > MathUtil.zeroTolerance) {
       len = 1 / Math.sqrt(len);
       this.x = x * len;
       this.y = y * len;

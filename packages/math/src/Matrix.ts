@@ -8,17 +8,17 @@ import { Vector3 } from "./Vector3";
  */
 export class Matrix {
   /** @internal */
-  private static _tempVec0: Vector3 = new Vector3();
+  private static readonly _tempVec0: Vector3 = new Vector3();
   /** @internal */
-  private static _tempVec1: Vector3 = new Vector3();
+  private static readonly _tempVec1: Vector3 = new Vector3();
   /** @internal */
-  private static _tempVec2: Vector3 = new Vector3();
+  private static readonly _tempVec2: Vector3 = new Vector3();
   /** @internal */
-  private static _tempVec3: Vector3 = new Vector3();
+  private static readonly _tempVec3: Vector3 = new Vector3();
   /** @internal */
-  private static _tempMat30: Matrix3x3 = new Matrix3x3();
+  private static readonly _tempMat30: Matrix3x3 = new Matrix3x3();
   /** @internal */
-  private static _tempMat40: Matrix = new Matrix();
+  private static readonly _tempMat40: Matrix = new Matrix();
 
   /** @internal 单位矩阵 */
   static readonly _identity: Matrix = new Matrix(
@@ -191,7 +191,7 @@ export class Matrix {
     let len = Math.sqrt(x * x + y * y + z * z);
     let s, c, t;
 
-    if (Math.abs(len) < MathUtil.ZeroTolerance) {
+    if (Math.abs(len) < MathUtil.zeroTolerance) {
       return;
     }
 
@@ -603,7 +603,7 @@ export class Matrix {
     Vector3.subtract(up, zAxis, makeSafe);
     const l = makeSafe.length();
     if (MathUtil.equals(l, 0) || MathUtil.equals(l, 2)) {
-      zAxis.z += MathUtil.ZeroTolerance;
+      zAxis.z += MathUtil.zeroTolerance;
       zAxis.normalize();
     }
     Vector3.cross(up, zAxis, xAxis);
@@ -714,7 +714,7 @@ export class Matrix {
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
-    if (Math.abs(len) < MathUtil.ZeroTolerance) {
+    if (Math.abs(len) < MathUtil.zeroTolerance) {
       return;
     }
 
@@ -1161,9 +1161,9 @@ export class Matrix {
     const sz = Math.sqrt(te[8] * te[8] + te[9] * te[9] + te[10] * te[10]);
 
     if (
-      Math.abs(sx) < MathUtil.ZeroTolerance ||
-      Math.abs(sy) < MathUtil.ZeroTolerance ||
-      Math.abs(sz) < MathUtil.ZeroTolerance
+      Math.abs(sx) < MathUtil.zeroTolerance ||
+      Math.abs(sy) < MathUtil.zeroTolerance ||
+      Math.abs(sz) < MathUtil.zeroTolerance
     ) {
       // TODO
     } else {
@@ -1209,7 +1209,7 @@ export class Matrix {
     let trace = e[0] + e[5] + e[10];
     let S = 0;
 
-    if (trace > MathUtil.ZeroTolerance) {
+    if (trace > MathUtil.zeroTolerance) {
       S = Math.sqrt(trace + 1.0) * 2;
       out.w = 0.25 * S;
       out.x = (e[6] - e[9]) / S;

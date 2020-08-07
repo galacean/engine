@@ -4,7 +4,7 @@ import { MathUtil, Spherical, Vector3 } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 
 // 防止万向锁
-const ESP = MathUtil.ZeroTolerance;
+const ESP = MathUtil.zeroTolerance;
 
 function includes(array, ...filterArray) {
   return filterArray.some((e) => array.indexOf(e) !== -1);

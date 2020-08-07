@@ -3,11 +3,11 @@
  */
 export class MathUtil {
   /** 单精度浮点零容差 */
-  static ZeroTolerance: number = 1e-6;
+  static readonly zeroTolerance: number = 1e-6;
   /** 弧度转角度的转换因子 */
-  static RadToDegree: number = 180 / Math.PI;
+  static readonly radToDegree: number = 180 / Math.PI;
   /** 角度转弧度的转换因子 */
-  static DegreeToRad: number = Math.PI / 180;
+  static readonly degreeToRad: number = Math.PI / 180;
 
   /**
    * 求指定范围内的值。
@@ -27,7 +27,7 @@ export class MathUtil {
    * @returns 两个数是否相等
    */
   static equals(a: number, b: number): boolean {
-    return Math.abs(a - b) <= MathUtil.ZeroTolerance;
+    return Math.abs(a - b) <= MathUtil.zeroTolerance;
   }
 
   /**
@@ -45,7 +45,7 @@ export class MathUtil {
    * @returns 角度
    */
   static radianToDegree(r: number): number {
-    return r * MathUtil.RadToDegree;
+    return r * MathUtil.radToDegree;
   }
 
   /**
@@ -54,6 +54,6 @@ export class MathUtil {
    * @returns 弧度
    */
   static degreeToRadian(d: number): number {
-    return d * MathUtil.DegreeToRad;
+    return d * MathUtil.degreeToRad;
   }
 }

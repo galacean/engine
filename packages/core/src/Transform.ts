@@ -137,7 +137,7 @@ export class Transform extends Component {
   get rotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._LOCAL_EULER_FLAG)) {
       Quaternion.toEuler(this._rotationQuaternion, this._rotation);
-      this._rotation.scale(MathUtil.RadToDegree); // 弧度转角度
+      this._rotation.scale(MathUtil.radToDegree); // 弧度转角度
 
       this._setDirtyFlagFalse(Transform._LOCAL_EULER_FLAG);
     }
@@ -160,7 +160,7 @@ export class Transform extends Component {
   get worldRotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_EULER_FLAG)) {
       Quaternion.toEuler(this.worldRotationQuaternion, this._worldRotation);
-      this._worldRotation.scale(MathUtil.RadToDegree); // 弧度转角度
+      this._worldRotation.scale(MathUtil.radToDegree); // 弧度转角度
       this._setDirtyFlagFalse(Transform._WORLD_EULER_FLAG);
     }
     return this._worldRotation;
@@ -416,7 +416,7 @@ export class Transform extends Component {
    */
   lookAt(worldPosition: Vector3, worldUp?: Vector3): void {
     const position = this.worldPosition;
-    const EPSILON = MathUtil.ZeroTolerance;
+    const EPSILON = MathUtil.zeroTolerance;
     if (
       //todo:如果数学苦做保护了的话，可以删除
       Math.abs(position.x - worldPosition.x) < EPSILON &&
