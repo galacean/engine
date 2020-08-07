@@ -74,6 +74,7 @@ export class Camera extends Component {
   /** 投影矩阵逆矩阵脏标记 */
   private _isInvProjMatDirty: boolean = true;
   private _customAspectRatio: number = undefined;
+  private _lastAspectSize: Vector2 = [0, 0];
   private _invViewProjMat: Matrix4 = mat4.create();
   private _transform: Transform;
   private _isViewMatrixDirty: UpdateFlag;
@@ -225,10 +226,17 @@ export class Camera extends Component {
   }
 
   get projectionMatrix(): Matrix4 {
-    if (!this._isProjectionDirty || this._isProjMatSetting) {
+    const canvas = this._entity.engine.canvas;
+    if (
+      (!this._isProjectionDirty || this._isProjMatSetting) &&
+      this._lastAspectSize[0] === canvas.width &&
+      this._lastAspectSize[1] === canvas.height
+    ) {
       return this._projectionMatrix;
     }
     this._isProjectionDirty = false;
+    this._lastAspectSize[0] = canvas.width;
+    this._lastAspectSize[1] = canvas.height;
     const aspectRatio = this.aspectRatio;
     if (!this._isOrthographic) {
       mat4.perspective(
