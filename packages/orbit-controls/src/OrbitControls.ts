@@ -1,5 +1,5 @@
 "use strict";
-import { Spherical, Vector2, Vector3, Matrix, Vector3, Vector3 } from "@alipay/o3-math";
+import { Spherical, Vector2, Vector3, Matrix } from "@alipay/o3-math";
 import { Entity, Logger, Script } from "@alipay/o3-core";
 
 /**
@@ -98,12 +98,7 @@ export class OrbitControls extends Script {
       return null;
     }
     // 目标点
-    const target = new Vector3();
-    if (props.target) {
-      this.target = props.target;
-    } else {
-      Vector3.add(entity.transform.position, entity.transform.getWorldForward(target), this.target);
-    }
+    this.target = props.target || new Vector3();
 
     // up向量
     this.up = new Vector3(0, 1, 0);
