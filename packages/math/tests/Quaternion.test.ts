@@ -48,6 +48,17 @@ describe("Quaternion test", () => {
     expect(Quaternion.equals(a, b)).toEqual(true);
   });
 
+  it("static setAxisAngle", () => {
+    const a = new Vector3(3, 7, 5);
+    const b = new Vector3();
+    const out = new Quaternion();
+    Quaternion.setAxisAngle(a, Math.PI / 3, out);
+    const rad = out.getAxisAngle(b);
+
+    expect(MathUtil.equals(rad, Math.PI / 3)).toEqual(true);
+    expect(Vector3.equals(b.normalize(), a.normalize())).toEqual(true);
+  });
+
   it("static rotationEuler | rotationYawPitchRoll", () => {
     const out1 = new Quaternion();
     const out2 = new Quaternion();
@@ -60,25 +71,25 @@ describe("Quaternion test", () => {
     expect(Vector3.equals(b, new Vector3(0, Math.PI / 3, Math.PI / 2))).toEqual(true);
   });
 
-  it("static fromMat3", () => {
+  it("static rotationMat3", () => {
     const a1 = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
     const a2 = new Matrix3x3(1, 2, 3, 4, -5, 6, 7, 8, -9);
     const a3 = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, -9);
     const a4 = new Matrix3x3(-7, 2, 3, 4, -5, 6, 7, 8, 9);
     const out = new Quaternion();
 
-    Quaternion.fromMat3(a1, out);
+    Quaternion.rotationMat3(a1, out);
     expect(Quaternion.equals(out, new Quaternion(-0.25, 0.5, -0.25, 2))).toEqual(true);
-    Quaternion.fromMat3(a2, out);
+    Quaternion.rotationMat3(a2, out);
     expect(Quaternion.equals(out, new Quaternion(2, 0.75, 1.25, -0.25))).toEqual(true);
-    Quaternion.fromMat3(a3, out);
+    Quaternion.rotationMat3(a3, out);
     expect(
       Quaternion.equals(
         out,
         new Quaternion(0.8017837257372732, 1.8708286933869707, 1.8708286933869709, 0.5345224838248488)
       )
     ).toEqual(true);
-    Quaternion.fromMat3(a4, out);
+    Quaternion.rotationMat3(a4, out);
     expect(
       Quaternion.equals(
         out,
@@ -186,16 +197,5 @@ describe("Quaternion test", () => {
     const a = new Quaternion(3, 4, 5, 0);
     expect(MathUtil.equals(Math.sqrt(50), a.length())).toEqual(true);
     expect(a.lengthSquared()).toEqual(50);
-  });
-
-  it("setAxisAngle", () => {
-    const a = new Vector3(3, 7, 5);
-    const b = new Vector3();
-    const out = new Quaternion();
-    out.setAxisAngle(a, Math.PI / 3);
-    const rad = out.getAxisAngle(b);
-
-    expect(MathUtil.equals(rad, Math.PI / 3)).toEqual(true);
-    expect(Vector3.equals(b.normalize(), a.normalize())).toEqual(true);
   });
 });

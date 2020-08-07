@@ -136,7 +136,7 @@ export class Quaternion {
    * @param m - 3x3矩阵
    * @param out - 生成的四元数
    */
-  static fromMat3(m: Matrix3x3, out: Quaternion): void {
+  static rotationMat3(m: Matrix3x3, out: Quaternion): void {
     const me = m.elements;
     const m11 = me[0],
       m12 = me[1],

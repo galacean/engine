@@ -1191,7 +1191,7 @@ export class Matrix {
 
     const m3: Matrix3x3 = Matrix._tempMat30;
     Matrix3x3.fromMat4(t, m3);
-    Quaternion.fromMat3(m3, q);
+    Quaternion.rotationMat3(m3, q);
 
     s.x = sx;
     s.y = sy;
