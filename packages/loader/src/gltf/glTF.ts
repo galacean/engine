@@ -345,12 +345,10 @@ export function parseMaterial(gltfMaterial, resources) {
     }
 
     // private parameters
-    const { unlit, srgb, gamma, clearCoat, clearCoatRoughness, blendFunc, depthMask } = gltfMaterial;
+    const { unlit, srgb, gamma, blendFunc, depthMask } = gltfMaterial;
     if (unlit) stateObj.unlit = true;
     if (srgb) stateObj.srgb = true;
     if (gamma) stateObj.gamma = true;
-    if (clearCoat) uniformObj.clearCoat = clearCoat;
-    if (clearCoatRoughness !== undefined) uniformObj.clearCoatRoughness = clearCoatRoughness;
     if (blendFunc) stateObj.blendFunc = blendFunc;
     if (depthMask !== undefined) stateObj.depthMask = depthMask;
 

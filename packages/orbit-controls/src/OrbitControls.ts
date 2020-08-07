@@ -1,8 +1,6 @@
 "use strict";
-
-import { Logger } from "@alipay/o3-core";
-import { Entity, Script } from "@alipay/o3-core";
-import { Spherical, Vector2, Vector3, Matrix } from "@alipay/o3-math";
+import { Spherical, Vector2, Vector3, Matrix, Vector3, Vector3 } from "@alipay/o3-math";
+import { Entity, Logger, Script } from "@alipay/o3-core";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
@@ -100,7 +98,12 @@ export class OrbitControls extends Script {
       return null;
     }
     // 目标点
-    this.target = props.target || new Vector3();
+    const target = new Vector3();
+    if (props.target) {
+      this.target = props.target;
+    } else {
+      Vector3.add(entity.transform.position, entity.transform.getWorldForward(target), this.target);
+    }
 
     // up向量
     this.up = new Vector3(0, 1, 0);

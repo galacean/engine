@@ -57,10 +57,10 @@ class ColorRenderPass extends RenderPass {
    * @private
    * 从 framebuffer 获取像素颜色值
    */
-  readColorFromRenderTarget(camera) {
-    const gl = camera.renderHardware.gl;
+  readColorFromRenderTarget(camera: Camera) {
+    const gl = camera.engine.renderhardware.gl;
     const screenPoint = this._pickPos;
-    const canvas = camera.renderHardware.canvas;
+    const canvas = gl.canvas;
     const clientWidth = canvas.clientWidth;
     const clientHeight = canvas.clientHeight;
     const canvasWidth = canvas.width;
