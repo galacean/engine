@@ -23,7 +23,7 @@ describe("Quaternion test", () => {
     const out = new Quaternion();
 
     Quaternion.multiply(a, b, out);
-    expect(toString(out)).toEqual("quat(-6, 15, 0, 2)");
+    expect(toString(out)).toEqual("quat(-19, -1, 27, -7)");
   });
 
   it("static conjugate", () => {
@@ -123,33 +123,17 @@ describe("Quaternion test", () => {
     expect(Quaternion.equals(out, new Quaternion(0.6, 0.8, 0, 0))).toEqual(true);
   });
 
-  it("static rotate", () => {
-    const a = new Quaternion(1, 1, 1, 1);
+  it("static rotation", () => {
     const out = new Quaternion();
 
-    Quaternion.rotateX(a, 1.5, out);
-    expect(
-      Quaternion.equals(
-        out,
-        new Quaternion(1.413327628897155, 1.413327628897155, 0.050050108850486774, 0.050050108850486774)
-      )
-    ).toEqual(true);
+    Quaternion.rotationX(1.5, out);
+    expect(Quaternion.equals(out, new Quaternion(0.6816387600233341, 0, 0, 0.7316888688738209))).toEqual(true);
 
-    Quaternion.rotateY(a, 1.5, out);
-    expect(
-      Quaternion.equals(
-        out,
-        new Quaternion(0.050050108850486774, 1.413327628897155, 1.413327628897155, 0.050050108850486774)
-      )
-    ).toEqual(true);
+    Quaternion.rotationY(1.5, out);
+    expect(Quaternion.equals(out, new Quaternion(0, 0.6816387600233341, 0, 0.7316888688738209))).toEqual(true);
 
-    Quaternion.rotateZ(a, 1.5, out);
-    expect(
-      Quaternion.equals(
-        out,
-        new Quaternion(1.413327628897155, 0.050050108850486774, 1.413327628897155, 0.050050108850486774)
-      )
-    ).toEqual(true);
+    Quaternion.rotationZ(1.5, out);
+    expect(Quaternion.equals(out, new Quaternion(0, 0, 0.6816387600233341, 0.7316888688738209))).toEqual(true);
   });
 
   it("static scale", () => {
@@ -186,15 +170,6 @@ describe("Quaternion test", () => {
     expect(toString(a.conjugate())).toEqual("quat(-1, -1, -1, 1)");
   });
 
-  it("getAxisAngle", () => {
-    const a = new Quaternion(1, 1, 1, 0.5);
-    const axis = new Vector3();
-    const rad = a.getAxisAngle(axis);
-
-    expect(MathUtil.equals(rad, 2.0943951023931957)).toEqual(true);
-    expect(Vector3.equals(axis, new Vector3(1, 1, 1)));
-  });
-
   it("identity", () => {
     const a = new Quaternion();
     a.identity();
@@ -209,10 +184,13 @@ describe("Quaternion test", () => {
   });
 
   it("setAxisAngle", () => {
-    const a = new Vector3(0, 1, 0);
+    const a = new Vector3(3, 7, 5);
+    const b = new Vector3();
     const out = new Quaternion();
     out.setAxisAngle(a, Math.PI / 3);
-    const rt = new Quaternion(0, 0.5, 0, Math.sqrt(3) / 2);
-    expect(Quaternion.equals(out, rt)).toEqual(true);
+    const rad = out.getAxisAngle(b);
+
+    expect(MathUtil.equals(rad, Math.PI / 3)).toEqual(true);
+    expect(Vector3.equals(b.normalize(), a.normalize())).toEqual(true);
   });
 });

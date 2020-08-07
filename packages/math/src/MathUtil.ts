@@ -31,9 +31,9 @@ export class MathUtil {
   }
 
   /**
-   * 判断一个数是否是2的幂。
+   * 判断一个数是否是 2 的幂。
    * @param v
-   * @returns 传入的数是否是2的幂
+   * @returns 传入的数是否是 2 的幂
    */
   static isPowerOf2(v: number): boolean {
     return (v & (v - 1)) === 0;

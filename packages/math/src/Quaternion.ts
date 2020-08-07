@@ -76,7 +76,7 @@ export class Quaternion {
   }
 
   /**
-   * 通过x,y,z轴的旋转欧拉角(弧度)生成四元数，欧拉角顺序 pitch yaw roll。
+   * 通过 x,y,z 轴的旋转欧拉角(弧度)生成四元数，欧拉角顺序 pitch yaw roll。
    * @param x - 绕X轴旋转的弧度 pitch
    * @param y - 绕Y轴旋转的弧度 yaw
    * @param z - 绕Z轴旋转的弧度 roll
@@ -252,57 +252,54 @@ export class Quaternion {
   }
 
   /**
-   * 绕X轴旋转四元数。
+   * 绕 X 轴旋转四元数。
    * @param a - 四元数
-   * @param rad - 旋转角度
+   * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
    */
-  static rotationX(a: Quaternion, rad: number, out: Quaternion): void {
+  static rotationX(rad: number, out: Quaternion): void {
     rad *= 0.5;
-    const { x, y, z, w } = a;
-    const bx = Math.sin(rad);
-    const bw = Math.cos(rad);
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
 
-    out.x = x * bw + w * bx;
-    out.y = y * bw + z * bx;
-    out.z = z * bw - y * bx;
-    out.w = w * bw - x * bx;
+    out.x = s;
+    out.y = 0;
+    out.z = 0;
+    out.w = c;
   }
 
   /**
-   * 绕Y轴旋转四元数。
+   * 绕 Y 轴旋转四元数。
    * @param a - 四元数
-   * @param rad - 旋转角度
+   * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
    */
-  static rotationY(a: Quaternion, rad: number, out: Quaternion): void {
+  static rotationY(rad: number, out: Quaternion): void {
     rad *= 0.5;
-    const { x, y, z, w } = a;
-    const by = Math.sin(rad);
-    const bw = Math.cos(rad);
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
 
-    out.x = x * bw - z * by;
-    out.y = y * bw + w * by;
-    out.z = z * bw + x * by;
-    out.w = w * bw - y * by;
+    out.x = 0;
+    out.y = s;
+    out.z = 0;
+    out.w = c;
   }
 
   /**
-   * 绕Z轴旋转四元数。
+   * 绕 Z 轴旋转四元数。
    * @param a - 四元数
-   * @param rad - 旋转角度
+   * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
    */
-  static rotationZ(a: Quaternion, rad: number, out: Quaternion): void {
+  static rotationZ(rad: number, out: Quaternion): void {
     rad *= 0.5;
-    const { x, y, z, w } = a;
-    const bz = Math.sin(rad);
-    const bw = Math.cos(rad);
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
 
-    out.x = x * bw + y * bz;
-    out.y = y * bw - x * bz;
-    out.z = z * bw + w * bz;
-    out.w = w * bw - z * bz;
+    out.x = 0;
+    out.y = 0;
+    out.z = s;
+    out.w = c;
   }
 
   /**
@@ -342,21 +339,21 @@ export class Quaternion {
     }
   }
 
-  /** 四元数的X分量 */
+  /** 四元数的 X 分量 */
   x: number;
-  /** 四元数的Y分量 */
+  /** 四元数的 Y 分量 */
   y: number;
-  /** 四元数的Z分量 */
+  /** 四元数的 Z 分量 */
   z: number;
-  /** 四元数的W分量 */
+  /** 四元数的 W 分量 */
   w: number;
 
   /**
    * 创建四元数实例。
-   * @param x - 四元数的X分量，默认值0
-   * @param y - 四元数的Y分量，默认值0
-   * @param z - 四元数的Z分量，默认值0
-   * @param w - 四元数的W分量，默认值0
+   * @param x - 四元数的 X 分量，默认值 0
+   * @param y - 四元数的 Y 分量，默认值 0
+   * @param z - 四元数的 Z 分量，默认值 0
+   * @param w - 四元数的 W 分量，默认值 0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
     this.x = x;
@@ -366,11 +363,11 @@ export class Quaternion {
   }
 
   /**
-   * 设置x, y, z, w的值。
-   * @param x - 四元数的X分量
-   * @param y - 四元数的Y分量
-   * @param z - 四元数的Z分量
-   * @param w - 四元数的W分量
+   * 设置 x, y, z, w 的值。
+   * @param x - 四元数的 X 分量
+   * @param y - 四元数的 Y 分量
+   * @param z - 四元数的 Z 分量
+   * @param w - 四元数的 W 分量
    * @returns 当前四元数
    */
   setValue(x: number, y: number, z: number, w: number): Quaternion {
@@ -392,7 +389,7 @@ export class Quaternion {
   }
 
   /**
-   * 将当前四元数值拷贝给out四元数。
+   * 将当前四元数值拷贝给 out 四元数。
    * @param out - 目标四元数
    */
   cloneTo(out: Quaternion): void {
@@ -415,25 +412,28 @@ export class Quaternion {
   }
 
   /**
-   * 从四元数分解欧拉角，并返回角度。
-   * @param out - 输出欧拉角
-   * @param q - 输入
-   * @returns 当前四元数的欧拉角(单位：度)
+   * 获取四元数的旋转轴和旋转角度(单位：弧度)。
+   * @param out - 四元数的旋转轴
+   * @returns 当前四元数的旋转角度(单位：弧度)
    */
   getAxisAngle(out: Vector3): number {
-    let rad = Math.acos(this.w) * 2.0;
-    let s = Math.sin(rad / 2.0);
-    if (!MathUtil.equals(s, 0)) {
-      out.x = this.x / s;
-      out.y = this.y / s;
-      out.z = this.z / s;
-    } else {
-      // If s is zero, return any axis (no rotation - axis does not matter)
+    const { x, y, z } = this;
+    const length = x * x + y * y + z * z;
+
+    if (length < MathUtil.ZeroTolerance) {
       out.x = 1;
       out.y = 0;
       out.z = 0;
+
+      return 0;
+    } else {
+      const inv = 1.0 / length;
+      out.x = this.x * inv;
+      out.y = this.y * inv;
+      out.z = this.z * inv;
+
+      return Math.acos(this.w) * 2.0;
     }
-    return rad;
   }
 
   /**
@@ -467,15 +467,17 @@ export class Quaternion {
   /**
    * 通过旋转的欧拉角设置四元数。
    * @param axis - 旋转轴向量
-   * @param rad - 旋转角度
+   * @param rad - 旋转角度(单位：弧度)
    * @returns 当前四元数
    */
   setAxisAngle(axis: Vector3, rad: number): Quaternion {
+    const normalAxis = new Vector3();
+    Vector3.normalize(axis, normalAxis);
     rad *= 0.5;
     const s = Math.sin(rad);
-    this.x = axis.x * s;
-    this.y = axis.y * s;
-    this.z = axis.z * s;
+    this.x = normalAxis.x * s;
+    this.y = normalAxis.y * s;
+    this.z = normalAxis.z * s;
     this.w = Math.cos(rad);
     return this;
   }

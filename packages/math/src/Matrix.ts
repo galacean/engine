@@ -41,7 +41,7 @@ export class Matrix {
   );
 
   /**
-   * 将两个矩阵相乘 merge~mul。
+   * 将两个矩阵相乘。
    * @param a - 左矩阵
    * @param b - 右矩阵
    * @param out - 矩阵相乘的结果
@@ -107,7 +107,7 @@ export class Matrix {
   }
 
   /**
-   * 判断两个四维矩阵的值是否相等 merge~exactEquals。
+   * 判断两个四维矩阵的值是否相等。
    * @param a - 左矩阵
    * @param b - 右矩阵
    * @returns 两个矩阵是否相等，是返回 true，否则返回 false
@@ -429,7 +429,7 @@ export class Matrix {
   }
 
   /**
-   * 计算矩阵a的逆矩阵，并将结果输出到out。
+   * 计算矩阵 a 的逆矩阵，并将结果输出到 out。
    * @param a - 矩阵
    * @param out - 逆矩阵
    */
@@ -704,7 +704,7 @@ export class Matrix {
   }
 
   /**
-   * 将矩阵a按给定角度旋转，并将结果输出到out。
+   * 将矩阵 a 按给定角度旋转，并将结果输出到 out。
    * @param m - 矩阵
    * @param r - 给定的旋转角度
    * @param axis - 旋转轴
@@ -781,7 +781,7 @@ export class Matrix {
   }
 
   /**
-   * 将矩阵a按给定向量v缩放，并将结果输出到out。
+   * 将矩阵 a 按给定向量 v 缩放，并将结果输出到 out。
    * @param m - 矩阵
    * @param s - 缩放向量
    * @param out - 缩放后的矩阵
@@ -813,7 +813,7 @@ export class Matrix {
   }
 
   /**
-   * 将矩阵a按给定向量v转换，并将结果输出到out。
+   * 将矩阵 a 按给定向量 v 转换，并将结果输出到 out。
    * @param m - 矩阵
    * @param v - 转换向量
    * @param out - 转换后的结果
@@ -854,7 +854,7 @@ export class Matrix {
   }
 
   /**
-   * 计算矩阵a的转置矩阵，并将结果输出到out。
+   * 计算矩阵 a 的转置矩阵，并将结果输出到 out。
    * @param a - 矩阵
    * @param out - 转置矩阵
    */
@@ -908,27 +908,27 @@ export class Matrix {
     }
   }
 
-  /** 矩阵元素数组 */
+  /** 矩阵元素数组。 */
   elements: Float32Array = new Float32Array(16);
 
   /**
    * 创建4x4矩阵实例，默认创建单位矩阵，我们采用列矩阵。
-   * @param m11 默认值1 column 1, row 1
-   * @param m12 默认值0 column 1, row 2
-   * @param m13 默认值0 column 1, row 3
-   * @param m14 默认值0 column 1, row 4
-   * @param m21 默认值0 column 2, row 1
-   * @param m22 默认值1 column 2, row 2
-   * @param m23 默认值0 column 2, row 3
-   * @param m24 默认值0 column 2, row 4
-   * @param m31 默认值0 column 3, row 1
-   * @param m32 默认值0 column 3, row 2
-   * @param m33 默认值1 column 3, row 3
-   * @param m34 默认值0 column 3, row 4
-   * @param m41 默认值0 column 4, row 1
-   * @param m42 默认值0 column 4, row 2
-   * @param m43 默认值0 column 4, row 3
-   * @param m44 默认值1 column 4, row 4
+   * @param m11 默认值 1 column 1, row 1
+   * @param m12 默认值 0 column 1, row 2
+   * @param m13 默认值 0 column 1, row 3
+   * @param m14 默认值 0 column 1, row 4
+   * @param m21 默认值 0 column 2, row 1
+   * @param m22 默认值 1 column 2, row 2
+   * @param m23 默认值 0 column 2, row 3
+   * @param m24 默认值 0 column 2, row 4
+   * @param m31 默认值 0 column 3, row 1
+   * @param m32 默认值 0 column 3, row 2
+   * @param m33 默认值 1 column 3, row 3
+   * @param m34 默认值 0 column 3, row 4
+   * @param m41 默认值 0 column 4, row 1
+   * @param m42 默认值 0 column 4, row 2
+   * @param m43 默认值 0 column 4, row 3
+   * @param m44 默认值 1 column 4, row 4
    */
   constructor(
     m11: number = 1,
@@ -1062,7 +1062,7 @@ export class Matrix {
   }
 
   /**
-   * 将当前矩阵值拷贝给out矩阵。
+   * 将当前矩阵值拷贝给 out 矩阵。
    * @param out - 目标矩阵
    */
   cloneTo(out: Matrix): void {
@@ -1091,7 +1091,7 @@ export class Matrix {
   }
 
   /**
-   * 将当前矩阵乘以给定的向量a，并返回当前矩阵。
+   * 将当前矩阵乘以给定的向量 a，并返回当前矩阵。
    * @param b - 给定的向量，右操作数
    * @returns 当前矩阵
    */
@@ -1308,7 +1308,7 @@ export class Matrix {
   }
 
   /**
-   * 计算当前矩阵的逆矩阵，并返。
+   * 计算当前矩阵的逆矩阵，并返回。
    * @returns 当前矩阵
    */
   invert(): Matrix {
@@ -1328,7 +1328,7 @@ export class Matrix {
   }
 
   /**
-   * 将当前矩阵按给定向量v缩放，并返回。
+   * 将当前矩阵按给定向量 v 缩放，并返回。
    * @param s
    * @returns 当前矩阵
    */
@@ -1338,7 +1338,7 @@ export class Matrix {
   }
 
   /**
-   * 将当前矩阵按给定向量v转换，并返回。
+   * 将当前矩阵按给定向量 v 转换，并返回。
    * @param v - 转换向量
    * @returns 当前矩阵
    */

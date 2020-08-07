@@ -142,7 +142,7 @@ export class Vector3 {
   }
 
   /**
-   * 分别取两个三维向量x、y的最大值计算新的三维向量。
+   * 分别取两个三维向量 x、y 的最大值计算新的三维向量。
    * @param a - 向量
    * @param b - 向量
    * @param out - 结果向量
@@ -154,7 +154,7 @@ export class Vector3 {
   }
 
   /**
-   * 分别取两个三维向量x、y的最小值计算新的三维向量。
+   * 分别取两个三维向量 x、y 的最小值计算新的三维向量。
    * @param a - 向量
    * @param b - 向量
    * @param out - 结果向量
@@ -166,7 +166,7 @@ export class Vector3 {
   }
 
   /**
-   * 将向量a反转的结果输出到out。
+   * 将向量 a 反转的结果输出到 out。
    * @param a - 向量
    * @param out - 向量反转的结果
    */
@@ -177,7 +177,7 @@ export class Vector3 {
   }
 
   /**
-   * 将向量a归一化的结果输出到out。
+   * 将向量 a 归一化的结果输出到 out。
    * @param a - 向量
    * @param out - 向量归一化的结果
    */
@@ -193,10 +193,10 @@ export class Vector3 {
   }
 
   /**
-   * 将向量a投影到向p上。
+   * 将向量 a 投影到向 p 上。
    * @param a - 要投影的向量
    * @param p - 目标向量
-   * @param out - 向量a投影到向量p的结果向量
+   * @param out - 向量 a 投影到向量 p 的结果向量
    */
   static projectOnVector(a: Vector3, p: Vector3, out: Vector3): void {
     const n_p = p.clone();
@@ -208,7 +208,7 @@ export class Vector3 {
   }
 
   /**
-   * 将向量a投影到和法向量n正交的平面上。
+   * 将向量 a 投影到和法向量 n 正交的平面上。
    * @param a - 输入向量
    * @param n - 法向量
    * @param out - 投影到平面上的向量
@@ -219,7 +219,7 @@ export class Vector3 {
   }
 
   /**
-   * 将向量a缩放的结果输出到out。
+   * 将向量 a 缩放的结果输出到 out。
    * @param a - 向量
    * @param s - 缩放因子
    * @param out - 向量缩放的结果
@@ -317,18 +317,18 @@ export class Vector3 {
     out.z = iz * qw - iw * qz - ix * qy + iy * qx;
   }
 
-  /** 向量的X分量 */
+  /** 向量的 X 分量 */
   x: number;
-  /** 向量的Y分量 */
+  /** 向量的 Y 分量 */
   y: number;
-  /** 向量的Z分量 */
+  /** 向量的 Z 分量 */
   z: number;
 
   /**
-   * 创建一个Vector3实例。
-   * @param x - 向量的X分量，默认值0
-   * @param y - 向量的Y分量，默认值0
-   * @param z - 向量的Z分量，默认值0
+   * 创建一个 Vector3 实例。
+   * @param x - 向量的 X 分量，默认值 0
+   * @param y - 向量的 Y 分量，默认值 0
+   * @param z - 向量的 Z 分量，默认值 0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0) {
     this.x = x;
@@ -337,10 +337,10 @@ export class Vector3 {
   }
 
   /**
-   * 设置x, y, z的值，并返回当前向量。
-   * @param x - 向量的X分量
-   * @param y - 向量的Y分量
-   * @param z - 向量的Z分量
+   * 设置 x, y, z 的值，并返回当前向量。
+   * @param x - 向量的 X 分量
+   * @param y - 向量的 Y 分量
+   * @param z - 向量的 Z 分量
    * @returns 当前向量
    */
   setValue(x: number, y: number, z: number): Vector3 {
@@ -360,7 +360,7 @@ export class Vector3 {
   }
 
   /**
-   * 将当前向量值拷贝给out向量。
+   * 将当前向量值拷贝给 out 向量。
    * @param out - 目标向量
    */
   cloneTo(out: Vector3): void {
@@ -370,7 +370,7 @@ export class Vector3 {
   }
 
   /**
-   * 将当前向量加上给定的向量a，并返回当前向量。
+   * 将当前向量加上给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -382,7 +382,7 @@ export class Vector3 {
   }
 
   /**
-   * 将当前向量减去给定的向量a，并返回当前向量。
+   * 将当前向量减去给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -394,7 +394,7 @@ export class Vector3 {
   }
 
   /**
-   * 将当前向量乘以给定的向量a，并返回当前向量。
+   * 将当前向量乘以给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -406,7 +406,7 @@ export class Vector3 {
   }
 
   /**
-   * 将当前向量除以给定的向量a，并返回当前向量。
+   * 将当前向量除以给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -440,9 +440,9 @@ export class Vector3 {
    * @returns 当前向量
    */
   negate(): Vector3 {
-    this.x *= -1;
-    this.y *= -1;
-    this.z *= -1;
+    this.x = -this.x;
+    this.y = -this.y;
+    this.z = -this.z;
     return this;
   }
 

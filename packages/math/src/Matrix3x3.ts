@@ -32,7 +32,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将两个矩阵相减 merge~sub。
+   * 将两个矩阵相减。
    * @param a - 左矩阵
    * @param b - 右矩阵
    * @param out - 矩阵相减的结果
@@ -123,7 +123,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 从4x4矩阵转换为一个3x3矩阵，upper-left原则，即忽略第4行第4列。
+   * 从4x4矩阵转换为一个3x3矩阵，upper-left 原则，即忽略第4行第4列。
    * @param a - 4x4矩阵
    * @param out - 转换后的3x3矩阵
    */
@@ -244,7 +244,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 计算矩阵a的逆矩阵，并将结果输出到out。
+   * 计算矩阵 a 的逆矩阵，并将结果输出到 out。
    * @param a - 矩阵
    * @param out - 逆矩阵
    */
@@ -344,7 +344,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将矩阵a按给定角度旋转，并将结果输出到out。
+   * 将矩阵 a 按给定角度旋转，并将结果输出到 out。
    * @param a - 矩阵
    * @param r - 给定的旋转角度
    * @param out - 旋转后的矩阵
@@ -379,7 +379,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将矩阵a按给定向量v缩放，并将结果输出到out。
+   * 将矩阵 a 按给定向量 v 缩放，并将结果输出到 out。
    * @param m - 矩阵
    * @param s - 缩放向量
    * @param out - 缩放后的矩阵
@@ -403,7 +403,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将矩阵a按给定向量v转换，并将结果输出到out。
+   * 将矩阵 a 按给定向量 v 转换，并将结果输出到 out。
    * @param m - 矩阵
    * @param trans - 转换向量
    * @param out - 转换后的结果
@@ -437,7 +437,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 计算矩阵a的转置矩阵，并将结果输出到out。
+   * 计算矩阵 a 的转置矩阵，并将结果输出到 out。
    * @param a - 矩阵
    * @param out - 转置矩阵
    */
@@ -563,7 +563,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将当前矩阵值拷贝给out矩阵 rename~copy。
+   * 将当前矩阵值拷贝给 out 矩阵。
    * @param out - 目标矩阵
    */
   cloneTo(out: Matrix3x3): void {
@@ -584,7 +584,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将当前矩阵加上给定的向量a，并返回当前矩阵。
+   * 将当前矩阵加上给定的向量 a，并返回当前矩阵。
    * @param b - 给定的向量，右操作数
    * @returns 当前矩阵
    */
@@ -594,7 +594,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将当前矩阵减去给定的向量a，并返回当前矩阵。
+   * 将当前矩阵减去给定的向量 a，并返回当前矩阵。
    * @param b - 给定的向量，右操作数
    * @returns 当前矩阵
    */
@@ -604,7 +604,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将当前矩阵乘以给定的向量a，并返回当前矩阵。
+   * 将当前矩阵乘以给定的向量 a，并返回当前矩阵。
    * @param b - 给定的向量，右操作数
    * @returns 当前矩阵
    */
@@ -679,7 +679,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将当前矩阵按给定向量v缩放，并返回。
+   * 将当前矩阵按给定向量 v 缩放，并返回。
    * @param s - 缩放向量
    * @returns 当前矩阵
    */
@@ -689,7 +689,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 将当前矩阵按给定向量v转换，并返回。
+   * 将当前矩阵按给定向量 v 转换，并返回。
    * @param trans - 转换向量
    * @returns 当前矩阵
    */
