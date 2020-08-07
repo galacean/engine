@@ -20,7 +20,7 @@ import { MaskList } from "@alipay/o3-core";
 
   for (let i = 0, len = colliders.length; i < len; i++) {
     const collider = colliders[i];
-    if (!collider.node.isActiveInHierarchy) {
+    if (!collider.entity.isActiveInHierarchy) {
       continue;
     }
 
@@ -101,8 +101,9 @@ function _updateHitResult(collider, ray: Ray, distance: number, outHit: RaycastH
  * @param {Ray} ray
  * @private
  */
-function _getLocalRay(collider, ray: Ray) {
-  const worldToLocal = collider.node.getInvModelMatrix();
+
+function _getLocalRay(collider, ray) {
+  const worldToLocal = collider.entity.getInvModelMatrix();
 
   // o = worldToLocal * vec4(ray.origin, 1)
   const o = new Vector3();

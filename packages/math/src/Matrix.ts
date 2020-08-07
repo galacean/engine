@@ -21,7 +21,7 @@ export class Matrix {
   private static _tempMat40: Matrix = new Matrix();
 
   /** @internal 单位矩阵 */
-  static readonly _Identity: Matrix = new Matrix(
+  static readonly _identity: Matrix = new Matrix(
     1.0,
     0.0,
     0.0,

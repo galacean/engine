@@ -4,15 +4,15 @@ import { Quaternion } from "./Quaternion";
 import { Matrix } from "./Matrix";
 
 /**
- * 三维向量
+ * 三维向量。
  */
 export class Vector3 {
-  /** @internal 零向量 */
-  static readonly _Zero = new Vector3(0.0, 0.0, 0.0);
-  /** @internal 一向量 */
-  static readonly _One = new Vector3(1.0, 1.0, 1.0);
-  /** @internal 临时向量，减少反复创建 */
-  static _tempVector3 = new Vector3();
+  /** @internal 零向量。*/
+  static readonly _zero = new Vector3(0.0, 0.0, 0.0);
+  /** @internal 一向量。*/
+  static readonly _one = new Vector3(1.0, 1.0, 1.0);
+  /** @internal */
+  static readonly _tempVector3 = new Vector3();
 
   /**
    * 将两个向量相加。

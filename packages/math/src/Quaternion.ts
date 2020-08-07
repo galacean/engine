@@ -26,10 +26,19 @@ export class Quaternion {
    * @param out - 四元数相乘结果
    */
   static multiply(a: Quaternion, b: Quaternion, out: Quaternion): void {
-    out.x = a.x * b.x;
-    out.y = a.y * b.y;
-    out.z = a.z * b.z;
-    out.w = a.w * b.w;
+    const ax = a.x,
+      ay = a.y,
+      az = a.z,
+      aw = a.w;
+    const bx = b.x,
+      by = b.y,
+      bz = b.z,
+      bw = b.w;
+
+    out.x = ax * bw + aw * bx + ay * bz - az * by;
+    out.y = ay * bw + aw * by + az * bx - ax * bz;
+    out.z = az * bw + aw * bz + ax * by - ay * bx;
+    out.w = aw * bw - ax * bx - ay * by - az * bz;
   }
 
   /**

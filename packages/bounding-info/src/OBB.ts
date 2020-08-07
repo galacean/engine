@@ -77,6 +77,7 @@ export class OBB {
       Vector3.min(min, cornerWorld, min);
       Vector3.max(max, cornerWorld, max);
 
+      this.cornersWorld[i] = new Vector3();
       cornerWorld.cloneTo(this.cornersWorld[i]);
     }
   }

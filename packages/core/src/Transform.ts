@@ -426,9 +426,10 @@ export class Transform extends Component {
       return;
     }
     worldUp = worldUp ?? Transform._tempVec3.setValue(0, 1, 0);
-    Matrix.lookAtR(position, worldPosition, worldUp, Transform._tempMat43); //CM:可采用3x3矩阵优化
+    const mat = Transform._tempMat43;
+    Matrix.lookAtR(position, worldPosition, worldUp, mat); //CM:可采用3x3矩阵优化
 
-    Transform._tempMat43.getRotation(this.worldRotationQuaternion); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
+    this.worldRotationQuaternion = mat.getRotation(this._worldRotationQuaternion); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
   }
 
   /**
