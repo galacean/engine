@@ -4,7 +4,7 @@ import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
 import { Mesh, Skin, MeshRenderer, SkinnedMeshRenderer } from "@alipay/o3-mesh";
-import { Vector3, Matrix, Quaternion, Vector4 } from "@alipay/o3-math";
+import { Vector3, Matrix, Quaternion, Vector4, Vector2 } from "@alipay/o3-math";
 import { getAccessorData, getAccessorTypeSize, createAttribute, findByKeyValue } from "./Util";
 import { AnimationClip, InterpolationType, Animation } from "@alipay/o3-animation";
 
@@ -671,7 +671,15 @@ export function parseNode(gltfNode, resources) {
         if (mapKey === "weights") {
           entity[mapKey] = gltfNode[key];
         } else {
-          entity[mapKey].setValue(...gltfNode[key]);
+          const arr = gltfNode[key];
+          const len = arr.length;
+          if (len === 2) {
+            entity[mapKey] = new Vector2(...arr);
+          } else if (len == 3) {
+            entity[mapKey] = new Vector3(...arr);
+          } else if (len == 4) {
+            entity[mapKey] = new Vector4(...arr);
+          }
         }
       }
     }

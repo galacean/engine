@@ -165,7 +165,7 @@ describe("Matrix test", () => {
     const up = new Vector3(0, 1, 0);
 
     Matrix.lookAt(eye, center, up, out);
-    expect(Matrix.equals(out, new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, -0, -0, -8, 1))).toEqual(true);
+    expect(Matrix.equals(out, new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, -8, 1))).toEqual(true);
   });
 
   it("static lookAtR", () => {
@@ -175,7 +175,7 @@ describe("Matrix test", () => {
     const up = new Vector3(0, 1, 0);
 
     Matrix.lookAtR(eye, target, up, out);
-    expect(Matrix.equals(out, new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -8, 1))).toEqual(true);
+    expect(Matrix.equals(out, new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, -8, 1))).toEqual(true);
 
     eye.setValue(0, 0, 0);
     target.setValue(0, 1, -1);
@@ -185,17 +185,17 @@ describe("Matrix test", () => {
       Matrix.equals(
         out,
         new Matrix(
-          -1,
+          1,
           0,
           0,
           0,
           0,
-          0.7071067811865476,
-          0.7071067811865476,
+          0.7071067690849304,
+          -0.7071067690849304,
           0,
           0,
-          0.7071067811865475,
-          -0.7071067811865475,
+          0.7071067690849304,
+          0.7071067690849304,
           0,
           0,
           0,

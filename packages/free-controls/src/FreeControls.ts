@@ -335,7 +335,9 @@ export class FreeControls extends Script {
     if (this.floorMock && !this._moveJump) {
       // this.camera.position[1] = this.floorY;
 
-      this.camera.transform.position.setValue(position.x, this.floorY, position.z);
+      // const pos = this.camera.transform.position;
+      position.setValue(position.x, this.floorY, position.z);
+      this.camera.transform.position = position;
     }
   }
 

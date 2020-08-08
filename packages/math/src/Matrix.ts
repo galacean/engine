@@ -592,44 +592,35 @@ export class Matrix {
     const xAxis: Vector3 = Matrix._tempVec30;
     const yAxis: Vector3 = Matrix._tempVec31;
     const zAxis: Vector3 = Matrix._tempVec32;
-    const makeSafe: Vector3 = Matrix._tempVec33;
 
-    Vector3.subtract(target, eye, zAxis);
-    if (zAxis.length() === 0) zAxis.z = 1;
-
+    Vector3.subtract(eye, target, zAxis);
     zAxis.normalize();
-    // make safe
-    up.normalize();
-    Vector3.subtract(up, zAxis, makeSafe);
-    const l = makeSafe.length();
-    if (l === 0 || l === 2) {
-      zAxis.z += MathUtil.zeroTolerance;
-      zAxis.normalize();
-    }
     Vector3.cross(up, zAxis, xAxis);
     xAxis.normalize();
     Vector3.cross(zAxis, xAxis, yAxis);
-    yAxis.normalize();
 
     oe[0] = xAxis.x;
-    oe[1] = xAxis.y;
-    oe[2] = xAxis.z;
+    oe[1] = yAxis.x;
+    oe[2] = zAxis.x;
     oe[3] = 0;
 
-    oe[4] = yAxis.x;
+    oe[4] = xAxis.y;
     oe[5] = yAxis.y;
-    oe[6] = yAxis.z;
+    oe[6] = zAxis.y;
     oe[7] = 0;
 
-    oe[8] = zAxis.x;
-    oe[9] = zAxis.y;
+    oe[8] = xAxis.z;
+    oe[9] = yAxis.z;
     oe[10] = zAxis.z;
     oe[11] = 0;
 
-    oe[12] = eye.x;
-    oe[13] = eye.y;
-    oe[14] = eye.z;
+    oe[12] = -Vector3.dot(xAxis, eye);
+    oe[13] = -Vector3.dot(yAxis, eye);
+    oe[14] = -Vector3.dot(zAxis, eye);
     oe[15] = 1;
+
+    console.log(`xxxxx`);
+    console.log(out);
   }
 
   /**
