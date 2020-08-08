@@ -4,7 +4,7 @@ import { Quaternion } from "./Quaternion";
 import { Vector3 } from "./Vector3";
 
 /**
- * 4x4矩阵
+ * 4x4矩阵。
  */
 export class Matrix {
   /** @internal */
@@ -20,7 +20,7 @@ export class Matrix {
   /** @internal */
   private static readonly _tempMat40: Matrix = new Matrix();
 
-  /** @internal 单位矩阵 */
+  /** @internal 单位矩阵。*/
   static readonly _identity: Matrix = new Matrix(
     1.0,
     0.0,
