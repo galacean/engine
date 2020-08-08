@@ -192,7 +192,6 @@ export class WebGLRenderer implements HardwareRenderer {
    * @param {*} clearParam
    */
   clearRenderTarget(clearMode, clearParam) {
-    debugger;
     const gl = this._gl;
 
     switch (clearMode) {
