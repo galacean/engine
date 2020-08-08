@@ -1,4 +1,4 @@
-import { Logger, Util, DrawMode, DataType } from "@alipay/o3-core";
+import { Logger, Util, DrawMode, DataType, EngineObject } from "@alipay/o3-core";
 import { Entity, Scene, Engine } from "@alipay/o3-core";
 import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
@@ -97,7 +97,7 @@ export interface GLTFParsed extends LoadedGLTFResource {
   engine?: Engine;
 }
 
-export interface GLTFResource {
+export class GLTFResource extends EngineObject {
   defaultSceneRoot: Entity;
   defaultScene: Scene;
   scenes: Scene[];
@@ -121,7 +121,7 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResourc
     images: data.images,
     gltf: data.gltf,
     buffers: data.buffers,
-    asset: {}
+    asset: new GLTFResource()
   };
 
   if (resources.gltf.asset && resources.gltf.asset.version) {
@@ -230,6 +230,8 @@ export function parseTexture(gltfTexture, resources: GLTFParsed) {
   const tex = new Texture2D(image.width, image.height, undefined, undefined, resources.engine);
   tex.setImageSource(image);
   tex.generateMipmaps();
+  // @ts-ignore 默认给 texture 加上缓存
+  resources.engine.resourceManager._addAsset(image.src, tex);
   return Promise.resolve(tex);
 }
 
