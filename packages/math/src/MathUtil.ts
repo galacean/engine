@@ -1,12 +1,12 @@
 /**
- * 工具类
+ * 数学工具类。
  */
 export class MathUtil {
-  /** 单精度浮点零容差 */
+  /** 单精度浮点零容差。 */
   static readonly zeroTolerance: number = 1e-6;
-  /** 弧度转角度的转换因子 */
+  /** 弧度转角度的转换因子。 */
   static readonly radToDegree: number = 180 / Math.PI;
-  /** 角度转弧度的转换因子 */
+  /** 角度转弧度的转换因子。 */
   static readonly degreeToRad: number = Math.PI / 180;
 
   /**
