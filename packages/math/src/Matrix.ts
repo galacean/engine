@@ -595,14 +595,14 @@ export class Matrix {
     const makeSafe: Vector3 = Matrix._tempVec33;
 
     Vector3.subtract(target, eye, zAxis);
-    if (MathUtil.equals(zAxis.lengthSquared(), 0)) zAxis.z = 1;
+    if (zAxis.length() === 0) zAxis.z = 1;
 
     zAxis.normalize();
     // make safe
     up.normalize();
     Vector3.subtract(up, zAxis, makeSafe);
     const l = makeSafe.length();
-    if (MathUtil.equals(l, 0) || MathUtil.equals(l, 2)) {
+    if (l === 0 || l === 2) {
       zAxis.z += MathUtil.zeroTolerance;
       zAxis.normalize();
     }

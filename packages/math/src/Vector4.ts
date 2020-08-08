@@ -173,9 +173,9 @@ export class Vector4 {
    */
   static normalize(a: Vector4, out: Vector4): void {
     const { x, y, z, w } = a;
-    let len: number = x * x + y * y + z * z + w * w;
+    let len: number = Math.sqrt(x * x + y * y + z * z + w * w);
     if (len > MathUtil.zeroTolerance) {
-      len = 1 / Math.sqrt(len);
+      len = 1 / len;
       out.x = x * len;
       out.y = y * len;
       out.z = z * len;

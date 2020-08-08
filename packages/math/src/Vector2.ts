@@ -149,9 +149,9 @@ export class Vector2 {
    */
   static normalize(a: Vector2, out: Vector2): void {
     const { x, y } = a;
-    let len: number = x * x + y * y;
+    let len: number = Math.sqrt(x * x + y * y);
     if (len > MathUtil.zeroTolerance) {
-      len = 1 / Math.sqrt(len);
+      len = 1 / len;
       out.x = x * len;
       out.y = y * len;
     }
