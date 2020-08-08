@@ -8,13 +8,13 @@ import { Vector3 } from "./Vector3";
  */
 export class Matrix {
   /** @internal */
-  private static readonly _tempVec0: Vector3 = new Vector3();
+  private static readonly _tempVec30: Vector3 = new Vector3();
   /** @internal */
-  private static readonly _tempVec1: Vector3 = new Vector3();
+  private static readonly _tempVec31: Vector3 = new Vector3();
   /** @internal */
-  private static readonly _tempVec2: Vector3 = new Vector3();
+  private static readonly _tempVec32: Vector3 = new Vector3();
   /** @internal */
-  private static readonly _tempVec3: Vector3 = new Vector3();
+  private static readonly _tempVec33: Vector3 = new Vector3();
   /** @internal */
   private static readonly _tempMat30: Matrix3x3 = new Matrix3x3();
   /** @internal */
@@ -589,10 +589,10 @@ export class Matrix {
    */
   static lookAtR(eye: Vector3, target: Vector3, up: Vector3, out: Matrix): void {
     const oe = out.elements;
-    const xAxis: Vector3 = Matrix._tempVec0;
-    const yAxis: Vector3 = Matrix._tempVec1;
-    const zAxis: Vector3 = Matrix._tempVec2;
-    const makeSafe: Vector3 = Matrix._tempVec3;
+    const xAxis: Vector3 = Matrix._tempVec30;
+    const yAxis: Vector3 = Matrix._tempVec31;
+    const zAxis: Vector3 = Matrix._tempVec32;
+    const makeSafe: Vector3 = Matrix._tempVec33;
 
     Vector3.subtract(target, eye, zAxis);
     if (MathUtil.equals(zAxis.lengthSquared(), 0)) zAxis.z = 1;
