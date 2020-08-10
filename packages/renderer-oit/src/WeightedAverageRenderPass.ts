@@ -1,6 +1,7 @@
 import { RenderPass, Camera } from "@alipay/o3-core";
 import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
 import { BlendFunc, RenderBufferColorFormat } from "@alipay/o3-core";
+import { Vector4 } from "@alipay/o3-math";
 
 /**
  * Weighted-Average renderPass
@@ -28,7 +29,7 @@ export class WeightedAverageRenderPass extends RenderPass {
     const defaultRenderPass = camera._renderPipeline.defaultRenderPass;
 
     // 防止 clearParam 改动
-    this.clearParam = [0, 0, 0, 0];
+    this.clearParam = new Vector4(0, 0, 0, 0);
 
     // 保持原 mask
     this.mask = defaultRenderPass.mask;
