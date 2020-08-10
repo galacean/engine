@@ -288,8 +288,8 @@ export class Vector2 {
   }
 
   /**
-   * 克隆并返回一个新的向量对象。
-   * @returns 新的向量对象
+   * 克隆并返回一个新的二维向量对象。
+   * @returns 新的二维向量对象
    */
   clone(): Vector2 {
     return new Vector2(this.x, this.y);

@@ -3,7 +3,7 @@ import { Quaternion } from "./Quaternion";
 import { Matrix } from "./Matrix";
 
 /**
- * 四维向量
+ * 四维向量。
  */
 export class Vector4 {
   /** @internal 零向量。*/
@@ -202,7 +202,7 @@ export class Vector4 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformByMat4x4(v: Vector4, m: Matrix, out: Vector4): void {
+  static transform(v: Vector4, m: Matrix, out: Vector4): void {
     const { x, y, z, w } = v;
     const e = m.elements;
     out.x = x * e[0] + y * e[4] + z * e[8] + w * e[12];
@@ -237,13 +237,13 @@ export class Vector4 {
     out.w = w;
   }
 
-  /** 向量的 X 分量 */
+  /** 向量的 X 分量。 */
   x: number;
-  /** 向量的 Y 分量 */
+  /** 向量的 Y 分量。 */
   y: number;
-  /** 向量的 Z 分量 */
+  /** 向量的 Z 分量。 */
   z: number;
-  /** 向量的 W 分量 */
+  /** 向量的 W 分量。 */
   w: number;
 
   /**
@@ -274,26 +274,6 @@ export class Vector4 {
     this.z = z;
     this.w = w;
     return this;
-  }
-
-  /**
-   * 创建一个新的四维向量，并用当前向量值初始化。
-   * @returns 一个新的向量，并且拷贝当前向量的值
-   */
-  clone(): Vector4 {
-    let ret = new Vector4(this.x, this.y, this.z, this.w);
-    return ret;
-  }
-
-  /**
-   * 将当前向量值拷贝给 out 向量。
-   * @param out - 目标向量
-   */
-  cloneTo(out: Vector4): void {
-    out.x = this.x;
-    out.y = this.y;
-    out.z = this.z;
-    out.w = this.w;
   }
 
   /**
@@ -398,5 +378,25 @@ export class Vector4 {
     this.z *= s;
     this.w *= s;
     return this;
+  }
+
+  /**
+   * 创建一个新的四维向量，并用当前向量值初始化。
+   * @returns 一个新的向量，并且拷贝当前向量的值
+   */
+  clone(): Vector4 {
+    let ret = new Vector4(this.x, this.y, this.z, this.w);
+    return ret;
+  }
+
+  /**
+   * 将当前向量值拷贝给 out 向量。
+   * @param out - 目标向量
+   */
+  cloneTo(out: Vector4): void {
+    out.x = this.x;
+    out.y = this.y;
+    out.z = this.z;
+    out.w = this.w;
   }
 }
