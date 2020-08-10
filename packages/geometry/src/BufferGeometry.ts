@@ -74,7 +74,15 @@ export class BufferGeometry extends AssetObject {
     this._vertexBuffers.push(vertexBuffer);
     this.primitive.vertexBuffers.push(vertexBuffer);
     this.primitive.updateVertex = true;
-    this.vertexCount = vertexBuffer.vertexCount;
+    let containeInstanced = false;
+    for (let i = 0; i < attrList.length; i += 1) {
+      if (attrList[i].instanced) {
+        containeInstanced = true;
+      }
+    }
+    if (!containeInstanced) {
+      this.vertexCount = vertexBuffer.vertexCount;
+    }
   }
 
   // 设置 vertex buffer 数据
