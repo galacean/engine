@@ -1,7 +1,7 @@
 import { MathUtil } from "./MathUtil";
 
 /**
- * 二维向量
+ * 二维向量。
  */
 export class Vector2 {
   /** @internal 零向量。*/
@@ -10,7 +10,7 @@ export class Vector2 {
   static readonly _one = new Vector2(1.0, 1.0);
 
   /**
-   * 将两个向量相加，并输出结果 out。
+   * 将两个向量相加并输出结果至 out。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 向量相加结果
@@ -21,7 +21,7 @@ export class Vector2 {
   }
 
   /**
-   * 将两个向量相减 并输出结果 out。
+   * 将两个向量相减并输出结果至 out。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个二维向量的相减结果
@@ -32,7 +32,7 @@ export class Vector2 {
   }
 
   /**
-   * 将两个向量相乘 并输出结果 out。
+   * 将两个向量相乘并输出结果至 out。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个二维向量的相乘结果
@@ -43,7 +43,7 @@ export class Vector2 {
   }
 
   /**
-   * 将两个二维向量相除 并输出结果 out。
+   * 将两个二维向量相除并输出结果至 out。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个二维向量的相除结果
@@ -168,9 +168,9 @@ export class Vector2 {
     out.y = a.y * s;
   }
 
-  /** 向量的 X 分量 */
+  /** 向量的 X 分量。 */
   x: number;
-  /** 向量的 Y 分量 */
+  /** 向量的 Y 分量。 */
   y: number;
 
   /**
@@ -193,24 +193,6 @@ export class Vector2 {
     this.x = x;
     this.y = y;
     return this;
-  }
-
-  /**
-   * 创建一个新的二维向量，并用当前向量值初始化。
-   * @returns 一个新的向量，并且拷贝当前向量的值
-   */
-  clone(): Vector2 {
-    let ret = new Vector2(this.x, this.y);
-    return ret;
-  }
-
-  /**
-   * 将当前向量值拷贝给 out 向量。
-   * @param out - 目标向量
-   */
-  cloneTo(out: Vector2): void {
-    out.x = this.x;
-    out.y = this.y;
   }
 
   /**
@@ -303,5 +285,22 @@ export class Vector2 {
     this.x *= s;
     this.y *= s;
     return this;
+  }
+
+  /**
+   * 克隆并返回一个新的向量对象。
+   * @returns 新的向量对象
+   */
+  clone(): Vector2 {
+    return new Vector2(this.x, this.y);
+  }
+
+  /**
+   * 将当前向量值拷贝给目标向量。
+   * @param out - 目标向量
+   */
+  cloneTo(out: Vector2): void {
+    out.x = this.x;
+    out.y = this.y;
   }
 }
