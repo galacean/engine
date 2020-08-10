@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-tween",
-  "version": "2.3.2",
+  "version": "2.3.4",
   "description": "tween",
   "keywords": [
     "Oasis3D"
@@ -27,7 +27,7 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-core": "2.3.2",
-    "@alipay/o3-math": "2.3.2"
+    "@alipay/o3-core": "2.3.4",
+    "@alipay/o3-math": "2.3.4"
   }
 }
