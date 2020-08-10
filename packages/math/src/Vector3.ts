@@ -184,7 +184,7 @@ export class Vector3 {
   static normalize(a: Vector3, out: Vector3): void {
     const { x, y, z } = a;
     let len: number = Math.sqrt(x * x + y * y + z * z);
-    if (len > 0) {
+    if (len > MathUtil.zeroTolerance) {
       len = 1 / len;
       out.x = x * len;
       out.y = y * len;
@@ -205,9 +205,10 @@ export class Vector3 {
   }
 
   /**
-   * 通过3x3矩阵将一个三维向量转换到另一个三维向量。
+   * 通过3x3矩阵将一个三维向量进行法线到另一个三维向量。
    * @remarks
-   * 这里矩阵的第四行和第四列不使用，所以最终得出的结果是一个没有位置变换的向量，但是其他变换属性均被应用。
+   * 法线变换假设 w 分量为零，这导致矩阵的第四行和第四列并不使用。
+   * 最终得出的结果是一个没有位置变换的向量，但是其他变换属性均被应用。
    * 通常这对法线向量来说比较友好，因为法线向量纯粹代表方向。
    * @param v - 向量
    * @param m - 转换矩阵
@@ -254,9 +255,12 @@ export class Vector3 {
 
   /**
    * 通过4x4矩阵将一个三维向量转换到另一个三维向量。
+   *
    * @remarks
-   * 这里结果向量每个分量都除以 w ,并强制设置 w 分量为1，以获得齐次向量。
-   * 齐次向量在坐标系中使用时，通常是可以非常安全的忽略 w 分量
+   * 坐标变换价值 w 分量为一，从变换得到的四维向量的每个分量都除以 w 分量。
+   * 这导致变换结果的 w 分量为一,向量变为齐次向量。
+   * 齐次向量在坐标变换中使用，w 分量可以安全的忽略。
+   *
    * @param v - 向量
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量，此向量为齐次
@@ -297,11 +301,11 @@ export class Vector3 {
     out.z = iz * qw - iw * qz - ix * qy + iy * qx;
   }
 
-  /** 向量的 X 分量 */
+  /** 向量的 X 分量。*/
   x: number;
-  /** 向量的 Y 分量 */
+  /** 向量的 Y 分量。*/
   y: number;
-  /** 向量的 Z 分量 */
+  /** 向量的 Z 分量。*/
   z: number;
 
   /**
@@ -328,25 +332,6 @@ export class Vector3 {
     this.y = y;
     this.z = z;
     return this;
-  }
-
-  /**
-   * 创建一个新的三维向量，并用当前向量值初始化。
-   * @returns 一个新的向量，并且拷贝当前向量的值
-   */
-  clone(): Vector3 {
-    let ret = new Vector3(this.x, this.y, this.z);
-    return ret;
-  }
-
-  /**
-   * 将当前向量值拷贝给 out 向量。
-   * @param out - 目标向量
-   */
-  cloneTo(out: Vector3): void {
-    out.x = this.x;
-    out.y = this.y;
-    out.z = this.z;
   }
 
   /**
@@ -445,5 +430,23 @@ export class Vector3 {
     this.y *= s;
     this.z *= s;
     return this;
+  }
+
+  /**
+   * 克隆并返回一个新的三维向量对象。
+   * @returns 新的三维向量对象
+   */
+  clone(): Vector3 {
+    return new Vector3(this.x, this.y, this.z);
+  }
+
+  /**
+   * 将当前向量值拷贝给 out 向量。
+   * @param out - 目标向量
+   */
+  cloneTo(out: Vector3): void {
+    out.x = this.x;
+    out.y = this.y;
+    out.z = this.z;
   }
 }
