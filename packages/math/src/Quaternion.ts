@@ -3,9 +3,12 @@ import { Vector3 } from "./Vector3";
 import { Matrix3x3 } from "./Matrix3x3";
 
 /**
- * 四元数
+ * 四元数。
  */
 export class Quaternion {
+  /** @internal */
+  static readonly _tempVector3 = new Vector3();
+
   /**
    * 将两个四元数相加。
    * @param a - 左四元数
@@ -82,7 +85,7 @@ export class Quaternion {
    * @param out - 生成的四元数
    */
   static rotationAxisAngle(axis: Vector3, rad: number, out: Quaternion): void {
-    const normalAxis = new Vector3();
+    const normalAxis = Quaternion._tempVector3;
     Vector3.normalize(axis, normalAxis);
     rad *= 0.5;
     const s = Math.sin(rad);
@@ -136,7 +139,7 @@ export class Quaternion {
    * @param m - 3x3矩阵
    * @param out - 生成的四元数
    */
-  static rotationMat3(m: Matrix3x3, out: Quaternion): void {
+  static rotationMatrix3x3(m: Matrix3x3, out: Quaternion): void {
     const me = m.elements;
     const m11 = me[0],
       m12 = me[1],
@@ -193,12 +196,13 @@ export class Quaternion {
   static invert(a: Quaternion, out: Quaternion): void {
     const { x, y, z, w } = a;
     const dot = x * x + y * y + z * z + w * w;
-    const invDot = dot ? 1.0 / dot : 0;
-
-    out.x = -x * invDot;
-    out.y = -y * invDot;
-    out.z = -z * invDot;
-    out.w = w * invDot;
+    if (dot > MathUtil.zeroTolerance) {
+      const invDot = 1.0 / dot;
+      out.x = -x * invDot;
+      out.y = -y * invDot;
+      out.z = -z * invDot;
+      out.w = w * invDot;
+    }
   }
 
   /**
@@ -211,7 +215,7 @@ export class Quaternion {
   static lerp(a: Quaternion, b: Quaternion, t: number, out: Quaternion): void {
     const inv = 1.0 - t;
 
-    if (Quaternion.dot(a, b) >= MathUtil.zeroTolerance) {
+    if (Quaternion.dot(a, b) >= 0.0) {
       out.x = a.x * inv + b.x * t;
       out.y = a.y * inv + b.y * t;
       out.z = a.z * inv + b.z * t;
@@ -234,6 +238,7 @@ export class Quaternion {
    * @param out - 插值结果
    */
   static slerp(a: Quaternion, b: Quaternion, t: number, out: Quaternion): void {
+    //CM: todo: 参照stride实现
     const ax = a.x;
     const ay = a.y;
     const az = a.z;
@@ -396,26 +401,6 @@ export class Quaternion {
   }
 
   /**
-   * 创建一个新的四元数，并用当前四元数初始化。
-   * @returns 一个新的四元数，并且拷贝当前四元数的值
-   */
-  clone(): Quaternion {
-    let ret = new Quaternion(this.x, this.y, this.z, this.w);
-    return ret;
-  }
-
-  /**
-   * 将当前四元数值拷贝给 out 四元数。
-   * @param out - 目标四元数
-   */
-  cloneTo(out: Quaternion): void {
-    out.x = this.x;
-    out.y = this.y;
-    out.z = this.z;
-    out.w = this.w;
-  }
-
-  /**
    * 共轭四元数
    * @returns 当前四元数
    */
@@ -494,6 +479,7 @@ export class Quaternion {
    * @returns 欧拉角 x->pitch y->yaw z->roll
    */
   toEuler(): Vector3 {
+    //CM：out参数
     const out = this.toYawPitchRoll();
     const t = out.x;
     out.x = out.y;
@@ -506,6 +492,7 @@ export class Quaternion {
    * @returns 欧拉角 x->yaw y->pitch z->roll
    */
   toYawPitchRoll(): Vector3 {
+    //CM：out参数
     const out = new Vector3();
     const { x, y, z, w } = this;
     const xx = x * x;
@@ -528,5 +515,24 @@ export class Quaternion {
     }
 
     return out;
+  }
+
+  /**
+   * 创建一个新的四元数，并用当前四元数初始化。
+   * @returns 一个新的四元数，并且拷贝当前四元数的值
+   */
+  clone(): Quaternion {
+    return new Quaternion(this.x, this.y, this.z, this.w);
+  }
+
+  /**
+   * 将当前四元数值拷贝给 out 四元数。
+   * @param out - 目标四元数
+   */
+  cloneTo(out: Quaternion): void {
+    out.x = this.x;
+    out.y = this.y;
+    out.z = this.z;
+    out.w = this.w;
   }
 }

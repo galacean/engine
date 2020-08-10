@@ -14,8 +14,6 @@ export class Matrix {
   /** @internal */
   private static readonly _tempVec32: Vector3 = new Vector3();
   /** @internal */
-  private static readonly _tempVec33: Vector3 = new Vector3();
-  /** @internal */
   private static readonly _tempMat30: Matrix3x3 = new Matrix3x3();
   /** @internal */
   private static readonly _tempMat40: Matrix = new Matrix();
@@ -186,6 +184,7 @@ export class Matrix {
    * @param out - 指定旋转后矩阵
    */
   static rotationAxisAngle(axis: Vector3, r: number, out: Matrix): void {
+    //CM：stride实现
     const oe = out.elements;
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
@@ -249,6 +248,7 @@ export class Matrix {
    * @param out - 生成的4x4矩阵
    */
   static rotationTranslationScale(q: Quaternion, trans: Vector3, s: Vector3, out: Matrix): void {
+    //CM:stride "AffineTransformation"
     const oe = out.elements;
     const { x, y, z, w } = q;
     let x2 = x + x;
@@ -419,6 +419,7 @@ export class Matrix {
    * @param out - 观察矩阵
    */
   static lookAtRH(eye: Vector3, target: Vector3, up: Vector3, out: Matrix): void {
+    //CM:还有RH啊
     const oe = out.elements;
     const xAxis: Vector3 = Matrix._tempVec30;
     const yAxis: Vector3 = Matrix._tempVec31;
@@ -993,7 +994,7 @@ export class Matrix {
       Math.abs(sy) < MathUtil.zeroTolerance ||
       Math.abs(sz) < MathUtil.zeroTolerance
     ) {
-      // TODO
+      // TODO CM:
     } else {
       // if determine is negative, we need to invert one scale
       const det = t.determinant();
@@ -1019,7 +1020,7 @@ export class Matrix {
 
     const m3: Matrix3x3 = Matrix._tempMat30;
     Matrix3x3.fromMat4(t, m3);
-    Quaternion.rotationMat3(m3, q);
+    Quaternion.rotationMatrix3x3(m3, q);
 
     s.x = sx;
     s.y = sy;
@@ -1072,6 +1073,7 @@ export class Matrix {
    * @returns 当前矩阵的缩放向量
    */
   getScaling(out: Vector3): Vector3 {
+    //getScale()
     const e = this.elements;
     const m11 = e[0],
       m12 = e[1],

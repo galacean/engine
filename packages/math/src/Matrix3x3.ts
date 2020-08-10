@@ -128,6 +128,7 @@ export class Matrix3x3 {
    * @param out - 转换后的3x3矩阵
    */
   static fromMat4(a: Matrix, out: Matrix3x3): void {
+    //CM:更适合实例方法setValueByMatrix()
     const oe = out.elements;
     const ae = a.elements;
 
@@ -268,6 +269,7 @@ export class Matrix3x3 {
    * @param out - 计算出来的3x3法线矩阵
    */
   static normalFromMat4(a: Matrix, out: Matrix3x3): void {
+    //CM:这是啥方法
     const ae = a.elements;
     const oe = out.elements;
 
