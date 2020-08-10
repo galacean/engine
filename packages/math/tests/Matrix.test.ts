@@ -99,19 +99,6 @@ describe("Matrix test", () => {
     expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -1.5, -4.5, 2, 0, 10, 0, -3, 0, 1, 1, 1, 1))).toEqual(true);
   });
 
-  it("static fromRotationTranslationScaleOrigin", () => {
-    const q = new Quaternion(1, 0.5, 2, 1);
-    const v = new Vector3(1, 1, 1);
-    const s = new Vector3(1, 0.5, 2);
-    const o = new Vector3(1, 0.5, 2);
-    const out = new Matrix();
-
-    Matrix.fromRotationTranslationScaleOrigin(q, v, s, o, out);
-    expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -1.5, -4.5, 2, 0, 10, 0, -3, 0, -9.75, -1.25, 5, 1))).toEqual(
-      true
-    );
-  });
-
   it("static fromScaling", () => {
     const a = new Matrix();
     const out = new Matrix();

@@ -319,60 +319,6 @@ export class Matrix {
   }
 
   /**
-   * 通过指定的旋转四元数,转换向量,缩放向量,原点向量生成4x4矩阵。
-   * @param q - 旋转四元数
-   * @param trans - 转换向量
-   * @param s - 缩放向量
-   * @param o - 原点向量
-   * @param out - 生成的4x4矩阵
-   */
-  static fromRotationTranslationScaleOrigin(q: Quaternion, trans: Vector3, s: Vector3, o: Vector3, out: Matrix): void {
-    const oe = out.elements;
-    const { x, y, z, w } = q;
-    let x2 = x + x;
-    let y2 = y + y;
-    let z2 = z + z;
-
-    let xx = x * x2;
-    let xy = x * y2;
-    let xz = x * z2;
-    let yy = y * y2;
-    let yz = y * z2;
-    let zz = z * z2;
-    let wx = w * x2;
-    let wy = w * y2;
-    let wz = w * z2;
-
-    let sx = s.x;
-    let sy = s.y;
-    let sz = s.z;
-
-    let ox = o.x;
-    let oy = o.y;
-    let oz = o.z;
-
-    oe[0] = (1 - (yy + zz)) * sx;
-    oe[1] = (xy + wz) * sx;
-    oe[2] = (xz - wy) * sx;
-    oe[3] = 0;
-
-    oe[4] = (xy - wz) * sy;
-    oe[5] = (1 - (xx + zz)) * sy;
-    oe[6] = (yz + wx) * sy;
-    oe[7] = 0;
-
-    oe[8] = (xz + wy) * sz;
-    oe[9] = (yz - wx) * sz;
-    oe[10] = (1 - (xx + yy)) * sz;
-    oe[11] = 0;
-
-    oe[12] = trans.x + ox - (oe[0] * ox + oe[4] * oy + oe[8] * oz);
-    oe[13] = trans.y + oy - (oe[1] * ox + oe[5] * oy + oe[9] * oz);
-    oe[14] = trans.z + oz - (oe[2] * ox + oe[6] * oy + oe[10] * oz);
-    oe[15] = 1;
-  }
-
-  /**
    * 通过指定缩放生成4x4矩阵。
    * @param s - 缩放向量
    * @param out - 指定缩放后矩阵
