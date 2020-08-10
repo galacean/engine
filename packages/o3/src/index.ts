@@ -34,6 +34,7 @@ export * from "@alipay/o3-shaderlib";
 export * from "@alipay/o3-skybox";
 export * from "@alipay/o3-trail";
 export * from "@alipay/o3-tween";
+export * from "@alipay/o3-decal";
 // import { RegistExtension } from "@alipay/o3-loader-gltf";
 // import { TextureMaterial, TransparentMaterial } from "@alipay/o3-mobile-material";
 // import { PBRMaterial } from "@alipay/o3-pbr";
