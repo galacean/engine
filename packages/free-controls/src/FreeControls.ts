@@ -367,24 +367,13 @@ export class FreeControls extends Script {
   }
 
   /**
-   * automatically updateSpherical after lookAt
-   * @param {Vector3} target
-   * @param {Vector3} up
-   * */
-  lookAt(target: Vector3, up?: Vector3): void {
-    this.camera.transform.lookAt(target, up || new Vector3(0, 1, 0));
-
-    this.updateSpherical();
-  }
-
-  /**
    * must updateSpherical after quaternion has been changed
    * @example
    * Entity#lookAt([0,1,0],[0,1,0]);
    * AFreeControls#updateSpherical();
    * */
   updateSpherical(): void {
-    this._v3Cache.setValue(0, 0, 1);
+    this._v3Cache.setValue(0, 0, -1);
     Vector3.transformByQuat(this._v3Cache, this.camera.rotation, this._v3Cache);
     this._spherical.setFromVec3(this._v3Cache);
     this._theta = this._spherical.theta;

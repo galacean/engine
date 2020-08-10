@@ -270,7 +270,7 @@ export function parseMaterial(gltfMaterial, resources) {
         uniformObj.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources);
       }
       if (baseColorFactor) {
-        uniformObj.baseColorFactor = baseColorFactor;
+        uniformObj.baseColorFactor = new Vector4(...baseColorFactor);
       }
       uniformObj.metallicFactor = metallicFactor !== undefined ? metallicFactor : 1;
       uniformObj.roughnessFactor = roughnessFactor !== undefined ? roughnessFactor : 1;
@@ -323,13 +323,13 @@ export function parseMaterial(gltfMaterial, resources) {
 
         stateObj.isMetallicWorkflow = false;
         if (diffuseFactor) {
-          uniformObj.baseColorFactor = diffuseFactor;
+          uniformObj.baseColorFactor = new Vector4(...diffuseFactor);
         }
         if (diffuseTexture) {
           uniformObj.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources);
         }
         if (specularFactor) {
-          uniformObj.specularFactor = specularFactor;
+          uniformObj.specularFactor = new Vector3(...specularFactor);
         }
         if (glossinessFactor !== undefined) {
           uniformObj.glossinessFactor = glossinessFactor;
