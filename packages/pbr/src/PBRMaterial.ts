@@ -85,7 +85,6 @@ class PBRMaterial extends Material {
     super(name);
 
     this.createDefaulteValues();
-    debugger;
     this.setUniforms(props);
     this.setStates(props);
   }
