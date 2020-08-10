@@ -181,11 +181,11 @@ export class Matrix {
 
   /**
    * 通过指定旋转生成4x4矩阵。
+   * * @param axis - 旋转轴
    * @param r - 旋转角度
-   * @param axis - 旋转轴
    * @param out - 指定旋转后矩阵
    */
-  static fromRotation(r: number, axis: Vector3, out: Matrix): void {
+  static fromRotation(axis: Vector3, r: number, out: Matrix): void {
     const oe = out.elements;
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
@@ -608,11 +608,11 @@ export class Matrix {
   /**
    * 将矩阵 a 按给定角度旋转，并将结果输出到 out。
    * @param m - 矩阵
-   * @param r - 给定的旋转角度
    * @param axis - 旋转轴
+   * @param r - 给定的旋转角度
    * @param out - 旋转后的矩阵
    */
-  static rotate(m: Matrix, r: number, axis: Vector3, out: Matrix): void {
+  static rotate(m: Matrix, axis: Vector3, r: number, out: Matrix): void {
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
@@ -1220,12 +1220,12 @@ export class Matrix {
 
   /**
    * 将当前矩阵按给定角度旋转，并返回。
+   * * @param axis - 旋转轴
    * @param r - 给定的旋转角度
-   * @param axis - 旋转轴
    * @returns 当前矩阵
    */
-  rotate(r: number, axis: Vector3): Matrix {
-    Matrix.rotate(this, r, axis, this);
+  rotate(axis: Vector3, r: number): Matrix {
+    Matrix.rotate(this, axis, r, this);
     return this;
   }
 

@@ -54,7 +54,7 @@ describe("Matrix test", () => {
   it("static fromRotation", () => {
     const out = new Matrix();
 
-    Matrix.fromRotation(Math.PI / 3, new Vector3(0, 1, 0), out);
+    Matrix.fromRotation(new Vector3(0, 1, 0), Math.PI / 3, out);
     expect(
       Matrix.equals(
         out,
@@ -158,19 +158,19 @@ describe("Matrix test", () => {
     ).toEqual(true);
   });
 
-  it("static lookAtR", () => {
+  it("static lookAtRH", () => {
     const out = new Matrix();
     const eye = new Vector3(0, 0, -8);
     const target = new Vector3(0, 0, 0);
     const up = new Vector3(0, 1, 0);
 
-    Matrix.lookAtR(eye, target, up, out);
+    Matrix.lookAtRH(eye, target, up, out);
     expect(Matrix.equals(out, new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, -8, 1))).toEqual(true);
 
     eye.setValue(0, 0, 0);
     target.setValue(0, 1, -1);
     up.setValue(0, 1, 0);
-    Matrix.lookAtR(eye, target, up, out);
+    Matrix.lookAtRH(eye, target, up, out);
     expect(
       Matrix.equals(
         out,
@@ -239,7 +239,7 @@ describe("Matrix test", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
     const out = new Matrix();
 
-    Matrix.rotate(a, Math.PI / 3, new Vector3(0, 1, 0), out);
+    Matrix.rotate(a, new Vector3(0, 1, 0), Math.PI / 3, out);
     expect(
       Matrix.equals(
         out,
@@ -424,7 +424,7 @@ describe("Matrix test", () => {
   it("rotate", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 
-    a.rotate(Math.PI / 3, new Vector3(0, 1, 0));
+    a.rotate(new Vector3(0, 1, 0), Math.PI / 3);
     expect(
       Matrix.equals(
         a,
