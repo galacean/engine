@@ -129,7 +129,7 @@ export class Vector4 {
   }
 
   /**
-   * 分别取两个四维向量x、y的最大值计算新的四维向量。
+   * 分别取两个四维向量 x、y 的最大值计算新的四维向量。
    * @param a - 向量
    * @param b - 向量
    * @param out - 结果向量
@@ -142,7 +142,7 @@ export class Vector4 {
   }
 
   /**
-   * 分别取两个四维向量x、y的最小值计算新的四维向量。
+   * 分别取两个四维向量 x、y 的最小值计算新的四维向量。
    * @param a - 向量
    * @param b - 向量
    * @param out - 结果向量
@@ -155,7 +155,7 @@ export class Vector4 {
   }
 
   /**
-   * 将向量a反转的结果输出到out。
+   * 将向量 a 反转的结果输出到 out。
    * @param a - 向量
    * @param out - 向量反转的结果
    */
@@ -167,15 +167,15 @@ export class Vector4 {
   }
 
   /**
-   * 将向量a归一化的结果输出到out。
+   * 将向量 a 归一化的结果输出到 out。
    * @param a - 向量
    * @param out - 向量归一化的结果
    */
   static normalize(a: Vector4, out: Vector4): void {
     const { x, y, z, w } = a;
-    let len: number = x * x + y * y + z * z + w * w;
-    if (len > MathUtil.ZeroTolerance) {
-      len = 1 / Math.sqrt(len);
+    let len: number = Math.sqrt(x * x + y * y + z * z + w * w);
+    if (len > MathUtil.zeroTolerance) {
+      len = 1 / len;
       out.x = x * len;
       out.y = y * len;
       out.z = z * len;
@@ -184,7 +184,7 @@ export class Vector4 {
   }
 
   /**
-   * 将向量a缩放的结果输出到out。
+   * 将向量 a 缩放的结果输出到 out。
    * @param a - 向量
    * @param s - 缩放因子
    * @param out - 向量缩放的结果
@@ -237,21 +237,21 @@ export class Vector4 {
     out.w = w;
   }
 
-  /** 向量的X分量 */
+  /** 向量的 X 分量 */
   x: number;
-  /** 向量的Y分量 */
+  /** 向量的 Y 分量 */
   y: number;
-  /** 向量的Z分量 */
+  /** 向量的 Z 分量 */
   z: number;
-  /** 向量的W分量 */
+  /** 向量的 W 分量 */
   w: number;
 
   /**
-   * 创建一个Vector4实例。
-   * @param x - 向量的X分量，默认值0
-   * @param y - 向量的Y分量，默认值0
-   * @param z - 向量的Z分量，默认值0
-   * @param w - 向量的W分量，默认值0
+   * 创建一个 Vector4 实例。
+   * @param x - 向量的 X 分量，默认值 0
+   * @param y - 向量的 Y 分量，默认值 0
+   * @param z - 向量的 Z 分量，默认值 0
+   * @param w - 向量的 W 分量，默认值 0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 0) {
     this.x = x;
@@ -261,11 +261,11 @@ export class Vector4 {
   }
 
   /**
-   * 设置x, y, z, w的值，并返回当前向量。
-   * @param x - 向量的X分量
-   * @param y - 向量的Y分量
-   * @param z - 向量的Z分量
-   * @param w - 向量的W分量
+   * 设置 x, y, z, w 的值，并返回当前向量。
+   * @param x - 向量的 X 分量
+   * @param y - 向量的 Y 分量
+   * @param z - 向量的 Z 分量
+   * @param w - 向量的 W 分量
    * @returns 当前向量
    */
   setValue(x: number, y: number, z: number, w: number): Vector4 {
@@ -286,7 +286,7 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量值拷贝给out向量。
+   * 将当前向量值拷贝给 out 向量。
    * @param out - 目标向量
    */
   cloneTo(out: Vector4): void {
@@ -297,7 +297,7 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量加上给定的向量a，并返回当前向量。
+   * 将当前向量加上给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -310,7 +310,7 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量减去给定的向量a，并返回当前向量。
+   * 将当前向量减去给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -323,7 +323,7 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量乘以给定的向量a，并返回当前向量。
+   * 将当前向量乘以给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -336,7 +336,7 @@ export class Vector4 {
   }
 
   /**
-   * 将当前向量除以给定的向量a，并返回当前向量。
+   * 将当前向量除以给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -371,10 +371,10 @@ export class Vector4 {
    * @returns 当前向量
    */
   negate(): Vector4 {
-    this.x *= -1;
-    this.y *= -1;
-    this.z *= -1;
-    this.w *= -1;
+    this.x = -this.x;
+    this.y = -this.y;
+    this.z = -this.z;
+    this.w = -this.w;
     return this;
   }
 
@@ -383,15 +383,7 @@ export class Vector4 {
    * @returns 当前向量
    */
   normalize(): Vector4 {
-    const { x, y, z, w } = this;
-    let len: number = x * x + y * y + z * z + w * w;
-    if (len > MathUtil.ZeroTolerance) {
-      len = 1 / Math.sqrt(len);
-      this.x = x * len;
-      this.y = y * len;
-      this.z = z * len;
-      this.w = w * len;
-    }
+    Vector4.normalize(this, this);
     return this;
   }
 

@@ -75,7 +75,7 @@ export class SchemaResourceManager {
     const resource = resourceFactory.createResource(this, asset.type);
     return new Promise((resolve) => {
       //TODO 脏代码
-      resource.loadWithAttachedResources(this.oasis.resourceManager, asset, this.oasis).then((result) => {
+      resource.loadWithAttachedResources(this.oasis.engine.resourceManager, asset, this.oasis).then((result) => {
         resolve(this.getAddResourceResult(result.resources, result.structure));
       });
     });

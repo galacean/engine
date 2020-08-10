@@ -10,7 +10,7 @@ export class Vector2 {
   static readonly _one = new Vector2(1.0, 1.0);
 
   /**
-   * 将两个向量相加，并输出结果out。
+   * 将两个向量相加，并输出结果 out。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 向量相加结果
@@ -21,7 +21,7 @@ export class Vector2 {
   }
 
   /**
-   * 将两个向量相减 并输出结果out。
+   * 将两个向量相减 并输出结果 out。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个二维向量的相减结果
@@ -32,7 +32,7 @@ export class Vector2 {
   }
 
   /**
-   * 将两个向量相乘 并输出结果out。
+   * 将两个向量相乘 并输出结果 out。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个二维向量的相乘结果
@@ -43,7 +43,7 @@ export class Vector2 {
   }
 
   /**
-   * 将两个二维向量相除 并输出结果out。
+   * 将两个二维向量相除 并输出结果 out。
    * @param a - 左向量
    * @param b - 右向量
    * @param out - 两个二维向量的相除结果
@@ -111,7 +111,7 @@ export class Vector2 {
   }
 
   /**
-   * 分别取两个二维向量x、y的最大值计算新的二维向量。
+   * 分别取两个二维向量 x、y 的最大值计算新的二维向量。
    * @param a - 向量
    * @param b - 向量
    * @param out - 结果向量
@@ -122,7 +122,7 @@ export class Vector2 {
   }
 
   /**
-   * 分别取两个二维向量x、y的最小值计算新的二维向量。
+   * 分别取两个二维向量 x、y 的最小值计算新的二维向量。
    * @param a - 向量
    * @param b - 向量
    * @param out - 结果向量
@@ -133,7 +133,7 @@ export class Vector2 {
   }
 
   /**
-   * 将向量a反转的结果输出到out。
+   * 将向量 a 反转的结果输出到 out。
    * @param a - 向量
    * @param out - 向量反转的结果
    */
@@ -143,22 +143,22 @@ export class Vector2 {
   }
 
   /**
-   * 将向量a归一化的结果输出到out。
+   * 将向量 a 归一化的结果输出到 out。
    * @param a - 向量
    * @param out - 向量归一化的结果
    */
   static normalize(a: Vector2, out: Vector2): void {
     const { x, y } = a;
-    let len: number = x * x + y * y;
-    if (len > MathUtil.ZeroTolerance) {
-      len = 1 / Math.sqrt(len);
+    let len: number = Math.sqrt(x * x + y * y);
+    if (len > MathUtil.zeroTolerance) {
+      len = 1 / len;
       out.x = x * len;
       out.y = y * len;
     }
   }
 
   /**
-   * 将向量a缩放的结果输出到out。
+   * 将向量 a 缩放的结果输出到 out。
    * @param a - 向量
    * @param scale - 缩放因子
    * @param out - 向量缩放的结果
@@ -168,15 +168,15 @@ export class Vector2 {
     out.y = a.y * s;
   }
 
-  /** 向量的X分量 */
+  /** 向量的 X 分量 */
   x: number;
-  /** 向量的Y分量 */
+  /** 向量的 Y 分量 */
   y: number;
 
   /**
-   * 创建一个Vector2实例。
-   * @param x - 向量的X分量，默认值0
-   * @param y - 向量的Y分量，默认值0
+   * 创建一个 Vector2 实例。
+   * @param x - 向量的 X 分量，默认值 0
+   * @param y - 向量的 Y 分量，默认值 0
    */
   constructor(x: number = 0, y: number = 0) {
     this.x = x;
@@ -184,9 +184,9 @@ export class Vector2 {
   }
 
   /**
-   * 设置x, y的值，并返回当前向量。
-   * @param x - 向量的X分量
-   * @param y - 向量的Y分量
+   * 设置 x, y 的值，并返回当前向量。
+   * @param x - 向量的 X 分量
+   * @param y - 向量的 Y 分量
    * @returns 当前向量
    */
   setValue(x: number, y: number): Vector2 {
@@ -205,7 +205,7 @@ export class Vector2 {
   }
 
   /**
-   * 将当前向量值拷贝给out向量。
+   * 将当前向量值拷贝给 out 向量。
    * @param out - 目标向量
    */
   cloneTo(out: Vector2): void {
@@ -214,7 +214,7 @@ export class Vector2 {
   }
 
   /**
-   * 将当前向量加上给定的向量a，并返回当前向量。
+   * 将当前向量加上给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -225,7 +225,7 @@ export class Vector2 {
   }
 
   /**
-   * 将当前向量减去给定的向量a，并返回当前向量。
+   * 将当前向量减去给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -236,7 +236,7 @@ export class Vector2 {
   }
 
   /**
-   * 将当前向量乘以给定的向量a，并返回当前向量。
+   * 将当前向量乘以给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -247,7 +247,7 @@ export class Vector2 {
   }
 
   /**
-   * 将当前向量除以给定的向量a，并返回当前向量。
+   * 将当前向量除以给定的向量 a，并返回当前向量。
    * @param a - 给定的向量
    * @returns 当前向量
    */
@@ -280,8 +280,8 @@ export class Vector2 {
    * @returns 当前向量
    */
   negate(): Vector2 {
-    this.x *= -1;
-    this.y *= -1;
+    this.x = -this.x;
+    this.y = -this.y;
     return this;
   }
 
@@ -290,13 +290,7 @@ export class Vector2 {
    * @returns 当前向量
    */
   normalize(): Vector2 {
-    const { x, y } = this;
-    let len: number = x * x + y * y;
-    if (len > MathUtil.ZeroTolerance) {
-      len = 1 / Math.sqrt(len);
-      this.x = x * len;
-      this.y = y * len;
-    }
+    Vector2.normalize(this, this);
     return this;
   }
 

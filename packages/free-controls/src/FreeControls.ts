@@ -3,7 +3,7 @@ import { MathUtil, Spherical, Vector3 } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 
 // 防止万向锁
-const ESP = MathUtil.ZeroTolerance;
+const ESP = MathUtil.zeroTolerance;
 
 function includes(array, ...filterArray) {
   return filterArray.some((e) => array.indexOf(e) !== -1);
@@ -334,7 +334,9 @@ export class FreeControls extends Script {
     if (this.floorMock && !this._moveJump) {
       // this.camera.position[1] = this.floorY;
 
-      this.camera.transform.position.setValue(position.x, this.floorY, position.z);
+      // const pos = this.camera.transform.position;
+      position.setValue(position.x, this.floorY, position.z);
+      this.camera.transform.position = position;
     }
   }
 

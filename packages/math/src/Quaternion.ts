@@ -76,28 +76,59 @@ export class Quaternion {
   }
 
   /**
-   * 通过x,y,z轴的旋转欧拉角(弧度)生成四元数，欧拉角顺序 pitch yaw roll。
+   * 通过旋转的欧拉角设置四元数。
+   * @param axis - 旋转轴向量
+   * @param rad - 旋转角度(单位：弧度)
+   * @param out - 生成的四元数
+   */
+  static setAxisAngle(axis: Vector3, rad: number, out: Quaternion): void {
+    const normalAxis = new Vector3();
+    Vector3.normalize(axis, normalAxis);
+    rad *= 0.5;
+    const s = Math.sin(rad);
+    out.x = normalAxis.x * s;
+    out.y = normalAxis.y * s;
+    out.z = normalAxis.z * s;
+    out.w = Math.cos(rad);
+  }
+
+  /**
+   * 根据 x,y,z 轴的旋转欧拉角(弧度)生成四元数，欧拉角顺序 pitch yaw roll。
    * @param x - 绕X轴旋转的弧度 pitch
    * @param y - 绕Y轴旋转的弧度 yaw
    * @param z - 绕Z轴旋转的弧度 roll
    * @param out - 生成的四元数
    */
-  static fromEuler(x: number, y: number, z: number, out: Quaternion): void {
-    x *= 0.5;
-    y *= 0.5;
-    z *= 0.5;
+  static rotationEuler(x: number, y: number, z: number, out: Quaternion): void {
+    Quaternion.rotationYawPitchRoll(y, x, z, out);
+  }
 
-    const sx = Math.sin(x);
-    const cx = Math.cos(x);
-    const sy = Math.sin(y);
-    const cy = Math.cos(y);
-    const sz = Math.sin(z);
-    const cz = Math.cos(z);
+  /**
+   * 根据 yaw、pitch、roll 生成四元数
+   * @param yaw - 偏航角(单位弧度)
+   * @param pitch - 俯仰角(单位弧度)
+   * @param roll - 翻滚角(单位弧度)
+   * @param out - 生成的四元数
+   */
+  static rotationYawPitchRoll(yaw: number, pitch: number, roll: number, out: Quaternion): void {
+    const halfRoll = roll * 0.5;
+    const halfPitch = pitch * 0.5;
+    const halfYaw = yaw * 0.5;
 
-    out.x = sx * cy * cz - cx * sy * sz;
-    out.y = cx * sy * cz + sx * cy * sz;
-    out.z = cx * cy * sz - sx * sy * cz;
-    out.w = cx * cy * cz + sx * sy * sz;
+    const sinRoll = Math.sin(halfRoll);
+    const cosRoll = Math.cos(halfRoll);
+    const sinPitch = Math.sin(halfPitch);
+    const cosPitch = Math.cos(halfPitch);
+    const sinYaw = Math.sin(halfYaw);
+    const cosYaw = Math.cos(halfYaw);
+
+    const cosYawPitch = cosYaw * cosPitch;
+    const sinYawPitch = sinYaw * sinPitch;
+
+    out.x = cosYaw * sinPitch * cosRoll + sinYaw * cosPitch * sinRoll;
+    out.y = sinYaw * cosPitch * cosRoll - cosYaw * sinPitch * sinRoll;
+    out.z = cosYawPitch * sinRoll - sinYawPitch * cosRoll;
+    out.w = cosYawPitch * cosRoll + sinYawPitch * sinRoll;
   }
 
   /**
@@ -105,7 +136,7 @@ export class Quaternion {
    * @param m - 3x3矩阵
    * @param out - 生成的四元数
    */
-  static fromMat3(m: Matrix3x3, out: Quaternion): void {
+  static rotationMat3(m: Matrix3x3, out: Quaternion): void {
     const me = m.elements;
     const m11 = me[0],
       m12 = me[1],
@@ -174,15 +205,25 @@ export class Quaternion {
    * 插值四元数。
    * @param a - 左四元数
    * @param b - 右四元数
-   * @param t - 插值比例
+   * @param t - 插值比例 范围 0～1
    * @param out - 插值结果
    */
   static lerp(a: Quaternion, b: Quaternion, t: number, out: Quaternion): void {
-    const { x, y, z, w } = a;
-    out.x = x + (b.x - x) * t;
-    out.y = y + (b.y - y) * t;
-    out.z = z + (b.z - z) * t;
-    out.w = w + (b.w - w) * t;
+    const inv = 1.0 - t;
+
+    if (Quaternion.dot(a, b) >= MathUtil.zeroTolerance) {
+      out.x = a.x * inv + b.x * t;
+      out.y = a.y * inv + b.y * t;
+      out.z = a.z * inv + b.z * t;
+      out.w = a.w * inv + b.w * t;
+    } else {
+      out.x = a.x * inv - b.x * t;
+      out.y = a.y * inv - b.y * t;
+      out.z = a.z * inv - b.z * t;
+      out.w = a.w * inv - b.w * t;
+    }
+
+    out.normalize();
   }
 
   /**
@@ -202,10 +243,9 @@ export class Quaternion {
     let bz = b.z;
     let bw = b.w;
 
-    let omega, cosom, sinom, scale0, scale1;
-
+    let scale0, scale1;
     // calc cosine
-    cosom = ax * bx + ay * by + az * bz + aw * bw;
+    let cosom = ax * bx + ay * by + az * bz + aw * bw;
     // adjust signs (if necessary)
     if (cosom < 0.0) {
       cosom = -cosom;
@@ -215,10 +255,10 @@ export class Quaternion {
       bw = -bw;
     }
     // calculate coefficients
-    if (1.0 - cosom > MathUtil.ZeroTolerance) {
+    if (1.0 - cosom > MathUtil.zeroTolerance) {
       // standard case (slerp)
-      omega = Math.acos(cosom);
-      sinom = Math.sin(omega);
+      const omega = Math.acos(cosom);
+      const sinom = Math.sin(omega);
       scale0 = Math.sin((1.0 - t) * omega) / sinom;
       scale1 = Math.sin(t * omega) / sinom;
     } else {
@@ -241,9 +281,9 @@ export class Quaternion {
    */
   static normalize(a: Quaternion, out: Quaternion): void {
     const { x, y, z, w } = a;
-    let len: number = x * x + y * y + z * z + w * w;
-    if (len > MathUtil.ZeroTolerance) {
-      len = 1 / Math.sqrt(len);
+    let len: number = Math.sqrt(x * x + y * y + z * z + w * w);
+    if (len > MathUtil.zeroTolerance) {
+      len = 1 / len;
       out.x = x * len;
       out.y = y * len;
       out.z = z * len;
@@ -252,57 +292,54 @@ export class Quaternion {
   }
 
   /**
-   * 绕X轴旋转四元数。
+   * 绕 X 轴旋转四元数。
    * @param a - 四元数
-   * @param rad - 旋转角度
+   * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
    */
-  static rotateX(a: Quaternion, rad: number, out: Quaternion): void {
+  static rotationX(rad: number, out: Quaternion): void {
     rad *= 0.5;
-    const { x, y, z, w } = a;
-    const bx = Math.sin(rad);
-    const bw = Math.cos(rad);
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
 
-    out.x = x * bw + w * bx;
-    out.y = y * bw + z * bx;
-    out.z = z * bw - y * bx;
-    out.w = w * bw - x * bx;
+    out.x = s;
+    out.y = 0;
+    out.z = 0;
+    out.w = c;
   }
 
   /**
-   * 绕Y轴旋转四元数。
+   * 绕 Y 轴旋转四元数。
    * @param a - 四元数
-   * @param rad - 旋转角度
+   * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
    */
-  static rotateY(a: Quaternion, rad: number, out: Quaternion): void {
+  static rotationY(rad: number, out: Quaternion): void {
     rad *= 0.5;
-    const { x, y, z, w } = a;
-    const by = Math.sin(rad);
-    const bw = Math.cos(rad);
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
 
-    out.x = x * bw - z * by;
-    out.y = y * bw + w * by;
-    out.z = z * bw + x * by;
-    out.w = w * bw - y * by;
+    out.x = 0;
+    out.y = s;
+    out.z = 0;
+    out.w = c;
   }
 
   /**
-   * 绕Z轴旋转四元数。
+   * 绕 Z 轴旋转四元数。
    * @param a - 四元数
-   * @param rad - 旋转角度
+   * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
    */
-  static rotateZ(a: Quaternion, rad: number, out: Quaternion): void {
+  static rotationZ(rad: number, out: Quaternion): void {
     rad *= 0.5;
-    const { x, y, z, w } = a;
-    const bz = Math.sin(rad);
-    const bw = Math.cos(rad);
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
 
-    out.x = x * bw + y * bz;
-    out.y = y * bw - x * bz;
-    out.z = z * bw + w * bz;
-    out.w = w * bw - z * bz;
+    out.x = 0;
+    out.y = 0;
+    out.z = s;
+    out.w = c;
   }
 
   /**
@@ -318,45 +355,21 @@ export class Quaternion {
     out.w = a.w * s;
   }
 
-  /**
-   * 获取四元数的欧拉角(弧度)，欧拉角顺序为 pitch yaw roll。
-   * @param a - 四元数
-   * @param out - 欧拉角(弧度) pitch yaw roll
-   */
-  static toEuler(a: Quaternion, out: Vector3): void {
-    const { x, y, z, w } = a;
-    let Threshold = 0.5 - MathUtil.ZeroTolerance;
-    let t = w * y - x * z;
-
-    if (t < -Threshold || t > Threshold) {
-      // 奇异姿态,俯仰角为±90°
-      let sign = Math.sign(t);
-
-      out.z = -2 * sign * Math.atan2(x, w);
-      out.y = sign * (Math.PI / 2.0);
-      out.x = 0;
-    } else {
-      out.x = Math.atan2(2 * (x * w + y * z), 1 - 2 * (x * x + y * y));
-      out.y = Math.asin(2 * (w * y - z * x));
-      out.z = Math.atan2(2 * (x * y + z * w), 1 - 2 * (y * y + z * z));
-    }
-  }
-
-  /** 四元数的X分量 */
+  /** 四元数的 X 分量 */
   x: number;
-  /** 四元数的Y分量 */
+  /** 四元数的 Y 分量 */
   y: number;
-  /** 四元数的Z分量 */
+  /** 四元数的 Z 分量 */
   z: number;
-  /** 四元数的W分量 */
+  /** 四元数的 W 分量 */
   w: number;
 
   /**
    * 创建四元数实例。
-   * @param x - 四元数的X分量，默认值0
-   * @param y - 四元数的Y分量，默认值0
-   * @param z - 四元数的Z分量，默认值0
-   * @param w - 四元数的W分量，默认值0
+   * @param x - 四元数的 X 分量，默认值 0
+   * @param y - 四元数的 Y 分量，默认值 0
+   * @param z - 四元数的 Z 分量，默认值 0
+   * @param w - 四元数的 W 分量，默认值 0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
     this.x = x;
@@ -366,11 +379,11 @@ export class Quaternion {
   }
 
   /**
-   * 设置x, y, z, w的值。
-   * @param x - 四元数的X分量
-   * @param y - 四元数的Y分量
-   * @param z - 四元数的Z分量
-   * @param w - 四元数的W分量
+   * 设置 x, y, z, w 的值。
+   * @param x - 四元数的 X 分量
+   * @param y - 四元数的 Y 分量
+   * @param z - 四元数的 Z 分量
+   * @param w - 四元数的 W 分量
    * @returns 当前四元数
    */
   setValue(x: number, y: number, z: number, w: number): Quaternion {
@@ -392,7 +405,7 @@ export class Quaternion {
   }
 
   /**
-   * 将当前四元数值拷贝给out四元数。
+   * 将当前四元数值拷贝给 out 四元数。
    * @param out - 目标四元数
    */
   cloneTo(out: Quaternion): void {
@@ -415,25 +428,28 @@ export class Quaternion {
   }
 
   /**
-   * 从四元数分解欧拉角，并返回角度。
-   * @param out - 输出欧拉角
-   * @param q - 输入
-   * @returns 当前四元数的欧拉角(单位：度)
+   * 获取四元数的旋转轴和旋转角度(单位：弧度)。
+   * @param out - 四元数的旋转轴
+   * @returns 当前四元数的旋转角度(单位：弧度)
    */
   getAxisAngle(out: Vector3): number {
-    let rad = Math.acos(this.w) * 2.0;
-    let s = Math.sin(rad / 2.0);
-    if (!MathUtil.equals(s, 0)) {
-      out.x = this.x / s;
-      out.y = this.y / s;
-      out.z = this.z / s;
-    } else {
-      // If s is zero, return any axis (no rotation - axis does not matter)
+    const { x, y, z } = this;
+    const length = x * x + y * y + z * z;
+
+    if (length < MathUtil.zeroTolerance) {
       out.x = 1;
       out.y = 0;
       out.z = 0;
+
+      return 0;
+    } else {
+      const inv = 1.0 / length;
+      out.x = this.x * inv;
+      out.y = this.y * inv;
+      out.z = this.z * inv;
+
+      return Math.acos(this.w) * 2.0;
     }
-    return rad;
   }
 
   /**
@@ -465,18 +481,52 @@ export class Quaternion {
   }
 
   /**
-   * 通过旋转的欧拉角设置四元数。
-   * @param axis - 旋转轴向量
-   * @param rad - 旋转角度
+   * 四元数归一化。
    * @returns 当前四元数
    */
-  setAxisAngle(axis: Vector3, rad: number): Quaternion {
-    rad *= 0.5;
-    const s = Math.sin(rad);
-    this.x = axis.x * s;
-    this.y = axis.y * s;
-    this.z = axis.z * s;
-    this.w = Math.cos(rad);
+  normalize(): Quaternion {
+    Quaternion.normalize(this, this);
     return this;
+  }
+
+  /**
+   * 获取四元数的欧拉角(弧度)。
+   * @returns 欧拉角 x->pitch y->yaw z->roll
+   */
+  toEuler(): Vector3 {
+    const out = this.toYawPitchRoll();
+    const t = out.x;
+    out.x = out.y;
+    out.y = t;
+    return out;
+  }
+
+  /**
+   * 获取四元数的欧拉角(弧度)。
+   * @returns 欧拉角 x->yaw y->pitch z->roll
+   */
+  toYawPitchRoll(): Vector3 {
+    const out = new Vector3();
+    const { x, y, z, w } = this;
+    const xx = x * x;
+    const yy = y * y;
+    const zz = z * z;
+    const xy = x * y;
+    const zw = z * w;
+    const zx = z * x;
+    const yw = y * w;
+    const yz = y * z;
+    const xw = x * w;
+
+    out.y = Math.asin(2.0 * (xw - yz));
+    if (Math.cos(out.y) > MathUtil.zeroTolerance) {
+      out.z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
+      out.x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
+    } else {
+      out.z = Math.atan2(-2.0 * (xy - zw), 1.0 - 2.0 * (yy + zz));
+      out.x = 0.0;
+    }
+
+    return out;
   }
 }

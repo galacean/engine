@@ -65,7 +65,7 @@ describe("Vector2 test", () => {
 
   it("static equals", () => {
     const a = new Vector2(1, 2);
-    const b = new Vector2(1 + MathUtil.ZeroTolerance * 0.9, 2);
+    const b = new Vector2(1 + MathUtil.zeroTolerance * 0.9, 2);
 
     expect(Vector2.equals(a, b)).toEqual(true);
   });

@@ -2,7 +2,7 @@ import { MathUtil } from "./MathUtil";
 import { Vector3 } from "./Vector3";
 
 // 防止万向锁
-const ESP = MathUtil.ZeroTolerance;
+const ESP = MathUtil.zeroTolerance;
 
 // 球面坐标
 export class Spherical {

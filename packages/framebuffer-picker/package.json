@@ -26,7 +26,7 @@
   "dependencies": {
     "@alipay/o3-core": "2.3.2",
     "@alipay/o3-material": "2.3.2",
-    "@alipay/o3-math": "^2.3.2"
+    "@alipay/o3-math": "2.3.2"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

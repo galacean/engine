@@ -253,7 +253,7 @@ export class SpriteRenderer extends RenderableComponent {
         const vz = new Vector3(m[2], m[6], m[10]);
 
         const rotation: Quaternion = new Quaternion();
-        rotation.setAxisAngle(vz, this._rotationAngle);
+        Quaternion.setAxisAngle(vz, this._rotationAngle, rotation);
 
         Vector3.transformByQuat(vx, rotation, vx);
         Vector3.transformByQuat(vy, rotation, vy);

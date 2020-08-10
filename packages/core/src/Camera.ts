@@ -53,9 +53,7 @@ export class Camera extends Component {
    */
   cullingMask: number = 0;
   _renderPipeline: BasicRenderPipeline;
-
   _pixelViewport: Vector4 = new Vector4(0, 0, 1, 1);
-
   private _isOrthographic: boolean = false;
   private _projectionMatrix: Matrix = new Matrix();
   private _isProjMatSetting = false;
@@ -74,7 +72,9 @@ export class Camera extends Component {
   /** 投影矩阵逆矩阵脏标记 */
   private _isInvProjMatDirty: boolean = true;
   private _customAspectRatio: number = undefined;
+  private _lastAspectSize: Vector2 = new Vector2(0, 0);
   private _invViewProjMat: Matrix = new Matrix();
+
   private _transform: Transform;
   private _isViewMatrixDirty: UpdateFlag;
   /** 投影视图矩阵逆矩阵脏标记 */
@@ -208,9 +208,7 @@ export class Camera extends Component {
     //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
-      const modelMatrix = this._transform.worldMatrix;
-      turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
-      Matrix.invert(MathTemp.tempMat4, this._viewMatrix);
+      Matrix.invert(this._transform.worldMatrix, this._viewMatrix);
     }
     return this._viewMatrix;
   }
@@ -225,10 +223,17 @@ export class Camera extends Component {
   }
 
   get projectionMatrix(): Matrix {
-    if (!this._isProjectionDirty || this._isProjMatSetting) {
+    const canvas = this._entity.engine.canvas;
+    if (
+      (!this._isProjectionDirty || this._isProjMatSetting) &&
+      this._lastAspectSize.x === canvas.width &&
+      this._lastAspectSize.y === canvas.height
+    ) {
       return this._projectionMatrix;
     }
     this._isProjectionDirty = false;
+    this._lastAspectSize.x = canvas.width;
+    this._lastAspectSize.y = canvas.height;
     const aspectRatio = this.aspectRatio;
     if (!this._isOrthographic) {
       Matrix.perspective(
@@ -491,7 +496,7 @@ export class Camera extends Component {
    * 视图矩阵逆矩阵。
    */
   get inverseViewMatrix(): Readonly<Matrix> {
-    turnAround(this._inverseViewMatrix, this._transform.worldMatrix);
+    this._transform.worldMatrix.cloneTo(this._inverseViewMatrix);
     return this._inverseViewMatrix;
   }
 
@@ -510,32 +515,6 @@ export class Camera extends Component {
     this._renderPipeline.defaultRenderPass.clearParam = clearParam;
     this._renderPipeline.defaultRenderPass.clearMode = clearMode;
   }
-}
-
-/**
- * @deprecated
- */
-export function turnAround(out: Matrix, a: Matrix) {
-  const oe = out.elements;
-  const ae = a.elements;
-  oe[4] = ae[4];
-  oe[5] = ae[5];
-  oe[6] = ae[6];
-  oe[7] = ae[7];
-  oe[12] = ae[12];
-  oe[13] = ae[13];
-  oe[14] = ae[14];
-  oe[15] = ae[15];
-
-  oe[0] = -ae[0];
-  oe[1] = -ae[1];
-  oe[2] = -ae[2];
-  oe[3] = -ae[3];
-  oe[8] = -ae[8];
-  oe[9] = -ae[9];
-  oe[10] = -ae[10];
-  oe[11] = -ae[11];
-  return out;
 }
 
 interface ITransform {

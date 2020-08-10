@@ -101,10 +101,6 @@
             material.specularColor = specularFactor;
         #endif
 
-        material.clearCoat = saturate( u_clearCoat );
-        material.clearCoatRoughness = clamp( u_clearCoatRoughness, 0.04, 1.0 );
-
         geometry.position = v_pos;
         geometry.normal = normal;
         geometry.viewDir = normalize( u_cameraPos - v_pos );
-

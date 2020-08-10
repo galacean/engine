@@ -10,7 +10,7 @@ export class GLTFResource extends SchemaResource {
     return resourceManager
       .load<any>({ url: assetConfig.url, type: AssetType.Perfab })
       .then((res) => {
-        const gltf = res.asset;
+        const gltf = res;
         if (assetConfig.props) {
           gltf.newMaterial = (assetConfig.props as any).newMaterial;
         }
@@ -24,7 +24,6 @@ export class GLTFResource extends SchemaResource {
     oasis: Oasis
   ): Promise<LoadAttachedResourceResult> {
     return new Promise((resolve) => {
-      console.log("load gltf");
       this.load(resourceManager, assetConfig, oasis).then(() => {
         const gltf = this.resource;
         const { materials } = gltf;

@@ -196,21 +196,21 @@ export class WebGLRenderer implements HardwareRenderer {
 
     switch (clearMode) {
       case ClearMode.SOLID_COLOR: // solid color
-        gl.clearColor(clearParam[0], clearParam[1], clearParam[2], clearParam[3]);
+        gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         break;
       case ClearMode.DEPTH_ONLY: // depth only
         gl.clear(gl.DEPTH_BUFFER_BIT);
         break;
       case ClearMode.COLOR_ONLY:
-        gl.clearColor(clearParam[0], clearParam[1], clearParam[2], clearParam[3]);
+        gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
         gl.clear(gl.COLOR_BUFFER_BIT);
         break;
       case ClearMode.STENCIL_ONLY:
         gl.clear(gl.STENCIL_BUFFER_BIT);
         break;
       case ClearMode.ALL_CLEAR:
-        gl.clearColor(clearParam[0], clearParam[1], clearParam[2], clearParam[3]);
+        gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         break;
 
@@ -280,15 +280,10 @@ export class WebGLRenderer implements HardwareRenderer {
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      const viewport: Vector4 = camera.viewport;
-      const pixelViewport: Vector4 = camera._pixelViewport;
+      const viewport = camera.viewport;
       const width = gl.drawingBufferWidth;
       const height = gl.drawingBufferHeight;
-      pixelViewport.x = viewport.x * width;
-      pixelViewport.y = viewport.y * height;
-      pixelViewport.z = viewport.z * width;
-      pixelViewport.w = viewport.w * height;
-      this.viewport(pixelViewport.x, pixelViewport.y, pixelViewport.z, pixelViewport.w);
+      this.viewport(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
     }
   }
 

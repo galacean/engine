@@ -4,23 +4,23 @@ import { Quaternion } from "./Quaternion";
 import { Vector3 } from "./Vector3";
 
 /**
- * 4x4矩阵
+ * 4x4矩阵。
  */
 export class Matrix {
   /** @internal */
-  private static _tempVec0: Vector3 = new Vector3();
+  private static readonly _tempVec30: Vector3 = new Vector3();
   /** @internal */
-  private static _tempVec1: Vector3 = new Vector3();
+  private static readonly _tempVec31: Vector3 = new Vector3();
   /** @internal */
-  private static _tempVec2: Vector3 = new Vector3();
+  private static readonly _tempVec32: Vector3 = new Vector3();
   /** @internal */
-  private static _tempVec3: Vector3 = new Vector3();
+  private static readonly _tempVec33: Vector3 = new Vector3();
   /** @internal */
-  private static _tempMat30: Matrix3x3 = new Matrix3x3();
+  private static readonly _tempMat30: Matrix3x3 = new Matrix3x3();
   /** @internal */
-  private static _tempMat40: Matrix = new Matrix();
+  private static readonly _tempMat40: Matrix = new Matrix();
 
-  /** @internal 单位矩阵 */
+  /** @internal 单位矩阵。*/
   static readonly _identity: Matrix = new Matrix(
     1.0,
     0.0,
@@ -41,7 +41,7 @@ export class Matrix {
   );
 
   /**
-   * 将两个矩阵相乘 merge~mul。
+   * 将两个矩阵相乘。
    * @param a - 左矩阵
    * @param b - 右矩阵
    * @param out - 矩阵相乘的结果
@@ -107,7 +107,7 @@ export class Matrix {
   }
 
   /**
-   * 判断两个四维矩阵的值是否相等 merge~exactEquals。
+   * 判断两个四维矩阵的值是否相等。
    * @param a - 左矩阵
    * @param b - 右矩阵
    * @returns 两个矩阵是否相等，是返回 true，否则返回 false
@@ -191,7 +191,7 @@ export class Matrix {
     let len = Math.sqrt(x * x + y * y + z * z);
     let s, c, t;
 
-    if (Math.abs(len) < MathUtil.ZeroTolerance) {
+    if (Math.abs(len) < MathUtil.zeroTolerance) {
       return;
     }
 
@@ -429,7 +429,7 @@ export class Matrix {
   }
 
   /**
-   * 计算矩阵a的逆矩阵，并将结果输出到out。
+   * 计算矩阵 a 的逆矩阵，并将结果输出到 out。
    * @param a - 矩阵
    * @param out - 逆矩阵
    */
@@ -589,47 +589,38 @@ export class Matrix {
    */
   static lookAtR(eye: Vector3, target: Vector3, up: Vector3, out: Matrix): void {
     const oe = out.elements;
-    const xAxis: Vector3 = Matrix._tempVec0;
-    const yAxis: Vector3 = Matrix._tempVec1;
-    const zAxis: Vector3 = Matrix._tempVec2;
-    const makeSafe: Vector3 = Matrix._tempVec3;
+    const xAxis: Vector3 = Matrix._tempVec30;
+    const yAxis: Vector3 = Matrix._tempVec31;
+    const zAxis: Vector3 = Matrix._tempVec32;
 
-    Vector3.subtract(target, eye, zAxis);
-    if (MathUtil.equals(zAxis.lengthSquared(), 0)) zAxis.z = 1;
-
+    Vector3.subtract(eye, target, zAxis);
     zAxis.normalize();
-    // make safe
-    up.normalize();
-    Vector3.subtract(up, zAxis, makeSafe);
-    const l = makeSafe.length();
-    if (MathUtil.equals(l, 0) || MathUtil.equals(l, 2)) {
-      zAxis.z += MathUtil.ZeroTolerance;
-      zAxis.normalize();
-    }
     Vector3.cross(up, zAxis, xAxis);
     xAxis.normalize();
     Vector3.cross(zAxis, xAxis, yAxis);
-    yAxis.normalize();
 
     oe[0] = xAxis.x;
-    oe[1] = xAxis.y;
-    oe[2] = xAxis.z;
+    oe[1] = yAxis.x;
+    oe[2] = zAxis.x;
     oe[3] = 0;
 
-    oe[4] = yAxis.x;
+    oe[4] = xAxis.y;
     oe[5] = yAxis.y;
-    oe[6] = yAxis.z;
+    oe[6] = zAxis.y;
     oe[7] = 0;
 
-    oe[8] = zAxis.x;
-    oe[9] = zAxis.y;
+    oe[8] = xAxis.z;
+    oe[9] = yAxis.z;
     oe[10] = zAxis.z;
     oe[11] = 0;
 
-    oe[12] = eye.x;
-    oe[13] = eye.y;
-    oe[14] = eye.z;
+    oe[12] = -Vector3.dot(xAxis, eye);
+    oe[13] = -Vector3.dot(yAxis, eye);
+    oe[14] = -Vector3.dot(zAxis, eye);
     oe[15] = 1;
+
+    console.log(`xxxxx`);
+    console.log(out);
   }
 
   /**
@@ -704,7 +695,7 @@ export class Matrix {
   }
 
   /**
-   * 将矩阵a按给定角度旋转，并将结果输出到out。
+   * 将矩阵 a 按给定角度旋转，并将结果输出到 out。
    * @param m - 矩阵
    * @param r - 给定的旋转角度
    * @param axis - 旋转轴
@@ -714,7 +705,7 @@ export class Matrix {
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
-    if (Math.abs(len) < MathUtil.ZeroTolerance) {
+    if (Math.abs(len) < MathUtil.zeroTolerance) {
       return;
     }
 
@@ -781,7 +772,7 @@ export class Matrix {
   }
 
   /**
-   * 将矩阵a按给定向量v缩放，并将结果输出到out。
+   * 将矩阵 a 按给定向量 v 缩放，并将结果输出到 out。
    * @param m - 矩阵
    * @param s - 缩放向量
    * @param out - 缩放后的矩阵
@@ -813,7 +804,7 @@ export class Matrix {
   }
 
   /**
-   * 将矩阵a按给定向量v转换，并将结果输出到out。
+   * 将矩阵 a 按给定向量 v 转换，并将结果输出到 out。
    * @param m - 矩阵
    * @param v - 转换向量
    * @param out - 转换后的结果
@@ -854,7 +845,7 @@ export class Matrix {
   }
 
   /**
-   * 计算矩阵a的转置矩阵，并将结果输出到out。
+   * 计算矩阵 a 的转置矩阵，并将结果输出到 out。
    * @param a - 矩阵
    * @param out - 转置矩阵
    */
@@ -908,27 +899,27 @@ export class Matrix {
     }
   }
 
-  /** 矩阵元素数组 */
+  /** 矩阵元素数组。 */
   elements: Float32Array = new Float32Array(16);
 
   /**
    * 创建4x4矩阵实例，默认创建单位矩阵，我们采用列矩阵。
-   * @param m11 默认值1 column 1, row 1
-   * @param m12 默认值0 column 1, row 2
-   * @param m13 默认值0 column 1, row 3
-   * @param m14 默认值0 column 1, row 4
-   * @param m21 默认值0 column 2, row 1
-   * @param m22 默认值1 column 2, row 2
-   * @param m23 默认值0 column 2, row 3
-   * @param m24 默认值0 column 2, row 4
-   * @param m31 默认值0 column 3, row 1
-   * @param m32 默认值0 column 3, row 2
-   * @param m33 默认值1 column 3, row 3
-   * @param m34 默认值0 column 3, row 4
-   * @param m41 默认值0 column 4, row 1
-   * @param m42 默认值0 column 4, row 2
-   * @param m43 默认值0 column 4, row 3
-   * @param m44 默认值1 column 4, row 4
+   * @param m11 默认值 1 column 1, row 1
+   * @param m12 默认值 0 column 1, row 2
+   * @param m13 默认值 0 column 1, row 3
+   * @param m14 默认值 0 column 1, row 4
+   * @param m21 默认值 0 column 2, row 1
+   * @param m22 默认值 1 column 2, row 2
+   * @param m23 默认值 0 column 2, row 3
+   * @param m24 默认值 0 column 2, row 4
+   * @param m31 默认值 0 column 3, row 1
+   * @param m32 默认值 0 column 3, row 2
+   * @param m33 默认值 1 column 3, row 3
+   * @param m34 默认值 0 column 3, row 4
+   * @param m41 默认值 0 column 4, row 1
+   * @param m42 默认值 0 column 4, row 2
+   * @param m43 默认值 0 column 4, row 3
+   * @param m44 默认值 1 column 4, row 4
    */
   constructor(
     m11: number = 1,
@@ -1062,7 +1053,7 @@ export class Matrix {
   }
 
   /**
-   * 将当前矩阵值拷贝给out矩阵。
+   * 将当前矩阵值拷贝给 out 矩阵。
    * @param out - 目标矩阵
    */
   cloneTo(out: Matrix): void {
@@ -1091,7 +1082,7 @@ export class Matrix {
   }
 
   /**
-   * 将当前矩阵乘以给定的向量a，并返回当前矩阵。
+   * 将当前矩阵乘以给定的向量 a，并返回当前矩阵。
    * @param b - 给定的向量，右操作数
    * @returns 当前矩阵
    */
@@ -1161,9 +1152,9 @@ export class Matrix {
     const sz = Math.sqrt(te[8] * te[8] + te[9] * te[9] + te[10] * te[10]);
 
     if (
-      Math.abs(sx) < MathUtil.ZeroTolerance ||
-      Math.abs(sy) < MathUtil.ZeroTolerance ||
-      Math.abs(sz) < MathUtil.ZeroTolerance
+      Math.abs(sx) < MathUtil.zeroTolerance ||
+      Math.abs(sy) < MathUtil.zeroTolerance ||
+      Math.abs(sz) < MathUtil.zeroTolerance
     ) {
       // TODO
     } else {
@@ -1191,7 +1182,7 @@ export class Matrix {
 
     const m3: Matrix3x3 = Matrix._tempMat30;
     Matrix3x3.fromMat4(t, m3);
-    Quaternion.fromMat3(m3, q);
+    Quaternion.rotationMat3(m3, q);
 
     s.x = sx;
     s.y = sy;
@@ -1209,7 +1200,7 @@ export class Matrix {
     let trace = e[0] + e[5] + e[10];
     let S = 0;
 
-    if (trace > MathUtil.ZeroTolerance) {
+    if (trace > MathUtil.zeroTolerance) {
       S = Math.sqrt(trace + 1.0) * 2;
       out.w = 0.25 * S;
       out.x = (e[6] - e[9]) / S;
@@ -1308,7 +1299,7 @@ export class Matrix {
   }
 
   /**
-   * 计算当前矩阵的逆矩阵，并返。
+   * 计算当前矩阵的逆矩阵，并返回。
    * @returns 当前矩阵
    */
   invert(): Matrix {
@@ -1328,7 +1319,7 @@ export class Matrix {
   }
 
   /**
-   * 将当前矩阵按给定向量v缩放，并返回。
+   * 将当前矩阵按给定向量 v 缩放，并返回。
    * @param s
    * @returns 当前矩阵
    */
@@ -1338,7 +1329,7 @@ export class Matrix {
   }
 
   /**
-   * 将当前矩阵按给定向量v转换，并返回。
+   * 将当前矩阵按给定向量 v 转换，并返回。
    * @param v - 转换向量
    * @returns 当前矩阵
    */

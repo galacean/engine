@@ -72,7 +72,7 @@ describe("Vector3 test", () => {
 
   it("static equals", () => {
     const a = new Vector3(1, 2, 3);
-    const b = new Vector3(1 + MathUtil.ZeroTolerance * 0.9, 2, 3);
+    const b = new Vector3(1 + MathUtil.zeroTolerance * 0.9, 2, 3);
 
     expect(Vector3.equals(a, b)).toEqual(true);
   });
@@ -118,50 +118,6 @@ describe("Vector3 test", () => {
 
     Vector3.normalize(a, out);
     expect(Vector3.equals(out, new Vector3(0.6, 0.8, 0))).toEqual(true);
-  });
-
-  it("static projectOnVector", () => {
-    const a = new Vector3();
-    const n = new Vector3(10, 0, 0);
-    const out = new Vector3();
-
-    a.setValue(1, 0, 0);
-    Vector3.projectOnVector(a, n, out);
-    expect(toString(out)).toEqual("vec3(1, 0, 0)");
-
-    a.setValue(0, 1, 0);
-    Vector3.projectOnVector(a, n, out);
-    expect(toString(out)).toEqual("vec3(0, 0, 0)");
-
-    a.setValue(0, 0, -1);
-    Vector3.projectOnVector(a, n, out);
-    expect(toString(out)).toEqual("vec3(0, 0, 0)");
-
-    a.setValue(-1, 0, 0);
-    Vector3.projectOnVector(a, n, out);
-    expect(toString(out)).toEqual("vec3(-1, 0, 0)");
-  });
-
-  it("static projectOnPlane", () => {
-    const a = new Vector3();
-    const n = new Vector3(1, 0, 0);
-    const out = new Vector3();
-
-    a.setValue(1, 0, 0);
-    Vector3.projectOnPlane(a, n, out);
-    expect(toString(out)).toEqual("vec3(0, 0, 0)");
-
-    a.setValue(0, 1, 0);
-    Vector3.projectOnPlane(a, n, out);
-    expect(toString(out)).toEqual("vec3(0, 1, 0)");
-
-    a.setValue(0, 0, -1);
-    Vector3.projectOnPlane(a, n, out);
-    expect(toString(out)).toEqual("vec3(0, 0, -1)");
-
-    a.setValue(-1, 0, 0);
-    Vector3.projectOnPlane(a, n, out);
-    expect(toString(out)).toEqual("vec3(0, 0, 0)");
   });
 
   it("static scale", () => {

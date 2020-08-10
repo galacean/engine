@@ -248,13 +248,13 @@ export class RfuiAnimation {
     const end = new Quaternion();
 
     config.end
-      ? Quaternion.fromEuler(
+      ? Quaternion.rotationEuler(
           MathUtil.degreeToRadian(config.end[0]),
           MathUtil.degreeToRadian(config.end[1]),
           MathUtil.degreeToRadian(config.end[2]),
           end
         )
-      : Quaternion.fromEuler(0, 0, Math.PI, end);
+      : Quaternion.rotationEuler(0, 0, Math.PI, end);
     return rotate(this.node, end, config);
   }
 

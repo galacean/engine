@@ -3,7 +3,7 @@ import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { NodeConfig } from "./types";
-import { Entity } from "@alipay/o3";
+import { Entity, Vector3 } from "@alipay/o3";
 
 export class NodeManager {
   private nodeMap: { [id: string]: o3.Entity } = {};
@@ -49,9 +49,9 @@ export class NodeManager {
     const { isActive, position, rotation, scale, id, name } = nodeConfig;
     const entity = new o3.Entity(name);
     entity.isActive = isActive;
-    entity.position.setValue(position[0], position[1], position[2]);
-    entity.transform.rotation.setValue(rotation[0], rotation[1], rotation[2]);
-    entity.scale.setValue(scale[0], scale[1], scale[2]);
+    entity.transform.position = new Vector3(position[0], position[1], position[2]);
+    entity.transform.rotation = new Vector3(rotation[0], rotation[1], rotation[2]);
+    entity.transform.scale = new Vector3(scale[0], scale[1], scale[2]);
     (entity as any).id = id;
     this.nodeMap[id] = entity;
     return entity;

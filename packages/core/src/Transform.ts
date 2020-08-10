@@ -136,8 +136,8 @@ export class Transform extends Component {
    */
   get rotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._LOCAL_EULER_FLAG)) {
-      Quaternion.toEuler(this._rotationQuaternion, this._rotation);
-      this._rotation.scale(MathUtil.RadToDegree); // 弧度转角度
+      this._rotation = this._rotationQuaternion.toEuler();
+      this._rotation.scale(MathUtil.radToDegree); // 弧度转角度
 
       this._setDirtyFlagFalse(Transform._LOCAL_EULER_FLAG);
     }
@@ -159,8 +159,8 @@ export class Transform extends Component {
    */
   get worldRotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_EULER_FLAG)) {
-      Quaternion.toEuler(this.worldRotationQuaternion, this._worldRotation);
-      this._worldRotation.scale(MathUtil.RadToDegree); // 弧度转角度
+      this._worldRotation = this.worldRotationQuaternion.toEuler();
+      this._worldRotation.scale(MathUtil.radToDegree); // 弧度转角度
       this._setDirtyFlagFalse(Transform._WORLD_EULER_FLAG);
     }
     return this._worldRotation;
@@ -170,7 +170,7 @@ export class Transform extends Component {
     if (this._worldRotation !== value) {
       value.cloneTo(this._worldRotation);
     }
-    Quaternion.fromEuler(
+    Quaternion.rotationEuler(
       MathUtil.degreeToRadian(value.x),
       MathUtil.degreeToRadian(value.y),
       MathUtil.degreeToRadian(value.z),
@@ -186,7 +186,7 @@ export class Transform extends Component {
    */
   get rotationQuaternion(): Quaternion {
     if (this._isContainDirtyFlag(Transform._LOCAL_QUAT_FLAG)) {
-      Quaternion.fromEuler(
+      Quaternion.rotationEuler(
         MathUtil.degreeToRadian(this._rotation.x),
         MathUtil.degreeToRadian(this._rotation.y),
         MathUtil.degreeToRadian(this._rotation.z),
@@ -340,7 +340,7 @@ export class Transform extends Component {
    */
   getWorldForward(forward: Vector3): Vector3 {
     const e = this.worldMatrix.elements;
-    forward.setValue(e[8], e[9], e[10]);
+    forward.setValue(-e[8], -e[9], -e[10]);
     return forward.normalize();
   }
 
@@ -388,7 +388,7 @@ export class Transform extends Component {
    * @param relativeToLocal - 是否相对局部空间
    */
   rotate(rotation: Vector3, relativeToLocal: boolean = true): void {
-    Quaternion.fromEuler(
+    Quaternion.rotationEuler(
       MathUtil.degreeToRadian(rotation.x),
       MathUtil.degreeToRadian(rotation.y),
       MathUtil.degreeToRadian(rotation.z),
@@ -405,7 +405,7 @@ export class Transform extends Component {
    */
   rotateByAxis(axis: Vector3, angle: number, relativeToLocal: boolean = true): void {
     const rad = (angle * Math.PI) / 180;
-    Transform._tempQuat0.setAxisAngle(axis, rad);
+    Quaternion.setAxisAngle(axis, rad, Transform._tempQuat0);
     this._rotateByQuat(Transform._tempQuat0, relativeToLocal);
   }
 
@@ -416,7 +416,7 @@ export class Transform extends Component {
    */
   lookAt(worldPosition: Vector3, worldUp?: Vector3): void {
     const position = this.worldPosition;
-    const EPSILON = MathUtil.ZeroTolerance;
+    const EPSILON = MathUtil.zeroTolerance;
     if (
       //todo:如果数学苦做保护了的话，可以删除
       Math.abs(position.x - worldPosition.x) < EPSILON &&
@@ -428,6 +428,7 @@ export class Transform extends Component {
     worldUp = worldUp ?? Transform._tempVec3.setValue(0, 1, 0);
     const mat = Transform._tempMat43;
     Matrix.lookAtR(position, worldPosition, worldUp, mat); //CM:可采用3x3矩阵优化
+    mat.invert();
 
     this.worldRotationQuaternion = mat.getRotation(this._worldRotationQuaternion); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
   }

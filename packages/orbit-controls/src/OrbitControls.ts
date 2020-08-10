@@ -1,8 +1,6 @@
 "use strict";
-
-import { Logger } from "@alipay/o3-core";
-import { Entity, Script } from "@alipay/o3-core";
 import { Spherical, Vector2, Vector3, Matrix } from "@alipay/o3-math";
+import { Entity, Logger, Script } from "@alipay/o3-core";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
