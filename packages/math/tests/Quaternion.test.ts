@@ -48,11 +48,11 @@ describe("Quaternion test", () => {
     expect(Quaternion.equals(a, b)).toEqual(true);
   });
 
-  it("static setAxisAngle", () => {
+  it("static rotationAxisAngle", () => {
     const a = new Vector3(3, 7, 5);
     const b = new Vector3();
     const out = new Quaternion();
-    Quaternion.setAxisAngle(a, Math.PI / 3, out);
+    Quaternion.rotationAxisAngle(a, Math.PI / 3, out);
     const rad = out.getAxisAngle(b);
 
     expect(MathUtil.equals(rad, Math.PI / 3)).toEqual(true);

@@ -81,7 +81,7 @@ export class Quaternion {
    * @param rad - 旋转角度(单位：弧度)
    * @param out - 生成的四元数
    */
-  static setAxisAngle(axis: Vector3, rad: number, out: Quaternion): void {
+  static rotationAxisAngle(axis: Vector3, rad: number, out: Quaternion): void {
     const normalAxis = new Vector3();
     Vector3.normalize(axis, normalAxis);
     rad *= 0.5;

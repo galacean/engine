@@ -137,7 +137,7 @@ export class Matrix {
   }
 
   /**
-   * 从四元数转换为一个4x4矩阵。
+   * 通过四元数生成旋转矩阵。
    * @param q - 四元数
    * @param out - 转换后的4x4矩阵
    */

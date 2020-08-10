@@ -27,7 +27,7 @@ export default class Rotation extends Script {
   onUpdate(deltaTime) {
     this.deg += this.dDeg * (deltaTime / 1000);
     const rotationQua = this.entity.transform.rotationQuaternion;
-    Quaternion.setAxisAngle(this.axis, MathUtil.degreeToRadian(this.deg), rotationQua);
+    Quaternion.rotationAxisAngle(this.axis, MathUtil.degreeToRadian(this.deg), rotationQua);
     this.entity.transform.rotationQuaternion = rotationQua;
   }
 }
