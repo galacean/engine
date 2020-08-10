@@ -374,7 +374,7 @@ export class Transform extends Component {
   translate(translation: Vector3, relativeToLocal: boolean = true): void {
     if (relativeToLocal) {
       const rotationMat = Transform._tempMat40;
-      Matrix.fromQuat(this.rotationQuaternion, rotationMat);
+      Matrix.rotationQuaternion(this.rotationQuaternion, rotationMat);
       Vector3.transformCoordinate(translation, rotationMat, Transform._tempVec3);
       this.position = this._position.add(Transform._tempVec3);
     } else {
@@ -586,7 +586,7 @@ export class Transform extends Component {
     const scaMat = Transform._tempMat32;
     Matrix3x3.fromMat4(this.worldMatrix, worldRotScaMat);
     Quaternion.invert(this.worldRotationQuaternion, invRotation);
-    Matrix3x3.fromQuat(invRotation, invRotationMat);
+    Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
     Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
     return scaMat;
   }

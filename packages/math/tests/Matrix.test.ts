@@ -43,11 +43,11 @@ describe("Matrix test", () => {
     expect(Matrix.equals(a, c)).toEqual(false);
   });
 
-  it("static fromQuat", () => {
+  it("static rotationQuaternion", () => {
     const q = new Quaternion(1, 2, 3, 4);
     const out = new Matrix();
 
-    Matrix.fromQuat(q, out);
+    Matrix.rotationQuaternion(q, out);
     expect(Matrix.equals(out, new Matrix(-25, 28, -10, 0, -20, -19, 20, 0, 22, 4, -9, 0, 0, 0, 0, 1))).toEqual(true);
   });
 

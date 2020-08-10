@@ -51,23 +51,17 @@ describe("Matrix3x3 test", () => {
 
     // quat
     const q = new Quaternion(1, 2, 3, 4);
-    Matrix3x3.fromQuat(q, out);
+    Matrix3x3.rotationQuaternion(q, out);
     expect(Matrix3x3.equals(out, new Matrix3x3(-25, 28, -10, -20, -19, 20, 22, 4, -9))).toEqual(true);
-
-    // rotation
-    Matrix3x3.fromRotation(Math.PI / 3, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(0.5, Math.sqrt(3) / 2, 0, -Math.sqrt(3) / 2, 0.5, 0, 0, 0, 1))).toEqual(
-      true
-    );
 
     // scaling
     const scale = new Vector2(1, 2);
-    Matrix3x3.fromScaling(scale, out);
+    Matrix3x3.scaling(scale, out);
     expect(Matrix3x3.equals(out, new Matrix3x3(1, 0, 0, 0, 2, 0, 0, 0, 1))).toEqual(true);
 
     // translation
     const trans = new Vector2(2, 3);
-    Matrix3x3.fromTranslation(trans, out);
+    Matrix3x3.translation(trans, out);
     expect(Matrix3x3.equals(out, new Matrix3x3(1, 0, 0, 0, 1, 0, 2, 3, 1))).toEqual(true);
   });
 

@@ -149,7 +149,7 @@ export class Matrix3x3 {
    * @param q - 四元数
    * @param out - 转换后的3x3矩阵
    */
-  static fromQuat(q: Quaternion, out: Matrix3x3): void {
+  static rotationQuaternion(q: Quaternion, out: Matrix3x3): void {
     const oe = out.elements;
     const { x, y, z, w } = q;
     const x2 = x + x;
@@ -179,34 +179,11 @@ export class Matrix3x3 {
   }
 
   /**
-   * 通过指定旋转生成3x3矩阵。
-   * @param r - 旋转角度(单位：弧度)
-   * @param out - 指定旋转后矩阵
-   */
-  static fromRotation(r: number, out: Matrix3x3): void {
-    const oe = out.elements;
-    const s = Math.sin(r);
-    const c = Math.cos(r);
-
-    oe[0] = c;
-    oe[1] = s;
-    oe[2] = 0;
-
-    oe[3] = -s;
-    oe[4] = c;
-    oe[5] = 0;
-
-    oe[6] = 0;
-    oe[7] = 0;
-    oe[8] = 1;
-  }
-
-  /**
    * 通过指定缩放生成3x3矩阵。
    * @param s - 缩放向量
    * @param out - 指定缩放后矩阵
    */
-  static fromScaling(s: Vector2, out: Matrix3x3): void {
+  static scaling(s: Vector2, out: Matrix3x3): void {
     const oe = out.elements;
 
     oe[0] = s.x;
@@ -227,7 +204,7 @@ export class Matrix3x3 {
    * @param trans - 平移向量
    * @param out - 指定平移后矩阵
    */
-  static fromTranslation(trans: Vector2, out: Matrix3x3): void {
+  static translation(trans: Vector2, out: Matrix3x3): void {
     const oe = out.elements;
 
     oe[0] = 1;

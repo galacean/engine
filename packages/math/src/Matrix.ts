@@ -141,7 +141,7 @@ export class Matrix {
    * @param q - 四元数
    * @param out - 转换后的4x4矩阵
    */
-  static fromQuat(q: Quaternion, out: Matrix): void {
+  static rotationQuaternion(q: Quaternion, out: Matrix): void {
     const oe = out.elements;
     const { x, y, z, w } = q;
     let x2 = x + x;
@@ -233,41 +233,12 @@ export class Matrix {
    * @param out - 生成的4x4矩阵
    */
   static fromRotationTranslation(q: Quaternion, trans: Vector3, out: Matrix): void {
+    Matrix.rotationQuaternion(q, out);
+
     const oe = out.elements;
-    const { x, y, z, w } = q;
-    let x2 = x + x;
-    let y2 = y + y;
-    let z2 = z + z;
-
-    let xx = x * x2;
-    let xy = x * y2;
-    let xz = x * z2;
-    let yy = y * y2;
-    let yz = y * z2;
-    let zz = z * z2;
-    let wx = w * x2;
-    let wy = w * y2;
-    let wz = w * z2;
-
-    oe[0] = 1 - (yy + zz);
-    oe[1] = xy + wz;
-    oe[2] = xz - wy;
-    oe[3] = 0;
-
-    oe[4] = xy - wz;
-    oe[5] = 1 - (xx + zz);
-    oe[6] = yz + wx;
-    oe[7] = 0;
-
-    oe[8] = xz + wy;
-    oe[9] = yz - wx;
-    oe[10] = 1 - (xx + yy);
-    oe[11] = 0;
-
     oe[12] = trans.x;
     oe[13] = trans.y;
     oe[14] = trans.z;
-    oe[15] = 1;
   }
 
   /**
