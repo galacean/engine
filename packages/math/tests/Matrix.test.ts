@@ -158,16 +158,6 @@ describe("Matrix test", () => {
     ).toEqual(true);
   });
 
-  it("static lookAt", () => {
-    const out = new Matrix();
-    const eye = new Vector3(0, 0, -8);
-    const center = new Vector3(0, 0, 0);
-    const up = new Vector3(0, 1, 0);
-
-    Matrix.lookAt(eye, center, up, out);
-    expect(Matrix.equals(out, new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, -8, 1))).toEqual(true);
-  });
-
   it("static lookAtR", () => {
     const out = new Matrix();
     const eye = new Vector3(0, 0, -8);
