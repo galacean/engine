@@ -180,7 +180,7 @@ export class Matrix {
   }
 
   /**
-   * 通过指定旋转生成4x4矩阵。
+   * 通过绕任意轴旋转生成4x4矩阵。
    * * @param axis - 旋转轴
    * @param r - 旋转角度
    * @param out - 指定旋转后矩阵
