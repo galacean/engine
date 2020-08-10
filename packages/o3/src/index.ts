@@ -39,5 +39,35 @@ export * from "@alipay/o3-tween";
 // import { PBRMaterial } from "@alipay/o3-pbr";
 import "@alipay/o3-raycast";
 import "@alipay/o3-shadow";
+import { Parser } from "@alipay/o3-scene-loader";
+
+import { GLTFModel } from "@alipay/o3-loader";
+import { SpriteRenderer } from "@alipay/o3-2d";
+import { PointLight, AmbientLight, DirectLight, EnvironmentMapLight } from "@alipay/o3-lighting";
+import { ASkyBox } from "@alipay/o3-skybox";
+import { Particle } from "@alipay/o3-particle";
+import { BoxCollider, SphereCollider } from "@alipay/o3-collider";
+import { GeometryRenderer } from "@alipay/o3-geometry";
+import { Camera, Component } from "@alipay/o3-core";
+import { PlaneProbe } from "@alipay/o3-env-probe";
+
+Parser.registerComponents("o3", {
+  GLTFModel,
+  SpriteRenderer,
+  PointLight,
+  AmbientLight,
+  DirectLight,
+  EnvironmentMapLight,
+  Particle,
+  ASkyBox,
+  BoxCollider,
+  GeometryRenderer,
+  Camera,
+  Component,
+  SphereCollider,
+  PlaneProbe
+});
+
+export * from "@alipay/o3-scene-loader";
 
 // RegistExtension({ PBRMaterial, TextureMaterial, TransparentMaterial });

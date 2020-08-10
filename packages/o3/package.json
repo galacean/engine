@@ -65,6 +65,7 @@
     "@alipay/o3-shadow": "2.3.6",
     "@alipay/o3-skybox": "2.3.6",
     "@alipay/o3-trail": "2.3.6",
-    "@alipay/o3-tween": "2.3.6"
+    "@alipay/o3-tween": "2.3.6",
+    "@alipay/o3-scene-loader": "2.3.6"
   }
 }
