@@ -1,13 +1,12 @@
-import * as o3 from "@alipay/o3";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { NodeConfig } from "./types";
-import { Entity } from "@alipay/o3";
+import { Entity } from "@alipay/o3-core";
 
 export class NodeManager {
-  private nodeMap: { [id: string]: o3.Entity } = {};
-  private readonly root: o3.Entity;
+  private nodeMap: { [id: string]: Entity } = {};
+  private readonly root: Entity;
 
   constructor(private oasis: Oasis) {
     this.root = new Entity("root", this.oasis.engine);
@@ -27,7 +26,7 @@ export class NodeManager {
     return { id, key, value };
   }
 
-  public get(id: string): o3.Entity {
+  public get(id: string): Entity {
     return this.nodeMap[id];
   }
 
@@ -45,9 +44,9 @@ export class NodeManager {
    * 创建节点
    * @param nodeConfig
    */
-  private create(nodeConfig: NodeConfig): o3.Entity {
+  private create(nodeConfig: NodeConfig): Entity {
     const { isActive, position, rotation, scale, id, name } = nodeConfig;
-    const entity = new o3.Entity(name);
+    const entity = new Entity(name);
     entity.isActive = isActive;
     entity.position = position;
     entity.transform.rotation = rotation;

@@ -1,9 +1,8 @@
 import { SchemaResource } from "./SchemaResource";
-import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
 import { compressedTextureLoadOrder } from "../utils";
-import { ResourceManager, AssetType } from "@alipay/o3";
+import { ResourceManager, AssetType, GLCapabilityType } from "@alipay/o3-core";
 
 const imageOrderMap = {
   px: 0,
@@ -27,7 +26,7 @@ export class TextureCubeMapResource extends SchemaResource {
         });
         for (let i = 0; i < compressions.length; i++) {
           const compression = compressions[i];
-          if (compression.container === "ktx" && rhi.canIUse(o3.GLCapabilityType[compression.type])) {
+          if (compression.container === "ktx" && rhi.canIUse(GLCapabilityType[compression.type])) {
             for (const key in compression.files) {
               if (compression.files.hasOwnProperty(key)) {
                 const image = compression.files[key];

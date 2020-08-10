@@ -1,9 +1,8 @@
 import { SchemaResource } from "./SchemaResource";
-import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
 import { compressedTextureLoadOrder } from "../utils";
-import { ResourceManager } from "@alipay/o3";
+import { ResourceManager, GLCapabilityType } from "@alipay/o3-core";
 
 export class TextureResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<TextureResource> {
@@ -15,7 +14,7 @@ export class TextureResource extends SchemaResource {
         compressions.sort((a: any, b: any) => compressedTextureLoadOrder[a.type] - compressedTextureLoadOrder[b.type]);
         for (let i = 0; i < compressions.length; i++) {
           const compression = compressions[i];
-          if (compression.container === "ktx" && rhi.canIUse(o3.GLCapabilityType[compression.type])) {
+          if (compression.container === "ktx" && rhi.canIUse(GLCapabilityType[compression.type])) {
             url = compression.url;
             break;
           }

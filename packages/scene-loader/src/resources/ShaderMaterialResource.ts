@@ -1,7 +1,7 @@
 import { SchemaResource } from "./SchemaResource";
-import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
+import { ShaderMaterial } from "@alipay/o3-mobile-material";
 type ShaderMaterialDefine = {
   vertexShader: string;
   fragmentShader: string;
@@ -50,7 +50,7 @@ export class ShaderMaterialResource extends SchemaResource {
   }
 
   private createMaterial() {
-    const material = new o3.ShaderMaterial(this.meta.name || "shader_mtl");
+    const material = new ShaderMaterial(this.meta.name || "shader_mtl");
     this._resource = material;
   }
 

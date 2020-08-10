@@ -1,7 +1,7 @@
 import { SchemaResource } from "./SchemaResource";
-import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
 import { Oasis } from "../Oasis";
+import { Parser } from "../Parser";
 
 export const scriptAbility = {};
 export function script(name: string) {
@@ -18,7 +18,7 @@ export class ScriptResource extends SchemaResource {
     }
     this.isInit = true;
     (window as any).__o3_script_context__ = {
-      o3: o3,
+      o3: Parser._components["o3"],
       script: (name: string) => {
         return (target: any) => {
           scriptAbility[name] = target;

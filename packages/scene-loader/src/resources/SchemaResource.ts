@@ -1,4 +1,4 @@
-import { Logger, ResourceManager } from "@alipay/o3";
+import { Logger, ResourceManager } from "@alipay/o3-core";
 import { SchemaResourceManager } from "../ResourceManager";
 
 import { AssetConfig, LoadAttachedResourceResult } from "../types";

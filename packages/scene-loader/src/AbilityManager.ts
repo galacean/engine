@@ -1,13 +1,13 @@
-import * as o3 from "@alipay/o3";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { AbilityConfig, Props } from "./types";
 import { scriptAbility } from "./resources";
-import { Logger } from "@alipay/o3";
+import { Logger, Component } from "@alipay/o3-core";
+import { Parser } from "./Parser";
 
 export class AbilityManager {
-  private abilityMap: { [id: string]: o3.Component } = {};
+  private abilityMap: { [id: string]: Component } = {};
 
   constructor(private oasis: Oasis) {}
 
@@ -16,15 +16,15 @@ export class AbilityManager {
     const { type, node: nodeId, props, id, index } = abilityConfig;
 
     const node = this.oasis.nodeManager.get(nodeId);
-    const AbilityConstructor = this.getConstructor(type);
+    const AbilityConstructor = this.getCompConstructor(type);
     if (!AbilityConstructor) {
-      o3.Logger.error(`${type} abiltiy is not defined`);
+      Logger.error(`${type} abiltiy is not defined`);
       return;
     }
     const abilityProps = this.mixPropsToExplicitProps(props);
-    if (AbilityConstructor === o3.Camera) {
-      abilityProps.SceneRenderer = o3.BasicRenderPipeline;
-    }
+    // if (AbilityConstructor === Camera) {
+    //   abilityProps.SceneRenderer = o3.BasicRenderPipeline;
+    // }
     const ability = node.addComponent(AbilityConstructor, abilityProps);
     const { enabled } = abilityProps;
     if (enabled !== undefined) {
@@ -58,7 +58,7 @@ export class AbilityManager {
     return { id, key, value };
   }
 
-  public get(id: string): o3.Component {
+  public get(id: string): Component {
     return this.abilityMap[id];
   }
 
@@ -70,13 +70,14 @@ export class AbilityManager {
     return id;
   }
 
-  private getConstructor(type: string) {
+  private getCompConstructor(type: string) {
     const splits = type.split(".");
     // script
     if (splits[0] === "script") {
       return scriptAbility[splits[1]];
     }
-    const constructor = o3[type];
+
+    const constructor = Parser._components["o3"][type];
     if (!constructor) {
       throw new Error(`${type} is not defined`);
     }
