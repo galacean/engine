@@ -12,7 +12,7 @@ import {
 } from "./resources";
 import { AssetConfig } from "./types";
 import { pluginHook } from "./plugins/PluginManager";
-import { ResourceManager } from "@alipay/o3";
+import { ResourceManager } from "@alipay/o3-core";
 
 const RESOURCE_CLASS = {
   script: ScriptResource,

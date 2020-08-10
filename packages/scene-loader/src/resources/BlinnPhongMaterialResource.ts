@@ -1,12 +1,12 @@
 import { SchemaResource } from "./SchemaResource";
-import * as o3 from "@alipay/o3";
 import { AssetConfig } from "../types";
-import { ResourceManager } from "@alipay/o3";
+import { ResourceManager } from "@alipay/o3-core";
+import { BlinnPhongMaterial } from "@alipay/o3-mobile-material";
 
 export class BlinnPhongMaterialResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<BlinnPhongMaterialResource> {
     return new Promise((resolve) => {
-      const assetObj = new o3.BlinnPhongMaterial(assetConfig.name);
+      const assetObj = new BlinnPhongMaterial(assetConfig.name);
       for (let k in assetConfig.props) {
         assetObj[k] = assetConfig.props[k];
       }

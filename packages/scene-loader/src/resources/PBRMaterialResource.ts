@@ -1,6 +1,7 @@
 import { SchemaResource } from "./SchemaResource";
-import * as o3 from "@alipay/o3";
-import { Logger, PBRMaterial, ResourceManager } from "@alipay/o3";
+import { Logger, ResourceManager } from "@alipay/o3-core";
+import { PBRMaterial } from "@alipay/o3-pbr";
+import { Texture } from "@alipay/o3-material";
 
 import { TextureResource } from "./TextureResource";
 import { isAsset, getAllGetters } from "../utils";
@@ -11,7 +12,7 @@ export class PBRMaterialResource extends SchemaResource {
 
   load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<PBRMaterialResource> {
     return new Promise((resolve) => {
-      const assetObj = new o3.PBRMaterial(assetConfig.name);
+      const assetObj = new PBRMaterial(assetConfig.name);
       this.configProps = assetConfig.props;
 
       for (let k in this.configProps) {
@@ -54,7 +55,7 @@ export class PBRMaterialResource extends SchemaResource {
 
           const material = this._resource;
           getAllGetters(this._resource).forEach((attr) => {
-            if (!(material[attr] instanceof o3.Texture)) return;
+            if (!(material[attr] instanceof Texture)) return;
             const textureResource = new TextureResource(this.resourceManager, material[attr]);
             this.attachedResources.push(textureResource);
             result.resources.push(textureResource);

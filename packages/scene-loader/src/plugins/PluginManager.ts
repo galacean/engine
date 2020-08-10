@@ -1,7 +1,7 @@
-import * as o3 from "@alipay/o3";
 import { Oasis } from "../Oasis";
 import { Plugin } from "./Plugin";
 import { SchemaResource } from "../resources";
+import { Entity, Component } from "@alipay/o3-core";
 
 export class PluginManager implements PluginHook {
   private registeredPlugins: Set<Plugin> = new Set();
@@ -25,7 +25,7 @@ export class PluginManager implements PluginHook {
     this.plugins = [];
   }
 
-  nodeAdded(entity: o3.Entity) {
+  nodeAdded(entity: Entity) {
     this.delegateMethod("nodeAdded", entity);
   }
 
@@ -36,10 +36,10 @@ export class PluginManager implements PluginHook {
 
 export interface PluginHook {
   oasis?: Oasis;
-  nodeAdded?(entity: o3.Entity): any;
+  nodeAdded?(entity: Entity): any;
   beforeNodeUpdated?(id: string, key: string, value: any): any;
   nodeUpdated?(updateConfig?: { id: string; key: string; value: any }): any;
-  abilityAdded?(ability: o3.Component): any;
+  abilityAdded?(ability: Component): any;
   beforeAbilityAdded?(config: any): any;
   beforeAbilityUpdated?(id: string, key: string, value: any): any;
   abilityUpdated?(updateConfig?: { id: string; key: string; value: any }): any;

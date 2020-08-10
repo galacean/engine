@@ -2,11 +2,12 @@ import { NodeManager } from "./NodeManager";
 import { AbilityManager } from "./AbilityManager";
 import { SchemaResourceManager } from "./ResourceManager";
 import { PluginManager, pluginHook } from "./plugins/PluginManager";
-import * as o3 from "@alipay/o3";
 import { Schema, Options } from "./types";
+import { EventDispatcher, Engine, Component } from "@alipay/o3-core";
+import { WebCanvas, WebGLRenderer } from "@alipay/o3-rhi-webgl";
 
-export class Oasis extends o3.EventDispatcher {
-  public readonly engine: o3.Engine = null;
+export class Oasis extends EventDispatcher {
+  public readonly engine: Engine = null;
   public readonly nodeManager: NodeManager;
   public readonly abilityManager: AbilityManager;
   public resourceManager: SchemaResourceManager;
@@ -18,7 +19,7 @@ export class Oasis extends o3.EventDispatcher {
 
   private constructor(private _options: Readonly<Options>, public readonly pluginManager: PluginManager) {
     super();
-    this.engine = new o3.Engine(new o3.WebCanvas(_options.canvas), new o3.WebGLRenderer(_options.rhiAttr));
+    this.engine = new Engine(new WebCanvas(_options.canvas), new WebGLRenderer(_options.rhiAttr));
     this.resetFeature();
     this.schema = _options.config;
     this.timeout = _options.timeout;

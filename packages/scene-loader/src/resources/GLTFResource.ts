@@ -1,5 +1,5 @@
 import { SchemaResource } from "./SchemaResource";
-import { Logger, AssetType, ResourceManager } from "@alipay/o3";
+import { Logger, AssetType, ResourceManager } from "@alipay/o3-core";
 
 import { PBRMaterialResource } from "./PBRMaterialResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";

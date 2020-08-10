@@ -1,8 +1,8 @@
 import { PluginManager, PluginHook } from "./plugins/PluginManager";
 import { Oasis } from "./Oasis";
-import { defaultCameraPlugin } from "./plugins/DefaultCameraPlugin";
 import { Plugin } from "./plugins/Plugin";
 import { Options } from "./types";
+import { Component } from "@alipay/o3-core";
 
 const CURRENT_SCHEMA_VERSION = 2;
 
@@ -28,10 +28,22 @@ export class Parser {
   private constructor() {}
 
   static create(): Parser {
-    // todo delete
     const parser = new Parser();
-    parser.register(defaultCameraPlugin);
     return parser;
+  }
+
+  /** @internal */
+  public static _components: { [namespace: string]: { [compName: string]: Component } } = {};
+  /**
+   * 注册解析组件
+   * @param namespace 命名空间
+   * @param components 组件
+   */
+  static registerComponents(namespace: string, components: { [key: string]: any }) {
+    if (!this._components[namespace]) {
+      this._components[namespace] = {};
+    }
+    Object.assign(this._components[namespace], components);
   }
 }
 

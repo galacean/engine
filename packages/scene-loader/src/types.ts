@@ -145,6 +145,8 @@ export interface Options {
   fps?: number;
   // 是否使用压缩纹理
   useCompressedTexture?: boolean;
+  /** Engine */
+  // engine?: Engine;
 }
 
 export interface LoadAttachedResourceResult {
