@@ -107,7 +107,7 @@ export class Matrix {
   }
 
   /**
-   * 判断两个四维矩阵的值是否相等。
+   * 判断两个矩阵的值是否相等。
    * @param a - 左矩阵
    * @param b - 右矩阵
    * @returns 两个矩阵是否相等，是返回 true，否则返回 false
@@ -756,11 +756,20 @@ export class Matrix {
     }
   }
 
-  /** 矩阵元素数组。 */
+  /**
+   * 矩阵元素数组，采用列矩阵的模式存储。
+   * @remarks
+   * elements[0] 表示第 1 列第 1 行 m11
+   * elements[1] 表示第 1 列第 2 行 m12
+   * elements[2] 表示第 1 列第 3 行 m13
+   * elements[3] 表示第 1 列第 4 行 m14
+   * elements[4] 表示第 2 列第 1 行 m21
+   * 依次类推
+   */
   elements: Float32Array = new Float32Array(16);
 
   /**
-   * 创建4x4矩阵实例，默认创建单位矩阵，我们采用列矩阵。
+   * 创建4x4矩阵实例，默认创建单位矩阵，采用列矩阵的模式存储。
    * @param m11 默认值 1 column 1, row 1
    * @param m12 默认值 0 column 1, row 2
    * @param m13 默认值 0 column 1, row 3
@@ -883,7 +892,7 @@ export class Matrix {
   }
 
   /**
-   * 创建一个新的四维矩阵，并用当前矩阵值初始化。
+   * 创建一个新的矩阵，并用当前矩阵值初始化。
    * @returns 一个新的矩阵，并且拷贝当前矩阵的值
    */
   clone(): Matrix {

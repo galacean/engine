@@ -4,7 +4,7 @@ import { Quaternion } from "./Quaternion";
 import { Vector2 } from "./Vector2";
 
 /**
- * 3x3矩阵
+ * 3x3矩阵，我们采用列矩阵的模式存储
  */
 export class Matrix3x3 {
   /**
@@ -100,7 +100,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 判断两个三维矩阵的值是否相等。
+   * 判断两个矩阵的值是否相等。
    * @param a - 左矩阵
    * @param b - 右矩阵
    * @returns 两个矩阵是否相等，是返回 true，否则返回 false
@@ -180,7 +180,7 @@ export class Matrix3x3 {
 
   /**
    * 通过指定旋转生成3x3矩阵。
-   * @param r - 旋转角度
+   * @param r - 旋转角度(单位：弧度)
    * @param out - 指定旋转后矩阵
    */
   static fromRotation(r: number, out: Matrix3x3): void {
@@ -346,7 +346,7 @@ export class Matrix3x3 {
   /**
    * 将矩阵 a 按给定角度旋转，并将结果输出到 out。
    * @param a - 矩阵
-   * @param r - 给定的旋转角度
+   * @param r - 给定的旋转角度(单位：弧度)
    * @param out - 旋转后的矩阵
    */
   static rotate(a: Matrix3x3, r: number, out: Matrix3x3): void {
@@ -470,11 +470,19 @@ export class Matrix3x3 {
     }
   }
 
-  /** 矩阵元素数组 */
+  /**
+   * 矩阵元素数组，采用列矩阵的模式存储。
+   * @remarks
+   * elements[0] 表示第 1 列第 1 行 m11
+   * elements[1] 表示第 1 列第 2 行 m12
+   * elements[2] 表示第 1 列第 3 行 m13
+   * elements[3] 表示第 2 列第 1 行 m21
+   * 依次类推
+   */
   elements: Float32Array = new Float32Array(9);
 
   /**
-   * 创建3x3矩阵实例，默认创建单位矩阵，我们采用列矩阵。
+   * 创建3x3矩阵实例，默认创建单位矩阵，采用列矩阵的模式存储。
    * @param m11 - 默认值1 column 1, row 1
    * @param m12 - 默认值0 column 1, row 2
    * @param m13 - 默认值0 column 1, row 3
@@ -553,7 +561,7 @@ export class Matrix3x3 {
   }
 
   /**
-   * 创建一个新的三维矩阵，并用当前矩阵值初始化。
+   * 创建一个新的矩阵，并用当前矩阵值初始化。
    * @returns 一个新的矩阵，并且拷贝当前矩阵的值
    */
   clone(): Matrix3x3 {
@@ -670,7 +678,7 @@ export class Matrix3x3 {
 
   /**
    * 将当前矩阵按给定角度旋转，并返回。
-   * @param r - 给定的旋转角度
+   * @param r - 给定的旋转角度(单位：弧度)
    * @returns 当前矩阵
    */
   rotate(r: number): Matrix3x3 {
