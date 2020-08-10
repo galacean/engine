@@ -42,97 +42,97 @@ export class Matrix {
 
   /**
    * 将两个矩阵相乘。
-   * @param a - 左矩阵
-   * @param b - 右矩阵
+   * @param left - 左矩阵
+   * @param right - 右矩阵
    * @param out - 矩阵相乘的结果
    */
-  static multiply(a: Matrix, b: Matrix, out: Matrix): void {
-    const ae = a.elements;
-    const be = b.elements;
+  static multiply(left: Matrix, right: Matrix, out: Matrix): void {
+    const le = left.elements;
+    const re = right.elements;
     const oe = out.elements;
 
-    const a11 = ae[0],
-      a12 = ae[1],
-      a13 = ae[2],
-      a14 = ae[3];
-    const a21 = ae[4],
-      a22 = ae[5],
-      a23 = ae[6],
-      a24 = ae[7];
-    const a31 = ae[8],
-      a32 = ae[9],
-      a33 = ae[10],
-      a34 = ae[11];
-    const a41 = ae[12],
-      a42 = ae[13],
-      a43 = ae[14],
-      a44 = ae[15];
+    const l11 = le[0],
+      l12 = le[1],
+      l13 = le[2],
+      l14 = le[3];
+    const l21 = le[4],
+      l22 = le[5],
+      l23 = le[6],
+      l24 = le[7];
+    const l31 = le[8],
+      l32 = le[9],
+      l33 = le[10],
+      l34 = le[11];
+    const l41 = le[12],
+      l42 = le[13],
+      l43 = le[14],
+      l44 = le[15];
 
-    const b11 = be[0],
-      b12 = be[1],
-      b13 = be[2],
-      b14 = be[3];
-    const b21 = be[4],
-      b22 = be[5],
-      b23 = be[6],
-      b24 = be[7];
-    const b31 = be[8],
-      b32 = be[9],
-      b33 = be[10],
-      b34 = be[11];
-    const b41 = be[12],
-      b42 = be[13],
-      b43 = be[14],
-      b44 = be[15];
+    const r11 = re[0],
+      r12 = re[1],
+      r13 = re[2],
+      r14 = re[3];
+    const r21 = re[4],
+      r22 = re[5],
+      r23 = re[6],
+      r24 = re[7];
+    const r31 = re[8],
+      r32 = re[9],
+      r33 = re[10],
+      r34 = re[11];
+    const r41 = re[12],
+      r42 = re[13],
+      r43 = re[14],
+      r44 = re[15];
 
-    oe[0] = a11 * b11 + a21 * b12 + a31 * b13 + a41 * b14;
-    oe[1] = a12 * b11 + a22 * b12 + a32 * b13 + a42 * b14;
-    oe[2] = a13 * b11 + a23 * b12 + a33 * b13 + a43 * b14;
-    oe[3] = a14 * b11 + a24 * b12 + a34 * b13 + a44 * b14;
+    oe[0] = l11 * r11 + l21 * r12 + l31 * r13 + l41 * r14;
+    oe[1] = l12 * r11 + l22 * r12 + l32 * r13 + l42 * r14;
+    oe[2] = l13 * r11 + l23 * r12 + l33 * r13 + l43 * r14;
+    oe[3] = l14 * r11 + l24 * r12 + l34 * r13 + l44 * r14;
 
-    oe[4] = a11 * b21 + a21 * b22 + a31 * b23 + a41 * b24;
-    oe[5] = a12 * b21 + a22 * b22 + a32 * b23 + a42 * b24;
-    oe[6] = a13 * b21 + a23 * b22 + a33 * b23 + a43 * b24;
-    oe[7] = a14 * b21 + a24 * b22 + a34 * b23 + a44 * b24;
+    oe[4] = l11 * r21 + l21 * r22 + l31 * r23 + l41 * r24;
+    oe[5] = l12 * r21 + l22 * r22 + l32 * r23 + l42 * r24;
+    oe[6] = l13 * r21 + l23 * r22 + l33 * r23 + l43 * r24;
+    oe[7] = l14 * r21 + l24 * r22 + l34 * r23 + l44 * r24;
 
-    oe[8] = a11 * b31 + a21 * b32 + a31 * b33 + a41 * b34;
-    oe[9] = a12 * b31 + a22 * b32 + a32 * b33 + a42 * b34;
-    oe[10] = a13 * b31 + a23 * b32 + a33 * b33 + a43 * b34;
-    oe[11] = a14 * b31 + a24 * b32 + a34 * b33 + a44 * b34;
+    oe[8] = l11 * r31 + l21 * r32 + l31 * r33 + l41 * r34;
+    oe[9] = l12 * r31 + l22 * r32 + l32 * r33 + l42 * r34;
+    oe[10] = l13 * r31 + l23 * r32 + l33 * r33 + l43 * r34;
+    oe[11] = l14 * r31 + l24 * r32 + l34 * r33 + l44 * r34;
 
-    oe[12] = a11 * b41 + a21 * b42 + a31 * b43 + a41 * b44;
-    oe[13] = a12 * b41 + a22 * b42 + a32 * b43 + a42 * b44;
-    oe[14] = a13 * b41 + a23 * b42 + a33 * b43 + a43 * b44;
-    oe[15] = a14 * b41 + a24 * b42 + a34 * b43 + a44 * b44;
+    oe[12] = l11 * r41 + l21 * r42 + l31 * r43 + l41 * r44;
+    oe[13] = l12 * r41 + l22 * r42 + l32 * r43 + l42 * r44;
+    oe[14] = l13 * r41 + l23 * r42 + l33 * r43 + l43 * r44;
+    oe[15] = l14 * r41 + l24 * r42 + l34 * r43 + l44 * r44;
   }
 
   /**
    * 判断两个矩阵的值是否相等。
-   * @param a - 左矩阵
-   * @param b - 右矩阵
+   * @param left - 左矩阵
+   * @param right - 右矩阵
    * @returns 两个矩阵是否相等，是返回 true，否则返回 false
    */
-  static equals(a: Matrix, b: Matrix): boolean {
-    const ae = a.elements;
-    const be = b.elements;
+  static equals(left: Matrix, right: Matrix): boolean {
+    const le = left.elements;
+    const re = right.elements;
 
     return (
-      MathUtil.equals(ae[0], be[0]) &&
-      MathUtil.equals(ae[1], be[1]) &&
-      MathUtil.equals(ae[2], be[2]) &&
-      MathUtil.equals(ae[3], be[3]) &&
-      MathUtil.equals(ae[4], be[4]) &&
-      MathUtil.equals(ae[5], be[5]) &&
-      MathUtil.equals(ae[6], be[6]) &&
-      MathUtil.equals(ae[7], be[7]) &&
-      MathUtil.equals(ae[8], be[8]) &&
-      MathUtil.equals(ae[9], be[9]) &&
-      MathUtil.equals(ae[10], be[10]) &&
-      MathUtil.equals(ae[11], be[11]) &&
-      MathUtil.equals(ae[12], be[12]) &&
-      MathUtil.equals(ae[13], be[13]) &&
-      MathUtil.equals(ae[14], be[14]) &&
-      MathUtil.equals(ae[15], be[15])
+      MathUtil.equals(le[0], re[0]) &&
+      MathUtil.equals(le[1], re[1]) &&
+      MathUtil.equals(le[2], re[2]) &&
+      MathUtil.equals(le[3], re[3]) &&
+      MathUtil.equals(le[4], re[4]) &&
+      MathUtil.equals(le[5], re[5]) &&
+      MathUtil.equals(le[6], re[6]) &&
+      MathUtil.equals(le[7], re[7]) &&
+      MathUtil.equals(le[8], re[8]) &&
+      MathUtil.equals(le[9], re[9]) &&
+      MathUtil.equals(le[10], re[10]) &&
+      MathUtil.equals(le[11], re[11]) &&
+      MathUtil.equals(le[12], re[12]) &&
+      MathUtil.equals(le[13], re[13]) &&
+      MathUtil.equals(le[14], re[14]) &&
+      MathUtil.equals(le[15], re[15])
     );
   }
 
@@ -919,12 +919,12 @@ export class Matrix {
   }
 
   /**
-   * 将当前矩阵乘以给定的向量 a，并返回当前矩阵。
-   * @param b - 给定的向量，右操作数
+   * 将当前矩阵乘以给定的向量 right，并返回当前矩阵。
+   * @param right - 给定的向量，右操作数
    * @returns 当前矩阵
    */
-  multiply(b: Matrix): Matrix {
-    Matrix.multiply(this, b, this);
+  multiply(right: Matrix): Matrix {
+    Matrix.multiply(this, right, this);
     return this;
   }
 

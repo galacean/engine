@@ -8,32 +8,32 @@ import { Matrix3x3 } from "./Matrix3x3";
 export class Quaternion {
   /**
    * 将两个四元数相加。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param left - 左四元数
+   * @param right - 右四元数
    * @param out - 四元数相加结果
    */
-  static add(a: Quaternion, b: Quaternion, out: Quaternion): void {
-    out.x = a.x + b.x;
-    out.y = a.y + b.y;
-    out.z = a.z + b.z;
-    out.w = a.w + b.w;
+  static add(left: Quaternion, right: Quaternion, out: Quaternion): void {
+    out.x = left.x + right.x;
+    out.y = left.y + right.y;
+    out.z = left.z + right.z;
+    out.w = left.w + right.w;
   }
 
   /**
    * 将两个四元数相乘。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param left - 左四元数
+   * @param right - 右四元数
    * @param out - 四元数相乘结果
    */
-  static multiply(a: Quaternion, b: Quaternion, out: Quaternion): void {
-    const ax = a.x,
-      ay = a.y,
-      az = a.z,
-      aw = a.w;
-    const bx = b.x,
-      by = b.y,
-      bz = b.z,
-      bw = b.w;
+  static multiply(left: Quaternion, right: Quaternion, out: Quaternion): void {
+    const ax = left.x,
+      ay = left.y,
+      az = left.z,
+      aw = left.w;
+    const bx = right.x,
+      by = right.y,
+      bz = right.z,
+      bw = right.w;
 
     out.x = ax * bw + aw * bx + ay * bz - az * by;
     out.y = ay * bw + aw * by + az * bx - ax * bz;
@@ -55,23 +55,26 @@ export class Quaternion {
 
   /**
    * 计算两个四元数的点积。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param left - 左四元数
+   * @param right - 右四元数
    * @returns 两个四元数的点积
    */
-  static dot(a: Quaternion, b: Quaternion): number {
-    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+  static dot(left: Quaternion, right: Quaternion): number {
+    return left.x * right.x + left.y * right.y + left.z * right.z + left.w * right.w;
   }
 
   /**
    * 判断两个四元数是否相等。
-   * @param a - 四元数
-   * @param b - 四元数
+   * @param left - 四元数
+   * @param right - 四元数
    * @returns 两个四元数是否相等，是返回 true，否则返回 false
    */
-  static equals(a: Quaternion, b: Quaternion): boolean {
+  static equals(left: Quaternion, right: Quaternion): boolean {
     return (
-      MathUtil.equals(a.x, b.x) && MathUtil.equals(a.y, b.y) && MathUtil.equals(a.z, b.z) && MathUtil.equals(a.w, b.w)
+      MathUtil.equals(left.x, right.x) &&
+      MathUtil.equals(left.y, right.y) &&
+      MathUtil.equals(left.z, right.z) &&
+      MathUtil.equals(left.w, right.w)
     );
   }
 
@@ -203,24 +206,24 @@ export class Quaternion {
 
   /**
    * 插值四元数。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param start - 左四元数
+   * @param end - 右四元数
    * @param t - 插值比例 范围 0～1
    * @param out - 插值结果
    */
-  static lerp(a: Quaternion, b: Quaternion, t: number, out: Quaternion): void {
+  static lerp(start: Quaternion, end: Quaternion, t: number, out: Quaternion): void {
     const inv = 1.0 - t;
 
-    if (Quaternion.dot(a, b) >= MathUtil.zeroTolerance) {
-      out.x = a.x * inv + b.x * t;
-      out.y = a.y * inv + b.y * t;
-      out.z = a.z * inv + b.z * t;
-      out.w = a.w * inv + b.w * t;
+    if (Quaternion.dot(start, end) >= MathUtil.zeroTolerance) {
+      out.x = start.x * inv + end.x * t;
+      out.y = start.y * inv + end.y * t;
+      out.z = start.z * inv + end.z * t;
+      out.w = start.w * inv + end.w * t;
     } else {
-      out.x = a.x * inv - b.x * t;
-      out.y = a.y * inv - b.y * t;
-      out.z = a.z * inv - b.z * t;
-      out.w = a.w * inv - b.w * t;
+      out.x = start.x * inv - end.x * t;
+      out.y = start.y * inv - end.y * t;
+      out.z = start.z * inv - end.z * t;
+      out.w = start.w * inv - end.w * t;
     }
 
     out.normalize();
@@ -228,20 +231,20 @@ export class Quaternion {
 
   /**
    * 球面插值四元数。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param start - 左四元数
+   * @param end - 右四元数
    * @param t - 插值比例
    * @param out - 插值结果
    */
-  static slerp(a: Quaternion, b: Quaternion, t: number, out: Quaternion): void {
-    const ax = a.x;
-    const ay = a.y;
-    const az = a.z;
-    const aw = a.w;
-    let bx = b.x;
-    let by = b.y;
-    let bz = b.z;
-    let bw = b.w;
+  static slerp(start: Quaternion, end: Quaternion, t: number, out: Quaternion): void {
+    const ax = start.x;
+    const ay = start.y;
+    const az = start.z;
+    const aw = start.w;
+    let bx = end.x;
+    let by = end.y;
+    let bz = end.z;
+    let bw = end.w;
 
     let scale0, scale1;
     // calc cosine
