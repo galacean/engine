@@ -51,10 +51,10 @@ describe("Matrix test", () => {
     expect(Matrix.equals(out, new Matrix(-25, 28, -10, 0, -20, -19, 20, 0, 22, 4, -9, 0, 0, 0, 0, 1))).toEqual(true);
   });
 
-  it("static fromRotation", () => {
+  it("static rotationAxisAngle", () => {
     const out = new Matrix();
 
-    Matrix.fromRotation(new Vector3(0, 1, 0), Math.PI / 3, out);
+    Matrix.rotationAxisAngle(new Vector3(0, 1, 0), Math.PI / 3, out);
     expect(
       Matrix.equals(
         out,
@@ -80,26 +80,26 @@ describe("Matrix test", () => {
     ).toEqual(true);
   });
 
-  it("static fromRotationTranslation", () => {
+  it("static rotationTranslation", () => {
     const q = new Quaternion(1, 0.5, 2, 1);
     const v = new Vector3(1, 1, 1);
     const out = new Matrix();
 
-    Matrix.fromRotationTranslation(q, v, out);
+    Matrix.rotationTranslation(q, v, out);
     expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -3, -9, 4, 0, 5, 0, -1.5, 0, 1, 1, 1, 1))).toEqual(true);
   });
 
-  it("static fromRotationTranslationScale", () => {
+  it("static rotationTranslationScale", () => {
     const q = new Quaternion(1, 0.5, 2, 1);
     const v = new Vector3(1, 1, 1);
     const s = new Vector3(1, 0.5, 2);
     const out = new Matrix();
 
-    Matrix.fromRotationTranslationScale(q, v, s, out);
+    Matrix.rotationTranslationScale(q, v, s, out);
     expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -1.5, -4.5, 2, 0, 10, 0, -3, 0, 1, 1, 1, 1))).toEqual(true);
   });
 
-  it("static fromScaling", () => {
+  it("static scaling", () => {
     const a = new Matrix();
     const out = new Matrix();
 
@@ -107,11 +107,11 @@ describe("Matrix test", () => {
     expect(Matrix.equals(out, new Matrix(1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1))).toEqual(true);
   });
 
-  it("static fromTranslation", () => {
+  it("static translation", () => {
     const out = new Matrix();
     const v = new Vector3(1, 2, 0.5);
 
-    Matrix.fromTranslation(v, out);
+    Matrix.translation(v, out);
     expect(Matrix.equals(out, new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 2, 0.5, 1))).toEqual(true);
   });
 

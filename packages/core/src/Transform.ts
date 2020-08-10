@@ -277,7 +277,7 @@ export class Transform extends Component {
    */
   get localMatrix(): Matrix {
     if (this._isContainDirtyFlag(Transform._LOCAL_MATRIX_FLAG)) {
-      Matrix.fromRotationTranslationScale(this.rotationQuaternion, this._position, this._scale, this._localMatrix);
+      Matrix.rotationTranslationScale(this.rotationQuaternion, this._position, this._scale, this._localMatrix);
       this._setDirtyFlagFalse(Transform._LOCAL_MATRIX_FLAG);
     }
     return this._localMatrix;

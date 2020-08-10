@@ -185,7 +185,7 @@ export class Matrix {
    * @param r - 旋转角度
    * @param out - 指定旋转后矩阵
    */
-  static fromRotation(axis: Vector3, r: number, out: Matrix): void {
+  static rotationAxisAngle(axis: Vector3, r: number, out: Matrix): void {
     const oe = out.elements;
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
@@ -232,7 +232,7 @@ export class Matrix {
    * @param v - 转换向量
    * @param out - 生成的4x4矩阵
    */
-  static fromRotationTranslation(q: Quaternion, trans: Vector3, out: Matrix): void {
+  static rotationTranslation(q: Quaternion, trans: Vector3, out: Matrix): void {
     Matrix.rotationQuaternion(q, out);
 
     const oe = out.elements;
@@ -248,7 +248,7 @@ export class Matrix {
    * @param s - 缩放向量
    * @param out - 生成的4x4矩阵
    */
-  static fromRotationTranslationScale(q: Quaternion, trans: Vector3, s: Vector3, out: Matrix): void {
+  static rotationTranslationScale(q: Quaternion, trans: Vector3, s: Vector3, out: Matrix): void {
     const oe = out.elements;
     const { x, y, z, w } = q;
     let x2 = x + x;
@@ -294,7 +294,7 @@ export class Matrix {
    * @param s - 缩放向量
    * @param out - 指定缩放后矩阵
    */
-  static fromScaling(s: Vector3, out: Matrix): void {
+  static scaling(s: Vector3, out: Matrix): void {
     const oe = out.elements;
     oe[0] = s.x;
     oe[1] = 0;
@@ -322,7 +322,7 @@ export class Matrix {
    * @param trans - 平移向量
    * @param out - 指定平移后矩阵
    */
-  static fromTranslation(trans: Vector3, out: Matrix): void {
+  static translation(trans: Vector3, out: Matrix): void {
     const oe = out.elements;
     oe[0] = 1;
     oe[1] = 0;
