@@ -14,7 +14,7 @@ import { LightFeature } from "@alipay/o3-lighting";
 import { Material, RenderTechnique, Texture, TextureCubeMap } from "@alipay/o3-material";
 import fs from "./pbr.fs.glsl";
 import vs from "./pbr.vs.glsl";
-import { Vector2 } from "@alipay/o3-math";
+import { Vector2, Vector4, Vector3 } from "@alipay/o3-math";
 
 /**
  * PBR（Physically-Based Rendering）材质
@@ -95,17 +95,17 @@ class PBRMaterial extends Material {
    */
   createDefaulteValues() {
     this._uniformObj = {
-      baseColorFactor: [1, 1, 1, 1],
+      baseColorFactor: new Vector4(1.0, 1.0, 1.0, 1.0),
       metallicFactor: 1,
       roughnessFactor: 1,
-      metallicRoughness: [1, 1],
+      metallicRoughness: new Vector2(1.0, 1.0),
       normalScale: 1,
-      emissiveFactor: [0, 0, 0],
+      emissiveFactor: new Vector3(0.0, 0.0, 0.0),
       occlusionStrength: 1,
       alphaCutoff: 0.5,
 
       // specular-glossiness workflow
-      specularFactor: [1, 1, 1],
+      specularFactor: new Vector3(1.0, 1.0, 1.0),
       glossinessFactor: 0,
 
       // reflect,refract
@@ -403,7 +403,7 @@ class PBRMaterial extends Material {
 
   set metallicFactor(v) {
     this._uniformObj.metallicFactor = v;
-    this._uniformObj.metallicRoughness[0] = v;
+    this._uniformObj.metallicRoughness.x = v;
     this.setValueByParamName("metallicRoughness", this._uniformObj.metallicRoughness);
   }
 
@@ -417,7 +417,7 @@ class PBRMaterial extends Material {
 
   set roughnessFactor(v) {
     this._uniformObj.roughnessFactor = v;
-    this._uniformObj.metallicRoughness[1] = v;
+    this._uniformObj.metallicRoughness.y = v;
     this.setValueByParamName("metallicRoughness", this._uniformObj.metallicRoughness);
   }
 
