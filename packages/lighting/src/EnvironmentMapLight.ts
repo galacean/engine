@@ -152,7 +152,7 @@ export class EnvironmentMapLight extends Light {
 
     if (this.useSpecularMap) {
       mtl.setValue("u_env_specularSampler", this.specularMap);
-      mtl.setValue(uniformName + ".mipMapLevel", this.specularMap.mipMapLevel);
+      mtl.setValue(uniformName + ".mipMapLevel", this.specularMap.mipmapCount);
     } else {
       mtl.setValue(uniformName + ".specular", this.specular);
     }
