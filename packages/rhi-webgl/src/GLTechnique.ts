@@ -224,6 +224,9 @@ export class GLTechnique extends GLAsset {
       case DataType.FLOAT_MAT4:
         gl.uniformMatrix4fv(location, false, value.elements);
         break;
+      case DataType.FLOAT_ARRAY:
+        gl.uniformMatrix4fv(location, false, value);
+        break;
       case DataType.SAMPLER_2D: {
         const texture = value;
         if (texture) {

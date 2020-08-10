@@ -411,7 +411,7 @@ export function parseSkin(gltfSkin, resources) {
   for (let i = 0; i < jointCount; i++) {
     const startIdx = MAT4_LENGTH * i;
     const endIdx = startIdx + MAT4_LENGTH;
-    skin.inverseBindMatrices[i] = buffer.subarray(startIdx, endIdx);
+    skin.inverseBindMatrices[i] = new Matrix(...buffer.subarray(startIdx, endIdx));
   }
 
   // get joints

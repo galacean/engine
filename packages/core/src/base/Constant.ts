@@ -193,6 +193,9 @@ export enum DataType {
   /** 四阶矩阵 */
   FLOAT_MAT4 = 35676, // gl.FLOAT_MAT4
 
+  /** 浮点数组 */
+  FLOAT_ARRAY = 35677, // gl.FLOAT_ARRAY
+
   /** 2D 纹理采样 */
   SAMPLER_2D = 35678, // gl.SAMPLER_2D
   /** Cube Map 纹理采样 */

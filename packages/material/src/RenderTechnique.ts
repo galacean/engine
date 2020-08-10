@@ -384,7 +384,7 @@ export class RenderTechnique extends AssetObject {
     u_jointMatrix: {
       name: "u_jointMatrix",
       semantic: UniformSemantic.JOINTMATRIX,
-      type: DataType.FLOAT_MAT4
+      type: DataType.FLOAT_ARRAY
     },
     u_jointSampler: {
       name: "u_jointSampler",

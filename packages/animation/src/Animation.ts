@@ -2,7 +2,7 @@ import { Logger } from "@alipay/o3-core";
 import { Component, Entity } from "@alipay/o3-core";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationClip } from "./AnimationClip";
-import { Quaternion } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4, Quaternion } from "@alipay/o3-math";
 import { AnimationOptions, IChannelTarget } from "./types";
 import { SkinnedMeshRenderer } from "@alipay/o3-mesh";
 /**
@@ -34,18 +34,25 @@ export class Animation extends Component {
    * @private
    */
   public static lerp(
-    outValue: number | Quaternion,
-    startValue: number | Quaternion,
-    endValue: number | Quaternion,
+    outValue: number | Float32Array,
+    startValue: number | Float32Array,
+    endValue: number | Float32Array,
     alpha: number,
     outputSize: number
-  ): number | Quaternion {
+  ): number | Float32Array {
     switch (outputSize) {
       case 1:
         outValue = <number>startValue * (1 - alpha) + <number>endValue * alpha;
         break;
       case 4:
-        Quaternion.slerp(<Quaternion>startValue, <Quaternion>endValue, alpha, <Quaternion>outValue);
+        const a = new Quaternion(...(startValue as Float32Array));
+        const b = new Quaternion(...(endValue as Float32Array));
+        const quat = new Quaternion();
+        Quaternion.slerp(a, b, alpha, quat);
+        outValue[0] = quat.x;
+        outValue[1] = quat.y;
+        outValue[2] = quat.z;
+        outValue[3] = quat.w;
         break;
       default:
         for (let i = outputSize; i >= 0; i--) {
@@ -378,9 +385,18 @@ export class Animation extends Component {
       if (path === "weights") {
         // SkinnedMeshRenderer
         (targetObject as SkinnedMeshRenderer).setWeights(val as any);
+      } else if (path === "rotation") {
+        targetObject[path] = new Quaternion(val.x, val.y, val.z, val.w);
       } else {
-        // Entity[property]
-        targetObject[path] = val;
+        const v = val as Float32Array;
+        const len = v.length;
+        if (len === 2) {
+          targetObject[path] = new Vector2(...v);
+        } else if (len == 3) {
+          targetObject[path] = new Vector3(...v);
+        } else if (len == 4) {
+          targetObject[path] = new Vector4(...v);
+        }
       }
     } // end of for
   }
@@ -391,7 +407,7 @@ export class Animation extends Component {
    * @param {number} outputSize
    * @private
    */
-  public _getChannelValue(channelIndex: number, outputSize: number): number | Quaternion | boolean {
+  public _getChannelValue(channelIndex: number, outputSize: number): number | boolean | Float32Array {
     const weights = [];
     const values = [];
     for (let i = this._animLayers.length - 1; i >= 0; i--) {
