@@ -277,7 +277,7 @@ export class Transform extends Component {
    */
   get localMatrix(): Matrix {
     if (this._isContainDirtyFlag(Transform._LOCAL_MATRIX_FLAG)) {
-      Matrix.rotationTranslationScale(this.rotationQuaternion, this._position, this._scale, this._localMatrix);
+      Matrix.affineTransformation(this._scale, this.rotationQuaternion, this._position, this._localMatrix);
       this._setDirtyFlagFalse(Transform._LOCAL_MATRIX_FLAG);
     }
     return this._localMatrix;
@@ -427,7 +427,7 @@ export class Transform extends Component {
     }
     worldUp = worldUp ?? Transform._tempVec3.setValue(0, 1, 0);
     const mat = Transform._tempMat43;
-    Matrix.lookAtRH(position, worldPosition, worldUp, mat); //CM:可采用3x3矩阵优化
+    Matrix.lookAt(position, worldPosition, worldUp, mat); //CM:可采用3x3矩阵优化
     mat.invert();
 
     this.worldRotationQuaternion = mat.getRotation(this._worldRotationQuaternion); //CM:正常应该再求一次逆，因为lookat的返回值相当于viewMatrix,viewMatrix是世界矩阵的逆，需要测试一个模型和相机分别lookAt一个物体的效果（是否正确和lookAt方法有关）
@@ -584,7 +584,7 @@ export class Transform extends Component {
     const invRotationMat = Transform._tempMat30;
     const worldRotScaMat = Transform._tempMat31;
     const scaMat = Transform._tempMat32;
-    Matrix3x3.fromMat4(this.worldMatrix, worldRotScaMat);
+    worldRotScaMat.worldRotScaMat(this.worldMatrix);
     Quaternion.invert(this.worldRotationQuaternion, invRotation);
     Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
     Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);

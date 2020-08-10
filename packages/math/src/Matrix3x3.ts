@@ -123,29 +123,6 @@ export class Matrix3x3 {
   }
 
   /**
-   * 从4x4矩阵转换为一个3x3矩阵，upper-left 原则，即忽略第4行第4列。
-   * @param a - 4x4矩阵
-   * @param out - 转换后的3x3矩阵
-   */
-  static fromMat4(a: Matrix, out: Matrix3x3): void {
-    //CM:更适合实例方法setValueByMatrix()
-    const oe = out.elements;
-    const ae = a.elements;
-
-    oe[0] = ae[0];
-    oe[1] = ae[1];
-    oe[2] = ae[2];
-
-    oe[3] = ae[4];
-    oe[4] = ae[5];
-    oe[5] = ae[6];
-
-    oe[6] = ae[8];
-    oe[7] = ae[9];
-    oe[8] = ae[10];
-  }
-
-  /**
    * 从四元数转换为一个3x3矩阵。
    * @param q - 四元数
    * @param out - 转换后的3x3矩阵
@@ -269,7 +246,7 @@ export class Matrix3x3 {
    * @param out - 计算出来的3x3法线矩阵
    */
   static normalFromMat4(a: Matrix, out: Matrix3x3): void {
-    //CM:这是啥方法
+    //CM:这是啥方法，问慎思
     const ae = a.elements;
     const oe = out.elements;
 
@@ -535,6 +512,30 @@ export class Matrix3x3 {
     e[6] = m31;
     e[7] = m32;
     e[8] = m33;
+
+    return this;
+  }
+
+  /**
+   * 从4x4矩阵转换为一个3x3矩阵，upper-left 原则，即忽略第4行第4列。
+   * @param a - 4x4矩阵
+   * @returns 当前矩阵
+   */
+  setValueByMatrix(a: Matrix): Matrix3x3 {
+    const ae = a.elements;
+    const e = this.elements;
+
+    e[0] = ae[0];
+    e[1] = ae[1];
+    e[2] = ae[2];
+
+    e[3] = ae[4];
+    e[4] = ae[5];
+    e[5] = ae[6];
+
+    e[6] = ae[8];
+    e[7] = ae[9];
+    e[8] = ae[10];
 
     return this;
   }

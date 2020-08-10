@@ -241,16 +241,15 @@ export class Matrix {
   }
 
   /**
-   * 通过指定的旋转四元数,转换向量,缩放向量生成4x4矩阵。
-   * @param q - 旋转四元数
+   * 创建仿射矩阵。
+   * @param scale - 缩放向量
+   * @param rotation - 旋转四元数
    * @param trans - 转换向量
-   * @param s - 缩放向量
    * @param out - 生成的4x4矩阵
    */
-  static rotationTranslationScale(q: Quaternion, trans: Vector3, s: Vector3, out: Matrix): void {
-    //CM:stride "AffineTransformation"
+  static affineTransformation(scale: Vector3, rotation: Quaternion, trans: Vector3, out: Matrix): void {
     const oe = out.elements;
-    const { x, y, z, w } = q;
+    const { x, y, z, w } = rotation;
     let x2 = x + x;
     let y2 = y + y;
     let z2 = z + z;
@@ -264,9 +263,9 @@ export class Matrix {
     let wx = w * x2;
     let wy = w * y2;
     let wz = w * z2;
-    let sx = s.x;
-    let sy = s.y;
-    let sz = s.z;
+    let sx = scale.x;
+    let sy = scale.y;
+    let sz = scale.z;
 
     oe[0] = (1 - (yy + zz)) * sx;
     oe[1] = (xy + wz) * sx;
@@ -418,8 +417,7 @@ export class Matrix {
    * @param up - 向上向量
    * @param out - 观察矩阵
    */
-  static lookAtRH(eye: Vector3, target: Vector3, up: Vector3, out: Matrix): void {
-    //CM:还有RH啊
+  static lookAt(eye: Vector3, target: Vector3, up: Vector3, out: Matrix): void {
     const oe = out.elements;
     const xAxis: Vector3 = Matrix._tempVec30;
     const yAxis: Vector3 = Matrix._tempVec31;
@@ -1019,7 +1017,7 @@ export class Matrix {
     }
 
     const m3: Matrix3x3 = Matrix._tempMat30;
-    Matrix3x3.fromMat4(t, m3);
+    m3.setValueByMatrix(t);
     Quaternion.rotationMatrix3x3(m3, q);
 
     s.x = sx;

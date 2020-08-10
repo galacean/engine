@@ -159,7 +159,7 @@ export class EnvironmentMapLight extends Light {
 
     // 支持旋转
     const transformMatrix = this.entity.transform.worldMatrix;
-    Matrix3x3.fromMat4(transformMatrix, cacheMat3);
+    cacheMat3.setValueByMatrix(transformMatrix);
     mtl.setValue(uniformName + ".transformMatrix", cacheMat3);
   }
 }

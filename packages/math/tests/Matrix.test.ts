@@ -89,13 +89,13 @@ describe("Matrix test", () => {
     expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -3, -9, 4, 0, 5, 0, -1.5, 0, 1, 1, 1, 1))).toEqual(true);
   });
 
-  it("static rotationTranslationScale", () => {
+  it("static affineTransformation", () => {
     const q = new Quaternion(1, 0.5, 2, 1);
     const v = new Vector3(1, 1, 1);
     const s = new Vector3(1, 0.5, 2);
     const out = new Matrix();
 
-    Matrix.rotationTranslationScale(q, v, s, out);
+    Matrix.affineTransformation(s, q, v, out);
     expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -1.5, -4.5, 2, 0, 10, 0, -3, 0, 1, 1, 1, 1))).toEqual(true);
   });
 
@@ -145,19 +145,19 @@ describe("Matrix test", () => {
     ).toEqual(true);
   });
 
-  it("static lookAtRH", () => {
+  it("static lookAt", () => {
     const out = new Matrix();
     const eye = new Vector3(0, 0, -8);
     const target = new Vector3(0, 0, 0);
     const up = new Vector3(0, 1, 0);
 
-    Matrix.lookAtRH(eye, target, up, out);
+    Matrix.lookAt(eye, target, up, out);
     expect(Matrix.equals(out, new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, -8, 1))).toEqual(true);
 
     eye.setValue(0, 0, 0);
     target.setValue(0, 1, -1);
     up.setValue(0, 1, 0);
-    Matrix.lookAtRH(eye, target, up, out);
+    Matrix.lookAt(eye, target, up, out);
     expect(
       Matrix.equals(
         out,

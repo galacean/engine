@@ -46,7 +46,7 @@ describe("Matrix3x3 test", () => {
     const a = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
     // Matrix
-    Matrix3x3.fromMat4(a, out);
+    out.setValueByMatrix(a);
     expect(Matrix3x3.equals(out, new Matrix3x3(1, 2, 3, 5, 6, 7, 9, 10, 11))).toEqual(true);
 
     // quat

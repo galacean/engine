@@ -125,7 +125,7 @@ export class CubeProbe extends Probe {
     }
 
     Vector3.add(this.position, cacheDir, cacheTarget);
-    Matrix.lookAtRH(this.position, cacheTarget, cacheUp, this.camera.viewMatrix);
+    Matrix.lookAt(this.position, cacheTarget, cacheUp, this.camera.viewMatrix);
     Matrix.invert(this.camera.viewMatrix, this.camera.inverseViewMatrix);
     Matrix.perspective(fovRadian, 1, this.camera.nearClipPlane, this.camera.farClipPlane, this.camera.projectionMatrix);
     Matrix.invert(this.camera.projectionMatrix, this.camera.inverseProjectionMatrix);
