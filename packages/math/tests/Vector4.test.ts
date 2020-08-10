@@ -122,7 +122,7 @@ describe("Vector4 test", () => {
     const out = new Vector4();
     const m4 = new Matrix();
     m4.setValue(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0);
-    Vector4.transformByMat4x4(a, m4, out);
+    Vector4.transform(a, m4, out);
     expect(toString(out)).toEqual("vec4(2, 3, 9, 0)");
 
     Vector4.transformByQuat(a, new Quaternion(), out);
