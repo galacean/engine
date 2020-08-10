@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-geometry",
-  "version": "2.3.4",
+  "version": "2.3.5",
   "description": "buffer geometry && index buffer geometry",
   "keywords": [
     "Oasis3D",
@@ -25,8 +25,8 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-core": "2.3.4",
-    "@alipay/o3-material": "2.3.4",
-    "@alipay/o3-primitive": "2.3.4"
+    "@alipay/o3-core": "2.3.5",
+    "@alipay/o3-material": "2.3.5",
+    "@alipay/o3-primitive": "2.3.5"
   }
 }
