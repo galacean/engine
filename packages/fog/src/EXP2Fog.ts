@@ -1,5 +1,4 @@
 import { Fog } from "./Fog";
-import { Vector3 } from "@alipay/o3-math";
 
 /**
  * 指数雾

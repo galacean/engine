@@ -584,7 +584,7 @@ export class Transform extends Component {
     const invRotationMat = Transform._tempMat30;
     const worldRotScaMat = Transform._tempMat31;
     const scaMat = Transform._tempMat32;
-    worldRotScaMat.worldRotScaMat(this.worldMatrix);
+    worldRotScaMat.setValueByMatrix(this.worldMatrix);
     Quaternion.invert(this.worldRotationQuaternion, invRotation);
     Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
     Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);

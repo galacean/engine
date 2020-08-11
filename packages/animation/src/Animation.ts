@@ -386,6 +386,7 @@ export class Animation extends Component {
         // SkinnedMeshRenderer
         (targetObject as SkinnedMeshRenderer).setWeights(val as any);
       } else if (path === "rotation") {
+        // @ts-ignore
         targetObject[path] = new Quaternion(val.x, val.y, val.z, val.w);
       } else {
         const v = val as Float32Array;

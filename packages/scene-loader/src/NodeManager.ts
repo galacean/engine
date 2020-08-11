@@ -2,7 +2,8 @@ import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { NodeConfig } from "./types";
-import { Entity, Vector3 } from "@alipay/o3";
+import { Entity } from "@alipay/o3-core";
+import { Vector3 } from "@alipay/o3-math";
 
 export class NodeManager {
   private nodeMap: { [id: string]: Entity } = {};
