@@ -58,8 +58,8 @@ export class Camera extends Component {
   private _projectionMatrix: Matrix = new Matrix();
   private _isProjMatSetting = false;
   private _viewMatrix: Matrix = new Matrix();
-  private _clearParam: Vector4;
-  private _clearMode: ClearMode;
+  private _clearParam: Vector4 = new Vector4();
+  private _clearMode: ClearMode = ClearMode.SOLID_COLOR;
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   private _nearClipPlane: number;
   private _farClipPlane: number;
@@ -71,7 +71,7 @@ export class Camera extends Component {
   private _isProjectionDirty = true;
   /** 投影矩阵逆矩阵脏标记 */
   private _isInvProjMatDirty: boolean = true;
-  private _customAspectRatio: number = undefined;
+  private _customAspectRatio: number | undefined = undefined;
   private _lastAspectSize: Vector2 = new Vector2(0, 0);
   private _invViewProjMat: Matrix = new Matrix();
 
@@ -451,7 +451,7 @@ export class Camera extends Component {
 
   private _innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix, out: Vector3): Vector3 {
     // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
-    const depth = point[2] * 2 - 1;
+    const depth = point.z * 2 - 1;
     // 变换到裁剪空间矩阵
     MathTemp.tempVec4.setValue(point.x * 2 - 1, 1 - point.y * 2, depth, 1);
     // 计算逆矩阵结果
@@ -511,7 +511,7 @@ export class Camera extends Component {
     clearParam: Vector4 = new Vector4(0.25, 0.25, 0.25, 1)
   ): void {
     this._clearMode = clearMode;
-    this._clearParam = clearParam as Vector4;
+    this._clearParam = clearParam;
     this._renderPipeline.defaultRenderPass.clearParam = clearParam;
     this._renderPipeline.defaultRenderPass.clearMode = clearMode;
   }
