@@ -299,7 +299,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕 X 轴旋转四元数。
+   * 绕 X 轴旋生成转四元数。
    * @param a - 四元数
    * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
@@ -316,7 +316,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕 Y 轴旋转四元数。
+   * 绕 Y 轴旋转生成四元数。
    * @param a - 四元数
    * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
@@ -333,7 +333,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕 Z 轴旋转四元数。
+   * 绕 Z 轴旋转生成四元数。
    * @param a - 四元数
    * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
@@ -536,5 +536,62 @@ export class Quaternion {
     out.z = this.z;
     out.w = this.w;
     return out;
+  }
+
+  /**
+   * 绕 X 轴旋转。
+   * @param rad - 旋转角度(单位：弧度)
+   * @returns - 当前四元数
+   */
+  rotateX(rad: number): Quaternion {
+    const { x, y, z, w } = this;
+    rad *= 0.5;
+    const bx = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    this.x = x * bw + w * bx;
+    this.y = y * bw + z * bx;
+    this.z = z * bw - y * bx;
+    this.w = w * bw - x * bx;
+
+    return this;
+  }
+
+  /**
+   * 绕 Y 轴旋转。
+   * @param rad - 旋转角度(单位：弧度)
+   * @returns - 当前四元数
+   */
+  rotateY(rad: number): Quaternion {
+    const { x, y, z, w } = this;
+    rad *= 0.5;
+    const by = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    this.x = x * bw - z * by;
+    this.y = y * bw + w * by;
+    this.z = z * bw + x * by;
+    this.w = w * bw - y * by;
+
+    return this;
+  }
+
+  /**
+   * 绕 Z 轴旋转。
+   * @param rad - 旋转角度(单位：弧度)
+   * @returns - 当前四元数
+   */
+  rotateZ(rad: number): Quaternion {
+    const { x, y, z, w } = this;
+    rad *= 0.5;
+    const bz = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    this.x = x * bw + y * bz;
+    this.y = y * bw - x * bz;
+    this.z = z * bw + w * bz;
+    this.w = w * bw - z * bz;
+
+    return this;
   }
 }

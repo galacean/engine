@@ -206,7 +206,7 @@ export class Vector3 {
   }
 
   /**
-   * 通过3x3矩阵将一个三维向量进行法线到另一个三维向量。
+   * 通过4x4矩阵将一个三维向量进行法线转换到另一个三维向量。
    * @remarks
    * 法线变换假设 w 分量为零，这导致矩阵的第四行和第四列并不使用。
    * 最终得出的结果是一个没有位置变换的向量，但是其他变换属性均被应用。
@@ -280,7 +280,7 @@ export class Vector3 {
   /**
    * 通过四元数将一个三维向量转换到另一个三维向量。
    * @param v - 向量
-   * @param m - 转换矩阵
+   * @param q - 四元数
    * @param out - 通过矩阵转换后的向量
    */
   static transformByQuat(v: Vector3, q: Quaternion, out: Vector3): void {
@@ -450,5 +450,54 @@ export class Vector3 {
     out.y = this.y;
     out.z = this.z;
     return out;
+  }
+
+  /**
+   * 通过4x4矩阵将当前向量转换。
+   * @remarks
+   * 法线变换假设 w 分量为零，这导致矩阵的第四行和第四列并不使用。
+   * 最终得出的结果是一个没有位置变换的向量，但是其他变换属性均被应用。
+   * 通常这对法线向量来说比较友好，因为法线向量纯粹代表方向。
+   * @param m - 转换矩阵
+   * @returns 当前向量
+   */
+  transformNormal(m: Matrix): Vector3 {
+    Vector3.transformNormal(this, m, this);
+    return this;
+  }
+
+  /**
+   * 通过4x4矩阵将当前向量转换。
+   * @param m - 转换矩阵
+   * @returns 当前向量
+   */
+  transformToVec3(m: Matrix): Vector3 {
+    Vector3.transformToVec3(this, m, this);
+    return this;
+  }
+
+  /**
+   * 通过4x4矩阵将当前向量转换。
+   * @remarks
+   * 坐标变换价值 w 分量为一，从变换得到的四维向量的每个分量都除以 w 分量。
+   * 这导致变换结果的 w 分量为一,向量变为齐次向量。
+   * 齐次向量在坐标变换中使用，w 分量可以安全的忽略。
+
+   * @param m - 转换矩阵
+   * @returns 当前向量
+   */
+  transformCoordinate(m: Matrix): Vector3 {
+    Vector3.transformCoordinate(this, m, this);
+    return this;
+  }
+
+  /**
+   * 通过四元数将当前向量转换。
+   * @param q - 四元数
+   * @param out - 通过矩阵转换后的向量
+   */
+  transformByQuat(q: Quaternion): Vector3 {
+    Vector3.transformByQuat(this, q, this);
+    return this;
   }
 }
