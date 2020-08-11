@@ -350,6 +350,60 @@ export class Quaternion {
   }
 
   /**
+   * 四元数 q 绕 X 轴旋转。
+   * @param q - 四元数
+   * @param rad - 旋转角度(单位：弧度)
+   * @param out - 旋转后的四元数
+   */
+  static rotateX(q: Quaternion, rad: number, out: Quaternion): void {
+    const { x, y, z, w } = q;
+    rad *= 0.5;
+    const bx = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    out.x = x * bw + w * bx;
+    out.y = y * bw + z * bx;
+    out.z = z * bw - y * bx;
+    out.w = w * bw - x * bx;
+  }
+
+  /**
+   * 四元数 q 绕 Y 轴旋转。
+   * @param q - 四元数
+   * @param rad - 旋转角度(单位：弧度)
+   * @param out - 旋转后的四元数
+   */
+  static rotateY(q: Quaternion, rad: number, out: Quaternion): void {
+    const { x, y, z, w } = q;
+    rad *= 0.5;
+    const by = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    out.x = x * bw - z * by;
+    out.y = y * bw + w * by;
+    out.z = z * bw + x * by;
+    out.w = w * bw - y * by;
+  }
+
+  /**
+   * 四元数 q 绕 Z 轴旋转。
+   * @param q - 四元数
+   * @param rad - 旋转角度(单位：弧度)
+   * @param out - 旋转后的四元数
+   */
+  static rotateZ(q: Quaternion, rad: number, out: Quaternion): void {
+    const { x, y, z, w } = q;
+    rad *= 0.5;
+    const bz = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    out.x = x * bw + y * bz;
+    out.y = y * bw - x * bz;
+    out.z = z * bw + w * bz;
+    out.w = w * bw - z * bz;
+  }
+
+  /**
    * 将一个四元数缩放。
    * @param a - 四元数
    * @param s - 缩放因子
@@ -544,16 +598,7 @@ export class Quaternion {
    * @returns - 当前四元数
    */
   rotateX(rad: number): Quaternion {
-    const { x, y, z, w } = this;
-    rad *= 0.5;
-    const bx = Math.sin(rad);
-    const bw = Math.cos(rad);
-
-    this.x = x * bw + w * bx;
-    this.y = y * bw + z * bx;
-    this.z = z * bw - y * bx;
-    this.w = w * bw - x * bx;
-
+    Quaternion.rotateX(this, rad, this);
     return this;
   }
 
@@ -563,16 +608,7 @@ export class Quaternion {
    * @returns - 当前四元数
    */
   rotateY(rad: number): Quaternion {
-    const { x, y, z, w } = this;
-    rad *= 0.5;
-    const by = Math.sin(rad);
-    const bw = Math.cos(rad);
-
-    this.x = x * bw - z * by;
-    this.y = y * bw + w * by;
-    this.z = z * bw + x * by;
-    this.w = w * bw - y * by;
-
+    Quaternion.rotateY(this, rad, this);
     return this;
   }
 
@@ -582,16 +618,7 @@ export class Quaternion {
    * @returns - 当前四元数
    */
   rotateZ(rad: number): Quaternion {
-    const { x, y, z, w } = this;
-    rad *= 0.5;
-    const bz = Math.sin(rad);
-    const bw = Math.cos(rad);
-
-    this.x = x * bw + y * bz;
-    this.y = y * bw - x * bz;
-    this.z = z * bw + w * bz;
-    this.w = w * bw - z * bz;
-
+    Quaternion.rotateZ(this, rad, this);
     return this;
   }
 }
