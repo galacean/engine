@@ -1,21 +1,50 @@
+import { WebGLEngine } from "../../rhi-webgl/src";
 import { Entity, Component, Engine, Scene } from "../src/index";
 
 class TestComponent extends Component {}
 
 describe("Component", () => {
-  let engine = null;
-  let scene = null;
+  const getContext = jest.fn().mockReturnValue({
+    canvas: { width: 1024, height: 1024 },
+    getParameter: jest.fn(),
+    enable: jest.fn(),
+    disable: jest.fn(),
+    colorMask: jest.fn(),
+    depthMask: jest.fn(),
+    blendFunc: jest.fn(),
+    cullFace: jest.fn(),
+    frontFace: jest.fn(),
+    depthFunc: jest.fn(),
+    depthRange: jest.fn(),
+    polygonOffset: jest.fn(),
+    stencilFunc: jest.fn(),
+    stencilMask: jest.fn(),
+    getExtension: jest.fn(),
+    bindFramebuffer: jest.fn(),
+    viewport: jest.fn(),
+    clearColor: jest.fn(),
+    clear: jest.fn()
+  });
+
+  const canvasDOM = document.createElement("canvas");
+  canvasDOM.getContext = getContext;
+
+  const engine = new WebGLEngine(canvasDOM);
+  const scene = engine.sceneManager.activeScene;
+  const root = new Entity("root");
+  //@ts-ignore
+  scene.addRootEntity(root);
+  engine.run();
   beforeEach(() => {
-    engine = new Engine();
-    scene = new Scene(engine);
-    Entity._nodes.length = 0;
-    Entity._nodes._elements.length = 0;
+    Entity._entitys.length = 0;
+    Entity._entitys._elements.length = 0;
   });
 
   describe("enabled", () => {
     it("enabled", () => {
       const entity = new Entity("entity");
-      entity.parent = scene.root;
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype._onEnable = jest.fn();
       const component = entity.addComponent(TestComponent);
       expect(component.enabled).toBeTruthy();
@@ -24,7 +53,8 @@ describe("Component", () => {
 
     it("disabled", () => {
       const entity = new Entity("entity");
-      entity.parent = scene.root;
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype._onDisable = jest.fn();
       const component = entity.addComponent(TestComponent);
       component.enabled = false;
@@ -34,7 +64,8 @@ describe("Component", () => {
 
     it("not trigger", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       parent.isActive = false;
@@ -51,14 +82,16 @@ describe("Component", () => {
   describe("entity scene", () => {
     it("entity", () => {
       const entity = new Entity("entity");
-      entity.parent = scene.root;
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
       const component = entity.addComponent(TestComponent);
       expect(component.entity).toBe(entity);
     });
 
     it("scene", () => {
       const entity = new Entity("entity");
-      entity.parent = scene.root;
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
       const component = entity.addComponent(TestComponent);
       expect(component.scene).toBe(scene);
     });
@@ -67,7 +100,8 @@ describe("Component", () => {
   describe("destroy", () => {
     it("normal", () => {
       const entity = new Entity("entity");
-      entity.parent = scene.root;
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype._onDisable = jest.fn();
       TestComponent.prototype._onInActive = jest.fn();
       TestComponent.prototype._onDestroy = jest.fn();
@@ -82,7 +116,8 @@ describe("Component", () => {
   describe("awake", () => {
     it("normal", () => {
       const entity = new Entity("entity");
-      entity.parent = scene.root;
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype._onAwake = jest.fn();
       const component = entity.addComponent(TestComponent);
       expect(component._onAwake).toHaveBeenCalledTimes(1);
@@ -90,7 +125,8 @@ describe("Component", () => {
 
     it("entity changeActive", () => {
       const entity = new Entity("entity");
-      entity.parent = scene.root;
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
       entity.isActive = false;
       TestComponent.prototype._onAwake = jest.fn();
       const component = entity.addComponent(TestComponent);
@@ -106,7 +142,8 @@ describe("Component", () => {
   describe("active", () => {
     it("onActive", () => {
       const entity = new Entity("entity");
-      entity.parent = scene.root;
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype._onActive = jest.fn();
       const component = entity.addComponent(TestComponent);
       expect(component._onActive).toHaveBeenCalledTimes(1);
@@ -114,7 +151,8 @@ describe("Component", () => {
 
     it("onInActive", () => {
       const entity = new Entity("entity");
-      entity.parent = scene.root;
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype._onInActive = jest.fn();
       const component = entity.addComponent(TestComponent);
       entity.isActive = false;
@@ -123,9 +161,10 @@ describe("Component", () => {
 
     it("inActiveHierarchy", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
-      parent.parent = child;
+      child.parent = parent;
       TestComponent.prototype._onInActive = jest.fn();
       const component = child.addComponent(TestComponent);
       parent.isActive = false;
