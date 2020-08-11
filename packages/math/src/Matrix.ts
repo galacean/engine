@@ -892,7 +892,7 @@ export class Matrix {
    * 将当前矩阵值拷贝给 out 矩阵。
    * @param out - 目标矩阵
    */
-  cloneTo(out: Matrix): void {
+  cloneTo(out: Matrix): Matrix {
     const e = this.elements;
     const oe = out.elements;
 
@@ -915,6 +915,8 @@ export class Matrix {
     oe[13] = e[13];
     oe[14] = e[14];
     oe[15] = e[15];
+
+    return out;
   }
 
   /**
