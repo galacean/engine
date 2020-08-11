@@ -50,8 +50,10 @@ import { BoxCollider, SphereCollider } from "@alipay/o3-collider";
 import { GeometryRenderer } from "@alipay/o3-geometry";
 import { Camera, Component } from "@alipay/o3-core";
 import { PlaneProbe } from "@alipay/o3-env-probe";
+import { Model } from "@alipay/o3-geometry-shape";
 
 Parser.registerComponents("o3", {
+  Model,
   GLTFModel,
   SpriteRenderer,
   PointLight,
