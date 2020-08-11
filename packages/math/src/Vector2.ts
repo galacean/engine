@@ -299,8 +299,9 @@ export class Vector2 {
    * 将当前向量值拷贝给目标向量。
    * @param out - 目标向量
    */
-  cloneTo(out: Vector2): void {
+  cloneTo(out: Vector2): Vector2 {
     out.x = this.x;
     out.y = this.y;
+    return out;
   }
 }

@@ -396,10 +396,11 @@ export class Vector4 {
    * 将当前向量值拷贝给 out 向量。
    * @param out - 目标向量
    */
-  cloneTo(out: Vector4): void {
+  cloneTo(out: Vector4): Vector4 {
     out.x = this.x;
     out.y = this.y;
     out.z = this.z;
     out.w = this.w;
+    return out;
   }
 }

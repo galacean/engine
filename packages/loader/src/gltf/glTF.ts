@@ -677,9 +677,9 @@ export function parseNode(gltfNode, resources) {
           const len = arr.length;
           if (len === 2) {
             entity[mapKey] = new Vector2(...arr);
-          } else if (len == 3) {
+          } else if (len === 3) {
             entity[mapKey] = new Vector3(...arr);
-          } else if (len == 4) {
+          } else if (len === 4) {
             entity[mapKey] = new Vector4(...arr);
           }
         }

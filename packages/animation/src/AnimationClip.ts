@@ -213,19 +213,20 @@ export class AnimationClip extends AssetObject {
         outValue = output[frameIndex] * (1 - alpha) + output[nextFrameIndex] * alpha;
         break;
       case 4:
-        const start = new Quaternion(
-          output[frameIndex * outputSize],
-          output[frameIndex * outputSize + 1],
-          output[frameIndex * outputSize + 2],
-          output[frameIndex * outputSize + 3]
-        );
-        const end = new Quaternion(
-          output[nextFrameIndex * outputSize],
-          output[nextFrameIndex * outputSize + 1],
-          output[nextFrameIndex * outputSize + 2],
-          output[nextFrameIndex * outputSize + 3]
-        );
-        Quaternion.slerp(start, end, alpha, <Quaternion>outValue);
+        // const start = new Quaternion(
+        //   output[frameIndex * outputSize],
+        //   output[frameIndex * outputSize + 1],
+        //   output[frameIndex * outputSize + 2],
+        //   output[frameIndex * outputSize + 3]
+        // );
+        // const end = new Quaternion(
+        //   output[nextFrameIndex * outputSize],
+        //   output[nextFrameIndex * outputSize + 1],
+        //   output[nextFrameIndex * outputSize + 2],
+        //   output[nextFrameIndex * outputSize + 3]
+        // );
+        // Quaternion.slerp(start, end, alpha, <Quaternion>outValue);
+        this._quaSlerp(outValue, output, frameIndex * outputSize, output, nextFrameIndex * outputSize, alpha);
         break;
       default:
         for (let i = outputSize; i >= 0; i--) {
@@ -234,5 +235,51 @@ export class AnimationClip extends AssetObject {
         }
         break;
     } // end of switch
+  }
+
+  private _quaSlerp(out, a, aIndex, b, bIndex, t) {
+    // benchmarks:
+    //    http://jsperf.com/quaternion-slerp-implementations
+    let ax = a[0 + aIndex],
+      ay = a[1 + aIndex],
+      az = a[2 + aIndex],
+      aw = a[3 + aIndex];
+    let bx = b[0 + bIndex],
+      by = b[1 + bIndex],
+      bz = b[2 + bIndex],
+      bw = b[3 + bIndex];
+
+    let omega, cosom, sinom, scale0, scale1;
+
+    // calc cosine
+    cosom = ax * bx + ay * by + az * bz + aw * bw;
+    // adjust signs (if necessary)
+    if (cosom < 0.0) {
+      cosom = -cosom;
+      bx = -bx;
+      by = -by;
+      bz = -bz;
+      bw = -bw;
+    }
+    // calculate coefficients
+    if (1.0 - cosom > 0.000001) {
+      // standard case (slerp)
+      omega = Math.acos(cosom);
+      sinom = Math.sin(omega);
+      scale0 = Math.sin((1.0 - t) * omega) / sinom;
+      scale1 = Math.sin(t * omega) / sinom;
+    } else {
+      // "from" and "to" quaternions are very close
+      //  ... so we can do a linear interpolation
+      scale0 = 1.0 - t;
+      scale1 = t;
+    }
+    // calculate final values
+    out[0] = scale0 * ax + scale1 * bx;
+    out[1] = scale0 * ay + scale1 * by;
+    out[2] = scale0 * az + scale1 * bz;
+    out[3] = scale0 * aw + scale1 * bw;
+
+    return out;
   }
 }
