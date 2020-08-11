@@ -4,7 +4,7 @@ import { Entity } from "./Entity";
 import { Engine } from "./Engine";
 import { Camera } from "./Camera";
 import { SceneFeature } from "./SceneFeature";
-import { Vector4 } from "@alipay/o3-math";
+import { Vector4, Vector3 } from "@alipay/o3-math";
 import { ComponentsManager } from "./ComponentsManager";
 
 const sceneFeatureManager = new FeatureManager<SceneFeature>();
@@ -256,5 +256,5 @@ export class Scene extends EventDispatcher {
    * 射线
    * @param ray
    */
-  public raycast(ray: { origin: number[]; direction: number[] }, outPos?: number[], tag?: MaskList): any {}
+  public raycast(ray: { origin: Vector3; direction: Vector3 }, outPos?: Vector3, tag?: MaskList): any {}
 }
