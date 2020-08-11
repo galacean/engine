@@ -595,7 +595,7 @@ export class Quaternion {
   /**
    * 绕 X 轴旋转。
    * @param rad - 旋转角度(单位：弧度)
-   * @returns - 当前四元数
+   * @returns 当前四元数
    */
   rotateX(rad: number): Quaternion {
     Quaternion.rotateX(this, rad, this);
@@ -605,7 +605,7 @@ export class Quaternion {
   /**
    * 绕 Y 轴旋转。
    * @param rad - 旋转角度(单位：弧度)
-   * @returns - 当前四元数
+   * @returns 当前四元数
    */
   rotateY(rad: number): Quaternion {
     Quaternion.rotateY(this, rad, this);
@@ -615,10 +615,21 @@ export class Quaternion {
   /**
    * 绕 Z 轴旋转。
    * @param rad - 旋转角度(单位：弧度)
-   * @returns - 当前四元数
+   * @returns 当前四元数
    */
   rotateZ(rad: number): Quaternion {
     Quaternion.rotateZ(this, rad, this);
+    return this;
+  }
+
+  /**
+   * 通过旋转的欧拉角设置当前四元数。
+   * @param axis - 旋转轴向量
+   * @param rad - 旋转角度(单位：弧度)
+   * @returns 当前四元数
+   */
+  rotationAxisAngle(axis: Vector3, rad: number): Quaternion {
+    Quaternion.rotationAxisAngle(axis, rad, this);
     return this;
   }
 }
