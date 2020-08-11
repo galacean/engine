@@ -539,7 +539,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕 X 轴旋转
+   * 绕 X 轴旋转。
    * @param rad - 旋转角度(单位：弧度)
    * @returns - 当前四元数
    */
@@ -558,7 +558,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕 Y 轴旋转
+   * 绕 Y 轴旋转。
    * @param rad - 旋转角度(单位：弧度)
    * @returns - 当前四元数
    */
@@ -577,7 +577,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕 Z 轴旋转
+   * 绕 Z 轴旋转。
    * @param rad - 旋转角度(单位：弧度)
    * @returns - 当前四元数
    */
