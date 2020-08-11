@@ -52,7 +52,7 @@ export class ABoxCollider extends Collider {
   setBoxCenterSize(center: Vector3, size: Vector3) {
     const halfSize = ABoxCollider._tempVec3;
     Vector3.scale(size, 0.5, halfSize);
-    Vector3.add(center, halfSize, this.boxMin);
+    Vector3.add(center, halfSize, this.boxMax);
     Vector3.subtract(center, halfSize, this.boxMin);
 
     this._corners.length = 0;
