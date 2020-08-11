@@ -293,7 +293,7 @@ export class Material extends ReferenceObject {
       case UniformSemantic.MODELINVERSETRANSPOSE: {
         let modelIT = values[uniform.name];
         if (!modelIT) modelIT = new Matrix3x3();
-        Matrix3x3.normalFromMat4(component._entity.transform.worldMatrix, modelIT);
+        Matrix3x3.normalMatrix(component._entity.transform.worldMatrix, modelIT);
         values[uniform.name] = modelIT;
         break;
       }

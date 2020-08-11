@@ -73,11 +73,11 @@ describe("Matrix3x3 test", () => {
     expect(Matrix3x3.equals(out, new Matrix3x3(1, -1.5, 1, 3, -3, 1, -2, 2.5, -1))).toEqual(true);
   });
 
-  it("static normalFromMat4", () => {
+  it("static normalMatrix", () => {
     const out = new Matrix3x3();
     const mat4 = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
-    Matrix3x3.normalFromMat4(mat4, out);
+    Matrix3x3.normalMatrix(mat4, out);
     expect(Matrix3x3.equals(out, new Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1))).toEqual(true);
   });
 

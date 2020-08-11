@@ -242,12 +242,12 @@ export class Matrix3x3 {
 
   /**
    * 从4x4矩阵中计算出3x3法线矩阵。
-   * @param a - 4x4矩阵
-   * @param out - 计算出来的3x3法线矩阵
+   * @remarks 计算过程为求逆矩阵的转置矩阵。
+   * @param mat4 - 4x4矩阵
+   * @param out - 3x3法线矩阵
    */
-  static normalFromMat4(a: Matrix, out: Matrix3x3): void {
-    //CM:这是啥方法，问慎思
-    const ae = a.elements;
+  static normalMatrix(mat4: Matrix, out: Matrix3x3): void {
+    const ae = mat4.elements;
     const oe = out.elements;
 
     const a11 = ae[0],
