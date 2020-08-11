@@ -675,13 +675,15 @@ export function parseNode(gltfNode, resources) {
         } else {
           const arr = gltfNode[key];
           const len = arr.length;
+          const obj = entity[mapKey];
           if (len === 2) {
-            entity[mapKey] = new Vector2(...arr);
+            obj.setValue(arr[0], arr[1]);
           } else if (len === 3) {
-            entity[mapKey] = new Vector3(...arr);
+            obj.setValue(arr[0], arr[1], arr[2]);
           } else if (len === 4) {
-            entity[mapKey] = new Vector4(...arr);
+            obj.setValue(arr[0], arr[1], arr[2], arr[3]);
           }
+          entity[mapKey] = obj;
         }
       }
     }
