@@ -385,19 +385,18 @@ export class Animation extends Component {
       if (path === "weights") {
         // SkinnedMeshRenderer
         (targetObject as SkinnedMeshRenderer).setWeights(val as any);
-      } else if (path === "rotation") {
-        // @ts-ignore
-        targetObject[path] = new Quaternion(val.x, val.y, val.z, val.w);
       } else {
         const v = val as Float32Array;
         const len = v.length;
+        const obj = targetObject[path];
         if (len === 2) {
-          targetObject[path] = new Vector2(...v);
+          obj.setValue(v[0], v[1]);
         } else if (len == 3) {
-          targetObject[path] = new Vector3(...v);
+          obj.setValue(v[0], v[1], v[2]);
         } else if (len == 4) {
-          targetObject[path] = new Vector4(...v);
+          obj.setValue(v[0], v[1], v[2], v[3]);
         }
+        targetObject[path] = obj;
       }
     } // end of for
   }
