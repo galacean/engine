@@ -213,19 +213,19 @@ export class AnimationClip extends AssetObject {
         outValue = output[frameIndex] * (1 - alpha) + output[nextFrameIndex] * alpha;
         break;
       case 4:
-        const a = new Quaternion(
+        const start = new Quaternion(
           output[frameIndex * outputSize],
           output[frameIndex * outputSize + 1],
           output[frameIndex * outputSize + 2],
           output[frameIndex * outputSize + 3]
         );
-        const b = new Quaternion(
+        const end = new Quaternion(
           output[nextFrameIndex * outputSize],
           output[nextFrameIndex * outputSize + 1],
           output[nextFrameIndex * outputSize + 2],
           output[nextFrameIndex * outputSize + 3]
         );
-        Quaternion.slerp(a, b, alpha, <Quaternion>outValue);
+        Quaternion.slerp(start, end, alpha, <Quaternion>outValue);
         break;
       default:
         for (let i = outputSize; i >= 0; i--) {
