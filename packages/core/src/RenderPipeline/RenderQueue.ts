@@ -1,5 +1,5 @@
 import { MaskList } from "../base";
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
 
@@ -48,9 +48,9 @@ export class RenderQueue {
 
   /**
    * 对于透明对象，按照离摄像机由远及近的顺序渲染，有助于减少视觉错误
-   * @param {vec3} eyePos
+   * @param {Vector3} eyePos
    */
-  sortByDistance(eyePos) {
+  sortByDistance(eyePos: Vector3) {
     const items = this._items;
 
     if (items.length > 1) {
@@ -59,7 +59,7 @@ export class RenderQueue {
           const pos1 = item1.component.entity.transform.worldPosition;
           const pos2 = item2.component.entity.transform.worldPosition;
 
-          const dis = vec3.squaredDistance(pos2, eyePos) - vec3.squaredDistance(pos1, eyePos);
+          const dis = Vector3.distanceSquared(pos2, eyePos) - Vector3.distanceSquared(pos1, eyePos);
           return dis;
         } else {
           return item1.component.renderPriority - item2.component.renderPriority;

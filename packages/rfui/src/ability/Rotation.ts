@@ -1,5 +1,5 @@
 import { Script } from "@alipay/o3-core";
-import { MathUtil, quat } from "@alipay/o3-math";
+import { MathUtil, Quaternion } from "@alipay/o3-math";
 
 export default class Rotation extends Script {
   public axis;
@@ -27,7 +27,7 @@ export default class Rotation extends Script {
   onUpdate(deltaTime) {
     this.deg += this.dDeg * (deltaTime / 1000);
     const rotationQua = this.entity.transform.rotationQuaternion;
-    quat.setAxisAngle(rotationQua, this.axis, MathUtil.toRadian(this.deg));
+    Quaternion.rotationAxisAngle(this.axis, MathUtil.degreeToRadian(this.deg), rotationQua);
     this.entity.transform.rotationQuaternion = rotationQua;
   }
 }

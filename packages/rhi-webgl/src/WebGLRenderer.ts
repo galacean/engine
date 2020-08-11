@@ -12,6 +12,7 @@ import { GLTechnique } from "./GLTechnique";
 import { GLVAOPrimitive } from "./GLVAOPrimitive";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
+import { Vector4 } from "@alipay/o3-math";
 
 /**
  * WebGL模式。默认 Auto
@@ -190,26 +191,26 @@ export class WebGLRenderer implements HardwareRenderer {
    * @param {ClearMode} clearMode
    * @param {*} clearParam
    */
-  clearRenderTarget(clearMode, clearParam) {
+  clearRenderTarget(clearMode, clearParam: Vector4) {
     const gl = this._gl;
 
     switch (clearMode) {
       case ClearMode.SOLID_COLOR: // solid color
-        gl.clearColor(clearParam[0], clearParam[1], clearParam[2], clearParam[3]);
+        gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         break;
       case ClearMode.DEPTH_ONLY: // depth only
         gl.clear(gl.DEPTH_BUFFER_BIT);
         break;
       case ClearMode.COLOR_ONLY:
-        gl.clearColor(clearParam[0], clearParam[1], clearParam[2], clearParam[3]);
+        gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
         gl.clear(gl.COLOR_BUFFER_BIT);
         break;
       case ClearMode.STENCIL_ONLY:
         gl.clear(gl.STENCIL_BUFFER_BIT);
         break;
       case ClearMode.ALL_CLEAR:
-        gl.clearColor(clearParam[0], clearParam[1], clearParam[2], clearParam[3]);
+        gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         break;
 
@@ -281,7 +282,7 @@ export class WebGLRenderer implements HardwareRenderer {
       const viewport = camera.viewport;
       const width = gl.drawingBufferWidth;
       const height = gl.drawingBufferHeight;
-      this.viewport(viewport[0] * width, viewport[1] * height, viewport[2] * width, viewport[3] * height);
+      this.viewport(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
     }
   }
 

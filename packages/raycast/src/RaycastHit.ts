@@ -1,4 +1,5 @@
 import { ACollider } from "@alipay/o3-collider";
+import { Vector3 } from "@alipay/o3-math";
 
 /**
  * Raycast检测的结果记录
@@ -7,7 +8,7 @@ import { ACollider } from "@alipay/o3-collider";
 export class RaycastHit {
   public distance: number;
   public collider: ACollider;
-  public point: Float32Array | number;
+  public point: Vector3;
   /**
    * 构造函数
    */

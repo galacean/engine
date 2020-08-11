@@ -1,4 +1,5 @@
 import { DataType } from '@alipay/o3-core';
+import { Vector2 } from '@alipay/o3-math';
 import { PostEffectNode } from '../PostEffectNode';
 
 import GodraysShader from '../shaders/GodraysPass.glsl';
@@ -30,7 +31,7 @@ export class GodraysPassNode extends PostEffectNode {
 
     super( name, renderTarget, parent, SHADER_CONFIG );
 
-    this._sunScreen = [ 1.0, 1.0 ];
+    this._sunScreen = new Vector2(1.0, 1.0);
     this.material.setValue( 'u_sunScreen', this._sunScreen );
 
   }

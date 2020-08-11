@@ -20,6 +20,6 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "devDependencies": {
-    "gl-matrix": "^2.3.2"
+    
   }
 }

@@ -3,6 +3,7 @@ import { pluginHook } from "./plugins/PluginManager";
 import { switchElementsIndex } from "./utils";
 import { NodeConfig } from "./types";
 import { Entity } from "@alipay/o3-core";
+import { Vector3 } from "@alipay/o3-math";
 
 export class NodeManager {
   private nodeMap: { [id: string]: Entity } = {};
@@ -48,9 +49,9 @@ export class NodeManager {
     const { isActive, position, rotation, scale, id, name } = nodeConfig;
     const entity = new Entity(name);
     entity.isActive = isActive;
-    entity.position = position;
-    entity.transform.rotation = rotation;
-    entity.scale = scale;
+    entity.transform.position = new Vector3(position[0], position[1], position[2]);
+    entity.transform.rotation = new Vector3(rotation[0], rotation[1], rotation[2]);
+    entity.transform.scale = new Vector3(scale[0], scale[1], scale[2]);
     (entity as any).id = id;
     this.nodeMap[id] = entity;
     return entity;

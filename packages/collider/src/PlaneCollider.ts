@@ -1,5 +1,5 @@
 import { Collider } from "./Collider";
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { Entity } from "@alipay/o3-core";
 
 /**
@@ -7,9 +7,9 @@ import { Entity } from "@alipay/o3-core";
  * @extends Collider
  */
 export class PlaneCollider extends Collider {
-  planePoint: Float32Array | number[];
+  planePoint: Vector3;
 
-  normal: Float32Array | number[];
+  normal: Vector3;
   /**
    * @constructor
    * @param {Entity} entity
@@ -19,23 +19,23 @@ export class PlaneCollider extends Collider {
 
     /**
      * 平面经过点的坐标(在Local坐标系)
-     * @member {vec3}
+     * @member {Vector3}
      */
-    this.planePoint = vec3.fromValues(0, 0, 0);
+    this.planePoint = new Vector3();
 
     /**
      * 平面法线的方向
-     * @member {vec3}
+     * @member {Vector3}
      */
-    this.normal = vec3.fromValues(0, 1, 0);
+    this.normal = new Vector3(0, 1, 0);
   }
 
   /**
    * 使用Local坐标，设置point
-   * @param {vec3} point 平面上的一个点：(p-p0)·n = 0
-   * @param {vec3} normal 平面的法线
+   * @param {Vector3} point 平面上的一个点：(p-p0)·n = 0
+   * @param {Vector3} normal 平面的法线
    */
-  setPlane(point: Float32Array | number[], normal: Float32Array | number[]) {
+  setPlane(point: Vector3, normal: Vector3) {
     this.planePoint = point;
     this.normal = normal;
   }

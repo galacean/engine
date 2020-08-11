@@ -1,4 +1,4 @@
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { Component, Script } from "@alipay/o3-core";
 import { Event } from "@alipay/o3-core";
 import {
@@ -17,6 +17,8 @@ import { intersectBox2Box, intersectSphere2Sphere, intersectSphere2Box } from ".
  * 发出事件：collision
  */
 export class CollisionDetection extends Script {
+  private static _tempVec3: Vector3 = new Vector3();
+
   private _colliderManager;
   private _myCollider;
   private _overlopCollider;
@@ -95,22 +97,22 @@ export class CollisionDetection extends Script {
    */
   _getWorldBox(boxCollider) {
     const mat = boxCollider.entity.transform.worldMatrix;
-    const max = vec3.create();
-    const min = vec3.create();
-    vec3.transformMat4(max, boxCollider.boxMax, mat);
-    vec3.transformMat4(min, boxCollider.boxMin, mat);
+    const max: Vector3 = new Vector3();
+    const min: Vector3 = new Vector3();
+    Vector3.transformCoordinate(boxCollider.boxMax, mat, max);
+    Vector3.transformCoordinate(boxCollider.boxMin, mat, min);
 
     //--
-    const temp = vec3.create();
+    const temp: Vector3 = CollisionDetection._tempVec3;
     const corners = boxCollider.getCorners();
     for (let i = 0; i < 8; i++) {
-      vec3.transformMat4(temp, corners[i], mat);
-      if (temp[0] > max[0]) max[0] = temp[0];
-      if (temp[1] > max[1]) max[1] = temp[1];
-      if (temp[2] > max[2]) max[2] = temp[2];
-      if (temp[0] < min[0]) min[0] = temp[0];
-      if (temp[1] < min[1]) min[1] = temp[1];
-      if (temp[2] < min[2]) min[2] = temp[2];
+      Vector3.transformCoordinate(corners[i], mat, temp);
+      if (temp.x > max.x) max.x = temp.x;
+      if (temp.y > max.y) max.y = temp.y;
+      if (temp.z > max.z) max.z = temp.z;
+      if (temp.x < min.x) min.x = temp.x;
+      if (temp.y < min.y) min.y = temp.y;
+      if (temp.z < min.z) min.z = temp.z;
     }
 
     return {
@@ -124,8 +126,8 @@ export class CollisionDetection extends Script {
    * @param {SphereCollider} sphereCollider
    */
   _getWorldSphere(sphereCollider) {
-    const center = vec3.create();
-    vec3.transformMat4(center, sphereCollider.center, sphereCollider.entity.transform.worldMatrix);
+    const center: Vector3 = new Vector3();
+    Vector3.transformCoordinate(sphereCollider.center, sphereCollider.entity.transform.worldMatrix, center);
     return {
       radius: sphereCollider.radius,
       center

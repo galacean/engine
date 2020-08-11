@@ -1,4 +1,5 @@
 import { DataType } from '@alipay/o3-core';
+import { Vector3 } from '@alipay/o3-math';
 import { PostEffectNode } from '../PostEffectNode';
 
 import GodraysCombineShader from '../shaders/GodraysCombinePass.glsl';
@@ -53,7 +54,7 @@ export class GodraysCombinePassNode extends PostEffectNode {
     this._godRayLong = 1.0;
     this.material.setValue( 'u_godRayLong', this._godRayLong );
 
-    this._color = [1.0, 1.0, 1.0];
+    this._color = new Vector3(1.0, 1.0, 1.0);
     this.material.setValue( 'u_color', this._color );
 
   }

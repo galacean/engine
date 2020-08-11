@@ -1,6 +1,6 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { vec3 } from "@alipay/o3-math";
+import { Vector3 } from "@alipay/o3-math";
 import { Entity } from "./Entity";
 
 /**
@@ -45,7 +45,7 @@ export abstract class RenderableComponent extends Component {
 
     // distance cull
     if (this.cullDistanceSq > 0) {
-      const distanceSq = vec3.squaredDistance(
+      const distanceSq = Vector3.distanceSquared(
         camera._entity.transform.worldPosition,
         this.entity.transform.worldPosition
       );
