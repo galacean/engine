@@ -66,8 +66,7 @@ Parser.registerComponents("o3", {
   Camera,
   Component,
   SphereCollider,
-  PlaneProbe,
-  Model
+  PlaneProbe
 });
 
 // RegistExtension({ PBRMaterial, TextureMaterial, TransparentMaterial });
