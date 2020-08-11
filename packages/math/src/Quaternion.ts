@@ -530,10 +530,11 @@ export class Quaternion {
    * 将当前四元数值拷贝给 out 四元数。
    * @param out - 目标四元数
    */
-  cloneTo(out: Quaternion): void {
+  cloneTo(out: Quaternion): Quaternion {
     out.x = this.x;
     out.y = this.y;
     out.z = this.z;
     out.w = this.w;
+    return out;
   }
 }

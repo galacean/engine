@@ -554,7 +554,7 @@ export class Matrix3x3 {
    * 将当前矩阵值拷贝给 out 矩阵。
    * @param out - 目标矩阵
    */
-  cloneTo(out: Matrix3x3): void {
+  cloneTo(out: Matrix3x3): Matrix3x3 {
     const e = this.elements;
     const oe = out.elements;
 
@@ -569,6 +569,8 @@ export class Matrix3x3 {
     oe[6] = e[6];
     oe[7] = e[7];
     oe[8] = e[8];
+
+    return out;
   }
 
   /**
