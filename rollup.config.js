@@ -63,6 +63,7 @@ async function makeRollupConfig({ location, main, name, type }) {
     }),
     babel({
       extensions,
+      runtimeHelpers: true,
       exclude: ["node_modules/**", "packages/**/node_modules/**"]
     }),
     commonjs()

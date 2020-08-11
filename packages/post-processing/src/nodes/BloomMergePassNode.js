@@ -1,6 +1,8 @@
-import { DataType } from "@alipay/o3-core";
-import { PostEffectNode } from "../PostEffectNode";
-import fs from "../shaders/BloomMerge.glsl";
+import { DataType } from '@alipay/o3-core';
+import { Vector3 } from '@alipay/o3-math';
+import { PostEffectNode } from '../PostEffectNode';
+import fs from '../shaders/BloomMerge.glsl';
+
 
 const SHADER_CONFIG = {
   source: fs,
@@ -36,7 +38,7 @@ export class BloomMergePassNode extends PostEffectNode {
     super(name, renderTarget, parent, SHADER_CONFIG);
 
     this.weight = 0.8;
-    this.tintColor = [1, 1, 1];
+    this.tintColor = new Vector3(1, 1, 1);
   }
 
   get weight() {

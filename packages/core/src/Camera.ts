@@ -1,6 +1,5 @@
 import { ClearMode, TextureCubeFace } from "./base";
-import { mat4, MathUtil, vec3, vec4 } from "@alipay/o3-math";
-import { Matrix4, Vector2, Vector3, Vector4 } from "@alipay/o3-math/types/type";
+import { Matrix, MathUtil, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
@@ -20,9 +19,9 @@ type Sky = {};
 
 //CM：这个类可能需要搬家
 class MathTemp {
-  static tempMat4 = mat4.create() as Matrix4;
-  static tempVec4 = vec4.create() as Vector4;
-  static tempVec3 = vec3.create() as Vector3;
+  static tempMat4 = new Matrix();
+  static tempVec4 = new Vector4();
+  static tempVec3 = new Vector3();
 }
 
 /**
@@ -54,28 +53,28 @@ export class Camera extends Component {
    */
   cullingMask: number = 0;
   _renderPipeline: BasicRenderPipeline;
-
+  _pixelViewport: Vector4 = new Vector4(0, 0, 1, 1);
   private _isOrthographic: boolean = false;
-  private _projectionMatrix: Matrix4 = mat4.create();
+  private _projectionMatrix: Matrix = new Matrix();
   private _isProjMatSetting = false;
-  private _viewMatrix: Matrix4 = mat4.create();
-  private _clearFlags: ClearFlags;
+  private _viewMatrix: Matrix = new Matrix();
   private _clearParam: Vector4;
   private _clearMode: ClearMode;
-  private _viewport: Vector4 = [0, 0, 1, 1];
+  private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   private _nearClipPlane: number;
   private _farClipPlane: number;
   private _fieldOfView: number;
   private _orthographicSize: number = 10;
-  private _inverseProjectionMatrix: Matrix4 = mat4.create();
-  private _inverseViewMatrix: Matrix4 = mat4.create();
+  private _inverseProjectionMatrix: Matrix = new Matrix();
+  private _inverseViewMatrix: Matrix = new Matrix();
   /** 投影矩阵脏标记 */
   private _isProjectionDirty = true;
   /** 投影矩阵逆矩阵脏标记 */
   private _isInvProjMatDirty: boolean = true;
   private _customAspectRatio: number = undefined;
-  private _lastAspectSize: Vector2 = [0, 0];
-  private _invViewProjMat: Matrix4 = mat4.create();
+  private _lastAspectSize: Vector2 = new Vector2(0, 0);
+  private _invViewProjMat: Matrix = new Matrix();
+
   private _transform: Transform;
   private _isViewMatrixDirty: UpdateFlag;
   /** 投影视图矩阵逆矩阵脏标记 */
@@ -122,7 +121,7 @@ export class Camera extends Component {
    */
   get aspectRatio(): number {
     const canvas = this._entity.engine.canvas;
-    return this._customAspectRatio ?? (canvas.width * this._viewport[2]) / (canvas.height * this._viewport[3]);
+    return this._customAspectRatio ?? (canvas.width * this._viewport.z) / (canvas.height * this._viewport.w);
   }
 
   set aspectRatio(value: number) {
@@ -140,7 +139,7 @@ export class Camera extends Component {
 
   set viewport(value: Vector4) {
     if (value !== this._viewport) {
-      vec4.copy(this._viewport, value);
+      value.cloneTo(this._viewport);
     }
     this._projMatChange();
   }
@@ -205,13 +204,11 @@ export class Camera extends Component {
   /**
    * 视图矩阵。
    */
-  get viewMatrix(): Readonly<Matrix4> {
+  get viewMatrix(): Readonly<Matrix> {
     //CM:相机的视图矩阵一般会移除缩放,避免在shader运算出一些奇怪的问题
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
-      const modelMatrix = this._transform.worldMatrix;
-      turnAround(MathTemp.tempMat4, modelMatrix); // todo:以后删除  turnAround
-      mat4.invert(this._viewMatrix, MathTemp.tempMat4);
+      Matrix.invert(this._transform.worldMatrix, this._viewMatrix);
     }
     return this._viewMatrix;
   }
@@ -219,37 +216,37 @@ export class Camera extends Component {
   /**
    * 投影矩阵,默认由相机的相关参数计算计算，如果手动设置会保持手动值，调用resetProjectionMatrix()可恢复。
    */
-  set projectionMatrix(value: Matrix4) {
+  set projectionMatrix(value: Matrix) {
     this._projectionMatrix = value;
     this._isProjMatSetting = true;
     this._projMatChange();
   }
 
-  get projectionMatrix(): Matrix4 {
+  get projectionMatrix(): Matrix {
     const canvas = this._entity.engine.canvas;
     if (
       (!this._isProjectionDirty || this._isProjMatSetting) &&
-      this._lastAspectSize[0] === canvas.width &&
-      this._lastAspectSize[1] === canvas.height
+      this._lastAspectSize.x === canvas.width &&
+      this._lastAspectSize.y === canvas.height
     ) {
       return this._projectionMatrix;
     }
     this._isProjectionDirty = false;
-    this._lastAspectSize[0] = canvas.width;
-    this._lastAspectSize[1] = canvas.height;
+    this._lastAspectSize.x = canvas.width;
+    this._lastAspectSize.y = canvas.height;
     const aspectRatio = this.aspectRatio;
     if (!this._isOrthographic) {
-      mat4.perspective(
-        this._projectionMatrix,
-        MathUtil.toRadian(this._fieldOfView),
+      Matrix.perspective(
+        MathUtil.degreeToRadian(this._fieldOfView),
         aspectRatio,
         this._nearClipPlane,
-        this._farClipPlane
+        this._farClipPlane,
+        this._projectionMatrix
       );
     } else {
       const width = this._orthographicSize * aspectRatio;
       const height = this._orthographicSize;
-      mat4.ortho(this._projectionMatrix, -width, width, -height, height, this._nearClipPlane, this._farClipPlane);
+      Matrix.ortho(-width, width, -height, height, this._nearClipPlane, this._farClipPlane, this._projectionMatrix);
     }
     return this._projectionMatrix;
   }
@@ -292,7 +289,7 @@ export class Camera extends Component {
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
     const {
       RenderPipeline = BasicRenderPipeline,
-      clearParam = [0.25, 0.25, 0.25, 1],
+      clearParam = new Vector4(0.25, 0.25, 0.25, 1),
       clearMode,
       near,
       far,
@@ -304,9 +301,9 @@ export class Camera extends Component {
     this._fieldOfView = fov ?? 45;
 
     // TODO: 删除，兼容旧 camera，decaprated
-    const target = props.target ?? [0, 0, 0];
-    const up = props.up ?? [0, 1, 0];
-    entity.transform.position = props.position ?? [0, 10, 20];
+    const target = props.target ?? new Vector3();
+    const up = props.up ?? new Vector3(0, 1, 0);
+    entity.transform.position = props.position ?? new Vector3(0, 10, 20);
     entity.transform.lookAt(target, up);
 
     this._renderPipeline = new RenderPipeline(this);
@@ -338,21 +335,20 @@ export class Camera extends Component {
    * @returns 视口空间坐标
    */
   worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
-    const matViewProj = mat4.mul(MathTemp.tempMat4, this.projectionMatrix, this.viewMatrix);
+    Matrix.multiply(this.projectionMatrix, this.viewMatrix, MathTemp.tempMat4);
+    MathTemp.tempVec4.setValue(point.x, point.y, point.z, 1.0);
+    Vector4.transform(MathTemp.tempVec4, MathTemp.tempMat4, MathTemp.tempVec4);
 
-    const worldPos = vec4.set(MathTemp.tempVec4, point[0], point[1], point[2], 1.0);
-    const clipPos = vec4.transformMat4(MathTemp.tempVec4, worldPos, matViewProj); //CM：可增加transformV3ToV4绕过worldPos转换的流程
-
-    const w = clipPos[3];
-    const nx = clipPos[0] / w;
-    const ny = clipPos[1] / w;
-    const nz = clipPos[2] / w;
+    const w = MathTemp.tempVec4.w;
+    const nx = MathTemp.tempVec4.x / w;
+    const ny = MathTemp.tempVec4.y / w;
+    const nz = MathTemp.tempVec4.z / w;
 
     // 坐标轴转换
-    out[0] = (nx + 1.0) * 0.5;
-    out[1] = (1.0 - ny) * 0.5;
-    out[2] = nz;
-    out[3] = w;
+    out.x = (nx + 1.0) * 0.5;
+    out.y = (1.0 - ny) * 0.5;
+    out.z = nz;
+    out.w = w;
     return out;
   }
 
@@ -375,13 +371,14 @@ export class Camera extends Component {
    */
   viewportPointToRay(point: Vector2, out: Ray): Ray {
     // 使用近裁面的交点作为 origin
-    vec3.set(MathTemp.tempVec3, point[0], point[1], 0);
+    MathTemp.tempVec3.setValue(point.x, point.y, 0);
     const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
     // 使用远裁面的交点作为 origin
-    const viewportPos = vec3.set(MathTemp.tempVec3, point[0], point[1], 1);
-    const farPoint = this._innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
-    const direction = vec3.sub(out.direction, farPoint, origin);
-    vec3.normalize(direction, direction);
+    const viewportPos: Vector3 = MathTemp.tempVec3.setValue(point.x, point.y, 1);
+    const farPoint: Vector3 = this._innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
+    Vector3.subtract(farPoint, origin, out.direction);
+    out.direction.normalize();
+
     return out;
   }
 
@@ -393,8 +390,8 @@ export class Camera extends Component {
    */
   screenToViewportPoint<T extends Vector2 | Vector3>(point: Vector3 | Vector2, out: T): T {
     const viewport = this.viewport;
-    out[0] = (point[0] - viewport[0]) / viewport[2];
-    out[1] = (point[1] - viewport[1]) / viewport[3];
+    out.x = (point.x - viewport.x) / viewport.z;
+    out.y = (point.y - viewport.y) / viewport.w;
     return out;
   }
 
@@ -406,12 +403,12 @@ export class Camera extends Component {
    */
   viewportToScreenPoint<T extends Vector2 | Vector3 | Vector4>(point: T, out: T): T {
     const viewport = this.viewport;
-    const viewWidth = viewport[2];
-    const viewHeight = viewport[3];
-    const nx = point[0];
-    const ny = point[1];
-    out[0] = viewport[0] + viewWidth * nx;
-    out[1] = viewport[1] + viewHeight * ny;
+    const viewWidth = viewport.z;
+    const viewHeight = viewport.w;
+    const nx = point.x;
+    const ny = point.y;
+    out.x = viewport.x + viewWidth * nx;
+    out.y = viewport.y + viewHeight * ny;
     return out;
   }
 
@@ -452,18 +449,19 @@ export class Camera extends Component {
     this._isInvViewProjDirty.flag = true;
   }
 
-  private _innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix4, out: Vector3) {
+  private _innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix, out: Vector3): Vector3 {
     // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
     const depth = point[2] * 2 - 1;
     // 变换到裁剪空间矩阵
-    const clipPoint = vec4.set(MathTemp.tempVec4, point[0] * 2 - 1, 1 - point[1] * 2, depth, 1);
+    MathTemp.tempVec4.setValue(point.x * 2 - 1, 1 - point.y * 2, depth, 1);
     // 计算逆矩阵结果
-    const u = vec4.transformMat4(MathTemp.tempVec4, clipPoint, invViewProjMat);
-    const w = u[3];
+    Vector4.transform(MathTemp.tempVec4, invViewProjMat, MathTemp.tempVec4);
+    const u = MathTemp.tempVec4;
+    const w = u.w;
 
-    out[0] = u[0] / w;
-    out[1] = u[1] / w;
-    out[2] = u[2] / w;
+    out.x = u.x / w;
+    out.y = u.y / w;
+    out.z = u.z / w;
     return out;
   }
 
@@ -471,12 +469,10 @@ export class Camera extends Component {
    * @private
    * 视图投影矩阵逆矩阵
    */
-  get invViewProjMat() {
+  get invViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      const invViewMatrix = this.inverseViewMatrix;
-      const invProjMatrix = this.inverseProjectionMatrix;
-      mat4.mul(this._invViewProjMat, invViewMatrix, invProjMatrix);
+      Matrix.multiply(this.inverseViewMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
     }
     return this._invViewProjMat;
   }
@@ -485,11 +481,10 @@ export class Camera extends Component {
    * @private
    * 投影矩阵逆矩阵。
    */
-  get inverseProjectionMatrix(): Readonly<Matrix4> {
+  get inverseProjectionMatrix(): Readonly<Matrix> {
     if (this._isInvProjMatDirty) {
       this._isInvProjMatDirty = false;
-      const projectionMatrix = this.projectionMatrix;
-      mat4.invert(this._inverseProjectionMatrix, projectionMatrix);
+      Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
     }
     return this._inverseProjectionMatrix;
   }
@@ -500,8 +495,8 @@ export class Camera extends Component {
    * @deprecated
    * 视图矩阵逆矩阵。
    */
-  get inverseViewMatrix(): Readonly<Matrix4> {
-    turnAround(this._inverseViewMatrix, this._transform.worldMatrix);
+  get inverseViewMatrix(): Readonly<Matrix> {
+    this._transform.worldMatrix.cloneTo(this._inverseViewMatrix);
     return this._inverseViewMatrix;
   }
 
@@ -511,7 +506,10 @@ export class Camera extends Component {
    * @param clearMode
    * @param clearParam
    */
-  setClearMode(clearMode: ClearMode = ClearMode.SOLID_COLOR, clearParam: Vector4 = [0.25, 0.25, 0.25, 1]): void {
+  setClearMode(
+    clearMode: ClearMode = ClearMode.SOLID_COLOR,
+    clearParam: Vector4 = new Vector4(0.25, 0.25, 0.25, 1)
+  ): void {
     this._clearMode = clearMode;
     this._clearParam = clearParam as Vector4;
     this._renderPipeline.defaultRenderPass.clearParam = clearParam;
@@ -519,31 +517,7 @@ export class Camera extends Component {
   }
 }
 
-/**
- * @deprecated
- */
-export function turnAround(out, a) {
-  out[4] = a[4];
-  out[5] = a[5];
-  out[6] = a[6];
-  out[7] = a[7];
-  out[12] = a[12];
-  out[13] = a[13];
-  out[14] = a[14];
-  out[15] = a[15];
-
-  out[0] = -a[0];
-  out[1] = -a[1];
-  out[2] = -a[2];
-  out[3] = -a[3];
-  out[8] = -a[8];
-  out[9] = -a[9];
-  out[10] = -a[10];
-  out[11] = -a[11];
-  return out;
-}
-
 interface ITransform {
-  worldMatrix: Readonly<Matrix4>;
+  worldMatrix: Readonly<Matrix>;
   worldPosition: Readonly<Vector3>;
 }

@@ -1,4 +1,5 @@
 import { DataType, RenderState } from '@alipay/o3-core';
+import { Vector2 } from '@alipay/o3-math';
 import { PostEffectNode } from '../PostEffectNode';
 import { Material, RenderTechnique } from '@alipay/o3-material';
 
@@ -80,7 +81,7 @@ export class KernelBlurPassNode extends PostEffectNode {
     this._direction = v;
     const sourceRT = this.getSourceRenderTarget();
     const { width, height } = sourceRT;
-    this._delta = [ 1 / width * this._direction[0], 1 / height * this._direction[1] ];
+    this._delta = new Vector2(1 / width * this._direction[0], 1 / height * this._direction[1]);
     if( this.material )
       this.material.setValue( 'u_delta', this._delta );
 

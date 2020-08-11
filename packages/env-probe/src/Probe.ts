@@ -9,7 +9,7 @@ import {
   Texture2D,
   TextureCubeMap
 } from "@alipay/o3-material";
-import { Vector4 } from "@alipay/o3-math/types/type";
+import { Vector4 } from "@alipay/o3-math";
 import { WebGLRenderer } from "@alipay/o3-rhi-webgl";
 import { ProbeConfig } from "./type";
 

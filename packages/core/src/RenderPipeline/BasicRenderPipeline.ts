@@ -5,6 +5,7 @@ import { Component } from "../Component";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 import { SeparateSpritePass } from "./SeparateSpritePass";
+import { Vector4 } from "@alipay/o3-math";
 
 /** @todo: monorepo circle dependence */
 type RenderTarget = any;
@@ -61,7 +62,7 @@ export class BasicRenderPipeline extends SceneVisitor {
     renderTarget: RenderTarget = null,
     replaceMaterial: Material = null,
     mask: MaskList = null,
-    clearParam = [0, 0, 0, 0]
+    clearParam = new Vector4(0, 0, 0, 0)
   ) {
     if (typeof nameOrPass === "string") {
       const renderPass = new RenderPass(nameOrPass, priority, renderTarget, replaceMaterial, mask, clearParam);

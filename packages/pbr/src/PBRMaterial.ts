@@ -14,6 +14,7 @@ import { LightFeature } from "@alipay/o3-lighting";
 import { Material, RenderTechnique, Texture, TextureCubeMap } from "@alipay/o3-material";
 import fs from "./pbr.fs.glsl";
 import vs from "./pbr.vs.glsl";
+import { Vector2, Vector4, Vector3, Matrix } from "@alipay/o3-math";
 
 /**
  * PBR（Physically-Based Rendering）材质
@@ -35,7 +36,7 @@ class PBRMaterial extends Material {
    * PBR 材质
    * @param {String} [name='PBR_MATERIAL'] 材质名
    * @param {Object} [props] 包含以下参数
-   * @param {Array} [props.baseColorFactor=[1, 1, 1, 1]] 基础颜色因子
+   * @param {Vector4} [props.baseColorFactor=[1, 1, 1, 1]] 基础颜色因子
    * @param {Texture2D} [props.baseColorTexture] 基础颜色纹理
    * @param {Number} [props.metallicFactor=1] 金属度
    * @param {Number} [props.roughnessFactor=1] 粗糙度
@@ -45,7 +46,7 @@ class PBRMaterial extends Material {
    * @param {Texture2D} [props.normalTexture] 法线纹理
    * @param {Number} [props.normalScale=1] 法线缩放量
    * @param {Texture2D} [props.emissiveTexture] 发散光纹理
-   * @param {Array} [props.emissiveFactor=[0, 0, 0]] 发散光因子
+   * @param {Vector3} [props.emissiveFactor=[0, 0, 0]] 发散光因子
    * @param {Texture2D} [props.occlusionTexture] 遮蔽纹理
    * @param {Number} [props.occlusionStrength=1] 遮蔽强度
    * @param {Number} [props.alphaCutoff=0.5] alpha裁剪值
@@ -61,7 +62,7 @@ class PBRMaterial extends Material {
    * @param {boolean} [props.getOpacityFromRGB=false] true:取透明度贴图的rgb亮度，false:取alpha通道
    *
    * @param {boolean} [props.isMetallicWorkflow=true] ture:金属粗糙度模式，false：高光光泽度模式
-   * @param {Vec3} [props.specularFactor=[1，1，1]] 高光度因子
+   * @param {Vector3} [props.specularFactor=[1，1，1]] 高光度因子
    * @param {number} [props.glossinessFactor=0] 光泽度
    * @param {Texture2D} [props.specularGlossinessTexture] 高光光泽度纹理
    *
@@ -94,17 +95,17 @@ class PBRMaterial extends Material {
    */
   createDefaulteValues() {
     this._uniformObj = {
-      baseColorFactor: [1, 1, 1, 1],
+      baseColorFactor: new Vector4(1.0, 1.0, 1.0, 1.0),
       metallicFactor: 1,
       roughnessFactor: 1,
-      metallicRoughness: [1, 1],
+      metallicRoughness: new Vector2(1.0, 1.0),
       normalScale: 1,
-      emissiveFactor: [0, 0, 0],
+      emissiveFactor: new Vector3(0.0, 0.0, 0.0),
       occlusionStrength: 1,
       alphaCutoff: 0.5,
 
       // specular-glossiness workflow
-      specularFactor: [1, 1, 1],
+      specularFactor: new Vector3(1.0, 1.0, 1.0),
       glossinessFactor: 0,
 
       // reflect,refract
@@ -347,13 +348,13 @@ class PBRMaterial extends Material {
 
    /**
    * 基础颜色因子
-   * @type {Array}
+   * @type {Vector4}
    */
   get baseColorFactor() {
     return this._uniformObj.baseColorFactor;
   }
 
-  set baseColorFactor(v) {
+  set baseColorFactor(v: Vector4) {
     this._uniformObj.baseColorFactor = v;
     this.setValueByParamName("baseColorFactor", v);
   }
@@ -402,7 +403,7 @@ class PBRMaterial extends Material {
 
   set metallicFactor(v) {
     this._uniformObj.metallicFactor = v;
-    this._uniformObj.metallicRoughness[0] = v;
+    this._uniformObj.metallicRoughness.x = v;
     this.setValueByParamName("metallicRoughness", this._uniformObj.metallicRoughness);
   }
 
@@ -416,7 +417,7 @@ class PBRMaterial extends Material {
 
   set roughnessFactor(v) {
     this._uniformObj.roughnessFactor = v;
-    this._uniformObj.metallicRoughness[1] = v;
+    this._uniformObj.metallicRoughness.y = v;
     this.setValueByParamName("metallicRoughness", this._uniformObj.metallicRoughness);
   }
 
@@ -500,13 +501,13 @@ class PBRMaterial extends Material {
 
   /**
    * 发散光因子
-   * @type {Array}
+   * @type {Vector3}
    */
   get emissiveFactor() {
     return this._uniformObj.emissiveFactor;
   }
 
-  set emissiveFactor(v) {
+  set emissiveFactor(v: Vector3) {
     this._uniformObj.emissiveFactor = v;
     this.setValueByParamName("emissiveFactor", v);
   }
@@ -552,7 +553,7 @@ class PBRMaterial extends Material {
 
   /**
    * 高光度因子
-   * @type {Array}
+   * @type {Vector3}
    */
   get specularFactor() {
     return this._uniformObj.specularFactor;
@@ -871,7 +872,7 @@ class PBRMaterial extends Material {
     /** 光源 uniform values */
     lightMgr.bindMaterialValues(this);
     /** 分辨率 */
-    this.setValue("u_resolution", [canvas.width, canvas.height]);
+    this.setValue("u_resolution", new Vector2(canvas.width, canvas.height));
     /** clipPlane */
     for (let i = 0; i < this._clipPlaneCount; i++) {
       this.setValue(`u_clipPlanes[${i}]`, scene.clipPlanes[i]);
@@ -972,24 +973,10 @@ class PBRMaterial extends Material {
     if (uniforms.indexOf("u_perturbationSampler") > -1) _macros.push("HAS_PERTURBATIONMAP");
     if (uniforms.indexOf("u_reflectionSampler") > -1) _macros.push("HAS_REFLECTIONMAP");
     if (uniforms.indexOf("u_refractionSampler") > -1) {
-      this.setValueByParamName("PTMMatrix", [
-        0.5,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.5,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.5,
-        0.0,
-        0.5,
-        0.5,
-        0.5,
-        1.0
-      ]);
+      this.setValueByParamName(
+        "PTMMatrix",
+        new Matrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0)
+      );
       _macros.push("HAS_REFRACTIONMAP");
     }
 

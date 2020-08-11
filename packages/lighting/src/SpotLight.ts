@@ -1,5 +1,6 @@
-import { vec3, mat3, mat4 } from "@alipay/o3-math";
+import { Vector3, Matrix3x3, Matrix } from "@alipay/o3-math";
 import { DataType } from "@alipay/o3-core";
+
 import { Light } from "./Light";
 
 /**
@@ -7,21 +8,21 @@ import { Light } from "./Light";
  * @extends Light
  */
 export class SpotLight extends Light {
-  private _forward = [0, 0, 0];
-  private _lightColor;
-  private _inverseDirection;
-  public color;
-  public penumbra;
-  public distance;
-  public intensity;
-  public decay;
-  public angle;
+  private _forward: Vector3 = new Vector3();
+  private _lightColor: Vector3;
+  private _inverseDirection: Vector3;
+  public color: Vector3;
+  public penumbra: number;
+  public distance: number;
+  public intensity: number;
+  public decay: number;
+  public angle: number;
   /**
    * @constructor
    * @param {Entity} entity 节点对象
    * @param {Object} props 参数对象
    * @param {string} [props.name = spotLight] 名称
-   * @param {Vec3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
+   * @param {Vector3} [props.color = new Vector3(1, 1, 1)] 颜色
    * @param {number} [props.intensity = 1] 光照强度
    * @param {number} [props.distance = 0] 辐射距离
    * @param {number} [props.decay = 0] 衰减系数
@@ -34,9 +35,9 @@ export class SpotLight extends Light {
 
     /**
      * 颜色
-     * @member {Vec3}
+     * @member {Vector3}
      */
-    this.color = props.color || vec3.fromValues(1, 1, 1);
+    this.color = props.color || new Vector3(1, 1, 1);
 
     /**
      * 光照强度
@@ -68,42 +69,42 @@ export class SpotLight extends Light {
      */
     this.angle = props.angle || Math.PI / 6;
 
-    this._lightColor = vec3.create();
-    this._inverseDirection = vec3.create();
+    this._lightColor = new Vector3();
+    this._inverseDirection = new Vector3();
   }
 
   /** 获取聚光灯位置
-   * @return {vec3} 位置坐标
+   * @return {Vector3} 位置坐标
    * @readonly
    */
-  get position() {
+  get position(): Vector3 {
     return this.entity.worldPosition;
   }
 
   /** 获取聚光灯方向
-   * @return {vec3} 方向向量
+   * @return {Vector3} 方向向量
    * @readonly
    */
-  get direction() {
+  get direction(): Vector3 {
     this.entity.transform.getWorldForward(this._forward);
     return this._forward;
   }
 
   /** 获取聚光灯方向的反方向
-   * @return {vec3} 方向向量
+   * @return {Vector3} 方向向量
    * @readonly
    */
-  get reverseDirection() {
-    vec3.scale(this._inverseDirection, this.direction, -1);
+  get reverseDirection(): Vector3 {
+    Vector3.scale(this.direction, -1, this._inverseDirection);
     return this._inverseDirection;
   }
 
   /** 最终光照颜色
-   * @return {vec3} 最终光照颜色
+   * @return {Vector3} 最终光照颜色
    * @readonly
    */
-  get lightColor() {
-    vec3.scale(this._lightColor, this.color, this.intensity);
+  get lightColor(): Vector3 {
+    Vector3.scale(this.color, this.intensity, this._lightColor);
     return this._lightColor;
   }
 

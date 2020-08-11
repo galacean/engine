@@ -4,7 +4,7 @@ import { Texture2D, Material } from "@alipay/o3-material";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
 import { Primitive } from "@alipay/o3-primitive";
 import { Mesh, Skin, MeshRenderer, SkinnedMeshRenderer } from "@alipay/o3-mesh";
-import { vec3, mat4, quat } from "@alipay/o3-math";
+import { Vector3, Matrix, Quaternion, Vector4, Vector2 } from "@alipay/o3-math";
 import { getAccessorData, getAccessorTypeSize, createAttribute, findByKeyValue } from "./Util";
 import { AnimationClip, InterpolationType, Animation } from "@alipay/o3-animation";
 
@@ -38,7 +38,7 @@ const getDefaultMaterial = (function () {
   return () => {
     if (!defaultMateril) {
       defaultMateril = new ConstantMaterial("default");
-      defaultMateril.emission = [0.749, 0.749, 0.749, 1];
+      defaultMateril.emission = new Vector4(0.749, 0.749, 0.749, 1);
     }
     return defaultMateril;
   };
@@ -272,7 +272,7 @@ export function parseMaterial(gltfMaterial, resources) {
         uniformObj.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources);
       }
       if (baseColorFactor) {
-        uniformObj.baseColorFactor = baseColorFactor;
+        uniformObj.baseColorFactor = new Vector4(...baseColorFactor);
       }
       uniformObj.metallicFactor = metallicFactor !== undefined ? metallicFactor : 1;
       uniformObj.roughnessFactor = roughnessFactor !== undefined ? roughnessFactor : 1;
@@ -325,13 +325,13 @@ export function parseMaterial(gltfMaterial, resources) {
 
         stateObj.isMetallicWorkflow = false;
         if (diffuseFactor) {
-          uniformObj.baseColorFactor = diffuseFactor;
+          uniformObj.baseColorFactor = new Vector4(...diffuseFactor);
         }
         if (diffuseTexture) {
           uniformObj.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources);
         }
         if (specularFactor) {
-          uniformObj.specularFactor = specularFactor;
+          uniformObj.specularFactor = new Vector3(...specularFactor);
         }
         if (glossinessFactor !== undefined) {
           uniformObj.glossinessFactor = glossinessFactor;
@@ -413,7 +413,7 @@ export function parseSkin(gltfSkin, resources) {
   for (let i = 0; i < jointCount; i++) {
     const startIdx = MAT4_LENGTH * i;
     const endIdx = startIdx + MAT4_LENGTH;
-    skin.inverseBindMatrices[i] = buffer.subarray(startIdx, endIdx);
+    skin.inverseBindMatrices[i] = new Matrix(...buffer.subarray(startIdx, endIdx));
   }
 
   // get joints
@@ -640,7 +640,7 @@ export function parseNode(gltfNode, resources) {
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
-    const mat = mat4.fromValues(
+    const mat = new Matrix(
       m[0],
       m[1],
       m[2],
@@ -658,10 +658,10 @@ export function parseNode(gltfNode, resources) {
       m[14],
       m[15]
     );
-    const pos = vec3.create();
-    const scale = vec3.fromValues(1, 1, 1);
-    const rot = quat.create();
-    mat4.decompose(mat, pos, rot, scale);
+    const pos = new Vector3();
+    const scale = new Vector3(1, 1, 1);
+    const rot = new Quaternion();
+    mat.decompose(pos, rot, scale);
 
     entity.position = pos;
     entity.rotation = rot;
@@ -669,7 +669,20 @@ export function parseNode(gltfNode, resources) {
   } else {
     for (const key in TARGET_PATH_MAP) {
       if (gltfNode.hasOwnProperty(key)) {
-        entity[TARGET_PATH_MAP[key]] = gltfNode[key];
+        const mapKey = TARGET_PATH_MAP[key];
+        if (mapKey === "weights") {
+          entity[mapKey] = gltfNode[key];
+        } else {
+          const arr = gltfNode[key];
+          const len = arr.length;
+          if (len === 2) {
+            entity[mapKey] = new Vector2(...arr);
+          } else if (len == 3) {
+            entity[mapKey] = new Vector3(...arr);
+          } else if (len == 4) {
+            entity[mapKey] = new Vector4(...arr);
+          }
+        }
       }
     }
   }

@@ -1,6 +1,7 @@
 import { InterpolationType, WrapMode } from "./AnimationConst";
 import { Entity, Component } from "@alipay/o3-core";
 import { SkinnedMeshRenderer } from "@alipay/o3-mesh";
+import { Quaternion } from "@alipay/o3-math";
 
 export interface AnimationOptions {
   wrapMode?: WrapMode;
@@ -38,4 +39,4 @@ export type IChannelTarget = {
 
 export type List = number[] | Float32Array;
 
-export type Value = number | List;
+export type Value = number | List | Quaternion;

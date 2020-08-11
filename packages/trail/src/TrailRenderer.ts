@@ -1,8 +1,10 @@
 import { BufferUsage, DataType, DrawMode } from "@alipay/o3-core";
 import { BufferGeometry, GeometryRenderer } from "@alipay/o3-geometry";
 import { Material, Texture2D } from "@alipay/o3-material";
-import { quat, vec2, vec3 } from "@alipay/o3-math";
+import { Quaternion, Vector2, Vector3, Matrix } from "@alipay/o3-math";
 import { TrailMaterial } from "./TrailMaterial";
+
+const _tempVector3 = new Vector3();
 
 /**
  * 拖尾效果渲染组件
@@ -12,9 +14,9 @@ export class TrailRenderer extends GeometryRenderer {
   private _minSeg;
   private _lifetime;
   private _maxPointNum;
-  private _points;
-  private _pointStates;
-  private _strapPoints;
+  private _points: Array<Vector3>;
+  private _pointStates: Array<number>;
+  private _strapPoints: Array<Vector3>;
   private _curPointNum;
   private _prePointsNum;
   /**
@@ -38,11 +40,11 @@ export class TrailRenderer extends GeometryRenderer {
     this._pointStates = [];
     this._strapPoints = [];
     for (let i = 0; i < this._maxPointNum; i++) {
-      this._points.push(vec3.create());
+      this._points.push(new Vector3());
       this._pointStates.push(this._lifetime);
 
-      this._strapPoints.push(vec3.create());
-      this._strapPoints.push(vec3.create());
+      this._strapPoints.push(new Vector3());
+      this._strapPoints.push(new Vector3());
     }
     this._curPointNum = 0;
 
@@ -71,7 +73,7 @@ export class TrailRenderer extends GeometryRenderer {
         this._pointStates[newIdx] = this._pointStates[i];
 
         // Move point
-        vec3.copy(this._points[newIdx], this._points[i]);
+        this._points[i].cloneTo(this._points[newIdx]);
       }
     }
     this._curPointNum -= mov;
@@ -81,7 +83,7 @@ export class TrailRenderer extends GeometryRenderer {
       appendNewPoint = false;
     } else if (this._curPointNum > 0) {
       const lastPoint = this._points[this._points.length - 1];
-      if (vec3.distance(this.entity.worldPosition, lastPoint) < this._minSeg) {
+      if (Vector3.distance(this.entity.worldPosition, lastPoint) < this._minSeg) {
         appendNewPoint = false;
       } else {
         // debugger
@@ -90,7 +92,7 @@ export class TrailRenderer extends GeometryRenderer {
 
     if (appendNewPoint) {
       this._pointStates[this._curPointNum] = this._lifetime;
-      vec3.copy(this._points[this._curPointNum], this.entity.worldPosition);
+      this.entity.worldPosition.cloneTo(this._points[this._curPointNum]);
 
       this._curPointNum++;
     }
@@ -140,57 +142,60 @@ export class TrailRenderer extends GeometryRenderer {
    * 更新拖尾顶点位置
    * @private
    */
-  _updateStrapVertices(camera, points) {
-    const m = camera.viewMatrix;
-    const vx = vec3.fromValues(m[0], m[4], m[8]);
-    const vy = vec3.fromValues(m[1], m[5], m[9]);
-    const vz = vec3.fromValues(m[2], m[6], m[10]);
+  _updateStrapVertices(camera, points: Array<Vector3>) {
+    const m: Matrix = camera.viewMatrix;
+    const e = m.elements;
+    const vx = new Vector3(e[0], e[4], e[8]);
+    const vy = new Vector3(e[1], e[5], e[9]);
+    const vz = new Vector3(e[2], e[6], e[10]);
     const s = this._stroke;
 
-    vec3.scale(vy, vy, s);
+    vy.scale(s);
 
-    const up = vec3.create();
-    const down = vec3.create();
+    const up = new Vector3();
+    const down = new Vector3();
 
-    const rotation = quat.create();
+    const rotation = new Quaternion();
 
-    vec3.transformQuat(vx, vx, rotation);
-    vec3.transformQuat(vy, vy, rotation);
+    Vector3.transformByQuat(vx, rotation, vx);
+    Vector3.transformByQuat(vy, rotation, vy);
 
-    const dy = vec3.create();
-    const cross = vec3.create();
-    vec3.normalize(vx, vx);
+    const dy = new Vector3();
+    const cross = new Vector3();
+    const perpVector = new Vector3();
+
+    vx.normalize();
 
     //-- quad pos
     for (let i = 0; i < this._maxPointNum; i++) {
       //-- center pos
       if (i < this._curPointNum) {
         const p = points[i];
-        const perpVector = vec3.create();
+
         if (i === this._curPointNum - 1 && i !== 0) {
-          vec3.sub(perpVector, p, points[i - 1]);
+          Vector3.subtract(p, points[i - 1], perpVector);
         } else {
-          vec3.sub(perpVector, points[i + 1], p);
+          Vector3.subtract(points[i + 1], p, perpVector);
         }
 
-        vec3.projectOnPlane(perpVector, perpVector, vz);
-        vec3.normalize(perpVector, perpVector);
+        this._projectOnPlane(perpVector, vz, perpVector);
+        perpVector.normalize();
 
         // Calculate angle between vectors
-        let angle = Math.acos(vec3.dot(vx, perpVector));
-        vec3.cross(cross, vx, perpVector);
-        if (vec3.dot(cross, vz) <= 0) {
+        let angle = Math.acos(Vector3.dot(vx, perpVector));
+        Vector3.cross(vx, perpVector, cross);
+        if (Vector3.dot(cross, vz) <= 0) {
           angle = Math.PI * 2 - angle;
         }
-        quat.setAxisAngle(rotation, vz, angle);
-        vec3.transformQuat(dy, vy, rotation);
+        Quaternion.rotationAxisAngle(vz, angle, rotation);
+        Vector3.transformByQuat(vy, rotation, dy);
 
-        vec3.add(up, p, dy);
-        vec3.sub(down, p, dy);
+        Vector3.add(p, dy, up);
+        Vector3.subtract(p, dy, down);
       }
 
-      this.geometry.setValue("POSITION", i * 2, up);
-      this.geometry.setValue("POSITION", i * 2 + 1, down);
+      this.geometry.setValue("POSITION", i * 2, [up.x, up.y, up.z]);
+      this.geometry.setValue("POSITION", i * 2 + 1, [down.x, down.y, down.z]);
     }
   }
 
@@ -207,11 +212,36 @@ export class TrailRenderer extends GeometryRenderer {
 
     const count = this._curPointNum;
     const texDelta = 1.0 / count;
-    const v = vec2.create();
     for (let i = 0; i < count; i++) {
       const d = 1.0 - i * texDelta;
-      this.geometry.setValue("TEXCOORD_0", i * 2, vec2.set(v, 0, d));
-      this.geometry.setValue("TEXCOORD_0", i * 2 + 1, vec2.set(v, 1.0, d));
+      this.geometry.setValue("TEXCOORD_0", i * 2, [0, d]);
+      this.geometry.setValue("TEXCOORD_0", i * 2 + 1, [1.0, d]);
     }
+  }
+
+  /**
+   * 将向量 a 投影到向 p 上。
+   * @param a - 要投影的向量
+   * @param p - 目标向量
+   * @param out - 向量 a 投影到向量 p 的结果向量
+   */
+  _projectOnVector(a: Vector3, p: Vector3, out: Vector3): void {
+    const n_p = p.clone();
+    Vector3.normalize(n_p, n_p);
+    const cosine = Vector3.dot(a, n_p);
+    out.x = n_p.x * cosine;
+    out.y = n_p.y * cosine;
+    out.z = n_p.z * cosine;
+  }
+
+  /**
+   * 将向量 a 投影到和法向量 n 正交的平面上。
+   * @param a - 输入向量
+   * @param n - 法向量
+   * @param out - 投影到平面上的向量
+   */
+  _projectOnPlane(a: Vector3, n: Vector3, out: Vector3) {
+    this._projectOnVector(a, n, _tempVector3);
+    Vector3.subtract(a, _tempVector3, out);
   }
 }

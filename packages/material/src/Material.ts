@@ -1,5 +1,6 @@
+import { Matrix, Matrix3x3 } from "@alipay/o3-math";
 import { Camera, MaterialType, ReferenceObject, UniformSemantic, Util } from "@alipay/o3-core";
-import { mat3, mat4 } from "@alipay/o3-math";
+
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
 
@@ -235,8 +236,8 @@ export class Material extends ReferenceObject {
         const view = camera.viewMatrix;
         const model = component._entity.transform.worldMatrix;
         let modelView = values[uniform.name];
-        if (!modelView) modelView = mat4.create();
-        mat4.mul(modelView, view, model);
+        if (!modelView) modelView = new Matrix();
+        Matrix.multiply(view, model, modelView);
         values[uniform.name] = modelView;
         break;
       }
@@ -246,9 +247,9 @@ export class Material extends ReferenceObject {
         const proj = camera.projectionMatrix;
         const model = component._entity.transform.worldMatrix;
         let MVP = values[uniform.name];
-        if (!MVP) MVP = mat4.create();
-        mat4.mul(MVP, view, model);
-        mat4.mul(MVP, proj, MVP);
+        if (!MVP) MVP = new Matrix();
+        Matrix.multiply(view, model, MVP);
+        Matrix.multiply(proj, MVP, MVP);
         values[uniform.name] = MVP;
         break;
       }
@@ -269,9 +270,9 @@ export class Material extends ReferenceObject {
         const view = camera.viewMatrix;
         const model = component.modelMatrix;
         let invMV = values[uniform.name];
-        if (!invMV) invMV = mat4.create();
-        mat4.mul(invMV, view, model);
-        mat4.invert(invMV, invMV);
+        if (!invMV) invMV = new Matrix();
+        Matrix.multiply(view, model, invMV);
+        Matrix.invert(invMV, invMV);
         values[uniform.name] = invMV;
         break;
       }
@@ -281,28 +282,28 @@ export class Material extends ReferenceObject {
         const proj = camera.projectionMatrix;
         const model = component._entity.transform.worldMatrix;
         let invMVP = values[uniform.name];
-        if (!invMVP) invMVP = mat4.create();
-        mat4.mul(invMVP, view, model);
-        mat4.mul(invMVP, proj, invMVP);
-        mat4.invert(invMVP, invMVP);
+        if (!invMVP) invMVP = new Matrix();
+        Matrix.multiply(view, model, invMVP);
+        Matrix.multiply(proj, invMVP, invMVP);
+        Matrix.invert(invMVP, invMVP);
         values[uniform.name] = invMVP;
         break;
       }
       // The inverse-transpose of MODEL without the translation
       case UniformSemantic.MODELINVERSETRANSPOSE: {
         let modelIT = values[uniform.name];
-        if (!modelIT) modelIT = mat3.create();
-        mat3.normalFromMat4(modelIT, component._entity.transform.worldMatrix);
+        if (!modelIT) modelIT = new Matrix3x3();
+        Matrix3x3.normalMatrix(component._entity.transform.worldMatrix, modelIT);
         values[uniform.name] = modelIT;
         break;
       }
       // The inverse-transpose of MODELVIEW without the translation.
       case UniformSemantic.MODELVIEWINVERSETRANSPOSE: {
         let modelViewIT = values[uniform.name];
-        if (!modelViewIT) modelViewIT = mat4.create();
-        mat4.multiply(modelViewIT, camera.viewMatrix, component.modelMatrix);
-        mat4.invert(modelViewIT, modelViewIT);
-        mat4.transpose(modelViewIT, modelViewIT);
+        if (!modelViewIT) modelViewIT = new Matrix();
+        Matrix.multiply(camera.viewMatrix, component.modelMatrix, modelViewIT);
+        Matrix.invert(modelViewIT, modelViewIT);
+        Matrix.transpose(modelViewIT, modelViewIT);
         values[uniform.name] = modelViewIT;
         break;
       }

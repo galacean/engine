@@ -1,6 +1,5 @@
+import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { EventDispatcher } from "./base";
-import { mat4 } from "@alipay/o3-math";
-import { Matrix4, Vector3, Vector4 } from "@alipay/o3-math/types/type";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
@@ -490,7 +489,7 @@ export class Entity extends EventDispatcher {
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
-  private _invModelMatrix: Matrix4 = mat4.create();
+  private _invModelMatrix: Matrix = new Matrix();
   private _inverseWorldMatFlag: UpdateFlag;
 
   /**
@@ -521,11 +520,11 @@ export class Entity extends EventDispatcher {
    * @deprecated
    * 请使用 transform.rotationQuaternion 代替
    */
-  get rotation(): Vector4 {
+  get rotation(): Quaternion {
     return this.transform.rotationQuaternion;
   }
 
-  set rotation(val: Vector4) {
+  set rotation(val: Quaternion) {
     this.transform.rotationQuaternion = val;
   }
 
@@ -544,9 +543,9 @@ export class Entity extends EventDispatcher {
   /**
    * @deprecated
    */
-  getInvModelMatrix(): Matrix4 {
+  getInvModelMatrix(): Matrix {
     if (this._inverseWorldMatFlag.flag) {
-      mat4.invert(this._invModelMatrix, this.transform.worldMatrix);
+      Matrix.invert(this.transform.worldMatrix, this._invModelMatrix);
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
