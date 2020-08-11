@@ -45,10 +45,10 @@ export class Animation extends Component {
         outValue = <number>startValue * (1 - alpha) + <number>endValue * alpha;
         break;
       case 4:
-        const a = new Quaternion(...(startValue as Float32Array));
-        const b = new Quaternion(...(endValue as Float32Array));
+        const start = new Quaternion(...(startValue as Float32Array));
+        const end = new Quaternion(...(endValue as Float32Array));
         const quat = new Quaternion();
-        Quaternion.slerp(a, b, alpha, quat);
+        Quaternion.slerp(start, end, alpha, quat);
         outValue[0] = quat.x;
         outValue[1] = quat.y;
         outValue[2] = quat.z;
