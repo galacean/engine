@@ -5,9 +5,9 @@ export class MathUtil {
   /** 单精度浮点零容差。 */
   static readonly zeroTolerance: number = 1e-6;
   /** 弧度转角度的转换因子。 */
-  static readonly radToDegree: number = 180 / Math.PI;
+  static readonly radToDegreeFactor: number = 180 / Math.PI;
   /** 角度转弧度的转换因子。 */
-  static readonly degreeToRad: number = Math.PI / 180;
+  static readonly degreeToRadFactor: number = Math.PI / 180;
 
   /**
    * 求指定范围内的值。
@@ -45,7 +45,7 @@ export class MathUtil {
    * @returns 角度
    */
   static radianToDegree(r: number): number {
-    return r * MathUtil.radToDegree;
+    return r * MathUtil.radToDegreeFactor;
   }
 
   /**
@@ -54,6 +54,6 @@ export class MathUtil {
    * @returns 弧度
    */
   static degreeToRadian(d: number): number {
-    return d * MathUtil.degreeToRad;
+    return d * MathUtil.degreeToRadFactor;
   }
 }

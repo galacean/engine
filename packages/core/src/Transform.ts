@@ -124,9 +124,9 @@ export class Transform extends Component {
       Matrix.invert(parent.worldMatrix, Transform._tempMat41);
       Vector3.transformCoordinate(value, Transform._tempMat41, this._position);
     } else {
-      value.cloneTo(this._worldPosition);
+      value.cloneTo(this._position);
     }
-    this.position = this._worldPosition;
+    this.position = this._position;
     this._setDirtyFlagFalse(Transform._WORLD_POSITION_FLAG);
   }
 
@@ -137,7 +137,7 @@ export class Transform extends Component {
   get rotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._LOCAL_EULER_FLAG)) {
       this._rotationQuaternion.toEuler(this._rotation);
-      this._rotation.scale(MathUtil.radToDegree); // 弧度转角度
+      this._rotation.scale(MathUtil.radToDegreeFactor); // 弧度转角度
 
       this._setDirtyFlagFalse(Transform._LOCAL_EULER_FLAG);
     }
@@ -160,7 +160,7 @@ export class Transform extends Component {
   get worldRotation(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_EULER_FLAG)) {
       this.worldRotationQuaternion.toEuler(this._worldRotation);
-      this._worldRotation.scale(MathUtil.radToDegree); // 弧度转角度
+      this._worldRotation.scale(MathUtil.radToDegreeFactor); // 弧度转角度
       this._setDirtyFlagFalse(Transform._WORLD_EULER_FLAG);
     }
     return this._worldRotation;
