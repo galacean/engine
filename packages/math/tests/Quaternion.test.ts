@@ -65,8 +65,8 @@ describe("Quaternion test", () => {
     Quaternion.rotationEuler(0, Math.PI / 3, Math.PI / 2, out1);
     Quaternion.rotationYawPitchRoll(0, Math.PI / 3, Math.PI / 2, out2);
 
-    const a = out1.toEuler();
-    const b = out2.toYawPitchRoll();
+    const a = out1.toEuler(new Vector3());
+    const b = out2.toYawPitchRoll(new Vector3());
     expect(Vector3.equals(a, new Vector3(0, Math.PI / 3, Math.PI / 2))).toEqual(true);
     expect(Vector3.equals(b, new Vector3(0, Math.PI / 3, Math.PI / 2))).toEqual(true);
   });
@@ -162,8 +162,8 @@ describe("Quaternion test", () => {
   it("static toEuler", () => {
     const a = new Quaternion();
     Quaternion.rotationEuler(0, Math.PI / 3, 0, a);
-    const euler = a.toEuler();
-    const ypr = a.toYawPitchRoll();
+    const euler = a.toEuler(new Vector3());
+    const ypr = a.toYawPitchRoll(new Vector3());
     expect(Vector3.equals(euler, new Vector3(0, Math.PI / 3, 0))).toEqual(true);
     expect(Vector3.equals(ypr, new Vector3(Math.PI / 3, 0, 0))).toEqual(true);
   });

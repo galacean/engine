@@ -478,11 +478,11 @@ export class Quaternion {
 
   /**
    * 获取四元数的欧拉角(弧度)。
+   * @param out - 四元数的欧拉角(弧度)
    * @returns 欧拉角 x->pitch y->yaw z->roll
    */
-  toEuler(): Vector3 {
-    //CM：out参数
-    const out = this.toYawPitchRoll();
+  toEuler(out: Vector3): Vector3 {
+    this.toYawPitchRoll(out);
     const t = out.x;
     out.x = out.y;
     out.y = t;
@@ -491,11 +491,10 @@ export class Quaternion {
 
   /**
    * 获取四元数的欧拉角(弧度)。
+   * @param out - 四元数的欧拉角(弧度)
    * @returns 欧拉角 x->yaw y->pitch z->roll
    */
-  toYawPitchRoll(): Vector3 {
-    //CM：out参数
-    const out = new Vector3();
+  toYawPitchRoll(out: Vector3): Vector3 {
     const { x, y, z, w } = this;
     const xx = x * x;
     const yy = y * y;
