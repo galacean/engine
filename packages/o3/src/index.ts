@@ -4,7 +4,6 @@ export * from "@alipay/o3-bounding-info";
 export * from "@alipay/o3-collider";
 export * from "@alipay/o3-collision";
 export * from "@alipay/o3-core";
-export * from "@alipay/o3-decal";
 export * from "@alipay/o3-draco";
 export * from "@alipay/o3-env-probe";
 export * from "@alipay/o3-fog";

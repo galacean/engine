@@ -1,5 +1,4 @@
-import { RenderBufferColorFormat } from "@alipay/o3-core";
-import { Engine } from "@alipay/o3-core";
+import { Engine, RenderBufferColorFormat } from "@alipay/o3-core";
 import gl from "gl";
 import { RenderColorTexture } from "../src/RenderColorTexture";
 
@@ -11,9 +10,10 @@ describe("RenderColorTexture", () => {
     canIUse: jest.fn().mockReturnValue(true)
   };
   // mock engine
-  Engine.defaultCreateObjectEngine = <any>{
-    _hardwareRenderer: rhi
-  };
+  const engine = new Engine(null, {
+    init: jest.fn()
+  });
+  engine._hardwareRenderer = rhi;
   beforeEach(() => {
     rhi.isWebGL2 = false;
     delete rhi.gl.texStorage2D;

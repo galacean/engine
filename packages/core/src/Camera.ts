@@ -370,12 +370,13 @@ export class Camera extends Component {
    * @returns 射线
    */
   viewportPointToRay(point: Vector2, out: Ray): Ray {
+    const clipPoint = MathTemp.tempVec3;
     // 使用近裁面的交点作为 origin
-    MathTemp.tempVec3.setValue(point.x, point.y, 0);
-    const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
+    clipPoint.setValue(point.x, point.y, 0);
+    const origin = this.viewportToWorldPoint(clipPoint, out.origin);
     // 使用远裁面的交点作为 origin
-    const viewportPos: Vector3 = MathTemp.tempVec3.setValue(point.x, point.y, 1);
-    const farPoint: Vector3 = this._innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
+    clipPoint.z = 1.0;
+    const farPoint: Vector3 = this._innerViewportToWorldPoint(clipPoint, this._invViewProjMat, clipPoint);
     Vector3.subtract(farPoint, origin, out.direction);
     out.direction.normalize();
 
@@ -453,15 +454,13 @@ export class Camera extends Component {
     // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
     const depth = point.z * 2 - 1;
     // 变换到裁剪空间矩阵
-    MathTemp.tempVec4.setValue(point.x * 2 - 1, 1 - point.y * 2, depth, 1);
-    // 计算逆矩阵结果
-    Vector4.transform(MathTemp.tempVec4, invViewProjMat, MathTemp.tempVec4);
-    const u = MathTemp.tempVec4;
-    const w = u.w;
-
-    out.x = u.x / w;
-    out.y = u.y / w;
-    out.z = u.z / w;
+    const clipPoint = MathTemp.tempVec4;
+    clipPoint.setValue(point.x * 2 - 1, 1 - point.y * 2, depth, 1);
+    Vector4.transform(clipPoint, invViewProjMat, clipPoint);
+    const invW = 1.0 / clipPoint.w;
+    out.x = clipPoint.x * invW;
+    out.y = clipPoint.y * invW;
+    out.z = clipPoint.z * invW;
     return out;
   }
 

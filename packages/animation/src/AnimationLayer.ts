@@ -196,6 +196,7 @@ export class AnimationLayer extends EventDispatcher {
         channelTargets[i] = {
           targetObject,
           path: channel.target.path,
+          pathType: channel.target.pathType,
           outputSize: channel.sampler.outputSize
         };
 

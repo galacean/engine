@@ -10,11 +10,11 @@ describe("Texture2D", () => {
     gl: gl(width, height),
     canIUse: jest.fn().mockReturnValue(true)
   };
+  const engine = new Engine(null, {
+    init: jest.fn()
+  });
+  engine._hardwareRenderer = rhi;
   // mock engine
-  Engine.defaultCreateObjectEngine = <any>{
-    _hardwareRenderer: rhi
-  };
-
   beforeEach(() => {
     rhi.isWebGL2 = false;
     delete rhi.gl.texStorage2D;
