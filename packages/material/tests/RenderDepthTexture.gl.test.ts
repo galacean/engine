@@ -1,5 +1,4 @@
-import { RenderBufferDepthFormat } from "@alipay/o3-core";
-import { Engine } from "@alipay/o3-core";
+import { Engine, RenderBufferDepthFormat } from "@alipay/o3-core";
 import gl from "gl";
 import { RenderDepthTexture } from "../src/RenderDepthTexture";
 
@@ -11,9 +10,10 @@ describe("RenderDepthTexture", () => {
     canIUse: jest.fn().mockReturnValue(true)
   };
   // mock engine
-  Engine.defaultCreateObjectEngine = <any>{
-    _hardwareRenderer: rhi
-  };
+  const engine = new Engine(null, {
+    init: jest.fn()
+  });
+  engine._hardwareRenderer = rhi;
   beforeEach(() => {
     rhi.isWebGL2 = false;
     delete rhi.gl.texStorage2D;

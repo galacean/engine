@@ -1,5 +1,4 @@
-import { RenderBufferDepthFormat } from "@alipay/o3-core";
-import { Engine } from "@alipay/o3-core";
+import { Engine, RenderBufferDepthFormat } from "@alipay/o3-core";
 import gl from "gl";
 import { RenderColorTexture } from "../src/RenderColorTexture";
 import { RenderDepthTexture } from "../src/RenderDepthTexture";
@@ -16,9 +15,10 @@ describe("RenderTarget", () => {
     }
   };
   // mock engine
-  Engine.defaultCreateObjectEngine = <any>{
-    _hardwareRenderer: rhi
-  };
+  const engine = new Engine(null, {
+    init: jest.fn()
+  });
+  engine._hardwareRenderer = rhi;
   rhi.gl.drawBuffers = rhi.gl.renderbufferStorageMultisample = jest.fn();
 
   beforeEach(() => {
