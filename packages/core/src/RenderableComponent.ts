@@ -56,8 +56,4 @@ export abstract class RenderableComponent extends Component {
       this.render(camera);
     }
   }
-
-  //----------------------------------------@deprecated----------------------------------------------------
-  /* @internal */
-  _renderable: boolean = true;
 }
