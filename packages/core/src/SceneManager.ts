@@ -1,5 +1,7 @@
 import { Scene } from "./Scene";
 import { AssetPromise } from "./asset/AssetPromise";
+import { ResourceManager } from "./asset/ResourceManager";
+import { Engine } from "./Engine";
 
 /**
  * 场景管理员。
@@ -24,6 +26,11 @@ export class SceneManager {
   }
 
   /**
+   * @internal
+   */
+  constructor(public readonly engine: Engine) {}
+
+  /**
    * 加载并激活场景。
    * @todo implements
    * @param url - 场景路径
@@ -31,7 +38,15 @@ export class SceneManager {
    * @returns 场景请求
    */
   loadScene(url: string, destroyOldScene: boolean = true): AssetPromise<Scene> {
-    return null;
+    const scenePromise = this.engine.resourceManager.load<Scene>(url);
+    scenePromise.then((scene: Scene) => {
+      const oldScene: Scene = this._activeScene;
+      this.activeScene = scene;
+      if (oldScene && destroyOldScene) {
+        oldScene.destroy();
+      }
+    });
+    return scenePromise;
   }
 
   /**
@@ -41,5 +56,10 @@ export class SceneManager {
    * @param sourceScene - 源场景
    * @param destScene - 目标场景
    */
-  mergeScenes(sourceScene: Scene, destScene: Scene): void {}
+  mergeScenes(sourceScene: Scene, destScene: Scene): void {
+    const oldRootEntities = sourceScene.rootEntities;
+    for (let i: number = 0, n: number = oldRootEntities.length; i < n; i++) {
+      destScene.addRootEntity(oldRootEntities[i]);
+    }
+  }
 }

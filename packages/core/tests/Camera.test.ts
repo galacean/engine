@@ -1,7 +1,7 @@
 import { Camera, ClearFlags } from "../src/Camera";
 import { Entity } from "../src/Entity";
 import { Transform } from "../src/Transform";
-import { mat4, MathUtil, vec2, vec3 } from "@alipay/o3-math";
+import { Matrix, MathUtil, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 
 describe("camera test", function () {
   let node: Entity;
@@ -11,7 +11,7 @@ describe("camera test", function () {
     node = new Entity();
     camera = node.addComponent(Camera);
     camera._onAwake();
-    identityMatrix = mat4.create();
+    identityMatrix = new Matrix();
   });
 
   it("constructor", () => {
@@ -41,28 +41,30 @@ describe("camera test", function () {
   });
 
   it("perspective calculate", () => {
-    camera.viewport = [0, 0, 1, 1];
+    camera.viewport = new Vector4(0, 0, 1, 1);
     camera.fieldOfView = 45;
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
     const projectionMatrix = camera.projectionMatrix;
-    const result = mat4.perspective(new Float32Array(16), MathUtil.toRadian(45), 400 / 400, 10, 100);
+    const result = new Matrix();
+    Matrix.perspective(MathUtil.degreeToRadian(45), 400 / 400, 10, 100, result);
     expect(projectionMatrix).toEqual(result);
   });
 
   it("custom projection", () => {
-    camera.projectionMatrix = mat4.create() as any;
+    camera.projectionMatrix = new Matrix();
     camera.fieldOfView = 60;
     expect(camera.projectionMatrix).toEqual(identityMatrix);
   });
 
   it("reset perspective", () => {
     camera.resetProjectionMatrix();
-    camera.viewport = [0, 0, 1, 1];
+    camera.viewport = new Vector4(0, 0, 1, 1);
     camera.fieldOfView = 60;
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
-    const result = mat4.perspective(new Float32Array(16), MathUtil.toRadian(60), 400 / 400, 10, 100);
+    const result = new Matrix();
+    Matrix.perspective(MathUtil.degreeToRadian(60), 400 / 400, 10, 100, result);
     expect(camera.projectionMatrix).toEqual(result);
   });
 
@@ -72,20 +74,13 @@ describe("camera test", function () {
     const projectionMatrix = camera.projectionMatrix;
     const width = (camera.orthographicSize * 400) / 400;
     const height = camera.orthographicSize;
-    const result = mat4.ortho(
-      new Float32Array(16),
-      -width,
-      width,
-      -height,
-      height,
-      camera.nearClipPlane,
-      camera.farClipPlane
-    );
+    const result = new Matrix();
+    Matrix.ortho(-width, width, -height, height, camera.nearClipPlane, camera.farClipPlane, result);
     expect(projectionMatrix).toEqual(result);
   });
 
   it("orth setting", () => {
-    camera.projectionMatrix = mat4.create() as any;
+    camera.projectionMatrix = new Matrix();
     expect(camera.projectionMatrix).toEqual(identityMatrix);
   });
 
@@ -99,35 +94,28 @@ describe("camera test", function () {
 
     const width = (camera.orthographicSize * 400) / 400;
     const height = camera.orthographicSize;
-    const result = mat4.ortho(
-      new Float32Array(16),
-      -width,
-      width,
-      -height,
-      height,
-      camera.nearClipPlane,
-      camera.farClipPlane
-    );
+    const result = new Matrix();
+    Matrix.ortho(-width, width, -height, height, camera.nearClipPlane, camera.farClipPlane, result);
 
     expect(camera.projectionMatrix).not.toEqual(result);
   });
 
   it("screen to viewport point", () => {
-    camera.viewport = [0.5, 0.5, 0.5, 0.5];
-    const out = camera.screenToViewportPoint([0.5, 0.5], [1, 1]);
+    camera.viewport = new Vector4(0.5, 0.5, 0.5, 0.5);
+    const out = camera.screenToViewportPoint(new Vector2(0.5, 0.5), new Vector2(1, 1));
     expect(out[0]).toBeCloseTo(0);
     expect(out[1]).toBeCloseTo(0);
   });
 
   it("viewport to screen point", () => {
-    camera.viewport = [0.5, 0.5, 0.5, 0.5];
-    const out = camera.viewportToScreenPoint([0.5, 0.5], [1, 1]);
+    camera.viewport = new Vector4(0.5, 0.5, 0.5, 0.5);
+    const out = camera.viewportToScreenPoint(new Vector2(0.5, 0.5), new Vector2(1, 1));
     expect(out[0]).toBeCloseTo(0.75);
     expect(out[1]).toBeCloseTo(0.75);
   });
 
   it("world to viewport", () => {
-    camera.projectionMatrix = [
+    camera.projectionMatrix = new Matrix(
       3.0807323455810547,
       0,
       0,
@@ -144,14 +132,14 @@ describe("camera test", function () {
       0,
       -0.10010010004043579,
       0
-    ];
-    camera.entity.transform.worldMatrix = mat4.create();
-    const out = camera.worldToViewportPoint([1, 1, 100], [0, 0, 0, 0]);
+    );
+    camera.entity.transform.worldMatrix = new Matrix();
+    const out = camera.worldToViewportPoint(new Vector3(1, 1, 100), new Vector4(0, 0, 0, 0));
     expect(out).toEqual([0.48459633827209475, 0.4913397705554962, 1, 100]);
   });
 
   it("viewport to world", () => {
-    camera.projectionMatrix = [
+    camera.projectionMatrix = new Matrix(
       3.0807323455810547,
       0,
       0,
@@ -168,14 +156,17 @@ describe("camera test", function () {
       0,
       -0.10010010004043579,
       0
-    ];
-    camera.entity.transform.worldMatrix = mat4.create();
-    const out = camera.viewportToWorldPoint([0.48459633827209475, 0.4913397705554962, 1], [0, 0, 0]);
+    );
+    camera.entity.transform.worldMatrix = new Matrix();
+    const out = camera.viewportToWorldPoint(
+      new Vector3(0.48459633827209475, 0.4913397705554962, 1),
+      new Vector3(0, 0, 0)
+    );
     arrayCloseTo([1, 1, 100], out as any);
   });
 
   it("viewportToRay", () => {
-    const mat = Float32Array.from([
+    const mat = new Matrix(
       -1,
       0,
       0,
@@ -192,11 +183,11 @@ describe("camera test", function () {
       5,
       17,
       1
-    ]);
+    );
     camera.entity.transform.worldMatrix = mat;
-    const ray = camera.viewportPointToRay(vec2.set(vec2.create(), 0.4472140669822693, 0.4436090290546417), {
-      origin: vec3.create() as any,
-      direction: vec3.create() as any
+    const ray = camera.viewportPointToRay(new Vector2(0.4472140669822693, 0.4436090290546417), {
+      origin: new Vector3(),
+      direction: new Vector3()
     });
     arrayCloseTo(ray.origin as any, Float32Array.from([-0.0017142787110060453, 4.989009380340576, 16.95108985900879]));
     arrayCloseTo(
@@ -206,12 +197,12 @@ describe("camera test", function () {
   });
 
   it("test near clip plane and far clip plane", () => {
-    camera.entity.transform.worldMatrix = mat4.create();
+    camera.entity.transform.worldMatrix = new Matrix();
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
     camera.resetProjectionMatrix();
-    const nearClipPoint = camera.viewportToWorldPoint([0.5, 0.5, 0], [0, 0, 0]);
-    const farClipPoint = camera.viewportToWorldPoint([0.5, 0.5, 1], [0, 0, 0]);
+    const nearClipPoint = camera.viewportToWorldPoint(new Vector3(0.5, 0.5, 0), new Vector3(0, 0, 0));
+    const farClipPoint = camera.viewportToWorldPoint(new Vector3(0.5, 0.5, 1), new Vector3(0, 0, 0));
     expect(nearClipPoint[2]).toBeCloseTo(camera.nearClipPlane);
     expect(farClipPoint[2]).toBeCloseTo(camera.farClipPlane);
   });
@@ -230,7 +221,7 @@ describe("camera test", function () {
       camera.renderTarget = {};
     }).toThrow();
     expect(() => {
-      camera.viewport = [0, 0, 1, 1];
+      camera.viewport = new Vector4(0, 0, 1, 1);
     }).toThrow();
     expect(() => {
       camera.backgroundSky;
