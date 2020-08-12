@@ -1,12 +1,10 @@
-import { Entity, Component, Engine, Scene, RenderableComponent, Script, Canvas, HardwareRenderer } from "../src/index";
+import { Canvas, Engine, Entity, HardwareRenderer, RenderableComponent, Scene, Script } from "../src/index";
 describe("ComponentsManager", () => {
-  let engine: Engine = null;
-  let scene: Scene = null;
+  const engine = new Engine(<Canvas>{}, <HardwareRenderer>{ init: jest.fn() });
+  const scene = new Scene();
+  scene.createRootEntity();
+  engine.sceneManager.activeScene = scene;
   beforeEach(() => {
-    engine = new Engine(<Canvas>{}, <HardwareRenderer>{ init: jest.fn() });
-    scene = new Scene();
-    scene.createRootEntity();
-    engine.sceneManager.activeScene = scene;
     Entity._entitys.length = 0;
     Entity._entitys._elements.length = 0;
   });
@@ -16,7 +14,7 @@ describe("ComponentsManager", () => {
       onUpdate() {}
     }
     it("onUpdate", () => {
-      const entity = new Entity("node");
+      const entity = new Entity("entity");
       entity.parent = scene.getRootEntity();
       TestComponent.prototype.onUpdate = jest.fn();
       const component = entity.addComponent(TestComponent);
@@ -26,7 +24,7 @@ describe("ComponentsManager", () => {
     });
 
     it("inActive", () => {
-      const entity = new Entity("node");
+      const entity = new Entity("entity");
       entity.parent = scene.getRootEntity();
       TestComponent.prototype.onUpdate = jest.fn();
       const component = entity.addComponent(TestComponent);
@@ -43,7 +41,7 @@ describe("ComponentsManager", () => {
         update() {}
         render() {}
       }
-      const entity = new Entity("node");
+      const entity = new Entity("entity");
       entity.parent = scene.getRootEntity();
       TestComponent.prototype.update = jest.fn();
       const component = entity.addComponent(TestComponent);
@@ -59,7 +57,7 @@ describe("ComponentsManager", () => {
         update() {}
         render() {}
       }
-      const entity = new Entity("node");
+      const entity = new Entity("entity");
       entity.parent = scene.getRootEntity();
       TestComponent.prototype.render = jest.fn();
       const component = entity.addComponent(TestComponent);
@@ -75,7 +73,7 @@ describe("ComponentsManager", () => {
         update() {}
         render() {}
       }
-      const entity = new Entity("node");
+      const entity = new Entity("entity");
       entity.parent = scene.getRootEntity();
       TestComponent.prototype.update = jest.fn();
       TestComponent.prototype.render = jest.fn();
