@@ -222,11 +222,11 @@ describe("Matrix test", () => {
     ).toEqual(true);
   });
 
-  it("static rotate", () => {
+  it("static rotateAxisAngle", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
     const out = new Matrix();
 
-    Matrix.rotate(a, new Vector3(0, 1, 0), Math.PI / 3, out);
+    Matrix.rotateAxisAngle(a, new Vector3(0, 1, 0), Math.PI / 3, out);
     expect(
       Matrix.equals(
         out,
@@ -408,10 +408,10 @@ describe("Matrix test", () => {
     ).toEqual(true);
   });
 
-  it("rotate", () => {
+  it("rotateAxisAngle", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 
-    a.rotate(new Vector3(0, 1, 0), Math.PI / 3);
+    a.rotateAxisAngle(new Vector3(0, 1, 0), Math.PI / 3);
     expect(
       Matrix.equals(
         a,
