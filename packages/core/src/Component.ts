@@ -121,9 +121,6 @@ export abstract class Component extends EventDispatcher {
   private _passMasks: MaskList[];
   private _cullDistanceSq: number = 0; // 等于0，代表不进行 distance cull
 
-  /* @internal */
-  _renderable: boolean = false;
-
   /**
    * @deprecated
    * 所属的Engine对象
@@ -131,25 +128,7 @@ export abstract class Component extends EventDispatcher {
    * @readonly
    */
   get engine(): Engine {
-    return this._entity?.scene?.engine;
-  }
-
-  /**
-   * @deprecated
-   * 是否可渲染
-   * @member {boolean}
-   * @readonly
-   * @private
-   */
-  get isRenderable() {
-    return this._renderable;
-  }
-
-  /**
-   * @deprecated
-   */
-  set renderable(val: boolean) {
-    this._renderable = val;
+    return this._entity?.engine;
   }
 
   /**
@@ -238,13 +217,5 @@ export abstract class Component extends EventDispatcher {
     }
 
     this.setPassMasks(...this._passMasks);
-  }
-
-  /**
-   * @deprecated
-   * 增加 parent 属性，主要是提供给事件的冒泡机制使用
-   */
-  get parent(): Entity {
-    return this._entity;
   }
 }
