@@ -108,6 +108,12 @@ export abstract class Component extends EventDispatcher {
     }
   }
 
+  /**
+   * @todo 临时方案，未来组件可以统一使用浅拷贝解决
+   * @internal
+   */
+  _cloneTo(desComponent: Component): void {}
+
   //---------------------------------------------Deprecated-----------------------------------------------------------------
 
   private _renderPriority: number = 0;
