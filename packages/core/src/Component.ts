@@ -51,6 +51,13 @@ export abstract class Component extends EventDispatcher {
   }
 
   /**
+   * 所属的Engine对象。
+   */
+  get engine(): Engine {
+    return this._entity.engine;
+  }
+
+  /**
    * 创建组件实例。
    * @param entity - 对象所在实体
    * @param props - 配置参数
@@ -119,16 +126,6 @@ export abstract class Component extends EventDispatcher {
   private _renderPassFlag: MaskList;
   private _passMasks: MaskList[];
   private _cullDistanceSq: number = 0; // 等于0，代表不进行 distance cull
-
-  /**
-   * @deprecated
-   * 所属的Engine对象
-   * @member {Engine}
-   * @readonly
-   */
-  get engine(): Engine {
-    return this._entity?.engine;
-  }
 
   /**
    * @deprecated
