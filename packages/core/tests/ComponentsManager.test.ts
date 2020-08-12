@@ -1,10 +1,11 @@
 import { Canvas, Engine, Entity, HardwareRenderer, RenderableComponent, Scene, Script } from "../src/index";
 describe("ComponentsManager", () => {
-  const engine = new Engine(<Canvas>{}, <HardwareRenderer>{ init: jest.fn() });
-  const scene = new Scene();
-  scene.createRootEntity();
-  engine.sceneManager.activeScene = scene;
+  let engine: Engine = new Engine(<Canvas>{}, <HardwareRenderer>{ init: jest.fn() });
+  let scene;
   beforeEach(() => {
+    scene = new Scene();
+    scene.createRootEntity();
+    engine.sceneManager.activeScene = scene;
     Entity._entitys.length = 0;
     Entity._entitys._elements.length = 0;
   });
