@@ -170,7 +170,6 @@ describe("camera test", function () {
     );
     camera.entity.transform.worldMatrix = new Matrix();
     const out = camera.viewportToWorldPoint(new Vector3(0.48459633827209475, 0.4913397705554962, 1), new Vector3());
-    console.log(out);
     arrayCloseTo([-1, 1, -100], [out.x, out.y, out.z]);
   });
 
