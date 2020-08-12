@@ -407,6 +407,8 @@ export class Animation extends Component {
             scale.setValue(v[0], v[1], v[2]);
             transform.scale = scale;
             break;
+          default:
+            targetObject[path] = val;
         }
       }
     } // end of for
