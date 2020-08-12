@@ -1,4 +1,4 @@
-import { RenderBufferDepthFormat } from "@alipay/o3-core";
+import { RenderBufferDepthFormat, RenderContext } from "@alipay/o3-core";
 import { BasicRenderPipeline, Camera, Component, Entity, RenderPass } from "@alipay/o3-core";
 import {
   Material,
@@ -166,10 +166,11 @@ export abstract class Probe extends Component {
   }
 
   protected render() {
+    const context = RenderContext._getRenderContext(this.camera);
     this.renderItems.forEach((item) => {
       const { component, primitive, mtl } = item;
       if (!(component.renderPassFlag & this.renderPassFlag)) return;
-      mtl.prepareDrawing(this.camera, component, primitive);
+      mtl.prepareDrawing(context, component, primitive);
       this.rhi.drawPrimitive(primitive, mtl);
     });
   }

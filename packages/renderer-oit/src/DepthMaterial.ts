@@ -9,11 +9,11 @@ const STATE = {
 };
 
 export class DepthMaterial extends Material {
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
     if (!this._technique) {
       this.generateTechnique();
     }
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   generateTechnique() {

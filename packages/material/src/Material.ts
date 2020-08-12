@@ -1,5 +1,5 @@
 import { Matrix, Matrix3x3 } from "@alipay/o3-math";
-import { Camera, MaterialType, ReferenceObject, UniformSemantic, Util } from "@alipay/o3-core";
+import { Camera, MaterialType, ReferenceObject, UniformSemantic, Util, RenderContext } from "@alipay/o3-core";
 
 import { RenderTechnique } from "./RenderTechnique";
 import { Texture } from "./Texture";
@@ -162,12 +162,13 @@ export class Material extends ReferenceObject {
    * @param {Material} originalMaterial 物体本来的材质，用于renderPass使用replaceMaterial时的识别
    * @private
    */
-  prepareDrawing(camera, component, primitive, originalMaterial?: Material) {
+  prepareDrawing(context, component, primitive, originalMaterial?: Material) {
+    const camera = context.camera;
     // 设置Unifroms
     const uniforms = this._technique.uniforms;
     for (const name in uniforms) {
       const uniform = uniforms[name];
-      this._updateValueBySemantic(uniform, camera, component);
+      this._updateValueBySemantic(uniform, context, component);
     }
 
     const scene = camera.scene;
@@ -210,7 +211,7 @@ export class Material extends ReferenceObject {
    * @param {Component} component
    * @private
    */
-  _updateValueBySemantic(uniform, camera: Camera, component) {
+  _updateValueBySemantic(uniform, context: RenderContext, component) {
     const values = this._values;
 
     switch (uniform.semantic) {
@@ -225,15 +226,15 @@ export class Material extends ReferenceObject {
         break;
       // Transforms from world to view coordinates
       case UniformSemantic.VIEW:
-        values[uniform.name] = camera.viewMatrix;
+        values[uniform.name] = context.viewMatrix;
         break;
       //Transforms from view to clip
       case UniformSemantic.PROJECTION:
-        values[uniform.name] = camera.projectionMatrix;
+        values[uniform.name] = context.projectionMatrix;
         break;
       // Combined MODEL and VIEW.
       case UniformSemantic.MODELVIEW: {
-        const view = camera.viewMatrix;
+        const view = context.viewMatrix;
         const model = component._entity.transform.worldMatrix;
         let modelView = values[uniform.name];
         if (!modelView) modelView = new Matrix();
@@ -243,13 +244,11 @@ export class Material extends ReferenceObject {
       }
       // Combined MODEL, VIEW, and PROJECTION
       case UniformSemantic.MODELVIEWPROJECTION: {
-        const view = camera.viewMatrix;
-        const proj = camera.projectionMatrix;
+        const viewProj = context.viewProjectMatrix;
         const model = component._entity.transform.worldMatrix;
         let MVP = values[uniform.name];
         if (!MVP) MVP = new Matrix();
-        Matrix.multiply(view, model, MVP);
-        Matrix.multiply(proj, MVP, MVP);
+        Matrix.multiply(viewProj, model, MVP);
         values[uniform.name] = MVP;
         break;
       }
@@ -259,15 +258,15 @@ export class Material extends ReferenceObject {
         break;
       // Inverse of VIEW
       case UniformSemantic.VIEWINVERSE:
-        values[uniform.name] = camera.inverseViewMatrix;
+        values[uniform.name] = context.inverseViewMatrix;
         break;
       // Inverse of PROJECTION
       case UniformSemantic.PROJECTIONINVERSE:
-        values[uniform.name] = camera.inverseProjectionMatrix;
+        values[uniform.name] = context.inverseProjectionMatrix;
         break;
       // Inverse of MODELVIEW
       case UniformSemantic.MODELVIEWINVERSE: {
-        const view = camera.viewMatrix;
+        const view = context.viewMatrix;
         const model = component.modelMatrix;
         let invMV = values[uniform.name];
         if (!invMV) invMV = new Matrix();
@@ -278,13 +277,11 @@ export class Material extends ReferenceObject {
       }
       // Inverse of MODELVIEWPROJECTION
       case UniformSemantic.MODELVIEWPROJECTIONINVERSE: {
-        const view = camera.viewMatrix;
-        const proj = camera.projectionMatrix;
+        const viewProj = context.viewProjectMatrix;
         const model = component._entity.transform.worldMatrix;
         let invMVP = values[uniform.name];
         if (!invMVP) invMVP = new Matrix();
-        Matrix.multiply(view, model, invMVP);
-        Matrix.multiply(proj, invMVP, invMVP);
+        Matrix.multiply(viewProj, model, invMVP);
         Matrix.invert(invMVP, invMVP);
         values[uniform.name] = invMVP;
         break;
@@ -301,7 +298,7 @@ export class Material extends ReferenceObject {
       case UniformSemantic.MODELVIEWINVERSETRANSPOSE: {
         let modelViewIT = values[uniform.name];
         if (!modelViewIT) modelViewIT = new Matrix();
-        Matrix.multiply(camera.viewMatrix, component.modelMatrix, modelViewIT);
+        Matrix.multiply(context.viewMatrix, component.modelMatrix, modelViewIT);
         Matrix.invert(modelViewIT, modelViewIT);
         Matrix.transpose(modelViewIT, modelViewIT);
         values[uniform.name] = modelViewIT;
@@ -309,7 +306,7 @@ export class Material extends ReferenceObject {
       }
       // The viewport's x, y, width, and height properties stored in the x, y, z, and w components, respectively.
       case UniformSemantic.VIEWPORT:
-        values[uniform.name] = camera.viewport;
+        values[uniform.name] = context.viewport;
         break;
       // Transforms mesh coordinates for a particular joint for skinning and animation.
       case UniformSemantic.JOINTMATRIX:
@@ -327,7 +324,7 @@ export class Material extends ReferenceObject {
 
       // Camera 的世界坐标位置
       case UniformSemantic.EYEPOS:
-        values[uniform.name] = camera.entity.transform.worldPosition;
+        values[uniform.name] = context.cameraPosition;
         break;
       // 页面启动之后的总时长，单位：秒
       case UniformSemantic.TIME:

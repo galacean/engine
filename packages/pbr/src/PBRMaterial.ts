@@ -8,7 +8,8 @@ import {
   MaterialType,
   RenderState,
   Side,
-  Util
+  Util,
+  RenderContext
 } from "@alipay/o3-core";
 import { LightFeature } from "@alipay/o3-lighting";
 import { Material, RenderTechnique, Texture, TextureCubeMap } from "@alipay/o3-material";
@@ -863,7 +864,8 @@ class PBRMaterial extends Material {
    * @param {Component} component 组件
    * @private
    */
-  prepareDrawing(camera: Camera, component: Component, primitive) {
+  prepareDrawing(context: RenderContext, component: Component, primitive) {
+    const camera = context.camera;
     const scene = camera.scene;
     const canvas = scene.engine.canvas;
     const lightMgr = scene.findFeature(LightFeature);
@@ -917,7 +919,7 @@ class PBRMaterial extends Material {
       this._generateTechnique(camera, component, primitive);
     }
 
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   /**

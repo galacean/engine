@@ -26,6 +26,6 @@ export { AssetType } from "./asset/AssetType";
 export { ReferenceObject } from "./asset/ReferenceObject";
 
 export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-export { RenderQueue } from "./RenderPipeline//RenderQueue";
+export { RenderQueue, RenderContext } from "./RenderPipeline//RenderQueue";
 export { RenderPass } from "./RenderPipeline/RenderPass";
 export * from "./base";

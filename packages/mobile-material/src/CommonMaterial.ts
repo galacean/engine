@@ -60,7 +60,8 @@ export abstract class CommonMaterial extends Material {
     this.setValue("u_ambient", val);
   }
 
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
+    const camera = context.camera;
     const lightMgr = camera.scene.findFeature(LightFeature);
 
     /** 光源 uniform values */
@@ -73,7 +74,7 @@ export abstract class CommonMaterial extends Material {
       this._generateTechnique();
       this.bindLightUniformDefine(camera);
     }
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   /**

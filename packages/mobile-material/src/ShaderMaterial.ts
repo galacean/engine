@@ -34,12 +34,13 @@ export class ShaderMaterial extends Material {
   }
 
   // 开始渲染指定对象
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
+    const camera = context.camera;
     if (!this._technique) {
       const tech = this._generateTechnique(camera, component, primitive);
       this._technique = tech;
     }
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   // 更新technique

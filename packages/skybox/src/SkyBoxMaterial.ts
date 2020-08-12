@@ -26,7 +26,7 @@ export class SkyBoxMaterial extends Material {
    * 渲染前调用
    * @private
    */
-  prepareDrawing(camera, component) {
+  prepareDrawing(context, component) {
     if (this._technique === null) {
       this._generateTechnique();
     }
@@ -35,8 +35,8 @@ export class SkyBoxMaterial extends Material {
       this._cacheMat1 = new Matrix();
       this._cacheMat2 = new Matrix();
     }
-    const view = camera.viewMatrix;
-    const proj = camera.projectionMatrix;
+    const view = context.viewMatrix;
+    const proj = context.projectionMatrix;
 
     Matrix.multiply(view, this.modelMatrix, this._cacheMat1);
     const e = this._cacheMat1.elements;
@@ -44,7 +44,7 @@ export class SkyBoxMaterial extends Material {
     Matrix.multiply(proj, this._cacheMat1, this._cacheMat2);
     this.setValue("u_mvpNoscale", this._cacheMat2);
 
-    super.prepareDrawing(camera, component, undefined);
+    super.prepareDrawing(context, component, undefined);
   }
 
   /**

@@ -47,12 +47,12 @@ class DepthMaterial extends Material {
    * 重写基类方法
    * @private
    */
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
     if (this._technique === null) {
       this._generateTechnique();
     }
 
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 }
 

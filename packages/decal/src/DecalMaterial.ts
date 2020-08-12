@@ -72,12 +72,12 @@ export class DecalMaterial extends Material {
     this.renderType = MaterialType.TRANSPARENT;
   }
 
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
     if (!this._technique) {
-      this._generateTechnique(camera, component);
+      this._generateTechnique(context.camera, component);
     }
 
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   /**

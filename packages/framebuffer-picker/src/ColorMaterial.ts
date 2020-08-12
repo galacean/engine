@@ -60,14 +60,14 @@ class ColorMaterial extends Material {
   /**
    * @private
    */
-  prepareDrawing(camera, component, primitive, originalMaterial?: Material) {
+  prepareDrawing(context, component, primitive, originalMaterial?: Material) {
     if (!this._technique) this.generateTechnique();
     this.technique.states = originalMaterial?.technique?.states;
     this._currentId += 1;
     this._primitivesMap[this._currentId] = { component, primitive };
     this.setValue("u_colorId", this.id2Color(this._currentId));
 
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   /**
