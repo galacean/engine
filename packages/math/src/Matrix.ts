@@ -528,8 +528,7 @@ export class Matrix {
    * @param r - 给定的旋转角度
    * @param out - 旋转后的矩阵
    */
-  static rotate(m: Matrix, axis: Vector3, r: number, out: Matrix): void {
-    // CM: 这个命名需要改成rotateAxisAngle
+  static rotateAxisAngle(m: Matrix, axis: Vector3, r: number, out: Matrix): void {
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
@@ -1153,9 +1152,8 @@ export class Matrix {
    * @param r - 给定的旋转角度
    * @returns 当前矩阵
    */
-  rotate(axis: Vector3, r: number): Matrix {
-    // CM: 这个命名需要改成rotateAxisAngle
-    Matrix.rotate(this, axis, r, this);
+  rotateAxisAngle(axis: Vector3, r: number): Matrix {
+    Matrix.rotateAxisAngle(this, axis, r, this);
     return this;
   }
 

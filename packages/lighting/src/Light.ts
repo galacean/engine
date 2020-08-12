@@ -72,7 +72,7 @@ export abstract class Light extends Component {
    */
   get inverseViewMatrix() {
     if (!this._modelMat) this._modelMat = new Matrix();
-    Matrix.rotate(this.entity.transform.worldMatrix, _tempVec3, Math.PI, this._modelMat);
+    Matrix.rotateAxisAngle(this.entity.transform.worldMatrix, _tempVec3, Math.PI, this._modelMat);
 
     return this._modelMat;
   }
