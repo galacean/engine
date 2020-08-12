@@ -13,7 +13,7 @@ export class GLTFModel extends Component {
   }
 
   set asset(value: GLTFResource) {
-    if (value.defaultSceneRoot === this.GLTFNode) {
+    if (value && value.defaultSceneRoot === this.GLTFNode) {
       return;
     }
     if (!this._hasBuiltNode) {
