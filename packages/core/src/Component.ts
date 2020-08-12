@@ -163,13 +163,6 @@ export abstract class Component extends EventDispatcher {
   /**
    * @deprecated
    */
-  get invModelMatrix(): Readonly<Matrix> {
-    return this._entity.getInvModelMatrix();
-  }
-
-  /**
-   * @deprecated
-   */
   get renderPassFlag(): MaskList {
     return this._renderPassFlag;
   }
