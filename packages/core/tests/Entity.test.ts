@@ -30,8 +30,7 @@ describe("Entity", () => {
 
   const engine = new WebGLEngine(canvasDOM);
   const scene = engine.sceneManager.activeScene;
-  //@ts-ignore
-  scene.addRootEntity(root);
+  scene.createRootEntity("root");
   engine.run();
   beforeEach(() => {
     Entity._entitys.length = 0;
