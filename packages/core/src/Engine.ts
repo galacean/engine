@@ -29,7 +29,7 @@ export class Engine extends EventDispatcher {
 
   private _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
-  private _sceneManager: SceneManager = new SceneManager();
+  private _sceneManager: SceneManager = new SceneManager(this);
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
