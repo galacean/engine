@@ -170,7 +170,8 @@ describe("camera test", function () {
     );
     camera.entity.transform.worldMatrix = new Matrix();
     const out = camera.viewportToWorldPoint(new Vector3(0.48459633827209475, 0.4913397705554962, 1), new Vector3());
-    arrayCloseTo([1, 1, 100], [out.x, out.y, out.z]);
+    console.log(out);
+    arrayCloseTo([-1, 1, -100], [out.x, out.y, out.z]);
   });
 
   it("viewportToRay", () => {
@@ -197,13 +198,14 @@ describe("camera test", function () {
       origin: new Vector3(),
       direction: new Vector3()
     });
+
     arrayCloseTo(
       [ray.origin.x, ray.origin.y, ray.origin.z],
-      Float32Array.from([-0.0017142787110060453, 4.989009380340576, 16.95108985900879])
+      Float32Array.from([0.0017142786925635912, 5.017240249493299, 17.047073454417177])
     );
     arrayCloseTo(
       [ray.direction.x, ray.direction.y, ray.direction.z],
-      Float32Array.from([-0.037305865436792374, -0.21910282969474792, -0.970811665058136])
+      Float32Array.from([0.034176195559507606, 0.3437087947548518, 0.9384541821875192])
     );
   });
 
@@ -214,8 +216,8 @@ describe("camera test", function () {
     camera.resetProjectionMatrix();
     const nearClipPoint = camera.viewportToWorldPoint(new Vector3(0.5, 0.5, 0), new Vector3());
     const farClipPoint = camera.viewportToWorldPoint(new Vector3(0.5, 0.5, 1), new Vector3());
-    expect(nearClipPoint.z).toBeCloseTo(camera.nearClipPlane);
-    expect(farClipPoint.z).toBeCloseTo(camera.farClipPlane);
+    expect(nearClipPoint.z).toBeCloseTo(-camera.nearClipPlane);
+    expect(farClipPoint.z).toBeCloseTo(-camera.farClipPlane);
   });
 
   it("todo implemention", () => {
