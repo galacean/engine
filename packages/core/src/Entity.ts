@@ -366,7 +366,8 @@ export class Entity extends EventDispatcher {
     for (let i = 0; i < len; i++) {
       const ability = abilityArray[i];
       if (!(ability instanceof Transform)) {
-        newNode.addComponent(ability.constructor as any, (ability as any)._props);
+        const newCom = newNode.addComponent(ability.constructor as any, (ability as any)._props);
+        ability._cloneTo(newCom); //CM: 未来统一走浅拷贝
       }
     }
 

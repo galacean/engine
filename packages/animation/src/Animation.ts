@@ -1,7 +1,7 @@
-import { Logger } from "@alipay/o3-core";
+import { Logger, Transform } from "@alipay/o3-core";
 import { Component, Entity } from "@alipay/o3-core";
 import { AnimationLayer } from "./AnimationLayer";
-import { AnimationClip } from "./AnimationClip";
+import { AnimationClip, TagetType } from "./AnimationClip";
 import { Vector2, Vector3, Vector4, Quaternion } from "@alipay/o3-math";
 import { AnimationOptions, IChannelTarget } from "./types";
 import { SkinnedMeshRenderer } from "@alipay/o3-mesh";
@@ -387,16 +387,27 @@ export class Animation extends Component {
         (targetObject as SkinnedMeshRenderer).setWeights(val as any);
       } else {
         const v = val as Float32Array;
-        const len = v.length;
-        const obj = targetObject[path];
-        if (len === 2) {
-          obj.setValue(v[0], v[1]);
-        } else if (len == 3) {
-          obj.setValue(v[0], v[1], v[2]);
-        } else if (len == 4) {
-          obj.setValue(v[0], v[1], v[2], v[3]);
+        //CM: 临时优化 val 应该为Vector3/Quaternion类型，避免转换开销
+        //CM: 未来Animation统一所有动画系统后 非常用pathType为other，继续走反射
+        //CM: 由于pathType种类比较少，未来可以通过预分类避免switch开销，比如骨骼动画就三种类型
+        const transform = (<Entity>targetObject).transform;
+        switch (channelTarget.pathType) {
+          case TagetType.position:
+            const position: Vector3 = transform.position;
+            position.setValue(v[0], v[1], v[2]);
+            transform.position = position;
+            break;
+          case TagetType.rotation:
+            const rotation: Quaternion = transform.rotationQuaternion;
+            rotation.setValue(v[0], v[1], v[2], v[3]);
+            transform.rotationQuaternion = rotation;
+            break;
+          case TagetType.scale:
+            const scale: Vector3 = transform.scale;
+            scale.setValue(v[0], v[1], v[2]);
+            transform.scale = scale;
+            break;
         }
-        targetObject[path] = obj;
       }
     } // end of for
   }
@@ -447,5 +458,16 @@ export class Animation extends Component {
    */
   _onDisable(): void {
     this.scene._componentsManager.removeOnUpdateAnimations(this);
+  }
+
+  /**
+   * @todo 临时方案，未来组件应该统一使用浅拷贝
+   * @override
+   * @internal
+   */
+  _cloneTo(destComponent: Component): void {
+    for (let aniClip in this._animSet) {
+      (<Animation>destComponent)._animSet[aniClip] = this._animSet[aniClip];
+    }
   }
 }

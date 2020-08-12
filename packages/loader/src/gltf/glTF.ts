@@ -784,25 +784,26 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
         node.addComponent(MeshRenderer, { mesh });
       }
     }
+  }
 
-    //@ts-ignore
-    const nodes = asset.defaultScene.nodes;
-    if (nodes.length === 1) {
-      asset.defaultSceneRoot = nodes[0];
-    } else {
-      const rootNode = new Entity(null, resources.engine);
-      for (let i = 0; i < nodes.length; i++) {
-        rootNode.addChild(nodes[i]);
-      }
-      asset.defaultSceneRoot = rootNode;
+  //@ts-ignore
+  const nodes = asset.defaultScene.nodes;
+  if (nodes.length === 1) {
+    asset.defaultSceneRoot = nodes[0];
+  } else {
+    const rootNode = new Entity(null, resources.engine);
+    for (let i = 0; i < nodes.length; i++) {
+      rootNode.addChild(nodes[i]);
     }
-    const animator = asset.defaultSceneRoot.addComponent(Animation);
-    const animations = asset.animations;
-    if (animations) {
-      animations.forEach((clip: AnimationClip) => {
-        animator.addAnimationClip(clip, clip.name);
-      });
-    }
+    asset.defaultSceneRoot = rootNode;
+  }
+
+  const animator = asset.defaultSceneRoot.addComponent(Animation);
+  const animations = asset.animations;
+  if (animations) {
+    animations.forEach((clip: AnimationClip) => {
+      animator.addAnimationClip(clip, clip.name);
+    });
   }
   return resources.asset as GLTFResource;
 }

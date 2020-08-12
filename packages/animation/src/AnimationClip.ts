@@ -3,11 +3,24 @@ import { InterpolationType } from "./AnimationConst";
 import { Quaternion } from "@alipay/o3-math";
 import { List, Value, ISample, IChannel } from "./types";
 
+export enum TagetType {
+  position = 0,
+  rotation = 1,
+  scale = 2,
+  other = 3
+}
+
 /**
  * Data for an animation, set of Samples and Channels
  * @extends AssetObject
  */
 export class AnimationClip extends AssetObject {
+  private static _tagetTypeMap: Object = {
+    position: TagetType.position,
+    rotation: TagetType.rotation,
+    scale: TagetType.scale
+  };
+
   public samplers: ISample[];
 
   public channels: IChannel[];
@@ -66,12 +79,14 @@ export class AnimationClip extends AssetObject {
   public addChannel(samplerIndex: number, targetID: string, targetPath: string) {
     const bindSampler = this.samplers[samplerIndex];
 
+    let tagetType: TagetType = AnimationClip._tagetTypeMap[targetPath];
     // channel object, bind a Sample to an Object property
     const channel = {
       sampler: bindSampler,
       target: {
         id: targetID,
-        path: targetPath
+        path: targetPath,
+        pathType: tagetType ?? TagetType.other
       }
     };
 

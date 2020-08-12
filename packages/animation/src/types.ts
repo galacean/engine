@@ -27,12 +27,14 @@ export interface ISample {
 }
 
 export interface ITarget {
+  pathType: number;
   path: string;
   id: string;
 }
 
 export type IChannelTarget = {
   targetObject: Entity | Component | SkinnedMeshRenderer;
+  pathType: number;
   path: string;
   outputSize: number;
 };
