@@ -1,5 +1,4 @@
-import { Event, EventDispatcher, MaskList } from "./base";
-import { Matrix } from "@alipay/o3-math";
+import { EventDispatcher, MaskList } from "./base";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { Scene } from "./Scene";
