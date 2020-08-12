@@ -89,7 +89,7 @@ import { MaskList } from "@alipay/o3-core";
  */
 function _updateHitResult(collider, ray: Ray, distance: number, outHit: RaycastHit, origin: Vector3) {
   const hitPos = ray.getPoint(distance);
-  Vector3.transformCoordinate(hitPos, collider.node.getModelMatrix(), hitPos);
+  Vector3.transformCoordinate(hitPos, collider.entity.transform.worldMatrix, hitPos);
 
   outHit.distance = Vector3.distance(origin, hitPos);
   outHit.collider = collider;

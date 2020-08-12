@@ -496,11 +496,12 @@ export class Quaternion {
   /**
    * 将四元数设置为单位四元数。
    */
-  identity(): void {
+  identity(): Quaternion {
     this.x = 0;
     this.y = 0;
     this.z = 0;
     this.w = 1;
+    return this;
   }
 
   /**
