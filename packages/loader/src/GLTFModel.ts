@@ -23,6 +23,7 @@ export class GLTFModel extends Component {
           this.GLTFNode.destroy();
         }
         this.GLTFNode = value.defaultSceneRoot;
+        this._animator = this.GLTFNode.getComponent(Animation);
         this.entity.addChild(this.GLTFNode);
       }
     }
