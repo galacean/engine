@@ -48,7 +48,7 @@ import { Particle } from "@alipay/o3-particle";
 import "@alipay/o3-raycast";
 import { Parser } from "@alipay/o3-scene-loader";
 import "@alipay/o3-shadow";
-import { ASkyBox } from "@alipay/o3-skybox";
+import { SkyBox } from "@alipay/o3-skybox";
 
 Parser.registerComponents("o3", {
   Model,
@@ -59,7 +59,7 @@ Parser.registerComponents("o3", {
   DirectLight,
   EnvironmentMapLight,
   Particle,
-  ASkyBox,
+  SkyBox,
   BoxCollider,
   GeometryRenderer,
   Camera,
