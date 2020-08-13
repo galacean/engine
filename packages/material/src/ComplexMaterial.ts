@@ -20,12 +20,13 @@ export class ComplexMaterial extends Material {
   /**
    * 在绘制之前，准备好内部的 Technique 对象
    */
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
+    const camera = context.camera;
     const tech = this._requireTechnique(camera, component, primitive);
 
     if (tech) {
       this._technique = tech;
-      super.prepareDrawing(camera, component, primitive);
+      super.prepareDrawing(context, component, primitive);
     }
   }
 

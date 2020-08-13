@@ -49,7 +49,8 @@ export class LambertMaterial extends CommonMaterial {
    * 重写基类方法，添加方向光计算
    * @private
    */
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
+    const camera = context.camera;
     const scene = camera.scene;
     const lightMgr = scene.findFeature(LightFeature);
     const { directLightCount } = lightMgr.lightSortAmount;
@@ -60,7 +61,7 @@ export class LambertMaterial extends CommonMaterial {
       this.bindLightUniformDefine(camera);
     }
 
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   /**

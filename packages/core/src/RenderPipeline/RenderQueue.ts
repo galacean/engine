@@ -1,15 +1,15 @@
-import { MaskList } from "../base";
 import { Vector3 } from "@alipay/o3-math";
+import { MaskList } from "../base";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
+import { RenderContext } from "./RenderContext";
 
 /** @todo: monorepo circle dependence */
 type RenderTarget = any;
 type Material = any;
 
 /**
- * 渲染队列管理
- * @class
+ * 渲染队列管理。
  * @private
  */
 export class RenderQueue {
@@ -130,6 +130,8 @@ export class RenderQueue {
 
     this.updateMaxJointsNum(this._items, replaceMaterial);
 
+    const context = RenderContext._getRenderContext(camera);
+
     for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
       const { component, primitive, mtl } = item;
@@ -146,7 +148,7 @@ export class RenderQueue {
         const material = replaceMaterial ? replaceMaterial : mtl;
         material.preRender?.(item.component, item.primitive);
 
-        material.prepareDrawing(camera, item.component, item.primitive, mtl);
+        material.prepareDrawing(context, item.component, item.primitive, mtl);
         rhi.drawPrimitive(item.primitive, material);
 
         material.postRender?.(item.component, item.primitive);
