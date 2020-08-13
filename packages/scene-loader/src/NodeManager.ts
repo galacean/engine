@@ -47,7 +47,7 @@ export class NodeManager {
    */
   private create(nodeConfig: NodeConfig): Entity {
     const { isActive, position, rotation, scale, id, name } = nodeConfig;
-    const entity = new Entity(name);
+    const entity = new Entity(name, this.oasis.engine);
     entity.isActive = isActive;
     entity.transform.position = new Vector3(position[0], position[1], position[2]);
     entity.transform.rotation = new Vector3(rotation[0], rotation[1], rotation[2]);
