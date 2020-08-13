@@ -69,11 +69,11 @@ class ColorRenderPass extends RenderPass {
     const py = (screenPoint[1] / clientHeight) * canvasHeight;
 
     const viewport = camera.viewport;
-    const viewWidth = (viewport[2] - viewport[0]) * canvasWidth;
-    const viewHeight = (viewport[3] - viewport[1]) * canvasHeight;
+    const viewWidth = (viewport.z - viewport.x) * canvasWidth;
+    const viewHeight = (viewport.w - viewport.y) * canvasHeight;
 
-    const nx = (px - viewport[0]) / viewWidth;
-    const ny = (py - viewport[1]) / viewHeight;
+    const nx = (px - viewport.x) / viewWidth;
+    const ny = (py - viewport.y) / viewHeight;
     const left = Math.floor(nx * (this.renderTarget.width - 1));
     const bottom = Math.floor((1 - ny) * (this.renderTarget.height - 1));
     const pixel = new Uint8Array(4);
