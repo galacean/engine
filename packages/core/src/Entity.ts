@@ -74,6 +74,7 @@ export class Entity extends EventDispatcher {
    */
   static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
     entity._scene = scene;
+    entity._engine = scene.engine;
     const children = entity._children;
     for (let i = entity.childCount - 1; i >= 0; i--) {
       this._traverseSetOwnerScene(children[i], scene);
