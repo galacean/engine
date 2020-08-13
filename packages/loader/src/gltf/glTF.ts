@@ -636,7 +636,7 @@ export function parseAnimation(gltfAnimation, resources) {
  */
 export function parseNode(gltfNode, resources) {
   // TODO: undefined name?
-  const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`);
+  const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`, resources.engine);
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;

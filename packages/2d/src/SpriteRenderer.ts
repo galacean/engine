@@ -236,9 +236,9 @@ export class SpriteRenderer extends RenderableComponent {
    * @param {Camera} camera
    * @private
    */
-  _updatePositionQuad(camera) {
+  _updatePositionQuad(camera: Camera) {
     if (this.renderMode === "2D") {
-      const m = camera.viewMatrix;
+      const m = camera.viewMatrix.elements;
       const vx = new Vector3(m[0], m[4], m[8]);
       const vy = new Vector3(m[1], m[5], m[9]);
       //-- center pos
@@ -246,8 +246,8 @@ export class SpriteRenderer extends RenderableComponent {
       const s = this._worldSize;
       const ns = this.entity.scale;
 
-      vx.scale(s[0] * ns[0]);
-      vy.scale(s[1] * ns[1]);
+      vx.scale(s[0] * ns.x);
+      vy.scale(s[1] * ns.y);
 
       if (this._rotationAngle !== 0) {
         const vz = new Vector3(m[2], m[6], m[10]);
