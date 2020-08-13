@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-fog",
-  "version": "2.4.1-y.0",
+  "version": "2.4.1-alpha.1",
   "description": "Oasis3D Fog",
   "repository": {
     "type": "git",
@@ -21,8 +21,8 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "dependencies": {
-    "@alipay/o3-core": "2.4.1-y.0",
-    "@alipay/o3-math": "2.4.1-y.0"
+    "@alipay/o3-core": "2.4.1-alpha.1",
+    "@alipay/o3-math": "2.4.1-alpha.1"
   },
   "scripts": {
     "b:types": "tsc"
