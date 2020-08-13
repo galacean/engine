@@ -267,7 +267,7 @@ export class Material extends ReferenceObject {
       // Inverse of MODELVIEW
       case UniformSemantic.MODELVIEWINVERSE: {
         const view = context.viewMatrix;
-        const model = component.modelMatrix;
+        const model = component._entity.transform.worldMatrix;
         let invMV = values[uniform.name];
         if (!invMV) invMV = new Matrix();
         Matrix.multiply(view, model, invMV);
@@ -298,7 +298,7 @@ export class Material extends ReferenceObject {
       case UniformSemantic.MODELVIEWINVERSETRANSPOSE: {
         let modelViewIT = values[uniform.name];
         if (!modelViewIT) modelViewIT = new Matrix();
-        Matrix.multiply(context.viewMatrix, component.modelMatrix, modelViewIT);
+        Matrix.multiply(context.viewMatrix, component._entity.transform.worldMatrix, modelViewIT);
         Matrix.invert(modelViewIT, modelViewIT);
         Matrix.transpose(modelViewIT, modelViewIT);
         values[uniform.name] = modelViewIT;
