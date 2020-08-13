@@ -89,15 +89,17 @@ export class ShadowFeature extends SceneFeature {
       const item = items[i];
       const ability: Component = item.component;
 
-      if ((ability as any).recieveShadow) {
+      const recieveShadow = (ability as any).recieveShadow;
+      const castShadow = (ability as any).castShadow;
+      if (recieveShadow === true) {
         ability.addPassMasks(MaskList.SHADOW);
-      } else {
+      } else if (recieveShadow === false) {
         ability.removePassMasks(MaskList.SHADOW);
       }
 
-      if ((ability as any).castShadow) {
+      if (castShadow === true) {
         ability.addPassMasks(MaskList.SHADOW_MAP);
-      } else {
+      } else if (castShadow === false) {
         ability.removePassMasks(MaskList.SHADOW_MAP);
       }
     }
