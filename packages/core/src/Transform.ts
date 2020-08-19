@@ -1,6 +1,6 @@
-import { Vector3, Quaternion, Matrix3x3, Vector4, Matrix, MathUtil } from "@alipay/o3-math";
-import { Entity } from "./Entity";
+import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { Component } from "./Component";
+import { Entity } from "./Entity";
 import { UpdateFlag } from "./UpdateFlag";
 
 /**
@@ -9,7 +9,6 @@ import { UpdateFlag } from "./UpdateFlag";
 export class Transform extends Component {
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempVec3: Vector3 = new Vector3();
-  private static _tempVec40: Vector4 = new Vector4();
   private static _tempMat30: Matrix3x3 = new Matrix3x3();
   private static _tempMat31: Matrix3x3 = new Matrix3x3();
   private static _tempMat32: Matrix3x3 = new Matrix3x3();
@@ -27,46 +26,18 @@ export class Transform extends Component {
   private static _LOCAL_MATRIX_FLAG: number = 0x40;
   private static _WORLD_MATRIX_FLAG: number = 0x80;
 
-  /**
-   * _WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG
-   */
-  private static _WM_WP_FLAGS: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG;
-
-  /**
-   * _WORLD_MATRIX_FLAG | _WORLD_EULER_FLAG | _WORLD_QUAT_FLAG
-   */
-  private static _WM_WE_WQ_FLAGS: number =
-    Transform._WORLD_MATRIX_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG;
-
-  /**
-   * _WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG | _WORLD_EULER_FLAG ｜ _WORLD_QUAT_FLAG
-   */
-  private static _WM_WP_WE_WQ_FLAGS: number =
-    Transform._WORLD_MATRIX_FLAG |
-    Transform._WORLD_POSITION_FLAG |
-    Transform._WORLD_EULER_FLAG |
-    Transform._WORLD_QUAT_FLAG;
-
-  /**
-   * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG
-   */
-  private static _WM_WS_FLAGS: number = Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG;
-
-  /**
-   * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_SCALE_FLAG
-   */
-  private static _WM_WP_WS_FLAGS: number =
-    Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_SCALE_FLAG;
-
-  /**
-   * Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG | Transform._WORLD_SCALE_FLAG
-   */
-  private static _WM_WP_WE_WQ_WS_FLAGS: number =
-    Transform._WORLD_MATRIX_FLAG |
-    Transform._WORLD_POSITION_FLAG |
-    Transform._WORLD_EULER_FLAG |
-    Transform._WORLD_QUAT_FLAG |
-    Transform._WORLD_SCALE_FLAG;
+  /** _WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG */
+  private static _WM_WP_FLAGS: number = 0x84;
+  /** _WORLD_MATRIX_FLAG | _WORLD_EULER_FLAG | _WORLD_QUAT_FLAG */
+  private static _WM_WE_WQ_FLAGS: number = 0x98;
+  /** _WORLD_MATRIX_FLAG | _WORLD_POSITION_FLAG | _WORLD_EULER_FLAG ｜ _WORLD_QUAT_FLAG */
+  private static _WM_WP_WE_WQ_FLAGS: number = 0x9c;
+  /** Transform._WORLD_MATRIX_FLAG | Transform._WORLD_SCALE_FLAG */
+  private static _WM_WS_FLAGS: number = 0xa0;
+  /** Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_SCALE_FLAG */
+  private static _WM_WP_WS_FLAGS: number = 0xa4;
+  /** Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG | Transform._WORLD_SCALE_FLAG */
+  private static _WM_WP_WE_WQ_WS_FLAGS: number = 0xbc;
 
   private _position: Vector3 = new Vector3();
   private _rotation: Vector3 = new Vector3();
@@ -131,7 +102,7 @@ export class Transform extends Component {
   }
 
   /**
-   * 局部旋转，欧拉角表达，单位是角度制。
+   * 局部旋转，欧拉角表达，单位是角度制，欧拉角的旋转顺序为 Yaw、Pitch、Roll。
    * @remarks 修改后需要重新赋值,保证修改生效。
    */
   get rotation(): Vector3 {
@@ -154,7 +125,7 @@ export class Transform extends Component {
   }
 
   /**
-   * 世界旋转，欧拉角表达，单位是角度制。
+   * 世界旋转，欧拉角表达，单位是角度制，欧拉角的旋转顺序为 Yaw、Pitch、Roll。
    * @remarks 修改后需要重新赋值,保证修改生效。
    */
   get worldRotation(): Vector3 {
@@ -256,6 +227,7 @@ export class Transform extends Component {
 
   /**
    * 世界有损缩放。
+   * @remarks 某种条件下获取该值可能不正确（例如：父节点有缩放，子节点有旋转），缩放会倾斜，无法使用Vector3正确表示,必须使用Matrix3x3矩阵才能正确表示。
    */
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
@@ -331,6 +303,85 @@ export class Transform extends Component {
    */
   constructor(entity?: Entity) {
     super(entity);
+  }
+
+  /**
+   * 通过位置的 X Y Z 设置局部位置。
+   * @param x - 位置的 X 坐标
+   * @param y - 位置的 Y 坐标
+   * @param z - 位置的 Z 坐标
+   */
+  setPosition(x: number, y: number, z: number): void {
+    this._position.setValue(x, y, z);
+    this.position = this._position;
+  }
+
+  /**
+   * 通过欧拉角的 X、Y、Z 分量设置局部旋转，单位是角度制，欧拉角的旋转顺序为 Yaw、Pitch、Roll。
+   * @param x - 绕 X 轴旋转的角度
+   * @param y - 绕 Y 轴旋转的角度
+   * @param z - 绕 Z 轴旋转的角度
+   */
+  setRotation(x: number, y: number, z: number): void {
+    this._rotation.setValue(x, y, z);
+    this.rotation = this._rotation;
+  }
+
+  /**
+   * 通过四元数的 X、Y、Z、W 分量设置局部旋转。
+   * @param x - 四元数的 X 分量
+   * @param y - 四元数的 Y 分量
+   * @param z - 四元数的 Z 分量
+   * @param w - 四元数的 W 分量
+   */
+  setRotationQuaternion(x: number, y: number, z: number, w: number): void {
+    this._rotationQuaternion.setValue(x, y, z, w);
+    this.rotationQuaternion = this._rotationQuaternion;
+  }
+
+  /**
+   * 通过沿 X、Y、Z 的缩放值设置局部缩放。
+   * @param x - 沿 X 缩放
+   * @param y - 沿 Y 缩放
+   * @param z - 沿 Z 缩放
+   */
+  setScale(x: number, y: number, z: number): void {
+    this._scale.setValue(x, y, z);
+    this.scale = this._scale;
+  }
+
+  /**
+   * 通过位置的 X Y Z 设置世界位置。
+   * @param x - 位置的 X 坐标
+   * @param y - 位置的 Y 坐标
+   * @param z - 位置的 Z 坐标
+   */
+  setWorldPosition(x: number, y: number, z: number): void {
+    this._worldPosition.setValue(x, y, z);
+    this.worldPosition = this._worldPosition;
+  }
+
+  /**
+   * 通过欧拉角的 X、Y、Z 分量设置世界旋转，单位是角度制，欧拉角的旋转顺序为 Yaw、Pitch、Roll。
+   * @param x - 绕 X 轴旋转的角度
+   * @param y - 绕 Y 轴旋转的角度
+   * @param z - 绕 Z 轴旋转的角度
+   */
+  setWorldRotation(x: number, y: number, z: number): void {
+    this._worldRotation.setValue(x, y, z);
+    this.worldRotation = this._worldRotation;
+  }
+
+  /**
+   * 通过四元数的 X、Y、Z、W 分量设置世界旋转。
+   * @param x - 四元数的 X 分量
+   * @param y - 四元数的 Y 分量
+   * @param z - 四元数的 Z 分量
+   * @param w - 四元数的 W 分量
+   */
+  setWorldRotationQuaternion(x: number, y: number, z: number, w: number): void {
+    this._worldRotationQuaternion.setValue(x, y, z, w);
+    this.worldRotationQuaternion = this._worldRotationQuaternion;
   }
 
   /**
