@@ -430,7 +430,7 @@ export class Quaternion {
    * @param x - 四元数的 X 分量，默认值 0
    * @param y - 四元数的 Y 分量，默认值 0
    * @param z - 四元数的 Z 分量，默认值 0
-   * @param w - 四元数的 W 分量，默认值 0
+   * @param w - 四元数的 W 分量，默认值 1
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
     this.x = x;
