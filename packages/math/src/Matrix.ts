@@ -228,7 +228,7 @@ export class Matrix {
   /**
    * 通过指定的旋转四元数,转换向量生成4x4矩阵。
    * @param q - 旋转四元数
-   * @param v - 转换向量
+   * @param trans - 转换向量
    * @param out - 生成的4x4矩阵
    */
   static rotationTranslation(q: Quaternion, trans: Vector3, out: Matrix): void {
