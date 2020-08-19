@@ -1,8 +1,8 @@
-import { PostEffectNode } from "./PostEffectNode";
-
-import { HighPassNode } from "./nodes/HighPassNode";
-import { GaussianBlurNode } from "./nodes/GaussianBlurNode";
+import { Vector2, Vector4 } from "@alipay/o3-math";
 import { CompositeNode } from "./nodes/CompositeNode";
+import { GaussianBlurNode } from "./nodes/GaussianBlurNode";
+import { HighPassNode } from "./nodes/HighPassNode";
+import { PostEffectNode } from "./PostEffectNode";
 
 /**
  * Bloom 后处理效果
@@ -24,7 +24,7 @@ export class BloomEffect extends PostEffectNode {
     let rtSize = 1024;
     let blurSize = Math.floor(rtSize / 2);
     if (props && props.rtSize) {
-      const rtColor = [0.0, 0.0, 0.0, 1.0];
+      const rtColor = new Vector4(0.0, 0.0, 0.0, 1.0);
       rtSize = props.rtSize;
       blurSize = Math.floor(rtSize / 2);
 
@@ -50,11 +50,11 @@ export class BloomEffect extends PostEffectNode {
       const blurSize = Math.floor(rtSize / 2);
       const blurHRT = rtPool.require("scene_" + blurSize);
       const passH = new GaussianBlurNode("DownSampleH_" + blurSize, blurHRT, blurHParent, filterSizeArray[i]);
-      passH.direction = [0.5, 0.0];
+      passH.direction = new Vector2(0.5, 0.0);
 
       const blurVRT = rtPool.require("backup_" + blurSize);
       const passV = new GaussianBlurNode("DownSampleV_" + blurSize, blurVRT, passH, filterSizeArray[i]);
-      passV.direction = [0.0, 0.5];
+      passV.direction = new Vector2(0.0, 0.5);
       blurRT.push(blurVRT);
 
       blurHParent = passH;

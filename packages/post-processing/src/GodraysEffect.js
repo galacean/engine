@@ -1,8 +1,8 @@
-import { PostEffectNode } from "./PostEffectNode";
-
-import { GodraysStartPassNode } from "./nodes/GodraysStartPassNode";
-import { GodraysPassNode } from "./nodes/GodraysPassNode";
+import { Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 import { GodraysCombinePassNode } from "./nodes/GodraysCombinePassNode";
+import { GodraysPassNode } from "./nodes/GodraysPassNode";
+import { GodraysStartPassNode } from "./nodes/GodraysStartPassNode";
+import { PostEffectNode } from "./PostEffectNode";
 
 /**
  * Godrays 后处理效果
@@ -13,7 +13,8 @@ export class GodraysEffect extends PostEffectNode {
     super("Godrays", null, null, null);
 
     const rtPool = manager.renderTargets;
-    this.sunWorldPosition = [1.0, 1.0, 1.0];
+    this.sunWorldPosition = new Vector3(1.0, 1.0, 1.0);
+    this.sunScreen = new Vector3();
     this.manager = manager;
     const filterLen = 1.0;
     const TAPS_PER_PASS = 6.0;
@@ -24,7 +25,7 @@ export class GodraysEffect extends PostEffectNode {
     let godraysRTB = {};
     let godraysCombine = {};
     if (props && props.rtSize) {
-      const rtColor = [0.0, 0.0, 0.0, 1.0];
+      const rtColor = new Vector4(0.0, 0.0, 0.0, 1.0);
 
       godraysRTA = rtPool.require("scene_godraysRTA", {
         width: props.rtSize,
@@ -103,15 +104,16 @@ export class GodraysEffect extends PostEffectNode {
   }
 
   draw(feature, camera) {
-    const canvas = camera.renderHardware.canvas;
-    const sunScreen = camera.worldToScreen(this.sunWorldPosition);
-    sunScreen[0] = sunScreen[0] / canvas.clientWidth;
-    sunScreen[1] = 1.0 - sunScreen[1] / canvas.clientHeight;
+    const canvas = camera.engine.renderhardware.gl.canvas;
+    camera.worldToViewportPoint(this.sunWorldPosition, this.sunScreen);
+    const sunScreen = camera.viewportToScreenPoint(this.sunScreen, this.sunScreen);
+    sunScreen.x = sunScreen.x / canvas.clientWidth;
+    sunScreen.y = 1.0 - sunScreen.y / canvas.clientHeight;
 
-    if (this._godraysPassA) this._godraysPassA.sunScreen = [sunScreen[0], sunScreen[1]];
-    if (this._godraysPassB) this._godraysPassB.sunScreen = [sunScreen[0], sunScreen[1]];
-    if (this._godraysPassC) this._godraysPassC.sunScreen = [sunScreen[0], sunScreen[1]];
-    if (this._godraysCombinePass) this._godraysCombinePass.sunScreen = [sunScreen[0], sunScreen[1]];
+    if (this._godraysPassA) this._godraysPassA.sunScreen = new Vector2(sunScreen.x, sunScreen.y);
+    if (this._godraysPassB) this._godraysPassB.sunScreen = new Vector2(sunScreen.x, sunScreen.y);
+    if (this._godraysPassC) this._godraysPassC.sunScreen = new Vector2(sunScreen.x, sunScreen.y);
+    if (this._godraysCombinePass) this._godraysCombinePass.sunScreen = new Vector2(sunScreen.x, sunScreen.y);
 
     return super.draw(feature, camera);
   }
