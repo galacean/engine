@@ -1,6 +1,6 @@
 import { Vector3 } from "@alipay/o3-math";
 import { Light } from "./Light";
-import { DataType } from "@alipay/o3-core";
+import { DataType } from "../base/Constant";
 
 /**
  * 环境光创建类

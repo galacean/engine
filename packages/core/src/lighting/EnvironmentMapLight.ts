@@ -1,4 +1,4 @@
-import { DataType } from "@alipay/o3-core";
+import { DataType } from "../base/Constant";
 import { Light } from "./Light";
 import { Vector3, Matrix3x3 } from "@alipay/o3-math";
 

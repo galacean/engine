@@ -1,12 +1,8 @@
-import { Vector4, Vector3 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-core";
-
-import { Texture2D } from "@alipay/o3-material";
-import { Material, RenderTechnique } from "@alipay/o3-material";
+import { DataType, LightFeature } from "@alipay/o3-core";
+import { Material, RenderTechnique, Texture2D } from "@alipay/o3-material";
 import { TechniqueStates } from "@alipay/o3-material/types/type";
-
+import { Vector4 } from "@alipay/o3-math";
 import VertexShader from "./shader/Vertex.glsl";
-import { LightFeature } from "@alipay/o3-lighting";
 
 /**
  * 材质的通用参数管理，其他常用材质的基类

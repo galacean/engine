@@ -9,9 +9,9 @@ import {
   RenderState,
   Side,
   Util,
-  RenderContext
+  RenderContext,
+  LightFeature
 } from "@alipay/o3-core";
-import { LightFeature } from "@alipay/o3-lighting";
 import { Material, RenderTechnique, Texture, TextureCubeMap } from "@alipay/o3-material";
 import fs from "./pbr.fs.glsl";
 import vs from "./pbr.vs.glsl";

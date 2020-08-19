@@ -32,7 +32,7 @@
     "b:miniprogram-component": "cd packages/component-miniprogram && tnpm run build",
     "c:module": "node scripts/create.module.js",
     "release:force": "lerna exec --no-bail -- tnpm publish --tag alpha",
-    "clean": "lerna exec -- rm -rf dist && lerna clean",
+    "clean": "lerna exec -- rm -rf dist && sudo lerna clean",
     "docs:update": "node scripts/docs.update.js",
     "post-changelog": "node scripts/post-changelog.js",
     "docs": "rm -rf docs && typedoc --plugin typedoc-plugin-lerna-packages"

@@ -1,8 +1,8 @@
-import { Logger } from "@alipay/o3-core";
 import { AmbientLight } from "./AmbientLight";
 import { DirectLight } from "./DirectLight";
 import { PointLight } from "./PointLight";
 import { SpotLight } from "./SpotLight";
+import { Logger } from "../base/Logger";
 
 class KHR_lights {
   static parseLights(lights) {

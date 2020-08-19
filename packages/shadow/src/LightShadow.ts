@@ -1,7 +1,6 @@
-import { DataType } from "@alipay/o3-core";
+import { DataType, DirectLight, PointLight, SpotLight } from "@alipay/o3-core";
 import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
 import { Matrix, MathUtil, Vector2 } from "@alipay/o3-math";
-import { DirectLight, PointLight, SpotLight } from "@alipay/o3-lighting";
 
 /**
  * 阴影的管理类

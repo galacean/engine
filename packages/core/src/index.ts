@@ -30,3 +30,16 @@ export { RenderQueue } from "./RenderPipeline//RenderQueue";
 export { RenderContext } from "./RenderPipeline/RenderContext";
 export { RenderPass } from "./RenderPipeline/RenderPass";
 export * from "./base";
+
+//Lighting
+import { LightFeature, hasLight } from "./lighting/LightFeature";
+import { Scene } from "./Scene";
+Scene.registerFeature(LightFeature);
+(Scene.prototype as any).hasLight = hasLight;
+export { LightFeature };
+export { AmbientLight } from "./lighting/AmbientLight";
+export { DirectLight } from "./lighting/DirectLight";
+export { PointLight } from "./lighting/PointLight";
+export { SpotLight } from "./lighting/SpotLight";
+export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
+export { Light } from "./lighting/Light";
