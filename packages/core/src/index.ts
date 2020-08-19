@@ -31,7 +31,7 @@ export { RenderContext } from "./RenderPipeline/RenderContext";
 export { RenderPass } from "./RenderPipeline/RenderPass";
 export * from "./base";
 
-//Lighting
+//lighting
 import { LightFeature, hasLight } from "./lighting/LightFeature";
 import { Scene } from "./Scene";
 Scene.registerFeature(LightFeature);
@@ -43,3 +43,8 @@ export { PointLight } from "./lighting/PointLight";
 export { SpotLight } from "./lighting/SpotLight";
 export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
 export { Light } from "./lighting/Light";
+
+//bouding-info
+export { AABB } from "./bounding-info/AABB";
+export { OBB } from "./bounding-info//OBB";
+export { BoundingSphere } from "./bounding-info//BoudingSphere";

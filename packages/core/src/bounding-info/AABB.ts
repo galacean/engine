@@ -1,6 +1,6 @@
-import { IntersectInfo } from "@alipay/o3-core";
 import { Vector3, Vector4 } from "@alipay/o3-math";
 import { pointDistanceToPlane } from "./util";
+import { IntersectInfo } from "../base/Constant";
 
 /**
  * 轴对齐的包围盒(Axis Aligned Bound Box)
