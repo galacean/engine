@@ -439,13 +439,10 @@ export class Transform extends Component {
    * @param relativeToLocal - 是否相对局部空间
    */
   rotate(rotation: Vector3, relativeToLocal: boolean = true): void {
-    Quaternion.rotationEuler(
-      MathUtil.degreeToRadian(rotation.x),
-      MathUtil.degreeToRadian(rotation.y),
-      MathUtil.degreeToRadian(rotation.z),
-      Transform._tempQuat0
-    );
-    this._rotateByQuat(Transform._tempQuat0, relativeToLocal);
+    const radFactor = MathUtil.degreeToRadFactor;
+    const rotQuat = Transform._tempQuat0;
+    Quaternion.rotationEuler(rotation.x * radFactor, rotation.y * radFactor, rotation.z * radFactor, rotQuat);
+    this._rotateByQuat(rotQuat, relativeToLocal);
   }
 
   /**
@@ -455,7 +452,7 @@ export class Transform extends Component {
    * @param relativeToLocal - 是否相对局部空间
    */
   rotateByAxis(axis: Vector3, angle: number, relativeToLocal: boolean = true): void {
-    const rad = (angle * Math.PI) / 180;
+    const rad = angle * MathUtil.degreeToRadFactor;
     Quaternion.rotationAxisAngle(axis, rad, Transform._tempQuat0);
     this._rotateByQuat(Transform._tempQuat0, relativeToLocal);
   }
