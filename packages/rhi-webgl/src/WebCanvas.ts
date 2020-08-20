@@ -53,9 +53,9 @@ export class WebCanvas implements Canvas {
    * @param webCanvas 画布。
    * @param pixelRatio 像素比，不传默认为浏览器默认值
    */
-  constructor(webCanvas: HTMLCanvasElement | OffscreenCanvas, pixelRatio: number = window.devicePixelRatio) {
-    this._width = webCanvas.width * pixelRatio;
-    this._height = webCanvas.height * pixelRatio;
+  constructor(webCanvas: HTMLCanvasElement | OffscreenCanvas) {
+    this._width = webCanvas.width;
+    this._height = webCanvas.height;
     this._webCanvas = webCanvas;
   }
 }
