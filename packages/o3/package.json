@@ -33,7 +33,6 @@
   "dependencies": {
     "@alipay/o3-2d": "3.0.0",
     "@alipay/o3-animation": "3.0.0",
-    "@alipay/o3-bounding-info": "3.0.0",
     "@alipay/o3-collider": "3.0.0",
     "@alipay/o3-collision": "3.0.0",
     "@alipay/o3-core": "3.0.0",

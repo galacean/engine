@@ -1,8 +1,7 @@
 "use strict";
 
-import { BasicRenderPipeline } from "@alipay/o3-core";
+import { BasicRenderPipeline, OBB } from "@alipay/o3-core";
 import { Frustum } from "./Frustum";
-import { OBB } from "@alipay/o3-bounding-info";
 import { Primitive } from "@alipay/o3-primitive";
 
 export class CullRenderPipeline extends BasicRenderPipeline {

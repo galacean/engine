@@ -1,6 +1,5 @@
-import { BufferUsage, DataType, DrawMode, UpdateType } from "@alipay/o3-core";
+import { BufferUsage, DataType, DrawMode, UpdateType, BoundingSphere, OBB } from "@alipay/o3-core";
 import { AssetObject } from "@alipay/o3-core";
-import { BoundingSphere, OBB } from "@alipay/o3-bounding-info";
 import { Vector3, Matrix } from "@alipay/o3-math";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
