@@ -1,5 +1,5 @@
 import { Vector3 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-core";
+import { DataType } from "../base/Constant";
 
 import { Light } from "./Light";
 

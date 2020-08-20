@@ -1,5 +1,6 @@
 import { DataType, RenderState, UniformSemantic } from "@alipay/o3-core";
 import { ComplexMaterial, RenderColorTexture, RenderTarget, RenderTechnique } from "@alipay/o3-material";
+import { Vector4 } from "@alipay/o3-math";
 import { ShaderFactory } from "@alipay/o3-shaderlib";
 import DepthPackingShader from "./shaderLib/depth_packing.glsl";
 
@@ -74,7 +75,7 @@ export function addNormalPass(camera, mask, renderTargetSize) {
   //--
   const renderTarget = new RenderTarget(width, height, new RenderColorTexture(width, height));
 
-  camera._renderPipeline.addRenderPass("NormalPass", -2, renderTarget, mtl, mask, [0, 0, 0, 1]);
+  camera._renderPipeline.addRenderPass("NormalPass", -2, renderTarget, mtl, mask, new Vector4(0, 0, 0, 1));
 
   return renderTarget;
 }

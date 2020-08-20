@@ -1,6 +1,7 @@
-import { Component, Entity } from "@alipay/o3-core";
-import { LightFeature } from "./LightFeature";
 import { Matrix, Vector3 } from "@alipay/o3-math";
+import { Component } from "../Component";
+import { Entity } from "../Entity";
+import { LightFeature } from "./LightFeature";
 
 const _tempVec3 = new Vector3(0, 1, 0);
 

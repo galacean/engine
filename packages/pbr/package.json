@@ -28,7 +28,6 @@
   },
   "dependencies": {
     "@alipay/o3-core": "3.0.0",
-    "@alipay/o3-lighting": "3.0.0",
     "@alipay/o3-material": "3.0.0",
     "@alipay/o3-math": "3.0.0"
   }

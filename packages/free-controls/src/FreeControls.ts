@@ -1,5 +1,4 @@
-import { Logger } from "@alipay/o3-core";
-import { Entity, Script } from "@alipay/o3-core";
+import { Entity, Logger, Script } from "@alipay/o3-core";
 import { MathUtil, Spherical, Vector3 } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 
@@ -278,11 +277,11 @@ export class FreeControls extends Script {
     let p = this.camera.position;
 
     doTransform
-      .Translate(this.camera, [p.x, this.jumpY, p.z], this.jumpDuration / 2, {
+      .Translate(this.camera, new Vector3(p.x, this.jumpY, p.z), this.jumpDuration / 2, {
         easing: Easing.easeOutSine,
         onComplete: () => {
           doTransform
-            .Translate(this.camera, [p.x, this.floorY, p.z], this.jumpDuration / 2, {
+            .Translate(this.camera, new Vector3(p.x, this.floorY, p.z), this.jumpDuration / 2, {
               easing: Easing.easeInSine,
               onComplete: () => {
                 this._moveJump = false;
@@ -323,10 +322,10 @@ export class FreeControls extends Script {
       this.translateOnAxis(this._forward, -actualMoveSpeed);
     }
     if (this._moveLeft) {
-      this.translateOnAxis(this._right, actualMoveSpeed);
+      this.translateOnAxis(this._right, -actualMoveSpeed);
     }
     if (this._moveRight) {
-      this.translateOnAxis(this._right, -actualMoveSpeed);
+      this.translateOnAxis(this._right, actualMoveSpeed);
     }
 
     tween.update(delta);

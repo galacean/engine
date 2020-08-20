@@ -1,6 +1,5 @@
-import { MaskList } from "@alipay/o3-core";
+import { MaskList, LightFeature } from "@alipay/o3-core";
 import { Camera, Component, RenderQueue, SceneFeature } from "@alipay/o3-core";
-import { LightFeature } from "@alipay/o3-lighting";
 import { ShadowMapMaterial } from "./ShadowMapMaterial";
 import { ShadowMapPass } from "./ShadowMapPass";
 import { ShadowMaterial } from "./ShadowMaterial";

@@ -1,7 +1,7 @@
-import { IntersectInfo } from "@alipay/o3-core";
 import { Vector3, Vector4, Matrix } from "@alipay/o3-math";
 
 import { pointDistanceToPlane, getMaxScaleByModelMatrix } from "./util";
+import { IntersectInfo } from "../base/Constant";
 
 /**
  * 包围球

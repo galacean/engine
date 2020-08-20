@@ -1,6 +1,5 @@
-import { ClearMode } from "@alipay/o3-core";
+import { ClearMode, LightFeature } from "@alipay/o3-core";
 import { RenderPass, Camera } from "@alipay/o3-core";
-import { LightFeature } from "@alipay/o3-lighting";
 
 /**
  * RednerPass 对象

@@ -1,11 +1,11 @@
-import { SceneFeature } from "@alipay/o3-core";
-import { Logger } from "@alipay/o3-core";
-import { Light } from "./Light";
+import { Logger } from "../base/Logger";
+import { SceneFeature } from "../SceneFeature";
 import { AmbientLight } from "./AmbientLight";
 import { DirectLight } from "./DirectLight";
+import { EnvironmentMapLight } from "./EnvironmentMapLight";
+import { Light } from "./Light";
 import { PointLight } from "./PointLight";
 import { SpotLight } from "./SpotLight";
-import { EnvironmentMapLight } from "./EnvironmentMapLight";
 
 /**
  * 判断场景中是否有灯光
