@@ -1,5 +1,5 @@
-import "../src/TextLoader";
 import { Engine } from "@alipay/o3-core";
+import "../src/TextLoader";
 
 describe("text loader test", () => {
   it("text loader test", () => {
