@@ -24,6 +24,6 @@ export class WebGLEngine extends Engine {
    * Web 画布。
    */
   get canvas(): WebCanvas {
-    return this._canvas;
+    return this._canvas as WebCanvas;
   }
 }

@@ -58,12 +58,12 @@ export class Camera extends Component {
   private _projectionMatrix: Matrix = new Matrix();
   private _isProjMatSetting = false;
   private _viewMatrix: Matrix = new Matrix();
-  private _clearParam: Vector4 = new Vector4();
+  private _backgroundColor: Vector4 = new Vector4();
   private _clearMode: ClearMode = ClearMode.SOLID_COLOR;
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
-  private _nearClipPlane: number;
-  private _farClipPlane: number;
-  private _fieldOfView: number;
+  private _nearClipPlane: number = 0.1;
+  private _farClipPlane: number = 100;
+  private _fieldOfView: number = 45;
   private _orthographicSize: number = 10;
   private _inverseProjectionMatrix: Matrix = new Matrix();
   private _inverseViewMatrix: Matrix = new Matrix();
@@ -186,7 +186,7 @@ export class Camera extends Component {
    * 清除视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
    */
   get backgroundColor(): Vector4 {
-    return this._clearParam;
+    return this._backgroundColor;
   }
 
   set backgroundColor(value: Vector4) {
@@ -280,36 +280,21 @@ export class Camera extends Component {
    * @param entity 实体
    * @param props camera 参数
    */
-  constructor(entity: Entity, props: any) {
-    // TODO: 修改构造函数参数
-    super(entity, props);
+  constructor(entity: Entity, { RenderPipeline }) {
+    super(entity);
 
     this._transform = this.entity.transform;
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
-    const {
-      RenderPipeline = BasicRenderPipeline,
-      clearParam = new Vector4(0.25, 0.25, 0.25, 1),
-      clearMode,
-      near,
-      far,
-      fov
-    } = props;
 
-    this._nearClipPlane = near ?? 0.1;
-    this._farClipPlane = far ?? 100;
-    this._fieldOfView = fov ?? 45;
-
-    // TODO: 删除，兼容旧 camera，decaprated
-    const target = props.target ?? new Vector3();
-    const up = props.up ?? new Vector3(0, 1, 0);
-    entity.transform.position = props.position ?? new Vector3(0, 10, 20);
-    entity.transform.lookAt(target, up);
+    this._nearClipPlane = 0.1;
+    this._farClipPlane = 100;
+    this._fieldOfView = 45;
 
     this._renderPipeline = new RenderPipeline(this);
 
-    // TODO: 修改为 ClearFlags
-    this.setClearMode(clearMode, clearParam);
+    // 默认设置
+    this.setClearMode();
   }
 
   /**
@@ -503,15 +488,15 @@ export class Camera extends Component {
    * @deprecated
    * @todo 涉及渲染管线修改 rhi.clearRenderTarget 方法
    * @param clearMode
-   * @param clearParam
+   * @param backgroundColor
    */
   setClearMode(
     clearMode: ClearMode = ClearMode.SOLID_COLOR,
-    clearParam: Vector4 = new Vector4(0.25, 0.25, 0.25, 1)
+    backgroundColor: Vector4 = new Vector4(0.25, 0.25, 0.25, 1)
   ): void {
     this._clearMode = clearMode;
-    this._clearParam = clearParam;
-    this._renderPipeline.defaultRenderPass.clearParam = clearParam;
+    this._backgroundColor = backgroundColor;
+    this._renderPipeline.defaultRenderPass.clearParam = backgroundColor;
     this._renderPipeline.defaultRenderPass.clearMode = clearMode;
   }
 }
