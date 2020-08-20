@@ -37,7 +37,7 @@ export class WebCanvas implements Canvas {
   }
 
   /**
-   * 根据 canvas 的 clientWidth 和 clientHeight 重置 gl 渲染尺寸。
+   * 根据 canvas 的 clientWidth 和 clientHeight 重置画布渲染尺寸。
    * @param pixelRatio 像素比例，若不传初次设置为设备像素比。
    */
   resetToClientSize(pixelRatio: number = window.devicePixelRatio): void {
