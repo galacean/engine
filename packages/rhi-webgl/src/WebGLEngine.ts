@@ -19,4 +19,8 @@ export class WebGLEngine extends Engine {
 
     super(webCanvas, hardwareRenderer);
   }
+
+  get canvas(): WebCanvas {
+    return this._canvas;
+  }
 }

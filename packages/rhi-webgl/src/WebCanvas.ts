@@ -37,17 +37,26 @@ export class WebCanvas implements Canvas {
   }
 
   /**
+   * 根据 canvas 的 clientWidth 和 clientHeight 重置 gl 渲染尺寸。
+   * @param pixelRatio 像素比例，若不传初次设置为设备像素比。
+   */
+  resetToClientSize(pixelRatio: number = window.devicePixelRatio): void {
+    const webCanvas = this._webCanvas;
+    if (webCanvas instanceof HTMLCanvasElement) {
+      webCanvas.width = webCanvas.clientWidth * pixelRatio;
+      webCanvas.height = webCanvas.clientHeight * pixelRatio;
+    }
+  }
+
+  /**
    * 创建Web画布。
    * @param webCanvas 画布。
-   * @param devicePixelRatio 设备像素比，不传默认为浏览器默认值
+   * @param pixelRatio 像素比，不传默认为浏览器默认值
    */
-  constructor(
-    webCanvas: HTMLCanvasElement | OffscreenCanvas,
-    private devicePixelRatio: number = window.devicePixelRatio
-  ) {
+  constructor(webCanvas: HTMLCanvasElement | OffscreenCanvas, pixelRatio: number = window.devicePixelRatio) {
     if (webCanvas instanceof HTMLCanvasElement) {
-      webCanvas.width = webCanvas.clientWidth * devicePixelRatio;
-      webCanvas.height = webCanvas.clientHeight * devicePixelRatio;
+      webCanvas.width = webCanvas.clientWidth * pixelRatio;
+      webCanvas.height = webCanvas.clientHeight * pixelRatio;
     }
     this._width = webCanvas.width;
     this._height = webCanvas.height;
