@@ -1,4 +1,4 @@
-import { Texture2D } from "@alipay/o3-material";
+import { Texture2D } from "@alipay/o3-core";
 
 export function createTextureFromCanvas(name, width, height, drawFunc, rhi) {
   const canvas = document.createElement("canvas");

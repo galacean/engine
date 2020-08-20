@@ -1,5 +1,5 @@
 import { Logger } from "@alipay/o3-core";
-import { RenderTechnique } from "@alipay/o3-material";
+import { RenderTechnique } from "@alipay/o3-core";
 
 interface UniformCache {
   [key: string]: WebGLUniformLocation | null;

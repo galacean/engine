@@ -1,7 +1,6 @@
 import { EnableConfig, DisableConfig, FunctionConfig } from "./type";
-import { UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-core";
-import { Material, RenderTechnique } from "@alipay/o3-material";
-import { TechniqueStates } from "@alipay/o3-material/types/type";
+import { UniformSemantic, DataType, RenderState, BlendFunc, TechniqueStates } from "@alipay/o3-core";
+import { Material, RenderTechnique } from "@alipay/o3-core";
 
 export class ShaderMaterial extends Material {
   // Vertex Shader 代码

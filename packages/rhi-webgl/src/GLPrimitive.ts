@@ -1,8 +1,7 @@
-import { Logger, UpdateType, GLCapabilityType } from "@alipay/o3-core";
-import { Primitive } from "@alipay/o3-primitive";
-import { WebGLRenderer } from "./WebGLRenderer";
-import { GLTechnique } from "./GLTechnique";
+import { GLCapabilityType, Logger, UpdateType, Primitive } from "@alipay/o3-core";
 import { GLAsset } from "./GLAsset";
+import { GLTechnique } from "./GLTechnique";
+import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象

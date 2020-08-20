@@ -32,7 +32,6 @@
     "@alipay/o3-geometry": "3.0.0",
     "@alipay/o3-geometry-shape": "3.0.0",
     "@alipay/o3-hud": "3.0.0",
-    "@alipay/o3-material": "3.0.0",
     "@alipay/o3-math": "3.0.0",
     "@alipay/o3-mobile-material": "3.0.0",
     "@alipay/o3-tween": "3.0.0"

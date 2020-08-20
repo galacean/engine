@@ -12,7 +12,7 @@ import {
   RenderContext,
   LightFeature
 } from "@alipay/o3-core";
-import { Material, RenderTechnique, Texture, TextureCubeMap } from "@alipay/o3-material";
+import { Material, RenderTechnique, Texture, TextureCubeMap } from "@alipay/o3-core";
 import fs from "./pbr.fs.glsl";
 import vs from "./pbr.vs.glsl";
 import { Vector2, Vector4, Vector3, Matrix } from "@alipay/o3-math";

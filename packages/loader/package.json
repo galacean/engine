@@ -23,15 +23,11 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "dependencies": {
-    "@alipay/o3-animation": "3.0.0",
     "@alipay/o3-core": "3.0.0",
     "@alipay/o3-draco": "3.0.0",
-    "@alipay/o3-material": "3.0.0",
     "@alipay/o3-math": "3.0.0",
-    "@alipay/o3-mesh": "3.0.0",
     "@alipay/o3-mobile-material": "3.0.0",
     "@alipay/o3-pbr": "3.0.0",
-    "@alipay/o3-primitive": "3.0.0",
     "@alipay/o3-request": "3.0.0",
     "@alipay/o3-rhi-webgl": "3.0.0"
   },

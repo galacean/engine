@@ -1,4 +1,4 @@
-import { Material, RenderTechnique } from "@alipay/o3-material";
+import { Material, RenderTechnique } from "@alipay/o3-core";
 import vs from "./shaders/depth.vs.glsl";
 import fs from "./shaders/depth.fs.glsl";
 

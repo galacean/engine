@@ -1,16 +1,20 @@
-import { RenderBufferDepthFormat, RenderContext } from "@alipay/o3-core";
-import { BasicRenderPipeline, Camera, Component, Entity, RenderPass } from "@alipay/o3-core";
 import {
+  BasicRenderPipeline,
+  Camera,
+  Component,
+  Entity,
   Material,
+  RenderBufferDepthFormat,
   RenderColorTexture,
+  RenderContext,
   RenderDepthTexture,
+  RenderPass,
   RenderTarget,
   Texture,
   Texture2D,
   TextureCubeMap
-} from "@alipay/o3-material";
+} from "@alipay/o3-core";
 import { Vector4 } from "@alipay/o3-math";
-import { WebGLRenderer } from "@alipay/o3-rhi-webgl";
 import { ProbeConfig } from "./type";
 
 let cacheId = 0;

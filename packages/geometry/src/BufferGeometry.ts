@@ -1,9 +1,8 @@
-import { Logger, UpdateType } from "@alipay/o3-core";
+import { Logger, UpdateType, Primitive } from "@alipay/o3-core";
 import { AssetObject } from "@alipay/o3-core";
-import { Primitive } from "@alipay/o3-primitive";
-import { Attribute } from "@alipay/o3-primitive/types/type";
 
 import { getVertexDataTypeSize, getVertexDataTypeDataView } from "./Constant";
+import { Attribute } from "@alipay/o3-core/types/primitive/Primitive";
 
 let geometryCount = 0;
 

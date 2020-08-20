@@ -1,5 +1,12 @@
-import { MaterialType, UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-core";
-import { Material, RenderTechnique } from "@alipay/o3-material";
+import {
+  BlendFunc,
+  DataType,
+  Material,
+  MaterialType,
+  RenderState,
+  RenderTechnique,
+  UniformSemantic
+} from "@alipay/o3-core";
 
 const VERT_SHADER = `
 uniform mat4 matModelViewProjection;

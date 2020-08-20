@@ -24,10 +24,7 @@
     "@alipay/o3-core": "3.0.0",
     "@alipay/o3-geometry": "3.0.0",
     "@alipay/o3-geometry-shape": "3.0.0",
-    "@alipay/o3-material": "3.0.0",
-    "@alipay/o3-math": "3.0.0",
-    "@alipay/o3-primitive": "3.0.0",
-    "@alipay/o3-shaderlib": "3.0.0"
+    "@alipay/o3-math": "3.0.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

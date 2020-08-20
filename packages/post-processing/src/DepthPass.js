@@ -1,7 +1,6 @@
 import { DataType } from "@alipay/o3-core";
-import { ComplexMaterial, RenderColorTexture, RenderTarget, RenderTechnique } from "@alipay/o3-material";
+import { ComplexMaterial, RenderColorTexture, RenderTarget, RenderTechnique, ShaderFactory} from "@alipay/o3-core";
 import { Vector4 } from "@alipay/o3-math";
-import { ShaderFactory } from "@alipay/o3-shaderlib";
 import DepthPackingShader from "./shaderLib/depth_packing.glsl";
 
 ShaderFactory.InjectShaderSlices({

@@ -1,6 +1,6 @@
 import { GLAsset } from "./GLAsset";
 import { WebGLRenderer } from "./WebGLRenderer";
-import { Texture } from "@alipay/o3-material";
+import { Texture } from "@alipay/o3-core";
 
 /**
  * 管理贴图对象

@@ -1,6 +1,6 @@
 import { ClearMode, RenderContext } from "@alipay/o3-core";
 import { RenderPass } from "@alipay/o3-core";
-import { RenderColorTexture } from "@alipay/o3-material";
+import { RenderColorTexture } from "@alipay/o3-core";
 import { ScreenQuadGeometry } from "@alipay/o3-geometry-shape";
 import { ScreenMaterial } from "./ScreenMaterial";
 

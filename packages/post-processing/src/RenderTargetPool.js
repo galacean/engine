@@ -1,4 +1,4 @@
-import { RenderColorTexture, RenderTarget } from "@alipay/o3-material";
+import { RenderColorTexture, RenderTarget } from "@alipay/o3-core";
 
 const DEFAULT_PROPS = {
   scene_4096: {

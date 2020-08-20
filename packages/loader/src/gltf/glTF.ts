@@ -1,17 +1,29 @@
-import { Logger, Util, DrawMode, DataType, EngineObject } from "@alipay/o3-core";
-import { Entity, Scene, Engine } from "@alipay/o3-core";
-import { Texture2D, Material } from "@alipay/o3-material";
+import {
+  AnimationClip,
+  DataType,
+  DrawMode,
+  Engine,
+  EngineObject,
+  Entity,
+  InterpolationType,
+  Logger,
+  Material,
+  Mesh,
+  MeshRenderer,
+  Scene,
+  Skin,
+  SkinnedMeshRenderer,
+  Texture2D,
+  Util,
+  Animation,
+  Primitive
+} from "@alipay/o3-core";
+import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { ConstantMaterial } from "@alipay/o3-mobile-material";
-import { Primitive } from "@alipay/o3-primitive";
-import { Mesh, Skin, MeshRenderer, SkinnedMeshRenderer } from "@alipay/o3-mesh";
-import { Vector3, Matrix, Quaternion, Vector4, Vector2 } from "@alipay/o3-math";
-import { getAccessorData, getAccessorTypeSize, createAttribute, findByKeyValue } from "./Util";
-import { AnimationClip, InterpolationType, Animation } from "@alipay/o3-animation";
-
-import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
-
 import { PBRMaterial } from "@alipay/o3-pbr";
 import { LoadedGLTFResource } from "../GLTF";
+import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
+import { createAttribute, findByKeyValue, getAccessorData, getAccessorTypeSize } from "./Util";
 
 // 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights

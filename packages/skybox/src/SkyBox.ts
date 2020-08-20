@@ -25,7 +25,7 @@ export class SkyBox extends GeometryRenderer {
      * @member {TextureCubeMap}
      */
     this.geometry = new CuboidGeometry(2, 2, 2);
-    this.setMaterial(new SkyBoxMaterial());
+    this.material = new SkyBoxMaterial();
     this.skyBoxMap = skyBoxMap;
   }
 

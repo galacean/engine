@@ -1,5 +1,5 @@
 import { RenderPass, Camera } from "@alipay/o3-core";
-import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
+import { RenderTarget, RenderColorTexture } from "@alipay/o3-core";
 import { BlendFunc, RenderBufferColorFormat } from "@alipay/o3-core";
 import { Vector4 } from "@alipay/o3-math";
 

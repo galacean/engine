@@ -1,7 +1,6 @@
 import { SchemaResource } from "./SchemaResource";
-import { Logger, ResourceManager } from "@alipay/o3-core";
+import { Logger, ResourceManager, Texture } from "@alipay/o3-core";
 import { PBRMaterial } from "@alipay/o3-pbr";
-import { Texture } from "@alipay/o3-material";
 
 import { TextureResource } from "./TextureResource";
 import { isAsset, getAllGetters } from "../utils";

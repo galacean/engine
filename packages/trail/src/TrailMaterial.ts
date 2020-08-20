@@ -1,8 +1,6 @@
-import { DataType, RenderState, BlendFunc, MaterialType } from "@alipay/o3-core";
-import { Material, RenderTechnique } from "@alipay/o3-material";
-
-import VERT_SHADER from "./trail.vs.glsl";
+import { BlendFunc, DataType, Material, MaterialType, RenderState, RenderTechnique } from "@alipay/o3-core";
 import FRAG_SHADER from "./trail.fs.glsl";
+import VERT_SHADER from "./trail.vs.glsl";
 
 export class TrailMaterial extends Material {
   /**

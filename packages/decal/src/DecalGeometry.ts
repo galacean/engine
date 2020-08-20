@@ -1,12 +1,7 @@
+import { DataType, Entity, Mesh, MeshRenderer, Primitive } from "@alipay/o3-core";
 import { BufferGeometry } from "@alipay/o3-geometry";
-import { Vector3, Matrix, Quaternion, Vector2 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-core";
-
-import { Entity } from "@alipay/o3-core";
-import { Mesh } from "@alipay/o3-mesh";
-import { Primitive } from "@alipay/o3-primitive";
-import { MeshRenderer } from "@alipay/o3-mesh";
-import { setPosition, transformDirection, fromBufferAttribute, makeRotationFromQuaternion } from "./util";
+import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
+import { fromBufferAttribute, makeRotationFromQuaternion, setPosition, transformDirection } from "./util";
 
 type FloatArray = Array<number> | Float32Array;
 

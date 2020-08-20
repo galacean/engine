@@ -48,3 +48,28 @@ export { Light } from "./lighting/Light";
 export { AABB } from "./bounding-info/AABB";
 export { OBB } from "./bounding-info//OBB";
 export { BoundingSphere } from "./bounding-info//BoudingSphere";
+
+//mesh
+export { Mesh } from "./mesh/Mesh";
+export { Skin } from "./mesh/Skin";
+export { MeshRenderer } from "./mesh/MeshRenderer";
+export { SkinnedMeshRenderer } from "./mesh/SkinnedMeshRenderer";
+export { LODGroup } from "./mesh/LODGroup";
+
+//primitive
+export { Primitive } from "./primitive/Primitive";
+
+//material
+export { Texture } from "./material/Texture";
+export { Texture2D } from "./material/Texture2D";
+export { Material } from "./material/Material";
+export { ComplexMaterial } from "./material/ComplexMaterial";
+export { RenderTechnique } from "./material/RenderTechnique";
+export { TextureCubeMap } from "./material/TextureCubeMap";
+export { RenderTarget } from "./material/RenderTarget";
+export { RenderColorTexture } from "./material/RenderColorTexture";
+export { RenderDepthTexture } from "./material/RenderDepthTexture";
+export * from "./material/type";
+
+export * from "./shaderlib/index";
+export * from "./animation/index";

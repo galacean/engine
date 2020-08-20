@@ -1,13 +1,10 @@
-import { DataType, RenderState, CompFunc } from "@alipay/o3-core";
-import { Material, RenderTechnique } from "@alipay/o3-material";
+import { CompFunc, DataType, Material, RenderState, RenderTechnique } from "@alipay/o3-core";
 import { Matrix } from "@alipay/o3-math";
-import vs from "./skybox.vs.glsl";
 import fs from "./skybox.fs.glsl";
+import vs from "./skybox.vs.glsl";
 
 /**
  * 天空盒材质
- * @class
- * @private
  */
 export class SkyBoxMaterial extends Material {
   private _cacheMat1: Matrix;

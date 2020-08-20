@@ -1,7 +1,4 @@
-import { DataType, RenderState } from '@alipay/o3-core';
-import { Material, RenderTechnique } from '@alipay/o3-material';
-import { ShaderFactory } from '@alipay/o3-shaderlib';
-
+import { DataType, RenderState, ShaderFactory,Material,RenderTechnique } from '@alipay/o3-core';
 import VertShaderSource from './shaders/PostRenderPass.glsl';
 
 const VERT_ATTRIBUTES = {

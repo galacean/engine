@@ -1,7 +1,7 @@
 import { DataType, RenderState } from '@alipay/o3-core';
 import { Vector2 } from '@alipay/o3-math';
 import { PostEffectNode } from '../PostEffectNode';
-import { Material, RenderTechnique } from '@alipay/o3-material';
+import { Material, RenderTechnique } from '@alipay/o3-core';
 
 const SHADER_CONFIG = {
 

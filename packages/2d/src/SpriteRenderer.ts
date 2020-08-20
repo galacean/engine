@@ -1,7 +1,5 @@
-import { RenderableComponent, Camera, Entity } from "@alipay/o3-core";
-import { Vector3, Vector4, Quaternion, Matrix } from "@alipay/o3-math";
-import { Texture2D } from "@alipay/o3-material";
-import { Logger } from "@alipay/o3-core";
+import { Camera, Entity, Logger, RenderableComponent, Texture2D } from "@alipay/o3-core";
+import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 
 interface IUvRect {
   u: number;

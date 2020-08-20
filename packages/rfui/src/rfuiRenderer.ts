@@ -4,7 +4,7 @@ import { PlaneGeometry, CylinderGeometry } from "@alipay/o3-geometry-shape";
 import { Vector4, Vector2 } from "@alipay/o3-math";
 import { RfuiMaterial } from "./rfuiMaterial";
 import { RfuiAnimation } from "./animation/rfuiAnimation";
-import { Texture2D } from "@alipay/o3-material";
+import { Texture2D } from "@alipay/o3-core";
 
 /**
  * Rfui 渲染类

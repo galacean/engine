@@ -1,12 +1,11 @@
 import { Matrix3x3, Matrix, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
-import { DataType } from "@alipay/o3-core";
+import { DataType, RenderTechnique, Material } from "@alipay/o3-core";
 
 import { GLShaderProgram } from "./GLShaderProgram";
 import { Logger } from "@alipay/o3-core";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { WebGLRenderer } from "./WebGLRenderer";
-import { RenderTechnique, Material } from "@alipay/o3-material";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAsset } from "./GLAsset";
 

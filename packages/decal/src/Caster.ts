@@ -1,6 +1,5 @@
 import { raycast } from "./cast";
-import { MeshRenderer } from "@alipay/o3-mesh";
-
+import { MeshRenderer } from "@alipay/o3-core";
 type RendererArray = Array<MeshRenderer>;
 
 export class Caster {

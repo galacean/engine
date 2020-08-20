@@ -1,5 +1,5 @@
 import { Camera, Entity, MaskList, Script } from "@alipay/o3-core";
-import { RenderColorTexture, RenderTarget } from "@alipay/o3-material";
+import { RenderColorTexture, RenderTarget } from "@alipay/o3-core";
 import { ColorRenderPass } from "./ColorRenderPass";
 
 /**

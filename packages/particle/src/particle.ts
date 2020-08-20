@@ -8,7 +8,7 @@ import {
   MaterialType,
   TextureWrapMode
 } from "@alipay/o3-core";
-import { Material, RenderTechnique } from "@alipay/o3-material";
+import { Material, RenderTechnique } from "@alipay/o3-core";
 import { GeometryRenderer, IndexBufferGeometry } from "@alipay/o3-geometry";
 import { Vector3, MathUtil } from "@alipay/o3-math";
 

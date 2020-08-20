@@ -1,5 +1,5 @@
-import { Material, RenderTechnique } from "@alipay/o3-material";
-import { RenderState, DataType, BlendFunc } from "@alipay/o3-core";
+import { BlendFunc, DataType, RenderState } from "@alipay/o3-core";
+import { Material, RenderTechnique } from "@alipay/o3-core";
 import { Vector2 } from "@alipay/o3-math";
 import vs from "./shaders/screen.vs.glsl";
 import fs from "./shaders/weighted_average.fs.glsl";

@@ -1,6 +1,4 @@
-import { Material } from "@alipay/o3-material";
-import { Camera } from "@alipay/o3-core";
-import { RenderTargetConfig } from "@alipay/o3-material/types/type";
+import { Camera, Material, RenderTargetConfig } from "@alipay/o3-core";
 import { Vector3, Vector4 } from "@alipay/o3-math";
 
 export interface ProbeConfig extends RenderTargetConfig {

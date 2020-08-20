@@ -1,6 +1,6 @@
 import { RenderState, DataType } from "@alipay/o3-core";
 import { CommonMaterial } from "./CommonMaterial";
-import { Texture2D } from "@alipay/o3-material";
+import { Texture2D } from "@alipay/o3-core";
 import FRAG_SHADER from "./shader/Texture.glsl";
 
 /**

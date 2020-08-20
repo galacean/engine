@@ -1,6 +1,6 @@
 import { BufferUsage, DataType, DrawMode } from "@alipay/o3-core";
 import { BufferGeometry, GeometryRenderer } from "@alipay/o3-geometry";
-import { Material, Texture2D } from "@alipay/o3-material";
+import { Material, Texture2D } from "@alipay/o3-core";
 import { Quaternion, Vector2, Vector3, Matrix } from "@alipay/o3-math";
 import { TrailMaterial } from "./TrailMaterial";
 

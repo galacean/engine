@@ -1,4 +1,4 @@
-import { ComplexMaterial, RenderTechnique } from "@alipay/o3-material";
+import { ComplexMaterial, RenderTechnique } from "@alipay/o3-core";
 import { RenderState, BlendFunc, CompFunc } from "@alipay/o3-core";
 import { LightShadow } from "./LightShadow";
 

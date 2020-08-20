@@ -23,7 +23,7 @@
     "debug": "ruban debug"
   },
   "dependencies": {
-    "@alipay/o3-material": "3.0.0"
+    
   },
   "main": "dist/main.js",
   "module": "dist/module.js",

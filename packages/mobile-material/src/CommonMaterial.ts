@@ -1,6 +1,5 @@
-import { DataType, LightFeature } from "@alipay/o3-core";
-import { Material, RenderTechnique, Texture2D } from "@alipay/o3-material";
-import { TechniqueStates } from "@alipay/o3-material/types/type";
+import { DataType, LightFeature, TechniqueStates } from "@alipay/o3-core";
+import { Material, RenderTechnique, Texture2D } from "@alipay/o3-core";
 import { Vector4 } from "@alipay/o3-math";
 import VertexShader from "./shader/Vertex.glsl";
 

@@ -1,5 +1,5 @@
 import { DataType, DirectLight, PointLight, SpotLight } from "@alipay/o3-core";
-import { RenderTarget, RenderColorTexture } from "@alipay/o3-material";
+import { RenderTarget, RenderColorTexture } from "@alipay/o3-core";
 import { Matrix, MathUtil, Vector2 } from "@alipay/o3-math";
 
 /**

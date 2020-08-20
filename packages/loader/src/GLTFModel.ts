@@ -1,5 +1,4 @@
-import { AnimationClip, Animation, WrapMode } from "@alipay/o3-animation";
-import { Component, Entity } from "@alipay/o3-core";
+import { Component, Entity, WrapMode, Animation } from "@alipay/o3-core";
 import { GLTFResource } from "./gltf/glTF";
 
 /**

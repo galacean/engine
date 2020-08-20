@@ -1,5 +1,5 @@
 import { DataType } from "@alipay/o3-core";
-import { ComplexMaterial, RenderTechnique } from "@alipay/o3-material";
+import { ComplexMaterial, RenderTechnique } from "@alipay/o3-core";
 
 import vs from "./shaders/vertex.glsl";
 import fs from "./shaders/shadowMap.fs.glsl";

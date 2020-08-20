@@ -1,4 +1,4 @@
-import { Material, RenderColorTexture, RenderDepthTexture, RenderTarget, RenderTechnique } from "@alipay/o3-material";
+import { Material, RenderColorTexture, RenderDepthTexture, RenderTarget, RenderTechnique } from "@alipay/o3-core";
 import { Vector4 } from "@alipay/o3-math";
 
 const VERT_SHADER = `
