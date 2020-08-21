@@ -287,10 +287,6 @@ export class Camera extends Component {
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
 
-    this._nearClipPlane = 0.1;
-    this._farClipPlane = 100;
-    this._fieldOfView = 45;
-
     this._renderPipeline = new RenderPipeline(this);
 
     // 默认设置
