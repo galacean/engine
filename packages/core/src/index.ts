@@ -1,6 +1,7 @@
 export { Engine } from "./Engine";
-export type { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
-export type { Canvas } from "./EngineDesign/Canvas";
+export { SystemInfo } from "./SystemInfo";
+export type { HardwareRenderer } from "./HardwareRenderer";
+export type { Canvas } from "./Canvas";
 export { EngineFeature } from "./EngineFeature";
 export { AssetObject } from "./asset/AssetObject";
 

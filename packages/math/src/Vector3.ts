@@ -1,7 +1,7 @@
 import { MathUtil } from "./MathUtil";
-import { Vector4 } from "./Vector4";
-import { Quaternion } from "./Quaternion";
 import { Matrix } from "./Matrix";
+import { Quaternion } from "./Quaternion";
+import { Vector4 } from "./Vector4";
 
 /**
  * 三维向量。
@@ -332,6 +332,19 @@ export class Vector3 {
     this.x = x;
     this.y = y;
     this.z = z;
+    return this;
+  }
+
+  /**
+   * 通过数组设置值，并返回当前向量。
+   * @param array - 数组
+   * @param offset - 数组偏移
+   * @returns 当前向量
+   */
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): Vector3 {
+    this.x = array[offset];
+    this.y = array[offset + 1];
+    this.z = array[offset + 2];
     return this;
   }
 

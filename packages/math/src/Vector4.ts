@@ -1,6 +1,6 @@
 import { MathUtil } from "./MathUtil";
-import { Quaternion } from "./Quaternion";
 import { Matrix } from "./Matrix";
+import { Quaternion } from "./Quaternion";
 
 /**
  * 四维向量。
@@ -276,6 +276,20 @@ export class Vector4 {
     this.y = y;
     this.z = z;
     this.w = w;
+    return this;
+  }
+
+  /**
+   * 通过数组设置值，并返回当前向量。
+   * @param array - 数组
+   * @param offset - 数组偏移
+   * @returns 当前向量
+   */
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): Vector4 {
+    this.x = array[offset];
+    this.y = array[offset + 1];
+    this.z = array[offset + 2];
+    this.w = array[offset + 3];
     return this;
   }
 

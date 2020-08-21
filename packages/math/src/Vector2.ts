@@ -196,6 +196,18 @@ export class Vector2 {
   }
 
   /**
+   * 通过数组设置值，并返回当前向量。
+   * @param array - 数组
+   * @param offset - 数组偏移
+   * @returns 当前向量
+   */
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): Vector2 {
+    this.x = array[offset];
+    this.y = array[offset + 1];
+    return this;
+  }
+
+  /**
    * 将当前向量加上给定的向量 right，并返回当前向量。
    * @param right - 给定的向量
    * @returns 当前向量

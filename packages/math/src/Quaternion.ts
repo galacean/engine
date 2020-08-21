@@ -1,6 +1,6 @@
 import { MathUtil } from "./MathUtil";
-import { Vector3 } from "./Vector3";
 import { Matrix3x3 } from "./Matrix3x3";
+import { Vector3 } from "./Vector3";
 
 /**
  * 四元数。
@@ -453,6 +453,20 @@ export class Quaternion {
     this.z = z;
     this.w = w;
 
+    return this;
+  }
+
+  /**
+   * 通过数组设置值，并返回当前四元数。
+   * @param array - 数组
+   * @param offset - 数组偏移
+   * @returns 当前四元数
+   */
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): Quaternion {
+    this.x = array[offset];
+    this.y = array[offset + 1];
+    this.z = array[offset + 2];
+    this.w = array[offset + 3];
     return this;
   }
 

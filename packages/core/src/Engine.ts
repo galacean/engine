@@ -1,7 +1,7 @@
 import { Event, EventDispatcher, Time } from "./base";
 import { ResourceManager } from "./asset/ResourceManager";
-import { Canvas } from "./EngineDesign/Canvas";
-import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
+import { Canvas } from "./Canvas";
+import { HardwareRenderer } from "./HardwareRenderer";
 import { EngineFeature } from "./EngineFeature";
 import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
