@@ -517,6 +517,20 @@ export class Matrix3x3 {
   }
 
   /**
+   * 通过数组设置值，并返回当前矩阵。
+   * @param array - 数组
+   * @param offset - 数组偏移
+   * @returns 当前矩阵
+   */
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): Matrix3x3 {
+    const srce = this.elements;
+    for (let i = 0; i < 12; i++) {
+      srce[i] = array[i + offset];
+    }
+    return this;
+  }
+
+  /**
    * 从4x4矩阵转换为一个3x3矩阵，upper-left 原则，即忽略第4行第4列。
    * @param a - 4x4矩阵
    * @returns 当前矩阵

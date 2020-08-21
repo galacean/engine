@@ -740,22 +740,22 @@ export class Matrix {
 
   /**
    * 创建4x4矩阵实例，默认创建单位矩阵，采用列矩阵的模式存储。
-   * @param m11 默认值 1 column 1, row 1
-   * @param m12 默认值 0 column 1, row 2
-   * @param m13 默认值 0 column 1, row 3
-   * @param m14 默认值 0 column 1, row 4
-   * @param m21 默认值 0 column 2, row 1
-   * @param m22 默认值 1 column 2, row 2
-   * @param m23 默认值 0 column 2, row 3
-   * @param m24 默认值 0 column 2, row 4
-   * @param m31 默认值 0 column 3, row 1
-   * @param m32 默认值 0 column 3, row 2
-   * @param m33 默认值 1 column 3, row 3
-   * @param m34 默认值 0 column 3, row 4
-   * @param m41 默认值 0 column 4, row 1
-   * @param m42 默认值 0 column 4, row 2
-   * @param m43 默认值 0 column 4, row 3
-   * @param m44 默认值 1 column 4, row 4
+   * @param m11 - 默认值 1，column 1, row 1
+   * @param m12 - 默认值 0，column 1, row 2
+   * @param m13 - 默认值 0，column 1, row 3
+   * @param m14 - 默认值 0，column 1, row 4
+   * @param m21 - 默认值 0，column 2, row 1
+   * @param m22 - 默认值 1，column 2, row 2
+   * @param m23 - 默认值 0，column 2, row 3
+   * @param m24 - 默认值 0，column 2, row 4
+   * @param m31 - 默认值 0，column 3, row 1
+   * @param m32 - 默认值 0，column 3, row 2
+   * @param m33 - 默认值 1，column 3, row 3
+   * @param m34 - 默认值 0，column 3, row 4
+   * @param m41 - 默认值 0，column 4, row 1
+   * @param m42 - 默认值 0，column 4, row 2
+   * @param m43 - 默认值 0，column 4, row 3
+   * @param m44 - 默认值 1，column 4, row 4
    */
   constructor(
     m11: number = 1,
@@ -800,22 +800,22 @@ export class Matrix {
 
   /**
    * 给矩阵设置值，并返回当前值。
-   * @param m11
-   * @param m12
-   * @param m13
-   * @param m14
-   * @param m21
-   * @param m22
-   * @param m23
-   * @param m24
-   * @param m31
-   * @param m32
-   * @param m33
-   * @param m34
-   * @param m41
-   * @param m42
-   * @param m43
-   * @param m44
+   * @param m11 - column 1, row 1
+   * @param m12 - column 1, row 2
+   * @param m13 - column 1, row 3
+   * @param m14 - column 1, row 4
+   * @param m21 - column 2, row 1
+   * @param m22 - column 2, row 2
+   * @param m23 - column 2, row 3
+   * @param m24 - column 2, row 4
+   * @param m31 - column 3, row 1
+   * @param m32 - column 3, row 2
+   * @param m33 - column 3, row 3
+   * @param m34 - column 3, row 4
+   * @param m41 - column 4, row 1
+   * @param m42 - column 4, row 2
+   * @param m43 - column 4, row 3
+   * @param m44 - column 4, row 4
    * @returns 当前矩阵
    */
   setValue(
@@ -858,6 +858,20 @@ export class Matrix {
     e[14] = m43;
     e[15] = m44;
 
+    return this;
+  }
+
+  /**
+   * 通过数组设置值，并返回当前矩阵。
+   * @param array - 数组
+   * @param offset - 数组偏移
+   * @returns 当前矩阵
+   */
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): Matrix {
+    const srce = this.elements;
+    for (let i = 0; i < 16; i++) {
+      srce[i] = array[i + offset];
+    }
     return this;
   }
 

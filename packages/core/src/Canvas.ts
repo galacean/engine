@@ -2,8 +2,8 @@
  * 渲染画布。
  */
 export interface Canvas {
-  /** 宽。*/
+  /** 像素宽。*/
   width: number;
-  /** 高。*/
+  /** 像素高。*/
   height: number;
 }
