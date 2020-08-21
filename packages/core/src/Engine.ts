@@ -27,7 +27,7 @@ export class Engine extends EventDispatcher {
 
   _hardwareRenderer: HardwareRenderer;
 
-  private _canvas: Canvas;
+  protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
   private _vSyncCount: number = 1;
