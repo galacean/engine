@@ -70,8 +70,8 @@ export class WebCanvas implements Canvas {
     if (webCanvas instanceof HTMLCanvasElement) {
       const width = webCanvas.clientWidth;
       const height = webCanvas.clientHeight;
-      webCanvas.width = width * pixelRatio;
-      webCanvas.height = height * pixelRatio;
+      this.width = width * pixelRatio;
+      this.height = height * pixelRatio;
     }
   }
 
