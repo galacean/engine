@@ -127,7 +127,7 @@ export class Oasis extends EventDispatcher {
   private resetFeature() {
     // TODO 脏代码，delete
     const scene = this.engine.sceneManager.activeScene;
-    scene.features.splice(1, 1);
+    scene.features.splice(2, 1);
     scene.features.splice(3, 1);
     (scene as any).hasFogFeature = undefined;
     (scene as any).getFogMacro = undefined;
