@@ -18,7 +18,10 @@ export class GLTFModel extends Component {
     if (!this._hasBuiltNode) {
       (this.GLTFNode as any).clearChildren();
       if (value !== null) {
-        this.GLTFNode = value.defaultSceneRoot;
+        if (this.GLTFNode) {
+          this.GLTFNode.destroy();
+        }
+        this.GLTFNode = value.defaultSceneRoot.clone();
         this._animator = this.GLTFNode.getComponent(Animation);
         this.entity.addChild(this.GLTFNode);
       }
