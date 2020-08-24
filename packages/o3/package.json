@@ -32,17 +32,8 @@
   },
   "dependencies": {
     "@alipay/o3-core": "3.0.0",
-    "@alipay/o3-draco": "3.0.0",
-    "@alipay/o3-engine-stats": "3.0.0",
-    "@alipay/o3-framebuffer-picker": "3.0.0",
-    "@alipay/o3-free-controls": "3.0.0",
-    "@alipay/o3-fsm": "3.0.0",
-    "@alipay/o3-hud": "3.0.0",
     "@alipay/o3-loader": "3.0.0",
     "@alipay/o3-math": "3.0.0",
-    "@alipay/o3-orbit-controls": "3.0.0",
-    "@alipay/o3-rfui": "3.0.0",
-    "@alipay/o3-rhi-webgl": "3.0.0",
-    "@alipay/o3-tween": "3.0.0"
+    "@alipay/o3-rhi-webgl": "3.0.0"
   }
 }

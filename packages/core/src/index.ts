@@ -89,4 +89,3 @@ export * from "./fog/index";
 export * from "./env-probe";
 export * from "./shadow/index";
 export * from "./request/index";
-export * from "../../loader/src/scene-loader/index";
