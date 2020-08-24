@@ -1,5 +1,4 @@
-import { Logger } from "@alipay/o3-core";
-import { loadAll } from "@alipay/o3-request";
+import { Logger, loadAll } from "@alipay/o3-core";
 
 import { DRACOWorker, ITaskConfig } from "./DRACOWorker";
 

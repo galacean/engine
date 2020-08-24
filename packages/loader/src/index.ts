@@ -1,9 +1,10 @@
-import "./GLTFLoader";
 import "./BufferLoader";
-import "./Texture2DLoader";
+import "./GLTFLoader";
 import "./JSONLoader";
-import "./KTXLoader";
-import "./TextureCubeLoader";
 import "./KTXCubeLoader";
-export { GLTFModel } from "./GLTFModel";
+import "./KTXLoader";
+import "./Texture2DLoader";
+import "./TextureCubeLoader";
 export { RegistExtension } from "./gltf/glTF";
+export { GLTFModel } from "./GLTFModel";
+export * from "./scene-loader/index";

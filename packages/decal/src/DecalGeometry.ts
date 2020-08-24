@@ -1,5 +1,4 @@
-import { DataType, Entity, Mesh, MeshRenderer, Primitive } from "@alipay/o3-core";
-import { BufferGeometry } from "@alipay/o3-geometry";
+import { DataType, Entity, Mesh, MeshRenderer, Primitive, BufferGeometry } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { fromBufferAttribute, makeRotationFromQuaternion, setPosition, transformDirection } from "./util";
 

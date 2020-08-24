@@ -1,5 +1,5 @@
 import { DataType, SceneFeature } from "@alipay/o3-core";
-import { ScreenQuadGeometry as ScreenQuad } from "@alipay/o3-geometry-shape";
+import { ScreenQuadGeometry as ScreenQuad } from "@alipay/core";
 import { RenderTarget, RenderColorTexture } from "@alipay/o3-core";
 import { PostEffectMaterial } from "./PostEffectMaterial";
 import { PostEffectNode } from "./PostEffectNode";

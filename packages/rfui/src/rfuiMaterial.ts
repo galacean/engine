@@ -1,6 +1,5 @@
-import { DataType, MaterialType, Texture2D } from "@alipay/o3-core";
+import { DataType, MaterialType, Texture2D, CommonMaterial } from "@alipay/o3-core";
 import { Vector2, Vector4 } from "@alipay/o3-math";
-import { CommonMaterial } from "@alipay/o3-mobile-material";
 import RfuiShader from "./shader/fragment.glsl";
 
 /**
