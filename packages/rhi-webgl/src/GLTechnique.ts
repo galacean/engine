@@ -9,14 +9,6 @@ import { WebGLRenderer } from "./WebGLRenderer";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLAsset } from "./GLAsset";
 
-const UniformDefaults = {};
-UniformDefaults[DataType.FLOAT] = 0.0;
-UniformDefaults[DataType.FLOAT_VEC2] = new Vector2();
-UniformDefaults[DataType.FLOAT_VEC3] = new Vector3();
-UniformDefaults[DataType.FLOAT_VEC4] = new Vector4();
-UniformDefaults[DataType.FLOAT_MAT3] = new Matrix3x3();
-UniformDefaults[DataType.FLOAT_MAT4] = new Matrix();
-
 /**
  * GL 层的 Technique 资源管理和渲染调用处理
  * @private
@@ -116,7 +108,8 @@ export class GLTechnique extends GLAsset {
     const assetUniforms = this._tech.uniforms;
     for (const name in assetUniforms) {
       if (uniforms.hasOwnProperty(name)) {
-        this._uploadUniformValue(assetUniforms[name], uniforms[name].location, mtl.getValue(name));
+        const value = mtl.getValue(name);
+        value != null && this._uploadUniformValue(assetUniforms[name], uniforms[name].location, value);
       }
     }
 
@@ -179,11 +172,6 @@ export class GLTechnique extends GLAsset {
    * @private
    */
   private _uploadUniformValue(uniform, location, value) {
-    // 取得uniform的值
-    if (value === null || value === undefined) {
-      value = UniformDefaults[uniform.type];
-    }
-
     const gl = this.rhi.gl;
 
     // 设置shader uniform值
@@ -228,9 +216,7 @@ export class GLTechnique extends GLAsset {
         break;
       case DataType.SAMPLER_2D: {
         const texture = value;
-        if (texture) {
-          this._uploadTexture(texture, location, GLTexture2D);
-        }
+        this._uploadTexture(texture, location, GLTexture2D);
         break;
       }
       case DataType.SAMPLER_CUBE: {
