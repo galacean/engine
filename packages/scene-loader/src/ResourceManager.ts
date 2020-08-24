@@ -25,7 +25,7 @@ const RESOURCE_CLASS = {
   unlitMaterial: PBRMaterialResource,
   ShaderMaterial: ShaderMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
-  Animation: Animation,
+  // Animation: Animation,
   base: BaseResource
 };
 
