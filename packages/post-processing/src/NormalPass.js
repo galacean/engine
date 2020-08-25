@@ -1,5 +1,4 @@
-import { DataType, RenderState, UniformSemantic } from "@alipay/o3-core";
-import { ComplexMaterial, RenderColorTexture, RenderTarget, RenderTechnique, ShaderFactory } from "@alipay/o3-core";
+import { ComplexMaterial, DataType, RenderColorTexture, RenderState, RenderTarget, RenderTechnique, ShaderFactory, UniformSemantic } from "@alipay/o3-core";
 import { Vector4 } from "@alipay/o3-math";
 import DepthPackingShader from "./shaderLib/depth_packing.glsl";
 
