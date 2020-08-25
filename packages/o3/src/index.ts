@@ -18,7 +18,7 @@ import {
   SpriteRenderer,
   PlaneProbe
 } from "@alipay/o3-core";
-export { Parser, GLTFModel } from "@alipay/o3-loader";
+import { Parser, GLTFModel } from "@alipay/o3-loader";
 
 Parser.registerComponents("o3", {
   Model,

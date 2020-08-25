@@ -1,10 +1,8 @@
-import { SchemaResourceManager } from "../ResourceManager";
-
-import { AssetConfig, LoadAttachedResourceResult } from "../types";
+import { Logger, ResourceManager } from "@alipay/o3-core";
 import { Oasis } from "../Oasis";
+import { SchemaResourceManager } from "../ResourceManager";
+import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { isAsset } from "../utils";
-import { ResourceManager } from "../../../../core/src/asset/ResourceManager";
-import { Logger } from "../../../../core/src/base/Logger";
 
 interface IResourceMeta {
   name?: string;

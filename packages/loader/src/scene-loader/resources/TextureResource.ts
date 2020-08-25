@@ -1,5 +1,4 @@
-import { ResourceManager } from "../../../../core/src/asset/ResourceManager";
-import { GLCapabilityType } from "../../../../core/src/base/Constant";
+import { GLCapabilityType, ResourceManager } from "@alipay/o3-core";
 import { Oasis } from "../Oasis";
 import { AssetConfig } from "../types";
 import { compressedTextureLoadOrder } from "../utils";

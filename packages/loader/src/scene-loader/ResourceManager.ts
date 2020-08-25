@@ -1,4 +1,4 @@
-import { ResourceManager } from "../../../core/src/asset/ResourceManager";
+import { ResourceManager } from "@alipay/o3-core";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import {

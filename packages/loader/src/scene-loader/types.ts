@@ -1,5 +1,5 @@
+import { Engine } from "@alipay/o3-core";
 import { SchemaResource } from "./resources";
-import { Engine } from "../../../core/src/Engine";
 
 export interface NodeConfig {
   /**
