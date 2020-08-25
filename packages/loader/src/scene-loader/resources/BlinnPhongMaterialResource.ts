@@ -1,7 +1,6 @@
+import { BlinnPhongMaterial, ResourceManager } from "@alipay/o3-core";
 import { AssetConfig } from "../types";
 import { SchemaResource } from "./SchemaResource";
-import { BlinnPhongMaterial } from "../../../../core/src/mobile-material/BlinnPhongMaterial";
-import { ResourceManager } from "../../../../core/src/asset/ResourceManager";
 
 export class BlinnPhongMaterialResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<BlinnPhongMaterialResource> {

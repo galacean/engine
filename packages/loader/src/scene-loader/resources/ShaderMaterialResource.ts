@@ -1,7 +1,7 @@
-import { SchemaResource } from "./SchemaResource";
-import { AssetConfig } from "../types";
+import { ShaderMaterial } from "@alipay/o3-core";
 import { Oasis } from "../Oasis";
-import { ShaderMaterial } from "../../../../core/src/mobile-material/ShaderMaterial";
+import { AssetConfig } from "../types";
+import { SchemaResource } from "./SchemaResource";
 type ShaderMaterialDefine = {
   vertexShader: string;
   fragmentShader: string;

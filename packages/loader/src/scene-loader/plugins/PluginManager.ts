@@ -1,5 +1,4 @@
-import { Component } from "../../../../core/src/Component";
-import { Entity } from "../../../../core/src/Entity";
+import { Component, Entity } from "@alipay/o3-core";
 import { Oasis } from "../Oasis";
 import { SchemaResource } from "../resources";
 import { Plugin } from "./Plugin";

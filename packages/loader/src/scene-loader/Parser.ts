@@ -1,8 +1,8 @@
-import { PluginManager, PluginHook } from "./plugins/PluginManager";
+import { Component } from "@alipay/o3-core";
 import { Oasis } from "./Oasis";
 import { Plugin } from "./plugins/Plugin";
+import { PluginManager } from "./plugins/PluginManager";
 import { Options } from "./types";
-import { Component } from "../../../core/src/Component";
 
 const CURRENT_SCHEMA_VERSION = 2;
 

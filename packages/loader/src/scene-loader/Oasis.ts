@@ -1,10 +1,9 @@
-import { NodeManager } from "./NodeManager";
+import { Engine, EventDispatcher } from "@alipay/o3-core";
 import { AbilityManager } from "./AbilityManager";
+import { NodeManager } from "./NodeManager";
+import { pluginHook, PluginManager } from "./plugins/PluginManager";
 import { SchemaResourceManager } from "./ResourceManager";
-import { PluginManager, pluginHook } from "./plugins/PluginManager";
-import { Schema, Options } from "./types";
-import { EventDispatcher } from "../../../core/src/base/EventDispatcher";
-import { Engine } from "../../../core/src/Engine";
+import { Options, Schema } from "./types";
 
 export class Oasis extends EventDispatcher {
   public readonly engine: Engine = null;

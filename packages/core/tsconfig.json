@@ -13,7 +13,5 @@
     "strict": false,
     "incremental": true
   },
-  "include": [
-    "src/**/*", "../draco/src/glTFDracoMeshCompression.ts", "../loader/src/scene-loader"
-  ]
+  "include": ["src/**/*"]
 }

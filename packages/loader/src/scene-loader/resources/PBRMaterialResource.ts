@@ -1,11 +1,8 @@
+import { Logger, PBRMaterial, ResourceManager, Texture } from "@alipay/o3-core";
+import { AssetConfig, LoadAttachedResourceResult } from "../types";
+import { getAllGetters, isAsset } from "../utils";
 import { SchemaResource } from "./SchemaResource";
 import { TextureResource } from "./TextureResource";
-import { isAsset, getAllGetters } from "../utils";
-import { AssetConfig, LoadAttachedResourceResult } from "../types";
-import { ResourceManager } from "../../../../core/src/asset/ResourceManager";
-import { PBRMaterial } from "../../../../core/src/pbr/PBRMaterial";
-import { Texture } from "../../../../core/src/material/Texture";
-import { Logger } from "../../../../core/src/base/Logger";
 
 export class PBRMaterialResource extends SchemaResource {
   private configProps;

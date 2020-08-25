@@ -1,11 +1,10 @@
+import { Component, Logger } from "@alipay/o3-core";
 import { Oasis } from "./Oasis";
-import { pluginHook } from "./plugins/PluginManager";
-import { switchElementsIndex } from "./utils";
-import { AbilityConfig, Props } from "./types";
-import { scriptAbility } from "./resources";
 import { Parser } from "./Parser";
-import { Component } from "../../../core/src/Component";
-import { Logger } from "../../../core/src/base/Logger";
+import { pluginHook } from "./plugins/PluginManager";
+import { scriptAbility } from "./resources";
+import { AbilityConfig, Props } from "./types";
+import { switchElementsIndex } from "./utils";
 
 export class AbilityManager {
   private abilityMap: { [id: string]: Component } = {};

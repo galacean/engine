@@ -1,10 +1,8 @@
-import { SchemaResource } from "./SchemaResource";
-import { AssetConfig } from "../types";
+import { AssetType, GLCapabilityType, ResourceManager } from "@alipay/o3-core";
 import { Oasis } from "../Oasis";
+import { AssetConfig } from "../types";
 import { compressedTextureLoadOrder } from "../utils";
-import { ResourceManager } from "../../../../core/src/asset/ResourceManager";
-import { AssetType } from "../../../../core/src/asset/AssetType";
-import { GLCapabilityType } from "../../../../core/src/base/Constant";
+import { SchemaResource } from "./SchemaResource";
 
 const imageOrderMap = {
   px: 0,
