@@ -22,8 +22,6 @@
   "module": "./dist/module.js",
   "dependencies": {
     "@alipay/o3-core": "3.0.0",
-    "@alipay/o3-geometry": "3.0.0",
-    "@alipay/o3-geometry-shape": "3.0.0",
     "@alipay/o3-math": "3.0.0"
   },
   "publishConfig": {

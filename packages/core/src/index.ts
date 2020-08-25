@@ -57,10 +57,10 @@ export { MeshRenderer } from "./mesh/MeshRenderer";
 export { SkinnedMeshRenderer } from "./mesh/SkinnedMeshRenderer";
 export { LODGroup } from "./mesh/LODGroup";
 
-//primitive
+// primitive
 export { Primitive } from "./primitive/Primitive";
 
-//material
+// material
 export { Texture } from "./material/Texture";
 export { Texture2D } from "./material/Texture2D";
 export { Material } from "./material/Material";
@@ -70,7 +70,22 @@ export { TextureCubeMap } from "./material/TextureCubeMap";
 export { RenderTarget } from "./material/RenderTarget";
 export { RenderColorTexture } from "./material/RenderColorTexture";
 export { RenderDepthTexture } from "./material/RenderDepthTexture";
-export * from "./material/type";
 
+export * from "./2d/index";
+export * from "./material/type";
 export * from "./shaderlib/index";
 export * from "./animation/index";
+export * from "./mobile-material/index";
+export * from "./geometry/index";
+export * from "./geometry-shape/index";
+export * from "./skybox/index";
+export * from "./pbr/index";
+export * from "./particle/index";
+export * from "./trail/index";
+export * from "./rayCast/index";
+export * from "./collider/index";
+export * from "./collision/index";
+export * from "./fog/index";
+export * from "./env-probe";
+export * from "./shadow/index";
+export * from "./request/index";

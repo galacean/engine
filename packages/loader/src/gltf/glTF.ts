@@ -16,11 +16,11 @@ import {
   Texture2D,
   Util,
   Animation,
-  Primitive
+  Primitive,
+  PBRMaterial,
+  ConstantMaterial
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
-import { ConstantMaterial } from "@alipay/o3-mobile-material";
-import { PBRMaterial } from "@alipay/o3-pbr";
 import { LoadedGLTFResource } from "../GLTF";
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 import { createAttribute, findByKeyValue, getAccessorData, getAccessorTypeSize } from "./Util";

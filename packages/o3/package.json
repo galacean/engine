@@ -31,34 +31,9 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-2d": "3.0.0",
-    "@alipay/o3-collider": "3.0.0",
-    "@alipay/o3-collision": "3.0.0",
     "@alipay/o3-core": "3.0.0",
-    "@alipay/o3-draco": "3.0.0",
-    "@alipay/o3-engine-stats": "3.0.0",
-    "@alipay/o3-env-probe": "3.0.0",
-    "@alipay/o3-fog": "3.0.0",
-    "@alipay/o3-framebuffer-picker": "3.0.0",
-    "@alipay/o3-free-controls": "3.0.0",
-    "@alipay/o3-fsm": "3.0.0",
-    "@alipay/o3-geometry": "3.0.0",
-    "@alipay/o3-geometry-shape": "3.0.0",
-    "@alipay/o3-hud": "3.0.0",
     "@alipay/o3-loader": "3.0.0",
     "@alipay/o3-math": "3.0.0",
-    "@alipay/o3-mobile-material": "3.0.0",
-    "@alipay/o3-orbit-controls": "3.0.0",
-    "@alipay/o3-particle": "3.0.0",
-    "@alipay/o3-pbr": "3.0.0",
-    "@alipay/o3-raycast": "3.0.0",
-    "@alipay/o3-renderer-cull": "3.0.0",
-    "@alipay/o3-rfui": "3.0.0",
-    "@alipay/o3-rhi-webgl": "3.0.0",
-    "@alipay/o3-scene-loader": "3.0.0",
-    "@alipay/o3-shadow": "3.0.0",
-    "@alipay/o3-skybox": "3.0.0",
-    "@alipay/o3-trail": "3.0.0",
-    "@alipay/o3-tween": "3.0.0"
+    "@alipay/o3-rhi-webgl": "3.0.0"
   }
 }

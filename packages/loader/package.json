@@ -26,9 +26,6 @@
     "@alipay/o3-core": "3.0.0",
     "@alipay/o3-draco": "3.0.0",
     "@alipay/o3-math": "3.0.0",
-    "@alipay/o3-mobile-material": "3.0.0",
-    "@alipay/o3-pbr": "3.0.0",
-    "@alipay/o3-request": "3.0.0",
     "@alipay/o3-rhi-webgl": "3.0.0"
   },
   "publishConfig": {
