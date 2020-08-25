@@ -1,5 +1,12 @@
-import { MaterialType, UniformSemantic, DataType, RenderState, BlendFunc } from "@alipay/o3-core";
-import { Material, RenderTechnique } from "@alipay/o3-material";
+import {
+  BlendFunc,
+  DataType,
+  Material,
+  MaterialType,
+  RenderState,
+  RenderTechnique,
+  UniformSemantic
+} from "@alipay/o3-core";
 
 const VERT_SHADER = `
 uniform mat4 matModelViewProjection;
@@ -72,12 +79,12 @@ export class DecalMaterial extends Material {
     this.renderType = MaterialType.TRANSPARENT;
   }
 
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
     if (!this._technique) {
-      this._generateTechnique(camera, component);
+      this._generateTechnique(context.camera, component);
     }
 
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   /**

@@ -249,7 +249,7 @@ export class AHUDWidget extends RenderableComponent {
     if (this._rotationAngle !== 0) {
       const vz = new Vector3(me[2], me[6], me[10]);
       const rotation = new Quaternion();
-      Quaternion.setAxisAngle(vz, this._rotationAngle, rotation);
+      Quaternion.rotationAxisAngle(vz, this._rotationAngle, rotation);
 
       Vector3.transformByQuat(vx, rotation, vx);
       Vector3.transformByQuat(vy, rotation, vy);
@@ -315,7 +315,7 @@ export class AHUDWidget extends RenderableComponent {
       const u = new Vector4(nx, ny, depth, 1.0);
 
       const w = new Vector4();
-      Vector4.transformByMat4x4(u, camera.inverseProjectionMatrix, w);
+      Vector4.transform(u, camera.inverseProjectionMatrix, w);
 
       halfWorldSize.setValue(Math.abs(w.x / w.w), Math.abs(w.y / w.w));
     } else {

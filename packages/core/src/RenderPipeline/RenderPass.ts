@@ -1,5 +1,6 @@
 import { ClearMode, MaskList } from "../base";
 import { Camera } from "../Camera";
+import { Vector4 } from "@alipay/o3-math";
 
 /** @todo: monorepo circle dependence */
 type RenderTarget = any;
@@ -36,7 +37,7 @@ class RenderPass {
     renderTarget = null,
     replaceMaterial = null,
     mask = null,
-    clearParam = [0, 0, 0, 0]
+    clearParam = new Vector4(0, 0, 0, 0)
   ) {
     this.name = name;
     this.enabled = true;

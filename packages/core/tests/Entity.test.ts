@@ -1,95 +1,56 @@
-import { Entity, Engine, Scene, Component } from "../src/index";
-import { quat, mat4, vec3 } from "@alipay/o3-math";
-
+import { WebGLEngine } from "../../rhi-webgl/src";
+import { Entity, Component } from "../src/index";
 class TestComponent extends Component {}
 
-describe("Entity test", function () {
-  it("case", () => {});
-  describe("node lookat", () => {
-    const node = new Entity();
-    beforeEach(() => {
-      // node.setModelMatrix(mat4.create());//transform负责，可删除
-    });
-
-    it("test lookAt", () => {
-      //node.lookAt([0, -3, 0], [0, 1, 0]);// transform负责，可删除
-    });
-
-    it("test setRotationAngles", () => {
-      //node.setRotationAngles(10, 20, 30);// transform负责，可删除
-    });
-
-    it("test set rotation", () => {
-      const rotation = [];
-      node.rotation = quat.fromEuler(rotation, 10, 20, 30);
-    });
-  });
-
-  describe("node parent", () => {
-    const node = new Entity();
-    const parent = new Entity();
-    parent.addChild(node);
-    parent.position = Float32Array.from([10, 10, 33]);
-    beforeEach(() => {
-      // node.setModelMatrix(mat4.create());// transform负责，可删除
-    });
-
-    it("test setRotationAngles", () => {
-      // node.setRotationAngles(10, 20, 30);// transform负责，可删除
-    });
-
-    it("test set rotation", () => {
-      const rotation = [];
-      node.rotation = quat.fromEuler(rotation, 10, 20, 30);
-    });
-  });
-});
-
-function testEqual(node, node2) {
-  arrayCloseTo(node.worldPosition, node2.worldPosition);
-  arrayCloseTo(node.scale, node2.scale);
-  arrayCloseTo(node.position, node2.position);
-  arrayCloseTo(node.rotation, node2.rotation);
-  const m1 = node.getModelMatrix();
-  const m2 = node2.getModelMatrix();
-  arrayCloseTo(m1, m2);
-}
-
-function arrayCloseTo(arr1, arr2) {
-  expect(arr1.length).toEqual(arr2.length);
-  for (let i = 0; i < arr1.length; i++) {
-    const m1 = arr1[i];
-    const m2 = arr2[i];
-    expect(m1).toBeCloseTo(m2);
-  }
-}
-
 describe("Entity", () => {
-  let engine = null;
-  let scene = null;
+  const getContext = jest.fn().mockReturnValue({
+    canvas: { width: 1024, height: 1024 },
+    getParameter: jest.fn(),
+    enable: jest.fn(),
+    disable: jest.fn(),
+    colorMask: jest.fn(),
+    depthMask: jest.fn(),
+    blendFunc: jest.fn(),
+    cullFace: jest.fn(),
+    frontFace: jest.fn(),
+    depthFunc: jest.fn(),
+    depthRange: jest.fn(),
+    polygonOffset: jest.fn(),
+    stencilFunc: jest.fn(),
+    stencilMask: jest.fn(),
+    getExtension: jest.fn(),
+    bindFramebuffer: jest.fn(),
+    viewport: jest.fn(),
+    clearColor: jest.fn(),
+    clear: jest.fn()
+  });
+
+  const canvasDOM = document.createElement("canvas");
+  canvasDOM.getContext = getContext;
+
+  const engine = new WebGLEngine(canvasDOM);
+  const scene = engine.sceneManager.activeScene;
+  scene.createRootEntity("root");
+  engine.run();
   beforeEach(() => {
-    engine = new Engine();
-    scene = new Scene(engine);
-    Entity._nodes.length = 0;
-    Entity._nodes._elements.length = 0;
+    Entity._entitys.length = 0;
+    Entity._entitys._elements.length = 0;
   });
   describe("Entity.findByName", () => {
     it("normal", () => {
-      const node = new Entity("test1");
-      const node2 = new Entity("test2");
-      expect(Entity.findByName("test1")).toBe(node);
-      expect(Entity.findByName("test2")).toBe(node2);
+      const entity = new Entity("test1");
+      const entity2 = new Entity("test2");
+      expect(Entity.findByName("test1")).toBe(entity);
+      expect(Entity.findByName("test2")).toBe(entity2);
     });
     it("null", () => {
-      const node = new Entity(null);
-      const node2 = new Entity(null);
-      const node3 = new Entity(undefined);
-      const node4 = new Entity(undefined);
-      expect(Entity.findByName(null)).toEqual(node);
-      expect(Entity.findByName(undefined)).toEqual(node3);
+      const entity = new Entity(null);
+      const entity2 = new Entity(undefined);
+      expect(Entity.findByName(null)).toEqual(entity);
+      expect(Entity.findByName(undefined)).toEqual(entity2);
     });
     it("not found", () => {
-      const node = new Entity("test1");
+      const entity = new Entity("test1");
       expect(Entity.findByName("test2")).toEqual(null);
     });
   });
@@ -97,20 +58,28 @@ describe("Entity", () => {
   describe("Entity.findByPath", () => {
     it("normal", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
-      expect(Entity.findByPath("/parent", scene)).toBe(parent);
-      expect(Entity.findByPath("/parent/child", scene)).toBe(child);
-      expect(Entity.findByPath("parent", scene)).toBe(parent);
-      expect(Entity.findByPath("parent/child", scene)).toBe(child);
+      //@ts-ignore
+      expect(Entity.findByPath("root/parent", scene)).toBe(parent);
+      //@ts-ignore
+      expect(Entity.findByPath("root/parent/child", scene)).toBe(child);
+      //@ts-ignore
+      expect(Entity.findByPath("root/parent", scene)).toBe(parent);
+      //@ts-ignore
+      expect(Entity.findByPath("root/parent/child", scene)).toBe(child);
     });
     it("not found", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
+      //@ts-ignore
       expect(Entity.findByPath("child", scene)).toEqual(null);
+      //@ts-ignore
       expect(Entity.findByPath("parent/test", scene)).toEqual(null);
     });
   });
@@ -118,7 +87,8 @@ describe("Entity", () => {
   describe("isActive", () => {
     it("normal", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       parent.isActive = false;
@@ -131,7 +101,8 @@ describe("Entity", () => {
   describe("isActiveInHierarchy", () => {
     it("normal", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       parent.isActive = true;
@@ -142,7 +113,8 @@ describe("Entity", () => {
 
     it("child false", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       parent.isActive = true;
@@ -153,7 +125,8 @@ describe("Entity", () => {
 
     it("parent false", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       parent.isActive = false;
@@ -166,7 +139,8 @@ describe("Entity", () => {
   describe("parent", () => {
     it("normal", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       child.parent = parent;
@@ -175,7 +149,8 @@ describe("Entity", () => {
 
     it("null", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       child.parent = null;
@@ -184,9 +159,11 @@ describe("Entity", () => {
 
     it("change", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const parent2 = new Entity("parent");
-      parent2.parent = scene.root;
+      //@ts-ignore
+      parent2.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       child.parent = parent2;
@@ -197,7 +174,8 @@ describe("Entity", () => {
   describe("childCount", () => {
     it("normal", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       expect(parent.childCount).toEqual(1);
@@ -205,7 +183,8 @@ describe("Entity", () => {
 
     it("null", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       child.parent = null;
@@ -214,9 +193,11 @@ describe("Entity", () => {
 
     it("change", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const parent2 = new Entity("parent");
-      parent2.parent = scene.root;
+      //@ts-ignore
+      parent2.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       child.parent = parent2;
@@ -228,7 +209,8 @@ describe("Entity", () => {
   describe("scene", () => {
     it("normal", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       expect(parent.scene).toBe(scene);
@@ -237,7 +219,8 @@ describe("Entity", () => {
 
     it("change parent", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       expect(parent.scene).toBe(scene);
@@ -248,7 +231,8 @@ describe("Entity", () => {
   describe("scene", () => {
     it("normal", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       expect(child.scene).toBe(scene);
@@ -256,7 +240,8 @@ describe("Entity", () => {
 
     it("change parent", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       expect(parent.scene).toBe(scene);
@@ -266,18 +251,20 @@ describe("Entity", () => {
 
   describe("component", () => {
     it("addComponent getComponent", () => {
-      const node = new Entity("node");
-      node.parent = scene.root;
-      const component = node.addComponent(TestComponent);
-      expect(node.getComponent(TestComponent)).toBe(component);
+      const entity = new Entity("entity");
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
+      const component = entity.addComponent(TestComponent);
+      expect(entity.getComponent(TestComponent)).toBe(component);
     });
 
     it("addComponent getComponents", () => {
-      const node = new Entity("node");
-      node.parent = scene.root;
-      const component = node.addComponent(TestComponent);
+      const entity = new Entity("entity");
+      //@ts-ignore
+      entity.parent = scene.getRootEntity();
+      const component = entity.addComponent(TestComponent);
       const res = [];
-      node.getComponents(TestComponent, res);
+      entity.getComponents(TestComponent, res);
       expect(res[0]).toBe(component);
     });
   });
@@ -285,7 +272,8 @@ describe("Entity", () => {
   describe("child", () => {
     it("addChild", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       parent.addChild(child);
@@ -295,7 +283,8 @@ describe("Entity", () => {
 
     it("removeChild", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       parent.removeChild(child);
@@ -305,7 +294,8 @@ describe("Entity", () => {
 
     it("getChild", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       const theChild = parent.getChild(0);
@@ -314,7 +304,8 @@ describe("Entity", () => {
 
     it("getChild", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       const theChild = parent.getChild(0);
@@ -323,7 +314,8 @@ describe("Entity", () => {
 
     it("findByName", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       const child2 = new Entity("child2");
@@ -334,7 +326,8 @@ describe("Entity", () => {
 
     it("findByPath", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       const child2 = new Entity("child2");
@@ -345,7 +338,8 @@ describe("Entity", () => {
 
     it("clearChildren", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       const child2 = new Entity("child2");
@@ -358,7 +352,8 @@ describe("Entity", () => {
   describe("clone", () => {
     it("normal", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       const cloneParent = parent.clone();
@@ -371,7 +366,8 @@ describe("Entity", () => {
   describe("destroy", () => {
     it("normal", () => {
       const parent = new Entity("parent");
-      parent.parent = scene.root;
+      //@ts-ignore
+      parent.parent = scene.getRootEntity();
       const child = new Entity("child");
       child.parent = parent;
       child.destroy();

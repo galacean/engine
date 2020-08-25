@@ -1,9 +1,9 @@
 import { MathUtil } from "./MathUtil";
-import { Quaternion } from "./Quaternion";
 import { Matrix } from "./Matrix";
+import { Quaternion } from "./Quaternion";
 
 /**
- * 四维向量
+ * 四维向量。
  */
 export class Vector4 {
   /** @internal 零向量。*/
@@ -13,64 +13,64 @@ export class Vector4 {
 
   /**
    * 将两个向量相加。
-   * @param a - 左向量
-   * @param b - 右向量
+   * @param left - 左向量
+   * @param right - 右向量
    * @param out - 向量相加结果
    */
-  static add(a: Vector4, b: Vector4, out: Vector4): void {
-    out.x = a.x + b.x;
-    out.y = a.y + b.y;
-    out.z = a.z + b.z;
-    out.w = a.w + b.w;
+  static add(left: Vector4, right: Vector4, out: Vector4): void {
+    out.x = left.x + right.x;
+    out.y = left.y + right.y;
+    out.z = left.z + right.z;
+    out.w = left.w + right.w;
   }
 
   /**
    * 将两个向量相减。
-   * @param a - 左向量
-   * @param b - 右向量
+   * @param left - 左向量
+   * @param right - 右向量
    * @param out - 两个四维向量的相减结果
    */
-  static subtract(a: Vector4, b: Vector4, out: Vector4): void {
-    out.x = a.x - b.x;
-    out.y = a.y - b.y;
-    out.z = a.z - b.z;
-    out.w = a.w - b.w;
+  static subtract(left: Vector4, right: Vector4, out: Vector4): void {
+    out.x = left.x - right.x;
+    out.y = left.y - right.y;
+    out.z = left.z - right.z;
+    out.w = left.w - right.w;
   }
 
   /**
    * 将两个向量相乘。
-   * @param a - 左向量
-   * @param b - 右向量
+   * @param left - 左向量
+   * @param right - 右向量
    * @param out - 两个四维向量的相乘结果
    */
-  static multiply(a: Vector4, b: Vector4, out: Vector4): void {
-    out.x = a.x * b.x;
-    out.y = a.y * b.y;
-    out.z = a.z * b.z;
-    out.w = a.w * b.w;
+  static multiply(left: Vector4, right: Vector4, out: Vector4): void {
+    out.x = left.x * right.x;
+    out.y = left.y * right.y;
+    out.z = left.z * right.z;
+    out.w = left.w * right.w;
   }
 
   /**
    * 将两个四维向量相除。
-   * @param a - 左向量
-   * @param b - 右向量
+   * @param left - 左向量
+   * @param right - 右向量
    * @param out - 两个四维向量的相除结果
    */
-  static divide(a: Vector4, b: Vector4, out: Vector4): void {
-    out.x = a.x / b.x;
-    out.y = a.y / b.y;
-    out.z = a.z / b.z;
-    out.w = a.w / b.w;
+  static divide(left: Vector4, right: Vector4, out: Vector4): void {
+    out.x = left.x / right.x;
+    out.y = left.y / right.y;
+    out.z = left.z / right.z;
+    out.w = left.w / right.w;
   }
 
   /**
    * 计算两个四维向量的点积。
-   * @param a - 左向量
-   * @param b - 右向量
+   * @param left - 左向量
+   * @param right - 右向量
    * @returns 两个向量的点积
    */
-  static dot(a: Vector4, b: Vector4): number {
-    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+  static dot(left: Vector4, right: Vector4): number {
+    return left.x * right.x + left.y * right.y + left.z * right.z + left.w * right.w;
   }
 
   /**
@@ -103,55 +103,58 @@ export class Vector4 {
 
   /**
    * 判断两个四维向量的值是否相等。
-   * @param a - 向量
-   * @param b - 向量
+   * @param left - 向量
+   * @param right - 向量
    * @returns 两个向量是否相等，是返回 true，否则返回 false
    */
-  static equals(a: Vector4, b: Vector4): boolean {
+  static equals(left: Vector4, right: Vector4): boolean {
     return (
-      MathUtil.equals(a.x, b.x) && MathUtil.equals(a.y, b.y) && MathUtil.equals(a.z, b.z) && MathUtil.equals(a.w, b.w)
+      MathUtil.equals(left.x, right.x) &&
+      MathUtil.equals(left.y, right.y) &&
+      MathUtil.equals(left.z, right.z) &&
+      MathUtil.equals(left.w, right.w)
     );
   }
 
   /**
    * 插值四维向量。
-   * @param a - 左向量
-   * @param b - 右向量
+   * @param start - 左向量
+   * @param end - 右向量
    * @param t - 插值比例
    * @param out - 插值结果
    */
-  static lerp(a: Vector4, b: Vector4, t: number, out: Vector4): void {
-    const { x, y, z, w } = a;
-    out.x = x + (b.x - x) * t;
-    out.y = y + (b.y - y) * t;
-    out.z = z + (b.z - z) * t;
-    out.w = w + (b.w - w) * t;
+  static lerp(start: Vector4, end: Vector4, t: number, out: Vector4): void {
+    const { x, y, z, w } = start;
+    out.x = x + (end.x - x) * t;
+    out.y = y + (end.y - y) * t;
+    out.z = z + (end.z - z) * t;
+    out.w = w + (end.w - w) * t;
   }
 
   /**
    * 分别取两个四维向量 x、y 的最大值计算新的四维向量。
-   * @param a - 向量
-   * @param b - 向量
+   * @param left - 向量
+   * @param right - 向量
    * @param out - 结果向量
    */
-  static max(a: Vector4, b: Vector4, out: Vector4): void {
-    out.x = Math.max(a.x, b.x);
-    out.y = Math.max(a.y, b.y);
-    out.z = Math.max(a.z, b.z);
-    out.w = Math.max(a.w, b.w);
+  static max(left: Vector4, right: Vector4, out: Vector4): void {
+    out.x = Math.max(left.x, right.x);
+    out.y = Math.max(left.y, right.y);
+    out.z = Math.max(left.z, right.z);
+    out.w = Math.max(left.w, right.w);
   }
 
   /**
    * 分别取两个四维向量 x、y 的最小值计算新的四维向量。
-   * @param a - 向量
-   * @param b - 向量
+   * @param left - 向量
+   * @param right - 向量
    * @param out - 结果向量
    */
-  static min(a: Vector4, b: Vector4, out: Vector4): void {
-    out.x = Math.min(a.x, b.x);
-    out.y = Math.min(a.y, b.y);
-    out.z = Math.min(a.z, b.z);
-    out.w = Math.min(a.w, b.w);
+  static min(left: Vector4, right: Vector4, out: Vector4): void {
+    out.x = Math.min(left.x, right.x);
+    out.y = Math.min(left.y, right.y);
+    out.z = Math.min(left.z, right.z);
+    out.w = Math.min(left.w, right.w);
   }
 
   /**
@@ -202,7 +205,7 @@ export class Vector4 {
    * @param m - 转换矩阵
    * @param out - 通过矩阵转换后的向量
    */
-  static transformByMat4x4(v: Vector4, m: Matrix, out: Vector4): void {
+  static transform(v: Vector4, m: Matrix, out: Vector4): void {
     const { x, y, z, w } = v;
     const e = m.elements;
     out.x = x * e[0] + y * e[4] + z * e[8] + w * e[12];
@@ -237,13 +240,13 @@ export class Vector4 {
     out.w = w;
   }
 
-  /** 向量的 X 分量 */
+  /** 向量的 X 分量。 */
   x: number;
-  /** 向量的 Y 分量 */
+  /** 向量的 Y 分量。 */
   y: number;
-  /** 向量的 Z 分量 */
+  /** 向量的 Z 分量。 */
   z: number;
-  /** 向量的 W 分量 */
+  /** 向量的 W 分量。 */
   w: number;
 
   /**
@@ -277,74 +280,68 @@ export class Vector4 {
   }
 
   /**
-   * 创建一个新的四维向量，并用当前向量值初始化。
-   * @returns 一个新的向量，并且拷贝当前向量的值
-   */
-  clone(): Vector4 {
-    let ret = new Vector4(this.x, this.y, this.z, this.w);
-    return ret;
-  }
-
-  /**
-   * 将当前向量值拷贝给 out 向量。
-   * @param out - 目标向量
-   */
-  cloneTo(out: Vector4): void {
-    out.x = this.x;
-    out.y = this.y;
-    out.z = this.z;
-    out.w = this.w;
-  }
-
-  /**
-   * 将当前向量加上给定的向量 a，并返回当前向量。
-   * @param a - 给定的向量
+   * 通过数组设置值，并返回当前向量。
+   * @param array - 数组
+   * @param offset - 数组偏移
    * @returns 当前向量
    */
-  add(a: Vector4): Vector4 {
-    this.x += a.x;
-    this.y += a.y;
-    this.z += a.z;
-    this.w += a.w;
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): Vector4 {
+    this.x = array[offset];
+    this.y = array[offset + 1];
+    this.z = array[offset + 2];
+    this.w = array[offset + 3];
     return this;
   }
 
   /**
-   * 将当前向量减去给定的向量 a，并返回当前向量。
-   * @param a - 给定的向量
+   * 将当前向量加上给定的向量 right，并返回当前向量。
+   * @param right - 给定的向量
    * @returns 当前向量
    */
-  subtract(a: Vector4): Vector4 {
-    this.x -= a.x;
-    this.y -= a.y;
-    this.z -= a.z;
-    this.w -= a.w;
+  add(right: Vector4): Vector4 {
+    this.x += right.x;
+    this.y += right.y;
+    this.z += right.z;
+    this.w += right.w;
     return this;
   }
 
   /**
-   * 将当前向量乘以给定的向量 a，并返回当前向量。
-   * @param a - 给定的向量
+   * 将当前向量减去给定的向量 right，并返回当前向量。
+   * @param right - 给定的向量
    * @returns 当前向量
    */
-  multiply(a: Vector4): Vector4 {
-    this.x *= a.x;
-    this.y *= a.y;
-    this.z *= a.z;
-    this.w *= a.w;
+  subtract(right: Vector4): Vector4 {
+    this.x -= right.x;
+    this.y -= right.y;
+    this.z -= right.z;
+    this.w -= right.w;
     return this;
   }
 
   /**
-   * 将当前向量除以给定的向量 a，并返回当前向量。
-   * @param a - 给定的向量
+   * 将当前向量乘以给定的向量 right，并返回当前向量。
+   * @param right - 给定的向量
    * @returns 当前向量
    */
-  divide(a: Vector4): Vector4 {
-    this.x /= a.x;
-    this.y /= a.y;
-    this.z /= a.z;
-    this.w /= a.w;
+  multiply(right: Vector4): Vector4 {
+    this.x *= right.x;
+    this.y *= right.y;
+    this.z *= right.z;
+    this.w *= right.w;
+    return this;
+  }
+
+  /**
+   * 将当前向量除以给定的向量 right，并返回当前向量。
+   * @param right - 给定的向量
+   * @returns 当前向量
+   */
+  divide(right: Vector4): Vector4 {
+    this.x /= right.x;
+    this.y /= right.y;
+    this.z /= right.z;
+    this.w /= right.w;
     return this;
   }
 
@@ -398,5 +395,26 @@ export class Vector4 {
     this.z *= s;
     this.w *= s;
     return this;
+  }
+
+  /**
+   * 创建一个新的四维向量，并用当前向量值初始化。
+   * @returns 一个新的向量，并且拷贝当前向量的值
+   */
+  clone(): Vector4 {
+    let ret = new Vector4(this.x, this.y, this.z, this.w);
+    return ret;
+  }
+
+  /**
+   * 将当前向量值拷贝给 out 向量。
+   * @param out - 目标向量
+   */
+  cloneTo(out: Vector4): Vector4 {
+    out.x = this.x;
+    out.y = this.y;
+    out.z = this.z;
+    out.w = this.w;
+    return out;
   }
 }

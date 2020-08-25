@@ -139,6 +139,15 @@ export class ResourceManager {
   }
 
   /**
+   * 根据 instanceId 获取资源路径
+   * @param instanceId 对象 id
+   * @returns 资源路径
+   */
+  getAssetPath(instanceId: number): string {
+    return this._assetPool[instanceId];
+  }
+
+  /**
    * @internal
    */
   _addAsset(path: string, asset: ReferenceObject): void {
@@ -156,13 +165,6 @@ export class ResourceManager {
       delete this._assetPool[id];
       delete this._assetUrlPool[path];
     }
-  }
-
-  /**
-   * @internal
-   */
-  _getAssetPath(id: number): string {
-    return this._assetPool[id];
   }
 
   /**

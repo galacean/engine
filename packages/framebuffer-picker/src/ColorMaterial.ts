@@ -1,8 +1,7 @@
-import { Logger, DataType } from "@alipay/o3-core";
-import { Material, RenderTechnique } from "@alipay/o3-material";
-import vs from "./color.vs.glsl";
-import fs from "./color.fs.glsl";
+import { DataType, Logger, Material, RenderTechnique } from "@alipay/o3-core";
 import { Vector3 } from "@alipay/o3-math";
+import fs from "./color.fs.glsl";
+import vs from "./color.vs.glsl";
 
 /**
  * @private
@@ -60,14 +59,14 @@ class ColorMaterial extends Material {
   /**
    * @private
    */
-  prepareDrawing(camera, component, primitive, originalMaterial?: Material) {
+  prepareDrawing(context, component, primitive, originalMaterial?: Material) {
     if (!this._technique) this.generateTechnique();
     this.technique.states = originalMaterial?.technique?.states;
     this._currentId += 1;
     this._primitivesMap[this._currentId] = { component, primitive };
     this.setValue("u_colorId", this.id2Color(this._currentId));
 
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   /**

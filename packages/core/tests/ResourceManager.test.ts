@@ -64,9 +64,9 @@ describe("test resource manager", () => {
     const promiseAA = jsonEngine.resourceManager.load<ReferenceObject>(path);
     return expect(
       promiseAA.then((obj) => {
-        expect(jsonEngine.resourceManager._getAssetPath(obj.instanceId)).toEqual(path);
+        expect(jsonEngine.resourceManager.getAssetPath(obj.instanceId)).toEqual(path);
         jsonEngine.resourceManager._deleteAsset(obj);
-        expect(jsonEngine.resourceManager._getAssetPath(obj.instanceId)).toBeUndefined();
+        expect(jsonEngine.resourceManager.getAssetPath(obj.instanceId)).toBeUndefined();
         return {};
       })
     ).resolves.toEqual({});

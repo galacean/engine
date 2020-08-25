@@ -1,7 +1,7 @@
 import { Event, EventDispatcher, Time } from "./base";
 import { ResourceManager } from "./asset/ResourceManager";
-import { Canvas } from "./EngineDesign/Canvas";
-import { HardwareRenderer } from "./EngineDesign/HardwareRenderer";
+import { Canvas } from "./Canvas";
+import { HardwareRenderer } from "./HardwareRenderer";
 import { EngineFeature } from "./EngineFeature";
 import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
@@ -27,9 +27,9 @@ export class Engine extends EventDispatcher {
 
   _hardwareRenderer: HardwareRenderer;
 
-  private _canvas: Canvas;
+  protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
-  private _sceneManager: SceneManager = new SceneManager();
+  private _sceneManager: SceneManager = new SceneManager(this);
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();

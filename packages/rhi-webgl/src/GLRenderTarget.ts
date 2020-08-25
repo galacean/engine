@@ -1,6 +1,6 @@
-import { RenderTarget } from "@alipay/o3-material";
 import { GLAsset } from "./GLAsset";
 import { WebGLRenderer } from "./WebGLRenderer";
+import { RenderTarget } from "@alipay/o3-core";
 
 /**
  * GL 层的 RenderTarget 资源管理和渲染调用处理

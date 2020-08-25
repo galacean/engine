@@ -1,5 +1,4 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@alipay/o3-core";
-import { Texture2D } from "@alipay/o3-material";
+import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager, Texture2D } from "@alipay/o3-core";
 import { parseSingleKTX } from "./compressed-texture";
 
 @resourceLoader(AssetType.KTX, ["ktx"])

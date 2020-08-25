@@ -1,9 +1,8 @@
-import { DataType, TextureWrapMode } from "@alipay/o3-core";
+import { DataType, TextureWrapMode, Texture2D } from "@alipay/o3-core";
+import { Vector4 } from "@alipay/o3-math";
 import { PostEffectNode } from "./PostEffectNode";
 //@ts-ignore
 import ColorCorrectionShader from "./shaders/ColorCorrection.glsl";
-import { Texture2D } from "../../geometry/node_modules/@alipay/o3-material/types";
-import { Material } from "../../geometry/node_modules/@alipay/o3-material/types";
 
 const SHADER_CONFIG = {
   source: ColorCorrectionShader,
@@ -34,7 +33,7 @@ export class ColorCorrectionEffect extends PostEffectNode {
 
     let renderTarget = {};
     if (props && props.rtSize) {
-      const rtColor = [0.0, 0.0, 0.0, 1.0];
+      const rtColor = new Vector4(0.0, 0.0, 0.0, 1.0);
 
       renderTarget = rtPool.require("scene_renderTarget", {
         width: props.rtSize,

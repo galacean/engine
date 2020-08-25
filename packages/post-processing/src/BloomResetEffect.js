@@ -1,4 +1,4 @@
-import { RenderTarget } from '@alipay/o3-material';
+import { RenderTarget } from '@alipay/o3-core';
 import { Vector3 } from '@alipay/o3-math';
 import { PostEffectNode } from './PostEffectNode';
 import { ExtractHighlightPassNode } from './nodes/ExtractHighlightPassNode';

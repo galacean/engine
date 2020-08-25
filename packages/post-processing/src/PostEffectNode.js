@@ -1,4 +1,5 @@
 import { ClearMode } from "@alipay/o3-core";
+import { Vector4 } from "@alipay/o3-math";
 import { PostEffectMaterial } from "./PostEffectMaterial";
 
 /**
@@ -119,7 +120,7 @@ export class PostEffectNode {
 
       this.setupMaterial(camera);
       rhi.activeRenderTarget(destRT, camera);
-      rhi.clearRenderTarget(ClearMode.SOLID_COLOR, [0, 0, 0, 0]);
+      rhi.clearRenderTarget(ClearMode.SOLID_COLOR, new Vector4(0, 0, 0, 0));
       rhi.drawPrimitive(screenQuad.primitive, this.material);
     }
 

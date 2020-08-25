@@ -1,5 +1,4 @@
-import { Event, EventDispatcher, MaskList } from "./base";
-import { Matrix } from "@alipay/o3-math";
+import { EventDispatcher, MaskList } from "./base";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { Scene } from "./Scene";
@@ -49,6 +48,13 @@ export abstract class Component extends EventDispatcher {
    */
   get scene(): Scene {
     return this._entity.scene;
+  }
+
+  /**
+   * 所属的Engine对象。
+   */
+  get engine(): Engine {
+    return this._entity.engine;
   }
 
   /**
@@ -108,43 +114,18 @@ export abstract class Component extends EventDispatcher {
     }
   }
 
+  /**
+   * @todo 临时方案，未来组件可以统一使用浅拷贝解决
+   * @internal
+   */
+  _cloneTo(desComponent: Component): void {}
+
   //---------------------------------------------Deprecated-----------------------------------------------------------------
 
   private _renderPriority: number = 0;
   private _renderPassFlag: MaskList;
   private _passMasks: MaskList[];
   private _cullDistanceSq: number = 0; // 等于0，代表不进行 distance cull
-
-  /* @internal */
-  _renderable: boolean = false;
-
-  /**
-   * @deprecated
-   * 所属的Engine对象
-   * @member {Engine}
-   * @readonly
-   */
-  get engine(): Engine {
-    return this._entity?.scene?.engine;
-  }
-
-  /**
-   * @deprecated
-   * 是否可渲染
-   * @member {boolean}
-   * @readonly
-   * @private
-   */
-  get isRenderable() {
-    return this._renderable;
-  }
-
-  /**
-   * @deprecated
-   */
-  set renderable(val: boolean) {
-    this._renderable = val;
-  }
 
   /**
    * @deprecated
@@ -173,13 +154,6 @@ export abstract class Component extends EventDispatcher {
   }
   set cullDistance(val: number) {
     this._cullDistanceSq = val * val;
-  }
-
-  /**
-   * @deprecated
-   */
-  get invModelMatrix(): Readonly<Matrix> {
-    return this._entity.getInvModelMatrix();
   }
 
   /**
@@ -232,13 +206,5 @@ export abstract class Component extends EventDispatcher {
     }
 
     this.setPassMasks(...this._passMasks);
-  }
-
-  /**
-   * @deprecated
-   * 增加 parent 属性，主要是提供给事件的冒泡机制使用
-   */
-  get parent(): Entity {
-    return this._entity;
   }
 }

@@ -44,6 +44,6 @@ export function setPosition(out: Matrix, v: Vector3) {
 
 export function makeRotationFromQuaternion(q: Quaternion): Matrix {
   const out = new Matrix();
-  Matrix.fromQuat(q, out);
+  Matrix.rotationQuaternion(q, out);
   return out;
 }

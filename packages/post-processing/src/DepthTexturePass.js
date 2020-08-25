@@ -1,4 +1,5 @@
-import { Material, RenderColorTexture, RenderDepthTexture, RenderTarget, RenderTechnique } from "@alipay/o3-material";
+import { Material, RenderColorTexture, RenderDepthTexture, RenderTarget, RenderTechnique } from "@alipay/o3-core";
+import { Vector4 } from "@alipay/o3-math";
 
 const VERT_SHADER = `
 
@@ -47,12 +48,12 @@ class DepthMaterial extends Material {
    * 重写基类方法
    * @private
    */
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
     if (this._technique === null) {
       this._generateTechnique();
     }
 
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 }
 
@@ -61,7 +62,7 @@ export function addDepthTexturePass(camera, mask) {
   const renderTarget = new RenderTarget(512, 512, new RenderColorTexture(512, 512), new RenderDepthTexture(512, 512));
 
   const renderer = camera._renderPipeline;
-  renderer.addRenderPass("DepthPass", -1, renderTarget, mtl, mask, [1, 1, 1, 1]);
+  renderer.addRenderPass("DepthPass", -1, renderTarget, mtl, mask, new Vector4(1, 1, 1, 1));
 
   return renderTarget;
 }

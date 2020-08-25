@@ -1,5 +1,4 @@
-import { Camera, MaskList, RenderPass } from "@alipay/o3-core";
-import { RenderTarget } from "@alipay/o3-material";
+import { Camera, MaskList, RenderPass, RenderTarget } from "@alipay/o3-core";
 import { ColorMaterial } from "./ColorMaterial";
 
 /**
@@ -69,17 +68,16 @@ class ColorRenderPass extends RenderPass {
     const py = (screenPoint[1] / clientHeight) * canvasHeight;
 
     const viewport = camera.viewport;
-    const viewWidth = (viewport[2] - viewport[0]) * canvasWidth;
-    const viewHeight = (viewport[3] - viewport[1]) * canvasHeight;
+    const viewWidth = (viewport.z - viewport.x) * canvasWidth;
+    const viewHeight = (viewport.w - viewport.y) * canvasHeight;
 
-    const nx = (px - viewport[0]) / viewWidth;
-    const ny = (py - viewport[1]) / viewHeight;
+    const nx = (px - viewport.x) / viewWidth;
+    const ny = (py - viewport.y) / viewHeight;
     const left = Math.floor(nx * (this.renderTarget.width - 1));
     const bottom = Math.floor((1 - ny) * (this.renderTarget.height - 1));
     const pixel = new Uint8Array(4);
 
     this.renderTarget.getColorTexture().getPixelBuffer(null, left, bottom, 1, 1, pixel);
-
     return pixel;
   }
 }

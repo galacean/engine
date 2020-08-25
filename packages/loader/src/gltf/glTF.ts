@@ -1,17 +1,29 @@
-import { Logger, Util, DrawMode, DataType } from "@alipay/o3-core";
-import { Entity, Scene, Engine } from "@alipay/o3-core";
-import { Texture2D, Material } from "@alipay/o3-material";
-import { ConstantMaterial } from "@alipay/o3-mobile-material";
-import { Primitive } from "@alipay/o3-primitive";
-import { Mesh, Skin, MeshRenderer, SkinnedMeshRenderer } from "@alipay/o3-mesh";
-import { Vector3, Matrix, Quaternion, Vector4, Vector2 } from "@alipay/o3-math";
-import { getAccessorData, getAccessorTypeSize, createAttribute, findByKeyValue } from "./Util";
-import { AnimationClip, InterpolationType, Animation } from "@alipay/o3-animation";
-
-import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
-
-import { PBRMaterial } from "@alipay/o3-pbr";
+import {
+  AnimationClip,
+  DataType,
+  DrawMode,
+  Engine,
+  EngineObject,
+  Entity,
+  InterpolationType,
+  Logger,
+  Material,
+  Mesh,
+  MeshRenderer,
+  Scene,
+  Skin,
+  SkinnedMeshRenderer,
+  Texture2D,
+  Util,
+  Animation,
+  Primitive,
+  PBRMaterial,
+  ConstantMaterial
+} from "@alipay/o3-core";
+import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
+import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
+import { createAttribute, findByKeyValue, getAccessorData, getAccessorTypeSize } from "./Util";
 
 // 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
@@ -97,7 +109,7 @@ export interface GLTFParsed extends LoadedGLTFResource {
   engine?: Engine;
 }
 
-export interface GLTFResource {
+export class GLTFResource extends EngineObject {
   defaultSceneRoot: Entity;
   defaultScene: Scene;
   scenes: Scene[];
@@ -122,7 +134,7 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResourc
     images: data.images,
     gltf: data.gltf,
     buffers: data.buffers,
-    asset: {}
+    asset: new GLTFResource()
   };
 
   if (resources.gltf.asset && resources.gltf.asset.version) {
@@ -230,6 +242,8 @@ export function parseTexture(gltfTexture, resources: GLTFParsed) {
   const tex = new Texture2D(image.width, image.height, undefined, undefined, resources.engine);
   tex.setImageSource(image);
   tex.generateMipmaps();
+  // @ts-ignore 默认给 texture 加上缓存
+  resources.engine.resourceManager._addAsset(image.src, tex);
   return Promise.resolve(tex);
 }
 
@@ -270,7 +284,7 @@ export function parseMaterial(gltfMaterial, resources) {
         uniformObj.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources);
       }
       if (baseColorFactor) {
-        uniformObj.baseColorFactor = baseColorFactor;
+        uniformObj.baseColorFactor = new Vector4(...baseColorFactor);
       }
       uniformObj.metallicFactor = metallicFactor !== undefined ? metallicFactor : 1;
       uniformObj.roughnessFactor = roughnessFactor !== undefined ? roughnessFactor : 1;
@@ -323,13 +337,13 @@ export function parseMaterial(gltfMaterial, resources) {
 
         stateObj.isMetallicWorkflow = false;
         if (diffuseFactor) {
-          uniformObj.baseColorFactor = diffuseFactor;
+          uniformObj.baseColorFactor = new Vector4(...diffuseFactor);
         }
         if (diffuseTexture) {
           uniformObj.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources);
         }
         if (specularFactor) {
-          uniformObj.specularFactor = specularFactor;
+          uniformObj.specularFactor = new Vector3(...specularFactor);
         }
         if (glossinessFactor !== undefined) {
           uniformObj.glossinessFactor = glossinessFactor;
@@ -411,7 +425,7 @@ export function parseSkin(gltfSkin, resources) {
   for (let i = 0; i < jointCount; i++) {
     const startIdx = MAT4_LENGTH * i;
     const endIdx = startIdx + MAT4_LENGTH;
-    skin.inverseBindMatrices[i] = buffer.subarray(startIdx, endIdx);
+    skin.inverseBindMatrices[i] = new Matrix(...buffer.subarray(startIdx, endIdx));
   }
 
   // get joints
@@ -635,7 +649,7 @@ export function parseAnimation(gltfAnimation, resources) {
 export function parseNode(gltfNode, resources) {
   console.log(gltfNode);
   // TODO: undefined name?
-  const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`);
+  const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`, resources.engine);
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
@@ -673,13 +687,15 @@ export function parseNode(gltfNode, resources) {
         } else {
           const arr = gltfNode[key];
           const len = arr.length;
+          const obj = entity[mapKey];
           if (len === 2) {
-            entity[mapKey] = new Vector2(...arr);
-          } else if (len == 3) {
-            entity[mapKey] = new Vector3(...arr);
-          } else if (len == 4) {
-            entity[mapKey] = new Vector4(...arr);
+            obj.setValue(arr[0], arr[1]);
+          } else if (len === 3) {
+            obj.setValue(arr[0], arr[1], arr[2]);
+          } else if (len === 4) {
+            obj.setValue(arr[0], arr[1], arr[2], arr[3]);
           }
+          entity[mapKey] = obj;
         }
       }
     }
@@ -780,25 +796,26 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
         node.addComponent(MeshRenderer, { mesh });
       }
     }
+  }
 
-    //@ts-ignore
-    const nodes = asset.defaultScene.nodes;
-    if (nodes.length === 1) {
-      asset.defaultSceneRoot = nodes[0];
-    } else {
-      const rootNode = new Entity(null, resources.engine);
-      for (let i = 0; i < nodes.length; i++) {
-        rootNode.addChild(nodes[i]);
-      }
-      asset.defaultSceneRoot = rootNode;
+  //@ts-ignore
+  const nodes = asset.defaultScene.nodes;
+  if (nodes.length === 1) {
+    asset.defaultSceneRoot = nodes[0];
+  } else {
+    const rootNode = new Entity(null, resources.engine);
+    for (let i = 0; i < nodes.length; i++) {
+      rootNode.addChild(nodes[i]);
     }
-    const animator = asset.defaultSceneRoot.addComponent(Animation);
-    const animations = asset.animations;
-    if (animations) {
-      animations.forEach((clip: AnimationClip) => {
-        animator.addAnimationClip(clip, clip.name);
-      });
-    }
+    asset.defaultSceneRoot = rootNode;
+  }
+
+  const animator = asset.defaultSceneRoot.addComponent(Animation);
+  const animations = asset.animations;
+  if (animations) {
+    animations.forEach((clip: AnimationClip) => {
+      animator.addAnimationClip(clip, clip.name);
+    });
   }
   return resources.asset as GLTFResource;
 }

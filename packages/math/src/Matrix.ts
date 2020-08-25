@@ -14,8 +14,6 @@ export class Matrix {
   /** @internal */
   private static readonly _tempVec32: Vector3 = new Vector3();
   /** @internal */
-  private static readonly _tempVec33: Vector3 = new Vector3();
-  /** @internal */
   private static readonly _tempMat30: Matrix3x3 = new Matrix3x3();
   /** @internal */
   private static readonly _tempMat40: Matrix = new Matrix();
@@ -42,106 +40,106 @@ export class Matrix {
 
   /**
    * 将两个矩阵相乘。
-   * @param a - 左矩阵
-   * @param b - 右矩阵
+   * @param left - 左矩阵
+   * @param right - 右矩阵
    * @param out - 矩阵相乘的结果
    */
-  static multiply(a: Matrix, b: Matrix, out: Matrix): void {
-    const ae = a.elements;
-    const be = b.elements;
+  static multiply(left: Matrix, right: Matrix, out: Matrix): void {
+    const le = left.elements;
+    const re = right.elements;
     const oe = out.elements;
 
-    const a11 = ae[0],
-      a12 = ae[1],
-      a13 = ae[2],
-      a14 = ae[3];
-    const a21 = ae[4],
-      a22 = ae[5],
-      a23 = ae[6],
-      a24 = ae[7];
-    const a31 = ae[8],
-      a32 = ae[9],
-      a33 = ae[10],
-      a34 = ae[11];
-    const a41 = ae[12],
-      a42 = ae[13],
-      a43 = ae[14],
-      a44 = ae[15];
+    const l11 = le[0],
+      l12 = le[1],
+      l13 = le[2],
+      l14 = le[3];
+    const l21 = le[4],
+      l22 = le[5],
+      l23 = le[6],
+      l24 = le[7];
+    const l31 = le[8],
+      l32 = le[9],
+      l33 = le[10],
+      l34 = le[11];
+    const l41 = le[12],
+      l42 = le[13],
+      l43 = le[14],
+      l44 = le[15];
 
-    const b11 = be[0],
-      b12 = be[1],
-      b13 = be[2],
-      b14 = be[3];
-    const b21 = be[4],
-      b22 = be[5],
-      b23 = be[6],
-      b24 = be[7];
-    const b31 = be[8],
-      b32 = be[9],
-      b33 = be[10],
-      b34 = be[11];
-    const b41 = be[12],
-      b42 = be[13],
-      b43 = be[14],
-      b44 = be[15];
+    const r11 = re[0],
+      r12 = re[1],
+      r13 = re[2],
+      r14 = re[3];
+    const r21 = re[4],
+      r22 = re[5],
+      r23 = re[6],
+      r24 = re[7];
+    const r31 = re[8],
+      r32 = re[9],
+      r33 = re[10],
+      r34 = re[11];
+    const r41 = re[12],
+      r42 = re[13],
+      r43 = re[14],
+      r44 = re[15];
 
-    oe[0] = a11 * b11 + a21 * b12 + a31 * b13 + a41 * b14;
-    oe[1] = a12 * b11 + a22 * b12 + a32 * b13 + a42 * b14;
-    oe[2] = a13 * b11 + a23 * b12 + a33 * b13 + a43 * b14;
-    oe[3] = a14 * b11 + a24 * b12 + a34 * b13 + a44 * b14;
+    oe[0] = l11 * r11 + l21 * r12 + l31 * r13 + l41 * r14;
+    oe[1] = l12 * r11 + l22 * r12 + l32 * r13 + l42 * r14;
+    oe[2] = l13 * r11 + l23 * r12 + l33 * r13 + l43 * r14;
+    oe[3] = l14 * r11 + l24 * r12 + l34 * r13 + l44 * r14;
 
-    oe[4] = a11 * b21 + a21 * b22 + a31 * b23 + a41 * b24;
-    oe[5] = a12 * b21 + a22 * b22 + a32 * b23 + a42 * b24;
-    oe[6] = a13 * b21 + a23 * b22 + a33 * b23 + a43 * b24;
-    oe[7] = a14 * b21 + a24 * b22 + a34 * b23 + a44 * b24;
+    oe[4] = l11 * r21 + l21 * r22 + l31 * r23 + l41 * r24;
+    oe[5] = l12 * r21 + l22 * r22 + l32 * r23 + l42 * r24;
+    oe[6] = l13 * r21 + l23 * r22 + l33 * r23 + l43 * r24;
+    oe[7] = l14 * r21 + l24 * r22 + l34 * r23 + l44 * r24;
 
-    oe[8] = a11 * b31 + a21 * b32 + a31 * b33 + a41 * b34;
-    oe[9] = a12 * b31 + a22 * b32 + a32 * b33 + a42 * b34;
-    oe[10] = a13 * b31 + a23 * b32 + a33 * b33 + a43 * b34;
-    oe[11] = a14 * b31 + a24 * b32 + a34 * b33 + a44 * b34;
+    oe[8] = l11 * r31 + l21 * r32 + l31 * r33 + l41 * r34;
+    oe[9] = l12 * r31 + l22 * r32 + l32 * r33 + l42 * r34;
+    oe[10] = l13 * r31 + l23 * r32 + l33 * r33 + l43 * r34;
+    oe[11] = l14 * r31 + l24 * r32 + l34 * r33 + l44 * r34;
 
-    oe[12] = a11 * b41 + a21 * b42 + a31 * b43 + a41 * b44;
-    oe[13] = a12 * b41 + a22 * b42 + a32 * b43 + a42 * b44;
-    oe[14] = a13 * b41 + a23 * b42 + a33 * b43 + a43 * b44;
-    oe[15] = a14 * b41 + a24 * b42 + a34 * b43 + a44 * b44;
+    oe[12] = l11 * r41 + l21 * r42 + l31 * r43 + l41 * r44;
+    oe[13] = l12 * r41 + l22 * r42 + l32 * r43 + l42 * r44;
+    oe[14] = l13 * r41 + l23 * r42 + l33 * r43 + l43 * r44;
+    oe[15] = l14 * r41 + l24 * r42 + l34 * r43 + l44 * r44;
   }
 
   /**
-   * 判断两个四维矩阵的值是否相等。
-   * @param a - 左矩阵
-   * @param b - 右矩阵
+   * 判断两个矩阵的值是否相等。
+   * @param left - 左矩阵
+   * @param right - 右矩阵
    * @returns 两个矩阵是否相等，是返回 true，否则返回 false
    */
-  static equals(a: Matrix, b: Matrix): boolean {
-    const ae = a.elements;
-    const be = b.elements;
+  static equals(left: Matrix, right: Matrix): boolean {
+    const le = left.elements;
+    const re = right.elements;
 
     return (
-      MathUtil.equals(ae[0], be[0]) &&
-      MathUtil.equals(ae[1], be[1]) &&
-      MathUtil.equals(ae[2], be[2]) &&
-      MathUtil.equals(ae[3], be[3]) &&
-      MathUtil.equals(ae[4], be[4]) &&
-      MathUtil.equals(ae[5], be[5]) &&
-      MathUtil.equals(ae[6], be[6]) &&
-      MathUtil.equals(ae[7], be[7]) &&
-      MathUtil.equals(ae[8], be[8]) &&
-      MathUtil.equals(ae[9], be[9]) &&
-      MathUtil.equals(ae[10], be[10]) &&
-      MathUtil.equals(ae[11], be[11]) &&
-      MathUtil.equals(ae[12], be[12]) &&
-      MathUtil.equals(ae[13], be[13]) &&
-      MathUtil.equals(ae[14], be[14]) &&
-      MathUtil.equals(ae[15], be[15])
+      MathUtil.equals(le[0], re[0]) &&
+      MathUtil.equals(le[1], re[1]) &&
+      MathUtil.equals(le[2], re[2]) &&
+      MathUtil.equals(le[3], re[3]) &&
+      MathUtil.equals(le[4], re[4]) &&
+      MathUtil.equals(le[5], re[5]) &&
+      MathUtil.equals(le[6], re[6]) &&
+      MathUtil.equals(le[7], re[7]) &&
+      MathUtil.equals(le[8], re[8]) &&
+      MathUtil.equals(le[9], re[9]) &&
+      MathUtil.equals(le[10], re[10]) &&
+      MathUtil.equals(le[11], re[11]) &&
+      MathUtil.equals(le[12], re[12]) &&
+      MathUtil.equals(le[13], re[13]) &&
+      MathUtil.equals(le[14], re[14]) &&
+      MathUtil.equals(le[15], re[15])
     );
   }
 
   /**
-   * 从四元数转换为一个4x4矩阵。
+   * 通过四元数生成旋转矩阵。
    * @param q - 四元数
    * @param out - 转换后的4x4矩阵
    */
-  static fromQuat(q: Quaternion, out: Matrix): void {
+  static rotationQuaternion(q: Quaternion, out: Matrix): void {
     const oe = out.elements;
     const { x, y, z, w } = q;
     let x2 = x + x;
@@ -180,12 +178,13 @@ export class Matrix {
   }
 
   /**
-   * 通过指定旋转生成4x4矩阵。
+   * 通过绕任意轴旋转生成4x4矩阵。
+   * * @param axis - 旋转轴
    * @param r - 旋转角度
-   * @param axis - 旋转轴
    * @param out - 指定旋转后矩阵
    */
-  static fromRotation(r: number, axis: Vector3, out: Matrix): void {
+  static rotationAxisAngle(axis: Vector3, r: number, out: Matrix): void {
+    //CM：stride实现
     const oe = out.elements;
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
@@ -229,57 +228,28 @@ export class Matrix {
   /**
    * 通过指定的旋转四元数,转换向量生成4x4矩阵。
    * @param q - 旋转四元数
-   * @param v - 转换向量
+   * @param trans - 转换向量
    * @param out - 生成的4x4矩阵
    */
-  static fromRotationTranslation(q: Quaternion, trans: Vector3, out: Matrix): void {
+  static rotationTranslation(q: Quaternion, trans: Vector3, out: Matrix): void {
+    Matrix.rotationQuaternion(q, out);
+
     const oe = out.elements;
-    const { x, y, z, w } = q;
-    let x2 = x + x;
-    let y2 = y + y;
-    let z2 = z + z;
-
-    let xx = x * x2;
-    let xy = x * y2;
-    let xz = x * z2;
-    let yy = y * y2;
-    let yz = y * z2;
-    let zz = z * z2;
-    let wx = w * x2;
-    let wy = w * y2;
-    let wz = w * z2;
-
-    oe[0] = 1 - (yy + zz);
-    oe[1] = xy + wz;
-    oe[2] = xz - wy;
-    oe[3] = 0;
-
-    oe[4] = xy - wz;
-    oe[5] = 1 - (xx + zz);
-    oe[6] = yz + wx;
-    oe[7] = 0;
-
-    oe[8] = xz + wy;
-    oe[9] = yz - wx;
-    oe[10] = 1 - (xx + yy);
-    oe[11] = 0;
-
     oe[12] = trans.x;
     oe[13] = trans.y;
     oe[14] = trans.z;
-    oe[15] = 1;
   }
 
   /**
-   * 通过指定的旋转四元数,转换向量,缩放向量生成4x4矩阵。
-   * @param q - 旋转四元数
+   * 创建仿射矩阵。
+   * @param scale - 缩放向量
+   * @param rotation - 旋转四元数
    * @param trans - 转换向量
-   * @param s - 缩放向量
    * @param out - 生成的4x4矩阵
    */
-  static fromRotationTranslationScale(q: Quaternion, trans: Vector3, s: Vector3, out: Matrix): void {
+  static affineTransformation(scale: Vector3, rotation: Quaternion, trans: Vector3, out: Matrix): void {
     const oe = out.elements;
-    const { x, y, z, w } = q;
+    const { x, y, z, w } = rotation;
     let x2 = x + x;
     let y2 = y + y;
     let z2 = z + z;
@@ -293,9 +263,9 @@ export class Matrix {
     let wx = w * x2;
     let wy = w * y2;
     let wz = w * z2;
-    let sx = s.x;
-    let sy = s.y;
-    let sz = s.z;
+    let sx = scale.x;
+    let sy = scale.y;
+    let sz = scale.z;
 
     oe[0] = (1 - (yy + zz)) * sx;
     oe[1] = (xy + wz) * sx;
@@ -315,60 +285,6 @@ export class Matrix {
     oe[12] = trans.x;
     oe[13] = trans.y;
     oe[14] = trans.z;
-    oe[15] = 1;
-  }
-
-  /**
-   * 通过指定的旋转四元数,转换向量,缩放向量,原点向量生成4x4矩阵。
-   * @param q - 旋转四元数
-   * @param trans - 转换向量
-   * @param s - 缩放向量
-   * @param o - 原点向量
-   * @param out - 生成的4x4矩阵
-   */
-  static fromRotationTranslationScaleOrigin(q: Quaternion, trans: Vector3, s: Vector3, o: Vector3, out: Matrix): void {
-    const oe = out.elements;
-    const { x, y, z, w } = q;
-    let x2 = x + x;
-    let y2 = y + y;
-    let z2 = z + z;
-
-    let xx = x * x2;
-    let xy = x * y2;
-    let xz = x * z2;
-    let yy = y * y2;
-    let yz = y * z2;
-    let zz = z * z2;
-    let wx = w * x2;
-    let wy = w * y2;
-    let wz = w * z2;
-
-    let sx = s.x;
-    let sy = s.y;
-    let sz = s.z;
-
-    let ox = o.x;
-    let oy = o.y;
-    let oz = o.z;
-
-    oe[0] = (1 - (yy + zz)) * sx;
-    oe[1] = (xy + wz) * sx;
-    oe[2] = (xz - wy) * sx;
-    oe[3] = 0;
-
-    oe[4] = (xy - wz) * sy;
-    oe[5] = (1 - (xx + zz)) * sy;
-    oe[6] = (yz + wx) * sy;
-    oe[7] = 0;
-
-    oe[8] = (xz + wy) * sz;
-    oe[9] = (yz - wx) * sz;
-    oe[10] = (1 - (xx + yy)) * sz;
-    oe[11] = 0;
-
-    oe[12] = trans.x + ox - (oe[0] * ox + oe[4] * oy + oe[8] * oz);
-    oe[13] = trans.y + oy - (oe[1] * ox + oe[5] * oy + oe[9] * oz);
-    oe[14] = trans.z + oz - (oe[2] * ox + oe[6] * oy + oe[10] * oz);
     oe[15] = 1;
   }
 
@@ -377,7 +293,7 @@ export class Matrix {
    * @param s - 缩放向量
    * @param out - 指定缩放后矩阵
    */
-  static fromScaling(s: Vector3, out: Matrix): void {
+  static scaling(s: Vector3, out: Matrix): void {
     const oe = out.elements;
     oe[0] = s.x;
     oe[1] = 0;
@@ -405,7 +321,7 @@ export class Matrix {
    * @param trans - 平移向量
    * @param out - 指定平移后矩阵
    */
-  static fromTranslation(trans: Vector3, out: Matrix): void {
+  static translation(trans: Vector3, out: Matrix): void {
     const oe = out.elements;
     oe[0] = 1;
     oe[1] = 0;
@@ -495,99 +411,13 @@ export class Matrix {
   }
 
   /**
-   * 计算观察矩阵。
-   * @param eye - 观察者视点位置
-   * @param center - 视点目标
-   * @param up - 向上向量
-   * @param out - 观察矩阵
-   */
-  static lookAt(eye: Vector3, center: Vector3, up: Vector3, out: Matrix): void {
-    const oe = out.elements;
-    let x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
-    const eyex = eye.x;
-    const eyey = eye.y;
-    const eyez = eye.z;
-    const upx = up.x;
-    const upy = up.y;
-    const upz = up.z;
-    const centerx = center.x;
-    const centery = center.y;
-    const centerz = center.z;
-
-    if (MathUtil.equals(eyex, centerx) && MathUtil.equals(eyey, centery) && MathUtil.equals(eyez, centerz)) {
-      out.identity();
-      return;
-    }
-
-    z0 = eyex - centerx;
-    z1 = eyey - centery;
-    z2 = eyez - centerz;
-
-    len = 1 / Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
-    z0 *= len;
-    z1 *= len;
-    z2 *= len;
-
-    x0 = upy * z2 - upz * z1;
-    x1 = upz * z0 - upx * z2;
-    x2 = upx * z1 - upy * z0;
-    len = Math.sqrt(x0 * x0 + x1 * x1 + x2 * x2);
-    if (!len) {
-      x0 = 0;
-      x1 = 0;
-      x2 = 0;
-    } else {
-      len = 1 / len;
-      x0 *= len;
-      x1 *= len;
-      x2 *= len;
-    }
-
-    y0 = z1 * x2 - z2 * x1;
-    y1 = z2 * x0 - z0 * x2;
-    y2 = z0 * x1 - z1 * x0;
-
-    len = Math.sqrt(y0 * y0 + y1 * y1 + y2 * y2);
-    if (!len) {
-      y0 = 0;
-      y1 = 0;
-      y2 = 0;
-    } else {
-      len = 1 / len;
-      y0 *= len;
-      y1 *= len;
-      y2 *= len;
-    }
-
-    oe[0] = x0;
-    oe[1] = y0;
-    oe[2] = z0;
-    oe[3] = 0;
-
-    oe[4] = x1;
-    oe[5] = y1;
-    oe[6] = z1;
-    oe[7] = 0;
-
-    oe[8] = x2;
-    oe[9] = y2;
-    oe[10] = z2;
-    oe[11] = 0;
-
-    oe[12] = -(x0 * eyex + x1 * eyey + x2 * eyez);
-    oe[13] = -(y0 * eyex + y1 * eyey + y2 * eyez);
-    oe[14] = -(z0 * eyex + z1 * eyey + z2 * eyez);
-    oe[15] = 1;
-  }
-
-  /**
-   * 计算观察矩阵。
+   * 计算观察矩阵，基于右手坐标系。
    * @param eye - 观察者视点位置
    * @param target - 视点目标
    * @param up - 向上向量
    * @param out - 观察矩阵
    */
-  static lookAtR(eye: Vector3, target: Vector3, up: Vector3, out: Matrix): void {
+  static lookAt(eye: Vector3, target: Vector3, up: Vector3, out: Matrix): void {
     const oe = out.elements;
     const xAxis: Vector3 = Matrix._tempVec30;
     const yAxis: Vector3 = Matrix._tempVec31;
@@ -618,9 +448,6 @@ export class Matrix {
     oe[13] = -Vector3.dot(yAxis, eye);
     oe[14] = -Vector3.dot(zAxis, eye);
     oe[15] = 1;
-
-    console.log(`xxxxx`);
-    console.log(out);
   }
 
   /**
@@ -697,11 +524,11 @@ export class Matrix {
   /**
    * 将矩阵 a 按给定角度旋转，并将结果输出到 out。
    * @param m - 矩阵
-   * @param r - 给定的旋转角度
    * @param axis - 旋转轴
+   * @param r - 给定的旋转角度
    * @param out - 旋转后的矩阵
    */
-  static rotate(m: Matrix, r: number, axis: Vector3, out: Matrix): void {
+  static rotateAxisAngle(m: Matrix, axis: Vector3, r: number, out: Matrix): void {
     let { x, y, z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
@@ -899,27 +726,36 @@ export class Matrix {
     }
   }
 
-  /** 矩阵元素数组。 */
+  /**
+   * 矩阵元素数组，采用列矩阵的模式存储。
+   * @remarks
+   * elements[0] 表示第 1 列第 1 行 m11
+   * elements[1] 表示第 1 列第 2 行 m12
+   * elements[2] 表示第 1 列第 3 行 m13
+   * elements[3] 表示第 1 列第 4 行 m14
+   * elements[4] 表示第 2 列第 1 行 m21
+   * 依次类推
+   */
   elements: Float32Array = new Float32Array(16);
 
   /**
-   * 创建4x4矩阵实例，默认创建单位矩阵，我们采用列矩阵。
-   * @param m11 默认值 1 column 1, row 1
-   * @param m12 默认值 0 column 1, row 2
-   * @param m13 默认值 0 column 1, row 3
-   * @param m14 默认值 0 column 1, row 4
-   * @param m21 默认值 0 column 2, row 1
-   * @param m22 默认值 1 column 2, row 2
-   * @param m23 默认值 0 column 2, row 3
-   * @param m24 默认值 0 column 2, row 4
-   * @param m31 默认值 0 column 3, row 1
-   * @param m32 默认值 0 column 3, row 2
-   * @param m33 默认值 1 column 3, row 3
-   * @param m34 默认值 0 column 3, row 4
-   * @param m41 默认值 0 column 4, row 1
-   * @param m42 默认值 0 column 4, row 2
-   * @param m43 默认值 0 column 4, row 3
-   * @param m44 默认值 1 column 4, row 4
+   * 创建4x4矩阵实例，默认创建单位矩阵，采用列矩阵的模式存储。
+   * @param m11 - 默认值 1，column 1, row 1
+   * @param m12 - 默认值 0，column 1, row 2
+   * @param m13 - 默认值 0，column 1, row 3
+   * @param m14 - 默认值 0，column 1, row 4
+   * @param m21 - 默认值 0，column 2, row 1
+   * @param m22 - 默认值 1，column 2, row 2
+   * @param m23 - 默认值 0，column 2, row 3
+   * @param m24 - 默认值 0，column 2, row 4
+   * @param m31 - 默认值 0，column 3, row 1
+   * @param m32 - 默认值 0，column 3, row 2
+   * @param m33 - 默认值 1，column 3, row 3
+   * @param m34 - 默认值 0，column 3, row 4
+   * @param m41 - 默认值 0，column 4, row 1
+   * @param m42 - 默认值 0，column 4, row 2
+   * @param m43 - 默认值 0，column 4, row 3
+   * @param m44 - 默认值 1，column 4, row 4
    */
   constructor(
     m11: number = 1,
@@ -964,22 +800,22 @@ export class Matrix {
 
   /**
    * 给矩阵设置值，并返回当前值。
-   * @param m11
-   * @param m12
-   * @param m13
-   * @param m14
-   * @param m21
-   * @param m22
-   * @param m23
-   * @param m24
-   * @param m31
-   * @param m32
-   * @param m33
-   * @param m34
-   * @param m41
-   * @param m42
-   * @param m43
-   * @param m44
+   * @param m11 - column 1, row 1
+   * @param m12 - column 1, row 2
+   * @param m13 - column 1, row 3
+   * @param m14 - column 1, row 4
+   * @param m21 - column 2, row 1
+   * @param m22 - column 2, row 2
+   * @param m23 - column 2, row 3
+   * @param m24 - column 2, row 4
+   * @param m31 - column 3, row 1
+   * @param m32 - column 3, row 2
+   * @param m33 - column 3, row 3
+   * @param m34 - column 3, row 4
+   * @param m41 - column 4, row 1
+   * @param m42 - column 4, row 2
+   * @param m43 - column 4, row 3
+   * @param m44 - column 4, row 4
    * @returns 当前矩阵
    */
   setValue(
@@ -1026,7 +862,21 @@ export class Matrix {
   }
 
   /**
-   * 创建一个新的四维矩阵，并用当前矩阵值初始化。
+   * 通过数组设置值，并返回当前矩阵。
+   * @param array - 数组
+   * @param offset - 数组偏移
+   * @returns 当前矩阵
+   */
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): Matrix {
+    const srce = this.elements;
+    for (let i = 0; i < 16; i++) {
+      srce[i] = array[i + offset];
+    }
+    return this;
+  }
+
+  /**
+   * 创建一个新的矩阵，并用当前矩阵值初始化。
    * @returns 一个新的矩阵，并且拷贝当前矩阵的值
    */
   clone(): Matrix {
@@ -1056,7 +906,7 @@ export class Matrix {
    * 将当前矩阵值拷贝给 out 矩阵。
    * @param out - 目标矩阵
    */
-  cloneTo(out: Matrix): void {
+  cloneTo(out: Matrix): Matrix {
     const e = this.elements;
     const oe = out.elements;
 
@@ -1079,15 +929,17 @@ export class Matrix {
     oe[13] = e[13];
     oe[14] = e[14];
     oe[15] = e[15];
+
+    return out;
   }
 
   /**
-   * 将当前矩阵乘以给定的向量 a，并返回当前矩阵。
-   * @param b - 给定的向量，右操作数
+   * 将当前矩阵乘以给定的向量 right，并返回当前矩阵。
+   * @param right - 给定的向量，右操作数
    * @returns 当前矩阵
    */
-  multiply(b: Matrix): Matrix {
-    Matrix.multiply(this, b, this);
+  multiply(right: Matrix): Matrix {
+    Matrix.multiply(this, right, this);
     return this;
   }
 
@@ -1156,7 +1008,7 @@ export class Matrix {
       Math.abs(sy) < MathUtil.zeroTolerance ||
       Math.abs(sz) < MathUtil.zeroTolerance
     ) {
-      // TODO
+      // TODO CM:
     } else {
       // if determine is negative, we need to invert one scale
       const det = t.determinant();
@@ -1181,8 +1033,8 @@ export class Matrix {
     }
 
     const m3: Matrix3x3 = Matrix._tempMat30;
-    Matrix3x3.fromMat4(t, m3);
-    Quaternion.rotationMat3(m3, q);
+    m3.setValueByMatrix(t);
+    Quaternion.rotationMatrix3x3(m3, q);
 
     s.x = sx;
     s.y = sy;
@@ -1235,6 +1087,7 @@ export class Matrix {
    * @returns 当前矩阵的缩放向量
    */
   getScaling(out: Vector3): Vector3 {
+    //getScale()
     const e = this.elements;
     const m11 = e[0],
       m12 = e[1],
@@ -1309,12 +1162,12 @@ export class Matrix {
 
   /**
    * 将当前矩阵按给定角度旋转，并返回。
-   * @param r - 给定的旋转角度
    * @param axis - 旋转轴
+   * @param r - 给定的旋转角度
    * @returns 当前矩阵
    */
-  rotate(r: number, axis: Vector3): Matrix {
-    Matrix.rotate(this, r, axis, this);
+  rotateAxisAngle(axis: Vector3, r: number): Matrix {
+    Matrix.rotateAxisAngle(this, axis, r, this);
     return this;
   }
 

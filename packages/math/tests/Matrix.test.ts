@@ -43,18 +43,18 @@ describe("Matrix test", () => {
     expect(Matrix.equals(a, c)).toEqual(false);
   });
 
-  it("static fromQuat", () => {
+  it("static rotationQuaternion", () => {
     const q = new Quaternion(1, 2, 3, 4);
     const out = new Matrix();
 
-    Matrix.fromQuat(q, out);
+    Matrix.rotationQuaternion(q, out);
     expect(Matrix.equals(out, new Matrix(-25, 28, -10, 0, -20, -19, 20, 0, 22, 4, -9, 0, 0, 0, 0, 1))).toEqual(true);
   });
 
-  it("static fromRotation", () => {
+  it("static rotationAxisAngle", () => {
     const out = new Matrix();
 
-    Matrix.fromRotation(Math.PI / 3, new Vector3(0, 1, 0), out);
+    Matrix.rotationAxisAngle(new Vector3(0, 1, 0), Math.PI / 3, out);
     expect(
       Matrix.equals(
         out,
@@ -80,39 +80,26 @@ describe("Matrix test", () => {
     ).toEqual(true);
   });
 
-  it("static fromRotationTranslation", () => {
+  it("static rotationTranslation", () => {
     const q = new Quaternion(1, 0.5, 2, 1);
     const v = new Vector3(1, 1, 1);
     const out = new Matrix();
 
-    Matrix.fromRotationTranslation(q, v, out);
+    Matrix.rotationTranslation(q, v, out);
     expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -3, -9, 4, 0, 5, 0, -1.5, 0, 1, 1, 1, 1))).toEqual(true);
   });
 
-  it("static fromRotationTranslationScale", () => {
+  it("static affineTransformation", () => {
     const q = new Quaternion(1, 0.5, 2, 1);
     const v = new Vector3(1, 1, 1);
     const s = new Vector3(1, 0.5, 2);
     const out = new Matrix();
 
-    Matrix.fromRotationTranslationScale(q, v, s, out);
+    Matrix.affineTransformation(s, q, v, out);
     expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -1.5, -4.5, 2, 0, 10, 0, -3, 0, 1, 1, 1, 1))).toEqual(true);
   });
 
-  it("static fromRotationTranslationScaleOrigin", () => {
-    const q = new Quaternion(1, 0.5, 2, 1);
-    const v = new Vector3(1, 1, 1);
-    const s = new Vector3(1, 0.5, 2);
-    const o = new Vector3(1, 0.5, 2);
-    const out = new Matrix();
-
-    Matrix.fromRotationTranslationScaleOrigin(q, v, s, o, out);
-    expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -1.5, -4.5, 2, 0, 10, 0, -3, 0, -9.75, -1.25, 5, 1))).toEqual(
-      true
-    );
-  });
-
-  it("static fromScaling", () => {
+  it("static scaling", () => {
     const a = new Matrix();
     const out = new Matrix();
 
@@ -120,11 +107,11 @@ describe("Matrix test", () => {
     expect(Matrix.equals(out, new Matrix(1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1))).toEqual(true);
   });
 
-  it("static fromTranslation", () => {
+  it("static translation", () => {
     const out = new Matrix();
     const v = new Vector3(1, 2, 0.5);
 
-    Matrix.fromTranslation(v, out);
+    Matrix.translation(v, out);
     expect(Matrix.equals(out, new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 2, 0.5, 1))).toEqual(true);
   });
 
@@ -161,26 +148,16 @@ describe("Matrix test", () => {
   it("static lookAt", () => {
     const out = new Matrix();
     const eye = new Vector3(0, 0, -8);
-    const center = new Vector3(0, 0, 0);
-    const up = new Vector3(0, 1, 0);
-
-    Matrix.lookAt(eye, center, up, out);
-    expect(Matrix.equals(out, new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, -8, 1))).toEqual(true);
-  });
-
-  it("static lookAtR", () => {
-    const out = new Matrix();
-    const eye = new Vector3(0, 0, -8);
     const target = new Vector3(0, 0, 0);
     const up = new Vector3(0, 1, 0);
 
-    Matrix.lookAtR(eye, target, up, out);
+    Matrix.lookAt(eye, target, up, out);
     expect(Matrix.equals(out, new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, -8, 1))).toEqual(true);
 
     eye.setValue(0, 0, 0);
     target.setValue(0, 1, -1);
     up.setValue(0, 1, 0);
-    Matrix.lookAtR(eye, target, up, out);
+    Matrix.lookAt(eye, target, up, out);
     expect(
       Matrix.equals(
         out,
@@ -245,11 +222,11 @@ describe("Matrix test", () => {
     ).toEqual(true);
   });
 
-  it("static rotate", () => {
+  it("static rotateAxisAngle", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
     const out = new Matrix();
 
-    Matrix.rotate(a, Math.PI / 3, new Vector3(0, 1, 0), out);
+    Matrix.rotateAxisAngle(a, new Vector3(0, 1, 0), Math.PI / 3, out);
     expect(
       Matrix.equals(
         out,
@@ -431,10 +408,10 @@ describe("Matrix test", () => {
     ).toEqual(true);
   });
 
-  it("rotate", () => {
+  it("rotateAxisAngle", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 
-    a.rotate(Math.PI / 3, new Vector3(0, 1, 0));
+    a.rotateAxisAngle(new Vector3(0, 1, 0), Math.PI / 3);
     expect(
       Matrix.equals(
         a,

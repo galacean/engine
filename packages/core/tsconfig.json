@@ -10,9 +10,10 @@
     "emitDeclarationOnly": true,
     "stripInternal": true,
     "sourceMap": true,
+    "strict": false,
     "incremental": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*", "../draco/src/glTFDracoMeshCompression.ts", "../loader/src/scene-loader"
   ]
 }

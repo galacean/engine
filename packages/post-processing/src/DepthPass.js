@@ -1,6 +1,6 @@
 import { DataType } from "@alipay/o3-core";
-import { ComplexMaterial, RenderColorTexture, RenderTarget, RenderTechnique } from "@alipay/o3-material";
-import { ShaderFactory } from "@alipay/o3-shaderlib";
+import { ComplexMaterial, RenderColorTexture, RenderTarget, RenderTechnique, ShaderFactory} from "@alipay/o3-core";
+import { Vector4 } from "@alipay/o3-math";
 import DepthPackingShader from "./shaderLib/depth_packing.glsl";
 
 ShaderFactory.InjectShaderSlices({
@@ -87,7 +87,7 @@ export function addDepthPass(camera, mask, renderTargetSize) {
     new RenderColorTexture(renderTargetSize, renderTargetSize)
   );
 
-  camera._renderPipeline.addRenderPass("DepthPass", -1, renderTarget, mtl, mask, [1, 1, 1, 1]);
+  camera._renderPipeline.addRenderPass("DepthPass", -1, renderTarget, mtl, mask, new Vector4(1, 1, 1, 1));
 
   return renderTarget;
 }

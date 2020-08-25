@@ -1,5 +1,4 @@
-import { AnimationClip, Animation, WrapMode } from "@alipay/o3-animation";
-import { Component, Entity } from "@alipay/o3-core";
+import { Component, Entity, WrapMode, Animation } from "@alipay/o3-core";
 import { GLTFResource } from "./gltf/glTF";
 
 /**
@@ -13,13 +12,17 @@ export class GLTFModel extends Component {
   }
 
   set asset(value: GLTFResource) {
+    if (value && value.defaultSceneRoot === this.GLTFNode) {
+      return;
+    }
     if (!this._hasBuiltNode) {
       (this.GLTFNode as any).clearChildren();
       if (value !== null) {
         if (this.GLTFNode) {
           this.GLTFNode.destroy();
         }
-        this.GLTFNode = value.defaultSceneRoot;
+        this.GLTFNode = value.defaultSceneRoot.clone();
+        this._animator = this.GLTFNode.getComponent(Animation);
         this.entity.addChild(this.GLTFNode);
       }
     }

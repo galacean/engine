@@ -58,12 +58,12 @@ export class Camera extends Component {
   private _projectionMatrix: Matrix = new Matrix();
   private _isProjMatSetting = false;
   private _viewMatrix: Matrix = new Matrix();
-  private _clearParam: Vector4;
-  private _clearMode: ClearMode;
+  private _backgroundColor: Vector4 = new Vector4();
+  private _clearMode: ClearMode = ClearMode.SOLID_COLOR;
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
-  private _nearClipPlane: number;
-  private _farClipPlane: number;
-  private _fieldOfView: number;
+  private _nearClipPlane: number = 0.1;
+  private _farClipPlane: number = 100;
+  private _fieldOfView: number = 45;
   private _orthographicSize: number = 10;
   private _inverseProjectionMatrix: Matrix = new Matrix();
   private _inverseViewMatrix: Matrix = new Matrix();
@@ -71,7 +71,7 @@ export class Camera extends Component {
   private _isProjectionDirty = true;
   /** 投影矩阵逆矩阵脏标记 */
   private _isInvProjMatDirty: boolean = true;
-  private _customAspectRatio: number = undefined;
+  private _customAspectRatio: number | undefined = undefined;
   private _lastAspectSize: Vector2 = new Vector2(0, 0);
   private _invViewProjMat: Matrix = new Matrix();
 
@@ -186,7 +186,7 @@ export class Camera extends Component {
    * 清除视口的背景颜色，当 clearFlags 为 DepthColor 时生效。
    */
   get backgroundColor(): Vector4 {
-    return this._clearParam;
+    return this._backgroundColor;
   }
 
   set backgroundColor(value: Vector4) {
@@ -280,36 +280,18 @@ export class Camera extends Component {
    * @param entity 实体
    * @param props camera 参数
    */
-  constructor(entity: Entity, props: any) {
-    // TODO: 修改构造函数参数
-    super(entity, props);
+  constructor(entity: Entity, { RenderPipeline }) {
+    super(entity);
 
     this._transform = this.entity.transform;
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
-    const {
-      RenderPipeline = BasicRenderPipeline,
-      clearParam = new Vector4(0.25, 0.25, 0.25, 1),
-      clearMode,
-      near,
-      far,
-      fov
-    } = props;
 
-    this._nearClipPlane = near ?? 0.1;
-    this._farClipPlane = far ?? 100;
-    this._fieldOfView = fov ?? 45;
-
-    // TODO: 删除，兼容旧 camera，decaprated
-    const target = props.target ?? new Vector3();
-    const up = props.up ?? new Vector3(0, 1, 0);
-    entity.transform.position = props.position ?? new Vector3(0, 10, 20);
-    entity.transform.lookAt(target, up);
-
+    RenderPipeline = RenderPipeline ?? BasicRenderPipeline;
     this._renderPipeline = new RenderPipeline(this);
 
-    // TODO: 修改为 ClearFlags
-    this.setClearMode(clearMode, clearParam);
+    // 默认设置
+    this.setClearMode();
   }
 
   /**
@@ -337,7 +319,7 @@ export class Camera extends Component {
   worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, MathTemp.tempMat4);
     MathTemp.tempVec4.setValue(point.x, point.y, point.z, 1.0);
-    Vector4.transformByMat4x4(MathTemp.tempVec4, MathTemp.tempMat4, MathTemp.tempVec4);
+    Vector4.transform(MathTemp.tempVec4, MathTemp.tempMat4, MathTemp.tempVec4);
 
     const w = MathTemp.tempVec4.w;
     const nx = MathTemp.tempVec4.x / w;
@@ -370,12 +352,13 @@ export class Camera extends Component {
    * @returns 射线
    */
   viewportPointToRay(point: Vector2, out: Ray): Ray {
+    const clipPoint = MathTemp.tempVec3;
     // 使用近裁面的交点作为 origin
-    MathTemp.tempVec3.setValue(point.x, point.y, 0);
-    const origin = this.viewportToWorldPoint(MathTemp.tempVec3, out.origin);
+    clipPoint.setValue(point.x, point.y, 0);
+    const origin = this.viewportToWorldPoint(clipPoint, out.origin);
     // 使用远裁面的交点作为 origin
-    const viewportPos: Vector3 = MathTemp.tempVec3.setValue(point.x, point.y, 1);
-    const farPoint: Vector3 = this._innerViewportToWorldPoint(viewportPos, this._invViewProjMat, MathTemp.tempVec3);
+    clipPoint.z = 1.0;
+    const farPoint: Vector3 = this._innerViewportToWorldPoint(clipPoint, this._invViewProjMat, clipPoint);
     Vector3.subtract(farPoint, origin, out.direction);
     out.direction.normalize();
 
@@ -451,17 +434,15 @@ export class Camera extends Component {
 
   private _innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix, out: Vector3): Vector3 {
     // depth 是归一化的深度，0 是 nearPlane，1 是 farClipPlane
-    const depth = point[2] * 2 - 1;
+    const depth = point.z * 2 - 1;
     // 变换到裁剪空间矩阵
-    MathTemp.tempVec4.setValue(point.x * 2 - 1, 1 - point.y * 2, depth, 1);
-    // 计算逆矩阵结果
-    Vector4.transformByMat4x4(MathTemp.tempVec4, invViewProjMat, MathTemp.tempVec4);
-    const u = MathTemp.tempVec4;
-    const w = u.w;
-
-    out.x = u.x / w;
-    out.y = u.y / w;
-    out.z = u.z / w;
+    const clipPoint = MathTemp.tempVec4;
+    clipPoint.setValue(point.x * 2 - 1, 1 - point.y * 2, depth, 1);
+    Vector4.transform(clipPoint, invViewProjMat, clipPoint);
+    const invW = 1.0 / clipPoint.w;
+    out.x = clipPoint.x * invW;
+    out.y = clipPoint.y * invW;
+    out.z = clipPoint.z * invW;
     return out;
   }
 
@@ -504,15 +485,15 @@ export class Camera extends Component {
    * @deprecated
    * @todo 涉及渲染管线修改 rhi.clearRenderTarget 方法
    * @param clearMode
-   * @param clearParam
+   * @param backgroundColor
    */
   setClearMode(
     clearMode: ClearMode = ClearMode.SOLID_COLOR,
-    clearParam: Vector4 = new Vector4(0.25, 0.25, 0.25, 1)
+    backgroundColor: Vector4 = new Vector4(0.25, 0.25, 0.25, 1)
   ): void {
     this._clearMode = clearMode;
-    this._clearParam = clearParam as Vector4;
-    this._renderPipeline.defaultRenderPass.clearParam = clearParam;
+    this._backgroundColor = backgroundColor;
+    this._renderPipeline.defaultRenderPass.clearParam = backgroundColor;
     this._renderPipeline.defaultRenderPass.clearMode = clearMode;
   }
 }

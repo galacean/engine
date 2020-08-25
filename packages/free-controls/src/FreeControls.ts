@@ -1,4 +1,4 @@
-import { Entity, Script, Logger } from "@alipay/o3-core";
+import { Entity, Logger, Script } from "@alipay/o3-core";
 import { MathUtil, Spherical, Vector3 } from "@alipay/o3-math";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 
@@ -277,11 +277,11 @@ export class FreeControls extends Script {
     let p = this.camera.position;
 
     doTransform
-      .Translate(this.camera, [p.x, this.jumpY, p.z], this.jumpDuration / 2, {
+      .Translate(this.camera, new Vector3(p.x, this.jumpY, p.z), this.jumpDuration / 2, {
         easing: Easing.easeOutSine,
         onComplete: () => {
           doTransform
-            .Translate(this.camera, [p.x, this.floorY, p.z], this.jumpDuration / 2, {
+            .Translate(this.camera, new Vector3(p.x, this.floorY, p.z), this.jumpDuration / 2, {
               easing: Easing.easeInSine,
               onComplete: () => {
                 this._moveJump = false;
@@ -322,10 +322,10 @@ export class FreeControls extends Script {
       this.translateOnAxis(this._forward, -actualMoveSpeed);
     }
     if (this._moveLeft) {
-      this.translateOnAxis(this._right, actualMoveSpeed);
+      this.translateOnAxis(this._right, -actualMoveSpeed);
     }
     if (this._moveRight) {
-      this.translateOnAxis(this._right, -actualMoveSpeed);
+      this.translateOnAxis(this._right, actualMoveSpeed);
     }
 
     tween.update(delta);
@@ -366,24 +366,13 @@ export class FreeControls extends Script {
   }
 
   /**
-   * automatically updateSpherical after lookAt
-   * @param {Vector3} target
-   * @param {Vector3} up
-   * */
-  lookAt(target: Vector3, up?: Vector3): void {
-    this.camera.transform.lookAt(target, up || new Vector3(0, 1, 0));
-
-    this.updateSpherical();
-  }
-
-  /**
    * must updateSpherical after quaternion has been changed
    * @example
    * Entity#lookAt([0,1,0],[0,1,0]);
    * AFreeControls#updateSpherical();
    * */
   updateSpherical(): void {
-    this._v3Cache.setValue(0, 0, 1);
+    this._v3Cache.setValue(0, 0, -1);
     Vector3.transformByQuat(this._v3Cache, this.camera.rotation, this._v3Cache);
     this._spherical.setFromVec3(this._v3Cache);
     this._theta = this._spherical.theta;

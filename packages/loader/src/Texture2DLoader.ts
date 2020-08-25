@@ -1,5 +1,4 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@alipay/o3-core";
-import { Texture2D } from "@alipay/o3-material";
+import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager, Texture2D } from "@alipay/o3-core";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp"])
 class Texture2DLoader extends Loader<Texture2D> {

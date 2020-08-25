@@ -1,39 +1,42 @@
 import { MathUtil } from "./MathUtil";
-import { Vector3 } from "./Vector3";
 import { Matrix3x3 } from "./Matrix3x3";
+import { Vector3 } from "./Vector3";
 
 /**
- * 四元数
+ * 四元数。
  */
 export class Quaternion {
+  /** @internal */
+  static readonly _tempVector3 = new Vector3();
+
   /**
    * 将两个四元数相加。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param left - 左四元数
+   * @param right - 右四元数
    * @param out - 四元数相加结果
    */
-  static add(a: Quaternion, b: Quaternion, out: Quaternion): void {
-    out.x = a.x + b.x;
-    out.y = a.y + b.y;
-    out.z = a.z + b.z;
-    out.w = a.w + b.w;
+  static add(left: Quaternion, right: Quaternion, out: Quaternion): void {
+    out.x = left.x + right.x;
+    out.y = left.y + right.y;
+    out.z = left.z + right.z;
+    out.w = left.w + right.w;
   }
 
   /**
    * 将两个四元数相乘。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param left - 左四元数
+   * @param right - 右四元数
    * @param out - 四元数相乘结果
    */
-  static multiply(a: Quaternion, b: Quaternion, out: Quaternion): void {
-    const ax = a.x,
-      ay = a.y,
-      az = a.z,
-      aw = a.w;
-    const bx = b.x,
-      by = b.y,
-      bz = b.z,
-      bw = b.w;
+  static multiply(left: Quaternion, right: Quaternion, out: Quaternion): void {
+    const ax = left.x,
+      ay = left.y,
+      az = left.z,
+      aw = left.w;
+    const bx = right.x,
+      by = right.y,
+      bz = right.z,
+      bw = right.w;
 
     out.x = ax * bw + aw * bx + ay * bz - az * by;
     out.y = ay * bw + aw * by + az * bx - ax * bz;
@@ -55,23 +58,26 @@ export class Quaternion {
 
   /**
    * 计算两个四元数的点积。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param left - 左四元数
+   * @param right - 右四元数
    * @returns 两个四元数的点积
    */
-  static dot(a: Quaternion, b: Quaternion): number {
-    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+  static dot(left: Quaternion, right: Quaternion): number {
+    return left.x * right.x + left.y * right.y + left.z * right.z + left.w * right.w;
   }
 
   /**
    * 判断两个四元数是否相等。
-   * @param a - 四元数
-   * @param b - 四元数
+   * @param left - 四元数
+   * @param right - 四元数
    * @returns 两个四元数是否相等，是返回 true，否则返回 false
    */
-  static equals(a: Quaternion, b: Quaternion): boolean {
+  static equals(left: Quaternion, right: Quaternion): boolean {
     return (
-      MathUtil.equals(a.x, b.x) && MathUtil.equals(a.y, b.y) && MathUtil.equals(a.z, b.z) && MathUtil.equals(a.w, b.w)
+      MathUtil.equals(left.x, right.x) &&
+      MathUtil.equals(left.y, right.y) &&
+      MathUtil.equals(left.z, right.z) &&
+      MathUtil.equals(left.w, right.w)
     );
   }
 
@@ -81,8 +87,8 @@ export class Quaternion {
    * @param rad - 旋转角度(单位：弧度)
    * @param out - 生成的四元数
    */
-  static setAxisAngle(axis: Vector3, rad: number, out: Quaternion): void {
-    const normalAxis = new Vector3();
+  static rotationAxisAngle(axis: Vector3, rad: number, out: Quaternion): void {
+    const normalAxis = Quaternion._tempVector3;
     Vector3.normalize(axis, normalAxis);
     rad *= 0.5;
     const s = Math.sin(rad);
@@ -136,7 +142,7 @@ export class Quaternion {
    * @param m - 3x3矩阵
    * @param out - 生成的四元数
    */
-  static rotationMat3(m: Matrix3x3, out: Quaternion): void {
+  static rotationMatrix3x3(m: Matrix3x3, out: Quaternion): void {
     const me = m.elements;
     const m11 = me[0],
       m12 = me[1],
@@ -193,34 +199,34 @@ export class Quaternion {
   static invert(a: Quaternion, out: Quaternion): void {
     const { x, y, z, w } = a;
     const dot = x * x + y * y + z * z + w * w;
-    const invDot = dot ? 1.0 / dot : 0;
-
-    out.x = -x * invDot;
-    out.y = -y * invDot;
-    out.z = -z * invDot;
-    out.w = w * invDot;
+    if (dot > MathUtil.zeroTolerance) {
+      const invDot = 1.0 / dot;
+      out.x = -x * invDot;
+      out.y = -y * invDot;
+      out.z = -z * invDot;
+      out.w = w * invDot;
+    }
   }
 
   /**
    * 插值四元数。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param start - 左四元数
+   * @param end - 右四元数
    * @param t - 插值比例 范围 0～1
    * @param out - 插值结果
    */
-  static lerp(a: Quaternion, b: Quaternion, t: number, out: Quaternion): void {
+  static lerp(start: Quaternion, end: Quaternion, t: number, out: Quaternion): void {
     const inv = 1.0 - t;
-
-    if (Quaternion.dot(a, b) >= MathUtil.zeroTolerance) {
-      out.x = a.x * inv + b.x * t;
-      out.y = a.y * inv + b.y * t;
-      out.z = a.z * inv + b.z * t;
-      out.w = a.w * inv + b.w * t;
+    if (Quaternion.dot(start, end) >= 0) {
+      out.x = start.x * inv + end.x * t;
+      out.y = start.y * inv + end.y * t;
+      out.z = start.z * inv + end.z * t;
+      out.w = start.w * inv + end.w * t;
     } else {
-      out.x = a.x * inv - b.x * t;
-      out.y = a.y * inv - b.y * t;
-      out.z = a.z * inv - b.z * t;
-      out.w = a.w * inv - b.w * t;
+      out.x = start.x * inv - end.x * t;
+      out.y = start.y * inv - end.y * t;
+      out.z = start.z * inv - end.z * t;
+      out.w = start.w * inv - end.w * t;
     }
 
     out.normalize();
@@ -228,20 +234,21 @@ export class Quaternion {
 
   /**
    * 球面插值四元数。
-   * @param a - 左四元数
-   * @param b - 右四元数
+   * @param start - 左四元数
+   * @param end - 右四元数
    * @param t - 插值比例
    * @param out - 插值结果
    */
-  static slerp(a: Quaternion, b: Quaternion, t: number, out: Quaternion): void {
-    const ax = a.x;
-    const ay = a.y;
-    const az = a.z;
-    const aw = a.w;
-    let bx = b.x;
-    let by = b.y;
-    let bz = b.z;
-    let bw = b.w;
+  static slerp(start: Quaternion, end: Quaternion, t: number, out: Quaternion): void {
+    //CM: todo: 参照stride实现
+    const ax = start.x;
+    const ay = start.y;
+    const az = start.z;
+    const aw = start.w;
+    let bx = end.x;
+    let by = end.y;
+    let bz = end.z;
+    let bw = end.w;
 
     let scale0, scale1;
     // calc cosine
@@ -292,7 +299,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕 X 轴旋转四元数。
+   * 绕 X 轴旋生成转四元数。
    * @param a - 四元数
    * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
@@ -309,7 +316,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕 Y 轴旋转四元数。
+   * 绕 Y 轴旋转生成四元数。
    * @param a - 四元数
    * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
@@ -326,7 +333,7 @@ export class Quaternion {
   }
 
   /**
-   * 绕 Z 轴旋转四元数。
+   * 绕 Z 轴旋转生成四元数。
    * @param a - 四元数
    * @param rad - 旋转角度(单位：弧度)
    * @param out - 旋转后的四元数
@@ -340,6 +347,60 @@ export class Quaternion {
     out.y = 0;
     out.z = s;
     out.w = c;
+  }
+
+  /**
+   * 四元数 q 绕 X 轴旋转。
+   * @param q - 四元数
+   * @param rad - 旋转角度(单位：弧度)
+   * @param out - 旋转后的四元数
+   */
+  static rotateX(q: Quaternion, rad: number, out: Quaternion): void {
+    const { x, y, z, w } = q;
+    rad *= 0.5;
+    const bx = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    out.x = x * bw + w * bx;
+    out.y = y * bw + z * bx;
+    out.z = z * bw - y * bx;
+    out.w = w * bw - x * bx;
+  }
+
+  /**
+   * 四元数 q 绕 Y 轴旋转。
+   * @param q - 四元数
+   * @param rad - 旋转角度(单位：弧度)
+   * @param out - 旋转后的四元数
+   */
+  static rotateY(q: Quaternion, rad: number, out: Quaternion): void {
+    const { x, y, z, w } = q;
+    rad *= 0.5;
+    const by = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    out.x = x * bw - z * by;
+    out.y = y * bw + w * by;
+    out.z = z * bw + x * by;
+    out.w = w * bw - y * by;
+  }
+
+  /**
+   * 四元数 q 绕 Z 轴旋转。
+   * @param q - 四元数
+   * @param rad - 旋转角度(单位：弧度)
+   * @param out - 旋转后的四元数
+   */
+  static rotateZ(q: Quaternion, rad: number, out: Quaternion): void {
+    const { x, y, z, w } = q;
+    rad *= 0.5;
+    const bz = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    out.x = x * bw + y * bz;
+    out.y = y * bw - x * bz;
+    out.z = z * bw + w * bz;
+    out.w = w * bw - z * bz;
   }
 
   /**
@@ -369,7 +430,7 @@ export class Quaternion {
    * @param x - 四元数的 X 分量，默认值 0
    * @param y - 四元数的 Y 分量，默认值 0
    * @param z - 四元数的 Z 分量，默认值 0
-   * @param w - 四元数的 W 分量，默认值 0
+   * @param w - 四元数的 W 分量，默认值 1
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
     this.x = x;
@@ -396,23 +457,17 @@ export class Quaternion {
   }
 
   /**
-   * 创建一个新的四元数，并用当前四元数初始化。
-   * @returns 一个新的四元数，并且拷贝当前四元数的值
+   * 通过数组设置值，并返回当前四元数。
+   * @param array - 数组
+   * @param offset - 数组偏移
+   * @returns 当前四元数
    */
-  clone(): Quaternion {
-    let ret = new Quaternion(this.x, this.y, this.z, this.w);
-    return ret;
-  }
-
-  /**
-   * 将当前四元数值拷贝给 out 四元数。
-   * @param out - 目标四元数
-   */
-  cloneTo(out: Quaternion): void {
-    out.x = this.x;
-    out.y = this.y;
-    out.z = this.z;
-    out.w = this.w;
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): Quaternion {
+    this.x = array[offset];
+    this.y = array[offset + 1];
+    this.z = array[offset + 2];
+    this.w = array[offset + 3];
+    return this;
   }
 
   /**
@@ -455,11 +510,12 @@ export class Quaternion {
   /**
    * 将四元数设置为单位四元数。
    */
-  identity(): void {
+  identity(): Quaternion {
     this.x = 0;
     this.y = 0;
     this.z = 0;
     this.w = 1;
+    return this;
   }
 
   /**
@@ -491,10 +547,11 @@ export class Quaternion {
 
   /**
    * 获取四元数的欧拉角(弧度)。
+   * @param out - 四元数的欧拉角(弧度)
    * @returns 欧拉角 x->pitch y->yaw z->roll
    */
-  toEuler(): Vector3 {
-    const out = this.toYawPitchRoll();
+  toEuler(out: Vector3): Vector3 {
+    this.toYawPitchRoll(out);
     const t = out.x;
     out.x = out.y;
     out.y = t;
@@ -503,10 +560,10 @@ export class Quaternion {
 
   /**
    * 获取四元数的欧拉角(弧度)。
+   * @param out - 四元数的欧拉角(弧度)
    * @returns 欧拉角 x->yaw y->pitch z->roll
    */
-  toYawPitchRoll(): Vector3 {
-    const out = new Vector3();
+  toYawPitchRoll(out: Vector3): Vector3 {
     const { x, y, z, w } = this;
     const xx = x * x;
     const yy = y * y;
@@ -528,5 +585,66 @@ export class Quaternion {
     }
 
     return out;
+  }
+
+  /**
+   * 创建一个新的四元数，并用当前四元数初始化。
+   * @returns 一个新的四元数，并且拷贝当前四元数的值
+   */
+  clone(): Quaternion {
+    return new Quaternion(this.x, this.y, this.z, this.w);
+  }
+
+  /**
+   * 将当前四元数值拷贝给 out 四元数。
+   * @param out - 目标四元数
+   */
+  cloneTo(out: Quaternion): Quaternion {
+    out.x = this.x;
+    out.y = this.y;
+    out.z = this.z;
+    out.w = this.w;
+    return out;
+  }
+
+  /**
+   * 绕 X 轴旋转。
+   * @param rad - 旋转角度(单位：弧度)
+   * @returns 当前四元数
+   */
+  rotateX(rad: number): Quaternion {
+    Quaternion.rotateX(this, rad, this);
+    return this;
+  }
+
+  /**
+   * 绕 Y 轴旋转。
+   * @param rad - 旋转角度(单位：弧度)
+   * @returns 当前四元数
+   */
+  rotateY(rad: number): Quaternion {
+    Quaternion.rotateY(this, rad, this);
+    return this;
+  }
+
+  /**
+   * 绕 Z 轴旋转。
+   * @param rad - 旋转角度(单位：弧度)
+   * @returns 当前四元数
+   */
+  rotateZ(rad: number): Quaternion {
+    Quaternion.rotateZ(this, rad, this);
+    return this;
+  }
+
+  /**
+   * 通过旋转的欧拉角设置当前四元数。
+   * @param axis - 旋转轴向量
+   * @param rad - 旋转角度(单位：弧度)
+   * @returns 当前四元数
+   */
+  rotationAxisAngle(axis: Vector3, rad: number): Quaternion {
+    Quaternion.rotationAxisAngle(axis, rad, this);
+    return this;
   }
 }
