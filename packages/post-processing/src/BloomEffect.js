@@ -1,4 +1,4 @@
-import { Vector2, Vector4 } from "@alipay/o3-math";
+import { Vector2, Vector4 } from "@alipay/o3";
 import { CompositeNode } from "./nodes/CompositeNode";
 import { GaussianBlurNode } from "./nodes/GaussianBlurNode";
 import { HighPassNode } from "./nodes/HighPassNode";

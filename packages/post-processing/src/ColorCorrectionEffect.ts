@@ -1,5 +1,5 @@
-import { DataType, TextureWrapMode, Texture2D } from "@alipay/o3-core";
-import { Vector4 } from "@alipay/o3-math";
+import { DataType, TextureWrapMode, Texture2D } from "@alipay/o3";
+import { Vector4 } from "@alipay/o3";
 import { PostEffectNode } from "./PostEffectNode";
 //@ts-ignore
 import ColorCorrectionShader from "./shaders/ColorCorrection.glsl";

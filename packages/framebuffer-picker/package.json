@@ -19,13 +19,13 @@
   },
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "browser": "dist/browser.js",
   "scripts": {
     "b:types": "tsc"
   },
   "types": "types/index.d.ts",
   "dependencies": {
-    "@alipay/o3-core": "3.0.1",
-    "@alipay/o3-math": "3.0.1"
+    "@alipay/o3": "3.0.1"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

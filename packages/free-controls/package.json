@@ -19,6 +19,7 @@
   },
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "browser": "dist/browser.min.js",
   "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc"
@@ -27,8 +28,6 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-core": "3.0.1",
-    "@alipay/o3-math": "3.0.1",
-    "@alipay/o3-tween": "3.0.1"
+    "@alipay/o3": "3.0.1"
   }
 }

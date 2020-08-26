@@ -1,4 +1,4 @@
-import { Vector4 } from "@alipay/o3-math";
+import { Vector4 } from "@alipay/o3";
 import { CompositeNode } from "./nodes/CompositeNode";
 import { SSAOBlurNode } from "./nodes/SSAOBlurNode";
 import { SSAOPassNode } from "./nodes/SSAOPassNode";

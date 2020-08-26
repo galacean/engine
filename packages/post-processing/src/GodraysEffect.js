@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4 } from "@alipay/o3";
 import { GodraysCombinePassNode } from "./nodes/GodraysCombinePassNode";
 import { GodraysPassNode } from "./nodes/GodraysPassNode";
 import { GodraysStartPassNode } from "./nodes/GodraysStartPassNode";

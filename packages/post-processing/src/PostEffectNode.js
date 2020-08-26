@@ -1,5 +1,5 @@
-import { ClearMode } from "@alipay/o3-core";
-import { Vector4 } from "@alipay/o3-math";
+import { ClearMode } from "@alipay/o3";
+import { Vector4 } from "@alipay/o3";
 import { PostEffectMaterial } from "./PostEffectMaterial";
 
 /**
