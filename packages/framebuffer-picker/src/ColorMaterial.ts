@@ -1,4 +1,4 @@
-import { DataType, Logger, Material, RenderTechnique } from "@alipay/o3-core";
+import { DataType, Logger, Material, RenderTechnique, Engine } from "@alipay/o3-core";
 import { Vector3 } from "@alipay/o3-math";
 import fs from "./color.fs.glsl";
 import vs from "./color.vs.glsl";
@@ -12,8 +12,8 @@ class ColorMaterial extends Material {
   private _primitivesMap = [];
   protected _technique;
 
-  constructor(name = "FRAMEBUFFER_PICKER_COLOR_MATERIAL") {
-    super(name);
+  constructor(name = "FRAMEBUFFER_PICKER_COLOR_MATERIAL", engine?: Engine) {
+    super(name, engine);
     this.reset();
   }
 

@@ -5,6 +5,7 @@ import { ReferenceObject } from "../asset/ReferenceObject";
 import { MaterialType, UniformSemantic } from "../base/Constant";
 import { Util } from "../base/Util";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Engine } from "../Engine";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
@@ -39,8 +40,8 @@ export class Material extends ReferenceObject {
    * 构造函数
    * @param {string} name 名称
    */
-  constructor(name: string) {
-    super();
+  constructor(name: string, engine?: Engine) {
+    super(engine);
     this.name = name;
 
     this.renderType = MaterialType.OPAQUE;
