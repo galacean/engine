@@ -11,6 +11,7 @@ import {
   TextureCubeFace
 } from "../base/Constant";
 import { Logger } from "../base/Logger";
+import { Engine } from "../Engine";
 
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
@@ -680,8 +681,8 @@ export abstract class Texture extends ReferenceObject {
   }
 
   // TODO: delete
-  constructor() {
-    super();
+  constructor(engine?: Engine) {
+    super(engine);
 
     this._gcPriority = 900;
   }
