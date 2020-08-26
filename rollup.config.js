@@ -38,7 +38,7 @@ const pkg = (name, type) => {
 let promises = [...fileDirs.map((name) => pkg(name, "module"))];
 
 if (NODE_ENV === "BUILD") {
-  const compressDir = ["o3", "framebuffer-picker", "free-controls", "orbit-controls", "post-processing"];
+  const compressDir = ["o3", "framebuffer-picker", "free-controls", "orbit-controls", "post-processing", "tween"];
   promises = [...compressDir.map((name) => pkg(name, "compress"))];
 }
 
@@ -93,7 +93,7 @@ async function makeRollupConfig({ location, main, name, type }) {
           file: path.join(location, pkg.browser),
           format: "umd",
           sourcemap: false,
-          global: {
+          globals: {
             "@alipay/o3": "o3"
           }
         }

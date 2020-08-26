@@ -1,4 +1,4 @@
-import { Quaternion } from "@alipay/o3-math";
+import { Quaternion } from "@alipay/o3";
 
 export const QuaternionPlugin = (tweener) => {
   const { easing } = tweener.options;

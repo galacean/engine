@@ -1,6 +1,6 @@
 import { Entity, Logger, Script } from "@alipay/o3";
 import { MathUtil, Spherical, Vector3 } from "@alipay/o3";
-import { doTransform, Easing, Tween } from "@alipay/o3";
+import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 
 // 防止万向锁
 const ESP = MathUtil.zeroTolerance;
