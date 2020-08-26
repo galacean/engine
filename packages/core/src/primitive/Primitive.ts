@@ -48,6 +48,7 @@ export class Primitive extends AssetObject {
   instancedCount: number;
 
   indexBufferIndex: number = 0;
+  indexOffset: number = 0;
 
   updateVertex: boolean = false;
   updateIndex: boolean = false;
@@ -81,17 +82,12 @@ export class Primitive extends AssetObject {
   constructor(name?: string) {
     super();
     this.id = primitiveID++;
+    this.name = name;
   }
 
   /**
    * 添加一个顶点属性
-   * @param {string} semantic
-   * @param {number} size
-   * @param {DataType} type
-   * @param {boolean} normalized
-   * @param {number} stride
-   * @param {number} offset
-   * @param {number} vertexBufferIndex
+   * @param {attribute} BufferAttribute
    */
   addAttribute(attribute: BufferAttribute) {
     const { semantic, instanced } = attribute;

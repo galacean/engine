@@ -18,7 +18,10 @@ import {
   Animation,
   Primitive,
   PBRMaterial,
-  ConstantMaterial
+  ConstantMaterial,
+  IndexBuffer,
+  VertexBuffer,
+  BufferGeometry
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -127,7 +130,6 @@ export class GLTFResource extends EngineObject {
  * @private
  */
 export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResource {
-  console.log(data);
   // 开始处理 glTF 数据
   const resources: GLTFParsed = {
     engine,
@@ -444,29 +446,35 @@ export function parseSkin(gltfSkin, resources) {
 function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
   // load vertices
   let h = 0;
+  const geometry = new BufferGeometry();
+  geometry.primitive.name = primitive.name;
+  geometry.primitive.mode = primitive.mode;
+
+  const positionAccessorIdx = gltfPrimitive.attributes.POSITION;
+  const positionAccessor = gltf.accessors[positionAccessorIdx];
+  const vertexCount = positionAccessor.count;
   for (const attributeSemantic in gltfPrimitive.attributes) {
     const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
     const accessor = gltf.accessors[accessorIdx];
-
-    const buffer = getAccessorData(gltf, accessor, buffers);
-    primitive.vertexBuffers.push(buffer);
-    primitive.vertexAttributes[attributeSemantic] = createAttribute(gltf, attributeSemantic, accessor, h++);
+    const attribute = createAttribute(gltf, attributeSemantic, accessor, h++);
+    const buffer = new VertexBuffer([attribute], vertexCount);
+    geometry.addVertexBufferParam(buffer);
   }
-
-  // get vertex count
-  const accessorIdx = gltfPrimitive.attributes.POSITION;
-  const accessor = gltf.accessors[accessorIdx];
-  primitive.vertexCount = accessor.count;
-
+  for (const attributeSemantic in gltfPrimitive.attributes) {
+    const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
+    const accessor = gltf.accessors[accessorIdx];
+    const bufferData = getAccessorData(gltf, accessor, buffers);
+    geometry.setVertexBufferData(attributeSemantic, bufferData);
+  }
   // load indices
   const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-  const buffer = getAccessorData(gltf, indexAccessor, buffers);
-
-  primitive.indexCount = indexAccessor.count;
-  primitive.indexType = indexAccessor.componentType;
-  primitive.indexOffset = 0;
-  primitive.indexBuffer = buffer;
-  return Promise.resolve(primitive);
+  const indexCount = indexAccessor.count;
+  const indexType = indexAccessor.componentType;
+  const indexBuffer = new IndexBuffer(indexCount, indexType);
+  geometry.addIndexBufferParam(indexBuffer);
+  const indexData = getAccessorData(gltf, indexAccessor, buffers);
+  geometry.setIndexBufferData(indexData);
+  return Promise.resolve(geometry.primitive);
 }
 
 function parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers) {
@@ -568,10 +576,10 @@ export function parseMesh(gltfMesh, resources) {
           vertexPromise = parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers);
         }
         vertexPromise
-          .then(() => {
-            parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers);
-            parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
-            resolve(primitive);
+          .then((processedPrimitive) => {
+            parserPrimitiveTarget(processedPrimitive, gltfPrimitive, gltf, buffers);
+            parsePrimitiveMaterial(processedPrimitive, gltfPrimitive, resources);
+            resolve(processedPrimitive);
           })
           .catch((e) => {
             reject(e);
@@ -581,7 +589,8 @@ export function parseMesh(gltfMesh, resources) {
   }
   return Promise.all(primitivePromises).then((primitives) => {
     for (let i = 0; i < primitives.length; i++) {
-      mesh.primitives.push(primitives[i]);
+      const primitive = primitives[i];
+      mesh.primitives.push(primitive);
     }
     return mesh;
   });
@@ -647,7 +656,6 @@ export function parseAnimation(gltfAnimation, resources) {
  * @private
  */
 export function parseNode(gltfNode, resources) {
-  console.log(gltfNode);
   // TODO: undefined name?
   const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`, resources.engine);
 

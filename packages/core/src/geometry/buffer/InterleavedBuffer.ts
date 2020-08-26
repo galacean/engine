@@ -74,19 +74,19 @@ export class InterleavedBuffer extends VertexBuffer {
 
   setDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
     const vertexAttrib = this._getAttributeBySemantic(semantic);
-    const { type, stride, size, offset, updateType, updateRange } = vertexAttrib;
+    const { type, stride, size, offset } = vertexAttrib;
     const buffer = this.buffers[0];
     const byteOffset = offset + stride * vertexIndex;
     const length = size;
     const constructor = getVertexDataTypeDataView(vertexAttrib.type);
     const view = new constructor(buffer, byteOffset, length);
     view.set(value);
-    if (updateType === UpdateType.NO_UPDATE) {
+    if (vertexAttrib.updateType === UpdateType.NO_UPDATE) {
       vertexAttrib.updateType = UpdateType.UPDATE_RANGE;
     }
-    if (updateType === UpdateType.UPDATE_RANGE) {
+    if (vertexAttrib.updateType === UpdateType.UPDATE_RANGE) {
       const byteLength = this._getSizeInByte(size, type);
-      if (updateRange.byteLength === -1 && updateRange.byteOffset === 0) {
+      if (vertexAttrib.updateRange.byteLength === -1 && vertexAttrib.updateRange.byteOffset === 0) {
         vertexAttrib.updateRange = {
           byteOffset,
           byteLength,

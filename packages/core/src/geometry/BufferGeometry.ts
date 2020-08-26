@@ -11,7 +11,6 @@ let geometryCount = 0;
  */
 export class BufferGeometry extends AssetObject {
   primitive: Primitive;
-  attributes: {};
   private _indexBufferIndex: number;
   private _vertexBuffers: VertexBuffer[];
   private _indexBuffers: IndexBuffer[];
@@ -48,6 +47,10 @@ export class BufferGeometry extends AssetObject {
 
   get mode() {
     return this.primitive.mode;
+  }
+
+  get attributes() {
+    return this.primitive.vertexAttributes;
   }
 
   /**

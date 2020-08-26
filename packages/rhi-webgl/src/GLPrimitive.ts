@@ -1,4 +1,5 @@
 import { GLCapabilityType, Logger, UpdateType, Primitive } from "@alipay/o3-core";
+import { BufferAttribute } from "@alipay/o3-core";
 import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -39,6 +40,7 @@ export class GLPrimitive extends GLAsset {
   protected initVBO() {
     const gl = this.rhi.gl;
     const { vertexArrayBuffers } = this._primitive;
+    this._primitive;
     /** vertex buffers*/
     this._glVertBuffers = [];
     for (let i = 0, len = vertexArrayBuffers.length; i < len; i++) {
@@ -167,7 +169,9 @@ export class GLPrimitive extends GLAsset {
       case UpdateType.NO_UPDATE:
         break;
       case UpdateType.UPDATE_ALL:
-        this.initVBO();
+        if (!this._glVertBuffers?.length) {
+          this.initVBO();
+        }
         attribute.updateType = UpdateType.NO_UPDATE;
         break;
       case UpdateType.UPDATE_RANGE:
@@ -191,7 +195,9 @@ export class GLPrimitive extends GLAsset {
         case UpdateType.NO_UPDATE:
           break;
         case UpdateType.UPDATE_ALL:
-          this.initIBO();
+          if (!this._glIndexBuffer) {
+            this.initIBO();
+          }
           indexBuffer.updateType = UpdateType.NO_UPDATE;
           break;
         case UpdateType.UPDATE_RANGE:

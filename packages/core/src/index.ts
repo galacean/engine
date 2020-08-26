@@ -63,6 +63,7 @@ export { GeometryMerger } from "./geometry";
 export { VertexBuffer } from "./geometry";
 export { IndexBuffer } from "./geometry";
 export { InterleavedBuffer } from "./geometry";
+export { BufferAttribute } from "./primitive/type";
 
 //mesh
 export { Mesh } from "./mesh/Mesh";

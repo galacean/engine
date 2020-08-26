@@ -1,3 +1,5 @@
+import { BufferAttribute } from "@alipay/o3-core";
+
 const WEBGL_COMPONENT_TYPES = {
   5120: Int8Array,
   5121: Uint8Array,
@@ -129,33 +131,25 @@ export function getBufferData(bufferView, buffers) {
  * @param semantic
  * @param accessor
  * @param idx
- * @returns {{name: *, size: number, type: *, normalized: boolean, stride: (*|number), offset: (Number|number|*), vertexBufferIndex: (*|number)}}
+ * @returns {BufferAttribute}
  * @private
  */
 export function createAttribute(gltf, semantic, accessor, idx) {
-  // {
-  //   name,
-  //     size,
-  //     type,
-  //     normalized,
-  //     stride,
-  //     offset,
-  //     vertexBufferIndex
-  // }
-  const bufferView = gltf.bufferViews[accessor.bufferView];
+  // const bufferView = gltf.bufferViews[accessor.bufferView];
   const size = getAccessorTypeSize(accessor.type);
   const componentType = getComponentType(accessor.componentType);
   const stride = size * componentType.BYTES_PER_ELEMENT;
-  return {
-    name: semantic,
+  const attribute = new BufferAttribute({
+    semantic,
     size,
     type: accessor.componentType,
-    normalized: false,
-    // stride: bufferView.byteStride || 0,
-    stride,
-    offset: 0,
-    vertexBufferIndex: idx || 0
-  };
+    normalized: false
+  });
+  attribute.stride = stride;
+  attribute.name = semantic;
+  attribute.offset = 0;
+  attribute.vertexBufferIndex = idx || 0;
+  return attribute;
 }
 
 /**

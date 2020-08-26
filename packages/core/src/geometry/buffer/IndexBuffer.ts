@@ -37,8 +37,8 @@ export class IndexBuffer {
 
   constructor(
     indexCount: number,
-    usage: BufferUsage = BufferUsage.STATIC_DRAW,
-    indexType: IndexFormat = IndexFormat.UNSIGNED_SHORT
+    indexType: IndexFormat = IndexFormat.UNSIGNED_SHORT,
+    usage: BufferUsage = BufferUsage.STATIC_DRAW
   ) {
     this._indexCount = indexCount;
     this._indexType = indexType;

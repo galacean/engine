@@ -73,18 +73,18 @@ export class VertexBuffer {
 
   setDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
     const vertexAttrib = this._getAttributeBySemantic(semantic);
-    const { stride, size, updateType, updateRange } = vertexAttrib;
+    const { stride, size } = vertexAttrib;
     const buffer = this._getBufferBySemantic(semantic);
     const constructor = getVertexDataTypeDataView(vertexAttrib.type);
     const view = new constructor(buffer, vertexIndex * stride, size);
     view.set(value);
     const byteOffset = vertexAttrib.offset + vertexAttrib.stride * vertexIndex;
     const byteLength = vertexAttrib.stride;
-    if (updateType === UpdateType.NO_UPDATE) {
+    if (vertexAttrib.updateType === UpdateType.NO_UPDATE) {
       vertexAttrib.updateType = UpdateType.UPDATE_RANGE;
     }
-    if (updateType === UpdateType.UPDATE_RANGE) {
-      if (updateRange.byteLength === -1 && updateRange.byteOffset === 0) {
+    if (vertexAttrib.updateType === UpdateType.UPDATE_RANGE) {
+      if (vertexAttrib.updateRange.byteLength === -1 && vertexAttrib.updateRange.byteOffset === 0) {
         vertexAttrib.updateRange = {
           byteOffset,
           byteLength,
