@@ -1,1 +1,1 @@
-export { AFramebufferPicker } from "./AFramebufferPicker";
+export { FramebufferPicker } from "./FramebufferPicker";

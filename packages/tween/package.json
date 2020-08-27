@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-tween",
-  "version": "2.3.0",
+  "version": "3.0.2",
   "description": "tween",
   "keywords": [
     "Oasis3D"
@@ -18,6 +18,7 @@
   },
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "browser": "dist/browser.min.js",
   "license": "MIT",
   "scripts": {
     "b:types": "tsc"
@@ -27,8 +28,6 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-base": "2.3.0",
-    "@alipay/o3-core": "2.3.0",
-    "@alipay/o3-math": "2.3.0"
+    "@alipay/o3": "3.0.2"
   }
 }

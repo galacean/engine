@@ -1,5 +1,5 @@
+import { Camera } from "./Camera";
 import { Scene } from "./Scene";
-import { ACamera } from "./ACamera";
 
 /**
  * 场景的功能特性插件基类
@@ -20,17 +20,17 @@ export abstract class SceneFeature {
 
   /**
    * 场景渲染前的回调
-   * @param {Scene} scene
-   * @param {ACamera} camera
+   * @param scene
+   * @param camera
    */
-  public preRender(scene: Scene, camera: ACamera): void {}
+  public preRender(scene: Scene, camera: Camera): void {}
 
   /**
    * 场景渲染后的回调
-   * @param {Scene} scene
-   * @param {ACamera} camera
+   * @param scene
+   * @param camera
    */
-  public postRender(scene: Scene, camera: ACamera): void {}
+  public postRender(scene: Scene, camera: Camera): void {}
 
   /**
    * 场景销毁的时候调用

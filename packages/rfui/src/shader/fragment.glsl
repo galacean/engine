@@ -1,5 +1,4 @@
 #include <uv_share>
-#include <uv_transform_share_define>
 #include <normal_share>
 #include <common_frag>
 #include <mobile_material_frag>

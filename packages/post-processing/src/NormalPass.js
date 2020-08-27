@@ -1,13 +1,10 @@
-import { DataType, RenderState, UniformSemantic } from '@alipay/o3-base';
-import { RenderTarget } from '@alipay/o3-material';
-import { Material, RenderTechnique, ComplexMaterial } from '@alipay/o3-material';
+import { ComplexMaterial, DataType, RenderColorTexture, RenderState, RenderTarget, RenderTechnique, ShaderFactory, UniformSemantic } from "@alipay/o3";
+import { Vector4 } from "@alipay/o3";
+import DepthPackingShader from "./shaderLib/depth_packing.glsl";
 
-import { ShaderFactory } from '@alipay/o3-shaderlib';
-import DepthPackingShader from './shaderLib/depth_packing.glsl';
-ShaderFactory.InjectShaderSlices( {
-  depth_packing:DepthPackingShader
-} );
-
+ShaderFactory.InjectShaderSlices({
+  depth_packing: DepthPackingShader
+});
 
 const VERT_SHADER = `
 
@@ -46,17 +43,15 @@ void main() {
 `;
 
 class NormalPassMaterial extends ComplexMaterial {
-
-  _generateTechnique( caemra, component ) {
-
+  _generateTechnique(caemra, component) {
     //debugger;
-    const tech = new RenderTechnique( 'normalPassTechnique' );
+    const tech = new RenderTechnique("normalPassTechnique");
     tech.isValid = true;
     tech.uniforms = {
       matModelViewInverseTranspose: {
-        name: 'matModelViewInverseTranspose',
+        name: "matModelViewInverseTranspose",
         semantic: UniformSemantic.MODELVIEWINVERSETRANSPOSE,
-        type: DataType.FLOAT_MAT4,
+        type: DataType.FLOAT_MAT4
       }
     };
     tech.attributes = {};
@@ -65,26 +60,20 @@ class NormalPassMaterial extends ComplexMaterial {
     tech.fragmentShader = FRAG_SHADER;
 
     return tech;
-
   }
+}
 
-};
-
-export function addNormalPass( camera, mask, renderTargetSize ){
-
-  const mtl = new NormalPassMaterial( 'NormalPassMtl' );
+export function addNormalPass(camera, mask, renderTargetSize) {
+  const width = renderTargetSize[0];
+  const height = renderTargetSize[1];
+  const mtl = new NormalPassMaterial("NormalPassMtl");
   mtl.renderStates = {
-    disable: [ RenderState.CULL_FACE ]
+    disable: [RenderState.CULL_FACE]
   };
   //--
-  const renderTarget = new RenderTarget( 'normalTarget', {
-    width: renderTargetSize[0],
-    height: renderTargetSize[1],
-    clearColor: [ 0.0, 0.0, 0.0, 1.0 ],
-  } );
+  const renderTarget = new RenderTarget(width, height, new RenderColorTexture(width, height));
 
-  camera.sceneRenderer.addRenderPass( 'NormalPass', -2, renderTarget, mtl, mask );
+  camera._renderPipeline.addRenderPass("NormalPass", -2, renderTarget, mtl, mask, new Vector4(0, 0, 0, 1));
 
   return renderTarget;
-
 }

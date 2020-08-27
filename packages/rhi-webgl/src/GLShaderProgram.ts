@@ -1,5 +1,5 @@
-import { Logger } from "@alipay/o3-base";
-import { RenderTechnique } from "@alipay/o3-material";
+import { Logger } from "@alipay/o3-core";
+import { RenderTechnique } from "@alipay/o3-core";
 
 interface UniformCache {
   [key: string]: WebGLUniformLocation | null;
@@ -42,7 +42,7 @@ export class GLShaderProgram {
   static requireProgram(tech: RenderTechnique, gl: WebGLRenderingContext): GLShaderProgram {
     let program: GLShaderProgram = null;
 
-    programList.some(p => {
+    programList.some((p) => {
       if (
         p._gl === gl &&
         p._vertexShaderSource === tech.vertexShader &&

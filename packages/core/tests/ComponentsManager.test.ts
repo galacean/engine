@@ -1,32 +1,35 @@
-import { Node, NodeAbility, Engine, Scene, RenderableComponent } from "../src/index";
+import { Canvas, Engine, Entity, HardwareRenderer, RenderableComponent, Scene, Script } from "../src/index";
 describe("ComponentsManager", () => {
-  let engine = null;
-  let scene = null;
+  let engine: Engine = new Engine(<Canvas>{}, <HardwareRenderer>{ init: jest.fn() });
+  let scene;
   beforeEach(() => {
-    engine = new Engine();
-    scene = new Scene(engine);
-    Node._nodes.length = 0;
-    Node._nodes._elements.length = 0;
+    scene = new Scene();
+    scene.createRootEntity();
+    engine.sceneManager.activeScene = scene;
+    Entity._entitys.length = 0;
+    Entity._entitys._elements.length = 0;
   });
 
   describe("Component", () => {
-    class TestComponent extends NodeAbility {
+    class TestComponent extends Script {
       onUpdate() {}
     }
     it("onUpdate", () => {
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype.onUpdate = jest.fn();
-      const component = node.addComponent(TestComponent);
+      const component = entity.addComponent(TestComponent);
       scene.update(16.7);
       scene.update(16.7);
       expect(component.onUpdate).toHaveBeenCalledTimes(2);
     });
 
     it("inActive", () => {
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype.onUpdate = jest.fn();
-      const component = node.addComponent(TestComponent);
-      node.isActive = false;
+      const component = entity.addComponent(TestComponent);
+      entity.isActive = false;
       scene.update(16.7);
       scene.update(16.7);
       expect(component.onUpdate).toHaveBeenCalledTimes(0);
@@ -39,9 +42,10 @@ describe("ComponentsManager", () => {
         update() {}
         render() {}
       }
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype.update = jest.fn();
-      const component = node.addComponent(TestComponent);
+      const component = entity.addComponent(TestComponent);
       scene._componentsManager.callScriptOnStart();
       scene._componentsManager.callRendererOnUpdate(16.7);
       scene._componentsManager.callScriptOnStart();
@@ -54,13 +58,14 @@ describe("ComponentsManager", () => {
         update() {}
         render() {}
       }
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype.render = jest.fn();
-      const component = node.addComponent(TestComponent);
+      const component = entity.addComponent(TestComponent);
       scene._componentsManager.callScriptOnStart();
-      scene._componentsManager.callRender();
+      scene._componentsManager.callRender(null);
       scene._componentsManager.callScriptOnStart();
-      scene._componentsManager.callRender();
+      scene._componentsManager.callRender(null);
       expect(component.render).toHaveBeenCalledTimes(2);
     });
 
@@ -69,13 +74,14 @@ describe("ComponentsManager", () => {
         update() {}
         render() {}
       }
-      const node = new Node(scene, scene.root, "node");
+      const entity = new Entity("entity");
+      entity.parent = scene.getRootEntity();
       TestComponent.prototype.update = jest.fn();
       TestComponent.prototype.render = jest.fn();
-      const component = node.addComponent(TestComponent);
-      node.isActive = false;
+      const component = entity.addComponent(TestComponent);
+      entity.isActive = false;
       scene._componentsManager.callRendererOnUpdate(16.7);
-      scene._componentsManager.callRender();
+      scene._componentsManager.callRender(null);
       expect(component.update).toHaveBeenCalledTimes(0);
       expect(component.render).toHaveBeenCalledTimes(0);
     });

@@ -1,6 +1,6 @@
-import { ACamera } from "./ACamera";
+import { Camera } from "./Camera";
 import { DisorderedArray } from "./DisorderedArray";
-import { NodeAbility as Component } from "./NodeAbility";
+import { Component } from "./Component";
 import { RenderableComponent } from "./RenderableComponent";
 import { Script } from "./Script";
 
@@ -69,13 +69,17 @@ export class ComponentsManager {
   }
 
   addOnUpdateAnimations(animation: Component): void {
+    //@ts-ignore
     animation._onUpdateIndex = this._onUpdateAnimations.length;
     this._onUpdateAnimations.add(animation);
   }
 
   removeOnUpdateAnimations(animation: Component): void {
+    //@ts-ignore
     const replaced = this._onUpdateAnimations.deleteByIndex(animation._onUpdateIndex);
+    //@ts-ignore
     replaced && (replaced._onUpdateIndex = animation._onUpdateIndex);
+    //@ts-ignore
     animation._onUpdateIndex = -1;
   }
 
@@ -95,16 +99,17 @@ export class ComponentsManager {
   }
 
   callScriptOnStart(): void {
-    const length = this._onStartScripts.length;
-    if (length > 0) {
-      const elements = this._onStartScripts._elements;
-      for (let i = length - 1; i >= 0; --i) {
+    const onStartScripts = this._onStartScripts;
+    if (onStartScripts.length > 0) {
+      const elements = onStartScripts._elements;
+      // onStartScripts's length maybe add if you add some Script with addComponent() in some Script's onStart()
+      for (let i = 0; i < onStartScripts.length; i++) {
         const script = elements[i];
-        script.onStart();
         script._started = true;
         script._onStartIndex = -1;
+        script.onStart();
       }
-      this._onStartScripts.length = 0;
+      onStartScripts.length = 0;
     }
   }
 
@@ -118,12 +123,12 @@ export class ComponentsManager {
     }
   }
 
-  callScriptOnLateUpdate(): void {
+  callScriptOnLateUpdate(deltaTime): void {
     const elements = this._onLateUpdateScripts._elements;
     for (let i = this._onLateUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
       if (element._started) {
-        element.onLateUpdate();
+        element.onLateUpdate(deltaTime);
       }
     }
   }
@@ -131,6 +136,7 @@ export class ComponentsManager {
   callAnimationUpdate(deltaTime): void {
     const elements = this._onUpdateAnimations._elements;
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
+      //@ts-ignore
       elements[i].update(deltaTime);
     }
   }
@@ -138,11 +144,11 @@ export class ComponentsManager {
   callRendererOnUpdate(deltaTime: number): void {
     const elements = this._onUpdateRenderers._elements;
     for (let i = this._onUpdateRenderers.length - 1; i >= 0; --i) {
-      elements[i].onUpdate(deltaTime);
+      elements[i].update(deltaTime);
     }
   }
 
-  callRender(camera: ACamera): void {
+  callRender(camera: Camera): void {
     const elements = this._renderers._elements;
     for (let i = this._renderers.length - 1; i >= 0; --i) {
       elements[i]._render(camera);
@@ -160,19 +166,19 @@ export class ComponentsManager {
     }
   }
 
-  callCameraOnBeginRender(camera: ACamera) {
-    const camComps = camera.node._components;
+  callCameraOnBeginRender(camera: Camera) {
+    const camComps = camera.entity._components;
     for (let i = camComps.length - 1; i >= 0; --i) {
       const camComp = camComps[i];
-      (camComp as any).onBeginRender && (camComp as any).onBeginRender();
+      (camComp as any).onBeginRender && (camComp as any).onBeginRender(camera);
     }
   }
 
-  callCameraOnEndRender(camera: ACamera) {
-    const camComps = camera.node._components;
+  callCameraOnEndRender(camera: Camera) {
+    const camComps = camera.entity._components;
     for (let i = camComps.length - 1; i >= 0; --i) {
       const camComp = camComps[i];
-      (camComp as any).onBeginRender && (camComp as any).onEndRender();
+      (camComp as any).onBeginRender && (camComp as any).onEndRender(camera);
     }
   }
 
@@ -183,28 +189,5 @@ export class ComponentsManager {
   putActiveChangedTempList(componentContainer: Component[]): void {
     componentContainer.length = 0;
     this._componentsContainerPool.push(componentContainer);
-  }
-
-  // ------------------------- @deprecated ------------------------------------------------
-  private _onUpdateComponents: DisorderedArray<Component> = new DisorderedArray();
-
-  addOnUpdateComponent(component: Component): void {
-    component._onUpdateIndex = this._onUpdateComponents.length;
-    this._onUpdateComponents.add(component);
-  }
-
-  removeOnUpdateComponent(component: Component): void {
-    this._onUpdateComponents.delete(component);
-    component._onUpdateIndex = -1;
-  }
-
-  callComponentOnUpdate(deltaTime): void {
-    const elements = this._onUpdateComponents._elements;
-    for (let i = this._onUpdateComponents.length - 1; i >= 0; --i) {
-      const element = elements[i];
-      if (element._started) {
-        element.onUpdate(deltaTime);
-      }
-    }
   }
 }

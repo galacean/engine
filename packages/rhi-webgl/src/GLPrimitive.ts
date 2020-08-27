@@ -1,8 +1,7 @@
-import { Logger, UpdateType, GLCapabilityType } from "@alipay/o3-base";
-import { Primitive } from "@alipay/o3-primitive";
-import { GLRenderHardware } from "./GLRenderHardware";
-import { GLTechnique } from "./GLTechnique";
+import { GLCapabilityType, Logger, UpdateType, Primitive } from "@alipay/o3-core";
 import { GLAsset } from "./GLAsset";
+import { GLTechnique } from "./GLTechnique";
+import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
@@ -16,7 +15,7 @@ export class GLPrimitive extends GLAsset {
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
-  constructor(rhi: GLRenderHardware, primitive: Primitive) {
+  constructor(rhi: WebGLRenderer, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
     this.attribLocArray = [];

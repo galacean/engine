@@ -1,5 +1,6 @@
-import { Material, RenderTechnique } from "@alipay/o3-material";
-import { RenderState, DataType, BlendFunc } from "@alipay/o3-base";
+import { BlendFunc, DataType, RenderState } from "@alipay/o3-core";
+import { Material, RenderTechnique } from "@alipay/o3-core";
+import { Vector2 } from "@alipay/o3-math";
 import vs from "./shaders/screen.vs.glsl";
 import fs from "./shaders/weighted_average.fs.glsl";
 
@@ -47,14 +48,15 @@ export class ScreenMaterial extends Material {
     this.setValue("u_Sampler2", textures[1]);
   }
 
-  prepareDrawing(camera, component, primitive) {
+  prepareDrawing(context, component, primitive) {
+    const camera = context.camera;
     const { drawingBufferWidth, drawingBufferHeight } = camera.renderHardware.gl;
-    this.setValue("u_resolution", [drawingBufferWidth, drawingBufferHeight]);
+    this.setValue("u_resolution", new Vector2(drawingBufferWidth, drawingBufferHeight));
 
     if (!this._technique) {
       this.generateTechnique();
     }
-    this.technique.compile(camera, component, primitive, this);
+    this.technique.compile(context, component, primitive, this);
   }
 
   generateTechnique() {

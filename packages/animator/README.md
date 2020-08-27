@@ -1,3 +1,0 @@
-# o3-animator
-
-* 

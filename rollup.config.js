@@ -8,8 +8,9 @@ import babel from "rollup-plugin-babel";
 import string from "@ali/rollup-plugin-string";
 import { terser } from "rollup-plugin-terser";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
-import visualizer from 'rollup-plugin-visualizer';
+import visualizer from "rollup-plugin-visualizer";
 const readFile = promisify(fs.readFile);
+const camelCase = require("camelcase");
 
 const { LERNA_PACKAGE_NAME, PWD, NODE_ENV } = process.env;
 const isMiniProgram = NODE_ENV === "MINIPROGRAM";
@@ -22,7 +23,7 @@ if (!LERNA_PACKAGE_NAME) {
 
   fileDirs = fs
     .readdirSync(pkgDir)
-    .filter(f => fs.statSync(path.join(pkgDir, f)).isDirectory() && excludeDirs.indexOf(f) === -1);
+    .filter((f) => fs.statSync(path.join(pkgDir, f)).isDirectory() && excludeDirs.indexOf(f) === -1);
 } else {
   const dirname = path.basename(PWD);
   fileDirs = [dirname];
@@ -34,11 +35,15 @@ const pkg = (name, type) => {
   return makeRollupConfig({ location, main, name, type });
 };
 
-let promises = [...fileDirs.map(name => pkg(name, "module"))];
+let promises = [...fileDirs.map((name) => pkg(name, "module"))];
 
 if (NODE_ENV === "BUILD") {
-  const compressDir = ["o3"];
-  promises = [...compressDir.map(name => pkg(name, "compress"))];
+  const compressDir = ["o3", "framebuffer-picker", "free-controls", "orbit-controls", "post-processing", "tween"];
+  promises = [...compressDir.map((name) => pkg(name, "compress"))];
+}
+
+function toGlobalName(pkgName) {
+  return camelCase(pkgName.replace("@alipay/", ""));
 }
 
 // Promise.all(promises).then(res => {
@@ -63,6 +68,7 @@ async function makeRollupConfig({ location, main, name, type }) {
     }),
     babel({
       extensions,
+      runtimeHelpers: true,
       exclude: ["node_modules/**", "packages/**/node_modules/**"]
     }),
     commonjs()
@@ -74,17 +80,25 @@ async function makeRollupConfig({ location, main, name, type }) {
   }
 
   if (type === "compress") {
+    let external = name === "o3" ? {} : Object.keys(pkg.dependencies || {});
+    const globalName = toGlobalName(pkg.name);
+    console.log(globalName);
+    console.log(pkg.browser);
     return {
       input,
+      external,
       output: [
         {
-          name: "o3",
+          name: globalName,
           file: path.join(location, pkg.browser),
           format: "umd",
-          sourcemap: true
+          sourcemap: false,
+          globals: {
+            "@alipay/o3": "o3"
+          }
         }
       ],
-      plugins: [...commonPlugins, terser(), visualizer({template: 'sunburst'})]
+      plugins: [...commonPlugins, terser(), visualizer()]
     };
   }
   if (isMiniProgram) {
@@ -99,28 +113,29 @@ async function makeRollupConfig({ location, main, name, type }) {
       ],
       external: Object.keys(pkg.dependencies || {})
         .concat("@alipay/o3-adapter-miniprogram")
-        .map(name => `${name}/dist/miniprogram`),
+        .map((name) => `${name}/dist/miniprogram`),
       plugins: [...commonPlugins, ...miniProgramPlugin]
     };
   }
   // const external = name === "o3-plus" ? {} : Object.keys(pkg.dependencies || {});
   const external = Object.keys(pkg.dependencies || {});
+  const output = [
+    {
+      format: "cjs",
+      file: path.join(location, pkg.main),
+      sourcemap: true
+    },
+    {
+      file: path.join(location, pkg.module),
+      format: "es",
+      sourcemap: true
+    }
+  ];
 
   return {
     input,
     external,
-    output: [
-      {
-        format: "cjs",
-        file: path.join(location, pkg.main),
-        sourcemap: true
-      },
-      {
-        file: path.join(location, pkg.module),
-        format: "es",
-        sourcemap: true
-      }
-    ],
+    output,
     plugins: [...commonPlugins]
   };
 }

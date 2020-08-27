@@ -1,6 +1,6 @@
 import { GLAsset } from "./GLAsset";
-import { GLRenderHardware } from "./GLRenderHardware";
-import { Texture } from "@alipay/o3-material";
+import { WebGLRenderer } from "./WebGLRenderer";
+import { Texture } from "@alipay/o3-core";
 
 /**
  * 管理贴图对象
@@ -12,20 +12,12 @@ export class GLTexture extends GLAsset {
   private _glTexture: WebGLTexture;
   protected _config: Texture;
   protected _type;
-  //todo: delete
-  protected _isNew: boolean;
 
-  constructor(rhi: GLRenderHardware, config: Texture, type) {
+  constructor(rhi: WebGLRenderer, config: Texture, type) {
     super(rhi, config);
 
     this._gl = rhi.gl;
-    //todo: delete
-    if (config._glTexture) {
-      this._isNew = true;
-      this._glTexture = config._glTexture;
-    } else {
-      this._glTexture = rhi.gl.createTexture(); // WebGLTexture
-    }
+    this._glTexture = config._glTexture;
     this._config = config;
     this._type = type;
   }
@@ -51,62 +43,8 @@ export class GLTexture extends GLAsset {
   }
 
   /**
-   * gl.pixelStorei 相关操作，updateTexture 前进行
-   * */
-  setPixelStore() {
-    //todo: delete
-    if (this._isNew) return;
-
-    const gl = this._gl;
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +this._config.flipY);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +this._config.premultiplyAlpha);
-  }
-
-  /**
-   * 设置纹理参数
-   * @private
-   */
-  setFilters() {
-    // todo: delete
-    if (this._isNew) return;
-
-    const gl = this._gl;
-
-    if (this._config.needUpdateFilers) {
-      this._config.needUpdateFilers = false;
-      gl.texParameteri(this._type, gl.TEXTURE_MAG_FILTER, this._config.filterMag);
-      gl.texParameteri(this._type, gl.TEXTURE_MIN_FILTER, this._config.filterMin);
-      gl.texParameteri(this._type, gl.TEXTURE_WRAP_S, this._config.wrapS);
-      gl.texParameteri(this._type, gl.TEXTURE_WRAP_T, this._config.wrapT);
-    }
-  }
-
-  /**
-   * 生成纹理贴图
-   * @private
-   */
-  generateMipmap() {
-    // todo: delete
-    if (this._isNew) return;
-
-    if (this._config.canMipmap) {
-      this._gl.generateMipmap(this._type);
-    }
-  }
-
-  /**
    * 释放 GL 资源
    * @private
    */
-  finalize() {
-    // todo: delete
-    if (this._isNew) return;
-
-    const gl = this._gl;
-    if (this._glTexture) {
-      gl.deleteTexture(this._glTexture);
-      this._glTexture = null;
-    }
-    this._config.resetState();
-  }
+  finalize() {}
 }

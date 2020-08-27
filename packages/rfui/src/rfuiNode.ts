@@ -1,12 +1,12 @@
-import { Node } from "@alipay/o3-core";
-import { ARfuiRenderer } from "./rfuiRenderer";
+import { Entity } from "@alipay/o3-core";
+import { RfuiRenderer } from "./rfuiRenderer";
 import { ARenderEachRow } from "./ability";
 
 /**
  * RfuiNode 节点类
- * @extends Node
+ * @extends Entity
  */
-export class RfuiNode extends Node {
+export class RfuiNode extends Entity {
   public outAnimations;
   public nodesConfig;
   public animationParam;
@@ -42,7 +42,8 @@ export class RfuiNode extends Node {
    * @param {AnimationParam} [props.animationParam]  转场动画参数
    */
   constructor(name, props) {
-    super(props.scene, props.parent, name);
+    super(name);
+    this.parent = props.parent;
     this.nodesConfig = props.nodesConfig;
     this.animationParam = props.animationParam || {};
     this.inAnimations = [];
@@ -51,7 +52,7 @@ export class RfuiNode extends Node {
   }
 
   _initNode() {
-    this.nodesConfig.forEach(nodeConfig => {
+    this.nodesConfig.forEach((nodeConfig) => {
       const node = this.createChild(nodeConfig.name);
       if (nodeConfig.position) {
         node.position = nodeConfig.position;
@@ -60,7 +61,7 @@ export class RfuiNode extends Node {
         node.scale = nodeConfig.scale;
       }
       if (nodeConfig.rotation) {
-        node.setRotationAngles(nodeConfig.rotation[0], nodeConfig.rotation[1], nodeConfig.rotation[2]);
+        node.transform.rotation = nodeConfig.rotation;
       }
 
       const renderer = this.initRenderer(node, nodeConfig);
@@ -72,7 +73,7 @@ export class RfuiNode extends Node {
   initRenderer(node, nodeConfig) {
     const animationParam = Object.assign({}, this.animationParam, nodeConfig.rendererConfig.animationParam || {});
     nodeConfig.rendererConfig.animationParam = animationParam;
-    return node.createAbility(ARfuiRenderer, nodeConfig.rendererConfig);
+    return node.addComponent(RfuiRenderer, nodeConfig.rendererConfig);
   }
 
   initAniamtion(node, nodeConfig, renderer) {
@@ -80,7 +81,7 @@ export class RfuiNode extends Node {
       manager: renderer.animationManager,
       animations: []
     };
-    nodeConfig.animationsConfig["in"].forEach(animationInConfig => {
+    nodeConfig.animationsConfig["in"].forEach((animationInConfig) => {
       inAnimation.animations.push({ type: animationInConfig.type, param: animationInConfig.param });
     });
     this.inAnimations.push(inAnimation);
@@ -89,7 +90,7 @@ export class RfuiNode extends Node {
       manager: renderer.animationManager,
       animations: []
     };
-    nodeConfig.animationsConfig.out.forEach(animationOutConfig => {
+    nodeConfig.animationsConfig.out.forEach((animationOutConfig) => {
       outAnimation.animations.push({ type: animationOutConfig.type, param: animationOutConfig.param });
     });
     this.outAnimations.push(outAnimation);
@@ -98,9 +99,9 @@ export class RfuiNode extends Node {
 
   initAbility(node, nodeConfig, renderer, inAnimation) {
     if (nodeConfig.abilities) {
-      nodeConfig.abilities.forEach(type => {
+      nodeConfig.abilities.forEach((type) => {
         if (type === "ARenderEachRow") {
-          const aType = node.createAbility(ARenderEachRow, {
+          const aType = node.addComponent(ARenderEachRow, {
             geometry: renderer.geometry
           });
           if (inAnimation.animations.length > 0) {
@@ -124,32 +125,32 @@ export class RfuiNode extends Node {
   }
 
   animationIn(onComplete?) {
-    this.inAnimations.forEach(inAnimation => {
-      inAnimation.animations.forEach(animation => {
+    this.inAnimations.forEach((inAnimation) => {
+      inAnimation.animations.forEach((animation) => {
         animation.tweener = inAnimation.manager[animation.type](animation.param);
       });
     });
   }
 
   animationInStop(onComplete?) {
-    this.inAnimations.forEach(inAnimation => {
-      inAnimation.animations.forEach(animation => {
+    this.inAnimations.forEach((inAnimation) => {
+      inAnimation.animations.forEach((animation) => {
         animation.tweener && animation.tweener.stop();
       });
     });
   }
 
   animationOut(onComplete?) {
-    this.outAnimations.forEach(outAnimation => {
-      outAnimation.animations.forEach(animation => {
+    this.outAnimations.forEach((outAnimation) => {
+      outAnimation.animations.forEach((animation) => {
         animation.tweener = outAnimation.manager[animation.type](animation.param);
       });
     });
   }
 
   animationOutStop(onComplete?) {
-    this.outAnimations.forEach(outAnimation => {
-      outAnimation.animations.forEach(animation => {
+    this.outAnimations.forEach((outAnimation) => {
+      outAnimation.animations.forEach((animation) => {
         animation.tweener && animation.tweener.stop();
       });
     });

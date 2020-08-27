@@ -1,15 +1,14 @@
-import { BlendFunc, RenderState, FrontFace } from "@alipay/o3-base";
-import { AGeometryRenderer } from "@alipay/o3-geometry";
-import { PlaneGeometry, CylinderGeometry } from "@alipay/o3-geometry-shape";
-import { vec4 } from "@alipay/o3-math";
+import { BlendFunc, RenderState, FrontFace, GeometryRenderer, PlaneGeometry, CylinderGeometry } from "@alipay/o3-core";
+import { Vector4, Vector2 } from "@alipay/o3-math";
 import { RfuiMaterial } from "./rfuiMaterial";
 import { RfuiAnimation } from "./animation/rfuiAnimation";
+import { Texture2D } from "@alipay/o3-core";
 
 /**
  * Rfui 渲染类
- * @extends AGeometryRenderer
+ * @extends GeometryRenderer
  */
-export class ARfuiRenderer extends AGeometryRenderer {
+export class RfuiRenderer extends GeometryRenderer {
   public type;
   public texrureType;
   public geometryType;
@@ -17,9 +16,9 @@ export class ARfuiRenderer extends AGeometryRenderer {
   private _animationParam;
   private _geometryParam;
   private _blendFunc;
-  private _diffuse;
+  private _diffuse: Vector4;
   private _mask;
-  private _uvVelocity;
+  private _uvVelocity: Vector2;
   private _isAnimatingTexture;
   private _states;
   protected _material: RfuiMaterial;
@@ -46,20 +45,20 @@ export class ARfuiRenderer extends AGeometryRenderer {
 
   /**
    * @constructor
-   * @param {Node} node 节点对象
+   * @param {Entity} entity 节点对象
    * @param {Props} props 渲染类配置
    * @param {string} [props.texrureType = image]  贴图类型
    * @param {string} [props.geometryType = plane]  几何体类型
    * @param {GeometryParam} [props.geometryParam]  几何体参数
    * @param {AnimationParam} [props.animationParam]  转场动画参数
    * @param {Array} [props.blendFunc] 混合模式，[SRC_ALPHA, ONE_MINUS_SRC_ALPHA];
-   * @param {vec4|Texture2D} [props.diffuse = vec4.fromValues( 1, 1, 1, 1 )]  贴图
+   * @param {Vector4|Texture2D} [props.diffuse = vec4.fromValues( 1, 1, 1, 1 )]  贴图
    * @param {Texture2D} [props.mask]  遮罩贴图
-   * @param {vec2} [props.uvVelocity]  UV 动画速度
+   * @param {Vector2} [props.uvVelocity]  UV 动画速度
    * @param {boolean} [props.isAnimatingTexture = false]  是否为动画贴图（需要每帧刷新贴图内容）
    */
-  constructor(node, props) {
-    super(node, props);
+  constructor(entity, props) {
+    super(entity, props);
     this.type = "rfui";
     this.texrureType = props.texrureType || "image";
     this.geometryType = props.geometryType || "plane";
@@ -67,7 +66,7 @@ export class ARfuiRenderer extends AGeometryRenderer {
     this._animationParam = props.animationParam;
     this._geometryParam = props.geometryParam || {};
     this._blendFunc = props.blendFunc || [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA];
-    this._diffuse = props.diffuse || vec4.fromValues(1, 1, 1, 1);
+    this._diffuse = props.diffuse || new Vector4(1, 1, 1, 1);
     this._mask = props.mask;
     this._uvVelocity = props.uvVelocity;
     this._isAnimatingTexture = props.isAnimatingTexture || false;
@@ -119,17 +118,17 @@ export class ARfuiRenderer extends AGeometryRenderer {
   }
 
   initAnimation() {
-    this.animationManager = new RfuiAnimation(this.node, {
+    this.animationManager = new RfuiAnimation(this.entity, {
       material: this.getMaterial(),
       param: this._animationParam
     });
   }
 
-  update(deltaTime) {
-    if (this._isAnimatingTexture) {
-      this._diffuse.updateTexture();
-    }
-  }
+  // update(deltaTime) {
+  //   if (this._isAnimatingTexture) {
+  //     this._diffuse.updateTexture();
+  //   }
+  // }
 
   set diffuse(diffuse) {
     this._diffuse = diffuse;

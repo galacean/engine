@@ -36,7 +36,7 @@ getBoundingBoxByGLTF - 获取模型的boundingBox（也可以自行实现
 ```javascript
 // 这里使用的是CuboidGeometry作为探针
 const mouseHelper = world.createChild('mouseHelper');
-const renderer = mouseHelper.createAbility(AGeometryRenderer);
+const renderer = mouseHelper.addComponent(GeometryRenderer);
 renderer.geometry = new CuboidGeometry(0.5, 0.5, 5);
 const mtl = new LambertMaterial('mouseHelper_mtl', false); 
 mtl.diffuse = [1, 0, 0, 1];
@@ -124,7 +124,7 @@ document.getElementById('o3-demo').addEventListener('mouseup', (e) => {
   // 若获取到了交点的位置与法线，则创建贴花
   if (point && normal && !moved) {
     const decal = world.createChild('decal');
-    const renderer = decal.createAbility(AGeometryRenderer);
+    const renderer = decal.addComponent(GeometryRenderer);
     renderer.geometry = new DecalGeometry(
       targetIntersection,
       point,

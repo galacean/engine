@@ -1,5 +1,5 @@
-import { GLRenderHardware } from "./GLRenderHardware";
-import { GLCapabilityType, GLCompressedTextureInternalFormat } from "@alipay/o3-base";
+import { WebGLRenderer } from "./WebGLRenderer";
+import { GLCapabilityType, GLCompressedTextureInternalFormat } from "@alipay/o3-core";
 
 type extensionKey = string;
 
@@ -11,7 +11,7 @@ export class GLCapability {
   private _maxAnisoLevel: number;
   private _maxAntiAliasing: number;
 
-  _rhi: GLRenderHardware;
+  _rhi: WebGLRenderer;
   capabilityList: Map<GLCapabilityType, boolean>;
 
   get maxDrawBuffers() {
@@ -53,7 +53,7 @@ export class GLCapability {
     return this._rhi;
   }
 
-  constructor(rhi: GLRenderHardware) {
+  constructor(rhi: WebGLRenderer) {
     this._rhi = rhi;
     this.capabilityList = new Map();
 

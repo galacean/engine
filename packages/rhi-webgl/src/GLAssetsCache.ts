@@ -1,8 +1,7 @@
-import { AssetType } from "@alipay/o3-base";
+import { InternalAssetType } from "@alipay/o3-core";
 import { AssetObject } from "@alipay/o3-core";
-import { GLRenderHardware } from "./GLRenderHardware";
+import { WebGLRenderer } from "./WebGLRenderer";
 import { GLAsset } from "./GLAsset";
-import { RHIOption } from "@alipay/o3-core/types/type";
 
 interface ObjectSet {
   [key: number]: GLAsset;
@@ -13,13 +12,13 @@ interface ObjectSet {
  * @private
  */
 export class GLAssetsCache {
-  private readonly _rhi: GLRenderHardware;
+  private readonly _rhi: WebGLRenderer;
   private _objectSet: ObjectSet;
   private _checkList: GLAsset[];
   private _nextID: number;
   private readonly _enableCollect: boolean;
 
-  constructor(rhi: GLRenderHardware, props: RHIOption = {}) {
+  constructor(rhi: WebGLRenderer, props: any = {}) {
     this._rhi = rhi;
     this._objectSet = {}; // 所有资源对象的集合
     this._checkList = []; // 需要检测生命周期的对象列表
@@ -54,7 +53,7 @@ export class GLAssetsCache {
       asset.needRecreate = false;
 
       //-- 处理运行时资源释放
-      if (this._enableCollect && asset.type === AssetType.Cache) {
+      if (this._enableCollect && asset.type === InternalAssetType.Cache) {
         this._checkList.push(cachedObject);
       }
     }

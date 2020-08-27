@@ -1,1 +1,1 @@
-export { OITSceneRenderer } from "./OITSceneRenderer";
+export { OITRenderPipeline } from "./OITRenderPipeline";

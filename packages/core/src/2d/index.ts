@@ -1,0 +1,1 @@
+export { SpriteRenderer } from "./SpriteRenderer";

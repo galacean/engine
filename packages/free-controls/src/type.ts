@@ -34,5 +34,4 @@ export type mat3Type = TypedArray | array9<number>;
 export type mat4Type = TypedArray | array16<number>;
 
 export type Canvas = object;
-export type BasicSceneRenderer = any;
-export type GLRenderHardware = any;
+export type WebGLRenderer = any;

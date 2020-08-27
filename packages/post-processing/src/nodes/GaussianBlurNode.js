@@ -1,4 +1,5 @@
-import { DataType } from '@alipay/o3-base';
+import { DataType } from '@alipay/o3';
+import { Vector2 } from '@alipay/o3';
 import { PostEffectNode } from '../PostEffectNode';
 
 import GaussianBlurShader from '../shaders/GaussianBlur.glsl';
@@ -17,7 +18,7 @@ export class GaussianBlurNode extends PostEffectNode {
 
     this.material.setValue( 'u_texelSize',  1.0 / rtSize );
 
-    this._direction = [ 0.5, 0.0 ] ;
+    this._direction = new Vector2(0.5, 0.0) ;
     this.material.setValue( 'u_direction', this._direction );
 
   }

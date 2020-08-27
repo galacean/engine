@@ -1,21 +1,21 @@
-import { ACamera } from "@alipay/o3-core";
-import { Util } from "@alipay/o3-base";
+import { Util } from "@alipay/o3-core";
+import { Camera } from "@alipay/o3-core";
 import { cacheCanvas } from "./cacheCanvas";
-import { Prop, ScreenshotSize, CanvasDataSizeAndOffset } from "./type";
+import { CanvasDataSizeAndOffset, Prop, ScreenshotSize } from "./type";
 
 export class Screenshot {
-  camera: ACamera;
+  camera: Camera;
 
   /**
    * 根据 prop 获取截图的宽高
-   * @param {ACamera} camera - 相机
+   * @param {Camera} camera - 相机
    * @param {number} width - 用户传入的宽
    * @param {number} height - 用户传入的高
    * @return {ScreenshotSize} - 最终计算出来的的截图宽高
    * */
-  public static getScreenShotSize(camera: ACamera, width?: number, height?: number): ScreenshotSize {
-    const canvas = camera.renderHardware.canvas;
-    const aspect = camera.aspect;
+  public static getScreenShotSize(camera: Camera, width?: number, height?: number): ScreenshotSize {
+    const canvas = camera.scene.engine.canvas;
+    const aspect = camera.aspectRatio;
     if (width && height) {
       return { width, height };
     } else if (!width && height) {
@@ -38,13 +38,13 @@ export class Screenshot {
 
   /**
    * 根据截图宽高计算 canvasData 宽高和偏移。自动调整比例缩放并居中
-   * @param {ACamera} camera - 相机
+   * @param {Camera} camera - 相机
    * @param {number} width - 截图的宽
    * @param {number} height - 截图的高
    * @return {CanvasDataSizeAndOffset} - 最终计算出来的 canvasData 宽高和偏移
    * */
-  public static getCanvasDataSizeAndOffset(camera: ACamera, width: number, height: number): CanvasDataSizeAndOffset {
-    const aspect = camera.aspect;
+  public static getCanvasDataSizeAndOffset(camera: Camera, width: number, height: number): CanvasDataSizeAndOffset {
+    const aspect = camera.aspectRatio;
     let newWidth = width;
     let newHeight = width / aspect;
     if (newHeight > height) {
@@ -115,7 +115,7 @@ export class Screenshot {
     }
 
     cacheCanvas.toBlob(
-      blob => {
+      (blob) => {
         Util.downloadBlob(blob, name);
       },
       isPng ? "image/png" : "image/jpeg"
@@ -124,10 +124,10 @@ export class Screenshot {
 
   /**
    * 根据 camera 和相应配置生成截图
-   * @param {ACamera} camera - 用于截图的相机
+   * @param {Camera} camera - 用于截图的相机
    * @param {Prop} prop - 截图配置选项
    * */
-  constructor(camera: ACamera, prop?: Prop) {
+  constructor(camera: Camera, prop?: Prop) {
     this.camera = camera;
     const { width, height, isPng = true, download = true, downloadName, onSuccess } = prop || {};
     const { width: screenshotWidth, height: screenshotHeight } = Screenshot.getScreenShotSize(camera, width, height);
@@ -139,7 +139,8 @@ export class Screenshot {
     } = Screenshot.getCanvasDataSizeAndOffset(camera, screenshotWidth, screenshotHeight);
 
     Screenshot.drawImage(
-      camera.renderHardware.canvas,
+      //@ts-ignore
+      camera.engine.canvas._htmlCanvas,
       screenshotWidth,
       screenshotHeight,
       canvasDataWidth,

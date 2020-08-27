@@ -1,7 +1,6 @@
-import { ClearMode } from "@alipay/o3-base";
-import { RenderPass } from "@alipay/o3-renderer-basic";
-import { Texture2D } from "@alipay/o3-material";
-import { ScreenQuadGeometry } from "@alipay/o3-geometry-shape";
+import { ClearMode, RenderContext, ScreenQuadGeometry } from "@alipay/o3-core";
+import { RenderPass } from "@alipay/o3-core";
+import { RenderColorTexture } from "@alipay/o3-core";
 import { ScreenMaterial } from "./ScreenMaterial";
 
 /**
@@ -10,7 +9,7 @@ import { ScreenMaterial } from "./ScreenMaterial";
 export class ScreenRenderPass extends RenderPass {
   private screenQuadGeometry = new ScreenQuadGeometry();
 
-  constructor(textures: Texture2D[]) {
+  constructor(textures: RenderColorTexture[]) {
     super("screen renderPass", 1, null);
     this.replaceMaterial = new ScreenMaterial("ScreenMaterial", textures);
     this.renderOverride = true;
@@ -21,7 +20,8 @@ export class ScreenRenderPass extends RenderPass {
     const rhi = camera.renderHardware;
     const primitive = this.screenQuadGeometry.primitive;
 
-    this.replaceMaterial.prepareDrawing(camera, {}, primitive);
+    const context = RenderContext._getRenderContext(camera);
+    this.replaceMaterial.prepareDrawing(context, {}, primitive);
     rhi.drawPrimitive(primitive, this.replaceMaterial);
   }
 }

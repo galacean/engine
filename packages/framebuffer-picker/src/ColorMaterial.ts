@@ -1,7 +1,7 @@
-import { Logger, DataType } from "@alipay/o3-base";
-import { Material, RenderTechnique } from "@alipay/o3-material";
-import vs from "./color.vs.glsl";
+import { DataType, Logger, Material, RenderTechnique, Engine } from "@alipay/o3";
+import { Vector3 } from "@alipay/o3";
 import fs from "./color.fs.glsl";
+import vs from "./color.vs.glsl";
 
 /**
  * @private
@@ -12,8 +12,8 @@ class ColorMaterial extends Material {
   private _primitivesMap = [];
   protected _technique;
 
-  constructor(name = "FRAMEBUFFER_PICKER_COLOR_MATERIAL") {
-    super(name);
+  constructor(name = "FRAMEBUFFER_PICKER_COLOR_MATERIAL", engine?: Engine) {
+    super(name, engine);
     this.reset();
   }
 
@@ -30,16 +30,13 @@ class ColorMaterial extends Material {
    * @private
    * id 转换为 RGB 颜色值，0 和 0xffffff 为非法值
    */
-  id2Color(id) {
+  id2Color(id): Vector3 {
     if (id >= 0xffffff) {
       Logger.warn("Framebuffer Picker encounter primitive's id greater than " + 0xffffff);
-      return new Float32Array([0, 0, 0]);
+      return new Vector3(0, 0, 0);
     }
 
-    const color = new Float32Array(3);
-    color[0] = (id & 0xff) / 255;
-    color[1] = ((id & 0xff00) >> 8) / 255;
-    color[2] = ((id & 0xff0000) >> 16) / 255;
+    const color = new Vector3((id & 0xff) / 255, ((id & 0xff00) >> 8) / 255, ((id & 0xff0000) >> 16) / 255);
     return color;
   }
 
@@ -62,14 +59,14 @@ class ColorMaterial extends Material {
   /**
    * @private
    */
-  prepareDrawing(camera, component, primitive, originalMaterial?: Material) {
+  prepareDrawing(context, component, primitive, originalMaterial?: Material) {
     if (!this._technique) this.generateTechnique();
     this.technique.states = originalMaterial?.technique?.states;
     this._currentId += 1;
     this._primitivesMap[this._currentId] = { component, primitive };
     this.setValue("u_colorId", this.id2Color(this._currentId));
 
-    super.prepareDrawing(camera, component, primitive);
+    super.prepareDrawing(context, component, primitive);
   }
 
   /**

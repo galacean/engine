@@ -1,4 +1,5 @@
-import { Material, RenderTechnique, RenderTarget } from '@alipay/o3-material';
+import { Material, RenderColorTexture, RenderDepthTexture, RenderTarget, RenderTechnique } from "@alipay/o3";
+import { Vector4 } from "@alipay/o3";
 
 const VERT_SHADER = `
 
@@ -26,15 +27,13 @@ void main() {
 `;
 
 class DepthMaterial extends Material {
-
   /**
    * 生成内部所使用的 Technique 对象
    * @private
    */
-  _generateTechnique( ) {
-
+  _generateTechnique() {
     //--
-    const tech = new RenderTechnique( 'depth_tech' );
+    const tech = new RenderTechnique("depth_tech");
     tech.isValid = true;
     tech.uniforms = {};
     tech.attributes = {};
@@ -43,36 +42,27 @@ class DepthMaterial extends Material {
     tech.fragmentShader = FRAG_SHADER;
 
     this._technique = tech;
-
   }
 
   /**
    * 重写基类方法
    * @private
    */
-  prepareDrawing( camera, component, primitive ) {
-
-
-    if ( this._technique === null ) {
-
-      this._generateTechnique( );
-
+  prepareDrawing(context, component, primitive) {
+    if (this._technique === null) {
+      this._generateTechnique();
     }
 
-    super.prepareDrawing( camera, component, primitive );
-
+    super.prepareDrawing(context, component, primitive);
   }
-
 }
 
-export function addDepthTexturePass( camera, mask ){
+export function addDepthTexturePass(camera, mask) {
+  const mtl = new DepthMaterial("depth_mtl");
+  const renderTarget = new RenderTarget(512, 512, new RenderColorTexture(512, 512), new RenderDepthTexture(512, 512));
 
-  const mtl = new DepthMaterial( 'depth_mtl' );
-  const renderTarget = new RenderTarget( 'depthTarget', { width: 512, height: 512, clearColor: [ 1.0, 1.0, 1.0, 1.0 ], enableDepthTexture: true } );
-
-  const renderer = camera.sceneRenderer;
-  renderer.addRenderPass( 'DepthPass', -1, renderTarget, mtl, mask );
+  const renderer = camera._renderPipeline;
+  renderer.addRenderPass("DepthPass", -1, renderTarget, mtl, mask, new Vector4(1, 1, 1, 1));
 
   return renderTarget;
-
 }
