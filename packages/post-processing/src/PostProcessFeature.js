@@ -4,7 +4,7 @@ import {
   RenderTarget,
   SceneFeature,
   ScreenQuadGeometry as ScreenQuad
-} from "@alipay/o3-core";
+} from "@alipay/o3";
 import { PostEffectMaterial } from "./PostEffectMaterial";
 import { PostEffectNode } from "./PostEffectNode";
 import { PostProcessRenderPass } from "./PostProcessRenderPass";

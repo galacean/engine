@@ -1,5 +1,5 @@
-import { RenderTarget } from '@alipay/o3-core';
-import { Vector3 } from '@alipay/o3-math';
+import { RenderTarget } from '@alipay/o3';
+import { Vector3 } from '@alipay/o3';
 import { PostEffectNode } from './PostEffectNode';
 import { ExtractHighlightPassNode } from './nodes/ExtractHighlightPassNode';
 import { KernelBlurPassNode } from './nodes/KernelBlurPassNode';

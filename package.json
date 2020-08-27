@@ -35,7 +35,7 @@
     "clean": "lerna exec -- rm -rf dist && sudo lerna clean",
     "docs:update": "node scripts/docs.update.js",
     "post-changelog": "node scripts/post-changelog.js",
-    "docs": "rm -rf docs && typedoc --plugin typedoc-plugin-lerna-packages"
+    "docs": "rm -rf docs && typedoc --tsconfig configs/typedoc-tsconfig.json --options configs/typedoc.json"
   },
   "files": [
     "src",
@@ -62,6 +62,7 @@
     "@babel/plugin-transform-runtime": "^7.7.6",
     "@babel/preset-env": "^7.5.4",
     "@babel/preset-typescript": "^7.3.3",
+    "@strictsoftware/typedoc-plugin-monorepo": "^0.3.1",
     "@types/jest": "^24.0.23",
     "@typescript-eslint/eslint-plugin": "^2.6.1",
     "@typescript-eslint/parser": "^2.6.1",
@@ -97,9 +98,7 @@
     "rollup-plugin-terser": "^5.1.1",
     "rollup-plugin-visualizer": "^4.0.4",
     "typedoc": "0.16.11",
-    "typedoc-plugin-lerna-packages": "^0.3.0",
-    "typedoc-plugin-markdown": "^2.3.1",
-    "typescript": "^3.7.3",
+    "typescript": "^3.9.3",
     "urllib": "^2.34.1"
   },
   "husky": {

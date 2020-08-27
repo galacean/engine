@@ -1,4 +1,4 @@
-import { ClearMode, RenderPass } from "@alipay/o3-core";
+import { ClearMode, RenderPass } from "@alipay/o3";
 
 /**
  * 后处理 RenderPass

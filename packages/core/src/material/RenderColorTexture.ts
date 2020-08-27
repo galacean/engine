@@ -48,7 +48,7 @@ export class RenderColorTexture extends Texture {
     isCube: boolean = false,
     engine?: Engine
   ) {
-    super();
+    super(engine);
     engine = engine || Engine._getDefaultEngine();
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;

@@ -1,5 +1,5 @@
-import { DataType } from "@alipay/o3-core";
-import { Vector4 } from "@alipay/o3-math";
+import { DataType } from "@alipay/o3";
+import { Vector4 } from "@alipay/o3";
 import { PostEffectNode } from "./PostEffectNode";
 
 /**

@@ -1,5 +1,5 @@
-import { DataType } from '@alipay/o3-core';
-import { Vector3 } from '@alipay/o3-math';
+import { DataType } from '@alipay/o3';
+import { Vector3 } from '@alipay/o3';
 import { PostEffectNode } from '../PostEffectNode';
 import fs from '../shaders/BloomMerge.glsl';
 

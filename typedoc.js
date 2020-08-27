@@ -1,11 +1,20 @@
 module.exports = {
-  mode: 'modules',
-  out: "docs",
-  exclude: ["**/node_modules/**", "**/*.test.ts", "scripts/template/**", "**/*.d.ts"],
-  name: "o3",
-  excludePrivate: true,
-  ignoreCompilerErrors: true,
-  includeDeclarations: true,
-  excludeExternals: true,
-  lernaExclude: ["@alipay/o3-$name$"]
+  name: "My Library",
+  mode: "file",
+  out: "doc",
+  theme: "default",
+  ignoreCompilerErrors: "false",
+  preserveConstEnums: "true",
+  stripInternal: "false",
+  "external-modulemap": ".*/packages/([\\w\\-_]+)/",
+  exclude: [
+    "**/+(dev-packages|examples|typings)/**/*",
+    "**/*test.ts",
+    "packages/adapter-miniprogram/**/*",
+    "packages/component-miniprogram/**/*",
+    "packages/**/src/global.d.ts",
+    "packages/**/shaderLib/global.d.ts",
+    "scripts/**/*"
+  ],
+  plugin: ["@strictsoftware/typedoc-plugin-monorepo"]
 };
