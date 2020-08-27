@@ -454,6 +454,15 @@ export abstract class Texture extends ReferenceObject {
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
+    if (
+      value !== TextureFilterMode.Point &&
+      (!Texture._isPowerOf2(this._width) || !Texture._isPowerOf2(this._height))
+    ) {
+      Logger.warn(
+        "non-power-2 texture is not supported for Bilinear or Trilinear ,and has automatically downgraded to Point"
+      );
+      value = TextureFilterMode.Point;
+    }
     this._filterMode = value;
 
     this._bind();
