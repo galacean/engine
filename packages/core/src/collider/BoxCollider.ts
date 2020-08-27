@@ -19,9 +19,9 @@ export class BoxCollider extends ABoxCollider {
 
     const { center, size, isShowCollider } = props;
 
-    this.center = center;
-    this.size = size;
-    this.isShowCollider = isShowCollider;
+    this.center = center ?? this.center;
+    this.size = size ?? this.size;
+    this.isShowCollider = isShowCollider ?? this.isShowCollider;
   }
 
   get center(): Vector3 {
