@@ -647,4 +647,43 @@ export class Quaternion {
     Quaternion.rotationAxisAngle(axis, rad, this);
     return this;
   }
+
+  /**
+   * 与四元数相乘。
+   * @param quat - 右四元数
+   * @returns 当前四元数
+   */
+  multiply(quat: Quaternion): Quaternion {
+    Quaternion.multiply(this, quat, this);
+    return this;
+  }
+
+  /**
+   * 计算四元数的逆。
+   * @returns 当前四元数
+   */
+  invert(): Quaternion {
+    Quaternion.invert(this, this);
+    return this;
+  }
+
+  /**
+   * 计算与四元数的点积。
+   * @param quat - 右四元数
+   * @returns 点击结果
+   */
+  dot(quat: Quaternion): number {
+    return Quaternion.dot(this, quat);
+  }
+
+  /**
+   * 插值四元数。
+   * @param quat - 右四元数
+   * @param t - 插值比例 范围 0～1
+   * @returns - 插值结果
+   */
+  lerp(quat: Quaternion, t: number): Quaternion {
+    Quaternion.lerp(this, quat, t, this);
+    return this;
+  }
 }
