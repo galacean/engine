@@ -497,8 +497,3 @@ export class Camera extends Component {
     this._renderPipeline.defaultRenderPass.clearMode = clearMode;
   }
 }
-
-interface ITransform {
-  worldMatrix: Readonly<Matrix>;
-  worldPosition: Readonly<Vector3>;
-}
