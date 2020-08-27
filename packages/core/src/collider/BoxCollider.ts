@@ -19,8 +19,8 @@ export class BoxCollider extends ABoxCollider {
 
     const { center, size, isShowCollider } = props;
 
-    this.center = center;
-    this.size = size;
+    center && (this.center = center);
+    size && (this.size = size);
     this.isShowCollider = isShowCollider;
   }
 

@@ -12,8 +12,8 @@ export class SphereCollider extends ASphereCollider {
 
     const { _center, _radius, isShowCollider } = props;
 
-    this._center = _center;
-    this._radius = _radius;
+    _center && (this._center = _center);
+    _radius && (this._radius = _radius);
     this.isShowCollider = isShowCollider;
   }
 
