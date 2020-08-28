@@ -1,19 +1,19 @@
 import { Vector4 } from "@alipay/o3-math";
-import { ProbeConfig } from "./type";
-import { Component } from "../Component";
 import { Camera } from "../Camera";
-import { RenderPass } from "../RenderPipeline/RenderPass";
+import { Component } from "../Component";
+import { Entity } from "../Entity";
 import { Material } from "../material/Material";
-import { RenderTarget } from "../material/RenderTarget";
-import { Texture2D } from "../material/Texture2D";
 import { RenderColorTexture } from "../material/RenderColorTexture";
 import { RenderDepthTexture } from "../material/RenderDepthTexture";
-import { TextureCubeMap } from "../material/TextureCubeMap";
-import { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
-import { Entity } from "../Entity";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { RenderBufferDepthFormat } from "../base/Constant";
+import { RenderTarget } from "../material/RenderTarget";
 import { Texture } from "../material/Texture";
+import { Texture2D } from "../material/Texture2D";
+import { TextureCubeMap } from "../material/TextureCubeMap";
+import { RenderBufferDepthFormat } from "../material/type";
+import { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { RenderPass } from "../RenderPipeline/RenderPass";
+import { ProbeConfig } from "./type";
 
 let cacheId = 0;
 

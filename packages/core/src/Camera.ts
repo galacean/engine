@@ -1,11 +1,12 @@
-import { ClearMode, TextureCubeFace } from "./base";
-import { Matrix, MathUtil, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { ClearMode } from "./base";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
+import { TextureCubeFace } from "./material/type";
+import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
-import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 
 /**
  * @todo 数学库改造

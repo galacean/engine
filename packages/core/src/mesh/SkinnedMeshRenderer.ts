@@ -1,10 +1,10 @@
 import { Matrix } from "@alipay/o3-math";
-import { MeshRenderer } from "./MeshRenderer";
-import { Mesh } from "./Mesh";
-import { Skin } from "./Skin";
 import { Entity } from "../Entity";
 import { Texture2D } from "../material/Texture2D";
-import { TextureFormat } from "../base/Constant";
+import { TextureFormat } from "../material/type";
+import { Mesh } from "./Mesh";
+import { MeshRenderer } from "./MeshRenderer";
+import { Skin } from "./Skin";
 
 /**
  * 负责渲染一个 Skinned Mesh 的组件

@@ -1,7 +1,7 @@
-import { RenderBufferDepthFormat, TextureFilterMode, TextureWrapMode } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { Texture } from "./Texture";
+import { RenderBufferDepthFormat, TextureFilterMode, TextureWrapMode } from "./type";
 
 /**
  * 类应用于渲染深度纹理。

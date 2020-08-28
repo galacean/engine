@@ -1,7 +1,7 @@
-import { TextureCubeFace, TextureFilterMode, TextureFormat, TextureWrapMode } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { Texture } from "./Texture";
+import { TextureCubeFace, TextureFilterMode, TextureFormat, TextureWrapMode } from "./type";
 
 /**
  * 立方体纹理。
