@@ -12,7 +12,7 @@ import { GeometryRenderer } from "../geometry/GeometryRenderer";
 import { IndexBufferGeometry } from "../geometry/IndexBufferGeometry";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
-import { TextureWrapMode } from "../material/type";
+import { TextureWrapMode } from "../texture/types";
 
 /**
  * GPU粒子系统渲染类

@@ -1,7 +1,7 @@
 import { Vector4 } from "@alipay/o3-math";
 import { DataType } from "../base/Constant";
 import { LightFeature } from "../lighting/LightFeature";
-import { Texture2D } from "../material/Texture2D";
+import { Texture2D } from "../texture/Texture2D";
 import { CommonMaterial } from "./CommonMaterial";
 import LambertShader from "./shader/Lambert.glsl";
 

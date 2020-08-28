@@ -3,8 +3,8 @@ import { ClearMode } from "./base";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { TextureCubeFace } from "./material/type";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+import { TextureCubeFace } from "./texture/types";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 

@@ -2,17 +2,15 @@ import { ReferenceObject } from "../asset/ReferenceObject";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
+import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "../material/type";
 import {
-  GLCompressedTextureInternalFormat,
   RenderBufferColorFormat,
   RenderBufferDepthFormat,
   TextureCubeFace,
   TextureFilterMode,
   TextureFormat,
-  TextureFormatDetail,
   TextureWrapMode
-} from "./type";
-
+} from "./types";
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */

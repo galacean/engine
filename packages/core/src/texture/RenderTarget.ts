@@ -5,7 +5,7 @@ import { Engine } from "../Engine";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
 import { Texture } from "./Texture";
-import { RenderBufferDepthFormat, TextureCubeFace } from "./type";
+import { RenderBufferDepthFormat, TextureCubeFace } from "./types";
 
 /**
  * 用于离屏幕渲染的渲染目标。

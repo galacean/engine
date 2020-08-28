@@ -1,9 +1,9 @@
 import { Vector4 } from "@alipay/o3-math";
-import { CommonMaterial } from "./CommonMaterial";
-import BlinnPhongShader from "./shader/BlinnPhong.glsl";
-import { Texture2D } from "../material/Texture2D";
 import { DataType } from "../base/Constant";
 import { LightFeature } from "../lighting/LightFeature";
+import { Texture2D } from "../texture/Texture2D";
+import { CommonMaterial } from "./CommonMaterial";
+import BlinnPhongShader from "./shader/BlinnPhong.glsl";
 
 /**
  * 实现 Blinn 光照模型的材质

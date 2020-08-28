@@ -1,7 +1,7 @@
 import { Matrix } from "@alipay/o3-math";
 import { Entity } from "../Entity";
-import { Texture2D } from "../material/Texture2D";
-import { TextureFormat } from "../material/type";
+import { Texture2D } from "../texture/Texture2D";
+import { TextureFormat } from "../texture/types";
 import { Mesh } from "./Mesh";
 import { MeshRenderer } from "./MeshRenderer";
 import { Skin } from "./Skin";
