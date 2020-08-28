@@ -3,8 +3,8 @@ import { DataType } from "../base/Constant";
 import { DirectLight } from "../lighting/DirectLight";
 import { PointLight } from "../lighting/PointLight";
 import { SpotLight } from "../lighting/SpotLight";
-import { RenderColorTexture } from "../material/RenderColorTexture";
-import { RenderTarget } from "../material/RenderTarget";
+import { RenderColorTexture } from "../texture/RenderColorTexture";
+import { RenderTarget } from "../texture/RenderTarget";
 
 /**
  * 阴影的管理类

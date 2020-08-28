@@ -6,13 +6,13 @@ import {
   DrawMode,
   MaterialType,
   RenderState,
-  TextureWrapMode,
   UniformSemantic
 } from "../base/Constant";
 import { GeometryRenderer } from "../geometry/GeometryRenderer";
 import { IndexBufferGeometry } from "../geometry/IndexBufferGeometry";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
+import { TextureWrapMode } from "../texture/enums";
 
 /**
  * GPU粒子系统渲染类

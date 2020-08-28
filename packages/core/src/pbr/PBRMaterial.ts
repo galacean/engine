@@ -6,8 +6,8 @@ import { Component } from "../Component";
 import { LightFeature } from "../lighting/LightFeature";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
-import { Texture } from "../material/Texture";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Texture } from "../texture/Texture";
 import fs from "./pbr.fs.glsl";
 import vs from "./pbr.vs.glsl";
 /**

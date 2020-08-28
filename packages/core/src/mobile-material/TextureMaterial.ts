@@ -1,7 +1,7 @@
+import { DataType, RenderState } from "../base/Constant";
+import { Texture2D } from "../texture/Texture2D";
 import { CommonMaterial } from "./CommonMaterial";
 import FRAG_SHADER from "./shader/Texture.glsl";
-import { Texture2D } from "../material/Texture2D";
-import { DataType, RenderState } from "../base/Constant";
 
 /**
  * 无光照贴图材质

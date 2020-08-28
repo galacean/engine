@@ -1,19 +1,19 @@
 import { Vector4 } from "@alipay/o3-math";
-import { ProbeConfig } from "./type";
-import { Component } from "../Component";
 import { Camera } from "../Camera";
-import { RenderPass } from "../RenderPipeline/RenderPass";
-import { Material } from "../material/Material";
-import { RenderTarget } from "../material/RenderTarget";
-import { Texture2D } from "../material/Texture2D";
-import { RenderColorTexture } from "../material/RenderColorTexture";
-import { RenderDepthTexture } from "../material/RenderDepthTexture";
-import { TextureCubeMap } from "../material/TextureCubeMap";
-import { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
+import { Component } from "../Component";
 import { Entity } from "../Entity";
+import { Material } from "../material/Material";
+import { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { RenderBufferDepthFormat } from "../base/Constant";
-import { Texture } from "../material/Texture";
+import { RenderPass } from "../RenderPipeline/RenderPass";
+import { RenderBufferDepthFormat } from "../texture/enums";
+import { RenderColorTexture } from "../texture/RenderColorTexture";
+import { RenderDepthTexture } from "../texture/RenderDepthTexture";
+import { RenderTarget } from "../texture/RenderTarget";
+import { Texture } from "../texture/Texture";
+import { Texture2D } from "../texture/Texture2D";
+import { TextureCubeMap } from "../texture/TextureCubeMap";
+import { ProbeConfig } from "./type";
 
 let cacheId = 0;
 

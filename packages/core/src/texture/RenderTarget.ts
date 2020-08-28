@@ -1,10 +1,11 @@
+import { AssetObject } from "../asset/AssetObject";
+import { GLCapabilityType } from "../base/Constant";
+import { Logger } from "../base/Logger";
+import { Engine } from "../Engine";
+import { RenderBufferDepthFormat, TextureCubeFace } from "./enums";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
 import { Texture } from "./Texture";
-import { AssetObject } from "../asset/AssetObject";
-import { RenderBufferDepthFormat, GLCapabilityType, TextureCubeFace } from "../base/Constant";
-import { Engine } from "../Engine";
-import { Logger } from "../base/Logger";
 
 /**
  * 用于离屏幕渲染的渲染目标。

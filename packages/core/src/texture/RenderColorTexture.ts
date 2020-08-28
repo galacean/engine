@@ -1,22 +1,22 @@
-import { RenderBufferDepthFormat, TextureFilterMode, TextureWrapMode } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
+import { RenderBufferColorFormat, TextureCubeFace, TextureFilterMode, TextureWrapMode } from "./enums";
 import { Texture } from "./Texture";
 
 /**
- * 类应用于渲染深度纹理。
+ * 类应用于渲染颜色纹理。
  */
-export class RenderDepthTexture extends Texture {
+export class RenderColorTexture extends Texture {
   /** @internal */
   public _isCube: boolean = false;
 
-  private _format: RenderBufferDepthFormat;
+  private _format: RenderBufferColorFormat;
   private _autoMipmap: boolean = false;
 
   /**
    * 格式。
    */
-  get format(): RenderBufferDepthFormat {
+  get format(): RenderBufferColorFormat {
     return this._format;
   }
 
@@ -32,10 +32,10 @@ export class RenderDepthTexture extends Texture {
   }
 
   /**
-   * 构造渲染深度纹理。
+   * 构造渲染纹理。
    * @param width - 宽
    * @param height - 高
-   * @param format - 格式。默认 RenderBufferDepthFormat.Depth,深度纹理,自动选择精度
+   * @param format - 格式，默认 RenderBufferColorFormat.R8G8B8A8
    * @param mipmap - 是否使用多级纹理
    * @param isCube - 是否为立方体模式
    * @param engine - 可选引擎
@@ -43,19 +43,19 @@ export class RenderDepthTexture extends Texture {
   constructor(
     width: number,
     height: number,
-    format: RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
+    format: RenderBufferColorFormat = RenderBufferColorFormat.R8G8B8A8,
     mipmap: boolean = false,
     isCube: boolean = false,
     engine?: Engine
   ) {
-    super();
+    super(engine);
     engine = engine || Engine._getDefaultEngine();
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
 
-    if (!Texture._supportRenderBufferDepthFormat(format, rhi, true)) {
-      throw new Error(`RenderBufferDepthFormat is not supported:${RenderBufferDepthFormat[format]}`);
+    if (!Texture._supportRenderBufferColorFormat(format, rhi)) {
+      throw new Error(`RenderBufferColorFormat is not supported:${RenderBufferColorFormat[format]}`);
     }
 
     if (isCube && width !== height) {
@@ -69,7 +69,7 @@ export class RenderDepthTexture extends Texture {
     }
 
     this._glTexture = gl.createTexture();
-    this._formatDetail = Texture._getRenderBufferDepthFormatDetail(format, gl, isWebGL2);
+    this._formatDetail = Texture._getRenderBufferColorFormatDetail(format, gl, isWebGL2);
     this._isCube = isCube;
     this._rhi = rhi;
     this._target = isCube ? gl.TEXTURE_CUBE_MAP : gl.TEXTURE_2D;
@@ -83,5 +83,25 @@ export class RenderDepthTexture extends Texture {
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
+  }
+
+  /**
+   * 根据立方体面和指定区域获得颜色像素缓冲。
+   * @param face - 如果是立方体纹理，可以选择读取第几个面;立方体纹理读取面，isCube=true时生效
+   * @param x - 区域起始X坐标
+   * @param y - 区域起始Y坐标
+   * @param width - 区域宽
+   * @param height - 区域高
+   * @param out - 颜色像素缓冲
+   */
+  public getPixelBuffer(
+    face: TextureCubeFace | null,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    out: ArrayBufferView
+  ): void {
+    super._getPixelBuffer(face, x, y, width, height, out);
   }
 }
