@@ -74,7 +74,7 @@ export { TextureCubeMap } from "./texture/TextureCubeMap";
 export { RenderTarget } from "./texture/RenderTarget";
 export { RenderColorTexture } from "./texture/RenderColorTexture";
 export { RenderDepthTexture } from "./texture/RenderDepthTexture";
-export * from "./texture/types";
+export * from "./texture/format";
 
 export * from "./2d/index";
 export * from "./shaderlib/index";

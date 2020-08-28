@@ -1,7 +1,7 @@
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
+import { TextureFilterMode, TextureFormat, TextureWrapMode } from "./format";
 import { Texture } from "./Texture";
-import { TextureFilterMode, TextureFormat, TextureWrapMode } from "./types";
 
 /**
  * 2D纹理。

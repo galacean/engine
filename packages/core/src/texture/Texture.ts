@@ -10,7 +10,7 @@ import {
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode
-} from "./types";
+} from "./format";
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */

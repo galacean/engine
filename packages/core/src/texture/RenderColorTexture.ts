@@ -1,7 +1,7 @@
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
+import { RenderBufferColorFormat, TextureCubeFace, TextureFilterMode, TextureWrapMode } from "./format";
 import { Texture } from "./Texture";
-import { RenderBufferColorFormat, TextureCubeFace, TextureFilterMode, TextureWrapMode } from "./types";
 
 /**
  * 类应用于渲染颜色纹理。
