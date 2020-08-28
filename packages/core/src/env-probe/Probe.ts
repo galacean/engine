@@ -6,7 +6,7 @@ import { Material } from "../material/Material";
 import { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderPass } from "../RenderPipeline/RenderPass";
-import { RenderBufferDepthFormat } from "../texture/format";
+import { RenderBufferDepthFormat } from "../texture/enums";
 import { RenderColorTexture } from "../texture/RenderColorTexture";
 import { RenderDepthTexture } from "../texture/RenderDepthTexture";
 import { RenderTarget } from "../texture/RenderTarget";

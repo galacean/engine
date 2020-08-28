@@ -2,7 +2,7 @@ import { AssetObject } from "../asset/AssetObject";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
-import { RenderBufferDepthFormat, TextureCubeFace } from "./format";
+import { RenderBufferDepthFormat, TextureCubeFace } from "./enums";
 import { RenderColorTexture } from "./RenderColorTexture";
 import { RenderDepthTexture } from "./RenderDepthTexture";
 import { Texture } from "./Texture";
