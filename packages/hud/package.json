@@ -29,5 +29,6 @@
   "dependencies": {
     "@alipay/o3-core": "^3.0.1-mars",
     "@alipay/o3-math": "^3.0.1-mars"
-  }
+  },
+  "gitHead": "3af8f007dac28de84d7648a5e814d35459da8fa6"
 }

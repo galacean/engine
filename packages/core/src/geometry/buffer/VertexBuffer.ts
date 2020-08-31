@@ -74,10 +74,6 @@ export class VertexBuffer {
     const vertexAttrib = this._getAttributeBySemantic(semantic);
     const { size, stride } = vertexAttrib;
     const dataCount = vertexValues.length / size;
-    if (dataCount <= this.vertexCount) {
-      this.setData(semantic, vertexValues, 0, 0, null);
-      return;
-    }
     const bufferLength = dataCount * stride;
     const bufferIndex = this._getBufferIndexBySemantic(semantic);
     const newBuffer = new ArrayBuffer(bufferLength);

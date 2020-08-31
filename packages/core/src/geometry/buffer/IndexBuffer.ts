@@ -76,10 +76,6 @@ export class IndexBuffer {
 
   resizeData(indexValues: Array<Number> | TypedArray) {
     const indexCount = indexValues.length;
-    if (indexCount <= this.indexCount) {
-      this.setData(indexValues, 0, 0, null);
-      return;
-    }
     this._indexCount = indexCount;
     const bufferLength = indexCount * this.stride;
     const newBuffer = new ArrayBuffer(bufferLength);
