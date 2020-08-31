@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-free-controls",
-  "version": "3.0.1-mars",
+  "version": "3.0.2-mars.0",
   "description": "free controls",
   "repository": {
     "type": "git",
@@ -28,8 +28,8 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3": "^3.0.1-mars",
-    "@alipay/o3-tween": "^3.0.1-mars"
+    "@alipay/o3": "3.0.2-mars.0",
+    "@alipay/o3-tween": "3.0.2-mars.0"
   },
   "gitHead": "3af8f007dac28de84d7648a5e814d35459da8fa6"
 }
