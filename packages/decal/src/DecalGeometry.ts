@@ -1,4 +1,13 @@
-import { Entity, Mesh, MeshRenderer, Primitive, BufferGeometry } from "@alipay/o3-core";
+import {
+  Entity,
+  Mesh,
+  MeshRenderer,
+  Primitive,
+  BufferGeometry,
+  BufferAttribute,
+  DataType,
+  InterleavedBuffer
+} from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { fromBufferAttribute, makeRotationFromQuaternion, setPosition, transformDirection } from "./util";
 
@@ -45,14 +54,27 @@ export class DecalGeometry extends BufferGeometry {
 
     const vertexValues = this.generate();
     const vertexCount = vertexValues.length;
-    // super.initialize(
-    //   [
-    //     { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-    //     { semantic: "NORMAL", size: 3, type: DataType.FLOAT, normalized: true },
-    //     { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-    //   ],
-    //   vertexCount
-    // );
+    const pos = new BufferAttribute({
+      semantic: "POSITION",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: false
+    });
+    const normal = new BufferAttribute({
+      semantic: "NORMAL",
+      size: 3,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+    const uv = new BufferAttribute({
+      semantic: "TEXCOORD_0",
+      size: 2,
+      type: DataType.FLOAT,
+      normalized: true
+    });
+    const buffer = new InterleavedBuffer([pos, normal, uv], vertexCount);
+    this.addVertexBufferParam(buffer);
+    console.log(vertexValues);
     // this.setAllVertexValues(vertexValues);
   }
 
