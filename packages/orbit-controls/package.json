@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-orbit-controls",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Orbit controls",
   "repository": {
     "type": "git",
@@ -28,6 +28,6 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3": "3.0.2"
+    "@alipay/o3": "3.0.3"
   }
 }
