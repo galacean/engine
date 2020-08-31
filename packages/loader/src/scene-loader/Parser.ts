@@ -3,6 +3,7 @@ import { Oasis } from "./Oasis";
 import { Plugin } from "./plugins/Plugin";
 import { PluginManager } from "./plugins/PluginManager";
 import { Options } from "./types";
+import { compatibleToV2 } from "./temp.compatible";
 
 const CURRENT_SCHEMA_VERSION = 3;
 
@@ -14,6 +15,7 @@ export class Parser {
         `schema-parser: schema version "${options?.config?.version}" is out of date, please re-pull the latest version (version ${CURRENT_SCHEMA_VERSION}) of the schema`
       );
     }
+    compatibleToV2(options.config);
     return Oasis.create(options, this.pluginManager);
   }
 
