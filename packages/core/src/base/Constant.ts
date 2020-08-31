@@ -330,7 +330,9 @@ export enum UpdateType {
   /** 全部更新 */
   UPDATE_ALL = 1,
   /** 更新指定范围 */
-  UPDATE_RANGE = 2
+  UPDATE_RANGE = 2,
+  /** 范围修改 */
+  RESIZE = 3
 }
 
 /**

@@ -182,6 +182,11 @@ export class GLPrimitive extends GLAsset {
         attribute.updateType = UpdateType.NO_UPDATE;
         attribute.resetUpdateRange();
         break;
+      case UpdateType.RESIZE:
+        this.initVBO();
+        attribute.updateType = UpdateType.NO_UPDATE;
+        attribute.resetUpdateRange();
+        break;
     }
   }
 
@@ -205,6 +210,12 @@ export class GLPrimitive extends GLAsset {
             this.initIBO();
           }
           this.updateIndexBuffer(updateRange);
+          indexBuffer.updateType = UpdateType.NO_UPDATE;
+          indexBuffer.resetUpdateRange();
+          break;
+        case UpdateType.RESIZE:
+          console.log("resize");
+          this.initIBO();
           indexBuffer.updateType = UpdateType.NO_UPDATE;
           indexBuffer.resetUpdateRange();
           break;

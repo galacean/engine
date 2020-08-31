@@ -1,7 +1,7 @@
 import { UpdateType } from "../../base/Constant";
 import { Logger } from "../../base";
 import { BufferAttribute } from "../../primitive/type";
-import { getVertexDataTypeSize, getVertexDataTypeDataView } from "../Constant";
+import { getVertexDataTypeSize, getVertexDataTypeDataView, TypedArray } from "../Constant";
 
 /**
  * VertexBuffer
@@ -41,7 +41,13 @@ export class VertexBuffer {
     }
   }
 
-  setData(semantic: string, vertexValues, dataStartIndex: number = 0, bufferOffset: number = 0, dataCount: number) {
+  setData(
+    semantic: string,
+    vertexValues: Array<Number> | TypedArray,
+    dataStartIndex: number = 0,
+    bufferOffset: number = 0,
+    dataCount: number
+  ) {
     const vertexAttrib = this._getAttributeBySemantic(semantic);
     const buffer = this._getBufferBySemantic(semantic);
     const { stride, size } = vertexAttrib;
@@ -64,6 +70,28 @@ export class VertexBuffer {
     }
   }
 
+  resizeData(semantic: string, vertexValues: Array<Number> | TypedArray) {
+    const vertexAttrib = this._getAttributeBySemantic(semantic);
+    const { size, stride } = vertexAttrib;
+    const dataCount = vertexValues.length / size;
+    if (dataCount <= this.vertexCount) {
+      this.setData(semantic, vertexValues, 0, 0, null);
+      return;
+    }
+    const bufferLength = dataCount * stride;
+    const bufferIndex = this._getBufferIndexBySemantic(semantic);
+    const newBuffer = new ArrayBuffer(bufferLength);
+    this.buffers[bufferIndex] = newBuffer;
+
+    const constructor = getVertexDataTypeDataView(vertexAttrib.type);
+    const view = new constructor(newBuffer);
+    view.set(vertexValues);
+
+    if (vertexAttrib.updateType === UpdateType.NO_UPDATE) {
+      vertexAttrib.updateType = UpdateType.RESIZE;
+    }
+  }
+
   getData(semantic) {
     const vertexAttrib = this._getAttributeBySemantic(semantic);
     const buffer = this._getBufferBySemantic(semantic);
@@ -71,7 +99,7 @@ export class VertexBuffer {
     return new constructor(buffer);
   }
 
-  setDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
+  setDataByIndex(semantic: string, vertexIndex: number, value: Array<Number> | TypedArray) {
     const vertexAttrib = this._getAttributeBySemantic(semantic);
     const { stride, size } = vertexAttrib;
     const buffer = this._getBufferBySemantic(semantic);
@@ -133,11 +161,16 @@ export class VertexBuffer {
   }
 
   protected _getBufferBySemantic(semantic: string) {
+    const bufferIndex = this._getBufferIndexBySemantic(semantic);
+    const buffer = this.buffers[bufferIndex];
+    return buffer;
+  }
+
+  protected _getBufferIndexBySemantic(semantic: string) {
     const vertexAttrib = this.attributes.find((item) => item.semantic === semantic);
     const { vertexBufferIndex } = vertexAttrib;
     const bufferIndex = vertexBufferIndex - this._startBufferIndex;
-    const buffer = this.buffers[bufferIndex];
-    return buffer;
+    return bufferIndex;
   }
 
   /**

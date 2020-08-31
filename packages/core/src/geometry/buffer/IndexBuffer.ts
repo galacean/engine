@@ -1,6 +1,6 @@
 import { BufferUsage, UpdateType } from "../../base/Constant";
 import { IndexFormat, UpdateRange } from "../../primitive/type";
-import { getVertexDataTypeSize, getVertexDataTypeDataView } from "../Constant";
+import { getVertexDataTypeSize, getVertexDataTypeDataView, TypedArray } from "../Constant";
 
 /**
  * IndexBuffer
@@ -48,7 +48,12 @@ export class IndexBuffer {
     this._stride = stride;
   }
 
-  setData(indexValues, dataStartIndex: number = 0, bufferOffset: number = 0, dataCount: number) {
+  setData(
+    indexValues: Array<Number> | TypedArray,
+    dataStartIndex: number = 0,
+    bufferOffset: number = 0,
+    dataCount: number
+  ) {
     const constructor = getVertexDataTypeDataView(this.indexType);
     dataCount = dataCount === undefined ? indexValues.length : dataCount;
     const view = new constructor(this.buffers[0], dataStartIndex, dataCount);
@@ -66,6 +71,24 @@ export class IndexBuffer {
         byteLength,
         bufferByteOffset
       };
+    }
+  }
+
+  resizeData(indexValues: Array<Number> | TypedArray) {
+    const indexCount = indexValues.length;
+    if (indexCount <= this.indexCount) {
+      this.setData(indexValues, 0, 0, null);
+      return;
+    }
+    this._indexCount = indexCount;
+    const bufferLength = indexCount * this.stride;
+    const newBuffer = new ArrayBuffer(bufferLength);
+    this.buffers[0] = newBuffer;
+    const constructor = getVertexDataTypeDataView(this.indexType);
+    const view = new constructor(this.buffers[0]);
+    view.set(indexValues);
+    if (this.updateType === UpdateType.NO_UPDATE) {
+      this.updateType = UpdateType.RESIZE;
     }
   }
 

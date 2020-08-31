@@ -1,23 +1,11 @@
 import { Vector3, Matrix } from "@alipay/o3-math";
 import { AssetObject } from "../asset/AssetObject";
 import { BufferAttribute } from "./type";
-import { DataType, DrawMode } from "../base/Constant";
+import { DrawMode } from "../base/Constant";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
-
-export interface Attribute {
-  name?: string;
-  semantic: string;
-  size: number;
-  type: DataType;
-  normalized?: boolean;
-  instanced?: number;
-  stride?: number;
-  offset?: number;
-  vertexBufferIndex?: number;
-}
 
 let primitiveID = 0;
 

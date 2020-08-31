@@ -2,6 +2,7 @@ import { VertexBuffer, IndexBuffer } from "./index";
 import { AssetObject } from "../asset/AssetObject";
 import { Logger } from "../base/Logger";
 import { Primitive } from "../primitive/Primitive";
+import { TypedArray } from "./Constant";
 
 let geometryCount = 0;
 
@@ -92,7 +93,7 @@ export class BufferGeometry extends AssetObject {
   // 设置 vertex buffer 数据
   setVertexBufferData(
     semantic: string,
-    vertexValues,
+    vertexValues: Array<Number> | TypedArray,
     dataStartIndex?: number,
     bufferOffset?: number,
     dataCount?: number
@@ -104,10 +105,17 @@ export class BufferGeometry extends AssetObject {
   }
 
   // 根据 vertexIndex 设置 buffer数据
-  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
+  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: Array<Number> | TypedArray) {
     const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
       vertexBuffer.setDataByIndex(semantic, vertexIndex, value);
+    }
+  }
+
+  resizeVertexBufferData(semantic: string, vertexValues: Array<Number> | TypedArray) {
+    const vertexBuffer = this._getBufferBySemantic(semantic);
+    if (vertexBuffer) {
+      vertexBuffer.resizeData(semantic, vertexValues);
     }
   }
 
@@ -135,7 +143,12 @@ export class BufferGeometry extends AssetObject {
   }
 
   // 设置 index buffer 数据
-  setIndexBufferData(indexValues, dataStartIndex?: number, bufferOffset?: number, dataCount?: number) {
+  setIndexBufferData(
+    indexValues: Array<Number> | TypedArray,
+    dataStartIndex?: number,
+    bufferOffset?: number,
+    dataCount?: number
+  ) {
     const indexBuffer = this._indexBuffers[this._indexBufferIndex];
     if (indexBuffer) {
       indexBuffer.setData(indexValues, dataStartIndex, bufferOffset, dataCount);
@@ -146,6 +159,13 @@ export class BufferGeometry extends AssetObject {
     const indexBuffer = this._indexBuffers[this._indexBufferIndex];
     if (indexBuffer) {
       indexBuffer.setDataByIndex(index, value);
+    }
+  }
+
+  resizeIndexBufferData(indexValues: Array<Number> | TypedArray) {
+    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
+    if (indexBuffer) {
+      indexBuffer.resizeData(indexValues);
     }
   }
 
