@@ -24,6 +24,7 @@
   "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "browser": "dist/browser.min.js",
   "dependencies": {
     "@alipay/o3-core": "3.0.2"
   },
