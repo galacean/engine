@@ -1,10 +1,10 @@
 import { Matrix } from "@alipay/o3-math";
-import { MeshRenderer } from "./MeshRenderer";
-import { Mesh } from "./Mesh";
-import { Skin } from "./Skin";
 import { Entity } from "../Entity";
-import { Texture2D } from "../material/Texture2D";
-import { TextureFormat } from "../base/Constant";
+import { TextureFormat } from "../texture/enums";
+import { Texture2D } from "../texture/Texture2D";
+import { Mesh } from "./Mesh";
+import { MeshRenderer } from "./MeshRenderer";
+import { Skin } from "./Skin";
 
 /**
  * 负责渲染一个 Skinned Mesh 的组件
@@ -107,8 +107,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const rhi = this.entity.engine._hardwareRenderer;
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
-
+    const maxJoints = Math.floor((maxAttribUniformVec4 - 20) / 4);
     if (joints.length > maxJoints && rhi.canIUseMoreJoints) {
       this._useJointTexture = true;
     }

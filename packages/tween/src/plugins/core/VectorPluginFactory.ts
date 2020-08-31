@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4 } from "@alipay/o3";
 
 const handleVecComp = (tweener, comp: string, result: Vector2 | Vector3 | Vector4) => {
   const easing = tweener.options.easing;

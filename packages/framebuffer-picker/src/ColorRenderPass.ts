@@ -1,4 +1,4 @@
-import { Camera, MaskList, RenderPass, RenderTarget } from "@alipay/o3-core";
+import { Camera, MaskList, RenderPass, RenderTarget, Engine } from "@alipay/o3";
 import { ColorMaterial } from "./ColorMaterial";
 
 /**
@@ -10,8 +10,8 @@ class ColorRenderPass extends RenderPass {
   private onPick: Function;
   private _pickPos;
 
-  constructor(name: string, priority: number, renderTarget: RenderTarget, mask: MaskList) {
-    super(name, priority, renderTarget, new ColorMaterial(), mask);
+  constructor(name: string, priority: number, renderTarget: RenderTarget, mask: MaskList, engine?: Engine) {
+    super(name, priority, renderTarget, new ColorMaterial(undefined, engine), mask);
 
     this._needPick = false;
     this.onPick = (o: any) => console.log(o);

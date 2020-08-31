@@ -1,4 +1,4 @@
-import { RenderColorTexture, RenderTarget } from "@alipay/o3-core";
+import { RenderColorTexture, RenderTarget } from "@alipay/o3";
 import { SMAACombinePassNode } from "./nodes/SMAACombinePassNode";
 import { SMAAEdgesPassNode } from "./nodes/SMAAEdgesPassNode";
 import { SMAAWeightPassNode } from "./nodes/SMAAWeightPassNode";

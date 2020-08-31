@@ -1,5 +1,5 @@
-import { Camera, Entity, MaskList, Script } from "@alipay/o3-core";
-import { RenderColorTexture, RenderTarget } from "@alipay/o3-core";
+import { Camera, Entity, MaskList, Script } from "@alipay/o3";
+import { RenderColorTexture, RenderTarget } from "@alipay/o3";
 import { ColorRenderPass } from "./ColorRenderPass";
 
 /**
@@ -46,7 +46,13 @@ class FramebufferPicker extends Script {
       undefined,
       this.engine
     );
-    this.colorRenderPass = new ColorRenderPass("ColorRenderTarget_FBP", -1, this.colorRenderTarget, props.mask || 0);
+    this.colorRenderPass = new ColorRenderPass(
+      "ColorRenderTarget_FBP",
+      -1,
+      this.colorRenderTarget,
+      props.mask || 0,
+      this.engine
+    );
     this.camera._renderPipeline.addRenderPass(this.colorRenderPass);
     if (props.onPick) {
       this.onPick = props.onPick;

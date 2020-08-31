@@ -4,7 +4,7 @@ import { Plugin } from "./plugins/Plugin";
 import { PluginManager } from "./plugins/PluginManager";
 import { Options } from "./types";
 
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 export class Parser {
   private pluginManager: PluginManager = new PluginManager();

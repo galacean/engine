@@ -1,4 +1,4 @@
-import { DataType } from '@alipay/o3-core';
+import { DataType } from '@alipay/o3';
 import { PostEffectNode } from '../PostEffectNode';
 
 import SMAAEdgesShader from '../shaders/SMAAEdgesPass.glsl';

@@ -1,9 +1,9 @@
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
-import { Texture2D } from "../material/Texture2D";
-import { Entity } from "../Entity";
-import { RenderableComponent } from "../RenderableComponent";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
+import { Entity } from "../Entity";
+import { RenderableComponent } from "../RenderableComponent";
+import { Texture2D } from "../texture/Texture2D";
 
 interface IUvRect {
   u: number;

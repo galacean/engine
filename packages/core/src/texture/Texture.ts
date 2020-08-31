@@ -1,17 +1,16 @@
-import { TextureFormatDetail } from "./type";
 import { ReferenceObject } from "../asset/ReferenceObject";
-import {
-  TextureFormat,
-  GLCompressedTextureInternalFormat,
-  RenderBufferDepthFormat,
-  RenderBufferColorFormat,
-  GLCapabilityType,
-  TextureWrapMode,
-  TextureFilterMode,
-  TextureCubeFace
-} from "../base/Constant";
+import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
-
+import { Engine } from "../Engine";
+import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "../material/type";
+import {
+  RenderBufferColorFormat,
+  RenderBufferDepthFormat,
+  TextureCubeFace,
+  TextureFilterMode,
+  TextureFormat,
+  TextureWrapMode
+} from "./enums";
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
@@ -453,6 +452,15 @@ export abstract class Texture extends ReferenceObject {
 
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
 
+    if (
+      value !== TextureFilterMode.Point &&
+      (!Texture._isPowerOf2(this._width) || !Texture._isPowerOf2(this._height))
+    ) {
+      Logger.warn(
+        "non-power-2 texture is not supported for Bilinear or Trilinear ,and has automatically downgraded to Point"
+      );
+      value = TextureFilterMode.Point;
+    }
     this._filterMode = value;
 
     this._bind();
@@ -680,8 +688,8 @@ export abstract class Texture extends ReferenceObject {
   }
 
   // TODO: delete
-  constructor() {
-    super();
+  constructor(engine?: Engine) {
+    super(engine);
 
     this._gcPriority = 900;
   }

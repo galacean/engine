@@ -1,6 +1,10 @@
-import { DataType, SceneFeature } from "@alipay/o3-core";
-import { ScreenQuadGeometry as ScreenQuad } from "@alipay/core";
-import { RenderTarget, RenderColorTexture } from "@alipay/o3-core";
+import {
+  DataType,
+  RenderColorTexture,
+  RenderTarget,
+  SceneFeature,
+  ScreenQuadGeometry as ScreenQuad
+} from "@alipay/o3";
 import { PostEffectMaterial } from "./PostEffectMaterial";
 import { PostEffectNode } from "./PostEffectNode";
 import { PostProcessRenderPass } from "./PostProcessRenderPass";

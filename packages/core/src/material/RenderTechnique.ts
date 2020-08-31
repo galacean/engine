@@ -204,7 +204,7 @@ export class RenderTechnique extends AssetObject {
       _macros.push("O3_HAS_SKIN");
       if (component.jointNodes?.length) {
         const maxAttribUniformVec4 = rhi.renderStates.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
-        const maxJoints = Math.floor((maxAttribUniformVec4 - 16) / 4);
+        const maxJoints = Math.floor((maxAttribUniformVec4 - 20) / 4);
         const joints = component.jointNodes.length;
 
         if (joints > maxJoints) {

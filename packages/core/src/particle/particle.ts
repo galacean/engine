@@ -5,7 +5,6 @@ import {
   BufferUsage,
   DataType,
   RenderState,
-  TextureWrapMode,
   UniformSemantic,
   MaterialType
 } from "../base/Constant";
@@ -13,6 +12,7 @@ import { GeometryRenderer, BufferGeometry, IndexBuffer, VertexBuffer, Interleave
 import { BufferAttribute } from "../primitive/type";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
+import { TextureWrapMode } from "../texture/enums";
 
 /**
  * GPU粒子系统渲染类

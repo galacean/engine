@@ -76,18 +76,22 @@ export { LODGroup } from "./mesh/LODGroup";
 export { Primitive } from "./primitive/Primitive";
 
 // material
-export { Texture } from "./material/Texture";
-export { Texture2D } from "./material/Texture2D";
+
 export { Material } from "./material/Material";
 export { ComplexMaterial } from "./material/ComplexMaterial";
 export { RenderTechnique } from "./material/RenderTechnique";
-export { TextureCubeMap } from "./material/TextureCubeMap";
-export { RenderTarget } from "./material/RenderTarget";
-export { RenderColorTexture } from "./material/RenderColorTexture";
-export { RenderDepthTexture } from "./material/RenderDepthTexture";
+export * from "./material/type";
+
+// texture
+export { Texture } from "./texture/Texture";
+export { Texture2D } from "./texture/Texture2D";
+export { TextureCubeMap } from "./texture/TextureCubeMap";
+export { RenderTarget } from "./texture/RenderTarget";
+export { RenderColorTexture } from "./texture/RenderColorTexture";
+export { RenderDepthTexture } from "./texture/RenderDepthTexture";
+export * from "./texture/enums";
 
 export * from "./2d/index";
-export * from "./material/type";
 export * from "./shaderlib/index";
 export * from "./animation/index";
 export * from "./mobile-material/index";
