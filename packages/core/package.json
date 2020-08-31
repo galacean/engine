@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-core",
-  "version": "3.0.2",
+  "version": "3.0.1-mars",
   "description": "Oasis3D engines core",
   "keywords": [
     "Oasis3D",
@@ -25,7 +25,7 @@
     "b:types": "tsc"
   },
   "dependencies": {
-    "@alipay/o3-math": "3.0.2"
+    "@alipay/o3-math": "^3.0.1-mars"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
