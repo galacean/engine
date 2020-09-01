@@ -157,7 +157,7 @@ export class OrbitControl extends Script {
      */
     this.enableDamping = true;
     /**
-     * 旋转缓冲参数，默认为0.08
+     * 旋转缓冲参数，默认为0.1
      * @member {Number}
      */
     this.dampingFactor = 0.1;
