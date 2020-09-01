@@ -1,11 +1,10 @@
 "use strict";
-import { Spherical, Vector2, Vector3, Matrix } from "@alipay/o3";
-import { Entity, Logger, Script } from "@alipay/o3";
+import { Entity, Logger, Matrix, Script, Spherical, Vector2, Vector3 } from "@alipay/o3";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
  */
-export class OrbitControls extends Script {
+export class OrbitControl extends Script {
   public camera: Entity;
   public domElement: HTMLElement | Document;
   public mainElement: HTMLCanvasElement;
