@@ -155,12 +155,12 @@ export class OrbitControl extends Script {
      * 是否开启镜头缓冲，默认为false
      * @member {Boolean}
      */
-    this.enableDamping = false;
+    this.enableDamping = true;
     /**
      * 旋转缓冲参数，默认为0.08
      * @member {Number}
      */
-    this.dampingFactor = 0.08;
+    this.dampingFactor = 0.1;
     /**
      * 缩放缓冲参数，默认为0.2
      * @member {Number}
