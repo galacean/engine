@@ -1,5 +1,4 @@
-import { BufferUsage, UpdateType } from "../../base/Constant";
-import { getVertexDataTypeSize, getVertexDataTypeDataView, TypedArray } from "../Constant";
+import { BufferUsage, UpdateType, DataType } from "../../base/Constant";
 import { Engine } from "../../Engine";
 
 /**
@@ -25,9 +24,10 @@ export class IndexBuffer {
   private _indexFormat: IndexFormat;
   private _indexCount: number;
   private _indexTypeByteCount: number;
+  private _byteSize: number;
   private _bufferUsage: BufferUsage;
   private _gl: WebGLRenderingContext & WebGL2RenderingContext;
-  private _buffer: TypedArray;
+  private _buffer: ArrayBufferView;
   private _canRead: boolean;
   private _glBuffer;
 
@@ -36,6 +36,10 @@ export class IndexBuffer {
     byteLength: -1,
     bufferByteOffset: 0
   };
+
+  get glBuffer() {
+    return this._glBuffer;
+  }
 
   get buffetUsage(): BufferUsage {
     return this._bufferUsage;
@@ -53,10 +57,33 @@ export class IndexBuffer {
     return this._indexTypeByteCount;
   }
 
+  get byteSize(): number {
+    return this._byteSize;
+  }
+
+  get indexType() {
+    let type;
+    switch (this._indexFormat) {
+      case IndexFormat.UInt8:
+        type = DataType.UNSIGNED_BYTE;
+        break;
+      case IndexFormat.UInt16:
+        type = DataType.UNSIGNED_SHORT;
+        break;
+      case IndexFormat.UInt32:
+        type = DataType.UNSIGNED_INT;
+        break;
+      default:
+        type = DataType.UNSIGNED_SHORT;
+        break;
+    }
+    return type;
+  }
+
   constructor(
-    indexFormat: IndexFormat,
     indexCount: number,
-    bufferUsage: BufferUsage,
+    bufferUsage: BufferUsage = BufferUsage.STATIC_DRAW,
+    indexFormat: IndexFormat = IndexFormat.UInt16,
     canRead: boolean,
     engine?: Engine
   ) {
@@ -64,7 +91,9 @@ export class IndexBuffer {
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     this._gl = gl;
+    this._glBuffer = gl.createBuffer();
     this._indexFormat = indexFormat;
+    this._indexCount = indexCount;
     this._bufferUsage = bufferUsage;
     this._canRead = canRead;
     switch (indexFormat) {
@@ -80,6 +109,10 @@ export class IndexBuffer {
       default:
         throw new Error("unidentification index type.");
     }
+    const byteSize: number = this._indexTypeByteCount * indexCount;
+    this._byteSize = byteSize;
+    this.bind();
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._byteSize, this._bufferUsage);
     if (canRead) {
       switch (indexFormat) {
         case IndexFormat.UInt32:
@@ -96,6 +129,7 @@ export class IndexBuffer {
   }
 
   setData(data: Uint16Array | Uint32Array | Uint8Array, bufferOffset: number, dataOffset: number, dataLength: number) {
+    const gl = this._gl;
     var byteCount: number = this._indexTypeByteCount;
     if (dataOffset !== 0 || dataLength !== 4294967295 /*uint.MAX_VALUE*/) {
       switch (this._indexFormat) {
@@ -110,27 +144,13 @@ export class IndexBuffer {
           break;
       }
     }
-
-    // var curBufSta: BufferStateBase = BufferStateBase._curBindedBufferState;
-    // if (curBufSta) {
-    // 	if (curBufSta._bindedIndexBuffer === this) {
-    // 		LayaGL.instance.bufferSubData(this._bufferType, bufferOffset * byteCount, data);//offset==0情况下，某些特殊设备或情况下直接bufferData速度是否优于bufferSubData
-    // 	} else {
-    // 		curBufSta.unBind();//避免影响VAO
-    // 		this.bind();
-    // 		LayaGL.instance.bufferSubData(this._bufferType, bufferOffset * byteCount, data);
-    // 		curBufSta.bind();
-    // 	}
-    // } else {
-    // 	this.bind();
-    // 	LayaGL.instance.bufferSubData(this._bufferType, bufferOffset * byteCount, data);
-    // }
-
+    this.bind();
+    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferOffset * byteCount, data);
     if (this._canRead) {
-      if (bufferOffset !== 0 || dataStartIndex !== 0 || dataCount !== 4294967295 /*uint.MAX_VALUE*/) {
+      if (bufferOffset !== 0 || dataOffset !== 0 || dataLength !== 4294967295 /*uint.MAX_VALUE*/) {
         var maxLength: number = this._buffer.length - bufferOffset;
-        if (dataCount > maxLength) dataCount = maxLength;
-        for (var i: number = 0; i < dataCount; i++) this._buffer[bufferOffset + i] = data[i];
+        if (dataLength > maxLength) dataLength = maxLength;
+        for (var i: number = 0; i < dataLength; i++) this._buffer[bufferOffset + i] = data[i];
       } else {
         this._buffer = data;
       }
@@ -138,22 +158,22 @@ export class IndexBuffer {
   }
 
   bind(): boolean {
-    if (BufferStateBase._curBindedBufferState) {
-      throw "IndexBuffer3D: must unbind current BufferState.";
+    if (IndexBuffer._bindedIndexBuffer !== this._glBuffer) {
+      const gl = this._gl;
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glBuffer);
+      IndexBuffer._bindedIndexBuffer = this._glBuffer;
+      return true;
     } else {
-      if (IndexBuffer._bindedIndexBuffer !== this._glBuffer) {
-        var gl: WebGLRenderingContext = LayaGL.instance;
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glBuffer);
-        IndexBuffer._bindedIndexBuffer = this._glBuffer;
-        return true;
-      } else {
-        return false;
-      }
+      return false;
     }
   }
-  resize(byteSize: number) {}
 
-  // resizeData(indexValues: Array<Number> | TypedArray) {
+  resize(byteSize: number) {
+    const gl = this._gl;
+    gl.bufferData(gl.ARRAY_BUFFER, byteSize, this._bufferUsage);
+  }
+
+  // resizeData(indexValues: Array<Number> | ArrayBufferView) {
   //   const indexCount = indexValues.length;
   //   this._indexCount = indexCount;
   //   const bufferLength = indexCount * this.stride;
@@ -194,6 +214,12 @@ export class IndexBuffer {
   }
 
   destroy() {
+    console.log("destroy index");
+    const gl = this._gl;
+    if (this._glBuffer) {
+      gl.deleteBuffer(this._glBuffer);
+      this._glBuffer = null;
+    }
     this._buffer = null;
   }
 }

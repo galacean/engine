@@ -228,7 +228,8 @@ export class WebGLRenderer implements HardwareRenderer {
     // todo: VAO 不支持 morph 动画
     const glPrimitive = this._assetsCache.requireObject(
       primitive,
-      this.canIUse(GLCapabilityType.vertexArrayObject) && !primitive.targets.length ? GLVAOPrimitive : GLPrimitive
+      GLPrimitive
+      // this.canIUse(GLCapabilityType.vertexArrayObject) && !primitive.targets.length ? GLVAOPrimitive : GLPrimitive
     );
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 

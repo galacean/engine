@@ -1,7 +1,6 @@
 import { VertexDeclaration } from "./VertexDeclaration";
 import { VertexElement } from "./VertexElement";
 import { UpdateType, BufferUsage } from "../../base/Constant";
-import { TypedArray, getVertexDataTypeDataView } from "../Constant";
 import { Engine } from "../../Engine";
 import { Logger } from "../../base/Logger";
 
@@ -12,13 +11,12 @@ export class VertexBuffer {
   static _bindedVertexBuffer;
 
   /** 顶点声明 */
-  declaration: VertexDeclaration;
-
+  private _declaration: VertexDeclaration;
   private _canRead: boolean;
   private _byteSize: number;
   private _bufferUsage: BufferUsage;
   private _isInterleaved: boolean;
-  private _buffer: TypedArray;
+  private _buffer;
   private _glBuffer;
   private _gl: WebGLRenderingContext & WebGL2RenderingContext;
 
@@ -29,6 +27,25 @@ export class VertexBuffer {
     byteLength: -1,
     bufferByteOffset: 0
   };
+
+  get glBuffer() {
+    return this._glBuffer;
+  }
+
+  get declaration(): VertexDeclaration {
+    return this._declaration;
+  }
+
+  set declaration(data) {
+    this._declaration = data;
+    const elements = data.elements;
+    const semanticList = [];
+    for (let i = 0; i < elements.length; i++) {
+      const { semantic } = elements[i];
+      semanticList.push(semantic);
+    }
+    this._semanticList = semanticList;
+  }
 
   /**
    * 顶点缓冲的长度,以字节为单位。
@@ -65,7 +82,12 @@ export class VertexBuffer {
     return this._isInterleaved;
   }
 
-  constructor(byteSize: number, bufferUsage: BufferUsage, canRead: boolean, engine?: Engine) {
+  constructor(
+    byteSize: number,
+    bufferUsage: BufferUsage = BufferUsage.STATIC_DRAW,
+    canRead: boolean = false,
+    engine?: Engine
+  ) {
     engine = engine || Engine._getDefaultEngine();
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
@@ -92,25 +114,8 @@ export class VertexBuffer {
     }
   }
 
-  initialize(startBufferIndex) {
-    // if (!this.declaration) {
-    //   Logger.error("Need set vertex declaration first");
-    //   return;
-    // }
-    // this._startBufferIndex = startBufferIndex;
-    // const { declaration } = this;
-    // const { elements, vertexStride } = declaration;
-    // for (let i = 0; i < elements.length; i += 1) {
-    //   const element = elements[i];
-    //   const { semantic } = element;
-    //   this._semanticList.push(semantic);
-    //   element.stride = vertexStride;
-    //   element.vertexBufferIndex = this._startBufferIndex;
-    // }
-  }
-
   setData(
-    data: ArrayBuffer | TypedArray,
+    data: ArrayBuffer | ArrayBufferView | number[],
     bufferByteOffset: number = 0,
     dataByteOffset: number = 0,
     dataByteLength: number = Number.MAX_SAFE_INTEGER
@@ -118,65 +123,26 @@ export class VertexBuffer {
     this.bind();
     const needSubData: boolean = dataByteOffset !== 0 || dataByteLength !== Number.MAX_SAFE_INTEGER;
     const gl = this._gl;
-    if (needSubData) {
-      const subData: Uint8Array = new Uint8Array(data, dataByteOffset, dataByteLength);
-      gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, subData);
-      if (this._canRead) this._buffer.set(subData, bufferByteOffset);
+    let subData;
+    if (data instanceof ArrayBuffer || ArrayBuffer.isView(data)) {
+      subData = data;
     } else {
-      gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, data);
+      const set = new Set(data);
+      const view = Uint8Array.from(set);
+      subData = new Uint8Array(view, dataByteOffset, dataByteLength);
+    }
+    if (needSubData) {
+      gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, subData);
       if (this._canRead) {
-        this._buffer.set(new Uint8Array(data), bufferByteOffset);
+        this._buffer.set(subData, bufferByteOffset);
+      }
+    } else {
+      gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, subData);
+      if (this._canRead) {
+        this._buffer.set(new Uint8Array(subData), bufferByteOffset);
       }
     }
-    // const vertexElement = this._getVertexElementBySemantic(semantic);
-    // const { size, type, stride } = this._getElementInfo(vertexElement);
-    // if (this._isInterleaved) {
-    //   let offset = 0;
-    //   dataCount = dataCount === undefined ? vertexValues.length / size : dataCount;
-    //   for (let vertexIndex = dataStartIndex; vertexIndex < dataCount; vertexIndex += 1) {
-    //     const value = vertexValues.slice(offset, offset + size);
-    //     this.setDataByIndex(semantic, vertexIndex, value);
-    //     offset += size;
-    //   }
-    // } else {
-    //   dataCount = dataCount === undefined ? vertexValues.length : dataCount;
-    //   const constructor = getVertexDataTypeDataView(type);
-    //   const view = new constructor(this.buffer, dataStartIndex, dataCount);
-    //   view.set(vertexValues);
-
-    //   const byteOffset = (dataStartIndex * stride) / size;
-    //   const byteLength = (dataCount * stride) / size;
-    //   const bufferByteOffset = bufferOffset * stride;
-
-    //   if (vertexElement.updateType === UpdateType.NO_UPDATE) {
-    //     vertexElement.updateType = UpdateType.UPDATE_RANGE;
-    //   }
-    //   if (vertexElement.updateType === UpdateType.UPDATE_RANGE) {
-    //     vertexElement.updateRange = {
-    //       byteOffset,
-    //       byteLength,
-    //       bufferByteOffset
-    //     };
-    //   }
-    // }
   }
-
-  // resizeData(semantic: string, vertexValues: Array<Number> | TypedArray) {
-  //   const vertexElement = this._getVertexElementBySemantic(semantic);
-  //   const { size, type, stride } = this._getElementInfo(vertexElement);
-  //   const dataCount = vertexValues.length / size;
-  //   const bufferLength = dataCount * stride;
-  //   const newBuffer = new ArrayBuffer(bufferLength);
-  //   this.buffer = newBuffer;
-
-  //   const constructor = getVertexDataTypeDataView(type);
-  //   const view = new constructor(newBuffer);
-  //   view.set(vertexValues);
-
-  //   if (vertexElement.updateType === UpdateType.NO_UPDATE) {
-  //     vertexElement.updateType = UpdateType.RESIZE;
-  //   }
-  // }
 
   resize(byteSize: number) {
     const gl = this._gl;
@@ -191,7 +157,7 @@ export class VertexBuffer {
     // return new constructor(buffer);
   }
 
-  setDataByIndex(semantic: string, vertexIndex: number, value: Array<Number> | TypedArray) {
+  setDataByIndex(semantic: string, vertexIndex: number, value: Array<Number> | ArrayBufferView) {
     // const vertexElement = this._getVertexElementBySemantic(semantic);
     // const { size, type, stride } = this._getElementInfo(vertexElement);
     // const { offset } = vertexElement;
@@ -258,6 +224,7 @@ export class VertexBuffer {
   // }
 
   destroy() {
+    console.log("destroy vertex");
     const gl = this._gl;
     if (this._glBuffer) {
       gl.deleteBuffer(this._glBuffer);

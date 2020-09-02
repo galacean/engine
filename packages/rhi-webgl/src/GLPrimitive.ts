@@ -3,6 +3,10 @@ import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
 
+type WebGLBufferMap = {
+  [semantic: string]: WebGLBuffer;
+};
+
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
  * @private
@@ -10,13 +14,14 @@ import { WebGLRenderer } from "./WebGLRenderer";
 export class GLPrimitive extends GLAsset {
   protected readonly _primitive;
   protected _glIndexBuffer: WebGLBuffer;
-  protected _glVertBuffers: WebGLBuffer[];
+  protected _glVertBuffer: WebGLBufferMap;
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
   constructor(rhi: WebGLRenderer, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
+    this._glVertBuffer = {};
     this.attribLocArray = [];
     this.canUseInstancedArrays = this.rhi.canIUse(GLCapabilityType.instancedArrays);
   }
@@ -37,35 +42,35 @@ export class GLPrimitive extends GLAsset {
 
   /** 创建并初始化 VBO */
   protected initVBO() {
-    const gl = this.rhi.gl;
-    const { vertexArrayBuffers } = this._primitive;
-    /** vertex buffers*/
-    this._glVertBuffers = [];
-    for (let i = 0, len = vertexArrayBuffers.length; i < len; i++) {
-      this._glVertBuffers[i] = gl.createBuffer();
-      const usage = this._getBufferUsage(i);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this._glVertBuffers[i]);
-      gl.bufferData(gl.ARRAY_BUFFER, vertexArrayBuffers[i], usage);
-      gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    }
+    // const gl = this.rhi.gl;
+    // const { vertexArrayBuffers } = this._primitive;
+    // /** vertex buffers*/
+    // this._glVertBuffers = [];
+    // for (let i = 0, len = vertexArrayBuffers.length; i < len; i++) {
+    //   this._glVertBuffers[i] = gl.createBuffer();
+    //   const usage = this._getBufferUsage(i);
+    //   gl.bindBuffer(gl.ARRAY_BUFFER, this._glVertBuffers[i]);
+    //   gl.bufferData(gl.ARRAY_BUFFER, vertexArrayBuffers[i], usage);
+    //   gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    // }
   }
 
-  private _getBufferUsage(index) {
-    const attributes = this._primitive.attributes;
-    const vertexBuffers = this._primitive.vertexBuffers;
-    let matchedSemantic;
-    const semanticList = Object.keys(attributes);
-    for (let i = 0; i < semanticList.length; i += 1) {
-      const semantic = semanticList[i];
-      const attribute = attributes[semantic];
-      const { vertexBufferIndex } = attribute;
-      if (index === vertexBufferIndex) {
-        matchedSemantic = attribute.semantic;
-      }
-    }
-    const buffer = vertexBuffers.find((item) => item.semanticList.includes(matchedSemantic));
-    return buffer.bufferUsage;
-  }
+  // private _getBufferUsage(index) {
+  //   const attributes = this._primitive.attributes;
+  //   const vertexBuffers = this._primitive.vertexBuffers;
+  //   let matchedSemantic;
+  //   const semanticList = Object.keys(attributes);
+  //   for (let i = 0; i < semanticList.length; i += 1) {
+  //     const semantic = semanticList[i];
+  //     const attribute = attributes[semantic];
+  //     const { vertexBufferIndex } = attribute;
+  //     if (index === vertexBufferIndex) {
+  //       matchedSemantic = attribute.semantic;
+  //     }
+  //   }
+  //   const buffer = vertexBuffers.find((item) => item.semanticList.includes(matchedSemantic));
+  //   return buffer.bufferUsage;
+  // }
 
   /**
    * 更新 VBO
@@ -74,16 +79,15 @@ export class GLPrimitive extends GLAsset {
    * @param {number} byteLength - 更新 buffer 的字节长度
    */
   protected updateVertexBuffer(bufferIndex = 0, updateRange) {
-    const gl = this.rhi.gl;
-    const primitive = this._primitive;
-    const vertBufferObject = this._glVertBuffers[bufferIndex];
-    const vertexBuffer = primitive.vertexArrayBuffers[bufferIndex];
-    const { byteOffset, byteLength, bufferByteOffset } = updateRange;
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferObject);
-    const activeVertexBuffer = new Int8Array(vertexBuffer, byteOffset, byteLength);
-    gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, activeVertexBuffer);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    // const gl = this.rhi.gl;
+    // const primitive = this._primitive;
+    // const vertBufferObject = this._glVertBuffers[bufferIndex];
+    // const vertexBuffer = primitive.vertexArrayBuffers[bufferIndex];
+    // const { byteOffset, byteLength, bufferByteOffset } = updateRange;
+    // gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferObject);
+    // const activeVertexBuffer = new Int8Array(vertexBuffer, byteOffset, byteLength);
+    // gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, activeVertexBuffer);
+    // gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
   /**
@@ -93,18 +97,17 @@ export class GLPrimitive extends GLAsset {
    * @param {number} byteLength - 更新 buffer 的字节长度
    */
   protected updateIndexBuffer(updateRange) {
-    const gl = this.rhi.gl;
-    const primitive = this._primitive;
-    const indexBufferIndex = primitive.indexBufferIndex;
-    const indexArrayBuffers = primitive.indexArrayBuffers;
-    const indexBuffer = indexArrayBuffers[indexBufferIndex];
-    const indexBufferObject = this._glIndexBuffer;
-    const { byteOffset, byteLength, bufferByteOffset } = updateRange;
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
-    const activeIndexBuffer = new Int8Array(indexBuffer, byteOffset, byteLength);
-    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, activeIndexBuffer);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    // const gl = this.rhi.gl;
+    // const primitive = this._primitive;
+    // const indexBufferIndex = primitive.indexBufferIndex;
+    // const indexArrayBuffers = primitive.indexArrayBuffers;
+    // const indexBuffer = indexArrayBuffers[indexBufferIndex];
+    // const indexBufferObject = this._glIndexBuffer;
+    // const { byteOffset, byteLength, bufferByteOffset } = updateRange;
+    // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
+    // const activeIndexBuffer = new Int8Array(indexBuffer, byteOffset, byteLength);
+    // gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, activeIndexBuffer);
+    // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
   }
 
   /**
@@ -117,8 +120,7 @@ export class GLPrimitive extends GLAsset {
     this.attribLocArray = [];
     const techAttributes = tech.attributes;
     const attributes = primitive.attributes;
-    const vbos = this._glVertBuffers;
-    let vbo: WebGLBuffer;
+    const vboMap = this._glVertBuffer;
     let lastBoundVbo: WebGLBuffer;
     for (const name in techAttributes) {
       const loc = techAttributes[name].location;
@@ -127,13 +129,6 @@ export class GLPrimitive extends GLAsset {
       const semantic = techAttributes[name].semantic;
       const att = attributes[semantic];
       if (att) {
-        vbo = vbos[att.vertexBufferIndex];
-        // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
-        if (lastBoundVbo !== vbo) {
-          lastBoundVbo = vbo;
-          gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        }
-
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(loc, att.elementInfo.size, att.elementInfo.type, att.normalized, att.stride, att.offset);
         if (this.canUseInstancedArrays) {
@@ -152,14 +147,22 @@ export class GLPrimitive extends GLAsset {
    * 初始化或更新 BufferObject
    * */
   protected prepareBuffers() {
-    const attributes = this._primitive.attributes;
-    const semanticList = Object.keys(attributes);
-    for (let i = 0; i < semanticList.length; i += 1) {
-      const semantic = semanticList[i];
-      const attribute = attributes[semantic];
-      this._handleVertexBufferUpdate(attribute);
+    const primitive = this._primitive;
+    const vertexBuffers = primitive.vertexBuffers;
+    const indexBuffers = primitive.indexBuffers;
+    for (let i = 0, len = vertexBuffers.length; i < len; i++) {
+      const vertexBuffer = vertexBuffers[i];
+      const { semanticList } = vertexBuffer;
+      for (let j = 0; j < semanticList.length; j++) {
+        const semantic = semanticList[j];
+        this._glVertBuffer[semantic] = vertexBuffer._glVertBuffer;
+      }
     }
-    this._handleIndexBufferUpdate();
+    const { indexBufferIndex } = this._primitive;
+    if (indexBuffers) {
+      const indexBuffer = indexBuffers[indexBufferIndex];
+      this._glIndexBuffer = indexBuffer._glBuffer;
+    }
   }
 
   private _handleVertexBufferUpdate(attribute: VertexElement) {
@@ -287,20 +290,21 @@ export class GLPrimitive extends GLAsset {
    * 释放 GL 资源
    */
   finalize() {
-    const gl = this.rhi.gl;
     const primitive = this._primitive;
     //-- 释放顶点缓冲
-    if (this._glVertBuffers) {
-      for (let i = 0; i < this._glVertBuffers.length; i++) {
-        gl.deleteBuffer(this._glVertBuffers[i]);
+    if (primitive.vertexBuffers.length > 0) {
+      for (let i = 0; i < primitive.vertexBuffers.length; i += 1) {
+        const vertexBuffer = primitive.vertexBuffers[i];
+        vertexBuffer.destroy();
       }
-      primitive.updateType = UpdateType.UPDATE_ALL;
-      this._glVertBuffers = null;
+      this._glVertBuffer = {};
     }
 
     //-- 释放 index buffer
-    if (this._glIndexBuffer) {
-      gl.deleteBuffer(this._glIndexBuffer);
+    if (primitive.indexBuffers.length > 0) {
+      const { indexBufferIndex } = primitive;
+      const indexBuffer = primitive.indexBuffers[indexBufferIndex];
+      indexBuffer.destroy();
       this._glIndexBuffer = null;
     }
   }

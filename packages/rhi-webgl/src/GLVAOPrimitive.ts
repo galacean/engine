@@ -54,6 +54,7 @@ export class GLVAOPrimitive extends GLPrimitive {
     const indexBufferObject = this._glIndexBuffer;
     const { isInstanced, indexBuffers, indexBufferIndex } = primitive;
     const indexBuffer = indexBuffers[indexBufferIndex];
+    console.log(indexBuffer.indexCount);
     if (!isInstanced) {
       if (indexBufferObject) {
         const { indexCount, indexType } = indexBuffer;

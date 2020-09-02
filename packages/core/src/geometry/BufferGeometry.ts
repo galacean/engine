@@ -2,7 +2,6 @@ import { VertexBuffer, IndexBuffer } from "./index";
 import { AssetObject } from "../asset/AssetObject";
 import { Logger } from "../base/Logger";
 import { Primitive } from "../primitive/Primitive";
-import { TypedArray } from "./Constant";
 
 let geometryCount = 0;
 
@@ -69,50 +68,43 @@ export class BufferGeometry extends AssetObject {
 
   // 添加 vertex buffer
   addVertexBuffer(vertexBuffer: VertexBuffer) {
-    const attrList = vertexBuffer.declaration.elements;
-    const attrCount = attrList.length;
-    vertexBuffer.initialize(this.primitive.vertexBuffers.length);
-    for (let i = 0; i < attrCount; i += 1) {
+    const eleCount = vertexBuffer.declaration.elements.length;
+    for (let i = 0; i < eleCount; i += 1) {
       const attr = vertexBuffer.declaration.elements[i];
       this.primitive.addAttribute(attr);
     }
     this._vertexBuffers.push(vertexBuffer);
     this.primitive.vertexBuffers.push(vertexBuffer);
     this.primitive.updateVertex = true;
-    let containeInstanced = false;
-    for (let i = 0; i < attrList.length; i += 1) {
-      if (attrList[i].instanced) {
-        containeInstanced = true;
-      }
-    }
-    if (!containeInstanced) {
-      this.vertexCount = vertexBuffer.vertexCount;
-    }
   }
 
   // 设置 vertex buffer 数据
   setVertexBufferData(
     semantic: string,
-    vertexValues: Array<Number> | TypedArray,
-    dataStartIndex?: number,
-    bufferOffset?: number,
-    dataCount?: number
+    data: ArrayBuffer | ArrayBufferView | number[],
+    bufferByteOffset: number = 0,
+    dataByteOffset: number = 0,
+    dataByteLength: number = Number.MAX_SAFE_INTEGER
   ) {
     const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
-      vertexBuffer.setData(semantic, vertexValues, dataStartIndex, bufferOffset, dataCount);
+      vertexBuffer.setData(data, dataByteOffset, bufferByteOffset, dataByteLength);
+    } else {
+      Logger.error(`vertex element ${semantic} not exist`);
     }
   }
 
   // 根据 vertexIndex 设置 buffer数据
-  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: Array<Number> | TypedArray) {
+  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: Array<Number> | ArrayBufferView) {
     const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
       vertexBuffer.setDataByIndex(semantic, vertexIndex, value);
+    } else {
+      Logger.error(`vertex element ${semantic} not exist`);
     }
   }
 
-  resizeVertexBufferData(semantic: string, vertexValues: Array<Number> | TypedArray) {
+  resizeVertexBufferData(semantic: string, vertexValues: Array<Number> | ArrayBufferView) {
     const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
       vertexBuffer.resizeData(semantic, vertexValues);
@@ -144,7 +136,7 @@ export class BufferGeometry extends AssetObject {
 
   // 设置 index buffer 数据
   setIndexBufferData(
-    indexValues: Array<Number> | TypedArray,
+    indexValues: Array<Number> | ArrayBufferView,
     dataStartIndex?: number,
     bufferOffset?: number,
     dataCount?: number
@@ -162,7 +154,7 @@ export class BufferGeometry extends AssetObject {
     }
   }
 
-  resizeIndexBufferData(indexValues: Array<Number> | TypedArray) {
+  resizeIndexBufferData(indexValues: Array<Number> | ArrayBufferView) {
     const indexBuffer = this._indexBuffers[this._indexBufferIndex];
     if (indexBuffer) {
       indexBuffer.resizeData(indexValues);

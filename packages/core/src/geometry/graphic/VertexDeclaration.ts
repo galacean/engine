@@ -26,5 +26,8 @@ export class VertexDeclaration {
   constructor(vertexStride: number, elements: VertexElement[]) {
     this._vertexStride = vertexStride;
     this._elements = elements;
+    for (let i = 0; i < this._elements.length; i += 1) {
+      this.elements[i].stride = vertexStride;
+    }
   }
 }

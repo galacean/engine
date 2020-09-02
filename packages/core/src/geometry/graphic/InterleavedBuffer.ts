@@ -72,32 +72,32 @@ export class InterleavedBuffer extends VertexBuffer {
   //   return data;
   // }
 
-  // setDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
-  //   const vertexAttrib = this._getAttributeBySemantic(semantic);
-  //   const { type, stride, size, offset } = vertexAttrib;
-  //   const buffer = this.buffers[0];
-  //   const byteOffset = offset + stride * vertexIndex;
-  //   const length = size;
-  //   const constructor = getVertexDataTypeDataView(vertexAttrib.type);
-  //   const view = new constructor(buffer, byteOffset, length);
-  //   view.set(value);
-  //   if (vertexAttrib.updateType === UpdateType.NO_UPDATE) {
-  //     vertexAttrib.updateType = UpdateType.UPDATE_RANGE;
-  //   }
-  //   if (vertexAttrib.updateType === UpdateType.UPDATE_RANGE) {
-  //     const byteLength = this._getSizeInByte(size, type);
-  //     if (vertexAttrib.updateRange.byteLength === -1 && vertexAttrib.updateRange.byteOffset === 0) {
-  //       vertexAttrib.updateRange = {
-  //         byteOffset,
-  //         byteLength,
-  //         bufferByteOffset: byteOffset
-  //       };
-  //     } else {
-  //       const updateRange = this._getUpdateRange(vertexAttrib, byteOffset, byteLength);
-  //       vertexAttrib.updateRange = updateRange;
-  //     }
-  //   }
-  // }
+  setDataByIndex(semantic: string, vertexIndex: number, value: number[] | Float32Array) {
+    const vertexAttrib = this._getAttributeBySemantic(semantic);
+    const { type, stride, size, offset } = vertexAttrib;
+    const buffer = this.buffers[0];
+    const byteOffset = offset + stride * vertexIndex;
+    const length = size;
+    const constructor = getVertexDataTypeDataView(vertexAttrib.type);
+    const view = new Float32Array(buffer, byteOffset, length);
+    view.set(value);
+    if (vertexAttrib.updateType === UpdateType.NO_UPDATE) {
+      vertexAttrib.updateType = UpdateType.UPDATE_RANGE;
+    }
+    if (vertexAttrib.updateType === UpdateType.UPDATE_RANGE) {
+      const byteLength = this._getSizeInByte(size, type);
+      if (vertexAttrib.updateRange.byteLength === -1 && vertexAttrib.updateRange.byteOffset === 0) {
+        vertexAttrib.updateRange = {
+          byteOffset,
+          byteLength,
+          bufferByteOffset: byteOffset
+        };
+      } else {
+        const updateRange = this._getUpdateRange(vertexAttrib, byteOffset, byteLength);
+        vertexAttrib.updateRange = updateRange;
+      }
+    }
+  }
 
   // getDataByIndex(semantic: string, index: number) {
   //   const vertexAttrib = this._getAttributeBySemantic(semantic);
