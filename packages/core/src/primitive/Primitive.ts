@@ -1,9 +1,9 @@
 import { Vector3, Matrix } from "@alipay/o3-math";
 import { AssetObject } from "../asset/AssetObject";
-import { BufferAttribute } from "./type";
 import { DrawMode } from "../base/Constant";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
+import { VertexElement } from "../geometry";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
 
@@ -77,7 +77,7 @@ export class Primitive extends AssetObject {
    * 添加一个顶点属性
    * @param {attribute} BufferAttribute
    */
-  addAttribute(attribute: BufferAttribute) {
+  addAttribute(attribute: VertexElement) {
     const { semantic, instanced } = attribute;
     this.vertexAttributes[semantic] = attribute;
     if (instanced) {
@@ -148,7 +148,7 @@ export class Primitive extends AssetObject {
   private _createArrayBuffers(buffers) {
     let bufferArray = [];
     for (let i = 0; i < buffers.length; i += 1) {
-      const arrayBuffers = buffers[i].buffers;
+      const arrayBuffers = buffers[i].buffer;
       bufferArray = bufferArray.concat(arrayBuffers);
     }
     return bufferArray;

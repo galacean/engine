@@ -30,7 +30,7 @@ export class DecalGeometry extends BufferGeometry {
   public readonly position: Vector3;
   public readonly orientation: Quaternion;
   public readonly projectorMatrix: Matrix;
-  public readonly projectorMatrixInverse: Matrix;
+  public readonly projectorMatrixInverse: Matrix = new Matrix();
   public constructor(intersection: Intersection, position: Vector3, orientation: Quaternion, size: Vector3) {
     super();
     this.node = intersection.entity;
@@ -74,36 +74,35 @@ export class DecalGeometry extends BufferGeometry {
     });
     const buffer = new InterleavedBuffer([pos, normal, uv], vertexCount);
     this.addVertexBufferParam(buffer);
-    console.log(vertexValues);
-    // this.setAllVertexValues(vertexValues);
   }
 
   generate() {
     const vertexValues = [];
     let decalVertices = [];
     const primitive = this.targetPrimitive;
-    const positionAttributeIndex = primitive.vertexAttributes.POSITION.vertexBufferIndex;
-    const positionAttribute = primitive.vertexBuffers[positionAttributeIndex];
+    const vertexBuffers = primitive.vertexBuffers;
+    const positionBuffer = vertexBuffers.find((item) => item.semanticList[0] === "POSITION");
+    const positionData = positionBuffer.getData("POSITION");
 
-    let normalAttributeIndex;
-    let normalAttribute;
+    let normalData;
     if (primitive.vertexAttributes.NORMAL) {
-      normalAttributeIndex = primitive.vertexAttributes.NORMAL.vertexBufferIndex;
-      normalAttribute = primitive.vertexBuffers[normalAttributeIndex];
+      const normalBuffer = vertexBuffers.find((item) => item.semanticList[0] === "NORMAL");
+      normalData = normalBuffer.getData("NORMAL");
     }
 
-    const index = primitive.indexBuffers[0];
-    const count = primitive.indexBuffers.length;
+    const indexBuffer = primitive.indexBuffers[0];
+    const indexData = indexBuffer.getData();
+    const count = indexBuffer.indexCount;
 
     // first, create an array of 'DecalVertex' objects
     // three consecutive 'DecalVertex' objects represent a single face
     //
     // this data structure will be later used to perform the clipping
     for (let i = 0; i < count; i += 1) {
-      const vertex = fromBufferAttribute(positionAttribute, index[i]);
+      const vertex = fromBufferAttribute(positionData, indexData[i]);
       let normal;
-      if (normalAttribute) {
-        normal = fromBufferAttribute(normalAttribute, index[i]);
+      if (normalData) {
+        normal = fromBufferAttribute(normalData, indexData[i]);
       }
 
       this.pushDecalVertex(decalVertices, vertex, normal);

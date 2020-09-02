@@ -68,12 +68,12 @@ export class BufferGeometry extends AssetObject {
   }
 
   // 添加 vertex buffer
-  addVertexBufferParam(vertexBuffer: VertexBuffer) {
-    const attrList = vertexBuffer.attributes;
+  addVertexBuffer(vertexBuffer: VertexBuffer) {
+    const attrList = vertexBuffer.declaration.elements;
     const attrCount = attrList.length;
-    vertexBuffer._initialize(this.primitive.vertexBuffers.length);
+    vertexBuffer.initialize(this.primitive.vertexBuffers.length);
     for (let i = 0; i < attrCount; i += 1) {
-      const attr = vertexBuffer.attributes[i];
+      const attr = vertexBuffer.declaration.elements[i];
       this.primitive.addAttribute(attr);
     }
     this._vertexBuffers.push(vertexBuffer);
@@ -136,7 +136,7 @@ export class BufferGeometry extends AssetObject {
   }
 
   // 添加 index buffer
-  addIndexBufferParam(indexBuffer: IndexBuffer) {
+  addIndexBuffer(indexBuffer: IndexBuffer) {
     this._indexBuffers.push(indexBuffer);
     this.primitive.indexBuffers.push(indexBuffer);
     this.primitive.updateIndex = true;

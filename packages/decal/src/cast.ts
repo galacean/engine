@@ -19,7 +19,6 @@ export function raycast(meshRenderer, ray) {
     primitives = meshRenderer.mesh.primitives;
   }
   let intersection;
-  console.log(localRay);
   for (let i = 0; i < primitives.length; i += 1) {
     const primitive = primitives[i];
     const vertexBuffers = primitive.vertexBuffers;
@@ -32,7 +31,7 @@ export function raycast(meshRenderer, ray) {
       const b = indexData[i + 1];
       const c = indexData[i + 2];
       intersection = checkBufferGeometryIntersection(
-        meshRenderer.node, // 父节点
+        meshRenderer.entity, // 父节点
         ray,
         localRay,
         positionData,

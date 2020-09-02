@@ -1,5 +1,4 @@
-import { GLCapabilityType, Logger, UpdateType, Primitive } from "@alipay/o3-core";
-import { BufferAttribute } from "@alipay/o3-core";
+import { GLCapabilityType, Logger, UpdateType, Primitive, VertexElement } from "@alipay/o3-core";
 import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -40,7 +39,6 @@ export class GLPrimitive extends GLAsset {
   protected initVBO() {
     const gl = this.rhi.gl;
     const { vertexArrayBuffers } = this._primitive;
-    this._primitive;
     /** vertex buffers*/
     this._glVertBuffers = [];
     for (let i = 0, len = vertexArrayBuffers.length; i < len; i++) {
@@ -54,17 +52,19 @@ export class GLPrimitive extends GLAsset {
 
   private _getBufferUsage(index) {
     const attributes = this._primitive.attributes;
-    let usage;
+    const vertexBuffers = this._primitive.vertexBuffers;
+    let matchedSemantic;
     const semanticList = Object.keys(attributes);
     for (let i = 0; i < semanticList.length; i += 1) {
       const semantic = semanticList[i];
       const attribute = attributes[semantic];
       const { vertexBufferIndex } = attribute;
       if (index === vertexBufferIndex) {
-        usage = attribute.usage;
+        matchedSemantic = attribute.semantic;
       }
     }
-    return usage;
+    const buffer = vertexBuffers.find((item) => item.semanticList.includes(matchedSemantic));
+    return buffer.bufferUsage;
   }
 
   /**
@@ -120,7 +120,6 @@ export class GLPrimitive extends GLAsset {
     const vbos = this._glVertBuffers;
     let vbo: WebGLBuffer;
     let lastBoundVbo: WebGLBuffer;
-
     for (const name in techAttributes) {
       const loc = techAttributes[name].location;
       if (loc === -1) continue;
@@ -136,7 +135,7 @@ export class GLPrimitive extends GLAsset {
         }
 
         gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, att.size, att.type, att.normalized, att.stride, att.offset);
+        gl.vertexAttribPointer(loc, att.elementInfo.size, att.elementInfo.type, att.normalized, att.stride, att.offset);
         if (this.canUseInstancedArrays) {
           gl.vertexAttribDivisor(loc, att.instanced);
         }
@@ -163,7 +162,7 @@ export class GLPrimitive extends GLAsset {
     this._handleIndexBufferUpdate();
   }
 
-  private _handleVertexBufferUpdate(attribute: BufferAttribute) {
+  private _handleVertexBufferUpdate(attribute: VertexElement) {
     const { updateType, vertexBufferIndex, updateRange } = attribute;
     switch (updateType) {
       case UpdateType.NO_UPDATE:
@@ -185,7 +184,6 @@ export class GLPrimitive extends GLAsset {
       case UpdateType.RESIZE:
         this.initVBO();
         attribute.updateType = UpdateType.NO_UPDATE;
-        attribute.resetUpdateRange();
         break;
     }
   }
@@ -214,7 +212,6 @@ export class GLPrimitive extends GLAsset {
           indexBuffer.resetUpdateRange();
           break;
         case UpdateType.RESIZE:
-          console.log("resize");
           this.initIBO();
           indexBuffer.updateType = UpdateType.NO_UPDATE;
           indexBuffer.resetUpdateRange();

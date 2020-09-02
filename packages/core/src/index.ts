@@ -58,11 +58,13 @@ export { BufferGeometry } from "./geometry";
 export { GeometryRenderer } from "./geometry";
 
 //-- Geometry 合并功能
-export { GeometryMerger } from "./geometry";
 
 export { VertexBuffer } from "./geometry";
 export { IndexBuffer } from "./geometry";
 export { InterleavedBuffer } from "./geometry";
+export { VertexDeclaration } from "./geometry";
+export { VertexElement } from "./geometry";
+export { VertexElementFormat } from "./geometry";
 export { BufferAttribute } from "./primitive/type";
 
 //mesh

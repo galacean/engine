@@ -4,9 +4,9 @@ export { BufferGeometry } from "./BufferGeometry";
 //-- Component 类
 export { GeometryRenderer } from "./GeometryRenderer";
 
-//-- Geometry 合并功能
-export { GeometryMerger } from "./GeometryMerger";
-
-export { VertexBuffer } from "./buffer/VertexBuffer";
-export { IndexBuffer } from "./buffer/IndexBuffer";
-export { InterleavedBuffer } from "./buffer/InterleavedBuffer";
+export { VertexBuffer } from "./graphic/VertexBuffer";
+export { IndexBuffer } from "./graphic/IndexBuffer";
+export { InterleavedBuffer } from "./graphic/InterleavedBuffer";
+export { VertexDeclaration } from "./graphic/VertexDeclaration";
+export { VertexElement } from "./graphic/VertexElement";
+export { VertexElementFormat } from "./graphic/VertexElementFormat";
