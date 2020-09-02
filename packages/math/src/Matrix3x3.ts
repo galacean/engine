@@ -555,6 +555,25 @@ export class Matrix3x3 {
   }
 
   /**
+   * 拷贝到数组。
+   * @param out - 数组。
+   * @param outOffset - 数组偏移。
+   */
+  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    const e = this.elements;
+
+    out[outOffset] = e[0];
+    out[outOffset + 1] = e[1];
+    out[outOffset + 2] = e[2];
+    out[outOffset + 3] = e[3];
+    out[outOffset + 4] = e[4];
+    out[outOffset + 5] = e[5];
+    out[outOffset + 6] = e[6];
+    out[outOffset + 7] = e[7];
+    out[outOffset + 8] = e[8];
+  }
+
+  /**
    * 创建一个新的矩阵，并用当前矩阵值初始化。
    * @returns 一个新的矩阵，并且拷贝当前矩阵的值
    */

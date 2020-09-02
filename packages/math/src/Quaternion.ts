@@ -588,6 +588,18 @@ export class Quaternion {
   }
 
   /**
+   * 拷贝到数组。
+   * @param out - 数组。
+   * @param outOffset - 数组偏移。
+   */
+  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    out[outOffset] = this.x;
+    out[outOffset + 1] = this.y;
+    out[outOffset + 2] = this.z;
+    out[outOffset + 3] = this.w;
+  }
+
+  /**
    * 创建一个新的四元数，并用当前四元数初始化。
    * @returns 一个新的四元数，并且拷贝当前四元数的值
    */
