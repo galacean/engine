@@ -157,31 +157,31 @@ export class VertexBuffer {
     // return new constructor(buffer);
   }
 
-  setDataByIndex(semantic: string, vertexIndex: number, value: Array<Number> | ArrayBufferView) {
-    // const vertexElement = this._getVertexElementBySemantic(semantic);
-    // const { size, type, stride } = this._getElementInfo(vertexElement);
-    // const { offset } = vertexElement;
-    // const constructor = getVertexDataTypeDataView(type);
-    // const byteOffset = offset + stride * vertexIndex;
-    // const byteLength = stride;
-    // const view = new constructor(this.buffer, byteOffset, size);
-    // view.set(value);
-    // if (vertexElement.updateType === UpdateType.NO_UPDATE) {
-    //   vertexElement.updateType = UpdateType.UPDATE_RANGE;
-    // }
-    // if (vertexElement.updateType === UpdateType.UPDATE_RANGE) {
-    //   if (vertexElement.updateRange.byteLength === -1 && vertexElement.updateRange.byteOffset === 0) {
-    //     vertexElement.updateRange = {
-    //       byteOffset,
-    //       byteLength,
-    //       bufferByteOffset: byteOffset
-    //     };
-    //   } else {
-    //     const updateRange = this._getUpdateRange(vertexElement, byteOffset, byteLength);
-    //     vertexElement.updateRange = updateRange;
-    //   }
-    // }
-  }
+  // setDataByIndex(semantic: string, vertexIndex: number, value: Array<Number> | ArrayBufferView) {
+  // const vertexElement = this._getVertexElementBySemantic(semantic);
+  // const { size, type, stride } = this._getElementInfo(vertexElement);
+  // const { offset } = vertexElement;
+  // const constructor = getVertexDataTypeDataView(type);
+  // const byteOffset = offset + stride * vertexIndex;
+  // const byteLength = stride;
+  // const view = new constructor(this.buffer, byteOffset, size);
+  // view.set(value);
+  // if (vertexElement.updateType === UpdateType.NO_UPDATE) {
+  //   vertexElement.updateType = UpdateType.UPDATE_RANGE;
+  // }
+  // if (vertexElement.updateType === UpdateType.UPDATE_RANGE) {
+  //   if (vertexElement.updateRange.byteLength === -1 && vertexElement.updateRange.byteOffset === 0) {
+  //     vertexElement.updateRange = {
+  //       byteOffset,
+  //       byteLength,
+  //       bufferByteOffset: byteOffset
+  //     };
+  //   } else {
+  //     const updateRange = this._getUpdateRange(vertexElement, byteOffset, byteLength);
+  //     vertexElement.updateRange = updateRange;
+  //   }
+  // }
+  // }
 
   getDataByIndex(semantic: string, vertexIndex: number) {
     // const vertexElement = this._getVertexElementBySemantic(semantic);

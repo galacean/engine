@@ -95,7 +95,7 @@ export class BufferGeometry extends AssetObject {
   }
 
   // 根据 vertexIndex 设置 buffer数据
-  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: Array<Number> | ArrayBufferView) {
+  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: ArrayBuffer | ArrayBufferView | number[]) {
     const vertexBuffer = this._getBufferBySemantic(semantic);
     if (vertexBuffer) {
       vertexBuffer.setDataByIndex(semantic, vertexIndex, value);
