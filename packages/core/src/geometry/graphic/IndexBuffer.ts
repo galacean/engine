@@ -128,21 +128,20 @@ export class IndexBuffer {
     }
   }
 
-  setData(data: Uint16Array | Uint32Array | Uint8Array, bufferOffset: number, dataOffset: number, dataLength: number) {
+  setData(
+    data: Uint16Array | Uint32Array | Uint8Array | number[],
+    bufferOffset: number = 0,
+    dataOffset: number = 0,
+    dataLength: number = 4294967295
+  ) {
     const gl = this._gl;
-    var byteCount: number = this._indexTypeByteCount;
+    const byteCount: number = this._indexTypeByteCount;
+    const constructor = this._getIndexDataView(this._indexFormat);
+    if (!ArrayBuffer.isView(data)) {
+      data = new constructor(data, dataOffset * byteCount, dataLength);
+    }
     if (dataOffset !== 0 || dataLength !== 4294967295 /*uint.MAX_VALUE*/) {
-      switch (this._indexFormat) {
-        case IndexFormat.UInt32:
-          data = new Uint32Array(data.buffer, dataOffset * byteCount, dataLength);
-          break;
-        case IndexFormat.UInt16:
-          data = new Uint16Array(data.buffer, dataOffset * byteCount, dataLength);
-          break;
-        case IndexFormat.UInt8:
-          data = new Uint8Array(data.buffer, dataOffset * byteCount, dataLength);
-          break;
-      }
+      data = new constructor(data.buffer, dataOffset * byteCount, dataLength);
     }
     this.bind();
     gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferOffset * byteCount, data);
@@ -152,8 +151,21 @@ export class IndexBuffer {
         if (dataLength > maxLength) dataLength = maxLength;
         for (var i: number = 0; i < dataLength; i++) this._buffer[bufferOffset + i] = data[i];
       } else {
-        this._buffer = data;
+        // this._buffer = data;
       }
+    }
+  }
+
+  private _getIndexDataView(indexFormat: IndexFormat) {
+    switch (indexFormat) {
+      case IndexFormat.UInt32:
+        return Uint32Array;
+      case IndexFormat.UInt16:
+        return Uint16Array;
+      case IndexFormat.UInt8:
+        return Uint8Array;
+      default:
+        return Uint16Array;
     }
   }
 

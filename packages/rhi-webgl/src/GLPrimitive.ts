@@ -120,8 +120,11 @@ export class GLPrimitive extends GLAsset {
     this.attribLocArray = [];
     const techAttributes = tech.attributes;
     const attributes = primitive.attributes;
-    const vboMap = this._glVertBuffer;
+
+    let vbo: WebGLBuffer;
     let lastBoundVbo: WebGLBuffer;
+    const vboMap = this._glVertBuffer;
+
     for (const name in techAttributes) {
       const loc = techAttributes[name].location;
       if (loc === -1) continue;
@@ -129,6 +132,13 @@ export class GLPrimitive extends GLAsset {
       const semantic = techAttributes[name].semantic;
       const att = attributes[semantic];
       if (att) {
+        vbo = vboMap[att.semantic];
+        // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
+        if (lastBoundVbo !== vbo) {
+          lastBoundVbo = vbo;
+          gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        }
+
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(loc, att.elementInfo.size, att.elementInfo.type, att.normalized, att.stride, att.offset);
         if (this.canUseInstancedArrays) {
@@ -155,7 +165,7 @@ export class GLPrimitive extends GLAsset {
       const { semanticList } = vertexBuffer;
       for (let j = 0; j < semanticList.length; j++) {
         const semantic = semanticList[j];
-        this._glVertBuffer[semantic] = vertexBuffer._glVertBuffer;
+        this._glVertBuffer[semantic] = vertexBuffer._glBuffer;
       }
     }
     const { indexBufferIndex } = this._primitive;

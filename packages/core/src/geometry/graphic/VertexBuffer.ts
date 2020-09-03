@@ -128,8 +128,8 @@ export class VertexBuffer {
       subData = data;
     } else {
       const set = new Set(data);
-      const view = Uint8Array.from(set);
-      subData = new Uint8Array(view, dataByteOffset, dataByteLength);
+      const view = Int8Array.from(set);
+      subData = new Int8Array(view);
     }
     if (needSubData) {
       gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, subData);

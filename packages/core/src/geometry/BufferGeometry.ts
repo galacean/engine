@@ -136,14 +136,14 @@ export class BufferGeometry extends AssetObject {
 
   // 设置 index buffer 数据
   setIndexBufferData(
-    indexValues: Array<Number> | ArrayBufferView,
-    dataStartIndex?: number,
-    bufferOffset?: number,
-    dataCount?: number
+    data: Uint16Array | Uint32Array | Uint8Array | number[],
+    bufferOffset: number = 0,
+    dataOffset: number = 0,
+    dataLength: number = 4294967295
   ) {
     const indexBuffer = this._indexBuffers[this._indexBufferIndex];
     if (indexBuffer) {
-      indexBuffer.setData(indexValues, dataStartIndex, bufferOffset, dataCount);
+      indexBuffer.setData(data, dataOffset, bufferOffset, dataLength);
     }
   }
 
