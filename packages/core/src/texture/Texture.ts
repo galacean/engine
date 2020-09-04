@@ -382,12 +382,6 @@ export abstract class Texture extends ReferenceObject {
         break;
       case RenderBufferDepthFormat.Depth24:
       case RenderBufferDepthFormat.Depth32:
-        {
-          if (!isWebGL2) {
-            isSupported = false;
-          }
-        }
-        break;
       case RenderBufferDepthFormat.Depth32Stencil8:
         {
           if (!isWebGL2) {
