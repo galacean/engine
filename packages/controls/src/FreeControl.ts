@@ -1,5 +1,4 @@
-import { Entity, Logger, Script } from "@alipay/o3";
-import { MathUtil, Spherical, Vector3 } from "@alipay/o3";
+import { Entity, Logger, MathUtil, Script, Spherical, Vector3 } from "@alipay/o3";
 import { doTransform, Easing, Tween } from "@alipay/o3-tween";
 
 // 防止万向锁
@@ -14,7 +13,7 @@ const tween = new Tween();
 /**
  * 相机的的漫游控制器，可以上下左右位移，转转视角。
  */
-export class FreeControls extends Script {
+export class FreeControl extends Script {
   _forward = new Vector3();
   _right = new Vector3();
   camera: Entity;
