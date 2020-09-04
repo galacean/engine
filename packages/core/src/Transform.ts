@@ -434,14 +434,38 @@ export class Transform extends Component {
   }
 
   /**
+   * 在指定的方向和距离上位移。
+   * @param x - X 轴的位移的方向和距离
+   * @param y - Y 轴的位移的方向和距离
+   * @param z - Z 轴的位移的方向和距离
+   * @param relativeToLocal - 是否相对局部空间
+   */
+  translateXYZ(x: number, y: number, z: number, relativeToLocal: boolean = true): void {
+    const translate = Transform._tempVec3;
+    translate.setValue(x, y, z);
+    this.translate(translate, relativeToLocal);
+  }
+
+  /**
    * 根据指定欧拉角旋转。
    * @param rotation - 旋转角度，欧拉角表达，单位是角度制
    * @param relativeToLocal - 是否相对局部空间
    */
   rotate(rotation: Vector3, relativeToLocal: boolean = true): void {
+    this.rotateXYZ(rotation.x, rotation.y, rotation.z, relativeToLocal);
+  }
+
+  /**
+   * 根据指定欧拉角旋转。
+   * @param x - X 轴旋转角度,单位是角度制
+   * @param y - Y 轴旋转角度,单位是角度制
+   * @param z - Z 轴旋转角度,单位是角度制
+   * @param relativeToLocal - 是否相对局部空间
+   */
+  rotateXYZ(x: number, y: number, z: number, relativeToLocal: boolean = true): void {
     const radFactor = MathUtil.degreeToRadFactor;
     const rotQuat = Transform._tempQuat0;
-    Quaternion.rotationEuler(rotation.x * radFactor, rotation.y * radFactor, rotation.z * radFactor, rotQuat);
+    Quaternion.rotationEuler(x * radFactor, y * radFactor, z * radFactor, rotQuat);
     this._rotateByQuat(rotQuat, relativeToLocal);
   }
 
