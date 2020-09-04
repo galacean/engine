@@ -351,26 +351,28 @@ export class RenderTarget extends AssetObject {
     this._oriDrawBuffers = drawBuffers;
 
     /** depth render buffer */
-    if (renderDepth instanceof RenderDepthTexture) {
-      // 立方体纹理请调用 _setRenderTargetFace()
-      if (!renderDepth._isCube) {
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          renderDepth._formatDetail.attachment,
-          gl.TEXTURE_2D,
-          renderDepth._glTexture,
-          0
-        );
+    if (renderDepth !== null) {
+      if (renderDepth instanceof RenderDepthTexture) {
+        // 立方体纹理请调用 _setRenderTargetFace()
+        if (!renderDepth._isCube) {
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            renderDepth._formatDetail.attachment,
+            gl.TEXTURE_2D,
+            renderDepth._glTexture,
+            0
+          );
+        }
+      } else if (this._antiAliasing <= 1) {
+        const { internalFormat, attachment } = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
+        const depthRenderBuffer = gl.createRenderbuffer();
+
+        this._depthRenderBuffer = depthRenderBuffer;
+
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, this._width, this._height);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
       }
-    } else if (renderDepth !== null && this._antiAliasing <= 1) {
-      const { internalFormat, attachment } = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
-      const depthRenderBuffer = gl.createRenderbuffer();
-
-      this._depthRenderBuffer = depthRenderBuffer;
-
-      gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
-      gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, this._width, this._height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
