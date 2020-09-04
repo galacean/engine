@@ -159,6 +159,9 @@ export class TextureCubeMap extends Texture {
     const { baseFormat, dataType } = this._formatDetail;
 
     this._bind();
+
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
     gl.texSubImage2D(
       gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
       mipLevel,
@@ -168,8 +171,8 @@ export class TextureCubeMap extends Texture {
       dataType,
       imageSource
     );
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
     this._unbind();
   }
 
