@@ -6,6 +6,7 @@ import { Entity } from "./Entity";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+import { RenderTarget } from "./material/RenderTarget";
 
 /**
  * @todo 数学库改造
@@ -79,6 +80,7 @@ export class Camera extends Component {
   private _isViewMatrixDirty: UpdateFlag;
   /** 投影视图矩阵逆矩阵脏标记 */
   private _isInvViewProjDirty: UpdateFlag;
+  private _renderTarget: RenderTarget = null;
 
   /**
    * 近裁剪平面。
@@ -265,14 +267,13 @@ export class Camera extends Component {
 
   /**
    * 渲染目标，设置后会渲染到渲染目标上，如果为空则渲染到屏幕上。
-   * @todo 渲染管线修改
    */
-  get renderTarget(): any {
-    throw new Error("not implemention");
+  get renderTarget(): RenderTarget | null {
+    return this._renderTarget;
   }
 
-  set renderTarget(value: any) {
-    throw new Error("not implemention");
+  set renderTarget(value: RenderTarget | null) {
+    this._renderTarget = value;
   }
 
   /**
