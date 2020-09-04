@@ -180,38 +180,68 @@ export class GLTechnique extends GLAsset {
         if (value.length) gl.uniform1fv(location, value);
         else gl.uniform1f(location, value);
         break;
+      case DataType.FLOAT_ARRAY:
+        gl.uniform1fv(location, value);
+        break;
       case DataType.INT:
         if (value.length) gl.uniform1iv(location, value);
         else gl.uniform1i(location, value);
         break;
+      case DataType.INT_ARRAY:
+        gl.uniform1iv(location, value);
+        break;
       case DataType.FLOAT_VEC2:
         gl.uniform2f(location, value.x, value.y);
+        break;
+      case DataType.FLOAT_VEC2_ARRAY:
+        gl.uniform2fv(location, value);
         break;
       case DataType.FLOAT_VEC3:
         gl.uniform3f(location, value.x, value.y, value.z);
         break;
+      case DataType.FLOAT_VEC3_ARRAY:
+        gl.uniform3fv(location, value);
+        break;
       case DataType.FLOAT_VEC4:
         gl.uniform4f(location, value.x, value.y, value.z, value.w);
+        break;
+      case DataType.FLOAT_VEC4_ARRAY:
+        gl.uniform4fv(location, value);
         break;
       case DataType.INT_VEC2:
         gl.uniform2i(location, value.x, value.y);
         break;
+      case DataType.INT_VEC2_ARRAY:
+        gl.uniform2iv(location, value);
+        break;
       case DataType.INT_VEC3:
         gl.uniform3i(location, value.x, value.y, value.z);
+        break;
+      case DataType.INT_VEC3_ARRAY:
+        gl.uniform3iv(location, value);
         break;
       case DataType.INT_VEC4:
         gl.uniform4i(location, value.x, value.y, value.z, value.w);
         break;
+      case DataType.INT_VEC4_ARRAY:
+        gl.uniform4iv(location, value);
+        break;
       case DataType.FLOAT_MAT2:
         gl.uniformMatrix2fv(location, false, value.elements);
+        break;
+      case DataType.FLOAT_MAT2_ARRAY:
+        gl.uniformMatrix2fv(location, false, value);
         break;
       case DataType.FLOAT_MAT3:
         gl.uniformMatrix3fv(location, false, value.elements);
         break;
+      case DataType.FLOAT_MAT3_ARRAY:
+        gl.uniformMatrix3fv(location, false, value);
+        break;
       case DataType.FLOAT_MAT4:
         gl.uniformMatrix4fv(location, false, value.elements);
         break;
-      case DataType.FLOAT_ARRAY:
+      case DataType.FLOAT_MAT4_ARRAY:
         gl.uniformMatrix4fv(location, false, value);
         break;
       case DataType.SAMPLER_2D: {

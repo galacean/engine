@@ -195,6 +195,28 @@ export enum DataType {
 
   /** 浮点数组 */
   FLOAT_ARRAY = 35677, // gl.FLOAT_ARRAY
+  /** 浮点型二维向量数组 */
+  FLOAT_VEC2_ARRAY = "FLOAT_VEC2_ARRAY",
+  /** 浮点型三维向量数组 */
+  FLOAT_VEC3_ARRAY = "FLOAT_VEC3_ARRAY",
+  /** 浮点型四维向量数组 */
+  FLOAT_VEC4_ARRAY = "FLOAT_VEC4_ARRAY",
+
+  /** 整数数组 */
+  INT_ARRAY = "INT_ARRAY",
+  /** 整型二维向量数组 */
+  INT_VEC2_ARRAY = "INT_VEC2_ARRAY",
+  /** 整型三维向量数组 */
+  INT_VEC3_ARRAY = "INT_VEC3_ARRAY",
+  /** 整型四维向量数组 */
+  INT_VEC4_ARRAY = "INT_VEC4_ARRAY",
+
+  /** 二阶矩阵数组 */
+  FLOAT_MAT2_ARRAY = "FLOAT_MAT2_ARRAY",
+  /** 三阶矩阵数组 */
+  FLOAT_MAT3_ARRAY = "FLOAT_MAT3_ARRAY",
+  /** 四阶矩阵数组 */
+  FLOAT_MAT4_ARRAY = "FLOAT_MAT4_ARRAY",
 
   /** 2D 纹理采样 */
   SAMPLER_2D = 35678, // gl.SAMPLER_2D
