@@ -1,3 +1,0 @@
-<view class="container" disable-scroll="{{true}}">
-  <oasis-3d onLoad="onO3Load" />
-</view>
