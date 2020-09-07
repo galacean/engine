@@ -122,8 +122,8 @@ export class VertexBuffer {
    * 获取顶点数据。
    * @param data - 顶点输出数据
    * @param bufferByteOffset - 缓冲读取偏移，以字节为单位
-   * @param dataOffset - 输出偏移，以字节为单位
-   * @param dataLength - 输出长度，以字节为单位
+   * @param dataOffset - 输出偏移
+   * @param dataLength - 输出长度
    */
   getData(data: ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
 
