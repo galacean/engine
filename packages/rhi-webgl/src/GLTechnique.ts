@@ -19,7 +19,7 @@ export class GLTechnique extends GLAsset {
   private _program: GLShaderProgram;
   private _attributes;
   private _uniforms;
-  private _tempSamplerArray = [];
+  private _tempSamplerArray: Int32Array;
 
   constructor(rhi: WebGLRenderer, tech: RenderTechnique) {
     super(rhi, tech);
@@ -287,7 +287,9 @@ export class GLTechnique extends GLAsset {
    */
   _uploadTextures(textures, location, type) {
     const assetCache = this.rhi.assetsCache;
-    this._tempSamplerArray.length = 0;
+    if (!this._tempSamplerArray || this._tempSamplerArray.length !== textures.length) {
+      this._tempSamplerArray = new Int32Array(textures.length);
+    }
 
     for (let i = 0, length = textures.length; i < length; i++) {
       const glTexture = assetCache.requireObject(textures[i], type);
@@ -295,7 +297,9 @@ export class GLTechnique extends GLAsset {
       if (glTexture) {
         const index = this._activeTextureCount++;
         glTexture.activeBinding(index);
-        this._tempSamplerArray.push(index);
+        this._tempSamplerArray[i] = index;
+      } else {
+        this._tempSamplerArray[i] = -1;
       }
     }
     this.rhi.gl.uniform1iv(location, this._tempSamplerArray);
