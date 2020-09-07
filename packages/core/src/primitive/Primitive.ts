@@ -3,7 +3,8 @@ import { AssetObject } from "../asset/AssetObject";
 import { DrawMode } from "../base/Constant";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
-import { VertexElement } from "../geometry";
+import { UpdateRangeMap, UpdateTypeMap, DataMap, SemanticMap } from "./type";
+import { VertexElement, IndexBuffer, VertexBuffer, VertexElements } from "../geometry";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
 
@@ -17,13 +18,11 @@ let primitiveID = 0;
 export class Primitive extends AssetObject {
   readonly id: number;
   mode: DrawMode = DrawMode.TRIANGLES;
-
-  vertexAttributes = <any>{};
-  vertexBuffers = [];
+  vertexAttributes: VertexElements = {};
+  vertexBuffers: VertexBuffer[] = [];
   vertexCount: number = 0;
 
-  indexBuffers = [];
-  indexNeedUpdate: boolean = false;
+  indexBuffer: IndexBuffer;
 
   material = null;
   materialIndex: number;
@@ -34,31 +33,12 @@ export class Primitive extends AssetObject {
 
   isInstanced: boolean = false;
   instancedCount: number;
-
-  indexBufferIndex: number = 0;
   indexOffset: number = 0;
 
-  updateVertex: boolean = false;
-  updateIndex: boolean = false;
-
-  private _vertexArrayBuffers = [];
-  private _indexArrayBuffers = [];
-
-  get vertexArrayBuffers() {
-    if (this.updateVertex) {
-      this._vertexArrayBuffers = this._createArrayBuffers(this.vertexBuffers);
-      this.updateVertex = false;
-    }
-    return this._vertexArrayBuffers;
-  }
-
-  get indexArrayBuffers() {
-    if (this.updateIndex) {
-      this._indexArrayBuffers = this._createArrayBuffers(this.indexBuffers);
-      this.updateIndex = false;
-    }
-    return this._indexArrayBuffers;
-  }
+  semanticIndexMap: SemanticMap = {};
+  dataCache: DataMap = {};
+  updateTypeCache: UpdateTypeMap = {};
+  updateRangeCache: UpdateRangeMap = {};
 
   get attributes() {
     return this.vertexAttributes;
@@ -154,5 +134,5 @@ export class Primitive extends AssetObject {
     return bufferArray;
   }
 
-  finalize() {}
+  destroy() {}
 }

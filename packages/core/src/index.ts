@@ -61,11 +61,9 @@ export { GeometryRenderer } from "./geometry";
 
 export { VertexBuffer } from "./geometry";
 export { IndexBuffer } from "./geometry";
-export { InterleavedBuffer } from "./geometry";
-export { VertexDeclaration } from "./geometry";
 export { VertexElement } from "./geometry";
+export { VertexDeclaration } from "./geometry";
 export { VertexElementFormat } from "./geometry";
-export { BufferAttribute } from "./primitive/type";
 
 //mesh
 export { Mesh } from "./mesh/Mesh";

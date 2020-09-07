@@ -8,7 +8,8 @@ import { BufferUtil } from "./BufferUtil";
  * 顶点缓冲。
  */
 export class VertexBuffer {
-  /** 顶点声明。*/
+  _glBufferUsage: number;
+
   public declaration: VertexDeclaration;
 
   private _hardwareRenderer: HardwareRenderer;
@@ -39,12 +40,32 @@ export class VertexBuffer {
   }
 
   /**
+   * 顶点声明语义列表
+   */
+  get semanticList() {
+    const semanticList = [];
+    for (let i = 0; i < this.declaration.elements.length; i++) {
+      const semantic = this.declaration.elements[i].semantic;
+      semanticList.push(semantic);
+    }
+    return semanticList;
+  }
+
+  /**
+   * 顶点声明语义列表
+   */
+  get bufferType(): string {
+    return "vertex";
+  }
+
+  /**
    * 创建顶点缓冲。
-   * @param engine - 引擎
    * @param length - 长度，字节为单位
    * @param bufferUsage - 顶点缓冲用途
+   * @param engine - 引擎
    */
-  constructor(engine: Engine, length: number, bufferUsage: BufferUsage) {
+  constructor(length: number, bufferUsage: BufferUsage = BufferUsage.Static, engine?: Engine) {
+    engine = engine || Engine._getDefaultEngine();
     this._engine = engine;
     this._length = length;
     this._bufferUsage = bufferUsage;
@@ -56,7 +77,9 @@ export class VertexBuffer {
     this._hardwareRenderer = hardwareRenderer;
 
     this.bind();
-    gl.bufferData(gl.ARRAY_BUFFER, length, BufferUtil._getGLBufferUsage(gl, bufferUsage));
+    const usage = BufferUtil._getGLBufferUsage(gl, bufferUsage);
+    this._glBufferUsage = usage;
+    gl.bufferData(gl.ARRAY_BUFFER, length, usage);
   }
 
   /**
@@ -154,6 +177,16 @@ export class VertexBuffer {
     } else {
       throw "IndexBuffer is write-only on WebGL1.0 platforms.";
     }
+  }
+
+  /**
+   * 修改buffer长度
+   * @param dataLength - 长度，字节为单位
+   */
+  resize(dataLength: number) {
+    this.bind();
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
+    gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._bufferUsage);
   }
 
   /**

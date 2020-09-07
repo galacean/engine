@@ -1,74 +1,27 @@
-import { DataType, UpdateType, BufferUsage } from "../base/Constant";
-
-interface AttributeParam {
-  semantic: string;
-  size: number;
-  type: DataType;
-  normalized: boolean;
-  instanced?: number;
-  usage?: BufferUsage;
-}
-export class BufferAttribute {
-  name: string;
-  semantic: string;
-  size: number;
-  type: DataType;
-  normalized: boolean;
-  instanced: number;
-  interleaved: boolean;
-  stride: number;
-  offset: number;
-  vertexBufferIndex: number;
-  updateType: UpdateType = UpdateType.UPDATE_ALL;
-  updateRange: UpdateRange = {
-    byteOffset: 0,
-    byteLength: -1,
-    bufferByteOffset: 0
-  };
-  usage: BufferUsage = BufferUsage.STATIC_DRAW;
-  constructor(param: AttributeParam) {
-    this.semantic = param.semantic;
-    this.size = param.size;
-    this.type = param.type;
-    this.normalized = param.normalized;
-    if (param.instanced !== undefined) {
-      this.instanced = param.instanced;
-    }
-    if (param.usage !== undefined) {
-      this.usage = param.usage;
-    }
-  }
-
-  resetUpdateRange() {
-    this.updateRange = {
-      byteOffset: 0,
-      byteLength: -1,
-      bufferByteOffset: 0
-    };
-  }
-}
-
-export enum IndexFormat {
-  UNSIGNED_BYTE = DataType.UNSIGNED_BYTE,
-  UNSIGNED_SHORT = DataType.UNSIGNED_SHORT,
-  UNSIGNED_INT = DataType.UNSIGNED_INT
-}
+import { UpdateType, TypedArray } from "../base/Constant";
 
 export interface UpdateRange {
-  byteOffset: number;
-  byteLength: number;
-  bufferByteOffset: number;
+  offset: number;
+  end: number;
 }
 
-export interface Attribute {
-  name?: string;
-  semantic: string;
-  size: number;
-  type: DataType;
-  normalized?: boolean;
-  instanced?: number;
-  interleaved?: boolean;
-  stride?: number;
-  offset?: number;
-  vertexBufferIndex?: number;
+export interface UpdateRangeMap {
+  [x: number]: UpdateRange;
+  [x: string]: UpdateRange;
 }
+
+export interface UpdateTypeMap {
+  [x: number]: UpdateType;
+  [x: string]: UpdateType;
+}
+
+export interface DataMap {
+  [x: number]: TypedArray;
+  [x: string]: TypedArray;
+}
+
+export interface SemanticMap {
+  [x: string]: number;
+}
+
+export class BufferAttribute {}

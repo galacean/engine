@@ -8,6 +8,9 @@ import { BufferUtil } from "./BufferUtil";
  * 索引缓冲。
  */
 export class IndexBuffer {
+  _glIndexType: number;
+  _glBufferUsage: number;
+
   private _hardwareRenderer: HardwareRenderer;
   private _nativeBuffer: WebGLBuffer;
   private _engine: Engine;
@@ -45,13 +48,33 @@ export class IndexBuffer {
   }
 
   /**
+   * 索引字节长度
+   */
+  get elementByteCount() {
+    return this._elementByteCount;
+  }
+
+  /**
+   * 顶点声明语义列表
+   */
+  get bufferType(): string {
+    return "index";
+  }
+
+  /**
    * 创建索引缓冲。
    * @param engine - 引擎
    * @param indexFormat - 索引格式
    * @param byteSize - 索引缓冲尺寸，以字节为单位
    * @param bufferUsage - 索引缓冲用途
    */
-  constructor(engine: Engine, indexCount: number, bufferUsage: BufferUsage, indexFormat: IndexFormat) {
+  constructor(
+    indexCount: number,
+    indexFormat: IndexFormat = IndexFormat.UInt16,
+    bufferUsage: BufferUsage = BufferUsage.Static,
+    engine: Engine
+  ) {
+    engine = engine || Engine._getDefaultEngine();
     this._engine = engine;
     this._indexCount = indexCount;
     this._bufferUsage = bufferUsage;
@@ -64,13 +87,12 @@ export class IndexBuffer {
     this._nativeBuffer = gl.createBuffer();
     this._hardwareRenderer = hardwareRenderer;
     this._elementByteCount = elementByteCount;
+    this._glIndexType = BufferUtil._getGLIndexType(gl, indexFormat);
 
     this.bind();
-    gl.bufferData(
-      gl.ELEMENT_ARRAY_BUFFER,
-      indexCount * elementByteCount,
-      BufferUtil._getGLBufferUsage(gl, bufferUsage)
-    );
+    const usage = BufferUtil._getGLBufferUsage(gl, bufferUsage);
+    this._glBufferUsage = usage;
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexCount * elementByteCount, usage);
   }
 
   /**
@@ -175,6 +197,16 @@ export class IndexBuffer {
     } else {
       throw "IndexBuffer is write-only on WebGL1.0 platforms.";
     }
+  }
+
+  /**
+   * 修改buffer长度
+   * @param dataLength - 长度，字节为单位
+   */
+  resize(dataLength: number) {
+    this.bind();
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
+    gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._bufferUsage);
   }
 
   /**

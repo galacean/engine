@@ -452,3 +452,14 @@ export enum OITMode {
   /** 双层深度剥离，性能更好，强依赖 MRT */
   DUAL_DEPTH_PEEL
 }
+
+export type TypedArray =
+  | Int8Array
+  | Uint8Array
+  | Int16Array
+  | Uint16Array
+  | Int32Array
+  | Uint32Array
+  | Uint8ClampedArray
+  | Float32Array
+  | Float64Array;
