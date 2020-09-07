@@ -1,5 +1,8 @@
-import { VertexElement } from "./VertexElement";
+import { VertexElement } from "./vertexElement";
 
+/**
+ * 顶点声明，描述 VertexBuffer 的顶点声明结构。
+ */
 export class VertexDeclaration {
   private _vertexStride: number;
   private _elements: VertexElement[];
@@ -26,8 +29,5 @@ export class VertexDeclaration {
   constructor(vertexStride: number, elements: VertexElement[]) {
     this._vertexStride = vertexStride;
     this._elements = elements;
-    for (let i = 0; i < this._elements.length; i += 1) {
-      this.elements[i].stride = vertexStride;
-    }
   }
 }

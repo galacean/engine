@@ -9,4 +9,4 @@ export { IndexBuffer, IndexFormat } from "./graphic/IndexBuffer";
 export { InterleavedBuffer } from "./graphic/InterleavedBuffer";
 export { VertexDeclaration } from "./graphic/VertexDeclaration";
 export { VertexElement } from "./graphic/VertexElement";
-export { VertexElementFormat } from "./graphic/VertexElementFormat";
+export { VertexElementFormat } from "./graphic/enums/VertexElementFormat";

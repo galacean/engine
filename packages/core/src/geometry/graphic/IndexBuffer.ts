@@ -1,237 +1,190 @@
-import { BufferUsage, UpdateType, DataType } from "../../base/Constant";
 import { Engine } from "../../Engine";
+import { HardwareRenderer } from "../../HardwareRenderer";
+import { BufferUsage } from "./enums/BufferUsage";
+import { IndexFormat } from "./enums/IndexFormat";
+import { BufferUtil } from "./BufferUtil";
 
 /**
- * 索引格式。
- */
-export enum IndexFormat {
-  /** 8 位。*/
-  UInt8,
-  /** 16 位。*/
-  UInt16,
-  /** 32 位。*/
-  UInt32
-}
-
-/**
- * IndexBuffer
+ * 索引缓冲。
  */
 export class IndexBuffer {
-  static _bindedIndexBuffer;
-
-  updateType: UpdateType = UpdateType.UPDATE_ALL;
-
-  private _indexFormat: IndexFormat;
+  private _hardwareRenderer: HardwareRenderer;
+  private _nativeBuffer: WebGLBuffer;
+  private _engine: Engine;
   private _indexCount: number;
-  private _indexTypeByteCount: number;
-  private _byteSize: number;
   private _bufferUsage: BufferUsage;
-  private _gl: WebGLRenderingContext & WebGL2RenderingContext;
-  private _buffer: ArrayBufferView;
-  private _canRead: boolean;
-  private _glBuffer;
+  private _indexFormat: IndexFormat;
+  private _elementByteCount: number;
 
-  updateRange = {
-    byteOffset: 0,
-    byteLength: -1,
-    bufferByteOffset: 0
-  };
-
-  get glBuffer() {
-    return this._glBuffer;
+  /**
+   * 引擎。
+   */
+  get engine(): Engine {
+    return this._engine;
   }
 
-  get buffetUsage(): BufferUsage {
+  /**
+   * 索引缓冲用途。
+   */
+  get bufferUsage(): BufferUsage {
     return this._bufferUsage;
   }
 
+  /**
+   * 索引格式。
+   */
   get indexFormat(): IndexFormat {
     return this._indexFormat;
   }
 
+  /**
+   * 索引数量。
+   */
   get indexCount(): number {
     return this._indexCount;
   }
 
-  get indexTypeByteCount(): number {
-    return this._indexTypeByteCount;
-  }
-
-  get byteSize(): number {
-    return this._byteSize;
-  }
-
-  get indexType() {
-    let type;
-    switch (this._indexFormat) {
-      case IndexFormat.UInt8:
-        type = DataType.UNSIGNED_BYTE;
-        break;
-      case IndexFormat.UInt16:
-        type = DataType.UNSIGNED_SHORT;
-        break;
-      case IndexFormat.UInt32:
-        type = DataType.UNSIGNED_INT;
-        break;
-      default:
-        type = DataType.UNSIGNED_SHORT;
-        break;
-    }
-    return type;
-  }
-
-  constructor(
-    indexCount: number,
-    bufferUsage: BufferUsage = BufferUsage.STATIC_DRAW,
-    indexFormat: IndexFormat = IndexFormat.UInt16,
-    canRead: boolean,
-    engine?: Engine
-  ) {
-    engine = engine || Engine._getDefaultEngine();
-    const rhi = engine._hardwareRenderer;
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
-    this._gl = gl;
-    this._glBuffer = gl.createBuffer();
-    this._indexFormat = indexFormat;
+  /**
+   * 创建索引缓冲。
+   * @param engine - 引擎
+   * @param indexFormat - 索引格式
+   * @param byteSize - 索引缓冲尺寸，以字节为单位
+   * @param bufferUsage - 索引缓冲用途
+   */
+  constructor(engine: Engine, indexCount: number, bufferUsage: BufferUsage, indexFormat: IndexFormat) {
+    this._engine = engine;
     this._indexCount = indexCount;
     this._bufferUsage = bufferUsage;
-    this._canRead = canRead;
-    switch (indexFormat) {
-      case IndexFormat.UInt32:
-        this._indexTypeByteCount = 4;
-        break;
-      case IndexFormat.UInt16:
-        this._indexTypeByteCount = 2;
-        break;
-      case IndexFormat.UInt8:
-        this._indexTypeByteCount = 1;
-        break;
-      default:
-        throw new Error("unidentification index type.");
-    }
-    const byteSize: number = this._indexTypeByteCount * indexCount;
-    this._byteSize = byteSize;
+    this._indexFormat = indexFormat;
+
+    const hardwareRenderer = engine._hardwareRenderer;
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = hardwareRenderer.gl;
+    const elementByteCount = indexFormat === IndexFormat.UInt32 ? 4 : indexFormat === IndexFormat.UInt16 ? 2 : 1;
+
+    this._nativeBuffer = gl.createBuffer();
+    this._hardwareRenderer = hardwareRenderer;
+    this._elementByteCount = elementByteCount;
+
     this.bind();
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._byteSize, this._bufferUsage);
-    if (canRead) {
-      switch (indexFormat) {
-        case IndexFormat.UInt32:
-          this._buffer = new Uint32Array(indexCount);
-          break;
-        case IndexFormat.UInt16:
-          this._buffer = new Uint16Array(indexCount);
-          break;
-        case IndexFormat.UInt8:
-          this._buffer = new Uint8Array(indexCount);
-          break;
-      }
-    }
+    gl.bufferData(
+      gl.ELEMENT_ARRAY_BUFFER,
+      indexCount * elementByteCount,
+      BufferUtil._getGLBufferUsage(gl, bufferUsage)
+    );
   }
+
+  /**
+   * 绑定。
+   */
+  bind(): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._nativeBuffer);
+  }
+
+  /**
+   * 设置索引数据。
+   * @param data - 索引数据
+   */
+  setData(data: Uint8Array | Uint16Array | Uint32Array): void;
+
+  /**
+   * 设置索引数据。
+   * @param data - 索引数据
+   * @param bufferOffset - 缓冲偏移
+   */
+  setData(data: Uint8Array | Uint16Array | Uint32Array, bufferOffset: number): void;
+
+  /**
+   * 设置索引数据。
+   * @param data - 索引数据
+   * @param bufferOffset - 缓冲读取偏移，以字节为单位
+   * @param dataOffset - 数据偏移
+   * @param dataLength - 数据长度
+   */
+  setData(
+    data: Uint8Array | Uint16Array | Uint32Array,
+    bufferOffset: number,
+    dataOffset: number,
+    dataLength: number
+  ): void;
 
   setData(
-    data: Uint16Array | Uint32Array | Uint8Array | number[],
+    data: Uint8Array | Uint16Array | Uint32Array,
     bufferOffset: number = 0,
     dataOffset: number = 0,
-    dataLength: number = 4294967295
-  ) {
-    const gl = this._gl;
-    const byteCount: number = this._indexTypeByteCount;
-    const constructor = this._getIndexDataView(this._indexFormat);
-    if (!ArrayBuffer.isView(data)) {
-      data = new constructor(data, dataOffset * byteCount, dataLength);
-    }
-    if (dataOffset !== 0 || dataLength !== 4294967295 /*uint.MAX_VALUE*/) {
-      data = new constructor(data.buffer, dataOffset * byteCount, dataLength);
-    }
+    dataLength?: number
+  ): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
+    const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
+    const elementByteCount: number = this._elementByteCount;
+    const bufferByteOffset = bufferOffset * elementByteCount;
     this.bind();
-    gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferOffset * byteCount, data);
-    if (this._canRead) {
-      if (bufferOffset !== 0 || dataOffset !== 0 || dataLength !== 4294967295 /*uint.MAX_VALUE*/) {
-        var maxLength: number = this._buffer.length - bufferOffset;
-        if (dataLength > maxLength) dataLength = maxLength;
-        for (var i: number = 0; i < dataLength; i++) this._buffer[bufferOffset + i] = data[i];
+    if (dataOffset !== 0 || dataLength < data.length) {
+      if (isWebGL2) {
+        gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, data, dataOffset, dataLength);
       } else {
-        // this._buffer = data;
+        const subData = data.subarray(dataOffset, dataLength);
+        gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, subData);
       }
-    }
-  }
-
-  private _getIndexDataView(indexFormat: IndexFormat) {
-    switch (indexFormat) {
-      case IndexFormat.UInt32:
-        return Uint32Array;
-      case IndexFormat.UInt16:
-        return Uint16Array;
-      case IndexFormat.UInt8:
-        return Uint8Array;
-      default:
-        return Uint16Array;
-    }
-  }
-
-  bind(): boolean {
-    if (IndexBuffer._bindedIndexBuffer !== this._glBuffer) {
-      const gl = this._gl;
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glBuffer);
-      IndexBuffer._bindedIndexBuffer = this._glBuffer;
-      return true;
     } else {
-      return false;
+      gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, data);
     }
   }
 
-  resize(byteSize: number) {
-    const gl = this._gl;
-    gl.bufferData(gl.ARRAY_BUFFER, byteSize, this._bufferUsage);
-  }
+  /**
+   * 获取索引数据。
+   * @param data - 索引输出数据
+   */
+  getData(data: Uint8Array | Uint16Array | Uint32Array): void;
 
-  // resizeData(indexValues: Array<Number> | ArrayBufferView) {
-  //   const indexCount = indexValues.length;
-  //   this._indexCount = indexCount;
-  //   const bufferLength = indexCount * this.stride;
-  //   const newBuffer = new ArrayBuffer(bufferLength);
-  //   this.buffer[0] = newBuffer;
-  //   const constructor = getVertexDataTypeDataView(this.indexType);
-  //   const view = new constructor(this.buffer[0]);
-  //   view.set(indexValues);
-  //   if (this.updateType === UpdateType.NO_UPDATE) {
-  //     this.updateType = UpdateType.RESIZE;
-  //   }
-  // }
+  /**
+   * 获取索引数据。
+   * @param data - 索引输出数据
+   * @param bufferOffset - 缓冲读取偏移
+   */
+  getData(data: Uint8Array | Uint16Array | Uint32Array, bufferOffset: number): void;
 
-  // setDataByIndex(index, value) {
-  //   const constructor = getVertexDataTypeDataView(this.indexType);
-  //   const stride = getVertexDataTypeSize(this.indexType);
-  //   const view = new constructor(this.buffer[0], index * stride, 1);
-  //   view.set(value);
-  // }
+  /**
+   * 获取索引数据。
+   * @param data - 索引输出数据
+   * @param bufferOffset - 缓冲读取偏移
+   * @param dataOffset - 输出偏移
+   * @param dataLength - 输出长度
+   */
+  getData(
+    data: Uint8Array | Uint16Array | Uint32Array,
+    bufferOffset: number,
+    dataOffset: number,
+    dataLength: number
+  ): void;
 
-  // getData() {
-  //   const constructor = getVertexDataTypeDataView(this.indexType);
-  //   return new constructor(this.buffer[0]);
-  // }
+  getData(
+    data: Uint8Array | Uint16Array | Uint32Array,
+    bufferOffset: number = 0,
+    dataOffset: number = 0,
+    dataLength?: number
+  ): void {
+    const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
 
-  // getDataByIndex(index) {
-  //   const constructor = getVertexDataTypeDataView(this.indexType);
-  //   const stride = getVertexDataTypeSize(this.indexType);
-  //   return new constructor(this.buffer[0], index * stride, 1);
-  // }
-
-  resetUpdateRange() {
-    this.updateRange = {
-      byteOffset: 0,
-      byteLength: -1,
-      bufferByteOffset: 0
-    };
-  }
-
-  destroy() {
-    console.log("destroy index");
-    const gl = this._gl;
-    if (this._glBuffer) {
-      gl.deleteBuffer(this._glBuffer);
-      this._glBuffer = null;
+    if (isWebGL2) {
+      const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
+      const elementByteCount: number = this._elementByteCount;
+      const bufferByteOffset = bufferOffset * elementByteCount;
+      this.bind();
+      gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, data, dataOffset, dataLength);
+    } else {
+      throw "IndexBuffer is write-only on WebGL1.0 platforms.";
     }
-    this._buffer = null;
+  }
+
+  /**
+   * 销毁。
+   */
+  destroy(): void {
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
+    gl.deleteBuffer(this._nativeBuffer);
+    this._nativeBuffer = null;
+    this._engine = null;
+    this._hardwareRenderer = null;
   }
 }
