@@ -126,7 +126,7 @@ export class GLTFResource extends EngineObject {
  * @returns {*}
  * @private
  */
-export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResource {
+export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLTFResource> {
   // 开始处理 glTF 数据
   const resources: GLTFParsed = {
     engine,
@@ -144,7 +144,6 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): GLTFResourc
   parseExtensions(resources);
 
   // parse all related resources
-  // @ts-ignore
   return parseResources(resources, "textures", parseTexture)
     .then(() => parseResources(resources, "materials", parseMaterial))
     .then(() => parseResources(resources, "meshes", parseMesh))
