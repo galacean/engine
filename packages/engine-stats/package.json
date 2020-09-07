@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-engine-stats",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "Oasis3D engines extension: show engine stats",
   "keywords": [
     "Oasis3D",
@@ -26,7 +26,7 @@
   "module": "dist/module.js",
   "browser": "dist/browser.min.js",
   "dependencies": {
-    "@alipay/o3": "3.0.3"
+    "@alipay/o3": "3.0.4"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
