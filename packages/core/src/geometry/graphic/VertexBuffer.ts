@@ -71,33 +71,50 @@ export class VertexBuffer {
    * 设置顶点数据。
    * @param data - 顶点数据
    */
-  setData(data: ArrayBuffer): void;
+  setData(data: ArrayBuffer | ArrayBufferView): void;
 
   /**
    * 设置顶点数据。
    * @param data - 顶点数据
    * @param bufferByteOffset - 缓冲偏移，以字节为单位
    */
-  setData(data: ArrayBuffer, bufferByteOffset: number): void;
+  setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number): void;
 
   /**
    * 设置顶点数据。
    * @param data - 顶点数据
    * @param bufferByteOffset - 缓冲偏移，以字节为单位
-   * @param dataByteOffset - 数据偏移
-   * @param dataByteLength - 数据长度
+   * @param dataOffset - 数据偏移
+   * @param dataLength - 数据长度
    */
-  setData(data: ArrayBuffer, bufferByteOffset: number, dataByteOffset: number, dataByteLength: number): void;
+  setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
 
-  setData(data: ArrayBuffer, bufferByteOffset: number = 0, dataByteOffset: number = 0, dataByteLength?: number): void {
+  setData(
+    data: ArrayBuffer | ArrayBufferView,
+    bufferByteOffset: number = 0,
+    dataOffset: number = 0,
+    dataLength?: number
+  ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
     this.bind();
-    if (dataByteOffset !== 0 || dataByteLength < data.byteLength) {
+    if (dataOffset !== 0 || dataLength < data.byteLength) {
+      const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
       if (isWebGL2) {
-        gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, new Uint8Array(data), dataByteOffset, dataByteLength); //CM:测试一下性能对比
+        gl.bufferSubData(
+          gl.ARRAY_BUFFER,
+          bufferByteOffset,
+          isArrayBufferView ? <ArrayBufferView>data : new Uint8Array(<ArrayBuffer>data),
+          dataOffset,
+          dataLength
+        ); //CM:测试一下性能对比
       } else {
-        const subData = new Uint8Array(data, dataByteOffset, dataByteLength);
+        const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1; //TypeArray is BYTES_PER_ELEMENT , unTypeArray is 1
+        const subData = new Uint8Array(
+          isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
+          dataOffset * byteSize,
+          dataLength * byteSize
+        );
         gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, subData);
       }
     } else {
