@@ -245,6 +245,12 @@ export class Material extends ReferenceObject {
         values[uniform.name] = modelView;
         break;
       }
+      // Combined VIEW and PROJECTION.
+      case UniformSemantic.VIEWPROJECTION: {
+        const viewProj = context.viewProjectMatrix;
+        values[uniform.name] = viewProj;
+        break;
+      }
       // Combined MODEL, VIEW, and PROJECTION
       case UniformSemantic.MODELVIEWPROJECTION: {
         const viewProj = context.viewProjectMatrix;
