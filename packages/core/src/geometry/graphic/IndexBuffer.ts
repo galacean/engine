@@ -3,6 +3,7 @@ import { HardwareRenderer } from "../../HardwareRenderer";
 import { BufferUsage } from "./enums/BufferUsage";
 import { IndexFormat } from "./enums/IndexFormat";
 import { BufferUtil } from "./BufferUtil";
+import { SetDataOptions } from "./enums/SetDataOptions";
 
 /**
  * 索引缓冲。
@@ -15,6 +16,9 @@ export class IndexBuffer {
   private _bufferUsage: BufferUsage;
   private _indexFormat: IndexFormat;
   private _elementByteCount: number;
+  private _bufferByteSize: number;
+
+  private _glBufferUsage: number;
 
   /**
    * 引擎。
@@ -60,17 +64,17 @@ export class IndexBuffer {
     const hardwareRenderer = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = hardwareRenderer.gl;
     const elementByteCount = indexFormat === IndexFormat.UInt32 ? 4 : indexFormat === IndexFormat.UInt16 ? 2 : 1;
+    const bufferByteSize = indexCount * elementByteCount;
+    const glBufferUsage = BufferUtil._getGLBufferUsage(gl, bufferUsage);
 
     this._nativeBuffer = gl.createBuffer();
     this._hardwareRenderer = hardwareRenderer;
     this._elementByteCount = elementByteCount;
+    this._bufferByteSize = bufferByteSize;
+    this._glBufferUsage = glBufferUsage;
 
     this.bind();
-    gl.bufferData(
-      gl.ELEMENT_ARRAY_BUFFER,
-      indexCount * elementByteCount,
-      BufferUtil._getGLBufferUsage(gl, bufferUsage)
-    );
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferByteSize, glBufferUsage);
   }
 
   /**
@@ -108,17 +112,39 @@ export class IndexBuffer {
     dataLength: number
   ): void;
 
+  /**
+   * 设置索引数据。
+   * @param data - 索引数据
+   * @param bufferOffset - 缓冲读取偏移，以字节为单位
+   * @param dataOffset - 数据偏移
+   * @param dataLength - 数据长度
+   * @param options - 操作选项
+   */
+  setData(
+    data: Uint8Array | Uint16Array | Uint32Array,
+    bufferOffset: number,
+    dataOffset: number,
+    dataLength: number,
+    options: SetDataOptions
+  ): void;
+
   setData(
     data: Uint8Array | Uint16Array | Uint32Array,
     bufferOffset: number = 0,
     dataOffset: number = 0,
-    dataLength?: number
+    dataLength?: number,
+    options: SetDataOptions = SetDataOptions.None
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
     const elementByteCount: number = this._elementByteCount;
     const bufferByteOffset = bufferOffset * elementByteCount;
     this.bind();
+
+    if (options === SetDataOptions.Discard) {
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._bufferByteSize, this._glBufferUsage);
+    }
+
     if (dataOffset !== 0 || dataLength < data.length) {
       if (isWebGL2) {
         gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, data, dataOffset, dataLength);

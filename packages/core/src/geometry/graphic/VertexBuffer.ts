@@ -3,6 +3,7 @@ import { BufferUsage } from "./enums/BufferUsage";
 import { VertexDeclaration } from "./VertexDeclaration";
 import { HardwareRenderer } from "../../HardwareRenderer";
 import { BufferUtil } from "./BufferUtil";
+import { SetDataOptions } from "./enums/SetDataOptions";
 
 /**
  * 顶点缓冲。
@@ -16,6 +17,8 @@ export class VertexBuffer {
   private _engine: Engine;
   private _length: number;
   private _bufferUsage: BufferUsage;
+
+  private _glBufferUsage: number;
 
   /**
    * 引擎。
@@ -51,12 +54,14 @@ export class VertexBuffer {
 
     const hardwareRenderer = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = hardwareRenderer.gl;
+    const glBufferUsage = BufferUtil._getGLBufferUsage(gl, bufferUsage);
 
     this._nativeBuffer = gl.createBuffer();
     this._hardwareRenderer = hardwareRenderer;
+    this._glBufferUsage = glBufferUsage;
 
     this.bind();
-    gl.bufferData(gl.ARRAY_BUFFER, length, BufferUtil._getGLBufferUsage(gl, bufferUsage));
+    gl.bufferData(gl.ARRAY_BUFFER, length, glBufferUsage);
   }
 
   /**
@@ -89,15 +94,37 @@ export class VertexBuffer {
    */
   setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
 
+  /**
+   * 设置顶点数据。
+   * @param data - 顶点数据
+   * @param bufferByteOffset - 缓冲偏移，以字节为单位
+   * @param dataOffset - 数据偏移
+   * @param dataLength - 数据长度
+   * @param options - 操作选项
+   */
+  setData(
+    data: ArrayBuffer | ArrayBufferView,
+    bufferByteOffset: number,
+    dataOffset: number,
+    dataLength: number,
+    options: SetDataOptions
+  ): void;
+
   setData(
     data: ArrayBuffer | ArrayBufferView,
     bufferByteOffset: number = 0,
     dataOffset: number = 0,
-    dataLength?: number
+    dataLength?: number,
+    options: SetDataOptions = SetDataOptions.None
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
     this.bind();
+
+    if (options === SetDataOptions.Discard) {
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._length, this._glBufferUsage);
+    }
+
     if (dataOffset !== 0 || dataLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
       if (isWebGL2) {
