@@ -44,10 +44,8 @@ export class GLPrimitive extends GLAsset {
     const data = dataCache[index];
     const vertexBuffer = vertexBuffers[index];
     if (offset === -1) {
-      console.log("update vertex total");
       vertexBuffer.setData(data);
     } else {
-      console.log("update vertex range", offset, length);
       vertexBuffer.setData(data, 0, offset, length);
     }
   }
@@ -56,16 +54,13 @@ export class GLPrimitive extends GLAsset {
    * 更新 IBO
    */
   protected updateIndexBuffer(updateRange) {
-    console.log("update index");
     const { indexBuffer, dataCache } = this._primitive;
     const data = dataCache.index;
     const { offset, end } = updateRange;
     const length = end - offset;
     if (offset === -1) {
-      console.log("update index 0");
       indexBuffer.setData(data);
     } else {
-      console.log("update index");
       indexBuffer.setData(data, 0, offset, length);
     }
   }

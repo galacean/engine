@@ -229,6 +229,8 @@ export enum UniformSemantic {
   PROJECTION = 4,
   /** Model View 矩阵 */
   MODELVIEW = 5,
+  /** View Projection 矩阵 */
+  VIEWPROJECTION = 21,
   /** Model View Project 矩阵 */
   MODELVIEWPROJECTION = 6,
   /** Model 矩阵的逆矩阵 */
