@@ -3,6 +3,7 @@ import { UpdateType, TypedArray } from "../base/Constant";
 export interface UpdateRange {
   offset: number;
   end: number;
+  bufferOffset: number;
 }
 
 export interface UpdateRangeMap {

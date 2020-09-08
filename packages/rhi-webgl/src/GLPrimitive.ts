@@ -1,4 +1,4 @@
-import { GLCapabilityType, Logger, UpdateType, Primitive, BufferUtil, VertexElement } from "@alipay/o3-core";
+import { GLCapabilityType, Logger, UpdateType, Primitive, VertexElement } from "@alipay/o3-core";
 import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -36,17 +36,17 @@ export class GLPrimitive extends GLAsset {
   /**
    * 更新 VBO
    */
-  protected updateVertexBuffer(index, updateRange) {
+  protected updateVertexBuffer(semantic: string, index: number, updateRange) {
     const primitive = this._primitive;
     const { vertexBuffers, dataCache } = primitive;
-    const { offset, end } = updateRange;
+    const { bufferOffset, offset, end } = updateRange;
     const length = end - offset;
     const data = dataCache[index];
     const vertexBuffer = vertexBuffers[index];
     if (offset === -1) {
       vertexBuffer.setData(data);
     } else {
-      vertexBuffer.setData(data, 0, offset, length);
+      vertexBuffer.setData(data, bufferOffset, offset, length);
     }
   }
 
@@ -56,12 +56,12 @@ export class GLPrimitive extends GLAsset {
   protected updateIndexBuffer(updateRange) {
     const { indexBuffer, dataCache } = this._primitive;
     const data = dataCache.index;
-    const { offset, end } = updateRange;
+    const { bufferOffset, offset, end } = updateRange;
     const length = end - offset;
     if (offset === -1) {
       indexBuffer.setData(data);
     } else {
-      indexBuffer.setData(data, 0, offset, length);
+      indexBuffer.setData(data, bufferOffset, offset, length);
     }
   }
 
@@ -139,8 +139,9 @@ export class GLPrimitive extends GLAsset {
         this._primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
         break;
       case UpdateType.UPDATE_RANGE:
-        this.updateVertexBuffer(bufferIndex, updateRange);
+        this.updateVertexBuffer(semantic, bufferIndex, updateRange);
         this._primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
+        this._primitive.updateRangeCache[bufferIndex].bufferOffset = -1;
         this._primitive.updateRangeCache[bufferIndex].offset = -1;
         this._primitive.updateRangeCache[bufferIndex].end = -1;
         break;
@@ -164,6 +165,7 @@ export class GLPrimitive extends GLAsset {
         case UpdateType.UPDATE_RANGE:
           this.updateIndexBuffer(updateRange);
           this._primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
+          this._primitive.updateRangeCache.index.bufferOffset = -1;
           this._primitive.updateRangeCache.index.offset = -1;
           this._primitive.updateRangeCache.index.end = -1;
           break;
