@@ -210,5 +210,6 @@ export class VertexBuffer {
     this.bind();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._glBufferUsage);
+    this._length = dataLength;
   }
 }

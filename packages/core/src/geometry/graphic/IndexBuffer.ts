@@ -238,5 +238,10 @@ export class IndexBuffer {
     this.bind();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, dataLength, this._glBufferUsage);
+
+    const elementByteCount =
+      this._indexFormat === IndexFormat.UInt32 ? 4 : this._indexFormat === IndexFormat.UInt16 ? 2 : 1;
+    this._bufferByteSize = dataLength;
+    this._indexCount = dataLength / elementByteCount;
   }
 }
