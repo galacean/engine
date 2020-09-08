@@ -24,9 +24,13 @@ export class GLPrimitive extends GLAsset {
 
   /** 创建并初始化 IBO */
   protected initIBO() {
+    if (this._glIndexBuffer) {
+      return;
+    }
     const gl = this.rhi.gl;
     const { indexBuffer, dataCache } = this._primitive;
     if (indexBuffer) {
+      console.log("real init ibo");
       this._glIndexBuffer = gl.createBuffer();
       const { _glBufferUsage } = indexBuffer;
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glIndexBuffer);
@@ -37,9 +41,10 @@ export class GLPrimitive extends GLAsset {
 
   /** 创建并初始化 VBO */
   protected initVBO() {
-    if (this._glIndexBuffer) {
+    if (this._glVertBuffers.length > 1) {
       return;
     }
+    console.log("real init vbo");
     const gl = this.rhi.gl;
     const { vertexBuffers, dataCache } = this._primitive;
     for (let i = 0, len = vertexBuffers.length; i < len; i++) {
@@ -56,6 +61,7 @@ export class GLPrimitive extends GLAsset {
    * 更新 VBO
    */
   protected updateVertexBuffer(index, updateRange) {
+    debugger;
     const primitive = this._primitive;
     const { vertexBuffers, dataCache } = primitive;
     const { offset, end } = updateRange;
@@ -73,7 +79,6 @@ export class GLPrimitive extends GLAsset {
     const data = dataCache.index;
     const { offset, end } = updateRange;
     const length = end - offset;
-    console.log(offset, end);
     indexBuffer.setData(data, 0, offset, length);
   }
 
@@ -157,12 +162,6 @@ export class GLPrimitive extends GLAsset {
         updateRangeCache[bufferIndex].offset = -1;
         updateRangeCache[bufferIndex].end = -1;
         break;
-      case UpdateType.RESIZE:
-        this.initVBO();
-        updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
-        updateRangeCache[bufferIndex].offset = -1;
-        updateRangeCache[bufferIndex].end = -1;
-        break;
     }
   }
 
@@ -187,11 +186,6 @@ export class GLPrimitive extends GLAsset {
           updateRangeCache.index.offset = -1;
           updateRangeCache.index.end = -1;
           break;
-        case UpdateType.RESIZE:
-          updateTypeCache.index = UpdateType.NO_UPDATE;
-          updateRangeCache.index.offset = -1;
-          updateRangeCache.index.end = -1;
-          break;
       }
     }
   }
@@ -210,7 +204,7 @@ export class GLPrimitive extends GLAsset {
     this.bindBufferAndAttrib(tech);
     /** draw */
     const indexBufferObject = this._glIndexBuffer;
-    const { isInstanced, indexBuffer, indexCount } = primitive;
+    const { isInstanced, indexBuffer } = primitive;
     if (!isInstanced) {
       if (indexBufferObject) {
         const { _glIndexType } = indexBuffer;

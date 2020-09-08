@@ -116,7 +116,7 @@ export class BufferGeometry extends AssetObject {
     this.primitive.dataCache[bufferIndex] = data;
   }
 
-  setIndexBuffer(indexBuffer: IndexBuffer, data: TypedArray) {
+  setIndexBuffer(indexBuffer: IndexBuffer, data: Uint8Array | Uint16Array | Uint32Array) {
     this.primitive.indexBuffer = indexBuffer;
     this.primitive.dataCache.index = data;
     this.primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
@@ -124,7 +124,6 @@ export class BufferGeometry extends AssetObject {
   }
 
   setIndexData(data: TypedArray, offset: number = 0, dataIndex: number = 0, dataCount?: number) {
-    const buffer = this.primitive.indexBuffer;
     if (dataCount !== undefined) {
       data = data.slice(dataIndex, dataCount);
     }
@@ -135,6 +134,8 @@ export class BufferGeometry extends AssetObject {
   resizeIndexData(data: Uint8Array | Uint16Array | Uint32Array) {
     this.primitive.indexBuffer.resize(data.length);
     this.primitive.dataCache.index = data;
+    this.primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
+    this.primitive.updateRangeCache.index = { offset: -1, end: -1 };
   }
 
   getIndexData() {

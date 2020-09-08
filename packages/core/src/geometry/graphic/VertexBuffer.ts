@@ -204,13 +204,6 @@ export class VertexBuffer {
   /**
    * @deprecated
    */
-  get bufferType(): string {
-    return "vertex";
-  }
-
-  /**
-   * @deprecated
-   */
   resize(dataLength: number) {
     this.bind();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;

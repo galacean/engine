@@ -327,12 +327,10 @@ export enum BlendFunc {
 export enum UpdateType {
   /** 不需要更新 */
   NO_UPDATE = 0,
-  /** 全部更新 */
-  UPDATE_ALL = 1,
-  /** 更新指定范围 */
-  UPDATE_RANGE = 2,
-  /** 范围修改 */
-  RESIZE = 3
+  /** 初始化 */
+  UPDATE_INIT = 1,
+  /** 部分更新 */
+  UPDATE_RANGE = 2
 }
 
 /**

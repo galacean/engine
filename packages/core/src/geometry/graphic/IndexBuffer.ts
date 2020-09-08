@@ -232,16 +232,9 @@ export class IndexBuffer {
   /**
    * @deprecated
    */
-  get bufferType(): string {
-    return "index";
-  }
-
-  /**
-   * @deprecated
-   */
   resize(dataLength: number) {
     this.bind();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._glBufferUsage);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, dataLength, this._glBufferUsage);
   }
 }
