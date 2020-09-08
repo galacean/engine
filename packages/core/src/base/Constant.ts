@@ -328,9 +328,10 @@ export enum UpdateType {
   /** 不需要更新 */
   NO_UPDATE = 0,
   /** 初始化 */
-  UPDATE_INIT = 1,
+  INIT = 1,
   /** 部分更新 */
-  UPDATE_RANGE = 2
+  UPDATE_RANGE = 2,
+  RESIZE = 3
 }
 
 /**

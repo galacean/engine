@@ -83,6 +83,7 @@ export class IndexBuffer {
 
     this.bind();
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferByteSize, glBufferUsage);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
   }
 
   /**
@@ -163,6 +164,7 @@ export class IndexBuffer {
     } else {
       gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, data);
     }
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
   }
 
   /**

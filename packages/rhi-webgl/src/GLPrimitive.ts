@@ -1,4 +1,4 @@
-import { GLCapabilityType, Logger, UpdateType, Primitive, VertexElement } from "@alipay/o3-core";
+import { GLCapabilityType, Logger, UpdateType, Primitive, BufferUtil, VertexElement } from "@alipay/o3-core";
 import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -9,77 +9,85 @@ import { WebGLRenderer } from "./WebGLRenderer";
  */
 export class GLPrimitive extends GLAsset {
   protected readonly _primitive;
-  protected _glIndexBuffer: WebGLBuffer;
-  protected _glVertBuffers: WebGLBuffer[];
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
   constructor(rhi: WebGLRenderer, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
-    this._glVertBuffers = [];
-    this.attribLocArray = [];
     this.canUseInstancedArrays = this.rhi.canIUse(GLCapabilityType.instancedArrays);
   }
 
-  /** 创建并初始化 IBO */
-  protected initIBO() {
-    if (this._glIndexBuffer) {
-      return;
-    }
-    const gl = this.rhi.gl;
-    const { indexBuffer, dataCache } = this._primitive;
-    if (indexBuffer) {
-      console.log("real init ibo");
-      this._glIndexBuffer = gl.createBuffer();
-      const { _glBufferUsage } = indexBuffer;
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glIndexBuffer);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, dataCache.index, _glBufferUsage);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    }
+  protected initVBO(bufferIndex) {
+    const primitive = this._primitive;
+    const { vertexBuffers, dataCache } = primitive;
+    const data = dataCache[bufferIndex];
+    const vertexBuffer = vertexBuffers[bufferIndex];
+    vertexBuffer.setData(data);
   }
 
-  /** 创建并初始化 VBO */
-  protected initVBO() {
-    if (this._glVertBuffers.length > 1) {
-      return;
-    }
-    console.log("real init vbo");
-    const gl = this.rhi.gl;
-    const { vertexBuffers, dataCache } = this._primitive;
-    for (let i = 0, len = vertexBuffers.length; i < len; i++) {
-      this._glVertBuffers[i] = gl.createBuffer();
-      const vertexBuffer = vertexBuffers[i];
-      const { _glBufferUsage } = vertexBuffer;
-      gl.bindBuffer(gl.ARRAY_BUFFER, this._glVertBuffers[i]);
-      gl.bufferData(gl.ARRAY_BUFFER, dataCache[i], _glBufferUsage);
-      gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    }
+  protected initIBO() {
+    const primitive = this._primitive;
+    const { indexBuffer, dataCache } = primitive;
+    const data = dataCache.index;
+    indexBuffer.setData(data);
   }
 
   /**
    * 更新 VBO
    */
   protected updateVertexBuffer(index, updateRange) {
-    debugger;
     const primitive = this._primitive;
     const { vertexBuffers, dataCache } = primitive;
     const { offset, end } = updateRange;
     const length = end - offset;
     const data = dataCache[index];
     const vertexBuffer = vertexBuffers[index];
-    vertexBuffer.setData(data, 0, offset, length);
+    if (offset === -1) {
+      console.log("update vertex total");
+      vertexBuffer.setData(data);
+    } else {
+      console.log("update vertex range", offset, length);
+      vertexBuffer.setData(data, 0, offset, length);
+    }
   }
 
   /**
-   * 更新 VBO
+   * 更新 IBO
    */
   protected updateIndexBuffer(updateRange) {
+    console.log("update index");
     const { indexBuffer, dataCache } = this._primitive;
     const data = dataCache.index;
     const { offset, end } = updateRange;
     const length = end - offset;
-    indexBuffer.setData(data, 0, offset, length);
+    if (offset === -1) {
+      console.log("update index 0");
+      indexBuffer.setData(data);
+    } else {
+      console.log("update index");
+      indexBuffer.setData(data, 0, offset, length);
+    }
+  }
+
+  protected resizeVBO(semantic: string) {
+    console.log("resize vbo", semantic);
+    const semanticIndexMap = this._primitive.semanticIndexMap;
+    const bufferIndex = semanticIndexMap[semantic];
+    const data = this._primitive.dataCache[bufferIndex];
+    const vertexBuffer = this._primitive.vertexBuffers[bufferIndex];
+    const { declaration } = vertexBuffer;
+    const element = declaration.elements.find((item) => item.semantic === semantic);
+    const byteSize = BufferUtil._getVertexDataTypeSize(element.elementInfo.type);
+    vertexBuffer.resize(data.length * byteSize);
+  }
+
+  protected resizeIBO() {
+    console.log("resize ibo");
+    const { indexBuffer } = this._primitive;
+    const byteSize = indexBuffer.elementByteCount;
+    const data = this._primitive.dataCache.index;
+    indexBuffer.resize(data.length * byteSize);
   }
 
   /**
@@ -88,7 +96,7 @@ export class GLPrimitive extends GLAsset {
   protected bindBufferAndAttrib(tech: GLTechnique) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
-    const { semanticIndexMap } = primitive;
+    const { semanticIndexMap, vertexBuffers } = primitive;
 
     this.attribLocArray = [];
     const techAttributes = tech.attributes;
@@ -96,7 +104,6 @@ export class GLPrimitive extends GLAsset {
 
     let vbo: WebGLBuffer;
     let lastBoundVbo: WebGLBuffer;
-    const vbos = this._glVertBuffers;
 
     for (const name in techAttributes) {
       const loc = techAttributes[name].location;
@@ -106,7 +113,8 @@ export class GLPrimitive extends GLAsset {
       const att = attributes[semantic];
       if (att) {
         const bufferIndex = semanticIndexMap[semantic];
-        vbo = vbos[bufferIndex];
+        const vertexBuffer = vertexBuffers[bufferIndex];
+        vbo = vertexBuffer._nativeBuffer;
         // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
         if (lastBoundVbo !== vbo) {
           lastBoundVbo = vbo;
@@ -151,17 +159,21 @@ export class GLPrimitive extends GLAsset {
     switch (updateType) {
       case UpdateType.NO_UPDATE:
         break;
-      case undefined:
-        this.initVBO();
-        updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
+      case UpdateType.INIT:
+        this.initVBO(bufferIndex);
+        this._primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
         break;
       case UpdateType.UPDATE_RANGE:
-        this.initVBO();
         this.updateVertexBuffer(bufferIndex, updateRange);
-        updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
-        updateRangeCache[bufferIndex].offset = -1;
-        updateRangeCache[bufferIndex].end = -1;
+        this._primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
+        this._primitive.updateRangeCache[bufferIndex].offset = -1;
+        this._primitive.updateRangeCache[bufferIndex].end = -1;
         break;
+      case UpdateType.RESIZE:
+        this.resizeVBO(semantic);
+        this._primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
+        this._primitive.updateRangeCache[bufferIndex].offset = -1;
+        this._primitive.updateRangeCache[bufferIndex].end = -1;
     }
   }
 
@@ -175,16 +187,21 @@ export class GLPrimitive extends GLAsset {
       switch (updateType) {
         case UpdateType.NO_UPDATE:
           break;
-        case undefined:
+        case UpdateType.INIT:
           this.initIBO();
-          updateTypeCache.index = UpdateType.NO_UPDATE;
+          this._primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
           break;
         case UpdateType.UPDATE_RANGE:
-          this.initIBO();
           this.updateIndexBuffer(updateRange);
-          updateTypeCache.index = UpdateType.NO_UPDATE;
-          updateRangeCache.index.offset = -1;
-          updateRangeCache.index.end = -1;
+          this._primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
+          this._primitive.updateRangeCache.index.offset = -1;
+          this._primitive.updateRangeCache.index.end = -1;
+          break;
+        case UpdateType.RESIZE:
+          this.resizeIBO();
+          this._primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
+          this._primitive.updateRangeCache.index.offset = -1;
+          this._primitive.updateRangeCache.index.end = -1;
           break;
       }
     }
@@ -203,37 +220,33 @@ export class GLPrimitive extends GLAsset {
     /** 绑定 Buffer 和 attribute */
     this.bindBufferAndAttrib(tech);
     /** draw */
-    const indexBufferObject = this._glIndexBuffer;
-    const { isInstanced, indexBuffer } = primitive;
+    const {
+      mode,
+      indexCount,
+      indexBuffer,
+      indexOffset,
+      vertexCount,
+      isInstanced,
+      vertexOffset,
+      instancedCount
+    } = primitive;
+    const { _glIndexType, _nativeBuffer } = indexBuffer;
     if (!isInstanced) {
-      if (indexBufferObject) {
-        const { _glIndexType } = indexBuffer;
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
-        gl.drawElements(primitive.mode, primitive.indexCount, _glIndexType, primitive.indexOffset);
+      if (indexBuffer) {
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
+        gl.drawElements(mode, indexCount, _glIndexType, indexOffset);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
       } else {
-        gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
+        gl.drawArrays(mode, vertexOffset, vertexCount);
       }
     } else {
       if (this.canUseInstancedArrays) {
-        if (indexBufferObject) {
-          const { _glIndexType } = indexBuffer;
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
-          gl.drawElementsInstanced(
-            primitive.mode,
-            primitive.indexCount,
-            _glIndexType,
-            primitive.indexOffset,
-            primitive.instancedCount
-          );
+        if (indexBuffer) {
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
+          gl.drawElementsInstanced(mode, indexCount, _glIndexType, indexOffset, instancedCount);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         } else {
-          gl.drawArraysInstanced(
-            primitive.mode,
-            primitive.vertexOffset,
-            primitive.vertexCount,
-            primitive.instancedCount
-          );
+          gl.drawArraysInstanced(mode, vertexOffset, vertexCount, instancedCount);
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");

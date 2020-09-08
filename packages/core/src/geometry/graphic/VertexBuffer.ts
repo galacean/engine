@@ -63,6 +63,7 @@ export class VertexBuffer {
 
     this.bind();
     gl.bufferData(gl.ARRAY_BUFFER, length, glBufferUsage);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
   /**
@@ -142,6 +143,7 @@ export class VertexBuffer {
     } else {
       gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, data);
     }
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
   /**
