@@ -105,7 +105,7 @@ export class BufferGeometry extends AssetObject {
       this._udpateInterleavedFlag(semantic, offset, byteSize, data.length);
     } else {
       this.primitive.dataCache[bufferIndex].set(data, offset);
-      this._updateFlag(bufferIndex, offset, byteSize, data.length);
+      this._updateFlag(bufferIndex, offset, data.length);
     }
   }
 
@@ -129,7 +129,7 @@ export class BufferGeometry extends AssetObject {
       data = data.slice(dataIndex, dataCount);
     }
     this.primitive.dataCache.index.set(data, offset);
-    this._updateFlag("index", offset, buffer.elementByteCount, data.length);
+    this._updateFlag("index", offset, data.length);
   }
 
   resizeIndexData(data: Uint8Array | Uint16Array | Uint32Array) {
@@ -178,19 +178,19 @@ export class BufferGeometry extends AssetObject {
     return matchBuffer[0];
   }
 
-  private _updateFlag(bufferIndex: number | string, offset: number, byteSize: number, dataLength: number) {
+  private _updateFlag(bufferIndex: number | string, offset: number, dataLength: number) {
     if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.NO_UPDATE) {
-      this.primitive.updateRangeCache[bufferIndex].offset = offset * byteSize;
-      this.primitive.updateRangeCache[bufferIndex].end = offset * byteSize + byteSize * dataLength;
+      this.primitive.updateRangeCache[bufferIndex].offset = offset;
+      this.primitive.updateRangeCache[bufferIndex].end = offset + dataLength;
       this.primitive.updateTypeCache[bufferIndex] = UpdateType.UPDATE_RANGE;
     } else if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.UPDATE_RANGE) {
       this.primitive.updateRangeCache[bufferIndex].offset = Math.min(
         this.primitive.updateRangeCache[bufferIndex].offset,
-        offset * byteSize
+        offset
       );
       this.primitive.updateRangeCache[bufferIndex].end = Math.max(
         this.primitive.updateRangeCache[bufferIndex].end,
-        offset * byteSize + byteSize * dataLength
+        offset + dataLength
       );
     }
   }
@@ -203,17 +203,18 @@ export class BufferGeometry extends AssetObject {
     const { offset } = vertexElement;
     const { vertexStride } = declaration;
     if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.NO_UPDATE) {
-      this.primitive.updateRangeCache[bufferIndex].offset = vertexIndex * vertexStride + offset;
-      this.primitive.updateRangeCache[bufferIndex].end = vertexIndex * vertexStride + offset + byteSize * dataLength;
+      this.primitive.updateRangeCache[bufferIndex].offset = (vertexIndex * vertexStride + offset) / byteSize;
+      this.primitive.updateRangeCache[bufferIndex].end =
+        (vertexIndex * vertexStride + offset + byteSize * dataLength) / byteSize;
       this.primitive.updateTypeCache[bufferIndex] = UpdateType.UPDATE_RANGE;
     } else if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.UPDATE_RANGE) {
-      const newRange = this._getUpdateRange(bufferIndex, vertexIndex * vertexStride + offset, byteSize * dataLength);
+      const newRange = this._getUpdateRange(bufferIndex, (vertexIndex * vertexStride + offset) / byteSize, dataLength);
       this.primitive.updateRangeCache[bufferIndex].offset = newRange.offset;
       this.primitive.updateRangeCache[bufferIndex].end = newRange.end;
     }
   }
 
-  private _getUpdateRange(bufferIndex, offset, length) {
+  private _getUpdateRange(bufferIndex: number, offset: number, length: number) {
     const updateRange = this.primitive.updateRangeCache[bufferIndex];
     const rangeEnd1 = this.primitive.updateRangeCache[bufferIndex].end;
     const _offset = Math.min(offset, updateRange.offset);
