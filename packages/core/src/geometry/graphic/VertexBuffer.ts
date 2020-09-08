@@ -128,14 +128,8 @@ export class VertexBuffer {
 
     if (dataOffset !== 0 || dataLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
-      if (isWebGL2) {
-        gl.bufferSubData(
-          gl.ARRAY_BUFFER,
-          bufferByteOffset,
-          isArrayBufferView ? <ArrayBufferView>data : new Uint8Array(<ArrayBuffer>data),
-          dataOffset,
-          dataLength
-        ); //CM:测试一下性能对比
+      if (isWebGL2 && isArrayBufferView) {
+        gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataLength);
       } else {
         const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1; //TypeArray is BYTES_PER_ELEMENT , unTypeArray is 1
         const subData = new Uint8Array(
