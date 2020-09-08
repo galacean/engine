@@ -19,6 +19,7 @@ export class GLTechnique extends GLAsset {
   private _program: GLShaderProgram;
   private _attributes;
   private _uniforms;
+  private _tempSamplerArray: Int32Array;
 
   constructor(rhi: WebGLRenderer, tech: RenderTechnique) {
     super(rhi, tech);
@@ -215,15 +216,19 @@ export class GLTechnique extends GLAsset {
         gl.uniformMatrix4fv(location, false, value);
         break;
       case DataType.SAMPLER_2D: {
-        const texture = value;
-        this._uploadTexture(texture, location, GLTexture2D);
+        this._uploadTexture(value, location, GLTexture2D);
+        break;
+      }
+      case DataType.SAMPLER_2D_ARRAY: {
+        this._uploadTextures(value, location, GLTexture2D);
         break;
       }
       case DataType.SAMPLER_CUBE: {
-        const texture = value;
-        if (texture) {
-          this._uploadTexture(texture, location, GLTextureCubeMap);
-        }
+        this._uploadTexture(value, location, GLTextureCubeMap);
+        break;
+      }
+      case DataType.SAMPLER_CUBE_ARRAY: {
+        this._uploadTextures(value, location, GLTextureCubeMap);
         break;
       }
       default:
@@ -245,5 +250,28 @@ export class GLTechnique extends GLAsset {
       glTexture.activeBinding(index);
       this.rhi.gl.uniform1i(location, index);
     } // end of if
+  }
+
+  /**
+   * 将一堆内存中的 Texture2D 对象绑定到 GL
+   */
+  _uploadTextures(textures, location, type) {
+    const assetCache = this.rhi.assetsCache;
+    if (!this._tempSamplerArray || this._tempSamplerArray.length !== textures.length) {
+      this._tempSamplerArray = new Int32Array(textures.length);
+    }
+
+    for (let i = 0, length = textures.length; i < length; i++) {
+      const glTexture = assetCache.requireObject(textures[i], type);
+
+      if (glTexture) {
+        const index = this._activeTextureCount++;
+        glTexture.activeBinding(index);
+        this._tempSamplerArray[i] = index;
+      } else {
+        this._tempSamplerArray[i] = -1;
+      }
+    }
+    this.rhi.gl.uniform1iv(location, this._tempSamplerArray);
   }
 }
