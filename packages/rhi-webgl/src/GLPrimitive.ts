@@ -70,26 +70,6 @@ export class GLPrimitive extends GLAsset {
     }
   }
 
-  protected resizeVBO(semantic: string) {
-    console.log("resize vbo", semantic);
-    const semanticIndexMap = this._primitive.semanticIndexMap;
-    const bufferIndex = semanticIndexMap[semantic];
-    const data = this._primitive.dataCache[bufferIndex];
-    const vertexBuffer = this._primitive.vertexBuffers[bufferIndex];
-    const { declaration } = vertexBuffer;
-    const element = declaration.elements.find((item) => item.semantic === semantic);
-    const byteSize = BufferUtil._getVertexDataTypeSize(element.elementInfo.type);
-    vertexBuffer.resize(data.length * byteSize);
-  }
-
-  protected resizeIBO() {
-    console.log("resize ibo");
-    const { indexBuffer } = this._primitive;
-    const byteSize = indexBuffer.elementByteCount;
-    const data = this._primitive.dataCache.index;
-    indexBuffer.resize(data.length * byteSize);
-  }
-
   /**
    * 绑定 Buffer 和 attribute
    * */
@@ -169,11 +149,6 @@ export class GLPrimitive extends GLAsset {
         this._primitive.updateRangeCache[bufferIndex].offset = -1;
         this._primitive.updateRangeCache[bufferIndex].end = -1;
         break;
-      case UpdateType.RESIZE:
-        this.resizeVBO(semantic);
-        this._primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
-        this._primitive.updateRangeCache[bufferIndex].offset = -1;
-        this._primitive.updateRangeCache[bufferIndex].end = -1;
     }
   }
 
@@ -193,12 +168,6 @@ export class GLPrimitive extends GLAsset {
           break;
         case UpdateType.UPDATE_RANGE:
           this.updateIndexBuffer(updateRange);
-          this._primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
-          this._primitive.updateRangeCache.index.offset = -1;
-          this._primitive.updateRangeCache.index.end = -1;
-          break;
-        case UpdateType.RESIZE:
-          this.resizeIBO();
           this._primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
           this._primitive.updateRangeCache.index.offset = -1;
           this._primitive.updateRangeCache.index.end = -1;

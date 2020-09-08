@@ -112,7 +112,13 @@ export class BufferGeometry extends AssetObject {
   resizeVertexBuffer(semantic: string, data: TypedArray) {
     const bufferIndex = this.primitive.semanticIndexMap[semantic];
     this.primitive.dataCache[bufferIndex] = data;
-    this.primitive.updateTypeCache[bufferIndex] = UpdateType.RESIZE;
+    const vertexBuffer = this.primitive.vertexBuffers[bufferIndex];
+    const { declaration } = vertexBuffer;
+    const element = declaration.elements.find((item) => item.semantic === semantic);
+    const byteSize = BufferUtil._getVertexDataTypeSize(element.elementInfo.type);
+    vertexBuffer.resize(data.length * byteSize);
+    this.primitive.updateTypeCache[this._bufferCount] = UpdateType.NO_UPDATE;
+    this.primitive.updateRangeCache[this._bufferCount] = { offset: -1, end: -1 };
   }
 
   setIndexBuffer(indexBuffer: IndexBuffer, data: Uint8Array | Uint16Array | Uint32Array) {
@@ -132,7 +138,11 @@ export class BufferGeometry extends AssetObject {
 
   resizeIndexBuffer(data: Uint8Array | Uint16Array | Uint32Array) {
     this.primitive.dataCache.index = data;
-    this.primitive.updateTypeCache.index = UpdateType.RESIZE;
+    const { indexBuffer } = this.primitive;
+    const { elementByteCount } = indexBuffer;
+    indexBuffer.resize(data.length * elementByteCount);
+    this.primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
+    this.primitive.updateRangeCache.index = { offset: -1, end: -1 };
   }
 
   getIndexData() {
@@ -177,9 +187,6 @@ export class BufferGeometry extends AssetObject {
   }
 
   private _updateFlag(bufferIndex: number | string, offset: number, dataLength: number) {
-    if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.RESIZE) {
-      this.primitive.updateTypeCache[bufferIndex] = UpdateType.UPDATE_RANGE;
-    }
     if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.NO_UPDATE) {
       this.primitive.updateRangeCache[bufferIndex].offset = offset;
       this.primitive.updateRangeCache[bufferIndex].end = offset + dataLength;
@@ -203,9 +210,6 @@ export class BufferGeometry extends AssetObject {
     const vertexElement = declaration.elements.find((item) => item.semantic === semantic);
     const { offset } = vertexElement;
     const { vertexStride } = declaration;
-    if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.RESIZE) {
-      this.primitive.updateTypeCache[bufferIndex] = UpdateType.UPDATE_RANGE;
-    }
     if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.NO_UPDATE) {
       this.primitive.updateRangeCache[bufferIndex].offset = (vertexIndex * vertexStride + offset) / byteSize;
       this.primitive.updateRangeCache[bufferIndex].end =
