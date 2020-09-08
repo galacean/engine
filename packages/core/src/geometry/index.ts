@@ -5,8 +5,11 @@ export { BufferGeometry } from "./BufferGeometry";
 export { GeometryRenderer } from "./GeometryRenderer";
 
 export { VertexBuffer } from "./graphic/VertexBuffer";
-export { IndexBuffer, IndexFormat } from "./graphic/IndexBuffer";
-export { InterleavedBuffer } from "./graphic/InterleavedBuffer";
+export { IndexBuffer } from "./graphic/IndexBuffer";
 export { VertexDeclaration } from "./graphic/VertexDeclaration";
 export { VertexElement } from "./graphic/VertexElement";
 export { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
+export type { VertexElements } from "./graphic/VertexElement";
+
+export class BufferAttribute {}
+export class InterleavedBuffer {}

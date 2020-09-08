@@ -1,18 +1,21 @@
-import { VertexElementFormat } from "./enums/VertexElementForamt";
+import { VertexElementFormat } from "./enums/VertexElementFormat";
+import { ElementInfo, BufferUtil } from "./BufferUtil";
 
 /**
  * 顶点元素。
  */
 export class VertexElement {
-  private _usage: string;
+  private _semantic: string;
   private _offset: number;
   private _format: VertexElementFormat;
+  private _instanced: number;
+  private _elementInfo: ElementInfo;
 
   /**
    * 顶点输入签名。
    */
-  get usage(): string {
-    return this._usage;
+  get semantic(): string {
+    return this._semantic;
   }
 
   /**
@@ -31,13 +34,36 @@ export class VertexElement {
 
   /**
    * 构造顶点元素。
-   * @param usage - 顶点着色器输入签名。
+   * @param semantic - 顶点着色器输入签名。
    * @param offset - 顶点的偏移，以字节为单位
    * @param format - 顶点元素格式
    */
-  constructor(usage: string, offset: number, format: VertexElementFormat) {
-    this._usage = usage;
+  constructor(semantic: string, offset: number, format: VertexElementFormat, instanced: number = 0) {
+    this._semantic = semantic;
     this._offset = offset;
     this._format = format;
+    this._elementInfo = BufferUtil._getElementInfo(this.format);
+    this._instanced = instanced;
   }
+
+  /**
+   * @deprecated
+   */
+  get elementInfo(): ElementInfo {
+    return this._elementInfo;
+  }
+
+  /**
+   * @deprecated
+   */
+  get instanced(): number {
+    return this._instanced;
+  }
+}
+
+/**
+ * @deprecated
+ */
+export interface VertexElements {
+  [x: string]: VertexElement;
 }

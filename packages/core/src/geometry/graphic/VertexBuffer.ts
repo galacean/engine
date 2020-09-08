@@ -9,6 +9,8 @@ import { SetDataOptions } from "./enums/SetDataOptions";
  * 顶点缓冲。
  */
 export class VertexBuffer {
+  _glBufferUsage: number;
+
   /** 顶点声明。*/
   public declaration: VertexDeclaration;
 
@@ -17,8 +19,6 @@ export class VertexBuffer {
   private _engine: Engine;
   private _length: number;
   private _bufferUsage: BufferUsage;
-
-  private _glBufferUsage: number;
 
   /**
    * 引擎。
@@ -43,11 +43,12 @@ export class VertexBuffer {
 
   /**
    * 创建顶点缓冲。
-   * @param engine - 引擎
    * @param length - 长度，字节为单位
    * @param bufferUsage - 顶点缓冲用途
+   * @param engine - 引擎
    */
-  constructor(engine: Engine, length: number, bufferUsage: BufferUsage) {
+  constructor(length: number, bufferUsage: BufferUsage = BufferUsage.Static, engine?: Engine) {
+    engine = engine || Engine._getDefaultEngine();
     this._engine = engine;
     this._length = length;
     this._bufferUsage = bufferUsage;
@@ -192,5 +193,33 @@ export class VertexBuffer {
     this._nativeBuffer = null;
     this._engine = null;
     this._hardwareRenderer = null;
+  }
+
+  /**
+   * @deprecated
+   */
+  get semanticList() {
+    const semanticList = [];
+    for (let i = 0; i < this.declaration.elements.length; i++) {
+      const semantic = this.declaration.elements[i].semantic;
+      semanticList.push(semantic);
+    }
+    return semanticList;
+  }
+
+  /**
+   * @deprecated
+   */
+  get bufferType(): string {
+    return "vertex";
+  }
+
+  /**
+   * @deprecated
+   */
+  resize(dataLength: number) {
+    this.bind();
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
+    gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._bufferUsage);
   }
 }

@@ -9,6 +9,9 @@ import { SetDataOptions } from "./enums/SetDataOptions";
  * 索引缓冲。
  */
 export class IndexBuffer {
+  _glIndexType: number;
+  _glBufferUsage: number;
+
   private _hardwareRenderer: HardwareRenderer;
   private _nativeBuffer: WebGLBuffer;
   private _engine: Engine;
@@ -17,8 +20,6 @@ export class IndexBuffer {
   private _indexFormat: IndexFormat;
   private _elementByteCount: number;
   private _bufferByteSize: number;
-
-  private _glBufferUsage: number;
 
   /**
    * 引擎。
@@ -55,7 +56,13 @@ export class IndexBuffer {
    * @param byteSize - 索引缓冲尺寸，以字节为单位
    * @param bufferUsage - 索引缓冲用途
    */
-  constructor(engine: Engine, indexCount: number, bufferUsage: BufferUsage, indexFormat: IndexFormat) {
+  constructor(
+    indexCount: number,
+    indexFormat: IndexFormat = IndexFormat.UInt16,
+    bufferUsage: BufferUsage = BufferUsage.Static,
+    engine: Engine
+  ) {
+    engine = engine || Engine._getDefaultEngine();
     this._engine = engine;
     this._indexCount = indexCount;
     this._bufferUsage = bufferUsage;
@@ -72,6 +79,7 @@ export class IndexBuffer {
     this._elementByteCount = elementByteCount;
     this._bufferByteSize = bufferByteSize;
     this._glBufferUsage = glBufferUsage;
+    this._glIndexType = BufferUtil._getGLIndexType(gl, indexFormat);
 
     this.bind();
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferByteSize, glBufferUsage);
@@ -212,5 +220,28 @@ export class IndexBuffer {
     this._nativeBuffer = null;
     this._engine = null;
     this._hardwareRenderer = null;
+  }
+
+  /**
+   * @deprecated
+   */
+  get elementByteCount() {
+    return this._elementByteCount;
+  }
+
+  /**
+   * @deprecated
+   */
+  get bufferType(): string {
+    return "index";
+  }
+
+  /**
+   * @deprecated
+   */
+  resize(dataLength: number) {
+    this.bind();
+    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
+    gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._bufferUsage);
   }
 }

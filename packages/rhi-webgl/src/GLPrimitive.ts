@@ -3,10 +3,6 @@ import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
 
-type WebGLBufferMap = {
-  [semantic: string]: WebGLBuffer;
-};
-
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
  * @private
@@ -14,14 +10,14 @@ type WebGLBufferMap = {
 export class GLPrimitive extends GLAsset {
   protected readonly _primitive;
   protected _glIndexBuffer: WebGLBuffer;
-  protected _glVertBuffer: WebGLBufferMap;
+  protected _glVertBuffers: WebGLBuffer[];
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
   constructor(rhi: WebGLRenderer, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
-    this._glVertBuffer = {};
+    this._glVertBuffers = [];
     this.attribLocArray = [];
     this.canUseInstancedArrays = this.rhi.canIUse(GLCapabilityType.instancedArrays);
   }
@@ -29,85 +25,56 @@ export class GLPrimitive extends GLAsset {
   /** 创建并初始化 IBO */
   protected initIBO() {
     const gl = this.rhi.gl;
-    const { indexBuffers, indexArrayBuffers, indexBufferIndex } = this._primitive;
-    if (indexBuffers) {
+    const { indexBuffer, dataCache } = this._primitive;
+    if (indexBuffer) {
       this._glIndexBuffer = gl.createBuffer();
-      const indexBuffer = indexArrayBuffers[indexBufferIndex];
-      const indexUsage = indexBuffers[indexBufferIndex].usage;
+      const { _glBufferUsage } = indexBuffer;
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glIndexBuffer);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexBuffer, indexUsage);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, dataCache.index, _glBufferUsage);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     }
   }
 
   /** 创建并初始化 VBO */
   protected initVBO() {
-    // const gl = this.rhi.gl;
-    // const { vertexArrayBuffers } = this._primitive;
-    // /** vertex buffers*/
-    // this._glVertBuffers = [];
-    // for (let i = 0, len = vertexArrayBuffers.length; i < len; i++) {
-    //   this._glVertBuffers[i] = gl.createBuffer();
-    //   const usage = this._getBufferUsage(i);
-    //   gl.bindBuffer(gl.ARRAY_BUFFER, this._glVertBuffers[i]);
-    //   gl.bufferData(gl.ARRAY_BUFFER, vertexArrayBuffers[i], usage);
-    //   gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    // }
+    if (this._glIndexBuffer) {
+      return;
+    }
+    const gl = this.rhi.gl;
+    const { vertexBuffers, dataCache } = this._primitive;
+    for (let i = 0, len = vertexBuffers.length; i < len; i++) {
+      this._glVertBuffers[i] = gl.createBuffer();
+      const vertexBuffer = vertexBuffers[i];
+      const { _glBufferUsage } = vertexBuffer;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._glVertBuffers[i]);
+      gl.bufferData(gl.ARRAY_BUFFER, dataCache[i], _glBufferUsage);
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    }
   }
-
-  // private _getBufferUsage(index) {
-  //   const attributes = this._primitive.attributes;
-  //   const vertexBuffers = this._primitive.vertexBuffers;
-  //   let matchedSemantic;
-  //   const semanticList = Object.keys(attributes);
-  //   for (let i = 0; i < semanticList.length; i += 1) {
-  //     const semantic = semanticList[i];
-  //     const attribute = attributes[semantic];
-  //     const { vertexBufferIndex } = attribute;
-  //     if (index === vertexBufferIndex) {
-  //       matchedSemantic = attribute.semantic;
-  //     }
-  //   }
-  //   const buffer = vertexBuffers.find((item) => item.semanticList.includes(matchedSemantic));
-  //   return buffer.bufferUsage;
-  // }
 
   /**
    * 更新 VBO
-   * @param {number} bufferIndex - 第几个 vbo
-   * @param {number} byteOffset - 更新 buffer 的偏移字节
-   * @param {number} byteLength - 更新 buffer 的字节长度
    */
-  protected updateVertexBuffer(bufferIndex = 0, updateRange) {
-    // const gl = this.rhi.gl;
-    // const primitive = this._primitive;
-    // const vertBufferObject = this._glVertBuffers[bufferIndex];
-    // const vertexBuffer = primitive.vertexArrayBuffers[bufferIndex];
-    // const { byteOffset, byteLength, bufferByteOffset } = updateRange;
-    // gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferObject);
-    // const activeVertexBuffer = new Int8Array(vertexBuffer, byteOffset, byteLength);
-    // gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, activeVertexBuffer);
-    // gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  protected updateVertexBuffer(index, updateRange) {
+    const primitive = this._primitive;
+    const { vertexBuffers, dataCache } = primitive;
+    const { offset, end } = updateRange;
+    const length = end - offset;
+    const data = dataCache[index];
+    const vertexBuffer = vertexBuffers[index];
+    vertexBuffer.setData(data, 0, offset, length);
   }
 
   /**
    * 更新 VBO
-   * @param {number} bufferIndex - 第几个 vbo
-   * @param {number} byteOffset - 更新 buffer 的偏移字节
-   * @param {number} byteLength - 更新 buffer 的字节长度
    */
   protected updateIndexBuffer(updateRange) {
-    // const gl = this.rhi.gl;
-    // const primitive = this._primitive;
-    // const indexBufferIndex = primitive.indexBufferIndex;
-    // const indexArrayBuffers = primitive.indexArrayBuffers;
-    // const indexBuffer = indexArrayBuffers[indexBufferIndex];
-    // const indexBufferObject = this._glIndexBuffer;
-    // const { byteOffset, byteLength, bufferByteOffset } = updateRange;
-    // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
-    // const activeIndexBuffer = new Int8Array(indexBuffer, byteOffset, byteLength);
-    // gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, activeIndexBuffer);
-    // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    const primitive = this._primitive;
+    const { indexBuffer, dataCache } = this._primitive;
+    const data = dataCache.index;
+    const { offset, end } = updateRange;
+    const length = end - offset;
+    indexBuffer.setData(data, 0, offset, length);
   }
 
   /**
@@ -116,6 +83,7 @@ export class GLPrimitive extends GLAsset {
   protected bindBufferAndAttrib(tech: GLTechnique) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
+    const { semanticIndexMap } = primitive;
 
     this.attribLocArray = [];
     const techAttributes = tech.attributes;
@@ -123,7 +91,7 @@ export class GLPrimitive extends GLAsset {
 
     let vbo: WebGLBuffer;
     let lastBoundVbo: WebGLBuffer;
-    const vboMap = this._glVertBuffer;
+    const vbos = this._glVertBuffers;
 
     for (const name in techAttributes) {
       const loc = techAttributes[name].location;
@@ -132,7 +100,8 @@ export class GLPrimitive extends GLAsset {
       const semantic = techAttributes[name].semantic;
       const att = attributes[semantic];
       if (att) {
-        vbo = vboMap[att.semantic];
+        const bufferIndex = semanticIndexMap[semantic];
+        vbo = vbos[bufferIndex];
         // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
         if (lastBoundVbo !== vbo) {
           lastBoundVbo = vbo;
@@ -157,77 +126,69 @@ export class GLPrimitive extends GLAsset {
    * 初始化或更新 BufferObject
    * */
   protected prepareBuffers() {
-    const primitive = this._primitive;
-    const vertexBuffers = primitive.vertexBuffers;
-    const indexBuffers = primitive.indexBuffers;
-    for (let i = 0, len = vertexBuffers.length; i < len; i++) {
-      const vertexBuffer = vertexBuffers[i];
-      const { semanticList } = vertexBuffer;
-      for (let j = 0; j < semanticList.length; j++) {
-        const semantic = semanticList[j];
-        this._glVertBuffer[semantic] = vertexBuffer._glBuffer;
-      }
+    const attributes = this._primitive.attributes;
+    const semanticList = Object.keys(attributes);
+    for (let i = 0; i < semanticList.length; i += 1) {
+      const semantic = semanticList[i];
+      const attribute = attributes[semantic];
+      this._handleUpdateVertex(attribute);
     }
-    const { indexBufferIndex } = this._primitive;
-    if (indexBuffers) {
-      const indexBuffer = indexBuffers[indexBufferIndex];
-      this._glIndexBuffer = indexBuffer._glBuffer;
-    }
+    this._handleIndexUpdate();
   }
 
-  private _handleVertexBufferUpdate(attribute: VertexElement) {
-    const { updateType, vertexBufferIndex, updateRange } = attribute;
+  private _handleUpdateVertex(attribute: VertexElement) {
+    const primitive = this._primitive;
+    const { semantic } = attribute;
+    const { semanticIndexMap, updateTypeCache, updateRangeCache } = primitive;
+    const bufferIndex = semanticIndexMap[semantic];
+    const updateType = updateTypeCache[bufferIndex];
+    const updateRange = updateRangeCache[bufferIndex];
     switch (updateType) {
       case UpdateType.NO_UPDATE:
         break;
-      case UpdateType.UPDATE_ALL:
-        if (!this._glVertBuffers?.length) {
-          this.initVBO();
-        }
-        attribute.updateType = UpdateType.NO_UPDATE;
+      case undefined:
+        this.initVBO();
+        updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
         break;
       case UpdateType.UPDATE_RANGE:
-        if (!this._glVertBuffers?.length) {
-          this.initVBO();
-        }
-        this.updateVertexBuffer(vertexBufferIndex, updateRange);
-        attribute.updateType = UpdateType.NO_UPDATE;
-        attribute.resetUpdateRange();
+        this.initVBO();
+        this.updateVertexBuffer(bufferIndex, updateRange);
+        updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
+        updateRangeCache[bufferIndex].offset = -1;
+        updateRangeCache[bufferIndex].end = -1;
         break;
       case UpdateType.RESIZE:
         this.initVBO();
-        attribute.updateType = UpdateType.NO_UPDATE;
+        updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
         break;
     }
   }
 
-  private _handleIndexBufferUpdate() {
+  private _handleIndexUpdate() {
     const primitive = this._primitive;
-    const { indexBuffers, indexBufferIndex } = primitive;
-    const indexBuffer = indexBuffers[indexBufferIndex];
+    const { indexBuffer } = primitive;
+    const { updateTypeCache, updateRangeCache } = primitive;
+    const updateType = updateTypeCache.index;
+    const updateRange = updateRangeCache.index;
     if (indexBuffer) {
-      const { updateRange, updateType } = indexBuffer;
       switch (updateType) {
         case UpdateType.NO_UPDATE:
           break;
-        case UpdateType.UPDATE_ALL:
-          if (!this._glIndexBuffer) {
-            this.initIBO();
-          }
-          indexBuffer.updateType = UpdateType.NO_UPDATE;
+        case undefined:
+          this.initIBO();
+          updateTypeCache.index = UpdateType.NO_UPDATE;
           break;
         case UpdateType.UPDATE_RANGE:
-          if (!this._glIndexBuffer) {
-            this.initIBO();
-          }
+          this.initIBO();
           this.updateIndexBuffer(updateRange);
-          indexBuffer.updateType = UpdateType.NO_UPDATE;
-          indexBuffer.resetUpdateRange();
+          updateTypeCache.index = UpdateType.NO_UPDATE;
+          updateRangeCache.index.offset = -1;
+          updateRangeCache.index.end = -1;
           break;
         case UpdateType.RESIZE:
-          this.initIBO();
-          indexBuffer.updateType = UpdateType.NO_UPDATE;
-          indexBuffer.resetUpdateRange();
+          updateTypeCache.index = UpdateType.NO_UPDATE;
+          updateRangeCache.index.offset = -1;
+          updateRangeCache.index.end = -1;
           break;
       }
     }
@@ -247,13 +208,12 @@ export class GLPrimitive extends GLAsset {
     this.bindBufferAndAttrib(tech);
     /** draw */
     const indexBufferObject = this._glIndexBuffer;
-    const { isInstanced, indexBuffers, indexBufferIndex } = primitive;
-    const indexBuffer = indexBuffers[indexBufferIndex];
+    const { isInstanced, indexBuffer } = primitive;
     if (!isInstanced) {
       if (indexBufferObject) {
-        const { indexCount, indexType } = indexBuffer;
+        const { indexCount, _glIndexType } = indexBuffer;
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
-        gl.drawElements(primitive.mode, indexCount, indexType, primitive.indexOffset);
+        gl.drawElements(primitive.mode, indexCount, _glIndexType, primitive.indexOffset);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
       } else {
         gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
@@ -261,12 +221,12 @@ export class GLPrimitive extends GLAsset {
     } else {
       if (this.canUseInstancedArrays) {
         if (indexBufferObject) {
-          const { indexCount, indexType } = indexBuffer;
+          const { indexCount, _glIndexType } = indexBuffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
           gl.drawElementsInstanced(
             primitive.mode,
             indexCount,
-            indexType,
+            _glIndexType,
             primitive.indexOffset,
             primitive.instancedCount
           );
@@ -307,7 +267,7 @@ export class GLPrimitive extends GLAsset {
         const vertexBuffer = primitive.vertexBuffers[i];
         vertexBuffer.destroy();
       }
-      this._glVertBuffer = {};
+      this._glVertBuffers = [];
     }
 
     //-- 释放 index buffer

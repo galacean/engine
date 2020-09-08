@@ -2,6 +2,9 @@ import { VertexBuffer, IndexBuffer } from "./index";
 import { AssetObject } from "../asset/AssetObject";
 import { Logger } from "../base/Logger";
 import { Primitive } from "../primitive/Primitive";
+import { UpdateType, TypedArray } from "../base/Constant";
+import { VertexElements } from "./graphic/VertexElement";
+import { BufferUtil } from "./graphic/BufferUtil";
 
 let geometryCount = 0;
 
@@ -11,19 +14,7 @@ let geometryCount = 0;
  */
 export class BufferGeometry extends AssetObject {
   primitive: Primitive;
-  private _indexBufferIndex: number;
-  private _vertexBuffers: VertexBuffer[];
-  private _indexBuffers: IndexBuffer[];
-
-  get indexBufferIndex() {
-    return this._indexBufferIndex;
-  }
-
-  set indexBufferIndex(value: number) {
-    this._indexBufferIndex = value;
-    this.primitive.indexBufferIndex = value;
-    this.primitive.indexNeedUpdate = true;
-  }
+  private _bufferCount: number;
 
   get vertexCount() {
     return this.primitive.vertexCount;
@@ -49,8 +40,12 @@ export class BufferGeometry extends AssetObject {
     return this.primitive.mode;
   }
 
-  get attributes() {
-    return this.primitive.vertexAttributes;
+  get attributes(): VertexElements {
+    return this.primitive.attributes;
+  }
+
+  get indexBuffer(): IndexBuffer {
+    return this.primitive.indexBuffer;
   }
 
   /**
@@ -60,133 +55,78 @@ export class BufferGeometry extends AssetObject {
   constructor(name?: string) {
     name = name || "bufferGeometry" + geometryCount++;
     super();
-    this._indexBufferIndex = 0;
-    this._vertexBuffers = [];
-    this._indexBuffers = [];
+    this._bufferCount = 0;
     this.primitive = new Primitive();
   }
 
-  // 添加 vertex buffer
-  addVertexBuffer(vertexBuffer: VertexBuffer) {
+  /**
+   * 添加一个VB数据
+   */
+  addVertexBuffer(vertexBuffer: VertexBuffer, data: TypedArray) {
     const eleCount = vertexBuffer.declaration.elements.length;
     for (let i = 0; i < eleCount; i += 1) {
-      const attr = vertexBuffer.declaration.elements[i];
-      this.primitive.addAttribute(attr);
+      const element = vertexBuffer.declaration.elements[i];
+      const { semantic } = element;
+      this.primitive.semanticIndexMap[semantic] = this._bufferCount;
+      this.primitive.addAttribute(element);
     }
-    this._vertexBuffers.push(vertexBuffer);
     this.primitive.vertexBuffers.push(vertexBuffer);
-    this.primitive.updateVertex = true;
+    this.primitive.dataCache[this._bufferCount] = data;
+    this._bufferCount++;
   }
 
-  // 设置 vertex buffer 数据
-  setVertexBufferData(
-    semantic: string,
-    data: ArrayBuffer | ArrayBufferView | number[],
-    bufferByteOffset: number = 0,
-    dataByteOffset: number = 0,
-    dataByteLength: number = Number.MAX_SAFE_INTEGER
-  ) {
-    const vertexBuffer = this._getBufferBySemantic(semantic);
-    if (vertexBuffer) {
-      vertexBuffer.setData(data, dataByteOffset, bufferByteOffset, dataByteLength);
+  /**
+   * 设置顶点数据
+   */
+  setVertexData(semantic: string, data: TypedArray, offset: number = 0, dataIndex: number = 0, dataCount?: number) {
+    const buffer = this.getBufferBySemantic(semantic);
+    const { declaration } = buffer;
+    const bufferIndex = this.primitive.semanticIndexMap[semantic];
+    const element = declaration.elements.find((element) => element.semantic === semantic);
+    const byteSize = BufferUtil._getVertexDataTypeSize(element.elementInfo.type);
+    if (dataCount !== undefined) {
+      data = data.slice(dataIndex, dataCount);
+    }
+    this.primitive.dataCache[bufferIndex].set(data, offset);
+    if (declaration.elements.length > 1) {
+      semantic;
     } else {
-      Logger.error(`vertex element ${semantic} not exist`);
+      this._updateFlag(bufferIndex, offset, byteSize, data.length);
     }
   }
 
-  // 根据 vertexIndex 设置 buffer数据
-  setVertexBufferDataByIndex(semantic: string, vertexIndex: number, value: ArrayBuffer | ArrayBufferView | number[]) {
-    const vertexBuffer = this._getBufferBySemantic(semantic);
-    if (vertexBuffer) {
-      vertexBuffer.setDataByIndex(semantic, vertexIndex, value);
-    } else {
-      Logger.error(`vertex element ${semantic} not exist`);
-    }
+  resizeVertexBuffer(bufferIndex: number, byteSize: number) {
+    const buffer = this.primitive.vertexBuffers[bufferIndex];
+    buffer.resize(byteSize);
   }
 
-  resizeVertexBufferData(semantic: string, vertexValues: Array<Number> | ArrayBufferView) {
-    const vertexBuffer = this._getBufferBySemantic(semantic);
-    if (vertexBuffer) {
-      vertexBuffer.resizeData(semantic, vertexValues);
-    }
+  setIndexBuffer(indexBuffer: IndexBuffer, data: TypedArray) {
+    this.primitive.indexBuffer = indexBuffer;
+    this.primitive.dataCache.index = data;
   }
 
-  // 获取buffer数据
-  getVertexBufferData(semantic: string) {
-    const vertexBuffer = this._getBufferBySemantic(semantic);
-    if (vertexBuffer) {
-      return vertexBuffer.getData(semantic);
+  setIndexData(data: TypedArray, offset: number = 0, dataIndex: number = 0, dataCount?: number) {
+    const buffer = this.primitive.indexBuffer;
+    if (dataCount !== undefined) {
+      data = data.slice(dataIndex, dataCount);
     }
+    this.primitive.dataCache.index.set(data, offset);
+    this._updateFlag("index", offset, buffer.elementByteCount, data.length);
   }
 
-  // 根据顶点序号获取buffer数据
-  getVertexBufferDataByIndex(semantic: string, index: number) {
-    const vertexBuffer = this._getBufferBySemantic(semantic);
-    if (vertexBuffer) {
-      return vertexBuffer.getDataByIndex(semantic, index);
-    }
-  }
-
-  // 添加 index buffer
-  addIndexBuffer(indexBuffer: IndexBuffer) {
-    this._indexBuffers.push(indexBuffer);
-    this.primitive.indexBuffers.push(indexBuffer);
-    this.primitive.updateIndex = true;
-  }
-
-  // 设置 index buffer 数据
-  setIndexBufferData(
-    data: Uint16Array | Uint32Array | Uint8Array | number[],
-    bufferOffset: number = 0,
-    dataOffset: number = 0,
-    dataLength: number = 4294967295
-  ) {
-    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
-    if (indexBuffer) {
-      indexBuffer.setData(data, dataOffset, bufferOffset, dataLength);
-    }
-  }
-
-  setIndexBufferDataByIndex(index: number, value) {
-    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
-    if (indexBuffer) {
-      indexBuffer.setDataByIndex(index, value);
-    }
-  }
-
-  resizeIndexBufferData(indexValues: Array<Number> | ArrayBufferView) {
-    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
-    if (indexBuffer) {
-      indexBuffer.resizeData(indexValues);
-    }
-  }
-
-  // 获取所有三角形顶点对应的几何体顶点序号
-  getIndexBufferData() {
-    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
-    if (indexBuffer) {
-      return indexBuffer.getData();
-    }
-  }
-
-  // 获取三角形顶点序号的几何体顶点序号
-  getIndexBufferDataByIndex(index: number) {
-    const indexBuffer = this._indexBuffers[this._indexBufferIndex];
-    if (indexBuffer) {
-      return indexBuffer.getDataByIndex(index);
-    }
+  resizeIndexBuffer(byteSize: number) {
+    this.primitive.indexBuffer.resize(byteSize);
   }
 
   /**
    * 释放内部资源对象
-   * @private
    */
-  _finalize() {
-    this.primitive.finalize();
+  destroy() {
+    this.primitive.destroy();
     this.primitive = null;
   }
 
-  private _getBufferBySemantic(semantic: string): VertexBuffer | undefined {
+  private getBufferBySemantic(semantic: string): VertexBuffer | undefined {
     const attributes = this.primitive.attributes;
     const vertexAttrib = attributes[semantic];
     if (vertexAttrib === undefined) {
@@ -194,12 +134,31 @@ export class BufferGeometry extends AssetObject {
       return;
     }
 
-    const matchBuffer = this._vertexBuffers.filter((vertexBuffer) => vertexBuffer.semanticList.includes(semantic));
+    const matchBuffer = this.primitive.vertexBuffers.filter((vertexBuffer) =>
+      vertexBuffer.semanticList.includes(semantic)
+    );
     if (matchBuffer.length > 1) {
       Logger.error("Duplicated semantic: " + name);
       return;
     }
 
     return matchBuffer[0];
+  }
+
+  private _updateFlag(bufferIndex: number | string, offset: number, byteSize: number, dataLength: number) {
+    if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.NO_UPDATE) {
+      this.primitive.updateRangeCache[bufferIndex].offset = offset * byteSize;
+      this.primitive.updateRangeCache[bufferIndex].end = offset * byteSize + byteSize * dataLength;
+      this.primitive.updateTypeCache[bufferIndex] = UpdateType.UPDATE_RANGE;
+    } else if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.UPDATE_RANGE) {
+      this.primitive.updateRangeCache[bufferIndex].offset = Math.min(
+        this.primitive.updateRangeCache[bufferIndex].offset,
+        offset * byteSize
+      );
+      this.primitive.updateRangeCache[bufferIndex].end = Math.max(
+        this.primitive.updateRangeCache[bufferIndex].end,
+        offset * byteSize + byteSize * dataLength
+      );
+    }
   }
 }
