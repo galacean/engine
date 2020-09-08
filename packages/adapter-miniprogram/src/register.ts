@@ -7,7 +7,8 @@ let canvas: any = {};
 let canvas2D: any = {};
 
 /**异步注册3Dcanvas*/
-function registerCanvas(canvas, id: string) {
+function registerCanvas(c, id: string) {
+  canvas = c;
   canvas.id = id;
 
   if (!("tagName" in canvas)) {
