@@ -23,6 +23,8 @@ export class Primitive extends AssetObject {
   vertexCount: number = 0;
 
   indexBuffer: IndexBuffer;
+  indexOffset: number = 0;
+  indexCount: number = 0;
 
   material = null;
   materialIndex: number;
@@ -33,7 +35,6 @@ export class Primitive extends AssetObject {
 
   isInstanced: boolean = false;
   instancedCount: number;
-  indexOffset: number = 0;
 
   semanticIndexMap: SemanticMap = {};
   dataCache: DataMap = {};
@@ -135,4 +136,30 @@ export class Primitive extends AssetObject {
   }
 
   destroy() {}
+
+  reset() {
+    this.mode = DrawMode.TRIANGLES;
+    this.vertexAttributes = {};
+    this.vertexBuffers = [];
+    this.vertexCount = 0;
+
+    this.indexBuffer = null;
+    this.indexOffset = 0;
+    this.indexCount = 0;
+
+    this.material = null;
+    this.materialIndex = null;
+    this.targets = [];
+    this.boundingBox = null;
+    this.boundingSphere = null;
+    this.isInFrustum = true;
+
+    this.isInstanced = false;
+    this.instancedCount = null;
+
+    this.semanticIndexMap = {};
+    this.dataCache = {};
+    this.updateTypeCache = {};
+    this.updateRangeCache = {};
+  }
 }

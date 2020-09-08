@@ -52,24 +52,21 @@ export class GLVAOPrimitive extends GLPrimitive {
     const vao = this.vao.get(tech.cacheID);
     gl.bindVertexArray(vao);
     const indexBufferObject = this._glIndexBuffer;
-    const { isInstanced, indexBuffers, indexBufferIndex } = primitive;
-    const indexBuffer = indexBuffers[indexBufferIndex];
-    console.log(indexBuffer.indexCount);
+    const { isInstanced, indexBuffer } = primitive;
+    const { _glIndexType } = indexBuffer;
     if (!isInstanced) {
       if (indexBufferObject) {
-        const { indexCount, indexType } = indexBuffer;
-        gl.drawElements(primitive.mode, indexCount, indexType, primitive.indexOffset);
+        gl.drawElements(primitive.mode, primitive.indexCount, _glIndexType, primitive.indexOffset);
       } else {
         gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
       }
     } else {
       if (this.canUseInstancedArrays) {
         if (indexBufferObject) {
-          const { indexCount, indexType } = indexBuffer;
           gl.drawElementsInstanced(
             primitive.mode,
-            indexCount,
-            indexType,
+            primitive.indexCount,
+            _glIndexType,
             primitive.indexOffset,
             primitive.instancedCount
           );

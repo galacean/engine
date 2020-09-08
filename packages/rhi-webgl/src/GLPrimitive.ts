@@ -69,11 +69,11 @@ export class GLPrimitive extends GLAsset {
    * 更新 VBO
    */
   protected updateIndexBuffer(updateRange) {
-    const primitive = this._primitive;
     const { indexBuffer, dataCache } = this._primitive;
     const data = dataCache.index;
     const { offset, end } = updateRange;
     const length = end - offset;
+    console.log(offset, end);
     indexBuffer.setData(data, 0, offset, length);
   }
 
@@ -160,6 +160,8 @@ export class GLPrimitive extends GLAsset {
       case UpdateType.RESIZE:
         this.initVBO();
         updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
+        updateRangeCache[bufferIndex].offset = -1;
+        updateRangeCache[bufferIndex].end = -1;
         break;
     }
   }
@@ -208,12 +210,12 @@ export class GLPrimitive extends GLAsset {
     this.bindBufferAndAttrib(tech);
     /** draw */
     const indexBufferObject = this._glIndexBuffer;
-    const { isInstanced, indexBuffer } = primitive;
+    const { isInstanced, indexBuffer, indexCount } = primitive;
     if (!isInstanced) {
       if (indexBufferObject) {
-        const { indexCount, _glIndexType } = indexBuffer;
+        const { _glIndexType } = indexBuffer;
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
-        gl.drawElements(primitive.mode, indexCount, _glIndexType, primitive.indexOffset);
+        gl.drawElements(primitive.mode, primitive.indexCount, _glIndexType, primitive.indexOffset);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
       } else {
         gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
@@ -221,11 +223,11 @@ export class GLPrimitive extends GLAsset {
     } else {
       if (this.canUseInstancedArrays) {
         if (indexBufferObject) {
-          const { indexCount, _glIndexType } = indexBuffer;
+          const { _glIndexType } = indexBuffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
           gl.drawElementsInstanced(
             primitive.mode,
-            indexCount,
+            primitive.indexCount,
             _glIndexType,
             primitive.indexOffset,
             primitive.instancedCount

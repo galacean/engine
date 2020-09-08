@@ -242,6 +242,6 @@ export class IndexBuffer {
   resize(dataLength: number) {
     this.bind();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._bufferUsage);
+    gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._glBufferUsage);
   }
 }
