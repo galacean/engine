@@ -8,7 +8,7 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * @private
  */
 export class GLPrimitive extends GLAsset {
-  protected readonly _primitive;
+  protected readonly _primitive: Primitive;
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
@@ -203,19 +203,19 @@ export class GLPrimitive extends GLAsset {
    */
   finalize() {
     const primitive = this._primitive;
-    //-- 释放顶点缓冲
-    if (primitive.vertexBuffers.length > 0) {
-      for (let i = 0; i < primitive.vertexBuffers.length; i += 1) {
-        const vertexBuffer = primitive.vertexBuffers[i];
+    const vertexBuffers = primitive.vertexBuffers;
+    const indexBuffer = primitive.indexBuffer;
+
+    if (vertexBuffers.length > 0) {
+      for (let i = 0; i < vertexBuffers.length; i++) {
+        const vertexBuffer = vertexBuffers[i];
         vertexBuffer.destroy();
       }
     }
 
-    //-- 释放 index buffer
-    if (primitive.indexBuffers.length > 0) {
-      const { indexBufferIndex } = primitive;
-      const indexBuffer = primitive.indexBuffers[indexBufferIndex];
+    if (indexBuffer) {
       indexBuffer.destroy();
+      primitive.indexBuffer = null;
     }
   }
 }
