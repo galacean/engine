@@ -6,7 +6,6 @@ import { ElementInfo, BufferUtil } from "./BufferUtil";
  */
 export class VertexElement {
   public readonly normalized = false;
-  stride: number;
 
   private _semantic: string;
   private _offset: number;

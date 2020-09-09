@@ -80,7 +80,14 @@ export class GLPrimitive extends GLAsset {
         }
 
         gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, att.elementInfo.size, att.elementInfo.type, att.normalized, att.stride, att.offset);
+        gl.vertexAttribPointer(
+          loc,
+          att.elementInfo.size,
+          att.elementInfo.type,
+          att.normalized,
+          vertexBuffer.declaration.stride,
+          att.offset
+        );
         if (this.canUseInstancedArrays) {
           gl.vertexAttribDivisor(loc, att.instanced);
         }
