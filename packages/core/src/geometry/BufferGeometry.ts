@@ -141,8 +141,7 @@ export class BufferGeometry extends AssetObject {
   resizeIndexBuffer(data: Uint8Array | Uint16Array | Uint32Array) {
     this.primitive.dataCache.index = data;
     const { indexBuffer } = this.primitive;
-    const { elementByteCount } = indexBuffer;
-    indexBuffer.resize(data.length * elementByteCount);
+    indexBuffer.resize(data.length);
     this.primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
     this.primitive.updateRangeCache.index = { offset: -1, end: -1, bufferOffset: -1 };
   }

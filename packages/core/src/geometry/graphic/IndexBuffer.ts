@@ -227,21 +227,14 @@ export class IndexBuffer {
   /**
    * @deprecated
    */
-  get elementByteCount() {
-    return this._elementByteCount;
-  }
-
-  /**
-   * @deprecated
-   */
-  resize(dataLength: number) {
-    this.bind();
+  resize(indexCount: number) {
+    const bufferByteSize = indexCount * this._elementByteCount;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, dataLength, this._glBufferUsage);
 
-    const elementByteCount =
-      this._indexFormat === IndexFormat.UInt32 ? 4 : this._indexFormat === IndexFormat.UInt16 ? 2 : 1;
-    this._bufferByteSize = dataLength;
-    this._indexCount = dataLength / elementByteCount;
+    this.bind();
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferByteSize, this._glBufferUsage);
+
+    this._bufferByteSize = bufferByteSize;
+    this._indexCount = indexCount;
   }
 }
