@@ -1,32 +1,38 @@
 import {
+  Animation,
   AnimationClip,
+  ConstantMaterial,
   DataType,
   DrawMode,
   Engine,
   EngineObject,
   Entity,
+  IndexBuffer,
   InterpolationType,
   Logger,
   Material,
   Mesh,
   MeshRenderer,
+  PBRMaterial,
+  Primitive,
   Scene,
   Skin,
   SkinnedMeshRenderer,
   Texture2D,
   Util,
-  Animation,
-  Primitive,
-  PBRMaterial,
-  ConstantMaterial,
-  IndexBuffer,
-  VertexBuffer,
-  BufferGeometry
+  VertexBuffer
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
-import { createAttribute, findByKeyValue, getAccessorData, getAccessorTypeSize } from "./Util";
+import {
+  createAttribute,
+  createDeclaration,
+  findByKeyValue,
+  getAccessorData,
+  getAccessorTypeSize,
+  getIndexFormat
+} from "./Util";
 
 // 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
@@ -446,35 +452,34 @@ export function parseSkin(gltfSkin, resources) {
 function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
   // load vertices
   let h = 0;
-  const geometry = new BufferGeometry();
-  geometry.primitive.name = primitive.name;
-  geometry.primitive.mode = primitive.mode;
+  for (const attributeSemantic in gltfPrimitive.attributes) {
+    const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
+    const accessor = gltf.accessors[accessorIdx];
+    const declaration = createDeclaration(gltf, attributeSemantic, accessor, h++);
+    const bufferData = getAccessorData(gltf, accessor, buffers);
+
+    const vertexBuffer = new VertexBuffer(bufferData.byteLength);
+    vertexBuffer.declaration = declaration;
+    vertexBuffer.setData(bufferData);
+    primitive.addVertexBuffer(vertexBuffer);
+  }
 
   const positionAccessorIdx = gltfPrimitive.attributes.POSITION;
   const positionAccessor = gltf.accessors[positionAccessorIdx];
-  const vertexCount = positionAccessor.count;
-  for (const attributeSemantic in gltfPrimitive.attributes) {
-    const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
-    const accessor = gltf.accessors[accessorIdx];
-    const attribute = createAttribute(gltf, attributeSemantic, accessor, h++);
-    const buffer = new VertexBuffer([attribute], vertexCount);
-    geometry.addVertexBufferParam(buffer);
-  }
-  for (const attributeSemantic in gltfPrimitive.attributes) {
-    const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
-    const accessor = gltf.accessors[accessorIdx];
-    const bufferData = getAccessorData(gltf, accessor, buffers);
-    geometry.setVertexBufferData(attributeSemantic, bufferData);
-  }
+  primitive.vertexCount = positionAccessor.count;
+
   // load indices
   const indexAccessor = gltf.accessors[gltfPrimitive.indices];
   const indexCount = indexAccessor.count;
-  const indexType = indexAccessor.componentType;
-  const indexBuffer = new IndexBuffer(indexCount, indexType);
-  geometry.addIndexBufferParam(indexBuffer);
+  const indexFormat = getIndexFormat(indexAccessor.componentType);
   const indexData = getAccessorData(gltf, indexAccessor, buffers);
-  geometry.setIndexBufferData(indexData);
-  return Promise.resolve(geometry.primitive);
+  const indexBuffer = new IndexBuffer(indexCount, indexFormat);
+
+  indexBuffer.setData(indexData);
+  primitive.indexBuffer = indexBuffer;
+  primitive.indexOffset = 0;
+  primitive.indexCount = indexCount;
+  return Promise.resolve(primitive);
 }
 
 function parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers) {

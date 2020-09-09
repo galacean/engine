@@ -1,4 +1,11 @@
-import { BufferAttribute } from "@alipay/o3-core";
+import {
+  BufferAttribute,
+  VertexElement,
+  VertexElementFormat,
+  VertexDeclaration,
+  DataType,
+  IndexFormat
+} from "@alipay/o3-core";
 
 const WEBGL_COMPONENT_TYPES = {
   5120: Int8Array,
@@ -150,6 +157,41 @@ export function createAttribute(gltf, semantic, accessor, idx) {
   attribute.offset = 0;
   attribute.vertexBufferIndex = idx || 0;
   return attribute;
+}
+
+export function createDeclaration(gltf, semantic, accessor, idx): VertexDeclaration {
+  const size = getAccessorTypeSize(accessor.type);
+  const componentType = getComponentType(accessor.componentType);
+  const stride = size * componentType.BYTES_PER_ELEMENT;
+  return new VertexDeclaration(stride, [
+    new VertexElement(semantic, 0, getElementFormat(accessor.componentType, size))
+  ]);
+}
+
+export function getIndexFormat(type: number): IndexFormat {
+  switch (type) {
+    case DataType.UNSIGNED_BYTE:
+      return IndexFormat.UInt8;
+    case DataType.UNSIGNED_SHORT:
+      return IndexFormat.UInt16;
+    case DataType.UNSIGNED_INT:
+      return IndexFormat.UInt32;
+  }
+}
+
+export function getElementFormat(type: number, size: number): VertexElementFormat {
+  if (type == DataType.FLOAT) {
+    switch (size) {
+      case 1:
+        return VertexElementFormat.Single;
+      case 2:
+        return VertexElementFormat.Vector2;
+      case 3:
+        return VertexElementFormat.Vector3;
+      case 4:
+        return VertexElementFormat.Vector4;
+    }
+  }
 }
 
 /**
