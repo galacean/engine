@@ -25,13 +25,12 @@ export class GLPrimitive extends GLAsset {
     const primitive = this._primitive;
     const { vertexBuffers, dataCache } = primitive;
     const { bufferOffset, offset, end } = updateRange;
-    const length = end - offset;
     const data = dataCache[index];
     const vertexBuffer = vertexBuffers[index];
     if (offset === -1) {
       vertexBuffer.setData(data);
     } else {
-      vertexBuffer.setData(data, bufferOffset, offset, length);
+      vertexBuffer.setData(data, bufferOffset, offset, end - offset);
     }
   }
 
@@ -42,11 +41,10 @@ export class GLPrimitive extends GLAsset {
     const { indexBuffer, dataCache } = this._primitive;
     const data = dataCache.index;
     const { bufferOffset, offset, end } = updateRange;
-    const length = end - offset;
     if (offset === -1) {
       indexBuffer.setData(data);
     } else {
-      indexBuffer.setData(data, bufferOffset, offset, length);
+      indexBuffer.setData(data, bufferOffset, offset, end - offset);
     }
   }
 
