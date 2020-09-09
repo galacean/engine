@@ -1,4 +1,4 @@
-import { GLCapabilityType, Logger, UpdateType, Primitive, VertexElement } from "@alipay/o3-core";
+import { GLCapabilityType, Logger, Primitive, UpdateType } from "@alipay/o3-core";
 import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";

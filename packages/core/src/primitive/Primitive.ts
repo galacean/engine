@@ -126,15 +126,6 @@ export class Primitive extends AssetObject {
     };
   }
 
-  private _createArrayBuffers(buffers) {
-    let bufferArray = [];
-    for (let i = 0; i < buffers.length; i += 1) {
-      const arrayBuffers = buffers[i].buffer;
-      bufferArray = bufferArray.concat(arrayBuffers);
-    }
-    return bufferArray;
-  }
-
   destroy() {}
 
   reset() {
