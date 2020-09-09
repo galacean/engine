@@ -85,7 +85,7 @@ export class GLPrimitive extends GLAsset {
           att.elementInfo.size,
           att.elementInfo.type,
           att.normalized,
-          vertexBuffer.declaration.stride,
+          vertexBuffer.declaration.vertexStride,
           att.offset
         );
         if (this.canUseInstancedArrays) {
