@@ -18,25 +18,10 @@ export class GLPrimitive extends GLAsset {
     this.canUseInstancedArrays = this.rhi.canIUse(GLCapabilityType.instancedArrays);
   }
 
-  protected initVBO(bufferIndex) {
-    const primitive = this._primitive;
-    const { vertexBuffers, dataCache } = primitive;
-    const data = dataCache[bufferIndex];
-    const vertexBuffer = vertexBuffers[bufferIndex];
-    vertexBuffer.setData(data);
-  }
-
-  protected initIBO() {
-    const primitive = this._primitive;
-    const { indexBuffer, dataCache } = primitive;
-    const data = dataCache.index;
-    indexBuffer.setData(data);
-  }
-
   /**
    * 更新 VBO
    */
-  protected updateVertexBuffer(semantic: string, index: number, updateRange) {
+  protected updateVertexBuffer(index: number, updateRange: any) {
     const primitive = this._primitive;
     const { vertexBuffers, dataCache } = primitive;
     const { bufferOffset, offset, end } = updateRange;
@@ -53,7 +38,7 @@ export class GLPrimitive extends GLAsset {
   /**
    * 更新 IBO
    */
-  protected updateIndexBuffer(updateRange) {
+  protected updateIndexBuffer(updateRange: any) {
     const { indexBuffer, dataCache } = this._primitive;
     const data = dataCache.index;
     const { bufferOffset, offset, end } = updateRange;
@@ -114,36 +99,26 @@ export class GLPrimitive extends GLAsset {
    * 初始化或更新 BufferObject
    * */
   protected prepareBuffers() {
-    const attributes = this._primitive.attributes;
-    const semanticList = Object.keys(attributes);
-    for (let i = 0; i < semanticList.length; i += 1) {
-      const semantic = semanticList[i];
-      const attribute = attributes[semantic];
-      this._handleUpdateVertex(attribute);
+    const vertexBuffer = this._primitive.vertexBuffers;
+    for (let i: number = 0, n: number = vertexBuffer.length; i < n; i++) {
+      this._handleUpdateVertex(i);
     }
     this._handleIndexUpdate();
   }
 
-  private _handleUpdateVertex(attribute: VertexElement) {
-    const primitive = this._primitive;
-    const { semantic } = attribute;
-    const { semanticIndexMap, updateTypeCache, updateRangeCache } = primitive;
-    const bufferIndex = semanticIndexMap[semantic];
+  private _handleUpdateVertex(bufferIndex: number) {
+    const { updateTypeCache, updateRangeCache } = this._primitive;
     const updateType = updateTypeCache[bufferIndex];
-    const updateRange = updateRangeCache[bufferIndex];
     switch (updateType) {
       case UpdateType.NO_UPDATE:
         break;
-      case UpdateType.INIT:
-        this.initVBO(bufferIndex);
-        this._primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
-        break;
       case UpdateType.UPDATE_RANGE:
-        this.updateVertexBuffer(semantic, bufferIndex, updateRange);
+        const updateRange = updateRangeCache[bufferIndex];
+        this.updateVertexBuffer(bufferIndex, updateRange);
         this._primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
-        this._primitive.updateRangeCache[bufferIndex].bufferOffset = -1;
-        this._primitive.updateRangeCache[bufferIndex].offset = -1;
-        this._primitive.updateRangeCache[bufferIndex].end = -1;
+        updateRange.bufferOffset = -1;
+        updateRange.offset = -1;
+        updateRange.end = -1;
         break;
     }
   }
@@ -158,16 +133,12 @@ export class GLPrimitive extends GLAsset {
       switch (updateType) {
         case UpdateType.NO_UPDATE:
           break;
-        case UpdateType.INIT:
-          this.initIBO();
-          this._primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
-          break;
         case UpdateType.UPDATE_RANGE:
           this.updateIndexBuffer(updateRange);
-          this._primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
-          this._primitive.updateRangeCache.index.bufferOffset = -1;
-          this._primitive.updateRangeCache.index.offset = -1;
-          this._primitive.updateRangeCache.index.end = -1;
+          updateTypeCache.index = UpdateType.NO_UPDATE;
+          updateRangeCache.index.bufferOffset = -1;
+          updateRangeCache.index.offset = -1;
+          updateRangeCache.index.end = -1;
           break;
       }
     }
@@ -242,7 +213,6 @@ export class GLPrimitive extends GLAsset {
         const vertexBuffer = primitive.vertexBuffers[i];
         vertexBuffer.destroy();
       }
-      this._glVertBuffers = [];
     }
 
     //-- 释放 index buffer
@@ -250,7 +220,6 @@ export class GLPrimitive extends GLAsset {
       const { indexBufferIndex } = primitive;
       const indexBuffer = primitive.indexBuffers[indexBufferIndex];
       indexBuffer.destroy();
-      this._glIndexBuffer = null;
     }
   }
 }
