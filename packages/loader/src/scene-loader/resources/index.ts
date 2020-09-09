@@ -6,5 +6,6 @@ export { TextureResource } from "./TextureResource";
 export { ScriptResource } from "./ScriptResource";
 export { BlinnPhongMaterialResource } from "./BlinnPhongMaterialResource";
 export { TextureCubeMapResource } from "./TextureCubeMapResource";
+export { VfxResource } from "./VfxResource";
 export * from "./ScriptResource";
 export { BaseResource } from "./BaseResource";

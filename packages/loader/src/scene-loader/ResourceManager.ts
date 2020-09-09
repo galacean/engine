@@ -10,7 +10,8 @@ import {
   ScriptResource,
   ShaderMaterialResource,
   TextureCubeMapResource,
-  TextureResource
+  TextureResource,
+  VfxResource
 } from "./resources";
 import { AssetConfig } from "./types";
 
@@ -25,6 +26,8 @@ const RESOURCE_CLASS = {
   unlitMaterial: PBRMaterialResource,
   ShaderMaterial: ShaderMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
+  // 'vfx'
+  vfx: VfxResource,
   // Animation: Animation,
   base: BaseResource
 };
