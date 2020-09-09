@@ -124,9 +124,7 @@ export class GLPrimitive extends GLAsset {
   }
 
   private _handleIndexUpdate() {
-    const primitive = this._primitive;
-    const { indexBuffer } = primitive;
-    const { updateTypeCache, updateRangeCache } = primitive;
+    const { indexBuffer, updateTypeCache, updateRangeCache } = this._primitive;
     const updateType = updateTypeCache.index;
     const updateRange = updateRangeCache.index;
     if (indexBuffer) {
