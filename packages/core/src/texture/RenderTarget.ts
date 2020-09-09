@@ -71,7 +71,7 @@ export class RenderTarget extends AssetObject {
     width: number,
     height: number,
     colorTexture: RenderColorTexture,
-    depthFormat?: RenderBufferDepthFormat,
+    depthFormat?: RenderBufferDepthFormat | null,
     antiAliasing?: number,
     engine?: Engine
   );
@@ -107,7 +107,7 @@ export class RenderTarget extends AssetObject {
     width: number,
     height: number,
     colorTextures: RenderColorTexture[],
-    depthFormat?: RenderBufferDepthFormat,
+    depthFormat?: RenderBufferDepthFormat | null,
     antiAliasing?: number,
     engine?: Engine
   );
@@ -137,7 +137,7 @@ export class RenderTarget extends AssetObject {
     width: number,
     height: number,
     renderTexture: RenderColorTexture | Array<RenderColorTexture> | null,
-    depth: RenderDepthTexture | RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
+    depth: RenderDepthTexture | RenderBufferDepthFormat | null = RenderBufferDepthFormat.Depth,
     antiAliasing: number = 1,
     engine?: Engine
   ) {
@@ -324,7 +324,7 @@ export class RenderTarget extends AssetObject {
   /**
    * 绑定主 FBO
    */
-  private _bindMainFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
+  private _bindMainFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat | null): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
     const colorTextureLength = this._colorTextures.length;
@@ -351,26 +351,28 @@ export class RenderTarget extends AssetObject {
     this._oriDrawBuffers = drawBuffers;
 
     /** depth render buffer */
-    if (renderDepth instanceof RenderDepthTexture) {
-      // 立方体纹理请调用 _setRenderTargetFace()
-      if (!renderDepth._isCube) {
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          renderDepth._formatDetail.attachment,
-          gl.TEXTURE_2D,
-          renderDepth._glTexture,
-          0
-        );
+    if (renderDepth !== null) {
+      if (renderDepth instanceof RenderDepthTexture) {
+        // 立方体纹理请调用 _setRenderTargetFace()
+        if (!renderDepth._isCube) {
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            renderDepth._formatDetail.attachment,
+            gl.TEXTURE_2D,
+            renderDepth._glTexture,
+            0
+          );
+        }
+      } else if (this._antiAliasing <= 1) {
+        const { internalFormat, attachment } = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
+        const depthRenderBuffer = gl.createRenderbuffer();
+
+        this._depthRenderBuffer = depthRenderBuffer;
+
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, this._width, this._height);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
       }
-    } else if (this._antiAliasing <= 1) {
-      const { internalFormat, attachment } = Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
-      const depthRenderBuffer = gl.createRenderbuffer();
-
-      this._depthRenderBuffer = depthRenderBuffer;
-
-      gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
-      gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, this._width, this._height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -380,7 +382,7 @@ export class RenderTarget extends AssetObject {
   /**
    * 绑定 MSAA FBO
    */
-  private _bindMSAAFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat): void {
+  private _bindMSAAFBO(renderDepth: RenderDepthTexture | RenderBufferDepthFormat | null): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     const isWebGL2: boolean = this._rhi.isWebGL2;
     const MSAADepthRenderBuffer = gl.createRenderbuffer();
@@ -411,14 +413,16 @@ export class RenderTarget extends AssetObject {
     gl.drawBuffers(this._oriDrawBuffers);
 
     // prepare MSAA depth RBO
-    const { internalFormat, attachment } =
-      renderDepth instanceof RenderDepthTexture
-        ? renderDepth._formatDetail
-        : Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
+    if (renderDepth !== null) {
+      const { internalFormat, attachment } =
+        renderDepth instanceof RenderDepthTexture
+          ? renderDepth._formatDetail
+          : Texture._getRenderBufferDepthFormatDetail(renderDepth, gl, isWebGL2);
 
-    gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);
-    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, MSAADepthRenderBuffer);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this._antiAliasing, internalFormat, this._width, this._height);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, MSAADepthRenderBuffer);
+    }
 
     this._checkFrameBuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);

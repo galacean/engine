@@ -8,8 +8,7 @@
     "experimentalDecorators": true,
     "declarationDir": "types",
     "emitDeclarationOnly": true,
-    "sourceMap": true,
-    "incremental": true
+    "sourceMap": true
   },
   "include": [
     "src/**/*"

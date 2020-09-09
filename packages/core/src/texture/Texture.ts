@@ -48,6 +48,20 @@ export abstract class Texture extends ReferenceObject {
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
+      case TextureFormat.R4G4B4A4:
+        return {
+          internalFormat: isWebGL2 ? gl.RGBA4 : gl.RGBA,
+          baseFormat: gl.RGBA,
+          dataType: gl.UNSIGNED_SHORT_4_4_4_4,
+          isCompressed: false
+        };
+      case TextureFormat.R5G5B5A1:
+        return {
+          internalFormat: isWebGL2 ? gl.RGB5_A1 : gl.RGBA,
+          baseFormat: gl.RGBA,
+          dataType: gl.UNSIGNED_SHORT_5_5_5_1,
+          isCompressed: false
+        };
       case TextureFormat.R5G6B5:
         return {
           internalFormat: isWebGL2 ? gl.RGB565 : gl.RGB,
@@ -149,6 +163,8 @@ export abstract class Texture extends ReferenceObject {
           internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR,
           isCompressed: true
         };
+      default:
+        throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
     }
   }
 
@@ -175,6 +191,27 @@ export abstract class Texture extends ReferenceObject {
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
+      case RenderBufferColorFormat.R4G4B4A4:
+        return {
+          internalFormat: isWebGL2 ? gl.RGBA4 : gl.RGBA,
+          baseFormat: gl.RGBA,
+          dataType: gl.UNSIGNED_SHORT_4_4_4_4,
+          isCompressed: false
+        };
+      case RenderBufferColorFormat.R5G5B5A1:
+        return {
+          internalFormat: isWebGL2 ? gl.RGB5_A1 : gl.RGBA,
+          baseFormat: gl.RGBA,
+          dataType: gl.UNSIGNED_SHORT_5_5_5_1,
+          isCompressed: false
+        };
+      case RenderBufferColorFormat.R5G6B5:
+        return {
+          internalFormat: isWebGL2 ? gl.RGB565 : gl.RGB,
+          baseFormat: gl.RGB,
+          dataType: gl.UNSIGNED_SHORT_5_6_5,
+          isCompressed: false
+        };
       case RenderBufferColorFormat.Alpha8:
         return {
           internalFormat: gl.ALPHA,
@@ -196,6 +233,8 @@ export abstract class Texture extends ReferenceObject {
           dataType: gl.FLOAT,
           isCompressed: false
         };
+      default:
+        throw new Error(`this RenderBufferColorFormat is not supported in Oasis Engine: ${format}`);
     }
   }
 
@@ -273,6 +312,8 @@ export abstract class Texture extends ReferenceObject {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
+      default:
+        throw new Error(`this RenderBufferDepthFormat is not supported in Oasis Engine: ${format}`);
     }
   }
 
@@ -341,12 +382,6 @@ export abstract class Texture extends ReferenceObject {
         break;
       case RenderBufferDepthFormat.Depth24:
       case RenderBufferDepthFormat.Depth32:
-        {
-          if (!isWebGL2) {
-            isSupported = false;
-          }
-        }
-        break;
       case RenderBufferDepthFormat.Depth32Stencil8:
         {
           if (!isWebGL2) {

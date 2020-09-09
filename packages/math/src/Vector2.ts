@@ -300,6 +300,16 @@ export class Vector2 {
   }
 
   /**
+   * 拷贝到数组。
+   * @param out - 数组。
+   * @param outOffset - 数组偏移。
+   */
+  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    out[outOffset] = this.x;
+    out[outOffset + 1] = this.y;
+  }
+
+  /**
    * 克隆并返回一个新的二维向量对象。
    * @returns 新的二维向量对象
    */

@@ -1,11 +1,10 @@
 "use strict";
-import { Spherical, Vector2, Vector3, Matrix } from "@alipay/o3";
-import { Entity, Logger, Script } from "@alipay/o3";
+import { Entity, Logger, Matrix, Script, Spherical, Vector2, Vector3 } from "@alipay/o3";
 
 /**
  * 相机的的轨道控制器，可以旋转，缩放，平移，支持鼠标和触摸事件。
  */
-export class OrbitControls extends Script {
+export class OrbitControl extends Script {
   public camera: Entity;
   public domElement: HTMLElement | Document;
   public mainElement: HTMLCanvasElement;
@@ -153,15 +152,15 @@ export class OrbitControls extends Script {
 
     // 缓冲参数
     /**
-     * 是否开启镜头缓冲，默认为false
+     * 是否开启镜头缓冲，默认为 true
      * @member {Boolean}
      */
-    this.enableDamping = false;
+    this.enableDamping = true;
     /**
-     * 旋转缓冲参数，默认为0.08
+     * 旋转缓冲参数，默认为 0.1
      * @member {Number}
      */
-    this.dampingFactor = 0.08;
+    this.dampingFactor = 0.1;
     /**
      * 缩放缓冲参数，默认为0.2
      * @member {Number}

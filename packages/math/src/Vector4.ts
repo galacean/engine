@@ -398,6 +398,18 @@ export class Vector4 {
   }
 
   /**
+   * 拷贝到数组。
+   * @param out - 数组。
+   * @param outOffset - 数组偏移。
+   */
+  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    out[outOffset] = this.x;
+    out[outOffset + 1] = this.y;
+    out[outOffset + 2] = this.z;
+    out[outOffset + 3] = this.w;
+  }
+
+  /**
    * 创建一个新的四维向量，并用当前向量值初始化。
    * @returns 一个新的向量，并且拷贝当前向量的值
    */
