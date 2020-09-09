@@ -71,14 +71,7 @@ export class BufferGeometry extends AssetObject {
    * 添加一个VB数据
    */
   addVertexBuffer(vertexBuffer: VertexBuffer, data: TypedArray) {
-    const eleCount = vertexBuffer.declaration.elements.length;
-    for (let i = 0; i < eleCount; i += 1) {
-      const element = vertexBuffer.declaration.elements[i];
-      const { semantic } = element;
-      this.primitive.semanticIndexMap[semantic] = this._bufferCount;
-      this.primitive.addAttribute(element);
-    }
-    this.primitive.vertexBuffers.push(vertexBuffer);
+    this.primitive.addVertexBuffer(vertexBuffer);
     this.primitive.dataCache[this._bufferCount] = data;
     this.primitive.updateTypeCache[this._bufferCount] = UpdateType.INIT;
     this.primitive.updateRangeCache[this._bufferCount] = { offset: -1, end: -1, bufferOffset: -1 };
