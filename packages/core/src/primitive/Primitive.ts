@@ -86,48 +86,6 @@ export class Primitive extends AssetObject {
   //   this.vertexAttributes[semantic].vertexBufferIndex = index;
   // }
 
-  // /**
-  //  * 通过 primitive 计算本地/世界坐标系的 min/max
-  //  * @param {Matrix} modelMatrix - Local to World矩阵,如果传此值，则计算min/max时将考虑RTS变换，如果不传，则计算local min/max
-  //  * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
-  //  * */
-  // getMinMax(modelMatrix?: Matrix, littleEndian = true) {
-  //   let {
-  //     vertexCount,
-  //     vertexBuffers,
-  //     vertexAttributes: {
-  //       POSITION: { size, offset, stride, vertexBufferIndex }
-  //     }
-  //   } = this;
-  //   let arrayBuffer = vertexBuffers[vertexBufferIndex];
-  //   if (!(arrayBuffer instanceof ArrayBuffer)) {
-  //     arrayBuffer = arrayBuffer.buffer;
-  //   }
-  //   if (stride === 0) {
-  //     stride = size * 4;
-  //   }
-  //   const dataView = new DataView(arrayBuffer, offset);
-
-  //   let min = new Vector3(Infinity, Infinity, Infinity);
-  //   let max = new Vector3(-Infinity, -Infinity, -Infinity);
-  //   for (let i = 0; i < vertexCount; i++) {
-  //     const base = offset + stride * i;
-  //     const position = new Vector3(
-  //       dataView.getFloat32(base, littleEndian),
-  //       dataView.getFloat32(base + 4, littleEndian),
-  //       dataView.getFloat32(base + 8, littleEndian)
-  //     );
-  //     modelMatrix && Vector3.transformCoordinate(position, modelMatrix, position);
-  //     Vector3.min(min, position, min);
-  //     Vector3.max(max, position, max);
-  //   }
-
-  //   return {
-  //     min,
-  //     max
-  //   };
-  // }
-
   destroy() {}
 
   reset() {

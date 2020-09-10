@@ -36,5 +36,7 @@ export class GeometryShape extends BufferGeometry {
     this.setIndexBuffer(indexBuffer, null);
     this.vertexCount = vertexBufferlength / vertexStride;
     this.indexCount = indices.length;
+
+    this._getMinMax(vertices);
   }
 }
