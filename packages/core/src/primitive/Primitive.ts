@@ -18,6 +18,7 @@ export class Primitive extends AssetObject {
   mode: DrawMode = DrawMode.TRIANGLES;
   vertexAttributes: VertexElements = {};
   private _vertexBuffers: VertexBuffer[] = [];
+  vertexOffset: number = 0;
   vertexCount: number = 0;
 
   indexBuffer: IndexBuffer;

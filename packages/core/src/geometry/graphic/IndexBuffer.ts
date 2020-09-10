@@ -60,7 +60,7 @@ export class IndexBuffer {
     indexCount: number,
     indexFormat: IndexFormat = IndexFormat.UInt16,
     bufferUsage: BufferUsage = BufferUsage.Static,
-    engine: Engine
+    engine?: Engine
   ) {
     engine = engine || Engine._getDefaultEngine();
     this._engine = engine;

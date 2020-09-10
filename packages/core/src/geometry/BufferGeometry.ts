@@ -242,7 +242,7 @@ export class BufferGeometry extends AssetObject {
    */
   protected updateIndexBuffer(updateRange: any) {
     const { indexBuffer } = this.primitive;
-    const data = this.dataCache.index;
+    const data = <Uint8Array | Uint16Array | Uint32Array>this.dataCache.index;
     const { bufferOffset, offset, end } = updateRange;
     if (offset === -1) {
       indexBuffer.setData(data);
