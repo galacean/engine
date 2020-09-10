@@ -1,12 +1,11 @@
-import { BufferGeometry, InterleavedBuffer, IndexBuffer } from "../geometry";
-import { BufferAttribute } from "../primitive/type";
-import { DataType } from "../base/Constant";
+import { Engine } from "../Engine";
+import { GeometryShape } from "./GeometryShape";
 
 /**
  * CubeGeometry 平面创建类
  * @extends BufferGeometry
  */
-export class PlaneGeometry extends BufferGeometry {
+export class PlaneGeometry extends GeometryShape {
   private _parameters;
   private halfWidth;
   private halfHeight;
@@ -18,7 +17,13 @@ export class PlaneGeometry extends BufferGeometry {
    * @param {number} horizontalSegments 水平分段数
    * @param {number} verticalSegments 垂直分段数
    */
-  constructor(width?: number, height?: number, horizontalSegments?: number, verticalSegments?: number) {
+  constructor(
+    width?: number,
+    height?: number,
+    horizontalSegments?: number,
+    verticalSegments?: number,
+    engine?: Engine
+  ) {
     super();
     this._parameters = {
       width: width || 1,
@@ -29,81 +34,60 @@ export class PlaneGeometry extends BufferGeometry {
 
     this.halfWidth = this._parameters.width / 2;
     this.halfHeight = this._parameters.height / 2;
-    this.initialize();
+    this.initialize(engine);
   }
 
-  initialize() {
-    const vertexCount = (this._parameters.verticalSegments + 1) * (this._parameters.horizontalSegments + 1);
+  initialize(engine: Engine) {
+    const { verticalSegments, horizontalSegments } = this._parameters;
     // 生成经纬线上的几何体顶点的数据
     let index = 0;
     const grid = [];
-    const vertexValues = [];
-    const indexValues = [];
-    // const positions = [];
-    for (let iy = 0; iy <= this._parameters.verticalSegments; iy++) {
+    const vertices: Float32Array = new Float32Array((verticalSegments + 1) * (horizontalSegments + 1) * 8);
+    const indices: Uint16Array = new Uint16Array(verticalSegments * horizontalSegments * 6);
+
+    for (let iy = 0; iy <= verticalSegments; iy++) {
       const verticesRow = [];
-      const v = iy / this._parameters.verticalSegments;
-      for (let ix = 0; ix <= this._parameters.horizontalSegments; ix++) {
-        const u = ix / this._parameters.horizontalSegments;
+      const v = iy / verticalSegments;
+      for (let ix = 0; ix <= horizontalSegments; ix++) {
+        const u = ix / horizontalSegments;
         const posX = u * this._parameters.width - this.halfWidth;
         const posY = v * this._parameters.height - this.halfHeight;
 
-        vertexValues.push({
-          POSITION: [posX, posY, 0],
-          NORMAL: [0, 0, 1],
-          TEXCOORD_0: [u, 1 - v]
-        });
+        const sIndex = index * 8;
+        // POSITION
+        vertices[index] = posX;
+        vertices[index + 1] = posY;
+        vertices[index + 2] = 0;
+        // NORMAL
+        vertices[index + 3] = 0;
+        vertices[index + 4] = 0;
+        vertices[index + 5] = 1;
+        // TEXCOORD_0
+        vertices[index + 6] = u;
+        vertices[index + 7] = 1 - v;
+
         verticesRow.push(index++);
       }
       grid.push(verticesRow);
     }
 
     // 生成所有三角形顶点序号
-    for (let iy = 0; iy < this._parameters.verticalSegments; iy++) {
-      for (let ix = 0; ix < this._parameters.horizontalSegments; ix++) {
+    for (let iy = 0; iy < verticalSegments; iy++) {
+      for (let ix = 0; ix < horizontalSegments; ix++) {
         const a = grid[iy][ix + 1];
         const b = grid[iy][ix];
         const c = grid[iy + 1][ix];
         const d = grid[iy + 1][ix + 1];
 
-        indexValues.push(a, c, b);
-        indexValues.push(a, d, c);
+        indices[index++] = a;
+        indices[index++] = c;
+        indices[index++] = b;
+        indices[index++] = a;
+        indices[index++] = d;
+        indices[index++] = c;
       }
     }
 
-    const position = new BufferAttribute({
-      semantic: "POSITION",
-      size: 3,
-      type: DataType.FLOAT,
-      normalized: false
-    });
-    const normal = new BufferAttribute({
-      semantic: "NORMAL",
-      size: 3,
-      type: DataType.FLOAT,
-      normalized: true
-    });
-    const uv = new BufferAttribute({
-      semantic: "TEXCOORD_0",
-      size: 2,
-      type: DataType.FLOAT,
-      normalized: true
-    });
-
-    const buffer = new InterleavedBuffer([position, normal, uv], vertexCount);
-    this.addVertexBufferParam(buffer);
-
-    const indexBuffer = new IndexBuffer(indexValues.length);
-    this.addIndexBufferParam(indexBuffer);
-    this.setIndexBufferData(indexValues);
-
-    vertexValues.forEach((values, index) => {
-      const pos = values["POSITION"];
-      const normal = values["NORMAL"];
-      const uv = values["TEXCOORD_0"];
-      this.setVertexBufferDataByIndex("POSITION", index, pos);
-      this.setVertexBufferDataByIndex("NORMAL", index, normal);
-      this.setVertexBufferDataByIndex("TEXCOORD_0", index, uv);
-    });
+    this._initialize(engine, vertices, indices);
   }
 }
