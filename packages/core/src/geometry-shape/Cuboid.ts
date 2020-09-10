@@ -1,5 +1,6 @@
 import { Engine } from "../Engine";
 import { GeometryShape } from "./GeometryShape";
+import { FrontFace } from "../base";
 
 /**
  * 长方体
@@ -18,6 +19,7 @@ export class CuboidGeometry extends GeometryShape {
     const halfHeight: number = height / 2;
     const halfWidth: number = width / 2;
 
+    this.primiti;
     // prettier-ignore
     const vertices: Float32Array = new Float32Array([
     	// up
@@ -36,17 +38,17 @@ export class CuboidGeometry extends GeometryShape {
     // prettier-ignore
     const indices: Uint16Array = new Uint16Array([
     	// up
-    	0, 1, 2, 2, 3, 0,
+    	0, 2, 1, 2, 0, 3,
     	// donw
-    	4, 7, 6, 6, 5, 4,
+    	4, 6, 7, 6, 4, 5,
     	// left
-    	8, 9, 10, 10, 11, 8,
+    	8, 10, 9, 10, 8, 11,
     	// right
-    	12, 15, 14, 14, 13, 12,
+    	12, 14, 15, 14, 12, 13,
     	// fornt
-    	16, 17, 18, 18, 19, 16,
+    	16, 18, 17, 18, 16, 19,
     	// back
-    	20, 23, 22, 22, 21, 20]);
+    	20, 22, 23, 22, 20, 21]);
     this._initialize(engine, vertices, indices);
   }
 }
