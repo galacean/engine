@@ -14,7 +14,7 @@ export class CuboidGeometry extends GeometryShape {
    */
   constructor(width: number = 1, height: number = 1, depth: number = 1, engine?: Engine) {
     super();
-
+    engine || Engine._getDefaultEngine();
     var halfDepth: number = depth / 2;
     var halfHeight: number = height / 2;
     var halfWidth: number = width / 2;
