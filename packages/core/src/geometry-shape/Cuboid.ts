@@ -1,150 +1,268 @@
-import { BufferGeometry, InterleavedBuffer } from "../geometry";
-import { BufferAttribute } from "../primitive/type";
-import { DataType } from "../base/Constant";
+import { Engine } from "../Engine";
+import { GeometryShape } from "./GeometryShape";
 
 /**
- * CubeGeometry 长方体创建类
- * @extends BufferGeometry
+ * 长方体几何体。
  */
-export class CuboidGeometry extends BufferGeometry {
-  private _parameters;
-  private _verts;
-  private _normals;
-  private _uvs;
-  private _indexs;
+export class CuboidGeometry extends GeometryShape {
   /**
-   * @constructor
-   * @param {number} width 宽
-   * @param {number} height 高
-   * @param {number} depth 长
+   * 创建长方体。
+   * @param width - 宽
+   * @param height - 高
+   * @param depth - 深
+   * @param engine - 引擎
    */
-  constructor(width?: number, height?: number, depth?: number) {
+  constructor(width: number = 1, height: number = 1, depth: number = 1, engine?: Engine) {
     super();
-    this._parameters = {
-      width: width || 1,
-      height: height || 1,
-      depth: depth || 1
-    };
 
-    // 几何体顶点位置数据
-    this._verts = [
-      [-1, -1, -1],
-      [1, -1, -1],
-      [-1, 1, -1],
-      [1, 1, -1],
-      [-1, -1, 1],
-      [1, -1, 1],
-      [-1, 1, 1],
-      [1, 1, 1]
-    ];
-
-    // 三角形顶点序号数据
-    this._indexs = [
-      7,
-      5,
-      1,
-      3,
-      7,
-      1,
-
-      2,
-      0,
-      4,
-      6,
-      2,
-      4,
-
-      2,
-      6,
-      7,
-      3,
-      2,
-      7,
-
-      4,
+    var halfDepth: number = depth / 2;
+    var halfHeight: number = height / 2;
+    var halfWidth: number = width / 2;
+    var vertices: Float32Array = new Float32Array([
+      //上
+      -halfDepth,
+      halfHeight,
+      -halfWidth,
       0,
       1,
-      5,
-      4,
-      1,
-
-      6,
-      4,
-      5,
-      7,
-      6,
-      5,
-
-      3,
+      0,
+      0,
+      0,
+      halfDepth,
+      halfHeight,
+      -halfWidth,
+      0,
       1,
       0,
+      1,
+      0,
+      halfDepth,
+      halfHeight,
+      halfWidth,
+      0,
+      1,
+      0,
+      1,
+      1,
+      -halfDepth,
+      halfHeight,
+      halfWidth,
+      0,
+      1,
+      0,
+      0,
+      1,
+      //下
+      -halfDepth,
+      -halfHeight,
+      -halfWidth,
+      0,
+      -1,
+      0,
+      0,
+      1,
+      halfDepth,
+      -halfHeight,
+      -halfWidth,
+      0,
+      -1,
+      0,
+      1,
+      1,
+      halfDepth,
+      -halfHeight,
+      halfWidth,
+      0,
+      -1,
+      0,
+      1,
+      0,
+      -halfDepth,
+      -halfHeight,
+      halfWidth,
+      0,
+      -1,
+      0,
+      0,
+      0,
+      //左
+      -halfDepth,
+      halfHeight,
+      -halfWidth,
+      -1,
+      0,
+      0,
+      0,
+      0,
+      -halfDepth,
+      halfHeight,
+      halfWidth,
+      -1,
+      0,
+      0,
+      1,
+      0,
+      -halfDepth,
+      -halfHeight,
+      halfWidth,
+      -1,
+      0,
+      0,
+      1,
+      1,
+      -halfDepth,
+      -halfHeight,
+      -halfWidth,
+      -1,
+      0,
+      0,
+      0,
+      1,
+      //右
+      halfDepth,
+      halfHeight,
+      -halfWidth,
+      1,
+      0,
+      0,
+      1,
+      0,
+      halfDepth,
+      halfHeight,
+      halfWidth,
+      1,
+      0,
+      0,
+      0,
+      0,
+      halfDepth,
+      -halfHeight,
+      halfWidth,
+      1,
+      0,
+      0,
+      0,
+      1,
+      halfDepth,
+      -halfHeight,
+      -halfWidth,
+      1,
+      0,
+      0,
+      1,
+      1,
+      //前
+      -halfDepth,
+      halfHeight,
+      halfWidth,
+      0,
+      0,
+      1,
+      0,
+      0,
+      halfDepth,
+      halfHeight,
+      halfWidth,
+      0,
+      0,
+      1,
+      1,
+      0,
+      halfDepth,
+      -halfHeight,
+      halfWidth,
+      0,
+      0,
+      1,
+      1,
+      1,
+      -halfDepth,
+      -halfHeight,
+      halfWidth,
+      0,
+      0,
+      1,
+      0,
+      1,
+      //后
+      -halfDepth,
+      halfHeight,
+      -halfWidth,
+      0,
+      0,
+      -1,
+      1,
+      0,
+      halfDepth,
+      halfHeight,
+      -halfWidth,
+      0,
+      0,
+      -1,
+      0,
+      0,
+      halfDepth,
+      -halfHeight,
+      -halfWidth,
+      0,
+      0,
+      -1,
+      0,
+      1,
+      -halfDepth,
+      -halfHeight,
+      -halfWidth,
+      0,
+      0,
+      -1,
+      1,
+      1
+    ]);
+
+    var indices: Uint16Array = new Uint16Array([
+      //上
+      0,
+      1,
+      2,
       2,
       3,
-      0
-    ];
-
-    // 法线数据
-    this._normals = [
-      [1, 0, 0],
-      [-1, 0, 0],
-      [0, 1, 0],
-      [0, -1, 0],
-      [0, 0, 1],
-      [0, 0, -1]
-    ];
-
-    // uv 坐标数据
-    this._uvs = [
-      [0, 1],
-      [0, 0],
-      [1, 0],
-      [1, 1],
-      [0, 1],
-      [1, 0]
-    ];
-    this.initialize();
-  }
-
-  /**
-   * 构造长方体数据
-   * @private
-   */
-  initialize() {
-    const position = new BufferAttribute({
-      semantic: "POSITION",
-      size: 3,
-      type: DataType.FLOAT,
-      normalized: false
-    });
-    const normal = new BufferAttribute({
-      semantic: "NORMAL",
-      size: 3,
-      type: DataType.FLOAT,
-      normalized: true
-    });
-    const uv = new BufferAttribute({
-      semantic: "TEXCOORD_0",
-      size: 2,
-      type: DataType.FLOAT,
-      normalized: true
-    });
-
-    const buffer = new InterleavedBuffer([position, normal, uv], 36);
-    this.addVertexBufferParam(buffer);
-
-    const widthHalf = this._parameters.width / 2;
-    const heightHalf = this._parameters.height / 2;
-    const depthHalf = this._parameters.depth / 2;
-    this._indexs.forEach((vertIndex, i) => {
-      const vert = this._verts[vertIndex];
-      const pos = [vert[0] * widthHalf, vert[1] * heightHalf, vert[2] * depthHalf];
-      const normalIndex = Math.floor(i / 6);
-      const uvIndex = Math.ceil(i % 6);
-      const normal = this._normals[normalIndex];
-      const uv = this._uvs[uvIndex];
-      this.setVertexBufferDataByIndex("POSITION", i, pos);
-      this.setVertexBufferDataByIndex("NORMAL", i, normal);
-      this.setVertexBufferDataByIndex("TEXCOORD_0", i, uv);
-    });
+      0,
+      //下
+      4,
+      7,
+      6,
+      6,
+      5,
+      4,
+      //左
+      8,
+      9,
+      10,
+      10,
+      11,
+      8,
+      //右
+      12,
+      15,
+      14,
+      14,
+      13,
+      12,
+      //前
+      16,
+      17,
+      18,
+      18,
+      19,
+      16,
+      //后
+      20,
+      23,
+      22,
+      22,
+      21,
+      20
+    ]);
+    this._initialize(engine, vertices, indices);
   }
 }

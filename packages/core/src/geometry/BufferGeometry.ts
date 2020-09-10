@@ -65,8 +65,8 @@ export class BufferGeometry extends AssetObject {
    * @param {string} name 名称
    */
   constructor(name?: string) {
-    name = name || "bufferGeometry" + geometryCount++;
     super();
+    name = name || "bufferGeometry" + geometryCount++;
     this._bufferCount = 0;
     this.primitive = new Primitive();
   }
