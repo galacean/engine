@@ -40,7 +40,6 @@ export class CircleGeometry extends GeometryShape {
       let segment = this.thetaStart + (s / this.segments) * this.thetaLength;
       const x = this.radius * Math.cos(segment);
       const y = this.radius * Math.sin(segment);
-
       this.vertices.concat([x, y, 0, 0, 0, 1, (x / this.radius + 1) / 2, (y / this.radius + 1) / 2]);
     }
 

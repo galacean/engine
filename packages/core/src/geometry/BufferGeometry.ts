@@ -6,6 +6,7 @@ import { DataMap, UpdateRangeMap, UpdateTypeMap } from "../primitive/type";
 import { BufferUtil } from "./graphic/BufferUtil";
 import { VertexElements } from "./graphic/VertexElement";
 import { IndexBuffer, VertexBuffer } from "./index";
+import { Vector3, Matrix } from "@alipay/o3-math";
 
 let geometryCount = 0;
 
@@ -15,6 +16,7 @@ let geometryCount = 0;
  */
 export class BufferGeometry extends AssetObject {
   primitive: Primitive;
+  bounds: any = {};
   private _bufferCount: number;
   private dataCache: DataMap = {};
   private updateTypeCache: UpdateTypeMap = {};
@@ -150,6 +152,56 @@ export class BufferGeometry extends AssetObject {
   getVertexData(semantic) {
     const bufferIndex = this.primitive.semanticIndexMap[semantic];
     return this.dataCache[bufferIndex];
+  }
+
+  /**
+   * 通过 primitive 计算本地/世界坐标系的 min/max
+   * @param - modelMatrix - Local to World矩阵,如果传此值，则计算min/max时将考虑RTS变换，如果不传，则计算local min/max
+   * @param - littleEndian - 是否以小端字节序读取，默认true
+   * */
+  _getMinMax(data: ArrayBuffer | Float32Array, littleEndian = true): any {
+    const bufferIndex = this.primitive.semanticIndexMap["POSITION"];
+    const stride = this.primitive.vertexBuffers[bufferIndex].declaration.vertexStride;
+    const vertexElement = this.primitive.vertexAttributes["POSITION"];
+    const offset = vertexElement.offset;
+    const vertexCount = this.vertexCount;
+    let arrayBuffer: TypedArray | ArrayBuffer = this.dataCache[bufferIndex] || data;
+    if (!(arrayBuffer instanceof ArrayBuffer)) {
+      arrayBuffer = arrayBuffer.buffer;
+    }
+    const dataView = new DataView(arrayBuffer, offset);
+
+    let min = new Vector3(Infinity, Infinity, Infinity);
+    let max = new Vector3(-Infinity, -Infinity, -Infinity);
+    for (let i = 0; i < vertexCount; i++) {
+      const base = offset + stride * i;
+      const position = new Vector3(
+        dataView.getFloat32(base, littleEndian),
+        dataView.getFloat32(base + 4, littleEndian),
+        dataView.getFloat32(base + 8, littleEndian)
+      );
+      Vector3.min(min, position, min);
+      Vector3.max(max, position, max);
+    }
+
+    this.bounds.min = min;
+    this.bounds.max = max;
+  }
+
+  getMinMax(modelMatrix?: Matrix): any {
+    const min = new Vector3();
+    const max = new Vector3();
+    if (modelMatrix) {
+      Vector3.transformCoordinate(this.bounds.min, modelMatrix, min);
+      Vector3.transformCoordinate(this.bounds.max, modelMatrix, max);
+    } else {
+      this.bounds.min.cloneTo(min);
+      this.bounds.max.cloneTo(max);
+    }
+    return {
+      min: min,
+      max: max
+    };
   }
 
   /**
