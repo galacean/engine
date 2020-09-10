@@ -19,7 +19,6 @@ export class CuboidGeometry extends GeometryShape {
     const halfHeight: number = height / 2;
     const halfWidth: number = width / 2;
 
-    this.primiti;
     // prettier-ignore
     const vertices: Float32Array = new Float32Array([
     	// up
