@@ -1,22 +1,24 @@
 import { Vector3 } from "@alipay/o3-math";
-import { BufferGeometry, InterleavedBuffer } from "../geometry";
-import { BufferAttribute } from "../primitive/type";
-import { DataType, FrontFace } from "../base/Constant";
+import { FrontFace } from "../base/Constant";
+import { GeometryShape } from "./GeometryShape";
+import { Engine } from "../Engine";
 
 /**
  * SphereGeometry 球体创建类
  * @extends BufferGeometry
  */
-export class CylinderGeometry extends BufferGeometry {
+export class CylinderGeometry extends GeometryShape {
   public FrontFace;
   public index;
   public indexArray;
   public halfHeight;
   private _parameters;
+  // private _indexs;
+  // private _verts;
+  // private _normals;
+  // private _uvs;
+  private _vertices;
   private _indexs;
-  private _verts;
-  private _normals;
-  private _uvs;
 
   /**
    * @constructor
@@ -38,7 +40,8 @@ export class CylinderGeometry extends BufferGeometry {
     openEnded?: boolean,
     thetaStart?: number,
     thetaLength?: number,
-    frontFace?: FrontFace
+    frontFace?: FrontFace,
+    engine?: Engine
   ) {
     super();
     this.FrontFace = frontFace || FrontFace.CCW;
@@ -52,18 +55,9 @@ export class CylinderGeometry extends BufferGeometry {
       thetaStart: thetaStart || 0,
       thetaLength: thetaLength || 2 * Math.PI
     };
-    this.initialize();
-  }
 
-  /**
-   * 构造圆柱体数据
-   * @private
-   */
-  initialize() {
+    this._vertices = [];
     this._indexs = [];
-    this._verts = [];
-    this._normals = [];
-    this._uvs = [];
 
     this.index = 0;
     this.indexArray = [];
@@ -76,68 +70,40 @@ export class CylinderGeometry extends BufferGeometry {
       if (this._parameters.radiusBottom > 0) this.generateCap(false);
     }
 
-    const position = new BufferAttribute({
-      semantic: "POSITION",
-      size: 3,
-      type: DataType.FLOAT,
-      normalized: false
-    });
-    const normal = new BufferAttribute({
-      semantic: "NORMAL",
-      size: 3,
-      type: DataType.FLOAT,
-      normalized: true
-    });
-    const uv = new BufferAttribute({
-      semantic: "TEXCOORD_0",
-      size: 2,
-      type: DataType.FLOAT,
-      normalized: true
-    });
-
-    const buffer = new InterleavedBuffer([position, normal, uv], this._indexs.length);
-    this.addVertexBufferParam(buffer);
-
-    this._indexs.forEach((vertIndex, i) => {
-      const pos = this._verts[vertIndex];
-      const normal = this._normals[vertIndex];
-      const uv = this._uvs[vertIndex];
-      this.setVertexBufferDataByIndex("POSITION", i, pos);
-      this.setVertexBufferDataByIndex("NORMAL", i, normal);
-      this.setVertexBufferDataByIndex("TEXCOORD_0", i, uv);
-    });
+    this._initialize(engine, Float32Array.from(this._vertices), Uint16Array.from(this._indexs));
   }
 
   generateTorso() {
+    const { radialSegments, heightSegments, radiusBottom, radiusTop, height } = this._parameters;
     let x, y;
     const normal: Vector3 = new Vector3();
-    const slope = (this._parameters.radiusBottom - this._parameters.radiusTop) / this._parameters.height;
-    for (y = 0; y <= this._parameters.heightSegments; y++) {
+    const slope = (radiusBottom - radiusTop) / height;
+    for (y = 0; y <= heightSegments; y++) {
       const indexRow = [];
-      const v = y / this._parameters.heightSegments;
-      const radius = v * (this._parameters.radiusBottom - this._parameters.radiusTop) + this._parameters.radiusTop;
-      for (x = 0; x <= this._parameters.radialSegments; x++) {
-        const u = x / this._parameters.radialSegments;
+      const v = y / heightSegments;
+      const radius = v * (radiusBottom - radiusTop) + radiusTop;
+      for (x = 0; x <= radialSegments; x++) {
+        const u = x / radialSegments;
         const theta = u * this._parameters.thetaLength + this._parameters.thetaStart;
         const sinTheta = Math.sin(theta);
         const cosTheta = Math.cos(theta);
 
         // vertex
         const vertX = radius * sinTheta;
-        const vertY = -v * this._parameters.height + this.halfHeight;
+        const vertY = -v * height + this.halfHeight;
         const vertZ = radius * cosTheta;
-        this._verts.push([vertX, vertY, vertZ]);
+        this._vertices.push(vertX, vertY, vertZ);
 
         // normal
         normal.setValue(sinTheta, slope, cosTheta);
         normal.normalize();
-        this._normals.push([normal.x, normal.y, normal.z]);
+        this._vertices.push(normal.x, normal.y, normal.z);
 
         // uv
         if (this.FrontFace === FrontFace.CCW) {
-          this._uvs.push([u, v]);
+          this._vertices.push(u, v);
         } else {
-          this._uvs.push([1 - u, v]);
+          this._vertices.push(1 - u, v);
         }
 
         indexRow.push(this.index++);
@@ -146,8 +112,8 @@ export class CylinderGeometry extends BufferGeometry {
       this.indexArray.push(indexRow);
     }
 
-    for (x = 0; x < this._parameters.radialSegments; x++) {
-      for (y = 0; y < this._parameters.heightSegments; y++) {
+    for (x = 0; x < radialSegments; x++) {
+      for (y = 0; y < heightSegments; y++) {
         var a = this.indexArray[y][x];
         var b = this.indexArray[y + 1][x];
         var c = this.indexArray[y + 1][x + 1];
@@ -161,28 +127,29 @@ export class CylinderGeometry extends BufferGeometry {
   }
 
   generateCap(isTop) {
+    const { radialSegments } = this._parameters;
     let x;
     const radius = isTop === true ? this._parameters.radiusTop : this._parameters.radiusBottom;
     const sign = isTop === true ? 1 : -1;
     const centerIndexStart = this.index;
 
-    for (x = 1; x <= this._parameters.radialSegments; x++) {
+    for (x = 1; x <= radialSegments; x++) {
       // vertex
-      this._verts.push([0, this.halfHeight * sign, 0]);
+      this._vertices.push(0, this.halfHeight * sign, 0);
 
       // normal
-      this._normals.push([0, sign, 0]);
+      this._vertices.push(0, sign, 0);
 
       // uv
-      this._uvs.push([0.5, 0.5]);
+      this._vertices.push(0.5, 0.5);
 
       // increase index
       this.index++;
     }
     const centerIndexEnd = this.index;
 
-    for (x = 0; x <= this._parameters.radialSegments; x++) {
-      const u = x / this._parameters.radialSegments;
+    for (x = 0; x <= radialSegments; x++) {
+      const u = x / radialSegments;
       const theta = u * this._parameters.thetaLength + this._parameters.thetaStart;
       const cosTheta = Math.cos(theta);
       const sinTheta = Math.sin(theta);
@@ -191,21 +158,21 @@ export class CylinderGeometry extends BufferGeometry {
       const vertexX = radius * sinTheta;
       const vertexY = this.halfHeight * sign;
       const vertexZ = radius * cosTheta;
-      this._verts.push([vertexX, vertexY, vertexZ]);
+      this._vertices.push(vertexX, vertexY, vertexZ);
 
       // normal
-      this._normals.push([0, sign, 0]);
+      this._vertices.push(0, sign, 0);
 
       // uv
       const uvX = cosTheta * 0.5 + 0.5;
       const uvY = sinTheta * 0.5 * sign + 0.5;
-      this._uvs.push([uvX, uvY]);
+      this._vertices.push(uvX, uvY);
 
       // increase index
       this.index++;
     }
 
-    for (x = 0; x < this._parameters.radialSegments; x++) {
+    for (x = 0; x < radialSegments; x++) {
       var c = centerIndexStart + x;
       var i = centerIndexEnd + x;
       if (isTop === true) {
