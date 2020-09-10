@@ -1,49 +1,35 @@
-import { BufferGeometry, InterleavedBuffer } from "../geometry";
-import { BufferAttribute } from "../primitive/type";
-import { DataType, DrawMode } from "../base/Constant";
+import { DrawMode } from "../base/Constant";
+import { Engine } from "../Engine";
+import { GeometryShape } from "./GeometryShape";
+import { VertexDeclaration } from "../geometry/graphic/VertexDeclaration";
+import { VertexElement } from "../geometry/graphic/VertexElement";
+import { VertexElementFormat } from "../geometry/graphic/enums/VertexElementFormat";
 
 /**
  * 覆盖整个屏幕的一个矩形
  * @private
  */
-export class ScreenQuadGeometry extends BufferGeometry {
-  constructor() {
+export class ScreenQuadGeometry extends GeometryShape {
+  constructor(engine?: Engine) {
     super();
-    this.initialize();
+    this.mode = DrawMode.TRIANGLE_FAN;
+
+    const vertices: Float32Array = new Float32Array([-1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1]);
+
+    const indices: Uint16Array = new Uint16Array([0, 1, 2, 3]);
+
+    this._initialize(engine, vertices, indices);
   }
 
-  /**
-   * 初始化，构造两个三角形组成的矩形
-   */
-  initialize() {
-    const position = new BufferAttribute({
-      semantic: "POSITION",
-      size: 3,
-      type: DataType.FLOAT,
-      normalized: false
-    });
-    const uv = new BufferAttribute({
-      semantic: "TEXCOORD_0",
-      size: 2,
-      type: DataType.FLOAT,
-      normalized: true
-    });
+  _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
+    engine = engine || Engine._getDefaultEngine();
+    const vertexStride = 20;
 
-    const buffer = new InterleavedBuffer([position, uv], 4);
-    this.addVertexBufferParam(buffer);
+    const declaration: VertexDeclaration = new VertexDeclaration(vertexStride, [
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
+    ]);
 
-    this.setVertexBufferDataByIndex("POSITION", 0, [-1, -1]);
-    this.setVertexBufferDataByIndex("TEXCOORD_0", 0, [0, 0]);
-
-    this.setVertexBufferDataByIndex("POSITION", 1, [1, -1]);
-    this.setVertexBufferDataByIndex("TEXCOORD_0", 1, [1, 0]);
-
-    this.setVertexBufferDataByIndex("POSITION", 2, [1, 1]);
-    this.setVertexBufferDataByIndex("TEXCOORD_0", 2, [1, 1]);
-
-    this.setVertexBufferDataByIndex("POSITION", 1, [-1, 1]);
-    this.setVertexBufferDataByIndex("TEXCOORD_0", 1, [0, 1]);
-
-    this.primitive.mode = DrawMode.TRIANGLE_FAN;
+    this._init(engine, vertices, indices, vertexStride, declaration);
   }
 }

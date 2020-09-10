@@ -19,13 +19,25 @@ export class GeometryShape extends BufferGeometry {
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
     engine = engine || Engine._getDefaultEngine();
     const vertexStride = 32;
-    const vertexBufferlength = vertices.byteLength;
+
     const declaration: VertexDeclaration = new VertexDeclaration(vertexStride, [
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0)
     ]);
 
+    this._init(engine, vertices, indices, vertexStride, declaration);
+  }
+
+  // TODO api命名待定
+  _init(
+    engine: Engine,
+    vertices: Float32Array,
+    indices: Uint16Array,
+    vertexStride: number,
+    declaration: VertexDeclaration
+  ) {
+    const vertexBufferlength = vertices.byteLength;
     const vertexBuffer = new VertexBuffer(vertexBufferlength, BufferUsage.Static, engine);
     const indexBuffer = new IndexBuffer(indices.length, IndexFormat.UInt16, BufferUsage.Static, engine);
     vertexBuffer.setData(vertices);

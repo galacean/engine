@@ -1,9 +1,10 @@
-import { BufferGeometry, InterleavedBuffer, IndexBuffer } from "../geometry";
-import { BufferAttribute } from "../primitive/type";
-import { Vector3 } from "@alipay/o3-math";
-import { DataType } from "../base/Constant";
+import { Engine } from "../Engine";
+import { GeometryShape } from "./GeometryShape";
+import { VertexDeclaration } from "../geometry/graphic/VertexDeclaration";
+import { VertexElement } from "../geometry/graphic/VertexElement";
+import { VertexElementFormat } from "../geometry/graphic/enums/VertexElementFormat";
 
-export class TorusGeometry extends BufferGeometry {
+export class TorusGeometry extends GeometryShape {
   constructor(
     private parameters: {
       radius?: number;
@@ -11,7 +12,8 @@ export class TorusGeometry extends BufferGeometry {
       radialSegments?: number;
       tubularSegments?: number;
       arc?: number;
-    } = {}
+    } = {},
+    engine?: Engine
   ) {
     super();
 
@@ -24,51 +26,25 @@ export class TorusGeometry extends BufferGeometry {
     const arc = this.parameters.arc || Math.PI * 2;
 
     // buffers
-
-    const indices = [];
-    const vertices = [];
-    const normals = [];
-    const uvs = [];
-
-    // helper variables
-
-    const center: Vector3 = new Vector3();
-    const vertex: Vector3 = new Vector3();
-    const normal: Vector3 = new Vector3();
+    const vertices: Float32Array = new Float32Array((radialSegments + 1) * (tubularSegments + 1) * 3);
+    const indices: Uint16Array = new Uint16Array(radialSegments * tubularSegments * 6);
 
     // generate vertices, normals and uvs
-
+    let index = 0;
     for (let j = 0; j <= radialSegments; j++) {
       for (let i = 0; i <= tubularSegments; i++) {
         const u = (i / tubularSegments) * arc;
         const v = (j / radialSegments) * Math.PI * 2;
 
-        // vertex
-
-        vertex.x = (radius + tube * Math.cos(v)) * Math.cos(u);
-        vertex.y = (radius + tube * Math.cos(v)) * Math.sin(u);
-        vertex.z = tube * Math.sin(v);
-
-        vertices.push([vertex.x, vertex.y, vertex.z]);
-
-        // normal
-
-        center.x = radius * Math.cos(u);
-        center.y = radius * Math.sin(u);
-        Vector3.subtract(vertex, center, normal);
-        normal.normalize();
-
-        normals.push(normal.x, normal.y, normal.z);
-
-        // uv
-
-        uvs.push(i / tubularSegments);
-        uvs.push(j / radialSegments);
+        // POSITION
+        vertices[index++] = (radius + tube * Math.cos(v)) * Math.cos(u);
+        vertices[index++] = (radius + tube * Math.cos(v)) * Math.sin(u);
+        vertices[index++] = tube * Math.sin(v);
       }
     }
 
     // generate indices
-
+    index = 0;
     for (let j = 1; j <= radialSegments; j++) {
       for (let i = 1; i <= tubularSegments; i++) {
         // indices
@@ -79,31 +55,25 @@ export class TorusGeometry extends BufferGeometry {
         const d = (tubularSegments + 1) * j + i;
 
         // faces
-
-        indices.push(a, b, d);
-        indices.push(b, c, d);
+        indices[index++] = a;
+        indices[index++] = b;
+        indices[index++] = d;
+        indices[index++] = b;
+        indices[index++] = c;
+        indices[index++] = d;
       }
     }
-    this.initialize(vertices, indices);
+    this._initialize(engine, vertices, indices);
   }
 
-  initialize(vertices, indices) {
-    const position = new BufferAttribute({
-      semantic: "POSITION",
-      size: 3,
-      type: DataType.FLOAT,
-      normalized: false
-    });
+  _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
+    engine = engine || Engine._getDefaultEngine();
+    const vertexStride = 12;
 
-    const buffer = new InterleavedBuffer([position], vertices.length);
-    this.addVertexBufferParam(buffer);
+    const declaration: VertexDeclaration = new VertexDeclaration(vertexStride, [
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0)
+    ]);
 
-    const indexBuffer = new IndexBuffer(indices.length);
-    this.addIndexBufferParam(indexBuffer);
-    this.setIndexBufferData(indices);
-
-    vertices.forEach((value, index) => {
-      this.setVertexBufferDataByIndex("POSITION", index, value);
-    });
+    this._init(engine, vertices, indices, vertexStride, declaration);
   }
 }
