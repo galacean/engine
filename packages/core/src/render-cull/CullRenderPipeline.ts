@@ -38,8 +38,8 @@ export class CullRenderPipeline extends BasicRenderPipeline {
 
     //-- 进行视锥剪裁
     if (!primitive.boundingBox) {
-      const { min, max } = primitive.getMinMax();
-      primitive.boundingBox = new OBB(min, max, node.getModelMatrix());
+      // const { min, max } = primitive.getMinMax();
+      // primitive.boundingBox = new OBB(min, max, node.getModelMatrix());
     }
 
     // TODO: use model matrix dirty

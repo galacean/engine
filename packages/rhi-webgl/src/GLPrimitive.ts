@@ -38,8 +38,8 @@ export class GLPrimitive extends GLAsset {
       if (loc === -1) continue;
 
       const semantic = techAttributes[name].semantic;
-      const att = attributes[semantic];
-      if (att) {
+      const element = attributes[semantic];
+      if (element) {
         const bufferIndex = semanticIndexMap[semantic];
         const vertexBuffer = vertexBuffers[bufferIndex];
         vbo = vertexBuffer._nativeBuffer;
@@ -52,14 +52,14 @@ export class GLPrimitive extends GLAsset {
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(
           loc,
-          att.elementInfo.size,
-          att.elementInfo.type,
-          att.normalized,
+          element.elementInfo.size,
+          element.elementInfo.type,
+          element.normalized,
           vertexBuffer.declaration.vertexStride,
-          att.offset
+          element.offset
         );
         if (this.canUseInstancedArrays) {
-          gl.vertexAttribDivisor(loc, att.instanced);
+          gl.vertexAttribDivisor(loc, element.instanceDivisor);
         }
         this.attribLocArray.push(loc);
       } else {

@@ -31,7 +31,7 @@ export class Mesh extends ReferenceObject {
     const primitives = this.primitives;
     for (let i = 0, len = primitives.length; i < len; i++) {
       // TODO: 修改为最新的销毁，销毁实现删除 VAO、VB、IB
-      primitives[i].finalize();
+      primitives[i].destroy();
     }
   }
 }

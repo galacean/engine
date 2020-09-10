@@ -10,7 +10,7 @@ export class VertexElement {
   private _semantic: string;
   private _offset: number;
   private _format: VertexElementFormat;
-  private _instanced: number;
+  private _instanceDivisor: number;
   private _elementInfo: ElementInfo;
 
   /**
@@ -35,17 +35,25 @@ export class VertexElement {
   }
 
   /**
+   * 实例除数，0表示不开启实例，大于1表示开启。
+   */
+  get instanceDivisor(): number {
+    return this._instanceDivisor;
+  }
+
+  /**
    * 构造顶点元素。
    * @param semantic - 顶点着色器输入签名。
    * @param offset - 顶点的偏移，以字节为单位
    * @param format - 顶点元素格式
+   * @param instanceDivisor - 实例除数，0表示不开启实例，大于1表示开启
    */
-  constructor(semantic: string, offset: number, format: VertexElementFormat, instanced: number = 0) {
+  constructor(semantic: string, offset: number, format: VertexElementFormat, instanceDivisor: number = 0) {
     this._semantic = semantic;
     this._offset = offset;
     this._format = format;
     this._elementInfo = BufferUtil._getElementInfo(this.format);
-    this._instanced = instanced;
+    this._instanceDivisor = Math.floor(instanceDivisor);
   }
 
   /**
@@ -53,13 +61,6 @@ export class VertexElement {
    */
   get elementInfo(): ElementInfo {
     return this._elementInfo;
-  }
-
-  /**
-   * @deprecated
-   */
-  get instanced(): number {
-    return this._instanced;
   }
 }
 

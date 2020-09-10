@@ -60,10 +60,10 @@ export class Primitive extends AssetObject {
     const elements = vertexBuffer.declaration.elements;
     for (let i = 0, n = elements.length; i < n; i++) {
       const element = elements[i];
-      const { semantic, instanced } = element;
+      const { semantic, instanceDivisor } = element;
       this.vertexAttributes[semantic] = element;
       this.semanticIndexMap[semantic] = index;
-      if (instanced) {
+      if (instanceDivisor) {
         this.isInstanced = true;
       }
     }
