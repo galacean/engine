@@ -10,12 +10,12 @@ import { SetDataOptions } from "./enums/SetDataOptions";
  */
 export class VertexBuffer {
   _glBufferUsage: number;
+  _nativeBuffer: WebGLBuffer;
 
   /** 顶点声明。*/
   public declaration: VertexDeclaration;
 
   private _hardwareRenderer: HardwareRenderer;
-  private _nativeBuffer: WebGLBuffer;
   private _engine: Engine;
   private _length: number;
   private _bufferUsage: BufferUsage;

@@ -9,11 +9,11 @@ import { SetDataOptions } from "./enums/SetDataOptions";
  * 索引缓冲。
  */
 export class IndexBuffer {
+  _nativeBuffer: WebGLBuffer;
   _glIndexType: number;
   _glBufferUsage: number;
 
   private _hardwareRenderer: HardwareRenderer;
-  private _nativeBuffer: WebGLBuffer;
   private _engine: Engine;
   private _indexCount: number;
   private _bufferUsage: BufferUsage;
