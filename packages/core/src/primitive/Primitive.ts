@@ -2,8 +2,8 @@ import { AssetObject } from "../asset/AssetObject";
 import { DrawMode } from "../base/Constant";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
-import { IndexBuffer, VertexBuffer, VertexElements } from "../geometry";
-import { SemanticMap } from "./type";
+import { IndexBuffer, VertexDeclaration, VertexElements } from "../geometry";
+import { VertexBufferBinding } from "../geometry/graphic/VertexBufferBinding";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
 
@@ -17,7 +17,9 @@ export class Primitive extends AssetObject {
   readonly id: number;
   mode: DrawMode = DrawMode.TRIANGLES;
   vertexAttributes: VertexElements = {};
-  private _vertexBuffers: VertexBuffer[] = [];
+
+  /** 顶点声明。*/
+  vertexDeclaration: VertexDeclaration;
   vertexOffset: number = 0;
   vertexCount: number = 0;
 
@@ -35,34 +37,33 @@ export class Primitive extends AssetObject {
   isInstanced: boolean = false;
   instancedCount: number;
 
-  semanticIndexMap: SemanticMap = {};
+  private _vertexBufferBindings: VertexBufferBinding[] = [];
 
   get attributes() {
     return this.vertexAttributes;
   }
 
-  get vertexBuffers(): Readonly<VertexBuffer[]> {
-    return this._vertexBuffers;
+  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
+    return this._vertexBufferBindings;
   }
 
-  /**
-   * @constructor
-   */
   constructor(name?: string) {
     super();
     this.id = primitiveID++;
     this.name = name;
   }
 
-  addVertexBuffer(vertexBuffer: VertexBuffer): void {
-    const index = this.vertexBuffers.length;
-    this._vertexBuffers.push(vertexBuffer);
-    const elements = vertexBuffer.declaration.elements;
+  addVertexBuffer(vertexBufferBinding: VertexBufferBinding): void {
+    this._vertexBufferBindings.push(vertexBufferBinding);
+  }
+
+  setVertexDeclaration(vertexDeclaration: VertexDeclaration): void {
+    this.vertexDeclaration = vertexDeclaration;
+    const elements = vertexDeclaration.elements;
     for (let i = 0, n = elements.length; i < n; i++) {
       const element = elements[i];
       const { semantic, instanceDivisor } = element;
       this.vertexAttributes[semantic] = element;
-      this.semanticIndexMap[semantic] = index;
       if (instanceDivisor) {
         this.isInstanced = true;
       }
@@ -92,7 +93,7 @@ export class Primitive extends AssetObject {
   reset() {
     this.mode = DrawMode.TRIANGLES;
     this.vertexAttributes = {};
-    this._vertexBuffers = [];
+    this._vertexBufferBindings = [];
     this.vertexCount = 0;
 
     this.indexBuffer = null;
@@ -108,7 +109,5 @@ export class Primitive extends AssetObject {
 
     this.isInstanced = false;
     this.instancedCount = null;
-
-    this.semanticIndexMap = {};
   }
 }

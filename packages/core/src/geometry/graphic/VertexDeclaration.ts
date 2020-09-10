@@ -4,15 +4,7 @@ import { VertexElement } from "./vertexElement";
  * 顶点声明，描述 VertexBuffer 的顶点声明结构。
  */
 export class VertexDeclaration {
-  private _vertexStride: number;
   private _elements: VertexElement[];
-
-  /**
-   * 顶点跨度。
-   */
-  get vertexStride(): number {
-    return this._vertexStride;
-  }
 
   /**
    * 顶点元素集合。
@@ -26,8 +18,7 @@ export class VertexDeclaration {
    * @param vertexStride - 顶点跨度。
    * @param elements - 顶点元素集合。
    */
-  constructor(vertexStride: number, elements: VertexElement[]) {
-    this._vertexStride = vertexStride;
+  constructor(elements: VertexElement[]) {
     this._elements = elements;
   }
 }

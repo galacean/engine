@@ -8,6 +8,7 @@ import { IndexBuffer } from "../geometry/graphic/IndexBuffer";
 import { VertexBuffer } from "../geometry/graphic/VertexBuffer";
 import { VertexDeclaration } from "../geometry/graphic/VertexDeclaration";
 import { VertexElement } from "../geometry/graphic/VertexElement";
+import { VertexBufferBinding } from "../geometry/graphic/VertexBufferBinding";
 
 /**
  * 基本形状几何体。
@@ -18,9 +19,9 @@ export class GeometryShape extends BufferGeometry {
    */
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
     engine = engine || Engine._getDefaultEngine();
-    const vertexStride = 32;
 
-    const declaration: VertexDeclaration = new VertexDeclaration(vertexStride, [
+    const vertexStride = 32;
+    const declaration: VertexDeclaration = new VertexDeclaration([
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0)
@@ -40,13 +41,14 @@ export class GeometryShape extends BufferGeometry {
     const vertexBufferlength = vertices.byteLength;
     const vertexBuffer = new VertexBuffer(vertexBufferlength, BufferUsage.Static, engine);
     const indexBuffer = new IndexBuffer(indices.length, IndexFormat.UInt16, BufferUsage.Static, engine);
-    vertexBuffer.setData(vertices);
-    vertexBuffer.declaration = declaration;
-    indexBuffer.setData(indices);
 
-    this.addVertexBuffer(vertexBuffer, null);
-    this.setIndexBuffer(indexBuffer, null);
+    vertexBuffer.setData(vertices);
+    this.primitive.setVertexDeclaration(declaration);
+    this.addVertexBuffer(new VertexBufferBinding(vertexBuffer, vertexStride), null);
     this.vertexCount = vertexBufferlength / vertexStride;
+
+    indexBuffer.setData(indices);
+    this.setIndexBuffer(indexBuffer, null);
     this.indexCount = indices.length;
 
     this._getMinMax(vertices);

@@ -1,8 +1,7 @@
 import { Engine } from "../../Engine";
-import { BufferUsage } from "./enums/BufferUsage";
-import { VertexDeclaration } from "./VertexDeclaration";
 import { HardwareRenderer } from "../../HardwareRenderer";
 import { BufferUtil } from "./BufferUtil";
+import { BufferUsage } from "./enums/BufferUsage";
 import { SetDataOptions } from "./enums/SetDataOptions";
 
 /**
@@ -11,9 +10,6 @@ import { SetDataOptions } from "./enums/SetDataOptions";
 export class VertexBuffer {
   _glBufferUsage: number;
   _nativeBuffer: WebGLBuffer;
-
-  /** 顶点声明。*/
-  public declaration: VertexDeclaration;
 
   private _hardwareRenderer: HardwareRenderer;
   private _engine: Engine;
@@ -189,18 +185,6 @@ export class VertexBuffer {
     this._nativeBuffer = null;
     this._engine = null;
     this._hardwareRenderer = null;
-  }
-
-  /**
-   * @deprecated
-   */
-  get semanticList() {
-    const semanticList = [];
-    for (let i = 0; i < this.declaration.elements.length; i++) {
-      const semantic = this.declaration.elements[i].semantic;
-      semanticList.push(semantic);
-    }
-    return semanticList;
   }
 
   /**

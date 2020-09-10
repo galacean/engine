@@ -1,12 +1,12 @@
+import { Matrix, Vector3 } from "@alipay/o3-math";
 import { AssetObject } from "../asset/AssetObject";
 import { TypedArray, UpdateType } from "../base/Constant";
-import { Logger } from "../base/Logger";
 import { Primitive } from "../primitive/Primitive";
 import { DataMap, UpdateRangeMap, UpdateTypeMap } from "../primitive/type";
 import { BufferUtil } from "./graphic/BufferUtil";
+import { VertexBufferBinding } from "./graphic/VertexBufferBinding";
 import { VertexElements } from "./graphic/VertexElement";
-import { IndexBuffer, VertexBuffer } from "./index";
-import { Vector3, Matrix } from "@alipay/o3-math";
+import { IndexBuffer } from "./index";
 
 let geometryCount = 0;
 
@@ -76,7 +76,7 @@ export class BufferGeometry extends AssetObject {
   /**
    * 添加一个VB数据
    */
-  addVertexBuffer(vertexBuffer: VertexBuffer, data: TypedArray) {
+  addVertexBuffer(vertexBuffer: VertexBufferBinding, data: TypedArray) {
     this.primitive.addVertexBuffer(vertexBuffer);
     this.dataCache[this._bufferCount] = data;
     this.updateTypeCache[this._bufferCount] = UpdateType.INIT;
@@ -88,10 +88,9 @@ export class BufferGeometry extends AssetObject {
    * 设置顶点数据
    */
   setVertexData(semantic: string, data: TypedArray, offset: number = 0, dataIndex: number = 0, dataCount?: number) {
-    const buffer = this.getBufferBySemantic(semantic);
-    const { declaration } = buffer;
-    const bufferIndex = this.primitive.semanticIndexMap[semantic];
-    const element = declaration.elements.find((element) => element.semantic === semantic);
+    const declaration = this.primitive.vertexDeclaration;
+    const element = this.primitive.vertexAttributes[semantic];
+    const bufferIndex = element.vertexBufferSlot;
     const byteSize = BufferUtil._getVertexDataTypeSize(element._glElementInfo.type);
     const dataOffset = element.offset / byteSize;
     const totalSize = declaration.elements.map((item) => item._glElementInfo.size).reduce((a, b) => a + b);
@@ -100,22 +99,23 @@ export class BufferGeometry extends AssetObject {
     if (dataCount !== undefined) {
       data = data.slice(dataIndex, dataCount);
     }
-    if (declaration.elements.length > 1) {
-      const _offset = offset * totalSize + dataOffset;
-      this.dataCache[bufferIndex].set(data, _offset);
-      this._udpateInterleavedFlag(semantic, offset, byteSize, data.length);
-    } else {
-      this.dataCache[bufferIndex].set(data, offset);
-      this._updateFlag(bufferIndex, offset, bufferOffset, data.length);
-    }
+    // if (declaration.elements.length > 1) {
+    //   const _offset = offset * totalSize + dataOffset;
+    //   this.dataCache[bufferIndex].set(data, _offset);
+    //   this._udpateInterleavedFlag(semantic, offset, byteSize, data.length);
+    // } else {
+    this.dataCache[bufferIndex].set(data, offset);
+    this._updateFlag(bufferIndex, offset, bufferOffset, data.length);
+    // }
   }
 
   resizeVertexBuffer(semantic: string, data: TypedArray) {
-    const bufferIndex = this.primitive.semanticIndexMap[semantic];
+    const element = this.primitive.vertexAttributes[semantic];
+    const bufferIndex = element.vertexBufferSlot;
     this.dataCache[bufferIndex] = data;
-    const vertexBuffer = this.primitive.vertexBuffers[bufferIndex];
-    const { declaration } = vertexBuffer;
-    const element = declaration.elements.find((item) => item.semantic === semantic);
+    const vertexBufferBinding = this.primitive.vertexBufferBindings[bufferIndex];
+    const { buffer: vertexBuffer, stride } = vertexBufferBinding;
+
     const byteSize = BufferUtil._getVertexDataTypeSize(element._glElementInfo.type);
     vertexBuffer.resize(data.length * byteSize);
     this.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
@@ -150,7 +150,7 @@ export class BufferGeometry extends AssetObject {
   }
 
   getVertexData(semantic) {
-    const bufferIndex = this.primitive.semanticIndexMap[semantic];
+    const bufferIndex = this.primitive.vertexAttributes[semantic].vertexBufferSlot;
     return this.dataCache[bufferIndex];
   }
 
@@ -160,9 +160,9 @@ export class BufferGeometry extends AssetObject {
    * @param - littleEndian - 是否以小端字节序读取，默认true
    * */
   _getMinMax(data: ArrayBuffer | Float32Array, littleEndian = true): any {
-    const bufferIndex = this.primitive.semanticIndexMap["POSITION"];
-    const stride = this.primitive.vertexBuffers[bufferIndex].declaration.vertexStride;
     const vertexElement = this.primitive.vertexAttributes["POSITION"];
+    const bufferIndex = vertexElement.vertexBufferSlot;
+    const stride = this.primitive.vertexBufferBindings[bufferIndex].stride;
     const offset = vertexElement.offset;
     const vertexCount = this.vertexCount;
     let arrayBuffer: TypedArray | ArrayBuffer = this.dataCache[bufferIndex] || data;
@@ -226,10 +226,10 @@ export class BufferGeometry extends AssetObject {
    */
   protected updateVertexBuffer(index: number, updateRange: any) {
     const primitive = this.primitive;
-    const { vertexBuffers } = primitive;
+    const { vertexBufferBindings: vertexBuffers } = primitive;
     const { bufferOffset, offset, end } = updateRange;
     const data = this.dataCache[index];
-    const vertexBuffer = vertexBuffers[index];
+    const vertexBuffer = vertexBuffers[index].buffer;
     if (offset === -1) {
       vertexBuffer.setData(data);
     } else {
@@ -255,7 +255,7 @@ export class BufferGeometry extends AssetObject {
    * 初始化或更新 BufferObject
    * */
   protected prepareBuffers() {
-    const vertexBuffer = this.primitive.vertexBuffers;
+    const vertexBuffer = this.primitive.vertexBufferBindings;
     for (let i: number = 0, n: number = vertexBuffer.length; i < n; i++) {
       this._handleUpdateVertex(i);
     }
@@ -297,25 +297,6 @@ export class BufferGeometry extends AssetObject {
     }
   }
 
-  private getBufferBySemantic(semantic: string): VertexBuffer | undefined {
-    const attributes = this.primitive.attributes;
-    const vertexAttrib = attributes[semantic];
-    if (vertexAttrib === undefined) {
-      Logger.error("UNKNOWN semantic: " + name);
-      return;
-    }
-
-    const matchBuffer = this.primitive.vertexBuffers.filter((vertexBuffer) =>
-      vertexBuffer.semanticList.includes(semantic)
-    );
-    if (matchBuffer.length > 1) {
-      Logger.error("Duplicated semantic: " + name);
-      return;
-    }
-
-    return matchBuffer[0];
-  }
-
   private _updateFlag(bufferIndex: number | string, offset: number, bufferOffset: number, dataLength: number) {
     const updateRange = this.updateRangeCache[bufferIndex];
     const updateTypeCache = this.updateTypeCache;
@@ -332,12 +313,10 @@ export class BufferGeometry extends AssetObject {
   }
 
   private _udpateInterleavedFlag(semantic: string, vertexIndex: number, byteSize: number, dataLength: number) {
-    const bufferIndex = this.primitive.semanticIndexMap[semantic];
-    const buffer = this.primitive.vertexBuffers[bufferIndex];
-    const { declaration } = buffer;
-    const vertexElement = declaration.elements.find((item) => item.semantic === semantic);
-    const { offset } = vertexElement;
-    const { vertexStride } = declaration;
+    const vertexElement = this.primitive.vertexAttributes[semantic];
+    const bufferIndex = vertexElement.vertexBufferSlot;
+    const vertexStride = this.primitive.vertexBufferBindings[bufferIndex].stride;
+    const offset = vertexElement.offset;
     if (this.updateTypeCache[bufferIndex] === UpdateType.NO_UPDATE) {
       this.updateRangeCache[bufferIndex].offset = (vertexIndex * vertexStride + offset) / byteSize;
       this.updateRangeCache[bufferIndex].end = (vertexIndex * vertexStride + offset + byteSize * dataLength) / byteSize;

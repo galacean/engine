@@ -24,7 +24,7 @@ export class GLPrimitive extends GLAsset {
   protected bindBufferAndAttrib(tech: GLTechnique) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
-    const { semanticIndexMap, vertexBuffers } = primitive;
+    const vertexBufferBindings = primitive.vertexBufferBindings;
 
     this.attribLocArray = [];
     const techAttributes = tech.attributes;
@@ -40,9 +40,8 @@ export class GLPrimitive extends GLAsset {
       const semantic = techAttributes[name].semantic;
       const element = attributes[semantic];
       if (element) {
-        const bufferIndex = semanticIndexMap[semantic];
-        const vertexBuffer = vertexBuffers[bufferIndex];
-        vbo = vertexBuffer._nativeBuffer;
+        const { buffer, stride } = vertexBufferBindings[element.vertexBufferSlot];
+        vbo = buffer._nativeBuffer;
         // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
         if (lastBoundVbo !== vbo) {
           lastBoundVbo = vbo;
@@ -50,14 +49,8 @@ export class GLPrimitive extends GLAsset {
         }
 
         gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(
-          loc,
-          element._glElementInfo.size,
-          element._glElementInfo.type,
-          element.normalized,
-          vertexBuffer.declaration.vertexStride,
-          element.offset
-        );
+        const { size, type } = element._glElementInfo;
+        gl.vertexAttribPointer(loc, size, type, element.normalized, stride, element.offset);
         if (this.canUseInstancedArrays) {
           gl.vertexAttribDivisor(loc, element.instanceDivisor);
         }
@@ -133,12 +126,12 @@ export class GLPrimitive extends GLAsset {
    */
   finalize() {
     const primitive = this._primitive;
-    const vertexBuffers = primitive.vertexBuffers;
+    const vertexBufferBindings = primitive.vertexBufferBindings;
     const indexBuffer = primitive.indexBuffer;
 
-    if (vertexBuffers.length > 0) {
-      for (let i = 0; i < vertexBuffers.length; i++) {
-        const vertexBuffer = vertexBuffers[i];
+    if (vertexBufferBindings.length > 0) {
+      for (let i = 0; i < vertexBufferBindings.length; i++) {
+        const vertexBuffer = vertexBufferBindings[i].vertexBuffer;
         vertexBuffer.destroy();
       }
     }

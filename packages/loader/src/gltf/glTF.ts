@@ -20,18 +20,22 @@ import {
   SkinnedMeshRenderer,
   Texture2D,
   Util,
-  VertexBuffer
+  VertexBuffer,
+  VertexBufferBinding,
+  VertexElement,
+  VertexDeclaration
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 import {
   createAttribute,
-  createDeclaration,
+  createVertexElement,
   findByKeyValue,
   getAccessorData,
   getAccessorTypeSize,
-  getIndexFormat
+  getIndexFormat,
+  getVertexStride
 } from "./Util";
 
 // 踩在浪花儿上
@@ -451,18 +455,21 @@ export function parseSkin(gltfSkin, resources) {
 
 function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
   // load vertices
-  let h = 0;
+  let i = 0;
+  const vertexElements: VertexElement[] = [];
   for (const attributeSemantic in gltfPrimitive.attributes) {
     const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
     const accessor = gltf.accessors[accessorIdx];
-    const declaration = createDeclaration(gltf, attributeSemantic, accessor, h++);
-    const bufferData = getAccessorData(gltf, accessor, buffers);
 
+    const stride = getVertexStride(accessor);
+    const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, i++);
+    vertexElements.push(vertexELement);
+    const bufferData = getAccessorData(gltf, accessor, buffers);
     const vertexBuffer = new VertexBuffer(bufferData.byteLength);
-    vertexBuffer.declaration = declaration;
     vertexBuffer.setData(bufferData);
-    primitive.addVertexBuffer(vertexBuffer);
+    primitive.addVertexBuffer(new VertexBufferBinding(vertexBuffer, stride));
   }
+  primitive.setVertexDeclaration(new VertexDeclaration(vertexElements));
 
   const positionAccessorIdx = gltfPrimitive.attributes.POSITION;
   const positionAccessor = gltf.accessors[positionAccessorIdx];

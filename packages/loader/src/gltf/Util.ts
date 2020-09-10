@@ -159,13 +159,15 @@ export function createAttribute(gltf, semantic, accessor, idx) {
   return attribute;
 }
 
-export function createDeclaration(gltf, semantic, accessor, idx): VertexDeclaration {
+export function getVertexStride(accessor): number {
   const size = getAccessorTypeSize(accessor.type);
   const componentType = getComponentType(accessor.componentType);
-  const stride = size * componentType.BYTES_PER_ELEMENT;
-  return new VertexDeclaration(stride, [
-    new VertexElement(semantic, 0, getElementFormat(accessor.componentType, size))
-  ]);
+  return size * componentType.BYTES_PER_ELEMENT;
+}
+
+export function createVertexElement(gltf, semantic, accessor, index: number): VertexElement {
+  const size = getAccessorTypeSize(accessor.type);
+  return new VertexElement(semantic, 0, getElementFormat(accessor.componentType, size), index);
 }
 
 export function getIndexFormat(type: number): IndexFormat {
