@@ -55,7 +55,7 @@ export class SphereGeometry extends GeometryShape {
     // 生成经纬线上的几何体顶点的数据
     let index = 0;
     const grid = [];
-    const vertices: Float32Array = new Float32Array();
+    const vertices: Float32Array = new Float32Array((verticalSegments + 1) * (horizontalSegments + 1) * 8);
     const indices = [];
     // const positions = [];
     for (let iy = 0; iy <= verticalSegments; iy++) {
@@ -76,18 +76,18 @@ export class SphereGeometry extends GeometryShape {
         posY = Math.abs(posY) < 1e-6 ? 0 : posY;
         posZ = Math.abs(posZ) < 1e-6 ? 0 : posZ;
 
-        const sIndex = index * 8;
+        const offset = index * 8;
         // POSITION
-        vertices[index] = posX;
-        vertices[index + 1] = posY;
-        vertices[index + 2] = posZ;
+        vertices[offset] = posX;
+        vertices[offset + 1] = posY;
+        vertices[offset + 2] = posZ;
         // NORMAL
-        vertices[index + 3] = posX;
-        vertices[index + 4] = posY;
-        vertices[index + 5] = posZ;
+        vertices[offset + 3] = posX;
+        vertices[offset + 4] = posY;
+        vertices[offset + 5] = posZ;
         // TEXCOORD_0
-        vertices[index + 6] = u;
-        vertices[index + 7] = 1 - v;
+        vertices[offset + 6] = u;
+        vertices[offset + 7] = 1 - v;
 
         verticesRow.push(index++);
       }

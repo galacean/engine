@@ -43,18 +43,16 @@ export class CircleGeometry extends GeometryShape {
       const y = radius * Math.sin(segment);
 
       // POSITION
-      vertices[index] = x;
-      vertices[index + 1] = y;
-      vertices[index + 2] = 0;
+      vertices[index++] = x;
+      vertices[index++] = y;
+      vertices[index++] = 0;
       // NORMAL
-      vertices[index + 3] = 0;
-      vertices[index + 4] = 0;
-      vertices[index + 5] = 1;
+      vertices[index++] = 0;
+      vertices[index++] = 0;
+      vertices[index++] = 1;
       // TEXCOORD_0
-      vertices[index + 6] = (x / radius + 1) * 0.5;
-      vertices[index + 7] = (y / radius + 1) * 0.5;
-
-      index += 8;
+      vertices[index++] = (x / radius + 1) * 0.5;
+      vertices[index++] = (y / radius + 1) * 0.5;
     }
 
     const indices: Uint16Array = new Uint16Array(segments * 3);

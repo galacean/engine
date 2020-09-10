@@ -53,18 +53,18 @@ export class PlaneGeometry extends GeometryShape {
         const posX = u * this._parameters.width - this.halfWidth;
         const posY = v * this._parameters.height - this.halfHeight;
 
-        const sIndex = index * 8;
+        const offset = index * 8;
         // POSITION
-        vertices[index] = posX;
-        vertices[index + 1] = posY;
-        vertices[index + 2] = 0;
+        vertices[offset] = posX;
+        vertices[offset + 1] = posY;
+        vertices[offset + 2] = 0;
         // NORMAL
-        vertices[index + 3] = 0;
-        vertices[index + 4] = 0;
-        vertices[index + 5] = 1;
+        vertices[offset + 3] = 0;
+        vertices[offset + 4] = 0;
+        vertices[offset + 5] = 1;
         // TEXCOORD_0
-        vertices[index + 6] = u;
-        vertices[index + 7] = 1 - v;
+        vertices[offset + 6] = u;
+        vertices[offset + 7] = 1 - v;
 
         verticesRow.push(index++);
       }
