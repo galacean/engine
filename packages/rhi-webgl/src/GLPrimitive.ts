@@ -1,4 +1,4 @@
-import { GLCapabilityType, Logger, Primitive, UpdateType } from "@alipay/o3-core";
+import { GLCapabilityType, Logger, Primitive } from "@alipay/o3-core";
 import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -16,36 +16,6 @@ export class GLPrimitive extends GLAsset {
     super(rhi, primitive);
     this._primitive = primitive;
     this.canUseInstancedArrays = this.rhi.canIUse(GLCapabilityType.instancedArrays);
-  }
-
-  /**
-   * 更新 VBO
-   */
-  protected updateVertexBuffer(index: number, updateRange: any) {
-    const primitive = this._primitive;
-    const { vertexBuffers, dataCache } = primitive;
-    const { bufferOffset, offset, end } = updateRange;
-    const data = dataCache[index];
-    const vertexBuffer = vertexBuffers[index];
-    if (offset === -1) {
-      vertexBuffer.setData(data);
-    } else {
-      vertexBuffer.setData(data, bufferOffset, offset, end - offset);
-    }
-  }
-
-  /**
-   * 更新 IBO
-   */
-  protected updateIndexBuffer(updateRange: any) {
-    const { indexBuffer, dataCache } = this._primitive;
-    const data = dataCache.index;
-    const { bufferOffset, offset, end } = updateRange;
-    if (offset === -1) {
-      indexBuffer.setData(data);
-    } else {
-      indexBuffer.setData(data, bufferOffset, offset, end - offset);
-    }
   }
 
   /**
@@ -101,53 +71,6 @@ export class GLPrimitive extends GLAsset {
   }
 
   /**
-   * 初始化或更新 BufferObject
-   * */
-  protected prepareBuffers() {
-    const vertexBuffer = this._primitive.vertexBuffers;
-    for (let i: number = 0, n: number = vertexBuffer.length; i < n; i++) {
-      this._handleUpdateVertex(i);
-    }
-    this._handleIndexUpdate();
-  }
-
-  private _handleUpdateVertex(bufferIndex: number) {
-    const { updateTypeCache, updateRangeCache } = this._primitive;
-    const updateType = updateTypeCache[bufferIndex];
-    switch (updateType) {
-      case UpdateType.NO_UPDATE:
-        break;
-      case UpdateType.UPDATE_RANGE:
-        const updateRange = updateRangeCache[bufferIndex];
-        this.updateVertexBuffer(bufferIndex, updateRange);
-        this._primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
-        updateRange.bufferOffset = -1;
-        updateRange.offset = -1;
-        updateRange.end = -1;
-        break;
-    }
-  }
-
-  private _handleIndexUpdate() {
-    const { indexBuffer, updateTypeCache, updateRangeCache } = this._primitive;
-    const updateType = updateTypeCache.index;
-    const updateRange = updateRangeCache.index;
-    if (indexBuffer) {
-      switch (updateType) {
-        case UpdateType.NO_UPDATE:
-          break;
-        case UpdateType.UPDATE_RANGE:
-          this.updateIndexBuffer(updateRange);
-          updateTypeCache.index = UpdateType.NO_UPDATE;
-          updateRangeCache.index.bufferOffset = -1;
-          updateRangeCache.index.offset = -1;
-          updateRangeCache.index.end = -1;
-          break;
-      }
-    }
-  }
-
-  /**
    * 执行绘制操作
    * @param {GLTechnique} tech
    */
@@ -156,7 +79,7 @@ export class GLPrimitive extends GLAsset {
     const primitive = this._primitive;
 
     /** prepare BO */
-    this.prepareBuffers();
+    // this.prepareBuffers();
     /** 绑定 Buffer 和 attribute */
     this.bindBufferAndAttrib(tech);
     /** draw */

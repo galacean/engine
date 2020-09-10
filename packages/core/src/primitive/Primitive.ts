@@ -2,8 +2,8 @@ import { AssetObject } from "../asset/AssetObject";
 import { DrawMode } from "../base/Constant";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
-import { IndexBuffer, VertexBuffer, VertexElement, VertexElements } from "../geometry";
-import { DataMap, SemanticMap, UpdateRangeMap, UpdateTypeMap } from "./type";
+import { IndexBuffer, VertexBuffer, VertexElements } from "../geometry";
+import { SemanticMap } from "./type";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
 
@@ -11,7 +11,6 @@ let primitiveID = 0;
 
 /**
  * primitive(triangles, lines) data, vbo+indices, equal glTF meshes.primitives define
- * @class
  * @private
  */
 export class Primitive extends AssetObject {
@@ -36,9 +35,6 @@ export class Primitive extends AssetObject {
   instancedCount: number;
 
   semanticIndexMap: SemanticMap = {};
-  dataCache: DataMap = {};
-  updateTypeCache: UpdateTypeMap = {};
-  updateRangeCache: UpdateRangeMap = {};
 
   get attributes() {
     return this.vertexAttributes;
@@ -155,8 +151,5 @@ export class Primitive extends AssetObject {
     this.instancedCount = null;
 
     this.semanticIndexMap = {};
-    this.dataCache = {};
-    this.updateTypeCache = {};
-    this.updateRangeCache = {};
   }
 }

@@ -1,10 +1,11 @@
-import { VertexBuffer, IndexBuffer } from "./index";
 import { AssetObject } from "../asset/AssetObject";
+import { TypedArray, UpdateType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Primitive } from "../primitive/Primitive";
-import { UpdateType, TypedArray } from "../base/Constant";
-import { VertexElements } from "./graphic/VertexElement";
+import { DataMap, UpdateRangeMap, UpdateTypeMap } from "../primitive/type";
 import { BufferUtil } from "./graphic/BufferUtil";
+import { VertexElements } from "./graphic/VertexElement";
+import { IndexBuffer, VertexBuffer } from "./index";
 
 let geometryCount = 0;
 
@@ -15,6 +16,9 @@ let geometryCount = 0;
 export class BufferGeometry extends AssetObject {
   primitive: Primitive;
   private _bufferCount: number;
+  private dataCache: DataMap = {};
+  private updateTypeCache: UpdateTypeMap = {};
+  private updateRangeCache: UpdateRangeMap = {};
 
   get vertexCount() {
     return this.primitive.vertexCount;
@@ -72,9 +76,9 @@ export class BufferGeometry extends AssetObject {
    */
   addVertexBuffer(vertexBuffer: VertexBuffer, data: TypedArray) {
     this.primitive.addVertexBuffer(vertexBuffer);
-    this.primitive.dataCache[this._bufferCount] = data;
-    this.primitive.updateTypeCache[this._bufferCount] = UpdateType.INIT;
-    this.primitive.updateRangeCache[this._bufferCount] = { offset: -1, end: -1, bufferOffset: -1 };
+    this.dataCache[this._bufferCount] = data;
+    this.updateTypeCache[this._bufferCount] = UpdateType.INIT;
+    this.updateRangeCache[this._bufferCount] = { offset: -1, end: -1, bufferOffset: -1 };
     this._bufferCount++;
   }
 
@@ -96,56 +100,56 @@ export class BufferGeometry extends AssetObject {
     }
     if (declaration.elements.length > 1) {
       const _offset = offset * totalSize + dataOffset;
-      this.primitive.dataCache[bufferIndex].set(data, _offset);
+      this.dataCache[bufferIndex].set(data, _offset);
       this._udpateInterleavedFlag(semantic, offset, byteSize, data.length);
     } else {
-      this.primitive.dataCache[bufferIndex].set(data, offset);
+      this.dataCache[bufferIndex].set(data, offset);
       this._updateFlag(bufferIndex, offset, bufferOffset, data.length);
     }
   }
 
   resizeVertexBuffer(semantic: string, data: TypedArray) {
     const bufferIndex = this.primitive.semanticIndexMap[semantic];
-    this.primitive.dataCache[bufferIndex] = data;
+    this.dataCache[bufferIndex] = data;
     const vertexBuffer = this.primitive.vertexBuffers[bufferIndex];
     const { declaration } = vertexBuffer;
     const element = declaration.elements.find((item) => item.semantic === semantic);
     const byteSize = BufferUtil._getVertexDataTypeSize(element.elementInfo.type);
     vertexBuffer.resize(data.length * byteSize);
-    this.primitive.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
-    this.primitive.updateRangeCache[bufferIndex] = { offset: -1, end: -1, bufferOffset: -1 };
+    this.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
+    this.updateRangeCache[bufferIndex] = { offset: -1, end: -1, bufferOffset: -1 };
   }
 
   setIndexBuffer(indexBuffer: IndexBuffer, data: Uint8Array | Uint16Array | Uint32Array) {
     this.primitive.indexBuffer = indexBuffer;
-    this.primitive.dataCache.index = data;
-    this.primitive.updateTypeCache.index = UpdateType.INIT;
-    this.primitive.updateRangeCache.index = { offset: -1, end: -1, bufferOffset: -1 };
+    this.dataCache.index = data;
+    this.updateTypeCache.index = UpdateType.INIT;
+    this.updateRangeCache.index = { offset: -1, end: -1, bufferOffset: -1 };
   }
 
   setIndexData(data: TypedArray, offset: number = 0, dataIndex: number = 0, dataCount?: number) {
     if (dataCount !== undefined) {
       data = data.slice(dataIndex, dataCount);
     }
-    this.primitive.dataCache.index.set(data, offset);
+    this.dataCache.index.set(data, offset);
     this._updateFlag("index", offset, offset, data.length);
   }
 
   resizeIndexBuffer(data: Uint8Array | Uint16Array | Uint32Array) {
-    this.primitive.dataCache.index = data;
+    this.dataCache.index = data;
     const { indexBuffer } = this.primitive;
     indexBuffer.resize(data.length);
-    this.primitive.updateTypeCache.index = UpdateType.NO_UPDATE;
-    this.primitive.updateRangeCache.index = { offset: -1, end: -1, bufferOffset: -1 };
+    this.updateTypeCache.index = UpdateType.NO_UPDATE;
+    this.updateRangeCache.index = { offset: -1, end: -1, bufferOffset: -1 };
   }
 
   getIndexData() {
-    return this.primitive.dataCache.index;
+    return this.dataCache.index;
   }
 
   getVertexData(semantic) {
     const bufferIndex = this.primitive.semanticIndexMap[semantic];
-    return this.primitive.dataCache[bufferIndex];
+    return this.dataCache[bufferIndex];
   }
 
   /**
@@ -159,6 +163,86 @@ export class BufferGeometry extends AssetObject {
   reset() {
     this.primitive.reset();
     this._bufferCount = 0;
+  }
+
+  _render(): void {
+    this.prepareBuffers();
+  }
+
+  /**
+   * 更新 VBO
+   */
+  protected updateVertexBuffer(index: number, updateRange: any) {
+    const primitive = this.primitive;
+    const { vertexBuffers } = primitive;
+    const { bufferOffset, offset, end } = updateRange;
+    const data = this.dataCache[index];
+    const vertexBuffer = vertexBuffers[index];
+    if (offset === -1) {
+      vertexBuffer.setData(data);
+    } else {
+      vertexBuffer.setData(data, bufferOffset, offset, end - offset);
+    }
+  }
+
+  /**
+   * 更新 IBO
+   */
+  protected updateIndexBuffer(updateRange: any) {
+    const { indexBuffer } = this.primitive;
+    const data = this.dataCache.index;
+    const { bufferOffset, offset, end } = updateRange;
+    if (offset === -1) {
+      indexBuffer.setData(data);
+    } else {
+      indexBuffer.setData(data, bufferOffset, offset, end - offset);
+    }
+  }
+
+  /**
+   * 初始化或更新 BufferObject
+   * */
+  protected prepareBuffers() {
+    const vertexBuffer = this.primitive.vertexBuffers;
+    for (let i: number = 0, n: number = vertexBuffer.length; i < n; i++) {
+      this._handleUpdateVertex(i);
+    }
+    this._handleIndexUpdate();
+  }
+
+  private _handleUpdateVertex(bufferIndex: number) {
+    const updateType = this.updateTypeCache[bufferIndex];
+    switch (updateType) {
+      case UpdateType.NO_UPDATE:
+        break;
+      case UpdateType.UPDATE_RANGE:
+        const updateRange = this.updateRangeCache[bufferIndex];
+        this.updateVertexBuffer(bufferIndex, updateRange);
+        this.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
+        updateRange.bufferOffset = -1;
+        updateRange.offset = -1;
+        updateRange.end = -1;
+        break;
+    }
+  }
+
+  private _handleIndexUpdate() {
+    const { indexBuffer } = this.primitive;
+    const updateType = this.updateTypeCache.index;
+    const updateRange = this.updateRangeCache.index;
+    if (indexBuffer) {
+      switch (updateType) {
+        case UpdateType.NO_UPDATE:
+          break;
+        case UpdateType.UPDATE_RANGE:
+          this.updateIndexBuffer(updateRange);
+          this.updateTypeCache.index = UpdateType.NO_UPDATE;
+          this.updateRangeCache.index.bufferOffset = -1;
+          this.updateRangeCache.index.offset = -1;
+          this.updateRangeCache.index.end = -1;
+          break;
+      }
+    }
   }
 
   private getBufferBySemantic(semantic: string): VertexBuffer | undefined {
@@ -181,8 +265,8 @@ export class BufferGeometry extends AssetObject {
   }
 
   private _updateFlag(bufferIndex: number | string, offset: number, bufferOffset: number, dataLength: number) {
-    const updateRange = this.primitive.updateRangeCache[bufferIndex];
-    const updateTypeCache = this.primitive.updateTypeCache;
+    const updateRange = this.updateRangeCache[bufferIndex];
+    const updateTypeCache = this.updateTypeCache;
     if (updateTypeCache[bufferIndex] === UpdateType.NO_UPDATE) {
       updateRange.bufferOffset = bufferOffset;
       updateRange.offset = offset;
@@ -202,21 +286,20 @@ export class BufferGeometry extends AssetObject {
     const vertexElement = declaration.elements.find((item) => item.semantic === semantic);
     const { offset } = vertexElement;
     const { vertexStride } = declaration;
-    if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.NO_UPDATE) {
-      this.primitive.updateRangeCache[bufferIndex].offset = (vertexIndex * vertexStride + offset) / byteSize;
-      this.primitive.updateRangeCache[bufferIndex].end =
-        (vertexIndex * vertexStride + offset + byteSize * dataLength) / byteSize;
-      this.primitive.updateTypeCache[bufferIndex] = UpdateType.UPDATE_RANGE;
-    } else if (this.primitive.updateTypeCache[bufferIndex] === UpdateType.UPDATE_RANGE) {
+    if (this.updateTypeCache[bufferIndex] === UpdateType.NO_UPDATE) {
+      this.updateRangeCache[bufferIndex].offset = (vertexIndex * vertexStride + offset) / byteSize;
+      this.updateRangeCache[bufferIndex].end = (vertexIndex * vertexStride + offset + byteSize * dataLength) / byteSize;
+      this.updateTypeCache[bufferIndex] = UpdateType.UPDATE_RANGE;
+    } else if (this.updateTypeCache[bufferIndex] === UpdateType.UPDATE_RANGE) {
       const newRange = this._getUpdateRange(bufferIndex, (vertexIndex * vertexStride + offset) / byteSize, dataLength);
-      this.primitive.updateRangeCache[bufferIndex].offset = newRange.offset;
-      this.primitive.updateRangeCache[bufferIndex].end = newRange.end;
+      this.updateRangeCache[bufferIndex].offset = newRange.offset;
+      this.updateRangeCache[bufferIndex].end = newRange.end;
     }
   }
 
   private _getUpdateRange(bufferIndex: number, offset: number, length: number) {
-    const updateRange = this.primitive.updateRangeCache[bufferIndex];
-    const rangeEnd1 = this.primitive.updateRangeCache[bufferIndex].end;
+    const updateRange = this.updateRangeCache[bufferIndex];
+    const rangeEnd1 = this.updateRangeCache[bufferIndex].end;
     const _offset = Math.min(offset, updateRange.offset);
     const rangeEnd2 = offset + length;
     const _end = rangeEnd1 <= rangeEnd2 ? rangeEnd2 : rangeEnd1;
