@@ -1,7 +1,5 @@
 import { Vector3 } from "@alipay/o3-math";
-import { BufferGeometry, InterleavedBuffer } from "../geometry";
-import { BufferAttribute } from "../primitive/type";
-import { DataType, FrontFace } from "../base/Constant";
+import { FrontFace } from "../base/Constant";
 import { GeometryShape } from "./GeometryShape";
 import { Engine } from "../Engine";
 
