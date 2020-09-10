@@ -17,6 +17,7 @@ export class GeometryShape extends BufferGeometry {
    * @internal
    */
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
+    engine = engine || Engine._getDefaultEngine();
     const vertexStride = 32;
     const vertexBufferlength = vertices.byteLength;
     const declaration: VertexDeclaration = new VertexDeclaration(vertexStride, [

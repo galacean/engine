@@ -14,13 +14,12 @@ export class CuboidGeometry extends GeometryShape {
    */
   constructor(width: number = 1, height: number = 1, depth: number = 1, engine?: Engine) {
     super();
-    engine || Engine._getDefaultEngine();
-    var halfDepth: number = depth / 2;
-    var halfHeight: number = height / 2;
-    var halfWidth: number = width / 2;
+    const halfDepth: number = depth / 2;
+    const halfHeight: number = height / 2;
+    const halfWidth: number = width / 2;
 
     // prettier-ignore
-    var vertices: Float32Array = new Float32Array([
+    const vertices: Float32Array = new Float32Array([
     	// up
     	-halfDepth, halfHeight, -halfWidth, 0, 1, 0, 0, 0, halfDepth, halfHeight, -halfWidth, 0, 1, 0, 1, 0, halfDepth, halfHeight, halfWidth, 0, 1, 0, 1, 1, -halfDepth, halfHeight, halfWidth, 0, 1, 0, 0, 1,
     	// down
@@ -35,7 +34,7 @@ export class CuboidGeometry extends GeometryShape {
     	-halfDepth, halfHeight, -halfWidth, 0, 0, -1, 1, 0, halfDepth, halfHeight, -halfWidth, 0, 0, -1, 0, 0, halfDepth, -halfHeight, -halfWidth, 0, 0, -1, 0, 1, -halfDepth, -halfHeight, -halfWidth, 0, 0, -1, 1, 1]);
 
     // prettier-ignore
-    var indices: Uint16Array = new Uint16Array([
+    const indices: Uint16Array = new Uint16Array([
     	// up
     	0, 1, 2, 2, 3, 0,
     	// donw
