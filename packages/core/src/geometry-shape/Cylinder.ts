@@ -13,12 +13,8 @@ export class CylinderGeometry extends GeometryShape {
   public indexArray;
   public halfHeight;
   private _parameters;
-  // private _indexs;
-  // private _verts;
-  // private _normals;
-  // private _uvs;
   private _vertices;
-  private _indexs;
+  private _indices;
 
   /**
    * @constructor
@@ -57,7 +53,7 @@ export class CylinderGeometry extends GeometryShape {
     };
 
     this._vertices = [];
-    this._indexs = [];
+    this._indices = [];
 
     this.index = 0;
     this.indexArray = [];
@@ -70,7 +66,7 @@ export class CylinderGeometry extends GeometryShape {
       if (this._parameters.radiusBottom > 0) this.generateCap(false);
     }
 
-    this._initialize(engine, Float32Array.from(this._vertices), Uint16Array.from(this._indexs));
+    this._initialize(engine, Float32Array.from(this._vertices), Uint16Array.from(this._indices));
   }
 
   generateTorso() {
@@ -120,8 +116,8 @@ export class CylinderGeometry extends GeometryShape {
         var d = this.indexArray[y][x + 1];
 
         // faces
-        this._indexs.push(a, b, d);
-        this._indexs.push(b, c, d);
+        this._indices.push(a, b, d);
+        this._indices.push(b, c, d);
       }
     }
   }
@@ -177,10 +173,10 @@ export class CylinderGeometry extends GeometryShape {
       var i = centerIndexEnd + x;
       if (isTop === true) {
         // face top
-        this._indexs.push(i, i + 1, c);
+        this._indices.push(i, i + 1, c);
       } else {
         // face bottom
-        this._indexs.push(i + 1, i, c);
+        this._indices.push(i + 1, i, c);
       }
     }
   }
