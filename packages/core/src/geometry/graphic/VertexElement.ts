@@ -7,11 +7,12 @@ import { ElementInfo, BufferUtil } from "./BufferUtil";
 export class VertexElement {
   public readonly normalized = false;
 
+  _glElementInfo: ElementInfo;
+
   private _semantic: string;
   private _offset: number;
   private _format: VertexElementFormat;
   private _instanceDivisor: number;
-  private _elementInfo: ElementInfo;
 
   /**
    * 顶点输入签名。
@@ -52,7 +53,7 @@ export class VertexElement {
     this._semantic = semantic;
     this._offset = offset;
     this._format = format;
-    this._elementInfo = BufferUtil._getElementInfo(this.format);
+    this._glElementInfo = BufferUtil._getElementInfo(this.format);
     this._instanceDivisor = Math.floor(instanceDivisor);
   }
 
@@ -60,7 +61,7 @@ export class VertexElement {
    * @deprecated
    */
   get elementInfo(): ElementInfo {
-    return this._elementInfo;
+    return this._glElementInfo;
   }
 }
 

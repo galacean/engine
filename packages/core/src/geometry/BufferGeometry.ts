@@ -92,9 +92,9 @@ export class BufferGeometry extends AssetObject {
     const { declaration } = buffer;
     const bufferIndex = this.primitive.semanticIndexMap[semantic];
     const element = declaration.elements.find((element) => element.semantic === semantic);
-    const byteSize = BufferUtil._getVertexDataTypeSize(element.elementInfo.type);
+    const byteSize = BufferUtil._getVertexDataTypeSize(element._glElementInfo.type);
     const dataOffset = element.offset / byteSize;
-    const totalSize = declaration.elements.map((item) => item.elementInfo.size).reduce((a, b) => a + b);
+    const totalSize = declaration.elements.map((item) => item._glElementInfo.size).reduce((a, b) => a + b);
     const bufferOffset = offset * byteSize + element.offset;
 
     if (dataCount !== undefined) {
@@ -116,7 +116,7 @@ export class BufferGeometry extends AssetObject {
     const vertexBuffer = this.primitive.vertexBuffers[bufferIndex];
     const { declaration } = vertexBuffer;
     const element = declaration.elements.find((item) => item.semantic === semantic);
-    const byteSize = BufferUtil._getVertexDataTypeSize(element.elementInfo.type);
+    const byteSize = BufferUtil._getVertexDataTypeSize(element._glElementInfo.type);
     vertexBuffer.resize(data.length * byteSize);
     this.updateTypeCache[bufferIndex] = UpdateType.NO_UPDATE;
     this.updateRangeCache[bufferIndex] = { offset: -1, end: -1, bufferOffset: -1 };

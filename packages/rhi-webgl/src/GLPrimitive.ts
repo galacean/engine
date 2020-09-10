@@ -52,8 +52,8 @@ export class GLPrimitive extends GLAsset {
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(
           loc,
-          element.elementInfo.size,
-          element.elementInfo.type,
+          element._glElementInfo.size,
+          element._glElementInfo.type,
           element.normalized,
           vertexBuffer.declaration.vertexStride,
           element.offset
