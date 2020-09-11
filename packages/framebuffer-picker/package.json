@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-framebuffer-picker",
-  "version": "3.0.19-mars.1",
+  "version": "3.0.20-mars.2",
   "description": "Framebuffer object pick",
   "repository": {
     "type": "git",
