@@ -173,4 +173,17 @@ export class SchemaResourceManager {
   get useCompressedTexture(): boolean {
     return this.oasis.options.useCompressedTexture ?? true;
   }
+
+  /**
+   * 注册资源。
+   *
+   * @param type - 资源类型
+   * @param resource - 资源类，继承自 SchemaResource
+   */
+  static registerResource(type: string, resource: any): void {
+    if (!RESOURCE_CLASS.hasOwnProperty(type)) {
+      RESOURCE_CLASS[type] = resource;
+      RESOURCE_TYPE.set(resource, type);
+    }
+  }
 }
