@@ -2,7 +2,7 @@ import { AssetObject } from "../asset/AssetObject";
 import { DrawMode } from "../base/Constant";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
-import { IndexBuffer, VertexDeclaration, VertexElements } from "../geometry";
+import { IndexBuffer, VertexElements, VertexElement } from "../geometry";
 import { VertexBufferBinding } from "../geometry/graphic/VertexBufferBinding";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
@@ -18,8 +18,7 @@ export class Primitive extends AssetObject {
   mode: DrawMode = DrawMode.TRIANGLES;
   vertexAttributes: VertexElements = {};
 
-  /** 顶点声明。*/
-  vertexDeclaration: VertexDeclaration;
+  vertexElements: VertexElement[] = [];
   vertexOffset: number = 0;
   vertexCount: number = 0;
 
@@ -57,16 +56,12 @@ export class Primitive extends AssetObject {
     this._vertexBufferBindings.push(vertexBufferBinding);
   }
 
-  setVertexDeclaration(vertexDeclaration: VertexDeclaration): void {
-    this.vertexDeclaration = vertexDeclaration;
-    const elements = vertexDeclaration.elements;
-    for (let i = 0, n = elements.length; i < n; i++) {
-      const element = elements[i];
-      const { semantic, instanceDivisor } = element;
-      this.vertexAttributes[semantic] = element;
-      if (instanceDivisor) {
-        this.isInstanced = true;
-      }
+  addVertexElement(element: VertexElement): void {
+    const { semantic, instanceDivisor } = element;
+    this.vertexAttributes[semantic] = element;
+    this.vertexElements.push(element);
+    if (instanceDivisor) {
+      this.isInstanced = true;
     }
   }
 

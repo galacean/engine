@@ -1,8 +1,7 @@
 import { Engine } from "../Engine";
-import { GeometryShape } from "./GeometryShape";
-import { VertexDeclaration } from "../geometry/graphic/VertexDeclaration";
-import { VertexElement } from "../geometry/graphic/VertexElement";
 import { VertexElementFormat } from "../geometry/graphic/enums/VertexElementFormat";
+import { VertexElement } from "../geometry/graphic/VertexElement";
+import { GeometryShape } from "./GeometryShape";
 
 export class TorusGeometry extends GeometryShape {
   constructor(
@@ -48,7 +47,6 @@ export class TorusGeometry extends GeometryShape {
     for (let j = 1; j <= radialSegments; j++) {
       for (let i = 1; i <= tubularSegments; i++) {
         // indices
-
         const a = (tubularSegments + 1) * j + i - 1;
         const b = (tubularSegments + 1) * (j - 1) + i - 1;
         const c = (tubularSegments + 1) * (j - 1) + i;
@@ -70,10 +68,8 @@ export class TorusGeometry extends GeometryShape {
     engine = engine || Engine._getDefaultEngine();
 
     const vertexStride = 12;
-    const declaration: VertexDeclaration = new VertexDeclaration([
-      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0)
-    ]);
+    const vertexElements = [new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0)];
 
-    this._init(engine, vertices, indices, vertexStride, declaration);
+    this._initBuffer(engine, vertices, indices, vertexStride, vertexElements);
   }
 }

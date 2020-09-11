@@ -1,9 +1,8 @@
 import { DrawMode } from "../base/Constant";
 import { Engine } from "../Engine";
-import { GeometryShape } from "./GeometryShape";
-import { VertexDeclaration } from "../geometry/graphic/VertexDeclaration";
-import { VertexElement } from "../geometry/graphic/VertexElement";
 import { VertexElementFormat } from "../geometry/graphic/enums/VertexElementFormat";
+import { VertexElement } from "../geometry/graphic/VertexElement";
+import { GeometryShape } from "./GeometryShape";
 
 /**
  * 覆盖整个屏幕的一个矩形
@@ -23,13 +22,13 @@ export class ScreenQuadGeometry extends GeometryShape {
 
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
     engine = engine || Engine._getDefaultEngine();
-    const vertexStride = 20;
 
-    const declaration: VertexDeclaration = new VertexDeclaration([
+    const vertexStride = 20;
+    const vertexElements = [
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
-    ]);
+    ];
 
-    this._init(engine, vertices, indices, vertexStride, declaration);
+    this._initBuffer(engine, vertices, indices, vertexStride, vertexElements);
   }
 }

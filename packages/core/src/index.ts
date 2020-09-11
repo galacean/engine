@@ -62,7 +62,6 @@ export { GeometryRenderer } from "./geometry";
 export { VertexBuffer } from "./geometry";
 export { IndexBuffer } from "./geometry";
 export { VertexElement } from "./geometry";
-export { VertexDeclaration } from "./geometry";
 export { VertexElementFormat } from "./geometry";
 export { VertexBufferBinding } from "./geometry";
 export { BufferUtil } from "./geometry";

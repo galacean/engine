@@ -7,7 +7,6 @@ import { VertexElementFormat } from "../geometry/graphic/enums/VertexElementForm
 import { IndexBuffer } from "../geometry/graphic/IndexBuffer";
 import { VertexBuffer } from "../geometry/graphic/VertexBuffer";
 import { VertexBufferBinding } from "../geometry/graphic/VertexBufferBinding";
-import { VertexDeclaration } from "../geometry/graphic/VertexDeclaration";
 import { VertexElement } from "../geometry/graphic/VertexElement";
 
 /**
@@ -21,40 +20,41 @@ export class GeometryShape extends BufferGeometry {
     engine = engine || Engine._getDefaultEngine();
 
     const vertexStride = 32;
-    const declaration: VertexDeclaration = new VertexDeclaration([
+    const vertexElements = [
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0)
-    ]);
+    ];
 
-    this._initBuffer(engine, vertices, indices, vertexStride, declaration);
+    this._initBuffer(engine, vertices, indices, vertexStride, vertexElements);
   }
 
-  private _initBuffer(
+  _initBuffer(
     engine: Engine,
     vertices: Float32Array,
     indices: Uint16Array,
     vertexStride: number,
-    declaration: VertexDeclaration
+    vertexElements: VertexElement[]
   ) {
     const vertexBufferlength = vertices.byteLength;
     const vertexBuffer = new VertexBuffer(vertexBufferlength, BufferUsage.Static, engine);
     const indexBuffer = new IndexBuffer(indices.length, IndexFormat.UInt16, BufferUsage.Static, engine);
 
-    vertexBuffer.setData(vertices);
-    this.primitive.setVertexDeclaration(declaration);
+    for (let i = 0, n = vertexElements.length; i < n; i++) {
+      this.primitive.addVertexElement(vertexElements[i]);
+    }
     this.addVertexBuffer(new VertexBufferBinding(vertexBuffer, vertexStride));
     this.vertexCount = vertexBufferlength / vertexStride;
+    vertexBuffer.setData(vertices);
 
-    indexBuffer.setData(indices);
     this.setIndexBuffer(indexBuffer);
     this.indexCount = indices.length;
+    indexBuffer.setData(indices);
 
     this._computeBounds(vertices);
   }
 
   private _computeBounds(vertices: ArrayBuffer | Float32Array): void {
-    debugger;
     const vertexElement = this.primitive.vertexAttributes["POSITION"];
     const bufferIndex = vertexElement.vertexBufferSlot;
     const stride = this.primitive.vertexBufferBindings[bufferIndex].stride;

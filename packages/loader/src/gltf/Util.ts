@@ -1,11 +1,4 @@
-import {
-  BufferAttribute,
-  VertexElement,
-  VertexElementFormat,
-  VertexDeclaration,
-  DataType,
-  IndexFormat
-} from "@alipay/o3-core";
+import { BufferAttribute, VertexElement, VertexElementFormat, DataType, IndexFormat } from "@alipay/o3-core";
 
 const WEBGL_COMPONENT_TYPES = {
   5120: Int8Array,
