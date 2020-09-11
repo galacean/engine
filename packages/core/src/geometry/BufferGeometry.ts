@@ -214,8 +214,10 @@ export class BufferGeometry extends AssetObject {
    * 释放内部资源对象
    */
   destroy() {
-    this.primitive.destroy();
-    this.primitive = null;
+    if (this.primitive) {
+      this.primitive.destroy();
+      this.primitive = null;
+    }
   }
 
   reset() {
