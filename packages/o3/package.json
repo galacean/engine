@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3",
-  "version": "3.0.2-mars.0",
+  "version": "3.0.19-mars.1",
   "description": "",
   "repository": {
     "type": "git",
@@ -31,11 +31,11 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-core": "3.0.2-mars.0",
-    "@alipay/o3-loader": "3.0.2-mars.0",
-    "@alipay/o3-math": "3.0.2-mars.0",
-    "@alipay/o3-rhi-webgl": "3.0.2-mars.0",
-    "@alipay/o3-mars": "0.3.0-beta.2"
+    "@alipay/o3-core": "3.0.19-mars.1",
+    "@alipay/o3-loader": "3.0.19-mars.1",
+    "@alipay/o3-mars": "0.3.0-beta.2",
+    "@alipay/o3-math": "3.0.19-mars.1",
+    "@alipay/o3-rhi-webgl": "3.0.19-mars.1"
   },
   "gitHead": "3af8f007dac28de84d7648a5e814d35459da8fa6"
 }
