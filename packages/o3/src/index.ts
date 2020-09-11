@@ -19,7 +19,6 @@ import {
   PlaneProbe
 } from "@alipay/o3-core";
 import { Parser, GLTFModel } from "@alipay/o3-loader";
-// import { MarsComponent } from "@alipay/o3-mars";
 
 Parser.registerComponents("o3", {
   Model,
@@ -37,5 +36,4 @@ Parser.registerComponents("o3", {
   Component,
   SphereCollider,
   PlaneProbe
-  // MarsComponent
 });

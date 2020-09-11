@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-component-miniprogram",
-  "version": "3.0.2-mars.0",
+  "version": "3.0.20-mars.2",
   "description": "component of miniprogram",
   "keywords": [
     "Oasis3D",
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@alipay/o3": "3.0.2-mars.0",
-    "@alipay/o3-adapter-miniprogram": "3.0.2-mars.0"
+    "@alipay/o3-adapter-miniprogram": "3.0.20-mars.2"
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",
