@@ -12,6 +12,7 @@ export { VertexElement } from "./graphic/VertexElement";
 export { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 export type { VertexElements } from "./graphic/VertexElement";
 export { IndexFormat } from "./graphic/enums/IndexFormat";
+export { SetDataOptions } from "./graphic/enums/SetDataOptions";
 export { BufferUtil } from "./graphic/BufferUtil";
 
 export class BufferAttribute {}

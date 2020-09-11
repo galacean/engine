@@ -66,6 +66,7 @@ export { VertexDeclaration } from "./geometry";
 export { VertexElementFormat } from "./geometry";
 export { VertexBufferBinding } from "./geometry";
 export { BufferUtil } from "./geometry";
+export { SetDataOptions } from "./geometry";
 
 //mesh
 export { Mesh } from "./mesh/Mesh";
