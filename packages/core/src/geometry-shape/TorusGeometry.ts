@@ -68,9 +68,9 @@ export class TorusGeometry extends GeometryShape {
 
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
     engine = engine || Engine._getDefaultEngine();
-    const vertexStride = 12;
 
-    const declaration: VertexDeclaration = new VertexDeclaration(vertexStride, [
+    const vertexStride = 12;
+    const declaration: VertexDeclaration = new VertexDeclaration([
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0)
     ]);
 

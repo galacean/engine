@@ -25,7 +25,7 @@ export class ScreenQuadGeometry extends GeometryShape {
     engine = engine || Engine._getDefaultEngine();
     const vertexStride = 20;
 
-    const declaration: VertexDeclaration = new VertexDeclaration(vertexStride, [
+    const declaration: VertexDeclaration = new VertexDeclaration([
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
     ]);
