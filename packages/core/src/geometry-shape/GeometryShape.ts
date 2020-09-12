@@ -56,7 +56,7 @@ export class GeometryShape extends BufferGeometry {
 
   private _computeBounds(vertices: ArrayBuffer | Float32Array): void {
     const vertexElement = this.primitive.vertexAttributes["POSITION"];
-    const bufferIndex = vertexElement.vertexBufferSlot;
+    const bufferIndex = vertexElement.vertexBufferIndex;
     const stride = this.primitive.vertexBufferBindings[bufferIndex].stride;
     const offset = vertexElement.offset;
     const vertexCount = this.vertexCount;
