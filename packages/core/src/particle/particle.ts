@@ -1,14 +1,13 @@
 import { MathUtil, Vector3 } from "@alipay/o3-math";
+import { BlendFunc, BufferUsage, DataType, RenderState, UniformSemantic, MaterialType } from "../base/Constant";
 import {
-  DrawMode,
-  BlendFunc,
-  BufferUsage,
-  DataType,
-  RenderState,
-  UniformSemantic,
-  MaterialType
-} from "../base/Constant";
-import { GeometryRenderer, BufferGeometry, IndexBuffer, VertexBuffer, InterleavedBuffer } from "../geometry";
+  GeometryRenderer,
+  BufferGeometry,
+  IndexBuffer,
+  VertexBuffer,
+  InterleavedBuffer,
+  PrimitiveTopology
+} from "../geometry";
 import { BufferAttribute } from "../primitive/type";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
@@ -392,7 +391,7 @@ export class GPUParticleSystem extends GeometryRenderer {
    */
   _createGeometry() {
     const geometry = new BufferGeometry("particleGeometry");
-    geometry.mode = DrawMode.TRIANGLES;
+    geometry.primitiveTopology = PrimitiveTopology.TRIANGLES;
     const FLOAT = DataType.FLOAT;
 
     var indices = new Uint16Array(6 * this.maxCount);

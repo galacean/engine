@@ -1,8 +1,8 @@
-import { BufferGeometry, GeometryRenderer, InterleavedBuffer } from "../geometry";
+import { BufferGeometry, GeometryRenderer, InterleavedBuffer, PrimitiveTopology } from "../geometry";
 import { Quaternion, Vector3, Matrix } from "@alipay/o3-math";
 import { BufferAttribute } from "../primitive/type";
 import { TrailMaterial } from "./TrailMaterial";
-import { DataType, BufferUsage, DrawMode } from "../base/Constant";
+import { DataType, BufferUsage } from "../base/Constant";
 
 const _tempVector3 = new Vector3();
 
@@ -127,7 +127,7 @@ export class TrailRenderer extends GeometryRenderer {
    */
   _initGeometry() {
     this.geometry = new BufferGeometry();
-    this.geometry.mode = DrawMode.TRIANGLE_STRIP;
+    this.geometry.primitiveTopology = PrimitiveTopology.TRIANGLE_STRIP;
     const position = new BufferAttribute({
       semantic: "POSITION",
       size: 3,

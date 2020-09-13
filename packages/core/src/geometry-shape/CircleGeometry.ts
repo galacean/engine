@@ -1,6 +1,6 @@
-import { DrawMode } from "../base/Constant";
 import { GeometryShape } from "./GeometryShape";
 import { Engine } from "../Engine";
+import { PrimitiveTopology } from "../geometry/graphic/enums/PrimitiveTopology";
 
 interface CircleGeometryOptions {
   radius?: number;
@@ -24,7 +24,7 @@ export class CircleGeometry extends GeometryShape {
   constructor(options: CircleGeometryOptions = {}, engine?: Engine) {
     super();
 
-    this.mode = DrawMode.TRIANGLES;
+    this.primitiveTopology = PrimitiveTopology.TRIANGLES;
     this.radius = options.radius || this.radius;
     this.segments = options.segments || this.segments;
     this.thetaStart = options.thetaStart || this.thetaStart;

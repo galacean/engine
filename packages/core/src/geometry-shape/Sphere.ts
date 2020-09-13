@@ -1,7 +1,5 @@
-import { BufferGeometry, InterleavedBuffer, IndexBuffer } from "../geometry";
-import { BufferAttribute } from "../primitive/type";
-import { DataType } from "../base/Constant";
 import { Engine } from "../Engine";
+import { BufferGeometry } from "../geometry";
 import { GeometryShape } from "./GeometryShape";
 
 /**

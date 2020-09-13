@@ -20,7 +20,7 @@ export class GLPrimitive extends GLAsset {
 
   /**
    * 绑定 Buffer 和 attribute
-   * */
+   */
   protected bindBufferAndAttrib(tech: GLTechnique) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
@@ -64,45 +64,34 @@ export class GLPrimitive extends GLAsset {
   }
 
   /**
-   * 执行绘制操作
-   * @param {GLTechnique} tech
+   * 执行绘制操作。
    */
   draw(tech: GLTechnique) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
 
-    /** prepare BO */
-    // this.prepareBuffers();
-    /** 绑定 Buffer 和 attribute */
+    // 绑定 Buffer 和 attribute
     this.bindBufferAndAttrib(tech);
-    /** draw */
-    const {
-      mode,
-      indexCount,
-      indexBuffer,
-      indexOffset,
-      vertexCount,
-      isInstanced,
-      vertexOffset,
-      instancedCount
-    } = primitive;
+
+    // draw
+    const { primitiveTopology, indexBuffer, drawOffset, drawCount, vertexCount, instancedCount } = primitive;
     const { _glIndexType, _nativeBuffer } = indexBuffer;
-    if (!isInstanced) {
+    if (!instancedCount) {
       if (indexBuffer) {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-        gl.drawElements(mode, indexCount, _glIndexType, indexOffset);
+        gl.drawElements(primitiveTopology, drawCount, _glIndexType, drawOffset);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
       } else {
-        gl.drawArrays(mode, vertexOffset, vertexCount);
+        gl.drawArrays(primitiveTopology, drawOffset, vertexCount);
       }
     } else {
       if (this.canUseInstancedArrays) {
         if (indexBuffer) {
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-          gl.drawElementsInstanced(mode, indexCount, _glIndexType, indexOffset, instancedCount);
+          gl.drawElementsInstanced(primitiveTopology, drawCount, _glIndexType, drawOffset, instancedCount);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         } else {
-          gl.drawArraysInstanced(mode, vertexOffset, vertexCount, instancedCount);
+          gl.drawArraysInstanced(primitiveTopology, drawOffset, vertexCount, instancedCount);
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");
@@ -113,7 +102,6 @@ export class GLPrimitive extends GLAsset {
     this.disableAttrib();
   }
 
-  /** disableVertexAttribArray */
   protected disableAttrib() {
     const gl = this.rhi.gl;
     for (let i = 0, l = this.attribLocArray.length; i < l; i++) {

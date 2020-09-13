@@ -1,8 +1,8 @@
 import { AssetObject } from "../asset/AssetObject";
-import { DrawMode } from "../base/Constant";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
-import { IndexBuffer, VertexElements, VertexElement } from "../geometry";
+import { IndexBuffer, VertexElement, VertexElements } from "../geometry";
+import { PrimitiveTopology } from "../geometry/graphic/enums/PrimitiveTopology";
 import { VertexBufferBinding } from "../geometry/graphic/VertexBufferBinding";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
@@ -14,18 +14,37 @@ let primitiveID = 0;
  * @private
  */
 export class Primitive extends AssetObject {
-  readonly id: number;
-  mode: DrawMode = DrawMode.TRIANGLES;
-  vertexAttributes: VertexElements = {};
-
-  vertexElements: VertexElement[] = [];
-  vertexOffset: number = 0;
-  vertexCount: number = 0;
-
+  /** 绘制模式。*/
+  primitiveTopology: PrimitiveTopology = PrimitiveTopology.TRIANGLES;
+  /** 索引缓冲。*/
   indexBuffer: IndexBuffer;
-  indexOffset: number = 0;
-  indexCount: number = 0;
+  /** 绘制偏移。*/
+  drawOffset: number = 0;
+  /** 绘制数量。*/
+  drawCount: number = 0;
+  /** 实例数量，0 表示关闭实例渲染。*/
+  instanceCount: number = 0;
 
+  _vertexElementMap: VertexElements = {};
+
+  private _vertexBufferBindings: VertexBufferBinding[] = [];
+  private _vertexElements: VertexElement[] = [];
+
+  /**
+   * 顶点缓冲绑定信息集合。
+   */
+  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
+    return this._vertexBufferBindings;
+  }
+
+  /**
+   * 顶点元素集合。
+   */
+  get vertexElements(): Readonly<VertexElement[]> {
+    return this._vertexElements;
+  }
+
+  readonly id: number;
   material = null;
   materialIndex: number;
   targets: any[] = [];
@@ -33,17 +52,8 @@ export class Primitive extends AssetObject {
   boundingSphere: BoundingSphere = null;
   isInFrustum: boolean = true;
 
-  isInstanced: boolean = false;
-  instancedCount: number;
-
-  private _vertexBufferBindings: VertexBufferBinding[] = [];
-
   get attributes() {
-    return this.vertexAttributes;
-  }
-
-  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
-    return this._vertexBufferBindings;
+    return this._vertexElementMap;
   }
 
   constructor(name?: string) {
@@ -52,18 +62,46 @@ export class Primitive extends AssetObject {
     this.name = name;
   }
 
-  addVertexBuffer(vertexBufferBinding: VertexBufferBinding): void {
-    this._vertexBufferBindings.push(vertexBufferBinding);
-  }
-
-  addVertexElement(element: VertexElement): void {
-    const { semantic, instanceDivisor } = element;
-    this.vertexAttributes[semantic] = element;
-    this.vertexElements.push(element);
-    if (instanceDivisor) {
-      this.isInstanced = true;
+  /**
+   * 设置顶点缓冲绑定信息。
+   * @param vertexBufferBindings
+   * @param firstIndex
+   */
+  setVertexBuffers(vertexBufferBindings: VertexBufferBinding | VertexBufferBinding[], firstIndex: number = 0): void {
+    const bindings = this._vertexBufferBindings;
+    const isArray = (<VertexBufferBinding[]>vertexBufferBindings).length !== undefined;
+    if (isArray) {
+      const addBindings = <VertexBufferBinding[]>vertexBufferBindings;
+      const count = addBindings.length;
+      const needLength = firstIndex + count;
+      bindings.length < needLength ?? (bindings.length = needLength);
+      for (let i = 0; i < count; i++) {
+        this._vertexBufferBindings[firstIndex + i] = addBindings[i];
+      }
+    } else {
+      const needLength = firstIndex + 1;
+      bindings.length < needLength ?? (bindings.length = needLength);
+      this._vertexBufferBindings[firstIndex] = <VertexBufferBinding>vertexBufferBindings;
     }
   }
+
+  /**
+   * 添加顶点元素集合。
+   * @param elements
+   */
+  addVertexElements(elements: VertexElement | VertexElement[]): void {
+    const isArray = (<VertexElement[]>elements).length !== undefined;
+    if (isArray) {
+      const addElements = <VertexElement[]>elements;
+      for (let i = 0, n = addElements.length; i < n; i++) {
+        this._addVertexElement(addElements[i]);
+      }
+    } else {
+      this._addVertexElement(<VertexElement>elements);
+    }
+  }
+
+  removeVertexElements(vertexElements: VertexElement | VertexElement[]): void {}
 
   updateWeightsIndices(indices: number[]) {
     if (this.targets.length !== indices.length || indices.length === 0) {
@@ -86,14 +124,13 @@ export class Primitive extends AssetObject {
   destroy() {}
 
   reset() {
-    this.mode = DrawMode.TRIANGLES;
-    this.vertexAttributes = {};
+    this.primitiveTopology = PrimitiveTopology.TRIANGLES;
+    this._vertexElementMap = {};
     this._vertexBufferBindings = [];
-    this.vertexCount = 0;
 
     this.indexBuffer = null;
-    this.indexOffset = 0;
-    this.indexCount = 0;
+    this.drawOffset = 0;
+    this.drawCount = 0;
 
     this.material = null;
     this.materialIndex = null;
@@ -101,8 +138,15 @@ export class Primitive extends AssetObject {
     this.boundingBox = null;
     this.boundingSphere = null;
     this.isInFrustum = true;
+    this.instanceCount = null;
+  }
 
-    this.isInstanced = false;
-    this.instancedCount = null;
+  private _addVertexElement(element: VertexElement): void {
+    const { semantic } = element;
+    if (this._vertexElementMap[semantic]) {
+      throw "the same semantic already exists.";
+    }
+    this._vertexElementMap[semantic] = element;
+    this._vertexElements.push(element);
   }
 }

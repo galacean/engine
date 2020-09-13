@@ -36,30 +36,26 @@ export class GeometryShape extends BufferGeometry {
     vertexStride: number,
     vertexElements: VertexElement[]
   ) {
-    const vertexBufferlength = vertices.byteLength;
-    const vertexBuffer = new VertexBuffer(vertexBufferlength, BufferUsage.Static, engine);
+    const vertexBuffer = new VertexBuffer(vertices.byteLength, BufferUsage.Static, engine);
     const indexBuffer = new IndexBuffer(indices.length, IndexFormat.UInt16, BufferUsage.Static, engine);
-
-    for (let i = 0, n = vertexElements.length; i < n; i++) {
-      this.primitive.addVertexElement(vertexElements[i]);
-    }
-    this.addVertexBuffer(new VertexBufferBinding(vertexBuffer, vertexStride));
-    this.vertexCount = vertexBufferlength / vertexStride;
     vertexBuffer.setData(vertices);
-
-    this.setIndexBuffer(indexBuffer);
-    this.indexCount = indices.length;
     indexBuffer.setData(indices);
+
+    this.setVertexBuffers(new VertexBufferBinding(vertexBuffer, vertexStride));
+    this.addVertexElements(vertexElements);
+    this.indexBuffer = indexBuffer;
+    this.drawGroup.count = indices.length;
 
     this._computeBounds(vertices);
   }
 
   private _computeBounds(vertices: ArrayBuffer | Float32Array): void {
-    const vertexElement = this.primitive.vertexAttributes["POSITION"];
+    const vertexElement = this._primitive._vertexElementMap["POSITION"];
     const bufferIndex = vertexElement.vertexBufferIndex;
-    const stride = this.primitive.vertexBufferBindings[bufferIndex].stride;
+    const vertexBufferBinding = this._primitive.vertexBufferBindings[bufferIndex];
+    const stride = vertexBufferBinding.stride;
     const offset = vertexElement.offset;
-    const vertexCount = this.vertexCount;
+    const vertexCount = vertexBufferBinding.buffer.length / stride;
     let arrayBuffer: ArrayBuffer = vertices;
     if (!(arrayBuffer instanceof ArrayBuffer)) {
       arrayBuffer = (<Float32Array>arrayBuffer).buffer;

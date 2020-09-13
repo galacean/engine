@@ -3,7 +3,6 @@ import {
   AnimationClip,
   ConstantMaterial,
   DataType,
-  DrawMode,
   Engine,
   EngineObject,
   Entity,
@@ -22,7 +21,7 @@ import {
   Util,
   VertexBuffer,
   VertexBufferBinding,
-  VertexElement
+  PrimitiveTopology
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -460,12 +459,12 @@ function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
     const accessor = gltf.accessors[accessorIdx];
 
     const stride = getVertexStride(accessor);
-    const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, i++);
-    primitive.addVertexElement(vertexELement);
+    const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, i);
+    primitive.addVertexElements(vertexELement);
     const bufferData = getAccessorData(gltf, accessor, buffers);
     const vertexBuffer = new VertexBuffer(bufferData.byteLength);
     vertexBuffer.setData(bufferData);
-    primitive.addVertexBuffer(new VertexBufferBinding(vertexBuffer, stride));
+    primitive.setVertexBuffers(new VertexBufferBinding(vertexBuffer, stride), i++);
   }
 
   const positionAccessorIdx = gltfPrimitive.attributes.POSITION;
@@ -481,8 +480,8 @@ function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
 
   indexBuffer.setData(indexData);
   primitive.indexBuffer = indexBuffer;
-  primitive.indexOffset = 0;
-  primitive.indexCount = indexCount;
+  primitive.drawOffset = 0;
+  primitive.drawCount = indexCount;
   return Promise.resolve(primitive);
 }
 
@@ -571,7 +570,7 @@ export function parseMesh(gltfMesh, resources) {
         // FIXME: use index as primitive's name
         const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
         primitive.type = resources.assetType;
-        primitive.mode = gltfPrimitive.mode == null ? DrawMode.TRIANGLES : gltfPrimitive.mode;
+        primitive.mode = gltfPrimitive.mode == null ? PrimitiveTopology.TRIANGLES : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
           primitive.targets = [];
           (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);

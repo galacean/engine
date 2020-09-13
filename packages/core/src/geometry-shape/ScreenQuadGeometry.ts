@@ -1,8 +1,8 @@
-import { DrawMode } from "../base/Constant";
 import { Engine } from "../Engine";
 import { VertexElementFormat } from "../geometry/graphic/enums/VertexElementFormat";
 import { VertexElement } from "../geometry/graphic/VertexElement";
 import { GeometryShape } from "./GeometryShape";
+import { PrimitiveTopology } from "../geometry/graphic/enums/PrimitiveTopology";
 
 /**
  * 覆盖整个屏幕的一个矩形
@@ -11,7 +11,7 @@ import { GeometryShape } from "./GeometryShape";
 export class ScreenQuadGeometry extends GeometryShape {
   constructor(engine?: Engine) {
     super();
-    this.mode = DrawMode.TRIANGLE_FAN;
+    this.primitiveTopology = PrimitiveTopology.TRIANGLE_FAN;
 
     const vertices: Float32Array = new Float32Array([-1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1]);
 

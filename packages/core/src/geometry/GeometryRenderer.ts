@@ -39,8 +39,8 @@ export class GeometryRenderer extends RenderableComponent {
    */
   set geometry(geometry: BufferGeometry) {
     this._geometry = geometry;
-    if (geometry && geometry.primitive && geometry.primitive.material) {
-      this._material = geometry.primitive.material;
+    if (geometry && geometry._primitive && geometry._primitive.material) {
+      this._material = geometry._primitive.material;
     }
 
     this.trigger(new Event("geometryChange"));
@@ -82,8 +82,13 @@ export class GeometryRenderer extends RenderableComponent {
     }
     geometry._render();
 
-    if (geometry.primitive && this._material) {
-      camera._renderPipeline.pushPrimitive(this, geometry.primitive, this._material);
+    const primitive = geometry._primitive;
+    if (primitive && this._material) {
+      const drawGroup = geometry.drawGroups[0];
+      primitive.drawOffset = drawGroup.offset;
+      primitive.drawCount = drawGroup.count;
+
+      camera._renderPipeline.pushPrimitive(this, primitive, this._material);
     } else {
       Logger.error("primitive or  material is null");
     }

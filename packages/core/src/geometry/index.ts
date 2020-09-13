@@ -13,6 +13,7 @@ export type { VertexElements } from "./graphic/VertexElement";
 export { IndexFormat } from "./graphic/enums/IndexFormat";
 export { SetDataOptions } from "./graphic/enums/SetDataOptions";
 export { BufferUtil } from "./graphic/BufferUtil";
+export { PrimitiveTopology } from "./graphic/enums/PrimitiveTopology";
 
 export class BufferAttribute {}
 export class InterleavedBuffer {}

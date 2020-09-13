@@ -195,7 +195,7 @@ export class RenderTechnique extends AssetObject {
     const _macros = [];
     if (!primitive) return _macros;
 
-    const attribNames = Object.keys(primitive.vertexAttributes);
+    const attribNames = Object.keys(primitive._vertexElementMap);
 
     if (attribNames.indexOf("TEXCOORD_0") > -1) _macros.push("O3_HAS_UV");
     if (attribNames.indexOf("NORMAL") > -1) _macros.push("O3_HAS_NORMAL");

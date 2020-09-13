@@ -1,19 +1,103 @@
 import { AssetObject } from "../asset/AssetObject";
 import { Primitive } from "../primitive/Primitive";
+import { DrawGroup } from "./graphic/DrawGroup";
+import { PrimitiveTopology } from "./graphic/enums/PrimitiveTopology";
 import { VertexBufferBinding } from "./graphic/VertexBufferBinding";
-import { VertexElements } from "./graphic/VertexElement";
+import { VertexElement } from "./graphic/VertexElement";
 import { IndexBuffer } from "./index";
-
-let geometryCount = 0;
 
 /**
  * 缓冲几何体。
  */
 export class BufferGeometry extends AssetObject {
-  primitive: Primitive;
+  private static _geometryCount = 0;
 
-  private _bufferCount: number;
+  _primitive: Primitive;
+
   private _bounds: any;
+  private _drawGroups: DrawGroup[] = [];
+
+  /**
+   * 顶点缓冲绑定信息集合。
+   */
+  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
+    return this._primitive.vertexBufferBindings;
+  }
+
+  /**
+   * 顶点元素集合。
+   */
+  get vertexElements(): Readonly<VertexElement[]> {
+    return this._primitive.vertexElements;
+  }
+
+  /**
+   * 索引缓冲。
+   */
+  get indexBuffer(): IndexBuffer {
+    return this._primitive.indexBuffer;
+  }
+
+  set indexBuffer(indexBuffer: IndexBuffer) {
+    this._primitive.indexBuffer = indexBuffer;
+  }
+
+  /**
+   * 实例数量,0 表示关闭。
+   */
+  get instancedCount(): number {
+    return this._primitive.instanceCount;
+  }
+
+  set instancedCount(count: number) {
+    this._primitive.instanceCount = count;
+  }
+
+  /**
+   * 绘制基元拓扑模式。
+   */
+  set primitiveTopology(topology: PrimitiveTopology) {
+    this._primitive.primitiveTopology = topology;
+  }
+
+  get primitiveTopology(): PrimitiveTopology {
+    return this._primitive.primitiveTopology;
+  }
+
+  /**
+   * 绘制组集合。
+   */
+  get drawGroups(): Readonly<DrawGroup[]> {
+    return this._drawGroups;
+  }
+
+  /**
+   * 绘制组。
+   */
+  get drawGroup(): DrawGroup {
+    return this._drawGroups[0];
+  }
+
+  /**
+   * 绘制组数量。
+   */
+  get drawGroupCount(): number {
+    return this._drawGroups.length;
+  }
+
+  set drawGroupCount(value: number) {
+    if (value < 1) {
+      throw "drawGroupCount must large than 1.";
+    }
+    const drawGroups = this._drawGroups;
+    const curCount = drawGroups.length;
+    drawGroups.length = value;
+    if (curCount < value) {
+      for (let i = curCount; i < value; i++) {
+        drawGroups[i] = new DrawGroup();
+      }
+    }
+  }
 
   /**
    * 包围体。
@@ -27,101 +111,73 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 顶点数量。
-   */
-  get vertexCount(): number {
-    return this.primitive.vertexCount;
-  }
-
-  set vertexCount(value: number) {
-    this.primitive.vertexCount = value;
-  }
-
-  /**
-   * 实例数量。
-   */
-  get instancedCount(): number {
-    return this.primitive.instancedCount;
-  }
-
-  set instancedCount(count: number) {
-    this.primitive.instancedCount = count;
-  }
-
-  /**
-   * 绘制模式。
-   */
-  set mode(mode) {
-    this.primitive.mode = mode;
-  }
-
-  get mode() {
-    return this.primitive.mode;
-  }
-
-  get attributes(): VertexElements {
-    return this.primitive.attributes;
-  }
-
-  /**
-   * 索引缓冲。
-   */
-  get indexBuffer(): IndexBuffer {
-    return this.primitive.indexBuffer;
-  }
-
-  /**
-   * 索引数量。
-   */
-  set indexCount(v: number) {
-    this.primitive.indexCount = v;
-  }
-
-  get indexCount(): number {
-    return this.primitive.indexCount;
-  }
-
-  /**
+   * 创建几何体缓冲。
    * @param name - 名称
    */
   constructor(name?: string) {
     super();
-    name = name || "bufferGeometry" + geometryCount++;
-    this._bufferCount = 0;
-    this.primitive = new Primitive();
+    name = name || "BufferGeometry" + BufferGeometry._geometryCount++;
+    this._primitive = new Primitive();
+    this.drawGroupCount = 1;
   }
 
   /**
-   * 添加一个顶点缓冲。
-   * @param vertexBuffer - 顶点缓冲
+   * 设置顶点缓冲。
+   * @param vertexBufferBinding - 顶点缓冲绑定
    */
-  addVertexBuffer(vertexBuffer: VertexBufferBinding): void {
-    this.primitive.addVertexBuffer(vertexBuffer);
-    this._bufferCount++;
+  setVertexBuffers(vertexBufferBinding: VertexBufferBinding): void;
+
+  /**
+   * 设置顶点缓冲。
+   * @param vertexBufferBinding - 顶点缓冲绑定
+   * @param index - 顶点缓冲索引
+   */
+  setVertexBuffers(vertexBufferBinding: VertexBufferBinding, index: number): void;
+
+  /**
+   * 设置顶点缓冲。
+   * @param vertexBufferBindings - 顶点缓冲绑定
+   */
+  setVertexBuffers(vertexBufferBindings: VertexBufferBinding[]): void;
+
+  /**
+   * 设置顶点缓冲。
+   * @param vertexBufferBindings - 顶点缓冲绑定
+   * @param firstIndex - 第一个顶点缓冲索引
+   */
+  setVertexBuffers(vertexBufferBindings: VertexBufferBinding[], firstIndex: number): void;
+
+  setVertexBuffers(vertexBufferBindings: VertexBufferBinding | VertexBufferBinding[], firstIndex: number = 0): void {
+    this._primitive.setVertexBuffers(vertexBufferBindings, firstIndex);
   }
 
   /**
-   * 添加一个索引缓冲。
-   * @param indexBuffer - 索引缓冲
+   * 添加顶点元素集合。
+   * @param elements - 顶点元素集合。
    */
-  setIndexBuffer(indexBuffer: IndexBuffer): void {
-    this.primitive.indexBuffer = indexBuffer;
+  addVertexElements(elements: VertexElement | VertexElement[]): void {
+    this._primitive.addVertexElements(elements);
   }
 
   /**
    * 释放内部资源对象。
    */
   destroy(): void {
-    if (this.primitive) {
-      this.primitive.destroy();
-      this.primitive = null;
+    if (this._primitive) {
+      this._primitive.destroy();
+      this._primitive = null;
     }
   }
 
-  reset(): void {
-    this.primitive.reset();
-    this._bufferCount = 0;
-  }
-
+  /**
+   * @internal
+   */
   _render(): void {}
+
+  /**
+   * @deprecated
+   */
+  reset(): void {
+    this._primitive.reset();
+  }
 }
