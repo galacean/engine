@@ -51,17 +51,39 @@ export class IndexBuffer {
 
   /**
    * 创建索引缓冲。
-   * @param engine - 引擎
+   * @param indexCount - 索引缓冲尺寸，以字节为单位
    * @param indexFormat - 索引格式
-   * @param byteSize - 索引缓冲尺寸，以字节为单位
    * @param bufferUsage - 索引缓冲用途
+   * @param engine - 引擎
+   */
+  constructor(indexCount: number, indexFormat?: IndexFormat, bufferUsage?: BufferUsage, engine?: Engine);
+
+  /**
+   * 创建索引缓冲。
+   * @param data - 所以缓冲数据
+   * @param indexFormat - 索引格式
+   * @param bufferUsage - 索引缓冲用途
+   * @param engine - 引擎
    */
   constructor(
-    indexCount: number,
+    data: Uint8Array | Uint16Array | Uint32Array,
+    indexFormat?: IndexFormat,
+    bufferUsage?: BufferUsage,
+    engine?: Engine
+  );
+
+  constructor(
+    indexCountOrData: number | Uint8Array | Uint16Array | Uint32Array,
     indexFormat: IndexFormat = IndexFormat.UInt16,
     bufferUsage: BufferUsage = BufferUsage.Static,
     engine?: Engine
   ) {
+    const isNumber = typeof indexCountOrData === "number";
+    const elementByteCount = indexFormat === IndexFormat.UInt32 ? 4 : indexFormat === IndexFormat.UInt16 ? 2 : 1;
+    const indexCount = isNumber
+      ? <number>indexCountOrData
+      : (<Uint8Array | Uint16Array | Uint32Array>indexCountOrData).byteLength / elementByteCount;
+
     engine = engine || Engine._getDefaultEngine();
     this._engine = engine;
     this._indexCount = indexCount;
@@ -70,7 +92,7 @@ export class IndexBuffer {
 
     const hardwareRenderer = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = hardwareRenderer.gl;
-    const elementByteCount = indexFormat === IndexFormat.UInt32 ? 4 : indexFormat === IndexFormat.UInt16 ? 2 : 1;
+
     const bufferByteSize = indexCount * elementByteCount;
     const glBufferUsage = BufferUtil._getGLBufferUsage(gl, bufferUsage);
 
@@ -82,7 +104,11 @@ export class IndexBuffer {
     this._glIndexType = BufferUtil._getGLIndexType(gl, indexFormat);
 
     this.bind();
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferByteSize, glBufferUsage);
+    if (isNumber) {
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferByteSize, glBufferUsage);
+    } else {
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, <Uint8Array | Uint16Array | Uint32Array>indexCountOrData, glBufferUsage);
+    }
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
   }
 

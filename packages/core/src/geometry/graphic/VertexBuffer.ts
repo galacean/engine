@@ -43,10 +43,23 @@ export class VertexBuffer {
    * @param bufferUsage - 顶点缓冲用途
    * @param engine - 引擎
    */
-  constructor(length: number, bufferUsage: BufferUsage = BufferUsage.Static, engine?: Engine) {
+  constructor(length: number, bufferUsage?: BufferUsage, engine?: Engine);
+
+  /**
+   * 创建顶点缓冲。
+   * @param data - 数据
+   * @param bufferUsage - 顶点缓冲用途
+   * @param engine - 引擎
+   */
+  constructor(data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage, engine?: Engine);
+
+  constructor(
+    lengthOrData: number | ArrayBuffer | ArrayBufferView,
+    bufferUsage: BufferUsage = BufferUsage.Static,
+    engine?: Engine
+  ) {
     engine = engine || Engine._getDefaultEngine();
     this._engine = engine;
-    this._length = length;
     this._bufferUsage = bufferUsage;
 
     const hardwareRenderer = engine._hardwareRenderer;
@@ -58,7 +71,13 @@ export class VertexBuffer {
     this._glBufferUsage = glBufferUsage;
 
     this.bind();
-    gl.bufferData(gl.ARRAY_BUFFER, length, glBufferUsage);
+    if (typeof lengthOrData === "number") {
+      this._length = lengthOrData;
+      gl.bufferData(gl.ARRAY_BUFFER, lengthOrData, glBufferUsage);
+    } else {
+      this._length = lengthOrData.byteLength;
+      gl.bufferData(gl.ARRAY_BUFFER, lengthOrData, glBufferUsage);
+    }
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
