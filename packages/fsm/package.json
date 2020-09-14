@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-fsm",
-  "version": "3.0.23-mars.5",
+  "version": "3.0.24-mars.6",
   "description": "FSM",
   "keywords": [
     "Oasis3D"
@@ -27,6 +27,6 @@
   },
   "types": "types/index.d.ts",
   "dependencies": {
-    "@alipay/o3-core": "3.0.23-mars.5"
+    "@alipay/o3-core": "3.0.24-mars.6"
   }
 }
