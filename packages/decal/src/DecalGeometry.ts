@@ -86,17 +86,16 @@ export class DecalGeometry extends BufferGeometry {
 
     let normalData;
 
-    const indexBuffer = primitive.indexBufferBinding.buffer;
-    const indexData = this._indices;
-    const count = indexData.length;
+    const vertices = this._vertices;
+    const indices = this._indices;
+    const count = indices.length;
 
     // first, create an array of 'DecalVertex' objects
     // three consecutive 'DecalVertex' objects represent a single face
     //
     // this data structure will be later used to perform the clipping
-    const vertices = this._vertices;
     for (let i = 0; i < count; i += 1) {
-      const offset = (indexData[i] * this._vertexStride) / 4;
+      const offset = (indices[i] * this._vertexStride) / 4;
       const vertex = new Vector3(vertices[offset], vertices[offset + 1], vertices[offset + 2]);
       let normal;
       if (normalData) {
