@@ -463,7 +463,7 @@ function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
     const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, i);
     primitive.addVertexElements(vertexELement);
     const bufferData = getAccessorData(gltf, accessor, buffers);
-    const vertexBuffer = new VertexBuffer(bufferData.byteLength);
+    const vertexBuffer = new VertexBuffer(bufferData.byteLength, undefined, gltf.engine); // TODO gltf.engine?
     vertexBuffer.setData(bufferData);
     primitive.setVertexBuffers(new VertexBufferBinding(vertexBuffer, stride), i++);
   }
@@ -478,7 +478,7 @@ function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
   const indexFormat = getIndexFormat(indexAccessor.componentType);
   const indexData = getAccessorData(gltf, indexAccessor, buffers);
   const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
-  const indexBuffer = new IndexBuffer(indexCount * indexByteSize, indexFormat);
+  const indexBuffer = new IndexBuffer(indexCount * indexByteSize, indexFormat, gltf.engine); // TODO gltf.engine?
 
   indexBuffer.setData(indexData);
   primitive.setIndexBuffer(indexBuffer, indexFormat);

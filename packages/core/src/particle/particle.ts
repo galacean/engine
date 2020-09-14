@@ -205,7 +205,7 @@ export class GPUParticleSystem extends GeometryRenderer {
    */
   setMaterial() {
     const technique = this._createTechnique();
-    const material = new Material("particleMaterial");
+    const material = new Material("particleMaterial", this.engine);
     material.technique = technique;
     material.renderType = MaterialType.TRANSPARENT;
 
@@ -430,7 +430,7 @@ export class GPUParticleSystem extends GeometryRenderer {
       new VertexElement("NORMALIZED_UV", 88, VertexElementFormat.Vector2, 0)
     ];
     const vertexBuffer = new VertexBuffer(vertexFloatCount * 4, BufferUsage.Dynamic, this.engine);
-    const indexBuffer = new IndexBuffer(indices, BufferUsage.Dynamic);
+    const indexBuffer = new IndexBuffer(indices, BufferUsage.Dynamic, this.engine);
 
     geometry.setVertexBuffers(new VertexBufferBinding(vertexBuffer, vertexStride));
     geometry.setIndexBuffer(indexBuffer, IndexFormat.UInt16);
