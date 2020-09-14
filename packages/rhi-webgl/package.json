@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-rhi-webgl",
-  "version": "3.0.20-mars.2",
+  "version": "3.0.21-mars.3",
   "description": "Oasis3D Render Hardware Interface -  WebGL implementation",
   "keywords": [
     "Oasis3D",
@@ -28,8 +28,8 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-core": "3.0.20-mars.2",
-    "@alipay/o3-math": "3.0.20-mars.2"
+    "@alipay/o3-core": "3.0.21-mars.3",
+    "@alipay/o3-math": "3.0.21-mars.3"
   },
   "gitHead": "3af8f007dac28de84d7648a5e814d35459da8fa6"
 }

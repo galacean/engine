@@ -37,11 +37,11 @@ export class GeometryShape extends BufferGeometry {
     vertexElements: VertexElement[]
   ) {
     const vertexBuffer = new VertexBuffer(vertices, BufferUsage.Static, engine);
-    const indexBuffer = new IndexBuffer(indices, IndexFormat.UInt16, BufferUsage.Static, engine);
+    const indexBuffer = new IndexBuffer(indices, BufferUsage.Static, engine);
 
     this.setVertexBuffers(new VertexBufferBinding(vertexBuffer, vertexStride));
+    this.setIndexBuffer(indexBuffer, IndexFormat.UInt16);
     this.addVertexElements(vertexElements);
-    this.indexBuffer = indexBuffer;
     this.drawGroup.count = indices.length;
 
     this._computeBounds(vertices);
@@ -53,7 +53,7 @@ export class GeometryShape extends BufferGeometry {
     const vertexBufferBinding = this._primitive.vertexBufferBindings[bufferIndex];
     const stride = vertexBufferBinding.stride;
     const offset = vertexElement.offset;
-    const vertexCount = vertexBufferBinding.buffer.length / stride;
+    const vertexCount = vertexBufferBinding.buffer.byteLength / stride;
     let arrayBuffer: ArrayBuffer = vertices;
     if (!(arrayBuffer instanceof ArrayBuffer)) {
       arrayBuffer = (<Float32Array>arrayBuffer).buffer;
