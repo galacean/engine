@@ -123,19 +123,19 @@ export class Primitive extends AssetObject {
     this._glIndexType = BufferUtil._getGLIndexType(format);
   }
 
-  updateWeightsIndices(indices: number[]) {
-    if (this.targets.length !== indices.length || indices.length === 0) {
-      return;
-    }
-    for (let i = 0; i < indices.length; i++) {
-      const currentIndex = indices[i];
-      Object.keys(this.targets[i]).forEach((key: string) => {
-        const semantic = this.targets[i][key].name;
-        const index = this.targets[currentIndex][key].vertexBufferIndex;
-        // this.updateAttribBufferIndex(semantic, index);
-      });
-    }
-  }
+  // updateWeightsIndices(indices: number[]) {
+  //   if (this.targets.length !== indices.length || indices.length === 0) {
+  //     return;
+  //   }
+  //   for (let i = 0; i < indices.length; i++) {
+  //     const currentIndex = indices[i];
+  //     Object.keys(this.targets[i]).forEach((key: string) => {
+  //       const semantic = this.targets[i][key].name;
+  //       const index = this.targets[currentIndex][key].vertexBufferIndex;
+  //       // this.updateAttribBufferIndex(semantic, index);
+  //     });
+  //   }
+  // }
 
   // updateAttribBufferIndex(semantic: string, index: number) {
   //   this.vertexAttributes[semantic].vertexBufferIndex = index;

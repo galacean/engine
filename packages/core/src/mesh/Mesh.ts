@@ -22,9 +22,9 @@ export class Mesh extends ReferenceObject {
   }
 
   updatePrimitiveWeightsIndices(weightsIndices: number[]) {
-    this.primitives.forEach((primitive) => {
-      primitive.updateWeightsIndices(weightsIndices);
-    });
+    // this.primitives.forEach((primitive) => {
+    //   primitive.updateWeightsIndices(weightsIndices);
+    // });
   }
 
   onDestroy() {

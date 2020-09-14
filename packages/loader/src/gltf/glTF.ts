@@ -487,52 +487,49 @@ function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers, resources
 }
 
 function parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers) {
-  // load morph targets
-  if (gltfPrimitive.hasOwnProperty("targets")) {
-    let accessorIdx, accessor, buffer;
-    let attributeCount = primitive.vertexBuffers.length;
-    for (let j = 0; j < gltfPrimitive.targets.length; j++) {
-      const target = gltfPrimitive.targets[j];
-      for (const attributeSemantic in target) {
-        switch (attributeSemantic) {
-          case "POSITION":
-            accessorIdx = target.POSITION;
-            accessor = gltf.accessors[accessorIdx];
-
-            buffer = getAccessorData(gltf, accessor, buffers);
-            primitive.vertexBuffers.push(buffer);
-            const posAttrib = createAttribute(gltf, `POSITION_${j}`, accessor, attributeCount++);
-            primitive.vertexAttributes[`POSITION_${j}`] = posAttrib;
-            target["POSITION"] = { ...posAttrib };
-            break;
-          case "NORMAL":
-            accessorIdx = target.NORMAL;
-            accessor = gltf.accessors[accessorIdx];
-
-            buffer = getAccessorData(gltf, accessor, buffers);
-            primitive.vertexBuffers.push(buffer);
-            const normalAttrib = createAttribute(gltf, `NORMAL_${j}`, accessor, attributeCount++);
-            primitive.vertexAttributes[`NORMAL_${j}`] = normalAttrib;
-            target["NORMAL"] = { ...normalAttrib };
-            break;
-          case "TANGENT":
-            accessorIdx = target.TANGENT;
-            accessor = gltf.accessors[accessorIdx];
-
-            buffer = getAccessorData(gltf, accessor, buffers);
-            primitive.vertexBuffers.push(buffer);
-            const tangentAttrib = createAttribute(gltf, `TANGENT_${j}`, accessor, attributeCount++);
-            primitive.vertexAttributes[`TANGENT_${j}`] = tangentAttrib;
-            target["TANGENT"] = { ...tangentAttrib };
-            break;
-          default:
-            Logger.error(`unknown morth target semantic "${attributeSemantic}"`);
-            break;
-        }
-        primitive.targets.push(target);
-      }
-    }
-  }
+  // // load morph targets
+  // if (gltfPrimitive.hasOwnProperty("targets")) {
+  //   let accessorIdx, accessor, buffer;
+  //   let attributeCount = primitive.vertexBuffers.length;
+  //   for (let j = 0; j < gltfPrimitive.targets.length; j++) {
+  //     const target = gltfPrimitive.targets[j];
+  //     for (const attributeSemantic in target) {
+  //       switch (attributeSemantic) {
+  //         case "POSITION":
+  //           accessorIdx = target.POSITION;
+  //           accessor = gltf.accessors[accessorIdx];
+  //           buffer = getAccessorData(gltf, accessor, buffers);
+  //           primitive.vertexBuffers.push(buffer);
+  //           const posAttrib = createAttribute(gltf, `POSITION_${j}`, accessor, attributeCount++);
+  //           primitive.vertexAttributes[`POSITION_${j}`] = posAttrib;
+  //           target["POSITION"] = { ...posAttrib };
+  //           break;
+  //         case "NORMAL":
+  //           accessorIdx = target.NORMAL;
+  //           accessor = gltf.accessors[accessorIdx];
+  //           buffer = getAccessorData(gltf, accessor, buffers);
+  //           primitive.vertexBuffers.push(buffer);
+  //           const normalAttrib = createAttribute(gltf, `NORMAL_${j}`, accessor, attributeCount++);
+  //           primitive.vertexAttributes[`NORMAL_${j}`] = normalAttrib;
+  //           target["NORMAL"] = { ...normalAttrib };
+  //           break;
+  //         case "TANGENT":
+  //           accessorIdx = target.TANGENT;
+  //           accessor = gltf.accessors[accessorIdx];
+  //           buffer = getAccessorData(gltf, accessor, buffers);
+  //           primitive.vertexBuffers.push(buffer);
+  //           const tangentAttrib = createAttribute(gltf, `TANGENT_${j}`, accessor, attributeCount++);
+  //           primitive.vertexAttributes[`TANGENT_${j}`] = tangentAttrib;
+  //           target["TANGENT"] = { ...tangentAttrib };
+  //           break;
+  //         default:
+  //           Logger.error(`unknown morth target semantic "${attributeSemantic}"`);
+  //           break;
+  //       }
+  //       primitive.targets.push(target);
+  //     }
+  //   }
+  // }
 }
 
 function parsePrimitiveMaterial(primitive, gltfPrimitive, resources) {
