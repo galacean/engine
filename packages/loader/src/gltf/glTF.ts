@@ -477,7 +477,7 @@ function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers, resources
   const indexFormat = getIndexFormat(indexAccessor.componentType);
   const indexData = getAccessorData(gltf, indexAccessor, buffers);
   const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
-  const indexBuffer = new IndexBuffer(indexCount * indexByteSize, resources.engine);
+  const indexBuffer = new IndexBuffer(indexCount * indexByteSize, undefined, resources.engine);
 
   indexBuffer.setData(indexData);
   primitive.setIndexBuffer(indexBuffer, indexFormat);
