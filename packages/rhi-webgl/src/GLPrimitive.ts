@@ -74,33 +74,25 @@ export class GLPrimitive extends GLAsset {
     this.bindBufferAndAttrib(tech);
 
     // draw
-    const {
-      primitiveTopology,
-      indexBufferBinding,
-      drawOffset,
-      drawCount,
-      vertexCount,
-      instancedCount,
-      _glIndexType
-    } = primitive;
+    const { primitiveTopology, indexBufferBinding, drawOffset, drawCount, instanceCount, _glIndexType } = primitive;
     const indexBuffer = indexBufferBinding.buffer;
     const { _nativeBuffer } = indexBuffer;
-    if (!instancedCount) {
+    if (!instanceCount) {
       if (indexBuffer) {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
         gl.drawElements(primitiveTopology, drawCount, _glIndexType, drawOffset);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
       } else {
-        gl.drawArrays(primitiveTopology, drawOffset, vertexCount);
+        gl.drawArrays(primitiveTopology, drawOffset, drawCount);
       }
     } else {
       if (this.canUseInstancedArrays) {
         if (indexBuffer) {
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-          gl.drawElementsInstanced(primitiveTopology, drawCount, _glIndexType, drawOffset, instancedCount);
+          gl.drawElementsInstanced(primitiveTopology, drawCount, _glIndexType, drawOffset, instanceCount);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         } else {
-          gl.drawArraysInstanced(primitiveTopology, drawOffset, vertexCount, instancedCount);
+          gl.drawArraysInstanced(primitiveTopology, drawOffset, drawCount, instanceCount);
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");
@@ -124,18 +116,18 @@ export class GLPrimitive extends GLAsset {
   finalize() {
     const primitive = this._primitive;
     const vertexBufferBindings = primitive.vertexBufferBindings;
-    const indexBuffer = primitive.indexBuffer;
+    const indexBuffer = primitive.indexBufferBinding.buffer;
 
     if (vertexBufferBindings.length > 0) {
       for (let i = 0; i < vertexBufferBindings.length; i++) {
-        const vertexBuffer = vertexBufferBindings[i].vertexBuffer;
+        const vertexBuffer = vertexBufferBindings[i].buffer;
         vertexBuffer.destroy();
       }
     }
 
     if (indexBuffer) {
       indexBuffer.destroy();
-      primitive.indexBuffer = null;
+      // primitive.indexBufferBinding.buffer = null;
     }
   }
 }
