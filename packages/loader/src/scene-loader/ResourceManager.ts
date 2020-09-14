@@ -50,6 +50,13 @@ const resourceFactory = {
   }
 };
 
+export function registerResource(type: string, resource: any) {
+  if (!RESOURCE_CLASS.hasOwnProperty(type)) {
+    RESOURCE_CLASS[type] = resource;
+    RESOURCE_TYPE.set(resource, type);
+  }
+}
+
 export class SchemaResourceManager {
   private resourceMap: { [id: string]: SchemaResource } = {};
   private resourceIdMap: WeakMap<SchemaResource, string> = new WeakMap();
