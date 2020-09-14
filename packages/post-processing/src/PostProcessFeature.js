@@ -18,7 +18,7 @@ export class PostProcessFeature extends SceneFeature {
   /**
    * 构造函数
    */
-  constructor() {
+  constructor(engine) {
     super();
 
     this.empty = true;
@@ -28,7 +28,7 @@ export class PostProcessFeature extends SceneFeature {
 
     // 绘制全屏矩形公用的几何体
     this.quads = {};
-    this.quads.screen = new ScreenQuad();
+    this.quads.screen = new ScreenQuad(engine);
   }
 
   /**

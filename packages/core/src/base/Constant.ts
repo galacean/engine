@@ -272,19 +272,6 @@ export enum UniformSemantic {
 }
 
 /**
- * Buffer 的使用方式枚举
- * @readonly
- */
-export enum BufferUsage {
-  /** Buffer 内容极少更新（一般只在初始化时更新一次） */
-  STATIC_DRAW = 0x88e4,
-  /** Buffer 内容只写入不读取 */
-  STREAM_DRAW = 0x88e0,
-  /** Buffer 内容经常更新，只写入不读取 */
-  DYNAMIC_DRAW = 0x88e8
-}
-
-/**
  * 颜色混合方式枚举
  */
 export enum BlendFunc {

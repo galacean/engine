@@ -8,7 +8,7 @@ import { Engine } from "./Engine";
  * @class
  */
 export class FeatureManager<T extends EngineFeature | SceneFeature> {
-  private _features: Array<new () => T> = [];
+  private _features: Array<new (engine: Engine) => T> = [];
 
   private _objects = [];
 
@@ -43,7 +43,7 @@ export class FeatureManager<T extends EngineFeature | SceneFeature> {
   public addObject(obj: Scene | Engine): void {
     obj.features = [];
     for (let i = 0, len = this._features.length; i < len; i++) {
-      obj.features.push(new this._features[i]() as any);
+      obj.features.push(new this._features[i]((<any>obj).engine ?? <any>obj) as any);
     }
     this._objects.push(obj);
   }

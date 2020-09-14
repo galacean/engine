@@ -43,6 +43,7 @@ export class GeometryShape extends BufferGeometry {
     this.setIndexBuffer(indexBuffer, IndexFormat.UInt16);
     this.addVertexElements(vertexElements);
     this.drawGroup.count = indices.length;
+    this._primitive.drawCount = indices.length; //TODO:临时
 
     this._computeBounds(vertices);
   }

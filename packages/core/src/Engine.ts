@@ -128,13 +128,13 @@ export class Engine extends EventDispatcher {
    */
   constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
     super();
-    // @todo delete
-    engineFeatureManager.addObject(this);
-    this._sceneManager.activeScene = new Scene("DefaultScene", this);
+    Engine._lastCreateEngine = this;
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
-    Engine._lastCreateEngine = this;
+    // @todo delete
+    engineFeatureManager.addObject(this);
+    this._sceneManager.activeScene = new Scene("DefaultScene", this);
   }
 
   /**
