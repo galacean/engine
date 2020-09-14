@@ -22,7 +22,7 @@
   "module": "./dist/module.js",
   "browser": "dist/browser.js",
   "dependencies": {
-    "@alipay/o3": "3.0.20-mars.3"
+    "@alipay/o3": "3.0.23-mars.5"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
