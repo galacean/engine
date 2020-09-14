@@ -1,14 +1,17 @@
 import { MathUtil, Vector3 } from "@alipay/o3-math";
-import { BlendFunc, BufferUsage, DataType, RenderState, UniformSemantic, MaterialType } from "../base/Constant";
+import { BlendFunc, DataType, MaterialType, RenderState, UniformSemantic } from "../base/Constant";
 import {
-  GeometryRenderer,
   BufferGeometry,
+  GeometryRenderer,
   IndexBuffer,
+  IndexFormat,
+  PrimitiveTopology,
   VertexBuffer,
-  InterleavedBuffer,
-  PrimitiveTopology
+  VertexBufferBinding,
+  VertexElement,
+  VertexElementFormat
 } from "../geometry";
-import { BufferAttribute } from "../primitive/type";
+import { BufferUsage } from "../geometry/graphic/enums/BufferUsage";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
 import { TextureWrapMode } from "../texture/enums";
@@ -18,6 +21,9 @@ import { TextureWrapMode } from "../texture/enums";
  * @extends GeometryRenderer
  */
 export class GPUParticleSystem extends GeometryRenderer {
+  private _vertexStride: number;
+  private _vertices: Float32Array;
+  private _vertexBuffer: VertexBuffer;
   private _time: number;
   private _isInit: boolean;
   private _isStart: boolean;
@@ -149,6 +155,7 @@ export class GPUParticleSystem extends GeometryRenderer {
 
     this._time += deltaTime / 1000;
     this._material.setValue("uTime", this._time);
+    this._vertexBuffer.setData(this._vertices);
   }
 
   /**
@@ -392,15 +399,14 @@ export class GPUParticleSystem extends GeometryRenderer {
   _createGeometry() {
     const geometry = new BufferGeometry("particleGeometry");
     geometry.primitiveTopology = PrimitiveTopology.TRIANGLES;
-    const FLOAT = DataType.FLOAT;
 
-    var indices = new Uint16Array(6 * this.maxCount);
+    const vertexFloatCount = this.maxCount * 4;
+    const vertexStride = 96;
+    const vertices = new Float32Array(vertexFloatCount);
+    const indices = new Uint16Array(6 * this.maxCount);
 
-    var idx = 0;
-
-    for (var i = 0; i < this.maxCount; ++i) {
-      // 两个三角面
-      var startIndex = i * 4;
+    for (let i = 0, idx = 0; i < this.maxCount; ++i) {
+      let startIndex = i * 4;
       indices[idx++] = startIndex + 0;
       indices[idx++] = startIndex + 1;
       indices[idx++] = startIndex + 2;
@@ -409,125 +415,31 @@ export class GPUParticleSystem extends GeometryRenderer {
       indices[idx++] = startIndex + 3;
     }
 
-    const positionStart = new BufferAttribute({
-      semantic: "POSITIONSTART",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const velocity = new BufferAttribute({
-      semantic: "VELOCITY",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const acceleration = new BufferAttribute({
-      semantic: "ACCELERATION",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const color = new BufferAttribute({
-      semantic: "COLOR",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const alpha = new BufferAttribute({
-      semantic: "ALPHA",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const size = new BufferAttribute({
-      semantic: "SIZE",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const rotaterate = new BufferAttribute({
-      semantic: "ROTATERATE",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const startTime = new BufferAttribute({
-      semantic: "STARTTIME",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const lifetime = new BufferAttribute({
-      semantic: "LIFETIME",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const startAngle = new BufferAttribute({
-      semantic: "STARTANGLE",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const scaleFactor = new BufferAttribute({
-      semantic: "SCALEFACTOR",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const uv = new BufferAttribute({
-      semantic: "UV",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-    const normalizedUv = new BufferAttribute({
-      semantic: "NORMALIZED_UV",
-      size: 3,
-      type: FLOAT,
-      normalized: false,
-      usage: BufferUsage.DYNAMIC_DRAW
-    });
-
-    let buffer;
-    const attributes = [
-      positionStart,
-      velocity,
-      acceleration,
-      color,
-      alpha,
-      size,
-      rotaterate,
-      startTime,
-      lifetime,
-      startAngle,
-      scaleFactor,
-      uv,
-      normalizedUv
+    const vertexElements = [
+      new VertexElement("POSITIONSTART", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("VELOCITY", 12, VertexElementFormat.Vector3, 0),
+      new VertexElement("ACCELERATION", 24, VertexElementFormat.Vector3, 0),
+      new VertexElement("COLOR", 36, VertexElementFormat.Vector3, 0),
+      new VertexElement("ALPHA", 48, VertexElementFormat.Single, 0),
+      new VertexElement("SIZE", 52, VertexElementFormat.Single, 0),
+      new VertexElement("ROTATERATE", 56, VertexElementFormat.Single, 0),
+      new VertexElement("STARTTIME", 60, VertexElementFormat.Single, 0),
+      new VertexElement("LIFETIME", 64, VertexElementFormat.Single, 0),
+      new VertexElement("STARTANGLE", 68, VertexElementFormat.Single, 0),
+      new VertexElement("SCALEFACTOR", 72, VertexElementFormat.Single, 0),
+      new VertexElement("UV", 76, VertexElementFormat.Vector3, 0),
+      new VertexElement("NORMALIZED_UV", 88, VertexElementFormat.Vector2, 0)
     ];
-    if (this.interleaved) {
-      buffer = new InterleavedBuffer(attributes, this.maxCount * 4);
-    } else {
-      buffer = new VertexBuffer(attributes, this.maxCount * 4);
-    }
-    geometry.addVertexBufferParam(buffer);
+    const vertexBuffer = new VertexBuffer(vertexFloatCount * 4, BufferUsage.Dynamic, this.engine);
+    const indexBuffer = new IndexBuffer(indices, BufferUsage.Dynamic);
 
-    const indexBuffer = new IndexBuffer(indices.length);
-    geometry.addIndexBufferParam(indexBuffer);
-    geometry.setIndexBufferData(indices);
+    geometry.setVertexBuffers(new VertexBufferBinding(vertexBuffer, vertexStride));
+    geometry.setIndexBuffer(indexBuffer, IndexFormat.UInt16);
+    geometry.addVertexElements(vertexElements);
 
+    this._vertexBuffer = vertexBuffer;
+    this._vertexStride = vertexStride;
+    this._vertices = vertices;
     return geometry;
   }
 
@@ -599,32 +511,46 @@ export class GPUParticleSystem extends GeometryRenderer {
     color.y = MathUtil.clamp(color.y + this._getRandom() * colorRandomness, 0, 1);
     color.z = MathUtil.clamp(color.z + this._getRandom() * colorRandomness, 0, 1);
     size = Math.max(size + this._getRandom() * sizeRandomness * size * 2, 0);
-    const lifeTime = [lifetime + this._getRandom() * lifetime];
-    const sa = [startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2];
-    const rr = [rotateRate + this._getRandom() * rotateRateRandomness];
+    const lifeTime = lifetime + this._getRandom() * lifetime;
+    const sa = startAngle + this._getRandom() * Math.PI * startAngleRandomness * 2;
+    const rr = rotateRate + this._getRandom() * rotateRateRandomness;
     const particleAlpha = MathUtil.clamp(alpha + this._getRandom() * alphaRandomness, 0, 1);
-    const startTime = [Math.random() * startTimeRandomness];
+    const startTime = Math.random() * startTimeRandomness;
 
+    const vertices = this._vertices;
     for (let j = 0; j < 4; j++) {
-      const k = i * 4 + j;
+      const k = ((i * 4 + j) * this._vertexStride) / 4;
 
-      this.geometry.setVertexBufferDataByIndex("POSITIONSTART", k, [x, y, z]);
-      this.geometry.setVertexBufferDataByIndex("STARTTIME", k, startTime);
-
-      this.geometry.setVertexBufferDataByIndex("VELOCITY", k, [velX, velY, velZ]);
-
-      this.geometry.setVertexBufferDataByIndex("ACCELERATION", k, [accX, accY, accZ]);
-
-      this.geometry.setVertexBufferDataByIndex("COLOR", k, [color[0], color[1], color[2]]);
-
-      this.geometry.setVertexBufferDataByIndex("SIZE", k, [size]);
-      this.geometry.setVertexBufferDataByIndex("LIFETIME", k, lifeTime);
-
-      this.geometry.setVertexBufferDataByIndex("STARTANGLE", k, sa);
-      this.geometry.setVertexBufferDataByIndex("ROTATERATE", k, rr);
-      this.geometry.setVertexBufferDataByIndex("SCALEFACTOR", k, [scaleFactor]);
-
-      this.geometry.setVertexBufferDataByIndex("ALPHA", k, [particleAlpha]);
+      // POSITIONSTART
+      vertices[k] = x;
+      vertices[k + 1] = y;
+      vertices[k + 2] = z;
+      // VELOCITY
+      vertices[k + 3] = velX;
+      vertices[k + 4] = velY;
+      vertices[k + 5] = velZ;
+      // ACCELERATION
+      vertices[k + 6] = accX;
+      vertices[k + 7] = accY;
+      vertices[k + 8] = accZ;
+      //COLOR
+      vertices[k + 9] = color[0];
+      vertices[k + 10] = color[1];
+      vertices[k + 11] = color[2];
+      //ALPHA
+      vertices[k + 12] = particleAlpha;
+      //SIZE
+      vertices[k + 13] = size;
+      //ROTATERATE
+      vertices[k + 14] = rr;
+      //STARTTIME
+      vertices[k + 15] = startTime;
+      //LIFETIME
+      vertices[k + 16] = lifeTime;
+      //STARTANGLE
+      vertices[k + 17] = sa;
+      //SCALEFACTOR
+      vertices[k + 18] = scaleFactor;
 
       this._setUvs(i, j, k);
     }
@@ -680,8 +606,17 @@ export class GPUParticleSystem extends GeometryRenderer {
         [0, 1, 1]
       ];
     }
-    this.geometry.setVertexBufferDataByIndex("UV", k, rects[j]);
-    this.geometry.setVertexBufferDataByIndex("NORMALIZED_UV", k, normalizedRects[j]);
+    const vertices = this._vertices;
+
+    //UV
+    const uv = rects[j];
+    vertices[k + 19] = uv[0];
+    vertices[k + 20] = uv[1];
+    vertices[k + 21] = uv[2];
+    //NORMALIZED_U
+    const nuv = normalizedRects[j];
+    vertices[k + 22] = nuv[0];
+    vertices[k + 23] = nuv[1];
   }
 
   /**
