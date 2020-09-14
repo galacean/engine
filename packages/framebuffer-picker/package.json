@@ -25,7 +25,7 @@
   },
   "types": "types/index.d.ts",
   "dependencies": {
-    "@alipay/o3": "3.0.2-mars.0"
+    "@alipay/o3": "3.0.20-mars.2"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
