@@ -59,7 +59,6 @@ export class IndexBuffer {
     bufferUsage: BufferUsage = BufferUsage.Static,
     engine?: Engine
   ) {
-    debugger;
     engine = engine || Engine._getDefaultEngine();
     this._engine = engine;
     this._bufferUsage = bufferUsage;
@@ -136,7 +135,6 @@ export class IndexBuffer {
     dataLength?: number,
     options: SetDataOptions = SetDataOptions.None
   ): void {
-    debugger;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
     this.bind();
