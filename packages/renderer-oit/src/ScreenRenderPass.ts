@@ -18,7 +18,7 @@ export class ScreenRenderPass extends RenderPass {
 
   render(camera) {
     const rhi = camera.renderHardware;
-    const primitive = this.screenQuadGeometry.primitive;
+    const primitive = this.screenQuadGeometry._primitive;
 
     const context = RenderContext._getRenderContext(camera);
     this.replaceMaterial.prepareDrawing(context, {}, primitive);

@@ -1,8 +1,15 @@
-import { BufferGeometry, GeometryRenderer, InterleavedBuffer, PrimitiveTopology } from "../geometry";
-import { Quaternion, Vector3, Matrix } from "@alipay/o3-math";
-import { BufferAttribute } from "../primitive/type";
+import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
+import {
+  BufferGeometry,
+  GeometryRenderer,
+  PrimitiveTopology,
+  VertexBuffer,
+  VertexBufferBinding,
+  VertexElement,
+  VertexElementFormat
+} from "../geometry";
+import { BufferUsage } from "../geometry/graphic/enums/BufferUsage";
 import { TrailMaterial } from "./TrailMaterial";
-import { DataType, BufferUsage } from "../base/Constant";
 
 const _tempVector3 = new Vector3();
 
@@ -10,6 +17,9 @@ const _tempVector3 = new Vector3();
  * 拖尾效果渲染组件
  */
 export class TrailRenderer extends GeometryRenderer {
+  private _vertexStride: number;
+  private _vertices: Float32Array;
+  private _vertexBuffer: VertexBuffer;
   private _stroke;
   private _minSeg;
   private _lifetime;
@@ -106,6 +116,7 @@ export class TrailRenderer extends GeometryRenderer {
   render(camera) {
     this._updateStrapVertices(camera, this._points);
     this._updateStrapCoords();
+    this._vertexBuffer.setData(this._vertices);
 
     super.render(camera);
   }
@@ -126,22 +137,27 @@ export class TrailRenderer extends GeometryRenderer {
    * @private
    */
   _initGeometry() {
-    this.geometry = new BufferGeometry();
-    this.geometry.primitiveTopology = PrimitiveTopology.TRIANGLE_STRIP;
-    const position = new BufferAttribute({
-      semantic: "POSITION",
-      size: 3,
-      type: DataType.FLOAT,
-      normalized: false
-    });
-    const uv = new BufferAttribute({
-      semantic: "TEXCOORD_0",
-      size: 2,
-      type: DataType.FLOAT,
-      normalized: true
-    });
-    const buffer = new InterleavedBuffer([position, uv], this._maxPointNum * 2);
-    this.geometry.addVertexBufferParam(buffer);
+    const geometry = new BufferGeometry();
+    geometry.primitiveTopology = PrimitiveTopology.TRIANGLE_STRIP;
+
+    const vertexStride = 20;
+    const vertexCount = this._maxPointNum * 2;
+    const vertexFloatCount = vertexCount * vertexStride;
+    const vertices = new Float32Array(vertexFloatCount);
+    const vertexElements = [
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
+    ];
+    const vertexBuffer = new VertexBuffer(vertexFloatCount * 4, BufferUsage.Dynamic, this.engine);
+
+    geometry.setVertexBuffers(new VertexBufferBinding(vertexBuffer, vertexStride));
+    geometry.addVertexElements(vertexElements);
+    geometry.drawGroup.count = vertexCount;
+
+    this._vertexBuffer = vertexBuffer;
+    this._vertexStride = vertexStride;
+    this._vertices = vertices;
+    this.geometry = geometry;
   }
 
   /**
@@ -172,6 +188,7 @@ export class TrailRenderer extends GeometryRenderer {
 
     vx.normalize();
 
+    const vertieces = this._vertices;
     //-- quad pos
     for (let i = 0; i < this._maxPointNum; i++) {
       //-- center pos
@@ -200,8 +217,15 @@ export class TrailRenderer extends GeometryRenderer {
         Vector3.subtract(p, dy, down);
       }
 
-      this.geometry.setVertexBufferDataByIndex("POSITION", i * 2, [up.x, up.y, up.z]);
-      this.geometry.setVertexBufferDataByIndex("POSITION", i * 2 + 1, [down.x, down.y, down.z]);
+      const p0 = (i * 2 * this._vertexStride) / 4;
+      const p1 = ((i * 2 + 1) * this._vertexStride) / 4;
+      vertieces[p0] = up.x;
+      vertieces[p0 + 1] = up.y;
+      vertieces[p0 + 2] = up.z;
+
+      vertieces[p1] = down.x;
+      vertieces[p1 + 1] = down.y;
+      vertieces[p1 + 2] = down.z;
     }
   }
 
@@ -218,10 +242,17 @@ export class TrailRenderer extends GeometryRenderer {
 
     const count = this._curPointNum;
     const texDelta = 1.0 / count;
+    const vertieces = this._vertices;
     for (let i = 0; i < count; i++) {
       const d = 1.0 - i * texDelta;
-      this.geometry.setVertexBufferDataByIndex("TEXCOORD_0", i * 2, [0, d]);
-      this.geometry.setVertexBufferDataByIndex("TEXCOORD_0", i * 2 + 1, [1.0, d]);
+      const p0 = (i * 2 * this._vertexStride) / 4;
+      const p1 = ((i * 2 + 1) * this._vertexStride) / 4;
+
+      vertieces[p0] = 0;
+      vertieces[p0 + 1] = d;
+
+      vertieces[p1] = 1.0;
+      vertieces[p1 + 1] = d;
     }
   }
 

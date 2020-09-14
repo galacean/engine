@@ -139,7 +139,7 @@ export class GPUParticleSystem extends GeometryRenderer {
     for (let x = 0; x < this.maxCount; x++) {
       this._spawnParticle(options, x);
     }
-
+    this._vertexBuffer.setData(this._vertices);
     return this;
   }
 
@@ -155,7 +155,6 @@ export class GPUParticleSystem extends GeometryRenderer {
 
     this._time += deltaTime / 1000;
     this._material.setValue("uTime", this._time);
-    this._vertexBuffer.setData(this._vertices);
   }
 
   /**
@@ -400,8 +399,8 @@ export class GPUParticleSystem extends GeometryRenderer {
     const geometry = new BufferGeometry("particleGeometry");
     geometry.primitiveTopology = PrimitiveTopology.TRIANGLES;
 
-    const vertexFloatCount = this.maxCount * 4;
     const vertexStride = 96;
+    const vertexFloatCount = this.maxCount * 4 * vertexStride;
     const vertices = new Float32Array(vertexFloatCount);
     const indices = new Uint16Array(6 * this.maxCount);
 
@@ -436,6 +435,7 @@ export class GPUParticleSystem extends GeometryRenderer {
     geometry.setVertexBuffers(new VertexBufferBinding(vertexBuffer, vertexStride));
     geometry.setIndexBuffer(indexBuffer, IndexFormat.UInt16);
     geometry.addVertexElements(vertexElements);
+    geometry.drawGroup.count = indices.length;
 
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride;
