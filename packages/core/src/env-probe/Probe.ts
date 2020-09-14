@@ -133,16 +133,18 @@ export abstract class Probe extends Component {
     this.renderTarget = new RenderTarget(
       width,
       height,
-      new RenderColorTexture(width, height, undefined, false, this.isCube),
+      new RenderColorTexture(width, height, undefined, false, this.isCube, this.engine),
       RenderBufferDepthFormat.Depth,
-      samples
+      samples,
+      this.engine
     );
     this.renderTargetSwap = new RenderTarget(
       width,
       height,
-      new RenderColorTexture(width, height, undefined, false, this.isCube),
+      new RenderColorTexture(width, height, undefined, false, this.isCube, this.engine),
       RenderBufferDepthFormat.Depth,
-      samples
+      samples,
+      this.engine
     );
 
     this.renderPass.renderTarget = this.renderTarget;

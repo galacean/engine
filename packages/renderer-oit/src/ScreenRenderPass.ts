@@ -7,6 +7,7 @@ import { ScreenMaterial } from "./ScreenMaterial";
  * screen renderPass
  * */
 export class ScreenRenderPass extends RenderPass {
+  // TODO
   private screenQuadGeometry = new ScreenQuadGeometry();
 
   constructor(textures: RenderColorTexture[]) {

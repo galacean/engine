@@ -91,11 +91,11 @@ export class RfuiRenderer extends GeometryRenderer {
       if (this.geometryType === "plane") {
         const horizontalSegments = this._geometryParam.horizontalSegments || 1;
         const verticalSegments = this._geometryParam.verticalSegments || 1;
-        this.geometry = new PlaneGeometry(1, 1, horizontalSegments, verticalSegments);
+        this.geometry = new PlaneGeometry(1, 1, horizontalSegments, verticalSegments, this.engine);
       } else {
         const thetaLength = this._geometryParam.thetaLength || Math.PI / 6;
         const thetaStart = this._geometryParam.thetaStart || Math.PI - thetaLength / 2;
-        this.geometry = new CylinderGeometry(1, 1, 1, 12, 1, true, thetaStart, thetaLength, FrontFace.CW);
+        this.geometry = new CylinderGeometry(1, 1, 1, 12, 1, true, thetaStart, thetaLength, FrontFace.CW, this.engine);
       }
     }
   }

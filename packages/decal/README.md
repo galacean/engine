@@ -37,7 +37,7 @@ getBoundingBoxByGLTF - 获取模型的boundingBox（也可以自行实现
 // 这里使用的是CuboidGeometry作为探针
 const mouseHelper = world.createChild('mouseHelper');
 const renderer = mouseHelper.addComponent(GeometryRenderer);
-renderer.geometry = new CuboidGeometry(0.5, 0.5, 5);
+renderer.geometry = new CuboidGeometry(0.5, 0.5, 5, world.engine);
 const mtl = new LambertMaterial('mouseHelper_mtl', false); 
 mtl.diffuse = [1, 0, 0, 1];
 renderer.setMaterial(mtl);
