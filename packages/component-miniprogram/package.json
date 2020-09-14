@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-component-miniprogram",
-  "version": "3.0.21-mars.3",
+  "version": "3.0.24-mars.6",
   "description": "component of miniprogram",
   "keywords": [
     "Oasis3D",
@@ -28,14 +28,13 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3": "3.0.2-mars.0",
-    "@alipay/o3-adapter-miniprogram": "3.0.21-mars.3"
+    "@alipay/o3": "3.0.24-mars.6",
+    "@alipay/o3-adapter-miniprogram": "3.0.24-mars.6"
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
     "gulp": "^4.0.2",
     "gulp-babel": "^8.0.0"
-  },
-  "gitHead": "3af8f007dac28de84d7648a5e814d35459da8fa6"
+  }
 }

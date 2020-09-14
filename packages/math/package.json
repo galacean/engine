@@ -1,7 +1,7 @@
 {
   "name": "@alipay/o3-math",
   "description": "Oasis3D engine math moudule",
-  "version": "3.0.21-mars.3",
+  "version": "3.0.24-mars.6",
   "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
     "type": "git",
@@ -18,6 +18,5 @@
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
-  },
-  "gitHead": "3af8f007dac28de84d7648a5e814d35459da8fa6"
+  }
 }
