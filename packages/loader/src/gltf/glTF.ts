@@ -21,7 +21,8 @@ import {
   Util,
   VertexBuffer,
   VertexBufferBinding,
-  PrimitiveTopology
+  PrimitiveTopology,
+  IndexFormat
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -476,10 +477,11 @@ function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
   const indexCount = indexAccessor.count;
   const indexFormat = getIndexFormat(indexAccessor.componentType);
   const indexData = getAccessorData(gltf, indexAccessor, buffers);
-  const indexBuffer = new IndexBuffer(indexCount, indexFormat);
+  const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
+  const indexBuffer = new IndexBuffer(indexCount * indexByteSize, indexFormat);
 
   indexBuffer.setData(indexData);
-  primitive.indexBuffer = indexBuffer;
+  primitive.setIndexBuffer(indexBuffer, indexFormat);
   primitive.drawOffset = 0;
   primitive.drawCount = indexCount;
   return Promise.resolve(primitive);
@@ -570,7 +572,7 @@ export function parseMesh(gltfMesh, resources) {
         // FIXME: use index as primitive's name
         const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
         primitive.type = resources.assetType;
-        primitive.mode = gltfPrimitive.mode == null ? PrimitiveTopology.TRIANGLES : gltfPrimitive.mode;
+        primitive.primitiveTopology = gltfPrimitive.mode == null ? PrimitiveTopology.TRIANGLES : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
           primitive.targets = [];
           (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);

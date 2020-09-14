@@ -13,7 +13,7 @@ export class VertexBuffer {
 
   private _hardwareRenderer: HardwareRenderer;
   private _engine: Engine;
-  private _length: number;
+  private _byteLength: number;
   private _bufferUsage: BufferUsage;
 
   /**
@@ -26,8 +26,8 @@ export class VertexBuffer {
   /**
    * 长度,以字节为单位。
    */
-  get length(): number {
-    return this._length;
+  get byteLength(): number {
+    return this._byteLength;
   }
 
   /**
@@ -39,11 +39,11 @@ export class VertexBuffer {
 
   /**
    * 创建顶点缓冲。
-   * @param length - 长度，字节为单位
+   * @param byteLength - 长度，字节为单位
    * @param bufferUsage - 顶点缓冲用途
    * @param engine - 引擎
    */
-  constructor(length: number, bufferUsage?: BufferUsage, engine?: Engine);
+  constructor(byteLength: number, bufferUsage?: BufferUsage, engine?: Engine);
 
   /**
    * 创建顶点缓冲。
@@ -54,7 +54,7 @@ export class VertexBuffer {
   constructor(data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage, engine?: Engine);
 
   constructor(
-    lengthOrData: number | ArrayBuffer | ArrayBufferView,
+    byteLengthOrData: number | ArrayBuffer | ArrayBufferView,
     bufferUsage: BufferUsage = BufferUsage.Static,
     engine?: Engine
   ) {
@@ -71,12 +71,12 @@ export class VertexBuffer {
     this._glBufferUsage = glBufferUsage;
 
     this.bind();
-    if (typeof lengthOrData === "number") {
-      this._length = lengthOrData;
-      gl.bufferData(gl.ARRAY_BUFFER, lengthOrData, glBufferUsage);
+    if (typeof byteLengthOrData === "number") {
+      this._byteLength = byteLengthOrData;
+      gl.bufferData(gl.ARRAY_BUFFER, byteLengthOrData, glBufferUsage);
     } else {
-      this._length = lengthOrData.byteLength;
-      gl.bufferData(gl.ARRAY_BUFFER, lengthOrData, glBufferUsage);
+      this._byteLength = byteLengthOrData.byteLength;
+      gl.bufferData(gl.ARRAY_BUFFER, byteLengthOrData, glBufferUsage);
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
@@ -139,19 +139,20 @@ export class VertexBuffer {
     this.bind();
 
     if (options === SetDataOptions.Discard) {
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._length, this._glBufferUsage);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._byteLength, this._glBufferUsage);
     }
 
-    if (dataOffset !== 0 || dataLength < data.byteLength) {
+    const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1; //TypeArray is BYTES_PER_ELEMENT , unTypeArray is 1
+    const dataByteLength = byteSize * dataLength;
+    if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
       if (isWebGL2 && isArrayBufferView) {
         gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataLength);
       } else {
-        const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1; //TypeArray is BYTES_PER_ELEMENT , unTypeArray is 1
         const subData = new Uint8Array(
           isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
           dataOffset * byteSize,
-          dataLength * byteSize
+          dataByteLength
         );
         gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, subData);
       }
@@ -213,6 +214,6 @@ export class VertexBuffer {
     this.bind();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._glBufferUsage);
-    this._length = dataLength;
+    this._byteLength = dataLength;
   }
 }

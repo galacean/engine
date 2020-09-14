@@ -74,8 +74,17 @@ export class GLPrimitive extends GLAsset {
     this.bindBufferAndAttrib(tech);
 
     // draw
-    const { primitiveTopology, indexBuffer, drawOffset, drawCount, vertexCount, instancedCount } = primitive;
-    const { _glIndexType, _nativeBuffer } = indexBuffer;
+    const {
+      primitiveTopology,
+      indexBufferBinding,
+      drawOffset,
+      drawCount,
+      vertexCount,
+      instancedCount,
+      _glIndexType
+    } = primitive;
+    const indexBuffer = indexBufferBinding.buffer;
+    const { _nativeBuffer } = indexBuffer;
     if (!instancedCount) {
       if (indexBuffer) {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);

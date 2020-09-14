@@ -2,9 +2,10 @@ import { AssetObject } from "../asset/AssetObject";
 import { Primitive } from "../primitive/Primitive";
 import { DrawGroup } from "./graphic/DrawGroup";
 import { PrimitiveTopology } from "./graphic/enums/PrimitiveTopology";
+import { IndexBufferBinding } from "./graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "./graphic/VertexBufferBinding";
 import { VertexElement } from "./graphic/VertexElement";
-import { IndexBuffer } from "./index";
+import { IndexBuffer, IndexFormat } from "./index";
 
 /**
  * 缓冲几何体。
@@ -32,14 +33,10 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 索引缓冲。
+   * 索引缓冲绑定信息。
    */
-  get indexBuffer(): IndexBuffer {
-    return this._primitive.indexBuffer;
-  }
-
-  set indexBuffer(indexBuffer: IndexBuffer) {
-    this._primitive.indexBuffer = indexBuffer;
+  get indexBufferBinding(): IndexBufferBinding {
+    return this._primitive.indexBufferBinding;
   }
 
   /**
@@ -149,6 +146,15 @@ export class BufferGeometry extends AssetObject {
 
   setVertexBuffers(vertexBufferBindings: VertexBufferBinding | VertexBufferBinding[], firstIndex: number = 0): void {
     this._primitive.setVertexBuffers(vertexBufferBindings, firstIndex);
+  }
+
+  /**
+   * 设置索引缓冲。
+   * @param buffer - 索引缓冲
+   * @param format - 索引缓冲格式
+   */
+  setIndexBuffer(buffer: IndexBuffer, format: IndexFormat): void {
+    this._primitive.setIndexBuffer(buffer, format);
   }
 
   /**

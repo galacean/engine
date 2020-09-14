@@ -10,22 +10,25 @@ import { SetDataOptions } from "./enums/SetDataOptions";
  */
 export class IndexBuffer {
   _nativeBuffer: WebGLBuffer;
-  _glIndexType: number;
   _glBufferUsage: number;
 
   private _hardwareRenderer: HardwareRenderer;
   private _engine: Engine;
-  private _indexCount: number;
   private _bufferUsage: BufferUsage;
-  private _indexFormat: IndexFormat;
-  private _elementByteCount: number;
-  private _bufferByteSize: number;
+  private _byteLength: number;
 
   /**
    * 引擎。
    */
   get engine(): Engine {
     return this._engine;
+  }
+
+  /**
+   * 长度,以字节为单位。
+   */
+  get byteLength(): number {
+    return this._byteLength;
   }
 
   /**
@@ -36,78 +39,46 @@ export class IndexBuffer {
   }
 
   /**
-   * 索引格式。
-   */
-  get indexFormat(): IndexFormat {
-    return this._indexFormat;
-  }
-
-  /**
-   * 索引数量。
-   */
-  get indexCount(): number {
-    return this._indexCount;
-  }
-
-  /**
    * 创建索引缓冲。
-   * @param indexCount - 索引缓冲尺寸，以字节为单位
-   * @param indexFormat - 索引格式
+   * @param byteLength - 长度，字节为单位
    * @param bufferUsage - 索引缓冲用途
    * @param engine - 引擎
    */
-  constructor(indexCount: number, indexFormat?: IndexFormat, bufferUsage?: BufferUsage, engine?: Engine);
+  constructor(byteLength: number, bufferUsage?: BufferUsage, engine?: Engine);
 
   /**
    * 创建索引缓冲。
    * @param data - 所以缓冲数据
-   * @param indexFormat - 索引格式
    * @param bufferUsage - 索引缓冲用途
    * @param engine - 引擎
    */
-  constructor(
-    data: Uint8Array | Uint16Array | Uint32Array,
-    indexFormat?: IndexFormat,
-    bufferUsage?: BufferUsage,
-    engine?: Engine
-  );
+  constructor(data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage, engine?: Engine);
 
   constructor(
-    indexCountOrData: number | Uint8Array | Uint16Array | Uint32Array,
-    indexFormat: IndexFormat = IndexFormat.UInt16,
+    byteLengthOrData: number | ArrayBuffer | ArrayBufferView,
     bufferUsage: BufferUsage = BufferUsage.Static,
     engine?: Engine
   ) {
-    const isNumber = typeof indexCountOrData === "number";
-    const elementByteCount = indexFormat === IndexFormat.UInt32 ? 4 : indexFormat === IndexFormat.UInt16 ? 2 : 1;
-    const indexCount = isNumber
-      ? <number>indexCountOrData
-      : (<Uint8Array | Uint16Array | Uint32Array>indexCountOrData).byteLength / elementByteCount;
-
+    debugger;
     engine = engine || Engine._getDefaultEngine();
     this._engine = engine;
-    this._indexCount = indexCount;
     this._bufferUsage = bufferUsage;
-    this._indexFormat = indexFormat;
 
     const hardwareRenderer = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = hardwareRenderer.gl;
-
-    const bufferByteSize = indexCount * elementByteCount;
     const glBufferUsage = BufferUtil._getGLBufferUsage(gl, bufferUsage);
 
     this._nativeBuffer = gl.createBuffer();
     this._hardwareRenderer = hardwareRenderer;
-    this._elementByteCount = elementByteCount;
-    this._bufferByteSize = bufferByteSize;
     this._glBufferUsage = glBufferUsage;
-    this._glIndexType = BufferUtil._getGLIndexType(gl, indexFormat);
 
     this.bind();
-    if (isNumber) {
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferByteSize, glBufferUsage);
+    if (typeof byteLengthOrData === "number") {
+      this._byteLength = byteLengthOrData;
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, byteLengthOrData, glBufferUsage);
     } else {
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, <Uint8Array | Uint16Array | Uint32Array>indexCountOrData, glBufferUsage);
+      this._byteLength = byteLengthOrData.byteLength;
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, byteLengthOrData, glBufferUsage);
     }
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
   }
@@ -124,67 +95,68 @@ export class IndexBuffer {
    * 设置索引数据。
    * @param data - 索引数据
    */
-  setData(data: Uint8Array | Uint16Array | Uint32Array): void;
+  setData(data: ArrayBuffer | ArrayBufferView): void;
 
   /**
    * 设置索引数据。
    * @param data - 索引数据
-   * @param bufferOffset - 缓冲偏移
+   * @param bufferByteOffset - 缓冲偏移，以字节为单位
    */
-  setData(data: Uint8Array | Uint16Array | Uint32Array, bufferOffset: number): void;
+  setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number): void;
 
   /**
    * 设置索引数据。
    * @param data - 索引数据
-   * @param bufferOffset - 缓冲读取偏移，以字节为单位
+   * @param bufferByteOffset - 缓冲偏移，以字节为单位
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
    */
-  setData(
-    data: Uint8Array | Uint16Array | Uint32Array,
-    bufferOffset: number,
-    dataOffset: number,
-    dataLength: number
-  ): void;
+  setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
 
   /**
    * 设置索引数据。
    * @param data - 索引数据
-   * @param bufferOffset - 缓冲读取偏移，以字节为单位
+   * @param bufferByteOffset - 缓冲偏移，以字节为单位
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
    * @param options - 操作选项
    */
   setData(
-    data: Uint8Array | Uint16Array | Uint32Array,
-    bufferOffset: number,
+    data: ArrayBuffer | ArrayBufferView,
+    bufferByteOffset: number,
     dataOffset: number,
     dataLength: number,
     options: SetDataOptions
   ): void;
 
   setData(
-    data: Uint8Array | Uint16Array | Uint32Array,
-    bufferOffset: number = 0,
+    data: ArrayBuffer | ArrayBufferView,
+    bufferByteOffset: number = 0,
     dataOffset: number = 0,
     dataLength?: number,
     options: SetDataOptions = SetDataOptions.None
   ): void {
+    debugger;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
-    const elementByteCount: number = this._elementByteCount;
-    const bufferByteOffset = bufferOffset * elementByteCount;
     this.bind();
 
     if (options === SetDataOptions.Discard) {
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._bufferByteSize, this._glBufferUsage);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._byteLength, this._glBufferUsage);
     }
 
-    if (dataOffset !== 0 || dataLength < data.length) {
-      if (isWebGL2) {
-        gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, data, dataOffset, dataLength);
+    const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1; //TypeArray is BYTES_PER_ELEMENT , unTypeArray is 1
+    const dataByteLength = byteSize * dataLength;
+    if (dataOffset !== 0 || dataByteLength < data.byteLength) {
+      const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
+      if (isWebGL2 && isArrayBufferView) {
+        gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataLength);
       } else {
-        const subData = data.subarray(dataOffset, dataLength);
+        const subData = new Uint8Array(
+          isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
+          dataOffset * byteSize,
+          dataByteLength
+        );
         gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, subData);
       }
     } else {
@@ -197,41 +169,29 @@ export class IndexBuffer {
    * 获取索引数据。
    * @param data - 索引输出数据
    */
-  getData(data: Uint8Array | Uint16Array | Uint32Array): void;
+  getData(data: ArrayBufferView): void;
 
   /**
    * 获取索引数据。
    * @param data - 索引输出数据
-   * @param bufferOffset - 缓冲读取偏移
+   * @param bufferByteOffset - 缓冲读取偏移
    */
-  getData(data: Uint8Array | Uint16Array | Uint32Array, bufferOffset: number): void;
+  getData(data: ArrayBufferView, bufferByteOffset: number): void;
 
   /**
    * 获取索引数据。
    * @param data - 索引输出数据
-   * @param bufferOffset - 缓冲读取偏移
+   * @param bufferByteOffset - 缓冲读取偏移
    * @param dataOffset - 输出偏移
    * @param dataLength - 输出长度
    */
-  getData(
-    data: Uint8Array | Uint16Array | Uint32Array,
-    bufferOffset: number,
-    dataOffset: number,
-    dataLength: number
-  ): void;
+  getData(data: ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
 
-  getData(
-    data: Uint8Array | Uint16Array | Uint32Array,
-    bufferOffset: number = 0,
-    dataOffset: number = 0,
-    dataLength?: number
-  ): void {
+  getData(data: ArrayBufferView, bufferByteOffset: number = 0, dataOffset: number = 0, dataLength?: number): void {
     const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
 
     if (isWebGL2) {
       const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-      const elementByteCount: number = this._elementByteCount;
-      const bufferByteOffset = bufferOffset * elementByteCount;
       this.bind();
       gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, bufferByteOffset, data, dataOffset, dataLength);
     } else {
@@ -253,14 +213,11 @@ export class IndexBuffer {
   /**
    * @deprecated
    */
-  resize(indexCount: number) {
-    const bufferByteSize = indexCount * this._elementByteCount;
+  resize(byteLength: number) {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
 
     this.bind();
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferByteSize, this._glBufferUsage);
-
-    this._bufferByteSize = bufferByteSize;
-    this._indexCount = indexCount;
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, byteLength, this._glBufferUsage);
+    this._byteLength = byteLength;
   }
 }

@@ -32,14 +32,14 @@ export class BufferUtil {
     }
   }
 
-  static _getGLIndexType(gl: WebGLRenderingContext, indexFormat: IndexFormat): DataType {
+  static _getGLIndexType(indexFormat: IndexFormat): DataType {
     switch (indexFormat) {
       case IndexFormat.UInt8:
-        return gl.UNSIGNED_BYTE;
+        return DataType.UNSIGNED_BYTE;
       case IndexFormat.UInt16:
-        return gl.UNSIGNED_SHORT;
+        return DataType.UNSIGNED_SHORT;
       case IndexFormat.UInt32:
-        return gl.UNSIGNED_INT;
+        return DataType.UNSIGNED_INT;
     }
   }
 
