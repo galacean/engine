@@ -28,6 +28,5 @@
   "module": "dist/module.js",
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
-  },
-  "gitHead": "3af8f007dac28de84d7648a5e814d35459da8fa6"
+  }
 }
