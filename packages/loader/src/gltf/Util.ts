@@ -125,33 +125,6 @@ export function getBufferData(bufferView, buffers) {
   return arrayBuffer.slice(byteOffset, byteOffset + bufferView.byteLength);
 }
 
-/**
- * 生成 attribute 数据结构
- * @param gltf
- * @param semantic
- * @param accessor
- * @param idx
- * @returns {BufferAttribute}
- * @private
- */
-export function createAttribute(gltf, semantic, accessor, idx) {
-  // const bufferView = gltf.bufferViews[accessor.bufferView];
-  const size = getAccessorTypeSize(accessor.type);
-  const componentType = getComponentType(accessor.componentType);
-  const stride = size * componentType.BYTES_PER_ELEMENT;
-  const attribute = new BufferAttribute({
-    semantic,
-    size,
-    type: accessor.componentType,
-    normalized: false
-  });
-  attribute.stride = stride;
-  attribute.name = semantic;
-  attribute.offset = 0;
-  attribute.vertexBufferIndex = idx || 0;
-  return attribute;
-}
-
 export function getVertexStride(accessor): number {
   const size = getAccessorTypeSize(accessor.type);
   const componentType = getComponentType(accessor.componentType);

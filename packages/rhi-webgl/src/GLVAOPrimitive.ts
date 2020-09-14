@@ -16,13 +16,15 @@ export class GLVAOPrimitive extends GLPrimitive {
 
   /** 注册 VAO */
   private registerVAO(tech: GLTechnique) {
+    const { indexBufferBinding } = this._primitive;
+    const nativeIB = indexBufferBinding.buffer._nativeBuffer;
     const gl = this.rhi.gl;
     const vao = gl.createVertexArray();
 
     /** register VAO */
     gl.bindVertexArray(vao);
-    if (this._glIndexBuffer) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._glIndexBuffer);
+    if (nativeIB) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, nativeIB);
     }
     this.bindBufferAndAttrib(tech);
 
@@ -42,41 +44,28 @@ export class GLVAOPrimitive extends GLPrimitive {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
 
-    /** prepare BO */
-    this.prepareBuffers();
-
     /** render */
     if (!this.vao.has(tech.cacheID)) {
       this.registerVAO(tech);
     }
     const vao = this.vao.get(tech.cacheID);
     gl.bindVertexArray(vao);
-    const indexBufferObject = this._glIndexBuffer;
-    const { isInstanced, indexBuffer } = primitive;
-    const { _glIndexType } = indexBuffer;
-    if (!isInstanced) {
-      if (indexBufferObject) {
-        gl.drawElements(primitive.mode, primitive.indexCount, _glIndexType, primitive.indexOffset);
+
+    // draw
+    const { primitiveTopology, indexBufferBinding, drawOffset, drawCount, instanceCount, _glIndexType } = primitive;
+    const indexBuffer = indexBufferBinding.buffer;
+    if (!instanceCount) {
+      if (indexBuffer) {
+        gl.drawElements(primitiveTopology, drawCount, _glIndexType, drawOffset);
       } else {
-        gl.drawArrays(primitive.mode, primitive.vertexOffset, primitive.vertexCount);
+        gl.drawArrays(primitiveTopology, drawOffset, drawCount);
       }
     } else {
       if (this.canUseInstancedArrays) {
-        if (indexBufferObject) {
-          gl.drawElementsInstanced(
-            primitive.mode,
-            primitive.indexCount,
-            _glIndexType,
-            primitive.indexOffset,
-            primitive.instancedCount
-          );
+        if (indexBuffer) {
+          gl.drawElementsInstanced(primitiveTopology, drawCount, _glIndexType, drawOffset, instanceCount);
         } else {
-          gl.drawArraysInstanced(
-            primitive.mode,
-            primitive.vertexOffset,
-            primitive.vertexCount,
-            primitive.instancedCount
-          );
+          gl.drawArraysInstanced(primitiveTopology, drawOffset, drawCount, instanceCount);
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");
