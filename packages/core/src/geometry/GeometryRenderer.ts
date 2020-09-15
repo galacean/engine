@@ -5,6 +5,7 @@ import { Material } from "../material/Material";
 import { RenderableComponent } from "../RenderableComponent";
 import { BufferGeometry } from "./BufferGeometry";
 import { Entity } from "../Entity";
+import { Vector3 } from "@alipay/o3-math";
 
 /**
  * 几何体渲染类
@@ -106,5 +107,12 @@ export class GeometryRenderer extends RenderableComponent {
 
     //-- materials
     this._material = null;
+  }
+
+  protected _updateBounds(worldBounds: any): void {
+    const localBounds: any = this._geometry.bounds;
+    const worldMatrix: any = this._entity.transform.worldMatrix;
+    Vector3.transformCoordinate(localBounds.min, worldMatrix, worldBounds.min);
+    Vector3.transformCoordinate(localBounds.max, worldMatrix, worldBounds.max);
   }
 }
