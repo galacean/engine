@@ -41,6 +41,7 @@ export class PlaneGeometry extends GeometryShape {
     const { verticalSegments, horizontalSegments } = this._parameters;
     // 生成经纬线上的几何体顶点的数据
     let index = 0;
+    let offset = 0;
     const grid = [];
     const vertices: Float32Array = new Float32Array((verticalSegments + 1) * (horizontalSegments + 1) * 8);
     const indices: Uint16Array = new Uint16Array(verticalSegments * horizontalSegments * 6);
@@ -53,18 +54,17 @@ export class PlaneGeometry extends GeometryShape {
         const posX = u * this._parameters.width - this.halfWidth;
         const posY = v * this._parameters.height - this.halfHeight;
 
-        const offset = index * 8;
         // POSITION
-        vertices[offset] = posX;
-        vertices[offset + 1] = posY;
-        vertices[offset + 2] = 0;
+        vertices[offset++] = posX;
+        vertices[offset++] = posY;
+        vertices[offset++] = 0;
         // NORMAL
-        vertices[offset + 3] = 0;
-        vertices[offset + 4] = 0;
-        vertices[offset + 5] = 1;
+        vertices[offset++] = 0;
+        vertices[offset++] = 0;
+        vertices[offset++] = 1;
         // TEXCOORD_0
-        vertices[offset + 6] = u;
-        vertices[offset + 7] = 1 - v;
+        vertices[offset++] = u;
+        vertices[offset++] = 1 - v;
 
         verticesRow.push(index++);
       }
@@ -72,6 +72,7 @@ export class PlaneGeometry extends GeometryShape {
     }
 
     // 生成所有三角形顶点序号
+    index = 0;
     for (let iy = 0; iy < verticalSegments; iy++) {
       for (let ix = 0; ix < horizontalSegments; ix++) {
         const a = grid[iy][ix + 1];
