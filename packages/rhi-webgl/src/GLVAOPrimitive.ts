@@ -16,15 +16,17 @@ export class GLVAOPrimitive extends GLPrimitive {
 
   /** 注册 VAO */
   private registerVAO(tech: GLTechnique) {
-    const { indexBufferBinding } = this._primitive;
-    const nativeIB = indexBufferBinding.buffer._nativeBuffer;
     const gl = this.rhi.gl;
     const vao = gl.createVertexArray();
 
     /** register VAO */
     gl.bindVertexArray(vao);
-    if (nativeIB) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, nativeIB);
+
+    const { indexBufferBinding } = this._primitive;
+    if (indexBufferBinding) {
+      if (indexBufferBinding) {
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferBinding.buffer._nativeBuffer);
+      }
     }
     this.bindBufferAndAttrib(tech);
 

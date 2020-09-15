@@ -453,20 +453,21 @@ export function parseSkin(gltfSkin, resources) {
 function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffers, resources) {
   // load vertices
   let i = 0;
-  const position = new Vector3();
-
   for (const attributeSemantic in gltfPrimitive.attributes) {
     const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
     const accessor = gltf.accessors[accessorIdx];
-
     const stride = getVertexStride(accessor);
     const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, i);
+
     primitive.addVertexElements(vertexELement);
     const bufferData = getAccessorData(gltf, accessor, buffers);
     const vertexBuffer = new VertexBuffer(bufferData.byteLength, BufferUsage.Static, resources.engine);
     vertexBuffer.setData(bufferData);
     primitive.setVertexBuffers(new VertexBufferBinding(vertexBuffer, stride), i++);
+
+    // compute bounds
     if (vertexELement.semantic == "POSITION") {
+      const position = new Vector3();
       const vertexCount = bufferData.length / 3;
       const { min, max } = mesh.bounds;
       for (let i = 0; i < vertexCount; i++) {
@@ -478,17 +479,14 @@ function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffer
     }
   }
 
-  const positionAccessorIdx = gltfPrimitive.attributes.POSITION;
-  const positionAccessor = gltf.accessors[positionAccessorIdx];
-  primitive.vertexCount = positionAccessor.count;
-
   // load indices
   const indexAccessor = gltf.accessors[gltfPrimitive.indices];
+  const indexData = getAccessorData(gltf, indexAccessor, buffers);
+
   const indexCount = indexAccessor.count;
   const indexFormat = getIndexFormat(indexAccessor.componentType);
-  const indexData = getAccessorData(gltf, indexAccessor, buffers);
   const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
-  const indexBuffer = new IndexBuffer(indexCount * indexByteSize, undefined, resources.engine);
+  const indexBuffer = new IndexBuffer(indexCount * indexByteSize, BufferUsage.Static, resources.engine);
 
   indexBuffer.setData(indexData);
   primitive.setIndexBuffer(indexBuffer, indexFormat);
