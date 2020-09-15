@@ -43,7 +43,8 @@ export abstract class RenderableComponent extends Component {
    */
   destroy(): void {
     super.destroy();
-    this._transformChangeFlag.destroy();
+    const flag = this._transformChangeFlag;
+    flag && flag.destroy();
   }
 
   abstract render(camera: Camera): void;
