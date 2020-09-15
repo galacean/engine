@@ -676,23 +676,8 @@ export function parseNode(gltfNode, resources) {
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
-    const mat = new Matrix(
-      m[0],
-      m[1],
-      m[2],
-      m[3],
-      m[4],
-      m[5],
-      m[6],
-      m[7],
-      m[8],
-      m[9],
-      m[10],
-      m[11],
-      m[12],
-      m[14],
-      m[15]
-    );
+    const mat = new Matrix();
+    mat.setValueByArray(m);
     const pos = new Vector3();
     const scale = new Vector3(1, 1, 1);
     const rot = new Quaternion();
