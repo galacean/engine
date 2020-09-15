@@ -160,6 +160,14 @@ export function getElementFormat(type: number, size: number): VertexElementForma
         return VertexElementFormat.Vector4;
     }
   }
+  if (type == DataType.UNSIGNED_SHORT) {
+    switch (size) {
+      case 2:
+        return VertexElementFormat.UShort2;
+      case 4:
+        return VertexElementFormat.UShort4;
+    }
+  }
 }
 
 /**

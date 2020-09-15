@@ -78,6 +78,14 @@ export class BufferUtil {
         size = 4;
         type = DataType.SHORT;
         break;
+      case VertexElementFormat.UShort2:
+        size = 2;
+        type = DataType.UNSIGNED_SHORT;
+        break;
+      case VertexElementFormat.UShort4:
+        size = 4;
+        type = DataType.UNSIGNED_SHORT;
+        break;
       default:
         break;
     }

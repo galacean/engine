@@ -21,7 +21,7 @@ export enum VertexElementFormat {
   /** 二维 16-bit 整型，范围是 [-32768, 32767]。*/
   Short2,
   /** 二维 16-bit 无符号整型，范围是 [0, 65535]。*/
-  UnsignedShort2,
+  UShort2,
   /** 二维 16-bit 归一化整型，范围是 [-1, 1]。*/
   NormalizedShort2,
   /** 二维 16-bit 归一化无符号整型，范围是 [0, 1]。*/
