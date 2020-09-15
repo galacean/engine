@@ -24,9 +24,7 @@ export class GLVAOPrimitive extends GLPrimitive {
 
     const { indexBufferBinding } = this._primitive;
     if (indexBufferBinding) {
-      if (indexBufferBinding) {
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferBinding.buffer._nativeBuffer);
-      }
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferBinding.buffer._nativeBuffer);
     }
     this.bindBufferAndAttrib(tech);
 
