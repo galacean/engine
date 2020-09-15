@@ -12,8 +12,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
       const requestGLTFResource = this.isGLB(item.url) ? this.requestGLB : this.requestGLTF;
       requestGLTFResource(item, resourceManager)
         .then((res) => {
-          const gltf = parseGLTF(res, resourceManager.engine);
-          resolve(gltf);
+          parseGLTF(res, resourceManager.engine).then((gltf) => {
+            resolve(gltf);
+          });
         })
         .catch((e) => {
           console.error(e);
