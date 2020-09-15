@@ -4,6 +4,7 @@ import { Material } from "../material/Material";
 import { Entity } from "../Entity";
 import { Camera } from "../Camera";
 import { Logger } from "../base/Logger";
+import { Vector3 } from "@alipay/o3-math";
 
 /**
  * 负责渲染一个Mesh对象的组件
@@ -140,5 +141,15 @@ export class MeshRenderer extends RenderableComponent {
     }
     // TODO: primitive reference decrease
     // const primitives = this._mesh.primitives;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: any): void {
+    const localBounds: any = this.mesh.bounds;
+    const worldMatrix: any = this._entity.transform.worldMatrix;
+    Vector3.transformCoordinate(localBounds.min, worldMatrix, worldBounds.min); //TODO:简单模式，有漏洞，待AABB重构
+    Vector3.transformCoordinate(localBounds.max, worldMatrix, worldBounds.max);
   }
 }

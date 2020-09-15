@@ -17,7 +17,7 @@ export abstract class RenderableComponent extends Component {
   protected _overrideUpdate: boolean = false;
 
   private _transformChangeFlag: UpdateFlag;
-  private _bounds: object = {};
+  private _bounds: object = { min: new Vector3(), max: new Vector3() };
 
   /**
    * 包围体。
@@ -49,7 +49,7 @@ export abstract class RenderableComponent extends Component {
   abstract render(camera: Camera): void;
   update(deltaTime: number): void {}
 
-  protected abstract _updateBounds(worldBounds: object): void;
+  protected _updateBounds(worldBounds: any): void {}
 
   _onEnable() {
     const componentsManager = this.scene._componentsManager;

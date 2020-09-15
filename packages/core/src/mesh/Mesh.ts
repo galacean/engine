@@ -1,13 +1,14 @@
+import { Vector3 } from "@alipay/o3-math";
 import { ReferenceObject } from "../asset/ReferenceObject";
 import { Primitive } from "../primitive/Primitive";
 
 /**
  * Mesh Asset Object
- * @class
  */
 export class Mesh extends ReferenceObject {
   public primitives: Primitive[];
   public weights: number[];
+  public readonly bounds: any = { min: new Vector3(), max: new Vector3() };
 
   /**
    * 构造函数
@@ -15,9 +16,7 @@ export class Mesh extends ReferenceObject {
    */
   constructor(name?: string) {
     super();
-
-    /** @member {Array} */
-    this.primitives = []; // Primitive array
+    this.primitives = [];
     this._gcPriority = 1000;
   }
 

@@ -22,7 +22,8 @@ import {
   VertexBuffer,
   VertexBufferBinding,
   PrimitiveTopology,
-  IndexFormat
+  IndexFormat,
+  BufferUsage
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -451,9 +452,11 @@ export function parseSkin(gltfSkin, resources) {
   return Promise.resolve(skin);
 }
 
-function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers, resources) {
+function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffers, resources) {
   // load vertices
   let i = 0;
+  const position = new Vector3();
+
   for (const attributeSemantic in gltfPrimitive.attributes) {
     const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
     const accessor = gltf.accessors[accessorIdx];
@@ -462,9 +465,19 @@ function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers, resources
     const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, i);
     primitive.addVertexElements(vertexELement);
     const bufferData = getAccessorData(gltf, accessor, buffers);
-    const vertexBuffer = new VertexBuffer(bufferData.byteLength, undefined, resources.engine);
+    const vertexBuffer = new VertexBuffer(bufferData.byteLength, BufferUsage.Static, resources.engine);
     vertexBuffer.setData(bufferData);
     primitive.setVertexBuffers(new VertexBufferBinding(vertexBuffer, stride), i++);
+    if (vertexELement.semantic == "POSITION") {
+      const vertexCount = bufferData.length / 3;
+      const { min, max } = mesh.bounds;
+      for (let i = 0; i < vertexCount; i++) {
+        const offset = i * 3;
+        position.setValue(bufferData[offset], bufferData[offset + 1], bufferData[offset + 2]);
+        Vector3.min(min, position, min);
+        Vector3.max(max, position, max);
+      }
+    }
   }
 
   const positionAccessorIdx = gltfPrimitive.attributes.POSITION;
@@ -579,7 +592,7 @@ export function parseMesh(gltfMesh, resources) {
           const extension = gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression];
           vertexPromise = extensionParser.parse(extension, primitive, gltfPrimitive, gltf, buffers);
         } else {
-          vertexPromise = parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers, resources);
+          vertexPromise = parsePrimitiveVertex(mesh, primitive, gltfPrimitive, gltf, buffers, resources);
         }
         vertexPromise
           .then((processedPrimitive) => {

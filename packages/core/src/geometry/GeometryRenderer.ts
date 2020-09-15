@@ -109,10 +109,13 @@ export class GeometryRenderer extends RenderableComponent {
     this._material = null;
   }
 
+  /**
+   * @override
+   */
   protected _updateBounds(worldBounds: any): void {
     const localBounds: any = this._geometry.bounds;
     const worldMatrix: any = this._entity.transform.worldMatrix;
-    Vector3.transformCoordinate(localBounds.min, worldMatrix, worldBounds.min);
+    Vector3.transformCoordinate(localBounds.min, worldMatrix, worldBounds.min); //TODO:简单模式，有漏洞，待AABB重构
     Vector3.transformCoordinate(localBounds.max, worldMatrix, worldBounds.max);
   }
 }
