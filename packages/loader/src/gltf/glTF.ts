@@ -37,7 +37,6 @@ import {
   getVertexStride
 } from "./Util";
 
-// 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
 //              https://github.com/KhronosGroup/glTF/pull/1223
 //              https://github.com/KhronosGroup/glTF/issues/945

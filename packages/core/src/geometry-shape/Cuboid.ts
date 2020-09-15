@@ -15,24 +15,25 @@ export class CuboidGeometry extends GeometryShape {
    */
   constructor(width: number = 1, height: number = 1, depth: number = 1, engine?: Engine) {
     super();
-    const halfDepth: number = depth / 2;
-    const halfHeight: number = height / 2;
+
     const halfWidth: number = width / 2;
+    const halfHeight: number = height / 2;
+    const halfDepth: number = depth / 2;
 
     // prettier-ignore
     const vertices: Float32Array = new Float32Array([
     	// up
-    	-halfDepth, halfHeight, -halfWidth, 0, 1, 0, 0, 0, halfDepth, halfHeight, -halfWidth, 0, 1, 0, 1, 0, halfDepth, halfHeight, halfWidth, 0, 1, 0, 1, 1, -halfDepth, halfHeight, halfWidth, 0, 1, 0, 0, 1,
+    	-halfWidth, halfHeight, -halfDepth, 0, 1, 0, 0, 0, halfWidth, halfHeight, -halfDepth, 0, 1, 0, 1, 0, halfWidth, halfHeight, halfDepth, 0, 1, 0, 1, 1, -halfWidth, halfHeight, halfDepth, 0, 1, 0, 0, 1,
     	// down
-    	-halfDepth, -halfHeight, -halfWidth, 0, -1, 0, 0, 1, halfDepth, -halfHeight, -halfWidth, 0, -1, 0, 1, 1, halfDepth, -halfHeight, halfWidth, 0, -1, 0, 1, 0, -halfDepth, -halfHeight, halfWidth, 0, -1, 0, 0, 0,
+    	-halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 0, 1, halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 1, 1, halfWidth, -halfHeight, halfDepth, 0, -1, 0, 1, 0, -halfWidth, -halfHeight, halfDepth, 0, -1, 0, 0, 0,
     	// left
-    	-halfDepth, halfHeight, -halfWidth, -1, 0, 0, 0, 0, -halfDepth, halfHeight, halfWidth, -1, 0, 0, 1, 0, -halfDepth, -halfHeight, halfWidth, -1, 0, 0, 1, 1, -halfDepth, -halfHeight, -halfWidth, -1, 0, 0, 0, 1,
+    	-halfWidth, halfHeight, -halfDepth, -1, 0, 0, 0, 0, -halfWidth, halfHeight, halfDepth, -1, 0, 0, 1, 0, -halfWidth, -halfHeight, halfDepth, -1, 0, 0, 1, 1, -halfWidth, -halfHeight, -halfDepth, -1, 0, 0, 0, 1,
     	// right
-    	halfDepth, halfHeight, -halfWidth, 1, 0, 0, 1, 0, halfDepth, halfHeight, halfWidth, 1, 0, 0, 0, 0, halfDepth, -halfHeight, halfWidth, 1, 0, 0, 0, 1, halfDepth, -halfHeight, -halfWidth, 1, 0, 0, 1, 1,
+    	halfWidth, halfHeight, -halfDepth, 1, 0, 0, 1, 0, halfWidth, halfHeight, halfDepth, 1, 0, 0, 0, 0, halfWidth, -halfHeight, halfDepth, 1, 0, 0, 0, 1, halfWidth, -halfHeight, -halfDepth, 1, 0, 0, 1, 1,
     	// fornt
-    	-halfDepth, halfHeight, halfWidth, 0, 0, 1, 0, 0, halfDepth, halfHeight, halfWidth, 0, 0, 1, 1, 0, halfDepth, -halfHeight, halfWidth, 0, 0, 1, 1, 1, -halfDepth, -halfHeight, halfWidth, 0, 0, 1, 0, 1,
+    	-halfWidth, halfHeight, halfDepth, 0, 0, 1, 0, 0, halfWidth, halfHeight, halfDepth, 0, 0, 1, 1, 0, halfWidth, -halfHeight, halfDepth, 0, 0, 1, 1, 1, -halfWidth, -halfHeight, halfDepth, 0, 0, 1, 0, 1,
     	// back
-    	-halfDepth, halfHeight, -halfWidth, 0, 0, -1, 1, 0, halfDepth, halfHeight, -halfWidth, 0, 0, -1, 0, 0, halfDepth, -halfHeight, -halfWidth, 0, 0, -1, 0, 1, -halfDepth, -halfHeight, -halfWidth, 0, 0, -1, 1, 1]);
+    	-halfWidth, halfHeight, -halfDepth, 0, 0, -1, 1, 0, halfWidth, halfHeight, -halfDepth, 0, 0, -1, 0, 0, halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 0, 1, -halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 1, 1]);
 
     // prettier-ignore
     const indices: Uint16Array = new Uint16Array([
