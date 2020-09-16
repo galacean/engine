@@ -577,7 +577,7 @@ export function parseMesh(gltfMesh, resources) {
         // FIXME: use index as primitive's name
         const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
         primitive.type = resources.assetType;
-        primitive.primitiveTopology = gltfPrimitive.mode == null ? PrimitiveTopology.TRIANGLES : gltfPrimitive.mode;
+        primitive.primitiveTopology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
           primitive.targets = [];
           (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);

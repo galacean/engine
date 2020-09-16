@@ -138,7 +138,7 @@ export class TrailRenderer extends GeometryRenderer {
    */
   _initGeometry() {
     const geometry = new BufferGeometry();
-    geometry.primitiveTopology = PrimitiveTopology.TRIANGLE_STRIP;
+    geometry.primitiveTopology = PrimitiveTopology.TriangleStrip;
 
     const vertexStride = 20;
     const vertexCount = this._maxPointNum * 2;

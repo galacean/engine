@@ -15,7 +15,7 @@ export class Primitive extends AssetObject {
   private static _primitiveID: number = 0;
 
   /** 绘制模式。*/
-  primitiveTopology: PrimitiveTopology = PrimitiveTopology.TRIANGLES;
+  primitiveTopology: PrimitiveTopology = PrimitiveTopology.Triangles;
   /** 绘制偏移。*/
   drawOffset: number = 0;
   /** 绘制数量。*/

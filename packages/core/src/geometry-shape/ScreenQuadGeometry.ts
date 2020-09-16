@@ -11,7 +11,7 @@ import { PrimitiveTopology } from "../geometry/graphic/enums/PrimitiveTopology";
 export class ScreenQuadGeometry extends GeometryShape {
   constructor(engine?: Engine) {
     super();
-    this.primitiveTopology = PrimitiveTopology.TRIANGLE_FAN;
+    this.primitiveTopology = PrimitiveTopology.TriangleFan;
 
     const vertices: Float32Array = new Float32Array([-1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1]);
 

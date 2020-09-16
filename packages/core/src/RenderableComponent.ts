@@ -17,12 +17,12 @@ export abstract class RenderableComponent extends Component {
   protected _overrideUpdate: boolean = false;
 
   private _transformChangeFlag: UpdateFlag;
-  private _bounds: object = { min: new Vector3(), max: new Vector3() };
+  private _bounds: any = { min: new Vector3(), max: new Vector3() };
 
   /**
    * 包围体。
    */
-  get bounds(): object {
+  get bounds(): any {
     const changeFlag = this._transformChangeFlag;
     if (changeFlag.flag) {
       this._updateBounds(this._bounds);

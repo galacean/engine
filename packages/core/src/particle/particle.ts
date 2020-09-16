@@ -397,7 +397,7 @@ export class GPUParticleSystem extends GeometryRenderer {
    */
   _createGeometry() {
     const geometry = new BufferGeometry("particleGeometry");
-    geometry.primitiveTopology = PrimitiveTopology.TRIANGLES;
+    geometry.primitiveTopology = PrimitiveTopology.Triangles;
 
     const vertexStride = 96;
     const vertexFloatCount = this.maxCount * 4 * vertexStride;
