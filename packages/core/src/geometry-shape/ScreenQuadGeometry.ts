@@ -18,6 +18,7 @@ export class ScreenQuadGeometry extends GeometryShape {
     const indices: Uint16Array = new Uint16Array([0, 1, 2, 3]);
 
     this._initialize(engine, vertices, indices);
+    this._primitive.drawCount = indices.length; //TODO:临时添加,待底层结构调整删除
   }
 
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
@@ -28,7 +29,6 @@ export class ScreenQuadGeometry extends GeometryShape {
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
     ];
-
     this._initBuffer(engine, vertices, indices, vertexStride, vertexElements);
   }
 }
