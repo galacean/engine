@@ -23,9 +23,9 @@ export class Primitive extends AssetObject {
   /** 实例数量，0 表示关闭实例渲染。*/
   instanceCount: number = 0;
 
-  _glIndexType: number;
-
   _vertexElementMap: VertexElements = {};
+
+  _glIndexType: number;
 
   private _vertexBufferBindings: VertexBufferBinding[] = [];
   private _vertexElements: VertexElement[] = [];
@@ -77,19 +77,20 @@ export class Primitive extends AssetObject {
    */
   setVertexBuffers(bufferBindings: VertexBufferBinding | VertexBufferBinding[], firstIndex: number = 0): void {
     const bindings = this._vertexBufferBindings;
-    const isArray = (<VertexBufferBinding[]>bufferBindings).length !== undefined;
+    const multiBindings = <VertexBufferBinding[]>bufferBindings;
+    const isArray = multiBindings.length !== undefined;
     if (isArray) {
-      const addBindings = <VertexBufferBinding[]>bufferBindings;
-      const count = addBindings.length;
+      const count = multiBindings.length;
       const needLength = firstIndex + count;
       bindings.length < needLength ?? (bindings.length = needLength);
       for (let i = 0; i < count; i++) {
-        this._vertexBufferBindings[firstIndex + i] = addBindings[i];
+        this._vertexBufferBindings[firstIndex + i] = multiBindings[i];
       }
     } else {
+      const singleBinding = <VertexBufferBinding>bufferBindings;
       const needLength = firstIndex + 1;
       bindings.length < needLength ?? (bindings.length = needLength);
-      this._vertexBufferBindings[firstIndex] = <VertexBufferBinding>bufferBindings;
+      this._vertexBufferBindings[firstIndex] = singleBinding;
     }
   }
 

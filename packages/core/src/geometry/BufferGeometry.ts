@@ -82,20 +82,6 @@ export class BufferGeometry extends AssetObject {
     return this._drawGroups.length;
   }
 
-  set drawGroupCount(value: number) {
-    if (value < 1) {
-      throw "drawGroupCount must large than 1.";
-    }
-    const drawGroups = this._drawGroups;
-    const curCount = drawGroups.length;
-    drawGroups.length = value;
-    if (curCount < value) {
-      for (let i = curCount; i < value; i++) {
-        drawGroups[i] = new DrawGroup();
-      }
-    }
-  }
-
   /**
    * 包围体。
    */
@@ -114,8 +100,9 @@ export class BufferGeometry extends AssetObject {
   constructor(name?: string) {
     super();
     name = name || "BufferGeometry" + BufferGeometry._geometryCount++;
+
     this._primitive = new Primitive();
-    this.drawGroupCount = 1;
+    this._drawGroups.push(new DrawGroup());
   }
 
   /**
@@ -163,6 +150,38 @@ export class BufferGeometry extends AssetObject {
    */
   addVertexElements(elements: VertexElement | VertexElement[]): void {
     this._primitive.addVertexElements(elements);
+  }
+
+  /**
+   * 添加绘制组。
+   * @param offset - 偏移
+   * @param count - 数量
+   */
+  addDrawGroup(offset: number, count: number): DrawGroup {
+    const drawGroup = new DrawGroup();
+    drawGroup.offset = offset;
+    drawGroup.count = count;
+    this._drawGroups.push(drawGroup);
+    return drawGroup;
+  }
+
+  /**
+   * 移除绘制组。
+   * @param drawGroup -绘制组。
+   */
+  removeDrawGroup(drawGroup: DrawGroup): void {
+    const drawGroups = this._drawGroups;
+    const index = drawGroups.indexOf(drawGroup);
+    if (index !== -1) {
+      drawGroups.splice(index, 1);
+    }
+  }
+
+  /**
+   * 清空绘制组。
+   */
+  clearDrawGroup(): void {
+    this._drawGroups.length = 0;
   }
 
   /**
