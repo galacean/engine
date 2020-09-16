@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-framebuffer-picker",
-  "version": "3.0.27-mars.10",
+  "version": "3.0.27-mars.11",
   "description": "Framebuffer object pick",
   "repository": {
     "type": "git",
@@ -25,7 +25,7 @@
   },
   "types": "types/index.d.ts",
   "dependencies": {
-    "@alipay/o3": "3.0.27-mars.10"
+    "@alipay/o3": "3.0.27-mars.11"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
