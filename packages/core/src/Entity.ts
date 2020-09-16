@@ -210,7 +210,7 @@ export class Entity extends EventDispatcher {
   /**
    * 根据组件类型添加组件。
    * @param type - 组件类型
-   * @param props - 组件属性 @deprecated
+   * @param props - 组件属性 //deprecated
    * @returns	组件实例
    */
   addComponent<T extends Component>(type: new (entity: any, props?: object) => T, props: object = {}): T {
