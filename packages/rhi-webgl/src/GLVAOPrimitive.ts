@@ -53,16 +53,15 @@ export class GLVAOPrimitive extends GLPrimitive {
 
     // draw
     const { primitiveTopology, indexBufferBinding, drawOffset, drawCount, instanceCount, _glIndexType } = primitive;
-    const indexBuffer = indexBufferBinding.buffer;
     if (!instanceCount) {
-      if (indexBuffer) {
+      if (indexBufferBinding) {
         gl.drawElements(primitiveTopology, drawCount, _glIndexType, drawOffset);
       } else {
         gl.drawArrays(primitiveTopology, drawOffset, drawCount);
       }
     } else {
       if (this.canUseInstancedArrays) {
-        if (indexBuffer) {
+        if (indexBufferBinding) {
           gl.drawElementsInstanced(primitiveTopology, drawCount, _glIndexType, drawOffset, instanceCount);
         } else {
           gl.drawArraysInstanced(primitiveTopology, drawOffset, drawCount, instanceCount);
