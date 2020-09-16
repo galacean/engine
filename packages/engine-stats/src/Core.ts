@@ -2,7 +2,7 @@ import DrawCallHook from "./hooks/DrawCallHook";
 import TextureHook from "./hooks/TextureHook";
 import ShaderHook from "./hooks/ShaderHook";
 import { log, errorLog } from "./log";
-import { Entity } from "@alipay/o3";
+import { Entity } from "@alipay/o3-core";
 
 declare global {
   interface Performance {

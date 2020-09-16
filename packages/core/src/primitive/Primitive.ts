@@ -28,8 +28,8 @@ export class Primitive extends AssetObject {
   _glIndexType: number;
 
   private _vertexBufferBindings: VertexBufferBinding[] = [];
+  private _indexBufferBinding: IndexBufferBinding;
   private _vertexElements: VertexElement[] = [];
-  private _indexBufferBinding: IndexBufferBinding = new IndexBufferBinding();
 
   /**
    * 顶点缓冲绑定信息集合。
@@ -75,7 +75,7 @@ export class Primitive extends AssetObject {
    * @param bufferBindings - 缓冲绑定集合
    * @param firstIndex - 第一个绑定索引
    */
-  setVertexBuffers(bufferBindings: VertexBufferBinding | VertexBufferBinding[], firstIndex: number = 0): void {
+  setVertexBufferBindings(bufferBindings: VertexBufferBinding | VertexBufferBinding[], firstIndex: number = 0): void {
     const bindings = this._vertexBufferBindings;
     const multiBindings = <VertexBufferBinding[]>bufferBindings;
     const isArray = multiBindings.length !== undefined;
@@ -92,6 +92,22 @@ export class Primitive extends AssetObject {
       bindings.length < needLength ?? (bindings.length = needLength);
       this._vertexBufferBindings[firstIndex] = singleBinding;
     }
+  }
+
+  /**
+   * 设置索引缓冲绑定。
+   * @param buffer - 索引缓冲
+   * @param format - 索引缓冲格式
+   */
+  setIndexBufferBinding(buffer: IndexBuffer, format: IndexFormat): void {
+    const binding = this._indexBufferBinding;
+    if (binding) {
+      binding._buffer = buffer;
+      binding._format = format;
+    } else {
+      this._indexBufferBinding = new IndexBufferBinding(buffer, format);
+    }
+    this._glIndexType = BufferUtil._getGLIndexType(format);
   }
 
   /**
@@ -112,18 +128,6 @@ export class Primitive extends AssetObject {
 
   removeVertexElements(vertexElements: VertexElement | VertexElement[]): void {}
 
-  /**
-   * 设置索引缓冲。
-   * @param buffer - 索引缓冲
-   * @param format - 索引缓冲格式
-   */
-  setIndexBuffer(buffer: IndexBuffer, format: IndexFormat): void {
-    const binding = this._indexBufferBinding;
-    binding._buffer = buffer;
-    binding._format = format;
-    this._glIndexType = BufferUtil._getGLIndexType(format);
-  }
-
   // updateWeightsIndices(indices: number[]) {
   //   if (this.targets.length !== indices.length || indices.length === 0) {
   //     return;
@@ -142,24 +146,27 @@ export class Primitive extends AssetObject {
   //   this.vertexAttributes[semantic].vertexBufferIndex = index;
   // }
 
-  destroy() {}
+  destroy() {
+    //TODO:这里销毁不应该直接销毁Buffer，按照以前的机制这里暂时这样处理。
+    const vertexBufferBindings = this._vertexBufferBindings;
+    if (vertexBufferBindings) {
+      for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
+        const vertexBufferBinding = vertexBufferBindings[i];
+        if (vertexBufferBinding) {
+          vertexBufferBinding.buffer.destroy();
+        }
+      }
+      this._vertexBufferBindings = null;
+    }
 
-  reset() {
-    this.primitiveTopology = PrimitiveTopology.TRIANGLES;
-    this._vertexElementMap = {};
-    this._vertexBufferBindings = [];
+    const indexBufferBinding = this._indexBufferBinding;
+    if (indexBufferBinding) {
+      indexBufferBinding.buffer.destroy();
+      this._indexBufferBinding = null;
+    }
 
-    this._indexBufferBinding = new IndexBufferBinding();
-    this.drawOffset = 0;
-    this.drawCount = 0;
-
-    this.material = null;
-    this.materialIndex = null;
-    this.targets = [];
-    this.boundingBox = null;
-    this.boundingSphere = null;
-    this.isInFrustum = true;
-    this.instanceCount = null;
+    this._vertexElements = null;
+    this._vertexElementMap = null;
   }
 
   private _addVertexElement(element: VertexElement): void {

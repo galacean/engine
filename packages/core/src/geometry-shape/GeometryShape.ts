@@ -39,11 +39,10 @@ export class GeometryShape extends BufferGeometry {
     const vertexBuffer = new VertexBuffer(vertices, BufferUsage.Static, engine);
     const indexBuffer = new IndexBuffer(indices, BufferUsage.Static, engine);
 
-    this.setVertexBuffers(new VertexBufferBinding(vertexBuffer, vertexStride));
-    this.setIndexBuffer(indexBuffer, IndexFormat.UInt16);
+    this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
+    this.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
     this.addVertexElements(vertexElements);
     this.drawGroup.count = indices.length;
-    this._primitive.drawCount = indices.length; //TODO:临时
 
     this._computeBounds(vertices);
   }

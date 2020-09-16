@@ -75,10 +75,10 @@ export class GLPrimitive extends GLAsset {
 
     // draw
     const { primitiveTopology, indexBufferBinding, drawOffset, drawCount, instanceCount, _glIndexType } = primitive;
-    const indexBuffer = indexBufferBinding.buffer;
-    const { _nativeBuffer } = indexBuffer;
+
     if (!instanceCount) {
-      if (indexBuffer) {
+      if (indexBufferBinding) {
+        const { _nativeBuffer } = indexBufferBinding.buffer;
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
         gl.drawElements(primitiveTopology, drawCount, _glIndexType, drawOffset);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
@@ -87,7 +87,8 @@ export class GLPrimitive extends GLAsset {
       }
     } else {
       if (this.canUseInstancedArrays) {
-        if (indexBuffer) {
+        if (indexBufferBinding) {
+          const { _nativeBuffer } = indexBufferBinding.buffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
           gl.drawElementsInstanced(primitiveTopology, drawCount, _glIndexType, drawOffset, instanceCount);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);

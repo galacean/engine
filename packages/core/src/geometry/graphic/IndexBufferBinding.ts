@@ -11,7 +11,7 @@ export class IndexBufferBinding {
   _format: IndexFormat;
 
   /**
-   * 索引缓冲
+   * 索引缓冲。
    */
   get buffer(): IndexBuffer {
     return this._buffer;
@@ -22,5 +22,15 @@ export class IndexBufferBinding {
    */
   get format(): IndexFormat {
     return this._format;
+  }
+
+  /**
+   * 创建索引缓冲绑定。
+   * @param buffer - 索引缓冲
+   * @param format - 索引格式
+   */
+  constructor(buffer: IndexBuffer, format: IndexFormat) {
+    this._buffer = buffer;
+    this._format = format;
   }
 }

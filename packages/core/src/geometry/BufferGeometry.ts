@@ -69,10 +69,10 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 绘制组。
+   * 第一个绘制组。
    */
-  get drawGroup(): DrawGroup {
-    return this._drawGroups[0];
+  get drawGroup(): DrawGroup | null {
+    return this._drawGroups[0] || null;
   }
 
   /**
@@ -109,30 +109,33 @@ export class BufferGeometry extends AssetObject {
    * 设置顶点缓冲。
    * @param vertexBufferBinding - 顶点缓冲绑定
    */
-  setVertexBuffers(vertexBufferBinding: VertexBufferBinding): void;
+  setVertexBufferBindings(vertexBufferBinding: VertexBufferBinding): void;
 
   /**
    * 设置顶点缓冲。
    * @param vertexBufferBinding - 顶点缓冲绑定
    * @param index - 顶点缓冲索引
    */
-  setVertexBuffers(vertexBufferBinding: VertexBufferBinding, index: number): void;
+  setVertexBufferBindings(vertexBufferBinding: VertexBufferBinding, index: number): void;
 
   /**
    * 设置顶点缓冲。
    * @param vertexBufferBindings - 顶点缓冲绑定
    */
-  setVertexBuffers(vertexBufferBindings: VertexBufferBinding[]): void;
+  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[]): void;
 
   /**
    * 设置顶点缓冲。
    * @param vertexBufferBindings - 顶点缓冲绑定
    * @param firstIndex - 第一个顶点缓冲索引
    */
-  setVertexBuffers(vertexBufferBindings: VertexBufferBinding[], firstIndex: number): void;
+  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number): void;
 
-  setVertexBuffers(vertexBufferBindings: VertexBufferBinding | VertexBufferBinding[], firstIndex: number = 0): void {
-    this._primitive.setVertexBuffers(vertexBufferBindings, firstIndex);
+  setVertexBufferBindings(
+    vertexBufferBindings: VertexBufferBinding | VertexBufferBinding[],
+    firstIndex: number = 0
+  ): void {
+    this._primitive.setVertexBufferBindings(vertexBufferBindings, firstIndex);
   }
 
   /**
@@ -140,8 +143,8 @@ export class BufferGeometry extends AssetObject {
    * @param buffer - 索引缓冲
    * @param format - 索引缓冲格式
    */
-  setIndexBuffer(buffer: IndexBuffer, format: IndexFormat): void {
-    this._primitive.setIndexBuffer(buffer, format);
+  setIndexBufferBinding(buffer: IndexBuffer, format: IndexFormat): void {
+    this._primitive.setIndexBufferBinding(buffer, format);
   }
 
   /**
@@ -198,11 +201,4 @@ export class BufferGeometry extends AssetObject {
    * @internal
    */
   _render(): void {}
-
-  /**
-   * @deprecated
-   */
-  reset(): void {
-    this._primitive.reset();
-  }
 }

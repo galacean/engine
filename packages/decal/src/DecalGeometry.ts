@@ -71,7 +71,7 @@ export class DecalGeometry extends BufferGeometry {
     ];
     const vertexBuffer = new VertexBuffer(vertexFloatCount * 4, BufferUsage.Dynamic, this.node.engine);
 
-    this.setVertexBuffers(new VertexBufferBinding(vertexBuffer, vertexStride));
+    this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     this.addVertexElements(vertexElements);
     this.drawGroup.count = vertexCount;
 

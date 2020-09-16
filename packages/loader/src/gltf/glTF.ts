@@ -463,7 +463,7 @@ function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffer
     const bufferData = getAccessorData(gltf, accessor, buffers);
     const vertexBuffer = new VertexBuffer(bufferData.byteLength, BufferUsage.Static, resources.engine);
     vertexBuffer.setData(bufferData);
-    primitive.setVertexBuffers(new VertexBufferBinding(vertexBuffer, stride), i++);
+    primitive.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, stride), i++);
 
     // compute bounds
     if (vertexELement.semantic == "POSITION") {
@@ -489,7 +489,7 @@ function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffer
   const indexBuffer = new IndexBuffer(indexCount * indexByteSize, BufferUsage.Static, resources.engine);
 
   indexBuffer.setData(indexData);
-  primitive.setIndexBuffer(indexBuffer, indexFormat);
+  primitive.setIndexBufferBinding(indexBuffer, indexFormat);
   primitive.drawOffset = 0;
   primitive.drawCount = indexCount;
   return Promise.resolve(primitive);

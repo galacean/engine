@@ -23,7 +23,7 @@ export class GLVAOPrimitive extends GLPrimitive {
     gl.bindVertexArray(vao);
 
     const { indexBufferBinding } = this._primitive;
-    if (indexBufferBinding.buffer) {
+    if (indexBufferBinding) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferBinding.buffer._nativeBuffer);
     }
     this.bindBufferAndAttrib(tech);

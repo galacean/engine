@@ -432,8 +432,8 @@ export class GPUParticleSystem extends GeometryRenderer {
     const vertexBuffer = new VertexBuffer(vertexFloatCount * 4, BufferUsage.Dynamic, this.engine);
     const indexBuffer = new IndexBuffer(indices, BufferUsage.Dynamic, this.engine);
 
-    geometry.setVertexBuffers(new VertexBufferBinding(vertexBuffer, vertexStride));
-    geometry.setIndexBuffer(indexBuffer, IndexFormat.UInt16);
+    geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
+    geometry.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
     geometry.addVertexElements(vertexElements);
     geometry.drawGroup.count = indices.length;
 

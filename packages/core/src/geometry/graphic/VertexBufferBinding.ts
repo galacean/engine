@@ -4,10 +4,24 @@ import { VertexBuffer } from "./VertexBuffer";
  * 顶点缓冲绑定。
  */
 export class VertexBufferBinding {
-  /** 顶点缓冲。*/
-  buffer: VertexBuffer;
-  /** 顶点跨度。 */
-  stride: number;
+  /** @internal */
+  _buffer: VertexBuffer;
+  /** @internal */
+  _stride: number;
+
+  /**
+   * 顶点缓冲。
+   */
+  get buffer(): VertexBuffer {
+    return this._buffer;
+  }
+
+  /**
+   * 顶点跨度。
+   */
+  get stride(): number {
+    return this._stride;
+  }
 
   /**
    * 创建顶点缓冲绑定。
@@ -15,7 +29,7 @@ export class VertexBufferBinding {
    * @param stride - 顶点跨度
    */
   constructor(buffer: VertexBuffer, stride: number) {
-    this.buffer = buffer;
-    this.stride = stride;
+    this._buffer = buffer;
+    this._stride = stride;
   }
 }
