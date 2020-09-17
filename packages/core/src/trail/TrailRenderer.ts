@@ -1,14 +1,11 @@
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
-import {
-  BufferGeometry,
-  GeometryRenderer,
-  PrimitiveTopology,
-  VertexBuffer,
-  VertexBufferBinding,
-  VertexElement,
-  VertexElementFormat
-} from "../geometry";
-import { BufferUsage } from "../geometry/graphic/enums/BufferUsage";
+import { BufferGeometry, GeometryRenderer } from "../geometry";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { VertexBuffer } from "../graphic/VertexBuffer";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 import { TrailMaterial } from "./TrailMaterial";
 
 const _tempVector3 = new Vector3();

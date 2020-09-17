@@ -1,10 +1,13 @@
 import { AssetObject } from "../asset/AssetObject";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
-import { BufferUtil, IndexBuffer, IndexFormat, VertexElement } from "../geometry";
-import { PrimitiveTopology } from "../geometry/graphic/enums/PrimitiveTopology";
-import { IndexBufferBinding } from "../geometry/graphic/IndexBufferBinding";
-import { VertexBufferBinding } from "../geometry/graphic/VertexBufferBinding";
+import { BufferUtil } from "../graphic/BufferUtil";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { IndexBuffer } from "../graphic/IndexBuffer";
+import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
 /**

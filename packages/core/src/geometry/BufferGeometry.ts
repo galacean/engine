@@ -1,11 +1,12 @@
 import { AssetObject } from "../asset/AssetObject";
+import { DrawGroup } from "../graphic/DrawGroup";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { IndexBuffer } from "../graphic/IndexBuffer";
+import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 import { Primitive } from "../primitive/Primitive";
-import { DrawGroup } from "./graphic/DrawGroup";
-import { PrimitiveTopology } from "./graphic/enums/PrimitiveTopology";
-import { IndexBufferBinding } from "./graphic/IndexBufferBinding";
-import { VertexBufferBinding } from "./graphic/VertexBufferBinding";
-import { VertexElement } from "./graphic/VertexElement";
-import { IndexBuffer, IndexFormat } from "./index";
 
 /**
  * 缓冲几何体。

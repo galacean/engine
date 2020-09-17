@@ -1,12 +1,2 @@
 export { BufferGeometry } from "./BufferGeometry";
 export { GeometryRenderer } from "./GeometryRenderer";
-export { VertexBuffer } from "./graphic/VertexBuffer";
-export { VertexBufferBinding } from "./graphic/VertexBufferBinding";
-export { IndexBuffer } from "./graphic/IndexBuffer";
-export { VertexElement } from "./graphic/VertexElement";
-export { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
-export { IndexFormat } from "./graphic/enums/IndexFormat";
-export { BufferUsage } from "./graphic/enums/BufferUsage";
-export { SetDataOptions } from "./graphic/enums/SetDataOptions";
-export { BufferUtil } from "./graphic/BufferUtil";
-export { PrimitiveTopology } from "./graphic/enums/PrimitiveTopology";

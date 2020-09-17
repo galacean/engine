@@ -1,6 +1,6 @@
 import { Engine } from "../Engine";
-import { VertexElementFormat } from "../geometry/graphic/enums/VertexElementFormat";
-import { VertexElement } from "../geometry/graphic/VertexElement";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { VertexElement } from "../graphic/VertexElement";
 import { GeometryShape } from "./GeometryShape";
 
 export class TorusGeometry extends GeometryShape {

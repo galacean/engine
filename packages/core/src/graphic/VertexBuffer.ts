@@ -1,5 +1,5 @@
-import { Engine } from "../../Engine";
-import { HardwareRenderer } from "../../HardwareRenderer";
+import { Engine } from "../Engine";
+import { HardwareRenderer } from "../HardwareRenderer";
 import { BufferUtil } from "./BufferUtil";
 import { BufferUsage } from "./enums/BufferUsage";
 import { SetDataOptions } from "./enums/SetDataOptions";

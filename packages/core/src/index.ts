@@ -75,6 +75,7 @@ export { RenderColorTexture } from "./texture/RenderColorTexture";
 export { RenderDepthTexture } from "./texture/RenderDepthTexture";
 export * from "./texture/enums";
 
+export * from "./graphic/index";
 export * from "./2d/index";
 export * from "./shaderlib/index";
 export * from "./animation/index";

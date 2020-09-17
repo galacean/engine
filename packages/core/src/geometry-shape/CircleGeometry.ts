@@ -1,6 +1,6 @@
 import { GeometryShape } from "./GeometryShape";
 import { Engine } from "../Engine";
-import { PrimitiveTopology } from "../geometry/graphic/enums/PrimitiveTopology";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 
 interface CircleGeometryOptions {
   radius?: number;

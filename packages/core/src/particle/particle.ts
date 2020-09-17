@@ -1,17 +1,14 @@
 import { MathUtil, Vector3 } from "@alipay/o3-math";
 import { BlendFunc, DataType, MaterialType, RenderState, UniformSemantic } from "../base/Constant";
-import {
-  BufferGeometry,
-  GeometryRenderer,
-  IndexBuffer,
-  IndexFormat,
-  PrimitiveTopology,
-  VertexBuffer,
-  VertexBufferBinding,
-  VertexElement,
-  VertexElementFormat
-} from "../geometry";
-import { BufferUsage } from "../geometry/graphic/enums/BufferUsage";
+import { BufferGeometry, GeometryRenderer } from "../geometry";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { IndexBuffer } from "../graphic/IndexBuffer";
+import { VertexBuffer } from "../graphic/VertexBuffer";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
 import { TextureWrapMode } from "../texture/enums";

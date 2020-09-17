@@ -1,8 +1,8 @@
 import { Engine } from "../Engine";
-import { VertexElementFormat } from "../geometry/graphic/enums/VertexElementFormat";
-import { VertexElement } from "../geometry/graphic/VertexElement";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { VertexElement } from "../graphic/VertexElement";
 import { GeometryShape } from "./GeometryShape";
-import { PrimitiveTopology } from "../geometry/graphic/enums/PrimitiveTopology";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 
 /**
  * 覆盖整个屏幕的一个矩形

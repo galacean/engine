@@ -1,13 +1,13 @@
 import { Vector3 } from "@alipay/o3-math";
 import { Engine } from "../Engine";
 import { BufferGeometry } from "../geometry/BufferGeometry";
-import { BufferUsage } from "../geometry/graphic/enums/BufferUsage";
-import { IndexFormat } from "../geometry/graphic/enums/IndexFormat";
-import { VertexElementFormat } from "../geometry/graphic/enums/VertexElementFormat";
-import { IndexBuffer } from "../geometry/graphic/IndexBuffer";
-import { VertexBuffer } from "../geometry/graphic/VertexBuffer";
-import { VertexBufferBinding } from "../geometry/graphic/VertexBufferBinding";
-import { VertexElement } from "../geometry/graphic/VertexElement";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { IndexBuffer } from "../graphic/IndexBuffer";
+import { VertexBuffer } from "../graphic/VertexBuffer";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 
 /**
  * 基本形状几何体。

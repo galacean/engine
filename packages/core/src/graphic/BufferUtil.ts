@@ -1,6 +1,6 @@
 import { BufferUsage } from "./enums/BufferUsage";
 import { VertexElementFormat } from "./enums/VertexElementFormat";
-import { DataType } from "../../base/Constant";
+import { DataType } from "../base/Constant";
 import { IndexFormat } from "./enums/IndexFormat";
 
 export interface ElementInfo {
