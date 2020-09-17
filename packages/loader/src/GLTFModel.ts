@@ -38,11 +38,15 @@ export class GLTFModel extends Component {
   }
 
   set autoPlay(value: string) {
-    if (this._animator && value) {
+    if (this._animator) {
       // 播放骨骼动画
-      this._animator.playAnimationClip(value, {
-        wrapMode: this._loop
-      });
+      if (value) {
+        this._animator.playAnimationClip(value, {
+          wrapMode: this._loop
+        });
+      } else {
+        this._animator.stop(false);
+      }
     }
     this._autoPlay = value;
   }
