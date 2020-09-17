@@ -41,10 +41,13 @@ function handleProps(props) {
   for (let i = 0, l = keys.length; i < l; ++i) {
     const k = keys[i];
     const v = props[k];
-    if (k === "backgroundColor" || k === "tintColor") {
-      props[k] = new Vector4(v[0], v[1], v[2], v[3]);
-    } else if (_vec3Attribute.indexOf(k) !== -1) {
-      props[k] = new Vector3(v[0], v[1], v[2]);
+
+    if (v !== null && typeof v === "object" && v.length > 1) {
+      if (k === "backgroundColor" || k === "tintColor") {
+        props[k] = new Vector4(v[0], v[1], v[2], v[3]);
+      } else if (_vec3Attribute.indexOf(k) !== -1) {
+        props[k] = new Vector3(v[0], v[1], v[2]);
+      }
     }
   }
 }

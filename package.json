@@ -14,7 +14,7 @@
     "packages/*"
   ],
   "scripts": {
-    "bootstrap": "tnpm i && lerna bootstrap",
+    "bootstrap": "tnpm i && lerna bootstrap --hoist",
     "test": "jest",
     "test-cov": "jest --coverage",
     "test-cov-ci": "jest --coverage --testPathIgnorePatterns='.*.gl.test.ts'",
