@@ -145,7 +145,7 @@ export class TrailRenderer extends GeometryRenderer {
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
     ];
-    const vertexBuffer = new VertexBuffer(vertexFloatCount * 4, BufferUsage.Dynamic, this.engine);
+    const vertexBuffer = new VertexBuffer(this.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
 
     geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     geometry.addVertexElements(vertexElements);

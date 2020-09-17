@@ -40,26 +40,25 @@ export class IndexBuffer {
 
   /**
    * 创建索引缓冲。
+   * @param engine - 引擎
    * @param byteLength - 长度，字节为单位
    * @param bufferUsage - 索引缓冲用途
-   * @param engine - 引擎
    */
-  constructor(byteLength: number, bufferUsage?: BufferUsage, engine?: Engine);
+  constructor(engine: Engine, byteLength: number, bufferUsage?: BufferUsage);
 
   /**
    * 创建索引缓冲。
+   * @param engine - 引擎
    * @param data - 所以缓冲数据
    * @param bufferUsage - 索引缓冲用途
-   * @param engine - 引擎
    */
-  constructor(data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage, engine?: Engine);
+  constructor(engine: Engine, data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage);
 
   constructor(
+    engine: Engine,
     byteLengthOrData: number | ArrayBuffer | ArrayBufferView,
-    bufferUsage: BufferUsage = BufferUsage.Static,
-    engine?: Engine
+    bufferUsage: BufferUsage = BufferUsage.Static
   ) {
-    engine = engine || Engine._getDefaultEngine();
     this._engine = engine;
     this._bufferUsage = bufferUsage;
 

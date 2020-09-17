@@ -36,8 +36,8 @@ export class GeometryShape extends BufferGeometry {
     vertexStride: number,
     vertexElements: VertexElement[]
   ) {
-    const vertexBuffer = new VertexBuffer(vertices, BufferUsage.Static, engine);
-    const indexBuffer = new IndexBuffer(indices, BufferUsage.Static, engine);
+    const vertexBuffer = new VertexBuffer(engine, vertices, BufferUsage.Static);
+    const indexBuffer = new IndexBuffer(engine, indices, BufferUsage.Static);
 
     this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     this.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
