@@ -55,7 +55,6 @@ export class Camera extends Component {
    */
   cullingMask: number = 0;
   _renderPipeline: BasicRenderPipeline;
-  _pixelViewport: Vector4 = new Vector4(0, 0, 1, 1);
   private _isOrthographic: boolean = false;
   private _projectionMatrix: Matrix = new Matrix();
   private _isProjMatSetting = false;
@@ -387,13 +386,12 @@ export class Camera extends Component {
    * @returns 射线
    */
   viewportToScreenPoint<T extends Vector2 | Vector3 | Vector4>(point: T, out: T): T {
+    const canvas = this.engine.canvas;
     const viewport = this.viewport;
-    const viewWidth = viewport.z;
-    const viewHeight = viewport.w;
-    const nx = point.x;
-    const ny = point.y;
-    out.x = viewport.x + viewWidth * nx;
-    out.y = viewport.y + viewHeight * ny;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    out.x = viewport.x * canvasWidth + point.x * viewport.z * canvasWidth;
+    out.y = viewport.y * canvasHeight + point.y * viewport.w * canvasHeight;
     return out;
   }
 
