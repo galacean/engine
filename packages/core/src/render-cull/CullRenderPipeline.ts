@@ -38,6 +38,9 @@ export class CullRenderPipeline extends BasicRenderPipeline {
 
     //-- 进行视锥剪裁
     if (!primitive.boundingBox) {
+      //CM:需要重构
+      //1）primitive不应该包含包围盒,世界包围盒应该存在RenderableComponent身上
+      //2）视锥裁剪应该设置放到默认渲染管线，可以加开关
       // const { min, max } = primitive.getMinMax();
       // primitive.boundingBox = new OBB(min, max, node.getModelMatrix());
     }
