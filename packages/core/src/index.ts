@@ -49,25 +49,6 @@ export { Light } from "./lighting/Light";
 export { AABB } from "./bounding-info/AABB";
 export { OBB } from "./bounding-info//OBB";
 export { BoundingSphere } from "./bounding-info//BoudingSphere";
-
-// geometry
-//-- 数据类
-export { BufferGeometry } from "./geometry";
-
-//-- Component 类
-export { GeometryRenderer } from "./geometry";
-
-//-- Geometry 合并功能
-
-export { VertexBuffer } from "./geometry";
-export { IndexBuffer } from "./geometry";
-export { VertexElement } from "./geometry";
-export { VertexElementFormat } from "./geometry";
-export { VertexBufferBinding } from "./geometry";
-export { BufferUtil } from "./geometry";
-export { SetDataOptions } from "./geometry";
-export { PrimitiveTopology } from "./geometry";
-
 //mesh
 export { Mesh } from "./mesh/Mesh";
 export { Skin } from "./mesh/Skin";
