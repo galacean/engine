@@ -316,20 +316,6 @@ export enum BlendFunc {
 }
 
 /**
- * 更新方式枚举
- * @readonly
- */
-export enum UpdateType {
-  /** 不需要更新 */
-  NO_UPDATE = 0,
-  /** 初始化 */
-  INIT = 1,
-  /** 部分更新 */
-  UPDATE_RANGE = 2,
-  RESIZE = 3
-}
-
-/**
  * RenderPass 的可用 MASK
  * @readonly
  * @private
