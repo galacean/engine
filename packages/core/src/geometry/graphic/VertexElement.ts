@@ -80,10 +80,3 @@ export class VertexElement {
     return this._glElementInfo;
   }
 }
-
-/**
- * @deprecated
- */
-export interface VertexElements {
-  [x: string]: VertexElement;
-}

@@ -1,7 +1,7 @@
 import { AssetObject } from "../asset/AssetObject";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
-import { BufferUtil, IndexBuffer, IndexFormat, VertexElement, VertexElements } from "../geometry";
+import { BufferUtil, IndexBuffer, IndexFormat, VertexElement } from "../geometry";
 import { PrimitiveTopology } from "../geometry/graphic/enums/PrimitiveTopology";
 import { IndexBufferBinding } from "../geometry/graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "../geometry/graphic/VertexBufferBinding";
@@ -23,7 +23,7 @@ export class Primitive extends AssetObject {
   /** 实例数量，0 表示关闭实例渲染。*/
   instanceCount: number = 0;
 
-  _vertexElementMap: VertexElements = {};
+  _vertexElementMap: object = {};
 
   _glIndexType: number;
 

@@ -5,7 +5,6 @@ export { VertexBufferBinding } from "./graphic/VertexBufferBinding";
 export { IndexBuffer } from "./graphic/IndexBuffer";
 export { VertexElement } from "./graphic/VertexElement";
 export { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
-export { VertexElements } from "./graphic/VertexElement";
 export { IndexFormat } from "./graphic/enums/IndexFormat";
 export { BufferUsage } from "./graphic/enums/BufferUsage";
 export { SetDataOptions } from "./graphic/enums/SetDataOptions";
