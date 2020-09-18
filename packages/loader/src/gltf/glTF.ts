@@ -604,8 +604,7 @@ export function parseMesh(gltfMesh, resources) {
   }
   return Promise.all(primitivePromises).then((primitives) => {
     for (let i = 0; i < primitives.length; i++) {
-      const primitive = primitives[i];
-      mesh.primitives.push(primitive);
+      mesh.primitives.push(primitives[i]);
     }
     return mesh;
   });
