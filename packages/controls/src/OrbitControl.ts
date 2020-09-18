@@ -481,7 +481,7 @@ export class OrbitControl extends Script {
 
     targetDistance *= (this.fov / 2) * (Math.PI / 180);
 
-    this.panLeft(2 * deltaX * (targetDistance / element.clientHeight), this.camera.transform.worldMatrix);
+    this.panLeft(-2 * deltaX * (targetDistance / element.clientHeight), this.camera.transform.worldMatrix);
     this.panUp(2 * deltaY * (targetDistance / element.clientHeight), this.camera.transform.worldMatrix);
   }
 
