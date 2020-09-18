@@ -1,6 +1,7 @@
 import { Vector3 } from "@alipay/o3-math";
 import { ReferenceObject } from "../asset/ReferenceObject";
 import { Primitive } from "../primitive/Primitive";
+import { BoundingBox } from "../RenderableComponent";
 
 /**
  * Mesh Asset Object
@@ -8,7 +9,7 @@ import { Primitive } from "../primitive/Primitive";
 export class Mesh extends ReferenceObject {
   public primitives: Primitive[];
   public weights: number[];
-  public readonly bounds: any = { min: new Vector3(), max: new Vector3() };
+  public readonly bounds: BoundingBox = { min: new Vector3(), max: new Vector3() };
 
   /**
    * 构造函数

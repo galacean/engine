@@ -7,6 +7,7 @@ import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { Primitive } from "../primitive/Primitive";
+import { BoundingBox } from "../RenderableComponent";
 
 /**
  * 缓冲几何体。
@@ -16,7 +17,7 @@ export class BufferGeometry extends AssetObject {
 
   _primitive: Primitive;
 
-  private _bounds: any;
+  private _bounds: BoundingBox;
   private _drawGroups: DrawGroup[] = [];
 
   /**
