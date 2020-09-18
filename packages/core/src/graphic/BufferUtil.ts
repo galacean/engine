@@ -8,15 +8,6 @@ export interface ElementInfo {
   type: DataType;
 }
 
-const vertexDataTypeSizeHash = {};
-vertexDataTypeSizeHash[DataType.BYTE] = 1;
-vertexDataTypeSizeHash[DataType.UNSIGNED_BYTE] = 1;
-vertexDataTypeSizeHash[DataType.SHORT] = 2;
-vertexDataTypeSizeHash[DataType.UNSIGNED_SHORT] = 2;
-vertexDataTypeSizeHash[DataType.INT] = 4;
-vertexDataTypeSizeHash[DataType.UNSIGNED_INT] = 4;
-vertexDataTypeSizeHash[DataType.FLOAT] = 4;
-
 export class BufferUtil {
   /**
    * @internal
@@ -90,12 +81,5 @@ export class BufferUtil {
         break;
     }
     return { size, type };
-  }
-
-  /**
-   * @internal
-   */
-  static _getVertexDataTypeSize(type: DataType): number {
-    return vertexDataTypeSizeHash[type];
   }
 }
