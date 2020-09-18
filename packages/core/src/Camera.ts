@@ -388,10 +388,8 @@ export class Camera extends Component {
   viewportToScreenPoint<T extends Vector2 | Vector3 | Vector4>(point: T, out: T): T {
     const canvas = this.engine.canvas;
     const viewport = this.viewport;
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-    out.x = viewport.x * canvasWidth + point.x * viewport.z * canvasWidth;
-    out.y = viewport.y * canvasHeight + point.y * viewport.w * canvasHeight;
+    out.x = (viewport.x + point.x * viewport.z) * canvas.width;
+    out.y = (viewport.y + point.y * viewport.w) * canvas.height;
     return out;
   }
 
