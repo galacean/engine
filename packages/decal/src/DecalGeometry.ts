@@ -1,5 +1,6 @@
 import {
   BufferGeometry,
+  BufferUsage,
   Entity,
   Mesh,
   MeshRenderer,
@@ -9,7 +10,6 @@ import {
   VertexElement,
   VertexElementFormat
 } from "@alipay/o3-core";
-import { BufferUsage } from "@alipay/o3-core/types/geometry/graphic/enums/BufferUsage";
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { makeRotationFromQuaternion, setPosition, transformDirection } from "./util";
 
