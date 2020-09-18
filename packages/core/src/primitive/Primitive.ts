@@ -85,14 +85,14 @@ export class Primitive extends AssetObject {
     if (isArray) {
       const count = multiBindings.length;
       const needLength = firstIndex + count;
-      bindings.length < needLength ?? (bindings.length = needLength);
+      bindings.length < needLength && (bindings.length = needLength);
       for (let i = 0; i < count; i++) {
         this._vertexBufferBindings[firstIndex + i] = multiBindings[i];
       }
     } else {
       const singleBinding = <VertexBufferBinding>bufferBindings;
       const needLength = firstIndex + 1;
-      bindings.length < needLength ?? (bindings.length = needLength);
+      bindings.length < needLength && (bindings.length = needLength);
       this._vertexBufferBindings[firstIndex] = singleBinding;
     }
   }
