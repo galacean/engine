@@ -1,174 +1,183 @@
-import { Vector3, Matrix } from "@alipay/o3-math";
 import { AssetObject } from "../asset/AssetObject";
-import { DataType, DrawMode, UpdateType, BufferUsage } from "../base/Constant";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
+import { BufferUtil } from "../graphic/BufferUtil";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { IndexBuffer } from "../graphic/IndexBuffer";
+import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
-
-export interface Attribute {
-  name?: string;
-  semantic: string;
-  size: number;
-  type: DataType;
-  normalized?: boolean;
-  instanced?: number;
-  stride?: number;
-  offset?: number;
-  vertexBufferIndex?: number;
-}
-
-let primitiveID = 0;
-
 /**
  * primitive(triangles, lines) data, vbo+indices, equal glTF meshes.primitives define
- * @class
  * @private
  */
 export class Primitive extends AssetObject {
-  public readonly id: number;
-  public mode: DrawMode = DrawMode.TRIANGLES; // draw mode, triangles, lines etc.;
-  public usage: BufferUsage = BufferUsage.STATIC_DRAW;
-  public updateType: UpdateType = UpdateType.UPDATE_ALL;
-  public updateRange: { byteOffset: number; byteLength: number } = {
-    byteOffset: -1,
-    byteLength: 0
-  };
+  private static _primitiveID: number = 0;
 
-  public vertexBuffers = [];
-  public vertexAttributes = <any>{};
-  public vertexOffset: number = 0;
-  public vertexCount: number = 0;
+  /** 绘制模式。*/
+  primitiveTopology: PrimitiveTopology = PrimitiveTopology.Triangles;
+  /** 绘制偏移。*/
+  drawOffset: number = 0;
+  /** 绘制数量。*/
+  drawCount: number = 0;
+  /** 实例数量，0 表示关闭实例渲染。*/
+  instanceCount: number = 0;
 
-  public indexType: DataType.UNSIGNED_BYTE | DataType.UNSIGNED_SHORT | DataType.UNSIGNED_INT = DataType.UNSIGNED_SHORT;
-  public indexCount: number = 0;
-  public indexBuffer = null;
-  public indexOffset: number = 0;
-  public indexNeedUpdate: boolean = false;
+  _vertexElementMap: object = {};
 
-  public material = null;
-  public materialIndex: number;
-  public targets: any[] = [];
-  public boundingBox: OBB = null;
-  public boundingSphere: BoundingSphere = null;
-  public isInFrustum: boolean = true;
+  _glIndexType: number;
 
-  public instancedBuffer = null;
-  public instancedAttributes = {};
-  public isInstanced: boolean = false;
-
-  public updateVertex: boolean;
-  public updateInstanced: boolean;
-  public instancedCount: number;
+  private _vertexBufferBindings: VertexBufferBinding[] = [];
+  private _indexBufferBinding: IndexBufferBinding;
+  private _vertexElements: VertexElement[] = [];
 
   /**
-   * @constructor
+   * 顶点缓冲绑定信息集合。
    */
-  constructor(name?: string) {
-    super();
-    this.id = primitiveID++;
+  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
+    return this._vertexBufferBindings;
   }
 
   /**
-   * 添加一个顶点属性
-   * @param {string} semantic
-   * @param {number} size
-   * @param {DataType} type
-   * @param {boolean} normalized
-   * @param {number} stride
-   * @param {number} offset
-   * @param {number} vertexBufferIndex
+   * 顶点元素集合。
    */
-  addAttribute({ size, type, stride, offset, semantic, normalized, instanced = 0, vertexBufferIndex = 0 }: Attribute) {
-    this[instanced ? "instancedAttributes" : "vertexAttributes"][semantic] = {
-      size,
-      type,
-      stride,
-      offset,
-      semantic,
-      instanced,
-      normalized,
-      vertexBufferIndex
-    };
-    if (instanced) {
-      this.isInstanced = true;
-    }
-  }
-
-  updateWeightsIndices(indices: number[]) {
-    if (this.targets.length !== indices.length || indices.length === 0) {
-      return;
-    }
-    for (let i = 0; i < indices.length; i++) {
-      const currentIndex = indices[i];
-      Object.keys(this.targets[i]).forEach((key: string) => {
-        const semantic = this.targets[i][key].name;
-        const index = this.targets[currentIndex][key].vertexBufferIndex;
-        this.updateAttribBufferIndex(semantic, index);
-      });
-    }
-  }
-
-  updateAttribBufferIndex(semantic: string, index: number) {
-    this.vertexAttributes[semantic].vertexBufferIndex = index;
+  get vertexElements(): Readonly<VertexElement[]> {
+    return this._vertexElements;
   }
 
   /**
-   * 重置更新范围对象
+   * 索引缓冲绑定信息。
    */
-  resetUpdateRange() {
-    this.updateRange.byteOffset = -1;
-    this.updateRange.byteLength = 0;
+  get indexBufferBinding(): IndexBufferBinding {
+    return this._indexBufferBinding;
   }
 
-  /**
-   * 通过 primitive 计算本地/世界坐标系的 min/max
-   * @param {Matrix} modelMatrix - Local to World矩阵,如果传此值，则计算min/max时将考虑RTS变换，如果不传，则计算local min/max
-   * @param {boolean} littleEndian - 是否以小端字节序读取，默认true
-   * */
-  getMinMax(modelMatrix?: Matrix, littleEndian = true) {
-    let {
-      vertexCount,
-      vertexBuffers,
-      vertexAttributes: {
-        POSITION: { size, offset, stride, vertexBufferIndex }
-      }
-    } = this;
-    let arrayBuffer = vertexBuffers[vertexBufferIndex];
-    if (!(arrayBuffer instanceof ArrayBuffer)) {
-      arrayBuffer = arrayBuffer.buffer;
-    }
-    if (stride === 0) {
-      stride = size * 4;
-    }
-    const dataView = new DataView(arrayBuffer, offset);
-
-    let min = new Vector3(Infinity, Infinity, Infinity);
-    let max = new Vector3(-Infinity, -Infinity, -Infinity);
-    for (let i = 0; i < vertexCount; i++) {
-      const base = offset + stride * i;
-      const position = new Vector3(
-        dataView.getFloat32(base, littleEndian),
-        dataView.getFloat32(base + 4, littleEndian),
-        dataView.getFloat32(base + 8, littleEndian)
-      );
-      modelMatrix && Vector3.transformCoordinate(position, modelMatrix, position);
-      Vector3.min(min, position, min);
-      Vector3.max(max, position, max);
-    }
-
-    return {
-      min,
-      max
-    };
-  }
+  readonly id: number;
+  material = null;
+  materialIndex: number;
+  targets: any[] = [];
+  boundingBox: OBB = null;
+  boundingSphere: BoundingSphere = null;
+  isInFrustum: boolean = true;
 
   get attributes() {
-    return {
-      ...this.vertexAttributes,
-      ...this.instancedAttributes
-    };
+    return this._vertexElementMap;
   }
 
-  finalize() {}
+  constructor(name?: string) {
+    super();
+    this.id = Primitive._primitiveID++;
+    this.name = name;
+  }
+
+  /**
+   * 设置顶点缓冲绑定信息。
+   * @param bufferBindings - 缓冲绑定集合
+   * @param firstIndex - 第一个绑定索引
+   */
+  setVertexBufferBindings(bufferBindings: VertexBufferBinding | VertexBufferBinding[], firstIndex: number = 0): void {
+    const bindings = this._vertexBufferBindings;
+    const multiBindings = <VertexBufferBinding[]>bufferBindings;
+    const isArray = multiBindings.length !== undefined;
+    if (isArray) {
+      const count = multiBindings.length;
+      const needLength = firstIndex + count;
+      bindings.length < needLength && (bindings.length = needLength);
+      for (let i = 0; i < count; i++) {
+        this._vertexBufferBindings[firstIndex + i] = multiBindings[i];
+      }
+    } else {
+      const singleBinding = <VertexBufferBinding>bufferBindings;
+      const needLength = firstIndex + 1;
+      bindings.length < needLength && (bindings.length = needLength);
+      this._vertexBufferBindings[firstIndex] = singleBinding;
+    }
+  }
+
+  /**
+   * 设置索引缓冲绑定。
+   * @param buffer - 索引缓冲
+   * @param format - 索引缓冲格式
+   */
+  setIndexBufferBinding(buffer: IndexBuffer, format: IndexFormat): void {
+    const binding = this._indexBufferBinding;
+    if (binding) {
+      binding._buffer = buffer;
+      binding._format = format;
+    } else {
+      this._indexBufferBinding = new IndexBufferBinding(buffer, format);
+    }
+    this._glIndexType = BufferUtil._getGLIndexType(format);
+  }
+
+  /**
+   * 添加顶点元素集合。
+   * @param elements
+   */
+  addVertexElements(elements: VertexElement | VertexElement[]): void {
+    const isArray = (<VertexElement[]>elements).length !== undefined;
+    if (isArray) {
+      const addElements = <VertexElement[]>elements;
+      for (let i = 0, n = addElements.length; i < n; i++) {
+        this._addVertexElement(addElements[i]);
+      }
+    } else {
+      this._addVertexElement(<VertexElement>elements);
+    }
+  }
+
+  removeVertexElements(vertexElements: VertexElement | VertexElement[]): void {}
+
+  // updateWeightsIndices(indices: number[]) {
+  //   if (this.targets.length !== indices.length || indices.length === 0) {
+  //     return;
+  //   }
+  //   for (let i = 0; i < indices.length; i++) {
+  //     const currentIndex = indices[i];
+  //     Object.keys(this.targets[i]).forEach((key: string) => {
+  //       const semantic = this.targets[i][key].name;
+  //       const index = this.targets[currentIndex][key].vertexBufferIndex;
+  //       // this.updateAttribBufferIndex(semantic, index);
+  //     });
+  //   }
+  // }
+
+  // updateAttribBufferIndex(semantic: string, index: number) {
+  //   this.vertexAttributes[semantic].vertexBufferIndex = index;
+  // }
+
+  destroy() {
+    //TODO:这里销毁不应该直接销毁Buffer，按照以前的机制这里暂时这样处理。
+    const vertexBufferBindings = this._vertexBufferBindings;
+    if (vertexBufferBindings) {
+      for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
+        const vertexBufferBinding = vertexBufferBindings[i];
+        if (vertexBufferBinding) {
+          vertexBufferBinding.buffer.destroy();
+        }
+      }
+      this._vertexBufferBindings = null;
+    }
+
+    const indexBufferBinding = this._indexBufferBinding;
+    if (indexBufferBinding) {
+      indexBufferBinding.buffer.destroy();
+      this._indexBufferBinding = null;
+    }
+
+    this._vertexElements = null;
+    this._vertexElementMap = null;
+  }
+
+  private _addVertexElement(element: VertexElement): void {
+    const { semantic } = element;
+    if (this._vertexElementMap[semantic]) {
+      throw "the same semantic already exists.";
+    }
+    this._vertexElementMap[semantic] = element;
+    this._vertexElements.push(element);
+  }
 }

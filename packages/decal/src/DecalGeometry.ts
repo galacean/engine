@@ -1,6 +1,17 @@
-import { DataType, Entity, Mesh, MeshRenderer, Primitive, BufferGeometry } from "@alipay/o3-core";
+import {
+  BufferGeometry,
+  Entity,
+  Mesh,
+  MeshRenderer,
+  Primitive,
+  VertexBuffer,
+  VertexBufferBinding,
+  VertexElement,
+  VertexElementFormat
+} from "@alipay/o3-core";
+import { BufferUsage } from "@alipay/o3-core/types/geometry/graphic/enums/BufferUsage";
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
-import { fromBufferAttribute, makeRotationFromQuaternion, setPosition, transformDirection } from "./util";
+import { makeRotationFromQuaternion, setPosition, transformDirection } from "./util";
 
 type FloatArray = Array<number> | Float32Array;
 
@@ -14,6 +25,11 @@ interface Intersection {
 }
 
 export class DecalGeometry extends BufferGeometry {
+  private _vertexStride: number;
+  private _vertices: Float32Array;
+
+  _indices: Uint16Array;
+
   public size: Vector3;
   public readonly node: Entity;
   public readonly targetMesh: Mesh;
@@ -21,11 +37,11 @@ export class DecalGeometry extends BufferGeometry {
   public readonly position: Vector3;
   public readonly orientation: Quaternion;
   public readonly projectorMatrix: Matrix;
-  public readonly projectorMatrixInverse: Matrix;
+  public readonly projectorMatrixInverse: Matrix = new Matrix();
   public constructor(intersection: Intersection, position: Vector3, orientation: Quaternion, size: Vector3) {
     super();
     this.node = intersection.entity;
-    const meshRenderer = this.node.getComponent(MeshRenderer);
+    const meshRenderer: MeshRenderer = this.node.getComponent(MeshRenderer);
     if (meshRenderer) {
       this.targetMesh = meshRenderer.mesh;
     } else {
@@ -45,43 +61,45 @@ export class DecalGeometry extends BufferGeometry {
 
     const vertexValues = this.generate();
     const vertexCount = vertexValues.length;
-    super.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "NORMAL", size: 3, type: DataType.FLOAT, normalized: true },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      vertexCount
-    );
-    this.setAllVertexValues(vertexValues);
+    const vertexStride = 32;
+    const vertexFloatCount = vertexCount * vertexStride;
+    const vertices = new Float32Array(vertexFloatCount);
+    const vertexElements = [
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
+      new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0)
+    ];
+    const vertexBuffer = new VertexBuffer(this.node.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
+
+    this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
+    this.addVertexElements(vertexElements);
+    this.drawGroup.count = vertexCount;
+
+    this._vertexStride = vertexStride;
+    this._vertices = vertices;
   }
 
   generate() {
     const vertexValues = [];
     let decalVertices = [];
     const primitive = this.targetPrimitive;
-    const positionAttributeIndex = primitive.vertexAttributes.POSITION.vertexBufferIndex;
-    const positionAttribute = primitive.vertexBuffers[positionAttributeIndex];
 
-    let normalAttributeIndex;
-    let normalAttribute;
-    if (primitive.vertexAttributes.NORMAL) {
-      normalAttributeIndex = primitive.vertexAttributes.NORMAL.vertexBufferIndex;
-      normalAttribute = primitive.vertexBuffers[normalAttributeIndex];
-    }
+    let normalData;
 
-    const index = primitive.indexBuffer;
-    const count = primitive.indexBuffer.length;
+    const vertices = this._vertices;
+    const indices = this._indices;
+    const count = indices.length;
 
     // first, create an array of 'DecalVertex' objects
     // three consecutive 'DecalVertex' objects represent a single face
     //
     // this data structure will be later used to perform the clipping
     for (let i = 0; i < count; i += 1) {
-      const vertex = fromBufferAttribute(positionAttribute, index[i]);
+      const offset = (indices[i] * this._vertexStride) / 4;
+      const vertex = new Vector3(vertices[offset], vertices[offset + 1], vertices[offset + 2]);
       let normal;
-      if (normalAttribute) {
-        normal = fromBufferAttribute(normalAttribute, index[i]);
+      if (normalData) {
+        normal = new Vector3(vertices[offset + 3], vertices[offset + 4], vertices[offset + 5]);
       }
 
       this.pushDecalVertex(decalVertices, vertex, normal);

@@ -6,6 +6,7 @@ import { EngineFeature } from "./EngineFeature";
 import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
+import { Entity } from "./Entity";
 
 /** todo: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -127,13 +128,21 @@ export class Engine extends EventDispatcher {
    */
   constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
     super();
-    // @todo delete
-    engineFeatureManager.addObject(this);
-    this._sceneManager.activeScene = new Scene("DefaultScene", this);
+    Engine._lastCreateEngine = this;
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
-    Engine._lastCreateEngine = this;
+    // @todo delete
+    engineFeatureManager.addObject(this);
+    this._sceneManager.activeScene = new Scene("DefaultScene", this);
+  }
+
+  /**
+   * 创建实体。
+   * @param name - 名字
+   */
+  createEntity(name?: string): Entity {
+    return new Entity(name, this);
   }
 
   /**

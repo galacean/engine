@@ -37,6 +37,13 @@ export abstract class Component extends EventDispatcher {
   }
 
   /**
+   * 是否已经销毁。
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
+  }
+
+  /**
    * 所属节点对象。
    */
   get entity(): Entity {

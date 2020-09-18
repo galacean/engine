@@ -27,9 +27,6 @@
   "dependencies": {
     "@alipay/o3-math": "3.0.9"
   },
-  "devDependencies": {
-    "@alipay/o3-math": "3.0.8"
-  },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
   }

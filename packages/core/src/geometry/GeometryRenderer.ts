@@ -4,14 +4,14 @@ import { Camera } from "../Camera";
 import { Material } from "../material/Material";
 import { RenderableComponent } from "../RenderableComponent";
 import { BufferGeometry } from "./BufferGeometry";
-import { IndexBufferGeometry } from "./IndexBufferGeometry";
 import { Entity } from "../Entity";
+import { Vector3 } from "@alipay/o3-math";
 
 /**
  * 几何体渲染类
  */
 export class GeometryRenderer extends RenderableComponent {
-  protected _geometry: BufferGeometry | IndexBufferGeometry;
+  protected _geometry: BufferGeometry;
 
   protected _material: Material;
 
@@ -28,20 +28,20 @@ export class GeometryRenderer extends RenderableComponent {
 
   /**
    * 当前绑定的 geometry 对象
-   * @returns {BufferGeometry|IndexBufferGeometry} 几何体对象
+   * @returns {BufferGeometry} 几何体对象
    */
-  get geometry(): BufferGeometry | IndexBufferGeometry {
+  get geometry(): BufferGeometry {
     return this._geometry;
   }
 
   /**
    * 指定需要渲染的几何体对象；多个 GeometryRenderer 对象可以引用同一个几何体对象
-   * @param {BufferGeometry|IndexBufferGeometry} geometry 几何体对象
+   * @param {BufferGeometry} geometry 几何体对象
    */
-  set geometry(geometry: BufferGeometry | IndexBufferGeometry) {
+  set geometry(geometry: BufferGeometry) {
     this._geometry = geometry;
-    if (geometry && geometry.primitive && geometry.primitive.material) {
-      this._material = geometry.primitive.material;
+    if (geometry && geometry._primitive && geometry._primitive.material) {
+      this._material = geometry._primitive.material;
     }
 
     this.trigger(new Event("geometryChange"));
@@ -81,9 +81,15 @@ export class GeometryRenderer extends RenderableComponent {
     if (!geometry) {
       return;
     }
+    geometry._render();
 
-    if (geometry.primitive && this._material) {
-      camera._renderPipeline.pushPrimitive(this, geometry.primitive, this._material);
+    const primitive = geometry._primitive;
+    if (primitive && this._material) {
+      const drawGroup = geometry.drawGroups[0];
+      primitive.drawOffset = drawGroup.offset;
+      primitive.drawCount = drawGroup.count;
+
+      camera._renderPipeline.pushPrimitive(this, primitive, this._material);
     } else {
       Logger.error("primitive or  material is null");
     }
@@ -101,5 +107,20 @@ export class GeometryRenderer extends RenderableComponent {
 
     //-- materials
     this._material = null;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: any): void {
+    const localBounds: any = this._geometry.bounds;
+    if (localBounds) {
+      const worldMatrix: any = this._entity.transform.worldMatrix;
+      Vector3.transformCoordinate(localBounds.min, worldMatrix, worldBounds.min); //TODO:简单模式，有漏洞，待AABB重构
+      Vector3.transformCoordinate(localBounds.max, worldMatrix, worldBounds.max);
+    } else {
+      worldBounds.min.setValue(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+      worldBounds.max.setValue(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+    }
   }
 }

@@ -8,7 +8,7 @@ const _intersectPointWorld = new Vector3();
 
 export function raycast(meshRenderer, ray) {
   const intersects = [];
-  const invModelMatrix = meshRenderer.invModelMatrix;
+  const invModelMatrix = meshRenderer.entity.getInvModelMatrix();
   const localRay = new Ray(undefined, undefined);
   localRay.copy(ray).applyMatrix4(invModelMatrix);
   let primitives;
@@ -21,18 +21,20 @@ export function raycast(meshRenderer, ray) {
   let intersection;
   for (let i = 0; i < primitives.length; i += 1) {
     const primitive = primitives[i];
-    const positionAttributeIndex = primitive.vertexAttributes.POSITION.vertexBufferIndex;
-    const positionAttribute = primitive.vertexBuffers[positionAttributeIndex];
-    const indexAttribute = primitive.indexBuffer;
-    for (let i = 0; i < indexAttribute.length; i += 3) {
-      const a = indexAttribute[i];
-      const b = indexAttribute[i + 1];
-      const c = indexAttribute[i + 2];
+    const vertexBuffers = primitive.vertexBuffers;
+    const positionBuffer = vertexBuffers.find((item) => item.semanticList[0] === "POSITION");
+    const positionData = positionBuffer.getData("POSITION");
+    const indexBuffer = primitive.indexBuffers[0];
+    const indexData = indexBuffer.getData();
+    for (let i = 0; i < indexData.length; i += 3) {
+      const a = indexData[i];
+      const b = indexData[i + 1];
+      const c = indexData[i + 2];
       intersection = checkBufferGeometryIntersection(
-        meshRenderer.node, // 父节点
+        meshRenderer.entity, // 父节点
         ray,
         localRay,
-        positionAttribute,
+        positionData,
         a,
         b,
         c,
@@ -47,10 +49,10 @@ export function raycast(meshRenderer, ray) {
   return intersects;
 }
 
-function checkBufferGeometryIntersection(entity, ray, localRay, positionAttribute, a, b, c, primitive) {
-  const vA = fromBufferAttribute(positionAttribute, a);
-  const vB = fromBufferAttribute(positionAttribute, b);
-  const vC = fromBufferAttribute(positionAttribute, c);
+function checkBufferGeometryIntersection(entity, ray, localRay, positionData, a, b, c, primitive) {
+  const vA = fromBufferAttribute(positionData, a);
+  const vB = fromBufferAttribute(positionData, b);
+  const vC = fromBufferAttribute(positionData, c);
   const intersection = checkIntersection(entity, ray, localRay, vA, vB, vC, _intersectPoint, primitive);
 
   if (intersection) {

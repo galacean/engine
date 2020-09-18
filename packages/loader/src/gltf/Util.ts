@@ -1,3 +1,5 @@
+import { DataType, IndexFormat, VertexElement, VertexElementFormat } from "@alipay/o3-core";
+
 const WEBGL_COMPONENT_TYPES = {
   5120: Int8Array,
   5121: Uint8Array,
@@ -123,39 +125,49 @@ export function getBufferData(bufferView, buffers) {
   return arrayBuffer.slice(byteOffset, byteOffset + bufferView.byteLength);
 }
 
-/**
- * 生成 attribute 数据结构
- * @param gltf
- * @param semantic
- * @param accessor
- * @param idx
- * @returns {{name: *, size: number, type: *, normalized: boolean, stride: (*|number), offset: (Number|number|*), vertexBufferIndex: (*|number)}}
- * @private
- */
-export function createAttribute(gltf, semantic, accessor, idx) {
-  // {
-  //   name,
-  //     size,
-  //     type,
-  //     normalized,
-  //     stride,
-  //     offset,
-  //     vertexBufferIndex
-  // }
-  const bufferView = gltf.bufferViews[accessor.bufferView];
+export function getVertexStride(accessor): number {
   const size = getAccessorTypeSize(accessor.type);
   const componentType = getComponentType(accessor.componentType);
-  const stride = size * componentType.BYTES_PER_ELEMENT;
-  return {
-    name: semantic,
-    size,
-    type: accessor.componentType,
-    normalized: false,
-    // stride: bufferView.byteStride || 0,
-    stride,
-    offset: 0,
-    vertexBufferIndex: idx || 0
-  };
+  return size * componentType.BYTES_PER_ELEMENT;
+}
+
+export function createVertexElement(gltf, semantic, accessor, index: number): VertexElement {
+  const size = getAccessorTypeSize(accessor.type);
+  return new VertexElement(semantic, 0, getElementFormat(accessor.componentType, size), index);
+}
+
+export function getIndexFormat(type: number): IndexFormat {
+  switch (type) {
+    case DataType.UNSIGNED_BYTE:
+      return IndexFormat.UInt8;
+    case DataType.UNSIGNED_SHORT:
+      return IndexFormat.UInt16;
+    case DataType.UNSIGNED_INT:
+      return IndexFormat.UInt32;
+  }
+}
+
+export function getElementFormat(type: number, size: number): VertexElementFormat {
+  if (type == DataType.FLOAT) {
+    switch (size) {
+      case 1:
+        return VertexElementFormat.Single;
+      case 2:
+        return VertexElementFormat.Vector2;
+      case 3:
+        return VertexElementFormat.Vector3;
+      case 4:
+        return VertexElementFormat.Vector4;
+    }
+  }
+  if (type == DataType.UNSIGNED_SHORT) {
+    switch (size) {
+      case 2:
+        return VertexElementFormat.UShort2;
+      case 4:
+        return VertexElementFormat.UShort4;
+    }
+  }
 }
 
 /**

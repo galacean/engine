@@ -1,11 +1,12 @@
-import { IndexBufferGeometry } from "../geometry/IndexBufferGeometry";
-import { DataType } from "../base/Constant";
+import { Engine } from "../Engine";
+import { BufferGeometry } from "../geometry";
+import { GeometryShape } from "./GeometryShape";
 
 /**
  * SphereGeometry 球体创建类
- * @extends IndexBufferGeometry
+ * @extends BufferGeometry
  */
-export class SphereGeometry extends IndexBufferGeometry {
+export class SphereGeometry extends GeometryShape {
   private _parameters;
   private _thetaEnd;
 
@@ -26,7 +27,8 @@ export class SphereGeometry extends IndexBufferGeometry {
     alphaStart?: number,
     alphaRange?: number,
     thetaStart?: number,
-    thetaRange?: number
+    thetaRange?: number,
+    engine?: Engine
   ) {
     super();
     this._parameters = {
@@ -39,40 +41,26 @@ export class SphereGeometry extends IndexBufferGeometry {
       thetaRange: thetaRange || Math.PI
     };
     this._thetaEnd = this._parameters.thetaStart + this._parameters.thetaRange;
-    this.initialize();
+    this.initialize(engine);
   }
 
   /**
    * 构造球体数据
    * @private
    */
-  initialize() {
-    const vertexCount = (this._parameters.verticalSegments + 1) * (this._parameters.horizontalSegments + 1);
-    // commented planeCount & shereVertexPlaneCount since never been used.
-    // const planeCount = this._parameters.verticalSegments * ( this._parameters.horizontalSegments );
-    // let shereVertexPlaneCount = 0;
-    // if( this._parameters.thetaStart === 0 ) {
-
-    //   shereVertexPlaneCount += this._parameters.horizontalSegments;
-
-    // }
-    // if( this._thetaEnd === Math.PI ) {
-
-    //   shereVertexPlaneCount += this._parameters.horizontalSegments;
-
-    // }
-
+  initialize(engine: Engine) {
+    const { verticalSegments, horizontalSegments } = this._parameters;
     // 生成经纬线上的几何体顶点的数据
     let index = 0;
     const grid = [];
-    const vertexValues = [];
-    const indexValues = [];
+    const vertices: Float32Array = new Float32Array((verticalSegments + 1) * (horizontalSegments + 1) * 8);
+    const indices = [];
     // const positions = [];
-    for (let iy = 0; iy <= this._parameters.verticalSegments; iy++) {
+    for (let iy = 0; iy <= verticalSegments; iy++) {
       const verticesRow = [];
-      const v = iy / this._parameters.verticalSegments;
-      for (let ix = 0; ix <= this._parameters.horizontalSegments; ix++) {
-        const u = ix / this._parameters.horizontalSegments;
+      const v = iy / verticalSegments;
+      for (let ix = 0; ix <= horizontalSegments; ix++) {
+        const u = ix / horizontalSegments;
         let posX =
           -this._parameters.radius *
           Math.cos(this._parameters.alphaStart + u * this._parameters.alphaRange) *
@@ -86,38 +74,37 @@ export class SphereGeometry extends IndexBufferGeometry {
         posY = Math.abs(posY) < 1e-6 ? 0 : posY;
         posZ = Math.abs(posZ) < 1e-6 ? 0 : posZ;
 
-        vertexValues.push({
-          POSITION: [posX, posY, posZ],
-          NORMAL: [posX, posY, posZ],
-          TEXCOORD_0: [u, 1 - v]
-        });
+        const offset = index * 8;
+        // POSITION
+        vertices[offset] = posX;
+        vertices[offset + 1] = posY;
+        vertices[offset + 2] = posZ;
+        // NORMAL
+        vertices[offset + 3] = posX;
+        vertices[offset + 4] = posY;
+        vertices[offset + 5] = posZ;
+        // TEXCOORD_0
+        vertices[offset + 6] = u;
+        vertices[offset + 7] = 1 - v;
+
         verticesRow.push(index++);
       }
       grid.push(verticesRow);
     }
 
     // 生成所有三角形顶点序号
-    for (let iy = 0; iy < this._parameters.verticalSegments; iy++) {
-      for (let ix = 0; ix < this._parameters.horizontalSegments; ix++) {
+    for (let iy = 0; iy < verticalSegments; iy++) {
+      for (let ix = 0; ix < horizontalSegments; ix++) {
         const a = grid[iy][ix + 1];
         const b = grid[iy][ix];
         const c = grid[iy + 1][ix];
         const d = grid[iy + 1][ix + 1];
 
-        if (iy !== 0 || this._parameters.thetaStart > 0) indexValues.push(a, b, d);
-        if (iy !== this._parameters.verticalSegments - 1 || this._thetaEnd < Math.PI) indexValues.push(b, c, d);
+        if (iy !== 0 || this._parameters.thetaStart > 0) indices.push(a, b, d);
+        if (iy !== verticalSegments - 1 || this._thetaEnd < Math.PI) indices.push(b, c, d);
       }
     }
 
-    super.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "NORMAL", size: 3, type: DataType.FLOAT, normalized: true },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      vertexCount,
-      indexValues
-    );
-    this.setAllVertexValues(vertexValues);
+    this._initialize(engine, vertices, Uint16Array.from(indices));
   }
 }

@@ -1,1 +1,0 @@
-export { Attribute } from "./Primitive";

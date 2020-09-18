@@ -3,11 +3,11 @@ import { ClearMode } from "./base";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { TextureCubeFace } from "./texture/enums";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
+import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 
 /**
  * @todo 数学库改造
@@ -55,7 +55,6 @@ export class Camera extends Component {
    */
   cullingMask: number = 0;
   _renderPipeline: BasicRenderPipeline;
-  _pixelViewport: Vector4 = new Vector4(0, 0, 1, 1);
   private _isOrthographic: boolean = false;
   private _projectionMatrix: Matrix = new Matrix();
   private _isProjMatSetting = false;
@@ -387,13 +386,10 @@ export class Camera extends Component {
    * @returns 射线
    */
   viewportToScreenPoint<T extends Vector2 | Vector3 | Vector4>(point: T, out: T): T {
+    const canvas = this.engine.canvas;
     const viewport = this.viewport;
-    const viewWidth = viewport.z;
-    const viewHeight = viewport.w;
-    const nx = point.x;
-    const ny = point.y;
-    out.x = viewport.x + viewWidth * nx;
-    out.y = viewport.y + viewHeight * ny;
+    out.x = (viewport.x + point.x * viewport.z) * canvas.width;
+    out.y = (viewport.y + point.y * viewport.w) * canvas.height;
     return out;
   }
 

@@ -39,27 +39,6 @@ export enum MaterialType {
 }
 
 /**
- * 图元的绘制模式
- * @readonly
- */
-export enum DrawMode {
-  /** 绘制一系列点 */
-  POINTS = 0, // gl.POINTS
-  /** 绘制一系列单独线段，每两个点作为一条线段的端点。 */
-  LINES = 1, // gl.LINES
-  /** 绘制一系列线段，上一点连接下一点，并且最后一点与第一个点相连。  */
-  LINE_LOOP = 2, // gl.LINE_LOOP
-  /** 绘制一系列线段，上一点连接下一点。 */
-  LINE_STRIP = 3, // gl.LINE_STRIP
-  /** 绘制一系列三角形, 每三个点作为顶点。 */
-  TRIANGLES = 4, // gl.TRIANGLES
-  /** 绘制一个三角带。 */
-  TRIANGLE_STRIP = 5, // gl.TRIANGLE_STRIP
-  /** 绘制一个三角扇。 */
-  TRIANGLE_FAN = 6 // gl.TRIANGLE_FAN
-}
-
-/**
  * 可以开启或者关闭的渲染状态
  * @readonly
  */
@@ -256,6 +235,8 @@ export enum UniformSemantic {
   PROJECTION = 4,
   /** Model View 矩阵 */
   MODELVIEW = 5,
+  /** View Projection 矩阵 */
+  VIEWPROJECTION = 21,
   /** Model View Project 矩阵 */
   MODELVIEWPROJECTION = 6,
   /** Model 矩阵的逆矩阵 */
@@ -288,19 +269,6 @@ export enum UniformSemantic {
   JOINTTEXTURE = 19,
   /** joint 个数 */
   JOINTCOUNT = 20
-}
-
-/**
- * Buffer 的使用方式枚举
- * @readonly
- */
-export enum BufferUsage {
-  /** Buffer 内容极少更新（一般只在初始化时更新一次） */
-  STATIC_DRAW = 0x88e4,
-  /** Buffer 内容只写入不读取 */
-  STREAM_DRAW = 0x88e0,
-  /** Buffer 内容经常更新，只写入不读取 */
-  DYNAMIC_DRAW = 0x88e8
 }
 
 /**
@@ -345,19 +313,6 @@ export enum BlendFunc {
    * 所有通道乘以一减去Alpha常量
    */
   ONE_MINUS_enumANT_ALPHA = 32772
-}
-
-/**
- * 更新方式枚举
- * @readonly
- */
-export enum UpdateType {
-  /** 不需要更新 */
-  NO_UPDATE = 0,
-  /** 全部更新 */
-  UPDATE_ALL = 1,
-  /** 更新指定范围 */
-  UPDATE_RANGE = 2
 }
 
 /**
@@ -477,3 +432,14 @@ export enum OITMode {
   /** 双层深度剥离，性能更好，强依赖 MRT */
   DUAL_DEPTH_PEEL
 }
+
+export type TypedArray =
+  | Int8Array
+  | Uint8Array
+  | Int16Array
+  | Uint16Array
+  | Int32Array
+  | Uint32Array
+  | Uint8ClampedArray
+  | Float32Array
+  | Float64Array;

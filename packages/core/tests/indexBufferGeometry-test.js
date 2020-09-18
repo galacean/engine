@@ -1,21 +1,21 @@
 
-import { IndexBufferGeometry } from '../src/index';
+import { BufferGeometry } from '../src/index';
 import { BufferUsage, DataType } from '@alipay/o3-base';
 
-describe('IndexBufferGeometry', function () {
+describe('BufferGeometry', function () {
   var geometry;
   var indexValues = [
     0,2,1,3,1,2,0,4,2,6,2,4,5,1,7,3,7,1,6,7,2,3,2,7,0,1,4,5,4,1,4,5,6,7,6,5
   ];
-  it('IndexBufferGeometry create', function () {
-    geometry = new IndexBufferGeometry('cubeGeometry');
+  it('BufferGeometry create', function () {
+    geometry = new BufferGeometry('cubeGeometry');
 
     expect(geometry != null).to.be.true;
     expect(geometry.name === 'cubeGeometry').to.be.true;
     expect(geometry.primitive !== null).to.be.true;
   });
 
-  it('IndexBufferGeometry init', function () {
+  it('BufferGeometry init', function () {
     var vertexCount = 8;
     var indexCount = 36;
     
@@ -33,12 +33,12 @@ describe('IndexBufferGeometry', function () {
     expect(geometry.primitive.indexCount == indexCount).to.be.true;
   });
 
-  it('IndexBufferGeometry getIndex', function () {
+  it('BufferGeometry getIndex', function () {
     var a_value = geometry.getIndex(0);
     expect(a_value[0] === 0).to.be.true;
   });
 
-  it('IndexBufferGeometry getAllIndex', function () {
+  it('BufferGeometry getAllIndex', function () {
     var a_index = geometry.getAllIndex();
 
     var flag = true;

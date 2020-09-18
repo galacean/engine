@@ -1,136 +1,54 @@
-import { BufferGeometry } from "../geometry/BufferGeometry";
-import { DataType } from "../base/Constant";
+import { Engine } from "../Engine";
+import { GeometryShape } from "./GeometryShape";
+import { FrontFace } from "../base";
 
 /**
- * CubeGeometry 长方体创建类
- * @extends BufferGeometry
+ * 长方体
  */
-export class CuboidGeometry extends BufferGeometry {
-  private _parameters;
-  private _verts;
-  private _normals;
-  private _uvs;
-  private _indexs;
+export class CuboidGeometry extends GeometryShape {
   /**
-   * @constructor
-   * @param {number} width 宽
-   * @param {number} height 高
-   * @param {number} depth 长
+   * 创建长方体。
+   * @param width - 宽
+   * @param height - 高
+   * @param depth - 深
+   * @param engine - 引擎
    */
-  constructor(width?: number, height?: number, depth?: number) {
+  constructor(width: number = 1, height: number = 1, depth: number = 1, engine?: Engine) {
     super();
-    this._parameters = {
-      width: width || 1,
-      height: height || 1,
-      depth: depth || 1
-    };
 
-    // 几何体顶点位置数据
-    this._verts = [
-      [-1, -1, -1],
-      [1, -1, -1],
-      [-1, 1, -1],
-      [1, 1, -1],
-      [-1, -1, 1],
-      [1, -1, 1],
-      [-1, 1, 1],
-      [1, 1, 1]
-    ];
+    const halfWidth: number = width / 2;
+    const halfHeight: number = height / 2;
+    const halfDepth: number = depth / 2;
 
-    // 三角形顶点序号数据
-    this._indexs = [
-      7,
-      5,
-      1,
-      3,
-      7,
-      1,
+    // prettier-ignore
+    const vertices: Float32Array = new Float32Array([
+    	// up
+    	-halfWidth, halfHeight, -halfDepth, 0, 1, 0, 0, 0, halfWidth, halfHeight, -halfDepth, 0, 1, 0, 1, 0, halfWidth, halfHeight, halfDepth, 0, 1, 0, 1, 1, -halfWidth, halfHeight, halfDepth, 0, 1, 0, 0, 1,
+    	// down
+    	-halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 0, 1, halfWidth, -halfHeight, -halfDepth, 0, -1, 0, 1, 1, halfWidth, -halfHeight, halfDepth, 0, -1, 0, 1, 0, -halfWidth, -halfHeight, halfDepth, 0, -1, 0, 0, 0,
+    	// left
+    	-halfWidth, halfHeight, -halfDepth, -1, 0, 0, 0, 0, -halfWidth, halfHeight, halfDepth, -1, 0, 0, 1, 0, -halfWidth, -halfHeight, halfDepth, -1, 0, 0, 1, 1, -halfWidth, -halfHeight, -halfDepth, -1, 0, 0, 0, 1,
+    	// right
+    	halfWidth, halfHeight, -halfDepth, 1, 0, 0, 1, 0, halfWidth, halfHeight, halfDepth, 1, 0, 0, 0, 0, halfWidth, -halfHeight, halfDepth, 1, 0, 0, 0, 1, halfWidth, -halfHeight, -halfDepth, 1, 0, 0, 1, 1,
+    	// fornt
+    	-halfWidth, halfHeight, halfDepth, 0, 0, 1, 0, 0, halfWidth, halfHeight, halfDepth, 0, 0, 1, 1, 0, halfWidth, -halfHeight, halfDepth, 0, 0, 1, 1, 1, -halfWidth, -halfHeight, halfDepth, 0, 0, 1, 0, 1,
+    	// back
+    	-halfWidth, halfHeight, -halfDepth, 0, 0, -1, 1, 0, halfWidth, halfHeight, -halfDepth, 0, 0, -1, 0, 0, halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 0, 1, -halfWidth, -halfHeight, -halfDepth, 0, 0, -1, 1, 1]);
 
-      2,
-      0,
-      4,
-      6,
-      2,
-      4,
-
-      2,
-      6,
-      7,
-      3,
-      2,
-      7,
-
-      4,
-      0,
-      1,
-      5,
-      4,
-      1,
-
-      6,
-      4,
-      5,
-      7,
-      6,
-      5,
-
-      3,
-      1,
-      0,
-      2,
-      3,
-      0
-    ];
-
-    // 法线数据
-    this._normals = [
-      [1, 0, 0],
-      [-1, 0, 0],
-      [0, 1, 0],
-      [0, -1, 0],
-      [0, 0, 1],
-      [0, 0, -1]
-    ];
-
-    // uv 坐标数据
-    this._uvs = [
-      [0, 1],
-      [0, 0],
-      [1, 0],
-      [1, 1],
-      [0, 1],
-      [1, 0]
-    ];
-    this.initialize();
-  }
-
-  /**
-   * 构造长方体数据
-   * @private
-   */
-  initialize() {
-    super.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "NORMAL", size: 3, type: DataType.FLOAT, normalized: true },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      36
-    );
-
-    const widthHalf = this._parameters.width / 2;
-    const heightHalf = this._parameters.height / 2;
-    const depthHalf = this._parameters.depth / 2;
-    this._indexs.forEach((vertIndex, i) => {
-      const vert = this._verts[vertIndex];
-      const pos = [vert[0] * widthHalf, vert[1] * heightHalf, vert[2] * depthHalf];
-      const normalIndex = Math.floor(i / 6);
-      const uvIndex = Math.ceil(i % 6);
-      this.setVertexValues(i, {
-        POSITION: pos,
-        NORMAL: this._normals[normalIndex],
-        TEXCOORD_0: this._uvs[uvIndex]
-      });
-    });
+    // prettier-ignore
+    const indices: Uint16Array = new Uint16Array([
+    	// up
+    	0, 2, 1, 2, 0, 3,
+    	// donw
+    	4, 6, 7, 6, 4, 5,
+    	// left
+    	8, 10, 9, 10, 8, 11,
+    	// right
+    	12, 14, 15, 14, 12, 13,
+    	// fornt
+    	16, 18, 17, 18, 16, 19,
+    	// back
+    	20, 22, 23, 22, 20, 21]);
+    this._initialize(engine, vertices, indices);
   }
 }

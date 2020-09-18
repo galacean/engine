@@ -1,2 +1,5 @@
 export { parser, Parser } from "./Parser";
-export { script } from "./resources";
+export { registerResource } from "./ResourceManager";
+export { script, SchemaResource } from "./resources";
+export * from "./types";
+export { Oasis } from "./Oasis";

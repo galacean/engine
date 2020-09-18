@@ -1,5 +1,5 @@
 import { DRACODecoder } from "@alipay/o3-draco";
-import { getComponentType, createAttribute, getBufferData } from "./Util";
+import { getComponentType, getBufferData, createVertexElement } from "./Util";
 
 let decoder;
 
@@ -43,7 +43,7 @@ export const glTFDracoMeshCompression = {
         const accessor = accessors[accessorIdx];
         accessor.bufferView = accessor.bufferView === undefined ? bufferViewIndex : accessor.bufferView;
         primitive.vertexBuffers.push(attribute.array);
-        primitive.vertexAttributes[attribute.name] = createAttribute(gltf, attribute.name, accessor, h++);
+        primitive.vertexAttributes[attribute.name] = createVertexElement(gltf, attribute.name, accessor, h++);
       }
 
       // get vertex count

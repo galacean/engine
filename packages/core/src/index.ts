@@ -49,7 +49,7 @@ export { Light } from "./lighting/Light";
 export { AABB } from "./bounding-info/AABB";
 export { OBB } from "./bounding-info//OBB";
 export { BoundingSphere } from "./bounding-info//BoudingSphere";
-
+export type { BoundingBox } from "./RenderableComponent";
 //mesh
 export { Mesh } from "./mesh/Mesh";
 export { Skin } from "./mesh/Skin";
@@ -76,6 +76,7 @@ export { RenderColorTexture } from "./texture/RenderColorTexture";
 export { RenderDepthTexture } from "./texture/RenderDepthTexture";
 export * from "./texture/enums";
 
+export * from "./graphic/index";
 export * from "./2d/index";
 export * from "./shaderlib/index";
 export * from "./animation/index";

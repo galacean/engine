@@ -47,6 +47,6 @@ export class PostProcessRenderPass extends RenderPass {
     feature.copyMtl.setValue("s_sceneRT", sceneColor.getColorTexture());
 
     rhi.activeRenderTarget(feature.originRenderTarget, camera);
-    rhi.drawPrimitive(feature.quads.screen.primitive, feature.copyMtl);
+    rhi.drawPrimitive(feature.quads.screen._primitive, feature.copyMtl);
   }
 }

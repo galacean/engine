@@ -1,8 +1,12 @@
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
+import { BufferGeometry, GeometryRenderer } from "../geometry";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { VertexBuffer } from "../graphic/VertexBuffer";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 import { TrailMaterial } from "./TrailMaterial";
-import { GeometryRenderer } from "../geometry/GeometryRenderer";
-import { BufferGeometry } from "../geometry/BufferGeometry";
-import { DataType, BufferUsage, DrawMode } from "../base/Constant";
 
 const _tempVector3 = new Vector3();
 
@@ -10,6 +14,9 @@ const _tempVector3 = new Vector3();
  * 拖尾效果渲染组件
  */
 export class TrailRenderer extends GeometryRenderer {
+  private _vertexStride: number;
+  private _vertices: Float32Array;
+  private _vertexBuffer: VertexBuffer;
   private _stroke;
   private _minSeg;
   private _lifetime;
@@ -34,7 +41,7 @@ export class TrailRenderer extends GeometryRenderer {
     this._stroke = props.stroke || 0.2;
     this._minSeg = props.minSeg || 0.02;
     this._lifetime = props.lifetime || 1000;
-    this._maxPointNum = (this._lifetime / 1000.0) * entity.engine._FPS;
+    this._maxPointNum = (this._lifetime / 1000.0) * entity.engine.targetFrameRate;
 
     this._points = [];
     this._pointStates = [];
@@ -106,6 +113,7 @@ export class TrailRenderer extends GeometryRenderer {
   render(camera) {
     this._updateStrapVertices(camera, this._points);
     this._updateStrapCoords();
+    this._vertexBuffer.setData(this._vertices);
 
     super.render(camera);
   }
@@ -126,16 +134,27 @@ export class TrailRenderer extends GeometryRenderer {
    * @private
    */
   _initGeometry() {
-    this.geometry = new BufferGeometry();
-    this.geometry.initialize(
-      [
-        { semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false },
-        { semantic: "TEXCOORD_0", size: 2, type: DataType.FLOAT, normalized: true }
-      ],
-      this._maxPointNum * 2,
-      BufferUsage.DYNAMIC_DRAW
-    );
-    this.geometry.mode = DrawMode.TRIANGLE_STRIP;
+    const geometry = new BufferGeometry();
+    geometry.primitiveTopology = PrimitiveTopology.TriangleStrip;
+
+    const vertexStride = 20;
+    const vertexCount = this._maxPointNum * 2;
+    const vertexFloatCount = vertexCount * vertexStride;
+    const vertices = new Float32Array(vertexFloatCount);
+    const vertexElements = [
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
+    ];
+    const vertexBuffer = new VertexBuffer(this.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
+
+    geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
+    geometry.addVertexElements(vertexElements);
+    geometry.drawGroup.count = vertexCount;
+
+    this._vertexBuffer = vertexBuffer;
+    this._vertexStride = vertexStride;
+    this._vertices = vertices;
+    this.geometry = geometry;
   }
 
   /**
@@ -166,6 +185,7 @@ export class TrailRenderer extends GeometryRenderer {
 
     vx.normalize();
 
+    const vertieces = this._vertices;
     //-- quad pos
     for (let i = 0; i < this._maxPointNum; i++) {
       //-- center pos
@@ -194,8 +214,15 @@ export class TrailRenderer extends GeometryRenderer {
         Vector3.subtract(p, dy, down);
       }
 
-      this.geometry.setValue("POSITION", i * 2, [up.x, up.y, up.z]);
-      this.geometry.setValue("POSITION", i * 2 + 1, [down.x, down.y, down.z]);
+      const p0 = (i * 2 * this._vertexStride) / 4;
+      const p1 = ((i * 2 + 1) * this._vertexStride) / 4;
+      vertieces[p0] = up.x;
+      vertieces[p0 + 1] = up.y;
+      vertieces[p0 + 2] = up.z;
+
+      vertieces[p1] = down.x;
+      vertieces[p1 + 1] = down.y;
+      vertieces[p1 + 2] = down.z;
     }
   }
 
@@ -212,10 +239,17 @@ export class TrailRenderer extends GeometryRenderer {
 
     const count = this._curPointNum;
     const texDelta = 1.0 / count;
+    const vertieces = this._vertices;
     for (let i = 0; i < count; i++) {
       const d = 1.0 - i * texDelta;
-      this.geometry.setValue("TEXCOORD_0", i * 2, [0, d]);
-      this.geometry.setValue("TEXCOORD_0", i * 2 + 1, [1.0, d]);
+      const p0 = (i * 2 * this._vertexStride) / 4;
+      const p1 = ((i * 2 + 1) * this._vertexStride) / 4;
+
+      vertieces[p0] = 0;
+      vertieces[p0 + 1] = d;
+
+      vertieces[p1] = 1.0;
+      vertieces[p1 + 1] = d;
     }
   }
 

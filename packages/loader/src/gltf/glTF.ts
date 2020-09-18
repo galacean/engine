@@ -1,31 +1,42 @@
 import {
+  Animation,
   AnimationClip,
+  ConstantMaterial,
   DataType,
-  DrawMode,
   Engine,
   EngineObject,
   Entity,
+  IndexBuffer,
   InterpolationType,
   Logger,
   Material,
   Mesh,
   MeshRenderer,
+  PBRMaterial,
+  Primitive,
   Scene,
   Skin,
   SkinnedMeshRenderer,
   Texture2D,
   Util,
-  Animation,
-  Primitive,
-  PBRMaterial,
-  ConstantMaterial
+  VertexBuffer,
+  VertexBufferBinding,
+  PrimitiveTopology,
+  IndexFormat,
+  BufferUsage
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
-import { createAttribute, findByKeyValue, getAccessorData, getAccessorTypeSize } from "./Util";
+import {
+  createVertexElement,
+  findByKeyValue,
+  getAccessorData,
+  getAccessorTypeSize,
+  getIndexFormat,
+  getVertexStride
+} from "./Util";
 
-// 踩在浪花儿上
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
 //              https://github.com/KhronosGroup/glTF/pull/1223
 //              https://github.com/KhronosGroup/glTF/issues/945
@@ -142,7 +153,6 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLT
   }
 
   parseExtensions(resources);
-
   // parse all related resources
   return parseResources(resources, "textures", parseTexture)
     .then(() => parseResources(resources, "materials", parseMaterial))
@@ -440,81 +450,95 @@ export function parseSkin(gltfSkin, resources) {
   return Promise.resolve(skin);
 }
 
-function parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers) {
+function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffers, resources) {
   // load vertices
-  let h = 0;
+  let i = 0;
   for (const attributeSemantic in gltfPrimitive.attributes) {
     const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
     const accessor = gltf.accessors[accessorIdx];
+    const stride = getVertexStride(accessor);
+    const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, i);
 
-    const buffer = getAccessorData(gltf, accessor, buffers);
-    primitive.vertexBuffers.push(buffer);
-    primitive.vertexAttributes[attributeSemantic] = createAttribute(gltf, attributeSemantic, accessor, h++);
+    primitive.addVertexElements(vertexELement);
+    const bufferData = getAccessorData(gltf, accessor, buffers);
+    const vertexBuffer = new VertexBuffer(resources.engine, bufferData.byteLength, BufferUsage.Static);
+    vertexBuffer.setData(bufferData);
+    primitive.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, stride), i++);
+
+    // compute bounds
+    if (vertexELement.semantic == "POSITION") {
+      const position = new Vector3();
+      const vertexCount = bufferData.length / 3;
+      const { min, max } = mesh.bounds;
+      for (let i = 0; i < vertexCount; i++) {
+        const offset = i * 3;
+        position.setValue(bufferData[offset], bufferData[offset + 1], bufferData[offset + 2]);
+        Vector3.min(min, position, min);
+        Vector3.max(max, position, max);
+      }
+    }
   }
-
-  // get vertex count
-  const accessorIdx = gltfPrimitive.attributes.POSITION;
-  const accessor = gltf.accessors[accessorIdx];
-  primitive.vertexCount = accessor.count;
 
   // load indices
   const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-  const buffer = getAccessorData(gltf, indexAccessor, buffers);
+  const indexData = getAccessorData(gltf, indexAccessor, buffers);
 
-  primitive.indexCount = indexAccessor.count;
-  primitive.indexType = indexAccessor.componentType;
-  primitive.indexOffset = 0;
-  primitive.indexBuffer = buffer;
+  const indexCount = indexAccessor.count;
+  const indexFormat = getIndexFormat(indexAccessor.componentType);
+  const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
+  const indexBuffer = new IndexBuffer(resources.engine, indexCount * indexByteSize, BufferUsage.Static);
+
+  indexBuffer.setData(indexData);
+  primitive.setIndexBufferBinding(indexBuffer, indexFormat);
+  primitive.drawOffset = 0;
+  primitive.drawCount = indexCount;
   return Promise.resolve(primitive);
 }
 
 function parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers) {
-  // load morph targets
-  if (gltfPrimitive.hasOwnProperty("targets")) {
-    let accessorIdx, accessor, buffer;
-    let attributeCount = primitive.vertexBuffers.length;
-    for (let j = 0; j < gltfPrimitive.targets.length; j++) {
-      const target = gltfPrimitive.targets[j];
-      for (const attributeSemantic in target) {
-        switch (attributeSemantic) {
-          case "POSITION":
-            accessorIdx = target.POSITION;
-            accessor = gltf.accessors[accessorIdx];
-
-            buffer = getAccessorData(gltf, accessor, buffers);
-            primitive.vertexBuffers.push(buffer);
-            const posAttrib = createAttribute(gltf, `POSITION_${j}`, accessor, attributeCount++);
-            primitive.vertexAttributes[`POSITION_${j}`] = posAttrib;
-            target["POSITION"] = { ...posAttrib };
-            break;
-          case "NORMAL":
-            accessorIdx = target.NORMAL;
-            accessor = gltf.accessors[accessorIdx];
-
-            buffer = getAccessorData(gltf, accessor, buffers);
-            primitive.vertexBuffers.push(buffer);
-            const normalAttrib = createAttribute(gltf, `NORMAL_${j}`, accessor, attributeCount++);
-            primitive.vertexAttributes[`NORMAL_${j}`] = normalAttrib;
-            target["NORMAL"] = { ...normalAttrib };
-            break;
-          case "TANGENT":
-            accessorIdx = target.TANGENT;
-            accessor = gltf.accessors[accessorIdx];
-
-            buffer = getAccessorData(gltf, accessor, buffers);
-            primitive.vertexBuffers.push(buffer);
-            const tangentAttrib = createAttribute(gltf, `TANGENT_${j}`, accessor, attributeCount++);
-            primitive.vertexAttributes[`TANGENT_${j}`] = tangentAttrib;
-            target["TANGENT"] = { ...tangentAttrib };
-            break;
-          default:
-            Logger.error(`unknown morth target semantic "${attributeSemantic}"`);
-            break;
-        }
-        primitive.targets.push(target);
-      }
-    }
-  }
+  // // load morph targets
+  // if (gltfPrimitive.hasOwnProperty("targets")) {
+  //   let accessorIdx, accessor, buffer;
+  //   let attributeCount = primitive.vertexBuffers.length;
+  //   for (let j = 0; j < gltfPrimitive.targets.length; j++) {
+  //     const target = gltfPrimitive.targets[j];
+  //     for (const attributeSemantic in target) {
+  //       switch (attributeSemantic) {
+  //         case "POSITION":
+  //           accessorIdx = target.POSITION;
+  //           accessor = gltf.accessors[accessorIdx];
+  //           buffer = getAccessorData(gltf, accessor, buffers);
+  //           primitive.vertexBuffers.push(buffer);
+  //           const posAttrib = createAttribute(gltf, `POSITION_${j}`, accessor, attributeCount++);
+  //           primitive.vertexAttributes[`POSITION_${j}`] = posAttrib;
+  //           target["POSITION"] = { ...posAttrib };
+  //           break;
+  //         case "NORMAL":
+  //           accessorIdx = target.NORMAL;
+  //           accessor = gltf.accessors[accessorIdx];
+  //           buffer = getAccessorData(gltf, accessor, buffers);
+  //           primitive.vertexBuffers.push(buffer);
+  //           const normalAttrib = createAttribute(gltf, `NORMAL_${j}`, accessor, attributeCount++);
+  //           primitive.vertexAttributes[`NORMAL_${j}`] = normalAttrib;
+  //           target["NORMAL"] = { ...normalAttrib };
+  //           break;
+  //         case "TANGENT":
+  //           accessorIdx = target.TANGENT;
+  //           accessor = gltf.accessors[accessorIdx];
+  //           buffer = getAccessorData(gltf, accessor, buffers);
+  //           primitive.vertexBuffers.push(buffer);
+  //           const tangentAttrib = createAttribute(gltf, `TANGENT_${j}`, accessor, attributeCount++);
+  //           primitive.vertexAttributes[`TANGENT_${j}`] = tangentAttrib;
+  //           target["TANGENT"] = { ...tangentAttrib };
+  //           break;
+  //         default:
+  //           Logger.error(`unknown morth target semantic "${attributeSemantic}"`);
+  //           break;
+  //       }
+  //       primitive.targets.push(target);
+  //     }
+  //   }
+  // }
 }
 
 function parsePrimitiveMaterial(primitive, gltfPrimitive, resources) {
@@ -553,7 +577,7 @@ export function parseMesh(gltfMesh, resources) {
         // FIXME: use index as primitive's name
         const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
         primitive.type = resources.assetType;
-        primitive.mode = gltfPrimitive.mode == null ? DrawMode.TRIANGLES : gltfPrimitive.mode;
+        primitive.primitiveTopology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
           primitive.targets = [];
           (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);
@@ -564,13 +588,13 @@ export function parseMesh(gltfMesh, resources) {
           const extension = gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression];
           vertexPromise = extensionParser.parse(extension, primitive, gltfPrimitive, gltf, buffers);
         } else {
-          vertexPromise = parsePrimitiveVertex(primitive, gltfPrimitive, gltf, buffers);
+          vertexPromise = parsePrimitiveVertex(mesh, primitive, gltfPrimitive, gltf, buffers, resources);
         }
         vertexPromise
-          .then(() => {
-            parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers);
-            parsePrimitiveMaterial(primitive, gltfPrimitive, resources);
-            resolve(primitive);
+          .then((processedPrimitive) => {
+            parserPrimitiveTarget(processedPrimitive, gltfPrimitive, gltf, buffers);
+            parsePrimitiveMaterial(processedPrimitive, gltfPrimitive, resources);
+            resolve(processedPrimitive);
           })
           .catch((e) => {
             reject(e);
@@ -651,24 +675,8 @@ export function parseNode(gltfNode, resources) {
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
-    const mat = new Matrix(
-      m[0],
-      m[1],
-      m[2],
-      m[3],
-      m[4],
-      m[5],
-      m[6],
-      m[7],
-      m[8],
-      m[9],
-      m[10],
-      m[11],
-      m[12],
-      m[13],
-      m[14],
-      m[15]
-    );
+    const mat = new Matrix();
+    mat.setValueByArray(m);
     const pos = new Vector3();
     const scale = new Vector3(1, 1, 1);
     const rot = new Quaternion();

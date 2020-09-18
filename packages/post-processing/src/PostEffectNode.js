@@ -121,7 +121,7 @@ export class PostEffectNode {
       this.setupMaterial(camera);
       rhi.activeRenderTarget(destRT, camera);
       rhi.clearRenderTarget(ClearMode.SOLID_COLOR, new Vector4(0, 0, 0, 0));
-      rhi.drawPrimitive(screenQuad.primitive, this.material);
+      rhi.drawPrimitive(screenQuad._primitive, this.material);
     }
 
     // 执行所有子节点的绘制

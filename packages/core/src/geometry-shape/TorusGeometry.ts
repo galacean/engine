@@ -1,8 +1,9 @@
-import { Vector3 } from "@alipay/o3-math";
-import { IndexBufferGeometry } from "../geometry/IndexBufferGeometry";
-import { DataType } from "../base/Constant";
+import { Engine } from "../Engine";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { VertexElement } from "../graphic/VertexElement";
+import { GeometryShape } from "./GeometryShape";
 
-export class TorusGeometry extends IndexBufferGeometry {
+export class TorusGeometry extends GeometryShape {
   constructor(
     private parameters: {
       radius?: number;
@@ -10,7 +11,8 @@ export class TorusGeometry extends IndexBufferGeometry {
       radialSegments?: number;
       tubularSegments?: number;
       arc?: number;
-    } = {}
+    } = {},
+    engine?: Engine
   ) {
     super();
 
@@ -23,76 +25,51 @@ export class TorusGeometry extends IndexBufferGeometry {
     const arc = this.parameters.arc || Math.PI * 2;
 
     // buffers
-
-    const indices = [];
-    const vertices = [];
-    const normals = [];
-    const uvs = [];
-
-    // helper variables
-
-    const center: Vector3 = new Vector3();
-    const vertex: Vector3 = new Vector3();
-    const normal: Vector3 = new Vector3();
+    const vertices: Float32Array = new Float32Array((radialSegments + 1) * (tubularSegments + 1) * 3);
+    const indices: Uint16Array = new Uint16Array(radialSegments * tubularSegments * 6);
 
     // generate vertices, normals and uvs
-
+    let index = 0;
     for (let j = 0; j <= radialSegments; j++) {
       for (let i = 0; i <= tubularSegments; i++) {
         const u = (i / tubularSegments) * arc;
         const v = (j / radialSegments) * Math.PI * 2;
 
-        // vertex
-
-        vertex.x = (radius + tube * Math.cos(v)) * Math.cos(u);
-        vertex.y = (radius + tube * Math.cos(v)) * Math.sin(u);
-        vertex.z = tube * Math.sin(v);
-
-        vertices.push([vertex.x, vertex.y, vertex.z]);
-
-        // normal
-
-        center.x = radius * Math.cos(u);
-        center.y = radius * Math.sin(u);
-        Vector3.subtract(vertex, center, normal);
-        normal.normalize();
-
-        normals.push(normal.x, normal.y, normal.z);
-
-        // uv
-
-        uvs.push(i / tubularSegments);
-        uvs.push(j / radialSegments);
+        // POSITION
+        vertices[index++] = (radius + tube * Math.cos(v)) * Math.cos(u);
+        vertices[index++] = (radius + tube * Math.cos(v)) * Math.sin(u);
+        vertices[index++] = tube * Math.sin(v);
       }
     }
 
     // generate indices
-
+    index = 0;
     for (let j = 1; j <= radialSegments; j++) {
       for (let i = 1; i <= tubularSegments; i++) {
         // indices
-
         const a = (tubularSegments + 1) * j + i - 1;
         const b = (tubularSegments + 1) * (j - 1) + i - 1;
         const c = (tubularSegments + 1) * (j - 1) + i;
         const d = (tubularSegments + 1) * j + i;
 
         // faces
-
-        indices.push(a, b, d);
-        indices.push(b, c, d);
+        indices[index++] = a;
+        indices[index++] = b;
+        indices[index++] = d;
+        indices[index++] = b;
+        indices[index++] = c;
+        indices[index++] = d;
       }
     }
+    this._initialize(engine, vertices, indices);
+  }
 
-    // build geometry
+  _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
+    engine = engine || Engine._getDefaultEngine();
 
-    this.initialize(
-      [{ semantic: "POSITION", size: 3, type: DataType.FLOAT, normalized: false }],
-      vertices.length,
-      indices
-    );
-    vertices.forEach((value, index) => {
-      this.setValue("POSITION", index, value);
-    });
+    const vertexStride = 12;
+    const vertexElements = [new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0)];
+
+    this._initBuffer(engine, vertices, indices, vertexStride, vertexElements);
   }
 }

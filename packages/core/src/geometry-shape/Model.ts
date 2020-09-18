@@ -30,7 +30,8 @@ export class Model extends GeometryRenderer {
           sphereAlphaStart,
           sphereAlphaRange,
           sphereThetaStart,
-          sphereThetaRange
+          sphereThetaRange,
+          this.engine
         );
         break;
 
@@ -49,18 +50,28 @@ export class Model extends GeometryRenderer {
           cylinderHeight,
           cylinderRadialSegments,
           cylinderHeightSegments,
-          cylinderOpenEnded
+          cylinderOpenEnded,
+          undefined,
+          undefined,
+          undefined,
+          this.engine
         );
         break;
 
       case "Plane":
         const { planeWidth, planeHeight, planeHorizontalSegments, planeVerticalSegments } = this._props as any;
-        this.geometry = new PlaneGeometry(planeWidth, planeHeight, planeHorizontalSegments, planeVerticalSegments);
+        this.geometry = new PlaneGeometry(
+          planeWidth,
+          planeHeight,
+          planeHorizontalSegments,
+          planeVerticalSegments,
+          this.engine
+        );
         break;
 
       case "Box":
         var { boxWidth, boxHeight, boxDepth } = this._props as any;
-        this.geometry = new CuboidGeometry(boxWidth, boxHeight, boxDepth);
+        this.geometry = new CuboidGeometry(boxWidth, boxHeight, boxDepth, this.engine);
         break;
     }
 

@@ -953,7 +953,7 @@ class PBRMaterial extends Material {
 
     const _macros = ["O3_NEED_WORLDPOS"];
 
-    if (!primitive.vertexAttributes.NORMAL || !primitive.vertexAttributes.TANGENT)
+    if (!primitive._vertexElementMap.NORMAL || !primitive._vertexElementMap.TANGENT)
       if (rhi.canIUse(GLCapabilityType.standardDerivatives)) _macros.push("HAS_DERIVATIVES");
 
     const uniforms = Object.keys(this._values);
