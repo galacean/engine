@@ -1,19 +1,19 @@
 import { IndexFormat } from "./enums/IndexFormat";
-import { IndexBuffer } from "./IndexBuffer";
+import { Buffer } from "./Buffer";
 
 /**
  * 索引缓冲绑定。
  */
 export class IndexBufferBinding {
   /** @internal */
-  _buffer: IndexBuffer;
+  _buffer: Buffer;
   /** @internal */
   _format: IndexFormat;
 
   /**
    * 索引缓冲。
    */
-  get buffer(): IndexBuffer {
+  get buffer(): Buffer {
     return this._buffer;
   }
 
@@ -29,7 +29,7 @@ export class IndexBufferBinding {
    * @param buffer - 索引缓冲
    * @param format - 索引格式
    */
-  constructor(buffer: IndexBuffer, format: IndexFormat) {
+  constructor(buffer: Buffer, format: IndexFormat) {
     this._buffer = buffer;
     this._format = format;
   }

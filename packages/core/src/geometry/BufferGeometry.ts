@@ -1,8 +1,8 @@
 import { AssetObject } from "../asset/AssetObject";
+import { Buffer } from "../graphic/Buffer";
 import { DrawGroup } from "../graphic/DrawGroup";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
-import { IndexBuffer } from "../graphic/IndexBuffer";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
@@ -145,7 +145,7 @@ export class BufferGeometry extends AssetObject {
    * @param buffer - 索引缓冲
    * @param format - 索引缓冲格式
    */
-  setIndexBufferBinding(buffer: IndexBuffer, format: IndexFormat): void {
+  setIndexBufferBinding(buffer: Buffer, format: IndexFormat): void {
     this._primitive.setIndexBufferBinding(buffer, format);
   }
 

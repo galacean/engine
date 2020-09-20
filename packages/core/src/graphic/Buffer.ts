@@ -1,18 +1,21 @@
 import { Engine } from "../Engine";
 import { HardwareRenderer } from "../HardwareRenderer";
 import { BufferUtil } from "./BufferUtil";
+import { BufferBindFlag } from "./enums/BufferBindFlag";
 import { BufferUsage } from "./enums/BufferUsage";
 import { SetDataOptions } from "./enums/SetDataOptions";
 
 /**
- * 顶点缓冲。
+ * 缓冲。
  */
-export class VertexBuffer {
+export class Buffer {
+  _glBindTarget: number;
   _glBufferUsage: number;
   _nativeBuffer: WebGLBuffer;
 
   private _hardwareRenderer: HardwareRenderer;
   private _engine: Engine;
+  private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
 
@@ -24,6 +27,13 @@ export class VertexBuffer {
   }
 
   /**
+   * 缓冲类型。
+   */
+  get type(): BufferBindFlag {
+    return this._type;
+  }
+
+  /**
    * 长度,以字节为单位。
    */
   get byteLength(): number {
@@ -31,53 +41,59 @@ export class VertexBuffer {
   }
 
   /**
-   * 顶点缓冲用途
+   * 缓冲用途
    */
   get bufferUsage(): BufferUsage {
     return this._bufferUsage;
   }
 
   /**
-   * 创建顶点缓冲。
+   * 创建缓冲。
    * @param engine - 引擎
+   * @param type - 缓冲类型
    * @param byteLength - 长度，字节为单位
-   * @param bufferUsage - 顶点缓冲用途
+   * @param bufferUsage - 缓冲用途
    */
-  constructor(engine: Engine, byteLength: number, bufferUsage?: BufferUsage);
+  constructor(engine: Engine, type: BufferBindFlag, byteLength: number, bufferUsage?: BufferUsage);
 
   /**
-   * 创建顶点缓冲。
+   * 创建缓冲。
    * @param engine - 引擎
+   * @param type - 缓冲类型
    * @param data - 数据
-   * @param bufferUsage - 顶点缓冲用途
+   * @param bufferUsage - 缓冲用途
    */
-  constructor(engine: Engine, data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage);
+  constructor(engine: Engine, type: BufferBindFlag, data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage);
 
   constructor(
     engine: Engine,
+    type: BufferBindFlag,
     byteLengthOrData: number | ArrayBuffer | ArrayBufferView,
     bufferUsage: BufferUsage = BufferUsage.Static
   ) {
     this._engine = engine;
+    this._type = type;
     this._bufferUsage = bufferUsage;
 
     const hardwareRenderer = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = hardwareRenderer.gl;
     const glBufferUsage = BufferUtil._getGLBufferUsage(gl, bufferUsage);
+    const glBindTarget = type === BufferBindFlag.VertexBuffer ? gl.ARRAY_BUFFER : gl.ELEMENT_ARRAY_BUFFER;
 
     this._nativeBuffer = gl.createBuffer();
     this._hardwareRenderer = hardwareRenderer;
     this._glBufferUsage = glBufferUsage;
+    this._glBindTarget = glBindTarget;
 
     this.bind();
     if (typeof byteLengthOrData === "number") {
       this._byteLength = byteLengthOrData;
-      gl.bufferData(gl.ARRAY_BUFFER, byteLengthOrData, glBufferUsage);
+      gl.bufferData(glBindTarget, byteLengthOrData, glBufferUsage);
     } else {
       this._byteLength = byteLengthOrData.byteLength;
-      gl.bufferData(gl.ARRAY_BUFFER, byteLengthOrData, glBufferUsage);
+      gl.bufferData(glBindTarget, byteLengthOrData, glBufferUsage);
     }
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(glBindTarget, null);
   }
 
   /**
@@ -85,25 +101,25 @@ export class VertexBuffer {
    */
   bind(): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    gl.bindBuffer(gl.ARRAY_BUFFER, this._nativeBuffer);
+    gl.bindBuffer(this._glBindTarget, this._nativeBuffer);
   }
 
   /**
-   * 设置顶点数据。
-   * @param data - 顶点数据
+   * 设置缓冲数据。
+   * @param data - 缓冲数据
    */
   setData(data: ArrayBuffer | ArrayBufferView): void;
 
   /**
-   * 设置顶点数据。
-   * @param data - 顶点数据
+   * 设置缓冲数据。
+   * @param data - 缓冲数据
    * @param bufferByteOffset - 缓冲偏移，以字节为单位
    */
   setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number): void;
 
   /**
-   * 设置顶点数据。
-   * @param data - 顶点数据
+   * 设置缓冲数据。
+   * @param data - 缓冲数据
    * @param bufferByteOffset - 缓冲偏移，以字节为单位
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
@@ -111,8 +127,8 @@ export class VertexBuffer {
   setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
 
   /**
-   * 设置顶点数据。
-   * @param data - 顶点数据
+   * 设置缓冲数据。
+   * @param data - 缓冲数据
    * @param bufferByteOffset - 缓冲偏移，以字节为单位
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
@@ -135,10 +151,11 @@ export class VertexBuffer {
   ): void {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     const isWebGL2: boolean = this._hardwareRenderer.isWebGL2;
+    const glBindTarget: number = this._glBindTarget;
     this.bind();
 
     if (options === SetDataOptions.Discard) {
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._byteLength, this._glBufferUsage);
+      gl.bufferData(glBindTarget, this._byteLength, this._glBufferUsage);
     }
 
     const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1; //TypeArray is BYTES_PER_ELEMENT , unTypeArray is 1
@@ -146,37 +163,37 @@ export class VertexBuffer {
     if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
       if (isWebGL2 && isArrayBufferView) {
-        gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataLength);
+        gl.bufferSubData(glBindTarget, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataLength);
       } else {
         const subData = new Uint8Array(
           isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
           dataOffset * byteSize,
           dataByteLength
         );
-        gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, subData);
+        gl.bufferSubData(glBindTarget, bufferByteOffset, subData);
       }
     } else {
-      gl.bufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, data);
+      gl.bufferSubData(glBindTarget, bufferByteOffset, data);
     }
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(glBindTarget, null);
   }
 
   /**
-   * 获取顶点数据。
-   * @param data - 顶点输出数据
+   * 获取缓冲数据。
+   * @param data - 缓冲输出数据
    */
   getData(data: ArrayBufferView): void;
 
   /**
-   * 获取顶点数据。
-   * @param data - 顶点输出数据
+   * 获取缓冲数据。
+   * @param data - 缓冲输出数据
    * @param bufferByteOffset - 缓冲读取偏移，以字节为单位
    */
   getData(data: ArrayBufferView, bufferByteOffset: number): void;
 
   /**
-   * 获取顶点数据。
-   * @param data - 顶点输出数据
+   * 获取缓冲数据。
+   * @param data - 缓冲输出数据
    * @param bufferByteOffset - 缓冲读取偏移，以字节为单位
    * @param dataOffset - 输出偏移
    * @param dataLength - 输出长度
@@ -189,9 +206,9 @@ export class VertexBuffer {
     if (isWebGL2) {
       const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
       this.bind();
-      gl.getBufferSubData(gl.ARRAY_BUFFER, bufferByteOffset, data, dataOffset, dataLength);
+      gl.getBufferSubData(this._glBindTarget, bufferByteOffset, data, dataOffset, dataLength);
     } else {
-      throw "IndexBuffer is write-only on WebGL1.0 platforms.";
+      throw "Buffer is write-only on WebGL1.0 platforms.";
     }
   }
 
@@ -212,7 +229,7 @@ export class VertexBuffer {
   resize(dataLength: number) {
     this.bind();
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    gl.bufferData(gl.ARRAY_BUFFER, dataLength, this._glBufferUsage);
+    gl.bufferData(this._glBindTarget, dataLength, this._glBufferUsage);
     this._byteLength = dataLength;
   }
 }

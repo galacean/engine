@@ -4,10 +4,10 @@ import { OBB } from "../bounding-info/OBB";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
-import { IndexBuffer } from "../graphic/IndexBuffer";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { Buffer } from "../graphic/Buffer";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
 /**
@@ -102,7 +102,7 @@ export class Primitive extends AssetObject {
    * @param buffer - 索引缓冲
    * @param format - 索引缓冲格式
    */
-  setIndexBufferBinding(buffer: IndexBuffer, format: IndexFormat): void {
+  setIndexBufferBinding(buffer: Buffer, format: IndexFormat): void {
     const binding = this._indexBufferBinding;
     if (binding) {
       binding._buffer = buffer;

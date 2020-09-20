@@ -5,13 +5,13 @@ import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { IndexBuffer } from "../graphic/IndexBuffer";
-import { VertexBuffer } from "../graphic/VertexBuffer";
-import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { Buffer } from "../graphic/Buffer";
 import { VertexElement } from "../graphic/VertexElement";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
 import { TextureWrapMode } from "../texture/enums";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 
 /**
  * GPU粒子系统渲染类
@@ -20,7 +20,7 @@ import { TextureWrapMode } from "../texture/enums";
 export class GPUParticleSystem extends GeometryRenderer {
   private _vertexStride: number;
   private _vertices: Float32Array;
-  private _vertexBuffer: VertexBuffer;
+  private _vertexBuffer: Buffer;
   private _time: number;
   private _isInit: boolean;
   private _isStart: boolean;
@@ -426,8 +426,13 @@ export class GPUParticleSystem extends GeometryRenderer {
       new VertexElement("UV", 76, VertexElementFormat.Vector3, 0),
       new VertexElement("NORMALIZED_UV", 88, VertexElementFormat.Vector2, 0)
     ];
-    const vertexBuffer = new VertexBuffer(this.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
-    const indexBuffer = new IndexBuffer(this.engine, indices, BufferUsage.Dynamic);
+    const vertexBuffer = new Buffer(
+      this.engine,
+      BufferBindFlag.VertexBuffer,
+      vertexFloatCount * 4,
+      BufferUsage.Dynamic
+    );
+    const indexBuffer = new Buffer(this.engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Dynamic);
 
     geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     geometry.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);

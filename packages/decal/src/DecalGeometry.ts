@@ -1,11 +1,11 @@
 import {
+  Buffer,
   BufferGeometry,
   BufferUsage,
   Entity,
   Mesh,
   MeshRenderer,
   Primitive,
-  VertexBuffer,
   VertexBufferBinding,
   VertexElement,
   VertexElementFormat
@@ -69,7 +69,7 @@ export class DecalGeometry extends BufferGeometry {
       new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0)
     ];
-    const vertexBuffer = new VertexBuffer(this.node.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
+    const vertexBuffer = new Buffer(this.node.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
 
     this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     this.addVertexElements(vertexElements);
