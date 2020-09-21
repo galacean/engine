@@ -99,18 +99,11 @@ export class Primitive extends AssetObject {
 
   /**
    * 设置索引缓冲绑定。
-   * @param buffer - 索引缓冲
-   * @param format - 索引缓冲格式
+   * @param bufferBinding - 索引缓冲绑定
    */
-  setIndexBufferBinding(buffer: Buffer, format: IndexFormat): void {
-    const binding = this._indexBufferBinding;
-    if (binding) {
-      binding._buffer = buffer;
-      binding._format = format;
-    } else {
-      this._indexBufferBinding = new IndexBufferBinding(buffer, format);
-    }
-    this._glIndexType = BufferUtil._getGLIndexType(format);
+  setIndexBufferBinding(bufferBinding: IndexBufferBinding): void {
+    this._indexBufferBinding = bufferBinding;
+    this._glIndexType = BufferUtil._getGLIndexType(bufferBinding.format);
   }
 
   /**

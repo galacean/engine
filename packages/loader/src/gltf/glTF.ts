@@ -23,7 +23,8 @@ import {
   SkinnedMeshRenderer,
   Texture2D,
   Util,
-  VertexBufferBinding
+  VertexBufferBinding,
+  IndexBufferBinding
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -499,7 +500,7 @@ function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffer
   );
 
   indexBuffer.setData(indexData);
-  primitive.setIndexBufferBinding(indexBuffer, indexFormat);
+  primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
   primitive.drawOffset = 0;
   primitive.drawCount = indexCount;
   return Promise.resolve(primitive);

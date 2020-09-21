@@ -141,12 +141,26 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 设置索引缓冲。
+   * 设置索引缓冲绑定。
    * @param buffer - 索引缓冲
    * @param format - 索引缓冲格式
    */
-  setIndexBufferBinding(buffer: Buffer, format: IndexFormat): void {
-    this._primitive.setIndexBufferBinding(buffer, format);
+  setIndexBufferBinding(buffer: Buffer, format: IndexFormat): void;
+
+  /**
+   * 设置索引缓冲绑定。
+   * @param bufferBinding - 索引缓冲绑定
+   */
+  setIndexBufferBinding(bufferBinding: IndexBufferBinding): void;
+
+  setIndexBufferBinding(bufferOrBinding: Buffer | IndexBufferBinding, format?: IndexFormat): void {
+    const binding = <IndexBufferBinding>bufferOrBinding;
+    const isBinding = binding.buffer !== undefined;
+    if (isBinding) {
+      this._primitive.setIndexBufferBinding(binding);
+    } else {
+      this._primitive.setIndexBufferBinding(new IndexBufferBinding(<Buffer>bufferOrBinding, format));
+    }
   }
 
   /**
