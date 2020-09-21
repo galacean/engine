@@ -1,11 +1,11 @@
 import { Vector3 } from "@alipay/o3-math";
 import { Engine } from "../Engine";
 import { BufferGeometry } from "../geometry/BufferGeometry";
+import { Buffer } from "../graphic/Buffer";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { IndexBuffer } from "../graphic/IndexBuffer";
-import { VertexBuffer } from "../graphic/VertexBuffer";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 
@@ -36,8 +36,8 @@ export class GeometryShape extends BufferGeometry {
     vertexStride: number,
     vertexElements: VertexElement[]
   ) {
-    const vertexBuffer = new VertexBuffer(engine, vertices, BufferUsage.Static);
-    const indexBuffer = new IndexBuffer(engine, indices, BufferUsage.Static);
+    const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
+    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static);
 
     this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     this.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);

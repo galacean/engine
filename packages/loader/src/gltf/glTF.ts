@@ -1,12 +1,15 @@
 import {
   Animation,
   AnimationClip,
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
   ConstantMaterial,
   DataType,
   Engine,
   EngineObject,
   Entity,
-  IndexBuffer,
+  IndexFormat,
   InterpolationType,
   Logger,
   Material,
@@ -14,16 +17,13 @@ import {
   MeshRenderer,
   PBRMaterial,
   Primitive,
+  PrimitiveTopology,
   Scene,
   Skin,
   SkinnedMeshRenderer,
   Texture2D,
   Util,
-  VertexBuffer,
-  VertexBufferBinding,
-  PrimitiveTopology,
-  IndexFormat,
-  BufferUsage
+  VertexBufferBinding
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -461,7 +461,12 @@ function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffer
 
     primitive.addVertexElements(vertexELement);
     const bufferData = getAccessorData(gltf, accessor, buffers);
-    const vertexBuffer = new VertexBuffer(resources.engine, bufferData.byteLength, BufferUsage.Static);
+    const vertexBuffer = new Buffer(
+      resources.engine,
+      BufferBindFlag.VertexBuffer,
+      bufferData.byteLength,
+      BufferUsage.Static
+    );
     vertexBuffer.setData(bufferData);
     primitive.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, stride), i++);
 
@@ -486,7 +491,12 @@ function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffer
   const indexCount = indexAccessor.count;
   const indexFormat = getIndexFormat(indexAccessor.componentType);
   const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
-  const indexBuffer = new IndexBuffer(resources.engine, indexCount * indexByteSize, BufferUsage.Static);
+  const indexBuffer = new Buffer(
+    resources.engine,
+    BufferBindFlag.IndexBuffer,
+    indexCount * indexByteSize,
+    BufferUsage.Static
+  );
 
   indexBuffer.setData(indexData);
   primitive.setIndexBufferBinding(indexBuffer, indexFormat);

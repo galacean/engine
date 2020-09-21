@@ -1,9 +1,9 @@
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { BufferGeometry, GeometryRenderer } from "../geometry";
+import { Buffer } from "../graphic/Buffer";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { VertexBuffer } from "../graphic/VertexBuffer";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { TrailMaterial } from "./TrailMaterial";
@@ -16,7 +16,7 @@ const _tempVector3 = new Vector3();
 export class TrailRenderer extends GeometryRenderer {
   private _vertexStride: number;
   private _vertices: Float32Array;
-  private _vertexBuffer: VertexBuffer;
+  private _vertexBuffer: Buffer;
   private _stroke;
   private _minSeg;
   private _lifetime;
@@ -145,7 +145,7 @@ export class TrailRenderer extends GeometryRenderer {
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
     ];
-    const vertexBuffer = new VertexBuffer(this.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
+    const vertexBuffer = new Buffer(this.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
 
     geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     geometry.addVertexElements(vertexElements);

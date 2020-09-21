@@ -1,18 +1,18 @@
-import { VertexBuffer } from "./VertexBuffer";
+import { Buffer } from "./Buffer";
 
 /**
  * 顶点缓冲绑定。
  */
 export class VertexBufferBinding {
   /** @internal */
-  _buffer: VertexBuffer;
+  _buffer: Buffer;
   /** @internal */
   _stride: number;
 
   /**
    * 顶点缓冲。
    */
-  get buffer(): VertexBuffer {
+  get buffer(): Buffer {
     return this._buffer;
   }
 
@@ -28,7 +28,7 @@ export class VertexBufferBinding {
    * @param buffer - 顶点缓冲
    * @param stride - 顶点跨度
    */
-  constructor(buffer: VertexBuffer, stride: number) {
+  constructor(buffer: Buffer, stride: number) {
     this._buffer = buffer;
     this._stride = stride;
   }

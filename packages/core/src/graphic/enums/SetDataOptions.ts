@@ -1,5 +1,5 @@
 /**
- * 定义 VertexBuffer 或 IndexBuffer 在 SetData 时如何刷新。
+ * 定义 Buffer 在 SetData 时如何刷新。
  */
 export enum SetDataOptions {
   /** 可覆盖部分 GPU 正在使用的数据，并保证正确的渲染效果。*/
