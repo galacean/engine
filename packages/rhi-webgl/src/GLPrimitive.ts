@@ -40,7 +40,7 @@ export class GLPrimitive extends GLAsset {
       const semantic = techAttributes[name].semantic;
       const element = attributes[semantic];
       if (element) {
-        const { buffer, stride } = vertexBufferBindings[element.vertexBufferIndex];
+        const { buffer, stride } = vertexBufferBindings[element.bindingIndex];
         vbo = buffer._nativeBuffer;
         // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
         if (lastBoundVbo !== vbo) {

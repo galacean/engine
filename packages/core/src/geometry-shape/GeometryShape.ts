@@ -49,7 +49,7 @@ export class GeometryShape extends BufferGeometry {
 
   private _computeBounds(vertices: ArrayBuffer | Float32Array): void {
     const vertexElement = this._primitive._vertexElementMap["POSITION"];
-    const bufferIndex = vertexElement.vertexBufferIndex;
+    const bufferIndex = vertexElement.bindingIndex;
     const vertexBufferBinding = this._primitive.vertexBufferBindings[bufferIndex];
     const stride = vertexBufferBinding.stride;
     const offset = vertexElement.offset;
@@ -58,7 +58,7 @@ export class GeometryShape extends BufferGeometry {
     if (!(arrayBuffer instanceof ArrayBuffer)) {
       arrayBuffer = (<Float32Array>arrayBuffer).buffer;
     }
-    const dataView = new DataView(arrayBuffer);
+    const dataView = new DataView(arrayBuffer, offset);
 
     let min = new Vector3(Infinity, Infinity, Infinity);
     let max = new Vector3(-Infinity, -Infinity, -Infinity);
