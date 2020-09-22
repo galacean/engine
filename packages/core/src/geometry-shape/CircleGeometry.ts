@@ -24,7 +24,7 @@ export class CircleGeometry extends GeometryShape {
   constructor(options: CircleGeometryOptions = {}, engine?: Engine) {
     super();
 
-    this.primitiveTopology = PrimitiveTopology.Triangles;
+    this.group.topology = PrimitiveTopology.Triangles;
     this.radius = options.radius || this.radius;
     this.segments = options.segments || this.segments;
     this.thetaStart = options.thetaStart || this.thetaStart;

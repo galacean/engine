@@ -11,7 +11,7 @@ import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 export class ScreenQuadGeometry extends GeometryShape {
   constructor(engine?: Engine) {
     super();
-    this.primitiveTopology = PrimitiveTopology.TriangleFan;
+    this.group.topology = PrimitiveTopology.TriangleFan;
 
     const vertices: Float32Array = new Float32Array([-1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1]);
 
@@ -19,6 +19,7 @@ export class ScreenQuadGeometry extends GeometryShape {
 
     this._initialize(engine, vertices, indices);
     this._primitive.drawCount = indices.length; //TODO:临时添加,待底层结构调整删除
+    this._primitive._topology = PrimitiveTopology.TriangleFan; //TODO:临时添加,待底层结构调整删除
   }
 
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {

@@ -1,8 +1,8 @@
 import { AssetObject } from "../asset/AssetObject";
+import { PrimitiveTopology } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
-import { DrawGroup } from "../graphic/DrawGroup";
+import { PrimitiveGroup } from "../graphic/PrimitiveGroup";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
-import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
@@ -18,7 +18,7 @@ export class BufferGeometry extends AssetObject {
   _primitive: Primitive;
 
   private _bounds: BoundingBox;
-  private _drawGroups: DrawGroup[] = [];
+  private _groups: PrimitiveGroup[] = [];
 
   /**
    * 顶点缓冲绑定信息集合。
@@ -53,35 +53,17 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 绘制基元拓扑模式。
+   * 几何体组集合,每组可以使用独立的材质渲染。
    */
-  set primitiveTopology(topology: PrimitiveTopology) {
-    this._primitive.primitiveTopology = topology;
-  }
-
-  get primitiveTopology(): PrimitiveTopology {
-    return this._primitive.primitiveTopology;
+  get groups(): Readonly<PrimitiveGroup[]> {
+    return this._groups;
   }
 
   /**
-   * 绘制组集合。
+   * 首个几何体组,使用第一个材质渲染,设置多个几何体组详见 groups 属性。
    */
-  get drawGroups(): Readonly<DrawGroup[]> {
-    return this._drawGroups;
-  }
-
-  /**
-   * 第一个绘制组。
-   */
-  get drawGroup(): DrawGroup | null {
-    return this._drawGroups[0] || null;
-  }
-
-  /**
-   * 绘制组数量。
-   */
-  get drawGroupCount(): number {
-    return this._drawGroups.length;
+  get group(): PrimitiveGroup | null {
+    return this._groups[0] || null;
   }
 
   /**
@@ -104,7 +86,7 @@ export class BufferGeometry extends AssetObject {
     name = name || "BufferGeometry" + BufferGeometry._geometryCount++;
 
     this._primitive = new Primitive();
-    this._drawGroups.push(new DrawGroup());
+    this._groups.push(new PrimitiveGroup());
   }
 
   /**
@@ -172,24 +154,26 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 添加绘制组。
+   * 添加几何体组。
    * @param offset - 偏移
    * @param count - 数量
+   * @param topology - 图元拓扑
    */
-  addDrawGroup(offset: number, count: number): DrawGroup {
-    const drawGroup = new DrawGroup();
+  addGroup(offset: number, count: number, topology: PrimitiveTopology): PrimitiveGroup {
+    const drawGroup = new PrimitiveGroup();
     drawGroup.offset = offset;
     drawGroup.count = count;
-    this._drawGroups.push(drawGroup);
+    drawGroup.topology = topology;
+    this._groups.push(drawGroup);
     return drawGroup;
   }
 
   /**
-   * 移除绘制组。
+   * 移除几何体组。
    * @param drawGroup -绘制组。
    */
-  removeDrawGroup(drawGroup: DrawGroup): void {
-    const drawGroups = this._drawGroups;
+  removeGroup(drawGroup: PrimitiveGroup): void {
+    const drawGroups = this._groups;
     const index = drawGroups.indexOf(drawGroup);
     if (index !== -1) {
       drawGroups.splice(index, 1);
@@ -197,10 +181,10 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 清空绘制组。
+   * 清空几何体组。
    */
-  clearDrawGroup(): void {
-    this._drawGroups.length = 0;
+  clearGroup(): void {
+    this._groups.length = 0;
   }
 
   /**

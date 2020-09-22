@@ -2,12 +2,10 @@ import { AssetObject } from "../asset/AssetObject";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
 import { BufferUtil } from "../graphic/BufferUtil";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { Buffer } from "../graphic/Buffer";
 
 // TODO Destroy VAO and Buffer，ref to rhi refactor
 /**
@@ -17,17 +15,16 @@ import { Buffer } from "../graphic/Buffer";
 export class Primitive extends AssetObject {
   private static _primitiveID: number = 0;
 
-  /** 绘制模式。*/
-  primitiveTopology: PrimitiveTopology = PrimitiveTopology.Triangles;
   /** 绘制偏移。*/
   drawOffset: number = 0;
   /** 绘制数量。*/
   drawCount: number = 0;
+
   /** 实例数量，0 表示关闭实例渲染。*/
   instanceCount: number = 0;
 
   _vertexElementMap: object = {};
-
+  _topology: PrimitiveTopology;
   _glIndexType: number;
 
   private _vertexBufferBindings: VertexBufferBinding[] = [];

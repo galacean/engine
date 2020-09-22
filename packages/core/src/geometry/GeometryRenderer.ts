@@ -82,12 +82,12 @@ export class GeometryRenderer extends RenderableComponent {
       return;
     }
     geometry._render();
-
     const primitive = geometry._primitive;
     if (primitive && this._material) {
-      const drawGroup = geometry.drawGroups[0];
-      primitive.drawOffset = drawGroup.offset;
-      primitive.drawCount = drawGroup.count;
+      const group = geometry.groups[0]; //CM: need to support multi group
+      primitive.drawOffset = group.offset;
+      primitive.drawCount = group.count;
+      primitive._topology = group.topology;
 
       camera._renderPipeline.pushPrimitive(this, primitive, this._material);
     } else {

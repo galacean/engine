@@ -52,19 +52,19 @@ export class GLVAOPrimitive extends GLPrimitive {
     gl.bindVertexArray(vao);
 
     // draw
-    const { primitiveTopology, indexBufferBinding, drawOffset, drawCount, instanceCount, _glIndexType } = primitive;
+    const { _topology, indexBufferBinding, drawOffset, drawCount, instanceCount, _glIndexType } = primitive;
     if (!instanceCount) {
       if (indexBufferBinding) {
-        gl.drawElements(primitiveTopology, drawCount, _glIndexType, drawOffset);
+        gl.drawElements(_topology, drawCount, _glIndexType, drawOffset);
       } else {
-        gl.drawArrays(primitiveTopology, drawOffset, drawCount);
+        gl.drawArrays(_topology, drawOffset, drawCount);
       }
     } else {
       if (this.canUseInstancedArrays) {
         if (indexBufferBinding) {
-          gl.drawElementsInstanced(primitiveTopology, drawCount, _glIndexType, drawOffset, instanceCount);
+          gl.drawElementsInstanced(_topology, drawCount, _glIndexType, drawOffset, instanceCount);
         } else {
-          gl.drawArraysInstanced(primitiveTopology, drawOffset, drawCount, instanceCount);
+          gl.drawArraysInstanced(_topology, drawOffset, drawCount, instanceCount);
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");
