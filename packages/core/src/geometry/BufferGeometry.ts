@@ -44,11 +44,11 @@ export class BufferGeometry extends AssetObject {
   /**
    * 实例数量,0 表示关闭。
    */
-  get instancedCount(): number {
+  get instanceCount(): number {
     return this._primitive.instanceCount;
   }
 
-  set instancedCount(count: number) {
+  set instanceCount(count: number) {
     this._primitive.instanceCount = count;
   }
 
