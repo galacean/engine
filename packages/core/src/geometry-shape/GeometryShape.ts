@@ -58,7 +58,7 @@ export class GeometryShape extends BufferGeometry {
     if (!(arrayBuffer instanceof ArrayBuffer)) {
       arrayBuffer = (<Float32Array>arrayBuffer).buffer;
     }
-    const dataView = new DataView(arrayBuffer, offset);
+    const dataView = new DataView(arrayBuffer);
 
     let min = new Vector3(Infinity, Infinity, Infinity);
     let max = new Vector3(-Infinity, -Infinity, -Infinity);
