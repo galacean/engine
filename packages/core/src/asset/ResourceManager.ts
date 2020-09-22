@@ -32,7 +32,7 @@ export class ResourceManager {
   /** 加载资产失败后的重试延迟时间，单位是毫秒(ms)。*/
   retryInterval: number = 0;
   /** 加载资产默认的超时时间，单位是毫秒(ms)。*/
-  timeout: number = 10000;
+  timeout: number = 20000;
 
   /** 资产路径池,key为资产ID，值为资产路径，通过路径加载的资源均放入该池中，用于资源文件管理。*/
   private _assetPool: { [key: number]: string } = Object.create(null);
