@@ -12,13 +12,16 @@ export class UpdateFlag {
    */
   destroy(): void {
     const flags = this._flags;
-    const index = flags.indexOf(this);
-    const last = flags.length - 1;
-    if (index !== last) {
-      const end = flags[last];
-      flags[index] = end;
+    // avoid repeated destroy
+    if (flags) {
+      const index = flags.indexOf(this);
+      const last = flags.length - 1;
+      if (index !== last) {
+        const end = flags[last];
+        flags[index] = end;
+      }
+      flags.length--;
+      this._flags = null;
     }
-    flags.length--;
-    this._flags = null;
   }
 }

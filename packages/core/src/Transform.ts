@@ -515,12 +515,6 @@ export class Transform extends Component {
     return flag;
   }
 
-  _onDestroy() {
-    for (let i = 0, len = this._changeFlags.length; i < len; i++) {
-      this._changeFlags[i].destroy();
-    }
-  }
-
   /**
    * @internal
    */
