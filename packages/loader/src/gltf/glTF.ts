@@ -24,7 +24,8 @@ import {
   Texture2D,
   Util,
   VertexBufferBinding,
-  IndexBufferBinding
+  IndexBufferBinding,
+  VertexElement
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -451,16 +452,17 @@ export function parseSkin(gltfSkin, resources) {
   return Promise.resolve(skin);
 }
 
-function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffers, resources) {
+function parsePrimitiveVertex(mesh: Mesh, primitive: Primitive, gltfPrimitive, gltf, buffers, resources) {
   // load vertices
   let i = 0;
+  const vertexElements: VertexElement[] = [];
   for (const attributeSemantic in gltfPrimitive.attributes) {
     const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
     const accessor = gltf.accessors[accessorIdx];
     const stride = getVertexStride(accessor);
     const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, i);
 
-    primitive.addVertexElements(vertexELement);
+    vertexElements.push(vertexELement);
     const bufferData = getAccessorData(gltf, accessor, buffers);
     const vertexBuffer = new Buffer(
       resources.engine,
@@ -484,6 +486,7 @@ function parsePrimitiveVertex(mesh: Mesh, primitive, gltfPrimitive, gltf, buffer
       }
     }
   }
+  primitive.setVertexElements(vertexElements);
 
   // load indices
   const indexAccessor = gltf.accessors[gltfPrimitive.indices];

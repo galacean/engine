@@ -57,9 +57,6 @@ export { MeshRenderer } from "./mesh/MeshRenderer";
 export { SkinnedMeshRenderer } from "./mesh/SkinnedMeshRenderer";
 export { LODGroup } from "./mesh/LODGroup";
 
-// primitive
-export { Primitive } from "./primitive/Primitive";
-
 // material
 
 export { Material } from "./material/Material";

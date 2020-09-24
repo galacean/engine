@@ -1,6 +1,6 @@
 "use strict";
 import { Frustum } from "./Frustum";
-import { Primitive } from "../primitive/Primitive";
+import { Primitive } from "../graphic/Primitive";
 import { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
 import { OBB } from "../bounding-info/OBB";
 

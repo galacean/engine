@@ -6,7 +6,7 @@ import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { Primitive } from "../primitive/Primitive";
+import { Primitive } from "../graphic/Primitive";
 import { BoundingBox } from "../RenderableComponent";
 
 /**
@@ -136,21 +136,15 @@ export class BufferGeometry extends AssetObject {
   setIndexBufferBinding(bufferBinding: IndexBufferBinding): void;
 
   setIndexBufferBinding(bufferOrBinding: Buffer | IndexBufferBinding, format?: IndexFormat): void {
-    const binding = <IndexBufferBinding>bufferOrBinding;
-    const isBinding = binding.buffer !== undefined;
-    if (isBinding) {
-      this._primitive.setIndexBufferBinding(binding);
-    } else {
-      this._primitive.setIndexBufferBinding(new IndexBufferBinding(<Buffer>bufferOrBinding, format));
-    }
+    this._primitive.setIndexBufferBinding(<Buffer>bufferOrBinding, format);
   }
 
   /**
-   * 添加顶点元素集合。
+   * 设置顶点元素集合。
    * @param elements - 顶点元素集合。
    */
-  addVertexElements(elements: VertexElement | VertexElement[]): void {
-    this._primitive.addVertexElements(elements);
+  setVertexElements(elements: VertexElement[]): void {
+    this._primitive.setVertexElements(elements);
   }
 
   /**

@@ -1,6 +1,6 @@
 import { Vector3 } from "@alipay/o3-math";
 import { ReferenceObject } from "../asset/ReferenceObject";
-import { Primitive } from "../primitive/Primitive";
+import { Primitive } from "../graphic/Primitive";
 import { BoundingBox } from "../RenderableComponent";
 
 /**

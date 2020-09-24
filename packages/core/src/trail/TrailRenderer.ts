@@ -148,7 +148,7 @@ export class TrailRenderer extends GeometryRenderer {
     const vertexBuffer = new Buffer(this.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
 
     geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
-    geometry.addVertexElements(vertexElements);
+    geometry.setVertexElements(vertexElements);
     geometry.group.count = vertexCount;
 
     this._vertexBuffer = vertexBuffer;

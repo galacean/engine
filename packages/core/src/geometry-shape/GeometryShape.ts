@@ -36,19 +36,20 @@ export class GeometryShape extends BufferGeometry {
     vertexStride: number,
     vertexElements: VertexElement[]
   ) {
+    const positionElement = vertexElements[0];
     const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
     const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static);
 
     this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     this.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
-    this.addVertexElements(vertexElements);
+    this.setVertexElements(vertexElements);
     this.group.count = indices.length;
 
-    this._computeBounds(vertices);
+    this._computeBounds(positionElement, vertices);
   }
 
-  private _computeBounds(vertices: ArrayBuffer | Float32Array): void {
-    const vertexElement = this._primitive._vertexElementMap["POSITION"];
+  private _computeBounds(positionElement: VertexElement, vertices: ArrayBuffer | Float32Array): void {
+    const vertexElement = positionElement;
     const bufferIndex = vertexElement.bindingIndex;
     const vertexBufferBinding = this._primitive.vertexBufferBindings[bufferIndex];
     const stride = vertexBufferBinding.stride;

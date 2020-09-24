@@ -1,15 +1,15 @@
 import { AssetObject } from "../asset/AssetObject";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
-import { BufferUtil } from "../graphic/BufferUtil";
-import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
-import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
-import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { VertexElement } from "../graphic/VertexElement";
+import { BufferUtil } from "./BufferUtil";
+import { IndexFormat } from "./enums/IndexFormat";
+import { PrimitiveTopology } from "./enums/PrimitiveTopology";
+import { IndexBufferBinding } from "./IndexBufferBinding";
+import { VertexBufferBinding } from "./VertexBufferBinding";
+import { VertexElement } from "./VertexElement";
+import { Buffer } from "../graphic/Buffer";
 
-// TODO Destroy VAO and Buffer，ref to rhi refactor
 /**
- * primitive(triangles, lines) data, vbo+indices, equal glTF meshes.primitives define
  * @private
  */
 export class Primitive extends AssetObject {
@@ -19,16 +19,16 @@ export class Primitive extends AssetObject {
   drawOffset: number = 0;
   /** 绘制数量。*/
   drawCount: number = 0;
-
   /** 实例数量，0 表示关闭实例渲染。*/
   instanceCount: number = 0;
 
   _vertexElementMap: object = {};
   _topology: PrimitiveTopology;
   _glIndexType: number;
+  _vaoUpdateFlag: number = 0;
 
   private _vertexBufferBindings: VertexBufferBinding[] = [];
-  private _indexBufferBinding: IndexBufferBinding;
+  private _indexBufferBinding: IndexBufferBinding = null;
   private _vertexElements: VertexElement[] = [];
 
   /**
@@ -60,10 +60,6 @@ export class Primitive extends AssetObject {
   boundingSphere: BoundingSphere = null;
   isInFrustum: boolean = true;
 
-  get attributes() {
-    return this._vertexElementMap;
-  }
-
   constructor(name?: string) {
     super();
     this.id = Primitive._primitiveID++;
@@ -92,54 +88,47 @@ export class Primitive extends AssetObject {
       bindings.length < needLength && (bindings.length = needLength);
       this._vertexBufferBindings[firstIndex] = singleBinding;
     }
+    this._vaoUpdateFlag++;
   }
+
+  /**
+   * 设置索引缓冲绑定。
+   * @param buffer - 索引缓冲
+   * @param format - 索引缓冲格式
+   */
+  setIndexBufferBinding(buffer: Buffer, format: IndexFormat): void;
 
   /**
    * 设置索引缓冲绑定。
    * @param bufferBinding - 索引缓冲绑定
    */
-  setIndexBufferBinding(bufferBinding: IndexBufferBinding): void {
-    this._indexBufferBinding = bufferBinding;
-    this._glIndexType = BufferUtil._getGLIndexType(bufferBinding.format);
+  setIndexBufferBinding(bufferBinding: IndexBufferBinding): void;
+
+  setIndexBufferBinding(bufferOrBinding: Buffer | IndexBufferBinding, format?: IndexFormat): void {
+    let binding = <IndexBufferBinding>bufferOrBinding;
+    const isBinding = binding.buffer !== undefined;
+    isBinding || (binding = new IndexBufferBinding(<Buffer>bufferOrBinding, format));
+    this._indexBufferBinding = binding;
+    this._glIndexType = BufferUtil._getGLIndexType(binding.format);
+    this._vaoUpdateFlag++;
   }
 
   /**
-   * 添加顶点元素集合。
-   * @param elements
+   * 设置顶点元素集合。
+   * @param elements - 顶点元素集合
    */
-  addVertexElements(elements: VertexElement | VertexElement[]): void {
-    const isArray = (<VertexElement[]>elements).length !== undefined;
-    if (isArray) {
-      const addElements = <VertexElement[]>elements;
-      for (let i = 0, n = addElements.length; i < n; i++) {
-        this._addVertexElement(addElements[i]);
-      }
-    } else {
-      this._addVertexElement(<VertexElement>elements);
+  setVertexElements(elements: VertexElement[]): void {
+    this._clearVertexElements();
+    for (let i = 0, n = elements.length; i < n; i++) {
+      this._addVertexElement(elements[i]);
     }
+    this._vaoUpdateFlag++;
   }
 
-  removeVertexElements(vertexElements: VertexElement | VertexElement[]): void {}
-
-  // updateWeightsIndices(indices: number[]) {
-  //   if (this.targets.length !== indices.length || indices.length === 0) {
-  //     return;
-  //   }
-  //   for (let i = 0; i < indices.length; i++) {
-  //     const currentIndex = indices[i];
-  //     Object.keys(this.targets[i]).forEach((key: string) => {
-  //       const semantic = this.targets[i][key].name;
-  //       const index = this.targets[currentIndex][key].vertexBufferIndex;
-  //       // this.updateAttribBufferIndex(semantic, index);
-  //     });
-  //   }
-  // }
-
-  // updateAttribBufferIndex(semantic: string, index: number) {
-  //   this.vertexAttributes[semantic].vertexBufferIndex = index;
-  // }
-
-  destroy() {
+  /**
+   * 销毁。
+   */
+  destroy(): void {
     //TODO:这里销毁不应该直接销毁Buffer，按照以前的机制这里暂时这样处理。
     const vertexBufferBindings = this._vertexBufferBindings;
     if (vertexBufferBindings) {
@@ -162,12 +151,16 @@ export class Primitive extends AssetObject {
     this._vertexElementMap = null;
   }
 
-  private _addVertexElement(element: VertexElement): void {
-    const { semantic } = element;
-    if (this._vertexElementMap[semantic]) {
-      throw "the same semantic already exists.";
+  private _clearVertexElements(): void {
+    this._vertexElements.length = 0;
+    const vertexElementMap = this._vertexElementMap;
+    for (var k in vertexElementMap) {
+      delete vertexElementMap[k];
     }
-    this._vertexElementMap[semantic] = element;
+  }
+
+  private _addVertexElement(element: VertexElement): void {
+    this._vertexElementMap[element.semantic] = element;
     this._vertexElements.push(element);
   }
 }

@@ -28,7 +28,7 @@ export class GLPrimitive extends GLAsset {
 
     this.attribLocArray = [];
     const techAttributes = tech.attributes;
-    const attributes = primitive.attributes;
+    const attributes = primitive._vertexElementMap;
 
     let vbo: WebGLBuffer;
     let lastBoundVbo: WebGLBuffer;
