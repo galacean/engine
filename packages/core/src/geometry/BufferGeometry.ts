@@ -163,7 +163,7 @@ export class BufferGeometry extends AssetObject {
 
   /**
    * 移除几何体组。
-   * @param drawGroup - 绘制组
+   * @param drawGroup - 几何体组
    */
   removeGroup(drawGroup: PrimitiveGroup): void {
     const drawGroups = this._groups;
