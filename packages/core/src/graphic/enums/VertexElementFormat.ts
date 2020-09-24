@@ -3,7 +3,7 @@
  */
 export enum VertexElementFormat {
   /** 32-bit 浮点数。*/
-  Single,
+  Float,
   /** 二维 32-bit 浮点数。*/
   Vector2,
   /** 三维 32-bit 浮点数。*/

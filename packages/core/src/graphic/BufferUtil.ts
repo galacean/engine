@@ -41,7 +41,7 @@ export class BufferUtil {
     let size: number;
     let type: DataType;
     switch (format) {
-      case VertexElementFormat.Single:
+      case VertexElementFormat.Float:
         size = 1;
         type = DataType.FLOAT;
         break;

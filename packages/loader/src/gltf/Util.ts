@@ -151,7 +151,7 @@ export function getElementFormat(type: number, size: number): VertexElementForma
   if (type == DataType.FLOAT) {
     switch (size) {
       case 1:
-        return VertexElementFormat.Single;
+        return VertexElementFormat.Float;
       case 2:
         return VertexElementFormat.Vector2;
       case 3:
