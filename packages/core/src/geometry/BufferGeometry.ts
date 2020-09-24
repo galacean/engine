@@ -53,17 +53,17 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 几何体组集合,每组可以使用独立的材质渲染。
-   */
-  get groups(): Readonly<PrimitiveGroup[]> {
-    return this._groups;
-  }
-
-  /**
    * 首个几何体组,使用第一个材质渲染,设置多个几何体组详见 groups 属性。
    */
   get group(): PrimitiveGroup | null {
     return this._groups[0] || null;
+  }
+
+  /**
+   * 几何体组集合,每组可以使用独立的材质渲染。
+   */
+  get groups(): Readonly<PrimitiveGroup[]> {
+    return this._groups;
   }
 
   /**
@@ -86,7 +86,6 @@ export class BufferGeometry extends AssetObject {
     name = name || "BufferGeometry" + BufferGeometry._geometryCount++;
 
     this._primitive = new Primitive();
-    this._groups.push(new PrimitiveGroup());
   }
 
   /**
@@ -149,11 +148,11 @@ export class BufferGeometry extends AssetObject {
 
   /**
    * 添加几何体组。
-   * @param offset - 偏移
-   * @param count - 数量
+   * @param offset - 索引缓冲的偏移
+   * @param count - 索引缓冲的数量
    * @param topology - 图元拓扑
    */
-  addGroup(offset: number, count: number, topology: PrimitiveTopology): PrimitiveGroup {
+  addGroup(offset: number, count: number, topology: PrimitiveTopology = PrimitiveTopology.Triangles): PrimitiveGroup {
     const drawGroup = new PrimitiveGroup();
     drawGroup.offset = offset;
     drawGroup.count = count;
@@ -164,7 +163,7 @@ export class BufferGeometry extends AssetObject {
 
   /**
    * 移除几何体组。
-   * @param drawGroup -绘制组。
+   * @param drawGroup - 绘制组
    */
   removeGroup(drawGroup: PrimitiveGroup): void {
     const drawGroups = this._groups;

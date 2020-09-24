@@ -394,8 +394,6 @@ export class GPUParticleSystem extends GeometryRenderer {
    */
   _createGeometry() {
     const geometry = new BufferGeometry("particleGeometry");
-    geometry.group.topology = PrimitiveTopology.Triangles;
-
     const vertexStride = 96;
     const vertexFloatCount = this.maxCount * 4 * vertexStride;
     const vertices = new Float32Array(vertexFloatCount);
@@ -437,7 +435,7 @@ export class GPUParticleSystem extends GeometryRenderer {
     geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     geometry.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
     geometry.setVertexElements(vertexElements);
-    geometry.group.count = indices.length;
+    geometry.addGroup(0, indices.length);
 
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride;

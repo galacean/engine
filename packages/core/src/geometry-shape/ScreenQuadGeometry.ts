@@ -11,8 +11,6 @@ import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 export class ScreenQuadGeometry extends GeometryShape {
   constructor(engine?: Engine) {
     super();
-    this.group.topology = PrimitiveTopology.TriangleFan;
-
     const vertices: Float32Array = new Float32Array([-1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1]);
 
     const indices: Uint16Array = new Uint16Array([0, 1, 2, 3]);

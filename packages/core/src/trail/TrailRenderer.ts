@@ -135,7 +135,6 @@ export class TrailRenderer extends GeometryRenderer {
    */
   _initGeometry() {
     const geometry = new BufferGeometry();
-    geometry.group.topology = PrimitiveTopology.TriangleStrip;
 
     const vertexStride = 20;
     const vertexCount = this._maxPointNum * 2;
@@ -149,7 +148,7 @@ export class TrailRenderer extends GeometryRenderer {
 
     geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     geometry.setVertexElements(vertexElements);
-    geometry.group.count = vertexCount;
+    geometry.addGroup(0, vertexCount, PrimitiveTopology.TriangleStrip);
 
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride;
