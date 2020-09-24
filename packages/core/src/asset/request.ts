@@ -67,7 +67,7 @@ function requestImage<T>(url: string, config: RequestConfig): AssetPromise<T> {
     img.onabort = onerror;
 
     const timeoutId = setTimeout(() => {
-      reject(new Error("request timeout"));
+      reject(new Error(`request ${url} timeout`));
     }, timeout);
 
     img.onload = ((timeoutId) => {
