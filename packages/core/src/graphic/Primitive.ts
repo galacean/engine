@@ -54,7 +54,6 @@ export class Primitive extends AssetObject {
 
   readonly id: number;
   material = null;
-  materialIndex: number;
   targets: any[] = [];
   boundingBox: OBB = null;
   boundingSphere: BoundingSphere = null;
