@@ -5,6 +5,7 @@ import { Entity } from "../Entity";
 import { Camera } from "../Camera";
 import { Logger } from "../base/Logger";
 import { Vector3 } from "@alipay/o3-math";
+import { Component } from "../Component";
 
 /**
  * 负责渲染一个Mesh对象的组件
@@ -29,7 +30,6 @@ export class MeshRenderer extends RenderableComponent {
     this._sharedMaterials = []; // Primitive默认材质，默认使用
 
     this.mesh = props.mesh;
-    ``;
   }
 
   /**
@@ -151,6 +151,21 @@ export class MeshRenderer extends RenderableComponent {
     }
     // TODO: primitive reference decrease
     // const primitives = this._mesh.primitives;
+  }
+
+  /**
+   * @todo 临时方案，未来组件应该统一使用浅拷贝
+   * @override
+   * @internal
+   */
+  _cloneTo(destComponent: Component): void {
+    const materials = this._sharedMaterials;
+    const destMaterials = (<MeshRenderer>destComponent)._sharedMaterials;
+    const count = materials.length;
+    destMaterials.length = count;
+    for (let i = 0; i < count; i++) {
+      destMaterials[i] = materials[i];
+    }
   }
 
   /**
