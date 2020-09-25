@@ -351,7 +351,6 @@ export class Entity extends EventDispatcher {
     const newNode = new Entity(this.name, this._engine);
 
     newNode._isActive = this._isActive;
-    newNode._isActiveInHierarchy = this._isActiveInHierarchy; //克隆后仍属于相同父节点
 
     newNode.transform.localMatrix = this.transform.localMatrix;
 
