@@ -29,6 +29,7 @@ export class MeshRenderer extends RenderableComponent {
     this._sharedMaterials = []; // Primitive默认材质，默认使用
 
     this.mesh = props.mesh;
+    ``;
   }
 
   /**
@@ -51,23 +52,32 @@ export class MeshRenderer extends RenderableComponent {
     const primitives = mesh.primitives;
     this._sharedMaterials = [];
     this._instanceMaterials = [];
-    for (const primitive of primitives) {
-      primitive.material._addReference(1);
-      this._sharedMaterials.push(primitive.material);
-    } // end of for
   }
 
   /**
    * 指定一个Primitive所使用的材质（替代Primitive的默认材质）
    * @param {number} primitiveIndex Primitive 的名称
-   * @param {Material} mtl 材质对象
+   * @param {Material} material 材质对象
    */
-  setMaterial(primitiveIndex: number, mtl: Material) {
+  setSharedMaterial(primitiveIndex: number, material: Material) {
+    if (this._sharedMaterials[primitiveIndex]) {
+      this._sharedMaterials[primitiveIndex]._addReference(-1);
+    }
+    material._addReference(1);
+    this._sharedMaterials[primitiveIndex] = material;
+  }
+
+  /**
+   * 指定一个Primitive所使用的材质（替代Primitive的默认材质）
+   * @param {number} primitiveIndex Primitive 的名称
+   * @param {Material} material 材质对象
+   */
+  setMaterial(primitiveIndex: number, material: Material) {
     if (this._instanceMaterials[primitiveIndex]) {
       this._instanceMaterials[primitiveIndex]._addReference(-1);
     }
-    mtl._addReference(1);
-    this._instanceMaterials[primitiveIndex] = mtl;
+    material._addReference(1);
+    this._instanceMaterials[primitiveIndex] = material;
   }
 
   /**

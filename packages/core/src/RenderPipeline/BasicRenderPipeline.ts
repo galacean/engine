@@ -6,6 +6,7 @@ import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 import { SeparateSpritePass } from "./SeparateSpritePass";
 import { Vector4 } from "@alipay/o3-math";
+import { Primitive } from "../graphic";
 
 /** @todo: monorepo circle dependence */
 type RenderTarget = any;
@@ -195,7 +196,7 @@ export class BasicRenderPipeline extends SceneVisitor {
    * @param {Primitive} primitive
    * @param {Material} mtl
    */
-  pushPrimitive(component: Component, primitive, mtl: Material) {
+  pushPrimitive(component: Component, primitive: Primitive, mtl: Material) {
     if (mtl.renderType === MaterialType.TRANSPARENT) {
       this._transparentQueue.pushPrimitive(component, primitive, mtl);
     } else {

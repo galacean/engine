@@ -555,21 +555,6 @@ function parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers) {
   // }
 }
 
-function parsePrimitiveMaterial(primitive, gltfPrimitive, resources) {
-  // link mesh primitive material
-  if (gltfPrimitive.material !== undefined) {
-    let material = getItemByIdx("materials", gltfPrimitive.material, resources);
-    if (material.constructor.DISABLE_SHARE) {
-      // do not share material cause different attributes
-      material = material.clone();
-    }
-    primitive.materialIndex = gltfPrimitive.material;
-    primitive.material = material;
-  } else {
-    primitive.material = getDefaultMaterial();
-  }
-}
-
 /**
  * 解析 Mesh
  * @param gltfMesh
@@ -607,7 +592,6 @@ export function parseMesh(gltfMesh, resources) {
         vertexPromise
           .then((processedPrimitive) => {
             parserPrimitiveTarget(processedPrimitive, gltfPrimitive, gltf, buffers);
-            parsePrimitiveMaterial(processedPrimitive, gltfPrimitive, resources);
             resolve(processedPrimitive);
           })
           .catch((e) => {
@@ -788,6 +772,7 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
   const { asset, gltf } = resources;
 
   const gltfNodes = gltf.nodes || [];
+  const gltfMeshes = gltf.meshes;
 
   asset.defaultScene = getItemByIdx("scenes", gltf.scene ?? 0, resources);
 
@@ -806,15 +791,23 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
 
     // link mesh
     if (gltfNode.hasOwnProperty("mesh")) {
-      // find mesh
-      const mesh = getItemByIdx("meshes", gltfNode.mesh, resources);
+      const meshIndex = gltfNode.mesh;
+      const gltfMeshPrimitives = gltfMeshes[meshIndex].primitives;
+      const mesh = getItemByIdx("meshes", meshIndex, resources);
 
+      let renderer: MeshRenderer;
       if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
         const skin = getItemByIdx("skins", gltfNode.skin, resources);
         const weights = mesh.weights;
-        node.addComponent(SkinnedMeshRenderer, { skin, mesh, weights });
+        renderer = node.addComponent(SkinnedMeshRenderer, { skin, mesh, weights });
       } else {
-        node.addComponent(MeshRenderer, { mesh });
+        renderer = node.addComponent(MeshRenderer, { mesh });
+      }
+      for (let j = 0, m = gltfMeshPrimitives.length; j < m; j++) {
+        const materialIndex = gltfMeshPrimitives[j].material;
+        const material =
+          materialIndex !== undefined ? getItemByIdx("materials", materialIndex, resources) : getDefaultMaterial();
+        renderer.setSharedMaterial(j, material);
       }
     }
   }

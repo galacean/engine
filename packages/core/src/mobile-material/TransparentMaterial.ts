@@ -8,7 +8,6 @@ import FRAG_SHADER from "./shader/Texture.glsl";
  */
 export class TransparentMaterial extends CommonMaterial {
   static TECH_NAME = "Transparent";
-  static DISABLE_SHARE = true;
 
   /**
    * 构造函数

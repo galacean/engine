@@ -8,7 +8,6 @@ import FRAG_SHADER from "./shader/Texture.glsl";
  */
 export class TextureMaterial extends CommonMaterial {
   static TECH_NAME = "Texture";
-  static DISABLE_SHARE = true;
 
   /**
    * 构造函数

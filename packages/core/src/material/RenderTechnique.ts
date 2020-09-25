@@ -5,6 +5,7 @@ import { UniformSemantic, DataType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
+import { Primitive } from "../graphic";
 
 /**
  * 渲染单个对象所需的控制对象，作为 Material 的模块使用。对应 glTF 里面的 technique 对象
@@ -189,7 +190,7 @@ export class RenderTechnique extends AssetObject {
     }
   }
 
-  getAttributeDefines(camera: Camera, component, primitive, material) {
+  getAttributeDefines(camera: Camera, component, primitive: Primitive, material) {
     const rhi = camera.scene.engine._hardwareRenderer;
     const gl = rhi.gl;
     const _macros = [];
@@ -225,7 +226,7 @@ export class RenderTechnique extends AssetObject {
     }
     if (attribNames.indexOf("COLOR_0") > -1) {
       _macros.push("O3_HAS_VERTEXCOLOR");
-      if (primitive.vertexAttributes.COLOR_0.size === 4) _macros.push("O3_HAS_VERTEXALPHA");
+      if (primitive._vertexElementMap["COLOR_0"].size === 4) _macros.push("O3_HAS_VERTEXALPHA");
     }
 
     if (component.weights) {
@@ -270,8 +271,8 @@ export class RenderTechnique extends AssetObject {
     }
   }
 
-  createMorphConfig(primitive, targetNum: number) {
-    const attributes = Object.keys(primitive.vertexAttributes);
+  createMorphConfig(primitive: Primitive, targetNum: number) {
+    const attributes = Object.keys(primitive._vertexElementMap);
     const morphConfig = {};
     for (let i = 0; i < targetNum; i++) {
       if (attributes.indexOf(`POSITION_${i}`) > -1)

@@ -40,9 +40,6 @@ export class GeometryRenderer extends RenderableComponent {
    */
   set geometry(geometry: BufferGeometry) {
     this._geometry = geometry;
-    if (geometry && geometry._primitive && geometry._primitive.material) {
-      this._material = geometry._primitive.material;
-    }
 
     this.trigger(new Event("geometryChange"));
   }
