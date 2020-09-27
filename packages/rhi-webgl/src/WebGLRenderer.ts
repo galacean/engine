@@ -1,6 +1,5 @@
-import { ClearMode, GLCapabilityType, Logger } from "@alipay/o3-core";
-import { Camera, Canvas, HardwareRenderer } from "@alipay/o3-core";
-import { RenderTarget } from "@alipay/o3-core";
+import { Camera, Canvas, ClearMode, GLCapabilityType, HardwareRenderer, Logger, RenderTarget } from "@alipay/o3-core";
+import { Vector4 } from "@alipay/o3-math";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
@@ -9,10 +8,8 @@ import { GLRenderStates } from "./GLRenderStates";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLTechnique } from "./GLTechnique";
-import { GLVAOPrimitive } from "./GLVAOPrimitive";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
-import { Vector4 } from "@alipay/o3-math";
 
 /**
  * WebGL模式。默认 Auto
@@ -226,10 +223,7 @@ export class WebGLRenderer implements HardwareRenderer {
    */
   drawPrimitive(primitive, mtl) {
     // todo: VAO 不支持 morph 动画
-    const glPrimitive = this._assetsCache.requireObject(
-      primitive,
-      this.canIUse(GLCapabilityType.vertexArrayObject) && !primitive.targets.length ? GLVAOPrimitive : GLPrimitive
-    );
+    const glPrimitive = this._assetsCache.requireObject(primitive, GLPrimitive);
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
     if (glPrimitive && glTech) {

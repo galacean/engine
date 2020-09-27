@@ -4,6 +4,12 @@ import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
+ * 关于 VAO 的改进方案
+ * 1）VAO WebGL2.0 一定支持，在 WebGL1.0 下亦为支持率最高的扩展之一，所以我们可以结合 VAO 的 PollyFill 可以直接删除非 VAO 的实现,精简代码
+ * 2）VAO 目前存在隐藏 BUG , 更换 IndexBuffer、VertexBuffer、VertexElements 需要更新对应 VAO
+ */
+
+/**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
  * @private
  */
@@ -12,10 +18,14 @@ export class GLPrimitive extends GLAsset {
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
+  private vao: Map<number, WebGLVertexArrayObject> = new Map();
+  private readonly _useVao: boolean;
+
   constructor(rhi: WebGLRenderer, primitive: Primitive) {
     super(rhi, primitive);
     this._primitive = primitive;
     this.canUseInstancedArrays = this.rhi.canIUse(GLCapabilityType.instancedArrays);
+    this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);
   }
 
   /**
@@ -70,28 +80,42 @@ export class GLPrimitive extends GLAsset {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
 
-    // 绑定 Buffer 和 attribute
-    this.bindBufferAndAttrib(tech);
+    if (this._useVao) {
+      if (!this.vao.has(tech.cacheID)) {
+        this.registerVAO(tech);
+      }
+      const vao = this.vao.get(tech.cacheID);
+      gl.bindVertexArray(vao);
+    } else {
+      this.bindBufferAndAttrib(tech);
+    }
 
-    // draw
     const { _topology, indexBufferBinding, drawOffset, drawCount, instanceCount, _glIndexType } = primitive;
 
     if (!instanceCount) {
       if (indexBufferBinding) {
-        const { _nativeBuffer } = indexBufferBinding.buffer;
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-        gl.drawElements(_topology, drawCount, _glIndexType, drawOffset);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        if (this._useVao) {
+          gl.drawElements(_topology, drawCount, _glIndexType, drawOffset);
+        } else {
+          const { _nativeBuffer } = indexBufferBinding.buffer;
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
+          gl.drawElements(_topology, drawCount, _glIndexType, drawOffset);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        }
       } else {
         gl.drawArrays(_topology, drawOffset, drawCount);
       }
     } else {
       if (this.canUseInstancedArrays) {
         if (indexBufferBinding) {
-          const { _nativeBuffer } = indexBufferBinding.buffer;
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-          gl.drawElementsInstanced(_topology, drawCount, _glIndexType, drawOffset, instanceCount);
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+          if (this._useVao) {
+            gl.drawElementsInstanced(_topology, drawCount, _glIndexType, drawOffset, instanceCount);
+          } else {
+            const { _nativeBuffer } = indexBufferBinding.buffer;
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
+            gl.drawElementsInstanced(_topology, drawCount, _glIndexType, drawOffset, instanceCount);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+          }
         } else {
           gl.drawArraysInstanced(_topology, drawOffset, drawCount, instanceCount);
         }
@@ -100,8 +124,12 @@ export class GLPrimitive extends GLAsset {
       }
     }
 
-    /** unbind */
-    this.disableAttrib();
+    // unbind
+    if (this._useVao) {
+      gl.bindVertexArray(null);
+    } else {
+      this.disableAttrib();
+    }
   }
 
   protected disableAttrib() {
@@ -109,6 +137,27 @@ export class GLPrimitive extends GLAsset {
     for (let i = 0, l = this.attribLocArray.length; i < l; i++) {
       gl.disableVertexAttribArray(this.attribLocArray[i]);
     }
+  }
+
+  private registerVAO(tech: GLTechnique): void {
+    const gl = this.rhi.gl;
+    const vao = gl.createVertexArray();
+
+    /** register VAO */
+    gl.bindVertexArray(vao);
+
+    const { indexBufferBinding } = this._primitive;
+    if (indexBufferBinding) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferBinding.buffer._nativeBuffer);
+    }
+    this.bindBufferAndAttrib(tech);
+
+    /** unbind */
+    gl.bindVertexArray(null);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    this.disableAttrib();
+
+    this.vao.set(tech.cacheID, vao);
   }
 
   /**
@@ -129,6 +178,13 @@ export class GLPrimitive extends GLAsset {
     if (indexBuffer) {
       indexBuffer.destroy();
       // primitive.indexBufferBinding.buffer = null;
+    }
+
+    if (this._useVao) {
+      const gl = this.rhi.gl;
+      this.vao.forEach((vao) => {
+        gl.deleteVertexArray(vao);
+      });
     }
   }
 }

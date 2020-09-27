@@ -25,7 +25,6 @@ export class Primitive extends AssetObject {
   _vertexElementMap: object = {};
   _topology: PrimitiveTopology;
   _glIndexType: number;
-  _vaoUpdateFlag: number = 0;
 
   private _vertexBufferBindings: VertexBufferBinding[] = [];
   private _indexBufferBinding: IndexBufferBinding = null;
@@ -86,7 +85,6 @@ export class Primitive extends AssetObject {
       bindings.length < needLength && (bindings.length = needLength);
       this._vertexBufferBindings[firstIndex] = singleBinding;
     }
-    this._vaoUpdateFlag++;
   }
 
   /**
@@ -108,7 +106,6 @@ export class Primitive extends AssetObject {
     isBinding || (binding = new IndexBufferBinding(<Buffer>bufferOrBinding, format));
     this._indexBufferBinding = binding;
     this._glIndexType = BufferUtil._getGLIndexType(binding.format);
-    this._vaoUpdateFlag++;
   }
 
   /**
@@ -120,7 +117,6 @@ export class Primitive extends AssetObject {
     for (let i = 0, n = elements.length; i < n; i++) {
       this._addVertexElement(elements[i]);
     }
-    this._vaoUpdateFlag++;
   }
 
   /**
