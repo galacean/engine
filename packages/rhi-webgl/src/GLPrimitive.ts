@@ -92,34 +92,34 @@ export class GLPrimitive extends GLAsset {
     }
 
     const { indexBufferBinding, instanceCount, _glIndexType } = primitive;
-    const { topology, offset, count } = group;
+    const { topology, start, count } = group;
 
     if (!instanceCount) {
       if (indexBufferBinding) {
         if (this._useVao) {
-          gl.drawElements(topology, count, _glIndexType, offset);
+          gl.drawElements(topology, count, _glIndexType, start);
         } else {
           const { _nativeBuffer } = indexBufferBinding.buffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-          gl.drawElements(topology, count, _glIndexType, offset);
+          gl.drawElements(topology, count, _glIndexType, start);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         }
       } else {
-        gl.drawArrays(topology, offset, count);
+        gl.drawArrays(topology, start, count);
       }
     } else {
       if (this.canUseInstancedArrays) {
         if (indexBufferBinding) {
           if (this._useVao) {
-            gl.drawElementsInstanced(topology, count, _glIndexType, offset, instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, start, instanceCount);
           } else {
             const { _nativeBuffer } = indexBufferBinding.buffer;
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-            gl.drawElementsInstanced(topology, count, _glIndexType, offset, instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, start, instanceCount);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
           }
         } else {
-          gl.drawArraysInstanced(topology, offset, count, instanceCount);
+          gl.drawArraysInstanced(topology, start, count, instanceCount);
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");

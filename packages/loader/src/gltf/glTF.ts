@@ -513,7 +513,7 @@ function parsePrimitiveVertex(
 
   indexBuffer.setData(indexData);
   primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
-  primitiveGroup.offset = 0;
+  primitiveGroup.start = 0;
   primitiveGroup.count = indexCount;
   return Promise.resolve(primitive);
 }
