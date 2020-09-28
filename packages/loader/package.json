@@ -1,6 +1,6 @@
 {
   "name": "@alipay/o3-loader",
-  "version": "3.1.8",
+  "version": "3.1.9",
   "description": "load resources",
   "keywords": [
     "Oasis3D",
@@ -23,10 +23,10 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "dependencies": {
-    "@alipay/o3-core": "3.1.8",
-    "@alipay/o3-draco": "3.1.8",
-    "@alipay/o3-math": "3.1.8",
-    "@alipay/o3-rhi-webgl": "3.1.8"
+    "@alipay/o3-core": "3.1.9",
+    "@alipay/o3-draco": "3.1.9",
+    "@alipay/o3-math": "3.1.9",
+    "@alipay/o3-rhi-webgl": "3.1.9"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
