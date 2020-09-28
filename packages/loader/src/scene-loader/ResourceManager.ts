@@ -33,7 +33,13 @@ const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
 for (const key in RESOURCE_CLASS) {
   if (RESOURCE_CLASS.hasOwnProperty(key)) {
     const element = RESOURCE_CLASS[key];
-    RESOURCE_TYPE.set(element, key);
+
+    // TODO：材质模块待重构，默认设置成 PBRMaterial
+    if (element === PBRMaterialResource) {
+      RESOURCE_TYPE.set(element, "PBRMaterial");
+    } else {
+      RESOURCE_TYPE.set(element, key);
+    }
   }
 }
 
