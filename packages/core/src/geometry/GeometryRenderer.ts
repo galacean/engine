@@ -1,7 +1,6 @@
 import { Vector3 } from "@alipay/o3-math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
-import { Entity } from "../Entity";
 import { Material } from "../material/Material";
 import { RenderableComponent } from "../RenderableComponent";
 import { RenderElement } from "../RenderPipeline/RenderElement";
@@ -13,18 +12,8 @@ import { BufferGeometry } from "./BufferGeometry";
 export class GeometryRenderer extends RenderableComponent {
   _material: Material;
 
-  private _geometry: BufferGeometry;
-
-  /**
-   * 缓冲几何体。
-   */
-  get geometry(): BufferGeometry {
-    return this._geometry;
-  }
-
-  set geometry(geometry: BufferGeometry) {
-    this._geometry = geometry;
-  }
+  /** 缓冲几何体。*/
+  geometry: BufferGeometry;
 
   /**
    * 材质。
@@ -38,7 +27,7 @@ export class GeometryRenderer extends RenderableComponent {
   }
 
   render(camera: Camera) {
-    const geometry = this._geometry;
+    const geometry = this.geometry;
     if (geometry) {
       const groups = geometry.groups;
       const renderPipeline = camera._renderPipeline;
@@ -59,7 +48,7 @@ export class GeometryRenderer extends RenderableComponent {
    * @override
    */
   protected _updateBounds(worldBounds: any): void {
-    const localBounds: any = this._geometry.bounds;
+    const localBounds: any = this.geometry.bounds;
     if (localBounds) {
       const worldMatrix: any = this._entity.transform.worldMatrix;
       Vector3.transformCoordinate(localBounds.min, worldMatrix, worldBounds.min); //TODO:简单模式，有漏洞，待AABB重构
