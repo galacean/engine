@@ -7,6 +7,7 @@ import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { Entity } from "./Entity";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 
 /** todo: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -168,8 +169,11 @@ export class Engine extends EventDispatcher {
    */
   update(): void {
     const time = this._time;
-    time.tick();
     const deltaTime = time.deltaTime;
+
+    time.tick();
+    RenderElement._restPool();
+
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
     this._hardwareRenderer.beginFrame();

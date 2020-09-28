@@ -3,6 +3,17 @@ import { MaskList } from "../base";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
 import { RenderContext } from "./RenderContext";
+import { RenderElement } from "./RenderElement";
+
+interface SpriteElement {
+  component;
+  positionQuad;
+  uvRect;
+  tintColor;
+  texture;
+  renderMode;
+  camera;
+}
 
 /** @todo: monorepo circle dependence */
 type RenderTarget = any;
@@ -13,11 +24,9 @@ type Material = any;
  * @private
  */
 export class RenderQueue {
-  private _items;
+  private _items: (RenderElement | SpriteElement)[] = [];
 
-  constructor() {
-    this._items = [];
-  }
+  constructor() {}
 
   /**
    * 需要渲染的对象数组
@@ -38,12 +47,8 @@ export class RenderQueue {
   /**
    * 把一个 Primitive 对象添加进来
    */
-  pushPrimitive(component, primitive, mtl) {
-    this._items.push({
-      component,
-      primitive,
-      mtl
-    });
+  pushPrimitive(element: RenderElement) {
+    this._items.push(element);
   }
 
   /**
@@ -75,10 +80,10 @@ export class RenderQueue {
     const items = this._items;
 
     if (items.length > 1) {
-      this._items = items.sort(function (item1, item2) {
+      this._items = items.sort(function (item1: RenderElement, item2: RenderElement) {
         if (item1.component.renderPriority === item2.component.renderPriority) {
-          const tech1 = item1.mtl.technique;
-          const tech2 = item2.mtl.technique;
+          const tech1 = item1.material.technique;
+          const tech2 = item2.material.technique;
           if (tech1 && tech2) {
             return tech1.name.localeCompare(tech2.name);
           } else {
@@ -102,7 +107,7 @@ export class RenderQueue {
    * @param {Camera}   camera        相机信息
    */
   pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
-    this._items.push({
+    const element: SpriteElement = {
       component,
       positionQuad,
       uvRect,
@@ -110,7 +115,8 @@ export class RenderQueue {
       texture,
       renderMode,
       camera
-    });
+    };
+    this._items.push(element);
   }
 
   /**
@@ -134,7 +140,7 @@ export class RenderQueue {
 
     for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
-      const { component, primitive, mtl } = item;
+      const { component } = item;
 
       //-- filter by mask
       const renderPassFlag = component.renderPassFlag;
@@ -142,18 +148,27 @@ export class RenderQueue {
 
       //-- draw
       if (this._isPrimitive(item)) {
+        const element = <RenderElement>item;
         //-- 如果有缓存的Sprite尚未绘制，则先绘制缓存的Sprite
         rhi.flushSprite();
 
-        const material = replaceMaterial ? replaceMaterial : mtl;
-        material.preRender?.(item.component, item.primitive);
+        const material = replaceMaterial ? replaceMaterial : element.material;
+        material.preRender?.(element.component, element.primitive);
 
-        material.prepareDrawing(context, item.component, item.primitive, mtl);
-        rhi.drawPrimitive(item.primitive, material);
+        material.prepareDrawing(context, element.component, element.primitive, element.material);
+        rhi.drawPrimitive(element.primitive, element.group, material);
 
-        material.postRender?.(item.component, item.primitive);
+        material.postRender?.(element.component, element.primitive);
       } else {
-        rhi.drawSprite(item.positionQuad, item.uvRect, item.tintColor, item.texture, item.renderMode, item.camera);
+        const spirteElement = <SpriteElement>item;
+        rhi.drawSprite(
+          spirteElement.positionQuad,
+          spirteElement.uvRect,
+          spirteElement.tintColor,
+          spirteElement.texture,
+          spirteElement.renderMode,
+          spirteElement.camera
+        );
       }
     } // end of for
 
@@ -167,9 +182,9 @@ export class RenderQueue {
    */
   updateMaxJointsNum(items, replaceMaterial: Material) {
     for (let i = 0, len = items.length; i < len; i++) {
-      const { component, mtl } = items[i];
+      const { component, material } = items[i];
 
-      const materialControl = replaceMaterial ? replaceMaterial : mtl;
+      const materialControl = replaceMaterial ? replaceMaterial : material;
       // 仅当 component 为 SkinnedMeshRenderer 时需要计算
       if (component.jointNodes) {
         materialControl.maxJointsNum = Math.max(materialControl.maxJointsNum, component.jointNodes.length);

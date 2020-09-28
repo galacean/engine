@@ -21,7 +21,6 @@ export class RfuiRenderer extends GeometryRenderer {
   private _uvVelocity: Vector2;
   private _isAnimatingTexture;
   private _states;
-  protected _material: RfuiMaterial;
 
   /**
    * 几何体参数
@@ -102,24 +101,24 @@ export class RfuiRenderer extends GeometryRenderer {
 
   initMaterial() {
     if ((this._props as any).material) {
-      this._material = (this._props as any)._material;
+      this.material = (this._props as any)._material;
     } else {
       if (this.geometryType === "cylinder") {
         this._states.functions.frontFace = [FrontFace.CW];
       }
 
-      this._material = new RfuiMaterial("rfui_mtl");
-      this._material.renderStates = Object.assign({}, this._states, (this._props as any).renderStates);
-      this._material.diffuse = this._diffuse;
-      this._material.mask = this._mask;
-      this._material.uvVelocity = this._uvVelocity;
+      const material = new RfuiMaterial("rfui_mtl");
+      material.renderStates = Object.assign({}, this._states, (this._props as any).renderStates);
+      material.diffuse = this._diffuse;
+      material.mask = this._mask;
+      material.uvVelocity = this._uvVelocity;
+      this.material = material;
     }
-    this.setMaterial(this._material);
   }
 
   initAnimation() {
     this.animationManager = new RfuiAnimation(this.entity, {
-      material: this.getMaterial(),
+      material: this.material,
       param: this._animationParam
     });
   }
@@ -132,6 +131,6 @@ export class RfuiRenderer extends GeometryRenderer {
 
   set diffuse(diffuse) {
     this._diffuse = diffuse;
-    this._material.diffuse = this._diffuse;
+    (<RfuiMaterial>this._material).diffuse = this._diffuse;
   }
 }

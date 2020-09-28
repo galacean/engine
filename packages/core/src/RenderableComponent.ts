@@ -1,6 +1,6 @@
+import { Vector3 } from "@alipay/o3-math";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { Vector3 } from "@alipay/o3-math";
 import { Entity } from "./Entity";
 import { UpdateFlag } from "./UpdateFlag";
 

@@ -1,11 +1,12 @@
 import { GLCapabilityType, Logger, Primitive } from "@alipay/o3-core";
+import { PrimitiveGroup } from "@alipay/o3-core/types/graphic/PrimitiveGroup";
 import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * 关于 VAO 的改进方案
- * 1）VAO WebGL2.0 一定支持，在 WebGL1.0 下亦为支持率最高的扩展之一，所以我们可以结合 VAO 的 PollyFill 可以直接删除非 VAO 的实现,精简代码
+ * 1）VAO WebGL2.0 一定支持，在 WebGL1.0 下亦为支持率最高的扩展之一，所以我们可以结合 VAO 的 PollyFill 直接删除非 VAO 的实现,精简代码
  * 2）VAO 目前存在隐藏 BUG , 更换 IndexBuffer、VertexBuffer、VertexElements 需要更新对应 VAO
  */
 
@@ -76,7 +77,7 @@ export class GLPrimitive extends GLAsset {
   /**
    * 执行绘制操作。
    */
-  draw(tech: GLTechnique) {
+  draw(tech: GLTechnique, group: PrimitiveGroup) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
 
@@ -90,34 +91,35 @@ export class GLPrimitive extends GLAsset {
       this.bindBufferAndAttrib(tech);
     }
 
-    const { _topology, indexBufferBinding, drawOffset, drawCount, instanceCount, _glIndexType } = primitive;
+    const { indexBufferBinding, instanceCount, _glIndexType } = primitive;
+    const { topology, offset, count } = group;
 
     if (!instanceCount) {
       if (indexBufferBinding) {
         if (this._useVao) {
-          gl.drawElements(_topology, drawCount, _glIndexType, drawOffset);
+          gl.drawElements(topology, count, _glIndexType, offset);
         } else {
           const { _nativeBuffer } = indexBufferBinding.buffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-          gl.drawElements(_topology, drawCount, _glIndexType, drawOffset);
+          gl.drawElements(topology, count, _glIndexType, offset);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         }
       } else {
-        gl.drawArrays(_topology, drawOffset, drawCount);
+        gl.drawArrays(topology, offset, count);
       }
     } else {
       if (this.canUseInstancedArrays) {
         if (indexBufferBinding) {
           if (this._useVao) {
-            gl.drawElementsInstanced(_topology, drawCount, _glIndexType, drawOffset, instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, offset, instanceCount);
           } else {
             const { _nativeBuffer } = indexBufferBinding.buffer;
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-            gl.drawElementsInstanced(_topology, drawCount, _glIndexType, drawOffset, instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, offset, instanceCount);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
           }
         } else {
-          gl.drawArraysInstanced(_topology, drawOffset, drawCount, instanceCount);
+          gl.drawArraysInstanced(topology, offset, count, instanceCount);
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");

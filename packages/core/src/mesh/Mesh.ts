@@ -1,13 +1,15 @@
 import { Vector3 } from "@alipay/o3-math";
 import { ReferenceObject } from "../asset/ReferenceObject";
 import { Primitive } from "../graphic/Primitive";
+import { PrimitiveGroup } from "../graphic/PrimitiveGroup";
 import { BoundingBox } from "../RenderableComponent";
 
 /**
  * Mesh Asset Object
  */
 export class Mesh extends ReferenceObject {
-  public primitives: Primitive[];
+  public primitives: Primitive[] = [];
+  public groups: PrimitiveGroup[] = [];
   public weights: number[];
   public readonly bounds: BoundingBox = { min: new Vector3(), max: new Vector3() };
 
@@ -17,7 +19,6 @@ export class Mesh extends ReferenceObject {
    */
   constructor(name?: string) {
     super();
-    this.primitives = [];
     this._gcPriority = 1000;
   }
 

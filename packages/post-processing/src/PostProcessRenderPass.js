@@ -41,12 +41,13 @@ export class PostProcessRenderPass extends RenderPass {
     // 执行所有的 Post Process
     const result = root.draw(feature, camera);
     const sceneColor = root.renderTarget;
+    const screen = feature.quads.screen;
 
     // 将执行结果，拷贝到屏幕缓冲
     feature.copyMtl.setValue("s_resultRT", result.getColorTexture());
     feature.copyMtl.setValue("s_sceneRT", sceneColor.getColorTexture());
 
     rhi.activeRenderTarget(feature.originRenderTarget, camera);
-    rhi.drawPrimitive(feature.quads.screen._primitive, feature.copyMtl);
+    rhi.drawPrimitive(screen._primitive, screen.group, feature.copyMtl);
   }
 }

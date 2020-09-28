@@ -5,6 +5,7 @@ import { Entity } from "../Entity";
 import { Material } from "../material/Material";
 import { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RenderPass } from "../RenderPipeline/RenderPass";
 import { RenderBufferDepthFormat } from "../texture/enums";
 import { RenderColorTexture } from "../texture/RenderColorTexture";
@@ -86,14 +87,14 @@ export abstract class Probe extends Component {
    * 获取需要渲染的真实队列.
    * 优先级 excludeRenderList > renderAll > renderList
    */
-  protected get renderItems() {
+  protected get renderItems(): any {
     const opaqueQueue = this.renderPipeline.opaqueQueue;
     const transparentQueue = this.renderPipeline.transparentQueue;
-    return opaqueQueue.items.concat(transparentQueue.items).filter((item) => {
+    return opaqueQueue.items.concat(transparentQueue.items).filter((item: RenderElement) => {
       if (!item.primitive) return false;
-      if (this.excludeRenderList.includes(item.mtl)) return false;
+      if (this.excludeRenderList.includes(item.material)) return false;
       if (this.renderAll) return true;
-      if (this.renderList.includes(item.mtl)) return true;
+      if (this.renderList.includes(item.material)) return true;
     });
   }
 
@@ -171,11 +172,11 @@ export abstract class Probe extends Component {
 
   protected render() {
     const context = RenderContext._getRenderContext(this.camera);
-    this.renderItems.forEach((item) => {
-      const { component, primitive, mtl } = item;
+    this.renderItems.forEach((item: RenderElement) => {
+      const { component, primitive, group, material } = item;
       if (!(component.renderPassFlag & this.renderPassFlag)) return;
-      mtl.prepareDrawing(context, component, primitive);
-      this.rhi.drawPrimitive(primitive, mtl);
+      material.prepareDrawing(context, component, primitive);
+      this.rhi.drawPrimitive(primitive, group, material);
     });
   }
 

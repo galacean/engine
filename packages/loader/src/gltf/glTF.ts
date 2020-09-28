@@ -25,7 +25,8 @@ import {
   Util,
   VertexBufferBinding,
   IndexBufferBinding,
-  VertexElement
+  VertexElement,
+  PrimitiveGroup
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -452,7 +453,15 @@ export function parseSkin(gltfSkin, resources) {
   return Promise.resolve(skin);
 }
 
-function parsePrimitiveVertex(mesh: Mesh, primitive: Primitive, gltfPrimitive, gltf, buffers, resources) {
+function parsePrimitiveVertex(
+  mesh: Mesh,
+  primitive: Primitive,
+  primitiveGroup: PrimitiveGroup,
+  gltfPrimitive,
+  gltf,
+  buffers,
+  resources
+) {
   // load vertices
   let i = 0;
   const vertexElements: VertexElement[] = [];
@@ -504,8 +513,8 @@ function parsePrimitiveVertex(mesh: Mesh, primitive: Primitive, gltfPrimitive, g
 
   indexBuffer.setData(indexData);
   primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
-  primitive.drawOffset = 0;
-  primitive.drawCount = indexCount;
+  primitiveGroup.offset = 0;
+  primitiveGroup.count = indexCount;
   return Promise.resolve(primitive);
 }
 
@@ -569,14 +578,17 @@ export function parseMesh(gltfMesh, resources) {
   // parse all primitives then link to mesh
   // TODO: use hash cached primitives
   const primitivePromises = [];
+  const groups = [];
   for (let i = 0; i < gltfMesh.primitives.length; i++) {
     primitivePromises.push(
       new Promise((resolve, reject) => {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
         const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
+        const primitiveGroup = new PrimitiveGroup();
+        groups.push(primitiveGroup);
         primitive.type = resources.assetType;
-        primitive._topology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
+        primitiveGroup.topology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
           primitive.targets = [];
           (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);
@@ -587,7 +599,15 @@ export function parseMesh(gltfMesh, resources) {
           const extension = gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression];
           vertexPromise = extensionParser.parse(extension, primitive, gltfPrimitive, gltf, buffers);
         } else {
-          vertexPromise = parsePrimitiveVertex(mesh, primitive, gltfPrimitive, gltf, buffers, resources);
+          vertexPromise = parsePrimitiveVertex(
+            mesh,
+            primitive,
+            primitiveGroup,
+            gltfPrimitive,
+            gltf,
+            buffers,
+            resources
+          );
         }
         vertexPromise
           .then((processedPrimitive) => {
@@ -600,9 +620,10 @@ export function parseMesh(gltfMesh, resources) {
       })
     );
   }
-  return Promise.all(primitivePromises).then((primitives) => {
+  return Promise.all(primitivePromises).then((primitives: Primitive[]) => {
     for (let i = 0; i < primitives.length; i++) {
       mesh.primitives.push(primitives[i]);
+      mesh.groups.push(groups[i]);
     }
     return mesh;
   });

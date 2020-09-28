@@ -151,7 +151,7 @@ export class GPUParticleSystem extends GeometryRenderer {
     }
 
     this._time += deltaTime / 1000;
-    this._material.setValue("uTime", this._time);
+    this.material.setValue("uTime", this._time);
   }
 
   /**
@@ -171,14 +171,14 @@ export class GPUParticleSystem extends GeometryRenderer {
   start() {
     this._isStart = true;
     this._time = 0;
-    this._material.setValue("uActive", 1.0);
+    this.material.setValue("uActive", 1.0);
   }
 
   /**
    * 停止发射
    */
   stop() {
-    this._material.setValue("uActive", 0.0);
+    this.material.setValue("uActive", 0.0);
   }
 
   /**
@@ -216,9 +216,7 @@ export class GPUParticleSystem extends GeometryRenderer {
       this.particleMaskTex.wrapModeU = this.particleTex.wrapModeV = TextureWrapMode.Clamp;
       material.setValue("particleMaskTex", this.particleMaskTex);
     }
-    super.setMaterial(material);
-
-    this._material = material;
+    this.material = material;
   }
 
   /**

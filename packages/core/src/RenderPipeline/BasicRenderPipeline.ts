@@ -1,12 +1,12 @@
+import { Vector4 } from "@alipay/o3-math";
 import { ClearMode, MaskList, MaterialType } from "../base";
 import { Camera } from "../Camera";
-import { SceneVisitor } from "../SceneVisitor";
 import { Component } from "../Component";
+import { SceneVisitor } from "../SceneVisitor";
+import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 import { SeparateSpritePass } from "./SeparateSpritePass";
-import { Vector4 } from "@alipay/o3-math";
-import { Primitive } from "../graphic";
 
 /** @todo: monorepo circle dependence */
 type RenderTarget = any;
@@ -196,11 +196,11 @@ export class BasicRenderPipeline extends SceneVisitor {
    * @param {Primitive} primitive
    * @param {Material} mtl
    */
-  pushPrimitive(component: Component, primitive: Primitive, mtl: Material) {
-    if (mtl.renderType === MaterialType.TRANSPARENT) {
-      this._transparentQueue.pushPrimitive(component, primitive, mtl);
+  pushPrimitive(element: RenderElement) {
+    if (element.material.renderType === MaterialType.TRANSPARENT) {
+      this._transparentQueue.pushPrimitive(element);
     } else {
-      this._opaqueQueue.pushPrimitive(component, primitive, mtl);
+      this._opaqueQueue.pushPrimitive(element);
     }
   }
 

@@ -1,5 +1,6 @@
 import { Side } from "../base/Constant";
 import { Entity } from "../Entity";
+import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Probe } from "./Probe";
 import { PlaneProbeConfig } from "./type";
 
@@ -20,8 +21,8 @@ export class PlaneProbe extends Probe {
    * 预处理材质，保存初始状态
    * */
   private storeMaterial() {
-    this.renderItems.forEach((item) => {
-      const material = item.mtl;
+    this.renderItems.forEach((item: any) => {
+      const material = item.material;
       item.initialSide = material.side;
       material.side = Side.BACK;
     });
@@ -31,8 +32,8 @@ export class PlaneProbe extends Probe {
    * 后处理材质，还原初始状态
    * */
   private restoreMaterial() {
-    this.renderItems.forEach((item) => {
-      const material = item.mtl;
+    this.renderItems.forEach((item: any) => {
+      const material = item.material;
       material.side = item.initialSide;
       delete item.initialSide;
     });

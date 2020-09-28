@@ -1,21 +1,19 @@
 import { AssetObject } from "../asset/AssetObject";
 import { PrimitiveTopology } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
-import { PrimitiveGroup } from "../graphic/PrimitiveGroup";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
+import { Primitive } from "../graphic/Primitive";
+import { PrimitiveGroup } from "../graphic/PrimitiveGroup";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { Primitive } from "../graphic/Primitive";
 import { BoundingBox } from "../RenderableComponent";
 
 /**
  * 缓冲几何体。
  */
 export class BufferGeometry extends AssetObject {
-  private static _geometryCount = 0;
-
-  _primitive: Primitive;
+  _primitive: Primitive = new Primitive();
 
   private _bounds: BoundingBox;
   private _groups: PrimitiveGroup[] = [];
@@ -28,13 +26,6 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 顶点元素集合。
-   */
-  get vertexElements(): Readonly<VertexElement[]> {
-    return this._primitive.vertexElements;
-  }
-
-  /**
    * 索引缓冲绑定信息。
    */
   get indexBufferBinding(): IndexBufferBinding {
@@ -42,14 +33,10 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 实例数量,0 表示关闭。
+   * 顶点元素集合。
    */
-  get instanceCount(): number {
-    return this._primitive.instanceCount;
-  }
-
-  set instanceCount(count: number) {
-    this._primitive.instanceCount = count;
+  get vertexElements(): Readonly<VertexElement[]> {
+    return this._primitive.vertexElements;
   }
 
   /**
@@ -64,6 +51,17 @@ export class BufferGeometry extends AssetObject {
    */
   get groups(): Readonly<PrimitiveGroup[]> {
     return this._groups;
+  }
+
+  /**
+   * 实例数量,0 表示关闭。
+   */
+  get instanceCount(): number {
+    return this._primitive.instanceCount;
+  }
+
+  set instanceCount(count: number) {
+    this._primitive.instanceCount = count;
   }
 
   /**
@@ -83,9 +81,7 @@ export class BufferGeometry extends AssetObject {
    */
   constructor(name?: string) {
     super();
-    name = name || "BufferGeometry" + BufferGeometry._geometryCount++;
-
-    this._primitive = new Primitive();
+    this.name = name;
   }
 
   /**
@@ -153,10 +149,7 @@ export class BufferGeometry extends AssetObject {
    * @param topology - 图元拓扑
    */
   addGroup(offset: number, count: number, topology: PrimitiveTopology = PrimitiveTopology.Triangles): PrimitiveGroup {
-    const drawGroup = new PrimitiveGroup();
-    drawGroup.offset = offset;
-    drawGroup.count = count;
-    drawGroup.topology = topology;
+    const drawGroup = new PrimitiveGroup(offset, count, topology);
     this._groups.push(drawGroup);
     return drawGroup;
   }
@@ -181,7 +174,7 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 释放内部资源对象。
+   * 销毁。
    */
   destroy(): void {
     if (this._primitive) {
@@ -189,9 +182,4 @@ export class BufferGeometry extends AssetObject {
       this._primitive = null;
     }
   }
-
-  /**
-   * @internal
-   */
-  _render(): void {}
 }

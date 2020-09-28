@@ -10,3 +10,4 @@ export { IndexBufferBinding } from "./IndexBufferBinding";
 export { Primitive } from "./Primitive";
 export { VertexBufferBinding } from "./VertexBufferBinding";
 export { VertexElement } from "./VertexElement";
+export { PrimitiveGroup } from "./PrimitiveGroup";

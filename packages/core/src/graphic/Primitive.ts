@@ -1,13 +1,12 @@
 import { AssetObject } from "../asset/AssetObject";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
+import { Buffer } from "../graphic/Buffer";
 import { BufferUtil } from "./BufferUtil";
 import { IndexFormat } from "./enums/IndexFormat";
-import { PrimitiveTopology } from "./enums/PrimitiveTopology";
 import { IndexBufferBinding } from "./IndexBufferBinding";
 import { VertexBufferBinding } from "./VertexBufferBinding";
 import { VertexElement } from "./VertexElement";
-import { Buffer } from "../graphic/Buffer";
 
 /**
  * @private
@@ -15,15 +14,10 @@ import { Buffer } from "../graphic/Buffer";
 export class Primitive extends AssetObject {
   private static _primitiveID: number = 0;
 
-  /** 绘制偏移。*/
-  drawOffset: number = 0;
-  /** 绘制数量。*/
-  drawCount: number = 0;
   /** 实例数量，0 表示关闭实例渲染。*/
   instanceCount: number = 0;
 
   _vertexElementMap: object = {};
-  _topology: PrimitiveTopology;
   _glIndexType: number;
 
   private _vertexBufferBindings: VertexBufferBinding[] = [];

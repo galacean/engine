@@ -6,6 +6,7 @@ import { Camera } from "../Camera";
 import { Logger } from "../base/Logger";
 import { Vector3 } from "@alipay/o3-math";
 import { Component } from "../Component";
+import { RenderElement } from "../RenderPipeline/RenderElement";
 
 /**
  * 负责渲染一个Mesh对象的组件
@@ -49,7 +50,6 @@ export class MeshRenderer extends RenderableComponent {
     }
     mesh._addReference(1);
     this._mesh = mesh;
-    const primitives = mesh.primitives;
     this._sharedMaterials = [];
     this._instanceMaterials = [];
   }
@@ -109,14 +109,16 @@ export class MeshRenderer extends RenderableComponent {
     }
 
     const renderPipeline = camera._renderPipeline;
-    const primitives = mesh.primitives;
+    const { primitives, groups } = mesh;
 
     //-- render every primitive
     for (let i = 0, len = primitives.length; i < len; i++) {
       const primitive = primitives[i];
-      const mtl = this._instanceMaterials[i] || this._sharedMaterials[i];
-      if (mtl) {
-        renderPipeline.pushPrimitive(this, primitive, mtl);
+      const material = this._instanceMaterials[i] || this._sharedMaterials[i];
+      if (material) {
+        const element = RenderElement.getFromPool();
+        element.setValue(this, primitive, groups[i], material);
+        renderPipeline.pushPrimitive(element);
       } else {
         Logger.error("Primitive has no material: " + primitive.name);
       }

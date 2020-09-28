@@ -221,14 +221,14 @@ export class WebGLRenderer implements HardwareRenderer {
    * @param {Primitive} primitive
    * @param {Material} mtl
    */
-  drawPrimitive(primitive, mtl) {
+  drawPrimitive(primitive, group, mtl) {
     // todo: VAO 不支持 morph 动画
     const glPrimitive = this._assetsCache.requireObject(primitive, GLPrimitive);
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
     if (glPrimitive && glTech) {
       glTech.begin(mtl);
-      glPrimitive.draw(glTech);
+      glPrimitive.draw(glTech, group);
       glTech.end();
     } else {
       Logger.error("draw primitive failed.");

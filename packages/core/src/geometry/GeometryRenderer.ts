@@ -1,109 +1,58 @@
-import { Event } from "../base/Event";
+import { Vector3 } from "@alipay/o3-math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
+import { Entity } from "../Entity";
 import { Material } from "../material/Material";
 import { RenderableComponent } from "../RenderableComponent";
+import { RenderElement } from "../RenderPipeline/RenderElement";
 import { BufferGeometry } from "./BufferGeometry";
-import { Entity } from "../Entity";
-import { Vector3 } from "@alipay/o3-math";
 
 /**
- * 几何体渲染类
+ * 几何体渲染器。
  */
 export class GeometryRenderer extends RenderableComponent {
-  protected _geometry: BufferGeometry;
+  _material: Material;
 
-  protected _material: Material;
-
-  /**
-   * @constructor
-   * @param {Entity} entity
-   * @param props
-   */
-  constructor(entity: Entity, props: any = {}) {
-    super(entity, props);
-    this._geometry = props.geometry;
-    this._material = props.material;
-  }
+  private _geometry: BufferGeometry;
 
   /**
-   * 当前绑定的 geometry 对象
-   * @returns {BufferGeometry} 几何体对象
+   * 缓冲几何体。
    */
   get geometry(): BufferGeometry {
     return this._geometry;
   }
 
-  /**
-   * 指定需要渲染的几何体对象；多个 GeometryRenderer 对象可以引用同一个几何体对象
-   * @param {BufferGeometry} geometry 几何体对象
-   */
   set geometry(geometry: BufferGeometry) {
     this._geometry = geometry;
-
-    this.trigger(new Event("geometryChange"));
   }
 
   /**
-   * 设置一个材质（替代默认材质）
-   * @param {Material} mtl 材质对象
+   * 材质。
    */
-  setMaterial(mtl: Material) {
-    this._material = mtl;
-  }
-
-  set material(mtl: Material) {
-    this._material = mtl;
+  set material(value: Material) {
+    this._material = value;
   }
 
   get material(): Material {
     return this._material;
   }
 
-  /**
-   * 获取材质对象
-   * @return {Material}
-   */
-  getMaterial(): Material {
-    return this._material;
-  }
-
-  /**
-   * 执行渲染
-   * @param {CameraComponent} camera
-   * @private
-   */
   render(camera: Camera) {
     const geometry = this._geometry;
-    if (!geometry) {
-      return;
-    }
-    geometry._render();
-    const primitive = geometry._primitive;
-    if (primitive && this._material) {
-      const group = geometry.groups[0]; //CM: need to support multi group
-      primitive.drawOffset = group.offset;
-      primitive.drawCount = group.count;
-      primitive._topology = group.topology;
-
-      camera._renderPipeline.pushPrimitive(this, primitive, this._material);
+    if (geometry) {
+      const groups = geometry.groups;
+      const renderPipeline = camera._renderPipeline;
+      const material = this._material;
+      for (let i = 0, n = groups.length; i < n; i++) {
+        if (material) {
+          const element = RenderElement.getFromPool();
+          element.setValue(this, geometry._primitive, groups[i], material); // CM: need to support multi material
+          renderPipeline.pushPrimitive(element);
+        }
+      }
     } else {
-      Logger.error("primitive or  material is null");
+      Logger.error("geometry is null.");
     }
-  }
-
-  /**
-   * 释放资源
-   * @private
-   */
-  destroy() {
-    super.destroy();
-
-    //-- release mesh
-    this._geometry = null;
-
-    //-- materials
-    this._material = null;
   }
 
   /**

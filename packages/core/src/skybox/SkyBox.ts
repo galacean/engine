@@ -48,6 +48,6 @@ export class SkyBox extends GeometryRenderer {
 
   set skyBoxMap(v) {
     this._skyBoxMap = v;
-    this.getMaterial().setValue("u_cube", v);
+    this.material.setValue("u_cube", v);
   }
 }
