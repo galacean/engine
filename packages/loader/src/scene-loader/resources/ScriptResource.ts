@@ -31,21 +31,28 @@ export class ScriptResource extends SchemaResource {
     this.initScriptContext();
     return new Promise((resolve) => {
       const config = assetConfig as any;
-      const name = config.props.scripts[0].name;
+      const scripts = config.props.scripts;
+
       if (!this.resourceManager.isLocal) {
         const scriptDom = document.createElement("script");
         scriptDom.crossOrigin = "anonymous";
         this.setMeta(assetConfig);
         scriptDom.onload = () => {
           const scripts = (window as any).o3Scripts;
-          this._resource = scripts && scripts[name];
-          scriptAbility[name] = this._resource;
+          for (let i = 0; i < scripts.length; i++) {
+            const name = scripts[i].name;
+            this._resource = scripts && scripts[name];
+            scriptAbility[name] = this._resource;
+          }
           resolve(this);
         };
         scriptDom.src = assetConfig.url;
         document.body.appendChild(scriptDom);
       } else {
-        scriptAbility[name] = oasis.options?.scripts[name];
+        for (let i = 0; i < scripts.length; i++) {
+          const name = scripts[i].name;
+          scriptAbility[name] = oasis.options?.scripts[name];
+        }
         resolve(this);
       }
     });
