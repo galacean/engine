@@ -5,6 +5,7 @@ import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
+ * chenmo.gl
  * 关于 VAO 的改进方案
  * 1）VAO WebGL2.0 一定支持，在 WebGL1.0 下亦为支持率最高的扩展之一，所以我们可以结合 VAO 的 PollyFill 直接删除非 VAO 的实现,精简代码
  * 2）VAO 目前存在隐藏 BUG , 更换 IndexBuffer、VertexBuffer、VertexElements 需要更新对应 VAO

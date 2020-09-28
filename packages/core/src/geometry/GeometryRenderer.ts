@@ -7,6 +7,13 @@ import { RenderElement } from "../RenderPipeline/RenderElement";
 import { BufferGeometry } from "./BufferGeometry";
 
 /**
+ * chenmo.gl
+ * 关于所有渲染组件材质的改进方案
+ * 1）目前 Primitive 已具备数多 Group 能力，材质也需要对应支持
+ * 2）材质的管理实现应放到 RenderableComponent 中实现，包含 sharedMaterial 和 instanceMaterial 机制，目前 MeshRender 等的实现均有问题
+ */
+
+/**
  * 几何体渲染器。
  */
 export class GeometryRenderer extends RenderableComponent {
