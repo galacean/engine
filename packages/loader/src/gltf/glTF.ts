@@ -141,11 +141,11 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLT
   // 开始处理 glTF 数据
   const resources: GLTFParsed = {
     engine,
-    images: data.images,
     gltf: data.gltf,
     buffers: data.buffers,
     asset: new GLTFResource()
   };
+  resources.asset.textures = data.textures;
 
   if (resources.gltf.asset && resources.gltf.asset.version) {
     resources.gltf.version = Number(resources.gltf.asset.version);
@@ -154,8 +154,7 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLT
 
   parseExtensions(resources);
   // parse all related resources
-  return parseResources(resources, "textures", parseTexture)
-    .then(() => parseResources(resources, "materials", parseMaterial))
+  return parseResources(resources, "materials", parseMaterial)
     .then(() => parseResources(resources, "meshes", parseMesh))
     .then(() => parseResources(resources, "nodes", parseNode))
     .then(() => parseResources(resources, "scenes", parseScene))
@@ -228,32 +227,6 @@ function parseResources(resources: GLTFParsed, name: string, handler) {
     });
   }
   return Promise.resolve();
-}
-
-var GLTF_TEX_COUNT = 0;
-
-/**
- * 解析贴图
- * @param gltfTexture
- * @param resources
- * @private
- */
-export function parseTexture(gltfTexture, resources: GLTFParsed) {
-  const { images } = resources;
-
-  // TODO: 暂不支持 gltf wrapS、wrapT 和 minFilter、magFilter 设置
-  const image = images[gltfTexture.source];
-  // const gltfImage = gltf.images[gltfTexture.source];
-
-  GLTF_TEX_COUNT++;
-  // TODO: support gltf texture compress
-  // TODO: modify to engine and order
-  const tex = new Texture2D(image.width, image.height, undefined, undefined, resources.engine);
-  tex.setImageSource(image);
-  tex.generateMipmaps();
-  // @ts-ignore 默认给 texture 加上缓存
-  resources.engine.resourceManager._addAsset(image.src, tex);
-  return Promise.resolve(tex);
 }
 
 /**

@@ -1,3 +1,5 @@
+import { Texture2D } from "@alipay/o3-core";
+
 export type GlTfId = number;
 /**
  * Indices of those attributes that deviate from their initialization value.
@@ -685,7 +687,7 @@ export interface GlTf {
 
 export interface LoadedGLTFResource {
   buffers?: ArrayBuffer[];
-  images?: HTMLImageElement[];
+  textures?: Texture2D[];
   shaders?: string[];
   gltf?: GlTf;
 }
