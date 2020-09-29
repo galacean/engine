@@ -1,4 +1,4 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@alipay/o3-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager, Texture2D } from "@alipay/o3-core";
 import { GlTf, LoadedGLTFResource } from "./GLTF";
 import { parseGLTF, GLTFResource } from "./gltf/glTF";
 import { parseGLB } from "./gltf/glb";
@@ -37,7 +37,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     })
       .then(parseGLB)
       .then((res) => {
-        return { ...res, baseUrl: item.url };
+        return { ...res, baseUrl: item.url, resourceManager };
       })
       .then(this._loadImages);
   };
@@ -73,28 +73,38 @@ export class GLTFLoader extends Loader<GLTFResource> {
           });
         })
       ).then((buffers) => {
-        return { buffers, gltf, baseUrl };
+        return { buffers, gltf, baseUrl, resourceManager };
       });
     }
-    return Promise.resolve({ baseUrl, gltf });
+    return Promise.resolve({ baseUrl, gltf, resourceManager });
   }
 
-  private _loadImages = ({ gltf, buffers, baseUrl }: LoadedGLTFResource & { baseUrl: string }): Promise<any> => {
+  private _loadImages = ({
+    gltf,
+    buffers,
+    baseUrl,
+    resourceManager
+  }: LoadedGLTFResource & { baseUrl: string; resourceManager: ResourceManager }): Promise<any> => {
     if (gltf.images) {
       return Promise.all(
         gltf.images.map(({ uri, bufferView: bufferViewIndex, mimeType }) => {
           if (uri) {
             // 使用 base64 或 url
-            return this.request<HTMLImageElement>(parseRelativeUrl(baseUrl, uri), { type: "image" });
+            return resourceManager.load({ url: parseRelativeUrl(baseUrl, uri), type: AssetType.Texture2D });
           } else {
             // 使用 bufferView
             const bufferView = gltf.bufferViews[bufferViewIndex];
             const bufferData = getBufferData(bufferView, buffers);
-            return loadImageBuffer(bufferData, mimeType);
+            return loadImageBuffer(bufferData, mimeType).then((image) => {
+              const tex = new Texture2D(image.width, image.height, undefined, undefined, resourceManager.engine);
+              tex.setImageSource(image);
+              tex.generateMipmaps();
+              return tex;
+            });
           }
         })
-      ).then((images) => {
-        return { gltf, buffers, images };
+      ).then((textures) => {
+        return { gltf, buffers, textures };
       });
     }
     return Promise.resolve({ gltf, buffers });
