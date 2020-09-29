@@ -82,7 +82,7 @@ export class Script extends Component {
    * @override
    */
   _onEnable(): void {
-    const componentsManager = this.scene._componentsManager;
+    const componentsManager = this.engine._componentsManager;
     const prototype = Script.prototype;
     if (!this._started) {
       componentsManager.addOnStartScript(this);
@@ -102,7 +102,7 @@ export class Script extends Component {
    * @override
    */
   _onDisable(): void {
-    const componentsManager = this.scene._componentsManager;
+    const componentsManager = this.engine._componentsManager;
     const prototype = Script.prototype;
     if (!this._started) {
       componentsManager.removeOnStartScript(this);
@@ -122,6 +122,6 @@ export class Script extends Component {
    * @override
    */
   _onDestroy(): void {
-    this.scene._componentsManager.addDestoryComponent(this);
+    this.engine._componentsManager.addDestoryComponent(this);
   }
 }

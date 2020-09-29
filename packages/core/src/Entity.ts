@@ -426,7 +426,7 @@ export class Entity extends EventDispatcher {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    this._activeChangedComponents = this._engine._componentsManager.getActiveChangedTempList();
     this._setActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(true);
   }
@@ -438,7 +438,7 @@ export class Entity extends EventDispatcher {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    this._activeChangedComponents = this._engine._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(false);
   }
@@ -448,7 +448,7 @@ export class Entity extends EventDispatcher {
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
       activeChangedComponents[i]._setActive(isActive);
     }
-    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    this._engine._componentsManager.putActiveChangedTempList(activeChangedComponents);
     this._activeChangedComponents = null;
   }
 

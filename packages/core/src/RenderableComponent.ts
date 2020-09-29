@@ -64,7 +64,7 @@ export abstract class RenderableComponent extends Component {
   protected _updateBounds(worldBounds: any): void {}
 
   _onEnable() {
-    const componentsManager = this.scene._componentsManager;
+    const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
     }
@@ -72,7 +72,7 @@ export abstract class RenderableComponent extends Component {
   }
 
   _onDisable() {
-    const componentsManager = this.scene._componentsManager;
+    const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }

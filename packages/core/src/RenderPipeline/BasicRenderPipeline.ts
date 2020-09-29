@@ -131,9 +131,6 @@ export class BasicRenderPipeline extends SceneVisitor {
    */
   render() {
     const camera = this._camera;
-    if (!camera.scene.engine._hardwareRenderer) {
-      return;
-    }
     const opaqueQueue = this._opaqueQueue;
     const transparentQueue = this._transparentQueue;
 
@@ -141,8 +138,7 @@ export class BasicRenderPipeline extends SceneVisitor {
     opaqueQueue.clear();
     transparentQueue.clear();
 
-    const scene = camera.scene;
-    scene._componentsManager.callRender(camera);
+    camera.engine._componentsManager.callRender(camera);
     //-- 执行渲染队列
     opaqueQueue.sortByTechnique();
     transparentQueue.sortByDistance(camera.entity.transform.worldPosition);
