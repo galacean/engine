@@ -687,7 +687,6 @@ export interface GlTf {
 
 export interface LoadedGLTFResource {
   buffers?: ArrayBuffer[];
-  // images?: HTMLImageElement[];
   textures?: Texture2D[];
   shaders?: string[];
   gltf?: GlTf;
