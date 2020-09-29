@@ -154,16 +154,13 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLT
 
   parseExtensions(resources);
   // parse all related resources
-  return (
-    parseResources(resources, "materials", parseMaterial)
-      // .then(() => parseResources(resources, "materials", parseMaterial))
-      .then(() => parseResources(resources, "meshes", parseMesh))
-      .then(() => parseResources(resources, "nodes", parseNode))
-      .then(() => parseResources(resources, "scenes", parseScene))
-      .then(() => parseResources(resources, "skins", parseSkin))
-      .then(() => parseResources(resources, "animations", parseAnimation))
-      .then(() => buildSceneGraph(resources))
-  );
+  return parseResources(resources, "materials", parseMaterial)
+    .then(() => parseResources(resources, "meshes", parseMesh))
+    .then(() => parseResources(resources, "nodes", parseNode))
+    .then(() => parseResources(resources, "scenes", parseScene))
+    .then(() => parseResources(resources, "skins", parseSkin))
+    .then(() => parseResources(resources, "animations", parseAnimation))
+    .then(() => buildSceneGraph(resources));
 }
 
 function parseExtensions(resources) {
