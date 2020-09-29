@@ -13,7 +13,7 @@ export class VertexElement {
   private _offset: number;
   private _format: VertexElementFormat;
   private _bindingIndex: number;
-  private _instanceDivisor: number;
+  private _instanceStepRate: number;
 
   /**
    * 顶点输入签名。
@@ -44,33 +44,33 @@ export class VertexElement {
   }
 
   /**
-   * 实例除数，0表示不开启实例，大于1表示开启。
+   * 实例步频，在缓冲中每前进一个顶点绘制的实例数量，非实例元素必须为 0。
    */
-  get instanceDivisor(): number {
-    return this._instanceDivisor;
+  get instanceStepRate(): number {
+    return this._instanceStepRate;
   }
 
   /**
    * 构造顶点元素。
-   * @param semantic - 顶点着色器输入签名。
+   * @param semantic - 顶点着色器输入签名
    * @param offset - 顶点的偏移，以字节为单位
    * @param format - 顶点元素格式
    * @param bindingIndex - 顶点缓冲绑定索引
-   * @param instanceDivisor - 实例除数，0表示不开启实例，大于1表示开启
+   * @param instanceStepRate - 实例步频，在缓冲中每前进一个顶点绘制的实例数量，非实例元素必须为 0
    */
   constructor(
     semantic: string,
     offset: number,
     format: VertexElementFormat,
     bindingIndex: number,
-    instanceDivisor: number = 0
+    instanceStepRate: number = 0
   ) {
     this._semantic = semantic;
     this._offset = offset;
     this._format = format;
     this._bindingIndex = bindingIndex;
     this._glElementInfo = BufferUtil._getElementInfo(this.format);
-    this._instanceDivisor = Math.floor(instanceDivisor);
+    this._instanceStepRate = Math.floor(instanceStepRate);
   }
 
   /**
