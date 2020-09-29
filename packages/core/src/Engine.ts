@@ -244,7 +244,6 @@ export class Engine extends EventDispatcher {
         const cameraEntity = camera.entity;
         if (camera.enabled && cameraEntity.isActiveInHierarchy) {
           componentsManager.callCameraOnBeginRender(camera);
-          debugger;
           Scene.sceneFeatureManager.callFeatureMethod(scene, "preRender", [this, camera]); //TODO:移除
           camera.render();
           Scene.sceneFeatureManager.callFeatureMethod(scene, "postRender", [this, camera]); //TODO:移除
