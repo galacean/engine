@@ -1,4 +1,4 @@
-import { Event, EventDispatcher, Time } from "./base";
+import { Event, EventDispatcher, Logger, Time } from "./base";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Canvas } from "./Canvas";
 import { HardwareRenderer } from "./HardwareRenderer";
@@ -7,6 +7,7 @@ import { FeatureManager } from "./FeatureManager";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { Entity } from "./Entity";
+import { ComponentsManager } from "./ComponentsManager";
 
 /** todo: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -26,6 +27,7 @@ export class Engine extends EventDispatcher {
     return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
   }
 
+  _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: HardwareRenderer;
 
   protected _canvas: Canvas;
@@ -175,12 +177,17 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.beginFrame();
 
     const scene = this._sceneManager._activeScene;
+    const componentsManager = this._componentsManager;
     if (scene) {
-      scene.update(deltaTime);
-      scene.render();
-      scene._componentsManager.callComponentDestory();
+      componentsManager.callScriptOnStart();
+      componentsManager.callScriptOnUpdate(deltaTime);
+      componentsManager.callAnimationUpdate(deltaTime);
+      componentsManager.callScriptOnLateUpdate(deltaTime);
+
+      this._render(scene);
     }
 
+    this._componentsManager.callComponentDestory();
     this._hardwareRenderer.endFrame();
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
@@ -221,6 +228,32 @@ export class Engine extends EventDispatcher {
 
     // todo: delete
     (engineFeatureManager as any)._objects = [];
+  }
+
+  _render(scene: Scene): void {
+    const cameras = scene._activeCameras;
+    const componentsManager = this._componentsManager;
+    const deltaTime = this.time.deltaTime;
+    componentsManager.callRendererOnUpdate(deltaTime);
+    if (cameras.length > 0) {
+      // 针对 priority 进行排序
+      //@ts-ignore
+      cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
+      for (let i = 0, l = cameras.length; i < l; i++) {
+        const camera = cameras[i];
+        const cameraEntity = camera.entity;
+        if (camera.enabled && cameraEntity.isActiveInHierarchy) {
+          componentsManager.callCameraOnBeginRender(camera);
+          debugger;
+          Scene.sceneFeatureManager.callFeatureMethod(scene, "preRender", [this, camera]); //TODO:移除
+          camera.render();
+          Scene.sceneFeatureManager.callFeatureMethod(scene, "postRender", [this, camera]); //TODO:移除
+          componentsManager.callCameraOnEndRender(camera);
+        }
+      }
+    } else {
+      Logger.debug("NO active camera.");
+    }
   }
 
   //-----------------------------------------@deprecated-----------------------------------

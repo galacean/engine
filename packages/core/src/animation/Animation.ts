@@ -451,7 +451,7 @@ export class Animation extends Component {
    * @internal
    */
   _onEnable(): void {
-    this.scene._componentsManager.addOnUpdateAnimations(this);
+    this.engine._componentsManager.addOnUpdateAnimations(this);
   }
 
   /**
@@ -460,7 +460,7 @@ export class Animation extends Component {
    * @internal
    */
   _onDisable(): void {
-    this.scene._componentsManager.removeOnUpdateAnimations(this);
+    this.engine._componentsManager.removeOnUpdateAnimations(this);
   }
 
   /**
