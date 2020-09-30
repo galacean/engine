@@ -43,7 +43,7 @@ export class GeometryShape extends BufferGeometry {
     this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     this.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
     this.setVertexElements(vertexElements);
-    this.addGroup(0, indices.length);
+    this.addSubGeometry(0, indices.length);
 
     this._computeBounds(positionElement, vertices);
   }

@@ -1,10 +1,9 @@
+import { SubGeometry, GeometryTopology } from "..";
 import { AssetObject } from "../asset/AssetObject";
-import { PrimitiveTopology } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { Primitive } from "../graphic/Primitive";
-import { PrimitiveGroup } from "../graphic/PrimitiveGroup";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { BoundingBox } from "../RenderableComponent";
@@ -16,7 +15,7 @@ export class BufferGeometry extends AssetObject {
   _primitive: Primitive = new Primitive();
 
   private _bounds: BoundingBox;
-  private _groups: PrimitiveGroup[] = [];
+  private _subGroups: SubGeometry[] = [];
 
   /**
    * 顶点缓冲绑定信息集合。
@@ -42,15 +41,15 @@ export class BufferGeometry extends AssetObject {
   /**
    * 首个几何体组,使用第一个材质渲染,设置多个几何体组详见 groups 属性。
    */
-  get group(): PrimitiveGroup | null {
-    return this._groups[0] || null;
+  get group(): SubGeometry | null {
+    return this._subGroups[0] || null;
   }
 
   /**
    * 几何体组集合,每组可以使用独立的材质渲染。
    */
-  get groups(): Readonly<PrimitiveGroup[]> {
-    return this._groups;
+  get groups(): Readonly<SubGeometry[]> {
+    return this._subGroups;
   }
 
   /**
@@ -148,19 +147,19 @@ export class BufferGeometry extends AssetObject {
    * @param count - 绘制数量，如果设置了索引缓冲则表示在索引缓冲的数量，如果没有设置则表示在顶点缓冲中的数量
    * @param topology - 几何体拓扑
    */
-  addGroup(offset: number, count: number, topology: PrimitiveTopology = PrimitiveTopology.Triangles): PrimitiveGroup {
-    const drawGroup = new PrimitiveGroup(offset, count, topology);
-    this._groups.push(drawGroup);
+  addSubGeometry(offset: number, count: number, topology: GeometryTopology = GeometryTopology.Triangles): SubGeometry {
+    const drawGroup = new SubGeometry(offset, count, topology);
+    this._subGroups.push(drawGroup);
     return drawGroup;
   }
 
   /**
-   * 移除几何体组。
-   * @param drawGroup - 几何体组
+   * 移除子几何体。
+   * @param subGeometry - 子几何体
    */
-  removeGroup(drawGroup: PrimitiveGroup): void {
-    const drawGroups = this._groups;
-    const index = drawGroups.indexOf(drawGroup);
+  removeSubGeometry(subGeometry: SubGeometry): void {
+    const drawGroups = this._subGroups;
+    const index = drawGroups.indexOf(subGeometry);
     if (index !== -1) {
       drawGroups.splice(index, 1);
     }
@@ -169,8 +168,8 @@ export class BufferGeometry extends AssetObject {
   /**
    * 清空几何体组。
    */
-  clearGroup(): void {
-    this._groups.length = 0;
+  clearSubGeometry(): void {
+    this._subGroups.length = 0;
   }
 
   /**
