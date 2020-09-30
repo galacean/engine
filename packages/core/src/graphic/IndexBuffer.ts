@@ -200,11 +200,13 @@ export class IndexBuffer {
    * 销毁。
    */
   destroy(): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
-    gl.deleteBuffer(this._nativeBuffer);
-    this._nativeBuffer = null;
-    this._engine = null;
-    this._hardwareRenderer = null;
+    if (this._nativeBuffer) {
+      const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
+      gl.deleteBuffer(this._nativeBuffer);
+      this._nativeBuffer = null;
+      this._engine = null;
+      this._hardwareRenderer = null;
+    }
   }
 
   /**
