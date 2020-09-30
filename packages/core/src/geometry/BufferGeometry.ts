@@ -143,10 +143,10 @@ export class BufferGeometry extends AssetObject {
   }
 
   /**
-   * 添加几何体组。
-   * @param offset - 索引缓冲的偏移
-   * @param count - 索引缓冲的数量
-   * @param topology - 图元拓扑
+   * 添加几何体组，每一组可分别对应独立的材质。
+   * @param offset - 起始绘制偏移，如果设置了索引缓冲则表示在索引缓冲的偏移，如果没有设置则表示在顶点缓冲中的偏移
+   * @param count - 绘制数量，如果设置了索引缓冲则表示在索引缓冲的数量，如果没有设置则表示在顶点缓冲中的数量
+   * @param topology - 几何体拓扑
    */
   addGroup(offset: number, count: number, topology: PrimitiveTopology = PrimitiveTopology.Triangles): PrimitiveGroup {
     const drawGroup = new PrimitiveGroup(offset, count, topology);
