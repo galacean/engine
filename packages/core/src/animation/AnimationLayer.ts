@@ -405,8 +405,10 @@ export class AnimationLayer extends EventDispatcher {
    */
   private _activeEvents(deltaTime: number) {
     // 触发Frame Event
+    const index = this._animClip.durationIndex;
+
     if (this._frameEvents.length > 0 && this._channelStates.length > 0) {
-      const curFrameTime = this._channelStates[0].frameTime + deltaTime;
+      const curFrameTime = this._channelStates[index].frameTime + deltaTime;
       for (let i = this._frameEvents.length - 1; i >= 0; i--) {
         const frameEvent = this._frameEvents[i];
         if (!frameEvent.triggered && curFrameTime > frameEvent.triggerTime) {
@@ -416,10 +418,7 @@ export class AnimationLayer extends EventDispatcher {
       }
     }
 
-    if (
-      this._channelStates.length > 0 &&
-      this._channelStates[0].frameTime + deltaTime >= this._animClip.getChannelTimeLength(0)
-    ) {
+    if (this._channelStates.length > 0 && this._channelStates[index].frameTime + deltaTime >= this._animClip.duration) {
       if (this._wrapMode === WrapMode.LOOP) {
         // 重置Frame Event状态
         if (this._frameEvents.length > 0) {

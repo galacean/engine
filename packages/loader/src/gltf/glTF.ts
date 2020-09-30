@@ -598,6 +598,8 @@ export function parseAnimation(gltfAnimation, resources) {
   const animationIdx = gltf.animations.indexOf(gltfAnimation);
   const animationClip = new AnimationClip(gltfAnimation.name || `Animation${animationIdx}`);
 
+  let duration = -1;
+  let durationIndex = -1;
   // parse samplers
   for (let i = 0; i < gltfSamplers.length; i++) {
     const gltfSampler = gltfSamplers[i];
@@ -620,8 +622,16 @@ export function parseAnimation(gltfAnimation, resources) {
         samplerInterpolation = InterpolationType.STEP;
         break;
     }
+    const maxTime = input[input.length - 1];
+    if (maxTime > duration) {
+      duration = maxTime;
+      durationIndex = i;
+    }
     animationClip.addSampler(input, output, outputAccessorSize, samplerInterpolation);
   }
+
+  animationClip.durationIndex = durationIndex;
+  animationClip.duration = duration;
 
   for (let i = 0; i < gltfChannels.length; i++) {
     const gltfChannel = gltfChannels[i];
