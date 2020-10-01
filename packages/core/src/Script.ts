@@ -104,7 +104,11 @@ export class Script extends Component {
   _onDisable(): void {
     const componentsManager = this.engine._componentsManager;
     const prototype = Script.prototype;
-    if (!this._started) {
+    /**
+     * use onStartIndex is more safe,
+     * even is not start, but maybe it still not in the queue,for example write "entity.isActive = false" in onWake().
+     */
+    if (this._onStartIndex !== -1) {
       componentsManager.removeOnStartScript(this);
     }
     if (this.onUpdate !== prototype.onUpdate) {
