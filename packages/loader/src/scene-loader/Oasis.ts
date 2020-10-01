@@ -74,7 +74,7 @@ export class Oasis extends EventDispatcher {
         console.warn(`${asset.type} loader is not defined. the ${asset.type} type will be ignored.`);
         return false;
       })
-      .map(this.resourceManager.load);
+      .map((asset) => this.resourceManager.load(asset));
 
     return Promise.all(loadingPromises);
   }
