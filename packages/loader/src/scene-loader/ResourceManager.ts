@@ -14,7 +14,7 @@ import {
 } from "./resources";
 import { AssetConfig } from "./types";
 
-const RESOURCE_CLASS = {
+export const RESOURCE_CLASS = {
   script: ScriptResource,
   gltf: GLTFResource,
   texture: TextureResource,
@@ -45,11 +45,7 @@ for (const key in RESOURCE_CLASS) {
 
 const resourceFactory = {
   createResource(resourceManager: SchemaResourceManager, type: string): SchemaResource {
-    const ResourceConstructor = RESOURCE_CLASS[type];
-    if (!ResourceConstructor) {
-      console.warn(type, "!!!");
-    }
-    return new ResourceConstructor(resourceManager);
+    return new RESOURCE_CLASS[type](resourceManager);
   }
 };
 
