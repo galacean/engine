@@ -66,17 +66,15 @@ export class Oasis extends EventDispatcher {
   private loadResources(): Promise<any> {
     const { assets = {} } = this.schema;
 
-    const keys = Object.keys(assets);
-    const loadingPromises = [];
-    const len = keys.length;
-    for (let i = 0; i < len; i++) {
-      const asset = assets[keys[i]];
-      if (!RESOURCE_CLASS[asset.type]) {
-        console.warn(`${asset.type} loader is not defined. the ${asset.type} type will be ignored.`);
-      } else {
-        loadingPromises.push(this.resourceManager.load(asset));
-      }
-    }
+    const loadingPromises = Object.values(assets)
+      .filter((asset) => {
+        if (!RESOURCE_CLASS[asset.type]) {
+          console.warn(`${asset.type} loader is not defined. the ${asset.type} type will be ignored.`);
+          return false;
+        }
+        return true;
+      })
+      .map(this.resourceManager.load);
 
     return Promise.all(loadingPromises);
   }
