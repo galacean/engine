@@ -148,7 +148,8 @@ export class TrailRenderer extends GeometryRenderer {
 
     geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     geometry.setVertexElements(vertexElements);
-    geometry.addSubGeometry(0, vertexCount, PrimitiveTopology.TriangleStrip);
+    geometry.subGeometry.count = vertexCount;
+    geometry.subGeometry.topology = PrimitiveTopology.TriangleStrip;
 
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride;

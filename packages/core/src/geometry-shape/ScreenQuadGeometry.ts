@@ -1,9 +1,8 @@
 import { Engine } from "../Engine";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { GeometryShape } from "./GeometryShape";
-import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
-import { GeometryTopology } from "../geometry";
 
 /**
  * 覆盖整个屏幕的一个矩形
@@ -17,7 +16,7 @@ export class ScreenQuadGeometry extends GeometryShape {
     const indices: Uint16Array = new Uint16Array([0, 1, 2, 3]);
 
     this._initialize(engine, vertices, indices);
-    this.subGeometry.topology = GeometryTopology.TriangleFan;
+    this.subGeometry.topology = PrimitiveTopology.TriangleFan;
   }
 
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {

@@ -173,10 +173,10 @@ export abstract class Probe extends Component {
   protected render() {
     const context = RenderContext._getRenderContext(this.camera);
     this.renderItems.forEach((item: RenderElement) => {
-      const { component, primitive, group, material } = item;
+      const { component, primitive, subPrimitive, material } = item;
       if (!(component.renderPassFlag & this.renderPassFlag)) return;
       material.prepareDrawing(context, component, primitive);
-      this.rhi.drawPrimitive(primitive, group, material);
+      this.rhi.drawPrimitive(primitive, subPrimitive, material);
     });
   }
 

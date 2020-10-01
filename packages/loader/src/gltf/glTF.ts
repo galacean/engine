@@ -9,6 +9,7 @@ import {
   Engine,
   EngineObject,
   Entity,
+  IndexBufferBinding,
   IndexFormat,
   InterpolationType,
   Logger,
@@ -21,12 +22,11 @@ import {
   Scene,
   Skin,
   SkinnedMeshRenderer,
+  SubPrimitive,
   Texture2D,
   Util,
   VertexBufferBinding,
-  IndexBufferBinding,
-  VertexElement,
-  PrimitiveGroup
+  VertexElement
 } from "@alipay/o3-core";
 import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -456,7 +456,7 @@ export function parseSkin(gltfSkin, resources) {
 function parsePrimitiveVertex(
   mesh: Mesh,
   primitive: Primitive,
-  primitiveGroup: PrimitiveGroup,
+  primitiveGroup: SubPrimitive,
   gltfPrimitive,
   gltf,
   buffers,
@@ -585,10 +585,10 @@ export function parseMesh(gltfMesh, resources) {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
         const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
-        const primitiveGroup = new PrimitiveGroup();
-        groups.push(primitiveGroup);
+        const subPrimitive = new SubPrimitive();
+        groups.push(subPrimitive);
         primitive.type = resources.assetType;
-        primitiveGroup.topology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
+        subPrimitive.topology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
           primitive.targets = [];
           (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);
@@ -599,15 +599,7 @@ export function parseMesh(gltfMesh, resources) {
           const extension = gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression];
           vertexPromise = extensionParser.parse(extension, primitive, gltfPrimitive, gltf, buffers);
         } else {
-          vertexPromise = parsePrimitiveVertex(
-            mesh,
-            primitive,
-            primitiveGroup,
-            gltfPrimitive,
-            gltf,
-            buffers,
-            resources
-          );
+          vertexPromise = parsePrimitiveVertex(mesh, primitive, subPrimitive, gltfPrimitive, gltf, buffers, resources);
         }
         vertexPromise
           .then((processedPrimitive) => {

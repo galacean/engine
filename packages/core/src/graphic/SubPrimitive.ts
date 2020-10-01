@@ -1,9 +1,9 @@
 import { PrimitiveTopology } from "./enums/PrimitiveTopology";
 
 /**
- * 图元组。
+ * 子图元。
  */
-export class PrimitiveGroup {
+export class SubPrimitive {
   /** 起始绘制偏移。*/
   start: number;
   /** 绘制数量。*/
@@ -12,7 +12,7 @@ export class PrimitiveGroup {
   topology: PrimitiveTopology;
 
   /**
-   * 创建图元组。
+   * 创建子图元。
    * @param start - 起始绘制偏移
    * @param count - 数量
    * @param topology - 图元拓扑

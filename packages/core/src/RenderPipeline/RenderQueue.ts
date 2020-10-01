@@ -156,7 +156,7 @@ export class RenderQueue {
         material.preRender?.(element.component, element.primitive);
 
         material.prepareDrawing(context, element.component, element.primitive, element.material);
-        rhi.drawPrimitive(element.primitive, element.group, material);
+        rhi.drawPrimitive(element.primitive, element.subPrimitive, material);
 
         material.postRender?.(element.component, element.primitive);
       } else {

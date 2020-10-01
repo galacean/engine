@@ -1,5 +1,5 @@
-import { GeometryTopology, SubGeometry } from "..";
 import { AssetObject } from "../asset/AssetObject";
+import { SubPrimitive, PrimitiveTopology } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
@@ -15,7 +15,7 @@ export class BufferGeometry extends AssetObject {
   _primitive: Primitive = new Primitive();
 
   private _bounds: BoundingBox;
-  private _subGeometries: SubGeometry[] = [];
+  private _subGeometries: SubPrimitive[] = [];
 
   /**
    * 顶点缓冲绑定信息集合。
@@ -41,14 +41,14 @@ export class BufferGeometry extends AssetObject {
   /**
    * 首个子几何体,使用第一个材质渲染,设置多个几何体组详见 subGeometrys 属性。
    */
-  get subGeometry(): SubGeometry | null {
+  get subGeometry(): SubPrimitive | null {
     return this._subGeometries[0] || null;
   }
 
   /**
    * 子几何体集合,每个子几何体可以使用独立的材质渲染。
    */
-  get subGeometries(): Readonly<SubGeometry[]> {
+  get subGeometries(): Readonly<SubPrimitive[]> {
     return this._subGeometries;
   }
 
@@ -81,6 +81,7 @@ export class BufferGeometry extends AssetObject {
   constructor(name?: string) {
     super();
     this.name = name;
+    this.addSubGeometry(0, 0, PrimitiveTopology.Triangles);
   }
 
   /**
@@ -147,8 +148,12 @@ export class BufferGeometry extends AssetObject {
    * @param count - 绘制数量，如果设置了索引缓冲则表示在索引缓冲的数量，如果没有设置则表示在顶点缓冲中的数量
    * @param topology - 几何体拓扑
    */
-  addSubGeometry(start: number, count: number, topology: GeometryTopology = GeometryTopology.Triangles): SubGeometry {
-    const drawGroup = new SubGeometry(start, count, topology);
+  addSubGeometry(
+    start: number,
+    count: number,
+    topology: PrimitiveTopology = PrimitiveTopology.Triangles
+  ): SubPrimitive {
+    const drawGroup = new SubPrimitive(start, count, topology);
     this._subGeometries.push(drawGroup);
     return drawGroup;
   }
@@ -157,7 +162,7 @@ export class BufferGeometry extends AssetObject {
    * 移除子几何体。
    * @param subGeometry - 子几何体
    */
-  removeSubGeometry(subGeometry: SubGeometry): void {
+  removeSubGeometry(subGeometry: SubPrimitive): void {
     const subGeometries = this._subGeometries;
     const index = subGeometries.indexOf(subGeometry);
     if (index !== -1) {

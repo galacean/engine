@@ -1,5 +1,5 @@
 import { GLCapabilityType, Logger, Primitive } from "@alipay/o3-core";
-import { PrimitiveGroup } from "@alipay/o3-core/types/graphic/PrimitiveGroup";
+import { SubPrimitive } from "@alipay/o3-core/types/graphic/SubPrimitive";
 import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -78,7 +78,7 @@ export class GLPrimitive extends GLAsset {
   /**
    * 执行绘制操作。
    */
-  draw(tech: GLTechnique, group: PrimitiveGroup) {
+  draw(tech: GLTechnique, subPrimitive: SubPrimitive) {
     const gl = this.rhi.gl;
     const primitive = this._primitive;
 
@@ -93,7 +93,7 @@ export class GLPrimitive extends GLAsset {
     }
 
     const { indexBufferBinding, instanceCount, _glIndexType } = primitive;
-    const { topology, start, count } = group;
+    const { topology, start, count } = subPrimitive;
 
     if (!instanceCount) {
       if (indexBufferBinding) {

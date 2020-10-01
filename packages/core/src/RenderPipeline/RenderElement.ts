@@ -1,5 +1,5 @@
 import { Primitive } from "../graphic";
-import { PrimitiveGroup } from "../graphic/PrimitiveGroup";
+import { SubPrimitive } from "../graphic/SubPrimitive";
 import { Material } from "../material/Material";
 import { RenderableComponent } from "../RenderableComponent";
 
@@ -37,15 +37,15 @@ export class RenderElement {
   component: RenderableComponent;
   /** 图元。 */
   primitive: Primitive;
-  /** 图元组。 */
-  group: PrimitiveGroup;
+  /** 子图元。 */
+  subPrimitive: SubPrimitive;
   /** 材质。 */
   material: Material;
 
-  setValue(component: RenderableComponent, primitive: Primitive, group: PrimitiveGroup, material: Material): void {
+  setValue(component: RenderableComponent, primitive: Primitive, subPrimitive: SubPrimitive, material: Material): void {
     this.component = component;
     this.primitive = primitive;
-    this.group = group;
+    this.subPrimitive = subPrimitive;
     this.material = material;
   }
 }
