@@ -68,11 +68,11 @@ export class Oasis extends EventDispatcher {
 
     const loadingPromises = Object.values(assets)
       .filter((asset) => {
-        if (!RESOURCE_CLASS[asset.type]) {
-          console.warn(`${asset.type} loader is not defined. the ${asset.type} type will be ignored.`);
-          return false;
+        if (RESOURCE_CLASS[asset.type]) {
+          return true;
         }
-        return true;
+        console.warn(`${asset.type} loader is not defined. the ${asset.type} type will be ignored.`);
+        return false;
       })
       .map(this.resourceManager.load);
 
