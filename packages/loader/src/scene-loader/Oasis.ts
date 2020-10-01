@@ -2,7 +2,7 @@ import { Engine, EventDispatcher } from "@alipay/o3-core";
 import { AbilityManager } from "./AbilityManager";
 import { NodeManager } from "./NodeManager";
 import { pluginHook, PluginManager } from "./plugins/PluginManager";
-import { SchemaResourceManager } from "./ResourceManager";
+import { RESOURCE_CLASS, SchemaResourceManager } from "./ResourceManager";
 import { Options, Schema } from "./types";
 
 export class Oasis extends EventDispatcher {
@@ -66,7 +66,17 @@ export class Oasis extends EventDispatcher {
   private loadResources(): Promise<any> {
     const { assets = {} } = this.schema;
 
-    const loadingPromises = Object.values(assets).map((asset) => this.resourceManager.load(asset));
+    const keys = Object.keys(assets);
+    const loadingPromises = [];
+    const len = keys.length;
+    for (let i = 0; i < len; i++) {
+      const asset = assets[keys[i]];
+      if (!RESOURCE_CLASS[asset.type]) {
+        console.warn(`${asset.type} loader is not defined. the ${asset.type} type will be ignored.`);
+      } else {
+        loadingPromises.push(this.resourceManager.load(asset));
+      }
+    }
 
     return Promise.all(loadingPromises);
   }
