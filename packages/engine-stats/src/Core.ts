@@ -56,7 +56,7 @@ export default class Core {
     this.samplingIndex = 0;
 
     let data = {
-      fps: delta ? Math.min(60, (1000 / delta) >> 0) : 0,
+      fps: delta ? (1000 / delta) >> 0 : 0,
       memory: performance.memory && (performance.memory.usedJSHeapSize / 1048576) >> 0,
       drawCall: this.drawCallHook.drawCall,
       triangles: this.drawCallHook.triangles,
