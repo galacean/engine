@@ -98,13 +98,13 @@ export class BufferGeometry extends AssetObject {
   setVertexBufferBindings(vertexBufferBinding: VertexBufferBinding, index: number): void;
 
   /**
-   * 设置顶点缓冲。
+   * 设置顶点缓冲集合。
    * @param vertexBufferBindings - 顶点缓冲绑定
    */
   setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[]): void;
 
   /**
-   * 设置顶点缓冲。
+   * 设置顶点缓冲集合。
    * @param vertexBufferBindings - 顶点缓冲绑定
    * @param firstIndex - 第一个顶点缓冲索引
    */
