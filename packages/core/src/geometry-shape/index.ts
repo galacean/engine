@@ -7,4 +7,3 @@ export { CircleGeometry } from "./CircleGeometry";
 export { ScreenQuadGeometry } from "./ScreenQuadGeometry";
 export { TorusGeometry } from "./TorusGeometry";
 export { ShapeGeometry } from "./ShapeGeometry";
-export { Model } from "./Model";

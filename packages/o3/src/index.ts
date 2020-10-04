@@ -11,7 +11,6 @@ import {
   DirectLight,
   EnvironmentMapLight,
   GeometryRenderer,
-  Model,
   Particle,
   PointLight,
   SkyBox,
@@ -21,7 +20,6 @@ import {
 import { Parser, GLTFModel } from "@alipay/o3-loader";
 
 Parser.registerComponents("o3", {
-  Model,
   GLTFModel,
   SpriteRenderer,
   PointLight,
