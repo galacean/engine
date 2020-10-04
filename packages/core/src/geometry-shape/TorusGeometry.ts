@@ -1,9 +1,9 @@
 import { Engine } from "../Engine";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
-import { GeometryShape } from "./GeometryShape";
+import { ShapeGeometry } from "./ShapeGeometry";
 
-export class TorusGeometry extends GeometryShape {
+export class TorusGeometry extends ShapeGeometry {
   constructor(
     private parameters: {
       radius?: number;

@@ -12,7 +12,7 @@ import { VertexElement } from "../graphic/VertexElement";
 /**
  * 基本形状几何体。
  */
-export class GeometryShape extends BufferGeometry {
+export class ShapeGeometry extends BufferGeometry {
   /**
    * @internal
    */

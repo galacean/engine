@@ -1,13 +1,12 @@
 import { Vector3 } from "@alipay/o3-math";
 import { FrontFace } from "../base/Constant";
-import { GeometryShape } from "./GeometryShape";
 import { Engine } from "../Engine";
+import { ShapeGeometry } from "./ShapeGeometry";
 
 /**
  * SphereGeometry 球体创建类
- * @extends BufferGeometry
  */
-export class CylinderGeometry extends GeometryShape {
+export class CylinderGeometry extends ShapeGeometry {
   public FrontFace;
   public index;
   public indexArray;

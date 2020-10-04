@@ -1,11 +1,10 @@
 import { Engine } from "../Engine";
-import { GeometryShape } from "./GeometryShape";
-import { FrontFace } from "../base";
+import { ShapeGeometry } from "./ShapeGeometry";
 
 /**
  * 长方体
  */
-export class CuboidGeometry extends GeometryShape {
+export class CuboidGeometry extends ShapeGeometry {
   /**
    * 创建长方体。
    * @param width - 宽

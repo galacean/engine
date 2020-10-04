@@ -1,10 +1,10 @@
 import { Entity } from "../Entity";
 import { GeometryRenderer } from "../geometry/GeometryRenderer";
 import { BlinnPhongMaterial } from "../mobile-material/BlinnPhongMaterial";
-import { CuboidGeometry } from "./Cuboid";
-import { CylinderGeometry } from "./Cylinder";
-import { PlaneGeometry } from "./Plane";
-import { SphereGeometry } from "./Sphere";
+import { CuboidGeometry } from "./CuboidGeometry";
+import { CylinderGeometry } from "./CylinderGeometry";
+import { PlaneGeometry } from "./PlaneGeometry";
+import { SphereGeometry } from "./SphereGeometry";
 
 export class Model extends GeometryRenderer {
   set geometryType(value: GeometryType) {

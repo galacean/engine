@@ -1,11 +1,10 @@
 import { Engine } from "../Engine";
-import { GeometryShape } from "./GeometryShape";
+import { ShapeGeometry } from "./ShapeGeometry";
 
 /**
  * CubeGeometry 平面创建类
- * @extends BufferGeometry
  */
-export class PlaneGeometry extends GeometryShape {
+export class PlaneGeometry extends ShapeGeometry {
   private _parameters;
   private halfWidth;
   private halfHeight;

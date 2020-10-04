@@ -1,6 +1,5 @@
-import { GeometryShape } from "./GeometryShape";
 import { Engine } from "../Engine";
-import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { ShapeGeometry } from "./ShapeGeometry";
 
 interface CircleGeometryOptions {
   radius?: number;
@@ -8,7 +7,7 @@ interface CircleGeometryOptions {
   thetaStart?: number;
   thetaLength?: number;
 }
-export class CircleGeometry extends GeometryShape {
+export class CircleGeometry extends ShapeGeometry {
   /**
    * 顶点
    */

@@ -2,13 +2,13 @@ import { Engine } from "../Engine";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
-import { GeometryShape } from "./GeometryShape";
+import { ShapeGeometry } from "./ShapeGeometry";
 
 /**
  * 覆盖整个屏幕的一个矩形
  * @private
  */
-export class ScreenQuadGeometry extends GeometryShape {
+export class ScreenQuadGeometry extends ShapeGeometry {
   constructor(engine?: Engine) {
     super();
     const vertices: Float32Array = new Float32Array([-1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1]);

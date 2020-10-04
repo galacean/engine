@@ -1,6 +1,6 @@
 import { SkyBoxMaterial } from "./SkyBoxMaterial";
 import { GeometryRenderer } from "../geometry/GeometryRenderer";
-import { CuboidGeometry } from "../geometry-shape/Cuboid";
+import { CuboidGeometry } from "../geometry-shape/CuboidGeometry";
 
 /**
  * 天空盒组件

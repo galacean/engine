@@ -1,12 +1,10 @@
 import { Engine } from "../Engine";
-import { BufferGeometry } from "../geometry";
-import { GeometryShape } from "./GeometryShape";
+import { ShapeGeometry } from "./ShapeGeometry";
 
 /**
  * SphereGeometry 球体创建类
- * @extends BufferGeometry
  */
-export class SphereGeometry extends GeometryShape {
+export class SphereGeometry extends ShapeGeometry {
   private _parameters;
   private _thetaEnd;
 
