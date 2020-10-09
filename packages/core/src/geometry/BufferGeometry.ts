@@ -156,9 +156,9 @@ export class BufferGeometry extends EngineObject {
     count: number,
     topology: PrimitiveTopology = PrimitiveTopology.Triangles
   ): SubPrimitive {
-    const drawGroup = new SubPrimitive(start, count, topology);
-    this._subGeometries.push(drawGroup);
-    return drawGroup;
+    const subGeometry = new SubPrimitive(start, count, topology);
+    this._subGeometries.push(subGeometry);
+    return subGeometry;
   }
 
   /**
