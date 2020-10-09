@@ -1,4 +1,4 @@
-import { AssetObject } from "../asset/AssetObject";
+import { EngineObject } from "../base";
 import { SubPrimitive, PrimitiveTopology } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
@@ -11,7 +11,10 @@ import { BoundingBox } from "../RenderableComponent";
 /**
  * 缓冲几何体。
  */
-export class BufferGeometry extends AssetObject {
+export class BufferGeometry extends EngineObject {
+  /** 名称。*/
+  public name: string;
+
   _primitive: Primitive = new Primitive();
 
   private _bounds: BoundingBox;

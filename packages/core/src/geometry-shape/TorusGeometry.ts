@@ -16,8 +16,6 @@ export class TorusGeometry extends ShapeGeometry {
   ) {
     super();
 
-    this.type = "TorusBufferGeometry";
-
     const radius = this.parameters.radius || 1;
     const tube = this.parameters.tube || 0.4;
     const radialSegments = Math.floor(this.parameters.radialSegments) || 8;
