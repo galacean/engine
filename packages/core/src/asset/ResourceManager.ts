@@ -209,10 +209,14 @@ export class ResourceManager {
     const loader = ResourceManager._loaders[info.type];
     const promise = loader.load(info, this);
     this._loadingPromises[url] = promise;
-    promise.then((res) => {
-      if (loader.useCache) this._addAsset(url, res);
-      delete this._loadingPromises[url];
-    });
+    promise
+      .then((res) => {
+        if (loader.useCache) this._addAsset(url, res);
+        delete this._loadingPromises[url];
+      })
+      .catch(() => {
+        // then 会产生一个新的 promise，若是报错没有 catch 会导致 uncaught error
+      });
     return promise;
   }
 }
