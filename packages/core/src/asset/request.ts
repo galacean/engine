@@ -59,8 +59,8 @@ function requestImage<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject) => {
     const { timeout } = config;
     const img = new Image();
-    const onerror = (e: Event) => {
-      reject(e);
+    const onerror = () => {
+      reject(new Error(`request ${url} fail`));
     };
     img.onerror = onerror;
 
