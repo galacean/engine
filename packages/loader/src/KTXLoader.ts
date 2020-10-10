@@ -12,14 +12,14 @@ export class KTXLoader extends Loader<Texture2D> {
         .then((bin) => {
           const parsedData = parseSingleKTX(bin);
           const { width, height, mipmaps, engineFormat } = parsedData;
-          const texture = new Texture2D(width, height, engineFormat, undefined, resourceManager.engine);
+          const mipmap = mipmaps.length > 1;
+          const texture = new Texture2D(width, height, engineFormat, mipmap, resourceManager.engine);
 
-          if (texture._glTexture) {
-            for (let miplevel = 0; miplevel < mipmaps.length; miplevel++) {
-              const { width, height, data } = mipmaps[miplevel];
-              texture.setPixelBuffer(data, miplevel, 0, 0, width, height);
-            }
+          for (let miplevel = 0; miplevel < mipmaps.length; miplevel++) {
+            const { width, height, data } = mipmaps[miplevel];
+            texture.setPixelBuffer(data, miplevel, 0, 0, width, height);
           }
+
           resolve(texture);
         })
         .catch((e) => {
