@@ -266,7 +266,7 @@ export class Camera extends Component {
   }
 
   /**
-   * 渲染目标，设置后会渲染到渲染目标上，如果为空则渲染到屏幕上。
+   * 渲染目标，设置后会渲染到渲染目标上，如果为空则渲染到主画布。
    */
   get renderTarget(): RenderTarget | null {
     return this._renderTarget;
