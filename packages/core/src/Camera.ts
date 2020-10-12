@@ -3,11 +3,11 @@ import { ClearMode } from "./base";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { TextureCubeFace } from "./texture/enums";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
 /**
  * @todo 数学库改造

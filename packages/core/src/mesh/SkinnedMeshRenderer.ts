@@ -1,6 +1,6 @@
 import { Matrix } from "@alipay/o3-math";
 import { Entity } from "../Entity";
-import { TextureFormat } from "../texture/enums";
+import { TextureFormat } from "../texture/enums/TextureFormat";
 import { Texture2D } from "../texture/Texture2D";
 import { Mesh } from "./Mesh";
 import { MeshRenderer } from "./MeshRenderer";

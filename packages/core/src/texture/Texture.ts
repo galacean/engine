@@ -3,14 +3,12 @@ import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "../material/type";
-import {
-  RenderBufferColorFormat,
-  RenderBufferDepthFormat,
-  TextureCubeFace,
-  TextureFilterMode,
-  TextureFormat,
-  TextureWrapMode
-} from "./enums";
+import { RenderBufferColorFormat } from "./enums/RenderBufferColorFormat";
+import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
+import { TextureCubeFace } from "./enums/TextureCubeFace";
+import { TextureFilterMode } from "./enums/TextureFilterMode";
+import { TextureFormat } from "./enums/TextureFormat";
+import { TextureWrapMode } from "./enums/TextureWrapMode";
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */

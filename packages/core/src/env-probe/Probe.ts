@@ -7,7 +7,7 @@ import { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RenderPass } from "../RenderPipeline/RenderPass";
-import { RenderBufferDepthFormat } from "../texture/enums";
+import { RenderBufferDepthFormat } from "../texture/enums/RenderBufferDepthFormat";
 import { RenderColorTexture } from "../texture/RenderColorTexture";
 import { RenderDepthTexture } from "../texture/RenderDepthTexture";
 import { RenderTarget } from "../texture/RenderTarget";

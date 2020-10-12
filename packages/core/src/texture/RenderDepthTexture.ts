@@ -1,6 +1,8 @@
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
-import { RenderBufferDepthFormat, TextureFilterMode, TextureWrapMode } from "./enums";
+import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
+import { TextureFilterMode } from "./enums/TextureFilterMode";
+import { TextureWrapMode } from "./enums/TextureWrapMode";
 import { Texture } from "./Texture";
 
 /**

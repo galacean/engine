@@ -1,17 +1,16 @@
 import { MathUtil, Vector3 } from "@alipay/o3-math";
 import { BlendFunc, DataType, MaterialType, RenderState, UniformSemantic } from "../base/Constant";
 import { BufferGeometry, GeometryRenderer } from "../geometry";
+import { Buffer } from "../graphic/Buffer";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
-import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { Buffer } from "../graphic/Buffer";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
-import { TextureWrapMode } from "../texture/enums";
-import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
-import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
 
 /**
  * GPU粒子系统渲染类

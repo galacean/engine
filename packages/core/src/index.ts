@@ -58,21 +58,12 @@ export { SkinnedMeshRenderer } from "./mesh/SkinnedMeshRenderer";
 export { LODGroup } from "./mesh/LODGroup";
 
 // material
-
 export { Material } from "./material/Material";
 export { ComplexMaterial } from "./material/ComplexMaterial";
 export { RenderTechnique } from "./material/RenderTechnique";
 export * from "./material/type";
 
-// texture
-export { Texture } from "./texture/Texture";
-export { Texture2D } from "./texture/Texture2D";
-export { TextureCubeMap } from "./texture/TextureCubeMap";
-export { RenderTarget } from "./texture/RenderTarget";
-export { RenderColorTexture } from "./texture/RenderColorTexture";
-export { RenderDepthTexture } from "./texture/RenderDepthTexture";
-export * from "./texture/enums";
-
+export * from "./texture/index";
 export * from "./graphic/index";
 export * from "./2d/index";
 export * from "./shaderlib/index";
@@ -88,6 +79,6 @@ export * from "./rayCast/index";
 export * from "./collider/index";
 export * from "./collision/index";
 export * from "./fog/index";
-export * from "./env-probe";
+export * from "./env-probe/index";
 export * from "./shadow/index";
 export * from "./request/index";
