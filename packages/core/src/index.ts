@@ -93,4 +93,3 @@ export * from "./collision/index";
 export * from "./fog/index";
 export * from "./env-probe";
 export * from "./shadow/index";
-export * from "./request/index";
