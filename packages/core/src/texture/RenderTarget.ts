@@ -1,4 +1,4 @@
-import { AssetObject } from "../asset/AssetObject";
+import { EngineObject } from "../base";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
@@ -11,7 +11,7 @@ import { Texture } from "./Texture";
 /**
  * 用于离屏幕渲染的渲染目标。
  */
-export class RenderTarget extends AssetObject {
+export class RenderTarget extends EngineObject {
   public _frameBuffer: WebGLFramebuffer;
   public _MSAAFrameBuffer: WebGLFramebuffer | null;
 

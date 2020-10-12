@@ -5,7 +5,6 @@ import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
 import { GLRenderStates } from "./GLRenderStates";
-import { GLRenderTarget } from "./GLRenderTarget";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLExtension } from "./type";
@@ -267,11 +266,12 @@ export class WebGLRenderer implements HardwareRenderer {
    * @param {RenderTarget} renderTarget  需要被激活的RenderTarget对象，如果未设置，则渲染到屏幕帧
    */
   activeRenderTarget(renderTarget: RenderTarget, camera: Camera) {
+    const gl = this._gl;
     if (renderTarget) {
-      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
-      glRenderTarget.activeRenderTarget();
+      renderTarget._activeRenderTarget();
+      const { width, height } = renderTarget;
+      gl.viewport(0.0, 0.0, width, height);
     } else {
-      const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       const viewport = camera.viewport;
       const width = gl.drawingBufferWidth;
@@ -283,8 +283,10 @@ export class WebGLRenderer implements HardwareRenderer {
   /** blit FBO */
   blitRenderTarget(renderTarget: RenderTarget) {
     if (renderTarget) {
-      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
-      glRenderTarget.blitRenderTarget();
+      if (renderTarget._MSAAFrameBuffer) {
+        renderTarget._blitRenderTarget();
+        return;
+      }
     }
   }
 
@@ -295,8 +297,7 @@ export class WebGLRenderer implements HardwareRenderer {
    * */
   setRenderTargetFace(renderTarget: RenderTarget, faceIndex: number) {
     if (renderTarget) {
-      const glRenderTarget = this._assetsCache.requireObject(renderTarget, GLRenderTarget);
-      glRenderTarget.setRenderTargetFace(faceIndex);
+      renderTarget._setRenderTargetFace(faceIndex);
     }
   }
 
