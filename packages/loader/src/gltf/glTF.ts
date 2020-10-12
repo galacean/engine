@@ -263,7 +263,7 @@ export function parseMaterial(gltfMaterial, resources) {
         metallicRoughnessTexture
       } = pbrMetallicRoughness;
       if (baseColorTexture) {
-        uniformObj.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources);
+        uniformObj.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources, false);
       }
       if (baseColorFactor) {
         uniformObj.baseColorFactor = new Vector4(...baseColorFactor);
@@ -271,13 +271,18 @@ export function parseMaterial(gltfMaterial, resources) {
       uniformObj.metallicFactor = metallicFactor !== undefined ? metallicFactor : 1;
       uniformObj.roughnessFactor = roughnessFactor !== undefined ? roughnessFactor : 1;
       if (metallicRoughnessTexture) {
-        uniformObj.metallicRoughnessTexture = getItemByIdx("textures", metallicRoughnessTexture.index || 0, resources);
+        uniformObj.metallicRoughnessTexture = getItemByIdx(
+          "textures",
+          metallicRoughnessTexture.index || 0,
+          resources,
+          false
+        );
       }
     }
 
     if (normalTexture) {
       const { index, texCoord, scale } = normalTexture;
-      uniformObj.normalTexture = getItemByIdx("textures", index || 0, resources);
+      uniformObj.normalTexture = getItemByIdx("textures", index || 0, resources, false);
 
       if (typeof scale !== undefined) {
         uniformObj.normalScale = scale;
@@ -285,11 +290,11 @@ export function parseMaterial(gltfMaterial, resources) {
     }
 
     if (emissiveTexture) {
-      uniformObj.emissiveTexture = getItemByIdx("textures", emissiveTexture.index || 0, resources);
+      uniformObj.emissiveTexture = getItemByIdx("textures", emissiveTexture.index || 0, resources, false);
     }
 
     if (occlusionTexture) {
-      uniformObj.occlusionTexture = getItemByIdx("textures", occlusionTexture.index || 0, resources);
+      uniformObj.occlusionTexture = getItemByIdx("textures", occlusionTexture.index || 0, resources, false);
 
       if (occlusionTexture.strength !== undefined) {
         uniformObj.occlusionStrength = occlusionTexture.strength;
@@ -322,7 +327,7 @@ export function parseMaterial(gltfMaterial, resources) {
           uniformObj.baseColorFactor = new Vector4(...diffuseFactor);
         }
         if (diffuseTexture) {
-          uniformObj.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources);
+          uniformObj.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources, false);
         }
         if (specularFactor) {
           uniformObj.specularFactor = new Vector3(...specularFactor);
@@ -334,7 +339,8 @@ export function parseMaterial(gltfMaterial, resources) {
           uniformObj.specularGlossinessTexture = getItemByIdx(
             "textures",
             specularGlossinessTexture.index || 0,
-            resources
+            resources,
+            false
           );
         }
       }
@@ -376,7 +382,7 @@ export function parseMaterial(gltfMaterial, resources) {
         if (Util.isArray(textureIndex)) {
           textureIndex = textureIndex[0];
         }
-        const texture = getItemByIdx("textures", textureIndex, resources);
+        const texture = getItemByIdx("textures", textureIndex, resources, false);
         material.setValue(name, texture);
       } else {
         material.setValue(name, gltfMaterial.values[paramName]);
@@ -741,10 +747,10 @@ export function parseScene(gltfScene, resources) {
  * @returns {*}
  * @private
  */
-export function getItemByIdx(name, idx, resources) {
+export function getItemByIdx(name, idx, resources, inverse: boolean = true) {
   const { asset } = resources;
 
-  const itemIdx = asset[name].length - idx - 1;
+  const itemIdx = inverse ? asset[name].length - idx - 1 : idx;
   return asset[name][itemIdx];
 }
 
