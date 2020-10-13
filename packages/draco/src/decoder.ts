@@ -1,4 +1,4 @@
-import { Logger, loadAll } from "@alipay/o3-core";
+import { Logger } from "@alipay/o3-core";
 
 import { DRACOWorker, ITaskConfig } from "./DRACOWorker";
 
@@ -39,18 +39,20 @@ export class DRACODecoder {
       loadQueue["wasm"] = { type: "binary", props: { url: `${LIB_PATH}${WASM_FILE}` } };
       loadQueue["wrapper"] = { type: "text", props: { url: `${LIB_PATH}${WASM_WRAPPER_FILE}` } };
     }
+
     return new Promise((resolve, reject) => {
-      loadAll(loadQueue, (err, res) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        const workerStrings = [this.useJS ? res["js"] : res["wrapper"], workerString];
-        const body = workerStrings.join("\n");
-        const workerSourceURL = URL.createObjectURL(new Blob([body]));
-        let decoderWASMBinary = this.useJS ? null : res["wasm"];
-        resolve({ workerSourceURL, decoderWASMBinary });
-      });
+      // TODO: 直接使用Promise.all 和 新版加载函数
+      // loadAll(loadQueue, (err, res) => {
+      //   if (err) {
+      //     reject(err);
+      //     return;
+      //   }
+      //   const workerStrings = [this.useJS ? res["js"] : res["wrapper"], workerString];
+      //   const body = workerStrings.join("\n");
+      //   const workerSourceURL = URL.createObjectURL(new Blob([body]));
+      //   let decoderWASMBinary = this.useJS ? null : res["wasm"];
+      //   resolve({ workerSourceURL, decoderWASMBinary });
+      // });
     });
   }
 
