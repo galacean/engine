@@ -133,7 +133,7 @@ export class Material extends ReferenceObject {
     if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {
       this._technique = null;
     }
-    if (value) {
+    if (value != null) {
       this._values[name] = value;
     } else {
       this.delValue(name);
