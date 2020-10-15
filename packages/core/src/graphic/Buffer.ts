@@ -158,13 +158,14 @@ export class Buffer {
       gl.bufferData(glBindTarget, this._byteLength, this._glBufferUsage);
     }
 
-    const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1; //TypeArray is BYTES_PER_ELEMENT , unTypeArray is 1
-    dataLength = dataLength ?? (this._byteLength - bufferByteOffset) / byteSize;
-    const dataByteLength = byteSize * dataLength;
+    // TypeArray is BYTES_PER_ELEMENT, unTypeArray is 1
+    const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1;
+    const dataByteLength = dataLength ? byteSize * dataLength : data.byteLength;
+
     if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
       if (isWebGL2 && isArrayBufferView) {
-        gl.bufferSubData(glBindTarget, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataLength);
+        gl.bufferSubData(glBindTarget, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataByteLength / byteSize);
       } else {
         const subData = new Uint8Array(
           isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
