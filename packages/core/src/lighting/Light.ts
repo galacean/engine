@@ -33,7 +33,6 @@ export abstract class Light extends Component {
   }
 
   /**
-   * @constructor
    * @param {Entity} entity 节点对象
    */
   constructor(entity: Entity) {

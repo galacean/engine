@@ -11,8 +11,8 @@ export class Collider extends Component {
    * collider flg
    */
   tag: MaskList = MaskList.EVERYTHING;
+
   /**
-   * @constructor
    * @param {Entity} entity
    */
   constructor(entity: Entity) {

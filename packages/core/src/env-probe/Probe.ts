@@ -104,9 +104,9 @@ export abstract class Probe extends Component {
   }
 
   /**
-   *探针基类
+   * 探针基类
    * @param {Entity} entity
-   * */
+   */
   protected constructor(entity: Entity) {
     super(entity);
     this.cacheId = cacheId++;

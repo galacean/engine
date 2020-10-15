@@ -213,7 +213,7 @@ export class Entity extends EventDispatcher {
    * @param type - 组件类型
    * @returns	组件实例
    */
-  addComponent<T extends Component>(type: new (entity: any) => T): T {
+  addComponent<T extends Component>(type: new (entity: Entity) => T): T {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this);
     this._components.push(component);

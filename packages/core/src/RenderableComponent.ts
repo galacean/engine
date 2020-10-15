@@ -39,7 +39,7 @@ export abstract class RenderableComponent extends Component {
     return this._bounds;
   }
 
-  constructor(entity: Entity) {
+  protected constructor(entity: Entity) {
     super(entity);
     const prototype = RenderableComponent.prototype;
     this._overrideUpdate = this.update !== prototype.update;
