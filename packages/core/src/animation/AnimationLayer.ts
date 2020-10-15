@@ -428,9 +428,11 @@ export class AnimationLayer extends EventDispatcher {
           }
         }
         // 激活Loop End Event
+        // @ts-ignore
         if (this.hasEvent(AnimationEvent.LOOP_END)) {
           this._activedEvents.push(new Event(AnimationEvent.LOOP_END, this));
         }
+        // @ts-ignore
       } else if (this.hasEvent(AnimationEvent.FINISHED)) {
         // 激活Finish Event
         this._activedEvents.push(new Event(AnimationEvent.FINISHED, this));
