@@ -480,7 +480,7 @@ function parsePrimitiveVertex(
       BufferUsage.Static
     );
     vertexBuffer.setData(bufferData);
-    primitive.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, stride), i++);
+    primitive.setVertexBufferBinding(vertexBuffer, stride, i++);
 
     // compute bounds
     if (vertexELement.semantic == "POSITION") {

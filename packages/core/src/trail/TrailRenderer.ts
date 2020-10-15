@@ -146,7 +146,7 @@ export class TrailRenderer extends GeometryRenderer {
     ];
     const vertexBuffer = new Buffer(this.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
 
-    geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
+    geometry.setVertexBufferBinding(vertexBuffer, vertexStride);
     geometry.setVertexElements(vertexElements);
     geometry.addSubGeometry(0, vertexCount, PrimitiveTopology.TriangleStrip);
 

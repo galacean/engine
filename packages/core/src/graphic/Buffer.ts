@@ -106,21 +106,21 @@ export class Buffer {
 
   /**
    * 设置缓冲数据。
-   * @param data - 缓冲数据
+   * @param data - 数据
    */
   setData(data: ArrayBuffer | ArrayBufferView): void;
 
   /**
    * 设置缓冲数据。
-   * @param data - 缓冲数据
-   * @param bufferByteOffset - 缓冲偏移，以字节为单位
+   * @param data - 数据
+   * @param bufferByteOffset - 缓冲写入偏移，以字节为单位
    */
   setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number): void;
 
   /**
    * 设置缓冲数据。
-   * @param data - 缓冲数据
-   * @param bufferByteOffset - 缓冲偏移，以字节为单位
+   * @param data - 数据
+   * @param bufferByteOffset - 缓冲写入偏移，以字节为单位
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
    */
@@ -129,7 +129,7 @@ export class Buffer {
   /**
    * 设置缓冲数据。
    * @param data - 数据
-   * @param bufferByteOffset - 缓冲偏移，以字节为单位
+   * @param bufferByteOffset - 缓冲写入偏移，以字节为单位
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
    * @param options - 操作选项
