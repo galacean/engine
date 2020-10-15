@@ -39,7 +39,10 @@ export abstract class RenderableComponent extends Component {
     return this._bounds;
   }
 
-  protected constructor(entity: Entity) {
+  /**
+   * @internal
+   */
+  constructor(entity: Entity) {
     super(entity);
     const prototype = RenderableComponent.prototype;
     this._overrideUpdate = this.update !== prototype.update;
@@ -59,6 +62,7 @@ export abstract class RenderableComponent extends Component {
   }
 
   abstract render(camera: Camera): void;
+
   update(deltaTime: number): void {}
 
   protected _updateBounds(worldBounds: any): void {}

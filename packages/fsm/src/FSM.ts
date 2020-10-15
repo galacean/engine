@@ -10,8 +10,6 @@ export class FSM extends Script {
   /**
    * @constructor
    * @param {Entity} entity 所属的Node对象
-   * @param {Object} props 资源配置
-   * @param {string} props.name 名称
    */
   constructor(entity) {
     super(entity);

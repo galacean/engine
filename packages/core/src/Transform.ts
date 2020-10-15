@@ -298,14 +298,6 @@ export class Transform extends Component {
   }
 
   /**
-   * @internal
-   * 构建一个变换组件。
-   */
-  constructor(entity?: Entity) {
-    super(entity);
-  }
-
-  /**
    * 通过位置的 X Y Z 设置局部位置。
    * @param x - 位置的 X 坐标
    * @param y - 位置的 Y 坐标

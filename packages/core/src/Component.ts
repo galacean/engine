@@ -62,10 +62,6 @@ export abstract class Component extends EventDispatcher {
     return this._entity.engine;
   }
 
-  /**
-   * 创建组件实例。
-   * @param entity - 对象所在实体
-   */
   constructor(entity: Entity) {
     super();
     this._entity = entity;
