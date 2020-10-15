@@ -211,7 +211,6 @@ export class Entity extends EventDispatcher {
   /**
    * 根据组件类型添加组件。
    * @param type - 组件类型
-   * @param props - 组件属性 //deprecated
    * @returns	组件实例
    */
   addComponent<T extends Component>(type: new (entity: any) => T): T {
@@ -229,7 +228,7 @@ export class Entity extends EventDispatcher {
    * @param type - 组件类型
    * @returns	组件实例
    */
-  getComponent<T extends Component>(type: new (entity: Entity, props?: object) => T): T {
+  getComponent<T extends Component>(type: new (entity: Entity) => T): T {
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
@@ -244,7 +243,7 @@ export class Entity extends EventDispatcher {
    * @param results - 组件实例集合
    * @returns	组件实例集合
    */
-  getComponents<T extends Component>(type: new (entity: Entity, props?: object) => T, results: Array<T>): Array<T> {
+  getComponents<T extends Component>(type: new (entity: Entity) => T, results: Array<T>): Array<T> {
     results.length = 0;
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
