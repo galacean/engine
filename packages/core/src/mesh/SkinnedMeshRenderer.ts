@@ -2,7 +2,6 @@ import { Matrix } from "@alipay/o3-math";
 import { Entity } from "../Entity";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { Texture2D } from "../texture/Texture2D";
-import { Mesh } from "./Mesh";
 import { MeshRenderer } from "./MeshRenderer";
 import { Skin } from "./Skin";
 
@@ -29,14 +28,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @param entity
    * @param props
    */
-  constructor(entity: Entity, props: { mesh?: Mesh; skin?: Skin; weights?: number[]; rootNodes?: Entity[] } = {}) {
-    super(entity, props);
+  constructor(entity: Entity) {
+    super(entity);
     this._mat = new Matrix();
     this._weights = null;
     this._skin = null;
-
-    this.skin = props.skin;
-    this.setWeights(props.mesh?.weights);
   }
 
   /**

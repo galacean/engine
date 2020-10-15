@@ -16,7 +16,6 @@ export class Primitive extends AssetObject {
 
   /** 实例数量，0 表示关闭实例渲染。*/
   instanceCount: number = 0;
-
   _vertexElementMap: object = {};
   _glIndexType: number;
 

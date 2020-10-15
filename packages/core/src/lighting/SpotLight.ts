@@ -8,65 +8,21 @@ import { Light } from "./Light";
  */
 export class SpotLight extends Light {
   private _forward: Vector3 = new Vector3();
+
   private _lightColor: Vector3;
   private _inverseDirection: Vector3;
-  public color: Vector3;
-  public penumbra: number;
-  public distance: number;
-  public intensity: number;
-  public decay: number;
-  public angle: number;
+  public color: Vector3 = new Vector3(1, 1, 1);
+  public penumbra: number = 0;
+  public distance: number = 0;
+  public intensity: number = 1.0;
+  public decay: number = 0;
+  public angle: number = Math.PI / 6;
   /**
    * @constructor
    * @param {Entity} entity 节点对象
-   * @param {Object} props 参数对象
-   * @param {string} [props.name = spotLight] 名称
-   * @param {Vector3} [props.color = new Vector3(1, 1, 1)] 颜色
-   * @param {number} [props.intensity = 1] 光照强度
-   * @param {number} [props.distance = 0] 辐射距离
-   * @param {number} [props.decay = 0] 衰减系数
-   * @param {number} [props.angle = Math.PI / 6] 散射角度
-   * @param {number} [props.penumbra = 0] 半影衰减系数 ( 0 - 1 )
    */
-  constructor(entity, props) {
+  constructor(entity) {
     super(entity);
-    this.name = props.name || "spotLight";
-
-    /**
-     * 颜色
-     * @member {Vector3}
-     */
-    this.color = props.color || new Vector3(1, 1, 1);
-
-    /**
-     * 光照强度
-     * @member {number}
-     */
-    this.intensity = props.intensity || 1.0;
-
-    /**
-     * 辐射距离
-     * @member {number}
-     */
-    this.distance = props.distance || 0;
-
-    /**
-     * 衰减系数
-     * @member {number}
-     */
-    this.decay = props.decay || 0;
-
-    /**
-     * 半影衰减系数
-     * @member {number}
-     */
-    this.penumbra = props.penumbra || 0;
-
-    /**
-     * 散射角(弧度)
-     * @member {number}
-     */
-    this.angle = props.angle || Math.PI / 6;
 
     this._lightColor = new Vector3();
     this._inverseDirection = new Vector3();

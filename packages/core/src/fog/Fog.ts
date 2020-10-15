@@ -1,21 +1,15 @@
 import { Vector3 } from "@alipay/o3-math";
-import { FogFeature } from "./FogFeature";
 import { Component } from "../Component";
+import { FogFeature } from "./FogFeature";
 
 /**
  * 雾基类
  */
 export class Fog extends Component {
-  public color: Vector3;
+  public color: Vector3 = new Vector3(1, 0, 0);
 
-  constructor(node, props) {
-    super(node, props);
-
-    /**
-     * 雾颜色
-     * @member {Vector3}
-     */
-    this.color = props.color === undefined ? new Vector3(1, 0, 0) : props.color;
+  constructor(node) {
+    super(node);
   }
 
   /**

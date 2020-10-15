@@ -1,28 +1,11 @@
-import { ABoxCollider } from "./ABoxCollider";
 import { Vector3 } from "@alipay/o3-math";
 import { Entity } from "../Entity";
+import { ABoxCollider } from "./ABoxCollider";
 
 export class BoxCollider extends ABoxCollider {
   private _center: Vector3 = new Vector3();
   private _size: Vector3 = new Vector3();
   private isShowCollider: boolean = true;
-
-  constructor(
-    entity: Entity,
-    props?: {
-      center: Vector3;
-      size: Vector3;
-      isShowCollider: boolean;
-    }
-  ) {
-    super(entity, props);
-
-    const { center, size, isShowCollider } = props;
-
-    this.center = center ?? this.center;
-    this.size = size ?? this.size;
-    this.isShowCollider = isShowCollider ?? this.isShowCollider;
-  }
 
   get center(): Vector3 {
     return this._center;
@@ -40,5 +23,12 @@ export class BoxCollider extends ABoxCollider {
   set size(value: Vector3) {
     this._size = value;
     this.setBoxCenterSize(this._center, this._size);
+  }
+
+  constructor(entity: Entity) {
+    super(entity);
+    this.center = this.center;
+    this.size = this.size;
+    this.isShowCollider = this.isShowCollider;
   }
 }

@@ -530,14 +530,6 @@ export class Transform extends Component {
   }
 
   /**
-   * @internal
-   */
-  _cloneTo(target: Transform): Transform {
-    target.localMatrix = this.localMatrix;
-    return target;
-  }
-
-  /**
    * 获取 worldMatrix：会触发自身以及所有父节点的worldMatrix更新
    * 获取 worldPosition：会触发自身 position 和自身 worldMatrix 以及所有父节点的 worldMatrix 更新
    * 综上所述：任何一个相关变量更新都会造成其中一条完成链路（worldMatrix）的脏标记为 false

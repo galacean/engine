@@ -7,51 +7,11 @@ import { Light } from "./Light";
  * @extends Light
  */
 export class PointLight extends Light {
-  public color: Vector3;
-  public intensity: number;
-  public distance: number;
-  public decay: number;
-  private _lightColor: Vector3;
-  /**
-   * @constructor
-   * @param {Entity} entity 节点对象
-   * @param {Object} props 参数对象
-   * @param {string} [props.name = pointLight] 名称
-   * @param {Vector3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
-   * @param {number} [props.intensity=1] 光照强度
-   * @param {number} [props.distance=0] 辐射距离
-   * @param {number} [props.decay=0] 衰减系数
-   */
-  constructor(entity, props) {
-    super(entity, props);
-    this.name = props.name || "pointLight";
-
-    /**
-     * 颜色
-     * @member {Vector3}
-     */
-    this.color = props.color || new Vector3(1, 1, 1);
-
-    /**
-     * 光照强度
-     * @member {number}
-     */
-    this.intensity = props.intensity || 1.0;
-
-    /**
-     * 辐射距离
-     *  @member {number}
-     */
-    this.distance = props.distance !== undefined ? props.distance : 0;
-
-    /**
-     * 衰减系数
-     * @member {number}
-     */
-    this.decay = props.decay !== undefined ? props.decay : 0;
-
-    this._lightColor = new Vector3();
-  }
+  public color: Vector3 = new Vector3(1, 1, 1);
+  public intensity: number = 1.0;
+  public distance: number = 0;
+  public decay: number = 0;
+  private _lightColor: Vector3 = new Vector3();
 
   /** 获取点光源位置
    * @return {Vector3} 位置坐标

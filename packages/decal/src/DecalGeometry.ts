@@ -73,7 +73,7 @@ export class DecalGeometry extends BufferGeometry {
 
     this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     this.setVertexElements(vertexElements);
-    this.subGeometry.count = vertexCount;
+    this.addSubGeometry(0, vertexCount);
 
     this._vertexStride = vertexStride;
     this._vertices = vertices;

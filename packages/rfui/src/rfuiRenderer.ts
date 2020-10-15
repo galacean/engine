@@ -1,8 +1,15 @@
-import { BlendFunc, RenderState, FrontFace, GeometryRenderer, PlaneGeometry, CylinderGeometry } from "@alipay/o3-core";
-import { Vector4, Vector2 } from "@alipay/o3-math";
-import { RfuiMaterial } from "./rfuiMaterial";
+import {
+  BlendFunc,
+  CylinderGeometry,
+  FrontFace,
+  GeometryRenderer,
+  PlaneGeometry,
+  RenderState,
+  Texture2D
+} from "@alipay/o3-core";
+import { Vector2, Vector4 } from "@alipay/o3-math";
 import { RfuiAnimation } from "./animation/rfuiAnimation";
-import { Texture2D } from "@alipay/o3-core";
+import { RfuiMaterial } from "./rfuiMaterial";
 
 /**
  * Rfui 渲染类
@@ -57,7 +64,7 @@ export class RfuiRenderer extends GeometryRenderer {
    * @param {boolean} [props.isAnimatingTexture = false]  是否为动画贴图（需要每帧刷新贴图内容）
    */
   constructor(entity, props) {
-    super(entity, props);
+    super(entity);
     this.type = "rfui";
     this.texrureType = props.texrureType || "image";
     this.geometryType = props.geometryType || "plane";
@@ -78,14 +85,14 @@ export class RfuiRenderer extends GeometryRenderer {
       }
     };
 
-    this.initGeometry();
-    this.initMaterial();
+    this.initGeometry(props);
+    this.initMaterial(props);
     this.initAnimation();
   }
 
-  initGeometry() {
-    if ((this._props as any).geometry) {
-      this.geometry = (this._props as any).geometry;
+  initGeometry(props) {
+    if ((props as any).geometry) {
+      this.geometry = (props as any).geometry;
     } else {
       if (this.geometryType === "plane") {
         const horizontalSegments = this._geometryParam.horizontalSegments || 1;
@@ -99,16 +106,16 @@ export class RfuiRenderer extends GeometryRenderer {
     }
   }
 
-  initMaterial() {
-    if ((this._props as any).material) {
-      this.material = (this._props as any)._material;
+  initMaterial(props) {
+    if ((props as any).material) {
+      this.material = (props as any)._material;
     } else {
       if (this.geometryType === "cylinder") {
         this._states.functions.frontFace = [FrontFace.CW];
       }
 
       const material = new RfuiMaterial("rfui_mtl");
-      material.renderStates = Object.assign({}, this._states, (this._props as any).renderStates);
+      material.renderStates = Object.assign({}, this._states, (props as any).renderStates);
       material.diffuse = this._diffuse;
       material.mask = this._mask;
       material.uvVelocity = this._uvVelocity;

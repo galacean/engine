@@ -12,8 +12,6 @@ export abstract class Component extends EventDispatcher {
   /* @internal */
   _destroyed: boolean = false;
 
-  protected _props: object;
-
   private _enabled: boolean = true;
   private _awaked: boolean = false;
 
@@ -67,11 +65,9 @@ export abstract class Component extends EventDispatcher {
   /**
    * 创建组件实例。
    * @param entity - 对象所在实体
-   * @param props - 配置参数
    */
-  constructor(entity: Entity, props: object = {}) {
+  constructor(entity: Entity) {
     super();
-    this._props = props;
     this._entity = entity;
 
     this._renderPassFlag = MaskList.EVERYTHING; // @deprecated
@@ -120,12 +116,6 @@ export abstract class Component extends EventDispatcher {
       this._onInActive();
     }
   }
-
-  /**
-   * @todo 临时方案，未来组件可以统一使用浅拷贝解决
-   * @internal
-   */
-  _cloneTo(desComponent: Component): void {}
 
   //---------------------------------------------Deprecated-----------------------------------------------------------------
 

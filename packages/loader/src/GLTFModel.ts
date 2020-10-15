@@ -74,19 +74,25 @@ export class GLTFModel extends Component {
   private _autoPlay: string;
   private _hasBuiltNode: boolean = false;
 
-  constructor(entity, props) {
-    super(entity, props);
+  constructor(entity) {
+    super(entity);
+  }
 
+  /**
+   * 初始化。
+   * @param props - 初始化属性
+   */
+  init(props): void {
     const { asset = null, autoPlay, loop, isClone } = props;
     if (isClone) {
-      const rootName = (this._props as any).gltfRootName;
+      const rootName = (props as any).gltfRootName;
       if (rootName) {
         this.GLTFNode = this.entity.findByName(rootName);
       }
     }
     if (!this.GLTFNode) {
       const rootName = `GLTF-${Date.now()}`;
-      (this._props as any).gltfRootName = rootName;
+      (props as any).gltfRootName = rootName;
       this.GLTFNode = this.entity.createChild(rootName);
       this._hasBuiltNode = false;
     } else {

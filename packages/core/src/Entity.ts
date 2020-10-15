@@ -1,5 +1,6 @@
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { EventDispatcher } from "./base";
+import { CloneModeManager } from "./clone/cloneManager";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
@@ -213,9 +214,9 @@ export class Entity extends EventDispatcher {
    * @param props - 组件属性 //deprecated
    * @returns	组件实例
    */
-  addComponent<T extends Component>(type: new (entity: any, props?: object) => T, props: object = {}): T {
+  addComponent<T extends Component>(type: new (entity: any) => T): T {
     ComponentsDependencies._addCheck(this, type);
-    const component = new type(this, props);
+    const component = new type(this);
     this._components.push(component);
     if (this._isActiveInHierarchy) {
       component._setActive(true);
@@ -359,13 +360,12 @@ export class Entity extends EventDispatcher {
       newNode.addChild(childNode.clone());
     }
 
-    const abilityArray = this._components || [];
-    const len = abilityArray.length;
-    for (let i = 0; i < len; i++) {
-      const ability = abilityArray[i];
-      if (!(ability instanceof Transform)) {
-        const newCom = newNode.addComponent(ability.constructor as any, (ability as any)._props);
-        ability._cloneTo(newCom); //CM: 未来统一走浅拷贝
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const comp = components[i];
+      if (!(comp instanceof Transform)) {
+        const targetComp = newNode.addComponent(comp.constructor as any);
+        CloneModeManager.cloneComponent(comp, targetComp);
       }
     }
 

@@ -432,7 +432,7 @@ export class GPUParticleSystem extends GeometryRenderer {
     geometry.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
     geometry.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
     geometry.setVertexElements(vertexElements);
-    geometry.subGeometry.count = indices.length;
+    geometry.addSubGeometry(0, indices.length);
 
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride;

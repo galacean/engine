@@ -69,35 +69,22 @@ export class OrbitControl extends Script {
   /**
    * 轨道控制器构造函数
    * @param {Entity} entity 挂载节点
-   * @param {Object} props 轨道控制器参数，包含以下项
-   * @property {Canvas|HTMLElement} [props.mainElement=RHI.canvas] 获取事件的HTMLElement对象，推荐使用绘制的canvas
-   * @property {HTMLElement} [props.domElement=document] 获取顶级事件的HTMLElement对象。
-   * @property {fov} [props.fov=45] 透视相机的视场角大小，影响控制器的控制精度
-   * @property {Vector3} [props.target=[0,0,0]] 围绕的目标点，默认原点
    */
-  constructor(
-    entity: Entity,
-    props?: {
-      domElement?: HTMLElement | Document;
-      fov?: number;
-      target?: Vector3;
-      mainElement?: HTMLCanvasElement;
-    }
-  ) {
+  constructor(entity: Entity) {
     super(entity);
 
     this.camera = entity;
     //@ts-ignore @todo 未来移除对html元素的依赖，通过封装引擎的input实现
-    this.mainElement = props.mainElement || this.scene.engine.canvas._webCanvas;
-    this.domElement = props.domElement || document;
-    this.fov = props.fov || 45;
+    this.mainElement = this.scene.engine.canvas._webCanvas;
+    this.domElement = document;
+    this.fov = 45;
 
     if (!(this.mainElement instanceof HTMLCanvasElement)) {
       Logger.warn("OrbitControls must have a legal mainElement");
       return null;
     }
     // 目标点
-    this.target = props.target || new Vector3();
+    this.target = new Vector3();
 
     // up向量
     this.up = new Vector3(0, 1, 0);

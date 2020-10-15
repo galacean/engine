@@ -1,7 +1,7 @@
-import { Probe } from "./Probe";
 import { Matrix, Vector3 } from "@alipay/o3-math";
-import { CubeProbeConfig } from "./type";
 import { Entity } from "../Entity";
+import { Probe } from "./Probe";
+import { CubeProbeConfig } from "./type";
 
 const cacheTarget: Vector3 = new Vector3();
 const cacheUp: Vector3 = new Vector3();
@@ -23,14 +23,20 @@ export class CubeProbe extends Probe {
   /**
    * 创建探针
    * @param {Entity} node
-   * @param {CubeProbeConfig} config - 可选配置
    * */
-  constructor(node: Entity, config: CubeProbeConfig = {}) {
-    super(node, {
+  constructor(node: Entity) {
+    super(node);
+  }
+
+  /**
+   * 初始化探针。
+   * @param config - 初始化配置
+   */
+  public init(config: CubeProbeConfig = {}): void {
+    super.init({
       ...config,
       isCube: true
     });
-
     this.position = config.position || new Vector3();
   }
 

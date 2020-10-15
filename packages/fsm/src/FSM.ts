@@ -13,10 +13,9 @@ export class FSM extends Script {
    * @param {Object} props 资源配置
    * @param {string} props.name 名称
    */
-  constructor(entity, props: { name? } = {}) {
-    super(entity, props);
-
-    this._machine = new Machine(props.name);
+  constructor(entity) {
+    super(entity);
+    this._machine = new Machine("machine");
   }
 
   /** 当前的 Machine 对象

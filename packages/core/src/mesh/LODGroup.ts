@@ -5,16 +5,7 @@ import { RenderableComponent } from "../RenderableComponent";
  * 离散 LOD 层级渲染控制：根据对象占用屏幕高度的百分比，切换不同的 Renderer
  */
 export class LODGroup extends RenderableComponent {
-  private _lods;
-  /**
-   * 构造函数
-   * @param {Entity} entity 对象所在节点
-   * @param {Object} props  配置参数
-   */
-  constructor(entity, props) {
-    super(entity, props);
-    this._lods = [];
-  }
+  private _lods = [];
 
   /**
    * 添加一个 LOD 层级

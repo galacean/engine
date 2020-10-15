@@ -1,7 +1,7 @@
-import { ColliderFeature } from "./ColliderFeature";
 import { MaskList } from "../base/Constant";
-import { Entity } from "../Entity";
 import { Component } from "../Component";
+import { Entity } from "../Entity";
+import { ColliderFeature } from "./ColliderFeature";
 
 /**
  * 碰撞体组件的基类, 定义碰撞体的数据
@@ -10,15 +10,13 @@ export class Collider extends Component {
   /**
    * collider flg
    */
-  tag: MaskList;
+  tag: MaskList = MaskList.EVERYTHING;
   /**
    * @constructor
    * @param {Entity} entity
    */
-  constructor(entity: Entity, props?: any) {
-    super(entity, props);
-
-    this.tag = props.tag || MaskList.EVERYTHING;
+  constructor(entity: Entity) {
+    super(entity);
   }
 
   /** 事件回调：在对象Enable的时候，挂载到当前的Scene

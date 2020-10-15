@@ -13,8 +13,8 @@ export class ASphereCollider extends Collider {
    * @constructor
    * @param {Entity} entity
    */
-  constructor(entity: Entity, props: any) {
-    super(entity, props);
+  constructor(entity: Entity) {
+    super(entity);
 
     /**
      * 球心的坐标(在Local坐标系)

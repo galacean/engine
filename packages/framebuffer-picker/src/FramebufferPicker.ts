@@ -6,38 +6,35 @@ import { ColorRenderPass } from "./ColorRenderPass";
  * Framebuffer 对象选择组件
  */
 class FramebufferPicker extends Script {
-  public camera: Camera;
   public colorRenderTarget: RenderTarget;
   public colorRenderPass: ColorRenderPass;
 
+  private _camera: Camera;
   private _needPick: boolean;
   private _pickPos: [number, number];
 
   /**
+   * 相机。
+   */
+  get camera(): Camera {
+    return this._camera;
+  }
+
+  set camera(value: Camera) {
+    if (this._camera !== value) {
+      this._camera = value;
+      this.camera._renderPipeline.addRenderPass(this.colorRenderPass);
+    }
+  }
+
+  /**
    * 构造函数
    * @param {Entity} entity 组件节点
-   * @param {Object} props 组件参数，包含以下项
-   * @param {Camera} props.camera 相机对象
-   * @param {number} [props.width=1024] RenderTarget 的宽度
-   * @param {number} [props.height=1024] RenderTarget 的高度
-   * @param {MaskList} [props.mask=0] 掩膜，用来过滤不需要选取的物体
-   * @param {Function} [props.onPick] 选取物体后的回调函数
    */
-  constructor(
-    entity: Entity,
-    props: {
-      camera: Camera;
-      mask?: MaskList;
-      width?: number;
-      height?: number;
-      onPick: Function;
-    }
-  ) {
-    super(entity, props);
-
-    this.camera = props.camera;
-    const width = props.width || 1024;
-    const height = props.height || 1024;
+  constructor(entity: Entity) {
+    super(entity);
+    const width = 1024;
+    const height = 1024;
     this.colorRenderTarget = new RenderTarget(
       width,
       height,
@@ -46,17 +43,7 @@ class FramebufferPicker extends Script {
       undefined,
       this.engine
     );
-    this.colorRenderPass = new ColorRenderPass(
-      "ColorRenderTarget_FBP",
-      -1,
-      this.colorRenderTarget,
-      props.mask || 0,
-      this.engine
-    );
-    this.camera._renderPipeline.addRenderPass(this.colorRenderPass);
-    if (props.onPick) {
-      this.onPick = props.onPick;
-    }
+    this.colorRenderPass = new ColorRenderPass("ColorRenderTarget_FBP", -1, this.colorRenderTarget, 0, this.engine);
   }
 
   /**

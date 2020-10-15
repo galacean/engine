@@ -1,11 +1,9 @@
 import { Vector3 } from "@alipay/o3-math";
 import { DataType } from "../base/Constant";
-
 import { Light } from "./Light";
 
 /**
  * 方向光创建类
- * @extends Light
  */
 export class DirectLight extends Light {
   private _forward: Vector3 = new Vector3();
@@ -15,30 +13,13 @@ export class DirectLight extends Light {
   public intensity: number;
 
   /**
-   * @constructor
    * @param {Entity} entity 节点对象
-   * @param {Object} props 参数对象
-   * @param {string} [props.name = directLight] 名称
-   * @param {Vector3} [ props.color = vec3.fromValues(1, 1, 1)]颜色，默认 vec3.fromValues(1, 1, 1)
-   * @param {number} [props.intensity = 1] 光照强度
-   * @param {Vector3} [props.direction] 光照方向，默认节点forward方向
    */
-  constructor(entity, props) {
+  constructor(entity) {
     super(entity);
-    this.name = props.name || "directLight";
-
-    /**
-     * 颜色
-     * @member {Vector3}
-     */
-    this.color = props.color || new Vector3(1, 1, 1);
-
-    /**
-     * 光照强度
-     * @member {number}
-     */
-    this.intensity = props.intensity || 1.0;
-
+    this.name = "directLight";
+    this.color = new Vector3(1, 1, 1);
+    this.intensity = 1.0;
     this._lightColor = new Vector3();
     this._reverseDirection = new Vector3();
   }
