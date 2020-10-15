@@ -124,11 +124,11 @@ export class Buffer {
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
    */
-  setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
+  setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength?: number): void;
 
   /**
    * 设置缓冲数据。
-   * @param data - 缓冲数据
+   * @param data - 数据
    * @param bufferByteOffset - 缓冲偏移，以字节为单位
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
@@ -159,6 +159,7 @@ export class Buffer {
     }
 
     const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1; //TypeArray is BYTES_PER_ELEMENT , unTypeArray is 1
+    dataLength = dataLength ?? (this._byteLength - bufferByteOffset) / byteSize;
     const dataByteLength = byteSize * dataLength;
     if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
