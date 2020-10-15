@@ -84,7 +84,6 @@ export class BufferGeometry extends EngineObject {
   constructor(name?: string) {
     super();
     this.name = name;
-    this.addSubGeometry(0, 0, PrimitiveTopology.Triangles);
   }
 
   /**
@@ -149,7 +148,7 @@ export class BufferGeometry extends EngineObject {
    * 添加子几何体，每一个子几何体可对应独立的材质。
    * @param start - 起始绘制偏移，如果设置了索引缓冲则表示在索引缓冲的偏移，如果没有设置则表示在顶点缓冲中的偏移
    * @param count - 绘制数量，如果设置了索引缓冲则表示在索引缓冲的数量，如果没有设置则表示在顶点缓冲中的数量
-   * @param topology - 几何体拓扑
+   * @param topology - 几何体拓扑，默认值是 PrimitiveTopology.Triangles
    */
   addSubGeometry(
     start: number,
