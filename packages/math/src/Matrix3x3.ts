@@ -1,3 +1,4 @@
+import { IClone } from "@alipay/o3-design";
 import { MathUtil } from "./MathUtil";
 import { Matrix } from "./Matrix";
 import { Quaternion } from "./Quaternion";
@@ -6,7 +7,7 @@ import { Vector2 } from "./Vector2";
 /**
  * 3x3矩阵，我们采用列矩阵的模式存储
  */
-export class Matrix3x3 {
+export class Matrix3x3 implements IClone {
   /**
    * 将两个矩阵相加。
    * @param left - 左矩阵

@@ -1,9 +1,10 @@
+import { IClone } from "@alipay/o3-design";
 import { MathUtil } from "./MathUtil";
 
 /**
  * 二维向量。
  */
-export class Vector2 {
+export class Vector2 implements IClone {
   /** @internal 零向量。*/
   static readonly _zero = new Vector2(0.0, 0.0);
   /** @internal 一向量。*/

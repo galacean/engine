@@ -1,6 +1,6 @@
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { EventDispatcher } from "./base";
-import { CloneModeManager } from "./clone/cloneManager";
+import { CloneManager } from "./clone/cloneManager";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
@@ -364,7 +364,7 @@ export class Entity extends EventDispatcher {
       const comp = components[i];
       if (!(comp instanceof Transform)) {
         const targetComp = newNode.addComponent(comp.constructor as any);
-        CloneModeManager.cloneComponent(comp, targetComp);
+        CloneManager.cloneComponent(comp, targetComp);
       }
     }
 

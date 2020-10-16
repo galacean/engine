@@ -1,6 +1,7 @@
 import { ReferenceObject } from "../asset/ReferenceObject";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
+import { shareType } from "../clone/cloneManager";
 import { Engine } from "../Engine";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "../material/type";
 import { RenderBufferColorFormat } from "./enums/RenderBufferColorFormat";
@@ -9,10 +10,11 @@ import { TextureCubeFace } from "./enums/TextureCubeFace";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
+
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
-
+@shareType
 export abstract class Texture extends ReferenceObject {
   /** @internal */
   static _readFrameBuffer: WebGLFramebuffer = null;

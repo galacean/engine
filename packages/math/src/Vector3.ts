@@ -1,3 +1,4 @@
+import { IClone } from "@alipay/o3-design";
 import { MathUtil } from "./MathUtil";
 import { Matrix } from "./Matrix";
 import { Quaternion } from "./Quaternion";
@@ -6,7 +7,7 @@ import { Vector4 } from "./Vector4";
 /**
  * 三维向量。
  */
-export class Vector3 {
+export class Vector3 implements IClone {
   /** @internal 零向量。*/
   static readonly _zero = new Vector3(0.0, 0.0, 0.0);
   /** @internal 一向量。*/

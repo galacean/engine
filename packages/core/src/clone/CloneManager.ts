@@ -2,46 +2,63 @@ import { Component } from "../Component";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
- * 类克隆时对属性进行忽略。
+ * 属性装饰器，类克隆时对属性进行忽略。
  */
 export function ignoreClone(target: Object, propertyKey: string): void {
-  CloneModeManager.registerCloneMode(target, propertyKey, CloneMode.Ignore);
+  CloneManager.registerCloneMode(target, propertyKey, CloneMode.Ignore);
 }
 
 /**
- * 类克隆时对属性进行深克隆。
+ * 属性装饰器，类克隆时对属性进行深克隆。
  */
 export function deepClone(target: Object, propertyKey: string): void {
-  CloneModeManager.registerCloneMode(target, propertyKey, CloneMode.Deep);
+  CloneManager.registerCloneMode(target, propertyKey, CloneMode.Deep);
 }
 
 /**
- * 类克隆时对属性进行浅克隆。
+ * 属性装饰器，类克隆时对属性进行浅克隆。
  */
 export function shallowClone(target: Object, propertyKey: string): void {
-  CloneModeManager.registerCloneMode(target, propertyKey, CloneMode.Shallow);
+  CloneManager.registerCloneMode(target, propertyKey, CloneMode.Shallow);
+}
+
+/**
+ * 类装饰器，深拷贝时使用浅拷贝的方式保持共享。
+ */
+export function shareType<TFunction extends Function>(target: TFunction): void {
+  CloneManager.registerShareType(target);
 }
 
 /**
  * @internal
  * 克隆管理员。
  */
-export class CloneModeManager {
+export class CloneManager {
+  private static _shareTypeMap = new Set<Object>();
   private static _cloneModeMap = new Map<Object, Object>();
 
   /**
    * 注释克隆模式。
    * @param target - 克隆目标类型
-   * @param attribute - 属性名称
+   * @param propertyKey - 属性名称
    * @param mode - 克隆模式
    */
-  static registerCloneMode(target: Object, attribute: string, mode: CloneMode): void {
-    let targetMap = CloneModeManager._cloneModeMap.get(target.constructor);
+  static registerCloneMode(target: Object, propertyKey: string, mode: CloneMode): void {
+    let targetMap = CloneManager._cloneModeMap.get(target.constructor);
     if (!targetMap) {
       targetMap = {};
-      CloneModeManager._cloneModeMap.set(target.constructor, targetMap);
+      CloneManager._cloneModeMap.set(target.constructor, targetMap);
     }
-    targetMap[attribute] = mode;
+    targetMap[propertyKey] = mode;
+  }
+
+  /**
+   * 注册共享类型。
+   * @remarks 注册后该类型的在深拷贝时仍然使用浅拷贝的方式保持共享。
+   * @param type - 类型
+   */
+  static registerShareType<TFunction extends Function>(type: TFunction): void {
+    CloneManager._shareTypeMap.add(type);
   }
 
   /**
@@ -49,7 +66,7 @@ export class CloneModeManager {
    * @param source - 克隆源
    */
   static cloneComponent(source: Component, target: Component): void {
-    const cloneInfo = CloneModeManager._cloneModeMap.get((<Object>source).constructor);
+    const cloneInfo = CloneManager._cloneModeMap.get((<Object>source).constructor);
     for (const k in source) {
       const cloneMode = cloneInfo[k];
       switch (cloneMode) {

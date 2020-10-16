@@ -1,6 +1,5 @@
-import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
+import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@alipay/o3-math";
 import { Component } from "./Component";
-import { Entity } from "./Entity";
 import { UpdateFlag } from "./UpdateFlag";
 
 /**

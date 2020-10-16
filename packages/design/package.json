@@ -1,7 +1,13 @@
 {
-  "name": "@alipay/o3-math",
-  "description": "Oasis3D engine math moudule",
+  "name": "@alipay/o3-design",
   "version": "3.1.0",
+  "description": "Oasis base design",
+  "keywords": [
+    "Oasis3D"
+  ],
+  "authors": [
+    "daqi.sdq <daqi.sdq@alibaba-inc.com>"
+  ],
   "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
     "type": "git",
@@ -12,14 +18,12 @@
   },
   "main": "dist/main.js",
   "module": "dist/module.js",
-  "types": "types/index.d.ts",
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "http://registry.npm.alibaba-inc.com"
+  },
   "scripts": {
     "b:types": "tsc"
   },
-  "dependencies": {
-    "@alipay/o3-design": "3.1.0"
-  },
-  "publishConfig": {
-    "registry": "http://registry.npm.alibaba-inc.com"
-  }
+  "types": "types/index.d.ts"
 }

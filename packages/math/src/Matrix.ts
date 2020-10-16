@@ -1,3 +1,4 @@
+import { IClone } from "@alipay/o3-design";
 import { MathUtil } from "./MathUtil";
 import { Matrix3x3 } from "./Matrix3x3";
 import { Quaternion } from "./Quaternion";
@@ -6,7 +7,7 @@ import { Vector3 } from "./Vector3";
 /**
  * 4x4矩阵。
  */
-export class Matrix {
+export class Matrix implements IClone {
   /** @internal */
   private static readonly _tempVec30: Vector3 = new Vector3();
   /** @internal */
