@@ -1,7 +1,7 @@
 import { Vector3 } from "@alipay/o3-math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
-import { deepClone, ignoreClone } from "../clone/cloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { Material } from "../material/Material";
 import { RenderableComponent } from "../RenderableComponent";

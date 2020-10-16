@@ -1,6 +1,5 @@
 import { Vector3 } from "@alipay/o3-math";
 import { ReferenceObject } from "../asset/ReferenceObject";
-import { shareType } from "../clone/cloneManager";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { BoundingBox } from "../RenderableComponent";
@@ -8,7 +7,6 @@ import { BoundingBox } from "../RenderableComponent";
 /**
  * Mesh Asset Object
  */
-@shareType
 export class Mesh extends ReferenceObject {
   public primitives: Primitive[] = [];
   public groups: SubPrimitive[] = [];

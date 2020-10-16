@@ -6,7 +6,7 @@ import { Component } from "../Component";
 import { Logger } from "../base/Logger";
 import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh/SkinnedMeshRenderer";
-import { deepClone, ignoreClone } from "../clone/cloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Entity 及其子物体
  */

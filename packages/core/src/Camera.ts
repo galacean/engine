@@ -1,6 +1,6 @@
 import { MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 import { ClearMode } from "./base";
-import { deepClone, ignoreClone } from "./clone/cloneManager";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
