@@ -34,7 +34,7 @@ export function shareType<TFunction extends Function>(target: TFunction): void {
  * 克隆管理员。
  */
 export class CloneManager {
-  private static _shareTypeMap = new Set<Object>();
+  private static _shareTypeMap = new Set<Function>();
   private static _cloneModeMap = new Map<Object, Object>();
 
   /**
