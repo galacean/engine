@@ -55,7 +55,8 @@ export class GLShaderProgram {
 
     if (!program) {
       program = new GLShaderProgram(gl);
-      program.createFromSource(tech.vertexShader, tech.fragmentShader, tech.attribLocSet);
+      const sucess = program.createFromSource(tech.vertexShader, tech.fragmentShader, tech.attribLocSet);
+      if (!sucess) return null;
       programList.push(program);
     }
 
