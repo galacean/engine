@@ -16,7 +16,7 @@
   "scripts": {
     "b:types": "tsc"
   },
-  "dependencies": {
+  "devDependencies": {
     "@alipay/o3-design": "3.1.0-alpha.0"
   },
   "publishConfig": {
