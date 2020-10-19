@@ -65,7 +65,7 @@ export class Animation extends Component {
     return outValue;
   }
 
-  /* @internal */
+  /** @internal */
   _onUpdateIndex: number = -1;
 
   private _animSet;

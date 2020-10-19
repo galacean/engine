@@ -5,17 +5,17 @@ import { Camera } from "./Camera";
  * 脚本类，可进行逻辑编写。
  */
 export class Script extends Component {
-  /* @internal */
+  /** @internal */
   _started: boolean = false;
-  /* @internal */
+  /** @internal */
   _onStartIndex: number = -1;
-  /* @internal */
+  /** @internal */
   _onUpdateIndex: number = -1;
-  /* @internal */
+  /** @internal */
   _onLateUpdateIndex: number = -1;
-  /* @internal */
+  /** @internal */
   _onPreRenderIndex: number = -1;
-  /* @internal */
+  /** @internal */
   _onPostRenderIndex: number = -1;
 
   /**

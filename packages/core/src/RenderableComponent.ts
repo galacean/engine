@@ -16,12 +16,12 @@ export interface BoundingBox {
  * 可渲染的组件。
  */
 export abstract class RenderableComponent extends Component {
-  /* @internal */
+  /** @internal */
   _onUpdateIndex: number = -1;
-  /* @internal */
+  /** @internal */
   _rendererIndex: number = -1;
 
-  /* @internal */
+  /** @internal */
   protected _overrideUpdate: boolean = false;
 
   private _transformChangeFlag: UpdateFlag;

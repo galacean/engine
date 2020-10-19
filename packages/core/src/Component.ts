@@ -7,9 +7,9 @@ import { Scene } from "./Scene";
  * 组件的基类。
  */
 export abstract class Component extends EventDispatcher {
-  /* @internal */
+  /** @internal */
   _entity: Entity;
-  /* @internal */
+  /** @internal */
   _destroyed: boolean = false;
 
   protected _props: object;
