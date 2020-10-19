@@ -92,16 +92,34 @@ export abstract class Component extends EventDispatcher {
     this._onDestroy();
   }
 
+  /**
+   * @internal
+   */
   _onAwake(): void {}
 
+  /**
+   * @internal
+   */
   _onEnable(): void {}
 
+  /**
+   * @internal
+   */
   _onDisable(): void {}
 
+  /**
+   * @internal
+   */
   _onDestroy(): void {}
 
+  /**
+   * @internal
+   */
   _onActive(): void {}
 
+  /**
+   * @internal
+   */
   _onInActive(): void {}
 
   /**
