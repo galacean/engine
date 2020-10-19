@@ -27,33 +27,36 @@ export class GLTechnique extends GLAsset {
 
     //-- 编译shader 或者从缓存中捞program
     this._program = GLShaderProgram.requireProgram(tech, gl);
-    this.valid = !!this._program;
+    if (this._program) {
+      this.valid = true;
+      const glProgram = this._program.program;
 
-    const glProgram = this._program.program;
-
-    // 记录Attribute的shader location
-    this._attributes = {};
-    const attributes = tech.attributes;
-    for (const name in attributes) {
-      this._attributes[name] = {
-        name,
-        semantic: attributes[name].semantic,
-        location: this._program.getAttribLocation(glProgram, name)
-      };
-    }
-
-    // 记录Unifrom的shader location
-    this._uniforms = {};
-    const uniforms = tech.uniforms;
-    for (const name in uniforms) {
-      const loc = this._program.getUniformLocation(glProgram, name);
-      if (loc !== null) {
-        this._uniforms[name] = {
+      // 记录Attribute的shader location
+      this._attributes = {};
+      const attributes = tech.attributes;
+      for (const name in attributes) {
+        this._attributes[name] = {
           name,
-          location: loc
+          semantic: attributes[name].semantic,
+          location: this._program.getAttribLocation(glProgram, name)
         };
       }
-    } // end of for
+
+      // 记录Unifrom的shader location
+      this._uniforms = {};
+      const uniforms = tech.uniforms;
+      for (const name in uniforms) {
+        const loc = this._program.getUniformLocation(glProgram, name);
+        if (loc !== null) {
+          this._uniforms[name] = {
+            name,
+            location: loc
+          };
+        }
+      } // end of for
+    } else {
+      this.valid = false;
+    }
   }
 
   /**
