@@ -9,6 +9,8 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * @private
  */
 export class GLTechnique extends GLAsset {
+  readonly valid: boolean;
+
   private _tech: RenderTechnique;
   private _activeTextureCount: number;
   private _program: GLShaderProgram;
@@ -25,6 +27,7 @@ export class GLTechnique extends GLAsset {
 
     //-- 编译shader 或者从缓存中捞program
     this._program = GLShaderProgram.requireProgram(tech, gl);
+    this.valid = !!this._program;
 
     const glProgram = this._program.program;
 
