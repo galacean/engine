@@ -39,7 +39,7 @@ export class SpriteRenderer extends RenderableComponent {
   private _uvRect: IUvRect;
   private _worldSize: number[] = [];
   private _positionQuad: IPositionQuad;
-  private _rotationAngle: number;
+  private _rotationAngle: number = 0;
   private _anchor: number[];
   protected _texture: Texture2D;
   protected _rect: IRect;
@@ -58,11 +58,22 @@ export class SpriteRenderer extends RenderableComponent {
   /**
    * 构造函数
    * @param {Entity} entity
-   * @param {Sprite} sprite
    */
-  constructor(entity: Entity, sprite) {
+  constructor(entity: Entity) {
     super(entity);
+    this._positionQuad = {
+      leftTop: new Vector3(),
+      leftBottom: new Vector3(),
+      rightTop: new Vector3(),
+      rightBottom: new Vector3()
+    };
+  }
 
+  /**
+   * 通过 sprite 初始化渲染器。
+   * @param sprite
+   */
+  init(sprite): void {
     const { texture, rect, anchor, worldSizeFactor } = sprite;
     this._worldSizeFactor = worldSizeFactor || 100;
     this.setTexture(texture);
@@ -74,19 +85,6 @@ export class SpriteRenderer extends RenderableComponent {
     if (sprite.tintColor) {
       this.tintColor = sprite.tintColor;
     }
-
-    // //-- Ability属性
-    // this.renderable = true;
-
-    //--
-    this._positionQuad = {
-      leftTop: new Vector3(),
-      leftBottom: new Vector3(),
-      rightTop: new Vector3(),
-      rightBottom: new Vector3()
-    };
-
-    this._rotationAngle = 0;
   }
 
   set texture(v) {
