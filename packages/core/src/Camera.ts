@@ -407,21 +407,24 @@ export class Camera extends Component {
   }
 
   /**
-   * @innernal
+   * @override
+   * @inheritdoc
    */
   _onActive() {
     this.entity.scene.attachRenderCamera(this);
   }
 
   /**
-   * @innernal
+   * @override
+   * @inheritdoc
    */
   _onInActive() {
     this.entity.scene.detachRenderCamera(this);
   }
 
   /**
-   * @innernal
+   * @override
+   * @inheritdoc
    */
   _onDestroy() {
     this._renderPipeline?.destroy();
