@@ -1,5 +1,6 @@
 import { Vector3 } from "@alipay/o3-math";
 import { Camera } from "./Camera";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { UpdateFlag } from "./UpdateFlag";
@@ -17,14 +18,19 @@ export interface BoundingBox {
  */
 export abstract class RenderableComponent extends Component {
   /* @internal */
+  @ignoreClone
   _onUpdateIndex: number = -1;
   /* @internal */
+  @ignoreClone
   _rendererIndex: number = -1;
 
   /* @internal */
+  @ignoreClone
   protected _overrideUpdate: boolean = false;
 
+  @ignoreClone
   private _transformChangeFlag: UpdateFlag;
+  @deepClone
   private _bounds: BoundingBox = { min: new Vector3(), max: new Vector3() };
 
   /**

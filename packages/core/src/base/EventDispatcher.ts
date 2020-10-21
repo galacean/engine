@@ -1,12 +1,14 @@
 import { Listener, Event } from "./Event";
 import { EngineObject } from "./EngineObject";
 import { Engine } from "../Engine";
+import { ignoreClone } from "../clone/CloneManager";
 
 /**
  * 事件派发管理，可作为基类继承
  * @class
  */
 export class EventDispatcher extends EngineObject {
+  @ignoreClone
   private _listeners: { [k: string]: Listener[] };
 
   constructor(engine: Engine) {

@@ -1,21 +1,28 @@
 import { Component } from "./Component";
 import { Camera } from "./Camera";
+import { ignoreClone } from "./clone/CloneManager";
 
 /**
  * 脚本类，可进行逻辑编写。
  */
 export class Script extends Component {
   /* @internal */
+  @ignoreClone
   _started: boolean = false;
   /* @internal */
+  @ignoreClone
   _onStartIndex: number = -1;
   /* @internal */
+  @ignoreClone
   _onUpdateIndex: number = -1;
   /* @internal */
+  @ignoreClone
   _onLateUpdateIndex: number = -1;
   /* @internal */
+  @ignoreClone
   _onPreRenderIndex: number = -1;
   /* @internal */
+  @ignoreClone
   _onPostRenderIndex: number = -1;
 
   /**

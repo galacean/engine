@@ -61,30 +61,20 @@ export class SpriteRenderer extends RenderableComponent {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._worldSizeFactor = 100;
+
+    this.setTexture(undefined);
+    this.setRect(undefined);
+    this.setAnchor(undefined);
+    this.setUvRect();
+    this.setWorldSize();
+
     this._positionQuad = {
       leftTop: new Vector3(),
       leftBottom: new Vector3(),
       rightTop: new Vector3(),
       rightBottom: new Vector3()
     };
-  }
-
-  /**
-   * 通过 sprite 初始化渲染器。
-   * @param sprite
-   */
-  init(sprite): void {
-    const { texture, rect, anchor, worldSizeFactor } = sprite;
-    this._worldSizeFactor = worldSizeFactor || 100;
-    this.setTexture(texture);
-    this.setRect(rect);
-    this.setAnchor(anchor);
-    this.setUvRect();
-    this.setWorldSize();
-
-    if (sprite.tintColor) {
-      this.tintColor = sprite.tintColor;
-    }
   }
 
   set texture(v) {
