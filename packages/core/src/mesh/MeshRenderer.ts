@@ -14,20 +14,14 @@ import { Mesh } from "./Mesh";
 export class MeshRenderer extends RenderableComponent {
   private _mesh: Mesh;
   @ignoreClone
-  private _instanceMaterials: Material[];
+  private _instanceMaterials: Material[] = [];
   @deepClone
-  private _sharedMaterials: Material[];
+  private _sharedMaterials: Material[] = [];
 
-  /**
-   * @param {Entity} entity 所属的Node对象
-   */
   constructor(entity: Entity) {
     super(entity);
 
     this._mesh = null; // Mesh Asset Object
-
-    this._instanceMaterials = []; // 这个组件独有的材质，用来单独控制材质参数
-    this._sharedMaterials = []; // Primitive默认材质，默认使用
   }
 
   /**
