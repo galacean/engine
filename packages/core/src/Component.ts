@@ -1,4 +1,5 @@
 import { EventDispatcher, MaskList } from "./base";
+import { ignoreClone } from "./clone/CloneManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { Scene } from "./Scene";
@@ -8,11 +9,15 @@ import { Scene } from "./Scene";
  */
 export abstract class Component extends EventDispatcher {
   /* @internal */
+  @ignoreClone
   _entity: Entity;
   /* @internal */
+  @ignoreClone
   _destroyed: boolean = false;
 
+  @ignoreClone
   private _enabled: boolean = true;
+  @ignoreClone
   private _awaked: boolean = false;
 
   /**
