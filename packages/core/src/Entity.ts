@@ -86,17 +86,17 @@ export class Entity extends EventDispatcher {
   /* 变换。*/
   readonly transform: Transform;
 
-  /* @internal */
+  /** @internal */
   _isActiveInHierarchy: boolean = false;
-  /* @internal */
+  /** @internal */
   _components: Component[] = [];
-  /* @internal */
+  /** @internal */
   _children: Entity[] = [];
-  /* @internal */
+  /** @internal */
   _scene: Scene;
-  /* @internal */
+  /** @internal */
   _isRoot: boolean = false;
-  /* @internal */
+  /** @internal */
   _isActive: boolean = true;
 
   private _engine: Engine;

@@ -66,7 +66,7 @@ export class Animation extends Component {
     return outValue;
   }
 
-  /* @internal */
+  /** @internal */
   @ignoreClone
   _onUpdateIndex: number = -1;
 
