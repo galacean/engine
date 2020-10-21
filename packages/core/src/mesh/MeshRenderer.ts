@@ -10,7 +10,6 @@ import { Mesh } from "./Mesh";
 
 /**
  * 负责渲染一个Mesh对象的组件
- * @extends RenderableComponent
  */
 export class MeshRenderer extends RenderableComponent {
   private _mesh: Mesh;

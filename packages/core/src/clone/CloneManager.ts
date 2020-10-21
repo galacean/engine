@@ -1,4 +1,5 @@
 import { IClone } from "@alipay/o3-design";
+import { ReferenceObject } from "../asset/ReferenceObject";
 import { Component } from "../Component";
 import { CloneMode } from "./enums/CloneMode";
 
@@ -18,6 +19,9 @@ export function deepClone(target: Object, propertyKey: string): void {
 
 /**
  * 属性装饰器，组件克隆时对属性进行浅克隆。
+ * 深克隆,适用于 Obect、Array 和 Class 类型。
+ * Class 会调用对象的 cloneTo() 实现克隆，需要对象实现 IClone 接口。
+ * @remarks 如果深克隆过程遇到 ReferenceObject 则使用浅拷贝。
  */
 export function shallowClone(target: Object, propertyKey: string): void {
   CloneManager.registerCloneMode(target, propertyKey, CloneMode.Shallow);
@@ -61,12 +65,12 @@ export class CloneManager {
           break;
         case CloneMode.Deep:
           const sourceProp: Object = source[k];
-          if (sourceProp) {
+          if (sourceProp || sourceProp instanceof ReferenceObject) {
             let tarProp = <Object>target[k];
             tarProp || (tarProp = target[k] = sourceProp.constructor());
             CloneManager.cloneComponentProp(sourceProp, tarProp);
           } else {
-            // null or undefine
+            // null or undefine and extends ReferenceObject
             target[k] = sourceProp;
           }
           break;
@@ -85,8 +89,13 @@ export class CloneManager {
       for (const k in source) {
         const sourceItem = source[k];
         const itemType = typeof sourceItem;
-        // base type or null/undefine
-        if (sourceItem == null || itemType === "number" || itemType === "string" || itemType === "boolean") {
+        if (
+          sourceItem == null ||
+          sourceItem instanceof ReferenceObject ||
+          itemType === "number" ||
+          itemType === "string" ||
+          itemType === "boolean"
+        ) {
           target[k] = sourceItem;
         } else {
           let targetItem = target[k];
@@ -102,8 +111,13 @@ export class CloneManager {
       for (let i = 0; i < length; i++) {
         const sourceItem = arraySource[i];
         const itemType = typeof sourceItem;
-        // base type or null/undefine
-        if (sourceItem == null || itemType === "number" || itemType === "string" || itemType === "boolean") {
+        if (
+          sourceItem == null ||
+          sourceItem instanceof ReferenceObject ||
+          itemType === "number" ||
+          itemType === "string" ||
+          itemType === "boolean"
+        ) {
           arrayTarget[i] = sourceItem;
         } else {
           let targetItem = arrayTarget[i];
