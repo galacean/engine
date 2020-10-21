@@ -23,3 +23,5 @@ AUTHORS
 .vscode
 stats.html
 tsconfig.tsbuildinfo
+doc
+oasis-npm

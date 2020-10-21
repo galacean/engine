@@ -29,7 +29,6 @@ export class Scene extends EventDispatcher {
   _activeCameras: Camera[] = [];
   _isActiveInEngine: boolean = false;
 
-  private _engine: Engine;
   private _destroyed: boolean = false;
   private _rootEntities: Entity[] = [];
 
@@ -66,7 +65,7 @@ export class Scene extends EventDispatcher {
    * @param engine - 引擎
    */
   constructor(name?: string, engine?: Engine) {
-    super();
+    super(engine);
     this.name = name || "";
     this._engine = engine || Engine._getDefaultEngine();
 

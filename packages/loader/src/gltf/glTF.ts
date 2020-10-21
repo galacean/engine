@@ -147,7 +147,7 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLT
     images: data.images,
     gltf: data.gltf,
     buffers: data.buffers,
-    asset: new GLTFResource()
+    asset: new GLTFResource(engine)
   };
 
   if (resources.gltf.asset && resources.gltf.asset.version) {
@@ -571,10 +571,10 @@ function parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers) {
  * @private
  */
 export function parseMesh(gltfMesh, resources) {
-  const { gltf, buffers } = resources;
+  const { gltf, buffers, engine } = resources;
 
   const mesh = new Mesh(gltfMesh.name);
-  mesh.type = resources.assetType;
+  // mesh.type = resources.assetType;
   // parse all primitives then link to mesh
   // TODO: use hash cached primitives
   const primitivePromises = [];
@@ -584,10 +584,10 @@ export function parseMesh(gltfMesh, resources) {
       new Promise((resolve, reject) => {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
-        const primitive = new Primitive(gltfPrimitive.name || gltfMesh.name || i);
+        const primitive = new Primitive(engine, gltfPrimitive.name || gltfMesh.name || i);
         const subPrimitive = new SubPrimitive();
         groups.push(subPrimitive);
-        primitive.type = resources.assetType;
+        // primitive.type = resources.assetType;
         subPrimitive.topology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
           primitive.targets = [];

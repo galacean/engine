@@ -17,18 +17,18 @@ export class PlaneGeometry extends ShapeGeometry {
    * @param {number} verticalSegments 垂直分段数
    */
   constructor(
-    width?: number,
-    height?: number,
-    horizontalSegments?: number,
-    verticalSegments?: number,
+    width: number = 1,
+    height: number = 1,
+    horizontalSegments: number = 1,
+    verticalSegments: number = 1,
     engine?: Engine
   ) {
-    super();
+    super(engine);
     this._parameters = {
-      width: width || 1,
-      height: height || 1,
-      horizontalSegments: Math.floor(horizontalSegments) || 1,
-      verticalSegments: Math.floor(verticalSegments) || 1
+      width: width,
+      height: height,
+      horizontalSegments: Math.floor(horizontalSegments),
+      verticalSegments: Math.floor(verticalSegments)
     };
 
     this.halfWidth = this._parameters.width / 2;

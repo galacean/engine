@@ -1,3 +1,4 @@
+import { ReferenceObject } from "../asset/ReferenceObject";
 import { Engine } from "../Engine";
 import { HardwareRenderer } from "../HardwareRenderer";
 import { BufferUtil } from "./BufferUtil";
@@ -8,13 +9,12 @@ import { SetDataOptions } from "./enums/SetDataOptions";
 /**
  * 缓冲。
  */
-export class Buffer {
+export class Buffer extends ReferenceObject {
   _glBindTarget: number;
   _glBufferUsage: number;
   _nativeBuffer: WebGLBuffer;
 
   private _hardwareRenderer: HardwareRenderer;
-  private _engine: Engine;
   private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
@@ -71,6 +71,7 @@ export class Buffer {
     byteLengthOrData: number | ArrayBuffer | ArrayBufferView,
     bufferUsage: BufferUsage = BufferUsage.Static
   ) {
+    super(engine);
     this._engine = engine;
     this._type = type;
     this._bufferUsage = bufferUsage;
@@ -217,7 +218,7 @@ export class Buffer {
   /**
    * 销毁。
    */
-  destroy(): void {
+  onDestroy() {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     gl.deleteBuffer(this._nativeBuffer);
     this._nativeBuffer = null;

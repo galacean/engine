@@ -130,7 +130,6 @@ export class ResourceManager {
    */
   gc(): void {
     const objects = Object.values(this._referenceObjectPool);
-    objects.sort((refObj1, refObj2) => refObj1.gcPriority - refObj2.gcPriority);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored) {
         objects[i].destroy();

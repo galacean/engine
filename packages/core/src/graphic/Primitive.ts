@@ -1,4 +1,5 @@
-import { AssetObject } from "../asset/AssetObject";
+import { Engine } from "..";
+import { ReferenceObject } from "../asset/ReferenceObject";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
 import { Buffer } from "../graphic/Buffer";
@@ -11,7 +12,7 @@ import { VertexElement } from "./VertexElement";
 /**
  * @private
  */
-export class Primitive extends AssetObject {
+export class Primitive extends ReferenceObject {
   private static _primitiveID: number = 0;
 
   /** 实例数量，0 表示关闭实例渲染。*/
@@ -19,7 +20,7 @@ export class Primitive extends AssetObject {
   _vertexElementMap: object = {};
   _glIndexType: number;
 
-  private _vertexBufferBindings: VertexBufferBinding[] = [];
+  private _vertexBufferBindings: Readonly<VertexBufferBinding[]> = [];
   private _indexBufferBinding: IndexBufferBinding = null;
   private _vertexElements: VertexElement[] = [];
 
@@ -50,8 +51,8 @@ export class Primitive extends AssetObject {
   boundingSphere: BoundingSphere = null;
   isInFrustum: boolean = true;
 
-  constructor(name?: string) {
-    super();
+  constructor(engine: Engine, name?: string) {
+    super(engine);
     this.id = Primitive._primitiveID++;
     this.name = name;
   }
@@ -81,8 +82,9 @@ export class Primitive extends AssetObject {
     isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
 
     const bindings = this._vertexBufferBindings;
+    //@ts-ignore
     bindings.length <= firstIndex && (bindings.length = firstIndex + 1);
-    this._vertexBufferBindings[isBinding ? strideOrFirstIndex : firstIndex] = binding;
+    this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : firstIndex, binding);
   }
 
   /**
@@ -95,9 +97,10 @@ export class Primitive extends AssetObject {
     const multiBindings = <VertexBufferBinding[]>bufferBindings;
     const count = multiBindings.length;
     const needLength = firstIndex + count;
+    //@ts-ignore
     bindings.length < needLength && (bindings.length = needLength);
     for (let i = 0; i < count; i++) {
-      this._vertexBufferBindings[firstIndex + i] = multiBindings[i];
+      this._setVertexBufferBinding(firstIndex + i, multiBindings[i]);
     }
   }
 
@@ -136,25 +139,9 @@ export class Primitive extends AssetObject {
   /**
    * 销毁。
    */
-  destroy(): void {
-    //TODO:这里销毁不应该直接销毁Buffer，按照以前的机制这里暂时这样处理。
-    const vertexBufferBindings = this._vertexBufferBindings;
-    if (vertexBufferBindings) {
-      for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
-        const vertexBufferBinding = vertexBufferBindings[i];
-        if (vertexBufferBinding) {
-          vertexBufferBinding.buffer.destroy();
-        }
-      }
-      this._vertexBufferBindings = null;
-    }
-
-    const indexBufferBinding = this._indexBufferBinding;
-    if (indexBufferBinding) {
-      indexBufferBinding.buffer.destroy();
-      this._indexBufferBinding = null;
-    }
-
+  onDestroy() {
+    this._vertexBufferBindings = null;
+    this._indexBufferBinding = null;
     this._vertexElements = null;
     this._vertexElementMap = null;
   }
@@ -170,5 +157,15 @@ export class Primitive extends AssetObject {
   private _addVertexElement(element: VertexElement): void {
     this._vertexElementMap[element.semantic] = element;
     this._vertexElements.push(element);
+  }
+
+  private _setVertexBufferBinding(index: number, buffer: VertexBufferBinding): void {
+    const originBufferBinding = this._vertexBufferBindings[index];
+    if (originBufferBinding) {
+      this._removeReferenceChild(originBufferBinding._buffer);
+    }
+    this._addReferenceChild(buffer._buffer);
+    // @ts-ignore
+    this._vertexBufferBindings[index] = buffer;
   }
 }

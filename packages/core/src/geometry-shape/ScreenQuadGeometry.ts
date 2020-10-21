@@ -9,8 +9,8 @@ import { ShapeGeometry } from "./ShapeGeometry";
  * @private
  */
 export class ScreenQuadGeometry extends ShapeGeometry {
-  constructor(engine?: Engine) {
-    super();
+  constructor(engine: Engine) {
+    super(engine);
     const vertices: Float32Array = new Float32Array([-1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1]);
 
     const indices: Uint16Array = new Uint16Array([0, 1, 2, 3]);

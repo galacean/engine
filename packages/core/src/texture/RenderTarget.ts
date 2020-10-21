@@ -142,7 +142,7 @@ export class RenderTarget extends EngineObject {
     antiAliasing: number = 1,
     engine?: Engine
   ) {
-    super();
+    super(engine);
     engine = engine || Engine._getDefaultEngine();
     const rhi = engine._hardwareRenderer;
 

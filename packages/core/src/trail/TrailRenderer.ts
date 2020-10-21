@@ -134,7 +134,7 @@ export class TrailRenderer extends GeometryRenderer {
    * @private
    */
   _initGeometry() {
-    const geometry = new BufferGeometry();
+    const geometry = new BufferGeometry(this._entity.engine);
 
     const vertexStride = 20;
     const vertexCount = this._maxPointNum * 2;

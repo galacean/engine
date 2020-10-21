@@ -49,11 +49,8 @@ export class Material extends ReferenceObject {
 
     this.maxJointsNum = 0;
 
-    //--
     this._technique = null;
     this._values = {};
-
-    this._gcPriority = 1000;
   }
 
   /** 创建一个本材质对象的深拷贝对象
@@ -123,10 +120,10 @@ export class Material extends ReferenceObject {
     const oriIsTexture = oriValue instanceof Texture;
     const curIsTexture = value instanceof Texture;
     if (oriIsTexture) {
-      (<Texture>oriValue)._addReference(-1);
+      this._removeReferenceChild(oriValue);
     }
     if (curIsTexture) {
-      (<Texture>value)._addReference(1);
+      this._addReferenceChild(value);
     }
 
     if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {
@@ -347,7 +344,7 @@ export class Material extends ReferenceObject {
     for (let i = 0, len = values.length; i < len; i++) {
       const value = values[i];
       if (value instanceof Texture) {
-        value._addReference(-1);
+        value._addRefCount(-1);
       }
     }
 

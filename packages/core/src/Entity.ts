@@ -99,7 +99,6 @@ export class Entity extends EventDispatcher {
   /* @internal */
   _isActive: boolean = true;
 
-  private _engine: Engine;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
 
@@ -199,10 +198,9 @@ export class Entity extends EventDispatcher {
    * @param name - 名字
    * @param engine - 所属 Engine
    */
-  constructor(name?: string, engine?: Engine) {
-    super();
+  constructor(name: string, engine: Engine) {
+    super(engine);
     Entity._entitys.add(this);
-    this._engine = engine || Engine._getDefaultEngine();
     this.name = name;
     this.transform = this.addComponent(Transform);
     this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();

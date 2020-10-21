@@ -2,6 +2,7 @@ import {
   Buffer,
   BufferGeometry,
   BufferUsage,
+  Engine,
   Entity,
   Mesh,
   MeshRenderer,
@@ -38,8 +39,14 @@ export class DecalGeometry extends BufferGeometry {
   public readonly orientation: Quaternion;
   public readonly projectorMatrix: Matrix;
   public readonly projectorMatrixInverse: Matrix = new Matrix();
-  public constructor(intersection: Intersection, position: Vector3, orientation: Quaternion, size: Vector3) {
-    super();
+  public constructor(
+    engine: Engine,
+    intersection: Intersection,
+    position: Vector3,
+    orientation: Quaternion,
+    size: Vector3
+  ) {
+    super(engine);
     this.node = intersection.entity;
     const meshRenderer: MeshRenderer = this.node.getComponent(MeshRenderer);
     if (meshRenderer) {

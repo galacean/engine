@@ -7,9 +7,9 @@ import { Scene } from "./Scene";
  * 组件的基类。
  */
 export abstract class Component extends EventDispatcher {
-  /* @internal */
+  /** @internal */
   _entity: Entity;
-  /* @internal */
+  /** @internal */
   _destroyed: boolean = false;
 
   private _enabled: boolean = true;
@@ -63,7 +63,7 @@ export abstract class Component extends EventDispatcher {
   }
 
   constructor(entity: Entity) {
-    super();
+    super(entity.engine);
     this._entity = entity;
 
     this._renderPassFlag = MaskList.EVERYTHING; // @deprecated

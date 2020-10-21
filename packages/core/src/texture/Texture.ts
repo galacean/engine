@@ -723,7 +723,5 @@ export abstract class Texture extends ReferenceObject {
   // TODO: delete
   constructor(engine?: Engine) {
     super(engine);
-
-    this._gcPriority = 900;
   }
 }

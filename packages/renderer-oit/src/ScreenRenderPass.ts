@@ -7,7 +7,8 @@ import { ScreenMaterial } from "./ScreenMaterial";
  * screen renderPass
  * */
 export class ScreenRenderPass extends RenderPass {
-  private screenQuadGeometry = new ScreenQuadGeometry();
+  // TODO support
+  private screenQuadGeometry: ScreenQuadGeometry;
 
   constructor(textures: RenderColorTexture[]) {
     super("screen renderPass", 1, null);
@@ -18,6 +19,7 @@ export class ScreenRenderPass extends RenderPass {
 
   render(camera) {
     const rhi = camera.renderHardware;
+    // @ts-ignore
     const primitive = this.screenQuadGeometry._primitive;
 
     const context = RenderContext._getRenderContext(camera);

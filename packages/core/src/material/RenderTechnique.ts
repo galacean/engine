@@ -98,7 +98,7 @@ export class RenderTechnique extends AssetObject {
    * @param {string} name 名称
    */
   constructor(public name: string) {
-    super();
+    super(null);
   }
 
   get attributes() {

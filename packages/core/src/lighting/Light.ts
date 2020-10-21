@@ -11,7 +11,6 @@ const _tempVec3 = new Vector3(0, 1, 0);
 export abstract class Light extends Component {
   protected _viewMat: Matrix;
   protected _modelMat: Matrix;
-  protected name: string;
 
   /**
    * 将灯光参数绑定到指定的材质对象上

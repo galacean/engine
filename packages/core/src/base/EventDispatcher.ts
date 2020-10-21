@@ -1,5 +1,6 @@
 import { Listener, Event } from "./Event";
 import { EngineObject } from "./EngineObject";
+import { Engine } from "../Engine";
 
 /**
  * 事件派发管理，可作为基类继承
@@ -8,8 +9,8 @@ import { EngineObject } from "./EngineObject";
 export class EventDispatcher extends EngineObject {
   private _listeners: { [k: string]: Listener[] };
 
-  constructor() {
-    super();
+  constructor(engine: Engine) {
+    super(engine);
     this._listeners = {};
   }
 

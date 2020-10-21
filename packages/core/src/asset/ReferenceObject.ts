@@ -1,23 +1,17 @@
+import { EngineObject } from "..";
 import { Engine } from "../Engine";
-import { AssetObject } from "./AssetObject";
 
 /**
  * 资产的基类，具有引用计数能力。
  */
-export abstract class ReferenceObject extends AssetObject {
+export abstract class ReferenceObject extends EngineObject {
   /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.gc() 影响。*/
   isGCIgnored: boolean = false;
-
-  protected _engine: Engine;
-  protected _gcPriority: number = 0;
-
   private _referenceCount: number = 0;
   private _destroyed: boolean = false;
 
-  /** @internal */
-  get gcPriority(): number {
-    return this._gcPriority;
-  }
+  private _referenceChildren: ReferenceObject[] = [];
+  private _parent: ReferenceObject = null;
 
   /**
    * 被有效引用计数。
@@ -33,12 +27,11 @@ export abstract class ReferenceObject extends AssetObject {
     return this._destroyed;
   }
 
-  protected constructor(engine?: Engine) {
-    super();
-    const resEngine = engine ?? Engine._getDefaultEngine();
-    if (!resEngine) throw "asset must belone to an engine.";
-    this._engine = resEngine;
-    resEngine.resourceManager._addReferenceObject(this.instanceId, this);
+  protected constructor(engine: Engine) {
+    super(engine);
+    engine = engine ?? Engine._lastCreateEngine;
+    this._engine = engine;
+    engine.resourceManager._addReferenceObject(this.instanceId, this);
   }
 
   /**
@@ -54,8 +47,11 @@ export abstract class ReferenceObject extends AssetObject {
 
     this._engine.resourceManager._deleteAsset(this);
     this._engine.resourceManager._deleteReferenceObject(this.instanceId);
-    this._destroyed = true;
+    if (this._parent) {
+      removeFromArray(this._parent._referenceChildren, this);
+    }
     this._engine = null;
+    this._destroyed = true;
     return true;
   }
 
@@ -65,16 +61,73 @@ export abstract class ReferenceObject extends AssetObject {
   protected abstract onDestroy(): void;
 
   /**
+   * 把当前资源添加到资源管理中。
    * @internal
+   * @param path
    */
-  _addToAssetManager(path: string): void {
+  _addToResourceManager(path: string): void {
     this._engine.resourceManager._addAsset(path, this);
   }
 
   /**
-   * @private
+   * 添加资源引用数
+   * @internal
    */
-  _addReference(referenceCount: number): void {
+  _addRefCount(referenceCount: number): void {
     this._referenceCount += referenceCount;
+    this._addChildrenRefCount(referenceCount);
   }
+
+  /**
+   * 添加引用资源的引用数
+   * @param referenceCount 引用数
+   */
+  private _addChildrenRefCount(referenceCount: number) {
+    const referenceChildren = this._referenceChildren;
+    for (const item of referenceChildren) {
+      item._addRefCount(referenceCount);
+    }
+  }
+
+  /**
+   * 添加引用资源。
+   * @internal
+   */
+  _addReferenceChild(obj: ReferenceObject): void {
+    if (this._referenceChildren.indexOf(obj) === -1) {
+      this._referenceChildren.push(obj);
+      obj._parent = this;
+      obj._addRefCount(this._referenceCount);
+    }
+  }
+
+  /**
+   * 移出引用资源。
+   * @internal
+   */
+  _removeReferenceChild(obj: ReferenceObject): void {
+    const referenceChildren = this._referenceChildren;
+    if (removeFromArray(referenceChildren, obj)) {
+      obj._parent = null;
+      obj._addRefCount(-this._referenceCount);
+    }
+  }
+}
+
+/**
+ * @todo as a utilize function
+ * @param arr
+ */
+function removeFromArray(arr: any[], item: any): boolean {
+  const index = arr.indexOf(item);
+  if (index < 0) {
+    return false;
+  }
+  const last = arr.length - 1;
+  if (index !== last) {
+    const end = arr[last];
+    arr[index] = end;
+  }
+  arr.length--;
+  return true;
 }
