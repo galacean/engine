@@ -1,4 +1,5 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@alipay/o3-math";
+import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { UpdateFlag } from "./UpdateFlag";
 
@@ -38,19 +39,33 @@ export class Transform extends Component {
   /** Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG | Transform._WORLD_SCALE_FLAG */
   private static _WM_WP_WE_WQ_WS_FLAGS: number = 0xbc;
 
+  @deepClone
   private _position: Vector3 = new Vector3();
+  @deepClone
   private _rotation: Vector3 = new Vector3();
+  @deepClone
   private _rotationQuaternion: Quaternion = new Quaternion();
+  @deepClone
   private _scale: Vector3 = new Vector3(1, 1, 1);
+  @deepClone
   private _worldPosition: Vector3 = new Vector3();
+  @deepClone
   private _worldRotation: Vector3 = new Vector3();
+  @deepClone
   private _worldRotationQuaternion: Quaternion = new Quaternion();
+  @deepClone
   private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
+  @deepClone
   private _localMatrix: Matrix = new Matrix();
+  @deepClone
   private _worldMatrix: Matrix = new Matrix();
+  @shallowClone
   private _dirtyFlag: number = Transform._WM_WP_WE_WQ_WS_FLAGS;
+  @ignoreClone
   private _changeFlags: UpdateFlag[] = [];
+  @ignoreClone
   private _isParentDirty: boolean = true;
+  @ignoreClone
   private _parentTransformCache: Transform = null;
 
   /**
