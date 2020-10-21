@@ -1,5 +1,4 @@
 import { IClone } from "@alipay/o3-design";
-import { ReferenceObject } from "../asset/ReferenceObject";
 import { Component } from "../Component";
 import { CloneMode } from "./enums/CloneMode";
 
@@ -65,7 +64,8 @@ export class CloneManager {
           break;
         case CloneMode.Deep:
           const sourceProp: Object = source[k];
-          if (sourceProp || sourceProp instanceof ReferenceObject) {
+          if (sourceProp || (<any>sourceProp)._referenceCount !== undefined) {
+            // temp
             let tarProp = <Object>target[k];
             tarProp || (tarProp = target[k] = sourceProp.constructor());
             CloneManager.cloneComponentProp(sourceProp, tarProp);
@@ -91,7 +91,7 @@ export class CloneManager {
         const itemType = typeof sourceItem;
         if (
           sourceItem == null ||
-          sourceItem instanceof ReferenceObject ||
+          (<any>sourceItem)._referenceCount !== undefined || // temp
           itemType === "number" ||
           itemType === "string" ||
           itemType === "boolean"
@@ -113,7 +113,7 @@ export class CloneManager {
         const itemType = typeof sourceItem;
         if (
           sourceItem == null ||
-          sourceItem instanceof ReferenceObject ||
+          (<any>sourceItem)._referenceCount !== undefined || // temp
           itemType === "number" ||
           itemType === "string" ||
           itemType === "boolean"

@@ -52,8 +52,9 @@ export abstract class ReferenceObject extends AssetObject {
 
     this.onDestroy();
 
-    this._engine.resourceManager._deleteAsset(this);
-    this._engine.resourceManager._deleteReferenceObject(this.instanceId);
+    const resourceManager = this._engine.resourceManager;
+    resourceManager._deleteAsset(this);
+    resourceManager._deleteReferenceObject(this.instanceId);
     this._destroyed = true;
     this._engine = null;
     return true;
