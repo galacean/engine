@@ -12,7 +12,7 @@ export class EventDispatcher extends EngineObject {
   private _evtCount = 0;
 
   /**
-   * 判断是否有事件监听
+   * 判断是否有事件监听。
    * @param event 事件名
    * @returns 返回是否有对应事件
    */
@@ -69,7 +69,7 @@ export class EventDispatcher extends EngineObject {
   }
 
   /**
-   * 添加监听函数
+   * 添加监听函数。
    * @param event 事件名
    * @param fn 函数
    * @returns this
@@ -79,7 +79,7 @@ export class EventDispatcher extends EngineObject {
   }
 
   /**
-   * 添加一次性的监听函数
+   * 添加一次性的监听函数。
    * @param event 事件名
    * @param fn 函数
    * @returns this
@@ -89,8 +89,8 @@ export class EventDispatcher extends EngineObject {
   }
 
   /**
-   * 添加指定事件名的监听函数。
    * @deprecated 使用 on/once 替换
+   * 添加指定事件名的监听函数。
    * @param event 事件名
    * @param fn 函数
    * @param once 是否是一次性监听
@@ -110,12 +110,7 @@ export class EventDispatcher extends EngineObject {
     return this;
   }
 
-  /**
-   * 移除指定事件名的事件监听。
-   * @param event 事件名
-   * @param fn 函数，若不传则删除所有对应的事件监听
-   */
-  removeEventListener(event: string, fn?: Function): EventDispatcher {
+  off(event: string, fn?: Function): EventDispatcher {
     if (!this._evts[event]) return this;
     if (!fn) {
       this._clearEvent(event);
@@ -141,8 +136,18 @@ export class EventDispatcher extends EngineObject {
   }
 
   /**
+   * @deprecated 使用
+   * 移除指定事件名的事件监听。
+   * @param event - 事件名
+   * @param fn - 函数，若不传则删除所有对应的事件监听
+   */
+  removeEventListener(event: string, fn?: Function): EventDispatcher {
+    return this.off(event, fn);
+  }
+
+  /**
    * 移除所有的事件监听。
-   * @param event 事件名，若不传则删除所有事件
+   * @param event - 事件名，若不传则删除所有事件
    */
   removeAllEventListeners(event?: string): void {
     if (event) {
@@ -154,8 +159,8 @@ export class EventDispatcher extends EngineObject {
   }
 
   /**
-   * @deprecated
-   * @param 事件
+   * @deprecated 使用 dispatch 替换
+   * @param - 事件
    */
   trigger(e: Event) {
     this.dispatch(e.type as string, e.data);
