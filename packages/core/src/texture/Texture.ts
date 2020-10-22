@@ -392,6 +392,9 @@ export abstract class Texture extends RefObject {
     return isSupported;
   }
 
+  /** 名称。*/
+  name: string;
+
   public _glTexture: WebGLTexture;
 
   /** @internal */

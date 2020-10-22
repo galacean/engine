@@ -15,8 +15,11 @@ import { VertexElement } from "./VertexElement";
 export class Primitive extends RefObject {
   private static _primitiveID: number = 0;
 
+  /** 名称。*/
+  name: string;
   /** 实例数量，0 表示关闭实例渲染。*/
   instanceCount: number = 0;
+
   _vertexElementMap: object = {};
   _glIndexType: number;
 
@@ -45,7 +48,6 @@ export class Primitive extends RefObject {
     return this._indexBufferBinding;
   }
 
-  readonly id: number;
   targets: any[] = [];
   boundingBox: OBB = null;
   boundingSphere: BoundingSphere = null;
@@ -53,7 +55,6 @@ export class Primitive extends RefObject {
 
   constructor(engine: Engine, name?: string) {
     super(engine);
-    this.id = Primitive._primitiveID++;
     this.name = name;
   }
 

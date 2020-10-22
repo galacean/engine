@@ -71,8 +71,6 @@ export class EnvironmentMapLight extends Light {
    */
   constructor(entity) {
     super(entity);
-
-    this.name = name;
     this.diffuse = new Vector3(0.3, 0.3, 0.3);
     this.specular = new Vector3(0.5, 0.5, 0.5);
     this.diffuseIntensity = 1;

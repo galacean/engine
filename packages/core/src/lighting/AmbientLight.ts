@@ -36,7 +36,6 @@ export class AmbientLight extends Light {
    */
   constructor(entity) {
     super(entity);
-    this.name = "ambientLight";
     this.color = new Vector3(1, 1, 1);
     this.intensity = 1.0;
 

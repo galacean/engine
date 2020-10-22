@@ -13,6 +13,9 @@ import { BoundingBox } from "../RenderableComponent";
  * 缓冲几何体。
  */
 export class BufferGeometry extends EngineObject {
+  /** 名称。*/
+  name: string;
+
   /** @internal */
   _primitive: Primitive;
 

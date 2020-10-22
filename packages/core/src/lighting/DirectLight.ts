@@ -17,7 +17,6 @@ export class DirectLight extends Light {
    */
   constructor(entity) {
     super(entity);
-    this.name = "directLight";
     this.color = new Vector3(1, 1, 1);
     this.intensity = 1.0;
     this._lightColor = new Vector3();
