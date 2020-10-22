@@ -346,27 +346,27 @@ export class Entity extends EventDispatcher {
    * @returns 克隆的节点
    */
   clone(): Entity {
-    const newNode = new Entity(this.name, this._engine);
+    const cloneEntity = new Entity(this.name + "(Clone)", this._engine);
 
-    newNode._isActive = this._isActive;
-    newNode.transform.localMatrix = this.transform.localMatrix;
+    cloneEntity._isActive = this._isActive;
+    cloneEntity.transform.localMatrix = this.transform.localMatrix;
 
     const children = this._children;
     for (let i = 0, len = this._children.length; i < len; i++) {
-      const childNode = children[i];
-      newNode.addChild(childNode.clone());
+      const child = children[i];
+      cloneEntity.addChild(child.clone());
     }
 
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
-        const targetComp = newNode.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
+        const targetComp = cloneEntity.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
         ComponentCloner.cloneComponent(sourceComp, targetComp);
       }
     }
 
-    return newNode;
+    return cloneEntity;
   }
 
   /**
