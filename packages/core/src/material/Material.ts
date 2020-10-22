@@ -338,6 +338,9 @@ export class Material extends RefObject {
     } // end of switch
   }
 
+  /**
+   * @override
+   */
   _onDestroy() {
     // TODO: 待材质重构
     const values = Object.values(this._values);

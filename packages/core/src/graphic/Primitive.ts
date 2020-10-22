@@ -135,6 +135,7 @@ export class Primitive extends RefObject {
   }
 
   /**
+   * @override
    * 销毁。
    */
   _onDestroy() {

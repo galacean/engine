@@ -6,13 +6,13 @@ import { Engine } from "../Engine";
  * 资产的基类，具有引用计数能力。
  */
 export abstract class RefObject extends EngineObject {
-  /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.gc() 影响。*/
+  /** 是否忽略垃圾回收的检查,如果为 true 则不受 ResourceManager.gc() 影响。*/
   isGCIgnored: boolean = false;
-  private _refCount: number = 0;
-  private _destroyed: boolean = false;
 
+  private _refCount: number = 0;
   private _refChildren: RefObject[] = [];
   private _refParent: RefObject = null;
+  private _destroyed: boolean = false;
 
   /**
    * 被有效引用计数。
@@ -57,14 +57,8 @@ export abstract class RefObject extends EngineObject {
   }
 
   /**
-   * 当资源真正销毁时调。交由子类重写
-   */
-  protected abstract _onDestroy(): void;
-
-  /**
-   * 把当前资源添加到资源管理中。
    * @internal
-   * @param path
+   * 把当前资源添加到资源管理中。
    */
   _addToResourceManager(path: string): void {
     this._engine.resourceManager._addAsset(path, this);
@@ -103,4 +97,10 @@ export abstract class RefObject extends EngineObject {
       obj._addRefCount(-this._refCount);
     }
   }
+
+  /**
+   * 当资源销毁时调用。
+   * 子类可重写该函数。
+   */
+  protected abstract _onDestroy(): void;
 }

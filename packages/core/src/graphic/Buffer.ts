@@ -216,6 +216,7 @@ export class Buffer extends RefObject {
   }
 
   /**
+   * @override
    * 销毁。
    */
   _onDestroy() {
