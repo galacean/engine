@@ -1,4 +1,5 @@
 import { EngineObject } from "../base";
+import { Engine } from "../Engine";
 import { SubPrimitive, PrimitiveTopology } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
@@ -12,10 +13,8 @@ import { BoundingBox } from "../RenderableComponent";
  * 缓冲几何体。
  */
 export class BufferGeometry extends EngineObject {
-  /** 名称。*/
-  public name: string;
-
-  _primitive: Primitive = new Primitive();
+  /** @internal */
+  _primitive: Primitive;
 
   private _bounds: BoundingBox;
   private _subGeometries: SubPrimitive[] = [];
@@ -79,10 +78,12 @@ export class BufferGeometry extends EngineObject {
 
   /**
    * 创建几何体缓冲。
+   * @param engine - 所属引擎
    * @param name - 名称
    */
-  constructor(name?: string) {
-    super();
+  constructor(engine: Engine, name?: string) {
+    super(engine);
+    this._primitive = new Primitive(engine);
     this.name = name;
   }
 
@@ -178,10 +179,7 @@ export class BufferGeometry extends EngineObject {
     this._subGeometries.length = 0;
   }
 
-  /**
-   * 销毁。
-   */
-  destroy(): void {
+  onDestroy() {
     if (this._primitive) {
       this._primitive.destroy();
       this._primitive = null;

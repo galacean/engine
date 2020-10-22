@@ -1,6 +1,6 @@
 import { AssetPromise } from "./AssetPromise";
 import { LoadItem } from "./LoadItem";
-import { ReferenceObject } from "./ReferenceObject";
+import { RefObject } from "./RefObject";
 import { Engine } from "..";
 import { Loader } from "./Loader";
 import { AssetType } from "./AssetType";
@@ -39,7 +39,7 @@ export class ResourceManager {
   /** 资产池,key为资产路径，值为资产，通过路径加载的资源均放入该池中，用于资产文件管理。*/
   private _assetUrlPool: { [key: string]: Object } = Object.create(null);
   /** 引用计数对象池,key为对象ID，引用计数的对象均放入该池中。*/
-  private _referenceObjectPool: { [key: number]: ReferenceObject } = Object.create(null);
+  private _refObjectPool: { [key: number]: RefObject } = Object.create(null);
   /** 加载中的资源。*/
   private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
 
@@ -129,8 +129,7 @@ export class ResourceManager {
    * @remarks 释放原则为没有被组件实例引用，包含直接引用和间接引用。
    */
   gc(): void {
-    const objects = Object.values(this._referenceObjectPool);
-    objects.sort((refObj1, refObj2) => refObj1.gcPriority - refObj2.gcPriority);
+    const objects = Object.values(this._refObjectPool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored) {
         objects[i].destroy();
@@ -150,7 +149,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addAsset(path: string, asset: ReferenceObject): void {
+  _addAsset(path: string, asset: RefObject): void {
     this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
   }
@@ -158,7 +157,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _deleteAsset(asset: ReferenceObject): void {
+  _deleteAsset(asset: RefObject): void {
     const id = asset.instanceId;
     const path = this._assetPool[id];
     if (path) {
@@ -170,15 +169,15 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addReferenceObject(id: number, asset: ReferenceObject): void {
-    this._referenceObjectPool[id] = asset;
+  _addRefObject(id: number, asset: RefObject): void {
+    this._refObjectPool[id] = asset;
   }
 
   /**
    * @internal
    */
-  _deleteReferenceObject(id: number): void {
-    delete this._referenceObjectPool[id];
+  _deleteRefObject(id: number): void {
+    delete this._refObjectPool[id];
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {

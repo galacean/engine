@@ -113,6 +113,6 @@
   },
   "ci": {
     "type": "aci",
-    "versions": "8, 10, 12"
+    "versions": "12"
   }
 }

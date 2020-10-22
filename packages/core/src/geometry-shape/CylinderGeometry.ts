@@ -27,28 +27,28 @@ export class CylinderGeometry extends ShapeGeometry {
    * @param {number} thetaLength 圆形扇区的中心角，通常称为theta。 默认值为2 * Pi，这样可以获得完整的柱面。
    */
   constructor(
-    radiusTop?: number,
-    radiusBottom?: number,
-    height?: number,
-    radialSegments?: number,
-    heightSegments?: number,
-    openEnded?: boolean,
-    thetaStart?: number,
-    thetaLength?: number,
-    frontFace?: FrontFace,
-    engine?: Engine
+    radiusTop: number = 1,
+    radiusBottom: number = 1,
+    height: number = 1,
+    radialSegments: number = 8,
+    heightSegments: number = 1,
+    openEnded: boolean = false,
+    thetaStart: number = 0,
+    thetaLength: number = 2 * Math.PI,
+    frontFace: FrontFace = FrontFace.CCW,
+    engine: Engine
   ) {
-    super();
-    this.FrontFace = frontFace || FrontFace.CCW;
+    super(engine);
+    this.FrontFace = frontFace;
     this._parameters = {
-      radiusTop: radiusTop || 1,
-      radiusBottom: radiusBottom || 1,
-      height: height || 1,
-      radialSegments: radialSegments || 8,
-      heightSegments: heightSegments || 1,
-      openEnded: openEnded || false,
-      thetaStart: thetaStart || 0,
-      thetaLength: thetaLength || 2 * Math.PI
+      radiusTop: radiusTop,
+      radiusBottom: radiusBottom,
+      height: height,
+      radialSegments: radialSegments,
+      heightSegments: heightSegments,
+      openEnded: openEnded,
+      thetaStart: thetaStart,
+      thetaLength: thetaLength
     };
 
     this._vertices = [];

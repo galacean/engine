@@ -20,12 +20,31 @@ export class GeometryRenderer extends RenderableComponent {
   _material: Material;
 
   /** 缓冲几何体。*/
-  geometry: BufferGeometry;
+  private _geometry: BufferGeometry;
+
+  /**
+   * 几何体
+   */
+  set geometry(value: BufferGeometry) {
+    if (this._geometry) {
+      this._geometry._primitive._addRefCount(-1);
+    }
+    value._primitive._addRefCount(1);
+    this._geometry = value;
+  }
+
+  get geometry(): BufferGeometry {
+    return this._geometry;
+  }
 
   /**
    * 材质。
    */
   set material(value: Material) {
+    if (this._material) {
+      this._material._addRefCount(-1);
+    }
+    value._addRefCount(1);
     this._material = value;
   }
 
@@ -55,7 +74,7 @@ export class GeometryRenderer extends RenderableComponent {
    * @override
    */
   protected _updateBounds(worldBounds: any): void {
-    const localBounds: any = this.geometry.bounds;
+    const localBounds: any = this._geometry.bounds;
     if (localBounds) {
       const worldMatrix: any = this._entity.transform.worldMatrix;
       Vector3.transformCoordinate(localBounds.min, worldMatrix, worldBounds.min); //TODO:简单模式，有漏洞，待AABB重构

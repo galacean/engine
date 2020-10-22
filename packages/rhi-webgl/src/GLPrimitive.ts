@@ -24,7 +24,7 @@ export class GLPrimitive extends GLAsset {
   private readonly _useVao: boolean;
 
   constructor(rhi: WebGLRenderer, primitive: Primitive) {
-    super(rhi, primitive);
+    super(rhi, primitive as any);
     this._primitive = primitive;
     this.canUseInstancedArrays = this.rhi.canIUse(GLCapabilityType.instancedArrays);
     this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);

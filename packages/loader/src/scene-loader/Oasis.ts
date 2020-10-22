@@ -17,7 +17,7 @@ export class Oasis extends EventDispatcher {
   private oasis = this;
 
   private constructor(private _options: Readonly<Options>, public readonly pluginManager: PluginManager) {
-    super();
+    super(_options.engine);
     this.engine = _options.engine;
     this.resetFeature();
     this.schema = _options.config;

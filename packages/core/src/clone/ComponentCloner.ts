@@ -1,5 +1,5 @@
 import { IClone } from "@alipay/o3-design";
-import { ReferenceObject } from "../asset/ReferenceObject";
+import { RefObject } from "../asset/RefObject";
 import { Component } from "../Component";
 import { CloneManager } from "./CloneManager";
 import { CloneMode } from "./enums/CloneMode";
@@ -12,26 +12,30 @@ export class ComponentCloner {
    */
   static cloneComponent(source: Component, target: Component): void {
     const cloneModes = CloneManager._cloneModeMap.get(source.constructor);
-    for (const k in source) {
-      const cloneMode = cloneModes[k];
-      switch (cloneMode) {
-        case undefined:
-        case CloneMode.Shallow:
-          target[k] = source[k];
-          break;
-        case CloneMode.Deep:
-          const sourceProp: Object = source[k];
-          if (sourceProp || sourceProp instanceof ReferenceObject) {
-            // temp
-            let tarProp = <Object>target[k];
-            tarProp || (tarProp = target[k] = sourceProp.constructor());
-            ComponentCloner.cloneComponentProp(sourceProp, tarProp);
-          } else {
-            // null or undefine and extends ReferenceObject
-            target[k] = sourceProp;
-          }
-          break;
+    if (cloneModes) {
+      for (const k in source) {
+        const cloneMode = cloneModes[k];
+        switch (cloneMode) {
+          case undefined:
+          case CloneMode.Shallow:
+            target[k] = source[k];
+            break;
+          case CloneMode.Deep:
+            const sourceProp: Object = source[k];
+            if (sourceProp || sourceProp instanceof RefObject) {
+              let tarProp = <Object>target[k];
+              tarProp || (tarProp = target[k] = sourceProp.constructor());
+              ComponentCloner.cloneComponentProp(sourceProp, tarProp);
+            } else {
+              // null or undefine and extends ReferenceObject
+              target[k] = sourceProp;
+            }
+            break;
+        }
       }
+    } else {
+      // never register any props
+      Object.assign(target, source);
     }
   }
 
@@ -48,7 +52,7 @@ export class ComponentCloner {
         const itemType = typeof sourceItem;
         if (
           sourceItem == null ||
-          sourceItem instanceof ReferenceObject ||
+          sourceItem instanceof RefObject ||
           itemType === "number" ||
           itemType === "string" ||
           itemType === "boolean"
@@ -70,7 +74,7 @@ export class ComponentCloner {
         const itemType = typeof sourceItem;
         if (
           sourceItem == null ||
-          sourceItem instanceof ReferenceObject ||
+          sourceItem instanceof RefObject ||
           itemType === "number" ||
           itemType === "string" ||
           itemType === "boolean"

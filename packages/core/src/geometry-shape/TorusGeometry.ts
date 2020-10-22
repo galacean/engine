@@ -12,9 +12,9 @@ export class TorusGeometry extends ShapeGeometry {
       tubularSegments?: number;
       arc?: number;
     } = {},
-    engine?: Engine
+    engine: Engine
   ) {
-    super();
+    super(engine);
 
     const radius = this.parameters.radius || 1;
     const tube = this.parameters.tube || 0.4;

@@ -8,6 +8,14 @@ import { RenderableComponent } from "../RenderableComponent";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Mesh } from "./Mesh";
 
+// TODO 硬编码，后续添加到 RenderableComponent 内
+function addPrimitivesRefCount(mesh: Mesh, refCount: number): void {
+  const primitives = mesh.primitives;
+  for (let i = 0, l = primitives.length; i < l; i++) {
+    primitives[i]._addRefCount(refCount);
+  }
+}
+
 /**
  * 负责渲染一个Mesh对象的组件
  */
@@ -37,9 +45,11 @@ export class MeshRenderer extends RenderableComponent {
    */
   set mesh(mesh: Mesh) {
     if (this._mesh) {
-      this._mesh._addReference(-1);
+      // TODO 硬编码，后续添加到 RenderableComponent 内
+      addPrimitivesRefCount(this._mesh, -1);
     }
-    mesh._addReference(1);
+    // TODO 硬编码，后续添加到 RenderableComponent 内
+    addPrimitivesRefCount(mesh, 1);
     this._mesh = mesh;
     this._sharedMaterials = [];
     this._instanceMaterials = [];
@@ -52,9 +62,9 @@ export class MeshRenderer extends RenderableComponent {
    */
   setSharedMaterial(primitiveIndex: number, material: Material) {
     if (this._sharedMaterials[primitiveIndex]) {
-      this._sharedMaterials[primitiveIndex]._addReference(-1);
+      this._sharedMaterials[primitiveIndex]._addRefCount(-1);
     }
-    material._addReference(1);
+    material._addRefCount(1);
     this._sharedMaterials[primitiveIndex] = material;
   }
 
@@ -65,9 +75,9 @@ export class MeshRenderer extends RenderableComponent {
    */
   setMaterial(primitiveIndex: number, material: Material) {
     if (this._instanceMaterials[primitiveIndex]) {
-      this._instanceMaterials[primitiveIndex]._addReference(-1);
+      this._instanceMaterials[primitiveIndex]._addRefCount(-1);
     }
-    material._addReference(1);
+    material._addRefCount(1);
     this._instanceMaterials[primitiveIndex] = material;
   }
 
@@ -131,19 +141,17 @@ export class MeshRenderer extends RenderableComponent {
 
     // 删除引用计数
     for (let i = 0; i < this._instanceMaterials.length; i++) {
-      this._instanceMaterials[i]._addReference(-1);
+      this._instanceMaterials[i]._addRefCount(-1);
     }
 
     // 删除引用计数
     for (let i = 0; i < this._sharedMaterials.length; i++) {
-      this._sharedMaterials[i]._addReference(-1);
+      this._sharedMaterials[i]._addRefCount(-1);
     }
 
     if (this._mesh) {
-      this._mesh._addReference(-1);
+      addPrimitivesRefCount(this._mesh, -1);
     }
-    // TODO: primitive reference decrease
-    // const primitives = this._mesh.primitives;
   }
 
   /**

@@ -25,7 +25,7 @@ module.exports = {
 
   // The directory where Jest should output its coverage files
   coverageDirectory: "coverage",
-  collectCoverageFrom: ["packages/**/src/**/*.ts"],
+  collectCoverageFrom: ["packages/**/src/*.ts"],
 
   // An array of regexp pattern strings used to skip coverage collection
   coveragePathIgnorePatterns: ["/node_modules/"],
@@ -63,10 +63,9 @@ module.exports = {
   // maxWorkers: "50%",
 
   // An array of directory names to be searched recursively up from the requiring module's location
-  moduleDirectories: [
-    "node_modules",
-    "src"
-  ],
+  // moduleDirectories: [
+  //   "node_modules"
+  // ],
 
   // An array of file extensions your modules use
   // moduleFileExtensions: [
