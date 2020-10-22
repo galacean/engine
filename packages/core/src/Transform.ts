@@ -490,7 +490,7 @@ export class Transform extends Component {
   /**
    * 旋转并且保证世界前向量指向目标世界位置。
    * @param worldPosition - 目标世界位置
-   * @param worldUp - 世界上向量，默认是 [0, 1, 0]
+   * @param worldUp - 世界上向量，默认是 Vector3(0, 1, 0)
    */
   lookAt(worldPosition: Vector3, worldUp?: Vector3): void {
     const position = this.worldPosition;

@@ -17,14 +17,14 @@ export interface BoundingBox {
  * 可渲染的组件。
  */
 export abstract class RenderableComponent extends Component {
-  /* @internal */
+  /** @internal */
   @ignoreClone
   _onUpdateIndex: number = -1;
-  /* @internal */
+  /** @internal */
   @ignoreClone
   _rendererIndex: number = -1;
 
-  /* @internal */
+  /** @internal */
   @ignoreClone
   protected _overrideUpdate: boolean = false;
 

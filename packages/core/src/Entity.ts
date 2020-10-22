@@ -1,6 +1,6 @@
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { EventDispatcher } from "./base";
-import { CloneManager } from "./clone/CloneManager";
+import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
@@ -86,17 +86,17 @@ export class Entity extends EventDispatcher {
   /* 变换。*/
   readonly transform: Transform;
 
-  /* @internal */
+  /** @internal */
   _isActiveInHierarchy: boolean = false;
-  /* @internal */
+  /** @internal */
   _components: Component[] = [];
-  /* @internal */
+  /** @internal */
   _children: Entity[] = [];
-  /* @internal */
+  /** @internal */
   _scene: Scene;
-  /* @internal */
+  /** @internal */
   _isRoot: boolean = false;
-  /* @internal */
+  /** @internal */
   _isActive: boolean = true;
 
   private _parent: Entity = null;
@@ -362,7 +362,7 @@ export class Entity extends EventDispatcher {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
         const targetComp = newNode.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
-        CloneManager.cloneComponent(sourceComp, targetComp);
+        ComponentCloner.cloneComponent(sourceComp, targetComp);
       }
     }
 

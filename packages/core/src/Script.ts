@@ -6,22 +6,22 @@ import { ignoreClone } from "./clone/CloneManager";
  * 脚本类，可进行逻辑编写。
  */
 export class Script extends Component {
-  /* @internal */
+  /** @internal */
   @ignoreClone
   _started: boolean = false;
-  /* @internal */
+  /** @internal */
   @ignoreClone
   _onStartIndex: number = -1;
-  /* @internal */
+  /** @internal */
   @ignoreClone
   _onUpdateIndex: number = -1;
-  /* @internal */
+  /** @internal */
   @ignoreClone
   _onLateUpdateIndex: number = -1;
-  /* @internal */
+  /** @internal */
   @ignoreClone
   _onPreRenderIndex: number = -1;
-  /* @internal */
+  /** @internal */
   @ignoreClone
   _onPostRenderIndex: number = -1;
 
