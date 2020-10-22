@@ -21,11 +21,9 @@ export class AbilityManager {
       Logger.error(`${type} abiltiy is not defined`);
       return;
     }
+
     const abilityProps = this.mixPropsToExplicitProps(props);
-    // if (AbilityConstructor === Camera) {
-    //   abilityProps.SceneRenderer = o3.BasicRenderPipeline;
-    // }
-    const ability = node.addComponent(AbilityConstructor, abilityProps);
+    const ability = node.addComponent(AbilityConstructor);
     const { enabled } = abilityProps;
     if (enabled !== undefined) {
       ability.enabled = enabled;

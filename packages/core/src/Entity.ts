@@ -1,5 +1,6 @@
 import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
 import { EventDispatcher } from "./base";
+import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { DisorderedArray } from "./DisorderedArray";
@@ -85,17 +86,17 @@ export class Entity extends EventDispatcher {
   /* 变换。*/
   readonly transform: Transform;
 
-  /* @internal */
+  /** @internal */
   _isActiveInHierarchy: boolean = false;
-  /* @internal */
+  /** @internal */
   _components: Component[] = [];
-  /* @internal */
+  /** @internal */
   _children: Entity[] = [];
-  /* @internal */
+  /** @internal */
   _scene: Scene;
-  /* @internal */
+  /** @internal */
   _isRoot: boolean = false;
-  /* @internal */
+  /** @internal */
   _isActive: boolean = true;
 
   private _engine: Engine;
@@ -210,12 +211,11 @@ export class Entity extends EventDispatcher {
   /**
    * 根据组件类型添加组件。
    * @param type - 组件类型
-   * @param props - 组件属性 //deprecated
    * @returns	组件实例
    */
-  addComponent<T extends Component>(type: new (entity: any, props?: object) => T, props: object = {}): T {
+  addComponent<T extends Component>(type: new (entity: Entity) => T): T {
     ComponentsDependencies._addCheck(this, type);
-    const component = new type(this, props);
+    const component = new type(this);
     this._components.push(component);
     if (this._isActiveInHierarchy) {
       component._setActive(true);
@@ -228,7 +228,7 @@ export class Entity extends EventDispatcher {
    * @param type - 组件类型
    * @returns	组件实例
    */
-  getComponent<T extends Component>(type: new (entity: Entity, props?: object) => T): T {
+  getComponent<T extends Component>(type: new (entity: Entity) => T): T {
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
@@ -243,7 +243,7 @@ export class Entity extends EventDispatcher {
    * @param results - 组件实例集合
    * @returns	组件实例集合
    */
-  getComponents<T extends Component>(type: new (entity: Entity, props?: object) => T, results: Array<T>): Array<T> {
+  getComponents<T extends Component>(type: new (entity: Entity) => T, results: Array<T>): Array<T> {
     results.length = 0;
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
@@ -359,13 +359,12 @@ export class Entity extends EventDispatcher {
       newNode.addChild(childNode.clone());
     }
 
-    const abilityArray = this._components || [];
-    const len = abilityArray.length;
-    for (let i = 0; i < len; i++) {
-      const ability = abilityArray[i];
-      if (!(ability instanceof Transform)) {
-        const newCom = newNode.addComponent(ability.constructor as any, (ability as any)._props);
-        ability._cloneTo(newCom); //CM: 未来统一走浅拷贝
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const sourceComp = components[i];
+      if (!(sourceComp instanceof Transform)) {
+        const targetComp = newNode.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
+        ComponentCloner.cloneComponent(sourceComp, targetComp);
       }
     }
 

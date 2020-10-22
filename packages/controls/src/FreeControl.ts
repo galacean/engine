@@ -89,16 +89,13 @@ export class FreeControl extends Script {
   /**
    * 漫游控制器构造函数
    * @param {Entity} entity 挂载节点
-   * @param {Object} props 轨道控制器参数，包含以下项
-   * @property {Canvas|HTMLElement} [props.mainElement=RHI.canvas] 获取事件的HTMLElement对象，推荐使用绘制的canvas
-   * @property {HTMLElement} [props.domElement=document] 获取顶级事件的HTMLElement对象。
    */
-  constructor(entity: Entity, props: { mainElement?; domElement? }) {
+  constructor(entity: Entity) {
     super(entity);
     this.camera = entity;
     //@ts-ignore @todo 未来移除对html元素的依赖，通过封装引擎的input实现
-    this.mainElement = props.mainElement || this.scene.engine.canvas._webCanvas;
-    this.domElement = props.domElement || document;
+    this.mainElement = this.scene.engine.canvas._webCanvas;
+    this.domElement = document;
 
     if (!(this.mainElement instanceof HTMLCanvasElement)) {
       Logger.warn("AFreeControls must have a legal mainElement");

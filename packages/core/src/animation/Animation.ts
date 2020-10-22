@@ -6,6 +6,7 @@ import { Component } from "../Component";
 import { Logger } from "../base/Logger";
 import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh/SkinnedMeshRenderer";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Entity 及其子物体
  */
@@ -65,25 +66,25 @@ export class Animation extends Component {
     return outValue;
   }
 
-  /* @internal */
+  /** @internal */
+  @ignoreClone
   _onUpdateIndex: number = -1;
 
-  private _animSet;
+  @deepClone
+  private _animSet = {};
 
-  private _animLayers: AnimationLayer[];
-
-  private _timeScale: number;
-
+  @ignoreClone
+  private _animLayers: AnimationLayer[] = [new AnimationLayer()];
+  @ignoreClone
+  private _timeScale: number = 1.0;
+  @ignoreClone
   private _channelTargets: IChannelTarget[] | false;
+
   /**
-   * @constructor
    * @param {Entity} entity
    */
   constructor(entity: Entity) {
     super(entity);
-    this._animSet = {}; // name : AnimationClip
-    this._animLayers = [new AnimationLayer()];
-    this._timeScale = 1.0;
   }
 
   /**
@@ -461,16 +462,5 @@ export class Animation extends Component {
    */
   _onDisable(): void {
     this.scene._componentsManager.removeOnUpdateAnimations(this);
-  }
-
-  /**
-   * @todo 临时方案，未来组件应该统一使用浅拷贝
-   * @override
-   * @internal
-   */
-  _cloneTo(destComponent: Component): void {
-    for (let aniClip in this._animSet) {
-      (<Animation>destComponent)._animSet[aniClip] = this._animSet[aniClip];
-    }
   }
 }

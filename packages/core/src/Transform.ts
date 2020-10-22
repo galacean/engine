@@ -1,6 +1,6 @@
-import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
+import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@alipay/o3-math";
+import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { Entity } from "./Entity";
 import { UpdateFlag } from "./UpdateFlag";
 
 /**
@@ -39,19 +39,33 @@ export class Transform extends Component {
   /** Transform._WORLD_MATRIX_FLAG | Transform._WORLD_POSITION_FLAG | Transform._WORLD_EULER_FLAG | Transform._WORLD_QUAT_FLAG | Transform._WORLD_SCALE_FLAG */
   private static _WM_WP_WE_WQ_WS_FLAGS: number = 0xbc;
 
+  @deepClone
   private _position: Vector3 = new Vector3();
+  @deepClone
   private _rotation: Vector3 = new Vector3();
+  @deepClone
   private _rotationQuaternion: Quaternion = new Quaternion();
+  @deepClone
   private _scale: Vector3 = new Vector3(1, 1, 1);
+  @deepClone
   private _worldPosition: Vector3 = new Vector3();
+  @deepClone
   private _worldRotation: Vector3 = new Vector3();
+  @deepClone
   private _worldRotationQuaternion: Quaternion = new Quaternion();
+  @deepClone
   private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
+  @deepClone
   private _localMatrix: Matrix = new Matrix();
+  @deepClone
   private _worldMatrix: Matrix = new Matrix();
+  @shallowClone
   private _dirtyFlag: number = Transform._WM_WP_WE_WQ_WS_FLAGS;
+  @ignoreClone
   private _changeFlags: UpdateFlag[] = [];
+  @ignoreClone
   private _isParentDirty: boolean = true;
+  @ignoreClone
   private _parentTransformCache: Transform = null;
 
   /**
@@ -227,7 +241,7 @@ export class Transform extends Component {
 
   /**
    * 世界有损缩放。
-   * @remarks 某种条件下获取该值可能不正确（例如：父节点有缩放，子节点有旋转），缩放会倾斜，无法使用Vector3正确表示,必须使用Matrix3x3矩阵才能正确表示。
+   * @remarks 某种条件下获取该值可能不正确（例如：父节点有缩放，子节点有旋转），缩放会倾斜，无法使用 Vector3 正确表示,必须使用 Matrix3x3 矩阵才能正确表示。
    */
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(Transform._WORLD_SCALE_FLAG)) {
@@ -295,14 +309,6 @@ export class Transform extends Component {
     }
     this.localMatrix = this._localMatrix;
     this._setDirtyFlagFalse(Transform._WORLD_MATRIX_FLAG);
-  }
-
-  /**
-   * @internal
-   * 构建一个变换组件。
-   */
-  constructor(entity?: Entity) {
-    super(entity);
   }
 
   /**
@@ -484,7 +490,7 @@ export class Transform extends Component {
   /**
    * 旋转并且保证世界前向量指向目标世界位置。
    * @param worldPosition - 目标世界位置
-   * @param worldUp - 世界上向量，默认是 [0, 1, 0]
+   * @param worldUp - 世界上向量，默认是 Vector3(0, 1, 0)
    */
   lookAt(worldPosition: Vector3, worldUp?: Vector3): void {
     const position = this.worldPosition;
@@ -527,14 +533,6 @@ export class Transform extends Component {
   _parentChange(): void {
     this._isParentDirty = true;
     this._updateAllWorldFlag();
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: Transform): Transform {
-    target.localMatrix = this.localMatrix;
-    return target;
   }
 
   /**

@@ -1,5 +1,6 @@
 import { Vector3 } from "@alipay/o3-math";
 import { Camera } from "./Camera";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { UpdateFlag } from "./UpdateFlag";
@@ -16,15 +17,20 @@ export interface BoundingBox {
  * 可渲染的组件。
  */
 export abstract class RenderableComponent extends Component {
-  /* @internal */
+  /** @internal */
+  @ignoreClone
   _onUpdateIndex: number = -1;
-  /* @internal */
+  /** @internal */
+  @ignoreClone
   _rendererIndex: number = -1;
 
-  /* @internal */
+  /** @internal */
+  @ignoreClone
   protected _overrideUpdate: boolean = false;
 
+  @ignoreClone
   private _transformChangeFlag: UpdateFlag;
+  @deepClone
   private _bounds: BoundingBox = { min: new Vector3(), max: new Vector3() };
 
   /**
@@ -39,8 +45,11 @@ export abstract class RenderableComponent extends Component {
     return this._bounds;
   }
 
-  constructor(entity: Entity, props: object = {}) {
-    super(entity, props);
+  /**
+   * @internal
+   */
+  constructor(entity: Entity) {
+    super(entity);
     const prototype = RenderableComponent.prototype;
     this._overrideUpdate = this.update !== prototype.update;
     this._transformChangeFlag = this.entity.transform.registerWorldChangeFlag();
@@ -59,6 +68,7 @@ export abstract class RenderableComponent extends Component {
   }
 
   abstract render(camera: Camera): void;
+
   update(deltaTime: number): void {}
 
   protected _updateBounds(worldBounds: any): void {}

@@ -1,4 +1,5 @@
 import { EventDispatcher, MaskList } from "./base";
+import { ignoreClone } from "./clone/CloneManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { Scene } from "./Scene";
@@ -7,14 +8,16 @@ import { Scene } from "./Scene";
  * 组件的基类。
  */
 export abstract class Component extends EventDispatcher {
-  /* @internal */
+  /** @internal */
+  @ignoreClone
   _entity: Entity;
-  /* @internal */
+  /** @internal */
+  @ignoreClone
   _destroyed: boolean = false;
 
-  protected _props: object;
-
+  @ignoreClone
   private _enabled: boolean = true;
+  @ignoreClone
   private _awaked: boolean = false;
 
   /**
@@ -64,14 +67,8 @@ export abstract class Component extends EventDispatcher {
     return this._entity.engine;
   }
 
-  /**
-   * 创建组件实例。
-   * @param entity - 对象所在实体
-   * @param props - 配置参数
-   */
-  constructor(entity: Entity, props: object = {}) {
+  constructor(entity: Entity) {
     super();
-    this._props = props;
     this._entity = entity;
 
     this._renderPassFlag = MaskList.EVERYTHING; // @deprecated
@@ -120,12 +117,6 @@ export abstract class Component extends EventDispatcher {
       this._onInActive();
     }
   }
-
-  /**
-   * @todo 临时方案，未来组件可以统一使用浅拷贝解决
-   * @internal
-   */
-  _cloneTo(desComponent: Component): void {}
 
   //---------------------------------------------Deprecated-----------------------------------------------------------------
 

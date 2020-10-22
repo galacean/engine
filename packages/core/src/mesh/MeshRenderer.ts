@@ -1,36 +1,27 @@
-import { Mesh } from "./Mesh";
-import { RenderableComponent } from "../RenderableComponent";
-import { Material } from "../material/Material";
-import { Entity } from "../Entity";
-import { Camera } from "../Camera";
-import { Logger } from "../base/Logger";
 import { Vector3 } from "@alipay/o3-math";
-import { Component } from "../Component";
+import { Logger } from "../base/Logger";
+import { Camera } from "../Camera";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { Entity } from "../Entity";
+import { Material } from "../material/Material";
+import { RenderableComponent } from "../RenderableComponent";
 import { RenderElement } from "../RenderPipeline/RenderElement";
+import { Mesh } from "./Mesh";
 
 /**
  * 负责渲染一个Mesh对象的组件
- * @extends RenderableComponent
  */
 export class MeshRenderer extends RenderableComponent {
   private _mesh: Mesh;
-  private _instanceMaterials: Material[];
-  private _sharedMaterials: Material[];
+  @ignoreClone
+  private _instanceMaterials: Material[] = [];
+  @deepClone
+  private _sharedMaterials: Material[] = [];
 
-  /**
-   * @constructor
-   * @param {Entity} entity 所属的Node对象
-   * @param props
-   */
-  constructor(entity: Entity, props: { mesh?: Mesh } = {}) {
-    super(entity, props);
+  constructor(entity: Entity) {
+    super(entity);
 
     this._mesh = null; // Mesh Asset Object
-
-    this._instanceMaterials = []; // 这个组件独有的材质，用来单独控制材质参数
-    this._sharedMaterials = []; // Primitive默认材质，默认使用
-
-    this.mesh = props.mesh;
   }
 
   /**
@@ -153,21 +144,6 @@ export class MeshRenderer extends RenderableComponent {
     }
     // TODO: primitive reference decrease
     // const primitives = this._mesh.primitives;
-  }
-
-  /**
-   * @todo 临时方案，未来组件应该统一使用浅拷贝
-   * @override
-   * @internal
-   */
-  _cloneTo(destComponent: Component): void {
-    const materials = this._sharedMaterials;
-    const destMaterials = (<MeshRenderer>destComponent)._sharedMaterials;
-    const count = materials.length;
-    destMaterials.length = count;
-    for (let i = 0; i < count; i++) {
-      destMaterials[i] = materials[i];
-    }
   }
 
   /**

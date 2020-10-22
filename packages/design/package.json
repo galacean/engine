@@ -1,10 +1,12 @@
 {
-  "name": "@alipay/o3-draco",
+  "name": "@alipay/o3-design",
   "version": "3.1.0-alpha.0",
-  "description": "Oasis draco",
+  "description": "Oasis base design",
   "keywords": [
-    "Oasis3D",
-    "webgl"
+    "Oasis3D"
+  ],
+  "authors": [
+    "daqi.sdq <daqi.sdq@alibaba-inc.com>"
   ],
   "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
   "repository": {
@@ -14,18 +16,14 @@
   "bugs": {
     "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
   },
-  "license": "MIT",
-  "scripts": {
-    "b:types": "tsc",
-    "lint:fix": "tslint --fix --project ./tsconfig.json"
-  },
-  "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "license": "MIT",
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
   },
-  "dependencies": {
-    "@alipay/o3-core": "3.1.0-alpha.0"
-  }
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts"
 }

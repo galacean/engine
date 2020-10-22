@@ -14,8 +14,8 @@ export class PlaneCollider extends Collider {
    * @constructor
    * @param {Entity} entity
    */
-  constructor(entity: Entity, props: any) {
-    super(entity, props);
+  constructor(entity: Entity) {
+    super(entity);
 
     /**
      * 平面经过点的坐标(在Local坐标系)

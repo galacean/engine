@@ -33,11 +33,10 @@ export abstract class Light extends Component {
   }
 
   /**
-   * @constructor
    * @param {Entity} entity 节点对象
    */
-  constructor(entity: Entity, props?: any) {
-    super(entity, props);
+  constructor(entity: Entity) {
+    super(entity);
     entity.addEventListener("removedFromScene", this._onDisable.bind(this));
   }
 

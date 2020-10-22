@@ -1,6 +1,6 @@
+import { Matrix3x3, Vector3 } from "@alipay/o3-math";
 import { DataType } from "../base/Constant";
 import { Light } from "./Light";
-import { Vector3, Matrix3x3 } from "@alipay/o3-math";
 
 const cacheMat3 = new Matrix3x3();
 
@@ -68,55 +68,15 @@ export class EnvironmentMapLight extends Light {
   /**
    * 环境光源
    * @param {Entity} entity 节点对象
-   * @param {Object} props 包含以下参数
-   * @param {TextureCubeMap} [props.diffuseMap=undefined] 环境光贴图
-   * @param {TextureCubeMap} [props.specularMap=undefined] 高光贴图
-   * @param {Vector3} [props.diffuse=new Vector3(0.5, 0.5, 0.5)] 单色环境光，当环境光贴图不存在时使用
-   * @param {Vector3} [props.specular=new Vector3(0.5, 0.5, 0.5)] 单色高光，当高光贴图不存在时使用
-   * @param {Number} [props.diffuseIntensity=1] 环境光强度
-   * @param {Number} [props.specularIntensity=1] 高光强度
    */
-  constructor(entity, props) {
+  constructor(entity) {
     super(entity);
 
-    const { name, diffuseMap, specularMap, diffuse, specular, diffuseIntensity, specularIntensity } = props;
     this.name = name;
-
-    /**
-     * 环境光贴图
-     * @member {TextureCubeMap}
-     */
-    this.diffuseMap = diffuseMap;
-
-    /**
-     * 高光贴图
-     * @member {TextureCubeMap}
-     */
-    this.specularMap = specularMap;
-
-    /**
-     * 单色环境光
-     * @member {Vector3}
-     */
-    this.diffuse = diffuse || new Vector3(0.3, 0.3, 0.3);
-
-    /**
-     * 单色高光
-     * @member {Vector3}
-     */
-    this.specular = specular || new Vector3(0.5, 0.5, 0.5);
-
-    /**
-     * 环境光强度
-     * @member {Number}
-     */
-    this.diffuseIntensity = diffuseIntensity === undefined ? 1 : diffuseIntensity;
-
-    /**
-     * 高光强度
-     * @member {Number}
-     */
-    this.specularIntensity = specularIntensity === undefined ? 1 : specularIntensity;
+    this.diffuse = new Vector3(0.3, 0.3, 0.3);
+    this.specular = new Vector3(0.5, 0.5, 0.5);
+    this.diffuseIntensity = 1;
+    this.specularIntensity = 1;
   }
 
   /**

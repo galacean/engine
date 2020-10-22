@@ -480,7 +480,7 @@ function parsePrimitiveVertex(
       BufferUsage.Static
     );
     vertexBuffer.setData(bufferData);
-    primitive.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, stride), i++);
+    primitive.setVertexBufferBinding(vertexBuffer, stride, i++);
 
     // compute bounds
     if (vertexELement.semantic == "POSITION") {
@@ -724,7 +724,10 @@ export function parseNode(gltfNode, resources) {
       const lightIdx = gltfNode.extensions.KHR_lights.light;
       if (lightIdx !== undefined) {
         const light = getItemByIdx("lights", lightIdx, resources);
-        if (light) entity.addComponent(light.ability, light.props);
+        if (light) {
+          const lightCon = entity.addComponent(light.ability);
+          Object.assign(lightCon, light.props);
+        }
       }
     }
   }
@@ -812,9 +815,14 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
       if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
         const skin = getItemByIdx("skins", gltfNode.skin, resources);
         const weights = mesh.weights;
-        renderer = node.addComponent(SkinnedMeshRenderer, { skin, mesh, weights });
+        const skinRenderer: SkinnedMeshRenderer = node.addComponent(SkinnedMeshRenderer);
+        skinRenderer.mesh = mesh;
+        skinRenderer.skin = skin;
+        skinRenderer.setWeights(weights);
+        renderer = skinRenderer;
       } else {
-        renderer = node.addComponent(MeshRenderer, { mesh });
+        renderer = node.addComponent(MeshRenderer);
+        renderer.mesh = mesh;
       }
       for (let j = 0, m = gltfMeshPrimitives.length; j < m; j++) {
         const materialIndex = gltfMeshPrimitives[j].material;

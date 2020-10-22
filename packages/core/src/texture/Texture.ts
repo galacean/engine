@@ -9,10 +9,10 @@ import { TextureCubeFace } from "./enums/TextureCubeFace";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
+
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
-
 export abstract class Texture extends ReferenceObject {
   /** @internal */
   static _readFrameBuffer: WebGLFramebuffer = null;

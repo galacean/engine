@@ -23,7 +23,7 @@ let cacheId = 0;
  * */
 export abstract class Probe extends Component {
   protected readonly cacheId: number;
-  private readonly isCube: boolean;
+  private isCube: boolean;
   private oriClipPlane: Vector4[];
 
   private _camera: Camera;
@@ -104,12 +104,11 @@ export abstract class Probe extends Component {
   }
 
   /**
-   *探针基类
+   * 探针基类
    * @param {Entity} entity
-   * @param {ProbeConfig} config
-   * */
-  protected constructor(entity: Entity, config: ProbeConfig = {}) {
-    super(entity, config);
+   */
+  protected constructor(entity: Entity) {
+    super(entity);
     this.cacheId = cacheId++;
 
     this.renderPass = new RenderPass("_renderPass" + this.cacheId, -10);
@@ -120,6 +119,26 @@ export abstract class Probe extends Component {
     this.renderPass.render = this.render.bind(this);
     this.renderPass.postRender = this.postRender.bind(this);
 
+    /**
+     * 继续 RTT
+     * */
+    this.addEventListener("enabled", () => {
+      this.renderPass.enabled = true;
+    });
+
+    /**
+     * 暂停 RTT（ render target to texture）
+     * */
+    this.addEventListener("disabled", () => {
+      this.renderPass.enabled = false;
+    });
+  }
+
+  /**
+   * 初始化探针。
+   * @param config - 初始化配置
+   */
+  public init(config: ProbeConfig = {}): void {
     this.isCube = !!config.isCube;
     this.camera = config.camera || this.scene._activeCameras[0];
     this.excludeRenderList = config.excludeRenderList || [];
@@ -149,20 +168,6 @@ export abstract class Probe extends Component {
     );
 
     this.renderPass.renderTarget = this.renderTarget;
-
-    /**
-     * 继续 RTT
-     * */
-    this.addEventListener("enabled", () => {
-      this.renderPass.enabled = true;
-    });
-
-    /**
-     * 暂停 RTT（ render target to texture）
-     * */
-    this.addEventListener("disabled", () => {
-      this.renderPass.enabled = false;
-    });
   }
 
   protected preRender() {

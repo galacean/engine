@@ -40,10 +40,10 @@ export class ShapeGeometry extends BufferGeometry {
     const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
     const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static);
 
-    this.setVertexBufferBindings(new VertexBufferBinding(vertexBuffer, vertexStride));
+    this.setVertexBufferBinding(vertexBuffer, vertexStride);
     this.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
     this.setVertexElements(vertexElements);
-    this.subGeometry.count = indices.length;
+    this.addSubGeometry(0, indices.length);
 
     this._computeBounds(positionElement, vertices);
   }

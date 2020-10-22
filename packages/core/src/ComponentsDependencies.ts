@@ -1,7 +1,7 @@
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 
-type ComponentConstructor = { new (...args: any): Component };
+type ComponentConstructor = new (entity: Entity) => Component;
 
 /**
  * 用于组件依赖注册。

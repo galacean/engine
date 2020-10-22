@@ -9,7 +9,6 @@ import { RenderTechnique } from "./RenderTechnique";
 
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
- * @class
  */
 export class Material extends ReferenceObject {
   /**

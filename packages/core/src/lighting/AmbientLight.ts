@@ -1,10 +1,9 @@
 import { Vector3 } from "@alipay/o3-math";
-import { Light } from "./Light";
 import { DataType } from "../base/Constant";
+import { Light } from "./Light";
 
 /**
  * 环境光创建类
- * @extends Light
  */
 export class AmbientLight extends Light {
   private _lightColor: Vector3;
@@ -33,28 +32,13 @@ export class AmbientLight extends Light {
   }
 
   /**
-   * @constructor
    * @param {Entity} entity 节点对象
-   * @param {Object} props 参数对象
-   * @param {string} [props.name = ambientLight] props.name 名称
-   * @param {Vector3} [props.color = vec3.fromValues(1, 1, 1)] 颜色
-   * @param {number} [props.intensity = 1] 光照强度
    */
-  constructor(entity, props) {
+  constructor(entity) {
     super(entity);
-    this.name = props.name || "ambientLight";
-
-    /**
-     * 颜色
-     * @member {Vector3}
-     */
-    this.color = props.color || new Vector3(1, 1, 1);
-
-    /**
-     * 光照强度
-     * @member {number}
-     */
-    this.intensity = props.intensity || 1.0;
+    this.name = "ambientLight";
+    this.color = new Vector3(1, 1, 1);
+    this.intensity = 1.0;
 
     this._lightColor = new Vector3();
   }

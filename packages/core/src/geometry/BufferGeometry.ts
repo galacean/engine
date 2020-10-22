@@ -84,39 +84,37 @@ export class BufferGeometry extends EngineObject {
   constructor(name?: string) {
     super();
     this.name = name;
-    this.addSubGeometry(0, 0, PrimitiveTopology.Triangles);
   }
 
   /**
-   * 设置顶点缓冲。
-   * @param vertexBufferBinding - 顶点缓冲绑定
-   */
-  setVertexBufferBindings(vertexBufferBinding: VertexBufferBinding): void;
-
-  /**
-   * 设置顶点缓冲。
-   * @param vertexBufferBinding - 顶点缓冲绑定
-   * @param index - 顶点缓冲索引
-   */
-  setVertexBufferBindings(vertexBufferBinding: VertexBufferBinding, index: number): void;
-
-  /**
-   * 设置顶点缓冲集合。
+   * 设置顶点缓冲绑定。
    * @param vertexBufferBindings - 顶点缓冲绑定
+   * @param firstIndex - 第一个顶点缓冲索引，默认值为 0
    */
-  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[]): void;
+  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, firstIndex?: number): void;
 
   /**
-   * 设置顶点缓冲集合。
-   * @param vertexBufferBindings - 顶点缓冲绑定
-   * @param firstIndex - 第一个顶点缓冲索引
+   * 设置顶点缓冲绑定。
+   * @param vertexBuffer - 顶点缓冲
+   * @param stride - 顶点缓冲跨度
+   * @param firstIndex - 第一个顶点缓冲索引，默认值为 0
    */
-  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number): void;
+  setVertexBufferBinding(vertexBuffer: Buffer, stride: number, firstIndex?: number): void;
 
-  setVertexBufferBindings(
-    vertexBufferBindings: VertexBufferBinding | VertexBufferBinding[],
+  setVertexBufferBinding(
+    bufferOrBinding: Buffer | VertexBufferBinding,
+    stride: number = 0,
     firstIndex: number = 0
   ): void {
+    this._primitive.setVertexBufferBinding(<Buffer>bufferOrBinding, stride, firstIndex);
+  }
+
+  /**
+   * 设置顶点缓冲集合。
+   * @param vertexBufferBindings - 顶点缓冲绑定集合
+   * @param firstIndex - 第一个顶点缓冲索引,默认值为 0
+   */
+  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
     this._primitive.setVertexBufferBindings(vertexBufferBindings, firstIndex);
   }
 
@@ -149,7 +147,7 @@ export class BufferGeometry extends EngineObject {
    * 添加子几何体，每一个子几何体可对应独立的材质。
    * @param start - 起始绘制偏移，如果设置了索引缓冲则表示在索引缓冲的偏移，如果没有设置则表示在顶点缓冲中的偏移
    * @param count - 绘制数量，如果设置了索引缓冲则表示在索引缓冲的数量，如果没有设置则表示在顶点缓冲中的数量
-   * @param topology - 几何体拓扑
+   * @param topology - 几何体拓扑，默认值是 PrimitiveTopology.Triangles
    */
   addSubGeometry(
     start: number,

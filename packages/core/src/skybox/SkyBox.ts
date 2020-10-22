@@ -1,6 +1,6 @@
-import { SkyBoxMaterial } from "./SkyBoxMaterial";
-import { GeometryRenderer } from "../geometry/GeometryRenderer";
 import { CuboidGeometry } from "../geometry-shape/CuboidGeometry";
+import { GeometryRenderer } from "../geometry/GeometryRenderer";
+import { SkyBoxMaterial } from "./SkyBoxMaterial";
 
 /**
  * 天空盒组件
@@ -12,21 +12,11 @@ export class SkyBox extends GeometryRenderer {
   /**
    * 天空盒组件
    * @param {Entity} entity 挂载节点
-   * @param {Object} props Object对象包含以下参数
-   * @param {TextureCubeMap} props.skyBoxMap 天空盒纹理
    */
-  constructor(entity, props) {
-    super(entity, props);
-
-    const { skyBoxMap } = props;
-
-    /**
-     * 天空盒纹理
-     * @member {TextureCubeMap}
-     */
+  constructor(entity) {
+    super(entity);
     this.geometry = new CuboidGeometry(2, 2, 2, this.engine);
     this.material = new SkyBoxMaterial();
-    this.skyBoxMap = skyBoxMap;
   }
 
   update() {

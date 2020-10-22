@@ -1,6 +1,5 @@
 import { Side } from "../base/Constant";
 import { Entity } from "../Entity";
-import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Probe } from "./Probe";
 import { PlaneProbeConfig } from "./type";
 
@@ -11,10 +10,17 @@ export class PlaneProbe extends Probe {
   /**
    * 创建探针
    * @param {Entity} node
-   * @param {PlaneProbeConfig} config
    * */
-  constructor(node: Entity, config: PlaneProbeConfig = {}) {
-    super(node, config);
+  constructor(node: Entity) {
+    super(node);
+  }
+
+  /**
+   * 初始化探针。
+   * @param config - 初始化配置
+   */
+  public init(config: PlaneProbeConfig = {}): void {
+    super.init(config);
   }
 
   /**

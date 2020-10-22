@@ -106,30 +106,30 @@ export class Buffer {
 
   /**
    * 设置缓冲数据。
-   * @param data - 缓冲数据
+   * @param data - 数据
    */
   setData(data: ArrayBuffer | ArrayBufferView): void;
 
   /**
    * 设置缓冲数据。
-   * @param data - 缓冲数据
-   * @param bufferByteOffset - 缓冲偏移，以字节为单位
+   * @param data - 数据
+   * @param bufferByteOffset - 缓冲写入偏移，以字节为单位
    */
   setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number): void;
 
   /**
    * 设置缓冲数据。
-   * @param data - 缓冲数据
-   * @param bufferByteOffset - 缓冲偏移，以字节为单位
+   * @param data - 数据
+   * @param bufferByteOffset - 缓冲写入偏移，以字节为单位
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
    */
-  setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
+  setData(data: ArrayBuffer | ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength?: number): void;
 
   /**
    * 设置缓冲数据。
-   * @param data - 缓冲数据
-   * @param bufferByteOffset - 缓冲偏移，以字节为单位
+   * @param data - 数据
+   * @param bufferByteOffset - 缓冲写入偏移，以字节为单位
    * @param dataOffset - 数据偏移
    * @param dataLength - 数据长度
    * @param options - 操作选项
@@ -158,12 +158,14 @@ export class Buffer {
       gl.bufferData(glBindTarget, this._byteLength, this._glBufferUsage);
     }
 
-    const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1; //TypeArray is BYTES_PER_ELEMENT , unTypeArray is 1
-    const dataByteLength = byteSize * dataLength;
+    // TypeArray is BYTES_PER_ELEMENT, unTypeArray is 1
+    const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1;
+    const dataByteLength = dataLength ? byteSize * dataLength : data.byteLength;
+
     if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
       if (isWebGL2 && isArrayBufferView) {
-        gl.bufferSubData(glBindTarget, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataLength);
+        gl.bufferSubData(glBindTarget, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataByteLength / byteSize);
       } else {
         const subData = new Uint8Array(
           isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,

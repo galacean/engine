@@ -1,6 +1,6 @@
-import { Collider } from "./Collider";
 import { Vector3 } from "@alipay/o3-math";
 import { Entity } from "../Entity";
+import { Collider } from "./Collider";
 
 const _tempVec30 = new Vector3();
 const _tempVec31 = new Vector3();
@@ -26,8 +26,8 @@ export class ABoxCollider extends Collider {
    * 构造函数
    * @param {Entity} entity 对象所在节点
    */
-  constructor(entity: Entity, props: any) {
-    super(entity, props);
+  constructor(entity: Entity) {
+    super(entity);
     this.boxMin = new Vector3(-0.5, -0.5, -0.5);
     this.boxMax = new Vector3(0.5, 0.5, 0.5);
   }

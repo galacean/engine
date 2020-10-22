@@ -1,21 +1,11 @@
-import { ASphereCollider } from "./ASphereCollider";
 import { Vector3 } from "@alipay/o3-math";
 import { Entity } from "../Entity";
+import { ASphereCollider } from "./ASphereCollider";
 
 export class SphereCollider extends ASphereCollider {
   private __center: Vector3 = new Vector3();
   private __radius: number = 1.0;
   private isShowCollider: boolean = true;
-
-  constructor(entity: Entity, props?: any) {
-    super(entity, props);
-
-    const { _center, _radius, isShowCollider } = props;
-
-    this._center = _center ?? this._center;
-    this._radius = _radius ?? this._radius;
-    this.isShowCollider = isShowCollider ?? this.isShowCollider;
-  }
 
   get _center(): Vector3 {
     return this.__center;
@@ -33,5 +23,13 @@ export class SphereCollider extends ASphereCollider {
   set _radius(value: number) {
     this.__radius = value;
     this.setSphere(this.__center, this.__radius);
+  }
+
+  constructor(entity: Entity) {
+    super(entity);
+
+    this._center = this._center;
+    this._radius = this._radius;
+    this.isShowCollider = this.isShowCollider;
   }
 }

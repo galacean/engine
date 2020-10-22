@@ -16,7 +16,6 @@ export class Primitive extends AssetObject {
 
   /** 实例数量，0 表示关闭实例渲染。*/
   instanceCount: number = 0;
-
   _vertexElementMap: object = {};
   _glIndexType: number;
 
@@ -58,26 +57,47 @@ export class Primitive extends AssetObject {
   }
 
   /**
+   * 设置顶点缓冲绑定。
+   * @param vertexBuffer - 顶点缓冲
+   * @param stride - 顶点缓冲跨度
+   * @param firstIndex - 顶点缓冲绑定索引,默认值为 0
+   */
+  setVertexBufferBinding(vertexBuffer: Buffer, stride: number, firstIndex?: number): void;
+
+  /**
+   * 设置顶点缓冲绑定。
+   * @param vertexBufferBinding - 顶点缓冲绑定
+   * @param firstIndex - 顶点缓冲绑定索引,默认值为 0
+   */
+  setVertexBufferBinding(vertexBufferBinding: VertexBufferBinding, firstIndex?: number): void;
+
+  setVertexBufferBinding(
+    bufferOrBinding: Buffer | VertexBufferBinding,
+    strideOrFirstIndex: number = 0,
+    firstIndex: number = 0
+  ): void {
+    let binding = <VertexBufferBinding>bufferOrBinding;
+    const isBinding = binding.buffer !== undefined;
+    isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
+
+    const bindings = this._vertexBufferBindings;
+    bindings.length <= firstIndex && (bindings.length = firstIndex + 1);
+    this._vertexBufferBindings[isBinding ? strideOrFirstIndex : firstIndex] = binding;
+  }
+
+  /**
    * 设置顶点缓冲绑定信息。
    * @param bufferBindings - 缓冲绑定集合
    * @param firstIndex - 第一个绑定索引
    */
-  setVertexBufferBindings(bufferBindings: VertexBufferBinding | VertexBufferBinding[], firstIndex: number = 0): void {
+  setVertexBufferBindings(bufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
     const bindings = this._vertexBufferBindings;
     const multiBindings = <VertexBufferBinding[]>bufferBindings;
-    const isArray = multiBindings.length !== undefined;
-    if (isArray) {
-      const count = multiBindings.length;
-      const needLength = firstIndex + count;
-      bindings.length < needLength && (bindings.length = needLength);
-      for (let i = 0; i < count; i++) {
-        this._vertexBufferBindings[firstIndex + i] = multiBindings[i];
-      }
-    } else {
-      const singleBinding = <VertexBufferBinding>bufferBindings;
-      const needLength = firstIndex + 1;
-      bindings.length < needLength && (bindings.length = needLength);
-      this._vertexBufferBindings[firstIndex] = singleBinding;
+    const count = multiBindings.length;
+    const needLength = firstIndex + count;
+    bindings.length < needLength && (bindings.length = needLength);
+    for (let i = 0; i < count; i++) {
+      this._vertexBufferBindings[firstIndex + i] = multiBindings[i];
     }
   }
 

@@ -1,11 +1,13 @@
 import { EngineObject } from "./EngineObject";
 import { Event } from "./Event";
+import { ignoreClone } from "../clone/CloneManager";
 
 /**
  * 事件派发管理，可作为基类继承
  * @class
  */
 export class EventDispatcher extends EngineObject {
+  @ignoreClone
   private _evts = Object.create(null);
   private _evtCount = 0;
 

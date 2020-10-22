@@ -1,13 +1,14 @@
 import { MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
 import { ClearMode } from "./base";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
+import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
-import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
 /**
  * @todo 数学库改造
@@ -45,42 +46,48 @@ export enum ClearFlags {
  */
 @dependencies(Transform)
 export class Camera extends Component {
-  /**
-   * 渲染优先级，数字越大越先渲染。
-   */
+  /** 渲染优先级，数字越大越先渲染。*/
   priority: number = 0;
-  /**
-   * 渲染遮罩，位操作。
-   * @todo 渲染管线剔除管理实现
-   */
+  /** 渲染遮罩，位操作。@todo 渲染管线剔除管理实现 */
   cullingMask: number = 0;
-  _renderPipeline: BasicRenderPipeline;
+
   private _isOrthographic: boolean = false;
-  private _projectionMatrix: Matrix = new Matrix();
   private _isProjMatSetting = false;
-  private _viewMatrix: Matrix = new Matrix();
-  private _backgroundColor: Vector4 = new Vector4();
   private _clearMode: ClearMode = ClearMode.SOLID_COLOR;
-  private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
   private _fieldOfView: number = 45;
   private _orthographicSize: number = 10;
-  private _inverseProjectionMatrix: Matrix = new Matrix();
-  private _inverseViewMatrix: Matrix = new Matrix();
-  /** 投影矩阵脏标记 */
   private _isProjectionDirty = true;
-  /** 投影矩阵逆矩阵脏标记 */
   private _isInvProjMatDirty: boolean = true;
   private _customAspectRatio: number | undefined = undefined;
-  private _lastAspectSize: Vector2 = new Vector2(0, 0);
-  private _invViewProjMat: Matrix = new Matrix();
-
-  private _transform: Transform;
-  private _isViewMatrixDirty: UpdateFlag;
-  /** 投影视图矩阵逆矩阵脏标记 */
-  private _isInvViewProjDirty: UpdateFlag;
   private _renderTarget: RenderTarget = null;
+
+  @ignoreClone
+  _renderPipeline: BasicRenderPipeline;
+  @ignoreClone
+  private _transform: Transform;
+  @ignoreClone
+  private _isViewMatrixDirty: UpdateFlag;
+  @ignoreClone
+  private _isInvViewProjDirty: UpdateFlag;
+
+  @deepClone
+  private _projectionMatrix: Matrix = new Matrix();
+  @deepClone
+  private _viewMatrix: Matrix = new Matrix();
+  @deepClone
+  private _backgroundColor: Vector4 = new Vector4();
+  @deepClone
+  private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
+  @deepClone
+  private _inverseProjectionMatrix: Matrix = new Matrix();
+  @deepClone
+  private _inverseViewMatrix: Matrix = new Matrix();
+  @deepClone
+  private _lastAspectSize: Vector2 = new Vector2(0, 0);
+  @deepClone
+  private _invViewProjMat: Matrix = new Matrix();
 
   /**
    * 近裁剪平面。
@@ -258,11 +265,12 @@ export class Camera extends Component {
    * @todo 渲染管线修改
    */
   get enableHDR(): boolean {
-    throw new Error("not implemention");
+    console.log("not implemention");
+    return false;
   }
 
   set enableHDR(value: boolean) {
-    throw new Error("not implemention");
+    console.log("not implemention");
   }
 
   /**
@@ -279,17 +287,14 @@ export class Camera extends Component {
   /**
    * 创建 Camera 组件。
    * @param entity 实体
-   * @param props camera 参数
    */
-  constructor(entity: Entity, { RenderPipeline }) {
+  constructor(entity: Entity) {
     super(entity);
 
     this._transform = this.entity.transform;
     this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
     this._isInvViewProjDirty = this._transform.registerWorldChangeFlag();
-
-    RenderPipeline = RenderPipeline ?? BasicRenderPipeline;
-    this._renderPipeline = new RenderPipeline(this);
+    this._renderPipeline = new BasicRenderPipeline(this);
 
     // 默认设置
     this.setClearMode();
@@ -402,21 +407,24 @@ export class Camera extends Component {
   }
 
   /**
-   * @innernal
+   * @override
+   * @inheritdoc
    */
   _onActive() {
     this.entity.scene.attachRenderCamera(this);
   }
 
   /**
-   * @innernal
+   * @override
+   * @inheritdoc
    */
   _onInActive() {
     this.entity.scene.detachRenderCamera(this);
   }
 
   /**
-   * @innernal
+   * @override
+   * @inheritdoc
    */
   _onDestroy() {
     this._renderPipeline?.destroy();
