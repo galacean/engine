@@ -25,29 +25,9 @@ export class EventDispatcher extends EngineObject {
    * @returns 所有的事件名
    */
   eventNames(): string[] {
-    const names = [];
-    const events = this._evts;
-    if (this._evtCount === 0) return names;
+    if (this._evtCount === 0) return [];
 
-    return names.concat(Object.getOwnPropertySymbols(events));
-  }
-
-  /**
-   * 返回所有的监听函数。
-   * @param event 事件名
-   * @returns 注册的函数
-   */
-  listeners(event: string): Function[] {
-    const listeners = this._evts[event];
-    if (!listeners) return [];
-    if (listeners.fn) return [listeners.fn];
-
-    const l = listeners.length;
-    const fns = new Array(l);
-    for (let i = 0; i < l; i++) {
-      fns[i] = listeners[i].fn;
-    }
-    return fns;
+    return Object.keys(this._evts);
   }
 
   /**
