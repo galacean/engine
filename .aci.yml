@@ -12,6 +12,7 @@ beforeScript:
     echo $PATH
     time enclose install tnpm:tnpm
     tnpm -v
+    yum install -y install xorg-x11-server-devel.x86_64 libXi.x86_64 libXext.x86_64
 node-8:
   stage: test
   aciTags: DOCKER
@@ -25,7 +26,6 @@ node-8:
   script:
     - |
       export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
-      chown -R admin:admin ./
       time tnpm i --install-node=8 --no-cache --internal-oss-cache
       node -e "console.log('%j, %j', process.versions, process.execPath)"
       time tnpm run ci
@@ -33,7 +33,7 @@ node-8:
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
     archiveArtifacts:
-      artifacts: 'coverage/'
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
@@ -51,7 +51,6 @@ node-10:
   script:
     - |
       export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
-      chown -R admin:admin ./
       time tnpm i --install-node=10 --no-cache --internal-oss-cache
       node -e "console.log('%j, %j', process.versions, process.execPath)"
       time tnpm run ci
@@ -59,7 +58,7 @@ node-10:
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
     archiveArtifacts:
-      artifacts: 'coverage/'
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html
@@ -77,7 +76,6 @@ node-12:
   script:
     - |
       export PATH=$PWD/node_modules/.bin:/root/.cli:$PATH
-      chown -R admin:admin ./
       time tnpm i --install-node=12 --no-cache --internal-oss-cache
       node -e "console.log('%j, %j', process.versions, process.execPath)"
       time tnpm run ci
@@ -85,7 +83,7 @@ node-12:
   passrate: '(?<=PASS_RATE: )\d{1,10}.\d{1,10}'
   publisher:
     archiveArtifacts:
-      artifacts: 'coverage/'
+      artifacts: "coverage/"
       allowEmptyArchive: true
     html:
       index: coverage/lcov-report/index.html

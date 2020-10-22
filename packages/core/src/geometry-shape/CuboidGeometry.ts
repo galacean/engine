@@ -12,8 +12,8 @@ export class CuboidGeometry extends ShapeGeometry {
    * @param depth - 深
    * @param engine - 引擎
    */
-  constructor(width: number = 1, height: number = 1, depth: number = 1, engine?: Engine) {
-    super();
+  constructor(width: number = 1, height: number = 1, depth: number = 1, engine: Engine) {
+    super(engine);
 
     const halfWidth: number = width / 2;
     const halfHeight: number = height / 2;

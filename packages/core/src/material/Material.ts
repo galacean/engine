@@ -1,5 +1,5 @@
 import { Matrix, Matrix3x3 } from "@alipay/o3-math";
-import { ReferenceObject } from "../asset/ReferenceObject";
+import { RefObject } from "../asset/RefObject";
 import { MaterialType, UniformSemantic } from "../base/Constant";
 import { Util } from "../base/Util";
 import { Engine } from "../Engine";
@@ -10,7 +10,7 @@ import { RenderTechnique } from "./RenderTechnique";
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
  */
-export class Material extends ReferenceObject {
+export class Material extends RefObject {
   /**
    * 名称
    * @member {string}
@@ -49,11 +49,8 @@ export class Material extends ReferenceObject {
 
     this.maxJointsNum = 0;
 
-    //--
     this._technique = null;
     this._values = {};
-
-    this._gcPriority = 1000;
   }
 
   /** 创建一个本材质对象的深拷贝对象
@@ -123,10 +120,10 @@ export class Material extends ReferenceObject {
     const oriIsTexture = oriValue instanceof Texture;
     const curIsTexture = value instanceof Texture;
     if (oriIsTexture) {
-      (<Texture>oriValue)._addReference(-1);
+      this._removeRefChild(oriValue);
     }
     if (curIsTexture) {
-      (<Texture>value)._addReference(1);
+      this._addRefChild(value);
     }
 
     if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {
@@ -341,13 +338,13 @@ export class Material extends ReferenceObject {
     } // end of switch
   }
 
-  onDestroy() {
+  _onDestroy() {
     // TODO: 待材质重构
     const values = Object.values(this._values);
     for (let i = 0, len = values.length; i < len; i++) {
       const value = values[i];
       if (value instanceof Texture) {
-        value._addReference(-1);
+        value._addRefCount(-1);
       }
     }
 

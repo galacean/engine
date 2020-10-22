@@ -19,24 +19,24 @@ export class SphereGeometry extends ShapeGeometry {
    * @param {number} thetaRange 垂直角度范围
    */
   constructor(
-    radius?: number,
-    horizontalSegments?: number,
-    verticalSegments?: number,
-    alphaStart?: number,
-    alphaRange?: number,
-    thetaStart?: number,
-    thetaRange?: number,
-    engine?: Engine
+    radius: number = 1,
+    horizontalSegments: number = 8,
+    verticalSegments: number = 6,
+    alphaStart: number = 0,
+    alphaRange: number = Math.PI * 2,
+    thetaStart: number = 0,
+    thetaRange: number = Math.PI,
+    engine: Engine
   ) {
-    super();
+    super(engine);
     this._parameters = {
       radius: radius || 1,
-      horizontalSegments: Math.max(3, Math.floor(horizontalSegments) || 8),
-      verticalSegments: Math.max(2, Math.floor(verticalSegments) || 6),
-      alphaStart: alphaStart || 0,
-      alphaRange: alphaRange || Math.PI * 2,
-      thetaStart: thetaStart || 0,
-      thetaRange: thetaRange || Math.PI
+      horizontalSegments: Math.max(3, Math.floor(horizontalSegments)),
+      verticalSegments: Math.max(2, Math.floor(verticalSegments)),
+      alphaStart: alphaStart,
+      alphaRange: alphaRange,
+      thetaStart: thetaStart,
+      thetaRange: thetaRange
     };
     this._thetaEnd = this._parameters.thetaStart + this._parameters.thetaRange;
     this.initialize(engine);

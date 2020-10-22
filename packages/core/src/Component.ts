@@ -68,7 +68,7 @@ export abstract class Component extends EventDispatcher {
   }
 
   constructor(entity: Entity) {
-    super();
+    super(entity.engine);
     this._entity = entity;
 
     this._renderPassFlag = MaskList.EVERYTHING; // @deprecated

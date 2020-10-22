@@ -1,5 +1,6 @@
 import { Listener, Event } from "./Event";
 import { EngineObject } from "./EngineObject";
+import { Engine } from "../Engine";
 import { ignoreClone } from "../clone/CloneManager";
 
 /**
@@ -10,8 +11,8 @@ export class EventDispatcher extends EngineObject {
   @ignoreClone
   private _listeners: { [k: string]: Listener[] };
 
-  constructor() {
-    super();
+  constructor(engine: Engine) {
+    super(engine);
     this._listeners = {};
   }
 

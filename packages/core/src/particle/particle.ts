@@ -390,7 +390,7 @@ export class GPUParticleSystem extends GeometryRenderer {
    * @private
    */
   _createGeometry() {
-    const geometry = new BufferGeometry("particleGeometry");
+    const geometry = new BufferGeometry(this._entity.engine, "particleGeometry");
     const vertexStride = 96;
     const vertexFloatCount = this.maxCount * 4 * vertexStride;
     const vertices = new Float32Array(vertexFloatCount);

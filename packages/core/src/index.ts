@@ -24,7 +24,7 @@ export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
 export { AssetPromise, AssetPromiseStatus } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
-export { ReferenceObject } from "./asset/ReferenceObject";
+export { RefObject } from "./asset/RefObject";
 
 export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 export { RenderQueue } from "./RenderPipeline//RenderQueue";

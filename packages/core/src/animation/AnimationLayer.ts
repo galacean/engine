@@ -60,7 +60,7 @@ export class AnimationLayer extends EventDispatcher {
    * @constructor
    */
   constructor() {
-    super();
+    super(null);
 
     this.layerWeight = 1.0;
 

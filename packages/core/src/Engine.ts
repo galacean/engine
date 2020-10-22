@@ -128,7 +128,7 @@ export class Engine extends EventDispatcher {
    * @param hardwareRenderer - 渲染器
    */
   constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
-    super();
+    super(null);
     Engine._lastCreateEngine = this;
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);

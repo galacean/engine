@@ -21,7 +21,7 @@ export class CircleGeometry extends ShapeGeometry {
    * @param radius 半径
    */
   constructor(options: CircleGeometryOptions = {}, engine?: Engine) {
-    super();
+    super(engine);
 
     this.radius = options.radius || this.radius;
     this.segments = options.segments || this.segments;

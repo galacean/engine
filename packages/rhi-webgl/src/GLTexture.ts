@@ -14,7 +14,7 @@ export class GLTexture extends GLAsset {
   protected _type;
 
   constructor(rhi: WebGLRenderer, config: Texture, type) {
-    super(rhi, config);
+    super(rhi, config as any);
 
     this._gl = rhi.gl;
     this._glTexture = config._glTexture;

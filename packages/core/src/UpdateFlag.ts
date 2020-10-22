@@ -1,3 +1,5 @@
+import { removeFromArray } from "./base/Util";
+
 /**
  * 由于更新标记。
  */
@@ -12,13 +14,7 @@ export class UpdateFlag {
    */
   destroy(): void {
     const flags = this._flags;
-    const index = flags.indexOf(this);
-    const last = flags.length - 1;
-    if (index !== last) {
-      const end = flags[last];
-      flags[index] = end;
-    }
-    flags.length--;
+    removeFromArray(flags, this);
     this._flags = null;
   }
 }
