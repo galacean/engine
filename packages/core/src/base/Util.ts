@@ -59,6 +59,20 @@ export const Util = {
 export const isArrayLike = <T>(x: any): x is ArrayLike<T> =>
   x && typeof x.length === "number" && typeof x !== "function";
 
-const b = (x) => {
-  return x && typeof x.length === "number" && typeof x !== "function";
-};
+/**
+ * 快速移出数组
+ * @param arr
+ */
+export function removeFromArray(arr: any[], item: any): boolean {
+  const index = arr.indexOf(item);
+  if (index < 0) {
+    return false;
+  }
+  const last = arr.length - 1;
+  if (index !== last) {
+    const end = arr[last];
+    arr[index] = end;
+  }
+  arr.length--;
+  return true;
+}

@@ -20,7 +20,7 @@ export class Primitive extends RefObject {
   _vertexElementMap: object = {};
   _glIndexType: number;
 
-  private _vertexBufferBindings: Readonly<VertexBufferBinding[]> = [];
+  private _vertexBufferBindings: VertexBufferBinding[] = [];
   private _indexBufferBinding: IndexBufferBinding = null;
   private _vertexElements: VertexElement[] = [];
 
@@ -82,7 +82,6 @@ export class Primitive extends RefObject {
     isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
 
     const bindings = this._vertexBufferBindings;
-    //@ts-ignore
     bindings.length <= firstIndex && (bindings.length = firstIndex + 1);
     this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : firstIndex, binding);
   }
@@ -97,7 +96,6 @@ export class Primitive extends RefObject {
     const multiBindings = <VertexBufferBinding[]>bufferBindings;
     const count = multiBindings.length;
     const needLength = firstIndex + count;
-    //@ts-ignore
     bindings.length < needLength && (bindings.length = needLength);
     for (let i = 0; i < count; i++) {
       this._setVertexBufferBinding(firstIndex + i, multiBindings[i]);
@@ -139,7 +137,7 @@ export class Primitive extends RefObject {
   /**
    * 销毁。
    */
-  onDestroy() {
+  _onDestroy() {
     this._vertexBufferBindings = null;
     this._indexBufferBinding = null;
     this._vertexElements = null;
@@ -165,7 +163,6 @@ export class Primitive extends RefObject {
       this._removeRefChild(originBufferBinding._buffer);
     }
     this._addRefChild(buffer._buffer);
-    // @ts-ignore
     this._vertexBufferBindings[index] = buffer;
   }
 }

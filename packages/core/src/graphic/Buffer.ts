@@ -218,7 +218,7 @@ export class Buffer extends RefObject {
   /**
    * 销毁。
    */
-  onDestroy() {
+  _onDestroy() {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     gl.deleteBuffer(this._nativeBuffer);
     this._nativeBuffer = null;

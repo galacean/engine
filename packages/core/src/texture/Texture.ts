@@ -558,7 +558,7 @@ export abstract class Texture extends RefObject {
     this._unbind();
   }
 
-  onDestroy() {
+  _onDestroy() {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
     gl.deleteTexture(this._glTexture);
     this._glTexture = null;

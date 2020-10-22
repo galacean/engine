@@ -1,4 +1,5 @@
 import { EngineObject } from "..";
+import { removeFromArray } from "../base/Util";
 import { Engine } from "../Engine";
 
 /**
@@ -11,7 +12,7 @@ export abstract class RefObject extends EngineObject {
   private _destroyed: boolean = false;
 
   private _refChildren: RefObject[] = [];
-  private _parent: RefObject = null;
+  private _refParent: RefObject = null;
 
   /**
    * 被有效引用计数。
@@ -43,12 +44,12 @@ export abstract class RefObject extends EngineObject {
     if (this._destroyed) return true;
     if (!force && this._refCount !== 0) return false;
 
-    this.onDestroy();
+    this._onDestroy();
 
     this._engine.resourceManager._deleteAsset(this);
     this._engine.resourceManager._deleteRefObject(this.instanceId);
-    if (this._parent) {
-      removeFromArray(this._parent._refChildren, this);
+    if (this._refParent) {
+      removeFromArray(this._refParent._refChildren, this);
     }
     this._engine = null;
     this._destroyed = true;
@@ -58,7 +59,7 @@ export abstract class RefObject extends EngineObject {
   /**
    * 当资源真正销毁时调。交由子类重写
    */
-  protected abstract onDestroy(): void;
+  protected abstract _onDestroy(): void;
 
   /**
    * 把当前资源添加到资源管理中。
@@ -87,7 +88,7 @@ export abstract class RefObject extends EngineObject {
    */
   _addRefChild(obj: RefObject): void {
     this._refChildren.push(obj);
-    obj._parent = this;
+    obj._refParent = this;
     obj._addRefCount(this._refCount);
   }
 
@@ -98,26 +99,8 @@ export abstract class RefObject extends EngineObject {
   _removeRefChild(obj: RefObject): void {
     const refChildren = this._refChildren;
     if (removeFromArray(refChildren, obj)) {
-      obj._parent = null;
+      obj._refParent = null;
       obj._addRefCount(-this._refCount);
     }
   }
-}
-
-/**
- * @todo as a utilize function
- * @param arr
- */
-function removeFromArray(arr: any[], item: any): boolean {
-  const index = arr.indexOf(item);
-  if (index < 0) {
-    return false;
-  }
-  const last = arr.length - 1;
-  if (index !== last) {
-    const end = arr[last];
-    arr[index] = end;
-  }
-  arr.length--;
-  return true;
 }
