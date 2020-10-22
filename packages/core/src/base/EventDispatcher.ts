@@ -26,7 +26,6 @@ export class EventDispatcher extends EngineObject {
    */
   eventNames(): string[] {
     if (this._evtCount === 0) return [];
-
     return Object.keys(this._evts);
   }
 
