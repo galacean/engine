@@ -25,8 +25,7 @@ export class Entity extends EventDispatcher {
     const elements = _entitys._elements;
     for (let i = _entitys.length - 1; i >= 0; i--) {
       const entity = elements[i];
-      const nodeName = entity.name;
-      if (nodeName === name) {
+      if (entity.name === name) {
         return entity;
       }
     }
