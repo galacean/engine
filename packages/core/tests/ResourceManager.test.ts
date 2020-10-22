@@ -4,7 +4,7 @@ import { resourceLoader, ResourceManager } from "../src/asset/ResourceManager";
 import { AssetType } from "../src/asset/AssetType";
 import { Engine } from "../src";
 import { AssetPromise } from "../src/asset/AssetPromise";
-import { ReferenceObject } from "../src/asset/ReferenceObject";
+import { RefObject } from "../src/asset/ReferenceObject";
 
 @resourceLoader(AssetType.Text, ["txt"], false)
 class TestLoader extends Loader<string> {
@@ -17,7 +17,7 @@ class TestLoader extends Loader<string> {
   }
 }
 
-class TestRefObject extends ReferenceObject {
+class TestRefObject extends RefObject {
   constructor(engine: Engine) {
     super(engine);
   }
@@ -61,7 +61,7 @@ describe("test resource manager", () => {
   const jsonEngine = new Engine(null, { init: () => {} });
   it("test delete object", () => {
     const path = "xaa.json";
-    const promiseAA = jsonEngine.resourceManager.load<ReferenceObject>(path);
+    const promiseAA = jsonEngine.resourceManager.load<RefObject>(path);
     return expect(
       promiseAA.then((obj) => {
         expect(jsonEngine.resourceManager.getAssetPath(obj.instanceId)).toEqual(path);
@@ -93,11 +93,11 @@ describe("test resource manager", () => {
   it("test reference gc", () => {
     const engine = new Engine(null, { init: () => {} });
     return expect(
-      engine.resourceManager.load<ReferenceObject>("xca.json").then((res) => {
-        res._addReference(1);
+      engine.resourceManager.load<RefObject>("xca.json").then((res) => {
+        res._addRefCount(1);
         engine.resourceManager.gc();
         expect(res.destroyed).toBeFalsy();
-        res._addReference(-1);
+        res._addRefCount(-1);
         engine.resourceManager.gc();
         return res.destroyed;
       })

@@ -1,5 +1,5 @@
 import { Engine } from "..";
-import { ReferenceObject } from "../asset/ReferenceObject";
+import { RefObject } from "../asset/RefObject";
 import { BoundingSphere } from "../bounding-info/BoudingSphere";
 import { OBB } from "../bounding-info/OBB";
 import { Buffer } from "../graphic/Buffer";
@@ -12,7 +12,7 @@ import { VertexElement } from "./VertexElement";
 /**
  * @private
  */
-export class Primitive extends ReferenceObject {
+export class Primitive extends RefObject {
   private static _primitiveID: number = 0;
 
   /** 实例数量，0 表示关闭实例渲染。*/
@@ -162,9 +162,9 @@ export class Primitive extends ReferenceObject {
   private _setVertexBufferBinding(index: number, buffer: VertexBufferBinding): void {
     const originBufferBinding = this._vertexBufferBindings[index];
     if (originBufferBinding) {
-      this._removeReferenceChild(originBufferBinding._buffer);
+      this._removeRefChild(originBufferBinding._buffer);
     }
-    this._addReferenceChild(buffer._buffer);
+    this._addRefChild(buffer._buffer);
     // @ts-ignore
     this._vertexBufferBindings[index] = buffer;
   }

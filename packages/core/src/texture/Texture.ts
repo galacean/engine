@@ -1,4 +1,4 @@
-import { ReferenceObject } from "../asset/ReferenceObject";
+import { RefObject } from "../asset/RefObject";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
@@ -13,7 +13,7 @@ import { TextureWrapMode } from "./enums/TextureWrapMode";
 /**
  * 纹理的基类，包含了纹理相关类的一些公共功能。
  */
-export abstract class Texture extends ReferenceObject {
+export abstract class Texture extends RefObject {
   /** @internal */
   static _readFrameBuffer: WebGLFramebuffer = null;
 

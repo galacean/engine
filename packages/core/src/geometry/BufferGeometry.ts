@@ -1,4 +1,3 @@
-import { ReferenceObject } from "../asset/ReferenceObject";
 import { EngineObject } from "../base";
 import { Engine } from "../Engine";
 import { SubPrimitive, PrimitiveTopology } from "../graphic";

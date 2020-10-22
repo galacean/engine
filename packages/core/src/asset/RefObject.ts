@@ -4,20 +4,20 @@ import { Engine } from "../Engine";
 /**
  * 资产的基类，具有引用计数能力。
  */
-export abstract class ReferenceObject extends EngineObject {
+export abstract class RefObject extends EngineObject {
   /** 是否忽略垃圾回收的检查,如果为 true ,将不受 ResourceManager.gc() 影响。*/
   isGCIgnored: boolean = false;
-  private _referenceCount: number = 0;
+  private _refCount: number = 0;
   private _destroyed: boolean = false;
 
-  private _referenceChildren: ReferenceObject[] = [];
-  private _parent: ReferenceObject = null;
+  private _refChildren: RefObject[] = [];
+  private _parent: RefObject = null;
 
   /**
    * 被有效引用计数。
    */
-  get referenceCount(): number {
-    return this._referenceCount;
+  get refCount(): number {
+    return this._refCount;
   }
 
   /**
@@ -31,24 +31,24 @@ export abstract class ReferenceObject extends EngineObject {
     super(engine);
     engine = engine ?? Engine._lastCreateEngine;
     this._engine = engine;
-    engine.resourceManager._addReferenceObject(this.instanceId, this);
+    engine.resourceManager._addRefObject(this.instanceId, this);
   }
 
   /**
    * 销毁。
-   * @param force - 是否强制销毁,如果为 fasle 则 referenceCount = 0 可释放成功
+   * @param force - 是否强制销毁,如果为 fasle 则 refCount = 0 可释放成功
    * @returns 是否释放成功
    */
   destroy(force: boolean = false): boolean {
     if (this._destroyed) return true;
-    if (!force && this._referenceCount !== 0) return false;
+    if (!force && this._refCount !== 0) return false;
 
     this.onDestroy();
 
     this._engine.resourceManager._deleteAsset(this);
-    this._engine.resourceManager._deleteReferenceObject(this.instanceId);
+    this._engine.resourceManager._deleteRefObject(this.instanceId);
     if (this._parent) {
-      removeFromArray(this._parent._referenceChildren, this);
+      removeFromArray(this._parent._refChildren, this);
     }
     this._engine = null;
     this._destroyed = true;
@@ -70,46 +70,36 @@ export abstract class ReferenceObject extends EngineObject {
   }
 
   /**
+   * @internal
    * 添加资源引用数
-   * @internal
    */
-  _addRefCount(referenceCount: number): void {
-    this._referenceCount += referenceCount;
-    this._addChildrenRefCount(referenceCount);
-  }
-
-  /**
-   * 添加引用资源的引用数
-   * @param referenceCount 引用数
-   */
-  private _addChildrenRefCount(referenceCount: number) {
-    const referenceChildren = this._referenceChildren;
-    for (const item of referenceChildren) {
-      item._addRefCount(referenceCount);
+  _addRefCount(refCount: number): void {
+    this._refCount += refCount;
+    const refChildren = this._refChildren;
+    for (const item of refChildren) {
+      item._addRefCount(refCount);
     }
   }
 
   /**
+   * @internal
    * 添加引用资源。
-   * @internal
    */
-  _addReferenceChild(obj: ReferenceObject): void {
-    if (this._referenceChildren.indexOf(obj) === -1) {
-      this._referenceChildren.push(obj);
-      obj._parent = this;
-      obj._addRefCount(this._referenceCount);
-    }
+  _addRefChild(obj: RefObject): void {
+    this._refChildren.push(obj);
+    obj._parent = this;
+    obj._addRefCount(this._refCount);
   }
 
   /**
-   * 移出引用资源。
    * @internal
+   * 移出引用资源。
    */
-  _removeReferenceChild(obj: ReferenceObject): void {
-    const referenceChildren = this._referenceChildren;
-    if (removeFromArray(referenceChildren, obj)) {
+  _removeRefChild(obj: RefObject): void {
+    const refChildren = this._refChildren;
+    if (removeFromArray(refChildren, obj)) {
       obj._parent = null;
-      obj._addRefCount(-this._referenceCount);
+      obj._addRefCount(-this._refCount);
     }
   }
 }

@@ -1,5 +1,5 @@
 import { Matrix, Matrix3x3 } from "@alipay/o3-math";
-import { ReferenceObject } from "../asset/ReferenceObject";
+import { RefObject } from "../asset/RefObject";
 import { MaterialType, UniformSemantic } from "../base/Constant";
 import { Util } from "../base/Util";
 import { Engine } from "../Engine";
@@ -10,7 +10,7 @@ import { RenderTechnique } from "./RenderTechnique";
 /**
  * 材质对象：RenderTechniqe + 实例化参数，对应 glTF 中的 material 对象
  */
-export class Material extends ReferenceObject {
+export class Material extends RefObject {
   /**
    * 名称
    * @member {string}
@@ -120,10 +120,10 @@ export class Material extends ReferenceObject {
     const oriIsTexture = oriValue instanceof Texture;
     const curIsTexture = value instanceof Texture;
     if (oriIsTexture) {
-      this._removeReferenceChild(oriValue);
+      this._removeRefChild(oriValue);
     }
     if (curIsTexture) {
-      this._addReferenceChild(value);
+      this._addRefChild(value);
     }
 
     if ((this as any)._generateTechnique && oriIsTexture !== curIsTexture) {

@@ -1,4 +1,4 @@
-import { ReferenceObject } from "../asset/ReferenceObject";
+import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
 import { HardwareRenderer } from "../HardwareRenderer";
 import { BufferUtil } from "./BufferUtil";
@@ -9,7 +9,7 @@ import { SetDataOptions } from "./enums/SetDataOptions";
 /**
  * 缓冲。
  */
-export class Buffer extends ReferenceObject {
+export class Buffer extends RefObject {
   _glBindTarget: number;
   _glBufferUsage: number;
   _nativeBuffer: WebGLBuffer;
