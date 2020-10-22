@@ -12,6 +12,7 @@ export abstract class EngineObject {
   readonly instanceId: number = ++EngineObject._instanceIdCounter;
 
   /** 所属引擎。*/
+  @ignoreClone
   protected _engine: Engine;
 
   constructor(engine: Engine) {
