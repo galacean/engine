@@ -75,7 +75,7 @@ export class OrbitControl extends Script {
 
     this.camera = entity;
     //@ts-ignore @todo 未来移除对html元素的依赖，通过封装引擎的input实现
-    this.mainElement = this.scene.engine.canvas._webCanvas;
+    this.mainElement = this.engine.canvas._webCanvas;
     this.domElement = document;
     this.fov = 45;
 
