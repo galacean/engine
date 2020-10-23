@@ -1,13 +1,13 @@
+import { BoundingBox } from "@alipay/o3-math";
 import { EngineObject } from "../base";
 import { Engine } from "../Engine";
-import { SubPrimitive, PrimitiveTopology } from "../graphic";
+import { PrimitiveTopology, SubPrimitive } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { Primitive } from "../graphic/Primitive";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { BoundingBox } from "../RenderableComponent";
 
 /**
  * 缓冲几何体。

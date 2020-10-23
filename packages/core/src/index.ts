@@ -44,8 +44,6 @@ export { PointLight } from "./lighting/PointLight";
 export { SpotLight } from "./lighting/SpotLight";
 export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
 export { Light } from "./lighting/Light";
-
-export type { BoundingBox } from "./RenderableComponent";
 //mesh
 export { Mesh } from "./mesh/Mesh";
 export { Skin } from "./mesh/Skin";

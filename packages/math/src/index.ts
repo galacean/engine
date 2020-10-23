@@ -1,5 +1,5 @@
-export { AABB } from "./AABB";
 export { BoundingSphere } from "./BoudingSphere";
+export { BoundingBox } from "./BoundingBox";
 export { MathUtil } from "./MathUtil";
 export { Matrix } from "./Matrix";
 export { Matrix3x3 } from "./Matrix3x3";
