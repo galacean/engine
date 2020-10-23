@@ -364,18 +364,6 @@ export enum RefreshRate {
 }
 
 /**
- * 相交信息
- * */
-export enum IntersectInfo {
-  /** 分离 */
-  EXCLUDE,
-  /** 交叉 */
-  INTERSECT,
-  /** 包含 */
-  INCLUDE
-}
-
-/**
  * 包围物类型
  * */
 export enum BoundingType {

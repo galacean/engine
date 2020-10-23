@@ -1,4 +1,6 @@
-import { Vector3, Vector4, Matrix } from "@alipay/o3-math";
+import { Matrix } from "./Matrix";
+import { Vector3 } from "./Vector3";
+import { Vector4 } from "./Vector4";
 
 /**
  * 一个点到一个平面的距离

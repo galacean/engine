@@ -1,9 +1,8 @@
 "use strict";
-import { Frustum } from "./Frustum";
 import { Primitive } from "../graphic/Primitive";
 import { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
-import { OBB } from "../bounding-info/OBB";
 import { RenderElement } from "../RenderPipeline/RenderElement";
+import { Frustum } from "./Frustum";
 
 export class CullRenderPipeline extends BasicRenderPipeline {
   private _frustum: Frustum;

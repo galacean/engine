@@ -45,10 +45,6 @@ export { SpotLight } from "./lighting/SpotLight";
 export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
 export { Light } from "./lighting/Light";
 
-//bouding-info
-export { AABB } from "./bounding-info/AABB";
-export { OBB } from "./bounding-info//OBB";
-export { BoundingSphere } from "./bounding-info//BoudingSphere";
 export type { BoundingBox } from "./RenderableComponent";
 //mesh
 export { Mesh } from "./mesh/Mesh";
