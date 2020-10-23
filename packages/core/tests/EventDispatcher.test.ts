@@ -1,5 +1,14 @@
 import { EventDispatcher } from "../src/base";
 
+function getEventNames(e: EventDispatcher) {
+  // @ts-ignore
+  if (e._evtCount === 0) return [];
+  // @ts-ignore
+  return Object.keys(e._evts);
+}
+
+function getListenerCount(e: EventDispatcher) {}
+
 describe("EventDispatcher Test", function () {
   it("create EventDispatcher", () => {
     const eventDispatcher = new EventDispatcher(null);
