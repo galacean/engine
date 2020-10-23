@@ -1,22 +1,22 @@
-import { Vector3 } from "@alipay/o3-math";
+import { Vector3 } from "./Vector3";
 
 /**
- * 射线定义&相交运算
- * @class
+ * 射线。
  */
 export class Ray {
-  public direction: Vector3;
-  public origin: Vector3;
+  /** 射线的起点。*/
+  readonly origin: Vector3 = new Vector3();
+  /** 射线的归一化方向。*/
+  readonly direction: Vector3 = new Vector3();
 
   /**
-   * @constructor
-   * @param {Vector3} origin
-   * @param {Vector3} direction
+   * 创建射线实例。
+   * @param origin - 起点
+   * @param direction - 归一化方向
    */
   constructor(origin: Vector3, direction: Vector3) {
-    this.origin = origin;
-    this.direction = new Vector3();
-    Vector3.normalize(direction, this.direction);
+    origin.cloneTo(this.origin);
+    direction.cloneTo(this.direction);
   }
 
   /**
@@ -67,7 +67,7 @@ export class Ray {
     const b = 2 * Vector3.dot(dir, L);
     const c = Vector3.dot(L, L) - radius * radius;
 
-    const s = _solveQuadratic(a, b, c);
+    const s = this._solveQuadratic(a, b, c);
     if (s) {
       return s[0];
     } else {
@@ -129,29 +129,28 @@ export class Ray {
 
     return t;
   }
-} // end of class Ray
 
-/**
- * solve: ax^2 + bx + c = 0
- * @private
- * @returns {null|array} null: no answers; [x0 : float, x1 : float] where x0 <= x1
- */
-function _solveQuadratic(a, b, c) {
-  const discr = b * b - 4 * a * c;
-  if (discr < 0) {
-    return false;
-  } else if (discr == 0) {
-    const x = (-0.5 * b) / a;
-    return [x, x];
-  } else {
-    const r = Math.sqrt(discr);
-    const q = b > 0 ? -0.5 * (b + r) : -0.5 * (b - r);
-    const x0 = q / a;
-    const x1 = c / q;
-    if (x0 <= x1) {
-      return [x0, x1];
+  /**
+   * solve: ax^2 + bx + c = 0
+   * @returns {null|array} null: no answers; [x0 : float, x1 : float] where x0 <= x1
+   */
+  private _solveQuadratic(a, b, c) {
+    const discr = b * b - 4 * a * c;
+    if (discr < 0) {
+      return false;
+    } else if (discr == 0) {
+      const x = (-0.5 * b) / a;
+      return [x, x];
     } else {
-      return [x1, x0];
-    }
-  } // end of else
+      const r = Math.sqrt(discr);
+      const q = b > 0 ? -0.5 * (b + r) : -0.5 * (b - r);
+      const x0 = q / a;
+      const x1 = c / q;
+      if (x0 <= x1) {
+        return [x0, x1];
+      } else {
+        return [x1, x0];
+      }
+    } // end of else
+  }
 }

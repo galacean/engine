@@ -1,13 +1,11 @@
-import { Vector3 } from "@alipay/o3-math";
-import { ACollider } from "../collider";
+import { Vector3 } from "./Vector3";
 
 /**
  * Raycast检测的结果记录
- * @class
  */
 export class RaycastHit {
   public distance: number;
-  public collider: ACollider;
+  public collider: any;
   public point: Vector3;
   /**
    * 构造函数
@@ -21,7 +19,7 @@ export class RaycastHit {
 
     /**
      * 与射线相交的碰撞体
-     * @member {ACollider}
+     * @member {ACollider}∏
      */
     this.collider = null;
 
