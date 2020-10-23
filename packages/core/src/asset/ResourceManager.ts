@@ -28,9 +28,9 @@ export class ResourceManager {
   }
 
   /** 加载资产失败后的重试次数。*/
-  retryCount: number = 5;
+  retryCount: number = 0;
   /** 加载资产失败后的重试延迟时间，单位是毫秒(ms)。*/
-  retryInterval: number = 1000;
+  retryInterval: number = 0;
   /** 加载资产默认的超时时间，单位是毫秒(ms)。*/
   timeout: number = 20000;
 
