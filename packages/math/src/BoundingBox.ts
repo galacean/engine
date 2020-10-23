@@ -6,7 +6,7 @@ import { Vector4 } from "./Vector4";
 /**
  * 轴对齐的包围盒(Axis Aligned Bound Box)
  * */
-export class AABB {
+export class BoundingBox {
   public min: Vector3 = new Vector3();
   public max: Vector3 = new Vector3();
 

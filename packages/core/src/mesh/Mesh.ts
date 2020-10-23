@@ -1,8 +1,7 @@
-import { Vector3 } from "@alipay/o3-math";
+import { BoundingBox, Vector3 } from "@alipay/o3-math";
 import { Engine, EngineObject } from "..";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
-import { BoundingBox } from "../RenderableComponent";
 
 /**
  * Mesh Asset Object
@@ -13,7 +12,7 @@ export class Mesh extends EngineObject {
   primitives: Primitive[] = [];
   groups: SubPrimitive[] = [];
   weights: number[];
-  readonly bounds: BoundingBox = { min: new Vector3(), max: new Vector3() };
+  readonly bounds: BoundingBox = new BoundingBox(new Vector3(), new Vector3());
 
   /**
    * 构造函数

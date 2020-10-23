@@ -1,17 +1,9 @@
-import { Vector3 } from "@alipay/o3-math";
+import { Vector3, BoundingBox } from "@alipay/o3-math";
 import { Camera } from "./Camera";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { UpdateFlag } from "./UpdateFlag";
-
-/**
- * 包围盒。
- */
-export interface BoundingBox {
-  min: Vector3;
-  max: Vector3;
-}
 
 /**
  * 可渲染的组件。
@@ -31,7 +23,7 @@ export abstract class RenderableComponent extends Component {
   @ignoreClone
   private _transformChangeFlag: UpdateFlag;
   @deepClone
-  private _bounds: BoundingBox = { min: new Vector3(), max: new Vector3() };
+  private _bounds: BoundingBox = new BoundingBox(new Vector3(), new Vector3());
 
   /**
    * 包围体。
