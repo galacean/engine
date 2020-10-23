@@ -23,10 +23,15 @@ export class TextureResource extends SchemaResource {
 
       url = url ?? assetConfig.url;
 
-      resourceManager.load(url).then((res) => {
-        this._resource = res;
-        resolve(this);
-      });
+      resourceManager
+        .load(url)
+        .then((res) => {
+          this._resource = res;
+          resolve(this);
+        })
+        .catch((e) => {
+          reject(e);
+        });
     });
   }
 

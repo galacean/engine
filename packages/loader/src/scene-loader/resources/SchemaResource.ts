@@ -42,16 +42,20 @@ export abstract class SchemaResource {
     assetConfig: AssetConfig,
     oasis: Oasis
   ): Promise<LoadAttachedResourceResult> {
-    return new Promise((resolve) => {
-      this.load(resourceLoader, assetConfig, oasis).then(() => {
-        resolve({
-          resources: [this],
-          structure: {
-            index: 0,
-            props: {}
-          }
+    return new Promise((resolve, reject) => {
+      this.load(resourceLoader, assetConfig, oasis)
+        .then(() => {
+          resolve({
+            resources: [this],
+            structure: {
+              index: 0,
+              props: {}
+            }
+          });
+        })
+        .catch((e) => {
+          reject(e);
         });
-      });
     });
   }
 
