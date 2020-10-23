@@ -75,7 +75,6 @@ export * from "./skybox/index";
 export * from "./pbr/index";
 export * from "./particle/index";
 export * from "./trail/index";
-export * from "./rayCast/index";
 export * from "./collider/index";
 export * from "./collision/index";
 export * from "./fog/index";

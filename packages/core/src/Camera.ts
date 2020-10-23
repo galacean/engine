@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { MathUtil, Matrix, Vector2, Vector3, Vector4, Ray } from "@alipay/o3-math";
 import { ClearMode } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
@@ -9,11 +9,6 @@ import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
-
-/**
- * @todo 数学库改造
- */
-type Ray = { origin: Vector3; direction: Vector3 };
 
 /**
  * @todo
