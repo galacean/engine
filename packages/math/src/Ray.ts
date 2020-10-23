@@ -11,11 +11,11 @@ export class Ray {
 
   /**
    * 创建射线实例。
-   * @param position - 起点
+   * @param origin - 起点
    * @param direction - 归一化方向
    */
-  constructor(position: Vector3, direction: Vector3) {
-    position.cloneTo(this.origin);
+  constructor(origin: Vector3, direction: Vector3) {
+    origin.cloneTo(this.origin);
     direction.cloneTo(this.direction);
   }
 
