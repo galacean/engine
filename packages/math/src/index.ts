@@ -1,6 +1,9 @@
+export { AABB } from "./AABB";
+export { BoundingSphere } from "./BoudingSphere";
 export { MathUtil } from "./MathUtil";
 export { Matrix } from "./Matrix";
 export { Matrix3x3 } from "./Matrix3x3";
+export { OBB } from "./OBB";
 export { Quaternion } from "./Quaternion";
 export { Ray } from "./Ray";
 export { Spherical } from "./Spherical";

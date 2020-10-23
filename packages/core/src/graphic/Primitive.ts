@@ -1,7 +1,6 @@
+import { BoundingSphere, OBB } from "@alipay/o3-math";
 import { Engine } from "..";
 import { RefObject } from "../asset/RefObject";
-import { BoundingSphere } from "../bounding-info/BoudingSphere";
-import { OBB } from "../bounding-info/OBB";
 import { Buffer } from "../graphic/Buffer";
 import { BufferUtil } from "./BufferUtil";
 import { IndexFormat } from "./enums/IndexFormat";
@@ -13,8 +12,6 @@ import { VertexElement } from "./VertexElement";
  * @private
  */
 export class Primitive extends RefObject {
-  private static _primitiveID: number = 0;
-
   /** 名称。*/
   name: string;
   /** 实例数量，0 表示关闭实例渲染。*/

@@ -1,7 +1,8 @@
-import { Vector3, Vector4, Matrix } from "@alipay/o3-math";
-
-import { pointDistanceToPlane, getMaxScaleByModelMatrix } from "./util";
-import { IntersectInfo } from "../base/Constant";
+import { IntersectInfo } from "./enums/IntersectInfo";
+import { Matrix } from "./Matrix";
+import { getMaxScaleByModelMatrix, pointDistanceToPlane } from "./util";
+import { Vector3 } from "./Vector3";
+import { Vector4 } from "./Vector4";
 
 /**
  * 包围球
