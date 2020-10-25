@@ -60,19 +60,20 @@ export const isArrayLike = <T>(x: any): x is ArrayLike<T> =>
   x && typeof x.length === "number" && typeof x !== "function";
 
 /**
- * 快速移出数组
- * @param arr
+ * 通过交换法快速从数组中移除元素。
+ * @param array - 数组
+ * @param item - 元素
  */
-export function removeFromArray(arr: any[], item: any): boolean {
-  const index = arr.indexOf(item);
+export function removeFromArray(array: any[], item: any): boolean {
+  const index = array.indexOf(item);
   if (index < 0) {
     return false;
   }
-  const last = arr.length - 1;
+  const last = array.length - 1;
   if (index !== last) {
-    const end = arr[last];
-    arr[index] = end;
+    const end = array[last];
+    array[index] = end;
   }
-  arr.length--;
+  array.length--;
   return true;
 }

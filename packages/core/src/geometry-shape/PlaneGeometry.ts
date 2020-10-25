@@ -10,18 +10,18 @@ export class PlaneGeometry extends ShapeGeometry {
   private halfHeight;
 
   /**
-   * @constructor
-   * @param {number} width 宽
-   * @param {number} height 高
-   * @param {number} horizontalSegments 水平分段数
-   * @param {number} verticalSegments 垂直分段数
+   * @param engine - 所属引擎
+   * @param width 宽
+   * @param height 高
+   * @param horizontalSegments 水平分段数
+   * @param verticalSegments 垂直分段数
    */
   constructor(
+    engine: Engine,
     width: number = 1,
     height: number = 1,
     horizontalSegments: number = 1,
-    verticalSegments: number = 1,
-    engine?: Engine
+    verticalSegments: number = 1
   ) {
     super(engine);
     this._parameters = {

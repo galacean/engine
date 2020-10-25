@@ -7,12 +7,12 @@ import { ShapeGeometry } from "./ShapeGeometry";
 export class CuboidGeometry extends ShapeGeometry {
   /**
    * 创建长方体。
+   * @param engine - 引擎
    * @param width - 宽
    * @param height - 高
    * @param depth - 深
-   * @param engine - 引擎
    */
-  constructor(width: number = 1, height: number = 1, depth: number = 1, engine: Engine) {
+  constructor(engine: Engine, width: number = 1, height: number = 1, depth: number = 1) {
     super(engine);
 
     const halfWidth: number = width / 2;

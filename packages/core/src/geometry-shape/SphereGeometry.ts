@@ -9,24 +9,23 @@ export class SphereGeometry extends ShapeGeometry {
   private _thetaEnd;
 
   /**
-   * @constructor
-   * @param {number} radius 半径
-   * @param {number} horizontalSegments 水平分段数
-   * @param {number} verticalSegments 垂直分段数
-   * @param {number} alphaStart 水平开始角度
-   * @param {number} alphaRange 水平角度范围
-   * @param {number} thetaStart 垂直开始角度
-   * @param {number} thetaRange 垂直角度范围
+   * @param  radius - 半径
+   * @param  horizontalSegments - 水平分段数
+   * @param  verticalSegments - 垂直分段数
+   * @param  alphaStart - 水平开始角度
+   * @param  alphaRange - 水平角度范围
+   * @param  thetaStart - 垂直开始角度
+   * @param  thetaRange - 垂直角度范围
    */
   constructor(
+    engine: Engine,
     radius: number = 1,
     horizontalSegments: number = 8,
     verticalSegments: number = 6,
     alphaStart: number = 0,
     alphaRange: number = Math.PI * 2,
     thetaStart: number = 0,
-    thetaRange: number = Math.PI,
-    engine: Engine
+    thetaRange: number = Math.PI
   ) {
     super(engine);
     this._parameters = {

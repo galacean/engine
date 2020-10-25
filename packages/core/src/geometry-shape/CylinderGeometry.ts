@@ -16,17 +16,18 @@ export class CylinderGeometry extends ShapeGeometry {
   private _indices;
 
   /**
-   * @constructor
-   * @param {number} radiusTop 顶部圆柱的半径。 默认值为1。
-   * @param {number} radiusBottom 底部圆柱的半径。 默认值为1。
-   * @param {number} 高度 圆柱的高度。 默认值为1。
-   * @param {number} radialSegments 圆柱体圆周周围的分割面数。 默认值为8
-   * @param {number} heightSegments 沿圆柱高度的面的行数。 默认值为1。
-   * @param {boolean} openEnded 一个布尔值，指示圆柱的末端是打开还是加盖。 默认值为false，表示上限。
-   * @param {number} thetaStart 第一段的起始角度，默认= 0（三点钟位置）。
-   * @param {number} thetaLength 圆形扇区的中心角，通常称为theta。 默认值为2 * Pi，这样可以获得完整的柱面。
+   * @param  engine - 所属引擎
+   * @param  radiusTop - 顶部圆柱的半径。 默认值为1。
+   * @param  radiusBottom - 底部圆柱的半径。 默认值为1。
+   * @param  height - 圆柱的高度 。 默认值为1。
+   * @param  radialSegments - 圆柱体圆周周围的分割面数。 默认值为8
+   * @param  heightSegments - 沿圆柱高度的面的行数。 默认值为1。
+   * @param  openEnded - 一个布尔值，指示圆柱的末端是打开还是加盖。 默认值为false，表示上限。
+   * @param  thetaStart - 第一段的起始角度，默认= 0（三点钟位置）。
+   * @param  thetaLength - 圆形扇区的中心角，通常称为theta。 默认值为2 * Pi，这样可以获得完整的柱面。
    */
   constructor(
+    engine: Engine,
     radiusTop: number = 1,
     radiusBottom: number = 1,
     height: number = 1,
@@ -35,8 +36,7 @@ export class CylinderGeometry extends ShapeGeometry {
     openEnded: boolean = false,
     thetaStart: number = 0,
     thetaLength: number = 2 * Math.PI,
-    frontFace: FrontFace = FrontFace.CCW,
-    engine: Engine
+    frontFace: FrontFace = FrontFace.CCW
   ) {
     super(engine);
     this.FrontFace = frontFace;

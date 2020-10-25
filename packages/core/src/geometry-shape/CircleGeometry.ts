@@ -17,10 +17,10 @@ export class CircleGeometry extends ShapeGeometry {
   private thetaLength: number = Math.PI * 2;
 
   /**
-   * constructor
-   * @param radius 半径
+   * @param engien - 所属引擎
+   * @param radius - 半径
    */
-  constructor(options: CircleGeometryOptions = {}, engine?: Engine) {
+  constructor(engine: Engine, options: CircleGeometryOptions = {}) {
     super(engine);
 
     this.radius = options.radius || this.radius;
