@@ -11,6 +11,9 @@ export class NodeManager {
 
   constructor(private oasis: Oasis) {
     this.root = new Entity("root", this.oasis.engine);
+  }
+
+  public addRootEntity() {
     this.oasis.engine.sceneManager.activeScene.addRootEntity(this.root);
   }
 
