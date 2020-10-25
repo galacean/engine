@@ -30,7 +30,11 @@ export function shallowClone(target: Object, propertyKey: string): void {
  */
 export class CloneManager {
   /** @internal */
+  static _subCloneModeMap = new Map<Object, Object>();
+  /** @internal */
   static _cloneModeMap = new Map<Object, Object>();
+
+  private static _obejctType = Object.getPrototypeOf(Object);
 
   /**
    * 注释克隆模式。
@@ -39,11 +43,32 @@ export class CloneManager {
    * @param mode - 克隆模式
    */
   static registerCloneMode(target: Object, propertyKey: string, mode: CloneMode): void {
-    let targetMap = CloneManager._cloneModeMap.get(target.constructor);
+    let targetMap = CloneManager._subCloneModeMap.get(target.constructor);
     if (!targetMap) {
-      targetMap = {};
-      CloneManager._cloneModeMap.set(target.constructor, targetMap);
+      targetMap = Object.create(null);
+      CloneManager._subCloneModeMap.set(target.constructor, targetMap);
     }
     targetMap[propertyKey] = mode;
+  }
+
+  /**
+   * 根据原型链获取 CloneMode。
+   */
+  static getCloneModeMode(type: Function): Object {
+    let cloneModes = CloneManager._cloneModeMap.get(type);
+    if (!cloneModes) {
+      cloneModes = Object.create(null);
+      CloneManager._cloneModeMap.set(type, cloneModes);
+      const obejctType = CloneManager._obejctType;
+      const cloneModeMap = CloneManager._subCloneModeMap;
+      while (type !== obejctType) {
+        const subCloneModes = cloneModeMap.get(type);
+        if (subCloneModes) {
+          Object.assign(cloneModes, subCloneModes);
+          type = Object.getPrototypeOf(type);
+        }
+      }
+    }
+    return cloneModes;
   }
 }

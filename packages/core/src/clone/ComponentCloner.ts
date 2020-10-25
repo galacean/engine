@@ -11,31 +11,26 @@ export class ComponentCloner {
    * @param target - 克隆目标
    */
   static cloneComponent(source: Component, target: Component): void {
-    const cloneModes = CloneManager._cloneModeMap.get(source.constructor);
-    if (cloneModes) {
-      for (const k in source) {
-        const cloneMode = cloneModes[k];
-        switch (cloneMode) {
-          case undefined:
-          case CloneMode.Shallow:
-            target[k] = source[k];
-            break;
-          case CloneMode.Deep:
-            const sourceProp: Object = source[k];
-            if (sourceProp || sourceProp instanceof RefObject) {
-              let tarProp = <Object>target[k];
-              tarProp || (tarProp = target[k] = sourceProp.constructor());
-              ComponentCloner.cloneComponentProp(sourceProp, tarProp);
-            } else {
-              // null or undefine and extends ReferenceObject
-              target[k] = sourceProp;
-            }
-            break;
-        }
+    const cloneModes = CloneManager.getCloneModeMode(source.constructor);
+    for (const k in source) {
+      const cloneMode = cloneModes[k];
+      switch (cloneMode) {
+        case undefined:
+        case CloneMode.Shallow:
+          target[k] = source[k];
+          break;
+        case CloneMode.Deep:
+          const sourceProp: Object = source[k];
+          if (sourceProp || sourceProp instanceof RefObject) {
+            let tarProp = <Object>target[k];
+            tarProp || (tarProp = target[k] = sourceProp.constructor());
+            ComponentCloner.cloneComponentProp(sourceProp, tarProp);
+          } else {
+            // null or undefine and extends ReferenceObject
+            target[k] = sourceProp;
+          }
+          break;
       }
-    } else {
-      // never register any props
-      Object.assign(target, source);
     }
   }
 

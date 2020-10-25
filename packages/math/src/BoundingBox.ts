@@ -1,3 +1,4 @@
+import { IClone } from "@alipay/o3-design";
 import { IntersectInfo } from "./enums/IntersectInfo";
 import { pointDistanceToPlane } from "./util";
 import { Vector3 } from "./Vector3";
@@ -6,7 +7,7 @@ import { Vector4 } from "./Vector4";
 /**
  * 轴对齐的包围盒(Axis Aligned Bound Box)
  * */
-export class BoundingBox {
+export class BoundingBox implements IClone {
   public min: Vector3 = new Vector3();
   public max: Vector3 = new Vector3();
 
@@ -99,5 +100,22 @@ export class BoundingBox {
     }
 
     return true;
+  }
+
+  /**
+   * 克隆并返回一个新的包围盒对象。
+   * @returns 新的包围盒对象
+   */
+  clone(): BoundingBox {
+    return new BoundingBox(this.min, this.max);
+  }
+
+  /**
+   * 将当包围盒值拷贝给 out 包围盒。
+   * @param out - 目标包围盒
+   */
+  cloneTo(out: BoundingBox): void {
+    this.min.cloneTo(out.min);
+    this.max.cloneTo(out.max);
   }
 }

@@ -1,4 +1,5 @@
 import { Matrix } from "@alipay/o3-math";
+import { ignoreClone, shallowClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { Texture2D } from "../texture/Texture2D";
@@ -10,16 +11,24 @@ import { Skin } from "./Skin";
  * @extends MeshRenderer
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private _hasInitJoints: boolean = false;
-
+  @ignoreClone
   public matrixPalette: Float32Array;
+  @ignoreClone
   public jointNodes: Entity[];
+  @ignoreClone
   public jointTexture: Texture2D;
 
+  @ignoreClone
+  private _hasInitJoints: boolean = false;
+  @ignoreClone
   private _mat: Matrix;
+  @ignoreClone
   private _weights: number[];
+  @ignoreClone
   private weightsIndices: number[] = [];
+  @shallowClone
   private _skin: Skin;
+  @ignoreClone
   /** 当超过设备最大骨骼数时，自动使用骨骼纹理技术，该技术能提高骨骼上限，但是性能会下降 */
   private _useJointTexture: boolean = false;
 

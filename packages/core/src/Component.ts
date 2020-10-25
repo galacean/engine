@@ -61,7 +61,7 @@ export abstract class Component extends EventDispatcher {
   }
 
   /**
-   * 所属的Engine对象。
+   * 所属的 Engine 对象。
    */
   get engine(): Engine {
     return this._entity.engine;
