@@ -55,7 +55,8 @@ export class GLShaderProgram {
 
     if (!program) {
       program = new GLShaderProgram(gl);
-      program.createFromSource(tech.vertexShader, tech.fragmentShader, tech.attribLocSet);
+      const sucess = program.createFromSource(tech.vertexShader, tech.fragmentShader, tech.attribLocSet);
+      if (!sucess) return null;
       programList.push(program);
     }
 
@@ -151,12 +152,12 @@ export class GLShaderProgram {
     }
 
     // debug开启才进行消耗性能的能力检测
-    if (Logger.isEnabled) {
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
-        Logger.error("Could not link WebGL program. \n" + gl.getProgramInfoLog(program));
-        gl.deleteProgram(program);
-        return false;
-      }
+    // if (Logger.isEnabled) {
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
+      Logger.error("Could not link WebGL program. \n" + gl.getProgramInfoLog(program));
+      gl.deleteProgram(program);
+      return false;
+      // }
     }
 
     // 更新内部变量

@@ -53,11 +53,14 @@ function handleProps(props) {
 }
 
 function handleAssets(props: any = {}) {
+  if (!props) {
+    return;
+  }
   const keys = Object.keys(props);
   for (let i = 0, l = keys.length; i < l; i++) {
     const key = keys[i];
     const value = props[key];
-    if (key === "newMaterial" || key === "blendFuncSeparate") {
+    if (key === "newMaterial" || key === "blendFuncSeparate" || key === "scripts") {
       continue;
     }
     switch (value?.length) {

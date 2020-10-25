@@ -57,6 +57,9 @@ export class TextureCubeMapResource extends SchemaResource {
         .then((res) => {
           this._resource = res;
           resolve(this);
+        })
+        .catch((e) => {
+          reject(e);
         });
     });
   }

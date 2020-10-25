@@ -1,15 +1,14 @@
-import { Material } from "./Material";
-import { TechniqueStates, Attributes, Uniforms } from "./type";
 import { AssetObject } from "../asset/AssetObject";
-import { UniformSemantic, DataType } from "../base/Constant";
+import { DataType, UniformSemantic } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
+import { Primitive, VertexElement, VertexElementFormat } from "../graphic";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
-import { Primitive } from "../graphic";
+import { Material } from "./Material";
+import { Attributes, TechniqueStates, Uniforms } from "./type";
 
 /**
  * 渲染单个对象所需的控制对象，作为 Material 的模块使用。对应 glTF 里面的 technique 对象
- * @class
  */
 export class RenderTechnique extends AssetObject {
   // 是否可用
@@ -117,7 +116,7 @@ export class RenderTechnique extends AssetObject {
     this._uniforms = Object.assign({}, RenderTechnique.commonUniforms, v);
   }
 
-  compile(camera: Camera, component, primitive, material: Material) {
+  compile(camera: Camera, component, primitive: Primitive, material: Material) {
     this.parseFog(camera);
 
     if (this._needCompile) {
@@ -226,30 +225,31 @@ export class RenderTechnique extends AssetObject {
     }
     if (attribNames.indexOf("COLOR_0") > -1) {
       _macros.push("O3_HAS_VERTEXCOLOR");
-      if (primitive._vertexElementMap["COLOR_0"].size === 4) _macros.push("O3_HAS_VERTEXALPHA");
+      if ((<VertexElement>primitive._vertexElementMap["COLOR_0"]).format === VertexElementFormat.Vector4)
+        _macros.push("O3_HAS_VERTEXALPHA");
     }
 
-    if (component.weights) {
-      const maxAttribs = rhi.renderStates.getParameter(gl.MAX_VERTEX_ATTRIBS);
-      if (attribNames.length > maxAttribs) {
-        Logger.warn(`too many morph targets, beyond the MAX_VERTEX_ATTRIBS limit ${maxAttribs}`);
-      }
-      const targetNum = component.weights.length;
-      _macros.push("O3_HAS_MORPH");
-      _macros.push(`O3_MORPH_NUM ${targetNum}`);
+    // if (component.weights) {
+    //   const maxAttribs = rhi.renderStates.getParameter(gl.MAX_VERTEX_ATTRIBS);
+    //   if (attribNames.length > maxAttribs) {
+    //     Logger.warn(`too many morph targets, beyond the MAX_VERTEX_ATTRIBS limit ${maxAttribs}`);
+    //   }
+    //   const targetNum = component.weights.length;
+    //   _macros.push("O3_HAS_MORPH");
+    //   _macros.push(`O3_MORPH_NUM ${targetNum}`);
 
-      if (attribNames.indexOf("POSITION_0") > -1) _macros.push("O3_MORPH_POSITION");
-      if (attribNames.indexOf("NORMAL_0") > -1) _macros.push("O3_MORPH_NORMAL");
-      if (attribNames.indexOf("TANGENT_0") > -1) _macros.push("O3_MORPH_TANGENT");
+    //   if (attribNames.indexOf("POSITION_0") > -1) _macros.push("O3_MORPH_POSITION");
+    //   if (attribNames.indexOf("NORMAL_0") > -1) _macros.push("O3_MORPH_NORMAL");
+    //   if (attribNames.indexOf("TANGENT_0") > -1) _macros.push("O3_MORPH_TANGENT");
 
-      this._attributes = Object.assign(this.attributes, this.createMorphConfig(primitive, targetNum));
-      this._uniforms.u_morphWeights = {
-        name: "u_morphWeights",
-        semantic: UniformSemantic.MORPHWEIGHTS,
-        type: DataType.FLOAT
-      };
-      // }
-    }
+    //   this._attributes = Object.assign(this.attributes, this.createMorphConfig(primitive, targetNum));
+    //   this._uniforms.u_morphWeights = {
+    //     name: "u_morphWeights",
+    //     semantic: UniformSemantic.MORPHWEIGHTS,
+    //     type: DataType.FLOAT
+    //   };
+    //   // }
+    // }
 
     const scene = camera.scene as any;
     if (scene.hasFogFeature) {

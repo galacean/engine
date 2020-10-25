@@ -28,7 +28,7 @@ export class WebCanvas implements Canvas {
    * @inheritdoc
    */
   get height(): number {
-    return this._webCanvas.height;
+    return this._height;
   }
 
   set height(value: number) {

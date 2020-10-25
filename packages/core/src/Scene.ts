@@ -1,18 +1,17 @@
-import { Logger, EventDispatcher, MaskList } from "./base";
-import { FeatureManager } from "./FeatureManager";
-import { Entity } from "./Entity";
-import { Engine } from "./Engine";
+import { Vector3, Vector4 } from "@alipay/o3-math";
+import { EventDispatcher, Logger, MaskList } from "./base";
 import { Camera } from "./Camera";
+import { Engine } from "./Engine";
+import { Entity } from "./Entity";
+import { FeatureManager } from "./FeatureManager";
 import { SceneFeature } from "./SceneFeature";
-import { Vector4, Vector3 } from "@alipay/o3-math";
-import { ComponentsManager } from "./ComponentsManager";
-
-const sceneFeatureManager = new FeatureManager<SceneFeature>();
 
 /**
  * 场景。
  */
 export class Scene extends EventDispatcher {
+  static sceneFeatureManager = new FeatureManager<SceneFeature>();
+
   /** 场景名字 */
   name: string;
   /**
@@ -24,8 +23,6 @@ export class Scene extends EventDispatcher {
    * scene.clipPlanes = [[0,1,0,0]];
    * */
   clipPlanes: Vector4[] = [];
-
-  _componentsManager: ComponentsManager = new ComponentsManager();
   _activeCameras: Camera[] = [];
   _isActiveInEngine: boolean = false;
 
@@ -69,7 +66,7 @@ export class Scene extends EventDispatcher {
     this.name = name || "";
     this._engine = engine || Engine._getDefaultEngine();
 
-    sceneFeatureManager.addObject(this);
+    Scene.sceneFeatureManager.addObject(this);
   }
 
   /**
@@ -141,57 +138,14 @@ export class Scene extends EventDispatcher {
    */
   destroy(): void {
     this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
-    sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
+    Scene.sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
       this._rootEntities[i].destroy();
     }
     this._rootEntities.length = 0;
     this._activeCameras.length = 0;
-    (sceneFeatureManager as any)._objects = [];
-    this._componentsManager.callComponentDestory();
-    this._componentsManager = null;
+    (Scene.sceneFeatureManager as any)._objects = [];
     this._destroyed = true;
-  }
-
-  /**
-   * 更新场景中所有对象的状态
-   * @param {number} deltaTime 两帧之间的时间
-   * @private
-   */
-  update(deltaTime: number): void {
-    this._componentsManager.callScriptOnStart();
-    this._componentsManager.callScriptOnUpdate(deltaTime);
-    this._componentsManager.callAnimationUpdate(deltaTime);
-    this._componentsManager.callScriptOnLateUpdate(deltaTime);
-  }
-
-  /** 渲染：场景中的每个摄像机执行一次渲染
-   * @private
-   */
-  render(): void {
-    const cameras = this._activeCameras;
-    const deltaTime = this._engine.time.deltaTime;
-    this._componentsManager.callRendererOnUpdate(deltaTime);
-    if (cameras.length > 0) {
-      // 针对 priority 进行排序
-      //@ts-ignore
-      cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
-      for (let i = 0, l = cameras.length; i < l; i++) {
-        const camera = cameras[i];
-        const cameraEntity = camera.entity;
-        if (camera.enabled && cameraEntity.isActiveInHierarchy) {
-          //@todo 后续优化
-          this._componentsManager.callCameraOnBeginRender(camera);
-          sceneFeatureManager.callFeatureMethod(this, "preRender", [this, camera]); //TODO:移除
-          camera.render();
-          sceneFeatureManager.callFeatureMethod(this, "postRender", [this, camera]); //TODO:移除
-          //@todo 后续优化
-          this._componentsManager.callCameraOnEndRender(camera);
-        }
-      }
-    } else {
-      Logger.debug("NO active camera.");
-    }
   }
 
   /**
@@ -241,11 +195,11 @@ export class Scene extends EventDispatcher {
 
   //-----------------------------------------@deprecated-----------------------------------
   static registerFeature(Feature: new () => SceneFeature) {
-    sceneFeatureManager.registerFeature(Feature);
+    Scene.sceneFeatureManager.registerFeature(Feature);
   }
 
   findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
-    return sceneFeatureManager.findFeature(this, Feature) as T;
+    return Scene.sceneFeatureManager.findFeature(this, Feature) as T;
   }
 
   features: SceneFeature[] = [];

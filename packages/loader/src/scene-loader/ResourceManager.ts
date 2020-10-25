@@ -14,7 +14,7 @@ import {
 } from "./resources";
 import { AssetConfig } from "./types";
 
-const RESOURCE_CLASS = {
+export const RESOURCE_CLASS = {
   script: ScriptResource,
   gltf: GLTFResource,
   texture: TextureResource,
@@ -33,17 +33,19 @@ const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
 for (const key in RESOURCE_CLASS) {
   if (RESOURCE_CLASS.hasOwnProperty(key)) {
     const element = RESOURCE_CLASS[key];
-    RESOURCE_TYPE.set(element, key);
+
+    // TODO：材质模块待重构，默认设置成 PBRMaterial
+    if (element === PBRMaterialResource) {
+      RESOURCE_TYPE.set(element, "PBRMaterial");
+    } else {
+      RESOURCE_TYPE.set(element, key);
+    }
   }
 }
 
 const resourceFactory = {
   createResource(resourceManager: SchemaResourceManager, type: string): SchemaResource {
-    const ResourceConstructor = RESOURCE_CLASS[type];
-    if (!ResourceConstructor) {
-      console.warn(type, "!!!");
-    }
-    return new ResourceConstructor(resourceManager);
+    return new RESOURCE_CLASS[type](resourceManager);
   }
 };
 

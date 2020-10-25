@@ -225,6 +225,8 @@ export class WebGLRenderer implements HardwareRenderer {
     const glPrimitive = this._assetsCache.requireObject(primitive, GLPrimitive);
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
+    if (!glTech.valid) return;
+
     if (glPrimitive && glTech) {
       glTech.begin(mtl);
       glPrimitive.draw(glTech, group);

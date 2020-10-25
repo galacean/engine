@@ -20,6 +20,10 @@ export class AnimationClip extends AssetObject {
     scale: TagetType.scale
   };
 
+  public duration: number;
+
+  public durationIndex: number;
+
   public samplers: ISample[];
 
   public channels: IChannel[];

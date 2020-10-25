@@ -144,11 +144,11 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLT
   // 开始处理 glTF 数据
   const resources: GLTFParsed = {
     engine,
-    images: data.images,
     gltf: data.gltf,
     buffers: data.buffers,
     asset: new GLTFResource(engine)
   };
+  resources.asset.textures = data.textures;
 
   if (resources.gltf.asset && resources.gltf.asset.version) {
     resources.gltf.version = Number(resources.gltf.asset.version);
@@ -157,8 +157,7 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLT
 
   parseExtensions(resources);
   // parse all related resources
-  return parseResources(resources, "textures", parseTexture)
-    .then(() => parseResources(resources, "materials", parseMaterial))
+  return parseResources(resources, "materials", parseMaterial)
     .then(() => parseResources(resources, "meshes", parseMesh))
     .then(() => parseResources(resources, "nodes", parseNode))
     .then(() => parseResources(resources, "scenes", parseScene))
@@ -233,32 +232,6 @@ function parseResources(resources: GLTFParsed, name: string, handler) {
   return Promise.resolve();
 }
 
-var GLTF_TEX_COUNT = 0;
-
-/**
- * 解析贴图
- * @param gltfTexture
- * @param resources
- * @private
- */
-export function parseTexture(gltfTexture, resources: GLTFParsed) {
-  const { images } = resources;
-
-  // TODO: 暂不支持 gltf wrapS、wrapT 和 minFilter、magFilter 设置
-  const image = images[gltfTexture.source];
-  // const gltfImage = gltf.images[gltfTexture.source];
-
-  GLTF_TEX_COUNT++;
-  // TODO: support gltf texture compress
-  // TODO: modify to engine and order
-  const tex = new Texture2D(image.width, image.height, undefined, undefined, resources.engine);
-  tex.setImageSource(image);
-  tex.generateMipmaps();
-  // @ts-ignore 默认给 texture 加上缓存
-  resources.engine.resourceManager._addAsset(image.src, tex);
-  return Promise.resolve(tex);
-}
-
 /**
  * 解析 材质
  * @param gltfMaterial
@@ -293,7 +266,7 @@ export function parseMaterial(gltfMaterial, resources) {
         metallicRoughnessTexture
       } = pbrMetallicRoughness;
       if (baseColorTexture) {
-        uniformObj.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources);
+        uniformObj.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources, false);
       }
       if (baseColorFactor) {
         uniformObj.baseColorFactor = new Vector4(...baseColorFactor);
@@ -301,13 +274,18 @@ export function parseMaterial(gltfMaterial, resources) {
       uniformObj.metallicFactor = metallicFactor !== undefined ? metallicFactor : 1;
       uniformObj.roughnessFactor = roughnessFactor !== undefined ? roughnessFactor : 1;
       if (metallicRoughnessTexture) {
-        uniformObj.metallicRoughnessTexture = getItemByIdx("textures", metallicRoughnessTexture.index || 0, resources);
+        uniformObj.metallicRoughnessTexture = getItemByIdx(
+          "textures",
+          metallicRoughnessTexture.index || 0,
+          resources,
+          false
+        );
       }
     }
 
     if (normalTexture) {
       const { index, texCoord, scale } = normalTexture;
-      uniformObj.normalTexture = getItemByIdx("textures", index || 0, resources);
+      uniformObj.normalTexture = getItemByIdx("textures", index || 0, resources, false);
 
       if (typeof scale !== undefined) {
         uniformObj.normalScale = scale;
@@ -315,11 +293,11 @@ export function parseMaterial(gltfMaterial, resources) {
     }
 
     if (emissiveTexture) {
-      uniformObj.emissiveTexture = getItemByIdx("textures", emissiveTexture.index || 0, resources);
+      uniformObj.emissiveTexture = getItemByIdx("textures", emissiveTexture.index || 0, resources, false);
     }
 
     if (occlusionTexture) {
-      uniformObj.occlusionTexture = getItemByIdx("textures", occlusionTexture.index || 0, resources);
+      uniformObj.occlusionTexture = getItemByIdx("textures", occlusionTexture.index || 0, resources, false);
 
       if (occlusionTexture.strength !== undefined) {
         uniformObj.occlusionStrength = occlusionTexture.strength;
@@ -352,7 +330,7 @@ export function parseMaterial(gltfMaterial, resources) {
           uniformObj.baseColorFactor = new Vector4(...diffuseFactor);
         }
         if (diffuseTexture) {
-          uniformObj.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources);
+          uniformObj.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources, false);
         }
         if (specularFactor) {
           uniformObj.specularFactor = new Vector3(...specularFactor);
@@ -364,7 +342,8 @@ export function parseMaterial(gltfMaterial, resources) {
           uniformObj.specularGlossinessTexture = getItemByIdx(
             "textures",
             specularGlossinessTexture.index || 0,
-            resources
+            resources,
+            false
           );
         }
       }
@@ -406,7 +385,7 @@ export function parseMaterial(gltfMaterial, resources) {
         if (Util.isArray(textureIndex)) {
           textureIndex = textureIndex[0];
         }
-        const texture = getItemByIdx("textures", textureIndex, resources);
+        const texture = getItemByIdx("textures", textureIndex, resources, false);
         material.setValue(name, texture);
       } else {
         material.setValue(name, gltfMaterial.values[paramName]);
@@ -636,6 +615,8 @@ export function parseAnimation(gltfAnimation, resources) {
   const animationIdx = gltf.animations.indexOf(gltfAnimation);
   const animationClip = new AnimationClip(gltfAnimation.name || `Animation${animationIdx}`);
 
+  let duration = -1;
+  let durationIndex = -1;
   // parse samplers
   for (let i = 0; i < gltfSamplers.length; i++) {
     const gltfSampler = gltfSamplers[i];
@@ -658,8 +639,16 @@ export function parseAnimation(gltfAnimation, resources) {
         samplerInterpolation = InterpolationType.STEP;
         break;
     }
+    const maxTime = input[input.length - 1];
+    if (maxTime > duration) {
+      duration = maxTime;
+      durationIndex = i;
+    }
     animationClip.addSampler(input, output, outputAccessorSize, samplerInterpolation);
   }
+
+  animationClip.durationIndex = durationIndex;
+  animationClip.duration = duration;
 
   for (let i = 0; i < gltfChannels.length; i++) {
     const gltfChannel = gltfChannels[i];
@@ -772,10 +761,10 @@ export function parseScene(gltfScene, resources) {
  * @returns {*}
  * @private
  */
-export function getItemByIdx(name, idx, resources) {
+export function getItemByIdx(name, idx, resources, inverse: boolean = true) {
   const { asset } = resources;
 
-  const itemIdx = asset[name].length - idx - 1;
+  const itemIdx = inverse ? asset[name].length - idx - 1 : idx;
   return asset[name][itemIdx];
 }
 

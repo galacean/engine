@@ -1,19 +1,16 @@
-import { Matrix3x3, Matrix, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
-import { DataType, RenderTechnique, Material } from "@alipay/o3-core";
-
-import { GLShaderProgram } from "./GLShaderProgram";
-import { Logger } from "@alipay/o3-core";
-import { GLTexture2D } from "./GLTexture2D";
-import { GLTextureCubeMap } from "./GLTextureCubeMap";
-import { WebGLRenderer } from "./WebGLRenderer";
-import { GLRenderStates } from "./GLRenderStates";
+import { DataType, Logger, Material, RenderTechnique } from "@alipay/o3-core";
 import { GLAsset } from "./GLAsset";
+import { GLRenderStates } from "./GLRenderStates";
+import { GLShaderProgram } from "./GLShaderProgram";
+import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * GL 层的 Technique 资源管理和渲染调用处理
  * @private
  */
 export class GLTechnique extends GLAsset {
+  readonly valid: boolean;
+
   private _tech: RenderTechnique;
   private _activeTextureCount: number;
   private _program: GLShaderProgram;
@@ -30,32 +27,36 @@ export class GLTechnique extends GLAsset {
 
     //-- 编译shader 或者从缓存中捞program
     this._program = GLShaderProgram.requireProgram(tech, gl);
+    if (this._program) {
+      this.valid = true;
+      const glProgram = this._program.program;
 
-    const glProgram = this._program.program;
-
-    // 记录Attribute的shader location
-    this._attributes = {};
-    const attributes = tech.attributes;
-    for (const name in attributes) {
-      this._attributes[name] = {
-        name,
-        semantic: attributes[name].semantic,
-        location: this._program.getAttribLocation(glProgram, name)
-      };
-    }
-
-    // 记录Unifrom的shader location
-    this._uniforms = {};
-    const uniforms = tech.uniforms;
-    for (const name in uniforms) {
-      const loc = this._program.getUniformLocation(glProgram, name);
-      if (loc !== null) {
-        this._uniforms[name] = {
+      // 记录Attribute的shader location
+      this._attributes = {};
+      const attributes = tech.attributes;
+      for (const name in attributes) {
+        this._attributes[name] = {
           name,
-          location: loc
+          semantic: attributes[name].semantic,
+          location: this._program.getAttribLocation(glProgram, name)
         };
       }
-    } // end of for
+
+      // 记录Unifrom的shader location
+      this._uniforms = {};
+      const uniforms = tech.uniforms;
+      for (const name in uniforms) {
+        const loc = this._program.getUniformLocation(glProgram, name);
+        if (loc !== null) {
+          this._uniforms[name] = {
+            name,
+            location: loc
+          };
+        }
+      } // end of for
+    } else {
+      this.valid = false;
+    }
   }
 
   /**
@@ -246,19 +247,19 @@ export class GLTechnique extends GLAsset {
         gl.uniformMatrix4fv(location, false, value);
         break;
       case DataType.SAMPLER_2D: {
-        this._uploadTexture(value, location, GLTexture2D);
+        this._uploadTexture(value, location);
         break;
       }
       case DataType.SAMPLER_2D_ARRAY: {
-        this._uploadTextures(value, location, GLTexture2D);
+        this._uploadTextures(value, location);
         break;
       }
       case DataType.SAMPLER_CUBE: {
-        this._uploadTexture(value, location, GLTextureCubeMap);
+        this._uploadTexture(value, location);
         break;
       }
       case DataType.SAMPLER_CUBE_ARRAY: {
-        this._uploadTextures(value, location, GLTextureCubeMap);
+        this._uploadTextures(value, location);
         break;
       }
       default:
@@ -271,37 +272,36 @@ export class GLTechnique extends GLAsset {
    * 将一个内存中的 Texture2D 对象绑定到 GL
    * @param {Texture} texture
    */
-  _uploadTexture(texture, location, type) {
-    const assetCache = this.rhi.assetsCache;
-    const glTexture = assetCache.requireObject(texture, type);
-
-    if (glTexture) {
+  _uploadTexture(texture, location) {
+    if (texture) {
+      const gl = this.rhi.gl;
       const index = this._activeTextureCount++;
-      glTexture.activeBinding(index);
-      this.rhi.gl.uniform1i(location, index);
+      gl.activeTexture(gl.TEXTURE0 + index);
+      gl.bindTexture(texture._target, texture._glTexture);
+      gl.uniform1i(location, index);
     } // end of if
   }
 
   /**
    * 将一堆内存中的 Texture2D 对象绑定到 GL
    */
-  _uploadTextures(textures, location, type) {
-    const assetCache = this.rhi.assetsCache;
+  _uploadTextures(textures, location) {
     if (!this._tempSamplerArray || this._tempSamplerArray.length !== textures.length) {
       this._tempSamplerArray = new Int32Array(textures.length);
     }
 
+    const gl = this.rhi.gl;
     for (let i = 0, length = textures.length; i < length; i++) {
-      const glTexture = assetCache.requireObject(textures[i], type);
-
-      if (glTexture) {
+      const texture = textures[i];
+      if (texture) {
         const index = this._activeTextureCount++;
-        glTexture.activeBinding(index);
+        gl.activeTexture(gl.TEXTURE0 + index);
+        gl.bindTexture(texture._target, texture._glTexture);
         this._tempSamplerArray[i] = index;
       } else {
         this._tempSamplerArray[i] = -1;
       }
     }
-    this.rhi.gl.uniform1iv(location, this._tempSamplerArray);
+    gl.uniform1iv(location, this._tempSamplerArray);
   }
 }

@@ -25,9 +25,8 @@ class KTXCubeLoader extends Loader<TextureCubeMap> {
         .then((data) => {
           const parsedData = parseCubeKTX(data);
           const { width, mipmapsFaces, engineFormat } = parsedData;
-          const texture = new TextureCubeMap(width, engineFormat, true, resourceManager.engine);
-
-          if (!texture._glTexture) return;
+          const mipmap = mipmapsFaces[0].length > 1;
+          const texture = new TextureCubeMap(width, engineFormat, mipmap, resourceManager.engine);
 
           for (let face = 0; face < 6; face++) {
             const length = mipmapsFaces[face].length;

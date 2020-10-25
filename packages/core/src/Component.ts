@@ -89,16 +89,34 @@ export abstract class Component extends EventDispatcher {
     this._onDestroy();
   }
 
+  /**
+   * @internal
+   */
   _onAwake(): void {}
 
+  /**
+   * @internal
+   */
   _onEnable(): void {}
 
+  /**
+   * @internal
+   */
   _onDisable(): void {}
 
+  /**
+   * @internal
+   */
   _onDestroy(): void {}
 
+  /**
+   * @internal
+   */
   _onActive(): void {}
 
+  /**
+   * @internal
+   */
   _onInActive(): void {}
 
   /**
@@ -110,8 +128,11 @@ export abstract class Component extends EventDispatcher {
         this._awaked = true;
         this._onAwake();
       }
-      this._onActive();
-      this._enabled && this._onEnable();
+      // onAwake can do isActive = false,for example write this in Script's onAwake().
+      if (this._entity._isActiveInHierarchy) {
+        this._onActive();
+        this._enabled && this._onEnable();
+      }
     } else {
       this._enabled && this._onDisable();
       this._onInActive();

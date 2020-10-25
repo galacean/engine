@@ -74,4 +74,3 @@ export * from "./collision/index";
 export * from "./fog/index";
 export * from "./env-probe/index";
 export * from "./shadow/index";
-export * from "./request/index";

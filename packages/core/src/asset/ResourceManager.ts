@@ -32,7 +32,7 @@ export class ResourceManager {
   /** 加载资产失败后的重试延迟时间，单位是毫秒(ms)。*/
   retryInterval: number = 0;
   /** 加载资产默认的超时时间，单位是毫秒(ms)。*/
-  timeout: number = 10000;
+  timeout: number = 20000;
 
   /** 资产路径池,key为资产ID，值为资产路径，通过路径加载的资源均放入该池中，用于资源文件管理。*/
   private _assetPool: { [key: number]: string } = Object.create(null);
@@ -208,10 +208,14 @@ export class ResourceManager {
     const loader = ResourceManager._loaders[info.type];
     const promise = loader.load(info, this);
     this._loadingPromises[url] = promise;
-    promise.then((res) => {
-      if (loader.useCache) this._addAsset(url, res);
-      delete this._loadingPromises[url];
-    });
+    promise
+      .then((res) => {
+        if (loader.useCache) this._addAsset(url, res);
+        delete this._loadingPromises[url];
+      })
+      .catch(() => {
+        // then 会产生一个新的 promise，若是报错没有 catch 会导致 uncaught error
+      });
     return promise;
   }
 }

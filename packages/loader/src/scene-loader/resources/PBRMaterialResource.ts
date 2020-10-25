@@ -93,6 +93,12 @@ export class PBRMaterialResource extends SchemaResource {
           resource[attr] = null;
           Logger.warn(`PBRMaterialResource: ${this.meta.name} can't find asset "${attr}", which id is: ${value.id}`);
         }
+      } else {
+        if (attr === "side") {
+          return;
+        }
+
+        resource[attr] = value;
       }
     });
   }
