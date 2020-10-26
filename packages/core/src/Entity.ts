@@ -345,7 +345,7 @@ export class Entity extends EventDispatcher {
    * @returns 克隆的节点
    */
   clone(): Entity {
-    const cloneEntity = new Entity(this.name + "(Clone)", this._engine);
+    const cloneEntity = new Entity(this.name, this._engine);
 
     cloneEntity._isActive = this._isActive;
     cloneEntity.transform.localMatrix = this.transform.localMatrix;
