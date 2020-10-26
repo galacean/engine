@@ -13,17 +13,17 @@ import { UpdateFlag } from "./UpdateFlag";
  * 实体,可作为组件的容器。
  */
 export class Entity extends EventDispatcher {
-  static _entitys: DisorderedArray<Entity> = new DisorderedArray();
+  private static _entitys: DisorderedArray<Entity> = new DisorderedArray();
 
   /**
-   * 根据名字全局查找节点。
+   * 根据名字全局查找实体。
    * @param name - 名字
-   * @returns 节点
+   * @returns 实体
    */
   static findByName(name: string): Entity {
-    const { _entitys } = Entity;
-    const elements = _entitys._elements;
-    for (let i = _entitys.length - 1; i >= 0; i--) {
+    const entitys = Entity._entitys;
+    const elements = entitys._elements;
+    for (let i = entitys.length - 1; i >= 0; i--) {
       const entity = elements[i];
       if (entity.name === name) {
         return entity;
@@ -33,10 +33,10 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * 根据路径全局查找节点，使用‘/’符号作为路径分割符。
+   * 根据路径全局查找实体，使用‘/’符号作为路径分割符。
    * @param path - 路径
    * @param scene - 查找场景，如果为空则使用最新创建 Engine 的激活场景
-   * @returns 节点
+   * @returns 实体
    */
   static findByPath(path: string, scene?: Scene): Entity | null {
     scene || (scene = Engine._lastCreateEngine?.sceneManager.activeScene);
@@ -132,7 +132,7 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * 父节点。
+   * 父实体。
    */
   get parent(): Entity {
     return this._parent;
@@ -165,14 +165,14 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * 子节点集合。
+   * 子实体集合。
    */
   get children(): Readonly<Entity[]> {
     return this._children;
   }
 
   /**
-   * 子节点数量。
+   * 子实体数量。
    */
   get childCount(): number {
     return this._children.length;
@@ -193,7 +193,7 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * 创建一个节点。
+   * 创建一个实体。
    * @param name - 名字
    * @param engine - 所属 Engine
    */
@@ -252,34 +252,34 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * 添加子节点对象。
-   * @param child - 子节点
+   * 添加子实体。
+   * @param child - 子实体
    */
   addChild(child: Entity): void {
     child.parent = this;
   }
 
   /**
-   * 删除子节点。
-   * @param child - 子节点
+   * 删除子实体。
+   * @param child - 子实体
    */
   removeChild(child: Entity): void {
     child.parent = null;
   }
 
   /**
-   * 根据索引获取子节点。
+   * 根据索引获取子实体。
    * @param index - 索引
-   * @returns 节点
+   * @returns 实体
    */
   getChild(index: number): Entity {
     return this._children[index];
   }
 
   /**
-   * 根据名字查找子节点。
+   * 根据名字查找子实体。
    * @param name - 名字
-   * @returns 节点
+   * @returns 实体
    */
   findByName(name: string): Entity {
     const children = this._children;
@@ -296,9 +296,9 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * 根据路径查找节点，使用‘/’符号作为路径分割符。
+   * 根据路径查找实体，使用‘/’符号作为路径分割符。
    * @param path - 路径
-   * @returns 节点
+   * @returns 实体
    */
   findByPath(path: string): Entity {
     const splits = path.split("/");
@@ -316,9 +316,9 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * 创建子节点。
+   * 创建子实体。
    * @param name - 名称
-   * @returns 子节点
+   * @returns 子实体
    */
   createChild(name?: string): Entity {
     const child = new Entity(name, this.engine);
@@ -327,7 +327,7 @@ export class Entity extends EventDispatcher {
   }
 
   /**
-   * 清空子节点。
+   * 清空子实体。
    */
   clearChildren(): void {
     const children = this._children;
@@ -342,7 +342,7 @@ export class Entity extends EventDispatcher {
 
   /**
    * 克隆。
-   * @returns 克隆的节点
+   * @returns 克隆的实体
    */
   clone(): Entity {
     const cloneEntity = new Entity(this.name, this._engine);
