@@ -34,7 +34,7 @@
     "clean": "lerna exec -- rm -rf dist && sudo lerna clean",
     "docs:update": "node scripts/docs.update.js",
     "post-changelog": "node scripts/post-changelog.js",
-    "doc": "rm -rf doc && typedoc --options scripts/doc/typedoc.js"
+    "doc": "rm -rf doc && typedoc --options scripts/doc/typedoc.js && echo 'version:'" 
   },
   "files": [
     "src",
