@@ -1021,6 +1021,7 @@ export class Matrix implements IClone {
     const t: Matrix = Matrix._tempMat40;
     this.cloneTo(t);
     const te = t.elements;
+    const m3: Matrix3x3 = Matrix._tempMat30;
 
     pos.x = te[12];
     pos.y = te[13];
@@ -1035,7 +1036,7 @@ export class Matrix implements IClone {
       Math.abs(sy) < MathUtil.zeroTolerance ||
       Math.abs(sz) < MathUtil.zeroTolerance
     ) {
-      // TODO CM:
+      m3.setValueByMatrix(Matrix._identity);
     } else {
       // if determine is negative, we need to invert one scale
       const det = t.determinant();
@@ -1057,15 +1058,15 @@ export class Matrix implements IClone {
       te[8] *= invSZ;
       te[9] *= invSZ;
       te[10] *= invSZ;
+
+      s.x = sx;
+      s.y = sy;
+      s.z = sz;
+
+      m3.setValueByMatrix(t);
     }
 
-    const m3: Matrix3x3 = Matrix._tempMat30;
-    m3.setValueByMatrix(t);
     Quaternion.rotationMatrix3x3(m3, q);
-
-    s.x = sx;
-    s.y = sy;
-    s.z = sz;
   }
 
   /**
