@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
-import resolve from "rollup-plugin-node-resolve";
-import commonjs from "rollup-plugin-commonjs";
-import babel from "rollup-plugin-babel";
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
+import babel from "@rollup/plugin-babel";
 import string from "@ali/rollup-plugin-string";
 import { terser } from "rollup-plugin-terser";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
@@ -33,7 +33,7 @@ const commonPlugins = [
   }),
   babel({
     extensions,
-    runtimeHelpers: true,
+    babelHelpers: 'bundled',
     exclude: ["node_modules/**", "packages/**/node_modules/**"]
   }),
   commonjs()

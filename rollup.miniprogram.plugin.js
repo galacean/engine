@@ -1,4 +1,4 @@
-import inject from 'rollup-plugin-inject';
+import inject from '@rollup/plugin-inject';
 import modify from 'rollup-plugin-modify';
 
 const module = '@ali/miniprogram-adapter';
