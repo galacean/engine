@@ -44,8 +44,8 @@ tnpm run test-cov
 ## API 文档
 
 ```bash
-# 如 tnpm run doc 1.0
-tnpm run doc ${VERSION}
+# 如 v=0.1 tnpm run doc 1.0
+v=${VERSION} tnpm run doc 
 ```
 
 ## Contributors(5)
