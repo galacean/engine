@@ -1,4 +1,4 @@
-const VERSION = '0.1';
+const VERSION = process.argv[process.argv.length - 1];
 
 module.exports = {
   name: "Oasis Engine",
