@@ -1,7 +1,7 @@
 import inject from 'rollup-plugin-inject';
 import modify from 'rollup-plugin-modify';
 
-const module = '@alipay/o3-adapter-miniprogram';
+const module = '@ali/miniprogram-adapter';
 
 function register(name) {
   return [module, name];
