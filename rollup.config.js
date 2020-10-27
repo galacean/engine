@@ -8,6 +8,7 @@ import string from "@ali/rollup-plugin-string";
 import { terser } from "rollup-plugin-terser";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import visualizerFunc from "rollup-plugin-visualizer";
+import esbuild from 'rollup-plugin-esbuild';
 const camelCase = require("camelcase");
 
 const { NODE_ENV } = process.env;
@@ -74,6 +75,8 @@ function config({location, pkgJson}) {
       };
     },
     mini: () => {
+      const plugins = [...commonPlugins, ...miniProgramPlugin];
+      plugins[2] = esbuild({})
       return {
         input,
         output: [
@@ -86,10 +89,12 @@ function config({location, pkgJson}) {
         external: Object.keys(pkgJson.dependencies || {})
           .concat("@alipay/o3-adapter-miniprogram")
           .map((name) => `${name}/dist/miniprogram`),
-        plugins: [...commonPlugins, ...miniProgramPlugin]
+        plugins
       };
     },
     module: () => {
+      const plugins = [...commonPlugins];
+      plugins[2] = esbuild({});
       return {
         input,
         external,
@@ -100,7 +105,7 @@ function config({location, pkgJson}) {
             sourcemap: true
           }
         ],
-        plugins: [...commonPlugins]
+        plugins
       };
     }
   };
