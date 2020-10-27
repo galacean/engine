@@ -80,7 +80,6 @@
     "husky": "^2.2.0",
     "inquirer": "^6.5.1",
     "jest": "^24.8.0",
-    "jsdoc-babel": "^0.5.0",
     "jsdoc-to-markdown": "^5.0.0",
     "lerna": "^3.13.4",
     "lint-staged": "^10.0.0-1",
