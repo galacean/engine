@@ -34,7 +34,7 @@
     "clean": "lerna exec -- rm -rf dist && sudo lerna clean",
     "docs:update": "node scripts/docs.update.js",
     "post-changelog": "node scripts/post-changelog.js",
-    "docs": "rm -rf docs && typedoc --tsconfig configs/typedoc-tsconfig.json --options configs/typedoc.json"
+    "doc": "rm -rf doc && typedoc --options scripts/doc/typedoc.js" 
   },
   "files": [
     "src",
@@ -47,6 +47,7 @@
   "devDependencies": {
     "@ali/ci": "^4.24.0",
     "@ali/rollup-plugin-string": "^3.0.0",
+    "@alipay/oasis-typedoc-theme": "^0.0.9",
     "@alipay/release": "^0.10.3",
     "@babel/cli": "^7.5.0",
     "@babel/core": "^7.6.2",
@@ -96,7 +97,8 @@
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-terser": "^5.1.1",
     "rollup-plugin-visualizer": "^4.0.4",
-    "typedoc": "0.16.11",
+    "typedoc": "0.19.2",
+    "typedoc-plugin-remove-references": "^0.0.5",
     "typescript": "^3.9.3",
     "urllib": "^2.34.1"
   },
