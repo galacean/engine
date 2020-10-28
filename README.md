@@ -13,7 +13,7 @@
 [tnpm-downloads-image]: https://npm.alibaba-inc.com/badge/d/@alipay/o3.svg
 
 ## 初始化依赖
-```
+```bash
 tnpm run bootstrap
 ```
 
@@ -21,7 +21,7 @@ tnpm run bootstrap
 
 获取 token 解决 lerna 发布 tnpm 二次验证的问题
 
-```
+```bash
 tnpm run otp:release
 ```
 
@@ -29,19 +29,24 @@ tnpm run otp:release
 
 关于[单元测试](https://yuque.antfin-inc.com/oasis3d/mlxz18/fhvrag)
 
-```
+```bash
 tnpm run test
 ```
 
 ### 测试覆盖率
 
-```
+```bash
 tnpm run test-cov
 ```
 
 查看 coverage/lcov-report/index.html
 
+## API 文档
 
+```bash
+# 如 v=0.1 tnpm run doc 1.0
+v=${VERSION} tnpm run doc 
+```
 
 ## Contributors(5)
 
