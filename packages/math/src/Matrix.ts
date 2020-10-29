@@ -1016,56 +1016,67 @@ export class Matrix implements IClone {
    * @param pos - 平移向量
    * @param q - 旋转四元数
    * @param s - 缩放向量
+   * @returns 是否可以分解。
    */
-  decompose(pos: Vector3, q: Quaternion, s: Vector3): void {
-    const t: Matrix = Matrix._tempMat40;
-    this.cloneTo(t);
-    const te = t.elements;
+  decompose(pos: Vector3, q: Quaternion, s: Vector3): boolean {
+    const rm: Matrix3x3 = Matrix._tempMat30;
 
-    pos.x = te[12];
-    pos.y = te[13];
-    pos.z = te[14];
+    const e = this.elements;
+    const rme = rm.elements;
 
-    let sx = Math.sqrt(te[0] * te[0] + te[1] * te[1] + te[2] * te[2]);
-    const sy = Math.sqrt(te[4] * te[4] + te[5] * te[5] + te[6] * te[6]);
-    const sz = Math.sqrt(te[8] * te[8] + te[9] * te[9] + te[10] * te[10]);
+    const m11 = e[0];
+    const m12 = e[1];
+    const m13 = e[2];
+    const m14 = e[3];
+    const m21 = e[4];
+    const m22 = e[5];
+    const m23 = e[6];
+    const m24 = e[7];
+    const m31 = e[8];
+    const m32 = e[9];
+    const m33 = e[10];
+    const m34 = e[11];
+
+    pos.x = e[12];
+    pos.y = e[13];
+    pos.z = e[14];
+
+    const xs = Math.sign(m11 * m12 * m13 * m14) < 0 ? -1 : 1;
+    const ys = Math.sign(m21 * m22 * m23 * m24) < 0 ? -1 : 1;
+    const zs = Math.sign(m31 * m32 * m33 * m34) < 0 ? -1 : 1;
+
+    const sx = xs * Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
+    const sy = ys * Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
+    const sz = zs * Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+
+    s.x = sx;
+    s.y = sy;
+    s.z = sz;
 
     if (
       Math.abs(sx) < MathUtil.zeroTolerance ||
       Math.abs(sy) < MathUtil.zeroTolerance ||
       Math.abs(sz) < MathUtil.zeroTolerance
     ) {
-      // TODO CM:
+      q.identity();
+      return false;
     } else {
-      // if determine is negative, we need to invert one scale
-      const det = t.determinant();
-      if (det < 0) sx = -sx;
-
-      // scale the rotation part
       const invSX = 1 / sx;
       const invSY = 1 / sy;
       const invSZ = 1 / sz;
 
-      te[0] *= invSX;
-      te[1] *= invSX;
-      te[2] *= invSX;
-
-      te[4] *= invSY;
-      te[5] *= invSY;
-      te[6] *= invSY;
-
-      te[8] *= invSZ;
-      te[9] *= invSZ;
-      te[10] *= invSZ;
+      rme[0] = m11 * invSX;
+      rme[1] = m12 * invSX;
+      rme[2] = m13 * invSX;
+      rme[3] = m21 * invSY;
+      rme[4] = m22 * invSY;
+      rme[5] = m23 * invSY;
+      rme[6] = m31 * invSZ;
+      rme[7] = m32 * invSZ;
+      rme[8] = m33 * invSZ;
+      Quaternion.rotationMatrix3x3(rm, q);
+      return true;
     }
-
-    const m3: Matrix3x3 = Matrix._tempMat30;
-    m3.setValueByMatrix(t);
-    Quaternion.rotationMatrix3x3(m3, q);
-
-    s.x = sx;
-    s.y = sy;
-    s.z = sz;
   }
 
   /**
