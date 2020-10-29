@@ -53,10 +53,12 @@ export class Oasis extends EventDispatcher {
 
     return this.loadResources().then(() => {
       this.bindResources();
-      this.parseNodes();
+      this.parseEntities();
       this.parseNodeAbilities();
       // TODO 临时使用 用于运行时asset把id转化为各种实例
       this.attach();
+      // 延迟添加 root entity。
+      this.nodeManager.addRootEntity();
     });
   }
 
@@ -91,7 +93,7 @@ export class Oasis extends EventDispatcher {
   /**
    * 解析 nodes
    */
-  private parseNodes(): void {
+  private parseEntities(): void {
     const { nodes } = this.schema;
     const indices = this.bfsNodes();
     indices.map((index) => nodes[index]).forEach(this.nodeManager.add);
