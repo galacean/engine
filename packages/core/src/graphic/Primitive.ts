@@ -2,9 +2,11 @@ import { BoundingSphere, OBB } from "@alipay/o3-math";
 import { Engine } from "..";
 import { RefObject } from "../asset/RefObject";
 import { Buffer } from "../graphic/Buffer";
+import { IPlatformPrimitive } from "../renderingHardwareInterface";
 import { BufferUtil } from "./BufferUtil";
 import { IndexFormat } from "./enums/IndexFormat";
 import { IndexBufferBinding } from "./IndexBufferBinding";
+import { SubPrimitive } from "./SubPrimitive";
 import { VertexBufferBinding } from "./VertexBufferBinding";
 import { VertexElement } from "./VertexElement";
 
@@ -19,6 +21,7 @@ export class Primitive extends RefObject {
 
   _vertexElementMap: object = {};
   _glIndexType: number;
+  _platformPrimitive: IPlatformPrimitive;
 
   private _vertexBufferBindings: VertexBufferBinding[] = [];
   private _indexBufferBinding: IndexBufferBinding = null;
@@ -53,6 +56,7 @@ export class Primitive extends RefObject {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
+    this._platformPrimitive = this._engine._hardwareRenderer.createPlatformPrimitive(this);
   }
 
   /**
@@ -133,6 +137,13 @@ export class Primitive extends RefObject {
   }
 
   /**
+   * 绘制。
+   */
+  draw(tech: any, subPrimitive: SubPrimitive): void {
+    this._platformPrimitive.draw(tech, subPrimitive);
+  }
+
+  /**
    * @override
    * 销毁。
    */
@@ -141,6 +152,7 @@ export class Primitive extends RefObject {
     this._indexBufferBinding = null;
     this._vertexElements = null;
     this._vertexElementMap = null;
+    this._platformPrimitive.destroy();
   }
 
   private _clearVertexElements(): void {

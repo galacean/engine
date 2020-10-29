@@ -1,4 +1,14 @@
-import { Camera, Canvas, ClearMode, GLCapabilityType, HardwareRenderer, Logger, RenderTarget } from "@alipay/o3-core";
+import {
+  Camera,
+  Canvas,
+  ClearMode,
+  GLCapabilityType,
+  HardwareRenderer,
+  Logger,
+  Primitive,
+  RenderTarget,
+  IPlatformPrimitive
+} from "@alipay/o3-core";
 import { Vector4 } from "@alipay/o3-math";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLCapability } from "./GLCapability";
@@ -89,6 +99,13 @@ export class WebGLRenderer implements HardwareRenderer {
 
     this._frameCount = 0;
     this._options = null;
+  }
+
+  /**
+   * 创建平台图元。
+   */
+  createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
+    return new GLPrimitive(this, primitive);
   }
 
   /**
@@ -222,14 +239,13 @@ export class WebGLRenderer implements HardwareRenderer {
    */
   drawPrimitive(primitive, group, mtl) {
     // todo: VAO 不支持 morph 动画
-    const glPrimitive = this._assetsCache.requireObject(primitive, GLPrimitive);
     const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
 
     if (!glTech.valid) return;
 
-    if (glPrimitive && glTech) {
+    if (primitive && glTech) {
       glTech.begin(mtl);
-      glPrimitive.draw(glTech, group);
+      primitive.draw(glTech, group);
       glTech.end();
     } else {
       Logger.error("draw primitive failed.");
