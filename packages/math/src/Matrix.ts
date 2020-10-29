@@ -1016,64 +1016,6 @@ export class Matrix implements IClone {
    * @param pos - 平移向量
    * @param q - 旋转四元数
    * @param s - 缩放向量
-   */
-  decomposeCK(pos: Vector3, q: Quaternion, s: Vector3): void {
-    const t: Matrix = Matrix._tempMat40;
-    this.cloneTo(t);
-    const te = t.elements;
-    const m3: Matrix3x3 = Matrix._tempMat30;
-
-    pos.x = te[12];
-    pos.y = te[13];
-    pos.z = te[14];
-
-    let sx = Math.sqrt(te[0] * te[0] + te[1] * te[1] + te[2] * te[2]);
-    const sy = Math.sqrt(te[4] * te[4] + te[5] * te[5] + te[6] * te[6]);
-    const sz = Math.sqrt(te[8] * te[8] + te[9] * te[9] + te[10] * te[10]);
-
-    if (
-      Math.abs(sx) < MathUtil.zeroTolerance ||
-      Math.abs(sy) < MathUtil.zeroTolerance ||
-      Math.abs(sz) < MathUtil.zeroTolerance
-    ) {
-      m3.setValueByMatrix(Matrix._identity);
-    } else {
-      // if determine is negative, we need to invert one scale
-      const det = t.determinant();
-      if (det < 0) sx = -sx;
-
-      // scale the rotation part
-      const invSX = 1 / sx;
-      const invSY = 1 / sy;
-      const invSZ = 1 / sz;
-
-      te[0] *= invSX;
-      te[1] *= invSX;
-      te[2] *= invSX;
-
-      te[4] *= invSY;
-      te[5] *= invSY;
-      te[6] *= invSY;
-
-      te[8] *= invSZ;
-      te[9] *= invSZ;
-      te[10] *= invSZ;
-
-      s.x = sx;
-      s.y = sy;
-      s.z = sz;
-
-      m3.setValueByMatrix(t);
-    }
-
-    Quaternion.rotationMatrix3x3(m3, q);
-  }
-
-  /**
-   * 将矩阵分解为平移向量、旋转四元数、缩放向量。
-   * @param pos - 平移向量
-   * @param q - 旋转四元数
-   * @param s - 缩放向量
    * @returns 是否可以分解。
    */
   decompose(pos: Vector3, q: Quaternion, s: Vector3): boolean {
@@ -1124,13 +1066,13 @@ export class Matrix implements IClone {
       const invSZ = 1 / sz;
 
       rme[0] = m11 * invSX;
-      rme[1] = m12 * invSY;
-      rme[2] = m13 * invSZ;
-      rme[3] = m21 * invSX;
+      rme[1] = m12 * invSX;
+      rme[2] = m13 * invSX;
+      rme[3] = m21 * invSY;
       rme[4] = m22 * invSY;
-      rme[5] = m23 * invSZ;
-      rme[6] = m31 * invSX;
-      rme[7] = m32 * invSY;
+      rme[5] = m23 * invSY;
+      rme[6] = m31 * invSZ;
+      rme[7] = m32 * invSZ;
       rme[8] = m33 * invSZ;
       Quaternion.rotationMatrix3x3(rm, q);
       return true;
