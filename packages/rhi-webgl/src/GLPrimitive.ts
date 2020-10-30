@@ -1,7 +1,7 @@
-import { GLCapabilityType, Logger, Primitive } from "@alipay/o3-core";
+import { GLCapabilityType, IPlatformPrimitive, Logger, Primitive } from "@alipay/o3-core";
 import { SubPrimitive } from "@alipay/o3-core/types/graphic/SubPrimitive";
-import { GLAsset } from "./GLAsset";
 import { GLTechnique } from "./GLTechnique";
+import { WebGLExtension } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
@@ -13,73 +13,28 @@ import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * Primtive 相关的 GL 资源管理，主要是 WebGLBuffer 对象
- * @private
  */
-export class GLPrimitive extends GLAsset {
+export class GLPrimitive implements IPlatformPrimitive {
   protected readonly _primitive: Primitive;
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
+  private gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private vao: Map<number, WebGLVertexArrayObject> = new Map();
   private readonly _useVao: boolean;
 
   constructor(rhi: WebGLRenderer, primitive: Primitive) {
-    super(rhi, primitive as any);
     this._primitive = primitive;
-    this.canUseInstancedArrays = this.rhi.canIUse(GLCapabilityType.instancedArrays);
+    this.canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
     this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);
-  }
-
-  /**
-   * 绑定 Buffer 和 attribute
-   */
-  protected bindBufferAndAttrib(tech: GLTechnique) {
-    const gl = this.rhi.gl;
-    const primitive = this._primitive;
-    const vertexBufferBindings = primitive.vertexBufferBindings;
-
-    this.attribLocArray = [];
-    const techAttributes = tech.attributes;
-    const attributes = primitive._vertexElementMap;
-
-    let vbo: WebGLBuffer;
-    let lastBoundVbo: WebGLBuffer;
-
-    for (const name in techAttributes) {
-      const loc = techAttributes[name].location;
-      if (loc === -1) continue;
-
-      const semantic = techAttributes[name].semantic;
-      const element = attributes[semantic];
-      if (element) {
-        const { buffer, stride } = vertexBufferBindings[element.bindingIndex];
-        vbo = buffer._nativeBuffer;
-        // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
-        if (lastBoundVbo !== vbo) {
-          lastBoundVbo = vbo;
-          gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        }
-
-        gl.enableVertexAttribArray(loc);
-        const { size, type } = element._glElementInfo;
-        gl.vertexAttribPointer(loc, size, type, element.normalized, stride, element.offset);
-        if (this.canUseInstancedArrays) {
-          gl.vertexAttribDivisor(loc, element.instanceDivisor);
-        }
-        this.attribLocArray.push(loc);
-      } else {
-        Logger.warn("vertex attribute not found: " + name);
-      }
-    }
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    this.gl = rhi.gl;
   }
 
   /**
    * 执行绘制操作。
    */
   draw(tech: GLTechnique, subPrimitive: SubPrimitive) {
-    const gl = this.rhi.gl;
+    const gl = this.gl;
     const primitive = this._primitive;
 
     if (this._useVao) {
@@ -135,15 +90,69 @@ export class GLPrimitive extends GLAsset {
     }
   }
 
+  destroy() {
+    if (this._useVao) {
+      const gl = this.gl;
+      this.vao.forEach((vao) => {
+        gl.deleteVertexArray(vao);
+      });
+    }
+  }
+
+  /**
+   * 绑定 Buffer 和 attribute
+   */
+  protected bindBufferAndAttrib(tech: GLTechnique) {
+    const gl = this.gl;
+    const primitive = this._primitive;
+    const vertexBufferBindings = primitive.vertexBufferBindings;
+
+    this.attribLocArray = [];
+    const techAttributes = tech.attributes;
+    const attributes = primitive._vertexElementMap;
+
+    let vbo: WebGLBuffer;
+    let lastBoundVbo: WebGLBuffer;
+
+    for (const name in techAttributes) {
+      const loc = techAttributes[name].location;
+      if (loc === -1) continue;
+
+      const semantic = techAttributes[name].semantic;
+      const element = attributes[semantic];
+      if (element) {
+        const { buffer, stride } = vertexBufferBindings[element.bindingIndex];
+        vbo = buffer._nativeBuffer;
+        // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
+        if (lastBoundVbo !== vbo) {
+          lastBoundVbo = vbo;
+          gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        }
+
+        gl.enableVertexAttribArray(loc);
+        const { size, type } = element._glElementInfo;
+        gl.vertexAttribPointer(loc, size, type, element.normalized, stride, element.offset);
+        if (this.canUseInstancedArrays) {
+          gl.vertexAttribDivisor(loc, element.instanceDivisor);
+        }
+        this.attribLocArray.push(loc);
+      } else {
+        Logger.warn("vertex attribute not found: " + name);
+      }
+    }
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  }
+
   protected disableAttrib() {
-    const gl = this.rhi.gl;
+    const gl = this.gl;
     for (let i = 0, l = this.attribLocArray.length; i < l; i++) {
       gl.disableVertexAttribArray(this.attribLocArray[i]);
     }
   }
 
   private registerVAO(tech: GLTechnique): void {
-    const gl = this.rhi.gl;
+    const gl = this.gl;
     const vao = gl.createVertexArray();
 
     /** register VAO */
@@ -161,33 +170,5 @@ export class GLPrimitive extends GLAsset {
     this.disableAttrib();
 
     this.vao.set(tech.cacheID, vao);
-  }
-
-  /**
-   * 释放 GL 资源
-   */
-  finalize() {
-    const primitive = this._primitive;
-    const vertexBufferBindings = primitive.vertexBufferBindings;
-    const indexBuffer = primitive.indexBufferBinding.buffer;
-
-    if (vertexBufferBindings.length > 0) {
-      for (let i = 0; i < vertexBufferBindings.length; i++) {
-        const vertexBuffer = vertexBufferBindings[i].buffer;
-        vertexBuffer.destroy();
-      }
-    }
-
-    if (indexBuffer) {
-      indexBuffer.destroy();
-      // primitive.indexBufferBinding.buffer = null;
-    }
-
-    if (this._useVao) {
-      const gl = this.rhi.gl;
-      this.vao.forEach((vao) => {
-        gl.deleteVertexArray(vao);
-      });
-    }
   }
 }

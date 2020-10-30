@@ -57,6 +57,7 @@ export { ComplexMaterial } from "./material/ComplexMaterial";
 export { RenderTechnique } from "./material/RenderTechnique";
 export * from "./material/type";
 
+export * from "./renderingHardwareInterface/index";
 export * from "./texture/index";
 export * from "./graphic/index";
 export * from "./2d/index";
