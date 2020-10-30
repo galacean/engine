@@ -72,7 +72,7 @@ export class Texture2D extends Texture {
 
   /**
    * 通过颜色缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
-   * 如果为WebGL1.0平台且纹理格式为压缩格式，第一次上传必须填满纹理。
+   * @remarks 如果为WebGL1.0平台且纹理格式为压缩格式，第一次上传必须填满纹理。
    * @param pixelBuffer - 颜色缓冲数据
    * @param mipLevel - 纹理层级
    * @param x - 数据起始X坐标
