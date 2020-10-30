@@ -1088,28 +1088,27 @@ export class Matrix implements IClone {
   getRotation(out: Quaternion): Quaternion {
     const e = this.elements;
     let trace = e[0] + e[5] + e[10];
-    let S = 0;
 
     if (trace > MathUtil.zeroTolerance) {
-      S = Math.sqrt(trace + 1.0) * 2;
+      let S = Math.sqrt(trace + 1.0) * 2;
       out.w = 0.25 * S;
       out.x = (e[6] - e[9]) / S;
       out.y = (e[8] - e[2]) / S;
       out.z = (e[1] - e[4]) / S;
     } else if (e[0] > e[5] && e[0] > e[10]) {
-      S = Math.sqrt(1.0 + e[0] - e[5] - e[10]) * 2;
+      let S = Math.sqrt(1.0 + e[0] - e[5] - e[10]) * 2;
       out.w = (e[6] - e[9]) / S;
       out.x = 0.25 * S;
       out.y = (e[1] + e[4]) / S;
       out.z = (e[8] + e[2]) / S;
     } else if (e[5] > e[10]) {
-      S = Math.sqrt(1.0 + e[5] - e[0] - e[10]) * 2;
+      let S = Math.sqrt(1.0 + e[5] - e[0] - e[10]) * 2;
       out.w = (e[8] - e[2]) / S;
       out.x = (e[1] + e[4]) / S;
       out.y = 0.25 * S;
       out.z = (e[6] + e[9]) / S;
     } else {
-      S = Math.sqrt(1.0 + e[10] - e[0] - e[5]) * 2;
+      let S = Math.sqrt(1.0 + e[10] - e[0] - e[5]) * 2;
       out.w = (e[1] - e[4]) / S;
       out.x = (e[8] + e[2]) / S;
       out.y = (e[6] + e[9]) / S;
