@@ -77,9 +77,6 @@ export class ResourceManager {
    */
   load(assetItems: LoadItem[]): AssetPromise<Object[]>;
 
-  /**
-   * @internal
-   */
   load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | Object[]> {
     // single item
     if (!Array.isArray(assetInfo)) {
@@ -107,9 +104,6 @@ export class ResourceManager {
    */
   cancelNotLoaded(urls: string[]): void;
 
-  /**
-   * @internal
-   */
   cancelNotLoaded(url?: string | string[]): void {
     if (!url) {
       Object.values(this._loadingPromises).forEach((promise) => {
