@@ -1,23 +1,6 @@
 {
   "name": "@oasis-engine/core",
   "version": "0.1.0",
-  "description": "Oasis3D engines core",
-  "keywords": [
-    "Oasis3D",
-    "webgl"
-  ],
-  "authors": [
-    "yanliang.fyl <yanliang.fyl@antfin.com>"
-  ],
-  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
-  "repository": {
-    "type": "git",
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
-  },
-  "bugs": {
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
-  },
-  "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "types": "types/index.d.ts",
@@ -29,8 +12,6 @@
   },
   "devDependencies": {
     "@oasis-engine/design": "0.1.0"
-  },
-  "publishConfig": {
-    "registry": "http://registry.npm.alibaba-inc.com"
   }
+  
 }

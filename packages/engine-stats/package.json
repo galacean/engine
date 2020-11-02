@@ -1,23 +1,6 @@
 {
   "name": "@oasis-engine/stats",
   "version": "0.1.0",
-  "description": "Oasis engines extension: show engine stats",
-  "keywords": [
-    "Oasis3D",
-    "webgl"
-  ],
-  "authors": [
-    "yanliang.fyl <yanliang.fyl@antfin.com>"
-  ],
-  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
-  "repository": {
-    "type": "git",
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
-  },
-  "bugs": {
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
-  },
-  "license": "MIT",
   "scripts": {
     "b:types": "tsc"
   },
@@ -27,8 +10,5 @@
   "browser": "dist/browser.min.js",
   "dependencies": {
     "@oasis-engine/core": "0.1.0"
-  },
-  "publishConfig": {
-    "registry": "http://registry.npm.alibaba-inc.com"
   }
 }

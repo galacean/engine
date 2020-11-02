@@ -1,20 +1,6 @@
 {
   "name": "@oasis-engine/controls",
   "version": "0.1.0",
-  "description": "Oasis controls",
-  "keywords": [
-    "Oasis3D",
-    "webgl"
-  ],
-  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
-  "repository": {
-    "type": "git",
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
-  },
-  "bugs": {
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
-  },
-  "license": "MIT",
   "scripts": {
     "b:types": "tsc",
     "lint:fix": "tslint --fix --project ./tsconfig.json"
@@ -23,9 +9,6 @@
   "browser": "dist/browser.js",
   "main": "dist/main.js",
   "module": "dist/module.js",
-  "publishConfig": {
-    "registry": "http://registry.npm.alibaba-inc.com"
-  },
   "dependencies": {
     "@oasis-engine/tween": "0.1.0",
     "oasis-engine": "0.1.0"

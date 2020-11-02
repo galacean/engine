@@ -1,32 +1,12 @@
 {
   "name": "@oasis-engine/rhi-webgl",
   "version": "0.1.0",
-  "description": "Oasis Render Hardware Interface -  WebGL implementation",
-  "keywords": [
-    "Oasis3D",
-    "webgl"
-  ],
-  "authors": [
-    "yanliang.fyl <yanliang.fyl@antfin.com>"
-  ],
-  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
-  "repository": {
-    "type": "git",
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
-  },
-  "bugs": {
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
-  },
-  "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "scripts": {
     "b:types": "tsc"
   },
   "types": "types/index.d.ts",
-  "publishConfig": {
-    "registry": "http://registry.npm.alibaba-inc.com"
-  },
   "dependencies": {
     "@oasis-engine/core": "0.1.0",
     "@oasis-engine/math": "0.1.0"

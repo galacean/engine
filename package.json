@@ -1,7 +1,6 @@
 {
   "name": "@alipay/o3-root",
   "version": "1.0.0",
-  "description": "",
   "main": "dist/index.js",
   "module": "dist/index.module.js",
   "browser": "dist/index.browser.js",
@@ -41,9 +40,6 @@
     "types",
     "dist"
   ],
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@ali/ci": "^4.24.0",
     "@ali/rollup-plugin-string": "^3.0.0",
