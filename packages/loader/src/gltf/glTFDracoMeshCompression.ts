@@ -1,4 +1,4 @@
-import { DRACODecoder } from "@alipay/o3-draco";
+import { DRACODecoder } from "@oasis-engine/draco";
 import { getComponentType, getBufferData, createVertexElement } from "./Util";
 
 let decoder;

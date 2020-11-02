@@ -1,5 +1,5 @@
-import { Camera, Entity, MaskList, Script } from "@alipay/o3";
-import { RenderColorTexture, RenderTarget } from "@alipay/o3";
+import { Camera, Entity, MaskList, Script } from "oasis-engine";
+import { RenderColorTexture, RenderTarget } from "oasis-engine";
 import { ColorRenderPass } from "./ColorRenderPass";
 
 /**

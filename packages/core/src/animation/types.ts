@@ -1,4 +1,4 @@
-import { Quaternion } from "@alipay/o3-math";
+import { Quaternion } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh/SkinnedMeshRenderer";

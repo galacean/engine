@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@alipay/o3-math";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { AnimationClip, TagetType } from "./AnimationClip";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationOptions, IChannelTarget } from "./types";

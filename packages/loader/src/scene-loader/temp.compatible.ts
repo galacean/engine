@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 
 // TODO  临时方案 用来将编辑器中用的数组转为引擎需要的数据类型，而不修改编辑器本身逻辑
 const _vec3Attribute = [

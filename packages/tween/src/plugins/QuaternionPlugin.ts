@@ -1,4 +1,4 @@
-import { Quaternion } from "@alipay/o3";
+import { Quaternion } from "oasis-engine";
 
 export const QuaternionPlugin = (tweener) => {
   const { easing } = tweener.options;

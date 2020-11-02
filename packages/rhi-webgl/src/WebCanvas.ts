@@ -1,5 +1,5 @@
-import { Canvas } from "@alipay/o3-core";
-import { Vector2 } from "@alipay/o3-math";
+import { Canvas } from "@oasis-engine/core";
+import { Vector2 } from "@oasis-engine/math";
 /**
  * Web端使用的画布,可以支持HTMLCanvasElement和OffscreenCanvas。
  */

@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Vector2, Vector3, Vector4, Ray } from "@alipay/o3-math";
+import { MathUtil, Matrix, Vector2, Vector3, Vector4, Ray } from "@oasis-engine/math";
 import { ClearMode } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";

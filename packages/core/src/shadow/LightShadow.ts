@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Vector2 } from "@alipay/o3-math";
+import { MathUtil, Matrix, Vector2 } from "@oasis-engine/math";
 import { DataType } from "../base/Constant";
 import { DirectLight } from "../lighting/DirectLight";
 import { PointLight } from "../lighting/PointLight";

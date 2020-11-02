@@ -1,4 +1,4 @@
-import { Vector3, Vector4 } from "@alipay/o3-math";
+import { Vector3, Vector4 } from "@oasis-engine/math";
 import { RenderTargetConfig } from "../material/type";
 import { Camera } from "../Camera";
 import { Material } from "../material/Material";

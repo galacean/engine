@@ -1,5 +1,5 @@
-import { Logger } from "@alipay/o3-core";
-import { Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { Logger } from "@oasis-engine/core";
+import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 
 /**
  * 管理HUD控件Batch绘制时，需要处理的几何体数据

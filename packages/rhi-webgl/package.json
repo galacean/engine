@@ -1,5 +1,5 @@
 {
-  "name": "@alipay/o3-rhi-webgl",
+  "name": "@oasis-engine/rhi-webgl",
   "version": "3.1.0-alpha.0",
   "description": "Oasis Render Hardware Interface -  WebGL implementation",
   "keywords": [
@@ -28,7 +28,7 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3-core": "3.1.0-alpha.0",
-    "@alipay/o3-math": "3.1.0-alpha.0"
+    "@oasis-engine/core": "3.1.0-alpha.0",
+    "@oasis-engine/math": "3.1.0-alpha.0"
   }
 }

@@ -1,6 +1,6 @@
 "use strict";
 
-import { DataType, UniformSemantic, RenderState, BlendFunc } from "@alipay/o3-core";
+import { DataType, UniformSemantic, RenderState, BlendFunc } from "@oasis-engine/core";
 
 const SpriteVertShader = `
 precision highp float;

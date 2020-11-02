@@ -1,5 +1,5 @@
 {
-  "name": "@alipay/o3-controls",
+  "name": "@oasis-engine/controls",
   "version": "3.1.0-alpha.0",
   "description": "Oasis controls",
   "keywords": [
@@ -27,7 +27,7 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3": "3.1.0-alpha.0",
-    "@alipay/o3-tween": "3.1.0-alpha.0"
+    "oasis-engine": "3.1.0-alpha.0",
+    "@oasis-engine/tween": "3.1.0-alpha.0"
   }
 }

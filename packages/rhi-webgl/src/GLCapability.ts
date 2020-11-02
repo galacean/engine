@@ -1,5 +1,5 @@
 import { WebGLRenderer } from "./WebGLRenderer";
-import { GLCapabilityType, GLCompressedTextureInternalFormat } from "@alipay/o3-core";
+import { GLCapabilityType, GLCompressedTextureInternalFormat } from "@oasis-engine/core";
 
 type extensionKey = string;
 

@@ -1,4 +1,4 @@
-import { GLCapabilityType, IPlatformPrimitive, Logger, Primitive } from "@alipay/o3-core";
+import { GLCapabilityType, IPlatformPrimitive, Logger, Primitive } from "@oasis-engine/core";
 import { SubPrimitive } from "@alipay/o3-core/types/graphic/SubPrimitive";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLExtension } from "./type";

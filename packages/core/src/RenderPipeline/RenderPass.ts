@@ -1,6 +1,6 @@
 import { ClearMode, MaskList } from "../base";
 import { Camera } from "../Camera";
-import { Vector4 } from "@alipay/o3-math";
+import { Vector4 } from "@oasis-engine/math";
 
 /** @todo: monorepo circle dependence */
 type RenderTarget = any;

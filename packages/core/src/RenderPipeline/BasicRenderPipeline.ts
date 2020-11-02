@@ -1,4 +1,4 @@
-import { Vector4 } from "@alipay/o3-math";
+import { Vector4 } from "@oasis-engine/math";
 import { ClearMode, MaskList, MaterialType } from "../base";
 import { Camera } from "../Camera";
 import { Component } from "../Component";

@@ -1,5 +1,5 @@
 import { ClearMode } from "../base";
-import { Vector3 } from "@alipay/o3-math";
+import { Vector3 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { RenderPass } from "./RenderPass";
 

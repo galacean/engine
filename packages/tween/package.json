@@ -1,5 +1,5 @@
 {
-  "name": "@alipay/o3-tween",
+  "name": "@oasis-engine/tween",
   "version": "3.1.0-alpha.0",
   "description": "tween",
   "keywords": [
@@ -28,6 +28,6 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@alipay/o3": "3.1.0-alpha.0"
+    "oasis-engine": "3.1.0-alpha.0"
   }
 }

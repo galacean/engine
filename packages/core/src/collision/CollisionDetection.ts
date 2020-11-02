@@ -1,4 +1,4 @@
-import { Vector3 } from "@alipay/o3-math";
+import { Vector3 } from "@oasis-engine/math";
 import { Event } from "../base/Event";
 import { ABoxCollider } from "../collider/ABoxCollider";
 import { Script } from "../Script";

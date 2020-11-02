@@ -1,5 +1,5 @@
 "use strict";
-import { Matrix, Vector4 } from "@alipay/o3-math";
+import { Matrix, Vector4 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 
 /**

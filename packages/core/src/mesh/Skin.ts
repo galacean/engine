@@ -1,4 +1,4 @@
-import { Matrix } from "@alipay/o3-math";
+import { Matrix } from "@oasis-engine/math";
 import { AssetObject } from "../asset/AssetObject";
 
 let skinID = 0;

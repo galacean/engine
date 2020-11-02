@@ -1,4 +1,4 @@
-import { IClone } from "@alipay/o3-design";
+import { IClone } from "@oasis-engine/design";
 import { MathUtil } from "./MathUtil";
 import { Matrix3x3 } from "./Matrix3x3";
 import { Vector3 } from "./Vector3";

@@ -1,4 +1,4 @@
-import { DataType, IndexFormat, VertexElement, VertexElementFormat } from "@alipay/o3-core";
+import { DataType, IndexFormat, VertexElement, VertexElementFormat } from "@oasis-engine/core";
 
 const WEBGL_COMPONENT_TYPES = {
   5120: Int8Array,

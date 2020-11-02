@@ -1,4 +1,4 @@
-import { BoundingBox, Vector3 } from "@alipay/o3-math";
+import { BoundingBox, Vector3 } from "@oasis-engine/math";
 import { Engine, EngineObject } from "..";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";

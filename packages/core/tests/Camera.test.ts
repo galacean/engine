@@ -2,7 +2,7 @@ import { Camera, ClearFlags } from "../src/Camera";
 import { Entity } from "../src/Entity";
 import { Engine } from "../src/Engine";
 import { Transform } from "../src/Transform";
-import { Matrix, MathUtil, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { Matrix, MathUtil, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 
 describe("camera test", function () {
   let node: Entity;

@@ -1,4 +1,4 @@
-import { BlinnPhongMaterial, ResourceManager } from "@alipay/o3-core";
+import { BlinnPhongMaterial, ResourceManager } from "@oasis-engine/core";
 import { AssetConfig } from "../types";
 import { SchemaResource } from "./SchemaResource";
 

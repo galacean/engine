@@ -1,4 +1,4 @@
-import { Camera, MaskList, RenderPass, RenderTarget, Engine } from "@alipay/o3";
+import { Camera, MaskList, RenderPass, RenderTarget, Engine } from "oasis-engine";
 import { ColorMaterial } from "./ColorMaterial";
 
 /**

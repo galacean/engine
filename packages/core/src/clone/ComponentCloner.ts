@@ -1,4 +1,4 @@
-import { IClone } from "@alipay/o3-design";
+import { IClone } from "@oasis-engine/design";
 import { RefObject } from "../asset/RefObject";
 import { Component } from "../Component";
 import { CloneManager } from "./CloneManager";

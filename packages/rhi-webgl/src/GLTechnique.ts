@@ -1,4 +1,4 @@
-import { DataType, Logger, Material, RenderTechnique } from "@alipay/o3-core";
+import { DataType, Logger, Material, RenderTechnique } from "@oasis-engine/core";
 import { GLAsset } from "./GLAsset";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLShaderProgram } from "./GLShaderProgram";

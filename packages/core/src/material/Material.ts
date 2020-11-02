@@ -1,4 +1,4 @@
-import { Matrix, Matrix3x3 } from "@alipay/o3-math";
+import { Matrix, Matrix3x3 } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
 import { MaterialType, UniformSemantic } from "../base/Constant";
 import { Util } from "../base/Util";

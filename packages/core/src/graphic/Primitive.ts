@@ -1,4 +1,4 @@
-import { BoundingSphere, OBB } from "@alipay/o3-math";
+import { BoundingSphere, OBB } from "@oasis-engine/math";
 import { Engine } from "..";
 import { RefObject } from "../asset/RefObject";
 import { Buffer } from "../graphic/Buffer";

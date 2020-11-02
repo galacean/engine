@@ -1,4 +1,4 @@
-import { Vector3 } from "@alipay/o3-math";
+import { Vector3 } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { Material } from "../material/Material";

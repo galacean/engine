@@ -1,4 +1,4 @@
-import { Matrix3x3, Vector3 } from "@alipay/o3-math";
+import { Matrix3x3, Vector3 } from "@oasis-engine/math";
 import { DataType } from "../base/Constant";
 import { Light } from "./Light";
 

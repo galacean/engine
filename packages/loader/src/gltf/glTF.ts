@@ -27,8 +27,8 @@ import {
   Util,
   VertexBufferBinding,
   VertexElement
-} from "@alipay/o3-core";
-import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
+} from "@oasis-engine/core";
+import { Matrix, Quaternion, Vector3, Vector4 } from "@oasis-engine/math";
 import { LoadedGLTFResource } from "../GLTF";
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 import {

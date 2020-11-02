@@ -1,5 +1,5 @@
 {
-  "name": "@alipay/o3-loader",
+  "name": "@oasis-engine/loader",
   "version": "3.1.0-alpha.0",
   "description": "load resources",
   "keywords": [
@@ -23,10 +23,10 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "dependencies": {
-    "@alipay/o3-core": "3.1.0-alpha.0",
-    "@alipay/o3-draco": "3.1.0-alpha.0",
-    "@alipay/o3-math": "3.1.0-alpha.0",
-    "@alipay/o3-rhi-webgl": "3.1.0-alpha.0"
+    "@oasis-engine/core": "3.1.0-alpha.0",
+    "@oasis-engine/draco": "3.1.0-alpha.0",
+    "@oasis-engine/math": "3.1.0-alpha.0",
+    "@oasis-engine/rhi-webgl": "3.1.0-alpha.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

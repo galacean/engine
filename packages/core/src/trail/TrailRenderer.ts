@@ -1,4 +1,4 @@
-import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
+import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { BufferGeometry, GeometryRenderer } from "../geometry";
 import { Buffer } from "../graphic/Buffer";
 import { BufferUsage } from "../graphic/enums/BufferUsage";

@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-core";
+import { Logger } from "@oasis-engine/core";
 
 import { DRACOWorker, ITaskConfig } from "./DRACOWorker";
 

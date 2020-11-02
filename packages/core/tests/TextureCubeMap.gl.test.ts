@@ -1,4 +1,4 @@
-import { Engine, TextureCubeFace, TextureFormat } from "@alipay/o3-core";
+import { Engine, TextureCubeFace, TextureFormat } from "@oasis-engine/core";
 import gl from "gl";
 import { TextureCubeMap } from "../src/TextureCubeMap";
 

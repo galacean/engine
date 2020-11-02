@@ -1,4 +1,4 @@
-import { Vector3 } from "@alipay/o3-math";
+import { Vector3 } from "@oasis-engine/math";
 import { DataType } from "../base/Constant";
 import { Light } from "./Light";
 

@@ -1,4 +1,4 @@
-import { Matrix, Quaternion, Vector3, Vector4 } from "@alipay/o3-math";
+import { Matrix, Quaternion, Vector3, Vector4 } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { Entity } from "../Entity";

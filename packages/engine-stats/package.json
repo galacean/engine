@@ -1,5 +1,5 @@
 {
-  "name": "@alipay/o3-engine-stats",
+  "name": "@oasis-engine/stats",
   "version": "3.1.0-alpha.0",
   "description": "Oasis engines extension: show engine stats",
   "keywords": [
@@ -26,7 +26,7 @@
   "module": "dist/module.js",
   "browser": "dist/browser.min.js",
   "dependencies": {
-    "@alipay/o3-core": "3.1.0-alpha.0"
+    "@oasis-engine/core": "3.1.0-alpha.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

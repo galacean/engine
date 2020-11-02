@@ -1,5 +1,5 @@
 {
-  "name": "@alipay/o3-math",
+  "name": "@oasis-engine/math",
   "description": "Oasis3D engine math moudule",
   "version": "3.1.0-alpha.0",
   "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
@@ -17,7 +17,7 @@
     "b:types": "tsc"
   },
   "devDependencies": {
-    "@alipay/o3-design": "3.1.0-alpha.0"
+    "@oasis-engine/design": "3.1.0-alpha.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

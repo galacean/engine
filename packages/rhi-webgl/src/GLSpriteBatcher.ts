@@ -1,5 +1,5 @@
-import { Logger } from "@alipay/o3-core";
-import { Camera } from "@alipay/o3-core";
+import { Logger } from "@oasis-engine/core";
+import { Camera } from "@oasis-engine/core";
 import { GLSprite } from "./GLSprite";
 import { createSpriteMaterial, SpriteTechnique } from "./GLSpriteMaterial";
 import { GLTechnique } from "./GLTechnique";

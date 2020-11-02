@@ -1,4 +1,4 @@
-import { Component, Logger } from "@alipay/o3-core";
+import { Component, Logger } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { Parser } from "./Parser";
 import { pluginHook } from "./plugins/PluginManager";
