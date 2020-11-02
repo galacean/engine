@@ -38,10 +38,10 @@ export class ScriptResource extends SchemaResource {
         scriptDom.crossOrigin = "anonymous";
         this.setMeta(assetConfig);
         scriptDom.onload = () => {
-          const scripts = (window as any).o3Scripts;
+          const o3Scripts = (window as any).o3Scripts;
           for (let i = 0; i < scripts.length; i++) {
             const name = scripts[i].name;
-            this._resource = scripts && scripts[name];
+            this._resource = o3Scripts && o3Scripts[name];
             scriptAbility[name] = this._resource;
           }
           resolve(this);
