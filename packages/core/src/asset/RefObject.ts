@@ -1,4 +1,4 @@
-import { EngineObject } from "..";
+import { EngineObject } from "../base/EngineObject";
 import { removeFromArray } from "../base/Util";
 import { Engine } from "../Engine";
 

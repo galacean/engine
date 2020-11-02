@@ -16,12 +16,13 @@ export class Oasis extends EventDispatcher {
   // hook 重点
   private oasis = this;
 
-  private constructor(private _options: Readonly<Options>, public readonly pluginManager: PluginManager) {
+  private constructor(private _options: Options, public readonly pluginManager: PluginManager) {
     super(_options.engine);
     this.engine = _options.engine;
     this.resetFeature();
     this.schema = _options.config;
     this.timeout = _options.timeout;
+    _options.scripts = _options.scripts ?? {};
     this.nodeManager = new NodeManager(this);
     this.abilityManager = new AbilityManager(this);
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
