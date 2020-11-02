@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/stats",
-  "version": "3.1.0-alpha.0",
+  "version": "0.1.0",
   "description": "Oasis engines extension: show engine stats",
   "keywords": [
     "Oasis3D",
@@ -26,7 +26,7 @@
   "module": "dist/module.js",
   "browser": "dist/browser.min.js",
   "dependencies": {
-    "@oasis-engine/core": "3.1.0-alpha.0"
+    "@oasis-engine/core": "0.1.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

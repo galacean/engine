@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/controls",
-  "version": "3.1.0-alpha.0",
+  "version": "0.1.0",
   "description": "Oasis controls",
   "keywords": [
     "Oasis3D",
@@ -27,7 +27,7 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "oasis-engine": "3.1.0-alpha.0",
-    "@oasis-engine/tween": "3.1.0-alpha.0"
+    "@oasis-engine/tween": "0.1.0",
+    "oasis-engine": "0.1.0"
   }
 }

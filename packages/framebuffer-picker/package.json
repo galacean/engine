@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/framebuffer-picker",
-  "version": "3.1.0-alpha.0",
+  "version": "0.1.0",
   "description": "Framebuffer object pick",
   "repository": {
     "type": "git",
@@ -25,7 +25,7 @@
   },
   "types": "types/index.d.ts",
   "dependencies": {
-    "oasis-engine": "3.1.0-alpha.0"
+    "oasis-engine": "0.1.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

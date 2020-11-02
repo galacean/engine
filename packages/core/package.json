@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/core",
-  "version": "3.1.0-alpha.0",
+  "version": "0.1.0",
   "description": "Oasis3D engines core",
   "keywords": [
     "Oasis3D",
@@ -25,10 +25,10 @@
     "b:types": "tsc"
   },
   "dependencies": {
-    "@oasis-engine/math": "3.1.0-alpha.0"
+    "@oasis-engine/math": "0.1.0"
   },
   "devDependencies": {
-    "@oasis-engine/design": "3.1.0-alpha.0"
+    "@oasis-engine/design": "0.1.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"

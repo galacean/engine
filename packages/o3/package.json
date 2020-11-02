@@ -1,6 +1,6 @@
 {
   "name": "oasis-engine",
-  "version": "3.1.0-alpha.0",
+  "version": "0.1.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -31,9 +31,9 @@
     "registry": "http://registry.npm.alibaba-inc.com"
   },
   "dependencies": {
-    "@oasis-engine/core": "3.1.0-alpha.0",
-    "@oasis-engine/loader": "3.1.0-alpha.0",
-    "@oasis-engine/math": "3.1.0-alpha.0",
-    "@oasis-engine/rhi-webgl": "3.1.0-alpha.0"
+    "@oasis-engine/core": "0.1.0",
+    "@oasis-engine/loader": "0.1.0",
+    "@oasis-engine/math": "0.1.0",
+    "@oasis-engine/rhi-webgl": "0.1.0"
   }
 }

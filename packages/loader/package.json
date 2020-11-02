@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/loader",
-  "version": "3.1.0-alpha.0",
+  "version": "0.1.0",
   "description": "load resources",
   "keywords": [
     "Oasis3D",
@@ -23,10 +23,10 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "dependencies": {
-    "@oasis-engine/core": "3.1.0-alpha.0",
-    "@oasis-engine/draco": "3.1.0-alpha.0",
-    "@oasis-engine/math": "3.1.0-alpha.0",
-    "@oasis-engine/rhi-webgl": "3.1.0-alpha.0"
+    "@oasis-engine/core": "0.1.0",
+    "@oasis-engine/draco": "0.1.0",
+    "@oasis-engine/math": "0.1.0",
+    "@oasis-engine/rhi-webgl": "0.1.0"
   },
   "publishConfig": {
     "registry": "http://registry.npm.alibaba-inc.com"
