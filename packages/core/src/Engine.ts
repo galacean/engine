@@ -141,14 +141,6 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * 创建实体。
-   * @param name - 名字
-   */
-  createEntity(name?: string): Entity {
-    return new Entity(name, this);
-  }
-
-  /**
    * 暂停引擎循环。
    */
   pause(): void {
