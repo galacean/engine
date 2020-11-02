@@ -21,7 +21,7 @@ Object.defineProperty(Light.prototype, "enableShadow", {
         return;
       }
 
-      this.shadow = this.shadow || new LightShadow({ engine: this.engine });
+      this.shadow = this.shadow || new LightShadow({ engine: this.engine, width: 512, height: 512 });
       this.shadow.initShadowProjectionMatrix(this);
     }
   }
