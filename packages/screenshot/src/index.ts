@@ -1,1 +1,0 @@
-export { Screenshot } from "./Screenshot";
