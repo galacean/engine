@@ -55,7 +55,7 @@ export class TrailRenderer extends GeometryRenderer {
     }
     this._curPointNum = 0;
 
-    const mtl = props.material || new TrailMaterial("trial_mtl");
+    const mtl = props.material || new TrailMaterial(this.engine, "trial_mtl");
     this.material = mtl;
 
     this.setTexture(props.texture);

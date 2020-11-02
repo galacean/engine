@@ -5,7 +5,7 @@ import { SchemaResource } from "./SchemaResource";
 export class BlinnPhongMaterialResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<BlinnPhongMaterialResource> {
     return new Promise((resolve) => {
-      const assetObj = new BlinnPhongMaterial(assetConfig.name);
+      const assetObj = new BlinnPhongMaterial(resourceManager.engine, assetConfig.name);
       for (let k in assetConfig.props) {
         assetObj[k] = assetConfig.props[k];
       }

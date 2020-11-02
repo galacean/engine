@@ -16,7 +16,7 @@ export class SkyBox extends GeometryRenderer {
   constructor(entity) {
     super(entity);
     this.geometry = new CuboidGeometry(this.engine, 2, 2, 2);
-    this.material = new SkyBoxMaterial();
+    this.material = new SkyBoxMaterial(this.engine);
   }
 
   update() {

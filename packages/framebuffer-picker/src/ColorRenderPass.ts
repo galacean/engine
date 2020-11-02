@@ -11,7 +11,7 @@ class ColorRenderPass extends RenderPass {
   private _pickPos;
 
   constructor(name: string, priority: number, renderTarget: RenderTarget, mask: MaskList, engine?: Engine) {
-    super(name, priority, renderTarget, new ColorMaterial(undefined, engine), mask);
+    super(name, priority, renderTarget, new ColorMaterial(engine), mask);
 
     this._needPick = false;
     this.onPick = (o: any) => console.log(o);

@@ -9,7 +9,7 @@ export class PBRMaterialResource extends SchemaResource {
 
   load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<PBRMaterialResource> {
     return new Promise((resolve) => {
-      const assetObj = new PBRMaterial(assetConfig.name);
+      const assetObj = new PBRMaterial(resourceManager.engine, assetConfig.name);
       this.configProps = assetConfig.props;
 
       for (let k in this.configProps) {

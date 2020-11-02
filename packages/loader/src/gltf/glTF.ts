@@ -60,12 +60,12 @@ const RegistedObjs = {};
 const RegistedCustomMaterials = {};
 
 const getDefaultMaterial = (function () {
-  let defaultMateril: ConstantMaterial;
-  return () => {
-    if (!defaultMateril) {
-      defaultMateril = new ConstantMaterial("default");
-      defaultMateril.emission = new Vector4(0.749, 0.749, 0.749, 1);
-    }
+  // let defaultMateril: ConstantMaterial;
+  return (engine: Engine) => {
+    // if (!defaultMateril) {
+    let defaultMateril: ConstantMaterial = new ConstantMaterial(engine, "default");
+    defaultMateril.emission = new Vector4(0.749, 0.749, 0.749, 1);
+    // }
     return defaultMateril;
   };
 })();
@@ -816,7 +816,9 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
       for (let j = 0, m = gltfMeshPrimitives.length; j < m; j++) {
         const materialIndex = gltfMeshPrimitives[j].material;
         const material =
-          materialIndex !== undefined ? getItemByIdx("materials", materialIndex, resources) : getDefaultMaterial();
+          materialIndex !== undefined
+            ? getItemByIdx("materials", materialIndex, resources)
+            : getDefaultMaterial(node.engine);
         renderer.setSharedMaterial(j, material);
       }
     }

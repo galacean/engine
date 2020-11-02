@@ -1,4 +1,5 @@
 import { BlendFunc, DataType, MaterialType, RenderState } from "../base/Constant";
+import { Engine } from "../Engine";
 import { Texture2D } from "../texture/Texture2D";
 import { CommonMaterial } from "./CommonMaterial";
 import FRAG_SHADER from "./shader/Texture.glsl";
@@ -13,8 +14,8 @@ export class TransparentMaterial extends CommonMaterial {
    * 构造函数
    * @param {string} name 名称
    */
-  constructor(name) {
-    super(name || "TransparentMaterial");
+  constructor(engine: Engine, name) {
+    super(engine, name || "TransparentMaterial");
   }
 
   _generateTechnique() {

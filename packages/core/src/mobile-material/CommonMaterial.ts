@@ -1,5 +1,6 @@
 import { Vector4 } from "@alipay/o3-math";
 import { DataType } from "../base/Constant";
+import { Engine } from "../Engine";
 import { LightFeature } from "../lighting/LightFeature";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
@@ -21,8 +22,8 @@ export abstract class CommonMaterial extends Material {
 
   protected abstract _generateTechnique();
 
-  constructor(name: string) {
-    super(name);
+  constructor(engine: Engine, name: string) {
+    super(engine, name);
 
     this.emission = new Vector4(0, 0, 0, 1);
 
