@@ -30,7 +30,7 @@ export class TextureCubeMap extends Texture {
    * @param mipmap - 是否使用多级纹理
    */
   constructor(engine: Engine, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {
-    super();
+    super(engine);
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;

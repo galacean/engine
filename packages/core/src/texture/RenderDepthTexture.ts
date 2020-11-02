@@ -50,7 +50,7 @@ export class RenderDepthTexture extends Texture {
     mipmap: boolean = false,
     isCube: boolean = false
   ) {
-    super();
+    super(engine);
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;

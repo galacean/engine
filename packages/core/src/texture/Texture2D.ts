@@ -35,7 +35,7 @@ export class Texture2D extends Texture {
     format: TextureFormat = TextureFormat.R8G8B8A8,
     mipmap: boolean = true
   ) {
-    super();
+    super(engine);
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
