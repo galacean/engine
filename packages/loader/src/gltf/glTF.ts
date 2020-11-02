@@ -827,7 +827,7 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
   if (nodes.length === 1) {
     asset.defaultSceneRoot = nodes[0];
   } else {
-    const rootNode = new Entity(null, resources.engine);
+    const rootNode = new Entity(resources.engine);
     for (let i = 0; i < nodes.length; i++) {
       rootNode.addChild(nodes[i]);
     }

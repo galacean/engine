@@ -22,21 +22,20 @@ export class Texture2D extends Texture {
 
   /**
    * 构建一个2D纹理。
+   * @param engine - 所属引擎
    * @param width - 宽
    * @param height - 高
    * @param format - 格式，默认值 `TextureFormat.R8G8B8A8`
    * @param mipmap - 是否使用多级纹理
-   * @param engine - 可选引擎
    */
   constructor(
+    engine: Engine,
     width: number,
     height: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
-    mipmap: boolean = true,
-    engine?: Engine
+    mipmap: boolean = true
   ) {
     super();
-    engine = engine || Engine._getDefaultEngine();
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;

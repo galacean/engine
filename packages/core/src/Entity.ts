@@ -34,12 +34,11 @@ export class Entity extends EventDispatcher {
 
   /**
    * 根据路径全局查找实体，使用‘/’符号作为路径分割符。
+   * @param scene - 查找场景
    * @param path - 路径
-   * @param scene - 查找场景，如果为空则使用最新创建 Engine 的激活场景
    * @returns 实体
    */
-  static findByPath(path: string, scene?: Scene): Entity | null {
-    scene || (scene = Engine._lastCreateEngine?.sceneManager.activeScene);
+  static findByPath(scene: Scene, path: string): Entity | null {
     if (scene) {
       const splits = path.split("/").filter(Boolean);
       for (let i = 0, n = scene.rootEntitiesCount; i < n; i++) {
@@ -194,10 +193,10 @@ export class Entity extends EventDispatcher {
 
   /**
    * 创建一个实体。
-   * @param name - 名字
    * @param engine - 所属 Engine
+   * @param name - 名字
    */
-  constructor(name: string, engine: Engine) {
+  constructor(engine: Engine, name?: string) {
     super(engine);
     Entity._entitys.add(this);
     this.name = name;
@@ -321,7 +320,7 @@ export class Entity extends EventDispatcher {
    * @returns 子实体
    */
   createChild(name?: string): Entity {
-    const child = new Entity(name, this.engine);
+    const child = new Entity(this.engine, name);
     child.parent = this;
     return child;
   }
@@ -345,7 +344,7 @@ export class Entity extends EventDispatcher {
    * @returns 克隆的实体
    */
   clone(): Entity {
-    const cloneEntity = new Entity(this.name, this._engine);
+    const cloneEntity = new Entity(this._engine, this.name);
 
     cloneEntity._isActive = this._isActive;
     cloneEntity.transform.localMatrix = this.transform.localMatrix;

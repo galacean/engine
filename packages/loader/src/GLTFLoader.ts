@@ -96,7 +96,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
             const bufferView = gltf.bufferViews[bufferViewIndex];
             const bufferData = getBufferData(bufferView, buffers);
             return loadImageBuffer(bufferData, mimeType).then((image) => {
-              const tex = new Texture2D(image.width, image.height, undefined, undefined, resourceManager.engine);
+              const tex = new Texture2D(resourceManager.engine, image.width, image.height);
               tex.setImageSource(image);
               tex.generateMipmaps();
               return tex;

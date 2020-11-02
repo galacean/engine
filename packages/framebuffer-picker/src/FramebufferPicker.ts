@@ -36,12 +36,10 @@ class FramebufferPicker extends Script {
     const width = 1024;
     const height = 1024;
     this.colorRenderTarget = new RenderTarget(
+      this.engine,
       width,
       height,
-      new RenderColorTexture(width, height, undefined, undefined, undefined, this.engine),
-      undefined,
-      undefined,
-      this.engine
+      new RenderColorTexture(this.engine, width, height)
     );
     this.colorRenderPass = new ColorRenderPass("ColorRenderTarget_FBP", -1, this.colorRenderTarget, 0, this.engine);
   }

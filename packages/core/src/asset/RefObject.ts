@@ -30,8 +30,6 @@ export abstract class RefObject extends EngineObject {
 
   protected constructor(engine: Engine) {
     super(engine);
-    engine = engine ?? Engine._lastCreateEngine;
-    this._engine = engine;
     engine.resourceManager._addRefObject(this.instanceId, this);
   }
 
