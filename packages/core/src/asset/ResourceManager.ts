@@ -104,9 +104,6 @@ export class ResourceManager {
    */
   cancelNotLoaded(urls: string[]): void;
 
-  /**
-   * @internal
-   */
   cancelNotLoaded(url?: string | string[]): void {
     if (!url) {
       Object.values(this._loadingPromises).forEach((promise) => {
