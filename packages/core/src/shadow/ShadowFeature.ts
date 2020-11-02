@@ -53,7 +53,7 @@ export class ShadowFeature extends SceneFeature {
    * @param {Camera} camera
    */
   addShadowPass(camera: Camera) {
-    const shadowMaterial = new ShadowMaterial("shadowMaterial");
+    const shadowMaterial = new ShadowMaterial(camera.engine, "shadowMaterial");
     this._shadowPass = new ShadowPass("ShadowPass", 1, null, shadowMaterial, MaskList.SHADOW);
     const renderer = camera._renderPipeline;
     renderer.addRenderPass(this._shadowPass);
@@ -66,7 +66,7 @@ export class ShadowFeature extends SceneFeature {
    */
   addShadowMapPass(camera: Camera, light) {
     // 共用 shadow map 材质
-    this._shadowMapMaterial = this._shadowMapMaterial || new ShadowMapMaterial("shadowMapMaterial");
+    this._shadowMapMaterial = this._shadowMapMaterial || new ShadowMapMaterial(camera.engine, "shadowMapMaterial");
 
     const shadowMapPass = new ShadowMapPass(
       "ShadowMapPass",

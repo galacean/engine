@@ -357,7 +357,11 @@ export function parseMaterial(gltfMaterial, resources) {
     if (blendFunc) stateObj.blendFunc = blendFunc;
     if (depthMask !== undefined) stateObj.depthMask = depthMask;
 
-    material = new PBRMaterial(gltfMaterial.name || PBRMaterial.MATERIAL_NAME, Object.assign({}, uniformObj, stateObj));
+    material = new PBRMaterial(
+      resources.engine,
+      gltfMaterial.name || PBRMaterial.MATERIAL_NAME,
+      Object.assign({}, uniformObj, stateObj)
+    );
   } else {
     const techniqueName = gltfMaterial.technique;
     Logger.warn("Deprecated: Please use a model that meets the glTF 2.0 specification");
@@ -671,7 +675,7 @@ export function parseAnimation(gltfAnimation, resources) {
  */
 export function parseNode(gltfNode, resources) {
   // TODO: undefined name?
-  const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`, resources.engine);
+  const entity = new Entity(resources.engine, gltfNode.name || `GLTF_NODE_${nodeCount++}`);
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
