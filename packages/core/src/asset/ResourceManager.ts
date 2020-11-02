@@ -77,9 +77,6 @@ export class ResourceManager {
    */
   load(assetItems: LoadItem[]): AssetPromise<Object[]>;
 
-  /**
-   * @internal
-   */
   load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | Object[]> {
     // single item
     if (!Array.isArray(assetInfo)) {
