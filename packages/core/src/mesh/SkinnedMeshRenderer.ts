@@ -187,7 +187,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * */
   createJointTexture() {
     if (!this.jointTexture) {
-      const engine = this._engine;
+      const engine = this.engine;
       const rhi = engine._hardwareRenderer;
       if (!rhi) return;
       this.jointTexture = new Texture2D(engine, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
