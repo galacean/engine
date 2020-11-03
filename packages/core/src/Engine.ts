@@ -200,27 +200,29 @@ export class Engine extends EventDispatcher {
    * 销毁引擎。
    */
   destroy(): void {
-    // -- event
-    this.trigger(new Event("shutdown", this));
-    engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
+    if (this._sceneManager) {
+      // -- event
+      this.trigger(new Event("shutdown", this));
+      engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
 
-    // -- cancel animation
-    this.pause();
+      // -- cancel animation
+      this.pause();
 
-    this._animate = null;
+      this._animate = null;
 
-    this._sceneManager._activeScene.destroy();
-    this._sceneManager = null;
-    this._resourceManager.gc();
-    this._resourceManager = null;
+      this._sceneManager._activeScene.destroy();
+      this._sceneManager = null;
+      this._resourceManager.gc();
+      this._resourceManager = null;
 
-    this._canvas = null;
+      this._canvas = null;
 
-    this.features = [];
-    this._time = null;
+      this.features = [];
+      this._time = null;
 
-    // todo: delete
-    (engineFeatureManager as any)._objects = [];
+      // todo: delete
+      (engineFeatureManager as any)._objects = [];
+    }
   }
 
   _render(scene: Scene): void {
