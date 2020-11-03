@@ -1,4 +1,4 @@
-import { ShaderMaterial } from "@alipay/o3-core";
+import { ShaderMaterial } from "@oasis-engine/core";
 import { Oasis } from "../Oasis";
 import { AssetConfig } from "../types";
 import { SchemaResource } from "./SchemaResource";

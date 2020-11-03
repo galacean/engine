@@ -1,4 +1,4 @@
-import { Logger } from "@alipay/o3-core";
+import { Logger } from "@oasis-engine/core";
 
 export function log(...args: any) {
   Logger.info("🚀 [o3-engine-stats]", ...args);

@@ -1,5 +1,5 @@
 import { Camera } from "../Camera";
-import { Matrix, Vector4, Vector3 } from "@alipay/o3-math";
+import { Matrix, Vector4, Vector3 } from "@oasis-engine/math";
 
 /**
  * 渲染上下文。

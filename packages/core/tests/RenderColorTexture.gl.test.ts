@@ -1,4 +1,4 @@
-import { Engine, RenderBufferColorFormat } from "@alipay/o3-core";
+import { Engine, RenderBufferColorFormat } from "@oasis-engine/core";
 import gl from "gl";
 import { RenderColorTexture } from "../src/RenderColorTexture";
 

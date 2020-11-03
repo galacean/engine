@@ -1,4 +1,4 @@
-import { Component, Entity, WrapMode, Animation } from "@alipay/o3-core";
+import { Component, Entity, WrapMode, Animation } from "@oasis-engine/core";
 import { GLTFResource } from "./gltf/glTF";
 
 /**

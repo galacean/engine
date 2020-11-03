@@ -1,4 +1,4 @@
-import { Logger, PBRMaterial, ResourceManager, Texture } from "@alipay/o3-core";
+import { Logger, PBRMaterial, ResourceManager, Texture } from "@oasis-engine/core";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { getAllGetters, isAsset } from "../utils";
 import { SchemaResource } from "./SchemaResource";

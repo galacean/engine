@@ -1,22 +1,6 @@
 {
-  "name": "@alipay/o3-framebuffer-picker",
-  "version": "3.1.0-alpha.0",
-  "description": "Framebuffer object pick",
-  "repository": {
-    "type": "git",
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d"
-  },
-  "homepage": "http://gitlab.alipay-inc.com/OasisHub/oasis3d",
-  "keywords": [
-    "Oasis3D"
-  ],
-  "authors": [
-    "hongjiang.jhj <hongjiang.jhj@antfin.com>"
-  ],
-  "license": "MIT",
-  "bugs": {
-    "url": "http://gitlab.alipay-inc.com/OasisHub/oasis3d/issues"
-  },
+  "name": "@oasis-engine/framebuffer-picker",
+  "version": "0.1.0",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "browser": "dist/browser.js",
@@ -25,9 +9,6 @@
   },
   "types": "types/index.d.ts",
   "dependencies": {
-    "@alipay/o3": "3.1.0-alpha.0"
-  },
-  "publishConfig": {
-    "registry": "http://registry.npm.alibaba-inc.com"
+    "oasis-engine": "0.1.0"
   }
 }

@@ -1,4 +1,4 @@
-import { BoundingBox } from "@alipay/o3-math";
+import { BoundingBox } from "@oasis-engine/math";
 import { EngineObject } from "../base";
 import { Engine } from "../Engine";
 import { PrimitiveTopology, SubPrimitive } from "../graphic";

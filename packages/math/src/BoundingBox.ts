@@ -1,4 +1,4 @@
-import { IClone } from "@alipay/o3-design";
+import { IClone } from "@oasis-engine/design";
 import { IntersectInfo } from "./enums/IntersectInfo";
 import { pointDistanceToPlane } from "./util";
 import { Vector3 } from "./Vector3";

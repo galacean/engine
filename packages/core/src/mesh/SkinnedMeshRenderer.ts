@@ -1,4 +1,4 @@
-import { Matrix } from "@alipay/o3-math";
+import { Matrix } from "@oasis-engine/math";
 import { ignoreClone, shallowClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { TextureFormat } from "../texture/enums/TextureFormat";

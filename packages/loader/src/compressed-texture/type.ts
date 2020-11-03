@@ -1,4 +1,4 @@
-import { GLCompressedTextureInternalFormat, TextureFormat } from "@alipay/o3-core";
+import { GLCompressedTextureInternalFormat, TextureFormat } from "@oasis-engine/core";
 
 export type CompressedTextureData = {
   internalFormat: GLCompressedTextureInternalFormat;

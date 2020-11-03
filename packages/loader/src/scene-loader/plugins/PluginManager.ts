@@ -1,4 +1,4 @@
-import { Component, Entity } from "@alipay/o3-core";
+import { Component, Entity } from "@oasis-engine/core";
 import { Oasis } from "../Oasis";
 import { SchemaResource } from "../resources";
 import { Plugin } from "./Plugin";

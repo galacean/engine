@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@alipay/o3-math";
+import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/math";
 import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { UpdateFlag } from "./UpdateFlag";

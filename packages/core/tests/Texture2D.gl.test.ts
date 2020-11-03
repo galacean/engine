@@ -1,5 +1,5 @@
-import { TextureFormat } from "@alipay/o3-core";
-import { Engine } from "@alipay/o3-core";
+import { TextureFormat } from "@oasis-engine/core";
+import { Engine } from "@oasis-engine/core";
 import gl from "gl";
 import { Texture2D } from "../src/Texture2D";
 

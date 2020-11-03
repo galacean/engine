@@ -1,4 +1,4 @@
-import { Component } from "@alipay/o3-core";
+import { Component } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { Plugin } from "./plugins/Plugin";
 import { PluginManager } from "./plugins/PluginManager";

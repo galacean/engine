@@ -1,5 +1,5 @@
-import { Entity, Logger, MathUtil, Script, Spherical, Vector3 } from "@alipay/o3";
-import { doTransform, Easing, Tween } from "@alipay/o3-tween";
+import { Entity, Logger, MathUtil, Script, Spherical, Vector3 } from "oasis-engine";
+import { doTransform, Easing, Tween } from "@oasis-engine/tween";
 
 // 防止万向锁
 const ESP = MathUtil.zeroTolerance;

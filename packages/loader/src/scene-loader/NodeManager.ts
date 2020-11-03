@@ -1,5 +1,5 @@
-import { Entity } from "@alipay/o3-core";
-import { Vector3 } from "@alipay/o3-math";
+import { Entity } from "@oasis-engine/core";
+import { Vector3 } from "@oasis-engine/math";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import { NodeConfig } from "./types";

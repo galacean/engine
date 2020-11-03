@@ -1,5 +1,5 @@
 import "../src/JSONLoader";
-import { Engine } from "@alipay/o3-core";
+import { Engine } from "@oasis-engine/core";
 
 describe("text loader test", () => {
   it("text loader test", () => {

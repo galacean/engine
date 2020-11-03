@@ -1,4 +1,4 @@
-import { Matrix, Quaternion, Vector3 } from "@alipay/o3-math";
+import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { EventDispatcher } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";

@@ -1,4 +1,4 @@
-import { Engine } from "@alipay/o3-core";
+import { Engine } from "@oasis-engine/core";
 import { SchemaResource } from "./resources";
 
 export interface NodeConfig {

@@ -1,4 +1,4 @@
-import { Entity } from "@alipay/o3-core";
+import { Entity } from "@oasis-engine/core";
 import DrawCallHook from "./hooks/DrawCallHook";
 import ShaderHook from "./hooks/ShaderHook";
 import TextureHook from "./hooks/TextureHook";

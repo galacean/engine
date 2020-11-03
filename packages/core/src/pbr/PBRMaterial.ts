@@ -1,4 +1,4 @@
-import { Matrix, Vector2, Vector3, Vector4 } from "@alipay/o3-math";
+import { Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { BlendFunc, CullFace, DataType, GLCapabilityType, MaterialType, RenderState, Side } from "../base/Constant";
 import { Util } from "../base/Util";
 import { Camera } from "../Camera";

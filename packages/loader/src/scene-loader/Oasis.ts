@@ -1,4 +1,4 @@
-import { Engine, EventDispatcher } from "@alipay/o3-core";
+import { Engine, EventDispatcher } from "@oasis-engine/core";
 import { AbilityManager } from "./AbilityManager";
 import { NodeManager } from "./NodeManager";
 import { pluginHook, PluginManager } from "./plugins/PluginManager";

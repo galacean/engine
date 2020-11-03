@@ -1,5 +1,5 @@
-import { Logger } from "@alipay/o3-core";
-import { RenderTechnique } from "@alipay/o3-core";
+import { Logger } from "@oasis-engine/core";
+import { RenderTechnique } from "@oasis-engine/core";
 
 interface UniformCache {
   [key: string]: WebGLUniformLocation | null;

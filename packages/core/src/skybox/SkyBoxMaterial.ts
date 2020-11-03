@@ -1,4 +1,4 @@
-import { Matrix } from "@alipay/o3-math";
+import { Matrix } from "@oasis-engine/math";
 import { CompFunc, DataType, RenderState } from "../base/Constant";
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";

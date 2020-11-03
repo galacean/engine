@@ -8,8 +8,8 @@ import {
   Primitive,
   RenderTarget,
   IPlatformPrimitive
-} from "@alipay/o3-core";
-import { Vector4 } from "@alipay/o3-math";
+} from "@oasis-engine/core";
+import { Vector4 } from "@oasis-engine/math";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";

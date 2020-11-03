@@ -1,5 +1,5 @@
 import { WebGLRenderer } from "./WebGLRenderer";
-import { GLCapabilityType } from "@alipay/o3-core";
+import { GLCapabilityType } from "@oasis-engine/core";
 
 /**
  * GLContext 扩展管理

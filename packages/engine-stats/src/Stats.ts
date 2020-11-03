@@ -1,4 +1,4 @@
-import { EngineFeature, Engine, Scene } from "@alipay/o3-core";
+import { EngineFeature, Engine, Scene } from "@oasis-engine/core";
 import Monitor from "./Monitor";
 
 /**

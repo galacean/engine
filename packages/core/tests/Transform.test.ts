@@ -1,5 +1,5 @@
 import { Entity, Transform } from "../src/index";
-import { Vector3, Quaternion, Matrix } from "@alipay/o3-math";
+import { Vector3, Quaternion, Matrix } from "@oasis-engine/math";
 
 describe("Transform", () => {
   describe("no parent", () => {

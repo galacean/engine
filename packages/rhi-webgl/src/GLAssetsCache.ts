@@ -1,5 +1,5 @@
-import { InternalAssetType } from "@alipay/o3-core";
-import { AssetObject } from "@alipay/o3-core";
+import { InternalAssetType } from "@oasis-engine/core";
+import { AssetObject } from "@oasis-engine/core";
 import { WebGLRenderer } from "./WebGLRenderer";
 import { GLAsset } from "./GLAsset";
 

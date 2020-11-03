@@ -1,4 +1,4 @@
-import { BoundingBox, Vector3 } from "@alipay/o3-math";
+import { BoundingBox, Vector3 } from "@oasis-engine/math";
 import { Camera } from "./Camera";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";

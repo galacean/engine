@@ -1,5 +1,5 @@
 import { WebGLRenderer } from "./WebGLRenderer";
-import { AssetObject } from "@alipay/o3-core";
+import { AssetObject } from "@oasis-engine/core";
 
 /**
  * GL 资源对象，通过 GLAssetsCache 管理

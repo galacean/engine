@@ -1,5 +1,5 @@
-import { DataType, Logger, Material, RenderTechnique, Engine } from "@alipay/o3";
-import { Vector3 } from "@alipay/o3";
+import { DataType, Logger, Material, RenderTechnique, Engine } from "oasis-engine";
+import { Vector3 } from "oasis-engine";
 import fs from "./color.fs.glsl";
 import vs from "./color.vs.glsl";
 

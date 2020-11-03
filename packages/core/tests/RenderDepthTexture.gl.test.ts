@@ -1,4 +1,4 @@
-import { Engine, RenderBufferDepthFormat } from "@alipay/o3-core";
+import { Engine, RenderBufferDepthFormat } from "@oasis-engine/core";
 import gl from "gl";
 import { RenderDepthTexture } from "../src/RenderDepthTexture";
 

@@ -1,4 +1,4 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem } from "@alipay/o3-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem } from "@oasis-engine/core";
 
 @resourceLoader(AssetType.Text, ["txt"], false)
 class TextLoader extends Loader<string> {

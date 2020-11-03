@@ -1,4 +1,12 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager, Texture2D } from "@alipay/o3-core";
+import {
+  resourceLoader,
+  Loader,
+  AssetPromise,
+  AssetType,
+  LoadItem,
+  ResourceManager,
+  Texture2D
+} from "@oasis-engine/core";
 import { GlTf, LoadedGLTFResource } from "./GLTF";
 import { parseGLTF, GLTFResource } from "./gltf/glTF";
 import { parseGLB } from "./gltf/glb";

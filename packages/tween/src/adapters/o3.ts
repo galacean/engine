@@ -1,6 +1,6 @@
 import * as TweenPlugins from "../plugins";
 import { Tweener } from "../Tweener";
-import { DataType } from "@alipay/o3";
+import { DataType } from "oasis-engine";
 
 /***  做旋转的插值变换
  * @param {Object}  obj 物体

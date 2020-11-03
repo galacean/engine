@@ -1,7 +1,7 @@
-export * from "@alipay/o3-core";
-export * from "@alipay/o3-loader";
-export * from "@alipay/o3-math";
-export * from "@alipay/o3-rhi-webgl";
+export * from "@oasis-engine/core";
+export * from "@oasis-engine/loader";
+export * from "@oasis-engine/math";
+export * from "@oasis-engine/rhi-webgl";
 import {
   BoxCollider,
   SphereCollider,
@@ -16,8 +16,8 @@ import {
   SkyBox,
   SpriteRenderer,
   PlaneProbe
-} from "@alipay/o3-core";
-import { Parser, GLTFModel } from "@alipay/o3-loader";
+} from "@oasis-engine/core";
+import { Parser, GLTFModel } from "@oasis-engine/loader";
 
 Parser.registerComponents("o3", {
   GLTFModel,

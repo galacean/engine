@@ -1,15 +1,16 @@
 {
-  "name": "@oasis-engine/loader",
+  "name": "oasis-engine",
   "version": "0.1.0",
-  "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc"
   },
+  "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "browser": "dist/browser.min.js",
   "dependencies": {
     "@oasis-engine/core": "0.1.0",
-    "@oasis-engine/draco": "0.1.0",
+    "@oasis-engine/loader": "0.1.0",
     "@oasis-engine/math": "0.1.0",
     "@oasis-engine/rhi-webgl": "0.1.0"
   }

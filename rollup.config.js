@@ -59,7 +59,7 @@ function config({location, pkgJson}) {
 
       return {
         input,
-        external: name === "@alipay/o3" ? {} : external,
+        external: name === "oasis-engine" ? {} : external,
         output: [
           {
             file,
@@ -67,7 +67,7 @@ function config({location, pkgJson}) {
             format: "umd",
             sourcemap: false,
             globals: {
-              "@alipay/o3": "o3"
+              "oasis-engine": "o3"
             }
           }
         ],

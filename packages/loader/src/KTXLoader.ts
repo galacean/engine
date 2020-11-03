@@ -1,4 +1,12 @@
-import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager, Texture2D } from "@alipay/o3-core";
+import {
+  AssetPromise,
+  AssetType,
+  Loader,
+  LoadItem,
+  resourceLoader,
+  ResourceManager,
+  Texture2D
+} from "@oasis-engine/core";
 import { parseSingleKTX } from "./compressed-texture";
 
 @resourceLoader(AssetType.KTX, ["ktx"])

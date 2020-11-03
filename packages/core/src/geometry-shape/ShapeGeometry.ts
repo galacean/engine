@@ -1,4 +1,4 @@
-import { Vector3 } from "@alipay/o3-math";
+import { Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { BufferGeometry } from "../geometry/BufferGeometry";
 import { Buffer } from "../graphic/Buffer";

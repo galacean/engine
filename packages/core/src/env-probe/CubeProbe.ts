@@ -1,4 +1,4 @@
-import { Matrix, Vector3 } from "@alipay/o3-math";
+import { Matrix, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 import { Probe } from "./Probe";
 import { CubeProbeConfig } from "./type";

@@ -1,4 +1,4 @@
-import { Vector4 } from "@alipay/o3-math";
+import { Vector4 } from "@oasis-engine/math";
 import { DataType } from "../base/Constant";
 import { Engine } from "../Engine";
 import { LightFeature } from "../lighting/LightFeature";

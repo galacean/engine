@@ -1,4 +1,4 @@
-import { MathUtil, Vector3 } from "@alipay/o3-math";
+import { MathUtil, Vector3 } from "@oasis-engine/math";
 import { BlendFunc, DataType, MaterialType, RenderState, UniformSemantic } from "../base/Constant";
 import { BufferGeometry, GeometryRenderer } from "../geometry";
 import { Buffer } from "../graphic/Buffer";

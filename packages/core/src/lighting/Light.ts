@@ -1,4 +1,4 @@
-import { Matrix, Vector3 } from "@alipay/o3-math";
+import { Matrix, Vector3 } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { LightFeature } from "./LightFeature";

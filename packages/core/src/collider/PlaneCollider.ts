@@ -1,5 +1,5 @@
 import { Collider } from "./Collider";
-import { Vector3 } from "@alipay/o3-math";
+import { Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 
 /**
