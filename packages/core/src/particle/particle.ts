@@ -201,7 +201,7 @@ export class GPUParticleSystem extends GeometryRenderer {
    */
   setMaterial() {
     const technique = this._createTechnique();
-    const material = new Material("particleMaterial", this.engine);
+    const material = new Material(this.engine, "particleMaterial");
     material.technique = technique;
     material.renderType = MaterialType.TRANSPARENT;
 

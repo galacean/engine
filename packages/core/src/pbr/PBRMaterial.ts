@@ -3,6 +3,7 @@ import { BlendFunc, CullFace, DataType, GLCapabilityType, MaterialType, RenderSt
 import { Util } from "../base/Util";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
+import { Engine } from "../Engine";
 import { LightFeature } from "../lighting/LightFeature";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
@@ -75,8 +76,8 @@ class PBRMaterial extends Material {
    * @param {TextureCubeMap} [props.reflectionTexture] 局部反射贴图，可以覆盖 AEnvironmentMapLight
    *
    */
-  constructor(name = PBRMaterial.MATERIAL_NAME, props = {}) {
-    super(name);
+  constructor(engine: Engine, name = PBRMaterial.MATERIAL_NAME, props = {}) {
+    super(engine, name);
 
     this.createDefaulteValues();
     this.setUniforms(props);
@@ -1076,7 +1077,7 @@ class PBRMaterial extends Material {
    * @param {string} name - name
    */
   clone(name?: string) {
-    const newMtl = new PBRMaterial(name || this.name);
+    const newMtl = new PBRMaterial(this._engine, name || this.name);
 
     newMtl.renderType = this.renderType;
     newMtl.useFog = this.useFog;

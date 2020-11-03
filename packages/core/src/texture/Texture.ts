@@ -718,7 +718,7 @@ export abstract class Texture extends RefObject {
   }
 
   // TODO: delete
-  constructor(engine?: Engine) {
+  constructor(engine: Engine) {
     super(engine);
   }
 }

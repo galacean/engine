@@ -1,5 +1,6 @@
 import { Vector4 } from "@alipay/o3-math";
 import { DataType } from "../base/Constant";
+import { Engine } from "../Engine";
 import { LightFeature } from "../lighting/LightFeature";
 import { Texture2D } from "../texture/Texture2D";
 import { CommonMaterial } from "./CommonMaterial";
@@ -16,8 +17,8 @@ export class LambertMaterial extends CommonMaterial {
    * Lambert 光照模型材质
    * @param {String} name 名称
    */
-  constructor(name) {
-    super(name);
+  constructor(engine: Engine, name) {
+    super(engine, name);
 
     this._directLightCount = 0;
 

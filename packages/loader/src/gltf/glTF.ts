@@ -60,12 +60,12 @@ const RegistedObjs = {};
 const RegistedCustomMaterials = {};
 
 const getDefaultMaterial = (function () {
-  let defaultMateril: ConstantMaterial;
-  return () => {
-    if (!defaultMateril) {
-      defaultMateril = new ConstantMaterial("default");
-      defaultMateril.emission = new Vector4(0.749, 0.749, 0.749, 1);
-    }
+  // let defaultMateril: ConstantMaterial;
+  return (engine: Engine) => {
+    // if (!defaultMateril) {
+    let defaultMateril: ConstantMaterial = new ConstantMaterial(engine, "default");
+    defaultMateril.emission = new Vector4(0.749, 0.749, 0.749, 1);
+    // }
     return defaultMateril;
   };
 })();
@@ -357,7 +357,11 @@ export function parseMaterial(gltfMaterial, resources) {
     if (blendFunc) stateObj.blendFunc = blendFunc;
     if (depthMask !== undefined) stateObj.depthMask = depthMask;
 
-    material = new PBRMaterial(gltfMaterial.name || PBRMaterial.MATERIAL_NAME, Object.assign({}, uniformObj, stateObj));
+    material = new PBRMaterial(
+      resources.engine,
+      gltfMaterial.name || PBRMaterial.MATERIAL_NAME,
+      Object.assign({}, uniformObj, stateObj)
+    );
   } else {
     const techniqueName = gltfMaterial.technique;
     Logger.warn("Deprecated: Please use a model that meets the glTF 2.0 specification");
@@ -671,7 +675,7 @@ export function parseAnimation(gltfAnimation, resources) {
  */
 export function parseNode(gltfNode, resources) {
   // TODO: undefined name?
-  const entity = new Entity(gltfNode.name || `GLTF_NODE_${nodeCount++}`, resources.engine);
+  const entity = new Entity(resources.engine, gltfNode.name || `GLTF_NODE_${nodeCount++}`);
 
   if (gltfNode.hasOwnProperty("matrix")) {
     const m = gltfNode.matrix;
@@ -816,7 +820,9 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
       for (let j = 0, m = gltfMeshPrimitives.length; j < m; j++) {
         const materialIndex = gltfMeshPrimitives[j].material;
         const material =
-          materialIndex !== undefined ? getItemByIdx("materials", materialIndex, resources) : getDefaultMaterial();
+          materialIndex !== undefined
+            ? getItemByIdx("materials", materialIndex, resources)
+            : getDefaultMaterial(node.engine);
         renderer.setSharedMaterial(j, material);
       }
     }
@@ -827,7 +833,7 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
   if (nodes.length === 1) {
     asset.defaultSceneRoot = nodes[0];
   } else {
-    const rootNode = new Entity(null, resources.engine);
+    const rootNode = new Entity(resources.engine);
     for (let i = 0; i < nodes.length; i++) {
       rootNode.addChild(nodes[i]);
     }

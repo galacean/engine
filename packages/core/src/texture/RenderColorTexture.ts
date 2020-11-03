@@ -36,23 +36,22 @@ export class RenderColorTexture extends Texture {
 
   /**
    * 构造渲染纹理。
+   * @param engine - 所属引擎
    * @param width - 宽
    * @param height - 高
    * @param format - 格式，默认 RenderBufferColorFormat.R8G8B8A8
    * @param mipmap - 是否使用多级纹理
    * @param isCube - 是否为立方体模式
-   * @param engine - 可选引擎
    */
   constructor(
+    engine: Engine,
     width: number,
     height: number,
     format: RenderBufferColorFormat = RenderBufferColorFormat.R8G8B8A8,
     mipmap: boolean = false,
-    isCube: boolean = false,
-    engine?: Engine
+    isCube: boolean = false
   ) {
     super(engine);
-    engine = engine || Engine._getDefaultEngine();
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;

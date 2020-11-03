@@ -19,9 +19,14 @@ export class LightShadow {
   public radius;
   public projectionMatrix;
 
-  constructor(props = { width: 512, height: 512 }) {
+  constructor(props = { engine: null, width: 512, height: 512 }) {
     this._mapSize = new Vector2(props.width, props.height);
-    this._renderTarget = new RenderTarget(props.width, props.height, new RenderColorTexture(props.width, props.height));
+    this._renderTarget = new RenderTarget(
+      props.engine,
+      props.width,
+      props.height,
+      new RenderColorTexture(props.engine, props.width, props.height)
+    );
 
     /**
      * （偏斜）

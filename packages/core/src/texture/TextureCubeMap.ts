@@ -24,14 +24,13 @@ export class TextureCubeMap extends Texture {
 
   /**
    * 创建立方体纹理。
+   * @param engine - 所属引擎
    * @param size - 尺寸
    * @param format - 格式，默认 TextureFormat.R8G8B8A8
    * @param mipmap - 是否使用多级纹理
-   * @param engine - 可选引擎
    */
-  constructor(size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true, engine?: Engine) {
-    super();
-    engine = engine || Engine._getDefaultEngine();
+  constructor(engine: Engine, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {
+    super(engine);
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;

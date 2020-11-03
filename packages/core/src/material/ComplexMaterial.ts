@@ -1,3 +1,4 @@
+import { Engine } from "../Engine";
 import { Material } from "./Material";
 
 /**
@@ -11,8 +12,8 @@ export class ComplexMaterial extends Material {
    * 构造函数
    * @param {string} name 名称
    */
-  constructor(name) {
-    super(name);
+  constructor(engine: Engine, name) {
+    super(engine, name);
 
     this._techniquePool = {}; // technique pool: [key]->value
   }

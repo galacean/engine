@@ -39,7 +39,7 @@ export class Material extends RefObject {
    * 构造函数
    * @param {string} name 名称
    */
-  constructor(name: string, engine?: Engine) {
+  constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
 

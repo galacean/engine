@@ -58,13 +58,13 @@ export class Scene extends EventDispatcher {
   }
 
   /**
-   * @param name - 名称
+   * 创建场景。
    * @param engine - 引擎
+   * @param name - 名称
    */
-  constructor(name?: string, engine?: Engine) {
+  constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name || "";
-    this._engine = engine || Engine._getDefaultEngine();
 
     Scene.sceneFeatureManager.addObject(this);
   }
@@ -75,7 +75,7 @@ export class Scene extends EventDispatcher {
    * @returns 实体
    */
   createRootEntity(name?: string): Entity {
-    const entity = new Entity(name, this._engine);
+    const entity = new Entity(this._engine, name);
     this.addRootEntity(entity);
     return entity;
   }

@@ -61,89 +61,88 @@ export class RenderTarget extends EngineObject {
 
   /**
    * 通过颜色纹理和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
+   * @param engine - 所属引擎
    * @param width - 宽
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
    * @param antiAliasing - 抗锯齿级别,默认 1
-   * @param engine - 可选引擎
    */
   constructor(
+    engine: Engine,
     width: number,
     height: number,
     colorTexture: RenderColorTexture,
     depthFormat?: RenderBufferDepthFormat | null,
-    antiAliasing?: number,
-    engine?: Engine
+    antiAliasing?: number
   );
 
   /**
-   * 通过颜色纹理和深度纹理创建渲染目标。不传颜色纹理时，只生成深度纹理
+   * 通过颜色纹理和深度纹理创建渲染目标。不传颜色纹理时，只生成深度纹理。
+   * @param engine - 所属引擎
    * @param width - 宽
    * @param height - 高
    * @param colorTexture - 颜色纹理
    * @param depthTexture - 深度纹理
    * @param antiAliasing - 抗锯齿级别,默认 1
-   * @param engine - 可选引擎
    */
   constructor(
+    engine: Engine,
     width: number,
     height: number,
     colorTexture: RenderColorTexture | null,
     depthTexture: RenderDepthTexture,
-    antiAliasing?: number,
-    engine?: Engine
+    antiAliasing?: number
   );
 
   /**
    * 通过颜色纹理数组和深度格式创建渲染目标，使用内部深度缓冲，无法获取深度纹理。
+   * @param engine - 所属引擎
    * @param width - 宽
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthFormat - 深度格式,默认 RenderBufferDepthFormat.Depth,自动选择精度
    * @param antiAliasing - 抗锯齿级别,默认 1
-   * @param engine - 可选引擎
    */
   constructor(
+    engine: Engine,
     width: number,
     height: number,
     colorTextures: RenderColorTexture[],
     depthFormat?: RenderBufferDepthFormat | null,
-    antiAliasing?: number,
-    engine?: Engine
+    antiAliasing?: number
   );
 
   /**
    * 通过颜色纹理数组和深度纹理创建渲染目标。
+   * @param engine - 所属引擎
    * @param width - 宽
    * @param height - 高
    * @param colorTextures - 颜色纹理数组
    * @param depthTexture - 深度纹理
    * @param antiAliasing - 抗锯齿级别,默认 1
-   * @param engine - 可选引擎
    */
   constructor(
+    engine: Engine,
     width: number,
     height: number,
     colorTextures: RenderColorTexture[],
     depthTexture: RenderDepthTexture,
-    antiAliasing?: number,
-    engine?: Engine
+    antiAliasing?: number
   );
 
   /**
    * @internal
    */
   constructor(
+    engine: Engine,
     width: number,
     height: number,
     renderTexture: RenderColorTexture | Array<RenderColorTexture> | null,
     depth: RenderDepthTexture | RenderBufferDepthFormat | null = RenderBufferDepthFormat.Depth,
-    antiAliasing: number = 1,
-    engine?: Engine
+    antiAliasing: number = 1
   ) {
     super(engine);
-    engine = engine || Engine._getDefaultEngine();
     const rhi = engine._hardwareRenderer;
 
     /** todo

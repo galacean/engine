@@ -17,17 +17,6 @@ const engineFeatureManager = new FeatureManager<EngineFeature>();
  * 引擎。
  */
 export class Engine extends EventDispatcher {
-  /**
-   * 当前创建对象所属的默认引擎对象。
-   */
-  static defaultCreateObjectEngine: Engine = null;
-
-  static _lastCreateEngine: Engine = null;
-
-  static _getDefaultEngine(): Engine {
-    return Engine.defaultCreateObjectEngine || Engine._lastCreateEngine;
-  }
-
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: HardwareRenderer;
 
@@ -131,13 +120,20 @@ export class Engine extends EventDispatcher {
    */
   constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
     super(null);
-    Engine._lastCreateEngine = this;
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
     // @todo delete
     engineFeatureManager.addObject(this);
-    this._sceneManager.activeScene = new Scene("DefaultScene", this);
+    this._sceneManager.activeScene = new Scene(this, "DefaultScene");
+  }
+
+  /**
+   * 创建实体。
+   * @param name - 名字
+   */
+  createEntity(name?: string): Entity {
+    return new Entity(this, name);
   }
 
   /**

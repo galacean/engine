@@ -12,8 +12,8 @@ class ColorMaterial extends Material {
   private _primitivesMap = [];
   protected _technique;
 
-  constructor(name = "FRAMEBUFFER_PICKER_COLOR_MATERIAL", engine?: Engine) {
-    super(name, engine);
+  constructor(engine: Engine, name = "FRAMEBUFFER_PICKER_COLOR_MATERIAL") {
+    super(engine, name);
     this.reset();
   }
 

@@ -1,5 +1,6 @@
 import { Matrix } from "@alipay/o3-math";
 import { CompFunc, DataType, RenderState } from "../base/Constant";
+import { Engine } from "../Engine";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
 import fs from "./skybox.fs.glsl";
@@ -13,8 +14,8 @@ export class SkyBoxMaterial extends Material {
   private _cacheMat2: Matrix;
   private modelMatrix: Matrix;
 
-  constructor(name = SkyBoxMaterial.defaultName) {
-    super(name);
+  constructor(engine: Engine, name = SkyBoxMaterial.defaultName) {
+    super(engine, name);
   }
 
   public setModel(modelMatrix: Matrix) {

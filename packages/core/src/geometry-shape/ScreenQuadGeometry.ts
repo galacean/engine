@@ -20,8 +20,6 @@ export class ScreenQuadGeometry extends ShapeGeometry {
   }
 
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {
-    engine = engine || Engine._getDefaultEngine();
-
     const vertexStride = 20;
     const vertexElements = [
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),

@@ -35,23 +35,22 @@ export class RenderDepthTexture extends Texture {
 
   /**
    * 构造渲染深度纹理。
+   * @param engine - 所属引擎
    * @param width - 宽
    * @param height - 高
    * @param format - 格式。默认 RenderBufferDepthFormat.Depth,深度纹理,自动选择精度
    * @param mipmap - 是否使用多级纹理
    * @param isCube - 是否为立方体模式
-   * @param engine - 可选引擎
    */
   constructor(
+    engine: Engine,
     width: number,
     height: number,
     format: RenderBufferDepthFormat = RenderBufferDepthFormat.Depth,
     mipmap: boolean = false,
-    isCube: boolean = false,
-    engine?: Engine
+    isCube: boolean = false
   ) {
-    super();
-    engine = engine || Engine._getDefaultEngine();
+    super(engine);
     const rhi = engine._hardwareRenderer;
     const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
     const isWebGL2: boolean = rhi.isWebGL2;
