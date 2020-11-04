@@ -41,15 +41,13 @@ export abstract class RefObject extends EngineObject {
   destroy(force: boolean = false): boolean {
     if (this._destroyed) return true;
     if (!force && this._refCount !== 0) return false;
-
-    this._onDestroy();
-
     this._engine.resourceManager._deleteAsset(this);
     this._engine.resourceManager._deleteRefObject(this.instanceId);
     if (this._refParent) {
       removeFromArray(this._refParent._refChildren, this);
     }
     this._engine = null;
+    this._onDestroy();
     this._destroyed = true;
     return true;
   }

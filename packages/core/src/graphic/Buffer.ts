@@ -223,7 +223,6 @@ export class Buffer extends RefObject {
     const gl: WebGLRenderingContext & WebGL2RenderingContext = this._hardwareRenderer.gl;
     gl.deleteBuffer(this._nativeBuffer);
     this._nativeBuffer = null;
-    this._engine = null;
     this._hardwareRenderer = null;
   }
 
