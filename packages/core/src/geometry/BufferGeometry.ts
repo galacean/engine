@@ -182,7 +182,10 @@ export class BufferGeometry extends EngineObject {
     this._subGeometries.length = 0;
   }
 
-  onDestroy() {
+  /**
+   * 销毁。
+   */
+  destroy(): void {
     if (this._primitive) {
       this._primitive.destroy();
       this._primitive = null;
