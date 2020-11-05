@@ -1,4 +1,4 @@
-import { Component, Logger } from "@oasis-engine/core";
+import { Component, Logger, Model } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { Parser } from "./Parser";
 import { pluginHook } from "./plugins/PluginManager";
@@ -29,9 +29,14 @@ export class AbilityManager {
       ability.enabled = enabled;
     }
 
-    for (let k in abilityProps) {
-      if (abilityProps[k] !== null) {
-        ability[k] = abilityProps[k];
+    if (type === "Model") {
+      // TODO
+      (ability as Model).initProps(abilityProps);
+    } else {
+      for (let k in abilityProps) {
+        if (abilityProps[k] !== null) {
+          ability[k] = abilityProps[k];
+        }
       }
     }
 
@@ -46,11 +51,17 @@ export class AbilityManager {
 
   @pluginHook({ before: "beforeAbilityUpdated", after: "abilityUpdated" })
   public update(id: string, key: string, value: any) {
-    if (value && this.checkIsAsset(value)) {
-      this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;
+    if (this.get(id).constructor.name === "Model") {
+      // TODO
+      (this.get(id) as Model).setProp(key, value);
     } else {
-      this.get(id)[key] = value;
+      if (value && this.checkIsAsset(value)) {
+        this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;
+      } else {
+        this.get(id)[key] = value;
+      }
     }
+
     return { id, key, value };
   }
 

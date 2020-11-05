@@ -15,7 +15,8 @@ import {
   PointLight,
   SkyBox,
   SpriteRenderer,
-  PlaneProbe
+  PlaneProbe,
+  Model
 } from "@oasis-engine/core";
 import { Parser, GLTFModel } from "@oasis-engine/loader";
 
@@ -33,5 +34,6 @@ Parser.registerComponents("o3", {
   Camera,
   Component,
   SphereCollider,
-  PlaneProbe
+  PlaneProbe,
+  Model
 });

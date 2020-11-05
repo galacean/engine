@@ -50,8 +50,6 @@ export class Oasis extends EventDispatcher {
 
   @pluginHook({ after: "schemaParsed" })
   private init(): Promise<any> {
-    this.pluginManager.boot(this);
-
     return this.loadResources().then(() => {
       this.bindResources();
       this.parseEntities();
@@ -60,6 +58,7 @@ export class Oasis extends EventDispatcher {
       this.attach();
       // 延迟添加 root entity。
       this.nodeManager.addRootEntity();
+      this.pluginManager.boot(this);
     });
   }
 
