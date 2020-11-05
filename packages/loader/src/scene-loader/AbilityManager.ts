@@ -1,4 +1,4 @@
-import { Component, Logger, Model } from "@oasis-engine/core";
+import { Component, Logger } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { Parser } from "./Parser";
 import { pluginHook } from "./plugins/PluginManager";
@@ -29,9 +29,9 @@ export class AbilityManager {
       ability.enabled = enabled;
     }
 
-    if (type === "Model") {
+    if (type === "Model" || type === "GLTFModel") {
       // TODO
-      (ability as Model).initProps(abilityProps);
+      (ability as any).init(abilityProps);
     } else {
       for (let k in abilityProps) {
         if (abilityProps[k] !== null) {
@@ -54,9 +54,9 @@ export class AbilityManager {
     if (this.get(id).constructor.name === "Model") {
       // TODO
       if (value && this.checkIsAsset(value)) {
-        (this.get(id) as Model).setProp(key, this.oasis.resourceManager.get(value.id).resource);
+        (this.get(id) as any).setProp(key, this.oasis.resourceManager.get(value.id).resource);
       } else {
-        (this.get(id) as Model).setProp(key, value);
+        (this.get(id) as any).setProp(key, value);
       }
     } else {
       if (value && this.checkIsAsset(value)) {

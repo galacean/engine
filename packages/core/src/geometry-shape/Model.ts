@@ -98,7 +98,7 @@ export class Model extends GeometryRenderer {
     }
   }
 
-  initProps(props: any) {
+  init(props: any) {
     this._props = props;
 
     const { geometryType = GeometryType.Box } = props;
