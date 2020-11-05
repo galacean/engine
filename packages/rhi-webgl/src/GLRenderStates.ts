@@ -483,6 +483,8 @@ export class GLRenderStates {
     pushParam[gl.STENCIL_REF] = pushArgs[1];
     pushParam[gl.STENCIL_VALUE_MASK] = pushArgs[2];
 
+    this._pushState(gl.stencilFunc, pushArgs, pushParam);
+
     this._parameters[gl.STENCIL_FUNC] = func;
     this._parameters[gl.STENCIL_REF] = ref;
     this._parameters[gl.STENCIL_VALUE_MASK] = mask;
@@ -515,9 +517,24 @@ export class GLRenderStates {
     pushParam[gl.STENCIL_PASS_DEPTH_FAIL] = pushArgs[1];
     pushParam[gl.STENCIL_PASS_DEPTH_PASS] = pushArgs[2];
 
+    this._pushState(gl.stencilOp, pushArgs, pushParam);
+
     this._parameters[gl.STENCIL_FAIL] = fail;
     this._parameters[gl.STENCIL_BACK_PASS_DEPTH_FAIL] = zfail;
     this._parameters[gl.STENCIL_PASS_DEPTH_PASS] = zpass;
     gl.stencilOp(fail, zfail, zpass);
+  }
+
+  stencilMask(mask: GLuint) {
+    const gl = this._gl;
+
+    if (this._parameters[gl.STENCIL_WRITEMASK] === mask) return;
+
+    const pushParam = {};
+    pushParam[gl.STENCIL_WRITEMASK] = this._parameters[gl.STENCIL_WRITEMASK];
+    this._pushState(gl.stencilMask, [this._parameters[gl.STENCIL_WRITEMASK]], pushParam);
+
+    this._parameters[gl.STENCIL_WRITEMASK] = mask;
+    gl.stencilMask(mask);
   }
 }
