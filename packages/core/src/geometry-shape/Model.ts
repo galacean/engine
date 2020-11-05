@@ -90,7 +90,9 @@ export class Model extends GeometryRenderer {
     this._props = props;
 
     const { geometryType = GeometryType.Box } = props;
-    if (!props.material) {
+    if (props.material) {
+      this._material = props.material;
+    } else {
       this._material = new BlinnPhongMaterial(this.engine, "mtl");
     }
 
