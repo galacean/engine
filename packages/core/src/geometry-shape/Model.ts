@@ -86,23 +86,34 @@ export class Model extends GeometryRenderer {
     super(entity);
   }
 
+  get material(): any {
+    return this._material;
+  }
+
+  set material(mtl: any) {
+    if (!mtl) {
+      this._material = new BlinnPhongMaterial(this.engine, "mtl");
+    } else {
+      this._material = mtl;
+    }
+  }
+
   initProps(props: any) {
     this._props = props;
 
     const { geometryType = GeometryType.Box } = props;
-    if (props.material) {
-      this._material = props.material;
-    } else {
-      this._material = new BlinnPhongMaterial(this.engine, "mtl");
-    }
-
+    this.material = props.material;
     this.geometryType = geometryType;
   }
 
   setProp(key: string, value: any) {
     this._props[key] = value;
 
-    this.initProps(this._props);
+    if (key === "material") {
+      this.material = value;
+    } else {
+      this.geometryType = this._props.geometryType;
+    }
   }
 }
 

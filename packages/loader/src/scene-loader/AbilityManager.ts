@@ -53,7 +53,11 @@ export class AbilityManager {
   public update(id: string, key: string, value: any) {
     if (this.get(id).constructor.name === "Model") {
       // TODO
-      (this.get(id) as Model).setProp(key, value);
+      if (value && this.checkIsAsset(value)) {
+        (this.get(id) as Model).setProp(key, this.oasis.resourceManager.get(value.id).resource);
+      } else {
+        (this.get(id) as Model).setProp(key, value);
+      }
     } else {
       if (value && this.checkIsAsset(value)) {
         this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;
