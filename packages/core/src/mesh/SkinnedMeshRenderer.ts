@@ -1,6 +1,7 @@
 import { Matrix } from "@oasis-engine/math";
 import { ignoreClone, shallowClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
+import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { Texture2D } from "../texture/Texture2D";
 import { MeshRenderer } from "./MeshRenderer";
@@ -191,6 +192,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       const rhi = engine._hardwareRenderer;
       if (!rhi) return;
       this.jointTexture = new Texture2D(engine, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
+      this.jointTexture.filterMode = TextureFilterMode.Point;
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
   }
