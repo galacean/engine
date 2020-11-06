@@ -24,7 +24,8 @@ export class ResourceManager {
   }
 
   private static _getTypeByUrl(url: string): AssetType {
-    return this._extTypeMapping[url.substring(url.lastIndexOf(".") + 1)];
+    const path = url.split("?")[0];
+    return this._extTypeMapping[path.substring(path.lastIndexOf(".") + 1)];
   }
 
   /** 加载资产失败后的重试次数。*/
