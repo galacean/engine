@@ -165,7 +165,7 @@ export class GLCapability {
     cap.set(textureFloat, isWebGL2 || !!requireExtension(textureFloat));
     cap.set(textureHalfFloat, isWebGL2 || !!requireExtension(textureHalfFloat));
     cap.set(textureFloatLinear, !!requireExtension(textureFloatLinear));
-    cap.set(textureHalfFloatLinear, !!requireExtension(textureHalfFloatLinear));
+    cap.set(textureHalfFloatLinear, isWebGL2 || !!requireExtension(textureHalfFloatLinear));
     cap.set(
       colorBufferFloat,
       (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(WEBGL_colorBufferFloat)
