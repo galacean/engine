@@ -1,7 +1,7 @@
 import { Vector3 } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone, shallowClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { Material } from "../material/Material";
 import { RenderableComponent } from "../RenderableComponent";
@@ -23,7 +23,7 @@ export class MeshRenderer extends RenderableComponent {
   private _mesh: Mesh;
   @ignoreClone
   private _instanceMaterials: Material[] = [];
-  @deepClone
+  @shallowClone
   private _sharedMaterials: Material[] = [];
 
   constructor(entity: Entity) {
