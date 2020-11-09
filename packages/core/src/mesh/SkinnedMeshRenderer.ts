@@ -26,11 +26,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _weights: number[];
   @ignoreClone
   private weightsIndices: number[] = [];
-  @assignmentClone
-  private _skin: Skin;
   @ignoreClone
   /** 当超过设备最大骨骼数时，自动使用骨骼纹理技术，该技术能提高骨骼上限，但是性能会下降 */
   private _useJointTexture: boolean = false;
+
+  private _skin: Skin;
 
   /**
    * constructor
