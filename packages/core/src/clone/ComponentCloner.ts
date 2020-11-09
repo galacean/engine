@@ -35,7 +35,7 @@ export class ComponentCloner {
           if (sourcePropD instanceof Object) {
             let tarProp = <Object>target[k];
             tarProp || (tarProp = target[k] = sourcePropD.constructor());
-            ComponentCloner.cloneComponentProp(sourcePropD, tarProp);
+            ComponentCloner._cloneComponentProp(sourcePropD, tarProp);
           } else {
             target[k] = sourcePropD; // null or undefine and primitive type.
           }
@@ -49,7 +49,7 @@ export class ComponentCloner {
    * @param source - 克隆源
    * @param target - 克隆目标
    */
-  static cloneComponentProp(source: Object, target: Object): void {
+  private static _cloneComponentProp(source: Object, target: Object): void {
     const type = source.constructor;
     if (type === Object) {
       const keys = Object.keys(source);
@@ -59,7 +59,7 @@ export class ComponentCloner {
         if (sourceItem instanceof Object) {
           let targetItem = <Object>target[k];
           targetItem || (target[k] = targetItem = sourceItem.constructor());
-          ComponentCloner.cloneComponentProp(sourceItem, targetItem);
+          ComponentCloner._cloneComponentProp(sourceItem, targetItem);
         } else {
           target[k] = sourceItem; // null or undefine and primitive type.
         }
@@ -74,7 +74,7 @@ export class ComponentCloner {
         if (sourceItem instanceof Object) {
           let targetItem = <Object>arrayTarget[i];
           targetItem || (arrayTarget[i] = targetItem = sourceItem.constructor());
-          ComponentCloner.cloneComponentProp(sourceItem, targetItem);
+          ComponentCloner._cloneComponentProp(sourceItem, targetItem);
         } else {
           arrayTarget[i] = sourceItem; // null or undefine and primitive type.
         }
