@@ -25,7 +25,7 @@ export class ComponentCloner {
             tarProp || (tarProp = target[k] = sourcePropS.constructor());
             Object.assign(tarProp, sourcePropS);
           } else {
-            target[k] = sourcePropS; // null or undefine and value type.
+            target[k] = sourcePropS; // null or undefine and primitive type.
           }
           break;
         case CloneMode.Deep:
@@ -35,7 +35,7 @@ export class ComponentCloner {
             tarProp || (tarProp = target[k] = sourcePropD.constructor());
             ComponentCloner.cloneComponentProp(sourcePropD, tarProp);
           } else {
-            target[k] = sourcePropD; // null or undefine and value type.
+            target[k] = sourcePropD; // null or undefine and primitive type.
           }
           break;
       }
@@ -57,7 +57,7 @@ export class ComponentCloner {
           targetItem || (target[k] = targetItem = this.constructor());
           ComponentCloner.cloneComponentProp(sourceItem, targetItem);
         } else {
-          target[k] = sourceItem; // null or undefine and value type.
+          target[k] = sourceItem; // null or undefine and primitive type.
         }
       }
     } else if (type === Array) {
@@ -72,7 +72,7 @@ export class ComponentCloner {
           targetItem || (arrayTarget[i] = targetItem = this.constructor());
           ComponentCloner.cloneComponentProp(sourceItem, targetItem);
         } else {
-          arrayTarget[i] = sourceItem; // null or undefine and value type.
+          arrayTarget[i] = sourceItem; // null or undefine and primitive type.
         }
       }
     } else {
