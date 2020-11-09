@@ -24,7 +24,7 @@ export class ComponentCloner {
           const sourcePropS: Object = source[k];
           if (sourcePropS instanceof Object) {
             let tarProp = <Object>target[k];
-            tarProp != null || (tarProp = target[k] = sourcePropS.constructor());
+            tarProp == null && (tarProp = target[k] = sourcePropS.constructor());
             Object.assign(tarProp, sourcePropS);
           } else {
             target[k] = sourcePropS; // null or undefine and primitive type.
@@ -34,7 +34,7 @@ export class ComponentCloner {
           const sourcePropD: Object = source[k];
           if (sourcePropD instanceof Object) {
             let tarProp = <Object>target[k];
-            tarProp != null || (tarProp = target[k] = sourcePropD.constructor());
+            tarProp == null && (tarProp = target[k] = sourcePropD.constructor());
             ComponentCloner._cloneComponentProp(sourcePropD, tarProp);
           } else {
             target[k] = sourcePropD; // null or undefine and primitive type.
@@ -58,7 +58,7 @@ export class ComponentCloner {
         const sourceItem = source[k];
         if (sourceItem instanceof Object) {
           let targetItem = <Object>target[k];
-          targetItem != null || (target[k] = targetItem = sourceItem.constructor());
+          targetItem == null && (target[k] = targetItem = sourceItem.constructor());
           ComponentCloner._cloneComponentProp(sourceItem, targetItem);
         } else {
           target[k] = sourceItem; // null or undefine and primitive type.
@@ -73,7 +73,7 @@ export class ComponentCloner {
         const sourceItem = arraySource[i];
         if (sourceItem instanceof Object) {
           let targetItem = <Object>arrayTarget[i];
-          targetItem != null || (arrayTarget[i] = targetItem = sourceItem.constructor());
+          targetItem == null && (arrayTarget[i] = targetItem = sourceItem.constructor());
           ComponentCloner._cloneComponentProp(sourceItem, targetItem);
         } else {
           arrayTarget[i] = sourceItem; // null or undefine and primitive type.
