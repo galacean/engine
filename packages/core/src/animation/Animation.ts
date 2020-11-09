@@ -1,12 +1,12 @@
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Logger } from "../base/Logger";
+import { ignoreClone, shallowClone } from "../clone/CloneManager";
+import { Component } from "../Component";
+import { Entity } from "../Entity";
+import { SkinnedMeshRenderer } from "../mesh/SkinnedMeshRenderer";
 import { AnimationClip, TagetType } from "./AnimationClip";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationOptions, IChannelTarget } from "./types";
-import { Component } from "../Component";
-import { Logger } from "../base/Logger";
-import { Entity } from "../Entity";
-import { SkinnedMeshRenderer } from "../mesh/SkinnedMeshRenderer";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
 /**
  * 播放动画片段，动画片段所引用的对象必须是此组件的 Entity 及其子物体
  */
@@ -70,7 +70,7 @@ export class Animation extends Component {
   @ignoreClone
   _onUpdateIndex: number = -1;
 
-  @deepClone
+  @shallowClone
   private _animSet = {};
 
   @ignoreClone

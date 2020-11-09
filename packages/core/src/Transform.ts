@@ -1,5 +1,5 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/math";
-import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { UpdateFlag } from "./UpdateFlag";
 
@@ -59,14 +59,14 @@ export class Transform extends Component {
   private _localMatrix: Matrix = new Matrix();
   @deepClone
   private _worldMatrix: Matrix = new Matrix();
-  @shallowClone
-  private _dirtyFlag: number = Transform._WM_WP_WE_WQ_WS_FLAGS;
   @ignoreClone
   private _changeFlags: UpdateFlag[] = [];
   @ignoreClone
   private _isParentDirty: boolean = true;
   @ignoreClone
   private _parentTransformCache: Transform = null;
+
+  private _dirtyFlag: number = Transform._WM_WP_WE_WQ_WS_FLAGS;
 
   /**
    * 局部位置。

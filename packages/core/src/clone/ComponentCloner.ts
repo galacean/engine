@@ -1,5 +1,4 @@
 import { IClone } from "@oasis-engine/design";
-import { RefObject } from "../asset/RefObject";
 import { Component } from "../Component";
 import { CloneManager } from "./CloneManager";
 import { CloneMode } from "./enums/CloneMode";
@@ -12,22 +11,33 @@ export class ComponentCloner {
    */
   static cloneComponent(source: Component, target: Component): void {
     const cloneModes = CloneManager.getCloneModeMode(source.constructor);
-    for (const k in source) {
+    const keys = Object.keys(source);
+    for (let i = 0, n = keys.length; i < n; i++) {
+      const k = keys[i];
       const cloneMode = cloneModes[k];
       switch (cloneMode) {
         case undefined:
-        case CloneMode.Shallow:
+        case CloneMode.Assignment:
           target[k] = source[k];
           break;
-        case CloneMode.Deep:
-          const sourceProp: Object = source[k];
-          if (sourceProp || sourceProp instanceof RefObject) {
+        case CloneMode.Shallow:
+          const sourcePropS: Object = source[k];
+          if (sourcePropS instanceof Object) {
             let tarProp = <Object>target[k];
-            tarProp || (tarProp = target[k] = sourceProp.constructor());
-            ComponentCloner.cloneComponentProp(sourceProp, tarProp);
+            tarProp == null && (tarProp = target[k] = sourcePropS.constructor());
+            Object.assign(tarProp, sourcePropS);
           } else {
-            // null or undefine and extends ReferenceObject
-            target[k] = sourceProp;
+            target[k] = sourcePropS; // null or undefine and primitive type.
+          }
+          break;
+        case CloneMode.Deep:
+          const sourcePropD: Object = source[k];
+          if (sourcePropD instanceof Object) {
+            let tarProp = <Object>target[k];
+            tarProp == null && (tarProp = target[k] = sourcePropD.constructor());
+            ComponentCloner._cloneComponentProp(sourcePropD, tarProp);
+          } else {
+            target[k] = sourcePropD; // null or undefine and primitive type.
           }
           break;
       }
@@ -39,24 +49,19 @@ export class ComponentCloner {
    * @param source - 克隆源
    * @param target - 克隆目标
    */
-  static cloneComponentProp(source: Object, target: Object): void {
+  private static _cloneComponentProp(source: Object, target: Object): void {
     const type = source.constructor;
     if (type === Object) {
-      for (const k in source) {
+      const keys = Object.keys(source);
+      for (let i = 0, n = keys.length; i < n; i++) {
+        const k = keys[i];
         const sourceItem = source[k];
-        const itemType = typeof sourceItem;
-        if (
-          sourceItem == null ||
-          sourceItem instanceof RefObject ||
-          itemType === "number" ||
-          itemType === "string" ||
-          itemType === "boolean"
-        ) {
-          target[k] = sourceItem;
+        if (sourceItem instanceof Object) {
+          let targetItem = <Object>target[k];
+          targetItem == null && (target[k] = targetItem = sourceItem.constructor());
+          ComponentCloner._cloneComponentProp(sourceItem, targetItem);
         } else {
-          let targetItem = target[k];
-          targetItem || (target[k] = targetItem = this.constructor());
-          ComponentCloner.cloneComponentProp(sourceItem, targetItem);
+          target[k] = sourceItem; // null or undefine and primitive type.
         }
       }
     } else if (type === Array) {
@@ -66,19 +71,12 @@ export class ComponentCloner {
       arrayTarget.length = length;
       for (let i = 0; i < length; i++) {
         const sourceItem = arraySource[i];
-        const itemType = typeof sourceItem;
-        if (
-          sourceItem == null ||
-          sourceItem instanceof RefObject ||
-          itemType === "number" ||
-          itemType === "string" ||
-          itemType === "boolean"
-        ) {
-          arrayTarget[i] = sourceItem;
+        if (sourceItem instanceof Object) {
+          let targetItem = <Object>arrayTarget[i];
+          targetItem == null && (arrayTarget[i] = targetItem = sourceItem.constructor());
+          ComponentCloner._cloneComponentProp(sourceItem, targetItem);
         } else {
-          let targetItem = arrayTarget[i];
-          targetItem || (arrayTarget[i] = targetItem = this.constructor());
-          ComponentCloner.cloneComponentProp(sourceItem, targetItem);
+          arrayTarget[i] = sourceItem; // null or undefine and primitive type.
         }
       }
     } else {
