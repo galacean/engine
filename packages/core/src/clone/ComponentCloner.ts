@@ -58,7 +58,7 @@ export class ComponentCloner {
         const sourceItem = source[k];
         if (sourceItem instanceof Object) {
           let targetItem = <Object>target[k];
-          targetItem || (target[k] = targetItem = this.constructor());
+          targetItem || (target[k] = targetItem = sourceItem.constructor());
           ComponentCloner.cloneComponentProp(sourceItem, targetItem);
         } else {
           target[k] = sourceItem; // null or undefine and primitive type.
@@ -73,7 +73,7 @@ export class ComponentCloner {
         const sourceItem = arraySource[i];
         if (sourceItem instanceof Object) {
           let targetItem = <Object>arrayTarget[i];
-          targetItem || (arrayTarget[i] = targetItem = this.constructor());
+          targetItem || (arrayTarget[i] = targetItem = sourceItem.constructor());
           ComponentCloner.cloneComponentProp(sourceItem, targetItem);
         } else {
           arrayTarget[i] = sourceItem; // null or undefine and primitive type.

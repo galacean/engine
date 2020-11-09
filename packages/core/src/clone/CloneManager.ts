@@ -74,8 +74,8 @@ export class CloneManager {
         const subCloneModes = cloneModeMap.get(type);
         if (subCloneModes) {
           Object.assign(cloneModes, subCloneModes);
-          type = Object.getPrototypeOf(type);
         }
+        type = Object.getPrototypeOf(type);
       }
     }
     return cloneModes;
