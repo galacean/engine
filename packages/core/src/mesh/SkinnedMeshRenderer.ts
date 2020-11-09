@@ -1,5 +1,5 @@
 import { Matrix } from "@oasis-engine/math";
-import { ignoreClone, shallowClone } from "../clone/CloneManager";
+import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { Texture2D } from "../texture/Texture2D";
@@ -26,7 +26,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _weights: number[];
   @ignoreClone
   private weightsIndices: number[] = [];
-  @shallowClone
+  @assignmentClone
   private _skin: Skin;
   @ignoreClone
   /** 当超过设备最大骨骼数时，自动使用骨骼纹理技术，该技术能提高骨骼上限，但是性能会下降 */
