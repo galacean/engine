@@ -11,7 +11,9 @@ export class ComponentCloner {
    */
   static cloneComponent(source: Component, target: Component): void {
     const cloneModes = CloneManager.getCloneModeMode(source.constructor);
-    for (const k in source) {
+    const keys = Object.keys(source);
+    for (let i = 0, n = keys.length; i < n; i++) {
+      const k = keys[i];
       const cloneMode = cloneModes[k];
       switch (cloneMode) {
         case undefined:
@@ -50,7 +52,9 @@ export class ComponentCloner {
   static cloneComponentProp(source: Object, target: Object): void {
     const type = source.constructor;
     if (type === Object) {
-      for (const k in source) {
+      const keys = Object.keys(source);
+      for (let i = 0, n = keys.length; i < n; i++) {
+        const k = keys[i];
         const sourceItem = source[k];
         if (sourceItem instanceof Object) {
           let targetItem = <Object>target[k];
