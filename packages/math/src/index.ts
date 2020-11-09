@@ -6,6 +6,7 @@ export { Matrix3x3 } from "./Matrix3x3";
 export { OBB } from "./OBB";
 export { Quaternion } from "./Quaternion";
 export { Ray } from "./Ray";
+export { RaycastHit } from "./RaycastHit";
 export { Spherical } from "./Spherical";
 export { Vector2 } from "./Vector2";
 export { Vector3 } from "./Vector3";

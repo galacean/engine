@@ -37,6 +37,9 @@ import { LightFeature, hasLight } from "./lighting/LightFeature";
 import { Scene } from "./Scene";
 Scene.registerFeature(LightFeature);
 (Scene.prototype as any).hasLight = hasLight;
+// 引用了 raycast
+import "./raycast";
+
 export { LightFeature };
 export { AmbientLight } from "./lighting/AmbientLight";
 export { DirectLight } from "./lighting/DirectLight";
