@@ -52,14 +52,12 @@ export class ComponentCloner {
     if (type === Object) {
       for (const k in source) {
         const sourceItem = source[k];
-        const itemType = typeof sourceItem;
-        if (sourceItem == null || itemType === "number" || itemType === "string" || itemType === "boolean") {
-          // todo: test "use instanceof Object" performace
-          target[k] = sourceItem;
-        } else {
+        if (sourceItem instanceof Object) {
           let targetItem = <Object>target[k];
           targetItem || (target[k] = targetItem = this.constructor());
           ComponentCloner.cloneComponentProp(sourceItem, targetItem);
+        } else {
+          target[k] = sourceItem; // null or undefine and value type.
         }
       }
     } else if (type === Array) {
@@ -69,14 +67,12 @@ export class ComponentCloner {
       arrayTarget.length = length;
       for (let i = 0; i < length; i++) {
         const sourceItem = arraySource[i];
-        const itemType = typeof sourceItem;
-        if (sourceItem == null || itemType === "number" || itemType === "string" || itemType === "boolean") {
-          // todo: test "use instanceof Object" performace
-          arrayTarget[i] = sourceItem;
-        } else {
+        if (sourceItem instanceof Object) {
           let targetItem = <Object>arrayTarget[i];
           targetItem || (arrayTarget[i] = targetItem = this.constructor());
           ComponentCloner.cloneComponentProp(sourceItem, targetItem);
+        } else {
+          arrayTarget[i] = sourceItem; // null or undefine and value type.
         }
       }
     } else {
