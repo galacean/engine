@@ -9,8 +9,6 @@ export function ignoreClone(target: Object, propertyKey: string): void {
 
 /**
  * 属性装饰器，克隆时对字段进行赋值克隆。
- *
- * @remarks
  * 如果是基本类型则会拷贝值，如果是引用类型则会拷贝其引用地址。
  */
 export function assignmentClone(target: Object, propertyKey: string): void {
