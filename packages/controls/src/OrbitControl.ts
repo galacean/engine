@@ -289,11 +289,17 @@ export class OrbitControl extends Script {
       }
     });
 
-    this.addEventListener("disabled", () => {
-      const element = this.domElement === document ? this.domElement.body : this.domElement;
-      this.mainElement.removeEventListener(this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false);
-      element.removeEventListener(this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false);
-    });
+    // this.addEventListener("disabled", () => {
+    //   const element = this.domElement === document ? this.domElement.body : this.domElement;
+    //   this.mainElement.removeEventListener(this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false);
+    //   element.removeEventListener(this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false);
+    // });
+  }
+
+  onDisable(): void {
+    const element = this.domElement === document ? this.domElement.body : this.domElement;
+    this.mainElement.removeEventListener(this.mouseUpEvents[0].type, this.mouseUpEvents[0].listener, false);
+    element.removeEventListener(this.mouseUpEvents[1].type, this.mouseUpEvents[1].listener, false);
   }
 
   /**
