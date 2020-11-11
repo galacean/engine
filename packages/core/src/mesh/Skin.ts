@@ -1,5 +1,5 @@
 import { Matrix } from "@oasis-engine/math";
-import { AssetObject } from "../asset/AssetObject";
+import { EngineObject } from "..";
 
 let skinID = 0;
 
@@ -7,7 +7,7 @@ let skinID = 0;
  * mesh skin data, equal glTF skins define
  * @class
  */
-export class Skin extends AssetObject {
+export class Skin extends EngineObject {
   public inverseBindMatrices: Matrix[];
   public joints: string[];
   public skeleton: string;

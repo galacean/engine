@@ -8,6 +8,7 @@
   },
   "types": "types/index.d.ts",
   "dependencies": {
+    "@oasis-engine/design": "0.1.0",
     "@oasis-engine/core": "0.1.0",
     "@oasis-engine/math": "0.1.0"
   }

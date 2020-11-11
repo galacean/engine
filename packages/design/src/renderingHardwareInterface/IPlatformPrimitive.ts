@@ -1,5 +1,3 @@
-import { SubPrimitive } from "../graphic/SubPrimitive";
-
 /**
  * 图元接口规范。
  */
@@ -9,7 +7,7 @@ export interface IPlatformPrimitive {
    * @param tech - 着色器
    * @param subPrimitive - 子图元
    */
-  draw(tech: any, subPrimitive: SubPrimitive): void;
+  draw(tech: any, subPrimitive: any): void;
 
   /**
    * 销毁。

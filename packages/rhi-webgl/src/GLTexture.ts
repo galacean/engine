@@ -1,21 +1,18 @@
-import { GLAsset } from "./GLAsset";
-import { WebGLRenderer } from "./WebGLRenderer";
 import { Texture } from "@oasis-engine/core";
+import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * 管理贴图对象
  * @class
  * @private
  */
-export class GLTexture extends GLAsset {
+export class GLTexture {
   protected _gl;
   private _glTexture: WebGLTexture;
   protected _config: Texture;
   protected _type;
 
   constructor(rhi: WebGLRenderer, config: Texture, type) {
-    super(rhi, config as any);
-
     this._gl = rhi.gl;
     this._glTexture = config._glTexture;
     this._config = config;

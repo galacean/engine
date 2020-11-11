@@ -1,5 +1,5 @@
-import { DataType, Logger, Material, RenderTechnique } from "@oasis-engine/core";
-import { GLAsset } from "./GLAsset";
+import { DataType, HardwareRenderer, Logger, Material, RenderTechnique } from "@oasis-engine/core";
+import { IPlatformTechnique } from "@oasis-engine/design";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLShaderProgram } from "./GLShaderProgram";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -8,9 +8,12 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * GL 层的 Technique 资源管理和渲染调用处理
  * @private
  */
-export class GLTechnique extends GLAsset {
-  readonly valid: boolean;
+export class GLTechnique implements IPlatformTechnique {
+  private static _cacheIDCounter = 0;
 
+  readonly valid: boolean;
+  readonly cacheID: number = ++GLTechnique._cacheIDCounter;
+  private rhi: HardwareRenderer;
   private _tech: RenderTechnique;
   private _activeTextureCount: number;
   private _program: GLShaderProgram;
@@ -19,7 +22,7 @@ export class GLTechnique extends GLAsset {
   private _tempSamplerArray: Int32Array;
 
   constructor(rhi: WebGLRenderer, tech: RenderTechnique) {
-    super(rhi, tech);
+    this.rhi = rhi;
     this._tech = tech;
     this._activeTextureCount = 0;
 
