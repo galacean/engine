@@ -28,6 +28,10 @@ export class Time {
     this._lastTickTime = now;
   }
 
+  reset() {
+    this._lastTickTime = this._clock.now();
+  }
+
   /**
    * 当前时间
    * @readonly
