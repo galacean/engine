@@ -29,7 +29,7 @@ export class AbilityManager {
       ability.enabled = enabled;
     }
 
-    if (type === "Model" || type === "GLTFModel") {
+    if (type === "Model" || type === "GLTFModel" || type === "Particle") {
       // TODO
       (ability as any).init(abilityProps);
     } else {
