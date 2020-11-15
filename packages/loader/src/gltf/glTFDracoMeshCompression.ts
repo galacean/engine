@@ -9,7 +9,7 @@ export const glTFDracoMeshCompression = {
       decoder = new DRACODecoder();
     }
   },
-  parse(extension, primitive, gltfPrimitive, gltf, buffers) {
+  parse(extension, gltfPrimitive, gltf, buffers) {
     const { bufferViews, accessors } = gltf;
     const bufferViewIndex = extension.bufferView;
     const gltfAttributeMap = extension.attributes;

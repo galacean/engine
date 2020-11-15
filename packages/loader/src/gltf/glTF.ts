@@ -572,29 +572,27 @@ export function parseMesh(gltfMesh, resources) {
         if (gltfPrimitive.extensions && gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression]) {
           const extensionParser = extensionParsers.KHR_draco_mesh_compression;
           const extension = gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression];
-          vertexPromise = extensionParser
-            .parse(extension, primitive, gltfPrimitive, gltf, buffers)
-            .then((decodedGeometry) => {
-              return parsePrimitiveVertex(
-                mesh,
-                primitive,
-                subPrimitive,
-                gltfPrimitive,
-                gltf,
-                (attributeSemantic) => {
-                  for (let i = 0; i < decodedGeometry.attributes.length; i++) {
-                    if (decodedGeometry.attributes[i].name === attributeSemantic) {
-                      return decodedGeometry.attributes[i].array;
-                    }
+          vertexPromise = extensionParser.parse(extension, gltfPrimitive, gltf, buffers).then((decodedGeometry) => {
+            return parsePrimitiveVertex(
+              mesh,
+              primitive,
+              subPrimitive,
+              gltfPrimitive,
+              gltf,
+              (attributeSemantic) => {
+                for (let i = 0; i < decodedGeometry.attributes.length; i++) {
+                  if (decodedGeometry.attributes[i].name === attributeSemantic) {
+                    return decodedGeometry.attributes[i].array;
                   }
-                  return null;
-                },
-                () => {
-                  return decodedGeometry.index.array;
-                },
-                resources.engine
-              );
-            });
+                }
+                return null;
+              },
+              () => {
+                return decodedGeometry.index.array;
+              },
+              resources.engine
+            );
+          });
         } else {
           vertexPromise = parsePrimitiveVertex(
             mesh,
