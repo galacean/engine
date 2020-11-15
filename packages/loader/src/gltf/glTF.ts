@@ -24,6 +24,7 @@ import {
   SkinnedMeshRenderer,
   SubPrimitive,
   Texture2D,
+  TypedArray,
   Util,
   VertexBufferBinding,
   VertexElement
@@ -442,8 +443,9 @@ function parsePrimitiveVertex(
   primitiveGroup: SubPrimitive,
   gltfPrimitive,
   gltf,
-  buffers,
-  resources
+  getVertexBufferData: (string) => TypedArray,
+  getIndexBufferData: () => TypedArray,
+  engine
 ) {
   // load vertices
   let i = 0;
@@ -455,13 +457,8 @@ function parsePrimitiveVertex(
     const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, i);
 
     vertexElements.push(vertexELement);
-    const bufferData = getAccessorData(gltf, accessor, buffers);
-    const vertexBuffer = new Buffer(
-      resources.engine,
-      BufferBindFlag.VertexBuffer,
-      bufferData.byteLength,
-      BufferUsage.Static
-    );
+    const bufferData = getVertexBufferData(attributeSemantic);
+    const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, bufferData.byteLength, BufferUsage.Static);
     vertexBuffer.setData(bufferData);
     primitive.setVertexBufferBinding(vertexBuffer, stride, i++);
 
@@ -482,17 +479,12 @@ function parsePrimitiveVertex(
 
   // load indices
   const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-  const indexData = getAccessorData(gltf, indexAccessor, buffers);
+  const indexData = getIndexBufferData();
 
   const indexCount = indexAccessor.count;
   const indexFormat = getIndexFormat(indexAccessor.componentType);
   const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
-  const indexBuffer = new Buffer(
-    resources.engine,
-    BufferBindFlag.IndexBuffer,
-    indexCount * indexByteSize,
-    BufferUsage.Static
-  );
+  const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indexCount * indexByteSize, BufferUsage.Static);
 
   indexBuffer.setData(indexData);
   primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
@@ -580,9 +572,47 @@ export function parseMesh(gltfMesh, resources) {
         if (gltfPrimitive.extensions && gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression]) {
           const extensionParser = extensionParsers.KHR_draco_mesh_compression;
           const extension = gltfPrimitive.extensions[HandledExtensions.KHR_draco_mesh_compression];
-          vertexPromise = extensionParser.parse(extension, primitive, gltfPrimitive, gltf, buffers);
+          vertexPromise = extensionParser
+            .parse(extension, primitive, gltfPrimitive, gltf, buffers)
+            .then((decodedGeometry) => {
+              return parsePrimitiveVertex(
+                mesh,
+                primitive,
+                subPrimitive,
+                gltfPrimitive,
+                gltf,
+                (attributeSemantic) => {
+                  for (let i = 0; i < decodedGeometry.attributes.length; i++) {
+                    if (decodedGeometry.attributes[i].name === attributeSemantic) {
+                      return decodedGeometry.attributes[i].array;
+                    }
+                  }
+                  return null;
+                },
+                () => {
+                  return decodedGeometry.index.array;
+                },
+                resources.engine
+              );
+            });
         } else {
-          vertexPromise = parsePrimitiveVertex(mesh, primitive, subPrimitive, gltfPrimitive, gltf, buffers, resources);
+          vertexPromise = parsePrimitiveVertex(
+            mesh,
+            primitive,
+            subPrimitive,
+            gltfPrimitive,
+            gltf,
+            (attributeSemantic) => {
+              const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
+              const accessor = gltf.accessors[accessorIdx];
+              return getAccessorData(gltf, accessor, buffers);
+            },
+            () => {
+              const indexAccessor = gltf.accessors[gltfPrimitive.indices];
+              return getAccessorData(gltf, indexAccessor, buffers);
+            },
+            resources.engine
+          );
         }
         vertexPromise
           .then((processedPrimitive) => {

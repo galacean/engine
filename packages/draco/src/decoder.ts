@@ -1,4 +1,4 @@
-import { Logger } from "@oasis-engine/core";
+import { Logger, request } from "@oasis-engine/core";
 
 import { DRACOWorker, ITaskConfig } from "./DRACOWorker";
 
@@ -32,27 +32,25 @@ export class DRACODecoder {
     if (this.loadLibPromise) {
       return this.loadLibPromise;
     }
-    const loadQueue = {};
+    const promiseQueue = [];
     if (this.useJS) {
-      loadQueue["js"] = { type: "text", props: { url: `${LIB_PATH}${JS_FILE}` } };
+      promiseQueue.push(request(`${LIB_PATH}${JS_FILE}`, { type: "text" }));
     } else {
-      loadQueue["wasm"] = { type: "binary", props: { url: `${LIB_PATH}${WASM_FILE}` } };
-      loadQueue["wrapper"] = { type: "text", props: { url: `${LIB_PATH}${WASM_WRAPPER_FILE}` } };
+      promiseQueue.push(request(`${LIB_PATH}${WASM_WRAPPER_FILE}`, { type: "text" }));
+      promiseQueue.push(request(`${LIB_PATH}${WASM_FILE}`, { type: "arraybuffer" }));
     }
-
     return new Promise((resolve, reject) => {
-      // TODO: 直接使用Promise.all 和 新版加载函数
-      // loadAll(loadQueue, (err, res) => {
-      //   if (err) {
-      //     reject(err);
-      //     return;
-      //   }
-      //   const workerStrings = [this.useJS ? res["js"] : res["wrapper"], workerString];
-      //   const body = workerStrings.join("\n");
-      //   const workerSourceURL = URL.createObjectURL(new Blob([body]));
-      //   let decoderWASMBinary = this.useJS ? null : res["wasm"];
-      //   resolve({ workerSourceURL, decoderWASMBinary });
-      // });
+      Promise.all(promiseQueue)
+        .then((resources) => {
+          const workerStrings = [resources[0], workerString];
+          const body = workerStrings.join("\n");
+          const workerSourceURL = URL.createObjectURL(new Blob([body]));
+          let decoderWASMBinary = this.useJS ? null : resources[1];
+          resolve({ workerSourceURL, decoderWASMBinary });
+        })
+        .catch((reason) => {
+          reject(reason);
+        });
     });
   }
 
