@@ -32,25 +32,33 @@ export class DRACODecoder {
     if (this.loadLibPromise) {
       return this.loadLibPromise;
     }
-    const promiseQueue = [];
-    if (this.useJS) {
-      promiseQueue.push(request(`${LIB_PATH}${JS_FILE}`, { type: "text" }));
-    } else {
-      promiseQueue.push(request(`${LIB_PATH}${WASM_WRAPPER_FILE}`, { type: "text" }));
-      promiseQueue.push(request(`${LIB_PATH}${WASM_FILE}`, { type: "arraybuffer" }));
-    }
+
     return new Promise((resolve, reject) => {
-      Promise.all(promiseQueue)
-        .then((resources) => {
-          const workerStrings = [resources[0], workerString];
-          const body = workerStrings.join("\n");
-          const workerSourceURL = URL.createObjectURL(new Blob([body]));
-          let decoderWASMBinary = this.useJS ? null : resources[1];
-          resolve({ workerSourceURL, decoderWASMBinary });
-        })
-        .catch((reason) => {
-          reject(reason);
-        });
+      if (this.useJS) {
+        request(`${LIB_PATH}${JS_FILE}`, { type: "text" })
+          .then((jsSource) => {
+            const body = [jsSource, workerString].join("\n");
+            const workerSourceURL = URL.createObjectURL(new Blob([body]));
+            resolve({ workerSourceURL, decoderWASMBinary: null });
+          })
+          .catch((reason) => {
+            reject(reason);
+          });
+      } else {
+        Promise.all([
+          request(`${LIB_PATH}${WASM_WRAPPER_FILE}`, { type: "text" }),
+          request(`${LIB_PATH}${WASM_FILE}`, { type: "arraybuffer" })
+        ])
+          .then((resources) => {
+            const [wrapperSource, decoderWASMBinary] = resources;
+            const body = [wrapperSource, workerString].join("\n");
+            const workerSourceURL = URL.createObjectURL(new Blob([body]));
+            resolve({ workerSourceURL, decoderWASMBinary });
+          })
+          .catch((reason) => {
+            reject(reason);
+          });
+      }
     });
   }
 
