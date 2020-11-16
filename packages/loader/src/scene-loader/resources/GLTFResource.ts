@@ -1,4 +1,4 @@
-import { AssetType, Logger, ResourceManager } from "@oasis-engine/core";
+import { AssetType, Logger, ResourceManager, MeshRenderer } from "@oasis-engine/core";
 import { Oasis } from "../Oasis";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { PBRMaterialResource } from "./PBRMaterialResource";
@@ -101,46 +101,37 @@ export class GLTFResource extends SchemaResource {
     }
     const gltf = this._resource;
     const meshes = gltf.meshes;
-    // 兼容material克隆时期生成的schema
-    // 通过schema中material数量和gltf中materials数量比较
-    // 如果不相等说明是老版本，虽然不准确
-    if (materials.length !== gltf.materials.length) {
-      for (let i = 0; i < materials.length; i++) {
-        const matResource = this.resourceManager.get(materials[i].id);
-        if (matResource) {
-          gltf.materials[i] = this.resourceManager.get(materials[i].id).resource;
-        }
+
+    for (let i = 0; i < materials.length; i++) {
+      const mtlResource = this.resourceManager.get(materials[i].id);
+      if (mtlResource) {
+        this._attachedResources.push(mtlResource);
+        gltf.materials[i] = mtlResource.resource;
+      } else {
+        Logger.warn(`GLTFResource: ${this.meta.name} can't find asset "material", which id is: ${materials[i].id}`);
       }
-      let index = 0;
-      for (let i = 0; i < meshes.length; i++) {
-        for (let j = 0; j < meshes[i].primitives.length; j++) {
-          const attachedResource = this.resourceManager.get(materials[index].id);
-          if (attachedResource) {
-            this._attachedResources.push(attachedResource);
-            meshes[i].primitives[j].material = attachedResource.resource;
-          }
-          index++;
-        }
-      }
-    } else {
-      for (let i = 0; i < materials.length; i++) {
-        const mtlResource = this.resourceManager.get(materials[i].id);
-        if (mtlResource) {
-          this._attachedResources.push(mtlResource);
-          gltf.materials[i] = mtlResource.resource;
-        } else {
-          Logger.warn(`GLTFResource: ${this.meta.name} can't find asset "material", which id is: ${materials[i].id}`);
-        }
-      }
-      for (let j = 0; j < meshes.length; j++) {
+    }
+    for (let j = 0; j < meshes.length; j++) {
+      const node = this.getNodeByMeshIndex(gltf.nodes, meshes.length - 1 - j);
+      if (node) {
         for (let k = 0; k < meshes[j].primitives.length; k++) {
-          if (meshes[j].primitives[k].materialIndex !== undefined) {
-            // 因为gltf模型中的materials是倒叙遍历的，所以这里要这么写
-            const index = gltf.materials.length - 1 - meshes[j].primitives[k].materialIndex;
-            meshes[j].primitives[k].material = gltf.materials[index];
+          const primitive = meshes[j].primitives[k];
+          const meshRenderer = node.getComponent(MeshRenderer);
+          if (meshRenderer) {
+            meshRenderer.setSharedMaterial(k, gltf.materials[gltf.materials.length - 1 - primitive.materialIndex]);
           }
         }
       }
     }
+  }
+
+  private getNodeByMeshIndex(nodes, index) {
+    for (let i = 0; i <= nodes.length; i++) {
+      const node = nodes[i];
+      if (node.meshIndex === index) {
+        return node;
+      }
+    }
+    return null;
   }
 }

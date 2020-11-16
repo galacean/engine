@@ -829,6 +829,7 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
     // link mesh
     if (gltfNode.hasOwnProperty("mesh")) {
       const meshIndex = gltfNode.mesh;
+      node.meshIndex = meshIndex;
       const gltfMeshPrimitives = gltfMeshes[meshIndex].primitives;
       const mesh = getItemByIdx("meshes", meshIndex, resources);
 
@@ -847,6 +848,7 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
       }
       for (let j = 0, m = gltfMeshPrimitives.length; j < m; j++) {
         const materialIndex = gltfMeshPrimitives[j].material;
+        mesh.primitives[j].materialIndex = materialIndex;
         const material =
           materialIndex !== undefined
             ? getItemByIdx("materials", materialIndex, resources)
