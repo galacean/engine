@@ -9,6 +9,10 @@
   "browser": "dist/browser.js",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
   "dependencies": {
     "@oasis-engine/tween": "0.1.0",
     "oasis-engine": "0.1.0"

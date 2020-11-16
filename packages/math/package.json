@@ -7,6 +7,10 @@
   "scripts": {
     "b:types": "tsc"
   },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
   "devDependencies": {
     "@oasis-engine/design": "0.1.0"
   }

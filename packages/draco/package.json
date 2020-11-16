@@ -7,6 +7,10 @@
   "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
   "dependencies": {
     "@oasis-engine/core": "0.1.0"
   }

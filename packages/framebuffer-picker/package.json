@@ -8,6 +8,10 @@
     "b:types": "tsc"
   },
   "types": "types/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
   "dependencies": {
     "oasis-engine": "0.1.0"
   }

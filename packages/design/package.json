@@ -2,9 +2,13 @@
   "name": "@oasis-engine/design",
   "version": "0.1.0",
   "main": "dist/main.js",
-  "module": "dist/module.js",  
+  "module": "dist/module.js",
   "scripts": {
     "b:types": "tsc"
   },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
   "types": "types/index.d.ts"
 }

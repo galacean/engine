@@ -7,11 +7,14 @@
   "scripts": {
     "b:types": "tsc"
   },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
   "dependencies": {
     "@oasis-engine/math": "0.1.0"
   },
   "devDependencies": {
     "@oasis-engine/design": "0.1.0"
   }
-  
 }

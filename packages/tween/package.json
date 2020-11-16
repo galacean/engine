@@ -4,6 +4,10 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "browser": "dist/browser.min.js",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
   "scripts": {
     "b:types": "tsc"
   },
