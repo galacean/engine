@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/loader",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc"
@@ -12,9 +12,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.1.1",
-    "@oasis-engine/draco": "0.1.1",
-    "@oasis-engine/math": "0.1.1",
-    "@oasis-engine/rhi-webgl": "0.1.1"
+    "@oasis-engine/core": "0.1.2",
+    "@oasis-engine/draco": "0.1.2",
+    "@oasis-engine/math": "0.1.2",
+    "@oasis-engine/rhi-webgl": "0.1.2"
   }
 }
