@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/stats",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "scripts": {
     "b:types": "tsc"
   },
@@ -13,6 +13,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.1.0"
+    "@oasis-engine/core": "0.1.1"
   }
 }
