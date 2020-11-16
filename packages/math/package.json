@@ -1,13 +1,17 @@
 {
   "name": "@oasis-engine/math",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc"
   },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
   "devDependencies": {
-    "@oasis-engine/design": "0.1.0"
+    "@oasis-engine/design": "0.1.1"
   }
 }
