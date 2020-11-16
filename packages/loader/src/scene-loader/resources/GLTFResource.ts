@@ -3,7 +3,7 @@ import { Oasis } from "../Oasis";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { PBRMaterialResource } from "./PBRMaterialResource";
 import { SchemaResource } from "./SchemaResource";
-import { glTFDracoMeshCompression } from "../../GLTF/glTFDracoMeshCompression";
+import { glTFDracoMeshCompression } from "../../gltf/glTFDracoMeshCompression";
 
 export class GLTFResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<any> {
