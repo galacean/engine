@@ -3,9 +3,13 @@ import { Oasis } from "../Oasis";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { PBRMaterialResource } from "./PBRMaterialResource";
 import { SchemaResource } from "./SchemaResource";
+import { glTFDracoMeshCompression } from "../../gltf/glTFDracoMeshCompression";
 
 export class GLTFResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<any> {
+    if (!!assetConfig.props?.compression) {
+      glTFDracoMeshCompression.init();
+    }
     return resourceManager
       .load<any>({ url: assetConfig.url, type: AssetType.Perfab })
       .then((res) => {
