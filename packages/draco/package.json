@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/draco",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "scripts": {
     "b:types": "tsc"
   },
@@ -12,6 +12,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.1.3"
+    "@oasis-engine/core": "0.1.4"
   }
 }
