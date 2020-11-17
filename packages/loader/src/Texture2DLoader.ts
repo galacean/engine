@@ -8,7 +8,7 @@ import {
   Texture2D
 } from "@oasis-engine/core";
 
-@resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jepg"])
+@resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
