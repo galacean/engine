@@ -162,7 +162,7 @@ export class CollisionDetection extends Script {
   /**
    * 在 start 事件时，查找其他组件并记录下来
    */
-  _onAwake() {
+  onAwake() {
     this._colliderManager = this.scene.findFeature(ColliderFeature);
     this._myCollider = this.entity.getComponent(ACollider);
   }

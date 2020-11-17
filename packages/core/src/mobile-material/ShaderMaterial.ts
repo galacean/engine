@@ -1,4 +1,5 @@
 import { BlendFunc, DataType, RenderState, UniformSemantic } from "../base/Constant";
+import { Engine } from "../Engine";
 import { Material } from "../material/Material";
 import { RenderTechnique } from "../material/RenderTechnique";
 import { TechniqueStates } from "../material/type";
@@ -30,8 +31,8 @@ export class ShaderMaterial extends Material {
     blendFunc: [BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA]
   };
 
-  constructor(name) {
-    super(name);
+  constructor(engine: Engine, name) {
+    super(engine, name);
   }
 
   // 开始渲染指定对象
