@@ -7,7 +7,7 @@
   "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
-  "browser": "dist/browser.js",
+  "browser": "dist/browser.min.js",
   "files": [
     "dist/**/*",
     "types/**/*"
