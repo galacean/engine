@@ -1,7 +1,7 @@
 import { Matrix, Matrix3x3 } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
 import { MaterialType, UniformSemantic } from "../base/Constant";
-import { Util } from "../base/Util";
+import { ObjectValues, Util } from "../base/Util";
 import { Engine } from "../Engine";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Texture } from "../texture/Texture";
@@ -343,7 +343,7 @@ export class Material extends RefObject {
    */
   _onDestroy() {
     // TODO: 待材质重构
-    const values = Object.values(this._values);
+    const values = ObjectValues(this._values);
     for (let i = 0, len = values.length; i < len; i++) {
       const value = values[i];
       if (value instanceof Texture) {
