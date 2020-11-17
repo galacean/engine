@@ -1,6 +1,6 @@
 import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
-import { HardwareRenderer } from "../HardwareRenderer";
+import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
 import { BufferUtil } from "./BufferUtil";
 import { BufferBindFlag } from "./enums/BufferBindFlag";
 import { BufferUsage } from "./enums/BufferUsage";
@@ -14,7 +14,7 @@ export class Buffer extends RefObject {
   _glBufferUsage: number;
   _nativeBuffer: WebGLBuffer;
 
-  private _hardwareRenderer: HardwareRenderer;
+  private _hardwareRenderer: IHardwareRenderer;
   private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;

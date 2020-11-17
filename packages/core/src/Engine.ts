@@ -5,7 +5,7 @@ import { ComponentsManager } from "./ComponentsManager";
 import { EngineFeature } from "./EngineFeature";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
-import { HardwareRenderer } from "./HardwareRenderer";
+import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
@@ -18,7 +18,7 @@ const engineFeatureManager = new FeatureManager<EngineFeature>();
  */
 export class Engine extends EventDispatcher {
   _componentsManager: ComponentsManager = new ComponentsManager();
-  _hardwareRenderer: HardwareRenderer;
+  _hardwareRenderer: IHardwareRenderer;
 
   protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
@@ -109,7 +109,7 @@ export class Engine extends EventDispatcher {
    * @deprecated
    * 图形API渲染器。
    */
-  get renderhardware(): HardwareRenderer {
+  get renderhardware(): IHardwareRenderer {
     return this._hardwareRenderer;
   }
 
@@ -118,7 +118,7 @@ export class Engine extends EventDispatcher {
    * @param canvas - 渲染画布
    * @param hardwareRenderer - 渲染器
    */
-  constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);

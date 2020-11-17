@@ -3,11 +3,11 @@ import {
   Canvas,
   ClearMode,
   GLCapabilityType,
-  HardwareRenderer,
+  IHardwareRenderer,
+  IPlatformPrimitive,
   Logger,
   Primitive,
-  RenderTarget,
-  IPlatformPrimitive
+  RenderTarget
 } from "@oasis-engine/core";
 import { Vector4 } from "@oasis-engine/math";
 import { GLAssetsCache } from "./GLAssetsCache";
@@ -43,7 +43,7 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
 /**
  * WebGL渲染器实现，包含了WebGL1.0/和WebGL2.0。
  */
-export class WebGLRenderer implements HardwareRenderer {
+export class WebGLRenderer implements IHardwareRenderer {
   private _options: WebGLRendererOptions;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
