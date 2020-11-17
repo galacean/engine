@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/framebuffer-picker",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "browser": "dist/browser.js",
@@ -13,6 +13,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "oasis-engine": "0.1.4"
+    "oasis-engine": "0.1.5"
   }
 }
