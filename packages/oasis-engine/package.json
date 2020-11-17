@@ -1,21 +1,21 @@
 {
   "name": "oasis-engine",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "scripts": {
     "b:types": "tsc"
   },
   "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
-  "browser": "dist/browser.min.js",
+  "browser": "dist/browser.js",
   "files": [
     "dist/**/*",
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.1.2",
-    "@oasis-engine/loader": "0.1.2",
-    "@oasis-engine/math": "0.1.2",
-    "@oasis-engine/rhi-webgl": "0.1.2"
+    "@oasis-engine/core": "0.1.3",
+    "@oasis-engine/loader": "0.1.3",
+    "@oasis-engine/math": "0.1.3",
+    "@oasis-engine/rhi-webgl": "0.1.3"
   }
 }
