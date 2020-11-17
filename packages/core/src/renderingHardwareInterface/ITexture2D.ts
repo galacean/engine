@@ -1,15 +1,9 @@
-import { TextureFormat } from "../texture";
 import { ITexture } from "./ITexture";
 
 /**
  * 2D纹理接口规范。
  */
 export interface ITexture2D extends ITexture {
-  /**
-   * 2D纹理的格式。
-   */
-  format: TextureFormat;
-
   /**
    * 通过颜色缓冲数据、指定区域和纹理层级设置像素，同样适用于压缩格式。
    * @remarks 如果为WebGL1.0平台且纹理格式为压缩格式，第一次上传必须填满纹理。

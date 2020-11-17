@@ -1,19 +1,9 @@
-import { TextureWrapMode, TextureFilterMode } from "../texture";
+import { TextureFilterMode, TextureWrapMode } from "../texture";
 
 /**
  * 纹理接口规范。
  */
 export interface ITexture {
-  /**
-   * 纹理宽。
-   */
-  width: number;
-
-  /**
-   * 纹理高。
-   */
-  height: number;
-
   /**
    * 纹理坐标 U 的循环模式。
    */
@@ -28,11 +18,6 @@ export interface ITexture {
    * 纹理的过滤模式。
    */
   filterMode: TextureFilterMode;
-
-  /**
-   * 多级纹理的数量。
-   */
-  mipmapCount: number;
 
   /**
    * 各向异性过滤等级。

@@ -1,15 +1,10 @@
-import { TextureCubeFace, TextureFormat } from "../texture";
+import { TextureCubeFace } from "../texture";
 import { ITexture } from "./ITexture";
 
 /**
  * 立方体纹理接口规范。
  */
 export interface ITextureCubeMap extends ITexture {
-  /**
-   * 立方体纹理的格式。
-   */
-  format: TextureFormat;
-
   /**
    * 通过指定立方体面、像素缓冲数据、区域和纹理层级设置像素，同样适用于压缩格式。
    * 压缩纹理在 WebGL1 时必须先填满纹理，才能写子区域

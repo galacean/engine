@@ -1,20 +1,10 @@
-import { RenderBufferColorFormat, TextureCubeFace } from "../texture";
+import { TextureCubeFace } from "../texture";
 import { ITexture } from "./ITexture";
 
 /**
  * 渲染颜色纹理接口规范。
  */
 export interface IRenderColorTexture extends ITexture {
-  /**
-   * 渲染颜色纹理的格式。
-   */
-  format: RenderBufferColorFormat;
-
-  /**
-   * 是否自动生成多级纹理。
-   */
-  autoGenerateMipmaps: boolean;
-
   /**
    * 根据立方体面和指定区域获得颜色像素缓冲。
    * @param face - 如果是立方体纹理，可以选择读取第几个面;立方体纹理读取面，isCube=true时生效
