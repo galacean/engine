@@ -14,7 +14,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/tween": "0.1.9",
     "oasis-engine": "0.1.9"
   }
 }
