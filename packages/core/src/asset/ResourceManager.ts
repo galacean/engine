@@ -4,6 +4,7 @@ import { RefObject } from "./RefObject";
 import { Engine } from "..";
 import { Loader } from "./Loader";
 import { AssetType } from "./AssetType";
+import { ObjectValues } from "../base/Util";
 
 /**
  * 资源管理员。
@@ -107,7 +108,7 @@ export class ResourceManager {
 
   cancelNotLoaded(url?: string | string[]): void {
     if (!url) {
-      Object.values(this._loadingPromises).forEach((promise) => {
+      ObjectValues(this._loadingPromises).forEach((promise) => {
         promise.cancel();
       });
     } else if (typeof url === "string") {
@@ -124,7 +125,7 @@ export class ResourceManager {
    * @remarks 释放原则为没有被组件实例引用，包含直接引用和间接引用。
    */
   gc(): void {
-    const objects = Object.values(this._refObjectPool);
+    const objects = ObjectValues(this._refObjectPool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored) {
         objects[i].destroy();

@@ -21,8 +21,9 @@ const pkgs = fs
     return { location: location, pkgJson: require(path.resolve(location, "package.json")) };
   });
 
+// "oasisEngine" 、 "@oasisEngine/controls" ...
 function toGlobalName(pkgName) {
-  return camelCase(pkgName.replace("@alipay/", ""));
+  return camelCase(pkgName); 
 }
 
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
@@ -57,6 +58,11 @@ function config({location, pkgJson}) {
 
       const globalName = toGlobalName(pkgJson.name);
 
+      const globals = {};
+      external.forEach(pkgName =>{
+        globals[pkgName]=  toGlobalName(pkgName)
+      })
+      
       return {
         input,
         external: name === "oasis-engine" ? {} : external,
@@ -66,9 +72,7 @@ function config({location, pkgJson}) {
             name: globalName,
             format: "umd",
             sourcemap: false,
-            globals: {
-              "oasis-engine": "o3"
-            }
+            globals
           }
         ],
         plugins

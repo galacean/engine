@@ -151,6 +151,7 @@ export class Engine extends EventDispatcher {
   resume(): void {
     if (!this._isPaused) return;
     this._isPaused = false;
+    this.time.reset();
     requestAnimationFrame(this._animate);
   }
 
