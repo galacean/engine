@@ -1,4 +1,4 @@
-import { Engine } from "@oasis-engine/core";
+import { Engine } from "oasis-engine";
 import { Stats } from "./Stats";
 
 Engine.registerFeature(Stats);

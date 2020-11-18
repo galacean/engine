@@ -13,6 +13,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.1.10"
+    "oasis-engine": "0.1.10"
   }
 }

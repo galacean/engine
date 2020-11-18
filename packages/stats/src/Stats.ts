@@ -1,4 +1,4 @@
-import { EngineFeature, Engine, Scene } from "@oasis-engine/core";
+import { EngineFeature, Engine, Scene } from "oasis-engine";
 import Monitor from "./Monitor";
 
 /**
