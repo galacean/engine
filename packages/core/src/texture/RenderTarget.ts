@@ -173,6 +173,7 @@ export class RenderTarget extends EngineObject {
     this._platformRenderTarget = null;
     this._colorTextures.length = 0;
     this._depthTexture = null;
+    this._depth = null;
   }
 
   /**
