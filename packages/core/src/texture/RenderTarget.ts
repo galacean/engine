@@ -179,8 +179,8 @@ export class RenderTarget extends EngineObject {
    * 设置渲染到立方体纹理的哪个面
    * @param faceIndex - 立方体纹理面
    */
-  public _setRenderTargetFace(faceIndex: TextureCubeFace): void {
-    this._platformRenderTarget._setRenderTargetFace(faceIndex);
+  setRenderTargetFace(faceIndex: TextureCubeFace): void {
+    this._platformRenderTarget.setRenderTargetFace(faceIndex);
   }
 
   /**

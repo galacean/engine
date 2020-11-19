@@ -352,7 +352,7 @@ export class WebGLRenderer implements IHardwareRenderer {
    * */
   setRenderTargetFace(renderTarget: RenderTarget, faceIndex: number) {
     if (renderTarget) {
-      renderTarget._setRenderTargetFace(faceIndex);
+      renderTarget.setRenderTargetFace(faceIndex);
     }
   }
 

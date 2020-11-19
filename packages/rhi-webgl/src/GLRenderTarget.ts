@@ -83,26 +83,10 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   }
 
   /**
-   * @internal
-   * 激活 RenderTarget 对象
-   * 如果开启 MSAA,则激活 MSAA FBO,后续进行 this._blitRenderTarget() 进行交换 FBO
-   * 如果未开启 MSAA,则激活主 FBO
-   */
-  _activeRenderTarget(): void {
-    const gl = this._gl;
-
-    if (this._MSAAFrameBuffer) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
-    } else {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
-    }
-  }
-
-  /**
    * 设置渲染到立方体纹理的哪个面
    * @param faceIndex - 立方体纹理面
    */
-  public _setRenderTargetFace(faceIndex: TextureCubeFace): void {
+  setRenderTargetFace(faceIndex: TextureCubeFace): void {
     const gl = this._gl;
     const colorTexture = this._target._colorTextures[0];
     const depthTexture = this._target.depthTexture;
@@ -133,6 +117,22 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     // 还原当前激活的 FBO
     this._activeRenderTarget();
+  }
+
+  /**
+   * @internal
+   * 激活 RenderTarget 对象
+   * 如果开启 MSAA,则激活 MSAA FBO,后续进行 this._blitRenderTarget() 进行交换 FBO
+   * 如果未开启 MSAA,则激活主 FBO
+   */
+  _activeRenderTarget(): void {
+    const gl = this._gl;
+
+    if (this._MSAAFrameBuffer) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+    } else {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+    }
   }
 
   /**
@@ -202,7 +202,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
       drawBuffers[i] = attachment;
 
-      // 立方体纹理请调用 _setRenderTargetFace()
+      // 立方体纹理请调用 setRenderTargetFace()
       if (!colorTexture._isCube) {
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
@@ -222,7 +222,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     /** depth render buffer */
     if (_depth !== null) {
       if (_depth instanceof RenderDepthTexture) {
-        // 立方体纹理请调用 _setRenderTargetFace()
+        // 立方体纹理请调用 setRenderTargetFace()
         if (!_depth._isCube) {
           gl.framebufferTexture2D(
             gl.FRAMEBUFFER,

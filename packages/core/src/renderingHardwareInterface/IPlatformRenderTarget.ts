@@ -8,7 +8,7 @@ export interface IPlatformRenderTarget {
    * 设置渲染到立方体纹理的哪个面
    * @param faceIndex - 立方体纹理面
    */
-  _setRenderTargetFace(faceIndex: TextureCubeFace): void;
+  setRenderTargetFace(faceIndex: TextureCubeFace): void;
 
   /**
    * Blit FBO.
