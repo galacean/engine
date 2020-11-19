@@ -14,9 +14,7 @@ export class RenderColorTexture extends Texture {
   _format: RenderBufferColorFormat;
   _platformTexture: IPlatformRenderColorTexture;
 
-  /**
-   * @internal
-   */
+  /** @internal */
   private _autoMipmap: boolean = false;
 
   /**

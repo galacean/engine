@@ -13,9 +13,7 @@ export class RenderDepthTexture extends Texture {
   _format: RenderBufferDepthFormat;
   _platformTexture: IPlatformRenderDepthTexture;
 
-  /**
-   * @internal
-   */
+  /** @internal */
   private _autoMipmap: boolean = false;
 
   /**
