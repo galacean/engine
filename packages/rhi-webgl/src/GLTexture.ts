@@ -1,6 +1,5 @@
 import {
   GLCapabilityType,
-  GLCompressedTextureInternalFormat,
   IPlatformTexture,
   Logger,
   RenderBufferColorFormat,
@@ -11,7 +10,7 @@ import {
   TextureFormat,
   TextureWrapMode
 } from "@oasis-engine/core";
-import { TextureFormatDetail } from "./type";
+import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
 
 export class GLTexture implements IPlatformTexture {
