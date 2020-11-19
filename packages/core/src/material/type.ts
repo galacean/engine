@@ -39,14 +39,6 @@ export interface Uniforms {
   };
 }
 
-export interface TextureFormatDetail {
-  internalFormat: GLint;
-  baseFormat?: GLenum;
-  dataType?: GLenum;
-  isCompressed: boolean;
-  attachment?: GLenum;
-}
-
 /**
  * @deprecated
  */

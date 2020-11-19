@@ -9,9 +9,9 @@ import {
   TextureCubeFace,
   TextureFilterMode,
   TextureFormat,
-  TextureFormatDetail,
   TextureWrapMode
 } from "@oasis-engine/core";
+import { TextureFormatDetail } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
 
 export class GLTexture implements IPlatformTexture {

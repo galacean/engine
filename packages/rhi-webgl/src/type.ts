@@ -42,3 +42,11 @@ export interface WebGLExtension {
   vertexAttribDivisor(index: GLuint, divisor: GLuint): void;
   drawBuffers(buffers: Iterable<GLenum>): void;
 }
+
+export interface TextureFormatDetail {
+  internalFormat: GLint;
+  baseFormat?: GLenum;
+  dataType?: GLenum;
+  isCompressed: boolean;
+  attachment?: GLenum;
+}
