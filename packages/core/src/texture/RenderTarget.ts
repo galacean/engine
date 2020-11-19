@@ -170,7 +170,6 @@ export class RenderTarget extends EngineObject {
    */
   destroy() {
     this._platformRenderTarget.destroy();
-    this._platformRenderTarget = null;
     this._colorTextures.length = 0;
     this._depthTexture = null;
     this._depth = null;

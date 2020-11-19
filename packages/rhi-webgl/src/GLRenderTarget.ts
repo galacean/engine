@@ -166,7 +166,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   public destroy(): void {
     const gl = this._gl;
 
-    gl.deleteFramebuffer(this._frameBuffer);
+    this._frameBuffer && gl.deleteFramebuffer(this._frameBuffer);
     this._depthRenderBuffer && gl.deleteRenderbuffer(this._depthRenderBuffer);
     this._MSAAFrameBuffer && gl.deleteFramebuffer(this._MSAAFrameBuffer);
     this._MSAADepthRenderBuffer && gl.deleteRenderbuffer(this._MSAADepthRenderBuffer);
