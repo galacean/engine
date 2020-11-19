@@ -208,11 +208,9 @@ export abstract class Probe extends Component {
   /**
    * 销毁 probe 以及 renderPass
    */
-  public destroy(): void {
+  _onDestroy(): void {
     this.enabled = false;
     this.renderPipeline.removeRenderPass(this.renderPass);
-
-    super.destroy();
 
     // todo:delete
     this.renderTarget.destroy();
