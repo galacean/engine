@@ -1,7 +1,8 @@
-import { DataType, Logger, Material, RenderTechnique } from "@oasis-engine/core";
+import { DataType, Logger, Material, RenderTechnique, Texture } from "@oasis-engine/core";
 import { GLAsset } from "./GLAsset";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLShaderProgram } from "./GLShaderProgram";
+import { GLTexture } from "./GLTexture";
 import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
@@ -272,12 +273,14 @@ export class GLTechnique extends GLAsset {
    * 将一个内存中的 Texture2D 对象绑定到 GL
    * @param {Texture} texture
    */
-  _uploadTexture(texture, location) {
+  _uploadTexture(texture: Texture, location) {
     if (texture) {
       const gl = this.rhi.gl;
       const index = this._activeTextureCount++;
+      const { _target, _glTexture } = texture._platformTexture as GLTexture;
+
       gl.activeTexture(gl.TEXTURE0 + index);
-      gl.bindTexture(texture._target, texture._glTexture);
+      gl.bindTexture(_target, _glTexture);
       gl.uniform1i(location, index);
     } // end of if
   }
@@ -285,7 +288,7 @@ export class GLTechnique extends GLAsset {
   /**
    * 将一堆内存中的 Texture2D 对象绑定到 GL
    */
-  _uploadTextures(textures, location) {
+  _uploadTextures(textures: Texture[], location) {
     if (!this._tempSamplerArray || this._tempSamplerArray.length !== textures.length) {
       this._tempSamplerArray = new Int32Array(textures.length);
     }
@@ -295,8 +298,10 @@ export class GLTechnique extends GLAsset {
       const texture = textures[i];
       if (texture) {
         const index = this._activeTextureCount++;
+        const { _target, _glTexture } = texture._platformTexture as GLTexture;
+
         gl.activeTexture(gl.TEXTURE0 + index);
-        gl.bindTexture(texture._target, texture._glTexture);
+        gl.bindTexture(_target, _glTexture);
         this._tempSamplerArray[i] = index;
       } else {
         this._tempSamplerArray[i] = -1;

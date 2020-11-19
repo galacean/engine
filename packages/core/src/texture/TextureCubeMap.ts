@@ -1,5 +1,5 @@
-import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
+import { IPlatformTextureCubeMap } from "../renderingHardwareInterface";
 import { TextureCubeFace } from "./enums/TextureCubeFace";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
@@ -11,9 +11,8 @@ import { Texture } from "./Texture";
  * @todo 日后调整为TextureCube命名
  */
 export class TextureCubeMap extends Texture {
-  private _format: TextureFormat;
-  /** 向下兼容 WebGL1.0 */
-  private _compressedFaceFilled: number[] = [0, 0, 0, 0, 0, 0];
+  _format: TextureFormat;
+  _platformTexture: IPlatformTextureCubeMap;
 
   /**
    * 纹理的格式。
@@ -31,34 +30,14 @@ export class TextureCubeMap extends Texture {
    */
   constructor(engine: Engine, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {
     super(engine);
-    const rhi = engine._hardwareRenderer;
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
-    const isWebGL2: boolean = rhi.isWebGL2;
 
-    if (!Texture._supportTextureFormat(format, rhi)) {
-      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
-    }
-
-    if (mipmap && !isWebGL2 && !Texture._isPowerOf2(size)) {
-      Logger.warn(
-        "non-power-2 texture is not supported for mipmap in WebGL1,and has automatically downgraded to non-mipmap"
-      );
-      mipmap = false;
-    }
-
-    const formatDetail = Texture._getFormatDetail(format, gl, isWebGL2);
-
-    this._glTexture = gl.createTexture();
-    this._formatDetail = formatDetail;
-    this._rhi = rhi;
-    this._target = gl.TEXTURE_CUBE_MAP;
     this._mipmap = mipmap;
     this._width = size;
     this._height = size;
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
-    (formatDetail.isCompressed && !isWebGL2) || this._initMipmap(true);
+    this._platformTexture = engine._hardwareRenderer.createPlatformTextureCubeMap(this);
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
@@ -84,61 +63,7 @@ export class TextureCubeMap extends Texture {
     width?: number,
     height?: number
   ): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    const isWebGL2: boolean = this._rhi.isWebGL2;
-    const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
-    const mipSize = Math.max(1, this._width >> mipLevel);
-
-    x = x || 0;
-    y = y || 0;
-    width = width || mipSize - x;
-    height = height || mipSize - y;
-
-    this._bind();
-
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-
-    if (isCompressed) {
-      const mipBit = 1 << mipLevel;
-      if (isWebGL2 || this._compressedFaceFilled[face] & mipBit) {
-        gl.compressedTexSubImage2D(
-          gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-          mipLevel,
-          x,
-          y,
-          width,
-          height,
-          internalFormat,
-          colorBuffer
-        );
-      } else {
-        gl.compressedTexImage2D(
-          gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-          mipLevel,
-          internalFormat,
-          width,
-          height,
-          0,
-          colorBuffer
-        );
-        this._compressedFaceFilled[face] |= mipBit;
-      }
-    } else {
-      gl.texSubImage2D(
-        gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-        mipLevel,
-        x,
-        y,
-        width,
-        height,
-        baseFormat,
-        dataType,
-        colorBuffer
-      );
-    }
-
-    this._unbind();
+    this._platformTexture.setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
   }
 
   /**
@@ -160,23 +85,7 @@ export class TextureCubeMap extends Texture {
     x?: number,
     y?: number
   ): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-    const { baseFormat, dataType } = this._formatDetail;
-
-    this._bind();
-
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
-    gl.texSubImage2D(
-      gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
-      mipLevel,
-      x || 0,
-      y || 0,
-      baseFormat,
-      dataType,
-      imageSource
-    );
-    this._unbind();
+    this._platformTexture.setImageSource(face, imageSource, mipLevel, flipY, premultiplyAlpha, x, y);
   }
 
   /**
@@ -196,9 +105,6 @@ export class TextureCubeMap extends Texture {
     height: number,
     out: ArrayBufferView
   ): void {
-    if (this._formatDetail.isCompressed) {
-      throw new Error("Unable to read compressed texture");
-    }
-    super._getPixelBuffer(face, x, y, width, height, out);
+    this._platformTexture.getPixelBuffer(face, x, y, width, height, out);
   }
 }

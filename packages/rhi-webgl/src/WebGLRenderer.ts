@@ -5,18 +5,32 @@ import {
   GLCapabilityType,
   IHardwareRenderer,
   IPlatformPrimitive,
+  IPlatformRenderColorTexture,
+  IPlatformRenderDepthTexture,
+  IPlatformRenderTarget,
+  IPlatformTexture2D,
+  IPlatformTextureCubeMap,
   Logger,
   Primitive,
-  RenderTarget
+  RenderColorTexture,
+  RenderDepthTexture,
+  RenderTarget,
+  Texture2D,
+  TextureCubeMap
 } from "@oasis-engine/core";
 import { Vector4 } from "@oasis-engine/math";
 import { GLAssetsCache } from "./GLAssetsCache";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
+import { GLRenderColorTexture } from "./GLRenderColorTexture";
+import { GLRenderDepthTexture } from "./GLRenderDepthTexture";
 import { GLRenderStates } from "./GLRenderStates";
+import { GLRenderTarget } from "./GLRenderTarget";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLTechnique } from "./GLTechnique";
+import { GLTexture2D } from "./GLTexture2D";
+import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
 
@@ -106,6 +120,31 @@ export class WebGLRenderer implements IHardwareRenderer {
    */
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
     return new GLPrimitive(this, primitive);
+  }
+
+  /** 创建平台2D纹理 */
+  createPlatformTexture2D(texture2D: Texture2D): IPlatformTexture2D {
+    return new GLTexture2D(this, texture2D);
+  }
+
+  /** 创建平台立方体纹理 */
+  createPlatformTextureCubeMap(textureCube: TextureCubeMap): IPlatformTextureCubeMap {
+    return new GLTextureCubeMap(this, textureCube);
+  }
+
+  /** 创建平台渲染颜色纹理 */
+  createPlatformRenderColorTexture(texture: RenderColorTexture): IPlatformRenderColorTexture {
+    return new GLRenderColorTexture(this, texture);
+  }
+
+  /** 创建平台渲染深度纹理 */
+  createPlatformRenderDepthTexture(texture: RenderDepthTexture): IPlatformRenderDepthTexture {
+    return new GLRenderDepthTexture(this, texture);
+  }
+
+  /** 创建平台离屏渲染目标 */
+  createPlatformRenderTarget(target: RenderTarget): IPlatformRenderTarget {
+    return new GLRenderTarget(this, target);
   }
 
   /**
@@ -300,11 +339,9 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   /** blit FBO */
   blitRenderTarget(renderTarget: RenderTarget) {
-    if (renderTarget) {
-      if (renderTarget._MSAAFrameBuffer) {
-        renderTarget._blitRenderTarget();
-        return;
-      }
+    if ((renderTarget?._platformRenderTarget as GLRenderTarget)?._MSAAFrameBuffer) {
+      renderTarget._blitRenderTarget();
+      return;
     }
   }
 
