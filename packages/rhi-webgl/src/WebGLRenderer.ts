@@ -325,7 +325,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   activeRenderTarget(renderTarget: RenderTarget, camera: Camera) {
     const gl = this._gl;
     if (renderTarget) {
-      renderTarget._activeRenderTarget();
+      (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
       const { width, height } = renderTarget;
       gl.viewport(0.0, 0.0, width, height);
     } else {

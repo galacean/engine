@@ -176,15 +176,6 @@ export class RenderTarget extends EngineObject {
   }
 
   /**
-   * 激活 RenderTarget 对象
-   * 如果开启 MSAA,则激活 MSAA FBO,后续进行 this._blitRenderTarget() 进行交换 FBO
-   * 如果未开启 MSAA,则激活主 FBO
-   */
-  public _activeRenderTarget(): void {
-    this._platformRenderTarget._activeRenderTarget();
-  }
-
-  /**
    * 设置渲染到立方体纹理的哪个面
    * @param faceIndex - 立方体纹理面
    */
