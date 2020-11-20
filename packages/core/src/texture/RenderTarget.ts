@@ -161,18 +161,8 @@ export class RenderTarget extends EngineObject {
    * 通过索引获取颜色纹理。
    * @param index
    */
-  public getColorTexture(index: number = 0): RenderColorTexture | null {
+  getColorTexture(index: number = 0): RenderColorTexture | null {
     return this._colorTextures[index];
-  }
-
-  /**
-   * @override
-   */
-  destroy() {
-    this._platformRenderTarget.destroy();
-    this._colorTextures.length = 0;
-    this._depthTexture = null;
-    this._depth = null;
   }
 
   /**
@@ -188,5 +178,15 @@ export class RenderTarget extends EngineObject {
    */
   blitRenderTarget(): void {
     this._platformRenderTarget.blitRenderTarget();
+  }
+
+  /**
+   * @override
+   */
+  destroy() {
+    this._platformRenderTarget.destroy();
+    this._colorTextures.length = 0;
+    this._depthTexture = null;
+    this._depth = null;
   }
 }
