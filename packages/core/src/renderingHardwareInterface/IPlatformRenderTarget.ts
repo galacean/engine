@@ -11,9 +11,9 @@ export interface IPlatformRenderTarget {
   setRenderTargetFace(faceIndex: TextureCubeFace): void;
 
   /**
-   * Blit FBO.
+   * 交换帧缓冲
    */
-  _blitRenderTarget(): void;
+  blitRenderTarget(): void;
 
   /**
    * 销毁。

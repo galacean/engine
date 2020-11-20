@@ -122,7 +122,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   /**
    * @internal
    * 激活 RenderTarget 对象
-   * 如果开启 MSAA,则激活 MSAA FBO,后续进行 this._blitRenderTarget() 进行交换 FBO
+   * 如果开启 MSAA,则激活 MSAA FBO,后续进行 this.blitRenderTarget() 进行交换 FBO
    * 如果未开启 MSAA,则激活主 FBO
    */
   _activeRenderTarget(): void {
@@ -136,9 +136,11 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   }
 
   /**
-   * Blit FBO.
+   * 交换帧缓冲
    */
-  public _blitRenderTarget(): void {
+  blitRenderTarget(): void {
+    if (!this._MSAAFrameBuffer) return;
+
     const gl = this._gl;
     const mask = gl.COLOR_BUFFER_BIT | (this._target.depthTexture ? gl.DEPTH_BUFFER_BIT : 0);
     const { colorTextureCount, width, height } = this._target;

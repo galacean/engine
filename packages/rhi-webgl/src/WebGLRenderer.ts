@@ -339,10 +339,7 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   /** blit FBO */
   blitRenderTarget(renderTarget: RenderTarget) {
-    if ((renderTarget?._platformRenderTarget as GLRenderTarget)?._MSAAFrameBuffer) {
-      renderTarget._blitRenderTarget();
-      return;
-    }
+    renderTarget?.blitRenderTarget();
   }
 
   /**

@@ -186,7 +186,7 @@ export class RenderTarget extends EngineObject {
   /**
    * Blit FBO.
    */
-  public _blitRenderTarget(): void {
-    this._platformRenderTarget._blitRenderTarget();
+  blitRenderTarget(): void {
+    this._platformRenderTarget.blitRenderTarget();
   }
 }
