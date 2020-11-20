@@ -1,4 +1,4 @@
-import { AssetType, Logger, ResourceManager, MeshRenderer } from "@oasis-engine/core";
+import { AssetType, Logger, ResourceManager, MeshRenderer, Material } from "@oasis-engine/core";
 import { Oasis } from "../Oasis";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { PBRMaterialResource } from "./PBRMaterialResource";
@@ -117,8 +117,9 @@ export class GLTFResource extends SchemaResource {
         for (let k = 0; k < meshes[j].primitives.length; k++) {
           const primitive = meshes[j].primitives[k];
           const meshRenderer = node.getComponent(MeshRenderer);
-          if (meshRenderer) {
-            meshRenderer.setSharedMaterial(k, gltf.materials[gltf.materials.length - 1 - primitive.materialIndex]);
+          const material = gltf.materials[gltf.materials.length - 1 - primitive.materialIndex];
+          if (meshRenderer && material && material instanceof Material) {
+            meshRenderer.setSharedMaterial(k, material);
           }
         }
       }
