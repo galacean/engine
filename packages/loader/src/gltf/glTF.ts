@@ -133,6 +133,7 @@ export class GLTFResource extends EngineObject {
   materials?: Material[];
   meshes?: Mesh[];
   skins?: Skin[];
+  meta: any;
 }
 
 /**
@@ -150,6 +151,7 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLT
     asset: new GLTFResource(engine)
   };
   resources.asset.textures = data.textures;
+  resources.asset.meta = data.gltf;
 
   if (resources.gltf.asset && resources.gltf.asset.version) {
     resources.gltf.version = Number(resources.gltf.asset.version);
