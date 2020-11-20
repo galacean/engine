@@ -338,17 +338,6 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   /**
-   * 设置渲染到立方体纹理的面
-   * @param {RenderTarget} renderTarget  需要设置的 RenderTarget 对象
-   * @param {number} faceIndex - gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex
-   * */
-  setRenderTargetFace(renderTarget: RenderTarget, faceIndex: number) {
-    if (renderTarget) {
-      renderTarget.setRenderTargetFace(faceIndex);
-    }
-  }
-
-  /**
    * 在一帧结束时，处理内部状态，释放 texture 缓存
    */
   endFrame() {

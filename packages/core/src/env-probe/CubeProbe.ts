@@ -66,10 +66,12 @@ export class CubeProbe extends Probe {
   }
 
   protected render() {
+    const renderTarget = this.renderPass.renderTarget;
+
     // 渲染6个面
     for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
       // 设置渲染面
-      this.rhi.setRenderTargetFace(this.renderPass.renderTarget, faceIndex);
+      renderTarget.setRenderTargetFace(faceIndex);
 
       // clear
       this.rhi.clearRenderTarget(this.renderPass.clearMode, this.renderPass.clearParam);
@@ -83,7 +85,7 @@ export class CubeProbe extends Probe {
       // MSAA need to blit
       // 6'th face will blit in pipeline
       if (faceIndex < 5) {
-        this.renderPass.renderTarget.blitRenderTarget();
+        renderTarget.blitRenderTarget();
       }
     }
   }
