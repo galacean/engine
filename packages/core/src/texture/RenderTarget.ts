@@ -181,7 +181,25 @@ export class RenderTarget extends EngineObject {
   }
 
   /**
-   * @override
+   * 对 renderTarget 的各个附件纹理，根据配置生成 mipmap。
+   */
+  generateMipmaps(): void {
+    const colorTextureCount = this.colorTextureCount;
+
+    if (this._depthTexture?.autoGenerateMipmaps) {
+      this._depthTexture.generateMipmaps();
+    }
+
+    for (let i = 0; i < colorTextureCount; i++) {
+      const colorTexture = this._colorTextures[i];
+      if (colorTexture.autoGenerateMipmaps) {
+        colorTexture.generateMipmaps();
+      }
+    }
+  }
+
+  /**
+   * 销毁
    */
   destroy() {
     this._platformRenderTarget.destroy();

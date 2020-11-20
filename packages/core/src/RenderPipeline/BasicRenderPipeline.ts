@@ -183,6 +183,8 @@ export class BasicRenderPipeline extends SceneVisitor {
     }
 
     rhi.blitRenderTarget(renderTarget);
+    renderTarget?.generateMipmaps();
+
     pass.postRender(camera, this.opaqueQueue, this.transparentQueue);
   }
 
