@@ -83,7 +83,7 @@ export class CubeProbe extends Probe {
       // MSAA need to blit
       // 6'th face will blit in pipeline
       if (faceIndex < 5) {
-        this.rhi.blitRenderTarget(this.renderPass.renderTarget);
+        this.renderPass.renderTarget.blitRenderTarget();
       }
     }
   }
