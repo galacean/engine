@@ -169,7 +169,7 @@ export class BasicRenderPipeline extends SceneVisitor {
 
     const rhi = camera.scene.engine._hardwareRenderer;
     const renderTarget = camera.renderTarget || pass.renderTarget;
-    rhi.activeRenderTarget(renderTarget, camera); // keep require rendertarget in case of GC
+    rhi.activeRenderTarget(renderTarget, camera);
 
     if (pass.enabled) {
       rhi.clearRenderTarget(pass.clearMode, pass.clearParam);
