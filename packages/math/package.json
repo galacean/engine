@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/math",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "types": "types/index.d.ts",
@@ -12,6 +12,6 @@
     "types/**/*"
   ],
   "devDependencies": {
-    "@oasis-engine/design": "0.1.11"
+    "@oasis-engine/design": "0.1.12"
   }
 }
