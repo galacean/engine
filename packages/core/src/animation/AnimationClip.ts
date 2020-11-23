@@ -1,6 +1,6 @@
+import { EngineObject } from "../base/EngineObject";
 import { InterpolationType } from "./AnimationConst";
 import { IChannel, ISample, List, Value } from "./types";
-import { AssetObject } from "../asset/AssetObject";
 
 export enum TagetType {
   position = 0,
@@ -13,7 +13,7 @@ export enum TagetType {
  * Data for an animation, set of Samples and Channels
  * @extends AssetObject
  */
-export class AnimationClip extends AssetObject {
+export class AnimationClip extends EngineObject {
   private static _tagetTypeMap: Object = {
     position: TagetType.position,
     rotation: TagetType.rotation,

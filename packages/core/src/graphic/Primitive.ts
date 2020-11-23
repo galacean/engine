@@ -2,7 +2,7 @@ import { BoundingSphere, OBB } from "@oasis-engine/math";
 import { Engine } from "..";
 import { RefObject } from "../asset/RefObject";
 import { Buffer } from "../graphic/Buffer";
-import { IPlatformPrimitive } from "../renderingHardwareInterface";
+import { IPlatformPrimitive } from "@oasis-engine/design";
 import { BufferUtil } from "./BufferUtil";
 import { IndexFormat } from "./enums/IndexFormat";
 import { IndexBufferBinding } from "./IndexBufferBinding";

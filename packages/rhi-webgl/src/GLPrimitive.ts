@@ -1,4 +1,5 @@
-import { GLCapabilityType, IPlatformPrimitive, Logger, Primitive } from "@oasis-engine/core";
+import { GLCapabilityType, Logger, Primitive } from "@oasis-engine/core";
+import { IPlatformPrimitive } from "@oasis-engine/design";
 import { SubPrimitive } from "@oasis-engine/core/types/graphic/SubPrimitive";
 import { GLTechnique } from "./GLTechnique";
 import { WebGLExtension } from "./type";

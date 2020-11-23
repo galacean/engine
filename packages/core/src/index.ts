@@ -3,7 +3,6 @@ export { SystemInfo } from "./SystemInfo";
 export type { HardwareRenderer } from "./HardwareRenderer";
 export type { Canvas } from "./Canvas";
 export { EngineFeature } from "./EngineFeature";
-export { AssetObject } from "./asset/AssetObject";
 
 export { Scene } from "./Scene";
 export { SceneVisitor } from "./SceneVisitor";
@@ -60,7 +59,6 @@ export { ComplexMaterial } from "./material/ComplexMaterial";
 export { RenderTechnique } from "./material/RenderTechnique";
 export * from "./material/type";
 
-export * from "./renderingHardwareInterface/index";
 export * from "./texture/index";
 export * from "./graphic/index";
 export * from "./2d/index";

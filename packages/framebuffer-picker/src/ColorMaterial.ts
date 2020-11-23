@@ -73,7 +73,7 @@ class ColorMaterial extends Material {
    * @private
    */
   generateTechnique() {
-    const tech = new RenderTechnique("Framebuffer_Picker_Color_Material");
+    const tech = new RenderTechnique(this._engine, "Framebuffer_Picker_Color_Material");
     tech.isValid = true;
     tech.uniforms = {
       u_colorId: {

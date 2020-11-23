@@ -52,7 +52,7 @@ export class SkyBoxMaterial extends Material {
    * @private
    */
   _generateTechnique() {
-    const tech = new RenderTechnique(SkyBoxMaterial.techniqueName);
+    const tech = new RenderTechnique(this._engine, SkyBoxMaterial.techniqueName);
     tech.isValid = true;
     tech.uniforms = SkyBoxMaterial.techniqueConfig.uniforms;
     tech.attributes = SkyBoxMaterial.techniqueConfig.attributes;
