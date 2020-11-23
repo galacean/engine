@@ -12,8 +12,10 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/design": "0.1.9",
     "@oasis-engine/core": "0.1.9",
     "@oasis-engine/math": "0.1.9"
+  },
+  "devDependencies": {
+    "@oasis-engine/design": "0.1.9"
   }
 }
