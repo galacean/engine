@@ -118,20 +118,6 @@ export abstract class Probe extends Component {
     this.renderPass.preRender = this.preRender.bind(this);
     this.renderPass.render = this.render.bind(this);
     this.renderPass.postRender = this.postRender.bind(this);
-
-    // /**
-    //  * 继续 RTT
-    //  * */
-    // this.addEventListener("enabled", () => {
-    //   this.renderPass.enabled = true;
-    // });
-
-    // /**
-    //  * 暂停 RTT（ render target to texture）
-    //  * */
-    // this.addEventListener("disabled", () => {
-    //   this.renderPass.enabled = false;
-    // });
   }
 
   /**
