@@ -1,7 +1,9 @@
-import { AssetObject } from "../asset/AssetObject";
+import { IPlatformTechnique } from "@oasis-engine/design";
+import { EngineObject } from "..";
 import { DataType, UniformSemantic } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
+import { Engine } from "../Engine";
 import { Primitive, VertexElement, VertexElementFormat } from "../graphic";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Material } from "./Material";
@@ -10,9 +12,12 @@ import { Attributes, TechniqueStates, Uniforms } from "./type";
 /**
  * 渲染单个对象所需的控制对象，作为 Material 的模块使用。对应 glTF 里面的 technique 对象
  */
-export class RenderTechnique extends AssetObject {
+export class RenderTechnique extends EngineObject {
   // 是否可用
   public isValid: boolean = false;
+
+  _platformTechnique: IPlatformTechnique;
+
   // Unifrom记录数组
   private _uniforms: Uniforms = RenderTechnique.commonUniforms;
   // Attribute记录对象
@@ -96,8 +101,8 @@ export class RenderTechnique extends AssetObject {
    * 构造函数
    * @param {string} name 名称
    */
-  constructor(public name: string) {
-    super(null);
+  constructor(engine: Engine, public name: string) {
+    super(engine);
   }
 
   get attributes() {
@@ -114,6 +119,11 @@ export class RenderTechnique extends AssetObject {
 
   set uniforms(v) {
     this._uniforms = Object.assign({}, RenderTechnique.commonUniforms, v);
+  }
+
+  init(): IPlatformTechnique {
+    this._platformTechnique = this._engine._hardwareRenderer.createPlatformTechnique(this);
+    return this._platformTechnique;
   }
 
   compile(camera: Camera, component, primitive: Primitive, material: Material) {

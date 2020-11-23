@@ -1,5 +1,5 @@
 import { Entity, Logger, MathUtil, Script, Spherical, Vector3 } from "oasis-engine";
-import { doTransform, Easing, Tween } from "@oasis-engine/tween";
+// import { doTransform, Easing, Tween } from "@oasis-engine/tween";
 
 // 防止万向锁
 const ESP = MathUtil.zeroTolerance;
@@ -8,7 +8,7 @@ function includes(array, ...filterArray) {
   return filterArray.some((e) => array.indexOf(e) !== -1);
 }
 
-const tween = new Tween();
+// const tween = new Tween();
 
 /**
  * 相机的的漫游控制器，可以上下左右位移，转转视角。
@@ -172,9 +172,10 @@ export class FreeControl extends Script {
       this._moveLeft = true;
     } else if (includes(this.keysRight, code, key, keyCode)) {
       this._moveRight = true;
-    } else if (includes(this.keysJump, code, key, keyCode)) {
-      this.jump();
     }
+    // else if (includes(this.keysJump, code, key, keyCode)) {
+    //   this.jump();
+    // }
   }
 
   /**
@@ -258,7 +259,7 @@ export class FreeControl extends Script {
     this._spherical.theta = this._theta;
     this._spherical.phi = this._phi;
     this._spherical.setToVec3(this._v3Cache);
-    Vector3.add(this.camera.position, this._v3Cache, this._v3Cache);
+    Vector3.add(this.camera.transform.position, this._v3Cache, this._v3Cache);
     this.camera.transform.lookAt(this._v3Cache, new Vector3(0, 1, 0));
   }
 
@@ -266,27 +267,24 @@ export class FreeControl extends Script {
    * 跳跃，根据jumpY确定高度，jumpDuration确定时间，floorY确定地面高度
    * */
   jump(): void {
-    if (this._moveJump) return;
-
-    this._moveJump = true;
-
-    let p = this.camera.position;
-
-    doTransform
-      .Translate(this.camera, new Vector3(p.x, this.jumpY, p.z), this.jumpDuration / 2, {
-        easing: Easing.easeOutSine,
-        onComplete: () => {
-          doTransform
-            .Translate(this.camera, new Vector3(p.x, this.floorY, p.z), this.jumpDuration / 2, {
-              easing: Easing.easeInSine,
-              onComplete: () => {
-                this._moveJump = false;
-              }
-            })
-            .start(tween);
-        }
-      })
-      .start(tween);
+    // if (this._moveJump) return;
+    // this._moveJump = true;
+    // let p = this.camera.position;
+    // doTransform
+    //   .Translate(this.camera, new Vector3(p.x, this.jumpY, p.z), this.jumpDuration / 2, {
+    //     easing: Easing.easeOutSine,
+    //     onComplete: () => {
+    //       doTransform
+    //         .Translate(this.camera, new Vector3(p.x, this.floorY, p.z), this.jumpDuration / 2, {
+    //           easing: Easing.easeInSine,
+    //           onComplete: () => {
+    //             this._moveJump = false;
+    //           }
+    //         })
+    //         .start(tween);
+    //     }
+    //   })
+    //   .start(tween);
   }
 
   /**
@@ -324,7 +322,7 @@ export class FreeControl extends Script {
       this.translateOnAxis(this._right, actualMoveSpeed);
     }
 
-    tween.update(delta);
+    // tween.update(delta);
     const position = this.camera.transform.position;
 
     if (this.floorMock && !this._moveJump) {

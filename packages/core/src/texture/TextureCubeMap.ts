@@ -96,6 +96,9 @@ export class TextureCubeMap extends Texture {
 
     this._bind();
 
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+
     if (isCompressed) {
       const mipBit = 1 << mipLevel;
       if (isWebGL2 || this._compressedFaceFilled[face] & mipBit) {
@@ -173,8 +176,6 @@ export class TextureCubeMap extends Texture {
       dataType,
       imageSource
     );
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
     this._unbind();
   }
 

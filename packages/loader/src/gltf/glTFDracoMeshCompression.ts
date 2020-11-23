@@ -1,5 +1,5 @@
 import { DRACODecoder } from "@oasis-engine/draco";
-import { getComponentType, getBufferData, createVertexElement } from "./Util";
+import { getComponentType, getBufferData } from "./Util";
 
 let decoder;
 
@@ -9,7 +9,7 @@ export const glTFDracoMeshCompression = {
       decoder = new DRACODecoder();
     }
   },
-  parse(extension, primitive, gltfPrimitive, gltf, buffers) {
+  parse(extension, gltfPrimitive, gltf, buffers) {
     const { bufferViews, accessors } = gltf;
     const bufferViewIndex = extension.bufferView;
     const gltfAttributeMap = extension.attributes;
@@ -35,28 +35,7 @@ export const glTFDracoMeshCompression = {
       indexType
     };
     const buffer = getBufferData(bufferViews[bufferViewIndex], buffers);
-    return decoder.decode(buffer, taskConfig).then((geometry) => {
-      let h = 0;
-      for (let i = 0; i < geometry.attributes.length; i++) {
-        const attribute = geometry.attributes[i];
-        const accessorIdx = gltfPrimitive.attributes[attribute.name];
-        const accessor = accessors[accessorIdx];
-        accessor.bufferView = accessor.bufferView === undefined ? bufferViewIndex : accessor.bufferView;
-        primitive.vertexBuffers.push(attribute.array);
-        primitive.vertexAttributes[attribute.name] = createVertexElement(gltf, attribute.name, accessor, h++);
-      }
 
-      // get vertex count
-      const positionAccessorIdx = gltfPrimitive.attributes.POSITION;
-      const positionAccessor = accessors[positionAccessorIdx];
-      primitive.vertexCount = positionAccessor.count;
-
-      // load indices
-      primitive.indexCount = indexAccessor.count;
-      primitive.indexType = indexAccessor.componentType;
-      primitive.indexOffset = 0;
-      primitive.indexBuffer = geometry.index.array;
-      return primitive;
-    });
+    return decoder.decode(buffer, taskConfig).then((parsedGeometry) => parsedGeometry);
   }
 };

@@ -20,7 +20,7 @@ export class ShadowMaterial extends ComplexMaterial {
     const uniforms = this._generateFragmentUniform();
 
     //--
-    const tech = new RenderTechnique(this.name);
+    const tech = new RenderTechnique(this._engine, this.name);
     tech.autoConvert = false;
     tech.isValid = true;
     tech.uniforms = uniforms;

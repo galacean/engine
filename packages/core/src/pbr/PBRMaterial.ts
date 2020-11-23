@@ -930,7 +930,7 @@ class PBRMaterial extends Material {
     const config = this._generateConfig();
     const lightMgr = camera.scene.findFeature(LightFeature);
 
-    const tech = new RenderTechnique(techName);
+    const tech = new RenderTechnique(this._engine, techName);
     tech.isValid = true;
     tech.uniforms = { ...lightMgr.getUniformDefine(), ...config.uniforms };
     tech.attributes = config.attributes;

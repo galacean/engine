@@ -375,7 +375,7 @@ export class GPUParticleSystem extends GeometryRenderer {
       };
     }
 
-    const tech = new RenderTechnique("particleTech");
+    const tech = new RenderTechnique(this._engine, "particleTech");
     tech.isValid = true;
     tech.uniforms = cfg.uniforms;
     tech.attributes = cfg.attributes;

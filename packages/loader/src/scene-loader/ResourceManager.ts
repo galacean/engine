@@ -1,4 +1,4 @@
-import { ResourceManager } from "@oasis-engine/core";
+import { ResourceManager, ObjectValues } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import {
@@ -143,7 +143,7 @@ export class SchemaResourceManager {
   }
 
   getAll(): Array<SchemaResource> {
-    return Object.values(this.resourceMap);
+    return ObjectValues(this.resourceMap);
   }
 
   private getAddResourceResult(resources, structure) {

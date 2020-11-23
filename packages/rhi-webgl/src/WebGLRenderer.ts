@@ -7,10 +7,10 @@ import {
   Logger,
   Primitive,
   RenderTarget,
-  IPlatformPrimitive
+  RenderTechnique
 } from "@oasis-engine/core";
+import { IPlatformPrimitive, IPlatformTechnique } from "@oasis-engine/design";
 import { Vector4 } from "@oasis-engine/math";
-import { GLAssetsCache } from "./GLAssetsCache";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
@@ -47,7 +47,6 @@ export class WebGLRenderer implements HardwareRenderer {
   private _options: WebGLRendererOptions;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
-  private _assetsCache: GLAssetsCache;
   private _extensions;
   private _frameCount: number;
   private _spriteBatcher;
@@ -93,7 +92,6 @@ export class WebGLRenderer implements HardwareRenderer {
 
     this._gl = gl;
     this._renderStates = new GLRenderStates(gl);
-    this._assetsCache = new GLAssetsCache(this, option);
     this._extensions = new GLExtensions(this);
     this._capability = new GLCapability(this);
 
@@ -109,19 +107,19 @@ export class WebGLRenderer implements HardwareRenderer {
   }
 
   /**
+   * 创建平台着色器技术。
+   */
+  createPlatformTechnique(technique: RenderTechnique): IPlatformTechnique {
+    return new GLTechnique(this, technique);
+  }
+
+  /**
    * GL Context 对象
    * @member {WebGLRenderingContext}
    * @readonly
    */
   get gl() {
     return this._gl;
-  }
-
-  /**
-   * GL 资源对象缓冲池
-   */
-  get assetsCache(): GLAssetsCache {
-    return this._assetsCache;
   }
 
   /**
@@ -239,7 +237,8 @@ export class WebGLRenderer implements HardwareRenderer {
    */
   drawPrimitive(primitive, group, mtl) {
     // todo: VAO 不支持 morph 动画
-    const glTech = this._assetsCache.requireObject(mtl.technique, GLTechnique);
+    let glTech: GLTechnique = mtl.technique._platformTechnique;
+    glTech || (glTech = mtl.technique.init());
 
     if (!glTech.valid) return;
 
@@ -322,17 +321,10 @@ export class WebGLRenderer implements HardwareRenderer {
   /**
    * 在一帧结束时，处理内部状态，释放 texture 缓存
    */
-  endFrame() {
-    const CHECK_FREQ = 8;
-    if (this._frameCount % CHECK_FREQ === 0) {
-      this._assetsCache.compact();
-    }
-  }
+  endFrame() {}
 
   /**
    * 释放资源
    */
-  destroy() {
-    this._assetsCache.finalize();
-  }
+  destroy() {}
 }

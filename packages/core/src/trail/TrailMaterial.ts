@@ -11,7 +11,7 @@ export class TrailMaterial extends Material {
    */
   _generateTechnique() {
     //--
-    const tech = new RenderTechnique("trail_tech");
+    const tech = new RenderTechnique(this._engine, "trail_tech");
     tech.isValid = true;
     tech.uniforms = {
       u_texture: {
