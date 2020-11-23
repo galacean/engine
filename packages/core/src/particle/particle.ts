@@ -41,6 +41,7 @@ export class GPUParticleSystem extends GeometryRenderer {
   public spriteSheet: any[];
   public is2d: boolean;
   public interleaved: boolean;
+  public once: boolean;
 
   /**
    * @constructor

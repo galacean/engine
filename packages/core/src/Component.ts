@@ -1,4 +1,4 @@
-import { EventDispatcher, MaskList } from "./base";
+import { EngineObject, MaskList } from "./base";
 import { ignoreClone } from "./clone/CloneManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
@@ -7,7 +7,7 @@ import { Scene } from "./Scene";
 /**
  * 组件的基类。
  */
-export abstract class Component extends EventDispatcher {
+export abstract class Component extends EngineObject {
   /** @internal */
   @ignoreClone
   _entity: Entity;

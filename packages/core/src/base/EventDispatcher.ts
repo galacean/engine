@@ -4,7 +4,6 @@ import { ignoreClone } from "../clone/CloneManager";
 
 /**
  * 事件派发管理，可作为基类继承
- * @class
  */
 export class EventDispatcher extends EngineObject {
   @ignoreClone
