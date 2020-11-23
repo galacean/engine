@@ -1,4 +1,4 @@
-import { Engine, EventDispatcher } from "@oasis-engine/core";
+import { Engine, EventDispatcher, ObjectValues } from "@oasis-engine/core";
 import { AbilityManager } from "./AbilityManager";
 import { NodeManager } from "./NodeManager";
 import { pluginHook, PluginManager } from "./plugins/PluginManager";
@@ -68,7 +68,7 @@ export class Oasis extends EventDispatcher {
   private loadResources(): Promise<any> {
     const { assets = {} } = this.schema;
 
-    const loadingPromises = Object.values(assets)
+    const loadingPromises = ObjectValues(assets)
       .filter((asset) => {
         if (RESOURCE_CLASS[asset.type]) {
           return true;
@@ -114,7 +114,7 @@ export class Oasis extends EventDispatcher {
    */
   private bfsNodes(): number[] {
     const { nodes } = this.schema;
-    const roots = Object.values(nodes)
+    const roots = ObjectValues(nodes)
       .filter((node) => !nodes[node.parent])
       .map((node) => node.id);
 

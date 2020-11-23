@@ -1,4 +1,4 @@
-import { Logger } from "@oasis-engine/core";
+import { Logger, request } from "@oasis-engine/core";
 
 import { DRACOWorker, ITaskConfig } from "./DRACOWorker";
 
@@ -32,27 +32,33 @@ export class DRACODecoder {
     if (this.loadLibPromise) {
       return this.loadLibPromise;
     }
-    const loadQueue = {};
-    if (this.useJS) {
-      loadQueue["js"] = { type: "text", props: { url: `${LIB_PATH}${JS_FILE}` } };
-    } else {
-      loadQueue["wasm"] = { type: "binary", props: { url: `${LIB_PATH}${WASM_FILE}` } };
-      loadQueue["wrapper"] = { type: "text", props: { url: `${LIB_PATH}${WASM_WRAPPER_FILE}` } };
-    }
 
     return new Promise((resolve, reject) => {
-      // TODO: 直接使用Promise.all 和 新版加载函数
-      // loadAll(loadQueue, (err, res) => {
-      //   if (err) {
-      //     reject(err);
-      //     return;
-      //   }
-      //   const workerStrings = [this.useJS ? res["js"] : res["wrapper"], workerString];
-      //   const body = workerStrings.join("\n");
-      //   const workerSourceURL = URL.createObjectURL(new Blob([body]));
-      //   let decoderWASMBinary = this.useJS ? null : res["wasm"];
-      //   resolve({ workerSourceURL, decoderWASMBinary });
-      // });
+      if (this.useJS) {
+        request(`${LIB_PATH}${JS_FILE}`, { type: "text" })
+          .then((jsSource) => {
+            const body = [jsSource, workerString].join("\n");
+            const workerSourceURL = URL.createObjectURL(new Blob([body]));
+            resolve({ workerSourceURL, decoderWASMBinary: null });
+          })
+          .catch((reason) => {
+            reject(reason);
+          });
+      } else {
+        Promise.all([
+          request(`${LIB_PATH}${WASM_WRAPPER_FILE}`, { type: "text" }),
+          request(`${LIB_PATH}${WASM_FILE}`, { type: "arraybuffer" })
+        ])
+          .then((resources) => {
+            const [wrapperSource, decoderWASMBinary] = resources;
+            const body = [wrapperSource, workerString].join("\n");
+            const workerSourceURL = URL.createObjectURL(new Blob([body]));
+            resolve({ workerSourceURL, decoderWASMBinary });
+          })
+          .catch((reason) => {
+            reject(reason);
+          });
+      }
     });
   }
 

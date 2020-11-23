@@ -1,6 +1,6 @@
-import { Component } from "./Component";
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
+import { Component } from "./Component";
 
 /**
  * 脚本类，可进行逻辑编写。
@@ -110,18 +110,15 @@ export class Script extends Component {
    */
   _onDisable(): void {
     const componentsManager = this.engine._componentsManager;
-    const prototype = Script.prototype;
-    /**
-     * use onStartIndex is more safe,
-     * even is not start, but maybe it still not in the queue,for example write "entity.isActive = false" in onWake().
-     */
+    // use "xxIndex" is more safe
+    // when call onDisable it maybe it still not in script queue,for example write "entity.isActive = false" in onWake().
     if (this._onStartIndex !== -1) {
       componentsManager.removeOnStartScript(this);
     }
-    if (this.onUpdate !== prototype.onUpdate) {
+    if (this._onUpdateIndex !== -1) {
       componentsManager.removeOnUpdateScript(this);
     }
-    if (this.onLateUpdate !== prototype.onLateUpdate) {
+    if (this._onLateUpdateIndex !== -1) {
       componentsManager.removeOnLateUpdateScript(this);
     }
     this.onDisable();

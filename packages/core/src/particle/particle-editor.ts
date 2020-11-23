@@ -8,9 +8,11 @@ export class Particle extends GPUParticleSystem {
   private _config;
   private _options;
 
-  constructor(node, props) {
-    super(node);
+  constructor(entity) {
+    super(entity);
+  }
 
+  init(props) {
     this._options = {
       position: props.__position,
       positionRandomness: props.__positionRandomness,

@@ -77,3 +77,7 @@ export function removeFromArray(array: any[], item: any): boolean {
   array.length--;
   return true;
 }
+
+export function ObjectValues(obj: any) {
+  return Object.keys(obj).map((key: any) => obj[key]);
+}

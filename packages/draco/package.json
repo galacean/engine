@@ -1,13 +1,17 @@
 {
   "name": "@oasis-engine/draco",
-  "version": "0.1.0",
+  "version": "0.1.9",
   "scripts": {
     "b:types": "tsc"
   },
   "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
   "dependencies": {
-    "@oasis-engine/core": "0.1.0"
+    "@oasis-engine/core": "0.1.9"
   }
 }
