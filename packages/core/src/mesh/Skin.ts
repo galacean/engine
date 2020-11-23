@@ -1,5 +1,5 @@
 import { Matrix } from "@oasis-engine/math";
-import { EngineObject } from "..";
+import { EngineObject } from "../base/EngineObject";
 
 let skinID = 0;
 

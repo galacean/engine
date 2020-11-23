@@ -1,4 +1,4 @@
-import { EngineObject } from "..";
+import { EngineObject } from "../base/EngineObject";
 import { InterpolationType } from "./AnimationConst";
 import { IChannel, ISample, List, Value } from "./types";
 
