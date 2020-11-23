@@ -60,7 +60,7 @@ export class CollisionDetection extends Script {
           const collider = colliders[i];
           if (collider != this._myCollider && this._boxCollision(collider)) {
             overlopCollider = collider;
-            this.trigger(new Event("collision", <any>this, { collider }));
+            this.dispatch("collision", { collider });
           }
         } // end of for
       } else if (this._myCollider instanceof ASphereCollider) {
@@ -69,7 +69,7 @@ export class CollisionDetection extends Script {
           const collider = colliders[i];
           if (collider != this._myCollider && this._sphereCollision(collider)) {
             overlopCollider = collider;
-            this.trigger(new Event("collision", <any>this, { collider }));
+            this.dispatch("collision", { collider });
           }
         } // end of for
       }
@@ -77,12 +77,12 @@ export class CollisionDetection extends Script {
 
     //-- overlop events
     if (overlopCollider != null && this._overlopCollider != overlopCollider) {
-      this.trigger(new Event("begin_overlop", <any>this, { collider: overlopCollider }));
+      this.dispatch("begin_overlop", { collider: overlopCollider });
     }
 
     if (this._overlopCollider != null && this._overlopCollider != overlopCollider) {
       const e = this._overlopCollider;
-      this.trigger(new Event("end_overlop", <any>this, { collider: e }));
+      this.dispatch("end_overlop", { collider: e });
     }
 
     this._overlopCollider = overlopCollider;
