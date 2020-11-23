@@ -97,7 +97,7 @@ export abstract class CommonMaterial extends Material {
     const uniforms = this._generateFragmentUniform();
 
     //--
-    const tech = new RenderTechnique(name);
+    const tech = new RenderTechnique(this._engine, name);
     tech.isValid = true;
     tech.uniforms = uniforms;
     tech.attributes = {};
@@ -105,7 +105,6 @@ export abstract class CommonMaterial extends Material {
     tech.customMacros = customMacros;
     tech.vertexShader = VertexShader;
     tech.fragmentShader = fragmentShader;
-
     //-- set default values
     this._technique = tech;
   }

@@ -51,7 +51,7 @@ export class ShaderMaterial extends Material {
 
   // 生成内部的 Technique 对象
   _generateTechnique(camera, component, primitive) {
-    const tech = new RenderTechnique("ShaderMaterial");
+    const tech = new RenderTechnique(this._engine, "ShaderMaterial");
 
     tech.isValid = this.isValid;
     tech.uniforms = this.uniforms;

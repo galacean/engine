@@ -1,5 +1,4 @@
 export type { IHardwareRenderer } from "./IHardwareRenderer";
-export type { IPlatformPrimitive } from "./IPlatformPrimitive";
 export type { IPlatformRenderColorTexture } from "./IPlatformRenderColorTexture";
 export type { IPlatformRenderDepthTexture } from "./IPlatformRenderDepthTexture";
 export type { IPlatformRenderTarget } from "./IPlatformRenderTarget";

@@ -18,7 +18,7 @@ export class ShadowMapMaterial extends ComplexMaterial {
     const uniforms = this._generateFragmentUniform();
 
     //--
-    const tech = new RenderTechnique(this.name);
+    const tech = new RenderTechnique(this._engine, this.name);
     tech.isValid = true;
     tech.uniforms = uniforms;
     tech.attributes = {};

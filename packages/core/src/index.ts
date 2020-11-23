@@ -2,7 +2,6 @@ export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export type { Canvas } from "./Canvas";
 export { EngineFeature } from "./EngineFeature";
-export { AssetObject } from "./asset/AssetObject";
 
 export { Scene } from "./Scene";
 export { SceneVisitor } from "./SceneVisitor";

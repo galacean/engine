@@ -120,18 +120,6 @@ export abstract class Probe extends Component {
     this.renderPass.postRender = this.postRender.bind(this);
   }
 
-  /** 暂停探针 */
-  _onDisable() {
-    this.renderPass.enabled = false;
-  }
-
-  /**
-   * 继续 RTT
-   * */
-  _onEnable() {
-    this.renderPass.enabled = true;
-  }
-
   /**
    * 初始化探针。
    * @param config - 初始化配置
@@ -227,4 +215,18 @@ export abstract class Probe extends Component {
    * }
    * */
   public onTextureChange(texture: Texture | RenderColorTexture, depthTexture?: Texture2D | RenderDepthTexture) {}
+
+  /**
+   * @override
+   */
+  _onEnable(): void {
+    this.renderPass.enabled = true; // 继续 RTT
+  }
+
+  /**
+   * @override
+   */
+  _onDisable(): void {
+    this.renderPass.enabled = false; // 暂停 RTT（ render target to texture）
+  }
 }
