@@ -41,8 +41,13 @@ export abstract class RefObject extends EngineObject {
   destroy(force: boolean = false): boolean {
     if (this._destroyed) return true;
     if (!force && this._refCount !== 0) return false;
-    this._engine.resourceManager._deleteAsset(this);
-    this._engine.resourceManager._deleteRefObject(this.instanceId);
+    const resourceManager = this._engine.resourceManager;
+    // resourceManager maybe null,because engine has destroyed.
+    // TODO:the right way to fix this is to ensure destroy all when call engine.destroy,thus don't need to add this project.
+    if (resourceManager) {
+      resourceManager._deleteAsset(this);
+      resourceManager._deleteRefObject(this.instanceId);
+    }
     if (this._refParent) {
       removeFromArray(this._refParent._refChildren, this);
     }
