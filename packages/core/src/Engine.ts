@@ -195,7 +195,6 @@ export class Engine extends EventDispatcher {
     this.resume();
     this.trigger(new Event("run", this));
   }
-  ƒ;
 
   /**
    * 销毁引擎。
