@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/rhi-webgl",
-  "version": "0.1.11",
+  "version": "0.1.15",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.1.11",
-    "@oasis-engine/math": "0.1.11"
+    "@oasis-engine/core": "0.1.15",
+    "@oasis-engine/math": "0.1.15"
   }
 }
