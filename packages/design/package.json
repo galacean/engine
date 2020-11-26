@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/design",
-  "version": "0.1.9",
+  "version": "0.1.16",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "scripts": {
