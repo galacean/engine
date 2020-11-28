@@ -134,7 +134,7 @@ export class Camera extends Component {
   }
 
   /**
-   * 视口，归一化表达，左上角为（0，0）坐标，右下角为（1，1）。
+   * 视口，归一化表达，左上角为（0，0），右下角为（1，1）。
    * @remarks 修改后需要重新赋值,保证修改生效。
    */
   get viewport(): Vector4 {
@@ -314,8 +314,8 @@ export class Camera extends Component {
   /**
    * 将一个点从世界空间变换到视口空间。
    * @param point - 世界空间中的点
-   * @param out - 视口空间坐标，X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1，W 为距离相机的世界单位距离
-   * @returns 视口空间坐标
+   * @param out - 视口空间的点，X 和 Y 为视口空间坐标，Z 为视口深度，近裁剪面为 0，远裁剪面为 1，W 为距离相机的世界单位距离
+   * @returns 视口空间的点
    */
   worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, MathTemp.tempMat4);
@@ -347,7 +347,7 @@ export class Camera extends Component {
   }
 
   /**
-   * 通过视口空间点的坐标获取射线，生成射线的起点在相机的近裁面并穿过点的 X 和 Y 坐标。
+   * 通过视口空间点的点获取射线，生成射线的起点在相机的近裁面并穿过点的 X 和 Y 坐标。
    * @param point 视口空间中的点
    * @param out - 射线
    * @returns 射线
@@ -391,6 +391,28 @@ export class Camera extends Component {
     out.x = (viewport.x + point.x * viewport.z) * canvas.width;
     out.y = (viewport.y + point.y * viewport.w) * canvas.height;
     return out;
+  }
+
+  /**
+   * 将一个点从世界空间变换到屏幕空间。
+   * @param point - 世界空间中的点
+   * @param out - 屏幕空间的点
+   * @returns 屏幕空间的点
+   */
+  worldToScreenPoint(point: Vector3, out: Vector4): Vector4 {
+    this.worldToViewportPoint(point, out);
+    return this.viewportToScreenPoint(out, out);
+  }
+
+  /**
+   * 将一个点从屏幕空间变换到世界空间。
+   * @param point - 屏幕空间点
+   * @param out - 世界空间中的点
+   * @returns 世界空间中的点
+   */
+  screenToWorldPoint(point: Vector3, out: Vector3): Vector3 {
+    this.screenToViewportPoint(point, out);
+    return this.viewportToWorldPoint(out, out);
   }
 
   /**

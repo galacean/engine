@@ -248,9 +248,10 @@ export class GLCapability {
       });
       const items = {};
       if (this.canIUse(GLCapabilityType.drawBuffers)) {
-        for (let i = 0; i < this.rhi.requireExtension(drawBuffers).MAX_DRAW_BUFFERS_WEBGL; i++) {
+        const maxDrawBuffers = this.maxDrawBuffers;
+        for (let i = 0; i < maxDrawBuffers; i++) {
           i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
-          items[`DRAW_BUFFER0${i}`] = `DRAW_BUFFER${i}_WEBGL`;
+          items[`DRAW_BUFFER${i}`] = `DRAW_BUFFER${i}_WEBGL`;
         }
         this.compatibleInterface(drawBuffers, {
           drawBuffers: "drawBuffersWEBGL",

@@ -80,7 +80,6 @@ function config({location, pkgJson}) {
     },
     mini: () => {
       const plugins = [...commonPlugins, ...miniProgramPlugin];
-      plugins[2] = esbuild({})
       return {
         input,
         output: [

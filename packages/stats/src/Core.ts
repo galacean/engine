@@ -1,4 +1,4 @@
-import { Entity } from "@oasis-engine/core";
+import { Entity } from "oasis-engine";
 import DrawCallHook from "./hooks/DrawCallHook";
 import ShaderHook from "./hooks/ShaderHook";
 import TextureHook from "./hooks/TextureHook";

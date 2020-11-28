@@ -1,4 +1,4 @@
-import { ShaderMaterial } from "@oasis-engine/core";
+import { Engine, ShaderMaterial } from "@oasis-engine/core";
 import { Oasis } from "../Oasis";
 import { AssetConfig } from "../types";
 import { SchemaResource } from "./SchemaResource";
@@ -49,15 +49,15 @@ export class ShaderMaterialResource extends SchemaResource {
     });
   }
 
-  private createMaterial() {
-    const material = new ShaderMaterial(this.meta.name || "shader_mtl");
+  private createMaterial(engine: Engine) {
+    const material = new ShaderMaterial(engine, this.meta.name || "shader_mtl");
     this._resource = material;
   }
 
   load(resourceLoader: any, assetConfig: AssetConfig, oasis: Oasis): Promise<ShaderMaterialResource> {
     this.setMeta(assetConfig);
     this.scripts = assetConfig.props.scripts;
-    this.createMaterial();
+    this.createMaterial(oasis.engine);
 
     return this.loadShaderDefine(oasis).then(
       () =>
