@@ -1,6 +1,6 @@
 
-import { Engine } from '@alipay/o3-core';
-import { vec3 } from '@alipay/o3-math';
+import { Engine } from '@oasis-engine/core';
+import { vec3 } from '@oasis-engine/math';
 import { AmbientLighting } from '../src/index';
 
 

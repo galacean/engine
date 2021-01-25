@@ -4,10 +4,9 @@ const path = require("path");
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import babel from "@rollup/plugin-babel";
-import string from "@ali/rollup-plugin-string";
+import glslify from "rollup-plugin-glslify";
 import { terser } from "rollup-plugin-terser";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
-import visualizerFunc from "rollup-plugin-visualizer";
 import esbuild from "rollup-plugin-esbuild";
 import replace from "@rollup/plugin-replace";
 
@@ -20,7 +19,10 @@ const pkgs = fs
   .readdirSync(pkgsRoot)
   .map((dir) => path.join(pkgsRoot, dir))
   .map((location) => {
-    return { location: location, pkgJson: require(path.resolve(location, "package.json")) };
+    return {
+      location: location,
+      pkgJson: require(path.resolve(location, "package.json")),
+    };
   });
 
 // "oasisEngine" 、 "@oasisEngine/controls" ...
@@ -32,15 +34,15 @@ const extensions = [".js", ".jsx", ".ts", ".tsx"];
 
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true }),
-  string({
-    include: [/\.glsl$/, "packages/**/worker/**/*.js"]
+  glslify({
+    include: [/\.glsl$/, "packages/**/worker/**/*.js"],
   }),
   babel({
     extensions,
     babelHelpers: "bundled",
-    exclude: ["node_modules/**", "packages/**/node_modules/**"]
+    exclude: ["node_modules/**", "packages/**/node_modules/**"],
   }),
-  commonjs()
+  commonjs(),
 ];
 
 function config({ location, pkgJson }) {
@@ -49,19 +51,18 @@ function config({ location, pkgJson }) {
   const name = pkgJson.name;
   commonPlugins.push(
     replace({
-      __buildVersion: pkgJson.version
+      __buildVersion: pkgJson.version,
     })
   );
 
   return {
-    umd: (compress, visualizer) => {
+    umd: (compress) => {
       let file = path.join(location, "dist", "browser.js");
       const plugins = [...commonPlugins];
       if (compress) {
         plugins.push(terser());
         file = path.join(location, "dist", "browser.min.js");
       }
-      if (visualizer) plugins.push(visualizerFunc());
 
       const globalName = toGlobalName(pkgJson.name);
 
@@ -79,16 +80,16 @@ function config({ location, pkgJson }) {
             name: globalName,
             format: "umd",
             sourcemap: false,
-            globals
-          }
+            globals,
+          },
         ],
-        plugins
+        plugins,
       };
     },
     mini: () => {
       const plugins = [...commonPlugins, ...miniProgramPlugin];
       plugins[2] = esbuild({
-        target: "es2015"
+        target: "es2015",
       });
       return {
         input,
@@ -96,13 +97,13 @@ function config({ location, pkgJson }) {
           {
             format: "cjs",
             file: path.join(location, "dist/miniprogram.js"),
-            sourcemap: false
-          }
+            sourcemap: false,
+          },
         ],
         external: Object.keys(pkgJson.dependencies || {})
-          .concat("@alipay/o3-adapter-miniprogram")
+          .concat("@oasis-engine/miniprogram-adapter")
           .map((name) => `${name}/dist/miniprogram`),
-        plugins
+        plugins,
       };
     },
     module: () => {
@@ -115,16 +116,21 @@ function config({ location, pkgJson }) {
           {
             file: path.join(location, pkgJson.module),
             format: "es",
-            sourcemap: true
-          }
+            sourcemap: true,
+          },
         ],
-        plugins
+        plugins,
       };
-    }
+    },
   };
 }
 
-async function makeRollupConfig({ type, compress = true, visualizer = true, ..._ }) {
+async function makeRollupConfig({
+  type,
+  compress = true,
+  visualizer = true,
+  ..._
+}) {
   return config({ ..._ })[type](compress, visualizer);
 }
 
@@ -151,12 +157,23 @@ function getUMD() {
   const configs = pkgs.filter((pkg) => pkg.pkgJson.browser);
   return configs
     .map((config) => makeRollupConfig({ ...config, type: "umd" }))
-    .concat(configs.map((config) => makeRollupConfig({ ...config, type: "umd", compress: false, visualizer: false })));
+    .concat(
+      configs.map((config) =>
+        makeRollupConfig({
+          ...config,
+          type: "umd",
+          compress: false,
+          visualizer: false,
+        })
+      )
+    );
 }
 
 function getModule() {
   const configs = [...pkgs];
-  return configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
+  return configs.map((config) =>
+    makeRollupConfig({ ...config, type: "module" })
+  );
 }
 
 function getMini() {

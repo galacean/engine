@@ -11,7 +11,7 @@
     "stripInternal": true,
     "sourceMap": true,
     "strict": false,
-    "incremental": true
+    "incremental": false
   },
   "include": ["src/**/*"]
 }

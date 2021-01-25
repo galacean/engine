@@ -1,6 +1,6 @@
 
 import { BufferGeometry } from '../../geometry/src/index';
-import { BufferUsage, DataType } from '@alipay/o3-base';
+import { BufferUsage, DataType } from '@oasis-engine/core';
 
 describe('BufferGeometry', function () {
   var geometry;
