@@ -7,7 +7,6 @@ import babel from "@rollup/plugin-babel";
 import glslify from "rollup-plugin-glslify";
 import { terser } from "rollup-plugin-terser";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
-import esbuild from "rollup-plugin-esbuild";
 import replace from "@rollup/plugin-replace";
 
 const camelCase = require("camelcase");
@@ -88,9 +87,6 @@ function config({ location, pkgJson }) {
     },
     mini: () => {
       const plugins = [...commonPlugins, ...miniProgramPlugin];
-      plugins[2] = esbuild({
-        target: "es2015",
-      });
       return {
         input,
         output: [
@@ -108,7 +104,6 @@ function config({ location, pkgJson }) {
     },
     module: () => {
       const plugins = [...commonPlugins];
-      plugins[2] = esbuild({});
       return {
         input,
         external,
