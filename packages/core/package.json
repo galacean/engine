@@ -1,0 +1,20 @@
+{
+  "name": "@oasis-engine/core",
+  "version": "0.1.17",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@oasis-engine/math": "0.1.17"
+  },
+  "devDependencies": {
+    "@oasis-engine/design": "0.1.17"
+  }
+}

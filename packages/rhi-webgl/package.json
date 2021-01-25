@@ -1,0 +1,21 @@
+{
+  "name": "@oasis-engine/rhi-webgl",
+  "version": "0.1.17",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@oasis-engine/core": "0.1.17",
+    "@oasis-engine/math": "0.1.17"
+  },
+  "devDependencies": {
+    "@oasis-engine/design": "0.1.17"
+  }
+}

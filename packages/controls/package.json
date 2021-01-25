@@ -1,0 +1,19 @@
+{
+  "name": "@oasis-engine/controls",
+  "version": "0.1.17",
+  "scripts": {
+    "b:types": "tsc",
+    "lint:fix": "tslint --fix --project ./tsconfig.json"
+  },
+  "types": "types/index.d.ts",
+  "browser": "dist/browser.js",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "oasis-engine": "0.1.17"
+  }
+}

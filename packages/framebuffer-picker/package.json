@@ -1,0 +1,18 @@
+{
+  "name": "@oasis-engine/framebuffer-picker",
+  "version": "0.1.17",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "browser": "dist/browser.js",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "oasis-engine": "0.1.17"
+  }
+}

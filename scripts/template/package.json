@@ -1,0 +1,14 @@
+{
+  "name": "@oasis-engine/$name$",
+  "version": "1.0.0",
+  "scripts": {
+    "b:types": "tsc",
+    "lint:fix": "tslint --fix --project ./tsconfig.json"
+  },
+  "types": "types/index.d.ts",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  
+  "dependencies": {
+  }
+}
