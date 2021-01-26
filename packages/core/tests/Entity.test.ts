@@ -1,95 +1,66 @@
-import { WebGLEngine } from "../../rhi-webgl/src";
+import { Engine } from "../src/Engine";
 import { Entity, Component } from "../src/index";
 class TestComponent extends Component {}
 
 describe("Entity", () => {
-  const getContext = jest.fn().mockReturnValue({
-    canvas: { width: 1024, height: 1024 },
-    getParameter: jest.fn(),
-    enable: jest.fn(),
-    disable: jest.fn(),
-    colorMask: jest.fn(),
-    depthMask: jest.fn(),
-    blendFunc: jest.fn(),
-    cullFace: jest.fn(),
-    frontFace: jest.fn(),
-    depthFunc: jest.fn(),
-    depthRange: jest.fn(),
-    polygonOffset: jest.fn(),
-    stencilFunc: jest.fn(),
-    stencilMask: jest.fn(),
-    getExtension: jest.fn(),
-    bindFramebuffer: jest.fn(),
-    viewport: jest.fn(),
-    clearColor: jest.fn(),
-    clear: jest.fn()
-  });
-
-  const canvasDOM = document.createElement("canvas");
-  canvasDOM.getContext = getContext;
-
-  const engine = new WebGLEngine(canvasDOM);
+  const engine = new Engine({ width: 1024, height: 1024 }, { init: jest.fn(), canIUse: jest.fn() });
   const scene = engine.sceneManager.activeScene;
-  scene.createRootEntity("root");
   engine.run();
   beforeEach(() => {
-    Entity._entitys.length = 0;
-    Entity._entitys._elements.length = 0;
+    (Entity as any)._entitys.length = 0;
+    (Entity as any)._entitys._elements.length = 0;
+    scene.createRootEntity("root");
   });
   describe("Entity.findByName", () => {
     it("normal", () => {
-      const entity = new Entity("test1");
-      const entity2 = new Entity("test2");
+      const entity = new Entity(engine, "test1");
+      const entity2 = new Entity(engine, "test2");
       expect(Entity.findByName("test1")).toBe(entity);
       expect(Entity.findByName("test2")).toBe(entity2);
     });
     it("null", () => {
-      const entity = new Entity(null);
-      const entity2 = new Entity(undefined);
+      const entity = new Entity(engine, null);
+      const entity2 = new Entity(engine, undefined);
       expect(Entity.findByName(null)).toEqual(entity);
       expect(Entity.findByName(undefined)).toEqual(entity2);
     });
     it("not found", () => {
-      const entity = new Entity("test1");
+      const entity = new Entity(engine, "test1");
       expect(Entity.findByName("test2")).toEqual(null);
     });
   });
 
-  describe("Entity.findByPath", () => {
+  describe("scene.findByPath", () => {
     it("normal", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
-      //@ts-ignore
-      expect(Entity.findByPath("root/parent", scene)).toBe(parent);
-      //@ts-ignore
-      expect(Entity.findByPath("root/parent/child", scene)).toBe(child);
-      //@ts-ignore
-      expect(Entity.findByPath("root/parent", scene)).toBe(parent);
-      //@ts-ignore
-      expect(Entity.findByPath("root/parent/child", scene)).toBe(child);
+
+      expect(scene.findEntityByPath("root/parent")).toBe(parent);
+
+      expect(scene.findEntityByPath("root/parent/child")).toBe(child);
     });
     it("not found", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
-      //@ts-ignore
-      expect(Entity.findByPath("child", scene)).toEqual(null);
-      //@ts-ignore
-      expect(Entity.findByPath("parent/test", scene)).toEqual(null);
+
+      expect(scene.findEntityByPath("child")).toEqual(null);
+
+      expect(scene.findEntityByPath("parent/test")).toEqual(null);
     });
   });
 
   describe("isActive", () => {
     it("normal", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       parent.isActive = false;
       child.isActive = true;
@@ -100,10 +71,10 @@ describe("Entity", () => {
 
   describe("isActiveInHierarchy", () => {
     it("normal", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       parent.isActive = true;
       child.isActive = true;
@@ -112,10 +83,10 @@ describe("Entity", () => {
     });
 
     it("child false", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       parent.isActive = true;
       child.isActive = false;
@@ -124,10 +95,10 @@ describe("Entity", () => {
     });
 
     it("parent false", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       parent.isActive = false;
       child.isActive = true;
@@ -138,33 +109,33 @@ describe("Entity", () => {
 
   describe("parent", () => {
     it("normal", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       child.parent = parent;
       expect(child.parent).toBe(parent);
     });
 
     it("null", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       child.parent = null;
       expect(child.parent).toBe(null);
     });
 
     it("change", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const parent2 = new Entity("parent");
-      //@ts-ignore
+      const parent2 = new Entity(engine, "parent");
+
       parent2.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       child.parent = parent2;
       expect(child.parent).toBe(parent2);
@@ -173,32 +144,32 @@ describe("Entity", () => {
 
   describe("childCount", () => {
     it("normal", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       expect(parent.childCount).toEqual(1);
     });
 
     it("null", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       child.parent = null;
       expect(parent.childCount).toEqual(0);
     });
 
     it("change", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const parent2 = new Entity("parent");
-      //@ts-ignore
+      const parent2 = new Entity(engine, "parent");
+
       parent2.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       child.parent = parent2;
       expect(parent2.childCount).toEqual(1);
@@ -208,20 +179,20 @@ describe("Entity", () => {
 
   describe("scene", () => {
     it("normal", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       expect(parent.scene).toBe(scene);
       expect(child.scene).toBe(scene);
     });
 
     it("change parent", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       expect(parent.scene).toBe(scene);
       expect(child.scene).toBe(scene);
@@ -230,19 +201,19 @@ describe("Entity", () => {
 
   describe("scene", () => {
     it("normal", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       expect(child.scene).toBe(scene);
     });
 
     it("change parent", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       expect(parent.scene).toBe(scene);
       expect(child.scene).toBe(scene);
@@ -251,16 +222,16 @@ describe("Entity", () => {
 
   describe("component", () => {
     it("addComponent getComponent", () => {
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
+
       entity.parent = scene.getRootEntity();
       const component = entity.addComponent(TestComponent);
       expect(entity.getComponent(TestComponent)).toBe(component);
     });
 
     it("addComponent getComponents", () => {
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
+
       entity.parent = scene.getRootEntity();
       const component = entity.addComponent(TestComponent);
       const res = [];
@@ -271,10 +242,10 @@ describe("Entity", () => {
 
   describe("child", () => {
     it("addChild", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       parent.addChild(child);
       expect(child.parent).toBe(parent);
@@ -282,10 +253,10 @@ describe("Entity", () => {
     });
 
     it("removeChild", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       parent.removeChild(child);
       expect(child.parent).toEqual(null);
@@ -293,56 +264,53 @@ describe("Entity", () => {
     });
 
     it("getChild", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       const theChild = parent.getChild(0);
       expect(theChild).toBe(child);
     });
 
     it("getChild", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       const theChild = parent.getChild(0);
       expect(theChild).toBe(child);
     });
 
     it("findByName", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
-      const child2 = new Entity("child2");
+      const child2 = new Entity(engine, "child2");
       child2.parent = parent;
       expect(parent.findByName("child")).toBe(child);
       expect(parent.findByName("child2")).toBe(child2);
     });
 
     it("findByPath", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
-      const child2 = new Entity("child2");
+      const child2 = new Entity(engine, "child2");
       child2.parent = parent;
       expect(parent.findByPath("/child")).toBe(child);
       expect(parent.findByPath("child2")).toBe(child2);
     });
 
     it("clearChildren", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
-      const child2 = new Entity("child2");
+      const child2 = new Entity(engine, "child2");
       child2.parent = parent;
       parent.clearChildren();
       expect(parent.childCount).toEqual(0);
@@ -351,10 +319,10 @@ describe("Entity", () => {
 
   describe("clone", () => {
     it("normal", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       const cloneParent = parent.clone();
       expect(cloneParent.childCount).toEqual(parent.childCount);
@@ -365,10 +333,10 @@ describe("Entity", () => {
 
   describe("destroy", () => {
     it("normal", () => {
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
+
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       child.destroy();
       expect(parent.childCount).toEqual(0);

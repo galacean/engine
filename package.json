@@ -21,7 +21,7 @@
     "b:miniprogram": "cross-env NODE_ENV=MINI rollup -c",
     "b:all": "npm run b:types && npm run build-all",
     "clean": "lerna exec -- rm -rf dist && lerna clean",
-    "doc": "rm -rf doc && typedoc --options scripts/doc/typedoc.js"
+    "doc": "rm -rf doc && typedoc --options tools/typedoc/typedoc.js"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
@@ -32,7 +32,7 @@
     "@babel/plugin-transform-object-assign": "^7.12.1",
     "@babel/preset-env": "^7.12.11",
     "@babel/preset-typescript": "^7.12.7",
-    "@oasis-engine/typedoc-theme": "^0.0.1",
+    "@oasis-engine/typedoc-theme": "^0.0.2",
     "@rollup/plugin-babel": "^5.2.2",
     "@rollup/plugin-commonjs": "^17.0.0",
     "@rollup/plugin-inject": "^4.0.2",

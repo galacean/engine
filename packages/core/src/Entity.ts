@@ -1,5 +1,5 @@
 import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
-import { EngineObject, EventDispatcher } from "./base";
+import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
