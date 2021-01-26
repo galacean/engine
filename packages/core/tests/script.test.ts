@@ -1,48 +1,21 @@
-import { WebGLEngine } from "../../rhi-webgl/src";
-import { Entity, Script, Component } from "../src/index";
+import { Engine } from "../src/Engine";
+import { Component, Entity, Script } from "../src/index";
 
 describe("Script", () => {
-  const getContext = jest.fn().mockReturnValue({
-    canvas: { width: 1024, height: 1024 },
-    getParameter: jest.fn(),
-    enable: jest.fn(),
-    disable: jest.fn(),
-    colorMask: jest.fn(),
-    depthMask: jest.fn(),
-    blendFunc: jest.fn(),
-    cullFace: jest.fn(),
-    frontFace: jest.fn(),
-    depthFunc: jest.fn(),
-    depthRange: jest.fn(),
-    polygonOffset: jest.fn(),
-    stencilFunc: jest.fn(),
-    stencilMask: jest.fn(),
-    getExtension: jest.fn(),
-    bindFramebuffer: jest.fn(),
-    viewport: jest.fn(),
-    clearColor: jest.fn(),
-    clear: jest.fn()
-  });
-
-  const canvasDOM = document.createElement("canvas");
-  canvasDOM.getContext = getContext;
-
-  const engine = new WebGLEngine(canvasDOM);
+  const engine = new Engine({ width: 1024, height: 1024 }, { init: jest.fn(), canIUse: jest.fn() });
   const scene = engine.sceneManager.activeScene;
-  const root = new Entity("root");
-  //@ts-ignore
-  scene.addRootEntity(root);
   engine.run();
+
   beforeEach(() => {
-    Entity._entitys.length = 0;
-    Entity._entitys._elements.length = 0;
+    (Entity as any)._entitys.length = 0;
+    (Entity as any)._entitys._elements.length = 0;
+    scene.createRootEntity("root");
   });
 
   describe("enabled", () => {
     it("enabled", () => {
       class TheScript extends Script {}
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onEnable = jest.fn();
       const component = entity.addComponent(TheScript);
@@ -52,8 +25,7 @@ describe("Script", () => {
 
     it("disabled", () => {
       class TheScript extends Script {}
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onDisable = jest.fn();
       const component = entity.addComponent(TheScript);
@@ -64,10 +36,9 @@ describe("Script", () => {
 
     it("not trigger", () => {
       class TheScript extends Script {}
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       parent.isActive = false;
       TheScript.prototype.onEnable = jest.fn();
@@ -83,8 +54,7 @@ describe("Script", () => {
   describe("destroy", () => {
     it("onDisable", () => {
       class TheScript extends Script {}
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onDisable = jest.fn();
       const component = entity.addComponent(TheScript);
@@ -94,8 +64,7 @@ describe("Script", () => {
 
     it("_onInActive", () => {
       class TheScript extends Script {}
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype._onInActive = jest.fn();
       const component = entity.addComponent(TheScript);
@@ -105,8 +74,7 @@ describe("Script", () => {
 
     it("_onDestroy", () => {
       class TheScript extends Script {}
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype._onDestroy = jest.fn();
       const component = entity.addComponent(TheScript);
@@ -118,8 +86,7 @@ describe("Script", () => {
   describe("awake", () => {
     it("normal", () => {
       class TheScript extends Script {}
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onAwake = jest.fn();
       const component = entity.addComponent(TheScript);
@@ -127,8 +94,7 @@ describe("Script", () => {
     });
 
     it("entity changeActive", () => {
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       entity.isActive = false;
       Script.prototype.onAwake = jest.fn();
@@ -145,8 +111,7 @@ describe("Script", () => {
   describe("active", () => {
     it("onActive", () => {
       class TheScript extends Script {}
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype._onActive = jest.fn();
       const component = entity.addComponent(TheScript);
@@ -155,8 +120,7 @@ describe("Script", () => {
 
     it("onInActive", () => {
       class TheScript extends Script {}
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype._onInActive = jest.fn();
       const component = entity.addComponent(TheScript);
@@ -166,10 +130,9 @@ describe("Script", () => {
 
     it("inActiveHierarchy", () => {
       class TheScript extends Script {}
-      const parent = new Entity("parent");
-      //@ts-ignore
+      const parent = new Entity(engine, "parent");
       parent.parent = scene.getRootEntity();
-      const child = new Entity("child");
+      const child = new Entity(engine, "child");
       child.parent = parent;
       TheScript.prototype._onInActive = jest.fn();
       const component = child.addComponent(TheScript);
@@ -184,8 +147,9 @@ describe("Script", () => {
         onStart() {}
       }
       TheScript.prototype.onStart = jest.fn();
+      const root = scene.getRootEntity();
       const component = root.addComponent(TheScript);
-      scene.update(16.7);
+      engine.update();
       expect(component.onStart).toHaveBeenCalledTimes(1);
     });
 
@@ -193,13 +157,12 @@ describe("Script", () => {
       class TheScript extends Script {
         onStart() {}
       }
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onStart = jest.fn();
       const component = entity.addComponent(TheScript);
-      scene.update(16.7);
-      scene.update(16.7);
+      engine.update();
+      engine.update();
       expect(component.onStart).toHaveBeenCalledTimes(1);
     });
 
@@ -207,13 +170,12 @@ describe("Script", () => {
       class TheScript extends Script {
         onStart() {}
       }
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onStart = jest.fn();
       const component = entity.addComponent(TheScript);
       entity.isActive = false;
-      scene.update(16.7);
+      engine.update();
       expect(component.onStart).toHaveBeenCalledTimes(0);
     });
   });
@@ -223,13 +185,12 @@ describe("Script", () => {
       class TheScript extends Script {
         onUpdate() {}
       }
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onUpdate = jest.fn();
       const component = entity.addComponent(TheScript);
-      scene.update(16.7);
-      scene.update(16.7);
+      engine.update();
+      engine.update();
       expect(component.onUpdate).toHaveBeenCalledTimes(2);
     });
 
@@ -237,14 +198,13 @@ describe("Script", () => {
       class TheScript extends Script {
         onUpdate() {}
       }
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onUpdate = jest.fn();
       const component = entity.addComponent(TheScript);
       entity.isActive = false;
-      scene.update(16.7);
-      scene.update(16.7);
+      engine.update();
+      engine.update();
       expect(component.onUpdate).toHaveBeenCalledTimes(0);
     });
   });
@@ -254,13 +214,12 @@ describe("Script", () => {
       class TheScript extends Script {
         onLateUpdate() {}
       }
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onLateUpdate = jest.fn();
       const component = entity.addComponent(TheScript);
-      scene.update(16.7);
-      scene.update(16.7);
+      engine.update();
+      engine.update();
       expect(component.onLateUpdate).toHaveBeenCalledTimes(2);
     });
 
@@ -268,14 +227,13 @@ describe("Script", () => {
       class TheScript extends Script {
         onLateUpdate() {}
       }
-      const entity = new Entity("entity");
-      //@ts-ignore
+      const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TheScript.prototype.onLateUpdate = jest.fn();
       const component = entity.addComponent(TheScript);
       entity.isActive = false;
-      scene.update(16.7);
-      scene.update(16.7);
+      engine.update();
+      engine.update();
       expect(component.onLateUpdate).toHaveBeenCalledTimes(0);
     });
   });
@@ -287,12 +245,13 @@ describe("Script", () => {
         onBeginRender() {}
       }
       TheScript.prototype.onBeginRender = jest.fn();
+      const root = scene.getRootEntity();
       const component = root.addComponent(TheScript);
       const camera = root.addComponent(TestCamera);
       //@ts-ignore
-      scene._componentsManager.callCameraOnBeginRender(camera); //TODO:新版函数需要Camera
+      engine._componentsManager.callCameraOnBeginRender(camera);
       //@ts-ignore
-      scene._componentsManager.callCameraOnBeginRender(camera); //TODO:新版函数需要Camera
+      engine._componentsManager.callCameraOnBeginRender(camera);
       expect(component.onBeginRender).toHaveBeenCalledTimes(2);
     });
   });
@@ -304,12 +263,13 @@ describe("Script", () => {
         onEndRender() {}
       }
       TheScript.prototype.onEndRender = jest.fn();
+      const root = scene.getRootEntity();
       const component = root.addComponent(TheScript);
       const camera = root.addComponent(TestCamera);
       //@ts-ignore
-      scene._componentsManager.callCameraOnEndRender(camera); //TODO:新版函数需要Camera
+      engine._componentsManager.callCameraOnEndRender(camera);
       //@ts-ignore
-      scene._componentsManager.callCameraOnEndRender(camera); //TODO:新版函数需要Camera
+      engine._componentsManager.callCameraOnEndRender(camera);
       expect(component.onEndRender).toHaveBeenCalledTimes(2);
     });
   });
@@ -320,9 +280,10 @@ describe("Script", () => {
         onDestroy() {}
       }
       TheScript.prototype.onDestroy = jest.fn();
+      const root = scene.getRootEntity();
       const component = root.addComponent(TheScript);
       component.destroy();
-      scene._componentsManager.callComponentDestory();
+      engine._componentsManager.callComponentDestory();
       expect(component.onDestroy).toHaveBeenCalledTimes(1);
     });
   });
