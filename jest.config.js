@@ -119,9 +119,9 @@ module.exports = {
   // ],
 
   // Allows you to use a custom runner instead of Jest's default test runner
-  // runner: "jest-runner",
-  // runner: "jest-electron/runner",
-  // testEnvironment: "jest-electron/environment",
+  runner: "jest-runner",
+  runner: "jest-electron/runner",
+  testEnvironment: "jest-electron/environment",
 
   // The paths to modules that run some code to configure or set up the testing environment before each test
   // setupFiles: [],
