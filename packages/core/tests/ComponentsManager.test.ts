@@ -1,4 +1,3 @@
-import gl from "gl";
 import { Camera } from "../src/Camera";
 import { RenderContext } from "../src/RenderPipeline/RenderContext";
 import { Canvas, Engine, Entity, HardwareRenderer, Renderer, Scene, Script } from "../src/index";
@@ -20,7 +19,7 @@ describe("ComponentsManager", () => {
     //@ts-ignore
     Entity._entitys._elements.length = 0;
     const rhi: any = {
-      gl: gl(width, height),
+      gl: document.createElement("canvas").getContext("webgl"),
       canIUse: jest.fn().mockReturnValue(true),
       activeRenderTarget: jest.fn().mockReturnValue(true),
       setRenderTargetFace: jest.fn().mockReturnValue(true),
