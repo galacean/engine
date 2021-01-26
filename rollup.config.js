@@ -20,7 +20,7 @@ const pkgs = fs
   .map((location) => {
     return {
       location: location,
-      pkgJson: require(path.resolve(location, "package.json")),
+      pkgJson: require(path.resolve(location, "package.json"))
     };
   });
 
@@ -34,14 +34,14 @@ const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true }),
   glslify({
-    include: [/\.glsl$/, "packages/**/worker/**/*.js"],
+    include: [/\.glsl$/, "packages/**/worker/**/*.js"]
   }),
   babel({
     extensions,
     babelHelpers: "bundled",
-    exclude: ["node_modules/**", "packages/**/node_modules/**"],
+    exclude: ["node_modules/**", "packages/**/node_modules/**"]
   }),
-  commonjs(),
+  commonjs()
 ];
 
 function config({ location, pkgJson }) {
@@ -50,7 +50,7 @@ function config({ location, pkgJson }) {
   const name = pkgJson.name;
   commonPlugins.push(
     replace({
-      __buildVersion: pkgJson.version,
+      __buildVersion: pkgJson.version
     })
   );
 
@@ -79,10 +79,10 @@ function config({ location, pkgJson }) {
             name: globalName,
             format: "umd",
             sourcemap: false,
-            globals,
-          },
+            globals
+          }
         ],
-        plugins,
+        plugins
       };
     },
     mini: () => {
@@ -93,13 +93,13 @@ function config({ location, pkgJson }) {
           {
             format: "cjs",
             file: path.join(location, "dist/miniprogram.js"),
-            sourcemap: false,
-          },
+            sourcemap: false
+          }
         ],
         external: Object.keys(pkgJson.dependencies || {})
           .concat("@oasis-engine/miniprogram-adapter")
           .map((name) => `${name}/dist/miniprogram`),
-        plugins,
+        plugins
       };
     },
     module: () => {
@@ -111,21 +111,20 @@ function config({ location, pkgJson }) {
           {
             file: path.join(location, pkgJson.module),
             format: "es",
-            sourcemap: true,
+            sourcemap: true
           },
+          {
+            file: path.join(location, pkgJson.main),
+            format: "commonjs"
+          }
         ],
-        plugins,
+        plugins
       };
-    },
+    }
   };
 }
 
-async function makeRollupConfig({
-  type,
-  compress = true,
-  visualizer = true,
-  ..._
-}) {
+async function makeRollupConfig({ type, compress = true, visualizer = true, ..._ }) {
   return config({ ..._ })[type](compress, visualizer);
 }
 
@@ -158,7 +157,7 @@ function getUMD() {
           ...config,
           type: "umd",
           compress: false,
-          visualizer: false,
+          visualizer: false
         })
       )
     );
@@ -166,9 +165,7 @@ function getUMD() {
 
 function getModule() {
   const configs = [...pkgs];
-  return configs.map((config) =>
-    makeRollupConfig({ ...config, type: "module" })
-  );
+  return configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
 }
 
 function getMini() {
