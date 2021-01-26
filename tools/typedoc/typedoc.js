@@ -4,7 +4,7 @@ module.exports = {
   name: "Oasis Engine",
   mode: "modules",
   out: `doc/${VERSION}`,
-  theme: "./node_modules/@alipay/oasis-typedoc-theme/bin/default",
+  theme: "./node_modules/@oasis-engine/typedoc-theme/bin/default",
   ignoreCompilerErrors: true,
   preserveConstEnums: true,
   stripInternal: true,
