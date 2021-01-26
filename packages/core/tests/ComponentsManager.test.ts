@@ -7,14 +7,17 @@ describe("ComponentsManager", () => {
   let engine: Engine = new Engine({ width: 1024, height: 1024 }, { init: jest.fn(), canIUse: jest.fn() });
   let scene;
   let camera: Camera;
-  let rootNode: Entity
+  let rootNode: Entity;
   beforeEach(() => {
     const width = 1024;
     const height = 1024;
     scene = engine.sceneManager.activeScene;
     rootNode = engine.sceneManager.activeScene.createRootEntity();
-    camera = rootNode.addComponent(Camera);    engine.sceneManager.activeScene = scene;
+    camera = rootNode.addComponent(Camera);
+    engine.sceneManager.activeScene = scene;
+    //@ts-ignore
     Entity._entitys.length = 0;
+    //@ts-ignore
     Entity._entitys._elements.length = 0;
     const rhi: any = {
       gl: gl(width, height),
