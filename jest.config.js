@@ -142,6 +142,10 @@ module.exports = {
   // testLocationInResults: false,
 
   // The glob patterns Jest uses to detect test files
+  transform: {
+    "\\.(glsl)$": "<rootDir>/tools/jest.transform.glsl.js",
+    "\\.(ts)$": "babel-jest"
+  },
   testMatch: [
     //   "**/__tests__/**/*.[jt]s?(x)",
     //   "**/?(*.)+(spec|test).[tj]s?(x)"
