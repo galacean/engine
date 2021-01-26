@@ -84,8 +84,12 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   set texture(texture: Texture) {
-    this.shaderData.enableMacro('particleTexture');
-    this.material.shaderData.setTexture('u_texture', texture);
+    if (texture) {
+      this.shaderData.enableMacro('particleTexture');
+      this.material.shaderData.setTexture('u_texture', texture);
+    } else {
+      this.shaderData.disableMacro('particleTexture');
+    }
   }
 
   /**
