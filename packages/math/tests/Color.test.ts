@@ -38,5 +38,4 @@ describe("Color test", () => {
       expect(Color.equals(colorLinear, colorNewLinear)).toEqual(true);
     }
   });
-  console.log(`hehehe`)
 });
