@@ -50,7 +50,7 @@ describe("request", () => {
       "https://gw.alipayobjects.com/mdn/rms_af43d2/afts/img/A*02jzTq1WcikAAAAAAAAAAABkARQnAQ",
       {
         type: "image",
-        timeout: 300,
+        timeout: 10,
         retryCount: 1
       }
     ).then((res) => {
