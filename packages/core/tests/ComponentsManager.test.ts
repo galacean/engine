@@ -1,6 +1,6 @@
-import { Canvas, Engine, Entity, HardwareRenderer, RenderableComponent, Scene, Script } from "../src/index";
+import { Canvas, Engine, Entity, HardwareRenderer, Renderer, Scene, Script } from "../src/index";
 describe("ComponentsManager", () => {
-  let engine: Engine = new Engine(<Canvas>{}, <HardwareRenderer>{ init: jest.fn() });
+  let engine: Engine = new Engine(<Canvas>{}, <HardwareRenderer>{ init: jest.fn(), canIuse: jest.fn() });
   let scene;
   beforeEach(() => {
     scene = new Scene();

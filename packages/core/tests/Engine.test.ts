@@ -1,5 +1,5 @@
 import { WebGLEngine, WebCanvas, WebGLRenderer } from "../../rhi-webgl/src";
-import { Engine, Scene } from "../";
+import { Engine, Scene } from "../src";
 
 async function delay(ms: number) {
   return new Promise((resolve) => {

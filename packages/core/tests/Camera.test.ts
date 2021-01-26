@@ -2,26 +2,17 @@ import { Camera, ClearFlags } from "../src/Camera";
 import { Entity } from "../src/Entity";
 import { Engine } from "../src/Engine";
 import { Transform } from "../src/Transform";
-import { Matrix, MathUtil, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Matrix, MathUtil, Vector2, Vector3, Vector4, Ray } from "@oasis-engine/math";
 
 describe("camera test", function () {
   let node: Entity;
   let camera: Camera;
-  let identityMatrix;
+  let identityMatrix: Matrix;
   beforeAll(() => {
-    const engine = new Engine(
-      {
-        width: 1024,
-        height: 1024
-      },
-      {
-        init: jest.fn()
-      }
-    );
-    node = new Entity();
-    engine.sceneManager.activeScene.addRootEntity(node);
+    const engine = new Engine({ width: 1024, height: 1024 }, { init: jest.fn(), canIUse: jest.fn() });
+    node = engine.sceneManager.activeScene.createRootEntity();
     camera = node.addComponent(Camera);
-    camera._onAwake();
+    // camera._onAwake();
     identityMatrix = new Matrix();
   });
 
@@ -37,7 +28,7 @@ describe("camera test", function () {
   });
 
   it("camera awake without transform", () => {
-    const testNode = new Entity("testNode");
+    const testNode = node.createChild("testNode");
     const transform = testNode.getComponent(Transform);
     transform.destroy();
     expect(() => {
@@ -113,7 +104,7 @@ describe("camera test", function () {
 
   it("screen to viewport point", () => {
     camera.viewport = new Vector4(0.5, 0.5, 0.5, 0.5);
-    const out = camera.screenToViewportPoint(new Vector2(0.5, 0.5), new Vector2());
+    const out = camera.screenToViewportPoint(new Vector2(512, 512), new Vector2());
     expect(out.x).toBeCloseTo(0);
     expect(out.y).toBeCloseTo(0);
   });
@@ -121,8 +112,8 @@ describe("camera test", function () {
   it("viewport to screen point", () => {
     camera.viewport = new Vector4(0.5, 0.5, 0.5, 0.5);
     const out = camera.viewportToScreenPoint(new Vector2(0.5, 0.5), new Vector2());
-    expect(out.x).toBeCloseTo(0.75);
-    expect(out.y).toBeCloseTo(0.75);
+    expect(out.x).toBeCloseTo(1024 * 0.75);
+    expect(out.y).toBeCloseTo(1024 * 0.75);
   });
 
   it("world to viewport", () => {
@@ -193,10 +184,7 @@ describe("camera test", function () {
       1
     );
     camera.entity.transform.worldMatrix = mat;
-    const ray = camera.viewportPointToRay(new Vector2(0.4472140669822693, 0.4436090290546417), {
-      origin: new Vector3(),
-      direction: new Vector3()
-    });
+    const ray = camera.viewportPointToRay(new Vector2(0.4472140669822693, 0.4436090290546417), new Ray());
 
     arrayCloseTo(
       [ray.origin.x, ray.origin.y, ray.origin.z],
@@ -220,28 +208,8 @@ describe("camera test", function () {
   });
 
   it("todo implemention", () => {
-    expect(() => {
-      camera.enableHDR;
-    }).toThrow();
-    expect(() => {
-      camera.enableHDR = true;
-    }).toThrow();
-    expect(() => {
-      camera.renderTarget;
-    }).toThrow();
-    expect(() => {
-      camera.renderTarget = {};
-    }).toThrow();
-    expect(() => {
-      camera.backgroundSky;
-    }).toThrow();
-    expect(() => {
-      camera.clearFlags = ClearFlags.DepthSky;
-    }).toThrow();
-    expect(() => {
-      camera.clearFlags;
-    }).toThrow();
-    // expect(camera.enableHDR).rejects.toThrow('not implemention')
+    camera.enableHDR = true;
+    expect(camera.enableHDR).toBeFalsy();
   });
 });
 

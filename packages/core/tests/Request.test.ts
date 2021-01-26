@@ -56,7 +56,7 @@ describe("request", () => {
     ).then((res) => {
       return { width: res.width, height: res.height };
     });
-    return expect(pp).rejects.toEqual(new Error("request timeout"));
+    return expect(pp).rejects.toEqual(new Error("request https://gw.alipayobjects.com/mdn/rms_af43d2/afts/img/A*02jzTq1WcikAAAAAAAAAAABkARQnAQ timeout"));
   });
 
   it("request bin", () => {
