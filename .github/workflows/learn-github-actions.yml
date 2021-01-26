@@ -18,4 +18,4 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - run: npx lerna bootstrap
-    - run: npm run build --if-present
+    - run: npx cross-env NODE_ENV=MODULE rollup -c
