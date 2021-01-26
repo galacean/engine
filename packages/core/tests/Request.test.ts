@@ -50,33 +50,33 @@ describe("request", () => {
       "https://gw.alipayobjects.com/mdn/rms_af43d2/afts/img/A*02jzTq1WcikAAAAAAAAAAABkARQnAQ",
       {
         type: "image",
-        timeout: 300,
+        timeout: 10,
         retryCount: 1
       }
     ).then((res) => {
       return { width: res.width, height: res.height };
     });
-    return expect(pp).rejects.toEqual(new Error("request timeout"));
+    return expect(pp).rejects.toEqual(new Error("request https://gw.alipayobjects.com/mdn/rms_af43d2/afts/img/A*02jzTq1WcikAAAAAAAAAAABkARQnAQ timeout"));
   });
 
-  it("request bin", () => {
-    let lastP = 0;
-    const promise = request<HTMLImageElement>(
-      "https://gw.alipayobjects.com/os/OasisHub/b73b0309-3227-4b24-849a-8ec010fc7f7f/48000126/0.8387082619152928.bin"
-    )
-      .onProgress((p) => {
-        expect(p).toBeGreaterThan(lastP);
-        lastP = p;
-      })
-      .then((res) => {
-        return "success";
-      })
-      .catch((e) => {
-        return "failed";
-      });
+  // it("request bin", () => {
+  //   let lastP = 0;
+  //   const promise = request<HTMLImageElement>(
+  //     "https://gw.alipayobjects.com/os/OasisHub/b73b0309-3227-4b24-849a-8ec010fc7f7f/48000126/0.8387082619152928.bin"
+  //   )
+  //     .onProgress((p) => {
+  //       expect(p).toBeGreaterThan(lastP);
+  //       lastP = p;
+  //     })
+  //     .then((res) => {
+  //       return "success";
+  //     })
+  //     .catch((e) => {
+  //       return "failed";
+  //     });
 
-    return expect(promise).resolves.toEqual("success");
-  });
+  //   return expect(promise).resolves.toEqual("success");
+  // });
 
   it("request timeout", () => {
     const url =

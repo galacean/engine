@@ -26,7 +26,7 @@ export abstract class Component extends EngineObject {
   get enabled(): boolean {
     return this._enabled;
   }
-  
+
   /**
    * Enabled setter, indicates whether the component is enabled.
    */

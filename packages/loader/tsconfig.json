@@ -7,7 +7,7 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "declarationDir": "types",
-    "incremental": true,
+    "incremental": false,
     "emitDeclarationOnly": true,
     "sourceMap": true
   },

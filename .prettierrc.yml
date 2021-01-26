@@ -1,0 +1,10 @@
+# More detail：https://prettier.io/docs/en/configuration.html
+
+---
+printWidth: 120
+proseWrap: never
+singleQuote: false
+trailingComma: none
+semi: true
+tabWidth: 2
+useTabs: false

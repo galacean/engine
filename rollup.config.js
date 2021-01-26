@@ -4,11 +4,9 @@ const path = require("path");
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import babel from "@rollup/plugin-babel";
-import string from "@ali/rollup-plugin-string";
+import glslify from "rollup-plugin-glslify";
 import { terser } from "rollup-plugin-terser";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
-import visualizerFunc from "rollup-plugin-visualizer";
-import esbuild from "rollup-plugin-esbuild";
 import replace from "@rollup/plugin-replace";
 
 const camelCase = require("camelcase");
@@ -20,7 +18,10 @@ const pkgs = fs
   .readdirSync(pkgsRoot)
   .map((dir) => path.join(pkgsRoot, dir))
   .map((location) => {
-    return { location: location, pkgJson: require(path.resolve(location, "package.json")) };
+    return {
+      location: location,
+      pkgJson: require(path.resolve(location, "package.json"))
+    };
   });
 
 // "oasisEngine" 、 "@oasisEngine/controls" ...
@@ -32,7 +33,7 @@ const extensions = [".js", ".jsx", ".ts", ".tsx"];
 
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true }),
-  string({
+  glslify({
     include: [/\.glsl$/, "packages/**/worker/**/*.js"]
   }),
   babel({
@@ -54,14 +55,13 @@ function config({ location, pkgJson }) {
   );
 
   return {
-    umd: (compress, visualizer) => {
+    umd: (compress) => {
       let file = path.join(location, "dist", "browser.js");
       const plugins = [...commonPlugins];
       if (compress) {
         plugins.push(terser());
         file = path.join(location, "dist", "browser.min.js");
       }
-      if (visualizer) plugins.push(visualizerFunc());
 
       const globalName = toGlobalName(pkgJson.name);
 
@@ -87,9 +87,6 @@ function config({ location, pkgJson }) {
     },
     mini: () => {
       const plugins = [...commonPlugins, ...miniProgramPlugin];
-      plugins[2] = esbuild({
-        target: "es2015"
-      });
       return {
         input,
         output: [
@@ -100,14 +97,13 @@ function config({ location, pkgJson }) {
           }
         ],
         external: Object.keys(pkgJson.dependencies || {})
-          .concat("@alipay/o3-adapter-miniprogram")
+          .concat("@oasis-engine/miniprogram-adapter")
           .map((name) => `${name}/dist/miniprogram`),
         plugins
       };
     },
     module: () => {
       const plugins = [...commonPlugins];
-      plugins[2] = esbuild({});
       return {
         input,
         external,
@@ -116,6 +112,10 @@ function config({ location, pkgJson }) {
             file: path.join(location, pkgJson.module),
             format: "es",
             sourcemap: true
+          },
+          {
+            file: path.join(location, pkgJson.main),
+            format: "commonjs"
           }
         ],
         plugins
@@ -151,7 +151,16 @@ function getUMD() {
   const configs = pkgs.filter((pkg) => pkg.pkgJson.browser);
   return configs
     .map((config) => makeRollupConfig({ ...config, type: "umd" }))
-    .concat(configs.map((config) => makeRollupConfig({ ...config, type: "umd", compress: false, visualizer: false })));
+    .concat(
+      configs.map((config) =>
+        makeRollupConfig({
+          ...config,
+          type: "umd",
+          compress: false,
+          visualizer: false
+        })
+      )
+    );
 }
 
 function getModule() {

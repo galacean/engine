@@ -4,10 +4,9 @@ module.exports = {
     [
       "@babel/preset-env",
       {
-        modules: false,
         loose: true,
-        targets: '>0.3%, not dead',
-        bugfixes: true,
+        targets: ">0.3%, not dead",
+        bugfixes: true
       }
     ],
     "@babel/preset-typescript"
@@ -18,10 +17,5 @@ module.exports = {
     "@babel/plugin-proposal-object-rest-spread",
     "@babel/plugin-proposal-optional-chaining",
     "@babel/plugin-transform-object-assign"
-  ],
-  env: {
-    test: {
-      plugins: ["@babel/plugin-transform-runtime"]
-    }
-  }
+  ]
 };

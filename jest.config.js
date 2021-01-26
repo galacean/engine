@@ -119,9 +119,9 @@ module.exports = {
   // ],
 
   // Allows you to use a custom runner instead of Jest's default test runner
-  // runner: "jest-runner",
-  // runner: "jest-electron/runner",
-  // testEnvironment: "jest-electron/environment",
+  runner: "jest-runner",
+  runner: "jest-electron/runner",
+  testEnvironment: "jest-electron/environment",
 
   // The paths to modules that run some code to configure or set up the testing environment before each test
   // setupFiles: [],
@@ -142,6 +142,11 @@ module.exports = {
   // testLocationInResults: false,
 
   // The glob patterns Jest uses to detect test files
+  transform: {
+    "\\.(glsl)$": "<rootDir>/tools/jest/jest.transform.glsl.js",
+    "\\.(ts)$": "<rootDir>/tools/jest/jest.transform.ts.js"
+    // "\\.(ts)$": "babel-jest"
+  },
   testMatch: [
     //   "**/__tests__/**/*.[jt]s?(x)",
     //   "**/?(*.)+(spec|test).[tj]s?(x)"
