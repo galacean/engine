@@ -10,6 +10,7 @@ import { Material } from "../material/Material";
 import { BlendFactor } from "../shader/enums/BlendFactor";
 import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Shader, CullMode } from "../shader";
+import { Texture } from "../texture";
 
 enum DirtyFlagType {
   Position = 0x1,
@@ -22,7 +23,7 @@ enum DirtyFlagType {
   StartTime = 0x80,
   LifeTime = 0x100,
   RotateVelocity = 0x200,
-  ScaleFactor = 0x400,
+  Scale = 0x400,
   Everything = 0xffffffff
 }
 
@@ -57,23 +58,39 @@ export class ParticleRenderer extends GeometryRenderer {
   private _rotateVelocityRandomness: number = 0;
   private _lifetime: number = 5;
   private _startTimeRandomness: number = 0;
-  private _scaleFactor: number = 1;
+  private _scale: number = 1;
   private _isOnce: boolean = false;
   private _time: number = 0;
   private _isInit: boolean = false;
   private _isStart: boolean = false;
   private _updateDirtyFlag: number = DirtyFlagType.Everything;
-  private _isRotateToVelocity: boolean;
-  private _isUseOriginColor: boolean;
-  private _isScaleByLifetime: boolean;
-  private _is2d: boolean;
-  private _isFadeIn: boolean;
-  private _isFadeOut: boolean;
+  private _isRotateToVelocity: boolean = false;
+  private _isUseOriginColor: boolean = false;
+  private _isScaleByLifetime: boolean = false;
+  private _is2d: boolean = true;
+  private _isFadeIn: boolean = false;
+  private _isFadeOut: boolean = false;
 
   /**
    * Sprite sheet of texture.
    */
   public spriteSheet: { x: number; y: number; w: number; h: number }[];
+
+  /**
+   * Texture of particle.
+   */
+  get texture(): Texture {
+    return this.material.shaderData.getTexture('u_texture');
+  }
+
+  set texture(texture: Texture) {
+    if (texture) {
+      this.shaderData.enableMacro('particleTexture');
+      this.material.shaderData.setTexture('u_texture', texture);
+    } else {
+      this.shaderData.disableMacro('particleTexture');
+    }
+  }
 
   /**
    * Position of particles.
@@ -306,13 +323,13 @@ export class ParticleRenderer extends GeometryRenderer {
   /**
    * Scale factor of particles.
    */
-  get scaleFactor(): number {
-    return this._scaleFactor;
+  get scale(): number {
+    return this._scale;
   }
 
-  set scaleFactor(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.ScaleFactor;
-    this._scaleFactor = value;
+  set scale(value: number) {
+    this._updateDirtyFlag |= DirtyFlagType.Scale;
+    this._scale = value;
   }
 
   /**
@@ -502,6 +519,7 @@ export class ParticleRenderer extends GeometryRenderer {
     }
 
     material.renderQueueType = RenderQueueType.Transparent;
+
     this.isUseOriginColor = true;
     this.is2d = true;
     this.isFadeOut = true;
@@ -670,8 +688,8 @@ export class ParticleRenderer extends GeometryRenderer {
       );
     }
 
-    if (_updateDirtyFlag & DirtyFlagType.ScaleFactor) {
-      vertices[k0 + 16] = vertices[k1 + 16] = vertices[k2 + 16] = vertices[k3 + 16] = this._scaleFactor;
+    if (_updateDirtyFlag & DirtyFlagType.Scale) {
+      vertices[k0 + 16] = vertices[k1 + 16] = vertices[k2 + 16] = vertices[k3 + 16] = this._scale;
     }
 
     if (_updateDirtyFlag & DirtyFlagType.StartAngle) {
@@ -689,7 +707,7 @@ export class ParticleRenderer extends GeometryRenderer {
 
   private _updateSingleUv(i: number, k0: number, k1: number, k2: number, k3: number) {
     const { spriteSheet } = this;
-    const texture = this._material.shaderData.getTexture("texture");
+    const texture = this._material.shaderData.getTexture("u_texture");
     const vertices = this._vertices;
 
     if (texture) {
