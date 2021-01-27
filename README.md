@@ -1,15 +1,15 @@
-# Oasis
+# Oasis Engine (Ant Graphics Engine)
 
 <p align="center"><a href="https://oasis-engine.github.io" target="_blank" rel="noopener noreferrer"><img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*f1pVTpPvzA8AAAAAAAAAAAAAARQnAQ" alt="Oasis logo"></a></p>
 
-Oasis is a web-first and mobile-first high-performance real-time development platform. Using component system design, and pursues ease of use and lightweight. This repository is the core engine library of Oasis and is called Ant graphics engine. Developers can independently use and write Typescript scripts to develop projects using pure code.
+Oasis Engine is a **web-first** and **mobile-first** high-performance real-time development platform. Using **component system design**, and pursues ease of use and lightweight. This repository is the core engine library of Oasis Engine. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
 ## Features
 
-- **Platform** - Suppport HTML5 and Alipay miniprogram
-- **Graphics** - Advanced 2D + 3D graphics engine
-- **Animation** - Powerful animation system
-- **Scripts** - Use TypeScript to write logic efficiently
+- 🖥 **Platform** - Suppport HTML5 and Alipay miniprogram
+- 🔮 **Graphics** - Advanced 2D + 3D graphics engine
+- 🏃 **Animation** - Powerful animation system
+- 📑 **Scripts** - Use TypeScript to write logic efficiently
 
 ## Usage
 
