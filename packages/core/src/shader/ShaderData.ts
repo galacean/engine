@@ -525,6 +525,7 @@ export class ShaderData implements IRefObject, IClone {
         this._disableVariableMacro(macro, variableValue);
       } else {
         macro = Shader.getMacroByName(macro);
+        this._macroCollection.disable(macro);
       }
     } else {
       this._macroCollection.disable(macro);
