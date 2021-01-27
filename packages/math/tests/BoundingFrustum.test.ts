@@ -4,7 +4,7 @@ import { BoundingSphere } from "../src/BoundingSphere";
 import { Matrix } from "../src/Matrix";
 import { Vector3 } from "../src/Vector3";
 
-describe("MathUtil test", () => {
+describe("BoundingFrustum test", () => {
   const viewMatrix = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -20, 1);
   const projectionMatrix = new Matrix(0.03954802080988884, 0, 0, 0, 0, 0.10000000149011612, 0, 0, 0, 0, -0.0200200192630291, 0, -0, -0, -1.0020020008087158, 1);
   const vpMatrix = new Matrix();
