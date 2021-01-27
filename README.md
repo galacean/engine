@@ -7,7 +7,7 @@ Oasis is a web-first and mobile-first high-performance real-time development pla
 - **Platform** - Suppport HTML5 and Alipay miniprogram
 - **Graphics** - Advanced 2D + 3D graphics engine
 - **Animation** - Powerful animation system
-- **Scripts** - Write game logic in TypeScript
+- **Scripts** - Use TypeScript to write efficient scripting system
 
 ## Usage
 
