@@ -2,6 +2,7 @@ import { Color } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { BlendFactor } from "../shader/enums/BlendFactor";
 import { BlendOperation } from "../shader/enums/BlendOperation";
+import { CullMode } from "../shader/enums/CullMode";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { AlphaMode } from "./enums/AlphaMode";
@@ -157,6 +158,7 @@ export class BlinnPhongMaterial extends Material {
 
     switch (v) {
       case AlphaMode.Opaque:
+      case AlphaMode.CutOff:
         {
           target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.One;
           target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.Zero;
@@ -174,15 +176,22 @@ export class BlinnPhongMaterial extends Material {
           this.renderQueueType = RenderQueueType.Transparent;
         }
         break;
-      case AlphaMode.CutOff:
-        {
-          target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.One;
-          target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.Zero;
-          target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-          depthState.writeEnabled = true;
-          this.renderQueueType = RenderQueueType.AlphaTest;
-        }
-        break;
+    }
+  }
+
+  /**
+   * Whether to render both sides.
+   * @remarks Only the front side is rendered by default
+   */
+  get doubleSided(): boolean {
+    return this._doubleSided;
+  }
+
+  set doubleSided(v: boolean) {
+    if (v) {
+      this.renderState.rasterState.cullMode = CullMode.Off;
+    } else {
+      this.renderState.rasterState.cullMode = CullMode.Back;
     }
   }
 
@@ -196,6 +205,7 @@ export class BlinnPhongMaterial extends Material {
   private _specularTexture: Texture2D;
   private _shininess: number = 16;
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
+  private _doubleSided: boolean = false;
 
   constructor(engine: Engine) {
     super(engine, Shader.find("blinn-phong"));

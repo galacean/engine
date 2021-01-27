@@ -2,6 +2,7 @@ import { Color, Matrix } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { BlendFactor } from "../shader/enums/BlendFactor";
 import { BlendOperation } from "../shader/enums/BlendOperation";
+import { CullMode } from "../shader/enums/CullMode";
 import { Shader } from "../shader/Shader";
 import { TextureCubeMap } from "../texture";
 import { Texture2D } from "../texture/Texture2D";
@@ -578,6 +579,22 @@ export class PBRMaterial extends Material {
     }
   }
 
+  /**
+   * Whether to render both sides.
+   * @remarks Only the front side is rendered by default
+   */
+  get doubleSided(): boolean {
+    return this._doubleSided;
+  }
+
+  set doubleSided(v: boolean) {
+    if (v) {
+      this.renderState.rasterState.cullMode = CullMode.Off;
+    } else {
+      this.renderState.rasterState.cullMode = CullMode.Back;
+    }
+  }
+
   private _baseColor: Color = new Color(1, 1, 1, 1);
   private _metallicFactor: number = 1;
   private _roughnessFactor: number = 1;
@@ -614,6 +631,7 @@ export class PBRMaterial extends Material {
   private _isMetallicWorkflow: boolean = true;
   private _envMapModeRefract: boolean = false;
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
+  private _doubleSided: boolean = false;
 
   constructor(engine: Engine) {
     super(engine, Shader.find("pbr"));
