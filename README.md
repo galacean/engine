@@ -12,18 +12,18 @@ Oasis is a web-first and mobile-first high-performance real-time development pla
 ## Usage
 
 ```typescript
-// Create engine and get root entity.
-const engine = new WebGLEngine("o3-demo");
+// Create engine by passing in the HTMLCanvasElement name and get root entity.
+const engine = new WebGLEngine("canvas");
 const canvas = engine.canvas;
 const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
 canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
 
 // Create light.
-const lightEntity = rootEntity.createChild("DirectLight");
+const lightEntity = rootEntity.createChild("Light");
 const ambient = lightEntity.addComponent(AmbientLight);
 const directLight = lightEntity.addComponent(DirectLight);
-ambient.color = new Color(0.2, 0.2, 0.2);
+ambient.color = new Color(0.5, 0.5, 0.5);
 directLight.color = new Color(0.3, 0.4, 0.4);
 
 // Create camera.
@@ -32,12 +32,14 @@ cameraEntity.transform.setPosition(0, 6, 10);
 cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
 cameraEntity.addComponent(Camera);
 
-// Add gltf modle.
-engine.resourceManager
-  .load("https://gw.alipayobjects.com/os/bmw-prod/83219f61-7d20-4704-890a-60eb92aa6159.gltf")
-  .then((gltf) => {
-    rootEntity.addChild(gltf.defaultSceneRoot);
-  });
+// Create cube.
+const cubeEntity = rootEntity.createChild("Cube");
+const cubeRenderer = cubeEntity.addComponent(GeometryRenderer);
+const material = new BlinnPhongMaterial(engine);
+cubeEntity.transform.rotate(0, 60, 0);
+material.ambientColor = new Color(0.6, 0.6, 0.6, 1);
+cubeRenderer.geometry = new CuboidGeometry(engine, 1, 1, 1);
+cubeRenderer.material = material;
 
 // Run engine.
 engine.run();
