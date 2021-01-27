@@ -1,6 +1,6 @@
 # Oasis
 
-Oasis is a web-first and mobile-first high-performance real-time development platform. Using component system design, pursuit of ease of use and lightweight. This repository is the engine library of Oasis and is called Ant graphics engine. Developers can independently use and write Typescript scripts to develop projects using pure code.
+Oasis is a web-first and mobile-first high-performance real-time development platform. Using component system design, and pursues ease of use and lightweight. This repository is the engine core library of Oasis and is called Ant graphics engine. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
 ##Features
 
