@@ -74,10 +74,10 @@ Make sure to read the [Contributing Guide](.github/CONTRIBUTING.md) before submi
 If you don't already have Node.js and NPM, go install them. Then, in the folder where you have cloned the repository, install the build dependencies using npm:
 
 ```sh
-npm install
+npm run bootstrap
 ```
 
-Then, to build the source, run:
+Then, to build the source, using npm:
 
 ```sh
 npm run build
