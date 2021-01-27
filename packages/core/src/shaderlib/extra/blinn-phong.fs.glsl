@@ -21,6 +21,7 @@ void main() {
     #include <mobile_blinnphong_frag>
 
     gl_FragColor = emission + ambient + diffuse + specular;
+    gl_FragColor.a = diffuse.a;
 
     #include <fog_frag>
 
