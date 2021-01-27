@@ -6,10 +6,10 @@ Oasis Engine is a **web-first** and **mobile-first** high-performance real-time 
 
 ## Features
 
-- 🖥 **Platform** - Suppport HTML5 and Alipay miniprogram
-- 🔮 **Graphics** - Advanced 2D + 3D graphics engine
-- 🏃 **Animation** - Powerful animation system
-- 📑 **Scripts** - Use TypeScript to write logic efficiently
+- 🖥  &nbsp;**Platform** - Suppport HTML5 and Alipay miniprogram
+- 🔮  &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
+- 🏃  &nbsp;**Animation** - Powerful animation system
+- 📑  &nbsp;**Scripts** - Use TypeScript to write logic efficiently
 
 ## Usage
 
