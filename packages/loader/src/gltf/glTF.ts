@@ -7,7 +7,6 @@ import {
   BufferBindFlag,
   BufferUsage,
   Camera,
-  CullMode,
   Engine,
   EngineObject,
   Entity,
@@ -306,11 +305,7 @@ export function parseMaterial(gltfMaterial, resources) {
       }
     }
 
-    if (doubleSided) {
-      material.renderState.rasterState.cullMode = CullMode.Off;
-    } else {
-      material.renderState.rasterState.cullMode = CullMode.Back;
-    }
+    material.doubleSided = doubleSided;
 
     switch (alphaMode) {
       case "OPAQUE":
