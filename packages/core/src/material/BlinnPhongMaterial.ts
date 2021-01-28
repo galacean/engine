@@ -14,36 +14,6 @@ import { Material } from "./Material";
  */
 export class BlinnPhongMaterial extends Material {
   /**
-   * Ambient color.
-   */
-  get ambientColor(): Color {
-    return this._ambientColor;
-  }
-
-  set ambientColor(value: Color) {
-    this._ambientColor = value;
-    this.shaderData.setColor("u_ambientColor", value);
-  }
-
-  /**
-   * Ambient texture.
-   */
-  get ambientTexture(): Texture2D {
-    return this._ambientTexture;
-  }
-
-  set ambientTexture(value: Texture2D) {
-    this._ambientTexture = value;
-
-    if (value) {
-      this.shaderData.enableMacro("O3_AMBIENT_TEXTURE");
-      this.shaderData.setTexture("u_ambientTexture", value);
-    } else {
-      this.shaderData.disableMacro("O3_AMBIENT_TEXTURE");
-    }
-  }
-
-  /**
    * Emissive color.
    */
   get emissiveColor(): Color {
@@ -195,11 +165,9 @@ export class BlinnPhongMaterial extends Material {
     }
   }
 
-  private _ambientColor: Color = new Color(0, 0, 0, 1);
   private _emissiveColor: Color = new Color(0, 0, 0, 1);
   private _diffuseColor: Color = new Color(1, 1, 1, 1);
   private _specularColor: Color = new Color(1, 1, 1, 1);
-  private _ambientTexture: Texture2D;
   private _emissiveTexture: Texture2D;
   private _diffuseTexture: Texture2D;
   private _specularTexture: Texture2D;
@@ -211,7 +179,6 @@ export class BlinnPhongMaterial extends Material {
     super(engine, Shader.find("blinn-phong"));
     this.shaderData.enableMacro("O3_NEED_WORLDPOS");
 
-    this.ambientColor = this._ambientColor;
     this.emissiveColor = this._emissiveColor;
     this.diffuseColor = this._diffuseColor;
     this.specularColor = this._specularColor;
