@@ -23,8 +23,7 @@ const _tempShpere = new BoundingSphere();
  * @param _outPos - The point where the ray intersects
  * @return The collider that has been intersecting
  */
-(Scene.prototype as any).raycast = function (_ray, _outPos: Vector3, tag: Layer = Layer.Everything) {
-  const ray = new Ray(_ray.origin, _ray.direction);
+(Scene.prototype as any).raycast = function (ray: Ray, _outPos: Vector3, tag: Layer = Layer.Everything) {
   const cf = this.findFeature(ColliderFeature);
   const colliders = cf.colliders;
 
@@ -36,7 +35,7 @@ const _tempShpere = new BoundingSphere();
       continue;
     }
 
-    if (!(collider.entity.tag & tag)) {
+    if (!(collider.entity.layer & tag)) {
       continue;
     }
     const hit = new RaycastHit();
