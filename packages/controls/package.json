@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/controls",
-  "version": "0.1.17",
+  "version": "0.2.0",
   "scripts": {
     "b:types": "tsc",
     "lint:fix": "tslint --fix --project ./tsconfig.json"
@@ -14,6 +14,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "oasis-engine": "0.1.17"
+    "oasis-engine": "0.2.0"
   }
 }
