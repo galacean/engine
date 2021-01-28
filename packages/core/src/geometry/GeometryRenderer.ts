@@ -67,9 +67,14 @@ export class GeometryRenderer extends Renderer {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const localBounds = this._geometry.bounds;
-    const worldMatrix = this._entity.transform.worldMatrix;
-
-    BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+    const geometry = this._geometry;
+    if (geometry) {
+      const localBounds = geometry.bounds;
+      const worldMatrix = this._entity.transform.worldMatrix;
+      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+    } else {
+      worldBounds.min.setValue(0, 0, 0);
+      worldBounds.max.setValue(0, 0, 0);
+    }
   }
 }
