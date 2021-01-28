@@ -55,7 +55,7 @@ function handleAssets(props: any = {}) {
     }
 
     if (Array.isArray(value)) {
-      if (["ambientColor", "emissiveColor", "diffuseColor", "specularColor", "baseColor"].indexOf(key) !== -1) {
+      if (["emissiveColor", "diffuseColor", "specularColor", "baseColor"].indexOf(key) !== -1) {
         props[key] = new Color(value[0], value[1], value[2], value[3]);
       } else if (value.length === 4) {
         props[key] = new Vector4(value[0], value[1], value[2], value[3]);
