@@ -56,6 +56,9 @@ export abstract class Renderer extends Component {
   @ignoreClone
   private _normalMatrix: Matrix = new Matrix();
 
+  /**
+   * The bounding volume of the renderer.
+   */
   get bounds(): BoundingBox {
     const changeFlag = this._transformChangeFlag;
     if (changeFlag.flag) {

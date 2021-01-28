@@ -1,1 +1,1 @@
-export { ParticleRenderer } from "./particleRenderer";
+export { ParticleRenderer } from "./ParticleRenderer";
