@@ -75,7 +75,7 @@ import { Engine, Scene, Entity } from "oasis-engine";
 
 Everyone is welcome to join us! Whether you find a bug, have a great feature request or you fancy owning a task from the road map feel free to get in touch.
 
-Make sure to read the [Contributing Guide](.github/CONTRIBUTING.md) before submitting changes.
+Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) before submitting changes.
 
 ## Build
 
