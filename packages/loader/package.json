@@ -1,6 +1,7 @@
 {
   "name": "@oasis-engine/loader",
   "version": "0.2.0",
+  "license": "MIT",
   "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc"

@@ -1,6 +1,7 @@
 {
   "name": "@oasis-engine/controls",
   "version": "0.2.0",
+  "license": "MIT",
   "scripts": {
     "b:types": "tsc",
     "lint:fix": "tslint --fix --project ./tsconfig.json"
