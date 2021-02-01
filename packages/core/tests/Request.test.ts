@@ -89,16 +89,4 @@ describe("request", () => {
     });
     return expect(promise).resolves.toEqual(new Error(`request timeout from: ${url}`));
   });
-
-  it("request onerror", () => {
-    const url =
-      "https://gw.alipayobjects.com/os/OasisHub/b73b0309-3227-4b24-849a-8ec010fc7f7f/48000126/0.8387082619152928";
-    const promise = request<HTMLImageElement>(url, {
-      retryCount: 1,
-      headers: {
-        key: "value"
-      }
-    });
-    return expect(promise).rejects.toEqual(new Error(`request failed from: ${url}`));
-  });
 });
