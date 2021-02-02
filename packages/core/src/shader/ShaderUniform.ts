@@ -12,7 +12,7 @@ export class ShaderUniform {
   name: string;
   propertyId: number;
   location: WebGLUniformLocation;
-  textureIndex: number | number[];
+  textureIndex: GLenum | GLenum[];
   applyFunc: (shaderUniform: ShaderUniform, value: ShaderPropertyValueType) => void;
   cacheValue: number | Vector2 | Vector3 | Vector4;
 
@@ -244,13 +244,13 @@ export class ShaderUniform {
 
   uploadTexture(shaderUniform: ShaderUniform, value: Texture): void {
     const rhi = this._rhi;
-    rhi.activeTexture(shaderUniform.textureIndex as number);
+    rhi.activeTexture(shaderUniform.textureIndex as GLenum);
     rhi.bindTexture(value._target, value._glTexture);
   }
 
   uploadTextureArray(shaderUniform: ShaderUniform, value: Texture[]): void {
     const rhi = this._rhi;
-    const textureIndices = shaderUniform.textureIndex as number[];
+    const textureIndices = shaderUniform.textureIndex as GLenum[];
     for (let i = 0; i < value.length; i++) {
       const texture = value[i];
       rhi.activeTexture(textureIndices[i]);

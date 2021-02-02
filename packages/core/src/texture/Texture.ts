@@ -1,6 +1,7 @@
 import { RefObject } from "../asset/RefObject";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
+import { HardwareRenderer } from "../HardwareRenderer";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "../material/type";
 import { RenderBufferColorFormat } from "./enums/RenderBufferColorFormat";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
@@ -403,7 +404,7 @@ export abstract class Texture extends RefObject {
   protected _height: number;
 
   /** @internal */
-  protected _rhi;
+  protected _rhi: HardwareRenderer;
   /** @internal */
   protected _mipmap: boolean;
   /** @internal */
@@ -563,16 +564,12 @@ export abstract class Texture extends RefObject {
 
   /** @internal */
   _bind(): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-
-    gl.bindTexture(this._target, this._glTexture);
+    this._rhi.bindTexture(this._target, this._glTexture);
   }
 
   /** @internal */
   _unbind(): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-
-    gl.bindTexture(this._target, null);
+    this._rhi.bindTexture(this._target, null);
   }
 
   /**
