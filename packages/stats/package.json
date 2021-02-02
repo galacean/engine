@@ -1,6 +1,7 @@
 {
   "name": "@oasis-engine/stats",
   "version": "0.2.0",
+  "license": "MIT",
   "scripts": {
     "b:types": "tsc"
   },
