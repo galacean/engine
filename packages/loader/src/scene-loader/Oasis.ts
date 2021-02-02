@@ -51,9 +51,9 @@ export class Oasis extends EventDispatcher {
     return this.loadResources().then(() => {
       this.bindResources();
       this.parseEntities();
-      this.parseNodeAbilities();
       this.attach();
       this.nodeManager.addRootEntity();
+      this.parseNodeAbilities();
       this.pluginManager.boot(this);
     });
   }
