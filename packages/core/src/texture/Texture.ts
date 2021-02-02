@@ -564,16 +564,12 @@ export abstract class Texture extends RefObject {
 
   /** @internal */
   _bind(): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-
-    gl.bindTexture(this._target, this._glTexture);
+    this._rhi.bindTexture(this._target, this._glTexture);
   }
 
   /** @internal */
   _unbind(): void {
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = this._rhi.gl;
-
-    gl.bindTexture(this._target, null);
+    this._rhi.bindTexture(this._target, null);
   }
 
   /**
