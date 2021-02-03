@@ -3,8 +3,9 @@ import { ClearMode } from "../base";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
+import { RenderQueueType } from "../material";
 import { Material } from "../material/Material";
-import { Shader } from "../shader";
+import { BlendFactor, BlendOperation, CullMode, Shader } from "../shader";
 import { TextureCubeFace } from "../texture/enums/TextureCubeFace";
 import { RenderTarget } from "../texture/RenderTarget";
 import { RenderContext } from "./RenderContext";
@@ -36,7 +37,16 @@ export class BasicRenderPipeline {
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
     this.addRenderPass(this._defaultPass);
-    this._defaultSpriteMaterial = new Material(camera.engine, Shader.find("Sprite"));
+
+    // TODO: remove in next version.
+    const material = this._defaultSpriteMaterial = new Material(camera.engine, Shader.find("Sprite"));
+    const target = material.renderState.blendState.targetBlendState;
+    target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    material.renderState.depthState.writeEnabled = false;
+    material.renderQueueType = RenderQueueType.Transparent;
+    material.renderState.rasterState.cullMode = CullMode.Off;
   }
 
   /**

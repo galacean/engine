@@ -48,6 +48,7 @@ export class GLSpriteBatcher {
       return;
     }
 
+    program.bind();
     program.groupingOtherUniformBlock();
     program.uploadAll(program.materialUniformBlock, materialData);
 
