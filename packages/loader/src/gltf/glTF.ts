@@ -18,6 +18,7 @@ import {
   Mesh,
   MeshRenderer,
   PBRMaterial,
+  PBRSpecularMaterial,
   Primitive,
   PrimitiveTopology,
   Scene,
@@ -26,6 +27,7 @@ import {
   SubPrimitive,
   Texture2D,
   TypedArray,
+  UnlightMaterial,
   VertexElement
 } from "@oasis-engine/core";
 import { Color, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
@@ -79,8 +81,8 @@ let KHR_lights = null;
 
 const extensionParsers = {
   KHR_lights: KHR_lights,
-  KHR_materials_unlit: PBRMaterial, // Also have other materials
-  KHR_materials_pbrSpecularGlossiness: PBRMaterial,
+  KHR_materials_unlit: UnlightMaterial,
+  KHR_materials_pbrSpecularGlossiness: PBRSpecularMaterial,
   KHR_techniques_webgl: Material,
   KHR_draco_mesh_compression: glTFDracoMeshCompression
 };
@@ -95,9 +97,6 @@ export function RegistExtension(extobj) {
       RegistedObjs[name] = extobj[name];
 
       switch (name) {
-        case HandledExtensions.PBRMaterial:
-          extensionParsers.KHR_materials_unlit = PBRMaterial;
-          break;
         case HandledExtensions.KHR_lights:
           KHR_lights = extobj[name];
           extensionParsers.KHR_lights = KHR_lights;
@@ -238,11 +237,10 @@ function parseResources(resources: GLTFParsed, name: string, handler) {
  * @private
  */
 export function parseMaterial(gltfMaterial, resources) {
-  const { gltf, asset } = resources;
-  const material: PBRMaterial = new PBRMaterial(resources.engine);
-
+  const { gltf, engine } = resources;
   if (gltf.isGltf2 && typeof gltfMaterial.technique === "undefined") {
     const {
+      extensions = {},
       pbrMetallicRoughness,
       normalTexture,
       emissiveTexture,
@@ -250,10 +248,37 @@ export function parseMaterial(gltfMaterial, resources) {
       occlusionTexture,
       alphaMode,
       alphaCutoff,
-      doubleSided,
-      extensions
+      doubleSided
     } = gltfMaterial;
 
+    const isUnlight = extensions.KHR_materials_unlit;
+    const isSpecular = extensions.KHR_materials_pbrSpecularGlossiness;
+
+    let material: UnlightMaterial | PBRMaterial | PBRSpecularMaterial = null;
+    if (isUnlight) {
+      material = new UnlightMaterial(engine);
+    } else if (isSpecular) {
+      material = new PBRSpecularMaterial(engine);
+    } else {
+      material = new PBRMaterial(engine);
+    }
+
+    // render states
+    material.doubleSided = doubleSided;
+    switch (alphaMode) {
+      case "OPAQUE":
+        material.alphaMode = AlphaMode.Opaque;
+        break;
+      case "BLEND":
+        material.alphaMode = AlphaMode.Blend;
+        break;
+      case "MASK":
+        material.alphaMode = AlphaMode.CutOff;
+        (material as PBRMaterial | PBRSpecularMaterial).alphaCutoff = alphaCutoff === undefined ? 0.5 : alphaCutoff;
+        break;
+    }
+
+    // may be applied to unlight too.
     if (pbrMetallicRoughness) {
       const {
         baseColorFactor,
@@ -268,26 +293,26 @@ export function parseMaterial(gltfMaterial, resources) {
       if (baseColorFactor) {
         material.baseColor = new Color(...baseColorFactor);
       }
-      material.metallicFactor = metallicFactor !== undefined ? metallicFactor : 1;
-      material.roughnessFactor = roughnessFactor !== undefined ? roughnessFactor : 1;
-      if (metallicRoughnessTexture) {
-        material.metallicRoughnessTexture = getItemByIdx(
-          "textures",
-          metallicRoughnessTexture.index || 0,
-          resources,
-          false
-        );
+      if (!isUnlight) {
+        material = material as PBRMaterial;
+        material.metallicFactor = metallicFactor !== undefined ? metallicFactor : 1;
+        material.roughnessFactor = roughnessFactor !== undefined ? roughnessFactor : 1;
+        if (metallicRoughnessTexture) {
+          material.metallicRoughnessTexture = getItemByIdx(
+            "textures",
+            metallicRoughnessTexture.index || 0,
+            resources,
+            false
+          );
+        }
       }
     }
 
-    if (normalTexture) {
-      const { index, texCoord, scale } = normalTexture;
-      material.normalTexture = getItemByIdx("textures", index || 0, resources, false);
-
-      if (typeof scale !== undefined) {
-        material.normalScale = scale;
-      }
+    // break unlight at here, unlight don't need to process the next code
+    if (isUnlight) {
+      return Promise.resolve(material);
     }
+    material = material as PBRMaterial | PBRSpecularMaterial;
 
     if (emissiveTexture) {
       material.emissiveTexture = getItemByIdx("textures", emissiveTexture.index || 0, resources, false);
@@ -297,7 +322,18 @@ export function parseMaterial(gltfMaterial, resources) {
       material.emissiveColor = new Color(...emissiveFactor);
     }
 
+    if (normalTexture) {
+      const { index, texCoord, scale } = normalTexture;
+      material = material as PBRMaterial | PBRSpecularMaterial;
+      material.normalTexture = getItemByIdx("textures", index || 0, resources, false);
+
+      if (typeof scale !== undefined) {
+        material.normalScale = scale;
+      }
+    }
+
     if (occlusionTexture) {
+      material = material as PBRMaterial | PBRSpecularMaterial;
       material.occlusionTexture = getItemByIdx("textures", occlusionTexture.index || 0, resources, false);
 
       if (occlusionTexture.strength !== undefined) {
@@ -305,70 +341,49 @@ export function parseMaterial(gltfMaterial, resources) {
       }
     }
 
-    material.doubleSided = doubleSided;
-
-    switch (alphaMode) {
-      case "OPAQUE":
-        material.alphaMode = AlphaMode.Opaque;
-        break;
-      case "BLEND":
-        material.alphaMode = AlphaMode.Blend;
-        break;
-      case "MASK":
-        material.alphaMode = AlphaMode.CutOff;
-        material.alphaCutoff = alphaCutoff === undefined ? 0.5 : alphaCutoff;
-        break;
-    }
-
-    if (extensions) {
-      if (extensions.KHR_materials_unlit) {
-        material.unLight = true;
+    if (isSpecular) {
+      const {
+        diffuseFactor,
+        diffuseTexture,
+        specularFactor,
+        glossinessFactor,
+        specularGlossinessTexture
+      } = extensions.KHR_materials_pbrSpecularGlossiness;
+      material = material as PBRSpecularMaterial;
+      if (diffuseFactor) {
+        material.baseColor = new Color(...diffuseFactor);
       }
-
-      // High gloss.
-      if (extensions.KHR_materials_pbrSpecularGlossiness) {
-        const {
-          diffuseFactor,
-          diffuseTexture,
-          specularFactor,
-          glossinessFactor,
-          specularGlossinessTexture
-        } = extensions.KHR_materials_pbrSpecularGlossiness;
-
-        material.isMetallicWorkflow = false;
-        if (diffuseFactor) {
-          material.baseColor = new Color(...diffuseFactor);
-        }
-        if (diffuseTexture) {
-          material.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources, false);
-        }
-        if (specularFactor) {
-          material.specularColor = new Color(...specularFactor);
-        }
-        if (glossinessFactor !== undefined) {
-          material.glossinessFactor = glossinessFactor;
-        }
-        if (specularGlossinessTexture) {
-          material.specularGlossinessTexture = getItemByIdx(
-            "textures",
-            specularGlossinessTexture.index || 0,
-            resources,
-            false
-          );
-        }
+      if (diffuseTexture) {
+        material.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources, false);
+      }
+      if (specularFactor) {
+        material.specularColor = new Color(...specularFactor);
+      }
+      if (glossinessFactor !== undefined) {
+        material.glossinessFactor = glossinessFactor;
+      }
+      if (specularGlossinessTexture) {
+        material.specularGlossinessTexture = getItemByIdx(
+          "textures",
+          specularGlossinessTexture.index || 0,
+          resources,
+          false
+        );
       }
     }
+    return Promise.resolve(material);
   } else {
     const techniqueName = gltfMaterial.technique;
     Logger.warn("Deprecated: Please use a model that meets the glTF 2.0 specification");
     // TODO: support KHR_UNLIT_MATERIAL in the future.
     if (techniqueName === "Texture") {
-      material.unLight = true;
+      const material = new UnlightMaterial(engine);
       const index = gltfMaterial.values._MainTex[0];
       material.baseColorTexture = getItemByIdx("textures", index || 0, resources, false);
+      return Promise.resolve(material);
     }
   }
-  return Promise.resolve(material);
+  return Promise.resolve();
 }
 
 /**
