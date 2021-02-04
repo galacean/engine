@@ -1,27 +1,7 @@
 attribute vec3 POSITION;
 
 #ifdef O3_HAS_UV
-
-attribute vec2 TEXCOORD_0;
-
-#endif
-
-#ifdef O3_HAS_NORMAL
-
-attribute vec3 NORMAL;
-
-#endif
-
-#ifdef O3_HAS_TANGENT
-
-attribute vec4 TANGENT;
-
-#endif
-
-#ifdef O3_HAS_VERTEXCOLOR
-
-attribute vec4 COLOR_0;
-
+    attribute vec2 TEXCOORD_0;
 #endif
 
 #ifdef O3_HAS_SKIN
@@ -52,6 +32,10 @@ attribute vec4 COLOR_0;
     #endif
 #endif
 
+#ifdef O3_HAS_VERTEXCOLOR
+    attribute vec4 COLOR_0;
+#endif
+
 uniform mat4 u_localMat;
 uniform mat4 u_modelMat;
 uniform mat4 u_viewMat;
@@ -60,3 +44,13 @@ uniform mat4 u_MVMat;
 uniform mat4 u_MVPMat;
 uniform mat4 u_normalMat;
 uniform vec3 u_cameraPos;
+
+#ifndef OMIT_NORMAL
+    #ifdef O3_HAS_NORMAL
+        attribute vec3 NORMAL;
+    #endif
+
+    #ifdef O3_HAS_TANGENT
+        attribute vec4 TANGENT;
+    #endif
+#endif
