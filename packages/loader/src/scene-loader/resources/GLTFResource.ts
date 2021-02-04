@@ -1,9 +1,21 @@
-import { AssetType, Logger, ResourceManager, MeshRenderer, Material } from "@oasis-engine/core";
+import {
+  AssetType,
+  Logger,
+  Material,
+  MeshRenderer,
+  PBRMaterial,
+  PBRSpecularMaterial,
+  ResourceManager,
+  UnlightMaterial
+} from "@oasis-engine/core";
+import { glTFDracoMeshCompression } from "../../gltf/glTFDracoMeshCompression";
 import { Oasis } from "../Oasis";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
+import { BlinnPhongMaterialResource } from "./BlinnPhongMaterialResource";
 import { PBRMaterialResource } from "./PBRMaterialResource";
+import { PBRSpecularMaterialResource } from "./PBRSpecularMaterialResource";
 import { SchemaResource } from "./SchemaResource";
-import { glTFDracoMeshCompression } from "../../gltf/glTFDracoMeshCompression";
+import { UnlightMaterialResource } from "./UnlightMaterialResource";
 
 export class GLTFResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<any> {
@@ -42,12 +54,27 @@ export class GLTFResource extends SchemaResource {
         };
         for (let i = 0; i < materials.length; i++) {
           const material = materials[i];
+          let materialResource = null;
+          let type = "";
 
-          const materialResource = new PBRMaterialResource(this.resourceManager);
+          if (material instanceof PBRMaterial) {
+            materialResource = new PBRMaterialResource(this.resourceManager);
+            type = "PBRMaterial";
+          } else if (material instanceof UnlightMaterial) {
+            materialResource = new UnlightMaterialResource(this.resourceManager);
+            type = "UnlightMaterial";
+          } else if (material instanceof PBRSpecularMaterial) {
+            materialResource = new PBRSpecularMaterialResource(this.resourceManager);
+            type = "PBRSpecularMaterial";
+          } else {
+            materialResource = new BlinnPhongMaterialResource(this.resourceManager);
+            type = "BlinnPhongMaterial";
+          }
+
           this._attachedResources.push(materialResource);
           loadPromises.push(
             materialResource.loadWithAttachedResources(resourceManager, {
-              type: "PBRMaterial",
+              type,
               name: material.name,
               resource: material
             })
