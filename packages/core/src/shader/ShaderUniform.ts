@@ -134,6 +134,7 @@ export class ShaderUniform {
   upload1i(shaderUniform: ShaderUniform, value: number): void {
     if (this.cacheValue !== value) {
       this._gl.uniform1i(shaderUniform.location, value);
+      this.cacheValue = value;
     }
   }
 
