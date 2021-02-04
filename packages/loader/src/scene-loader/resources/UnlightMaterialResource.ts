@@ -1,15 +1,15 @@
-import { Logger, PBRMaterial, ResourceManager, Texture } from "@oasis-engine/core";
+import { Logger, UnlightMaterial, ResourceManager, Texture } from "@oasis-engine/core";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { getAllGetters, isAsset } from "../utils";
 import { SchemaResource } from "./SchemaResource";
 import { TextureResource } from "./TextureResource";
 
-export class PBRMaterialResource extends SchemaResource {
+export class UnlightMaterialResource extends SchemaResource {
   private configProps;
 
-  load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<PBRMaterialResource> {
+  load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<UnlightMaterialResource> {
     return new Promise((resolve) => {
-      const assetObj = new PBRMaterial(resourceManager.engine);
+      const assetObj = new UnlightMaterial(resourceManager.engine);
       this.configProps = assetConfig.props;
 
       for (let k in this.configProps) {
@@ -29,7 +29,7 @@ export class PBRMaterialResource extends SchemaResource {
   ): Promise<LoadAttachedResourceResult> {
     return new Promise((resolve, reject) => {
       let loadPromise;
-      if (assetConfig.resource instanceof PBRMaterial) {
+      if (assetConfig.resource instanceof UnlightMaterial) {
         loadPromise = new Promise((resolve) => {
           this._resource = assetConfig.resource;
           this.setMeta();
