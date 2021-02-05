@@ -1,4 +1,4 @@
-import { MathUtil, Vector3 } from "@oasis-engine/math";
+import { MathUtil, Vector3, Color } from "@oasis-engine/math";
 import { BufferGeometry, GeometryRenderer } from "../geometry";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
@@ -27,6 +27,11 @@ enum DirtyFlagType {
   Everything = 0xffffffff
 }
 
+enum BlendMode {
+  Transparent = 0,
+  Additive = 1
+}
+
 /**
  * Particle Renderer Component
  */
@@ -46,7 +51,7 @@ export class ParticleRenderer extends GeometryRenderer {
   private _velocityRandomness: Vector3 = new Vector3();
   private _acceleration: Vector3 = new Vector3();
   private _accelerationRandomness: Vector3 = new Vector3();
-  private _color: Vector3 = new Vector3(1, 1, 1);
+  private _color: Color = new Color(1, 1, 1, 1);
   private _colorRandomness: number = 0;
   private _size: number = 1;
   private _sizeRandomness: number = 0;
@@ -70,6 +75,8 @@ export class ParticleRenderer extends GeometryRenderer {
   private _is2d: boolean = true;
   private _isFadeIn: boolean = false;
   private _isFadeOut: boolean = false;
+  private _isAutoplay: boolean = true;
+  private _blendMode: BlendMode = BlendMode.Transparent;
 
   /**
    * Sprite sheet of texture.
@@ -179,11 +186,11 @@ export class ParticleRenderer extends GeometryRenderer {
   /**
    * Color of particles.
    */
-  get color(): Vector3 {
+  get color(): Color {
     return this._color;
   }
 
-  set color(value: Vector3) {
+  set color(value: Color) {
     this._updateDirtyFlag |= DirtyFlagType.Color;
     this._color = value;
   }
@@ -343,11 +350,16 @@ export class ParticleRenderer extends GeometryRenderer {
     this._isStart = false;
     this._isInit = false;
     this._maxCount = value;
+    this._updateDirtyFlag = DirtyFlagType.Everything;
     this.geometry = this._createGeometry();
 
     this._updateBuffer();
 
     this._isInit = true;
+
+    if (this._isAutoplay) {
+      this.start();
+    }
   }
 
   /**
@@ -462,6 +474,41 @@ export class ParticleRenderer extends GeometryRenderer {
     }
 
     this._isFadeOut = value;
+  }
+
+  get isAutoplay(): boolean {
+    return this._isAutoplay;
+  }
+
+  set isAutoplay(value: boolean) {
+    this._isAutoplay = value;
+
+    if (value) {
+      this.start();
+    }
+    else {
+      this.stop();
+    }
+  }
+
+  get blendMode(): BlendMode {
+    return this._blendMode;
+  }
+
+  set blendMode(value: BlendMode) {
+    const blendState = this.material.renderState.blendState;
+    const target = blendState.targetBlendState;
+
+    if (value === BlendMode.Transparent) {
+      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    }
+    else if (value === BlendMode.Additive) {
+      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
+    }
+
+    this._blendMode = value;
   }
 
   constructor(props) {
@@ -643,17 +690,18 @@ export class ParticleRenderer extends GeometryRenderer {
       const { _color, _colorRandomness } = this;
 
       vertices[k0 + 9] = vertices[k1 + 9] = vertices[k2 + 9] = vertices[k3 + 9] = MathUtil.clamp(
-        _color.x + getRandom() * _colorRandomness,
+        _color.r + getRandom() * _colorRandomness,
         0,
         1
       );
+
       vertices[k0 + 10] = vertices[k1 + 10] = vertices[k2 + 10] = vertices[k3 + 10] = MathUtil.clamp(
-        _color.y + getRandom() * _colorRandomness,
+        _color.g + getRandom() * _colorRandomness,
         0,
         1
       );
       vertices[k0 + 11] = vertices[k1 + 11] = vertices[k2 + 11] = vertices[k3 + 11] = MathUtil.clamp(
-        _color.z + getRandom() * _colorRandomness,
+        _color.b + getRandom() * _colorRandomness,
         0,
         1
       );
@@ -725,44 +773,44 @@ export class ParticleRenderer extends GeometryRenderer {
 
         // left bottom
         vertices[k0 + 19] = u;
-        vertices[k0 + 20] = q;
+        vertices[k0 + 20] = v;
         vertices[k0 + 21] = ratio;
 
         // right bottom
         vertices[k1 + 19] = p;
-        vertices[k1 + 20] = q;
+        vertices[k1 + 20] = v;
         vertices[k1 + 21] = ratio;
 
         // right top
         vertices[k2 + 19] = p;
-        vertices[k2 + 20] = v;
+        vertices[k2 + 20] = q;
         vertices[k2 + 21] = ratio;
 
         // left top
         vertices[k3 + 19] = u;
-        vertices[k3 + 20] = v;
+        vertices[k3 + 20] = q;
         vertices[k3 + 21] = ratio;
       } else {
         const ratio = height / width;
 
         // left bottom
         vertices[k0 + 19] = 0;
-        vertices[k0 + 20] = 0;
+        vertices[k0 + 20] = 1;
         vertices[k0 + 21] = ratio;
 
         // right bottom
         vertices[k1 + 19] = 1;
-        vertices[k1 + 20] = 0;
+        vertices[k1 + 20] = 1;
         vertices[k1 + 21] = ratio;
 
         // right top
         vertices[k2 + 19] = 1;
-        vertices[k2 + 20] = 1;
+        vertices[k2 + 20] = 0;
         vertices[k2 + 21] = ratio;
 
         // left top
         vertices[k3 + 19] = 0;
-        vertices[k3 + 20] = 1;
+        vertices[k3 + 20] = 0;
         vertices[k3 + 21] = ratio;
       }
     } else {

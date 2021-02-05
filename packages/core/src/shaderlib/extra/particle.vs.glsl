@@ -10,8 +10,8 @@ attribute vec3 a_uv;
 attribute vec2 a_normalizedUv;
 
 uniform float u_time;
-uniform int u_once;
-uniform int u_active;
+uniform bool u_once;
+uniform bool u_active;
 uniform mat4 u_MVPMat;
 
 varying vec4 v_color;
@@ -48,7 +48,7 @@ void main() {
 
   bool isDying = false;
 
-  if (u_once == 1 || u_active == 0) {
+  if (u_once || !u_active) {
     isDying = true;
   }
 
