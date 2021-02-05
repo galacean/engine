@@ -100,9 +100,9 @@ npm run doc
 ## Links
 
 - [Official Site](https://oasis-engine.github.io)
-- [Playground](https://oasis-engine.github.io/0.1/playground)
-- [Manual](https://oasis-engine.github.io/#/0.1/manual/zh-cn/README)
-- [API References](https://oasis-engine.github.io/0.1/api/globals.html)
+- [Playground](https://oasis-engine.github.io/0.2/playground)
+- [Manual](https://oasis-engine.github.io/#/0.2/manual/zh-cn/README)
+- [API References](https://oasis-engine.github.io/0.2/api/globals.html)
 
 ## License 
 The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.
