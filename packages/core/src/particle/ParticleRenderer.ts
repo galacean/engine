@@ -476,6 +476,9 @@ export class ParticleRenderer extends GeometryRenderer {
     this._isFadeOut = value;
   }
 
+  /**
+   * Is auto play or not
+   */
   get isAutoplay(): boolean {
     return this._isAutoplay;
   }
@@ -491,6 +494,9 @@ export class ParticleRenderer extends GeometryRenderer {
     }
   }
 
+  /**
+   * Blend mode of the particle renderer's material
+   */
   get blendMode(): BlendMode {
     return this._blendMode;
   }
