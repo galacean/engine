@@ -73,16 +73,13 @@ void main() {
 
   #ifdef rotateToVelocity
     vec3 v = a_velocity + a_acceleration * deltaTime;
+    float angle = atan(v.z, v.x) * 2.0;
   #else
     float deltaAngle = deltaTime * a_rotation.y;
+    float angle = a_rotation.x + deltaAngle;
   #endif
 
   #ifdef is2d
-    #ifdef rotateToVelocity
-      float angle = atan(v.z, v.x) * 2.0;
-    #else
-      float angle = a_rotation.x + deltaAngle;
-    #endif
 
     vec2 rotatedPoint = rotation2d(angle) * vec2(a_normalizedUv.x, a_normalizedUv.y * a_uv.z);
 
