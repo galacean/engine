@@ -98,6 +98,10 @@ export class UnlightMaterial extends Material {
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
   private _doubleSided: boolean = false;
 
+  /**
+   * Create a unlight material instance.
+   * @param engine - Engine to which the material belongs
+   */
   constructor(engine: Engine) {
     super(engine, Shader.find("unlight"));
     this.shaderData.enableMacro("OMIT_NORMAL");

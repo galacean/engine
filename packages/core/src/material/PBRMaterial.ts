@@ -90,6 +90,10 @@ export class PBRMaterial extends PBRBaseMaterial {
   private _roughnessTexture: Texture2D;
   private _metallicRoughnessTexture: Texture2D;
 
+  /**
+   * Create a pbr metallic-roughness workflow material instance.
+   * @param engine - Engine to which the material belongs
+   */
   constructor(engine: Engine) {
     super(engine);
     this.shaderData.enableMacro("IS_METALLIC_WORKFLOW");
@@ -98,6 +102,9 @@ export class PBRMaterial extends PBRBaseMaterial {
     this.roughnessFactor = this._roughnessFactor;
   }
 
+  /**
+   * @override
+   */
   clone(): PBRMaterial {
     const dest = new PBRMaterial(this._engine);
     this.cloneTo(dest);

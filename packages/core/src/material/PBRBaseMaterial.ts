@@ -468,6 +468,10 @@ export abstract class PBRBaseMaterial extends Material {
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
   private _doubleSided: boolean = false;
 
+  /**
+   * Create a pbr base material instance.
+   * @param engine - Engine to which the material belongs
+   */
   constructor(engine: Engine) {
     super(engine, Shader.find("pbr"));
     this.shaderData.enableMacro("O3_NEED_WORLDPOS");

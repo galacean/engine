@@ -53,6 +53,10 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
   private _glossinessFactor: number = 1;
   private _specularGlossinessTexture: Texture2D;
 
+  /**
+   * Create a pbr specular-glossiness workflow material instance.
+   * @param engine - Engine to which the material belongs
+   */
   constructor(engine: Engine) {
     super(engine);
 
@@ -60,6 +64,9 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
     this.glossinessFactor = this._glossinessFactor;
   }
 
+  /**
+   * @override
+   */
   clone(): PBRSpecularMaterial {
     const dest = new PBRSpecularMaterial(this._engine);
     this.cloneTo(dest);
