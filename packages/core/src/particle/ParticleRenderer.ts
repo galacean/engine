@@ -370,6 +370,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   set isOnce(value: boolean) {
+    this._time = 0;
     this.shaderData.setInt("u_once", value ? 1 : 0);
     this._isOnce = value;
   }
