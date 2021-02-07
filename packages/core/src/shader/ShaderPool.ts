@@ -9,8 +9,8 @@ import shadowMapVs from "../shaderlib/extra/shadow-map.vs.glsl";
 import shadowFs from "../shaderlib/extra/shadow.fs.glsl";
 import skyboxFs from "../shaderlib/extra/skybox.fs.glsl";
 import skyboxVs from "../shaderlib/extra/skybox.vs.glsl";
-import unlightFs from "../shaderlib/extra/unlight.fs.glsl";
-import unlightVs from "../shaderlib/extra/unlight.vs.glsl";
+import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
+import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
 import { Shader } from "./Shader";
 
 /**
@@ -21,7 +21,7 @@ export class ShaderPool {
   static init(): void {
     Shader.create("blinn-phong", blinnPhongVs, blinnPhongFs);
     Shader.create("pbr", pbrVs, pbrFs);
-    Shader.create("unlight", unlightVs, unlightFs);
+    Shader.create("unlit", unlitVs, unlitFs);
     Shader.create("shadow-map", shadowMapVs, shadowMapFs);
     Shader.create("shadow", shadowMapVs, shadowFs);
     Shader.create("skybox", skyboxVs, skyboxFs);

@@ -4,7 +4,7 @@ export { Material } from "./Material";
 export { BlinnPhongMaterial } from "./BlinnPhongMaterial";
 export { PBRMaterial } from "./PBRMaterial";
 export { PBRSpecularMaterial } from "./PBRSpecularMaterial";
-export { UnlightMaterial } from "./UnlightMaterial";
+export { UnlitMaterial } from "./UnlitMaterial";
 
 // @todo: delete
 export type { TextureFormatDetail } from "./type";

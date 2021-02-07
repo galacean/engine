@@ -27,7 +27,7 @@ import {
   SubPrimitive,
   Texture2D,
   TypedArray,
-  UnlightMaterial,
+  UnlitMaterial,
   VertexElement
 } from "@oasis-engine/core";
 import { Color, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
@@ -81,7 +81,7 @@ let KHR_lights = null;
 
 const extensionParsers = {
   KHR_lights: KHR_lights,
-  KHR_materials_unlit: UnlightMaterial,
+  KHR_materials_unlit: UnlitMaterial,
   KHR_materials_pbrSpecularGlossiness: PBRSpecularMaterial,
   KHR_techniques_webgl: Material,
   KHR_draco_mesh_compression: glTFDracoMeshCompression
@@ -251,12 +251,12 @@ export function parseMaterial(gltfMaterial, resources) {
       doubleSided
     } = gltfMaterial;
 
-    const isUnlight = extensions.KHR_materials_unlit;
+    const isUnlit = extensions.KHR_materials_unlit;
     const isSpecular = extensions.KHR_materials_pbrSpecularGlossiness;
 
-    let material: UnlightMaterial | PBRMaterial | PBRSpecularMaterial = null;
-    if (isUnlight) {
-      material = new UnlightMaterial(engine);
+    let material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial = null;
+    if (isUnlit) {
+      material = new UnlitMaterial(engine);
     } else if (isSpecular) {
       material = new PBRSpecularMaterial(engine);
     } else {
@@ -278,7 +278,7 @@ export function parseMaterial(gltfMaterial, resources) {
         break;
     }
 
-    // may be applied to unlight too.
+    // may be applied to unlit too.
     if (pbrMetallicRoughness) {
       const {
         baseColorFactor,
@@ -293,7 +293,7 @@ export function parseMaterial(gltfMaterial, resources) {
       if (baseColorFactor) {
         material.baseColor = new Color(...baseColorFactor);
       }
-      if (!isUnlight) {
+      if (!isUnlit) {
         material = material as PBRMaterial;
         material.metallicFactor = metallicFactor !== undefined ? metallicFactor : 1;
         material.roughnessFactor = roughnessFactor !== undefined ? roughnessFactor : 1;
@@ -308,8 +308,8 @@ export function parseMaterial(gltfMaterial, resources) {
       }
     }
 
-    // break unlight at here, unlight don't need to process the next code
-    if (isUnlight) {
+    // break unlit at here, unlit don't need to process the next code
+    if (isUnlit) {
       return Promise.resolve(material);
     }
     material = material as PBRMaterial | PBRSpecularMaterial;
@@ -377,7 +377,7 @@ export function parseMaterial(gltfMaterial, resources) {
     Logger.warn("Deprecated: Please use a model that meets the glTF 2.0 specification");
     // TODO: support KHR_UNLIT_MATERIAL in the future.
     if (techniqueName === "Texture") {
-      const material = new UnlightMaterial(engine);
+      const material = new UnlitMaterial(engine);
       const index = gltfMaterial.values._MainTex[0];
       material.baseColorTexture = getItemByIdx("textures", index || 0, resources, false);
       return Promise.resolve(material);

@@ -6,7 +6,7 @@ import {
   PBRMaterial,
   PBRSpecularMaterial,
   ResourceManager,
-  UnlightMaterial
+  UnlitMaterial
 } from "@oasis-engine/core";
 import { glTFDracoMeshCompression } from "../../gltf/glTFDracoMeshCompression";
 import { Oasis } from "../Oasis";
@@ -15,7 +15,7 @@ import { BlinnPhongMaterialResource } from "./BlinnPhongMaterialResource";
 import { PBRMaterialResource } from "./PBRMaterialResource";
 import { PBRSpecularMaterialResource } from "./PBRSpecularMaterialResource";
 import { SchemaResource } from "./SchemaResource";
-import { UnlightMaterialResource } from "./UnlightMaterialResource";
+import { UnlitMaterialResource } from "./UnlitMaterialResource";
 
 export class GLTFResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<any> {
@@ -60,9 +60,9 @@ export class GLTFResource extends SchemaResource {
           if (material instanceof PBRMaterial) {
             materialResource = new PBRMaterialResource(this.resourceManager);
             type = "PBRMaterial";
-          } else if (material instanceof UnlightMaterial) {
-            materialResource = new UnlightMaterialResource(this.resourceManager);
-            type = "UnlightMaterial";
+          } else if (material instanceof UnlitMaterial) {
+            materialResource = new UnlitMaterialResource(this.resourceManager);
+            type = "UnlitMaterial";
           } else if (material instanceof PBRSpecularMaterial) {
             materialResource = new PBRSpecularMaterialResource(this.resourceManager);
             type = "PBRSpecularMaterial";

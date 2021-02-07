@@ -10,9 +10,9 @@ import { RenderQueueType } from "./enums/RenderQueueType";
 import { Material } from "./Material";
 
 /**
- * Unlight Material.
+ * Unlit Material.
  */
-export class UnlightMaterial extends Material {
+export class UnlitMaterial extends Material {
   /**
    * Base color.
    */
@@ -99,11 +99,11 @@ export class UnlightMaterial extends Material {
   private _doubleSided: boolean = false;
 
   /**
-   * Create a unlight material instance.
+   * Create a unlit material instance.
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("unlight"));
+    super(engine, Shader.find("unlit"));
     this.shaderData.enableMacro("OMIT_NORMAL");
 
     this.baseColor = this._baseColor;
@@ -112,8 +112,8 @@ export class UnlightMaterial extends Material {
   /**
    * @override
    */
-  clone(): UnlightMaterial {
-    var dest = new UnlightMaterial(this._engine);
+  clone(): UnlitMaterial {
+    var dest = new UnlitMaterial(this._engine);
     this.cloneTo(dest);
     return dest;
   }

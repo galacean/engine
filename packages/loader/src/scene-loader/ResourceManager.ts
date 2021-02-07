@@ -7,7 +7,7 @@ import {
   GLTFResource,
   PBRMaterialResource,
   PBRSpecularMaterialResource,
-  UnlightMaterialResource,
+  UnlitMaterialResource,
   SchemaResource,
   ScriptResource,
   TextureCubeMapResource,
@@ -23,7 +23,7 @@ export const RESOURCE_CLASS = {
   cubeTexture: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
   PBRSpecularMaterial: PBRSpecularMaterialResource,
-  UnlightMaterial: UnlightMaterialResource,
+  UnlitMaterial: UnlitMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
   // Animation: Animation,
   base: BaseResource
