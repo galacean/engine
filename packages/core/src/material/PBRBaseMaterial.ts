@@ -14,6 +14,34 @@ import { Material } from "./Material";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends Material {
+  private _baseColor: Color = new Color(1, 1, 1, 1);
+  private _normalScale: number = 1;
+  private _emissiveColor = new Color(0, 0, 0, 1);
+  private _occlusionStrength: number = 1;
+  private _alphaCutoff: number = 0.5;
+  private _envMapIntensity: number = 1;
+  private _refractionRatio: number = 1 / 1.33;
+  private _refractionDepth: number = 1;
+  private _perturbationUOffset: number = 0;
+  private _perturbationVOffset: number = 0;
+  private _PTMMatrix = new Matrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
+  private _baseColorTexture: Texture2D;
+  private _opacityTexture: Texture2D;
+  private _normalTexture: Texture2D;
+  private _emissiveTexture: Texture2D;
+  private _occlusionTexture: Texture2D;
+  private _reflectionTexture: TextureCubeMap;
+  private _refractionTexture: Texture2D;
+  private _perturbationTexture: Texture2D;
+
+  private _srgb: boolean = false;
+  private _srgbFast: boolean = false;
+  private _gamma: boolean = false;
+  private _getOpacityFromRGB: boolean = false;
+  private _envMapModeRefract: boolean = false;
+  private _alphaMode: AlphaMode = AlphaMode.Opaque;
+  private _doubleSided: boolean = false;
+
   /**
    * Base color.
    */
@@ -439,34 +467,6 @@ export abstract class PBRBaseMaterial extends Material {
       this.renderState.rasterState.cullMode = CullMode.Back;
     }
   }
-
-  private _baseColor: Color = new Color(1, 1, 1, 1);
-  private _normalScale: number = 1;
-  private _emissiveColor = new Color(0, 0, 0, 1);
-  private _occlusionStrength: number = 1;
-  private _alphaCutoff: number = 0.5;
-  private _envMapIntensity: number = 1;
-  private _refractionRatio: number = 1 / 1.33;
-  private _refractionDepth: number = 1;
-  private _perturbationUOffset: number = 0;
-  private _perturbationVOffset: number = 0;
-  private _PTMMatrix = new Matrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
-  private _baseColorTexture: Texture2D;
-  private _opacityTexture: Texture2D;
-  private _normalTexture: Texture2D;
-  private _emissiveTexture: Texture2D;
-  private _occlusionTexture: Texture2D;
-  private _reflectionTexture: TextureCubeMap;
-  private _refractionTexture: Texture2D;
-  private _perturbationTexture: Texture2D;
-
-  private _srgb: boolean = false;
-  private _srgbFast: boolean = false;
-  private _gamma: boolean = false;
-  private _getOpacityFromRGB: boolean = false;
-  private _envMapModeRefract: boolean = false;
-  private _alphaMode: AlphaMode = AlphaMode.Opaque;
-  private _doubleSided: boolean = false;
 
   /**
    * Create a pbr base material instance.

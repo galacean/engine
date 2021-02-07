@@ -7,6 +7,10 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  * PBR (Specular-Glossiness Workflow) Material.
  */
 export class PBRSpecularMaterial extends PBRBaseMaterial {
+  private _specularColor = new Color(1, 1, 1, 1);
+  private _glossinessFactor: number = 1;
+  private _specularGlossinessTexture: Texture2D;
+
   /**
    * Specular color.
    */
@@ -48,10 +52,6 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
       this.shaderData.disableMacro("HAS_SPECULARGLOSSINESSMAP");
     }
   }
-
-  private _specularColor = new Color(1, 1, 1, 1);
-  private _glossinessFactor: number = 1;
-  private _specularGlossinessTexture: Texture2D;
 
   /**
    * Create a pbr specular-glossiness workflow material instance.

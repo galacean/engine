@@ -6,6 +6,12 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  * PBR (Metallic-Roughness Workflow) Material.
  */
 export class PBRMaterial extends PBRBaseMaterial {
+  private _metallicFactor: number = 1;
+  private _roughnessFactor: number = 1;
+  private _metallicTexture: Texture2D;
+  private _roughnessTexture: Texture2D;
+  private _metallicRoughnessTexture: Texture2D;
+
   /**
    * Metallic factor.
    */
@@ -83,12 +89,6 @@ export class PBRMaterial extends PBRBaseMaterial {
       this.shaderData.disableMacro("HAS_METALROUGHNESSMAP");
     }
   }
-
-  private _metallicFactor: number = 1;
-  private _roughnessFactor: number = 1;
-  private _metallicTexture: Texture2D;
-  private _roughnessTexture: Texture2D;
-  private _metallicRoughnessTexture: Texture2D;
 
   /**
    * Create a pbr metallic-roughness workflow material instance.

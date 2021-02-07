@@ -13,6 +13,11 @@ import { Material } from "./Material";
  * Unlit Material.
  */
 export class UnlitMaterial extends Material {
+  private _baseColor: Color = new Color(1, 1, 1, 1);
+  private _baseColorTexture: Texture2D;
+  private _alphaMode: AlphaMode = AlphaMode.Opaque;
+  private _doubleSided: boolean = false;
+
   /**
    * Base color.
    */
@@ -92,11 +97,6 @@ export class UnlitMaterial extends Material {
       this.renderState.rasterState.cullMode = CullMode.Back;
     }
   }
-
-  private _baseColor: Color = new Color(1, 1, 1, 1);
-  private _baseColorTexture: Texture2D;
-  private _alphaMode: AlphaMode = AlphaMode.Opaque;
-  private _doubleSided: boolean = false;
 
   /**
    * Create a unlit material instance.
