@@ -27,7 +27,7 @@ enum DirtyFlagType {
   Everything = 0xffffffff
 }
 
-enum BlendMode {
+export enum ParticleRendererBlendMode {
   Transparent = 0,
   Additive = 1
 }
@@ -76,7 +76,7 @@ export class ParticleRenderer extends GeometryRenderer {
   private _isFadeIn: boolean = false;
   private _isFadeOut: boolean = false;
   private _isAutoplay: boolean = true;
-  private _blendMode: BlendMode = BlendMode.Transparent;
+  private _blendMode: ParticleRendererBlendMode = ParticleRendererBlendMode.Transparent;
 
   /**
    * Sprite sheet of texture.
@@ -499,19 +499,19 @@ export class ParticleRenderer extends GeometryRenderer {
   /**
    * Blend mode of the particle renderer's material
    */
-  get blendMode(): BlendMode {
+  get blendMode(): ParticleRendererBlendMode {
     return this._blendMode;
   }
 
-  set blendMode(value: BlendMode) {
+  set blendMode(value: ParticleRendererBlendMode) {
     const blendState = this.material.renderState.blendState;
     const target = blendState.targetBlendState;
 
-    if (value === BlendMode.Transparent) {
+    if (value === ParticleRendererBlendMode.Transparent) {
       target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
       target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     }
-    else if (value === BlendMode.Additive) {
+    else if (value === ParticleRendererBlendMode.Additive) {
       target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
       target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
     }
