@@ -23,4 +23,3 @@
 vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;
 gl_FragColor = vec4(outgoingLight, diffuseColor.a);
 
-#endif

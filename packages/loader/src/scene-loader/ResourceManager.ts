@@ -6,6 +6,8 @@ import {
   BlinnPhongMaterialResource,
   GLTFResource,
   PBRMaterialResource,
+  PBRSpecularMaterialResource,
+  UnlitMaterialResource,
   SchemaResource,
   ScriptResource,
   TextureCubeMapResource,
@@ -20,8 +22,8 @@ export const RESOURCE_CLASS = {
   // 'image': TextureResource,
   cubeTexture: TextureCubeMapResource,
   PBRMaterial: PBRMaterialResource,
-  PBRSpecularMaterial: PBRMaterialResource,
-  unlitMaterial: PBRMaterialResource,
+  PBRSpecularMaterial: PBRSpecularMaterialResource,
+  UnlitMaterial: UnlitMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
   // Animation: Animation,
   base: BaseResource
@@ -31,12 +33,7 @@ const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
 for (const key in RESOURCE_CLASS) {
   if (RESOURCE_CLASS.hasOwnProperty(key)) {
     const element = RESOURCE_CLASS[key];
-
-    if (element === PBRMaterialResource) {
-      RESOURCE_TYPE.set(element, "PBRMaterial");
-    } else {
-      RESOURCE_TYPE.set(element, key);
-    }
+    RESOURCE_TYPE.set(element, key);
   }
 }
 

@@ -13,6 +13,16 @@ import { Material } from "./Material";
  * Blinn-phong Material.
  */
 export class BlinnPhongMaterial extends Material {
+  private _emissiveColor: Color = new Color(0, 0, 0, 1);
+  private _diffuseColor: Color = new Color(1, 1, 1, 1);
+  private _specularColor: Color = new Color(1, 1, 1, 1);
+  private _emissiveTexture: Texture2D;
+  private _diffuseTexture: Texture2D;
+  private _specularTexture: Texture2D;
+  private _shininess: number = 16;
+  private _alphaMode: AlphaMode = AlphaMode.Opaque;
+  private _doubleSided: boolean = false;
+
   /**
    * Emissive color.
    */
@@ -164,16 +174,6 @@ export class BlinnPhongMaterial extends Material {
       this.renderState.rasterState.cullMode = CullMode.Back;
     }
   }
-
-  private _emissiveColor: Color = new Color(0, 0, 0, 1);
-  private _diffuseColor: Color = new Color(1, 1, 1, 1);
-  private _specularColor: Color = new Color(1, 1, 1, 1);
-  private _emissiveTexture: Texture2D;
-  private _diffuseTexture: Texture2D;
-  private _specularTexture: Texture2D;
-  private _shininess: number = 16;
-  private _alphaMode: AlphaMode = AlphaMode.Opaque;
-  private _doubleSided: boolean = false;
 
   constructor(engine: Engine) {
     super(engine, Shader.find("blinn-phong"));

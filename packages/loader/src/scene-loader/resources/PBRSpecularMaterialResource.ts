@@ -1,23 +1,23 @@
-import { Logger, PBRMaterial, ResourceManager, Texture } from "@oasis-engine/core";
+import { Logger, PBRSpecularMaterial, ResourceManager, Texture } from "@oasis-engine/core";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { getAllGetters, isAsset } from "../utils";
 import { SchemaResource } from "./SchemaResource";
 import { TextureResource } from "./TextureResource";
 
-export class PBRMaterialResource extends SchemaResource {
+export class PBRSpecularMaterialResource extends SchemaResource {
   private configProps;
 
-  load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<PBRMaterialResource> {
+  load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<PBRSpecularMaterialResource> {
     return new Promise((resolve) => {
-      const assetObj = new PBRMaterial(resourceManager.engine);
+      const assetObj = new PBRSpecularMaterial(resourceManager.engine);
       this.configProps = assetConfig.props;
+      this._resource = assetObj;
 
       for (let k in this.configProps) {
         if (!isAsset(this.configProps[k])) {
           assetObj[k] = this.configProps[k];
         }
       }
-      this._resource = assetObj;
       this.setMeta();
       resolve(this);
     });
@@ -29,7 +29,7 @@ export class PBRMaterialResource extends SchemaResource {
   ): Promise<LoadAttachedResourceResult> {
     return new Promise((resolve, reject) => {
       let loadPromise;
-      if (assetConfig.resource instanceof PBRMaterial) {
+      if (assetConfig.resource instanceof PBRSpecularMaterial) {
         loadPromise = new Promise((resolve) => {
           this._resource = assetConfig.resource;
           this.setMeta();
@@ -38,7 +38,7 @@ export class PBRMaterialResource extends SchemaResource {
       } else if (assetConfig.props) {
         loadPromise = this.load(resourceManager, assetConfig);
       } else {
-        reject("Load PBRMaterial Error");
+        reject("Load PBRSpecularMaterial Error");
       }
       if (loadPromise) {
         loadPromise.then(() => {
@@ -90,7 +90,9 @@ export class PBRMaterialResource extends SchemaResource {
           this._attachedResources.push(textureResource);
         } else {
           resource[attr] = null;
-          Logger.warn(`PBRMaterialResource: ${this.meta.name} can't find asset "${attr}", which id is: ${value.id}`);
+          Logger.warn(
+            `PBRSpecularMaterialResource: ${this.meta.name} can't find asset "${attr}", which id is: ${value.id}`
+          );
         }
       } else {
         resource[attr] = value;
