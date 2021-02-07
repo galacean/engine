@@ -779,22 +779,22 @@ export class ParticleRenderer extends GeometryRenderer {
 
         // left bottom
         vertices[k0 + 19] = u;
-        vertices[k0 + 20] = v;
+        vertices[k0 + 20] = q;
         vertices[k0 + 21] = ratio;
 
         // right bottom
         vertices[k1 + 19] = p;
-        vertices[k1 + 20] = v;
+        vertices[k1 + 20] = q;
         vertices[k1 + 21] = ratio;
 
         // right top
         vertices[k2 + 19] = p;
-        vertices[k2 + 20] = q;
+        vertices[k2 + 20] = v;
         vertices[k2 + 21] = ratio;
 
         // left top
         vertices[k3 + 19] = u;
-        vertices[k3 + 20] = q;
+        vertices[k3 + 20] = v;
         vertices[k3 + 21] = ratio;
       } else {
         const ratio = height / width;
