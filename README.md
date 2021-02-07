@@ -6,7 +6,7 @@
 ![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
 
-Oasis is a **web-first** and **mobile-first** high-performance real-time development platform. Using **component system design**, and pursues ease of use and lightweight. This repository is the core engine of Oasis. Developers can independently use and write Typescript scripts to develop projects using pure code.
+Oasis is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. This repository is the core engine of Oasis. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
 ## Features
 
