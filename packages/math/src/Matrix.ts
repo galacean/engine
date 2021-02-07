@@ -130,6 +130,56 @@ export class Matrix implements IClone {
   }
 
   /**
+   * Performs a linear interpolation between two matrices.
+   * @param left - The first matrix
+   * @param right - The second matrix
+   * @param t - The blend amount where 0 returns start and 1 end
+   * @param out - The result of linear blending between two matrices
+   */
+  static lerp(left: Matrix, right: Matrix, t: number, out: Matrix): void {
+    const le = left.elements;
+    const re = right.elements;
+    const oe = out.elements;
+
+    const l11 = le[0],
+      l12 = le[1],
+      l13 = le[2],
+      l14 = le[3];
+    const l21 = le[4],
+      l22 = le[5],
+      l23 = le[6],
+      l24 = le[7];
+    const l31 = le[8],
+      l32 = le[9],
+      l33 = le[10],
+      l34 = le[11];
+    const l41 = le[12],
+      l42 = le[13],
+      l43 = le[14],
+      l44 = le[15];
+
+    oe[0] = l11 + (re[0] - l11) * t;
+    oe[1] = l12 + (re[1] - l12) * t;
+    oe[2] = l13 + (re[2] - l13) * t;
+    oe[3] = l14 + (re[3] - l14) * t;
+
+    oe[4] = l21 + (re[4] - l21) * t;
+    oe[5] = l22 + (re[5] - l22) * t;
+    oe[6] = l23 + (re[6] - l23) * t;
+    oe[7] = l24 + (re[7] - l24) * t;
+
+    oe[8] = l31 + (re[8] - l31) * t;
+    oe[9] = l32 + (re[9] - l32) * t;
+    oe[10] = l33 + (re[10] - l33) * t;
+    oe[11] = l34 + (re[11] - l34) * t;
+
+    oe[12] = l41 + (re[12] - l41) * t;
+    oe[13] = l42 + (re[13] - l42) * t;
+    oe[14] = l43 + (re[14] - l43) * t;
+    oe[15] = l44 + (re[15] - l44) * t;
+  }
+
+  /**
    * Calculate a rotation matrix from a quaternion.
    * @param quaternion - The quaternion used to calculate the matrix
    * @param out - The calculated rotation matrix
