@@ -12,6 +12,14 @@ describe("Color test", () => {
     expect(Color.equals(color1, color2)).toEqual(true);
   });
 
+  it("setValue", () => {
+    const color1 = new Color(1, 0.5, 0.5, 1);
+    const color2 = new Color();
+    color2.setValue(1, 0.5, 0.5, 1);
+
+    expect(Color.equals(color1, color2)).toEqual(true);
+  });
+
   it("LinearAndGamma", () => {
     const fixColor = (color: Color) => {
       color.r = Math.floor(color.r * 1000) / 1000;
