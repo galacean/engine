@@ -1,4 +1,4 @@
-import { MathUtil, Vector3 } from "@oasis-engine/math";
+import { MathUtil, Vector3, Color } from "@oasis-engine/math";
 import { BufferGeometry, GeometryRenderer } from "../geometry";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
@@ -27,6 +27,11 @@ enum DirtyFlagType {
   Everything = 0xffffffff
 }
 
+export enum ParticleRendererBlendMode {
+  Transparent = 0,
+  Additive = 1
+}
+
 /**
  * Particle Renderer Component
  */
@@ -46,7 +51,7 @@ export class ParticleRenderer extends GeometryRenderer {
   private _velocityRandomness: Vector3 = new Vector3();
   private _acceleration: Vector3 = new Vector3();
   private _accelerationRandomness: Vector3 = new Vector3();
-  private _color: Vector3 = new Vector3(1, 1, 1);
+  private _color: Color = new Color(1, 1, 1, 1);
   private _colorRandomness: number = 0;
   private _size: number = 1;
   private _sizeRandomness: number = 0;
@@ -70,6 +75,8 @@ export class ParticleRenderer extends GeometryRenderer {
   private _is2d: boolean = true;
   private _isFadeIn: boolean = false;
   private _isFadeOut: boolean = false;
+  private _isAutoplay: boolean = true;
+  private _blendMode: ParticleRendererBlendMode = ParticleRendererBlendMode.Transparent;
 
   /**
    * Sprite sheet of texture.
@@ -179,11 +186,11 @@ export class ParticleRenderer extends GeometryRenderer {
   /**
    * Color of particles.
    */
-  get color(): Vector3 {
+  get color(): Color {
     return this._color;
   }
 
-  set color(value: Vector3) {
+  set color(value: Color) {
     this._updateDirtyFlag |= DirtyFlagType.Color;
     this._color = value;
   }
@@ -343,11 +350,16 @@ export class ParticleRenderer extends GeometryRenderer {
     this._isStart = false;
     this._isInit = false;
     this._maxCount = value;
+    this._updateDirtyFlag = DirtyFlagType.Everything;
     this.geometry = this._createGeometry();
 
     this._updateBuffer();
 
     this._isInit = true;
+
+    if (this._isAutoplay) {
+      this.start();
+    }
   }
 
   /**
@@ -358,6 +370,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   set isOnce(value: boolean) {
+    this._time = 0;
     this.shaderData.setInt("u_once", value ? 1 : 0);
     this._isOnce = value;
   }
@@ -425,6 +438,7 @@ export class ParticleRenderer extends GeometryRenderer {
       this.shaderData.enableMacro("is2d");
     } else {
       this.shaderData.disableMacro("is2d");
+      this.material.renderState.rasterState.cullMode = CullMode.Off;
     }
 
     this._is2d = value;
@@ -462,6 +476,47 @@ export class ParticleRenderer extends GeometryRenderer {
     }
 
     this._isFadeOut = value;
+  }
+
+  /**
+   * Is auto play or not
+   */
+  get isAutoplay(): boolean {
+    return this._isAutoplay;
+  }
+
+  set isAutoplay(value: boolean) {
+    this._isAutoplay = value;
+
+    if (value) {
+      this.start();
+    }
+    else {
+      this.stop();
+    }
+  }
+
+  /**
+   * Blend mode of the particle renderer's material
+   */
+  get blendMode(): ParticleRendererBlendMode {
+    return this._blendMode;
+  }
+
+  set blendMode(value: ParticleRendererBlendMode) {
+    const blendState = this.material.renderState.blendState;
+    const target = blendState.targetBlendState;
+
+    if (value === ParticleRendererBlendMode.Transparent) {
+      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    }
+    else if (value === ParticleRendererBlendMode.Additive) {
+      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
+    }
+
+    this._blendMode = value;
   }
 
   constructor(props) {
@@ -513,10 +568,6 @@ export class ParticleRenderer extends GeometryRenderer {
     target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
 
     renderState.depthState.writeEnabled = false;
-
-    if (!this.is2d) {
-      renderState.rasterState.cullMode = CullMode.Off;
-    }
 
     material.renderQueueType = RenderQueueType.Transparent;
 
@@ -643,17 +694,18 @@ export class ParticleRenderer extends GeometryRenderer {
       const { _color, _colorRandomness } = this;
 
       vertices[k0 + 9] = vertices[k1 + 9] = vertices[k2 + 9] = vertices[k3 + 9] = MathUtil.clamp(
-        _color.x + getRandom() * _colorRandomness,
+        _color.r + getRandom() * _colorRandomness,
         0,
         1
       );
+
       vertices[k0 + 10] = vertices[k1 + 10] = vertices[k2 + 10] = vertices[k3 + 10] = MathUtil.clamp(
-        _color.y + getRandom() * _colorRandomness,
+        _color.g + getRandom() * _colorRandomness,
         0,
         1
       );
       vertices[k0 + 11] = vertices[k1 + 11] = vertices[k2 + 11] = vertices[k3 + 11] = MathUtil.clamp(
-        _color.z + getRandom() * _colorRandomness,
+        _color.b + getRandom() * _colorRandomness,
         0,
         1
       );
@@ -747,22 +799,22 @@ export class ParticleRenderer extends GeometryRenderer {
 
         // left bottom
         vertices[k0 + 19] = 0;
-        vertices[k0 + 20] = 0;
+        vertices[k0 + 20] = 1;
         vertices[k0 + 21] = ratio;
 
         // right bottom
         vertices[k1 + 19] = 1;
-        vertices[k1 + 20] = 0;
+        vertices[k1 + 20] = 1;
         vertices[k1 + 21] = ratio;
 
         // right top
         vertices[k2 + 19] = 1;
-        vertices[k2 + 20] = 1;
+        vertices[k2 + 20] = 0;
         vertices[k2 + 21] = ratio;
 
         // left top
         vertices[k3 + 19] = 0;
-        vertices[k3 + 20] = 1;
+        vertices[k3 + 20] = 0;
         vertices[k3 + 21] = ratio;
       }
     } else {
