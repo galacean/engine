@@ -393,7 +393,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * Whether follow the direction of velocity.
+   * Whether use origin color.
    */
   get isUseOriginColor(): boolean {
     return this._isUseOriginColor;
