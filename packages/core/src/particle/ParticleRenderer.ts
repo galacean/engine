@@ -27,13 +27,16 @@ enum DirtyFlagType {
   Everything = 0xffffffff
 }
 
+/**
+ * Blend mode enums of the particle renderer's material.
+ */
 export enum ParticleRendererBlendMode {
   Transparent = 0,
   Additive = 1
 }
 
 /**
- * Particle Renderer Component
+ * Particle Renderer Component.
  */
 export class ParticleRenderer extends GeometryRenderer {
   private static _getRandom(): number {
@@ -75,7 +78,7 @@ export class ParticleRenderer extends GeometryRenderer {
   private _is2d: boolean = true;
   private _isFadeIn: boolean = false;
   private _isFadeOut: boolean = false;
-  private _isAutoplay: boolean = true;
+  private _playOnEnable: boolean = true;
   private _blendMode: ParticleRendererBlendMode = ParticleRendererBlendMode.Transparent;
 
   /**
@@ -357,13 +360,10 @@ export class ParticleRenderer extends GeometryRenderer {
 
     this._isInit = true;
 
-    if (this._isAutoplay) {
-      this.start();
-    }
   }
 
   /**
-   * Play once or not.
+   * Whether play once.
    */
   get isOnce(): boolean {
     return this._isOnce;
@@ -376,7 +376,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * Follow the direction of velocity or not.
+   * Whether follow the direction of velocity.
    */
   get isRotateToVelocity(): boolean {
     return this._isRotateToVelocity;
@@ -393,7 +393,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * Follow the direction of velocity or not.
+   * Whether follow the direction of velocity.
    */
   get isUseOriginColor(): boolean {
     return this._isUseOriginColor;
@@ -410,7 +410,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * Is scale by lifetime  or not.
+   * Whether scale by lifetime.
    */
   get isScaleByLifetime(): boolean {
     return this._isScaleByLifetime;
@@ -427,7 +427,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * Is 2D rendering or not.
+   * Whether 2D rendering.
    */
   get is2d(): boolean {
     return this._is2d;
@@ -445,7 +445,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * Is fade in or not.
+   * Whether fade in.
    */
   get isFadeIn(): boolean {
     return this._isFadeIn;
@@ -462,7 +462,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * Is fade out or not.
+   * Whether fade out.
    */
   get isFadeOut(): boolean {
     return this._isFadeOut;
@@ -479,14 +479,14 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * Is auto play or not
+   * Whether play on enable.
    */
-  get isAutoplay(): boolean {
-    return this._isAutoplay;
+  get playOnEnable(): boolean {
+    return this._playOnEnable;
   }
 
-  set isAutoplay(value: boolean) {
-    this._isAutoplay = value;
+  set playOnEnable(value: boolean) {
+    this._playOnEnable = value;
 
     if (value) {
       this.start();
@@ -497,7 +497,7 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * Blend mode of the particle renderer's material
+   * Blend mode of the particle renderer's material.
    */
   get blendMode(): ParticleRendererBlendMode {
     return this._blendMode;
@@ -529,7 +529,7 @@ export class ParticleRenderer extends GeometryRenderer {
    * @override
    * @internal
    */
-  update(deltaTime: number) {
+  update(deltaTime: number): void {
     if (!this._isInit || !this._isStart) {
       return;
     }
@@ -544,22 +544,34 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   /**
-   * start emitting
+   * @override
+   * @internal
    */
-  start() {
+  _onEnable(): void {
+    super._onEnable();
+
+    if (this._playOnEnable) {
+      this.start();
+    }
+  }
+
+  /**
+   * Start emitting.
+   */
+  start(): void {
     this._isStart = true;
     this._time = 0;
     this.shaderData.setInt("u_active", 1);
   }
 
   /**
-   * stop emitting
+   * Stop emitting.
    */
-  stop() {
+  stop(): void {
     this.shaderData.setInt("u_active", 0);
   }
 
-  private _createMaterial() {
+  private _createMaterial(): Material {
     const material = new Material(this.engine, Shader.find("particle-shader"));
     const { renderState } = material;
     const target = renderState.blendState.targetBlendState;
@@ -578,7 +590,7 @@ export class ParticleRenderer extends GeometryRenderer {
     return material;
   }
 
-  private _createGeometry() {
+  private _createGeometry(): BufferGeometry {
     const geometry = new BufferGeometry(this._entity.engine, "particleGeometry");
     const vertexStride = 96;
     const vertexFloatCount = this._maxCount * 4 * vertexStride;
@@ -626,7 +638,7 @@ export class ParticleRenderer extends GeometryRenderer {
     return geometry;
   }
 
-  private _updateBuffer() {
+  private _updateBuffer(): void {
     for (let x = 0; x < this._maxCount; x++) {
       this._updateSingleBuffer(x);
     }
@@ -634,7 +646,7 @@ export class ParticleRenderer extends GeometryRenderer {
     this._vertexBuffer.setData(this._vertices);
   }
 
-  private _updateSingleBuffer(i: number) {
+  private _updateSingleBuffer(i: number): void {
     const { _updateDirtyFlag, _vertices: vertices, _vertexStride: vertexStride } = this;
     const { _getRandom: getRandom } = ParticleRenderer;
     const offset = i * 4;
@@ -757,7 +769,7 @@ export class ParticleRenderer extends GeometryRenderer {
     this._updateSingleUv(i, k0, k1, k2, k3);
   }
 
-  private _updateSingleUv(i: number, k0: number, k1: number, k2: number, k3: number) {
+  private _updateSingleUv(i: number, k0: number, k1: number, k2: number, k3: number): void {
     const { spriteSheet } = this;
     const texture = this._material.shaderData.getTexture("u_texture");
     const vertices = this._vertices;
