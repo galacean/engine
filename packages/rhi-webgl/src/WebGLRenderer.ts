@@ -182,9 +182,6 @@ export class WebGLRenderer implements HardwareRenderer {
         gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
         clearColor = clearDepth = clearStencil = true;
         break;
-
-      case ClearMode.DONT_CLEAR:
-        break;
     }
 
     if (clearColor && colorWriteMask !== ColorWriteMask.All) {
