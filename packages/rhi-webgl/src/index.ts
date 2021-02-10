@@ -1,3 +1,6 @@
+// TODO
+import "./GLSpriteMaterial";
+
 export { WebCanvas } from "./WebCanvas";
 export { WebGLEngine } from "./WebGLEngine";
 export { WebGLMode, WebGLRenderer } from "./WebGLRenderer";

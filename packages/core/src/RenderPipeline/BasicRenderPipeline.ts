@@ -1,18 +1,17 @@
-import { Vector4 } from "@oasis-engine/math";
-import { ClearMode } from "../base";
+import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { RenderQueueType } from "../material";
 import { Material } from "../material/Material";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../shader";
+import { Texture2D } from "../texture";
 import { TextureCubeFace } from "../texture/enums/TextureCubeFace";
 import { RenderTarget } from "../texture/RenderTarget";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { SeparateSpritePass } from "./SeparateSpritePass";
 
 /**
  * Basic render pipeline.
@@ -24,7 +23,6 @@ export class BasicRenderPipeline {
   private _defaultPass: RenderPass;
   protected _renderPassArray: Array<RenderPass>;
   private _canvasDepthPass;
-  private _separateSpritePass;
 
   /**
    * Create a basic render pipeline.
@@ -141,18 +139,6 @@ export class BasicRenderPipeline {
 
     if (this._canvasDepthPass) this._canvasDepthPass.enabled = false;
 
-    if (this._separateSpritePass && this._separateSpritePass.isUsed) {
-      // If the default rendertarget is not canvas, you need to draw on the canvas again to ensure that there is depth information
-      if (this._defaultPass.renderTarget) {
-        if (!this._canvasDepthPass) {
-          this._canvasDepthPass = new RenderPass("CanvasDepthRenderPass", 0, null, null, 0);
-          this._canvasDepthPass.clearMode = ClearMode.DONT_CLEAR;
-          this.addRenderPass(this._canvasDepthPass);
-        }
-        this._canvasDepthPass.enabled = true;
-      }
-    }
-
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
       this._drawRenderPass(this._renderPassArray[i], camera, cubeFace);
     }
@@ -188,17 +174,25 @@ export class BasicRenderPipeline {
     this._queue.pushPrimitive(element);
   }
 
-  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
-    if ((component as any).separateDraw) {
-      if (!this._separateSpritePass) {
-        this._separateSpritePass = new SeparateSpritePass();
-        this.addRenderPass(this._separateSpritePass);
-      }
-
-      this._separateSpritePass.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
-      return;
-    }
-
-    this.queue.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
+  /**
+   * Add a sprite drawing information to the render queue.
+   * @param component - The sprite renderer
+   * @param vertices - The array containing sprite mesh vertex positions
+   * @param uv - The base texture coordinates of the sprite mesh
+   * @param triangles - The array containing sprite mesh triangles
+   * @param color - Rendering color for the Sprite graphic
+   * @param texture - The reference to the used texture
+   * @param camera - Camera which is rendering
+   */
+  pushSprite(
+    component: Component,
+    vertices: Vector3[],
+    uv: Vector2[],
+    triangles: number[],
+    color: Color,
+    texture: Texture2D,
+    camera: Camera
+  ) {
+    this.queue.pushSprite(component, vertices, uv, triangles, color, texture, camera);
   }
 }

@@ -1,4 +1,4 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
@@ -6,15 +6,17 @@ import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { Texture2D } from "../texture";
 import { RenderElement } from "./RenderElement";
+import { SpriteBatcher } from "./SpriteBatcher";
 
 interface SpriteElement {
   component: Renderer;
-  positionQuad;
-  uvRect;
-  tintColor;
+  vertices;
+  uv;
+  triangles;
+  color;
   texture;
-  renderMode;
   camera;
 }
 
@@ -29,6 +31,9 @@ export class RenderQueue {
   static readonly compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
 
   readonly items: Item[] = [];
+
+  // TODO
+  private _spriteBatcher: SpriteBatcher = null;
 
   /**
    * Push a render element.
@@ -76,15 +81,23 @@ export class RenderQueue {
     });
   }
 
-  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
+  pushSprite(
+    component: Component,
+    vertices: Vector3[],
+    uv: Vector2[],
+    triangles: number[],
+    color: Color,
+    texture: Texture2D,
+    camera: Camera
+  ) {
     const element: SpriteElement = {
       // @ts-ignore
       component,
-      positionQuad,
-      uvRect,
-      tintColor,
+      vertices,
+      uv,
+      triangles,
+      color,
       texture,
-      renderMode,
       camera
     };
     this.items.push(element);
@@ -112,7 +125,7 @@ export class RenderQueue {
       }
 
       if (this._isPrimitive(item)) {
-        rhi.flushSprite(engine, spriteMaterial);
+        this._spriteBatcher && this._spriteBatcher.flush(engine, spriteMaterial);
 
         const compileMacros = RenderQueue.compileMacros;
         const element = <RenderElement>item;
@@ -179,19 +192,23 @@ export class RenderQueue {
         rhi.drawPrimitive(element.primitive, element.subPrimitive, program);
       } else {
         const spirteElement = <SpriteElement>item;
-        rhi.drawSprite(
+        if (!this._spriteBatcher) {
+          this._spriteBatcher = new SpriteBatcher(engine);
+        }
+
+        this._spriteBatcher.drawSprite(
           spriteMaterial,
-          spirteElement.positionQuad,
-          spirteElement.uvRect,
-          spirteElement.tintColor,
+          spirteElement.vertices,
+          spirteElement.uv,
+          spirteElement.triangles,
+          spirteElement.color,
           spirteElement.texture,
-          spirteElement.renderMode,
           spirteElement.camera
         );
       }
     }
 
-    rhi.flushSprite(engine, spriteMaterial);
+    this._spriteBatcher && this._spriteBatcher.flush(engine, spriteMaterial);
   }
 
   /**
