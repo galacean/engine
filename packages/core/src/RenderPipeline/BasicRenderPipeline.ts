@@ -13,6 +13,9 @@ import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 
+// TODO
+import "./SpriteMaterial";
+
 /**
  * Basic render pipeline.
  */

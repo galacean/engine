@@ -1,6 +1,6 @@
 "use strict";
 
-import { Shader } from "@oasis-engine/core";
+import { Shader } from "../shader";
 
 const spriteVertShader = `
 precision highp float;
