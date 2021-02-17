@@ -149,61 +149,51 @@ export class WebGLRenderer implements HardwareRenderer {
 
   clearRenderTarget(engine: Engine, clearMode: ClearMode, clearParam: Vector4) {
     const gl = this._gl;
-    const lastRenderState = engine._lastRenderState;
     const {
-      blendState: {
-        targetBlendState: { colorWriteMask }
-      },
-      depthState: { writeEnabled: depthWriteEnabled },
-      stencilState: { writeMask: stencilWriteMask }
-    } = lastRenderState;
+      blendState: { targetBlendState },
+      depthState,
+      stencilState
+    } = engine._lastRenderState;
 
-    let clearColor = false;
-    let clearDepth = false;
-    let clearStencil = false;
-
+    let clearFlag;
     switch (clearMode) {
       case ClearMode.SOLID_COLOR:
         gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
-        clearColor = clearDepth = true;
+        clearFlag = gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT;
         break;
       case ClearMode.DEPTH_ONLY:
-        clearDepth = true;
+        clearFlag = gl.DEPTH_BUFFER_BIT;
         break;
       case ClearMode.COLOR_ONLY:
         gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
-        clearColor = true;
+        clearFlag = gl.COLOR_BUFFER_BIT;
         break;
       case ClearMode.STENCIL_ONLY:
         gl.clear(gl.STENCIL_BUFFER_BIT);
-        clearStencil = true;
+        clearFlag = gl.STENCIL_BUFFER_BIT;
         break;
       case ClearMode.ALL_CLEAR:
         gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
-        clearColor = clearDepth = clearStencil = true;
+        clearFlag = gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT;
         break;
     }
 
-    if (clearColor && colorWriteMask !== ColorWriteMask.All) {
+    if (clearFlag & gl.COLOR_BUFFER_BIT && targetBlendState.colorWriteMask !== ColorWriteMask.All) {
       gl.colorMask(true, true, true, true);
-      lastRenderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.All;
+      targetBlendState.colorWriteMask = ColorWriteMask.All;
     }
 
-    if (clearDepth && depthWriteEnabled !== true) {
+    if (clearFlag & gl.DEPTH_BUFFER_BIT && depthState.writeEnabled !== true) {
       gl.depthMask(true);
-      lastRenderState.depthState.writeEnabled = true;
+      depthState.writeEnabled = true;
     }
 
-    if (clearStencil && stencilWriteMask !== 0xff) {
+    if (clearFlag & gl.STENCIL_BUFFER_BIT && stencilState.writeMask !== 0xff) {
       gl.stencilMask(0xff);
-      lastRenderState.stencilState.writeMask = 0xff;
+      stencilState.writeMask = 0xff;
     }
 
-    gl.clear(
-      (clearColor ? gl.COLOR_BUFFER_BIT : 0) |
-        (clearDepth ? gl.DEPTH_BUFFER_BIT : 0) |
-        (clearStencil ? gl.STENCIL_BUFFER_BIT : 0)
-    );
+    gl.clear(clearFlag);
   }
 
   drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive, shaderProgram: any) {
