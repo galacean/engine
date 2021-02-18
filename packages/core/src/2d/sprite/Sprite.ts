@@ -45,9 +45,9 @@ export class Sprite extends RefObject {
   /** The array containing sprite mesh triangles. */
   public triangles: number[] = [];
   /** The base texture coordinates of the sprite mesh. */
-  public uv: Vector2[] = [];
+  public uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2];
   /** The array containing sprite mesh vertex positions. */
-  public vertices: Vector2[] = [];
+  public vertices: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2];
   /** The number of pixels in the sprite that correspond to one unit in world space. */
   private _pixelsPerUnit: number = 100;
   /** The dirty flag to determine whether refresh buffer. */
@@ -98,7 +98,7 @@ export class Sprite extends RefObject {
    * Update mesh.
    */
   private _updateMesh() {
-    const { _pixelsPerUnit, _pivot, _tempVec2, vertices, uv } = this;
+    const { _pixelsPerUnit, _pivot, _tempVec2, vertices, uv, triangles } = this;
 
     // Update vertices.
     if (this._isContainDirtyFlag(Sprite._VERTICES_FLAG)) {
@@ -110,7 +110,6 @@ export class Sprite extends RefObject {
       const realWidth = width / _pixelsPerUnit;
       const realHeight = height / _pixelsPerUnit;
 
-      vertices.length = 4;
       // Top-left.
       vertices[0].setValue(-_tempVec2.x, realHeight - _tempVec2.y);
       // Top-right.
@@ -123,20 +122,24 @@ export class Sprite extends RefObject {
 
     // Update uvs.
     if (this._isContainDirtyFlag(Sprite._UV_FLAG)) {
-      uv.length = 4;
       // Top-left.
-      uv[0].setValue(0, 1);
+      uv[0].setValue(0, 0);
       // Top-right.
-      uv[1].setValue(1, 1);
+      uv[1].setValue(1, 0);
       // Bottom-right.
-      uv[2].setValue(1, 0);
+      uv[2].setValue(1, 1);
       // Bottom-left.
-      uv[3].setValue(0, 0);
+      uv[3].setValue(0, 1);
     }
 
     // Update triangles.
     if (this._isContainDirtyFlag(Sprite._TRIANGLES_FLAG)) {
-      this.triangles = [0, 2, 1, 2, 0, 3];
+      triangles[0] = 0;
+      triangles[1] = 2;
+      triangles[2] = 1;
+      triangles[3] = 2;
+      triangles[4] = 0;
+      triangles[5] = 3;
     }
   }
 
@@ -146,8 +149,8 @@ export class Sprite extends RefObject {
    */
   updateData(): boolean {
     if (this._isContainDirtyFlag(Sprite._VER_UV_TRI_FLAG)) {
-      this._setDirtyFlagFalse(Sprite._VER_UV_TRI_FLAG);
       this._updateMesh();
+      this._setDirtyFlagFalse(Sprite._VER_UV_TRI_FLAG);
 
       return true;
     }

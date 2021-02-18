@@ -50,9 +50,9 @@ export class SpriteBatcher {
 
   _initGeometry(engine: Engine) {
     const { MAX_VERTICES } = SpriteBatcher;
-    let { _primitive, _subPrimitive, _vertexBuffer, _indiceBuffer, _vertices, _indices } = this;
-    _primitive = new Primitive(engine, "SpriteBatcher Primitive");
-    _subPrimitive = new SubPrimitive();
+    this._primitive = new Primitive(engine, "SpriteBatcher Primitive");
+    this._subPrimitive = new SubPrimitive();
+    const { _primitive, _subPrimitive } = this;
     _subPrimitive.start = 0;
     _subPrimitive.topology = PrimitiveTopology.Triangles;
 
@@ -64,17 +64,18 @@ export class SpriteBatcher {
     const vertexStride = 36;
 
     // vertices
-    _vertices = new Float32Array(MAX_VERTICES * 9);
-    _vertexBuffer = new Buffer(
+    this._vertices = new Float32Array(MAX_VERTICES * 9);
+    this._vertexBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
       MAX_VERTICES * 4 * vertexStride,
       BufferUsage.Dynamic
     );
     // indices
-    _indices = new Uint16Array(MAX_VERTICES);
-    _indiceBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, MAX_VERTICES, BufferUsage.Dynamic);
+    this._indices = new Uint16Array(MAX_VERTICES);
+    this._indiceBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, MAX_VERTICES, BufferUsage.Dynamic);
 
+    const { _vertexBuffer, _indiceBuffer } = this;
     _primitive.setVertexBufferBinding(_vertexBuffer, vertexStride);
     _primitive.setIndexBufferBinding(_indiceBuffer, IndexFormat.UInt16);
     _primitive.setVertexElements(vertexElements);

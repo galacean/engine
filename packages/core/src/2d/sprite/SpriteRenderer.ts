@@ -36,11 +36,13 @@ export class SpriteRenderer extends Renderer {
   private static _FLIP_X_FLAG = 0x1;
   private static _FLIP_Y_FLAG = 0x2;
   private static _SPRITE_FLAG = 0x4;
+  /** SpriteRenderer._FLIP_X_FLAG | SpriteRenderer._FLIP_Y_FLAG */
+  private static _FLIP_FLAG = 0x3;
   /** SpriteRenderer._FLIP_X_FLAG | SpriteRenderer._FLIP_Y_FLAG | SpriteRenderer._SPRITE_FLAG */
-  private static _FLIP_FLAG = 0x7;
+  private static _ALL_FLAG = 0x7;
 
   /** The array containing sprite mesh vertex positions in world space */
-  private _vertices: Vector3[] = [];
+  private _vertices: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   /** The current draw mode of the Sprite Renderer. */
   private _drawMode: DrawMode;
   /** The Sprite to render. */
@@ -69,7 +71,7 @@ export class SpriteRenderer extends Renderer {
     this._material = null;
     this._flipX = false;
     this._flipY = false;
-    this._dirtyFlag = SpriteRenderer._FLIP_FLAG;
+    this._dirtyFlag = SpriteRenderer._ALL_FLAG;
   }
 
   /**
@@ -82,17 +84,16 @@ export class SpriteRenderer extends Renderer {
       return;
     }
 
-    const { triangles, uv, vertices, texture } = sprite;
     const { transform } = entity;
     const modelMatrix = transform.worldMatrix;
 
     // Update sprite data.
     const needUpdate = sprite.updateData();
+    const { triangles, uv, vertices, texture } = sprite;
     if (this._isContainDirtyFlag(SpriteRenderer._SPRITE_FLAG) || needUpdate) {
-      const len = (_vertices.length = vertices.length);
       const posZ = transform.position.z;
       // Update vertices position in world space.
-      for (let i = 0; i < len; ++i) {
+      for (let i = 0; i < 4; ++i) {
         const curVertex = vertices[i];
         const tempPos = SpriteRenderer._tempVec4;
         tempPos.setValue(curVertex.x, curVertex.y, posZ, 1);
@@ -125,10 +126,12 @@ export class SpriteRenderer extends Renderer {
           vertex.y = py * 2 - y;
         }
       }
+
+      this._setDirtyFlagFalse(SpriteRenderer._FLIP_FLAG);
     }
 
     // @ts-ignore
-    camera._renderPipeline.pushSprite(_vertices, uv, triangles, this.color, texture, camera);
+    camera._renderPipeline.pushSprite(this, _vertices, uv, triangles, this.color, texture, camera);
   }
 
   /**
