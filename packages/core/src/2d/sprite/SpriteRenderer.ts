@@ -90,17 +90,18 @@ export class SpriteRenderer extends Renderer {
     // Update sprite data.
     const needUpdate = sprite.updateData();
     const { triangles, uv, vertices, texture } = sprite;
-    if (this._isContainDirtyFlag(SpriteRenderer._SPRITE_FLAG) || needUpdate) {
-      const posZ = transform.position.z;
-      // Update vertices position in world space.
-      for (let i = 0; i < 4; ++i) {
-        const curVertex = vertices[i];
-        const tempPos = SpriteRenderer._tempVec4;
-        tempPos.setValue(curVertex.x, curVertex.y, posZ, 1);
-        Vector4.transform(tempPos, modelMatrix, tempPos);
-        _vertices[i].setValue(tempPos.x, tempPos.y, tempPos.z);
-      }
 
+    // Update vertices position in world space.
+    const posZ = transform.position.z;
+    for (let i = 0; i < 4; ++i) {
+      const curVertex = vertices[i];
+      const tempPos = SpriteRenderer._tempVec4;
+      tempPos.setValue(curVertex.x, curVertex.y, posZ, 1);
+      Vector4.transform(tempPos, modelMatrix, tempPos);
+      _vertices[i].setValue(tempPos.x, tempPos.y, tempPos.z);
+    }
+
+    if (this._isContainDirtyFlag(SpriteRenderer._SPRITE_FLAG) || needUpdate) {
       !this._flipX && this._setDirtyFlagFalse(SpriteRenderer._FLIP_X_FLAG);
       !this._flipY && this._setDirtyFlagFalse(SpriteRenderer._FLIP_Y_FLAG);
 
