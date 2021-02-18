@@ -61,8 +61,15 @@ export class Sprite extends RefObject {
    * @param pivot - Sprite's pivot point relative to its graphic rectangle
    * @param pixelsPerUnit - The number of pixels in the sprite that correspond to one unit in world space
    */
-  constructor(engine: Engine, texture: Texture2D, rect: Rect, pivot: Vector2, pixelsPerUnit: number = 100) {
+  constructor(engine: Engine, texture: Texture2D, rect: Rect = null, pivot: Vector2 = null, pixelsPerUnit: number = 100) {
     super(engine);
+
+    if (!rect) {
+      rect = new Rect(0, 0, texture.width, texture.height);
+    }
+    if (!pivot) {
+      pivot = new Vector2(0.5, 0.5);
+    }
 
     if (rect.x + rect.width > texture.width || rect.y + rect.height > texture.height) {
       throw new Error("rect out of range");
