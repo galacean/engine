@@ -2,21 +2,18 @@ import { Color, Vector2, Vector3 } from "@oasis-engine/math";
 import { Logger } from "../base";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import {
-  Buffer,
-  BufferBindFlag,
-  BufferUsage,
-  IndexFormat,
-  Primitive,
-  PrimitiveTopology,
-  SubPrimitive,
-  VertexElement,
-  VertexElementFormat
-} from "../graphic";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { Buffer } from "../graphic/Buffer";
+import { Primitive } from "../graphic/Primitive";
+import { SubPrimitive } from "../graphic/SubPrimitive";
+import { VertexElement } from "../graphic/VertexElement";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { Material } from "../material";
 import { Texture2D } from "../texture";
-import { RenderQueue } from "./RenderQueue";
-
+import { Shader } from "../shader";
 export class SpriteBatcher {
   /** The maximum number of vertices. */
   private static MAX_VERTICES: number = 256;
@@ -102,7 +99,7 @@ export class SpriteBatcher {
     materialData.setMatrix("matProjection", this._camera.projectionMatrix);
 
     //@ts-ignore
-    const compileMacros = RenderQueue.compileMacros;
+    const compileMacros = Shader._compileMacros;
     compileMacros.clear();
 
     //@ts-ignore
