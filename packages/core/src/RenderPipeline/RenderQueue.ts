@@ -5,6 +5,7 @@ import { Layer } from "../Layer";
 import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
+import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { Texture2D } from "../texture";
 import { RenderElement } from "./RenderElement";
@@ -27,9 +28,6 @@ type Item = RenderElement | SpriteElement;
  * @private
  */
 export class RenderQueue {
-  /** @internal */
-  static readonly compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
-
   readonly items: Item[] = [];
 
   // TODO
@@ -127,7 +125,7 @@ export class RenderQueue {
       if (this._isPrimitive(item)) {
         this._spriteBatcher && this._spriteBatcher.flush(engine, spriteMaterial);
 
-        const compileMacros = RenderQueue.compileMacros;
+        const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
         const renderer = element.component;
         const material = replaceMaterial ? replaceMaterial : element.material;
