@@ -67,7 +67,6 @@ export class OrbitControl extends Script {
   private _zoomStart: Vector2;
   private _zoomEnd: Vector2;
   private _zoomDelta: Vector2;
-  private _oriTarget = new Vector3(Infinity, Infinity, Infinity);
 
   constructor(entity: Entity) {
     super(entity);
@@ -317,14 +316,8 @@ export class OrbitControl extends Script {
     this.target.cloneTo(this._position);
     this._position.add(this._offset);
 
-    if (!Vector3.equals(this.camera.transform.position, this._position)) {
-      this.camera.transform.position = this._position;
-      this.camera.transform.lookAt(this.target, this.up);
-    }
-    if (!Vector3.equals(this.target, this._oriTarget)) {
-      this.camera.transform.lookAt(this.target, this.up);
-      this.target.cloneTo(this._oriTarget);
-    }
+    this.camera.transform.position = this._position;
+    this.camera.transform.lookAt(this.target, this.up);
 
     if (this.enableDamping === true) {
       this._sphericalDump.theta *= 1 - this.dampingFactor;

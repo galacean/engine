@@ -108,13 +108,13 @@ export class GLTFModel extends Component {
    * @override
    */
   _onEnable(): void {
-    this.GLTFNode.isActive = true;
+    this.GLTFNode && (this.GLTFNode.isActive = true);
   }
 
   /**
    * @override
    */
   _onDisable(): void {
-    this.GLTFNode.isActive = false;
+    this.GLTFNode && (this.GLTFNode.isActive = false);
   }
 }

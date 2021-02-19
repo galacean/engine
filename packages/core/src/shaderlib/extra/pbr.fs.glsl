@@ -58,6 +58,4 @@ void main() {
     #include <fog_frag>
 
     #include <oit_frag>
-
-    // gl_FragColor = texture2D( u_baseColorSampler, v_uv );
 }

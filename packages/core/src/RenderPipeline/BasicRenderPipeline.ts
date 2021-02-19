@@ -39,7 +39,7 @@ export class BasicRenderPipeline {
     this.addRenderPass(this._defaultPass);
 
     // TODO: remove in next version.
-    const material = this._defaultSpriteMaterial = new Material(camera.engine, Shader.find("Sprite"));
+    const material = (this._defaultSpriteMaterial = new Material(camera.engine, Shader.find("Sprite")));
     const target = material.renderState.blendState.targetBlendState;
     target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
     target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
@@ -166,7 +166,7 @@ export class BasicRenderPipeline {
       const renderTarget = camera.renderTarget || pass.renderTarget;
       rhi.activeRenderTarget(renderTarget, camera);
       rhi.setRenderTargetFace(renderTarget, cubeFace);
-      rhi.clearRenderTarget(pass.clearMode, pass.clearParam);
+      rhi.clearRenderTarget(camera.engine, pass.clearMode, pass.clearParam);
 
       if (pass.renderOverride) {
         pass.render(camera, this.queue);

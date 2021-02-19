@@ -619,7 +619,7 @@ export class ShaderData implements IRefObject, IClone {
     const variableMacro = this._variableMacros;
     const variableValue = variableMacro[name];
     if (variableValue !== value) {
-      variableValue && this._disableVariableMacro(name, value);
+      variableValue && this._disableVariableMacro(name, variableValue);
 
       const macro = Shader.getMacroByName(`${name} ${value}`);
       this._macroCollection.enable(macro);

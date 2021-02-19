@@ -50,13 +50,6 @@
 
     #endif
 
-    #ifdef UNLIT
-
-        gl_FragColor = vec4( diffuseColor.rgb, diffuseColor.a );
-
-    #else
-
-
 
         #ifdef HAS_METALROUGHNESSMAP
 
