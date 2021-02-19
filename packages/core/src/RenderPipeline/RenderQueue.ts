@@ -5,6 +5,7 @@ import { Layer } from "../Layer";
 import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
+import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderElement } from "./RenderElement";
 
@@ -25,9 +26,6 @@ type Item = RenderElement | SpriteElement;
  * @private
  */
 export class RenderQueue {
-  /** @internal */
-  static readonly compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
-
   readonly items: Item[] = [];
 
   /**
@@ -114,7 +112,7 @@ export class RenderQueue {
       if (this._isPrimitive(item)) {
         rhi.flushSprite(engine, spriteMaterial);
 
-        const compileMacros = RenderQueue.compileMacros;
+        const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
         const renderer = element.component;
         const material = replaceMaterial ? replaceMaterial : element.material;
