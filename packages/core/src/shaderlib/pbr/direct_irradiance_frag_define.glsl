@@ -57,7 +57,7 @@ void RE_Direct_Physical( const in IncidentLight directLight, const in GeometricC
 		directLight.direction = normalize( lVector );
 
 		float lightDistance = length( lVector );
-		float angleCos = dot( directLight.direction, spotLight.direction );
+		float angleCos = dot( directLight.direction, -spotLight.direction );
 
 		if ( angleCos > spotLight.coneCos ) {
 

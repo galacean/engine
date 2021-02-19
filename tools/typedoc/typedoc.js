@@ -1,9 +1,7 @@
-const VERSION = process.env.v;
-
 module.exports = {
   name: "Oasis Engine",
   mode: "modules",
-  out: `doc/${VERSION}`,
+  out: `api/`,
   theme: "./node_modules/@oasis-engine/typedoc-theme/bin/default",
   ignoreCompilerErrors: true,
   preserveConstEnums: true,
