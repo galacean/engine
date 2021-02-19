@@ -4,6 +4,7 @@
 #include <color_share>
 #include <normal_share>
 #include <worldpos_share>
+#include <shadow_share>
 #include <clipPlane_vert_define>
 #include <morph_target_vert>
 
@@ -20,6 +21,7 @@ void main() {
     #include <color_vert>
     #include <normal_vert>
     #include <worldpos_vert>
+    #include <shadow_vert>
     #include <clipPlane_vert>
     #include <position_vert>
 

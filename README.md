@@ -6,7 +6,7 @@
 ![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
 
-Oasis is a **web-first** and **mobile-first** high-performance real-time development platform. Using **component system design**, and pursues ease of use and lightweight. This repository is the core engine of Oasis. Developers can independently use and write Typescript scripts to develop projects using pure code.
+Oasis is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. This repository is the core engine of Oasis. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
 ## Features
 
@@ -100,9 +100,9 @@ npm run doc
 ## Links
 
 - [Official Site](https://oasis-engine.github.io)
-- [Playground](https://oasis-engine.github.io/0.1/playground)
-- [Manual](https://oasis-engine.github.io/#/0.1/manual/zh-cn/README)
-- [API References](https://oasis-engine.github.io/0.1/api/globals.html)
+- [Playground](https://oasis-engine.github.io/0.2/playground)
+- [Manual](https://oasis-engine.github.io/#/0.2/manual/zh-cn/README)
+- [API References](https://oasis-engine.github.io/0.2/api/globals.html)
 
 ## License 
 The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.

@@ -11,8 +11,6 @@
 
         emission *= texture2D(u_emissiveTexture, v_uv);
 
-    #else
-
     #endif
 
     #ifdef O3_DIFFUSE_TEXTURE
