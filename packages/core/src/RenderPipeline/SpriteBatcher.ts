@@ -77,9 +77,8 @@ export class SpriteBatcher {
     this._indices = new Uint16Array(MAX_VERTICES);
     this._indiceBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, MAX_VERTICES, BufferUsage.Dynamic);
 
-    const { _vertexBuffer, _indiceBuffer } = this;
-    _primitive.setVertexBufferBinding(_vertexBuffer, vertexStride);
-    _primitive.setIndexBufferBinding(_indiceBuffer, IndexFormat.UInt16);
+    _primitive.setVertexBufferBinding(this._vertexBuffer, vertexStride);
+    _primitive.setIndexBufferBinding(this._indiceBuffer, IndexFormat.UInt16);
     _primitive.setVertexElements(vertexElements);
   }
 
@@ -116,7 +115,7 @@ export class SpriteBatcher {
     program.uploadAll(program.rendererUniformBlock, this._rendererData);
     program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-    const { _vertices, _indices, _vertexBuffer, _indiceBuffer, _primitive, _subPrimitive } = this;
+    const { _vertices, _indices, _subPrimitive } = this;
     // Batch vertices and indices.
     let vertexIndex = 0;
     let indiceIndex = 0;
@@ -151,14 +150,14 @@ export class SpriteBatcher {
 
     // Update primive.
     _subPrimitive.count = indiceIndex;
-    _vertexBuffer.setData(_vertices, 0, 0, vertexIndex);
-    _indiceBuffer.setData(_indices, 0, 0, indiceIndex);
+    this._vertexBuffer.setData(_vertices, 0, 0, vertexIndex);
+    this._indiceBuffer.setData(_indices, 0, 0, indiceIndex);
 
     //@ts-ignore
     material.renderState._apply(engine);
 
     // Draw the batched sprite.
-    engine._hardwareRenderer.drawPrimitive(_primitive, _subPrimitive, program);
+    engine._hardwareRenderer.drawPrimitive(this._primitive, _subPrimitive, program);
 
     _batchedQueue.length = 0;
     this._camera = null;
