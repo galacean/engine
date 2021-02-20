@@ -381,7 +381,7 @@ export class Camera extends Component {
 
   /**
    * Generate a ray by a point in viewport.
-   * @param point Point in viewport point.
+   * @param point Point in viewport point, which is represented by normalization.
    * @param out - Ray
    * @returns Ray
    */
