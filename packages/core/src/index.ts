@@ -1,6 +1,5 @@
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
-export type { HardwareRenderer } from "./HardwareRenderer";
 export type { Canvas } from "./Canvas";
 export { EngineFeature } from "./EngineFeature";
 
@@ -71,3 +70,5 @@ export * from "./env-probe/index";
 export * from "./shadow/index";
 export * from "./shader/index";
 export * from "./Layer";
+
+export * from "./renderingHardwareInterface/index";

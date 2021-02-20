@@ -5,7 +5,7 @@ import { ComponentsManager } from "./ComponentsManager";
 import { EngineFeature } from "./EngineFeature";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
-import { HardwareRenderer } from "./HardwareRenderer";
+import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
@@ -23,7 +23,7 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   _componentsManager: ComponentsManager = new ComponentsManager();
-  _hardwareRenderer: HardwareRenderer;
+  _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
 
   /* @internal */
@@ -128,7 +128,7 @@ export class Engine extends EventDispatcher {
    * Graphics API renderer.
    * @deprecated
    */
-  get renderhardware(): HardwareRenderer {
+  get renderhardware(): IHardwareRenderer {
     return this._hardwareRenderer;
   }
 
@@ -137,7 +137,7 @@ export class Engine extends EventDispatcher {
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
    */
-  constructor(canvas: Canvas, hardwareRenderer: HardwareRenderer) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);

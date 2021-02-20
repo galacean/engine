@@ -5,21 +5,35 @@ import {
   ColorWriteMask,
   Engine,
   GLCapabilityType,
-  HardwareRenderer,
+  IHardwareRenderer,
+  IPlatformRenderColorTexture,
+  IPlatformRenderDepthTexture,
+  IPlatformRenderTarget,
+  IPlatformTexture2D,
+  IPlatformTextureCubeMap,
   Logger,
   Material,
   Primitive,
+  RenderColorTexture,
+  RenderDepthTexture,
   RenderTarget,
   SubPrimitive,
-  TextureCubeFace
+  Texture2D,
+  TextureCubeMap
 } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
 import { Vector4 } from "@oasis-engine/math";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
+import { GLRenderColorTexture } from "./GLRenderColorTexture";
+import { GLRenderDepthTexture } from "./GLRenderDepthTexture";
 import { GLRenderStates } from "./GLRenderStates";
+import { GLRenderTarget } from "./GLRenderTarget";
 import { GLSpriteBatcher } from "./GLSpriteBatcher";
+import { GLTexture } from "./GLTexture";
+import { GLTexture2D } from "./GLTexture2D";
+import { GLTextureCubeMap } from "./GLTextureCubeMap";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
 
@@ -46,7 +60,7 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
 /**
  * WebGL renderer, including WebGL1.0 and WebGL2.0.
  */
-export class WebGLRenderer implements HardwareRenderer {
+export class WebGLRenderer implements IHardwareRenderer {
   _currentBind: any;
 
   private _options: WebGLRendererOptions;
@@ -58,10 +72,31 @@ export class WebGLRenderer implements HardwareRenderer {
   private _isWebGL2: boolean;
 
   private _activedTextureID: number;
-  private _activeTextures: WebGLTexture[] = new Array(32);
+  private _activeTextures: GLTexture[] = new Array(32);
 
   get isWebGL2() {
     return this._isWebGL2;
+  }
+
+  /**
+   * GL Context
+   * @member {WebGLRenderingContext}
+   * @readonly
+   */
+  get gl() {
+    return this._gl;
+  }
+
+  get renderStates(): GLRenderStates {
+    return this._renderStates;
+  }
+
+  get capability(): GLCapability {
+    return this._capability;
+  }
+
+  get canIUseMoreJoints() {
+    return this.capability.canIUseMoreJoints;
   }
 
   constructor(options: WebGLRendererOptions = {}) {
@@ -108,16 +143,24 @@ export class WebGLRenderer implements HardwareRenderer {
     return new GLPrimitive(this, primitive);
   }
 
-  get gl() {
-    return this._gl;
+  createPlatformTexture2D(texture2D: Texture2D): IPlatformTexture2D {
+    return new GLTexture2D(this, texture2D);
   }
 
-  get renderStates(): GLRenderStates {
-    return this._renderStates;
+  createPlatformTextureCubeMap(textureCube: TextureCubeMap): IPlatformTextureCubeMap {
+    return new GLTextureCubeMap(this, textureCube);
   }
 
-  get capability(): GLCapability {
-    return this._capability;
+  createPlatformRenderColorTexture(texture: RenderColorTexture): IPlatformRenderColorTexture {
+    return new GLRenderColorTexture(this, texture);
+  }
+
+  createPlatformRenderDepthTexture(texture: RenderDepthTexture): IPlatformRenderDepthTexture {
+    return new GLRenderDepthTexture(this, texture);
+  }
+
+  createPlatformRenderTarget(target: RenderTarget): IPlatformRenderTarget {
+    return new GLRenderTarget(this, target);
   }
 
   requireExtension(ext) {
@@ -130,10 +173,6 @@ export class WebGLRenderer implements HardwareRenderer {
 
   canIUseCompressedTextureInternalFormat(type: number) {
     return this.capability.canIUseCompressedTextureInternalFormat(type);
-  }
-
-  public get canIUseMoreJoints() {
-    return this.capability.canIUseMoreJoints;
   }
 
   viewport(x, y, width, height) {
@@ -223,7 +262,8 @@ export class WebGLRenderer implements HardwareRenderer {
   activeRenderTarget(renderTarget: RenderTarget, camera: Camera) {
     const gl = this._gl;
     if (renderTarget) {
-      renderTarget._activeRenderTarget();
+      /** @ts-ignore */
+      (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
       const { width, height } = renderTarget;
       gl.viewport(0.0, 0.0, width, height);
     } else {
@@ -232,21 +272,6 @@ export class WebGLRenderer implements HardwareRenderer {
       const width = gl.drawingBufferWidth;
       const height = gl.drawingBufferHeight;
       this.viewport(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
-    }
-  }
-
-  blitRenderTarget(renderTarget: RenderTarget) {
-    if (renderTarget) {
-      if (renderTarget._MSAAFrameBuffer) {
-        renderTarget._blitRenderTarget();
-        return;
-      }
-    }
-  }
-
-  setRenderTargetFace(renderTarget: RenderTarget, cubeFace: TextureCubeFace) {
-    if (renderTarget) {
-      renderTarget._setRenderTargetFace(cubeFace);
     }
   }
 
@@ -259,10 +284,10 @@ export class WebGLRenderer implements HardwareRenderer {
     }
   }
 
-  bindTexture(target: number, texture: WebGLTexture): void {
+  bindTexture(texture: GLTexture): void {
     const gl = this._gl;
     if (this._activeTextures[this._activedTextureID - gl.TEXTURE0] !== texture) {
-      gl.bindTexture(target, texture);
+      gl.bindTexture(texture._target, texture._glTexture);
       this._activeTextures[this._activedTextureID - gl.TEXTURE0] = texture;
     }
   }

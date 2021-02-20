@@ -327,7 +327,7 @@ export function parseMaterial(gltfMaterial, resources) {
       material = material as PBRMaterial | PBRSpecularMaterial;
       material.normalTexture = getItemByIdx("textures", index || 0, resources, false);
 
-      if (typeof scale !== undefined) {
+      if (scale !== undefined) {
         material.normalScale = scale;
       }
     }

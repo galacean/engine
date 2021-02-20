@@ -1,5 +1,6 @@
+import { GLCapabilityType } from "@oasis-engine/core";
+import { GLCompressedTextureInternalFormat } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
-import { GLCapabilityType, GLCompressedTextureInternalFormat } from "@oasis-engine/core";
 
 type extensionKey = string;
 
