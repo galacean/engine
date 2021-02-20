@@ -14,13 +14,17 @@ import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { Material } from "../material";
 import { Texture2D } from "../texture";
 import { Shader } from "../shader";
+import { ShaderData } from "../shader/ShaderData";
+import { Renderer } from "../Renderer";
+
 export class SpriteBatcher {
   /** The maximum number of vertices. */
   private static MAX_VERTICES: number = 256;
 
   private _batchedQueue;
-  private _targetTexture;
-  private _camera;
+  private _camera: Camera;
+  private _targetTexture: Texture2D;
+  private _rendererData: ShaderData;
 
   /** @internal */
   private _primitive: Primitive;
@@ -39,8 +43,9 @@ export class SpriteBatcher {
 
   constructor(engine: Engine) {
     this._batchedQueue = [];
-    this._targetTexture = null;
     this._camera = null;
+    this._targetTexture = null;
+    this._rendererData = null;
 
     this._initGeometry(engine);
   }
@@ -93,11 +98,6 @@ export class SpriteBatcher {
       return;
     }
 
-    const materialData = material.shaderData;
-    materialData.setTexture("s_diffuse", this._targetTexture);
-    materialData.setMatrix("matView", this._camera.viewMatrix);
-    materialData.setMatrix("matProjection", this._camera.projectionMatrix);
-
     //@ts-ignore
     const compileMacros = Shader._compileMacros;
     compileMacros.clear();
@@ -108,8 +108,13 @@ export class SpriteBatcher {
       return;
     }
 
+    // Uniform.
+    this._rendererData.setTexture("u_texture", this._targetTexture);
     program.groupingOtherUniformBlock();
-    program.uploadAll(program.materialUniformBlock, materialData);
+    program.uploadAll(program.sceneUniformBlock, this._camera.scene.shaderData);
+    program.uploadAll(program.cameraUniformBlock, this._camera.shaderData);
+    program.uploadAll(program.rendererUniformBlock, this._rendererData);
+    program.uploadAll(program.materialUniformBlock, material.shaderData);
 
     const { _vertices, _indices, _vertexBuffer, _indiceBuffer, _primitive, _subPrimitive } = this;
     // Batch vertices and indices.
@@ -156,8 +161,9 @@ export class SpriteBatcher {
     engine._hardwareRenderer.drawPrimitive(_primitive, _subPrimitive, program);
 
     _batchedQueue.length = 0;
-    this._targetTexture = null;
     this._camera = null;
+    this._targetTexture = null;
+    this._rendererData = null;
     this._curIndiceCount = 0;
   }
 
@@ -182,6 +188,7 @@ export class SpriteBatcher {
 
   /**
    * Add a sprite drawing information to the render queue.
+   * @param renderer - The sprite renderer to draw
    * @param material - The material used to render the sprite
    * @param vertices - The array containing sprite mesh vertex positions
    * @param uv - The base texture coordinates of the sprite mesh
@@ -191,6 +198,7 @@ export class SpriteBatcher {
    * @param camera - Camera which is rendering
    */
   drawSprite(
+    renderer: Renderer,
     material: Material,
     vertices: Vector3[],
     uv: Vector2[],
@@ -203,8 +211,9 @@ export class SpriteBatcher {
       this.flush(camera.engine, material);
     }
 
-    this._targetTexture = texture;
     this._camera = camera;
+    this._targetTexture = texture;
+    this._rendererData = renderer.shaderData;
     this._curIndiceCount = triangles.length;
     this._batchedQueue.push({ vertices, uv, triangles, color });
   }

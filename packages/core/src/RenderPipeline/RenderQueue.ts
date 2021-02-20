@@ -195,6 +195,7 @@ export class RenderQueue {
         }
 
         this._spriteBatcher.drawSprite(
+          spirteElement.component,
           spriteMaterial,
           spirteElement.vertices,
           spirteElement.uv,
