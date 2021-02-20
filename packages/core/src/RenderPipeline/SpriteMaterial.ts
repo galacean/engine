@@ -8,18 +8,18 @@ precision highp float;
 uniform mat4 matProjection;
 uniform mat4 matView;
 
-attribute vec3 a_pos;
-attribute vec2 a_uv;
-attribute vec4 a_color;
+attribute vec3 POSITION;
+attribute vec2 TEXCOORD_0;
+attribute vec4 COLOR_0;
 
 varying vec2 v_uv;
 varying vec4 v_color;
 
 void main()
 {
-  gl_Position = matProjection * matView * vec4(a_pos,1.0);
-  v_uv = a_uv;
-  v_color = a_color;
+  gl_Position = matProjection * matView * vec4(POSITION,1.0);
+  v_uv = TEXCOORD_0;
+  v_color = COLOR_0;
 }
 `;
 

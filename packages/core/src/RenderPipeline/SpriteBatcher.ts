@@ -54,9 +54,9 @@ export class SpriteBatcher {
     _subPrimitive.topology = PrimitiveTopology.Triangles;
 
     const vertexElements = [
-      new VertexElement("a_pos", 0, VertexElementFormat.Vector3, 0),
-      new VertexElement("a_uv", 12, VertexElementFormat.Vector2, 0),
-      new VertexElement("a_color", 20, VertexElementFormat.Vector4, 0)
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0),
+      new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0)
     ];
     const vertexStride = 36;
 
