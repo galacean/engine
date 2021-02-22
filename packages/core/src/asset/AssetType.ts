@@ -32,7 +32,9 @@ export enum AssetType {
   /** Compress Texture. */
   KTX = 9,
   /** Cube Compress Texture. */
-  KTXCube = 10
+  KTXCube = 10,
   /** @todo Scene. */
   // Scene = 9
+  /** Editor File loader, for editor custom loader. */
+  EditorFile = 100
 }
