@@ -8,7 +8,13 @@ import {
 import { GLTexture } from "./GLTexture";
 import { WebGLRenderer } from "./WebGLRenderer";
 
+/**
+ * The texture in WebGL platform is used for the output of color information in off-screen rendering.
+ */
 export class GLRenderColorTexture extends GLTexture implements IPlatformRenderColorTexture {
+  /**
+   * Create render color texture in WebGL platform.
+   */
   constructor(rhi: WebGLRenderer, texture: RenderColorTexture) {
     super(rhi, texture, texture.isCube ? rhi.gl.TEXTURE_CUBE_MAP : rhi.gl.TEXTURE_2D);
 
@@ -47,7 +53,7 @@ export class GLRenderColorTexture extends GLTexture implements IPlatformRenderCo
    * @param height - Area height
    * @param out - Color buffer
    */
-  public getPixelBuffer(
+  getPixelBuffer(
     face: TextureCubeFace | null,
     x: number,
     y: number,

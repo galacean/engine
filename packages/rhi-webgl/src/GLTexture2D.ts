@@ -2,12 +2,18 @@ import { IPlatformTexture2D, Logger, Texture2D, TextureFormat } from "@oasis-eng
 import { GLTexture } from "./GLTexture";
 import { WebGLRenderer } from "./WebGLRenderer";
 
+/**
+ * Texture 2d in WebGL platform.
+ */
 export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
   /**
    * Backward compatible with WebGL1.0.
    */
   private _compressedMipFilled: number = 0;
 
+  /**
+   * Create texture2D in WebGL platform.
+   */
   constructor(rhi: WebGLRenderer, texture2D: Texture2D) {
     super(rhi, texture2D, rhi.gl.TEXTURE_2D);
 

@@ -2,7 +2,13 @@ import { IPlatformRenderDepthTexture, Logger, RenderBufferDepthFormat, RenderDep
 import { GLTexture } from "./GLTexture";
 import { WebGLRenderer } from "./WebGLRenderer";
 
+/**
+ * The texture in WebGL platform is used for the output of depth information in off-screen rendering.
+ */
 export class GLRenderDepthTexture extends GLTexture implements IPlatformRenderDepthTexture {
+  /**
+   * Create render depth texture in WebGL platform.
+   */
   constructor(rhi: WebGLRenderer, texture: RenderDepthTexture) {
     super(rhi, texture, texture.isCube ? rhi.gl.TEXTURE_CUBE_MAP : rhi.gl.TEXTURE_2D);
 

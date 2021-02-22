@@ -2,12 +2,18 @@ import { IPlatformTextureCubeMap, Logger, TextureCubeFace, TextureCubeMap, Textu
 import { GLTexture } from "./GLTexture";
 import { WebGLRenderer } from "./WebGLRenderer";
 
+/**
+ * Cube texture in WebGL platform.
+ */
 export class GLTextureCubeMap extends GLTexture implements IPlatformTextureCubeMap {
   /**
    * Backward compatible with WebGL1.0.。
    */
   private _compressedFaceFilled: number[] = [0, 0, 0, 0, 0, 0];
 
+  /**
+   * Create cube texture in WebGL platform.
+   */
   constructor(rhi: WebGLRenderer, textureCube: TextureCubeMap) {
     super(rhi, textureCube, rhi.gl.TEXTURE_CUBE_MAP);
 

@@ -13,6 +13,9 @@ import { GLRenderDepthTexture } from "./GLRenderDepthTexture";
 import { GLTexture } from "./GLTexture";
 import { WebGLRenderer } from "./WebGLRenderer";
 
+/**
+ * The render target in WebGL platform is used for off-screen rendering.
+ */
 export class GLRenderTarget implements IPlatformRenderTarget {
   _gl: WebGLRenderingContext & WebGL2RenderingContext;
   _isWebGL2: boolean;
@@ -26,6 +29,9 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _oriDrawBuffers: GLenum[];
   private _blitDrawBuffers: GLenum[] | null;
 
+  /**
+   * Create render target in WebGL platform.
+   */
   constructor(rhi: WebGLRenderer, target: RenderTarget) {
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
     this._isWebGL2 = rhi.isWebGL2;

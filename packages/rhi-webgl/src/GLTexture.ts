@@ -13,6 +13,9 @@ import {
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
 
+/**
+ * Texture in WebGL platform.
+ */
 export class GLTexture implements IPlatformTexture {
   /** @internal */
   static _readFrameBuffer: WebGLFramebuffer = null;
@@ -463,6 +466,9 @@ export class GLTexture implements IPlatformTexture {
     gl.texParameterf(this._target, gl.TEXTURE_MAX_ANISOTROPY_EXT, value);
   }
 
+  /**
+   * Create texture in WebGL platform.
+   */
   constructor(rhi: WebGLRenderer, texture: Texture, target: GLenum) {
     this._texture = texture;
     this._rhi = rhi;
@@ -542,7 +548,8 @@ export class GLTexture implements IPlatformTexture {
   }
 
   /**
-   * Get the pixel color buffer according to the specified area.
+   * Get the pixel color buffer according to the specified cube face and area.
+   * @param face - You can choose which cube face to read
    * @param x - X coordinate of area start
    * @param y - Y coordinate of area start
    * @param width - Area width
