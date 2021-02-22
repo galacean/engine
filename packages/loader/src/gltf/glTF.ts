@@ -33,7 +33,7 @@ import {
 import { Color, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { LoadedGLTFResource } from "../GLTF";
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
-import { createVertexElement, getAccessorData, getAccessorTypeSize, getIndexFormat, getVertexStride } from "./Util";
+import { createVertexElement, getAccessorData, getAccessorTypeSize, getIndexFormat, getVertexStride } from "../Util";
 
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
 //              https://github.com/KhronosGroup/glTF/pull/1223

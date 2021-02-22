@@ -10,7 +10,7 @@ import {
 import { GlTf, LoadedGLTFResource } from "./GLTF";
 import { parseGLTF, GLTFResource } from "./gltf/glTF";
 import { parseGLB } from "./gltf/glb";
-import { loadImageBuffer, getBufferData, parseRelativeUrl } from "./gltf/Util";
+import { loadImageBuffer, getBufferData, parseRelativeUrl } from "./Util";
 
 @resourceLoader(AssetType.Perfab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {

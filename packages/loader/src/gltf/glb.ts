@@ -1,4 +1,4 @@
-import { decodeText } from "./Util";
+import { decodeText } from "../Util";
 
 /**
  * Parse the glb format.

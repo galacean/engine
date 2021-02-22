@@ -1,5 +1,5 @@
 import { DRACODecoder } from "@oasis-engine/draco";
-import { getComponentType, getBufferData } from "./Util";
+import { getComponentType, getBufferData } from "../Util";
 
 let decoder;
 
