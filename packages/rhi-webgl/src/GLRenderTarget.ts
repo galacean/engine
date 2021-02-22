@@ -17,12 +17,11 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
-  _gl: WebGLRenderingContext & WebGL2RenderingContext;
-  _isWebGL2: boolean;
-  _target: RenderTarget;
-  _frameBuffer: WebGLFramebuffer;
-  _MSAAFrameBuffer: WebGLFramebuffer | null;
-
+  private _gl: WebGLRenderingContext & WebGL2RenderingContext;
+  private _isWebGL2: boolean;
+  private _target: RenderTarget;
+  private _frameBuffer: WebGLFramebuffer;
+  private _MSAAFrameBuffer: WebGLFramebuffer | null;
   private _depthRenderBuffer: WebGLRenderbuffer | null;
   private _MSAAColorRenderBuffers: WebGLRenderbuffer[] = [];
   private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
