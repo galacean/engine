@@ -3,7 +3,6 @@ import { ShaderData } from "@oasis-engine/core/types/shader/ShaderData";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { BufferReader } from "./utils/BufferReader";
 
-
 export class MaterialDecoder {
   public static decode(
     engine: Engine,
@@ -23,13 +22,20 @@ export class MaterialDecoder {
       const len = bufferReader.nextUint8();
       const types = bufferReader.nextUint8Array(len);
 
+      const { shaderData } = materal;
       for (let i = 0; i < len; i++) {
         const propertyName = bufferReader.nextStr();
         const propertyType = types[i];
-        this.setShaderDataByType(bufferReader, materal.shaderData, propertyName, propertyType, engine.resourceManager);
+        this.setShaderDataByType(bufferReader, shaderData, propertyName, propertyType, engine.resourceManager);
       }
 
-      // 6 is the count of render state float32 
+      const macroLen = bufferReader.nextUint8();
+      for (let i = 0; i < macroLen; i++) {
+        const enabledMacro = bufferReader.nextStr();
+        shaderData.enableMacro(enabledMacro);
+      }
+
+      // 6 is the count of render state float32
       const statesFloat = bufferReader.nextFloat32Array(6);
       // 24 is the count of render state uint8 count
       const states = bufferReader.nextUint8Array(24);
