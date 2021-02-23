@@ -2,7 +2,7 @@ import { Engine } from "../Engine";
 import { ShapeGeometry } from "./ShapeGeometry";
 
 /**
- * CubeGeometry.
+ * PlaneGeometry.
  */
 export class PlaneGeometry extends ShapeGeometry {
   private _parameters;
