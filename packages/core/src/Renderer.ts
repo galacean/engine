@@ -303,7 +303,7 @@ export abstract class Renderer extends Component {
 
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
-    // insMat.name = insMat.name + "(Instance)";
+    insMaterial.name = insMaterial.name + "(Instance)";
     material._addRefCount(-1);
     insMaterial._addRefCount(1);
     this._materialsInstanced[index] = true;
