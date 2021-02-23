@@ -1,5 +1,7 @@
 import { ab2str } from "./Utils";
 
+const textDecode = new TextDecoder();
+
 export class FileHeader {
   totalLength: number = 0;
   version: number = 0;
@@ -13,15 +15,15 @@ export class FileHeader {
     const fileVersion = dataView.getUint8(4);
     const type = dataView.getUint8(5);
     const nameLen = dataView.getUint16(6, true);
-    const nameBuffer = dataView.buffer.slice(8, 8 + nameLen);
+    const nameUint8Array = new Uint8Array(arrayBuffer, 8, nameLen);
 
-    const name = ab2str(nameBuffer);
+    const name = textDecode.decode(nameUint8Array);
     const header = new FileHeader();
     header.totalLength = totalLen;
     header.name = name;
     header.type = type;
     header.version = fileVersion;
-    header.headerLength = nameBuffer.byteLength + 8;
+    header.headerLength = nameUint8Array.byteLength + 8;
     return header;
   }
 
