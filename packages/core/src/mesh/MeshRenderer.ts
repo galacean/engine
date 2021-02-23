@@ -7,10 +7,6 @@ import { Mesh } from "../geometry/Mesh";
 import { Renderer } from "../Renderer";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 
-function addPrimitivesRefCount(mesh: Mesh, refCount: number): void {
-  mesh._primitive._addRefCount(refCount);
-}
-
 /**
  * MeshRenderer Component.
  */
@@ -35,8 +31,8 @@ export class MeshRenderer extends Renderer {
   set mesh(mesh: Mesh) {
     const lastMesh = this._mesh;
     if (lastMesh !== mesh) {
-      lastMesh && addPrimitivesRefCount(lastMesh, -1);
-      addPrimitivesRefCount(mesh, 1);
+      lastMesh && lastMesh._primitive._addRefCount(-1);
+      mesh && mesh._primitive._addRefCount(1);
       this._mesh = mesh;
     }
   }
@@ -48,18 +44,18 @@ export class MeshRenderer extends Renderer {
   render(camera: Camera) {
     const mesh = this._mesh;
     if (mesh) {
-      const subGeometries = mesh.subMeshes;
+      const subMeshes = mesh.subMeshes;
       const renderPipeline = camera._renderPipeline;
-      for (let i = 0, n = subGeometries.length; i < n; i++) {
+      for (let i = 0, n = subMeshes.length; i < n; i++) {
         const material = this._materials[i];
         if (material) {
           const element = RenderElement.getFromPool();
-          element.setValue(this, mesh._primitive, subGeometries[i], material); // CM: need to support multi material
+          element.setValue(this, mesh._primitive, subMeshes[i], material);
           renderPipeline.pushPrimitive(element);
         }
       }
     } else {
-      Logger.error("geometry is null.");
+      Logger.error("mesh is null.");
     }
   }
 
@@ -69,10 +65,9 @@ export class MeshRenderer extends Renderer {
   destroy() {
     super.destroy();
 
-    this._mesh = null;
-
     if (this._mesh) {
-      addPrimitivesRefCount(this._mesh, -1);
+      this._mesh._primitive._addRefCount(1);
+      this._mesh = null;
     }
   }
 
