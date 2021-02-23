@@ -10,7 +10,7 @@ export class MaterialDecoder {
     byteOffset?: number,
     byteLength?: number
   ): Promise<Material> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const bufferReader = new BufferReader(arraybuffer, byteOffset, byteLength);
       // init material
       const shader = bufferReader.nextStr();
@@ -23,10 +23,22 @@ export class MaterialDecoder {
       const types = bufferReader.nextUint8Array(len);
 
       const { shaderData } = materal;
+      const propertyNames = new Array(len);
       for (let i = 0; i < len; i++) {
-        const propertyName = bufferReader.nextStr();
+        propertyNames[i] = bufferReader.nextStr();
+      }
+
+      const shaderDataSetPromises = new Array(len);
+      for (let i = 0; i < len; i++) {
+        const propertyName = propertyNames[i];
         const propertyType = types[i];
-        this.setShaderDataByType(bufferReader, shaderData, propertyName, propertyType, engine.resourceManager);
+        shaderDataSetPromises[i] = this.setShaderDataByType(
+          bufferReader,
+          shaderData,
+          propertyName,
+          propertyType,
+          engine.resourceManager
+        );
       }
 
       const macroLen = bufferReader.nextUint8();
@@ -35,24 +47,22 @@ export class MaterialDecoder {
         shaderData.enableMacro(enabledMacro);
       }
 
-      // 6 is the count of render state float32
-      const statesFloat = bufferReader.nextFloat32Array(6);
-      // 24 is the count of render state uint8 count
-      const states = bufferReader.nextUint8Array(24);
-
       const { renderState } = materal;
       const { blendState, depthState, rasterState, stencilState } = renderState;
       const { targetBlendState } = blendState;
 
+      // 6 is the count of render state float32, x86 problem can't use Float32Array.
+      blendState.blendColor.r = bufferReader.nextFloat32();
+      blendState.blendColor.g = bufferReader.nextFloat32();
+      blendState.blendColor.b = bufferReader.nextFloat32();
+      blendState.blendColor.a = bufferReader.nextFloat32();
+      rasterState.depthBias = bufferReader.nextFloat32();
+      rasterState.slopeScaledDepthBias = bufferReader.nextFloat32();
+
+      // 24 is the count of render state uint8 count
+      const states = bufferReader.nextUint8Array(24);
       // set blend state
       blendState.alphaToCoverage = states[0] !== 0;
-      blendState.blendColor.r = statesFloat[0];
-      blendState.blendColor.g = statesFloat[1];
-      blendState.blendColor.b = statesFloat[2];
-      blendState.blendColor.a = statesFloat[3];
-
-      rasterState.depthBias = states[4];
-      rasterState.slopeScaledDepthBias = statesFloat[5];
 
       targetBlendState.alphaBlendOperation = states[1];
       targetBlendState.colorBlendOperation = states[2];
@@ -81,7 +91,13 @@ export class MaterialDecoder {
       stencilState.zFailOperationBack = states[22];
       stencilState.zFailOperationFront = states[23];
 
-      resolve(materal);
+      Promise.all(shaderDataSetPromises)
+        .then(() => {
+          resolve(materal);
+        })
+        .catch((err) => {
+          reject(err);
+        });
     });
   }
 
@@ -91,75 +107,126 @@ export class MaterialDecoder {
     propertyName: string,
     type: number,
     resourceManager: ResourceManager
-  ) {
-    switch (type) {
-      // float
-      case 0:
-        shaderData.setFloat(propertyName, bufferReader.nextFloat32());
-        break;
-      // int
-      case 1:
-        shaderData.setInt(propertyName, bufferReader.nextInt32());
-        break;
-      // vector2
-      case 2:
-        shaderData.setVector2(propertyName, new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32()));
-        break;
-      // vector3
-      case 3:
-        const vec3 = new Vector3();
-        vec3.setValueByArray(bufferReader.nextFloat32Array(3));
-        shaderData.setVector3(propertyName, vec3);
-        break;
-      // vector4
-      case 4:
-        const vec4 = new Vector4();
-        vec4.setValueByArray(bufferReader.nextFloat32Array(4));
-        shaderData.setVector4(propertyName, vec4);
-        break;
-      // matrix4x4
-      case 5:
-        const mat4x4 = new Matrix();
-        mat4x4.setValueByArray(bufferReader.nextFloat32Array(16));
-        shaderData.setMatrix(propertyName, mat4x4);
-        break;
-      // color
-      case 6:
-        const colorArray = bufferReader.nextFloat32Array(4);
-        const color = new Color(colorArray[0], colorArray[1], colorArray[2], colorArray[3]);
-        shaderData.setColor(propertyName, color);
-        break;
-      // texture
-      case 7:
-        const texturePath = bufferReader.nextStr();
-        resourceManager.load<Texture>(texturePath).then((texture) => {
-          shaderData.setTexture(propertyName, texture);
-        });
-        break;
-      // intArray
-      case 8:
-        const intLen = bufferReader.nextUint16();
-        const intArray = bufferReader.nextInt32Array(intLen);
-        shaderData.setIntArray(propertyName, intArray);
-        break;
-      // float array
-      case 9:
-        const floatLen = bufferReader.nextUint16();
-        const floatArray = bufferReader.nextFloat32Array(floatLen);
-        shaderData.setFloatArray(propertyName, floatArray);
-        break;
-      // textureArray
-      case 10:
-        const textureLen = bufferReader.nextUint16();
-        const texturePaths: string[] = new Array(textureLen);
-        for (let i = 0; i < textureLen; i++) {
-          texturePaths[i] = bufferReader.nextStr();
-        }
-        // @ts-ignore
-        resourceManager.load<Texture[]>(texturePaths).then((textures) => {
-          shaderData.setTextureArray(propertyName, textures);
-        });
-        break;
-    }
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let needAsync = false;
+
+      switch (type) {
+        // float
+        case 0:
+          shaderData.setFloat(propertyName, bufferReader.nextFloat32());
+          break;
+        // int
+        case 1:
+          shaderData.setInt(propertyName, bufferReader.nextInt32());
+          break;
+        // vector2
+        case 2:
+          shaderData.setVector2(propertyName, new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32()));
+          break;
+        // vector3
+        case 3:
+          const vec3 = new Vector3(bufferReader.nextFloat32(), bufferReader.nextFloat32(), bufferReader.nextFloat32());
+          shaderData.setVector3(propertyName, vec3);
+          break;
+        // vector4
+        case 4:
+          const vec4 = new Vector4(
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32()
+          );
+          shaderData.setVector4(propertyName, vec4);
+          break;
+        // matrix4x4
+        case 5:
+          const mat4x4 = new Matrix(
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32()
+          );
+          shaderData.setMatrix(propertyName, mat4x4);
+          break;
+        // color
+        case 6:
+          const color = new Color(
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32(),
+            bufferReader.nextFloat32()
+          );
+          shaderData.setColor(propertyName, color);
+          break;
+        // texture
+        case 7:
+          needAsync = true;
+          const texturePath = bufferReader.nextStr();
+          resourceManager
+            .load<Texture>(texturePath)
+            .then((texture) => {
+              shaderData.setTexture(propertyName, texture);
+              resolve();
+            })
+            .catch((err) => {
+              reject(err);
+            });
+          break;
+        // intArray
+        case 8:
+          const intLen = bufferReader.nextUint16();
+          const int32Array = new Int32Array(intLen);
+          for (let i = 0; i < intLen; i++) {
+            int32Array[i] = bufferReader.nextInt32();
+          }
+          shaderData.setIntArray(propertyName, int32Array);
+          break;
+        // float array
+        case 9:
+          const floatLen = bufferReader.nextUint16();
+          const float32Array = new Float32Array(floatLen);
+          for (let i = 0; i < intLen; i++) {
+            float32Array[i] = bufferReader.nextFloat32();
+          }
+          shaderData.setFloatArray(propertyName, float32Array);
+          break;
+        // textureArray
+        case 10:
+          needAsync = true;
+          const textureLen = bufferReader.nextUint16();
+          const texturePaths: string[] = new Array(textureLen);
+          for (let i = 0; i < textureLen; i++) {
+            texturePaths[i] = bufferReader.nextStr();
+          }
+          resourceManager
+            // @ts-ignore
+            .load<Texture[]>(texturePaths)
+            .then((textures) => {
+              shaderData.setTextureArray(propertyName, textures);
+              resolve();
+            })
+            .catch((err) => {
+              reject(err);
+            });
+          break;
+      }
+
+      if (!needAsync) {
+        resolve();
+      }
+    });
   }
 }
