@@ -21,7 +21,7 @@
     "b:miniprogram": "cross-env NODE_ENV=MINI rollup -c",
     "b:all": "npm run b:types && npm run build-all",
     "clean": "lerna exec -- rm -rf dist && lerna clean",
-    "doc": "rm -rf doc && typedoc --options tools/typedoc/typedoc.js"
+    "doc": "typedoc --options tools/typedoc/typedoc.js"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
