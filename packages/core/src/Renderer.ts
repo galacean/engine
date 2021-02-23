@@ -104,7 +104,8 @@ export abstract class Renderer extends Component {
   getInstanceMaterial(): Material | null;
 
   /**
-   * Get instance material by index.
+   * Get the first instance material by index.
+   * @remarks Calling this function for the first time after the material is set will create an instance material to ensure that it is unique to the renderer.
    * @param index - Material index
    * @returns Instance material
    */
@@ -132,7 +133,7 @@ export abstract class Renderer extends Component {
   getMaterial(): Material | null;
 
   /**
-   * Get material by index.
+   * Get the first material by index.
    * @param index - Material index
    * @returns Material
    */
@@ -150,7 +151,7 @@ export abstract class Renderer extends Component {
   setMaterial(material: Material);
 
   /**
-   * Set the material by index.
+   * Set material by index.
    * @param index - Material index
    * @param material - The material
    */
@@ -182,6 +183,7 @@ export abstract class Renderer extends Component {
 
   /**
    * Get all instance materials.
+   * @remarks Calling this function for the first time after the material is set will create an instance material to ensure that it is unique to the renderer.
    * @returns All instance materials
    */
   getInstanceMaterials(): Readonly<Material[]> {
