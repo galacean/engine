@@ -17,9 +17,9 @@ import {
   Material,
   Mesh,
   MeshRenderer,
+  ModelMesh,
   PBRMaterial,
   PBRSpecularMaterial,
-  Primitive,
   PrimitiveTopology,
   Scene,
   Skin,
@@ -490,19 +490,17 @@ function parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers) {}
  */
 export function parseMesh(gltfMesh, resources) {
   const { gltf, buffers, engine } = resources;
-
-  const mesh = new Mesh(gltfMesh.name);
   // mesh.type = resources.assetType;
   // parse all primitives then link to mesh
   // TODO: use hash cached primitives
   const primitivePromises = [];
   const groups = [];
-  for (let i = 0; i < 1 /*gltfMesh.primitives.length*/; i++) {
+  for (let i = 0; i < gltfMesh.primitives.length; i++) {
     primitivePromises.push(
       new Promise((resolve, reject) => {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
-        // const primitive = new ModelMesh(engine, gltfPrimitive.name || gltfMesh.name || i);
+        const mesh = new ModelMesh(engine, gltfPrimitive.name || gltfMesh.name || i);
         const subPrimitive = new SubPrimitive();
         groups.push(subPrimitive);
         // primitive.type = resources.assetType;
@@ -567,12 +565,8 @@ export function parseMesh(gltfMesh, resources) {
     );
   }
 
-  return Promise.all(primitivePromises).then((primitives: Primitive[]) => {
-    // for (let i = 0; i < primitives.length; i++) {
-    // mesh.primitives.push(primitives[i]);
-    // mesh.groups.push(groups[i]);
-    // }
-    return mesh;
+  return Promise.all(primitivePromises).then((meshes: ModelMesh[]) => {
+    return meshes;
   });
 }
 
@@ -813,24 +807,25 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
       const meshIndex = gltfNode.mesh;
       node.meshIndex = meshIndex;
       const gltfMeshPrimitives = gltfMeshes[meshIndex].primitives;
-      const mesh = getItemByIdx("meshes", meshIndex, resources);
+      const meshes = <ModelMesh[]>getItemByIdx("meshes", meshIndex, resources);
 
-      let renderer: MeshRenderer;
-      if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
-        const skin = getItemByIdx("skins", gltfNode.skin, resources);
-        const weights = mesh.weights;
-        const skinRenderer: SkinnedMeshRenderer = node.addComponent(SkinnedMeshRenderer);
-        skinRenderer.mesh = mesh;
-        skinRenderer.skin = skin;
-        // skinRenderer.setWeights(weights);
-        renderer = skinRenderer;
-      } else {
-        renderer = node.addComponent(MeshRenderer);
-        renderer.mesh = mesh;
-      }
-      for (let j = 0, m = gltfMeshPrimitives.length; j < m; j++) {
+      for (let j = 0; j < meshes.length; j++) {
+        const mesh = meshes[j];
+        let renderer: MeshRenderer;
+        if (gltfNode.hasOwnProperty("skin") || mesh.hasOwnProperty("weights")) {
+          const skin = getItemByIdx("skins", gltfNode.skin, resources);
+          // const weights = mesh.weights;
+          const skinRenderer: SkinnedMeshRenderer = node.addComponent(SkinnedMeshRenderer);
+          skinRenderer.mesh = mesh;
+          skinRenderer.skin = skin;
+          // skinRenderer.setWeights(weights);
+          renderer = skinRenderer;
+        } else {
+          renderer = node.addComponent(MeshRenderer);
+          renderer.mesh = mesh;
+        }
+
         const materialIndex = gltfMeshPrimitives[j].material;
-        mesh.primitives[j].materialIndex = materialIndex;
         const material =
           materialIndex !== undefined
             ? getItemByIdx("materials", materialIndex, resources)
