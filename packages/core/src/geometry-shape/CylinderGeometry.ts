@@ -4,7 +4,7 @@ import { Engine } from "../Engine";
 import { ShapeGeometry } from "./ShapeGeometry";
 
 /**
- * SphereGeometry.
+ * CylinderGeometry.
  */
 export class CylinderGeometry extends ShapeGeometry {
   public FrontFace;
