@@ -2,14 +2,14 @@ import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Entity } from "../Entity";
 import { CuboidGeometry } from "../geometry-shape/CuboidGeometry";
-import { GeometryRenderer } from "../geometry/GeometryRenderer";
+import { MeshRenderer } from "../mesh/MeshRenderer";
 import { TextureCubeMap } from "../texture/TextureCubeMap";
 import { SkyBoxMaterial } from "./SkyBoxMaterial";
 
 /**
  * Skybox Component
  */
-export class SkyBox extends GeometryRenderer {
+export class SkyBox extends MeshRenderer {
   private _skyBoxMap: TextureCubeMap;
   private _matrix: Matrix = new Matrix();
   private _initBounds: boolean = false;
@@ -20,8 +20,8 @@ export class SkyBox extends GeometryRenderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this.geometry = new CuboidGeometry(this.engine, 2, 2, 2);
-    this.material = new SkyBoxMaterial(this.engine);
+    this.mesh = new CuboidGeometry(this.engine, 2, 2, 2);
+    this.setMaterial(new SkyBoxMaterial(this.engine));
   }
 
   /**
@@ -54,7 +54,7 @@ export class SkyBox extends GeometryRenderer {
 
   set skyBoxMap(v: TextureCubeMap) {
     this._skyBoxMap = v;
-    v && this.material.shaderData.setTexture("u_cube", v);
+    v && this.getMaterial().shaderData.setTexture("u_cube", v);
   }
 
   /**

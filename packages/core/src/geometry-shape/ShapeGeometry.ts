@@ -1,6 +1,6 @@
 import { Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
-import { BufferGeometry } from "../geometry/BufferGeometry";
+import { Mesh } from "../geometry/Mesh";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
@@ -11,7 +11,7 @@ import { VertexElement } from "../graphic/VertexElement";
 /**
  * Basic shape geometry.
  */
-export class ShapeGeometry extends BufferGeometry {
+export class ShapeGeometry extends Mesh {
   /**
    * @internal
    */
@@ -40,7 +40,7 @@ export class ShapeGeometry extends BufferGeometry {
     this.setVertexBufferBinding(vertexBuffer, vertexStride);
     this.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
     this.setVertexElements(vertexElements);
-    this.addSubGeometry(0, indices.length);
+    this.addSubMesh(0, indices.length);
 
     this._computeBounds(positionElement, vertices);
   }

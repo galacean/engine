@@ -425,7 +425,7 @@ export function parseSkin(gltfSkin, resources) {
 
 function parsePrimitiveVertex(
   mesh: Mesh,
-  primitive: Primitive,
+  // primitive: Primitive,
   primitiveGroup: SubPrimitive,
   gltfPrimitive,
   gltf,
@@ -446,7 +446,7 @@ function parsePrimitiveVertex(
     const bufferData = getVertexBufferData(attributeSemantic);
     const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, bufferData.byteLength, BufferUsage.Static);
     vertexBuffer.setData(bufferData);
-    primitive.setVertexBufferBinding(vertexBuffer, stride, i++);
+    mesh.setVertexBufferBinding(vertexBuffer, stride, i++);
 
     // compute bounds
     if (vertexELement.semantic == "POSITION") {
@@ -461,7 +461,7 @@ function parsePrimitiveVertex(
       }
     }
   }
-  primitive.setVertexElements(vertexElements);
+  mesh.setVertexElements(vertexElements);
 
   // load indices
   const indexAccessor = gltf.accessors[gltfPrimitive.indices];
@@ -473,10 +473,11 @@ function parsePrimitiveVertex(
   const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indexCount * indexByteSize, BufferUsage.Static);
 
   indexBuffer.setData(indexData);
-  primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
-  primitiveGroup.start = 0;
-  primitiveGroup.count = indexCount;
-  return Promise.resolve(primitive);
+  mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
+  mesh.addSubMesh(0, indexCount);
+  // primitiveGroup.start = 0;
+  // primitiveGroup.count = indexCount;
+  return Promise.resolve(mesh);
 }
 
 function parserPrimitiveTarget(primitive, gltfPrimitive, gltf, buffers) {}
@@ -496,18 +497,18 @@ export function parseMesh(gltfMesh, resources) {
   // TODO: use hash cached primitives
   const primitivePromises = [];
   const groups = [];
-  for (let i = 0; i < gltfMesh.primitives.length; i++) {
+  for (let i = 0; i < 1 /*gltfMesh.primitives.length*/; i++) {
     primitivePromises.push(
       new Promise((resolve, reject) => {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
-        const primitive = new Primitive(engine, gltfPrimitive.name || gltfMesh.name || i);
+        // const primitive = new ModelMesh(engine, gltfPrimitive.name || gltfMesh.name || i);
         const subPrimitive = new SubPrimitive();
         groups.push(subPrimitive);
         // primitive.type = resources.assetType;
         subPrimitive.topology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
-          primitive.targets = [];
+          // primitive.targets = [];
           (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);
         }
         let vertexPromise;
@@ -517,7 +518,7 @@ export function parseMesh(gltfMesh, resources) {
           vertexPromise = extensionParser.parse(extension, gltfPrimitive, gltf, buffers).then((decodedGeometry) => {
             return parsePrimitiveVertex(
               mesh,
-              primitive,
+              // primitive,
               subPrimitive,
               gltfPrimitive,
               gltf,
@@ -538,7 +539,7 @@ export function parseMesh(gltfMesh, resources) {
         } else {
           vertexPromise = parsePrimitiveVertex(
             mesh,
-            primitive,
+            // primitive,
             subPrimitive,
             gltfPrimitive,
             gltf,
@@ -565,11 +566,12 @@ export function parseMesh(gltfMesh, resources) {
       })
     );
   }
+
   return Promise.all(primitivePromises).then((primitives: Primitive[]) => {
-    for (let i = 0; i < primitives.length; i++) {
-      mesh.primitives.push(primitives[i]);
-      mesh.groups.push(groups[i]);
-    }
+    // for (let i = 0; i < primitives.length; i++) {
+    // mesh.primitives.push(primitives[i]);
+    // mesh.groups.push(groups[i]);
+    // }
     return mesh;
   });
 }
@@ -820,7 +822,7 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
         const skinRenderer: SkinnedMeshRenderer = node.addComponent(SkinnedMeshRenderer);
         skinRenderer.mesh = mesh;
         skinRenderer.skin = skin;
-        skinRenderer.setWeights(weights);
+        // skinRenderer.setWeights(weights);
         renderer = skinRenderer;
       } else {
         renderer = node.addComponent(MeshRenderer);
@@ -833,7 +835,7 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
           materialIndex !== undefined
             ? getItemByIdx("materials", materialIndex, resources)
             : getDefaultMaterial(node.engine);
-        renderer.setSharedMaterial(j, material);
+        renderer.setMaterial(j, material);
       }
     }
   }

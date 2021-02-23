@@ -46,7 +46,7 @@ export { SpotLight } from "./lighting/SpotLight";
 export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
 export { Light } from "./lighting/Light";
 // Mesh
-export { Mesh } from "./mesh/Mesh";
+export { ModelMesh } from "./mesh/ModelMesh";
 export { Skin } from "./mesh/Skin";
 export { MeshRenderer } from "./mesh/MeshRenderer";
 export { SkinnedMeshRenderer } from "./mesh/SkinnedMeshRenderer";

@@ -16,7 +16,7 @@ export class ScreenQuadGeometry extends ShapeGeometry {
     const indices: Uint16Array = new Uint16Array([0, 1, 2, 3]);
 
     this._initialize(engine, vertices, indices);
-    this.subGeometry.topology = PrimitiveTopology.TriangleFan;
+    this.subMesh.topology = PrimitiveTopology.TriangleFan;
   }
 
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {

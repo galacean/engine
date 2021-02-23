@@ -1,12 +1,13 @@
 import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Entity } from "../Entity";
-import { BufferGeometry, GeometryRenderer } from "../geometry";
+import { Mesh } from "../geometry";
 import { Buffer } from "../graphic/Buffer";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
+import { MeshRenderer } from "../mesh/MeshRenderer";
 import { Texture2D } from "../texture";
 import { TrailMaterial } from "./TrailMaterial";
 
@@ -15,7 +16,7 @@ const _tempVector3 = new Vector3();
 /**
  * @deprecated
  */
-export class TrailRenderer extends GeometryRenderer {
+export class TrailRenderer extends MeshRenderer {
   private _vertexStride: number;
   private _vertices: Float32Array;
   private _vertexBuffer: Buffer;
@@ -52,7 +53,7 @@ export class TrailRenderer extends GeometryRenderer {
     this._curPointNum = 0;
 
     const mtl = props.material || new TrailMaterial(this.engine);
-    this.material = mtl;
+    this.setMaterial(mtl);
 
     this.setTexture(props.texture);
     this._initGeometry();
@@ -118,12 +119,12 @@ export class TrailRenderer extends GeometryRenderer {
    */
   setTexture(texture: Texture2D) {
     if (texture) {
-      this.material.shaderData.setTexture("u_texture", texture);
+      this.getMaterial().shaderData.setTexture("u_texture", texture);
     }
   }
 
   private _initGeometry() {
-    const geometry = new BufferGeometry(this._entity.engine);
+    const mesh = new Mesh(this._entity.engine);
 
     const vertexStride = 20;
     const vertexCount = this._maxPointNum * 2;
@@ -135,14 +136,14 @@ export class TrailRenderer extends GeometryRenderer {
     ];
     const vertexBuffer = new Buffer(this.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
 
-    geometry.setVertexBufferBinding(vertexBuffer, vertexStride);
-    geometry.setVertexElements(vertexElements);
-    geometry.addSubGeometry(0, vertexCount, PrimitiveTopology.TriangleStrip);
+    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
+    mesh.setVertexElements(vertexElements);
+    mesh.addSubMesh(0, vertexCount, PrimitiveTopology.TriangleStrip);
 
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride;
     this._vertices = vertices;
-    this.geometry = geometry;
+    this.mesh = mesh;
   }
 
   private _updateStrapVertices(camera, points: Array<Vector3>) {
