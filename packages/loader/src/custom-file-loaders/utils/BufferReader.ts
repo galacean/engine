@@ -4,6 +4,9 @@ class ImageData {
   type: "image/png" | "image/jpg" | "image/webp" | "ktx";
   buffer: ArrayBuffer;
 }
+
+const textDecode = new TextDecoder();
+
 export class BufferReader {
   private _dataView: DataView;
   private _littleEndian: boolean;
@@ -17,10 +20,10 @@ export class BufferReader {
   };
 
   constructor(private _buffer: ArrayBuffer, byteOffset: number = 0, byteLength?: number, littleEndian: boolean = true) {
-    byteLength = byteLength ?? _buffer.byteLength;
-    this._dataView = new DataView(_buffer, byteOffset, byteLength);
+    // byteLength = byteLength ?? _buffer.byteLength;
+    this._dataView = new DataView(_buffer);
     this._littleEndian = littleEndian;
-    this._offset = 0;
+    this._offset = byteOffset;
   }
 
   get offset() {
@@ -76,8 +79,8 @@ export class BufferReader {
   }
 
   nextUint8Array(len: number) {
-    const value = new Uint32Array(this._buffer, this._offset, len);
-    this._offset += 4 * len;
+    const value = new Uint8Array(this._buffer, this._offset, len);
+    this._offset += len;
     return value;
   }
 
@@ -90,11 +93,10 @@ export class BufferReader {
   }
 
   nextStr(): string {
-    const strLen = this.nextUint16();
-    const ab = this._dataView.buffer.slice(this._offset, this._offset + strLen);
-    const value = ab2str(ab);
-    this._offset += strLen;
-    return value;
+    const strByteLength = this.nextUint16();
+    const uint8Array = new Uint8Array(this._buffer, this._offset, strByteLength);
+    this._offset += strByteLength;
+    return textDecode.decode(uint8Array);
   }
 
   /**
@@ -103,7 +105,7 @@ export class BufferReader {
   nextImageData(count: number = 0): ImageData {
     const imageData = new ImageData();
     imageData.type = BufferReader.imageMapping[this.nextUint8()];
-    imageData.buffer = this._buffer.slice(this._offset + this._dataView.byteOffset);
+    imageData.buffer = this._buffer.slice(this._offset);
     return imageData;
   }
 
