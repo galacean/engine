@@ -1,2 +1,1 @@
-export { BufferGeometry } from "./BufferGeometry";
-export { GeometryRenderer } from "./GeometryRenderer";
+export { Mesh } from "./Mesh";

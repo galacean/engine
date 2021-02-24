@@ -1,4 +1,5 @@
-import { Entity, MathUtil, Script, Spherical, Vector3 } from "oasis-engine";
+import { Entity, MathUtil, Script, Vector3 } from "oasis-engine";
+import { Spherical } from "./Spherical";
 
 // Prevent universal lock.
 const ESP = MathUtil.zeroTolerance;

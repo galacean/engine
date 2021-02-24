@@ -1,26 +1,28 @@
-import { BoundingBox, Vector3 } from "@oasis-engine/math";
+import { BoundingBox } from "@oasis-engine/math";
 import { EngineObject } from "../base";
 import { Engine } from "../Engine";
-import { PrimitiveTopology, SubPrimitive } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { Primitive } from "../graphic/Primitive";
+import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 
 /**
- * BufferGeometry.
+ * Mesh.
  */
-export class BufferGeometry extends EngineObject {
-  /** Geometry name */
+export class Mesh extends EngineObject {
+  /** Name. */
   name: string;
+  /** The bounding volume of the mesh. */
+  readonly bounds: BoundingBox = new BoundingBox();
 
   /** @internal */
   _primitive: Primitive;
 
-  readonly bounds: BoundingBox = new BoundingBox();
-  private _subGeometries: SubPrimitive[] = [];
+  private _subMeshes: SubPrimitive[] = [];
 
   /**
    * Vertex buffer binding collection.
@@ -46,15 +48,15 @@ export class BufferGeometry extends EngineObject {
   /**
    * First sub-geometry. Rendered using the first material. For more details, please refer to the subGeometrys property.
    */
-  get subGeometry(): SubPrimitive | null {
-    return this._subGeometries[0] || null;
+  get subMesh(): SubPrimitive | null {
+    return this._subMeshes[0] || null;
   }
 
   /**
    * A collection of sub-geometry, each sub-geometry can be rendered with an independent material.
    */
-  get subGeometries(): Readonly<SubPrimitive[]> {
-    return this._subGeometries;
+  get subMeshes(): Readonly<SubPrimitive[]> {
+    return this._subMeshes;
   }
 
   /**
@@ -142,13 +144,9 @@ export class BufferGeometry extends EngineObject {
    * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
    * @param topology - Drawing topology, default is PrimitiveTopology.Triangles
    */
-  addSubGeometry(
-    start: number,
-    count: number,
-    topology: PrimitiveTopology = PrimitiveTopology.Triangles
-  ): SubPrimitive {
+  addSubMesh(start: number, count: number, topology: PrimitiveTopology = PrimitiveTopology.Triangles): SubPrimitive {
     const subGeometry = new SubPrimitive(start, count, topology);
-    this._subGeometries.push(subGeometry);
+    this._subMeshes.push(subGeometry);
     return subGeometry;
   }
 
@@ -156,8 +154,8 @@ export class BufferGeometry extends EngineObject {
    * Remove sub geometry.
    * @param subGeometry - SubGeometry needs to be removed
    */
-  removeSubGeometry(subGeometry: SubPrimitive): void {
-    const subGeometries = this._subGeometries;
+  removeSubMesh(subGeometry: SubPrimitive): void {
+    const subGeometries = this._subMeshes;
     const index = subGeometries.indexOf(subGeometry);
     if (index !== -1) {
       subGeometries.splice(index, 1);
@@ -167,8 +165,8 @@ export class BufferGeometry extends EngineObject {
   /**
    * Clear all sub geometries
    */
-  clearSubGeometry(): void {
-    this._subGeometries.length = 0;
+  clearSubMesh(): void {
+    this._subMeshes.length = 0;
   }
 
   /**
