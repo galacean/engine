@@ -1,5 +1,6 @@
 "use strict";
-import { Entity, Matrix, Script, Spherical, Vector2, Vector3 } from "oasis-engine";
+import { Entity, Matrix, Script, Vector2, Vector3 } from "oasis-engine";
+import { Spherical } from "./Spherical";
 
 /**
  * The camera's track controller, can rotate, zoom, pan, support mouse and touch events.
