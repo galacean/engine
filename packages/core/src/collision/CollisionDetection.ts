@@ -1,5 +1,4 @@
 import { BoundingBox, Vector3 } from "@oasis-engine/math";
-import { Event } from "../base/Event";
 import { EventDispatcher } from "../base/EventDispatcher";
 import { ACollider } from "../collider";
 import { ABoxCollider } from "../collider/ABoxCollider";
