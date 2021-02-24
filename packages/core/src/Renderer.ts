@@ -148,16 +148,16 @@ export abstract class Renderer extends Component {
    * Set the first material.
    * @param material - The first material
    */
-  setMaterial(material: Material);
+  setMaterial(material: Material): void;
 
   /**
    * Set material by index.
    * @param index - Material index
    * @param material - The material
    */
-  setMaterial(index: number, material: Material);
+  setMaterial(index: number, material: Material): void;
 
-  setMaterial(indexOrMaterial: number | Material, material: Material = null) {
+  setMaterial(indexOrMaterial: number | Material, material: Material = null): void {
     let index;
     if (typeof indexOrMaterial === "number") {
       index = indexOrMaterial;
@@ -240,7 +240,7 @@ export abstract class Renderer extends Component {
   /**
    * @internal
    */
-  _updateShaderData(context: RenderContext) {
+  _updateShaderData(context: RenderContext): void {
     const shaderData = this.shaderData;
     const worldMatrix = this.entity.transform.worldMatrix;
     const mvMatrix = this._mvMatrix;
@@ -262,7 +262,7 @@ export abstract class Renderer extends Component {
     shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
   }
 
-  _onEnable() {
+  _onEnable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
@@ -270,7 +270,7 @@ export abstract class Renderer extends Component {
     componentsManager.addRenderer(this);
   }
 
-  _onDisable() {
+  _onDisable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
