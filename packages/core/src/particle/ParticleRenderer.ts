@@ -355,7 +355,7 @@ export class ParticleRenderer extends MeshRenderer {
     this._isInit = false;
     this._maxCount = value;
     this._updateDirtyFlag = DirtyFlagType.Everything;
-    this.mesh = this._createGeometry();
+    this.mesh = this._createMesh();
 
     this._updateBuffer();
 
@@ -588,7 +588,7 @@ export class ParticleRenderer extends MeshRenderer {
     return material;
   }
 
-  private _createGeometry(): Mesh {
+  private _createMesh(): Mesh {
     const geometry = new Mesh(this._entity.engine, "particleGeometry");
     const vertexStride = 96;
     const vertexFloatCount = this._maxCount * 4 * vertexStride;
