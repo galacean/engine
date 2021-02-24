@@ -1,48 +1,71 @@
+import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@oasis-engine/math";
-import { EngineObject } from "../base";
+import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
+import { BufferUtil } from "../graphic/BufferUtil";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
-import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { Shader } from "../shader/Shader";
+import { ShaderMacro } from "../shader/ShaderMacro";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { ShaderProgram } from "../shader/ShaderProgram";
 
 /**
  * Mesh.
  */
-export class Mesh extends EngineObject {
+export class Mesh extends RefObject {
+  //----------------------temp------------------
+  private static _uvMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_UV");
+  private static _normalMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_NORMAL");
+  private static _tangentMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_TANGENT");
+  private static _vertexColorMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
+  private static _vertexAlphaMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_VERTEXALPHA");
+  /** @internal */
+  _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  targets: any[] = [];
+  //----------------------temp------------------
+
   /** Name. */
   name: string;
+  /** Instanced count, disable instanced drawing when set zero */
+  instanceCount: number = 0;
   /** The bounding volume of the mesh. */
   readonly bounds: BoundingBox = new BoundingBox();
 
-  /** @internal */
-  _primitive: Primitive;
+  _vertexElementMap: object = {};
+  _glIndexType: number;
+  _platformPrimitive: IPlatformPrimitive;
 
+  private _vertexBufferBindings: VertexBufferBinding[] = [];
+  private _indexBufferBinding: IndexBufferBinding = null;
+  private _vertexElements: VertexElement[] = [];
   private _subMeshes: SubPrimitive[] = [];
 
   /**
    * Vertex buffer binding collection.
    */
   get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
-    return this._primitive.vertexBufferBindings;
+    return this._vertexBufferBindings;
   }
 
   /**
    * Index buffer binding.
    */
   get indexBufferBinding(): IndexBufferBinding {
-    return this._primitive.indexBufferBinding;
+    return this._indexBufferBinding;
   }
 
   /**
    * Vertex element collection.
    */
   get vertexElements(): Readonly<VertexElement[]> {
-    return this._primitive.vertexElements;
+    return this._vertexElements;
   }
 
   /**
@@ -60,25 +83,14 @@ export class Mesh extends EngineObject {
   }
 
   /**
-   * Instanced count, 0 means disable.
-   */
-  get instanceCount(): number {
-    return this._primitive.instanceCount;
-  }
-
-  set instanceCount(count: number) {
-    this._primitive.instanceCount = count;
-  }
-
-  /**
    * Create buffer geometry.
    * @param engine - Engine
    * @param name - Geometry name
    */
   constructor(engine: Engine, name?: string) {
     super(engine);
-    this._primitive = new Primitive(engine);
     this.name = name;
+    this._platformPrimitive = this._engine._hardwareRenderer.createPlatformPrimitive(this);
   }
 
   /**
@@ -98,10 +110,16 @@ export class Mesh extends EngineObject {
 
   setVertexBufferBinding(
     bufferOrBinding: Buffer | VertexBufferBinding,
-    stride: number = 0,
+    strideOrFirstIndex: number = 0,
     firstIndex: number = 0
   ): void {
-    this._primitive.setVertexBufferBinding(<Buffer>bufferOrBinding, stride, firstIndex);
+    let binding = <VertexBufferBinding>bufferOrBinding;
+    const isBinding = binding.buffer !== undefined;
+    isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
+
+    const bindings = this._vertexBufferBindings;
+    bindings.length <= firstIndex && (bindings.length = firstIndex + 1);
+    this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : firstIndex, binding);
   }
 
   /**
@@ -110,7 +128,13 @@ export class Mesh extends EngineObject {
    * @param firstIndex - First vertex buffer index, the default value is 0
    */
   setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
-    this._primitive.setVertexBufferBindings(vertexBufferBindings, firstIndex);
+    const bindings = this._vertexBufferBindings;
+    const count = vertexBufferBindings.length;
+    const needLength = firstIndex + count;
+    bindings.length < needLength && (bindings.length = needLength);
+    for (let i = 0; i < count; i++) {
+      this._setVertexBufferBinding(firstIndex + i, vertexBufferBindings[i]);
+    }
   }
 
   /**
@@ -127,7 +151,11 @@ export class Mesh extends EngineObject {
   setIndexBufferBinding(bufferBinding: IndexBufferBinding): void;
 
   setIndexBufferBinding(bufferOrBinding: Buffer | IndexBufferBinding, format?: IndexFormat): void {
-    this._primitive.setIndexBufferBinding(<Buffer>bufferOrBinding, format);
+    let binding = <IndexBufferBinding>bufferOrBinding;
+    const isBinding = binding.buffer !== undefined;
+    isBinding || (binding = new IndexBufferBinding(<Buffer>bufferOrBinding, format));
+    this._indexBufferBinding = binding;
+    this._glIndexType = BufferUtil._getGLIndexType(binding.format);
   }
 
   /**
@@ -135,7 +163,10 @@ export class Mesh extends EngineObject {
    * @param elements - Vertex element collection
    */
   setVertexElements(elements: VertexElement[]): void {
-    this._primitive.setVertexElements(elements);
+    this._clearVertexElements();
+    for (let i = 0, n = elements.length; i < n; i++) {
+      this._addVertexElement(elements[i]);
+    }
   }
 
   /**
@@ -170,12 +201,78 @@ export class Mesh extends EngineObject {
   }
 
   /**
+   * @internal
+   */
+  _draw(shaderProgram: ShaderProgram, subPrimitive: SubPrimitive): void {
+    this._platformPrimitive.draw(shaderProgram, subPrimitive);
+  }
+
+  /**
+   * @override
+   */
+  _addRefCount(value: number): void {
+    super._addRefCount(value);
+    const vertexBufferBindings = this._vertexBufferBindings;
+    for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
+      vertexBufferBindings[i]._buffer._addRefCount(value);
+    }
+  }
+
+  /**
+   * @override
    * Destroy.
    */
-  destroy(): void {
-    if (this._primitive) {
-      this._primitive.destroy();
-      this._primitive = null;
+  _onDestroy() {
+    this._vertexBufferBindings = null;
+    this._indexBufferBinding = null;
+    this._vertexElements = null;
+    this._vertexElementMap = null;
+    this._platformPrimitive.destroy();
+  }
+
+  private _clearVertexElements(): void {
+    this._vertexElements.length = 0;
+    const vertexElementMap = this._vertexElementMap;
+    for (var k in vertexElementMap) {
+      delete vertexElementMap[k];
     }
+
+    this._macroCollection.disable(Mesh._uvMacro);
+    this._macroCollection.disable(Mesh._normalMacro);
+    this._macroCollection.disable(Mesh._tangentMacro);
+    this._macroCollection.disable(Mesh._vertexColorMacro);
+    this._macroCollection.disable(Mesh._vertexAlphaMacro);
+  }
+
+  private _addVertexElement(element: VertexElement): void {
+    const { semantic, format } = element;
+    this._vertexElementMap[semantic] = element;
+    this._vertexElements.push(element);
+
+    // init primitive shaderData
+    switch (semantic) {
+      case "TEXCOORD_0":
+        this._macroCollection.enable(Mesh._uvMacro);
+        break;
+      case "NORMAL":
+        this._macroCollection.enable(Mesh._normalMacro);
+        break;
+      case "TANGENT":
+        this._macroCollection.enable(Mesh._tangentMacro);
+        break;
+      case "COLOR_0":
+        this._macroCollection.enable(Mesh._vertexColorMacro);
+        if (format === VertexElementFormat.Vector4) this._macroCollection.enable(Mesh._vertexAlphaMacro);
+        break;
+    }
+  }
+
+  private _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    if (this._getRefCount() > 0) {
+      const lastBinding = this._vertexBufferBindings[index];
+      lastBinding && lastBinding._buffer._addRefCount(-1);
+      binding._buffer._addRefCount(1);
+    }
+    this._vertexBufferBindings[index] = binding;
   }
 }

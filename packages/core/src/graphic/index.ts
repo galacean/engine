@@ -7,7 +7,6 @@ export { PrimitiveTopology } from "./enums/PrimitiveTopology";
 export { SetDataOptions } from "./enums/SetDataOptions";
 export { VertexElementFormat } from "./enums/VertexElementFormat";
 export { IndexBufferBinding } from "./IndexBufferBinding";
-export { Primitive } from "./Primitive";
 export { VertexBufferBinding } from "./VertexBufferBinding";
 export { VertexElement } from "./VertexElement";
 export { SubPrimitive } from "./SubPrimitive";

@@ -48,7 +48,7 @@ export class ShapeGeometry extends Mesh {
   private _computeBounds(positionElement: VertexElement, vertices: ArrayBuffer | Float32Array): void {
     const vertexElement = positionElement;
     const bufferIndex = vertexElement.bindingIndex;
-    const vertexBufferBinding = this._primitive.vertexBufferBindings[bufferIndex];
+    const vertexBufferBinding = this.vertexBufferBindings[bufferIndex];
     const stride = vertexBufferBinding.stride;
     const offset = vertexElement.offset;
     const vertexCount = vertexBufferBinding.buffer.byteLength / stride;

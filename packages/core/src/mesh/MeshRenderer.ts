@@ -31,8 +31,8 @@ export class MeshRenderer extends Renderer {
   set mesh(mesh: Mesh) {
     const lastMesh = this._mesh;
     if (lastMesh !== mesh) {
-      lastMesh && lastMesh._primitive._addRefCount(-1);
-      mesh && mesh._primitive._addRefCount(1);
+      lastMesh && lastMesh._addRefCount(-1);
+      mesh && mesh._addRefCount(1);
       this._mesh = mesh;
     }
   }
@@ -50,7 +50,7 @@ export class MeshRenderer extends Renderer {
         const material = this._materials[i];
         if (material) {
           const element = RenderElement.getFromPool();
-          element.setValue(this, mesh._primitive, subMeshes[i], material);
+          element.setValue(this, mesh, subMeshes[i], material);
           renderPipeline.pushPrimitive(element);
         }
       }
@@ -66,7 +66,7 @@ export class MeshRenderer extends Renderer {
     super.destroy();
 
     if (this._mesh) {
-      this._mesh._primitive._addRefCount(1);
+      this._mesh._addRefCount(1);
       this._mesh = null;
     }
   }
