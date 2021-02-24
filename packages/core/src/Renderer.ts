@@ -140,8 +140,7 @@ export abstract class Renderer extends Component {
   getMaterial(index: number): Material | null;
 
   getMaterial(index: number = 0): Material | null {
-    const materials = this._materials;
-    return materials.length > 0 ? materials[index] : null;
+    return this._materials[index] || null;
   }
 
   /**
