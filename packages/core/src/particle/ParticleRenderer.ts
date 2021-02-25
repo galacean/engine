@@ -11,7 +11,7 @@ import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Shader, CullMode } from "../shader";
 import { Texture } from "../texture";
 import { MeshRenderer } from "../mesh/MeshRenderer";
-import { Mesh } from "../geometry";
+import { Mesh } from "../graphic/Mesh";
 
 enum DirtyFlagType {
   Position = 0x1,

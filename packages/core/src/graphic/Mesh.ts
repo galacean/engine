@@ -7,7 +7,7 @@ import { BufferUtil } from "../graphic/BufferUtil";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
-import { SubPrimitive } from "../graphic/SubPrimitive";
+import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { ShaderProgram } from "../shader/ShaderProgram";
@@ -31,7 +31,7 @@ export class Mesh extends RefObject {
   private _vertexBufferBindings: VertexBufferBinding[] = [];
   private _indexBufferBinding: IndexBufferBinding = null;
   private _vertexElements: VertexElement[] = [];
-  private _subMeshes: SubPrimitive[] = [];
+  private _subMeshes: SubMesh[] = [];
   private _updateFlags: UpdateFlag[] = [];
 
   /**
@@ -58,14 +58,14 @@ export class Mesh extends RefObject {
   /**
    * First sub-geometry. Rendered using the first material. For more details, please refer to the subGeometrys property.
    */
-  get subMesh(): SubPrimitive | null {
+  get subMesh(): SubMesh | null {
     return this._subMeshes[0] || null;
   }
 
   /**
    * A collection of sub-geometry, each sub-geometry can be rendered with an independent material.
    */
-  get subMeshes(): Readonly<SubPrimitive[]> {
+  get subMeshes(): Readonly<SubMesh[]> {
     return this._subMeshes;
   }
 
@@ -162,8 +162,8 @@ export class Mesh extends RefObject {
    * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
    * @param topology - Drawing topology, default is PrimitiveTopology.Triangles
    */
-  addSubMesh(start: number, count: number, topology: PrimitiveTopology = PrimitiveTopology.Triangles): SubPrimitive {
-    const subGeometry = new SubPrimitive(start, count, topology);
+  addSubMesh(start: number, count: number, topology: PrimitiveTopology = PrimitiveTopology.Triangles): SubMesh {
+    const subGeometry = new SubMesh(start, count, topology);
     this._subMeshes.push(subGeometry);
     return subGeometry;
   }
@@ -172,7 +172,7 @@ export class Mesh extends RefObject {
    * Remove sub geometry.
    * @param subGeometry - SubGeometry needs to be removed
    */
-  removeSubMesh(subGeometry: SubPrimitive): void {
+  removeSubMesh(subGeometry: SubMesh): void {
     const subGeometries = this._subMeshes;
     const index = subGeometries.indexOf(subGeometry);
     if (index !== -1) {
@@ -198,8 +198,8 @@ export class Mesh extends RefObject {
   /**
    * @internal
    */
-  _draw(shaderProgram: ShaderProgram, subPrimitive: SubPrimitive): void {
-    this._platformPrimitive.draw(shaderProgram, subPrimitive);
+  _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
+    this._platformPrimitive.draw(shaderProgram, subMesh);
   }
 
   /**

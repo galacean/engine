@@ -52,14 +52,12 @@ export { MeshRenderer } from "./mesh/MeshRenderer";
 export { SkinnedMeshRenderer } from "./mesh/SkinnedMeshRenderer";
 export { LODGroup } from "./mesh/LODGroup";
 
-// Material
 export * from "./material/index";
 export * from "./texture/index";
 export * from "./graphic/index";
 export * from "./2d/index";
 export * from "./shaderlib/index";
 export * from "./animation/index";
-export * from "./geometry/index";
 export * from "./geometry-shape/index";
 export * from "./skybox/index";
 export * from "./particle/index";

@@ -1,9 +1,9 @@
 import { PrimitiveTopology } from "./enums/PrimitiveTopology";
 
 /**
- * Sub primitive.
+ * Sub mesh.
  */
-export class SubPrimitive {
+export class SubMesh {
   /** Start drawing offset */
   start: number;
   /** Drawing count */

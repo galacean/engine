@@ -24,7 +24,7 @@ import {
   Scene,
   Skin,
   SkinnedMeshRenderer,
-  SubPrimitive,
+  SubMesh,
   Texture2D,
   TypedArray,
   UnlitMaterial,
@@ -426,7 +426,7 @@ export function parseSkin(gltfSkin, resources) {
 function parsePrimitiveVertex(
   mesh: Mesh,
   // primitive: Primitive,
-  primitiveGroup: SubPrimitive,
+  primitiveGroup: SubMesh,
   gltfPrimitive,
   gltf,
   getVertexBufferData: (string) => TypedArray,
@@ -501,10 +501,10 @@ export function parseMesh(gltfMesh, resources) {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
         const mesh = new ModelMesh(engine, gltfPrimitive.name || gltfMesh.name || i);
-        const subPrimitive = new SubPrimitive();
-        groups.push(subPrimitive);
+        const subMesh = new SubMesh();
+        groups.push(subMesh);
         // primitive.type = resources.assetType;
-        subPrimitive.topology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
+        subMesh.topology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
           // primitive.targets = [];
           (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);
@@ -517,7 +517,7 @@ export function parseMesh(gltfMesh, resources) {
             return parsePrimitiveVertex(
               mesh,
               // primitive,
-              subPrimitive,
+              subMesh,
               gltfPrimitive,
               gltf,
               (attributeSemantic) => {
@@ -538,7 +538,7 @@ export function parseMesh(gltfMesh, resources) {
           vertexPromise = parsePrimitiveVertex(
             mesh,
             // primitive,
-            subPrimitive,
+            subMesh,
             gltfPrimitive,
             gltf,
             (attributeSemantic) => {

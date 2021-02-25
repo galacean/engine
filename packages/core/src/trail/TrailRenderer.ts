@@ -1,11 +1,11 @@
 import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Entity } from "../Entity";
-import { Mesh } from "../geometry";
 import { Buffer } from "../graphic/Buffer";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { Mesh } from "../graphic/Mesh";
 import { VertexElement } from "../graphic/VertexElement";
 import { MeshRenderer } from "../mesh/MeshRenderer";
 import { Texture2D } from "../texture";
