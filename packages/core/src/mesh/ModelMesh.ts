@@ -1,5 +1,5 @@
 import { Engine } from "..";
-import { Mesh } from "../geometry/Mesh";
+import { Mesh } from "../graphic/Mesh";
 
 /**
  * Mesh containing common vertex elements of the model.
@@ -14,8 +14,4 @@ export class ModelMesh extends Mesh {
     super(engine);
     this.name = name;
   }
-
-  setPosition(x:number): void {}
-
-  destroy() {}
 }

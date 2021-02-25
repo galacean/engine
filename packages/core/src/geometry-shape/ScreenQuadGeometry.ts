@@ -1,5 +1,5 @@
 import { Engine } from "../Engine";
-import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { ShapeGeometry } from "./ShapeGeometry";
@@ -16,7 +16,7 @@ export class ScreenQuadGeometry extends ShapeGeometry {
     const indices: Uint16Array = new Uint16Array([0, 1, 2, 3]);
 
     this._initialize(engine, vertices, indices);
-    this.subMesh.topology = PrimitiveTopology.TriangleFan;
+    this.subMesh.topology = MeshTopology.TriangleFan;
   }
 
   _initialize(engine: Engine, vertices: Float32Array, indices: Uint16Array) {

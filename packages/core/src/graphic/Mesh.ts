@@ -1,36 +1,29 @@
-import { IPlatformPrimitive } from "@oasis-engine/design";
+import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
+import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
-import { Shader } from "../shader/Shader";
-import { ShaderMacro } from "../shader/ShaderMacro";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { BufferUtil } from "../graphic/BufferUtil";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
+import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
+import { SubMesh } from "../graphic/SubMesh";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 import { ShaderProgram } from "../shader/ShaderProgram";
-import { BufferUtil } from "./BufferUtil";
-import { IndexFormat } from "./enums/IndexFormat";
-import { VertexElementFormat } from "./enums/VertexElementFormat";
-import { IndexBufferBinding } from "./IndexBufferBinding";
-import { SubPrimitive } from "./SubPrimitive";
-import { VertexBufferBinding } from "./VertexBufferBinding";
-import { VertexElement } from "./VertexElement";
+import { UpdateFlag } from "../UpdateFlag";
 
 /**
- * @private
+ * Mesh.
  */
-export class Primitive extends RefObject {
-  private static _uvMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_UV");
-  private static _normalMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_NORMAL");
-  private static _tangentMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_TANGENT");
-  private static _vertexColorMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
-  private static _vertexAlphaMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_VERTEXALPHA");
-
-  /** Primitive name */
+export class Mesh extends RefObject {
+  /** Name. */
   name: string;
-  /** Instanced count, disable instanced drawing when set zero */
+  /** Instanced count, disable instanced drawing when set zero. */
   instanceCount: number = 0;
+  /** The bounding volume of the mesh. */
+  readonly bounds: BoundingBox = new BoundingBox();
 
-  /** @internal */
-  _macroCollection: ShaderMacroCollection = new ShaderMacroCollection(); // CM&SS:temp
   _vertexElementMap: object = {};
   _glIndexType: number;
   _platformPrimitive: IPlatformPrimitive;
@@ -38,12 +31,21 @@ export class Primitive extends RefObject {
   private _vertexBufferBindings: VertexBufferBinding[] = [];
   private _indexBufferBinding: IndexBufferBinding = null;
   private _vertexElements: VertexElement[] = [];
+  private _subMeshes: SubMesh[] = [];
+  private _updateFlags: UpdateFlag[] = [];
 
   /**
-   *
+   * Vertex buffer binding collection.
    */
   get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
     return this._vertexBufferBindings;
+  }
+
+  /**
+   * Index buffer binding.
+   */
+  get indexBufferBinding(): IndexBufferBinding {
+    return this._indexBufferBinding;
   }
 
   /**
@@ -54,14 +56,24 @@ export class Primitive extends RefObject {
   }
 
   /**
-   * Index buffer binding.
+   * First sub-mesh. Rendered using the first material.
    */
-  get indexBufferBinding(): IndexBufferBinding {
-    return this._indexBufferBinding;
+  get subMesh(): SubMesh | null {
+    return this._subMeshes[0] || null;
   }
 
-  targets: any[] = [];
+  /**
+   * A collection of sub-mesh, each sub-mesh can be rendered with an independent material.
+   */
+  get subMeshes(): Readonly<SubMesh[]> {
+    return this._subMeshes;
+  }
 
+  /**
+   * Create emsh.
+   * @param engine - Engine
+   * @param name - Mesh name
+   */
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
@@ -70,18 +82,18 @@ export class Primitive extends RefObject {
 
   /**
    * Set vertex buffer binding.
-   * @param vertexBuffer - Vertex buffer
-   * @param stride - Vertex buffer stride
-   * @param firstIndex - Vertex buffer binding index, default is 0
+   * @param vertexBufferBindings - Vertex buffer binding
+   * @param firstIndex - First vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBuffer: Buffer, stride: number, firstIndex?: number): void;
+  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, firstIndex?: number): void;
 
   /**
    * Set vertex buffer binding.
-   * @param vertexBufferBinding - Vertex buffer binding
-   * @param firstIndex - Vertex buffer binding index, default is 0
+   * @param vertexBuffer - Vertex buffer
+   * @param stride - Vertex buffer data stride
+   * @param firstIndex - First vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBufferBinding: VertexBufferBinding, firstIndex?: number): void;
+  setVertexBufferBinding(vertexBuffer: Buffer, stride: number, firstIndex?: number): void;
 
   setVertexBufferBinding(
     bufferOrBinding: Buffer | VertexBufferBinding,
@@ -99,28 +111,28 @@ export class Primitive extends RefObject {
 
   /**
    * Set vertex buffer binding.
-   * @param bufferBindings - Vertex buffer binding collection
-   * @param firstIndex - First buffer binding index
+   * @param vertexBufferBindings - Vertex buffer binding
+   * @param firstIndex - First vertex buffer index, the default value is 0
    */
-  setVertexBufferBindings(bufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
+  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
     const bindings = this._vertexBufferBindings;
-    const count = bufferBindings.length;
+    const count = vertexBufferBindings.length;
     const needLength = firstIndex + count;
     bindings.length < needLength && (bindings.length = needLength);
     for (let i = 0; i < count; i++) {
-      this._setVertexBufferBinding(firstIndex + i, bufferBindings[i]);
+      this._setVertexBufferBinding(firstIndex + i, vertexBufferBindings[i]);
     }
   }
 
   /**
-   * Set index buffer.
+   * Set index buffer binding.
    * @param buffer - Index buffer
    * @param format - Index buffer format
    */
   setIndexBufferBinding(buffer: Buffer, format: IndexFormat): void;
 
   /**
-   * Set index buffer.
+   * Set index buffer binding.
    * @param bufferBinding - Index buffer binding
    */
   setIndexBufferBinding(bufferBinding: IndexBufferBinding): void;
@@ -145,10 +157,49 @@ export class Primitive extends RefObject {
   }
 
   /**
+   * Add sub-mesh, each sub-mesh can correspond to an independent material.
+   * @param start - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
+   * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
+   * @param topology - Drawing topology, default is MeshTopology.Triangles
+   */
+  addSubMesh(start: number, count: number, topology: MeshTopology = MeshTopology.Triangles): SubMesh {
+    const subGeometry = new SubMesh(start, count, topology);
+    this._subMeshes.push(subGeometry);
+    return subGeometry;
+  }
+
+  /**
+   * Remove sub-mesh.
+   * @param subGeometry - Sub-mesh needs to be removed
+   */
+  removeSubMesh(subGeometry: SubMesh): void {
+    const subGeometries = this._subMeshes;
+    const index = subGeometries.indexOf(subGeometry);
+    if (index !== -1) {
+      subGeometries.splice(index, 1);
+    }
+  }
+
+  /**
+   * Clear all sub-mesh.
+   */
+  clearSubMesh(): void {
+    this._subMeshes.length = 0;
+  }
+
+  /**
+   * Register update flag, update flag will be true if the vertex element changes.
+   * @returns Update flag
+   */
+  registerUpdateFlag(): UpdateFlag {
+    return new UpdateFlag(this._updateFlags);
+  }
+
+  /**
    * @internal
    */
-  _draw(shaderProgram: ShaderProgram, subPrimitive: SubPrimitive): void {
-    this._platformPrimitive.draw(shaderProgram, subPrimitive);
+  _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
+    this._platformPrimitive.draw(shaderProgram, subMesh);
   }
 
   /**
@@ -180,35 +231,13 @@ export class Primitive extends RefObject {
     for (var k in vertexElementMap) {
       delete vertexElementMap[k];
     }
-
-    this._macroCollection.disable(Primitive._uvMacro);
-    this._macroCollection.disable(Primitive._normalMacro);
-    this._macroCollection.disable(Primitive._tangentMacro);
-    this._macroCollection.disable(Primitive._vertexColorMacro);
-    this._macroCollection.disable(Primitive._vertexAlphaMacro);
   }
 
   private _addVertexElement(element: VertexElement): void {
-    const { semantic, format } = element;
+    const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
-
-    // init primitive shaderData
-    switch (semantic) {
-      case "TEXCOORD_0":
-        this._macroCollection.enable(Primitive._uvMacro);
-        break;
-      case "NORMAL":
-        this._macroCollection.enable(Primitive._normalMacro);
-        break;
-      case "TANGENT":
-        this._macroCollection.enable(Primitive._tangentMacro);
-        break;
-      case "COLOR_0":
-        this._macroCollection.enable(Primitive._vertexColorMacro);
-        if (format === VertexElementFormat.Vector4) this._macroCollection.enable(Primitive._vertexAlphaMacro);
-        break;
-    }
+    this._makeModified();
   }
 
   private _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
@@ -218,5 +247,11 @@ export class Primitive extends RefObject {
       binding._buffer._addRefCount(1);
     }
     this._vertexBufferBindings[index] = binding;
+  }
+
+  private _makeModified(): void {
+    for (let i = this._updateFlags.length - 1; i >= 0; i--) {
+      this._updateFlags[i].flag = true;
+    }
   }
 }

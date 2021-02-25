@@ -1,4 +1,4 @@
-import { GLCapabilityType, Logger, Primitive } from "@oasis-engine/core";
+import { GLCapabilityType, Logger, Mesh } from "@oasis-engine/core";
 import { SubPrimitive } from "@oasis-engine/core/types/graphic/SubPrimitive";
 import { IPlatformPrimitive } from "@oasis-engine/design";
 import { WebGLExtension } from "./type";
@@ -14,7 +14,7 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * GL platform primtive.
  */
 export class GLPrimitive implements IPlatformPrimitive {
-  protected readonly _primitive: Primitive;
+  protected readonly _primitive: Mesh;
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
@@ -22,7 +22,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   private vao: Map<number, WebGLVertexArrayObject> = new Map();
   private readonly _useVao: boolean;
 
-  constructor(rhi: WebGLRenderer, primitive: Primitive) {
+  constructor(rhi: WebGLRenderer, primitive: Mesh) {
     this._primitive = primitive;
     this.canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
     this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);

@@ -1,11 +1,11 @@
 import { Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
-import { Mesh } from "../geometry/Mesh";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { Mesh } from "../graphic/Mesh";
 import { VertexElement } from "../graphic/VertexElement";
 
 /**
@@ -48,7 +48,7 @@ export class ShapeGeometry extends Mesh {
   private _computeBounds(positionElement: VertexElement, vertices: ArrayBuffer | Float32Array): void {
     const vertexElement = positionElement;
     const bufferIndex = vertexElement.bindingIndex;
-    const vertexBufferBinding = this._primitive.vertexBufferBindings[bufferIndex];
+    const vertexBufferBinding = this.vertexBufferBindings[bufferIndex];
     const stride = vertexBufferBinding.stride;
     const offset = vertexElement.offset;
     const vertexCount = vertexBufferBinding.buffer.byteLength / stride;
