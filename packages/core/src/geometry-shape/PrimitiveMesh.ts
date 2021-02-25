@@ -1,13 +1,12 @@
 import { Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
-import { Mesh } from "../graphic/Mesh";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { Mesh } from "../graphic/Mesh";
 import { VertexElement } from "../graphic/VertexElement";
-import { Buffer } from "../graphic/Buffer";
-import { FrontFace } from "../base/Constant";
 
 /**
  * Used to generate common primitve meshes.
@@ -137,6 +136,82 @@ export class PrimitiveMesh {
     	16, 18, 17, 18, 16, 19,
     	// back
     	20, 22, 23, 22, 20, 21]);
+    PrimitiveMesh._initialize(engine, mesh, vertices, indices);
+    return mesh;
+  }
+
+  /**
+   * Create a plane mesh.
+   * @param engine - Engine
+   * @param width - Plane width
+   * @param height - Plane height
+   * @param horizontalSegments - Plane horizontal segments
+   * @param verticalSegments - Plane verticle segments
+   * @returns Plane mesh
+   */
+  createPlane(
+    engine: Engine,
+    width: number = 1,
+    height: number = 1,
+    horizontalSegments: number = 1,
+    verticalSegments: number = 1
+  ): Mesh {
+    const mesh = new Mesh(engine);
+    (horizontalSegments = Math.floor(horizontalSegments)), (verticalSegments = Math.floor(verticalSegments));
+
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+
+    // Generate data of geometric vertices on the latitude and longitude lines
+    let index = 0;
+    let offset = 0;
+    const grid = [];
+    const vertices: Float32Array = new Float32Array((verticalSegments + 1) * (horizontalSegments + 1) * 8);
+    const indices: Uint16Array = new Uint16Array(verticalSegments * horizontalSegments * 6);
+
+    for (let iy = 0; iy <= verticalSegments; iy++) {
+      const verticesRow = [];
+      const v = iy / verticalSegments;
+      for (let ix = 0; ix <= horizontalSegments; ix++) {
+        const u = ix / horizontalSegments;
+        const posX = u * width - halfWidth;
+        const posY = v * height - halfHeight;
+
+        // POSITION
+        vertices[offset++] = posX;
+        vertices[offset++] = posY;
+        vertices[offset++] = 0;
+        // NORMAL
+        vertices[offset++] = 0;
+        vertices[offset++] = 0;
+        vertices[offset++] = 1;
+        // TEXCOORD_0
+        vertices[offset++] = u;
+        vertices[offset++] = 1 - v;
+
+        verticesRow.push(index++);
+      }
+      grid.push(verticesRow);
+    }
+
+    // Generate indices
+    index = 0;
+    for (let iy = 0; iy < verticalSegments; iy++) {
+      for (let ix = 0; ix < horizontalSegments; ix++) {
+        const a = grid[iy][ix + 1];
+        const b = grid[iy][ix];
+        const c = grid[iy + 1][ix];
+        const d = grid[iy + 1][ix + 1];
+
+        indices[index++] = a;
+        indices[index++] = c;
+        indices[index++] = b;
+        indices[index++] = a;
+        indices[index++] = d;
+        indices[index++] = c;
+      }
+    }
+
     PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
   }
