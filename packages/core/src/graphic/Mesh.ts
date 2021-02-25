@@ -19,7 +19,7 @@ import { UpdateFlag } from "../UpdateFlag";
 export class Mesh extends RefObject {
   /** Name. */
   name: string;
-  /** Instanced count, disable instanced drawing when set zero */
+  /** Instanced count, disable instanced drawing when set zero. */
   instanceCount: number = 0;
   /** The bounding volume of the mesh. */
   readonly bounds: BoundingBox = new BoundingBox();
