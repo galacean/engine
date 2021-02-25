@@ -4,6 +4,7 @@ import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Mesh } from "../graphic/Mesh";
 import { VertexElement } from "../graphic/VertexElement";
@@ -23,7 +24,7 @@ export class PrimitiveMesh {
    * @param  thetaRange - Specify vertical sweep angle size
    * @returns Sphere mesh
    */
-  createSphere(
+  static createSphere(
     engine: Engine,
     radius: number = 1,
     horizontalSegments: number = 8,
@@ -149,7 +150,7 @@ export class PrimitiveMesh {
    * @param verticalSegments - Plane verticle segments
    * @returns Plane mesh
    */
-  createPlane(
+  static createPlane(
     engine: Engine,
     width: number = 1,
     height: number = 1,
@@ -278,6 +279,26 @@ export class PrimitiveMesh {
     ];
 
     PrimitiveMesh._initBuffer(engine, mesh, vertices, indices, vertexStride, vertexElements);
+  }
+
+  /**
+   * @internal
+   */
+  _createScreenQuadMesh(engine: Engine) {
+    const mesh = new Mesh(engine);
+    const vertices: Float32Array = new Float32Array([-1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1]);
+
+    const indices: Uint16Array = new Uint16Array([0, 1, 2, 3]);
+
+    const vertexStride = 20;
+    const vertexElements = [
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
+    ];
+    PrimitiveMesh._initBuffer(engine, mesh, vertices, indices, vertexStride, vertexElements);
+
+    mesh.subMesh.topology = MeshTopology.TriangleFan;
+    return mesh;
   }
 
   private static _initBuffer(

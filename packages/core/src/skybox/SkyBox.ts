@@ -1,7 +1,7 @@
 import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Entity } from "../Entity";
-import { PrimitiveMesh } from "../geometry-shape/PrimitiveMesh";
+import { PrimitiveMesh } from "../mesh/PrimitiveMesh";
 import { MeshRenderer } from "../mesh/MeshRenderer";
 import { TextureCubeMap } from "../texture/TextureCubeMap";
 import { SkyBoxMaterial } from "./SkyBoxMaterial";
