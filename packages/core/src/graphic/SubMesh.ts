@@ -1,7 +1,7 @@
 import { MeshTopology } from "./enums/MeshTopology";
 
 /**
- * Sub mesh.
+ * Sub-mesh, mainly contains drawing information.
  */
 export class SubMesh {
   /** Start drawing offset. */
@@ -12,7 +12,7 @@ export class SubMesh {
   topology: MeshTopology;
 
   /**
-   * Create sub mesh.
+   * Create a sub-mesh.
    * @param start - Start drawing offset
    * @param count - Drawing count
    * @param topology - Drawing topology
