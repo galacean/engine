@@ -1,8 +1,6 @@
-export { CuboidGeometry } from "./CuboidGeometry";
-export { SphereGeometry } from "./SphereGeometry";
-export { PlaneGeometry } from "./PlaneGeometry";
 export { CylinderGeometry } from "./CylinderGeometry";
-export { CircleGeometry } from "./CircleGeometry";
+export { PlaneGeometry } from "./PlaneGeometry";
 export { ScreenQuadGeometry } from "./ScreenQuadGeometry";
-export { TorusGeometry } from "./TorusGeometry";
 export { ShapeGeometry } from "./ShapeGeometry";
+export { PrimitiveMesh } from "./PrimitiveMesh";
+
