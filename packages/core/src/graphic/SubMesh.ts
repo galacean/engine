@@ -1,15 +1,15 @@
-import { PrimitiveTopology } from "./enums/PrimitiveTopology";
+import { MeshTopology } from "./enums/MeshTopology";
 
 /**
  * Sub mesh.
  */
 export class SubMesh {
-  /** Start drawing offset */
+  /** Start drawing offset. */
   start: number;
-  /** Drawing count */
+  /** Drawing count. */
   count: number;
-  /** Drawing topology */
-  topology: PrimitiveTopology;
+  /** Drawing topology. */
+  topology: MeshTopology;
 
   /**
    * Create sub mesh.
@@ -17,7 +17,7 @@ export class SubMesh {
    * @param count - Drawing count
    * @param topology - Drawing topology
    */
-  constructor(start: number = 0, count: number = 0, topology: PrimitiveTopology = PrimitiveTopology.Triangles) {
+  constructor(start: number = 0, count: number = 0, topology: MeshTopology = MeshTopology.Triangles) {
     this.start = start;
     this.count = count;
     this.topology = topology;

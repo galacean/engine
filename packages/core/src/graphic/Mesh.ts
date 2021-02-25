@@ -5,7 +5,7 @@ import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
-import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
@@ -160,9 +160,9 @@ export class Mesh extends RefObject {
    * Add sub-mesh, each sub-mesh can correspond to an independent material.
    * @param start - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
    * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
-   * @param topology - Drawing topology, default is PrimitiveTopology.Triangles
+   * @param topology - Drawing topology, default is MeshTopology.Triangles
    */
-  addSubMesh(start: number, count: number, topology: PrimitiveTopology = PrimitiveTopology.Triangles): SubMesh {
+  addSubMesh(start: number, count: number, topology: MeshTopology = MeshTopology.Triangles): SubMesh {
     const subGeometry = new SubMesh(start, count, topology);
     this._subMeshes.push(subGeometry);
     return subGeometry;

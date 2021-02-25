@@ -20,7 +20,7 @@ import {
   ModelMesh,
   PBRMaterial,
   PBRSpecularMaterial,
-  PrimitiveTopology,
+  MeshTopology,
   Scene,
   Skin,
   SkinnedMeshRenderer,
@@ -504,7 +504,7 @@ export function parseMesh(gltfMesh, resources) {
         const subMesh = new SubMesh();
         groups.push(subMesh);
         // primitive.type = resources.assetType;
-        subMesh.topology = gltfPrimitive.mode == null ? PrimitiveTopology.Triangles : gltfPrimitive.mode;
+        subMesh.topology = gltfPrimitive.mode == null ? MeshTopology.Triangles : gltfPrimitive.mode;
         if (gltfPrimitive.hasOwnProperty("targets")) {
           // primitive.targets = [];
           (mesh as any).weights = gltfMesh.weights || new Array(gltfPrimitive.targets.length).fill(0);

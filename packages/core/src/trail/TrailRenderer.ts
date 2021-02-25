@@ -3,7 +3,7 @@ import { Camera } from "../Camera";
 import { Entity } from "../Entity";
 import { Buffer } from "../graphic/Buffer";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Mesh } from "../graphic/Mesh";
 import { VertexElement } from "../graphic/VertexElement";
@@ -138,7 +138,7 @@ export class TrailRenderer extends MeshRenderer {
 
     mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
     mesh.setVertexElements(vertexElements);
-    mesh.addSubMesh(0, vertexCount, PrimitiveTopology.TriangleStrip);
+    mesh.addSubMesh(0, vertexCount, MeshTopology.TriangleStrip);
 
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride;
