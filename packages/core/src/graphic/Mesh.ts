@@ -56,23 +56,23 @@ export class Mesh extends RefObject {
   }
 
   /**
-   * First sub-geometry. Rendered using the first material. For more details, please refer to the subGeometrys property.
+   * First sub-mesh. Rendered using the first material.
    */
   get subMesh(): SubMesh | null {
     return this._subMeshes[0] || null;
   }
 
   /**
-   * A collection of sub-geometry, each sub-geometry can be rendered with an independent material.
+   * A collection of sub-mesh, each sub-mesh can be rendered with an independent material.
    */
   get subMeshes(): Readonly<SubMesh[]> {
     return this._subMeshes;
   }
 
   /**
-   * Create buffer geometry.
+   * Create emsh.
    * @param engine - Engine
-   * @param name - Geometry name
+   * @param name - Mesh name
    */
   constructor(engine: Engine, name?: string) {
     super(engine);
@@ -157,7 +157,7 @@ export class Mesh extends RefObject {
   }
 
   /**
-   * Add sub-geometry, each sub-geometry can correspond to an independent material.
+   * Add sub-mesh, each sub-mesh can correspond to an independent material.
    * @param start - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
    * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
    * @param topology - Drawing topology, default is PrimitiveTopology.Triangles
@@ -169,8 +169,8 @@ export class Mesh extends RefObject {
   }
 
   /**
-   * Remove sub geometry.
-   * @param subGeometry - SubGeometry needs to be removed
+   * Remove sub-mesh.
+   * @param subGeometry - Sub-mesh needs to be removed
    */
   removeSubMesh(subGeometry: SubMesh): void {
     const subGeometries = this._subMeshes;
@@ -181,7 +181,7 @@ export class Mesh extends RefObject {
   }
 
   /**
-   * Clear all sub geometries
+   * Clear all sub-mesh.
    */
   clearSubMesh(): void {
     this._subMeshes.length = 0;

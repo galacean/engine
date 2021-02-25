@@ -12,7 +12,7 @@ export class SubMesh {
   topology: PrimitiveTopology;
 
   /**
-   * Create sub primitive.
+   * Create sub mesh.
    * @param start - Start drawing offset
    * @param count - Drawing count
    * @param topology - Drawing topology
