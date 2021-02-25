@@ -128,7 +128,6 @@ export class RenderQueue {
           materialData._macroCollection,
           compileMacros
         );
-        compileMacros.unionCollection(element.primitive._macroCollection); //CM&SS: temporary
 
         const program = material.shader._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {

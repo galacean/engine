@@ -6,31 +6,17 @@ import { Buffer } from "../graphic/Buffer";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
-import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { Shader } from "../shader/Shader";
-import { ShaderMacro } from "../shader/ShaderMacro";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderProgram } from "../shader/ShaderProgram";
+import { UpdateFlag } from "../UpdateFlag";
 
 /**
  * Mesh.
  */
 export class Mesh extends RefObject {
-  //----------------------temp------------------
-  private static _uvMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_UV");
-  private static _normalMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_NORMAL");
-  private static _tangentMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_TANGENT");
-  private static _vertexColorMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
-  private static _vertexAlphaMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_VERTEXALPHA");
-  /** @internal */
-  _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
-  targets: any[] = [];
-  //----------------------temp------------------
-
   /** Name. */
   name: string;
   /** Instanced count, disable instanced drawing when set zero */
@@ -46,6 +32,7 @@ export class Mesh extends RefObject {
   private _indexBufferBinding: IndexBufferBinding = null;
   private _vertexElements: VertexElement[] = [];
   private _subMeshes: SubPrimitive[] = [];
+  private _updateFlags: UpdateFlag[] = [];
 
   /**
    * Vertex buffer binding collection.
@@ -201,6 +188,14 @@ export class Mesh extends RefObject {
   }
 
   /**
+   * Register update flag, update flag will be true if the vertex element changes.
+   * @returns Update flag
+   */
+  registerUpdateFlag(): UpdateFlag {
+    return new UpdateFlag(this._updateFlags);
+  }
+
+  /**
    * @internal
    */
   _draw(shaderProgram: ShaderProgram, subPrimitive: SubPrimitive): void {
@@ -236,35 +231,13 @@ export class Mesh extends RefObject {
     for (var k in vertexElementMap) {
       delete vertexElementMap[k];
     }
-
-    this._macroCollection.disable(Mesh._uvMacro);
-    this._macroCollection.disable(Mesh._normalMacro);
-    this._macroCollection.disable(Mesh._tangentMacro);
-    this._macroCollection.disable(Mesh._vertexColorMacro);
-    this._macroCollection.disable(Mesh._vertexAlphaMacro);
   }
 
   private _addVertexElement(element: VertexElement): void {
-    const { semantic, format } = element;
+    const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
-
-    // init primitive shaderData
-    switch (semantic) {
-      case "TEXCOORD_0":
-        this._macroCollection.enable(Mesh._uvMacro);
-        break;
-      case "NORMAL":
-        this._macroCollection.enable(Mesh._normalMacro);
-        break;
-      case "TANGENT":
-        this._macroCollection.enable(Mesh._tangentMacro);
-        break;
-      case "COLOR_0":
-        this._macroCollection.enable(Mesh._vertexColorMacro);
-        if (format === VertexElementFormat.Vector4) this._macroCollection.enable(Mesh._vertexAlphaMacro);
-        break;
-    }
+    this._makeModified();
   }
 
   private _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
@@ -274,5 +247,11 @@ export class Mesh extends RefObject {
       binding._buffer._addRefCount(1);
     }
     this._vertexBufferBindings[index] = binding;
+  }
+
+  private _makeModified(): void {
+    for (let i = this._updateFlags.length - 1; i >= 0; i--) {
+      this._updateFlags[i].flag = true;
+    }
   }
 }

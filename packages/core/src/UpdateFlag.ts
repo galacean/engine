@@ -7,7 +7,9 @@ export class UpdateFlag {
   /** Flag. */
   flag = true;
 
-  constructor(private _flags: UpdateFlag[] = []) {}
+  constructor(private _flags: UpdateFlag[] = []) {
+    this._flags.push(this);
+  }
 
   /**
    * Destroy.

@@ -1,18 +1,30 @@
 import { BoundingBox } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
-import { assignmentClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
+import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
 import { Mesh } from "../geometry/Mesh";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Renderer } from "../Renderer";
 import { RenderElement } from "../RenderPipeline/RenderElement";
+import { Shader } from "../shader/Shader";
+import { UpdateFlag } from "../UpdateFlag";
 
 /**
  * MeshRenderer Component.
  */
-export class MeshRenderer extends Renderer {
-  @assignmentClone
+export class MeshRenderer extends Renderer implements ICustomClone {
+  private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
+  private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
+  private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
+  private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
+  private static _vertexAlphaMacro = Shader.getMacroByName("O3_HAS_VERTEXALPHA");
+
+  @ignoreClone
   private _mesh: Mesh;
+  @ignoreClone
+  private _meshUpdateFlag: UpdateFlag;
 
   /**
    * @internal
@@ -31,8 +43,14 @@ export class MeshRenderer extends Renderer {
   set mesh(mesh: Mesh) {
     const lastMesh = this._mesh;
     if (lastMesh !== mesh) {
-      lastMesh && lastMesh._addRefCount(-1);
-      mesh && mesh._addRefCount(1);
+      if (lastMesh) {
+        lastMesh._addRefCount(-1);
+        this._meshUpdateFlag.destroy();
+      }
+      if (mesh) {
+        mesh._addRefCount(1);
+        this._meshUpdateFlag = mesh.registerUpdateFlag();
+      }
       this._mesh = mesh;
     }
   }
@@ -44,6 +62,39 @@ export class MeshRenderer extends Renderer {
   render(camera: Camera) {
     const mesh = this._mesh;
     if (mesh) {
+      if (this._meshUpdateFlag.flag) {
+        const shaderData = this.shaderData;
+        const vertexElements = mesh.vertexElements;
+
+        shaderData.disableMacro(MeshRenderer._uvMacro);
+        shaderData.disableMacro(MeshRenderer._normalMacro);
+        shaderData.disableMacro(MeshRenderer._tangentMacro);
+        shaderData.disableMacro(MeshRenderer._vertexColorMacro);
+        shaderData.disableMacro(MeshRenderer._vertexAlphaMacro);
+
+        for (let i = 0, n = vertexElements.length; i < n; i++) {
+          const { semantic, format } = vertexElements[i];
+          switch (semantic) {
+            case "TEXCOORD_0":
+              shaderData.enableMacro(MeshRenderer._uvMacro);
+              break;
+            case "NORMAL":
+              shaderData.enableMacro(MeshRenderer._normalMacro);
+              break;
+            case "TANGENT":
+              shaderData.enableMacro(MeshRenderer._tangentMacro);
+              break;
+            case "COLOR_0":
+              shaderData.enableMacro(MeshRenderer._vertexColorMacro);
+              if (format === VertexElementFormat.Vector4) {
+                shaderData.enableMacro(MeshRenderer._vertexAlphaMacro);
+              }
+              break;
+          }
+        }
+        this._meshUpdateFlag.flag = false;
+      }
+
       const subMeshes = mesh.subMeshes;
       const renderPipeline = camera._renderPipeline;
       for (let i = 0, n = subMeshes.length; i < n; i++) {
@@ -69,6 +120,13 @@ export class MeshRenderer extends Renderer {
       this._mesh._addRefCount(1);
       this._mesh = null;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: MeshRenderer): void {
+    target.mesh = this._mesh;
   }
 
   /**
