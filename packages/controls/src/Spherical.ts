@@ -1,5 +1,4 @@
-import { MathUtil } from "./MathUtil";
-import { Vector3 } from "./Vector3";
+import { Vector3, MathUtil } from "oasis-engine";
 
 // Prevent gimbal lock.
 const ESP = MathUtil.zeroTolerance;
