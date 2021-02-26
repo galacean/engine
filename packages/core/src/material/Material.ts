@@ -13,6 +13,8 @@ import { RenderQueueType } from "./enums/RenderQueueType";
  * Material.
  */
 export class Material extends RefObject implements IClone {
+  /** Name. */
+  name: string;
   /** Shader used by the material. */
   shader: Shader;
   /** Render queue type. */

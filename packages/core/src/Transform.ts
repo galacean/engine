@@ -1,5 +1,5 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/math";
-import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { UpdateFlag } from "./UpdateFlag";
 
@@ -524,9 +524,7 @@ export class Transform extends Component {
    * @returns Change flag
    */
   registerWorldChangeFlag(): UpdateFlag {
-    const flag = new UpdateFlag(this._changeFlags);
-    this._changeFlags.push(flag);
-    return flag;
+    return new UpdateFlag(this._changeFlags);
   }
 
   /**

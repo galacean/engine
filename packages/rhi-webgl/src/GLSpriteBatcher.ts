@@ -1,4 +1,4 @@
-import { Camera, Engine, Logger, Material, RenderQueue } from "@oasis-engine/core";
+import { Camera, Engine, Logger, Material, Shader } from "@oasis-engine/core";
 import { GLSprite } from "./GLSprite";
 import "./GLSpriteMaterial";
 
@@ -39,7 +39,7 @@ export class GLSpriteBatcher {
     materialData.setMatrix("matProjection", this._camera.projectionMatrix);
 
     //@ts-ignore
-    const compileMacros = RenderQueue.compileMacros;
+    const compileMacros = Shader._compileMacros;
     compileMacros.clear();
 
     //@ts-ignore
