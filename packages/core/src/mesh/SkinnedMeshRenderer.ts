@@ -66,37 +66,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * Set morph target weights
-   * @param weights - Weights
-   */
-  setWeights(weights: number[]) {
-    this._weights = weights;
-    if (!weights) {
-      return;
-    }
-    const len = weights.length;
-    for (let i = 0; i < len; i++) {
-      this.weightsIndices[i] = i;
-    }
-
-    const weightsIndices = this.weightsIndices;
-
-    for (let i = 0; i < len - 1; i++) {
-      for (let j = i + 1; j < len; j++) {
-        if (weights[j] > weights[i]) {
-          let t = weights[i];
-          weights[i] = weights[j];
-          weights[j] = t;
-          t = weightsIndices[i];
-          weightsIndices[i] = weightsIndices[j];
-          weightsIndices[j] = t;
-        }
-      }
-    }
-    this.mesh.updatePrimitiveWeightsIndices(weightsIndices);
-  }
-
-  /**
    * Skin Object.
    */
   get skin() {

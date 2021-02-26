@@ -55,9 +55,9 @@ export class ColorMaterial extends Material {
    * @override
    */
   _preRender(renderElement: RenderElement) {
-    const { component, primitive } = renderElement;
+    const { component, mesh } = renderElement;
     this._currentId += 1;
-    this._primitivesMap[this._currentId] = { component, primitive };
+    this._primitivesMap[this._currentId] = { component, mesh };
     component.shaderData.setVector3("u_colorId", this.id2Color(this._currentId));
   }
 }

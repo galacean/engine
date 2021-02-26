@@ -128,7 +128,6 @@ export class RenderQueue {
           materialData._macroCollection,
           compileMacros
         );
-        compileMacros.unionCollection(element.primitive._macroCollection); //CM&SS: temporary
 
         const program = material.shader._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
@@ -174,7 +173,7 @@ export class RenderQueue {
 
         material.renderState._apply(camera.engine);
 
-        rhi.drawPrimitive(element.primitive, element.subPrimitive, program);
+        rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spirteElement = <SpriteElement>item;
         rhi.drawSprite(
@@ -200,6 +199,6 @@ export class RenderQueue {
   }
 
   private _isPrimitive(item) {
-    return !!item.primitive;
+    return !!item.mesh;
   }
 }

@@ -2,6 +2,16 @@ import { Component } from "../Component";
 import { CloneManager } from "./CloneManager";
 import { CloneMode } from "./enums/CloneMode";
 
+/**
+ * Custom clone interface.
+ */
+export interface ICustomClone {
+  /**
+   * @internal
+   */
+  _cloneTo(target: ICustomClone): void;
+}
+
 export class ComponentCloner {
   /**
    * Clone component.
@@ -42,6 +52,9 @@ export class ComponentCloner {
           }
           break;
       }
+    }
+    if ((<any>source)._cloneTo) {
+      (<any>source)._cloneTo(target);
     }
   }
 }
