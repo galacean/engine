@@ -173,10 +173,9 @@ export class SpriteRenderer extends Renderer {
   }
 
   /**
-   * Refresh render data and push to pipeline.
-   * @param {Camera} camera
+   * @internal
    */
-  render(camera: Camera) {
+  _render(camera: Camera): void {
     this._updatePositionQuad(camera);
     this._transformByMatrix();
     camera._renderPipeline.pushSprite(

@@ -56,10 +56,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * Execute render
-   * @param camera
+   * @internal
    */
-  render(camera: Camera) {
+  _render(camera: Camera): void {
     const mesh = this._mesh;
     if (mesh) {
       if (this._meshUpdateFlag.flag) {

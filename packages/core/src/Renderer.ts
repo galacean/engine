@@ -234,8 +234,6 @@ export abstract class Renderer extends Component {
 
   update(deltaTime: number): void {}
 
-  abstract render(camera: Camera): void;
-
   /**
    * @internal
    */
@@ -277,9 +275,10 @@ export abstract class Renderer extends Component {
     componentsManager.removeRenderer(this);
   }
 
-  _render(camera: Camera) {
-    this.render(camera);
-  }
+  /**
+   * @internal
+   */
+  abstract _render(camera: Camera): void;
 
   /**
    * @internal
