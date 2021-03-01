@@ -158,115 +158,62 @@ export class PrimitiveMesh {
     verticalSegments: number = 1
   ): Mesh {
     const mesh = new Mesh(engine);
-    (horizontalSegments = Math.floor(horizontalSegments)), (verticalSegments = Math.floor(verticalSegments));
+    horizontalSegments = Math.floor(horizontalSegments);
+    verticalSegments = Math.floor(verticalSegments);
 
+    const horizontalCount = horizontalSegments + 1;
+    const verticalCount = verticalSegments + 1;
     const halfWidth = width / 2;
     const halfHeight = height / 2;
+    const gridWidth = width / horizontalSegments;
+    const gridHeight = height / verticalSegments;
+    const verticesConut = horizontalCount * verticalCount;
+    const vertices: Float32Array = new Float32Array(verticesConut * 8);
+    const rectangleCount = verticalSegments * horizontalSegments;
+    const indices: Uint16Array = new Uint16Array(rectangleCount * 6);
 
-    // Generate data of geometric vertices on the latitude and longitude lines
-    let index = 0;
     let offset = 0;
-    const grid = [];
-    const vertices: Float32Array = new Float32Array((verticalSegments + 1) * (horizontalSegments + 1) * 8);
-    const indices: Uint16Array = new Uint16Array(verticalSegments * horizontalSegments * 6);
+    for (let i = 0; i < verticesConut; ++i) {
+      const x = i % horizontalCount;
+      const y = i / verticalCount | 0;
 
-    for (let iy = 0; iy <= verticalSegments; iy++) {
-      const verticesRow = [];
-      const v = iy / verticalSegments;
-      for (let ix = 0; ix <= horizontalSegments; ix++) {
-        const u = ix / horizontalSegments;
-        const posX = u * width - halfWidth;
-        const posY = v * height - halfHeight;
-
-        // POSITION
-        vertices[offset++] = posX;
-        vertices[offset++] = posY;
-        vertices[offset++] = 0;
-        // NORMAL
-        vertices[offset++] = 0;
-        vertices[offset++] = 0;
-        vertices[offset++] = 1;
-        // TEXCOORD_0
-        vertices[offset++] = u;
-        vertices[offset++] = 1 - v;
-
-        verticesRow.push(index++);
-      }
-      grid.push(verticesRow);
+      // POSITION
+      vertices[offset++] = x * gridWidth - halfWidth;
+      vertices[offset++] = y * gridHeight - halfHeight;
+      vertices[offset++] = 0;
+      // NORMAL
+      vertices[offset++] = 0;
+      vertices[offset++] = 0;
+      vertices[offset++] = 1;
+      // TEXCOORD_0
+      vertices[offset++] = x / horizontalSegments;
+      vertices[offset++] = 1 - y / verticalSegments;
     }
 
-    // Generate indices
-    index = 0;
-    for (let iy = 0; iy < verticalSegments; iy++) {
-      for (let ix = 0; ix < horizontalSegments; ix++) {
-        const a = grid[iy][ix + 1];
-        const b = grid[iy][ix];
-        const c = grid[iy + 1][ix];
-        const d = grid[iy + 1][ix + 1];
+    offset = 0;
+    for (let i = 0; i < rectangleCount; ++i) {
+      const x = i % horizontalSegments;
+      const y = i / verticalSegments | 0;
 
-        indices[index++] = a;
-        indices[index++] = c;
-        indices[index++] = b;
-        indices[index++] = a;
-        indices[index++] = d;
-        indices[index++] = c;
-      }
+      const a = y * verticalCount + x;
+      const b = a + 1;
+      const c = a + verticalCount;
+      const d = c + 1;
+
+      indices[offset++] = b;
+      indices[offset++] = c;
+      indices[offset++] = a;
+      indices[offset++] = b;
+      indices[offset++] = d;
+      indices[offset++] = c;
     }
 
     PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
   }
 
-  /**
-   * Create a circle mesh.
-   * @param engine - Engine
-   * @param radius - Circle radius
-   * @param segments - Circle segments
-   * @param thetaStart - Circle thetaStart
-   * @param thetaLength - Circle thetaLength
-   * @returns Circle mesh
-   */
-  static createCircle(
-    engine: Engine,
-    radius: number = 1.0,
-    segments: number = 16,
-    thetaStart: number = 0,
-    thetaLength: number = Math.PI * 2
-  ): Mesh {
+  static createCylinder(engine:Engine): Mesh {
     const mesh = new Mesh(engine);
-
-    // center point
-    const vertices: Float32Array = new Float32Array((segments + 2) * 8);
-    vertices.set([0, 0, 0, 0, 0, 1, 0.5, 0.5]);
-
-    let index = 8;
-    for (let s = 0; s <= segments; s++) {
-      let segment = thetaStart + (s / segments) * thetaLength;
-      const x = radius * Math.cos(segment);
-      const y = radius * Math.sin(segment);
-
-      // POSITION
-      vertices[index++] = x;
-      vertices[index++] = y;
-      vertices[index++] = 0;
-      // NORMAL
-      vertices[index++] = 0;
-      vertices[index++] = 0;
-      vertices[index++] = 1;
-      // TEXCOORD_0
-      vertices[index++] = (x / radius + 1) * 0.5;
-      vertices[index++] = (y / radius + 1) * 0.5;
-    }
-
-    const indices: Uint16Array = new Uint16Array(segments * 3);
-    index = 0;
-    for (let i = 1; i <= segments; i++) {
-      indices[index++] = i;
-      indices[index++] = i + 1;
-      indices[index++] = 0;
-    }
-
-    PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
   }
 
