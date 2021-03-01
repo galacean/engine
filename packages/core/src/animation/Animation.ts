@@ -372,7 +372,6 @@ export class Animation extends Component {
 
       if (path === "weights") {
         // SkinnedMeshRenderer.
-        // (targetObject as SkinnedMeshRenderer).setWeights(val as any);
       } else {
         const v = val as Float32Array;
         //CM: Temporary optimization val should be Vector3/Quaternion type to avoid conversion overhead
