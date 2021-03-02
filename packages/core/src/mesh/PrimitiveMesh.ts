@@ -27,8 +27,8 @@ export class PrimitiveMesh {
   static createSphere(
     engine: Engine,
     radius: number = 1,
-    horizontalSegments: number = 10,
-    verticalSegments: number = 10,
+    horizontalSegments: number = 12,
+    verticalSegments: number = 12,
     alphaStart: number = 0,
     alphaRange: number = Math.PI * 2,
     thetaStart: number = 0,
@@ -41,13 +41,13 @@ export class PrimitiveMesh {
     verticalSegments = Math.floor(verticalSegments);
     const horizontalCount = horizontalSegments + 1;
     const verticalCount = verticalSegments + 1;
-    const verticesConut = horizontalCount * verticalCount;
-    const vertices = new Float32Array(verticesConut * 8);
+    const verticesCount = horizontalCount * verticalCount;
+    const vertices = new Float32Array(verticesCount * 8);
     const rectangleCount = horizontalSegments * verticalSegments;
     const indices = new Uint16Array(rectangleCount * 6);
 
     let offset = 0;
-    for (let i = 0; i < verticesConut; ++i) {
+    for (let i = 0; i < verticesCount; ++i) {
       const x = i % horizontalCount;
       const y = i / horizontalCount | 0;
       const u = x / horizontalSegments;
@@ -106,7 +106,12 @@ export class PrimitiveMesh {
    * @param depth - Cuboid depth
    * @returns Cuboid mesh
    */
-  static createCuboid(engine: Engine, width: number = 1, height: number = 1, depth: number = 1): Mesh {
+  static createCuboid(
+    engine: Engine,
+    width: number = 1,
+    height: number = 1,
+    depth: number = 1
+  ): Mesh {
     const mesh = new Mesh(engine);
 
     const halfWidth: number = width / 2;
@@ -172,15 +177,15 @@ export class PrimitiveMesh {
     const halfHeight = height / 2;
     const gridWidth = width / horizontalSegments;
     const gridHeight = height / verticalSegments;
-    const verticesConut = horizontalCount * verticalCount;
-    const vertices = new Float32Array(verticesConut * 8);
+    const verticesCount = horizontalCount * verticalCount;
+    const vertices = new Float32Array(verticesCount * 8);
     const rectangleCount = verticalSegments * horizontalSegments;
     const indices = new Uint16Array(rectangleCount * 6);
 
     let offset = 0;
-    for (let i = 0; i < verticesConut; ++i) {
+    for (let i = 0; i < verticesCount; ++i) {
       const x = i % horizontalCount;
-      const y = i / verticalCount | 0;
+      const y = i / horizontalCount | 0;
 
       // POSITION
       vertices[offset++] = x * gridWidth - halfWidth;
@@ -217,8 +222,127 @@ export class PrimitiveMesh {
     return mesh;
   }
 
-  static createCylinder(engine:Engine): Mesh {
+  static createCylinder(
+    engine: Engine,
+    radius: number = 1,
+    height: number = 1,
+    radialSegments: number = 20,
+    heightSegments: number = 1,
+  ): Mesh {
     const mesh = new Mesh(engine);
+    radialSegments = Math.floor(radialSegments);
+    heightSegments = Math.floor(heightSegments);
+
+    const radialCount = radialSegments + 1;
+    const verticalCount = heightSegments + 1;
+    const halfHeight = height / 2;
+    const unitHeight = height / heightSegments;
+    const torsoVerticesCount = radialCount * verticalCount;
+    const totalVerticesCount = torsoVerticesCount + 2;
+    const vertices = new Float32Array(totalVerticesCount * 8);
+    const torsoRectangleCount = radialSegments * heightSegments;
+    const capTriangleCount = radialSegments * 2;
+    const indices = new Uint16Array(torsoRectangleCount * 6 + capTriangleCount * 3);
+
+    let verticesOffset = 0;
+    let indicesOffset = 0;
+    
+    // Create torso
+    for (let i = 0; i < torsoVerticesCount; ++i) {
+      const x = i % radialCount;
+      const y = i / radialCount | 0;
+      const u = x / radialSegments;
+      const v = y / heightSegments;
+      const theta = u * Math.PI * 2;
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+      
+      let posX = radius * sinTheta;
+      let posY = v * unitHeight - halfHeight;
+      let posZ = radius * cosTheta;
+      posX = Math.abs(posX) < 1e-6 ? 0 : posX;
+      posY = Math.abs(posY) < 1e-6 ? 0 : posY;
+      posZ = Math.abs(posZ) < 1e-6 ? 0 : posZ;
+
+      // POSITION
+      vertices[verticesOffset++] = posX;
+      vertices[verticesOffset++] = posY;
+      vertices[verticesOffset++] = posZ;
+      // NORMAL
+      vertices[verticesOffset++] = sinTheta;
+      vertices[verticesOffset++] = 0;
+      vertices[verticesOffset++] = cosTheta;
+      // TEXCOORD_0
+      vertices[verticesOffset++] = u;
+      vertices[verticesOffset++] = 1 - v;
+    }
+
+    for (let i = 0; i < torsoRectangleCount; ++i) {
+      const x = i % radialSegments;
+      const y = i / radialSegments | 0;
+
+      const a = y * radialCount + x;
+      const b = a + 1;
+      const c = a + radialCount;
+      const d = c + 1;
+
+      indices[indicesOffset++] = b;
+      indices[indicesOffset++] = c;
+      indices[indicesOffset++] = a;
+      indices[indicesOffset++] = b;
+      indices[indicesOffset++] = d;
+      indices[indicesOffset++] = c;
+    }
+
+    // Create cap
+
+    // POSITION
+    vertices[verticesOffset++] = 0;
+    vertices[verticesOffset++] = -halfHeight;
+    vertices[verticesOffset++] = 0;
+    // NORMAL
+    vertices[verticesOffset++] = 0;
+    vertices[verticesOffset++] = -1;
+    vertices[verticesOffset++] = 0;
+    // TEXCOORD_0
+    vertices[verticesOffset++] = 0.5;
+    vertices[verticesOffset++] = 0.5;
+
+    // POSITION
+    vertices[verticesOffset++] = 0;
+    vertices[verticesOffset++] = halfHeight;
+    vertices[verticesOffset++] = 0;
+    // NORMAL
+    vertices[verticesOffset++] = 0;
+    vertices[verticesOffset++] = 1;
+    vertices[verticesOffset++] = 0;
+    // TEXCOORD_0
+    vertices[verticesOffset++] = 0.5;
+    vertices[verticesOffset++] = 0.5;
+
+    const bottom = torsoVerticesCount;
+    const top = torsoVerticesCount + 1;
+    const offset = heightSegments * radialSegments + 1;
+    const stride = radialSegments * 3;
+    for (let i = 0; i < radialSegments; ++i) {
+      const index0 = indicesOffset;
+      const index1 = indicesOffset + 1;
+      const index2 = indicesOffset + 2;
+
+      // bottom
+      indices[stride + index0] = bottom;
+      indices[stride + index1] = i + 1;
+      indices[stride + index2] = i;
+      // top
+      const temp = offset + i;
+      indices[index0] = top;
+      indices[index1] = temp;
+      indices[index2] = temp + 1;
+
+      indicesOffset += 3;
+    }
+
+    PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
   }
 
