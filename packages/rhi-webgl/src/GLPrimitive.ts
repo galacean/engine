@@ -1,5 +1,4 @@
-import { GLCapabilityType, Logger, Mesh } from "@oasis-engine/core";
-import { SubPrimitive } from "@oasis-engine/core/types/graphic/SubPrimitive";
+import { GLCapabilityType, Logger, Mesh, SubMesh } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
 import { WebGLExtension } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -32,7 +31,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   /**
    * Draw the primitive.
    */
-  draw(shaderProgram: any, subPrimitive: SubPrimitive) {
+  draw(shaderProgram: any, subMesh: SubMesh) {
     const gl = this.gl;
     const primitive = this._primitive;
 
@@ -47,7 +46,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     }
 
     const { indexBufferBinding, instanceCount, _glIndexType } = primitive;
-    const { topology, start, count } = subPrimitive;
+    const { topology, start, count } = subMesh;
 
     if (!instanceCount) {
       if (indexBufferBinding) {
