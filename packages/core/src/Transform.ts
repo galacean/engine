@@ -94,7 +94,8 @@ export class Transform extends Component {
   }
 
   /**
-   * Local rotation, defining the rotation value in degrees, Yaw/Pitch/Roll sequence.
+   * Local rotation, defining the rotation value in degrees.
+   * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
    */
   get rotation(): Vector3 {
@@ -117,7 +118,8 @@ export class Transform extends Component {
   }
 
   /**
-   * World rotation, defining the rotation value in degrees, Yaw/Pitch/Roll sequence.
+   * World rotation, defining the rotation value in degrees.
+   * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
    */
   get worldRotation(): Vector3 {
