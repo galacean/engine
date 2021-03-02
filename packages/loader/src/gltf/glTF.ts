@@ -1,7 +1,16 @@
+import { AnimatorStateMachine } from "./../../../core/src/animation/AnimatorStateMachine";
+import {
+  AnimatorControllerLayer,
+  AnimatorLayerBlendingMode
+} from "./../../../core/src/animation/AnimatorControllerLayer";
+import { AnimatorController } from "./../../../core/src/animation/AnimatorController";
+import { AnimationCurve } from "./../../../core/src/animation/AnimationCurve";
+import { Transform } from "./../../../core/src/Transform";
 import {
   AlphaMode,
   Animation,
   AnimationClip,
+  AnimationClipGLTFParser,
   BlinnPhongMaterial,
   Buffer,
   BufferBindFlag,
@@ -34,6 +43,7 @@ import { Color, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { LoadedGLTFResource } from "../GLTF";
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 import { createVertexElement, getAccessorData, getAccessorTypeSize, getIndexFormat, getVertexStride } from "./Util";
+import { AnimatorState } from "@oasis-engine/core/src/animation/AnimatorState";
 
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
 //              https://github.com/KhronosGroup/glTF/pull/1223
@@ -140,7 +150,7 @@ export function parseGLTF(data: LoadedGLTFResource, engine: Engine): Promise<GLT
     engine,
     gltf: data.gltf,
     buffers: data.buffers,
-    asset: new GLTFResource(engine)
+    asset: new GLTFResource()
   };
   resources.asset.textures = data.textures;
   resources.asset.meta = data.gltf;
@@ -585,9 +595,8 @@ export function parseAnimation(gltfAnimation, resources) {
   const { gltf, buffers } = resources;
   const gltfSamplers = gltfAnimation.samplers || [];
   const gltfChannels = gltfAnimation.channels || [];
-
   const animationIdx = gltf.animations.indexOf(gltfAnimation);
-  const animationClip = new AnimationClip(gltfAnimation.name || `Animation${animationIdx}`);
+  const animationClipGLTFParser = new AnimationClipGLTFParser();
 
   let duration = -1;
   let durationIndex = -1;
@@ -618,22 +627,27 @@ export function parseAnimation(gltfAnimation, resources) {
       duration = maxTime;
       durationIndex = i;
     }
-    animationClip.addSampler(input, output, outputAccessorSize, samplerInterpolation);
+    // console.log("parseAnimation", input, output);
+    animationClipGLTFParser.addSampler(input, output, outputAccessorSize, samplerInterpolation);
   }
-
-  animationClip.durationIndex = durationIndex;
-  animationClip.duration = duration;
 
   for (let i = 0; i < gltfChannels.length; i++) {
     const gltfChannel = gltfChannels[i];
     const target = gltfChannel.target;
     const samplerIndex = gltfChannel.sampler;
     const targetNode = getItemByIdx("nodes", target.node, resources);
-    const targetPath = TARGET_PATH_MAP[target.path];
-
-    animationClip.addChannel(samplerIndex, targetNode.name, targetPath);
+    const propertyName = TARGET_PATH_MAP[target.path];
+    animationClipGLTFParser.addChannel(samplerIndex, targetNode.name, propertyName);
   }
 
+  const curveDatas = animationClipGLTFParser.getCurveDatas();
+
+  const animationClip = new AnimationClip(gltfAnimation.name || `AnimationClip${animationIdx}`);
+  animationClip.durationIndex = durationIndex;
+  animationClip.duration = duration;
+  curveDatas.forEach((curveData) => {
+    animationClip.addCurve(curveData);
+  });
   return Promise.resolve(animationClip);
 }
 
@@ -850,12 +864,5 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
     asset.defaultSceneRoot = rootNode;
   }
 
-  const animator = asset.defaultSceneRoot.addComponent(Animation);
-  const animations = asset.animations;
-  if (animations) {
-    animations.forEach((clip: AnimationClip) => {
-      animator.addAnimationClip(clip, clip.name);
-    });
-  }
   return resources.asset as GLTFResource;
 }

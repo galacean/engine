@@ -1,3 +1,8 @@
 export { Animation } from "./Animation";
 export { AnimationClip } from "./AnimationClip";
-export { AnimationEventType as AnimationEvent, WrapMode, InterpolationType } from "./AnimationConst";
+export * from "./AnimatorController";
+export * from "./AnimatorControllerLayer";
+export * from "../../../loader/src/gltf/AnimationClipGLTFParser";
+export * from "./AnimatorStateMachine";
+export * from "./AnimatorConst";
+export * from "./AnimatorState";

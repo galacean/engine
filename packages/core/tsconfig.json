@@ -13,5 +13,5 @@
     "strict": false,
     "incremental": false
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "../loader/src/gltf/AnimationClipGLTFParser.ts"]
 }
