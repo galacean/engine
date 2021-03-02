@@ -225,10 +225,9 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Append a camera to this scene.
-   * @param camera  - Camera
+   * @internal
    */
-  attachRenderCamera(camera: Camera): void {
+  _attachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index === -1) {
       this._activeCameras.push(camera);
@@ -238,10 +237,9 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Remove a camera from this scene.
-   * @param camera - Camera
+   * @internal
    */
-  detachRenderCamera(camera: Camera): void {
+  _detachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index !== -1) {
       this._activeCameras.splice(index, 1);
