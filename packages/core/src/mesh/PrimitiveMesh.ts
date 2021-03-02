@@ -27,69 +27,74 @@ export class PrimitiveMesh {
   static createSphere(
     engine: Engine,
     radius: number = 1,
-    horizontalSegments: number = 8,
-    verticalSegments: number = 6,
+    horizontalSegments: number = 10,
+    verticalSegments: number = 10,
     alphaStart: number = 0,
     alphaRange: number = Math.PI * 2,
     thetaStart: number = 0,
     thetaRange: number = Math.PI
   ): Mesh {
     const mesh = new Mesh(engine);
-    horizontalSegments = Math.max(3, Math.floor(horizontalSegments));
-    verticalSegments = Math.max(2, Math.floor(verticalSegments));
-    const thetaEnd = thetaStart + thetaRange;
+    // horizontalSegments = Math.max(3, Math.floor(horizontalSegments));
+    // verticalSegments = Math.max(2, Math.floor(verticalSegments));
+    horizontalSegments = Math.floor(horizontalSegments);
+    verticalSegments = Math.floor(verticalSegments);
+    const horizontalCount = horizontalSegments + 1;
+    const verticalCount = verticalSegments + 1;
+    const verticesConut = horizontalCount * verticalCount;
+    const vertices = new Float32Array(verticesConut * 8);
+    const rectangleCount = horizontalSegments * verticalSegments;
+    const indices = new Uint16Array(rectangleCount * 6);
 
-    // Generate data of geometric vertices on the latitude and longitude lines
-    let index = 0;
-    const grid = [];
-    const vertices: Float32Array = new Float32Array((verticalSegments + 1) * (horizontalSegments + 1) * 8);
-    const indices = [];
-    // const positions = [];
-    for (let iy = 0; iy <= verticalSegments; iy++) {
-      const verticesRow = [];
-      const v = iy / verticalSegments;
-      for (let ix = 0; ix <= horizontalSegments; ix++) {
-        const u = ix / horizontalSegments;
-        let posX = -radius * Math.cos(alphaStart + u * alphaRange) * Math.sin(thetaStart + v * thetaRange);
-        let posY = radius * Math.cos(thetaStart + v * thetaRange);
-        let posZ = radius * Math.sin(alphaStart + u * alphaRange) * Math.sin(thetaStart + v * thetaRange);
-        posX = Math.abs(posX) < 1e-6 ? 0 : posX;
-        posY = Math.abs(posY) < 1e-6 ? 0 : posY;
-        posZ = Math.abs(posZ) < 1e-6 ? 0 : posZ;
+    let offset = 0;
+    for (let i = 0; i < verticesConut; ++i) {
+      const x = i % horizontalCount;
+      const y = i / horizontalCount | 0;
+      const u = x / horizontalSegments;
+      const v = y / verticalSegments;
+      const alphaDelta = alphaStart + u * alphaRange;
+      const thetaDelta = thetaStart + v * thetaRange;
+      const sinTheta = Math.sin(thetaDelta);
 
-        const offset = index * 8;
-        // POSITION
-        vertices[offset] = posX;
-        vertices[offset + 1] = posY;
-        vertices[offset + 2] = posZ;
-        // NORMAL
-        vertices[offset + 3] = posX;
-        vertices[offset + 4] = posY;
-        vertices[offset + 5] = posZ;
-        // TEXCOORD_0
-        vertices[offset + 6] = u;
-        vertices[offset + 7] = 1 - v;
+      let posX = -radius * Math.cos(alphaDelta) * sinTheta;
+      let posY = radius * Math.cos(thetaDelta);
+      let posZ = radius * Math.sin(alphaDelta) * sinTheta;
+      posX = Math.abs(posX) < 1e-6 ? 0 : posX;
+      posY = Math.abs(posY) < 1e-6 ? 0 : posY;
+      posZ = Math.abs(posZ) < 1e-6 ? 0 : posZ;
 
-        verticesRow.push(index++);
-      }
-      grid.push(verticesRow);
+      // POSITION
+      vertices[offset++] = posX;
+      vertices[offset++] = posY;
+      vertices[offset++] = posZ;
+      // NORMAL
+      vertices[offset++] = posX;
+      vertices[offset++] = posY;
+      vertices[offset++] = posZ;
+      // TEXCOORD_0
+      vertices[offset++] = u
+      vertices[offset++] = 1 - v;
     }
 
-    // Generate indices
-    for (let iy = 0; iy < verticalSegments; iy++) {
-      for (let ix = 0; ix < horizontalSegments; ix++) {
-        const a = grid[iy][ix + 1];
-        const b = grid[iy][ix];
-        const c = grid[iy + 1][ix];
-        const d = grid[iy + 1][ix + 1];
+    offset = 0;
+    for (let i = 0; i < rectangleCount; ++i) {
+      const x = i % horizontalSegments;
+      const y = i / horizontalSegments | 0;
 
-        if (iy !== 0 || thetaStart > 0) indices.push(a, b, d);
-        if (iy !== verticalSegments - 1 || thetaEnd < Math.PI) indices.push(b, c, d);
-      }
+      const a = y * horizontalCount + x;
+      const b = a + 1;
+      const c = a + horizontalCount;
+      const d = c + 1;
+
+      indices[offset++] = b;
+      indices[offset++] = a;
+      indices[offset++] = d;
+      indices[offset++] = a;
+      indices[offset++] = c;
+      indices[offset++] = d;
     }
 
-    PrimitiveMesh._initialize(engine, mesh, vertices, Uint16Array.from(indices));
-
+    PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
   }
 
@@ -168,9 +173,9 @@ export class PrimitiveMesh {
     const gridWidth = width / horizontalSegments;
     const gridHeight = height / verticalSegments;
     const verticesConut = horizontalCount * verticalCount;
-    const vertices: Float32Array = new Float32Array(verticesConut * 8);
+    const vertices = new Float32Array(verticesConut * 8);
     const rectangleCount = verticalSegments * horizontalSegments;
-    const indices: Uint16Array = new Uint16Array(rectangleCount * 6);
+    const indices = new Uint16Array(rectangleCount * 6);
 
     let offset = 0;
     for (let i = 0; i < verticesConut; ++i) {
@@ -193,11 +198,11 @@ export class PrimitiveMesh {
     offset = 0;
     for (let i = 0; i < rectangleCount; ++i) {
       const x = i % horizontalSegments;
-      const y = i / verticalSegments | 0;
+      const y = i / horizontalSegments | 0;
 
-      const a = y * verticalCount + x;
+      const a = y * horizontalCount + x;
       const b = a + 1;
-      const c = a + verticalCount;
+      const c = a + horizontalCount;
       const d = c + 1;
 
       indices[offset++] = b;
