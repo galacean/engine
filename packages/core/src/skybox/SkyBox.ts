@@ -26,9 +26,8 @@ export class SkyBox extends MeshRenderer {
 
   /**
    * @internal
-   * @param camera
    */
-  render(camera: Camera) {
+  _render(camera: Camera): void {
     if (!this._skyBoxMap) return;
 
     const modelMatrix = this.entity.transform.worldMatrix;
@@ -42,7 +41,7 @@ export class SkyBox extends MeshRenderer {
     Matrix.multiply(proj, matrix, matrix);
     this.shaderData.setMatrix("u_mvpNoscale", matrix);
 
-    super.render(camera);
+    super._render(camera);
   }
 
   /**
