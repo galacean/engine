@@ -258,7 +258,7 @@ export class AnimationClipGLTFParser extends EngineObject {
       const sampler = channel.sampler;
       const curve = new AnimationCurve();
       const frameCount = this.getFrameCount(i);
-      for (let j = frameCount - 1; j >= 0; j--) {
+      for (let j = 0; j < frameCount; j++) {
         const { outputSize } = sampler;
         const output = [];
         for (let k = 0; k < outputSize; k++) {

@@ -363,7 +363,6 @@ export class AnimationLayer extends EventDispatcher {
       lerpState.alpha
     );
     console.log("_updateChannelState", val);
-    debugger;
     channelState.currentValue = val;
 
     if (this._wrapMode === WrapMode.ONCE && channelState.frameTime >= animClipLength) {
