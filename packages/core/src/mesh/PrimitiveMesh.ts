@@ -237,6 +237,15 @@ export class PrimitiveMesh {
     return mesh;
   }
 
+  /**
+   * Create a cylinder mesh.
+   * @param engine - Engine
+   * @param radius - The radius of cap
+   * @param height - The height of torso
+   * @param radialSegments - Cylinder radial segments
+   * @param heightSegments - Cylinder height segments
+   * @returns Cylinder mesh
+   */
   static createCylinder(
     engine: Engine,
     radius: number = 1,
