@@ -59,7 +59,7 @@ describe("ComponentsManager", () => {
     it("onUpdate", () => {
       class TestComponent extends Renderer {
         update() {}
-        render() {}
+        _render() {}
       }
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
@@ -75,7 +75,7 @@ describe("ComponentsManager", () => {
     it("render", () => {
       class TestComponent extends Renderer {
         update() {}
-        render() {}
+        _render() {}
       }
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
@@ -91,7 +91,7 @@ describe("ComponentsManager", () => {
     it("inActive", () => {
       class TestComponent extends Renderer {
         update() {}
-        render() {}
+        _render() {}
       }
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
