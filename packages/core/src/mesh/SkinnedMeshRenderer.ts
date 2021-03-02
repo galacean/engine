@@ -136,6 +136,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       if (joints.length > maxJoints) {
         if (rhi.canIUseMoreJoints) {
           this._useJointTexture = true;
+          this.createJointTexture();
           shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
           shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
         } else {
