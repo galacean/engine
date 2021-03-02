@@ -63,15 +63,15 @@ export class PrimitiveMesh {
       posY = Math.abs(posY) < 1e-6 ? 0 : posY;
       posZ = Math.abs(posZ) < 1e-6 ? 0 : posZ;
 
-      // POSITION
+      // Position
       vertices[offset++] = posX;
       vertices[offset++] = posY;
       vertices[offset++] = posZ;
-      // NORMAL
+      // Normal
       vertices[offset++] = posX;
       vertices[offset++] = posY;
       vertices[offset++] = posZ;
-      // TEXCOORD_0
+      // Texcoord_0
       vertices[offset++] = u
       vertices[offset++] = 1 - v;
     }
@@ -188,15 +188,15 @@ export class PrimitiveMesh {
       const x = i % horizontalCount;
       const y = i / horizontalCount | 0;
 
-      // POSITION
+      // Position
       vertices[offset++] = x * gridWidth - halfWidth;
       vertices[offset++] = y * gridHeight - halfHeight;
       vertices[offset++] = 0;
-      // NORMAL
+      // Normal
       vertices[offset++] = 0;
       vertices[offset++] = 0;
       vertices[offset++] = 1;
-      // TEXCOORD_0
+      // Texcoord_0
       vertices[offset++] = x / horizontalSegments;
       vertices[offset++] = 1 - y / verticalSegments;
     }
@@ -265,15 +265,15 @@ export class PrimitiveMesh {
       posY = Math.abs(posY) < 1e-6 ? 0 : posY;
       posZ = Math.abs(posZ) < 1e-6 ? 0 : posZ;
 
-      // POSITION
+      // Position
       vertices[verticesOffset++] = posX;
       vertices[verticesOffset++] = posY;
       vertices[verticesOffset++] = posZ;
-      // NORMAL
+      // Normal
       vertices[verticesOffset++] = sinTheta;
       vertices[verticesOffset++] = 0;
       vertices[verticesOffset++] = cosTheta;
-      // TEXCOORD_0
+      // Texcoord_0
       vertices[verticesOffset++] = u;
       vertices[verticesOffset++] = 1 - v;
     }
@@ -297,27 +297,27 @@ export class PrimitiveMesh {
 
     // Create cap
 
-    // POSITION
+    // Position
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = -halfHeight;
     vertices[verticesOffset++] = 0;
-    // NORMAL
+    // Normal
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = -1;
     vertices[verticesOffset++] = 0;
-    // TEXCOORD_0
+    // Texcoord_0
     vertices[verticesOffset++] = 0.5;
     vertices[verticesOffset++] = 0.5;
 
-    // POSITION
+    // Position
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = halfHeight;
     vertices[verticesOffset++] = 0;
-    // NORMAL
+    // Normal
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = 1;
     vertices[verticesOffset++] = 0;
-    // TEXCOORD_0
+    // Texcoord_0
     vertices[verticesOffset++] = 0.5;
     vertices[verticesOffset++] = 0.5;
 
@@ -326,19 +326,19 @@ export class PrimitiveMesh {
     const offset = heightSegments * radialSegments + 1;
     const stride = radialSegments * 3;
     for (let i = 0; i < radialSegments; ++i) {
-      const index0 = indicesOffset;
-      const index1 = indicesOffset + 1;
-      const index2 = indicesOffset + 2;
+      const secondOffset = indicesOffset + 1;
+      const thirdOffset = indicesOffset + 2;
 
       // bottom
-      indices[stride + index0] = bottom;
-      indices[stride + index1] = i + 1;
-      indices[stride + index2] = i;
+      indices[stride + indicesOffset] = bottom;
+      indices[stride + secondOffset] = i + 1;
+      indices[stride + thirdOffset] = i;
+
       // top
       const temp = offset + i;
-      indices[index0] = top;
-      indices[index1] = temp;
-      indices[index2] = temp + 1;
+      indices[indicesOffset] = top;
+      indices[secondOffset] = temp;
+      indices[thirdOffset] = temp + 1;
 
       indicesOffset += 3;
     }
