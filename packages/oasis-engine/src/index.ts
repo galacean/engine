@@ -35,7 +35,6 @@ Parser.registerComponents("o3", {
   SphereCollider,
   Model
 });
-
 //@ts-ignore
 export const version = `__buildVersion`;
 

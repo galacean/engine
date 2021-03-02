@@ -1,4 +1,9 @@
-import { EngineObject } from "../base/EngineObject";
+import { Component } from "../Component";
+import { AnimationCurve } from "./AnimationCurve";
+import { Entity } from "./../Entity";
+import { AnimationClipCurveData } from "./AnimationClipCurveData";
+import { AnimationEvent } from "./types";
+import { Motion } from "./Motion";
 import { InterpolationType } from "./AnimationConst";
 import { IChannel, ISample, List, Value } from "./types";
 
@@ -9,12 +14,8 @@ export enum TagetType {
   other = 3
 }
 
-/**
- * Data for an animation, set of Samples and Channels.
- * @extends AssetObject
- */
-export class AnimationClip extends EngineObject {
-  private static _tagetTypeMap: Object = {
+export class AnimationClip extends Motion {
+  static _tagetTypeMap: Object = {
     position: TagetType.position,
     rotation: TagetType.rotation,
     scale: TagetType.scale
@@ -33,7 +34,7 @@ export class AnimationClip extends EngineObject {
    */
   constructor(public readonly name: string) {
     super(null);
-
+    console.log("new");
     this.samplers = [];
 
     this.channels = [];
@@ -44,7 +45,7 @@ export class AnimationClip extends EngineObject {
    * @param _input - The index of an accessor containing keyframe input values.
    * @param _output - The index of an accessor containing keyframe output values.
    * @param _outputSize - The length of the output values.
-   * @param _interpolation - Interpolation algorithm.	
+   * @param _interpolation - Interpolation algorithm.
    */
   public addSampler(
     _input: List,
@@ -169,20 +170,28 @@ export class AnimationClip extends EngineObject {
     nextFrameIndex: number,
     alpha: number
   ): Value {
-    const channel = this.channels[channelIndex];
-    const output = channel.sampler.output;
-    const outputSize = channel.sampler.outputSize;
-
-    switch (channel.sampler.interpolation) {
-      case InterpolationType.CUBICSPLINE:
-        this.evaluateCubicSpline(outValue, output, outputSize, frameIndex, nextFrameIndex, alpha);
-        break;
-      case InterpolationType.LINEAR:
-        this.evaluateLinear(outValue, output, outputSize, frameIndex, nextFrameIndex, alpha);
-        break;
-    }
-
+    const { curve } = this.curves[channelIndex];
+    const { keys } = curve;
+    let output = [];
+    keys.forEach((key) => {
+      output = output.concat(key.value);
+    });
+    // const channel = this.channels[channelIndex];
+    // const output = channel.sampler.output;
+    const outputSize = curve.valueSize;
+    this.evaluateLinear(outValue, output, outputSize, frameIndex, nextFrameIndex, alpha);
     return outValue;
+
+    // switch (channel.sampler.interpolation) {
+    //   case InterpolationType.CUBICSPLINE:
+    //     this.evaluateCubicSpline(outValue, output, outputSize, frameIndex, nextFrameIndex, alpha);
+    //     break;
+    //   case InterpolationType.LINEAR:
+    //     this.evaluateLinear(outValue, output, outputSize, frameIndex, nextFrameIndex, alpha);
+    //     break;
+    // }
+
+    // return outValue;
   }
 
   public evaluateCubicSpline(
@@ -291,4 +300,29 @@ export class AnimationClip extends EngineObject {
 
     return out;
   }
+
+  /**
+   * new begin
+   */
+
+  events: AnimationEvent[];
+
+  curves: AnimationClipCurveData<Component>[] = [];
+
+  addEvent(evt: AnimationEvent) {}
+  removeEvent(index: number) {}
+
+  clearEvents() {}
+
+  sampleAnimation(entity: Entity, time: number) {}
+
+  addCurve(curveData: AnimationClipCurveData<Component>) {
+    this.curves.push(curveData);
+  }
+
+  removeCurve(index: number) {}
+
+  clearCurves() {}
 }
+
+// export * from "./AnimationClip_back";

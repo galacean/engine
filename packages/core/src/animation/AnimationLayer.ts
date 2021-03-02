@@ -120,7 +120,6 @@ export class AnimationLayer extends EventDispatcher {
 
     this._channelStates = [];
     this._animClipLength = 0;
-
     // -- Create new state object.
     if (this._isPlaying) {
       const targetChannelStates = targetLayer._channelStates;
@@ -141,7 +140,7 @@ export class AnimationLayer extends EventDispatcher {
           targetChannelStates[i].mixWeight = targetObject ? 0 : 1;
         }
 
-        const channelTimeLength = this._animClip.getChannelTimeLength(i);
+        const channelTimeLength = this._animClip.curves[i].curve.length;
         this._animClipLength = this._animClipLength > channelTimeLength ? this._animClipLength : channelTimeLength;
       } // End of for.
 
@@ -179,31 +178,31 @@ export class AnimationLayer extends EventDispatcher {
 
     this._channelStates = [];
     this._animClipLength = 0;
-
     // Create new state object.
     if (this._isPlaying) {
-      const count = this._animClip.getChannelCount();
+      const count = this._animClip.curves.length;
+      // TODO
       const channelTargets: IChannelTarget[] = [];
       for (let i = count - 1; i >= 0; i--) {
-        const channel = this._animClip.getChannelObject(i);
-        const targetObject = this._findChannelTarget(rootEntity, channel.target);
+        const curveData = this._animClip.curves[i];
+        const targetObject = this._findChannelTarget(rootEntity, curveData.relativePath);
         if (!targetObject) {
-          Logger.warn("Can not find channel target:" + channel.target.id);
+          Logger.warn("Can not find channel target:" + curveData.relativePath);
         }
         this._channelStates[i] = {
           frameTime: 0.0,
           currentFrame: 0,
-          currentValue: this._animClip.createChannelValue(i)
+          currentValue: new Float32Array(curveData.curve.valueSize)
         };
 
         channelTargets[i] = {
           targetObject,
-          path: channel.target.path,
-          pathType: channel.target.pathType,
-          outputSize: channel.sampler.outputSize
+          path: curveData.propertyName,
+          pathType: AnimationClip._tagetTypeMap[curveData.propertyName],
+          outputSize: curveData.curve.valueSize
         };
 
-        const channelTimeLength = this._animClip.getChannelTimeLength(i);
+        const channelTimeLength = this._animClip.curves[i].curve.length;
         this._animClipLength = this._animClipLength > channelTimeLength ? this._animClipLength : channelTimeLength;
       } // End of for.
 
@@ -234,6 +233,7 @@ export class AnimationLayer extends EventDispatcher {
    * @param deltaTime - The deltaTime when the animation update.
    */
   public updateState(deltaTime: number) {
+    console.log("updateState");
     if (!this._animClip || !this._isPlaying) {
       return;
     }
@@ -258,7 +258,7 @@ export class AnimationLayer extends EventDispatcher {
     this._activeEvents(deltaTime);
 
     // Update channelStates.
-    const count = this._animClip.getChannelCount();
+    const count = this._animClip.curves.length;
     let playingCount = 0;
     for (let i = count - 1; i >= 0; i--) {
       if (this._updateChannelState(deltaTime, i)) {
@@ -334,8 +334,7 @@ export class AnimationLayer extends EventDispatcher {
   public _updateChannelState(deltaTime, channelIndex) {
     const animClip = this._animClip;
     const channelState = this._channelStates[channelIndex];
-    const animClipLength = animClip.getChannelTimeLength(channelIndex);
-
+    const animClipLength = animClip.curves[channelIndex].curve.length;
     channelState.frameTime += deltaTime;
     if (channelState.frameTime > animClipLength) {
       switch (this._wrapMode) {
@@ -355,14 +354,17 @@ export class AnimationLayer extends EventDispatcher {
     }
 
     const frameTime = Math.min(channelState.frameTime, animClipLength);
-    const lerpState = this._getKeyAndAlpha(animClip.getChannelObject(channelIndex), frameTime);
-    channelState.currentValue = animClip.evaluate(
+    const lerpState = this._getKeyAndAlpha(animClip.curves[channelIndex], frameTime);
+    const val = animClip.evaluate(
       channelState.currentValue,
       channelIndex,
       lerpState.currentKey,
       lerpState.nextKey,
       lerpState.alpha
     );
+    console.log("_updateChannelState", val);
+    debugger;
+    channelState.currentValue = val;
 
     if (this._wrapMode === WrapMode.ONCE && channelState.frameTime >= animClipLength) {
       return false;
@@ -407,7 +409,6 @@ export class AnimationLayer extends EventDispatcher {
   private _activeEvents(deltaTime: number) {
     // Trigger Frame Event.
     const index = this._animClip.durationIndex;
-
     if (this._frameEvents.length > 0 && this._channelStates.length > 0) {
       const curFrameTime = this._channelStates[index].frameTime + deltaTime;
       for (let i = this._frameEvents.length - 1; i >= 0; i--) {
@@ -447,7 +448,7 @@ export class AnimationLayer extends EventDispatcher {
    * @private
    */
   private _findChannelTarget(rootNode: Entity, target: any): Entity | Component {
-    const targetID = target.id;
+    const targetID = target;
     let targetSceneObject: Entity = null;
     if (rootNode.name === targetID) {
       targetSceneObject = rootNode;
@@ -468,16 +469,18 @@ export class AnimationLayer extends EventDispatcher {
    * @param time - The frame time.
    * @private
    */
-  private _getKeyAndAlpha(channel, time: number) {
+  private _getKeyAndAlpha(curveData, time: number) {
     let keyTime = 0;
     let currentKey = 0;
     let nextKey = 0;
-
-    const timeKeys = channel.sampler.input;
-    const numKeys = timeKeys.length;
+    const { curve } = curveData;
+    const { keys } = curve;
+    const numKeys = keys.length;
+    // const timeKeys = channel.sampler.input;
+    // const numKeys = timeKeys.length;
     for (let i = numKeys - 1; i >= 0; i--) {
-      if (time > timeKeys[i]) {
-        keyTime = time - timeKeys[i];
+      if (time > keys[i].time) {
+        keyTime = time - keys[i].time;
         currentKey = i;
         break;
       }
@@ -495,7 +498,7 @@ export class AnimationLayer extends EventDispatcher {
       }
     }
 
-    const keyLength = timeKeys[nextKey] - timeKeys[currentKey];
+    const keyLength = keys[nextKey].time - keys[currentKey].time;
     const alpha = nextKey === currentKey || keyLength < 0.00001 ? 1 : keyTime / keyLength;
 
     return {
