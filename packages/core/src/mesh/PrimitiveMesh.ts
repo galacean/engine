@@ -146,7 +146,8 @@ export class PrimitiveMesh {
     	// fornt
     	16, 18, 17, 18, 16, 19,
     	// back
-    	20, 22, 23, 22, 20, 21]);
+      20, 22, 23, 22, 20, 21]);
+
     PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
   }
