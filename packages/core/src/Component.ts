@@ -21,15 +21,12 @@ export abstract class Component extends EngineObject {
   private _awaked: boolean = false;
 
   /**
-   * Enabled getter, 'enabled' indicates whether the component is enabled.
+   * Indicates whether the component is enabled.
    */
   get enabled(): boolean {
     return this._enabled;
   }
 
-  /**
-   * Enabled setter, indicates whether the component is enabled.
-   */
   set enabled(value: boolean) {
     if (value === this._enabled) {
       return;
@@ -43,7 +40,7 @@ export abstract class Component extends EngineObject {
   }
 
   /**
-   * Destroyed getter, 'destroyed' indicates whether the component is destroyed.
+   * Indicates whether the component is destroyed.
    */
   get destroyed(): boolean {
     return this._destroyed;
@@ -139,20 +136,5 @@ export abstract class Component extends EngineObject {
       this._enabled && this._onDisable();
       this._onInActive();
     }
-  }
-
-  //---------------------------------------------Deprecated-----------------------------------------------------------------
-
-  private _renderPriority: number = 0;
-
-  /**
-   * @deprecated
-   * Rendering priority.
-   */
-  get renderPriority(): number {
-    return this._renderPriority;
-  }
-  set renderPriority(val: number) {
-    this._renderPriority = val;
   }
 }
