@@ -10,6 +10,13 @@ export class Sprite extends RefObject {
   /** Sprite._VERTICES_FLAG | Sprite._UV_FLAG | Sprite._TRIANGLES_FLAG */
   private static _VER_UV_TRI_FLAG = 0x7;
 
+  /** The array containing sprite mesh triangles. */
+  public triangles: number[] = [];
+  /** The base texture coordinates of the sprite mesh. */
+  public uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2];
+  /** The array containing sprite mesh vertex positions. */
+  public vertices: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2];
+
   private _tempVec2: Vector2 = new Vector2();
 
   /** The reference to the used texture. */
@@ -26,16 +33,98 @@ export class Sprite extends RefObject {
   private _pivot: Vector2 = new Vector2();
   /** Location of the sprite on the original texture, specified in pixels. */
   private _rect: Rect = new Rect();
-  /** The array containing sprite mesh triangles. */
-  public triangles: number[] = [];
-  /** The base texture coordinates of the sprite mesh. */
-  public uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2];
-  /** The array containing sprite mesh vertex positions. */
-  public vertices: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2];
   /** The number of pixels in the sprite that correspond to one unit in world space. */
   private _pixelsPerUnit: number = 100;
   /** The dirty flag to determine whether refresh buffer. */
   private _dirtyFlag: number;
+
+  /**
+   * The reference to the used texture.
+   */
+  get texture(): Texture2D {
+    return this._texture;
+  }
+
+  set texture(value: Texture2D) {
+    if (this._texture !== value) {
+      this._texture = value;
+    }
+  }
+
+  /**
+   * The rectangle this sprite uses on its texture.
+   */
+  get textureRect(): Rect {
+    return this._textureRect;
+  }
+
+  set textureRect(value: Rect) {
+    if (this._textureRect !== value) {
+      this._textureRect.x = value.x;
+      this._textureRect.y = value.y;
+      this._textureRect.width = value.width;
+      this._textureRect.height = value.width;
+    }
+  }
+
+  /**
+   * TODO
+   * The border sizes of the sprite.
+   * @remarks
+   * x=left, y=right, z=top, w=bottom.
+   */
+  get border(): Vector4 {
+    return this._border;
+  }
+
+  set border(border: Vector4) {
+    this._border = border;
+  }
+
+  /**
+   * Location of the sprite's center point in the rect on the original texture, specified in pixels.
+   */
+  get pivot(): Vector2 {
+    return this._pivot;
+  }
+
+  set pivot(value: Vector2) {
+    if (this._pivot !== value) {
+      value.cloneTo(this._pivot);
+      this._setDirtyFlagTrue(Sprite._VERTICES_FLAG);
+    }
+  }
+
+  /**
+   * Location of the sprite on the original texture, specified in pixels.
+   */
+  get rect(): Rect {
+    return this._rect;
+  }
+
+  set rect(value: Rect) {
+    if (this._rect !== value) {
+      this._rect.x = value.x;
+      this._rect.y = value.y;
+      this._rect.width = value.width;
+      this._rect.height = value.width;
+      this._setDirtyFlagTrue(Sprite._VERTICES_FLAG);
+    }
+  }
+
+  /**
+   * The number of pixels in the sprite that correspond to one unit in world space.
+   */
+  get pixelsPerUnit(): number {
+    return this._pixelsPerUnit;
+  }
+
+  set pixelsPerUnit(value: number) {
+    if (this._pixelsPerUnit !== value) {
+      this._pixelsPerUnit = value;
+      this._setDirtyFlagTrue(Sprite._VERTICES_FLAG);
+    }
+  }
 
   /**
    * Constructor a sprite.
@@ -140,94 +229,6 @@ export class Sprite extends RefObject {
     }
 
     return false;
-  }
-
-  /**
-   * The reference to the used texture.
-   */
-  get texture(): Texture2D {
-    return this._texture;
-  }
-
-  set texture(value: Texture2D) {
-    if (this._texture !== value) {
-      this._texture = value;
-    }
-  }
-
-  /**
-   * The rectangle this sprite uses on its texture.
-   */
-  get textureRect(): Rect {
-    return this._textureRect;
-  }
-
-  set textureRect(value: Rect) {
-    if (this._textureRect !== value) {
-      this._textureRect.x = value.x;
-      this._textureRect.y = value.y;
-      this._textureRect.width = value.width;
-      this._textureRect.height = value.width;
-    }
-  }
-
-  /**
-   * TODO
-   * The border sizes of the sprite.
-   * @remarks
-   * x=left, y=right, z=top, w=bottom.
-   */
-  get border(): Vector4 {
-    return this._border;
-  }
-
-  set border(border: Vector4) {
-    this._border = border;
-  }
-
-  /**
-   * Location of the sprite's center point in the rect on the original texture, specified in pixels.
-   */
-  get pivot(): Vector2 {
-    return this._pivot;
-  }
-
-  set pivot(value: Vector2) {
-    if (this._pivot !== value) {
-      value.cloneTo(this._pivot);
-      this._setDirtyFlagTrue(Sprite._VERTICES_FLAG);
-    }
-  }
-
-  /**
-   * Location of the sprite on the original texture, specified in pixels.
-   */
-  get rect(): Rect {
-    return this._rect;
-  }
-
-  set rect(value: Rect) {
-    if (this._rect !== value) {
-      this._rect.x = value.x;
-      this._rect.y = value.y;
-      this._rect.width = value.width;
-      this._rect.height = value.width;
-      this._setDirtyFlagTrue(Sprite._VERTICES_FLAG);
-    }
-  }
-
-  /**
-   * The number of pixels in the sprite that correspond to one unit in world space.
-   */
-  get pixelsPerUnit(): number {
-    return this._pixelsPerUnit;
-  }
-
-  set pixelsPerUnit(value: number) {
-    if (this._pixelsPerUnit !== value) {
-      this._pixelsPerUnit = value;
-      this._setDirtyFlagTrue(Sprite._VERTICES_FLAG);
-    }
   }
 
   private _isContainDirtyFlag(type: number): boolean {
