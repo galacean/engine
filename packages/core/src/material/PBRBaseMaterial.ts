@@ -112,10 +112,10 @@ export abstract class PBRBaseMaterial extends Material {
     this._normalTexture = v;
 
     if (v) {
-      this.shaderData.enableMacro("O3_HAS_NORMALMAP");
-      this.shaderData.setTexture("u_normalSampler", v);
+      this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
+      this.shaderData.setTexture("u_normalTexture", v);
     } else {
-      this.shaderData.disableMacro("O3_HAS_NORMALMAP");
+      this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
     }
   }
 
@@ -128,7 +128,7 @@ export abstract class PBRBaseMaterial extends Material {
 
   set normalScale(v: number) {
     this._normalScale = v;
-    this.shaderData.setFloat("u_normalScale", v);
+    this.shaderData.setFloat("u_normalIntensity", v);
   }
 
   /**

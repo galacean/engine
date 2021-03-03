@@ -1,6 +1,6 @@
 vec3 getNormal()
 {
-  #ifdef O3_HAS_NORMALMAP
+  #ifdef O3_NORMAL_TEXTURE
     #ifndef O3_HAS_TANGENT
         #ifdef HAS_DERIVATIVES
             vec3 pos_dx = dFdx(v_pos);
@@ -27,8 +27,8 @@ vec3 getNormal()
     #else
         mat3 tbn = v_TBN;
     #endif
-        vec3 n = texture2D(u_normalSampler, v_uv ).rgb;
-        n = normalize(tbn * ((2.0 * n - 1.0) * vec3(u_normalScale, u_normalScale, 1.0)));
+        vec3 n = texture2D(u_normalTexture, v_uv ).rgb;
+        n = normalize(tbn * ((2.0 * n - 1.0) * vec3(u_normalIntensity, u_normalIntensity, 1.0)));
   #else
     #ifdef O3_HAS_NORMAL
         vec3 n = normalize(v_normal);

@@ -96,7 +96,7 @@
 
         #endif
 
-        #if defined( O3_HAS_TANGENT ) && defined( O3_MORPH_TANGENT ) && defined( O3_HAS_NORMALMAP )
+        #if defined( O3_HAS_TANGENT ) && defined( O3_MORPH_TANGENT ) && defined( O3_NORMAL_TEXTURE )
 
         tangent.xyz += u_morphWeights[ 0 ] * a_tangent0;
 
