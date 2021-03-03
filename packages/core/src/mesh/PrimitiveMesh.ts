@@ -19,11 +19,7 @@ export class PrimitiveMesh {
    * @param segments - Number of segments
    * @returns Sphere mesh
    */
-  static createSphere(
-    engine: Engine,
-    radius: number = 0.5,
-    segments: number = 12
-  ): Mesh {
+  static createSphere(engine: Engine, radius: number = 0.5, segments: number = 12): Mesh {
     const mesh = new Mesh(engine);
     segments = Math.floor(segments);
 
@@ -38,7 +34,7 @@ export class PrimitiveMesh {
     let offset = 0;
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % count;
-      const y = i / count | 0;
+      const y = (i / count) | 0;
       const u = x / segments;
       const v = y / segments;
       const alphaDelta = u * alphaRange;
@@ -58,14 +54,14 @@ export class PrimitiveMesh {
       vertices[offset++] = posY;
       vertices[offset++] = posZ;
       // Texcoord
-      vertices[offset++] = u
+      vertices[offset++] = u;
       vertices[offset++] = 1 - v;
     }
 
     offset = 0;
     for (let i = 0; i < rectangleCount; ++i) {
       const x = i % segments;
-      const y = i / segments | 0;
+      const y = (i / segments) | 0;
 
       const a = y * count + x;
       const b = a + 1;
@@ -80,6 +76,10 @@ export class PrimitiveMesh {
       indices[offset++] = d;
     }
 
+    const { bounds } = mesh;
+    bounds.min.setValue(-radius, -radius, -radius);
+    bounds.max.setValue(radius, radius, radius);
+
     PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
   }
@@ -92,12 +92,7 @@ export class PrimitiveMesh {
    * @param depth - Cuboid depth
    * @returns Cuboid mesh
    */
-  static createCuboid(
-    engine: Engine,
-    width: number = 1,
-    height: number = 1,
-    depth: number = 1
-  ): Mesh {
+  static createCuboid(engine: Engine, width: number = 1, height: number = 1, depth: number = 1): Mesh {
     const mesh = new Mesh(engine);
 
     const halfWidth: number = width / 2;
@@ -105,50 +100,56 @@ export class PrimitiveMesh {
     const halfDepth: number = depth / 2;
 
     const vertices = new Float32Array(192);
+    // prettier-ignore
     // Up
-    vertices[0] = -halfWidth, vertices[1] = halfHeight, vertices[2] = -halfDepth, vertices[3] = 0, vertices[4] = 1, vertices[5] = 0, vertices[6] = 0, vertices[7] = 0;
-    vertices[8] = halfWidth, vertices[9] = halfHeight, vertices[10] = -halfDepth, vertices[11] = 0, vertices[12] = 1, vertices[13] = 0, vertices[14] = 1, vertices[15] = 0;
-    vertices[16] = halfWidth, vertices[17] = halfHeight, vertices[18] = halfDepth, vertices[19] = 0, vertices[20] = 1, vertices[21] = 0, vertices[22] = 1, vertices[23] = 1;
-    vertices[24] = -halfWidth, vertices[25] = halfHeight, vertices[26] = halfDepth, vertices[27] = 0, vertices[28] = 1, vertices[29] = 0, vertices[30] = 0, vertices[31] = 1;
+    vertices[0] = -halfWidth, vertices[1] = halfHeight, vertices[2] = -halfDepth, vertices[3] = 0, vertices[4] = 1, vertices[5] = 0, vertices[6] = 0, vertices[7] = 0,
+    vertices[8] = halfWidth, vertices[9] = halfHeight, vertices[10] = -halfDepth, vertices[11] = 0, vertices[12] = 1, vertices[13] = 0, vertices[14] = 1, vertices[15] = 0,
+    vertices[16] = halfWidth, vertices[17] = halfHeight, vertices[18] = halfDepth, vertices[19] = 0, vertices[20] = 1, vertices[21] = 0, vertices[22] = 1, vertices[23] = 1,
+    vertices[24] = -halfWidth, vertices[25] = halfHeight, vertices[26] = halfDepth, vertices[27] = 0, vertices[28] = 1, vertices[29] = 0, vertices[30] = 0, vertices[31] = 1,
     // Down
-    vertices[32] = -halfWidth, vertices[33] = -halfHeight, vertices[34] = -halfDepth, vertices[35] = 0, vertices[36] = -1, vertices[37] = 0, vertices[38] = 0, vertices[39] = 1;
-    vertices[40] = halfWidth, vertices[41] = -halfHeight, vertices[42] = -halfDepth, vertices[43] = 0, vertices[44] = -1, vertices[45] = 0, vertices[46] = 1, vertices[47] = 1;
-    vertices[48] = halfWidth, vertices[49] = -halfHeight, vertices[50] = halfDepth, vertices[51] = 0, vertices[52] = -1, vertices[53] = 0, vertices[54] = 1, vertices[55] = 0;
-    vertices[56] = -halfWidth, vertices[57] = -halfHeight, vertices[58] = halfDepth, vertices[59] = 0, vertices[60] = -1, vertices[61] = 0, vertices[62] = 0, vertices[63] = 0;
+    vertices[32] = -halfWidth, vertices[33] = -halfHeight, vertices[34] = -halfDepth, vertices[35] = 0, vertices[36] = -1, vertices[37] = 0, vertices[38] = 0, vertices[39] = 1,
+    vertices[40] = halfWidth, vertices[41] = -halfHeight, vertices[42] = -halfDepth, vertices[43] = 0, vertices[44] = -1, vertices[45] = 0, vertices[46] = 1, vertices[47] = 1,
+    vertices[48] = halfWidth, vertices[49] = -halfHeight, vertices[50] = halfDepth, vertices[51] = 0, vertices[52] = -1, vertices[53] = 0, vertices[54] = 1, vertices[55] = 0,
+    vertices[56] = -halfWidth, vertices[57] = -halfHeight, vertices[58] = halfDepth, vertices[59] = 0, vertices[60] = -1, vertices[61] = 0, vertices[62] = 0, vertices[63] = 0,
     // Left
-    vertices[64] = -halfWidth, vertices[65] = halfHeight, vertices[66] = -halfDepth, vertices[67] = -1, vertices[68] = 0, vertices[69] = 0, vertices[70] = 0, vertices[71] = 0;
-    vertices[72] = -halfWidth, vertices[73] = halfHeight, vertices[74] = halfDepth, vertices[75] = -1, vertices[76] = 0, vertices[77] = 0, vertices[78] = 1, vertices[79] = 0;
-    vertices[80] = -halfWidth, vertices[81] = -halfHeight, vertices[82] = halfDepth, vertices[83] = -1, vertices[84] = 0, vertices[85] = 0, vertices[86] = 1, vertices[87] = 1;
-    vertices[88] = -halfWidth, vertices[89] = -halfHeight, vertices[90] = -halfDepth, vertices[91] = -1, vertices[92] = 0, vertices[93] = 0, vertices[94] = 0, vertices[95] = 1;
+    vertices[64] = -halfWidth, vertices[65] = halfHeight, vertices[66] = -halfDepth, vertices[67] = -1, vertices[68] = 0, vertices[69] = 0, vertices[70] = 0, vertices[71] = 0,
+    vertices[72] = -halfWidth, vertices[73] = halfHeight, vertices[74] = halfDepth, vertices[75] = -1, vertices[76] = 0, vertices[77] = 0, vertices[78] = 1, vertices[79] = 0,
+    vertices[80] = -halfWidth, vertices[81] = -halfHeight, vertices[82] = halfDepth, vertices[83] = -1, vertices[84] = 0, vertices[85] = 0, vertices[86] = 1, vertices[87] = 1,
+    vertices[88] = -halfWidth, vertices[89] = -halfHeight, vertices[90] = -halfDepth, vertices[91] = -1, vertices[92] = 0, vertices[93] = 0, vertices[94] = 0, vertices[95] = 1,
     // Right
-    vertices[96] = halfWidth, vertices[97] = halfHeight, vertices[98] = -halfDepth, vertices[99] = 1, vertices[100] = 0, vertices[101] = 0, vertices[102] = 1, vertices[103] = 0;
-    vertices[104] = halfWidth, vertices[105] = halfHeight, vertices[106] = halfDepth, vertices[107] = 1, vertices[108] = 0, vertices[109] = 0, vertices[110] = 0, vertices[111] = 0;
-    vertices[112] = halfWidth, vertices[113] = -halfHeight, vertices[114] = halfDepth, vertices[115] = 1, vertices[116] = 0, vertices[117] = 0, vertices[118] = 0, vertices[119] = 1;
-    vertices[120] = halfWidth, vertices[121] = -halfHeight, vertices[122] = -halfDepth, vertices[123] = 1, vertices[124] = 0, vertices[125] = 0, vertices[126] = 1, vertices[127] = 1;
+    vertices[96] = halfWidth, vertices[97] = halfHeight, vertices[98] = -halfDepth, vertices[99] = 1, vertices[100] = 0, vertices[101] = 0, vertices[102] = 1, vertices[103] = 0,
+    vertices[104] = halfWidth, vertices[105] = halfHeight, vertices[106] = halfDepth, vertices[107] = 1, vertices[108] = 0, vertices[109] = 0, vertices[110] = 0, vertices[111] = 0,
+    vertices[112] = halfWidth, vertices[113] = -halfHeight, vertices[114] = halfDepth, vertices[115] = 1, vertices[116] = 0, vertices[117] = 0, vertices[118] = 0, vertices[119] = 1,
+    vertices[120] = halfWidth, vertices[121] = -halfHeight, vertices[122] = -halfDepth, vertices[123] = 1, vertices[124] = 0, vertices[125] = 0, vertices[126] = 1, vertices[127] = 1,
     // Front
-    vertices[128] = -halfWidth, vertices[129] = halfHeight, vertices[130] = halfDepth, vertices[131] = 0, vertices[132] = 0, vertices[133] = 1, vertices[134] = 0, vertices[135] = 0;
-    vertices[136] = halfWidth, vertices[137] = halfHeight, vertices[138] = halfDepth, vertices[139] = 0, vertices[140] = 0, vertices[141] = 1, vertices[142] = 1, vertices[143] = 0;
-    vertices[144] = halfWidth, vertices[145] = -halfHeight, vertices[146] = halfDepth, vertices[147] = 0, vertices[148] = 0, vertices[149] = 1, vertices[150] = 1, vertices[151] = 1;
-    vertices[152] = -halfWidth, vertices[153] = -halfHeight, vertices[154] = halfDepth, vertices[155] = 0, vertices[156] = 0, vertices[157] = 1, vertices[158] = 0, vertices[159] = 1;
+    vertices[128] = -halfWidth, vertices[129] = halfHeight, vertices[130] = halfDepth, vertices[131] = 0, vertices[132] = 0, vertices[133] = 1, vertices[134] = 0, vertices[135] = 0,
+    vertices[136] = halfWidth, vertices[137] = halfHeight, vertices[138] = halfDepth, vertices[139] = 0, vertices[140] = 0, vertices[141] = 1, vertices[142] = 1, vertices[143] = 0,
+    vertices[144] = halfWidth, vertices[145] = -halfHeight, vertices[146] = halfDepth, vertices[147] = 0, vertices[148] = 0, vertices[149] = 1, vertices[150] = 1, vertices[151] = 1,
+    vertices[152] = -halfWidth, vertices[153] = -halfHeight, vertices[154] = halfDepth, vertices[155] = 0, vertices[156] = 0, vertices[157] = 1, vertices[158] = 0, vertices[159] = 1,
     // Back
-    vertices[160] = -halfWidth, vertices[161] = halfHeight, vertices[162] = -halfDepth, vertices[163] = 0, vertices[164] = 0, vertices[165] = -1, vertices[166] = 1, vertices[167] = 0;
-    vertices[168] = halfWidth, vertices[169] = halfHeight, vertices[170] = -halfDepth, vertices[171] = 0, vertices[172] = 0, vertices[173] = -1, vertices[174] = 0, vertices[175] = 0;
-    vertices[176] = halfWidth, vertices[177] = -halfHeight, vertices[178] = -halfDepth, vertices[179] = 0, vertices[180] = 0, vertices[181] = -1, vertices[182] = 0, vertices[183] = 1;
+    vertices[160] = -halfWidth, vertices[161] = halfHeight, vertices[162] = -halfDepth, vertices[163] = 0, vertices[164] = 0, vertices[165] = -1, vertices[166] = 1, vertices[167] = 0,
+    vertices[168] = halfWidth, vertices[169] = halfHeight, vertices[170] = -halfDepth, vertices[171] = 0, vertices[172] = 0, vertices[173] = -1, vertices[174] = 0, vertices[175] = 0,
+    vertices[176] = halfWidth, vertices[177] = -halfHeight, vertices[178] = -halfDepth, vertices[179] = 0, vertices[180] = 0, vertices[181] = -1, vertices[182] = 0, vertices[183] = 1,
     vertices[184] = -halfWidth, vertices[185] = -halfHeight, vertices[186] = -halfDepth, vertices[187] = 0, vertices[188] = 0, vertices[189] = -1, vertices[190] = 1, vertices[191] = 1;
-    
+
     const indices = new Uint16Array(36);
+    // prettier-ignore
     // Up
-    indices[0] = 0, indices[1] = 2, indices[2] = 1, indices[3] = 2, indices[4] = 0, indices[5] = 3;
+    indices[0] = 0, indices[1] = 2, indices[2] = 1, indices[3] = 2, indices[4] = 0, indices[5] = 3,
     // Down
-    indices[6] = 4, indices[7] = 6, indices[8] = 7, indices[9] = 6, indices[10] = 4, indices[11] = 5;
+    indices[6] = 4, indices[7] = 6, indices[8] = 7, indices[9] = 6, indices[10] = 4, indices[11] = 5,
     // Left
-    indices[12] = 8, indices[13] = 10, indices[14] = 9, indices[15] = 10, indices[16] = 8, indices[17] = 11;
+    indices[12] = 8, indices[13] = 10, indices[14] = 9, indices[15] = 10, indices[16] = 8, indices[17] = 11,
     // Right
-    indices[18] = 12, indices[19] = 14, indices[20] = 15, indices[21] = 14, indices[22] = 12, indices[23] = 13;
+    indices[18] = 12, indices[19] = 14, indices[20] = 15, indices[21] = 14, indices[22] = 12, indices[23] = 13,
     // Front
-    indices[24] = 16, indices[25] = 18, indices[26] = 17, indices[27] = 18, indices[28] = 16, indices[29] = 19;
+    indices[24] = 16, indices[25] = 18, indices[26] = 17, indices[27] = 18, indices[28] = 16, indices[29] = 19,
     // Back
     indices[30] = 20, indices[31] = 22, indices[32] = 23, indices[33] = 22, indices[34] = 20, indices[35] = 21;
+
+    const { bounds } = mesh;
+    bounds.min.setValue(-halfWidth, -halfHeight, -halfDepth);
+    bounds.max.setValue(halfWidth, halfHeight, halfDepth);
 
     PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
@@ -188,7 +189,7 @@ export class PrimitiveMesh {
     let offset = 0;
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % horizontalCount;
-      const y = i / horizontalCount | 0;
+      const y = (i / horizontalCount) | 0;
 
       // Position
       vertices[offset++] = x * gridWidth - halfWidth;
@@ -206,7 +207,7 @@ export class PrimitiveMesh {
     offset = 0;
     for (let i = 0; i < rectangleCount; ++i) {
       const x = i % horizontalSegments;
-      const y = i / horizontalSegments | 0;
+      const y = (i / horizontalSegments) | 0;
 
       const a = y * horizontalCount + x;
       const b = a + 1;
@@ -220,6 +221,10 @@ export class PrimitiveMesh {
       indices[offset++] = d;
       indices[offset++] = c;
     }
+
+    const { bounds } = mesh;
+    bounds.min.setValue(-halfWidth, -halfHeight, 0);
+    bounds.max.setValue(halfWidth, halfHeight, 0);
 
     PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
@@ -239,7 +244,7 @@ export class PrimitiveMesh {
     radius: number = 0.5,
     height: number = 1,
     radialSegments: number = 20,
-    heightSegments: number = 1,
+    heightSegments: number = 1
   ): Mesh {
     const mesh = new Mesh(engine);
     radialSegments = Math.floor(radialSegments);
@@ -258,18 +263,18 @@ export class PrimitiveMesh {
 
     let verticesOffset = 0;
     let indicesOffset = 0;
-    
+
     // Create torso
     const thetaRange = Math.PI * 2;
     for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
-      const y = i / radialCount | 0;
+      const y = (i / radialCount) | 0;
       const u = x / radialSegments;
       const v = y / heightSegments;
       const theta = u * thetaRange;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
-      
+
       let posX = radius * sinTheta;
       let posY = v * unitHeight - halfHeight;
       let posZ = radius * cosTheta;
@@ -289,7 +294,7 @@ export class PrimitiveMesh {
 
     for (let i = 0; i < torsoRectangleCount; ++i) {
       const x = i % radialSegments;
-      const y = i / radialSegments | 0;
+      const y = (i / radialSegments) | 0;
 
       const a = y * radialCount + x;
       const b = a + 1;
@@ -350,6 +355,10 @@ export class PrimitiveMesh {
       indicesOffset += 3;
     }
 
+    const { bounds } = mesh;
+    bounds.min.setValue(-radius, -halfHeight, -radius);
+    bounds.max.setValue(radius, halfHeight, radius);
+
     PrimitiveMesh._initialize(engine, mesh, vertices, indices);
     return mesh;
   }
@@ -373,7 +382,6 @@ export class PrimitiveMesh {
     vertexStride: number,
     vertexElements: VertexElement[]
   ) {
-    const positionElement = vertexElements[0];
     const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
     const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static);
 
@@ -381,42 +389,5 @@ export class PrimitiveMesh {
     mesh.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
     mesh.setVertexElements(vertexElements);
     mesh.addSubMesh(0, indices.length);
-
-    this._computeBounds(mesh, positionElement, vertices);
-  }
-
-  private static _computeBounds(
-    mesh: Mesh,
-    positionElement: VertexElement,
-    vertices: ArrayBuffer | Float32Array
-  ): void {
-    const vertexElement = positionElement;
-    const bufferIndex = vertexElement.bindingIndex;
-    const vertexBufferBinding = mesh.vertexBufferBindings[bufferIndex];
-    const stride = vertexBufferBinding.stride;
-    const offset = vertexElement.offset;
-    const vertexCount = vertexBufferBinding.buffer.byteLength / stride;
-    let arrayBuffer: ArrayBuffer = vertices;
-    if (!(arrayBuffer instanceof ArrayBuffer)) {
-      arrayBuffer = (<Float32Array>arrayBuffer).buffer;
-    }
-    const dataView = new DataView(arrayBuffer, offset);
-
-    let min = new Vector3(Infinity, Infinity, Infinity);
-    let max = new Vector3(-Infinity, -Infinity, -Infinity);
-    for (let i = 0; i < vertexCount; i++) {
-      const base = offset + stride * i;
-      const position = new Vector3(
-        dataView.getFloat32(base, true),
-        dataView.getFloat32(base + 4, true),
-        dataView.getFloat32(base + 8, true)
-      );
-      Vector3.min(min, position, min);
-      Vector3.max(max, position, max);
-    }
-
-    const bounds = mesh.bounds;
-    min.cloneTo(bounds.min);
-    max.cloneTo(bounds.max);
   }
 }
