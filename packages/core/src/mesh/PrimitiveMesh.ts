@@ -28,15 +28,15 @@ export class PrimitiveMesh {
     segments = Math.floor(segments);
 
     const count = segments + 1;
-    const verticesCount = count * count;
-    const vertices = new Float32Array(verticesCount * 8);
+    const vertexCount = count * count;
+    const vertices = new Float32Array(vertexCount * 8);
     const rectangleCount = segments * segments;
     const indices = new Uint16Array(rectangleCount * 6);
     const thetaRange = Math.PI;
     const alphaRange = thetaRange * 2;
 
     let offset = 0;
-    for (let i = 0; i < verticesCount; ++i) {
+    for (let i = 0; i < vertexCount; ++i) {
       const x = i % count;
       const y = i / count | 0;
       const u = x / segments;
@@ -183,13 +183,13 @@ export class PrimitiveMesh {
     const halfHeight = height / 2;
     const gridWidth = width / horizontalSegments;
     const gridHeight = height / verticalSegments;
-    const verticesCount = horizontalCount * verticalCount;
-    const vertices = new Float32Array(verticesCount * 8);
+    const vertexCount = horizontalCount * verticalCount;
+    const vertices = new Float32Array(vertexCount * 8);
     const rectangleCount = verticalSegments * horizontalSegments;
     const indices = new Uint16Array(rectangleCount * 6);
 
     let offset = 0;
-    for (let i = 0; i < verticesCount; ++i) {
+    for (let i = 0; i < vertexCount; ++i) {
       const x = i % horizontalCount;
       const y = i / horizontalCount | 0;
 
@@ -252,9 +252,9 @@ export class PrimitiveMesh {
     const verticalCount = heightSegments + 1;
     const halfHeight = height / 2;
     const unitHeight = height / heightSegments;
-    const torsoVerticesCount = radialCount * verticalCount;
-    const totalVerticesCount = torsoVerticesCount + 2;
-    const vertices = new Float32Array(totalVerticesCount * 8);
+    const torsoVertexCount = radialCount * verticalCount;
+    const totalVertexCount = torsoVertexCount + 2;
+    const vertices = new Float32Array(totalVertexCount * 8);
     const torsoRectangleCount = radialSegments * heightSegments;
     const capTriangleCount = radialSegments * 2;
     const indices = new Uint16Array(torsoRectangleCount * 6 + capTriangleCount * 3);
@@ -263,7 +263,7 @@ export class PrimitiveMesh {
     let indicesOffset = 0;
     
     // Create torso
-    for (let i = 0; i < torsoVerticesCount; ++i) {
+    for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
       const y = i / radialCount | 0;
       const u = x / radialSegments;
@@ -335,8 +335,8 @@ export class PrimitiveMesh {
     vertices[verticesOffset++] = 0.5;
     vertices[verticesOffset++] = 0.5;
 
-    const bottom = torsoVerticesCount;
-    const top = torsoVerticesCount + 1;
+    const bottom = torsoVertexCount;
+    const top = torsoVertexCount + 1;
     const offset = heightSegments * radialSegments + 1;
     const stride = radialSegments * 3;
     for (let i = 0; i < radialSegments; ++i) {
