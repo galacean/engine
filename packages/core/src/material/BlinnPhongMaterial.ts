@@ -21,6 +21,7 @@ export class BlinnPhongMaterial extends Material {
   private _specularTexture: Texture2D;
   private _shininess: number = 16;
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
+  private _alphaCutoff: number = 0.5;
   private _doubleSided: boolean = false;
 
   /**
@@ -138,8 +139,9 @@ export class BlinnPhongMaterial extends Material {
 
     switch (v) {
       case AlphaMode.Opaque:
-      case AlphaMode.CutOff:
         {
+          this.shaderData.disableMacro("ALPHA_CUTOFF");
+
           target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.One;
           target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.Zero;
           target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
@@ -149,6 +151,8 @@ export class BlinnPhongMaterial extends Material {
         break;
       case AlphaMode.Blend:
         {
+          this.shaderData.disableMacro("ALPHA_CUTOFF");
+
           target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
           target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
           target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
@@ -156,7 +160,31 @@ export class BlinnPhongMaterial extends Material {
           this.renderQueueType = RenderQueueType.Transparent;
         }
         break;
+      case AlphaMode.CutOff:
+        {
+          this.shaderData.enableMacro("ALPHA_CUTOFF");
+
+          target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.One;
+          target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.Zero;
+          target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+          depthState.writeEnabled = true;
+          this.renderQueueType = RenderQueueType.AlphaTest;
+        }
+        break;
     }
+  }
+
+  /**
+   * Alpha cutoff value.
+   * @remarks fragments with alpha channel lower than cutoff value will be discarded.
+   */
+  get alphaCutoff(): number {
+    return this._alphaCutoff;
+  }
+
+  set alphaCutoff(v: number) {
+    this._alphaCutoff = v;
+    this.shaderData.setFloat("u_alphaCutoff", v);
   }
 
   /**
@@ -183,6 +211,7 @@ export class BlinnPhongMaterial extends Material {
     this.diffuseColor = this._diffuseColor;
     this.specularColor = this._specularColor;
     this.shininess = this._shininess;
+    this.alphaCutoff = this._alphaCutoff;
   }
 
   /**
