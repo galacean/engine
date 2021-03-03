@@ -1,23 +1,7 @@
-import { Vector2, Vector4 } from "@oasis-engine/math";
+import { Vector2, Vector4, Rect } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
-
-// A 2D Rectangle defined by X and Y position, width and height.
-export class Rect {
-  // TODO where
-  public x: number;
-  public y: number;
-  public width: number;
-  public height: number;
-
-  constructor(x: number = 0, y: number = 0, width: number = 0, height: number = 0) {
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
-  }
-}
 
 export class Sprite extends RefObject {
   private static _VERTICES_FLAG = 0x1;
