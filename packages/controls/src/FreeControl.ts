@@ -227,17 +227,18 @@ export class FreeControl extends Script {
     const actualMoveSpeed = (delta / 1000) * this.movementSpeed;
     this.camera.transform.getWorldForward(this._forward);
     this.camera.transform.getWorldRight(this._right);
+
     if (this._moveForward) {
-      this.camera.transform.translate(this._forward.scale(actualMoveSpeed));
+      this.camera.transform.translate(this._forward.scale(actualMoveSpeed), false);
     }
     if (this._moveBackward) {
-      this.camera.transform.translate(this._forward.scale(-actualMoveSpeed));
+      this.camera.transform.translate(this._forward.scale(-actualMoveSpeed), false);
     }
     if (this._moveLeft) {
-      this.camera.transform.translate(this._right.scale(-actualMoveSpeed));
+      this.camera.transform.translate(this._right.scale(-actualMoveSpeed), false);
     }
     if (this._moveRight) {
-      this.camera.transform.translate(this._right.scale(actualMoveSpeed));
+      this.camera.transform.translate(this._right.scale(actualMoveSpeed), false);
     }
 
     if (this.floorMock) {
