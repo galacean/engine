@@ -78,7 +78,7 @@ export class SpriteRenderer extends Renderer {
    * Push the render data of the sprite to render queue.
    * @param camera - Camera which is rendering
    */
-  render(camera: Camera): void {
+  _render(camera: Camera): void {
     const { entity, sprite, _vertices } = this;
     if (!sprite) {
       return;

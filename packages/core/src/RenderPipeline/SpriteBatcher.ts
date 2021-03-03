@@ -4,11 +4,11 @@ import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { PrimitiveTopology } from "../graphic/enums/PrimitiveTopology";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Buffer } from "../graphic/Buffer";
-import { Primitive } from "../graphic/Primitive";
-import { SubPrimitive } from "../graphic/SubPrimitive";
+import { Mesh } from "../graphic/Mesh";
+import { SubMesh } from "../graphic/SubMesh";
 import { VertexElement } from "../graphic/VertexElement";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { Material } from "../material";
@@ -27,9 +27,9 @@ export class SpriteBatcher {
   private _rendererData: ShaderData;
 
   /** @internal */
-  private _primitive: Primitive;
+  private _mesh: Mesh;
   /** @internal */
-  private _subPrimitive: SubPrimitive;
+  private _subMesh: SubMesh;
   /** Vertices buff in GPU. */
   private _vertexBuffer: Buffer;
   /** Indices buff in GPU. */
@@ -52,11 +52,11 @@ export class SpriteBatcher {
 
   _initGeometry(engine: Engine) {
     const { MAX_VERTICES } = SpriteBatcher;
-    this._primitive = new Primitive(engine, "SpriteBatcher Primitive");
-    this._subPrimitive = new SubPrimitive();
-    const { _primitive, _subPrimitive } = this;
-    _subPrimitive.start = 0;
-    _subPrimitive.topology = PrimitiveTopology.Triangles;
+    this._mesh = new Mesh(engine, "SpriteBatcher Mesh");
+    this._subMesh = new SubMesh();
+    const { _mesh, _subMesh } = this;
+    _subMesh.start = 0;
+    _subMesh.topology = MeshTopology.Triangles;
 
     const vertexElements = [
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
@@ -77,9 +77,9 @@ export class SpriteBatcher {
     this._indices = new Uint16Array(MAX_VERTICES);
     this._indiceBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, MAX_VERTICES, BufferUsage.Dynamic);
 
-    _primitive.setVertexBufferBinding(this._vertexBuffer, vertexStride);
-    _primitive.setIndexBufferBinding(this._indiceBuffer, IndexFormat.UInt16);
-    _primitive.setVertexElements(vertexElements);
+    _mesh.setVertexBufferBinding(this._vertexBuffer, vertexStride);
+    _mesh.setIndexBufferBinding(this._indiceBuffer, IndexFormat.UInt16);
+    _mesh.setVertexElements(vertexElements);
   }
 
   /**
@@ -115,7 +115,7 @@ export class SpriteBatcher {
     program.uploadAll(program.rendererUniformBlock, this._rendererData);
     program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-    const { _vertices, _indices, _subPrimitive } = this;
+    const { _vertices, _indices, _subMesh } = this;
     // Batch vertices and indices.
     let vertexIndex = 0;
     let indiceIndex = 0;
@@ -149,7 +149,7 @@ export class SpriteBatcher {
     }
 
     // Update primive.
-    _subPrimitive.count = indiceIndex;
+    _subMesh.count = indiceIndex;
     this._vertexBuffer.setData(_vertices, 0, 0, vertexIndex);
     this._indiceBuffer.setData(_indices, 0, 0, indiceIndex);
 
@@ -157,7 +157,7 @@ export class SpriteBatcher {
     material.renderState._apply(engine);
 
     // Draw the batched sprite.
-    engine._hardwareRenderer.drawPrimitive(this._primitive, _subPrimitive, program);
+    engine._hardwareRenderer.drawPrimitive(this._mesh, _subMesh, program);
 
     _batchedQueue.length = 0;
     this._camera = null;
