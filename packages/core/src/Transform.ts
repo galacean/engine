@@ -303,7 +303,8 @@ export class Transform extends Component {
   }
 
   /**
-   * Set local rotaion by the X, Y, Z components of the euler angle, unit in degrees, Yaw/Pitch/Roll sequence.
+   * Set local rotaion by the X, Y, Z components of the euler angle, unit in degrees.
+   * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    * @param x - The angle of rotation around the X axis
    * @param y - The angle of rotation around the Y axis
    * @param z - The angle of rotation around the Z axis
