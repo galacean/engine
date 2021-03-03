@@ -260,12 +260,13 @@ export class PrimitiveMesh {
     let indicesOffset = 0;
     
     // Create torso
+    const thetaRange = Math.PI * 2;
     for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
       const y = i / radialCount | 0;
       const u = x / radialSegments;
       const v = y / heightSegments;
-      const theta = u * Math.PI * 2;
+      const theta = u * thetaRange;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
       
