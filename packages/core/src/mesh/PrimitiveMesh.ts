@@ -48,9 +48,6 @@ export class PrimitiveMesh {
       let posX = -radius * Math.cos(alphaDelta) * sinTheta;
       let posY = radius * Math.cos(thetaDelta);
       let posZ = radius * Math.sin(alphaDelta) * sinTheta;
-      posX = Math.abs(posX) < 1e-6 ? 0 : posX;
-      posY = Math.abs(posY) < 1e-6 ? 0 : posY;
-      posZ = Math.abs(posZ) < 1e-6 ? 0 : posZ;
 
       // Position
       vertices[offset++] = posX;
@@ -60,7 +57,7 @@ export class PrimitiveMesh {
       vertices[offset++] = posX;
       vertices[offset++] = posY;
       vertices[offset++] = posZ;
-      // Texcoord_0
+      // Texcoord
       vertices[offset++] = u
       vertices[offset++] = 1 - v;
     }
@@ -108,49 +105,49 @@ export class PrimitiveMesh {
     const halfDepth: number = depth / 2;
 
     const vertices = new Float32Array(192);
-    // up
+    // Up
     vertices[0] = -halfWidth, vertices[1] = halfHeight, vertices[2] = -halfDepth, vertices[3] = 0, vertices[4] = 1, vertices[5] = 0, vertices[6] = 0, vertices[7] = 0;
     vertices[8] = halfWidth, vertices[9] = halfHeight, vertices[10] = -halfDepth, vertices[11] = 0, vertices[12] = 1, vertices[13] = 0, vertices[14] = 1, vertices[15] = 0;
     vertices[16] = halfWidth, vertices[17] = halfHeight, vertices[18] = halfDepth, vertices[19] = 0, vertices[20] = 1, vertices[21] = 0, vertices[22] = 1, vertices[23] = 1;
     vertices[24] = -halfWidth, vertices[25] = halfHeight, vertices[26] = halfDepth, vertices[27] = 0, vertices[28] = 1, vertices[29] = 0, vertices[30] = 0, vertices[31] = 1;
-    // down
+    // Down
     vertices[32] = -halfWidth, vertices[33] = -halfHeight, vertices[34] = -halfDepth, vertices[35] = 0, vertices[36] = -1, vertices[37] = 0, vertices[38] = 0, vertices[39] = 1;
     vertices[40] = halfWidth, vertices[41] = -halfHeight, vertices[42] = -halfDepth, vertices[43] = 0, vertices[44] = -1, vertices[45] = 0, vertices[46] = 1, vertices[47] = 1;
     vertices[48] = halfWidth, vertices[49] = -halfHeight, vertices[50] = halfDepth, vertices[51] = 0, vertices[52] = -1, vertices[53] = 0, vertices[54] = 1, vertices[55] = 0;
     vertices[56] = -halfWidth, vertices[57] = -halfHeight, vertices[58] = halfDepth, vertices[59] = 0, vertices[60] = -1, vertices[61] = 0, vertices[62] = 0, vertices[63] = 0;
-    // left
+    // Left
     vertices[64] = -halfWidth, vertices[65] = halfHeight, vertices[66] = -halfDepth, vertices[67] = -1, vertices[68] = 0, vertices[69] = 0, vertices[70] = 0, vertices[71] = 0;
     vertices[72] = -halfWidth, vertices[73] = halfHeight, vertices[74] = halfDepth, vertices[75] = -1, vertices[76] = 0, vertices[77] = 0, vertices[78] = 1, vertices[79] = 0;
     vertices[80] = -halfWidth, vertices[81] = -halfHeight, vertices[82] = halfDepth, vertices[83] = -1, vertices[84] = 0, vertices[85] = 0, vertices[86] = 1, vertices[87] = 1;
     vertices[88] = -halfWidth, vertices[89] = -halfHeight, vertices[90] = -halfDepth, vertices[91] = -1, vertices[92] = 0, vertices[93] = 0, vertices[94] = 0, vertices[95] = 1;
-    // right
+    // Right
     vertices[96] = halfWidth, vertices[97] = halfHeight, vertices[98] = -halfDepth, vertices[99] = 1, vertices[100] = 0, vertices[101] = 0, vertices[102] = 1, vertices[103] = 0;
     vertices[104] = halfWidth, vertices[105] = halfHeight, vertices[106] = halfDepth, vertices[107] = 1, vertices[108] = 0, vertices[109] = 0, vertices[110] = 0, vertices[111] = 0;
     vertices[112] = halfWidth, vertices[113] = -halfHeight, vertices[114] = halfDepth, vertices[115] = 1, vertices[116] = 0, vertices[117] = 0, vertices[118] = 0, vertices[119] = 1;
     vertices[120] = halfWidth, vertices[121] = -halfHeight, vertices[122] = -halfDepth, vertices[123] = 1, vertices[124] = 0, vertices[125] = 0, vertices[126] = 1, vertices[127] = 1;
-    // front
+    // Front
     vertices[128] = -halfWidth, vertices[129] = halfHeight, vertices[130] = halfDepth, vertices[131] = 0, vertices[132] = 0, vertices[133] = 1, vertices[134] = 0, vertices[135] = 0;
     vertices[136] = halfWidth, vertices[137] = halfHeight, vertices[138] = halfDepth, vertices[139] = 0, vertices[140] = 0, vertices[141] = 1, vertices[142] = 1, vertices[143] = 0;
     vertices[144] = halfWidth, vertices[145] = -halfHeight, vertices[146] = halfDepth, vertices[147] = 0, vertices[148] = 0, vertices[149] = 1, vertices[150] = 1, vertices[151] = 1;
     vertices[152] = -halfWidth, vertices[153] = -halfHeight, vertices[154] = halfDepth, vertices[155] = 0, vertices[156] = 0, vertices[157] = 1, vertices[158] = 0, vertices[159] = 1;
-    // back
+    // Back
     vertices[160] = -halfWidth, vertices[161] = halfHeight, vertices[162] = -halfDepth, vertices[163] = 0, vertices[164] = 0, vertices[165] = -1, vertices[166] = 1, vertices[167] = 0;
     vertices[168] = halfWidth, vertices[169] = halfHeight, vertices[170] = -halfDepth, vertices[171] = 0, vertices[172] = 0, vertices[173] = -1, vertices[174] = 0, vertices[175] = 0;
     vertices[176] = halfWidth, vertices[177] = -halfHeight, vertices[178] = -halfDepth, vertices[179] = 0, vertices[180] = 0, vertices[181] = -1, vertices[182] = 0, vertices[183] = 1;
     vertices[184] = -halfWidth, vertices[185] = -halfHeight, vertices[186] = -halfDepth, vertices[187] = 0, vertices[188] = 0, vertices[189] = -1, vertices[190] = 1, vertices[191] = 1;
     
     const indices = new Uint16Array(36);
-    // up
+    // Up
     indices[0] = 0, indices[1] = 2, indices[2] = 1, indices[3] = 2, indices[4] = 0, indices[5] = 3;
-    // down
+    // Down
     indices[6] = 4, indices[7] = 6, indices[8] = 7, indices[9] = 6, indices[10] = 4, indices[11] = 5;
-    // left
+    // Left
     indices[12] = 8, indices[13] = 10, indices[14] = 9, indices[15] = 10, indices[16] = 8, indices[17] = 11;
-    // right
+    // Right
     indices[18] = 12, indices[19] = 14, indices[20] = 15, indices[21] = 14, indices[22] = 12, indices[23] = 13;
-    // front
+    // Front
     indices[24] = 16, indices[25] = 18, indices[26] = 17, indices[27] = 18, indices[28] = 16, indices[29] = 19;
-    // back
+    // Back
     indices[30] = 20, indices[31] = 22, indices[32] = 23, indices[33] = 22, indices[34] = 20, indices[35] = 21;
 
     PrimitiveMesh._initialize(engine, mesh, vertices, indices);
@@ -201,7 +198,7 @@ export class PrimitiveMesh {
       vertices[offset++] = 0;
       vertices[offset++] = 0;
       vertices[offset++] = 1;
-      // Texcoord_0
+      // Texcoord
       vertices[offset++] = x / horizontalSegments;
       vertices[offset++] = 1 - y / verticalSegments;
     }
@@ -275,9 +272,6 @@ export class PrimitiveMesh {
       let posX = radius * sinTheta;
       let posY = v * unitHeight - halfHeight;
       let posZ = radius * cosTheta;
-      posX = Math.abs(posX) < 1e-6 ? 0 : posX;
-      posY = Math.abs(posY) < 1e-6 ? 0 : posY;
-      posZ = Math.abs(posZ) < 1e-6 ? 0 : posZ;
 
       // Position
       vertices[verticesOffset++] = posX;
@@ -287,7 +281,7 @@ export class PrimitiveMesh {
       vertices[verticesOffset++] = sinTheta;
       vertices[verticesOffset++] = 0;
       vertices[verticesOffset++] = cosTheta;
-      // Texcoord_0
+      // Texcoord
       vertices[verticesOffset++] = u;
       vertices[verticesOffset++] = 1 - v;
     }
@@ -309,8 +303,6 @@ export class PrimitiveMesh {
       indices[indicesOffset++] = c;
     }
 
-    // Create cap
-
     // Position
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = -halfHeight;
@@ -319,7 +311,7 @@ export class PrimitiveMesh {
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = -1;
     vertices[verticesOffset++] = 0;
-    // Texcoord_0
+    // Texcoord
     vertices[verticesOffset++] = 0.5;
     vertices[verticesOffset++] = 0.5;
 
@@ -331,7 +323,7 @@ export class PrimitiveMesh {
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = 1;
     vertices[verticesOffset++] = 0;
-    // Texcoord_0
+    // Texcoord
     vertices[verticesOffset++] = 0.5;
     vertices[verticesOffset++] = 0.5;
 
@@ -349,10 +341,10 @@ export class PrimitiveMesh {
       indices[stride + thirdOffset] = i;
 
       // top
-      const temp = offset + i;
+      const secondIndex = offset + i;
       indices[indicesOffset] = top;
-      indices[secondOffset] = temp;
-      indices[thirdOffset] = temp + 1;
+      indices[secondOffset] = secondIndex;
+      indices[thirdOffset] = secondIndex + 1;
 
       indicesOffset += 3;
     }
