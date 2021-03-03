@@ -14,13 +14,9 @@ import { VertexElement } from "../graphic/VertexElement";
 export class PrimitiveMesh {
   /**
    * Create a sphere mesh.
-   * @param  radius - Sphere radius.
-   * @param  horizontalSegments - Number of horizontal segments
-   * @param  verticalSegments - Number of vertical segments
-   * @param  alphaStart - Specify horizontal starting angle
-   * @param  alphaRange - Specify horizontal sweep angle size
-   * @param  thetaStart - Specify vertical starting angle
-   * @param  thetaRange - Specify vertical sweep angle size
+   * @param engine - Engine
+   * @param radius - Sphere radius.
+   * @param segments - Number of segments
    * @returns Sphere mesh
    */
   static createSphere(
