@@ -2,13 +2,14 @@
   "compilerOptions": {
     "module": "esnext",
     "target": "esnext",
+    "skipLibCheck": true,
     "declaration": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "declarationDir": "types",
     "emitDeclarationOnly": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "incremental": false
   },
   "include": [

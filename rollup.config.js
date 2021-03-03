@@ -8,10 +8,11 @@ import glslify from "rollup-plugin-glslify";
 import { terser } from "rollup-plugin-terser";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
+import esbuild from "rollup-plugin-esbuild";
 
 const camelCase = require("camelcase");
 
-const { NODE_ENV } = process.env;
+const { NODE_ENV, FAST } = process.env;
 
 const pkgsRoot = path.join(__dirname, "packages");
 const pkgs = fs
@@ -31,16 +32,30 @@ function toGlobalName(pkgName) {
 
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 
+const esbuildPlugin = esbuild({
+  // All options are optional
+  include: /\.[t]s?$/, // default, inferred from `loaders` option
+  exclude: /node_modules/, // default
+  sourceMap: true, // default
+  minify: process.env.NODE_ENV === "production",
+  target: "es2015", // default, or 'es20XX', 'esnext'
+  define: {
+    __VERSION__: '"x.y.z"'
+  }
+});
+
+const babelPlugin = babel({
+  extensions,
+  babelHelpers: "bundled",
+  exclude: ["node_modules/**", "packages/**/node_modules/**"]
+});
+
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true }),
   glslify({
     include: [/\.glsl$/, "packages/**/worker/**/*.js"]
   }),
-  babel({
-    extensions,
-    babelHelpers: "bundled",
-    exclude: ["node_modules/**", "packages/**/node_modules/**"]
-  }),
+  FAST ? esbuildPlugin : babelPlugin,
   commonjs()
 ];
 
@@ -50,7 +65,8 @@ function config({ location, pkgJson }) {
   const name = pkgJson.name;
   commonPlugins.push(
     replace({
-      __buildVersion: pkgJson.version
+      __buildVersion: pkgJson.version,
+      preventAssignment: true
     })
   );
 

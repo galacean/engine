@@ -9,7 +9,7 @@
     "declarationDir": "types",
     "emitDeclarationOnly": true,
     "stripInternal": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "strict": false,
     "incremental": false
   },

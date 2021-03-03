@@ -2,6 +2,7 @@
   "compilerOptions": {
     "module": "esnext",
     "target": "esnext",
+    "skipLibCheck": true,
     "declaration": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
@@ -9,7 +10,7 @@
     "declarationDir": "types",
     "incremental": false,
     "emitDeclarationOnly": true,
-    "sourceMap": true
+    "sourceMap": false
   },
   "include": [
     "src/**/*"
