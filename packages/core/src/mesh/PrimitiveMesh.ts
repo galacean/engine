@@ -25,33 +25,28 @@ export class PrimitiveMesh {
    */
   static createSphere(
     engine: Engine,
-    radius: number = 1,
-    horizontalSegments: number = 12,
-    verticalSegments: number = 12,
-    alphaStart: number = 0,
-    alphaRange: number = Math.PI * 2,
-    thetaStart: number = 0,
-    thetaRange: number = Math.PI
+    radius: number = 0.5,
+    segments: number = 12
   ): Mesh {
     const mesh = new Mesh(engine);
-    horizontalSegments = Math.floor(horizontalSegments);
-    verticalSegments = Math.floor(verticalSegments);
+    segments = Math.floor(segments);
 
-    const horizontalCount = horizontalSegments + 1;
-    const verticalCount = verticalSegments + 1;
-    const verticesCount = horizontalCount * verticalCount;
+    const count = segments + 1;
+    const verticesCount = count * count;
     const vertices = new Float32Array(verticesCount * 8);
-    const rectangleCount = horizontalSegments * verticalSegments;
+    const rectangleCount = segments * segments;
     const indices = new Uint16Array(rectangleCount * 6);
+    const thetaRange = Math.PI;
+    const alphaRange = thetaRange * 2;
 
     let offset = 0;
     for (let i = 0; i < verticesCount; ++i) {
-      const x = i % horizontalCount;
-      const y = i / horizontalCount | 0;
-      const u = x / horizontalSegments;
-      const v = y / verticalSegments;
-      const alphaDelta = alphaStart + u * alphaRange;
-      const thetaDelta = thetaStart + v * thetaRange;
+      const x = i % count;
+      const y = i / count | 0;
+      const u = x / segments;
+      const v = y / segments;
+      const alphaDelta = u * alphaRange;
+      const thetaDelta = v * thetaRange;
       const sinTheta = Math.sin(thetaDelta);
 
       let posX = -radius * Math.cos(alphaDelta) * sinTheta;
@@ -76,12 +71,12 @@ export class PrimitiveMesh {
 
     offset = 0;
     for (let i = 0; i < rectangleCount; ++i) {
-      const x = i % horizontalSegments;
-      const y = i / horizontalSegments | 0;
+      const x = i % segments;
+      const y = i / segments | 0;
 
-      const a = y * horizontalCount + x;
+      const a = y * count + x;
       const b = a + 1;
-      const c = a + horizontalCount;
+      const c = a + count;
       const d = c + 1;
 
       indices[offset++] = b;
@@ -248,7 +243,7 @@ export class PrimitiveMesh {
    */
   static createCylinder(
     engine: Engine,
-    radius: number = 1,
+    radius: number = 0.5,
     height: number = 1,
     radialSegments: number = 20,
     heightSegments: number = 1,
