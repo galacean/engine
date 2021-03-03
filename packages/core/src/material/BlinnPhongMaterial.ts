@@ -19,6 +19,8 @@ export class BlinnPhongMaterial extends Material {
   private _emissiveTexture: Texture2D;
   private _diffuseTexture: Texture2D;
   private _specularTexture: Texture2D;
+  private _normalTexture: Texture2D;
+  private _normalIntensity: number = 1;
   private _shininess: number = 16;
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
   private _doubleSided: boolean = false;
@@ -114,6 +116,36 @@ export class BlinnPhongMaterial extends Material {
   }
 
   /**
+   * Normal texture.
+   */
+  get normalTexture(): Texture2D {
+    return this._normalTexture;
+  }
+
+  set normalTexture(value: Texture2D) {
+    this._normalTexture = value;
+
+    if (value) {
+      this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
+      this.shaderData.setTexture("u_normalTexture", value);
+    } else {
+      this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
+    }
+  }
+
+  /**
+   * Normal texture intensity.
+   */
+  get normalIntensity(): number {
+    return this._normalIntensity;
+  }
+
+  set normalIntensity(value: number) {
+    this._normalIntensity = value;
+    this.shaderData.setFloat("u_normalIntensity", value);
+  }
+
+  /**
    * Set the specular reflection coefficient, the larger the value, the more convergent the specular reflection effect.
    */
   get shininess(): number {
@@ -183,6 +215,7 @@ export class BlinnPhongMaterial extends Material {
     this.diffuseColor = this._diffuseColor;
     this.specularColor = this._specularColor;
     this.shininess = this._shininess;
+    this.normalIntensity = this._normalIntensity;
   }
 
   /**
