@@ -17,11 +17,25 @@ import { Shader } from "../shader";
 import { ShaderData } from "../shader/ShaderData";
 import { Renderer } from "../Renderer";
 
+class Batch {
+  vertices: Vector3[];
+  uv: Vector2[];
+  triangles: number[];
+  color: Color;
+  
+  constructor(vertices: Vector3[], uv: Vector2[], triangles: number[], color: Color) {
+    this.vertices = vertices;
+    this.uv = uv;
+    this.triangles = triangles;
+    this.color = color;
+  }
+}
+
 export class SpriteBatcher {
   /** The maximum number of vertices. */
   private static MAX_VERTICES: number = 256;
 
-  private _batchedQueue;
+  private _batchedQueue: Batch[] = [];
   private _camera: Camera;
   private _targetTexture: Texture2D;
   private _rendererData: ShaderData;
@@ -42,7 +56,6 @@ export class SpriteBatcher {
   private _curIndiceCount: number;
 
   constructor(engine: Engine) {
-    this._batchedQueue = [];
     this._camera = null;
     this._targetTexture = null;
     this._rendererData = null;
@@ -214,7 +227,8 @@ export class SpriteBatcher {
     this._targetTexture = texture;
     this._rendererData = renderer.shaderData;
     this._curIndiceCount = triangles.length;
-    this._batchedQueue.push({ vertices, uv, triangles, color });
+
+    this._batchedQueue.push(new Batch(vertices, uv, triangles, color));
   }
 
   /**

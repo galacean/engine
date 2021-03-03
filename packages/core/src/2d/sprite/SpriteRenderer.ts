@@ -3,29 +3,8 @@ import { Camera } from "../../Camera";
 import { Entity } from "../../Entity";
 import { Material } from "../../material";
 import { Renderer } from "../../Renderer";
+import { DrawMode } from "../enums/DrawMode";
 import { Sprite } from "./Sprite";
-
-/**
- * Draw mode.
- * @readonly
- */
-export enum DrawMode {
-  /** Default type. */
-  Simple,
-  /** 9-sliced type. */
-  Sliced,
-  /** Tiled type. */
-  Tiled
-}
-
-/**
- * Tile mode.
- * @readonly
- */
-export enum TileMode {
-  Continuous,
-  Adaptive
-}
 
 /**
  * 2d sprite renderer.

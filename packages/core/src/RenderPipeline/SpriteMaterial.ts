@@ -5,8 +5,7 @@ import { Shader } from "../shader";
 const spriteVertShader = `
 precision highp float;
 
-uniform mat4 u_projMat;
-uniform mat4 u_viewMat;
+uniform mat4 u_VPMat;
 
 attribute vec3 POSITION;
 attribute vec2 TEXCOORD_0;
@@ -17,7 +16,7 @@ varying vec4 v_color;
 
 void main()
 {
-  gl_Position = u_projMat * u_viewMat * vec4(POSITION,1.0);
+  gl_Position = u_VPMat * vec4(POSITION, 1.0);
   v_uv = TEXCOORD_0;
   v_color = COLOR_0;
 }
