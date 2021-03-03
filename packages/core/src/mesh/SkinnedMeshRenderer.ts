@@ -219,9 +219,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       if (!rhi) return;
       this.jointTexture = new Texture2D(engine, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
       this.jointTexture.filterMode = TextureFilterMode.Point;
+      this.shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
+      this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
-    this.shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
-    this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
   }
 }
