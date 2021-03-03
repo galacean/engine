@@ -54,7 +54,7 @@ export class PrimitiveMesh {
       vertices[offset++] = posZ;
       // Texcoord
       vertices[offset++] = u;
-      vertices[offset++] = 1 - v;
+      vertices[offset++] = v;
     }
 
     offset = 0;
@@ -243,7 +243,7 @@ export class PrimitiveMesh {
   static createCylinder(
     engine: Engine,
     radius: number = 0.5,
-    height: number = 1,
+    height: number = 2,
     radialSegments: number = 20,
     heightSegments: number = 1
   ): Mesh {
@@ -256,23 +256,24 @@ export class PrimitiveMesh {
     const halfHeight = height / 2;
     const unitHeight = height / heightSegments;
     const torsoVertexCount = radialCount * verticalCount;
-    const totalVertexCount = torsoVertexCount + 2;
-    const vertices = new Float32Array(totalVertexCount * 8);
     const torsoRectangleCount = radialSegments * heightSegments;
     const capTriangleCount = radialSegments * 2;
+    const totalVertexCount = torsoVertexCount + 2 + capTriangleCount;
+    const vertices = new Float32Array(totalVertexCount * 8);
     const indices = new Uint16Array(torsoRectangleCount * 6 + capTriangleCount * 3);
 
     let verticesOffset = 0;
     let indicesOffset = 0;
 
     // Create torso
+    const thetaStart = Math.PI;
     const thetaRange = Math.PI * 2;
     for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
       const y = (i / radialCount) | 0;
       const u = x / radialSegments;
       const v = y / heightSegments;
-      const theta = u * thetaRange;
+      const theta = thetaStart + u * thetaRange;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
 
@@ -310,50 +311,81 @@ export class PrimitiveMesh {
       indices[indicesOffset++] = c;
     }
 
-    // Position
+    // Bottom position
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = -halfHeight;
     vertices[verticesOffset++] = 0;
-    // Normal
+    // Bottom normal
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = -1;
     vertices[verticesOffset++] = 0;
-    // Texcoord
+    // Bottom texcoord
     vertices[verticesOffset++] = 0.5;
     vertices[verticesOffset++] = 0.5;
 
-    // Position
+    // Top position
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = halfHeight;
     vertices[verticesOffset++] = 0;
-    // Normal
+    // Top normal
     vertices[verticesOffset++] = 0;
     vertices[verticesOffset++] = 1;
     vertices[verticesOffset++] = 0;
-    // Texcoord
+    // Top texcoord
     vertices[verticesOffset++] = 0.5;
     vertices[verticesOffset++] = 0.5;
 
-    const bottom = torsoVertexCount;
-    const top = torsoVertexCount + 1;
-    const offset = heightSegments * radialSegments + 1;
-    const stride = radialSegments * 3;
+    // Add cap vertices
+    const diameter = radius * 2;
     for (let i = 0; i < radialSegments; ++i) {
-      const secondOffset = indicesOffset + 1;
-      const thirdOffset = indicesOffset + 2;
+      const curVertexIndex = i * 8;
+      const curPosX = vertices[curVertexIndex];
+      const curPosZ = vertices[curVertexIndex + 2];
+      const u = curPosX / diameter + 0.5;
+      const v = curPosZ / diameter + 0.5;
+
+      // Bottom position
+      vertices[verticesOffset++] = curPosX;
+      vertices[verticesOffset++] = -halfHeight;
+      vertices[verticesOffset++] = curPosZ;
+      // Bottom normal
+      vertices[verticesOffset++] = 0;
+      vertices[verticesOffset++] = -1;
+      vertices[verticesOffset++] = 0;
+      // Bottom texcoord
+      vertices[verticesOffset++] = u;
+      vertices[verticesOffset++] = 1 - v;
+
+      // Top position
+      vertices[verticesOffset++] = curPosX;
+      vertices[verticesOffset++] = halfHeight;
+      vertices[verticesOffset++] = curPosZ;
+      // Top normal
+      vertices[verticesOffset++] = 0;
+      vertices[verticesOffset++] = 1;
+      vertices[verticesOffset++] = 0;
+      // Top texcoord
+      vertices[verticesOffset++] = u;
+      vertices[verticesOffset++] = v;
+    }
+
+    // Add cap indices
+    const topCapIndex = torsoVertexCount + 1;
+    const bottomIndiceIndex = torsoVertexCount + 2;
+    const topIndiceIndex = bottomIndiceIndex + 1;
+    for (let i = 0; i < radialSegments; ++i) {
+      const firstStride = i * 2;
+      const secondStride = i === radialSegments - 1 ? 0 : firstStride + 2;
 
       // Bottom
-      indices[stride + indicesOffset] = bottom;
-      indices[stride + secondOffset] = i + 1;
-      indices[stride + thirdOffset] = i;
+      indices[indicesOffset++] = torsoVertexCount;
+      indices[indicesOffset++] = bottomIndiceIndex + secondStride;
+      indices[indicesOffset++] = bottomIndiceIndex + firstStride;
 
       // Top
-      const secondIndex = offset + i;
-      indices[indicesOffset] = top;
-      indices[secondOffset] = secondIndex;
-      indices[thirdOffset] = secondIndex + 1;
-
-      indicesOffset += 3;
+      indices[indicesOffset++] = topCapIndex;
+      indices[indicesOffset++] = topIndiceIndex + firstStride;
+      indices[indicesOffset++] = topIndiceIndex + secondStride;
     }
 
     const { bounds } = mesh;
