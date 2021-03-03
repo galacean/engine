@@ -1,4 +1,3 @@
-import { Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
@@ -15,7 +14,7 @@ export class PrimitiveMesh {
   /**
    * Create a sphere mesh.
    * @param engine - Engine
-   * @param radius - Sphere radius.
+   * @param radius - Sphere radius
    * @param segments - Number of segments
    * @returns Sphere mesh
    */
@@ -100,6 +99,7 @@ export class PrimitiveMesh {
     const halfDepth: number = depth / 2;
 
     const vertices = new Float32Array(192);
+
     // prettier-ignore
     // Up
     vertices[0] = -halfWidth, vertices[1] = halfHeight, vertices[2] = -halfDepth, vertices[3] = 0, vertices[4] = 1, vertices[5] = 0, vertices[6] = 0, vertices[7] = 0,
@@ -133,6 +133,7 @@ export class PrimitiveMesh {
     vertices[184] = -halfWidth, vertices[185] = -halfHeight, vertices[186] = -halfDepth, vertices[187] = 0, vertices[188] = 0, vertices[189] = -1, vertices[190] = 1, vertices[191] = 1;
 
     const indices = new Uint16Array(36);
+
     // prettier-ignore
     // Up
     indices[0] = 0, indices[1] = 2, indices[2] = 1, indices[3] = 2, indices[4] = 0, indices[5] = 3,
@@ -341,12 +342,12 @@ export class PrimitiveMesh {
       const secondOffset = indicesOffset + 1;
       const thirdOffset = indicesOffset + 2;
 
-      // bottom
+      // Bottom
       indices[stride + indicesOffset] = bottom;
       indices[stride + secondOffset] = i + 1;
       indices[stride + thirdOffset] = i;
 
-      // top
+      // Top
       const secondIndex = offset + i;
       indices[indicesOffset] = top;
       indices[secondOffset] = secondIndex;
@@ -371,17 +372,6 @@ export class PrimitiveMesh {
       new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0)
     ];
 
-    PrimitiveMesh._initBuffer(engine, mesh, vertices, indices, vertexStride, vertexElements);
-  }
-
-  private static _initBuffer(
-    engine: Engine,
-    mesh: Mesh,
-    vertices: Float32Array,
-    indices: Uint16Array,
-    vertexStride: number,
-    vertexElements: VertexElement[]
-  ) {
     const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
     const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static);
 
