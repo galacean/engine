@@ -99,7 +99,7 @@ export class PrimitiveMesh {
     const halfDepth: number = depth / 2;
 
     const vertices = new Float32Array(192);
-
+    
     // prettier-ignore
     // Up
     vertices[0] = -halfWidth, vertices[1] = halfHeight, vertices[2] = -halfDepth, vertices[3] = 0, vertices[4] = 1, vertices[5] = 0, vertices[6] = 0, vertices[7] = 0,
@@ -133,7 +133,7 @@ export class PrimitiveMesh {
     vertices[184] = -halfWidth, vertices[185] = -halfHeight, vertices[186] = -halfDepth, vertices[187] = 0, vertices[188] = 0, vertices[189] = -1, vertices[190] = 1, vertices[191] = 1;
 
     const indices = new Uint16Array(36);
-
+    
     // prettier-ignore
     // Up
     indices[0] = 0, indices[1] = 2, indices[2] = 1, indices[3] = 2, indices[4] = 0, indices[5] = 3,
@@ -372,6 +372,20 @@ export class PrimitiveMesh {
       new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0)
     ];
 
+<<<<<<< HEAD
+=======
+    PrimitiveMesh._initBuffer(engine, mesh, vertices, indices, vertexStride, vertexElements);
+  }
+
+  private static _initBuffer(
+    engine: Engine,
+    mesh: Mesh,
+    vertices: Float32Array,
+    indices: Uint16Array,
+    vertexStride: number,
+    vertexElements: VertexElement[]
+  ) {
+>>>>>>> 795fc3a09e47393b2b706c2e4a009fd11084b577
     const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
     const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static);
 
