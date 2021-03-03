@@ -7,9 +7,9 @@ import {
   GLCapabilityType,
   HardwareRenderer,
   Logger,
-  Primitive,
+  Mesh,
   RenderTarget,
-  SubPrimitive,
+  SubMesh,
   TextureCubeFace
 } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
@@ -102,7 +102,7 @@ export class WebGLRenderer implements HardwareRenderer {
     this._options = null;
   }
 
-  createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
+  createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
     return new GLPrimitive(this, primitive);
   }
 
@@ -194,7 +194,7 @@ export class WebGLRenderer implements HardwareRenderer {
     gl.clear(clearFlag);
   }
 
-  drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive, shaderProgram: any) {
+  drawPrimitive(primitive: Mesh, subPrimitive: SubMesh, shaderProgram: any) {
     // todo: VAO not support morph animation
     if (primitive) {
       //@ts-ignore

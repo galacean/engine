@@ -1,5 +1,4 @@
-import { GLCapabilityType, Logger, Primitive } from "@oasis-engine/core";
-import { SubPrimitive } from "@oasis-engine/core/types/graphic/SubPrimitive";
+import { GLCapabilityType, Logger, Mesh, SubMesh } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
 import { WebGLExtension } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
@@ -14,7 +13,7 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * GL platform primtive.
  */
 export class GLPrimitive implements IPlatformPrimitive {
-  protected readonly _primitive: Primitive;
+  protected readonly _primitive: Mesh;
   protected attribLocArray: number[];
   protected readonly canUseInstancedArrays: boolean;
 
@@ -22,7 +21,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   private vao: Map<number, WebGLVertexArrayObject> = new Map();
   private readonly _useVao: boolean;
 
-  constructor(rhi: WebGLRenderer, primitive: Primitive) {
+  constructor(rhi: WebGLRenderer, primitive: Mesh) {
     this._primitive = primitive;
     this.canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
     this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);
@@ -32,7 +31,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   /**
    * Draw the primitive.
    */
-  draw(shaderProgram: any, subPrimitive: SubPrimitive) {
+  draw(shaderProgram: any, subMesh: SubMesh) {
     const gl = this.gl;
     const primitive = this._primitive;
 
@@ -47,7 +46,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     }
 
     const { indexBufferBinding, instanceCount, _glIndexType } = primitive;
-    const { topology, start, count } = subPrimitive;
+    const { topology, start, count } = subMesh;
 
     if (!instanceCount) {
       if (indexBufferBinding) {

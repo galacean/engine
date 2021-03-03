@@ -59,7 +59,7 @@ describe("ComponentsManager", () => {
     it("onUpdate", () => {
       class TestComponent extends Renderer {
         update() {}
-        render() {}
+        _render() {}
       }
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
@@ -75,34 +75,34 @@ describe("ComponentsManager", () => {
     it("render", () => {
       class TestComponent extends Renderer {
         update() {}
-        render() {}
+        _render() {}
       }
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
-      TestComponent.prototype.render = jest.fn();
+      TestComponent.prototype._render = jest.fn();
       const component = entity.addComponent(TestComponent);
       engine._componentsManager.callScriptOnStart();
       engine._componentsManager.callRender(RenderContext._getRenderContext(camera));
       engine._componentsManager.callScriptOnStart();
       engine._componentsManager.callRender(RenderContext._getRenderContext(camera));
-      expect(component.render).toHaveBeenCalledTimes(2);
+      expect(component._render).toHaveBeenCalledTimes(2);
     });
 
     it("inActive", () => {
       class TestComponent extends Renderer {
         update() {}
-        render() {}
+        _render() {}
       }
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TestComponent.prototype.update = jest.fn();
-      TestComponent.prototype.render = jest.fn();
+      TestComponent.prototype._render = jest.fn();
       const component = entity.addComponent(TestComponent);
       entity.isActive = false;
       engine._componentsManager.callRendererOnUpdate(16.7);
       engine._componentsManager.callRender(RenderContext._getRenderContext(camera));
       expect(component.update).toHaveBeenCalledTimes(0);
-      expect(component.render).toHaveBeenCalledTimes(0);
+      expect(component._render).toHaveBeenCalledTimes(0);
     });
   });
 });

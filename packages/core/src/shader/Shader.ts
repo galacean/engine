@@ -1,5 +1,4 @@
 import { Engine } from "../Engine";
-import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderMacro } from "./ShaderMacro";
