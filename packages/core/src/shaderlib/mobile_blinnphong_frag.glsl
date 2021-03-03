@@ -1,10 +1,4 @@
-    #ifdef O3_HAS_NORMAL
-         N *= float( gl_FrontFacing ) * 2.0 - 1.0;
-    #else
-         vec3 N = vec3(0, 0, 1);
-    #endif
-
-
+    vec3 N = getNormal();
     vec3 lightDiffuse = vec3( 0.0, 0.0, 0.0 );
     vec3 lightSpecular = vec3( 0.0, 0.0, 0.0 );
 
