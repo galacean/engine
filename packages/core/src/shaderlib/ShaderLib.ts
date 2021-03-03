@@ -60,11 +60,6 @@ import perturbation_frag from "./perturbation_frag.glsl";
 import refraction_share from "./refraction_share.glsl";
 import refraction_frag from "./refraction_frag.glsl";
 
-import clipPlane_vert_define from "./clipPlane_vert_define.glsl";
-import clipPlane_vert from "./clipPlane_vert.glsl";
-import clipPlane_frag_define from "./clipPlane_frag_define.glsl";
-import clipPlane_frag from "./clipPlane_frag.glsl";
-
 import gamma_frag from "./gamma_frag.glsl";
 
 import PBRShaderLib from "./pbr";
@@ -133,11 +128,6 @@ export const ShaderLib = {
   perturbation_frag,
   refraction_share,
   refraction_frag,
-
-  clipPlane_vert_define,
-  clipPlane_vert,
-  clipPlane_frag_define,
-  clipPlane_frag,
 
   gamma_frag,
 
