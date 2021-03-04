@@ -20,7 +20,7 @@ export class PrimitiveMesh {
    */
   static createSphere(engine: Engine, radius: number = 0.5, segments: number = 12): Mesh {
     const mesh = new Mesh(engine);
-    segments = Math.floor(segments);
+    segments = Math.max(2, Math.floor(segments));
 
     const count = segments + 1;
     const vertexCount = count * count;
@@ -29,13 +29,15 @@ export class PrimitiveMesh {
     const indices = new Uint16Array(rectangleCount * 6);
     const thetaRange = Math.PI;
     const alphaRange = thetaRange * 2;
+    const countReciprocal = 1.0 / count;
+    const segmentsReciprocal = 1.0 / segments;
 
     let offset = 0;
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % count;
-      const y = (i / count) | 0;
-      const u = x / segments;
-      const v = y / segments;
+      const y = (i * countReciprocal) | 0;
+      const u = x * segmentsReciprocal;
+      const v = y * segmentsReciprocal;
       const alphaDelta = u * alphaRange;
       const thetaDelta = v * thetaRange;
       const sinTheta = Math.sin(thetaDelta);
@@ -60,7 +62,7 @@ export class PrimitiveMesh {
     offset = 0;
     for (let i = 0; i < rectangleCount; ++i) {
       const x = i % segments;
-      const y = (i / segments) | 0;
+      const y = (i * segmentsReciprocal) | 0;
 
       const a = y * count + x;
       const b = a + 1;
@@ -173,8 +175,8 @@ export class PrimitiveMesh {
     verticalSegments: number = 1
   ): Mesh {
     const mesh = new Mesh(engine);
-    horizontalSegments = Math.floor(horizontalSegments);
-    verticalSegments = Math.floor(verticalSegments);
+    horizontalSegments = Math.max(1, Math.floor(horizontalSegments));
+    verticalSegments = Math.max(1, Math.floor(verticalSegments));
 
     const horizontalCount = horizontalSegments + 1;
     const verticalCount = verticalSegments + 1;
@@ -186,11 +188,14 @@ export class PrimitiveMesh {
     const vertices = new Float32Array(vertexCount * 8);
     const rectangleCount = verticalSegments * horizontalSegments;
     const indices = new Uint16Array(rectangleCount * 6);
+    const horizontalCountReciprocal = 1.0 / horizontalCount;
+    const horizontalSegmentsReciprocal = 1.0 / horizontalSegments;
+    const verticalSegmentsReciprocal = 1.0 / verticalSegments;
 
     let offset = 0;
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % horizontalCount;
-      const y = (i / horizontalCount) | 0;
+      const y = (i * horizontalCountReciprocal) | 0;
 
       // Position
       vertices[offset++] = x * gridWidth - halfWidth;
@@ -201,14 +206,14 @@ export class PrimitiveMesh {
       vertices[offset++] = 0;
       vertices[offset++] = 1;
       // Texcoord
-      vertices[offset++] = x / horizontalSegments;
-      vertices[offset++] = 1 - y / verticalSegments;
+      vertices[offset++] = x * horizontalSegmentsReciprocal;
+      vertices[offset++] = 1 - y * verticalSegmentsReciprocal;
     }
 
     offset = 0;
     for (let i = 0; i < rectangleCount; ++i) {
       const x = i % horizontalSegments;
-      const y = (i / horizontalSegments) | 0;
+      const y = (i * horizontalSegmentsReciprocal) | 0;
 
       const a = y * horizontalCount + x;
       const b = a + 1;
@@ -261,6 +266,9 @@ export class PrimitiveMesh {
     const totalVertexCount = torsoVertexCount + 2 + capTriangleCount;
     const vertices = new Float32Array(totalVertexCount * 8);
     const indices = new Uint16Array(torsoRectangleCount * 6 + capTriangleCount * 3);
+    const radialCountReciprocal = 1.0 / radialCount;
+    const radialSegmentsReciprocal = 1.0 / radialSegments;
+    const heightSegmentsReciprocal = 1.0 / heightSegments;
 
     let verticesOffset = 0;
     let indicesOffset = 0;
@@ -270,9 +278,9 @@ export class PrimitiveMesh {
     const thetaRange = Math.PI * 2;
     for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
-      const y = (i / radialCount) | 0;
-      const u = x / radialSegments;
-      const v = y / heightSegments;
+      const y = (i * radialCountReciprocal) | 0;
+      const u = x * radialSegmentsReciprocal;
+      const v = y * heightSegmentsReciprocal;
       const theta = thetaStart + u * thetaRange;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
@@ -296,7 +304,7 @@ export class PrimitiveMesh {
 
     for (let i = 0; i < torsoRectangleCount; ++i) {
       const x = i % radialSegments;
-      const y = (i / radialSegments) | 0;
+      const y = (i * radialSegmentsReciprocal) | 0;
 
       const a = y * radialCount + x;
       const b = a + 1;
@@ -336,13 +344,13 @@ export class PrimitiveMesh {
     vertices[verticesOffset++] = 0.5;
 
     // Add cap vertices
-    const diameter = radius * 2;
+    const diameterReciprocal = 1.0 / (radius * 2);
     for (let i = 0; i < radialSegments; ++i) {
       const curVertexIndex = i * 8;
       const curPosX = vertices[curVertexIndex];
       const curPosZ = vertices[curVertexIndex + 2];
-      const u = curPosX / diameter + 0.5;
-      const v = curPosZ / diameter + 0.5;
+      const u = curPosX * diameterReciprocal + 0.5;
+      const v = curPosZ * diameterReciprocal + 0.5;
 
       // Bottom position
       vertices[verticesOffset++] = curPosX;
