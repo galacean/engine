@@ -1,7 +1,7 @@
 import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Entity } from "../Entity";
-import { CuboidGeometry } from "../geometry-shape/CuboidGeometry";
+import { PrimitiveMesh } from "../mesh/PrimitiveMesh";
 import { MeshRenderer } from "../mesh/MeshRenderer";
 import { TextureCubeMap } from "../texture/TextureCubeMap";
 import { SkyBoxMaterial } from "./SkyBoxMaterial";
@@ -20,15 +20,14 @@ export class SkyBox extends MeshRenderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this.mesh = new CuboidGeometry(this.engine, 2, 2, 2);
+    this.mesh = PrimitiveMesh.createCuboid(this.engine, 2, 2, 2);
     this.setMaterial(new SkyBoxMaterial(this.engine));
   }
 
   /**
    * @internal
-   * @param camera
    */
-  render(camera: Camera) {
+  _render(camera: Camera): void {
     if (!this._skyBoxMap) return;
 
     const modelMatrix = this.entity.transform.worldMatrix;
@@ -42,7 +41,7 @@ export class SkyBox extends MeshRenderer {
     Matrix.multiply(proj, matrix, matrix);
     this.shaderData.setMatrix("u_mvpNoscale", matrix);
 
-    super.render(camera);
+    super._render(camera);
   }
 
   /**

@@ -163,20 +163,20 @@ export class Mesh extends RefObject {
    * @param topology - Drawing topology, default is MeshTopology.Triangles
    */
   addSubMesh(start: number, count: number, topology: MeshTopology = MeshTopology.Triangles): SubMesh {
-    const subGeometry = new SubMesh(start, count, topology);
-    this._subMeshes.push(subGeometry);
-    return subGeometry;
+    const subMesh = new SubMesh(start, count, topology);
+    this._subMeshes.push(subMesh);
+    return subMesh;
   }
 
   /**
    * Remove sub-mesh.
-   * @param subGeometry - Sub-mesh needs to be removed
+   * @param subMesh - Sub-mesh needs to be removed
    */
-  removeSubMesh(subGeometry: SubMesh): void {
-    const subGeometries = this._subMeshes;
-    const index = subGeometries.indexOf(subGeometry);
+  removeSubMesh(subMesh: SubMesh): void {
+    const subMeshes = this._subMeshes;
+    const index = subMeshes.indexOf(subMesh);
     if (index !== -1) {
-      subGeometries.splice(index, 1);
+      subMeshes.splice(index, 1);
     }
   }
 

@@ -104,12 +104,12 @@ export class TrailRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  render(camera: Camera) {
+  _render(camera: Camera): void {
     this._updateStrapVertices(camera, this._points);
     this._updateStrapCoords();
     this._vertexBuffer.setData(this._vertices);
 
-    super.render(camera);
+    super._render(camera);
   }
 
   /**

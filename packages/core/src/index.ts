@@ -45,12 +45,6 @@ export { PointLight } from "./lighting/PointLight";
 export { SpotLight } from "./lighting/SpotLight";
 export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
 export { Light } from "./lighting/Light";
-// Mesh
-export { ModelMesh } from "./mesh/ModelMesh";
-export { Skin } from "./mesh/Skin";
-export { MeshRenderer } from "./mesh/MeshRenderer";
-export { SkinnedMeshRenderer } from "./mesh/SkinnedMeshRenderer";
-export { LODGroup } from "./mesh/LODGroup";
 
 export * from "./material/index";
 export * from "./texture/index";
@@ -58,7 +52,7 @@ export * from "./graphic/index";
 export * from "./2d/index";
 export * from "./shaderlib/index";
 export * from "./animation/index";
-export * from "./geometry-shape/index";
+export * from "./mesh/index";
 export * from "./skybox/index";
 export * from "./particle/index";
 export * from "./trail/index";

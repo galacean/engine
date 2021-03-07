@@ -26,9 +26,9 @@ export class LODGroup extends Renderer {
   }
 
   /**
-   * @private
+   * @internal
    */
-  render(camera: Camera) {
+  _render(camera: Camera): void {
     if (this._lods.length <= 0) return;
 
     const dist = Vector3.distance(camera.entity.transform.worldPosition, this.entity.transform.worldPosition);
