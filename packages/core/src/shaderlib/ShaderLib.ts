@@ -136,7 +136,3 @@ export const ShaderLib = {
 
   ...PBRShaderLib
 };
-
-export function InjectShaderSlices(obj) {
-  Object.assign(ShaderLib, obj);
-}
