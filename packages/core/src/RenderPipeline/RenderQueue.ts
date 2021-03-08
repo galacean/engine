@@ -18,6 +18,7 @@ interface SpriteElement {
   triangles;
   color;
   texture;
+  material;
   camera;
 }
 
@@ -86,6 +87,7 @@ export class RenderQueue {
     triangles: number[],
     color: Color,
     texture: Texture2D,
+    material: Material,
     camera: Camera
   ) {
     const element: SpriteElement = {
@@ -96,6 +98,7 @@ export class RenderQueue {
       triangles,
       color,
       texture,
+      material,
       camera
     };
     this.items.push(element);
@@ -107,7 +110,6 @@ export class RenderQueue {
       return;
     }
 
-    const spriteMaterial = camera._renderPipeline._defaultSpriteMaterial;
     const { engine, scene } = camera;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
@@ -123,7 +125,7 @@ export class RenderQueue {
       }
 
       if (this._isPrimitive(item)) {
-        this._spriteBatcher && this._spriteBatcher.flush(engine, spriteMaterial);
+        this._spriteBatcher && this._spriteBatcher.flush(engine);
 
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
@@ -195,18 +197,18 @@ export class RenderQueue {
 
         this._spriteBatcher.drawSprite(
           spirteElement.component,
-          spriteMaterial,
           spirteElement.vertices,
           spirteElement.uv,
           spirteElement.triangles,
           spirteElement.color,
           spirteElement.texture,
+          spirteElement.material,
           spirteElement.camera
         );
       }
     }
 
-    this._spriteBatcher && this._spriteBatcher.flush(engine, spriteMaterial);
+    this._spriteBatcher && this._spriteBatcher.flush(engine);
   }
 
   /**

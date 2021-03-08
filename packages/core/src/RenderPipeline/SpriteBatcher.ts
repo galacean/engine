@@ -36,9 +36,10 @@ export class SpriteBatcher {
   private static MAX_VERTICES: number = 256;
 
   private _batchedQueue: Batch[] = [];
-  private _camera: Camera;
-  private _targetTexture: Texture2D;
-  private _rendererData: ShaderData;
+  private _camera: Camera = null;
+  private _targetTexture: Texture2D = null;
+  private _targetMaterial: Material = null;
+  private _rendererData: ShaderData = null;
 
   /** @internal */
   private _mesh: Mesh;
@@ -56,10 +57,6 @@ export class SpriteBatcher {
   private _curIndiceCount: number;
 
   constructor(engine: Engine) {
-    this._camera = null;
-    this._targetTexture = null;
-    this._rendererData = null;
-
     this._initGeometry(engine);
   }
 
@@ -98,15 +95,15 @@ export class SpriteBatcher {
   /**
    * Flush all sprites.
    */
-  flush(engine: Engine, material: Material) {
+  flush(engine: Engine) {
     const { _batchedQueue } = this;
 
     if (_batchedQueue.length === 0) {
       return;
     }
 
-    if (!this._targetTexture) {
-      Logger.error("No texture!");
+    if (!this._targetTexture || !this._targetMaterial) {
+      Logger.error("No texture or material!");
       return;
     }
 
@@ -115,6 +112,7 @@ export class SpriteBatcher {
     compileMacros.clear();
 
     //@ts-ignore
+    const material = this._targetMaterial;
     const program = material.shader._getShaderProgram(engine, compileMacros);
     if (!program.isValid) {
       return;
@@ -175,6 +173,7 @@ export class SpriteBatcher {
     _batchedQueue.length = 0;
     this._camera = null;
     this._targetTexture = null;
+    this._targetMaterial = null;
     this._rendererData = null;
     this._curIndiceCount = 0;
   }
@@ -182,11 +181,12 @@ export class SpriteBatcher {
   /**
    * Check whether a sprite can be drawn in combination with the previous sprite when drawing.
    * @param texture - The texture of the new sprite
+   * @param material - The material of the new sprite
    * @param camera - Camera which is rendering
    * @param triangles - The array containing sprite mesh triangles
    */
-  canBatch(texture: Texture2D, camera: Camera, triangles: number[]) {
-    if (this._targetTexture === null) {
+  canBatch(texture: Texture2D, material: Material, camera: Camera, triangles: number[]) {
+    if (this._targetTexture === null && this._targetMaterial === null) {
       return true;
     }
 
@@ -195,7 +195,7 @@ export class SpriteBatcher {
       return false;
     }
 
-    return texture === this._targetTexture && camera === this._camera;
+    return texture === this._targetTexture && material === this._targetMaterial && camera === this._camera;
   }
 
   /**
@@ -211,20 +211,21 @@ export class SpriteBatcher {
    */
   drawSprite(
     renderer: Renderer,
-    material: Material,
     vertices: Vector3[],
     uv: Vector2[],
     triangles: number[],
     color: Color,
     texture: Texture2D,
+    material: Material,
     camera: Camera
   ) {
-    if (!this.canBatch(texture, camera, triangles)) {
-      this.flush(camera.engine, material);
+    if (!this.canBatch(texture, material, camera, triangles)) {
+      this.flush(camera.engine);
     }
 
     this._camera = camera;
     this._targetTexture = texture;
+    this._targetMaterial = material;
     this._rendererData = renderer.shaderData;
     this._curIndiceCount = triangles.length;
 

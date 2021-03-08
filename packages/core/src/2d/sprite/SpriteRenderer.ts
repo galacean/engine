@@ -1,16 +1,19 @@
 import { Color, Vector3, Vector4 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { Entity } from "../../Entity";
-import { Material } from "../../material";
+import { Material, RenderQueueType } from "../../material";
 import { Renderer } from "../../Renderer";
+import { BlendFactor, BlendOperation, CullMode, Shader } from "../../shader";
 import { DrawMode } from "../enums/DrawMode";
 import { Sprite } from "./Sprite";
+import "./SpriteMaterial";
 
 /**
  * 2d sprite renderer.
  */
 export class SpriteRenderer extends Renderer {
   private static _tempVec4: Vector4 = new Vector4();
+  private static _defaultMaterial: Material = null;
 
   private static _FLIP_X_FLAG = 0x1;
   private static _FLIP_Y_FLAG = 0x2;
@@ -28,8 +31,6 @@ export class SpriteRenderer extends Renderer {
   private _sprite: Sprite;
   /** Rendering color for the Sprite graphic. */
   private _color: Color;
-  /** The material used to render the sprite. */
-  private _material: Material;
   /** Flips the sprite on the X axis. */
   private _flipX: boolean;
   /** Flips the sprite on the Y axis. */
@@ -47,7 +48,6 @@ export class SpriteRenderer extends Renderer {
     this._drawMode = DrawMode.Simple;
     this._sprite = null;
     this._color = new Color(1, 1, 1, 1);
-    this._material = null;
     this._flipX = false;
     this._flipY = false;
     this._dirtyFlag = SpriteRenderer._ALL_FLAG;
@@ -111,7 +111,8 @@ export class SpriteRenderer extends Renderer {
     }
 
     // @ts-ignore
-    camera._renderPipeline.pushSprite(this, _vertices, uv, triangles, this.color, texture, camera);
+    const material = this.getMaterial() || this._getDefaultMaterial();
+    camera._renderPipeline.pushSprite(this, _vertices, uv, triangles, this.color, texture, material, camera);
   }
 
   /**
@@ -152,23 +153,6 @@ export class SpriteRenderer extends Renderer {
   }
 
   /**
-   * The material used to render the sprite.
-   */
-  get material(): Material {
-    return this._material;
-  }
-
-  set material(value: Material) {
-    if (this._material) {
-      // @ts-ignore
-      this._material._addRefCount(-1);
-    }
-    // @ts-ignore
-    value._addRefCount(1);
-    this._material = value;
-  }
-
-  /**
    * Flips the sprite on the X axis.
    */
   get flipX(): boolean {
@@ -206,5 +190,24 @@ export class SpriteRenderer extends Renderer {
 
   private _setDirtyFlagFalse(type: number) {
     this._dirtyFlag &= ~type;
+  }
+
+  private _getDefaultMaterial() {
+    if (!SpriteRenderer._defaultMaterial) {
+      // Create default material
+      const material = (SpriteRenderer._defaultMaterial = new Material(
+        this.scene.engine,
+        Shader.find("Sprite-Default")
+      ));
+      const target = material.renderState.blendState.targetBlendState;
+      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+      material.renderState.depthState.writeEnabled = false;
+      material.renderQueueType = RenderQueueType.Transparent;
+      material.renderState.rasterState.cullMode = CullMode.Off;
+    }
+
+    return SpriteRenderer._defaultMaterial;
   }
 }

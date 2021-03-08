@@ -1,6 +1,6 @@
 "use strict";
 
-import { Shader } from "../shader";
+import { Shader } from "../../shader";
 
 const spriteVertShader = `
 precision highp float;
@@ -38,4 +38,4 @@ void main()
 }
 `;
 
-Shader.create("Sprite", spriteVertShader, spriteFragmentShader);
+Shader.create("Sprite-Default", spriteVertShader, spriteFragmentShader);
