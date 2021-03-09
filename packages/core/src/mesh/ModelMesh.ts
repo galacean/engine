@@ -655,7 +655,6 @@ export class ModelMesh extends Mesh {
         _verticesArray[start + 1] = position.y;
         _verticesArray[start + 2] = position.z;
       }
-      this._valueChanged &= ~ValueChanged.Position;
     }
 
     let offset = 3;
@@ -671,7 +670,6 @@ export class ModelMesh extends Mesh {
             _verticesArray[start + 2] = normal.z;
           }
         }
-        this._valueChanged &= ~ValueChanged.Normal;
       }
       offset += 3;
     }
@@ -688,7 +686,6 @@ export class ModelMesh extends Mesh {
             _verticesArray[start + 3] = color.a;
           }
         }
-        this._valueChanged &= ~ValueChanged.Color;
       }
       offset += 4;
     }
@@ -705,7 +702,6 @@ export class ModelMesh extends Mesh {
             _verticesArray[start + 3] = weight.w;
           }
         }
-        this._valueChanged &= ~ValueChanged.Weight;
       }
       offset += 4;
     }
@@ -722,7 +718,6 @@ export class ModelMesh extends Mesh {
             _verticesArray[start + 3] = joint.w;
           }
         }
-        this._valueChanged &= ~ValueChanged.Joint;
       }
       offset += 4;
     }
@@ -738,7 +733,6 @@ export class ModelMesh extends Mesh {
             _verticesArray[start + 2] = tangent.z;
           }
         }
-        this._valueChanged &= ~ValueChanged.Tangent;
       }
       offset += 3;
     }
@@ -750,7 +744,6 @@ export class ModelMesh extends Mesh {
           _verticesArray[start] = uv.x;
           _verticesArray[start + 1] = uv.y;
         }
-        this._valueChanged &= ~ValueChanged.UV;
       }
       offset += 2;
     }
@@ -762,7 +755,6 @@ export class ModelMesh extends Mesh {
           _verticesArray[start] = uv.x;
           _verticesArray[start + 1] = uv.y;
         }
-        this._valueChanged &= ~ValueChanged.UV1;
       }
       offset += 2;
     }
@@ -774,7 +766,6 @@ export class ModelMesh extends Mesh {
           _verticesArray[start] = uv.x;
           _verticesArray[start + 1] = uv.y;
         }
-        this._valueChanged &= ~ValueChanged.UV2;
       }
       offset += 2;
     }
@@ -786,7 +777,6 @@ export class ModelMesh extends Mesh {
           _verticesArray[start] = uv.x;
           _verticesArray[start + 1] = uv.y;
         }
-        this._valueChanged &= ~ValueChanged.UV3;
       }
       offset += 2;
     }
@@ -798,7 +788,6 @@ export class ModelMesh extends Mesh {
           _verticesArray[start] = uv.x;
           _verticesArray[start + 1] = uv.y;
         }
-        this._valueChanged &= ~ValueChanged.UV4;
       }
       offset += 2;
     }
@@ -810,7 +799,6 @@ export class ModelMesh extends Mesh {
           _verticesArray[start] = uv.x;
           _verticesArray[start + 1] = uv.y;
         }
-        this._valueChanged &= ~ValueChanged.UV5;
       }
       offset += 2;
     }
@@ -822,7 +810,6 @@ export class ModelMesh extends Mesh {
           _verticesArray[start] = uv.x;
           _verticesArray[start + 1] = uv.y;
         }
-        this._valueChanged &= ~ValueChanged.UV6;
       }
       offset += 2;
     }
@@ -834,10 +821,10 @@ export class ModelMesh extends Mesh {
           _verticesArray[start] = uv.x;
           _verticesArray[start + 1] = uv.y;
         }
-        this._valueChanged &= ~ValueChanged.UV7;
       }
       offset += 2;
     }
+    this._valueChanged = 0;
   }
 
   private _releaseCache() {
