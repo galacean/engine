@@ -2,27 +2,26 @@ import { Color, Vector2, Vector3 } from "@oasis-engine/math";
 import { Logger } from "../base";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
+import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { Buffer } from "../graphic/Buffer";
 import { Mesh } from "../graphic/Mesh";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexElement } from "../graphic/VertexElement";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { Material } from "../material";
-import { Texture2D } from "../texture";
+import { Renderer } from "../Renderer";
 import { Shader } from "../shader";
 import { ShaderData } from "../shader/ShaderData";
-import { Renderer } from "../Renderer";
 
 class Batch {
   vertices: Vector3[];
   uv: Vector2[];
   triangles: number[];
   color: Color;
-  
+
   constructor(vertices: Vector3[], uv: Vector2[], triangles: number[], color: Color) {
     this.vertices = vertices;
     this.uv = uv;
@@ -37,9 +36,8 @@ export class SpriteBatcher {
 
   private _batchedQueue: Batch[] = [];
   private _camera: Camera = null;
-  private _targetTexture: Texture2D = null;
   private _targetMaterial: Material = null;
-  private _rendererData: ShaderData = null;
+  private _targetRendererData: ShaderData = null;
 
   /** @internal */
   private _mesh: Mesh;
@@ -102,8 +100,8 @@ export class SpriteBatcher {
       return;
     }
 
-    if (!this._targetTexture || !this._targetMaterial) {
-      Logger.error("No texture or material!");
+    if (!this._targetRendererData || !this._targetMaterial) {
+      Logger.error("No renderer data or material!");
       return;
     }
 
@@ -119,11 +117,10 @@ export class SpriteBatcher {
     }
 
     // Uniform.
-    this._rendererData.setTexture("u_texture", this._targetTexture);
     program.groupingOtherUniformBlock();
     program.uploadAll(program.sceneUniformBlock, this._camera.scene.shaderData);
     program.uploadAll(program.cameraUniformBlock, this._camera.shaderData);
-    program.uploadAll(program.rendererUniformBlock, this._rendererData);
+    program.uploadAll(program.rendererUniformBlock, this._targetRendererData);
     program.uploadAll(program.materialUniformBlock, material.shaderData);
 
     const { _vertices, _indices, _subMesh } = this;
@@ -171,22 +168,27 @@ export class SpriteBatcher {
     engine._hardwareRenderer.drawPrimitive(this._mesh, _subMesh, program);
 
     _batchedQueue.length = 0;
-    this._camera = null;
-    this._targetTexture = null;
-    this._targetMaterial = null;
-    this._rendererData = null;
-    this._curIndiceCount = 0;
+    // this._camera = null;
+    // this._targetMaterial = null;
+    // this._targetRendererData = null;
+    // this._curIndiceCount = 0;
   }
 
   /**
    * Check whether a sprite can be drawn in combination with the previous sprite when drawing.
-   * @param texture - The texture of the new sprite
+   * @param rendererData - The shader data of the new sprite
    * @param material - The material of the new sprite
    * @param camera - Camera which is rendering
    * @param triangles - The array containing sprite mesh triangles
    */
-  canBatch(texture: Texture2D, material: Material, camera: Camera, triangles: number[]) {
-    if (this._targetTexture === null && this._targetMaterial === null) {
+  canBatch(rendererData: ShaderData, material: Material, camera: Camera, triangles: number[]) {
+    if (!rendererData || !material) {
+      Logger.error("No renderer data or material!");
+    }
+
+    const { _targetRendererData, _targetMaterial } = this;
+
+    if (_targetRendererData === null && _targetMaterial === null) {
       return true;
     }
 
@@ -195,7 +197,14 @@ export class SpriteBatcher {
       return false;
     }
 
-    return texture === this._targetTexture && material === this._targetMaterial && camera === this._camera;
+    // Currently only compare texture
+    const texture = rendererData.getTexture("u_texture");
+    const targetTexture = _targetRendererData.getTexture("u_texture");
+    if (texture !== targetTexture) {
+      return false;
+    }
+
+    return material === _targetMaterial && camera === this._camera;
   }
 
   /**
@@ -215,18 +224,16 @@ export class SpriteBatcher {
     uv: Vector2[],
     triangles: number[],
     color: Color,
-    texture: Texture2D,
     material: Material,
     camera: Camera
   ) {
-    if (!this.canBatch(texture, material, camera, triangles)) {
+    if (!this.canBatch(renderer.shaderData, material, camera, triangles)) {
       this.flush(camera.engine);
     }
 
     this._camera = camera;
-    this._targetTexture = texture;
     this._targetMaterial = material;
-    this._rendererData = renderer.shaderData;
+    this._targetRendererData = renderer.shaderData;
     this._curIndiceCount = triangles.length;
 
     this._batchedQueue.push(new Batch(vertices, uv, triangles, color));

@@ -67,7 +67,7 @@ export class SpriteRenderer extends Renderer {
     const modelMatrix = transform.worldMatrix;
 
     // Update sprite data.
-    const needUpdate = sprite.updateData();
+    const needUpdate = sprite.updateMeshData();
     const { triangles, uv, vertices, texture } = sprite;
 
     // Update vertices position in world space.
@@ -111,8 +111,9 @@ export class SpriteRenderer extends Renderer {
     }
 
     // @ts-ignore
+    this.shaderData.setTexture("u_texture", texture);
     const material = this.getMaterial() || this._getDefaultMaterial();
-    camera._renderPipeline.pushSprite(this, _vertices, uv, triangles, this.color, texture, material, camera);
+    camera._renderPipeline.pushSprite(this, _vertices, uv, triangles, this.color, material, camera);
   }
 
   /**

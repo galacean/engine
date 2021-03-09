@@ -13,9 +13,9 @@ export class Sprite extends RefObject {
   /** The array containing sprite mesh triangles. */
   public triangles: number[] = [];
   /** The base texture coordinates of the sprite mesh. */
-  public uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2];
+  public uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   /** The array containing sprite mesh vertex positions. */
-  public vertices: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2];
+  public vertices: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   private _tempVec2: Vector2 = new Vector2();
 
@@ -134,7 +134,13 @@ export class Sprite extends RefObject {
    * @param pivot - Sprite's pivot point relative to its graphic rectangle
    * @param pixelsPerUnit - The number of pixels in the sprite that correspond to one unit in world space
    */
-  constructor(engine: Engine, texture: Texture2D, rect: Rect = null, pivot: Vector2 = null, pixelsPerUnit: number = 100) {
+  constructor(
+    engine: Engine,
+    texture: Texture2D,
+    rect: Rect = null,
+    pivot: Vector2 = null,
+    pixelsPerUnit: number = 100
+  ) {
     super(engine);
 
     if (!rect) {
@@ -217,10 +223,10 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Update all data of the sprite.
+   * Update mesh data of the sprite.
    * @returns True if the data is refreshed, false otherwise.
    */
-  updateData(): boolean {
+  updateMeshData(): boolean {
     if (this._isContainDirtyFlag(Sprite._VER_UV_TRI_FLAG)) {
       this._updateMesh();
       this._setDirtyFlagFalse(Sprite._VER_UV_TRI_FLAG);

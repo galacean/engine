@@ -7,7 +7,6 @@ import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { Texture2D } from "../texture";
 import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
 
@@ -17,7 +16,6 @@ interface SpriteElement {
   uv;
   triangles;
   color;
-  texture;
   material;
   camera;
 }
@@ -86,7 +84,6 @@ export class RenderQueue {
     uv: Vector2[],
     triangles: number[],
     color: Color,
-    texture: Texture2D,
     material: Material,
     camera: Camera
   ) {
@@ -97,7 +94,6 @@ export class RenderQueue {
       uv,
       triangles,
       color,
-      texture,
       material,
       camera
     };
@@ -201,7 +197,6 @@ export class RenderQueue {
           spirteElement.uv,
           spirteElement.triangles,
           spirteElement.color,
-          spirteElement.texture,
           spirteElement.material,
           spirteElement.camera
         );

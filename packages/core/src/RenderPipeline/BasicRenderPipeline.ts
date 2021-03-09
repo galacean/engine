@@ -3,7 +3,6 @@ import { Camera } from "../Camera";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { Material } from "../material/Material";
-import { Texture2D } from "../texture";
 import { TextureCubeFace } from "../texture/enums/TextureCubeFace";
 import { RenderTarget } from "../texture/RenderTarget";
 import { RenderContext } from "./RenderContext";
@@ -168,7 +167,6 @@ export class BasicRenderPipeline {
    * @param uv - The base texture coordinates of the sprite mesh
    * @param triangles - The array containing sprite mesh triangles
    * @param color - Rendering color for the Sprite graphic
-   * @param texture - The reference to the used texture
    * @param material - The reference to the used material
    * @param camera - Camera which is rendering
    */
@@ -178,10 +176,9 @@ export class BasicRenderPipeline {
     uv: Vector2[],
     triangles: number[],
     color: Color,
-    texture: Texture2D,
     material: Material,
     camera: Camera
   ) {
-    this.queue.pushSprite(component, vertices, uv, triangles, color, texture, material, camera);
+    this.queue.pushSprite(component, vertices, uv, triangles, color, material, camera);
   }
 }
