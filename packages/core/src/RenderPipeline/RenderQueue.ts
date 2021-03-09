@@ -36,11 +36,10 @@ export class RenderQueue {
     if (aIsPrimitive && bIsPrimitive) {
       const aElement: RenderElement = <RenderElement>a;
       const bElement: RenderElement = <RenderElement>b;
-      const aRenderQueue = aElement.material.renderQueueType;
-      const bRenderQueue = bElement.material.renderQueueType;
+      const renderQueueDif = aElement.material.renderQueueType - bElement.material.renderQueueType;
 
-      if (aRenderQueue !== bRenderQueue) {
-        return aRenderQueue - bRenderQueue;
+      if (renderQueueDif) {
+        return renderQueueDif;
       }
 
       return aElement.component._distanceForSort - bElement.component._distanceForSort;
@@ -66,11 +65,10 @@ export class RenderQueue {
     if (aIsPrimitive && bIsPrimitive) {
       const aElement: RenderElement = <RenderElement>a;
       const bElement: RenderElement = <RenderElement>b;
-      const aRenderQueue = aElement.material.renderQueueType;
-      const bRenderQueue = bElement.material.renderQueueType;
+      const renderQueueDif = aElement.material.renderQueueType - bElement.material.renderQueueType;
 
-      if (aRenderQueue !== bRenderQueue) {
-        return aRenderQueue - bRenderQueue;
+      if (renderQueueDif) {
+        return renderQueueDif;
       }
 
       return bElement.component._distanceForSort - aElement.component._distanceForSort;
