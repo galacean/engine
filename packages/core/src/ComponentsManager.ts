@@ -7,6 +7,8 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Vector3 } from "@oasis-engine/math";
 
+const temp1 = new Vector3();
+
 /**
  * The manager of the components.
  */
@@ -171,7 +173,7 @@ export class ComponentsManager {
       }
 
       element._distanceForSort = Vector3.distanceSquared(
-        element.entity.transform.worldPosition,
+        element.bounds.getCenter(temp1),
         camera.entity.transform.worldPosition
       );
 
