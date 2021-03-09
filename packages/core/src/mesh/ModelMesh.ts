@@ -120,7 +120,7 @@ export class ModelMesh extends Mesh {
         }
       }
     } else if (this._indexBuffer) {
-      this.clearIndexBufferBinding();
+      this.setIndexBufferBinding(null);
       this._indexBuffer = null;
     }
 
