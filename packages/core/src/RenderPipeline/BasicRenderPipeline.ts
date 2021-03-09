@@ -21,7 +21,7 @@ export class BasicRenderPipeline {
   /** @internal */
   _alphaTestQueue: RenderQueue;
 
-  protected _camera: Camera;
+  private _camera: Camera;
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
   private _canvasDepthPass;
