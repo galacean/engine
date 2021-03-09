@@ -134,25 +134,23 @@ export class Mesh extends RefObject {
   /**
    * Set index buffer binding.
    * @param bufferBinding - Index buffer binding
+   * @remarks When bufferBinding is null, it will clear IndexBufferBinding
    */
-  setIndexBufferBinding(bufferBinding: IndexBufferBinding): void;
+  setIndexBufferBinding(bufferBinding: IndexBufferBinding | null): void;
 
-  setIndexBufferBinding(bufferOrBinding: Buffer | IndexBufferBinding, format?: IndexFormat): void {
-    let binding = <IndexBufferBinding>bufferOrBinding;
-    const isBinding = binding.buffer !== undefined;
-    isBinding || (binding = new IndexBufferBinding(<Buffer>bufferOrBinding, format));
-    this._indexBufferBinding = binding;
-    this._glIndexType = BufferUtil._getGLIndexType(binding.format);
-  }
-
-  /**
-   * Clear index buffer binding.
-   */
-  clearIndexBufferBinding() {
-    if (this._indexBufferBinding) {
-      this._indexBufferBinding._buffer.destroy();
-      this._indexBufferBinding = null;
-      this._glIndexType = undefined;
+  setIndexBufferBinding(bufferOrBinding: Buffer | IndexBufferBinding | null, format?: IndexFormat): void {
+    if (bufferOrBinding) {
+      let binding = <IndexBufferBinding>bufferOrBinding;
+      const isBinding = binding.buffer !== undefined;
+      isBinding || (binding = new IndexBufferBinding(<Buffer>bufferOrBinding, format));
+      this._indexBufferBinding = binding;
+      this._glIndexType = BufferUtil._getGLIndexType(binding.format);
+    } else {
+      if (this._indexBufferBinding) {
+        this._indexBufferBinding._buffer.destroy();
+        this._indexBufferBinding = null;
+        this._glIndexType = undefined;
+      }
     }
   }
 
