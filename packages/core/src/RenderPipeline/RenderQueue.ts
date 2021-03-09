@@ -72,9 +72,13 @@ export class RenderQueue {
       }
 
       return bElement.component._distanceForSort - aElement.component._distanceForSort;
-    } else if (aIsPrimitive && !bIsPrimitive) {
+    }
+
+    if (aIsPrimitive && !bIsPrimitive) {
       return -1;
-    } else if (!aIsPrimitive && bIsPrimitive) {
+    }
+
+    if (!aIsPrimitive && bIsPrimitive) {
       return 1;
     }
   }
