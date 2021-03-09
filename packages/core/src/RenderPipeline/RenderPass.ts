@@ -66,25 +66,28 @@ class RenderPass {
    * Rendering callback, will be executed if renderOverride is set to true.
    * @param camera - Camera
    * @param opaqueQueue - Opaque queue
+   * @param alphaTestQueue - Alpha test queue
    * @param transparentQueue - Transparent queue
    */
-  render(camera: Camera, opaqueQueue: RenderQueue, transparentQueue: RenderQueue) {}
+  render(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue) {}
 
   /**
    * Post rendering callback.
    * @param camera - Camera
    * @param opaqueQueue - Opaque queue
+   * @param alphaTestQueue - Alpha test queue
    * @param transparentQueue - Transparent queue
    */
-  preRender(camera: Camera, opaqueQueue: RenderQueue, transparentQueue: RenderQueue) {}
+  preRender(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue) {}
 
   /**
    * Post rendering callback.
    * @param camera - Camera
    * @param opaqueQueue - Opaque queue
+   * @param alphaTestQueue - Alpha test queue
    * @param transparentQueue - Transparent queue
    */
-  postRender(camera: Camera, opaqueQueue: RenderQueue, transparentQueue: RenderQueue) {}
+  postRender(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue) {}
 }
 
 export { RenderPass };

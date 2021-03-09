@@ -25,6 +25,62 @@ type Item = RenderElement | SpriteElement;
  * Render queue.
  */
 export class RenderQueue {
+  /**
+   * @internal
+   */
+  static _compareFromNearToFar(a: Item, b: Item): number {
+    //@todo: delete after sprite refactor
+    const aIsPrimitive = !!(a as RenderElement).mesh;
+    const bIsPrimitive = !!(b as RenderElement).mesh;
+
+    if (aIsPrimitive && bIsPrimitive) {
+      const aElement: RenderElement = <RenderElement>a;
+      const bElement: RenderElement = <RenderElement>b;
+      const aRenderQueue = aElement.material.renderQueueType;
+      const bRenderQueue = bElement.material.renderQueueType;
+
+      if (aRenderQueue !== bRenderQueue) {
+        return aRenderQueue - bRenderQueue;
+      }
+
+      return aElement.component._distanceForSort - bElement.component._distanceForSort;
+    }
+
+    if (aIsPrimitive && !bIsPrimitive) {
+      return -1;
+    }
+
+    if (!aIsPrimitive && bIsPrimitive) {
+      return 1;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  static _compareFromFarToNear(a: Item, b: Item): number {
+    //@todo: delete after sprite refactor
+    const aIsPrimitive = !!(a as RenderElement).mesh;
+    const bIsPrimitive = !!(b as RenderElement).mesh;
+
+    if (aIsPrimitive && bIsPrimitive) {
+      const aElement: RenderElement = <RenderElement>a;
+      const bElement: RenderElement = <RenderElement>b;
+      const aRenderQueue = aElement.material.renderQueueType;
+      const bRenderQueue = bElement.material.renderQueueType;
+
+      if (aRenderQueue !== bRenderQueue) {
+        return aRenderQueue - bRenderQueue;
+      }
+
+      return bElement.component._distanceForSort - aElement.component._distanceForSort;
+    } else if (aIsPrimitive && !bIsPrimitive) {
+      return -1;
+    } else if (!aIsPrimitive && bIsPrimitive) {
+      return 1;
+    }
+  }
+
   readonly items: Item[] = [];
 
   /**
@@ -156,8 +212,11 @@ export class RenderQueue {
   /**
    * Sort the elements.
    */
-  sort(isTransparent: boolean = false, left: number = 0, right: number = this.items.length): void {
-    this._quickSort(this.items, left, right, isTransparent ? this._comareTransparent : this._compareOpaque);
+  sort(compareFunc: Function): void {
+    const length = this.items.length;
+    if (length <= 1) return;
+
+    this._quickSort(this.items, 0, this.items.length, compareFunc);
   }
 
   /**
@@ -260,59 +319,5 @@ export class RenderQueue {
       }
       a[j + 1] = element;
     }
-  }
-
-  private _compareOpaque(a: Item, b: Item): number {
-    //@todo: delete after sprite refactor
-    const aIsPrimitive = !!(a as RenderElement).mesh;
-    const bIsPrimitive = !!(b as RenderElement).mesh;
-
-    if (aIsPrimitive && bIsPrimitive) {
-      const aElement: RenderElement = <RenderElement>a;
-      const bElement: RenderElement = <RenderElement>b;
-      const aRenderQueue = aElement.material.renderQueueType;
-      const bRenderQueue = bElement.material.renderQueueType;
-
-      if (aRenderQueue > bRenderQueue) {
-        return 1;
-      }
-      if (aRenderQueue < bRenderQueue) {
-        return -1;
-      }
-
-      return aElement.component._distanceForSort - bElement.component._distanceForSort;
-    } else if (aIsPrimitive && !bIsPrimitive) {
-      return -1;
-    } else if (!aIsPrimitive && bIsPrimitive) {
-      return 1;
-    }
-    return 0;
-  }
-
-  private _comareTransparent(a: Item, b: Item): number {
-    //@todo: delete after sprite refactor
-    const aIsPrimitive = !!(a as RenderElement).mesh;
-    const bIsPrimitive = !!(b as RenderElement).mesh;
-
-    if (aIsPrimitive && bIsPrimitive) {
-      const aElement: RenderElement = <RenderElement>a;
-      const bElement: RenderElement = <RenderElement>b;
-      const aRenderQueue = aElement.material.renderQueueType;
-      const bRenderQueue = bElement.material.renderQueueType;
-
-      if (aRenderQueue > bRenderQueue) {
-        return 1;
-      }
-      if (aRenderQueue < bRenderQueue) {
-        return -1;
-      }
-
-      return bElement.component._distanceForSort - aElement.component._distanceForSort;
-    } else if (aIsPrimitive && !bIsPrimitive) {
-      return -1;
-    } else if (!aIsPrimitive && bIsPrimitive) {
-      return 1;
-    }
-    return 0;
   }
 }

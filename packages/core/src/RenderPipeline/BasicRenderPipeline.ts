@@ -20,30 +20,18 @@ import { SeparateSpritePass } from "./SeparateSpritePass";
 export class BasicRenderPipeline {
   /** @internal */
   _defaultSpriteMaterial: Material;
+  /** @internal */
+  _opaqueQueue: RenderQueue;
+  /** @internal */
+  _transparentQueue: RenderQueue;
+  /** @internal */
+  _alphaTestQueue: RenderQueue;
 
   private _camera: Camera;
-  private _opaqueQueue: RenderQueue;
-  private _transparentQueue: RenderQueue;
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
   private _canvasDepthPass;
   private _separateSpritePass;
-
-  /**
-   * Opaque render queue.
-   * @readonly
-   */
-  get opaqueQueue(): RenderQueue {
-    return this._opaqueQueue;
-  }
-
-  /**
-   * Transparent render queue.
-   * @readonly
-   */
-  get transparentQueue(): RenderQueue {
-    return this._transparentQueue;
-  }
 
   /**
    * Create a basic render pipeline.
@@ -52,6 +40,7 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     this._opaqueQueue = new RenderQueue();
+    this._alphaTestQueue = new RenderQueue();
     this._transparentQueue = new RenderQueue();
 
     this._renderPassArray = [];
@@ -145,13 +134,16 @@ export class BasicRenderPipeline {
   render(context: RenderContext, cubeFace?: TextureCubeFace) {
     const camera = this._camera;
     const opaqueQueue = this._opaqueQueue;
+    const alphaTestQueue = this._alphaTestQueue;
     const transparentQueue = this._transparentQueue;
 
     opaqueQueue.clear();
+    alphaTestQueue.clear();
     transparentQueue.clear();
     camera.engine._componentsManager.callRender(context);
-    opaqueQueue.sort();
-    transparentQueue.sort(true);
+    opaqueQueue.sort(RenderQueue._compareFromNearToFar);
+    alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
+    transparentQueue.sort(RenderQueue._compareFromFarToNear);
 
     if (this._canvasDepthPass) this._canvasDepthPass.enabled = false;
 
@@ -173,7 +165,7 @@ export class BasicRenderPipeline {
   }
 
   private _drawRenderPass(pass: RenderPass, camera: Camera, cubeFace?: TextureCubeFace) {
-    pass.preRender(camera, this._opaqueQueue, this._transparentQueue);
+    pass.preRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
 
     if (pass.enabled) {
       const rhi = camera.scene.engine._hardwareRenderer;
@@ -183,16 +175,17 @@ export class BasicRenderPipeline {
       rhi.clearRenderTarget(camera.engine, pass.clearMode, pass.clearParam);
 
       if (pass.renderOverride) {
-        pass.render(camera, this._opaqueQueue, this._transparentQueue);
+        pass.render(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
       } else {
         this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
 
       rhi.blitRenderTarget(renderTarget);
     }
 
-    pass.postRender(camera, this._opaqueQueue, this._transparentQueue);
+    pass.postRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
   }
 
   /**
@@ -200,8 +193,12 @@ export class BasicRenderPipeline {
    * @param element - Render element
    */
   pushPrimitive(element: RenderElement) {
-    if (element.material.renderQueueType >= RenderQueueType.Transparent) {
+    const renderQueueType = element.material.renderQueueType;
+
+    if (renderQueueType > (RenderQueueType.Transparent + RenderQueueType.AlphaTest) >> 1) {
       this._transparentQueue.pushPrimitive(element);
+    } else if (renderQueueType > (RenderQueueType.AlphaTest + RenderQueueType.Opaque) >> 1) {
+      this._alphaTestQueue.pushPrimitive(element);
     } else {
       this._opaqueQueue.pushPrimitive(element);
     }
