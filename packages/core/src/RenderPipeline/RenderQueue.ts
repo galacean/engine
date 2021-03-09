@@ -213,9 +213,6 @@ export class RenderQueue {
    * Sort the elements.
    */
   sort(compareFunc: Function): void {
-    const length = this.items.length;
-    if (length <= 1) return;
-
     this._quickSort(this.items, 0, this.items.length, compareFunc);
   }
 
