@@ -42,7 +42,8 @@ export class ShadowFeature extends SceneFeature {
         }
       }
 
-      this.updatePassRenderFlag(renderPipeline.queue);
+      this.updatePassRenderFlag(renderPipeline.opaqueQueue);
+      this.updatePassRenderFlag(renderPipeline.transparentQueue);
     }
   }
 

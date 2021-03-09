@@ -9,7 +9,7 @@ import { RenderQueue } from "./RenderQueue";
 let passNum = 0;
 
 /**
- * RednerPass.
+ * RenderPass.
  */
 class RenderPass {
   public name: string;
@@ -65,23 +65,26 @@ class RenderPass {
   /**
    * Rendering callback, will be executed if renderOverride is set to true.
    * @param camera - Camera
-   * @param queue - RenderQueue
+   * @param opaqueQueue - Opaque queue
+   * @param transparentQueue - Transparent queue
    */
-  render(camera: Camera, queue: RenderQueue) {}
+  render(camera: Camera, opaqueQueue: RenderQueue, transparentQueue: RenderQueue) {}
 
   /**
    * Post rendering callback.
    * @param camera - Camera
-   * @param queue - RenderQueue
+   * @param opaqueQueue - Opaque queue
+   * @param transparentQueue - Transparent queue
    */
-  preRender(camera: Camera, queue: RenderQueue) {}
+  preRender(camera: Camera, opaqueQueue: RenderQueue, transparentQueue: RenderQueue) {}
 
   /**
    * Post rendering callback.
    * @param camera - Camera
-   * @param queue - RenderQueue
+   * @param opaqueQueue - Opaque queue
+   * @param transparentQueue - Transparent queue
    */
-  postRender(camera: Camera, queue: RenderQueue) {}
+  postRender(camera: Camera, opaqueQueue: RenderQueue, transparentQueue: RenderQueue) {}
 }
 
 export { RenderPass };
