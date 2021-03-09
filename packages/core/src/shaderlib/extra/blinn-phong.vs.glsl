@@ -4,7 +4,6 @@
 #include <normal_share>
 #include <worldpos_share>
 #include <shadow_share>
-#include <morph_target_vert>
 
 #include <fog_share>
 
@@ -13,7 +12,6 @@ void main() {
     #include <begin_position_vert>
     #include <begin_normal_vert>
 
-    #include <morph_vert>
     #include <skinning_vert>
     #include <uv_vert>
     #include <normal_vert>

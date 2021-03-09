@@ -12,8 +12,6 @@ import fog_share from "./fog_share.glsl";
 import begin_normal_vert from "./begin_normal_vert.glsl";
 import begin_position_vert from "./begin_position_vert.glsl";
 
-import morph_target_vert from "./morph_target_vert.glsl";
-
 import position_vert from "./position_vert.glsl";
 import color_vert from "./color_vert.glsl";
 import normal_vert from "./normal_vert.glsl";
@@ -21,7 +19,6 @@ import skinning_vert from "./skinning_vert.glsl";
 import uv_vert from "./uv_vert.glsl";
 import worldpos_vert from "./worldpos_vert.glsl";
 import shadow_vert from "./shadow_vert.glsl";
-import morph_vert from "./morph_vert.glsl";
 import fog_vert from "./fog_vert.glsl";
 
 import ambient_light_frag from "./ambient_light_frag.glsl";
@@ -81,8 +78,6 @@ export const ShaderLib = {
   begin_normal_vert,
   begin_position_vert,
 
-  morph_target_vert,
-
   position_vert,
   color_vert,
   normal_vert,
@@ -90,7 +85,6 @@ export const ShaderLib = {
   uv_vert,
   worldpos_vert,
   shadow_vert,
-  morph_vert,
   fog_vert,
 
   ambient_light_frag,
