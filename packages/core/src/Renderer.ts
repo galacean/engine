@@ -31,6 +31,9 @@ export abstract class Renderer extends Component {
 
   /** @internal */
   @ignoreClone
+  _distanceForSort: number;
+  /** @internal */
+  @ignoreClone
   _onUpdateIndex: number = -1;
   /** @internal */
   @ignoreClone

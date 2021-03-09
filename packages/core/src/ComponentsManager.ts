@@ -5,6 +5,7 @@ import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderPipeline/RenderContext";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * The manager of the components.
@@ -168,6 +169,11 @@ export class ComponentsManager {
           continue;
         }
       }
+
+      element._distanceForSort = Vector3.distanceSquared(
+        element.entity.transform.worldPosition,
+        camera.entity.transform.worldPosition
+      );
 
       element._updateShaderData(context);
 
