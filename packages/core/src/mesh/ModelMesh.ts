@@ -540,74 +540,74 @@ export class ModelMesh extends Mesh {
     const vertexElements = [POSITION_VERTEX_ELEMENT];
     const { _colors, _normals, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7, _weights, _joints } = this;
     let offset = 12;
-    let stride = 3;
+    let elementCount = 3;
     if (_normals) {
       vertexElements.push(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
       offset += 12;
-      stride += 3;
+      elementCount += 3;
     }
     if (_colors) {
       vertexElements.push(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
-      stride += 4;
+      elementCount += 4;
     }
     if (_weights) {
       vertexElements.push(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
-      stride += 4;
+      elementCount += 4;
     }
     if (_joints) {
       vertexElements.push(new VertexElement("JOINTS_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
-      stride += 4;
+      elementCount += 4;
     }
     if (_tangents) {
       vertexElements.push(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
-      stride += 4;
+      elementCount += 4;
     }
     if (_uv) {
       vertexElements.push(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
-      stride += 2;
+      elementCount += 2;
     }
     if (_uv1) {
       vertexElements.push(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
-      stride += 2;
+      elementCount += 2;
     }
     if (_uv2) {
       vertexElements.push(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
-      stride += 2;
+      elementCount += 2;
     }
     if (_uv3) {
       vertexElements.push(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
-      stride += 2;
+      elementCount += 2;
     }
     if (_uv4) {
       vertexElements.push(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
-      stride += 2;
+      elementCount += 2;
     }
     if (_uv5) {
       vertexElements.push(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
-      stride += 2;
+      elementCount += 2;
     }
     if (_uv6) {
       vertexElements.push(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
-      stride += 2;
+      elementCount += 2;
     }
     if (_uv7) {
       vertexElements.push(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
-      stride += 2;
+      elementCount += 2;
     }
 
-    this._elementCount = stride;
+    this._elementCount = elementCount;
     return vertexElements;
   }
 
