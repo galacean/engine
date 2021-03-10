@@ -1,16 +1,14 @@
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { Engine } from "..";
-import {
-  BufferBindFlag,
-  BufferUsage,
-  IndexBufferBinding,
-  IndexFormat,
-  VertexBufferBinding,
-  VertexElement,
-  VertexElementFormat
-} from "../graphic";
 import { Mesh } from "../graphic/Mesh";
 import { Buffer } from "../graphic/Buffer";
+import { Engine } from "../Engine";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { VertexElement } from "../graphic/VertexElement";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 
 const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
 
@@ -25,7 +23,7 @@ export class ModelMesh extends Mesh {
   private _verticesArray: Float32Array | null = null;
   private _indicesArray: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
-  private _vertexSlots: ModelMeshVertexSlots = new ModelMeshVertexSlots();
+  private _vertexSlotChanged: boolean = false;
   private _vertexCountChanged: boolean = false;
 
   private _positions: Vector3[] = [];
@@ -43,7 +41,7 @@ export class ModelMesh extends Mesh {
   private _weights: Vector4[] | null = null;
   private _joints: Vector4[] | null = null;
   private _vertexChangeFlag: number = 0;
-
+  private _elementCount: number = 0;
   /**
    * Vertex count of current mesh.
    */
@@ -63,30 +61,31 @@ export class ModelMesh extends Mesh {
 
   /**
    * Upload Mesh Data to the graphics API.
-   * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache).
+   * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
   uploadMeshData(noLongerAccessible: boolean): void {
-    const { _indicesArray, _vertexSlots, _accessible } = this;
+    const { _indicesArray, _vertexSlotChanged, _accessible } = this;
     if (!_accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
 
     // Structure of vertex buffer has changed
-    if (_vertexSlots.slotChanged || this._vertexCountChanged) {
-      const elementCount = this._getElementCount();
-      const _verticesArray = new Float32Array(elementCount * this.vertexCount);
-      this._verticesArray = _verticesArray;
+    if (_vertexSlotChanged || this._vertexCountChanged) {
+      const vertexElements = this._updateVertexElements();
+      const elementCount = this._elementCount;
+      const vertices = new Float32Array(elementCount * this.vertexCount);
+      this._verticesArray = vertices;
       this._vertexChangeFlag = ValueChanged.All;
-      this._resetVertexArrayData(_verticesArray);
+      this._resetVertexArrayData(vertices);
       this._vertexBuffer = new Buffer(
         this._engine,
         BufferBindFlag.VertexBuffer,
-        _verticesArray,
+        vertices,
         noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic
       );
-      this.setVertexElements(this._getVertexElements());
+      this.setVertexElements(vertexElements);
       this.setVertexBufferBinding(new VertexBufferBinding(this._vertexBuffer, elementCount * 4));
-      _vertexSlots.resetSlotChanged();
+      this._vertexSlotChanged = false;
       this._vertexCountChanged = false;
     } else {
       // TODO reset value
@@ -153,7 +152,7 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    this._vertexSlots.position = true;
+    this._vertexSlotChanged = true;
     const count = positions.length;
     this._positions = positions;
     if (this._vertexCount !== count) {
@@ -185,7 +184,8 @@ export class ModelMesh extends Mesh {
     if (normals.length !== this._vertexCount) {
       throw "The array provided needs to be the same size as vertex count.";
     }
-    this._vertexSlots.normal = normals != null;
+
+    this._vertexSlotChanged = !!this._normals !== !!normals;
     this._vertexChangeFlag |= ValueChanged.Normal;
     this._normals = normals;
   }
@@ -213,7 +213,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.color = colors != null;
+    this._vertexSlotChanged = !!this._colors !== !!colors;
     this._vertexChangeFlag |= ValueChanged.Color;
     this._colors = colors;
   }
@@ -241,7 +241,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.weight = weights != null;
+    this._vertexSlotChanged = weights != null;
     this._vertexChangeFlag |= ValueChanged.Weight;
     this._weights = weights;
   }
@@ -269,7 +269,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.joint = joints != null;
+    this._vertexSlotChanged = !!this._joints !== !!joints;
     this._vertexChangeFlag |= ValueChanged.Joint;
     this._joints = joints;
   }
@@ -297,7 +297,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.tangent = tangents != null;
+    this._vertexSlotChanged = !!this._tangents !== !!tangents;
     this._vertexChangeFlag |= ValueChanged.Tangent;
     this._tangents = tangents;
   }
@@ -325,7 +325,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv = uv != null;
+    this._vertexSlotChanged = !!this._uv !== !!uv;
     this._vertexChangeFlag |= ValueChanged.UV;
     this._uv = uv;
   }
@@ -353,7 +353,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv1 = uv != null;
+    this._vertexSlotChanged = !!this._uv1 !== !!uv;
     this._vertexChangeFlag |= ValueChanged.UV1;
     this._uv1 = uv;
   }
@@ -381,7 +381,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv2 = uv != null;
+    this._vertexSlotChanged = !!this._uv2 !== !!uv;
     this._vertexChangeFlag |= ValueChanged.UV2;
     this._uv2 = uv;
   }
@@ -409,7 +409,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv3 = uv != null;
+    this._vertexSlotChanged = !!this._uv3 !== !!uv;
     this._vertexChangeFlag |= ValueChanged.UV3;
     this._uv3 = uv;
   }
@@ -437,7 +437,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv4 = uv != null;
+    this._vertexSlotChanged = !!this._uv4 !== !!uv;
     this._vertexChangeFlag |= ValueChanged.UV4;
     this._uv4 = uv;
   }
@@ -465,7 +465,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv5 = uv != null;
+    this._vertexSlotChanged = !!this._uv5 !== !!uv;
     this._vertexChangeFlag |= ValueChanged.UV5;
     this._uv5 = uv;
   }
@@ -493,7 +493,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv6 = uv != null;
+    this._vertexSlotChanged = !!this._uv6 !== !!uv;
     this._vertexChangeFlag |= ValueChanged.UV6;
     this._uv6 = uv;
   }
@@ -521,7 +521,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv7 = uv != null;
+    this._vertexSlotChanged = !!this._uv7 !== !!uv;
     this._vertexChangeFlag |= ValueChanged.UV7;
     this._uv7 = uv;
   }
@@ -536,139 +536,106 @@ export class ModelMesh extends Mesh {
     return this._uv7;
   }
 
-  private _getElementCount(): number {
-    // A ModelMesh must have position;
-    let count = 3;
-    const { _colors, _normals, _uv, _tangents, _weights, _joints, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
-    if (_normals) {
-      count += 3;
-    }
-
-    if (_colors) {
-      count += 4;
-    }
-    if (_weights) {
-      count += 4;
-    }
-    if (_joints) {
-      count += 4;
-    }
-    if (_tangents) {
-      count += 4;
-    }
-    if (_uv) {
-      count += 2;
-    }
-    if (_uv1) {
-      count += 2;
-    }
-    if (_uv2) {
-      count += 2;
-    }
-    if (_uv3) {
-      count += 2;
-    }
-    if (_uv4) {
-      count += 2;
-    }
-    if (_uv5) {
-      count += 2;
-    }
-    if (_uv6) {
-      count += 2;
-    }
-    if (_uv7) {
-      count += 2;
-    }
-    return count;
-  }
-
-  private _getVertexElements(): VertexElement[] {
+  private _updateVertexElements(): VertexElement[] {
     const vertexElements = [POSITION_VERTEX_ELEMENT];
     const { _colors, _normals, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7, _weights, _joints } = this;
     let offset = 12;
+    let stride = 3;
     if (_normals) {
       vertexElements.push(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
       offset += 12;
+      stride += 3;
     }
     if (_colors) {
       vertexElements.push(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
+      stride += 4;
     }
     if (_weights) {
       vertexElements.push(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
+      stride += 4;
     }
     if (_joints) {
       vertexElements.push(new VertexElement("JOINTS_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
+      stride += 4;
     }
     if (_tangents) {
       vertexElements.push(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
+      stride += 4;
     }
     if (_uv) {
       vertexElements.push(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv1) {
       vertexElements.push(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv2) {
       vertexElements.push(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv3) {
       vertexElements.push(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv4) {
       vertexElements.push(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv5) {
       vertexElements.push(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv6) {
       vertexElements.push(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv7) {
       vertexElements.push(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
 
+    this._elementCount = stride;
     return vertexElements;
   }
 
-  private _resetVertexArrayData(_verticesArray: Float32Array) {
+  private _resetVertexArrayData(vertices: Float32Array): void {
     // prettier-ignore
-    const { _vertexCount, _positions, _normals, _colors, _vertexChangeFlag: _valueChanged, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
-    const elementCount = this._getElementCount();
+    const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
-    if (_valueChanged & ValueChanged.Position) {
+    if (_vertexChangeFlag & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
-        const start = elementCount * i;
+        const start = _elementCount * i;
         const position = _positions[i];
-        _verticesArray[start] = position.x;
-        _verticesArray[start + 1] = position.y;
-        _verticesArray[start + 2] = position.z;
+        vertices[start] = position.x;
+        vertices[start + 1] = position.y;
+        vertices[start + 2] = position.z;
       }
     }
 
     let offset = 3;
 
     if (_normals) {
-      if (_valueChanged & ValueChanged.Normal) {
+      if (_vertexChangeFlag & ValueChanged.Normal) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const normal = _normals[i];
           if (normal) {
-            _verticesArray[start] = normal.x;
-            _verticesArray[start + 1] = normal.y;
-            _verticesArray[start + 2] = normal.z;
+            vertices[start] = normal.x;
+            vertices[start + 1] = normal.y;
+            vertices[start + 2] = normal.z;
           }
         }
       }
@@ -676,15 +643,15 @@ export class ModelMesh extends Mesh {
     }
 
     if (_colors) {
-      if (_valueChanged & ValueChanged.Color) {
+      if (_vertexChangeFlag & ValueChanged.Color) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const color = _colors[i];
           if (color) {
-            _verticesArray[start] = color.r;
-            _verticesArray[start + 1] = color.g;
-            _verticesArray[start + 2] = color.b;
-            _verticesArray[start + 3] = color.a;
+            vertices[start] = color.r;
+            vertices[start + 1] = color.g;
+            vertices[start + 2] = color.b;
+            vertices[start + 3] = color.a;
           }
         }
       }
@@ -692,15 +659,15 @@ export class ModelMesh extends Mesh {
     }
 
     if (_weights) {
-      if (_valueChanged & ValueChanged.Weight) {
+      if (_vertexChangeFlag & ValueChanged.Weight) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const weight = _weights[i];
           if (weight) {
-            _verticesArray[start] = weight.x;
-            _verticesArray[start + 1] = weight.y;
-            _verticesArray[start + 2] = weight.z;
-            _verticesArray[start + 3] = weight.w;
+            vertices[start] = weight.x;
+            vertices[start + 1] = weight.y;
+            vertices[start + 2] = weight.z;
+            vertices[start + 3] = weight.w;
           }
         }
       }
@@ -708,15 +675,15 @@ export class ModelMesh extends Mesh {
     }
 
     if (_joints) {
-      if (_valueChanged & ValueChanged.Joint) {
+      if (_vertexChangeFlag & ValueChanged.Joint) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const joint = _joints[i];
           if (joint) {
-            _verticesArray[start] = joint.x;
-            _verticesArray[start + 1] = joint.y;
-            _verticesArray[start + 2] = joint.z;
-            _verticesArray[start + 3] = joint.w;
+            vertices[start] = joint.x;
+            vertices[start + 1] = joint.y;
+            vertices[start + 2] = joint.z;
+            vertices[start + 3] = joint.w;
           }
         }
       }
@@ -724,103 +691,103 @@ export class ModelMesh extends Mesh {
     }
 
     if (_tangents) {
-      if (_valueChanged & ValueChanged.Tangent) {
+      if (_vertexChangeFlag & ValueChanged.Tangent) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const tangent = _tangents[i];
           if (tangent) {
-            _verticesArray[start] = tangent.x;
-            _verticesArray[start + 1] = tangent.y;
-            _verticesArray[start + 2] = tangent.z;
+            vertices[start] = tangent.x;
+            vertices[start + 1] = tangent.y;
+            vertices[start + 2] = tangent.z;
           }
         }
       }
       offset += 3;
     }
     if (_uv) {
-      if (_valueChanged & ValueChanged.UV) {
+      if (_vertexChangeFlag & ValueChanged.UV) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv1) {
-      if (_valueChanged & ValueChanged.UV1) {
+      if (_vertexChangeFlag & ValueChanged.UV1) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv1[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv2) {
-      if (_valueChanged & ValueChanged.UV2) {
+      if (_vertexChangeFlag & ValueChanged.UV2) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv2[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv3) {
-      if (_valueChanged & ValueChanged.UV3) {
+      if (_vertexChangeFlag & ValueChanged.UV3) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv3[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv4) {
-      if (_valueChanged & ValueChanged.UV4) {
+      if (_vertexChangeFlag & ValueChanged.UV4) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv4[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv5) {
-      if (_valueChanged & ValueChanged.UV5) {
+      if (_vertexChangeFlag & ValueChanged.UV5) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv5[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv6) {
-      if (_valueChanged & ValueChanged.UV6) {
+      if (_vertexChangeFlag & ValueChanged.UV6) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv6[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv7) {
-      if (_valueChanged & ValueChanged.UV7) {
+      if (_vertexChangeFlag & ValueChanged.UV7) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv7[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
@@ -851,130 +818,6 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
-  }
-}
-
-class ModelMeshVertexSlots {
-  private _position: boolean = false;
-  private _normal: boolean = false;
-  private _slotChanged = false;
-  private _color = false;
-  private _weight = false;
-  private _joint = false;
-  private _tangent = false;
-  private _uv = false;
-  private _uv1 = false;
-  private _uv2 = false;
-  private _uv3 = false;
-  private _uv4 = false;
-  private _uv5 = false;
-  private _uv6 = false;
-  private _uv7 = false;
-
-  get slotChanged(): boolean {
-    return this._slotChanged;
-  }
-
-  set position(value: boolean) {
-    if (value !== this._position) {
-      this._position = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set normal(value: boolean) {
-    if (value !== this._normal) {
-      this._normal = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set color(value: boolean) {
-    if (value !== this._color) {
-      this._color = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set weight(value: boolean) {
-    if (value !== this._weight) {
-      this._weight = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set tangent(value: boolean) {
-    if (value !== this._tangent) {
-      this._tangent = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set joint(value: boolean) {
-    if (value !== this._joint) {
-      this._joint = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv(value: boolean) {
-    if (value !== this._uv) {
-      this._uv = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv1(value: boolean) {
-    if (value !== this._uv1) {
-      this._uv1 = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv2(value: boolean) {
-    if (value !== this._uv2) {
-      this._uv2 = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv3(value: boolean) {
-    if (value !== this._uv3) {
-      this._uv3 = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv4(value: boolean) {
-    if (value !== this._uv4) {
-      this._uv4 = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv5(value: boolean) {
-    if (value !== this._uv5) {
-      this._uv = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv6(value: boolean) {
-    if (value !== this._uv6) {
-      this._uv = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv7(value: boolean) {
-    if (value !== this._uv7) {
-      this._uv = value;
-      this._slotChanged = true;
-    }
-  }
-
-  resetSlotChanged(): void {
-    this._slotChanged = false;
   }
 }
 
