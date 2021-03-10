@@ -1,3 +1,4 @@
+import { AnimateProperty } from "./AnimationClip";
 import { Quaternion } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
@@ -34,7 +35,7 @@ export interface ISample {
 }
 
 export interface ITarget {
-  pathType: number;
+  pathType: AnimateProperty;
   path: string;
   id: string;
 }

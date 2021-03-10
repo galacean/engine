@@ -7,8 +7,6 @@ export enum WrapMode {
   ONCE = 0,
   /** Loop play */
   LOOP = 1
-  // FOREVER: 2,
-  // PINGPONG: 3
 }
 
 /**
@@ -30,9 +28,11 @@ export enum AnimationEventType {
  */
 export enum InterpolationType {
   /** Linear interpolation */
-  LINEAR = 0,
+  LINEAR,
   /** Cubic spline interpolation */
-  CUBICSPLINE = 1,
+  CUBICSPLINE,
   /** Stepped interpolation */
-  STEP = 2
+  STEP,
+  /** Hermite interpolation */
+  HERMITE
 }

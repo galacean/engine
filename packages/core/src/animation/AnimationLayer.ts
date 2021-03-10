@@ -4,7 +4,7 @@ import { Logger } from "../base/Logger";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh/SkinnedMeshRenderer";
-import { AnimationClip } from "./AnimationClip";
+import { AnimationClip, AnimateProperty } from "./AnimationClip";
 import { AnimationEventType, WrapMode } from "./AnimationConst";
 import { AnimationOptions, IChannelState, IChannelTarget } from "./types";
 
@@ -15,6 +15,7 @@ import { AnimationOptions, IChannelState, IChannelTarget } from "./types";
  * @private
  */
 export class AnimationLayer extends EventDispatcher {
+  entity: Entity;
   /**
    * @return Whether the AnimationClip is playing.
    */
@@ -73,26 +74,26 @@ export class AnimationLayer extends EventDispatcher {
    * @return Whether can mix with current AnimationClip.
    */
   public canMix(nextAnimClip: AnimationClip, rootEntity: Entity): boolean {
-    if (!this._animClip || !this._isPlaying || this.isMixLayer || this.isFading) {
-      return false;
-    }
+    // if (!this._animClip || !this._isPlaying || this.isMixLayer || this.isFading) {
+    //   return false;
+    // }
 
-    if (this._animClip.getChannelCount() !== nextAnimClip.getChannelCount()) {
-      return false;
-    }
+    // if (this._animClip.getChannelCount() !== nextAnimClip.getChannelCount()) {
+    //   return false;
+    // }
 
-    const count = this._animClip.getChannelCount();
-    for (let i = count - 1; i >= 0; i--) {
-      const curChannel = this._animClip.getChannelObject(i);
-      const curTargetObject = this._findChannelTarget(rootEntity, curChannel.target);
+    // const count = this._animClip.getChannelCount();
+    // for (let i = count - 1; i >= 0; i--) {
+    //   const curChannel = this._animClip.getChannelObject(i);
+    //   const curTargetObject = this._findChannelTarget(rootEntity, curChannel.target);
 
-      const nextChannel = nextAnimClip.getChannelObject(i);
-      const nextTargetObject = this._findChannelTarget(rootEntity, nextChannel.target);
+    //   const nextChannel = nextAnimClip.getChannelObject(i);
+    //   const nextTargetObject = this._findChannelTarget(rootEntity, nextChannel.target);
 
-      if (curTargetObject !== nextTargetObject) {
-        return false;
-      }
-    }
+    //   if (curTargetObject !== nextTargetObject) {
+    //     return false;
+    //   }
+    // }
 
     return true;
   }
@@ -112,42 +113,36 @@ export class AnimationLayer extends EventDispatcher {
     mixEntity: Entity,
     options: { wrapMode?: WrapMode } = {}
   ) {
-    this._isPlaying = targetLayer.isPlaying;
-    this._animClip = animClip;
-    this._wrapMode = typeof options.wrapMode !== "undefined" ? options.wrapMode : targetLayer._wrapMode;
-
-    this._addEvents(options);
-
-    this._channelStates = [];
-    this._animClipLength = 0;
-    // -- Create new state object.
-    if (this._isPlaying) {
-      const targetChannelStates = targetLayer._channelStates;
-      const count = this._animClip.getChannelCount();
-      for (let i = count - 1; i >= 0; i--) {
-        const channel = this._animClip.getChannelObject(i);
-        const targetObject = this._findChannelTarget(mixEntity, channel.target);
-        this._channelStates[i] = {
-          frameTime: 0.0,
-          currentFrame: 0,
-          currentValue: this._animClip.createChannelValue(i),
-          mixWeight: targetObject ? 1 : 0
-        };
-
-        targetChannelStates[i].mixWeight =
-          targetChannelStates[i].mixWeight === undefined ? 1 : targetChannelStates[i].mixWeight;
-        if (targetChannelStates[i].mixWeight === 1) {
-          targetChannelStates[i].mixWeight = targetObject ? 0 : 1;
-        }
-
-        const channelTimeLength = this._animClip.curves[i].curve.length;
-        this._animClipLength = this._animClipLength > channelTimeLength ? this._animClipLength : channelTimeLength;
-      } // End of for.
-
-      return true;
-    }
-
-    return false;
+    // this._isPlaying = targetLayer.isPlaying;
+    // this._animClip = animClip;
+    // this._wrapMode = typeof options.wrapMode !== "undefined" ? options.wrapMode : targetLayer._wrapMode;
+    // this._addEvents(options);
+    // this._channelStates = [];
+    // this._animClipLength = 0;
+    // // -- Create new state object.
+    // if (this._isPlaying) {
+    //   const targetChannelStates = targetLayer._channelStates;
+    //   const count = this._animClip.getChannelCount();
+    //   for (let i = count - 1; i >= 0; i--) {
+    //     const channel = this._animClip.getChannelObject(i);
+    //     const targetObject = this._findChannelTarget(mixEntity, channel.target);
+    //     this._channelStates[i] = {
+    //       frameTime: 0.0,
+    //       currentFrame: 0,
+    //       currentValue: this._animClip.createChannelValue(i),
+    //       mixWeight: targetObject ? 1 : 0
+    //     };
+    //     targetChannelStates[i].mixWeight =
+    //       targetChannelStates[i].mixWeight === undefined ? 1 : targetChannelStates[i].mixWeight;
+    //     if (targetChannelStates[i].mixWeight === 1) {
+    //       targetChannelStates[i].mixWeight = targetObject ? 0 : 1;
+    //     }
+    //     const channelTimeLength = this._animClip.curves[i].curve.length;
+    //     this._animClipLength = this._animClipLength > channelTimeLength ? this._animClipLength : channelTimeLength;
+    //   } // End of for.
+    //   return true;
+    // }
+    // return false;
   }
 
   public removeMixWeight() {
@@ -170,6 +165,7 @@ export class AnimationLayer extends EventDispatcher {
     rootEntity: Entity,
     options: AnimationOptions = { wrapMode: WrapMode.LOOP }
   ): false | IChannelTarget[] {
+    this.entity = rootEntity;
     this._isPlaying = !!animClip;
     this._animClip = animClip;
     this._wrapMode = typeof options.wrapMode !== "undefined" ? options.wrapMode : WrapMode.LOOP;
@@ -181,7 +177,6 @@ export class AnimationLayer extends EventDispatcher {
     // Create new state object.
     if (this._isPlaying) {
       const count = this._animClip.curves.length;
-      // TODO
       const channelTargets: IChannelTarget[] = [];
       for (let i = count - 1; i >= 0; i--) {
         const curveData = this._animClip.curves[i];
@@ -194,11 +189,11 @@ export class AnimationLayer extends EventDispatcher {
           currentFrame: 0,
           currentValue: new Float32Array(curveData.curve.valueSize)
         };
-
+        const pathType = AnimateProperty[curveData.propertyName] ?? AnimateProperty.other;
         channelTargets[i] = {
           targetObject,
           path: curveData.propertyName,
-          pathType: AnimationClip._tagetTypeMap[curveData.propertyName],
+          pathType,
           outputSize: curveData.curve.valueSize
         };
 
@@ -233,7 +228,6 @@ export class AnimationLayer extends EventDispatcher {
    * @param deltaTime - The deltaTime when the animation update.
    */
   public updateState(deltaTime: number) {
-    console.log("updateState");
     if (!this._animClip || !this._isPlaying) {
       return;
     }
@@ -314,15 +308,14 @@ export class AnimationLayer extends EventDispatcher {
    * @param frameTime - The time which the animation will jump to.
    */
   public jumpToFrame(frameTime: number) {
-    const count = this._animClip.getChannelCount();
-    for (let i = count - 1; i >= 0; i--) {
-      // 1. Clear pre frameTime.
-      const channelState = this._channelStates[i];
-      channelState.frameTime = 0;
-
-      // 2. Update new frameTime.
-      this._updateChannelState(frameTime, i);
-    }
+    // const count = this._animClip.getChannelCount();
+    // for (let i = count - 1; i >= 0; i--) {
+    //   // 1. Clear pre frameTime.
+    //   const channelState = this._channelStates[i];
+    //   channelState.frameTime = 0;
+    //   // 2. Update new frameTime.
+    //   this._updateChannelState(frameTime, i);
+    // }
   }
 
   /**
@@ -334,7 +327,8 @@ export class AnimationLayer extends EventDispatcher {
   public _updateChannelState(deltaTime, channelIndex) {
     const animClip = this._animClip;
     const channelState = this._channelStates[channelIndex];
-    const animClipLength = animClip.curves[channelIndex].curve.length;
+    const { curve } = animClip.curves[channelIndex];
+    const animClipLength = curve.length;
     channelState.frameTime += deltaTime;
     if (channelState.frameTime > animClipLength) {
       switch (this._wrapMode) {
@@ -353,18 +347,18 @@ export class AnimationLayer extends EventDispatcher {
       return true;
     }
 
-    const frameTime = Math.min(channelState.frameTime, animClipLength);
-    const lerpState = this._getKeyAndAlpha(animClip.curves[channelIndex], frameTime);
-    const val = animClip.evaluate(
-      channelState.currentValue,
-      channelIndex,
-      lerpState.currentKey,
-      lerpState.nextKey,
-      lerpState.alpha
-    );
-    console.log("_updateChannelState", val);
-    channelState.currentValue = val;
-
+    let frameTime = Math.min(channelState.frameTime, animClipLength);
+    if (frameTime === animClipLength) {
+      switch (this._wrapMode) {
+        case WrapMode.ONCE:
+          frameTime = animClipLength;
+          break;
+        case WrapMode.LOOP:
+          frameTime = 0;
+          break;
+      }
+    }
+    channelState.currentValue = curve.evaluate(frameTime);
     if (this._wrapMode === WrapMode.ONCE && channelState.frameTime >= animClipLength) {
       return false;
     }
@@ -407,37 +401,36 @@ export class AnimationLayer extends EventDispatcher {
    */
   private _activeEvents(deltaTime: number) {
     // Trigger Frame Event.
-    const index = this._animClip.durationIndex;
-    if (this._frameEvents.length > 0 && this._channelStates.length > 0) {
-      const curFrameTime = this._channelStates[index].frameTime + deltaTime;
-      for (let i = this._frameEvents.length - 1; i >= 0; i--) {
-        const frameEvent = this._frameEvents[i];
-        if (!frameEvent.triggered && curFrameTime > frameEvent.triggerTime) {
-          this._activedEvents.push(new Event(frameEvent.eventType, this));
-          frameEvent.triggered = true;
-        }
-      }
-    }
-
-    if (this._channelStates.length > 0 && this._channelStates[index].frameTime + deltaTime >= this._animClip.duration) {
-      if (this._wrapMode === WrapMode.LOOP) {
-        // Reset Frame Event status.
-        if (this._frameEvents.length > 0) {
-          for (let i = this._frameEvents.length - 1; i >= 0; i--) {
-            this._frameEvents[i].triggered = false;
-          }
-        }
-        // Trigger Loop End Event.
-        // @ts-ignore
-        if (this.hasEvent(AnimationEventType.LOOP_END)) {
-          this._activedEvents.push(new Event(AnimationEventType.LOOP_END, this));
-        }
-        // @ts-ignore
-      } else if (this.hasEvent(AnimationEventType.FINISHED)) {
-        // Trigger Finish Event.
-        this._activedEvents.push(new Event(AnimationEventType.FINISHED, this));
-      }
-    }
+    // const index = this._animClip.durationIndex;
+    // if (this._frameEvents.length > 0 && this._channelStates.length > 0) {
+    //   const curFrameTime = this._channelStates[index].frameTime + deltaTime;
+    //   for (let i = this._frameEvents.length - 1; i >= 0; i--) {
+    //     const frameEvent = this._frameEvents[i];
+    //     if (!frameEvent.triggered && curFrameTime > frameEvent.triggerTime) {
+    //       this._activedEvents.push(new Event(frameEvent.eventType, this));
+    //       frameEvent.triggered = true;
+    //     }
+    //   }
+    // }
+    // if (this._channelStates.length > 0 && this._channelStates[index].frameTime + deltaTime >= this._animClip.duration) {
+    //   if (this._wrapMode === WrapMode.LOOP) {
+    //     // Reset Frame Event status.
+    //     if (this._frameEvents.length > 0) {
+    //       for (let i = this._frameEvents.length - 1; i >= 0; i--) {
+    //         this._frameEvents[i].triggered = false;
+    //       }
+    //     }
+    //     // Trigger Loop End Event.
+    //     // @ts-ignore
+    //     if (this.hasEvent(AnimationEventType.LOOP_END)) {
+    //       this._activedEvents.push(new Event(AnimationEventType.LOOP_END, this));
+    //     }
+    //     // @ts-ignore
+    //   } else if (this.hasEvent(AnimationEventType.FINISHED)) {
+    //     // Trigger Finish Event.
+    //     this._activedEvents.push(new Event(AnimationEventType.FINISHED, this));
+    //   }
+    // }
   }
 
   /**
@@ -460,50 +453,5 @@ export class AnimationLayer extends EventDispatcher {
     } else {
       return targetSceneObject;
     }
-  }
-
-  /**
-   * @return Current and next key id, current alpha.
-   * @param channel - The channle which the key and alpha in.
-   * @param time - The frame time.
-   * @private
-   */
-  private _getKeyAndAlpha(curveData, time: number) {
-    let keyTime = 0;
-    let currentKey = 0;
-    let nextKey = 0;
-    const { curve } = curveData;
-    const { keys } = curve;
-    const numKeys = keys.length;
-    // const timeKeys = channel.sampler.input;
-    // const numKeys = timeKeys.length;
-    for (let i = numKeys - 1; i >= 0; i--) {
-      if (time > keys[i].time) {
-        keyTime = time - keys[i].time;
-        currentKey = i;
-        break;
-      }
-    }
-
-    nextKey = currentKey + 1;
-    if (nextKey >= numKeys) {
-      switch (this._wrapMode) {
-        case WrapMode.ONCE:
-          nextKey = numKeys - 1;
-          break;
-        case WrapMode.LOOP:
-          nextKey = 0;
-          break;
-      }
-    }
-
-    const keyLength = keys[nextKey].time - keys[currentKey].time;
-    const alpha = nextKey === currentKey || keyLength < 0.00001 ? 1 : keyTime / keyLength;
-
-    return {
-      currentKey,
-      nextKey,
-      alpha
-    };
   }
 }

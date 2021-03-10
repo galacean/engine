@@ -18,7 +18,6 @@ import {
   Model
 } from "@oasis-engine/core";
 import { Parser, GLTFModel } from "@oasis-engine/loader";
-
 Parser.registerComponents("o3", {
   GLTFModel,
   SpriteRenderer,

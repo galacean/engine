@@ -1,9 +1,12 @@
+import { FloatKeyframe, Vector2Keyframe, Vector3Keyframe, QuaternionKeyframe } from "./KeyFrame";
+import { Vector2, Vector3, Quaternion } from "@oasis-engine/math";
 import { Transform } from "./../Transform";
 import { AnimationClipCurveData } from "./AnimationClipCurveData";
 import { AnimationCurve } from "./AnimationCurve";
 import { EngineObject } from "../base/EngineObject";
 import { InterpolationType } from "./AnimationConst";
 import { IChannel, ISample, List, Value } from "./types";
+import { AnimateProperty } from "./AnimationClip";
 
 export enum TagetType {
   position = 0,
@@ -82,14 +85,14 @@ export class AnimationClipGLTFParser extends EngineObject {
   public addChannel(samplerIndex: number, targetID: string, targetPath: string) {
     const bindSampler = this.samplers[samplerIndex];
 
-    let tagetType: TagetType = AnimationClipGLTFParser._tagetTypeMap[targetPath];
+    let pathType = AnimateProperty[targetPath] ?? AnimateProperty.other;
     // The channel object, bind a Sample to an Object property.
     const channel = {
       sampler: bindSampler,
       target: {
         id: targetID,
         path: targetPath,
-        pathType: tagetType ?? TagetType.other
+        pathType
       }
     };
 
@@ -264,7 +267,34 @@ export class AnimationClipGLTFParser extends EngineObject {
         for (let k = 0; k < outputSize; k++) {
           output.push(sampler.output[j * outputSize + k]);
         }
-        curve.addKey(sampler.input[j], output);
+        if (outputSize === 1) {
+          const keyframe = new FloatKeyframe();
+          keyframe.time = sampler.input[j];
+          keyframe.value = output[0];
+          keyframe.interpolation = sampler.interpolation;
+          curve.addKey(keyframe);
+        }
+        if (outputSize === 2) {
+          const keyframe = new Vector2Keyframe();
+          keyframe.time = sampler.input[j];
+          keyframe.value = new Vector2(...output);
+          keyframe.interpolation = sampler.interpolation;
+          curve.addKey(keyframe);
+        }
+        if (outputSize === 3) {
+          const keyframe = new Vector3Keyframe();
+          keyframe.time = sampler.input[j];
+          keyframe.value = new Vector3(...output);
+          keyframe.interpolation = sampler.interpolation;
+          curve.addKey(keyframe);
+        }
+        if (outputSize === 4) {
+          const keyframe = new QuaternionKeyframe();
+          keyframe.time = sampler.input[j];
+          keyframe.value = new Quaternion(...output);
+          keyframe.interpolation = sampler.interpolation;
+          curve.addKey(keyframe);
+        }
       }
       curveDatas.push({
         curve,

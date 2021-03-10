@@ -6,7 +6,7 @@ import { ignoreClone, shallowClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh/SkinnedMeshRenderer";
-import { AnimationClip, TagetType } from "./AnimationClip";
+import { AnimationClip, AnimateProperty } from "./AnimationClip";
 import { AnimationLayer } from "./AnimationLayer";
 import { AnimationOptions, IChannelTarget } from "./types";
 
@@ -354,7 +354,6 @@ export class Animator extends Component {
 
     for (let i = this._channelTargets.length - 1; i >= 0; i--) {
       const channelTarget = this._channelTargets[i];
-      console.log("_updateValues", channelTarget);
       const { targetObject, path } = channelTarget;
       const val = this._getChannelValue(i, channelTarget.outputSize);
       //   const targetObject = channelTarget.targetObject;
@@ -364,26 +363,19 @@ export class Animator extends Component {
         // SkinnedMeshRenderer.
         (targetObject as SkinnedMeshRenderer).setWeights(val as any);
       } else {
-        const v = val as Float32Array;
         //CM: Temporary optimization val should be Vector3/Quaternion type to avoid conversion overhead
         //CM: In the future, after Animation unifies all animation systems, it will use pathType as other and continue to use reflection.
         //CM: Due to the relatively small number of pathTypes, pre-classification can be used to avoid switch overhead in the future, such as three types of skeletal animation
         const transform = (<Entity>targetObject).transform;
         switch (channelTarget.pathType) {
-          case TagetType.position:
-            const position: Vector3 = transform.position;
-            position.setValue(v[0], v[1], v[2]);
-            transform.position = position;
+          case AnimateProperty.position:
+            transform.position = val;
             break;
-          case TagetType.rotation:
-            const rotation: Quaternion = transform.rotationQuaternion;
-            rotation.setValue(v[0], v[1], v[2], v[3]);
-            transform.rotationQuaternion = rotation;
+          case AnimateProperty.rotation:
+            transform.rotationQuaternion = val;
             break;
-          case TagetType.scale:
-            const scale: Vector3 = transform.scale;
-            scale.setValue(v[0], v[1], v[2]);
-            transform.scale = scale;
+          case AnimateProperty.scale:
+            transform.scale = val;
             break;
           default:
             targetObject[path] = val;
