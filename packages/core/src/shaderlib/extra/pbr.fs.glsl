@@ -39,9 +39,6 @@
 #include <pbr_ibl_diffuse_frag_define>
 #include <pbr_ibl_specular_frag_define>
 
-#include <oit_frag_define>
-
-
 void main() {
     #include <pbr_begin_frag>
     #include <pbr_direct_irradiance_frag>
@@ -53,6 +50,4 @@ void main() {
     #include <refraction_frag>
     #include <perturbation_frag>
     #include <fog_frag>
-
-    #include <oit_frag>
 }

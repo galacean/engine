@@ -60,8 +60,6 @@ import refraction_frag from "./refraction_frag.glsl";
 import gamma_frag from "./gamma_frag.glsl";
 
 import PBRShaderLib from "./pbr";
-import oit_frag from "./oit/oit_frag.glsl";
-import oit_frag_define from "./oit/oit_frag_define.glsl";
 
 export const ShaderLib = {
   common,
@@ -124,9 +122,6 @@ export const ShaderLib = {
   refraction_frag,
 
   gamma_frag,
-
-  oit_frag,
-  oit_frag_define,
 
   ...PBRShaderLib
 };
