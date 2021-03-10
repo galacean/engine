@@ -7,7 +7,6 @@ import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
-import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 
 const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
