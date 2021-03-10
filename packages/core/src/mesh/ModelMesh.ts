@@ -41,7 +41,16 @@ export class ModelMesh extends Mesh {
   private _weights: Vector4[] | null = null;
   private _joints: Vector4[] | null = null;
   private _vertexChangeFlag: number = 0;
+  private _indicesChangeFlag: boolean = false;
   private _elementCount: number = 0;
+
+  /**
+   * Whether to access data of the mesh.
+   */
+  get accessible(): boolean {
+    return this._accessible;
+  }
+
   /**
    * Vertex count of current mesh.
    */
@@ -76,7 +85,7 @@ export class ModelMesh extends Mesh {
       const vertices = new Float32Array(elementCount * this.vertexCount);
       this._verticesArray = vertices;
       this._vertexChangeFlag = ValueChanged.All;
-      this._resetVertexArrayData(vertices);
+      this._updateVertices(vertices);
       this._vertexBuffer = new Buffer(
         this._engine,
         BufferBindFlag.VertexBuffer,
@@ -88,20 +97,20 @@ export class ModelMesh extends Mesh {
       this._vertexSlotChanged = false;
       this._vertexCountChanged = false;
     } else {
-      // TODO reset value
       const verticesArray = this._verticesArray;
-      this._resetVertexArrayData(verticesArray);
+      this._updateVertices(verticesArray);
       this._vertexBuffer!.setData(verticesArray);
     }
 
     if (_indicesArray) {
-      if (!this._indexBuffer) {
+      if (!this._indexBuffer || _indicesArray.byteLength != this._indexBuffer.byteLength) {
         this._indexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indicesArray);
-        this.setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, this._indicesFormat));
-      } else {
+        this.setIndexBufferBinding(this._indexBuffer, this._indicesFormat);
+      } else if (this._indicesChangeFlag) {
+        this._indicesChangeFlag = false;
         this._indexBuffer.setData(this._indicesArray);
         if (this._indexBufferBinding._format !== this._indicesFormat) {
-          this.setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, this._indicesFormat));
+          this.setIndexBufferBinding(this._indexBuffer, this._indicesFormat);
         }
       }
     } else if (this._indexBuffer) {
@@ -115,10 +124,10 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set IndicesArray for the mesh.
-   * @param indices - The array of indices for the mesh.
+   * Set indices for the mesh.
+   * @param indices - The indices for the mesh.
    */
-  setIndices(indices: Uint8Array | Uint16Array | Uint32Array) {
+  setIndices(indices: Uint8Array | Uint16Array | Uint32Array): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -134,6 +143,7 @@ export class ModelMesh extends Mesh {
     } else if (indices instanceof Uint32Array) {
       this._indicesFormat = IndexFormat.UInt32;
     }
+    this._indicesChangeFlag = true;
   }
 
   /**
@@ -152,9 +162,10 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    this._vertexSlotChanged = true;
     const count = positions.length;
     this._positions = positions;
+    this._vertexChangeFlag |= ValueChanged.Position;
+
     if (this._vertexCount !== count) {
       this._vertexCount = count;
       this._vertexCountChanged = true;
@@ -163,8 +174,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of positions for the mesh.
+   * @remarks Please call the setPositions() method after modification to ensure that the modification takes effect.
    */
-  getPositions(): Vector3[] {
+  getPositions(): Vector3[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -176,7 +188,7 @@ export class ModelMesh extends Mesh {
    * Set normals array for the mesh.
    * @param normals - The array of normals for the mesh.
    */
-  setNormals(normals: Vector3[] | null) {
+  setNormals(normals: Vector3[] | null): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -192,8 +204,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of normals for the mesh.
+   * @remarks Please call the setNormals() method after modification to ensure that the modification takes effect.
    */
-  getNormals() {
+  getNormals(): Vector3[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -220,8 +233,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of colors for the mesh.
+   * @remarks Please call the setColors() method after modification to ensure that the modification takes effect.
    */
-  getColors(): Color[] {
+  getColors(): Color[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -248,8 +262,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of weights for the mesh.
+   * @remarks Please call the setWeights() method after modification to ensure that the modification takes effect.
    */
-  getWeights(): Vector4[] {
+  getWeights(): Vector4[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -276,8 +291,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of joints for the mesh.
+   * @remarks Please call the setJoints() method after modification to ensure that the modification takes effect.
    */
-  getJoints(): Vector4[] {
+  getJoints(): Vector4[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -304,8 +320,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of tangents for the mesh.
+   * @remarks Please call the setTangents() method after modification to ensure that the modification takes effect.
    */
-  getTangents(): Vector4[] {
+  getTangents(): Vector4[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -332,8 +349,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of uv for the mesh.
+   * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
-  getUV(): Vector2[] {
+  getUV(): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -360,8 +378,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of uv1 for the mesh.
+   * @remarks Please call the setUV1() method after modification to ensure that the modification takes effect.
    */
-  getUV1(): Vector2[] {
+  getUV1(): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -388,8 +407,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of uv2 for the mesh.
+   * @remarks Please call the setUV2() method after modification to ensure that the modification takes effect.
    */
-  getUV2(): Vector2[] {
+  getUV2(): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -416,8 +436,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of uv3 for the mesh.
+   * @remarks Please call the setUV3() method after modification to ensure that the modification takes effect.
    */
-  getUV3(): Vector2[] {
+  getUV3(): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -444,8 +465,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of uv4 for the mesh.
+   * @remarks Please call the setUV4() method after modification to ensure that the modification takes effect.
    */
-  getUV4(): Vector2[] {
+  getUV4(): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -472,8 +494,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of uv5 for the mesh.
+   * @remarks Please call the setUV5() method after modification to ensure that the modification takes effect.
    */
-  getUV5(): Vector2[] {
+  getUV5(): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -500,8 +523,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of uv6 for the mesh.
+   * @remarks Please call the setUV6() method after modification to ensure that the modification takes effect.
    */
-  getUV6(): Vector2[] {
+  getUV6(): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -528,8 +552,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get array of uv7 for the mesh.
+   * @remarks Please call the setUV7() method after modification to ensure that the modification takes effect.
    */
-  getUV7(): Vector2[] {
+  getUV7(): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -611,7 +636,7 @@ export class ModelMesh extends Mesh {
     return vertexElements;
   }
 
-  private _resetVertexArrayData(vertices: Float32Array): void {
+  private _updateVertices(vertices: Float32Array): void {
     // prettier-ignore
     const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
@@ -795,15 +820,9 @@ export class ModelMesh extends Mesh {
     this._vertexChangeFlag = 0;
   }
 
-  private _releaseCache() {
-    if (this._indexBuffer) {
-      this._indexBuffer.destroy();
-      this._indexBuffer = null;
-    }
-    if (this._vertexBuffer) {
-      this._vertexBuffer.destroy();
-      this._vertexBuffer = null;
-    }
+  private _releaseCache(): void {
+    this._indexBuffer = null;
+    this._vertexBuffer = null;
     this._indicesArray = null;
     this._verticesArray = null;
     this._positions.length = 0;
