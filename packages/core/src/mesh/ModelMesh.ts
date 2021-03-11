@@ -153,7 +153,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set positions array for the mesh.
+   * Set positions for the mesh.
    * @param positions - The array of positions for the mesh.
    */
   setPositions(positions: Vector3[]): void {
@@ -172,7 +172,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of positions for the mesh.
+   * Get positions for the mesh.
    * @remarks Please call the setPositions() method after modification to ensure that the modification takes effect.
    */
   getPositions(): Vector3[] | null {
@@ -184,7 +184,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set normals array for the mesh.
+   * Set per-vertex normals for the mesh.
    * @param normals - The array of normals for the mesh.
    */
   setNormals(normals: Vector3[] | null): void {
@@ -202,7 +202,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of normals for the mesh.
+   * Get normals for the mesh.
    * @remarks Please call the setNormals() method after modification to ensure that the modification takes effect.
    */
   getNormals(): Vector3[] | null {
@@ -213,7 +213,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set colors array for the mesh.
+   * Set per-vertex colors for the mesh.
    * @param colors - The array of colors for the mesh.
    */
   setColors(colors: Color[] | null): void {
@@ -231,7 +231,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of colors for the mesh.
+   * Get colors for the mesh.
    * @remarks Please call the setColors() method after modification to ensure that the modification takes effect.
    */
   getColors(): Color[] | null {
@@ -242,7 +242,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set weights array for the mesh.
+   * Set per-vertex weights for the mesh.
    * @param weights - The array of weights for the mesh.
    */
   setWeights(weights: Vector4[] | null): void {
@@ -260,7 +260,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of weights for the mesh.
+   * Get weights for the mesh.
    * @remarks Please call the setWeights() method after modification to ensure that the modification takes effect.
    */
   getWeights(): Vector4[] | null {
@@ -271,7 +271,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set joints array for the mesh.
+   * Set per-vertex joints for the mesh.
    * @param joints - The array of joints for the mesh.
    */
   setJoints(joints: Vector4[] | null): void {
@@ -289,7 +289,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of joints for the mesh.
+   * Get joints for the mesh.
    * @remarks Please call the setJoints() method after modification to ensure that the modification takes effect.
    */
   getJoints(): Vector4[] | null {
@@ -300,7 +300,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set tangents array for the mesh.
+   * Set per-vertex tangents for the mesh.
    * @param tangents - The array of tangents for the mesh.
    */
   setTangents(tangents: Vector4[] | null): void {
@@ -318,7 +318,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of tangents for the mesh.
+   * Get tangents for the mesh.
    * @remarks Please call the setTangents() method after modification to ensure that the modification takes effect.
    */
   getTangents(): Vector4[] | null {
@@ -329,7 +329,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set uv array for the mesh.
+   * Set per-vertex uv for the mesh.
    * @param uv - The array of uv for the mesh.
    */
   setUV(uv: Vector2[] | null): void {
@@ -347,7 +347,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of uv for the mesh.
+   * Get uv for the mesh.
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
   getUV(): Vector2[] | null {
@@ -358,7 +358,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set uv1 array for the mesh.
+   * Set per-vertex uv1 for the mesh.
    * @param uv - The array of uv1 for the mesh.
    */
   setUV1(uv: Vector2[] | null): void {
@@ -376,7 +376,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of uv1 for the mesh.
+   * Get uv1 for the mesh.
    * @remarks Please call the setUV1() method after modification to ensure that the modification takes effect.
    */
   getUV1(): Vector2[] | null {
@@ -387,7 +387,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set uv2 array for the mesh.
+   * Set per-vertex uv2 for the mesh.
    * @param uv - The array of uv2 for the mesh.
    */
   setUV2(uv: Vector2[] | null): void {
@@ -405,7 +405,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of uv2 for the mesh.
+   * Get uv2 for the mesh.
    * @remarks Please call the setUV2() method after modification to ensure that the modification takes effect.
    */
   getUV2(): Vector2[] | null {
@@ -416,7 +416,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set uv3 array for the mesh.
+   * Set per-vertex uv3 for the mesh.
    * @param uv - The array of uv3 for the mesh.
    */
   setUV3(uv: Vector2[] | null): void {
@@ -434,7 +434,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of uv3 for the mesh.
+   * Get uv3 for the mesh.
    * @remarks Please call the setUV3() method after modification to ensure that the modification takes effect.
    */
   getUV3(): Vector2[] | null {
@@ -445,7 +445,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set uv4 array for the mesh.
+   * Set per-vertex uv4 for the mesh.
    * @param uv - The array of uv4 for the mesh.
    */
   setUV4(uv: Vector2[] | null): void {
@@ -463,7 +463,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of uv4 for the mesh.
+   * Get uv4 for the mesh.
    * @remarks Please call the setUV4() method after modification to ensure that the modification takes effect.
    */
   getUV4(): Vector2[] | null {
@@ -474,7 +474,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set uv5 array for the mesh.
+   * Set per-vertex uv5 for the mesh.
    * @param uv - The array of uv5 for the mesh.
    */
   setUV5(uv: Vector2[] | null): void {
@@ -492,7 +492,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of uv5 for the mesh.
+   * Get uv5 for the mesh.
    * @remarks Please call the setUV5() method after modification to ensure that the modification takes effect.
    */
   getUV5(): Vector2[] | null {
@@ -503,7 +503,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set uv6 array for the mesh.
+   * Set per-vertex uv6 for the mesh.
    * @param uv - The array of uv6 for the mesh.
    */
   setUV6(uv: Vector2[] | null): void {
@@ -521,7 +521,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of uv6 for the mesh.
+   * Get uv6 for the mesh.
    * @remarks Please call the setUV6() method after modification to ensure that the modification takes effect.
    */
   getUV6(): Vector2[] | null {
@@ -532,7 +532,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set uv7 array for the mesh.
+   * Set per-vertex uv7 for the mesh.
    * @param uv - The array of uv7 for the mesh.
    */
   setUV7(uv: Vector2[] | null): void {
