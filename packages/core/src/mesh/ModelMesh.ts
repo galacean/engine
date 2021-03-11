@@ -96,7 +96,7 @@ export class ModelMesh extends Mesh {
         noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic
       );
       this.setVertexElements(vertexElements);
-      this.setVertexBufferBinding(new VertexBufferBinding(this._vertexBuffer, elementCount * 4));
+      this.setVertexBufferBinding(this._vertexBuffer, elementCount * 4);
       this._vertexSlotChanged = false;
       this._vertexCountChanged = false;
     } else {
@@ -150,7 +150,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of indices for the mesh.
+   * Get indices for the mesh.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array {
     return this._indices;
@@ -158,7 +158,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set positions for the mesh.
-   * @param positions - The array of positions for the mesh.
+   * @param positions - The positions for the mesh.
    */
   setPositions(positions: Vector3[]): void {
     if (!this._accessible) {
@@ -189,7 +189,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex normals for the mesh.
-   * @param normals - The array of normals for the mesh.
+   * @param normals - The normals for the mesh.
    */
   setNormals(normals: Vector3[] | null): void {
     if (!this._accessible) {
@@ -218,7 +218,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex colors for the mesh.
-   * @param colors - The array of colors for the mesh.
+   * @param colors - The colors for the mesh.
    */
   setColors(colors: Color[] | null): void {
     if (!this._accessible) {
@@ -247,7 +247,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex weights for the mesh.
-   * @param weights - The array of weights for the mesh.
+   * @param weights - The weights for the mesh.
    */
   setWeights(weights: Vector4[] | null): void {
     if (!this._accessible) {
@@ -276,7 +276,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex joints for the mesh.
-   * @param joints - The array of joints for the mesh.
+   * @param joints - The joints for the mesh.
    */
   setJoints(joints: Vector4[] | null): void {
     if (!this._accessible) {
@@ -305,7 +305,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex tangents for the mesh.
-   * @param tangents - The array of tangents for the mesh.
+   * @param tangents - The tangents for the mesh.
    */
   setTangents(tangents: Vector4[] | null): void {
     if (!this._accessible) {
@@ -334,7 +334,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex uv for the mesh.
-   * @param uv - The array of uv for the mesh.
+   * @param uv - The uv for the mesh.
    */
   setUV(uv: Vector2[] | null): void {
     if (!this._accessible) {
@@ -363,7 +363,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex uv1 for the mesh.
-   * @param uv - The array of uv1 for the mesh.
+   * @param uv - The uv1 for the mesh.
    */
   setUV1(uv: Vector2[] | null): void {
     if (!this._accessible) {
@@ -392,7 +392,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex uv2 for the mesh.
-   * @param uv - The array of uv2 for the mesh.
+   * @param uv - The uv2 for the mesh.
    */
   setUV2(uv: Vector2[] | null): void {
     if (!this._accessible) {
@@ -421,7 +421,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex uv3 for the mesh.
-   * @param uv - The array of uv3 for the mesh.
+   * @param uv - The uv3 for the mesh.
    */
   setUV3(uv: Vector2[] | null): void {
     if (!this._accessible) {
@@ -450,7 +450,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex uv4 for the mesh.
-   * @param uv - The array of uv4 for the mesh.
+   * @param uv - The uv4 for the mesh.
    */
   setUV4(uv: Vector2[] | null): void {
     if (!this._accessible) {
@@ -479,7 +479,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex uv5 for the mesh.
-   * @param uv - The array of uv5 for the mesh.
+   * @param uv - The uv5 for the mesh.
    */
   setUV5(uv: Vector2[] | null): void {
     if (!this._accessible) {
@@ -508,7 +508,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex uv6 for the mesh.
-   * @param uv - The array of uv6 for the mesh.
+   * @param uv - The uv6 for the mesh.
    */
   setUV6(uv: Vector2[] | null): void {
     if (!this._accessible) {
@@ -537,7 +537,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set per-vertex uv7 for the mesh.
-   * @param uv - The array of uv7 for the mesh.
+   * @param uv - The uv7 for the mesh.
    */
   setUV7(uv: Vector2[] | null): void {
     if (!this._accessible) {
@@ -554,7 +554,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get array of uv7 for the mesh.
+   * Get uv7 for the mesh.
    * @remarks Please call the setUV7() method after modification to ensure that the modification takes effect.
    */
   getUV7(): Vector2[] | null {
