@@ -83,30 +83,30 @@ export class Mesh extends RefObject {
   /**
    * Set vertex buffer binding.
    * @param vertexBufferBindings - Vertex buffer binding
-   * @param firstIndex - First vertex buffer index, the default value is 0
+   * @param index - Vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, firstIndex?: number): void;
+  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, index?: number): void;
 
   /**
    * Set vertex buffer binding.
    * @param vertexBuffer - Vertex buffer
    * @param stride - Vertex buffer data stride
-   * @param firstIndex - First vertex buffer index, the default value is 0
+   * @param index - Vertex buffer index, the default value is 0
    */
-  setVertexBufferBinding(vertexBuffer: Buffer, stride: number, firstIndex?: number): void;
+  setVertexBufferBinding(vertexBuffer: Buffer, stride: number, index?: number): void;
 
   setVertexBufferBinding(
     bufferOrBinding: Buffer | VertexBufferBinding,
     strideOrFirstIndex: number = 0,
-    firstIndex: number = 0
+    index: number = 0
   ): void {
     let binding = <VertexBufferBinding>bufferOrBinding;
     const isBinding = binding.buffer !== undefined;
     isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
 
     const bindings = this._vertexBufferBindings;
-    bindings.length <= firstIndex && (bindings.length = firstIndex + 1);
-    this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : firstIndex, binding);
+    bindings.length <= index && (bindings.length = index + 1);
+    this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : index, binding);
   }
 
   /**
