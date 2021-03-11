@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math";
+import { Color, Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { BlendFactor } from "../shader/enums/BlendFactor";
 import { BlendOperation } from "../shader/enums/BlendOperation";
@@ -20,8 +20,22 @@ export class BlinnPhongMaterial extends Material {
   private _diffuseTexture: Texture2D;
   private _specularTexture: Texture2D;
   private _shininess: number = 16;
+  private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
+
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
   private _doubleSided: boolean = false;
+
+   /**
+   * Tiling and offset of main textures.
+   */
+  get tilingOffset(): Vector4 {
+    return this._tilingOffset;
+  }
+
+  set tilingOffset(v: Vector4) {
+    this._tilingOffset = v;
+    this.shaderData.setVector4("u_tilingOffset", v);
+  }
 
   /**
    * Emissive color.
@@ -178,11 +192,13 @@ export class BlinnPhongMaterial extends Material {
   constructor(engine: Engine) {
     super(engine, Shader.find("blinn-phong"));
     this.shaderData.enableMacro("O3_NEED_WORLDPOS");
+    this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
     this.emissiveColor = this._emissiveColor;
     this.diffuseColor = this._diffuseColor;
     this.specularColor = this._specularColor;
     this.shininess = this._shininess;
+    this.tilingOffset = this._tilingOffset;
   }
 
   /**
