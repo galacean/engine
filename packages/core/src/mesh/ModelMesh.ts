@@ -121,6 +121,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (noLongerAccessible) {
+      this._accessible = false;
       this._releaseCache();
     }
   }
