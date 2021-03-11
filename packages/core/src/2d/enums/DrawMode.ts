@@ -1,6 +1,5 @@
 /**
  * Draw mode.
- * @readonly
  */
 export enum DrawMode {
   /** Default type. */
