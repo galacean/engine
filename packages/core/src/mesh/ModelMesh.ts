@@ -704,16 +704,16 @@ export class ModelMesh extends Mesh {
 
     if (_joints) {
       if (_vertexChangeFlag & ValueChanged.Joint) {
+        const { _verticesUint8 } = this;
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const joint = _joints[i];
           if (joint) {
             const internalStart = start * 4;
-            const { _verticesUint8: _uint8Array } = this;
-            _uint8Array[internalStart] = joint.x;
-            _uint8Array[internalStart + 1] = joint.y;
-            _uint8Array[internalStart + 2] = joint.z;
-            _uint8Array[internalStart + 3] = joint.w;
+            _verticesUint8[internalStart] = joint.x;
+            _verticesUint8[internalStart + 1] = joint.y;
+            _verticesUint8[internalStart + 2] = joint.z;
+            _verticesUint8[internalStart + 3] = joint.w;
           }
         }
       }
