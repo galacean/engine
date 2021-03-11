@@ -70,7 +70,7 @@ export class ModelMesh extends Mesh {
    * Upload Mesh Data to the graphics API.
    * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
-  uploadMeshData(noLongerAccessible: boolean): void {
+  uploadData(noLongerAccessible: boolean): void {
     const { _indices: _indicesArray, _vertexSlotChanged, _accessible } = this;
     if (!_accessible) {
       throw "Not allowed to access data while accessible is false.";
