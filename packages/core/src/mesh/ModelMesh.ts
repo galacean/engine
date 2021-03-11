@@ -10,7 +10,6 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 
 const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
-
 /**
  * Mesh containing common vertex elements of the model.
  */
@@ -19,8 +18,9 @@ export class ModelMesh extends Mesh {
   private _accessible: boolean = true;
   private _indexBuffer: Buffer | null = null;
   private _vertexBuffer: Buffer | null = null;
-  private _verticesArray: Float32Array | null = null;
-  private _indicesArray: Uint8Array | Uint16Array | Uint32Array | null = null;
+  private _verticesFloat32: Float32Array | null = null;
+  private _verticesUint8: Uint8Array | null = null;
+  private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
   private _vertexSlotChanged: boolean = false;
   private _vertexCountChanged: boolean = false;
@@ -53,7 +53,7 @@ export class ModelMesh extends Mesh {
   /**
    * Vertex count of current mesh.
    */
-  private get vertexCount(): number {
+  get vertexCount(): number {
     return this._vertexCount;
   }
 
@@ -72,7 +72,7 @@ export class ModelMesh extends Mesh {
    * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
   uploadMeshData(noLongerAccessible: boolean): void {
-    const { _indicesArray, _vertexSlotChanged, _accessible } = this;
+    const { _indices: _indicesArray, _vertexSlotChanged, _accessible } = this;
     if (!_accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -81,8 +81,12 @@ export class ModelMesh extends Mesh {
     if (_vertexSlotChanged || this._vertexCountChanged) {
       const vertexElements = this._updateVertexElements();
       const elementCount = this._elementCount;
-      const vertices = new Float32Array(elementCount * this.vertexCount);
-      this._verticesArray = vertices;
+      const vertices = this._verticesFloat32;
+      if (vertices && vertices.length !== elementCount * this._vertexCount) {
+        const vertices = new Float32Array(elementCount * this._vertexCount);
+        this._verticesUint8 = new Uint8Array(vertices.buffer);
+        this._verticesFloat32 = vertices;
+      }
       this._vertexChangeFlag = ValueChanged.All;
       this._updateVertices(vertices);
       this._vertexBuffer = new Buffer(
@@ -96,7 +100,7 @@ export class ModelMesh extends Mesh {
       this._vertexSlotChanged = false;
       this._vertexCountChanged = false;
     } else {
-      const verticesArray = this._verticesArray;
+      const verticesArray = this._verticesFloat32;
       this._updateVertices(verticesArray);
       this._vertexBuffer!.setData(verticesArray);
     }
@@ -107,7 +111,7 @@ export class ModelMesh extends Mesh {
         this.setIndexBufferBinding(this._indexBuffer, this._indicesFormat);
       } else if (this._indicesChangeFlag) {
         this._indicesChangeFlag = false;
-        this._indexBuffer.setData(this._indicesArray);
+        this._indexBuffer.setData(this._indices);
         if (this._indexBufferBinding._format !== this._indicesFormat) {
           this.setIndexBufferBinding(this._indexBuffer, this._indicesFormat);
         }
@@ -130,7 +134,7 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    this._indicesArray = indices;
+    this._indices = indices;
     if (indices === null) {
       return;
     }
@@ -149,7 +153,7 @@ export class ModelMesh extends Mesh {
    * Get array of indices for the mesh.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array {
-    return this._indicesArray;
+    return this._indices;
   }
 
   /**
@@ -581,9 +585,9 @@ export class ModelMesh extends Mesh {
       elementCount += 4;
     }
     if (_joints) {
-      vertexElements.push(new VertexElement("JOINTS_0", offset, VertexElementFormat.Vector4, 0));
-      offset += 16;
-      elementCount += 4;
+      vertexElements.push(new VertexElement("JOINTS_0", offset, VertexElementFormat.UByte4, 0));
+      offset += 4;
+      elementCount += 1;
     }
     if (_tangents) {
       vertexElements.push(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
@@ -704,14 +708,16 @@ export class ModelMesh extends Mesh {
           const start = _elementCount * i + offset;
           const joint = _joints[i];
           if (joint) {
-            vertices[start] = joint.x;
-            vertices[start + 1] = joint.y;
-            vertices[start + 2] = joint.z;
-            vertices[start + 3] = joint.w;
+            const internalStart = start * 4;
+            const { _verticesUint8: _uint8Array } = this;
+            _uint8Array[internalStart] = joint.x;
+            _uint8Array[internalStart + 1] = joint.y;
+            _uint8Array[internalStart + 2] = joint.z;
+            _uint8Array[internalStart + 3] = joint.w;
           }
         }
       }
-      offset += 4;
+      offset += 1;
     }
 
     if (_tangents) {
@@ -821,9 +827,10 @@ export class ModelMesh extends Mesh {
 
   private _releaseCache(): void {
     this._indexBuffer = null;
+    this._verticesUint8 = null;
     this._vertexBuffer = null;
-    this._indicesArray = null;
-    this._verticesArray = null;
+    this._indices = null;
+    this._verticesFloat32 = null;
     this._positions.length = 0;
     this._tangents = null;
     this._normals = null;
