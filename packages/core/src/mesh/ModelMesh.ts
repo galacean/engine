@@ -71,7 +71,7 @@ export class ModelMesh extends Mesh {
    * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
   uploadData(noLongerAccessible: boolean): void {
-    const { _indices: _indicesArray, _vertexSlotChanged, _accessible } = this;
+    const { _indices, _vertexSlotChanged, _accessible } = this;
     if (!_accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -104,9 +104,9 @@ export class ModelMesh extends Mesh {
       this._vertexBuffer!.setData(verticesArray);
     }
 
-    if (_indicesArray) {
-      if (!this._indexBuffer || _indicesArray.byteLength != this._indexBuffer.byteLength) {
-        this._indexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indicesArray);
+    if (_indices) {
+      if (!this._indexBuffer || _indices.byteLength != this._indexBuffer.byteLength) {
+        this._indexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
         this.setIndexBufferBinding(this._indexBuffer, this._indicesFormat);
       } else if (this._indicesChangeFlag) {
         this._indicesChangeFlag = false;
