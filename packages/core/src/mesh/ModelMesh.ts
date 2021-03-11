@@ -739,8 +739,10 @@ export class ModelMesh extends Mesh {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const uv = _uv[i];
-          vertices[start] = uv.x;
-          vertices[start + 1] = uv.y;
+          if (uv) {
+            vertices[start] = uv.x;
+            vertices[start + 1] = uv.y;
+          }
         }
       }
       offset += 2;
@@ -750,8 +752,10 @@ export class ModelMesh extends Mesh {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const uv = _uv1[i];
-          vertices[start] = uv.x;
-          vertices[start + 1] = uv.y;
+          if (uv) {
+            vertices[start] = uv.x;
+            vertices[start + 1] = uv.y;
+          }
         }
       }
       offset += 2;
@@ -761,8 +765,10 @@ export class ModelMesh extends Mesh {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const uv = _uv2[i];
-          vertices[start] = uv.x;
-          vertices[start + 1] = uv.y;
+          if (uv) {
+            vertices[start] = uv.x;
+            vertices[start + 1] = uv.y;
+          }
         }
       }
       offset += 2;
@@ -772,8 +778,10 @@ export class ModelMesh extends Mesh {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const uv = _uv3[i];
-          vertices[start] = uv.x;
-          vertices[start + 1] = uv.y;
+          if (uv) {
+            vertices[start] = uv.x;
+            vertices[start + 1] = uv.y;
+          }
         }
       }
       offset += 2;
@@ -783,8 +791,10 @@ export class ModelMesh extends Mesh {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const uv = _uv4[i];
-          vertices[start] = uv.x;
-          vertices[start + 1] = uv.y;
+          if (uv) {
+            vertices[start] = uv.x;
+            vertices[start + 1] = uv.y;
+          }
         }
       }
       offset += 2;
@@ -794,8 +804,10 @@ export class ModelMesh extends Mesh {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const uv = _uv5[i];
-          vertices[start] = uv.x;
-          vertices[start + 1] = uv.y;
+          if (uv) {
+            vertices[start] = uv.x;
+            vertices[start + 1] = uv.y;
+          }
         }
       }
       offset += 2;
@@ -805,8 +817,10 @@ export class ModelMesh extends Mesh {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const uv = _uv6[i];
-          vertices[start] = uv.x;
-          vertices[start + 1] = uv.y;
+          if (uv) {
+            vertices[start] = uv.x;
+            vertices[start + 1] = uv.y;
+          }
         }
       }
       offset += 2;
@@ -816,8 +830,10 @@ export class ModelMesh extends Mesh {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const uv = _uv7[i];
-          vertices[start] = uv.x;
-          vertices[start + 1] = uv.y;
+          if (uv) {
+            vertices[start] = uv.x;
+            vertices[start + 1] = uv.y;
+          }
         }
       }
       offset += 2;
