@@ -67,7 +67,7 @@ export class SpriteRenderer extends Renderer {
     const modelMatrix = transform.worldMatrix;
 
     // Update sprite data.
-    const needUpdate = sprite.updateMeshData();
+    const needUpdate = sprite._updateMeshData();
     const { triangles, uv, vertices, texture } = sprite;
 
     // Update vertices position in world space.
@@ -198,7 +198,7 @@ export class SpriteRenderer extends Renderer {
       // Create default material
       const material = (SpriteRenderer._defaultMaterial = new Material(
         this.scene.engine,
-        Shader.find("Sprite-Default")
+        Shader.find("Sprite")
       ));
       const target = material.renderState.blendState.targetBlendState;
       target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;

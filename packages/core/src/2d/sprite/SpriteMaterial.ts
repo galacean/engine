@@ -38,4 +38,4 @@ void main()
 }
 `;
 
-Shader.create("Sprite-Default", spriteVertShader, spriteFragmentShader);
+Shader.create("Sprite", spriteVertShader, spriteFragmentShader);

@@ -4,6 +4,8 @@ import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 
 export class Sprite extends RefObject {
+  private static _tempVec2: Vector2 = new Vector2();
+
   private static _VERTICES_FLAG = 0x1;
   private static _UV_FLAG = 0x2;
   private static _TRIANGLES_FLAG = 0x4;
@@ -17,18 +19,10 @@ export class Sprite extends RefObject {
   /** The array containing sprite mesh vertex positions. */
   public vertices: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
-  private _tempVec2: Vector2 = new Vector2();
-
   /** The reference to the used texture. */
   private _texture: Texture2D = null;
   /** The rectangle this sprite uses on its texture. */
   private _textureRect: Rect = new Rect();
-  /**
-   * The border sizes of the sprite.
-   * @remarks
-   * x=left, y=right, z=top, w=bottom.
-   */
-  private _border: Vector4 = new Vector4();
   /** Location of the sprite's center point in the rect on the original texture, specified in pixels. */
   private _pivot: Vector2 = new Vector2();
   /** Location of the sprite on the original texture, specified in pixels. */
@@ -36,7 +30,7 @@ export class Sprite extends RefObject {
   /** The number of pixels in the sprite that correspond to one unit in world space. */
   private _pixelsPerUnit: number = 100;
   /** The dirty flag to determine whether refresh buffer. */
-  private _dirtyFlag: number;
+  private _dirtyFlag: number = Sprite._VER_UV_TRI_FLAG;
 
   /**
    * The reference to the used texture.
@@ -65,20 +59,6 @@ export class Sprite extends RefObject {
       this._textureRect.width = value.width;
       this._textureRect.height = value.width;
     }
-  }
-
-  /**
-   * TODO
-   * The border sizes of the sprite.
-   * @remarks
-   * x=left, y=right, z=top, w=bottom.
-   */
-  get border(): Vector4 {
-    return this._border;
-  }
-
-  set border(border: Vector4) {
-    this._border = border;
   }
 
   /**
@@ -155,7 +135,6 @@ export class Sprite extends RefObject {
     }
 
     // Init.
-    this._dirtyFlag = Sprite._VER_UV_TRI_FLAG;
     this.texture = texture;
     this.rect = rect;
     this.textureRect = rect;
@@ -177,7 +156,8 @@ export class Sprite extends RefObject {
    * Update mesh.
    */
   private _updateMesh() {
-    const { _pixelsPerUnit, _pivot, _tempVec2, vertices, uv, triangles } = this;
+    const { _pixelsPerUnit, _pivot, vertices, uv, triangles } = this;
+    const { _tempVec2 } = Sprite;
 
     // Update vertices.
     if (this._isContainDirtyFlag(Sprite._VERTICES_FLAG)) {
@@ -224,9 +204,10 @@ export class Sprite extends RefObject {
 
   /**
    * Update mesh data of the sprite.
+   * @internal
    * @returns True if the data is refreshed, false otherwise.
    */
-  updateMeshData(): boolean {
+  _updateMeshData(): boolean {
     if (this._isContainDirtyFlag(Sprite._VER_UV_TRI_FLAG)) {
       this._updateMesh();
       this._setDirtyFlagFalse(Sprite._VER_UV_TRI_FLAG);
