@@ -34,58 +34,24 @@ export class RenderQueue {
    * @internal
    */
   static _compareFromNearToFar(a: Item, b: Item): number {
-    //@todo: delete after sprite refactor
-    const aIsPrimitive = !!(a as RenderElement).mesh;
-    const bIsPrimitive = !!(b as RenderElement).mesh;
+    const renderQueueDif = a.material.renderQueueType - b.material.renderQueueType;
 
-    if (aIsPrimitive && bIsPrimitive) {
-      const aElement: RenderElement = <RenderElement>a;
-      const bElement: RenderElement = <RenderElement>b;
-      const renderQueueDif = aElement.material.renderQueueType - bElement.material.renderQueueType;
-
-      if (renderQueueDif) {
-        return renderQueueDif;
-      }
-
-      return aElement.component._distanceForSort - bElement.component._distanceForSort;
+    if (renderQueueDif) {
+      return renderQueueDif;
     }
-
-    if (aIsPrimitive && !bIsPrimitive) {
-      return -1;
-    }
-
-    if (!aIsPrimitive && bIsPrimitive) {
-      return 1;
-    }
+    return a.component._distanceForSort - b.component._distanceForSort;
   }
 
   /**
    * @internal
    */
   static _compareFromFarToNear(a: Item, b: Item): number {
-    //@todo: delete after sprite refactor
-    const aIsPrimitive = !!(a as RenderElement).mesh;
-    const bIsPrimitive = !!(b as RenderElement).mesh;
+    const renderQueueDif = a.material.renderQueueType - b.material.renderQueueType;
 
-    if (aIsPrimitive && bIsPrimitive) {
-      const aElement: RenderElement = <RenderElement>a;
-      const bElement: RenderElement = <RenderElement>b;
-      const renderQueueDif = aElement.material.renderQueueType - bElement.material.renderQueueType;
-
-      if (renderQueueDif) {
-        return renderQueueDif;
-      }
-
-      return bElement.component._distanceForSort - aElement.component._distanceForSort;
+    if (renderQueueDif) {
+      return renderQueueDif;
     }
-
-    if (aIsPrimitive && !bIsPrimitive) {
-      return -1;
-    }
-
-    if (!aIsPrimitive && bIsPrimitive) {
-      return 1;
-    }
+    return b.component._distanceForSort - a.component._distanceForSort;
   }
 
   pushSprite(
