@@ -81,9 +81,9 @@ export class ModelMesh extends Mesh {
     if (_vertexSlotChanged || this._vertexCountChanged) {
       const vertexElements = this._updateVertexElements();
       const elementCount = this._elementCount;
-      const vertices = this._verticesFloat32;
+      let vertices = this._verticesFloat32;
       if (!vertices || vertices.length !== elementCount * this._vertexCount) {
-        const vertices = new Float32Array(elementCount * this._vertexCount);
+        vertices = new Float32Array(elementCount * this._vertexCount);
         this._verticesUint8 = new Uint8Array(vertices.buffer);
         this._verticesFloat32 = vertices;
       }
