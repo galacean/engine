@@ -1,8 +1,6 @@
-import { Vector3 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
-import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader";
