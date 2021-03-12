@@ -619,10 +619,6 @@ export class ParticleRenderer extends MeshRenderer {
       indices[idx++] = startIndex + 0;
       indices[idx++] = startIndex + 2;
       indices[idx++] = startIndex + 3;
-
-      if (startIndex > 65535) {
-        debugger
-      }
     }
 
     const vertexElements = [
