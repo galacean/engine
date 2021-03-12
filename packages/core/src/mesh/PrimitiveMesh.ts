@@ -6,6 +6,7 @@ import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Mesh } from "../graphic/Mesh";
 import { VertexElement } from "../graphic/VertexElement";
+import { GLCapabilityType } from "../base/Constant";
 
 /**
  * Used to generate common primitve meshes.
@@ -32,7 +33,7 @@ export class PrimitiveMesh {
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
     if (vertexCount > PrimitiveMesh._indiceLimit) {
-      if (typeof Uint32Array !== undefined) {
+      if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(rectangleCount * 6);
       } else {
@@ -204,7 +205,7 @@ export class PrimitiveMesh {
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
     if (vertexCount > PrimitiveMesh._indiceLimit) {
-      if (typeof Uint32Array !== undefined) {
+      if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(rectangleCount * 6);
       } else {
@@ -293,7 +294,7 @@ export class PrimitiveMesh {
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
     if (totalVertexCount > PrimitiveMesh._indiceLimit) {
-      if (typeof Uint32Array !== undefined) {
+      if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(torsoRectangleCount * 6 + capTriangleCount * 3);
       } else {
