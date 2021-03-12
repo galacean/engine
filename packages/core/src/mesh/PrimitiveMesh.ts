@@ -13,7 +13,7 @@ import { GLCapabilityType } from "../base/Constant";
  */
 export class PrimitiveMesh {
   /** The max number of indices that Uint16Array can support. */
-  private static _indiceLimit: number = 65535;
+  private static _uint16VertexLimit: number = 65535;
 
   /**
    * Create a sphere mesh.
@@ -32,12 +32,12 @@ export class PrimitiveMesh {
     const rectangleCount = segments * segments;
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
-    if (vertexCount > PrimitiveMesh._indiceLimit) {
+    if (vertexCount > PrimitiveMesh._uint16VertexLimit) {
       if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(rectangleCount * 6);
       } else {
-        throw Error("The product of horizontalSegments and verticalSegments is over limit.");
+        throw Error("The vertex count is over limit.");
       }
     } else {
       indices = new Uint16Array(rectangleCount * 6);
@@ -204,12 +204,12 @@ export class PrimitiveMesh {
     const rectangleCount = verticalSegments * horizontalSegments;
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
-    if (vertexCount > PrimitiveMesh._indiceLimit) {
+    if (vertexCount > PrimitiveMesh._uint16VertexLimit) {
       if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(rectangleCount * 6);
       } else {
-        throw Error("The product of horizontalSegments and verticalSegments is over limit.");
+        throw Error("The vertex count is over limit.");
       }
     } else {
       indices = new Uint16Array(rectangleCount * 6);
@@ -293,12 +293,12 @@ export class PrimitiveMesh {
     const vertices = new Float32Array(totalVertexCount * 8);
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
-    if (totalVertexCount > PrimitiveMesh._indiceLimit) {
+    if (totalVertexCount > PrimitiveMesh._uint16VertexLimit) {
       if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(torsoRectangleCount * 6 + capTriangleCount * 3);
       } else {
-        throw Error("The product of horizontalSegments and verticalSegments is over limit.");
+        throw Error("The vertex count is over limit.");
       }
     } else {
       indices = new Uint16Array(torsoRectangleCount * 6 + capTriangleCount * 3);

@@ -42,7 +42,7 @@ export enum ParticleRendererBlendMode {
  */
 export class ParticleRenderer extends MeshRenderer {
   /** The max number of indices that Uint16Array can support. */
-  private static _indiceLimit: number = 65535;
+  private static _uint16VertexLimit: number = 65535;
 
   private static _getRandom(): number {
     return Math.random() - 0.5;
@@ -600,12 +600,12 @@ export class ParticleRenderer extends MeshRenderer {
     const vertices = new Float32Array(vertexFloatCount);
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
-    if (vertexCount > ParticleRenderer._indiceLimit) {
+    if (vertexCount > ParticleRenderer._uint16VertexLimit) {
       if (this.engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(6 * this._maxCount);
       } else {
-        throw Error("The max count is over limit.");
+        throw Error("The vertex count is over limit.");
       }
     } else {
       indices = new Uint16Array(6 * this._maxCount);
