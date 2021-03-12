@@ -50,9 +50,9 @@ export abstract class PBRBaseMaterial extends Material {
     return this._tilingOffset;
   }
 
-  set tilingOffset(v: Vector4) {
-    this._tilingOffset = v;
-    this.shaderData.setVector4("u_tilingOffset", v);
+  set tilingOffset(value: Vector4) {
+    this._tilingOffset = value;
+    this.shaderData.setVector4("u_tilingOffset", value);
   }
 
   /**
