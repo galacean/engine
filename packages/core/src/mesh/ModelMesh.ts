@@ -336,7 +336,13 @@ export class ModelMesh extends Mesh {
    * Set per-vertex uv for the mesh.
    * @param uv - The uv for the mesh.
    */
-  setUV(uv: Vector2[] | null): void {
+  setUVs(uv: Vector2[] | null): void;
+  /**
+   * Set per-vertex uv for the mesh by channelIndex.
+   * @param uv - The uv for the mesh.
+   * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
+   */
+  setUVs(uv: Vector2[] | null, channelIndex: number = 0): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -345,223 +351,85 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlotChanged = !!this._uv !== !!uv;
-    this._vertexChangeFlag |= ValueChanged.UV;
-    this._uv = uv;
+    switch (channelIndex) {
+      case 0:
+        this._vertexSlotChanged = !!this._uv !== !!uv;
+        this._vertexChangeFlag |= ValueChanged.UV;
+        this._uv = uv;
+        break;
+      case 1:
+        this._vertexSlotChanged = !!this._uv1 !== !!uv;
+        this._vertexChangeFlag |= ValueChanged.UV1;
+        this._uv1 = uv;
+        break;
+      case 2:
+        this._vertexSlotChanged = !!this._uv2 !== !!uv;
+        this._vertexChangeFlag |= ValueChanged.UV2;
+        this._uv2 = uv;
+        break;
+      case 3:
+        this._vertexSlotChanged = !!this._uv3 !== !!uv;
+        this._vertexChangeFlag |= ValueChanged.UV3;
+        this._uv3 = uv;
+        break;
+      case 4:
+        this._vertexSlotChanged = !!this._uv4 !== !!uv;
+        this._vertexChangeFlag |= ValueChanged.UV4;
+        this._uv4 = uv;
+        break;
+      case 5:
+        this._vertexSlotChanged = !!this._uv5 !== !!uv;
+        this._vertexChangeFlag |= ValueChanged.UV5;
+        this._uv5 = uv;
+        break;
+      case 6:
+        this._vertexSlotChanged = !!this._uv6 !== !!uv;
+        this._vertexChangeFlag |= ValueChanged.UV6;
+        this._uv6 = uv;
+        break;
+      case 7:
+        this._vertexSlotChanged = !!this._uv7 !== !!uv;
+        this._vertexChangeFlag |= ValueChanged.UV7;
+        this._uv7 = uv;
+        break;
+      default:
+        throw "The index of channel needs to be in range [0 - 7].";
+    }
   }
 
   /**
    * Get uv for the mesh.
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
-  getUV(): Vector2[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._uv;
-  }
-
+  getUVs(): Vector2[] | null;
   /**
-   * Set per-vertex uv1 for the mesh.
-   * @param uv - The uv1 for the mesh.
+   * Get uv for the mesh by channelIndex.
+   * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
+   * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
-  setUV1(uv: Vector2[] | null): void {
+  getUVs(channelIndex: number = 0): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-
-    if (uv.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
+    switch (channelIndex) {
+      case 0:
+        return this._uv;
+      case 1:
+        return this._uv1;
+      case 2:
+        return this._uv2;
+      case 3:
+        return this._uv3;
+      case 4:
+        return this._uv4;
+      case 5:
+        return this._uv5;
+      case 6:
+        return this._uv6;
+      case 7:
+        return this._uv7;
     }
-
-    this._vertexSlotChanged = !!this._uv1 !== !!uv;
-    this._vertexChangeFlag |= ValueChanged.UV1;
-    this._uv1 = uv;
-  }
-
-  /**
-   * Get uv1 for the mesh.
-   * @remarks Please call the setUV1() method after modification to ensure that the modification takes effect.
-   */
-  getUV1(): Vector2[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._uv1;
-  }
-
-  /**
-   * Set per-vertex uv2 for the mesh.
-   * @param uv - The uv2 for the mesh.
-   */
-  setUV2(uv: Vector2[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    if (uv.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
-    }
-
-    this._vertexSlotChanged = !!this._uv2 !== !!uv;
-    this._vertexChangeFlag |= ValueChanged.UV2;
-    this._uv2 = uv;
-  }
-
-  /**
-   * Get uv2 for the mesh.
-   * @remarks Please call the setUV2() method after modification to ensure that the modification takes effect.
-   */
-  getUV2(): Vector2[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._uv2;
-  }
-
-  /**
-   * Set per-vertex uv3 for the mesh.
-   * @param uv - The uv3 for the mesh.
-   */
-  setUV3(uv: Vector2[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    if (uv.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
-    }
-
-    this._vertexSlotChanged = !!this._uv3 !== !!uv;
-    this._vertexChangeFlag |= ValueChanged.UV3;
-    this._uv3 = uv;
-  }
-
-  /**
-   * Get uv3 for the mesh.
-   * @remarks Please call the setUV3() method after modification to ensure that the modification takes effect.
-   */
-  getUV3(): Vector2[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._uv3;
-  }
-
-  /**
-   * Set per-vertex uv4 for the mesh.
-   * @param uv - The uv4 for the mesh.
-   */
-  setUV4(uv: Vector2[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    if (uv.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
-    }
-
-    this._vertexSlotChanged = !!this._uv4 !== !!uv;
-    this._vertexChangeFlag |= ValueChanged.UV4;
-    this._uv4 = uv;
-  }
-
-  /**
-   * Get uv4 for the mesh.
-   * @remarks Please call the setUV4() method after modification to ensure that the modification takes effect.
-   */
-  getUV4(): Vector2[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._uv4;
-  }
-
-  /**
-   * Set per-vertex uv5 for the mesh.
-   * @param uv - The uv5 for the mesh.
-   */
-  setUV5(uv: Vector2[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    if (uv.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
-    }
-
-    this._vertexSlotChanged = !!this._uv5 !== !!uv;
-    this._vertexChangeFlag |= ValueChanged.UV5;
-    this._uv5 = uv;
-  }
-
-  /**
-   * Get uv5 for the mesh.
-   * @remarks Please call the setUV5() method after modification to ensure that the modification takes effect.
-   */
-  getUV5(): Vector2[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._uv5;
-  }
-
-  /**
-   * Set per-vertex uv6 for the mesh.
-   * @param uv - The uv6 for the mesh.
-   */
-  setUV6(uv: Vector2[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    if (uv.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
-    }
-
-    this._vertexSlotChanged = !!this._uv6 !== !!uv;
-    this._vertexChangeFlag |= ValueChanged.UV6;
-    this._uv6 = uv;
-  }
-
-  /**
-   * Get uv6 for the mesh.
-   * @remarks Please call the setUV6() method after modification to ensure that the modification takes effect.
-   */
-  getUV6(): Vector2[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._uv6;
-  }
-
-  /**
-   * Set per-vertex uv7 for the mesh.
-   * @param uv - The uv7 for the mesh.
-   */
-  setUV7(uv: Vector2[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    if (uv.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
-    }
-
-    this._vertexSlotChanged = !!this._uv7 !== !!uv;
-    this._vertexChangeFlag |= ValueChanged.UV7;
-    this._uv7 = uv;
-  }
-
-  /**
-   * Get uv7 for the mesh.
-   * @remarks Please call the setUV7() method after modification to ensure that the modification takes effect.
-   */
-  getUV7(): Vector2[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._uv7;
+    throw "The index of channel needs to be in range [0 - 7].";
   }
 
   private _updateVertexElements(): VertexElement[] {
