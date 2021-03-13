@@ -33,7 +33,7 @@ export class PrimitiveMesh {
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
     if (vertexCount > PrimitiveMesh._uint16VertexLimit) {
-      if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
+      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(rectangleCount * 6);
       } else {
@@ -205,7 +205,7 @@ export class PrimitiveMesh {
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
     if (vertexCount > PrimitiveMesh._uint16VertexLimit) {
-      if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
+      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(rectangleCount * 6);
       } else {
@@ -294,7 +294,7 @@ export class PrimitiveMesh {
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
     if (totalVertexCount > PrimitiveMesh._uint16VertexLimit) {
-      if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
+      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(torsoRectangleCount * 6 + capTriangleCount * 3);
       } else {

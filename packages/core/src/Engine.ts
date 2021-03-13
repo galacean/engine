@@ -125,14 +125,6 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Graphics API renderer.
-   * @deprecated
-   */
-  get renderhardware(): HardwareRenderer {
-    return this._hardwareRenderer;
-  }
-
-  /**
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
