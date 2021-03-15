@@ -11,7 +11,7 @@ import "./SpriteMaterial";
  * 2d sprite renderer.
  */
 export class SpriteRenderer extends Renderer {
-  private static _tempVec4: Vector4 = new Vector4();
+  private static _tempVec3: Vector3 = new Vector3();
   private static _defaultMaterial: Material = null;
 
   private static _FLIP_X_FLAG = 0x1;
@@ -23,7 +23,7 @@ export class SpriteRenderer extends Renderer {
   private static _ALL_FLAG = 0x7;
 
   /** The array containing sprite mesh vertex positions in world space */
-  private _vertices: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   /** The Sprite to render. */
   private _sprite: Sprite;
   /** Rendering color for the Sprite graphic. */
@@ -54,7 +54,7 @@ export class SpriteRenderer extends Renderer {
    * @param camera - Camera which is rendering
    */
   _render(camera: Camera): void {
-    const { entity, sprite, _vertices } = this;
+    const { entity, sprite, _positions } = this;
     if (!sprite) {
       return;
     }
@@ -64,16 +64,16 @@ export class SpriteRenderer extends Renderer {
 
     // Update sprite data.
     const needUpdate = sprite._updateMeshData();
-    const { triangles, uv, vertices, texture } = sprite;
+    const { _triangles: triangles, _uv: uv, _positions: positions, texture } = sprite;
 
     // Update vertices position in world space.
     const posZ = transform.position.z;
     for (let i = 0; i < 4; ++i) {
-      const curVertex = vertices[i];
-      const tempPos = SpriteRenderer._tempVec4;
-      tempPos.setValue(curVertex.x, curVertex.y, posZ, 1);
-      Vector4.transform(tempPos, modelMatrix, tempPos);
-      _vertices[i].setValue(tempPos.x, tempPos.y, tempPos.z);
+      const curVertex = positions[i];
+      const tempPos = SpriteRenderer._tempVec3;
+      tempPos.setValue(curVertex.x, curVertex.y, posZ);
+      Vector3.transformToVec3(tempPos, modelMatrix, tempPos);
+      _positions[i].setValue(tempPos.x, tempPos.y, tempPos.z);
     }
 
     if (this._isContainDirtyFlag(SpriteRenderer._SPRITE_FLAG) || needUpdate) {
@@ -90,8 +90,8 @@ export class SpriteRenderer extends Renderer {
       const pivot = transform.worldPosition;
       const { x: px, y: py } = pivot;
 
-      for (let i = 0, len = _vertices.length; i < len; ++i) {
-        const vertex = _vertices[i];
+      for (let i = 0, len = _positions.length; i < len; ++i) {
+        const vertex = _positions[i];
         const { x, y } = vertex;
 
         if (flipX) {
@@ -109,7 +109,7 @@ export class SpriteRenderer extends Renderer {
     // @ts-ignore
     this.shaderData.setTexture("u_texture", texture);
     const material = this.getMaterial() || this._getDefaultMaterial();
-    camera._renderPipeline.pushSprite(this, _vertices, uv, triangles, this.color, material, camera);
+    camera._renderPipeline.pushSprite(this, _positions, uv, triangles, this.color, material, camera);
   }
 
   /**

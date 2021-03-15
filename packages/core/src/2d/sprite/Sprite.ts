@@ -6,12 +6,12 @@ import { Texture2D } from "../../texture";
 export class Sprite extends RefObject {
   private static _tempVec2: Vector2 = new Vector2();
 
-  /** The array containing sprite mesh triangles. */
-  public triangles: number[] = [];
-  /** The base texture coordinates of the sprite mesh. */
-  public uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  /** The array containing sprite mesh vertex positions. */
-  public vertices: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  /** @internal The array containing sprite mesh triangles. */
+  _triangles: number[] = [];
+  /** @internal The base texture coordinates of the sprite mesh. */
+  _uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  /** @internal The array containing sprite mesh vertex positions. */
+  _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   /** The reference to the used texture. */
   private _texture: Texture2D = null;
@@ -65,7 +65,7 @@ export class Sprite extends RefObject {
   set pivot(value: Vector2) {
     if (this._pivot !== value) {
       value.cloneTo(this._pivot);
-      this._setDirtyFlagTrue(DirtyFlag.vertices);
+      this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
 
@@ -82,7 +82,7 @@ export class Sprite extends RefObject {
       this._rect.y = value.y;
       this._rect.width = value.width;
       this._rect.height = value.width;
-      this._setDirtyFlagTrue(DirtyFlag.vertices);
+      this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
 
@@ -96,7 +96,7 @@ export class Sprite extends RefObject {
   set pixelsPerUnit(value: number) {
     if (this._pixelsPerUnit !== value) {
       this._pixelsPerUnit = value;
-      this._setDirtyFlagTrue(DirtyFlag.vertices);
+      this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
 
@@ -150,11 +150,11 @@ export class Sprite extends RefObject {
    * Update mesh.
    */
   private _updateMesh() {
-    const { _pixelsPerUnit, _pivot, vertices, uv, triangles } = this;
+    const { _pixelsPerUnit, _pivot, _positions, _uv, _triangles } = this;
     const { _tempVec2 } = Sprite;
 
     // Update vertices.
-    if (this._isContainDirtyFlag(DirtyFlag.vertices)) {
+    if (this._isContainDirtyFlag(DirtyFlag.positions)) {
       const { width, height } = this._rect;
 
       // Get the pivot coordinate in 3D space.
@@ -164,35 +164,35 @@ export class Sprite extends RefObject {
       const realHeight = height / _pixelsPerUnit;
 
       // Top-left.
-      vertices[0].setValue(-_tempVec2.x, realHeight - _tempVec2.y);
+      _positions[0].setValue(-_tempVec2.x, realHeight - _tempVec2.y);
       // Top-right.
-      vertices[1].setValue(realWidth - _tempVec2.x, realWidth - _tempVec2.y);
+      _positions[1].setValue(realWidth - _tempVec2.x, realWidth - _tempVec2.y);
       // Bottom-right.
-      vertices[2].setValue(realWidth - _tempVec2.x, -_tempVec2.y);
+      _positions[2].setValue(realWidth - _tempVec2.x, -_tempVec2.y);
       // Bottom-left.
-      vertices[3].setValue(-_tempVec2.x, -_tempVec2.y);
+      _positions[3].setValue(-_tempVec2.x, -_tempVec2.y);
     }
 
     // Update uvs.
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
       // Top-left.
-      uv[0].setValue(0, 0);
+      _uv[0].setValue(0, 0);
       // Top-right.
-      uv[1].setValue(1, 0);
+      _uv[1].setValue(1, 0);
       // Bottom-right.
-      uv[2].setValue(1, 1);
+      _uv[2].setValue(1, 1);
       // Bottom-left.
-      uv[3].setValue(0, 1);
+      _uv[3].setValue(0, 1);
     }
 
     // Update triangles.
     if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
-      triangles[0] = 0;
-      triangles[1] = 2;
-      triangles[2] = 1;
-      triangles[3] = 2;
-      triangles[4] = 0;
-      triangles[5] = 3;
+      _triangles[0] = 0;
+      _triangles[1] = 2;
+      _triangles[2] = 1;
+      _triangles[3] = 2;
+      _triangles[4] = 0;
+      _triangles[5] = 3;
     }
   }
 
@@ -226,7 +226,7 @@ export class Sprite extends RefObject {
 }
 
 enum DirtyFlag {
-  vertices = 0x1,
+  positions = 0x1,
   uv = 0x2,
   triangles = 0x4,
   all = 0x7
