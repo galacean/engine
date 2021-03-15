@@ -14,9 +14,9 @@ export interface StateMachineBehaviour {
 
 export class AnimatorController {
   name: string;
-  animationClips: AnimationClip[];
-  layers: AnimatorControllerLayer[];
-  parameters: AnimatorControllerParameter[];
+  animationClips: AnimationClip[] = [];
+  layers: AnimatorControllerLayer[] = [];
+  parameters: AnimatorControllerParameter[] = [];
 
   addLayer(layer: AnimatorControllerLayer) {
     this.layers.push(layer);

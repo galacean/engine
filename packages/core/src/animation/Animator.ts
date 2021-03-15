@@ -1,3 +1,4 @@
+import { Transform } from "./../Transform";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorController, AnimatorControllerParameter } from "./AnimatorController";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
@@ -94,7 +95,6 @@ export class Animator extends Component {
     const { layers } = animatorController;
     for (let i = layers.length - 1; i >= 0; i--) {
       const animLayer = layers[i];
-      const { frameTime } = animLayer;
       const animClip = animLayer.stateMachine.states[0].motion as AnimationClip;
       animLayer.frameTime += deltaTime;
       const count = animClip.curves.length;
@@ -102,11 +102,28 @@ export class Animator extends Component {
       for (let i = count - 1; i >= 0; i--) {
         const { curve, propertyName, relativePath, type } = animClip.curves[i];
         const animClipLength = curve.length;
-        if (frameTime > animClipLength) {
-          animLayer.frameTime = frameTime % animClipLength;
+        if (animLayer.frameTime > animClipLength) {
+          animLayer.frameTime = animLayer.frameTime % animClipLength;
         }
-        const val = curve.evaluate(frameTime);
-        output.push(val);
+        const val = curve.evaluate(animLayer.frameTime);
+        const target = this._findChannelTarget(this.entity, relativePath);
+        if (type === Transform) {
+          const transform = (<Entity>target).transform;
+          switch (AnimateProperty[propertyName]) {
+            case AnimateProperty.position:
+              transform.position = val;
+              break;
+            case AnimateProperty.rotation:
+              transform.rotationQuaternion = val;
+              break;
+            case AnimateProperty.scale:
+              transform.scale = val;
+              break;
+            default:
+              target[propertyName] = val;
+          }
+        }
+        // output.push(val);
       }
     }
 
