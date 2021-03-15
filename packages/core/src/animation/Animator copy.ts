@@ -32,6 +32,10 @@ export class Animator extends Component {
     super(entity);
   }
 
+  animatorController: AnimatorController;
+  layers: AnimatorControllerLayer[];
+  parameters: AnimatorControllerParameter[];
+
   /**
    * Linearly interpolates between two values.
    * @param outValue - The output value after interpolation.
@@ -72,45 +76,36 @@ export class Animator extends Component {
     return outValue;
   }
 
-  private _findChannelTarget(rootNode: Entity, target: any): Entity | Component {
-    const targetID = target;
-    let targetSceneObject: Entity = null;
-    if (rootNode.name === targetID) {
-      targetSceneObject = rootNode;
-    } else {
-      targetSceneObject = rootNode.findByName(targetID);
-    }
-    return targetSceneObject;
-  }
-
   /**
    * Evaluates the animation component based on deltaTime.
    * @param deltaTime - The deltaTime when the animation update.
    * @private
    */
   public update(deltaTime: number) {
-    const { animatorController } = this;
-    if (!animatorController) return;
-    const { layers } = animatorController;
-    for (let i = layers.length - 1; i >= 0; i--) {
-      const animLayer = layers[i];
-      const { frameTime } = animLayer;
-      const animClip = animLayer.stateMachine.states[0].motion as AnimationClip;
-      animLayer.frameTime += deltaTime;
-      const count = animClip.curves.length;
-      const output = [];
-      for (let i = count - 1; i >= 0; i--) {
-        const { curve, propertyName, relativePath, type } = animClip.curves[i];
-        const animClipLength = curve.length;
-        if (frameTime > animClipLength) {
-          animLayer.frameTime = frameTime % animClipLength;
-        }
-        const val = curve.evaluate(frameTime);
-        output.push(val);
-      }
+    if (!this.isPlaying()) {
+      return;
     }
 
-    // this._updateValues();
+    deltaTime = deltaTime * this._timeScale;
+
+    // Update state.
+    for (let i = this._animLayers.length - 1; i >= 0; i--) {
+      const animLayer = this._animLayers[i];
+      animLayer.updateState(deltaTime);
+    }
+
+    // Update value.
+    this._updateValues();
+
+    // Trigger events and destroy no use layer.
+    for (let i = this._animLayers.length - 1; i >= 0; i--) {
+      const animLayer = this._animLayers[i];
+      animLayer.triggerEvents();
+      if (!animLayer.isPlaying && (animLayer.isFading || animLayer.isMixLayer)) {
+        this._animLayers.splice(i, 1);
+        this._removeRefMixLayers(animLayer);
+      }
+    }
   }
 
   /**
@@ -438,15 +433,11 @@ export class Animator extends Component {
     this.engine._componentsManager.removeOnUpdateAnimations(this);
   }
 
-  animatorController: AnimatorController;
-  layers: AnimatorControllerLayer[];
-  parameters: AnimatorControllerParameter[];
-
-  _update(deltaTime: number) {}
+  // update(deltaTime: number) {}
 
   play() {}
 
-  _stop() {}
+  // stop() {}
 
   crossFade() {}
 

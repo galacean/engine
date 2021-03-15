@@ -18,11 +18,9 @@ export class AnimatorController {
   layers: AnimatorControllerLayer[];
   parameters: AnimatorControllerParameter[];
 
-  // static createAnimatorControllerAtPath(path: string);
-  // static parse(data: AnimatorControllerData);
-
-  // exportData();
-  addLayer(layer: AnimatorControllerLayer) {}
+  addLayer(layer: AnimatorControllerLayer) {
+    this.layers.push(layer);
+  }
 
   addMotion(motion: Motion, layerIndex: number) {}
 

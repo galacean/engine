@@ -1,5 +1,3 @@
 import { EngineObject } from "../base/EngineObject";
 
-export class Motion extends EngineObject {
-  
-}
+export class Motion extends EngineObject {}

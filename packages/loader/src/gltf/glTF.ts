@@ -1,3 +1,6 @@
+import { AnimatorStateMachine } from "./../../../core/src/animation/AnimatorStateMachine";
+import { AnimatorControllerLayer } from "./../../../core/src/animation/AnimatorControllerLayer";
+import { AnimatorController } from "./../../../core/src/animation/AnimatorController";
 import { AnimationCurve } from "./../../../core/src/animation/AnimationCurve";
 import { Transform } from "./../../../core/src/Transform";
 import {
@@ -37,6 +40,7 @@ import { Color, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { LoadedGLTFResource } from "../GLTF";
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 import { createVertexElement, getAccessorData, getAccessorTypeSize, getIndexFormat, getVertexStride } from "./Util";
+import { AnimatorState } from "@oasis-engine/core/src/animation/AnimatorState";
 
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
 //              https://github.com/KhronosGroup/glTF/pull/1223
@@ -859,9 +863,18 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
 
   const animator = asset.defaultSceneRoot.addComponent(Animation);
   const animations = asset.animations;
+  const animatorController = new AnimatorController();
+  const layer = new AnimatorControllerLayer();
+  const animatorStateMachine = new AnimatorStateMachine();
+  animatorController.addLayer(layer);
+  animator.animatorController = animatorController;
+  layer.stateMachine = animatorStateMachine;
   if (animations) {
     animations.forEach((clip: AnimationClip) => {
-      animator.addAnimationClip(clip, clip.name);
+      const animatorState = new AnimatorState(clip.name);
+      animatorState.motion = clip;
+      animatorStateMachine.addState(clip.name);
+      // animator.addAnimationClip(clip, clip.name);
     });
   }
   return resources.asset as GLTFResource;

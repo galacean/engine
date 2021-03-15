@@ -1,3 +1,4 @@
+import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateMachine } from "./AnimatorStateMachine";
 export enum AnimatorLayerBlendingMode {
   Override,
@@ -9,4 +10,5 @@ export class AnimatorControllerLayer {
   name: string;
   blendingMode: AnimatorLayerBlendingMode;
   stateMachine: AnimatorStateMachine;
+  frameTime: number = 0;
 }

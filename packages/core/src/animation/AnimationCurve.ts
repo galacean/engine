@@ -235,7 +235,7 @@ export class AnimationCurve {
     }
   }
 
-  evaluate(time: number) {
+  evaluate(time: number): InterpolableValue {
     const { keys } = this;
     const { frameIndex, nextFrameIndex, alpha, dur } = this._getFrameInfo(time);
     const { interpolation } = keys[frameIndex];
