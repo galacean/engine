@@ -1,16 +1,10 @@
-import { Vector2, Vector4, Rect } from "@oasis-engine/math";
+import { Rect, Vector2 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 
 export class Sprite extends RefObject {
   private static _tempVec2: Vector2 = new Vector2();
-
-  private static _VERTICES_FLAG = 0x1;
-  private static _UV_FLAG = 0x2;
-  private static _TRIANGLES_FLAG = 0x4;
-  /** Sprite._VERTICES_FLAG | Sprite._UV_FLAG | Sprite._TRIANGLES_FLAG */
-  private static _VER_UV_TRI_FLAG = 0x7;
 
   /** The array containing sprite mesh triangles. */
   public triangles: number[] = [];
@@ -30,7 +24,7 @@ export class Sprite extends RefObject {
   /** The number of pixels in the sprite that correspond to one unit in world space. */
   private _pixelsPerUnit: number = 100;
   /** The dirty flag to determine whether refresh buffer. */
-  private _dirtyFlag: number = Sprite._VER_UV_TRI_FLAG;
+  private _dirtyFlag: number = DirtyFlag.all;
 
   /**
    * The reference to the used texture.
@@ -71,7 +65,7 @@ export class Sprite extends RefObject {
   set pivot(value: Vector2) {
     if (this._pivot !== value) {
       value.cloneTo(this._pivot);
-      this._setDirtyFlagTrue(Sprite._VERTICES_FLAG);
+      this._setDirtyFlagTrue(DirtyFlag.vertices);
     }
   }
 
@@ -88,7 +82,7 @@ export class Sprite extends RefObject {
       this._rect.y = value.y;
       this._rect.width = value.width;
       this._rect.height = value.width;
-      this._setDirtyFlagTrue(Sprite._VERTICES_FLAG);
+      this._setDirtyFlagTrue(DirtyFlag.vertices);
     }
   }
 
@@ -102,7 +96,7 @@ export class Sprite extends RefObject {
   set pixelsPerUnit(value: number) {
     if (this._pixelsPerUnit !== value) {
       this._pixelsPerUnit = value;
-      this._setDirtyFlagTrue(Sprite._VERTICES_FLAG);
+      this._setDirtyFlagTrue(DirtyFlag.vertices);
     }
   }
 
@@ -160,7 +154,7 @@ export class Sprite extends RefObject {
     const { _tempVec2 } = Sprite;
 
     // Update vertices.
-    if (this._isContainDirtyFlag(Sprite._VERTICES_FLAG)) {
+    if (this._isContainDirtyFlag(DirtyFlag.vertices)) {
       const { width, height } = this._rect;
 
       // Get the pivot coordinate in 3D space.
@@ -180,7 +174,7 @@ export class Sprite extends RefObject {
     }
 
     // Update uvs.
-    if (this._isContainDirtyFlag(Sprite._UV_FLAG)) {
+    if (this._isContainDirtyFlag(DirtyFlag.uv)) {
       // Top-left.
       uv[0].setValue(0, 0);
       // Top-right.
@@ -192,7 +186,7 @@ export class Sprite extends RefObject {
     }
 
     // Update triangles.
-    if (this._isContainDirtyFlag(Sprite._TRIANGLES_FLAG)) {
+    if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
       triangles[0] = 0;
       triangles[1] = 2;
       triangles[2] = 1;
@@ -208,9 +202,9 @@ export class Sprite extends RefObject {
    * @returns True if the data is refreshed, false otherwise.
    */
   _updateMeshData(): boolean {
-    if (this._isContainDirtyFlag(Sprite._VER_UV_TRI_FLAG)) {
+    if (this._isContainDirtyFlag(DirtyFlag.all)) {
       this._updateMesh();
-      this._setDirtyFlagFalse(Sprite._VER_UV_TRI_FLAG);
+      this._setDirtyFlagFalse(DirtyFlag.all);
 
       return true;
     }
@@ -229,4 +223,11 @@ export class Sprite extends RefObject {
   private _setDirtyFlagFalse(type: number) {
     this._dirtyFlag &= ~type;
   }
+}
+
+enum DirtyFlag {
+  vertices = 0x1,
+  uv = 0x2,
+  triangles = 0x4,
+  all = 0x7
 }

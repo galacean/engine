@@ -4,7 +4,6 @@ import { Entity } from "../../Entity";
 import { Material, RenderQueueType } from "../../material";
 import { Renderer } from "../../Renderer";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../../shader";
-import { DrawMode } from "../enums/DrawMode";
 import { Sprite } from "./Sprite";
 import "./SpriteMaterial";
 
@@ -25,8 +24,6 @@ export class SpriteRenderer extends Renderer {
 
   /** The array containing sprite mesh vertex positions in world space */
   private _vertices: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-  /** The current draw mode of the Sprite Renderer. */
-  private _drawMode: DrawMode;
   /** The Sprite to render. */
   private _sprite: Sprite;
   /** Rendering color for the Sprite graphic. */
@@ -45,7 +42,6 @@ export class SpriteRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
 
-    this._drawMode = DrawMode.Simple;
     this._sprite = null;
     this._color = new Color(1, 1, 1, 1);
     this._flipX = false;
@@ -117,16 +113,6 @@ export class SpriteRenderer extends Renderer {
   }
 
   /**
-   * The current draw mode of the Sprite Renderer.
-   */
-  get drawMode(): DrawMode {
-    return this._drawMode;
-  }
-
-  // TODO
-  set drawMode(value: DrawMode) {}
-
-  /**
    * The Sprite to render.
    */
   get sprite(): Sprite {
@@ -196,10 +182,7 @@ export class SpriteRenderer extends Renderer {
   private _getDefaultMaterial() {
     if (!SpriteRenderer._defaultMaterial) {
       // Create default material
-      const material = (SpriteRenderer._defaultMaterial = new Material(
-        this.scene.engine,
-        Shader.find("Sprite")
-      ));
+      const material = (SpriteRenderer._defaultMaterial = new Material(this.scene.engine, Shader.find("Sprite")));
       const target = material.renderState.blendState.targetBlendState;
       target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
       target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
