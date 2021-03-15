@@ -77,7 +77,7 @@ export class AnimationCurve {
     }
   }
 
-  private _evaluateHermite(frameIedex: number, nextFrameIndex: number, t: number) {
+  private _evaluateHermite(frameIedex: number, nextFrameIndex: number, t: number, dur: number) {
     const { valueSize, keys } = this;
     const curKey = keys[frameIedex];
     const nextKey = keys[nextFrameIndex];
@@ -92,7 +92,7 @@ export class AnimationCurve {
           var b = t3 - 2.0 * t2 + t;
           var c = t3 - t2;
           var d = -2.0 * t3 + 3.0 * t2;
-          return a * curKey.value + b * t0 + c * t1 + d * nextKey.value;
+          return a * curKey.value + b * t0 * dur + c * t1 * dur + d * nextKey.value;
         } else return curKey.value;
       }
       case 2: {
@@ -111,11 +111,11 @@ export class AnimationCurve {
 
         let t0 = tan0.x,
           t1 = tan1.x;
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.x = a * p0.x + b * t0 + c * t1 + d * p1.x;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) out.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
         else out.x = p0.x;
 
         (t0 = tan0.y), (t1 = tan1.y);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.y = a * p0.y + b * t0 + c * t1 + d * p1.y;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) out.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
         else out.y = p0.y;
         return out;
       }
@@ -135,15 +135,15 @@ export class AnimationCurve {
 
         let t0 = tan0.x,
           t1 = tan1.x;
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.x = a * p0.x + b * t0 + c * t1 + d * p1.x;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) out.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
         else out.x = p0.x;
 
         (t0 = tan0.y), (t1 = tan1.y);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.y = a * p0.y + b * t0 + c * t1 + d * p1.y;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) out.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
         else out.y = p0.y;
 
         (t0 = tan0.z), (t1 = tan1.z);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.z = a * p0.z + b * t0 + c * t1 + d * p1.z;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) out.z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
         else out.z = p0.z;
         return out;
       }
@@ -163,19 +163,19 @@ export class AnimationCurve {
 
         let t0 = tan0.x,
           t1 = tan1.x;
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.x = a * p0.x + b * t0 + c * t1 + d * p1.x;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) out.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
         else out.x = p0.x;
 
         (t0 = tan0.y), (t1 = tan1.y);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.y = a * p0.y + b * t0 + c * t1 + d * p1.y;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) out.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
         else out.y = p0.y;
 
         (t0 = tan0.z), (t1 = tan1.z);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.z = a * p0.z + b * t0 + c * t1 + d * p1.z;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) out.z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
         else out.z = p0.z;
 
         (t0 = tan0.w), (t1 = tan1.w);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.w = a * p0.w + b * t0 + c * t1 + d * p1.w;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) out.w = a * p0.w + b * t0 * dur + c * t1 * dur + d * p1.w;
         else out.w = p0.w;
         return out;
       }
@@ -202,13 +202,14 @@ export class AnimationCurve {
       nextFrameIndex = frameIndex;
     }
 
-    const keyLength = keys[nextFrameIndex].time - keys[frameIndex].time;
-    const alpha = nextFrameIndex === frameIndex || keyLength < 0.00001 ? 1 : keyTime / keyLength;
+    const dur = keys[nextFrameIndex].time - keys[frameIndex].time;
+    const alpha = nextFrameIndex === frameIndex || dur < 0.00001 ? 1 : keyTime / dur;
 
     return {
       frameIndex,
       nextFrameIndex,
-      alpha
+      alpha,
+      dur
     };
   }
 
@@ -236,7 +237,7 @@ export class AnimationCurve {
 
   evaluate(time: number) {
     const { keys } = this;
-    const { frameIndex, nextFrameIndex, alpha } = this._getFrameInfo(time);
+    const { frameIndex, nextFrameIndex, alpha, dur } = this._getFrameInfo(time);
     const { interpolation } = keys[frameIndex];
     let val: InterpolableValue;
     switch (interpolation) {
@@ -250,7 +251,7 @@ export class AnimationCurve {
         val = this._evaluateStep(nextFrameIndex);
         break;
       case InterpolationType.HERMITE:
-        val = this._evaluateHermite(frameIndex, nextFrameIndex, alpha);
+        val = this._evaluateHermite(frameIndex, nextFrameIndex, alpha, dur);
     }
     return val;
   }
