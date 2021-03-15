@@ -44,6 +44,8 @@ uniform mat4 u_MVMat;
 uniform mat4 u_MVPMat;
 uniform mat4 u_normalMat;
 uniform vec3 u_cameraPos;
+uniform vec4 u_tilingOffset;
+
 
 #ifndef OMIT_NORMAL
     #ifdef O3_HAS_NORMAL

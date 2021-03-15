@@ -2,6 +2,7 @@ import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
+import { RenderQueueType } from "../material";
 import { Material } from "../material/Material";
 import { TextureCubeFace } from "../texture/enums/TextureCubeFace";
 import { RenderTarget } from "../texture/RenderTarget";
