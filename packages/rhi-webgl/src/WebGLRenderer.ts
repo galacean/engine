@@ -193,7 +193,7 @@ export class WebGLRenderer implements HardwareRenderer {
       stencilState.writeMask = 0xff;
     }
 
-    gl.clear(clearFlag);
+    clearFlag && gl.clear(clearFlag);
   }
 
   drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive, shaderProgram: any) {
