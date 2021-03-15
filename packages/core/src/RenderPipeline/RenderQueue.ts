@@ -54,6 +54,13 @@ export class RenderQueue {
     return b.component._distanceForSort - a.component._distanceForSort;
   }
 
+  /**
+   * Push a render element.
+   */
+  pushPrimitive(element: RenderElement): void {
+    this.items.push(element);
+  }
+
   pushSprite(
     component: Component,
     vertices: Vector3[],
