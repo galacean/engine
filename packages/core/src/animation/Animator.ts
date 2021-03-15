@@ -83,7 +83,7 @@ export class Animator extends Component {
     }
     return targetSceneObject;
   }
-
+  _channelStates: any[] = [];
   /**
    * Evaluates the animation component based on deltaTime.
    * @param deltaTime - The deltaTime when the animation update.
@@ -96,17 +96,20 @@ export class Animator extends Component {
     for (let i = layers.length - 1; i >= 0; i--) {
       const animLayer = layers[i];
       const animClip = animLayer.stateMachine.states[0].motion as AnimationClip;
-      animLayer.frameTime += deltaTime;
       const count = animClip.curves.length;
       const output = [];
-      for (let i = count - 1; i >= 0; i--) {
-        const { curve, propertyName, relativePath, type } = animClip.curves[i];
+      for (let j = count - 1; j >= 0; j--) {
+        const { curve, propertyName, relativePath, type } = animClip.curves[j];
         const animClipLength = curve.length;
-        if (animLayer.frameTime > animClipLength) {
-          animLayer.frameTime = animLayer.frameTime % animClipLength;
-        }
-        const val = curve.evaluate(animLayer.frameTime);
+        this._channelStates[j] = this._channelStates[j] || {
+          frameTime: 0.0
+        };
         const target = this._findChannelTarget(this.entity, relativePath);
+        this._channelStates[j].frameTime += deltaTime / 1000;
+        if (this._channelStates[j].frameTime > animClipLength) {
+          this._channelStates[j].frameTime = this._channelStates[j].frameTime % animClipLength;
+        }
+        const val = curve.evaluate(this._channelStates[j].frameTime);
         if (type === Transform) {
           const transform = (<Entity>target).transform;
           switch (AnimateProperty[propertyName]) {
@@ -123,11 +126,8 @@ export class Animator extends Component {
               target[propertyName] = val;
           }
         }
-        // output.push(val);
       }
     }
-
-    // this._updateValues();
   }
 
   /**
@@ -370,38 +370,30 @@ export class Animator extends Component {
    * @private
    */
   public _updateValues() {
-    if (this._animLayers.length === 0 || !this._channelTargets) {
+    if (this._animLayers.length === 0 || !this._channelStates) {
       return;
     }
 
-    for (let i = this._channelTargets.length - 1; i >= 0; i--) {
-      const channelTarget = this._channelTargets[i];
-      const { targetObject, path } = channelTarget;
-      const val = this._getChannelValue(i, channelTarget.outputSize);
+    for (let i = this._channelStates.length - 1; i >= 0; i--) {
+      const channelTarget = this._channelStates[i];
+      const { target, pathType, currentValue } = channelTarget;
       //   const targetObject = channelTarget.targetObject;
       //   const path = channelTarget.path;
 
-      if (path === "weights") {
-        // SkinnedMeshRenderer.
-        (targetObject as SkinnedMeshRenderer).setWeights(val as any);
-      } else {
-        //CM: Temporary optimization val should be Vector3/Quaternion type to avoid conversion overhead
-        //CM: In the future, after Animation unifies all animation systems, it will use pathType as other and continue to use reflection.
-        //CM: Due to the relatively small number of pathTypes, pre-classification can be used to avoid switch overhead in the future, such as three types of skeletal animation
-        const transform = (<Entity>targetObject).transform;
-        switch (channelTarget.pathType) {
-          case AnimateProperty.position:
-            transform.position = val;
-            break;
-          case AnimateProperty.rotation:
-            transform.rotationQuaternion = val;
-            break;
-          case AnimateProperty.scale:
-            transform.scale = val;
-            break;
-          default:
-            targetObject[path] = val;
-        }
+      //CM: Temporary optimization val should be Vector3/Quaternion type to avoid conversion overhead
+      //CM: In the future, after Animation unifies all animation systems, it will use pathType as other and continue to use reflection.
+      //CM: Due to the relatively small number of pathTypes, pre-classification can be used to avoid switch overhead in the future, such as three types of skeletal animation
+      const transform = (<Entity>target).transform;
+      switch (pathType) {
+        case AnimateProperty.position:
+          transform.position = currentValue;
+          break;
+        case AnimateProperty.rotation:
+          transform.rotationQuaternion = currentValue;
+          break;
+        case AnimateProperty.scale:
+          transform.scale = currentValue;
+          break;
       }
     }
   }
