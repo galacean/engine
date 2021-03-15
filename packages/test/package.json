@@ -1,0 +1,19 @@
+{
+  "name": "@oasis-engine/test",
+  "version": "0.2.1",
+  "license": "MIT",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "browser": "dist/browser.min.js",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "oasis-engine": "0.2.1"
+  }
+}
