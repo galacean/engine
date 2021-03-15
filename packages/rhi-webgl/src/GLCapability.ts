@@ -91,7 +91,7 @@ export class GLCapability {
       RGBA_S3TC_DXT5_EXT
     } = GLCompressedTextureInternalFormat;
     if (
-      (internalType >= RGBA_ASTC_4X4_KHR && RGBA_ASTC_12X12_KHR <= RGBA_ASTC_12X12_KHR) ||
+      (internalType >= RGBA_ASTC_4X4_KHR && internalType <= RGBA_ASTC_12X12_KHR) ||
       (internalType >= SRGB8_ALPHA8_ASTC_4X4_KHR && internalType <= SRGB8_ALPHA8_ASTC_12X12_KHR)
     ) {
       return this.canIUse(GLCapabilityType.astc);
