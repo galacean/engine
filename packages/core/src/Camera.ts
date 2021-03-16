@@ -452,7 +452,7 @@ export class Camera extends Component {
 
   /**
    * Generate a ray by a point in screen.
-   * @param point Screen space point
+   * @param point - Point in screen space, the unit is pixel
    * @param out - Ray
    * @returns Ray
    */
