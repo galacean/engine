@@ -6,11 +6,15 @@ import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Mesh } from "../graphic/Mesh";
 import { VertexElement } from "../graphic/VertexElement";
+import { GLCapabilityType } from "../base/Constant";
 
 /**
  * Used to generate common primitve meshes.
  */
 export class PrimitiveMesh {
+  /** The max number of indices that Uint16Array can support. */
+  private static _uint16VertexLimit: number = 65535;
+
   /**
    * Create a sphere mesh.
    * @param engine - Engine
@@ -26,7 +30,18 @@ export class PrimitiveMesh {
     const vertexCount = count * count;
     const vertices = new Float32Array(vertexCount * 8);
     const rectangleCount = segments * segments;
-    const indices = new Uint16Array(rectangleCount * 6);
+    let indices: Uint16Array | Uint32Array = null;
+    let useUint32: boolean = false;
+    if (vertexCount > PrimitiveMesh._uint16VertexLimit) {
+      if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
+        useUint32 = true;
+        indices = new Uint32Array(rectangleCount * 6);
+      } else {
+        throw Error("The vertex count is over limit.");
+      }
+    } else {
+      indices = new Uint16Array(rectangleCount * 6);
+    }
     const thetaRange = Math.PI;
     const alphaRange = thetaRange * 2;
     const countReciprocal = 1.0 / count;
@@ -81,7 +96,7 @@ export class PrimitiveMesh {
     bounds.min.setValue(-radius, -radius, -radius);
     bounds.max.setValue(radius, radius, radius);
 
-    PrimitiveMesh._initialize(engine, mesh, vertices, indices);
+    PrimitiveMesh._initialize(engine, mesh, vertices, indices, useUint32);
     return mesh;
   }
 
@@ -187,7 +202,18 @@ export class PrimitiveMesh {
     const vertexCount = horizontalCount * verticalCount;
     const vertices = new Float32Array(vertexCount * 8);
     const rectangleCount = verticalSegments * horizontalSegments;
-    const indices = new Uint16Array(rectangleCount * 6);
+    let indices: Uint16Array | Uint32Array = null;
+    let useUint32: boolean = false;
+    if (vertexCount > PrimitiveMesh._uint16VertexLimit) {
+      if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
+        useUint32 = true;
+        indices = new Uint32Array(rectangleCount * 6);
+      } else {
+        throw Error("The vertex count is over limit.");
+      }
+    } else {
+      indices = new Uint16Array(rectangleCount * 6);
+    }
     const horizontalCountReciprocal = 1.0 / horizontalCount;
     const horizontalSegmentsReciprocal = 1.0 / horizontalSegments;
     const verticalSegmentsReciprocal = 1.0 / verticalSegments;
@@ -232,7 +258,7 @@ export class PrimitiveMesh {
     bounds.min.setValue(-halfWidth, -halfHeight, 0);
     bounds.max.setValue(halfWidth, halfHeight, 0);
 
-    PrimitiveMesh._initialize(engine, mesh, vertices, indices);
+    PrimitiveMesh._initialize(engine, mesh, vertices, indices, useUint32);
     return mesh;
   }
 
@@ -258,14 +284,25 @@ export class PrimitiveMesh {
 
     const radialCount = radialSegments + 1;
     const verticalCount = heightSegments + 1;
-    const halfHeight = height / 2;
+    const halfHeight = height * 0.5;
     const unitHeight = height / heightSegments;
     const torsoVertexCount = radialCount * verticalCount;
     const torsoRectangleCount = radialSegments * heightSegments;
     const capTriangleCount = radialSegments * 2;
     const totalVertexCount = torsoVertexCount + 2 + capTriangleCount;
     const vertices = new Float32Array(totalVertexCount * 8);
-    const indices = new Uint16Array(torsoRectangleCount * 6 + capTriangleCount * 3);
+    let indices: Uint16Array | Uint32Array = null;
+    let useUint32: boolean = false;
+    if (totalVertexCount > PrimitiveMesh._uint16VertexLimit) {
+      if (engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
+        useUint32 = true;
+        indices = new Uint32Array(torsoRectangleCount * 6 + capTriangleCount * 3);
+      } else {
+        throw Error("The vertex count is over limit.");
+      }
+    } else {
+      indices = new Uint16Array(torsoRectangleCount * 6 + capTriangleCount * 3);
+    }
     const radialCountReciprocal = 1.0 / radialCount;
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
@@ -286,7 +323,7 @@ export class PrimitiveMesh {
       const cosTheta = Math.cos(theta);
 
       let posX = radius * sinTheta;
-      let posY = v * unitHeight - halfHeight;
+      let posY = y * unitHeight - halfHeight;
       let posZ = radius * cosTheta;
 
       // Position
@@ -400,11 +437,17 @@ export class PrimitiveMesh {
     bounds.min.setValue(-radius, -halfHeight, -radius);
     bounds.max.setValue(radius, halfHeight, radius);
 
-    PrimitiveMesh._initialize(engine, mesh, vertices, indices);
+    PrimitiveMesh._initialize(engine, mesh, vertices, indices, useUint32);
     return mesh;
   }
 
-  private static _initialize(engine: Engine, mesh: Mesh, vertices: Float32Array, indices: Uint16Array) {
+  private static _initialize(
+    engine: Engine,
+    mesh: Mesh,
+    vertices: Float32Array,
+    indices: Uint16Array | Uint32Array,
+    useUint32: boolean = false
+  ) {
     const vertexStride = 32;
     const vertexElements = [
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
@@ -416,7 +459,7 @@ export class PrimitiveMesh {
     const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static);
 
     mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
-    mesh.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
+    mesh.setIndexBufferBinding(indexBuffer, useUint32 ? IndexFormat.UInt32 : IndexFormat.UInt16);
     mesh.setVertexElements(vertexElements);
     mesh.addSubMesh(0, indices.length);
   }
