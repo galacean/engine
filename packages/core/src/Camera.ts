@@ -456,7 +456,7 @@ export class Camera extends Component {
    * @param out - Ray
    * @returns Ray
    */
-   screenPointToRay(point: Vector2, out: Ray): Ray {
+  screenPointToRay(point: Vector2, out: Ray): Ray {
     const viewportPoint = MathTemp.tempVec2;
     this.screenToViewportPoint(point, viewportPoint);
     return this.viewportPointToRay(viewportPoint, out);
