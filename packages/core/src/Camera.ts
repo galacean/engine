@@ -371,7 +371,7 @@ export class Camera extends Component {
 
   /**
    * Transform a point from viewport space to world space.
-   * @param point - Point in viewport. X and Y are the viewport space coordinates, Z is the viewport depth. The near clipping plane is 0, and the far clipping plane is 1.
+   * @param point - Point in viewport sapce, X and Y are the viewport space coordinates, Z is the viewport depth. The near clipping plane is 0, and the far clipping plane is 1
    * @param out - Point in world space
    * @returns Point in world space
    */
@@ -382,7 +382,7 @@ export class Camera extends Component {
 
   /**
    * Generate a ray by a point in viewport.
-   * @param point Point in viewport point, which is represented by normalization
+   * @param point - Point in viewport space, which is represented by normalization
    * @param out - Ray
    * @returns Ray
    */
