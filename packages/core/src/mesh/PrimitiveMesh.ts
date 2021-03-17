@@ -7,16 +7,13 @@ import { Vector2, Vector3 } from "@oasis-engine/math";
  * Used to generate common primitve meshes.
  */
 export class PrimitiveMesh {
-  /** The max number of indices that Uint16Array can support. */
-  private static _Uint16VertexLimit: number = 65535;
-
   /**
    * Create a sphere mesh.
    * @param engine - Engine
    * @param radius - Sphere radius
    * @param segments - Number of segments
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
-   * @returns Sphere mesh
+   * @returns Sphere model mesh
    */
   static createSphere(
     engine: Engine,
@@ -31,7 +28,7 @@ export class PrimitiveMesh {
     const vertexCount = count * count;
     const rectangleCount = segments * segments;
     let indices: Uint16Array | Uint32Array = null;
-    if (vertexCount > PrimitiveMesh._Uint16VertexLimit) {
+    if (vertexCount > 65535) {
       if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
         indices = new Uint32Array(rectangleCount * 6);
       } else {
@@ -103,7 +100,7 @@ export class PrimitiveMesh {
    * @param height - Cuboid height
    * @param depth - Cuboid depth
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
-   * @returns Cuboid mesh
+   * @returns Cuboid model mesh
    */
   static createCuboid(
     engine: Engine,
@@ -256,7 +253,7 @@ export class PrimitiveMesh {
     const vertexCount = horizontalCount * verticalCount;
     const rectangleCount = verticalSegments * horizontalSegments;
     let indices: Uint16Array | Uint32Array = null;
-    if (vertexCount > PrimitiveMesh._Uint16VertexLimit) {
+    if (vertexCount > 65535) {
       if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
         indices = new Uint32Array(rectangleCount * 6);
       } else {
@@ -319,7 +316,7 @@ export class PrimitiveMesh {
    * @param radialSegments - Cylinder radial segments
    * @param heightSegments - Cylinder height segments
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
-   * @returns Cylinder mesh
+   * @returns Cylinder model mesh
    */
   static createCylinder(
     engine: Engine,
@@ -342,7 +339,7 @@ export class PrimitiveMesh {
     const capTriangleCount = radialSegments * 2;
     const totalVertexCount = torsoVertexCount + 2 + capTriangleCount;
     let indices: Uint16Array | Uint32Array = null;
-    if (totalVertexCount > PrimitiveMesh._Uint16VertexLimit) {
+    if (totalVertexCount > 65535) {
       if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
         indices = new Uint32Array(torsoRectangleCount * 6 + capTriangleCount * 3);
       } else {
