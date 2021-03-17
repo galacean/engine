@@ -38,8 +38,8 @@ export class ModelMesh extends Mesh {
   private _uv5: Vector2[] | null = null;
   private _uv6: Vector2[] | null = null;
   private _uv7: Vector2[] | null = null;
-  private _weights: Vector4[] | null = null;
-  private _joints: Vector4[] | null = null;
+  private _boneWeights: Vector4[] | null = null;
+  private _boneIndices: Vector4[] | null = null;
   private _vertexChangeFlag: number = 0;
   private _indicesChangeFlag: boolean = false;
   private _elementCount: number = 0;
@@ -252,21 +252,21 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Set per-vertex weights for the mesh.
-   * @param weights - The weights for the mesh.
+   * Set per-vertex bone weights for the mesh.
+   * @param boneWeights - The bone weights for the mesh.
    */
-  setWeights(weights: Vector4[] | null): void {
+  setBoneWeights(boneWeights: Vector4[] | null): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    if (weights.length !== this._vertexCount) {
+    if (boneWeights.length !== this._vertexCount) {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlotChanged = weights != null;
-    this._vertexChangeFlag |= ValueChanged.Weight;
-    this._weights = weights;
+    this._vertexSlotChanged = boneWeights != null;
+    this._vertexChangeFlag |= ValueChanged.BoneWeight;
+    this._boneWeights = boneWeights;
   }
 
   /**
@@ -277,25 +277,25 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    return this._weights;
+    return this._boneWeights;
   }
 
   /**
-   * Set per-vertex joints for the mesh.
-   * @param joints - The joints for the mesh.
+   * Set per-vertex bone indices for the mesh.
+   * @param boneIndices - The bone indices for the mesh.
    */
-  setJoints(joints: Vector4[] | null): void {
+  setBoneIndices(boneIndices: Vector4[] | null): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    if (joints.length !== this._vertexCount) {
+    if (boneIndices.length !== this._vertexCount) {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlotChanged = !!this._joints !== !!joints;
-    this._vertexChangeFlag |= ValueChanged.Joint;
-    this._joints = joints;
+    this._vertexSlotChanged = !!this._boneIndices !== !!boneIndices;
+    this._vertexChangeFlag |= ValueChanged.BoneIndex;
+    this._boneIndices = boneIndices;
   }
 
   /**
@@ -306,7 +306,7 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    return this._joints;
+    return this._boneIndices;
   }
 
   /**
@@ -444,7 +444,7 @@ export class ModelMesh extends Mesh {
 
   private _updateVertexElements(): VertexElement[] {
     const vertexElements = [POSITION_VERTEX_ELEMENT];
-    const { _colors, _normals, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7, _weights, _joints } = this;
+    const { _colors, _normals, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7, _boneWeights: _weights, _boneIndices: _joints } = this;
     let offset = 12;
     let elementCount = 3;
     if (_normals) {
@@ -519,7 +519,7 @@ export class ModelMesh extends Mesh {
 
   private _updateVertices(vertices: Float32Array): void {
     // prettier-ignore
-    const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights: _weights, _boneIndices: _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
     if (_vertexChangeFlag & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
@@ -565,7 +565,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_weights) {
-      if (_vertexChangeFlag & ValueChanged.Weight) {
+      if (_vertexChangeFlag & ValueChanged.BoneWeight) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const weight = _weights[i];
@@ -581,7 +581,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_joints) {
-      if (_vertexChangeFlag & ValueChanged.Joint) {
+      if (_vertexChangeFlag & ValueChanged.BoneIndex) {
         const { _verticesUint8 } = this;
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
@@ -745,8 +745,8 @@ enum ValueChanged {
   Normal = 0x2,
   Color = 0x4,
   Tangent = 0x8,
-  Weight = 0x10,
-  Joint = 0x20,
+  BoneWeight = 0x10,
+  BoneIndex = 0x20,
   UV = 0x40,
   UV1 = 0x80,
   UV2 = 0x100,
