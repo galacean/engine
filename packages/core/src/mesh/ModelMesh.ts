@@ -84,6 +84,7 @@ export class ModelMesh extends Mesh {
       const elementCount = this._elementCount;
       let vertices = this._verticesFloat32;
       if (!vertices || vertices.length !== elementCount * this._vertexCount) {
+        vertices && this._vertexBuffer.destroy();
         vertices = new Float32Array(elementCount * this._vertexCount);
         this._verticesUint8 = new Uint8Array(vertices.buffer);
         this._verticesFloat32 = vertices;
@@ -109,6 +110,7 @@ export class ModelMesh extends Mesh {
 
     if (_indices) {
       if (!this._indexBuffer || _indices.byteLength != this._indexBuffer.byteLength) {
+        this._indexBuffer && this._indexBuffer.destroy();
         this._indexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
         this._setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, this._indicesFormat));
       } else if (this._indicesChangeFlag) {
@@ -119,6 +121,7 @@ export class ModelMesh extends Mesh {
         }
       }
     } else if (this._indexBuffer) {
+      this._indexBuffer.destroy();
       this._setIndexBufferBinding(null);
       this._indexBuffer = null;
     }
