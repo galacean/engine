@@ -601,7 +601,7 @@ export class ParticleRenderer extends MeshRenderer {
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
     if (vertexCount > ParticleRenderer._uint16VertexLimit) {
-      if (this.engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
+      if (this.engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(6 * this._maxCount);
       } else {
