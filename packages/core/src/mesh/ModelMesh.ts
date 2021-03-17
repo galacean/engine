@@ -342,7 +342,8 @@ export class ModelMesh extends Mesh {
    * @param uv - The uv for the mesh.
    * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
    */
-  setUVs(uv: Vector2[] | null, channelIndex: number = 0): void {
+  setUVs(uv: Vector2[] | null, channelIndex: number): void;
+  setUVs(uv: Vector2[] | null, channelIndex?: number): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -351,6 +352,7 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
+    channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
         this._vertexSlotChanged = !!this._uv !== !!uv;
@@ -407,10 +409,12 @@ export class ModelMesh extends Mesh {
    * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
-  getUVs(channelIndex: number = 0): Vector2[] | null {
+  getUVs(channelIndex: number): Vector2[] | null;
+  getUVs(channelIndex?: number): Vector2[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
+    channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
         return this._uv;
