@@ -3,6 +3,9 @@ import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 
+/**
+ * 2d sprite.
+ */
 export class Sprite extends RefObject {
   private static _tempVec2: Vector2 = new Vector2();
 
