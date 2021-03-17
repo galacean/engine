@@ -16,7 +16,7 @@ export class PrimitiveMesh {
    * @param engine - Engine
    * @param radius - Sphere radius
    * @param segments - Number of segments
-   * @param noLongerAccessible - no longer access the vertices of the mesh
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Sphere mesh
    */
   static createSphere(
@@ -103,7 +103,7 @@ export class PrimitiveMesh {
    * @param width - Cuboid width
    * @param height - Cuboid height
    * @param depth - Cuboid depth
-   * @param noLongerAccessible - no longer access the vertices of the mesh
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Cuboid mesh
    */
   static createCuboid(
@@ -233,7 +233,7 @@ export class PrimitiveMesh {
    * @param height - Plane height
    * @param horizontalSegments - Plane horizontal segments
    * @param verticalSegments - Plane verticle segments
-   * @param noLongerAccessible - no longer access the vertices of the mesh
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Plane model mesh
    */
   static createPlane(
@@ -319,7 +319,7 @@ export class PrimitiveMesh {
    * @param height - The height of torso
    * @param radialSegments - Cylinder radial segments
    * @param heightSegments - Cylinder height segments
-   * @param noLongerAccessible - no longer access the vertices of the mesh
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Cylinder mesh
    */
   static createCylinder(
