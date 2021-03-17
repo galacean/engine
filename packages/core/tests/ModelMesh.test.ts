@@ -53,8 +53,8 @@ describe("ModelMesh Test", function () {
     modelMesh.setColors(colors);
     modelMesh.setNormals(normals);
     modelMesh.setTangents(tangents);
-    modelMesh.setWeights(weights);
-    modelMesh.setJoints(joints);
+    modelMesh.setBoneWeights(weights);
+    modelMesh.setBoneIndices(joints);
     modelMesh.setUVs(uvs);
     modelMesh.setUVs(uvs, 1);
     modelMesh.setUVs(uvs, 2);
@@ -93,10 +93,10 @@ describe("ModelMesh Test", function () {
       modelMesh.setTangents(falsyTangents);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setWeights(falsyWeights);
+      modelMesh.setBoneWeights(falsyWeights);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setJoints(falsyJoints);
+      modelMesh.setBoneIndices(falsyJoints);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
       modelMesh.setUVs(falsyUV);
@@ -180,10 +180,10 @@ describe("ModelMesh Test", function () {
       modelMesh.setTangents(tangents);
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
-      modelMesh.setWeights(weights);
+      modelMesh.setBoneWeights(weights);
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
-      modelMesh.setJoints(joints);
+      modelMesh.setBoneIndices(joints);
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
       modelMesh.setUVs(uvs);
