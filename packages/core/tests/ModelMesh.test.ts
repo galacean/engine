@@ -55,14 +55,14 @@ describe("ModelMesh Test", function () {
     modelMesh.setTangents(tangents);
     modelMesh.setWeights(weights);
     modelMesh.setJoints(joints);
-    modelMesh.setUV(uvs);
-    modelMesh.setUV1(uvs);
-    modelMesh.setUV2(uvs);
-    modelMesh.setUV3(uvs);
-    modelMesh.setUV4(uvs);
-    modelMesh.setUV5(uvs);
-    modelMesh.setUV6(uvs);
-    modelMesh.setUV7(uvs);
+    modelMesh.setUVs(uvs);
+    modelMesh.setUVs(uvs, 1);
+    modelMesh.setUVs(uvs, 2);
+    modelMesh.setUVs(uvs, 3);
+    modelMesh.setUVs(uvs, 4);
+    modelMesh.setUVs(uvs, 5);
+    modelMesh.setUVs(uvs, 6);
+    modelMesh.setUVs(uvs, 7);
 
     expect(modelMesh.getIndices()).toBe(indices);
     expect(modelMesh.getColors()).toBe(colors);
@@ -70,14 +70,14 @@ describe("ModelMesh Test", function () {
     expect(modelMesh.getTangents()).toBe(tangents);
     expect(modelMesh.getWeights()).toBe(weights);
     expect(modelMesh.getJoints()).toBe(joints);
-    expect(modelMesh.getUV()).toBe(uvs);
-    expect(modelMesh.getUV1()).toBe(uvs);
-    expect(modelMesh.getUV2()).toBe(uvs);
-    expect(modelMesh.getUV3()).toBe(uvs);
-    expect(modelMesh.getUV4()).toBe(uvs);
-    expect(modelMesh.getUV5()).toBe(uvs);
-    expect(modelMesh.getUV6()).toBe(uvs);
-    expect(modelMesh.getUV7()).toBe(uvs);
+    expect(modelMesh.getUVs()).toBe(uvs);
+    expect(modelMesh.getUVs(1)).toBe(uvs);
+    expect(modelMesh.getUVs(2)).toBe(uvs);
+    expect(modelMesh.getUVs(3)).toBe(uvs);
+    expect(modelMesh.getUVs(4)).toBe(uvs);
+    expect(modelMesh.getUVs(5)).toBe(uvs);
+    expect(modelMesh.getUVs(6)).toBe(uvs);
+    expect(modelMesh.getUVs(7)).toBe(uvs);
 
     expect(modelMesh.vertexElements.length).toBe(0);
   });
@@ -99,28 +99,28 @@ describe("ModelMesh Test", function () {
       modelMesh.setJoints(falsyJoints);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setUV(falsyUV);
+      modelMesh.setUVs(falsyUV);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setUV1(falsyUV);
+      modelMesh.setUVs(falsyUV);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setUV2(falsyUV);
+      modelMesh.setUVs(falsyUV);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setUV3(falsyUV);
+      modelMesh.setUVs(falsyUV);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setUV4(falsyUV);
+      modelMesh.setUVs(falsyUV);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setUV5(falsyUV);
+      modelMesh.setUVs(falsyUV);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setUV6(falsyUV);
+      modelMesh.setUVs(falsyUV);
     }).toThrow("The array provided needs to be the same size as vertex count.");
     expect(() => {
-      modelMesh.setUV7(falsyUV);
+      modelMesh.setUVs(falsyUV);
     }).toThrow("The array provided needs to be the same size as vertex count.");
   });
 
@@ -133,14 +133,14 @@ describe("ModelMesh Test", function () {
     expect(modelMesh.getTangents()).toBe(tangents);
     expect(modelMesh.getWeights()).toBe(weights);
     expect(modelMesh.getJoints()).toBe(joints);
-    expect(modelMesh.getUV()).toBe(uvs);
-    expect(modelMesh.getUV1()).toBe(uvs);
-    expect(modelMesh.getUV2()).toBe(uvs);
-    expect(modelMesh.getUV3()).toBe(uvs);
-    expect(modelMesh.getUV4()).toBe(uvs);
-    expect(modelMesh.getUV5()).toBe(uvs);
-    expect(modelMesh.getUV6()).toBe(uvs);
-    expect(modelMesh.getUV7()).toBe(uvs);
+    expect(modelMesh.getUVs()).toBe(uvs);
+    expect(modelMesh.getUVs(1)).toBe(uvs);
+    expect(modelMesh.getUVs(2)).toBe(uvs);
+    expect(modelMesh.getUVs(3)).toBe(uvs);
+    expect(modelMesh.getUVs(4)).toBe(uvs);
+    expect(modelMesh.getUVs(5)).toBe(uvs);
+    expect(modelMesh.getUVs(6)).toBe(uvs);
+    expect(modelMesh.getUVs(7)).toBe(uvs);
 
     modelMesh.setPositions(positionsX);
     expect(modelMesh.vertexCount).toBe(4);
@@ -158,7 +158,6 @@ describe("ModelMesh Test", function () {
     const moreIndices = new Uint8Array([1, 2, 3]);
     modelMesh.setIndices(moreIndices);
     modelMesh.uploadData(false);
-
 
     modelMesh.setIndices(null);
     modelMesh.setPositions(positions);
@@ -187,30 +186,11 @@ describe("ModelMesh Test", function () {
       modelMesh.setJoints(joints);
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
-      modelMesh.setUV(uvs);
+      modelMesh.setUVs(uvs);
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
-      modelMesh.setUV1(uvs);
+      modelMesh.setUVs(uvs);
     }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUV2(uvs);
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUV3(uvs);
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUV4(uvs);
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUV5(uvs);
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUV6(uvs);
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUV7(uvs);
-    }).toThrow("Not allowed to access data while accessible is false.");
-
     expect(() => {
       modelMesh.getPositions();
     }).toThrow("Not allowed to access data while accessible is false.");
@@ -230,28 +210,7 @@ describe("ModelMesh Test", function () {
       modelMesh.getJoints();
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
-      modelMesh.getUV();
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.getUV1();
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.getUV2();
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.getUV3();
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.getUV4();
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.getUV5();
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.getUV6();
-    }).toThrow("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.getUV7();
+      modelMesh.getUVs();
     }).toThrow("Not allowed to access data while accessible is false.");
   });
 });
