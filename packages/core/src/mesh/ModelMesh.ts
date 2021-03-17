@@ -7,6 +7,8 @@ import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { IndexBufferBinding } from "../graphic";
 
 const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
 /**
@@ -95,7 +97,8 @@ export class ModelMesh extends Mesh {
         noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic
       );
       this.setVertexElements(vertexElements);
-      this.setVertexBufferBinding(this._vertexBuffer, elementCount * 4);
+      const bingding = new VertexBufferBinding(this._vertexBuffer, elementCount * 4);
+      this._setVertexBufferBinding(0, bingding);
       this._vertexSlotChanged = false;
       this._vertexCountChanged = false;
     } else {
@@ -107,16 +110,16 @@ export class ModelMesh extends Mesh {
     if (_indices) {
       if (!this._indexBuffer || _indices.byteLength != this._indexBuffer.byteLength) {
         this._indexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
-        this.setIndexBufferBinding(this._indexBuffer, this._indicesFormat);
+        this._setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, this._indicesFormat));
       } else if (this._indicesChangeFlag) {
         this._indicesChangeFlag = false;
         this._indexBuffer.setData(this._indices);
         if (this._indexBufferBinding._format !== this._indicesFormat) {
-          this.setIndexBufferBinding(this._indexBuffer, this._indicesFormat);
+          this._setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, this._indicesFormat));
         }
       }
     } else if (this._indexBuffer) {
-      this.setIndexBufferBinding(null);
+      this._setIndexBufferBinding(null);
       this._indexBuffer = null;
     }
 

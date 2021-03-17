@@ -1,5 +1,4 @@
 import { Engine } from "../Engine";
-import { Mesh } from "../graphic/Mesh";
 import { GLCapabilityType } from "../base/Constant";
 import { ModelMesh } from "./ModelMesh";
 import { Vector2, Vector3 } from "@oasis-engine/math";

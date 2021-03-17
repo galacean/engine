@@ -16,7 +16,7 @@ import { UpdateFlag } from "../UpdateFlag";
 /**
  * Mesh.
  */
-export class Mesh extends RefObject {
+export abstract class Mesh extends RefObject {
   /** Name. */
   name: string;
   /** Instanced count, disable instanced drawing when set zero. */
@@ -78,80 +78,6 @@ export class Mesh extends RefObject {
     super(engine);
     this.name = name;
     this._platformPrimitive = this._engine._hardwareRenderer.createPlatformPrimitive(this);
-  }
-
-  /**
-   * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
-   * @param index - Vertex buffer index, the default value is 0
-   */
-  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, index?: number): void;
-
-  /**
-   * Set vertex buffer binding.
-   * @param vertexBuffer - Vertex buffer
-   * @param stride - Vertex buffer data stride
-   * @param index - Vertex buffer index, the default value is 0
-   */
-  setVertexBufferBinding(vertexBuffer: Buffer, stride: number, index?: number): void;
-
-  setVertexBufferBinding(
-    bufferOrBinding: Buffer | VertexBufferBinding,
-    strideOrFirstIndex: number = 0,
-    index: number = 0
-  ): void {
-    let binding = <VertexBufferBinding>bufferOrBinding;
-    const isBinding = binding.buffer !== undefined;
-    isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
-
-    const bindings = this._vertexBufferBindings;
-    bindings.length <= index && (bindings.length = index + 1);
-    this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : index, binding);
-  }
-
-  /**
-   * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
-   * @param firstIndex - First vertex buffer index, the default value is 0
-   */
-  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
-    const bindings = this._vertexBufferBindings;
-    const count = vertexBufferBindings.length;
-    const needLength = firstIndex + count;
-    bindings.length < needLength && (bindings.length = needLength);
-    for (let i = 0; i < count; i++) {
-      this._setVertexBufferBinding(firstIndex + i, vertexBufferBindings[i]);
-    }
-  }
-
-  /**
-   * Set index buffer binding.
-   * @param buffer - Index buffer
-   * @param format - Index buffer format
-   */
-  setIndexBufferBinding(buffer: Buffer, format: IndexFormat): void;
-
-  /**
-   * Set index buffer binding.
-   * @param bufferBinding - Index buffer binding
-   * @remarks When bufferBinding is null, it will clear IndexBufferBinding
-   */
-  setIndexBufferBinding(bufferBinding: IndexBufferBinding | null): void;
-
-  setIndexBufferBinding(bufferOrBinding: Buffer | IndexBufferBinding | null, format?: IndexFormat): void {
-    if (bufferOrBinding) {
-      let binding = <IndexBufferBinding>bufferOrBinding;
-      const isBinding = binding.buffer !== undefined;
-      isBinding || (binding = new IndexBufferBinding(<Buffer>bufferOrBinding, format));
-      this._indexBufferBinding = binding;
-      this._glIndexType = BufferUtil._getGLIndexType(binding.format);
-    } else {
-      if (this._indexBufferBinding) {
-        this._indexBufferBinding._buffer.destroy();
-        this._indexBufferBinding = null;
-        this._glIndexType = undefined;
-      }
-    }
   }
 
   /**
@@ -234,6 +160,25 @@ export class Mesh extends RefObject {
     this._platformPrimitive.destroy();
   }
 
+  protected _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    if (this._getRefCount() > 0) {
+      const lastBinding = this._vertexBufferBindings[index];
+      lastBinding && lastBinding._buffer._addRefCount(-1);
+      binding._buffer._addRefCount(1);
+    }
+    this._vertexBufferBindings[index] = binding;
+  }
+
+  protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
+    if (binding) {
+      this._indexBufferBinding = binding;
+      this._glIndexType = BufferUtil._getGLIndexType(binding.format);
+    } else {
+      this._indexBufferBinding = null;
+      this._glIndexType = undefined;
+    }
+  }
+
   private _clearVertexElements(): void {
     this._vertexElements.length = 0;
     const vertexElementMap = this._vertexElementMap;
@@ -247,15 +192,6 @@ export class Mesh extends RefObject {
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
     this._makeModified();
-  }
-
-  private _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    if (this._getRefCount() > 0) {
-      const lastBinding = this._vertexBufferBindings[index];
-      lastBinding && lastBinding._buffer._addRefCount(-1);
-      binding._buffer._addRefCount(1);
-    }
-    this._vertexBufferBindings[index] = binding;
   }
 
   private _makeModified(): void {
