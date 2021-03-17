@@ -1,9 +1,12 @@
 import { Color, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
+import { ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
 import { Material, RenderQueueType } from "../../material";
 import { Renderer } from "../../Renderer";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../../shader";
+import { ShaderProperty } from "../../shader/ShaderProperty";
+import { UpdateFlag } from "../../UpdateFlag";
 import { Sprite } from "./Sprite";
 import "./SpriteMaterial";
 
@@ -11,6 +14,7 @@ import "./SpriteMaterial";
  * 2d sprite renderer.
  */
 export class SpriteRenderer extends Renderer {
+  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_texture");
   private static _tempVec3: Vector3 = new Vector3();
   private static _defaultMaterial: Material = null;
 
@@ -34,6 +38,8 @@ export class SpriteRenderer extends Renderer {
   private _flipY: boolean;
   /** The dirty flag to determine whether flip vertices. */
   private _dirtyFlag: number;
+  @ignoreClone
+  private _isWorldMatrixDirty: UpdateFlag;
 
   /**
    * The Sprite to render.
@@ -102,6 +108,7 @@ export class SpriteRenderer extends Renderer {
     this._flipX = false;
     this._flipY = false;
     this._dirtyFlag = SpriteRenderer._ALL_FLAG;
+    this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
   }
 
   /**
@@ -115,45 +122,43 @@ export class SpriteRenderer extends Renderer {
     }
 
     const { transform } = entity;
-    const modelMatrix = transform.worldMatrix;
 
     // Update sprite data.
     const needUpdate = sprite._updateMeshData();
-    const { _triangles: triangles, _uv: uv, _positions: localPositions, texture } = sprite;
 
-    // Update vertices position in world space.
-    const posZ = transform.position.z;
-    const localPos = SpriteRenderer._tempVec3;
-    for (let i = 0; i < 4; i++) {
-      const curPos = localPositions[i];
-      localPos.setValue(curPos.x, curPos.y, posZ);
-      Vector3.transformToVec3(localPos, modelMatrix, _positions[i]);
-    }
+    if (this._isWorldMatrixDirty.flag || needUpdate || this._isContainDirtyFlag(SpriteRenderer._SPRITE_FLAG)) {
+      // Update vertices position in world space.
+      const localPositions = sprite._positions;
+      const localPosZ = transform.position.z;
+      const localVertexPos = SpriteRenderer._tempVec3;
+      const worldMatrix = transform.worldMatrix;
+      for (let i = 0; i < 4; i++) {
+        const curVertexPos = localPositions[i];
+        localVertexPos.setValue(
+          this.flipX ? -curVertexPos.x : curVertexPos.x,
+          this.flipY ? -curVertexPos.y : curVertexPos.y,
+          localPosZ
+        );
+        Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
+      }
 
-    if (this._isContainDirtyFlag(SpriteRenderer._SPRITE_FLAG) || needUpdate) {
-      !this._flipX && this._setDirtyFlagFalse(SpriteRenderer._FLIP_X_FLAG);
-      !this._flipY && this._setDirtyFlagFalse(SpriteRenderer._FLIP_Y_FLAG);
-
+      this._setDirtyFlagFalse(SpriteRenderer._FLIP_FLAG);
       this._setDirtyFlagFalse(SpriteRenderer._SPRITE_FLAG);
-    }
-
-    // Flip _vertices.
-    if (this._isContainDirtyFlag(SpriteRenderer._FLIP_FLAG)) {
+      this._isWorldMatrixDirty.flag = false;
+    } else if (this._isContainDirtyFlag(SpriteRenderer._FLIP_FLAG)) {
       const flipX = this._isContainDirtyFlag(SpriteRenderer._FLIP_X_FLAG);
       const flipY = this._isContainDirtyFlag(SpriteRenderer._FLIP_Y_FLAG);
-      const pivot = transform.worldPosition;
-      const { x: px, y: py } = pivot;
+      const { x, y } = transform.worldPosition;
 
       for (let i = 0, len = _positions.length; i < len; ++i) {
         const curPos = _positions[i];
-        const { x, y } = curPos;
 
         if (flipX) {
-          curPos.x = px * 2 - x;
+          curPos.x = x * 2 - curPos.x;
         }
 
         if (flipY) {
-          curPos.y = py * 2 - y;
+          curPos.y = y * 2 - curPos.y;
         }
       }
 
@@ -161,9 +166,18 @@ export class SpriteRenderer extends Renderer {
     }
 
     // @ts-ignore
-    this.shaderData.setTexture("u_texture", texture);
+    this.shaderData.setTexture(SpriteRenderer._textureProperty, sprite.texture);
     const material = this.getMaterial() || this._getDefaultMaterial();
-    camera._renderPipeline.pushSprite(this, _positions, uv, triangles, this.color, material, camera);
+
+    camera._renderPipeline.pushSprite(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
+  }
+
+  /**
+   * @internal
+   */
+  _onDestroy() {
+    this._isWorldMatrixDirty.destroy();
+    super._onDestroy();
   }
 
   private _isContainDirtyFlag(type: number): boolean {
