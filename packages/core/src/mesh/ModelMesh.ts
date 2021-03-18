@@ -10,7 +10,6 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { IndexBufferBinding } from "../graphic";
 
-const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
 /**
  * Mesh containing common vertex elements of the model.
  */
@@ -444,7 +443,9 @@ export class ModelMesh extends Mesh {
   }
 
   private _updateVertexElements(): VertexElement[] {
-    const vertexElements = [POSITION_VERTEX_ELEMENT];
+    const vertexElements = this._vertexElements;
+    vertexElements.length = 1;
+    vertexElements[0] = POSITION_VERTEX_ELEMENT;
 
     let offset = 12;
     let elementCount = 3;
@@ -738,6 +739,8 @@ export class ModelMesh extends Mesh {
     this._uv7 = null;
   }
 }
+
+const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
 
 enum ValueChanged {
   Position = 0x1,
