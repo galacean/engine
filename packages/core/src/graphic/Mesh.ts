@@ -152,7 +152,7 @@ export abstract class Mesh extends RefObject {
     }
   }
 
-  protected _clearVertexElements(): void {
+  private _clearVertexElements(): void {
     this._vertexElements.length = 0;
     const vertexElementMap = this._vertexElementMap;
     for (var k in vertexElementMap) {
@@ -160,7 +160,7 @@ export abstract class Mesh extends RefObject {
     }
   }
 
-  protected _addVertexElement(element: VertexElement): void {
+  private _addVertexElement(element: VertexElement): void {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
