@@ -142,18 +142,18 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    this._indices = indices;
-    if (indices === null) {
-      return;
+
+    if (this._indices !== indices) {
+      this._indices = indices;
+      if (indices instanceof Uint8Array) {
+        this._indicesFormat = IndexFormat.UInt8;
+      } else if (indices instanceof Uint16Array) {
+        this._indicesFormat = IndexFormat.UInt16;
+      } else if (indices instanceof Uint32Array) {
+        this._indicesFormat = IndexFormat.UInt32;
+      }
     }
 
-    if (indices instanceof Uint8Array) {
-      this._indicesFormat = IndexFormat.UInt8;
-    } else if (indices instanceof Uint16Array) {
-      this._indicesFormat = IndexFormat.UInt16;
-    } else if (indices instanceof Uint32Array) {
-      this._indicesFormat = IndexFormat.UInt32;
-    }
     this._indicesChangeFlag = true;
   }
 
