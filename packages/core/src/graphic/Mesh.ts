@@ -58,17 +58,6 @@ export abstract class Mesh extends RefObject {
   }
 
   /**
-   * Set vertex elements.
-   * @param elements - Vertex element collection
-   */
-  setVertexElements(elements: VertexElement[]): void {
-    this._clearVertexElements();
-    for (let i = 0, n = elements.length; i < n; i++) {
-      this._addVertexElement(elements[i]);
-    }
-  }
-
-  /**
    * Add sub-mesh, each sub-mesh can correspond to an independent material.
    * @param start - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
    * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
@@ -156,7 +145,7 @@ export abstract class Mesh extends RefObject {
     }
   }
 
-  private _clearVertexElements(): void {
+  protected _clearVertexElements(): void {
     this._vertexElements.length = 0;
     const vertexElementMap = this._vertexElementMap;
     for (var k in vertexElementMap) {
@@ -164,7 +153,7 @@ export abstract class Mesh extends RefObject {
     }
   }
 
-  private _addVertexElement(element: VertexElement): void {
+  protected _addVertexElement(element: VertexElement): void {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);

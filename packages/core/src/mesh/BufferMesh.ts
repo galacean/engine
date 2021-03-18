@@ -26,6 +26,17 @@ export class BufferMesh extends Mesh {
   }
 
   /**
+   * Set vertex elements.
+   * @param elements - Vertex element collection
+   */
+  setVertexElements(elements: VertexElement[]): void {
+    this._clearVertexElements();
+    for (let i = 0, n = elements.length; i < n; i++) {
+      this._addVertexElement(elements[i]);
+    }
+  }
+
+  /**
    * Set vertex buffer binding.
    * @param vertexBufferBindings - Vertex buffer binding
    * @param index - Vertex buffer index, the default value is 0
