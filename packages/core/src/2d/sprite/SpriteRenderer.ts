@@ -18,26 +18,18 @@ export class SpriteRenderer extends Renderer {
   private static _tempVec3: Vector3 = new Vector3();
   private static _defaultMaterial: Material = null;
 
-  private static _FLIP_X_FLAG = 0x1;
-  private static _FLIP_Y_FLAG = 0x2;
-  private static _SPRITE_FLAG = 0x4;
-  /** SpriteRenderer._FLIP_X_FLAG | SpriteRenderer._FLIP_Y_FLAG */
-  private static _FLIP_FLAG = 0x3;
-  /** SpriteRenderer._FLIP_X_FLAG | SpriteRenderer._FLIP_Y_FLAG | SpriteRenderer._SPRITE_FLAG */
-  private static _ALL_FLAG = 0x7;
-
   /** The array containing sprite mesh vertex positions in world space */
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   /** The Sprite to render. */
-  private _sprite: Sprite;
+  private _sprite: Sprite = null;
   /** Rendering color for the Sprite graphic. */
-  private _color: Color;
+  private _color: Color = new Color(1, 1, 1, 1);
   /** Flips the sprite on the X axis. */
-  private _flipX: boolean;
+  private _flipX: boolean = false;
   /** Flips the sprite on the Y axis. */
-  private _flipY: boolean;
+  private _flipY: boolean = false;
   /** The dirty flag to determine whether flip vertices. */
-  private _dirtyFlag: number;
+  private _dirtyFlag: number = DirtyFlag.All;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
 
@@ -51,7 +43,7 @@ export class SpriteRenderer extends Renderer {
   set sprite(value: Sprite | null) {
     if (this._sprite !== value) {
       this._sprite = value;
-      this._setDirtyFlagTrue(SpriteRenderer._SPRITE_FLAG);
+      this._setDirtyFlagTrue(DirtyFlag.Sprite);
     }
   }
 
@@ -78,7 +70,7 @@ export class SpriteRenderer extends Renderer {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._setDirtyFlagTrue(SpriteRenderer._FLIP_X_FLAG);
+      this._setDirtyFlagTrue(DirtyFlag.FlipX);
     }
   }
 
@@ -92,7 +84,7 @@ export class SpriteRenderer extends Renderer {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._setDirtyFlagTrue(SpriteRenderer._FLIP_Y_FLAG);
+      this._setDirtyFlagTrue(DirtyFlag.FlipY);
     }
   }
 
@@ -102,12 +94,6 @@ export class SpriteRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-
-    this._sprite = null;
-    this._color = new Color(1, 1, 1, 1);
-    this._flipX = false;
-    this._flipY = false;
-    this._dirtyFlag = SpriteRenderer._ALL_FLAG;
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
   }
 
@@ -116,17 +102,18 @@ export class SpriteRenderer extends Renderer {
    * @param camera - Camera which is rendering
    */
   _render(camera: Camera): void {
-    const { entity, sprite, _positions } = this;
+    const { sprite } = this;
     if (!sprite) {
       return;
     }
 
-    const { transform } = entity;
+    const { _positions } = this;
+    const { transform } = this.entity;
 
     // Update sprite data.
     const needUpdate = sprite._updateMeshData();
 
-    if (this._isWorldMatrixDirty.flag || needUpdate || this._isContainDirtyFlag(SpriteRenderer._SPRITE_FLAG)) {
+    if (this._isWorldMatrixDirty.flag || needUpdate || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
       // Update vertices position in world space.
       const localPositions = sprite._positions;
       const localPosZ = transform.position.z;
@@ -142,12 +129,12 @@ export class SpriteRenderer extends Renderer {
         Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
       }
 
-      this._setDirtyFlagFalse(SpriteRenderer._FLIP_FLAG);
-      this._setDirtyFlagFalse(SpriteRenderer._SPRITE_FLAG);
+      this._setDirtyFlagFalse(DirtyFlag.Flip);
+      this._setDirtyFlagFalse(DirtyFlag.Sprite);
       this._isWorldMatrixDirty.flag = false;
-    } else if (this._isContainDirtyFlag(SpriteRenderer._FLIP_FLAG)) {
-      const flipX = this._isContainDirtyFlag(SpriteRenderer._FLIP_X_FLAG);
-      const flipY = this._isContainDirtyFlag(SpriteRenderer._FLIP_Y_FLAG);
+    } else if (this._isContainDirtyFlag(DirtyFlag.Flip)) {
+      const flipX = this._isContainDirtyFlag(DirtyFlag.FlipX);
+      const flipY = this._isContainDirtyFlag(DirtyFlag.FlipY);
       const { x, y } = transform.worldPosition;
 
       for (let i = 0, len = _positions.length; i < len; ++i) {
@@ -162,7 +149,7 @@ export class SpriteRenderer extends Renderer {
         }
       }
 
-      this._setDirtyFlagFalse(SpriteRenderer._FLIP_FLAG);
+      this._setDirtyFlagFalse(DirtyFlag.Flip);
     }
 
     // @ts-ignore
@@ -207,4 +194,12 @@ export class SpriteRenderer extends Renderer {
 
     return SpriteRenderer._defaultMaterial;
   }
+}
+
+enum DirtyFlag {
+  FlipX = 0x1,
+  FlipY = 0x2,
+  Flip = 0x3,
+  Sprite = 0x4,
+  All = 0x7
 }
