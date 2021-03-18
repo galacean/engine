@@ -15,7 +15,7 @@ import {
   InterpolationType,
   Logger,
   Material,
-  Mesh,
+  BufferMesh,
   MeshRenderer,
   ModelMesh,
   PBRMaterial,
@@ -28,7 +28,7 @@ import {
   Texture2D,
   TypedArray,
   UnlitMaterial,
-  VertexElement
+  VertexElement,
 } from "@oasis-engine/core";
 import { Color, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -122,7 +122,7 @@ export class GLTFResource extends EngineObject {
   textures?: Texture2D[];
   animations?: AnimationClip[];
   materials?: Material[];
-  meshes?: Mesh[];
+  meshes?: BufferMesh[];
   skins?: Skin[];
   cameras?: Camera[];
   meta: any;
@@ -424,7 +424,7 @@ export function parseSkin(gltfSkin, resources) {
 }
 
 function parsePrimitiveVertex(
-  mesh: Mesh,
+  mesh: BufferMesh,
   // primitive: Primitive,
   primitiveGroup: SubMesh,
   gltfPrimitive,
@@ -500,7 +500,7 @@ export function parseMesh(gltfMesh, resources) {
       new Promise((resolve, reject) => {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
-        const mesh = new ModelMesh(engine, gltfPrimitive.name || gltfMesh.name || i);
+        const mesh = new BufferMesh(engine, gltfPrimitive.name || gltfMesh.name || i);
         const subMesh = new SubMesh();
         groups.push(subMesh);
         // primitive.type = resources.assetType;
