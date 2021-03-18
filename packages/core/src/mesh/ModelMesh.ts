@@ -73,39 +73,44 @@ export class ModelMesh extends Mesh {
    * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
   uploadData(noLongerAccessible: boolean): void {
-    const { _indices, _vertexSlotChanged, _accessible } = this;
-    if (!_accessible) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    // Structure of vertex buffer has changed
-    if (_vertexSlotChanged || this._vertexCountChanged) {
+    const { _indices } = this;
+
+    // Vertex element change.
+    if (this._vertexSlotChanged) {
       const vertexElements = this._updateVertexElements();
-      const elementCount = this._elementCount;
-      let vertices = this._verticesFloat32;
-      if (!vertices || vertices.length !== elementCount * this._vertexCount) {
-        vertices && this._vertexBuffer.destroy();
-        vertices = new Float32Array(elementCount * this._vertexCount);
-        this._verticesUint8 = new Uint8Array(vertices.buffer);
-        this._verticesFloat32 = vertices;
-      }
+      this.setVertexElements(vertexElements);
+      this._vertexChangeFlag = ValueChanged.All;
+      this._vertexSlotChanged = false;
+    }
+
+    // Vertex value change.
+    const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
+    const elementCount = this._elementCount;
+    const vertexFloatCount = elementCount * this._vertexCount;
+    if (!vertexBuffer || this._verticesFloat32.length !== vertexFloatCount) {
+      vertexBuffer && vertexBuffer.destroy();
+      const vertices = new Float32Array(vertexFloatCount);
+      this._verticesFloat32 = vertices;
+      this._verticesUint8 = new Uint8Array(vertices.buffer);
+
       this._vertexChangeFlag = ValueChanged.All;
       this._updateVertices(vertices);
-      this._vertexBuffer = new Buffer(
+
+      const newVertexBuffer = new Buffer(
         this._engine,
         BufferBindFlag.VertexBuffer,
         vertices,
         noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic
       );
-      this.setVertexElements(vertexElements);
-      const bingding = new VertexBufferBinding(this._vertexBuffer, elementCount * 4);
-      this._setVertexBufferBinding(0, bingding);
-      this._vertexSlotChanged = false;
-      this._vertexCountChanged = false;
-    } else {
-      const verticesArray = this._verticesFloat32;
-      this._updateVertices(verticesArray);
-      this._vertexBuffer!.setData(verticesArray);
+      this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
+    } else if (this._vertexChangeFlag & ValueChanged.All) {
+      const vertices = this._verticesFloat32;
+      this._updateVertices(vertices);
+      vertexBuffer.setData(vertices);
     }
 
     if (_indices) {
@@ -273,7 +278,7 @@ export class ModelMesh extends Mesh {
    * Get weights for the mesh.
    * @remarks Please call the setWeights() method after modification to ensure that the modification takes effect.
    */
-  getWeights(): Vector4[] | null {
+  getBoneWeights(): Vector4[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -302,7 +307,7 @@ export class ModelMesh extends Mesh {
    * Get joints for the mesh.
    * @remarks Please call the setJoints() method after modification to ensure that the modification takes effect.
    */
-  getJoints(): Vector4[] | null {
+  getBoneIndices(): Vector4[] | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -444,70 +449,70 @@ export class ModelMesh extends Mesh {
 
   private _updateVertexElements(): VertexElement[] {
     const vertexElements = [POSITION_VERTEX_ELEMENT];
-    const { _colors, _normals, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7, _boneWeights: _weights, _boneIndices: _joints } = this;
+
     let offset = 12;
     let elementCount = 3;
-    if (_normals) {
+    if (this._normals) {
       vertexElements.push(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
       offset += 12;
       elementCount += 3;
     }
-    if (_colors) {
+    if (this._colors) {
       vertexElements.push(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
       elementCount += 4;
     }
-    if (_weights) {
+    if (this._boneWeights) {
       vertexElements.push(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
       elementCount += 4;
     }
-    if (_joints) {
+    if (this._boneIndices) {
       vertexElements.push(new VertexElement("JOINTS_0", offset, VertexElementFormat.UByte4, 0));
       offset += 4;
       elementCount += 1;
     }
-    if (_tangents) {
+    if (this._tangents) {
       vertexElements.push(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
       elementCount += 4;
     }
-    if (_uv) {
+    if (this._uv) {
       vertexElements.push(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
-    if (_uv1) {
+    if (this._uv1) {
       vertexElements.push(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
-    if (_uv2) {
+    if (this._uv2) {
       vertexElements.push(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
-    if (_uv3) {
+    if (this._uv3) {
       vertexElements.push(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
-    if (_uv4) {
+    if (this._uv4) {
       vertexElements.push(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
-    if (_uv5) {
+    if (this._uv5) {
       vertexElements.push(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
-    if (_uv6) {
+    if (this._uv6) {
       vertexElements.push(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
-    if (_uv7) {
+    if (this._uv7) {
       vertexElements.push(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
@@ -519,7 +524,7 @@ export class ModelMesh extends Mesh {
 
   private _updateVertices(vertices: Float32Array): void {
     // prettier-ignore
-    const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights: _weights, _boneIndices: _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
     if (_vertexChangeFlag & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
@@ -564,11 +569,11 @@ export class ModelMesh extends Mesh {
       offset += 4;
     }
 
-    if (_weights) {
+    if (_boneWeights) {
       if (_vertexChangeFlag & ValueChanged.BoneWeight) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
-          const weight = _weights[i];
+          const weight = _boneWeights[i];
           if (weight) {
             vertices[start] = weight.x;
             vertices[start + 1] = weight.y;
@@ -580,12 +585,12 @@ export class ModelMesh extends Mesh {
       offset += 4;
     }
 
-    if (_joints) {
+    if (_boneIndices) {
       if (_vertexChangeFlag & ValueChanged.BoneIndex) {
         const { _verticesUint8 } = this;
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
-          const joint = _joints[i];
+          const joint = _boneIndices[i];
           if (joint) {
             const internalStart = start * 4;
             _verticesUint8[internalStart] = joint.x;

@@ -30,7 +30,7 @@ export abstract class Mesh extends RefObject {
 
   protected _vertexBufferBindings: VertexBufferBinding[] = [];
   protected _indexBufferBinding: IndexBufferBinding = null;
-  private _vertexElements: VertexElement[] = [];
+  protected _vertexElements: VertexElement[] = [];
   private _subMeshes: SubMesh[] = [];
   private _updateFlags: UpdateFlag[] = [];
 
