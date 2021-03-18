@@ -35,27 +35,6 @@ export abstract class Mesh extends RefObject {
   private _updateFlags: UpdateFlag[] = [];
 
   /**
-   * Vertex buffer binding collection.
-   */
-  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
-    return this._vertexBufferBindings;
-  }
-
-  /**
-   * Index buffer binding.
-   */
-  get indexBufferBinding(): IndexBufferBinding {
-    return this._indexBufferBinding;
-  }
-
-  /**
-   * Vertex element collection.
-   */
-  get vertexElements(): Readonly<VertexElement[]> {
-    return this._vertexElements;
-  }
-
-  /**
    * First sub-mesh. Rendered using the first material.
    */
   get subMesh(): SubMesh | null {

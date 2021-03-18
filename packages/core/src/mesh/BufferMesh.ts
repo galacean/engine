@@ -1,4 +1,4 @@
-import { IndexBufferBinding, IndexFormat, Mesh, Buffer, VertexBufferBinding, BufferUtil, VertexElement } from "../graphic";
+import { IndexBufferBinding, IndexFormat, Mesh, Buffer, VertexBufferBinding, VertexElement } from "../graphic";
 
 /**
  * BufferMesh.
@@ -7,7 +7,7 @@ export class BufferMesh extends Mesh {
   /**
    * Vertex buffer binding collection.
    */
-   get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
+  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
     return this._vertexBufferBindings;
   }
 
@@ -24,7 +24,7 @@ export class BufferMesh extends Mesh {
   get vertexElements(): Readonly<VertexElement[]> {
     return this._vertexElements;
   }
-  
+
   /**
    * Set vertex buffer binding.
    * @param vertexBufferBindings - Vertex buffer binding

@@ -17,14 +17,11 @@ const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFo
 export class ModelMesh extends Mesh {
   private _vertexCount: number = 0;
   private _accessible: boolean = true;
-  private _indexBuffer: Buffer | null = null;
-  private _vertexBuffer: Buffer | null = null;
   private _verticesFloat32: Float32Array | null = null;
   private _verticesUint8: Uint8Array | null = null;
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
   private _vertexSlotChanged: boolean = false;
-  private _vertexCountChanged: boolean = false;
 
   private _positions: Vector3[] = [];
   private _normals: Vector3[] | null = null;
@@ -113,22 +110,22 @@ export class ModelMesh extends Mesh {
       vertexBuffer.setData(vertices);
     }
 
+    const indexBuffer = this._indexBufferBinding?._buffer;
     if (_indices) {
-      if (!this._indexBuffer || _indices.byteLength != this._indexBuffer.byteLength) {
-        this._indexBuffer && this._indexBuffer.destroy();
-        this._indexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
-        this._setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, this._indicesFormat));
+      if (!indexBuffer || _indices.byteLength != indexBuffer.byteLength) {
+        indexBuffer && indexBuffer.destroy();
+        const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
+        this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
       } else if (this._indicesChangeFlag) {
         this._indicesChangeFlag = false;
-        this._indexBuffer.setData(this._indices);
+        indexBuffer.setData(_indices);
         if (this._indexBufferBinding._format !== this._indicesFormat) {
-          this._setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, this._indicesFormat));
+          this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
         }
       }
-    } else if (this._indexBuffer) {
-      this._indexBuffer.destroy();
+    } else if (indexBuffer) {
+      indexBuffer.destroy();
       this._setIndexBufferBinding(null);
-      this._indexBuffer = null;
     }
 
     if (noLongerAccessible) {
@@ -182,7 +179,6 @@ export class ModelMesh extends Mesh {
 
     if (this._vertexCount !== count) {
       this._vertexCount = count;
-      this._vertexCountChanged = true;
     }
   }
 
@@ -725,9 +721,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _releaseCache(): void {
-    this._indexBuffer = null;
     this._verticesUint8 = null;
-    this._vertexBuffer = null;
     this._indices = null;
     this._verticesFloat32 = null;
     this._positions.length = 0;
