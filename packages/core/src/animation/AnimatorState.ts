@@ -39,8 +39,6 @@ export class AnimatorState {
     AnimatorState.statesMap[name] = this;
   }
 
-  _update(deltaTime: number) {}
-
   addStateMachineBehaviour(behaviour: StateMachineBehaviour) {}
   addTransition(destinationState: AnimatorState) {}
   removeTransition(transition: AnimatorStateTransition) {}

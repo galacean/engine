@@ -253,6 +253,7 @@ export class AnimationCurve {
       case InterpolationType.HERMITE:
         val = this._evaluateHermite(frameIndex, nextFrameIndex, alpha, dur);
     }
+    console.log(interpolation, val);
     return val;
   }
 

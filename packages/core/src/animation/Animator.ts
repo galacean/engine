@@ -95,7 +95,7 @@ export class Animator extends Component {
     const { layers } = animatorController;
     for (let i = layers.length - 1; i >= 0; i--) {
       const animLayer = layers[i];
-      const animClip = animLayer.stateMachine.states[0].motion as AnimationClip;
+      const animClip = animLayer.stateMachine.states[1].motion as AnimationClip;
       const count = animClip.curves.length;
       const output = [];
       for (let j = count - 1; j >= 0; j--) {
