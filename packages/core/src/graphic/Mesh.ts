@@ -17,8 +17,6 @@ import { UpdateFlag } from "../UpdateFlag";
 export abstract class Mesh extends RefObject {
   /** Name. */
   name: string;
-  /** Instanced count, disable instanced drawing when set zero. */
-  instanceCount: number = 0;
   /** The bounding volume of the mesh. */
   readonly bounds: BoundingBox = new BoundingBox();
 
@@ -26,9 +24,15 @@ export abstract class Mesh extends RefObject {
   _glIndexType: number;
   _platformPrimitive: IPlatformPrimitive;
 
-  protected _vertexBufferBindings: VertexBufferBinding[] = [];
-  protected _indexBufferBinding: IndexBufferBinding = null;
-  protected _vertexElements: VertexElement[] = [];
+  /** @internal */
+  _instanceCount: number = 0;
+  /** @internal */
+  _vertexBufferBindings: VertexBufferBinding[] = [];
+  /** @internal */
+  _indexBufferBinding: IndexBufferBinding = null;
+  /** @internal */
+  _vertexElements: VertexElement[] = [];
+  
   private _subMeshes: SubMesh[] = [];
   private _updateFlags: UpdateFlag[] = [];
 

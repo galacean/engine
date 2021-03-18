@@ -5,6 +5,17 @@ import { IndexBufferBinding, IndexFormat, Mesh, Buffer, VertexBufferBinding, Ver
  */
 export class BufferMesh extends Mesh {
   /**
+   * Instanced count, disable instanced drawing when set zero.
+   */
+  get instanceCount(): number {
+    return this._instanceCount;
+  }
+
+  set instanceCount(value: number) {
+    this._instanceCount = value;
+  }
+
+  /**
    * Vertex buffer binding collection.
    */
   get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {

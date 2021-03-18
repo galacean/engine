@@ -68,8 +68,8 @@ describe("ModelMesh Test", function () {
     expect(modelMesh.getColors()).toBe(colors);
     expect(modelMesh.getNormals()).toBe(normals);
     expect(modelMesh.getTangents()).toBe(tangents);
-    expect(modelMesh.getWeights()).toBe(weights);
-    expect(modelMesh.getJoints()).toBe(joints);
+    expect(modelMesh.getBoneWeights()).toBe(weights);
+    expect(modelMesh.getBoneIndices()).toBe(joints);
     expect(modelMesh.getUVs()).toBe(uvs);
     expect(modelMesh.getUVs(1)).toBe(uvs);
     expect(modelMesh.getUVs(2)).toBe(uvs);
@@ -79,7 +79,7 @@ describe("ModelMesh Test", function () {
     expect(modelMesh.getUVs(6)).toBe(uvs);
     expect(modelMesh.getUVs(7)).toBe(uvs);
 
-    expect(modelMesh.vertexElements.length).toBe(0);
+    expect(modelMesh._vertexElements.length).toBe(0);
   });
 
   it("set data not same size", () => {
@@ -131,8 +131,8 @@ describe("ModelMesh Test", function () {
     expect(modelMesh.getColors()).toBe(colors);
     expect(modelMesh.getNormals()).toBe(normals);
     expect(modelMesh.getTangents()).toBe(tangents);
-    expect(modelMesh.getWeights()).toBe(weights);
-    expect(modelMesh.getJoints()).toBe(joints);
+    expect(modelMesh.getBoneWeights()).toBe(weights);
+    expect(modelMesh.getBoneIndices()).toBe(joints);
     expect(modelMesh.getUVs()).toBe(uvs);
     expect(modelMesh.getUVs(1)).toBe(uvs);
     expect(modelMesh.getUVs(2)).toBe(uvs);
@@ -144,8 +144,6 @@ describe("ModelMesh Test", function () {
 
     modelMesh.setPositions(positionsX);
     expect(modelMesh.vertexCount).toBe(4);
-    // @ts-ignore
-    expect(modelMesh._vertexCountChanged).toBe(true);
     // @ts-ignore
     const vertices = modelMesh._verticesFloat32;
     modelMesh.uploadData(false);
@@ -204,10 +202,10 @@ describe("ModelMesh Test", function () {
       modelMesh.getTangents();
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
-      modelMesh.getWeights();
+      modelMesh.getBoneWeights();
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
-      modelMesh.getJoints();
+      modelMesh.getBoneIndices();
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
       modelMesh.getUVs();

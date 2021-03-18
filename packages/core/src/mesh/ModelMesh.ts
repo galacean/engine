@@ -21,6 +21,10 @@ export class ModelMesh extends Mesh {
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
   private _vertexSlotChanged: boolean = false;
+  private _vertexChangeFlag: number = 0;
+  private _indicesChangeFlag: boolean = false;
+  private _elementCount: number = 0;
+  private _vertexElementsCache: VertexElement[] = [];
 
   private _positions: Vector3[] = [];
   private _normals: Vector3[] | null = null;
@@ -36,9 +40,6 @@ export class ModelMesh extends Mesh {
   private _uv7: Vector2[] | null = null;
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
-  private _vertexChangeFlag: number = 0;
-  private _indicesChangeFlag: boolean = false;
-  private _elementCount: number = 0;
 
   /**
    * Whether to access data of the mesh.
@@ -88,7 +89,7 @@ export class ModelMesh extends Mesh {
     const elementCount = this._elementCount;
     const vertexFloatCount = elementCount * this._vertexCount;
     if (!vertexBuffer || this._verticesFloat32.length !== vertexFloatCount) {
-      vertexBuffer && vertexBuffer.destroy();
+      vertexBuffer?.destroy();
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
@@ -112,7 +113,7 @@ export class ModelMesh extends Mesh {
     const indexBuffer = this._indexBufferBinding?._buffer;
     if (_indices) {
       if (!indexBuffer || _indices.byteLength != indexBuffer.byteLength) {
-        indexBuffer && indexBuffer.destroy();
+        indexBuffer?.destroy();
         const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
         this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
       } else if (this._indicesChangeFlag) {
@@ -443,7 +444,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _updateVertexElements(): VertexElement[] {
-    const vertexElements = this._vertexElements;
+    const vertexElements = this._vertexElementsCache;
     vertexElements.length = 1;
     vertexElements[0] = POSITION_VERTEX_ELEMENT;
 
