@@ -2,9 +2,7 @@ import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardware
 import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
-import { Buffer } from "../graphic/Buffer";
 import { BufferUtil } from "../graphic/BufferUtil";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
