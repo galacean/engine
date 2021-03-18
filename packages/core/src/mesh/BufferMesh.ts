@@ -30,10 +30,7 @@ export class BufferMesh extends Mesh {
    * @param elements - Vertex element collection
    */
   setVertexElements(elements: VertexElement[]): void {
-    this._clearVertexElements();
-    for (let i = 0, n = elements.length; i < n; i++) {
-      this._addVertexElement(elements[i]);
-    }
+    this._setVertexElements(elements);
   }
 
   /**

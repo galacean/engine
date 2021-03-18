@@ -79,10 +79,7 @@ export class ModelMesh extends Mesh {
     // Vertex element change.
     if (this._vertexSlotChanged) {
       const vertexElements = this._updateVertexElements();
-      this._clearVertexElements();
-      for (let i = 0, n = vertexElements.length; i < n; i++) {
-        this._addVertexElement(vertexElements[i]);
-      }
+      this._setVertexElements(vertexElements);
       this._vertexChangeFlag = ValueChanged.All;
       this._vertexSlotChanged = false;
     }

@@ -126,6 +126,13 @@ export abstract class Mesh extends RefObject {
     this._platformPrimitive.destroy();
   }
 
+  protected _setVertexElements(elements: VertexElement[]): void {
+    this._clearVertexElements();
+    for (let i = 0, n = elements.length; i < n; i++) {
+      this._addVertexElement(elements[i]);
+    }
+  }
+
   protected _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
     if (this._getRefCount() > 0) {
       const lastBinding = this._vertexBufferBindings[index];
