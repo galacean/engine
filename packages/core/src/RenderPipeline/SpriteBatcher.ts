@@ -168,10 +168,10 @@ export class SpriteBatcher {
     engine._hardwareRenderer.drawPrimitive(this._mesh, _subMesh, program);
 
     _batchedQueue.length = 0;
-    // this._camera = null;
-    // this._targetMaterial = null;
-    // this._targetRendererData = null;
-    // this._curIndiceCount = 0;
+    this._camera = null;
+    this._targetMaterial = null;
+    this._targetRendererData = null;
+    this._curIndiceCount = 0;
   }
 
   /**
