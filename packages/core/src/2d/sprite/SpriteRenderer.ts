@@ -11,24 +11,20 @@ import { Sprite } from "./Sprite";
 import "./SpriteMaterial";
 
 /**
- * 2d sprite renderer.
+ * Renders a Sprite for 2D graphics.
  */
 export class SpriteRenderer extends Renderer {
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_texture");
   private static _tempVec3: Vector3 = new Vector3();
   private static _defaultMaterial: Material = null;
 
-  /** The array containing sprite mesh vertex positions in world space */
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-  /** The Sprite to render. */
   private _sprite: Sprite = null;
-  /** Rendering color for the Sprite graphic. */
   private _color: Color = new Color(1, 1, 1, 1);
-  /** Flips the sprite on the X axis. */
   private _flipX: boolean = false;
-  /** Flips the sprite on the Y axis. */
   private _flipY: boolean = false;
-  /** The dirty flag to determine whether flip vertices. */
+  private _cacheFlipX: boolean = false;
+  private _cacheFlipY: boolean = false;
   private _dirtyFlag: number = DirtyFlag.All;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
@@ -70,7 +66,7 @@ export class SpriteRenderer extends Renderer {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._setDirtyFlagTrue(DirtyFlag.FlipX);
+      this._setDirtyFlagTrue(DirtyFlag.Flip);
     }
   }
 
@@ -84,7 +80,7 @@ export class SpriteRenderer extends Renderer {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._setDirtyFlagTrue(DirtyFlag.FlipY);
+      this._setDirtyFlagTrue(DirtyFlag.Flip);
     }
   }
 
@@ -114,16 +110,17 @@ export class SpriteRenderer extends Renderer {
     const needUpdate = sprite._updateMeshData();
 
     if (this._isWorldMatrixDirty.flag || needUpdate || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
-      // Update vertices position in world space.
       const localPositions = sprite._positions;
       const localPosZ = transform.position.z;
       const localVertexPos = SpriteRenderer._tempVec3;
       const worldMatrix = transform.worldMatrix;
+      const { flipX, flipY } = this;
+
       for (let i = 0; i < 4; i++) {
         const curVertexPos = localPositions[i];
         localVertexPos.setValue(
-          this.flipX ? -curVertexPos.x : curVertexPos.x,
-          this.flipY ? -curVertexPos.y : curVertexPos.y,
+          flipX ? -curVertexPos.x : curVertexPos.x,
+          flipY ? -curVertexPos.y : curVertexPos.y,
           localPosZ
         );
         Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
@@ -132,27 +129,34 @@ export class SpriteRenderer extends Renderer {
       this._setDirtyFlagFalse(DirtyFlag.Flip);
       this._setDirtyFlagFalse(DirtyFlag.Sprite);
       this._isWorldMatrixDirty.flag = false;
+      this._cacheFlipX = flipX;
+      this._cacheFlipY = flipY;
     } else if (this._isContainDirtyFlag(DirtyFlag.Flip)) {
-      const flipX = this._isContainDirtyFlag(DirtyFlag.FlipX);
-      const flipY = this._isContainDirtyFlag(DirtyFlag.FlipY);
-      const { x, y } = transform.worldPosition;
+      const { flipX, flipY } = this;
+      const flipXChange = this._cacheFlipX !== flipX;
+      const flipYChange = this._cacheFlipY !== flipY;
 
-      for (let i = 0, len = _positions.length; i < len; ++i) {
-        const curPos = _positions[i];
+      if (flipXChange || flipYChange) {
+        const { x, y } = transform.worldPosition;
 
-        if (flipX) {
-          curPos.x = x * 2 - curPos.x;
-        }
+        for (let i = 0, len = _positions.length; i < len; ++i) {
+          const curPos = _positions[i];
 
-        if (flipY) {
-          curPos.y = y * 2 - curPos.y;
+          if (flipXChange) {
+            curPos.x = x * 2 - curPos.x;
+          }
+
+          if (flipYChange) {
+            curPos.y = y * 2 - curPos.y;
+          }
         }
       }
 
       this._setDirtyFlagFalse(DirtyFlag.Flip);
+      this._cacheFlipX = flipX;
+      this._cacheFlipY = flipY;
     }
 
-    // @ts-ignore
     this.shaderData.setTexture(SpriteRenderer._textureProperty, sprite.texture);
     const material = this.getMaterial() || this._getDefaultMaterial();
 
@@ -197,9 +201,7 @@ export class SpriteRenderer extends Renderer {
 }
 
 enum DirtyFlag {
-  FlipX = 0x1,
-  FlipY = 0x2,
-  Flip = 0x3,
-  Sprite = 0x4,
-  All = 0x7
+  Flip = 0x1,
+  Sprite = 0x2,
+  All = 0x3
 }
