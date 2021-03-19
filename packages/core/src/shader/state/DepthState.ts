@@ -15,15 +15,15 @@ export class DepthState {
       case CompareFunction.Equal:
         return WebGLRenderingContext.EQUAL;
       case CompareFunction.LessEqual:
-        return WebGL2RenderingContext.LEQUAL;
+        return WebGLRenderingContext.LEQUAL;
       case CompareFunction.Greater:
-        return WebGL2RenderingContext.GREATER;
+        return WebGLRenderingContext.GREATER;
       case CompareFunction.NotEqual:
-        return WebGL2RenderingContext.NOTEQUAL;
+        return WebGLRenderingContext.NOTEQUAL;
       case CompareFunction.GreaterEqual:
-        return WebGL2RenderingContext.GEQUAL;
+        return WebGLRenderingContext.GEQUAL;
       case CompareFunction.Always:
-        return WebGL2RenderingContext.ALWAYS;
+        return WebGLRenderingContext.ALWAYS;
     }
   }
 

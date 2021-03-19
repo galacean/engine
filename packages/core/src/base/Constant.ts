@@ -333,6 +333,7 @@ export enum GLCapabilityType {
   colorBufferFloat = "EXT_color_buffer_float",
   colorBufferHalfFloat = "EXT_color_buffer_half_float",
   textureFilterAnisotropic = "EXT_texture_filter_anisotropic",
+  blendMinMax = "EXT_blend_minmax",
 
   astc = "WEBGL_compressed_texture_astc",
   astc_webkit = "WEBKIT_WEBGL_compressed_texture_astc",
