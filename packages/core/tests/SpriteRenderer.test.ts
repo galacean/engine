@@ -1,4 +1,7 @@
-import { Color, Entity, SpriteRenderer, DrawMode, Texture2D, Sprite, WebGLEngine } from "oasis-engine";
+// @ts-nocheck
+import { Color } from "@oasis-engine/math";
+import { Entity, Sprite, SpriteRenderer, Texture2D } from "../src/index";
+import { WebGLEngine } from "../../rhi-webgl/src/WebGLEngine";
 
 describe("SpriteRenderer", () => {
   const canvas = document.createElement("canvas");
