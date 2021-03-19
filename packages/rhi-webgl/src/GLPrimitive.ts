@@ -45,15 +45,16 @@ export class GLPrimitive implements IPlatformPrimitive {
       this.bindBufferAndAttrib(shaderProgram);
     }
 
-    const { indexBufferBinding, instanceCount, _glIndexType } = primitive;
+    // @ts-ignore
+    const { _indexBufferBinding, _instanceCount, _glIndexType } = primitive;
     const { topology, start, count } = subMesh;
 
-    if (!instanceCount) {
-      if (indexBufferBinding) {
+    if (!_instanceCount) {
+      if (_indexBufferBinding) {
         if (this._useVao) {
           gl.drawElements(topology, count, _glIndexType, start);
         } else {
-          const { _nativeBuffer } = indexBufferBinding.buffer;
+          const { _nativeBuffer } = _indexBufferBinding.buffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
           gl.drawElements(topology, count, _glIndexType, start);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
@@ -63,17 +64,17 @@ export class GLPrimitive implements IPlatformPrimitive {
       }
     } else {
       if (this.canUseInstancedArrays) {
-        if (indexBufferBinding) {
+        if (_indexBufferBinding) {
           if (this._useVao) {
-            gl.drawElementsInstanced(topology, count, _glIndexType, start, instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, start, _instanceCount);
           } else {
-            const { _nativeBuffer } = indexBufferBinding.buffer;
+            const { _nativeBuffer } = _indexBufferBinding.buffer;
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-            gl.drawElementsInstanced(topology, count, _glIndexType, start, instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, start, _instanceCount);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
           }
         } else {
-          gl.drawArraysInstanced(topology, start, count, instanceCount);
+          gl.drawArraysInstanced(topology, start, count, _instanceCount);
         }
       } else {
         Logger.error("ANGLE_instanced_arrays extension is not supported");
@@ -103,7 +104,8 @@ export class GLPrimitive implements IPlatformPrimitive {
   protected bindBufferAndAttrib(shaderProgram: any) {
     const gl = this.gl;
     const primitive = this._primitive;
-    const vertexBufferBindings = primitive.vertexBufferBindings;
+    // @ts-ignore
+    const vertexBufferBindings = primitive._vertexBufferBindings;
 
     this.attribLocArray = [];
     const attributeLocation = shaderProgram.attributeLocation;
@@ -155,9 +157,10 @@ export class GLPrimitive implements IPlatformPrimitive {
     /** register VAO */
     gl.bindVertexArray(vao);
 
-    const { indexBufferBinding } = this._primitive;
-    if (indexBufferBinding) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferBinding.buffer._nativeBuffer);
+    // @ts-ignore
+    const { _indexBufferBinding } = this._primitive;
+    if (_indexBufferBinding) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _indexBufferBinding.buffer._nativeBuffer);
     }
     this.bindBufferAndAttrib(shaderProgram);
 
