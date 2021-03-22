@@ -46,17 +46,17 @@ export class GLPrimitive implements IPlatformPrimitive {
     }
 
     // @ts-ignore
-    const { _indexBufferBinding, _instanceCount, _glIndexType } = primitive;
+    const { _indexBufferBinding, _instanceCount, _glIndexType, _glIndexByteCount } = primitive;
     const { topology, start, count } = subMesh;
 
     if (!_instanceCount) {
       if (_indexBufferBinding) {
         if (this._useVao) {
-          gl.drawElements(topology, count, _glIndexType, start);
+          gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
         } else {
           const { _nativeBuffer } = _indexBufferBinding.buffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-          gl.drawElements(topology, count, _glIndexType, start);
+          gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         }
       } else {
@@ -66,11 +66,11 @@ export class GLPrimitive implements IPlatformPrimitive {
       if (this.canUseInstancedArrays) {
         if (_indexBufferBinding) {
           if (this._useVao) {
-            gl.drawElementsInstanced(topology, count, _glIndexType, start, _instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, _instanceCount);
           } else {
             const { _nativeBuffer } = _indexBufferBinding.buffer;
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
-            gl.drawElementsInstanced(topology, count, _glIndexType, start, _instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, _instanceCount);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
           }
         } else {
