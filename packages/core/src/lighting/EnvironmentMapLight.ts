@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math";
+import { Color, SphericalHarmonics3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 import { Shader } from "../shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -13,10 +13,9 @@ import { Light } from "./Light";
 export class EnvironmentMapLight extends Light {
   private static _diffuseMacro: ShaderMacro = Shader.getMacroByName("O3_USE_DIFFUSE_ENV");
   private static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
-  private static _diffuseTextureProperty: ShaderProperty = Shader.getPropertyByName("u_env_diffuseSampler");
+  private static _diffuseSHProperty: ShaderProperty = Shader.getPropertyByName("u_env_sh");
   private static _specularTextureProperty: ShaderProperty = Shader.getPropertyByName("u_env_specularSampler");
   private static _mipLevelProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.mipMapLevel");
-  private static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
   private static _specularColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.specular");
   private static _diffuseIntensityProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuseIntensity");
   private static _specularIntensityProperty: ShaderProperty = Shader.getPropertyByName(
@@ -33,19 +32,25 @@ export class EnvironmentMapLight extends Light {
     shaderData.setMatrix(EnvironmentMapLight._transformMatrixProperty, transformMatrix);
   }
 
+  private _diffuseSphericalHarmonics: SphericalHarmonics3;
+  private _specularTexture: TextureCubeMap;
+  private _specularColor: Color = new Color(0.5, 0.5, 0.5, 1);
+  private _diffuseIntensity: number = 1;
+  private _specularIntensity: number = 1;
+
   /**
    * Diffuse cube texture.
    */
-  get diffuseTexture(): TextureCubeMap {
-    return this._diffuseTexture;
+  get diffuseSphericalHarmonics(): SphericalHarmonics3 {
+    return this._diffuseSphericalHarmonics;
   }
 
-  set diffuseTexture(value: TextureCubeMap) {
-    this._diffuseTexture = value;
+  set diffuseSphericalHarmonics(sh: SphericalHarmonics3) {
+    this._diffuseSphericalHarmonics = sh;
     const shaderData = this.scene.shaderData;
 
-    if (value) {
-      shaderData.setTexture(EnvironmentMapLight._diffuseTextureProperty, value);
+    if (sh) {
+      shaderData.setFloatArray(EnvironmentMapLight._diffuseSHProperty, sh.preScaledCoefficients);
       shaderData.enableMacro(EnvironmentMapLight._diffuseMacro);
     } else {
       shaderData.disableMacro(EnvironmentMapLight._diffuseMacro);
@@ -70,19 +75,6 @@ export class EnvironmentMapLight extends Light {
     } else {
       shaderData.disableMacro(EnvironmentMapLight._specularMacro);
     }
-  }
-
-  /**
-   * Diffuse color.
-   */
-  get diffuseColor(): Color {
-    return this._diffuseColor;
-  }
-
-  set diffuseColor(value: Color) {
-    this._diffuseColor = value;
-
-    this.scene.shaderData.setColor(EnvironmentMapLight._diffuseColorProperty, value);
   }
 
   /**
@@ -124,16 +116,8 @@ export class EnvironmentMapLight extends Light {
     this.scene.shaderData.setFloat(EnvironmentMapLight._specularIntensityProperty, value);
   }
 
-  private _diffuseTexture: TextureCubeMap;
-  private _specularTexture: TextureCubeMap;
-  private _diffuseColor: Color = new Color(0.3, 0.3, 0.3, 1);
-  private _specularColor: Color = new Color(0.5, 0.5, 0.5, 1);
-  private _diffuseIntensity: number = 1;
-  private _specularIntensity: number = 1;
-
   constructor(entity: Entity) {
     super(entity);
-    this.diffuseColor = this._diffuseColor;
     this.specularColor = this._specularColor;
     this.diffuseIntensity = this._diffuseIntensity;
     this.specularIntensity = this._specularIntensity;
