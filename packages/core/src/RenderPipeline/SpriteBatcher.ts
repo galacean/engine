@@ -31,7 +31,7 @@ export class SpriteBatcher {
   /** The maximum number of vertex. */
   private static MAX_VERTEX_COUNT: number = 4096;
 
-  private _camera: Camera = null;
+  private _cameras: Camera[] = [];
   private _batchedQueue: Batch[] = [];
   private _materials: Material[] = [];
   private _shaderDatas: ShaderData[] = [];
@@ -100,7 +100,7 @@ export class SpriteBatcher {
    * Flush all sprites.
    */
   flush(engine: Engine) {
-    const { _batchedQueue, _canUploadSameBuffer } = this;
+    const { _batchedQueue } = this;
 
     if (_batchedQueue.length === 0) {
       return;
@@ -111,8 +111,8 @@ export class SpriteBatcher {
 
     this._flushId++;
 
+    this._cameras.length = 0;
     this._batchedQueue.length = 0;
-    this._camera = null;
     this._vertexCount = 0;
     this._spriteSize = 0;
   }
@@ -125,15 +125,21 @@ export class SpriteBatcher {
       _meshs[_flushId] = this._createMesh(engine, _flushId);
     }
 
-    const { _batchedQueue, _vertices, _indices } = this;
+    const { _batchedQueue, _vertices, _indices, _cameras, _materials, _shaderDatas } = this;
     const mesh = _meshs[_flushId];
 
     let vertexIndex = 0;
     let indiceIndex = 0;
-    let curVertexStartIndex = 0;
+    let vertexStartIndex = 0;
+    let vertexCount = 0;
     let curIndiceStartIndex = 0;
+    let curMeshIndex = 0;
+    let preCamera: Camera = null;
+    let preMaterial: Material = null;
+    let preShaderData: ShaderData = null;
     for (let i = 0, len = _batchedQueue.length; i < len; i++) {
       const { vertices, uv, triangles, color } = _batchedQueue[i];
+
       // Batch vertex
       const verticesNum = vertices.length;
       for (let j = 0; j < verticesNum; j++) {
@@ -157,10 +163,35 @@ export class SpriteBatcher {
         _indices[indiceIndex++] = triangles[j] + curIndiceStartIndex;
       }
 
-      mesh.addSubMesh(curVertexStartIndex, triangleNum);
-      curVertexStartIndex += triangleNum;
       curIndiceStartIndex += verticesNum;
+
+      const curCamera = _cameras[i];
+      const curMaterial = _materials[i];
+      const curShaderData = _shaderDatas[i];
+
+      if (preCamera === null) {
+        vertexCount += triangleNum;
+      } else {
+        if (this.canBatch(preCamera, curCamera, preMaterial, curMaterial, preShaderData, curShaderData)) {
+          vertexCount += triangleNum;
+        } else {
+          mesh.addSubMesh(vertexStartIndex, vertexCount);
+          vertexStartIndex += vertexCount;
+          _cameras[curMeshIndex] = preCamera;
+          _materials[curMeshIndex] = preMaterial;
+          _shaderDatas[curMeshIndex++] = preShaderData;
+        }
+      }
+
+      preCamera = curCamera;
+      preMaterial = curMaterial;
+      preShaderData = curShaderData;
     }
+
+    mesh.addSubMesh(vertexStartIndex, vertexCount);
+    _cameras[curMeshIndex] = preCamera;
+    _materials[curMeshIndex] = preMaterial;
+    _shaderDatas[curMeshIndex] = preShaderData;
 
     this._vertexBuffers[_flushId].setData(_vertices, 0, 0, vertexIndex);
     this._indiceBuffers[_flushId].setData(_indices, 0, 0, indiceIndex);
@@ -169,6 +200,8 @@ export class SpriteBatcher {
   drawBatches(engine: Engine) {
     const mesh = this._meshs[this._flushId];
     const subMeshs = mesh.subMeshes;
+
+    const { _cameras, _materials, _shaderDatas } = this;
 
     for (let i = 0, len = subMeshs.length; i < len; i++) {
       const subMesh = subMeshs[i];
@@ -181,7 +214,7 @@ export class SpriteBatcher {
       compileMacros.clear();
 
       //@ts-ignore
-      const material = this._materials[i];
+      const material = _materials[i];
       const program = material.shader._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
@@ -189,9 +222,10 @@ export class SpriteBatcher {
 
       // Uniform.
       program.groupingOtherUniformBlock();
-      program.uploadAll(program.sceneUniformBlock, this._camera.scene.shaderData);
-      program.uploadAll(program.cameraUniformBlock, this._camera.shaderData);
-      program.uploadAll(program.rendererUniformBlock, this._shaderDatas[i]);
+      const camera = _cameras[i];
+      program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
+      program.uploadAll(program.cameraUniformBlock, camera.shaderData);
+      program.uploadAll(program.rendererUniformBlock, _shaderDatas[i]);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
       //@ts-ignore
@@ -202,38 +236,32 @@ export class SpriteBatcher {
     }
   }
 
-  // /**
-  //  * Check whether a sprite can be drawn in combination with the previous sprite when drawing.
-  //  * @param rendererData - The shader data of the new sprite
-  //  * @param material - The material of the new sprite
-  //  * @param camera - Camera which is rendering
-  //  * @param triangles - The array containing sprite mesh triangles
-  //  */
-  // canBatch(rendererData: ShaderData, material: Material, camera: Camera, triangles: number[]) {
-  //   if (!rendererData || !material) {
-  //     Logger.error("No renderer data or material!");
-  //   }
+  /**
+   * Check whether a sprite can be drawn in combination with the previous sprite when drawing.
+   * @param preCamera - The camera of the pre sprite
+   * @param curCamera - The camera of the cur sprite
+   * @param preMaterial - The material of the pre sprite
+   * @param curMaterial - The material of the cur sprite
+   * @param preShaderData - The shader data of the pre sprite
+   * @param curShaderData - The shader data of the cur sprite
+   */
+  canBatch(
+    preCamera: Camera,
+    curCamera: Camera,
+    preMaterial: Material,
+    curMaterial: Material,
+    preShaderData: ShaderData,
+    curShaderData: ShaderData
+  ): boolean {
+    // Currently only compare texture
+    const preTexture = preShaderData.getTexture("u_texture");
+    const curTexture = curShaderData.getTexture("u_texture");
+    if (preTexture !== curTexture) {
+      return false;
+    }
 
-  //   const { _targetRendererData, _targetMaterial } = this;
-
-  //   if (_targetRendererData === null && _targetMaterial === null) {
-  //     return true;
-  //   }
-
-  //   const len = triangles.length;
-  //   if (this._curIndiceCount + len > SpriteBatcher.MAX_VERTICES) {
-  //     return false;
-  //   }
-
-  //   // Currently only compare texture
-  //   const texture = rendererData.getTexture("u_texture");
-  //   const targetTexture = _targetRendererData.getTexture("u_texture");
-  //   if (texture !== targetTexture) {
-  //     return false;
-  //   }
-
-  //   return material === _targetMaterial && camera === this._camera;
-  // }
+    return preMaterial === curMaterial && preCamera === curCamera;
+  }
 
   /**
    * Add a sprite drawing information to the render queue.
@@ -260,8 +288,8 @@ export class SpriteBatcher {
       this.flush(camera.engine);
     }
 
-    this._camera = camera;
     this._vertexCount += len;
+    this._cameras[this._spriteSize] = camera;
     this._materials[this._spriteSize] = material;
     this._shaderDatas[this._spriteSize] = renderer.shaderData;
     this._batchedQueue[this._spriteSize++] = new Batch(vertices, uv, triangles, color);
