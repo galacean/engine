@@ -228,8 +228,10 @@ export class Engine extends EventDispatcher {
       this._animate = null;
 
       this._sceneManager._activeScene.destroy();
-      this._sceneManager = null;
       this._resourceManager.gc();
+      // If engine destroy, callComponentDestory() maybe will not call anymore.
+      this._componentsManager.callComponentDestory();
+      this._sceneManager = null;
       this._resourceManager = null;
 
       this._canvas = null;

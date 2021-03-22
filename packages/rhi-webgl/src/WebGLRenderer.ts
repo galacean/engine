@@ -80,6 +80,11 @@ export class WebGLRenderer implements HardwareRenderer {
         gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", option);
       }
       this._isWebGL2 = true;
+
+      // Prevent weird browsers to lie (such as safari!)
+      if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
+        this._isWebGL2 = false;
+      }
     }
 
     if (!gl) {
