@@ -47,7 +47,7 @@ export class SpriteBatcher {
   private _indices: Uint16Array;
   /** Current vertex count. */
   private _vertexCount: number = 0;
-  private _spriteSize: number = 0;
+  private _spriteCount: number = 0;
   private _flushId: number = 0;
   private _canUploadSameBuffer: boolean = false;
 
@@ -116,7 +116,7 @@ export class SpriteBatcher {
     this._cameras.length = 0;
     this._batchedQueue.length = 0;
     this._vertexCount = 0;
-    this._spriteSize = 0;
+    this._spriteCount = 0;
   }
 
   updateData(engine: Engine) {
@@ -292,16 +292,16 @@ export class SpriteBatcher {
     }
 
     this._vertexCount += len;
-    this._cameras[this._spriteSize] = camera;
-    this._materials[this._spriteSize] = material;
-    this._shaderDatas[this._spriteSize] = renderer.shaderData;
-    this._batchedQueue[this._spriteSize++] = new Batch(vertices, uv, triangles, color);
+    this._cameras[this._spriteCount] = camera;
+    this._materials[this._spriteCount] = material;
+    this._shaderDatas[this._spriteCount] = renderer.shaderData;
+    this._batchedQueue[this._spriteCount++] = new Batch(vertices, uv, triangles, color);
   }
 
   clear() {
     this._flushId = 0;
     this._vertexCount = 0;
-    this._spriteSize = 0;
+    this._spriteCount = 0;
     this._materials.length = 0;
     this._shaderDatas.length = 0;
     this._batchedQueue.length = 0;
