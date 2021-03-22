@@ -475,11 +475,14 @@ export class PrimitiveMesh {
     indices: Uint16Array | Uint32Array,
     noLongerAccessible: boolean
   ) {
-    mesh.setIndices(indices);
+    
     mesh.setPositions(positions);
     mesh.setNormals(normals);
     mesh.setUVs(uvs);
+    mesh.setIndices(indices);
+
     mesh.uploadData(noLongerAccessible);
+    
     mesh.addSubMesh(0, indices.length);
   }
 }
