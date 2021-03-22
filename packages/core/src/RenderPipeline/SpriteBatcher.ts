@@ -179,6 +179,7 @@ export class SpriteBatcher {
         } else {
           mesh.addSubMesh(vertexStartIndex, vertexCount);
           vertexStartIndex += vertexCount;
+          vertexCount = triangleNum;
           _cameras[curMeshIndex] = preCamera;
           _materials[curMeshIndex] = preMaterial;
           _shaderDatas[curMeshIndex++] = preShaderData;
