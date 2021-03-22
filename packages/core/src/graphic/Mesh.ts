@@ -22,6 +22,7 @@ export abstract class Mesh extends RefObject {
 
   _vertexElementMap: object = {};
   _glIndexType: number;
+  _glIndexByteCount: number;
   _platformPrimitive: IPlatformPrimitive;
 
   /** @internal */
@@ -32,7 +33,7 @@ export abstract class Mesh extends RefObject {
   _indexBufferBinding: IndexBufferBinding = null;
   /** @internal */
   _vertexElements: VertexElement[] = [];
-  
+
   private _subMeshes: SubMesh[] = [];
   private _updateFlags: UpdateFlag[] = [];
 
@@ -150,6 +151,7 @@ export abstract class Mesh extends RefObject {
     if (binding) {
       this._indexBufferBinding = binding;
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);
+      this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
     } else {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;
