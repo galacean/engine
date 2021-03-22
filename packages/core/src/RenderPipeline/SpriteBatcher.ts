@@ -62,14 +62,14 @@ export class SpriteBatcher {
     this._canUploadSameBuffer = !/iphone|ipad|ipod/.test(ua);
   }
 
-  _initMeshs(engine: Engine) {
+  private _initMeshs(engine: Engine) {
     const { _meshs, _meshCount } = this;
     for (let i = 0; i < _meshCount; i++) {
       _meshs[i] = this._createMesh(engine, i);
     }
   }
 
-  _createMesh(engine: Engine, index: number): BufferMesh {
+  private _createMesh(engine: Engine, index: number): BufferMesh {
     const { MAX_VERTEX_COUNT } = SpriteBatcher;
     const mesh = new BufferMesh(engine, `SpriteBatchBufferMesh${index}`);
 
@@ -96,30 +96,7 @@ export class SpriteBatcher {
     return mesh;
   }
 
-  /**
-   * Flush all sprites.
-   */
-  flush(engine: Engine) {
-    const { _batchedQueue } = this;
-
-    if (_batchedQueue.length === 0) {
-      return;
-    }
-
-    this.updateData(engine);
-    this.drawBatches(engine);
-
-    if (!this._canUploadSameBuffer) {
-      this._flushId++;
-    }
-
-    this._cameras.length = 0;
-    this._batchedQueue.length = 0;
-    this._vertexCount = 0;
-    this._spriteCount = 0;
-  }
-
-  updateData(engine: Engine) {
+  private _updateData(engine: Engine) {
     const { _meshs, _flushId } = this;
 
     if (!this._canUploadSameBuffer && this._meshCount <= _flushId) {
@@ -174,7 +151,7 @@ export class SpriteBatcher {
       if (preCamera === null) {
         vertexCount += triangleNum;
       } else {
-        if (this.canBatch(preCamera, curCamera, preMaterial, curMaterial, preShaderData, curShaderData)) {
+        if (this._canBatch(preCamera, curCamera, preMaterial, curMaterial, preShaderData, curShaderData)) {
           vertexCount += triangleNum;
         } else {
           mesh.addSubMesh(vertexStartIndex, vertexCount);
@@ -200,7 +177,7 @@ export class SpriteBatcher {
     this._indiceBuffers[_flushId].setData(_indices, 0, 0, indiceIndex);
   }
 
-  drawBatches(engine: Engine) {
+  private _drawBatches(engine: Engine) {
     const mesh = this._meshs[this._flushId];
     const subMeshs = mesh.subMeshes;
 
@@ -248,7 +225,7 @@ export class SpriteBatcher {
    * @param preShaderData - The shader data of the pre sprite
    * @param curShaderData - The shader data of the cur sprite
    */
-  canBatch(
+  private _canBatch(
     preCamera: Camera,
     curCamera: Camera,
     preMaterial: Material,
@@ -264,6 +241,29 @@ export class SpriteBatcher {
     }
 
     return preMaterial === curMaterial && preCamera === curCamera;
+  }
+
+  /**
+   * Flush all sprites.
+   */
+  flush(engine: Engine) {
+    const { _batchedQueue } = this;
+
+    if (_batchedQueue.length === 0) {
+      return;
+    }
+
+    this._updateData(engine);
+    this._drawBatches(engine);
+
+    if (!this._canUploadSameBuffer) {
+      this._flushId++;
+    }
+
+    this._cameras.length = 0;
+    this._batchedQueue.length = 0;
+    this._vertexCount = 0;
+    this._spriteCount = 0;
   }
 
   /**
