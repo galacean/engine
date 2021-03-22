@@ -189,6 +189,7 @@ export class RenderQueue {
    */
   clear(): void {
     this.items.length = 0;
+    this._spriteBatcher && this._spriteBatcher.clear();
   }
 
   /**
