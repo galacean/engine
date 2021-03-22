@@ -109,7 +109,9 @@ export class SpriteBatcher {
     this.updateData(engine);
     this.drawBatches(engine);
 
-    this._flushId++;
+    if (!this._canUploadSameBuffer) {
+      this._flushId++;
+    }
 
     this._cameras.length = 0;
     this._batchedQueue.length = 0;
