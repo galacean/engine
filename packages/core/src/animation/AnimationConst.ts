@@ -1,3 +1,4 @@
+import { Vector2 } from "./../../../math/src/Vector2";
 /**
  * Animation wrap mode.
  * @readonly
@@ -35,4 +36,12 @@ export enum InterpolationType {
   STEP,
   /** Hermite interpolation */
   HERMITE
+}
+
+export enum InterpolableValueType {
+  Float,
+  Vector2,
+  Vector3,
+  Vector4,
+  Quaternion
 }

@@ -23,17 +23,6 @@ export class AnimationClip extends Motion {
     super(null);
   }
 
-  private _findChannelTarget(rootNode: Entity, target: any): Entity | Component {
-    const targetID = target;
-    let targetSceneObject: Entity = null;
-    if (rootNode.name === targetID) {
-      targetSceneObject = rootNode;
-    } else {
-      targetSceneObject = rootNode.findByName(targetID);
-    }
-    return targetSceneObject;
-  }
-
   addEvent(evt: AnimationEvent) {
     this.events.push(evt);
   }
@@ -55,7 +44,7 @@ export class AnimationClip extends Motion {
       const curveData = this.curves[i];
       const { curve, propertyName, relativePath, type } = curveData;
       const val = curve.evaluate(time);
-      const target = this._findChannelTarget(entity, relativePath);
+      const target = entity.findByName(relativePath);
       if (type === Transform) {
         const transform = (<Entity>target).transform;
         switch (AnimateProperty[propertyName]) {
@@ -68,8 +57,6 @@ export class AnimationClip extends Motion {
           case AnimateProperty.scale:
             transform.scale = val;
             break;
-          default:
-            target[propertyName] = val;
         }
       }
     }

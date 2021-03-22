@@ -592,7 +592,6 @@ export function parseAnimation(gltfAnimation, resources) {
   const { gltf, buffers } = resources;
   const gltfSamplers = gltfAnimation.samplers || [];
   const gltfChannels = gltfAnimation.channels || [];
-
   const animationIdx = gltf.animations.indexOf(gltfAnimation);
   const animationClipGLTFParser = new AnimationClipGLTFParser();
 
@@ -639,6 +638,7 @@ export function parseAnimation(gltfAnimation, resources) {
   }
 
   const curveDatas = animationClipGLTFParser.getCurveDatas();
+
   const animationClip = new AnimationClip(gltfAnimation.name || `AnimationClip${animationIdx}`);
   animationClip.durationIndex = durationIndex;
   animationClip.duration = duration;
@@ -862,19 +862,24 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
   }
 
   const animator = asset.defaultSceneRoot.addComponent(Animation);
-  const animations = asset.animations;
+  const animations: AnimationClip[] = asset.animations;
   const animatorController = new AnimatorController();
-  const layer = new AnimatorControllerLayer();
+  const layer = new AnimatorControllerLayer("layer");
+  const layer1 = new AnimatorControllerLayer("layer1");
   const animatorStateMachine = new AnimatorStateMachine();
+  const animatorStateMachine1 = new AnimatorStateMachine();
   animatorController.addLayer(layer);
+  animatorController.addLayer(layer1);
   animator.animatorController = animatorController;
   layer.stateMachine = animatorStateMachine;
+  layer1.stateMachine = animatorStateMachine1;
   if (animations) {
     animations.forEach((clip: AnimationClip) => {
+      console.log(clip.name);
       const animatorState = new AnimatorState(clip.name);
       animatorState.motion = clip;
       animatorStateMachine.addState(clip.name);
-      // animator.addAnimationClip(clip, clip.name);
+      animatorStateMachine1.addState(clip.name);
     });
   }
   return resources.asset as GLTFResource;

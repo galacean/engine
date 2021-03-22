@@ -8,38 +8,39 @@ import {
   QuaternionKeyframe,
   InterpolableValue
 } from "./KeyFrame";
-import { InterpolationType } from "./AnimationConst";
+import { InterpolationType, InterpolableValueType } from "./AnimationConst";
 
 export class AnimationCurve {
   keys: Keyframe[] = [];
   private _length: number = 0; //时间
   valueSize: number;
-
+  valueType: InterpolableValueType;
+  firstFrameValue: InterpolableValue;
   get length() {
     return this._length;
   }
 
   private _evaluateLinear(frameIndex: number, nextFrameIndex: number, alpha: number) {
-    const { valueSize, keys } = this;
-    switch (valueSize) {
-      case 1: {
+    const { valueType, keys } = this;
+    switch (valueType) {
+      case InterpolableValueType.Float: {
         return keys[frameIndex].value * (1 - alpha) + keys[nextFrameIndex].value * alpha;
       }
-      case 2: {
+      case InterpolableValueType.Vector2: {
         let a = new Vector2();
         let b = new Vector2();
         Vector2.scale(keys[frameIndex].value, 1 - alpha, a);
         Vector2.scale(keys[nextFrameIndex].value, alpha, b);
         return a.add(b);
       }
-      case 3: {
+      case InterpolableValueType.Vector3: {
         let a = new Vector3();
         let b = new Vector3();
         Vector3.scale(keys[frameIndex].value, 1 - alpha, a);
         Vector3.scale(keys[nextFrameIndex].value, alpha, b);
         return a.add(b);
       }
-      case 4: {
+      case InterpolableValueType.Quaternion: {
         const out: Quaternion = new Quaternion();
         const startValue = keys[frameIndex].value as Vector4;
         const startQuaternion = new Quaternion(startValue.x, startValue.y, startValue.z, startValue.w);
@@ -184,12 +185,12 @@ export class AnimationCurve {
 
   private _getFrameInfo(time: number) {
     let keyTime = 0;
-    let frameIndex = 0;
-    let nextFrameIndex = 0;
+    let frameIndex = 1;
+    let nextFrameIndex = 1;
     const { keys } = this;
     const { length } = keys;
 
-    for (let i = length - 1; i >= 0; i--) {
+    for (let i = length - 1; i >= 1; i--) {
       if (time >= keys[i].time) {
         keyTime = time - keys[i].time;
         frameIndex = i;
@@ -219,18 +220,27 @@ export class AnimationCurve {
     if (time > this._length) {
       this._length = time;
     }
+
     if (!this.valueSize) {
       if (key instanceof FloatKeyframe) {
         this.valueSize = 1;
+        this.valueType = InterpolableValueType.Float;
       }
       if (key instanceof Vector2Keyframe) {
         this.valueSize = 2;
+        this.valueType = InterpolableValueType.Vector2;
       }
       if (key instanceof Vector3Keyframe) {
         this.valueSize = 3;
+        this.valueType = InterpolableValueType.Vector3;
       }
-      if (key instanceof Vector4Keyframe || key instanceof QuaternionKeyframe) {
+      if (key instanceof Vector4Keyframe) {
         this.valueSize = 4;
+        this.valueType = InterpolableValueType.Vector4;
+      }
+      if (key instanceof QuaternionKeyframe) {
+        this.valueSize = 4;
+        this.valueType = InterpolableValueType.Quaternion;
       }
     }
   }
@@ -253,7 +263,9 @@ export class AnimationCurve {
       case InterpolationType.HERMITE:
         val = this._evaluateHermite(frameIndex, nextFrameIndex, alpha, dur);
     }
-    console.log(interpolation, val);
+    if (!this.firstFrameValue) {
+      this.firstFrameValue = keys[0].value;
+    }
     return val;
   }
 

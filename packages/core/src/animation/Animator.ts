@@ -1,30 +1,26 @@
+import { InterpolableValueType } from "./AnimationConst";
+import { InterpolableValue } from "./KeyFrame";
 import { Transform } from "./../Transform";
-import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
+import { AnimatorControllerLayer, AnimatorLayerBlendingMode } from "./AnimatorControllerLayer";
 import { AnimatorController, AnimatorControllerParameter } from "./AnimatorController";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { ignoreClone, shallowClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { SkinnedMeshRenderer } from "../mesh/SkinnedMeshRenderer";
 import { AnimationClip, AnimateProperty } from "./AnimationClip";
-import { AnimationLayer } from "./AnimationLayer";
 import { AnimationOptions, IChannelTarget } from "./types";
-
+import { AnimatorUtils } from "./AnimatorUtils";
 export class Animator extends Component {
-  /** @internal */
   @ignoreClone
-  _onUpdateIndex: number = -1;
-
-  @shallowClone
-  private _animSet = {};
-
-  @ignoreClone
-  private _animLayers: AnimationLayer[] = [new AnimationLayer()];
+  private _animLayers: AnimatorControllerLayer[] = [];
   @ignoreClone
   private _timeScale: number = 1.0;
-  @ignoreClone
-  private _channelTargets: IChannelTarget[] | false;
+
+  private _channelStates: any[] = [];
+  private _diffValueFromBasePos: Vector3;
+  private _diffVector3FromBasePos: Vector3 = new Vector3();
+  private _diffQuaternionFromBasePos: Vector3 = new Quaternion();
 
   /**
    * @param entity - The entitiy which the animation component belongs to.
@@ -34,56 +30,120 @@ export class Animator extends Component {
   }
 
   /**
-   * Linearly interpolates between two values.
-   * @param outValue - The output value after interpolation.
-   * @param startValue - The start value before interpolation.
-   * @param endValue - The end value after interpolation.
-   * @param outputSize - The length of the output values.
-   * @param alpha - The weight of the endValue in interpolation algorithm.
-   * @private
+   * Be called when this instance be enabled.
+   * @override
+   * @internal
    */
-  public static lerp(
-    outValue: number | Float32Array,
-    startValue: number | Float32Array,
-    endValue: number | Float32Array,
-    alpha: number,
-    outputSize: number
-  ): number | Float32Array {
-    switch (outputSize) {
-      case 1:
-        outValue = <number>startValue * (1 - alpha) + <number>endValue * alpha;
-        break;
-      case 4:
-        const start = new Quaternion(...(startValue as Float32Array));
-        const end = new Quaternion(...(endValue as Float32Array));
-        const quat = new Quaternion();
-        Quaternion.slerp(start, end, alpha, quat);
-        outValue[0] = quat.x;
-        outValue[1] = quat.y;
-        outValue[2] = quat.z;
-        outValue[3] = quat.w;
-        break;
-      default:
-        for (let i = outputSize; i >= 0; i--) {
-          outValue[i] = startValue[i] * (1 - alpha) + endValue[i] * alpha;
-        }
-        break;
-    } // End of switch.
-
-    return outValue;
+  _onEnable(): void {
+    this.engine._componentsManager.addOnUpdateAnimations(this);
   }
 
-  private _findChannelTarget(rootNode: Entity, target: any): Entity | Component {
-    const targetID = target;
-    let targetSceneObject: Entity = null;
-    if (rootNode.name === targetID) {
-      targetSceneObject = rootNode;
-    } else {
-      targetSceneObject = rootNode.findByName(targetID);
+  /**
+   * Be called when this instance be disabled or it's entity be inActiveInHierarchy or before this instance be destroyed.
+   * @override
+   * @internal
+   */
+  _onDisable(): void {
+    this.engine._componentsManager.removeOnUpdateAnimations(this);
+  }
+
+  private _calculateDiff(
+    valueType: InterpolableValueType,
+    propertyName: string,
+    dVal: InterpolableValue,
+    sVal: InterpolableValue
+  ) {
+    switch (valueType) {
+      case InterpolableValueType.Float:
+        this._calculateFloatDiff(propertyName, dVal, sVal);
+        break;
+      case InterpolableValueType.Vector2:
+        this._calculateVector2Diff(propertyName, dVal, sVal);
+        break;
+      case InterpolableValueType.Vector3:
+        this._calculateVector3Diff(propertyName, dVal, sVal);
+        break;
+      case InterpolableValueType.Quaternion:
+        this._calculateQuaternionDiff(dVal, sVal);
+        break;
     }
-    return targetSceneObject;
   }
-  _channelStates: any[] = [];
+  private _calculateFloatDiff(propertyName: string, dVal: InterpolableValue, sVal: InterpolableValue) {}
+
+  private _calculateVector2Diff(propertyName: string, dVal: InterpolableValue, sVal: InterpolableValue) {}
+  private _calculateVector3Diff(propertyName: string, dVal: InterpolableValue, sVal: InterpolableValue) {
+    if (AnimateProperty[propertyName] === AnimateProperty.scale) {
+      this._diffVector3FromBasePos.x = dVal.x / sVal.x;
+      this._diffVector3FromBasePos.y = dVal.y / sVal.y;
+      this._diffVector3FromBasePos.z = dVal.z / sVal.z;
+    } else {
+      this._diffVector3FromBasePos.x = dVal.x - sVal.x;
+      this._diffVector3FromBasePos.y = dVal.y - sVal.y;
+      this._diffVector3FromBasePos.z = dVal.z - sVal.z;
+    }
+    this._diffValueFromBasePos = this._diffVector3FromBasePos;
+  }
+  private _calculateVector4Diff(propertyName: string, dVal: InterpolableValue, sVal: InterpolableValue) {}
+  private _calculateQuaternionDiff(dVal: InterpolableValue, sVal: InterpolableValue) {
+    Quaternion.conjugate(sVal, this._diffQuaternionFromBasePos);
+    Quaternion.multiply(this._diffQuaternionFromBasePos, dVal, this._diffQuaternionFromBasePos);
+    this._diffValueFromBasePos = this._diffQuaternionFromBasePos;
+  }
+
+  private _updateLayerValue(target: Entity, propertyName: string, val: InterpolableValue, weight: number) {
+    const transform = (<Entity>target).transform;
+    switch (AnimateProperty[propertyName]) {
+      case AnimateProperty.position:
+        const position = transform.position;
+        Vector3.lerp(transform.position, val, weight, position);
+        transform.position = position;
+        break;
+      case AnimateProperty.rotation:
+        const rotationQuaternion = transform.rotationQuaternion;
+        Quaternion.slerp(transform.rotationQuaternion, val, weight, rotationQuaternion);
+        transform.rotationQuaternion = rotationQuaternion;
+        break;
+      case AnimateProperty.scale: {
+        const scale = transform.scale;
+        Vector3.lerp(transform.scale, val, weight, scale);
+        transform.scale = scale;
+        break;
+      }
+    }
+  }
+
+  private _updateAdditiveLayerValue(target: Entity, propertyName: string, diffVal: InterpolableValue, weight: number) {
+    const transform = (<Entity>target).transform;
+    switch (AnimateProperty[propertyName]) {
+      case AnimateProperty.position:
+        const position = transform.position;
+        diffVal.scale(weight);
+        position.x += diffVal.x;
+        position.y += diffVal.y;
+        position.z += diffVal.z;
+        transform.position = position;
+        break;
+      case AnimateProperty.rotation:
+        const rotationQuaternion = transform.rotationQuaternion;
+        AnimatorUtils.calQuaternionWeight(diffVal, weight, diffVal);
+        diffVal.normalize();
+        rotationQuaternion.multiply(diffVal);
+        transform.rotationQuaternion = rotationQuaternion;
+        break;
+      case AnimateProperty.scale: {
+        const scale = transform.scale;
+        AnimatorUtils.calScaleWeight(scale, weight, scale);
+        scale.x = scale.x * diffVal.x;
+        scale.y = scale.y * diffVal.y;
+        scale.z = scale.z * diffVal.z;
+        transform.scale = scale;
+        break;
+      }
+      default:
+        target[propertyName] = diffVal;
+    }
+  }
+
   /**
    * Evaluates the animation component based on deltaTime.
    * @param deltaTime - The deltaTime when the animation update.
@@ -93,125 +153,40 @@ export class Animator extends Component {
     const { animatorController } = this;
     if (!animatorController) return;
     const { layers } = animatorController;
-    for (let i = layers.length - 1; i >= 0; i--) {
+    for (let i = 0; i < layers.length; i++) {
+      const isFirstLayer = i === 0;
+      let weight = i === 1 ? 1 : 1;
       const animLayer = layers[i];
-      const animClip = animLayer.stateMachine.states[1].motion as AnimationClip;
+      const { blendingMode } = animLayer;
+      const animClip = animLayer.stateMachine.states[i === 1 ? 1 : i].motion as AnimationClip;
       const count = animClip.curves.length;
-      const output = [];
+      this._channelStates[i] = this._channelStates[i] || [];
       for (let j = count - 1; j >= 0; j--) {
         const { curve, propertyName, relativePath, type } = animClip.curves[j];
         const animClipLength = curve.length;
-        this._channelStates[j] = this._channelStates[j] || {
+        const target = this.entity.findByName(relativePath);
+        this._channelStates[i][j] = this._channelStates[i][j] || {
           frameTime: 0.0
         };
-        const target = this._findChannelTarget(this.entity, relativePath);
-        this._channelStates[j].frameTime += deltaTime / 1000;
-        if (this._channelStates[j].frameTime > animClipLength) {
-          this._channelStates[j].frameTime = this._channelStates[j].frameTime % animClipLength;
+        this._channelStates[i][j].frameTime += deltaTime / 1000;
+        if (this._channelStates[i][j].frameTime > animClipLength) {
+          this._channelStates[i][j].frameTime = this._channelStates[i][j].frameTime % animClipLength;
         }
-        const val = curve.evaluate(this._channelStates[j].frameTime);
+        const val = curve.evaluate(this._channelStates[i][j].frameTime);
+        const { valueType, firstFrameValue } = curve;
         if (type === Transform) {
-          const transform = (<Entity>target).transform;
-          switch (AnimateProperty[propertyName]) {
-            case AnimateProperty.position:
-              transform.position = val;
-              break;
-            case AnimateProperty.rotation:
-              transform.rotationQuaternion = val;
-              break;
-            case AnimateProperty.scale:
-              transform.scale = val;
-              break;
-            default:
-              target[propertyName] = val;
+          if (isFirstLayer) {
+            this._updateLayerValue(target, propertyName, val, weight);
+          } else {
+            if (blendingMode === AnimatorLayerBlendingMode.Additive) {
+            } else {
+              this._calculateDiff(valueType, propertyName, val, firstFrameValue);
+              this._updateAdditiveLayerValue(target, propertyName, this._diffValueFromBasePos, weight);
+            }
           }
         }
       }
     }
-  }
-
-  /**
-   * Add a AnimationClip to the animation with the name.
-   * @param animClip - The AnimationClip which you want to be added.
-   * @param name - The name of the AnimationClip.
-   */
-  public addAnimationClip(animClip: AnimationClip, name: string) {
-    this._animSet[name] = animClip;
-  }
-
-  /**
-   * Remove clip from the animation.
-   * @param name - The name of the AnimationClip.
-   */
-  public removeAnimationClip(name: string) {
-    const animClip = this._animSet[name];
-    if (animClip) {
-      delete this._animSet[name];
-    }
-  }
-
-  /**
-   * Get length of the AnimationClip By the name.
-   * @param name - The name of the AnimationClip.
-   * @return The AnimationClip length.
-   */
-  public getAnimationClipLength(name: string): number {
-    const animClip = this._animSet[name];
-    if (animClip) {
-      return animClip.getChannelTimeLength(0);
-    } else {
-      return 0.0;
-    }
-  }
-
-  /**
-   * Get the AnimationClip By name.
-   * @param name - The name of the AnimationClip.
-   * @return The AnimationClip which match the name.
-   */
-  public getAnimationClip(name: string): AnimationClip {
-    return this._animSet[name] || null;
-  }
-
-  /**
-   * Return whether is playing.
-   * @return {boolean}
-   */
-  public isPlaying(): boolean {
-    for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      if (this._animLayers[i].isPlaying) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Play the AnimationClip by name.
-   * @param name - The AnimatioinClip's name.
-   * @param options - The play options when playing AnimationClip.
-   */
-  public playAnimationClip(name: string, options?: AnimationOptions) {
-    const animClip = this._animSet[name];
-    if (!animClip) {
-      Logger.error("can not find anim clip: " + name);
-      return;
-    }
-
-    let animLayer: AnimationLayer = null;
-    for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      if (!this._animLayers[i].isFading && !this._animLayers[i].isMixLayer) {
-        animLayer = this._animLayers[i];
-        break;
-      }
-    }
-
-    if (!animLayer) {
-      animLayer = new AnimationLayer();
-      this._animLayers.push(animLayer);
-    }
-    this._removeRefMixLayers(animLayer);
-    this._channelTargets = animLayer.play(animClip, this.entity, options);
   }
 
   /**
@@ -220,150 +195,12 @@ export class Animator extends Component {
    * @param crossFadeDuration - The milliseconds of the crossFade's duration.
    * @param options - The play options when playing AnimationClip.
    */
-  public CrossFade(name: string, crossFadeDuration: number, options: AnimationOptions) {
-    const animClip = this._animSet[name];
-    if (!animClip) {
-      Logger.error("can not find anim clip: " + name);
-      return;
-    }
-
-    if (!crossFadeDuration || crossFadeDuration < 0) {
-      Logger.error("crossFadeDuration can not less than 0!");
-      return;
-    }
-
-    // Look for targets that can be mixed.
-    let targetAnimLayer = null;
-    for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      if (this._animLayers[i].canMix(animClip, this.entity)) {
-        targetAnimLayer = this._animLayers[i];
-        break;
-      }
-    }
-
-    if (targetAnimLayer) {
-      // Clear the unfinished crossFading action
-      for (let i = this._animLayers.length - 1; i >= 0; i--) {
-        if (this._animLayers[i].isFading) {
-          this._animLayers.splice(i, 1);
-        }
-      }
-
-      targetAnimLayer.isFading = true;
-      targetAnimLayer.fadeDuration = crossFadeDuration;
-      targetAnimLayer.fadeDeltaTime = 0;
-
-      const animLayer = new AnimationLayer();
-      animLayer.crossFadeDuration = crossFadeDuration;
-      animLayer.crossFadeDeltaTime = 0;
-      animLayer.play(animClip, this.entity, options);
-      this._animLayers.push(animLayer);
-    } else {
-      this.playAnimationClip(name, options);
-    }
-  }
-
-  /**
-   * Mix the AnimationClip by name.
-   * @param name - The AnimatioinClip's name.
-   * @param mixBoneName - Takes effect on the bone named mixBoneName and the child bones attached to it.
-   * @param options - The play options when playing AnimationClip.
-   */
-  public mix(name: string, mixBoneName: string, options: AnimationOptions) {
-    const animClip = this._animSet[name];
-    if (!animClip) {
-      Logger.error("can not find anim clip: " + name);
-      return;
-    }
-
-    const mixNode = this.entity.findByName(mixBoneName);
-    if (!mixNode) {
-      Logger.error("can not find mix bone!");
-      return;
-    }
-
-    // Look for targets that can be mixed.
-    let targetAnimLayer = null;
-    for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      if (this._animLayers[i].canMix(animClip, this.entity)) {
-        targetAnimLayer = this._animLayers[i];
-        break;
-      }
-    }
-
-    if (targetAnimLayer) {
-      this._removeRefMixLayers(null, mixNode);
-
-      targetAnimLayer.hasMixLayer = true;
-
-      const animLayer = new AnimationLayer();
-      animLayer.isMixLayer = true;
-      animLayer.mixTagetLayer = targetAnimLayer;
-      animLayer.mixEntity = mixNode;
-      animLayer.mix(animClip, targetAnimLayer, this.entity, mixNode, options);
-      this._animLayers.push(animLayer);
-    }
-  }
-
-  /**
-   * Stop play
-   * @param rightnow - Stop it immediately, or it will stop at the end of the clip
-   */
-  public stop(rightnow: boolean) {
-    for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      if (this._animLayers[i].isFading) {
-        this._animLayers.splice(i, 1);
-      } else {
-        this._animLayers[i].stop(rightnow);
-      }
-    }
-  }
-
-  /**
-   * Jump to a frame of the animation, take effect immediately.
-   * @param frameTime - The time which the animation will jump to.
-   */
-  public jumpToFrame(frameTime: number) {
-    frameTime = frameTime / 1000;
-    for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      this._animLayers[i].jumpToFrame(frameTime);
-    }
-
-    this._updateValues();
-  }
-
-  // -- private ----------------------------------------------------------
-  /**
-   * Remove the mixed animation associated with targetLayer.
-   * @param targetLayer - The mixed AnimatioinLayer which will be removed.
-   * @private
-   */
-  public _removeRefMixLayers(targetLayer: AnimationLayer, mixNode?) {
-    if (targetLayer && targetLayer.hasMixLayer) {
-      for (let i = this._animLayers.length - 1; i >= 0; i--) {
-        const animLayer = this._animLayers[i];
-        if (animLayer.isMixLayer && animLayer.mixTagetLayer === targetLayer) {
-          animLayer.removeMixWeight();
-          this._animLayers.splice(i, 1);
-        }
-      }
-    }
-
-    if (mixNode) {
-      for (let i = this._animLayers.length - 1; i >= 0; i--) {
-        const animLayer = this._animLayers[i];
-        if (
-          animLayer.isMixLayer &&
-          (animLayer.mixEntity === mixNode ||
-            animLayer.mixEntity.findByName(mixNode) ||
-            mixNode.findByName(animLayer.mixEntity))
-        ) {
-          animLayer.removeMixWeight();
-          this._animLayers.splice(i, 1);
-        }
-      }
-    }
-  }
+  public CrossFade(
+    name: string,
+    normalizedTransitionDuration: number,
+    normalizedTimeOffset: number,
+    normalizedTransitionTime: number
+  ) {}
 
   /**
    * Update animation value.
@@ -398,64 +235,33 @@ export class Animator extends Component {
     }
   }
 
-  /**
-   * @return Channel value.
-   * @param channelIndex - The channel's index in AnimationClip's channels property.
-   * @param outputSize - The length of the output values.
-   * @private
-   */
-  public _getChannelValue(channelIndex: number, outputSize: number): number | boolean | Float32Array {
-    const weights = [];
-    const values = [];
-    for (let i = this._animLayers.length - 1; i >= 0; i--) {
-      const weight = this._animLayers[i].getChannelLayerWeight(channelIndex);
-      if (weight > 0) {
-        weights.push(weight);
-        values.push(this._animLayers[i].getChannelValue(channelIndex));
-      }
-    }
-    /**
-     * When values.length === 1, return the value directly.
-     * When values.length === 2, return the lerp from value[0] and value[1].
-     **/
-    if (values.length === 1) {
-      return values[0];
-    } else if (values.length === 2) {
-      return Animator.lerp(values[0], values[0], values[1], weights[1], outputSize);
-    }
-
-    // Other case can't be handled.
-    Logger.error("Can not get channel value!");
-    return false;
-  }
-
-  /**
-   * Be called when this instance be enabled.
-   * @override
-   * @internal
-   */
-  _onEnable(): void {
-    this.engine._componentsManager.addOnUpdateAnimations(this);
-  }
-
-  /**
-   * Be called when this instance be disabled or it's entity be inActiveInHierarchy or before this instance be destroyed.
-   * @override
-   * @internal
-   */
-  _onDisable(): void {
-    this.engine._componentsManager.removeOnUpdateAnimations(this);
-  }
-
   animatorController: AnimatorController;
   layers: AnimatorControllerLayer[];
   parameters: AnimatorControllerParameter[];
 
-  _update(deltaTime: number) {}
-
   play() {}
 
-  _stop() {}
+  public stopPlayback(rightnow: boolean) {
+    // for (let i = this._animLayers.length - 1; i >= 0; i--) {
+    //   if (this._animLayers[i].isFading) {
+    //     this._animLayers.splice(i, 1);
+    //   } else {
+    //     this._animLayers[i].stop(rightnow);
+    //   }
+    // }
+  }
+
+  /**
+   * Jump to a frame of the animation, take effect immediately.
+   * @param frameTime - The time which the animation will jump to.
+   */
+  public jumpToFrame(frameTime: number) {
+    // frameTime = frameTime / 1000;
+    // for (let i = this._animLayers.length - 1; i >= 0; i--) {
+    //   this._animLayers[i].jumpToFrame(frameTime);
+    // }
+    // this._updateValues();
+  }
 
   crossFade() {}
 

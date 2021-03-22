@@ -6,9 +6,13 @@ export enum AnimatorLayerBlendingMode {
 }
 
 export class AnimatorControllerLayer {
-  weight: number;
-  name: string;
-  blendingMode: AnimatorLayerBlendingMode;
+  weight: number = 1;
+  blendingMode: AnimatorLayerBlendingMode = AnimatorLayerBlendingMode.Override;
   stateMachine: AnimatorStateMachine;
   frameTime: number = 0;
+  /**
+   * @constructor
+   * @param name - The AnimationClip's name.
+   */
+  constructor(public readonly name: string) {}
 }
