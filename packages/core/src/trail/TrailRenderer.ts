@@ -5,8 +5,8 @@ import { Buffer } from "../graphic/Buffer";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { Mesh } from "../graphic/Mesh";
 import { VertexElement } from "../graphic/VertexElement";
+import { BufferMesh } from "../mesh/BufferMesh";
 import { MeshRenderer } from "../mesh/MeshRenderer";
 import { Texture2D } from "../texture";
 import { TrailMaterial } from "./TrailMaterial";
@@ -124,7 +124,7 @@ export class TrailRenderer extends MeshRenderer {
   }
 
   private _initGeometry() {
-    const mesh = new Mesh(this._entity.engine);
+    const mesh = new BufferMesh(this._entity.engine);
 
     const vertexStride = 20;
     const vertexCount = this._maxPointNum * 2;

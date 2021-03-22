@@ -63,7 +63,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     if (mesh) {
       if (this._meshUpdateFlag.flag) {
         const shaderData = this.shaderData;
-        const vertexElements = mesh.vertexElements;
+        const vertexElements = mesh._vertexElements;
 
         shaderData.disableMacro(MeshRenderer._uvMacro);
         shaderData.disableMacro(MeshRenderer._normalMacro);
