@@ -110,13 +110,16 @@ export class SphericalHarmonics3 implements IClone {
    * @remarks
    * Implements `EvalSHBasis` from [Projection from Cube maps] in http://www.ppsloan.org/publications/StupidSH36.pdf.
    *
-   * @param color - radiance color
-   * @param direction - radiance direction
+   * @param color - Radiance color
+   * @param direction - Radiance direction
+   * @param solidAngle - Radiance solid angle, dA / (r^2)
    */
-  addRadiance(color: Color, direction: Vector3): void {
+  addRadiance(color: Color, direction: Vector3, solidAngle: number): void {
     const basis = SphericalHarmonics3._basisFunction;
     const tempColor = SphericalHarmonics3._tempColor;
     const { x, y, z } = direction;
+
+    color.scale(solidAngle);
 
     this.y00.add(Color.scale(color, basis[0], tempColor));
 
