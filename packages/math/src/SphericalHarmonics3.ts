@@ -62,7 +62,7 @@ export class SphericalHarmonics3 implements IClone {
   get preScaledCoefficients(): Float32Array {
     const kernel = SphericalHarmonics3._convolutionKernel;
     const basis = SphericalHarmonics3._basisFunction;
-    const arrayBuffer = this._coefficients;
+    const data = this._coefficients;
 
     /**
      * 1.  L -> E
@@ -70,39 +70,39 @@ export class SphericalHarmonics3 implements IClone {
      */
 
     // l0
-    arrayBuffer[0] = this.y00.r * kernel[0] * basis[0];
-    arrayBuffer[1] = this.y00.g * kernel[0] * basis[0];
-    arrayBuffer[2] = this.y00.b * kernel[0] * basis[0];
+    data[0] = this.y00.r * kernel[0] * basis[0];
+    data[1] = this.y00.g * kernel[0] * basis[0];
+    data[2] = this.y00.b * kernel[0] * basis[0];
 
     // l1
-    arrayBuffer[3] = this.y1_1.r * kernel[1] * basis[1];
-    arrayBuffer[4] = this.y1_1.g * kernel[1] * basis[1];
-    arrayBuffer[5] = this.y1_1.b * kernel[1] * basis[1];
-    arrayBuffer[6] = this.y10.r * kernel[1] * basis[2];
-    arrayBuffer[7] = this.y10.g * kernel[1] * basis[2];
-    arrayBuffer[8] = this.y10.b * kernel[1] * basis[2];
-    arrayBuffer[9] = this.y11.r * kernel[1] * basis[3];
-    arrayBuffer[10] = this.y11.g * kernel[1] * basis[3];
-    arrayBuffer[11] = this.y11.b * kernel[1] * basis[3];
+    data[3] = this.y1_1.r * kernel[1] * basis[1];
+    data[4] = this.y1_1.g * kernel[1] * basis[1];
+    data[5] = this.y1_1.b * kernel[1] * basis[1];
+    data[6] = this.y10.r * kernel[1] * basis[2];
+    data[7] = this.y10.g * kernel[1] * basis[2];
+    data[8] = this.y10.b * kernel[1] * basis[2];
+    data[9] = this.y11.r * kernel[1] * basis[3];
+    data[10] = this.y11.g * kernel[1] * basis[3];
+    data[11] = this.y11.b * kernel[1] * basis[3];
 
     // l2
-    arrayBuffer[12] = this.y2_2.r * kernel[2] * basis[4];
-    arrayBuffer[13] = this.y2_2.g * kernel[2] * basis[4];
-    arrayBuffer[14] = this.y2_2.b * kernel[2] * basis[4];
-    arrayBuffer[15] = this.y2_1.r * kernel[2] * basis[5];
-    arrayBuffer[16] = this.y2_1.g * kernel[2] * basis[5];
-    arrayBuffer[17] = this.y2_1.b * kernel[2] * basis[5];
-    arrayBuffer[18] = this.y20.r * kernel[2] * basis[6];
-    arrayBuffer[19] = this.y20.g * kernel[2] * basis[6];
-    arrayBuffer[20] = this.y20.b * kernel[2] * basis[6];
-    arrayBuffer[21] = this.y21.r * kernel[2] * basis[7];
-    arrayBuffer[22] = this.y21.g * kernel[2] * basis[7];
-    arrayBuffer[23] = this.y21.b * kernel[2] * basis[7];
-    arrayBuffer[24] = this.y22.r * kernel[2] * basis[8];
-    arrayBuffer[25] = this.y22.g * kernel[2] * basis[8];
-    arrayBuffer[26] = this.y22.b * kernel[2] * basis[8];
+    data[12] = this.y2_2.r * kernel[2] * basis[4];
+    data[13] = this.y2_2.g * kernel[2] * basis[4];
+    data[14] = this.y2_2.b * kernel[2] * basis[4];
+    data[15] = this.y2_1.r * kernel[2] * basis[5];
+    data[16] = this.y2_1.g * kernel[2] * basis[5];
+    data[17] = this.y2_1.b * kernel[2] * basis[5];
+    data[18] = this.y20.r * kernel[2] * basis[6];
+    data[19] = this.y20.g * kernel[2] * basis[6];
+    data[20] = this.y20.b * kernel[2] * basis[6];
+    data[21] = this.y21.r * kernel[2] * basis[7];
+    data[22] = this.y21.g * kernel[2] * basis[7];
+    data[23] = this.y21.b * kernel[2] * basis[7];
+    data[24] = this.y22.r * kernel[2] * basis[8];
+    data[25] = this.y22.g * kernel[2] * basis[8];
+    data[26] = this.y22.b * kernel[2] * basis[8];
 
-    return arrayBuffer;
+    return data;
   }
 
   /**
