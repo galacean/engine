@@ -37,15 +37,10 @@ export class SpriteBatcher {
   private _shaderDatas: ShaderData[] = [];
   private _meshs: BufferMesh[] = [];
   private _meshCount: number = 2;
-  /** Vertices buff in GPU. */
   private _vertexBuffers: Buffer[] = [];
-  /** Indices buff in GPU. */
   private _indiceBuffers: Buffer[] = [];
-  /** Vertices buff in CPU. */
   private _vertices: Float32Array;
-  /** Indices buff in CPU. */
   private _indices: Uint16Array;
-  /** Current vertex count. */
   private _vertexCount: number = 0;
   private _spriteCount: number = 0;
   private _flushId: number = 0;
@@ -56,17 +51,13 @@ export class SpriteBatcher {
     this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
     this._indices = new Uint16Array(MAX_VERTEX_COUNT);
 
-    this._initMeshs(engine);
-
-    const ua = window.navigator.userAgent.toLocaleLowerCase();
-    this._canUploadSameBuffer = !/iphone|ipad|ipod/.test(ua);
-  }
-
-  private _initMeshs(engine: Engine) {
     const { _meshs, _meshCount } = this;
     for (let i = 0; i < _meshCount; i++) {
       _meshs[i] = this._createMesh(engine, i);
     }
+
+    const ua = window.navigator.userAgent.toLocaleLowerCase();
+    this._canUploadSameBuffer = !/iphone|ipad|ipod/.test(ua);
   }
 
   private _createMesh(engine: Engine, index: number): BufferMesh {
