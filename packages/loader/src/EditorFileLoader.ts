@@ -13,6 +13,8 @@ import { decode } from "./custom-file-loaders";
 class EditorFileLoader<T> extends Loader<T> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T> {
     return new AssetPromise((resolve, reject) => {
+      resourceManager.baseUrl = item.url;
+
       this.request<ArrayBuffer>(item.url, {
         ...item,
         type: "arraybuffer"
@@ -20,6 +22,7 @@ class EditorFileLoader<T> extends Loader<T> {
         .then((ab) => decode(ab, resourceManager.engine))
         .then((object) => {
           resolve(object);
+          resourceManager.baseUrl = "";
         })
         .catch((err) => {
           reject(err);

@@ -1,6 +1,7 @@
 import { Engine, Material, ResourceManager, Shader, Texture } from "@oasis-engine/core";
 import { ShaderData } from "@oasis-engine/core/types/shader/ShaderData";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { parseRelativeUrl } from "../Util";
 import { BufferReader } from "./utils/BufferReader";
 
 export class MaterialDecoder {
@@ -176,7 +177,7 @@ export class MaterialDecoder {
           needAsync = true;
           const texturePath = bufferReader.nextStr();
           resourceManager
-            .load<Texture>(texturePath)
+            .load<Texture>(parseRelativeUrl(resourceManager.baseUrl, texturePath))
             .then((texture) => {
               shaderData.setTexture(propertyName, texture);
               resolve();
@@ -209,7 +210,7 @@ export class MaterialDecoder {
           const textureLen = bufferReader.nextUint16();
           const texturePaths: string[] = new Array(textureLen);
           for (let i = 0; i < textureLen; i++) {
-            texturePaths[i] = bufferReader.nextStr();
+            texturePaths[i] = parseRelativeUrl(resourceManager.baseUrl, bufferReader.nextStr());
           }
           resourceManager
             // @ts-ignore
