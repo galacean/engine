@@ -107,9 +107,9 @@ export class SpriteRenderer extends Renderer {
     const { transform } = this.entity;
 
     // Update sprite data.
-    const needUpdate = sprite._updateMeshData();
+    const localDirty = sprite._updateMeshData();
 
-    if (this._isWorldMatrixDirty.flag || needUpdate || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
+    if (this._isWorldMatrixDirty.flag || localDirty || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
       const localPositions = sprite._positions;
       const localPosZ = transform.position.z;
       const localVertexPos = SpriteRenderer._tempVec3;

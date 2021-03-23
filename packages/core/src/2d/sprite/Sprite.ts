@@ -4,29 +4,23 @@ import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 
 /**
- * 2d sprite.
+ * 2D sprite.
  */
 export class Sprite extends RefObject {
   private static _tempVec2: Vector2 = new Vector2();
 
-  /** @internal The array containing sprite mesh triangles. */
+  /** @internal */
   _triangles: number[] = [];
-  /** @internal The base texture coordinates of the sprite mesh. */
+  /** @internal */
   _uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  /** @internal The array containing sprite mesh vertex positions. */
+  /** @internal */
   _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
-  /** The reference to the used texture. */
   private _texture: Texture2D = null;
-  /** The rectangle this sprite uses on its texture. */
-  private _textureRect: Rect = new Rect();
-  /** Location of the sprite's center point in the rect on the original texture, specified in pixels. */
+  private _atlasRect: Rect = new Rect();
   private _pivot: Vector2 = new Vector2();
-  /** Location of the sprite on the original texture, specified in pixels. */
   private _rect: Rect = new Rect();
-  /** The number of pixels in the sprite that correspond to one unit in world space. */
   private _pixelsPerUnit: number = 100;
-  /** The dirty flag to determine whether refresh buffer. */
   private _dirtyFlag: number = DirtyFlag.all;
 
   /**
@@ -43,18 +37,18 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * The rectangle this sprite uses on its texture.
+   * The rectangle of the original texture on its atlas texture.
    */
-  get textureRect(): Rect {
-    return this._textureRect;
+  get atlasRect(): Rect {
+    return this._atlasRect;
   }
 
-  set textureRect(value: Rect) {
-    if (this._textureRect !== value) {
-      this._textureRect.x = value.x;
-      this._textureRect.y = value.y;
-      this._textureRect.width = value.width;
-      this._textureRect.height = value.width;
+  set atlasRect(value: Rect) {
+    if (this._atlasRect !== value) {
+      this._atlasRect.x = value.x;
+      this._atlasRect.y = value.y;
+      this._atlasRect.width = value.width;
+      this._atlasRect.height = value.width;
     }
   }
 
@@ -108,34 +102,36 @@ export class Sprite extends RefObject {
    * @param engine - Engine to which the sprite belongs
    * @param texture - Texture from which to obtain the sprite
    * @param rect - Rectangular section of the texture to use for the sprite
-   * @param pivot - Sprite's pivot point relative to its graphic rectangle
+   * @param normalizedPivot - Sprite's normalized pivot point relative to its graphic rectangle
    * @param pixelsPerUnit - The number of pixels in the sprite that correspond to one unit in world space
    */
   constructor(
     engine: Engine,
     texture: Texture2D,
     rect: Rect = null,
-    pivot: Vector2 = null,
+    normalizedPivot: Vector2 = null,
     pixelsPerUnit: number = 100
   ) {
     super(engine);
 
-    if (!rect) {
-      rect = new Rect(0, 0, texture.width, texture.height);
-    }
-    if (!pivot) {
-      pivot = new Vector2(0.5, 0.5);
+    const rectangle = this.rect;
+    if (rect) {
+      rect.cloneTo(rectangle);
+      if (rectangle.x + rectangle.width > texture.width || rectangle.y + rectangle.height > texture.height) {
+        throw new Error("rect out of range");
+      }
+    } else {
+      rectangle.setValue(0, 0, texture.width, texture.height);
     }
 
-    if (rect.x + rect.width > texture.width || rect.y + rect.height > texture.height) {
-      throw new Error("rect out of range");
+    if (normalizedPivot) {
+      this.pivot.setValue(normalizedPivot.x * rectangle.width, normalizedPivot.y * rectangle.height);
+    } else {
+      this.pivot.setValue(0.5 * rectangle.width, 0.5 * rectangle.height);
     }
 
-    // Init.
+    rectangle.cloneTo(this.atlasRect);
     this.texture = texture;
-    this.rect = rect;
-    this.textureRect = rect;
-    this.pivot.setValue(pivot.x * rect.width, pivot.y * rect.height);
     this.pixelsPerUnit = pixelsPerUnit;
   }
 
@@ -143,7 +139,6 @@ export class Sprite extends RefObject {
    * @override
    */
   _onDestroy(): void {
-    // TODO
     if (this._texture) {
       this._texture = null;
     }
@@ -154,29 +149,28 @@ export class Sprite extends RefObject {
    */
   private _updateMesh(): void {
     const { _pixelsPerUnit, _pivot, _positions, _uv, _triangles } = this;
-    const { _tempVec2 } = Sprite;
+    const unitPivot = Sprite._tempVec2;
 
-    // Update vertices.
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
       const { width, height } = this._rect;
 
+      const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
       // Get the pivot coordinate in 3D space.
-      Vector2.scale(_pivot, 1.0 / _pixelsPerUnit, _tempVec2);
+      Vector2.scale(_pivot, pixelsPerUnitReciprocal, unitPivot);
       // Get the width and height in 3D space.
-      const realWidth = width / _pixelsPerUnit;
-      const realHeight = height / _pixelsPerUnit;
+      const unitWidth = width * pixelsPerUnitReciprocal;
+      const unitHeight = height * pixelsPerUnitReciprocal;
 
       // Top-left.
-      _positions[0].setValue(-_tempVec2.x, realHeight - _tempVec2.y);
+      _positions[0].setValue(-unitPivot.x, unitHeight - unitPivot.y);
       // Top-right.
-      _positions[1].setValue(realWidth - _tempVec2.x, realWidth - _tempVec2.y);
+      _positions[1].setValue(unitWidth - unitPivot.x, unitWidth - unitPivot.y);
       // Bottom-right.
-      _positions[2].setValue(realWidth - _tempVec2.x, -_tempVec2.y);
+      _positions[2].setValue(unitWidth - unitPivot.x, -unitPivot.y);
       // Bottom-left.
-      _positions[3].setValue(-_tempVec2.x, -_tempVec2.y);
+      _positions[3].setValue(-unitPivot.x, -unitPivot.y);
     }
 
-    // Update uvs.
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
       // Top-left.
       _uv[0].setValue(0, 0);
@@ -188,7 +182,6 @@ export class Sprite extends RefObject {
       _uv[3].setValue(0, 1);
     }
 
-    // Update triangles.
     if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
       _triangles[0] = 0;
       _triangles[1] = 2;
@@ -200,8 +193,8 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Update mesh data of the sprite.
    * @internal
+   * Update mesh data of the sprite.
    * @returns True if the data is refreshed, false otherwise.
    */
   _updateMeshData(): boolean {

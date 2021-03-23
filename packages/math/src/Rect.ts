@@ -26,6 +26,22 @@ export class Rect implements IClone {
   }
 
   /**
+   * Set the value of this rectangle.
+   * @param x - The x coordinate of the rectangle
+   * @param y - The y coordinate of the rectangle
+   * @param width - The width of the rectangle, measured from the x position
+   * @param height - The height of the rectangle, measured from the y position
+   * @returns This rectangle
+   */
+  setValue(x: number, y: number, width: number, height: number): Rect {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    return this;
+  }
+
+  /**
    * Creates a clone of this rect.
    * @returns A clone of this rect
    */
