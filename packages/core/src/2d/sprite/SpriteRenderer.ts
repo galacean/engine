@@ -94,8 +94,7 @@ export class SpriteRenderer extends Renderer {
   }
 
   /**
-   * Push the render data of the sprite to render queue.
-   * @param camera - Camera which is rendering
+   * @internal
    */
   _render(camera: Camera): void {
     const { sprite } = this;
@@ -116,7 +115,7 @@ export class SpriteRenderer extends Renderer {
       const worldMatrix = transform.worldMatrix;
       const { flipX, flipY } = this;
 
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0, n = _positions.length; i < n; i++) {
         const curVertexPos = localPositions[i];
         localVertexPos.setValue(
           flipX ? -curVertexPos.x : curVertexPos.x,
@@ -139,7 +138,7 @@ export class SpriteRenderer extends Renderer {
       if (flipXChange || flipYChange) {
         const { x, y } = transform.worldPosition;
 
-        for (let i = 0, len = _positions.length; i < len; ++i) {
+        for (let i = 0, n = _positions.length; i < n; i++) {
           const curPos = _positions[i];
 
           if (flipXChange) {
