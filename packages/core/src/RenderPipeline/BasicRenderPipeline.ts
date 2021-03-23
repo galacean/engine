@@ -18,11 +18,18 @@ import { SeparateSpritePass } from "./SeparateSpritePass";
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
+  /** @internal */
   _defaultSpriteMaterial: Material;
-  protected _camera: Camera;
-  private _queue: RenderQueue;
+  /** @internal */
+  _opaqueQueue: RenderQueue;
+  /** @internal */
+  _transparentQueue: RenderQueue;
+  /** @internal */
+  _alphaTestQueue: RenderQueue;
+
+  private _camera: Camera;
   private _defaultPass: RenderPass;
-  protected _renderPassArray: Array<RenderPass>;
+  private _renderPassArray: Array<RenderPass>;
   private _canvasDepthPass;
   private _separateSpritePass;
 
@@ -32,7 +39,9 @@ export class BasicRenderPipeline {
    */
   constructor(camera: Camera) {
     this._camera = camera;
-    this._queue = new RenderQueue();
+    this._opaqueQueue = new RenderQueue();
+    this._alphaTestQueue = new RenderQueue();
+    this._transparentQueue = new RenderQueue();
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -113,13 +122,6 @@ export class BasicRenderPipeline {
   }
 
   /**
-   * Render queue.
-   */
-  get queue(): RenderQueue {
-    return this._queue;
-  }
-
-  /**
    * Destroy internal resources.
    */
   destroy() {}
@@ -131,13 +133,17 @@ export class BasicRenderPipeline {
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace) {
     const camera = this._camera;
-    const queue = this._queue;
+    const opaqueQueue = this._opaqueQueue;
+    const alphaTestQueue = this._alphaTestQueue;
+    const transparentQueue = this._transparentQueue;
 
-    queue.clear();
-
+    opaqueQueue.clear();
+    alphaTestQueue.clear();
+    transparentQueue.clear();
     camera.engine._componentsManager.callRender(context);
-
-    queue.sort(camera.entity.transform.worldPosition);
+    opaqueQueue.sort(RenderQueue._compareFromNearToFar);
+    alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
+    transparentQueue.sort(RenderQueue._compareFromFarToNear);
 
     if (this._canvasDepthPass) this._canvasDepthPass.enabled = false;
 
@@ -159,7 +165,7 @@ export class BasicRenderPipeline {
   }
 
   private _drawRenderPass(pass: RenderPass, camera: Camera, cubeFace?: TextureCubeFace) {
-    pass.preRender(camera, this.queue);
+    pass.preRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
 
     if (pass.enabled) {
       const rhi = camera.scene.engine._hardwareRenderer;
@@ -169,15 +175,17 @@ export class BasicRenderPipeline {
       rhi.clearRenderTarget(camera.engine, pass.clearMode, pass.clearParam);
 
       if (pass.renderOverride) {
-        pass.render(camera, this.queue);
+        pass.render(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
       } else {
-        this.queue.render(camera, pass.replaceMaterial, pass.mask);
+        this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
 
       rhi.blitRenderTarget(renderTarget);
     }
 
-    pass.postRender(camera, this.queue);
+    pass.postRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
   }
 
   /**
@@ -185,7 +193,15 @@ export class BasicRenderPipeline {
    * @param element - Render element
    */
   pushPrimitive(element: RenderElement) {
-    this._queue.pushPrimitive(element);
+    const renderQueueType = element.material.renderQueueType;
+
+    if (renderQueueType > (RenderQueueType.Transparent + RenderQueueType.AlphaTest) >> 1) {
+      this._transparentQueue.pushPrimitive(element);
+    } else if (renderQueueType > (RenderQueueType.AlphaTest + RenderQueueType.Opaque) >> 1) {
+      this._alphaTestQueue.pushPrimitive(element);
+    } else {
+      this._opaqueQueue.pushPrimitive(element);
+    }
   }
 
   pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
@@ -199,6 +215,6 @@ export class BasicRenderPipeline {
       return;
     }
 
-    this.queue.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
+    this._transparentQueue.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
   }
 }

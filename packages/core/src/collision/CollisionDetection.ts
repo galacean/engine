@@ -1,5 +1,4 @@
 import { BoundingBox, Vector3 } from "@oasis-engine/math";
-import { Event } from "../base/Event";
 import { EventDispatcher } from "../base/EventDispatcher";
 import { ACollider } from "../collider";
 import { ABoxCollider } from "../collider/ABoxCollider";
@@ -21,6 +20,9 @@ export class CollisionDetection extends Script {
   private _overlopCollider;
   private _sphere;
   private _box: BoundingBox = new BoundingBox();
+
+  private _evts = Object.create(null);
+  private _evtCount = 0;
 
   /**
    * Constructor of the colliseion detection.
@@ -54,6 +56,7 @@ export class CollisionDetection extends Script {
           const collider = colliders[i];
           if (collider != this._myCollider && this._boxCollision(collider)) {
             overlopCollider = collider;
+            // @ts-ignore
             this.dispatch("collision", { collider });
           }
         } // end of for
@@ -63,6 +66,7 @@ export class CollisionDetection extends Script {
           const collider = colliders[i];
           if (collider != this._myCollider && this._sphereCollision(collider)) {
             overlopCollider = collider;
+            // @ts-ignore
             this.dispatch("collision", { collider });
           }
         } // end of for
@@ -71,11 +75,13 @@ export class CollisionDetection extends Script {
 
     //-- overlop events
     if (overlopCollider != null && this._overlopCollider != overlopCollider) {
+      // @ts-ignore
       this.dispatch("begin_overlop", { collider: overlopCollider });
     }
 
     if (this._overlopCollider != null && this._overlopCollider != overlopCollider) {
       const e = this._overlopCollider;
+      // @ts-ignore
       this.dispatch("end_overlop", { collider: e });
     }
 
@@ -144,79 +150,6 @@ export class CollisionDetection extends Script {
     this._colliderManager = this.scene.findFeature(ColliderFeature);
     this._myCollider = this.entity.getComponent(ACollider);
   }
-
-  //----------- EventDispatcher Interface ---------------;
-
-  // _evts: object;
-  // _evtCount: number;
-
-  /**
-   * Determine whether there is event monitoring.
-   * @param event - The event name
-   * @returns True if there is event monitoring, false otherwise
-   */
-  hasEvent: (event: string) => boolean;
-  /**
-   * Return all registered event names.
-   * @returns all registered event names
-   */
-  eventNames: () => string[];
-
-  /**
-   * Returns the number of listener functions with the specified event name.
-   * @param event - The event name
-   * @returns the number of listener functions with the specified event name
-   */
-  listenerCount: (event: string) => number;
-
-  /**
-   * Dispatch the event with the specified event name.
-   * @param event - The event name
-   * @param data - The data to dispatch
-   * @returns True if the dispatch is success, false otherwise
-   */
-  dispatch: (event: string, data?: any) => boolean;
-
-  /**
-   * Add a listener function.
-   * @param event - The event name
-   * @param fn - The function to add
-   * @returns This
-   */
-  on: (event: string, fn: Function) => EventDispatcher;
-
-  /**
-   * Add a listener function that just call once.
-   * @param event - The event name
-   * @param fn - The function to add
-   * @returns This
-   */
-  once: (event: string, fn: Function) => EventDispatcher;
-
-  /**
-   * @deprecated Replace with on/once.
-   */
-  addEventListener: (event: string, fn: Function, once?: boolean) => EventDispatcher;
-
-  off: (event: string, fn?: Function) => EventDispatcher;
-
-  /**
-   * @deprecated Replace with off.
-   */
-  removeEventListener: (event: string, fn?: Function) => EventDispatcher;
-
-  /**
-   * Remove all event listeners.
-   * @param event - The event name, delete all events if not passed
-   */
-  removeAllEventListeners: (event?: string) => void;
-
-  /**
-   * @deprecated Replace with dispatch.
-   */
-  trigger: (e: Event) => void;
-
-  _clearEvent: (event: string) => void;
 }
 applyMixins(CollisionDetection, [EventDispatcher]);
 function applyMixins(derivedCtor: any, baseCtors: any[]) {

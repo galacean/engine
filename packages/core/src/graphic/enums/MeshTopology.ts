@@ -1,7 +1,7 @@
 /**
- * Primitive topology.
+ * Mesh topology.
  */
-export enum PrimitiveTopology {
+export enum MeshTopology {
   /** Draws a single dot */
   Points = 0,
   /** Draws a line between a pair of vertices */

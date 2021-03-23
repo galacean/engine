@@ -1,163 +1,145 @@
 import { BoundingBox } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
-import { ignoreClone, shallowClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
+import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
-import { Material } from "../material/Material";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { Mesh } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
 import { RenderElement } from "../RenderPipeline/RenderElement";
-import { Mesh } from "./Mesh";
-
-function addPrimitivesRefCount(mesh: Mesh, refCount: number): void {
-  const primitives = mesh.primitives;
-  for (let i = 0, l = primitives.length; i < l; i++) {
-    primitives[i]._addRefCount(refCount);
-  }
-}
+import { Shader } from "../shader/Shader";
+import { UpdateFlag } from "../UpdateFlag";
 
 /**
- * MeshRenderer Component
+ * MeshRenderer Component.
  */
-export class MeshRenderer extends Renderer {
+export class MeshRenderer extends Renderer implements ICustomClone {
+  private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
+  private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
+  private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
+  private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
+  private static _vertexAlphaMacro = Shader.getMacroByName("O3_HAS_VERTEXALPHA");
+
+  @ignoreClone
   private _mesh: Mesh;
   @ignoreClone
-  private _instanceMaterials: Material[] = [];
-  @shallowClone
-  private _sharedMaterials: Material[] = [];
+  private _meshUpdateFlag: UpdateFlag;
 
+  /**
+   * @internal
+   */
   constructor(entity: Entity) {
     super(entity);
-
-    this._mesh = null; // Mesh Asset Object
   }
 
   /**
-   * Current mesh object.
+   * Mesh assigned to the renderer.
    */
   get mesh() {
     return this._mesh;
   }
 
-  /**
-   * Specify mesh which will be used to render.
-   * @param mesh - Mesh Object
-   */
   set mesh(mesh: Mesh) {
-    if (this._mesh) {
-      addPrimitivesRefCount(this._mesh, -1);
-    }
-    addPrimitivesRefCount(mesh, 1);
-    this._mesh = mesh;
-    this._sharedMaterials = [];
-    this._instanceMaterials = [];
-  }
-
-  /**
-   * Specify a material that will be used by a primitive and the material could be shared.
-   * @param primitiveIndex - Primitive's index
-   * @param material - Material.
-   */
-  setSharedMaterial(primitiveIndex: number, material: Material) {
-    if (this._sharedMaterials[primitiveIndex]) {
-      this._sharedMaterials[primitiveIndex]._addRefCount(-1);
-    }
-    material._addRefCount(1);
-    this._sharedMaterials[primitiveIndex] = material;
-  }
-
-  /**
-   * Specify a material that will be used by a primitive.
-   * @param primitiveIndex - Primitive's index
-   * @param material - Material
-   */
-  setMaterial(primitiveIndex: number, material: Material) {
-    if (this._instanceMaterials[primitiveIndex]) {
-      this._instanceMaterials[primitiveIndex]._addRefCount(-1);
-    }
-    material._addRefCount(1);
-    this._instanceMaterials[primitiveIndex] = material;
-  }
-
-  /**
-   * Get the material object exclusive to this component
-   * @param primitiveIndex - Primitive's index
-   * @return Material
-   */
-  getInstanceMaterial(primitiveIndex: number): Material {
-    return this._instanceMaterials[primitiveIndex];
-  }
-
-  /**
-   * Get the shared primitive material object
-   * @param primitiveIndex Primitive's index
-   * @return Material
-   */
-  getSharedMaterial(primitiveIndex: number): Material {
-    return this._sharedMaterials[primitiveIndex];
-  }
-
-  /**
-   * Execute render
-   * @param camera
-   */
-  render(camera: Camera) {
-    const mesh = this._mesh;
-    if (!mesh) {
-      return;
-    }
-
-    const renderPipeline = camera._renderPipeline;
-    const { primitives, groups } = mesh;
-
-    //-- render every primitive
-    for (let i = 0, len = primitives.length; i < len; i++) {
-      const primitive = primitives[i];
-      const material = this._instanceMaterials[i] || this._sharedMaterials[i];
-      if (material) {
-        const element = RenderElement.getFromPool();
-        element.setValue(this, primitive, groups[i], material);
-        renderPipeline.pushPrimitive(element);
-      } else {
-        Logger.error("Primitive has no material: " + primitive.name);
+    const lastMesh = this._mesh;
+    if (lastMesh !== mesh) {
+      if (lastMesh) {
+        lastMesh._addRefCount(-1);
+        this._meshUpdateFlag.destroy();
       }
-    } // end of for
+      if (mesh) {
+        mesh._addRefCount(1);
+        this._meshUpdateFlag = mesh.registerUpdateFlag();
+      }
+      this._mesh = mesh;
+    }
   }
 
   /**
-   * Destroy the component.
+   * @internal
    */
-  destroy() {
-    super.destroy();
+  _render(camera: Camera): void {
+    const mesh = this._mesh;
+    if (mesh) {
+      if (this._meshUpdateFlag.flag) {
+        const shaderData = this.shaderData;
+        const vertexElements = mesh._vertexElements;
 
-    //-- release mesh
-    this._mesh = null;
+        shaderData.disableMacro(MeshRenderer._uvMacro);
+        shaderData.disableMacro(MeshRenderer._normalMacro);
+        shaderData.disableMacro(MeshRenderer._tangentMacro);
+        shaderData.disableMacro(MeshRenderer._vertexColorMacro);
+        shaderData.disableMacro(MeshRenderer._vertexAlphaMacro);
 
-    //-- materials
-    this._instanceMaterials = [];
-    this._sharedMaterials = [];
+        for (let i = 0, n = vertexElements.length; i < n; i++) {
+          const { semantic, format } = vertexElements[i];
+          switch (semantic) {
+            case "TEXCOORD_0":
+              shaderData.enableMacro(MeshRenderer._uvMacro);
+              break;
+            case "NORMAL":
+              shaderData.enableMacro(MeshRenderer._normalMacro);
+              break;
+            case "TANGENT":
+              shaderData.enableMacro(MeshRenderer._tangentMacro);
+              break;
+            case "COLOR_0":
+              shaderData.enableMacro(MeshRenderer._vertexColorMacro);
+              if (format === VertexElementFormat.Vector4) {
+                shaderData.enableMacro(MeshRenderer._vertexAlphaMacro);
+              }
+              break;
+          }
+        }
+        this._meshUpdateFlag.flag = false;
+      }
 
-    // delete reference count
-    for (let i = 0; i < this._instanceMaterials.length; i++) {
-      this._instanceMaterials[i]._addRefCount(-1);
+      const subMeshes = mesh.subMeshes;
+      const renderPipeline = camera._renderPipeline;
+      for (let i = 0, n = subMeshes.length; i < n; i++) {
+        const material = this._materials[i];
+        if (material) {
+          const element = RenderElement.getFromPool();
+          element.setValue(this, mesh, subMeshes[i], material);
+          renderPipeline.pushPrimitive(element);
+        }
+      }
+    } else {
+      Logger.error("mesh is null.");
     }
+  }
 
-    // delete reference count
-    for (let i = 0; i < this._sharedMaterials.length; i++) {
-      this._sharedMaterials[i]._addRefCount(-1);
-    }
-
+  /**
+   * @internal
+   * @override
+   */
+  _onDestroy() {
+    super._onDestroy();
     if (this._mesh) {
-      addPrimitivesRefCount(this._mesh, -1);
+      this._mesh._addRefCount(-1);
+      this._mesh = null;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: MeshRenderer): void {
+    target.mesh = this._mesh;
   }
 
   /**
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const localBounds = this.mesh.bounds;
-    const worldMatrix = this._entity.transform.worldMatrix;
-
-    BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+    const mesh = this._mesh;
+    if (mesh) {
+      const localBounds = mesh.bounds;
+      const worldMatrix = this._entity.transform.worldMatrix;
+      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+    } else {
+      worldBounds.min.setValue(0, 0, 0);
+      worldBounds.max.setValue(0, 0, 0);
+    }
   }
 }

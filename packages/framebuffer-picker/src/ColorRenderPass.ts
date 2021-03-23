@@ -55,7 +55,7 @@ class ColorRenderPass extends RenderPass {
    * Get pixel color value from framebuffer.
    */
   readColorFromRenderTarget(camera: Camera) {
-    const gl = camera.engine.renderhardware.gl;
+    const gl = camera.engine._hardwareRenderer.gl;
     const screenPoint = this._pickPos;
     const canvas = gl.canvas;
     const clientWidth = canvas.clientWidth;
