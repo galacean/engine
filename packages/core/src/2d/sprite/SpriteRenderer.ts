@@ -166,7 +166,7 @@ export class SpriteRenderer extends Renderer {
   /**
    * @internal
    */
-  _onDestroy() {
+  _onDestroy(): void {
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();
   }
@@ -175,15 +175,15 @@ export class SpriteRenderer extends Renderer {
     return (this._dirtyFlag & type) != 0;
   }
 
-  private _setDirtyFlagTrue(type: number) {
+  private _setDirtyFlagTrue(type: number): void {
     this._dirtyFlag |= type;
   }
 
-  private _setDirtyFlagFalse(type: number) {
+  private _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
   }
 
-  private _getDefaultMaterial() {
+  private _getDefaultMaterial(): Material {
     if (!SpriteRenderer._defaultMaterial) {
       // Create default material
       const material = (SpriteRenderer._defaultMaterial = new Material(this.scene.engine, Shader.find("Sprite")));

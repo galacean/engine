@@ -87,7 +87,7 @@ export class SpriteBatcher {
     return mesh;
   }
 
-  private _updateData(engine: Engine) {
+  private _updateData(engine: Engine): void {
     const { _meshs, _flushId } = this;
 
     if (!this._canUploadSameBuffer && this._meshCount <= _flushId) {
@@ -168,7 +168,7 @@ export class SpriteBatcher {
     this._indiceBuffers[_flushId].setData(_indices, 0, 0, indiceIndex);
   }
 
-  private _drawBatches(engine: Engine) {
+  private _drawBatches(engine: Engine): void {
     const mesh = this._meshs[this._flushId];
     const subMeshs = mesh.subMeshes;
 
@@ -237,7 +237,7 @@ export class SpriteBatcher {
   /**
    * Flush all sprites.
    */
-  flush(engine: Engine) {
+  flush(engine: Engine): void {
     const { _batchedQueue } = this;
 
     if (_batchedQueue.length === 0) {
@@ -276,7 +276,7 @@ export class SpriteBatcher {
     color: Color,
     material: Material,
     camera: Camera
-  ) {
+  ): void {
     const len = positions.length;
     if (this._vertexCount + len > SpriteBatcher.MAX_VERTEX_COUNT) {
       this.flush(camera.engine);
@@ -289,7 +289,7 @@ export class SpriteBatcher {
     this._batchedQueue[this._spriteCount++] = new Batch(positions, uv, triangles, color);
   }
 
-  clear() {
+  clear(): void {
     this._flushId = 0;
     this._vertexCount = 0;
     this._spriteCount = 0;
@@ -306,5 +306,5 @@ export class SpriteBatcher {
   /**
    * Release gl resource.
    */
-  finalize() {}
+  finalize(): void {}
 }

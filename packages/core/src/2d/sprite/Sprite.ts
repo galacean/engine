@@ -142,7 +142,7 @@ export class Sprite extends RefObject {
   /**
    * @override
    */
-  _onDestroy() {
+  _onDestroy(): void {
     // TODO
     if (this._texture) {
       this._texture = null;
@@ -152,7 +152,7 @@ export class Sprite extends RefObject {
   /**
    * Update mesh.
    */
-  private _updateMesh() {
+  private _updateMesh(): void {
     const { _pixelsPerUnit, _pivot, _positions, _uv, _triangles } = this;
     const { _tempVec2 } = Sprite;
 
@@ -219,11 +219,11 @@ export class Sprite extends RefObject {
     return (this._dirtyFlag & type) != 0;
   }
 
-  private _setDirtyFlagTrue(type: number) {
+  private _setDirtyFlagTrue(type: number): void {
     this._dirtyFlag |= type;
   }
 
-  private _setDirtyFlagFalse(type: number) {
+  private _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
   }
 }
