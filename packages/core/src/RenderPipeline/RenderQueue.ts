@@ -11,7 +11,7 @@ import { SpriteBatcher } from "./SpriteBatcher";
 
 interface SpriteElement {
   component: Renderer;
-  vertices;
+  positions;
   uv;
   triangles;
   color;
@@ -63,7 +63,7 @@ export class RenderQueue {
 
   pushSprite(
     component: Component,
-    vertices: Vector3[],
+    positions: Vector3[],
     uv: Vector2[],
     triangles: number[],
     color: Color,
@@ -73,7 +73,7 @@ export class RenderQueue {
     const element: SpriteElement = {
       // @ts-ignore
       component,
-      vertices,
+      positions,
       uv,
       triangles,
       color,
@@ -171,7 +171,7 @@ export class RenderQueue {
 
         this._spriteBatcher.drawSprite(
           spirteElement.component,
-          spirteElement.vertices,
+          spirteElement.positions,
           spirteElement.uv,
           spirteElement.triangles,
           spirteElement.color,

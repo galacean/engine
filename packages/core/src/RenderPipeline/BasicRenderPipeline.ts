@@ -179,7 +179,7 @@ export class BasicRenderPipeline {
   /**
    * Add a sprite drawing information to the render queue.
    * @param component - The sprite renderer
-   * @param vertices - The array containing sprite mesh vertex positions
+   * @param positions - The array containing sprite mesh vertex positions
    * @param uv - The base texture coordinates of the sprite mesh
    * @param triangles - The array containing sprite mesh triangles
    * @param color - Rendering color for the Sprite graphic
@@ -188,13 +188,13 @@ export class BasicRenderPipeline {
    */
   pushSprite(
     component: Component,
-    vertices: Vector3[],
+    positions: Vector3[],
     uv: Vector2[],
     triangles: number[],
     color: Color,
     material: Material,
     camera: Camera
   ) {
-    this._transparentQueue.pushSprite(component, vertices, uv, triangles, color, material, camera);
+    this._transparentQueue.pushSprite(component, positions, uv, triangles, color, material, camera);
   }
 }

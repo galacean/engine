@@ -14,13 +14,13 @@ import { Shader } from "../shader";
 import { ShaderData } from "../shader/ShaderData";
 
 class Batch {
-  vertices: Vector3[];
+  positions: Vector3[];
   uv: Vector2[];
   triangles: number[];
   color: Color;
 
-  constructor(vertices: Vector3[], uv: Vector2[], triangles: number[], color: Color) {
-    this.vertices = vertices;
+  constructor(positions: Vector3[], uv: Vector2[], triangles: number[], color: Color) {
+    this.positions = positions;
     this.uv = uv;
     this.triangles = triangles;
     this.color = color;
@@ -117,17 +117,17 @@ export class SpriteBatcher {
     let preMaterial: Material = null;
     let preShaderData: ShaderData = null;
     for (let i = 0, len = _batchedQueue.length; i < len; i++) {
-      const { vertices, uv, triangles, color } = _batchedQueue[i];
+      const { positions, uv, triangles, color } = _batchedQueue[i];
 
       // Batch vertex
-      const verticesNum = vertices.length;
+      const verticesNum = positions.length;
       for (let j = 0; j < verticesNum; j++) {
-        const curVertex = vertices[j];
+        const curPos = positions[j];
         const curUV = uv[j];
 
-        _vertices[vertexIndex++] = curVertex.x;
-        _vertices[vertexIndex++] = curVertex.y;
-        _vertices[vertexIndex++] = curVertex.z;
+        _vertices[vertexIndex++] = curPos.x;
+        _vertices[vertexIndex++] = curPos.y;
+        _vertices[vertexIndex++] = curPos.z;
         _vertices[vertexIndex++] = curUV.x;
         _vertices[vertexIndex++] = curUV.y;
         _vertices[vertexIndex++] = color.r;
@@ -270,7 +270,7 @@ export class SpriteBatcher {
    * Add a sprite drawing information to the render queue.
    * @param renderer - The sprite renderer to draw
    * @param material - The material used to render the sprite
-   * @param vertices - The array containing sprite mesh vertex positions
+   * @param positions - The array containing sprite mesh vertex positions
    * @param uv - The base texture coordinates of the sprite mesh
    * @param triangles - The array containing sprite mesh triangles
    * @param color - Rendering color for the Sprite graphic
@@ -279,14 +279,14 @@ export class SpriteBatcher {
    */
   drawSprite(
     renderer: Renderer,
-    vertices: Vector3[],
+    positions: Vector3[],
     uv: Vector2[],
     triangles: number[],
     color: Color,
     material: Material,
     camera: Camera
   ) {
-    const len = vertices.length;
+    const len = positions.length;
     if (this._vertexCount + len > SpriteBatcher.MAX_VERTEX_COUNT) {
       this.flush(camera.engine);
     }
@@ -295,7 +295,7 @@ export class SpriteBatcher {
     this._cameras[this._spriteCount] = camera;
     this._materials[this._spriteCount] = material;
     this._shaderDatas[this._spriteCount] = renderer.shaderData;
-    this._batchedQueue[this._spriteCount++] = new Batch(vertices, uv, triangles, color);
+    this._batchedQueue[this._spriteCount++] = new Batch(positions, uv, triangles, color);
   }
 
   clear() {
