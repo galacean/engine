@@ -12,24 +12,15 @@ import { BufferMesh } from "../mesh/BufferMesh";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader";
 import { ShaderData } from "../shader/ShaderData";
+import { SystemInfo } from "../SystemInfo";
 
-class Batch {
-  positions: Vector3[];
-  uv: Vector2[];
-  triangles: number[];
-  color: Color;
-
-  constructor(positions: Vector3[], uv: Vector2[], triangles: number[], color: Color) {
-    this.positions = positions;
-    this.uv = uv;
-    this.triangles = triangles;
-    this.color = color;
-  }
-}
-
+/**
+ * @internal
+ */
 export class SpriteBatcher {
   /** The maximum number of vertex. */
   private static MAX_VERTEX_COUNT: number = 4096;
+  private static _canUploadSameBuffer: boolean = !SystemInfo._isIos();
 
   private _cameras: Camera[] = [];
   private _batchedQueue: Batch[] = [];
@@ -44,7 +35,6 @@ export class SpriteBatcher {
   private _vertexCount: number = 0;
   private _spriteCount: number = 0;
   private _flushId: number = 0;
-  private _canUploadSameBuffer: boolean = false;
 
   constructor(engine: Engine) {
     const { MAX_VERTEX_COUNT } = SpriteBatcher;
@@ -55,9 +45,6 @@ export class SpriteBatcher {
     for (let i = 0; i < _meshCount; i++) {
       _meshs[i] = this._createMesh(engine, i);
     }
-
-    const ua = window.navigator.userAgent.toLocaleLowerCase();
-    this._canUploadSameBuffer = !/iphone|ipad|ipod/.test(ua);
   }
 
   private _createMesh(engine: Engine, index: number): BufferMesh {
@@ -90,7 +77,7 @@ export class SpriteBatcher {
   private _updateData(engine: Engine): void {
     const { _meshs, _flushId } = this;
 
-    if (!this._canUploadSameBuffer && this._meshCount <= _flushId) {
+    if (!SpriteBatcher._canUploadSameBuffer && this._meshCount <= _flushId) {
       this._meshCount++;
       _meshs[_flushId] = this._createMesh(engine, _flushId);
     }
@@ -247,7 +234,7 @@ export class SpriteBatcher {
     this._updateData(engine);
     this._drawBatches(engine);
 
-    if (!this._canUploadSameBuffer) {
+    if (!SpriteBatcher._canUploadSameBuffer) {
       this._flushId++;
     }
 
@@ -307,4 +294,18 @@ export class SpriteBatcher {
    * Release gl resource.
    */
   finalize(): void {}
+}
+
+class Batch {
+  positions: Vector3[];
+  uv: Vector2[];
+  triangles: number[];
+  color: Color;
+
+  constructor(positions: Vector3[], uv: Vector2[], triangles: number[], color: Color) {
+    this.positions = positions;
+    this.uv = uv;
+    this.triangles = triangles;
+    this.color = color;
+  }
 }
