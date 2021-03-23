@@ -1,23 +1,11 @@
-import { Color, Vector2, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
-import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { Material } from "../material/Material";
-import { Renderer } from "../Renderer";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
-
-interface SpriteElement {
-  component: Renderer;
-  positions;
-  uv;
-  triangles;
-  color;
-  material;
-  camera;
-}
+import { SpriteElement } from "./SpriteElement";
 
 type Item = RenderElement | SpriteElement;
 
@@ -61,26 +49,8 @@ export class RenderQueue {
     this.items.push(element);
   }
 
-  pushSprite(
-    component: Component,
-    positions: Vector3[],
-    uv: Vector2[],
-    triangles: number[],
-    color: Color,
-    material: Material,
-    camera: Camera
-  ) {
-    const element: SpriteElement = {
-      // @ts-ignore
-      component,
-      positions,
-      uv,
-      triangles,
-      color,
-      material,
-      camera
-    };
-    this.items.push(element);
+  pushSprite(spriteElement: SpriteElement) {
+    this.items.push(spriteElement);
   }
 
   render(camera: Camera, replaceMaterial: Material, mask: Layer) {
@@ -169,15 +139,7 @@ export class RenderQueue {
           this._spriteBatcher = new SpriteBatcher(engine);
         }
 
-        this._spriteBatcher.drawSprite(
-          spirteElement.component,
-          spirteElement.positions,
-          spirteElement.uv,
-          spirteElement.triangles,
-          spirteElement.color,
-          spirteElement.material,
-          spirteElement.camera
-        );
+        this._spriteBatcher.drawSprite(spirteElement);
       }
     }
 

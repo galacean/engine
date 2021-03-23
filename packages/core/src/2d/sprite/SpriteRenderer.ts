@@ -4,6 +4,7 @@ import { ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
 import { Material, RenderQueueType } from "../../material";
 import { Renderer } from "../../Renderer";
+import { SpriteElement } from "../../RenderPipeline/SpriteElement";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../../shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
@@ -159,7 +160,9 @@ export class SpriteRenderer extends Renderer {
     this.shaderData.setTexture(SpriteRenderer._textureProperty, sprite.texture);
     const material = this.getMaterial() || this._getDefaultMaterial();
 
-    camera._renderPipeline.pushSprite(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
+    const spriteElement = SpriteElement.getFromPool();
+    spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
+    camera._renderPipeline.pushSprite(spriteElement);
   }
 
   /**

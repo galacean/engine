@@ -1,6 +1,5 @@
-import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Vector4 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
-import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { RenderQueueType } from "../material";
 import { Material } from "../material/Material";
@@ -10,6 +9,7 @@ import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
+import { SpriteElement } from "./SpriteElement";
 
 /**
  * Basic render pipeline.
@@ -176,25 +176,7 @@ export class BasicRenderPipeline {
     }
   }
 
-  /**
-   * Add a sprite drawing information to the render queue.
-   * @param component - The sprite renderer
-   * @param positions - The array containing sprite mesh vertex positions
-   * @param uv - The base texture coordinates of the sprite mesh
-   * @param triangles - The array containing sprite mesh triangles
-   * @param color - Rendering color for the Sprite graphic
-   * @param material - The reference to the used material
-   * @param camera - Camera which is rendering
-   */
-  pushSprite(
-    component: Component,
-    positions: Vector3[],
-    uv: Vector2[],
-    triangles: number[],
-    color: Color,
-    material: Material,
-    camera: Camera
-  ) {
-    this._transparentQueue.pushSprite(component, positions, uv, triangles, color, material, camera);
+  pushSprite(spriteElement: SpriteElement) {
+    this._transparentQueue.pushSprite(spriteElement);
   }
 }
