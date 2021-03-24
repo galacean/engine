@@ -135,6 +135,21 @@ export class SphericalHarmonics3 implements IClone {
   }
 
   /**
+   * Scale the coefficients.
+   */
+  scale(value: number) {
+    this.y00.scale(value);
+    this.y1_1.scale(value);
+    this.y10.scale(value);
+    this.y11.scale(value);
+    this.y2_2.scale(value);
+    this.y2_1.scale(value);
+    this.y20.scale(value);
+    this.y21.scale(value);
+    this.y22.scale(value);
+  }
+
+  /**
    * Clear SH3 to zero.
    */
   clear(): void {
