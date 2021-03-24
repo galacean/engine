@@ -176,15 +176,15 @@ export class SphericalHarmonics3 implements IClone {
    * @override
    */
   cloneTo(out: SphericalHarmonics3): SphericalHarmonics3 {
-    out.y00 = this.y00;
-    out.y1_1 = this.y1_1;
-    out.y10 = this.y10;
-    out.y11 = this.y11;
-    out.y2_2 = this.y2_2;
-    out.y2_1 = this.y2_1;
-    out.y20 = this.y20;
-    out.y21 = this.y21;
-    out.y22 = this.y22;
+    this.y00.cloneTo(out.y00);
+    this.y1_1.cloneTo(out.y1_1);
+    this.y10.cloneTo(out.y10);
+    this.y11.cloneTo(out.y11);
+    this.y2_2.cloneTo(out.y2_2);
+    this.y2_1.cloneTo(out.y2_1);
+    this.y20.cloneTo(out.y20);
+    this.y21.cloneTo(out.y21);
+    this.y22.cloneTo(out.y22);
     return out;
   }
 }
