@@ -7,6 +7,7 @@ import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { BufferMesh } from "../mesh/BufferMesh";
 import { Shader } from "../shader";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { SystemInfo } from "../SystemInfo";
 import { SpriteElement } from "./SpriteElement";
 
@@ -14,6 +15,7 @@ import { SpriteElement } from "./SpriteElement";
  * @internal
  */
 export class SpriteBatcher {
+  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_texture");
   /** The maximum number of vertex. */
   private static MAX_VERTEX_COUNT: number = 4096;
   private static _canUploadSameBuffer: boolean = !SystemInfo._isIos();
@@ -179,8 +181,9 @@ export class SpriteBatcher {
 
   private _canBatch(preSpriteElement: SpriteElement, curSpriteElement: SpriteElement): boolean {
     // Currently only compare texture
-    const preTexture = preSpriteElement.component.shaderData.getTexture("u_texture");
-    const curTexture = curSpriteElement.component.shaderData.getTexture("u_texture");
+    const { _textureProperty } = SpriteBatcher;
+    const preTexture = preSpriteElement.component.shaderData.getTexture(_textureProperty);
+    const curTexture = curSpriteElement.component.shaderData.getTexture(_textureProperty);
     if (preTexture !== curTexture) {
       return false;
     }
@@ -203,7 +206,9 @@ export class SpriteBatcher {
     this._updateData(engine);
     this._drawBatches(engine);
 
-    if (!SpriteBatcher._canUploadSameBuffer) {
+    if (SpriteBatcher._canUploadSameBuffer) {
+      this._meshs[this._flushId].clearSubMesh();
+    } else {
       this._flushId++;
     }
 
