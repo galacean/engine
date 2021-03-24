@@ -92,6 +92,7 @@ export class EnvironmentMapLight extends Light {
 
   /**
    * Diffuse intensity.
+   * @remarks Only take effect when `diffuseSphericalHarmonics` is set.
    */
   get diffuseIntensity(): number {
     return this._diffuseIntensity;
