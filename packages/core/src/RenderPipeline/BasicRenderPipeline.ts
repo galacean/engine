@@ -164,7 +164,7 @@ export class BasicRenderPipeline {
    * Push a render element to the render queue.
    * @param element - Render element
    */
-  pushPrimitive(element: RenderElement) {
+  pushPrimitive(element: RenderElement | SpriteElement) {
     const renderQueueType = element.material.renderQueueType;
 
     if (renderQueueType > (RenderQueueType.Transparent + RenderQueueType.AlphaTest) >> 1) {
@@ -174,9 +174,5 @@ export class BasicRenderPipeline {
     } else {
       this._opaqueQueue.pushPrimitive(element);
     }
-  }
-
-  pushSprite(spriteElement: SpriteElement) {
-    this._transparentQueue.pushSprite(spriteElement);
   }
 }

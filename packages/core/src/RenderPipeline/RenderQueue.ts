@@ -45,12 +45,8 @@ export class RenderQueue {
   /**
    * Push a render element.
    */
-  pushPrimitive(element: RenderElement): void {
+  pushPrimitive(element: RenderElement | SpriteElement): void {
     this.items.push(element);
-  }
-
-  pushSprite(spriteElement: SpriteElement) {
-    this.items.push(spriteElement);
   }
 
   render(camera: Camera, replaceMaterial: Material, mask: Layer) {

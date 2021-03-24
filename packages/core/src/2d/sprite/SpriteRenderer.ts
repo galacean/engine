@@ -162,7 +162,7 @@ export class SpriteRenderer extends Renderer {
 
     const spriteElement = SpriteElement.getFromPool();
     spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
-    camera._renderPipeline.pushSprite(spriteElement);
+    camera._renderPipeline.pushPrimitive(spriteElement);
   }
 
   /**
