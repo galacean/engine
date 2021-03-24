@@ -212,17 +212,6 @@ export class SpriteBatcher {
     this._spriteCount = 0;
   }
 
-  /**
-   * Add a sprite drawing information to the render queue.
-   * @param renderer - The sprite renderer to draw
-   * @param material - The material used to render the sprite
-   * @param positions - The array containing sprite mesh vertex positions
-   * @param uv - The base texture coordinates of the sprite mesh
-   * @param triangles - The array containing sprite mesh triangles
-   * @param color - Rendering color for the Sprite graphic
-   * @param texture - The reference to the used texture
-   * @param camera - Camera which is rendering
-   */
   drawSprite(spriteElement: SpriteElement): void {
     const len = spriteElement.positions.length;
     if (this._vertexCount + len > SpriteBatcher.MAX_VERTEX_COUNT) {
@@ -244,9 +233,4 @@ export class SpriteBatcher {
       _meshs[i].clearSubMesh();
     }
   }
-
-  /**
-   * Release gl resource.
-   */
-  finalize(): void {}
 }

@@ -13,11 +13,6 @@ type Item = RenderElement | SpriteElement;
  * Render queue.
  */
 export class RenderQueue {
-  readonly items: Item[] = [];
-
-  // TODO
-  private _spriteBatcher: SpriteBatcher = null;
-
   /**
    * @internal
    */
@@ -41,6 +36,9 @@ export class RenderQueue {
     }
     return b.component._distanceForSort - a.component._distanceForSort;
   }
+
+  readonly items: Item[] = [];
+  private _spriteBatcher: SpriteBatcher = null;
 
   /**
    * Push a render element.
