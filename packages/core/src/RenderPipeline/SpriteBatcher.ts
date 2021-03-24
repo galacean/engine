@@ -190,6 +190,7 @@ export class SpriteBatcher {
         return;
       }
 
+      program.bind();
       program.groupingOtherUniformBlock();
       const camera = spriteElement.camera;
       program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
