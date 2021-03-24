@@ -466,7 +466,7 @@ function parsePrimitiveVertex(
 
   // load indices
   const indices = gltfPrimitive.indices;
-  if (indices) {
+  if (indices !== undefined) {
     const indexAccessor = gltf.accessors[indices];
     const indexData = getIndexBufferData();
 
