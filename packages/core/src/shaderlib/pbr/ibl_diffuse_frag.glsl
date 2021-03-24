@@ -2,7 +2,7 @@
 
     vec3 irradiance = vec3(0);
 
-    #ifdef O3_USE_DIFFUSE_ENV
+    #if defined(O3_HAS_ENVMAP_LIGHT) && defined(O3_USE_DIFFUSE_ENV)
         irradiance += getLightProbeIrradiance(u_env_sh, normal) * u_envMapLight.diffuseIntensity;;
     #elif defined(O3_HAS_AMBIENT_LIGHT)
         irradiance += getAmbientLightIrradiance(u_ambientLightColor);
