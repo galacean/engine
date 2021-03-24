@@ -1,4 +1,5 @@
 import { Engine } from "../Engine";
+import { MeshTopology, SubMesh } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
@@ -19,10 +20,31 @@ export class SpriteBatcher {
   /** The maximum number of vertex. */
   private static MAX_VERTEX_COUNT: number = 4096;
   private static _canUploadSameBuffer: boolean = !SystemInfo._isIos();
+  private static _subMeshPool: SubMesh[] = [];
+  private static _subMeshPoolIndex: number = 0;
+
+  static _getSubMeshFromPool(start: number, count: number, topology?: MeshTopology): SubMesh {
+    const { _subMeshPoolIndex: index, _subMeshPool: pool } = SpriteBatcher;
+    SpriteBatcher._subMeshPoolIndex++;
+    if (pool.length === index) {
+      const subMesh = new SubMesh(start, count, topology);
+      pool.push(subMesh);
+      return subMesh;
+    } else {
+      return pool[index];
+    }
+  }
+
+  /**
+   * @internal
+   */
+  static _restPool() {
+    SpriteBatcher._subMeshPoolIndex = 0;
+  }
 
   private _batchedQueue: SpriteElement[] = [];
-  private _meshs: BufferMesh[] = [];
-  private _meshCount: number = 2;
+  private _meshes: BufferMesh[] = [];
+  private _meshCount: number = 1;
   private _vertexBuffers: Buffer[] = [];
   private _indiceBuffers: Buffer[] = [];
   private _vertices: Float32Array;
@@ -36,9 +58,9 @@ export class SpriteBatcher {
     this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
     this._indices = new Uint16Array(MAX_VERTEX_COUNT * 3);
 
-    const { _meshs, _meshCount } = this;
+    const { _meshes, _meshCount } = this;
     for (let i = 0; i < _meshCount; i++) {
-      _meshs[i] = this._createMesh(engine, i);
+      _meshes[i] = this._createMesh(engine, i);
     }
   }
 
@@ -75,15 +97,16 @@ export class SpriteBatcher {
   }
 
   private _updateData(engine: Engine): void {
-    const { _meshs, _flushId } = this;
+    const { _meshes, _flushId } = this;
 
     if (!SpriteBatcher._canUploadSameBuffer && this._meshCount <= _flushId) {
       this._meshCount++;
-      _meshs[_flushId] = this._createMesh(engine, _flushId);
+      _meshes[_flushId] = this._createMesh(engine, _flushId);
     }
 
+    const { _getSubMeshFromPool } = SpriteBatcher;
     const { _batchedQueue, _vertices, _indices } = this;
-    const mesh = _meshs[_flushId];
+    const mesh = _meshes[_flushId];
 
     let vertexIndex = 0;
     let indiceIndex = 0;
@@ -127,7 +150,7 @@ export class SpriteBatcher {
         if (this._canBatch(preSpriteElement, curSpriteElement)) {
           vertexCount += triangleNum;
         } else {
-          mesh.addSubMesh(vertexStartIndex, vertexCount);
+          mesh.addSubMesh(_getSubMeshFromPool(vertexStartIndex, vertexCount));
           vertexStartIndex += vertexCount;
           vertexCount = triangleNum;
           _batchedQueue[curMeshIndex++] = preSpriteElement;
@@ -137,7 +160,7 @@ export class SpriteBatcher {
       preSpriteElement = curSpriteElement;
     }
 
-    mesh.addSubMesh(vertexStartIndex, vertexCount);
+    mesh.addSubMesh(_getSubMeshFromPool(vertexStartIndex, vertexCount));
     _batchedQueue[curMeshIndex] = preSpriteElement;
 
     this._vertexBuffers[_flushId].setData(_vertices, 0, 0, vertexIndex);
@@ -145,12 +168,12 @@ export class SpriteBatcher {
   }
 
   private _drawBatches(engine: Engine): void {
-    const mesh = this._meshs[this._flushId];
-    const subMeshs = mesh.subMeshes;
+    const mesh = this._meshes[this._flushId];
+    const subMeshes = mesh.subMeshes;
     const { _batchedQueue } = this;
 
-    for (let i = 0, len = subMeshs.length; i < len; i++) {
-      const subMesh = subMeshs[i];
+    for (let i = 0, len = subMeshes.length; i < len; i++) {
+      const subMesh = subMeshes[i];
       const spriteElement = _batchedQueue[i];
 
       if (!subMesh || !spriteElement) {
@@ -207,11 +230,12 @@ export class SpriteBatcher {
     this._drawBatches(engine);
 
     if (SpriteBatcher._canUploadSameBuffer) {
-      this._meshs[this._flushId].clearSubMesh();
+      this._meshes[this._flushId].clearSubMesh();
     } else {
       this._flushId++;
     }
 
+    SpriteBatcher._restPool();
     this._batchedQueue.length = 0;
     this._vertexCount = 0;
     this._spriteCount = 0;
@@ -233,9 +257,9 @@ export class SpriteBatcher {
     this._spriteCount = 0;
     this._batchedQueue.length = 0;
 
-    const { _meshs, _meshCount } = this;
+    const { _meshes, _meshCount } = this;
     for (let i = 0; i < _meshCount; i++) {
-      _meshs[i].clearSubMesh();
+      _meshes[i].clearSubMesh();
     }
   }
 }
