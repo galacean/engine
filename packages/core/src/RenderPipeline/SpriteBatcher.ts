@@ -107,6 +107,7 @@ export class SpriteBatcher {
     const { _getSubMeshFromPool } = SpriteBatcher;
     const { _batchedQueue, _vertices, _indices } = this;
     const mesh = _meshes[_flushId];
+    mesh.clearSubMesh();
 
     let vertexIndex = 0;
     let indiceIndex = 0;
@@ -229,9 +230,7 @@ export class SpriteBatcher {
     this._updateData(engine);
     this._drawBatches(engine);
 
-    if (SpriteBatcher._canUploadSameBuffer) {
-      this._meshes[this._flushId].clearSubMesh();
-    } else {
+    if (!SpriteBatcher._canUploadSameBuffer) {
       this._flushId++;
     }
 
@@ -256,10 +255,5 @@ export class SpriteBatcher {
     this._vertexCount = 0;
     this._spriteCount = 0;
     this._batchedQueue.length = 0;
-
-    const { _meshes, _meshCount } = this;
-    for (let i = 0; i < _meshCount; i++) {
-      _meshes[i].clearSubMesh();
-    }
   }
 }
