@@ -1,4 +1,5 @@
 import { Camera } from "../Camera";
+import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Material } from "../material/Material";
 import { Shader } from "../shader";
@@ -38,7 +39,11 @@ export class RenderQueue {
   }
 
   readonly items: Item[] = [];
-  private _spriteBatcher: SpriteBatcher = null;
+  private _spriteBatcher: SpriteBatcher;
+
+  constructor(engine: Engine) {
+    this._spriteBatcher = new SpriteBatcher(engine);
+  }
 
   /**
    * Push a render element.
@@ -68,7 +73,7 @@ export class RenderQueue {
       }
 
       if (!!(item as RenderElement).mesh) {
-        this._spriteBatcher && this._spriteBatcher.flush(engine);
+        this._spriteBatcher.flush(engine);
 
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
@@ -129,15 +134,11 @@ export class RenderQueue {
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spirteElement = <SpriteElement>item;
-        if (!this._spriteBatcher) {
-          this._spriteBatcher = new SpriteBatcher(engine);
-        }
-
         this._spriteBatcher.drawSprite(spirteElement);
       }
     }
 
-    this._spriteBatcher && this._spriteBatcher.flush(engine);
+    this._spriteBatcher.flush(engine);
   }
 
   /**
@@ -145,7 +146,7 @@ export class RenderQueue {
    */
   clear(): void {
     this.items.length = 0;
-    this._spriteBatcher && this._spriteBatcher.clear();
+    this._spriteBatcher.clear();
   }
 
   /**

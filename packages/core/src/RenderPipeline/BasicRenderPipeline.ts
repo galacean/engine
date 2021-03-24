@@ -33,9 +33,9 @@ export class BasicRenderPipeline {
    */
   constructor(camera: Camera) {
     this._camera = camera;
-    this._opaqueQueue = new RenderQueue();
-    this._alphaTestQueue = new RenderQueue();
-    this._transparentQueue = new RenderQueue();
+    this._opaqueQueue = new RenderQueue(camera.engine);
+    this._alphaTestQueue = new RenderQueue(camera.engine);
+    this._transparentQueue = new RenderQueue(camera.engine);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
