@@ -64,19 +64,19 @@ export abstract class Mesh extends RefObject {
 
   /**
    * Add sub-mesh, each sub-mesh can correspond to an independent material.
+   * @param subMesh - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
+   * @returns Sub-mesh
+   */
+  addSubMesh(subMesh: SubMesh): SubMesh;
+
+  /**
+   * Add sub-mesh, each sub-mesh can correspond to an independent material.
    * @param start - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
    * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
    * @param topology - Drawing topology, default is MeshTopology.Triangles
    * @returns Sub-mesh
    */
   addSubMesh(start: number, count: number, topology?: MeshTopology): SubMesh;
-
-  /**
-   * Add sub-mesh, each sub-mesh can correspond to an independent material.
-   * @param subMesh - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
-   * @returns Sub-mesh
-   */
-  addSubMesh(subMesh: SubMesh): SubMesh;
 
   addSubMesh(
     startOrSubMesh: number | SubMesh,
