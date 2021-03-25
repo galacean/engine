@@ -11,7 +11,8 @@ import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Shader, CullMode } from "../shader";
 import { Texture } from "../texture";
 import { MeshRenderer } from "../mesh/MeshRenderer";
-import { Mesh } from "../graphic/Mesh";
+import { GLCapabilityType } from "../base/Constant";
+import { BufferMesh } from "../mesh/BufferMesh";
 
 enum DirtyFlagType {
   Position = 0x1,
@@ -40,6 +41,9 @@ export enum ParticleRendererBlendMode {
  * Particle Renderer Component.
  */
 export class ParticleRenderer extends MeshRenderer {
+  /** The max number of indices that Uint16Array can support. */
+  private static _uint16VertexLimit: number = 65535;
+
   private static _getRandom(): number {
     return Math.random() - 0.5;
   }
@@ -588,12 +592,24 @@ export class ParticleRenderer extends MeshRenderer {
     return material;
   }
 
-  private _createMesh(): Mesh {
-    const geometry = new Mesh(this._entity.engine, "particleGeometry");
+  private _createMesh(): BufferMesh {
+    const mesh = new BufferMesh(this._entity.engine, "particleMesh");
     const vertexStride = 96;
-    const vertexFloatCount = this._maxCount * 4 * vertexStride;
+    const vertexCount = this._maxCount * 4;
+    const vertexFloatCount = vertexCount * vertexStride;
     const vertices = new Float32Array(vertexFloatCount);
-    const indices = new Uint16Array(6 * this._maxCount);
+    let indices: Uint16Array | Uint32Array = null;
+    let useUint32: boolean = false;
+    if (vertexCount > ParticleRenderer._uint16VertexLimit) {
+      if (this.engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
+        useUint32 = true;
+        indices = new Uint32Array(6 * this._maxCount);
+      } else {
+        throw Error("The vertex count is over limit.");
+      }
+    } else {
+      indices = new Uint16Array(6 * this._maxCount);
+    }
 
     for (let i = 0, idx = 0; i < this._maxCount; ++i) {
       let startIndex = i * 4;
@@ -625,15 +641,15 @@ export class ParticleRenderer extends MeshRenderer {
 
     const indexBuffer = new Buffer(this.engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Dynamic);
 
-    geometry.setVertexBufferBinding(vertexBuffer, vertexStride);
-    geometry.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
-    geometry.setVertexElements(vertexElements);
-    geometry.addSubMesh(0, indices.length);
+    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
+    mesh.setIndexBufferBinding(indexBuffer, useUint32 ? IndexFormat.UInt32 : IndexFormat.UInt16);
+    mesh.setVertexElements(vertexElements);
+    mesh.addSubMesh(0, indices.length);
 
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride / 4;
     this._vertices = vertices;
-    return geometry;
+    return mesh;
   }
 
   private _updateBuffer(): void {

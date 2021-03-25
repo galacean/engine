@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math";
+import { Color, Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { BlendFactor } from "../shader/enums/BlendFactor";
 import { BlendOperation } from "../shader/enums/BlendOperation";
@@ -15,9 +15,23 @@ import { Material } from "./Material";
 export class UnlitMaterial extends Material {
   private _baseColor: Color = new Color(1, 1, 1, 1);
   private _baseColorTexture: Texture2D;
+  private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
+
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
   private _alphaCutoff: number = 0.5;
   private _doubleSided: boolean = false;
+
+  /**
+   * Tiling and offset of main textures.
+   */
+  get tilingOffset(): Vector4 {
+    return this._tilingOffset;
+  }
+
+  set tilingOffset(value: Vector4) {
+    this._tilingOffset = value;
+    this.shaderData.setVector4("u_tilingOffset", value);
+  }
 
   /**
    * Base color.
@@ -133,9 +147,11 @@ export class UnlitMaterial extends Material {
   constructor(engine: Engine) {
     super(engine, Shader.find("unlit"));
     this.shaderData.enableMacro("OMIT_NORMAL");
+    this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
     this.baseColor = this._baseColor;
     this.alphaCutoff = this._alphaCutoff;
+    this.tilingOffset = this._tilingOffset;
   }
 
   /**

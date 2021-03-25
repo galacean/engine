@@ -94,7 +94,8 @@ export class Transform extends Component {
   }
 
   /**
-   * Local rotation, defining the rotation value in degrees, Yaw/Pitch/Roll sequence.
+   * Local rotation, defining the rotation value in degrees.
+   * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
    */
   get rotation(): Vector3 {
@@ -117,7 +118,8 @@ export class Transform extends Component {
   }
 
   /**
-   * World rotation, defining the rotation value in degrees, Yaw/Pitch/Roll sequence.
+   * World rotation, defining the rotation value in degrees.
+   * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
    */
   get worldRotation(): Vector3 {
@@ -301,7 +303,8 @@ export class Transform extends Component {
   }
 
   /**
-   * Set local rotaion by the X, Y, Z components of the euler angle, unit in degrees, Yaw/Pitch/Roll sequence.
+   * Set local rotaion by the X, Y, Z components of the euler angle, unit in degrees.
+   * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    * @param x - The angle of rotation around the X axis
    * @param y - The angle of rotation around the Y axis
    * @param z - The angle of rotation around the Z axis
@@ -689,30 +692,6 @@ export class Transform extends Component {
     const rotQuat = Transform._tempQuat0;
     Quaternion.rotationEuler(x * radFactor, y * radFactor, z * radFactor, rotQuat);
     this._rotateByQuat(rotQuat, relativeToLocal);
-  }
-
-  /**
-   * @deprecated Please use translate() function instead.
-   * Translate in the specified direction and distance.
-   * @param x - The direction and distance of translation in x axis
-   * @param y - The direction and distance of translation in y axis
-   * @param z - The direction and distance of translation in z axis
-   * @param relativeToLocal - Whether relative local space
-   */
-  translateXYZ(x: number, y: number, z: number, relativeToLocal: boolean = true): void {
-    this.translate(x, y, z, relativeToLocal);
-  }
-
-  /**
-   * @deprecated please use rotate() function instead.
-   * Rotate according to the specified Euler angle.
-   * @param x - The angle that rotate around of x axis (uint: angle)
-   * @param y - The angle that rotate around of y axis (uint: angle)
-   * @param z - The angle that rotate around of z axis (uint: angle)
-   * @param relativeToLocal - Whether relative local space
-   */
-  rotateXYZ(x: number, y: number, z: number, relativeToLocal: boolean = true): void {
-    this.rotate(x, y, z, relativeToLocal);
   }
 }
 
