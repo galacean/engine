@@ -34,6 +34,17 @@ export class BufferUtil {
     }
   }
 
+  static _getGLIndexByteCount(indexFormat: IndexFormat): DataType {
+    switch (indexFormat) {
+      case IndexFormat.UInt8:
+        return 1;
+      case IndexFormat.UInt16:
+        return 2;
+      case IndexFormat.UInt32:
+        return 4;
+    }
+  }
+
   /**
    * @internal
    */

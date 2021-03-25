@@ -2,9 +2,7 @@ import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardware
 import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
-import { Buffer } from "../graphic/Buffer";
 import { BufferUtil } from "../graphic/BufferUtil";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
@@ -16,44 +14,28 @@ import { UpdateFlag } from "../UpdateFlag";
 /**
  * Mesh.
  */
-export class Mesh extends RefObject {
+export abstract class Mesh extends RefObject {
   /** Name. */
   name: string;
-  /** Instanced count, disable instanced drawing when set zero. */
-  instanceCount: number = 0;
   /** The bounding volume of the mesh. */
   readonly bounds: BoundingBox = new BoundingBox();
 
   _vertexElementMap: object = {};
   _glIndexType: number;
+  _glIndexByteCount: number;
   _platformPrimitive: IPlatformPrimitive;
 
-  private _vertexBufferBindings: VertexBufferBinding[] = [];
-  private _indexBufferBinding: IndexBufferBinding = null;
-  private _vertexElements: VertexElement[] = [];
+  /** @internal */
+  _instanceCount: number = 0;
+  /** @internal */
+  _vertexBufferBindings: VertexBufferBinding[] = [];
+  /** @internal */
+  _indexBufferBinding: IndexBufferBinding = null;
+  /** @internal */
+  _vertexElements: VertexElement[] = [];
+
   private _subMeshes: SubMesh[] = [];
   private _updateFlags: UpdateFlag[] = [];
-
-  /**
-   * Vertex buffer binding collection.
-   */
-  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
-    return this._vertexBufferBindings;
-  }
-
-  /**
-   * Index buffer binding.
-   */
-  get indexBufferBinding(): IndexBufferBinding {
-    return this._indexBufferBinding;
-  }
-
-  /**
-   * Vertex element collection.
-   */
-  get vertexElements(): Readonly<VertexElement[]> {
-    return this._vertexElements;
-  }
 
   /**
    * First sub-mesh. Rendered using the first material.
@@ -81,91 +63,31 @@ export class Mesh extends RefObject {
   }
 
   /**
-   * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
-   * @param firstIndex - First vertex buffer index, the default value is 0
+   * Add sub-mesh, each sub-mesh can correspond to an independent material.
+   * @param subMesh - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
+   * @returns Sub-mesh
    */
-  setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, firstIndex?: number): void;
-
-  /**
-   * Set vertex buffer binding.
-   * @param vertexBuffer - Vertex buffer
-   * @param stride - Vertex buffer data stride
-   * @param firstIndex - First vertex buffer index, the default value is 0
-   */
-  setVertexBufferBinding(vertexBuffer: Buffer, stride: number, firstIndex?: number): void;
-
-  setVertexBufferBinding(
-    bufferOrBinding: Buffer | VertexBufferBinding,
-    strideOrFirstIndex: number = 0,
-    firstIndex: number = 0
-  ): void {
-    let binding = <VertexBufferBinding>bufferOrBinding;
-    const isBinding = binding.buffer !== undefined;
-    isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
-
-    const bindings = this._vertexBufferBindings;
-    bindings.length <= firstIndex && (bindings.length = firstIndex + 1);
-    this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : firstIndex, binding);
-  }
-
-  /**
-   * Set vertex buffer binding.
-   * @param vertexBufferBindings - Vertex buffer binding
-   * @param firstIndex - First vertex buffer index, the default value is 0
-   */
-  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
-    const bindings = this._vertexBufferBindings;
-    const count = vertexBufferBindings.length;
-    const needLength = firstIndex + count;
-    bindings.length < needLength && (bindings.length = needLength);
-    for (let i = 0; i < count; i++) {
-      this._setVertexBufferBinding(firstIndex + i, vertexBufferBindings[i]);
-    }
-  }
-
-  /**
-   * Set index buffer binding.
-   * @param buffer - Index buffer
-   * @param format - Index buffer format
-   */
-  setIndexBufferBinding(buffer: Buffer, format: IndexFormat): void;
-
-  /**
-   * Set index buffer binding.
-   * @param bufferBinding - Index buffer binding
-   */
-  setIndexBufferBinding(bufferBinding: IndexBufferBinding): void;
-
-  setIndexBufferBinding(bufferOrBinding: Buffer | IndexBufferBinding, format?: IndexFormat): void {
-    let binding = <IndexBufferBinding>bufferOrBinding;
-    const isBinding = binding.buffer !== undefined;
-    isBinding || (binding = new IndexBufferBinding(<Buffer>bufferOrBinding, format));
-    this._indexBufferBinding = binding;
-    this._glIndexType = BufferUtil._getGLIndexType(binding.format);
-  }
-
-  /**
-   * Set vertex elements.
-   * @param elements - Vertex element collection
-   */
-  setVertexElements(elements: VertexElement[]): void {
-    this._clearVertexElements();
-    for (let i = 0, n = elements.length; i < n; i++) {
-      this._addVertexElement(elements[i]);
-    }
-  }
+  addSubMesh(subMesh: SubMesh): SubMesh;
 
   /**
    * Add sub-mesh, each sub-mesh can correspond to an independent material.
    * @param start - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
    * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
    * @param topology - Drawing topology, default is MeshTopology.Triangles
+   * @returns Sub-mesh
    */
-  addSubMesh(start: number, count: number, topology: MeshTopology = MeshTopology.Triangles): SubMesh {
-    const subMesh = new SubMesh(start, count, topology);
-    this._subMeshes.push(subMesh);
-    return subMesh;
+  addSubMesh(start: number, count: number, topology?: MeshTopology): SubMesh;
+
+  addSubMesh(
+    startOrSubMesh: number | SubMesh,
+    count?: number,
+    topology: MeshTopology = MeshTopology.Triangles
+  ): SubMesh {
+    if (typeof startOrSubMesh === "number") {
+      startOrSubMesh = new SubMesh(startOrSubMesh, count, topology);
+    }
+    this._subMeshes.push(startOrSubMesh);
+    return startOrSubMesh;
   }
 
   /**
@@ -225,6 +147,33 @@ export class Mesh extends RefObject {
     this._platformPrimitive.destroy();
   }
 
+  protected _setVertexElements(elements: VertexElement[]): void {
+    this._clearVertexElements();
+    for (let i = 0, n = elements.length; i < n; i++) {
+      this._addVertexElement(elements[i]);
+    }
+  }
+
+  protected _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    if (this._getRefCount() > 0) {
+      const lastBinding = this._vertexBufferBindings[index];
+      lastBinding && lastBinding._buffer._addRefCount(-1);
+      binding._buffer._addRefCount(1);
+    }
+    this._vertexBufferBindings[index] = binding;
+  }
+
+  protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
+    if (binding) {
+      this._indexBufferBinding = binding;
+      this._glIndexType = BufferUtil._getGLIndexType(binding.format);
+      this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
+    } else {
+      this._indexBufferBinding = null;
+      this._glIndexType = undefined;
+    }
+  }
+
   private _clearVertexElements(): void {
     this._vertexElements.length = 0;
     const vertexElementMap = this._vertexElementMap;
@@ -238,15 +187,6 @@ export class Mesh extends RefObject {
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
     this._makeModified();
-  }
-
-  private _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    if (this._getRefCount() > 0) {
-      const lastBinding = this._vertexBufferBindings[index];
-      lastBinding && lastBinding._buffer._addRefCount(-1);
-      binding._buffer._addRefCount(1);
-    }
-    this._vertexBufferBindings[index] = binding;
   }
 
   private _makeModified(): void {
