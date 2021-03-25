@@ -14,3 +14,4 @@ export { Vector3 } from "./Vector3";
 export { Vector4 } from "./Vector4";
 export { Plane } from "./Plane";
 export { Color } from "./Color";
+export { Rect } from "./Rect";

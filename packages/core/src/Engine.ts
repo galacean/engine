@@ -7,6 +7,7 @@ import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
 import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { RenderElement } from "./RenderPipeline/RenderElement";
+import { SpriteElement } from "./RenderPipeline/SpriteElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { Shader } from "./shader/Shader";
@@ -125,14 +126,6 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Graphics API renderer.
-   * @deprecated
-   */
-  get renderhardware(): IHardwareRenderer {
-    return this._hardwareRenderer;
-  }
-
-  /**
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
@@ -184,6 +177,7 @@ export class Engine extends EventDispatcher {
 
     time.tick();
     RenderElement._restPool();
+    SpriteElement._restPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
