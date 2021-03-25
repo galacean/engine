@@ -33,7 +33,6 @@ import begin_normal_frag from "./begin_normal_frag.glsl";
 import begin_viewdir_frag from "./begin_viewdir_frag.glsl";
 
 import mobile_blinnphong_frag from "./mobile_blinnphong_frag.glsl";
-import mobile_lambert_frag from "./mobile_lambert_frag.glsl";
 
 import noise_common from "./noise_common.glsl";
 import noise_cellular_2D from "./noise_cellular_2D.glsl";
@@ -97,7 +96,6 @@ export const ShaderLib = {
   begin_viewdir_frag,
 
   mobile_blinnphong_frag,
-  mobile_lambert_frag,
 
   noise_common,
   noise_cellular_2D,
