@@ -7,7 +7,6 @@ import {
   GLCapabilityType,
   HardwareRenderer,
   Logger,
-  Material,
   Mesh,
   RenderTarget,
   SubMesh,
@@ -19,7 +18,6 @@ import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
 import { GLRenderStates } from "./GLRenderStates";
-import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
 
@@ -203,20 +201,6 @@ export class WebGLRenderer implements HardwareRenderer {
       primitive._draw(shaderProgram, subPrimitive);
     } else {
       Logger.error("draw primitive failed.");
-    }
-  }
-
-  drawSprite(material, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
-    if (!this._spriteBatcher) {
-      this._spriteBatcher = new GLSpriteBatcher(this);
-    }
-
-    this._spriteBatcher.drawSprite(material, positionQuad, uvRect, tintColor, texture, renderMode, camera);
-  }
-
-  flushSprite(engine: Engine, material: Material) {
-    if (this._spriteBatcher) {
-      this._spriteBatcher.flush(engine, material);
     }
   }
 

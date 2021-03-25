@@ -1,4 +1,4 @@
-import { Color, Matrix } from "@oasis-engine/math";
+import { Color, Matrix, Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { BlendFactor } from "../shader/enums/BlendFactor";
 import { BlendOperation } from "../shader/enums/BlendOperation";
@@ -33,6 +33,7 @@ export abstract class PBRBaseMaterial extends Material {
   private _reflectionTexture: TextureCubeMap;
   private _refractionTexture: Texture2D;
   private _perturbationTexture: Texture2D;
+  private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
 
   private _srgb: boolean = false;
   private _srgbFast: boolean = false;
@@ -41,6 +42,18 @@ export abstract class PBRBaseMaterial extends Material {
   private _envMapModeRefract: boolean = false;
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
   private _doubleSided: boolean = false;
+
+  /**
+   * Tiling and offset of main textures.
+   */
+  get tilingOffset(): Vector4 {
+    return this._tilingOffset;
+  }
+
+  set tilingOffset(value: Vector4) {
+    this._tilingOffset = value;
+    this.shaderData.setVector4("u_tilingOffset", value);
+  }
 
   /**
    * Base color.
@@ -475,6 +488,7 @@ export abstract class PBRBaseMaterial extends Material {
   constructor(engine: Engine) {
     super(engine, Shader.find("pbr"));
     this.shaderData.enableMacro("O3_NEED_WORLDPOS");
+    this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
     this.baseColor = this._baseColor;
     this.normalScale = this._normalScale;
@@ -486,12 +500,12 @@ export abstract class PBRBaseMaterial extends Material {
     this.refractionDepth = this._refractionDepth;
     this.perturbationUOffset = this._perturbationUOffset;
     this.perturbationVOffset = this._perturbationVOffset;
+    this.tilingOffset = this._tilingOffset;
 
     this.srgb = this._srgb;
     this.srgbFast = this._srgbFast;
     this.gamma = this._gamma;
     this.getOpacityFromRGB = this._getOpacityFromRGB;
     this.envMapModeRefract = this._envMapModeRefract;
-    this.alphaMode = this._alphaMode;
   }
 }
