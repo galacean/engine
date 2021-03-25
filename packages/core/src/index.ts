@@ -27,6 +27,7 @@ export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 export { RenderQueue } from "./RenderPipeline/RenderQueue";
 export { RenderPass } from "./RenderPipeline/RenderPass";
 export { RenderElement } from "./RenderPipeline/RenderElement";
+export { SpriteElement } from "./RenderPipeline/SpriteElement";
 export * from "./base";
 
 // Lighting

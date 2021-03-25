@@ -12,7 +12,6 @@ import {
   IPlatformTexture2D,
   IPlatformTextureCubeMap,
   Logger,
-  Material,
   Mesh,
   RenderColorTexture,
   RenderDepthTexture,
@@ -30,7 +29,6 @@ import { GLRenderColorTexture } from "./GLRenderColorTexture";
 import { GLRenderDepthTexture } from "./GLRenderDepthTexture";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLRenderTarget } from "./GLRenderTarget";
-import { GLSpriteBatcher } from "./GLSpriteBatcher";
 import { GLTexture } from "./GLTexture";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTextureCubeMap } from "./GLTextureCubeMap";
@@ -242,20 +240,6 @@ export class WebGLRenderer implements IHardwareRenderer {
       primitive._draw(shaderProgram, subPrimitive);
     } else {
       Logger.error("draw primitive failed.");
-    }
-  }
-
-  drawSprite(material, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
-    if (!this._spriteBatcher) {
-      this._spriteBatcher = new GLSpriteBatcher(this);
-    }
-
-    this._spriteBatcher.drawSprite(material, positionQuad, uvRect, tintColor, texture, renderMode, camera);
-  }
-
-  flushSprite(engine: Engine, material: Material) {
-    if (this._spriteBatcher) {
-      this._spriteBatcher.flush(engine, material);
     }
   }
 
