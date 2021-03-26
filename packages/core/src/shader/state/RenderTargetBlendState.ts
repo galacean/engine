@@ -6,6 +6,8 @@ import { ColorWriteMask } from "../enums/ColorWriteMask";
  * The blend state of the render target.
  */
 export class RenderTargetBlendState {
+  /** Whether to enable blend. */
+  enabled: boolean = false;
   /** color (RGB) blend operation. */
   colorBlendOperation: BlendOperation = BlendOperation.Add;
   /** alpha (A) blend operation. */
@@ -20,7 +22,4 @@ export class RenderTargetBlendState {
   destinationAlphaBlendFactor: BlendFactor = BlendFactor.Zero;
   /** color mask. */
   colorWriteMask: ColorWriteMask = ColorWriteMask.All;
-
-  /** @internal */
-  _blendEnable: boolean = false;
 }
