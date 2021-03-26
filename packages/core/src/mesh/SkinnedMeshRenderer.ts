@@ -34,13 +34,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _mat: Matrix;
   @ignoreClone
-  private _weights: number[];
-  @ignoreClone
-  private weightsIndices: number[] = [];
-  @ignoreClone
   /** Whether to use joint texture. Automatically used when the device can't support the maxium number of bones. */
   private _useJointTexture: boolean = false;
-
   private _skin: Skin;
 
   /**
@@ -50,7 +45,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   constructor(entity: Entity) {
     super(entity);
     this._mat = new Matrix();
-    this._weights = null;
     this._skin = null;
   }
 
@@ -74,10 +68,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set skin(skin) {
     this._skin = skin;
-  }
-
-  get weights() {
-    return this._weights;
   }
 
   _initJoints() {

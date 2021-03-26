@@ -4,9 +4,9 @@ uniform sampler2D u_baseColorSampler;
 
 #endif
 
-#ifdef O3_HAS_NORMALMAP
+#ifdef O3_NORMAL_TEXTURE
 
-uniform sampler2D u_normalSampler;
+uniform sampler2D u_normalTexture;
 
 #endif
 

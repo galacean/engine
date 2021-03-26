@@ -31,14 +31,6 @@
 
     #endif
 
-    #ifdef ALPHA_CUTOFF
-
-        if( diffuseColor.a < u_alphaCutoff ) {
-            discard;
-        }
-
-    #endif
-
 
     #if defined(ALPHA_BLEND) && defined(HAS_OPACITYMAP)
 
@@ -50,6 +42,13 @@
 
     #endif
 
+    #ifdef ALPHA_CUTOFF
+
+        if( diffuseColor.a < u_alphaCutoff ) {
+            discard;
+        }
+
+    #endif
 
         #ifdef HAS_METALROUGHNESSMAP
 
