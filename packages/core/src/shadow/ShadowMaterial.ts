@@ -13,7 +13,7 @@ export class ShadowMaterial extends Material {
     super(engine, Shader.find("shadow"));
 
     const targetBlendState = this.renderState.blendState.targetBlendState;
-
+    targetBlendState.enabled = true;
     targetBlendState.sourceColorBlendFactor = targetBlendState.sourceAlphaBlendFactor = BlendFactor.DestinationColor;
     targetBlendState.destinationColorBlendFactor = targetBlendState.destinationAlphaBlendFactor = BlendFactor.Zero;
     this.renderState.depthState.compareFunction = CompareFunction.LessEqual;
