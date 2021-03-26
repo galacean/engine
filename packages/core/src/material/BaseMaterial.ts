@@ -19,7 +19,7 @@ export class BaseMaterial extends Material {
    * @remarks
    * If material is transparent, alpha blend mode will be affected by `blendMode`, default is `BlendMode.Normal`.
    */
-  get isTransparent() {
+  get isTransparent(): boolean {
     return this._isTransparent;
   }
 
@@ -56,7 +56,7 @@ export class BaseMaterial extends Material {
    * if (color.a < u_alphaCutoff) discard;
    * ```
    */
-  get alphaCutoff() {
+  get alphaCutoff(): number {
     return this._alphaCutoff;
   }
 
