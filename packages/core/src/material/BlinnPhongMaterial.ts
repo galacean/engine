@@ -9,10 +9,10 @@ import { BaseMaterial } from "./BaseMaterial";
  */
 export class BlinnPhongMaterial extends BaseMaterial {
   private _emissiveColor: Color = new Color(0, 0, 0, 1);
-  private _diffuseColor: Color = new Color(1, 1, 1, 1);
+  private _baseColor: Color = new Color(1, 1, 1, 1);
   private _specularColor: Color = new Color(1, 1, 1, 1);
   private _emissiveTexture: Texture2D;
-  private _diffuseTexture: Texture2D;
+  private _baseTexture: Texture2D;
   private _specularTexture: Texture2D;
   private _shininess: number = 16;
   private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
@@ -60,26 +60,26 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   /**
-   * Diffuse color.
+   * Base color.
    */
-  get diffuseColor(): Color {
-    return this._diffuseColor;
+  get baseColor(): Color {
+    return this._baseColor;
   }
 
-  set diffuseColor(value: Color) {
-    this._diffuseColor = value;
+  set baseColor(value: Color) {
+    this._baseColor = value;
     this.shaderData.setColor("u_diffuseColor", value);
   }
 
   /**
-   * Diffuse texture.
+   * Base texture.
    */
-  get diffuseTexture(): Texture2D {
-    return this._diffuseTexture;
+  get baseTexture(): Texture2D {
+    return this._baseTexture;
   }
 
-  set diffuseTexture(value: Texture2D) {
-    this._diffuseTexture = value;
+  set baseTexture(value: Texture2D) {
+    this._baseTexture = value;
 
     if (value) {
       this.shaderData.enableMacro("O3_DIFFUSE_TEXTURE");
@@ -137,7 +137,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
     this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
     this.emissiveColor = this._emissiveColor;
-    this.diffuseColor = this._diffuseColor;
+    this.baseColor = this._baseColor;
     this.specularColor = this._specularColor;
     this.shininess = this._shininess;
     this.tilingOffset = this._tilingOffset;
