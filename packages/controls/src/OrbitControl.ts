@@ -32,7 +32,7 @@ export class OrbitControl extends Script {
   /**
    * The radian of automatic rotation per second.
    */
-  autoRotationAngle: number = Math.PI;
+  autoRotateSpeed: number = Math.PI;
   rotateSpeed: number;
   enableKeys: boolean;
   keys: { LEFT: number; RIGHT: number; UP: number; BOTTOM: number };
@@ -341,7 +341,7 @@ export class OrbitControl extends Script {
    * Get the radian of automatic rotation.
    */
   getAutoRotationAngle(dtime: number) {
-    return (this.autoRotationAngle / 1000) * dtime;
+    return (this.autoRotateSpeed / 1000) * dtime;
   }
 
   /**
