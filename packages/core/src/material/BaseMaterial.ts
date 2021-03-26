@@ -16,6 +16,8 @@ export class BaseMaterial extends Material {
 
   /**
    * Is this material transparent.
+   * @remarks
+   * If material is transparent, alpha blend mode will be affected by `blendMode`, default is `BlendMode.Normal`.
    */
   get isTransparent() {
     return this._isTransparent;
