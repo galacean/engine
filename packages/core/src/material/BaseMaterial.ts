@@ -42,7 +42,7 @@ export class BaseMaterial extends Material {
       this.shaderData.disableMacro(BaseMaterial._blendMacro);
       targetBlendState.enabled = false;
       depthState.writeEnabled = true;
-      this.renderQueueType = RenderQueueType.Opaque;
+      this.renderQueueType = this._alphaCutoff ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
     }
   }
 
@@ -62,7 +62,7 @@ export class BaseMaterial extends Material {
 
     if (value > 0) {
       this.shaderData.enableMacro(BaseMaterial._alphaCutoffMacro);
-      this.renderQueueType = RenderQueueType.AlphaTest;
+      this.renderQueueType = this._isTransparent ? RenderQueueType.Transparent : RenderQueueType.AlphaTest;
     } else {
       this.shaderData.disableMacro(BaseMaterial._alphaCutoffMacro);
       this.renderQueueType = this._isTransparent ? RenderQueueType.Transparent : RenderQueueType.Opaque;
