@@ -8,12 +8,12 @@ import { BaseMaterial } from "./BaseMaterial";
  * Blinn-phong Material.
  */
 export class BlinnPhongMaterial extends BaseMaterial {
-  private _emissiveColor: Color = new Color(0, 0, 0, 1);
   private _baseColor: Color = new Color(1, 1, 1, 1);
   private _specularColor: Color = new Color(1, 1, 1, 1);
-  private _emissiveTexture: Texture2D;
+  private _emissiveColor: Color = new Color(0, 0, 0, 1);
   private _baseTexture: Texture2D;
   private _specularTexture: Texture2D;
+  private _emissiveTexture: Texture2D;
   private _shininess: number = 16;
   private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
 
@@ -25,8 +25,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   set baseColor(value: Color) {
-    this._baseColor = value;
-    this.shaderData.setColor("u_diffuseColor", value);
+    if (value !== this._baseColor) {
+      value.cloneTo(this._baseColor);
+    }
   }
 
   /**
@@ -55,8 +56,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   set specularColor(value: Color) {
-    this._specularColor = value;
-    this.shaderData.setColor("u_specularColor", value);
+    if (value !== this._specularColor) {
+      value.cloneTo(this._specularColor);
+    }
   }
 
   /**
@@ -85,8 +87,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   set emissiveColor(value: Color) {
-    this._emissiveColor = value;
-    this.shaderData.setColor("u_emissiveColor", value);
+    if (value !== this._emissiveColor) {
+      value.cloneTo(this._emissiveColor);
+    }
   }
 
   /**
@@ -127,20 +130,25 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   set tilingOffset(value: Vector4) {
-    this._tilingOffset = value;
-    this.shaderData.setVector4("u_tilingOffset", value);
+    if (value !== this._tilingOffset) {
+      value.cloneTo(this._tilingOffset);
+    }
   }
 
   constructor(engine: Engine) {
     super(engine, Shader.find("blinn-phong"));
-    this.shaderData.enableMacro("O3_NEED_WORLDPOS");
-    this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
-    this.baseColor = this._baseColor;
-    this.specularColor = this._specularColor;
-    this.emissiveColor = this._emissiveColor;
+    const shaderData = this.shaderData;
+
+    shaderData.enableMacro("O3_NEED_WORLDPOS");
+    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+
+    shaderData.setColor("u_diffuseColor", this._baseColor);
+    shaderData.setColor("u_specularColor", this._specularColor);
+    shaderData.setColor("u_emissiveColor", this._emissiveColor);
+    shaderData.setVector4("u_tilingOffset", this._tilingOffset);
+
     this.shininess = this._shininess;
-    this.tilingOffset = this._tilingOffset;
   }
 
   /**

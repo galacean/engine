@@ -13,18 +13,6 @@ export class UnlitMaterial extends BaseMaterial {
   private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
 
   /**
-   * Tiling and offset of main textures.
-   */
-  get tilingOffset(): Vector4 {
-    return this._tilingOffset;
-  }
-
-  set tilingOffset(value: Vector4) {
-    this._tilingOffset = value;
-    this.shaderData.setVector4("u_tilingOffset", value);
-  }
-
-  /**
    * Base color.
    */
   get baseColor(): Color {
@@ -32,8 +20,9 @@ export class UnlitMaterial extends BaseMaterial {
   }
 
   set baseColor(value: Color) {
-    this._baseColor = value;
-    this.shaderData.setColor("u_baseColor", value);
+    if (value !== this._baseColor) {
+      value.cloneTo(this._baseColor);
+    }
   }
 
   /**
@@ -55,16 +44,32 @@ export class UnlitMaterial extends BaseMaterial {
   }
 
   /**
+   * Tiling and offset of main textures.
+   */
+  get tilingOffset(): Vector4 {
+    return this._tilingOffset;
+  }
+
+  set tilingOffset(value: Vector4) {
+    if (value !== this._tilingOffset) {
+      value.cloneTo(this._tilingOffset);
+    }
+  }
+
+  /**
    * Create a unlit material instance.
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
     super(engine, Shader.find("unlit"));
-    this.shaderData.enableMacro("OMIT_NORMAL");
-    this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
-    this.baseColor = this._baseColor;
-    this.tilingOffset = this._tilingOffset;
+    const shaderData = this.shaderData;
+
+    shaderData.enableMacro("OMIT_NORMAL");
+    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+
+    shaderData.setColor("u_baseColor", this._baseColor);
+    shaderData.setVector4("u_tilingOffset", this._tilingOffset);
   }
 
   /**
