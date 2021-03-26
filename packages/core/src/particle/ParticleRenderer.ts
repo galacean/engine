@@ -511,9 +511,11 @@ export class ParticleRenderer extends MeshRenderer {
     const target = blendState.targetBlendState;
 
     if (value === ParticleRendererBlendMode.Transparent) {
+      target.enabled = true;
       target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
       target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     } else if (value === ParticleRendererBlendMode.Additive) {
+      target.enabled = true;
       target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
       target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
     }
