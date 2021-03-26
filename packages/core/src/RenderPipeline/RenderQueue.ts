@@ -1,21 +1,12 @@
 import { Camera } from "../Camera";
-import { Component } from "../Component";
+import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Material } from "../material/Material";
-import { Renderer } from "../Renderer";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderElement } from "./RenderElement";
-
-interface SpriteElement {
-  component: Renderer;
-  positionQuad;
-  uvRect;
-  tintColor;
-  texture;
-  renderMode;
-  camera;
-}
+import { SpriteBatcher } from "./SpriteBatcher";
+import { SpriteElement } from "./SpriteElement";
 
 type Item = RenderElement | SpriteElement;
 
@@ -27,80 +18,37 @@ export class RenderQueue {
    * @internal
    */
   static _compareFromNearToFar(a: Item, b: Item): number {
-    //@todo: delete after sprite refactor
-    const aIsPrimitive = !!(a as RenderElement).mesh;
-    const bIsPrimitive = !!(b as RenderElement).mesh;
+    const renderQueueDif = a.material.renderQueueType - b.material.renderQueueType;
 
-    if (aIsPrimitive && bIsPrimitive) {
-      const aElement: RenderElement = <RenderElement>a;
-      const bElement: RenderElement = <RenderElement>b;
-      const renderQueueDif = aElement.material.renderQueueType - bElement.material.renderQueueType;
-
-      if (renderQueueDif) {
-        return renderQueueDif;
-      }
-
-      return aElement.component._distanceForSort - bElement.component._distanceForSort;
+    if (renderQueueDif) {
+      return renderQueueDif;
     }
-
-    if (aIsPrimitive && !bIsPrimitive) {
-      return -1;
-    }
-
-    if (!aIsPrimitive && bIsPrimitive) {
-      return 1;
-    }
+    return a.component._distanceForSort - b.component._distanceForSort;
   }
 
   /**
    * @internal
    */
   static _compareFromFarToNear(a: Item, b: Item): number {
-    //@todo: delete after sprite refactor
-    const aIsPrimitive = !!(a as RenderElement).mesh;
-    const bIsPrimitive = !!(b as RenderElement).mesh;
+    const renderQueueDif = a.material.renderQueueType - b.material.renderQueueType;
 
-    if (aIsPrimitive && bIsPrimitive) {
-      const aElement: RenderElement = <RenderElement>a;
-      const bElement: RenderElement = <RenderElement>b;
-      const renderQueueDif = aElement.material.renderQueueType - bElement.material.renderQueueType;
-
-      if (renderQueueDif) {
-        return renderQueueDif;
-      }
-
-      return bElement.component._distanceForSort - aElement.component._distanceForSort;
+    if (renderQueueDif) {
+      return renderQueueDif;
     }
-
-    if (aIsPrimitive && !bIsPrimitive) {
-      return -1;
-    }
-
-    if (!aIsPrimitive && bIsPrimitive) {
-      return 1;
-    }
+    return b.component._distanceForSort - a.component._distanceForSort;
   }
 
   readonly items: Item[] = [];
+  private _spriteBatcher: SpriteBatcher;
+
+  constructor(engine: Engine) {
+    this._spriteBatcher = new SpriteBatcher(engine);
+  }
 
   /**
    * Push a render element.
    */
-  pushPrimitive(element: RenderElement): void {
-    this.items.push(element);
-  }
-
-  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera) {
-    const element: SpriteElement = {
-      // @ts-ignore
-      component,
-      positionQuad,
-      uvRect,
-      tintColor,
-      texture,
-      renderMode,
-      camera
-    };
+  pushPrimitive(element: RenderElement | SpriteElement): void {
     this.items.push(element);
   }
 
@@ -110,7 +58,6 @@ export class RenderQueue {
       return;
     }
 
-    const spriteMaterial = camera._renderPipeline._defaultSpriteMaterial;
     const { engine, scene } = camera;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
@@ -126,7 +73,7 @@ export class RenderQueue {
       }
 
       if (!!(item as RenderElement).mesh) {
-        rhi.flushSprite(engine, spriteMaterial);
+        this._spriteBatcher.flush(engine);
 
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
@@ -187,19 +134,11 @@ export class RenderQueue {
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spirteElement = <SpriteElement>item;
-        rhi.drawSprite(
-          spriteMaterial,
-          spirteElement.positionQuad,
-          spirteElement.uvRect,
-          spirteElement.tintColor,
-          spirteElement.texture,
-          spirteElement.renderMode,
-          spirteElement.camera
-        );
+        this._spriteBatcher.drawSprite(spirteElement);
       }
     }
 
-    rhi.flushSprite(engine, spriteMaterial);
+    this._spriteBatcher.flush(engine);
   }
 
   /**
@@ -207,6 +146,7 @@ export class RenderQueue {
    */
   clear(): void {
     this.items.length = 0;
+    this._spriteBatcher.clear();
   }
 
   /**
