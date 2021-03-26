@@ -10,7 +10,7 @@ import { BaseMaterial } from "./BaseMaterial";
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
   private _baseColor: Color = new Color(1, 1, 1, 1);
-  private _normalScale: number = 1;
+  private _normalIntensity: number = 1;
   private _emissiveColor = new Color(0, 0, 0, 1);
   private _occlusionStrength: number = 1;
   private _envMapIntensity: number = 1;
@@ -117,23 +117,23 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     this._normalTexture = v;
 
     if (v) {
-      this.shaderData.enableMacro("O3_HAS_NORMALMAP");
-      this.shaderData.setTexture("u_normalSampler", v);
+      this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
+      this.shaderData.setTexture("u_normalTexture", v);
     } else {
-      this.shaderData.disableMacro("O3_HAS_NORMALMAP");
+      this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
     }
   }
 
   /**
-   * Normal scale factor.
+   * Normal intensity.
    */
-  get normalScale(): number {
-    return this._normalScale;
+  get normalIntensity(): number {
+    return this._normalIntensity;
   }
 
-  set normalScale(v: number) {
-    this._normalScale = v;
-    this.shaderData.setFloat("u_normalScale", v);
+  set normalIntensity(v: number) {
+    this._normalIntensity = v;
+    this.shaderData.setFloat("u_normalIntensity", v);
   }
 
   /**
@@ -407,7 +407,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
     this.baseColor = this._baseColor;
-    this.normalScale = this._normalScale;
+    this.normalIntensity = this._normalIntensity;
     this.emissiveColor = this._emissiveColor;
     this.occlusionStrength = this._occlusionStrength;
     this.envMapIntensity = this._envMapIntensity;

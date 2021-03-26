@@ -32,7 +32,6 @@ import mobile_material_frag from "./mobile_material_frag.glsl";
 import fog_frag from "./fog_frag.glsl";
 
 import begin_mobile_frag from "./begin_mobile_frag.glsl";
-import begin_normal_frag from "./begin_normal_frag.glsl";
 import begin_viewdir_frag from "./begin_viewdir_frag.glsl";
 
 import mobile_blinnphong_frag from "./mobile_blinnphong_frag.glsl";
@@ -71,6 +70,8 @@ import PBRShaderLib from "./pbr";
 import oit_frag from "./oit/oit_frag.glsl";
 import oit_frag_define from "./oit/oit_frag_define.glsl";
 
+import normal_get from "./normal_get.glsl";
+
 export const ShaderLib = {
   common,
   common_vert,
@@ -106,7 +107,6 @@ export const ShaderLib = {
   fog_frag,
 
   begin_mobile_frag,
-  begin_normal_frag,
   begin_viewdir_frag,
 
   mobile_blinnphong_frag,
@@ -144,7 +144,8 @@ export const ShaderLib = {
   oit_frag,
   oit_frag_define,
 
-  ...PBRShaderLib
+  ...PBRShaderLib,
+  normal_get
 };
 
 export function InjectShaderSlices(obj) {
