@@ -26,9 +26,7 @@
 // runtime context
 #include <pbr_runtime_frag_define>
 
-// todo: generalize
-#include <pbr_normal_frag_define>
-
+#include <normal_get>
 
 // todo: BxDF
 #include <pbr_brdf_cook_torrance_frag_define>

@@ -25,6 +25,7 @@ class MathTemp {
   static tempMat4 = new Matrix();
   static tempVec4 = new Vector4();
   static tempVec3 = new Vector3();
+  static tempVec2 = new Vector2();
 }
 
 /**
@@ -370,7 +371,7 @@ export class Camera extends Component {
 
   /**
    * Transform a point from viewport space to world space.
-   * @param point - Point in viewport. X and Y are the viewport space coordinates, Z is the viewport depth. The near clipping plane is 0, and the far clipping plane is 1.
+   * @param point - Point in viewport sapce, X and Y are the viewport space coordinates, Z is the viewport depth. The near clipping plane is 0, and the far clipping plane is 1
    * @param out - Point in world space
    * @returns Point in world space
    */
@@ -381,7 +382,7 @@ export class Camera extends Component {
 
   /**
    * Generate a ray by a point in viewport.
-   * @param point Point in viewport point, which is represented by normalization.
+   * @param point - Point in viewport space, which is represented by normalization
    * @param out - Ray
    * @returns Ray
    */
@@ -447,6 +448,18 @@ export class Camera extends Component {
   screenToWorldPoint(point: Vector3, out: Vector3): Vector3 {
     this.screenToViewportPoint(point, out);
     return this.viewportToWorldPoint(out, out);
+  }
+
+  /**
+   * Generate a ray by a point in screen.
+   * @param point - Point in screen space, the unit is pixel
+   * @param out - Ray
+   * @returns Ray
+   */
+  screenPointToRay(point: Vector2, out: Ray): Ray {
+    const viewportPoint = MathTemp.tempVec2;
+    this.screenToViewportPoint(point, viewportPoint);
+    return this.viewportPointToRay(viewportPoint, out);
   }
 
   /**

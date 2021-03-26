@@ -13,5 +13,6 @@ export class SkyBoxMaterial extends Material {
 
     this.renderState.rasterState.cullMode = CullMode.Off;
     this.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    this.renderQueueType = 0;
   }
 }

@@ -76,6 +76,7 @@ export class BlendState {
     const lastTargetBlendState = lastState.targetBlendState;
 
     const {
+      enabled,
       colorBlendOperation,
       alphaBlendOperation,
       sourceColorBlendFactor,
@@ -85,25 +86,16 @@ export class BlendState {
       colorWriteMask
     } = this.targetBlendState;
 
-    const blendEnable = !(
-      sourceColorBlendFactor === BlendFactor.One &&
-      destinationColorBlendFactor === BlendFactor.Zero &&
-      sourceAlphaBlendFactor === BlendFactor.One &&
-      destinationAlphaBlendFactor === BlendFactor.Zero &&
-      (colorBlendOperation === BlendOperation.Add || colorBlendOperation === BlendOperation.Subtract) &&
-      (alphaBlendOperation === BlendOperation.Add || alphaBlendOperation === BlendOperation.Subtract)
-    );
-
-    if (blendEnable !== lastTargetBlendState._blendEnable) {
-      if (blendEnable) {
+    if (enabled !== lastTargetBlendState.enabled) {
+      if (enabled) {
         gl.enable(gl.BLEND);
       } else {
         gl.disable(gl.BLEND);
       }
-      lastTargetBlendState._blendEnable = blendEnable;
+      lastTargetBlendState.enabled = enabled;
     }
 
-    if (blendEnable) {
+    if (enabled) {
       // apply blend factor.
       if (
         sourceColorBlendFactor !== lastTargetBlendState.sourceColorBlendFactor ||

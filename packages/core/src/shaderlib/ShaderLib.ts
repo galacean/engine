@@ -29,7 +29,6 @@ import mobile_material_frag from "./mobile_material_frag.glsl";
 import fog_frag from "./fog_frag.glsl";
 
 import begin_mobile_frag from "./begin_mobile_frag.glsl";
-import begin_normal_frag from "./begin_normal_frag.glsl";
 import begin_viewdir_frag from "./begin_viewdir_frag.glsl";
 
 import mobile_blinnphong_frag from "./mobile_blinnphong_frag.glsl";
@@ -59,6 +58,8 @@ import refraction_frag from "./refraction_frag.glsl";
 import gamma_frag from "./gamma_frag.glsl";
 
 import PBRShaderLib from "./pbr";
+
+import normal_get from "./normal_get.glsl";
 
 export const ShaderLib = {
   common,
@@ -92,7 +93,6 @@ export const ShaderLib = {
   fog_frag,
 
   begin_mobile_frag,
-  begin_normal_frag,
   begin_viewdir_frag,
 
   mobile_blinnphong_frag,
@@ -121,5 +121,6 @@ export const ShaderLib = {
 
   gamma_frag,
 
-  ...PBRShaderLib
+  ...PBRShaderLib,
+  normal_get
 };
