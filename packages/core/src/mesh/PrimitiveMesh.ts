@@ -553,8 +553,8 @@ export class PrimitiveMesh {
 
     const { bounds } = mesh;
     const outerRadius = radius + tube;
-    bounds.min.setValue(-outerRadius, -tube, -outerRadius);
-    bounds.max.setValue(outerRadius, tube, outerRadius);
+    bounds.min.setValue(-outerRadius, -outerRadius, -tube);
+    bounds.max.setValue(outerRadius, outerRadius, tube);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
