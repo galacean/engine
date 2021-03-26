@@ -1,7 +1,7 @@
-import { Engine } from "../Engine";
-import { GLCapabilityType } from "../base/Constant";
-import { ModelMesh } from "./ModelMesh";
 import { Vector2, Vector3 } from "@oasis-engine/math";
+import { GLCapabilityType } from "../base/Constant";
+import { Engine } from "../Engine";
+import { ModelMesh } from "./ModelMesh";
 
 /**
  * Used to generate common primitve meshes.
@@ -467,6 +467,99 @@ export class PrimitiveMesh {
     return mesh;
   }
 
+  /**
+   * Create a torus mesh.
+   * @param engine - Engine
+   * @param radius - Torus radius
+   * @param tube - Torus tube
+   * @param radialSegments - Torus radial segments
+   * @param tubularSegments - Torus tubular segments
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Torus model mesh
+   */
+  static createTorus(
+    engine: Engine,
+    radius: number = 0.5,
+    tube: number = 0.1,
+    radialSegments: number = 30,
+    tubularSegments: number = 30,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+    radialSegments = Math.floor(radialSegments);
+    tubularSegments = Math.floor(tubularSegments);
+
+    const radialCount = radialSegments + 1;
+    const tubularCount = tubularSegments + 1;
+    const vertexCount = radialCount * tubularCount;
+    const rectangleCount = radialSegments * tubularSegments;
+    let indices: Uint16Array | Uint32Array = null;
+    if (vertexCount > 65535) {
+      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
+        indices = new Uint32Array(rectangleCount * 6);
+      } else {
+        throw Error("The vertex count is over limit.");
+      }
+    } else {
+      indices = new Uint16Array(rectangleCount * 6);
+    }
+    const radialCountReciprocal = 1.0 / radialCount;
+    const radialSegmentsReciprocal = 1.0 / radialSegments;
+    const tubularSegmentsReciprocal = 1.0 / tubularSegments;
+
+    const positions: Vector3[] = new Array(vertexCount);
+    const normals: Vector3[] = new Array(vertexCount);
+    const uvs: Vector2[] = new Array(vertexCount);
+
+    const arc = Math.PI * 2;
+    for (let i = 0; i < vertexCount; i++) {
+      const x = i % radialCount;
+      const y = (i * radialCountReciprocal) | 0;
+      const u = x * radialSegmentsReciprocal;
+      const v = y * tubularSegmentsReciprocal;
+      const alpha = u * arc;
+      const theta = v * arc;
+      const cosTheta = Math.cos(theta);
+
+      const posX = (radius + tube * cosTheta) * Math.cos(alpha);
+      const posY = (radius + tube * cosTheta) * Math.sin(alpha);
+      const posZ = tube * Math.sin(theta);
+
+      // Position
+      positions[i] = new Vector3(posX, posY, posZ);
+      // Normal
+      normals[i] = new Vector3(posX, posY, posZ);
+      // Texcoord
+      uvs[i] = new Vector2(u, v);
+    }
+
+    let offset = 0;
+    for (let i = 0; i < rectangleCount; i++) {
+      const x = i % radialSegments;
+      const y = (i * radialSegmentsReciprocal) | 0;
+
+      const a = y * radialCount + x;
+      const b = a + 1;
+      const c = a + radialCount;
+      const d = c + 1;
+
+      indices[offset++] = b;
+      indices[offset++] = c;
+      indices[offset++] = a;
+      indices[offset++] = b;
+      indices[offset++] = d;
+      indices[offset++] = c;
+    }
+
+    const { bounds } = mesh;
+    const outerRadius = radius + tube;
+    bounds.min.setValue(-outerRadius, -tube, -outerRadius);
+    bounds.max.setValue(outerRadius, tube, outerRadius);
+
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
+    return mesh;
+  }
+
   private static _initialize(
     mesh: ModelMesh,
     positions: Vector3[],
@@ -475,14 +568,13 @@ export class PrimitiveMesh {
     indices: Uint16Array | Uint32Array,
     noLongerAccessible: boolean
   ) {
-    
     mesh.setPositions(positions);
     mesh.setNormals(normals);
     mesh.setUVs(uvs);
     mesh.setIndices(indices);
 
     mesh.uploadData(noLongerAccessible);
-    
+
     mesh.addSubMesh(0, indices.length);
   }
 }
