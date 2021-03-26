@@ -190,6 +190,7 @@ export class SpriteRenderer extends Renderer {
       // Create default material
       const material = (SpriteRenderer._defaultMaterial = new Material(this.scene.engine, Shader.find("Sprite")));
       const target = material.renderState.blendState.targetBlendState;
+      target.enabled = true;
       target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
       target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
       target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
