@@ -22,6 +22,7 @@ export abstract class Mesh extends RefObject {
 
   _vertexElementMap: object = {};
   _glIndexType: number;
+  _glIndexByteCount: number;
   _platformPrimitive: IPlatformPrimitive;
 
   /** @internal */
@@ -32,7 +33,6 @@ export abstract class Mesh extends RefObject {
   _indexBufferBinding: IndexBufferBinding = null;
   /** @internal */
   _vertexElements: VertexElement[] = [];
-  
   private _subMeshes: SubMesh[] = [];
   private _updateFlags: UpdateFlag[] = [];
 
@@ -62,15 +62,34 @@ export abstract class Mesh extends RefObject {
   }
 
   /**
+<<<<<<< HEAD
+=======
+   * Add sub-mesh, each sub-mesh can correspond to an independent material.
+   * @param subMesh - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
+   * @returns Sub-mesh
+   */
+  addSubMesh(subMesh: SubMesh): SubMesh;
+
+  /**
+>>>>>>> 3f4af3a765f766f630e0a847d4ae67f85122a4ac
    * Add sub-mesh, each sub-mesh can correspond to an independent material.
    * @param start - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
    * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
    * @param topology - Drawing topology, default is MeshTopology.Triangles
+   * @returns Sub-mesh
    */
-  addSubMesh(start: number, count: number, topology: MeshTopology = MeshTopology.Triangles): SubMesh {
-    const subMesh = new SubMesh(start, count, topology);
-    this._subMeshes.push(subMesh);
-    return subMesh;
+  addSubMesh(start: number, count: number, topology?: MeshTopology): SubMesh;
+
+  addSubMesh(
+    startOrSubMesh: number | SubMesh,
+    count?: number,
+    topology: MeshTopology = MeshTopology.Triangles
+  ): SubMesh {
+    if (typeof startOrSubMesh === "number") {
+      startOrSubMesh = new SubMesh(startOrSubMesh, count, topology);
+    }
+    this._subMeshes.push(startOrSubMesh);
+    return startOrSubMesh;
   }
 
   /**
@@ -150,6 +169,7 @@ export abstract class Mesh extends RefObject {
     if (binding) {
       this._indexBufferBinding = binding;
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);
+      this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
     } else {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;

@@ -7,6 +7,7 @@ import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
 import { HardwareRenderer } from "./HardwareRenderer";
 import { RenderElement } from "./RenderPipeline/RenderElement";
+import { SpriteElement } from "./RenderPipeline/SpriteElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { Shader } from "./shader/Shader";
@@ -176,6 +177,7 @@ export class Engine extends EventDispatcher {
 
     time.tick();
     RenderElement._restPool();
+    SpriteElement._restPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
