@@ -11,7 +11,6 @@
 #include <worldpos_share>
 #include <refraction_share>
 #include <perturbation_share>
-#include <clipPlane_frag_define>
 
 // light
 #include <ambient_light_frag>
@@ -38,12 +37,7 @@
 #include <pbr_ibl_diffuse_frag_define>
 #include <pbr_ibl_specular_frag_define>
 
-#include <oit_frag_define>
-
-
 void main() {
-    #include <clipPlane_frag>
-
     #include <pbr_begin_frag>
     #include <pbr_direct_irradiance_frag>
     #include <pbr_ibl_diffuse_frag>
@@ -54,6 +48,4 @@ void main() {
     #include <refraction_frag>
     #include <perturbation_frag>
     #include <fog_frag>
-
-    #include <oit_frag>
 }

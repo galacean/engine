@@ -1,45 +1,9 @@
-import { ShaderLib, InjectShaderSlices } from "./ShaderLib";
+import { ShaderLib } from "./ShaderLib";
 import { Logger } from "../base/Logger";
 
 class ShaderFactory {
-  /**
-   * GLSL version.
-   * @param {string} version - "100" | "300 es"
-   * */
-  static parseVersion(version: string = "100") {
-    return `#version ${version}\n`;
-  }
-
-  static parsePrecision(vertP: string, fragP: string, compileVert?: boolean) {
-    const downgrade = "mediump";
-
-    return `
-        #ifdef GL_FRAGMENT_PRECISION_HIGH
-          precision ${compileVert ? vertP : fragP} float;
-          precision ${compileVert ? vertP : fragP} int;
-
-          #define O3_VERTEX_PRECISION ${vertP}
-          #define O3_FRAGMENT_PRECISION ${fragP}
-        #else
-          precision ${downgrade} float;
-          precision ${downgrade} int;
-
-          #define O3_VERTEX_PRECISION ${downgrade}
-          #define O3_FRAGMENT_PRECISION ${downgrade}
-        #endif
-      `;
-  }
-
   static parseShaderName(name) {
     return `#define O3_SHADER_NAME ${name}\n`;
-  }
-
-  static parseAttributeMacros(macros) {
-    return (
-      "#define O3_ATTRIBUTE_MACROS_START\n" +
-      macros.map((m) => `#define ${m}\n`).join("") +
-      "#define O3_ATTRIBUTE_MACROS_END\n"
-    );
   }
 
   static parseCustomMacros(macros: string[]) {
@@ -50,11 +14,7 @@ class ShaderFactory {
     );
   }
 
-  static parseShader(src) {
-    return ShaderFactory.parseIncludes(src);
-  }
-
-  static parseIncludes(src) {
+  static parseIncludes(src: string) {
     const regex = /^[ \t]*#include +<([\w\d.]+)>/gm;
 
     function replace(match, slice) {
@@ -69,10 +29,6 @@ class ShaderFactory {
     }
 
     return src.replace(regex, replace);
-  }
-
-  static InjectShaderSlices(slices) {
-    InjectShaderSlices(slices);
   }
 
   /**
@@ -105,7 +61,7 @@ class ShaderFactory {
       if (isMRT) {
         shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
         const result = shader.match(/\bgl_FragData\[.+?\]/g);
-        shader = this.replaceMRTShader(shader, result);
+        shader = this._replaceMRTShader(shader, result);
       } else {
         shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
         shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
@@ -115,34 +71,7 @@ class ShaderFactory {
     return shader;
   }
 
-  /**
-   * Returns the length of the draw buffer in the corresponding shaderCode.
-   * @param shader - shader code
-   */
-  static getMaxDrawBuffers(shader: string): number {
-    const mrtIndexSet = new Set();
-    const result = shader.match(/\bgl_FragData\[.+?\]/g) || [];
-
-    for (let i = 0; i < result.length; i++) {
-      const res = result[i].match(/\bgl_FragData\[(.+?)\]/);
-      mrtIndexSet.add(res[1]);
-    }
-
-    return mrtIndexSet.size;
-  }
-
-  /**
-   * Compatible with gl_FragColor and gl_FragData simultaneous errors.
-   * */
-  static compatible(fragmentShader: string) {
-    const hasFragData = /\bgl_FragData\[.+?\]/g.test(fragmentShader);
-    if (hasFragData) {
-      fragmentShader = fragmentShader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
-    }
-    return fragmentShader;
-  }
-
-  private static replaceMRTShader(shader: string, result: string[]): string {
+  private static _replaceMRTShader(shader: string, result: string[]): string {
     let declaration = "";
     const mrtIndexSet = new Set();
 
