@@ -87,3 +87,9 @@
 
     diffuse *= vec4( lightDiffuse, 1.0 );
     specular *= vec4( lightSpecular, 1.0 );
+
+    #ifdef ALPHA_CUTOFF
+        if( diffuse.a < u_alphaCutoff ) {
+            discard;
+        }
+    #endif

@@ -1,93 +1,44 @@
 import { Color, Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
-import { BlendFactor } from "../shader/enums/BlendFactor";
-import { BlendOperation } from "../shader/enums/BlendOperation";
-import { CullMode } from "../shader/enums/CullMode";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
-import { AlphaMode } from "./enums/AlphaMode";
-import { RenderQueueType } from "./enums/RenderQueueType";
-import { Material } from "./Material";
+import { BaseMaterial } from "./BaseMaterial";
 
 /**
  * Blinn-phong Material.
  */
-export class BlinnPhongMaterial extends Material {
-  private _emissiveColor: Color = new Color(0, 0, 0, 1);
-  private _diffuseColor: Color = new Color(1, 1, 1, 1);
+export class BlinnPhongMaterial extends BaseMaterial {
+  private _baseColor: Color = new Color(1, 1, 1, 1);
   private _specularColor: Color = new Color(1, 1, 1, 1);
-  private _emissiveTexture: Texture2D;
-  private _diffuseTexture: Texture2D;
+  private _emissiveColor: Color = new Color(0, 0, 0, 1);
+  private _baseTexture: Texture2D;
   private _specularTexture: Texture2D;
+  private _emissiveTexture: Texture2D;
   private _shininess: number = 16;
   private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
 
-  private _alphaMode: AlphaMode = AlphaMode.Opaque;
-  private _doubleSided: boolean = false;
-
-   /**
-   * Tiling and offset of main textures.
-   */
-  get tilingOffset(): Vector4 {
-    return this._tilingOffset;
-  }
-
-  set tilingOffset(value: Vector4) {
-    this._tilingOffset = value;
-    this.shaderData.setVector4("u_tilingOffset", value);
-  }
-
   /**
-   * Emissive color.
+   * Base color.
    */
-  get emissiveColor(): Color {
-    return this._emissiveColor;
+  get baseColor(): Color {
+    return this._baseColor;
   }
 
-  set emissiveColor(value: Color) {
-    this._emissiveColor = value;
-    this.shaderData.setColor("u_emissiveColor", value);
-  }
-
-  /**
-   * Emissive texture.
-   */
-  get emissiveTexture(): Texture2D {
-    return this._emissiveTexture;
-  }
-
-  set emissiveTexture(value: Texture2D) {
-    this._emissiveTexture = value;
-
-    if (value) {
-      this.shaderData.enableMacro("O3_EMISSIVE_TEXTURE");
-      this.shaderData.setTexture("u_emissiveTexture", value);
-    } else {
-      this.shaderData.disableMacro("O3_EMISSIVE_TEXTURE");
+  set baseColor(value: Color) {
+    if (value !== this._baseColor) {
+      value.cloneTo(this._baseColor);
     }
   }
 
   /**
-   * Diffuse color.
+   * Base texture.
    */
-  get diffuseColor(): Color {
-    return this._diffuseColor;
+  get baseTexture(): Texture2D {
+    return this._baseTexture;
   }
 
-  set diffuseColor(value: Color) {
-    this._diffuseColor = value;
-    this.shaderData.setColor("u_diffuseColor", value);
-  }
-
-  /**
-   * Diffuse texture.
-   */
-  get diffuseTexture(): Texture2D {
-    return this._diffuseTexture;
-  }
-
-  set diffuseTexture(value: Texture2D) {
-    this._diffuseTexture = value;
+  set baseTexture(value: Texture2D) {
+    this._baseTexture = value;
 
     if (value) {
       this.shaderData.enableMacro("O3_DIFFUSE_TEXTURE");
@@ -105,8 +56,9 @@ export class BlinnPhongMaterial extends Material {
   }
 
   set specularColor(value: Color) {
-    this._specularColor = value;
-    this.shaderData.setColor("u_specularColor", value);
+    if (value !== this._specularColor) {
+      value.cloneTo(this._specularColor);
+    }
   }
 
   /**
@@ -128,6 +80,37 @@ export class BlinnPhongMaterial extends Material {
   }
 
   /**
+   * Emissive color.
+   */
+  get emissiveColor(): Color {
+    return this._emissiveColor;
+  }
+
+  set emissiveColor(value: Color) {
+    if (value !== this._emissiveColor) {
+      value.cloneTo(this._emissiveColor);
+    }
+  }
+
+  /**
+   * Emissive texture.
+   */
+  get emissiveTexture(): Texture2D {
+    return this._emissiveTexture;
+  }
+
+  set emissiveTexture(value: Texture2D) {
+    this._emissiveTexture = value;
+
+    if (value) {
+      this.shaderData.enableMacro("O3_EMISSIVE_TEXTURE");
+      this.shaderData.setTexture("u_emissiveTexture", value);
+    } else {
+      this.shaderData.disableMacro("O3_EMISSIVE_TEXTURE");
+    }
+  }
+
+  /**
    * Set the specular reflection coefficient, the larger the value, the more convergent the specular reflection effect.
    */
   get shininess(): number {
@@ -140,65 +123,32 @@ export class BlinnPhongMaterial extends Material {
   }
 
   /**
-   * Transparent mode.
+   * Tiling and offset of main textures.
    */
-  get alphaMode(): AlphaMode {
-    return this._alphaMode;
+  get tilingOffset(): Vector4 {
+    return this._tilingOffset;
   }
 
-  set alphaMode(v: AlphaMode) {
-    const target = this.renderState.blendState.targetBlendState;
-    const depthState = this.renderState.depthState;
-
-    switch (v) {
-      case AlphaMode.Opaque:
-      case AlphaMode.CutOff:
-        {
-          target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.One;
-          target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.Zero;
-          target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-          depthState.writeEnabled = true;
-          this.renderQueueType = RenderQueueType.Opaque;
-        }
-        break;
-      case AlphaMode.Blend:
-        {
-          target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-          target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-          target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-          depthState.writeEnabled = false;
-          this.renderQueueType = RenderQueueType.Transparent;
-        }
-        break;
-    }
-  }
-
-  /**
-   * Whether to render both sides.
-   * @remarks Only the front side is rendered by default
-   */
-  get doubleSided(): boolean {
-    return this._doubleSided;
-  }
-
-  set doubleSided(v: boolean) {
-    if (v) {
-      this.renderState.rasterState.cullMode = CullMode.Off;
-    } else {
-      this.renderState.rasterState.cullMode = CullMode.Back;
+  set tilingOffset(value: Vector4) {
+    if (value !== this._tilingOffset) {
+      value.cloneTo(this._tilingOffset);
     }
   }
 
   constructor(engine: Engine) {
     super(engine, Shader.find("blinn-phong"));
-    this.shaderData.enableMacro("O3_NEED_WORLDPOS");
-    this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
-    this.emissiveColor = this._emissiveColor;
-    this.diffuseColor = this._diffuseColor;
-    this.specularColor = this._specularColor;
+    const shaderData = this.shaderData;
+
+    shaderData.enableMacro("O3_NEED_WORLDPOS");
+    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+
+    shaderData.setColor("u_diffuseColor", this._baseColor);
+    shaderData.setColor("u_specularColor", this._specularColor);
+    shaderData.setColor("u_emissiveColor", this._emissiveColor);
+    shaderData.setVector4("u_tilingOffset", this._tilingOffset);
+
     this.shininess = this._shininess;
-    this.tilingOffset = this._tilingOffset;
   }
 
   /**

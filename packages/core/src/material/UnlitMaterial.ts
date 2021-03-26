@@ -1,36 +1,16 @@
 import { Color, Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
-import { BlendFactor } from "../shader/enums/BlendFactor";
-import { BlendOperation } from "../shader/enums/BlendOperation";
-import { CullMode } from "../shader/enums/CullMode";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
-import { AlphaMode } from "./enums/AlphaMode";
-import { RenderQueueType } from "./enums/RenderQueueType";
-import { Material } from "./Material";
+import { BaseMaterial } from "./BaseMaterial";
 
 /**
  * Unlit Material.
  */
-export class UnlitMaterial extends Material {
+export class UnlitMaterial extends BaseMaterial {
   private _baseColor: Color = new Color(1, 1, 1, 1);
-  private _baseColorTexture: Texture2D;
+  private _baseTexture: Texture2D;
   private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
-
-  private _alphaMode: AlphaMode = AlphaMode.Opaque;
-  private _doubleSided: boolean = false;
-
-  /**
-   * Tiling and offset of main textures.
-   */
-  get tilingOffset(): Vector4 {
-    return this._tilingOffset;
-  }
-
-  set tilingOffset(value: Vector4) {
-    this._tilingOffset = value;
-    this.shaderData.setVector4("u_tilingOffset", value);
-  }
 
   /**
    * Base color.
@@ -40,75 +20,39 @@ export class UnlitMaterial extends Material {
   }
 
   set baseColor(value: Color) {
-    this._baseColor = value;
-    this.shaderData.setColor("u_baseColor", value);
+    if (value !== this._baseColor) {
+      value.cloneTo(this._baseColor);
+    }
   }
 
   /**
-   * Base color texture.
+   * Base texture.
    */
-  get baseColorTexture(): Texture2D {
-    return this._baseColorTexture;
+  get baseTexture(): Texture2D {
+    return this._baseTexture;
   }
 
-  set baseColorTexture(value: Texture2D) {
-    this._baseColorTexture = value;
+  set baseTexture(value: Texture2D) {
+    this._baseTexture = value;
 
     if (value) {
-      this.shaderData.enableMacro("O3_BASECOLOR_TEXTURE");
-      this.shaderData.setTexture("u_baseColorTexture", value);
+      this.shaderData.enableMacro("O3_BASE_TEXTURE");
+      this.shaderData.setTexture("u_baseTexture", value);
     } else {
-      this.shaderData.disableMacro("O3_BASECOLOR_TEXTURE");
+      this.shaderData.disableMacro("O3_BASE_TEXTURE");
     }
   }
 
   /**
-   * Transparent mode.
+   * Tiling and offset of main textures.
    */
-  get alphaMode(): AlphaMode {
-    return this._alphaMode;
+  get tilingOffset(): Vector4 {
+    return this._tilingOffset;
   }
 
-  set alphaMode(v: AlphaMode) {
-    const target = this.renderState.blendState.targetBlendState;
-    const depthState = this.renderState.depthState;
-
-    switch (v) {
-      case AlphaMode.Opaque:
-      case AlphaMode.CutOff:
-        {
-          target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.One;
-          target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.Zero;
-          target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-          depthState.writeEnabled = true;
-          this.renderQueueType = RenderQueueType.Opaque;
-        }
-        break;
-      case AlphaMode.Blend:
-        {
-          target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-          target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-          target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-          depthState.writeEnabled = false;
-          this.renderQueueType = RenderQueueType.Transparent;
-        }
-        break;
-    }
-  }
-
-  /**
-   * Whether to render both sides.
-   * @remarks Only the front side is rendered by default
-   */
-  get doubleSided(): boolean {
-    return this._doubleSided;
-  }
-
-  set doubleSided(v: boolean) {
-    if (v) {
-      this.renderState.rasterState.cullMode = CullMode.Off;
-    } else {
-      this.renderState.rasterState.cullMode = CullMode.Back;
+  set tilingOffset(value: Vector4) {
+    if (value !== this._tilingOffset) {
+      value.cloneTo(this._tilingOffset);
     }
   }
 
@@ -118,11 +62,14 @@ export class UnlitMaterial extends Material {
    */
   constructor(engine: Engine) {
     super(engine, Shader.find("unlit"));
-    this.shaderData.enableMacro("OMIT_NORMAL");
-    this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
-    this.baseColor = this._baseColor;
-    this.tilingOffset = this._tilingOffset;
+    const shaderData = this.shaderData;
+
+    shaderData.enableMacro("OMIT_NORMAL");
+    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+
+    shaderData.setColor("u_baseColor", this._baseColor);
+    shaderData.setVector4("u_tilingOffset", this._tilingOffset);
   }
 
   /**
