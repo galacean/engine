@@ -18,48 +18,6 @@ export class BlinnPhongMaterial extends BaseMaterial {
   private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
 
   /**
-   * Tiling and offset of main textures.
-   */
-  get tilingOffset(): Vector4 {
-    return this._tilingOffset;
-  }
-
-  set tilingOffset(value: Vector4) {
-    this._tilingOffset = value;
-    this.shaderData.setVector4("u_tilingOffset", value);
-  }
-
-  /**
-   * Emissive color.
-   */
-  get emissiveColor(): Color {
-    return this._emissiveColor;
-  }
-
-  set emissiveColor(value: Color) {
-    this._emissiveColor = value;
-    this.shaderData.setColor("u_emissiveColor", value);
-  }
-
-  /**
-   * Emissive texture.
-   */
-  get emissiveTexture(): Texture2D {
-    return this._emissiveTexture;
-  }
-
-  set emissiveTexture(value: Texture2D) {
-    this._emissiveTexture = value;
-
-    if (value) {
-      this.shaderData.enableMacro("O3_EMISSIVE_TEXTURE");
-      this.shaderData.setTexture("u_emissiveTexture", value);
-    } else {
-      this.shaderData.disableMacro("O3_EMISSIVE_TEXTURE");
-    }
-  }
-
-  /**
    * Base color.
    */
   get baseColor(): Color {
@@ -120,6 +78,36 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   /**
+   * Emissive color.
+   */
+  get emissiveColor(): Color {
+    return this._emissiveColor;
+  }
+
+  set emissiveColor(value: Color) {
+    this._emissiveColor = value;
+    this.shaderData.setColor("u_emissiveColor", value);
+  }
+
+  /**
+   * Emissive texture.
+   */
+  get emissiveTexture(): Texture2D {
+    return this._emissiveTexture;
+  }
+
+  set emissiveTexture(value: Texture2D) {
+    this._emissiveTexture = value;
+
+    if (value) {
+      this.shaderData.enableMacro("O3_EMISSIVE_TEXTURE");
+      this.shaderData.setTexture("u_emissiveTexture", value);
+    } else {
+      this.shaderData.disableMacro("O3_EMISSIVE_TEXTURE");
+    }
+  }
+
+  /**
    * Set the specular reflection coefficient, the larger the value, the more convergent the specular reflection effect.
    */
   get shininess(): number {
@@ -131,14 +119,26 @@ export class BlinnPhongMaterial extends BaseMaterial {
     this.shaderData.setFloat("u_shininess", value);
   }
 
+  /**
+   * Tiling and offset of main textures.
+   */
+  get tilingOffset(): Vector4 {
+    return this._tilingOffset;
+  }
+
+  set tilingOffset(value: Vector4) {
+    this._tilingOffset = value;
+    this.shaderData.setVector4("u_tilingOffset", value);
+  }
+
   constructor(engine: Engine) {
     super(engine, Shader.find("blinn-phong"));
     this.shaderData.enableMacro("O3_NEED_WORLDPOS");
     this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
-    this.emissiveColor = this._emissiveColor;
     this.baseColor = this._baseColor;
     this.specularColor = this._specularColor;
+    this.emissiveColor = this._emissiveColor;
     this.shininess = this._shininess;
     this.tilingOffset = this._tilingOffset;
   }
