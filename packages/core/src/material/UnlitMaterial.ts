@@ -14,7 +14,7 @@ import { Material } from "./Material";
  */
 export class UnlitMaterial extends Material {
   private _baseColor: Color = new Color(1, 1, 1, 1);
-  private _baseColorTexture: Texture2D;
+  private _baseTexture: Texture2D;
   private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
 
   private _alphaMode: AlphaMode = AlphaMode.Opaque;
@@ -46,20 +46,20 @@ export class UnlitMaterial extends Material {
   }
 
   /**
-   * Base color texture.
+   * Base texture.
    */
-  get baseColorTexture(): Texture2D {
-    return this._baseColorTexture;
+  get baseTexture(): Texture2D {
+    return this._baseTexture;
   }
 
-  set baseColorTexture(value: Texture2D) {
-    this._baseColorTexture = value;
+  set baseTexture(value: Texture2D) {
+    this._baseTexture = value;
 
     if (value) {
-      this.shaderData.enableMacro("O3_BASECOLOR_TEXTURE");
-      this.shaderData.setTexture("u_baseColorTexture", value);
+      this.shaderData.enableMacro("O3_BASE_TEXTURE");
+      this.shaderData.setTexture("u_baseTexture", value);
     } else {
-      this.shaderData.disableMacro("O3_BASECOLOR_TEXTURE");
+      this.shaderData.disableMacro("O3_BASE_TEXTURE");
     }
   }
 

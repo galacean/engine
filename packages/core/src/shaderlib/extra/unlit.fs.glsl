@@ -4,15 +4,15 @@
 uniform vec4 u_baseColor;
 uniform vec4 u_alphaCutoff;
 
-#ifdef O3_BASECOLOR_TEXTURE
-    uniform sampler2D u_baseColorTexture;
+#ifdef O3_BASE_TEXTURE
+    uniform sampler2D u_baseTexture;
 #endif
 
 void main() {
      vec4 baseColor = u_baseColor;
 
-    #ifdef O3_BASECOLOR_TEXTURE
-        baseColor *= texture2D(u_baseColorTexture, v_uv);
+    #ifdef O3_BASE_TEXTURE
+        baseColor *= texture2D(u_baseTexture, v_uv);
     #endif
 
     #ifdef ALPHA_CUTOFF
