@@ -2,6 +2,7 @@ import { BlendFactor, BlendOperation, CullMode, Shader } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { RenderFace } from "./enums/RenderFace";
 import { RenderQueueType } from "./enums/RenderQueueType";
+import { BlendMode } from "./enums/BlendMode";
 import { Material } from "./Material";
 
 export class BaseMaterial extends Material {
@@ -11,6 +12,7 @@ export class BaseMaterial extends Material {
   private _isTransparent: boolean = false;
   private _alphaCutoff: number = 0;
   private _renderFace: RenderFace = RenderFace.Front;
+  private _blendMode: BlendMode = BlendMode.Normal;
 
   /**
    * Is this material transparent.
@@ -25,23 +27,18 @@ export class BaseMaterial extends Material {
 
     const {
       depthState,
-      blendState: { targetBlendState: target }
+      blendState: { targetBlendState }
     } = this.renderState;
 
     if (value) {
       this.shaderData.enableMacro(BaseMaterial._blendMacro);
-
-      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+      targetBlendState.enabled = true;
+      this.blendMode = this._blendMode;
       depthState.writeEnabled = false;
       this.renderQueueType = RenderQueueType.Transparent;
     } else {
       this.shaderData.disableMacro(BaseMaterial._blendMacro);
-
-      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.One;
-      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.Zero;
-      target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+      targetBlendState.enabled = false;
       depthState.writeEnabled = true;
       this.renderQueueType = RenderQueueType.Opaque;
     }
@@ -91,6 +88,37 @@ export class BaseMaterial extends Material {
         break;
       case RenderFace.Double:
         this.renderState.rasterState.cullMode = CullMode.Off;
+        break;
+    }
+  }
+
+  /**
+   * Alpha blend mode.
+   * @remarks
+   * Only take effect when `isTransparent` is `true`.
+   */
+  get blendMode(): BlendMode {
+    return this._blendMode;
+  }
+
+  set blendMode(value: BlendMode) {
+    if (value === this._blendMode) return;
+    this._blendMode = value;
+
+    const {
+      blendState: { targetBlendState: target }
+    } = this.renderState;
+
+    switch (value) {
+      case BlendMode.Normal:
+        target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
+        target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+        break;
+      case BlendMode.Additive:
+        target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
+        target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
+        target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
         break;
     }
   }

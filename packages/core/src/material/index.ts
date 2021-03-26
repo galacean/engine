@@ -1,5 +1,6 @@
 export { RenderQueueType } from "./enums/RenderQueueType";
 export { RenderFace } from "./enums/RenderFace";
+export { BlendMode } from "./enums/BlendMode";
 export { Material } from "./Material";
 export { BlinnPhongMaterial } from "./BlinnPhongMaterial";
 export { PBRMaterial } from "./PBRMaterial";
