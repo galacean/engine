@@ -574,7 +574,6 @@ export class PrimitiveMesh {
     mesh.setIndices(indices);
 
     mesh.uploadData(noLongerAccessible);
-
     mesh.addSubMesh(0, indices.length);
   }
 }
