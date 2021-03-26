@@ -29,9 +29,7 @@ export class OrbitControl extends Script {
   zoomSpeed: number;
   enablePan: boolean;
   autoRotate: boolean;
-  /**
-   * The radian of automatic rotation per second.
-   */
+  /** The radian of automatic rotation per second. */
   autoRotateSpeed: number = Math.PI;
   rotateSpeed: number;
   enableKeys: boolean;
