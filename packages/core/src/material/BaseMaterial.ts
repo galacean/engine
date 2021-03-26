@@ -50,11 +50,7 @@ export class BaseMaterial extends Material {
    * Alpha cutoff value.
    * @remarks
    * Fragments with alpha channel lower than cutoff value will be discarded.
-   * `0` means this feature is disabled.
-   * eg.
-   * ```
-   * if (color.a < u_alphaCutoff) discard;
-   * ```
+   * `0` means no fragment will be discarded.
    */
   get alphaCutoff(): number {
     return this._alphaCutoff;
