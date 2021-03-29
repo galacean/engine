@@ -363,6 +363,7 @@ export class PrimitiveMesh {
     // Create torso
     const thetaStart = Math.PI;
     const thetaRange = Math.PI * 2;
+    const slope = (radiusBottom - radiusTop) / height;
 
     for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
@@ -381,7 +382,7 @@ export class PrimitiveMesh {
       // Position
       positions[i] = new Vector3(posX, posY, posZ);
       // Normal
-      normals[i] = new Vector3(sinTheta, 0, cosTheta);
+      normals[i] = new Vector3(sinTheta, slope, cosTheta);
       // Texcoord
       uvs[i] = new Vector2(u, 1 - v);
     }
@@ -624,6 +625,7 @@ export class PrimitiveMesh {
     // Create torso
     const thetaStart = Math.PI;
     const thetaRange = Math.PI * 2;
+    const slope = radius / height;
 
     for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
@@ -642,7 +644,7 @@ export class PrimitiveMesh {
       // Position
       positions[i] = new Vector3(posX, posY, posZ);
       // Normal
-      normals[i] = new Vector3(sinTheta, 0, cosTheta);
+      normals[i] = new Vector3(sinTheta, slope, cosTheta);
       // Texcoord
       uvs[i] = new Vector2(u, 1 - v);
     }
