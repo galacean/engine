@@ -33,6 +33,7 @@ export abstract class Mesh extends RefObject {
   _indexBufferBinding: IndexBufferBinding = null;
   /** @internal */
   _vertexElements: VertexElement[] = [];
+  
   private _subMeshes: SubMesh[] = [];
   private _updateFlags: UpdateFlag[] = [];
 
@@ -62,8 +63,6 @@ export abstract class Mesh extends RefObject {
   }
 
   /**
-<<<<<<< HEAD
-=======
    * Add sub-mesh, each sub-mesh can correspond to an independent material.
    * @param subMesh - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
    * @returns Sub-mesh
@@ -71,7 +70,6 @@ export abstract class Mesh extends RefObject {
   addSubMesh(subMesh: SubMesh): SubMesh;
 
   /**
->>>>>>> 3f4af3a765f766f630e0a847d4ae67f85122a4ac
    * Add sub-mesh, each sub-mesh can correspond to an independent material.
    * @param start - Start drawing offset, if the index buffer is set, it means the offset in the index buffer, if not set, it means the offset in the vertex buffer
    * @param count - Drawing count, if the index buffer is set, it means the count in the index buffer, if not set, it means the count in the vertex buffer
