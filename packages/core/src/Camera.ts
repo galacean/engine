@@ -455,7 +455,8 @@ export class Camera extends Component {
    */
   render(cubeFace?: TextureCubeFace): void {
     // compute cull frustm.
-    const context = RenderContext._getRenderContext(this);
+    const context = this.engine._renderContext;
+    context._setContext(this);
     if (this.enableFrustumCulling && (this._frustumViewChangeFlag.flag || this._isFrustumProjectDirty)) {
       this._frustum.calculateFromMatrix(context._viewProjectMatrix);
       this._frustumViewChangeFlag.flag = false;

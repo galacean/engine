@@ -108,13 +108,14 @@ export class MeshRenderer extends Renderer {
 
     const renderPipeline = camera._renderPipeline;
     const { primitives, groups } = mesh;
+    const renderElementPool = this._engine._renderElementPool;
 
     //-- render every primitive
     for (let i = 0, len = primitives.length; i < len; i++) {
       const primitive = primitives[i];
       const material = this._instanceMaterials[i] || this._sharedMaterials[i];
       if (material) {
-        const element = RenderElement.getFromPool();
+        const element = renderElementPool.getFromPool();
         element.setValue(this, primitive, groups[i], material);
         renderPipeline.pushPrimitive(element);
       } else {

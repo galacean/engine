@@ -6,6 +6,8 @@ import { EngineFeature } from "./EngineFeature";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
 import { HardwareRenderer } from "./HardwareRenderer";
+import { ClassPool } from "./RenderPipeline/ClassPool";
+import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
@@ -25,6 +27,8 @@ export class Engine extends EventDispatcher {
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: HardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
+  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
   _renderCount: number = 0;
@@ -183,7 +187,7 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
 
     time.tick();
-    RenderElement._restPool();
+    this._renderElementPool.restPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 

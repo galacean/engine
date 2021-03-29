@@ -51,9 +51,10 @@ export class GeometryRenderer extends Renderer {
       const subGeometries = geometry.subGeometries;
       const renderPipeline = camera._renderPipeline;
       const material = this._material;
+      const renderElementPool = this._engine._renderElementPool;
       for (let i = 0, n = subGeometries.length; i < n; i++) {
         if (material) {
-          const element = RenderElement.getFromPool();
+          const element = renderElementPool.getFromPool();
           element.setValue(this, geometry._primitive, subGeometries[i], material); // CM: need to support multi material
           renderPipeline.pushPrimitive(element);
         }
