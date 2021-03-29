@@ -528,15 +528,19 @@ export class PrimitiveMesh {
       const alpha = u * arc;
       const theta = v * arc;
       const cosTheta = Math.cos(theta);
+      const cosAlpha = Math.cos(alpha);
+      const sinAlpha = Math.sin(alpha);
 
-      const posX = (radius + tube * cosTheta) * Math.cos(alpha);
-      const posY = (radius + tube * cosTheta) * Math.sin(alpha);
+      const posX = (radius + tube * cosTheta) * cosAlpha;
+      const posY = (radius + tube * cosTheta) * sinAlpha;
       const posZ = tube * Math.sin(theta);
+      const centerX = radius * cosAlpha;
+      const centerY = radius * sinAlpha;
 
       // Position
       positions[i] = new Vector3(posX, posY, posZ);
       // Normal
-      normals[i] = new Vector3(posX, posY, posZ);
+      normals[i] = new Vector3(posX - centerX, posY - centerY, posZ);
       // Texcoord
       uvs[i] = new Vector2(u, v);
     }
