@@ -114,13 +114,17 @@ export class BaseMaterial extends Material {
 
     switch (value) {
       case BlendMode.Normal:
-        target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-        target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+        target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        target.sourceAlphaBlendFactor = BlendFactor.One;
+        target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
         target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
         break;
       case BlendMode.Additive:
-        target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-        target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
+        target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+        target.destinationColorBlendFactor = BlendFactor.One;
+        target.sourceAlphaBlendFactor = BlendFactor.One;
+        target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
         target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
         break;
     }

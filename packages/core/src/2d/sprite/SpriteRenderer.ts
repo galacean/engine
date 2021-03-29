@@ -191,8 +191,10 @@ export class SpriteRenderer extends Renderer {
       const material = (SpriteRenderer._defaultMaterial = new Material(this.scene.engine, Shader.find("Sprite")));
       const target = material.renderState.blendState.targetBlendState;
       target.enabled = true;
-      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.sourceColorBlendFactor  = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.sourceAlphaBlendFactor = BlendFactor.One;
+      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
       target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
       material.renderState.depthState.writeEnabled = false;
       material.renderQueueType = RenderQueueType.Transparent;
