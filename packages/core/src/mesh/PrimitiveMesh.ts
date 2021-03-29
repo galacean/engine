@@ -560,6 +560,173 @@ export class PrimitiveMesh {
     return mesh;
   }
 
+  /**
+   * Create a cone mesh.
+   * @param engine - Engine
+   * @param radiusTop - The radius of top cap
+   * @param radiusBottom - The radius of bottom cap
+   * @param height - The height of torso
+   * @param radialSegments - Cylinder radial segments
+   * @param heightSegments - Cylinder height segments
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Cone model mesh
+   */
+  static createCone(
+    engine: Engine,
+    radiusTop: number = 0.5,
+    radiusBottom: number = 1.0,
+    height: number = 2,
+    radialSegments: number = 20,
+    heightSegments: number = 1,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+    radialSegments = Math.floor(radialSegments);
+    heightSegments = Math.floor(heightSegments);
+
+    const radialCount = radialSegments + 1;
+    const verticalCount = heightSegments + 1;
+    const halfHeight = height * 0.5;
+    const unitHeight = height / heightSegments;
+    const torsoVertexCount = radialCount * verticalCount;
+    const torsoRectangleCount = radialSegments * heightSegments;
+    const capTriangleCount = radialSegments * 2;
+    const totalVertexCount = torsoVertexCount + 2 + capTriangleCount;
+    let indices: Uint16Array | Uint32Array = null;
+    if (totalVertexCount > 65535) {
+      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
+        indices = new Uint32Array(torsoRectangleCount * 6 + capTriangleCount * 3);
+      } else {
+        throw Error("The vertex count is over limit.");
+      }
+    } else {
+      indices = new Uint16Array(torsoRectangleCount * 6 + capTriangleCount * 3);
+    }
+    const radialCountReciprocal = 1.0 / radialCount;
+    const radialSegmentsReciprocal = 1.0 / radialSegments;
+    const heightSegmentsReciprocal = 1.0 / heightSegments;
+
+    const positions: Vector3[] = new Array(totalVertexCount);
+    const normals: Vector3[] = new Array(totalVertexCount);
+    const uvs: Vector2[] = new Array(totalVertexCount);
+
+    let indicesOffset = 0;
+
+    // Create torso
+    const thetaStart = Math.PI;
+    const thetaRange = Math.PI * 2;
+
+    for (let i = 0; i < torsoVertexCount; ++i) {
+      const x = i % radialCount;
+      const y = (i * radialCountReciprocal) | 0;
+      const u = x * radialSegmentsReciprocal;
+      const v = y * heightSegmentsReciprocal;
+      const theta = thetaStart + u * thetaRange;
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+      const radius = radiusBottom - y * (radiusBottom - radiusTop);
+
+      let posX = radius * sinTheta;
+      let posY = y * unitHeight - halfHeight;
+      let posZ = radius * cosTheta;
+
+      // Position
+      positions[i] = new Vector3(posX, posY, posZ);
+      // Normal
+      normals[i] = new Vector3(sinTheta, 0, cosTheta);
+      // Texcoord
+      uvs[i] = new Vector2(u, 1 - v);
+    }
+
+    for (let i = 0; i < torsoRectangleCount; ++i) {
+      const x = i % radialSegments;
+      const y = (i * radialSegmentsReciprocal) | 0;
+
+      const a = y * radialCount + x;
+      const b = a + 1;
+      const c = a + radialCount;
+      const d = c + 1;
+
+      indices[indicesOffset++] = b;
+      indices[indicesOffset++] = c;
+      indices[indicesOffset++] = a;
+      indices[indicesOffset++] = b;
+      indices[indicesOffset++] = d;
+      indices[indicesOffset++] = c;
+    }
+
+    // Bottom position
+    positions[torsoVertexCount] = new Vector3(0, -halfHeight, 0);
+    // Bottom normal
+    normals[torsoVertexCount] = new Vector3(0, -1, 0);
+    // Bottom texcoord
+    uvs[torsoVertexCount] = new Vector2(0.5, 0.5);
+
+    // Top position
+    positions[torsoVertexCount + 1] = new Vector3(0, halfHeight, 0);
+    // Top normal
+    normals[torsoVertexCount + 1] = new Vector3(0, 1, 0);
+    // Top texcoord
+    uvs[torsoVertexCount + 1] = new Vector2(0.5, 0.5);
+
+    // Add cap vertices
+    let offset = torsoVertexCount + 2;
+
+    const diameterTopReciprocal = 1.0 / (radiusTop * 2);
+    const diameterBottomReciprocal = 1.0 / (radiusBottom * 2);
+    const positionStride = radialCount * heightSegments;
+    for (let i = 0; i < radialSegments; ++i) {
+      const curPosBottom = positions[i];
+      let curPosX = curPosBottom.x;
+      let curPosZ = curPosBottom.z;
+
+      // Bottom position
+      positions[offset] = new Vector3(curPosX, -halfHeight, curPosZ);
+      // Bottom normal
+      normals[offset] = new Vector3(0, -1, 0);
+      // Bottom texcoord
+      uvs[offset++] = new Vector2(curPosX * diameterBottomReciprocal + 0.5, 0.5 - curPosZ * diameterBottomReciprocal);
+
+      const curPosTop = positions[i + positionStride];
+      curPosX = curPosTop.x;
+      curPosZ = curPosTop.z;
+
+      // Top position
+      positions[offset] = new Vector3(curPosX, halfHeight, curPosZ);
+      // Top normal
+      normals[offset] = new Vector3(0, 1, 0);
+      // Top texcoord
+      uvs[offset++] = new Vector2(curPosX * diameterTopReciprocal + 0.5, curPosZ * diameterTopReciprocal + 0.5);
+    }
+
+    // Add cap indices
+    const topCapIndex = torsoVertexCount + 1;
+    const bottomIndiceIndex = torsoVertexCount + 2;
+    const topIndiceIndex = bottomIndiceIndex + 1;
+    for (let i = 0; i < radialSegments; ++i) {
+      const firstStride = i * 2;
+      const secondStride = i === radialSegments - 1 ? 0 : firstStride + 2;
+
+      // Bottom
+      indices[indicesOffset++] = torsoVertexCount;
+      indices[indicesOffset++] = bottomIndiceIndex + secondStride;
+      indices[indicesOffset++] = bottomIndiceIndex + firstStride;
+
+      // Top
+      indices[indicesOffset++] = topCapIndex;
+      indices[indicesOffset++] = topIndiceIndex + firstStride;
+      indices[indicesOffset++] = topIndiceIndex + secondStride;
+    }
+
+    const { bounds } = mesh;
+    const radiusMax = Math.max(radiusTop, radiusBottom);
+    bounds.min.setValue(-radiusMax, -halfHeight, -radiusMax);
+    bounds.max.setValue(radiusMax, halfHeight, radiusMax);
+
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
+    return mesh;
+  }
+
   private static _initialize(
     mesh: ModelMesh,
     positions: Vector3[],
