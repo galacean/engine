@@ -483,24 +483,24 @@ export class PrimitiveMesh {
    * @param tube - Torus tube
    * @param radialSegments - Torus radial segments
    * @param tubularSegments - Torus tubular segments
+   * @param arc - Angle of Torus
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Torus model mesh
    */
   static createTorus(
     engine: Engine,
     radius: number = 0.5,
-    tube: number = 0.1,
+    tubeRadius: number = 0.1,
     radialSegments: number = 30,
     tubularSegments: number = 30,
+    arc: number = 360,
     noLongerAccessible: boolean = true
   ): ModelMesh {
     const mesh = new ModelMesh(engine);
     radialSegments = Math.floor(radialSegments);
     tubularSegments = Math.floor(tubularSegments);
 
-    const radialCount = radialSegments + 1;
-    const tubularCount = tubularSegments + 1;
-    const vertexCount = radialCount * tubularCount;
+    const vertexCount = (radialSegments + 1) * (tubularSegments + 1);
     const rectangleCount = radialSegments * tubularSegments;
     let indices: Uint16Array | Uint32Array = null;
     if (vertexCount > 65535) {
@@ -512,62 +512,61 @@ export class PrimitiveMesh {
     } else {
       indices = new Uint16Array(rectangleCount * 6);
     }
-    const radialCountReciprocal = 1.0 / radialCount;
-    const radialSegmentsReciprocal = 1.0 / radialSegments;
-    const tubularSegmentsReciprocal = 1.0 / tubularSegments;
 
     const positions: Vector3[] = new Array(vertexCount);
     const normals: Vector3[] = new Array(vertexCount);
     const uvs: Vector2[] = new Array(vertexCount);
 
-    const arc = Math.PI * 2;
-    for (let i = 0; i < vertexCount; i++) {
-      const x = i % radialCount;
-      const y = (i * radialCountReciprocal) | 0;
-      const u = x * radialSegmentsReciprocal;
-      const v = y * tubularSegmentsReciprocal;
-      const alpha = u * arc;
-      const theta = v * arc;
-      const cosTheta = Math.cos(theta);
-      const cosAlpha = Math.cos(alpha);
-      const sinAlpha = Math.sin(alpha);
-
-      const posX = (radius + tube * cosTheta) * cosAlpha;
-      const posY = (radius + tube * cosTheta) * sinAlpha;
-      const posZ = tube * Math.sin(theta);
-      const centerX = radius * cosAlpha;
-      const centerY = radius * sinAlpha;
-
-      // Position
-      positions[i] = new Vector3(posX, posY, posZ);
-      // Normal
-      normals[i] = new Vector3(posX - centerX, posY - centerY, posZ);
-      // Texcoord
-      uvs[i] = new Vector2(u, v);
-    }
+    arc = (arc / 180) * Math.PI;
 
     let offset = 0;
-    for (let i = 0; i < rectangleCount; i++) {
-      const x = i % radialSegments;
-      const y = (i * radialSegmentsReciprocal) | 0;
 
-      const a = y * radialCount + x;
-      const b = a + 1;
-      const c = a + radialCount;
-      const d = c + 1;
+    for (let j = 0; j <= radialSegments; j++) {
+      for (let i = 0; i <= tubularSegments; i++) {
+        const u = (i / tubularSegments) * arc;
+        const v = (j / radialSegments) * Math.PI * 2;
+        const cosV = Math.cos(v);
+        const sinV = Math.sin(v);
+        const cosU = Math.cos(u);
+        const sinU = Math.sin(u);
 
-      indices[offset++] = b;
-      indices[offset++] = c;
-      indices[offset++] = a;
-      indices[offset++] = b;
-      indices[offset++] = d;
-      indices[offset++] = c;
+        const position = new Vector3(
+          (radius + tubeRadius * cosV) * cosU,
+          (radius + tubeRadius * cosV) * sinU,
+          tubeRadius * sinV
+        );
+        positions[offset] = position;
+
+        const centerX = radius * cosU;
+        const centerY = radius * sinU;
+        normals[offset] = new Vector3(position.x - centerX, position.y - centerY, position.z).normalize();
+
+        uvs[offset++] = new Vector2(i / tubularSegments, j / radialSegments);
+      }
+    }
+
+    offset = 0;
+    for (let j = 1; j <= radialSegments; j++) {
+      for (let i = 1; i <= tubularSegments; i++) {
+        const a = (tubularSegments + 1) * j + i - 1;
+        const b = (tubularSegments + 1) * (j - 1) + i - 1;
+        const c = (tubularSegments + 1) * (j - 1) + i;
+        const d = (tubularSegments + 1) * j + i;
+
+        indices[offset++] = a;
+        indices[offset++] = b;
+        indices[offset++] = d;
+
+        indices[offset++] = b;
+        indices[offset++] = c;
+        indices[offset++] = d;
+      }
     }
 
     const { bounds } = mesh;
-    const outerRadius = radius + tube;
-    bounds.min.setValue(-outerRadius, -outerRadius, -tube);
-    bounds.max.setValue(outerRadius, outerRadius, tube);
+    const outerRadius = radius + tubeRadius;
+    bounds.min.setValue(-outerRadius, -outerRadius, -tubeRadius);
+    bounds.max.setValue(outerRadius, outerRadius, tubeRadius);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
