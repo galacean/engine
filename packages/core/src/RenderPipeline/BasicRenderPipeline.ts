@@ -154,7 +154,7 @@ export class BasicRenderPipeline {
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
 
-      renderTarget?.blitRenderTarget();
+      renderTarget?._blitRenderTarget();
       renderTarget?.generateMipmaps();
     }
 

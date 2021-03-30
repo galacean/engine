@@ -10,12 +10,6 @@ import { Texture } from "./Texture";
  * The texture is used for the output of color information in off-screen rendering.
  */
 export class RenderColorTexture extends Texture {
-  /**
-   * @override
-   * @internal
-   */
-  _platformTexture: IPlatformRenderColorTexture;
-
   private _autoMipmap: boolean = false;
   private _format: RenderBufferColorFormat;
   private _isCube: boolean = false;
@@ -96,6 +90,6 @@ export class RenderColorTexture extends Texture {
     height: number,
     out: ArrayBufferView
   ): void {
-    this._platformTexture.getPixelBuffer(face, x, y, width, height, out);
+    (this._platformTexture as IPlatformRenderColorTexture).getPixelBuffer(face, x, y, width, height, out);
   }
 }

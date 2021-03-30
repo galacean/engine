@@ -20,7 +20,7 @@ class ColorRenderPass extends RenderPass {
    * Determine whether need to render pass, reset state.
    * @override
    */
-  preRender(camera, queue) {
+  preRender() {
     if (this._needPick) {
       this.enabled = true;
       (this.replaceMaterial as ColorMaterial).reset();
@@ -33,7 +33,7 @@ class ColorRenderPass extends RenderPass {
    * Determine whether to pick up.
    * @override
    */
-  postRender(camera: Camera, queue) {
+  postRender(camera: Camera) {
     if (this._needPick) {
       const color = this.readColorFromRenderTarget(camera);
       const object = (this.replaceMaterial as ColorMaterial).getObjectByColor(color);

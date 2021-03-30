@@ -186,13 +186,6 @@ export class RenderTarget extends EngineObject {
   }
 
   /**
-   * Blit FBO.
-   */
-  blitRenderTarget(): void {
-    this._platformRenderTarget.blitRenderTarget();
-  }
-
-  /**
    * Generate the mipmap of each attachment texture of the renderTarget according to the configuration.
    */
   generateMipmaps(): void {
@@ -218,5 +211,13 @@ export class RenderTarget extends EngineObject {
     this._colorTextures.length = 0;
     this._depthTexture = null;
     this._depth = null;
+  }
+
+  /**
+   * Blit FBO.
+   * @internal
+   */
+  _blitRenderTarget(): void {
+    this._platformRenderTarget.blitRenderTarget();
   }
 }
