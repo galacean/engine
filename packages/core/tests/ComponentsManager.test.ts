@@ -1,6 +1,6 @@
 import { Camera } from "../src/Camera";
+import { Engine, Entity, Renderer, Script } from "../src/index";
 import { RenderContext } from "../src/RenderPipeline/RenderContext";
-import { Canvas, Engine, Entity, HardwareRenderer, Renderer, Scene, Script } from "../src/index";
 
 describe("ComponentsManager", () => {
   let engine: Engine = new Engine({ width: 1024, height: 1024 }, { init: jest.fn(), canIUse: jest.fn() });

@@ -143,7 +143,7 @@ export class BasicRenderPipeline {
       const rhi = camera.scene.engine._hardwareRenderer;
       const renderTarget = camera.renderTarget || pass.renderTarget;
       rhi.activeRenderTarget(renderTarget, camera);
-      rhi.setRenderTargetFace(renderTarget, cubeFace);
+      renderTarget?._setRenderTargetFace(cubeFace);
       rhi.clearRenderTarget(camera.engine, pass.clearMode, pass.clearParam);
 
       if (pass.renderOverride) {
@@ -154,7 +154,8 @@ export class BasicRenderPipeline {
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
 
-      rhi.blitRenderTarget(renderTarget);
+      renderTarget?._blitRenderTarget();
+      renderTarget?.generateMipmaps();
     }
 
     pass.postRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
