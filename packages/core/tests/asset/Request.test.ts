@@ -1,4 +1,4 @@
-import { MultiExecutor, request } from "../src/asset/request";
+import { MultiExecutor, request } from "../../src/asset/request";
 
 describe("MultiExecute", () => {
   it("multiple execute function", () => {
