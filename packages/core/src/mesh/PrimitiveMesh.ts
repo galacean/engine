@@ -311,7 +311,8 @@ export class PrimitiveMesh {
   /**
    * Create a cylinder mesh.
    * @param engine - Engine
-   * @param radius - The radius of cap
+   * @param radiusTop - The radius of top cap
+   * @param radiusBottom - The radius of bottom cap
    * @param height - The height of torso
    * @param radialSegments - Cylinder radial segments
    * @param heightSegments - Cylinder height segments
@@ -320,7 +321,8 @@ export class PrimitiveMesh {
    */
   static createCylinder(
     engine: Engine,
-    radius: number = 0.5,
+    radiusTop: number = 0.5,
+    radiusBottom: number = 0.5,
     height: number = 2,
     radialSegments: number = 20,
     heightSegments: number = 1,
@@ -361,6 +363,7 @@ export class PrimitiveMesh {
     // Create torso
     const thetaStart = Math.PI;
     const thetaRange = Math.PI * 2;
+    const slope = (radiusBottom - radiusTop) / height;
 
     for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
@@ -370,6 +373,7 @@ export class PrimitiveMesh {
       const theta = thetaStart + u * thetaRange;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
+      const radius = radiusBottom - y * (radiusBottom - radiusTop);
 
       let posX = radius * sinTheta;
       let posY = y * unitHeight - halfHeight;
@@ -378,7 +382,7 @@ export class PrimitiveMesh {
       // Position
       positions[i] = new Vector3(posX, posY, posZ);
       // Normal
-      normals[i] = new Vector3(sinTheta, 0, cosTheta);
+      normals[i] = new Vector3(sinTheta, slope, cosTheta);
       // Texcoord
       uvs[i] = new Vector2(u, 1 - v);
     }
@@ -417,27 +421,31 @@ export class PrimitiveMesh {
     // Add cap vertices
     let offset = torsoVertexCount + 2;
 
-    const diameterReciprocal = 1.0 / (radius * 2);
+    const diameterTopReciprocal = 1.0 / (radiusTop * 2);
+    const diameterBottomReciprocal = 1.0 / (radiusBottom * 2);
+    const positionStride = radialCount * heightSegments;
     for (let i = 0; i < radialSegments; ++i) {
-      const curPos = positions[i];
-      const curPosX = curPos.x;
-      const curPosZ = curPos.z;
-      const u = curPosX * diameterReciprocal + 0.5;
-      const v = curPosZ * diameterReciprocal + 0.5;
+      const curPosBottom = positions[i];
+      let curPosX = curPosBottom.x;
+      let curPosZ = curPosBottom.z;
 
       // Bottom position
       positions[offset] = new Vector3(curPosX, -halfHeight, curPosZ);
       // Bottom normal
       normals[offset] = new Vector3(0, -1, 0);
       // Bottom texcoord
-      uvs[offset++] = new Vector2(u, 1 - v);
+      uvs[offset++] = new Vector2(curPosX * diameterBottomReciprocal + 0.5, 0.5 - curPosZ * diameterBottomReciprocal);
+
+      const curPosTop = positions[i + positionStride];
+      curPosX = curPosTop.x;
+      curPosZ = curPosTop.z;
 
       // Top position
       positions[offset] = new Vector3(curPosX, halfHeight, curPosZ);
       // Top normal
       normals[offset] = new Vector3(0, 1, 0);
       // Top texcoord
-      uvs[offset++] = new Vector2(u, v);
+      uvs[offset++] = new Vector2(curPosX * diameterTopReciprocal + 0.5, curPosZ * diameterTopReciprocal + 0.5);
     }
 
     // Add cap indices
@@ -460,8 +468,9 @@ export class PrimitiveMesh {
     }
 
     const { bounds } = mesh;
-    bounds.min.setValue(-radius, -halfHeight, -radius);
-    bounds.max.setValue(radius, halfHeight, radius);
+    const radiusMax = Math.max(radiusTop, radiusBottom);
+    bounds.min.setValue(-radiusMax, -halfHeight, -radiusMax);
+    bounds.max.setValue(radiusMax, halfHeight, radiusMax);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
@@ -474,24 +483,24 @@ export class PrimitiveMesh {
    * @param tube - Torus tube
    * @param radialSegments - Torus radial segments
    * @param tubularSegments - Torus tubular segments
+   * @param arc - Angle of Torus
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Torus model mesh
    */
   static createTorus(
     engine: Engine,
     radius: number = 0.5,
-    tube: number = 0.1,
+    tubeRadius: number = 0.1,
     radialSegments: number = 30,
     tubularSegments: number = 30,
+    arc: number = 360,
     noLongerAccessible: boolean = true
   ): ModelMesh {
     const mesh = new ModelMesh(engine);
     radialSegments = Math.floor(radialSegments);
     tubularSegments = Math.floor(tubularSegments);
 
-    const radialCount = radialSegments + 1;
-    const tubularCount = tubularSegments + 1;
-    const vertexCount = radialCount * tubularCount;
+    const vertexCount = (radialSegments + 1) * (tubularSegments + 1);
     const rectangleCount = radialSegments * tubularSegments;
     let indices: Uint16Array | Uint32Array = null;
     if (vertexCount > 65535) {
@@ -503,38 +512,143 @@ export class PrimitiveMesh {
     } else {
       indices = new Uint16Array(rectangleCount * 6);
     }
-    const radialCountReciprocal = 1.0 / radialCount;
-    const radialSegmentsReciprocal = 1.0 / radialSegments;
-    const tubularSegmentsReciprocal = 1.0 / tubularSegments;
 
     const positions: Vector3[] = new Array(vertexCount);
     const normals: Vector3[] = new Array(vertexCount);
     const uvs: Vector2[] = new Array(vertexCount);
 
-    const arc = Math.PI * 2;
-    for (let i = 0; i < vertexCount; i++) {
+    arc = (arc / 180) * Math.PI;
+
+    let offset = 0;
+
+    for (let j = 0; j <= radialSegments; j++) {
+      for (let i = 0; i <= tubularSegments; i++) {
+        const u = (i / tubularSegments) * arc;
+        const v = (j / radialSegments) * Math.PI * 2;
+        const cosV = Math.cos(v);
+        const sinV = Math.sin(v);
+        const cosU = Math.cos(u);
+        const sinU = Math.sin(u);
+
+        const position = new Vector3(
+          (radius + tubeRadius * cosV) * cosU,
+          (radius + tubeRadius * cosV) * sinU,
+          tubeRadius * sinV
+        );
+        positions[offset] = position;
+
+        const centerX = radius * cosU;
+        const centerY = radius * sinU;
+        normals[offset] = new Vector3(position.x - centerX, position.y - centerY, position.z).normalize();
+
+        uvs[offset++] = new Vector2(i / tubularSegments, j / radialSegments);
+      }
+    }
+
+    offset = 0;
+    for (let j = 1; j <= radialSegments; j++) {
+      for (let i = 1; i <= tubularSegments; i++) {
+        const a = (tubularSegments + 1) * j + i - 1;
+        const b = (tubularSegments + 1) * (j - 1) + i - 1;
+        const c = (tubularSegments + 1) * (j - 1) + i;
+        const d = (tubularSegments + 1) * j + i;
+
+        indices[offset++] = a;
+        indices[offset++] = b;
+        indices[offset++] = d;
+
+        indices[offset++] = b;
+        indices[offset++] = c;
+        indices[offset++] = d;
+      }
+    }
+
+    const { bounds } = mesh;
+    const outerRadius = radius + tubeRadius;
+    bounds.min.setValue(-outerRadius, -outerRadius, -tubeRadius);
+    bounds.max.setValue(outerRadius, outerRadius, tubeRadius);
+
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
+    return mesh;
+  }
+
+  /**
+   * Create a cone mesh.
+   * @param engine - Engine
+   * @param radius - The radius of cap
+   * @param height - The height of torso
+   * @param radialSegments - Cylinder radial segments
+   * @param heightSegments - Cylinder height segments
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Cone model mesh
+   */
+  static createCone(
+    engine: Engine,
+    radius: number = 0.5,
+    height: number = 2,
+    radialSegments: number = 20,
+    heightSegments: number = 1,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+    radialSegments = Math.floor(radialSegments);
+    heightSegments = Math.floor(heightSegments);
+
+    const radialCount = radialSegments + 1;
+    const verticalCount = heightSegments + 1;
+    const halfHeight = height * 0.5;
+    const unitHeight = height / heightSegments;
+    const torsoVertexCount = radialCount * verticalCount;
+    const torsoRectangleCount = radialSegments * heightSegments;
+    const totalVertexCount = torsoVertexCount + 1 + radialSegments;
+    let indices: Uint16Array | Uint32Array = null;
+    if (totalVertexCount > 65535) {
+      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
+        indices = new Uint32Array(torsoRectangleCount * 6 + radialSegments * 3);
+      } else {
+        throw Error("The vertex count is over limit.");
+      }
+    } else {
+      indices = new Uint16Array(torsoRectangleCount * 6 + radialSegments * 3);
+    }
+    const radialCountReciprocal = 1.0 / radialCount;
+    const radialSegmentsReciprocal = 1.0 / radialSegments;
+    const heightSegmentsReciprocal = 1.0 / heightSegments;
+
+    const positions: Vector3[] = new Array(totalVertexCount);
+    const normals: Vector3[] = new Array(totalVertexCount);
+    const uvs: Vector2[] = new Array(totalVertexCount);
+
+    let indicesOffset = 0;
+
+    // Create torso
+    const thetaStart = Math.PI;
+    const thetaRange = Math.PI * 2;
+    const slope = radius / height;
+
+    for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
       const y = (i * radialCountReciprocal) | 0;
       const u = x * radialSegmentsReciprocal;
-      const v = y * tubularSegmentsReciprocal;
-      const alpha = u * arc;
-      const theta = v * arc;
+      const v = y * heightSegmentsReciprocal;
+      const theta = thetaStart + u * thetaRange;
+      const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
+      const curRadius = radius - y * radius;
 
-      const posX = (radius + tube * cosTheta) * Math.cos(alpha);
-      const posY = (radius + tube * cosTheta) * Math.sin(alpha);
-      const posZ = tube * Math.sin(theta);
+      let posX = curRadius * sinTheta;
+      let posY = y * unitHeight - halfHeight;
+      let posZ = curRadius * cosTheta;
 
       // Position
       positions[i] = new Vector3(posX, posY, posZ);
       // Normal
-      normals[i] = new Vector3(posX, posY, posZ);
+      normals[i] = new Vector3(sinTheta, slope, cosTheta);
       // Texcoord
-      uvs[i] = new Vector2(u, v);
+      uvs[i] = new Vector2(u, 1 - v);
     }
 
-    let offset = 0;
-    for (let i = 0; i < rectangleCount; i++) {
+    for (let i = 0; i < torsoRectangleCount; ++i) {
       const x = i % radialSegments;
       const y = (i * radialSegmentsReciprocal) | 0;
 
@@ -543,18 +657,51 @@ export class PrimitiveMesh {
       const c = a + radialCount;
       const d = c + 1;
 
-      indices[offset++] = b;
-      indices[offset++] = c;
-      indices[offset++] = a;
-      indices[offset++] = b;
-      indices[offset++] = d;
-      indices[offset++] = c;
+      indices[indicesOffset++] = b;
+      indices[indicesOffset++] = c;
+      indices[indicesOffset++] = a;
+      indices[indicesOffset++] = b;
+      indices[indicesOffset++] = d;
+      indices[indicesOffset++] = c;
+    }
+
+    // Bottom position
+    positions[torsoVertexCount] = new Vector3(0, -halfHeight, 0);
+    // Bottom normal
+    normals[torsoVertexCount] = new Vector3(0, -1, 0);
+    // Bottom texcoord
+    uvs[torsoVertexCount] = new Vector2(0.5, 0.5);
+
+    // Add bottom cap vertices
+    let offset = torsoVertexCount + 1;
+    const diameterBottomReciprocal = 1.0 / (radius * 2);
+    for (let i = 0; i < radialSegments; ++i) {
+      const curPos = positions[i];
+      let curPosX = curPos.x;
+      let curPosZ = curPos.z;
+
+      // Bottom position
+      positions[offset] = new Vector3(curPosX, -halfHeight, curPosZ);
+      // Bottom normal
+      normals[offset] = new Vector3(0, -1, 0);
+      // Bottom texcoord
+      uvs[offset++] = new Vector2(curPosX * diameterBottomReciprocal + 0.5, 0.5 - curPosZ * diameterBottomReciprocal);
+    }
+
+    const bottomIndiceIndex = torsoVertexCount + 1;
+    for (let i = 0; i < radialSegments; ++i) {
+      const firstStride = i;
+      const secondStride = i === radialSegments - 1 ? 0 : firstStride + 1;
+
+      // Bottom
+      indices[indicesOffset++] = torsoVertexCount;
+      indices[indicesOffset++] = bottomIndiceIndex + secondStride;
+      indices[indicesOffset++] = bottomIndiceIndex + firstStride;
     }
 
     const { bounds } = mesh;
-    const outerRadius = radius + tube;
-    bounds.min.setValue(-outerRadius, -outerRadius, -tube);
-    bounds.max.setValue(outerRadius, outerRadius, tube);
+    bounds.min.setValue(-radius, -halfHeight, -radius);
+    bounds.max.setValue(radius, halfHeight, radius);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
