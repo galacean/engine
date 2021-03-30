@@ -332,7 +332,7 @@ export function parseMaterial(gltfMaterial, resources) {
       material.normalTexture = getItemByIdx("textures", index || 0, resources, false);
 
       if (scale !== undefined) {
-        material.normalScale = scale;
+        material.normalIntensity = scale;
       }
     }
 
