@@ -210,7 +210,7 @@ export class Animation extends Component {
    * @param crossFadeDuration - The milliseconds of the crossFade's duration.
    * @param options - The play options when playing AnimationClip.
    */
-  public CrossFade(name: string, crossFadeDuration: number, options: AnimationOptions) {
+  public crossFade(name: string, crossFadeDuration: number, options: AnimationOptions) {
     const animClip = this._animSet[name];
     if (!animClip) {
       Logger.error("can not find anim clip: " + name);
