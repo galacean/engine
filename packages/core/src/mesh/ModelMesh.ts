@@ -20,7 +20,7 @@ export class ModelMesh extends Mesh {
   private _verticesUint8: Uint8Array | null = null;
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
-  private _vertexSlotChanged: boolean = false;
+  private _vertexSlotChanged: boolean = true;
   private _vertexChangeFlag: number = 0;
   private _indicesChangeFlag: boolean = false;
   private _elementCount: number = 0;
