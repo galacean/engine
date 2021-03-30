@@ -1,7 +1,7 @@
 /**
  * Hardware graphics API renderer.
  */
-export interface HardwareRenderer {
+export interface IHardwareRenderer {
   // todo: implements
   [key: string]: any;
 }

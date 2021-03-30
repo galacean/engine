@@ -1,47 +1,10 @@
-import { Engine } from "../Engine";
-import { IPlatformTextureCubeMap } from "../renderingHardwareInterface";
-import { TextureCubeFace } from "./enums/TextureCubeFace";
-import { TextureFilterMode } from "./enums/TextureFilterMode";
-import { TextureFormat } from "./enums/TextureFormat";
-import { TextureWrapMode } from "./enums/TextureWrapMode";
-import { Texture } from "./Texture";
+import { TextureCubeFace } from "../texture";
+import { IPlatformTexture } from "./IPlatformTexture";
 
 /**
- * Cube texture.
+ * Cube texture interface specification.
  */
-export class TextureCubeMap extends Texture {
-  private _format: TextureFormat;
-
-  /**
-   * Texture format.
-   * @readonly
-   */
-  get format(): TextureFormat {
-    return this._format;
-  }
-
-  /**
-   * Create TextureCube.
-   * @param engine - Define the engine to use to render this texture
-   * @param size - Texture size. texture width must be equal to height in cube texture
-   * @param format - Texture format,default TextureFormat.R8G8B8A8
-   * @param mipmap - Whether to use multi-level texture
-   */
-  constructor(engine: Engine, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {
-    super(engine);
-
-    this._mipmap = mipmap;
-    this._width = size;
-    this._height = size;
-    this._format = format;
-    this._mipmapCount = this._getMipmapCount();
-
-    this._platformTexture = engine._hardwareRenderer.createPlatformTextureCubeMap(this);
-
-    this.filterMode = TextureFilterMode.Bilinear;
-    this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
-  }
-
+export interface IPlatformTextureCubeMap extends IPlatformTexture {
   /**
    * Setting pixels data through cube face,color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
    * @remarks When compressed texture is in WebGL1, the texture must be filled first before writing the sub-region
@@ -56,14 +19,12 @@ export class TextureCubeMap extends Texture {
   setPixelBuffer(
     face: TextureCubeFace,
     colorBuffer: ArrayBufferView,
-    mipLevel: number = 0,
+    mipLevel?: number,
     x?: number,
     y?: number,
     width?: number,
     height?: number
-  ): void {
-    (this._platformTexture as IPlatformTextureCubeMap).setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
-  }
+  ): void;
 
   /**
    * Setting pixels data through cube face, TexImageSource, designated area and texture mipmapping level.
@@ -78,22 +39,12 @@ export class TextureCubeMap extends Texture {
   setImageSource(
     face: TextureCubeFace,
     imageSource: TexImageSource,
-    mipLevel: number = 0,
-    flipY: boolean = false,
-    premultiplyAlpha: boolean = false,
+    mipLevel?: number,
+    flipY?: boolean,
+    premultiplyAlpha?: boolean,
     x?: number,
     y?: number
-  ): void {
-    (this._platformTexture as IPlatformTextureCubeMap).setImageSource(
-      face,
-      imageSource,
-      mipLevel,
-      flipY,
-      premultiplyAlpha,
-      x,
-      y
-    );
-  }
+  ): void;
 
   /**
    * Get the pixel color buffer according to the specified cube face and area.
@@ -111,7 +62,5 @@ export class TextureCubeMap extends Texture {
     width: number,
     height: number,
     out: ArrayBufferView
-  ): void {
-    (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(face, x, y, width, height, out);
-  }
+  ): void;
 }

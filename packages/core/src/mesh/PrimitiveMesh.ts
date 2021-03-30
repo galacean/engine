@@ -483,7 +483,7 @@ export class PrimitiveMesh {
    * @param tube - Torus tube
    * @param radialSegments - Torus radial segments
    * @param tubularSegments - Torus tubular segments
-   * @param arc - Angle of Torus
+   * @param arc - Central angle
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Torus model mesh
    */
@@ -521,10 +521,10 @@ export class PrimitiveMesh {
 
     let offset = 0;
 
-    for (let j = 0; j <= radialSegments; j++) {
-      for (let i = 0; i <= tubularSegments; i++) {
-        const u = (i / tubularSegments) * arc;
-        const v = (j / radialSegments) * Math.PI * 2;
+    for (let i = 0; i <= radialSegments; i++) {
+      for (let j = 0; j <= tubularSegments; j++) {
+        const u = (j / tubularSegments) * arc;
+        const v = (i / radialSegments) * Math.PI * 2;
         const cosV = Math.cos(v);
         const sinV = Math.sin(v);
         const cosU = Math.cos(u);
@@ -541,17 +541,17 @@ export class PrimitiveMesh {
         const centerY = radius * sinU;
         normals[offset] = new Vector3(position.x - centerX, position.y - centerY, position.z).normalize();
 
-        uvs[offset++] = new Vector2(i / tubularSegments, j / radialSegments);
+        uvs[offset++] = new Vector2(j / tubularSegments, i / radialSegments);
       }
     }
 
     offset = 0;
-    for (let j = 1; j <= radialSegments; j++) {
-      for (let i = 1; i <= tubularSegments; i++) {
-        const a = (tubularSegments + 1) * j + i - 1;
-        const b = (tubularSegments + 1) * (j - 1) + i - 1;
-        const c = (tubularSegments + 1) * (j - 1) + i;
-        const d = (tubularSegments + 1) * j + i;
+    for (let i = 1; i <= radialSegments; i++) {
+      for (let j = 1; j <= tubularSegments; j++) {
+        const a = (tubularSegments + 1) * i + j - 1;
+        const b = (tubularSegments + 1) * (i - 1) + j - 1;
+        const c = (tubularSegments + 1) * (i - 1) + j;
+        const d = (tubularSegments + 1) * i + j;
 
         indices[offset++] = a;
         indices[offset++] = b;

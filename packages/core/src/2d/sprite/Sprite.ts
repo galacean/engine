@@ -20,7 +20,7 @@ export class Sprite extends RefObject {
   private _atlasRect: Rect = new Rect();
   private _pivot: Vector2 = new Vector2();
   private _rect: Rect = new Rect();
-  private _pixelsPerUnit: number = 100;
+  private _pixelsPerUnit: number;
   private _dirtyFlag: number = DirtyFlag.all;
 
   /**
