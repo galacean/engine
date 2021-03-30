@@ -178,14 +178,6 @@ export class RenderTarget extends EngineObject {
   }
 
   /**
-   * Set which face of the cube texture to render to.
-   * @param faceIndex - Cube texture face
-   */
-  setRenderTargetFace(faceIndex: TextureCubeFace): void {
-    this._platformRenderTarget.setRenderTargetFace(faceIndex);
-  }
-
-  /**
    * Generate the mipmap of each attachment texture of the renderTarget according to the configuration.
    */
   generateMipmaps(): void {
@@ -214,7 +206,13 @@ export class RenderTarget extends EngineObject {
   }
 
   /**
-   * Blit FBO.
+   * @internal
+   */
+  _setRenderTargetFace(faceIndex: TextureCubeFace): void {
+    this._platformRenderTarget.setRenderTargetFace(faceIndex);
+  }
+
+  /**
    * @internal
    */
   _blitRenderTarget(): void {

@@ -143,7 +143,7 @@ export class BasicRenderPipeline {
       const rhi = camera.scene.engine._hardwareRenderer;
       const renderTarget = camera.renderTarget || pass.renderTarget;
       rhi.activeRenderTarget(renderTarget, camera);
-      renderTarget?.setRenderTargetFace(cubeFace);
+      renderTarget?._setRenderTargetFace(cubeFace);
       rhi.clearRenderTarget(camera.engine, pass.clearMode, pass.clearParam);
 
       if (pass.renderOverride) {
