@@ -12,6 +12,6 @@ uniform float u_refractionRatio;
 uniform vec2 u_resolution;
 
 // todo: delete
-uniform float u_normalScale;
+uniform float u_normalIntensity;
 uniform float u_occlusionStrength;
 

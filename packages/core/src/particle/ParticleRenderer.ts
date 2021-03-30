@@ -511,11 +511,17 @@ export class ParticleRenderer extends MeshRenderer {
     const target = blendState.targetBlendState;
 
     if (value === ParticleRendererBlendMode.Transparent) {
-      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.enabled = true;
+      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.sourceAlphaBlendFactor = BlendFactor.One;
+      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     } else if (value === ParticleRendererBlendMode.Additive) {
-      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
+      target.enabled = true;
+      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = BlendFactor.One;
+      target.sourceAlphaBlendFactor = BlendFactor.One;
+      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     }
 
     this._blendMode = value;
@@ -578,8 +584,11 @@ export class ParticleRenderer extends MeshRenderer {
     const { renderState } = material;
     const target = renderState.blendState.targetBlendState;
 
-    target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
 
     renderState.depthState.writeEnabled = false;
 

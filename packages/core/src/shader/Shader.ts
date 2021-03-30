@@ -171,7 +171,7 @@ export class Shader {
     #endif
     `;
 
-    let vertexSource = ShaderFactory.parseShader(
+    let vertexSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
         ${shaderNameStr}
         ${precisionStr}
@@ -179,7 +179,7 @@ export class Shader {
         ` + this._vertexSource
     );
 
-    let fragmentSource = ShaderFactory.parseShader(
+    let fragmentSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
         ${shaderNameStr}
         ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}

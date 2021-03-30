@@ -1,10 +1,10 @@
 import {
-  AlphaMode,
   Animation,
   AnimationClip,
   BlinnPhongMaterial,
   Buffer,
   BufferBindFlag,
+  BufferMesh,
   BufferUsage,
   Camera,
   Engine,
@@ -15,12 +15,12 @@ import {
   InterpolationType,
   Logger,
   Material,
-  BufferMesh,
   MeshRenderer,
+  MeshTopology,
   ModelMesh,
   PBRMaterial,
   PBRSpecularMaterial,
-  MeshTopology,
+  RenderFace,
   Scene,
   Skin,
   SkinnedMeshRenderer,
@@ -28,7 +28,7 @@ import {
   Texture2D,
   TypedArray,
   UnlitMaterial,
-  VertexElement,
+  VertexElement
 } from "@oasis-engine/core";
 import { Color, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { LoadedGLTFResource } from "../GLTF";
@@ -264,16 +264,20 @@ export function parseMaterial(gltfMaterial, resources) {
     }
 
     // render states
-    material.doubleSided = doubleSided;
+    if (doubleSided) {
+      material.renderFace = RenderFace.Double;
+    } else {
+      material.renderFace = RenderFace.Front;
+    }
+
     switch (alphaMode) {
       case "OPAQUE":
-        material.alphaMode = AlphaMode.Opaque;
+        material.isTransparent = false;
         break;
       case "BLEND":
-        material.alphaMode = AlphaMode.Blend;
+        material.isTransparent = true;
         break;
       case "MASK":
-        material.alphaMode = AlphaMode.CutOff;
         (material as PBRMaterial | PBRSpecularMaterial).alphaCutoff = alphaCutoff === undefined ? 0.5 : alphaCutoff;
         break;
     }
@@ -288,7 +292,7 @@ export function parseMaterial(gltfMaterial, resources) {
         metallicRoughnessTexture
       } = pbrMetallicRoughness;
       if (baseColorTexture) {
-        material.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources, false);
+        material.baseTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources, false);
       }
       if (baseColorFactor) {
         material.baseColor = new Color(...baseColorFactor);
@@ -354,7 +358,7 @@ export function parseMaterial(gltfMaterial, resources) {
         material.baseColor = new Color(...diffuseFactor);
       }
       if (diffuseTexture) {
-        material.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources, false);
+        material.baseTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources, false);
       }
       if (specularFactor) {
         material.specularColor = new Color(...specularFactor);
@@ -379,7 +383,7 @@ export function parseMaterial(gltfMaterial, resources) {
     if (techniqueName === "Texture") {
       const material = new UnlitMaterial(engine);
       const index = gltfMaterial.values._MainTex[0];
-      material.baseColorTexture = getItemByIdx("textures", index || 0, resources, false);
+      material.baseTexture = getItemByIdx("textures", index || 0, resources, false);
       return Promise.resolve(material);
     }
   }

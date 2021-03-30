@@ -25,17 +25,6 @@ export class Scene extends EngineObject {
   /** scene name */
   name: string;
 
-  /**
-   * @private
-   * @deprecated
-   * @todo: Migrate to camera
-   * Clipping surface, plane equations. The fragments below the clipping plane will be discard.
-   * @example
-   * ```ts
-   * scene.clipPlanes = [[0,1,0,0]];
-   * ```
-   * */
-  clipPlanes: Vector4[] = [];
   _activeCameras: Camera[] = [];
   _isActiveInEngine: boolean = false;
 
