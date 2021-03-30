@@ -10,12 +10,6 @@ import { Texture } from "./Texture";
  * Cube texture.
  */
 export class TextureCubeMap extends Texture {
-  /**
-   * @override
-   * @internal
-   */
-  _platformTexture: IPlatformTextureCubeMap;
-
   private _format: TextureFormat;
 
   /**
@@ -68,7 +62,7 @@ export class TextureCubeMap extends Texture {
     width?: number,
     height?: number
   ): void {
-    this._platformTexture.setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
+    (this._platformTexture as IPlatformTextureCubeMap).setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
   }
 
   /**
@@ -90,7 +84,15 @@ export class TextureCubeMap extends Texture {
     x?: number,
     y?: number
   ): void {
-    this._platformTexture.setImageSource(face, imageSource, mipLevel, flipY, premultiplyAlpha, x, y);
+    (this._platformTexture as IPlatformTextureCubeMap).setImageSource(
+      face,
+      imageSource,
+      mipLevel,
+      flipY,
+      premultiplyAlpha,
+      x,
+      y
+    );
   }
 
   /**
@@ -110,6 +112,6 @@ export class TextureCubeMap extends Texture {
     height: number,
     out: ArrayBufferView
   ): void {
-    this._platformTexture.getPixelBuffer(face, x, y, width, height, out);
+    (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(face, x, y, width, height, out);
   }
 }

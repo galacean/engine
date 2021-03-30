@@ -9,12 +9,6 @@ import { Texture } from "./Texture";
  * Two-dimensional texture.
  */
 export class Texture2D extends Texture {
-  /**
-   * @override
-   * @internal
-   */
-  _platformTexture: IPlatformTexture2D;
-
   private _format: TextureFormat;
 
   /**
@@ -71,7 +65,7 @@ export class Texture2D extends Texture {
     width?: number,
     height?: number
   ): void {
-    this._platformTexture.setPixelBuffer(colorBuffer, mipLevel, x, y, width, height);
+    (this._platformTexture as IPlatformTexture2D).setPixelBuffer(colorBuffer, mipLevel, x, y, width, height);
   }
 
   /**
@@ -91,7 +85,7 @@ export class Texture2D extends Texture {
     x?: number,
     y?: number
   ): void {
-    this._platformTexture.setImageSource(imageSource, mipLevel, flipY, premultiplyAlpha, x, y);
+    (this._platformTexture as IPlatformTexture2D).setImageSource(imageSource, mipLevel, flipY, premultiplyAlpha, x, y);
   }
 
   /**
@@ -103,6 +97,6 @@ export class Texture2D extends Texture {
    * @param out - Color buffer
    */
   getPixelBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {
-    this._platformTexture.getPixelBuffer(x, y, width, height, out);
+    (this._platformTexture as IPlatformTexture2D).getPixelBuffer(x, y, width, height, out);
   }
 }

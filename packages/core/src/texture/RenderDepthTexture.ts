@@ -1,5 +1,4 @@
 import { Engine } from "../Engine";
-import { IPlatformRenderDepthTexture } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
@@ -9,12 +8,6 @@ import { Texture } from "./Texture";
  * The texture is used for the output of depth information in off-screen rendering.
  */
 export class RenderDepthTexture extends Texture {
-  /**
-   * @override
-   * @internal
-   */
-  _platformTexture: IPlatformRenderDepthTexture;
-
   private _autoMipmap: boolean = false;
   private _format: RenderBufferDepthFormat;
   private _isCube: boolean = false;
