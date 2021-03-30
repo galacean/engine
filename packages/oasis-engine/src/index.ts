@@ -15,7 +15,7 @@ import {
   SphereCollider,
   SpriteRenderer
 } from "@oasis-engine/core";
-import { GLTFModel, Parser } from "@oasis-engine/loader";
+import { GLTFModel, Parser, Model } from "@oasis-engine/loader";
 
 Parser.registerComponents("o3", {
   GLTFModel,
@@ -28,6 +28,7 @@ Parser.registerComponents("o3", {
   SkyBox,
   BoxCollider,
   Camera,
+  Model,
   Component,
   SphereCollider
 });

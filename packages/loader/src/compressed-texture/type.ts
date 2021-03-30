@@ -1,4 +1,5 @@
-import { GLCompressedTextureInternalFormat, TextureFormat } from "@oasis-engine/core";
+import { TextureFormat } from "@oasis-engine/core";
+import { GLCompressedTextureInternalFormat } from "@oasis-engine/rhi-webgl";
 
 export type CompressedTextureData = {
   internalFormat: GLCompressedTextureInternalFormat;

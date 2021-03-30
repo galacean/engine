@@ -1,6 +1,6 @@
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
-import { HardwareRenderer } from "../HardwareRenderer";
+import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
 import { Texture } from "../texture/Texture";
 import { ShaderPropertyValueType } from "./ShaderData";
 
@@ -16,7 +16,7 @@ export class ShaderUniform {
   applyFunc: (shaderUniform: ShaderUniform, value: ShaderPropertyValueType) => void;
   cacheValue: number | Vector2 | Vector3 | Vector4;
 
-  private _rhi: HardwareRenderer;
+  private _rhi: IHardwareRenderer;
   private _gl: WebGLRenderingContext;
 
   constructor(engine: Engine) {
@@ -246,7 +246,7 @@ export class ShaderUniform {
   uploadTexture(shaderUniform: ShaderUniform, value: Texture): void {
     const rhi = this._rhi;
     rhi.activeTexture(shaderUniform.textureIndex as GLenum);
-    rhi.bindTexture(value._target, value._glTexture);
+    rhi.bindTexture(value._platformTexture);
   }
 
   uploadTextureArray(shaderUniform: ShaderUniform, value: Texture[]): void {
@@ -255,7 +255,7 @@ export class ShaderUniform {
     for (let i = 0; i < value.length; i++) {
       const texture = value[i];
       rhi.activeTexture(textureIndices[i]);
-      rhi.bindTexture(texture._target, texture._glTexture);
+      rhi.bindTexture(texture._platformTexture);
     }
   }
 }
