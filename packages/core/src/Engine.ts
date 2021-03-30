@@ -245,6 +245,7 @@ export class Engine extends EventDispatcher {
 
       // todo: delete
       (engineFeatureManager as any)._objects = [];
+      this.removeAllEventListeners();
     }
   }
 

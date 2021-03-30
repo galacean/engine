@@ -14,10 +14,6 @@ describe("ComponentsManager", () => {
     rootNode = engine.sceneManager.activeScene.createRootEntity();
     camera = rootNode.addComponent(Camera);
     engine.sceneManager.activeScene = scene;
-    //@ts-ignore
-    Entity._entitys.length = 0;
-    //@ts-ignore
-    Entity._entitys._elements.length = 0;
     const rhi: any = {
       gl: document.createElement("canvas").getContext("webgl"),
       canIUse: jest.fn().mockReturnValue(true),
@@ -80,11 +76,12 @@ describe("ComponentsManager", () => {
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TestComponent.prototype.render = jest.fn();
+      engine._renderContext._camera = camera;
       const component = entity.addComponent(TestComponent);
       engine._componentsManager.callScriptOnStart();
-      engine._componentsManager.callRender(RenderContext._getRenderContext(camera));
+      engine._componentsManager.callRender(engine._renderContext);
       engine._componentsManager.callScriptOnStart();
-      engine._componentsManager.callRender(RenderContext._getRenderContext(camera));
+      engine._componentsManager.callRender(engine._renderContext);
       expect(component.render).toHaveBeenCalledTimes(2);
     });
 
@@ -100,7 +97,8 @@ describe("ComponentsManager", () => {
       const component = entity.addComponent(TestComponent);
       entity.isActive = false;
       engine._componentsManager.callRendererOnUpdate(16.7);
-      engine._componentsManager.callRender(RenderContext._getRenderContext(camera));
+      engine._renderContext._camera=camera;
+      engine._componentsManager.callRender(engine._renderContext);
       expect(component.update).toHaveBeenCalledTimes(0);
       expect(component.render).toHaveBeenCalledTimes(0);
     });
