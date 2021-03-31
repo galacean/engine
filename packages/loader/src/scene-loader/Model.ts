@@ -32,6 +32,8 @@ export class Model extends MeshRenderer {
 
   constructor(entity: Entity) {
     super(entity);
+    this.setMaterial(new BlinnPhongMaterial(this.engine));
+    this.geometryType = GeometryType.Box;
   }
 
   get material(): any {
@@ -39,9 +41,6 @@ export class Model extends MeshRenderer {
   }
 
   set material(mtl: any) {
-    if (!mtl) {
-      mtl = new BlinnPhongMaterial(this.engine);
-    }
     this.setMaterial(mtl);
   }
 }
