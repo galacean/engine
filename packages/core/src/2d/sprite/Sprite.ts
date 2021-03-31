@@ -20,7 +20,7 @@ export class Sprite extends RefObject {
   private _atlasRect: Rect = new Rect(0, 0, 1, 1);
   private _rect: Rect = new Rect(0, 0, 1, 1);
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
-  private _pixelsPerUnit: number = 100;
+  private _pixelsPerUnit: number;
   private _dirtyFlag: number = DirtyFlag.all;
 
   /**
@@ -118,10 +118,9 @@ export class Sprite extends RefObject {
   ) {
     super(engine);
 
-    if (!texture) {
-      return;
+    if (texture) {
+      this.texture = texture;
     }
-    this.texture = texture;
 
     if (rect) {
       this.rect = rect;
