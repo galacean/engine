@@ -45,7 +45,7 @@ export class Sprite extends RefObject {
 
   set atlasRect(value: Rect) {
     const { _atlasRect } = this;
-    if (_atlasRect !== value) {
+    if (value && _atlasRect !== value) {
       _atlasRect.x = MathUtil.clamp(value.x, 0, 1);
       _atlasRect.y = MathUtil.clamp(value.y, 0, 1);
       _atlasRect.width = MathUtil.clamp(value.width, 0, 1.0 - _atlasRect.x);
@@ -62,7 +62,7 @@ export class Sprite extends RefObject {
 
   set pivot(value: Vector2) {
     const { _pivot } = this;
-    if (_pivot !== value) {
+    if (value && _pivot !== value) {
       _pivot.x = MathUtil.clamp(value.x, 0, 1);
       _pivot.y = MathUtil.clamp(value.y, 0, 1);
       this._setDirtyFlagTrue(DirtyFlag.positions);
@@ -78,7 +78,7 @@ export class Sprite extends RefObject {
 
   set rect(value: Rect) {
     const { _rect } = this;
-    if (_rect !== value) {
+    if (value && _rect !== value) {
       _rect.x = MathUtil.clamp(value.x, 0, 1);
       _rect.y = MathUtil.clamp(value.y, 0, 1);
       _rect.width = MathUtil.clamp(value.width, 0, 1.0 - _rect.x);
