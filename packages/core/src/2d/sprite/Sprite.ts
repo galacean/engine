@@ -17,10 +17,10 @@ export class Sprite extends RefObject {
   _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   private _texture: Texture2D = null;
-  private _atlasRect: Rect = new Rect();
-  private _pivot: Vector2 = new Vector2();
-  private _rect: Rect = new Rect();
-  private _pixelsPerUnit: number;
+  private _atlasRect: Rect = new Rect(0, 0, 1, 1);
+  private _rect: Rect = new Rect(0, 0, 1, 1);
+  private _pivot: Vector2 = new Vector2(0.5, 0.5);
+  private _pixelsPerUnit: number = 100;
   private _dirtyFlag: number = DirtyFlag.all;
 
   /**
@@ -53,7 +53,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Location of the sprite's center point in the rect on the original texture, specified in pixels.
+   * Location of the sprite's center point in the rect on the original texture, specified in normalized.
    */
   get pivot(): Vector2 {
     return this._pivot;
@@ -101,37 +101,33 @@ export class Sprite extends RefObject {
    * Constructor a sprite.
    * @param engine - Engine to which the sprite belongs
    * @param texture - Texture from which to obtain the sprite
-   * @param rect - Rectangular section of the texture to use for the sprite
-   * @param normalizedPivot - Sprite's normalized pivot point relative to its graphic rectangle
+   * @param rect - Rectangular section of the texture to use for the sprite, specified in normalized
+   * @param pivot - Sprite's pivot point relative to its graphic rectangle, specified in normalized
    * @param pixelsPerUnit - The number of pixels in the sprite that correspond to one unit in world space
    */
   constructor(
     engine: Engine,
-    texture: Texture2D,
+    texture: Texture2D = null,
     rect: Rect = null,
-    normalizedPivot: Vector2 = null,
+    pivot: Vector2 = null,
     pixelsPerUnit: number = 100
   ) {
     super(engine);
 
-    const rectangle = this.rect;
-    if (rect) {
-      rect.cloneTo(rectangle);
-      if (rectangle.x + rectangle.width > texture.width || rectangle.y + rectangle.height > texture.height) {
-        throw new Error("rect out of range");
-      }
-    } else {
-      rectangle.setValue(0, 0, texture.width, texture.height);
+    if (!texture) {
+      return;
     }
-
-    if (normalizedPivot) {
-      this.pivot.setValue(normalizedPivot.x * rectangle.width, normalizedPivot.y * rectangle.height);
-    } else {
-      this.pivot.setValue(0.5 * rectangle.width, 0.5 * rectangle.height);
-    }
-
-    rectangle.cloneTo(this.atlasRect);
     this.texture = texture;
+
+    if (rect) {
+      rect.cloneTo(this.rect);
+      rect.cloneTo(this.atlasRect);
+    }
+
+    if (pivot) {
+      pivot.cloneTo(this.pivot);
+    }
+
     this.pixelsPerUnit = pixelsPerUnit;
   }
 
@@ -148,18 +144,21 @@ export class Sprite extends RefObject {
    * Update mesh.
    */
   private _updateMesh(): void {
-    const { _pixelsPerUnit, _pivot, _positions, _uv, _triangles } = this;
-    const unitPivot = Sprite._tempVec2;
+    const { _pixelsPerUnit, _positions, _uv, _triangles } = this;
 
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
-      const { width, height } = this._rect;
+      const { width, height } = this.texture;
+      const { width: rWidth, height: rHeight } = this.rect;
+      const { x, y } = this.pivot;
+      const unitPivot = Sprite._tempVec2;
 
       const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-      // Get the pivot coordinate in 3D space.
-      Vector2.scale(_pivot, pixelsPerUnitReciprocal, unitPivot);
       // Get the width and height in 3D space.
-      const unitWidth = width * pixelsPerUnitReciprocal;
-      const unitHeight = height * pixelsPerUnitReciprocal;
+      const unitWidth = rWidth * width * pixelsPerUnitReciprocal;
+      const unitHeight = rHeight * height * pixelsPerUnitReciprocal;
+      // Get the pivot coordinate in 3D space.
+      unitPivot.x = x * unitWidth;
+      unitPivot.y = y * unitHeight;
 
       // Top-left.
       _positions[0].setValue(-unitPivot.x, unitHeight - unitPivot.y);
