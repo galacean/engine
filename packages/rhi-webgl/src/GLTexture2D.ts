@@ -32,6 +32,8 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
 
       /** @ts-ignore */
       texture2D._mipmap = false;
+      /** @ts-ignore */
+      texture2D._mipmapCount = texture2D._getMipmapCount();
     }
 
     this._formatDetail = GLTexture._getFormatDetail(format, this._gl, isWebGL2);
