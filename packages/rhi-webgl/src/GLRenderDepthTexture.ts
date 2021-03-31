@@ -31,6 +31,8 @@ export class GLRenderDepthTexture extends GLTexture implements IPlatformRenderDe
 
       /** @ts-ignore */
       texture._mipmap = false;
+      /** @ts-ignore */
+      texture._mipmapCount = texture._getMipmapCount();
     }
 
     this._formatDetail = GLTexture._getRenderBufferDepthFormatDetail(format, this._gl, isWebGL2);
