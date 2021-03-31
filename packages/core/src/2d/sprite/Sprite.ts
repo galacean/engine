@@ -1,4 +1,4 @@
-import { Rect, Vector2 } from "@oasis-engine/math";
+import { MathUtil, Rect, Vector2 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
@@ -44,11 +44,12 @@ export class Sprite extends RefObject {
   }
 
   set atlasRect(value: Rect) {
-    if (this._atlasRect !== value) {
-      this._atlasRect.x = value.x;
-      this._atlasRect.y = value.y;
-      this._atlasRect.width = value.width;
-      this._atlasRect.height = value.width;
+    const { _atlasRect } = this;
+    if (_atlasRect !== value) {
+      _atlasRect.x = MathUtil.clamp(value.x, 0, 1);
+      _atlasRect.y = MathUtil.clamp(value.y, 0, 1);
+      _atlasRect.width = MathUtil.clamp(value.width, 0, 1.0 - _atlasRect.x);
+      _atlasRect.height = MathUtil.clamp(value.height, 0, 1.0 - _atlasRect.y);
     }
   }
 
@@ -60,8 +61,10 @@ export class Sprite extends RefObject {
   }
 
   set pivot(value: Vector2) {
-    if (this._pivot !== value) {
-      value.cloneTo(this._pivot);
+    const { _pivot } = this;
+    if (_pivot !== value) {
+      _pivot.x = MathUtil.clamp(value.x, 0, 1);
+      _pivot.y = MathUtil.clamp(value.y, 0, 1);
       this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
@@ -74,11 +77,12 @@ export class Sprite extends RefObject {
   }
 
   set rect(value: Rect) {
-    if (this._rect !== value) {
-      this._rect.x = value.x;
-      this._rect.y = value.y;
-      this._rect.width = value.width;
-      this._rect.height = value.width;
+    const { _rect } = this;
+    if (_rect !== value) {
+      _rect.x = MathUtil.clamp(value.x, 0, 1);
+      _rect.y = MathUtil.clamp(value.y, 0, 1);
+      _rect.width = MathUtil.clamp(value.width, 0, 1.0 - _rect.x);
+      _rect.height = MathUtil.clamp(value.height, 0, 1.0 - _rect.y);
       this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
@@ -120,12 +124,12 @@ export class Sprite extends RefObject {
     this.texture = texture;
 
     if (rect) {
-      rect.cloneTo(this.rect);
-      rect.cloneTo(this.atlasRect);
+      this.rect = rect;
+      this.atlasRect = rect;
     }
 
     if (pivot) {
-      pivot.cloneTo(this.pivot);
+      this.pivot = pivot;
     }
 
     this.pixelsPerUnit = pixelsPerUnit;
@@ -144,9 +148,8 @@ export class Sprite extends RefObject {
    * Update mesh.
    */
   private _updateMesh(): void {
-    const { _pixelsPerUnit, _positions, _uv, _triangles } = this;
-
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
+      const { _pixelsPerUnit, _positions } = this;
       const { width, height } = this.texture;
       const { width: rWidth, height: rHeight } = this.rect;
       const { x, y } = this.pivot;
@@ -171,17 +174,23 @@ export class Sprite extends RefObject {
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
+      const { _uv } = this;
+      const { x, y, width, height } = this.rect;
+      const rightX = x + width;
+      const bottomY = y + height;
+
       // Top-left.
-      _uv[0].setValue(0, 0);
+      _uv[0].setValue(x, y);
       // Top-right.
-      _uv[1].setValue(1, 0);
+      _uv[1].setValue(rightX, y);
       // Bottom-right.
-      _uv[2].setValue(1, 1);
+      _uv[2].setValue(rightX, bottomY);
       // Bottom-left.
-      _uv[3].setValue(0, 1);
+      _uv[3].setValue(x, bottomY);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
+      const { _triangles } = this;
       _triangles[0] = 0;
       _triangles[1] = 2;
       _triangles[2] = 1;
