@@ -102,6 +102,10 @@ export class SpriteRenderer extends Renderer {
     if (!sprite) {
       return;
     }
+    const { texture } = sprite;
+    if (!texture) {
+      return;
+    }
 
     const { _positions } = this;
     const { transform } = this.entity;
@@ -157,7 +161,7 @@ export class SpriteRenderer extends Renderer {
       this._cacheFlipY = flipY;
     }
 
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, sprite.texture);
+    this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
     const material = this.getMaterial() || this._getDefaultMaterial();
 
     const spriteElement = SpriteElement.getFromPool();
@@ -191,7 +195,7 @@ export class SpriteRenderer extends Renderer {
       const material = (SpriteRenderer._defaultMaterial = new Material(this.scene.engine, Shader.find("Sprite")));
       const target = material.renderState.blendState.targetBlendState;
       target.enabled = true;
-      target.sourceColorBlendFactor  = BlendFactor.SourceAlpha;
+      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
       target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
       target.sourceAlphaBlendFactor = BlendFactor.One;
       target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;

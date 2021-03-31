@@ -32,6 +32,8 @@ export class GLTextureCubeMap extends GLTexture implements IPlatformTextureCubeM
 
       /** @ts-ignore */
       textureCube._mipmap = false;
+      /** @ts-ignore */
+      textureCube._mipmapCount = textureCube._getMipmapCount();
     }
 
     this._formatDetail = GLTexture._getFormatDetail(format, this._gl, isWebGL2);

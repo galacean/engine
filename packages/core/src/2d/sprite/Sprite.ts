@@ -1,4 +1,4 @@
-import { Rect, Vector2 } from "@oasis-engine/math";
+import { MathUtil, Rect, Vector2 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
@@ -17,9 +17,9 @@ export class Sprite extends RefObject {
   _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   private _texture: Texture2D = null;
-  private _atlasRect: Rect = new Rect();
-  private _pivot: Vector2 = new Vector2();
-  private _rect: Rect = new Rect();
+  private _atlasRect: Rect = new Rect(0, 0, 1, 1);
+  private _rect: Rect = new Rect(0, 0, 1, 1);
+  private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _pixelsPerUnit: number;
   private _dirtyFlag: number = DirtyFlag.all;
 
@@ -44,24 +44,27 @@ export class Sprite extends RefObject {
   }
 
   set atlasRect(value: Rect) {
-    if (this._atlasRect !== value) {
-      this._atlasRect.x = value.x;
-      this._atlasRect.y = value.y;
-      this._atlasRect.width = value.width;
-      this._atlasRect.height = value.width;
+    const { _atlasRect } = this;
+    if (value && _atlasRect !== value) {
+      _atlasRect.x = MathUtil.clamp(value.x, 0, 1);
+      _atlasRect.y = MathUtil.clamp(value.y, 0, 1);
+      _atlasRect.width = MathUtil.clamp(value.width, 0, 1.0 - _atlasRect.x);
+      _atlasRect.height = MathUtil.clamp(value.height, 0, 1.0 - _atlasRect.y);
     }
   }
 
   /**
-   * Location of the sprite's center point in the rect on the original texture, specified in pixels.
+   * Location of the sprite's center point in the rect on the original texture, specified in normalized.
    */
   get pivot(): Vector2 {
     return this._pivot;
   }
 
   set pivot(value: Vector2) {
-    if (this._pivot !== value) {
-      value.cloneTo(this._pivot);
+    const { _pivot } = this;
+    if (value && _pivot !== value) {
+      _pivot.x = MathUtil.clamp(value.x, 0, 1);
+      _pivot.y = MathUtil.clamp(value.y, 0, 1);
       this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
@@ -74,11 +77,12 @@ export class Sprite extends RefObject {
   }
 
   set rect(value: Rect) {
-    if (this._rect !== value) {
-      this._rect.x = value.x;
-      this._rect.y = value.y;
-      this._rect.width = value.width;
-      this._rect.height = value.width;
+    const { _rect } = this;
+    if (value && _rect !== value) {
+      _rect.x = MathUtil.clamp(value.x, 0, 1);
+      _rect.y = MathUtil.clamp(value.y, 0, 1);
+      _rect.width = MathUtil.clamp(value.width, 0, 1.0 - _rect.x);
+      _rect.height = MathUtil.clamp(value.height, 0, 1.0 - _rect.y);
       this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
@@ -101,37 +105,32 @@ export class Sprite extends RefObject {
    * Constructor a sprite.
    * @param engine - Engine to which the sprite belongs
    * @param texture - Texture from which to obtain the sprite
-   * @param rect - Rectangular section of the texture to use for the sprite
-   * @param normalizedPivot - Sprite's normalized pivot point relative to its graphic rectangle
+   * @param rect - Rectangular section of the texture to use for the sprite, specified in normalized
+   * @param pivot - Sprite's pivot point relative to its graphic rectangle, specified in normalized
    * @param pixelsPerUnit - The number of pixels in the sprite that correspond to one unit in world space
    */
   constructor(
     engine: Engine,
-    texture: Texture2D,
+    texture: Texture2D = null,
     rect: Rect = null,
-    normalizedPivot: Vector2 = null,
+    pivot: Vector2 = null,
     pixelsPerUnit: number = 100
   ) {
     super(engine);
 
-    const rectangle = this.rect;
+    if (texture) {
+      this.texture = texture;
+    }
+
     if (rect) {
-      rect.cloneTo(rectangle);
-      if (rectangle.x + rectangle.width > texture.width || rectangle.y + rectangle.height > texture.height) {
-        throw new Error("rect out of range");
-      }
-    } else {
-      rectangle.setValue(0, 0, texture.width, texture.height);
+      this.rect = rect;
+      this.atlasRect = rect;
     }
 
-    if (normalizedPivot) {
-      this.pivot.setValue(normalizedPivot.x * rectangle.width, normalizedPivot.y * rectangle.height);
-    } else {
-      this.pivot.setValue(0.5 * rectangle.width, 0.5 * rectangle.height);
+    if (pivot) {
+      this.pivot = pivot;
     }
 
-    rectangle.cloneTo(this.atlasRect);
-    this.texture = texture;
     this.pixelsPerUnit = pixelsPerUnit;
   }
 
@@ -148,18 +147,20 @@ export class Sprite extends RefObject {
    * Update mesh.
    */
   private _updateMesh(): void {
-    const { _pixelsPerUnit, _pivot, _positions, _uv, _triangles } = this;
-    const unitPivot = Sprite._tempVec2;
-
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
-      const { width, height } = this._rect;
+      const { _pixelsPerUnit, _positions } = this;
+      const { width, height } = this.texture;
+      const { width: rWidth, height: rHeight } = this.rect;
+      const { x, y } = this.pivot;
+      const unitPivot = Sprite._tempVec2;
 
       const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-      // Get the pivot coordinate in 3D space.
-      Vector2.scale(_pivot, pixelsPerUnitReciprocal, unitPivot);
       // Get the width and height in 3D space.
-      const unitWidth = width * pixelsPerUnitReciprocal;
-      const unitHeight = height * pixelsPerUnitReciprocal;
+      const unitWidth = rWidth * width * pixelsPerUnitReciprocal;
+      const unitHeight = rHeight * height * pixelsPerUnitReciprocal;
+      // Get the pivot coordinate in 3D space.
+      unitPivot.x = x * unitWidth;
+      unitPivot.y = y * unitHeight;
 
       // Top-left.
       _positions[0].setValue(-unitPivot.x, unitHeight - unitPivot.y);
@@ -172,17 +173,23 @@ export class Sprite extends RefObject {
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
+      const { _uv } = this;
+      const { x, y, width, height } = this.rect;
+      const rightX = x + width;
+      const bottomY = y + height;
+
       // Top-left.
-      _uv[0].setValue(0, 0);
+      _uv[0].setValue(x, y);
       // Top-right.
-      _uv[1].setValue(1, 0);
+      _uv[1].setValue(rightX, y);
       // Bottom-right.
-      _uv[2].setValue(1, 1);
+      _uv[2].setValue(rightX, bottomY);
       // Bottom-left.
-      _uv[3].setValue(0, 1);
+      _uv[3].setValue(x, bottomY);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
+      const { _triangles } = this;
       _triangles[0] = 0;
       _triangles[1] = 2;
       _triangles[2] = 1;
