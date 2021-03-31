@@ -1,5 +1,5 @@
 import { Color } from "@oasis-engine/math";
-import { HardwareRenderer } from "../../HardwareRenderer";
+import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
 import { BlendFactor } from "../enums/BlendFactor";
 import { BlendOperation } from "../enums/BlendOperation";
 import { ColorWriteMask } from "../enums/ColorWriteMask";
@@ -67,11 +67,11 @@ export class BlendState {
    * @internal
    * Apply the current blend state by comparing with the last blend state.
    */
-  _apply(hardwareRenderer: HardwareRenderer, lastRenderState: RenderState): void {
+  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState): void {
     this._platformApply(hardwareRenderer, lastRenderState.blendState);
   }
 
-  private _platformApply(rhi: HardwareRenderer, lastState: BlendState): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: BlendState): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const lastTargetBlendState = lastState.targetBlendState;
 
