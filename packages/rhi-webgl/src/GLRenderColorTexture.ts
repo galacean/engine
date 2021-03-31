@@ -38,6 +38,8 @@ export class GLRenderColorTexture extends GLTexture implements IPlatformRenderCo
 
       /** @ts-ignore */
       texture._mipmap = false;
+      /** @ts-ignore */
+      texture._mipmapCount = texture._getMipmapCount();
     }
 
     this._formatDetail = GLTexture._getRenderBufferColorFormatDetail(format, this._gl, isWebGL2);
