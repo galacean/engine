@@ -115,26 +115,21 @@ export class SpriteRenderer extends Renderer {
       return;
     }
 
-    const { _positions } = this;
-    const { transform } = this.entity;
+    const { _positions, entity } = this;
+    const { transform } = entity;
 
     // Update sprite data.
     const localDirty = sprite._updateMeshData();
 
     if (this._isWorldMatrixDirty.flag || localDirty || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
       const localPositions = sprite._positions;
-      const localPosZ = transform.position.z;
       const localVertexPos = SpriteRenderer._tempVec3;
-      const worldMatrix = transform.worldMatrix;
+      const worldMatrix = entity.transform.worldMatrix;
       const { flipX, flipY } = this;
 
       for (let i = 0, n = _positions.length; i < n; i++) {
         const curVertexPos = localPositions[i];
-        localVertexPos.setValue(
-          flipX ? -curVertexPos.x : curVertexPos.x,
-          flipY ? -curVertexPos.y : curVertexPos.y,
-          localPosZ
-        );
+        localVertexPos.setValue(flipX ? -curVertexPos.x : curVertexPos.x, flipY ? -curVertexPos.y : curVertexPos.y, 0);
         Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
       }
 
@@ -157,7 +152,6 @@ export class SpriteRenderer extends Renderer {
           if (flipXChange) {
             curPos.x = x * 2 - curPos.x;
           }
-
           if (flipYChange) {
             curPos.y = y * 2 - curPos.y;
           }
