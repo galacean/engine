@@ -51,7 +51,7 @@ export class PBRSpecularMaterialResource extends SchemaResource {
           };
 
           const material = this._resource;
-          getAllGetters(this._resource).forEach((attr) => {
+          Object.keys(this._resource).forEach((attr) => {
             if (!(material[attr] instanceof Texture)) return;
             const textureResource = new TextureResource(this.resourceManager, material[attr]);
             this.attachedResources.push(textureResource);
