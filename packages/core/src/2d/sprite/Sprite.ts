@@ -70,7 +70,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Location of the sprite on the original texture, specified in pixels.
+   * Location of the sprite on the original texture, specified in normalized.
    */
   get rect(): Rect {
     return this._rect;
@@ -83,7 +83,7 @@ export class Sprite extends RefObject {
       _rect.y = MathUtil.clamp(value.y, 0, 1);
       _rect.width = MathUtil.clamp(value.width, 0, 1.0 - _rect.x);
       _rect.height = MathUtil.clamp(value.height, 0, 1.0 - _rect.y);
-      this._setDirtyFlagTrue(DirtyFlag.positions);
+      this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
     }
   }
 
@@ -165,7 +165,7 @@ export class Sprite extends RefObject {
       // Top-left.
       _positions[0].setValue(-unitPivot.x, unitHeight - unitPivot.y);
       // Top-right.
-      _positions[1].setValue(unitWidth - unitPivot.x, unitWidth - unitPivot.y);
+      _positions[1].setValue(unitWidth - unitPivot.x, unitHeight - unitPivot.y);
       // Bottom-right.
       _positions[2].setValue(unitWidth - unitPivot.x, -unitPivot.y);
       // Bottom-left.
