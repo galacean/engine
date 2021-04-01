@@ -176,16 +176,16 @@ export class Sprite extends RefObject {
       const { _uv } = this;
       const { x, y, width, height } = this.rect;
       const rightX = x + width;
-      const topY = y + height;
+      const bottomY = y + height;
 
       // Top-left.
-      _uv[0].setValue(x, 1 - topY);
+      _uv[0].setValue(x, y);
       // Top-right.
-      _uv[1].setValue(rightX, 1 - topY);
+      _uv[1].setValue(rightX, y);
       // Bottom-right.
-      _uv[2].setValue(rightX, 1 - y);
+      _uv[2].setValue(rightX, bottomY);
       // Bottom-left.
-      _uv[3].setValue(x, 1 - y);
+      _uv[3].setValue(x, bottomY);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
