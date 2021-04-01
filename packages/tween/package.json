@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/tween",
-  "version": "0.3.0-alpha.0",
+  "version": "0.3.0-beta.0",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -14,6 +14,6 @@
   },
   "types": "types/index.d.ts",
   "dependencies": {
-    "oasis-engine": "0.3.0-alpha.0"
+    "oasis-engine": "0.3.0-beta.0"
   }
 }
