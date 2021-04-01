@@ -13,7 +13,6 @@ uniform sampler2D u_normalTexture;
 #ifdef HAS_EMISSIVEMAP
 
 uniform sampler2D u_emissiveSampler;
-uniform vec3 u_emissiveFactor;
 
 #endif
 

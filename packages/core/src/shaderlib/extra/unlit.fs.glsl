@@ -2,7 +2,7 @@
 #include <fog_share>
 
 uniform vec4 u_baseColor;
-uniform vec4 u_alphaCutoff;
+uniform float u_alphaCutoff;
 
 #ifdef O3_BASE_TEXTURE
     uniform sampler2D u_baseTexture;
