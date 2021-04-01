@@ -9,6 +9,7 @@ const attrs = [
   "glossinessFactor",
   "specularGlossinessTexture",
 
+  "tillingOffset",
   "baseColor",
   "normalIntensity",
   "emissiveColor",
@@ -16,8 +17,8 @@ const attrs = [
   "envMapIntensity",
   "refractionRatio",
   "refractionDepth",
-  // "perturbationUOffset",
-  // "perturbationVOffset",
+  "perturbationUOffset",
+  "perturbationVOffset",
   "baseTexture",
   "opacityTexture",
   "normalTexture",
