@@ -115,8 +115,8 @@ export class SpriteRenderer extends Renderer {
       return;
     }
 
-    const { _positions, entity } = this;
-    const { transform } = entity;
+    const { _positions } = this;
+    const { transform } = this.entity;
 
     // Update sprite data.
     const localDirty = sprite._updateMeshData();
@@ -124,7 +124,7 @@ export class SpriteRenderer extends Renderer {
     if (this._isWorldMatrixDirty.flag || localDirty || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
       const localPositions = sprite._positions;
       const localVertexPos = SpriteRenderer._tempVec3;
-      const worldMatrix = entity.transform.worldMatrix;
+      const worldMatrix = transform.worldMatrix;
       const { flipX, flipY } = this;
 
       for (let i = 0, n = _positions.length; i < n; i++) {
