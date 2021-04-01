@@ -5,6 +5,7 @@ uniform float u_metal;
 uniform float u_roughness;
 uniform vec3 u_specularFactor;
 uniform float u_glossinessFactor;
+uniform vec3 u_emissiveFactor;
 
 uniform float u_envMapIntensity;
 uniform float u_refractionRatio;
