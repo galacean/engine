@@ -112,21 +112,23 @@ export class RenderQueue {
           program._uploadRenderCount = renderCount;
         } else {
           if (program._uploadCamera !== camera) {
-            program.uploadUniforms(program.cameraUniformBlock, cameraData);
+            program.uploadAll(program.cameraUniformBlock, cameraData);
             program._uploadCamera = camera;
-          }
-          if (program._uploadRenderer !== renderer) {
-            program.uploadUniforms(program.rendererUniformBlock, rendererData);
-            program._uploadRenderer = renderer;
-          }
-          if (program._uploadMaterial !== material) {
-            program.uploadUniforms(program.materialUniformBlock, materialData);
-            program._uploadMaterial = material;
-          }
-          if (switchProgram) {
-            program.uploadTextures(program.sceneUniformBlock, sceneData);
+          } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
+          }
+
+          if (program._uploadRenderer !== renderer) {
+            program.uploadAll(program.rendererUniformBlock, rendererData);
+            program._uploadRenderer = renderer;
+          } else if (switchProgram) {
             program.uploadTextures(program.rendererUniformBlock, rendererData);
+          }
+
+          if (program._uploadMaterial !== material) {
+            program.uploadAll(program.materialUniformBlock, materialData);
+            program._uploadMaterial = material;
+          } else if (switchProgram) {
             program.uploadTextures(program.materialUniformBlock, materialData);
           }
         }
