@@ -1,10 +1,10 @@
-import { Loader } from "../src/asset/Loader";
-import { LoadItem } from "../src/asset/LoadItem";
-import { resourceLoader, ResourceManager } from "../src/asset/ResourceManager";
-import { AssetType } from "../src/asset/AssetType";
-import { Engine } from "../src";
-import { AssetPromise } from "../src/asset/AssetPromise";
-import { RefObject } from "../src/asset/RefObject";
+import { Loader } from "../../src/asset/Loader";
+import { LoadItem } from "../../src/asset/LoadItem";
+import { resourceLoader, ResourceManager } from "../../src/asset/ResourceManager";
+import { AssetType } from "../../src/asset/AssetType";
+import { Engine } from "../../src";
+import { AssetPromise } from "../../src/asset/AssetPromise";
+import { RefObject } from "../../src/asset/RefObject";
 
 @resourceLoader(AssetType.Text, ["txt"], false)
 class TestLoader extends Loader<string> {

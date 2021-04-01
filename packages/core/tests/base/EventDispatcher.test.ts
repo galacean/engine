@@ -1,4 +1,4 @@
-import { EventDispatcher } from "../src/base";
+import { EventDispatcher } from "../../src/base";
 
 function getEventNames(e: EventDispatcher) {
   // @ts-ignore
