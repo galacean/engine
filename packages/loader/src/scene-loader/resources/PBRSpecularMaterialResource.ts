@@ -9,7 +9,7 @@ const attrs = [
   "glossinessFactor",
   "specularGlossinessTexture",
 
-  "tillingOffset",
+  "tilingOffset",
   "baseColor",
   "normalIntensity",
   "emissiveColor",

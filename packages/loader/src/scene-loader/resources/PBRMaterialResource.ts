@@ -11,7 +11,7 @@ const attrs = [
   "roughnessTexture",
   "metallicRoughnessTexture",
 
-  "tillingOffset",
+  "tilingOffset",
   "baseColor",
   "normalIntensity",
   "emissiveColor",
