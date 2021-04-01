@@ -70,7 +70,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Location of the sprite on the original texture, specified in pixels.
+   * Location of the sprite on the original texture, specified in normalized.
    */
   get rect(): Rect {
     return this._rect;
