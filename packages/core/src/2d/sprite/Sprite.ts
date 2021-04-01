@@ -176,12 +176,12 @@ export class Sprite extends RefObject {
       const { _uv } = this;
       const { x, y, width, height } = this.rect;
       const rightX = x + width;
-      const bottomY = y + height;
+      const topY = y + height;
 
       // Top-left.
-      _uv[0].setValue(x, 1 - bottomY);
+      _uv[0].setValue(x, 1 - topY);
       // Top-right.
-      _uv[1].setValue(rightX, 1 - bottomY);
+      _uv[1].setValue(rightX, 1 - topY);
       // Bottom-right.
       _uv[2].setValue(rightX, 1 - y);
       // Bottom-left.
