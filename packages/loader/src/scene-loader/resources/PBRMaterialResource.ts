@@ -10,6 +10,7 @@ const attrs = [
   "metallicTexture",
   "roughnessTexture",
   "metallicRoughnessTexture",
+  
   "baseColor",
   "normalIntensity",
   "emissiveColor",
@@ -29,7 +30,13 @@ const attrs = [
   "srgb",
   "srgbFast",
   "gamma",
-  "getOpacityFromRGB"
+  "getOpacityFromRGB",
+
+  // base material
+  "isTransparent",
+  "alphaCutoff",
+  "renderFace",
+  "blendMode"
 ];
 export class PBRMaterialResource extends SchemaResource {
   private configProps;
