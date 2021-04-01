@@ -12,10 +12,9 @@ export class SpriteResource extends SchemaResource {
       const assetObj = new Sprite(resourceManager.engine);
       this.configProps = assetConfig.props;
       const { configProps } = this;
-      const { pivotType } = configProps;
+      const { pivotType, pivot } = configProps;
 
-      if (typeof pivotType !== undefined && pivotType !== SpritePivotType.Custom) {
-        const { pivot } = configProps;
+      if (typeof pivot !== "undefined" && typeof pivotType !== "undefined" && pivotType !== SpritePivotType.Custom) {
         switch (pivotType) {
           case SpritePivotType.Center:
             pivot.x = 0.5;

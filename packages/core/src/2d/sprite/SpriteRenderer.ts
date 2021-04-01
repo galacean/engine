@@ -1,6 +1,6 @@
 import { Color, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
-import { ignoreClone } from "../../clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
 import { Material, RenderQueueType } from "../../material";
 import { Renderer } from "../../Renderer";
@@ -19,13 +19,21 @@ export class SpriteRenderer extends Renderer {
   private static _tempVec3: Vector3 = new Vector3();
   private static _defaultMaterial: Material = null;
 
+  @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  @assignmentClone
   private _sprite: Sprite = null;
+  @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
+  @assignmentClone
   private _flipX: boolean = false;
+  @assignmentClone
   private _flipY: boolean = false;
+  @assignmentClone
   private _cacheFlipX: boolean = false;
+  @assignmentClone
   private _cacheFlipY: boolean = false;
+  @ignoreClone
   private _dirtyFlag: number = DirtyFlag.All;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
