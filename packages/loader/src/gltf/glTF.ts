@@ -440,6 +440,7 @@ function parsePrimitiveVertex(
   // load vertices
   let i = 0;
   const vertexElements: VertexElement[] = [];
+  let vertexCount: number;
   for (const attributeSemantic in gltfPrimitive.attributes) {
     const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
     const accessor = gltf.accessors[accessorIdx];
@@ -455,7 +456,7 @@ function parsePrimitiveVertex(
     // compute bounds
     if (vertexELement.semantic == "POSITION") {
       const position = new Vector3();
-      const vertexCount = bufferData.length / 3;
+      vertexCount = bufferData.length / 3;
       const { min, max } = mesh.bounds;
       for (let i = 0; i < vertexCount; i++) {
         const offset = i * 3;
@@ -468,19 +469,23 @@ function parsePrimitiveVertex(
   mesh.setVertexElements(vertexElements);
 
   // load indices
-  const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-  const indexData = getIndexBufferData();
+  const indices = gltfPrimitive.indices;
+  if (indices !== undefined) {
+    const indexAccessor = gltf.accessors[gltfPrimitive.indices];
+    const indexData = getIndexBufferData();
 
-  const indexCount = indexAccessor.count;
-  const indexFormat = getIndexFormat(indexAccessor.componentType);
-  const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
-  const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indexCount * indexByteSize, BufferUsage.Static);
+    const indexCount = indexAccessor.count;
+    const indexFormat = getIndexFormat(indexAccessor.componentType);
+    const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
+    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indexCount * indexByteSize, BufferUsage.Static);
 
-  indexBuffer.setData(indexData);
-  mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
-  mesh.addSubMesh(0, indexCount);
-  // primitiveGroup.start = 0;
-  // primitiveGroup.count = indexCount;
+    indexBuffer.setData(indexData);
+    mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
+    mesh.addSubMesh(0, indexCount);
+  } else {
+    primitiveGroup.start = 0;
+    primitiveGroup.count = vertexCount;
+  }
   return Promise.resolve(mesh);
 }
 

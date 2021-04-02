@@ -113,6 +113,11 @@ export class WebGLRenderer implements IHardwareRenderer {
         gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", option);
       }
       this._isWebGL2 = true;
+
+      // Prevent weird browsers to lie (such as safari!)
+      if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
+        this._isWebGL2 = false;
+      }
     }
 
     if (!gl) {
@@ -230,7 +235,7 @@ export class WebGLRenderer implements IHardwareRenderer {
       stencilState.writeMask = 0xff;
     }
 
-    gl.clear(clearFlag);
+    clearFlag && gl.clear(clearFlag);
   }
 
   drawPrimitive(primitive: Mesh, subPrimitive: SubMesh, shaderProgram: any) {

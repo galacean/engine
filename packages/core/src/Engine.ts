@@ -26,6 +26,8 @@ export class Engine extends EventDispatcher {
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
+  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
   _renderCount: number = 0;
@@ -222,8 +224,10 @@ export class Engine extends EventDispatcher {
       this._animate = null;
 
       this._sceneManager._activeScene.destroy();
-      this._sceneManager = null;
       this._resourceManager.gc();
+      // If engine destroy, callComponentDestory() maybe will not call anymore.
+      this._componentsManager.callComponentDestory();
+      this._sceneManager = null;
       this._resourceManager = null;
 
       this._canvas = null;
@@ -233,6 +237,7 @@ export class Engine extends EventDispatcher {
 
       // todo: delete
       (engineFeatureManager as any)._objects = [];
+      this.removeAllEventListeners();
     }
   }
 
