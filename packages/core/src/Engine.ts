@@ -7,6 +7,7 @@ import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
 import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { ClassPool } from "./RenderPipeline/ClassPool";
+import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteElement } from "./RenderPipeline/SpriteElement";
 import { Scene } from "./Scene";
@@ -28,6 +29,7 @@ export class Engine extends EventDispatcher {
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
   _renderCount: number = 0;

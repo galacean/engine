@@ -27,16 +27,7 @@ export class PrimitiveMesh {
     const count = segments + 1;
     const vertexCount = count * count;
     const rectangleCount = segments * segments;
-    let indices: Uint16Array | Uint32Array = null;
-    if (vertexCount > 65535) {
-      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
-        indices = new Uint32Array(rectangleCount * 6);
-      } else {
-        throw Error("The vertex count is over limit.");
-      }
-    } else {
-      indices = new Uint16Array(rectangleCount * 6);
-    }
+    const indices = PrimitiveMesh._generateIndices(engine, vertexCount, rectangleCount * 6);
     const thetaRange = Math.PI;
     const alphaRange = thetaRange * 2;
     const countReciprocal = 1.0 / count;
@@ -252,16 +243,7 @@ export class PrimitiveMesh {
     const gridHeight = height / verticalSegments;
     const vertexCount = horizontalCount * verticalCount;
     const rectangleCount = verticalSegments * horizontalSegments;
-    let indices: Uint16Array | Uint32Array = null;
-    if (vertexCount > 65535) {
-      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
-        indices = new Uint32Array(rectangleCount * 6);
-      } else {
-        throw Error("The vertex count is over limit.");
-      }
-    } else {
-      indices = new Uint16Array(rectangleCount * 6);
-    }
+    const indices = PrimitiveMesh._generateIndices(engine, vertexCount, rectangleCount * 6);
     const horizontalCountReciprocal = 1.0 / horizontalCount;
     const horizontalSegmentsReciprocal = 1.0 / horizontalSegments;
     const verticalSegmentsReciprocal = 1.0 / verticalSegments;
@@ -340,16 +322,11 @@ export class PrimitiveMesh {
     const torsoRectangleCount = radialSegments * heightSegments;
     const capTriangleCount = radialSegments * 2;
     const totalVertexCount = torsoVertexCount + 2 + capTriangleCount;
-    let indices: Uint16Array | Uint32Array = null;
-    if (totalVertexCount > 65535) {
-      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
-        indices = new Uint32Array(torsoRectangleCount * 6 + capTriangleCount * 3);
-      } else {
-        throw Error("The vertex count is over limit.");
-      }
-    } else {
-      indices = new Uint16Array(torsoRectangleCount * 6 + capTriangleCount * 3);
-    }
+    const indices = PrimitiveMesh._generateIndices(
+      engine,
+      totalVertexCount,
+      torsoRectangleCount * 6 + capTriangleCount * 3
+    );
     const radialCountReciprocal = 1.0 / radialCount;
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
@@ -502,16 +479,7 @@ export class PrimitiveMesh {
 
     const vertexCount = (radialSegments + 1) * (tubularSegments + 1);
     const rectangleCount = radialSegments * tubularSegments;
-    let indices: Uint16Array | Uint32Array = null;
-    if (vertexCount > 65535) {
-      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
-        indices = new Uint32Array(rectangleCount * 6);
-      } else {
-        throw Error("The vertex count is over limit.");
-      }
-    } else {
-      indices = new Uint16Array(rectangleCount * 6);
-    }
+    const indices = PrimitiveMesh._generateIndices(engine, vertexCount, rectangleCount * 6);
 
     const positions: Vector3[] = new Array(vertexCount);
     const normals: Vector3[] = new Array(vertexCount);
@@ -601,16 +569,11 @@ export class PrimitiveMesh {
     const torsoVertexCount = radialCount * verticalCount;
     const torsoRectangleCount = radialSegments * heightSegments;
     const totalVertexCount = torsoVertexCount + 1 + radialSegments;
-    let indices: Uint16Array | Uint32Array = null;
-    if (totalVertexCount > 65535) {
-      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
-        indices = new Uint32Array(torsoRectangleCount * 6 + radialSegments * 3);
-      } else {
-        throw Error("The vertex count is over limit.");
-      }
-    } else {
-      indices = new Uint16Array(torsoRectangleCount * 6 + radialSegments * 3);
-    }
+    const indices = PrimitiveMesh._generateIndices(
+      engine,
+      totalVertexCount,
+      torsoRectangleCount * 6 + radialSegments * 3
+    );
     const radialCountReciprocal = 1.0 / radialCount;
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
@@ -722,5 +685,19 @@ export class PrimitiveMesh {
 
     mesh.uploadData(noLongerAccessible);
     mesh.addSubMesh(0, indices.length);
+  }
+
+  private static _generateIndices(engine: Engine, vertexCount: number, indexCount: number): Uint16Array | Uint32Array {
+    let indices: Uint16Array | Uint32Array = null;
+    if (vertexCount > 65535) {
+      if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
+        indices = new Uint32Array(indexCount);
+      } else {
+        throw Error("The vertex count is over limit.");
+      }
+    } else {
+      indices = new Uint16Array(indexCount);
+    }
+    return indices;
   }
 }
