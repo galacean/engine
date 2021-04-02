@@ -1,5 +1,6 @@
+import { GLCapabilityType } from "@oasis-engine/core";
+import { GLCompressedTextureInternalFormat } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
-import { GLCapabilityType, GLCompressedTextureInternalFormat } from "@oasis-engine/core";
 
 type extensionKey = string;
 
@@ -13,6 +14,17 @@ export class GLCapability {
 
   _rhi: WebGLRenderer;
   capabilityList: Map<GLCapabilityType, boolean>;
+
+  /**
+   * Whether can use more joints.
+   * @readonly
+   */
+  get canIUseMoreJoints() {
+    return (
+      this.canIUse(GLCapabilityType.textureFloat) &&
+      this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0
+    );
+  }
 
   get maxDrawBuffers() {
     if (!this._maxDrawBuffers) {
@@ -57,21 +69,21 @@ export class GLCapability {
     this._rhi = rhi;
     this.capabilityList = new Map();
 
-    this.init();
-    this.compatibleAllInterface();
+    this._init();
+    this._compatibleAllInterface();
   }
 
   /**
    * Check device capabilities.
    */
-  public canIUse(capabilityType: GLCapabilityType): boolean {
+  canIUse(capabilityType: GLCapabilityType): boolean {
     return this.capabilityList.get(capabilityType);
   }
 
   /**
    * Check if can use some compressed texture format.
    */
-  public canIUseCompressedTextureInternalFormat(internalType: GLCompressedTextureInternalFormat): boolean {
+  canIUseCompressedTextureInternalFormat(internalType: GLCompressedTextureInternalFormat): boolean {
     const {
       // astc
       RGBA_ASTC_4X4_KHR,
@@ -91,7 +103,7 @@ export class GLCapability {
       RGBA_S3TC_DXT5_EXT
     } = GLCompressedTextureInternalFormat;
     if (
-      (internalType >= RGBA_ASTC_4X4_KHR && internalType <= RGBA_ASTC_12X12_KHR) ||
+      (internalType >= RGBA_ASTC_4X4_KHR && RGBA_ASTC_12X12_KHR <= RGBA_ASTC_12X12_KHR) ||
       (internalType >= SRGB8_ALPHA8_ASTC_4X4_KHR && internalType <= SRGB8_ALPHA8_ASTC_12X12_KHR)
     ) {
       return this.canIUse(GLCapabilityType.astc);
@@ -108,19 +120,9 @@ export class GLCapability {
   }
 
   /**
-   * If can use more joints.
-   */
-  public get canIUseMoreJoints() {
-    return (
-      this.canIUse(GLCapabilityType.textureFloat) &&
-      this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0
-    );
-  }
-
-  /**
    *  Init capabilities.
    */
-  private init() {
+  private _init() {
     const cap = this.capabilityList;
     const { isWebGL2 } = this.rhi;
     const requireExtension = this.rhi.requireExtension.bind(this.rhi);
@@ -134,7 +136,6 @@ export class GLCapability {
       instancedArrays,
       multipleSample,
       drawBuffers,
-      blendMinMax,
 
       astc,
       astc_webkit,
@@ -177,7 +178,6 @@ export class GLCapability {
       (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(colorBufferHalfFloat)
     );
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
-    cap.set(blendMinMax, isWebGL2 || !!requireExtension(blendMinMax));
 
     cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
@@ -194,7 +194,7 @@ export class GLCapability {
    * })
    * gl.UNSIGNED_INT_24_8 = ext.UNSIGNED_INT_24_8_WEBGL
    */
-  private compatibleInterface(capabilityType: GLCapabilityType, flatItem: { [glKey: string]: extensionKey }) {
+  private _compatibleInterface(capabilityType: GLCapabilityType, flatItem: { [glKey: string]: extensionKey }) {
     const rhi = this.rhi;
     const gl = rhi.gl;
     let ext = null;
@@ -214,7 +214,7 @@ export class GLCapability {
     }
   }
 
-  private compatibleAllInterface() {
+  private _compatibleAllInterface() {
     const {
       depthTexture,
       vertexArrayObject,
@@ -223,27 +223,26 @@ export class GLCapability {
       textureFilterAnisotropic,
       textureHalfFloat,
       colorBufferHalfFloat,
-      WEBGL_colorBufferFloat,
-      blendMinMax
+      WEBGL_colorBufferFloat
     } = GLCapabilityType;
     const { isWebGL2 } = this.rhi;
 
     if (!isWebGL2) {
-      this.compatibleInterface(depthTexture, {
+      this._compatibleInterface(depthTexture, {
         UNSIGNED_INT_24_8: "UNSIGNED_INT_24_8_WEBGL"
       });
-      this.compatibleInterface(vertexArrayObject, {
+      this._compatibleInterface(vertexArrayObject, {
         createVertexArray: "createVertexArrayOES",
         deleteVertexArray: "deleteVertexArrayOES",
         isVertexArray: "isVertexArrayOES",
         bindVertexArray: "bindVertexArrayOES"
       });
-      this.compatibleInterface(instancedArrays, {
+      this._compatibleInterface(instancedArrays, {
         drawArraysInstanced: "drawArraysInstancedANGLE",
         drawElementsInstanced: "drawElementsInstancedANGLE",
         vertexAttribDivisor: "vertexAttribDivisorANGLE"
       });
-      this.compatibleInterface(drawBuffers, {
+      this._compatibleInterface(drawBuffers, {
         MAX_DRAW_BUFFERS: "MAX_DRAW_BUFFERS_WEBGL"
       });
       const items = {};
@@ -253,29 +252,24 @@ export class GLCapability {
           i != 0 && (items[`COLOR_ATTACHMENT${i}`] = `COLOR_ATTACHMENT${i}_WEBGL`);
           items[`DRAW_BUFFER${i}`] = `DRAW_BUFFER${i}_WEBGL`;
         }
-        this.compatibleInterface(drawBuffers, {
+        this._compatibleInterface(drawBuffers, {
           drawBuffers: "drawBuffersWEBGL",
           ...items
         });
       }
-      this.compatibleInterface(textureHalfFloat, {
+      this._compatibleInterface(textureHalfFloat, {
         HAFL_FLOAT: "HALF_FLOAT_OES"
       });
-      this.compatibleInterface(colorBufferHalfFloat, {
+      this._compatibleInterface(colorBufferHalfFloat, {
         RGBA16F: "RBGA16F_EXT"
       });
-      this.compatibleInterface(WEBGL_colorBufferFloat, {
+      this._compatibleInterface(WEBGL_colorBufferFloat, {
         RGBA32F: "RBGA32F_EXT"
       });
     }
 
-    this.compatibleInterface(textureFilterAnisotropic, {
+    this._compatibleInterface(textureFilterAnisotropic, {
       TEXTURE_MAX_ANISOTROPY_EXT: "TEXTURE_MAX_ANISOTROPY_EXT"
-    });
-
-    this.compatibleInterface(blendMinMax, {
-      MIN: "MIN_EXT",
-      MAX: "MAX_EXT"
     });
   }
 }

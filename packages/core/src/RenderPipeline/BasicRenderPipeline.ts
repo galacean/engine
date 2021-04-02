@@ -1,30 +1,31 @@
 import { Vector4 } from "@oasis-engine/math";
-import { ClearMode } from "../base";
 import { Camera } from "../Camera";
-import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { RenderQueueType } from "../material";
 import { Material } from "../material/Material";
-import { BlendFactor, BlendOperation, CullMode, Shader } from "../shader";
 import { TextureCubeFace } from "../texture/enums/TextureCubeFace";
 import { RenderTarget } from "../texture/RenderTarget";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { SeparateSpritePass } from "./SeparateSpritePass";
+import { SpriteElement } from "./SpriteElement";
 
 /**
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
-  _defaultSpriteMaterial: Material;
-  protected _camera: Camera;
-  private _queue: RenderQueue;
+  /** @internal */
+  _opaqueQueue: RenderQueue;
+  /** @internal */
+  _transparentQueue: RenderQueue;
+  /** @internal */
+  _alphaTestQueue: RenderQueue;
+
+  private _camera: Camera;
   private _defaultPass: RenderPass;
-  protected _renderPassArray: Array<RenderPass>;
+  private _renderPassArray: Array<RenderPass>;
   private _canvasDepthPass;
-  private _separateSpritePass;
 
   /**
    * Create a basic render pipeline.
@@ -32,21 +33,13 @@ export class BasicRenderPipeline {
    */
   constructor(camera: Camera) {
     this._camera = camera;
-    this._queue = new RenderQueue();
+    this._opaqueQueue = new RenderQueue(camera.engine);
+    this._alphaTestQueue = new RenderQueue(camera.engine);
+    this._transparentQueue = new RenderQueue(camera.engine);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
     this.addRenderPass(this._defaultPass);
-
-    // TODO: remove in next version.
-    const material = (this._defaultSpriteMaterial = new Material(camera.engine, Shader.find("Sprite")));
-    const target = material.renderState.blendState.targetBlendState;
-    target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    material.renderState.depthState.writeEnabled = false;
-    material.renderQueueType = RenderQueueType.Transparent;
-    material.renderState.rasterState.cullMode = CullMode.Off;
   }
 
   /**
@@ -113,13 +106,6 @@ export class BasicRenderPipeline {
   }
 
   /**
-   * Render queue.
-   */
-  get queue(): RenderQueue {
-    return this._queue;
-  }
-
-  /**
    * Destroy internal resources.
    */
   destroy() {}
@@ -131,27 +117,19 @@ export class BasicRenderPipeline {
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace) {
     const camera = this._camera;
-    const queue = this._queue;
+    const opaqueQueue = this._opaqueQueue;
+    const alphaTestQueue = this._alphaTestQueue;
+    const transparentQueue = this._transparentQueue;
 
-    queue.clear();
-
+    opaqueQueue.clear();
+    alphaTestQueue.clear();
+    transparentQueue.clear();
     camera.engine._componentsManager.callRender(context);
-
-    queue.sort(camera.entity.transform.worldPosition);
+    opaqueQueue.sort(RenderQueue._compareFromNearToFar);
+    alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
+    transparentQueue.sort(RenderQueue._compareFromFarToNear);
 
     if (this._canvasDepthPass) this._canvasDepthPass.enabled = false;
-
-    if (this._separateSpritePass && this._separateSpritePass.isUsed) {
-      // If the default rendertarget is not canvas, you need to draw on the canvas again to ensure that there is depth information
-      if (this._defaultPass.renderTarget) {
-        if (!this._canvasDepthPass) {
-          this._canvasDepthPass = new RenderPass("CanvasDepthRenderPass", 0, null, null, 0);
-          this._canvasDepthPass.clearMode = ClearMode.DONT_CLEAR;
-          this.addRenderPass(this._canvasDepthPass);
-        }
-        this._canvasDepthPass.enabled = true;
-      }
-    }
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
       this._drawRenderPass(this._renderPassArray[i], camera, cubeFace);
@@ -159,46 +137,43 @@ export class BasicRenderPipeline {
   }
 
   private _drawRenderPass(pass: RenderPass, camera: Camera, cubeFace?: TextureCubeFace) {
-    pass.preRender(camera, this.queue);
+    pass.preRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
 
     if (pass.enabled) {
       const rhi = camera.scene.engine._hardwareRenderer;
       const renderTarget = camera.renderTarget || pass.renderTarget;
       rhi.activeRenderTarget(renderTarget, camera);
-      rhi.setRenderTargetFace(renderTarget, cubeFace);
+      renderTarget?._setRenderTargetFace(cubeFace);
       rhi.clearRenderTarget(camera.engine, pass.clearMode, pass.clearParam);
 
       if (pass.renderOverride) {
-        pass.render(camera, this.queue);
+        pass.render(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
       } else {
-        this.queue.render(camera, pass.replaceMaterial, pass.mask);
+        this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
 
-      rhi.blitRenderTarget(renderTarget);
+      renderTarget?._blitRenderTarget();
+      renderTarget?.generateMipmaps();
     }
 
-    pass.postRender(camera, this.queue);
+    pass.postRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
   }
 
   /**
    * Push a render element to the render queue.
    * @param element - Render element
    */
-  pushPrimitive(element: RenderElement) {
-    this._queue.pushPrimitive(element);
-  }
+  pushPrimitive(element: RenderElement | SpriteElement) {
+    const renderQueueType = element.material.renderQueueType;
 
-  pushSprite(component: Component, positionQuad, uvRect, tintColor, texture, renderMode, camera: Camera) {
-    if ((component as any).separateDraw) {
-      if (!this._separateSpritePass) {
-        this._separateSpritePass = new SeparateSpritePass();
-        this.addRenderPass(this._separateSpritePass);
-      }
-
-      this._separateSpritePass.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
-      return;
+    if (renderQueueType > (RenderQueueType.Transparent + RenderQueueType.AlphaTest) >> 1) {
+      this._transparentQueue.pushPrimitive(element);
+    } else if (renderQueueType > (RenderQueueType.AlphaTest + RenderQueueType.Opaque) >> 1) {
+      this._alphaTestQueue.pushPrimitive(element);
+    } else {
+      this._opaqueQueue.pushPrimitive(element);
     }
-
-    this.queue.pushSprite(component, positionQuad, uvRect, tintColor, texture, renderMode, camera);
   }
 }

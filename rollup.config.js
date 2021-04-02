@@ -6,12 +6,13 @@ import commonjs from "@rollup/plugin-commonjs";
 import babel from "@rollup/plugin-babel";
 import glslify from "rollup-plugin-glslify";
 import { terser } from "rollup-plugin-terser";
+import serve from "rollup-plugin-serve";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
 
 const camelCase = require("camelcase");
 
-const { NODE_ENV } = process.env;
+const { BUILD_TYPE, NODE_ENV } = process.env;
 
 const pkgsRoot = path.join(__dirname, "packages");
 const pkgs = fs
@@ -41,7 +42,13 @@ const commonPlugins = [
     babelHelpers: "bundled",
     exclude: ["node_modules/**", "packages/**/node_modules/**"]
   }),
-  commonjs()
+  commonjs(),
+  NODE_ENV === "development"
+    ? serve({
+        contentBase: "packages",
+        port: 9999
+      })
+    : null
 ];
 
 function config({ location, pkgJson }) {
@@ -130,7 +137,7 @@ async function makeRollupConfig({ type, compress = true, visualizer = true, ..._
 
 let promises = [];
 
-switch (NODE_ENV) {
+switch (BUILD_TYPE) {
   case "UMD":
     promises.push(...getUMD());
     break;

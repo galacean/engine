@@ -7,8 +7,6 @@ describe("Script", () => {
   engine.run();
 
   beforeEach(() => {
-    (Entity as any)._entitys.length = 0;
-    (Entity as any)._entitys._elements.length = 0;
     scene.createRootEntity("root");
   });
 

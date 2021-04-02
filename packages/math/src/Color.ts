@@ -74,6 +74,22 @@ export class Color implements IClone {
   }
 
   /**
+   * Set the value of this color.
+   * @param r - The red component of the color
+   * @param g - The green component of the color
+   * @param b - The blue component of the color
+   * @param a - The alpha component of the color
+   * @returns This color.
+   */
+  setValue(r: number, g: number, b: number, a: number): Color {
+    this.r = r;
+    this.g = g;
+    this.b = b;
+    this.a = a;
+    return this;
+  }
+
+  /**
    * Creates a clone of this color.
    * @returns A clone of this color
    */

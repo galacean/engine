@@ -3,7 +3,6 @@ import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
-import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
@@ -14,36 +13,6 @@ import { UpdateFlag } from "./UpdateFlag";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
-  private static _entitys: DisorderedArray<Entity> = new DisorderedArray();
-
-  /**
-   * Find entity globally by name.
-   * @param name - The name of the entity which want to be finded.
-   * @returns The entity which be finded.
-   */
-  static findByName(name: string): Entity {
-    const entitys = Entity._entitys;
-    const elements = entitys._elements;
-    for (let i = entitys.length - 1; i >= 0; i--) {
-      const entity = elements[i];
-      if (entity.name === name) {
-        return entity;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Find entity globally by path, use the ‘/’ symbol as the path separator.
-   * @deprecated Use scene find by path instead.
-   * @param scene - The scene be finded in.
-   * @param path - The path fo the entity eg: /root/entity.
-   * @returns The entity which be finded.
-   */
-  static findByPath(scene: Scene, path: string): Entity | null {
-    return scene.findEntityByPath(path);
-  }
-
   /**
    * @internal
    */
@@ -187,7 +156,6 @@ export class Entity extends EngineObject {
    */
   constructor(engine: Engine, name?: string) {
     super(engine);
-    Entity._entitys.add(this);
     this.name = name;
     this.transform = this.addComponent(Transform);
     this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
@@ -390,7 +358,6 @@ export class Entity extends EngineObject {
       parentChildren.splice(parentChildren.indexOf(this), 1);
     }
     this._parent = null;
-    Entity._entitys.delete(this);
   }
 
   /**

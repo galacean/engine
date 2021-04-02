@@ -210,7 +210,7 @@ export class Animation extends Component {
    * @param crossFadeDuration - The milliseconds of the crossFade's duration.
    * @param options - The play options when playing AnimationClip.
    */
-  public CrossFade(name: string, crossFadeDuration: number, options: AnimationOptions) {
+  public crossFade(name: string, crossFadeDuration: number, options: AnimationOptions) {
     const animClip = this._animSet[name];
     if (!animClip) {
       Logger.error("can not find anim clip: " + name);
@@ -372,7 +372,6 @@ export class Animation extends Component {
 
       if (path === "weights") {
         // SkinnedMeshRenderer.
-        (targetObject as SkinnedMeshRenderer).setWeights(val as any);
       } else {
         const v = val as Float32Array;
         //CM: Temporary optimization val should be Vector3/Quaternion type to avoid conversion overhead

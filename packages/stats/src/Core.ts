@@ -64,7 +64,7 @@ export default class Core {
       drawCall: this.drawCallHook.drawCall,
       triangles: this.drawCallHook.triangles,
       //@ts-ignorets-ignore
-      nodes: Entity._entitys.length,
+      // nodes: Entity._entitys.length,
       lines: this.drawCallHook.lines,
       points: this.drawCallHook.points,
       textures: this.textureHook.textures,

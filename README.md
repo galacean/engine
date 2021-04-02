@@ -40,12 +40,12 @@ cameraEntity.addComponent(Camera);
 
 // Create cube.
 const cubeEntity = rootEntity.createChild("Cube");
-const cubeRenderer = cubeEntity.addComponent(GeometryRenderer);
+const cubeRenderer = cubeEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
 cubeEntity.transform.rotate(0, 60, 0);
 material.ambientColor = new Color(0.6, 0.6, 0.6, 1);
-cubeRenderer.geometry = new CuboidGeometry(engine, 1, 1, 1);
-cubeRenderer.material = material;
+cubeRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+cubeRenderer.setMaterial(material);
 
 // Run engine.
 engine.run();

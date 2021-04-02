@@ -7,27 +7,7 @@ describe("Entity", () => {
   const scene = engine.sceneManager.activeScene;
   engine.run();
   beforeEach(() => {
-    (Entity as any)._entitys.length = 0;
-    (Entity as any)._entitys._elements.length = 0;
     scene.createRootEntity("root");
-  });
-  describe("Entity.findByName", () => {
-    it("normal", () => {
-      const entity = new Entity(engine, "test1");
-      const entity2 = new Entity(engine, "test2");
-      expect(Entity.findByName("test1")).toBe(entity);
-      expect(Entity.findByName("test2")).toBe(entity2);
-    });
-    it("null", () => {
-      const entity = new Entity(engine, null);
-      const entity2 = new Entity(engine, undefined);
-      expect(Entity.findByName(null)).toEqual(entity);
-      expect(Entity.findByName(undefined)).toEqual(entity2);
-    });
-    it("not found", () => {
-      const entity = new Entity(engine, "test1");
-      expect(Entity.findByName("test2")).toEqual(null);
-    });
   });
 
   describe("scene.findByPath", () => {
