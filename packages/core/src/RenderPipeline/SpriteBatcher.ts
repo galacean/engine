@@ -23,16 +23,22 @@ export class SpriteBatcher {
   private static _subMeshPool: SubMesh[] = [];
   private static _subMeshPoolIndex: number = 0;
 
-  static _getSubMeshFromPool(start: number, count: number, topology?: MeshTopology): SubMesh {
+  static _getSubMeshFromPool(start: number, count: number, topology: MeshTopology = MeshTopology.Triangles): SubMesh {
     const { _subMeshPoolIndex: index, _subMeshPool: pool } = SpriteBatcher;
     SpriteBatcher._subMeshPoolIndex++;
+    let subMesh: SubMesh = null;
+
     if (pool.length === index) {
-      const subMesh = new SubMesh(start, count, topology);
+      subMesh = new SubMesh(start, count, topology);
       pool.push(subMesh);
-      return subMesh;
     } else {
-      return pool[index];
+      subMesh = pool[index];
+      subMesh.start = start;
+      subMesh.count = count;
+      subMesh.topology = topology;
     }
+
+    return subMesh;
   }
 
   /**
