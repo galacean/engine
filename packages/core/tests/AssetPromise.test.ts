@@ -1,4 +1,4 @@
-import { AssetPromise, AssetPromiseStatus } from "../../src/asset/AssetPromise";
+import { AssetPromise, AssetPromiseStatus } from "../src/asset/AssetPromise";
 
 describe("Asset Promise Test", function () {
   it("test promise all", () => {
