@@ -63,5 +63,6 @@ export * from "./env-probe/index";
 export * from "./shadow/index";
 export * from "./shader/index";
 export * from "./Layer";
+export * from "./clone/CloneManager";
 
 export * from "./renderingHardwareInterface/index";
