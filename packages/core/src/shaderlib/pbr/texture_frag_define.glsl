@@ -4,16 +4,15 @@ uniform sampler2D u_baseColorSampler;
 
 #endif
 
-#ifdef O3_HAS_NORMALMAP
+#ifdef O3_NORMAL_TEXTURE
 
-uniform sampler2D u_normalSampler;
+uniform sampler2D u_normalTexture;
 
 #endif
 
 #ifdef HAS_EMISSIVEMAP
 
 uniform sampler2D u_emissiveSampler;
-uniform vec3 u_emissiveFactor;
 
 #endif
 

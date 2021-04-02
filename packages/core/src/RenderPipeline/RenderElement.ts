@@ -1,5 +1,5 @@
-import { Primitive } from "../graphic";
-import { SubPrimitive } from "../graphic/SubPrimitive";
+import { Mesh } from "../graphic/Mesh";
+import { SubMesh } from "../graphic/SubMesh";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 
@@ -35,17 +35,17 @@ export class RenderElement {
 
   /** Render component. */
   component: Renderer;
-  /** Primitive. */
-  primitive: Primitive;
-  /** Sub primitive. */
-  subPrimitive: SubPrimitive;
+  /** Mesh. */
+  mesh: Mesh;
+  /** Sub mesh. */
+  subMesh: SubMesh;
   /** Material. */
   material: Material;
 
-  setValue(component: Renderer, primitive: Primitive, subPrimitive: SubPrimitive, material: Material): void {
+  setValue(component: Renderer, mesh: Mesh, subMesh: SubMesh, material: Material): void {
     this.component = component;
-    this.primitive = primitive;
-    this.subPrimitive = subPrimitive;
+    this.mesh = mesh;
+    this.subMesh = subMesh;
     this.material = material;
   }
 }

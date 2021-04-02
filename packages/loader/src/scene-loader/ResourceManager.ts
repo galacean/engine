@@ -1,4 +1,4 @@
-import { ResourceManager, ObjectValues } from "@oasis-engine/core";
+import { ObjectValues, ResourceManager } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import {
@@ -7,11 +7,12 @@ import {
   GLTFResource,
   PBRMaterialResource,
   PBRSpecularMaterialResource,
-  UnlitMaterialResource,
   SchemaResource,
   ScriptResource,
+  SpriteResource,
   TextureCubeMapResource,
-  TextureResource
+  TextureResource,
+  UnlitMaterialResource
 } from "./resources";
 import { AssetConfig } from "./types";
 
@@ -26,7 +27,8 @@ export const RESOURCE_CLASS = {
   UnlitMaterial: UnlitMaterialResource,
   BlinnPhongMaterial: BlinnPhongMaterialResource,
   // Animation: Animation,
-  base: BaseResource
+  base: BaseResource,
+  sprite: SpriteResource
 };
 
 const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();

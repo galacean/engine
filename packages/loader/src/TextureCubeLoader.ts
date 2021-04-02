@@ -31,7 +31,8 @@ class TextureCubeLoader extends Loader<TextureCubeMap> {
 
           const tex = new TextureCubeMap(resourceManager.engine, width);
 
-          if (!tex._glTexture) return;
+          /** @ts-ignore */
+          if (!tex._platformTexture) return;
 
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             tex.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);

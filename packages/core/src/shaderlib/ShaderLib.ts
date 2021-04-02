@@ -12,8 +12,6 @@ import fog_share from "./fog_share.glsl";
 import begin_normal_vert from "./begin_normal_vert.glsl";
 import begin_position_vert from "./begin_position_vert.glsl";
 
-import morph_target_vert from "./morph_target_vert.glsl";
-
 import position_vert from "./position_vert.glsl";
 import color_vert from "./color_vert.glsl";
 import normal_vert from "./normal_vert.glsl";
@@ -21,7 +19,6 @@ import skinning_vert from "./skinning_vert.glsl";
 import uv_vert from "./uv_vert.glsl";
 import worldpos_vert from "./worldpos_vert.glsl";
 import shadow_vert from "./shadow_vert.glsl";
-import morph_vert from "./morph_vert.glsl";
 import fog_vert from "./fog_vert.glsl";
 
 import ambient_light_frag from "./ambient_light_frag.glsl";
@@ -32,11 +29,9 @@ import mobile_material_frag from "./mobile_material_frag.glsl";
 import fog_frag from "./fog_frag.glsl";
 
 import begin_mobile_frag from "./begin_mobile_frag.glsl";
-import begin_normal_frag from "./begin_normal_frag.glsl";
 import begin_viewdir_frag from "./begin_viewdir_frag.glsl";
 
 import mobile_blinnphong_frag from "./mobile_blinnphong_frag.glsl";
-import mobile_lambert_frag from "./mobile_lambert_frag.glsl";
 
 import noise_common from "./noise_common.glsl";
 import noise_cellular_2D from "./noise_cellular_2D.glsl";
@@ -60,16 +55,11 @@ import perturbation_frag from "./perturbation_frag.glsl";
 import refraction_share from "./refraction_share.glsl";
 import refraction_frag from "./refraction_frag.glsl";
 
-import clipPlane_vert_define from "./clipPlane_vert_define.glsl";
-import clipPlane_vert from "./clipPlane_vert.glsl";
-import clipPlane_frag_define from "./clipPlane_frag_define.glsl";
-import clipPlane_frag from "./clipPlane_frag.glsl";
-
 import gamma_frag from "./gamma_frag.glsl";
 
 import PBRShaderLib from "./pbr";
-import oit_frag from "./oit/oit_frag.glsl";
-import oit_frag_define from "./oit/oit_frag_define.glsl";
+
+import normal_get from "./normal_get.glsl";
 
 export const ShaderLib = {
   common,
@@ -86,8 +76,6 @@ export const ShaderLib = {
   begin_normal_vert,
   begin_position_vert,
 
-  morph_target_vert,
-
   position_vert,
   color_vert,
   normal_vert,
@@ -95,7 +83,6 @@ export const ShaderLib = {
   uv_vert,
   worldpos_vert,
   shadow_vert,
-  morph_vert,
   fog_vert,
 
   ambient_light_frag,
@@ -106,11 +93,9 @@ export const ShaderLib = {
   fog_frag,
 
   begin_mobile_frag,
-  begin_normal_frag,
   begin_viewdir_frag,
 
   mobile_blinnphong_frag,
-  mobile_lambert_frag,
 
   noise_common,
   noise_cellular_2D,
@@ -134,19 +119,8 @@ export const ShaderLib = {
   refraction_share,
   refraction_frag,
 
-  clipPlane_vert_define,
-  clipPlane_vert,
-  clipPlane_frag_define,
-  clipPlane_frag,
-
   gamma_frag,
 
-  oit_frag,
-  oit_frag_define,
-
-  ...PBRShaderLib
+  ...PBRShaderLib,
+  normal_get
 };
-
-export function InjectShaderSlices(obj) {
-  Object.assign(ShaderLib, obj);
-}

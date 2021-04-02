@@ -36,10 +36,6 @@ describe("Component", () => {
   scene.addRootEntity(root);
   engine.run();
   beforeEach(() => {
-    //@ts-ignore
-    Entity._entitys.length = 0;
-    //@ts-ignore
-    Entity._entitys._elements.length = 0;
   });
 
   describe("enabled", () => {

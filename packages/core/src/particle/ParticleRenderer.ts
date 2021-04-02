@@ -1,5 +1,4 @@
 import { MathUtil, Vector3, Color } from "@oasis-engine/math";
-import { BufferGeometry, GeometryRenderer } from "../geometry";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
@@ -11,6 +10,9 @@ import { BlendFactor } from "../shader/enums/BlendFactor";
 import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Shader, CullMode } from "../shader";
 import { Texture } from "../texture";
+import { MeshRenderer } from "../mesh/MeshRenderer";
+import { GLCapabilityType } from "../base/Constant";
+import { BufferMesh } from "../mesh/BufferMesh";
 
 enum DirtyFlagType {
   Position = 0x1,
@@ -38,7 +40,10 @@ export enum ParticleRendererBlendMode {
 /**
  * Particle Renderer Component.
  */
-export class ParticleRenderer extends GeometryRenderer {
+export class ParticleRenderer extends MeshRenderer {
+  /** The max number of indices that Uint16Array can support. */
+  private static _uint16VertexLimit: number = 65535;
+
   private static _getRandom(): number {
     return Math.random() - 0.5;
   }
@@ -90,15 +95,15 @@ export class ParticleRenderer extends GeometryRenderer {
    * Texture of particle.
    */
   get texture(): Texture {
-    return this.material.shaderData.getTexture('u_texture');
+    return this.getMaterial().shaderData.getTexture("u_texture");
   }
 
   set texture(texture: Texture) {
     if (texture) {
-      this.shaderData.enableMacro('particleTexture');
-      this.material.shaderData.setTexture('u_texture', texture);
+      this.shaderData.enableMacro("particleTexture");
+      this.getMaterial().shaderData.setTexture("u_texture", texture);
     } else {
-      this.shaderData.disableMacro('particleTexture');
+      this.shaderData.disableMacro("particleTexture");
     }
   }
 
@@ -354,12 +359,11 @@ export class ParticleRenderer extends GeometryRenderer {
     this._isInit = false;
     this._maxCount = value;
     this._updateDirtyFlag = DirtyFlagType.Everything;
-    this.geometry = this._createGeometry();
+    this.mesh = this._createMesh();
 
     this._updateBuffer();
 
     this._isInit = true;
-
   }
 
   /**
@@ -438,7 +442,7 @@ export class ParticleRenderer extends GeometryRenderer {
       this.shaderData.enableMacro("is2d");
     } else {
       this.shaderData.disableMacro("is2d");
-      this.material.renderState.rasterState.cullMode = CullMode.Off;
+      this.getMaterial().renderState.rasterState.cullMode = CullMode.Off;
     }
 
     this._is2d = value;
@@ -490,8 +494,7 @@ export class ParticleRenderer extends GeometryRenderer {
 
     if (value) {
       this.start();
-    }
-    else {
+    } else {
       this.stop();
     }
   }
@@ -504,16 +507,21 @@ export class ParticleRenderer extends GeometryRenderer {
   }
 
   set blendMode(value: ParticleRendererBlendMode) {
-    const blendState = this.material.renderState.blendState;
+    const blendState = this.getMaterial().renderState.blendState;
     const target = blendState.targetBlendState;
 
     if (value === ParticleRendererBlendMode.Transparent) {
-      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    }
-    else if (value === ParticleRendererBlendMode.Additive) {
-      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
+      target.enabled = true;
+      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.sourceAlphaBlendFactor = BlendFactor.One;
+      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    } else if (value === ParticleRendererBlendMode.Additive) {
+      target.enabled = true;
+      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = BlendFactor.One;
+      target.sourceAlphaBlendFactor = BlendFactor.One;
+      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     }
 
     this._blendMode = value;
@@ -522,7 +530,7 @@ export class ParticleRenderer extends GeometryRenderer {
   constructor(props) {
     super(props);
 
-    this._material = this._createMaterial();
+    this.setMaterial(this._createMaterial());
   }
 
   /**
@@ -576,8 +584,11 @@ export class ParticleRenderer extends GeometryRenderer {
     const { renderState } = material;
     const target = renderState.blendState.targetBlendState;
 
-    target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
 
     renderState.depthState.writeEnabled = false;
 
@@ -590,12 +601,24 @@ export class ParticleRenderer extends GeometryRenderer {
     return material;
   }
 
-  private _createGeometry(): BufferGeometry {
-    const geometry = new BufferGeometry(this._entity.engine, "particleGeometry");
+  private _createMesh(): BufferMesh {
+    const mesh = new BufferMesh(this._entity.engine, "particleMesh");
     const vertexStride = 96;
-    const vertexFloatCount = this._maxCount * 4 * vertexStride;
+    const vertexCount = this._maxCount * 4;
+    const vertexFloatCount = vertexCount * vertexStride;
     const vertices = new Float32Array(vertexFloatCount);
-    const indices = new Uint16Array(6 * this._maxCount);
+    let indices: Uint16Array | Uint32Array = null;
+    let useUint32: boolean = false;
+    if (vertexCount > ParticleRenderer._uint16VertexLimit) {
+      if (this.engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
+        useUint32 = true;
+        indices = new Uint32Array(6 * this._maxCount);
+      } else {
+        throw Error("The vertex count is over limit.");
+      }
+    } else {
+      indices = new Uint16Array(6 * this._maxCount);
+    }
 
     for (let i = 0, idx = 0; i < this._maxCount; ++i) {
       let startIndex = i * 4;
@@ -627,15 +650,15 @@ export class ParticleRenderer extends GeometryRenderer {
 
     const indexBuffer = new Buffer(this.engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Dynamic);
 
-    geometry.setVertexBufferBinding(vertexBuffer, vertexStride);
-    geometry.setIndexBufferBinding(indexBuffer, IndexFormat.UInt16);
-    geometry.setVertexElements(vertexElements);
-    geometry.addSubGeometry(0, indices.length);
+    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
+    mesh.setIndexBufferBinding(indexBuffer, useUint32 ? IndexFormat.UInt32 : IndexFormat.UInt16);
+    mesh.setVertexElements(vertexElements);
+    mesh.addSubMesh(0, indices.length);
 
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride / 4;
     this._vertices = vertices;
-    return geometry;
+    return mesh;
   }
 
   private _updateBuffer(): void {
@@ -771,7 +794,7 @@ export class ParticleRenderer extends GeometryRenderer {
 
   private _updateSingleUv(i: number, k0: number, k1: number, k2: number, k3: number): void {
     const { spriteSheet } = this;
-    const texture = this._material.shaderData.getTexture("u_texture");
+    const texture = this.getMaterial().shaderData.getTexture("u_texture");
     const vertices = this._vertices;
 
     if (texture) {
