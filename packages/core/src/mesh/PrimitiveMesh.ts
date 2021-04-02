@@ -687,20 +687,16 @@ export class PrimitiveMesh {
     mesh.addSubMesh(0, indices.length);
   }
 
-  private static _generateIndices(
-    engine: Engine,
-    vertexCount: number,
-    indicesCount: number
-  ): Uint16Array | Uint32Array {
+  private static _generateIndices(engine: Engine, vertexCount: number, indexCount: number): Uint16Array | Uint32Array {
     let indices: Uint16Array | Uint32Array = null;
     if (vertexCount > 65535) {
       if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
-        indices = new Uint32Array(indicesCount);
+        indices = new Uint32Array(indexCount);
       } else {
         throw Error("The vertex count is over limit.");
       }
     } else {
-      indices = new Uint16Array(indicesCount);
+      indices = new Uint16Array(indexCount);
     }
     return indices;
   }
