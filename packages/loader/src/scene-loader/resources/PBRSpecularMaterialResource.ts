@@ -4,6 +4,38 @@ import { getAllGetters, isAsset } from "../utils";
 import { SchemaResource } from "./SchemaResource";
 import { TextureResource } from "./TextureResource";
 
+const attrs = [
+  "specularColor",
+  "glossinessFactor",
+  "specularGlossinessTexture",
+
+  "tilingOffset",
+  "baseColor",
+  "normalIntensity",
+  "emissiveColor",
+  "occlusionStrength",
+  "envMapIntensity",
+  "refractionRatio",
+  "refractionDepth",
+  "perturbationUOffset",
+  "perturbationVOffset",
+  "baseTexture",
+  "opacityTexture",
+  "normalTexture",
+  "emissiveTexture",
+  "occlusionTexture",
+  "refractionTexture",
+  "perturbationTexture",
+  "srgb",
+  "srgbFast",
+  "gamma",
+  "getOpacityFromRGB",
+  "isTransparent",
+  "alphaCutoff",
+  "renderFace",
+  "blendMode"
+];
+
 export class PBRSpecularMaterialResource extends SchemaResource {
   private configProps;
 
@@ -51,7 +83,7 @@ export class PBRSpecularMaterialResource extends SchemaResource {
           };
 
           const material = this._resource;
-          getAllGetters(this._resource).forEach((attr) => {
+          Object.keys(this._resource).forEach((attr) => {
             if (!(material[attr] instanceof Texture)) return;
             const textureResource = new TextureResource(this.resourceManager, material[attr]);
             this.attachedResources.push(textureResource);
@@ -74,8 +106,7 @@ export class PBRSpecularMaterialResource extends SchemaResource {
 
   getProps() {
     const result = {};
-    const props = getAllGetters(this.resource);
-    props.forEach((prop) => (result[prop] = this.resource[prop]));
+    attrs.forEach((prop) => (result[prop] = this.resource[prop]));
     return result;
   }
 

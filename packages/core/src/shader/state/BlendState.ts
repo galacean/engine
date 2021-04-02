@@ -1,5 +1,6 @@
 import { Color } from "@oasis-engine/math";
-import { HardwareRenderer } from "../../HardwareRenderer";
+import { GLCapabilityType } from "../../base/Constant";
+import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
 import { BlendFactor } from "../enums/BlendFactor";
 import { BlendOperation } from "../enums/BlendOperation";
 import { ColorWriteMask } from "../enums/ColorWriteMask";
@@ -41,18 +42,26 @@ export class BlendState {
     }
   }
 
-  private static _getGLBlendOperation(blendOperation: BlendOperation): number {
+  private static _getGLBlendOperation(blendOperation: BlendOperation, rhi: IHardwareRenderer): number {
+    const gl = rhi.gl;
+
     switch (blendOperation) {
       case BlendOperation.Add:
-        return WebGLRenderingContext.FUNC_ADD;
+        return gl.FUNC_ADD;
       case BlendOperation.Subtract:
-        return WebGLRenderingContext.FUNC_SUBTRACT;
+        return gl.FUNC_SUBTRACT;
       case BlendOperation.ReverseSubtract:
-        return WebGLRenderingContext.FUNC_REVERSE_SUBTRACT;
+        return gl.FUNC_REVERSE_SUBTRACT;
       case BlendOperation.Min:
-        return WebGL2RenderingContext.MIN; // in webgl1.0 is an extension
+        if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
+          throw new Error("BlendOperation.Min is not supported in this context");
+        }
+        return gl.MIN; // in webgl1.0 is an extension
       case BlendOperation.Max:
-        return WebGL2RenderingContext.MAX; // in webgl1.0 is an extension
+        if (!rhi.canIUse(GLCapabilityType.blendMinMax)) {
+          throw new Error("BlendOperation.Max is not supported in this context");
+        }
+        return gl.MAX; // in webgl1.0 is an extension
     }
   }
 
@@ -67,15 +76,16 @@ export class BlendState {
    * @internal
    * Apply the current blend state by comparing with the last blend state.
    */
-  _apply(hardwareRenderer: HardwareRenderer, lastRenderState: RenderState): void {
+  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState): void {
     this._platformApply(hardwareRenderer, lastRenderState.blendState);
   }
 
-  private _platformApply(rhi: HardwareRenderer, lastState: BlendState): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: BlendState): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const lastTargetBlendState = lastState.targetBlendState;
 
     const {
+      enabled,
       colorBlendOperation,
       alphaBlendOperation,
       sourceColorBlendFactor,
@@ -85,25 +95,16 @@ export class BlendState {
       colorWriteMask
     } = this.targetBlendState;
 
-    const blendEnable = !(
-      sourceColorBlendFactor === BlendFactor.One &&
-      destinationColorBlendFactor === BlendFactor.Zero &&
-      sourceAlphaBlendFactor === BlendFactor.One &&
-      destinationAlphaBlendFactor === BlendFactor.Zero &&
-      (colorBlendOperation === BlendOperation.Add || colorBlendOperation === BlendOperation.Subtract) &&
-      (alphaBlendOperation === BlendOperation.Add || alphaBlendOperation === BlendOperation.Subtract)
-    );
-
-    if (blendEnable !== lastTargetBlendState._blendEnable) {
-      if (blendEnable) {
+    if (enabled !== lastTargetBlendState.enabled) {
+      if (enabled) {
         gl.enable(gl.BLEND);
       } else {
         gl.disable(gl.BLEND);
       }
-      lastTargetBlendState._blendEnable = blendEnable;
+      lastTargetBlendState.enabled = enabled;
     }
 
-    if (blendEnable) {
+    if (enabled) {
       // apply blend factor.
       if (
         sourceColorBlendFactor !== lastTargetBlendState.sourceColorBlendFactor ||
@@ -129,8 +130,8 @@ export class BlendState {
         alphaBlendOperation !== lastTargetBlendState.alphaBlendOperation
       ) {
         gl.blendEquationSeparate(
-          BlendState._getGLBlendOperation(colorBlendOperation),
-          BlendState._getGLBlendOperation(alphaBlendOperation)
+          BlendState._getGLBlendOperation(colorBlendOperation, rhi),
+          BlendState._getGLBlendOperation(alphaBlendOperation, rhi)
         );
         lastTargetBlendState.colorBlendOperation = colorBlendOperation;
         lastTargetBlendState.alphaBlendOperation = alphaBlendOperation;

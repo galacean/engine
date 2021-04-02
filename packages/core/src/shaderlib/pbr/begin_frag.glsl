@@ -1,6 +1,6 @@
     vec3 normal = getNormal();
     vec4 diffuseColor = u_baseColorFactor;
-    vec3 totalEmissiveRadiance = vec3(0.0);
+    vec3 totalEmissiveRadiance = u_emissiveFactor;
     float metalnessFactor = u_metal;
     float roughnessFactor = u_roughness;
     vec3 specularFactor = u_specularFactor;
@@ -31,14 +31,6 @@
 
     #endif
 
-    #ifdef ALPHA_CUTOFF
-
-        if( diffuseColor.a < u_alphaCutoff ) {
-            discard;
-        }
-
-    #endif
-
 
     #if defined(ALPHA_BLEND) && defined(HAS_OPACITYMAP)
 
@@ -50,6 +42,13 @@
 
     #endif
 
+    #ifdef ALPHA_CUTOFF
+
+        if( diffuseColor.a < u_alphaCutoff ) {
+            discard;
+        }
+
+    #endif
 
         #ifdef HAS_METALROUGHNESSMAP
 

@@ -26,7 +26,9 @@ const adapterArray = [
   "Node",
   "requestAnimationFrame",
   "cancelAnimationFrame",
+  "WebGLRenderingContext",
   "screen",
+  "WebGLRenderingContext",
   "XMLHttpRequest",
   "performance"
 ];

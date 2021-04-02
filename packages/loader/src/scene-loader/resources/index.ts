@@ -5,6 +5,7 @@ export { PBRSpecularMaterialResource } from "./PBRSpecularMaterialResource";
 export { UnlitMaterialResource } from "./UnlitMaterialResource";
 export { TextureResource } from "./TextureResource";
 export { ScriptResource } from "./ScriptResource";
+export { SpriteResource, SpritePivotType } from "./SpriteResource";
 export { BlinnPhongMaterialResource } from "./BlinnPhongMaterialResource";
 export { TextureCubeMapResource } from "./TextureCubeMapResource";
 export * from "./ScriptResource";

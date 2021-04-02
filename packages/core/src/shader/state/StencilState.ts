@@ -1,4 +1,4 @@
-import { HardwareRenderer } from "../../HardwareRenderer";
+import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
 import { CompareFunction } from "../enums/CompareFunction";
 import { StencilOperation } from "../enums/StencilOperation";
 import { RenderState } from "./RenderState";
@@ -77,11 +77,11 @@ export class StencilState {
   /**
    * @internal
    */
-  _apply(hardwareRenderer: HardwareRenderer, lastRenderState: RenderState): void {
+  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState): void {
     this._platformApply(hardwareRenderer, lastRenderState.stencilState);
   }
 
-  private _platformApply(rhi: HardwareRenderer, lastState: StencilState): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: StencilState): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const {
       enabled,

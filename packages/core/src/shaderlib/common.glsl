@@ -3,6 +3,3 @@
 
 #define saturate( a ) clamp( a, 0.0, 1.0 )
 #define whiteCompliment(a) ( 1.0 - saturate( a ) )
-
-// nosie common
-#include <noise_common>
