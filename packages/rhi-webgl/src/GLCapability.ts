@@ -103,7 +103,7 @@ export class GLCapability {
       RGBA_S3TC_DXT5_EXT
     } = GLCompressedTextureInternalFormat;
     if (
-      (internalType >= RGBA_ASTC_4X4_KHR && internalType <= RGBA_ASTC_12X12_KHR) ||
+      (internalType >= RGBA_ASTC_4X4_KHR && RGBA_ASTC_12X12_KHR <= RGBA_ASTC_12X12_KHR) ||
       (internalType >= SRGB8_ALPHA8_ASTC_4X4_KHR && internalType <= SRGB8_ALPHA8_ASTC_12X12_KHR)
     ) {
       return this.canIUse(GLCapabilityType.astc);
@@ -136,7 +136,6 @@ export class GLCapability {
       instancedArrays,
       multipleSample,
       drawBuffers,
-      blendMinMax,
 
       astc,
       astc_webkit,
@@ -179,7 +178,6 @@ export class GLCapability {
       (isWebGL2 && !!requireExtension(colorBufferFloat)) || !!requireExtension(colorBufferHalfFloat)
     );
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
-    cap.set(blendMinMax, isWebGL2 || !!requireExtension(blendMinMax));
 
     cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
@@ -225,8 +223,7 @@ export class GLCapability {
       textureFilterAnisotropic,
       textureHalfFloat,
       colorBufferHalfFloat,
-      WEBGL_colorBufferFloat,
-      blendMinMax
+      WEBGL_colorBufferFloat
     } = GLCapabilityType;
     const { isWebGL2 } = this.rhi;
 
@@ -273,11 +270,6 @@ export class GLCapability {
 
     this._compatibleInterface(textureFilterAnisotropic, {
       TEXTURE_MAX_ANISOTROPY_EXT: "TEXTURE_MAX_ANISOTROPY_EXT"
-    });
-
-    this.compatibleInterface(blendMinMax, {
-      MIN: "MIN_EXT",
-      MAX: "MAX_EXT"
     });
   }
 }
