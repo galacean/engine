@@ -1,4 +1,5 @@
 import { Color } from "@oasis-engine/math";
+import { GLCapabilityType } from "../../base/Constant";
 import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
 import { BlendFactor } from "../enums/BlendFactor";
 import { BlendOperation } from "../enums/BlendOperation";
@@ -41,7 +42,7 @@ export class BlendState {
     }
   }
 
-  private static _getGLBlendOperation(blendOperation: BlendOperation, rhi: HardwareRenderer): number {
+  private static _getGLBlendOperation(blendOperation: BlendOperation, rhi: IHardwareRenderer): number {
     const gl = rhi.gl;
 
     switch (blendOperation) {
