@@ -1,5 +1,4 @@
 import { Engine } from "../Engine";
-import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderMacro } from "./ShaderMacro";
@@ -11,6 +10,9 @@ import { ShaderProperty } from "./ShaderProperty";
  * Shader containing vertex and fragment source.
  */
 export class Shader {
+  /** @internal */
+  static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
+
   private static _shaderCounter: number = 0;
   private static _shaderMap: Record<string, Shader> = Object.create(null);
   private static _propertyNameMap: Record<string, ShaderProperty> = Object.create(null);
@@ -131,7 +133,7 @@ export class Shader {
    * @param macros - Macro name list
    */
   compileVariant(engine: Engine, macros: string[]): void {
-    const compileMacros = RenderQueue.compileMacros;
+    const compileMacros = Shader._compileMacros;
     compileMacros.clear();
     for (let i = 0, n = macros.length; i < n; i++) {
       compileMacros.enable(Shader.getMacroByName(macros[i]));
@@ -169,7 +171,7 @@ export class Shader {
     #endif
     `;
 
-    let vertexSource = ShaderFactory.parseShader(
+    let vertexSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
         ${shaderNameStr}
         ${precisionStr}
@@ -177,7 +179,7 @@ export class Shader {
         ` + this._vertexSource
     );
 
-    let fragmentSource = ShaderFactory.parseShader(
+    let fragmentSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
         ${shaderNameStr}
         ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}

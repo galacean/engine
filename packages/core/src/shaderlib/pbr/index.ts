@@ -11,9 +11,6 @@ import pbr_texture_frag_define from "./texture_frag_define.glsl";
 /** runtime context */
 import pbr_runtime_frag_define from "./runtime_frag_define.glsl";
 
-// todo: generalize
-import pbr_normal_frag_define from "./normal_frag_define.glsl";
-
 // todo: BxDF
 import pbr_brdf_cook_torrance_frag_define from "./brdf_cook_torrance_frag_define.glsl";
 
@@ -38,8 +35,6 @@ export default {
   pbr_texture_frag_define,
 
   pbr_runtime_frag_define,
-
-  pbr_normal_frag_define,
 
   pbr_brdf_cook_torrance_frag_define,
 

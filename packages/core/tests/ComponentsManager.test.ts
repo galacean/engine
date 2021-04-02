@@ -1,6 +1,6 @@
 import { Camera } from "../src/Camera";
+import { Engine, Entity, Renderer, Script } from "../src/index";
 import { RenderContext } from "../src/RenderPipeline/RenderContext";
-import { Canvas, Engine, Entity, HardwareRenderer, Renderer, Scene, Script } from "../src/index";
 
 describe("ComponentsManager", () => {
   let engine: Engine = new Engine({ width: 1024, height: 1024 }, { init: jest.fn(), canIUse: jest.fn() });
@@ -55,7 +55,7 @@ describe("ComponentsManager", () => {
     it("onUpdate", () => {
       class TestComponent extends Renderer {
         update() {}
-        render() {}
+        _render() {}
       }
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
@@ -71,36 +71,35 @@ describe("ComponentsManager", () => {
     it("render", () => {
       class TestComponent extends Renderer {
         update() {}
-        render() {}
+        _render() {}
       }
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
-      TestComponent.prototype.render = jest.fn();
-      engine._renderContext._camera = camera;
+      TestComponent.prototype._render = jest.fn();
       const component = entity.addComponent(TestComponent);
       engine._componentsManager.callScriptOnStart();
       engine._componentsManager.callRender(engine._renderContext);
       engine._componentsManager.callScriptOnStart();
-      engine._componentsManager.callRender(engine._renderContext);
-      expect(component.render).toHaveBeenCalledTimes(2);
+      engine._componentsManager.callRender(RenderContext._getRenderContext(camera));
+      expect(component._render).toHaveBeenCalledTimes(2);
     });
 
     it("inActive", () => {
       class TestComponent extends Renderer {
         update() {}
-        render() {}
+        _render() {}
       }
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
       TestComponent.prototype.update = jest.fn();
-      TestComponent.prototype.render = jest.fn();
+      TestComponent.prototype._render = jest.fn();
       const component = entity.addComponent(TestComponent);
       entity.isActive = false;
       engine._componentsManager.callRendererOnUpdate(16.7);
       engine._renderContext._camera=camera;
       engine._componentsManager.callRender(engine._renderContext);
       expect(component.update).toHaveBeenCalledTimes(0);
-      expect(component.render).toHaveBeenCalledTimes(0);
+      expect(component._render).toHaveBeenCalledTimes(0);
     });
   });
 });

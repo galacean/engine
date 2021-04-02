@@ -25,17 +25,6 @@ export class Scene extends EngineObject {
   /** scene name */
   name: string;
 
-  /**
-   * @private
-   * @deprecated
-   * @todo: Migrate to camera
-   * Clipping surface, plane equations. The fragments below the clipping plane will be discard.
-   * @example
-   * ```ts
-   * scene.clipPlanes = [[0,1,0,0]];
-   * ```
-   * */
-  clipPlanes: Vector4[] = [];
   _activeCameras: Camera[] = [];
   _isActiveInEngine: boolean = false;
 
@@ -225,10 +214,9 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Append a camera to this scene.
-   * @param camera  - Camera
+   * @internal
    */
-  attachRenderCamera(camera: Camera): void {
+  _attachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index === -1) {
       this._activeCameras.push(camera);
@@ -238,10 +226,9 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Remove a camera from this scene.
-   * @param camera - Camera
+   * @internal
    */
-  detachRenderCamera(camera: Camera): void {
+  _detachRenderCamera(camera: Camera): void {
     const index = this._activeCameras.indexOf(camera);
     if (index !== -1) {
       this._activeCameras.splice(index, 1);

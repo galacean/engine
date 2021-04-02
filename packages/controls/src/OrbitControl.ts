@@ -1,5 +1,6 @@
 "use strict";
-import { Entity, Matrix, Script, Spherical, Vector2, Vector3 } from "oasis-engine";
+import { Entity, Matrix, Script, Vector2, Vector3 } from "oasis-engine";
+import { Spherical } from "./Spherical";
 
 /**
  * The camera's track controller, can rotate, zoom, pan, support mouse and touch events.
@@ -28,7 +29,8 @@ export class OrbitControl extends Script {
   zoomSpeed: number;
   enablePan: boolean;
   autoRotate: boolean;
-  autoRotateSpeed: number;
+  /** The radian of automatic rotation per second. */
+  autoRotateSpeed: number = Math.PI;
   rotateSpeed: number;
   enableKeys: boolean;
   keys: { LEFT: number; RIGHT: number; UP: number; BOTTOM: number };
@@ -172,11 +174,6 @@ export class OrbitControl extends Script {
      * Whether to automatically rotate the camera, the default is false.
      */
     this.autoRotate = false;
-
-    /**
-     * The time required for one automatic rotation, the default is 2.0s .
-     */
-    this.autoRotateSpeed = 2.0;
 
     /**
      * Whether to enable keyboard.
@@ -342,7 +339,7 @@ export class OrbitControl extends Script {
    * Get the radian of automatic rotation.
    */
   getAutoRotationAngle(dtime: number) {
-    return ((2 * Math.PI) / this.autoRotateSpeed / 1000) * dtime;
+    return (this.autoRotateSpeed / 1000) * dtime;
   }
 
   /**
