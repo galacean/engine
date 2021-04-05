@@ -15,7 +15,7 @@ export type LoadItem = {
   /**
    * Asset Type.
    */
-  type?: string;
+  type?: AssetType;
   /**
    * Number of retries after failed loading.
    */
