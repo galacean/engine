@@ -9,7 +9,7 @@ export class AnimatorStateMachine {
   states: AnimatorState[] = [];
   transitions: AnimatorStateTransition[] = [];
   speed: string | number;
-  wrapMode: WrapMode;
+  wrapMode: WrapMode = WrapMode.LOOP;
   entryState: AnimatorState;
   anyState: AnimatorState;
   exitState: AnimatorState;

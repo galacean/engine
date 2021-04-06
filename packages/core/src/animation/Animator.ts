@@ -1,5 +1,5 @@
 import { AnimatorState, PlayType } from "./AnimatorState";
-import { InterpolableValueType, AnimatorRecorderMode } from "./AnimatorConst";
+import { InterpolableValueType, AnimatorRecorderMode, WrapMode } from "./AnimatorConst";
 import { InterpolableValue } from "./KeyFrame";
 import { AnimatorControllerLayer, AnimatorLayerBlendingMode } from "./AnimatorControllerLayer";
 import { AnimatorController, AnimatorControllerParameter } from "./AnimatorController";
@@ -389,7 +389,11 @@ export class Animator extends Component {
       currentState._frameTime += deltaTime / 1000;
       const animClip = currentState.motion as AnimationClip;
       if (currentState._frameTime > animClip.length) {
-        currentState._frameTime = currentState._frameTime % animClip.length;
+        if (animLayer.stateMachine.wrapMode === WrapMode.LOOP) {
+          currentState._frameTime = currentState._frameTime % animClip.length;
+        } else {
+          currentState._frameTime = animClip.length;
+        }
       }
       if (currentState._playType === PlayType.IsFading) {
         const fadingState = animLayer._fadingState;
@@ -397,7 +401,7 @@ export class Animator extends Component {
           fadingState._frameTime += deltaTime / 1000;
           const nextAnimClip = fadingState.motion as AnimationClip;
           if (fadingState._frameTime > nextAnimClip.length) {
-            fadingState._frameTime = fadingState._frameTime % nextAnimClip.length;
+            fadingState._frameTime = nextAnimClip.length;
           }
         }
       }
@@ -424,8 +428,5 @@ export class Animator extends Component {
 
   getLayerByName(name: string) {
     return AnimatorControllerLayer.findLayerByName(name);
-  }
-  getLayerByIndex(index: number) {
-    return this.layers[index];
   }
 }
