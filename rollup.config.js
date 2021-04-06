@@ -35,7 +35,7 @@ const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true }),
   glslify({
-    include: [/\.glsl$/, "packages/**/worker/**/*.js"]
+    include: [/\.glsl$/]
   }),
   babel({
     extensions,
