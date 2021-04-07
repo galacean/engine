@@ -33,15 +33,15 @@ export class AnimatorState {
   behaviours: StateMachineBehaviour[] = []; //state的生命周期脚本
   transitions: AnimatorStateTransition[] = [];
   speed: string | number;
-  wrapMode: WrapMode;
-  /**
-   * @internal
-   */
-  _playType: PlayType = PlayType.NotStart;
+  wrapMode: WrapMode = WrapMode.LOOP;
   /**
    * @internal
    */
   _frameTime: number = 0;
+  /**
+   * @internal
+   */
+  _playType: PlayType = PlayType.NotStart;
   /**
    * @internal
    */
@@ -63,12 +63,30 @@ export class AnimatorState {
   get motion() {
     return this._motion;
   }
+
   set motion(motion: Motion) {
     if (this._target) {
       motion.target = this._target;
     }
     this._motion = motion;
   }
+
+  get frameTime() {
+    return this._frameTime;
+  }
+
+  set frameTime(time: number) {
+    const animClip = this.motion as AnimationClip;
+    this._frameTime = time;
+    if (time > animClip.length) {
+      if (this.wrapMode === WrapMode.LOOP) {
+        this._frameTime = time % animClip.length;
+      } else {
+        this._frameTime = animClip.length;
+      }
+    }
+  }
+
   constructor(name: string) {
     this.name = name;
     AnimatorState.statesMap[name] = this;

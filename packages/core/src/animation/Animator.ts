@@ -249,7 +249,7 @@ export class Animator extends Component {
             relativePathPropertyNameMap[`${relativePath}_${propertyName}`] = relativePathList.length;
             relativePathList.push(relativePath);
             propertyNameList.push(propertyName);
-            const val = curve.evaluate(currentState._frameTime);
+            const val = curve.evaluate(currentState.frameTime);
             targetPropertyNameValues.push([val]);
             targetDefaultValues.push([_defaultValue]);
             targetList.push([_target]);
@@ -312,7 +312,7 @@ export class Animator extends Component {
       const count = clip.curves.length;
       for (let j = count - 1; j >= 0; j--) {
         const { curve, relativePath, propertyName, _target, _defaultValue } = clip.curves[j];
-        const frameTime = clip._getTheRealFrameTime(currentState._frameTime);
+        const frameTime = clip._getTheRealFrameTime(currentState.frameTime);
         const val = curve.evaluate(frameTime);
         const { valueType, firstFrameValue } = curve;
         if (isFirstLayer) {
@@ -356,7 +356,7 @@ export class Animator extends Component {
     if (!animatorController) return;
     const animLayer = animatorController.layers[layerIndex];
     const theState = AnimatorState.findStateByName(stateName);
-    theState._frameTime = (theState.motion as AnimationClip).length * normalizedTime;
+    theState.frameTime = (theState.motion as AnimationClip).length * normalizedTime;
     animLayer._playingState = theState;
     this.recorderMode = AnimatorRecorderMode.Playback;
   }
@@ -386,26 +386,33 @@ export class Animator extends Component {
         animLayer._playingState = animLayer.stateMachine.states[0];
       }
       const currentState = animLayer._playingState;
-      currentState._frameTime += deltaTime / 1000;
-      const animClip = currentState.motion as AnimationClip;
-      if (currentState._frameTime > animClip.length) {
-        if (animLayer.stateMachine.wrapMode === WrapMode.LOOP) {
-          currentState._frameTime = currentState._frameTime % animClip.length;
-        } else {
-          currentState._frameTime = animClip.length;
-        }
-      }
+      currentState.frameTime += deltaTime / 1000;
       if (currentState._playType === PlayType.IsFading) {
         const fadingState = animLayer._fadingState;
         if (fadingState) {
-          fadingState._frameTime += deltaTime / 1000;
+          fadingState.frameTime += deltaTime / 1000;
           const nextAnimClip = fadingState.motion as AnimationClip;
-          if (fadingState._frameTime > nextAnimClip.length) {
-            fadingState._frameTime = nextAnimClip.length;
+          if (fadingState.frameTime > nextAnimClip.length) {
+            fadingState.frameTime = nextAnimClip.length;
           }
         }
       }
       this._updatePlayingState(currentState, animLayer, isFirstLayer, deltaTime);
+    }
+  }
+
+  setStateNormalizedTime(normalizedTime: number) {
+    const { animatorController } = this;
+    if (!animatorController) return;
+    const { layers } = animatorController;
+    for (let i = 0; i < layers.length; i++) {
+      const animLayer = layers[i];
+      if (!animLayer._playingState) {
+        animLayer._playingState = animLayer.stateMachine.states[0];
+      }
+      const currentState = animLayer._playingState;
+      const clip = currentState.motion as AnimationClip;
+      currentState.frameTime = clip.length * normalizedTime;
     }
   }
 
@@ -422,7 +429,7 @@ export class Animator extends Component {
       transition.solo = true;
       transition.duration = (currentState.motion as AnimationClip).length * normalizedTransitionDuration;
       transition.offset = (nextState.motion as AnimationClip).length * normalizedTimeOffset;
-      transition.exitTime = currentState._frameTime;
+      transition.exitTime = currentState.frameTime;
     }
   }
 
