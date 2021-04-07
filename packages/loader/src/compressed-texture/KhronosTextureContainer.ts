@@ -15,14 +15,14 @@ const COMPRESSED_3D = 1; // uses a gl.compressedTexImage3D()
 const TEX_2D = 2; // uses a gl.texImage2D()
 const TEX_3D = 3; // uses a gl.texImage3D()
 
-function getMipmaps(ktxContainer: KTXContainer, loadMipmaps: boolean): Mipmap[] {
-  const mipmaps = [];
+function getMipmaps(ktxContainer: KTXContainer): Mipmap[] {
+  const mipmaps: Mipmap[] = [];
 
   // initialize width & height for level 1
   var dataOffset = HEADER_LEN + ktxContainer.bytesOfKeyValueData;
   var width = ktxContainer.pixelWidth;
   var height = ktxContainer.pixelHeight;
-  var mipmapCount = loadMipmaps ? ktxContainer.numberOfMipmapLevels : 1;
+  var mipmapCount = ktxContainer.numberOfMipmapLevels;
 
   for (var level = 0; level < mipmapCount; level++) {
     var imageSize = new Int32Array(ktxContainer.buffer, dataOffset, 1)[0]; // size per face, since not supporting array cubemaps
@@ -31,7 +31,7 @@ function getMipmaps(ktxContainer: KTXContainer, loadMipmaps: boolean): Mipmap[] 
     for (var face = 0; face < ktxContainer.numberOfFaces; face++) {
       var byteArray = new Uint8Array(ktxContainer.buffer, dataOffset, imageSize);
 
-      mipmaps.push({ data: byteArray, width: width, height: height });
+      mipmaps.push({ data: byteArray, width, height });
 
       dataOffset += imageSize;
       dataOffset += 3 - ((imageSize + 3) % 4); // add padding for odd sized image
@@ -123,17 +123,8 @@ export const khronosTextureContainerParser = {
   /**
    *
    * @param buffer contents of the KTX container file
-   * @param facesExpected should be either 1 or 6, based whether a cube texture or or
-   * @param threeDExpected provision for indicating that data should be a 3D texture, not implemented
-   * @param textureArrayExpected provision for indicating that data should be a texture array, not implemented
-   * @param mapEngineFormat get Oasis Engine native TextureFormat?
    */
-  parse(
-    buffer: ArrayBuffer,
-    facesExpected: number,
-    withMipmaps: boolean,
-    mapEngineFormat: boolean = false
-  ): KTXContainer {
+  parse(buffer: ArrayBuffer): KTXContainer {
     if (!isValid(buffer)) {
       throw new Error("khronosTextureContainerParser: invalid KTX file, texture missing KTX identifier");
     }
@@ -178,17 +169,9 @@ export const khronosTextureContainerParser = {
       throw new Error("texture arrays not currently supported");
     }
 
-    if (parsedResult.numberOfFaces !== facesExpected) {
-      throw new Error("number of faces expected" + facesExpected + ", but found " + parsedResult.numberOfFaces);
-    }
+    parsedResult.mipmaps = getMipmaps(parsedResult);
+    parsedResult.engineFormat = getEngineFormat(parsedResult.glInternalFormat);
 
-    if (withMipmaps) {
-      parsedResult.mipmaps = getMipmaps(parsedResult, true);
-    }
-
-    if (mapEngineFormat) {
-      parsedResult.engineFormat = getEngineFormat(parsedResult.glInternalFormat);
-    }
     return parsedResult;
   }
 };

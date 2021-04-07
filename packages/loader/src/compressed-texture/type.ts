@@ -1,22 +1,6 @@
 import { TextureFormat } from "@oasis-engine/core";
 import { GLCompressedTextureInternalFormat } from "@oasis-engine/rhi-webgl";
 
-export type CompressedTextureData = {
-  internalFormat: GLCompressedTextureInternalFormat;
-  width: number;
-  height: number;
-  mipmaps: Mipmap[];
-  engineFormat: TextureFormat;
-};
-
-export type CompressedCubeData = {
-  engineFormat: TextureFormat;
-  internalFormat: number;
-  width: number;
-  height: number;
-  mipmapsFaces: Mipmap[][];
-};
-
 export type Mipmap = {
   data: ArrayBufferView;
   width: number;
@@ -43,11 +27,11 @@ export type KTXContainer = {
   /**
    * Gets the openGL internal format
    */
-  glInternalFormat: number;
+  glInternalFormat: GLCompressedTextureInternalFormat;
   /**
    * Gets the base internal format
    */
-  glBaseInternalFormat: GLCompressedTextureInternalFormat;
+  glBaseInternalFormat: number;
   /**
    * Gets image width in pixel
    */
