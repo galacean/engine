@@ -30,7 +30,7 @@ export class TextureCubeMapResource extends SchemaResource {
               }
             }
             console.warn(compression.type);
-            type = AssetType.KTXCube;
+            type = AssetType.KTX;
             break;
           }
         }

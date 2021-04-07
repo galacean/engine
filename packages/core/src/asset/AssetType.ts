@@ -31,6 +31,4 @@ export enum AssetType {
   Perfab = "prefab",
   /** Compress Texture. */
   KTX = "ktx",
-  /** Cube Compress Texture. */
-  KTXCube = "ktx-cube"
 }
