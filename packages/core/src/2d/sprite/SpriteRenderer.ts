@@ -214,9 +214,17 @@ export class SpriteRenderer extends Renderer {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const { x, y, z } = this.entity.transform.worldPosition;
-    worldBounds.min.setValue(x, y, z);
-    worldBounds.max.setValue(x, y, z);
+    const { _positions } = this;
+    const pos0 = _positions[0];
+    const pos1 = _positions[1];
+    const pos2 = _positions[2];
+    const pos3 = _positions[3];
+    const minX = Math.min(pos0.x, pos1.x, pos2.x, pos3.x);
+    const minY = Math.min(pos0.y, pos1.y, pos2.y, pos3.y);
+    const maxX = Math.max(pos0.x, pos1.x, pos2.x, pos3.x);
+    const maxY = Math.max(pos0.y, pos1.y, pos2.y, pos3.y);
+    worldBounds.min.setValue(minX, minY, pos0.z);
+    worldBounds.max.setValue(maxX, maxY, pos0.z);
   }
 }
 
