@@ -6,33 +6,31 @@ export enum AssetType {
    * Plain text.
    * @remarks Will not be cached based on url in ResourceManager.
    */
-  Text = 0,
+  Text = "text",
   /**
    * JSON.
    * @remarks Will not be cached based on url in ResourceManager.
    */
-  JSON = 1,
+  JSON = "json",
   /**
    * ArrayBuffer.
    * @remarks Will not be cached based on url in ResourceManager.
    */
-  Buffer = 2,
+  Buffer = "buffer",
   /** 2D Texture. */
-  Texture2D = 3,
+  Texture2D = "texture2d",
   /** Cube Texture. */
-  TextureCube = 4,
+  TextureCube = "texture-cube",
   /** Material. */
-  Material = 5,
+  Material = "material",
   /** Mesh. */
-  Mesh = 6,
+  Mesh = "mesh",
   /** Animation Clip. */
-  AnimationClip = 7,
+  AnimationClip = "animation-clip",
   /** Prefab.*/
-  Perfab = 8,
+  Perfab = "prefab",
   /** Compress Texture. */
-  KTX = 9,
+  KTX = "ktx",
   /** Cube Compress Texture. */
-  KTXCube = 10
-  /** @todo Scene. */
-  // Scene = 9
+  KTXCube = "ktx-cube"
 }

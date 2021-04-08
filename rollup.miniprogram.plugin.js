@@ -28,7 +28,6 @@ const adapterArray = [
   "cancelAnimationFrame",
   "WebGLRenderingContext",
   "screen",
-  "WebGLRenderingContext",
   "XMLHttpRequest",
   "performance"
 ];

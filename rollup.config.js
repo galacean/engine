@@ -18,6 +18,7 @@ const pkgsRoot = path.join(__dirname, "packages");
 const pkgs = fs
   .readdirSync(pkgsRoot)
   .map((dir) => path.join(pkgsRoot, dir))
+  .filter((dir) => fs.statSync(dir).isDirectory())
   .map((location) => {
     return {
       location: location,
@@ -35,7 +36,7 @@ const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true }),
   glslify({
-    include: [/\.glsl$/, "packages/**/worker/**/*.js"]
+    include: [/\.glsl$/]
   }),
   babel({
     extensions,
