@@ -2,7 +2,7 @@
 
 <p align="center"><a href="https://oasis-engine.github.io" target="_blank" rel="noopener noreferrer"><img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*f1pVTpPvzA8AAAAAAAAAAAAAARQnAQ" alt="Oasis logo"></a></p>
 
-![npm-version](https://img.shields.io/npm/v/oasis-engine)
+<a href="https://www.npmjs.com/package/oasis-engine"><img src="https://img.shields.io/npm/v/oasis-engine"/></a>
 ![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
 
@@ -43,7 +43,6 @@ const cubeEntity = rootEntity.createChild("Cube");
 const cubeRenderer = cubeEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
 cubeEntity.transform.rotate(0, 60, 0);
-material.ambientColor = new Color(0.6, 0.6, 0.6, 1);
 cubeRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 cubeRenderer.setMaterial(material);
 
@@ -100,9 +99,9 @@ npm run doc
 ## Links
 
 - [Official Site](https://oasis-engine.github.io)
-- [Playground](https://oasis-engine.github.io/0.2/playground)
-- [Manual](https://oasis-engine.github.io/#/0.2/manual/zh-cn/README)
-- [API References](https://oasis-engine.github.io/0.2/api/globals.html)
+- [Playground](https://oasis-engine.github.io/0.3/playground)
+- [Manual](https://oasis-engine.github.io/#/0.3/manual/zh-cn/README)
+- [API References](https://oasis-engine.github.io/0.3/api/globals.html)
 
 ## License 
 The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.
