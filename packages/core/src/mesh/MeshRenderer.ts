@@ -63,7 +63,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     if (mesh) {
       if (this._meshUpdateFlag.flag) {
         const shaderData = this.shaderData;
-        const vertexElements = mesh.vertexElements;
+        const vertexElements = mesh._vertexElements;
 
         shaderData.disableMacro(MeshRenderer._uvMacro);
         shaderData.disableMacro(MeshRenderer._normalMacro);
@@ -96,10 +96,11 @@ export class MeshRenderer extends Renderer implements ICustomClone {
 
       const subMeshes = mesh.subMeshes;
       const renderPipeline = camera._renderPipeline;
+      const renderElementPool = this._engine._renderElementPool;
       for (let i = 0, n = subMeshes.length; i < n; i++) {
         const material = this._materials[i];
         if (material) {
-          const element = RenderElement.getFromPool();
+          const element = renderElementPool.getFromPool();
           element.setValue(this, mesh, subMeshes[i], material);
           renderPipeline.pushPrimitive(element);
         }

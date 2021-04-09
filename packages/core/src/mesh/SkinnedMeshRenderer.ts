@@ -34,13 +34,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _mat: Matrix;
   @ignoreClone
-  private _weights: number[];
-  @ignoreClone
-  private weightsIndices: number[] = [];
-  @ignoreClone
   /** Whether to use joint texture. Automatically used when the device can't support the maxium number of bones. */
   private _useJointTexture: boolean = false;
-
   private _skin: Skin;
 
   /**
@@ -50,7 +45,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   constructor(entity: Entity) {
     super(entity);
     this._mat = new Matrix();
-    this._weights = null;
     this._skin = null;
   }
 
@@ -74,10 +68,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set skin(skin) {
     this._skin = skin;
-  }
-
-  get weights() {
-    return this._weights;
   }
 
   _initJoints() {
@@ -105,8 +95,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       if (joints.length > maxJoints) {
         if (rhi.canIUseMoreJoints) {
           this._useJointTexture = true;
-          shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
-          shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
         } else {
           Logger.error(
             `component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
@@ -190,6 +178,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       if (!rhi) return;
       this.jointTexture = new Texture2D(engine, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
       this.jointTexture.filterMode = TextureFilterMode.Point;
+      this.shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
+      this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
   }

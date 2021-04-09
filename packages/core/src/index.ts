@@ -1,6 +1,5 @@
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
-export type { HardwareRenderer } from "./HardwareRenderer";
 export type { Canvas } from "./Canvas";
 export { EngineFeature } from "./EngineFeature";
 
@@ -28,6 +27,7 @@ export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 export { RenderQueue } from "./RenderPipeline/RenderQueue";
 export { RenderPass } from "./RenderPipeline/RenderPass";
 export { RenderElement } from "./RenderPipeline/RenderElement";
+export { SpriteElement } from "./RenderPipeline/SpriteElement";
 export * from "./base";
 
 // Lighting
@@ -63,3 +63,6 @@ export * from "./env-probe/index";
 export * from "./shadow/index";
 export * from "./shader/index";
 export * from "./Layer";
+export * from "./clone/CloneManager";
+
+export * from "./renderingHardwareInterface/index";

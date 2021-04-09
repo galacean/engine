@@ -1,4 +1,3 @@
-import { Entity } from "oasis-engine";
 import DrawCallHook from "./hooks/DrawCallHook";
 import ShaderHook from "./hooks/ShaderHook";
 import TextureHook from "./hooks/TextureHook";
@@ -63,8 +62,6 @@ export default class Core {
       memory: performance.memory && (performance.memory.usedJSHeapSize / 1048576) >> 0,
       drawCall: this.drawCallHook.drawCall,
       triangles: this.drawCallHook.triangles,
-      //@ts-ignorets-ignore
-      nodes: Entity._entitys.length,
       lines: this.drawCallHook.lines,
       points: this.drawCallHook.points,
       textures: this.textureHook.textures,

@@ -1,4 +1,4 @@
-import { HardwareRenderer } from "../../HardwareRenderer";
+import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
 import { CompareFunction } from "../enums/CompareFunction";
 import { RenderState } from "./RenderState";
 
@@ -15,15 +15,15 @@ export class DepthState {
       case CompareFunction.Equal:
         return WebGLRenderingContext.EQUAL;
       case CompareFunction.LessEqual:
-        return WebGL2RenderingContext.LEQUAL;
+        return WebGLRenderingContext.LEQUAL;
       case CompareFunction.Greater:
-        return WebGL2RenderingContext.GREATER;
+        return WebGLRenderingContext.GREATER;
       case CompareFunction.NotEqual:
-        return WebGL2RenderingContext.NOTEQUAL;
+        return WebGLRenderingContext.NOTEQUAL;
       case CompareFunction.GreaterEqual:
-        return WebGL2RenderingContext.GEQUAL;
+        return WebGLRenderingContext.GEQUAL;
       case CompareFunction.Always:
-        return WebGL2RenderingContext.ALWAYS;
+        return WebGLRenderingContext.ALWAYS;
     }
   }
 
@@ -38,11 +38,11 @@ export class DepthState {
    * @internal
    * Apply the current depth state by comparing with the last depth state.
    */
-  _apply(hardwareRenderer: HardwareRenderer, lastRenderState: RenderState): void {
+  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState): void {
     this._platformApply(hardwareRenderer, lastRenderState.depthState);
   }
 
-  private _platformApply(rhi: HardwareRenderer, lastState: DepthState): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: DepthState): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const { enabled, compareFunction, writeEnabled } = this;
 

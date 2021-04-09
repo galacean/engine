@@ -1,4 +1,4 @@
-import { HardwareRenderer } from "../../HardwareRenderer";
+import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
 import { CullMode } from "../enums/CullMode";
 import { RenderState } from "./RenderState";
 
@@ -19,11 +19,11 @@ export class RasterState {
   /**
    * @internal
    */
-  _apply(hardwareRenderer: HardwareRenderer, lastRenderState: RenderState): void {
+  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState): void {
     this._platformApply(hardwareRenderer, lastRenderState.rasterState);
   }
 
-  private _platformApply(rhi: HardwareRenderer, lastState: RasterState): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: RasterState): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const { cullMode, depthBias, slopeScaledDepthBias } = this;
 

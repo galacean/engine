@@ -11,8 +11,8 @@ import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Shader, CullMode } from "../shader";
 import { Texture } from "../texture";
 import { MeshRenderer } from "../mesh/MeshRenderer";
-import { Mesh } from "../graphic/Mesh";
 import { GLCapabilityType } from "../base/Constant";
+import { BufferMesh } from "../mesh/BufferMesh";
 
 enum DirtyFlagType {
   Position = 0x1,
@@ -511,11 +511,17 @@ export class ParticleRenderer extends MeshRenderer {
     const target = blendState.targetBlendState;
 
     if (value === ParticleRendererBlendMode.Transparent) {
-      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.enabled = true;
+      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.sourceAlphaBlendFactor = BlendFactor.One;
+      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     } else if (value === ParticleRendererBlendMode.Additive) {
-      target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
+      target.enabled = true;
+      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = BlendFactor.One;
+      target.sourceAlphaBlendFactor = BlendFactor.One;
+      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     }
 
     this._blendMode = value;
@@ -578,8 +584,11 @@ export class ParticleRenderer extends MeshRenderer {
     const { renderState } = material;
     const target = renderState.blendState.targetBlendState;
 
-    target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
 
     renderState.depthState.writeEnabled = false;
 
@@ -592,8 +601,8 @@ export class ParticleRenderer extends MeshRenderer {
     return material;
   }
 
-  private _createMesh(): Mesh {
-    const mesh = new Mesh(this._entity.engine, "particleMesh");
+  private _createMesh(): BufferMesh {
+    const mesh = new BufferMesh(this._entity.engine, "particleMesh");
     const vertexStride = 96;
     const vertexCount = this._maxCount * 4;
     const vertexFloatCount = vertexCount * vertexStride;
@@ -601,7 +610,7 @@ export class ParticleRenderer extends MeshRenderer {
     let indices: Uint16Array | Uint32Array = null;
     let useUint32: boolean = false;
     if (vertexCount > ParticleRenderer._uint16VertexLimit) {
-      if (this.engine.renderhardware.canIUse(GLCapabilityType.elementIndexUint)) {
+      if (this.engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
         useUint32 = true;
         indices = new Uint32Array(6 * this._maxCount);
       } else {

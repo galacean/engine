@@ -1,31 +1,25 @@
 import { Color, Matrix, Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
-import { BlendFactor } from "../shader/enums/BlendFactor";
-import { BlendOperation } from "../shader/enums/BlendOperation";
-import { CullMode } from "../shader/enums/CullMode";
 import { Shader } from "../shader/Shader";
 import { TextureCubeMap } from "../texture";
 import { Texture2D } from "../texture/Texture2D";
-import { AlphaMode } from "./enums/AlphaMode";
-import { RenderQueueType } from "./enums/RenderQueueType";
-import { Material } from "./Material";
+import { BaseMaterial } from "./BaseMaterial";
 
 /**
  * PBR (Physically-Based Rendering) Material.
  */
-export abstract class PBRBaseMaterial extends Material {
+export abstract class PBRBaseMaterial extends BaseMaterial {
   private _baseColor: Color = new Color(1, 1, 1, 1);
-  private _normalScale: number = 1;
+  private _normalIntensity: number = 1;
   private _emissiveColor = new Color(0, 0, 0, 1);
   private _occlusionStrength: number = 1;
-  private _alphaCutoff: number = 0.5;
   private _envMapIntensity: number = 1;
   private _refractionRatio: number = 1 / 1.33;
   private _refractionDepth: number = 1;
   private _perturbationUOffset: number = 0;
   private _perturbationVOffset: number = 0;
   private _PTMMatrix = new Matrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
-  private _baseColorTexture: Texture2D;
+  private _baseTexture: Texture2D;
   private _opacityTexture: Texture2D;
   private _normalTexture: Texture2D;
   private _emissiveTexture: Texture2D;
@@ -40,8 +34,18 @@ export abstract class PBRBaseMaterial extends Material {
   private _gamma: boolean = false;
   private _getOpacityFromRGB: boolean = false;
   private _envMapModeRefract: boolean = false;
-  private _alphaMode: AlphaMode = AlphaMode.Opaque;
-  private _doubleSided: boolean = false;
+
+  /**
+   * Tiling and offset of main textures.
+   */
+  get tilingOffset(): Vector4 {
+    return this._tilingOffset;
+  }
+
+  set tilingOffset(value: Vector4) {
+    this._tilingOffset = value;
+    this.shaderData.setVector4("u_tilingOffset", value);
+  }
 
   /**
    * Tiling and offset of main textures.
@@ -68,14 +72,14 @@ export abstract class PBRBaseMaterial extends Material {
   }
 
   /**
-   * Base color texture.
+   * Base texture.
    */
-  get baseColorTexture(): Texture2D {
-    return this._baseColorTexture;
+  get baseTexture(): Texture2D {
+    return this._baseTexture;
   }
 
-  set baseColorTexture(v: Texture2D) {
-    this._baseColorTexture = v;
+  set baseTexture(v: Texture2D) {
+    this._baseTexture = v;
 
     if (v) {
       this.shaderData.enableMacro("HAS_BASECOLORMAP");
@@ -125,23 +129,23 @@ export abstract class PBRBaseMaterial extends Material {
     this._normalTexture = v;
 
     if (v) {
-      this.shaderData.enableMacro("O3_HAS_NORMALMAP");
-      this.shaderData.setTexture("u_normalSampler", v);
+      this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
+      this.shaderData.setTexture("u_normalTexture", v);
     } else {
-      this.shaderData.disableMacro("O3_HAS_NORMALMAP");
+      this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
     }
   }
 
   /**
-   * Normal scale factor.
+   * Normal intensity.
    */
-  get normalScale(): number {
-    return this._normalScale;
+  get normalIntensity(): number {
+    return this._normalIntensity;
   }
 
-  set normalScale(v: number) {
-    this._normalScale = v;
-    this.shaderData.setFloat("u_normalScale", v);
+  set normalIntensity(v: number) {
+    this._normalIntensity = v;
+    this.shaderData.setFloat("u_normalIntensity", v);
   }
 
   /**
@@ -202,19 +206,6 @@ export abstract class PBRBaseMaterial extends Material {
   set occlusionStrength(v: number) {
     this._occlusionStrength = v;
     this.shaderData.setFloat("u_occlusionStrength", v);
-  }
-
-  /**
-   * Alpha cutoff value.
-   * @remarks fragments with alpha channel lower than cutoff value will be discarded.
-   */
-  get alphaCutoff(): number {
-    return this._alphaCutoff;
-  }
-
-  set alphaCutoff(v: number) {
-    this._alphaCutoff = v;
-    this.shaderData.setFloat("u_alphaCutoff", v);
   }
 
   /**
@@ -419,69 +410,6 @@ export abstract class PBRBaseMaterial extends Material {
   }
 
   /**
-   * Transparent mode.
-   */
-  get alphaMode(): AlphaMode {
-    return this._alphaMode;
-  }
-
-  set alphaMode(v: AlphaMode) {
-    const target = this.renderState.blendState.targetBlendState;
-    const depthState = this.renderState.depthState;
-
-    this.shaderData.disableMacro("ALPHA_CUTOFF");
-    this.shaderData.disableMacro("ALPHA_BLEND");
-
-    switch (v) {
-      case AlphaMode.Opaque:
-        {
-          target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.One;
-          target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.Zero;
-          target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-          depthState.writeEnabled = true;
-          this.renderQueueType = RenderQueueType.Opaque;
-        }
-        break;
-      case AlphaMode.Blend:
-        {
-          this.shaderData.enableMacro("ALPHA_BLEND");
-          target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-          target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-          target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-          depthState.writeEnabled = false;
-          this.renderQueueType = RenderQueueType.Transparent;
-        }
-        break;
-      case AlphaMode.CutOff:
-        {
-          this.shaderData.enableMacro("ALPHA_CUTOFF");
-          target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.One;
-          target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.Zero;
-          target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-          depthState.writeEnabled = true;
-          this.renderQueueType = RenderQueueType.AlphaTest;
-        }
-        break;
-    }
-  }
-
-  /**
-   * Whether to render both sides.
-   * @remarks Only the front side is rendered by default
-   */
-  get doubleSided(): boolean {
-    return this._doubleSided;
-  }
-
-  set doubleSided(v: boolean) {
-    if (v) {
-      this.renderState.rasterState.cullMode = CullMode.Off;
-    } else {
-      this.renderState.rasterState.cullMode = CullMode.Back;
-    }
-  }
-
-  /**
    * Create a pbr base material instance.
    * @param engine - Engine to which the material belongs
    */
@@ -491,10 +419,9 @@ export abstract class PBRBaseMaterial extends Material {
     this.shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
     this.baseColor = this._baseColor;
-    this.normalScale = this._normalScale;
+    this.normalIntensity = this._normalIntensity;
     this.emissiveColor = this._emissiveColor;
     this.occlusionStrength = this._occlusionStrength;
-    this.alphaCutoff = this._alphaCutoff;
     this.envMapIntensity = this._envMapIntensity;
     this.refractionRatio = this._refractionRatio;
     this.refractionDepth = this._refractionDepth;

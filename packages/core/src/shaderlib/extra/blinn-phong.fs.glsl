@@ -12,11 +12,12 @@
 #include <mobile_material_frag>
 
 #include <fog_share>
+#include <normal_get>
+
 
 void main() {
 
     #include <begin_mobile_frag>
-    #include <begin_normal_frag>
     #include <begin_viewdir_frag>
     #include <mobile_blinnphong_frag>
 

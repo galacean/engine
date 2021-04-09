@@ -1,10 +1,10 @@
 import {
-  AlphaMode,
   Animation,
   AnimationClip,
   BlinnPhongMaterial,
   Buffer,
   BufferBindFlag,
+  BufferMesh,
   BufferUsage,
   Camera,
   Engine,
@@ -15,12 +15,12 @@ import {
   InterpolationType,
   Logger,
   Material,
-  Mesh,
   MeshRenderer,
+  MeshTopology,
   ModelMesh,
   PBRMaterial,
   PBRSpecularMaterial,
-  MeshTopology,
+  RenderFace,
   Scene,
   Skin,
   SkinnedMeshRenderer,
@@ -122,7 +122,7 @@ export class GLTFResource extends EngineObject {
   textures?: Texture2D[];
   animations?: AnimationClip[];
   materials?: Material[];
-  meshes?: Mesh[];
+  meshes?: BufferMesh[];
   skins?: Skin[];
   cameras?: Camera[];
   meta: any;
@@ -264,16 +264,20 @@ export function parseMaterial(gltfMaterial, resources) {
     }
 
     // render states
-    material.doubleSided = doubleSided;
+    if (doubleSided) {
+      material.renderFace = RenderFace.Double;
+    } else {
+      material.renderFace = RenderFace.Front;
+    }
+
     switch (alphaMode) {
       case "OPAQUE":
-        material.alphaMode = AlphaMode.Opaque;
+        material.isTransparent = false;
         break;
       case "BLEND":
-        material.alphaMode = AlphaMode.Blend;
+        material.isTransparent = true;
         break;
       case "MASK":
-        material.alphaMode = AlphaMode.CutOff;
         (material as PBRMaterial | PBRSpecularMaterial).alphaCutoff = alphaCutoff === undefined ? 0.5 : alphaCutoff;
         break;
     }
@@ -288,7 +292,7 @@ export function parseMaterial(gltfMaterial, resources) {
         metallicRoughnessTexture
       } = pbrMetallicRoughness;
       if (baseColorTexture) {
-        material.baseColorTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources, false);
+        material.baseTexture = getItemByIdx("textures", baseColorTexture.index || 0, resources, false);
       }
       if (baseColorFactor) {
         material.baseColor = new Color(...baseColorFactor);
@@ -328,7 +332,7 @@ export function parseMaterial(gltfMaterial, resources) {
       material.normalTexture = getItemByIdx("textures", index || 0, resources, false);
 
       if (scale !== undefined) {
-        material.normalScale = scale;
+        material.normalIntensity = scale;
       }
     }
 
@@ -354,7 +358,7 @@ export function parseMaterial(gltfMaterial, resources) {
         material.baseColor = new Color(...diffuseFactor);
       }
       if (diffuseTexture) {
-        material.baseColorTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources, false);
+        material.baseTexture = getItemByIdx("textures", diffuseTexture.index || 0, resources, false);
       }
       if (specularFactor) {
         material.specularColor = new Color(...specularFactor);
@@ -379,7 +383,7 @@ export function parseMaterial(gltfMaterial, resources) {
     if (techniqueName === "Texture") {
       const material = new UnlitMaterial(engine);
       const index = gltfMaterial.values._MainTex[0];
-      material.baseColorTexture = getItemByIdx("textures", index || 0, resources, false);
+      material.baseTexture = getItemByIdx("textures", index || 0, resources, false);
       return Promise.resolve(material);
     }
   }
@@ -424,7 +428,7 @@ export function parseSkin(gltfSkin, resources) {
 }
 
 function parsePrimitiveVertex(
-  mesh: Mesh,
+  mesh: BufferMesh,
   // primitive: Primitive,
   primitiveGroup: SubMesh,
   gltfPrimitive,
@@ -436,6 +440,7 @@ function parsePrimitiveVertex(
   // load vertices
   let i = 0;
   const vertexElements: VertexElement[] = [];
+  let vertexCount: number;
   for (const attributeSemantic in gltfPrimitive.attributes) {
     const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
     const accessor = gltf.accessors[accessorIdx];
@@ -451,7 +456,7 @@ function parsePrimitiveVertex(
     // compute bounds
     if (vertexELement.semantic == "POSITION") {
       const position = new Vector3();
-      const vertexCount = bufferData.length / 3;
+      vertexCount = bufferData.length / 3;
       const { min, max } = mesh.bounds;
       for (let i = 0; i < vertexCount; i++) {
         const offset = i * 3;
@@ -464,19 +469,23 @@ function parsePrimitiveVertex(
   mesh.setVertexElements(vertexElements);
 
   // load indices
-  const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-  const indexData = getIndexBufferData();
+  const indices = gltfPrimitive.indices;
+  if (indices !== undefined) {
+    const indexAccessor = gltf.accessors[gltfPrimitive.indices];
+    const indexData = getIndexBufferData();
 
-  const indexCount = indexAccessor.count;
-  const indexFormat = getIndexFormat(indexAccessor.componentType);
-  const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
-  const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indexCount * indexByteSize, BufferUsage.Static);
+    const indexCount = indexAccessor.count;
+    const indexFormat = getIndexFormat(indexAccessor.componentType);
+    const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
+    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indexCount * indexByteSize, BufferUsage.Static);
 
-  indexBuffer.setData(indexData);
-  mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
-  mesh.addSubMesh(0, indexCount);
-  // primitiveGroup.start = 0;
-  // primitiveGroup.count = indexCount;
+    indexBuffer.setData(indexData);
+    mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
+    mesh.addSubMesh(0, indexCount);
+  } else {
+    primitiveGroup.start = 0;
+    primitiveGroup.count = vertexCount;
+  }
   return Promise.resolve(mesh);
 }
 
@@ -500,7 +509,7 @@ export function parseMesh(gltfMesh, resources) {
       new Promise((resolve, reject) => {
         const gltfPrimitive = gltfMesh.primitives[i];
         // FIXME: use index as primitive's name
-        const mesh = new ModelMesh(engine, gltfPrimitive.name || gltfMesh.name || i);
+        const mesh = new BufferMesh(engine, gltfPrimitive.name || gltfMesh.name || i);
         const subMesh = new SubMesh();
         groups.push(subMesh);
         // primitive.type = resources.assetType;

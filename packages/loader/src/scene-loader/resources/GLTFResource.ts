@@ -1,7 +1,9 @@
 import {
   AssetType,
+  Entity,
   Logger,
   Material,
+  Mesh,
   MeshRenderer,
   PBRMaterial,
   PBRSpecularMaterial,
@@ -122,44 +124,45 @@ export class GLTFResource extends SchemaResource {
     }
   }
 
-  private bindMaterials(materials) {
-    if (!materials || !materials.length) {
+  private bindMaterials(newMaterialsConfig) {
+    const newMaterialCount = newMaterialsConfig.length;
+    if (!newMaterialsConfig || !newMaterialsConfig.length) {
       return;
     }
-    const gltf = this._resource;
-    const meshes = gltf.meshes;
 
-    for (let i = 0; i < materials.length; i++) {
-      const mtlResource = this.resourceManager.get(materials[i].id);
+    const gltf = this._resource;
+
+    const newMaterials = new Array(newMaterialCount);
+    gltf.newMaterial = newMaterials;
+
+    for (let i = 0; i < newMaterialsConfig.length; i++) {
+      const mtlResource = this.resourceManager.get(newMaterialsConfig[i].id);
       if (mtlResource) {
         this._attachedResources.push(mtlResource);
-        gltf.materials[i] = mtlResource.resource;
+        newMaterials[i] = mtlResource.resource;
       } else {
-        Logger.warn(`GLTFResource: ${this.meta.name} can't find asset "material", which id is: ${materials[i].id}`);
+        Logger.warn(
+          `GLTFResource: ${this.meta.name} can't find asset "material", which id is: ${newMaterialsConfig[i].id}`
+        );
       }
     }
-    for (let j = 0; j < meshes.length; j++) {
-      const node = this.getNodeByMeshIndex(gltf.nodes, meshes.length - 1 - j);
-      if (node) {
-        for (let k = 0; k < meshes[j].primitives.length; k++) {
-          const primitive = meshes[j].primitives[k];
-          const meshRenderer = node.getComponent(MeshRenderer);
-          const material = gltf.materials[gltf.materials.length - 1 - primitive.materialIndex];
-          if (meshRenderer && material && material instanceof Material) {
-            meshRenderer.setSharedMaterial(k, material);
+
+    const gltfRoot = gltf.defaultSceneRoot as Entity;
+    const originMaterials = gltf.materials;
+    const meshRenderers: MeshRenderer[] = gltfRoot.getComponentsIncludeChildren(MeshRenderer, []);
+
+    for (let i = 0; i < newMaterialCount; i++) {
+      const newMaterial = newMaterials[i];
+      const originMaterial = originMaterials[i];
+      for (let j = 0; j < meshRenderers.length; j++) {
+        const meshRenderer = meshRenderers[j];
+        const meshMaterials = meshRenderer.getMaterials();
+        for (let k = 0; k < meshMaterials.length; k++) {
+          if (originMaterial === meshMaterials[k]) {
+            meshRenderer.setMaterial(k, newMaterial);
           }
         }
       }
     }
-  }
-
-  private getNodeByMeshIndex(nodes, index) {
-    for (let i = 0; i <= nodes.length; i++) {
-      const node = nodes[i];
-      if (node.meshIndex === index) {
-        return node;
-      }
-    }
-    return null;
   }
 }

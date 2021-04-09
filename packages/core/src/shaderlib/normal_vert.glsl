@@ -1,6 +1,6 @@
     #ifdef O3_HAS_NORMAL
 
-        #if defined( O3_HAS_TANGENT ) && defined( O3_HAS_NORMALMAP )
+        #if defined( O3_HAS_TANGENT ) && defined( O3_NORMAL_TEXTURE )
 
         vec3 normalW = normalize( mat3(u_normalMat) * normal.xyz );
         vec3 tangentW = normalize( mat3(u_normalMat) * tangent.xyz );
