@@ -115,7 +115,25 @@ export class SpriteRenderer extends Renderer {
       return;
     }
 
-    const { _positions } = this;
+    this._updateRenderData();
+    this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
+    const material = this.getMaterial() || this._getDefaultMaterial();
+
+    const spriteElement = SpriteElement.getFromPool();
+    spriteElement.setValue(this, this._positions, sprite._uv, sprite._triangles, this.color, material, camera);
+    camera._renderPipeline.pushPrimitive(spriteElement);
+  }
+
+  /**
+   * @internal
+   */
+  _onDestroy(): void {
+    this._isWorldMatrixDirty.destroy();
+    super._onDestroy();
+  }
+
+  private _updateRenderData(): void {
+    const { sprite, _positions } = this;
     const { transform } = this.entity;
 
     // Update sprite data.
@@ -162,21 +180,6 @@ export class SpriteRenderer extends Renderer {
       this._cacheFlipX = flipX;
       this._cacheFlipY = flipY;
     }
-
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
-    const material = this.getMaterial() || this._getDefaultMaterial();
-
-    const spriteElement = SpriteElement.getFromPool();
-    spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
-    camera._renderPipeline.pushPrimitive(spriteElement);
-  }
-
-  /**
-   * @internal
-   */
-  _onDestroy(): void {
-    this._isWorldMatrixDirty.destroy();
-    super._onDestroy();
   }
 
   private _isContainDirtyFlag(type: number): boolean {
@@ -214,17 +217,17 @@ export class SpriteRenderer extends Renderer {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const { _positions } = this;
-    const pos0 = _positions[0];
-    const pos1 = _positions[1];
-    const pos2 = _positions[2];
-    const pos3 = _positions[3];
-    const minX = Math.min(pos0.x, pos1.x, pos2.x, pos3.x);
-    const minY = Math.min(pos0.y, pos1.y, pos2.y, pos3.y);
-    const maxX = Math.max(pos0.x, pos1.x, pos2.x, pos3.x);
-    const maxY = Math.max(pos0.y, pos1.y, pos2.y, pos3.y);
-    worldBounds.min.setValue(minX, minY, pos0.z);
-    worldBounds.max.setValue(maxX, maxY, pos0.z);
+    const { sprite } = this;
+    if (!sprite) {
+      return;
+    }
+    const { texture } = sprite;
+    if (!texture) {
+      return;
+    }
+
+    this._updateRenderData();
+    BoundingBox.fromPoints(this._positions, worldBounds);
   }
 }
 
