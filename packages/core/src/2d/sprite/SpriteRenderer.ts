@@ -1,4 +1,4 @@
-import { Color, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
@@ -115,10 +115,26 @@ export class SpriteRenderer extends Renderer {
       return;
     }
 
-    const { _positions } = this;
-    const { transform } = this.entity;
+    this._updateRenderData();
+    this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
+    const material = this.getMaterial() || this._getDefaultMaterial();
 
-    // Update sprite data.
+    const spriteElement = SpriteElement.getFromPool();
+    spriteElement.setValue(this, this._positions, sprite._uv, sprite._triangles, this.color, material, camera);
+    camera._renderPipeline.pushPrimitive(spriteElement);
+  }
+
+  /**
+   * @internal
+   */
+  _onDestroy(): void {
+    this._isWorldMatrixDirty.destroy();
+    super._onDestroy();
+  }
+
+  private _updateRenderData(): void {
+    const { sprite, _positions } = this;
+    const { transform } = this.entity;
     const localDirty = sprite._updateMeshData();
 
     if (this._isWorldMatrixDirty.flag || localDirty || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
@@ -162,21 +178,6 @@ export class SpriteRenderer extends Renderer {
       this._cacheFlipX = flipX;
       this._cacheFlipY = flipY;
     }
-
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
-    const material = this.getMaterial() || this._getDefaultMaterial();
-
-    const spriteElement = SpriteElement.getFromPool();
-    spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
-    camera._renderPipeline.pushPrimitive(spriteElement);
-  }
-
-  /**
-   * @internal
-   */
-  _onDestroy(): void {
-    this._isWorldMatrixDirty.destroy();
-    super._onDestroy();
   }
 
   private _isContainDirtyFlag(type: number): boolean {
@@ -193,7 +194,6 @@ export class SpriteRenderer extends Renderer {
 
   private _getDefaultMaterial(): Material {
     if (!SpriteRenderer._defaultMaterial) {
-      // Create default material
       const material = (SpriteRenderer._defaultMaterial = new Material(this.scene.engine, Shader.find("Sprite")));
       const target = material.renderState.blendState.targetBlendState;
       target.enabled = true;
@@ -208,6 +208,20 @@ export class SpriteRenderer extends Renderer {
     }
 
     return SpriteRenderer._defaultMaterial;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    const { sprite } = this;
+    if (sprite && sprite.texture) {
+      this._updateRenderData();
+      BoundingBox.fromPoints(this._positions, worldBounds);
+    } else {
+      worldBounds.min.setValue(0, 0, 0);
+      worldBounds.max.setValue(0, 0, 0);
+    }
   }
 }
 
