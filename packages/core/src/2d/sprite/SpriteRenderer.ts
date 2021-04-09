@@ -135,8 +135,6 @@ export class SpriteRenderer extends Renderer {
   private _updateRenderData(): void {
     const { sprite, _positions } = this;
     const { transform } = this.entity;
-
-    // Update sprite data.
     const localDirty = sprite._updateMeshData();
 
     if (this._isWorldMatrixDirty.flag || localDirty || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
@@ -196,7 +194,6 @@ export class SpriteRenderer extends Renderer {
 
   private _getDefaultMaterial(): Material {
     if (!SpriteRenderer._defaultMaterial) {
-      // Create default material
       const material = (SpriteRenderer._defaultMaterial = new Material(this.scene.engine, Shader.find("Sprite")));
       const target = material.renderState.blendState.targetBlendState;
       target.enabled = true;
@@ -218,16 +215,13 @@ export class SpriteRenderer extends Renderer {
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
     const { sprite } = this;
-    if (!sprite) {
-      return;
+    if (sprite && sprite.texture) {
+      this._updateRenderData();
+      BoundingBox.fromPoints(this._positions, worldBounds);
+    } else {
+      worldBounds.min.setValue(0, 0, 0);
+      worldBounds.max.setValue(0, 0, 0);
     }
-    const { texture } = sprite;
-    if (!texture) {
-      return;
-    }
-
-    this._updateRenderData();
-    BoundingBox.fromPoints(this._positions, worldBounds);
   }
 }
 

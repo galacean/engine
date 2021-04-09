@@ -208,10 +208,8 @@ export class Sprite extends RefObject {
     if (this._isContainDirtyFlag(DirtyFlag.all)) {
       this._updateMesh();
       this._setDirtyFlagFalse(DirtyFlag.all);
-
       return true;
     }
-
     return false;
   }
 
