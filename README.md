@@ -43,7 +43,6 @@ const cubeEntity = rootEntity.createChild("Cube");
 const cubeRenderer = cubeEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
 cubeEntity.transform.rotate(0, 60, 0);
-material.ambientColor = new Color(0.6, 0.6, 0.6, 1);
 cubeRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 cubeRenderer.setMaterial(material);
 
