@@ -8,3 +8,4 @@ export { RegistExtension, GLTFResource } from "./gltf/glTF";
 export { GLTFModel } from "./scene-loader/GLTFModel";
 export { Model } from "./scene-loader/Model";
 export * from "./scene-loader/index";
+export { khronosTextureContainerParser } from "./compressed-texture/KhronosTextureContainer";
