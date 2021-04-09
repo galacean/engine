@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/baker",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -13,7 +13,7 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.2.1",
-    "@oasis-engine/math": "0.2.1"
+    "@oasis-engine/core": "0.3.0",
+    "@oasis-engine/math": "0.3.0"
   }
 }
