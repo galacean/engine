@@ -18,10 +18,10 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time develop
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement name and get root entity.
-const engine = new WebGLEngine("canvas");
-const canvas = engine.canvas;
+// Create engine by passing in the HTMLCanvasElement id and get root entity.
+const engine = new WebGLEngine("canvas-id");
 const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
+const canvas = engine.canvas;
 canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
 canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
 
@@ -34,17 +34,17 @@ directLight.color = new Color(0.3, 0.4, 0.4);
 
 // Create camera.
 const cameraEntity = rootEntity.createChild("Camera");
+cameraEntity.addComponent(Camera);
 cameraEntity.transform.setPosition(0, 6, 10);
 cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
-cameraEntity.addComponent(Camera);
 
 // Create cube.
 const cubeEntity = rootEntity.createChild("Cube");
 const cubeRenderer = cubeEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
-cubeEntity.transform.rotate(0, 60, 0);
-cubeRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+cubeEntity.transform.setRotation(0, 60, 0);
 cubeRenderer.setMaterial(material);
+cubeRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
 // Run engine.
 engine.run();
