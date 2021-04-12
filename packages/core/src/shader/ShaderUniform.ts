@@ -12,9 +12,10 @@ export class ShaderUniform {
   name: string;
   propertyId: number;
   location: WebGLUniformLocation;
-  textureIndex: GLenum | GLenum[];
   applyFunc: (shaderUniform: ShaderUniform, value: ShaderPropertyValueType) => void;
   cacheValue: number | Vector2 | Vector3 | Vector4;
+  textureIndex: GLenum | GLenum[];
+  textureDefault: Texture | Texture[];
 
   private _rhi: IHardwareRenderer;
   private _gl: WebGLRenderingContext;

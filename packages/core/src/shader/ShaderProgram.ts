@@ -5,6 +5,7 @@ import { Engine } from "../Engine";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
+import { Texture } from "../texture";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { Shader } from "./Shader";
 import { ShaderData } from "./ShaderData";
@@ -124,7 +125,11 @@ export class ShaderProgram {
       for (let i = 0, n = textureUniforms.length; i < n; i++) {
         const uniform = textureUniforms[i];
         const texture = properties[uniform.propertyId];
-        texture != null && uniform.applyFunc(uniform, texture);
+        if (texture) {
+          uniform.applyFunc(uniform, texture);
+        } else {
+          uniform.applyFunc(uniform, uniform.textureDefault);
+        }
       }
     }
   }
@@ -383,20 +388,28 @@ export class ShaderProgram {
           break;
         case gl.SAMPLER_2D:
         case gl.SAMPLER_CUBE:
+          const defaultTexture = type === gl.SAMPLER_2D ? this._engine._whiteTexture2D : this._engine._whiteTextureCube;
+
           isTexture = true;
           if (isArray) {
+            const textureDefaults = new Array<Texture>(size);
             const textureIndices = new Int32Array(size);
             const glTextureIndices = new Array<number>(size);
+
             for (let i = 0; i < size; i++) {
+              textureDefaults[i] = defaultTexture;
               textureIndices[i] = this._activeTextureUint;
               glTextureIndices[i] = gl.TEXTURE0 + this._activeTextureUint++;
             }
+            shaderUniform.textureDefault = textureDefaults;
             shaderUniform.textureIndex = glTextureIndices;
             shaderUniform.applyFunc = shaderUniform.uploadTextureArray;
             this.bind();
             gl.uniform1iv(location, textureIndices);
           } else {
             const textureIndex = gl.TEXTURE0 + this._activeTextureUint;
+
+            shaderUniform.textureDefault = defaultTexture;
             shaderUniform.textureIndex = textureIndex;
             shaderUniform.applyFunc = shaderUniform.uploadTexture;
             this.bind();
