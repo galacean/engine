@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "bootstrap": "npm i && lerna bootstrap --hoist",
-    "test": "jest",
+    "test": "cross-env DEBUG_MODE=1 jest",
     "test-cov": "jest --coverage",
     "ci": "lerna bootstrap && npm run build && npm run b:types && npm run test-cov",
     "lint": "eslint packages/*/src --ext .ts",
