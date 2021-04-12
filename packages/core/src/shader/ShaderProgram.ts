@@ -401,7 +401,7 @@ export class ShaderProgram {
               textureIndices[i] = this._activeTextureUint;
               glTextureIndices[i] = gl.TEXTURE0 + this._activeTextureUint++;
             }
-            shaderUniform.textureDefault = defaultTexture;
+            shaderUniform.textureDefault = textureDefaults;
             shaderUniform.textureIndex = glTextureIndices;
             shaderUniform.applyFunc = shaderUniform.uploadTextureArray;
             this.bind();
