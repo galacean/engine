@@ -114,7 +114,7 @@ export class Sprite extends RefObject {
     texture: Texture2D = null,
     rect: Rect = null,
     pivot: Vector2 = null,
-    pixelsPerUnit: number = 100
+    pixelsPerUnit: number = 128
   ) {
     super(engine);
 
