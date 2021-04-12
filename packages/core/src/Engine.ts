@@ -16,6 +16,7 @@ import { Shader } from "./shader/Shader";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
+import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -31,6 +32,10 @@ export class Engine extends EventDispatcher {
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
   _renderContext: RenderContext = new RenderContext();
 
+  /* @internal */
+  _whiteTexture2D: Texture2D;
+  /* @internal */
+  _whiteTextureCube: TextureCubeMap;
   /* @internal */
   _renderCount: number = 0;
   /* @internal */
@@ -142,6 +147,22 @@ export class Engine extends EventDispatcher {
     // @todo delete
     engineFeatureManager.addObject(this);
     this._sceneManager.activeScene = new Scene(this, "DefaultScene");
+
+    const whitePixel = new Uint8Array([255, 255, 255, 255]);
+    
+    const whiteTextrue2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+    whiteTextrue2D.setPixelBuffer(whitePixel);
+
+    const whiteTextrueCube = new TextureCubeMap(this, 1, TextureFormat.R8G8B8A8, false);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
+
+    this._whiteTexture2D = whiteTextrue2D;
+    this._whiteTextureCube = whiteTextrueCube;
   }
 
   /**
