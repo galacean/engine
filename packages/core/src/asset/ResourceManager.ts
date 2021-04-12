@@ -202,7 +202,6 @@ export class ResourceManager {
       return this._loadingPromises[info.url];
     }
     const loader = ResourceManager._loaders[info.type];
-    console.log();
     const promise = loader.load(info, this);
     this._loadingPromises[url] = promise;
     promise
