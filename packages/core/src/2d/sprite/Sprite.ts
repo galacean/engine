@@ -70,7 +70,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Location of the sprite on the original texture, specified in normalized.
+   * The rectangle region of the sprite on the original texture, specified in normalized.
    */
   get region(): Rect {
     return this._region;
