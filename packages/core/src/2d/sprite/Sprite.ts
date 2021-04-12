@@ -17,8 +17,8 @@ export class Sprite extends RefObject {
   _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   private _texture: Texture2D = null;
-  private _atlasRect: Rect = new Rect(0, 0, 1, 1);
-  private _rect: Rect = new Rect(0, 0, 1, 1);
+  private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
+  private _region: Rect = new Rect(0, 0, 1, 1);
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _pixelsPerUnit: number;
   private _dirtyFlag: number = DirtyFlag.all;
@@ -37,24 +37,24 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * The rectangle of the original texture on its atlas texture.
+   * The rectangle region of the original texture on its atlas texture.
    */
-  get atlasRect(): Rect {
-    return this._atlasRect;
+  get atlasRegion(): Rect {
+    return this._atlasRegion;
   }
 
-  set atlasRect(value: Rect) {
-    const { _atlasRect } = this;
-    if (value && _atlasRect !== value) {
-      _atlasRect.x = MathUtil.clamp(value.x, 0, 1);
-      _atlasRect.y = MathUtil.clamp(value.y, 0, 1);
-      _atlasRect.width = MathUtil.clamp(value.width, 0, 1.0 - _atlasRect.x);
-      _atlasRect.height = MathUtil.clamp(value.height, 0, 1.0 - _atlasRect.y);
+  set atlasRegion(value: Rect) {
+    const { _atlasRegion } = this;
+    if (value && _atlasRegion !== value) {
+      _atlasRegion.x = MathUtil.clamp(value.x, 0, 1);
+      _atlasRegion.y = MathUtil.clamp(value.y, 0, 1);
+      _atlasRegion.width = MathUtil.clamp(value.width, 0, 1.0 - _atlasRegion.x);
+      _atlasRegion.height = MathUtil.clamp(value.height, 0, 1.0 - _atlasRegion.y);
     }
   }
 
   /**
-   * Location of the sprite's center point in the rect on the original texture, specified in normalized.
+   * Location of the sprite's center point in the rectangle region on the original texture, specified in normalized.
    */
   get pivot(): Vector2 {
     return this._pivot;
@@ -72,17 +72,17 @@ export class Sprite extends RefObject {
   /**
    * Location of the sprite on the original texture, specified in normalized.
    */
-  get rect(): Rect {
-    return this._rect;
+  get region(): Rect {
+    return this._region;
   }
 
-  set rect(value: Rect) {
-    const { _rect } = this;
-    if (value && _rect !== value) {
-      _rect.x = MathUtil.clamp(value.x, 0, 1);
-      _rect.y = MathUtil.clamp(value.y, 0, 1);
-      _rect.width = MathUtil.clamp(value.width, 0, 1.0 - _rect.x);
-      _rect.height = MathUtil.clamp(value.height, 0, 1.0 - _rect.y);
+  set region(value: Rect) {
+    const { _region } = this;
+    if (value && _region !== value) {
+      _region.x = MathUtil.clamp(value.x, 0, 1);
+      _region.y = MathUtil.clamp(value.y, 0, 1);
+      _region.width = MathUtil.clamp(value.width, 0, 1.0 - _region.x);
+      _region.height = MathUtil.clamp(value.height, 0, 1.0 - _region.y);
       this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
     }
   }
@@ -105,14 +105,14 @@ export class Sprite extends RefObject {
    * Constructor a sprite.
    * @param engine - Engine to which the sprite belongs
    * @param texture - Texture from which to obtain the sprite
-   * @param rect - Rectangular section of the texture to use for the sprite, specified in normalized
+   * @param region - Rectangle region of the texture to use for the sprite, specified in normalized
    * @param pivot - Sprite's pivot point relative to its graphic rectangle, specified in normalized
    * @param pixelsPerUnit - The number of pixels in the sprite that correspond to one unit in world space
    */
   constructor(
     engine: Engine,
     texture: Texture2D = null,
-    rect: Rect = null,
+    region: Rect = null,
     pivot: Vector2 = null,
     pixelsPerUnit: number = 128
   ) {
@@ -122,9 +122,9 @@ export class Sprite extends RefObject {
       this.texture = texture;
     }
 
-    if (rect) {
-      this.rect = rect;
-      this.atlasRect = rect;
+    if (region) {
+      this.region = region;
+      this.atlasRegion = region;
     }
 
     if (pivot) {
@@ -150,7 +150,7 @@ export class Sprite extends RefObject {
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
       const { _pixelsPerUnit, _positions } = this;
       const { width, height } = this.texture;
-      const { width: rWidth, height: rHeight } = this.rect;
+      const { width: rWidth, height: rHeight } = this.region;
       const { x, y } = this.pivot;
       const unitPivot = Sprite._tempVec2;
 
@@ -174,7 +174,7 @@ export class Sprite extends RefObject {
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
       const { _uv } = this;
-      const { x, y, width, height } = this.rect;
+      const { x, y, width, height } = this.region;
       const rightX = x + width;
       const bottomY = y + height;
 
