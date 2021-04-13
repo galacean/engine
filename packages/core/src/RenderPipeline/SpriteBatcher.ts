@@ -16,7 +16,7 @@ import { SpriteElement } from "./SpriteElement";
  * @internal
  */
 export class SpriteBatcher {
-  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_texture");
+  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   /** The maximum number of vertex. */
   private static MAX_VERTEX_COUNT: number = 4096;
   private static _canUploadSameBuffer: boolean = !SystemInfo._isIos();
