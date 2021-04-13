@@ -15,7 +15,7 @@ import "./SpriteMaterial";
  * Renders a Sprite for 2D graphics.
  */
 export class SpriteRenderer extends Renderer {
-  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_texture");
+  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   private static _tempVec3: Vector3 = new Vector3();
   private static _defaultMaterial: Material = null;
 

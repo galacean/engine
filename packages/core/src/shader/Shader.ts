@@ -77,7 +77,7 @@ export class Shader {
     if (propertyNameMap[name] != null) {
       return propertyNameMap[name];
     } else {
-      const property = new ShaderProperty();
+      const property = new ShaderProperty(name);
       propertyNameMap[name] = property;
       return property;
     }
