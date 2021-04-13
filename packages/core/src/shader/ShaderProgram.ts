@@ -406,20 +406,21 @@ export class ShaderProgram {
 
           isTexture = true;
           if (isArray) {
-            const textureDefaults = new Array<Texture>(size);
+            const defaultTextures = new Array<Texture>(size);
             const textureIndices = new Int32Array(size);
             const glTextureIndices = new Array<number>(size);
 
             for (let i = 0; i < size; i++) {
-              textureDefaults[i] = defaultTexture;
+              defaultTextures[i] = defaultTexture;
               textureIndices[i] = this._activeTextureUint;
               glTextureIndices[i] = gl.TEXTURE0 + this._activeTextureUint++;
             }
-            shaderUniform.textureDefault = textureDefaults;
+            shaderUniform.textureDefault = defaultTextures;
             shaderUniform.textureIndex = glTextureIndices;
             shaderUniform.applyFunc = shaderUniform.uploadTextureArray;
             this.bind();
             gl.uniform1iv(location, textureIndices);
+            shaderUniform.uploadTextureArray(shaderUniform, defaultTextures);
           } else {
             const textureIndex = gl.TEXTURE0 + this._activeTextureUint;
 
@@ -428,6 +429,7 @@ export class ShaderProgram {
             shaderUniform.applyFunc = shaderUniform.uploadTexture;
             this.bind();
             gl.uniform1i(location, this._activeTextureUint++);
+            shaderUniform.uploadTexture(shaderUniform, defaultTexture);
           }
           break;
       }
