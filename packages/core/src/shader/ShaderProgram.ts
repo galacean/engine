@@ -135,6 +135,20 @@ export class ShaderProgram {
   }
 
   /**
+   * Upload ungroup texture shader data in shader uniform block.
+   */
+  uploadUngroupTextures(): void {
+    const textureUniforms = this.otherUniformBlock.textureUniforms;
+    // textureUniforms property maybe null if ShaderUniformBlock not contain any texture.
+    if (textureUniforms) {
+      for (let i = 0, n = textureUniforms.length; i < n; i++) {
+        const uniform = textureUniforms[i];
+        uniform.applyFunc(uniform, uniform.textureDefault);
+      }
+    }
+  }
+
+  /**
    * Groupping other data.
    */
   groupingOtherUniformBlock() {
@@ -168,7 +182,7 @@ export class ShaderProgram {
     this._glProgram && gl.deleteProgram(this._glProgram);
   }
 
-  private _groupingSubOtherUniforms(unifroms: ShaderUniform[], isTexture: boolean) {
+  private _groupingSubOtherUniforms(unifroms: ShaderUniform[], isTexture: boolean): void {
     for (let i = unifroms.length - 1; i >= 0; i--) {
       const uniform = unifroms[i];
       const group = Shader._getShaderPropertyGroup(uniform.name);
