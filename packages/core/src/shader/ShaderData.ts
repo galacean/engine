@@ -586,7 +586,7 @@ export class ShaderData implements IRefObject, IClone {
       if (property._group === undefined) {
         property._group = this._group;
       } else {
-        throw `This property has been used as ${ShaderDataGroup[property._group]} property.`;
+        throw `Shader property ${property} has been used as ${ShaderDataGroup[property._group]} property.`;
       }
     }
 
