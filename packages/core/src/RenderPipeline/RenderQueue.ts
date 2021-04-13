@@ -132,6 +132,13 @@ export class RenderQueue {
             program.uploadTextures(program.materialUniformBlock, materialData);
           }
         }
+
+        // Ungroup textures should upload default value.
+        // We only consider switchProgram case, because the value is always default.
+        if (switchProgram) {
+          program.uploadUngroupTextures();
+        }
+
         material.renderState._apply(camera.engine);
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
