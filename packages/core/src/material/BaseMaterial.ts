@@ -1,3 +1,4 @@
+import { Engine } from "../Engine";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { BlendMode } from "./enums/BlendMode";
@@ -9,9 +10,9 @@ export class BaseMaterial extends Material {
   private static _alphaCutoffMacro: ShaderMacro = Shader.getMacroByName("ALPHA_CUTOFF");
   private static _blendMacro: ShaderMacro = Shader.getMacroByName("ALPHA_BLEND");
 
-  private _isTransparent: boolean = false;
   private _alphaCutoff: number = 0;
   private _renderFace: RenderFace = RenderFace.Front;
+  private _isTransparent: boolean = false;
   private _blendMode: BlendMode;
 
   /**
@@ -35,7 +36,6 @@ export class BaseMaterial extends Material {
     if (value) {
       this.shaderData.enableMacro(BaseMaterial._blendMacro);
       targetBlendState.enabled = true;
-      this.blendMode = this._blendMode ?? BlendMode.Normal;
       depthState.writeEnabled = false;
       this.renderQueueType = RenderQueueType.Transparent;
     } else {
@@ -128,5 +128,15 @@ export class BaseMaterial extends Material {
         target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
         break;
     }
+  }
+
+  /**
+   * Create a BaseMaterial instance.
+   * @param engine - Engine to which the material belongs
+   * @param shader - Shader used by the material
+   */
+  constructor(engine: Engine, shader: Shader) {
+    super(engine, shader);
+    this.blendMode = BlendMode.Normal;
   }
 }
