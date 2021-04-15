@@ -119,7 +119,7 @@ export class SpriteRenderer extends Renderer {
     this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
     const material = this.getMaterial() || this._getDefaultMaterial();
 
-    const spriteElement = SpriteElement.getFromPool();
+    const spriteElement = this._engine._spriteElementPool.getFromPool();
     spriteElement.setValue(this, this._positions, sprite._uv, sprite._triangles, this.color, material, camera);
     camera._renderPipeline.pushPrimitive(spriteElement);
   }
