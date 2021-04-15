@@ -304,6 +304,7 @@ export class Engine extends EventDispatcher {
           componentsManager.callCameraOnEndRender(camera);
         }
       }
+      this._renderElementPool.restPool();
     } else {
       Logger.debug("NO active camera.");
     }
