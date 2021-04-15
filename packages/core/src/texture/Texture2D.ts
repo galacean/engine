@@ -13,7 +13,6 @@ export class Texture2D extends Texture {
 
   /**
    * Texture format.
-   * @readonly
    */
   get format(): TextureFormat {
     return this._format;

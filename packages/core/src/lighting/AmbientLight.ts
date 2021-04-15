@@ -36,7 +36,6 @@ export class AmbientLight extends Light {
 
   /**
    * Get the final light color.
-   * @readonly
    */
   get lightColor(): Color {
     this._lightColor.r = this._color.r * this._intensity;

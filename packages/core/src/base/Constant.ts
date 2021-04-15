@@ -1,6 +1,5 @@
 /**
  * Camera's clear mode enumeration
- * @readonly
  */
  export enum ClearMode {
   /** Do not perform any operations to clear the background */

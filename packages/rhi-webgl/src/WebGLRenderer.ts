@@ -79,7 +79,6 @@ export class WebGLRenderer implements IHardwareRenderer {
   /**
    * GL Context
    * @member {WebGLRenderingContext}
-   * @readonly
    */
   get gl() {
     return this._gl;
