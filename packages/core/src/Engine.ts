@@ -30,6 +30,7 @@ export class Engine extends EventDispatcher {
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
@@ -149,7 +150,7 @@ export class Engine extends EventDispatcher {
     this._sceneManager.activeScene = new Scene(this, "DefaultScene");
 
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
-    
+
     const whiteTextrue2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
     whiteTextrue2D.setPixelBuffer(whitePixel);
 
@@ -201,8 +202,8 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
 
     time.tick();
-    RenderElement._restPool();
-    SpriteElement._restPool();
+    this._renderElementPool.resetPool();
+    this._spriteElementPool.resetPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
@@ -304,7 +305,6 @@ export class Engine extends EventDispatcher {
           componentsManager.callCameraOnEndRender(camera);
         }
       }
-      this._renderElementPool.restPool();
     } else {
       Logger.debug("NO active camera.");
     }
