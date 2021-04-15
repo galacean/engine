@@ -202,8 +202,8 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
 
     time.tick();
-    this._renderElementPool.restPool();
-    this._spriteElementPool.restPool();
+    this._renderElementPool.resetPool();
+    this._spriteElementPool.resetPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
