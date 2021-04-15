@@ -63,7 +63,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * The canvas to use for rendering.
-   * @readonly
    */
   get canvas(): Canvas {
     return this._canvas;
@@ -71,7 +70,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * Get the resource manager.
-   * @readonly
    */
   get resourceManager(): ResourceManager {
     return this._resourceManager;
@@ -79,7 +77,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * Get the scene manager.
-   * @readonly
    */
   get sceneManager(): SceneManager {
     return this._sceneManager;
@@ -87,7 +84,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * Get the Time class.
-   * @readonly
    */
   get time(): Time {
     return this._time;
@@ -95,7 +91,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * Whether the engine is paused.
-   * @readonly
    */
   get isPaused(): boolean {
     return this._isPaused;

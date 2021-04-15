@@ -25,7 +25,6 @@ export class RenderTarget extends EngineObject {
 
   /**
    * Render target width.
-   * @readonly
    */
   get width(): number {
     return this._width;
@@ -33,7 +32,6 @@ export class RenderTarget extends EngineObject {
 
   /**
    * Render target height.
-   * @readonly
    */
   get height(): number {
     return this._height;
@@ -41,7 +39,6 @@ export class RenderTarget extends EngineObject {
 
   /**
    * Render color texture count.
-   * @readonly
    */
   get colorTextureCount(): number {
     return this._colorTextures.length;
@@ -49,7 +46,6 @@ export class RenderTarget extends EngineObject {
 
   /**
    * Depth texture.
-   * @readonly
    */
   get depthTexture(): RenderDepthTexture | null {
     return this._depthTexture;
@@ -58,7 +54,6 @@ export class RenderTarget extends EngineObject {
   /**
    * Anti-aliasing level.
    * @remarks If the anti-aliasing level set is greater than the maximum level supported by the hardware, the maximum level of the hardware will be used.
-   * @readonly
    */
   get antiAliasing(): number {
     return this._antiAliasing;

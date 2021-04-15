@@ -60,7 +60,6 @@ export class SpotLight extends Light {
 
   /**
    * Get light position.
-   * @readonly
    */
   get position(): Vector3 {
     return this.entity.transform.worldPosition;
@@ -68,7 +67,6 @@ export class SpotLight extends Light {
 
   /**
    * Get light direction.
-   * @readonly
    */
   get direction(): Vector3 {
     this.entity.transform.getWorldForward(this._forward);
@@ -77,7 +75,6 @@ export class SpotLight extends Light {
 
   /**
    * Get the opposite direction of the spotlight.
-   * @readonly
    */
   get reverseDirection(): Vector3 {
     Vector3.scale(this.direction, -1, this._inverseDirection);
@@ -86,7 +83,6 @@ export class SpotLight extends Light {
 
   /**
    * Get the final light color.
-   * @readonly
    */
   get lightColor(): Color {
     this._lightColor.r = this.color.r * this.intensity;
