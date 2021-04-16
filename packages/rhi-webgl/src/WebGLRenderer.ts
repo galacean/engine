@@ -69,7 +69,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _capability: GLCapability;
   private _isWebGL2: boolean;
 
-  private _activedTextureID: number;
+  private _activedTextureID: number = WebGLRenderingContext.TEXTURE0;
   private _activeTextures: GLTexture[] = new Array(32);
 
   get isWebGL2() {

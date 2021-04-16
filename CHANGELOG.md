@@ -1,3 +1,14 @@
+## [0.3.2](https://github.com/oasis-engine/engine/compare/v0.3.1...v0.3.2) (2021-04-14)
+
+
+### Bug Fixes
+
+* error caused by duplicate shader name ([839ec0f](https://github.com/oasis-engine/engine/commit/839ec0ff5103278b08546cb468b28a5048595dd9))
+* material blend error ([#214](https://github.com/oasis-engine/engine/issues/214)) ([897fd21](https://github.com/oasis-engine/engine/commit/897fd21810b79293b65442321523c1d903c06cbe))
+* shader wanning with unUpload texture ([#212](https://github.com/oasis-engine/engine/issues/212)) ([8f52847](https://github.com/oasis-engine/engine/commit/8f52847cdf02849953d7c4425183fc28828166b5))
+* texture upload warnning ([#183](https://github.com/oasis-engine/engine/issues/183)) ([4a9c0c9](https://github.com/oasis-engine/engine/commit/4a9c0c9c49c8e63e7ee998569952a4d5d1cbd77a))
+
+
 ## [0.3.1](https://github.com/oasis-engine/engine/compare/0.3.0...v0.3.1) (2021-04-09)
 
 
@@ -8,7 +19,7 @@
 
 
 
-# [0.3.0](https://github.com/oasis-engine/engine/compare/e217213ec80f0aa9356d74ea12d2f1ef63776f85...0.3.0) (2021-04-05)
+## [0.3.0](https://github.com/oasis-engine/engine/compare/e217213ec80f0aa9356d74ea12d2f1ef63776f85...0.3.0) (2021-04-05)
 
 
 ### Features
