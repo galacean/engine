@@ -274,10 +274,10 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   bindTexture(texture: GLTexture): void {
-    const gl = this._gl;
-    if (this._activeTextures[this._activedTextureID - gl.TEXTURE0] !== texture) {
-      gl.bindTexture(texture._target, texture._glTexture);
-      this._activeTextures[this._activedTextureID - gl.TEXTURE0] = texture;
+    const index = this._activedTextureID - this._gl.TEXTURE0;
+    if (this._activeTextures[index] !== texture) {
+      this._gl.bindTexture(texture._target, texture._glTexture);
+      this._activeTextures[index] = texture;
     }
   }
 }
