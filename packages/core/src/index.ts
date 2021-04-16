@@ -38,14 +38,8 @@ Scene.registerFeature(LightFeature);
 // Quote raycast
 import "./raycast";
 
-export { LightFeature };
-export { AmbientLight } from "./lighting/AmbientLight";
-export { DirectLight } from "./lighting/DirectLight";
-export { PointLight } from "./lighting/PointLight";
-export { SpotLight } from "./lighting/SpotLight";
-export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
-export { Light } from "./lighting/Light";
 
+export * from "./lighting/index";
 export * from "./material/index";
 export * from "./texture/index";
 export * from "./graphic/index";

@@ -32,8 +32,6 @@ float getSpecularMIPLevel( const in float blinnShininessExponent, const in int m
 
 }
 
-#ifdef O3_HAS_ENVMAP_LIGHT
-
 vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightProbe,*/ const in GeometricContext geometry, const in float blinnShininessExponent, const in int maxMIPLevel ) {
 
     #if !defined(O3_USE_SPECULAR_ENV) && !defined(HAS_REFLECTIONMAP)
@@ -42,18 +40,16 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
 
     #else
 
-    #ifdef ENVMAPMODE_REFRACT
+        #ifdef ENVMAPMODE_REFRACT
 
-        vec3 reflectVec = refract( -geometry.viewDir, geometry.normal, u_refractionRatio );
+            vec3 reflectVec = refract( -geometry.viewDir, geometry.normal, u_refractionRatio );
 
-    #else
+        #else
 
-        vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
+            vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
 
-    #endif
+        #endif
 //        reflectVec = inverseTransformDirection( reflectVec, u_viewMat );
-
-        reflectVec =  mat3(u_envMapLight.transformMatrix) * reflectVec;
 
         float specularMIPLevel = getSpecularMIPLevel( blinnShininessExponent, maxMIPLevel );
 
@@ -79,7 +75,6 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
     #endif
 
 }
-#endif
 
 void RE_IndirectSpecular_Physical( const in vec3 radiance, const in GeometricContext geometry, const in PhysicalMaterial material, inout ReflectedLight reflectedLight ) {
 

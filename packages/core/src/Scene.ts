@@ -5,6 +5,7 @@ import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
 import { Layer } from "./Layer";
+import { AmbientLight } from "./lighting/AmbientLight";
 import { LightFeature } from "./lighting/LightFeature";
 import { SceneFeature } from "./SceneFeature";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
@@ -15,17 +16,20 @@ import { ShaderData } from "./shader/ShaderData";
  * Scene.
  */
 export class Scene extends EngineObject {
-  private static _resolutionProperty = Shader.getPropertyByName("u_resolution");
-
   static sceneFeatureManager = new FeatureManager<SceneFeature>();
 
-  /** scene-related shaderdata  */
+  private static _resolutionProperty = Shader.getPropertyByName("u_resolution");
+
+  /** Scene name. */
+  name: string;
+  /** Ambient light. */
+  readonly ambientLight: AmbientLight;
+  /** Scene-related shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
 
-  /** scene name */
-  name: string;
-
+  /** @internal */
   _activeCameras: Camera[] = [];
+  /** @internal */
   _isActiveInEngine: boolean = false;
 
   private _destroyed: boolean = false;
@@ -33,7 +37,7 @@ export class Scene extends EngineObject {
   private _resolution: Vector2 = new Vector2();
 
   /**
-   * Get the scene's engine.
+   * Scene's engine.
    */
   get engine(): Engine {
     return this._engine;
@@ -72,6 +76,7 @@ export class Scene extends EngineObject {
     const shaderData = this.shaderData;
     Scene.sceneFeatureManager.addObject(this);
     shaderData._addRefCount(1);
+    this.ambientLight = new AmbientLight(this);
 
     // @todo: this is deviec macro,should add when compile shader.
     if (this._engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
