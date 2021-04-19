@@ -1,3 +1,12 @@
+## [0.3.3](https://github.com/oasis-engine/engine/compare/v0.3.2...v0.3.3) (2021-04-16)
+
+
+### Bug Fixes
+
+* default active texture unit error ([#231](https://github.com/oasis-engine/engine/issues/231)) ([ed2f3ed](https://github.com/oasis-engine/engine/commit/ed2f3ede0e177caf319f7d862094cb15fcb2922c))
+* memory crash caused by 'RenderElement' pool ([#211](https://github.com/oasis-engine/engine/issues/211)) ([0f8eb79](https://github.com/oasis-engine/engine/commit/0f8eb795d51229fcd3d6fba2d522335efdc23beb))
+* model flicker bug ([ffa771d](https://github.com/oasis-engine/engine/commit/ffa771d3b60bcec55cbcce371cc9eba3bb3d8f94))
+
 ## [0.3.2](https://github.com/oasis-engine/engine/compare/v0.3.1...v0.3.2) (2021-04-14)
 
 
