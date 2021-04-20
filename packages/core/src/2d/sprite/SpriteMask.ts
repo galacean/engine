@@ -13,7 +13,7 @@ export class SpriteMask extends Component {
   @assignmentClone
   private _alphaCutoff: number = 1.0;
   @assignmentClone
-  private _influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
+  private _influenceLayers: number = SpriteMaskLayer.Everything;
 
   /**
    * The Sprite used to define the mask.
@@ -22,9 +22,7 @@ export class SpriteMask extends Component {
     return this._sprite;
   }
 
-  set sprite(value: Sprite) {
-
-  }
+  set sprite(value: Sprite) {}
 
   /**
    * The minimum alpha value used by the mask to select the area of influence defined over the mask's sprite. Value between 0 and 1.
@@ -33,9 +31,7 @@ export class SpriteMask extends Component {
     return this._alphaCutoff;
   }
 
-  set alphaCutoff(value: number) {
-
-  }
+  set alphaCutoff(value: number) {}
 
   /**
    * The mask layers the sprite mask influence to.
@@ -44,9 +40,7 @@ export class SpriteMask extends Component {
     return this._influenceLayers;
   }
 
-  set influenceLayers(value: number) {
-
-  }
+  set influenceLayers(value: number) {}
 
   /**
    * Create a sprite mask instance.
