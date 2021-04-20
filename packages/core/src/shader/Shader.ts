@@ -131,14 +131,15 @@ export class Shader {
    *
    * @param engine - Engine to which the shader variant belongs
    * @param macros - Macro name list
+   * @returns Is the compiled shader variant valid
    */
-  compileVariant(engine: Engine, macros: string[]): void {
+  compileVariant(engine: Engine, macros: string[]): boolean {
     const compileMacros = Shader._compileMacros;
     compileMacros.clear();
     for (let i = 0, n = macros.length; i < n; i++) {
       compileMacros.enable(Shader.getMacroByName(macros[i]));
     }
-    this._getShaderProgram(engine, compileMacros);
+    return this._getShaderProgram(engine, compileMacros).isValid;
   }
 
   /**
