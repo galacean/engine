@@ -65,7 +65,6 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _extensions;
-  private _spriteBatcher;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
 
@@ -103,6 +102,8 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   init(canvas: Canvas) {
     const option = this._options;
+    option.alpha === undefined && (option.alpha = false);
+
     const webCanvas = (canvas as WebCanvas)._webCanvas;
     const webGLMode = option.webGLMode || WebGLMode.Auto;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
