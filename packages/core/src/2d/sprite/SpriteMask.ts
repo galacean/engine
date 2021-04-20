@@ -1,6 +1,5 @@
 import { assignmentClone } from "../../clone/CloneManager";
 import { Component } from "../../Component";
-import { Entity } from "../../Entity";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
 
@@ -41,12 +40,4 @@ export class SpriteMask extends Component {
   }
 
   set influenceLayers(value: number) {}
-
-  /**
-   * Create a sprite mask instance.
-   * @param entity - Entity to which the sprite renderer belongs
-   */
-  constructor(entity: Entity) {
-    super(entity);
-  }
 }
