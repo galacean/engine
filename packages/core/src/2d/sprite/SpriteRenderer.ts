@@ -8,6 +8,8 @@ import { SpriteElement } from "../../RenderPipeline/SpriteElement";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../../shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
+import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
+import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
 import "./SpriteMaterial";
 
@@ -37,6 +39,10 @@ export class SpriteRenderer extends Renderer {
   private _dirtyFlag: number = DirtyFlag.All;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
+  @assignmentClone
+  private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
+  @assignmentClone
+  private _maskLayer: number = SpriteMaskLayer.Layer0;
 
   /**
    * The Sprite to render.
@@ -91,6 +97,28 @@ export class SpriteRenderer extends Renderer {
       this._flipY = value;
       this._setDirtyFlagTrue(DirtyFlag.Flip);
     }
+  }
+
+  /**
+   * Interacts with the masks.
+   */
+  get maskInteraction(): SpriteMaskInteraction {
+    return this._maskInteraction;
+  }
+
+  set maskInteraction(value: SpriteMaskInteraction) {
+
+  }
+
+  /**
+   * The mask layer the sprite renderer belongs to.
+   */
+  get maskLayer(): number {
+    return this._maskLayer;
+  }
+
+  set maskLayer(value: number) {
+
   }
 
   /**
