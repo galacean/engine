@@ -110,8 +110,6 @@ export class Camera extends Component {
   @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
   @deepClone
-  private _inverseViewMatrix: Matrix = new Matrix();
-  @deepClone
   private _lastAspectSize: Vector2 = new Vector2(0, 0);
   @deepClone
   private _invViewProjMat: Matrix = new Matrix();
@@ -542,7 +540,7 @@ export class Camera extends Component {
     shaderData.setMatrix(Camera._viewMatrixProperty, this.viewMatrix);
     shaderData.setMatrix(Camera._projectionMatrixProperty, this.projectionMatrix);
     shaderData.setMatrix(Camera._vpMatrixProperty, context._viewProjectMatrix);
-    shaderData.setMatrix(Camera._inverseViewMatrixProperty, this.inverseViewMatrix);
+    shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._transform.worldMatrix);
     shaderData.setMatrix(Camera._inverseProjectionMatrixProperty, this.inverseProjectionMatrix);
     shaderData.setVector3(Camera._cameraPositionProperty, this._transform.worldPosition);
   }
@@ -554,7 +552,7 @@ export class Camera extends Component {
   get invViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      Matrix.multiply(this.inverseViewMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
+      Matrix.multiply(this._transform.worldMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
     }
     return this._invViewProjMat;
   }
@@ -572,15 +570,6 @@ export class Camera extends Component {
   }
 
   //-------------------------------------------------deprecated---------------------------------------------------
-
-  /**
-   * @deprecated
-   * View matrix inverse matrix.
-   */
-  get inverseViewMatrix(): Readonly<Matrix> {
-    this._transform.worldMatrix.cloneTo(this._inverseViewMatrix);
-    return this._inverseViewMatrix;
-  }
 
   /**
    * @deprecated
