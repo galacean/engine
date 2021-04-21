@@ -73,6 +73,7 @@ export class ParticleRenderer extends MeshRenderer {
   private _startTimeRandomness: number = 0;
   private _scale: number = 1;
   private _isOnce: boolean = false;
+  private _onceTime: number = 0;
   private _time: number = 0;
   private _isInit: boolean = false;
   private _isStart: boolean = false;
@@ -321,6 +322,7 @@ export class ParticleRenderer extends MeshRenderer {
   set lifetime(value: number) {
     this._updateDirtyFlag |= DirtyFlagType.LifeTime;
     this._lifetime = value;
+    this._onceTime = 0;
   }
 
   /**
@@ -333,6 +335,7 @@ export class ParticleRenderer extends MeshRenderer {
   set startTimeRandomness(value: number) {
     this._updateDirtyFlag |= DirtyFlagType.StartTime;
     this._startTimeRandomness = value;
+    this._onceTime = 0;
   }
 
   /**
@@ -541,6 +544,11 @@ export class ParticleRenderer extends MeshRenderer {
   update(deltaTime: number): void {
     if (!this._isInit || !this._isStart) {
       return;
+    }
+
+    // Stop after play once
+    if (this._isOnce && this._time > this._onceTime) {
+      return this.stop();
     }
 
     if (this._updateDirtyFlag) {
@@ -764,6 +772,11 @@ export class ParticleRenderer extends MeshRenderer {
 
       vertices[k0 + 14] = vertices[k1 + 14] = vertices[k2 + 14] = vertices[k3 + 14] =
         _lifetime + getRandom() * _lifetime;
+    }
+
+    // Update the duration of play once when startTime or lifetime changes.
+    if ((_updateDirtyFlag & DirtyFlagType.StartTime) || (_updateDirtyFlag & DirtyFlagType.LifeTime)) {
+      this._onceTime = Math.max(this._onceTime, vertices[k0 + 13] + vertices[k0 + 14]);
     }
 
     if (_updateDirtyFlag & DirtyFlagType.Size) {
