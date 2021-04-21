@@ -45,12 +45,10 @@ export class Sprite extends RefObject {
 
   set atlasRegion(value: Rect) {
     const { _atlasRegion } = this;
-    if (value && _atlasRegion !== value) {
-      _atlasRegion.x = MathUtil.clamp(value.x, 0, 1);
-      _atlasRegion.y = MathUtil.clamp(value.y, 0, 1);
-      _atlasRegion.width = MathUtil.clamp(value.width, 0, 1.0 - _atlasRegion.x);
-      _atlasRegion.height = MathUtil.clamp(value.height, 0, 1.0 - _atlasRegion.y);
-    }
+    _atlasRegion.x = MathUtil.clamp(value.x, 0, 1);
+    _atlasRegion.y = MathUtil.clamp(value.y, 0, 1);
+    _atlasRegion.width = MathUtil.clamp(value.width, 0, 1.0 - _atlasRegion.x);
+    _atlasRegion.height = MathUtil.clamp(value.height, 0, 1.0 - _atlasRegion.y);
   }
 
   /**
@@ -62,11 +60,9 @@ export class Sprite extends RefObject {
 
   set pivot(value: Vector2) {
     const { _pivot } = this;
-    if (value && _pivot !== value) {
-      _pivot.x = MathUtil.clamp(value.x, 0, 1);
-      _pivot.y = MathUtil.clamp(value.y, 0, 1);
-      this._setDirtyFlagTrue(DirtyFlag.positions);
-    }
+    _pivot.x = MathUtil.clamp(value.x, 0, 1);
+    _pivot.y = MathUtil.clamp(value.y, 0, 1);
+    this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
   /**
@@ -78,13 +74,11 @@ export class Sprite extends RefObject {
 
   set region(value: Rect) {
     const { _region } = this;
-    if (value && _region !== value) {
-      _region.x = MathUtil.clamp(value.x, 0, 1);
-      _region.y = MathUtil.clamp(value.y, 0, 1);
-      _region.width = MathUtil.clamp(value.width, 0, 1.0 - _region.x);
-      _region.height = MathUtil.clamp(value.height, 0, 1.0 - _region.y);
-      this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
-    }
+    _region.x = MathUtil.clamp(value.x, 0, 1);
+    _region.y = MathUtil.clamp(value.y, 0, 1);
+    _region.width = MathUtil.clamp(value.width, 0, 1.0 - _region.x);
+    _region.height = MathUtil.clamp(value.height, 0, 1.0 - _region.y);
+    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
   /**
