@@ -18,6 +18,7 @@ import {
   Model
 } from "@oasis-engine/core";
 import { Parser, GLTFModel } from "@oasis-engine/loader";
+
 Parser.registerComponents("o3", {
   GLTFModel,
   SpriteRenderer,
@@ -34,6 +35,7 @@ Parser.registerComponents("o3", {
   SphereCollider,
   Model
 });
+
 //@ts-ignore
 export const version = `__buildVersion`;
 
