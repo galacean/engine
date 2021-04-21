@@ -364,6 +364,7 @@ export class ParticleRenderer extends MeshRenderer {
     this._updateBuffer();
 
     this._isInit = true;
+    this.shaderData.setFloat("u_time", 0);
   }
 
   /**
@@ -569,14 +570,13 @@ export class ParticleRenderer extends MeshRenderer {
   start(): void {
     this._isStart = true;
     this._time = 0;
-    this.shaderData.setInt("u_active", 1);
   }
 
   /**
    * Stop emitting.
    */
   stop(): void {
-    this.shaderData.setInt("u_active", 0);
+    this._isStart = false;
   }
 
   private _createMaterial(): Material {
