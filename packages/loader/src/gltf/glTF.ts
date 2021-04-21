@@ -8,7 +8,6 @@ import { AnimationCurve } from "./../../../core/src/animation/AnimationCurve";
 import { Transform } from "./../../../core/src/Transform";
 import {
   AlphaMode,
-  Animation,
   AnimationClip,
   AnimationClipGLTFParser,
   BlinnPhongMaterial,
@@ -646,7 +645,7 @@ export function parseAnimation(gltfAnimation, resources) {
   animationClip.durationIndex = durationIndex;
   animationClip.duration = duration;
   curveDatas.forEach((curveData) => {
-    animationClip.addCurve(curveData);
+    animationClip.setCurve(curveData);
   });
   return Promise.resolve(animationClip);
 }

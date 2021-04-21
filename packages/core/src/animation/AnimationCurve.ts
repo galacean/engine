@@ -24,7 +24,7 @@ export class AnimationCurve {
   /**
    * Animation curve length in seconds.
    */
-  get length() {
+  get length(): number {
     return this._length;
   }
 
@@ -47,7 +47,7 @@ export class AnimationCurve {
    * Add a new key to the curve.
    * @param key The keyframe.
    */
-  addKey(key: Keyframe) {
+  addKey(key: Keyframe): void {
     const { time } = key;
     this.keys.push(key);
     if (time > this._length) {
@@ -110,7 +110,7 @@ export class AnimationCurve {
    * @param index The index of the key to move.
    * @param key The key to insert.
    */
-  moveKey(index: number, key: Keyframe) {
+  moveKey(index: number, key: Keyframe): void {
     this.keys[index] = key;
   }
 
@@ -118,7 +118,7 @@ export class AnimationCurve {
    * Removes a key.
    * @param index The index of the key to remove.
    */
-  removeKey(index: number) {
+  removeKey(index: number): void {
     this.keys.splice(index, 1);
   }
 

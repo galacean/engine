@@ -9,8 +9,8 @@ import { Transform } from "./../../../core/src/Transform";
 import { AnimationClipCurveData } from "./../../../core/src/animation/AnimationClipCurveData";
 import { AnimationCurve } from "./../../../core/src/animation/AnimationCurve";
 import { EngineObject } from "./../../../core/src/base/EngineObject";
-import { InterpolationType } from "./../../../core/src/animation/AnimatorConst";
-import { AnimateProperty } from "./../../../core/src/animation/AnimationClip";
+import { InterpolationType } from "./../../../core/src/animation/enums/InterpolationType";
+import { AnimateProperty } from "./../../../core/src/animation/enums/AnimateProperty";
 
 export interface IChannelState {
   frameTime: number;
@@ -292,6 +292,7 @@ export class AnimationClipGLTFParser extends EngineObject {
       const sampler = channel.sampler;
       const curve = new AnimationCurve();
       const frameCount = this.getFrameCount(i);
+      curve.interpolation = sampler.interpolation;
       for (let j = 0; j < frameCount; j++) {
         const { outputSize } = sampler;
         const output = [];
@@ -302,7 +303,6 @@ export class AnimationClipGLTFParser extends EngineObject {
           const keyframe = new FloatKeyframe();
           keyframe.time = sampler.input[j];
           keyframe.value = output[0];
-          keyframe.interpolation = sampler.interpolation;
           keyframe.inTangent = 0;
           keyframe.outTangent = 0;
           curve.addKey(keyframe);
@@ -311,7 +311,6 @@ export class AnimationClipGLTFParser extends EngineObject {
           const keyframe = new Vector2Keyframe();
           keyframe.time = sampler.input[j];
           keyframe.value = new Vector2(...output);
-          keyframe.interpolation = sampler.interpolation;
           keyframe.inTangent = new Vector2();
           keyframe.outTangent = new Vector2();
           curve.addKey(keyframe);
@@ -320,7 +319,6 @@ export class AnimationClipGLTFParser extends EngineObject {
           const keyframe = new Vector3Keyframe();
           keyframe.time = sampler.input[j];
           keyframe.value = new Vector3(...output);
-          keyframe.interpolation = sampler.interpolation;
           keyframe.inTangent = new Vector3();
           keyframe.outTangent = new Vector3();
           curve.addKey(keyframe);
@@ -329,7 +327,6 @@ export class AnimationClipGLTFParser extends EngineObject {
           const keyframe = new QuaternionKeyframe();
           keyframe.time = sampler.input[j];
           keyframe.value = new Quaternion(...output);
-          keyframe.interpolation = sampler.interpolation;
           keyframe.inTangent = new Vector4();
           keyframe.outTangent = new Vector4();
           curve.addKey(keyframe);

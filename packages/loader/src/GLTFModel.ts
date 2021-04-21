@@ -1,4 +1,4 @@
-import { Component, Entity, WrapMode, Animation } from "@oasis-engine/core";
+import { Component, Entity, WrapMode, Animator } from "@oasis-engine/core";
 import { GLTFResource } from "./gltf/glTF";
 
 /**
@@ -22,7 +22,7 @@ export class GLTFModel extends Component {
           this.GLTFNode.destroy();
         }
         this.GLTFNode = value.defaultSceneRoot.clone();
-        this._animator = this.GLTFNode.getComponent(Animation);
+        this._animator = this.GLTFNode.getComponent(Animator);
         this.entity.addChild(this.GLTFNode);
       }
     }
@@ -65,7 +65,7 @@ export class GLTFModel extends Component {
     this._loop = value;
   }
 
-  public _animator: Animation;
+  public _animator: Animator;
   public animationsNames: String[];
 
   private _asset: GLTFResource;

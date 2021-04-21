@@ -41,12 +41,12 @@ export class AnimatorStateTransition {
    * Add a condition to a transition.
    * @param condition
    */
-  addCondition(condition: AnimatorCondition) {}
+  addCondition(condition: AnimatorCondition): void {}
 
   /**
    * TODO
    * Remove a condition from the transition.
    * @param condition The condition.
    */
-  removeCondition(condition: AnimatorCondition) {}
+  removeCondition(condition: AnimatorCondition): void {}
 }

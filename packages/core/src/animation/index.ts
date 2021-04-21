@@ -1,3 +1,4 @@
+export * from "./Animator";
 export * from "./AnimationClip";
 export * from "./AnimatorController";
 export * from "./AnimatorControllerLayer";

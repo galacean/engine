@@ -30,7 +30,7 @@ export class Animator extends Component {
   /**
    * Get the AnimatorController that controls the Animator.
    */
-  get animatorController() {
+  get animatorController(): AnimatorController {
     return this._animatorController;
   }
 
@@ -73,7 +73,7 @@ export class Animator extends Component {
    * @param layerIndex The layer index(default 0).
    * @param normalizedTime The time offset between 0 and 1(default 0).
    */
-  playState(stateName: string, layerIndex: number = 0, normalizedTime: number = 0) {
+  playState(stateName: string, layerIndex: number = 0, normalizedTime: number = 0): void {
     const { animatorController } = this;
     if (!animatorController) return;
     const animLayer = animatorController.layers[layerIndex];
@@ -86,14 +86,14 @@ export class Animator extends Component {
   /**
    * Set the Animator in playback mode.
    */
-  play() {
+  play(): void {
     this.recorderMode = AnimatorRecorderMode.Playback;
   }
 
   /**
    * Stops the animator playback mode.
    */
-  stop() {
+  stop(): void {
     this.recorderMode = AnimatorRecorderMode.Offline;
   }
 
@@ -102,7 +102,7 @@ export class Animator extends Component {
    * @param deltaTime - The deltaTime when the animation update.
    * @private
    */
-  update(deltaTime: number) {
+  update(deltaTime: number): void {
     if (this.recorderMode !== AnimatorRecorderMode.Playback) return;
     const { animatorController } = this;
     if (!animatorController) return;
@@ -132,7 +132,12 @@ export class Animator extends Component {
   /**
    * crossFade to the AnimationClip by name.
    */
-  crossFade(name: string, layerIndex: number, normalizedTransitionDuration: number, normalizedTimeOffset: number) {
+  crossFade(
+    name: string,
+    layerIndex: number,
+    normalizedTransitionDuration: number,
+    normalizedTimeOffset: number
+  ): void {
     const currentState = this.animatorController.layers[layerIndex]._playingState;
     if (currentState) {
       currentState._playType = PlayType.IsFading;
@@ -150,7 +155,7 @@ export class Animator extends Component {
    * Return the layer by name.
    * @param name The layer name.
    */
-  getLayerByName(name: string) {
+  getLayerByName(name: string): AnimatorControllerLayer {
     return AnimatorControllerLayer.findLayerByName(name);
   }
 

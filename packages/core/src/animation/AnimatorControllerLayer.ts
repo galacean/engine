@@ -16,8 +16,8 @@ export class AnimatorControllerLayer {
    * Get the layer by name.
    * @param name  The layer's name.
    */
-  static findLayerByName(name: string) {
-    return AnimatorState.statesMap[name];
+  static findLayerByName(name: string): AnimatorControllerLayer {
+    return AnimatorControllerLayer.layersMap[name];
   }
   /**
    * The blending weight that the layers has. It is not taken into account for the first layer.

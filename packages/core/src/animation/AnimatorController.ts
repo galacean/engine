@@ -23,7 +23,7 @@ export class AnimatorController {
    * Add a layer to the controller.
    * @param layer The layer to add.
    */
-  addLayer(layer: AnimatorControllerLayer) {
+  addLayer(layer: AnimatorControllerLayer): void {
     if (this._target) {
       layer._setTarget(this._target);
     }
@@ -34,22 +34,24 @@ export class AnimatorController {
    * Remove a layer from the controller.
    * @param layerIndex The index of the AnimatorLayer.
    */
-  removeLayer(layerIndex: number) {
+  removeLayer(layerIndex: number): void {
     this.layers.splice(layerIndex, 1);
     this.layers[layerIndex]._destroy();
   }
 
   /**
+   * TODO
    * Add a parameter to the controller.
    * @param paramater The paramater to add.
    */
-  addParameter(paramater: AnimatorControllerParameter) {}
+  addParameter(paramater: AnimatorControllerParameter): void {}
 
   /**
+   * TODO
    * Remove a parameter from the controller.
    * @param paramater The paramater to add.
    */
-  removeParameter(parameterIndex: number) {}
+  removeParameter(parameterIndex: number): void {}
 
   /**
    * @internal

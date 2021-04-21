@@ -16,11 +16,11 @@ export class AnimationClip extends Motion {
   /**
    * Animation length in seconds.
    */
-  get length() {
+  get length(): number {
     return this._length;
   }
 
-  get clipStartTime() {
+  get clipStartTime(): number {
     return this._clipStartTime;
   }
 
@@ -31,7 +31,7 @@ export class AnimationClip extends Motion {
     }
   }
 
-  get clipEndTime() {
+  get clipEndTime(): number {
     return this._clipEndTime;
   }
 
@@ -54,14 +54,14 @@ export class AnimationClip extends Motion {
    * Adds an animation event to the clip.
    * @param evt the animation event
    */
-  addEvent(evt: AnimationEvent) {
+  addEvent(evt: AnimationEvent): void {
     this.events.push(evt);
   }
 
   /**
    * Clears all events from the clip.
    */
-  clearEvents() {
+  clearEvents(): void {
     const length = this.events.length;
     for (let i = length - 1; i >= 0; i--) {
       this.events[i] = null;

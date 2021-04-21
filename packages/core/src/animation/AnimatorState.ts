@@ -38,7 +38,7 @@ export class AnimatorState {
   /**
    * Get the clip that is being played by this animator state.
    */
-  get clip() {
+  get clip(): AnimationClip {
     return this._clip;
   }
 
@@ -55,7 +55,7 @@ export class AnimatorState {
   /**
    * Get the current time of the clip.
    */
-  get frameTime() {
+  get frameTime(): number {
     return this._frameTime;
   }
 
@@ -104,7 +104,7 @@ export class AnimatorState {
    * Add an outgoing transition to the destination state.
    * @param destinationState The destination state.
    */
-  addTransition(destinationState: AnimatorState) {
+  addTransition(destinationState: AnimatorState): AnimatorStateTransition {
     const transition = new AnimatorStateTransition();
     transition.destinationState = destinationState;
     this.transitions.push(transition);
@@ -115,14 +115,14 @@ export class AnimatorState {
    * Remove a transition from the state.
    * @param transition The transition.
    */
-  removeTransition(transition: AnimatorStateTransition) {
+  removeTransition(transition: AnimatorStateTransition): void {
     this.transitions.splice(this.transitions.indexOf(transition), 1);
   }
 
   /**
    * Clears all transitions from the state.
    */
-  clearTransitions() {
+  clearTransitions(): void {
     const length = this.transitions.length;
     for (let i = length - 1; i >= 0; i--) {
       this.transitions[i] = null;
