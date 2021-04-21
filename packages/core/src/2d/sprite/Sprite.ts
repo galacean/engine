@@ -44,13 +44,11 @@ export class Sprite extends RefObject {
   }
 
   set atlasRegion(value: Rect) {
-    const { _atlasRegion } = this;
-    if (value && _atlasRegion !== value) {
-      _atlasRegion.x = MathUtil.clamp(value.x, 0, 1);
-      _atlasRegion.y = MathUtil.clamp(value.y, 0, 1);
-      _atlasRegion.width = MathUtil.clamp(value.width, 0, 1.0 - _atlasRegion.x);
-      _atlasRegion.height = MathUtil.clamp(value.height, 0, 1.0 - _atlasRegion.y);
-    }
+    const atlasRegion = this._atlasRegion;
+    atlasRegion.x = MathUtil.clamp(value.x, 0, 1);
+    atlasRegion.y = MathUtil.clamp(value.y, 0, 1);
+    atlasRegion.width = MathUtil.clamp(value.width, 0, 1.0 - atlasRegion.x);
+    atlasRegion.height = MathUtil.clamp(value.height, 0, 1.0 - atlasRegion.y);
   }
 
   /**
@@ -61,12 +59,10 @@ export class Sprite extends RefObject {
   }
 
   set pivot(value: Vector2) {
-    const { _pivot } = this;
-    if (value && _pivot !== value) {
-      _pivot.x = MathUtil.clamp(value.x, 0, 1);
-      _pivot.y = MathUtil.clamp(value.y, 0, 1);
-      this._setDirtyFlagTrue(DirtyFlag.positions);
-    }
+    const pivot = this._pivot;
+    pivot.x = MathUtil.clamp(value.x, 0, 1);
+    pivot.y = MathUtil.clamp(value.y, 0, 1);
+    this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
   /**
@@ -77,14 +73,12 @@ export class Sprite extends RefObject {
   }
 
   set region(value: Rect) {
-    const { _region } = this;
-    if (value && _region !== value) {
-      _region.x = MathUtil.clamp(value.x, 0, 1);
-      _region.y = MathUtil.clamp(value.y, 0, 1);
-      _region.width = MathUtil.clamp(value.width, 0, 1.0 - _region.x);
-      _region.height = MathUtil.clamp(value.height, 0, 1.0 - _region.y);
-      this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
-    }
+    const region = this._region;
+    region.x = MathUtil.clamp(value.x, 0, 1);
+    region.y = MathUtil.clamp(value.y, 0, 1);
+    region.width = MathUtil.clamp(value.width, 0, 1.0 - region.x);
+    region.height = MathUtil.clamp(value.height, 0, 1.0 - region.y);
+    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
   /**
@@ -148,54 +142,54 @@ export class Sprite extends RefObject {
    */
   private _updateMesh(): void {
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
-      const { _pixelsPerUnit, _positions } = this;
+      const positions = this._positions;
       const { width, height } = this.texture;
       const { width: rWidth, height: rHeight } = this.region;
-      const { x, y } = this.pivot;
+      const pivot = this.pivot;
       const unitPivot = Sprite._tempVec2;
 
-      const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
+      const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
       // Get the width and height in 3D space.
       const unitWidth = rWidth * width * pixelsPerUnitReciprocal;
       const unitHeight = rHeight * height * pixelsPerUnitReciprocal;
       // Get the pivot coordinate in 3D space.
-      unitPivot.x = x * unitWidth;
-      unitPivot.y = y * unitHeight;
+      unitPivot.x = pivot.x * unitWidth;
+      unitPivot.y = pivot.y * unitHeight;
 
       // Top-left.
-      _positions[0].setValue(-unitPivot.x, unitHeight - unitPivot.y);
+      positions[0].setValue(-unitPivot.x, unitHeight - unitPivot.y);
       // Top-right.
-      _positions[1].setValue(unitWidth - unitPivot.x, unitHeight - unitPivot.y);
+      positions[1].setValue(unitWidth - unitPivot.x, unitHeight - unitPivot.y);
       // Bottom-right.
-      _positions[2].setValue(unitWidth - unitPivot.x, -unitPivot.y);
+      positions[2].setValue(unitWidth - unitPivot.x, -unitPivot.y);
       // Bottom-left.
-      _positions[3].setValue(-unitPivot.x, -unitPivot.y);
+      positions[3].setValue(-unitPivot.x, -unitPivot.y);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
-      const { _uv } = this;
+      const uv = this._uv;
       const { x, y, width, height } = this.region;
       const rightX = x + width;
       const bottomY = y + height;
 
       // Top-left.
-      _uv[0].setValue(x, y);
+      uv[0].setValue(x, y);
       // Top-right.
-      _uv[1].setValue(rightX, y);
+      uv[1].setValue(rightX, y);
       // Bottom-right.
-      _uv[2].setValue(rightX, bottomY);
+      uv[2].setValue(rightX, bottomY);
       // Bottom-left.
-      _uv[3].setValue(x, bottomY);
+      uv[3].setValue(x, bottomY);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
-      const { _triangles } = this;
-      _triangles[0] = 0;
-      _triangles[1] = 2;
-      _triangles[2] = 1;
-      _triangles[3] = 2;
-      _triangles[4] = 0;
-      _triangles[5] = 3;
+      const triangles = this._triangles;
+      triangles[0] = 0;
+      triangles[1] = 2;
+      triangles[2] = 1;
+      triangles[3] = 2;
+      triangles[4] = 0;
+      triangles[5] = 3;
     }
   }
 
