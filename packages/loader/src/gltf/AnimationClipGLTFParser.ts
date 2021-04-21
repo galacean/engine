@@ -50,7 +50,6 @@ export enum TagetType {
 
 /**
  * Data for an animation, set of Samples and Channels.
- * @extends AssetObject
  */
 export class AnimationClipGLTFParser extends EngineObject {
   private static _tagetTypeMap: Object = {
@@ -193,7 +192,6 @@ export class AnimationClipGLTFParser extends EngineObject {
   }
 
   /**
-   * @private
    * @param outValue - The output value after interpolation.
    * @param channelIndex - The channel's index in AnimationClip's channels property.
    * @param frameIndex - The keyframe's index in sampler.input.
