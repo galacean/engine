@@ -4,56 +4,18 @@ import { Entity } from "./../Entity";
 import { AnimationClipCurveData } from "./AnimationClipCurveData";
 import { AnimationEvent } from "./AnimationEvent";
 import { Motion } from "./Motion";
-
-export enum AnimateProperty {
-  position,
-  rotation,
-  scale,
-  other
-}
+import { AnimateProperty } from "./enums/AnimateProperty";
 
 export class AnimationClip extends Motion {
-  private _length: number = 0; //时间
+  /**
+   * Animation Events for this animation clip.
+   */
   events: AnimationEvent[];
   curves: AnimationClipCurveData<Component>[] = [];
-  _clipStartTime: number;
-  _clipEndTime: number;
 
   /**
-   * @internal
+   * Animation length in seconds.
    */
-  set target(target: Entity) {
-    this._target = target;
-    if (target) {
-      const { length } = this.curves;
-      for (let i = length - 1; i >= 0; i--) {
-        const { relativePath, propertyName } = this.curves[i];
-        this.curves[i]._target = target.findByName(relativePath);
-        this.curves[i]._defaultValue = this.curves[i]._target[propertyName];
-      }
-    }
-  }
-  /**
-   * @constructor
-   * @param name - The AnimationClip's name.
-   */
-  constructor(public readonly name: string) {
-    super(null);
-  }
-
-  /**
-   * @internal
-   */
-  _getTheRealFrameTime(frameTime: number) {
-    if (frameTime < this._clipStartTime) {
-      return this._clipStartTime;
-    } else if (frameTime > this._clipEndTime) {
-      return this._clipEndTime;
-    } else {
-      return frameTime;
-    }
-  }
-
   get length() {
     return this._length;
   }
@@ -77,13 +39,28 @@ export class AnimationClip extends Motion {
     this._length = this._clipEndTime = time;
   }
 
+  private _clipStartTime: number;
+  private _clipEndTime: number;
+  private _length: number = 0; //时间
+
+  /**
+   * @param name - The AnimationClip's name.
+   */
+  constructor(public readonly name: string) {
+    super(null);
+  }
+
+  /**
+   * Adds an animation event to the clip.
+   * @param evt the animation event
+   */
   addEvent(evt: AnimationEvent) {
     this.events.push(evt);
   }
-  removeEvent(index: number) {
-    this.events.splice(index, 1);
-  }
 
+  /**
+   * Clears all events from the clip.
+   */
   clearEvents() {
     const length = this.events.length;
     for (let i = length - 1; i >= 0; i--) {
@@ -92,7 +69,12 @@ export class AnimationClip extends Motion {
     this.events = [];
   }
 
-  sampler(entity: Entity, time: number) {
+  /**
+   * Samples an animation at a given time for any animated properties.
+   * @param entity The animated entity.
+   * @param time The time to sample an animation.
+   */
+  sampleAnimation(entity: Entity, time: number): void {
     const { length } = this.curves;
     for (let i = length - 1; i >= 0; i--) {
       const curveData = this.curves[i];
@@ -114,26 +96,57 @@ export class AnimationClip extends Motion {
     }
   }
 
-  addCurve(curveData: AnimationClipCurveData<Component>) {
+  /**
+   * Assigns the curve to animate a specific property.
+   * @param curveData
+   */
+  setCurve(curveData: AnimationClipCurveData<Component>): void {
     if (curveData.curve.length > this._length) {
       this._length = curveData.curve.length;
     }
-    if (this.target) {
-      curveData._target = this.target.findByName(curveData.relativePath);
-      curveData._defaultValue = this.target[curveData.propertyName];
+    if (this._target) {
+      curveData._target = this._target.findByName(curveData.relativePath);
+      curveData._defaultValue = this._target[curveData.propertyName];
     }
     this.curves.push(curveData);
   }
 
-  removeCurve(index: number) {
-    this.curves.splice(index, 1);
-  }
-
-  clearCurves() {
+  /**
+   * Clears all curves from the clip.
+   */
+  clearCurves(): void {
     const length = this.events.length;
     for (let i = length - 1; i >= 0; i--) {
       this.curves[i] = null;
     }
     this.curves = [];
+  }
+
+  /**
+   * @internal
+   */
+  _setTarget(target: Entity) {
+    this._target = target;
+    if (target) {
+      const { length } = this.curves;
+      for (let i = length - 1; i >= 0; i--) {
+        const { relativePath, propertyName } = this.curves[i];
+        this.curves[i]._target = target.findByName(relativePath);
+        this.curves[i]._defaultValue = this.curves[i]._target[propertyName];
+      }
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getTheRealFrameTime(frameTime: number) {
+    if (frameTime < this._clipStartTime) {
+      return this._clipStartTime;
+    } else if (frameTime > this._clipEndTime) {
+      return this._clipEndTime;
+    } else {
+      return frameTime;
+    }
   }
 }

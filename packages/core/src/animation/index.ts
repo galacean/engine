@@ -1,8 +1,15 @@
-export { Animation } from "./Animation";
-export { AnimationClip } from "./AnimationClip";
+export * from "./AnimationClip";
 export * from "./AnimatorController";
 export * from "./AnimatorControllerLayer";
 export * from "../../../loader/src/gltf/AnimationClipGLTFParser";
 export * from "./AnimatorStateMachine";
-export * from "./AnimatorConst";
 export * from "./AnimatorState";
+export * from "./enums/AnimationEventType";
+export * from "./enums/AnimatorRecorderMode";
+export * from "./enums/AnimatorConditionMode";
+export * from "./enums/InterpolableValueType";
+export * from "./enums/InterpolationType";
+export * from "./enums/WrapMode";
+export * from "./enums/AnimatorLayerBlendingMode";
+export * from "./enums/PlayType";
+export * from "./enums/AnimatorStateType";

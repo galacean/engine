@@ -1,14 +1,10 @@
-export enum AnimatorConditionMode {
-  IF,
-  IFNOT,
-  GREATER,
-  LESS,
-  EQUALS,
-  NOTEQUALS
-}
+import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 
+/**
+ * TODO Condition that is used to determine if a transition must be taken.
+ */
 export class AnimatorCondition {
   mode: AnimatorConditionMode;
-  threshold: any;
+  threshold: number | boolean;
   parameter: string;
 }

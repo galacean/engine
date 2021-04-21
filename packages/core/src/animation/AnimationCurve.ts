@@ -8,21 +8,123 @@ import {
   QuaternionKeyframe,
   InterpolableValue
 } from "./KeyFrame";
-import { InterpolationType, InterpolableValueType } from "./AnimatorConst";
+import { InterpolationType } from "./enums/InterpolationType";
+import { InterpolableValueType } from "./enums/InterpolableValueType";
 
 export class AnimationCurve {
+  /**
+   * All keys defined in the animation curve.
+   */
   keys: Keyframe[] = [];
-  private _length: number = 0; //时间
-  valueSize: number;
-  valueType: InterpolableValueType;
-  firstFrameValue: InterpolableValue;
+  /**
+   * The interpolationType of the animation curve.
+   */
+  interpolation: InterpolationType;
+
+  /**
+   * Animation curve length in seconds.
+   */
   get length() {
     return this._length;
   }
 
+  /**
+   * @internal
+   */
+  _valueSize: number;
+  /**
+   * @internal
+   */
+  _valueType: InterpolableValueType;
+  /**
+   * @internal
+   */
+  _firstFrameValue: InterpolableValue;
+
+  private _length: number = 0;
+
+  /**
+   * Add a new key to the curve.
+   * @param key The keyframe.
+   */
+  addKey(key: Keyframe) {
+    const { time } = key;
+    this.keys.push(key);
+    if (time > this._length) {
+      this._length = time;
+    }
+
+    if (!this._valueSize) {
+      if (key instanceof FloatKeyframe) {
+        this._valueSize = 1;
+        this._valueType = InterpolableValueType.Float;
+      }
+      if (key instanceof Vector2Keyframe) {
+        this._valueSize = 2;
+        this._valueType = InterpolableValueType.Vector2;
+      }
+      if (key instanceof Vector3Keyframe) {
+        this._valueSize = 3;
+        this._valueType = InterpolableValueType.Vector3;
+      }
+      if (key instanceof Vector4Keyframe) {
+        this._valueSize = 4;
+        this._valueType = InterpolableValueType.Vector4;
+      }
+      if (key instanceof QuaternionKeyframe) {
+        this._valueSize = 4;
+        this._valueType = InterpolableValueType.Quaternion;
+      }
+    }
+  }
+
+  /**
+   * Evaluate the curve at time.
+   * @param time The time within the curve you want to evaluate.
+   */
+  evaluate(time: number): InterpolableValue {
+    const { keys, interpolation } = this;
+    const { frameIndex, nextFrameIndex, alpha, dur } = this._getFrameInfo(time);
+    let val: InterpolableValue;
+    switch (interpolation) {
+      case InterpolationType.CUBICSPLINE:
+        val = this._evaluateCubicSpline(frameIndex, nextFrameIndex, alpha);
+        break;
+      case InterpolationType.LINEAR:
+        val = this._evaluateLinear(frameIndex, nextFrameIndex, alpha);
+        break;
+      case InterpolationType.STEP:
+        val = this._evaluateStep(nextFrameIndex);
+        break;
+      case InterpolationType.HERMITE:
+        val = this._evaluateHermite(frameIndex, nextFrameIndex, alpha, dur);
+    }
+    if (!this._firstFrameValue) {
+      this._firstFrameValue = keys[0].value;
+    }
+    return val;
+  }
+
+  /**
+   * Removes the keyframe at index and inserts key.
+   * @param index The index of the key to move.
+   * @param key The key to insert.
+   */
+  moveKey(index: number, key: Keyframe) {
+    this.keys[index] = key;
+  }
+
+  /**
+   * Removes a key.
+   * @param index The index of the key to remove.
+   */
+  removeKey(index: number) {
+    this.keys.splice(index, 1);
+  }
+
   private _evaluateLinear(frameIndex: number, nextFrameIndex: number, alpha: number) {
-    const { valueType, keys } = this;
-    switch (valueType) {
+    const { _valueType, keys } = this;
+    switch (_valueType) {
       case InterpolableValueType.Float: {
         const p0 = keys[frameIndex].value as number;
         const p1 = keys[nextFrameIndex].value as number;
@@ -72,8 +174,8 @@ export class AnimationCurve {
   }
 
   private _evaluateStep(nextFrameIndex: number) {
-    const { valueSize, keys } = this;
-    if (valueSize === 1) {
+    const { _valueSize, keys } = this;
+    if (_valueSize === 1) {
       return keys[nextFrameIndex].value;
     } else {
       return keys[nextFrameIndex].value;
@@ -81,10 +183,10 @@ export class AnimationCurve {
   }
 
   private _evaluateHermite(frameIedex: number, nextFrameIndex: number, t: number, dur: number) {
-    const { valueSize, keys } = this;
+    const { _valueSize, keys } = this;
     const curKey = keys[frameIedex];
     const nextKey = keys[nextFrameIndex];
-    switch (valueSize) {
+    switch (_valueSize) {
       case 1: {
         const t0 = curKey.outTangent as number,
           t1 = nextKey.inTangent as number,
@@ -219,68 +321,5 @@ export class AnimationCurve {
       alpha,
       dur
     };
-  }
-
-  addKey(key: Keyframe) {
-    const { time } = key;
-    this.keys.push(key);
-    if (time > this._length) {
-      this._length = time;
-    }
-
-    if (!this.valueSize) {
-      if (key instanceof FloatKeyframe) {
-        this.valueSize = 1;
-        this.valueType = InterpolableValueType.Float;
-      }
-      if (key instanceof Vector2Keyframe) {
-        this.valueSize = 2;
-        this.valueType = InterpolableValueType.Vector2;
-      }
-      if (key instanceof Vector3Keyframe) {
-        this.valueSize = 3;
-        this.valueType = InterpolableValueType.Vector3;
-      }
-      if (key instanceof Vector4Keyframe) {
-        this.valueSize = 4;
-        this.valueType = InterpolableValueType.Vector4;
-      }
-      if (key instanceof QuaternionKeyframe) {
-        this.valueSize = 4;
-        this.valueType = InterpolableValueType.Quaternion;
-      }
-    }
-  }
-
-  evaluate(time: number): InterpolableValue {
-    const { keys } = this;
-    const { frameIndex, nextFrameIndex, alpha, dur } = this._getFrameInfo(time);
-    const { interpolation } = keys[frameIndex];
-    let val: InterpolableValue;
-    switch (interpolation) {
-      case InterpolationType.CUBICSPLINE:
-        val = this._evaluateCubicSpline(frameIndex, nextFrameIndex, alpha);
-        break;
-      case InterpolationType.LINEAR:
-        val = this._evaluateLinear(frameIndex, nextFrameIndex, alpha);
-        break;
-      case InterpolationType.STEP:
-        val = this._evaluateStep(nextFrameIndex);
-        break;
-      case InterpolationType.HERMITE:
-        val = this._evaluateHermite(frameIndex, nextFrameIndex, alpha, dur);
-    }
-    if (!this.firstFrameValue) {
-      this.firstFrameValue = keys[0].value;
-    }
-    return val;
-  }
-
-  moveKey(index: number, key: Keyframe) {
-    this.keys[index] = key;
-  }
-
-  removeKey(index: number) {
-    this.keys.splice(index, 1);
   }
 }

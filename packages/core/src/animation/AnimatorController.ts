@@ -1,55 +1,64 @@
 import { Entity } from "./../Entity";
-import { AnimatorState } from "./AnimatorState";
-import { BlendTree } from "./BlendTree";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
-import { Motion } from "./Motion";
-import { AnimationClip } from "./AnimationClip";
 export interface AnimatorControllerParameter {
   name: string;
-  value: any;
-}
-
-export interface StateMachineBehaviour {
-  id: string; // script assetId
+  value: number | boolean;
 }
 
 export class AnimatorController {
-  /** @internal */
-  _target: Entity;
-  name: string;
-  animationClips: AnimationClip[] = [];
+  /**
+   * The layers in the controller.
+   */
   layers: AnimatorControllerLayer[] = [];
+  /**
+   * TODO: Parameters are used to communicate between scripting and the controller.
+   */
   parameters: AnimatorControllerParameter[] = [];
+  /**
+   * @internal
+   */
+  _target: Entity;
 
-  set target(target: Entity) {
-    this._target = target;
-    const layerCount = this.layers.length;
-    for (let i = layerCount - 1; i >= 0; i--) {
-      this.layers[i].target = target;
-    }
-  }
-
+  /**
+   * Add a layer to the controller.
+   * @param layer The layer to add.
+   */
   addLayer(layer: AnimatorControllerLayer) {
     if (this._target) {
-      layer.target = this._target;
+      layer._setTarget(this._target);
     }
     this.layers.push(layer);
   }
 
+  /**
+   * Remove a layer from the controller.
+   * @param layerIndex The index of the AnimatorLayer.
+   */
   removeLayer(layerIndex: number) {
     this.layers.splice(layerIndex, 1);
-    this.layers[layerIndex].destroy();
+    this.layers[layerIndex]._destroy();
   }
 
-  addMotion(motion: Motion, layerIndex: number) {}
-
+  /**
+   * Add a parameter to the controller.
+   * @param paramater The paramater to add.
+   */
   addParameter(paramater: AnimatorControllerParameter) {}
 
+  /**
+   * Remove a parameter from the controller.
+   * @param paramater The paramater to add.
+   */
   removeParameter(parameterIndex: number) {}
 
-  createBlendTree(name: string, tree: BlendTree, layerIndex: number) {}
-
-  setStateEffectiveBehaviours(state: AnimatorState, behaviours: StateMachineBehaviour[], layerIndex: number) {}
-
-  setStateEffectiveMotion(state: AnimatorState, motion: Motion, layerIndex: number) {}
+  /**
+   * @internal
+   */
+  _setTarget(target: Entity) {
+    this._target = target;
+    const layerCount = this.layers.length;
+    for (let i = layerCount - 1; i >= 0; i--) {
+      this.layers[i]._setTarget(target);
+    }
+  }
 }

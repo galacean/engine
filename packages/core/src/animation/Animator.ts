@@ -1,15 +1,56 @@
-import { AnimatorState, PlayType } from "./AnimatorState";
-import { InterpolableValueType, AnimatorRecorderMode, WrapMode } from "./AnimatorConst";
+import { AnimatorState } from "./AnimatorState";
+import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { AnimatorRecorderMode } from "./enums/AnimatorRecorderMode";
 import { InterpolableValue } from "./KeyFrame";
-import { AnimatorControllerLayer, AnimatorLayerBlendingMode } from "./AnimatorControllerLayer";
+import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorController, AnimatorControllerParameter } from "./AnimatorController";
 import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { AnimationClip, AnimateProperty } from "./AnimationClip";
+import { AnimationClip } from "./AnimationClip";
 import { AnimatorUtils } from "./AnimatorUtils";
+import { AnimateProperty } from "./enums/AnimateProperty";
+import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
+import { PlayType } from "./enums/PlayType";
 
 export class Animator extends Component {
+  /**
+   * The mode of the Animator recorder.
+   */
+  recorderMode: AnimatorRecorderMode = AnimatorRecorderMode.Offline;
+  /**
+   * The playback speed of the Animator. 1 is normal playback speed.
+   */
+  speed: number = 1;
+  /**
+   * TODO: The AnimatorControllerParameter list used by the animator.
+   */
+  parameters: AnimatorControllerParameter[] = [];
+
+  /**
+   * Get the AnimatorController that controls the Animator.
+   */
+  get animatorController() {
+    return this._animatorController;
+  }
+
+  /**
+   * Set the AnimatorController that controls the Animator.
+   */
+  set animatorController(animatorController: AnimatorController) {
+    this._animatorController = animatorController;
+    if (!animatorController) return;
+    animatorController._setTarget(this.entity);
+  }
+
+  /**
+   * Get all layers from the AnimatorController which belongs this Animator .
+   */
+  get layers(): Readonly<AnimatorControllerLayer[]> {
+    return this._animatorController?.layers || [];
+  }
+
+  private _animatorController: AnimatorController;
   private _diffValueFromBasePos: InterpolableValue;
   private _diffFloatFromBasePos: number = 0;
   private _diffVector2FromBasePos: Vector2 = new Vector2();
@@ -20,10 +61,97 @@ export class Animator extends Component {
   private _tempQuaternion: Quaternion = new Quaternion();
 
   /**
-   * @param entity - The entitiy which the animation component belongs to.
+   * @param entity - The entitiy which the animator component belongs to.
    */
   constructor(entity: Entity) {
     super(entity);
+  }
+
+  /**
+   * Plays a state by name.
+   * @param stateName The state name.
+   * @param layerIndex The layer index(default 0).
+   * @param normalizedTime The time offset between 0 and 1(default 0).
+   */
+  playState(stateName: string, layerIndex: number = 0, normalizedTime: number = 0) {
+    const { animatorController } = this;
+    if (!animatorController) return;
+    const animLayer = animatorController.layers[layerIndex];
+    const theState = AnimatorState.findStateByName(stateName);
+    theState.frameTime = theState.clip.length * normalizedTime;
+    animLayer._playingState = theState;
+    this.recorderMode = AnimatorRecorderMode.Playback;
+  }
+
+  /**
+   * Set the Animator in playback mode.
+   */
+  play() {
+    this.recorderMode = AnimatorRecorderMode.Playback;
+  }
+
+  /**
+   * Stops the animator playback mode.
+   */
+  stop() {
+    this.recorderMode = AnimatorRecorderMode.Offline;
+  }
+
+  /**
+   * Evaluates the animator component based on deltaTime.
+   * @param deltaTime - The deltaTime when the animation update.
+   * @private
+   */
+  update(deltaTime: number) {
+    if (this.recorderMode !== AnimatorRecorderMode.Playback) return;
+    const { animatorController } = this;
+    if (!animatorController) return;
+    const { layers } = animatorController;
+    for (let i = 0; i < layers.length; i++) {
+      const isFirstLayer = i === 0;
+      const animLayer = layers[i];
+      if (!animLayer._playingState) {
+        animLayer._playingState = animLayer.stateMachine.states[0];
+      }
+      const currentState = animLayer._playingState;
+      currentState.frameTime += deltaTime / 1000;
+      if (currentState._playType === PlayType.IsFading) {
+        const fadingState = animLayer._fadingState;
+        if (fadingState) {
+          fadingState.frameTime += deltaTime / 1000;
+          const nextAnimClip = fadingState.clip;
+          if (fadingState.frameTime > nextAnimClip.length) {
+            fadingState.frameTime = nextAnimClip.length;
+          }
+        }
+      }
+      this._updatePlayingState(currentState, animLayer, isFirstLayer, deltaTime);
+    }
+  }
+
+  /**
+   * crossFade to the AnimationClip by name.
+   */
+  crossFade(name: string, layerIndex: number, normalizedTransitionDuration: number, normalizedTimeOffset: number) {
+    const currentState = this.animatorController.layers[layerIndex]._playingState;
+    if (currentState) {
+      currentState._playType = PlayType.IsFading;
+      const nextState = AnimatorState.findStateByName(name);
+      const transition = currentState.addTransition(nextState);
+      this.animatorController.layers[layerIndex]._fadingState = nextState;
+      transition.solo = true;
+      transition.duration = currentState.clip.length * normalizedTransitionDuration;
+      transition.offset = nextState.clip.length * normalizedTimeOffset;
+      transition.exitTime = currentState.frameTime;
+    }
+  }
+
+  /**
+   * Return the layer by name.
+   * @param name The layer name.
+   */
+  getLayerByName(name: string) {
+    return AnimatorControllerLayer.findLayerByName(name);
   }
 
   /**
@@ -224,7 +352,7 @@ export class Animator extends Component {
       const transition = transitions.filter((transition) => transition.solo)[0];
       const destinationState = transition.destinationState;
       if (transition) {
-        let clip = currentState.motion as AnimationClip;
+        let clip = currentState.clip;
         transition._crossFadeFrameTime += deltaTime / 1000;
         let crossWeight: number;
         if (transition.duration > clip.length - transition.exitTime) {
@@ -255,7 +383,7 @@ export class Animator extends Component {
             targetList.push([_target]);
           }
         }
-        clip = destinationState.motion as AnimationClip;
+        clip = destinationState.clip;
         count = clip.curves.length;
         for (let i = count - 1; i >= 0; i--) {
           const { curve, propertyName, relativePath, _defaultValue, _target } = clip.curves[i];
@@ -308,18 +436,18 @@ export class Animator extends Component {
       }
     } else {
       currentState._playType = PlayType.IsPlaying;
-      const clip = currentState.motion as AnimationClip;
+      const clip = currentState.clip;
       const count = clip.curves.length;
       for (let j = count - 1; j >= 0; j--) {
-        const { curve, relativePath, propertyName, _target, _defaultValue } = clip.curves[j];
+        const { curve, propertyName, _target, _defaultValue } = clip.curves[j];
         const frameTime = clip._getTheRealFrameTime(currentState.frameTime);
         const val = curve.evaluate(frameTime);
-        const { valueType, firstFrameValue } = curve;
+        const { _valueType, _firstFrameValue } = curve;
         if (isFirstLayer) {
           this._updateLayerValue(_target, propertyName, _defaultValue, val, 1);
         } else {
           if (blendingMode === AnimatorLayerBlendingMode.Additive) {
-            this._calculateDiff(valueType, propertyName, firstFrameValue, val);
+            this._calculateDiff(_valueType, propertyName, _firstFrameValue, val);
             this._updateAdditiveLayerValue(_target, propertyName, this._diffValueFromBasePos, weight);
           } else {
             this._updateLayerValue(_target, propertyName, _defaultValue, val, weight);
@@ -327,113 +455,5 @@ export class Animator extends Component {
         }
       }
     }
-  }
-
-  get animatorController() {
-    return this._animatorController;
-  }
-
-  set animatorController(animatorController: AnimatorController) {
-    this._animatorController = animatorController;
-    if (!animatorController) return;
-    animatorController.target = this.entity;
-  }
-
-  get layers() {
-    return this._animatorController?.layers || [];
-  }
-
-  _animatorController: AnimatorController;
-  parameters: AnimatorControllerParameter[] = [];
-  recorderMode: AnimatorRecorderMode = AnimatorRecorderMode.Offline;
-  playbackTime: number = 0;
-  recorderStartTime: number = 0;
-  recorderStopTime: number = 0;
-  speed: number = 1;
-
-  playStateName(stateName: string, layerIndex: number = 0, normalizedTime: number = 0) {
-    const { animatorController } = this;
-    if (!animatorController) return;
-    const animLayer = animatorController.layers[layerIndex];
-    const theState = AnimatorState.findStateByName(stateName);
-    theState.frameTime = (theState.motion as AnimationClip).length * normalizedTime;
-    animLayer._playingState = theState;
-    this.recorderMode = AnimatorRecorderMode.Playback;
-  }
-
-  startPlayback() {
-    this.recorderMode = AnimatorRecorderMode.Playback;
-  }
-
-  stopPlayback() {
-    this.recorderMode = AnimatorRecorderMode.Offline;
-  }
-
-  /**
-   * Evaluates the animation component based on deltaTime.
-   * @param deltaTime - The deltaTime when the animation update.
-   * @private
-   */
-  update(deltaTime: number) {
-    if (this.recorderMode !== AnimatorRecorderMode.Playback) return;
-    const { animatorController } = this;
-    if (!animatorController) return;
-    const { layers } = animatorController;
-    for (let i = 0; i < layers.length; i++) {
-      const isFirstLayer = i === 0;
-      const animLayer = layers[i];
-      if (!animLayer._playingState) {
-        animLayer._playingState = animLayer.stateMachine.states[0];
-      }
-      const currentState = animLayer._playingState;
-      currentState.frameTime += deltaTime / 1000;
-      if (currentState._playType === PlayType.IsFading) {
-        const fadingState = animLayer._fadingState;
-        if (fadingState) {
-          fadingState.frameTime += deltaTime / 1000;
-          const nextAnimClip = fadingState.motion as AnimationClip;
-          if (fadingState.frameTime > nextAnimClip.length) {
-            fadingState.frameTime = nextAnimClip.length;
-          }
-        }
-      }
-      this._updatePlayingState(currentState, animLayer, isFirstLayer, deltaTime);
-    }
-  }
-
-  setStateNormalizedTime(normalizedTime: number) {
-    const { animatorController } = this;
-    if (!animatorController) return;
-    const { layers } = animatorController;
-    for (let i = 0; i < layers.length; i++) {
-      const animLayer = layers[i];
-      if (!animLayer._playingState) {
-        animLayer._playingState = animLayer.stateMachine.states[0];
-      }
-      const currentState = animLayer._playingState;
-      const clip = currentState.motion as AnimationClip;
-      currentState.frameTime = clip.length * normalizedTime;
-    }
-  }
-
-  /**
-   * crossFade to the AnimationClip by name.
-   */
-  crossFade(name: string, layerIndex: number, normalizedTransitionDuration: number, normalizedTimeOffset: number) {
-    const currentState = this.animatorController.layers[layerIndex]._playingState;
-    if (currentState) {
-      currentState._playType = PlayType.IsFading;
-      const nextState = AnimatorState.findStateByName(name);
-      const transition = currentState.addTransition(nextState);
-      this.animatorController.layers[layerIndex]._fadingState = nextState;
-      transition.solo = true;
-      transition.duration = (currentState.motion as AnimationClip).length * normalizedTransitionDuration;
-      transition.offset = (nextState.motion as AnimationClip).length * normalizedTimeOffset;
-      transition.exitTime = currentState.frameTime;
-    }
-  }
-
-  getLayerByName(name: string) {
-    return AnimatorControllerLayer.findLayerByName(name);
   }
 }

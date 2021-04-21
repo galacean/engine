@@ -13,6 +13,9 @@ export class AnimatorUtils {
     out.z = sZ > 0 ? Math.pow(Math.abs(sZ), w) : -Math.pow(Math.abs(sZ), w);
   }
 
+  /**
+   * @internal
+   */
   static calQuaternionWeight(s: Quaternion, w: number, out: Quaternion) {
     out.x = s.x * w;
     out.y = s.y * w;
