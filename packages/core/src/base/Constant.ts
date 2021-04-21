@@ -1,22 +1,4 @@
 /**
- * Camera's clear mode enumeration
- */
- export enum ClearMode {
-  /** Do not perform any operations to clear the background */
-  DONT_CLEAR = 0,
-  /** Clear the background color and depth buffer */
-  SOLID_COLOR = 1,
-  /** Only clear the depth buffer */
-  DEPTH_ONLY = 2,
-  /** Only clear colors */
-  COLOR_ONLY = 3,
-  /** Only clear the template buffer */
-  STENCIL_ONLY = 4,
-  /** Clear all buffers */
-  ALL_CLEAR = 5
-}
-
-/**
  * Data type enumeration
  */
 export enum DataType {

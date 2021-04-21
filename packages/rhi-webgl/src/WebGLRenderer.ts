@@ -1,7 +1,6 @@
 import {
   Camera,
   Canvas,
-  ClearMode,
   ColorWriteMask,
   Engine,
   GLCapabilityType,
@@ -21,7 +20,7 @@ import {
   TextureCubeMap
 } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
-import { Vector4 } from "@oasis-engine/math";
+import { Color, Vector4 } from "@oasis-engine/math";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
@@ -188,7 +187,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._gl.colorMask(r, g, b, a);
   }
 
-  clearRenderTarget(engine: Engine, clearMode: ClearMode, clearParam: Vector4) {
+  clearRenderTarget(engine: Engine, clearColor: Color) {
     const gl = this._gl;
     const {
       blendState: { targetBlendState },
@@ -196,45 +195,27 @@ export class WebGLRenderer implements IHardwareRenderer {
       stencilState
     } = engine._lastRenderState;
 
-    let clearFlag;
-    switch (clearMode) {
-      case ClearMode.SOLID_COLOR:
-        gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
-        clearFlag = gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT;
-        break;
-      case ClearMode.DEPTH_ONLY:
-        clearFlag = gl.DEPTH_BUFFER_BIT;
-        break;
-      case ClearMode.COLOR_ONLY:
-        gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
-        clearFlag = gl.COLOR_BUFFER_BIT;
-        break;
-      case ClearMode.STENCIL_ONLY:
-        gl.clear(gl.STENCIL_BUFFER_BIT);
-        clearFlag = gl.STENCIL_BUFFER_BIT;
-        break;
-      case ClearMode.ALL_CLEAR:
-        gl.clearColor(clearParam.x, clearParam.y, clearParam.z, clearParam.w);
-        clearFlag = gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT;
-        break;
+    const clearFlag = gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT;
+    if (clearColor.toGamma) {
+      gl.clearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     }
 
-    if (clearFlag & gl.COLOR_BUFFER_BIT && targetBlendState.colorWriteMask !== ColorWriteMask.All) {
+    if (targetBlendState.colorWriteMask !== ColorWriteMask.All) {
       gl.colorMask(true, true, true, true);
       targetBlendState.colorWriteMask = ColorWriteMask.All;
     }
 
-    if (clearFlag & gl.DEPTH_BUFFER_BIT && depthState.writeEnabled !== true) {
+    if (depthState.writeEnabled !== true) {
       gl.depthMask(true);
       depthState.writeEnabled = true;
     }
 
-    if (clearFlag & gl.STENCIL_BUFFER_BIT && stencilState.writeMask !== 0xff) {
+    if (stencilState.writeMask !== 0xff) {
       gl.stencilMask(0xff);
       stencilState.writeMask = 0xff;
     }
 
-    clearFlag && gl.clear(clearFlag);
+    gl.clear(clearFlag);
   }
 
   drawPrimitive(primitive: Mesh, subPrimitive: SubMesh, shaderProgram: any) {

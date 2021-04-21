@@ -1,4 +1,3 @@
-import { ClearMode } from "../base/Constant";
 import { Camera } from "../Camera";
 import { LightFeature } from "../lighting/LightFeature";
 import { RenderPass } from "../RenderPipeline/RenderPass";
@@ -11,7 +10,6 @@ import { LightShadow } from "./LightShadow";
 export class ShadowPass extends RenderPass {
   constructor(...args) {
     super(...args);
-    this.clearMode = ClearMode.DONT_CLEAR;
   }
 
   /**

@@ -1,5 +1,4 @@
 import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { ClearMode } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
@@ -16,30 +15,11 @@ import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 
-/**
- * @todo
- */
-type Sky = {};
-
 class MathTemp {
   static tempMat4 = new Matrix();
   static tempVec4 = new Vector4();
   static tempVec3 = new Vector3();
   static tempVec2 = new Vector2();
-}
-
-/**
- * ClearFlag, which controls camera's background.
- */
-export enum ClearFlags {
-  /* Clear depth and skybox. */
-  DepthSky,
-  /* Clear depth and color. */
-  DepthColor,
-  /* Clear depth only. */
-  Depth,
-  /* Do nothing. */
-  None
 }
 
 /**
@@ -80,7 +60,6 @@ export class Camera extends Component {
 
   private _isOrthographic: boolean = false;
   private _isProjMatSetting = false;
-  private _clearMode: ClearMode = ClearMode.SOLID_COLOR;
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
   private _fieldOfView: number = 45;
@@ -103,8 +82,6 @@ export class Camera extends Component {
   private _projectionMatrix: Matrix = new Matrix();
   @deepClone
   private _viewMatrix: Matrix = new Matrix();
-  @deepClone
-  private _backgroundColor: Vector4 = new Vector4();
   @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   @deepClone
@@ -203,39 +180,6 @@ export class Camera extends Component {
   }
 
   /**
-   * Clear background flags.
-   */
-  get clearFlags(): ClearFlags {
-    throw "not implemented";
-  }
-
-  /**
-   * @todo Skybox refactor
-   */
-  set clearFlags(value: ClearFlags) {
-    throw "not implemented";
-  }
-
-  /**
-   * Clear the background color of the viewport, which takes effect when clearFlags is DepthColor.
-   */
-  get backgroundColor(): Vector4 {
-    return this._backgroundColor;
-  }
-
-  set backgroundColor(value: Vector4) {
-    this.setClearMode(this._clearMode, value);
-  }
-
-  /**
-   * Clear the background sky of the viewport, active when clearFlags is DepthSky.
-   * @todo Render pipeline modification
-   */
-  get backgroundSky(): Sky {
-    throw new Error("not implemented");
-  }
-
-  /**
    * View matrix.
    */
   get viewMatrix(): Readonly<Matrix> {
@@ -323,8 +267,6 @@ export class Camera extends Component {
     this._frustumViewChangeFlag = transform.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
     this.shaderData._addRefCount(1);
-
-    this.setClearMode();
   }
 
   /**
@@ -567,23 +509,5 @@ export class Camera extends Component {
       Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
     }
     return this._inverseProjectionMatrix;
-  }
-
-  //-------------------------------------------------deprecated---------------------------------------------------
-
-  /**
-   * @deprecated
-   * @todo Involving the rendering pipeline to modify the rhi.clearRenderTarget method.
-   * @param clearMode
-   * @param backgroundColor
-   */
-  setClearMode(
-    clearMode: ClearMode = ClearMode.SOLID_COLOR,
-    backgroundColor: Vector4 = new Vector4(0.25, 0.25, 0.25, 1)
-  ): void {
-    this._clearMode = clearMode;
-    this._backgroundColor = backgroundColor;
-    this._renderPipeline.defaultRenderPass.clearParam = backgroundColor;
-    this._renderPipeline.defaultRenderPass.clearMode = clearMode;
   }
 }

@@ -53,7 +53,7 @@ export * from "./2d/index";
 export * from "./shaderlib/index";
 export * from "./animation/index";
 export * from "./mesh/index";
-export * from "./skybox/index";
+export * from "./sky/index";
 export * from "./particle/index";
 export * from "./trail/index";
 export * from "./collider/index";
