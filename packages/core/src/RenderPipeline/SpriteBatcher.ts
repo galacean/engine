@@ -1,3 +1,4 @@
+import { SpriteRenderer } from "../2d";
 import { Engine } from "../Engine";
 import { MeshTopology, SubMesh } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
@@ -11,6 +12,7 @@ import { Shader } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { SystemInfo } from "../SystemInfo";
 import { SpriteElement } from "./SpriteElement";
+import { SpriteMaskManager } from "./SpriteMaskManager";
 
 /**
  * @internal
@@ -178,6 +180,7 @@ export class SpriteBatcher {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
     const { _batchedQueue } = this;
+    const maskManager = SpriteMaskManager.instance;
 
     for (let i = 0, len = subMeshes.length; i < len; i++) {
       const subMesh = subMeshes[i];
@@ -186,6 +189,9 @@ export class SpriteBatcher {
       if (!subMesh || !spriteElement) {
         return;
       }
+
+      const renderer = <SpriteRenderer>spriteElement.component;
+      maskManager.preRender(renderer);
 
       const compileMacros = Shader._compileMacros;
       compileMacros.clear();
@@ -201,20 +207,30 @@ export class SpriteBatcher {
       const camera = spriteElement.camera;
       program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
       program.uploadAll(program.cameraUniformBlock, camera.shaderData);
-      program.uploadAll(program.rendererUniformBlock, spriteElement.component.shaderData);
+      program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
       material.renderState._apply(engine);
 
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
+
+      maskManager.postRender(renderer);
     }
   }
 
   private _canBatch(preSpriteElement: SpriteElement, curSpriteElement: SpriteElement): boolean {
-    // Currently only compare texture
+    const preSpriteRenderer = <SpriteRenderer>preSpriteElement.component;
+    const curSpriteRenderer = <SpriteRenderer>curSpriteElement.component;
+
+    // Compare mask
+    if (!preSpriteRenderer.checkMask(curSpriteRenderer)) {
+      return false;
+    }
+
+    // Compare texture
     const { _textureProperty } = SpriteBatcher;
-    const preTexture = preSpriteElement.component.shaderData.getTexture(_textureProperty);
-    const curTexture = curSpriteElement.component.shaderData.getTexture(_textureProperty);
+    const preTexture = preSpriteRenderer.shaderData.getTexture(_textureProperty);
+    const curTexture = curSpriteRenderer.shaderData.getTexture(_textureProperty);
     if (preTexture !== curTexture) {
       return false;
     }

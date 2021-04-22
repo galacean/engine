@@ -107,7 +107,7 @@ export class SpriteRenderer extends Renderer {
   }
 
   set maskInteraction(value: SpriteMaskInteraction) {
-
+    this._maskInteraction = value;
   }
 
   /**
@@ -118,7 +118,7 @@ export class SpriteRenderer extends Renderer {
   }
 
   set maskLayer(value: number) {
-
+    this._maskLayer = value;
   }
 
   /**
@@ -205,6 +205,19 @@ export class SpriteRenderer extends Renderer {
   _onDestroy(): void {
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();
+  }
+
+  checkMask(renderer: SpriteRenderer): boolean {
+    const { maskInteraction } = this;
+    if (maskInteraction !== renderer.maskInteraction) {
+      return false;
+    }
+
+    if (maskInteraction === SpriteMaskInteraction.None) {
+      return true;
+    }
+
+    return this.maskLayer === renderer.maskLayer;
   }
 
   private _isContainDirtyFlag(type: number): boolean {
