@@ -1,4 +1,4 @@
-import { MathUtil, Rect, Vector2 } from "@oasis-engine/math";
+import { BoundingBox, MathUtil, Rect, Vector2 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
@@ -7,14 +7,14 @@ import { Texture2D } from "../../texture";
  * 2D sprite.
  */
 export class Sprite extends RefObject {
-  private static _tempVec2: Vector2 = new Vector2();
-
   /** @internal */
   _triangles: number[] = [];
   /** @internal */
   _uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   /** @internal */
   _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  /** @internal */
+  _bounds: BoundingBox = new BoundingBox();
 
   private _texture: Texture2D = null;
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
@@ -33,7 +33,19 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
+      this._setDirtyFlagFalse(DirtyFlag.positions);
     }
+  }
+
+  /**
+   *  Get bounding volume of the sprite.
+   */
+  getBounds(): BoundingBox {
+    if (this._isContainDirtyFlag(DirtyFlag.positions)) {
+      this._updatePositionsAndBounds();
+      this._setDirtyFlagTrue(DirtyFlag.positions);
+    }
+    return this._bounds;
   }
 
   /**
@@ -138,32 +150,47 @@ export class Sprite extends RefObject {
   }
 
   /**
+   * Update positions and bounds.
+   */
+  private _updatePositionsAndBounds(): void {
+    const { width, height } = this.texture;
+    const { width: rWidth, height: rHeight } = this.region;
+    const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
+
+    // Get the width and height in 3D space.
+    const unitWidth = rWidth * width * pixelsPerUnitReciprocal;
+    const unitHeight = rHeight * height * pixelsPerUnitReciprocal;
+
+    // Get the distance between the anchor point and the four sides.
+    const { x: px, y: py } = this.pivot;
+    const lx = -px * unitWidth;
+    const ty = -py * unitHeight;
+    const rx = (1 - px) * unitWidth;
+    const by = (1 - py) * unitHeight;
+
+    // Assign values ​​to _positions
+    const positions = this._positions;
+    // Top-left.
+    positions[0].setValue(lx, by);
+    // Top-right.
+    positions[1].setValue(rx, by);
+    // Bottom-right.
+    positions[2].setValue(rx, ty);
+    // Bottom-left.
+    positions[3].setValue(lx, ty);
+
+    // Update bounds.
+    const { min, max } = this._bounds;
+    min.setValue(lx, ty, 0);
+    max.setValue(rx, by, 0);
+  }
+
+  /**
    * Update mesh.
    */
   private _updateMesh(): void {
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
-      const positions = this._positions;
-      const { width, height } = this.texture;
-      const { width: rWidth, height: rHeight } = this.region;
-      const pivot = this.pivot;
-      const unitPivot = Sprite._tempVec2;
-
-      const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
-      // Get the width and height in 3D space.
-      const unitWidth = rWidth * width * pixelsPerUnitReciprocal;
-      const unitHeight = rHeight * height * pixelsPerUnitReciprocal;
-      // Get the pivot coordinate in 3D space.
-      unitPivot.x = pivot.x * unitWidth;
-      unitPivot.y = pivot.y * unitHeight;
-
-      // Top-left.
-      positions[0].setValue(-unitPivot.x, unitHeight - unitPivot.y);
-      // Top-right.
-      positions[1].setValue(unitWidth - unitPivot.x, unitHeight - unitPivot.y);
-      // Bottom-right.
-      positions[2].setValue(unitWidth - unitPivot.x, -unitPivot.y);
-      // Bottom-left.
-      positions[3].setValue(-unitPivot.x, -unitPivot.y);
+      this._updatePositionsAndBounds();
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {

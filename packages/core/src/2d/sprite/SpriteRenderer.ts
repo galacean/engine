@@ -1,4 +1,4 @@
-import { Color, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
@@ -208,6 +208,21 @@ export class SpriteRenderer extends Renderer {
     }
 
     return SpriteRenderer._defaultMaterial;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    const sprite = this._sprite;
+    if (sprite) {
+      const localBounds = sprite.getBounds();
+      const worldMatrix = this._entity.transform.worldMatrix;
+      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+    } else {
+      worldBounds.min.setValue(0, 0, 0);
+      worldBounds.max.setValue(0, 0, 0);
+    }
   }
 }
 
