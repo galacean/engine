@@ -50,7 +50,7 @@ void main() {
     deltaTime = 0.0;
   }
 
-  v_lifeLeft = 1.0 - deltaTime / a_lifeAndSize.y;
+  v_lifeLeft = 1.0 - deltaTime / life;
   float scale = a_lifeAndSize.z;
   vec3 position = a_position + (a_velocity + a_acceleration * deltaTime * 0.5) * deltaTime;
 
