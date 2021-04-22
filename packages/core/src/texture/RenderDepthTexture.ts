@@ -14,7 +14,6 @@ export class RenderDepthTexture extends Texture {
 
   /**
    * Texture format.
-   * @readonly
    */
   get format(): RenderBufferDepthFormat {
     return this._format;
@@ -22,7 +21,6 @@ export class RenderDepthTexture extends Texture {
 
   /**
    * Whether to render to a cube texture.
-   * @readonly
    */
   get isCube(): boolean {
     return this._isCube;

@@ -1,6 +1,5 @@
 /**
  * Animation wrap mode.
- * @readonly
  */
 export enum WrapMode {
   /** Play once */
@@ -13,7 +12,6 @@ export enum WrapMode {
 
 /**
  * Animation event type.
- * @readonly
  */
 export enum AnimationEventType {
   /** Triggered when the animation over if the wrapMode === WrapMode.ONCE */
@@ -26,7 +24,6 @@ export enum AnimationEventType {
 
 /**
  * Animation interpolation method.
- * @readonly
  */
 export enum InterpolationType {
   /** Linear interpolation */
