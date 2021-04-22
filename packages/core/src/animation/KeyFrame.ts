@@ -2,6 +2,9 @@ import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
 
 export type InterpolableValue = number | Vector2 | Vector3 | Vector4 | Quaternion;
 
+/**
+ * A single keyframe that can be injected into an animation curve.
+ */
 export interface Keyframe {
   /**
    * Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key.

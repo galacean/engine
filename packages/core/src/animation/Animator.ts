@@ -12,6 +12,9 @@ import { AnimateProperty } from "./enums/AnimateProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { PlayType } from "./enums/PlayType";
 
+/**
+ * The controller of the animation system.
+ */
 export class Animator extends Component {
   /**
    * The mode of the Animator recorder.

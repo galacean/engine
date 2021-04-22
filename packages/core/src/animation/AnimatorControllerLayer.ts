@@ -7,6 +7,9 @@ export interface AnimatorControllerLayerMap {
   [key: string]: AnimatorControllerLayer;
 }
 
+/**
+ * The Animation Layer contains a state machine that controls animations of a model or part of it.
+ */
 export class AnimatorControllerLayer {
   /**
    * The name mapping of all layers.

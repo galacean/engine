@@ -6,6 +6,9 @@ export interface AnimatorStateMap {
   [key: string]: AnimatorState;
 }
 
+/**
+ * A graph controlling the interaction of states. Each state references a motion.
+ */
 export class AnimatorStateMachine {
   /**
    * The list of states.

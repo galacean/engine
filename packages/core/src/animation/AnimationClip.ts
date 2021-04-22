@@ -6,6 +6,9 @@ import { AnimationEvent } from "./AnimationEvent";
 import { Motion } from "./Motion";
 import { AnimateProperty } from "./enums/AnimateProperty";
 
+/**
+ * Stores keyframe based animations.
+ */
 export class AnimationClip extends Motion {
   /**
    * Animation Events for this animation clip.

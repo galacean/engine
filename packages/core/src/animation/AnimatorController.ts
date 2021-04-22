@@ -1,6 +1,9 @@
 import { Entity } from "./../Entity";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 
+/**
+ * Store the data for Animator playback.
+ */
 export class AnimatorController {
   /**
    * The layers in the controller.

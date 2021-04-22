@@ -11,6 +11,9 @@ import {
 import { InterpolationType } from "./enums/InterpolationType";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 
+/**
+ * Store a collection of Keyframes that can be evaluated over time.
+ */
 export class AnimationCurve {
   /**
    * All keys defined in the animation curve.

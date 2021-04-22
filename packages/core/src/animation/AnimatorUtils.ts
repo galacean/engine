@@ -1,5 +1,6 @@
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
+/** @internal */
 export class AnimatorUtils {
   /** @internal */
   static calScaleWeight(s: Vector3, w: number, out: Vector3): void {

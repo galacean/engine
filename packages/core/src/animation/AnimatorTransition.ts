@@ -1,4 +1,8 @@
 import { AnimatorState } from "./AnimatorState";
+
+/**
+ * Transitions define when and how the state machine switch from on state to another. AnimatorTransition always originate from a StateMachine or a StateMachine entry.
+ */
 export class AnimatorStateTransition {
   /**
    * The duration of the transition. This is represented in normalized time.

@@ -5,6 +5,9 @@ import { WrapMode } from "./enums/WrapMode";
 import { PlayType } from "./enums/PlayType";
 import { AnimatorStateType } from "./enums/AnimatorStateType";
 
+/**
+ * States are the basic building blocks of a state machine. Each state contains a AnimationClip which will play while the character is in that state.
+ */
 export class AnimatorState {
   /**
    * The transitions that are going out of the state.
