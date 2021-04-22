@@ -1,22 +1,13 @@
 import { Entity } from "./../Entity";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
-export interface AnimatorControllerParameter {
-  name: string;
-  value: number | boolean;
-}
 
 export class AnimatorController {
   /**
    * The layers in the controller.
    */
   layers: AnimatorControllerLayer[] = [];
-  /**
-   * TODO: Parameters are used to communicate between scripting and the controller.
-   */
-  parameters: AnimatorControllerParameter[] = [];
-  /**
-   * @internal
-   */
+
+  /** @internal */
   _target: Entity;
 
   /**
@@ -39,23 +30,7 @@ export class AnimatorController {
     this.layers[layerIndex]._destroy();
   }
 
-  /**
-   * TODO
-   * Add a parameter to the controller.
-   * @param paramater The paramater to add.
-   */
-  addParameter(paramater: AnimatorControllerParameter): void {}
-
-  /**
-   * TODO
-   * Remove a parameter from the controller.
-   * @param paramater The paramater to add.
-   */
-  removeParameter(parameterIndex: number): void {}
-
-  /**
-   * @internal
-   */
+  /** @internal */
   _setTarget(target: Entity) {
     this._target = target;
     const layerCount = this.layers.length;

@@ -2,27 +2,23 @@ import { Entity } from "../Entity";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 
+export interface AnimatorStateMap {
+  [key: string]: AnimatorState;
+}
+
 export class AnimatorStateMachine {
   /**
    * The list of states.
    */
   states: AnimatorState[] = [];
   /**
+   * The name mapping of all states.
+   */
+  _statesMap: AnimatorStateMap = {};
+  /**
    * The list of transitions in the state machine.
    */
   transitions: AnimatorStateTransition[] = [];
-  /**
-   * TODO The entry state of the state machine.
-   */
-  entryState: AnimatorState;
-  /**
-   * TODO The any state of the state machine.
-   */
-  anyState: AnimatorState;
-  /**
-   * TODO The exit state of the state machine.
-   */
-  exitState: AnimatorState;
 
   /** @internal */
   _target: Entity;
@@ -32,14 +28,15 @@ export class AnimatorStateMachine {
    * @param name The name of the new state.
    */
   addState(name: string): AnimatorState {
-    let state = AnimatorState.findStateByName(name);
+    let state = this.findStateByName(name);
     if (!state) {
       state = new AnimatorState(name);
+      if (this._target) {
+        state._setTarget(this._target);
+      }
+      this.states.push(state);
+      this._statesMap[name] = state;
     }
-    if (this._target) {
-      state._setTarget(this._target);
-    }
-    this.states.push(state);
     return state;
   }
 
@@ -48,16 +45,22 @@ export class AnimatorStateMachine {
    * @param name The state.
    */
   removeState(state: AnimatorState): void {
+    const { name } = state;
     const index = this.states.indexOf(state);
     if (index > -1) {
       this.states.splice(index, 1);
     }
-    state._destroy();
+    delete this._statesMap[name];
   }
 
   /**
-   * @internal
+   * Get the state by name.
+   * @param name  The layer's name.
    */
+  findStateByName(name: string) {
+    return this._statesMap[name];
+  }
+  /** @internal */
   _setTarget(target: Entity): void {
     this._target = target;
     const layerCount = this.states.length;

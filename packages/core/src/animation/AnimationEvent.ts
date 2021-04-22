@@ -1,6 +1,6 @@
 import { Event } from "./../base/Event";
 
-export class AnimationEvent extends Event {
+export class AnimationEvent {
   /**
    * The time when the event be triggered.
    */

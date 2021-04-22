@@ -3,11 +3,10 @@ import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { AnimatorRecorderMode } from "./enums/AnimatorRecorderMode";
 import { InterpolableValue } from "./KeyFrame";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
-import { AnimatorController, AnimatorControllerParameter } from "./AnimatorController";
+import { AnimatorController } from "./AnimatorController";
 import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { AnimationClip } from "./AnimationClip";
 import { AnimatorUtils } from "./AnimatorUtils";
 import { AnimateProperty } from "./enums/AnimateProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
@@ -22,10 +21,6 @@ export class Animator extends Component {
    * The playback speed of the Animator. 1 is normal playback speed.
    */
   speed: number = 1;
-  /**
-   * TODO: The AnimatorControllerParameter list used by the animator.
-   */
-  parameters: AnimatorControllerParameter[] = [];
 
   /**
    * Get the AnimatorController that controls the Animator.
@@ -77,7 +72,7 @@ export class Animator extends Component {
     const { animatorController } = this;
     if (!animatorController) return;
     const animLayer = animatorController.layers[layerIndex];
-    const theState = AnimatorState.findStateByName(stateName);
+    const theState = animLayer.stateMachine.findStateByName(stateName);
     theState.frameTime = theState.clip.length * normalizedTime;
     animLayer._playingState = theState;
     this.recorderMode = AnimatorRecorderMode.Playback;
@@ -119,9 +114,8 @@ export class Animator extends Component {
         const fadingState = animLayer._fadingState;
         if (fadingState) {
           fadingState.frameTime += deltaTime / 1000;
-          const nextAnimClip = fadingState.clip;
-          if (fadingState.frameTime > nextAnimClip.length) {
-            fadingState.frameTime = nextAnimClip.length;
+          if (fadingState.frameTime > fadingState.clipEndTime) {
+            fadingState.frameTime = fadingState.clipEndTime;
           }
         }
       }
@@ -138,16 +132,19 @@ export class Animator extends Component {
     normalizedTransitionDuration: number,
     normalizedTimeOffset: number
   ): void {
-    const currentState = this.animatorController.layers[layerIndex]._playingState;
+    const animLayer = this.animatorController.layers[layerIndex];
+    const currentState = animLayer._playingState;
     if (currentState) {
       currentState._playType = PlayType.IsFading;
-      const nextState = AnimatorState.findStateByName(name);
-      const transition = currentState.addTransition(nextState);
-      this.animatorController.layers[layerIndex]._fadingState = nextState;
-      transition.solo = true;
-      transition.duration = currentState.clip.length * normalizedTransitionDuration;
-      transition.offset = nextState.clip.length * normalizedTimeOffset;
-      transition.exitTime = currentState.frameTime;
+      const nextState = animLayer.stateMachine.findStateByName(name);
+      if (nextState) {
+        const transition = currentState.addTransition(nextState);
+        this.animatorController.layers[layerIndex]._fadingState = nextState;
+        transition.solo = true;
+        transition.duration = currentState.clip.length * normalizedTransitionDuration;
+        transition.offset = nextState.clip.length * normalizedTimeOffset;
+        transition.exitTime = currentState.frameTime;
+      }
     }
   }
 
@@ -379,10 +376,11 @@ export class Animator extends Component {
         for (let i = count - 1; i >= 0; i--) {
           const { curve, propertyName, relativePath, _defaultValue, _target } = clip.curves[i];
           if (!relativePathPropertyNameMap[`${relativePath}_${propertyName}`]) {
+            const frameTime = currentState._getTheRealFrameTime();
             relativePathPropertyNameMap[`${relativePath}_${propertyName}`] = relativePathList.length;
             relativePathList.push(relativePath);
             propertyNameList.push(propertyName);
-            const val = curve.evaluate(currentState.frameTime);
+            const val = curve.evaluate(frameTime);
             targetPropertyNameValues.push([val]);
             targetDefaultValues.push([_defaultValue]);
             targetList.push([_target]);
@@ -445,7 +443,7 @@ export class Animator extends Component {
       const count = clip.curves.length;
       for (let j = count - 1; j >= 0; j--) {
         const { curve, propertyName, _target, _defaultValue } = clip.curves[j];
-        const frameTime = clip._getTheRealFrameTime(currentState.frameTime);
+        const frameTime = currentState._getTheRealFrameTime();
         const val = curve.evaluate(frameTime);
         const { _valueType, _firstFrameValue } = curve;
         if (isFirstLayer) {

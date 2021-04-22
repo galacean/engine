@@ -5,23 +5,7 @@ import { WrapMode } from "./enums/WrapMode";
 import { PlayType } from "./enums/PlayType";
 import { AnimatorStateType } from "./enums/AnimatorStateType";
 
-export interface AnimatorStateMap {
-  [key: string]: AnimatorState;
-}
-
 export class AnimatorState {
-  /**
-   * The name mapping of all states.
-   */
-  static statesMap: AnimatorStateMap = {};
-  /**
-   * Get the state by name.
-   * @param name  The layer's name.
-   */
-  static findStateByName(name: string) {
-    return AnimatorState.statesMap[name];
-  }
-
   /**
    * The transitions that are going out of the state.
    */
@@ -34,6 +18,14 @@ export class AnimatorState {
    * The wrap mode used in the state.
    */
   wrapMode: WrapMode = WrapMode.LOOP;
+  /**
+   * Start time of the animation clip, default 0.
+   */
+  clipStartTime: number = 0;
+  /**
+   * End time of the animation clip, If has the clip, the default value is clip.length otherwise it is Infinity.
+   */
+  clipEndTime: number = Infinity;
 
   /**
    * Get the clip that is being played by this animator state.
@@ -49,10 +41,14 @@ export class AnimatorState {
     if (this._target) {
       clip._setTarget(this._target);
     }
+    if (clip.length < this.clipEndTime) {
+      this.clipEndTime = clip.length;
+    }
     this._clip = clip;
   }
 
   /**
+   * @internal
    * Get the current time of the clip.
    */
   get frameTime(): number {
@@ -60,35 +56,29 @@ export class AnimatorState {
   }
 
   /**
+   * @internal
    * Set the current time of the clip.
    */
   set frameTime(time: number) {
     const animClip = this.clip;
     this._frameTime = time;
-    if (time > animClip.length) {
+    const endTime = Math.min(this.clipEndTime, animClip.length);
+    if (time > endTime) {
       if (this.wrapMode === WrapMode.LOOP) {
-        this._frameTime = time % animClip.length;
+        this._frameTime = time % endTime;
       } else {
-        this._frameTime = animClip.length;
+        this._frameTime = endTime;
       }
     }
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _frameTime: number = 0;
-  /**
-   * @internal
-   */
+  /** @internal */
   _playType: PlayType = PlayType.NotStart;
-  /**
-   * @internal
-   */
+  /** @internal */
   _type: AnimatorStateType;
-  /**
-   * @internal
-   */
+  /** @internal */
   _target: Entity;
 
   private _clip: AnimationClip;
@@ -96,9 +86,7 @@ export class AnimatorState {
   /**
    * @param name - The state's name.
    */
-  constructor(public readonly name: string) {
-    AnimatorState.statesMap[name] = this;
-  }
+  constructor(public readonly name: string) {}
 
   /**
    * Add an outgoing transition to the destination state.
@@ -130,20 +118,23 @@ export class AnimatorState {
     this.transitions = [];
   }
 
-  /**
-   * @internal
-   */
-  _destroy() {
-    delete AnimatorState.statesMap[this.name];
-  }
-
-  /**
-   * @internal
-   */
+  /** @internal */
   _setTarget(target: Entity) {
     this._target = target;
     if (this.clip) {
       this.clip._setTarget(target);
+    }
+  }
+
+  /** @internal */
+  _getTheRealFrameTime() {
+    const { frameTime } = this;
+    if (frameTime < this.clipStartTime) {
+      return this.clipStartTime;
+    } else if (frameTime > this.clipEndTime) {
+      return this.clipEndTime;
+    } else {
+      return frameTime;
     }
   }
 }

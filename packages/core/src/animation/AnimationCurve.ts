@@ -28,17 +28,11 @@ export class AnimationCurve {
     return this._length;
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _valueSize: number;
-  /**
-   * @internal
-   */
+  /** @internal */
   _valueType: InterpolableValueType;
-  /**
-   * @internal
-   */
+  /** @internal */
   _firstFrameValue: InterpolableValue;
 
   private _length: number = 0;

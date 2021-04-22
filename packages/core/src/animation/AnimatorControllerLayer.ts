@@ -45,21 +45,13 @@ export class AnimatorControllerLayer {
     this._stateMachine = stateMachine;
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _target: Entity;
-  /**
-   * @internal
-   */
+  /** @internal */
   _playingState: AnimatorState;
-  /**
-   * @internal
-   */
+  /** @internal */
   _fadingState: AnimatorState;
-  /**
-   * @internal
-   */
+  /** @internal */
   _stateMachine: AnimatorStateMachine;
 
   /**
@@ -70,9 +62,7 @@ export class AnimatorControllerLayer {
     AnimatorControllerLayer.layersMap[name] = this;
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _setTarget(target: Entity) {
     this._target = target;
     if (this.stateMachine) {
@@ -80,9 +70,7 @@ export class AnimatorControllerLayer {
     }
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _destroy() {
     delete AnimatorControllerLayer.layersMap[this.name];
   }

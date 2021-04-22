@@ -1,5 +1,4 @@
 import { AnimatorState } from "./AnimatorState";
-import { AnimatorCondition } from "./AnimatorCondition";
 export class AnimatorStateTransition {
   /**
    * The duration of the transition. This is represented in normalized time.
@@ -14,11 +13,6 @@ export class AnimatorStateTransition {
    */
   exitTime: number;
   /**
-   * TODO
-   * AnimatorCondition conditions that need to be met for a transition to happen.
-   */
-  conditions: AnimatorCondition[];
-  /**
    * The destination state of the transition.
    */
   destinationState: AnimatorState;
@@ -31,22 +25,6 @@ export class AnimatorStateTransition {
    */
   solo: boolean;
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _crossFadeFrameTime: number = 0;
-
-  /**
-   * TODO
-   * Add a condition to a transition.
-   * @param condition
-   */
-  addCondition(condition: AnimatorCondition): void {}
-
-  /**
-   * TODO
-   * Remove a condition from the transition.
-   * @param condition The condition.
-   */
-  removeCondition(condition: AnimatorCondition): void {}
 }

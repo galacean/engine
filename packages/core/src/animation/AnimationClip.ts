@@ -20,27 +20,6 @@ export class AnimationClip extends Motion {
     return this._length;
   }
 
-  get clipStartTime(): number {
-    return this._clipStartTime;
-  }
-
-  set clipStartTime(time: number) {
-    this._clipStartTime = time;
-    if (time > this._clipEndTime) {
-      this._clipEndTime = time;
-    }
-  }
-
-  get clipEndTime(): number {
-    return this._clipEndTime;
-  }
-
-  set clipEndTime(time: number) {
-    this._length = this._clipEndTime = time;
-  }
-
-  private _clipStartTime: number;
-  private _clipEndTime: number;
   private _length: number = 0; //时间
 
   /**
@@ -122,9 +101,7 @@ export class AnimationClip extends Motion {
     this.curves = [];
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _setTarget(target: Entity) {
     this._target = target;
     if (target) {
@@ -134,19 +111,6 @@ export class AnimationClip extends Motion {
         this.curves[i]._target = target.findByName(relativePath);
         this.curves[i]._defaultValue = this.curves[i]._target[propertyName];
       }
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _getTheRealFrameTime(frameTime: number) {
-    if (frameTime < this._clipStartTime) {
-      return this._clipStartTime;
-    } else if (frameTime > this._clipEndTime) {
-      return this._clipEndTime;
-    } else {
-      return frameTime;
     }
   }
 }

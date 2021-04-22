@@ -5,13 +5,9 @@ import { EngineObject } from "../base/EngineObject";
  * Base class for AnimationClips and BlendTrees.
  */
 export class Motion extends EngineObject {
-  /**
-   * @internal
-   */
+  /** @internal */
   _target: Entity;
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _setTarget(target: Entity) {}
 }

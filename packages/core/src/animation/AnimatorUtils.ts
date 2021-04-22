@@ -1,9 +1,7 @@
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
 export class AnimatorUtils {
-  /**
-   * @internal
-   */
+  /** @internal */
   static calScaleWeight(s: Vector3, w: number, out: Vector3): void {
     const sX: number = s.x,
       sY: number = s.y,
@@ -13,9 +11,7 @@ export class AnimatorUtils {
     out.z = sZ > 0 ? Math.pow(Math.abs(sZ), w) : -Math.pow(Math.abs(sZ), w);
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   static calQuaternionWeight(s: Quaternion, w: number, out: Quaternion) {
     out.x = s.x * w;
     out.y = s.y * w;
