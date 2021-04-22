@@ -216,7 +216,7 @@ export class SpriteRenderer extends Renderer {
   protected _updateBounds(worldBounds: BoundingBox): void {
     const sprite = this._sprite;
     if (sprite) {
-      const localBounds = sprite.getBounds();
+      const localBounds = sprite.bounds;
       const worldMatrix = this._entity.transform.worldMatrix;
       BoundingBox.transform(localBounds, worldMatrix, worldBounds);
     } else {

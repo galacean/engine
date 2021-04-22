@@ -38,9 +38,10 @@ export class Sprite extends RefObject {
   }
 
   /**
-   *  Get bounding volume of the sprite.
+   *  Bounding volume of the sprite.
+   *  @remarks This attribute is read-only, do not try to modify it.
    */
-  getBounds(): BoundingBox {
+  get bounds(): Readonly<BoundingBox> {
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
       this._updatePositionsAndBounds();
       this._setDirtyFlagTrue(DirtyFlag.positions);
