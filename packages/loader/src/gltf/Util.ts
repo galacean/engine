@@ -176,22 +176,26 @@ export function getElementFormat(type: number, size: number): VertexElementForma
  * @param type
  * @param callback
  */
-export function loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise<HTMLImageElement> {
+export function loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise<HTMLImageElement | ImageBitmap> {
   return new Promise((resolve, reject) => {
     const blob = new window.Blob([imageBuffer], { type });
-    const img = new Image();
-    img.src = URL.createObjectURL(blob);
+    if (createImageBitmap) {
+      return createImageBitmap(blob);
+    } else {
+      const img = new Image();
+      img.src = URL.createObjectURL(blob);
 
-    img.crossOrigin = "anonymous";
-    img.onerror = function () {
-      reject(new Error("Failed to load image buffer"));
-    };
-    img.onload = function () {
-      // Call requestAnimationFrame to avoid iOS's bug.
-      requestAnimationFrame(() => {
-        resolve(img);
-      });
-    };
+      img.crossOrigin = "anonymous";
+      img.onerror = function () {
+        reject(new Error("Failed to load image buffer"));
+      };
+      img.onload = function () {
+        // Call requestAnimationFrame to avoid iOS's bug.
+        requestAnimationFrame(() => {
+          resolve(img);
+        });
+      };
+    }
   });
 }
 

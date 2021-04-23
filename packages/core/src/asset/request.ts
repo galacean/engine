@@ -57,33 +57,42 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
 
 function requestImage<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject) => {
-    const { timeout } = config;
-    const img = new Image();
-    const onerror = () => {
-      reject(new Error(`request ${url} fail`));
-    };
-    img.onerror = onerror;
-
-    img.onabort = onerror;
-
-    const timeoutId = setTimeout(() => {
-      reject(new Error(`request ${url} timeout`));
-    }, timeout);
-
-    img.onload = ((timeoutId) => {
-      return () => {
-        // Call requestAnimationFrame to avoid iOS's bug.
-        requestAnimationFrame(() => {
-          //@ts-ignore
-          resolve(img);
-        });
-        clearTimeout(timeoutId);
+    if (createImageBitmap) {
+      config.type = "blob";
+      requestRes<Blob>(url, config)
+        .then((blob) => createImageBitmap(blob))
+        // @ts-ignore
+        .then(resolve)
+        .catch(reject);
+    } else {
+      const { timeout } = config;
+      const img = new Image();
+      const onerror = () => {
+        reject(new Error(`request ${url} fail`));
       };
-    })(timeoutId);
+      img.onerror = onerror;
 
-    img.crossOrigin = "anonymous";
+      img.onabort = onerror;
 
-    img.src = url;
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`request ${url} timeout`));
+      }, timeout);
+
+      img.onload = ((timeoutId) => {
+        return () => {
+          // Call requestAnimationFrame to avoid iOS's bug.
+          requestAnimationFrame(() => {
+            //@ts-ignore
+            resolve(img);
+          });
+          clearTimeout(timeoutId);
+        };
+      })(timeoutId);
+
+      img.crossOrigin = "anonymous";
+
+      img.src = url;
+    }
   });
 }
 
