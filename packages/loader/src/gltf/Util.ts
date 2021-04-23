@@ -1,4 +1,5 @@
 import { DataType, IndexFormat, VertexElement, VertexElementFormat } from "@oasis-engine/core";
+import { IAccessor, IBufferView, IGLTF } from "./schema";
 
 const WEBGL_COMPONENT_TYPES = {
   5120: Int8Array,
@@ -28,23 +29,6 @@ export function decodeText(array) {
   }
 
   return decodeURIComponent(encodeURIComponent(s));
-}
-
-/**
- * Find uniform object according to paramters[name] in glTF.
- * @param obj
- * @param key
- * @param value
- * @returns {object}
- * @private
- */
-export function findByKeyValue(obj, key, value) {
-  for (const name in obj) {
-    if (obj[name][key] === value) {
-      return obj[name];
-    }
-  }
-  return null;
 }
 
 /** Get the number of bytes occupied by accessor type.
@@ -80,7 +64,7 @@ export function getComponentType(componentType) {
  * @param buffers
  * @private
  */
-export function getAccessorData(gltf, accessor, buffers) {
+export function getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]) {
   const bufferView = gltf.bufferViews[accessor.bufferView];
   const arrayBuffer = buffers[bufferView.buffer];
   const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
@@ -111,18 +95,11 @@ export function getAccessorData(gltf, accessor, buffers) {
   return new arrayType(uint8Array.buffer);
 }
 
-/**
- * Get buffer data
- * @param bufferView
- * @param buffers
- * @returns {Blob|ArrayBuffer|Array.<T>|string}
- * @private
- */
-export function getBufferData(bufferView, buffers) {
-  // get bufferView
-  const arrayBuffer = buffers[bufferView.buffer];
-  const byteOffset = bufferView.byteOffset || 0;
-  return arrayBuffer.slice(byteOffset, byteOffset + bufferView.byteLength);
+export function getBufferViewData(bufferView: IBufferView, buffers: ArrayBuffer[]): ArrayBuffer {
+  const { buffer, byteOffset = 0, byteLength } = bufferView;
+  const arrayBuffer = buffers[buffer];
+
+  return arrayBuffer.slice(byteOffset, byteOffset + byteLength);
 }
 
 export function getVertexStride(accessor): number {
@@ -195,11 +172,6 @@ export function loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise
   });
 }
 
-function isRelativeUrl(url: string): boolean {
-  // 47 is /
-  return url.charCodeAt(0) !== 47 && url.match(/:\/\//) === null;
-}
-
 function isAbsoluteUrl(url: string): boolean {
   return /^(?:http|blob|data:|\/)/.test(url);
 }
@@ -210,4 +182,74 @@ export function parseRelativeUrl(baseUrl: string, relativeUrl: string): string {
   }
   // TODO: implement ../path
   return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
+}
+
+/**
+ * Parse the glb format.
+ * @param glb - Binary data
+ * @returns GlTF information and bin information in Object glb.
+ * @private
+ */
+export function parseGLB(
+  glb: ArrayBuffer
+): {
+  gltf: IGLTF;
+  buffers: ArrayBuffer[];
+} {
+  const UINT32_LENGTH = 4;
+  const GLB_HEADER_MAGIC = 0x46546c67; // 'glTF'
+  const GLB_HEADER_LENGTH = 12;
+  const GLB_CHUNK_TYPES = { JSON: 0x4e4f534a, BIN: 0x004e4942 };
+
+  const dataView = new DataView(glb);
+
+  // read header
+  const header = {
+    magic: dataView.getUint32(0, true),
+    version: dataView.getUint32(UINT32_LENGTH, true),
+    length: dataView.getUint32(2 * UINT32_LENGTH, true)
+  };
+
+  if (header.magic !== GLB_HEADER_MAGIC) {
+    console.error("Invalid glb magic number. Expected 0x46546C67, found 0x" + header.magic.toString(16));
+    return null;
+  }
+
+  // read main data
+  let chunkLength = dataView.getUint32(GLB_HEADER_LENGTH, true);
+  let chunkType = dataView.getUint32(GLB_HEADER_LENGTH + UINT32_LENGTH, true);
+
+  // read glTF json
+  if (chunkType !== GLB_CHUNK_TYPES.JSON) {
+    console.error("Invalid glb chunk type. Expected 0x004E4942, found 0x" + chunkType.toString(16));
+    return null;
+  }
+
+  const glTFData = new Uint8Array(glb, GLB_HEADER_LENGTH + 2 * UINT32_LENGTH, chunkLength);
+  const gltf: IGLTF = JSON.parse(decodeText(glTFData));
+
+  // read all buffers
+  const buffers: ArrayBuffer[] = [];
+  let byteOffset = GLB_HEADER_LENGTH + 2 * UINT32_LENGTH + chunkLength;
+
+  while (byteOffset < header.length) {
+    chunkLength = dataView.getUint32(byteOffset, true);
+    chunkType = dataView.getUint32(byteOffset + UINT32_LENGTH, true);
+
+    if (chunkType !== GLB_CHUNK_TYPES.BIN) {
+      console.error("Invalid glb chunk type. Expected 0x004E4942, found 0x" + chunkType.toString(16));
+      return null;
+    }
+
+    const currentOffset = byteOffset + 2 * UINT32_LENGTH;
+    const buffer = glb.slice(currentOffset, currentOffset + chunkLength);
+    buffers.push(buffer);
+
+    byteOffset += chunkLength + 2 * UINT32_LENGTH;
+  }
+
+  return {
+    gltf,
+    buffers
+  };
 }

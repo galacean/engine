@@ -1,6 +1,5 @@
-import { Texture2D } from "@oasis-engine/core";
+type GLTFID = number;
 
-export type GLTFID = number;
 /**
  * Indices of those attributes that deviate from their initialization value.
  */
@@ -19,7 +18,6 @@ export interface IAccessorSparseIndices {
   componentType: 5121 | 5123 | 5125 | number;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * Array of size `accessor.sparse.count` times number of components storing the displaced accessor attributes pointed by `accessor.sparse.indices`.
@@ -35,7 +33,6 @@ export interface IAccessorSparseValues {
   byteOffset?: number;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * Sparse storage of attributes that deviate from their initialization value.
@@ -55,7 +52,6 @@ export interface IAccessorSparse {
   values: IAccessorSparseValues;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A typed view into a bufferView.  A bufferView contains raw binary data.  An accessor provides a typed view into a bufferView or a subset of a bufferView similar to how WebGL's `vertexAttribPointer()` defines an attribute in a buffer.
@@ -100,7 +96,6 @@ export interface IAccessor {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * The index of the node and TRS property that an animation channel targets.
@@ -116,7 +111,6 @@ export interface IAnimationChannelTarget {
   path: "translation" | "rotation" | "scale" | "weights" | string;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * Targets an animation's sampler at a node's property.
@@ -132,7 +126,6 @@ export interface IAnimationChannel {
   target: IAnimationChannelTarget;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * Combines input and output accessors with an interpolation algorithm to define a keyframe graph (but not its target).
@@ -152,7 +145,6 @@ export interface IAnimationSampler {
   output: GLTFID;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A keyframe animation.
@@ -169,7 +161,6 @@ export interface IAnimation {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * Metadata about the glTF asset.
@@ -193,7 +184,6 @@ export interface IAsset {
   minVersion?: string;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A buffer points to binary geometry, animation, or skins.
@@ -210,7 +200,6 @@ export interface IBuffer {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A view into a buffer generally representing a subset of the buffer.
@@ -239,7 +228,6 @@ export interface IBufferView {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * An orthographic camera containing properties to create an orthographic projection matrix.
@@ -263,7 +251,6 @@ export interface ICameraOrthographic {
   znear: number;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A perspective camera containing properties to create a perspective projection matrix.
@@ -287,7 +274,6 @@ export interface ICameraPerspective {
   znear: number;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A camera's projection.  A node can reference a camera to apply a transform to place the camera in the scene.
@@ -308,7 +294,6 @@ export interface ICamera {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * Image data used to create a texture. Image can be referenced by URI or `bufferView` index. `mimeType` is required in the latter case.
@@ -329,7 +314,6 @@ export interface IImage {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * Reference to a texture.
@@ -345,7 +329,6 @@ export interface ITextureInfo {
   texCoord?: number;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A set of parameter values that are used to define the metallic-roughness material model from Physically-Based Rendering (PBR) methodology.
@@ -373,7 +356,6 @@ export interface IMaterialPbrMetallicRoughness {
   metallicRoughnessTexture?: ITextureInfo;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 export interface IMaterialNormalTextureInfo {
   index?: any;
@@ -384,7 +366,6 @@ export interface IMaterialNormalTextureInfo {
   scale?: number;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 export interface IMaterialOcclusionTextureInfo {
   index?: any;
@@ -395,7 +376,6 @@ export interface IMaterialOcclusionTextureInfo {
   strength?: number;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * The material appearance of a primitive.
@@ -436,7 +416,6 @@ export interface IMaterial {
    * Specifies whether the material is double sided.
    */
   doubleSided?: boolean;
-  [k: string]: any;
 }
 /**
  * Geometry to be rendered with the given material.
@@ -468,7 +447,6 @@ export interface IMeshPrimitive {
   }[];
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A set of primitives to be rendered.  A node can contain one mesh.  A node's transform places the mesh in the scene.
@@ -485,7 +463,6 @@ export interface IMesh {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A node in the node hierarchy.  When the node contains `skin`, all `mesh.primitives` must contain `JOINTS_0` and `WEIGHTS_0` attributes.  A node can have either a `matrix` or any combination of `translation`/`rotation`/`scale` (TRS) properties. TRS properties are converted to matrices and postmultiplied in the `T * R * S` order to compose the transformation matrix; first the scale is applied to the vertices, then the rotation, and then the translation. If none are provided, the transform is the identity. When a node is targeted for animation (referenced by an animation.channel.target), only TRS properties may be present; `matrix` will not be present.
@@ -530,7 +507,6 @@ export interface INode {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * Texture sampler properties for filtering and wrapping modes.
@@ -555,7 +531,6 @@ export interface ISampler {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * The root nodes of a scene.
@@ -568,7 +543,6 @@ export interface IScene {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * Joints and matrices defining a skin.
@@ -589,7 +563,6 @@ export interface ISkin {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * A texture and its sampler.
@@ -606,7 +579,6 @@ export interface ITexture {
   name?: any;
   extensions?: any;
   extras?: any;
-  [k: string]: any;
 }
 /**
  * The root object for a glTF asset.
@@ -682,12 +654,4 @@ export interface IGLTF {
   textures?: ITexture[];
   extensions?: any;
   extras?: any;
-  [k: string]: any;
-}
-
-export interface LoadedGLTFResource {
-  buffers?: ArrayBuffer[];
-  textures?: Texture2D[];
-  shaders?: string[];
-  gltf?: IGLTF;
 }
