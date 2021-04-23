@@ -11,10 +11,24 @@ void RE_Direct_Physical( const in IncidentLight directLight, const in GeometricC
     #endif
 
 
+		float alpha = pow2( material.specularRoughness ); // UE4's roughness
 
-    reflectedLight.directSpecular += irradiance * BRDF_Specular_GGX( directLight, geometry, material.specularColor, material.specularRoughness );
+		vec3 halfDir = normalize( directLight.direction + geometry.viewDir );
 
-    reflectedLight.directDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
+		// float dotNL = saturate( dot( geometry.normal, directLight.direction ) );
+		float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
+		float dotNH = saturate( dot( geometry.normal, halfDir ) );
+		float dotLH = saturate( dot( directLight.direction, halfDir ) );
+
+		vec3 F = F_Schlick( material.specularColor, dotLH );
+
+		float G = G_GGX_SmithCorrelated( alpha, dotNL, dotNV );
+
+		float D = D_GGX( alpha, dotNH );
+
+    reflectedLight.directSpecular += F * irradiance * F * G * D;
+
+    reflectedLight.directDiffuse += (vec3(1.0) - F) * irradiance * RECIPROCAL_PI * material.diffuseColor;
 
 }
 
