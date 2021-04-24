@@ -66,7 +66,6 @@ export class AnimationClipGLTFParser extends EngineObject {
 
   public channels: IChannel[];
   /**
-   * @constructor
    * @param name - The AnimationClip's name.
    */
   constructor() {

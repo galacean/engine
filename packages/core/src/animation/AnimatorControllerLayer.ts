@@ -31,6 +31,15 @@ export class AnimatorControllerLayer {
    */
   blendingMode: AnimatorLayerBlendingMode = AnimatorLayerBlendingMode.Override;
 
+  /** @internal */
+  _target: Entity;
+  /** @internal */
+  _playingState: AnimatorState;
+  /** @internal */
+  _fadingState: AnimatorState;
+  /** @internal */
+  _stateMachine: AnimatorStateMachine;
+
   /**
    * Get the state machine for the layer.
    */
@@ -48,17 +57,7 @@ export class AnimatorControllerLayer {
     this._stateMachine = stateMachine;
   }
 
-  /** @internal */
-  _target: Entity;
-  /** @internal */
-  _playingState: AnimatorState;
-  /** @internal */
-  _fadingState: AnimatorState;
-  /** @internal */
-  _stateMachine: AnimatorStateMachine;
-
   /**
-   * @constructor
    * @param name - The layer's name.
    */
   constructor(public readonly name: string) {

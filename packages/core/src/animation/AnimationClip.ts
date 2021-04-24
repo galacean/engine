@@ -14,16 +14,17 @@ export class AnimationClip extends Motion {
    * Animation Events for this animation clip.
    */
   events: AnimationEvent[];
+  /**
+   * Store a collection of Keyframes
+   */
   curves: AnimationClipCurveData<Component>[] = [];
 
-  /**
-   * Animation length in seconds.
-   */
+  private _length: number = 0; //时间
+
+  /** Animation length in seconds. */
   get length(): number {
     return this._length;
   }
-
-  private _length: number = 0; //时间
 
   /**
    * @param name - The AnimationClip's name.
@@ -34,10 +35,10 @@ export class AnimationClip extends Motion {
 
   /**
    * Adds an animation event to the clip.
-   * @param evt the animation event
+   * @param event the animation event
    */
-  addEvent(evt: AnimationEvent): void {
-    this.events.push(evt);
+  addEvent(event: AnimationEvent): void {
+    this.events.push(event);
   }
 
   /**

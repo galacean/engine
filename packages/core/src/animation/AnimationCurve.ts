@@ -24,13 +24,6 @@ export class AnimationCurve {
    */
   interpolation: InterpolationType;
 
-  /**
-   * Animation curve length in seconds.
-   */
-  get length(): number {
-    return this._length;
-  }
-
   /** @internal */
   _valueSize: number;
   /** @internal */
@@ -39,6 +32,13 @@ export class AnimationCurve {
   _firstFrameValue: InterpolableValue;
 
   private _length: number = 0;
+
+  /**
+   * Animation curve length in seconds.
+   */
+  get length(): number {
+    return this._length;
+  }
 
   /**
    * Add a new key to the curve.

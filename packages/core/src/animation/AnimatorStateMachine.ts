@@ -15,14 +15,11 @@ export class AnimatorStateMachine {
    */
   states: AnimatorState[] = [];
   /**
-   * The name mapping of all states.
-   */
-  _statesMap: AnimatorStateMap = {};
-  /**
    * The list of transitions in the state machine.
    */
   transitions: AnimatorStateTransition[] = [];
-
+  /** @internal */
+  _statesMap: AnimatorStateMap = {};
   /** @internal */
   _target: Entity;
 

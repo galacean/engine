@@ -25,6 +25,16 @@ export class Animator extends Component {
    */
   speed: number = 1;
 
+  private _animatorController: AnimatorController;
+  private _diffValueFromBasePos: InterpolableValue;
+  private _diffFloatFromBasePos: number = 0;
+  private _diffVector2FromBasePos: Vector2 = new Vector2();
+  private _diffVector3FromBasePos: Vector3 = new Vector3();
+  private _diffVector4FromBasePos: Vector4 = new Vector4();
+  private _diffQuaternionFromBasePos: Quaternion = new Quaternion();
+  private _tempVector3: Vector3 = new Vector3();
+  private _tempQuaternion: Quaternion = new Quaternion();
+
   /**
    * Get the AnimatorController that controls the Animator.
    */
@@ -47,16 +57,6 @@ export class Animator extends Component {
   get layers(): Readonly<AnimatorControllerLayer[]> {
     return this._animatorController?.layers || [];
   }
-
-  private _animatorController: AnimatorController;
-  private _diffValueFromBasePos: InterpolableValue;
-  private _diffFloatFromBasePos: number = 0;
-  private _diffVector2FromBasePos: Vector2 = new Vector2();
-  private _diffVector3FromBasePos: Vector3 = new Vector3();
-  private _diffVector4FromBasePos: Vector4 = new Vector4();
-  private _diffQuaternionFromBasePos: Quaternion = new Quaternion();
-  private _tempVector3: Vector3 = new Vector3();
-  private _tempQuaternion: Quaternion = new Quaternion();
 
   /**
    * @param entity - The entitiy which the animator component belongs to.
@@ -128,6 +128,10 @@ export class Animator extends Component {
 
   /**
    * crossFade to the AnimationClip by name.
+   * @param name - The name of the next state
+   * @param layerIndex - The layer where the crossfade occurs
+   * @param normalizedTransitionDuration - The duration of the transition (normalized)
+   * @param normalizedTimeOffset - The time of the next state (normalized)
    */
   crossFade(
     name: string,
@@ -160,7 +164,6 @@ export class Animator extends Component {
   }
 
   /**
-   * Be called when this instance be enabled.
    * @override
    * @internal
    */
@@ -169,7 +172,6 @@ export class Animator extends Component {
   }
 
   /**
-   * Be called when this instance be disabled or it's entity be inActiveInHierarchy or before this instance be destroyed.
    * @override
    * @internal
    */

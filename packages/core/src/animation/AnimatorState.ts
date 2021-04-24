@@ -30,6 +30,17 @@ export class AnimatorState {
    */
   clipEndTime: number = Infinity;
 
+  /** @internal */
+  _frameTime: number = 0;
+  /** @internal */
+  _playType: PlayType = PlayType.NotStart;
+  /** @internal */
+  _type: AnimatorStateType;
+  /** @internal */
+  _target: Entity;
+
+  private _clip: AnimationClip;
+
   /**
    * Get the clip that is being played by this animator state.
    */
@@ -74,17 +85,6 @@ export class AnimatorState {
       }
     }
   }
-
-  /** @internal */
-  _frameTime: number = 0;
-  /** @internal */
-  _playType: PlayType = PlayType.NotStart;
-  /** @internal */
-  _type: AnimatorStateType;
-  /** @internal */
-  _target: Entity;
-
-  private _clip: AnimationClip;
 
   /**
    * @param name - The state's name.
