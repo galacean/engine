@@ -87,13 +87,13 @@ export class AnimatorState {
   }
 
   /**
-   * @param name - The state's name.
+   * @param name - The state's name
    */
   constructor(public readonly name: string) {}
 
   /**
    * Add an outgoing transition to the destination state.
-   * @param destinationState The destination state.
+   * @param destinationState - The destination state
    */
   addTransition(destinationState: AnimatorState): AnimatorStateTransition {
     const transition = new AnimatorStateTransition();
@@ -104,7 +104,7 @@ export class AnimatorState {
 
   /**
    * Remove a transition from the state.
-   * @param transition The transition.
+   * @param transition - The transition
    */
   removeTransition(transition: AnimatorStateTransition): void {
     this.transitions.splice(this.transitions.indexOf(transition), 1);

@@ -17,7 +17,7 @@ export class AnimatorControllerLayer {
   static layersMap: AnimatorControllerLayerMap = {};
   /**
    * Get the layer by name.
-   * @param name  The layer's name.
+   * @param name - The layer's name.
    */
   static findLayerByName(name: string): AnimatorControllerLayer {
     return AnimatorControllerLayer.layersMap[name];
@@ -58,7 +58,7 @@ export class AnimatorControllerLayer {
   }
 
   /**
-   * @param name - The layer's name.
+   * @param name - The layer's name
    */
   constructor(public readonly name: string) {
     AnimatorControllerLayer.layersMap[name] = this;

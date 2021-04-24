@@ -59,7 +59,7 @@ export class Animator extends Component {
   }
 
   /**
-   * @param entity - The entitiy which the animator component belongs to.
+   * @param entity - The entitiy which the animator component belongs to
    */
   constructor(entity: Entity) {
     super(entity);
@@ -67,9 +67,9 @@ export class Animator extends Component {
 
   /**
    * Plays a state by name.
-   * @param stateName The state name.
-   * @param layerIndex The layer index(default 0).
-   * @param normalizedTime The time offset between 0 and 1(default 0).
+   * @param stateName - The state name
+   * @param layerIndex - The layer index(default 0)
+   * @param normalizedTime - The time offset between 0 and 1(default 0)
    */
   playState(stateName: string, layerIndex: number = 0, normalizedTime: number = 0): void {
     const { animatorController } = this;
@@ -97,7 +97,7 @@ export class Animator extends Component {
 
   /**
    * Evaluates the animator component based on deltaTime.
-   * @param deltaTime - The deltaTime when the animation update.
+   * @param deltaTime - The deltaTime when the animation update
    * @private
    */
   update(deltaTime: number): void {
@@ -157,7 +157,7 @@ export class Animator extends Component {
 
   /**
    * Return the layer by name.
-   * @param name The layer name.
+   * @param name - The layer name
    */
   getLayerByName(name: string): AnimatorControllerLayer {
     return AnimatorControllerLayer.findLayerByName(name);

@@ -27,7 +27,7 @@ export class AnimationClip extends Motion {
   }
 
   /**
-   * @param name - The AnimationClip's name.
+   * @param name - The AnimationClip's name
    */
   constructor(public readonly name: string) {
     super(null);
@@ -35,7 +35,7 @@ export class AnimationClip extends Motion {
 
   /**
    * Adds an animation event to the clip.
-   * @param event the animation event
+   * @param event - The animation event
    */
   addEvent(event: AnimationEvent): void {
     this.events.push(event);
@@ -54,8 +54,8 @@ export class AnimationClip extends Motion {
 
   /**
    * Samples an animation at a given time for any animated properties.
-   * @param entity The animated entity.
-   * @param time The time to sample an animation.
+   * @param entity - The animated entity
+   * @param time - The time to sample an animation
    */
   sampleAnimation(entity: Entity, time: number): void {
     const { length } = this.curves;
@@ -81,7 +81,7 @@ export class AnimationClip extends Motion {
 
   /**
    * Assigns the curve to animate a specific property.
-   * @param curveData
+   * @param curveData - The curve data
    */
   setCurve(curveData: AnimationClipCurveData<Component>): void {
     if (curveData.curve.length > this._length) {

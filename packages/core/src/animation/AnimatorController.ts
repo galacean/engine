@@ -15,7 +15,7 @@ export class AnimatorController {
 
   /**
    * Add a layer to the controller.
-   * @param layer The layer to add.
+   * @param layer - The layer to add
    */
   addLayer(layer: AnimatorControllerLayer): void {
     if (this._target) {
@@ -26,7 +26,7 @@ export class AnimatorController {
 
   /**
    * Remove a layer from the controller.
-   * @param layerIndex The index of the AnimatorLayer.
+   * @param layerIndex - The index of the AnimatorLayer
    */
   removeLayer(layerIndex: number): void {
     this.layers.splice(layerIndex, 1);

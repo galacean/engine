@@ -25,7 +25,7 @@ export class AnimatorStateMachine {
 
   /**
    * Add a state to the state machine.
-   * @param name The name of the new state.
+   * @param name - The name of the new state
    */
   addState(name: string): AnimatorState {
     let state = this.findStateByName(name);
@@ -42,7 +42,7 @@ export class AnimatorStateMachine {
 
   /**
    * Remove a state from the state machine.
-   * @param name The state.
+   * @param name - The state
    */
   removeState(state: AnimatorState): void {
     const { name } = state;
@@ -55,7 +55,7 @@ export class AnimatorStateMachine {
 
   /**
    * Get the state by name.
-   * @param name  The layer's name.
+   * @param name - The layer's name
    */
   findStateByName(name: string) {
     return this._statesMap[name];

@@ -42,7 +42,7 @@ export class AnimationCurve {
 
   /**
    * Add a new key to the curve.
-   * @param key The keyframe.
+   * @param key - The keyframe
    */
   addKey(key: Keyframe): void {
     const { time } = key;
@@ -77,7 +77,7 @@ export class AnimationCurve {
 
   /**
    * Evaluate the curve at time.
-   * @param time The time within the curve you want to evaluate.
+   * @param time - The time within the curve you want to evaluate
    */
   evaluate(time: number): InterpolableValue {
     const { keys, interpolation } = this;
@@ -104,8 +104,8 @@ export class AnimationCurve {
 
   /**
    * Removes the keyframe at index and inserts key.
-   * @param index The index of the key to move.
-   * @param key The key to insert.
+   * @param index - The index of the key to move
+   * @param key - The key to insert
    */
   moveKey(index: number, key: Keyframe): void {
     this.keys[index] = key;
@@ -113,7 +113,7 @@ export class AnimationCurve {
 
   /**
    * Removes a key.
-   * @param index The index of the key to remove.
+   * @param index - The index of the key to remove
    */
   removeKey(index: number): void {
     this.keys.splice(index, 1);

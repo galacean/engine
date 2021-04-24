@@ -1,5 +1,5 @@
 import { Component, Entity, WrapMode, Animator } from "@oasis-engine/core";
-import { GLTFResource } from "./gltf/glTF";
+import { GLTFResource } from "../gltf/glTF";
 
 /**
  * @deprecated
