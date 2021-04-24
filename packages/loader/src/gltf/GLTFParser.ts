@@ -1,33 +1,11 @@
-import {
-  Buffer,
-  BufferBindFlag,
-  BufferMesh,
-  BufferUsage,
-  IndexBufferBinding,
-  IndexFormat,
-  Material,
-  PBRSpecularMaterial,
-  SubMesh,
-  TypedArray,
-  UnlitMaterial,
-  VertexElement
-} from "@oasis-engine/core";
-import { Vector3 } from "@oasis-engine/math";
 import { GLTFResource } from "./GLTFResource";
 import { BufferParser } from "./parser/BufferParser";
+import { EntityParser } from "./parser/EntityParser";
 import { MaterialParser } from "./parser/MaterialParser";
 import { MeshParser } from "./parser/MeshParser";
 import { Parser } from "./parser/Parser";
 import { TextureParser } from "./parser/TextureParser";
 import { Validator } from "./parser/Validator";
-import { createVertexElement, getIndexFormat, getVertexStride } from "./Util";
-
-const TARGET_PATH_MAP = {
-  translation: "position",
-  rotation: "rotation",
-  scale: "scale",
-  weights: "weights"
-};
 
 /**
  * Extension dedicated registration key.
@@ -114,105 +92,6 @@ let KHR_lights = null;
 //   skin.skeleton = node.name;
 
 //   return Promise.resolve(skin);
-// }
-
-/**
- * Parse the node of glTF.
- * @param gltfNode
- * @param resources
- * @private
- */
-// export function parseNode(gltfNode, resources: GLTFParsed) {
-//   // TODO: undefined name?
-//   const entity = new Entity(resources.engine, gltfNode.name || `GLTF_NODE_${nodeCount++}`);
-
-//   if (gltfNode.hasOwnProperty("matrix")) {
-//     const m = gltfNode.matrix;
-//     const mat = new Matrix();
-//     mat.setValueByArray(m);
-//     const pos = new Vector3();
-//     const scale = new Vector3(1, 1, 1);
-//     const rot = new Quaternion();
-//     mat.decompose(pos, rot, scale);
-
-//     entity.transform.position = pos;
-//     entity.transform.rotationQuaternion = rot;
-//     entity.transform.scale = scale;
-//   } else {
-//     for (const key in TARGET_PATH_MAP) {
-//       if (gltfNode.hasOwnProperty(key)) {
-//         const mapKey = TARGET_PATH_MAP[key];
-//         if (mapKey === "weights") {
-//           entity[mapKey] = gltfNode[key];
-//         } else {
-//           const arr = gltfNode[key];
-//           const len = arr.length;
-//           const obj = entity[mapKey];
-//           if (len === 2) {
-//             obj.setValue(arr[0], arr[1]);
-//           } else if (len === 3) {
-//             obj.setValue(arr[0], arr[1], arr[2]);
-//           } else if (len === 4) {
-//             obj.setValue(arr[0], arr[1], arr[2], arr[3]);
-//           }
-//           entity[mapKey] = obj;
-//         }
-//       }
-//     }
-//   }
-
-//   if (gltfNode.camera !== undefined) {
-//     const cameraOptions = resources.gltf.cameras[gltfNode.camera];
-//     const camera = entity.addComponent(Camera);
-//     if (cameraOptions.type === "orthographic") {
-//       camera.isOrthographic = true;
-//       let { ymag, xmag, zfar, znear } = cameraOptions.orthographic;
-//       if (znear !== undefined) {
-//         camera.nearClipPlane = znear;
-//       }
-//       if (zfar !== undefined) {
-//         camera.farClipPlane = zfar;
-//       }
-//       if (ymag && xmag) {
-//         camera.orthographicSize = Math.max(ymag, xmag) / 2;
-//       }
-//       if (ymag !== undefined && xmag) {
-//         camera.orthographicSize = xmag / 2;
-//       }
-//       if (xmag !== undefined && ymag) {
-//         camera.orthographicSize = ymag / 2;
-//       }
-//     } else {
-//       const { aspectRatio, yfov, zfar, znear } = cameraOptions.perspective;
-//       if (aspectRatio !== undefined) {
-//         camera.aspectRatio = aspectRatio;
-//       }
-//       if (yfov !== undefined) {
-//         camera.fieldOfView = yfov;
-//       }
-//       if (zfar !== undefined) {
-//         camera.farClipPlane = zfar;
-//       }
-//       if (znear !== undefined) {
-//         camera.nearClipPlane = znear;
-//       }
-//     }
-//   }
-
-//   if (gltfNode.extensions) {
-//     if (KHR_lights && gltfNode.extensions.KHR_lights) {
-//       const lightIdx = gltfNode.extensions.KHR_lights.light;
-//       if (lightIdx !== undefined) {
-//         const light = getItemByIdx("lights", lightIdx, resources);
-//         if (light) {
-//           const lightCon = entity.addComponent(light.ability);
-//           Object.assign(lightCon, light.props);
-//         }
-//       }
-//     }
-//   }
-
-//   return Promise.resolve(entity);
 // }
 
 /**
@@ -365,4 +244,11 @@ export class GLTFParser {
   }
 }
 
-export const gltfParser = new GLTFParser([BufferParser, Validator, TextureParser, MaterialParser, MeshParser]);
+export const gltfParser = new GLTFParser([
+  BufferParser,
+  Validator,
+  TextureParser,
+  MaterialParser,
+  MeshParser,
+  EntityParser
+]);
