@@ -1,4 +1,3 @@
-import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
@@ -9,17 +8,22 @@ import { Texture } from "./Texture";
  * The texture is used for the output of depth information in off-screen rendering.
  */
 export class RenderDepthTexture extends Texture {
-  /** @internal */
-  public _isCube: boolean = false;
-
-  private _format: RenderBufferDepthFormat;
   private _autoMipmap: boolean = false;
+  private _format: RenderBufferDepthFormat;
+  private _isCube: boolean = false;
 
   /**
-   * Render depth texture format.
+   * Texture format.
    */
   get format(): RenderBufferDepthFormat {
     return this._format;
+  }
+
+  /**
+   * Whether to render to a cube texture.
+   */
+  get isCube(): boolean {
+    return this._isCube;
   }
 
   /**
@@ -51,36 +55,15 @@ export class RenderDepthTexture extends Texture {
     isCube: boolean = false
   ) {
     super(engine);
-    const rhi = engine._hardwareRenderer;
-    const gl: WebGLRenderingContext & WebGL2RenderingContext = rhi.gl;
-    const isWebGL2: boolean = rhi.isWebGL2;
 
-    if (!Texture._supportRenderBufferDepthFormat(format, rhi, true)) {
-      throw new Error(`RenderBufferDepthFormat is not supported:${RenderBufferDepthFormat[format]}`);
-    }
-
-    if (isCube && width !== height) {
-      throw new Error("The cube texture must have the same width and height");
-    }
-    if (mipmap && !isWebGL2 && (!Texture._isPowerOf2(width) || !Texture._isPowerOf2(height))) {
-      Logger.warn(
-        "non-power-2 texture is not supported for mipmap in WebGL1,and has automatically downgraded to non-mipmap"
-      );
-      mipmap = false;
-    }
-
-    this._glTexture = gl.createTexture();
-    this._formatDetail = Texture._getRenderBufferDepthFormatDetail(format, gl, isWebGL2);
     this._isCube = isCube;
-    this._rhi = rhi;
-    this._target = isCube ? gl.TEXTURE_CUBE_MAP : gl.TEXTURE_2D;
     this._mipmap = mipmap;
     this._width = width;
     this._height = height;
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
-    this._initMipmap(isCube);
+    this._platformTexture = engine._hardwareRenderer.createPlatformRenderDepthTexture(this);
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;

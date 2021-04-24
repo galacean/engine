@@ -1,1 +1,1 @@
-export { SpriteRenderer } from "./SpriteRenderer";
+export * from "./sprite/index";

@@ -1,4 +1,4 @@
-let decoderPending;
+export default `let decoderPending;
 let decoderConfig;
 
 onmessage = function(e) {
@@ -72,7 +72,7 @@ function decodeGeometry(draco, decoder, decoderBuffer, taskConfig) {
     // A Draco file may be created with default vertex attributes, whose attribute IDs
     // are mapped 1:1 from their semantic name (POSITION, NORMAL, ...). Alternatively,
     // a Draco file may contain a custom set of attributes, identified by known unique
-    // IDs. glTF files always do the latter, and `.drc` files typically do the former.
+    // IDs. glTF files always do the latter, and .drc files typically do the former.
     if (taskConfig.useUniqueIDs) {
       attributeID = attributeIDs[attributeName];
       attribute = decoder.GetAttributeByUniqueId(dracoGeometry, attributeID);
@@ -107,6 +107,7 @@ function decodeGeometry(draco, decoder, decoderBuffer, taskConfig) {
         decoder.GetTrianglesUInt32Array(dracoGeometry, dataSize, ptr);
         index = new Uint32Array(draco.HEAPU32.buffer, ptr, numIndices).slice();
         draco._free(ptr);
+        break;
       default:
         throw new Error("DRACODecoder: Unexpected index type.");
     }
@@ -188,3 +189,4 @@ function decodeAttribute(draco, decoder, dracoGeometry, attributeName, attribute
     itemSize: numComponents
   };
 }
+`;

@@ -1,3 +1,8 @@
+const fs = require("fs");
+const path = require("path");
+
+fs.rmdirSync(path.join(process.cwd(), "api"), { recursive: true });
+
 module.exports = {
   name: "Oasis Engine",
   mode: "modules",
@@ -17,5 +22,5 @@ module.exports = {
     "packages/**/shaderLib/global.d.ts",
     "scripts/**/*"
   ],
-  plugin: ["@strictsoftware/typedoc-plugin-monorepo", 'typedoc-plugin-remove-references']
+  plugin: ["@strictsoftware/typedoc-plugin-monorepo", "typedoc-plugin-remove-references"]
 };

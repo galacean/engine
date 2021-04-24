@@ -31,7 +31,6 @@ export class Time {
 
   /**
    * Current Time
-   * @readonly
    */
   get nowTime(): number {
     return this._clock.now();
@@ -39,7 +38,6 @@ export class Time {
 
   /**
    * Time between two ticks
-   * @readonly
    */
   get deltaTime(): number {
     return this._deltaTime;
@@ -57,7 +55,6 @@ export class Time {
 
   /**
    * Unscaled delta time.
-   * @readonly
    */
   get unscaledDeltaTime(): number {
     return this._deltaTime / this._timeScale;

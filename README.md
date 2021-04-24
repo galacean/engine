@@ -2,7 +2,7 @@
 
 <p align="center"><a href="https://oasis-engine.github.io" target="_blank" rel="noopener noreferrer"><img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*f1pVTpPvzA8AAAAAAAAAAAAAARQnAQ" alt="Oasis logo"></a></p>
 
-![npm-version](https://img.shields.io/npm/v/oasis-engine)
+<a href="https://www.npmjs.com/package/oasis-engine"><img src="https://img.shields.io/npm/v/oasis-engine"/></a>
 ![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
 
@@ -18,10 +18,10 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time develop
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement name and get root entity.
-const engine = new WebGLEngine("canvas");
-const canvas = engine.canvas;
+// Create engine by passing in the HTMLCanvasElement id and get root entity.
+const engine = new WebGLEngine("canvas-id");
 const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
+const canvas = engine.canvas;
 canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
 canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
 
@@ -34,18 +34,17 @@ directLight.color = new Color(0.3, 0.4, 0.4);
 
 // Create camera.
 const cameraEntity = rootEntity.createChild("Camera");
+cameraEntity.addComponent(Camera);
 cameraEntity.transform.setPosition(0, 6, 10);
 cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
-cameraEntity.addComponent(Camera);
 
 // Create cube.
 const cubeEntity = rootEntity.createChild("Cube");
-const cubeRenderer = cubeEntity.addComponent(GeometryRenderer);
+const cubeRenderer = cubeEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
-cubeEntity.transform.rotate(0, 60, 0);
-material.ambientColor = new Color(0.6, 0.6, 0.6, 1);
-cubeRenderer.geometry = new CuboidGeometry(engine, 1, 1, 1);
-cubeRenderer.material = material;
+cubeEntity.transform.setRotation(0, 60, 0);
+cubeRenderer.setMaterial(material);
+cubeRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
 // Run engine.
 engine.run();
@@ -100,9 +99,9 @@ npm run doc
 ## Links
 
 - [Official Site](https://oasis-engine.github.io)
-- [Playground](https://oasis-engine.github.io/0.2/playground)
-- [Manual](https://oasis-engine.github.io/#/0.2/manual/zh-cn/README)
-- [API References](https://oasis-engine.github.io/0.2/api/globals.html)
+- [Playground](https://oasis-engine.github.io/0.3/playground)
+- [Manual](https://oasis-engine.github.io/#/0.3/manual/zh-cn/README)
+- [API References](https://oasis-engine.github.io/0.3/api/globals.html)
 
 ## License 
 The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.

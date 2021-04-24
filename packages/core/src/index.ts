@@ -1,6 +1,5 @@
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
-export type { HardwareRenderer } from "./HardwareRenderer";
 export type { Canvas } from "./Canvas";
 export { EngineFeature } from "./EngineFeature";
 
@@ -28,6 +27,7 @@ export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 export { RenderQueue } from "./RenderPipeline/RenderQueue";
 export { RenderPass } from "./RenderPipeline/RenderPass";
 export { RenderElement } from "./RenderPipeline/RenderElement";
+export { SpriteElement } from "./RenderPipeline/SpriteElement";
 export * from "./base";
 
 // Lighting
@@ -45,22 +45,14 @@ export { PointLight } from "./lighting/PointLight";
 export { SpotLight } from "./lighting/SpotLight";
 export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
 export { Light } from "./lighting/Light";
-// Mesh
-export { Mesh } from "./mesh/Mesh";
-export { Skin } from "./mesh/Skin";
-export { MeshRenderer } from "./mesh/MeshRenderer";
-export { SkinnedMeshRenderer } from "./mesh/SkinnedMeshRenderer";
-export { LODGroup } from "./mesh/LODGroup";
 
-// Material
 export * from "./material/index";
 export * from "./texture/index";
 export * from "./graphic/index";
 export * from "./2d/index";
 export * from "./shaderlib/index";
 export * from "./animation/index";
-export * from "./geometry/index";
-export * from "./geometry-shape/index";
+export * from "./mesh/index";
 export * from "./skybox/index";
 export * from "./particle/index";
 export * from "./trail/index";
@@ -71,3 +63,6 @@ export * from "./env-probe/index";
 export * from "./shadow/index";
 export * from "./shader/index";
 export * from "./Layer";
+export * from "./clone/CloneManager";
+
+export * from "./renderingHardwareInterface/index";

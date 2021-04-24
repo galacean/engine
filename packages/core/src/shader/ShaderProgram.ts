@@ -2,9 +2,9 @@ import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { HardwareRenderer } from "../HardwareRenderer";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
+import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { Shader } from "./Shader";
 import { ShaderData } from "./ShaderData";
@@ -64,7 +64,6 @@ export class ShaderProgram {
 
   /**
    * Whether this shader program is valid.
-   * @readonly
    */
   get isValid(): boolean {
     return this._isValid;
@@ -123,7 +122,8 @@ export class ShaderProgram {
     if (textureUniforms) {
       for (let i = 0, n = textureUniforms.length; i < n; i++) {
         const uniform = textureUniforms[i];
-        uniform.applyFunc(uniform, properties[uniform.propertyId]);
+        const texture = properties[uniform.propertyId];
+        texture != null && uniform.applyFunc(uniform, texture);
       }
     }
   }
@@ -142,7 +142,7 @@ export class ShaderProgram {
    * @returns Whether the shader program is switched.
    */
   bind(): boolean {
-    const rhi: HardwareRenderer = this._engine._hardwareRenderer;
+    const rhi: IHardwareRenderer = this._engine._hardwareRenderer;
     if (rhi._currentBind !== this) {
       this._gl.useProgram(this._glProgram);
       rhi._currentBind = this;

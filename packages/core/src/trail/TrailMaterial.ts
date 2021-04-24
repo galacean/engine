@@ -11,6 +11,7 @@ export class TrailMaterial extends Material {
     super(engine, Shader.find("trail"));
 
     const target = this.renderState.blendState.targetBlendState;
+    target.enabled = true;
     target.sourceColorBlendFactor = target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
     target.destinationColorBlendFactor = target.destinationAlphaBlendFactor = BlendFactor.One;
 
