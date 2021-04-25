@@ -106,6 +106,8 @@ export class RenderQueue {
           program.uploadAll(program.cameraUniformBlock, cameraData);
           program.uploadAll(program.rendererUniformBlock, rendererData);
           program.uploadAll(program.materialUniformBlock, materialData);
+          // Ungroup textures should upload default value, texture uint maybe change by logic of texture bind.
+          program.uploadUngroupTextures();
           program._uploadCamera = camera;
           program._uploadRenderer = renderer;
           program._uploadMaterial = material;
@@ -130,6 +132,11 @@ export class RenderQueue {
             program._uploadMaterial = material;
           } else if (switchProgram) {
             program.uploadTextures(program.materialUniformBlock, materialData);
+          }
+
+          // We only consider switchProgram case, because ungroup texure's value is always default.
+          if (switchProgram) {
+            program.uploadUngroupTextures();
           }
         }
         material.renderState._apply(camera.engine);
