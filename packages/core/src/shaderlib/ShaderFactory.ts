@@ -54,8 +54,8 @@ class ShaderFactory {
     shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
 
     /** replace api */
-    shader = shader.replace(/\btexture(2D|Cube)\s*\(/g, "texture(");
-    shader = shader.replace(/\btexture(2D|Cube)LodEXT\s*\(/g, "textureLod(");
+    shader = shader.replace(/\btexture(2D|Cube)\b/g, "texture");
+    shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
     if (isFrag) {
       const isMRT = /\bgl_FragData\[.+?\]/g.test(shader);
       if (isMRT) {
