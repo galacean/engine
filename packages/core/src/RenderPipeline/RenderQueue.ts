@@ -163,6 +163,7 @@ export class RenderQueue {
    */
   destroy(): void {
     this._spriteBatcher.destroy();
+    this._spriteBatcher = null;
   }
 
   /**

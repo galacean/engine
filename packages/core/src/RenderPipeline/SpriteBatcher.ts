@@ -265,7 +265,7 @@ export class SpriteBatcher {
   }
 
   destroy(): void {
-    this._batchedQueue.length = 0;
+    this._batchedQueue = null;
 
     const { _meshes: meshes, _vertexBuffers: vertexBuffers, _indiceBuffers: indiceBuffers } = this;
 
