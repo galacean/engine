@@ -66,15 +66,8 @@ export class EntityParser extends Parser {
           if (zfar !== undefined) {
             camera.farClipPlane = zfar;
           }
-          if (ymag && xmag) {
-            camera.orthographicSize = Math.max(ymag, xmag) / 2;
-          }
-          if (ymag !== undefined && xmag) {
-            camera.orthographicSize = xmag / 2;
-          }
-          if (xmag !== undefined && ymag) {
-            camera.orthographicSize = ymag / 2;
-          }
+
+          camera.orthographicSize = Math.max(ymag ?? 0, xmag ?? 0) / 2;
         } else if (type === "perspective") {
           const { aspectRatio, yfov, zfar, znear } = perspective;
 
