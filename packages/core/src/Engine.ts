@@ -153,6 +153,7 @@ export class Engine extends EventDispatcher {
 
     const whiteTextrue2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
     whiteTextrue2D.setPixelBuffer(whitePixel);
+    whiteTextrue2D.isGCIgnored = true;
 
     const whiteTextrueCube = new TextureCubeMap(this, 1, TextureFormat.R8G8B8A8, false);
     whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
@@ -161,6 +162,7 @@ export class Engine extends EventDispatcher {
     whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
     whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
     whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
+    whiteTextrueCube.isGCIgnored = true;
 
     this._whiteTexture2D = whiteTextrue2D;
     this._whiteTextureCube = whiteTextrueCube;
@@ -238,7 +240,9 @@ export class Engine extends EventDispatcher {
    */
   destroy(): void {
     if (this._sceneManager) {
-      // -- event
+      this._whiteTexture2D.destroy(true);
+      this._whiteTextureCube.destroy(true);
+
       this.trigger(new Event("shutdown", this));
       engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
 
