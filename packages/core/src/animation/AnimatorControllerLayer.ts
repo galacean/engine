@@ -11,10 +11,9 @@ export interface AnimatorControllerLayerMap {
  * The Animation Layer contains a state machine that controls animations of a model or part of it.
  */
 export class AnimatorControllerLayer {
-  /**
-   * The name mapping of all layers.
-   */
+  /** The name mapping of all layers. */
   static layersMap: AnimatorControllerLayerMap = {};
+
   /**
    * Get the layer by name.
    * @param name - The layer's name.
@@ -22,13 +21,9 @@ export class AnimatorControllerLayer {
   static findLayerByName(name: string): AnimatorControllerLayer {
     return AnimatorControllerLayer.layersMap[name];
   }
-  /**
-   * The blending weight that the layers has. It is not taken into account for the first layer.
-   */
+  /** The blending weight that the layers has. It is not taken into account for the first layer. */
   weight: number = 1;
-  /**
-   * The blending mode used by the layer. It is not taken into account for the first layer.
-   */
+  /** The blending mode used by the layer. It is not taken into account for the first layer. */
   blendingMode: AnimatorLayerBlendingMode = AnimatorLayerBlendingMode.Override;
 
   /** @internal */

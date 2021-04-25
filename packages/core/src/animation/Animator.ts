@@ -16,13 +16,9 @@ import { PlayType } from "./enums/PlayType";
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  /**
-   * The mode of the Animator recorder.
-   */
+  /** The mode of the Animator recorder. */
   recorderMode: AnimatorRecorderMode = AnimatorRecorderMode.Offline;
-  /**
-   * The playback speed of the Animator. 1 is normal playback speed.
-   */
+  /** The playback speed of the Animator. 1 is normal playback speed. */
   speed: number = 1;
 
   private _animatorController: AnimatorController;

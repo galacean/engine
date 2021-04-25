@@ -10,14 +10,11 @@ export interface AnimatorStateMap {
  * A graph controlling the interaction of states. Each state references a motion.
  */
 export class AnimatorStateMachine {
-  /**
-   * The list of states.
-   */
+  /** The list of states. */
   states: AnimatorState[] = [];
-  /**
-   * The list of transitions in the state machine.
-   */
+  /** The list of transitions in the state machine. */
   transitions: AnimatorStateTransition[] = [];
+
   /** @internal */
   _statesMap: AnimatorStateMap = {};
   /** @internal */

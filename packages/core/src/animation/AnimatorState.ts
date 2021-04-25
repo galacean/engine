@@ -9,25 +9,15 @@ import { AnimatorStateType } from "./enums/AnimatorStateType";
  * States are the basic building blocks of a state machine. Each state contains a AnimationClip which will play while the character is in that state.
  */
 export class AnimatorState {
-  /**
-   * The transitions that are going out of the state.
-   */
+  /** The transitions that are going out of the state. */
   transitions: AnimatorStateTransition[] = [];
-  /**
-   * The speed of the clip. 1 is normal speed, default 1.
-   */
+  /** The speed of the clip. 1 is normal speed, default 1. */
   speed: number = 1;
-  /**
-   * The wrap mode used in the state.
-   */
+  /** The wrap mode used in the state. */
   wrapMode: WrapMode = WrapMode.LOOP;
-  /**
-   * Start time of the animation clip, default 0.
-   */
+  /** Start time of the animation clip, default 0. */
   clipStartTime: number = 0;
-  /**
-   * End time of the animation clip, If has the clip, the default value is clip.length otherwise it is Infinity.
-   */
+  /** End time of the animation clip, If has the clip, the default value is clip.length otherwise it is Infinity. */
   clipEndTime: number = Infinity;
 
   /** @internal */

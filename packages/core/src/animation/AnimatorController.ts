@@ -5,9 +5,7 @@ import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
  * Store the data for Animator playback.
  */
 export class AnimatorController {
-  /**
-   * The layers in the controller.
-   */
+  /** The layers in the controller. */
   layers: AnimatorControllerLayer[] = [];
 
   /** @internal */

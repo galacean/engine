@@ -15,13 +15,9 @@ import { InterpolableValueType } from "./enums/InterpolableValueType";
  * Store a collection of Keyframes that can be evaluated over time.
  */
 export class AnimationCurve {
-  /**
-   * All keys defined in the animation curve.
-   */
+  /** All keys defined in the animation curve. */
   keys: Keyframe[] = [];
-  /**
-   * The interpolationType of the animation curve.
-   */
+  /** The interpolationType of the animation curve. */
   interpolation: InterpolationType;
 
   /** @internal */
