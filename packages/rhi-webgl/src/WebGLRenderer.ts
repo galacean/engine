@@ -239,6 +239,16 @@ export class WebGLRenderer implements IHardwareRenderer {
     clearFlag && gl.clear(clearFlag);
   }
 
+  drawPrimitive(primitive: Mesh, subPrimitive: SubMesh, shaderProgram: any) {
+    // todo: VAO not support morph animation
+    if (primitive) {
+      //@ts-ignore
+      primitive._draw(shaderProgram, subPrimitive);
+    } else {
+      Logger.error("draw primitive failed.");
+    }
+  }
+
   activeRenderTarget(renderTarget: RenderTarget, camera: Camera) {
     const gl = this._gl;
     if (renderTarget) {
