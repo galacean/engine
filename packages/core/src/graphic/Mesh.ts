@@ -140,20 +140,11 @@ export abstract class Mesh extends RefObject {
    * Destroy.
    */
   _onDestroy() {
-    for (let i = 0; i < this._vertexBufferBindings.length; i++) {
-      const buffer = this._vertexBufferBindings[i].buffer;
-      buffer.destroy();
-    }
-
-    if (this._indexBufferBinding) {
-      this._indexBufferBinding.buffer.destroy();
-    }
-
-    this._platformPrimitive.destroy();
     this._vertexBufferBindings = null;
     this._indexBufferBinding = null;
     this._vertexElements = null;
     this._vertexElementMap = null;
+    this._platformPrimitive.destroy();
   }
 
   protected _setVertexElements(elements: VertexElement[]): void {
