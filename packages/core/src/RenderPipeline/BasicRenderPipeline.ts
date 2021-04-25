@@ -112,6 +112,7 @@ export class BasicRenderPipeline {
     this._opaqueQueue.destroy();
     this._alphaTestQueue.destroy();
     this._transparentQueue.destroy();
+    this._renderPassArray.length = 0;
   }
 
   /**
