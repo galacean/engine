@@ -140,7 +140,7 @@ export class RenderQueue {
           }
         }
         material.renderState._apply(camera.engine);
-        rhi.drawPrimitive(element.mesh, element.subMesh, program);
+        element.mesh._draw(program, element.subMesh);
       } else {
         const spirteElement = <SpriteElement>item;
         this._spriteBatcher.drawSprite(spirteElement);

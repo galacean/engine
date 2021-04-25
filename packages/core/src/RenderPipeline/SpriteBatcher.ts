@@ -206,7 +206,7 @@ export class SpriteBatcher {
 
       material.renderState._apply(engine);
 
-      engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
+      mesh._draw(program, subMesh);
     }
   }
 
