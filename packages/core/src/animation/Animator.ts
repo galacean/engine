@@ -371,7 +371,7 @@ export class Animator extends Component {
           crossWeight = 1;
           currentState._playType = PlayType.IsFinish;
         }
-        let count = clip.curves.length;
+        let count = clip._curves.length;
         const relativePathList: string[] = [];
         const propertyNameList: string[] = [];
         const relativePathPropertyNameMap: { [key: string]: number } = {};
@@ -379,7 +379,7 @@ export class Animator extends Component {
         const targetDefaultValues = [];
         const targetList = [];
         for (let i = count - 1; i >= 0; i--) {
-          const { curve, propertyName, relativePath, _defaultValue, _target } = clip.curves[i];
+          const { curve, propertyName, relativePath, _defaultValue, _target } = clip._curves[i];
           if (!relativePathPropertyNameMap[`${relativePath}_${propertyName}`]) {
             const frameTime = currentState._getTheRealFrameTime();
             relativePathPropertyNameMap[`${relativePath}_${propertyName}`] = relativePathList.length;
@@ -392,9 +392,9 @@ export class Animator extends Component {
           }
         }
         clip = destinationState.clip;
-        count = clip.curves.length;
+        count = clip._curves.length;
         for (let i = count - 1; i >= 0; i--) {
-          const { curve, propertyName, relativePath, _defaultValue, _target } = clip.curves[i];
+          const { curve, propertyName, relativePath, _defaultValue, _target } = clip._curves[i];
           if (relativePathPropertyNameMap[`${relativePath}_${propertyName}`] >= 0) {
             const index = relativePathPropertyNameMap[`${relativePath}_${propertyName}`];
             const val = curve.evaluate(transition.offset + transition._crossFadeFrameTime);
@@ -445,9 +445,9 @@ export class Animator extends Component {
     } else {
       currentState._playType = PlayType.IsPlaying;
       const clip = currentState.clip;
-      const count = clip.curves.length;
+      const count = clip._curves.length;
       for (let j = count - 1; j >= 0; j--) {
-        const { curve, propertyName, _target, _defaultValue } = clip.curves[j];
+        const { curve, propertyName, _target, _defaultValue } = clip._curves[j];
         const frameTime = currentState._getTheRealFrameTime();
         const val = curve.evaluate(frameTime);
         const { _valueType, _firstFrameValue } = curve;

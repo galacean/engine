@@ -1,4 +1,5 @@
-import { Vector3, Quaternion, MathUtil } from "@oasis-engine/math";
+import { AnimationCurve } from "./AnimationCurve";
+import { Vector3, Quaternion } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "./../Entity";
 import { AnimationClipCurveData } from "./AnimationClipCurveData";
@@ -15,9 +16,10 @@ export class AnimationClip extends Motion {
    */
   events: AnimationEvent[];
   /**
+   * @internal
    * Store a collection of Keyframes
    */
-  curves: AnimationClipCurveData<Component>[] = [];
+  _curves: AnimationClipCurveData<Component>[] = [];
 
   private _length: number = 0; //时间
 
@@ -58,9 +60,9 @@ export class AnimationClip extends Motion {
    * @param time - The time to sample an animation
    */
   sampleAnimation(entity: Entity, time: number): void {
-    const { length } = this.curves;
+    const { length } = this._curves;
     for (let i = length - 1; i >= 0; i--) {
-      const curveData = this.curves[i];
+      const curveData = this._curves[i];
       const { curve, propertyName, relativePath, type } = curveData;
       const val = curve.evaluate(time);
       const target = entity.findByName(relativePath);
@@ -83,15 +85,43 @@ export class AnimationClip extends Motion {
    * Assigns the curve to animate a specific property.
    * @param curveData - The curve data
    */
-  setCurve(curveData: AnimationClipCurveData<Component>): void {
-    if (curveData.curve.length > this._length) {
-      this._length = curveData.curve.length;
+  setCurve<T extends Component>(
+    relativePath: string,
+    type: new (entity: Entity) => T,
+    propertyName: string,
+    curve: AnimationCurve
+  ): void {
+    const curveData: AnimationClipCurveData<Component> = {
+      relativePath,
+      type,
+      propertyName,
+      curve
+    };
+    if (curve.length > this._length) {
+      this._length = curve.length;
     }
     if (this._target) {
-      curveData._target = this._target.findByName(curveData.relativePath);
-      curveData._defaultValue = this._target[curveData.propertyName];
+      curveData._target = this._target.findByName(relativePath);
+      curveData._defaultValue = this._target[propertyName];
     }
-    this.curves.push(curveData);
+    this._curves.push(curveData);
+  }
+
+  /**
+   * Remove a curve from the AnimationClip.
+   * @param curve - The curve
+   */
+  removeCurve(curve: AnimationCurve): void {
+    let deleteIndex = -1;
+    const { length } = this._curves;
+    for (let i = length - 1; i >= 0; i--) {
+      if (this._curves[i].curve === curve) {
+        deleteIndex = i;
+      }
+    }
+    if (deleteIndex > -1) {
+      this._curves.splice(deleteIndex, 1);
+    }
   }
 
   /**
@@ -100,20 +130,21 @@ export class AnimationClip extends Motion {
   clearCurves(): void {
     const length = this.events.length;
     for (let i = length - 1; i >= 0; i--) {
-      this.curves[i] = null;
+      this._curves[i] = null;
     }
-    this.curves = [];
+    this._curves = [];
+    this._length = 0;
   }
 
   /** @internal */
   _setTarget(target: Entity) {
     this._target = target;
     if (target) {
-      const { length } = this.curves;
+      const { length } = this._curves;
       for (let i = length - 1; i >= 0; i--) {
-        const { relativePath, propertyName } = this.curves[i];
-        this.curves[i]._target = target.findByName(relativePath);
-        this.curves[i]._defaultValue = this.curves[i]._target[propertyName];
+        const { relativePath, propertyName } = this._curves[i];
+        this._curves[i]._target = target.findByName(relativePath);
+        this._curves[i]._defaultValue = this._curves[i]._target[propertyName];
       }
     }
   }

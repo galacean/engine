@@ -1,9 +1,10 @@
+import { Component } from "../../../core/src/Component";
 import {
   FloatKeyframe,
   Vector2Keyframe,
   Vector3Keyframe,
   QuaternionKeyframe
-} from "./../../../core/src/animation/KeyFrame";
+} from "../../../core/src/animation/KeyFrame";
 import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
 import { Transform } from "./../../../core/src/Transform";
 import { AnimationClipCurveData } from "./../../../core/src/animation/AnimationClipCurveData";
@@ -282,7 +283,7 @@ export class AnimationClipGLTFParser extends EngineObject {
     } // End of switch
   }
 
-  public getCurveDatas() {
+  public getCurveDatas(): AnimationClipCurveData<Component>[] {
     const channelCount = this.getChannelCount();
     const curveDatas: AnimationClipCurveData<Transform>[] = [];
     for (let i = channelCount - 1; i >= 0; i--) {

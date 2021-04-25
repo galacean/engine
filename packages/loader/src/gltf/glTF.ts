@@ -1,6 +1,7 @@
 import {
   AnimationClip,
   AnimationClipGLTFParser,
+  AnimationClipCurveData,
   BlinnPhongMaterial,
   Buffer,
   BufferBindFlag,
@@ -28,13 +29,13 @@ import {
   Texture2D,
   TypedArray,
   UnlitMaterial,
-  VertexElement
+  VertexElement,
+  Component
 } from "@oasis-engine/core";
 import { Color, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { LoadedGLTFResource } from "../GLTF";
 import { glTFDracoMeshCompression } from "./glTFDracoMeshCompression";
 import { createVertexElement, getAccessorData, getAccessorTypeSize, getIndexFormat, getVertexStride } from "./Util";
-import { AnimatorState } from "@oasis-engine/core/src/animation/AnimatorState";
 
 // KHR_lights:  https://github.com/MiiBond/glTF/tree/khr_lights_v1/extensions/2.0/Khronos/KHR_lights
 //              https://github.com/KhronosGroup/glTF/pull/1223
@@ -636,13 +637,13 @@ export function parseAnimation(gltfAnimation, resources) {
     animationClipGLTFParser.addChannel(samplerIndex, targetNode.name, propertyName);
   }
 
-  const curveDatas = animationClipGLTFParser.getCurveDatas();
-
+  const curveDatas: AnimationClipCurveData<Component>[] = animationClipGLTFParser.getCurveDatas();
   const animationClip = new AnimationClip(gltfAnimation.name || `AnimationClip${animationIdx}`);
   animationClip.durationIndex = durationIndex;
   animationClip.duration = duration;
   curveDatas.forEach((curveData) => {
-    animationClip.setCurve(curveData);
+    const { relativePath, type, propertyName, curve } = curveData;
+    animationClip.setCurve(relativePath, type, propertyName, curve);
   });
   return Promise.resolve(animationClip);
 }
