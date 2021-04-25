@@ -108,7 +108,11 @@ export class BasicRenderPipeline {
   /**
    * Destroy internal resources.
    */
-  destroy() {}
+  destroy(): void {
+    this._opaqueQueue.destroy();
+    this._alphaTestQueue.destroy();
+    this._transparentQueue.destroy();
+  }
 
   /**
    * Perform scene rendering.

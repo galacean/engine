@@ -263,4 +263,12 @@ export class SpriteBatcher {
     this._spriteCount = 0;
     this._batchedQueue.length = 0;
   }
+
+  destroy(): void {
+    this.clear();
+    SpriteBatcher._restPool();
+    this._meshes.length = 0;
+    this._vertexBuffers.length = 0;
+    this._indiceBuffers.length = 0;
+  }
 }
