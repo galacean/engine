@@ -4,7 +4,6 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { Entity } from "../../Entity";
 import { Material, RenderQueueType } from "../../material";
 import { Renderer } from "../../Renderer";
-import { SpriteElement } from "../../RenderPipeline/SpriteElement";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../../shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
