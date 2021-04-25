@@ -267,8 +267,22 @@ export class SpriteBatcher {
   destroy(): void {
     this.clear();
     SpriteBatcher._restPool();
-    this._meshes.length = 0;
-    this._vertexBuffers.length = 0;
-    this._indiceBuffers.length = 0;
+
+    const { _meshes: meshes, _vertexBuffers: vertexBuffers, _indiceBuffers: indiceBuffers } = this;
+
+    for (let i = 0, l = meshes.length; i < l; ++i) {
+      meshes[i].destroy();
+    }
+    meshes.length = 0;
+
+    for (let i = 0, l = vertexBuffers.length; i < l; ++i) {
+      vertexBuffers[i].destroy();
+    }
+    vertexBuffers.length = 0;
+
+    for (let i = 0, l = indiceBuffers.length; i < l; ++i) {
+      indiceBuffers[i].destroy();
+    }
+    indiceBuffers.length = 0;
   }
 }
