@@ -180,7 +180,7 @@ export class SpriteBatcher {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
     const { _batchedQueue } = this;
-    const maskManager = SpriteMaskManager.instance;
+    const maskManager = SpriteMaskManager.getInstance(engine);
 
     for (let i = 0, len = subMeshes.length; i < len; i++) {
       const subMesh = subMeshes[i];
@@ -191,7 +191,8 @@ export class SpriteBatcher {
       }
 
       const renderer = <SpriteRenderer>spriteElement.component;
-      maskManager.preRender(renderer);
+      const camera = spriteElement.camera;
+      maskManager.preRender(renderer, camera);
 
       const compileMacros = Shader._compileMacros;
       compileMacros.clear();
@@ -204,7 +205,6 @@ export class SpriteBatcher {
 
       program.bind();
       program.groupingOtherUniformBlock();
-      const camera = spriteElement.camera;
       program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
       program.uploadAll(program.cameraUniformBlock, camera.shaderData);
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
@@ -214,7 +214,7 @@ export class SpriteBatcher {
 
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
 
-      maskManager.postRender(renderer);
+      maskManager.postRender(renderer, camera);
     }
   }
 

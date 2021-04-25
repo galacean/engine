@@ -10,6 +10,7 @@ import { ClassPool } from "./RenderPipeline/ClassPool";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteElement } from "./RenderPipeline/SpriteElement";
+import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { Shader } from "./shader/Shader";
@@ -177,6 +178,7 @@ export class Engine extends EventDispatcher {
     time.tick();
     RenderElement._restPool();
     SpriteElement._restPool();
+    SpriteMaskElement._restPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 

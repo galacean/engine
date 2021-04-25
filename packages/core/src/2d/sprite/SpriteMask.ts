@@ -1,8 +1,13 @@
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { Vector3 } from "@oasis-engine/math";
+import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Component } from "../../Component";
+import { Entity } from "../../Entity";
 import { Material } from "../../material";
+import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { SpriteMaskManager } from "../../RenderPipeline/SpriteMaskManager";
-import { Shader } from "../../shader";
+import { CullMode, Shader } from "../../shader";
+import { ShaderProperty } from "../../shader/ShaderProperty";
+import { UpdateFlag } from "../../UpdateFlag";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
 
@@ -10,8 +15,18 @@ import { Sprite } from "./Sprite";
  * A component for masking Sprites.
  */
 export class SpriteMask extends Component {
-  private static _material: Material = null;
+  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
+  private static _alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_alphaCutoff");
+  private static _tempVec3: Vector3 = new Vector3();
 
+  @deepClone
+  private _material: Material = null;
+  @deepClone
+  private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  @ignoreClone
+  private _isSpriteDirty: boolean = true;
+  @ignoreClone
+  private _isWorldMatrixDirty: UpdateFlag;
   @assignmentClone
   private _sprite: Sprite = null;
   @assignmentClone
@@ -29,6 +44,7 @@ export class SpriteMask extends Component {
   set sprite(value: Sprite) {
     if (this._sprite !== value) {
       this._sprite = value;
+      this._isSpriteDirty = true;
     }
   }
 
@@ -54,32 +70,65 @@ export class SpriteMask extends Component {
     this._influenceLayers = value;
   }
 
+  /**
+   * Create a sprite mask instance.
+   * @param entity - Entity to which the sprite mask belongs
+   */
+  constructor(entity: Entity) {
+    super(entity);
+    this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
+    const material = (this._material = new Material(this.engine, Shader.find("SpriteMask")));
+    material.renderState.rasterState.cullMode = CullMode.Off;
+  }
+
   _onEnable(): void {
-    const manager = SpriteMaskManager.instance;
+    const manager = SpriteMaskManager.getInstance(this.engine);
     manager.addMask(this);
   }
 
   _onDisable(): void {
-    const manager = SpriteMaskManager.instance;
+    const manager = SpriteMaskManager.getInstance(this.engine);
     manager.removeMask(this);
   }
 
-  getMaterial(): Material {
-    if (!SpriteMask._material) {
-      // Create default material
-      const material = (SpriteMask._material = new Material(this.scene.engine, Shader.find("SpriteMask")));
-      // const target = material.renderState.blendState.targetBlendState;
-      // target.enabled = true;
-      // target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-      // target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      // target.sourceAlphaBlendFactor = BlendFactor.One;
-      // target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      // target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-      // material.renderState.depthState.writeEnabled = false;
-      // material.renderQueueType = RenderQueueType.Transparent;
-      // material.renderState.rasterState.cullMode = CullMode.Off;
+  getElement(): SpriteMaskElement {
+    const sprite = this.sprite;
+    if (!sprite) {
+      return null;
+    }
+    const texture = sprite.texture;
+    if (!texture) {
+      return null;
     }
 
-    return SpriteMask._material;
+    const { _positions } = this;
+    const { transform } = this.entity;
+
+    // Update sprite data.
+    const localDirty = sprite._updateMeshData();
+
+    if (this._isWorldMatrixDirty.flag || localDirty || this._isSpriteDirty) {
+      const localPositions = sprite._positions;
+      const localVertexPos = SpriteMask._tempVec3;
+      const worldMatrix = transform.worldMatrix;
+
+      for (let i = 0, n = _positions.length; i < n; i++) {
+        const curVertexPos = localPositions[i];
+        localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
+        Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
+      }
+
+      this._isSpriteDirty = false;
+      this._isWorldMatrixDirty.flag = false;
+    }
+
+    const material = this._material;
+    const shaderData = material.shaderData;
+    shaderData.setTexture(SpriteMask._textureProperty, texture);
+    shaderData.setFloat(SpriteMask._alphaCutoffProperty, this.alphaCutoff);
+
+    const spriteMaskElement = SpriteMaskElement.getFromPool();
+    spriteMaskElement.setValue(this, _positions, sprite._uv, sprite._triangles, material);
+    return spriteMaskElement;
   }
 }

@@ -10,6 +10,7 @@ import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 import { SpriteElement } from "./SpriteElement";
+import { SpriteMaskManager } from "./SpriteMaskManager";
 
 /**
  * Basic render pipeline.
@@ -121,6 +122,7 @@ export class BasicRenderPipeline {
     const alphaTestQueue = this._alphaTestQueue;
     const transparentQueue = this._transparentQueue;
 
+    SpriteMaskManager.getInstance(camera.engine).clear();
     opaqueQueue.clear();
     alphaTestQueue.clear();
     transparentQueue.clear();
