@@ -100,7 +100,7 @@ export class SpriteMaskManager {
     }
 
     this._curCamera = camera;
-    this.clearDrawInfo();
+    this._clearDrawInfo();
     this._findMasks(renderer, this._newMasks);
     this._handleMaskDiff();
 
@@ -124,14 +124,7 @@ export class SpriteMaskManager {
   clear(): void {
     this._curMasks.length = 0;
     this._newMasks.length = 0;
-    this.clearDrawInfo();
-  }
-
-  clearDrawInfo(): void {
-    this._flushId = 0;
-    this._vertexCount = 0;
-    this._spriteMaskCount = 0;
-    this._batchedQueue.length = 0;
+    this._clearDrawInfo();
   }
 
   destroy(): void {
@@ -153,6 +146,13 @@ export class SpriteMaskManager {
       indiceBuffers[i].destroy();
     }
     this._indiceBuffers = null;
+  }
+
+  private _clearDrawInfo(): void {
+    this._flushId = 0;
+    this._vertexCount = 0;
+    this._spriteMaskCount = 0;
+    this._batchedQueue.length = 0;
   }
 
   private _createMesh(engine: Engine, index: number): BufferMesh {
