@@ -27,9 +27,11 @@ export class SceneParser extends Parser {
 
   parse(context: GLTFResource): void {
     const {
-      gltf: { nodes, cameras },
+      gltf: { nodes, cameras: gltfCameras },
       entities
     } = context;
+
+    if (!nodes) return;
 
     for (let i = 0; i < nodes.length; i++) {
       const gltfNode = nodes[i];
@@ -37,11 +39,13 @@ export class SceneParser extends Parser {
       const entity = entities[i];
 
       if (cameraID !== undefined) {
-        this._parseCamera(cameras[cameraID], entity);
+        const camera = this._createCamera(gltfCameras[cameraID], entity);
+        if (!context.cameras) context.cameras = [];
+        context.cameras.push(camera);
       }
 
       if (meshID !== undefined) {
-        this._parseRenderer(gltfNode, context, entity);
+        this._createRenderer(gltfNode, context, entity);
       }
     }
 
@@ -52,7 +56,7 @@ export class SceneParser extends Parser {
     }
   }
 
-  private _parseCamera(cameraSchema: ICamera, entity: Entity): void {
+  private _createCamera(cameraSchema: ICamera, entity: Entity): Camera {
     const { orthographic, perspective, type, name } = cameraSchema;
     const camera = entity.addComponent(Camera);
 
@@ -85,9 +89,11 @@ export class SceneParser extends Parser {
         camera.nearClipPlane = znear;
       }
     }
+
+    return camera;
   }
 
-  private _parseRenderer(gltfNode: INode, context: GLTFResource, entity: Entity): void {
+  private _createRenderer(gltfNode: INode, context: GLTFResource, entity: Entity): void {
     const {
       engine,
       gltf: { meshes: gltfMeshes },
