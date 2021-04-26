@@ -107,7 +107,7 @@ export class SceneParser extends Parser {
       const mesh = meshes[meshID][j];
       let renderer: MeshRenderer;
 
-      if (skinID) {
+      if (skinID !== undefined) {
         const skin = skins[skinID];
         const skinRenderer: SkinnedMeshRenderer = entity.addComponent(SkinnedMeshRenderer);
         skinRenderer.mesh = mesh;
