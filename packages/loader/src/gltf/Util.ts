@@ -102,13 +102,13 @@ export function getBufferViewData(bufferView: IBufferView, buffers: ArrayBuffer[
   return arrayBuffer.slice(byteOffset, byteOffset + byteLength);
 }
 
-export function getVertexStride(accessor): number {
+export function getVertexStride(accessor: IAccessor): number {
   const size = getAccessorTypeSize(accessor.type);
   const componentType = getComponentType(accessor.componentType);
   return size * componentType.BYTES_PER_ELEMENT;
 }
 
-export function createVertexElement(gltf, semantic, accessor, index: number): VertexElement {
+export function createVertexElement(semantic: string, accessor: IAccessor, index: number): VertexElement {
   const size = getAccessorTypeSize(accessor.type);
   return new VertexElement(semantic, 0, getElementFormat(accessor.componentType, size), index);
 }

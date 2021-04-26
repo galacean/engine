@@ -1,4 +1,4 @@
-import { Camera, Entity, Logger } from "@oasis-engine/core";
+import { Entity } from "@oasis-engine/core";
 import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { Parser } from "./Parser";
@@ -12,7 +12,7 @@ export class EntityParser extends Parser {
   parse(context: GLTFResource): void {
     const {
       engine,
-      gltf: { nodes, cameras }
+      gltf: { nodes }
     } = context;
     if (!nodes) return;
 
@@ -20,12 +20,8 @@ export class EntityParser extends Parser {
 
     for (let i = 0; i < nodes.length; i++) {
       const gltfNode = nodes[i];
-      const { matrix, translation, rotation, scale, weights, camera: cameraID } = gltfNode;
+      const { matrix, translation, rotation, scale } = gltfNode;
       const entity = new Entity(engine, gltfNode.name || `GLTF_NODE_${EntityParser._nodeCount++}`);
-
-      if (weights) {
-        Logger.error("Sorry, morph animation is not supported now, wait please.");
-      }
 
       if (matrix) {
         const mat = new Matrix();
@@ -50,45 +46,30 @@ export class EntityParser extends Parser {
         }
       }
 
-      if (cameraID !== undefined) {
-        const cameraOptions = cameras[cameraID];
-        const { orthographic, perspective, type, name } = cameraOptions;
-        const camera = entity.addComponent(Camera);
-
-        if (type === "orthographic") {
-          const { xmag, ymag, zfar, znear } = orthographic;
-
-          camera.isOrthographic = true;
-
-          if (znear !== undefined) {
-            camera.nearClipPlane = znear;
-          }
-          if (zfar !== undefined) {
-            camera.farClipPlane = zfar;
-          }
-
-          camera.orthographicSize = Math.max(ymag ?? 0, xmag ?? 0) / 2;
-        } else if (type === "perspective") {
-          const { aspectRatio, yfov, zfar, znear } = perspective;
-
-          if (aspectRatio !== undefined) {
-            camera.aspectRatio = aspectRatio;
-          }
-          if (yfov !== undefined) {
-            camera.fieldOfView = yfov;
-          }
-          if (zfar !== undefined) {
-            camera.farClipPlane = zfar;
-          }
-          if (znear !== undefined) {
-            camera.nearClipPlane = znear;
-          }
-        }
-      }
-
       entities[i] = entity;
     }
 
     context.entities = entities;
+    this._buildEntityTree(context);
+  }
+
+  private _buildEntityTree(context: GLTFResource): void {
+    const {
+      gltf: { nodes },
+      entities
+    } = context;
+
+    for (let i = 0; i < nodes.length; i++) {
+      const { children } = nodes[i];
+      const entity = entities[i];
+
+      if (children) {
+        for (let j = 0; j < children.length; j++) {
+          const childEntity = entities[children[j]];
+
+          entity.addChild(childEntity);
+        }
+      }
+    }
   }
 }

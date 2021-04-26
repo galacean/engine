@@ -1,4 +1,4 @@
-import { AnimationClip, BufferMesh, Camera, EngineObject, Entity, Material, Skin, Texture2D } from "@oasis-engine/core";
+import { AnimationClip, BufferMesh, EngineObject, Entity, Material, Skin, Texture2D } from "@oasis-engine/core";
 import { IGLTF } from "./schema";
 
 export class GLTFResource extends EngineObject {
@@ -13,6 +13,6 @@ export class GLTFResource extends EngineObject {
   animations?: AnimationClip[];
   entities: Entity[];
 
-  rootEntities: Entity[];
+  sceneRoots: Entity[];
   defaultSceneRoot: Entity;
 }

@@ -42,7 +42,6 @@ export class MeshParser extends Parser {
           new Promise((resolve) => {
             const mesh = new BufferMesh(engine, gltfMesh.name || j);
             const subMesh = new SubMesh();
-            mesh.addSubMesh(subMesh);
 
             subMesh.topology = mode ?? MeshTopology.Triangles;
 
@@ -60,7 +59,6 @@ export class MeshParser extends Parser {
                 .then((decodedGeometry: any) => {
                   return this._parseMeshFromGLTFPrimitive(
                     mesh,
-                    subMesh,
                     gltfPrimitive,
                     gltf,
                     (attributeSemantic) => {
@@ -81,7 +79,6 @@ export class MeshParser extends Parser {
             } else {
               this._parseMeshFromGLTFPrimitive(
                 mesh,
-                subMesh,
                 gltfPrimitive,
                 gltf,
                 (attributeSemantic) => {
@@ -110,7 +107,6 @@ export class MeshParser extends Parser {
 
   private _parseMeshFromGLTFPrimitive(
     mesh: BufferMesh,
-    subMesh: SubMesh,
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     getVertexBufferData: (semantic: string) => TypedArray,
@@ -126,7 +122,7 @@ export class MeshParser extends Parser {
       const accessorIdx = attributes[attributeSemantic];
       const accessor = gltf.accessors[accessorIdx];
       const stride = getVertexStride(accessor);
-      const vertexELement = createVertexElement(gltf, attributeSemantic, accessor, j);
+      const vertexELement = createVertexElement(attributeSemantic, accessor, j);
 
       vertexElements.push(vertexELement);
       const bufferData = getVertexBufferData(attributeSemantic);
@@ -148,7 +144,6 @@ export class MeshParser extends Parser {
       }
     }
     mesh.setVertexElements(vertexElements);
-
     // load indices
     if (indices !== undefined) {
       const indexAccessor = gltf.accessors[indices];
@@ -168,8 +163,7 @@ export class MeshParser extends Parser {
       mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
       mesh.addSubMesh(0, indexCount);
     } else {
-      subMesh.start = 0;
-      subMesh.count = vertexCount;
+      mesh.addSubMesh(0, vertexCount);
     }
 
     return Promise.resolve(mesh);
