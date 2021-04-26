@@ -37,8 +37,14 @@ export class SkinParser extends Parser {
       }
 
       // get skeleton
-      const skeletonIndex = skeleton ?? (gltf.scenes ? gltf.scenes[gltf.scene].nodes[0] : joints[0]);
-      skin.skeleton = gltfNodes[skeletonIndex].name || `${EntityParser._defaultName}${skeletonIndex}`;
+      const skeletonIndex =
+        skeleton ??
+        (gltf.scenes ? (gltf.scenes[gltf.scene].nodes.length ? -1 : gltf.scenes[gltf.scene].nodes[0]) : joints[0]);
+      if (skeletonIndex === -1) {
+        skin.skeleton = "GLTF_ROOT";
+      } else {
+        skin.skeleton = gltfNodes[skeletonIndex].name || `${EntityParser._defaultName}${skeletonIndex}`;
+      }
 
       skins[i] = skin;
     }
