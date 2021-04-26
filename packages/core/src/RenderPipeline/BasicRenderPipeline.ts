@@ -1,5 +1,6 @@
 import { Matrix, Vector4 } from "@oasis-engine/math";
 import { BackgroundMode } from "../Background";
+import { Logger } from "../base";
 import { Camera, CameraClearFlags } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -160,7 +161,7 @@ export class BasicRenderPipeline {
       } else {
         this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
-        if (background.mode === BackgroundMode.Sky) {
+        if (background.mode === BackgroundMode.Sky && background.sky) {
           this._drawSky(engine, camera, background.sky);
         }
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
@@ -190,8 +191,17 @@ export class BasicRenderPipeline {
   }
 
   private _drawSky(engine: Engine, camera: Camera, sky: Sky) {
-    const rhi = engine._hardwareRenderer;
     const { material, mesh, _matrix } = sky;
+    if (!material) {
+      Logger.warn("The material of sky is not defined.");
+      return;
+    }
+    if (!mesh) {
+      Logger.warn("The mesh of sky is not defined.");
+      return;
+    }
+
+    const rhi = engine._hardwareRenderer;
     const { shaderData, shader, renderState } = material;
 
     const compileMacros = Shader._compileMacros;
