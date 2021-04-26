@@ -47,6 +47,11 @@ export interface IKHRMaterialsIor {
 }
 
 /**
+ * Interfaces from the KHR_materials_unlit extension
+ */
+export interface IKHRMaterialsUnlit {}
+
+/**
  * Interfaces from the KHR_materials_pbrSpecularGlossiness extension
  */
 export interface IKHRMaterialsPbrSpecularGlossiness {
@@ -149,6 +154,7 @@ export type ExtensionSchema =
   | IKHRDracoMeshCompression
   | IKHRMaterialsClearcoat
   | IKHRMaterialsIor
+  | IKHRMaterialsUnlit
   | IKHRMaterialsPbrSpecularGlossiness
   | IKHRMaterialsSheen
   | IKHRMaterialsSpecular
