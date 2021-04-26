@@ -5,18 +5,19 @@ import { Entity } from "../../Entity";
 import { Material } from "../../material";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { SpriteMaskManager } from "../../RenderPipeline/SpriteMaskManager";
-import { CullMode, Shader } from "../../shader";
+import { ColorWriteMask, CullMode, Shader } from "../../shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
+import "./SpriteMaskMaterial";
 
 /**
  * A component for masking Sprites.
  */
 export class SpriteMask extends Component {
-  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
-  private static _alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_alphaCutoff");
+  static textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
+  static alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_alphaCutoff");
   private static _tempVec3: Vector3 = new Vector3();
 
   @deepClone
@@ -70,6 +71,10 @@ export class SpriteMask extends Component {
     this._influenceLayers = value;
   }
 
+  get material(): Material {
+    return this._material;
+  }
+
   /**
    * Create a sprite mask instance.
    * @param entity - Entity to which the sprite mask belongs
@@ -77,8 +82,7 @@ export class SpriteMask extends Component {
   constructor(entity: Entity) {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
-    const material = (this._material = new Material(this.engine, Shader.find("SpriteMask")));
-    material.renderState.rasterState.cullMode = CullMode.Off;
+    this._material = this._createMaterial();
   }
 
   _onEnable(): void {
@@ -124,11 +128,21 @@ export class SpriteMask extends Component {
 
     const material = this._material;
     const shaderData = material.shaderData;
-    shaderData.setTexture(SpriteMask._textureProperty, texture);
-    shaderData.setFloat(SpriteMask._alphaCutoffProperty, this.alphaCutoff);
+    shaderData.setTexture(SpriteMask.textureProperty, texture);
+    shaderData.setFloat(SpriteMask.alphaCutoffProperty, this.alphaCutoff);
 
     const spriteMaskElement = SpriteMaskElement.getFromPool();
     spriteMaskElement.setValue(this, _positions, sprite._uv, sprite._triangles, material);
     return spriteMaskElement;
+  }
+
+  _createMaterial(): Material {
+    const material = new Material(this.engine, Shader.find("SpriteMask"));
+    const renderState = material.renderState;
+    renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.stencilState.enabled = true;
+    renderState.depthState.enabled = false;
+    return material;
   }
 }

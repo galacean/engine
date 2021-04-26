@@ -5,7 +5,7 @@ import { Entity } from "../../Entity";
 import { Material, RenderQueueType } from "../../material";
 import { Renderer } from "../../Renderer";
 import { SpriteElement } from "../../RenderPipeline/SpriteElement";
-import { BlendFactor, BlendOperation, CullMode, Shader } from "../../shader";
+import { BlendFactor, BlendOperation, CompareFunction, CullMode, Shader } from "../../shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
@@ -19,7 +19,6 @@ import "./SpriteMaterial";
 export class SpriteRenderer extends Renderer {
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_texture");
   private static _tempVec3: Vector3 = new Vector3();
-  private static _defaultMaterial: Material = null;
 
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
@@ -108,6 +107,22 @@ export class SpriteRenderer extends Renderer {
 
   set maskInteraction(value: SpriteMaskInteraction) {
     this._maskInteraction = value;
+
+    // Update stencil.
+    const material = this.getInstanceMaterial();
+
+    if (value === SpriteMaskInteraction.None) {
+      material.renderState.stencilState.enabled = false;
+    } else {
+      const stencilState = material.renderState.stencilState;
+      stencilState.enabled = true;
+      stencilState.writeMask = 0x00;
+      stencilState.referenceValue = 1;
+      const compare =
+        value === SpriteMaskInteraction.VisibleInsideMask ? CompareFunction.LessEqual : CompareFunction.Greater;
+      stencilState.compareFunctionFront = compare;
+      stencilState.compareFunctionBack = compare;
+    }
   }
 
   /**
@@ -128,6 +143,7 @@ export class SpriteRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
+    this.setMaterial(this._createMaterial());
   }
 
   /**
@@ -192,7 +208,7 @@ export class SpriteRenderer extends Renderer {
     }
 
     this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
-    const material = this.getMaterial() || this._getDefaultMaterial();
+    const material = this.getMaterial();
 
     const spriteElement = SpriteElement.getFromPool();
     spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
@@ -232,23 +248,20 @@ export class SpriteRenderer extends Renderer {
     this._dirtyFlag &= ~type;
   }
 
-  private _getDefaultMaterial(): Material {
-    if (!SpriteRenderer._defaultMaterial) {
-      // Create default material
-      const material = (SpriteRenderer._defaultMaterial = new Material(this.scene.engine, Shader.find("Sprite")));
-      const target = material.renderState.blendState.targetBlendState;
-      target.enabled = true;
-      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.sourceAlphaBlendFactor = BlendFactor.One;
-      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-      material.renderState.depthState.writeEnabled = false;
-      material.renderQueueType = RenderQueueType.Transparent;
-      material.renderState.rasterState.cullMode = CullMode.Off;
-    }
+  private _createMaterial(): Material {
+    const material = new Material(this.engine, Shader.find("Sprite"));
+    const target = material.renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    material.renderState.depthState.writeEnabled = false;
+    material.renderQueueType = RenderQueueType.Transparent;
+    material.renderState.rasterState.cullMode = CullMode.Off;
 
-    return SpriteRenderer._defaultMaterial;
+    return material;
   }
 
   /**

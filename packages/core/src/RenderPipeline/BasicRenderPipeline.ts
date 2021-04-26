@@ -1,4 +1,5 @@
 import { Vector4 } from "@oasis-engine/math";
+import { ClearMode } from "../base";
 import { Camera } from "../Camera";
 import { Layer } from "../Layer";
 import { RenderQueueType } from "../material";
@@ -123,6 +124,8 @@ export class BasicRenderPipeline {
     const transparentQueue = this._transparentQueue;
 
     SpriteMaskManager.getInstance(camera.engine).clear();
+    camera.scene.engine._hardwareRenderer.clearRenderTarget(camera.engine, ClearMode.STENCIL_ONLY);
+
     opaqueQueue.clear();
     alphaTestQueue.clear();
     transparentQueue.clear();
