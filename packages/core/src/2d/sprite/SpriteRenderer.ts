@@ -106,22 +106,9 @@ export class SpriteRenderer extends Renderer {
   }
 
   set maskInteraction(value: SpriteMaskInteraction) {
-    this._maskInteraction = value;
-
-    // Update stencil.
-    const material = this.getInstanceMaterial();
-
-    if (value === SpriteMaskInteraction.None) {
-      material.renderState.stencilState.enabled = false;
-    } else {
-      const stencilState = material.renderState.stencilState;
-      stencilState.enabled = true;
-      stencilState.writeMask = 0x00;
-      stencilState.referenceValue = 1;
-      const compare =
-        value === SpriteMaskInteraction.VisibleInsideMask ? CompareFunction.LessEqual : CompareFunction.Greater;
-      stencilState.compareFunctionFront = compare;
-      stencilState.compareFunctionBack = compare;
+    if (this._maskInteraction !== value) {
+      this._maskInteraction = value;
+      this._setDirtyFlagTrue(DirtyFlag.MaskInteraction);
     }
   }
 
@@ -207,6 +194,11 @@ export class SpriteRenderer extends Renderer {
       this._cacheFlipY = flipY;
     }
 
+    if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
+      this._updateStencilState();
+      this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
+    }
+
     this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
     const material = this.getMaterial();
 
@@ -257,9 +249,10 @@ export class SpriteRenderer extends Renderer {
     target.sourceAlphaBlendFactor = BlendFactor.One;
     target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    material.renderState.depthState.writeEnabled = false;
+    const renderState = material.renderState;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
     material.renderQueueType = RenderQueueType.Transparent;
-    material.renderState.rasterState.cullMode = CullMode.Off;
 
     return material;
   }
@@ -278,10 +271,35 @@ export class SpriteRenderer extends Renderer {
       worldBounds.max.setValue(0, 0, 0);
     }
   }
+
+  private _updateStencilState(): void {
+    // Update stencil.
+    const material = this.getInstanceMaterial();
+    const stencilState = material.renderState.stencilState;
+    const maskInteraction = this._maskInteraction;
+
+    if (maskInteraction === SpriteMaskInteraction.None) {
+      stencilState.enabled = false;
+      stencilState.writeMask = 0xff;
+      stencilState.referenceValue = 0;
+      stencilState.compareFunctionFront = stencilState.compareFunctionBack = CompareFunction.Always;
+    } else {
+      stencilState.enabled = true;
+      stencilState.writeMask = 0x00;
+      stencilState.referenceValue = 1;
+      const compare =
+        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
+          ? CompareFunction.LessEqual
+          : CompareFunction.Greater;
+      stencilState.compareFunctionFront = compare;
+      stencilState.compareFunctionBack = compare;
+    }
+  }
 }
 
 enum DirtyFlag {
   Flip = 0x1,
   Sprite = 0x2,
-  All = 0x3
+  All = 0x3,
+  MaskInteraction = 0x4
 }
