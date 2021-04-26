@@ -8,7 +8,6 @@ export class GLTFResource extends EngineObject {
   textures?: Texture2D[];
   materials?: Material[];
   meshes?: BufferMesh[][];
-
   skins?: Skin[];
   animations?: AnimationClip[];
   entities: Entity[];

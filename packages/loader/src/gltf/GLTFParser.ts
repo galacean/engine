@@ -1,49 +1,14 @@
 import { GLTFResource } from "./GLTFResource";
+import { AnimationParser } from "./parser/AnimationParser";
 import { BufferParser } from "./parser/BufferParser";
 import { EntityParser } from "./parser/EntityParser";
 import { MaterialParser } from "./parser/MaterialParser";
 import { MeshParser } from "./parser/MeshParser";
 import { Parser } from "./parser/Parser";
 import { SceneParser } from "./parser/SceneParser";
+import { SkinParser } from "./parser/SkinParser";
 import { TextureParser } from "./parser/TextureParser";
 import { Validator } from "./parser/Validator";
-
-/**
- * Parse skin.
- * @param gltfSkin
- * @param resources
- * @private
- */
-// export function parseSkin(gltfSkin, resources) {
-//   const { gltf, buffers } = resources;
-
-//   const jointCount = gltfSkin.joints.length;
-
-//   // FIXME: name is null
-//   const skin = new Skin(gltfSkin.name);
-//   // parse IBM
-//   const accessor = gltf.accessors[gltfSkin.inverseBindMatrices];
-//   const buffer = getAccessorData(gltf, accessor, buffers);
-//   const MAT4_LENGTH = 16;
-
-//   for (let i = 0; i < jointCount; i++) {
-//     const startIdx = MAT4_LENGTH * i;
-//     const endIdx = startIdx + MAT4_LENGTH;
-//     skin.inverseBindMatrices[i] = new Matrix(...buffer.subarray(startIdx, endIdx));
-//   }
-
-//   // get joints
-//   for (let i = 0; i < jointCount; i++) {
-//     const node = getItemByIdx("nodes", gltfSkin.joints[i], resources);
-//     skin.joints[i] = node.name;
-//   }
-
-//   // get skeleton
-//   const node = getItemByIdx("nodes", gltfSkin.skeleton == null ? gltfSkin.joints[0] : gltfSkin.skeleton, resources);
-//   skin.skeleton = node.name;
-
-//   return Promise.resolve(skin);
-// }
 
 export class GLTFParser {
   private static _isPromise(value: any): boolean {
@@ -91,6 +56,8 @@ export const gltfParser = new GLTFParser([
   TextureParser,
   MaterialParser,
   MeshParser,
+  SkinParser,
+  AnimationParser,
   EntityParser,
   SceneParser
 ]);

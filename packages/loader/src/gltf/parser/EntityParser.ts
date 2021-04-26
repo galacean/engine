@@ -4,7 +4,9 @@ import { GLTFResource } from "../GLTFResource";
 import { Parser } from "./Parser";
 
 export class EntityParser extends Parser {
-  private static _nodeCount = 0;
+  /** @internal */
+  static _defaultName: String = "_GLTF_ENTITY_";
+
   private static _position = new Vector3();
   private static _scale = new Vector3(1, 1, 1);
   private static _rotation = new Quaternion();
@@ -16,12 +18,12 @@ export class EntityParser extends Parser {
     } = context;
     if (!nodes) return;
 
-    const entities = [];
+    const entities: Entity[] = [];
 
     for (let i = 0; i < nodes.length; i++) {
       const gltfNode = nodes[i];
       const { matrix, translation, rotation, scale } = gltfNode;
-      const entity = new Entity(engine, gltfNode.name || `GLTF_NODE_${EntityParser._nodeCount++}`);
+      const entity = new Entity(engine, gltfNode.name || `${EntityParser._defaultName}${i}`);
 
       if (matrix) {
         const mat = new Matrix();

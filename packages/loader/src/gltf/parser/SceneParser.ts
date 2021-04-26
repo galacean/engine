@@ -6,7 +6,6 @@ import {
   Entity,
   Logger,
   MeshRenderer,
-  Scene,
   SkinnedMeshRenderer
 } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
@@ -144,9 +143,9 @@ export class SceneParser extends Parser {
       if (nodes.length === 1) {
         sceneRoots[i] = entities[nodes[0]];
       } else {
-        const rootEntity = new Entity(engine);
+        const rootEntity = new Entity(engine, "GLTF_ROOT");
         for (let j = 0; j < nodes.length; j++) {
-          rootEntity.addChild(entities[j]);
+          rootEntity.addChild(entities[nodes[j]]);
         }
         sceneRoots[i] = rootEntity;
       }

@@ -1,4 +1,4 @@
-import { PBRMaterial, PBRSpecularMaterial, RenderFace, UnlitMaterial } from "@oasis-engine/core";
+import { Material, PBRMaterial, PBRSpecularMaterial, RenderFace, UnlitMaterial } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { Parser } from "./Parser";
@@ -8,7 +8,7 @@ export class MaterialParser extends Parser {
     const { gltf, engine, textures } = context;
     if (!gltf.materials) return;
 
-    const materials = [];
+    const materials: Material[] = [];
 
     for (let i = 0; i < gltf.materials.length; i++) {
       const {

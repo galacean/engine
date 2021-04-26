@@ -1,0 +1,71 @@
+import { AnimationClip, InterpolationType } from "@oasis-engine/core";
+import { GLTFResource } from "../GLTFResource";
+import { getAccessorData, getAccessorTypeSize } from "../Util";
+import { EntityParser } from "./EntityParser";
+import { Parser } from "./Parser";
+
+export class AnimationParser extends Parser {
+  parse(context: GLTFResource): void {
+    const { gltf, buffers } = context;
+    const { animations, accessors, nodes } = gltf;
+    if (!animations) return;
+
+    const animationClips: AnimationClip[] = [];
+
+    for (let i = 0; i < animations.length; i++) {
+      const gltfAnimation = animations[i];
+      const { channels, samplers, name = `Animation${i}` } = gltfAnimation;
+
+      const animationClip = new AnimationClip(name);
+
+      let duration = -1;
+      let durationIndex = -1;
+
+      // parse samplers
+      for (let i = 0; i < samplers.length; i++) {
+        const gltfSampler = samplers[i];
+        // input
+        const inputAccessor = accessors[gltfSampler.input];
+        const outputAccessor = accessors[gltfSampler.output];
+        const input = getAccessorData(gltf, inputAccessor, buffers);
+        const output = getAccessorData(gltf, outputAccessor, buffers);
+        let outputAccessorSize = getAccessorTypeSize(outputAccessor.type);
+        if (outputAccessorSize * input.length !== output.length) outputAccessorSize = output.length / input.length;
+
+        let samplerInterpolation = InterpolationType.LINEAR;
+        switch (gltfSampler.interpolation) {
+          case "CUBICSPLINE":
+            samplerInterpolation = InterpolationType.CUBICSPLINE;
+            break;
+          case "STEP":
+            samplerInterpolation = InterpolationType.STEP;
+            break;
+        }
+        const maxTime = input[input.length - 1];
+        if (maxTime > duration) {
+          duration = maxTime;
+          durationIndex = i;
+        }
+        animationClip.addSampler(input, output, outputAccessorSize, samplerInterpolation);
+      }
+
+      animationClip.durationIndex = durationIndex;
+      animationClip.duration = duration;
+      
+      for (let i = 0; i < channels.length; i++) {
+        const { target, sampler } = channels[i];
+        const targetPath = target.path === "translation" ? "position" : target.path;
+
+        animationClip.addChannel(
+          sampler,
+          nodes[target.node].name || `${EntityParser._defaultName}${target.node}`,
+          targetPath
+        );
+      }
+
+      animationClips[i] = animationClip;
+    }
+
+    context.animations = animationClips;
+  }
+}
