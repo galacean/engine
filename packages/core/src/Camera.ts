@@ -15,6 +15,18 @@ import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 
+/**
+ * Camera clear flags enumeration.
+ */
+export enum CameraClearFlags {
+  /* Clear depth and color from background. */
+  DepthColor,
+  /* Clear depth only. */
+  Depth,
+  /* Do nothing. */
+  None
+}
+
 class MathTemp {
   static tempMat4 = new Matrix();
   static tempVec4 = new Vector4();
@@ -34,6 +46,9 @@ export class Camera extends Component {
   private static _inverseProjectionMatrixProperty = Shader.getPropertyByName("u_projInvMat");
   private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
 
+  /** Shader data. */
+  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
+
   /** Rendering priority - A Camera with higher priority will be rendererd on top of a camera with lower priority. */
   priority: number = 0;
 
@@ -41,13 +56,16 @@ export class Camera extends Component {
   enableFrustumCulling: boolean = true;
 
   /**
+   * Determining what to clear when rendering by a Camera. 
+   * @defaultValue `CameraClearFlags.DepthColor`
+   */
+  clearFlags: CameraClearFlags = CameraClearFlags.DepthColor;
+
+  /**
    * Culling mask - which layers the camera renders.
    * @remarks Support bit manipulation, conresponding to Entity's layer.
    */
   cullingMask: Layer = Layer.Everything;
-
-  /** Shader data. */
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
 
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();

@@ -1,4 +1,4 @@
-import { Camera } from "../Camera";
+import { Camera, CameraClearFlags } from "../Camera";
 import { LightFeature } from "../lighting/LightFeature";
 import { RenderPass } from "../RenderPipeline/RenderPass";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
@@ -10,6 +10,7 @@ import { LightShadow } from "./LightShadow";
 export class ShadowPass extends RenderPass {
   constructor(...args) {
     super(...args);
+    this.clearFlags = CameraClearFlags.None;
   }
 
   /**

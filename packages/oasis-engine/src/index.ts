@@ -11,7 +11,6 @@ import {
   EnvironmentMapLight,
   ParticleRenderer,
   PointLight,
-  Sky,
   SphereCollider,
   SpriteRenderer
 } from "@oasis-engine/core";

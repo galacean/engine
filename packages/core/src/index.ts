@@ -12,7 +12,8 @@ export { Script } from "./Script";
 export { Renderer } from "./Renderer";
 export { dependencies } from "./ComponentsDependencies";
 
-export { Camera } from "./Camera";
+export { Camera, CameraClearFlags } from "./Camera";
+export { Background, BackgroundMode } from "./Background";
 export { Transform } from "./Transform";
 export { UpdateFlag } from "./UpdateFlag";
 export { request } from "./asset/request";
@@ -64,5 +65,4 @@ export * from "./shadow/index";
 export * from "./shader/index";
 export * from "./Layer";
 export * from "./clone/CloneManager";
-
 export * from "./renderingHardwareInterface/index";

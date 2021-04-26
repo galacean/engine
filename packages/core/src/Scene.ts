@@ -1,4 +1,5 @@
 import { Color, Vector2, Vector3 } from "@oasis-engine/math";
+import { Background } from "./Background";
 import { EngineObject, GLCapabilityType, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
@@ -10,7 +11,6 @@ import { SceneFeature } from "./SceneFeature";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
-import { Sky } from "./sky";
 
 /**
  * Scene.
@@ -23,8 +23,8 @@ export class Scene extends EngineObject {
   /** scene-related shaderdata  */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
 
-  /** The background of the scene, which could be a sky or a color. */
-  background: Sky | Color = new Color(0.25, 0.25, 0.25, 1)
+  /** The background of the scene. */
+  background: Background = new Background();
   /** scene name */
   name: string;
 

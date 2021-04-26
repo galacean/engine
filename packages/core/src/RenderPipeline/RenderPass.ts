@@ -1,4 +1,4 @@
-import { Camera } from "../Camera";
+import { Camera, CameraClearFlags } from "../Camera";
 import { Layer } from "../Layer";
 import { Material } from "../material/Material";
 import { RenderTarget } from "../texture/RenderTarget";
@@ -17,6 +17,7 @@ class RenderPass {
   public replaceMaterial: Material;
   public mask: Layer;
   public renderOverride: boolean;
+  public clearFlags: CameraClearFlags | undefined;
 
   /**
    * Create a RenderPass.
@@ -31,7 +32,7 @@ class RenderPass {
     priority = 0,
     renderTarget = null,
     replaceMaterial = null,
-    mask = null,
+    mask = null
   ) {
     this.name = name;
     this.enabled = true;
@@ -40,7 +41,6 @@ class RenderPass {
     this.replaceMaterial = replaceMaterial;
     this.mask = mask || Layer.Everything;
     this.renderOverride = false; // If renderOverride is set to true, you need to implement the render method
-
   }
 
   /**

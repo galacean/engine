@@ -1,5 +1,6 @@
 import { Matrix, Vector4 } from "@oasis-engine/math";
-import { Camera } from "../Camera";
+import { BackgroundMode } from "../Background";
+import { Camera, CameraClearFlags } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { RenderQueueType } from "../material";
@@ -149,15 +150,18 @@ export class BasicRenderPipeline {
       const renderTarget = camera.renderTarget || pass.renderTarget;
       rhi.activeRenderTarget(renderTarget, camera);
       renderTarget?._setRenderTargetFace(cubeFace);
-      rhi.clearRenderTarget(camera.engine, background);
+      const clearFlags = pass.clearFlags ?? camera.clearFlags;
+      if (clearFlags !== CameraClearFlags.None) {
+        rhi.clearRenderTarget(camera.engine, clearFlags, background.color);
+      }
 
       if (pass.renderOverride) {
         pass.render(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
       } else {
         this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
-        if (scene.background instanceof Sky) {
-          this._drawSky(engine, camera, scene.background);
+        if (background.mode === BackgroundMode.Sky) {
+          this._drawSky(engine, camera, background.sky);
         }
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }

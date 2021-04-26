@@ -19,8 +19,9 @@ import {
   Texture2D,
   TextureCubeMap
 } from "@oasis-engine/core";
+import { CameraClearFlags } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
-import { Color, Vector4 } from "@oasis-engine/math";
+import { Color } from "@oasis-engine/math";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
@@ -187,7 +188,11 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._gl.colorMask(r, g, b, a);
   }
 
-  clearRenderTarget(engine: Engine, clearColor: Color) {
+  clearRenderTarget(
+    engine: Engine,
+    clearFlags: CameraClearFlags.Depth | CameraClearFlags.DepthColor,
+    clearColor: Color
+  ) {
     const gl = this._gl;
     const {
       blendState: { targetBlendState },
@@ -195,14 +200,16 @@ export class WebGLRenderer implements IHardwareRenderer {
       stencilState
     } = engine._lastRenderState;
 
-    const clearFlag = gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT;
-    if (clearColor.toGamma) {
-      gl.clearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-    }
-
-    if (targetBlendState.colorWriteMask !== ColorWriteMask.All) {
-      gl.colorMask(true, true, true, true);
-      targetBlendState.colorWriteMask = ColorWriteMask.All;
+    let clearFlag = gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT;
+    if (clearFlags === CameraClearFlags.DepthColor) {
+      clearFlag = clearFlag | gl.COLOR_BUFFER_BIT;
+      if (clearColor.toGamma) {
+        gl.clearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+      }
+      if (targetBlendState.colorWriteMask !== ColorWriteMask.All) {
+        gl.colorMask(true, true, true, true);
+        targetBlendState.colorWriteMask = ColorWriteMask.All;
+      }
     }
 
     if (depthState.writeEnabled !== true) {
