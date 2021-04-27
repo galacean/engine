@@ -16,6 +16,7 @@ import { Shader } from "./shader/Shader";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
+import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -29,8 +30,13 @@ export class Engine extends EventDispatcher {
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
   _renderContext: RenderContext = new RenderContext();
 
+  /* @internal */
+  _whiteTexture2D: Texture2D;
+  /* @internal */
+  _whiteTextureCube: TextureCubeMap;
   /* @internal */
   _renderCount: number = 0;
   /* @internal */
@@ -137,6 +143,24 @@ export class Engine extends EventDispatcher {
     // @todo delete
     engineFeatureManager.addObject(this);
     this._sceneManager.activeScene = new Scene(this, "DefaultScene");
+
+    const whitePixel = new Uint8Array([255, 255, 255, 255]);
+
+    const whiteTextrue2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+    whiteTextrue2D.setPixelBuffer(whitePixel);
+    whiteTextrue2D.isGCIgnored = true;
+
+    const whiteTextrueCube = new TextureCubeMap(this, 1, TextureFormat.R8G8B8A8, false);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
+    whiteTextrueCube.isGCIgnored = true;
+
+    this._whiteTexture2D = whiteTextrue2D;
+    this._whiteTextureCube = whiteTextrueCube;
   }
 
   /**
@@ -175,8 +199,8 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
 
     time.tick();
-    RenderElement._restPool();
-    SpriteElement._restPool();
+    this._renderElementPool.resetPool();
+    this._spriteElementPool.resetPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
@@ -211,7 +235,9 @@ export class Engine extends EventDispatcher {
    */
   destroy(): void {
     if (this._sceneManager) {
-      // -- event
+      this._whiteTexture2D.destroy(true);
+      this._whiteTextureCube.destroy(true);
+
       this.trigger(new Event("shutdown", this));
       engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
 

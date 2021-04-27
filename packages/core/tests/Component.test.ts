@@ -1,4 +1,4 @@
-import { WebGLEngine } from "../../rhi-webgl/src";
+import { WebGLEngine } from "../../rhi-webgl/src/WebGLEngine";
 import { Entity, Component, Engine, Scene } from "../src/index";
 
 class TestComponent extends Component {}
@@ -29,7 +29,7 @@ describe("Component", () => {
   const canvasDOM = document.createElement("canvas");
   canvasDOM.getContext = getContext;
 
-  const engine: Engine = new Engine({ width: 1024, height: 1024 }, { init: jest.fn(), canIUse: jest.fn() });
+  const engine = new WebGLEngine(document.createElement("canvas"));
   const scene = engine.sceneManager.activeScene;
   const root = new Entity(engine, "root");
   //@ts-ignore
