@@ -15,6 +15,7 @@ import {
 import { BufferMesh } from "../mesh";
 import { Shader, StencilOperation } from "../shader";
 import { SystemInfo } from "../SystemInfo";
+import { ClassPool } from "./ClassPool";
 import { SpriteMaskElement } from "./SpriteMaskElement";
 
 export class SpriteMaskManager {
@@ -23,8 +24,6 @@ export class SpriteMaskManager {
   /** The maximum number of vertex. */
   private static MAX_VERTEX_COUNT: number = 4096;
   private static _canUploadSameBuffer: boolean = !SystemInfo._isIos();
-  private static _subMeshPool: SubMesh[] = [];
-  private static _subMeshPoolIndex: number = 0;
 
   static getInstance(engine: Engine): SpriteMaskManager {
     if (!SpriteMaskManager._instance) {
@@ -34,31 +33,7 @@ export class SpriteMaskManager {
     return SpriteMaskManager._instance;
   }
 
-  static _getSubMeshFromPool(start: number, count: number, topology: MeshTopology = MeshTopology.Triangles): SubMesh {
-    const { _subMeshPoolIndex: index, _subMeshPool: pool } = SpriteMaskManager;
-    SpriteMaskManager._subMeshPoolIndex++;
-    let subMesh: SubMesh = null;
-
-    if (pool.length === index) {
-      subMesh = new SubMesh(start, count, topology);
-      pool.push(subMesh);
-    } else {
-      subMesh = pool[index];
-      subMesh.start = start;
-      subMesh.count = count;
-      subMesh.topology = topology;
-    }
-
-    return subMesh;
-  }
-
-  /**
-   * @internal
-   */
-  static _restPool() {
-    SpriteMaskManager._subMeshPoolIndex = 0;
-  }
-
+  private _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
   private _batchedQueue: SpriteMaskElement[] = [];
   private _meshes: BufferMesh[] = [];
   private _meshCount: number = 1;
@@ -275,7 +250,7 @@ export class SpriteMaskManager {
       this._flushId++;
     }
 
-    SpriteMaskManager._restPool();
+    this._subMeshPool.resetPool();
     this._batchedQueue.length = 0;
     this._vertexCount = 0;
     this._spriteMaskCount = 0;
@@ -289,7 +264,6 @@ export class SpriteMaskManager {
       _meshes[_flushId] = this._createMesh(engine, _flushId);
     }
 
-    const { _getSubMeshFromPool } = SpriteMaskManager;
     const { _batchedQueue, _vertices, _indices } = this;
     const mesh = _meshes[_flushId];
     mesh.clearSubMesh();
@@ -332,7 +306,7 @@ export class SpriteMaskManager {
         if (this._canBatch(preSpriteMaskElement, curSpriteMaskElement)) {
           vertexCount += triangleNum;
         } else {
-          mesh.addSubMesh(_getSubMeshFromPool(vertexStartIndex, vertexCount));
+          mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
           vertexStartIndex += vertexCount;
           vertexCount = triangleNum;
           _batchedQueue[curMeshIndex++] = preSpriteMaskElement;
@@ -342,7 +316,7 @@ export class SpriteMaskManager {
       preSpriteMaskElement = curSpriteMaskElement;
     }
 
-    mesh.addSubMesh(_getSubMeshFromPool(vertexStartIndex, vertexCount));
+    mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
     _batchedQueue[curMeshIndex] = preSpriteMaskElement;
 
     this._vertexBuffers[_flushId].setData(_vertices, 0, 0, vertexIndex);
@@ -413,5 +387,13 @@ export class SpriteMaskManager {
     }
 
     return false;
+  }
+
+  private _getSubMeshFromPool(start: number, count: number): SubMesh {
+    const subMesh = this._subMeshPool.getFromPool();
+    subMesh.start = start;
+    subMesh.count = count;
+    subMesh.topology = MeshTopology.Triangles;
+    return subMesh;
   }
 }
