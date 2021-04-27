@@ -11,6 +11,7 @@ import { BufferMesh } from "../mesh/BufferMesh";
 import { Shader } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { SystemInfo } from "../SystemInfo";
+import { ClassPool } from "./ClassPool";
 import { SpriteElement } from "./SpriteElement";
 import { SpriteMaskManager } from "./SpriteMaskManager";
 
@@ -22,34 +23,8 @@ export class SpriteBatcher {
   /** The maximum number of vertex. */
   private static MAX_VERTEX_COUNT: number = 4096;
   private static _canUploadSameBuffer: boolean = !SystemInfo._isIos();
-  private static _subMeshPool: SubMesh[] = [];
-  private static _subMeshPoolIndex: number = 0;
 
-  static _getSubMeshFromPool(start: number, count: number, topology: MeshTopology = MeshTopology.Triangles): SubMesh {
-    const { _subMeshPoolIndex: index, _subMeshPool: pool } = SpriteBatcher;
-    SpriteBatcher._subMeshPoolIndex++;
-    let subMesh: SubMesh = null;
-
-    if (pool.length === index) {
-      subMesh = new SubMesh(start, count, topology);
-      pool.push(subMesh);
-    } else {
-      subMesh = pool[index];
-      subMesh.start = start;
-      subMesh.count = count;
-      subMesh.topology = topology;
-    }
-
-    return subMesh;
-  }
-
-  /**
-   * @internal
-   */
-  static _restPool() {
-    SpriteBatcher._subMeshPoolIndex = 0;
-  }
-
+  private _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
   private _batchedQueue: SpriteElement[] = [];
   private _meshes: BufferMesh[] = [];
   private _meshCount: number = 1;
@@ -152,7 +127,6 @@ export class SpriteBatcher {
       _meshes[_flushId] = this._createMesh(engine, _flushId);
     }
 
-    const { _getSubMeshFromPool } = SpriteBatcher;
     const { _batchedQueue, _vertices, _indices } = this;
     const mesh = _meshes[_flushId];
     mesh.clearSubMesh();
@@ -199,7 +173,7 @@ export class SpriteBatcher {
         if (this._canBatch(preSpriteElement, curSpriteElement)) {
           vertexCount += triangleNum;
         } else {
-          mesh.addSubMesh(_getSubMeshFromPool(vertexStartIndex, vertexCount));
+          mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
           vertexStartIndex += vertexCount;
           vertexCount = triangleNum;
           _batchedQueue[curMeshIndex++] = preSpriteElement;
@@ -209,7 +183,7 @@ export class SpriteBatcher {
       preSpriteElement = curSpriteElement;
     }
 
-    mesh.addSubMesh(_getSubMeshFromPool(vertexStartIndex, vertexCount));
+    mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
     _batchedQueue[curMeshIndex] = preSpriteElement;
 
     this._vertexBuffers[_flushId].setData(_vertices, 0, 0, vertexIndex);
@@ -312,5 +286,13 @@ export class SpriteBatcher {
       indiceBuffers[i].destroy();
     }
     this._indiceBuffers = null;
+  }
+
+  private _getSubMeshFromPool(start: number, count: number): SubMesh {
+    const subMesh = this._subMeshPool.getFromPool();
+    subMesh.start = start;
+    subMesh.count = count;
+    subMesh.topology = MeshTopology.Triangles;
+    return subMesh;
   }
 }
