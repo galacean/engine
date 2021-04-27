@@ -16,9 +16,9 @@ import "./SpriteMaskMaterial";
  * A component for masking Sprites.
  */
 export class SpriteMask extends Component {
+  private static _tempVec3: Vector3 = new Vector3();
   static textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
   static alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_alphaCutoff");
-  private static _tempVec3: Vector3 = new Vector3();
 
   @deepClone
   private _material: Material = null;
@@ -71,6 +71,9 @@ export class SpriteMask extends Component {
     this._influenceLayers = value;
   }
 
+  /**
+   * Get the material.
+   */
   get material(): Material {
     return this._material;
   }
@@ -105,8 +108,8 @@ export class SpriteMask extends Component {
       return null;
     }
 
-    const { _positions } = this;
-    const { transform } = this.entity;
+    const positions = this._positions;
+    const transform = this.entity.transform;
 
     // Update sprite data.
     const localDirty = sprite._updateMeshData();
@@ -116,10 +119,10 @@ export class SpriteMask extends Component {
       const localVertexPos = SpriteMask._tempVec3;
       const worldMatrix = transform.worldMatrix;
 
-      for (let i = 0, n = _positions.length; i < n; i++) {
+      for (let i = 0, n = positions.length; i < n; i++) {
         const curVertexPos = localPositions[i];
         localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
-        Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
+        Vector3.transformToVec3(localVertexPos, worldMatrix, positions[i]);
       }
 
       this._isSpriteDirty = false;
@@ -133,11 +136,11 @@ export class SpriteMask extends Component {
 
     const spriteMaskElementPool = this._engine._spriteMaskElementPool;
     const spriteMaskElement = spriteMaskElementPool.getFromPool();
-    spriteMaskElement.setValue(this, _positions, sprite._uv, sprite._triangles, material);
+    spriteMaskElement.setValue(this, positions, sprite._uv, sprite._triangles, material);
     return spriteMaskElement;
   }
 
-  _createMaterial(): Material {
+  private _createMaterial(): Material {
     const material = new Material(this.engine, Shader.find("SpriteMask"));
     const renderState = material.renderState;
     renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
