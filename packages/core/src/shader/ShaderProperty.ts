@@ -11,10 +11,14 @@ export class ShaderProperty {
   /** @internal */
   _group: ShaderDataGroup;
 
+  /** Shader property name. */
+  readonly name: string;
+
   /**
    * @internal
    */
-  constructor() {
+  constructor(name: string) {
+    this.name = name;
     this._uniqueId = ShaderProperty._propertyNameCounter++;
   }
 }

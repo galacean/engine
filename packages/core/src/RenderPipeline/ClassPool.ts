@@ -28,7 +28,7 @@ export class ClassPool<T> {
   /**
    * Reset pool.
    */
-  restPool(): void {
+  resetPool(): void {
     this._elementPoolIndex = 0;
   }
 }

@@ -2,88 +2,50 @@ import { WebCanvas, WebGLEngine, WebGLRenderer } from "../../rhi-webgl/src";
 import { Engine } from "../src";
 
 describe("Engine test", () => {
-  const getContext = jest.fn().mockReturnValue({
-    canvas: { width: 1024, height: 1024 },
-    getParameter: jest.fn(),
-    enable: jest.fn(),
-    disable: jest.fn(),
-    colorMask: jest.fn(),
-    depthMask: jest.fn(),
-    blendFunc: jest.fn(),
-    blendFuncSeparate: jest.fn(),
-    blendEquationSeparate: jest.fn(),
-    blendColor: jest.fn(),
-    cullFace: jest.fn(),
-    frontFace: jest.fn(),
-    depthFunc: jest.fn(),
-    depthRange: jest.fn(),
-    polygonOffset: jest.fn(),
-    stencilFunc: jest.fn(),
-    stencilFuncSeparate: jest.fn(),
-    stencilMask: jest.fn(),
-    stencilOpSeparate: jest.fn(),
-    getExtension: jest.fn(),
-    bindFramebuffer: jest.fn(),
-    viewport: jest.fn(),
-    clearColor: jest.fn(),
-    clear: jest.fn()
-  });
-
-  const canvasDOM = document.createElement("canvas");
-  canvasDOM.getContext = getContext;
-
-  const offscreenCanvasDOM = <OffscreenCanvas | any>{
-    width: 1024,
-    height: 1024,
-    getContext
-  };
-
   describe("test - create and destroy engine ", () => {
-    describe("Web platform engine", () => {
-      it("use Engine", () => {
-        const canvas = new WebCanvas(canvasDOM);
-        const rhi = new WebGLRenderer();
-        const engine = new Engine(canvas, rhi);
+    it("use Engine", () => {
+      const canvas = new WebCanvas(document.createElement("canvas"));
+      const rhi = new WebGLRenderer();
+      const engine = new Engine(canvas, rhi);
 
-        expect(engine.canvas).toBe(canvas);
-        expect(engine._hardwareRenderer).toBe(rhi);
-      });
+      expect(engine.canvas).toBe(canvas);
+      expect(engine._hardwareRenderer).toBe(rhi);
+    });
 
-      it("Use WebGLEngine", () => {
-        const engine = new WebGLEngine(canvasDOM);
+    it("Use WebGLEngine", () => {
+      const engine = new WebGLEngine(document.createElement("canvas"));
 
-        expect(engine._hardwareRenderer).toBeInstanceOf(WebGLRenderer);
-      });
+      expect(engine._hardwareRenderer).toBeInstanceOf(WebGLRenderer);
+    });
 
-      it("Use offscreen canvas", () => {
-        const canvas = new WebCanvas(offscreenCanvasDOM);
-        const rhi = new WebGLRenderer();
-        const engine = new Engine(canvas, rhi);
+    it("Use offscreen canvas", () => {
+      const canvas = new WebCanvas(new OffscreenCanvas(1024, 1024));
+      const rhi = new WebGLRenderer();
+      const engine = new Engine(canvas, rhi);
 
-        expect(engine.canvas).toBe(canvas);
-        expect(engine._hardwareRenderer).toBeInstanceOf(WebGLRenderer);
-        expect(canvas.width).toBe(1024);
-        expect(canvas.height).toBe(1024);
-      });
+      expect(engine.canvas).toBe(canvas);
+      expect(engine._hardwareRenderer).toBeInstanceOf(WebGLRenderer);
+      expect(canvas.width).toBe(1024);
+      expect(canvas.height).toBe(1024);
+    });
 
-      it("Destroy engine", () => {
-        const engine = new WebGLEngine(canvasDOM);
+    it("Destroy engine", () => {
+      const engine = new WebGLEngine(document.createElement("canvas"));
 
-        engine.destroy();
-        expect(engine.sceneManager).toBeNull();
-        expect(engine.isPaused).toBeTruthy();
-      });
+      engine.destroy();
+      expect(engine.sceneManager).toBeNull();
+      expect(engine.isPaused).toBeTruthy();
     });
   });
 
   describe("test - sceneManager", () => {
     it("Default scene", () => {
-      const engine = new WebGLEngine(canvasDOM);
+      const engine = new WebGLEngine(document.createElement("canvas"));
 
       expect(engine.sceneManager.activeScene).not.toBeNull();
     });
     it("Destroy scene", () => {
-      const engine = new WebGLEngine(canvasDOM);
+      const engine = new WebGLEngine(document.createElement("canvas"));
       const scene = engine.sceneManager.activeScene;
       scene.destroy();
 
@@ -92,7 +54,7 @@ describe("Engine test", () => {
   });
 
   describe("test - tick/vSync", () => {
-    const engine = new WebGLEngine(canvasDOM);
+    const engine = new WebGLEngine(document.createElement("canvas"));
     const mockTick = (engine.update = jest.fn());
 
     it("Open vsync - pause/resume", () => {
