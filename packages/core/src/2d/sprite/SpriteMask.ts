@@ -131,7 +131,8 @@ export class SpriteMask extends Component {
     shaderData.setTexture(SpriteMask.textureProperty, texture);
     shaderData.setFloat(SpriteMask.alphaCutoffProperty, this.alphaCutoff);
 
-    const spriteMaskElement = SpriteMaskElement.getFromPool();
+    const spriteMaskElementPool = this._engine._spriteMaskElementPool;
+    const spriteMaskElement = spriteMaskElementPool.getFromPool();
     spriteMaskElement.setValue(this, _positions, sprite._uv, sprite._triangles, material);
     return spriteMaskElement;
   }

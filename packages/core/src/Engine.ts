@@ -32,6 +32,7 @@ export class Engine extends EventDispatcher {
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
   _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
+  _spriteMaskElementPool: ClassPool<SpriteMaskElement> = new ClassPool(SpriteMaskElement);
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
@@ -202,6 +203,7 @@ export class Engine extends EventDispatcher {
     time.tick();
     this._renderElementPool.resetPool();
     this._spriteElementPool.resetPool();
+    this._spriteMaskElementPool.resetPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 

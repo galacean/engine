@@ -229,14 +229,14 @@ export class SpriteRenderer extends Renderer {
 
   private _createMaterial(): Material {
     const material = new Material(this.engine, Shader.find("Sprite"));
-    const target = material.renderState.blendState.targetBlendState;
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
     target.enabled = true;
     target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
     target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
     target.sourceAlphaBlendFactor = BlendFactor.One;
     target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    const renderState = material.renderState;
     renderState.depthState.writeEnabled = false;
     renderState.rasterState.cullMode = CullMode.Off;
     material.renderQueueType = RenderQueueType.Transparent;
