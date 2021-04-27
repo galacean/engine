@@ -64,7 +64,7 @@ export class SpriteBatcher {
       this._flushId++;
     }
 
-    SpriteBatcher._restPool();
+    this._subMeshPool.resetPool();
     this._batchedQueue.length = 0;
     this._vertexCount = 0;
     this._spriteCount = 0;
