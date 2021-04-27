@@ -11,6 +11,7 @@ import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteElement } from "./RenderPipeline/SpriteElement";
 import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
+import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { Shader } from "./shader/Shader";
@@ -260,6 +261,9 @@ export class Engine extends EventDispatcher {
 
       this.features = [];
       this._time = null;
+
+      // delete mask manager
+      SpriteMaskManager.getInstance(this).destroy();
 
       // todo: delete
       (engineFeatureManager as any)._objects = [];
