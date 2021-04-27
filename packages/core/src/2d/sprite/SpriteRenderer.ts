@@ -215,19 +215,6 @@ export class SpriteRenderer extends Renderer {
     super._onDestroy();
   }
 
-  checkMask(renderer: SpriteRenderer): boolean {
-    const { maskInteraction } = this;
-    if (maskInteraction !== renderer.maskInteraction) {
-      return false;
-    }
-
-    if (maskInteraction === SpriteMaskInteraction.None) {
-      return true;
-    }
-
-    return this.maskLayer === renderer.maskLayer;
-  }
-
   private _isContainDirtyFlag(type: number): boolean {
     return (this._dirtyFlag & type) != 0;
   }

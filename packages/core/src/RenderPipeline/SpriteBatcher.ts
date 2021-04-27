@@ -1,4 +1,4 @@
-import { SpriteRenderer } from "../2d";
+import { SpriteMaskInteraction, SpriteRenderer } from "../2d";
 import { Engine } from "../Engine";
 import { MeshTopology, SubMesh } from "../graphic";
 import { Buffer } from "../graphic/Buffer";
@@ -223,7 +223,7 @@ export class SpriteBatcher {
     const curSpriteRenderer = <SpriteRenderer>curSpriteElement.component;
 
     // Compare mask
-    if (!preSpriteRenderer.checkMask(curSpriteRenderer)) {
+    if (!this._checkMask(preSpriteRenderer, curSpriteRenderer)) {
       return false;
     }
 
@@ -238,6 +238,20 @@ export class SpriteBatcher {
     return (
       preSpriteElement.material === curSpriteElement.material && preSpriteElement.camera === curSpriteElement.camera
     );
+  }
+
+  private _checkMask(sr1: SpriteRenderer, sr2: SpriteRenderer): boolean {
+    const maskInteraction1 = sr1.maskInteraction;
+    const maskInteraction2 = sr2.maskInteraction;
+    if (maskInteraction1 !== maskInteraction2) {
+      return false;
+    }
+
+    if (maskInteraction1 === SpriteMaskInteraction.None) {
+      return true;
+    }
+
+    return sr1.maskLayer === sr2.maskLayer;
   }
 
   /**
