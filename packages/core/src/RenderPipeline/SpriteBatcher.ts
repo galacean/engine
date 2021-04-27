@@ -263,7 +263,7 @@ export class SpriteBatcher {
     const curSpriteRenderer = <SpriteRenderer>curSpriteElement.component;
 
     // Compare mask
-    if (!this._checkMask(preSpriteRenderer, curSpriteRenderer)) {
+    if (!this._checkBatchByMask(preSpriteRenderer, curSpriteRenderer)) {
       return false;
     }
 
@@ -280,10 +280,9 @@ export class SpriteBatcher {
     );
   }
 
-  private _checkMask(sr1: SpriteRenderer, sr2: SpriteRenderer): boolean {
+  private _checkBatchByMask(sr1: SpriteRenderer, sr2: SpriteRenderer): boolean {
     const maskInteraction1 = sr1.maskInteraction;
-    const maskInteraction2 = sr2.maskInteraction;
-    if (maskInteraction1 !== maskInteraction2) {
+    if (maskInteraction1 !== sr2.maskInteraction) {
       return false;
     }
 
