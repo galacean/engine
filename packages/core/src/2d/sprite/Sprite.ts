@@ -191,32 +191,7 @@ export class Sprite extends RefObject {
    */
   private _updateMesh(): void {
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
-<<<<<<< HEAD
-      const positions = this._positions;
-      const { width, height } = this.texture;
-      const { width: rWidth, height: rHeight } = this.region;
-      const pivot = this.pivot;
-      const unitPivot = Sprite._tempVec2;
-
-      const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
-      // Get the width and height in 3D space.
-      const unitWidth = rWidth * width * pixelsPerUnitReciprocal;
-      const unitHeight = rHeight * height * pixelsPerUnitReciprocal;
-      // Get the pivot coordinate in 3D space.
-      unitPivot.x = pivot.x * unitWidth;
-      unitPivot.y = pivot.y * unitHeight;
-
-      // Top-left.
-      positions[0].setValue(-unitPivot.x, unitHeight - unitPivot.y);
-      // Top-right.
-      positions[1].setValue(unitWidth - unitPivot.x, unitHeight - unitPivot.y);
-      // Bottom-right.
-      positions[2].setValue(unitWidth - unitPivot.x, -unitPivot.y);
-      // Bottom-left.
-      positions[3].setValue(-unitPivot.x, -unitPivot.y);
-=======
       this._updatePositionsAndBounds();
->>>>>>> 9e2a9d10ffbc98b54e55985c974a06b3197ddd04
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {

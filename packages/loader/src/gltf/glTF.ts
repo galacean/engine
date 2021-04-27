@@ -839,7 +839,7 @@ export function buildSceneGraph(resources: GLTFParsed): GLTFResource {
           materialIndex !== undefined
             ? getItemByIdx("materials", materialIndex, resources)
             : getDefaultMaterial(node.engine);
-        renderer.setMaterial(j, material);
+        renderer.setMaterial(material);
       }
     }
   }

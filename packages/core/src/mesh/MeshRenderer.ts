@@ -7,7 +7,6 @@ import { Entity } from "../Entity";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Mesh } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
-import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Shader } from "../shader/Shader";
 import { UpdateFlag } from "../UpdateFlag";
 
@@ -116,8 +115,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    */
   _onDestroy() {
     super._onDestroy();
-    if (this._mesh) {
-      this._mesh._addRefCount(-1);
+    const mesh = this._mesh;
+    if (mesh && !mesh.destroyed) {
+      mesh._addRefCount(-1);
       this._mesh = null;
     }
   }
