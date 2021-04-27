@@ -72,6 +72,46 @@ export class SpriteBatcher {
     }
   }
 
+  /**
+   * Flush all sprites.
+   */
+  flush(engine: Engine): void {
+    const { _batchedQueue } = this;
+
+    if (_batchedQueue.length === 0) {
+      return;
+    }
+
+    this._updateData(engine);
+    this._drawBatches(engine);
+
+    if (!SpriteBatcher._canUploadSameBuffer) {
+      this._flushId++;
+    }
+
+    SpriteBatcher._restPool();
+    this._batchedQueue.length = 0;
+    this._vertexCount = 0;
+    this._spriteCount = 0;
+  }
+
+  drawSprite(spriteElement: SpriteElement): void {
+    const len = spriteElement.positions.length;
+    if (this._vertexCount + len > SpriteBatcher.MAX_VERTEX_COUNT) {
+      this.flush(spriteElement.camera.engine);
+    }
+
+    this._vertexCount += len;
+    this._batchedQueue[this._spriteCount++] = spriteElement;
+  }
+
+  clear(): void {
+    this._flushId = 0;
+    this._vertexCount = 0;
+    this._spriteCount = 0;
+    this._batchedQueue.length = 0;
+  }
+
   private _createMesh(engine: Engine, index: number): BufferMesh {
     const { MAX_VERTEX_COUNT } = SpriteBatcher;
     const mesh = new BufferMesh(engine, `SpriteBatchBufferMesh${index}`);
@@ -252,45 +292,5 @@ export class SpriteBatcher {
     }
 
     return sr1.maskLayer === sr2.maskLayer;
-  }
-
-  /**
-   * Flush all sprites.
-   */
-  flush(engine: Engine): void {
-    const { _batchedQueue } = this;
-
-    if (_batchedQueue.length === 0) {
-      return;
-    }
-
-    this._updateData(engine);
-    this._drawBatches(engine);
-
-    if (!SpriteBatcher._canUploadSameBuffer) {
-      this._flushId++;
-    }
-
-    SpriteBatcher._restPool();
-    this._batchedQueue.length = 0;
-    this._vertexCount = 0;
-    this._spriteCount = 0;
-  }
-
-  drawSprite(spriteElement: SpriteElement): void {
-    const len = spriteElement.positions.length;
-    if (this._vertexCount + len > SpriteBatcher.MAX_VERTEX_COUNT) {
-      this.flush(spriteElement.camera.engine);
-    }
-
-    this._vertexCount += len;
-    this._batchedQueue[this._spriteCount++] = spriteElement;
-  }
-
-  clear(): void {
-    this._flushId = 0;
-    this._vertexCount = 0;
-    this._spriteCount = 0;
-    this._batchedQueue.length = 0;
   }
 }
