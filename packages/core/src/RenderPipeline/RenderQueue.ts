@@ -159,6 +159,14 @@ export class RenderQueue {
   }
 
   /**
+   * Destroy internal resources.
+   */
+  destroy(): void {
+    this._spriteBatcher.destroy();
+    this._spriteBatcher = null;
+  }
+
+  /**
    * Sort the elements.
    */
   sort(compareFunc: Function): void {

@@ -25,7 +25,6 @@ export class BasicRenderPipeline {
   private _camera: Camera;
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
-  private _canvasDepthPass;
 
   /**
    * Create a basic render pipeline.
@@ -108,7 +107,14 @@ export class BasicRenderPipeline {
   /**
    * Destroy internal resources.
    */
-  destroy() {}
+  destroy(): void {
+    this._opaqueQueue.destroy();
+    this._alphaTestQueue.destroy();
+    this._transparentQueue.destroy();
+    this._renderPassArray = null;
+    this._defaultPass = null;
+    this._camera = null;
+  }
 
   /**
    * Perform scene rendering.
@@ -128,8 +134,6 @@ export class BasicRenderPipeline {
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
     transparentQueue.sort(RenderQueue._compareFromFarToNear);
-
-    if (this._canvasDepthPass) this._canvasDepthPass.enabled = false;
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
       this._drawRenderPass(this._renderPassArray[i], camera, cubeFace);
