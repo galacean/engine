@@ -125,7 +125,7 @@ export class SceneParser extends Parser {
       }
 
       const materialIndex = gltfMeshPrimitives[j].material;
-      const material = materials[materialIndex] || SceneParser._getDefaultMaterial(engine);
+      const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
       renderer.setMaterial(material);
     }
   }
