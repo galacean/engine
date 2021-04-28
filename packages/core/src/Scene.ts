@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Vector2, Vector3 } from "@oasis-engine/math";
 import { EngineObject, GLCapabilityType, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
@@ -34,7 +34,6 @@ export class Scene extends EngineObject {
 
   /**
    * Get the scene's engine.
-   * @readonly
    */
   get engine(): Engine {
     return this._engine;
@@ -42,7 +41,6 @@ export class Scene extends EngineObject {
 
   /**
    * Count of root entities.
-   * @readonly
    */
   get rootEntitiesCount(): number {
     return this._rootEntities.length;
@@ -50,7 +48,6 @@ export class Scene extends EngineObject {
 
   /**
    * Root entity collection.
-   * @readonly
    */
   get rootEntities(): Readonly<Entity[]> {
     return this._rootEntities;
@@ -58,7 +55,6 @@ export class Scene extends EngineObject {
 
   /**
    * Whether it's destroyed.
-   * @readonly
    */
   get destroyed(): boolean {
     return this._destroyed;

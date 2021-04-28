@@ -92,7 +92,6 @@ export class LightShadow {
 
   /**
    * The RenderTarget corresponding to the shadow map.
-   * @readonly
    */
   get renderTarget(): RenderTarget {
     return this._renderTarget;
@@ -100,7 +99,6 @@ export class LightShadow {
 
   /**
    * Shadow map's color render texture.
-   * @readonly
    */
   get map(): RenderColorTexture {
     return this._renderTarget.getColorTexture();
@@ -108,7 +106,6 @@ export class LightShadow {
 
   /**
    * Shadow map size.
-   * @readonly
    */
   get mapSize(): Vector2 {
     return this._mapSize;

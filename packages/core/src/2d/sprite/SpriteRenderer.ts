@@ -1,10 +1,9 @@
-import { Color, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
 import { Material, RenderQueueType } from "../../material";
 import { Renderer } from "../../Renderer";
-import { SpriteElement } from "../../RenderPipeline/SpriteElement";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../../shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
@@ -15,7 +14,7 @@ import "./SpriteMaterial";
  * Renders a Sprite for 2D graphics.
  */
 export class SpriteRenderer extends Renderer {
-  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_texture");
+  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   private static _tempVec3: Vector3 = new Vector3();
   private static _defaultMaterial: Material = null;
 
@@ -166,7 +165,8 @@ export class SpriteRenderer extends Renderer {
     this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
     const material = this.getMaterial() || this._getDefaultMaterial();
 
-    const spriteElement = SpriteElement.getFromPool();
+    const spriteElementPool = this._engine._spriteElementPool;
+    const spriteElement = spriteElementPool.getFromPool();
     spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
     camera._renderPipeline.pushPrimitive(spriteElement);
   }
@@ -208,6 +208,21 @@ export class SpriteRenderer extends Renderer {
     }
 
     return SpriteRenderer._defaultMaterial;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    const sprite = this._sprite;
+    if (sprite) {
+      const localBounds = sprite.bounds;
+      const worldMatrix = this._entity.transform.worldMatrix;
+      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+    } else {
+      worldBounds.min.setValue(0, 0, 0);
+      worldBounds.max.setValue(0, 0, 0);
+    }
   }
 }
 

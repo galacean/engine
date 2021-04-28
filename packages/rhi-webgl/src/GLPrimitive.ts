@@ -95,6 +95,7 @@ export class GLPrimitive implements IPlatformPrimitive {
       this.vao.forEach((vao) => {
         gl.deleteVertexArray(vao);
       });
+      this.vao.clear();
     }
   }
 
