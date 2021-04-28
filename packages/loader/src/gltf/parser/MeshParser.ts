@@ -50,7 +50,7 @@ export class MeshParser extends Parser {
             }
 
             if (KHR_draco_mesh_compression) {
-              this.createEngineResourceAsync(
+              Parser.createEngineResourceAsync(
                 "KHR_draco_mesh_compression",
                 KHR_draco_mesh_compression,
                 context,

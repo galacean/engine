@@ -1,6 +1,7 @@
 import { PBRSpecularMaterial } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
+import { MaterialParser } from "../parser/MaterialParser";
 import { registerExtension } from "../parser/Parser";
 import { ExtensionParser } from "./ExtensionParser";
 import { IKHRMaterialsPbrSpecularGlossiness } from "./schema";
@@ -18,6 +19,7 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
 
     if (diffuseTexture) {
       material.baseTexture = textures[diffuseTexture.index];
+      MaterialParser._parseTextureTransform(material, diffuseTexture.extensions, context);
     }
 
     if (specularFactor) {
@@ -30,6 +32,7 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
 
     if (specularGlossinessTexture) {
       material.specularGlossinessTexture = textures[specularGlossinessTexture.index];
+      MaterialParser._parseTextureTransform(material, specularGlossinessTexture.extensions, context);
     }
 
     return material;

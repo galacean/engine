@@ -20,7 +20,7 @@ export class Validator extends Parser {
     if (extensionsUsed) {
       Logger.info("extensionsUsed: ", extensionsUsed);
       for (let i = 0; i < extensionsUsed.length; i++) {
-        if (!this.hasExtensionParser(extensionsUsed[i])) {
+        if (!Parser.hasExtensionParser(extensionsUsed[i])) {
           Logger.warn("extension " + extensionsUsed[i] + " is used, you can add this extension into gltf");
         }
       }
@@ -31,10 +31,10 @@ export class Validator extends Parser {
       for (let i = 0; i < extensionsRequired.length; i++) {
         const extensionRequired = extensionsRequired[i];
 
-        if (!this.hasExtensionParser(extensionRequired)) {
+        if (!Parser.hasExtensionParser(extensionRequired)) {
           Logger.error(`gltf parser has not supported required extension ${extensionRequired}`);
         } else {
-          this.bootstarp(extensionRequired);
+          Parser.bootstarp(extensionRequired);
         }
       }
     }

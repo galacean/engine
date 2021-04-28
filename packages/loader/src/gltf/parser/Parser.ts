@@ -14,7 +14,7 @@ export abstract class Parser {
 
   private static _extensionParsers: Record<string, ExtensionParser[]> = {};
 
-  parseEngineResource(
+  static parseEngineResource(
     extensionName: string,
     extensionSchema: ExtensionSchema,
     parseResource: RefObject,
@@ -30,7 +30,7 @@ export abstract class Parser {
     }
   }
 
-  createEngineResource<T extends RefObject>(
+  static createEngineResource<T extends RefObject>(
     extensionName: string,
     extensionSchema: ExtensionSchema,
     context: GLTFResource,
@@ -43,7 +43,7 @@ export abstract class Parser {
     }
   }
 
-  parseEngineResourceAsync(
+  static parseEngineResourceAsync(
     extensionName: string,
     extensionSchema: ExtensionSchema,
     parseResource: RefObject,
@@ -62,7 +62,7 @@ export abstract class Parser {
     return Promise.all(promises).then();
   }
 
-  createEngineResourceAsync<T extends RefObject>(
+  static createEngineResourceAsync<T extends RefObject>(
     extensionName: string,
     extensionSchema: ExtensionSchema,
     context: GLTFResource,
@@ -75,12 +75,12 @@ export abstract class Parser {
     }
   }
 
-  hasExtensionParser(extensionName: string): boolean {
+  static hasExtensionParser(extensionName: string): boolean {
     const parsers = Parser._extensionParsers[extensionName];
     return !!parsers?.length;
   }
 
-  bootstarp(extensionName: string) {
+  static bootstarp(extensionName: string) {
     const parsers = Parser._extensionParsers[extensionName];
 
     if (parsers?.length) {
