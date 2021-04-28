@@ -80,7 +80,7 @@ export class SceneParser extends Parser {
         camera.aspectRatio = aspectRatio;
       }
       if (yfov !== undefined) {
-        camera.fieldOfView = yfov;
+        camera.fieldOfView = (yfov * 180) / Math.PI;
       }
       if (zfar !== undefined) {
         camera.farClipPlane = zfar;
