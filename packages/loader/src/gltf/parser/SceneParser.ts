@@ -42,6 +42,8 @@ export class SceneParser extends Parser {
         const camera = this._createCamera(gltfCameras[cameraID], entity);
         if (!context.cameras) context.cameras = [];
         context.cameras.push(camera);
+        // @todo: use engine camera by default
+        camera.enabled = false;
       }
 
       if (meshID !== undefined) {
