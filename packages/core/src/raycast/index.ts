@@ -76,17 +76,17 @@ const _ray = new Ray();
 };
 
 (ASphereCollider.prototype as any).raycast = function (ray, hit) {
-  const localRay = _getLocalRay(this, ray);
-  // TODO
-  this.center.cloneTo(_tempShpere.center);
-  _tempShpere.radius = this.radius;
-  const intersect = localRay.intersectSphere(_tempShpere);
+  const { transform } = this.entity;
+  Vector3.transformCoordinate(this.center, transform.worldMatrix, _tempShpere.center);
+  const lossyScale = transform.lossyWorldScale;
+  _tempShpere.radius = this.radius * Math.max(lossyScale.x, lossyScale.y, lossyScale.z);
+  const intersect = ray.intersectSphere(_tempShpere);
   if (intersect !== -1) {
-    _updateHitResult(this, localRay, intersect, hit, ray.origin);
+    _updateHitResult(this, ray, intersect, hit, ray.origin, true);
     return true;
   } else {
     return false;
-  } // end of else
+  }
 };
 
 (PlaneCollider.prototype as any).raycast = function (ray, hit) {
@@ -109,10 +109,19 @@ const _ray = new Ray();
  * @param distance - The distance
  * @param outHit - The raycasthit
  */
-function _updateHitResult(collider, ray: Ray, distance: number, outHit: RaycastHit, origin: Vector3) {
+function _updateHitResult(
+  collider,
+  ray: Ray,
+  distance: number,
+  outHit: RaycastHit,
+  origin: Vector3,
+  isWorldRay: boolean = false
+) {
   const hitPos = _tempVec3;
   ray.getPoint(distance, hitPos);
-  Vector3.transformCoordinate(hitPos, collider.entity.transform.worldMatrix, hitPos);
+  if (!isWorldRay) {
+    Vector3.transformCoordinate(hitPos, collider.entity.transform.worldMatrix, hitPos);
+  }
 
   outHit.distance = Vector3.distance(origin, hitPos);
   outHit.collider = collider;
