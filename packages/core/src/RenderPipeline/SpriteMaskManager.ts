@@ -47,8 +47,8 @@ export class SpriteMaskManager {
 
   private _curCamera: Camera = null;
   private _allMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
+  private _previousMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
   private _curMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
-  private _newMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
 
   constructor(engine: Engine) {
     const { MAX_VERTEX_COUNT } = SpriteMaskManager;
@@ -76,8 +76,8 @@ export class SpriteMaskManager {
 
     this._curCamera = camera;
     this._clearDrawInfo();
-    this._findMasks(renderer, this._newMasks);
-    this._handleMaskDiff();
+    this._findMasks(renderer, this._curMasks);
+    this._processMasksDiff();
 
     if (this._batchedQueue.length > 0) {
       this._flush(camera.engine);
@@ -90,15 +90,15 @@ export class SpriteMaskManager {
     }
 
     // Swap masks
-    const temp = this._curMasks;
-    this._curMasks = this._newMasks;
-    this._newMasks = temp;
-    this._newMasks.length = 0;
+    const temp = this._previousMasks;
+    this._previousMasks = this._curMasks;
+    this._curMasks = temp;
+    this._curMasks.length = 0;
   }
 
   clear(): void {
+    this._previousMasks.length = 0;
     this._curMasks.length = 0;
-    this._newMasks.length = 0;
     this._clearDrawInfo();
   }
 
@@ -161,6 +161,9 @@ export class SpriteMaskManager {
     return mesh;
   }
 
+  /**
+   * Find all masks that the renderer used.
+   */
   private _findMasks(renderer: SpriteRenderer, masks: DisorderedArray<SpriteMask>): void {
     const { _curCamera: camera, _allMasks: allMasks } = this;
     const maskLayer = renderer.maskLayer;
@@ -173,9 +176,12 @@ export class SpriteMaskManager {
     }
   }
 
-  private _handleMaskDiff(): void {
-    const curMasks = this._curMasks;
-    const newMasks = this._newMasks;
+  /**
+   * Process the differences between all current masks and all previous masks.
+   */
+  private _processMasksDiff(): void {
+    const curMasks = this._previousMasks;
+    const newMasks = this._curMasks;
     const curElements = curMasks._elements;
     const newElements = newMasks._elements;
     const curLen = curMasks.length;
@@ -372,10 +378,8 @@ export class SpriteMaskManager {
 
     const preMask = <SpriteMask>preSpriteMaskElement.component;
     const curMask = <SpriteMask>curSpriteMaskElement.component;
-    const preMaterial = preMask.material;
-    const curMaterial = curMask.material;
-    const preShaderData = preMaterial.shaderData;
-    const curShaderData = curMaterial.shaderData;
+    const preShaderData = preMask.material.shaderData;
+    const curShaderData = curMask.material.shaderData;
     const textureProperty = SpriteMask.textureProperty;
     const alphaCutoffProperty = SpriteMask.alphaCutoffProperty;
 
