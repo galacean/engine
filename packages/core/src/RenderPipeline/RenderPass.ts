@@ -1,3 +1,4 @@
+import { Color } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
@@ -19,6 +20,7 @@ class RenderPass {
   public mask: Layer;
   public renderOverride: boolean;
   public clearFlags: CameraClearFlags | undefined;
+  public clearColor: Color | undefined;
 
   /**
    * Create a RenderPass.
