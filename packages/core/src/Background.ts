@@ -13,7 +13,7 @@ export class Background {
   mode: BackgroundMode = BackgroundMode.Sky;
 
   /**
-   * Background color.
+   * Background solid color.
    * @defaultValue `new Color(0.25, 0.25, 0.25, 1.0)`
    */
   solidColor: Color = new Color(0.25, 0.25, 0.25, 1.0);
