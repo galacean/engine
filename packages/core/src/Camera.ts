@@ -1,9 +1,9 @@
 import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { ClearMode } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
+import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -16,30 +16,11 @@ import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 
-/**
- * @todo
- */
-type Sky = {};
-
 class MathTemp {
   static tempMat4 = new Matrix();
   static tempVec4 = new Vector4();
   static tempVec3 = new Vector3();
   static tempVec2 = new Vector2();
-}
-
-/**
- * ClearFlag, which controls camera's background.
- */
-export enum ClearFlags {
-  /* Clear depth and skybox. */
-  DepthSky,
-  /* Clear depth and color. */
-  DepthColor,
-  /* Clear depth only. */
-  Depth,
-  /* Do nothing. */
-  None
 }
 
 /**
@@ -54,6 +35,9 @@ export class Camera extends Component {
   private static _inverseProjectionMatrixProperty = Shader.getPropertyByName("u_projInvMat");
   private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
 
+  /** Shader data. */
+  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
+
   /** Rendering priority - A Camera with higher priority will be rendererd on top of a camera with lower priority. */
   priority: number = 0;
 
@@ -61,13 +45,16 @@ export class Camera extends Component {
   enableFrustumCulling: boolean = true;
 
   /**
+   * Determining what to clear when rendering by a Camera. 
+   * @defaultValue `CameraClearFlags.DepthColor`
+   */
+  clearFlags: CameraClearFlags = CameraClearFlags.DepthColor;
+
+  /**
    * Culling mask - which layers the camera renders.
    * @remarks Support bit manipulation, conresponding to Entity's layer.
    */
   cullingMask: Layer = Layer.Everything;
-
-  /** Shader data. */
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
 
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
@@ -80,7 +67,6 @@ export class Camera extends Component {
 
   private _isOrthographic: boolean = false;
   private _isProjMatSetting = false;
-  private _clearMode: ClearMode = ClearMode.SOLID_COLOR;
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
   private _fieldOfView: number = 45;
@@ -104,13 +90,9 @@ export class Camera extends Component {
   @deepClone
   private _viewMatrix: Matrix = new Matrix();
   @deepClone
-  private _backgroundColor: Vector4 = new Vector4();
-  @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
-  @deepClone
-  private _inverseViewMatrix: Matrix = new Matrix();
   @deepClone
   private _lastAspectSize: Vector2 = new Vector2(0, 0);
   @deepClone
@@ -205,39 +187,6 @@ export class Camera extends Component {
   }
 
   /**
-   * Clear background flags.
-   */
-  get clearFlags(): ClearFlags {
-    throw "not implemented";
-  }
-
-  /**
-   * @todo Skybox refactor
-   */
-  set clearFlags(value: ClearFlags) {
-    throw "not implemented";
-  }
-
-  /**
-   * Clear the background color of the viewport, which takes effect when clearFlags is DepthColor.
-   */
-  get backgroundColor(): Vector4 {
-    return this._backgroundColor;
-  }
-
-  set backgroundColor(value: Vector4) {
-    this.setClearMode(this._clearMode, value);
-  }
-
-  /**
-   * Clear the background sky of the viewport, active when clearFlags is DepthSky.
-   * @todo Render pipeline modification
-   */
-  get backgroundSky(): Sky {
-    throw new Error("not implemented");
-  }
-
-  /**
    * View matrix.
    */
   get viewMatrix(): Readonly<Matrix> {
@@ -325,8 +274,6 @@ export class Camera extends Component {
     this._frustumViewChangeFlag = transform.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
     this.shaderData._addRefCount(1);
-
-    this.setClearMode();
   }
 
   /**
@@ -542,7 +489,7 @@ export class Camera extends Component {
     shaderData.setMatrix(Camera._viewMatrixProperty, this.viewMatrix);
     shaderData.setMatrix(Camera._projectionMatrixProperty, this.projectionMatrix);
     shaderData.setMatrix(Camera._vpMatrixProperty, context._viewProjectMatrix);
-    shaderData.setMatrix(Camera._inverseViewMatrixProperty, this.inverseViewMatrix);
+    shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._transform.worldMatrix);
     shaderData.setMatrix(Camera._inverseProjectionMatrixProperty, this.inverseProjectionMatrix);
     shaderData.setVector3(Camera._cameraPositionProperty, this._transform.worldPosition);
   }
@@ -554,7 +501,7 @@ export class Camera extends Component {
   get invViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      Matrix.multiply(this.inverseViewMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
+      Matrix.multiply(this._transform.worldMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
     }
     return this._invViewProjMat;
   }
@@ -569,32 +516,5 @@ export class Camera extends Component {
       Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
     }
     return this._inverseProjectionMatrix;
-  }
-
-  //-------------------------------------------------deprecated---------------------------------------------------
-
-  /**
-   * @deprecated
-   * View matrix inverse matrix.
-   */
-  get inverseViewMatrix(): Readonly<Matrix> {
-    this._transform.worldMatrix.cloneTo(this._inverseViewMatrix);
-    return this._inverseViewMatrix;
-  }
-
-  /**
-   * @deprecated
-   * @todo Involving the rendering pipeline to modify the rhi.clearRenderTarget method.
-   * @param clearMode
-   * @param backgroundColor
-   */
-  setClearMode(
-    clearMode: ClearMode = ClearMode.SOLID_COLOR,
-    backgroundColor: Vector4 = new Vector4(0.25, 0.25, 0.25, 1)
-  ): void {
-    this._clearMode = clearMode;
-    this._backgroundColor = backgroundColor;
-    this._renderPipeline.defaultRenderPass.clearParam = backgroundColor;
-    this._renderPipeline.defaultRenderPass.clearMode = clearMode;
   }
 }
