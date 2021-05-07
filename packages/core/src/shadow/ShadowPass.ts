@@ -1,5 +1,5 @@
-import { ClearMode } from "../base/Constant";
 import { Camera } from "../Camera";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { LightFeature } from "../lighting/LightFeature";
 import { RenderPass } from "../RenderPipeline/RenderPass";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
@@ -11,7 +11,7 @@ import { LightShadow } from "./LightShadow";
 export class ShadowPass extends RenderPass {
   constructor(...args) {
     super(...args);
-    this.clearMode = ClearMode.DONT_CLEAR;
+    this.clearFlags = CameraClearFlags.None;
   }
 
   /**

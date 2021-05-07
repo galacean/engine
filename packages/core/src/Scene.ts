@@ -1,4 +1,5 @@
 import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Background } from "./Background";
 import { EngineObject, GLCapabilityType, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
@@ -22,6 +23,8 @@ export class Scene extends EngineObject {
   /** scene-related shaderdata  */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
 
+  /** The background of the scene. */
+  background: Background = new Background();
   /** scene name */
   name: string;
 
