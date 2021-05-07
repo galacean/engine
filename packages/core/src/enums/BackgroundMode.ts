@@ -3,7 +3,7 @@
  */
  export enum BackgroundMode {
   /* Solid color. */
-  Color,
+  SolidColor,
   /* Sky. */
   Sky
 }
