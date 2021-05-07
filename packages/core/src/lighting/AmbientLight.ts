@@ -108,7 +108,7 @@ export class AmbientLight {
   constructor(scene: Scene) {
     this._scene = scene;
 
-    const shaderData = this._scene.shaderData;
+    const { shaderData } = this._scene;
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
     shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
     shaderData.setFloat(AmbientLight._specularIntensityProperty, this._specularIntensity);
