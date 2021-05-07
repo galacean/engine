@@ -79,8 +79,7 @@ export class SpriteMask extends Component {
   }
 
   /**
-   * Create a sprite mask instance.
-   * @param entity - Entity to which the sprite mask belongs
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);

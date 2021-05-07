@@ -123,8 +123,7 @@ export class SpriteRenderer extends Renderer {
   }
 
   /**
-   * Create a sprite renderer instance.
-   * @param entity - Entity to which the sprite renderer belongs
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);
