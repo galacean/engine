@@ -1,4 +1,5 @@
-import { Camera, CameraClearFlags } from "../Camera";
+import { Camera } from "../Camera";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { LightFeature } from "../lighting/LightFeature";
 import { RenderPass } from "../RenderPipeline/RenderPass";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";

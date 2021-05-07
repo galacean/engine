@@ -12,8 +12,8 @@ export { Script } from "./Script";
 export { Renderer } from "./Renderer";
 export { dependencies } from "./ComponentsDependencies";
 
-export { Camera, CameraClearFlags } from "./Camera";
-export { Background, BackgroundMode } from "./Background";
+export { Camera } from "./Camera";
+export { Background } from "./Background";
 export { Transform } from "./Transform";
 export { UpdateFlag } from "./UpdateFlag";
 export { request } from "./asset/request";
@@ -46,6 +46,9 @@ export { PointLight } from "./lighting/PointLight";
 export { SpotLight } from "./lighting/SpotLight";
 export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
 export { Light } from "./lighting/Light";
+
+export { BackgroundMode } from "./enums/BackgroundMode";
+export { CameraClearFlags } from "./enums/CameraClearFlags";
 
 export * from "./material/index";
 export * from "./texture/index";

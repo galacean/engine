@@ -1,4 +1,5 @@
-import { Camera, CameraClearFlags } from "../Camera";
+import { Camera } from "../Camera";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
 import { Material } from "../material/Material";
 import { RenderTarget } from "../texture/RenderTarget";

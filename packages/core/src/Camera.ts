@@ -3,6 +3,7 @@ import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
+import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -14,18 +15,6 @@ import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
-
-/**
- * Camera clear flags enumeration.
- */
-export enum CameraClearFlags {
-  /* Clear depth and color from background. */
-  DepthColor,
-  /* Clear depth only. */
-  Depth,
-  /* Do nothing. */
-  None
-}
 
 class MathTemp {
   static tempMat4 = new Matrix();

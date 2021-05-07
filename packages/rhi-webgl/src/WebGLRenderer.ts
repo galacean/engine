@@ -203,7 +203,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     let clearFlag = gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT;
     if (clearFlags === CameraClearFlags.DepthColor) {
       clearFlag = clearFlag | gl.COLOR_BUFFER_BIT;
-      if (clearColor.toGamma) {
+      if (clearColor) {
         gl.clearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
       }
       if (targetBlendState.colorWriteMask !== ColorWriteMask.All) {
