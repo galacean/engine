@@ -65,11 +65,10 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _extensions;
-  private _spriteBatcher;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
 
-  private _activedTextureID: number;
+  private _activedTextureID: number = WebGLRenderingContext.TEXTURE0;
   private _activeTextures: GLTexture[] = new Array(32);
 
   get isWebGL2() {
@@ -102,6 +101,8 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   init(canvas: Canvas) {
     const option = this._options;
+    option.alpha === undefined && (option.alpha = false);
+
     const webCanvas = (canvas as WebCanvas)._webCanvas;
     const webGLMode = option.webGLMode || WebGLMode.Auto;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
@@ -261,10 +262,10 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   bindTexture(texture: GLTexture): void {
-    const gl = this._gl;
-    if (this._activeTextures[this._activedTextureID - gl.TEXTURE0] !== texture) {
-      gl.bindTexture(texture._target, texture._glTexture);
-      this._activeTextures[this._activedTextureID - gl.TEXTURE0] = texture;
+    const index = this._activedTextureID - this._gl.TEXTURE0;
+    if (this._activeTextures[index] !== texture) {
+      this._gl.bindTexture(texture._target, texture._glTexture);
+      this._activeTextures[index] = texture;
     }
   }
 }
