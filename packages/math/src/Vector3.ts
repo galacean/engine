@@ -8,12 +8,10 @@ import { Vector4 } from "./Vector4";
  * Describes a 3D-vector.
  */
 export class Vector3 implements IClone {
-  /** @internal zero.*/
-  static readonly _zero = new Vector3(0.0, 0.0, 0.0);
-  /** @internal one.*/
-  static readonly _one = new Vector3(1.0, 1.0, 1.0);
   /** @internal */
-  static readonly _tempVector3 = new Vector3();
+  static readonly _zero = new Vector3(0.0, 0.0, 0.0);
+  /** @internal */
+  static readonly _one = new Vector3(1.0, 1.0, 1.0);
 
   /**
    * Determines the sum of two vectors.
