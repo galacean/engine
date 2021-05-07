@@ -16,7 +16,7 @@ export class Background {
    * Background color.
    * @defaultValue `new Color(0.25, 0.25, 0.25, 1.0)`
    */
-  color: Color = new Color(0.25, 0.25, 0.25, 1.0);
+  solidColor: Color = new Color(0.25, 0.25, 0.25, 1.0);
 
   /*
    * Background sky.

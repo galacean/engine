@@ -153,7 +153,7 @@ export class BasicRenderPipeline {
       rhi.activeRenderTarget(renderTarget, camera);
       renderTarget?._setRenderTargetFace(cubeFace);
       const clearFlags = pass.clearFlags ?? camera.clearFlags;
-      const color = pass.clearColor ?? background.color;
+      const color = pass.clearColor ?? background.solidColor;
       if (clearFlags !== CameraClearFlags.None) {
         rhi.clearRenderTarget(camera.engine, clearFlags, color);
       }
