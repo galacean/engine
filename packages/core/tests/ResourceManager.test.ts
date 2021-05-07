@@ -1,10 +1,11 @@
-import { Loader } from "../src/asset/Loader";
-import { LoadItem } from "../src/asset/LoadItem";
-import { resourceLoader, ResourceManager } from "../src/asset/ResourceManager";
-import { AssetType } from "../src/asset/AssetType";
+import { WebGLEngine } from "../../rhi-webgl/src";
 import { Engine } from "../src";
 import { AssetPromise } from "../src/asset/AssetPromise";
+import { AssetType } from "../src/asset/AssetType";
+import { Loader } from "../src/asset/Loader";
+import { LoadItem } from "../src/asset/LoadItem";
 import { RefObject } from "../src/asset/RefObject";
+import { resourceLoader, ResourceManager } from "../src/asset/ResourceManager";
 
 @resourceLoader(AssetType.Text, ["txt"], false)
 class TestLoader extends Loader<string> {
@@ -28,7 +29,6 @@ class TestRefObject extends RefObject {
 class TestJsonLoader extends Loader<RefObject> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<RefObject> {
     return new AssetPromise((resolve) => {
-      // console.log(resourceManager.engine.id)
       setTimeout(() => {
         resolve(new TestRefObject(resourceManager.engine));
       }, 300);
@@ -37,7 +37,8 @@ class TestJsonLoader extends Loader<RefObject> {
 }
 
 describe("test resource manager", () => {
-  const engine = new Engine(null, { init: () => {}, canIUse: jest.fn() });
+  const engine = new WebGLEngine(document.createElement("canvas"));
+  engine._resourceManager = new ResourceManager(engine);
   describe("Add Loader Test", function () {
     it("load custom loader url", () => {
       return expect(engine.resourceManager.load("xx.txt")).resolves.toEqual("test");
@@ -58,7 +59,8 @@ describe("test resource manager", () => {
     });
   });
 
-  const jsonEngine = new Engine(null, { init: () => {}, canIUse: jest.fn() });
+  const jsonEngine = new WebGLEngine(document.createElement("canvas"));
+  jsonEngine._resourceManager = new ResourceManager(engine);
   it("test delete object", () => {
     const path = "xaa.json";
     const promiseAA = jsonEngine.resourceManager.load<RefObject>(path);

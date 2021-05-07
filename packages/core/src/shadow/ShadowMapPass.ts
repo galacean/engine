@@ -1,4 +1,4 @@
-import { Vector4 } from "@oasis-engine/math";
+import { Color } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Layer } from "../Layer";
 import { Light } from "../lighting/Light";
@@ -29,8 +29,9 @@ export class ShadowMapPass extends RenderPass {
     mask: Layer,
     light: Light
   ) {
-    super(name, priority, renderTarget, replaceMaterial, mask, new Vector4(1, 1, 1, 1));
+    super(name, priority, renderTarget, replaceMaterial, mask);
     this.light = light;
+    this.clearColor = new Color(1, 1, 1, 1);
   }
 
   /**
