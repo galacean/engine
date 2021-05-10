@@ -10,7 +10,7 @@ import {
 } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
-import { ICamera, INode } from "../schema";
+import { ICamera, INode } from "../Schema";
 import { Parser } from "./Parser";
 
 export class SceneParser extends Parser {

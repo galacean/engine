@@ -1,6 +1,6 @@
 import { RefObject } from "@oasis-engine/core";
 import { ExtensionParser } from "../extensions/ExtensionParser";
-import { ExtensionSchema } from "../extensions/schema";
+import { ExtensionSchema } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
 
 export abstract class Parser {

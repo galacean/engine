@@ -1,10 +1,10 @@
 import { DRACODecoder } from "@oasis-engine/draco";
 import { GLTFResource } from "../GLTFResource";
 import { registerExtension } from "../parser/Parser";
-import { IMeshPrimitive } from "../schema";
+import { IMeshPrimitive } from "../Schema";
 import { getBufferViewData, getComponentType } from "../Util";
 import { ExtensionParser } from "./ExtensionParser";
-import { IKHRDracoMeshCompression } from "./schema";
+import { IKHRDracoMeshCompression } from "./Schema";
 
 @registerExtension("KHR_draco_mesh_compression")
 class KHR_draco_mesh_compression extends ExtensionParser {

@@ -14,7 +14,7 @@ import {
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
-import { IGLTF, IMeshPrimitive } from "../schema";
+import { IGLTF, IMeshPrimitive } from "../Schema";
 import { createVertexElement, getAccessorData, getIndexFormat, getVertexStride } from "../Util";
 import { Parser } from "./Parser";
 

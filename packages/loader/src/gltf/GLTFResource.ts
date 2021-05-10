@@ -1,5 +1,5 @@
 import { AnimationClip, BufferMesh, Camera, EngineObject, Entity, Material, Skin, Texture2D } from "@oasis-engine/core";
-import { IGLTF } from "./schema";
+import { IGLTF } from "./Schema";
 
 /**
  * Product after GLTF parser, usually, `defaultSceneRoot` is only needed to use.

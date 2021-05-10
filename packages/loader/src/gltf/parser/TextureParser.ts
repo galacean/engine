@@ -1,6 +1,6 @@
 import { AssetType, Logger, Texture2D, TextureWrapMode } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
-import { ISampler } from "../schema";
+import { ISampler } from "../Schema";
 import { getBufferViewData, loadImageBuffer, parseRelativeUrl } from "../Util";
 import { Parser } from "./Parser";
 

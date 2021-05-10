@@ -1,6 +1,6 @@
 import { AssetType } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
-import { IBuffer, IGLTF } from "../schema";
+import { IBuffer, IGLTF } from "../Schema";
 import { parseGLB, parseRelativeUrl } from "../Util";
 import { Parser } from "./Parser";
 

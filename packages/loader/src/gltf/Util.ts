@@ -1,5 +1,5 @@
 import { DataType, IndexFormat, VertexElement, VertexElementFormat } from "@oasis-engine/core";
-import { IAccessor, IBufferView, IGLTF } from "./schema";
+import { IAccessor, IBufferView, IGLTF } from "./Schema";
 
 const WEBGL_COMPONENT_TYPES = {
   5120: Int8Array,
