@@ -18,31 +18,30 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time develop
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement id and get root entity.
+// Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
 const engine = new WebGLEngine("canvas-id");
+engine.canvas.resizeByClientSize();
+
+// Create root entity.
 const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
-const canvas = engine.canvas;
-canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
-canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
 
 // Create light.
 const lightEntity = rootEntity.createChild("Light");
 const directLight = lightEntity.addComponent(DirectLight);
-directLight.color = new Color(0.4, 0.5, 0.6);
+lightEntity.transform.setRotation(-45, -45, 0);
+directLight.intensity = 0.4;
 
 // Create camera.
 const cameraEntity = rootEntity.createChild("Camera");
 cameraEntity.addComponent(Camera);
-cameraEntity.transform.setPosition(0, 6, 10);
-cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
+cameraEntity.transform.setPosition(0, 0, 12);
 
-// Create cube.
-const cubeEntity = rootEntity.createChild("Cube");
-const cubeRenderer = cubeEntity.addComponent(MeshRenderer);
+// Create sphere.
+const meshEntity = rootEntity.createChild("Sphere");
+const meshRenderer = meshEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
-cubeEntity.transform.setRotation(0, 60, 0);
-cubeRenderer.setMaterial(material);
-cubeRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+meshRenderer.setMaterial(material);
+meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
 
 // Run engine.
 engine.run();
