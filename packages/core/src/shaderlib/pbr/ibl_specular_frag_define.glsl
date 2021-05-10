@@ -36,7 +36,7 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
 
     #if !defined(O3_USE_SPECULAR_ENV) && !defined(HAS_REFLECTIONMAP)
 
-        return u_envMapLight.specular * u_envMapLight.specularIntensity * u_envMapIntensity;
+        return vec3(0.0);
 
     #else
 

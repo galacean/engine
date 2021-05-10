@@ -1,6 +1,5 @@
 struct EnvMapLight {
     vec3 diffuse;
-    vec3 specular;
     float mipMapLevel;
     float diffuseIntensity;
     float specularIntensity;
