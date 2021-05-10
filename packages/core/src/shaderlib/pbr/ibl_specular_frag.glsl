@@ -6,7 +6,7 @@
 
 
 
-#if defined( O3_HAS_ENVMAP_LIGHT ) && defined( RE_IndirectSpecular )
+#if defined( RE_IndirectSpecular )
 
     radiance += getLightProbeIndirectRadiance( geometry, Material_BlinnShininessExponent( material ), int(u_envMapLight.mipMapLevel) );
 

@@ -27,10 +27,8 @@ canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
 
 // Create light.
 const lightEntity = rootEntity.createChild("Light");
-const ambient = lightEntity.addComponent(AmbientLight);
 const directLight = lightEntity.addComponent(DirectLight);
-ambient.color = new Color(0.5, 0.5, 0.5);
-directLight.color = new Color(0.3, 0.4, 0.4);
+directLight.color = new Color(0.4, 0.5, 0.6);
 
 // Create camera.
 const cameraEntity = rootEntity.createChild("Camera");
