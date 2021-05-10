@@ -16,8 +16,8 @@ export class TextureParser extends Parser {
 
     if (gltf.textures) {
       return Promise.all(
-        gltf.textures.map(({ sampler, source = 0 }) => {
-          const { uri, bufferView: bufferViewIndex, mimeType } = gltf.images[source];
+        gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
+          const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
 
           if (uri) {
             return engine.resourceManager
@@ -26,6 +26,9 @@ export class TextureParser extends Parser {
                 type: AssetType.Texture2D
               })
               .then((texture) => {
+                if (!texture.name) {
+                  texture.name = textureName || imageName || `texture_${index}`;
+                }
                 if (sampler !== undefined) {
                   this._parseSampler(texture, gltf.samplers[sampler]);
                 }
@@ -38,6 +41,7 @@ export class TextureParser extends Parser {
               const texture = new Texture2D(engine, image.width, image.height);
               texture.setImageSource(image);
               texture.generateMipmaps();
+              texture.name = textureName || imageName || `texture_${index}`;
               if (sampler !== undefined) {
                 this._parseSampler(texture, gltf.samplers[sampler]);
               }
