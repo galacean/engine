@@ -21,7 +21,6 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time develop
 // Create engine by passing in the HTMLCanvasElement id resize the canvas to the best size.
 const engine = new WebGLEngine("canvas-id");
 engine.canvas.resizeByClientSize();
-
 // Create root entity.
 const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 
