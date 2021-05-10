@@ -222,7 +222,7 @@ export class RenderQueue {
       let high_start = to - 1; // Lower bound of elements greater than pivot.
       a[third_index] = a[low_end];
       a[low_end] = pivot;
-  
+
       // From low_end to i are elements equal to pivot.
       // From i to high_start are elements that haven't been compared yet.
       partition: for (let i = low_end + 1; i < high_start; i++) {
