@@ -33,13 +33,6 @@ export class Scene extends EngineObject {
   private _resolution: Vector2 = new Vector2();
 
   /**
-   * Get the scene's engine.
-   */
-  get engine(): Engine {
-    return this._engine;
-  }
-
-  /**
    * Count of root entities.
    */
   get rootEntitiesCount(): number {
