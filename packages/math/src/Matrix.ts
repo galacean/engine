@@ -130,6 +130,40 @@ export class Matrix implements IClone {
   }
 
   /**
+   * Performs a linear interpolation between two matrices.
+   * @param start - The first matrix
+   * @param end - The second matrix
+   * @param t - The blend amount where 0 returns start and 1 end
+   * @param out - The result of linear blending between two matrices
+   */
+  static lerp(start: Matrix, end: Matrix, t: number, out: Matrix): void {
+    const startElements = start.elements;
+    const endElements = end.elements;
+    const outElements = out.elements;
+    const inv = 1.0 - t;
+
+    outElements[0] = startElements[0] * inv + endElements[0] * t;
+    outElements[1] = startElements[1] * inv + endElements[1] * t;
+    outElements[2] = startElements[2] * inv + endElements[2] * t;
+    outElements[3] = startElements[3] * inv + endElements[3] * t;
+
+    outElements[4] = startElements[4] * inv + endElements[4] * t;
+    outElements[5] = startElements[5] * inv + endElements[5] * t;
+    outElements[6] = startElements[6] * inv + endElements[6] * t;
+    outElements[7] = startElements[7] * inv + endElements[7] * t;
+
+    outElements[8] = startElements[8] * inv + endElements[8] * t;
+    outElements[9] = startElements[9] * inv + endElements[9] * t;
+    outElements[10] = startElements[10] * inv + endElements[10] * t;
+    outElements[11] = startElements[11] * inv + endElements[11] * t;
+
+    outElements[12] = startElements[12] * inv + endElements[12] * t;
+    outElements[13] = startElements[13] * inv + endElements[13] * t;
+    outElements[14] = startElements[14] * inv + endElements[14] * t;
+    outElements[15] = startElements[15] * inv + endElements[15] * t;
+  }
+
+  /**
    * Calculate a rotation matrix from a quaternion.
    * @param quaternion - The quaternion used to calculate the matrix
    * @param out - The calculated rotation matrix
