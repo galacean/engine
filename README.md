@@ -18,8 +18,8 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time develop
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement id and resize the canvas to the best size.
-const engine = new WebGLEngine("o3-demo");
+// Create engine by passing in the HTMLCanvasElement id resize the canvas to the best size.
+const engine = new WebGLEngine("canvas-id");
 engine.canvas.resizeByClientSize();
 
 // Create root entity.
