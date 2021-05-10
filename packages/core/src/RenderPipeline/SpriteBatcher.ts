@@ -263,4 +263,25 @@ export class SpriteBatcher {
     this._spriteCount = 0;
     this._batchedQueue.length = 0;
   }
+
+  destroy(): void {
+    this._batchedQueue = null;
+
+    const { _meshes: meshes, _vertexBuffers: vertexBuffers, _indiceBuffers: indiceBuffers } = this;
+
+    for (let i = 0, n = meshes.length; i < n; ++i) {
+      meshes[i].destroy();
+    }
+    this._meshes = null;
+
+    for (let i = 0, n = vertexBuffers.length; i < n; ++i) {
+      vertexBuffers[i].destroy();
+    }
+    this._vertexBuffers = null;
+
+    for (let i = 0, n = indiceBuffers.length; i < n; ++i) {
+      indiceBuffers[i].destroy();
+    }
+    this._indiceBuffers = null;
+  }
 }

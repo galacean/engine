@@ -1,6 +1,6 @@
 {
   "name": "oasis-engine",
-  "version": "0.3.6",
+  "version": "0.3.8",
   "license": "MIT",
   "scripts": {
     "b:types": "tsc"
@@ -14,9 +14,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.3.6",
-    "@oasis-engine/loader": "0.3.6",
-    "@oasis-engine/math": "0.3.6",
-    "@oasis-engine/rhi-webgl": "0.3.6"
+    "@oasis-engine/core": "0.3.8",
+    "@oasis-engine/loader": "0.3.8",
+    "@oasis-engine/math": "0.3.8",
+    "@oasis-engine/rhi-webgl": "0.3.8"
   }
 }
