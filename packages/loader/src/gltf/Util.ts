@@ -221,7 +221,7 @@ export function parseGLB(
 
   // read glTF json
   if (chunkType !== GLB_CHUNK_TYPES.JSON) {
-    console.error("Invalid glb chunk type. Expected 0x004E4942, found 0x" + chunkType.toString(16));
+    console.error("Invalid glb chunk type. Expected 0x4E4F534A, found 0x" + chunkType.toString(16));
     return null;
   }
 
