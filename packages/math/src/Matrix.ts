@@ -137,30 +137,30 @@ export class Matrix implements IClone {
    * @param out - The result of linear blending between two matrices
    */
   static lerp(start: Matrix, end: Matrix, t: number, out: Matrix): void {
-    const startElements = start.elements;
-    const endElements = end.elements;
-    const outElements = out.elements;
+    const se = start.elements;
+    const ee = end.elements;
+    const oe = out.elements;
     const inv = 1.0 - t;
 
-    outElements[0] = startElements[0] * inv + endElements[0] * t;
-    outElements[1] = startElements[1] * inv + endElements[1] * t;
-    outElements[2] = startElements[2] * inv + endElements[2] * t;
-    outElements[3] = startElements[3] * inv + endElements[3] * t;
+    oe[0] = se[0] * inv + ee[0] * t;
+    oe[1] = se[1] * inv + ee[1] * t;
+    oe[2] = se[2] * inv + ee[2] * t;
+    oe[3] = se[3] * inv + ee[3] * t;
 
-    outElements[4] = startElements[4] * inv + endElements[4] * t;
-    outElements[5] = startElements[5] * inv + endElements[5] * t;
-    outElements[6] = startElements[6] * inv + endElements[6] * t;
-    outElements[7] = startElements[7] * inv + endElements[7] * t;
+    oe[4] = se[4] * inv + ee[4] * t;
+    oe[5] = se[5] * inv + ee[5] * t;
+    oe[6] = se[6] * inv + ee[6] * t;
+    oe[7] = se[7] * inv + ee[7] * t;
 
-    outElements[8] = startElements[8] * inv + endElements[8] * t;
-    outElements[9] = startElements[9] * inv + endElements[9] * t;
-    outElements[10] = startElements[10] * inv + endElements[10] * t;
-    outElements[11] = startElements[11] * inv + endElements[11] * t;
+    oe[8] = se[8] * inv + ee[8] * t;
+    oe[9] = se[9] * inv + ee[9] * t;
+    oe[10] = se[10] * inv + ee[10] * t;
+    oe[11] = se[11] * inv + ee[11] * t;
 
-    outElements[12] = startElements[12] * inv + endElements[12] * t;
-    outElements[13] = startElements[13] * inv + endElements[13] * t;
-    outElements[14] = startElements[14] * inv + endElements[14] * t;
-    outElements[15] = startElements[15] * inv + endElements[15] * t;
+    oe[12] = se[12] * inv + ee[12] * t;
+    oe[13] = se[13] * inv + ee[13] * t;
+    oe[14] = se[14] * inv + ee[14] * t;
+    oe[15] = se[15] * inv + ee[15] * t;
   }
 
   /**
