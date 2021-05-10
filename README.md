@@ -29,19 +29,19 @@ const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 const lightEntity = rootEntity.createChild("Light");
 const directLight = lightEntity.addComponent(DirectLight);
 lightEntity.transform.setRotation(-45, -45, 0);
-directLight.color = new Color(0.4, 0.4, 0.4);
+directLight.intensity = 0.4;
 
 // Create camera.
 const cameraEntity = rootEntity.createChild("Camera");
 cameraEntity.addComponent(Camera);
 cameraEntity.transform.setPosition(0, 0, 12);
 
-// Create cube.
-const cubeEntity = rootEntity.createChild("Cube");
-const cubeRenderer = cubeEntity.addComponent(MeshRenderer);
+// Create sphere.
+const meshEntity = rootEntity.createChild("Sphere");
+const meshRenderer = meshEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
-cubeRenderer.setMaterial(material);
-cubeRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
+meshRenderer.setMaterial(material);
+meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
 
 // Run engine.
 engine.run();
