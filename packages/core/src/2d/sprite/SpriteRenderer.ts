@@ -10,7 +10,6 @@ import { UpdateFlag } from "../../UpdateFlag";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
-import "./SpriteMaterial";
 
 /**
  * Renders a Sprite for 2D graphics.

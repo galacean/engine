@@ -13,7 +13,6 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
-import "./SpriteMaskMaterial";
 
 /**
  * A component for masking Sprites.
@@ -23,6 +22,7 @@ export class SpriteMask extends Renderer {
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
   /** @internal */
   static _alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_alphaCutoff");
+
   private static _tempVec3: Vector3 = new Vector3();
 
   @deepClone
