@@ -4,6 +4,10 @@ varying vec2 v_uv;
 uniform sampler2D u_texture;
 
 void main() {
+  if (v_lifeLeft == 1.0) {
+    discard;
+  }
+
   float alphaFactor = 1.0;
 
   #ifdef fadeIn
