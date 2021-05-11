@@ -1,4 +1,4 @@
-import { RefObject } from "@oasis-engine/core";
+import { EngineObject } from "@oasis-engine/core";
 import { ExtensionParser } from "../extensions/ExtensionParser";
 import { ExtensionSchema } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
@@ -17,7 +17,7 @@ export abstract class Parser {
   static parseEngineResource(
     extensionName: string,
     extensionSchema: ExtensionSchema,
-    parseResource: RefObject,
+    parseResource: EngineObject,
     context: GLTFResource,
     ...extra
   ): void {
@@ -30,7 +30,7 @@ export abstract class Parser {
     }
   }
 
-  static createEngineResource<T extends RefObject>(
+  static createEngineResource<T extends EngineObject>(
     extensionName: string,
     extensionSchema: ExtensionSchema,
     context: GLTFResource,
@@ -46,7 +46,7 @@ export abstract class Parser {
   static parseEngineResourceAsync(
     extensionName: string,
     extensionSchema: ExtensionSchema,
-    parseResource: RefObject,
+    parseResource: EngineObject,
     context: GLTFResource,
     ...extra
   ): Promise<void> {
@@ -62,7 +62,7 @@ export abstract class Parser {
     return Promise.all(promises).then();
   }
 
-  static createEngineResourceAsync<T extends RefObject>(
+  static createEngineResourceAsync<T extends EngineObject>(
     extensionName: string,
     extensionSchema: ExtensionSchema,
     context: GLTFResource,
