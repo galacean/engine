@@ -60,7 +60,7 @@ export class BoundingBox implements IClone {
   }
 
   /**
-   * Transfrom a bounding box.
+   * Transform a bounding box.
    * @param source - The original bounding box
    * @param matrix - The transform to apply to the bounding box
    * @param out - The transformed bounding box
@@ -188,7 +188,7 @@ export class BoundingBox implements IClone {
   }
 
   /**
-   * Transfrom a bounding box.
+   * Transform a bounding box.
    * @param matrix - The transform to apply to the bounding box
    * @returns The transformed bounding box
    */

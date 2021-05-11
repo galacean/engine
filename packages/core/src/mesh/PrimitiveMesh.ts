@@ -18,7 +18,7 @@ export class PrimitiveMesh {
   static createSphere(
     engine: Engine,
     radius: number = 0.5,
-    segments: number = 12,
+    segments: number = 18,
     noLongerAccessible: boolean = true
   ): ModelMesh {
     const mesh = new ModelMesh(engine);
