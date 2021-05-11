@@ -16,7 +16,7 @@ import { Parser } from "./Parser";
 export class SceneParser extends Parser {
   private static _defaultMaterial: BlinnPhongMaterial;
 
-  private static _getDefaultMaterial(engine: Engine) {
+  private static _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
     if (!SceneParser._defaultMaterial) {
       SceneParser._defaultMaterial = new BlinnPhongMaterial(engine);
       SceneParser._defaultMaterial.emissiveColor = new Color(0.749, 0.749, 0.749, 1);
