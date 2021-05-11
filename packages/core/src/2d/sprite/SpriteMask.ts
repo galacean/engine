@@ -30,7 +30,7 @@ export class SpriteMask extends Renderer {
   @ignoreClone
   private _isSpriteDirty: boolean = true;
   @ignoreClone
-  private _isWorldMatrixDirty: UpdateFlag;
+  private _worldMatrixDirtyFlag: UpdateFlag;
   @assignmentClone
   private _sprite: Sprite = null;
   @assignmentClone
@@ -60,7 +60,10 @@ export class SpriteMask extends Renderer {
   }
 
   set alphaCutoff(value: number) {
-    this._alphaCutoff = value;
+    if (this._alphaCutoff !== value) {
+      this._alphaCutoff = value;
+      this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, value);
+    }
   }
 
   /**
@@ -79,25 +82,42 @@ export class SpriteMask extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
+    this._worldMatrixDirtyFlag = entity.transform.registerWorldChangeFlag();
     this.setMaterial(this._createMaterial());
+    this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
   }
 
+  /**
+   * @override
+   * @inheritdoc
+   */
   _onEnable(): void {
     const manager = SpriteMaskManager.getInstance(this.engine);
     manager.addMask(this);
   }
 
+  /**
+   * @override
+   * @inheritdoc
+   */
   _onDisable(): void {
     const manager = SpriteMaskManager.getInstance(this.engine);
     manager.removeMask(this);
   }
 
+  /**
+   * @override
+   * @inheritdoc
+   */
   _onDestroy(): void {
-    this._isWorldMatrixDirty.destroy();
+    this._worldMatrixDirtyFlag.destroy();
     super._onDestroy();
   }
 
+  /**
+   * @override
+   * @inheritdoc
+   */
   _render(camera: Camera): void {}
 
   /**
@@ -119,7 +139,7 @@ export class SpriteMask extends Renderer {
     // Update sprite data.
     const localDirty = sprite._updateMeshData();
 
-    if (this._isWorldMatrixDirty.flag || localDirty || this._isSpriteDirty) {
+    if (this._worldMatrixDirtyFlag.flag || localDirty || this._isSpriteDirty) {
       const localPositions = sprite._positions;
       const localVertexPos = SpriteMask._tempVec3;
       const worldMatrix = transform.worldMatrix;
@@ -131,13 +151,10 @@ export class SpriteMask extends Renderer {
       }
 
       this._isSpriteDirty = false;
-      this._isWorldMatrixDirty.flag = false;
+      this._worldMatrixDirtyFlag.flag = false;
     }
 
-    const shaderData = this.shaderData;
-    shaderData.setTexture(SpriteMask._textureProperty, texture);
-    shaderData.setFloat(SpriteMask._alphaCutoffProperty, this.alphaCutoff);
-
+    this.shaderData.setTexture(SpriteMask._textureProperty, texture);
     const spriteMaskElementPool = this._engine._spriteMaskElementPool;
     const spriteMaskElement = spriteMaskElementPool.getFromPool();
     spriteMaskElement.setValue(this, positions, sprite._uv, sprite._triangles, this.getMaterial());
