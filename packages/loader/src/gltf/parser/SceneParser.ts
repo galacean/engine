@@ -113,13 +113,13 @@ export class SceneParser extends Parser {
 
     const gltfMeshPrimitives = gltfMeshes[meshID].primitives;
 
-    for (let j = 0; j < gltfMeshPrimitives.length; j++) {
-      const mesh = meshes[meshID][j];
-      let renderer: MeshRenderer;
+    for (let i = 0; i < gltfMeshPrimitives.length; i++) {
+      const mesh = meshes[meshID][i];
+      let renderer: MeshRenderer | SkinnedMeshRenderer;
 
       if (skinID !== undefined) {
         const skin = skins[skinID];
-        const skinRenderer: SkinnedMeshRenderer = entity.addComponent(SkinnedMeshRenderer);
+        const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
         skinRenderer.mesh = mesh;
         skinRenderer.skin = skin;
         renderer = skinRenderer;
@@ -128,9 +128,15 @@ export class SceneParser extends Parser {
         renderer.mesh = mesh;
       }
 
-      const materialIndex = gltfMeshPrimitives[j].material;
+      const materialIndex = gltfMeshPrimitives[i].material;
       const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
       renderer.setMaterial(material);
+
+      const { extensions = {} } = gltfMeshPrimitives[i];
+      const { KHR_materials_variants } = extensions;
+      if (KHR_materials_variants) {
+        Parser.parseEngineResource("KHR_materials_variants", KHR_materials_variants, renderer, context);
+      }
     }
   }
 

@@ -1,4 +1,14 @@
-import { AnimationClip, BufferMesh, Camera, EngineObject, Entity, Material, Skin, Texture2D } from "@oasis-engine/core";
+import {
+  AnimationClip,
+  BufferMesh,
+  Camera,
+  EngineObject,
+  Entity,
+  Material,
+  Renderer,
+  Skin,
+  Texture2D
+} from "@oasis-engine/core";
 import { IGLTF } from "./Schema";
 
 /**
@@ -23,10 +33,12 @@ export class GLTFResource extends EngineObject {
   animations?: AnimationClip[];
   /** Oasis Entity after EntityParser. */
   entities: Entity[];
-  /** Oasis Camera after SceneParser.  */
+  /** Oasis Camera after SceneParser. */
   cameras?: Array<{ entity: Entity; camera: Camera }>;
-  /** Oasis RootEntities after SceneParser.  */
+  /** Oasis RootEntities after SceneParser. */
   sceneRoots: Entity[];
-  /** Oasis RootEntity after SceneParser.  */
+  /** Oasis RootEntity after SceneParser. */
   defaultSceneRoot: Entity;
+  /** Renderer can replace material by `renderer.setMaterial` if gltf use plugin-in KHR_materials_variants. */
+  variants?: Array<{ renderer: Renderer; material: Material; variants: string[] }>;
 }
