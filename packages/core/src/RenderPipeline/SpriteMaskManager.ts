@@ -1,19 +1,20 @@
-import { SpriteMask, SpriteMaskInteraction, SpriteRenderer } from "../2d";
+import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
+import { SpriteMask } from "../2d/sprite/SpriteMask";
+import { SpriteRenderer } from "../2d/sprite/SpriteRenderer";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
-import {
-  Buffer,
-  BufferBindFlag,
-  BufferUsage,
-  IndexFormat,
-  MeshTopology,
-  SubMesh,
-  VertexElement,
-  VertexElementFormat
-} from "../graphic";
-import { BufferMesh } from "../mesh";
-import { Shader, StencilOperation } from "../shader";
+import { Buffer } from "../graphic/Buffer";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { SubMesh } from "../graphic/SubMesh";
+import { VertexElement } from "../graphic/VertexElement";
+import { BufferMesh } from "../mesh/BufferMesh";
+import { StencilOperation } from "../shader/enums/StencilOperation";
+import { Shader } from "../shader/Shader";
 import { SystemInfo } from "../SystemInfo";
 import { ClassPool } from "./ClassPool";
 import { SpriteMaskElement } from "./SpriteMaskElement";
@@ -225,7 +226,7 @@ export class SpriteMaskManager {
   }
 
   private _preDrawMask(mask: SpriteMask, isAdd: boolean): void {
-    const element = mask.getElement();
+    const element = mask._getElement();
     if (element) {
       element.isAdd = isAdd;
       this._drawMask(element);
@@ -357,12 +358,14 @@ export class SpriteMaskManager {
         return;
       }
 
+      const renderer = <SpriteMask>spriteMaskElement.component;
       const camera = this._curCamera;
 
       program.bind();
       program.groupingOtherUniformBlock();
       program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
       program.uploadAll(program.cameraUniformBlock, camera.shaderData);
+      program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
       material.renderState._apply(engine);
@@ -378,10 +381,10 @@ export class SpriteMaskManager {
 
     const preMask = <SpriteMask>preSpriteMaskElement.component;
     const curMask = <SpriteMask>curSpriteMaskElement.component;
-    const preShaderData = preMask.material.shaderData;
-    const curShaderData = curMask.material.shaderData;
-    const textureProperty = SpriteMask.textureProperty;
-    const alphaCutoffProperty = SpriteMask.alphaCutoffProperty;
+    const preShaderData = preMask.shaderData;
+    const curShaderData = curMask.shaderData;
+    const textureProperty = SpriteMask._textureProperty;
+    const alphaCutoffProperty = SpriteMask._alphaCutoffProperty;
 
     if (
       preShaderData.getTexture(textureProperty) === curShaderData.getTexture(textureProperty) &&

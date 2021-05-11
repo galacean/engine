@@ -1,11 +1,14 @@
 import { Vector3 } from "@oasis-engine/math";
+import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { Component } from "../../Component";
 import { Entity } from "../../Entity";
-import { Material } from "../../material";
+import { Material } from "../../material/Material";
+import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { SpriteMaskManager } from "../../RenderPipeline/SpriteMaskManager";
-import { ColorWriteMask, CullMode, Shader } from "../../shader";
+import { ColorWriteMask } from "../../shader/enums/ColorWriteMask";
+import { CullMode } from "../../shader/enums/CullMode";
+import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -15,13 +18,13 @@ import "./SpriteMaskMaterial";
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Component {
+export class SpriteMask extends Renderer {
+  /** @internal */
+  static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
+  /** @internal */
+  static _alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_alphaCutoff");
   private static _tempVec3: Vector3 = new Vector3();
-  static textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
-  static alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_alphaCutoff");
 
-  @deepClone
-  private _material: Material = null;
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   @ignoreClone
@@ -31,7 +34,7 @@ export class SpriteMask extends Component {
   @assignmentClone
   private _sprite: Sprite = null;
   @assignmentClone
-  private _alphaCutoff: number = 1.0;
+  private _alphaCutoff: number = 0.5;
   @assignmentClone
   private _influenceLayers: number = SpriteMaskLayer.Everything;
 
@@ -72,19 +75,12 @@ export class SpriteMask extends Component {
   }
 
   /**
-   * Get the material.
-   */
-  get material(): Material {
-    return this._material;
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
-    this._material = this._createMaterial();
+    this.setMaterial(this._createMaterial());
   }
 
   _onEnable(): void {
@@ -97,7 +93,17 @@ export class SpriteMask extends Component {
     manager.removeMask(this);
   }
 
-  getElement(): SpriteMaskElement {
+  _onDestroy(): void {
+    this._isWorldMatrixDirty.destroy();
+    super._onDestroy();
+  }
+
+  _render(camera: Camera): void {}
+
+  /**
+   * @internal
+   */
+  _getElement(): SpriteMaskElement {
     const sprite = this.sprite;
     if (!sprite) {
       return null;
@@ -128,14 +134,13 @@ export class SpriteMask extends Component {
       this._isWorldMatrixDirty.flag = false;
     }
 
-    const material = this._material;
-    const shaderData = material.shaderData;
-    shaderData.setTexture(SpriteMask.textureProperty, texture);
-    shaderData.setFloat(SpriteMask.alphaCutoffProperty, this.alphaCutoff);
+    const shaderData = this.shaderData;
+    shaderData.setTexture(SpriteMask._textureProperty, texture);
+    shaderData.setFloat(SpriteMask._alphaCutoffProperty, this.alphaCutoff);
 
     const spriteMaskElementPool = this._engine._spriteMaskElementPool;
     const spriteMaskElement = spriteMaskElementPool.getFromPool();
-    spriteMaskElement.setValue(this, positions, sprite._uv, sprite._triangles, material);
+    spriteMaskElement.setValue(this, positions, sprite._uv, sprite._triangles, this.getMaterial());
     return spriteMaskElement;
   }
 
