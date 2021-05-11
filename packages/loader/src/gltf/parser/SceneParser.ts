@@ -39,18 +39,11 @@ export class SceneParser extends Parser {
       const entity = entities[i];
 
       if (cameraID !== undefined) {
-        const camera = this._createCamera(gltfCameras[cameraID], entity);
-        if (!context.cameras) context.cameras = [];
-        context.cameras.push({
-          entity,
-          camera
-        });
-        // @todo: use engine camera by default
-        camera.enabled = false;
+        this._createCamera(context, gltfCameras[cameraID], entity);
       }
 
       if (meshID !== undefined) {
-        this._createRenderer(gltfNode, context, entity);
+        this._createRenderer(context, gltfNode, entity);
       }
     }
 
@@ -61,7 +54,7 @@ export class SceneParser extends Parser {
     }
   }
 
-  private _createCamera(cameraSchema: ICamera, entity: Entity): Camera {
+  private _createCamera(context: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
     const { orthographic, perspective, type, name } = cameraSchema;
     const camera = entity.addComponent(Camera);
 
@@ -95,10 +88,16 @@ export class SceneParser extends Parser {
       }
     }
 
-    return camera;
+    if (!context.cameras) context.cameras = [];
+    context.cameras.push({
+      entity,
+      camera
+    });
+    // @todo: use engine camera by default
+    camera.enabled = false;
   }
 
-  private _createRenderer(gltfNode: INode, context: GLTFResource, entity: Entity): void {
+  private _createRenderer(context: GLTFResource, gltfNode: INode, entity: Entity): void {
     const {
       engine,
       gltf: { meshes: gltfMeshes },
