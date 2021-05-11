@@ -13,7 +13,6 @@
 #include <perturbation_share>
 
 // light
-#include <ambient_light_frag>
 #include <direct_light_frag>
 #include <point_light_frag>
 #include <spot_light_frag>

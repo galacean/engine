@@ -1,11 +1,7 @@
 import { Logger } from "../base/Logger";
 import { SceneFeature } from "../SceneFeature";
-import { Shader } from "../shader";
 import { ShaderData } from "../shader/ShaderData";
-import { ShaderMacro } from "../shader/ShaderMacro";
-import { AmbientLight } from "./AmbientLight";
 import { DirectLight } from "./DirectLight";
-import { EnvironmentMapLight } from "./EnvironmentMapLight";
 import { Light } from "./Light";
 import { PointLight } from "./PointLight";
 import { SpotLight } from "./SpotLight";
@@ -22,9 +18,6 @@ export function hasLight(): boolean {
  * Light plug-in.
  */
 export class LightFeature extends SceneFeature {
-  private static _ambientMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_AMBIENT_LIGHT");
-  private static _envMacro: ShaderMacro = Shader.getMacroByName("O3_HAS_ENVMAP_LIGHT");
-
   visibleLights: Light[];
 
   constructor() {
@@ -63,8 +56,6 @@ export class LightFeature extends SceneFeature {
     /**
      * ambientLight and envMapLight only use the last one in the scene
      * */
-    let ambientLightCount = 0;
-    let envMapLightCount = 0;
     let directLightCount = 0;
     let pointLightCount = 0;
     let spotLightCount = 0;
@@ -72,30 +63,13 @@ export class LightFeature extends SceneFeature {
     let lights = this.visibleLights;
     for (let i = 0, len = lights.length; i < len; i++) {
       const light = lights[i];
-      if (light instanceof AmbientLight) {
-        ambientLightCount++;
-      } else if (light instanceof EnvironmentMapLight) {
-        EnvironmentMapLight._updateShaderData(shaderData, light);
-        envMapLightCount++;
-      } else if (light instanceof DirectLight) {
+      if (light instanceof DirectLight) {
         light._appendData(directLightCount++);
       } else if (light instanceof PointLight) {
         light._appendData(pointLightCount++);
       } else if (light instanceof SpotLight) {
         light._appendData(spotLightCount++);
       }
-    }
-
-    if (ambientLightCount) {
-      shaderData.enableMacro(LightFeature._ambientMacro);
-    } else {
-      shaderData.disableMacro(LightFeature._ambientMacro);
-    }
-
-    if (envMapLightCount) {
-      shaderData.enableMacro(LightFeature._envMacro);
-    } else {
-      shaderData.disableMacro(LightFeature._envMacro);
     }
 
     if (directLightCount) {
