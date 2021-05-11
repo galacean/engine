@@ -24,7 +24,7 @@ export class GLTFResource extends EngineObject {
   /** Oasis Entity after EntityParser. */
   entities: Entity[];
   /** Oasis Camera after SceneParser.  */
-  cameras?: Camera[];
+  cameras?: Array<{ entity: Entity; camera: Camera }>;
   /** Oasis RootEntities after SceneParser.  */
   sceneRoots: Entity[];
   /** Oasis RootEntity after SceneParser.  */

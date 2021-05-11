@@ -41,7 +41,10 @@ export class SceneParser extends Parser {
       if (cameraID !== undefined) {
         const camera = this._createCamera(gltfCameras[cameraID], entity);
         if (!context.cameras) context.cameras = [];
-        context.cameras.push(camera);
+        context.cameras.push({
+          entity,
+          camera
+        });
         // @todo: use engine camera by default
         camera.enabled = false;
       }
