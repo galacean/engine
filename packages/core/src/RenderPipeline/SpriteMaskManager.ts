@@ -85,7 +85,7 @@ export class SpriteMaskManager {
     }
   }
 
-  postRender(renderer: SpriteRenderer, camera: Camera): void {
+  postRender(renderer: SpriteRenderer): void {
     if (renderer.maskInteraction === SpriteMaskInteraction.None) {
       return;
     }

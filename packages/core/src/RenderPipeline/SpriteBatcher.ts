@@ -249,7 +249,7 @@ export class SpriteBatcher {
 
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
 
-      maskManager.postRender(renderer, camera);
+      maskManager.postRender(renderer);
     }
   }
 
