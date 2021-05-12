@@ -11,7 +11,8 @@ import { Vector3 } from "@oasis-engine/math";
  * The manager of the components.
  */
 export class ComponentsManager {
-  private static _tempVector = new Vector3();
+  private static _tempVector0 = new Vector3();
+  private static _tempVector1 = new Vector3();
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
@@ -172,10 +173,16 @@ export class ComponentsManager {
         }
       }
 
-      element._distanceForSort = Vector3.distanceSquared(
-        element.bounds.getCenter(ComponentsManager._tempVector),
-        camera.entity.transform.worldPosition
-      );
+      const center = element.bounds.getCenter(ComponentsManager._tempVector0);
+      const position = camera.entity.transform.worldPosition;
+      if (camera.isOrthographic) {
+        const forward = camera.entity.transform.getWorldForward(ComponentsManager._tempVector0).normalize();
+        const posToCenter = ComponentsManager._tempVector1;
+        Vector3.subtract(center, position, posToCenter);
+        element._distanceForSort = Vector3.dot(posToCenter, forward);
+      } else {
+        element._distanceForSort = Vector3.distanceSquared(center, position);
+      }
 
       element._updateShaderData(context);
 
