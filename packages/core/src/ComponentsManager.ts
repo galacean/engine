@@ -177,7 +177,7 @@ export class ComponentsManager {
       const position = transform.worldPosition;
       const center = element.bounds.getCenter(ComponentsManager._tempVector0);
       if (camera.isOrthographic) {
-        const forward = transform.getWorldForward(ComponentsManager._tempVector1).normalize();
+        const forward = transform.getWorldForward(ComponentsManager._tempVector1);
         Vector3.subtract(center, position, center);
         element._distanceForSort = Vector3.dot(center, forward);
       } else {
