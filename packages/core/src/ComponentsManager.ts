@@ -173,13 +173,13 @@ export class ComponentsManager {
         }
       }
 
+      const transform = camera.entity.transform;
+      const position = transform.worldPosition;
       const center = element.bounds.getCenter(ComponentsManager._tempVector0);
-      const position = camera.entity.transform.worldPosition;
       if (camera.isOrthographic) {
-        const forward = camera.entity.transform.getWorldForward(ComponentsManager._tempVector0).normalize();
-        const posToCenter = ComponentsManager._tempVector1;
-        Vector3.subtract(center, position, posToCenter);
-        element._distanceForSort = Vector3.dot(posToCenter, forward);
+        const forward = transform.getWorldForward(ComponentsManager._tempVector1).normalize();
+        Vector3.subtract(center, position, center);
+        element._distanceForSort = Vector3.dot(center, forward);
       } else {
         element._distanceForSort = Vector3.distanceSquared(center, position);
       }
