@@ -13,10 +13,6 @@ export class SystemInfo {
    * @internal
    */
   static _isIos(): boolean {
-    if (!window) {
-      return false;
-    }
-
     const ua = window.navigator.userAgent.toLocaleLowerCase();
     return /iphone|ipad|ipod/.test(ua);
   }
