@@ -59,12 +59,13 @@ void RE_Direct_Physical( const in IncidentLight directLight, const in GeometricC
 		float lightDistance = length( lVector );
 		float angleCos = dot( directLight.direction, -spotLight.direction );
 
-		if ( angleCos > spotLight.coneCos ) {
+		if ( angleCos > spotLight.penumbraCos ) {
 
-			float spotEffect = smoothstep( spotLight.coneCos, spotLight.penumbraCos, angleCos );
+			float spotEffect = smoothstep( spotLight.penumbraCos, spotLight.angleCos, angleCos );
+			float decayEffect = clamp(1.0 - pow(lightDistance/spotLight.distance, 4.0), 0.0, 1.0);
 
 			directLight.color = spotLight.color;
-			directLight.color *= spotEffect * clamp(1.0 - pow(lightDistance/spotLight.distance, 4.0), 0.0, 1.0);
+			directLight.color *= spotEffect * decayEffect;
 			directLight.visible = true;
 
 		} else {
