@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/rhi-webgl",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -13,10 +13,10 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.3.8",
-    "@oasis-engine/math": "0.3.8"
+    "@oasis-engine/core": "0.3.9",
+    "@oasis-engine/math": "0.3.9"
   },
   "devDependencies": {
-    "@oasis-engine/design": "0.3.8"
+    "@oasis-engine/design": "0.3.9"
   }
 }
