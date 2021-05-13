@@ -9,7 +9,6 @@ import { VertexElement } from "../graphic/VertexElement";
 import { BufferMesh } from "../mesh/BufferMesh";
 import { Shader } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { SystemInfo } from "../SystemInfo";
 import { SpriteElement } from "./SpriteElement";
 
 /**
