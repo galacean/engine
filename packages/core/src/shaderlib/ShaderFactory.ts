@@ -2,10 +2,6 @@ import { ShaderLib } from "./ShaderLib";
 import { Logger } from "../base/Logger";
 
 class ShaderFactory {
-  static parseShaderName(name) {
-    return `#define O3_SHADER_NAME ${name}\n`;
-  }
-
   static parseCustomMacros(macros: string[]) {
     return (
       "#define O3_CUSTOM_MACROS_START\n" +
