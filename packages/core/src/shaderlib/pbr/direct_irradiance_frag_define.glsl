@@ -41,7 +41,7 @@ void RE_Direct_Physical( const in IncidentLight directLight, const in GeometricC
 		float lightDistance = length( lVector );
 
 		directLight.color = pointLight.color;
-		directLight.color *= punctualLightIntensityToIrradianceFactor( lightDistance, pointLight.distance, pointLight.decay );
+		directLight.color *= clamp(1.0 - pow(lightDistance/pointLight.distance, 4.0), 0.0, 1.0);
 		directLight.visible = ( directLight.color != vec3( 0.0 ) );
 
 	}
@@ -64,7 +64,7 @@ void RE_Direct_Physical( const in IncidentLight directLight, const in GeometricC
 			float spotEffect = smoothstep( spotLight.coneCos, spotLight.penumbraCos, angleCos );
 
 			directLight.color = spotLight.color;
-			directLight.color *= spotEffect * punctualLightIntensityToIrradianceFactor( lightDistance, spotLight.distance, spotLight.decay );
+			directLight.color *= spotEffect * clamp(1.0 - pow(lightDistance/spotLight.distance, 4.0), 0.0, 1.0);
 			directLight.visible = true;
 
 		} else {

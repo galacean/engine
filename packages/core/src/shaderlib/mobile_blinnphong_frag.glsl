@@ -28,12 +28,11 @@
         lgt.color = u_pointLightColor[i];
         lgt.position = u_pointLightPosition[i];
         lgt.distance = u_pointLightDistance[i];
-        lgt.decay = u_pointLightDecay[i];
 
         vec3 direction = v_pos - lgt.position;
         float dist = length( direction );
         direction /= dist;
-        float decay = pow( max( 0.0, 1.0-dist / lgt.distance ), 2.0 );
+        float decay = clamp(1.0 - pow(dist/lgt.distance, 4.0), 0.0, 1.0);
 
         float d =  max( dot( N, -direction ), 0.0 ) * decay;
         lightDiffuse += lgt.color * d;
@@ -63,7 +62,7 @@
         float angle = acos( dot( normalize( direction ), normalize( lgt.direction ) ) );
         float dist = length( direction );
         direction /= dist;
-        float decay = pow( max( 0.0, 1.0 - dist / lgt.distance ), 2.0 );
+        float decay = clamp(1.0 - pow(dist/lgt.distance, 4.0), 0.0, 1.0);
 
         float hasLight = step( angle, lgt.angle );
         float hasPenumbra = step( lgt.angle, angle ) * step( angle, lgt.angle * ( 1.0 + lgt.penumbra ) );

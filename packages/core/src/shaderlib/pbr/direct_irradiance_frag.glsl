@@ -24,7 +24,6 @@
                 pointLight.color = u_pointLightColor[i];
                 pointLight.position = u_pointLightPosition[i];
                 pointLight.distance = u_pointLightDistance[i];
-                pointLight.decay = u_pointLightDecay[i];
 
                 getPointDirectLightIrradiance( pointLight, geometry, directLight );
 
