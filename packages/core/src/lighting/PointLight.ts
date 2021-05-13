@@ -28,9 +28,11 @@ export class PointLight extends Light {
     shaderData.setFloatArray(PointLight._positionProperty, data.position);
     shaderData.setFloatArray(PointLight._distanceProperty, data.distance);
   }
-
+  /** Light color. */
   color: Color = new Color(1, 1, 1, 1);
+  /** Light intensity. */
   intensity: number = 1.0;
+  /** Defines a distance cutoff at which the light's intensity must be considered zero. */
   distance: number = 100;
 
   private _lightColor: Color = new Color(1, 1, 1, 1);
