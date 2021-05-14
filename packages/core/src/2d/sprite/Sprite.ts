@@ -33,7 +33,7 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._setDirtyFlagFalse(DirtyFlag.positions);
+      this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
 
