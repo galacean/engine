@@ -3,6 +3,10 @@ import { IMaterialNormalTextureInfo, ITextureInfo } from "../Schema";
 /**
  * Interfaces from the KHR_lights_punctual extension
  */
+export interface IKHRLightsPunctual_LightNode {
+  light: number;
+}
+
 export interface IKHRLightsPunctual_Light {
   type: "directional" | "point" | "spot";
   color?: number[];
@@ -150,7 +154,7 @@ export interface IKHRXmp_Node {
 }
 
 export type ExtensionSchema =
-  | IKHRLightsPunctual
+  | IKHRLightsPunctual_Light
   | IKHRDracoMeshCompression
   | IKHRMaterialsClearcoat
   | IKHRMaterialsIor

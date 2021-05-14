@@ -9,6 +9,7 @@ import {
   SkinnedMeshRenderer
 } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
+import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
 import { ICamera, INode } from "../Schema";
 import { Parser } from "./Parser";
@@ -35,7 +36,8 @@ export class SceneParser extends Parser {
 
     for (let i = 0; i < nodes.length; i++) {
       const gltfNode = nodes[i];
-      const { camera: cameraID, mesh: meshID } = gltfNode;
+      const { camera: cameraID, mesh: meshID, extensions = {} } = gltfNode;
+      const { KHR_lights_punctual } = extensions;
       const entity = entities[i];
 
       if (cameraID !== undefined) {
@@ -44,6 +46,13 @@ export class SceneParser extends Parser {
 
       if (meshID !== undefined) {
         this._createRenderer(context, gltfNode, entity);
+      }
+
+      if (KHR_lights_punctual) {
+        const lightIndex = (KHR_lights_punctual as IKHRLightsPunctual_LightNode).light;
+        const lights = (context.gltf.extensions.KHR_lights_punctual as IKHRLightsPunctual).lights;
+
+        Parser.parseEngineResource("KHR_lights_punctual", lights[lightIndex], entity, context);
       }
     }
 

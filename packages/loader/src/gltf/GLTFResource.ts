@@ -4,6 +4,7 @@ import {
   Camera,
   EngineObject,
   Entity,
+  Light,
   Material,
   Renderer,
   Skin,
@@ -35,6 +36,8 @@ export class GLTFResource extends EngineObject {
   entities: Entity[];
   /** Oasis Camera after SceneParser. */
   cameras?: Array<{ entity: Entity; camera: Camera }>;
+  /** GLTF can export lights in extension KHR_lights_punctual */
+  lights?: Array<{ entity: Entity; light: Light }>;
   /** Oasis RootEntities after SceneParser. */
   sceneRoots: Entity[];
   /** Oasis RootEntity after SceneParser. */
