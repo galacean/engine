@@ -8,10 +8,10 @@ import { Sky } from "./sky/Sky";
 export class Background {
   /**
    * Background mode.
-   * @defaultValue `BackgroundMode.Sky`
-   * @remarks If the material or the mesh of the is not defined, it will downgrade to `BackgroundMode.SolidColor`.
+   * @defaultValue `BackgroundMode.SolidColor`
+   * @remarks If using `BackgroundMode.Sky` mode and material or mesh of the `sky` is not defined, it will downgrade to `BackgroundMode.SolidColor`.
    */
-  mode: BackgroundMode = BackgroundMode.Sky;
+  mode: BackgroundMode = BackgroundMode.SolidColor;
 
   /**
    * Background solid color.
