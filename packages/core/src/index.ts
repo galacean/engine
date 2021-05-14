@@ -5,6 +5,7 @@ export { EngineFeature } from "./EngineFeature";
 
 export { Scene } from "./Scene";
 export { SceneFeature } from "./SceneFeature";
+export { SceneManager } from "./SceneManager";
 
 export { Entity } from "./Entity";
 export { Component } from "./Component";
