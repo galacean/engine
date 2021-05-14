@@ -126,13 +126,6 @@ export class AmbientLight {
 
   set diffuseTexture(value: TextureCubeMap) {
     this._diffuseTexture = value;
-    const shaderData = this._scene.shaderData;
-
-    if (value) {
-      shaderData.setTexture(AmbientLight._diffuseTextureProperty, value);
-      shaderData.enableMacro(AmbientLight._diffuseMacro);
-    } else {
-      shaderData.disableMacro(AmbientLight._diffuseMacro);
-    }
+    this._scene.shaderData.setTexture(AmbientLight._diffuseTextureProperty, value);
   }
 }
