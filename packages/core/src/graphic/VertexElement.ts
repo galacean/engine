@@ -5,8 +5,6 @@ import { ElementInfo, BufferUtil } from "./BufferUtil";
  * Vertex element.
  */
 export class VertexElement {
-  public readonly normalized = false;
-
   _glElementInfo: ElementInfo;
 
   private _semantic: string;
