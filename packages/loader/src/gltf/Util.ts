@@ -110,7 +110,7 @@ export function getVertexStride(accessor: IAccessor): number {
 
 export function createVertexElement(semantic: string, accessor: IAccessor, index: number): VertexElement {
   const size = getAccessorTypeSize(accessor.type);
-  return new VertexElement(semantic, 0, getElementFormat(accessor.componentType, size), index);
+  return new VertexElement(semantic, 0, getElementFormat(accessor.componentType, size, accessor.normalized), index);
 }
 
 export function getIndexFormat(type: number): IndexFormat {
@@ -124,7 +124,7 @@ export function getIndexFormat(type: number): IndexFormat {
   }
 }
 
-export function getElementFormat(type: number, size: number): VertexElementFormat {
+export function getElementFormat(type: number, size: number, normalized: boolean = false): VertexElementFormat {
   if (type == DataType.FLOAT) {
     switch (size) {
       case 1:
@@ -137,12 +137,48 @@ export function getElementFormat(type: number, size: number): VertexElementForma
         return VertexElementFormat.Vector4;
     }
   }
+
+  if (type == DataType.SHORT) {
+    switch (size) {
+      case 2:
+        return normalized ? VertexElementFormat.NormalizedShort2 : VertexElementFormat.Short2;
+      case 3:
+        return normalized ? VertexElementFormat.NormalizedShort3 : VertexElementFormat.Short3;
+      case 4:
+        return normalized ? VertexElementFormat.NormalizedShort4 : VertexElementFormat.Short4;
+    }
+  }
+
   if (type == DataType.UNSIGNED_SHORT) {
     switch (size) {
       case 2:
-        return VertexElementFormat.UShort2;
+        return normalized ? VertexElementFormat.NormalizedUShort2 : VertexElementFormat.UShort2;
+      case 3:
+        return normalized ? VertexElementFormat.NormalizedUShort3 : VertexElementFormat.UShort3;
       case 4:
-        return VertexElementFormat.UShort4;
+        return normalized ? VertexElementFormat.NormalizedUShort4 : VertexElementFormat.UShort4;
+    }
+  }
+
+  if (type == DataType.BYTE) {
+    switch (size) {
+      case 2:
+        return normalized ? VertexElementFormat.NormalizedByte2 : VertexElementFormat.Byte2;
+      case 3:
+        return normalized ? VertexElementFormat.NormalizedByte3 : VertexElementFormat.Byte3;
+      case 4:
+        return normalized ? VertexElementFormat.NormalizedByte4 : VertexElementFormat.Byte4;
+    }
+  }
+
+  if (type == DataType.UNSIGNED_BYTE) {
+    switch (size) {
+      case 2:
+        return normalized ? VertexElementFormat.NormalizedUByte2 : VertexElementFormat.UByte2;
+      case 3:
+        return normalized ? VertexElementFormat.NormalizedUByte3 : VertexElementFormat.UByte3;
+      case 4:
+        return normalized ? VertexElementFormat.NormalizedUByte4 : VertexElementFormat.UByte4;
     }
   }
 }
