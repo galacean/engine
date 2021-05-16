@@ -93,7 +93,7 @@ npm run build
 ## Links
 
 - [Official Site](https://oasisengine.cn)
-- [Documentation](https://github.com/oasis-engine/oasis-engine.github.io)
+- [Documentation Source](https://github.com/oasis-engine/oasis-engine.github.io)
 
 ## License 
 The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.
