@@ -48,6 +48,7 @@ export class Engine extends EventDispatcher {
   protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
+  private _spriteMaskManager: SpriteMaskManager;
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
@@ -89,6 +90,13 @@ export class Engine extends EventDispatcher {
    */
   get sceneManager(): SceneManager {
     return this._sceneManager;
+  }
+
+  /**
+   * Get the sprite mask manager.
+   */
+  get spriteMaskManager(): SpriteMaskManager {
+    return this._spriteMaskManager;
   }
 
   /**
@@ -146,6 +154,8 @@ export class Engine extends EventDispatcher {
     // @todo delete
     engineFeatureManager.addObject(this);
     this._sceneManager.activeScene = new Scene(this, "DefaultScene");
+
+    this._spriteMaskManager = new SpriteMaskManager(this);
 
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
 
@@ -263,7 +273,7 @@ export class Engine extends EventDispatcher {
       this._time = null;
 
       // delete mask manager
-      SpriteMaskManager.getInstance(this).destroy();
+      this._spriteMaskManager.destroy();
 
       // todo: delete
       (engineFeatureManager as any)._objects = [];

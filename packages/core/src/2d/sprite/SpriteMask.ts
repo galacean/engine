@@ -5,7 +5,6 @@ import { Entity } from "../../Entity";
 import { Material } from "../../material/Material";
 import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
-import { SpriteMaskManager } from "../../RenderPipeline/SpriteMaskManager";
 import { ColorWriteMask } from "../../shader/enums/ColorWriteMask";
 import { CullMode } from "../../shader/enums/CullMode";
 import { Shader } from "../../shader/Shader";
@@ -82,8 +81,7 @@ export class SpriteMask extends Renderer {
    * @inheritdoc
    */
   _onEnable(): void {
-    const manager = SpriteMaskManager.getInstance(this.engine);
-    manager.addMask(this);
+    this.engine.spriteMaskManager.addMask(this);
   }
 
   /**
@@ -91,8 +89,7 @@ export class SpriteMask extends Renderer {
    * @inheritdoc
    */
   _onDisable(): void {
-    const manager = SpriteMaskManager.getInstance(this.engine);
-    manager.removeMask(this);
+    this.engine.spriteMaskManager.removeMask(this);
   }
 
   /**

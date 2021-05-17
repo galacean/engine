@@ -13,7 +13,6 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { SystemInfo } from "../SystemInfo";
 import { ClassPool } from "./ClassPool";
 import { SpriteElement } from "./SpriteElement";
-import { SpriteMaskManager } from "./SpriteMaskManager";
 
 /**
  * @internal
@@ -215,7 +214,7 @@ export class SpriteBatcher {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
     const { _batchedQueue } = this;
-    const maskManager = SpriteMaskManager.getInstance(engine);
+    const maskManager = engine.spriteMaskManager;
 
     for (let i = 0, len = subMeshes.length; i < len; i++) {
       const subMesh = subMeshes[i];

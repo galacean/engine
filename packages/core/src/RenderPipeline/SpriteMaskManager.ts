@@ -26,14 +26,6 @@ export class SpriteMaskManager {
   private static MAX_VERTEX_COUNT: number = 4096;
   private static _canUploadSameBuffer: boolean = !SystemInfo._isIos();
 
-  static getInstance(engine: Engine): SpriteMaskManager {
-    if (!SpriteMaskManager._instance) {
-      SpriteMaskManager._instance = new SpriteMaskManager(engine);
-    }
-
-    return SpriteMaskManager._instance;
-  }
-
   private _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
   private _batchedQueue: SpriteMaskElement[] = [];
   private _meshes: BufferMesh[] = [];
