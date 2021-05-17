@@ -33,7 +33,7 @@ export class SkinParser extends Parser {
 
       // get joints
       for (let i = 0; i < jointCount; i++) {
-        skin.joints[i] = gltfNodes[joints[i]].name;
+        skin.joints[i] = gltfNodes[joints[i]].name || `${EntityParser._defaultName}${joints[i]}`;
       }
 
       // get skeleton
