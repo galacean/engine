@@ -95,9 +95,8 @@ export class MeshParser extends Parser {
             }
           })
         );
-
-        meshPromises.push(Promise.all(primitivePromises));
       }
+      meshPromises.push(Promise.all(primitivePromises));
     }
 
     return Promise.all(meshPromises).then((meshes: BufferMesh[][]) => {
