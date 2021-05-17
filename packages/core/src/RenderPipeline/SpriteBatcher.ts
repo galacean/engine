@@ -1,224 +1,105 @@
-import { SpriteMaskInteraction, SpriteRenderer } from "../2d";
+import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
+import { SpriteRenderer } from "../2d/sprite/SpriteRenderer";
 import { Engine } from "../Engine";
-import { MeshTopology, SubMesh } from "../graphic";
-import { Buffer } from "../graphic/Buffer";
-import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
-import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
-import { BufferMesh } from "../mesh/BufferMesh";
-import { Shader } from "../shader";
+import { Shader } from "../shader/Shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { SystemInfo } from "../SystemInfo";
-import { ClassPool } from "./ClassPool";
+import { Basic2DBatcher } from "./Basic2DBatcher";
 import { SpriteElement } from "./SpriteElement";
 
 /**
  * @internal
  */
-export class SpriteBatcher {
+export class SpriteBatcher extends Basic2DBatcher {
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
-  /** The maximum number of vertex. */
-  private static MAX_VERTEX_COUNT: number = 4096;
-  private static _canUploadSameBuffer: boolean = !SystemInfo._isIos();
 
-  private _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
-  private _batchedQueue: SpriteElement[] = [];
-  private _meshes: BufferMesh[] = [];
-  private _meshCount: number = 1;
-  private _vertexBuffers: Buffer[] = [];
-  private _indiceBuffers: Buffer[] = [];
-  private _vertices: Float32Array;
-  private _indices: Uint16Array;
-  private _vertexCount: number = 0;
-  private _spriteCount: number = 0;
-  private _flushId: number = 0;
-
-  constructor(engine: Engine) {
-    const { MAX_VERTEX_COUNT } = SpriteBatcher;
-    this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
-    this._indices = new Uint16Array(MAX_VERTEX_COUNT * 3);
-
-    const { _meshes, _meshCount } = this;
-    for (let i = 0; i < _meshCount; i++) {
-      _meshes[i] = this._createMesh(engine, i);
-    }
+  _createVertexElements(vertexElements: VertexElement[]): number {
+    vertexElements[0] = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
+    vertexElements[1] = new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0);
+    vertexElements[2] = new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0);
+    return 36;
   }
 
-  /**
-   * Flush all sprites.
-   */
-  flush(engine: Engine): void {
-    const { _batchedQueue } = this;
+  _canBatch(preElement: SpriteElement, curElement: SpriteElement): boolean {
+    const preSpriteRenderer = <SpriteRenderer>preElement.component;
+    const curSpriteRenderer = <SpriteRenderer>curElement.component;
 
-    if (_batchedQueue.length === 0) {
-      return;
+    // Compare mask
+    if (!this._checkBatchByMask(preSpriteRenderer, curSpriteRenderer)) {
+      return false;
     }
 
-    this._updateData(engine);
-    this._drawBatches(engine);
-
-    if (!SpriteBatcher._canUploadSameBuffer) {
-      this._flushId++;
+    // Compare camera
+    if (preElement.camera !== curElement.camera) {
+      return false;
     }
 
-    this._subMeshPool.resetPool();
-    this._batchedQueue.length = 0;
-    this._vertexCount = 0;
-    this._spriteCount = 0;
+    // Compare texture
+    const { _textureProperty } = SpriteBatcher;
+    const preTexture = preSpriteRenderer.shaderData.getTexture(_textureProperty);
+    const curTexture = curSpriteRenderer.shaderData.getTexture(_textureProperty);
+    if (preTexture !== curTexture) {
+      return false;
+    }
+
+    // Compare material and shader
+    const preMaterial = preElement.material;
+    const curMaterial = curElement.material;
+    if (
+      preMaterial === curMaterial ||
+      (preMaterial.shader.name === curMaterial.shader.name && curMaterial.shader.name === "Sprite")
+    ) {
+      return true;
+    }
+
+    return false;
   }
 
-  drawSprite(spriteElement: SpriteElement): void {
-    const len = spriteElement.positions.length;
-    if (this._vertexCount + len > SpriteBatcher.MAX_VERTEX_COUNT) {
-      this.flush(spriteElement.camera.engine);
+  _checkBatchByMask(sr1: SpriteRenderer, sr2: SpriteRenderer): boolean {
+    debugger;
+    const maskInteraction1 = sr1.maskInteraction;
+    if (maskInteraction1 !== sr2.maskInteraction) {
+      return false;
     }
 
-    this._vertexCount += len;
-    this._batchedQueue[this._spriteCount++] = spriteElement;
+    if (maskInteraction1 === SpriteMaskInteraction.None) {
+      return true;
+    }
+
+    return sr1.maskLayer === sr2.maskLayer;
   }
 
-  clear(): void {
-    this._flushId = 0;
-    this._vertexCount = 0;
-    this._spriteCount = 0;
-    this._batchedQueue.length = 0;
+  _updateVertices(element: SpriteElement, vertices: Float32Array, vertexIndex: number): number {
+    const { positions, uv, color } = element;
+    const verticesNum = positions.length;
+    for (let i = 0; i < verticesNum; i++) {
+      const curPos = positions[i];
+      const curUV = uv[i];
+
+      vertices[vertexIndex++] = curPos.x;
+      vertices[vertexIndex++] = curPos.y;
+      vertices[vertexIndex++] = curPos.z;
+      vertices[vertexIndex++] = curUV.x;
+      vertices[vertexIndex++] = curUV.y;
+      vertices[vertexIndex++] = color.r;
+      vertices[vertexIndex++] = color.g;
+      vertices[vertexIndex++] = color.b;
+      vertices[vertexIndex++] = color.a;
+    }
+
+    return vertexIndex;
   }
 
-  destroy(): void {
-    this._batchedQueue = null;
-
-    const { _meshes: meshes, _vertexBuffers: vertexBuffers, _indiceBuffers: indiceBuffers } = this;
-
-    for (let i = 0, n = meshes.length; i < n; ++i) {
-      meshes[i].destroy();
-    }
-    this._meshes = null;
-
-    for (let i = 0, n = vertexBuffers.length; i < n; ++i) {
-      vertexBuffers[i].destroy();
-    }
-    this._vertexBuffers = null;
-
-    for (let i = 0, n = indiceBuffers.length; i < n; ++i) {
-      indiceBuffers[i].destroy();
-    }
-    this._indiceBuffers = null;
-  }
-
-  private _createMesh(engine: Engine, index: number): BufferMesh {
-    const { MAX_VERTEX_COUNT } = SpriteBatcher;
-    const mesh = new BufferMesh(engine, `SpriteBatchBufferMesh${index}`);
-
-    const vertexElements = [
-      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
-      new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0),
-      new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0)
-    ];
-    const vertexStride = 36;
-
-    // vertices
-    this._vertexBuffers[index] = new Buffer(
-      engine,
-      BufferBindFlag.VertexBuffer,
-      MAX_VERTEX_COUNT * 4 * vertexStride,
-      BufferUsage.Dynamic
-    );
-    // indices
-    this._indiceBuffers[index] = new Buffer(
-      engine,
-      BufferBindFlag.IndexBuffer,
-      MAX_VERTEX_COUNT * 3,
-      BufferUsage.Dynamic
-    );
-    mesh.setVertexBufferBinding(this._vertexBuffers[index], vertexStride);
-    mesh.setIndexBufferBinding(this._indiceBuffers[index], IndexFormat.UInt16);
-    mesh.setVertexElements(vertexElements);
-
-    return mesh;
-  }
-
-  private _updateData(engine: Engine): void {
-    const { _meshes, _flushId } = this;
-
-    if (!SpriteBatcher._canUploadSameBuffer && this._meshCount <= _flushId) {
-      this._meshCount++;
-      _meshes[_flushId] = this._createMesh(engine, _flushId);
-    }
-
-    const { _batchedQueue, _vertices, _indices } = this;
-    const mesh = _meshes[_flushId];
-    mesh.clearSubMesh();
-
-    let vertexIndex = 0;
-    let indiceIndex = 0;
-    let vertexStartIndex = 0;
-    let vertexCount = 0;
-    let curIndiceStartIndex = 0;
-    let curMeshIndex = 0;
-    let preSpriteElement: SpriteElement = null;
-    for (let i = 0, len = _batchedQueue.length; i < len; i++) {
-      const curSpriteElement = _batchedQueue[i];
-      const { positions, uv, triangles, color } = curSpriteElement;
-
-      // Batch vertex
-      const verticesNum = positions.length;
-      for (let j = 0; j < verticesNum; j++) {
-        const curPos = positions[j];
-        const curUV = uv[j];
-
-        _vertices[vertexIndex++] = curPos.x;
-        _vertices[vertexIndex++] = curPos.y;
-        _vertices[vertexIndex++] = curPos.z;
-        _vertices[vertexIndex++] = curUV.x;
-        _vertices[vertexIndex++] = curUV.y;
-        _vertices[vertexIndex++] = color.r;
-        _vertices[vertexIndex++] = color.g;
-        _vertices[vertexIndex++] = color.b;
-        _vertices[vertexIndex++] = color.a;
-      }
-
-      // Batch indice
-      const triangleNum = triangles.length;
-      for (let j = 0; j < triangleNum; j++) {
-        _indices[indiceIndex++] = triangles[j] + curIndiceStartIndex;
-      }
-
-      curIndiceStartIndex += verticesNum;
-
-      if (preSpriteElement === null) {
-        vertexCount += triangleNum;
-      } else {
-        if (this._canBatch(preSpriteElement, curSpriteElement)) {
-          vertexCount += triangleNum;
-        } else {
-          mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
-          vertexStartIndex += vertexCount;
-          vertexCount = triangleNum;
-          _batchedQueue[curMeshIndex++] = preSpriteElement;
-        }
-      }
-
-      preSpriteElement = curSpriteElement;
-    }
-
-    mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
-    _batchedQueue[curMeshIndex] = preSpriteElement;
-
-    this._vertexBuffers[_flushId].setData(_vertices, 0, 0, vertexIndex);
-    this._indiceBuffers[_flushId].setData(_indices, 0, 0, indiceIndex);
-  }
-
-  private _drawBatches(engine: Engine): void {
+  _drawBatches(engine: Engine): void {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
-    const { _batchedQueue } = this;
+    const batchedQueue = this._batchedQueue;
     const maskManager = engine.spriteMaskManager;
 
     for (let i = 0, len = subMeshes.length; i < len; i++) {
       const subMesh = subMeshes[i];
-      const spriteElement = _batchedQueue[i];
+      const spriteElement = <SpriteElement>batchedQueue[i];
 
       if (!subMesh || !spriteElement) {
         return;
@@ -250,48 +131,5 @@ export class SpriteBatcher {
 
       maskManager.postRender(renderer);
     }
-  }
-
-  private _canBatch(preSpriteElement: SpriteElement, curSpriteElement: SpriteElement): boolean {
-    const preSpriteRenderer = <SpriteRenderer>preSpriteElement.component;
-    const curSpriteRenderer = <SpriteRenderer>curSpriteElement.component;
-
-    // Compare mask
-    if (!this._checkBatchByMask(preSpriteRenderer, curSpriteRenderer)) {
-      return false;
-    }
-
-    // Compare texture
-    const { _textureProperty } = SpriteBatcher;
-    const preTexture = preSpriteRenderer.shaderData.getTexture(_textureProperty);
-    const curTexture = curSpriteRenderer.shaderData.getTexture(_textureProperty);
-    if (preTexture !== curTexture) {
-      return false;
-    }
-
-    return (
-      preSpriteElement.material === curSpriteElement.material && preSpriteElement.camera === curSpriteElement.camera
-    );
-  }
-
-  private _checkBatchByMask(sr1: SpriteRenderer, sr2: SpriteRenderer): boolean {
-    const maskInteraction1 = sr1.maskInteraction;
-    if (maskInteraction1 !== sr2.maskInteraction) {
-      return false;
-    }
-
-    if (maskInteraction1 === SpriteMaskInteraction.None) {
-      return true;
-    }
-
-    return sr1.maskLayer === sr2.maskLayer;
-  }
-
-  private _getSubMeshFromPool(start: number, count: number): SubMesh {
-    const subMesh = this._subMeshPool.getFromPool();
-    subMesh.start = start;
-    subMesh.count = count;
-    subMesh.topology = MeshTopology.Triangles;
-    return subMesh;
   }
 }
