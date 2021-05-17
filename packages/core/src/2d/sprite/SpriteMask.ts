@@ -35,8 +35,9 @@ export class SpriteMask extends Renderer {
   private _sprite: Sprite = null;
   @assignmentClone
   private _alphaCutoff: number = 0.5;
+  /** The mask layers the sprite mask influence to. */
   @assignmentClone
-  private _influenceLayers: number = SpriteMaskLayer.Everything;
+  private influenceLayers: number = SpriteMaskLayer.Everything;
 
   /**
    * The Sprite used to define the mask.
@@ -64,17 +65,6 @@ export class SpriteMask extends Renderer {
       this._alphaCutoff = value;
       this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, value);
     }
-  }
-
-  /**
-   * The mask layers the sprite mask influence to.
-   */
-  get influenceLayers(): number {
-    return this._influenceLayers;
-  }
-
-  set influenceLayers(value: number) {
-    this._influenceLayers = value;
   }
 
   /**
