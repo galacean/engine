@@ -177,7 +177,7 @@ export class SceneParser extends Parser {
     }
 
     context.sceneRoots = sceneRoots;
-    context.defaultSceneRoot = sceneRoots[sceneID];
+    context.defaultSceneRoot = sceneRoots[sceneID ?? 0];
   }
 
   private _createAnimator(context: GLTFResource) {
