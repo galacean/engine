@@ -92,7 +92,40 @@ export function getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: Array
     uint8Array = new Uint8Array(uint8Array);
   }
 
-  return new arrayType(uint8Array.buffer);
+  const typedArray = new arrayType(uint8Array.buffer);
+
+  if (accessor.sparse) {
+    const { count, indices, values } = accessor.sparse;
+    const indicesBufferView = gltf.bufferViews[indices.bufferView];
+    const valuesBufferView = gltf.bufferViews[values.bufferView];
+    const indicesArrayBuffer = buffers[indicesBufferView.buffer];
+    const valuesArrayBuffer = buffers[valuesBufferView.buffer];
+    const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesBufferView.byteOffset ?? 0);
+    const indicesByteLength = indicesBufferView.byteLength;
+    const valuesByteOffset = (values.byteOffset ?? 0) + (valuesBufferView.byteOffset ?? 0);
+    const valuesByteLength = valuesBufferView.byteLength;
+
+    const indicesType = getComponentType(indices.componentType);
+    const indicesArray = new indicesType(
+      indicesArrayBuffer,
+      indicesByteOffset,
+      indicesByteLength / indicesType.BYTES_PER_ELEMENT
+    );
+    const valuesArray = new arrayType(
+      valuesArrayBuffer,
+      valuesByteOffset,
+      valuesByteLength / arrayType.BYTES_PER_ELEMENT
+    );
+
+    for (let i = 0; i < count; i++) {
+      const replaceIndex = indicesArray[i];
+      for (let j = 0; j < accessorTypeSize; j++) {
+        typedArray[replaceIndex * accessorTypeSize + j] = valuesArray[i * accessorTypeSize + j];
+      }
+    }
+  }
+
+  return typedArray;
 }
 
 export function getBufferViewData(bufferView: IBufferView, buffers: ArrayBuffer[]): ArrayBuffer {
