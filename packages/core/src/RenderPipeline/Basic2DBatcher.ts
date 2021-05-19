@@ -58,21 +58,21 @@ export abstract class Basic2DBatcher {
   }
 
   flush(engine: Engine): void {
-    const { _batchedQueue } = this;
+    const batchedQueue = this._batchedQueue;
 
-    if (_batchedQueue.length === 0) {
+    if (batchedQueue.length === 0) {
       return;
     }
 
     this._updateData(engine);
-    this._drawBatches(engine);
+    this.drawBatches(engine);
 
     if (!Basic2DBatcher._canUploadSameBuffer) {
       this._flushId++;
     }
 
+    batchedQueue.length = 0;
     this._subMeshPool.resetPool();
-    this._batchedQueue.length = 0;
     this._vertexCount = 0;
     this._elementCount = 0;
   }
@@ -110,7 +110,7 @@ export abstract class Basic2DBatcher {
     const mesh = new BufferMesh(engine, `BufferMesh${index}`);
 
     const vertexElements: VertexElement[] = [];
-    const vertexStride = this._createVertexElements(vertexElements);
+    const vertexStride = this.createVertexElements(vertexElements);
 
     // vertices
     this._vertexBuffers[index] = new Buffer(
@@ -156,7 +156,7 @@ export abstract class Basic2DBatcher {
       const curElement = batchedQueue[i];
 
       // Batch vertex
-      vertexIndex = this._updateVertices(curElement, vertices, vertexIndex);
+      vertexIndex = this.updateVertices(curElement, vertices, vertexIndex);
 
       // Batch indice
       const { triangles } = curElement;
@@ -170,8 +170,7 @@ export abstract class Basic2DBatcher {
       if (preElement === null) {
         vertexCount += triangleNum;
       } else {
-        debugger;
-        if (this._canBatch(preElement, curElement)) {
+        if (this.canBatch(preElement, curElement)) {
           vertexCount += triangleNum;
         } else {
           mesh.addSubMesh(this._getSubMeshFromPool(vertexStartIndex, vertexCount));
@@ -202,20 +201,20 @@ export abstract class Basic2DBatcher {
   /**
    * @internal
    */
-  abstract _createVertexElements(vertexElements: VertexElement[]): number;
+  abstract createVertexElements(vertexElements: VertexElement[]): number;
 
   /**
    * @internal
    */
-  abstract _canBatch(preElement: Element, curElement: Element): boolean;
+  abstract canBatch(preElement: Element, curElement: Element): boolean;
 
   /**
    * @internal
    */
-  abstract _updateVertices(element: Element, vertices: Float32Array, vertexIndex: number): number;
+  abstract updateVertices(element: Element, vertices: Float32Array, vertexIndex: number): number;
 
   /**
    * @internal
    */
-  abstract _drawBatches(engine: Engine): void;
+  abstract drawBatches(engine: Engine): void;
 }

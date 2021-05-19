@@ -8,35 +8,30 @@ import { Basic2DBatcher } from "./Basic2DBatcher";
 import { SpriteMaskElement } from "./SpriteMaskElement";
 
 export class SpriteMaskBatcher extends Basic2DBatcher {
-  _createVertexElements(vertexElements: VertexElement[]): number {
+  createVertexElements(vertexElements: VertexElement[]): number {
     vertexElements[0] = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
     vertexElements[1] = new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0);
     return 20;
   }
 
-  _canBatch(preElement: SpriteMaskElement, curElement: SpriteMaskElement): boolean {
+  canBatch(preElement: SpriteMaskElement, curElement: SpriteMaskElement): boolean {
     if (preElement.isAdd !== curElement.isAdd) {
       return false;
     }
 
-    const preMask = <SpriteMask>preElement.component;
-    const curMask = <SpriteMask>curElement.component;
-    const preShaderData = preMask.shaderData;
-    const curShaderData = curMask.shaderData;
+    // Compare renderer property
+    const preShaderData = (<SpriteMask>preElement.component).shaderData;
+    const curShaderData = (<SpriteMask>curElement.component).shaderData;
     const textureProperty = SpriteMask._textureProperty;
     const alphaCutoffProperty = SpriteMask._alphaCutoffProperty;
 
-    if (
+    return (
       preShaderData.getTexture(textureProperty) === curShaderData.getTexture(textureProperty) &&
       preShaderData.getTexture(alphaCutoffProperty) === curShaderData.getTexture(alphaCutoffProperty)
-    ) {
-      return true;
-    }
-
-    return false;
+    );
   }
 
-  _updateVertices(element: SpriteMaskElement, vertices: Float32Array, vertexIndex: number): number {
+  updateVertices(element: SpriteMaskElement, vertices: Float32Array, vertexIndex: number): number {
     const { positions, uv } = element;
     const verticesNum = positions.length;
     for (let i = 0; i < verticesNum; i++) {
@@ -53,7 +48,7 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
     return vertexIndex;
   }
 
-  _drawBatches(engine: Engine): void {
+  drawBatches(engine: Engine): void {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
     const batchedQueue = this._batchedQueue;

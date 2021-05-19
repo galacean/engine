@@ -2,13 +2,8 @@ import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
-import { RenderQueueType } from "../../material/enums/RenderQueueType";
-import { Material } from "../../material/Material";
 import { Renderer } from "../../Renderer";
-import { BlendFactor } from "../../shader/enums/BlendFactor";
-import { BlendOperation } from "../../shader/enums/BlendOperation";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
-import { CullMode } from "../../shader/enums/CullMode";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
@@ -132,7 +127,7 @@ export class SpriteRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
-    this.setMaterial(this._createMaterial());
+    this.setMaterial(this._engine._spriteDefaultMaterial);
   }
 
   /**
@@ -228,23 +223,6 @@ export class SpriteRenderer extends Renderer {
 
   private _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
-  }
-
-  private _createMaterial(): Material {
-    const material = new Material(this.engine, Shader.find("Sprite"));
-    const renderState = material.renderState;
-    const target = renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    renderState.depthState.writeEnabled = false;
-    renderState.rasterState.cullMode = CullMode.Off;
-    material.renderQueueType = RenderQueueType.Transparent;
-
-    return material;
   }
 
   /**

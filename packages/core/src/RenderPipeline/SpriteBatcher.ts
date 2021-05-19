@@ -14,63 +14,45 @@ import { SpriteElement } from "./SpriteElement";
 export class SpriteBatcher extends Basic2DBatcher {
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
 
-  _createVertexElements(vertexElements: VertexElement[]): number {
+  createVertexElements(vertexElements: VertexElement[]): number {
     vertexElements[0] = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
     vertexElements[1] = new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0);
     vertexElements[2] = new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0);
     return 36;
   }
 
-  _canBatch(preElement: SpriteElement, curElement: SpriteElement): boolean {
-    const preSpriteRenderer = <SpriteRenderer>preElement.component;
-    const curSpriteRenderer = <SpriteRenderer>curElement.component;
+  canBatch(preElement: SpriteElement, curElement: SpriteElement): boolean {
+    const preRenderer = <SpriteRenderer>preElement.component;
+    const curRenderer = <SpriteRenderer>curElement.component;
 
     // Compare mask
-    if (!this._checkBatchByMask(preSpriteRenderer, curSpriteRenderer)) {
+    if (!this.checkBatchWithMask(preRenderer, curRenderer)) {
       return false;
     }
 
-    // Compare camera
-    if (preElement.camera !== curElement.camera) {
+    // Compare renderer property
+    const textureProperty = SpriteBatcher._textureProperty;
+    if (preRenderer.shaderData.getTexture(textureProperty) !== curRenderer.shaderData.getTexture(textureProperty)) {
       return false;
     }
 
-    // Compare texture
-    const { _textureProperty } = SpriteBatcher;
-    const preTexture = preSpriteRenderer.shaderData.getTexture(_textureProperty);
-    const curTexture = curSpriteRenderer.shaderData.getTexture(_textureProperty);
-    if (preTexture !== curTexture) {
-      return false;
-    }
-
-    // Compare material and shader
-    const preMaterial = preElement.material;
-    const curMaterial = curElement.material;
-    if (
-      preMaterial === curMaterial ||
-      (preMaterial.shader.name === curMaterial.shader.name && curMaterial.shader.name === "Sprite")
-    ) {
-      return true;
-    }
-
-    return false;
+    // Compare material
+    return preElement.material === curElement.material;
   }
 
-  _checkBatchByMask(sr1: SpriteRenderer, sr2: SpriteRenderer): boolean {
-    debugger;
-    const maskInteraction1 = sr1.maskInteraction;
-    if (maskInteraction1 !== sr2.maskInteraction) {
+  checkBatchWithMask(left: SpriteRenderer, right: SpriteRenderer): boolean {
+    const leftMaskInteraction = left.maskInteraction;
+
+    if (leftMaskInteraction !== right.maskInteraction) {
       return false;
     }
-
-    if (maskInteraction1 === SpriteMaskInteraction.None) {
+    if (leftMaskInteraction === SpriteMaskInteraction.None) {
       return true;
     }
-
-    return sr1.maskLayer === sr2.maskLayer;
+    return left.maskLayer === right.maskLayer;
   }
 
-  _updateVertices(element: SpriteElement, vertices: Float32Array, vertexIndex: number): number {
+  updateVertices(element: SpriteElement, vertices: Float32Array, vertexIndex: number): number {
     const { positions, uv, color } = element;
     const verticesNum = positions.length;
     for (let i = 0; i < verticesNum; i++) {
@@ -91,7 +73,7 @@ export class SpriteBatcher extends Basic2DBatcher {
     return vertexIndex;
   }
 
-  _drawBatches(engine: Engine): void {
+  drawBatches(engine: Engine): void {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
     const batchedQueue = this._batchedQueue;
@@ -107,7 +89,7 @@ export class SpriteBatcher extends Basic2DBatcher {
 
       const renderer = <SpriteRenderer>spriteElement.component;
       const camera = spriteElement.camera;
-      maskManager.preRender(renderer, camera);
+      maskManager.preRender(camera, renderer);
 
       const compileMacros = Shader._compileMacros;
       compileMacros.clear();

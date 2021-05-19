@@ -1,6 +1,8 @@
 import { Matrix } from "@oasis-engine/math";
+import { SpriteMask } from "../2d/sprite/SpriteMask";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
+import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -28,6 +30,8 @@ export class BasicRenderPipeline {
   _transparentQueue: RenderQueue;
   /** @internal */
   _alphaTestQueue: RenderQueue;
+  /** @internal */
+  _allSpriteMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
 
   private _camera: Camera;
   private _defaultPass: RenderPass;
@@ -117,6 +121,7 @@ export class BasicRenderPipeline {
     this._opaqueQueue.destroy();
     this._alphaTestQueue.destroy();
     this._transparentQueue.destroy();
+    this._allSpriteMasks = null;
     this._renderPassArray = null;
     this._defaultPass = null;
     this._camera = null;
@@ -138,6 +143,8 @@ export class BasicRenderPipeline {
     opaqueQueue.clear();
     alphaTestQueue.clear();
     transparentQueue.clear();
+    this._allSpriteMasks.length = 0;
+
     camera.engine._componentsManager.callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);

@@ -2,11 +2,8 @@ import { Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
-import { Material } from "../../material/Material";
 import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
-import { ColorWriteMask } from "../../shader/enums/ColorWriteMask";
-import { CullMode } from "../../shader/enums/CullMode";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
@@ -24,6 +21,9 @@ export class SpriteMask extends Renderer {
 
   private static _tempVec3: Vector3 = new Vector3();
 
+  /** @internal */
+  _maskElement: SpriteMaskElement;
+
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   @ignoreClone
@@ -34,9 +34,10 @@ export class SpriteMask extends Renderer {
   private _sprite: Sprite = null;
   @assignmentClone
   private _alphaCutoff: number = 0.5;
+
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
-  private influenceLayers: number = SpriteMaskLayer.Everything;
+  influenceLayers: number = SpriteMaskLayer.Everything;
 
   /**
    * The Sprite used to define the mask.
@@ -72,24 +73,8 @@ export class SpriteMask extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     this._worldMatrixDirtyFlag = entity.transform.registerWorldChangeFlag();
-    this.setMaterial(this._createMaterial());
+    this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
-  }
-
-  /**
-   * @override
-   * @inheritdoc
-   */
-  _onEnable(): void {
-    this.engine.spriteMaskManager.addMask(this);
-  }
-
-  /**
-   * @override
-   * @inheritdoc
-   */
-  _onDisable(): void {
-    this.engine.spriteMaskManager.removeMask(this);
   }
 
   /**
@@ -105,12 +90,7 @@ export class SpriteMask extends Renderer {
    * @override
    * @inheritdoc
    */
-  _render(camera: Camera): void {}
-
-  /**
-   * @internal
-   */
-  _getElement(): SpriteMaskElement {
+  _render(camera: Camera): void {
     const sprite = this.sprite;
     if (!sprite) {
       return null;
@@ -143,18 +123,11 @@ export class SpriteMask extends Renderer {
 
     this.shaderData.setTexture(SpriteMask._textureProperty, texture);
     const spriteMaskElementPool = this._engine._spriteMaskElementPool;
-    const spriteMaskElement = spriteMaskElementPool.getFromPool();
-    spriteMaskElement.setValue(this, positions, sprite._uv, sprite._triangles, this.getMaterial());
-    return spriteMaskElement;
-  }
+    const maskElement = spriteMaskElementPool.getFromPool();
+    maskElement.setValue(this, positions, sprite._uv, sprite._triangles, this.getMaterial());
+    maskElement.camera = camera;
 
-  private _createMaterial(): Material {
-    const material = new Material(this.engine, Shader.find("SpriteMask"));
-    const renderState = material.renderState;
-    renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.stencilState.enabled = true;
-    renderState.depthState.enabled = false;
-    return material;
+    camera._renderPipeline._allSpriteMasks.add(this);
+    this._maskElement = maskElement;
   }
 }
