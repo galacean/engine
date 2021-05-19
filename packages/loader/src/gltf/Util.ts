@@ -176,7 +176,6 @@ export function getElementFormat(type: number, size: number, normalized: boolean
       case 2:
         return normalized ? VertexElementFormat.NormalizedShort2 : VertexElementFormat.Short2;
       case 3:
-        return normalized ? VertexElementFormat.NormalizedShort3 : VertexElementFormat.Short3;
       case 4:
         return normalized ? VertexElementFormat.NormalizedShort4 : VertexElementFormat.Short4;
     }
@@ -187,7 +186,6 @@ export function getElementFormat(type: number, size: number, normalized: boolean
       case 2:
         return normalized ? VertexElementFormat.NormalizedUShort2 : VertexElementFormat.UShort2;
       case 3:
-        return normalized ? VertexElementFormat.NormalizedUShort3 : VertexElementFormat.UShort3;
       case 4:
         return normalized ? VertexElementFormat.NormalizedUShort4 : VertexElementFormat.UShort4;
     }
@@ -196,9 +194,7 @@ export function getElementFormat(type: number, size: number, normalized: boolean
   if (type == DataType.BYTE) {
     switch (size) {
       case 2:
-        return normalized ? VertexElementFormat.NormalizedByte2 : VertexElementFormat.Byte2;
       case 3:
-        return normalized ? VertexElementFormat.NormalizedByte3 : VertexElementFormat.Byte3;
       case 4:
         return normalized ? VertexElementFormat.NormalizedByte4 : VertexElementFormat.Byte4;
     }
@@ -207,9 +203,7 @@ export function getElementFormat(type: number, size: number, normalized: boolean
   if (type == DataType.UNSIGNED_BYTE) {
     switch (size) {
       case 2:
-        return normalized ? VertexElementFormat.NormalizedUByte2 : VertexElementFormat.UByte2;
       case 3:
-        return normalized ? VertexElementFormat.NormalizedUByte3 : VertexElementFormat.UByte3;
       case 4:
         return normalized ? VertexElementFormat.NormalizedUByte4 : VertexElementFormat.UByte4;
     }
