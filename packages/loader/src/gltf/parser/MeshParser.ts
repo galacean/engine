@@ -120,7 +120,7 @@ export class MeshParser extends Parser {
     for (const attributeSemantic in attributes) {
       const accessorIdx = attributes[attributeSemantic];
       const accessor = gltf.accessors[accessorIdx];
-      const stride = getVertexStride(accessor);
+      const stride = getVertexStride(gltf, accessor);
       const vertexELement = createVertexElement(attributeSemantic, accessor, j);
 
       vertexElements.push(vertexELement);

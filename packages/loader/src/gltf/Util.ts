@@ -1,4 +1,4 @@
-import { DataType, IndexFormat, VertexElement, VertexElementFormat } from "@oasis-engine/core";
+import { DataType, IndexFormat, TypedArray, VertexElement, VertexElementFormat } from "@oasis-engine/core";
 import { IAccessor, IBufferView, IGLTF } from "./Schema";
 
 const WEBGL_COMPONENT_TYPES = {
@@ -64,7 +64,7 @@ export function getComponentType(componentType) {
  * @param buffers
  * @private
  */
-export function getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]) {
+export function getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
   const bufferView = gltf.bufferViews[accessor.bufferView];
   const arrayBuffer = buffers[bufferView.buffer];
   const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
@@ -77,14 +77,12 @@ export function getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: Array
   const arrayType = getComponentType(accessor.componentType);
   let uint8Array;
   if (byteStride) {
-    uint8Array = new Uint8Array(length * arrayType.BYTES_PER_ELEMENT);
+    uint8Array = new Uint8Array(accessor.count * byteStride);
     const originalBufferView = new Uint8Array(arrayBuffer, bufferViewByteOffset, bufferView.byteLength);
-    let viewAccessor = 0;
     const accessorByteSize = accessorTypeSize * arrayType.BYTES_PER_ELEMENT;
     for (let i = 0; i < accessor.count; i++) {
-      viewAccessor = i * byteStride + accessorByteOffset;
       for (let j = 0; j < accessorByteSize; j++) {
-        uint8Array[i * accessorByteSize + j] = originalBufferView[viewAccessor + j];
+        uint8Array[i * byteStride + j] = originalBufferView[i * byteStride + accessorByteOffset + j];
       }
     }
   } else {
@@ -93,7 +91,7 @@ export function getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: Array
   }
 
   const typedArray = new arrayType(uint8Array.buffer);
-
+  console.log(typedArray);
   if (accessor.sparse) {
     const { count, indices, values } = accessor.sparse;
     const indicesBufferView = gltf.bufferViews[indices.bufferView];
@@ -135,7 +133,12 @@ export function getBufferViewData(bufferView: IBufferView, buffers: ArrayBuffer[
   return arrayBuffer.slice(byteOffset, byteOffset + byteLength);
 }
 
-export function getVertexStride(accessor: IAccessor): number {
+export function getVertexStride(gltf: IGLTF, accessor: IAccessor): number {
+  const stride = gltf.bufferViews[accessor.bufferView ?? 0].byteStride;
+  if (stride) {
+    return stride;
+  }
+
   const size = getAccessorTypeSize(accessor.type);
   const componentType = getComponentType(accessor.componentType);
   return size * componentType.BYTES_PER_ELEMENT;
