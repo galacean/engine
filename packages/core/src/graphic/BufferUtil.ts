@@ -71,42 +71,6 @@ export class BufferUtil {
         size = 4;
         type = DataType.FLOAT;
         break;
-      case VertexElementFormat.Byte2:
-        size = 2;
-        type = DataType.BYTE;
-        break;
-      case VertexElementFormat.UByte2:
-        size = 2;
-        type = DataType.UNSIGNED_BYTE;
-        break;
-      case VertexElementFormat.NormalizedByte2:
-        size = 2;
-        type = DataType.BYTE;
-        normalized = true;
-        break;
-      case VertexElementFormat.NormalizedUByte2:
-        size = 2;
-        type = DataType.UNSIGNED_BYTE;
-        normalized = true;
-        break;
-      case VertexElementFormat.Byte3:
-        size = 3;
-        type = DataType.BYTE;
-        break;
-      case VertexElementFormat.UByte3:
-        size = 3;
-        type = DataType.UNSIGNED_BYTE;
-        break;
-      case VertexElementFormat.NormalizedByte3:
-        size = 3;
-        type = DataType.BYTE;
-        normalized = true;
-        break;
-      case VertexElementFormat.NormalizedUByte3:
-        size = 3;
-        type = DataType.UNSIGNED_BYTE;
-        normalized = true;
-        break;
       case VertexElementFormat.Byte4:
         size = 4;
         type = DataType.BYTE;
@@ -140,24 +104,6 @@ export class BufferUtil {
         break;
       case VertexElementFormat.NormalizedUShort2:
         size = 2;
-        type = DataType.UNSIGNED_SHORT;
-        normalized = true;
-        break;
-      case VertexElementFormat.Short3:
-        size = 3;
-        type = DataType.SHORT;
-        break;
-      case VertexElementFormat.UShort3:
-        size = 3;
-        type = DataType.UNSIGNED_SHORT;
-        break;
-      case VertexElementFormat.NormalizedShort3:
-        size = 3;
-        type = DataType.SHORT;
-        normalized = true;
-        break;
-      case VertexElementFormat.NormalizedUShort3:
-        size = 3;
         type = DataType.UNSIGNED_SHORT;
         normalized = true;
         break;

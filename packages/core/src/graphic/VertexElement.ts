@@ -70,11 +70,4 @@ export class VertexElement {
     this._glElementInfo = BufferUtil._getElementInfo(this.format);
     this._instanceStepRate = Math.floor(instanceStepRate);
   }
-
-  /**
-   * @deprecated
-   */
-  get elementInfo(): ElementInfo {
-    return this._glElementInfo;
-  }
 }
