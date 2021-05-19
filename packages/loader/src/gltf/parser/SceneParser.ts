@@ -152,7 +152,7 @@ export class SceneParser extends Parser {
   private _createSceneRoots(context: GLTFResource): void {
     const {
       engine,
-      gltf: { scene: sceneID, scenes },
+      gltf: { scene: sceneID = 0, scenes },
       entities
     } = context;
 
@@ -177,7 +177,7 @@ export class SceneParser extends Parser {
     }
 
     context.sceneRoots = sceneRoots;
-    context.defaultSceneRoot = sceneRoots[sceneID ?? 0];
+    context.defaultSceneRoot = sceneRoots[sceneID];
   }
 
   private _createAnimator(context: GLTFResource) {
