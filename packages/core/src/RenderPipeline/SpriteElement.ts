@@ -1,6 +1,6 @@
 import { Color, Vector2, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
-import { Material } from "../material";
+import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 
 export class SpriteElement {

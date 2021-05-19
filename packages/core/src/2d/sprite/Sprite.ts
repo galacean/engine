@@ -1,7 +1,7 @@
 import { BoundingBox, MathUtil, Rect, Vector2 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
-import { Texture2D } from "../../texture";
+import { Texture2D } from "../../texture/Texture2D";
 
 /**
  * 2D sprite.
