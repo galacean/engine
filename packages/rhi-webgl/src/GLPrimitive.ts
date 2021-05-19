@@ -133,8 +133,7 @@ export class GLPrimitive implements IPlatformPrimitive {
         const { size, type, normalized } = element._glElementInfo;
         gl.vertexAttribPointer(loc, size, type, normalized, stride, element.offset);
         if (this.canUseInstancedArrays) {
-          // @ts-ignore  @todo
-          gl.vertexAttribDivisor(loc, element.instanceDivisor);
+          gl.vertexAttribDivisor(loc, element.instanceStepRate);
         }
         this.attribLocArray.push(loc);
       } else {
