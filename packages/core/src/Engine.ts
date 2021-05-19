@@ -52,11 +52,12 @@ export class Engine extends EventDispatcher {
   _renderCount: number = 0;
   /* @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
+  /** @internal */
+  _spriteMaskManager: SpriteMaskManager;
 
   protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
-  private _spriteMaskManager: SpriteMaskManager;
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
@@ -98,13 +99,6 @@ export class Engine extends EventDispatcher {
    */
   get sceneManager(): SceneManager {
     return this._sceneManager;
-  }
-
-  /**
-   * Get the sprite mask manager.
-   */
-  get spriteMaskManager(): SpriteMaskManager {
-    return this._spriteMaskManager;
   }
 
   /**

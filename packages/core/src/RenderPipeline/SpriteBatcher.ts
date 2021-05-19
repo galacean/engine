@@ -77,7 +77,7 @@ export class SpriteBatcher extends Basic2DBatcher {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
     const batchedQueue = this._batchedQueue;
-    const maskManager = engine.spriteMaskManager;
+    const maskManager = engine._spriteMaskManager;
 
     for (let i = 0, len = subMeshes.length; i < len; i++) {
       const subMesh = subMeshes[i];

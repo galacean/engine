@@ -138,7 +138,7 @@ export class BasicRenderPipeline {
     const alphaTestQueue = this._alphaTestQueue;
     const transparentQueue = this._transparentQueue;
 
-    camera.engine.spriteMaskManager.clear();
+    camera.engine._spriteMaskManager.clear();
 
     opaqueQueue.clear();
     alphaTestQueue.clear();
