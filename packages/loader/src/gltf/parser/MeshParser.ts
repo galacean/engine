@@ -132,10 +132,11 @@ export class MeshParser extends Parser {
       // compute bounds
       if (vertexELement.semantic == "POSITION") {
         const position = new Vector3();
-        vertexCount = bufferData.length / 3;
+        vertexCount = accessor.count;
         const { min, max } = mesh.bounds;
+        const stride = bufferData.length / vertexCount;
         for (let j = 0; j < vertexCount; j++) {
-          const offset = j * 3;
+          const offset = j * stride;
           position.setValue(bufferData[offset], bufferData[offset + 1], bufferData[offset + 2]);
           Vector3.min(min, position, min);
           Vector3.max(max, position, max);
