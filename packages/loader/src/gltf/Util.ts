@@ -91,7 +91,7 @@ export function getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: Array
   }
 
   const typedArray = new arrayType(uint8Array.buffer);
-  console.log(typedArray);
+
   if (accessor.sparse) {
     const { count, indices, values } = accessor.sparse;
     const indicesBufferView = gltf.bufferViews[indices.bufferView];

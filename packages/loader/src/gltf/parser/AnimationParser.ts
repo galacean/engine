@@ -46,12 +46,17 @@ export class AnimationParser extends Parser {
           duration = maxTime;
           durationIndex = i;
         }
-        animationClip.addSampler(input, output, outputAccessorSize, samplerInterpolation);
+        animationClip.addSampler(
+          input as Float32Array,
+          output as Float32Array,
+          outputAccessorSize,
+          samplerInterpolation
+        );
       }
 
       animationClip.durationIndex = durationIndex;
       animationClip.duration = duration;
-      
+
       for (let i = 0; i < channels.length; i++) {
         const { target, sampler } = channels[i];
         const targetPath = target.path === "translation" ? "position" : target.path;
