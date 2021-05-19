@@ -56,8 +56,6 @@ export class SceneParser extends Parser {
       }
     }
 
-    this._createSceneRoots(context);
-
     if (context.defaultSceneRoot) {
       this._createAnimator(context);
     }
@@ -147,37 +145,6 @@ export class SceneParser extends Parser {
         Parser.parseEngineResource("KHR_materials_variants", KHR_materials_variants, renderer, context);
       }
     }
-  }
-
-  private _createSceneRoots(context: GLTFResource): void {
-    const {
-      engine,
-      gltf: { scene: sceneID = 0, scenes },
-      entities
-    } = context;
-
-    if (!scenes) return;
-
-    const sceneRoots: Entity[] = [];
-
-    for (let i = 0; i < scenes.length; i++) {
-      const { nodes } = scenes[i];
-
-      if (!nodes) continue;
-
-      if (nodes.length === 1) {
-        sceneRoots[i] = entities[nodes[0]];
-      } else {
-        const rootEntity = new Entity(engine, "GLTF_ROOT");
-        for (let j = 0; j < nodes.length; j++) {
-          rootEntity.addChild(entities[nodes[j]]);
-        }
-        sceneRoots[i] = rootEntity;
-      }
-    }
-
-    context.sceneRoots = sceneRoots;
-    context.defaultSceneRoot = sceneRoots[sceneID];
   }
 
   private _createAnimator(context: GLTFResource) {

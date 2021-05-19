@@ -7,12 +7,11 @@ import { Parser } from "./Parser";
 
 export class SkinParser extends Parser {
   parse(context: GLTFResource): void {
-    const { gltf, buffers } = context;
+    const { gltf, buffers, entities, defaultSceneRoot } = context;
     const gltfSkins = gltf.skins;
 
     if (!gltfSkins) return;
 
-    const gltfNodes = gltf.nodes;
     const skins: Skin[] = [];
 
     for (let i = 0; i < gltfSkins.length; i++) {
@@ -33,21 +32,14 @@ export class SkinParser extends Parser {
 
       // get joints
       for (let i = 0; i < jointCount; i++) {
-        skin.joints[i] = gltfNodes[joints[i]].name || `${EntityParser._defaultName}${joints[i]}`;
+        skin.joints[i] = entities[joints[i]];
       }
 
       // get skeleton
-      const skeletonIndex =
-        skeleton ??
-        (gltf.scenes
-          ? gltf.scenes[gltf.scene ?? 0].nodes.length > 1
-            ? -1
-            : gltf.scenes[gltf.scene ?? 0].nodes[0]
-          : joints[0]);
-      if (skeletonIndex === -1) {
-        skin.skeleton = "GLTF_ROOT";
+      if (skeleton !== undefined) {
+        skin.skeleton = entities[skeleton];
       } else {
-        skin.skeleton = gltfNodes[skeletonIndex].name || `${EntityParser._defaultName}${skeletonIndex}`;
+        skin.skeleton = defaultSceneRoot;
       }
 
       skins[i] = skin;

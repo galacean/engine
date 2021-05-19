@@ -53,6 +53,7 @@ export class EntityParser extends Parser {
 
     context.entities = entities;
     this._buildEntityTree(context);
+    this._createSceneRoots(context);
   }
 
   private _buildEntityTree(context: GLTFResource): void {
@@ -73,5 +74,36 @@ export class EntityParser extends Parser {
         }
       }
     }
+  }
+
+  private _createSceneRoots(context: GLTFResource): void {
+    const {
+      engine,
+      gltf: { scene: sceneID = 0, scenes },
+      entities
+    } = context;
+
+    if (!scenes) return;
+
+    const sceneRoots: Entity[] = [];
+
+    for (let i = 0; i < scenes.length; i++) {
+      const { nodes } = scenes[i];
+
+      if (!nodes) continue;
+
+      if (nodes.length === 1) {
+        sceneRoots[i] = entities[nodes[0]];
+      } else {
+        const rootEntity = new Entity(engine, "GLTF_ROOT");
+        for (let j = 0; j < nodes.length; j++) {
+          rootEntity.addChild(entities[nodes[j]]);
+        }
+        sceneRoots[i] = rootEntity;
+      }
+    }
+
+    context.sceneRoots = sceneRoots;
+    context.defaultSceneRoot = sceneRoots[sceneID];
   }
 }

@@ -56,8 +56,8 @@ export const gltfParser = new GLTFParser([
   TextureParser,
   MaterialParser,
   MeshParser,
+  EntityParser,
   SkinParser,
   AnimationParser,
-  EntityParser,
   SceneParser
 ]);
