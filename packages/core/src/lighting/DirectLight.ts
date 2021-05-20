@@ -35,7 +35,6 @@ export class DirectLight extends Light {
 
   /**
    * Get direction.
-   * @readonly
    */
   get direction(): Vector3 {
     this.entity.transform.getWorldForward(this._forward);
@@ -44,7 +43,6 @@ export class DirectLight extends Light {
 
   /**
    * Get the final light color.
-   * @readonly
    */
   get lightColor(): Color {
     this._lightColor.r = this.color.r * this.intensity;
@@ -56,7 +54,6 @@ export class DirectLight extends Light {
 
   /**
    * Get the opposite direction of the directional light direction.
-   * @readonly
    */
   get reverseDirection(): Vector3 {
     Vector3.scale(this.direction, -1, this._reverseDirection);

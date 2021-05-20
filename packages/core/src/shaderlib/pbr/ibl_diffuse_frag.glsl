@@ -1,12 +1,18 @@
 #ifdef RE_IndirectDiffuse
 
     vec3 irradiance = vec3(0);
-
-    #if defined(O3_HAS_ENVMAP_LIGHT) && defined(O3_USE_DIFFUSE_ENV)
-        irradiance += getLightProbeIrradiance(u_env_sh, normal) * u_envMapLight.diffuseIntensity;;
-    #elif defined(O3_HAS_AMBIENT_LIGHT)
-        irradiance += getAmbientLightIrradiance(u_ambientLightColor);
+    
+    #ifdef O3_USE_DIFFUSE_ENV
+        vec3 lightMapIrradiance = getLightProbeIrradiance(u_env_sh, normal) * u_envMapLight.diffuseIntensity;
+    #else
+        vec3 lightMapIrradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
     #endif
+
+    #ifndef PHYSICALLY_CORRECT_LIGHTS
+        lightMapIrradiance *= PI;
+    #endif
+
+    irradiance += lightMapIrradiance;
 
     RE_IndirectDiffuse( irradiance, geometry, material, reflectedLight );
 

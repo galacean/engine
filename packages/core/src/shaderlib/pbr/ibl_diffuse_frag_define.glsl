@@ -4,24 +4,6 @@ void RE_IndirectDiffuse_Physical( const in vec3 irradiance, const in GeometricCo
 
 }
 
-#ifdef O3_HAS_AMBIENT_LIGHT
-
-vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
-
-    vec3 irradiance = ambientLightColor;
-
-    #ifndef PHYSICALLY_CORRECT_LIGHTS
-
-        irradiance *= PI;
-
-    #endif
-
-    return irradiance;
-
-}
-
-#endif
-
 // sh need be pre-scaled in CPU.
 vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
       vec3 result = sh[0] +

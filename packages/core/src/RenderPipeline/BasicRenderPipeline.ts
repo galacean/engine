@@ -1,8 +1,17 @@
-import { Vector4 } from "@oasis-engine/math";
+import { Matrix } from "@oasis-engine/math";
+import { SpriteMask } from "../2d/sprite/SpriteMask";
+import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
+import { DisorderedArray } from "../DisorderedArray";
+import { Engine } from "../Engine";
+import { BackgroundMode } from "../enums/BackgroundMode";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
-import { RenderQueueType } from "../material";
+import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Material } from "../material/Material";
+import { Shader } from "../shader/Shader";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { Sky } from "../sky/Sky";
 import { TextureCubeFace } from "../texture/enums/TextureCubeFace";
 import { RenderTarget } from "../texture/RenderTarget";
 import { RenderContext } from "./RenderContext";
@@ -21,11 +30,12 @@ export class BasicRenderPipeline {
   _transparentQueue: RenderQueue;
   /** @internal */
   _alphaTestQueue: RenderQueue;
+  /** @internal */
+  _allSpriteMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
 
   private _camera: Camera;
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
-  private _canvasDepthPass;
 
   /**
    * Create a basic render pipeline.
@@ -33,9 +43,10 @@ export class BasicRenderPipeline {
    */
   constructor(camera: Camera) {
     this._camera = camera;
-    this._opaqueQueue = new RenderQueue(camera.engine);
-    this._alphaTestQueue = new RenderQueue(camera.engine);
-    this._transparentQueue = new RenderQueue(camera.engine);
+    const { engine } = camera;
+    this._opaqueQueue = new RenderQueue(engine);
+    this._alphaTestQueue = new RenderQueue(engine);
+    this._transparentQueue = new RenderQueue(engine);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -56,18 +67,16 @@ export class BasicRenderPipeline {
    * @param renderTarget - The specified Render Target
    * @param replaceMaterial -  Replaced material
    * @param mask - Perform bit and operations with Entity.Layer to filter the objects that this Pass needs to render
-   * @param clearParam - Clear the background color of renderTarget
    */
   addRenderPass(
     nameOrPass: string | RenderPass,
     priority: number = null,
     renderTarget: RenderTarget = null,
     replaceMaterial: Material = null,
-    mask: Layer = null,
-    clearParam = new Vector4(0, 0, 0, 0)
+    mask: Layer = null
   ) {
     if (typeof nameOrPass === "string") {
-      const renderPass = new RenderPass(nameOrPass, priority, renderTarget, replaceMaterial, mask, clearParam);
+      const renderPass = new RenderPass(nameOrPass, priority, renderTarget, replaceMaterial, mask);
       this._renderPassArray.push(renderPass);
     } else if (nameOrPass instanceof RenderPass) {
       this._renderPassArray.push(nameOrPass);
@@ -108,7 +117,15 @@ export class BasicRenderPipeline {
   /**
    * Destroy internal resources.
    */
-  destroy() {}
+  destroy(): void {
+    this._opaqueQueue.destroy();
+    this._alphaTestQueue.destroy();
+    this._transparentQueue.destroy();
+    this._allSpriteMasks = null;
+    this._renderPassArray = null;
+    this._defaultPass = null;
+    this._camera = null;
+  }
 
   /**
    * Perform scene rendering.
@@ -121,15 +138,17 @@ export class BasicRenderPipeline {
     const alphaTestQueue = this._alphaTestQueue;
     const transparentQueue = this._transparentQueue;
 
+    camera.engine._spriteMaskManager.clear();
+
     opaqueQueue.clear();
     alphaTestQueue.clear();
     transparentQueue.clear();
+    this._allSpriteMasks.length = 0;
+
     camera.engine._componentsManager.callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
     transparentQueue.sort(RenderQueue._compareFromFarToNear);
-
-    if (this._canvasDepthPass) this._canvasDepthPass.enabled = false;
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
       this._drawRenderPass(this._renderPassArray[i], camera, cubeFace);
@@ -140,17 +159,26 @@ export class BasicRenderPipeline {
     pass.preRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
 
     if (pass.enabled) {
-      const rhi = camera.scene.engine._hardwareRenderer;
+      const { engine, scene } = camera;
+      const { background } = scene;
+      const rhi = engine._hardwareRenderer;
       const renderTarget = camera.renderTarget || pass.renderTarget;
       rhi.activeRenderTarget(renderTarget, camera);
       renderTarget?._setRenderTargetFace(cubeFace);
-      rhi.clearRenderTarget(camera.engine, pass.clearMode, pass.clearParam);
+      const clearFlags = pass.clearFlags ?? camera.clearFlags;
+      const color = pass.clearColor ?? background.solidColor;
+      if (clearFlags !== CameraClearFlags.None) {
+        rhi.clearRenderTarget(camera.engine, clearFlags, color);
+      }
 
       if (pass.renderOverride) {
         pass.render(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
       } else {
         this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
+        if (background.mode === BackgroundMode.Sky) {
+          this._drawSky(engine, camera, background.sky);
+        }
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
 
@@ -175,5 +203,37 @@ export class BasicRenderPipeline {
     } else {
       this._opaqueQueue.pushPrimitive(element);
     }
+  }
+
+  private _drawSky(engine: Engine, camera: Camera, sky: Sky): void {
+    const { material, mesh, _matrix } = sky;
+    if (!material) {
+      Logger.warn("The material of sky is not defined.");
+      return;
+    }
+    if (!mesh) {
+      Logger.warn("The mesh of sky is not defined.");
+      return;
+    }
+
+    const rhi = engine._hardwareRenderer;
+    const { shaderData, shader, renderState } = material;
+
+    const compileMacros = Shader._compileMacros;
+    ShaderMacroCollection.unionCollection(camera._globalShaderMacro, shaderData._macroCollection, compileMacros);
+
+    const { viewMatrix, projectionMatrix } = camera;
+    viewMatrix.cloneTo(_matrix);
+    const e = _matrix.elements;
+    e[12] = e[13] = e[14] = 0;
+    Matrix.multiply(projectionMatrix, _matrix, _matrix);
+    shaderData.setMatrix("u_mvpNoscale", _matrix);
+
+    const program = shader._getShaderProgram(engine, compileMacros);
+    program.bind();
+    program.uploadAll(program.materialUniformBlock, shaderData);
+
+    renderState._apply(engine);
+    rhi.drawPrimitive(mesh, mesh.subMesh, program);
   }
 }

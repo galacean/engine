@@ -8,10 +8,8 @@ import {
   Camera,
   Component,
   DirectLight,
-  EnvironmentMapLight,
   ParticleRenderer,
   PointLight,
-  SkyBox,
   SphereCollider,
   SpriteRenderer
 } from "@oasis-engine/core";
@@ -23,9 +21,7 @@ Parser.registerComponents("o3", {
   PointLight,
   AmbientLight,
   DirectLight,
-  EnvironmentMapLight,
   ParticleRenderer,
-  SkyBox,
   BoxCollider,
   Camera,
   Model,

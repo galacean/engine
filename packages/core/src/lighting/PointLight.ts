@@ -41,7 +41,6 @@ export class PointLight extends Light {
 
   /**
    * Get light position.
-   * @readonly
    */
   get position(): Vector3 {
     return this.entity.transform.worldPosition;
@@ -49,7 +48,6 @@ export class PointLight extends Light {
 
   /**
    * Get the final light color.
-   * @readonly
    */
   get lightColor(): Color {
     this._lightColor.r = this.color.r * this.intensity;

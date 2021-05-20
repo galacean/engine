@@ -5,17 +5,26 @@ import { ComponentsManager } from "./ComponentsManager";
 import { EngineFeature } from "./EngineFeature";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
+import { RenderQueueType } from "./material/enums/RenderQueueType";
+import { Material } from "./material/Material";
 import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { ClassPool } from "./RenderPipeline/ClassPool";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteElement } from "./RenderPipeline/SpriteElement";
+import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
+import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
+import { BlendFactor } from "./shader/enums/BlendFactor";
+import { BlendOperation } from "./shader/enums/BlendOperation";
+import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
+import { CullMode } from "./shader/enums/CullMode";
 import { Shader } from "./shader/Shader";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
+import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -29,12 +38,22 @@ export class Engine extends EventDispatcher {
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
+  _spriteMaskElementPool: ClassPool<SpriteMaskElement> = new ClassPool(SpriteMaskElement);
+  _spriteDefaultMaterial: Material;
+  _spriteMaskDefaultMaterial: Material;
   _renderContext: RenderContext = new RenderContext();
 
+  /* @internal */
+  _whiteTexture2D: Texture2D;
+  /* @internal */
+  _whiteTextureCube: TextureCubeMap;
   /* @internal */
   _renderCount: number = 0;
   /* @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
+  /** @internal */
+  _spriteMaskManager: SpriteMaskManager;
 
   protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
@@ -63,7 +82,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * The canvas to use for rendering.
-   * @readonly
    */
   get canvas(): Canvas {
     return this._canvas;
@@ -71,7 +89,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * Get the resource manager.
-   * @readonly
    */
   get resourceManager(): ResourceManager {
     return this._resourceManager;
@@ -79,7 +96,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * Get the scene manager.
-   * @readonly
    */
   get sceneManager(): SceneManager {
     return this._sceneManager;
@@ -87,7 +103,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * Get the Time class.
-   * @readonly
    */
   get time(): Time {
     return this._time;
@@ -95,7 +110,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * Whether the engine is paused.
-   * @readonly
    */
   get isPaused(): boolean {
     return this._isPaused;
@@ -142,6 +156,28 @@ export class Engine extends EventDispatcher {
     // @todo delete
     engineFeatureManager.addObject(this);
     this._sceneManager.activeScene = new Scene(this, "DefaultScene");
+
+    this._spriteMaskManager = new SpriteMaskManager(this);
+    this._spriteDefaultMaterial = this._createSpriteMaterial();
+    this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
+
+    const whitePixel = new Uint8Array([255, 255, 255, 255]);
+
+    const whiteTextrue2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+    whiteTextrue2D.setPixelBuffer(whitePixel);
+    whiteTextrue2D.isGCIgnored = true;
+
+    const whiteTextrueCube = new TextureCubeMap(this, 1, TextureFormat.R8G8B8A8, false);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
+    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
+    whiteTextrueCube.isGCIgnored = true;
+
+    this._whiteTexture2D = whiteTextrue2D;
+    this._whiteTextureCube = whiteTextrueCube;
   }
 
   /**
@@ -180,8 +216,9 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
 
     time.tick();
-    RenderElement._restPool();
-    SpriteElement._restPool();
+    this._renderElementPool.resetPool();
+    this._spriteElementPool.resetPool();
+    this._spriteMaskElementPool.resetPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
@@ -216,7 +253,9 @@ export class Engine extends EventDispatcher {
    */
   destroy(): void {
     if (this._sceneManager) {
-      // -- event
+      this._whiteTexture2D.destroy(true);
+      this._whiteTextureCube.destroy(true);
+
       this.trigger(new Event("shutdown", this));
       engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
 
@@ -236,6 +275,9 @@ export class Engine extends EventDispatcher {
 
       this.features = [];
       this._time = null;
+
+      // delete mask manager
+      this._spriteMaskManager.destroy();
 
       // todo: delete
       (engineFeatureManager as any)._objects = [];
@@ -286,6 +328,34 @@ export class Engine extends EventDispatcher {
     } else {
       Logger.debug("NO active camera.");
     }
+  }
+
+  private _createSpriteMaterial(): Material {
+    const material = new Material(this, Shader.find("Sprite"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    material.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createSpriteMaskMaterial(): Material {
+    const material = new Material(this, Shader.find("SpriteMask"));
+    const renderState = material.renderState;
+    renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.stencilState.enabled = true;
+    renderState.depthState.enabled = false;
+    material.isGCIgnored = true;
+    return material;
   }
 
   //-----------------------------------------@deprecated-----------------------------------

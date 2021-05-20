@@ -38,9 +38,11 @@ export class Entity extends EngineObject {
     }
   }
 
+  /** The name of entity. */
   name: string;
   /** The layer the entity belongs to. */
   layer: Layer = Layer.Layer0;
+  /** Transform component. */
   readonly transform: Transform;
 
   /** @internal */
