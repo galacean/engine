@@ -1,7 +1,7 @@
 import { BoundingBox, MathUtil, Rect, Vector2 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
-import { Texture2D } from "../../texture";
+import { Texture2D } from "../../texture/Texture2D";
 
 /**
  * 2D sprite.
@@ -33,7 +33,7 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._setDirtyFlagFalse(DirtyFlag.positions);
+      this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
 

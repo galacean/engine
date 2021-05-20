@@ -11,9 +11,7 @@ export { Component } from "./Component";
 export { Script } from "./Script";
 export { Renderer } from "./Renderer";
 export { dependencies } from "./ComponentsDependencies";
-
 export { Camera } from "./Camera";
-export { Background } from "./Background";
 export { Transform } from "./Transform";
 export { UpdateFlag } from "./UpdateFlag";
 export { request } from "./asset/request";
@@ -39,17 +37,10 @@ Scene.registerFeature(LightFeature);
 // Quote raycast
 import "./raycast";
 
-export { LightFeature };
-export { AmbientLight } from "./lighting/AmbientLight";
-export { DirectLight } from "./lighting/DirectLight";
-export { PointLight } from "./lighting/PointLight";
-export { SpotLight } from "./lighting/SpotLight";
-export { EnvironmentMapLight } from "./lighting/EnvironmentMapLight";
-export { Light } from "./lighting/Light";
-
+export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
-
+export * from "./lighting/index";
 export * from "./material/index";
 export * from "./texture/index";
 export * from "./graphic/index";
