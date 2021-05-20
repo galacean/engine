@@ -11,34 +11,42 @@ import { TextureParser } from "./parser/TextureParser";
 import { Validator } from "./parser/Validator";
 
 export class GLTFParser {
-  private static _isPromise(value: any): boolean {
-    return value && typeof value.then === "function";
-  }
+  static instance = new GLTFParser([
+    BufferParser,
+    Validator,
+    TextureParser,
+    MaterialParser,
+    MeshParser,
+    EntityParser,
+    SkinParser,
+    AnimationParser,
+    SceneParser
+  ]);
 
-  private _pipeline: Parser[] = [];
+  private _pipes: Parser[] = [];
 
-  constructor(pipeline: (new () => Parser)[]) {
-    pipeline.forEach((Pipe: new () => Parser, index: number) => {
-      this._pipeline[index] = new Pipe();
+  private constructor(pipes: (new () => Parser)[]) {
+    pipes.forEach((pipe: new () => Parser, index: number) => {
+      this._pipes[index] = new pipe();
     });
   }
 
   parse(context: GLTFResource): Promise<GLTFResource> {
-    let lastPipeOutput: void | Promise<void> = void 0;
+    let lastPipe: void | Promise<void>;
 
     return new Promise((resolve, reject) => {
-      this._pipeline.forEach((parser: Parser) => {
-        if (GLTFParser._isPromise(lastPipeOutput)) {
-          lastPipeOutput = (lastPipeOutput as Promise<void>).then(() => {
+      this._pipes.forEach((parser: Parser) => {
+        if (lastPipe) {
+          lastPipe = lastPipe.then(() => {
             return parser.parse(context);
           });
         } else {
-          lastPipeOutput = parser.parse(context);
+          lastPipe = parser.parse(context);
         }
       });
 
-      if (GLTFParser._isPromise(lastPipeOutput)) {
-        (lastPipeOutput as Promise<void>)
+      if (lastPipe) {
+        lastPipe
           .then(() => {
             resolve(context);
           })
@@ -49,15 +57,3 @@ export class GLTFParser {
     });
   }
 }
-
-export const gltfParser = new GLTFParser([
-  BufferParser,
-  Validator,
-  TextureParser,
-  MaterialParser,
-  MeshParser,
-  EntityParser,
-  SkinParser,
-  AnimationParser,
-  SceneParser
-]);
