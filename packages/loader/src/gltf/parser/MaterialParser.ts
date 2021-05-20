@@ -28,7 +28,8 @@ export class MaterialParser extends Parser {
         emissiveFactor,
         alphaMode,
         alphaCutoff,
-        doubleSided
+        doubleSided,
+        name = ""
       } = gltf.materials[i];
 
       const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness } = extensions;
@@ -46,6 +47,8 @@ export class MaterialParser extends Parser {
       } else {
         material = new PBRMaterial(engine);
       }
+
+      material.name = name;
 
       if (pbrMetallicRoughness) {
         const {
