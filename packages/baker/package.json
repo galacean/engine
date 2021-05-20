@@ -1,10 +1,11 @@
 {
   "name": "@oasis-engine/baker",
-  "version": "0.3.0",
+  "version": "0.3.7",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "types": "types/index.d.ts",
+  "browser": "dist/browser.js",
   "scripts": {
     "b:types": "tsc"
   },
@@ -13,7 +14,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.3.0",
-    "@oasis-engine/math": "0.3.0"
+    "oasis-engine": "0.3.7"
   }
 }

@@ -1,5 +1,4 @@
-import { TextureCubeFace, TextureCubeMap } from "@oasis-engine/core";
-import { Color, SphericalHarmonics3, Vector3 } from "@oasis-engine/math";
+import { Color, SphericalHarmonics3, TextureCubeFace, TextureCubeMap, Vector3 } from "oasis-engine";
 
 /**
  * Bake irradiance into spherical harmonics3.
