@@ -4,14 +4,6 @@ void RE_Direct_Physical( const in IncidentLight directLight, const in GeometricC
 
     vec3 irradiance = dotNL * directLight.color;
 
-    #ifndef PHYSICALLY_CORRECT_LIGHTS
-
-        irradiance *= PI; // punctual light
-
-    #endif
-
-
-
     reflectedLight.directSpecular += irradiance * BRDF_Specular_GGX( directLight, geometry, material.specularColor, material.specularRoughness );
 
     reflectedLight.directDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );

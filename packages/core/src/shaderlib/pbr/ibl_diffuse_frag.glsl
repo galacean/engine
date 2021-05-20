@@ -6,11 +6,6 @@
         vec3 lightMapIrradiance = getLightProbeIrradiance(u_env_sh, normal) * u_envMapLight.diffuseIntensity;
     #else
         vec3 lightMapIrradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
-      
-        #ifndef PHYSICALLY_CORRECT_LIGHTS
-            lightMapIrradiance *= PI;
-        #endif
-        
     #endif
 
   
