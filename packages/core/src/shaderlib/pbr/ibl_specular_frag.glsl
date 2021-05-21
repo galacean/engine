@@ -1,20 +1,4 @@
-#if defined( RE_IndirectSpecular )
+vec3 radiance = vec3( 0.0 );
+radiance += getLightProbeIndirectRadiance( geometry, GGXRoughnessToBlinnExponent( material.specularRoughness ), int(u_envMapLight.mipMapLevel) );
 
-    vec3 radiance = vec3( 0.0 );
-
-#endif
-
-
-
-#if defined( RE_IndirectSpecular )
-
-    radiance += getLightProbeIndirectRadiance( geometry, Material_BlinnShininessExponent( material ), int(u_envMapLight.mipMapLevel) );
-
-#endif
-
-
-#if defined( RE_IndirectSpecular )
-
-    RE_IndirectSpecular( radiance, geometry, material, reflectedLight );
-
-#endif
+RE_IndirectSpecular_Physical( radiance, geometry, material, reflectedLight );
