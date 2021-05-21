@@ -35,7 +35,12 @@ export class SphericalHarmonics3Baker {
           const dataOffset = y * textureSize * channelLength + x * channelLength;
           // @todo: float, sRGB, HDR, gamma
           // @todo: alpha is invalid, maybe Color3 needed ?
-          color.setValue(data[dataOffset], data[dataOffset + 1], data[dataOffset + 2], 0).scale(1 / 255);
+          color.setValue(
+            Math.pow(data[dataOffset] / 255, 2.2),
+            Math.pow(data[dataOffset + 1] / 255, 2),
+            Math.pow(data[dataOffset + 2] / 255, 2),
+            0
+          );
 
           switch (faceIndex) {
             case TextureCubeFace.PositiveX:
