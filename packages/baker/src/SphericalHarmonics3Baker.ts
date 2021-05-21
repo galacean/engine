@@ -33,12 +33,11 @@ export class SphericalHarmonics3Baker {
         let u = texelSize * 0.5 - 1;
         for (let x = 0; x < textureSize; x++) {
           const dataOffset = y * textureSize * channelLength + x * channelLength;
-          // @todo: float, sRGB, HDR, gamma
-          // @todo: alpha is invalid, maybe Color3 needed ?
+
           color.setValue(
-            Math.pow(data[dataOffset] / 255, 2.2),
-            Math.pow(data[dataOffset + 1] / 255, 2),
-            Math.pow(data[dataOffset + 2] / 255, 2),
+            Color.gammaToLinearSpace(data[dataOffset] / 255),
+            Color.gammaToLinearSpace(data[dataOffset + 1] / 255),
+            Color.gammaToLinearSpace(data[dataOffset + 2] / 255),
             0
           );
 
@@ -62,6 +61,7 @@ export class SphericalHarmonics3Baker {
               direction.setValue(-u, -v, -1);
               break;
           }
+
           /**
            * dA = cos = S / r = 4 / r
            * dw =  dA / r2 = 4 / r / r2
