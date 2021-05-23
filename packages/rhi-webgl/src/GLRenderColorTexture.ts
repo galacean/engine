@@ -54,6 +54,7 @@ export class GLRenderColorTexture extends GLTexture implements IPlatformRenderCo
    * @param width - Area width
    * @param height - Area height
    * @param out - Color buffer
+   * @param mipLevel - Set mip level the data want to get from
    */
   getPixelBuffer(
     face: TextureCubeFace | null,
@@ -61,8 +62,9 @@ export class GLRenderColorTexture extends GLTexture implements IPlatformRenderCo
     y: number,
     width: number,
     height: number,
-    out: ArrayBufferView
+    out: ArrayBufferView,
+    mipLevel: number
   ): void {
-    super._getPixelBuffer(face, x, y, width, height, out);
+    super._getPixelBuffer(face, x, y, width, height, out, mipLevel);
   }
 }

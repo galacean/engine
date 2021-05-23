@@ -102,6 +102,7 @@ export class TextureCubeMap extends Texture {
    * @param width - Area width
    * @param height - Area height
    * @param out - Color buffer
+   * @param mipLevel - Set mip level the data want to get from
    */
   getPixelBuffer(
     face: TextureCubeFace,
@@ -109,8 +110,9 @@ export class TextureCubeMap extends Texture {
     y: number,
     width: number,
     height: number,
-    out: ArrayBufferView
+    out: ArrayBufferView,
+    mipLevel: number = 0
   ): void {
-    (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(face, x, y, width, height, out);
+    (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(face, x, y, width, height, out, mipLevel);
   }
 }
