@@ -5,6 +5,7 @@ import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCubeMap } from "../texture";
 import { DiffuseMode } from "./enums/DiffuseMode";
+import { SpecularMode } from "./enums/SpecularMode";
 
 /**
  * Ambient light.
@@ -12,6 +13,7 @@ import { DiffuseMode } from "./enums/DiffuseMode";
 export class AmbientLight {
   private static _diffuseMacro: ShaderMacro = Shader.getMacroByName("O3_USE_DIFFUSE_ENV");
   private static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
+  private static _hdrMacro: ShaderMacro = Shader.getMacroByName("USE_HDR_ENV");
 
   private static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
   private static _diffuseSHProperty: ShaderProperty = Shader.getPropertyByName("u_env_sh");
@@ -28,6 +30,7 @@ export class AmbientLight {
   private _specularReflection: TextureCubeMap;
   private _specularIntensity: number = 1.0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
+  private _specularMode: SpecularMode = SpecularMode.LDR;
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
 
   /**
@@ -86,6 +89,22 @@ export class AmbientLight {
   set diffuseIntensity(value: number) {
     this._diffuseIntensity = value;
     this._scene.shaderData.setFloat(AmbientLight._diffuseIntensityProperty, value);
+  }
+
+  /**
+   * Specular mode of ambient light.
+   */
+  get specularMode(): SpecularMode {
+    return this._specularMode;
+  }
+
+  set specularMode(value: SpecularMode) {
+    this._specularMode = value;
+    if (value === SpecularMode.HDR) {
+      this._scene.shaderData.enableMacro(AmbientLight._hdrMacro);
+    } else {
+      this._scene.shaderData.disableMacro(AmbientLight._hdrMacro);
+    }
   }
 
   /**
