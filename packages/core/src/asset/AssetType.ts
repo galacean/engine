@@ -32,5 +32,7 @@ export enum AssetType {
   /** Compress Texture. */
   KTX = "ktx",
   /** Cube Compress Texture. */
-  KTXCube = "ktx-cube"
+  KTXCube = "ktx-cube",
+  /** HDR to Cube Texture */
+  HDR = "hdr"
 }

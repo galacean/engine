@@ -5,6 +5,7 @@ import "./KTXCubeLoader";
 import "./KTXLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
+import "./HDRLoader";
 export { RegistExtension, GLTFResource } from "./gltf/glTF";
 export { GLTFModel } from "./scene-loader/GLTFModel";
 export { Model } from "./scene-loader/Model";
