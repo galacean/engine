@@ -1,38 +1,50 @@
 // ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
+vec2 integrateSpecularBRDF( const in float dotNV, const in float roughness ) {
+    const vec4 c0 = vec4( - 1, - 0.0275, - 0.572, 0.022 );
+    const vec4 c1 = vec4( 1, 0.0425, 1.04, - 0.04 );
+    vec4 r = roughness * c0 + c1;
+    float a004 = min( r.x * r.x, exp2( - 9.28 * dotNV ) ) * r.x + r.y;
+    return vec2( -1.04, 1.04 ) * a004 + r.zw;
+}
+
 vec3 BRDF_Specular_GGX_Environment( const in GeometricContext geometry, const in vec3 specularColor, const in float roughness ) {
 
     float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
+    vec2 brdf = integrateSpecularBRDF( dotNV, roughness );
 
-    const vec4 c0 = vec4( - 1, - 0.0275, - 0.572, 0.022 );
-
-    const vec4 c1 = vec4( 1, 0.0425, 1.04, - 0.04 );
-
-    vec4 r = roughness * c0 + c1;
-
-    float a004 = min( r.x * r.x, exp2( - 9.28 * dotNV ) ) * r.x + r.y;
-
-    vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
-
-    return specularColor * AB.x + AB.y;
+    return specularColor * brdf.x + brdf.y;
 
 } // validated
 
+void BRDF_Specular_Multiscattering_Environment( const in GeometricContext geometry, const in vec3 specularColor, const in float roughness, inout vec3 singleScatter, inout vec3 multiScatter ) {
+    float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
+    vec3 F = F_Schlick_RoughnessDependent( specularColor, dotNV, roughness );
+    vec2 brdf = integrateSpecularBRDF( dotNV, roughness );
+    vec3 FssEss = F * brdf.x + brdf.y;
+    float Ess = brdf.x + brdf.y;
+    float Ems = 1.0 - Ess;
+    vec3 Favg = specularColor + ( 1.0 - specularColor ) * 0.047619;
+    vec3 Fms = FssEss * Favg / ( 1.0 - Ems * Favg );
 
-// taken from here: http://casual-effects.blogspot.ca/2011/08/plausible-environment-lighting-in-two.html
-float getSpecularMIPLevel( const in float blinnShininessExponent, const in int maxMIPLevel ) {
+    singleScatter += FssEss;
+    multiScatter += Fms * Ems;
+}
 
-    //float envMapWidth = pow( 2.0, maxMIPLevelScalar );
-    //float desiredMIPLevel = log2( envMapWidth * sqrt( 3.0 ) ) - 0.5 * log2( pow2( blinnShininessExponent ) + 1.0 );
+// Trowbridge-Reitz distribution to Mip level, following the logic of http://casual-effects.blogspot.ca/2011/08/plausible-environment-lighting-in-two.html
+float getSpecularMIPLevel( const in float roughness, const in int maxMIPLevel ) {
 
-    float maxMIPLevelScalar = float( maxMIPLevel );
-    float desiredMIPLevel = maxMIPLevelScalar + 0.79248 - 0.5 * log2( pow2( blinnShininessExponent ) + 1.0 );
+	float maxMIPLevelScalar = float( maxMIPLevel );
 
-    // clamp to allowable LOD ranges.
-    return clamp( desiredMIPLevel, 0.0, maxMIPLevelScalar );
+	float sigma = PI * roughness * roughness / ( 1.0 + roughness );
+	float desiredMIPLevel = maxMIPLevelScalar + log2( sigma );
+
+	// clamp to allowable LOD ranges.
+	return clamp( desiredMIPLevel, 0.0, maxMIPLevelScalar );
 
 }
 
-vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightProbe,*/ const in GeometricContext geometry, const in float blinnShininessExponent, const in int maxMIPLevel ) {
+
+vec3 getIndirectRadiance( const in GeometricContext geometry, const in float roughness, const in int maxMIPLevel ) {
 
     #if !defined(O3_USE_SPECULAR_ENV) && !defined(HAS_REFLECTIONMAP)
 
@@ -49,9 +61,8 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
             vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
 
         #endif
-//        reflectVec = inverseTransformDirection( reflectVec, u_viewMat );
 
-        float specularMIPLevel = getSpecularMIPLevel( blinnShininessExponent, maxMIPLevel );
+        float specularMIPLevel = getSpecularMIPLevel( roughness, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
             #ifdef HAS_REFLECTIONMAP
@@ -68,19 +79,28 @@ vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightP
             #endif
         #endif
 
-        envMapColor.rgb = SRGBtoLINEAR( envMapColor * u_envMapLight.specularIntensity * u_envMapIntensity).rgb;
+        #ifdef USE_HDR_ENV
+            envMapColor.rgb = RGBEToLinear( envMapColor).rgb;
+        #else
+            envMapColor.rgb = SRGBtoLINEAR( envMapColor).rgb;
+        #endif
 
-        return envMapColor.rgb;
+        return envMapColor.rgb * u_envMapLight.specularIntensity * u_envMapIntensity;
 
     #endif
 
 }
 
-void RE_IndirectSpecular_Physical( const in vec3 radiance, const in GeometricContext geometry, const in PhysicalMaterial material, inout ReflectedLight reflectedLight ) {
+void RE_IndirectSpecular_Physical( const in vec3 radiance, const in vec3 multiScatteringRadiance, const in GeometricContext geometry, const in PhysicalMaterial material, inout ReflectedLight reflectedLight ) {
 
-    float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
-    float dotNL = dotNV;
-
-	reflectedLight.indirectSpecular += radiance * BRDF_Specular_GGX_Environment( geometry, material.specularColor, material.specularRoughness );
-
+	// reflectedLight.indirectSpecular += radiance * BRDF_Specular_GGX_Environment( geometry, material.specularColor, material.specularRoughness );
+    
+    vec3 singleScattering = vec3( 0.0 );
+    vec3 multiScattering = vec3( 0.0 );
+    BRDF_Specular_Multiscattering_Environment( geometry, material.specularColor, material.specularRoughness, singleScattering, multiScattering );
+    
+    vec3 diffuse = material.diffuseColor * ( 1.0 - ( singleScattering + multiScattering ) );
+    reflectedLight.indirectSpecular += radiance * singleScattering;
+    reflectedLight.indirectSpecular += multiScattering * multiScatteringRadiance;
+    reflectedLight.indirectDiffuse += diffuse * multiScatteringRadiance;
 }

@@ -39,11 +39,6 @@ vec3 BRDF_Diffuse_Lambert( const in vec3 diffuseColor ) {
 
 }
 
-// source: http://simonstechblog.blogspot.ca/2011/12/microfacet-brdf.html
-float GGXRoughnessToBlinnExponent( const in float ggxRoughness ) {
-    return ( 2.0 / pow2( ggxRoughness + 0.0001 ) - 2.0 );
-}
-
 
 float computeSpecularOcclusion( const in float dotNV, const in float ambientOcclusion, const in float roughness ) {
 
