@@ -22,7 +22,7 @@ export class AmbientLight {
   private static _specularIntensityProperty: ShaderProperty = Shader.getPropertyByName(
     "u_envMapLight.specularIntensity"
   );
-  private static _mipLevelProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.mipMapLevel");
+  private static _maxMipLevelProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.maxMipMapLevel");
 
   private _scene: Scene;
   private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
@@ -121,7 +121,7 @@ export class AmbientLight {
 
     if (value) {
       shaderData.setTexture(AmbientLight._specularTextureProperty, value);
-      shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount);
+      shaderData.setFloat(AmbientLight._maxMipLevelProperty, this._specularReflection.mipmapCount - 1);
       shaderData.enableMacro(AmbientLight._specularMacro);
     } else {
       shaderData.disableMacro(AmbientLight._specularMacro);
