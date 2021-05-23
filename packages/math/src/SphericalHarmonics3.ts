@@ -10,6 +10,25 @@ import { Vector3 } from "./Vector3";
  * https://google.github.io/filament/Filament.md.html#annex/sphericalharmonics
  */
 export class SphericalHarmonics3 implements IClone {
+  static fromArray(shArray: number[]): SphericalHarmonics3 {
+    if (shArray.length != 27) {
+      console.error("sh coefficients must be as large as 27");
+    }
+
+    const sh = new SphericalHarmonics3();
+    sh.y00 = new Color(shArray[0], shArray[1], shArray[2], 0);
+    sh.y1_1 = new Color(shArray[3], shArray[4], shArray[5], 0);
+    sh.y10 = new Color(shArray[6], shArray[7], shArray[8], 0);
+    sh.y11 = new Color(shArray[9], shArray[10], shArray[11], 0);
+    sh.y2_2 = new Color(shArray[12], shArray[13], shArray[14], 0);
+    sh.y2_1 = new Color(shArray[15], shArray[16], shArray[17], 0);
+    sh.y20 = new Color(shArray[18], shArray[19], shArray[20], 0);
+    sh.y21 = new Color(shArray[21], shArray[22], shArray[23], 0);
+    sh.y22 = new Color(shArray[24], shArray[25], shArray[26], 0);
+
+    return sh;
+  }
+
   private static _basisFunction = [
     0.282095, //  1/2 * Math.sqrt(1 / PI)
 
@@ -162,6 +181,42 @@ export class SphericalHarmonics3 implements IClone {
     this.y20.setValue(0, 0, 0, 0);
     this.y21.setValue(0, 0, 0, 0);
     this.y22.setValue(0, 0, 0, 0);
+  }
+
+  /**
+   * Clone the value of this coefficients to an array.
+   * @param out - The array
+   */
+  toArray(out: number[]): void {
+    out[0] = this.y00.r;
+    out[1] = this.y00.g;
+    out[2] = this.y00.b;
+
+    out[3] = this.y1_1.r;
+    out[4] = this.y1_1.g;
+    out[5] = this.y1_1.b;
+    out[6] = this.y10.r;
+    out[7] = this.y10.g;
+    out[8] = this.y10.b;
+    out[9] = this.y11.r;
+    out[10] = this.y11.g;
+    out[11] = this.y11.b;
+
+    out[12] = this.y2_2.r;
+    out[13] = this.y2_2.g;
+    out[14] = this.y2_2.b;
+    out[15] = this.y2_1.r;
+    out[16] = this.y2_1.g;
+    out[17] = this.y2_1.b;
+    out[18] = this.y20.r;
+    out[19] = this.y20.g;
+    out[20] = this.y20.b;
+    out[21] = this.y21.r;
+    out[22] = this.y21.g;
+    out[23] = this.y21.b;
+    out[24] = this.y22.r;
+    out[25] = this.y22.g;
+    out[26] = this.y22.b;
   }
 
   /**
