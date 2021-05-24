@@ -94,11 +94,11 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void {
     const gl = this._gl;
     const colorTexture = this._target.getColorTexture(0);
-    const depthTexture = this._target.depthTexture;
+    const { width, height, depthTexture } = this._target;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
-    // bind render color texture
+    // bind render color cube texture
     if (colorTexture?.isCube) {
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
@@ -110,7 +110,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       );
     }
 
-    // bind depth texture
+    // bind depth cube texture
     if (depthTexture?.isCube) {
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
@@ -123,9 +123,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       );
     }
 
+    // height and width of the attachment with mip level should be same
     if (mipLevel !== this._curMipLevel) {
-      this._curMipLevel = mipLevel;
-
       if (colorTexture && !colorTexture.isCube) {
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
@@ -148,7 +147,18 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           mipLevel
         );
       }
+
+      if (!depthTexture) {
+        // @ts-ignore
+        const _depth = this._target._depth;
+        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, this._isWebGL2);
+
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width >> mipLevel, height >> mipLevel);
+      }
     }
+
+    this._curMipLevel = mipLevel;
 
     // revert current activated render target
     this._activeRenderTarget();
