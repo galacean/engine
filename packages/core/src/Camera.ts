@@ -45,7 +45,7 @@ export class Camera extends Component {
   enableFrustumCulling: boolean = true;
 
   /**
-   * Determining what to clear when rendering by a Camera. 
+   * Determining what to clear when rendering by a Camera.
    * @defaultValue `CameraClearFlags.DepthColor`
    */
   clearFlags: CameraClearFlags = CameraClearFlags.DepthColor;
@@ -412,8 +412,9 @@ export class Camera extends Component {
   /**
    * Manually call the rendering of the camera.
    * @param cubeFace - Cube rendering surface collection
+   * @param mipLevel - Set mip level the data want to wirte
    */
-  render(cubeFace?: TextureCubeFace): void {
+  render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
     // compute cull frustm.
     const context = this.engine._renderContext;
     context._setContext(this);
@@ -432,7 +433,7 @@ export class Camera extends Component {
       this._globalShaderMacro
     );
 
-    this._renderPipeline.render(context, cubeFace);
+    this._renderPipeline.render(context, cubeFace, mipLevel);
     this._engine._renderCount++;
   }
 
