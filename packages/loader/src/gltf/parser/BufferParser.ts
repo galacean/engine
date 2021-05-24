@@ -5,18 +5,14 @@ import { GLTFUtil } from "../GLTFUtil";
 import { Parser } from "./Parser";
 
 export class BufferParser extends Parser {
-  private static _isGLB(url: string): boolean {
-    return url.substring(url.lastIndexOf(".") + 1) === "glb";
-  }
-
   parse(context: GLTFResource): Promise<void> {
     const { url, engine } = context;
 
-    if (BufferParser._isGLB(url)) {
+    if (this._isGLB(url)) {
       return engine.resourceManager
         .load<ArrayBuffer>({
-          type: AssetType.Buffer,
-          url
+          url,
+          type: AssetType.Buffer
         })
         .then(GLTFUtil.parseGLB)
         .then(({ gltf, buffers }) => {
@@ -26,17 +22,16 @@ export class BufferParser extends Parser {
     } else {
       return engine.resourceManager
         .load<IGLTF>({
-          type: AssetType.JSON,
-          url
+          url,
+          type: AssetType.JSON
         })
-        .then((json: IGLTF) => {
-          context.gltf = json;
-
+        .then((gltf: IGLTF) => {
+          context.gltf = gltf;
           return Promise.all(
-            json.buffers.map((item: IBuffer) => {
+            gltf.buffers.map((buffer: IBuffer) => {
               return engine.resourceManager.load<ArrayBuffer>({
                 type: AssetType.Buffer,
-                url: GLTFUtil.parseRelativeUrl(url, item.uri)
+                url: GLTFUtil.parseRelativeUrl(url, buffer.uri)
               });
             })
           ).then((buffers: ArrayBuffer[]) => {
@@ -44,5 +39,9 @@ export class BufferParser extends Parser {
           });
         });
     }
+  }
+
+  private _isGLB(url: string): boolean {
+    return url.substring(url.lastIndexOf(".") + 1) === "glb";
   }
 }

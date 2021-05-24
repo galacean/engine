@@ -4,21 +4,21 @@ import {
   BufferMesh,
   BufferUsage,
   Engine,
+  EngineObject,
   IndexBufferBinding,
   IndexFormat,
   Logger,
-  MeshTopology,
-  SubMesh,
   TypedArray,
   VertexElement
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
-import { IGLTF, IMeshPrimitive } from "../Schema";
 import { GLTFUtil } from "../GLTFUtil";
+import { IGLTF, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
 
 export class MeshParser extends Parser {
+  private static _tempVector3 = new Vector3();
   parse(context: GLTFResource): Promise<void> {
     const { engine, gltf, buffers } = context;
     if (!gltf.meshes) return;
@@ -35,27 +35,26 @@ export class MeshParser extends Parser {
 
       for (let j = 0; j < gltfMesh.primitives.length; j++) {
         const gltfPrimitive = gltfMesh.primitives[j];
-        const { mode, targets, extensions = {} } = gltfPrimitive;
+        const { targets, extensions = {} } = gltfPrimitive;
         const { KHR_draco_mesh_compression } = extensions;
 
         primitivePromises.push(
           new Promise((resolve) => {
             const mesh = new BufferMesh(engine, gltfMesh.name || j + "");
-            const subMesh = new SubMesh();
-
-            subMesh.topology = mode ?? MeshTopology.Triangles;
 
             if (targets) {
               Logger.error("Sorry, morph animation is not supported now, wait please.");
             }
 
             if (KHR_draco_mesh_compression) {
-              Parser.createEngineResourceAsync(
-                "KHR_draco_mesh_compression",
-                KHR_draco_mesh_compression,
-                context,
-                gltfPrimitive
-              )
+              (<Promise<EngineObject>>(
+                Parser.createEngineResource(
+                  "KHR_draco_mesh_compression",
+                  KHR_draco_mesh_compression,
+                  context,
+                  gltfPrimitive
+                )
+              ))
                 .then((decodedGeometry: any) => {
                   return this._parseMeshFromGLTFPrimitive(
                     mesh,
@@ -112,7 +111,7 @@ export class MeshParser extends Parser {
     getIndexBufferData: () => TypedArray,
     engine: Engine
   ): Promise<BufferMesh> {
-    const { attributes, indices } = gltfPrimitive;
+    const { attributes, indices, mode } = gltfPrimitive;
     const vertexElements: VertexElement[] = [];
     let j = 0;
     let vertexCount: number;
@@ -129,22 +128,33 @@ export class MeshParser extends Parser {
       vertexBuffer.setData(bufferData);
       mesh.setVertexBufferBinding(vertexBuffer, stride, j++);
 
-      // compute bounds
-      if (vertexELement.semantic == "POSITION") {
-        const position = new Vector3();
-        vertexCount = accessor.count;
-        const { min, max } = mesh.bounds;
-        const stride = bufferData.length / vertexCount;
-        for (let j = 0; j < vertexCount; j++) {
-          const offset = j * stride;
-          position.setValue(bufferData[offset], bufferData[offset + 1], bufferData[offset + 2]);
-          Vector3.min(min, position, min);
-          Vector3.max(max, position, max);
+      // Bounds
+      if (vertexELement.semantic === "POSITION") {
+        const { bounds } = mesh;
+        if (accessor.min && accessor.max) {
+          bounds.min.setValueByArray(accessor.min);
+          bounds.max.setValueByArray(accessor.max);
+        } else {
+          const position = MeshParser._tempVector3;
+          const { min, max } = bounds;
+
+          vertexCount = accessor.count;
+          min.setValue(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+          max.setValue(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
+
+          const stride = bufferData.length / vertexCount;
+          for (let j = 0; j < vertexCount; j++) {
+            const offset = j * stride;
+            position.setValueByArray(bufferData, offset);
+            Vector3.min(min, position, min);
+            Vector3.max(max, position, max);
+          }
         }
       }
     }
     mesh.setVertexElements(vertexElements);
-    // load indices
+
+    // Indices
     if (indices !== undefined) {
       const indexAccessor = gltf.accessors[indices];
       const indexData = getIndexBufferData();
@@ -161,9 +171,9 @@ export class MeshParser extends Parser {
 
       indexBuffer.setData(indexData);
       mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
-      mesh.addSubMesh(0, indexCount);
+      mesh.addSubMesh(0, indexCount, mode);
     } else {
-      mesh.addSubMesh(0, vertexCount);
+      mesh.addSubMesh(0, vertexCount, mode);
     }
 
     return Promise.resolve(mesh);

@@ -251,7 +251,12 @@ export class GLTFUtil {
     if (GLTFUtil.isAbsoluteUrl(relativeUrl)) {
       return relativeUrl;
     }
-    // TODO: implement ../path
+
+    const char0 = relativeUrl.charAt(0);
+    if (char0 === ".") {
+      return GLTFUtil._formatRelativePath(relativeUrl + relativeUrl);
+    }
+    
     return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
   }
 
@@ -320,5 +325,16 @@ export class GLTFUtil {
       gltf,
       buffers
     };
+  }
+
+  private static _formatRelativePath(value: string): string {
+    const parts = value.split("/");
+    for (let i = 0, n = parts.length; i < n; i++) {
+      if (parts[i] == "..") {
+        parts.splice(i - 1, 2);
+        i -= 2;
+      }
+    }
+    return parts.join("/");
   }
 }

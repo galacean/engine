@@ -7,10 +7,6 @@ export class EntityParser extends Parser {
   /** @internal */
   static _defaultName: String = "_GLTF_ENTITY_";
 
-  private static _position = new Vector3();
-  private static _scale = new Vector3(1, 1, 1);
-  private static _rotation = new Quaternion();
-
   parse(context: GLTFResource): void {
     const {
       engine,
@@ -25,26 +21,20 @@ export class EntityParser extends Parser {
       const { matrix, translation, rotation, scale } = gltfNode;
       const entity = new Entity(engine, gltfNode.name || `${EntityParser._defaultName}${i}`);
 
+      const { transform } = entity;
       if (matrix) {
-        const mat = new Matrix();
-        mat.setValueByArray(matrix);
-        mat.decompose(EntityParser._position, EntityParser._rotation, EntityParser._scale);
-
-        entity.transform.position = EntityParser._position;
-        entity.transform.rotationQuaternion = EntityParser._rotation;
-        entity.transform.scale = EntityParser._scale;
+        const localMatrix = transform.localMatrix;
+        localMatrix.setValueByArray(matrix);
+        transform.localMatrix = localMatrix;
       } else {
         if (translation) {
-          // @ts-ignore
-          entity.transform.setPosition(...translation);
+          transform.setPosition(translation[0], translation[1], translation[2]);
         }
         if (rotation) {
-          // @ts-ignore
-          entity.transform.setRotationQuaternion(...rotation);
+          transform.setRotationQuaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
         }
         if (scale) {
-          // @ts-ignore
-          entity.transform.setScale(...scale);
+          transform.setScale(scale[0], scale[1], scale[2]);
         }
       }
 
@@ -102,7 +92,7 @@ export class EntityParser extends Parser {
         sceneRoots[i] = rootEntity;
       }
     }
-
+    
     context.sceneRoots = sceneRoots;
     context.defaultSceneRoot = sceneRoots[sceneID];
   }

@@ -35,13 +35,13 @@ export class GLTFResource extends EngineObject {
   /** Oasis Entity after EntityParser. */
   entities: Entity[];
   /** Oasis Camera after SceneParser. */
-  cameras?: Array<{ entity: Entity; camera: Camera }>;
+  cameras?: Camera[];
   /** GLTF can export lights in extension KHR_lights_punctual */
-  lights?: Array<{ entity: Entity; light: Light }>;
+  lights?: Light[];
   /** Oasis RootEntities after SceneParser. */
   sceneRoots: Entity[];
   /** Oasis RootEntity after SceneParser. */
   defaultSceneRoot: Entity;
   /** Renderer can replace material by `renderer.setMaterial` if gltf use plugin-in KHR_materials_variants. */
-  variants?: Array<{ renderer: Renderer; material: Material; variants: string[] }>;
+  variants?: { renderer: Renderer; material: Material; variants: string[] }[];
 }

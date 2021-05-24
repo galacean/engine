@@ -3,7 +3,7 @@ import { GLTFResource } from "../GLTFResource";
 import { ExtensionSchema } from "./Schema";
 
 export abstract class ExtensionParser {
-  bootstrap(): void {}
+  initialize(): void {}
 
   parseEngineResource(
     schema: ExtensionSchema,

@@ -36,9 +36,6 @@ class KHR_lights_punctual extends ExtensionParser {
     }
 
     if (!context.lights) context.lights = [];
-    context.lights.push({
-      entity,
-      light
-    });
+    context.lights.push(light);
   }
 }
