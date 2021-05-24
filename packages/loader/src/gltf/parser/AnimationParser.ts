@@ -1,6 +1,6 @@
 import { AnimationClip, InterpolationType } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
-import { getAccessorData, getAccessorTypeSize } from "../Util";
+import { GLTFUtil } from "../GLTFUtil";
 import { EntityParser } from "./EntityParser";
 import { Parser } from "./Parser";
 
@@ -27,9 +27,9 @@ export class AnimationParser extends Parser {
         // input
         const inputAccessor = accessors[gltfSampler.input];
         const outputAccessor = accessors[gltfSampler.output];
-        const input = getAccessorData(gltf, inputAccessor, buffers);
-        const output = getAccessorData(gltf, outputAccessor, buffers);
-        let outputAccessorSize = getAccessorTypeSize(outputAccessor.type);
+        const input = GLTFUtil.getAccessorData(gltf, inputAccessor, buffers);
+        const output = GLTFUtil.getAccessorData(gltf, outputAccessor, buffers);
+        let outputAccessorSize = GLTFUtil.getAccessorTypeSize(outputAccessor.type);
         if (outputAccessorSize * input.length !== output.length) outputAccessorSize = output.length / input.length;
 
         let samplerInterpolation = InterpolationType.LINEAR;

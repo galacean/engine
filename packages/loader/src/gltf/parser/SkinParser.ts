@@ -1,8 +1,7 @@
 import { Skin } from "@oasis-engine/core";
 import { Matrix } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
-import { getAccessorData } from "../Util";
-import { EntityParser } from "./EntityParser";
+import { GLTFUtil } from "../GLTFUtil";
 import { Parser } from "./Parser";
 
 export class SkinParser extends Parser {
@@ -21,7 +20,7 @@ export class SkinParser extends Parser {
       const skin = new Skin(name);
       // parse IBM
       const accessor = gltf.accessors[inverseBindMatrices];
-      const buffer = getAccessorData(gltf, accessor, buffers);
+      const buffer = GLTFUtil.getAccessorData(gltf, accessor, buffers);
       const MAT4_LENGTH = 16;
 
       for (let i = 0; i < jointCount; i++) {

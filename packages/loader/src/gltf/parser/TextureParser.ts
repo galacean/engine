@@ -1,7 +1,7 @@
 import { AssetType, Logger, Texture2D, TextureWrapMode } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 import { ISampler } from "../Schema";
-import { getBufferViewData, loadImageBuffer, parseRelativeUrl } from "../Util";
+import { GLTFUtil } from "../GLTFUtil";
 import { Parser } from "./Parser";
 
 export class TextureParser extends Parser {
@@ -22,7 +22,7 @@ export class TextureParser extends Parser {
           if (uri) {
             return engine.resourceManager
               .load<Texture2D>({
-                url: parseRelativeUrl(url, uri),
+                url: GLTFUtil.parseRelativeUrl(url, uri),
                 type: AssetType.Texture2D
               })
               .then((texture) => {
@@ -36,8 +36,8 @@ export class TextureParser extends Parser {
               });
           } else {
             const bufferView = gltf.bufferViews[bufferViewIndex];
-            const bufferViewData = getBufferViewData(bufferView, buffers);
-            return loadImageBuffer(bufferViewData, mimeType).then((image) => {
+            const bufferViewData = GLTFUtil.getBufferViewData(bufferView, buffers);
+            return GLTFUtil.loadImageBuffer(bufferViewData, mimeType).then((image) => {
               const texture = new Texture2D(engine, image.width, image.height);
               texture.setImageSource(image);
               texture.generateMipmaps();

@@ -2,7 +2,7 @@ import { DRACODecoder } from "@oasis-engine/draco";
 import { GLTFResource } from "../GLTFResource";
 import { registerExtension } from "../parser/Parser";
 import { IMeshPrimitive } from "../Schema";
-import { getBufferViewData, getComponentType } from "../Util";
+import { GLTFUtil } from "../GLTFUtil";
 import { ExtensionParser } from "./ExtensionParser";
 import { IKHRDracoMeshCompression } from "./Schema";
 
@@ -29,18 +29,18 @@ class KHR_draco_mesh_compression extends ExtensionParser {
     for (let attributeName in gltfPrimitive.attributes) {
       if (gltfAttributeMap[attributeName] !== undefined) {
         const accessorDef = accessors[gltfPrimitive.attributes[attributeName]];
-        attributeTypeMap[attributeName] = getComponentType(accessorDef.componentType).name;
+        attributeTypeMap[attributeName] = GLTFUtil.getComponentType(accessorDef.componentType).name;
       }
     }
     const indexAccessor = accessors[gltfPrimitive.indices];
-    const indexType = getComponentType(indexAccessor.componentType).name;
+    const indexType = GLTFUtil.getComponentType(indexAccessor.componentType).name;
     const taskConfig = {
       attributeIDs: attributeMap,
       attributeTypes: attributeTypeMap,
       useUniqueIDs: true,
       indexType
     };
-    const buffer = getBufferViewData(bufferViews[bufferViewIndex], buffers);
+    const buffer = GLTFUtil.getBufferViewData(bufferViews[bufferViewIndex], buffers);
     return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((parsedGeometry) => parsedGeometry);
   }
 }

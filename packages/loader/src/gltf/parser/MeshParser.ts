@@ -15,7 +15,7 @@ import {
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { IGLTF, IMeshPrimitive } from "../Schema";
-import { createVertexElement, getAccessorData, getIndexFormat, getVertexStride } from "../Util";
+import { GLTFUtil } from "../GLTFUtil";
 import { Parser } from "./Parser";
 
 export class MeshParser extends Parser {
@@ -84,11 +84,11 @@ export class MeshParser extends Parser {
                 (attributeSemantic) => {
                   const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
                   const accessor = gltf.accessors[accessorIdx];
-                  return getAccessorData(gltf, accessor, buffers);
+                  return GLTFUtil.getAccessorData(gltf, accessor, buffers);
                 },
                 () => {
                   const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-                  return getAccessorData(gltf, indexAccessor, buffers);
+                  return GLTFUtil.getAccessorData(gltf, indexAccessor, buffers);
                 },
                 engine
               ).then(resolve);
@@ -120,8 +120,8 @@ export class MeshParser extends Parser {
     for (const attributeSemantic in attributes) {
       const accessorIdx = attributes[attributeSemantic];
       const accessor = gltf.accessors[accessorIdx];
-      const stride = getVertexStride(gltf, accessor);
-      const vertexELement = createVertexElement(attributeSemantic, accessor, j);
+      const stride = GLTFUtil.getVertexStride(gltf, accessor);
+      const vertexELement = GLTFUtil.createVertexElement(attributeSemantic, accessor, j);
 
       vertexElements.push(vertexELement);
       const bufferData = getVertexBufferData(attributeSemantic);
@@ -150,7 +150,7 @@ export class MeshParser extends Parser {
       const indexData = getIndexBufferData();
 
       const indexCount = indexAccessor.count;
-      const indexFormat = getIndexFormat(indexAccessor.componentType);
+      const indexFormat = GLTFUtil.getIndexFormat(indexAccessor.componentType);
       const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
       const indexBuffer = new Buffer(
         engine,

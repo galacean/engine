@@ -1,7 +1,7 @@
 import { AssetType } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 import { IBuffer, IGLTF } from "../Schema";
-import { parseGLB, parseRelativeUrl } from "../Util";
+import { GLTFUtil } from "../GLTFUtil";
 import { Parser } from "./Parser";
 
 export class BufferParser extends Parser {
@@ -18,7 +18,7 @@ export class BufferParser extends Parser {
           type: AssetType.Buffer,
           url
         })
-        .then(parseGLB)
+        .then(GLTFUtil.parseGLB)
         .then(({ gltf, buffers }) => {
           context.gltf = gltf;
           context.buffers = buffers;
@@ -36,7 +36,7 @@ export class BufferParser extends Parser {
             json.buffers.map((item: IBuffer) => {
               return engine.resourceManager.load<ArrayBuffer>({
                 type: AssetType.Buffer,
-                url: parseRelativeUrl(url, item.uri)
+                url: GLTFUtil.parseRelativeUrl(url, item.uri)
               });
             })
           ).then((buffers: ArrayBuffer[]) => {
