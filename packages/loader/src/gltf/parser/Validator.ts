@@ -3,7 +3,7 @@ import { GLTFResource } from "../GLTFResource";
 import { Parser } from "./Parser";
 
 export class Validator extends Parser {
-  parse(context: GLTFResource) {
+  parse(context: GLTFResource): void {
     const {
       gltf: {
         asset: { version },
@@ -14,14 +14,14 @@ export class Validator extends Parser {
 
     const gltfVersion = Number(version);
     if (!(gltfVersion >= 2 && gltfVersion < 3)) {
-      throw "Only support gltf 2.x";
+      throw "Only support gltf 2.x.";
     }
 
     if (extensionsUsed) {
       Logger.info("extensionsUsed: ", extensionsUsed);
       for (let i = 0; i < extensionsUsed.length; i++) {
         if (!Parser.hasExtensionParser(extensionsUsed[i])) {
-          Logger.warn("extension " + extensionsUsed[i] + " is used, you can add this extension into gltf");
+          Logger.warn(`Extension ${extensionsUsed[i]} is not implemented, you can customize this extension in gltf.`);
         }
       }
     }
@@ -32,9 +32,9 @@ export class Validator extends Parser {
         const extensionRequired = extensionsRequired[i];
 
         if (!Parser.hasExtensionParser(extensionRequired)) {
-          Logger.error(`gltf parser has not supported required extension ${extensionRequired}`);
+          Logger.error(`GLTF parser has not supported required extension ${extensionRequired}.`);
         } else {
-          Parser.bootstarp(extensionRequired);
+          Parser.initialize(extensionRequired);
         }
       }
     }

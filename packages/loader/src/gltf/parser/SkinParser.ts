@@ -18,15 +18,15 @@ export class SkinParser extends Parser {
       const jointCount = joints.length;
 
       const skin = new Skin(name);
+      skin.inverseBindMatrices.length = jointCount;
+
       // parse IBM
       const accessor = gltf.accessors[inverseBindMatrices];
       const buffer = GLTFUtil.getAccessorData(gltf, accessor, buffers);
-      const MAT4_LENGTH = 16;
-
       for (let i = 0; i < jointCount; i++) {
-        const startIdx = MAT4_LENGTH * i;
-        const endIdx = startIdx + MAT4_LENGTH;
-        skin.inverseBindMatrices[i] = new Matrix(...buffer.subarray(startIdx, endIdx));
+        const inverseBindMatrix = new Matrix();
+        inverseBindMatrix.setValueByArray(buffer, i * 16);
+        skin.inverseBindMatrices[i] = inverseBindMatrix;
       }
 
       // get joints

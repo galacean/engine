@@ -27,43 +27,11 @@ export abstract class Parser {
     extensionSchema: ExtensionSchema,
     context: GLTFResource,
     ...extra
-  ): T {
+  ): T | Promise<T> {
     const parsers = Parser._extensionParsers[extensionName];
 
     if (parsers?.length) {
       return parsers[0].createEngineResource(extensionSchema, context, ...extra) as T;
-    }
-  }
-
-  static parseEngineResourceAsync(
-    extensionName: string,
-    extensionSchema: ExtensionSchema,
-    parseResource: EngineObject,
-    context: GLTFResource,
-    ...extra
-  ): Promise<void> {
-    const parsers = Parser._extensionParsers[extensionName];
-    const promises: (void | Promise<void>)[] = [];
-
-    if (parsers?.length) {
-      for (let i = 0; i < parsers.length; i++) {
-        promises.push(parsers[i].parseEngineResource(extensionSchema, parseResource, context, ...extra));
-      }
-    }
-
-    return Promise.all(promises).then();
-  }
-
-  static createEngineResourceAsync<T extends EngineObject>(
-    extensionName: string,
-    extensionSchema: ExtensionSchema,
-    context: GLTFResource,
-    ...extra
-  ): Promise<T> {
-    const parsers = Parser._extensionParsers[extensionName];
-
-    if (parsers?.length) {
-      return Promise.resolve(parsers[0].createEngineResource(extensionSchema, context, ...extra) as T);
     }
   }
 
@@ -72,12 +40,12 @@ export abstract class Parser {
     return !!parsers?.length;
   }
 
-  static bootstarp(extensionName: string) {
+  static initialize(extensionName: string) {
     const parsers = Parser._extensionParsers[extensionName];
 
     if (parsers?.length) {
       for (let i = 0; i < parsers.length; i++) {
-        parsers[i].bootstrap();
+        parsers[i].initialize();
       }
     }
   }

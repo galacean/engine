@@ -25,21 +25,25 @@ export class AnimationParser extends Parser {
       // parse samplers
       for (let i = 0; i < samplers.length; i++) {
         const gltfSampler = samplers[i];
-        // input
         const inputAccessor = accessors[gltfSampler.input];
         const outputAccessor = accessors[gltfSampler.output];
         const input = GLTFUtil.getAccessorData(gltf, inputAccessor, buffers);
         const output = GLTFUtil.getAccessorData(gltf, outputAccessor, buffers);
         let outputAccessorSize = GLTFUtil.getAccessorTypeSize(outputAccessor.type);
-        if (outputAccessorSize * input.length !== output.length) outputAccessorSize = output.length / input.length;
+        if (outputAccessorSize * input.length !== output.length) {
+          outputAccessorSize = output.length / input.length;
+        }
 
-        let samplerInterpolation = InterpolationType.LINEAR;
+        let samplerInterpolation;
         switch (gltfSampler.interpolation) {
           case AnimationSamplerInterpolation.CUBICSPLINE:
             samplerInterpolation = InterpolationType.CUBICSPLINE;
             break;
           case AnimationSamplerInterpolation.STEP:
             samplerInterpolation = InterpolationType.STEP;
+            break;
+          case AnimationSamplerInterpolation.LINEAR:
+            samplerInterpolation = InterpolationType.LINEAR;
             break;
         }
         const maxTime = input[input.length - 1];

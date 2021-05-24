@@ -8,7 +8,6 @@ import {
   MeshRenderer,
   SkinnedMeshRenderer
 } from "@oasis-engine/core";
-import { Color } from "@oasis-engine/math";
 import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../Schema";
@@ -20,7 +19,6 @@ export class SceneParser extends Parser {
   private static _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
     if (!SceneParser._defaultMaterial) {
       SceneParser._defaultMaterial = new BlinnPhongMaterial(engine);
-      SceneParser._defaultMaterial.emissiveColor = new Color(0.749, 0.749, 0.749, 1);
     }
 
     return SceneParser._defaultMaterial;
@@ -37,7 +35,7 @@ export class SceneParser extends Parser {
     for (let i = 0; i < nodes.length; i++) {
       const gltfNode = nodes[i];
       const { camera: cameraID, mesh: meshID, extensions = {} } = gltfNode;
-      const { KHR_lights_punctual } = extensions;
+      const KHR_lights_punctual = <IKHRLightsPunctual_LightNode>extensions.KHR_lights_punctual;
       const entity = entities[i];
 
       if (cameraID !== undefined) {
@@ -49,7 +47,7 @@ export class SceneParser extends Parser {
       }
 
       if (KHR_lights_punctual) {
-        const lightIndex = (KHR_lights_punctual as IKHRLightsPunctual_LightNode).light;
+        const lightIndex = KHR_lights_punctual.light;
         const lights = (context.gltf.extensions.KHR_lights_punctual as IKHRLightsPunctual).lights;
 
         Parser.parseEngineResource("KHR_lights_punctual", lights[lightIndex], entity, context);
@@ -62,7 +60,7 @@ export class SceneParser extends Parser {
   }
 
   private _createCamera(context: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
-    const { orthographic, perspective, type, name } = cameraSchema;
+    const { orthographic, perspective, type } = cameraSchema;
     const camera = entity.addComponent(Camera);
 
     if (type === CameraType.ORTHOGRAPHIC) {
@@ -96,10 +94,7 @@ export class SceneParser extends Parser {
     }
 
     if (!context.cameras) context.cameras = [];
-    context.cameras.push({
-      entity,
-      camera
-    });
+    context.cameras.push(camera);
     // @todo: use engine camera by default
     camera.enabled = false;
   }
