@@ -84,7 +84,7 @@ class PanoramaToCubeMapTools {
    * @param size The willing size of the generated cubemap (each faces will be size * size pixels)
    * @return The cubemap data
    */
-  static ConvertPanoramaToCubemap(
+  static convertPanoramaToCubemap(
     pixels: Uint8Array,
     inputWidth: number,
     inputHeight: number,
@@ -98,17 +98,17 @@ class PanoramaToCubeMapTools {
       throw "ConvertPanoramaToCubemap: input size is wrong";
     }
 
-    const textureFront = this._CreateCubemapTexture(size, this._FACE_FRONT, pixels, inputWidth, inputHeight);
-    const textureBack = this._CreateCubemapTexture(size, this._FACE_BACK, pixels, inputWidth, inputHeight);
-    const textureLeft = this._CreateCubemapTexture(size, this._FACE_LEFT, pixels, inputWidth, inputHeight);
-    const textureRight = this._CreateCubemapTexture(size, this._FACE_RIGHT, pixels, inputWidth, inputHeight);
-    const textureUp = this._CreateCubemapTexture(size, this._FACE_UP, pixels, inputWidth, inputHeight);
-    const textureDown = this._CreateCubemapTexture(size, this._FACE_DOWN, pixels, inputWidth, inputHeight);
+    const textureFront = this._createCubemapTexture(size, this._FACE_FRONT, pixels, inputWidth, inputHeight);
+    const textureBack = this._createCubemapTexture(size, this._FACE_BACK, pixels, inputWidth, inputHeight);
+    const textureLeft = this._createCubemapTexture(size, this._FACE_LEFT, pixels, inputWidth, inputHeight);
+    const textureRight = this._createCubemapTexture(size, this._FACE_RIGHT, pixels, inputWidth, inputHeight);
+    const textureUp = this._createCubemapTexture(size, this._FACE_UP, pixels, inputWidth, inputHeight);
+    const textureDown = this._createCubemapTexture(size, this._FACE_DOWN, pixels, inputWidth, inputHeight);
 
     return [textureRight, textureLeft, textureUp, textureDown, textureFront, textureBack];
   }
 
-  private static _CreateCubemapTexture(
+  private static _createCubemapTexture(
     texSize: number,
     faceData: Vector3[],
     pixels: Uint8Array,
@@ -138,7 +138,7 @@ class PanoramaToCubeMapTools {
         const v = this._temp5Vector3.setValue(0, 0, 0).add(xv2).subtract(xv1).scale(fy).add(xv1);
         v.normalize();
 
-        const color = this.CalcProjectionSpherical(v, pixels, inputWidth, inputHeight);
+        const color = this._calcProjectionSpherical(v, pixels, inputWidth, inputHeight);
 
         // 4 channels per pixels
         textureArray[y * texSize * 4 + x * 4] = color.r;
@@ -156,7 +156,7 @@ class PanoramaToCubeMapTools {
     return textureArray;
   }
 
-  private static CalcProjectionSpherical(
+  private static _calcProjectionSpherical(
     vDir: Vector3,
     pixels: Uint8Array,
     inputWidth: number,
@@ -364,7 +364,7 @@ class HDRLoader extends Loader<TextureCubeMap> {
           const { width, height, dataPosition } = info;
           const pixels = HDRLoader._readPixels(uint8Array.subarray(dataPosition), width, height);
           const size = PanoramaToCubeMapTools.CUBE_SIZE;
-          const cubeMapData = PanoramaToCubeMapTools.ConvertPanoramaToCubemap(pixels, width, height, size);
+          const cubeMapData = PanoramaToCubeMapTools.convertPanoramaToCubemap(pixels, width, height, size);
           // console.log(pixels, width, height);
 
           const texture = new TextureCubeMap(resourceManager.engine, size);
