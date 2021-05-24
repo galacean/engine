@@ -1,6 +1,7 @@
 import { AnimationClip, InterpolationType } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
+import { AnimationChannelTargetPath, AnimationSamplerInterpolation } from "../Schema";
 import { EntityParser } from "./EntityParser";
 import { Parser } from "./Parser";
 
@@ -34,10 +35,10 @@ export class AnimationParser extends Parser {
 
         let samplerInterpolation = InterpolationType.LINEAR;
         switch (gltfSampler.interpolation) {
-          case "CUBICSPLINE":
+          case AnimationSamplerInterpolation.CUBICSPLINE:
             samplerInterpolation = InterpolationType.CUBICSPLINE;
             break;
-          case "STEP":
+          case AnimationSamplerInterpolation.STEP:
             samplerInterpolation = InterpolationType.STEP;
             break;
         }
@@ -59,7 +60,22 @@ export class AnimationParser extends Parser {
 
       for (let i = 0; i < channels.length; i++) {
         const { target, sampler } = channels[i];
-        const targetPath = target.path === "translation" ? "position" : target.path;
+        let targetPath = "";
+
+        switch (target.path) {
+          case AnimationChannelTargetPath.TRANSLATION:
+            targetPath = "position";
+            break;
+          case AnimationChannelTargetPath.ROTATION:
+            targetPath = "rotation";
+            break;
+          case AnimationChannelTargetPath.SCALE:
+            targetPath = "scale";
+            break;
+          case AnimationChannelTargetPath.WEIGHTS:
+            targetPath = "weights";
+            break;
+        }
 
         animationClip.addChannel(
           sampler,

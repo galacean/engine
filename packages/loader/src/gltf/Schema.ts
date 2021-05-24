@@ -1,657 +1,855 @@
-type GLTFID = number;
+/**
+ * Module for glTF 2.0 Interface
+ */
+
+import { MeshTopology } from "@oasis-engine/core";
 
 /**
- * Indices of those attributes that deviate from their initialization value.
+ * The datatype of the components in the attribute
  */
-export interface IAccessorSparseIndices {
+export enum AccessorComponentType {
   /**
-   * The index of the bufferView with sparse indices. Referenced bufferView can't have ARRAY_BUFFER or ELEMENT_ARRAY_BUFFER target.
+   * Byte
    */
-  bufferView: GLTFID;
+  BYTE = 5120,
   /**
-   * The offset relative to the start of the bufferView in bytes. Must be aligned.
+   * Unsigned Byte
+   */
+  UNSIGNED_BYTE = 5121,
+  /**
+   * Short
+   */
+  SHORT = 5122,
+  /**
+   * Unsigned Short
+   */
+  UNSIGNED_SHORT = 5123,
+  /**
+   * Unsigned Int
+   */
+  UNSIGNED_INT = 5125,
+  /**
+   * Float
+   */
+  FLOAT = 5126
+}
+
+/**
+ * Specifies if the attirbute is a scalar, vector, or matrix
+ */
+export enum AccessorType {
+  /**
+   * Scalar
+   */
+  SCALAR = "SCALAR",
+  /**
+   * Vector2
+   */
+  VEC2 = "VEC2",
+  /**
+   * Vector3
+   */
+  VEC3 = "VEC3",
+  /**
+   * Vector4
+   */
+  VEC4 = "VEC4",
+  /**
+   * Matrix2x2
+   */
+  MAT2 = "MAT2",
+  /**
+   * Matrix3x3
+   */
+  MAT3 = "MAT3",
+  /**
+   * Matrix4x4
+   */
+  MAT4 = "MAT4"
+}
+
+/**
+ * The name of the node's TRS property to modify, or the weights of the Morph Targets it instantiates
+ */
+export enum AnimationChannelTargetPath {
+  /**
+   * Translation
+   */
+  TRANSLATION = "translation",
+  /**
+   * Rotation
+   */
+  ROTATION = "rotation",
+  /**
+   * Scale
+   */
+  SCALE = "scale",
+  /**
+   * Weights
+   */
+  WEIGHTS = "weights"
+}
+
+/**
+ * Interpolation algorithm
+ */
+export enum AnimationSamplerInterpolation {
+  /**
+   * The animated values are linearly interpolated between keyframes
+   */
+  LINEAR = "LINEAR",
+  /**
+   * The animated values remain constant to the output of the first keyframe, until the next keyframe
+   */
+  STEP = "STEP",
+  /**
+   * The animation's interpolation is computed using a cubic spline with specified tangents
+   */
+  CUBICSPLINE = "CUBICSPLINE"
+}
+
+/**
+ * A camera's projection.  A node can reference a camera to apply a transform to place the camera in the scene
+ */
+export enum CameraType {
+  /**
+   * A perspective camera containing properties to create a perspective projection matrix
+   */
+  PERSPECTIVE = "perspective",
+  /**
+   * An orthographic camera containing properties to create an orthographic projection matrix
+   */
+  ORTHOGRAPHIC = "orthographic"
+}
+
+/**
+ * The mime-type of the image
+ */
+export enum ImageMimeType {
+  /**
+   * JPEG Mime-type
+   */
+  JPEG = "image/jpeg",
+  /**
+   * PNG Mime-type
+   */
+  PNG = "image/png"
+}
+
+/**
+ * The alpha rendering mode of the material
+ */
+export enum MaterialAlphaMode {
+  /**
+   * The alpha value is ignored and the rendered output is fully opaque
+   */
+  OPAQUE = "OPAQUE",
+  /**
+   * The rendered output is either fully opaque or fully transparent depending on the alpha value and the specified alpha cutoff value
+   */
+  MASK = "MASK",
+  /**
+   * The alpha value is used to composite the source and destination areas. The rendered output is combined with the background using the normal painting operation (i.e. the Porter and Duff over operator)
+   */
+  BLEND = "BLEND"
+}
+
+/**
+ * Magnification filter.  Valid values correspond to WebGL enums: 9728 (NEAREST) and 9729 (LINEAR)
+ */
+export enum TextureMagFilter {
+  /**
+   * Nearest
+   */
+  NEAREST = 9728,
+  /**
+   * Linear
+   */
+  LINEAR = 9729
+}
+
+/**
+ * Minification filter.  All valid values correspond to WebGL enums
+ */
+export enum TextureMinFilter {
+  /**
+   * Nearest
+   */
+  NEAREST = 9728,
+  /**
+   * Linear
+   */
+  LINEAR = 9729,
+  /**
+   * Nearest Mip-Map Nearest
+   */
+  NEAREST_MIPMAP_NEAREST = 9984,
+  /**
+   * Linear Mipmap Nearest
+   */
+  LINEAR_MIPMAP_NEAREST = 9985,
+  /**
+   * Nearest Mipmap Linear
+   */
+  NEAREST_MIPMAP_LINEAR = 9986,
+  /**
+   * Linear Mipmap Linear
+   */
+  LINEAR_MIPMAP_LINEAR = 9987
+}
+
+/**
+ * S (U) wrapping mode.  All valid values correspond to WebGL enums
+ */
+export enum TextureWrapMode {
+  /**
+   * Clamp to Edge
+   */
+  CLAMP_TO_EDGE = 33071,
+  /**
+   * Mirrored Repeat
+   */
+  MIRRORED_REPEAT = 33648,
+  /**
+   * Repeat
+   */
+  REPEAT = 10497
+}
+
+/**
+ * glTF Property
+ */
+export interface IProperty {
+  /**
+   * Dictionary object with extension-specific objects
+   */
+  extensions?: {
+    [key: string]: any;
+  };
+  /**
+   * Application-Specific data
+   */
+  extras?: any;
+}
+
+/**
+ * glTF Child of Root Property
+ */
+export interface IChildRootProperty extends IProperty {
+  /**
+   * The user-defined name of this object
+   */
+  name?: string;
+}
+
+/**
+ * Indices of those attributes that deviate from their initialization value
+ */
+export interface IAccessorSparseIndices extends IProperty {
+  /**
+   * The index of the bufferView with sparse indices. Referenced bufferView can't have ARRAY_BUFFER or ELEMENT_ARRAY_BUFFER target
+   */
+  bufferView: number;
+  /**
+   * The offset relative to the start of the bufferView in bytes. Must be aligned
    */
   byteOffset?: number;
   /**
-   * The indices data type.
+   * The indices data type.  Valid values correspond to WebGL enums: 5121 (UNSIGNED_BYTE), 5123 (UNSIGNED_SHORT), 5125 (UNSIGNED_INT)
    */
-  componentType: 5121 | 5123 | 5125 | number;
-  extensions?: any;
-  extras?: any;
+  componentType: AccessorComponentType;
 }
+
 /**
- * Array of size `accessor.sparse.count` times number of components storing the displaced accessor attributes pointed by `accessor.sparse.indices`.
+ * Array of size accessor.sparse.count times number of components storing the displaced accessor attributes pointed by accessor.sparse.indices
  */
-export interface IAccessorSparseValues {
+export interface IAccessorSparseValues extends IProperty {
   /**
-   * The index of the bufferView with sparse values. Referenced bufferView can't have ARRAY_BUFFER or ELEMENT_ARRAY_BUFFER target.
+   * The index of the bufferView with sparse values. Referenced bufferView can't have ARRAY_BUFFER or ELEMENT_ARRAY_BUFFER target
    */
-  bufferView: GLTFID;
+  bufferView: number;
   /**
-   * The offset relative to the start of the bufferView in bytes. Must be aligned.
+   * The offset relative to the start of the bufferView in bytes. Must be aligned
    */
   byteOffset?: number;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * Sparse storage of attributes that deviate from their initialization value.
+ * Sparse storage of attributes that deviate from their initialization value
  */
-export interface IAccessorSparse {
+export interface IAccessorSparse extends IProperty {
   /**
-   * Number of entries stored in the sparse array.
+   * The number of attributes encoded in this sparse accessor
    */
   count: number;
   /**
-   * Index array of size `count` that points to those accessor attributes that deviate from their initialization value. Indices must strictly increase.
+   * Index array of size count that points to those accessor attributes that deviate from their initialization value. Indices must strictly increase
    */
   indices: IAccessorSparseIndices;
   /**
-   * Array of size `count` times number of components, storing the displaced accessor attributes pointed by `indices`. Substituted values must have the same `componentType` and number of components as the base accessor.
+   * Array of size count times number of components, storing the displaced accessor attributes pointed by indices. Substituted values must have the same componentType and number of components as the base accessor
    */
   values: IAccessorSparseValues;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * A typed view into a bufferView.  A bufferView contains raw binary data.  An accessor provides a typed view into a bufferView or a subset of a bufferView similar to how WebGL's `vertexAttribPointer()` defines an attribute in a buffer.
+ * A typed view into a bufferView.  A bufferView contains raw binary data.  An accessor provides a typed view into a bufferView or a subset of a bufferView similar to how WebGL's vertexAttribPointer() defines an attribute in a buffer
  */
-export interface IAccessor {
+export interface IAccessor extends IChildRootProperty {
   /**
-   * The index of the bufferView.
+   * The index of the bufferview
    */
-  bufferView?: GLTFID;
+  bufferView?: number;
   /**
-   * The offset relative to the start of the bufferView in bytes.
+   * The offset relative to the start of the bufferView in bytes
    */
   byteOffset?: number;
   /**
-   * The datatype of components in the attribute.
+   * The datatype of components in the attribute
    */
-  componentType: 5120 | 5121 | 5122 | 5123 | 5125 | 5126 | number;
+  componentType: AccessorComponentType;
   /**
-   * Specifies whether integer data values should be normalized.
+   * Specifies whether integer data values should be normalized
    */
   normalized?: boolean;
   /**
-   * The number of attributes referenced by this accessor.
+   * The number of attributes referenced by this accessor
    */
   count: number;
   /**
-   * Specifies if the attribute is a scalar, vector, or matrix.
+   * Specifies if the attribute is a scalar, vector, or matrix
    */
-  type: "SCALAR" | "VEC2" | "VEC3" | "VEC4" | "MAT2" | "MAT3" | "MAT4" | string;
+  type: AccessorType;
   /**
-   * Maximum value of each component in this attribute.
+   * Maximum value of each component in this attribute
    */
   max?: number[];
   /**
-   * Minimum value of each component in this attribute.
+   * Minimum value of each component in this attribute
    */
   min?: number[];
   /**
-   * Sparse storage of attributes that deviate from their initialization value.
+   * Sparse storage of attributes that deviate from their initialization value
    */
   sparse?: IAccessorSparse;
-  name?: any;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * The index of the node and TRS property that an animation channel targets.
+ * Targets an animation's sampler at a node's property
  */
-export interface IAnimationChannelTarget {
+export interface IAnimationChannel extends IProperty {
   /**
-   * The index of the node to target.
+   * The index of a sampler in this animation used to compute the value for the target
    */
-  node?: GLTFID;
+  sampler: number;
   /**
-   * The name of the node's TRS property to modify, or the "weights" of the Morph Targets it instantiates. For the "translation" property, the values that are provided by the sampler are the translation along the x, y, and z axes. For the "rotation" property, the values are a quaternion in the order (x, y, z, w), where w is the scalar. For the "scale" property, the values are the scaling factors along the x, y, and z axes.
-   */
-  path: "translation" | "rotation" | "scale" | "weights" | string;
-  extensions?: any;
-  extras?: any;
-}
-/**
- * Targets an animation's sampler at a node's property.
- */
-export interface IAnimationChannel {
-  /**
-   * The index of a sampler in this animation used to compute the value for the target.
-   */
-  sampler: GLTFID;
-  /**
-   * The index of the node and TRS property to target.
+   * The index of the node and TRS property to target
    */
   target: IAnimationChannelTarget;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * Combines input and output accessors with an interpolation algorithm to define a keyframe graph (but not its target).
+ * The index of the node and TRS property that an animation channel targets
  */
-export interface IAnimationSampler {
+export interface IAnimationChannelTarget extends IProperty {
   /**
-   * The index of an accessor containing keyframe input values, e.g., time.
+   * The index of the node to target
    */
-  input: GLTFID;
+  node: number;
   /**
-   * Interpolation algorithm.
+   * The name of the node's TRS property to modify, or the weights of the Morph Targets it instantiates
    */
-  interpolation?: "LINEAR" | "STEP" | "CUBICSPLINE" | string;
-  /**
-   * The index of an accessor, containing keyframe output values.
-   */
-  output: GLTFID;
-  extensions?: any;
-  extras?: any;
+  path: AnimationChannelTargetPath;
 }
+
 /**
- * A keyframe animation.
+ * Combines input and output accessors with an interpolation algorithm to define a keyframe graph (but not its target)
  */
-export interface IAnimation {
+export interface IAnimationSampler extends IProperty {
   /**
-   * An array of channels, each of which targets an animation's sampler at a node's property. Different channels of the same animation can't have equal targets.
+   * The index of an accessor containing keyframe input values, e.g., time
+   */
+  input: number;
+  /**
+   * Interpolation algorithm
+   */
+  interpolation?: AnimationSamplerInterpolation;
+  /**
+   * The index of an accessor, containing keyframe output values
+   */
+  output: number;
+}
+
+/**
+ * A keyframe animation
+ */
+export interface IAnimation extends IChildRootProperty {
+  /**
+   * An array of channels, each of which targets an animation's sampler at a node's property
    */
   channels: IAnimationChannel[];
   /**
-   * An array of samplers that combines input and output accessors with an interpolation algorithm to define a keyframe graph (but not its target).
+   * An array of samplers that combines input and output accessors with an interpolation algorithm to define a keyframe graph (but not its target)
    */
   samplers: IAnimationSampler[];
-  name?: any;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * Metadata about the glTF asset.
+ * Metadata about the glTF asset
  */
-export interface IAsset {
+export interface IAsset extends IChildRootProperty {
   /**
-   * A copyright message suitable for display to credit the content creator.
+   * A copyright message suitable for display to credit the content creator
    */
   copyright?: string;
   /**
-   * Tool that generated this glTF model.  Useful for debugging.
+   * Tool that generated this glTF model.  Useful for debugging
    */
   generator?: string;
   /**
-   * The glTF version that this asset targets.
+   * The glTF version that this asset targets
    */
   version: string;
   /**
-   * The minimum glTF version that this asset targets.
+   * The minimum glTF version that this asset targets
    */
   minVersion?: string;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * A buffer points to binary geometry, animation, or skins.
+ * A buffer points to binary geometry, animation, or skins
  */
-export interface IBuffer {
+export interface IBuffer extends IChildRootProperty {
   /**
-   * The uri of the buffer.
+   * The uri of the buffer.  Relative paths are relative to the .gltf file.  Instead of referencing an external file, the uri can also be a data-uri
    */
   uri?: string;
   /**
-   * The length of the buffer in bytes.
+   * The length of the buffer in bytes
    */
   byteLength: number;
-  name?: any;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * A view into a buffer generally representing a subset of the buffer.
+ * A view into a buffer generally representing a subset of the buffer
  */
-export interface IBufferView {
+export interface IBufferView extends IChildRootProperty {
   /**
-   * The index of the buffer.
+   * The index of the buffer
    */
-  buffer: GLTFID;
+  buffer: number;
   /**
-   * The offset into the buffer in bytes.
+   * The offset into the buffer in bytes
    */
   byteOffset?: number;
   /**
-   * The length of the bufferView in bytes.
+   * The lenth of the bufferView in bytes
    */
   byteLength: number;
   /**
-   * The stride, in bytes.
+   * The stride, in bytes
    */
   byteStride?: number;
-  /**
-   * The target that the GPU buffer should be bound to.
-   */
-  target?: 34962 | 34963 | number;
-  name?: any;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * An orthographic camera containing properties to create an orthographic projection matrix.
+ * An orthographic camera containing properties to create an orthographic projection matrix
  */
-export interface ICameraOrthographic {
+export interface ICameraOrthographic extends IProperty {
   /**
-   * The floating-point horizontal magnification of the view. Must not be zero.
+   * The floating-point horizontal magnification of the view. Must not be zero
    */
   xmag: number;
   /**
-   * The floating-point vertical magnification of the view. Must not be zero.
+   * The floating-point vertical magnification of the view. Must not be zero
    */
   ymag: number;
   /**
-   * The floating-point distance to the far clipping plane. `zfar` must be greater than `znear`.
+   * The floating-point distance to the far clipping plane. zfar must be greater than znear
    */
   zfar: number;
   /**
-   * The floating-point distance to the near clipping plane.
+   * The floating-point distance to the near clipping plane
    */
   znear: number;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * A perspective camera containing properties to create a perspective projection matrix.
+ * A perspective camera containing properties to create a perspective projection matrix
  */
-export interface ICameraPerspective {
+export interface ICameraPerspective extends IProperty {
   /**
-   * The floating-point aspect ratio of the field of view.
+   * The floating-point aspect ratio of the field of view
    */
   aspectRatio?: number;
   /**
-   * The floating-point vertical field of view in radians.
+   * The floating-point vertical field of view in radians
    */
   yfov: number;
   /**
-   * The floating-point distance to the far clipping plane.
+   * The floating-point distance to the far clipping plane
    */
   zfar?: number;
   /**
-   * The floating-point distance to the near clipping plane.
+   * The floating-point distance to the near clipping plane
    */
   znear: number;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * A camera's projection.  A node can reference a camera to apply a transform to place the camera in the scene.
+ * A camera's projection.  A node can reference a camera to apply a transform to place the camera in the scene
  */
-export interface ICamera {
+export interface ICamera extends IChildRootProperty {
   /**
-   * An orthographic camera containing properties to create an orthographic projection matrix.
+   * An orthographic camera containing properties to create an orthographic projection matrix
    */
   orthographic?: ICameraOrthographic;
   /**
-   * A perspective camera containing properties to create a perspective projection matrix.
+   * A perspective camera containing properties to create a perspective projection matrix
    */
   perspective?: ICameraPerspective;
   /**
-   * Specifies if the camera uses a perspective or orthographic projection.
+   * Specifies if the camera uses a perspective or orthographic projection
    */
-  type: "perspective" | "orthographic" | string;
-  name?: any;
-  extensions?: any;
-  extras?: any;
+  type: CameraType;
 }
+
 /**
- * Image data used to create a texture. Image can be referenced by URI or `bufferView` index. `mimeType` is required in the latter case.
+ * Image data used to create a texture. Image can be referenced by URI or bufferView index. mimeType is required in the latter case
  */
-export interface IImage {
+export interface IImage extends IChildRootProperty {
   /**
-   * The uri of the image.
+   * The uri of the image.  Relative paths are relative to the .gltf file.  Instead of referencing an external file, the uri can also be a data-uri.  The image format must be jpg or png
    */
   uri?: string;
   /**
-   * The image's MIME type.
+   * The image's MIME type
    */
-  mimeType?: "image/jpeg" | "image/png" | string;
+  mimeType?: ImageMimeType;
   /**
-   * The index of the bufferView that contains the image. Use this instead of the image's uri property.
+   * The index of the bufferView that contains the image. Use this instead of the image's uri property
    */
-  bufferView?: GLTFID;
-  name?: any;
-  extensions?: any;
-  extras?: any;
+  bufferView?: number;
 }
+
 /**
- * Reference to a texture.
+ * Material Normal Texture Info
  */
-export interface ITextureInfo {
+export interface IMaterialNormalTextureInfo extends ITextureInfo {
   /**
-   * The index of the texture.
+   * The scalar multiplier applied to each normal vector of the normal texture
    */
-  index: GLTFID;
-  /**
-   * The set index of texture's TEXCOORD attribute used for texture coordinate mapping.
-   */
-  texCoord?: number;
-  extensions?: any;
-  extras?: any;
+  scale?: number;
 }
+
 /**
- * A set of parameter values that are used to define the metallic-roughness material model from Physically-Based Rendering (PBR) methodology.
+ * Material Occlusion Texture Info
+ */
+export interface IMaterialOcclusionTextureInfo extends ITextureInfo {
+  /**
+   * A scalar multiplier controlling the amount of occlusion applied
+   */
+  strength?: number;
+}
+
+/**
+ * A set of parameter values that are used to define the metallic-roughness material model from Physically-Based Rendering (PBR) methodology
  */
 export interface IMaterialPbrMetallicRoughness {
   /**
-   * The material's base color factor.
+   * The material's base color factor
    */
   baseColorFactor?: number[];
   /**
-   * The base color texture.
+   * The base color texture
    */
   baseColorTexture?: ITextureInfo;
   /**
-   * The metalness of the material.
+   * The metalness of the material
    */
   metallicFactor?: number;
   /**
-   * The roughness of the material.
+   * The roughness of the material
    */
   roughnessFactor?: number;
   /**
-   * The metallic-roughness texture.
+   * The metallic-roughness texture
    */
   metallicRoughnessTexture?: ITextureInfo;
-  extensions?: any;
-  extras?: any;
 }
-export interface IMaterialNormalTextureInfo {
-  index?: any;
-  texCoord?: any;
-  /**
-   * The scalar multiplier applied to each normal vector of the normal texture.
-   */
-  scale?: number;
-  extensions?: any;
-  extras?: any;
-}
-export interface IMaterialOcclusionTextureInfo {
-  index?: any;
-  texCoord?: any;
-  /**
-   * A scalar multiplier controlling the amount of occlusion applied.
-   */
-  strength?: number;
-  extensions?: any;
-  extras?: any;
-}
+
 /**
- * The material appearance of a primitive.
+ * The material appearance of a primitive
  */
-export interface IMaterial {
-  name?: any;
-  extensions?: any;
-  extras?: any;
+export interface IMaterial extends IChildRootProperty {
   /**
-   * A set of parameter values that are used to define the metallic-roughness material model from Physically-Based Rendering (PBR) methodology. When not specified, all the default values of `pbrMetallicRoughness` apply.
+   * A set of parameter values that are used to define the metallic-roughness material model from Physically-Based Rendering (PBR) methodology. When not specified, all the default values of pbrMetallicRoughness apply
    */
   pbrMetallicRoughness?: IMaterialPbrMetallicRoughness;
   /**
-   * The normal map texture.
+   * The normal map texture
    */
   normalTexture?: IMaterialNormalTextureInfo;
   /**
-   * The occlusion map texture.
+   * The occlusion map texture
    */
   occlusionTexture?: IMaterialOcclusionTextureInfo;
   /**
-   * The emissive map texture.
+   * The emissive map texture
    */
   emissiveTexture?: ITextureInfo;
   /**
-   * The emissive color of the material.
+   * The RGB components of the emissive color of the material. These values are linear. If an emissiveTexture is specified, this value is multiplied with the texel values
    */
   emissiveFactor?: number[];
   /**
-   * The alpha rendering mode of the material.
+   * The alpha rendering mode of the material
    */
-  alphaMode?: "OPAQUE" | "MASK" | "BLEND" | string;
+  alphaMode?: MaterialAlphaMode;
   /**
-   * The alpha cutoff value of the material.
+   * The alpha cutoff value of the material
    */
   alphaCutoff?: number;
   /**
-   * Specifies whether the material is double sided.
+   * Specifies whether the material is double sided
    */
   doubleSided?: boolean;
 }
+
 /**
- * Geometry to be rendered with the given material.
+ * Geometry to be rendered with the given material
  */
-export interface IMeshPrimitive {
+export interface IMeshPrimitive extends IProperty {
   /**
-   * A dictionary object, where each key corresponds to mesh attribute semantic and each value is the index of the accessor containing attribute's data.
+   * A dictionary object, where each key corresponds to mesh attribute semantic and each value is the index of the accessor containing attribute's data
    */
   attributes: {
-    [k: string]: GLTFID;
+    [name: string]: number;
   };
   /**
-   * The index of the accessor that contains the indices.
+   * The index of the accessor that contains the indices
    */
-  indices?: GLTFID;
+  indices?: number;
   /**
-   * The index of the material to apply to this primitive when rendering.
+   * The index of the material to apply to this primitive when rendering
    */
-  material?: GLTFID;
+  material?: number;
   /**
-   * The type of primitives to render.
+   * The type of primitives to render. All valid values correspond to WebGL enums
    */
-  mode?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | number;
+  mode?: MeshTopology;
   /**
-   * An array of Morph Targets, each  Morph Target is a dictionary mapping attributes (only `POSITION`, `NORMAL`, and `TANGENT` supported) to their deviations in the Morph Target.
+   * An array of Morph Targets, each  Morph Target is a dictionary mapping attributes (only POSITION, NORMAL, and TANGENT supported) to their deviations in the Morph Target
    */
   targets?: {
-    [k: string]: GLTFID;
+    [name: string]: number;
   }[];
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * A set of primitives to be rendered.  A node can contain one mesh.  A node's transform places the mesh in the scene.
+ * A set of primitives to be rendered.  A node can contain one mesh.  A node's transform places the mesh in the scene
  */
-export interface IMesh {
+export interface IMesh extends IChildRootProperty {
   /**
-   * An array of primitives, each defining geometry to be rendered with a material.
+   * An array of primitives, each defining geometry to be rendered with a material
    */
   primitives: IMeshPrimitive[];
   /**
-   * Array of weights to be applied to the Morph Targets.
+   * Array of weights to be applied to the Morph Targets
    */
   weights?: number[];
-  name?: any;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * A node in the node hierarchy.  When the node contains `skin`, all `mesh.primitives` must contain `JOINTS_0` and `WEIGHTS_0` attributes.  A node can have either a `matrix` or any combination of `translation`/`rotation`/`scale` (TRS) properties. TRS properties are converted to matrices and postmultiplied in the `T * R * S` order to compose the transformation matrix; first the scale is applied to the vertices, then the rotation, and then the translation. If none are provided, the transform is the identity. When a node is targeted for animation (referenced by an animation.channel.target), only TRS properties may be present; `matrix` will not be present.
+ * A node in the node hierarchy
  */
-export interface INode {
+export interface INode extends IChildRootProperty {
   /**
-   * The index of the camera referenced by this node.
+   * The index of the camera referenced by this node
    */
-  camera?: GLTFID;
+  camera?: number;
   /**
-   * The indices of this node's children.
+   * The indices of this node's children
    */
-  children?: GLTFID[];
+  children?: number[];
   /**
-   * The index of the skin referenced by this node.
+   * The index of the skin referenced by this node
    */
-  skin?: GLTFID;
+  skin?: number;
   /**
-   * A floating-point 4x4 transformation matrix stored in column-major order.
+   * A floating-point 4x4 transformation matrix stored in column-major order
    */
   matrix?: number[];
   /**
-   * The index of the mesh in this node.
+   * The index of the mesh in this node
    */
-  mesh?: GLTFID;
+  mesh?: number;
   /**
-   * The node's unit quaternion rotation in the order (x, y, z, w), where w is the scalar.
+   * The node's unit quaternion rotation in the order (x, y, z, w), where w is the scalar
    */
   rotation?: number[];
   /**
-   * The node's non-uniform scale, given as the scaling factors along the x, y, and z axes.
+   * The node's non-uniform scale, given as the scaling factors along the x, y, and z axes
    */
   scale?: number[];
   /**
-   * The node's translation along the x, y, and z axes.
+   * The node's translation along the x, y, and z axes
    */
   translation?: number[];
   /**
-   * The weights of the instantiated Morph Target. Number of elements must match number of Morph Targets of used mesh.
+   * The weights of the instantiated Morph Target. Number of elements must match number of Morph Targets of used mesh
    */
   weights?: number[];
-  name?: any;
-  extensions?: any;
-  extras?: any;
 }
+
 /**
- * Texture sampler properties for filtering and wrapping modes.
+ * Texture sampler properties for filtering and wrapping modes
  */
-export interface ISampler {
+export interface ISampler extends IChildRootProperty {
   /**
-   * Magnification filter.
+   * Magnification filter.  Valid values correspond to WebGL enums: 9728 (NEAREST) and 9729 (LINEAR)
    */
-  magFilter?: 9728 | 9729 | number;
+  magFilter?: TextureMagFilter;
   /**
-   * Minification filter.
+   * Minification filter.  All valid values correspond to WebGL enums
    */
-  minFilter?: 9728 | 9729 | 9984 | 9985 | 9986 | 9987 | number;
+  minFilter?: TextureMinFilter;
   /**
-   * s wrapping mode.
+   * S (U) wrapping mode.  All valid values correspond to WebGL enums
    */
-  wrapS?: 33071 | 33648 | 10497 | number;
+  wrapS?: TextureWrapMode;
   /**
-   * t wrapping mode.
+   * T (V) wrapping mode.  All valid values correspond to WebGL enums
    */
-  wrapT?: 33071 | 33648 | 10497 | number;
-  name?: any;
-  extensions?: any;
-  extras?: any;
+  wrapT?: TextureWrapMode;
 }
+
 /**
- * The root nodes of a scene.
+ * The root nodes of a scene
  */
-export interface IScene {
+export interface IScene extends IChildRootProperty {
   /**
-   * The indices of each root node.
+   * The indices of each root node
    */
-  nodes?: GLTFID[];
-  name?: any;
-  extensions?: any;
-  extras?: any;
+  nodes: number[];
 }
+
 /**
- * Joints and matrices defining a skin.
+ * Joints and matrices defining a skin
  */
-export interface ISkin {
+export interface ISkin extends IChildRootProperty {
   /**
-   * The index of the accessor containing the floating-point 4x4 inverse-bind matrices.  The default is that each matrix is a 4x4 identity matrix, which implies that inverse-bind matrices were pre-applied.
+   * The index of the accessor containing the floating-point 4x4 inverse-bind matrices.  The default is that each matrix is a 4x4 identity matrix, which implies that inverse-bind matrices were pre-applied
    */
-  inverseBindMatrices?: GLTFID;
+  inverseBindMatrices?: number;
   /**
-   * The index of the node used as a skeleton root. When undefined, joints transforms resolve to scene root.
+   * The index of the node used as a skeleton root. When undefined, joints transforms resolve to scene root
    */
-  skeleton?: GLTFID;
+  skeleton?: number;
   /**
-   * Indices of skeleton nodes, used as joints in this skin.
+   * Indices of skeleton nodes, used as joints in this skin.  The array length must be the same as the count property of the inverseBindMatrices accessor (when defined)
    */
-  joints: GLTFID[];
-  name?: any;
-  extensions?: any;
-  extras?: any;
+  joints: number[];
 }
+
 /**
- * A texture and its sampler.
+ * A texture and its sampler
  */
-export interface ITexture {
+export interface ITexture extends IChildRootProperty {
   /**
-   * The index of the sampler used by this texture. When undefined, a sampler with repeat wrapping and auto filtering should be used.
+   * The index of the sampler used by this texture. When undefined, a sampler with repeat wrapping and auto filtering should be used
    */
-  sampler?: GLTFID;
+  sampler?: number;
   /**
-   * The index of the image used by this texture.
+   * The index of the image used by this texture
    */
-  source?: GLTFID;
-  name?: any;
-  extensions?: any;
-  extras?: any;
+  source: number;
 }
+
 /**
- * The root object for a glTF asset.
+ * Reference to a texture
  */
-export interface IGLTF {
+export interface ITextureInfo extends IProperty {
   /**
-   * Names of glTF extensions used somewhere in this asset.
+   * The index of the texture
    */
-  extensionsUsed?: string[];
+  index: number;
   /**
-   * Names of glTF extensions required to properly load this asset.
+   * The set index of texture's TEXCOORD attribute used for texture coordinate mapping
    */
-  extensionsRequired?: string[];
+  texCoord?: number;
+}
+
+/**
+ * The root object for a glTF asset
+ */
+export interface IGLTF extends IProperty {
   /**
-   * An array of accessors.
+   * An array of accessors. An accessor is a typed view into a bufferView
    */
   accessors?: IAccessor[];
   /**
-   * An array of keyframe animations.
+   * An array of keyframe animations
    */
   animations?: IAnimation[];
   /**
-   * Metadata about the glTF asset.
+   * Metadata about the glTF asset
    */
   asset: IAsset;
   /**
-   * An array of buffers.
+   * An array of buffers.  A buffer points to binary geometry, animation, or skins
    */
   buffers?: IBuffer[];
   /**
-   * An array of bufferViews.
+   * An array of bufferViews.  A bufferView is a view into a buffer generally representing a subset of the buffer
    */
   bufferViews?: IBufferView[];
   /**
-   * An array of cameras.
+   * An array of cameras
    */
   cameras?: ICamera[];
   /**
-   * An array of images.
+   * Names of glTF extensions used somewhere in this asset
+   */
+  extensionsUsed?: string[];
+  /**
+   * Names of glTF extensions required to properly load this asset
+   */
+  extensionsRequired?: string[];
+  /**
+   * An array of images.  An image defines data used to create a texture
    */
   images?: IImage[];
   /**
-   * An array of materials.
+   * An array of materials.  A material defines the appearance of a primitive
    */
   materials?: IMaterial[];
   /**
-   * An array of meshes.
+   * An array of meshes.  A mesh is a set of primitives to be rendered
    */
   meshes?: IMesh[];
   /**
-   * An array of nodes.
+   * An array of nodes
    */
   nodes?: INode[];
   /**
-   * An array of samplers.
+   * An array of samplers.  A sampler contains properties for texture filtering and wrapping modes
    */
   samplers?: ISampler[];
   /**
-   * The index of the default scene.
+   * The index of the default scene
    */
-  scene?: GLTFID;
+  scene?: number;
   /**
-   * An array of scenes.
+   * An array of scenes
    */
   scenes?: IScene[];
   /**
-   * An array of skins.
+   * An array of skins.  A skin is defined by joints and matrices
    */
   skins?: ISkin[];
   /**
-   * An array of textures.
+   * An array of textures
    */
   textures?: ITexture[];
-  extensions?: any;
-  extras?: any;
 }

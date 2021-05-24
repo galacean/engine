@@ -11,7 +11,7 @@ import {
 import { Color } from "@oasis-engine/math";
 import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
-import { ICamera, INode } from "../Schema";
+import { CameraType, ICamera, INode } from "../Schema";
 import { Parser } from "./Parser";
 
 export class SceneParser extends Parser {
@@ -65,7 +65,7 @@ export class SceneParser extends Parser {
     const { orthographic, perspective, type, name } = cameraSchema;
     const camera = entity.addComponent(Camera);
 
-    if (type === "orthographic") {
+    if (type === CameraType.ORTHOGRAPHIC) {
       const { xmag, ymag, zfar, znear } = orthographic;
 
       camera.isOrthographic = true;
@@ -78,7 +78,7 @@ export class SceneParser extends Parser {
       }
 
       camera.orthographicSize = Math.max(ymag ?? 0, xmag ?? 0) / 2;
-    } else if (type === "perspective") {
+    } else if (type === CameraType.PERSPECTIVE) {
       const { aspectRatio, yfov, zfar, znear } = perspective;
 
       if (aspectRatio !== undefined) {

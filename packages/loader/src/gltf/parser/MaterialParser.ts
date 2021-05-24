@@ -1,6 +1,7 @@
 import { Material, PBRMaterial, PBRSpecularMaterial, RenderFace, UnlitMaterial } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
+import { MaterialAlphaMode } from "../Schema";
 import { Parser } from "./Parser";
 
 export class MaterialParser extends Parser {
@@ -116,13 +117,13 @@ export class MaterialParser extends Parser {
       }
 
       switch (alphaMode) {
-        case "OPAQUE":
+        case MaterialAlphaMode.OPAQUE:
           material.isTransparent = false;
           break;
-        case "BLEND":
+        case MaterialAlphaMode.BLEND:
           material.isTransparent = true;
           break;
-        case "MASK":
+        case MaterialAlphaMode.MASK:
           material.alphaCutoff = alphaCutoff ?? 0.5;
           break;
       }

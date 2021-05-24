@@ -1,25 +1,13 @@
-import { DataType, IndexFormat, TypedArray, VertexElement, VertexElementFormat } from "@oasis-engine/core";
-import { IAccessor, IBufferView, IGLTF } from "./Schema";
+import { IndexFormat, TypedArray, VertexElement, VertexElementFormat } from "@oasis-engine/core";
+import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
 export class GLTFUtil {
-  static WEBGL_COMPONENT_TYPES = {
-    5120: Int8Array,
-    5121: Uint8Array,
-    5122: Int16Array,
-    5123: Uint16Array,
-    5125: Uint32Array,
-    5126: Float32Array
-  };
-
   private constructor() {}
 
   /**
    * Parse binary text for glb loader.
-   * @param array
-   * @returns String
-   * @private
    */
-  static decodeText(array): string {
+  static decodeText(array: Uint8Array): string {
     if (typeof TextDecoder !== "undefined") {
       return new TextDecoder().decode(array);
     }
@@ -34,38 +22,50 @@ export class GLTFUtil {
     return decodeURIComponent(encodeURIComponent(s));
   }
 
-  /** Get the number of bytes occupied by accessor type.
-   * @return {number}
-   * @param {string} accessorType
-   * @private
+  /**
+   * Get the number of bytes occupied by accessor type.
    */
-  static getAccessorTypeSize(accessorType) {
-    const ACCESSOR_TYPE_SIZE = {
-      SCALAR: 1,
-      VEC2: 2,
-      VEC3: 3,
-      VEC4: 4,
-      MAT2: 4,
-      MAT3: 9,
-      MAT4: 16
-    };
-    return ACCESSOR_TYPE_SIZE[accessorType];
+  static getAccessorTypeSize(accessorType: AccessorType): number {
+    switch (accessorType) {
+      case AccessorType.SCALAR:
+        return 1;
+      case AccessorType.VEC2:
+        return 2;
+      case AccessorType.VEC3:
+        return 3;
+      case AccessorType.VEC4:
+        return 4;
+      case AccessorType.MAT2:
+        return 4;
+      case AccessorType.MAT3:
+        return 9;
+      case AccessorType.MAT4:
+        return 16;
+    }
   }
 
-  /** Get the TypedArray corresponding to the component type.
-   * @return {function}
-   * @param {string} componentType
+  /**
+   * Get the TypedArray corresponding to the component type.
    */
-  static getComponentType(componentType) {
-    return GLTFUtil.WEBGL_COMPONENT_TYPES[componentType];
+  static getComponentType(componentType: AccessorComponentType) {
+    switch (componentType) {
+      case AccessorComponentType.BYTE:
+        return Int8Array;
+      case AccessorComponentType.UNSIGNED_BYTE:
+        return Uint8Array;
+      case AccessorComponentType.SHORT:
+        return Int16Array;
+      case AccessorComponentType.UNSIGNED_SHORT:
+        return Uint16Array;
+      case AccessorComponentType.UNSIGNED_INT:
+        return Uint32Array;
+      case AccessorComponentType.FLOAT:
+        return Float32Array;
+    }
   }
 
   /**
    * Get accessor data.
-   * @param gltf
-   * @param accessor
-   * @param buffers
-   * @private
    */
   static getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
     const bufferView = gltf.bufferViews[accessor.bufferView];
@@ -157,19 +157,19 @@ export class GLTFUtil {
     );
   }
 
-  static getIndexFormat(type: number): IndexFormat {
+  static getIndexFormat(type: AccessorComponentType): IndexFormat {
     switch (type) {
-      case DataType.UNSIGNED_BYTE:
+      case AccessorComponentType.UNSIGNED_BYTE:
         return IndexFormat.UInt8;
-      case DataType.UNSIGNED_SHORT:
+      case AccessorComponentType.UNSIGNED_SHORT:
         return IndexFormat.UInt16;
-      case DataType.UNSIGNED_INT:
+      case AccessorComponentType.UNSIGNED_INT:
         return IndexFormat.UInt32;
     }
   }
 
-  static getElementFormat(type: number, size: number, normalized: boolean = false): VertexElementFormat {
-    if (type == DataType.FLOAT) {
+  static getElementFormat(type: AccessorComponentType, size: number, normalized: boolean = false): VertexElementFormat {
+    if (type == AccessorComponentType.FLOAT) {
       switch (size) {
         case 1:
           return VertexElementFormat.Float;
@@ -182,7 +182,7 @@ export class GLTFUtil {
       }
     }
 
-    if (type == DataType.SHORT) {
+    if (type == AccessorComponentType.SHORT) {
       switch (size) {
         case 2:
           return normalized ? VertexElementFormat.NormalizedShort2 : VertexElementFormat.Short2;
@@ -192,7 +192,7 @@ export class GLTFUtil {
       }
     }
 
-    if (type == DataType.UNSIGNED_SHORT) {
+    if (type == AccessorComponentType.UNSIGNED_SHORT) {
       switch (size) {
         case 2:
           return normalized ? VertexElementFormat.NormalizedUShort2 : VertexElementFormat.UShort2;
@@ -202,7 +202,7 @@ export class GLTFUtil {
       }
     }
 
-    if (type == DataType.BYTE) {
+    if (type == AccessorComponentType.BYTE) {
       switch (size) {
         case 2:
         case 3:
@@ -211,7 +211,7 @@ export class GLTFUtil {
       }
     }
 
-    if (type == DataType.UNSIGNED_BYTE) {
+    if (type == AccessorComponentType.UNSIGNED_BYTE) {
       switch (size) {
         case 2:
         case 3:
@@ -223,9 +223,6 @@ export class GLTFUtil {
 
   /**
    * Load image buffer
-   * @param imageBuffer
-   * @param type
-   * @param callback
    */
   static loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
@@ -260,9 +257,6 @@ export class GLTFUtil {
 
   /**
    * Parse the glb format.
-   * @param glb - Binary data
-   * @returns GlTF information and bin information in Object glb.
-   * @private
    */
   static parseGLB(
     glb: ArrayBuffer

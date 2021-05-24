@@ -40,7 +40,7 @@ export class MeshParser extends Parser {
 
         primitivePromises.push(
           new Promise((resolve) => {
-            const mesh = new BufferMesh(engine, gltfMesh.name || j);
+            const mesh = new BufferMesh(engine, gltfMesh.name || j + "");
             const subMesh = new SubMesh();
 
             subMesh.topology = mode ?? MeshTopology.Triangles;
