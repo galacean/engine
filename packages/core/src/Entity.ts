@@ -146,13 +146,6 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * The engine the entity belongs to.
-   */
-  get engine(): Engine {
-    return this._engine;
-  }
-
-  /**
    * Create a entity.
    * @param engine - The engine the entity belongs to.
    */
