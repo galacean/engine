@@ -68,7 +68,8 @@ export class GLTFUtil {
    * Get accessor data.
    */
   static getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
-    const bufferView = gltf.bufferViews[accessor.bufferView];
+    const bufferViews = gltf.bufferViews;
+    const bufferView = bufferViews[accessor.bufferView];
     const arrayBuffer = buffers[bufferView.buffer];
     const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
     const bufferViewByteOffset = bufferView.hasOwnProperty("byteOffset") ? bufferView.byteOffset : 0;
@@ -89,16 +90,15 @@ export class GLTFUtil {
         }
       }
     } else {
-      uint8Array = new Uint8Array(arrayBuffer, byteOffset, length * arrayType.BYTES_PER_ELEMENT);
-      uint8Array = new Uint8Array(uint8Array);
+      uint8Array = new Uint8Array(arrayBuffer.slice(byteOffset, byteOffset + length * arrayType.BYTES_PER_ELEMENT));
     }
 
     const typedArray = new arrayType(uint8Array.buffer);
 
     if (accessor.sparse) {
       const { count, indices, values } = accessor.sparse;
-      const indicesBufferView = gltf.bufferViews[indices.bufferView];
-      const valuesBufferView = gltf.bufferViews[values.bufferView];
+      const indicesBufferView = bufferViews[indices.bufferView];
+      const valuesBufferView = bufferViews[values.bufferView];
       const indicesArrayBuffer = buffers[indicesBufferView.buffer];
       const valuesArrayBuffer = buffers[valuesBufferView.buffer];
       const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesBufferView.byteOffset ?? 0);
@@ -256,7 +256,7 @@ export class GLTFUtil {
     if (char0 === ".") {
       return GLTFUtil._formatRelativePath(relativeUrl + relativeUrl);
     }
-    
+
     return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
   }
 
