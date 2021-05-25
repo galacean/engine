@@ -1,7 +1,38 @@
-# [0.3.0](https://github.com/oasis-engine/engine/compare/e217213ec80f0aa9356d74ea12d2f1ef63776f85...0.3.0) (2021-04-05)
+## [0.3.3](https://github.com/oasis-engine/engine/compare/v0.3.2...v0.3.3) (2021-04-16)
+
+
+### Bug Fixes
+
+* default active texture unit error ([#231](https://github.com/oasis-engine/engine/issues/231)) ([ed2f3ed](https://github.com/oasis-engine/engine/commit/ed2f3ede0e177caf319f7d862094cb15fcb2922c))
+* memory crash caused by 'RenderElement' pool ([#211](https://github.com/oasis-engine/engine/issues/211)) ([0f8eb79](https://github.com/oasis-engine/engine/commit/0f8eb795d51229fcd3d6fba2d522335efdc23beb))
+* model flicker bug ([ffa771d](https://github.com/oasis-engine/engine/commit/ffa771d3b60bcec55cbcce371cc9eba3bb3d8f94))
+
+## [0.3.2](https://github.com/oasis-engine/engine/compare/v0.3.1...v0.3.2) (2021-04-14)
+
+
+### Bug Fixes
+
+* error caused by duplicate shader name ([839ec0f](https://github.com/oasis-engine/engine/commit/839ec0ff5103278b08546cb468b28a5048595dd9))
+* material blend error ([#214](https://github.com/oasis-engine/engine/issues/214)) ([897fd21](https://github.com/oasis-engine/engine/commit/897fd21810b79293b65442321523c1d903c06cbe))
+* shader wanning with unUpload texture ([#212](https://github.com/oasis-engine/engine/issues/212)) ([8f52847](https://github.com/oasis-engine/engine/commit/8f52847cdf02849953d7c4425183fc28828166b5))
+* texture upload warnning ([#183](https://github.com/oasis-engine/engine/issues/183)) ([4a9c0c9](https://github.com/oasis-engine/engine/commit/4a9c0c9c49c8e63e7ee998569952a4d5d1cbd77a))
+
+
+## [0.3.1](https://github.com/oasis-engine/engine/compare/0.3.0...v0.3.1) (2021-04-09)
+
+
+### Bug Fixes
+
+* GLTF DRACO decode bug ([#141](https://github.com/oasis-engine/engine/issues/141)) ([#164](https://github.com/oasis-engine/engine/issues/164)) ([19a1f32](https://github.com/oasis-engine/engine/commit/19a1f32e3e7b1699bc3a91fbca140a2996930363))
+* SpriteRenderer bounds error ([#176](https://github.com/oasis-engine/engine/issues/176))
+
+
+
+## [0.3.0](https://github.com/oasis-engine/engine/compare/e217213ec80f0aa9356d74ea12d2f1ef63776f85...0.3.0) (2021-04-05)
 
 
 ### Features
+
 * add `materialCount`, `getInstanceMaterial()`, `getMaterial()/setMaterial()`, `getMaterials()/setMaterials()` properties and methods in `Renderer`. ([#75](https://github.com/oasis-engine/engine/issues/75))
 * Delete `GeometryRenderer`, mesh renderer uniformly uses `MeshRenderer`.([#75](https://github.com/oasis-engine/engine/issues/75))
 * Remove geometry classes such as `GeometryXX` and use `PrimitiveMesh` instead.([#85](https://github.com/oasis-engine/engine/issues/85))

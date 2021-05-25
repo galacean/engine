@@ -20,13 +20,6 @@ export class Buffer extends RefObject {
   private _bufferUsage: BufferUsage;
 
   /**
-   * Engine.
-   */
-  get engine(): Engine {
-    return this._engine;
-  }
-
-  /**
    * Buffer binding flag.
    */
   get type(): BufferBindFlag {

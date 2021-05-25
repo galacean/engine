@@ -76,7 +76,7 @@ const _tempShpere = new BoundingSphere();
   const localRay = _getLocalRay(this, ray);
   // TODO
   this.center.cloneTo(_tempShpere.center);
-  _tempShpere.radius = this.radio;
+  _tempShpere.radius = this.radius;
   const intersect = localRay.intersectSphere(_tempShpere);
   if (intersect !== -1) {
     _updateHitResult(this, localRay, intersect, hit, ray.origin);

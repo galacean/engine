@@ -5,8 +5,6 @@ import { ElementInfo, BufferUtil } from "./BufferUtil";
  * Vertex element.
  */
 export class VertexElement {
-  public readonly normalized = false;
-
   _glElementInfo: ElementInfo;
 
   private _semantic: string;
@@ -71,12 +69,5 @@ export class VertexElement {
     this._bindingIndex = bindingIndex;
     this._glElementInfo = BufferUtil._getElementInfo(this.format);
     this._instanceStepRate = Math.floor(instanceStepRate);
-  }
-
-  /**
-   * @deprecated
-   */
-  get elementInfo(): ElementInfo {
-    return this._glElementInfo;
   }
 }
