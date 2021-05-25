@@ -81,7 +81,10 @@ export class AnimationClip extends Motion {
 
   /**
    * Assigns the curve to animate a specific property.
-   * @param curveData - The curve data
+   * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm".
+   * @param type- The class type of the component that is animated.
+   * @param propertyName - The name to the property being animated.
+   * @param curve - The animation curve.
    */
   setCurve<T extends Component>(
     relativePath: string,
