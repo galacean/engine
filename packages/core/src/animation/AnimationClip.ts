@@ -135,7 +135,7 @@ export class AnimationClip extends Motion {
   }
 
   /** @internal */
-  _setTarget(target: Entity) {
+  _setTarget(target: Entity): void {
     this._target = target;
     if (target) {
       const { length } = this._curves;

@@ -21,6 +21,7 @@ export class Animator extends Component {
   /** The playback speed of the Animator. 1 is normal playback speed. */
   speed: number = 1;
 
+  private _lastSpeed: number = 1;
   private _animatorController: AnimatorController;
   private _diffValueFromBasePos: InterpolableValue;
   private _diffFloatFromBasePos: number = 0;
@@ -65,14 +66,14 @@ export class Animator extends Component {
    * Plays a state by name.
    * @param stateName - The state name
    * @param layerIndex - The layer index(default 0)
-   * @param normalizedTime - The time offset between 0 and 1(default 0)
+   * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
-  playState(stateName: string, layerIndex: number = 0, normalizedTime: number = 0): void {
+  playState(stateName: string, layerIndex: number = 0, normalizedTimeOffset: number = 0): void {
     const { animatorController } = this;
     if (!animatorController) return;
     const animLayer = animatorController.layers[layerIndex];
     const theState = animLayer.stateMachine.findStateByName(stateName);
-    theState.frameTime = theState.clip.length * normalizedTime;
+    theState.frameTime = theState.clip.length * normalizedTimeOffset;
     animLayer._playingState = theState;
     this.recorderMode = AnimatorRecorderMode.Playback;
   }
@@ -81,23 +82,24 @@ export class Animator extends Component {
    * Set the Animator in playback mode.
    */
   play(): void {
-    this.recorderMode = AnimatorRecorderMode.Playback;
+    this.speed = this._lastSpeed;
   }
 
   /**
    * Stops the animator playback mode.
    */
   stop(): void {
-    this.recorderMode = AnimatorRecorderMode.Offline;
+    this._lastSpeed = this.speed;
+    this.speed = 0;
   }
 
   /**
    * Evaluates the animator component based on deltaTime.
    * @param deltaTime - The deltaTime when the animation update
-   * @private
    */
   update(deltaTime: number): void {
-    if (this.recorderMode !== AnimatorRecorderMode.Playback) return;
+    if (this.speed === 0) return;
+    deltaTime *= this.speed;
     const { animatorController } = this;
     if (!animatorController) return;
     const { layers } = animatorController;
@@ -180,7 +182,7 @@ export class Animator extends Component {
     propertyName: string,
     sVal: InterpolableValue,
     dVal: InterpolableValue
-  ) {
+  ): void {
     switch (valueType) {
       case InterpolableValueType.Float:
         this._calculateFloatDiff(propertyName, sVal as number, dVal as number);
@@ -200,7 +202,7 @@ export class Animator extends Component {
     }
   }
 
-  private _calculateFloatDiff(propertyName: string, sVal: number, dVal: number) {
+  private _calculateFloatDiff(propertyName: string, sVal: number, dVal: number): void {
     if (AnimateProperty[propertyName] === AnimateProperty.scale) {
       this._diffFloatFromBasePos = dVal / sVal;
     } else {
@@ -209,7 +211,7 @@ export class Animator extends Component {
     this._diffValueFromBasePos = this._diffFloatFromBasePos;
   }
 
-  private _calculateVector2Diff(propertyName: string, sVal: Vector2, dVal: Vector2) {
+  private _calculateVector2Diff(propertyName: string, sVal: Vector2, dVal: Vector2): void {
     if (AnimateProperty[propertyName] === AnimateProperty.scale) {
       this._diffVector2FromBasePos.x = dVal.x / sVal.x;
       this._diffVector2FromBasePos.y = dVal.y / sVal.y;
@@ -220,7 +222,7 @@ export class Animator extends Component {
     this._diffValueFromBasePos = this._diffVector2FromBasePos;
   }
 
-  private _calculateVector3Diff(propertyName: string, sVal: Vector3, dVal: Vector3) {
+  private _calculateVector3Diff(propertyName: string, sVal: Vector3, dVal: Vector3): void {
     if (AnimateProperty[propertyName] === AnimateProperty.scale) {
       this._diffVector3FromBasePos.x = dVal.x / sVal.x;
       this._diffVector3FromBasePos.y = dVal.y / sVal.y;
@@ -233,7 +235,7 @@ export class Animator extends Component {
     this._diffValueFromBasePos = this._diffVector3FromBasePos;
   }
 
-  private _calculateVector4Diff(propertyName: string, sVal: Vector4, dVal: Vector4) {
+  private _calculateVector4Diff(propertyName: string, sVal: Vector4, dVal: Vector4): void {
     if (AnimateProperty[propertyName] === AnimateProperty.scale) {
       this._diffVector4FromBasePos.x = dVal.x / sVal.x;
       this._diffVector4FromBasePos.y = dVal.y / sVal.y;
@@ -248,7 +250,7 @@ export class Animator extends Component {
     this._diffValueFromBasePos = this._diffVector4FromBasePos;
   }
 
-  private _calculateQuaternionDiff(dVal: Quaternion, sVal: Quaternion) {
+  private _calculateQuaternionDiff(dVal: Quaternion, sVal: Quaternion): void {
     Quaternion.conjugate(sVal, this._diffQuaternionFromBasePos);
     Quaternion.multiply(this._diffQuaternionFromBasePos, dVal, this._diffQuaternionFromBasePos);
     this._diffValueFromBasePos = this._diffQuaternionFromBasePos;
@@ -260,7 +262,7 @@ export class Animator extends Component {
     sVal: InterpolableValue,
     dVal: InterpolableValue,
     crossWeight: number
-  ) {
+  ): InterpolableValue {
     const transform = target.transform;
     switch (AnimateProperty[propertyName]) {
       case AnimateProperty.position:
@@ -284,7 +286,7 @@ export class Animator extends Component {
     sVal: InterpolableValue,
     dVal: InterpolableValue,
     weight: number
-  ) {
+  ): void {
     const transform = target.transform;
     switch (AnimateProperty[propertyName]) {
       case AnimateProperty.position:
@@ -306,7 +308,12 @@ export class Animator extends Component {
     }
   }
 
-  private _updateAdditiveLayerValue(target: Entity, propertyName: string, diffVal: InterpolableValue, weight: number) {
+  private _updateAdditiveLayerValue(
+    target: Entity,
+    propertyName: string,
+    diffVal: InterpolableValue,
+    weight: number
+  ): void {
     const transform = (<Entity>target).transform;
     switch (AnimateProperty[propertyName]) {
       case AnimateProperty.position:
@@ -348,7 +355,7 @@ export class Animator extends Component {
     animLayer: AnimatorControllerLayer,
     isFirstLayer: boolean,
     deltaTime: number
-  ) {
+  ): void {
     const { weight, blendingMode } = animLayer;
     if (currentState._playType === PlayType.IsFading) {
       const transitions = currentState.transitions;

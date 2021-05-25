@@ -1,6 +1,5 @@
 /**
  * Animation interpolation method.
- * @readonly
  */
 export enum InterpolationType {
   /** Linear interpolation */

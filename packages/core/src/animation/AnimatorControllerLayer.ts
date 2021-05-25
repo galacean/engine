@@ -60,7 +60,7 @@ export class AnimatorControllerLayer {
   }
 
   /** @internal */
-  _setTarget(target: Entity) {
+  _setTarget(target: Entity): void {
     this._target = target;
     if (this.stateMachine) {
       this.stateMachine._setTarget(target);
@@ -68,7 +68,7 @@ export class AnimatorControllerLayer {
   }
 
   /** @internal */
-  _destroy() {
+  _destroy(): void {
     delete AnimatorControllerLayer.layersMap[this.name];
   }
 }

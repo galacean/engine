@@ -77,6 +77,5 @@
       "eslint --fix",
       "git add"
     ]
-  },
-  "dependencies": {}
+  }
 }

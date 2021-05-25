@@ -54,7 +54,7 @@ export class AnimatorStateMachine {
    * Get the state by name.
    * @param name - The layer's name
    */
-  findStateByName(name: string) {
+  findStateByName(name: string): AnimatorState {
     return this._statesMap[name];
   }
   /** @internal */

@@ -9,5 +9,5 @@ export class Motion extends EngineObject {
   _target: Entity;
 
   /** @internal */
-  _setTarget(target: Entity) {}
+  _setTarget(target: Entity): void {}
 }

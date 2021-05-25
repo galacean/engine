@@ -112,7 +112,7 @@ export class AnimatorState {
   }
 
   /** @internal */
-  _setTarget(target: Entity) {
+  _setTarget(target: Entity): void {
     this._target = target;
     if (this.clip) {
       this.clip._setTarget(target);
@@ -120,7 +120,7 @@ export class AnimatorState {
   }
 
   /** @internal */
-  _getTheRealFrameTime() {
+  _getTheRealFrameTime(): number {
     const { frameTime } = this;
     if (frameTime < this.clipStartTime) {
       return this.clipStartTime;

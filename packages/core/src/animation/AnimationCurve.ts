@@ -11,6 +11,12 @@ import {
 import { InterpolationType } from "./enums/InterpolationType";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 
+interface IFrameInfo {
+  frameIndex: number;
+  nextFrameIndex: number;
+  alpha: number;
+  dur: number;
+}
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
@@ -115,7 +121,7 @@ export class AnimationCurve {
     this.keys.splice(index, 1);
   }
 
-  private _evaluateLinear(frameIndex: number, nextFrameIndex: number, alpha: number) {
+  private _evaluateLinear(frameIndex: number, nextFrameIndex: number, alpha: number): InterpolableValue {
     const { _valueType, keys } = this;
     switch (_valueType) {
       case InterpolableValueType.Float: {
@@ -149,7 +155,7 @@ export class AnimationCurve {
     }
   }
 
-  private _evaluateCubicSpline(frameIndex: number, nextFrameIndex: number, alpha: number) {
+  private _evaluateCubicSpline(frameIndex: number, nextFrameIndex: number, alpha: number): Vector3 {
     const { keys } = this;
     const squared = alpha * alpha;
     const cubed = alpha * squared;
@@ -166,7 +172,7 @@ export class AnimationCurve {
     return v1.scale(part1).add(v2.scale(part2)).add(t1.scale(part3)).add(t2.scale(part4)).clone();
   }
 
-  private _evaluateStep(nextFrameIndex: number) {
+  private _evaluateStep(nextFrameIndex: number): InterpolableValue {
     const { _valueSize, keys } = this;
     if (_valueSize === 1) {
       return keys[nextFrameIndex].value;
@@ -175,7 +181,7 @@ export class AnimationCurve {
     }
   }
 
-  private _evaluateHermite(frameIedex: number, nextFrameIndex: number, t: number, dur: number) {
+  private _evaluateHermite(frameIedex: number, nextFrameIndex: number, t: number, dur: number): InterpolableValue {
     const { _valueSize, keys } = this;
     const curKey = keys[frameIedex];
     const nextKey = keys[nextFrameIndex];
@@ -282,7 +288,7 @@ export class AnimationCurve {
     }
   }
 
-  private _getFrameInfo(time: number) {
+  private _getFrameInfo(time: number): IFrameInfo {
     let keyTime = 0;
     let frameIndex = 0;
     let nextFrameIndex = 1;

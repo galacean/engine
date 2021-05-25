@@ -1,6 +1,5 @@
 /**
  * Animation event type.
- * @readonly
  */
 export enum AnimationEventType {
   /** Triggered when the animation over if the wrapMode === WrapMode.ONCE */

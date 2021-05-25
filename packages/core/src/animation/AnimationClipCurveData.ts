@@ -4,6 +4,7 @@ import { Component } from "../Component";
 import { AnimationCurve } from "./AnimationCurve";
 
 /**
+ * @internal
  * Associate AnimationCurve and the Entity
  */
 export interface AnimationClipCurveData<T extends Component> {
@@ -15,6 +16,7 @@ export interface AnimationClipCurveData<T extends Component> {
   type: new (entity: Entity) => T;
   /** The name or path to the property being animated. */
   propertyName: string;
+
   /** @internal */
   _target?: Entity;
   /** @internal */

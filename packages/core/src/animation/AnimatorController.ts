@@ -32,7 +32,7 @@ export class AnimatorController {
   }
 
   /** @internal */
-  _setTarget(target: Entity) {
+  _setTarget(target: Entity): void {
     this._target = target;
     const layerCount = this.layers.length;
     for (let i = layerCount - 1; i >= 0; i--) {

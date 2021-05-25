@@ -1,6 +1,5 @@
 /**
  * Animation wrap mode.
- * @readonly
  */
 export enum WrapMode {
   /** Play once */
