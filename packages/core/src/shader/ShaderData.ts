@@ -556,7 +556,11 @@ export class ShaderData implements IRefObject, IClone {
         } else if (property instanceof Array || property instanceof Float32Array || property instanceof Int32Array) {
           targetProperties[k] = property.slice();
         } else {
-          targetProperties[k] = property.clone();
+          if (targetProperties[k]) {
+            property.cloneTo(targetProperties[k]);
+          } else {
+            targetProperties[k] = property.clone();
+          }
         }
       } else {
         targetProperties[k] = property;
