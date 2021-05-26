@@ -37,7 +37,7 @@ export class TextureCubeMap extends Texture {
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTextureCubeMap(this);
 
-    this.filterMode = TextureFilterMode.Bilinear;
+    this.filterMode = TextureFilterMode.Trilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
   }
 

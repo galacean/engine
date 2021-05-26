@@ -42,7 +42,7 @@ export class Texture2D extends Texture {
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
 
-    this.filterMode = TextureFilterMode.Bilinear;
+    this.filterMode = TextureFilterMode.Trilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
   }
 

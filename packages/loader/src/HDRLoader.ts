@@ -371,7 +371,6 @@ class HDRLoader extends Loader<TextureCubeMap> {
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, cubeMapData[faceIndex], 0);
           }
-          texture.filterMode = TextureFilterMode.Trilinear;
           texture.generateMipmaps();
           resolve(texture);
         })
