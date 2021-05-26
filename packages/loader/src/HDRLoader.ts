@@ -7,7 +7,8 @@ import {
   ResourceManager,
   TextureCubeFace,
   TextureCubeMap,
-  TextureFilterMode
+  TextureFilterMode,
+  TextureFormat
 } from "@oasis-engine/core";
 import { Color, Vector3 } from "@oasis-engine/math";
 
@@ -85,25 +86,25 @@ class PanoramaToCubeMapTools {
    * @return The cubemap data
    */
   static convertPanoramaToCubemap(
-    pixels: Uint8Array,
+    float32Array: Float32Array,
     inputWidth: number,
     inputHeight: number,
     size: number
-  ): Uint8Array[] {
-    if (!pixels) {
+  ): Float32Array[] {
+    if (!float32Array) {
       throw "ConvertPanoramaToCubemap: input cannot be null";
     }
 
-    if (pixels.length != inputWidth * inputHeight * 4) {
+    if (float32Array.length != inputWidth * inputHeight * 4) {
       throw "ConvertPanoramaToCubemap: input size is wrong";
     }
 
-    const textureFront = this._createCubemapTexture(size, this._FACE_FRONT, pixels, inputWidth, inputHeight);
-    const textureBack = this._createCubemapTexture(size, this._FACE_BACK, pixels, inputWidth, inputHeight);
-    const textureLeft = this._createCubemapTexture(size, this._FACE_LEFT, pixels, inputWidth, inputHeight);
-    const textureRight = this._createCubemapTexture(size, this._FACE_RIGHT, pixels, inputWidth, inputHeight);
-    const textureUp = this._createCubemapTexture(size, this._FACE_UP, pixels, inputWidth, inputHeight);
-    const textureDown = this._createCubemapTexture(size, this._FACE_DOWN, pixels, inputWidth, inputHeight);
+    const textureFront = this._createCubemapTexture(size, this._FACE_FRONT, float32Array, inputWidth, inputHeight);
+    const textureBack = this._createCubemapTexture(size, this._FACE_BACK, float32Array, inputWidth, inputHeight);
+    const textureLeft = this._createCubemapTexture(size, this._FACE_LEFT, float32Array, inputWidth, inputHeight);
+    const textureRight = this._createCubemapTexture(size, this._FACE_RIGHT, float32Array, inputWidth, inputHeight);
+    const textureUp = this._createCubemapTexture(size, this._FACE_UP, float32Array, inputWidth, inputHeight);
+    const textureDown = this._createCubemapTexture(size, this._FACE_DOWN, float32Array, inputWidth, inputHeight);
 
     return [textureRight, textureLeft, textureUp, textureDown, textureFront, textureBack];
   }
@@ -111,11 +112,13 @@ class PanoramaToCubeMapTools {
   private static _createCubemapTexture(
     texSize: number,
     faceData: Vector3[],
-    pixels: Uint8Array,
+    float32Array: Float32Array,
     inputWidth: number,
     inputHeight: number
   ) {
-    const textureArray = new Uint8Array(texSize * texSize * 4);
+    var buffer = new ArrayBuffer(texSize * texSize * 4 * 4);
+    var textureArray = new Float32Array(buffer);
+
     const rotDX1 = this._tempVector3
       .setValue(0, 0, 0)
       .add(faceData[1])
@@ -127,27 +130,27 @@ class PanoramaToCubeMapTools {
       .subtract(faceData[2])
       .scale(1 / texSize);
 
-    const dy = 1 / texSize;
-    let fy = 0;
+    var dy = 1 / texSize;
+    var fy = 0;
 
-    for (let y = 0; y < texSize; y++) {
+    for (var y = 0; y < texSize; y++) {
       let xv1 = this._temp3Vector3.setValue(0, 0, 0).add(faceData[0]);
       let xv2 = this._temp4Vector3.setValue(0, 0, 0).add(faceData[2]);
 
-      for (let x = 0; x < texSize; x++) {
+      for (var x = 0; x < texSize; x++) {
         const v = this._temp5Vector3.setValue(0, 0, 0).add(xv2).subtract(xv1).scale(fy).add(xv1);
         v.normalize();
 
-        const color = this._calcProjectionSpherical(v, pixels, inputWidth, inputHeight);
+        var color = this._calcProjectionSpherical(v, float32Array, inputWidth, inputHeight);
 
-        // 4 channels per pixels
-        textureArray[y * texSize * 4 + x * 4] = color.r;
+        // 3 channels per pixels
+        textureArray[y * texSize * 4 + x * 4 + 0] = color.r;
         textureArray[y * texSize * 4 + x * 4 + 1] = color.g;
         textureArray[y * texSize * 4 + x * 4 + 2] = color.b;
         textureArray[y * texSize * 4 + x * 4 + 3] = color.a;
 
-        xv1.add(rotDX1);
-        xv2.add(rotDX2);
+        xv1 = xv1.add(rotDX1);
+        xv2 = xv2.add(rotDX2);
       }
 
       fy += dy;
@@ -158,12 +161,12 @@ class PanoramaToCubeMapTools {
 
   private static _calcProjectionSpherical(
     vDir: Vector3,
-    pixels: Uint8Array,
+    float32Array: Float32Array,
     inputWidth: number,
     inputHeight: number
   ): Color {
-    let theta = Math.atan2(vDir.z, vDir.x);
-    let phi = Math.acos(vDir.y);
+    var theta = Math.atan2(vDir.z, vDir.x);
+    var phi = Math.acos(vDir.y);
 
     while (theta < -Math.PI) {
       theta += 2 * Math.PI;
@@ -172,33 +175,32 @@ class PanoramaToCubeMapTools {
       theta -= 2 * Math.PI;
     }
 
-    let dx = theta / Math.PI;
-    let dy = phi / Math.PI;
+    var dx = theta / Math.PI;
+    var dy = phi / Math.PI;
 
     // recenter.
     dx = dx * 0.5 + 0.5;
 
-    let px = Math.round(dx * inputWidth);
+    var px = Math.round(dx * inputWidth);
     if (px < 0) {
       px = 0;
     } else if (px >= inputWidth) {
       px = inputWidth - 1;
     }
 
-    let py = Math.round(dy * inputHeight);
+    var py = Math.round(dy * inputHeight);
     if (py < 0) {
       py = 0;
     } else if (py >= inputHeight) {
       py = inputHeight - 1;
     }
 
-    const inputY = inputHeight - py - 1;
-    const r = pixels[inputY * inputWidth * 4 + px * 4];
-    const g = pixels[inputY * inputWidth * 4 + px * 4 + 1];
-    const b = pixels[inputY * inputWidth * 4 + px * 4 + 2];
-    const a = pixels[inputY * inputWidth * 4 + px * 4 + 3];
+    var inputY = inputHeight - py - 1;
+    var r = float32Array[inputY * inputWidth * 4 + px * 4 + 0];
+    var g = float32Array[inputY * inputWidth * 4 + px * 4 + 1];
+    var b = float32Array[inputY * inputWidth * 4 + px * 4 + 2];
 
-    return new Color(r, g, b, a);
+    return new Color(r, g, b, 1);
   }
 }
 
@@ -275,80 +277,125 @@ class HDRLoader extends Loader<TextureCubeMap> {
     };
   }
 
-  private static _readPixels(buffer: Uint8Array, width: number, height: number): Uint8Array {
-    const scanline_width = width;
+  private static _readPixels(uint8array: Uint8Array, width: number, height: number): Float32Array {
+    let num_scanlines = height;
+    let scanline_width = width;
 
-    const data_rgba = new Uint8Array(4 * width * height);
+    let a: number, b: number, c: number, d: number, count: number;
+    let dataIndex = 0;
+    let index = 0,
+      endIndex = 0,
+      i = 0;
 
-    let offset = 0,
-      pos = 0;
-    const ptr_end = 4 * scanline_width;
-    const rgbeStart = new Uint8Array(4);
-    const scanline_buffer = new Uint8Array(ptr_end);
-    let num_scanlines = height; // read in each successive scanline
+    let scanLineArrayBuffer = new ArrayBuffer(scanline_width * 4); // four channel R G B E
+    let scanLineArray = new Uint8Array(scanLineArrayBuffer);
 
-    while (num_scanlines > 0 && pos < buffer.byteLength) {
-      rgbeStart[0] = buffer[pos++];
-      rgbeStart[1] = buffer[pos++];
-      rgbeStart[2] = buffer[pos++];
-      rgbeStart[3] = buffer[pos++];
+    // 3 channels of 4 bytes per pixel in float.
+    let resultBuffer = new ArrayBuffer(width * height * 4 * 4);
+    let resultArray = new Float32Array(resultBuffer);
 
-      if (2 != rgbeStart[0] || 2 != rgbeStart[1] || ((rgbeStart[2] << 8) | rgbeStart[3]) != scanline_width) {
+    // read in each successive scanline
+    while (num_scanlines > 0) {
+      a = uint8array[dataIndex++];
+      b = uint8array[dataIndex++];
+      c = uint8array[dataIndex++];
+      d = uint8array[dataIndex++];
+
+      if (a != 2 || b != 2 || c & 0x80) {
+        // this file is not run length encoded
+        throw "HDR Bad header format, not RLE";
+      }
+
+      if (((c << 8) | d) != scanline_width) {
         throw "HDR Bad header format, wrong scan line width";
       }
 
+      index = 0;
+
       // read each of the four channels for the scanline into the buffer
-      // first red, then green, then blue, then exponent
+      for (i = 0; i < 4; i++) {
+        endIndex = (i + 1) * scanline_width;
 
-      let ptr = 0,
-        count;
+        while (index < endIndex) {
+          a = uint8array[dataIndex++];
+          b = uint8array[dataIndex++];
 
-      while (ptr < ptr_end && pos < buffer.byteLength) {
-        count = buffer[pos++];
-        const isEncodedRun = count > 128;
-        if (isEncodedRun) count -= 128;
+          if (a > 128) {
+            // a run of the same value
+            count = a - 128;
+            if (count == 0 || count > endIndex - index) {
+              throw "HDR Bad Format, bad scanline data (run)";
+            }
 
-        if (0 === count || ptr + count > ptr_end) {
-          throw "HDR Bad Format, bad scanline data (run)";
+            while (count-- > 0) {
+              scanLineArray[index++] = b;
+            }
+          } else {
+            // a non-run
+            count = a;
+            if (count == 0 || count > endIndex - index) {
+              throw "HDR Bad Format, bad scanline data (non-run)";
+            }
+
+            scanLineArray[index++] = b;
+            if (--count > 0) {
+              for (let j = 0; j < count; j++) {
+                scanLineArray[index++] = uint8array[dataIndex++];
+              }
+            }
+          }
         }
+      }
 
-        if (isEncodedRun) {
-          // a (encoded) run of the same value
-          const byteValue = buffer[pos++];
+      // now convert data from buffer into floats
+      for (i = 0; i < scanline_width; i++) {
+        a = scanLineArray[i];
+        b = scanLineArray[i + scanline_width];
+        c = scanLineArray[i + 2 * scanline_width];
+        d = scanLineArray[i + 3 * scanline_width];
 
-          for (let i = 0; i < count; i++) {
-            scanline_buffer[ptr++] = byteValue;
-          } //ptr += count;
-        } else {
-          // a literal-run
-          scanline_buffer.set(buffer.subarray(pos, pos + count), ptr);
-          ptr += count;
-          pos += count;
-        }
-      } // now convert data from buffer into rgba
-      // first red, then green, then blue, then exponent (alpha)
-
-      const l = scanline_width; //scanline_buffer.byteLength;
-
-      for (let i = 0; i < l; i++) {
-        let off = 0;
-        data_rgba[offset] = scanline_buffer[i + off];
-        off += scanline_width; //1;
-
-        data_rgba[offset + 1] = scanline_buffer[i + off];
-        off += scanline_width; //1;
-
-        data_rgba[offset + 2] = scanline_buffer[i + off];
-        off += scanline_width; //1;
-
-        data_rgba[offset + 3] = scanline_buffer[i + off];
-        offset += 4;
+        this.Rgbe2float(resultArray, a, b, c, d, (height - num_scanlines) * scanline_width * 4 + i * 4);
       }
 
       num_scanlines--;
     }
 
-    return data_rgba;
+    return resultArray;
+  }
+
+  private static Rgbe2float(
+    float32array: Float32Array,
+    red: number,
+    green: number,
+    blue: number,
+    exponent: number,
+    index: number
+  ) {
+    if (exponent > 0) {
+      /*nonzero pixel*/
+      exponent = this.Ldexp(1.0, exponent - 128) / 255;
+      float32array[index + 0] = red * exponent;
+      float32array[index + 1] = green * exponent;
+      float32array[index + 2] = blue * exponent;
+      float32array[index + 3] = 1;
+    } else {
+      float32array[index + 0] = 0;
+      float32array[index + 1] = 0;
+      float32array[index + 2] = 0;
+      float32array[index + 3] = 1;
+    }
+  }
+
+  private static Ldexp(mantissa: number, exponent: number): number {
+    if (exponent > 1023) {
+      return mantissa * Math.pow(2, 1023) * Math.pow(2, exponent - 1023);
+    }
+
+    if (exponent < -1074) {
+      return mantissa * Math.pow(2, -1074) * Math.pow(2, exponent + 1074);
+    }
+
+    return mantissa * Math.pow(2, exponent);
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCubeMap> {
@@ -365,9 +412,9 @@ class HDRLoader extends Loader<TextureCubeMap> {
           const pixels = HDRLoader._readPixels(uint8Array.subarray(dataPosition), width, height);
           const size = PanoramaToCubeMapTools.CUBE_SIZE;
           const cubeMapData = PanoramaToCubeMapTools.convertPanoramaToCubemap(pixels, width, height, size);
-          // console.log(pixels, width, height);
+          console.log(cubeMapData, width, height);
 
-          const texture = new TextureCubeMap(resourceManager.engine, size);
+          const texture = new TextureCubeMap(resourceManager.engine, size, TextureFormat.R32G32B32A32);
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, cubeMapData[faceIndex], 0);
           }
