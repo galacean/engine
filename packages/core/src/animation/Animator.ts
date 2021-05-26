@@ -1,6 +1,5 @@
 import { AnimatorState } from "./AnimatorState";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
-import { AnimatorRecorderMode } from "./enums/AnimatorRecorderMode";
 import { InterpolableValue } from "./KeyFrame";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorController } from "./AnimatorController";
@@ -16,8 +15,6 @@ import { PlayType } from "./enums/PlayType";
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  /** The mode of the Animator recorder. */
-  recorderMode: AnimatorRecorderMode = AnimatorRecorderMode.Offline;
   /** The playback speed of the Animator. 1 is normal playback speed. */
   speed: number = 1;
 
@@ -75,7 +72,6 @@ export class Animator extends Component {
     const theState = animLayer.stateMachine.findStateByName(stateName);
     theState.frameTime = theState.clip.length * normalizedTimeOffset;
     animLayer._playingState = theState;
-    this.recorderMode = AnimatorRecorderMode.Playback;
   }
 
   /**
