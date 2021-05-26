@@ -31,14 +31,14 @@ export class SkinParser extends Parser {
 
       // get joints
       for (let i = 0; i < jointCount; i++) {
-        skin.joints[i] = entities[joints[i]];
+        skin.joints[i] = entities[joints[i]].name;
       }
 
       // get skeleton
       if (skeleton !== undefined) {
-        skin.skeleton = entities[skeleton];
+        skin.skeleton = entities[skeleton].name;
       } else {
-        skin.skeleton = defaultSceneRoot;
+        skin.skeleton = defaultSceneRoot.name;
       }
 
       skins[i] = skin;

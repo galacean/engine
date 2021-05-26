@@ -7,8 +7,8 @@ import { Entity } from "../Entity";
  */
 export class Skin extends EngineObject {
   public inverseBindMatrices: Matrix[];
-  public joints: Entity[];
-  public skeleton: Entity;
+  public joints: string[];
+  public skeleton: string;
   /**
    * Contructor of skin
    * @param name - name
@@ -16,7 +16,7 @@ export class Skin extends EngineObject {
   constructor(public name: string) {
     super(null);
     this.inverseBindMatrices = []; // inverse bind matrix array, element type: gl-matrix.mat4
-    this.joints = []; // joints entity array
-    this.skeleton = null; // root entity
+    this.joints = []; // joints name array, element type: string
+    this.skeleton = "none"; // root bone name
   }
 }
