@@ -60,13 +60,6 @@ export abstract class Component extends EngineObject {
     return this._entity.scene;
   }
 
-  /**
-   * The engine which the component's entity belongs to.
-   */
-  get engine(): Engine {
-    return this._entity.engine;
-  }
-
   constructor(entity: Entity) {
     super(entity.engine);
     this._entity = entity;

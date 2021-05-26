@@ -75,12 +75,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const skin = this._skin;
 
     const joints = skin.joints;
-    const jointNodes = [];
-    for (let i = joints.length - 1; i >= 0; i--) {
-      jointNodes[i] = this.findByNodeName(this.entity, joints[i]);
-    } // end of for
-    this.matrixPalette = new Float32Array(jointNodes.length * 16);
-    this.jointNodes = jointNodes;
+    this.matrixPalette = new Float32Array(joints.length * 16);
+    this.jointNodes = joints;
 
     /** Whether to use a skeleton texture */
     const rhi = this.entity.engine._hardwareRenderer;
@@ -110,30 +106,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     } else {
       shaderData.disableMacro("O3_HAS_SKIN");
     }
-  }
-
-  private findByNodeName(entity: Entity, nodeName: string) {
-    if (!entity) return null;
-
-    const n = entity.findByName(nodeName);
-
-    if (n) return n;
-
-    return this.findByNodeName(entity.parent, nodeName);
-  }
-
-  private _findParent(entity: Entity, nodeName: string) {
-    if (entity) {
-      const parent = entity.parent;
-      if (!parent) return null;
-      if (parent.name === nodeName) return parent;
-
-      const brother = parent.findByName(nodeName);
-      if (brother) return brother;
-
-      return this._findParent(parent, nodeName);
-    }
-    return null;
   }
 
   /**
