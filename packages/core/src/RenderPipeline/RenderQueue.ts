@@ -178,7 +178,7 @@ export class RenderQueue {
    * Modified based on v8.
    * https://github.com/v8/v8/blob/7.2-lkgr/src/js/array.js
    */
-   private _quickSort<T>(a: T[], from: number, to: number, compareFunc: Function): void {
+  private _quickSort<T>(a: T[], from: number, to: number, compareFunc: Function): void {
     while (true) {
       // Insertion sort is faster for short arrays.
       if (to - from <= 10) {
