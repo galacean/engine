@@ -62,7 +62,7 @@ export class IBLBaker {
 
     // render
     bakerShaderData.setTexture("environmentMap", texture);
-    bakerShaderData.setVector2("textureInfo", new Vector2(256, bakerMipmapCount - 1));
+    bakerShaderData.setVector2("textureInfo", new Vector2(bakerSize, bakerMipmapCount - 1));
     if (isHDR) {
       bakerShaderData.enableMacro("RGBE");
     }
@@ -71,7 +71,7 @@ export class IBLBaker {
       for (let lod = 0; lod < bakerMipmapCount; lod++) {
         bakerShaderData.setFloat("face", face);
         // const lodRoughness = lod / (maxMipLevels - 1); // linear
-        let lodRoughness = Math.pow(2, lod) / 256;
+        let lodRoughness = Math.pow(2, lod) / bakerSize;
         if (lod === 0) {
           lodRoughness = 0;
         }
