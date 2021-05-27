@@ -84,31 +84,27 @@
         #ifdef IS_METALLIC_WORKFLOW
             material.diffuseColor = diffuseColor.rgb * ( 1.0 - metalnessFactor );
             material.specularColor = mix( vec3( DEFAULT_SPECULAR_COEFFICIENT ), diffuseColor.rgb, metalnessFactor );
+            material.specularRoughness = clamp( roughnessFactor, 0.04, 1.0 );
 
             #ifdef HAS_DERIVATIVES
                 vec3 dxy = max( abs( dFdx( normal ) ), abs( dFdy( normal ) ) );
                 float geometryRoughness = max( max( dxy.x, dxy.y ), dxy.z );
 
-                material.specularRoughness = roughnessFactor;
                 material.specularRoughness += geometryRoughness;
                 material.specularRoughness = min( material.specularRoughness, 1.0 );
-            #else
-                 material.specularRoughness = clamp( roughnessFactor, 0.04, 1.0 );
             #endif
         #else
             float specularStrength = max( max( specularFactor.r, specularFactor.g ), specularFactor.b );
             material.diffuseColor = diffuseColor.rgb * ( 1.0 - specularStrength );
             material.specularColor = specularFactor;
+            material.specularRoughness = clamp( 1.0 - glossinessFactor, 0.04, 1.0 );
 
             #ifdef HAS_DERIVATIVES
                 vec3 dxy = max( abs( dFdx( normal ) ), abs( dFdy( normal ) ) );
                 float geometryRoughness = max( max( dxy.x, dxy.y ), dxy.z );
 
-                material.specularRoughness = 1.0 - glossinessFactor;
                 material.specularRoughness += geometryRoughness;
                 material.specularRoughness = min( material.specularRoughness, 1.0 );
-            #else
-                material.specularRoughness = clamp( 1.0 - glossinessFactor, 0.04, 1.0 );
             #endif
         #endif
 

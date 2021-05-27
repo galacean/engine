@@ -53,56 +53,33 @@ ${hammersley}
 ${importanceSampling}
 
 vec3 specular(vec3 N) {
-    vec3 result = vec3(0.0);
+    vec3 R = N;
+    vec3 V = R;
 
-    // center the cone around the normal (handle case of normal close to up)
-    vec3 up = abs(N.z) < 0.999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
+    float totalWeight = 0.0;   
+    vec3 prefilteredColor = vec3(0.0);     
 
-    mat3 R;
-    R[0] = normalize(cross(up, N));
-    R[1] = cross(N, R[0]);
-    R[2] = N;
-
-    float maxLevel = textureInfo.y;
-    float dim0 = textureInfo.x;
-    float omegaP = (4. * PI) / (6. * dim0 * dim0);
-
-    float weight = 0.;
     for(uint i = 0u; i < SAMPLE_COUNT; ++i)
     {
         vec2 Xi = hammersley(i, SAMPLE_COUNT);
-        vec3 H = hemisphereImportanceSampleDggx(Xi, lodRoughness);
+        vec3 H  = importanceSampleGGX(Xi, N, lodRoughness);
+        vec3 L  = normalize(2.0 * dot(V, H) * H - V);
 
-        float NoV = 1.;
-        float NoH = H.z;
-        float NoH2 = H.z * H.z;
-        float NoL = 2. * NoH2 - 1.;
-        vec3 L = vec3(2. * NoH * H.x, 2. * NoH * H.y, NoL);
-        L = normalize(L);
-
-        if (NoL > 0.) {
-            float pdf_inversed = 4. / D_GGX( lodRoughness, NoH);
-
-            float omegaS = SAMPLE_COUNT_FLOAT_INVERSED * pdf_inversed;
-            float l = log4(omegaS) - log4(omegaP) + log4(K);
-            float mipLevel = clamp(float(l), 0.0, maxLevel);
-
-            weight += NoL;
-
-            vec4 samlerColor = textureCubeLodEXT(environmentMap, R * L, mipLevel);
-            vec3 linearColor = samlerColor.rgb;
-
+        float NdotL = max(dot(N, L), 0.0);
+        if(NdotL > 0.0)
+        {
+            vec3 linearColor = texture(environmentMap, L).rgb * NdotL;
+            
             #ifdef RGBE
                 linearColor = RGBEToLinear(samlerColor).rgb;
             #endif
 
-            result += linearColor * NoL;
+            prefilteredColor += linearColor;
+            totalWeight      += NdotL;
         }
     }
-
-    result = result / weight;
-
-    return result;
+    prefilteredColor = prefilteredColor / totalWeight;
+    return prefilteredColor;
 }
 
 void main() 

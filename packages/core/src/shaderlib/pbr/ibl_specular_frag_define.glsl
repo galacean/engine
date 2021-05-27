@@ -30,16 +30,17 @@ void BRDF_Specular_Multiscattering_Environment( const in GeometricContext geomet
     multiScatter += Fms * Ems;
 }
 
-// Trowbridge-Reitz distribution to Mip level, following the logic of http://casual-effects.blogspot.ca/2011/08/plausible-environment-lighting-in-two.html
 float getSpecularMIPLevel( const in float roughness, const in int maxMIPLevel ) {
 
-	float maxMIPLevelScalar = float( maxMIPLevel );
+	// float maxMIPLevelScalar = float( maxMIPLevel );
 
-	float sigma = PI * roughness * roughness / ( 1.0 + roughness );
-	float desiredMIPLevel = maxMIPLevelScalar + log2( sigma );
+	// float sigma = PI * roughness * roughness / ( 1.0 + roughness );
+	// float desiredMIPLevel = maxMIPLevelScalar + log2( sigma );
 
-	// clamp to allowable LOD ranges.
-	return clamp( desiredMIPLevel, 0.0, maxMIPLevelScalar );
+	// // clamp to allowable LOD ranges.
+	// return clamp( desiredMIPLevel, 0.0, maxMIPLevelScalar );
+
+    return roughness * float(maxMIPLevel);
 
 }
 

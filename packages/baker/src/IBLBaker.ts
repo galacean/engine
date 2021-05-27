@@ -78,8 +78,8 @@ export class IBLBaker {
     for (let face = 0; face < 6; face++) {
       for (let lod = 0; lod < bakerMipmapCount; lod++) {
         bakerShaderData.setFloat("face", face);
-        // const lodRoughness = lod / (maxMipLevels - 1); // linear
-        let lodRoughness = Math.pow(2, lod) / bakerSize;
+        let lodRoughness = lod / (bakerMipmapCount - 1); // linear
+        // let lodRoughness = Math.pow(2, lod) / bakerSize;
         if (lod === 0) {
           lodRoughness = 0;
         }
