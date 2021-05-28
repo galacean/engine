@@ -232,6 +232,7 @@ export class BasicRenderPipeline {
     const program = shader._getShaderProgram(engine, compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, shaderData);
+    program.uploadUngroupTextures();
 
     renderState._apply(engine);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
