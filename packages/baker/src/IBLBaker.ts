@@ -3,7 +3,6 @@ import {
   Material,
   MeshRenderer,
   PrimitiveMesh,
-  RenderBufferColorFormat,
   RenderBufferDepthFormat,
   RenderColorTexture,
   RenderTarget,
@@ -50,14 +49,7 @@ export class IBLBaker {
     bakerRenderer.mesh = PrimitiveMesh.createPlane(engine, 2, 2);
     bakerRenderer.setMaterial(bakerMaterial);
 
-    const renderColorTexture = new RenderColorTexture(
-      engine,
-      bakerSize,
-      bakerSize,
-      RenderBufferColorFormat.R32G32B32A32,
-      true,
-      true
-    );
+    const renderColorTexture = new RenderColorTexture(engine, bakerSize, bakerSize, undefined, true, true);
     renderColorTexture.filterMode = TextureFilterMode.Trilinear;
     const renderTarget = new RenderTarget(
       engine,
@@ -72,7 +64,7 @@ export class IBLBaker {
     bakerShaderData.setTexture("environmentMap", texture);
     bakerShaderData.setVector2("textureInfo", new Vector2(bakerSize, bakerMipmapCount - 1));
     if (isHDR) {
-      // bakerShaderData.enableMacro("RGBE");
+      bakerShaderData.enableMacro("RGBE");
     }
 
     for (let face = 0; face < 6; face++) {
