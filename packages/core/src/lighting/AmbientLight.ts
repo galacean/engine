@@ -1,11 +1,11 @@
 import { Color, SphericalHarmonics3 } from "@oasis-engine/math";
+import { GLCapabilityType } from "../base/Constant";
 import { Scene } from "../Scene";
 import { Shader } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCubeMap } from "../texture";
 import { DiffuseMode } from "./enums/DiffuseMode";
-import { SpecularMode } from "./enums/SpecularMode";
 
 /**
  * Ambient light.
@@ -13,7 +13,8 @@ import { SpecularMode } from "./enums/SpecularMode";
 export class AmbientLight {
   private static _diffuseMacro: ShaderMacro = Shader.getMacroByName("O3_USE_DIFFUSE_ENV");
   private static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
-  private static _hdrMacro: ShaderMacro = Shader.getMacroByName("USE_HDR_ENV");
+  private static _envGamma: ShaderMacro = Shader.getMacroByName("ENV_GAMMA");
+  private static _envRGBE: ShaderMacro = Shader.getMacroByName("ENV_RGBE");
 
   private static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
   private static _diffuseSHProperty: ShaderProperty = Shader.getPropertyByName("u_env_sh");
@@ -30,7 +31,6 @@ export class AmbientLight {
   private _specularReflection: TextureCubeMap;
   private _specularIntensity: number = 1.0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
-  private _specularMode: SpecularMode = SpecularMode.LDR;
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
 
   /**
@@ -92,22 +92,6 @@ export class AmbientLight {
   }
 
   /**
-   * Specular mode of ambient light.
-   */
-  get specularMode(): SpecularMode {
-    return this._specularMode;
-  }
-
-  set specularMode(value: SpecularMode) {
-    this._specularMode = value;
-    if (value === SpecularMode.HDR) {
-      this._scene.shaderData.enableMacro(AmbientLight._hdrMacro);
-    } else {
-      this._scene.shaderData.disableMacro(AmbientLight._hdrMacro);
-    }
-  }
-
-  /**
    * Specular reflection texture.
    */
   get specularTexture(): TextureCubeMap {
@@ -115,14 +99,28 @@ export class AmbientLight {
   }
 
   set specularTexture(value: TextureCubeMap) {
+    if (value === this._specularReflection) return;
     this._specularReflection = value;
 
+    const isHDR = value?._isHDR;
+    const supportFloatTexture = this._scene.engine._hardwareRenderer.canIUse(GLCapabilityType.textureFloat);
     const shaderData = this._scene.shaderData;
 
     if (value) {
       shaderData.setTexture(AmbientLight._specularTextureProperty, value);
       shaderData.setFloat(AmbientLight._maxMipLevelProperty, this._specularReflection.mipmapCount - 1);
       shaderData.enableMacro(AmbientLight._specularMacro);
+
+      if (isHDR && !supportFloatTexture) {
+        shaderData.enableMacro(AmbientLight._envRGBE);
+        shaderData.disableMacro(AmbientLight._envGamma);
+      } else if (!isHDR) {
+        shaderData.enableMacro(AmbientLight._envGamma);
+        shaderData.disableMacro(AmbientLight._envRGBE);
+      } else {
+        shaderData.disableMacro(AmbientLight._envGamma);
+        shaderData.disableMacro(AmbientLight._envRGBE);
+      }
     } else {
       shaderData.disableMacro(AmbientLight._specularMacro);
     }

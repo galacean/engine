@@ -1,8 +1,10 @@
 import {
   Camera,
+  GLCapabilityType,
   Material,
   MeshRenderer,
   PrimitiveMesh,
+  RenderBufferColorFormat,
   RenderBufferDepthFormat,
   RenderColorTexture,
   RenderTarget,
@@ -26,14 +28,15 @@ export class IBLBaker {
   /**
    * Bake from Cube texture.
    * @param texture - Cube texture
-   * @param isHDR - Define if texture format is HDR.
    */
-  static fromTextureCubeMap(texture: TextureCubeMap, isHDR: boolean): RenderColorTexture {
+  static fromTextureCubeMap(texture: TextureCubeMap): RenderColorTexture {
     const engine = texture.engine;
     const originalScene = engine.sceneManager.activeScene;
     const isPaused = engine.isPaused;
     const bakerSize = texture.width;
     const bakerMipmapCount = texture.mipmapCount;
+    const isHDR = texture._isHDR;
+    const supportFloatTexture = engine._hardwareRenderer.canIUse(GLCapabilityType.textureFloat);
 
     engine.pause();
 
@@ -49,8 +52,17 @@ export class IBLBaker {
     bakerRenderer.mesh = PrimitiveMesh.createPlane(engine, 2, 2);
     bakerRenderer.setMaterial(bakerMaterial);
 
-    const renderColorTexture = new RenderColorTexture(engine, bakerSize, bakerSize, undefined, true, true);
+    const renderColorTexture = new RenderColorTexture(
+      engine,
+      bakerSize,
+      bakerSize,
+      isHDR && supportFloatTexture ? RenderBufferColorFormat.R32G32B32A32 : undefined,
+      true,
+      true
+    );
     renderColorTexture.filterMode = TextureFilterMode.Trilinear;
+    renderColorTexture._isHDR = isHDR;
+
     const renderTarget = new RenderTarget(
       engine,
       bakerSize,
@@ -63,18 +75,19 @@ export class IBLBaker {
     // render
     bakerShaderData.setTexture("environmentMap", texture);
     bakerShaderData.setVector2("textureInfo", new Vector2(bakerSize, bakerMipmapCount - 1));
-    if (isHDR) {
+    // downgrade to RGBE if float texture not supported
+    if (isHDR && !supportFloatTexture) {
       bakerShaderData.enableMacro("RGBE");
     }
 
     for (let face = 0; face < 6; face++) {
       for (let lod = 0; lod < bakerMipmapCount; lod++) {
         bakerShaderData.setFloat("face", face);
-        let lodRoughness = lod / (bakerMipmapCount - 1); // linear
+        const lodRoughness = lod / (bakerMipmapCount - 1); // linear
         // let lodRoughness = Math.pow(2, lod) / bakerSize;
-        if (lod === 0) {
-          lodRoughness = 0;
-        }
+        // if (lod === 0) {
+        //   lodRoughness = 0;
+        // }
         bakerShaderData.setFloat("lodRoughness", lodRoughness);
 
         bakerCamera.render(TextureCubeFace.PositiveX + face, lod);

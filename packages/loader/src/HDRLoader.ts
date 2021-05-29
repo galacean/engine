@@ -1,13 +1,14 @@
 import {
   AssetPromise,
   AssetType,
+  GLCapabilityType,
   Loader,
   LoadItem,
   resourceLoader,
   ResourceManager,
   TextureCubeFace,
   TextureCubeMap,
-  TextureFilterMode
+  TextureFormat
 } from "@oasis-engine/core";
 import { Color, Vector3 } from "@oasis-engine/math";
 
@@ -26,47 +27,50 @@ interface IHDRHeader {
   dataPosition: number;
 }
 
-/**
- * Helper class useful to convert panorama picture to their cubemap representation in 6 faces.
- */
-class PanoramaToCubeMapTools {
-  static CUBE_SIZE = 256;
+@resourceLoader(AssetType.HDR, ["hdr"])
+class HDRLoader extends Loader<TextureCubeMap> {
+  private static _cubeSize = 256;
 
-  private static _FACE_FRONT = [
-    new Vector3(-1.0, -1.0, -1.0),
-    new Vector3(1.0, -1.0, -1.0),
-    new Vector3(-1.0, 1.0, -1.0),
-    new Vector3(1.0, 1.0, -1.0)
-  ];
-  private static _FACE_BACK = [
-    new Vector3(1.0, -1.0, 1.0),
-    new Vector3(-1.0, -1.0, 1.0),
-    new Vector3(1.0, 1.0, 1.0),
-    new Vector3(-1.0, 1.0, 1.0)
-  ];
-  private static _FACE_RIGHT = [
+  private static _faceRight = [
     new Vector3(1.0, -1.0, -1.0),
     new Vector3(1.0, -1.0, 1.0),
     new Vector3(1.0, 1.0, -1.0),
     new Vector3(1.0, 1.0, 1.0)
   ];
-  private static _FACE_LEFT = [
+
+  private static _faceLeft = [
     new Vector3(-1.0, -1.0, 1.0),
     new Vector3(-1.0, -1.0, -1.0),
     new Vector3(-1.0, 1.0, 1.0),
     new Vector3(-1.0, 1.0, -1.0)
   ];
-  private static _FACE_DOWN = [
+
+  private static _faceUp = [
+    new Vector3(-1.0, -1.0, 1.0),
+    new Vector3(1.0, -1.0, 1.0),
+    new Vector3(-1.0, -1.0, -1.0),
+    new Vector3(1.0, -1.0, -1.0)
+  ];
+
+  private static _faceBottom = [
     new Vector3(-1.0, 1.0, -1.0),
     new Vector3(1.0, 1.0, -1.0),
     new Vector3(-1.0, 1.0, 1.0),
     new Vector3(1.0, 1.0, 1.0)
   ];
-  private static _FACE_UP = [
-    new Vector3(-1.0, -1.0, 1.0),
-    new Vector3(1.0, -1.0, 1.0),
+
+  private static _faceFront = [
     new Vector3(-1.0, -1.0, -1.0),
-    new Vector3(1.0, -1.0, -1.0)
+    new Vector3(1.0, -1.0, -1.0),
+    new Vector3(-1.0, 1.0, -1.0),
+    new Vector3(1.0, 1.0, -1.0)
+  ];
+
+  private static _faceBack = [
+    new Vector3(1.0, -1.0, 1.0),
+    new Vector3(-1.0, -1.0, 1.0),
+    new Vector3(1.0, 1.0, 1.0),
+    new Vector3(-1.0, 1.0, 1.0)
   ];
 
   private static _tempVector3 = new Vector3();
@@ -75,16 +79,7 @@ class PanoramaToCubeMapTools {
   private static _temp4Vector3 = new Vector3();
   private static _temp5Vector3 = new Vector3();
 
-  /**
-   * Converts a panorma stored in RGB right to left up to down format into a cubemap (6 faces).
-   *
-   * @param pixels The source data.
-   * @param inputWidth The width of the input panorama.
-   * @param inputHeight The height of the input panorama.
-   * @param size The willing size of the generated cubemap (each faces will be size * size pixels)
-   * @return The cubemap data
-   */
-  static convertPanoramaToCubemap(
+  private static _convertToCubemap(
     pixels: Uint8Array,
     inputWidth: number,
     inputHeight: number,
@@ -98,17 +93,17 @@ class PanoramaToCubeMapTools {
       throw "ConvertPanoramaToCubemap: input size is wrong";
     }
 
-    const textureFront = this._createCubemapTexture(size, this._FACE_FRONT, pixels, inputWidth, inputHeight);
-    const textureBack = this._createCubemapTexture(size, this._FACE_BACK, pixels, inputWidth, inputHeight);
-    const textureLeft = this._createCubemapTexture(size, this._FACE_LEFT, pixels, inputWidth, inputHeight);
-    const textureRight = this._createCubemapTexture(size, this._FACE_RIGHT, pixels, inputWidth, inputHeight);
-    const textureUp = this._createCubemapTexture(size, this._FACE_UP, pixels, inputWidth, inputHeight);
-    const textureDown = this._createCubemapTexture(size, this._FACE_DOWN, pixels, inputWidth, inputHeight);
+    const textureRight = this._createCubemapData(size, this._faceRight, pixels, inputWidth, inputHeight);
+    const textureLeft = this._createCubemapData(size, this._faceLeft, pixels, inputWidth, inputHeight);
+    const textureUp = this._createCubemapData(size, this._faceUp, pixels, inputWidth, inputHeight);
+    const textureDown = this._createCubemapData(size, this._faceBottom, pixels, inputWidth, inputHeight);
+    const textureFront = this._createCubemapData(size, this._faceFront, pixels, inputWidth, inputHeight);
+    const textureBack = this._createCubemapData(size, this._faceBack, pixels, inputWidth, inputHeight);
 
     return [textureRight, textureLeft, textureUp, textureDown, textureFront, textureBack];
   }
 
-  private static _createCubemapTexture(
+  private static _createCubemapData(
     texSize: number,
     faceData: Vector3[],
     pixels: Uint8Array,
@@ -200,10 +195,7 @@ class PanoramaToCubeMapTools {
 
     return new Color(r, g, b, a);
   }
-}
 
-@resourceLoader(AssetType.HDR, ["hdr"])
-class HDRLoader extends Loader<TextureCubeMap> {
   private static _readStringLine(uint8array: Uint8Array, startIndex: number): string {
     let line = "";
     let character = "";
@@ -353,6 +345,10 @@ class HDRLoader extends Loader<TextureCubeMap> {
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCubeMap> {
     return new AssetPromise((resolve, reject) => {
+      const engine = resourceManager.engine;
+      const supportFloatTexture = engine._hardwareRenderer.canIUse(GLCapabilityType.textureFloat);
+      const cubeSize = HDRLoader._cubeSize;
+
       resourceManager
         .load<ArrayBuffer>({
           url: item.url,
@@ -360,16 +356,46 @@ class HDRLoader extends Loader<TextureCubeMap> {
         })
         .then((buffer) => {
           const uint8Array = new Uint8Array(buffer);
-          const info = HDRLoader._parseHeader(uint8Array);
-          const { width, height, dataPosition } = info;
+          const { width, height, dataPosition } = HDRLoader._parseHeader(uint8Array);
           const pixels = HDRLoader._readPixels(uint8Array.subarray(dataPosition), width, height);
-          const size = PanoramaToCubeMapTools.CUBE_SIZE;
-          const cubeMapData = PanoramaToCubeMapTools.convertPanoramaToCubemap(pixels, width, height, size);
-          // console.log(pixels, width, height);
+          const cubeMapData = HDRLoader._convertToCubemap(pixels, width, height, cubeSize);
+          const floatCubeMapData = new Array<Float32Array>(6);
+          const texture = new TextureCubeMap(
+            engine,
+            cubeSize,
+            supportFloatTexture ? TextureFormat.R32G32B32A32 : undefined
+          );
+          texture._isHDR = true;
 
-          const texture = new TextureCubeMap(resourceManager.engine, size);
+          // convert to float texture if enabled
+          if (supportFloatTexture) {
+            for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+              const uint8Array = cubeMapData[faceIndex];
+              const length = uint8Array.length;
+              const floatArray = new Float32Array(length);
+              floatCubeMapData[faceIndex] = floatArray;
+
+              for (let pixel = 0; pixel < length; pixel += 4) {
+                const r = uint8Array[pixel];
+                const g = uint8Array[pixel + 1];
+                const b = uint8Array[pixel + 2];
+                const a = uint8Array[pixel + 3];
+                const scale = Math.pow(2, a - 128) / 255;
+
+                floatArray[pixel] = r * scale;
+                floatArray[pixel + 1] = g * scale;
+                floatArray[pixel + 2] = b * scale;
+                floatArray[pixel + 3] = 1;
+              }
+            }
+          }
+
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, cubeMapData[faceIndex], 0);
+            texture.setPixelBuffer(
+              TextureCubeFace.PositiveX + faceIndex,
+              (supportFloatTexture ? floatCubeMapData : cubeMapData)[faceIndex],
+              0
+            );
           }
           texture.generateMipmaps();
           resolve(texture);

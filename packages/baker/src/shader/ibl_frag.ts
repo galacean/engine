@@ -68,13 +68,14 @@ vec3 specular(vec3 N) {
         float NdotL = max(dot(N, L), 0.0);
         if(NdotL > 0.0)
         {
-            vec3 linearColor = texture(environmentMap, L).rgb * NdotL;
+            vec4 samplerColor = texture(environmentMap, L);
+            vec3 linearColor = samplerColor.rgb;
             
             #ifdef RGBE
-                linearColor = RGBEToLinear(samlerColor).rgb;
+                linearColor = RGBEToLinear(samplerColor).rgb;
             #endif
 
-            prefilteredColor += linearColor;
+            prefilteredColor += linearColor * NdotL;
             totalWeight      += NdotL;
         }
     }

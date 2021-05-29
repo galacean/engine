@@ -1,5 +1,4 @@
-import { Color, SphericalHarmonics3, TextureCubeFace, TextureCubeMap, Vector3 } from "oasis-engine";
-import { EncodingMode } from "./enum/EncodingMode";
+import { Color, GLCapabilityType, SphericalHarmonics3, TextureCubeFace, TextureCubeMap, Vector3 } from "oasis-engine";
 
 /**
  * Bake irradiance into spherical harmonics3.
@@ -14,14 +13,20 @@ export class SphericalHarmonics3Baker {
    * Bake from Cube texture.
    * @param texture - Cube texture
    * @param out - SH3 for output
-   * @param encodingMode - Encoding mode, dependent on texture format.
    */
-  static fromTextureCubeMap(texture: TextureCubeMap, out: SphericalHarmonics3, encodingMode: EncodingMode): void {
+  static fromTextureCubeMap(texture: TextureCubeMap, out: SphericalHarmonics3): void {
     out.clear();
+
+    const engine = texture.engine;
+    const isHDR = texture._isHDR;
+    const supportFloatTexture = engine._hardwareRenderer.canIUse(GLCapabilityType.textureFloat);
 
     const channelLength = 4;
     const textureSize = texture.width;
-    const data = new Uint8Array(textureSize * textureSize * channelLength); // read pixel always return rgba
+    const data =
+      isHDR && supportFloatTexture
+        ? new Float32Array(textureSize * textureSize * channelLength)
+        : new Uint8Array(textureSize * textureSize * channelLength); // read pixel always return rgba
     const color = SphericalHarmonics3Baker._tempColor;
     const direction = SphericalHarmonics3Baker._tempVector;
     const texelSize = 2 / textureSize; // convolution is in the space of [-1, 1]
@@ -36,19 +41,12 @@ export class SphericalHarmonics3Baker {
         for (let x = 0; x < textureSize; x++) {
           const dataOffset = y * textureSize * channelLength + x * channelLength;
 
-          switch (encodingMode) {
-            case EncodingMode.Linear:
-              color.setValue(data[dataOffset] / 255, data[dataOffset + 1] / 255, data[dataOffset + 2] / 255, 0);
-              break;
-            case EncodingMode.Gamma:
-              color.setValue(
-                Color.gammaToLinearSpace(data[dataOffset] / 255),
-                Color.gammaToLinearSpace(data[dataOffset + 1] / 255),
-                Color.gammaToLinearSpace(data[dataOffset + 2] / 255),
-                0
-              );
-              break;
-            case EncodingMode.RGBE:
+          if (isHDR) {
+            // Linear
+            if (supportFloatTexture) {
+              color.setValue(data[dataOffset], data[dataOffset + 1], data[dataOffset + 2], 0);
+            } else {
+              // RGBE
               this._RGBEToLinear(
                 data[dataOffset],
                 data[dataOffset + 1],
@@ -56,7 +54,15 @@ export class SphericalHarmonics3Baker {
                 data[dataOffset + 3],
                 color
               );
-              break;
+            }
+          } else {
+            // Gamma
+            color.setValue(
+              Color.gammaToLinearSpace(data[dataOffset] / 255),
+              Color.gammaToLinearSpace(data[dataOffset + 1] / 255),
+              Color.gammaToLinearSpace(data[dataOffset + 2] / 255),
+              0
+            );
           }
 
           switch (faceIndex) {

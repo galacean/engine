@@ -11,6 +11,7 @@ import { Texture } from "./Texture";
  */
 export class TextureCubeMap extends Texture {
   private _format: TextureFormat;
+  _isHDR: boolean = false;
 
   /**
    * Texture format.

@@ -11,9 +11,11 @@ void main() {
 
     gl_FragColor = textureCube( u_cube, v_cubeUV );
 
-    #ifdef USE_HDR_ENV
-       gl_FragColor = RGBEToLinear( gl_FragColor);
-       #include <gamma_frag>
+    #ifdef MAP_RGBE
+        gl_FragColor = RGBEToLinear( gl_FragColor);
+        #include <gamma_frag>
+    #elif defined(MAP_LINEAR)
+        #include <gamma_frag>
     #endif
     
 }

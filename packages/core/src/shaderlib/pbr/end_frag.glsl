@@ -15,7 +15,7 @@
 #ifdef HAS_EMISSIVEMAP
 
     vec4 emissiveMapColor = texture2D(u_emissiveSampler, v_uv);
-    emissiveMapColor = SRGBtoLINEAR(emissiveMapColor);
+    emissiveMapColor = SRGBtoLinear(emissiveMapColor);
     totalEmissiveRadiance *= emissiveMapColor.rgb;
 
 #endif

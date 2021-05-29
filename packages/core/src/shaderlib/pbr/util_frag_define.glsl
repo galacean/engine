@@ -1,4 +1,4 @@
-vec4 SRGBtoLINEAR(vec4 srgbIn)
+vec4 SRGBtoLinear(vec4 srgbIn)
 {
     #ifdef SRGB_FAST_APPROXIMATION
         vec3 linOut = pow(srgbIn.xyz, vec3(2.2));

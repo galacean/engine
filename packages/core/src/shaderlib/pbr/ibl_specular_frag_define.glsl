@@ -80,12 +80,12 @@ vec3 getIndirectRadiance( const in GeometricContext geometry, const in float rou
             #endif
         #endif
 
-        #ifdef USE_HDR_ENV
+        #ifdef ENV_RGBE
             envMapColor.rgb = RGBEToLinear( envMapColor).rgb;
-        #else
-            envMapColor.rgb = SRGBtoLINEAR( envMapColor).rgb;
+        #elif defined(ENV_GAMMA)
+            envMapColor.rgb = SRGBtoLinear( envMapColor).rgb;
         #endif
-
+        
         return envMapColor.rgb * u_envMapLight.specularIntensity * u_envMapIntensity;
 
     #endif

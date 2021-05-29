@@ -14,7 +14,7 @@
     #ifdef HAS_BASECOLORMAP
 
         vec4 baseMapColor = texture2D( u_baseColorSampler, v_uv );
-        baseMapColor = SRGBtoLINEAR( baseMapColor );
+        baseMapColor = SRGBtoLinear( baseMapColor );
         diffuseColor *= baseMapColor;
 
     #endif

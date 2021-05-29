@@ -13,6 +13,7 @@ export class RenderColorTexture extends Texture {
   private _autoMipmap: boolean = false;
   private _format: RenderBufferColorFormat;
   private _isCube: boolean = false;
+  _isHDR: boolean = false;
 
   /**
    * Texture format.
