@@ -40,7 +40,7 @@ float getSpecularMIPLevel( const in float roughness, const in int maxMIPLevel ) 
 	// // clamp to allowable LOD ranges.
 	// return clamp( desiredMIPLevel, 0.0, maxMIPLevelScalar );
 
-    return roughness * float(maxMIPLevel);
+    return roughness * float(maxMIPLevel) * 0.8;
 
 }
 
