@@ -51,3 +51,17 @@ float getLuminance(vec3 color)
 {
     return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
+
+// roughness anti-alias
+float getAARoughnessFactor(vec3 normalVector) {
+    #ifdef HAS_DERIVATIVES
+        vec3 nDfdx = dFdx(normalVector);
+        vec3 nDfdy = dFdy(normalVector);
+        float slopeSquare = max(dot(nDfdx, nDfdx), dot(nDfdy, nDfdy));
+        float geometricAlphaGFactor = sqrt(slopeSquare);
+        geometricAlphaGFactor *= 0.75;
+        return geometricAlphaGFactor;
+    #endif
+
+    return 0.0;
+}
