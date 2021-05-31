@@ -1,7 +1,7 @@
 /**
  * The Background mode enumeration.
  */
- export enum BackgroundMode {
+export enum BackgroundMode {
   /* Solid color. */
   SolidColor,
   /* Sky. */
