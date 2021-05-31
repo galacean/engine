@@ -3,6 +3,7 @@ import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
 import { AnimationChannelTargetPath, AnimationSamplerInterpolation } from "../Schema";
 import { EntityParser } from "./EntityParser";
+import { AnimationClipParser } from "./AnimationClipParser";
 import { Parser } from "./Parser";
 
 export class AnimationParser extends Parser {
@@ -17,7 +18,7 @@ export class AnimationParser extends Parser {
       const gltfAnimation = animations[i];
       const { channels, samplers, name = `Animation${i}` } = gltfAnimation;
 
-      const animationClip = new AnimationClip(name);
+      const animationClipParser = new AnimationClipParser();
 
       let duration = -1;
       let durationIndex = -1;
@@ -36,14 +37,14 @@ export class AnimationParser extends Parser {
 
         let samplerInterpolation;
         switch (gltfSampler.interpolation) {
-          case AnimationSamplerInterpolation.CUBICSPLINE:
-            samplerInterpolation = InterpolationType.CUBICSPLINE;
+          case AnimationSamplerInterpolation.CubicSpine:
+            samplerInterpolation = InterpolationType.CubicSpine;
             break;
-          case AnimationSamplerInterpolation.STEP:
-            samplerInterpolation = InterpolationType.STEP;
+          case AnimationSamplerInterpolation.Step:
+            samplerInterpolation = InterpolationType.Step;
             break;
-          case AnimationSamplerInterpolation.LINEAR:
-            samplerInterpolation = InterpolationType.LINEAR;
+          case AnimationSamplerInterpolation.Linear:
+            samplerInterpolation = InterpolationType.Linear;
             break;
         }
         const maxTime = input[input.length - 1];
@@ -51,16 +52,13 @@ export class AnimationParser extends Parser {
           duration = maxTime;
           durationIndex = i;
         }
-        animationClip.addSampler(
+        animationClipParser.addSampler(
           input as Float32Array,
           output as Float32Array,
           outputAccessorSize,
           samplerInterpolation
         );
       }
-
-      animationClip.durationIndex = durationIndex;
-      animationClip.duration = duration;
 
       for (let i = 0; i < channels.length; i++) {
         const { target, sampler } = channels[i];
@@ -81,13 +79,18 @@ export class AnimationParser extends Parser {
             break;
         }
 
-        animationClip.addChannel(
+        animationClipParser.addChannel(
           sampler,
           nodes[target.node].name || `${EntityParser._defaultName}${target.node}`,
           targetPath
         );
       }
-
+      const curveDatas = animationClipParser.getCurveDatas();
+      const animationIdx = gltf.animations.indexOf(gltfAnimation);
+      const animationClip = new AnimationClip(gltfAnimation.name || `AnimationClip${animationIdx}`);
+      curveDatas.forEach((curveData) => {
+        animationClip.setCurve(curveData.relativePath, curveData.type, curveData.propertyName, curveData.curve);
+      });
       animationClips[i] = animationClip;
     }
 

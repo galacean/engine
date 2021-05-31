@@ -43,7 +43,7 @@ export class GLTFModel extends Component {
       if (value) {
         this._animator.playState(value);
       } else {
-        this._animator.stop(false);
+        this._animator.stop();
       }
     }
     this._autoPlay = value;
@@ -56,10 +56,8 @@ export class GLTFModel extends Component {
   set loop(value: WrapMode) {
     if (this._animator && this.autoPlay) {
       // Play bone animation
-      
-      this._animator.playState(this._autoPlay, {
-        wrapMode: value
-      });
+      const theState = this._animator.playState(this._autoPlay);
+      theState.wrapMode = value;
     }
     this._loop = value;
   }

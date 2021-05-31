@@ -1,5 +1,5 @@
 import {
-  Animation,
+  Animator,
   BlinnPhongMaterial,
   Camera,
   Engine,
@@ -143,15 +143,12 @@ export class SceneParser extends Parser {
   }
 
   private _createAnimator(context: GLTFResource) {
-    const { defaultSceneRoot, animations } = context;
-
-    if (!animations) return;
-
-    const animator = defaultSceneRoot.addComponent(Animation);
-
-    for (let i = 0; i < animations.length; i++) {
-      const animationClip = animations[i];
-      animator.addAnimationClip(animationClip, animationClip.name);
-    }
+    // const { defaultSceneRoot, animations } = context;
+    // if (!animations) return;
+    // const animator = defaultSceneRoot.addComponent(Animation);
+    // for (let i = 0; i < animations.length; i++) {
+    //   const animationClip = animations[i];
+    //   animator.addAnimationClip(animationClip, animationClip.name);
+    // }
   }
 }

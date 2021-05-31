@@ -1,17 +1,17 @@
-import { Component } from "../../../core/src/Component";
 import {
+  EngineObject,
+  Component,
+  Transform,
+  AnimationCurve,
+  AnimationClipCurveData,
   FloatKeyframe,
   Vector2Keyframe,
   Vector3Keyframe,
-  QuaternionKeyframe
-} from "../../../core/src/animation/KeyFrame";
+  QuaternionKeyframe,
+  AnimateProperty,
+  InterpolationType
+} from "@oasis-engine/core";
 import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
-import { Transform } from "./../../../core/src/Transform";
-import { AnimationClipCurveData } from "./../../../core/src/animation/AnimationClipCurveData";
-import { AnimationCurve } from "./../../../core/src/animation/AnimationCurve";
-import { EngineObject } from "./../../../core/src/base/EngineObject";
-import { InterpolationType } from "./../../../core/src/animation/enums/InterpolationType";
-import { AnimateProperty } from "./../../../core/src/animation/enums/AnimateProperty";
 
 export interface IChannelState {
   frameTime: number;
@@ -52,7 +52,7 @@ export enum TagetType {
 /**
  * Data for an animation, set of Samples and Channels.
  */
-export class AnimationClipGLTFParser extends EngineObject {
+export class AnimationClipParser extends EngineObject {
   private static _tagetTypeMap: Object = {
     position: TagetType.position,
     rotation: TagetType.rotation,

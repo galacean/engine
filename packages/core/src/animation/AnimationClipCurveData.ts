@@ -4,7 +4,6 @@ import { Component } from "../Component";
 import { AnimationCurve } from "./AnimationCurve";
 
 /**
- * @internal
  * Associate AnimationCurve and the Entity
  */
 export interface AnimationClipCurveData<T extends Component> {

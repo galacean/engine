@@ -97,15 +97,15 @@ export enum AnimationSamplerInterpolation {
   /**
    * The animated values are linearly interpolated between keyframes
    */
-  LINEAR = "LINEAR",
+  Linear = "Linear",
   /**
    * The animated values remain constant to the output of the first keyframe, until the next keyframe
    */
-  STEP = "STEP",
+  Step = "Step",
   /**
    * The animation's interpolation is computed using a cubic spline with specified tangents
    */
-  CUBICSPLINE = "CUBICSPLINE"
+  CubicSpine = "CubicSpine"
 }
 
 /**

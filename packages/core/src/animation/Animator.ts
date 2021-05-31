@@ -65,13 +65,14 @@ export class Animator extends Component {
    * @param layerIndex - The layer index(default 0)
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
-  playState(stateName: string, layerIndex: number = 0, normalizedTimeOffset: number = 0): void {
+  playState(stateName: string, layerIndex: number = 0, normalizedTimeOffset: number = 0): AnimatorState {
     const { animatorController } = this;
     if (!animatorController) return;
     const animLayer = animatorController.layers[layerIndex];
     const theState = animLayer.stateMachine.findStateByName(stateName);
     theState.frameTime = theState.clip.length * normalizedTimeOffset;
     animLayer._playingState = theState;
+    return theState;
   }
 
   /**
