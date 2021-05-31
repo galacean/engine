@@ -9,6 +9,7 @@
     "declarationDir": "types",
     "emitDeclarationOnly": true,
     "sourceMap": true,
+    "skipLibCheck": true,
     "incremental": false
   },
   "include": [
