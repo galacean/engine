@@ -102,7 +102,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   init(canvas: Canvas) {
     const option = this._options;
     option.alpha === undefined && (option.alpha = false);
-    option.stencil === undefined && (option.stencil = false);
+    option.stencil === undefined && (option.stencil = true);
 
     const webCanvas = (canvas as WebCanvas)._webCanvas;
     const webGLMode = option.webGLMode || WebGLMode.Auto;
