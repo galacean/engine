@@ -12,18 +12,19 @@ export class GLTFModel extends Component {
   }
 
   set asset(value: GLTFResource) {
-    if (value && value.defaultSceneRoot === this.GLTFNode) {
+    const entity = this.glTFEntity;
+    if (value && value.defaultSceneRoot === this.glTFEntity) {
       return;
     }
     if (!this._hasBuiltNode) {
-      (this.GLTFNode as any).clearChildren();
+      entity.clearChildren();
       if (value !== null) {
-        if (this.GLTFNode) {
-          this.GLTFNode.destroy();
-        }
-        this.GLTFNode = value.defaultSceneRoot.clone();
-        this._animator = this.GLTFNode.getComponent(Animation);
-        this.entity.addChild(this.GLTFNode);
+        entity?.destroy();
+        const newEntity = value.defaultSceneRoot.clone();
+        this._animator = entity.getComponent(Animation);
+        this.entity.addChild(newEntity);
+        newEntity.isActive = this.enabled;
+        this.glTFEntity = newEntity;
       }
     }
     this._asset = value;
@@ -69,7 +70,7 @@ export class GLTFModel extends Component {
   public animationsNames: String[];
 
   private _asset: GLTFResource;
-  private GLTFNode: Entity;
+  private glTFEntity: Entity;
   private _loop: number;
   private _autoPlay: string;
   private _hasBuiltNode: boolean = false;
@@ -87,13 +88,13 @@ export class GLTFModel extends Component {
     if (isClone) {
       const rootName = (props as any).gltfRootName;
       if (rootName) {
-        this.GLTFNode = this.entity.findByName(rootName);
+        this.glTFEntity = this.entity.findByName(rootName);
       }
     }
-    if (!this.GLTFNode) {
+    if (!this.glTFEntity) {
       const rootName = `GLTF-${Date.now()}`;
       (props as any).gltfRootName = rootName;
-      this.GLTFNode = this.entity.createChild(rootName);
+      this.glTFEntity = this.entity.createChild(rootName);
       this._hasBuiltNode = false;
     } else {
       this._hasBuiltNode = true;
@@ -108,13 +109,13 @@ export class GLTFModel extends Component {
    * @override
    */
   _onEnable(): void {
-    this.GLTFNode && (this.GLTFNode.isActive = true);
+    this.glTFEntity && (this.glTFEntity.isActive = true);
   }
 
   /**
    * @override
    */
   _onDisable(): void {
-    this.GLTFNode && (this.GLTFNode.isActive = false);
+    this.glTFEntity && (this.glTFEntity.isActive = false);
   }
 }
