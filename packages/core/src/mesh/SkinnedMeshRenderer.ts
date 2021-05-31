@@ -1,6 +1,5 @@
 import { Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
-import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
@@ -75,8 +74,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const skin = this._skin;
 
     const joints = skin.joints;
-    this.matrixPalette = new Float32Array(joints.length * 16);
-    this.jointNodes = joints;
+    const jointNodes = [];
+    for (let i = joints.length - 1; i >= 0; i--) {
+      jointNodes[i] = this.findByNodeName(this.entity, joints[i]);
+    } // end of for
+    this.matrixPalette = new Float32Array(jointNodes.length * 16);
+    this.jointNodes = jointNodes;
 
     /** Whether to use a skeleton texture */
     const rhi = this.entity.engine._hardwareRenderer;
@@ -106,6 +109,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     } else {
       shaderData.disableMacro("O3_HAS_SKIN");
     }
+  }
+
+  private findByNodeName(entity: Entity, nodeName: string) {
+    if (!entity) return null;
+
+    const n = entity.findByName(nodeName);
+
+    if (n) return n;
+
+    return this.findByNodeName(entity.parent, nodeName);
   }
 
   /**

@@ -44,7 +44,7 @@ export class AnimationClip extends EngineObject {
    * @param _input - The index of an accessor containing keyframe input values.
    * @param _output - The index of an accessor containing keyframe output values.
    * @param _outputSize - The length of the output values.
-   * @param _interpolation - Interpolation algorithm.	
+   * @param _interpolation - Interpolation algorithm.
    */
   public addSampler(
     _input: List,
