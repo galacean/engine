@@ -32,6 +32,9 @@ export class AbilityManager {
     if (type === "GLTFModel") {
       // TODO
       (ability as any).init(abilityProps);
+    } else if (type === "Model") {
+      // TODO
+      (ability as any).setProps(abilityProps);
     } else {
       for (let k in abilityProps) {
         if (abilityProps[k] !== null) {
@@ -56,7 +59,7 @@ export class AbilityManager {
       if (value && this.checkIsAsset(value)) {
         (this.get(id) as any).setProp(key, this.oasis.resourceManager.get(value.id).resource);
       } else {
-        (this.get(id) as any).setProp(key, value);
+        (this.get(id) as any).updateProp(key, value);
       }
     } else {
       if (value && this.checkIsAsset(value)) {

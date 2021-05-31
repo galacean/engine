@@ -154,20 +154,28 @@ export class Sprite extends RefObject {
    * Update positions and bounds.
    */
   private _updatePositionsAndBounds(): void {
-    const { width, height } = this.texture;
-    const { width: rWidth, height: rHeight } = this.region;
-    const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
+    const { texture } = this;
+    let lx = 0;
+    let ty = 0;
+    let rx = 0;
+    let by = 0;
 
-    // Get the width and height in 3D space.
-    const unitWidth = rWidth * width * pixelsPerUnitReciprocal;
-    const unitHeight = rHeight * height * pixelsPerUnitReciprocal;
+    if (texture) {
+      const { width, height } = texture;
+      const { width: rWidth, height: rHeight } = this.region;
+      const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
 
-    // Get the distance between the anchor point and the four sides.
-    const { x: px, y: py } = this.pivot;
-    const lx = -px * unitWidth;
-    const ty = -py * unitHeight;
-    const rx = (1 - px) * unitWidth;
-    const by = (1 - py) * unitHeight;
+      // Get the width and height in 3D space.
+      const unitWidth = rWidth * width * pixelsPerUnitReciprocal;
+      const unitHeight = rHeight * height * pixelsPerUnitReciprocal;
+
+      // Get the distance between the anchor point and the four sides.
+      const { x: px, y: py } = this.pivot;
+      lx = -px * unitWidth;
+      ty = -py * unitHeight;
+      rx = (1 - px) * unitWidth;
+      by = (1 - py) * unitHeight;
+    }
 
     // Assign values ​​to _positions
     const positions = this._positions;
