@@ -1,4 +1,4 @@
-export const FloatPlugin = tweener => {
+export const FloatPlugin = (tweener) => {
   const easing = tweener.options.easing;
 
   const result = easing(
