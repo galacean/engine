@@ -38,12 +38,14 @@ export class MaterialParser extends Parser {
       let material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial = null;
 
       if (KHR_materials_unlit) {
-        material = Parser.createEngineResource<UnlitMaterial>("KHR_materials_unlit", KHR_materials_unlit, context);
+        material = <UnlitMaterial>Parser.createEngineResource("KHR_materials_unlit", KHR_materials_unlit, context);
       } else if (KHR_materials_pbrSpecularGlossiness) {
-        material = Parser.createEngineResource<PBRSpecularMaterial>(
-          "KHR_materials_pbrSpecularGlossiness",
-          KHR_materials_pbrSpecularGlossiness,
-          context
+        material = <PBRSpecularMaterial>(
+          Parser.createEngineResource(
+            "KHR_materials_pbrSpecularGlossiness",
+            KHR_materials_pbrSpecularGlossiness,
+            context
+          )
         );
       } else {
         material = new PBRMaterial(engine);
