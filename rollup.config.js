@@ -17,6 +17,7 @@ const { BUILD_TYPE, NODE_ENV } = process.env;
 const pkgsRoot = path.join(__dirname, "packages");
 const pkgs = fs
   .readdirSync(pkgsRoot)
+  .filter((dir) => dir !== "design")
   .map((dir) => path.join(pkgsRoot, dir))
   .filter((dir) => fs.statSync(dir).isDirectory())
   .map((location) => {
@@ -58,6 +59,7 @@ function config({ location, pkgJson }) {
   const name = pkgJson.name;
   commonPlugins.push(
     replace({
+      preventAssignment: true,
       __buildVersion: pkgJson.version
     })
   );
