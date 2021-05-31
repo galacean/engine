@@ -1,6 +1,6 @@
 export enum AnimateProperty {
-  position,
-  rotation,
-  scale,
-  other
+  Position,
+  Rotation,
+  Scale,
+  Other
 }

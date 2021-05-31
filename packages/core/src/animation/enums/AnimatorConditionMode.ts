@@ -1,8 +1,8 @@
 export enum AnimatorConditionMode {
-  IF,
-  IFNOT,
-  GREATER,
-  LESS,
-  EQUALS,
-  NOTEQUALS
+  If,
+  IfNot,
+  Greater,
+  Less,
+  Equals,
+  NotEuqals
 }

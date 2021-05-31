@@ -86,16 +86,16 @@ export class AnimationCurve {
     const { frameIndex, nextFrameIndex, alpha, dur } = this._getFrameInfo(time);
     let val: InterpolableValue;
     switch (interpolation) {
-      case InterpolationType.CUBICSPLINE:
+      case InterpolationType.CubicSpine:
         val = this._evaluateCubicSpline(frameIndex, nextFrameIndex, alpha);
         break;
-      case InterpolationType.LINEAR:
+      case InterpolationType.Linear:
         val = this._evaluateLinear(frameIndex, nextFrameIndex, alpha);
         break;
-      case InterpolationType.STEP:
+      case InterpolationType.Step:
         val = this._evaluateStep(nextFrameIndex);
         break;
-      case InterpolationType.HERMITE:
+      case InterpolationType.Hermite:
         val = this._evaluateHermite(frameIndex, nextFrameIndex, alpha, dur);
     }
     if (!this._firstFrameValue) {

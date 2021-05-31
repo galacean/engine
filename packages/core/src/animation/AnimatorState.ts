@@ -14,7 +14,7 @@ export class AnimatorState {
   /** The speed of the clip. 1 is normal speed, default 1. */
   speed: number = 1;
   /** The wrap mode used in the state. */
-  wrapMode: WrapMode = WrapMode.LOOP;
+  wrapMode: WrapMode = WrapMode.Loop;
   /** Start time of the animation clip, default 0. */
   clipStartTime: number = 0;
   /** End time of the animation clip, If has the clip, the default value is clip.length otherwise it is Infinity. */
@@ -68,7 +68,7 @@ export class AnimatorState {
     this._frameTime = time;
     const endTime = Math.min(this.clipEndTime, animClip.length);
     if (time > endTime) {
-      if (this.wrapMode === WrapMode.LOOP) {
+      if (this.wrapMode === WrapMode.Loop) {
         this._frameTime = time % endTime;
       } else {
         this._frameTime = endTime;

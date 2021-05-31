@@ -87,12 +87,12 @@ export class AnimationClipGLTFParser extends EngineObject {
     _input: List,
     _output: List,
     _outputSize: number,
-    _interpolation: InterpolationType = InterpolationType.LINEAR
+    _interpolation: InterpolationType = InterpolationType.Linear
   ) {
     // FIXME - adapt old error animation export file
-    if (_interpolation === InterpolationType.CUBICSPLINE) {
+    if (_interpolation === InterpolationType.CubicSpine) {
       if (_outputSize <= 4) {
-        _interpolation = InterpolationType.LINEAR;
+        _interpolation = InterpolationType.Linear;
       } else {
         _outputSize /= 3;
       }
@@ -117,7 +117,7 @@ export class AnimationClipGLTFParser extends EngineObject {
   public addChannel(samplerIndex: number, targetID: string, targetPath: string) {
     const bindSampler = this.samplers[samplerIndex];
 
-    let pathType = AnimateProperty[targetPath] ?? AnimateProperty.other;
+    let pathType = AnimateProperty[targetPath] ?? AnimateProperty.Other;
     // The channel object, bind a Sample to an Object property.
     const channel = {
       sampler: bindSampler,
@@ -210,10 +210,10 @@ export class AnimationClipGLTFParser extends EngineObject {
     const outputSize = channel.sampler.outputSize;
 
     switch (channel.sampler.interpolation) {
-      case InterpolationType.CUBICSPLINE:
+      case InterpolationType.CubicSpine:
         this.evaluateCubicSpline(outValue, output, outputSize, frameIndex, nextFrameIndex, alpha);
         break;
-      case InterpolationType.LINEAR:
+      case InterpolationType.Linear:
         this.evaluateLinear(outValue, output, outputSize, frameIndex, nextFrameIndex, alpha);
         break;
     }

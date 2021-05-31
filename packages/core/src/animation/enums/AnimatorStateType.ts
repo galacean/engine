@@ -1,6 +1,6 @@
 export enum AnimatorStateType {
-  exit,
-  any,
-  entry,
-  normal
+  Exit,
+  Any,
+  Entry,
+  Normal
 }

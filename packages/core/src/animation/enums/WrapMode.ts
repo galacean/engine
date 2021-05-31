@@ -3,7 +3,7 @@
  */
 export enum WrapMode {
   /** Play once */
-  ONCE = 0,
+  Once = 0,
   /** Loop play */
-  LOOP = 1
+  Loop = 1
 }

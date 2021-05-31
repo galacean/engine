@@ -66,13 +66,13 @@ export class AnimationClip extends Motion {
       const target = entity.findByName(relativePath);
       const transform = (<Entity>target).transform;
       switch (AnimateProperty[propertyName]) {
-        case AnimateProperty.position:
+        case AnimateProperty.Position:
           transform.position = val as Vector3;
           break;
-        case AnimateProperty.rotation:
+        case AnimateProperty.Rotation:
           transform.rotationQuaternion = val as Quaternion;
           break;
-        case AnimateProperty.scale:
+        case AnimateProperty.Scale:
           transform.scale = val as Vector3;
           break;
       }
@@ -81,10 +81,10 @@ export class AnimationClip extends Motion {
 
   /**
    * Assigns the curve to animate a specific property.
-   * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm".
-   * @param type- The class type of the component that is animated.
-   * @param propertyName - The name to the property being animated.
-   * @param curve - The animation curve.
+   * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
+   * @param type- The class type of the component that is animated
+   * @param propertyName - The name to the property being animated
+   * @param curve - The animation curve
    */
   setCurve<T extends Component>(
     relativePath: string,
