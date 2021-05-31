@@ -199,7 +199,7 @@ export class Animator extends Component {
   }
 
   private _calculateFloatDiff(propertyName: string, sVal: number, dVal: number): void {
-    if (AnimateProperty[propertyName] === AnimateProperty.scale) {
+    if (AnimateProperty[propertyName] === AnimateProperty.Scale) {
       this._diffFloatFromBasePos = dVal / sVal;
     } else {
       this._diffFloatFromBasePos = dVal - sVal;
@@ -208,7 +208,7 @@ export class Animator extends Component {
   }
 
   private _calculateVector2Diff(propertyName: string, sVal: Vector2, dVal: Vector2): void {
-    if (AnimateProperty[propertyName] === AnimateProperty.scale) {
+    if (AnimateProperty[propertyName] === AnimateProperty.Scale) {
       this._diffVector2FromBasePos.x = dVal.x / sVal.x;
       this._diffVector2FromBasePos.y = dVal.y / sVal.y;
     } else {
@@ -219,7 +219,7 @@ export class Animator extends Component {
   }
 
   private _calculateVector3Diff(propertyName: string, sVal: Vector3, dVal: Vector3): void {
-    if (AnimateProperty[propertyName] === AnimateProperty.scale) {
+    if (AnimateProperty[propertyName] === AnimateProperty.Scale) {
       this._diffVector3FromBasePos.x = dVal.x / sVal.x;
       this._diffVector3FromBasePos.y = dVal.y / sVal.y;
       this._diffVector3FromBasePos.z = dVal.z / sVal.z;
@@ -232,7 +232,7 @@ export class Animator extends Component {
   }
 
   private _calculateVector4Diff(propertyName: string, sVal: Vector4, dVal: Vector4): void {
-    if (AnimateProperty[propertyName] === AnimateProperty.scale) {
+    if (AnimateProperty[propertyName] === AnimateProperty.Scale) {
       this._diffVector4FromBasePos.x = dVal.x / sVal.x;
       this._diffVector4FromBasePos.y = dVal.y / sVal.y;
       this._diffVector4FromBasePos.z = dVal.z / sVal.z;
@@ -261,13 +261,13 @@ export class Animator extends Component {
   ): InterpolableValue {
     const transform = target.transform;
     switch (AnimateProperty[propertyName]) {
-      case AnimateProperty.position:
+      case AnimateProperty.Position:
         Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
         return this._tempVector3;
-      case AnimateProperty.rotation:
+      case AnimateProperty.Rotation:
         Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, crossWeight, this._tempQuaternion);
         return this._tempQuaternion;
-      case AnimateProperty.scale: {
+      case AnimateProperty.Scale: {
         const scale = transform.scale;
         Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
         transform.scale = scale;
@@ -285,17 +285,17 @@ export class Animator extends Component {
   ): void {
     const transform = target.transform;
     switch (AnimateProperty[propertyName]) {
-      case AnimateProperty.position:
+      case AnimateProperty.Position:
         const position = transform.position;
         Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, position);
         transform.position = position as Vector3;
         break;
-      case AnimateProperty.rotation:
+      case AnimateProperty.Rotation:
         const rotationQuaternion = transform.rotationQuaternion;
         Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, weight, rotationQuaternion);
         transform.rotationQuaternion = rotationQuaternion;
         break;
-      case AnimateProperty.scale: {
+      case AnimateProperty.Scale: {
         const scale = transform.scale;
         Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, scale);
         transform.scale = scale;
@@ -312,7 +312,7 @@ export class Animator extends Component {
   ): void {
     const transform = (<Entity>target).transform;
     switch (AnimateProperty[propertyName]) {
-      case AnimateProperty.position:
+      case AnimateProperty.Position:
         if (diffVal instanceof Vector3) {
           const position = transform.position;
           position.x += diffVal.x;
@@ -321,7 +321,7 @@ export class Animator extends Component {
           transform.position = position;
         }
         break;
-      case AnimateProperty.rotation:
+      case AnimateProperty.Rotation:
         if (diffVal instanceof Quaternion) {
           const rotationQuaternion = transform.rotationQuaternion;
           AnimatorUtils.calQuaternionWeight(diffVal, weight, diffVal);
@@ -330,7 +330,7 @@ export class Animator extends Component {
           transform.rotationQuaternion = rotationQuaternion;
         }
         break;
-      case AnimateProperty.scale: {
+      case AnimateProperty.Scale: {
         if (diffVal instanceof Vector3) {
           const scale = transform.scale;
           AnimatorUtils.calScaleWeight(scale, weight, scale);

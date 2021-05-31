@@ -3,11 +3,11 @@
  */
 export enum InterpolationType {
   /** Linear interpolation */
-  LINEAR,
+  Linear,
   /** Cubic spline interpolation */
-  CUBICSPLINE,
+  CubicSpine,
   /** Stepped interpolation */
-  STEP,
+  Step,
   /** Hermite interpolation */
-  HERMITE
+  Hermite
 }
