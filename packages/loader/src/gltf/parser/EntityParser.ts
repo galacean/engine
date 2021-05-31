@@ -1,5 +1,4 @@
 import { Entity } from "@oasis-engine/core";
-import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { Parser } from "./Parser";
 
@@ -92,7 +91,7 @@ export class EntityParser extends Parser {
         sceneRoots[i] = rootEntity;
       }
     }
-    
+
     context.sceneRoots = sceneRoots;
     context.defaultSceneRoot = sceneRoots[sceneID];
   }
