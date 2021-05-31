@@ -100,6 +100,8 @@ void RE_IndirectSpecular_Physical( const in vec3 radiance, const in vec3 multiSc
     vec3 multiScattering = vec3( 0.0 );
     BRDF_Specular_Multiscattering_Environment( geometry, material.specularColor, material.specularRoughness, singleScattering, multiScattering );
     
+    vec3 diffuse = material.diffuseColor * ( 1.0 - ( singleScattering + multiScattering ) );
     reflectedLight.indirectSpecular += radiance * singleScattering;
     reflectedLight.indirectSpecular += multiScattering * multiScatteringRadiance;
+    reflectedLight.indirectDiffuse += diffuse * multiScatteringRadiance;
 }
