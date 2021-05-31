@@ -8,7 +8,6 @@ import {
   Vector2Keyframe,
   Vector3Keyframe,
   QuaternionKeyframe,
-  AnimateProperty,
   InterpolationType
 } from "@oasis-engine/core";
 import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
@@ -33,7 +32,6 @@ export interface ISample {
 }
 
 export interface ITarget {
-  pathType: AnimateProperty;
   path: string;
   id: string;
 }
@@ -117,14 +115,12 @@ export class AnimationClipParser extends EngineObject {
   public addChannel(samplerIndex: number, targetID: string, targetPath: string) {
     const bindSampler = this.samplers[samplerIndex];
 
-    let pathType = AnimateProperty[targetPath] ?? AnimateProperty.Other;
     // The channel object, bind a Sample to an Object property.
     const channel = {
       sampler: bindSampler,
       target: {
         id: targetID,
-        path: targetPath,
-        pathType
+        path: targetPath
       }
     };
 

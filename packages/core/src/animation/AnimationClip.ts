@@ -1,3 +1,4 @@
+import { Transform } from "../Transform";
 import { AnimationCurve } from "./AnimationCurve";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 import { Component } from "../Component";
@@ -5,7 +6,6 @@ import { Entity } from "./../Entity";
 import { AnimationClipCurveData } from "./AnimationClipCurveData";
 import { AnimationEvent } from "./AnimationEvent";
 import { Motion } from "./Motion";
-import { AnimateProperty } from "./enums/AnimateProperty";
 
 /**
  * Stores keyframe based animations.
@@ -65,16 +65,18 @@ export class AnimationClip extends Motion {
       const val = curve.evaluate(time);
       const target = entity.findByName(relativePath);
       const transform = (<Entity>target).transform;
-      switch (AnimateProperty[propertyName]) {
-        case AnimateProperty.Position:
-          transform.position = val as Vector3;
-          break;
-        case AnimateProperty.Rotation:
-          transform.rotationQuaternion = val as Quaternion;
-          break;
-        case AnimateProperty.Scale:
-          transform.scale = val as Vector3;
-          break;
+      if (type === Transform) {
+        switch (propertyName) {
+          case "position":
+            transform.position = val as Vector3;
+            break;
+          case "rotation":
+            transform.rotationQuaternion = val as Quaternion;
+            break;
+          case "scale":
+            transform.scale = val as Vector3;
+            break;
+        }
       }
     }
   }

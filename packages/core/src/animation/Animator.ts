@@ -1,3 +1,4 @@
+import { Transform } from "./../Transform";
 import { AnimatorState } from "./AnimatorState";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { InterpolableValue } from "./KeyFrame";
@@ -7,7 +8,6 @@ import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AnimatorUtils } from "./AnimatorUtils";
-import { AnimateProperty } from "./enums/AnimateProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { PlayType } from "./enums/PlayType";
 
@@ -200,7 +200,7 @@ export class Animator extends Component {
   }
 
   private _calculateFloatDiff(propertyName: string, sVal: number, dVal: number): void {
-    if (AnimateProperty[propertyName] === AnimateProperty.Scale) {
+    if (propertyName === "scale") {
       this._diffFloatFromBasePos = dVal / sVal;
     } else {
       this._diffFloatFromBasePos = dVal - sVal;
@@ -209,7 +209,7 @@ export class Animator extends Component {
   }
 
   private _calculateVector2Diff(propertyName: string, sVal: Vector2, dVal: Vector2): void {
-    if (AnimateProperty[propertyName] === AnimateProperty.Scale) {
+    if (propertyName === "scale") {
       this._diffVector2FromBasePos.x = dVal.x / sVal.x;
       this._diffVector2FromBasePos.y = dVal.y / sVal.y;
     } else {
@@ -220,7 +220,7 @@ export class Animator extends Component {
   }
 
   private _calculateVector3Diff(propertyName: string, sVal: Vector3, dVal: Vector3): void {
-    if (AnimateProperty[propertyName] === AnimateProperty.Scale) {
+    if (propertyName === "scale") {
       this._diffVector3FromBasePos.x = dVal.x / sVal.x;
       this._diffVector3FromBasePos.y = dVal.y / sVal.y;
       this._diffVector3FromBasePos.z = dVal.z / sVal.z;
@@ -233,7 +233,7 @@ export class Animator extends Component {
   }
 
   private _calculateVector4Diff(propertyName: string, sVal: Vector4, dVal: Vector4): void {
-    if (AnimateProperty[propertyName] === AnimateProperty.Scale) {
+    if (propertyName === "scale") {
       this._diffVector4FromBasePos.x = dVal.x / sVal.x;
       this._diffVector4FromBasePos.y = dVal.y / sVal.y;
       this._diffVector4FromBasePos.z = dVal.z / sVal.z;
@@ -255,95 +255,104 @@ export class Animator extends Component {
 
   private _getCrossFadeValue(
     target: Entity,
+    type: new (entity: Entity) => Component,
     propertyName: string,
     sVal: InterpolableValue,
     dVal: InterpolableValue,
     crossWeight: number
   ): InterpolableValue {
     const transform = target.transform;
-    switch (AnimateProperty[propertyName]) {
-      case AnimateProperty.Position:
-        Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
-        return this._tempVector3;
-      case AnimateProperty.Rotation:
-        Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, crossWeight, this._tempQuaternion);
-        return this._tempQuaternion;
-      case AnimateProperty.Scale: {
-        const scale = transform.scale;
-        Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
-        transform.scale = scale;
-        return this._tempVector3;
+    if (type === Transform) {
+      switch (propertyName) {
+        case "position":
+          Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
+          return this._tempVector3;
+        case "rotation":
+          Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, crossWeight, this._tempQuaternion);
+          return this._tempQuaternion;
+        case "scale": {
+          const scale = transform.scale;
+          Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
+          transform.scale = scale;
+          return this._tempVector3;
+        }
       }
     }
   }
 
   private _updateLayerValue(
     target: Entity,
+    type: new (entity: Entity) => Component,
     propertyName: string,
     sVal: InterpolableValue,
     dVal: InterpolableValue,
     weight: number
   ): void {
     const transform = target.transform;
-    switch (AnimateProperty[propertyName]) {
-      case AnimateProperty.Position:
-        const position = transform.position;
-        Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, position);
-        transform.position = position as Vector3;
-        break;
-      case AnimateProperty.Rotation:
-        const rotationQuaternion = transform.rotationQuaternion;
-        Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, weight, rotationQuaternion);
-        transform.rotationQuaternion = rotationQuaternion;
-        break;
-      case AnimateProperty.Scale: {
-        const scale = transform.scale;
-        Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, scale);
-        transform.scale = scale;
-        break;
+    if (type === Transform) {
+      switch (propertyName) {
+        case "position":
+          const position = transform.position;
+          Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, position);
+          transform.position = position as Vector3;
+          break;
+        case "rotation":
+          const rotationQuaternion = transform.rotationQuaternion;
+          Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, weight, rotationQuaternion);
+          transform.rotationQuaternion = rotationQuaternion;
+          break;
+        case "scale": {
+          const scale = transform.scale;
+          Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, scale);
+          transform.scale = scale;
+          break;
+        }
       }
     }
   }
 
   private _updateAdditiveLayerValue(
     target: Entity,
+    type: new (entity: Entity) => Component,
     propertyName: string,
     diffVal: InterpolableValue,
     weight: number
   ): void {
     const transform = (<Entity>target).transform;
-    switch (AnimateProperty[propertyName]) {
-      case AnimateProperty.Position:
-        if (diffVal instanceof Vector3) {
-          const position = transform.position;
-          position.x += diffVal.x;
-          position.y += diffVal.y;
-          position.z += diffVal.z;
-          transform.position = position;
+    if (type === Transform) {
+      switch (propertyName) {
+        case "position":
+          if (diffVal instanceof Vector3) {
+            const position = transform.position;
+            position.x += diffVal.x;
+            position.y += diffVal.y;
+            position.z += diffVal.z;
+            transform.position = position;
+          }
+          break;
+        case "rotation":
+          if (diffVal instanceof Quaternion) {
+            const rotationQuaternion = transform.rotationQuaternion;
+            AnimatorUtils.calQuaternionWeight(diffVal, weight, diffVal);
+            diffVal.normalize();
+            rotationQuaternion.multiply(diffVal);
+            transform.rotationQuaternion = rotationQuaternion;
+          }
+          break;
+        case "scale": {
+          if (diffVal instanceof Vector3) {
+            const scale = transform.scale;
+            AnimatorUtils.calScaleWeight(scale, weight, scale);
+            scale.x = scale.x * diffVal.x;
+            scale.y = scale.y * diffVal.y;
+            scale.z = scale.z * diffVal.z;
+            transform.scale = scale;
+          }
+          break;
         }
-        break;
-      case AnimateProperty.Rotation:
-        if (diffVal instanceof Quaternion) {
-          const rotationQuaternion = transform.rotationQuaternion;
-          AnimatorUtils.calQuaternionWeight(diffVal, weight, diffVal);
-          diffVal.normalize();
-          rotationQuaternion.multiply(diffVal);
-          transform.rotationQuaternion = rotationQuaternion;
-        }
-        break;
-      case AnimateProperty.Scale: {
-        if (diffVal instanceof Vector3) {
-          const scale = transform.scale;
-          AnimatorUtils.calScaleWeight(scale, weight, scale);
-          scale.x = scale.x * diffVal.x;
-          scale.y = scale.y * diffVal.y;
-          scale.z = scale.z * diffVal.z;
-          transform.scale = scale;
-        }
-        break;
+        default:
+          target[propertyName] += diffVal;
       }
-      default:
-        target[propertyName] += diffVal;
     }
   }
 
@@ -373,17 +382,19 @@ export class Animator extends Component {
         }
         let count = clip._curves.length;
         const relativePathList: string[] = [];
+        const typeList: (new (entity: Entity) => Component)[] = [];
         const propertyNameList: string[] = [];
         const relativePathPropertyNameMap: { [key: string]: number } = {};
         const targetPropertyNameValues = [];
         const targetDefaultValues = [];
         const targetList = [];
         for (let i = count - 1; i >= 0; i--) {
-          const { curve, propertyName, relativePath, _defaultValue, _target } = clip._curves[i];
+          const { curve, type, propertyName, relativePath, _defaultValue, _target } = clip._curves[i];
           if (!relativePathPropertyNameMap[`${relativePath}_${propertyName}`]) {
             const frameTime = currentState._getTheRealFrameTime();
             relativePathPropertyNameMap[`${relativePath}_${propertyName}`] = relativePathList.length;
             relativePathList.push(relativePath);
+            typeList.push(type);
             propertyNameList.push(propertyName);
             const val = curve.evaluate(frameTime);
             targetPropertyNameValues.push([val]);
@@ -394,16 +405,16 @@ export class Animator extends Component {
         clip = destinationState.clip;
         count = clip._curves.length;
         for (let i = count - 1; i >= 0; i--) {
-          const { curve, propertyName, relativePath, _defaultValue, _target } = clip._curves[i];
+          const { curve, type, propertyName, relativePath, _defaultValue, _target } = clip._curves[i];
           if (relativePathPropertyNameMap[`${relativePath}_${propertyName}`] >= 0) {
             const index = relativePathPropertyNameMap[`${relativePath}_${propertyName}`];
             const val = curve.evaluate(transition.offset + transition._crossFadeFrameTime);
             targetPropertyNameValues[index][1] = val;
             targetDefaultValues[index][1] = _defaultValue;
-            targetList[index][1] = _target;
           } else {
             relativePathPropertyNameMap[`${relativePath}_${propertyName}`] = relativePathList.length;
             relativePathList.push(relativePath);
+            typeList.push(type);
             propertyNameList.push(propertyName);
             const val = curve.evaluate(transition.offset + transition._crossFadeFrameTime);
             targetPropertyNameValues.push([null, val]);
@@ -419,23 +430,32 @@ export class Animator extends Component {
           const vals = targetPropertyNameValues[index];
           const defaultValues = targetDefaultValues[index];
           const targets = targetList[index];
+          const type = typeList[index];
 
           let calculatedValue: InterpolableValue;
           if (vals[0] && vals[1]) {
-            calculatedValue = this._getCrossFadeValue(targets[0], propertyName, vals[0], vals[1], crossWeight);
-            this._updateLayerValue(targets[0], propertyName, defaultValues[0], calculatedValue, weight);
+            calculatedValue = this._getCrossFadeValue(targets[0], type, propertyName, vals[0], vals[1], crossWeight);
+            this._updateLayerValue(targets[0], type, propertyName, defaultValues[0], calculatedValue, weight);
           } else if (vals[0]) {
             calculatedValue = this._getCrossFadeValue(
               targets[0],
+              type,
               propertyName,
               defaultValues[0],
               vals[0],
               1 - crossWeight
             );
-            this._updateLayerValue(targets[0], propertyName, defaultValues[0], calculatedValue, weight);
+            this._updateLayerValue(targets[0], type, propertyName, defaultValues[0], calculatedValue, weight);
           } else {
-            calculatedValue = this._getCrossFadeValue(targets[1], propertyName, defaultValues[1], vals[1], crossWeight);
-            this._updateLayerValue(targets[1], propertyName, defaultValues[1], calculatedValue, weight);
+            calculatedValue = this._getCrossFadeValue(
+              targets[1],
+              type,
+              propertyName,
+              defaultValues[1],
+              vals[1],
+              crossWeight
+            );
+            this._updateLayerValue(targets[1], type, propertyName, defaultValues[1], calculatedValue, weight);
           }
         }
         if (currentState._playType === PlayType.IsFinish) {
@@ -447,18 +467,18 @@ export class Animator extends Component {
       const clip = currentState.clip;
       const count = clip._curves.length;
       for (let j = count - 1; j >= 0; j--) {
-        const { curve, propertyName, _target, _defaultValue } = clip._curves[j];
+        const { curve, type, propertyName, _target, _defaultValue } = clip._curves[j];
         const frameTime = currentState._getTheRealFrameTime();
         const val = curve.evaluate(frameTime);
         const { _valueType, _firstFrameValue } = curve;
         if (isFirstLayer) {
-          this._updateLayerValue(_target, propertyName, _defaultValue, val, 1);
+          this._updateLayerValue(_target, type, propertyName, _defaultValue, val, 1);
         } else {
           if (blendingMode === AnimatorLayerBlendingMode.Additive) {
             this._calculateDiff(_valueType, propertyName, _firstFrameValue, val);
-            this._updateAdditiveLayerValue(_target, propertyName, this._diffValueFromBasePos, weight);
+            this._updateAdditiveLayerValue(_target, type, propertyName, this._diffValueFromBasePos, weight);
           } else {
-            this._updateLayerValue(_target, propertyName, _defaultValue, val, weight);
+            this._updateLayerValue(_target, type, propertyName, _defaultValue, val, weight);
           }
         }
       }

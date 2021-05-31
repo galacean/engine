@@ -93,7 +93,6 @@ export class AnimationParser extends Parser {
       });
       animationClips[i] = animationClip;
     }
-
     context.animations = animationClips;
   }
 }
