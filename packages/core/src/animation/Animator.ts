@@ -29,15 +29,12 @@ export class Animator extends Component {
   private _tempQuaternion: Quaternion = new Quaternion();
 
   /**
-   * Get the AnimatorController that controls the Animator.
+   * AnimatorController that controls the Animator.
    */
   get animatorController(): AnimatorController {
     return this._animatorController;
   }
 
-  /**
-   * Set the AnimatorController that controls the Animator.
-   */
   set animatorController(animatorController: AnimatorController) {
     this._animatorController = animatorController;
     if (!animatorController) return;
