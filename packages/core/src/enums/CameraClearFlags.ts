@@ -1,7 +1,7 @@
 /**
  * Camera clear flags enumeration.
  */
- export enum CameraClearFlags {
+export enum CameraClearFlags {
   /* Clear depth and color from background. */
   DepthColor,
   /* Clear depth only. */
