@@ -16,9 +16,8 @@ import { PlayType } from "./enums/PlayType";
  */
 export class Animator extends Component {
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
-  speed: number = 1;
+  speed: number = 1.0;
 
-  private _lastSpeed: number = 1;
   private _animatorController: AnimatorController;
   private _diffValueFromBasePos: InterpolableValue;
   private _diffFloatFromBasePos: number = 0;
