@@ -5,11 +5,17 @@ import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
  * Store the data for Animator playback.
  */
 export class AnimatorController {
-  /** The layers in the controller. */
-  layers: AnimatorControllerLayer[] = [];
-
   /** @internal */
   _target: Entity;
+
+  private _layers: AnimatorControllerLayer[] = [];
+
+  /**
+   * The layers in the controller.
+   */
+  get layers(): Readonly<AnimatorControllerLayer[]> {
+    return this._layers;
+  }
 
   /**
    * Add a layer to the controller.
@@ -19,7 +25,7 @@ export class AnimatorController {
     if (this._target) {
       layer._setTarget(this._target);
     }
-    this.layers.push(layer);
+    this._layers.push(layer);
   }
 
   /**
@@ -27,11 +33,13 @@ export class AnimatorController {
    * @param layerIndex - The index of the AnimatorLayer
    */
   removeLayer(layerIndex: number): void {
-    this.layers.splice(layerIndex, 1);
+    this._layers.splice(layerIndex, 1);
     this.layers[layerIndex]._destroy();
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _setTarget(target: Entity): void {
     this._target = target;
     const layerCount = this.layers.length;
