@@ -16,12 +16,11 @@ export class AnimationParser extends Parser {
 
     for (let i = 0; i < animations.length; i++) {
       const gltfAnimation = animations[i];
-      const { channels, samplers, name = `Animation${i}` } = gltfAnimation;
+      const { channels, samplers, name = `AnimationClip${i}` } = gltfAnimation;
 
       const animationClipParser = new AnimationClipParser();
 
       let duration = -1;
-      let durationIndex = -1;
 
       // parse samplers
       for (let i = 0; i < samplers.length; i++) {
@@ -50,7 +49,6 @@ export class AnimationParser extends Parser {
         const maxTime = input[input.length - 1];
         if (maxTime > duration) {
           duration = maxTime;
-          durationIndex = i;
         }
         animationClipParser.addSampler(
           input as Float32Array,
@@ -78,7 +76,6 @@ export class AnimationParser extends Parser {
             targetPath = "weights";
             break;
         }
-
         animationClipParser.addChannel(
           sampler,
           nodes[target.node].name || `${EntityParser._defaultName}${target.node}`,
@@ -86,8 +83,7 @@ export class AnimationParser extends Parser {
         );
       }
       const curveDatas = animationClipParser.getCurveDatas();
-      const animationIdx = gltf.animations.indexOf(gltfAnimation);
-      const animationClip = new AnimationClip(gltfAnimation.name || `AnimationClip${animationIdx}`);
+      const animationClip = new AnimationClip(name);
       curveDatas.forEach((curveData) => {
         animationClip.setCurve(curveData.relativePath, curveData.type, curveData.propertyName, curveData.curve);
       });
