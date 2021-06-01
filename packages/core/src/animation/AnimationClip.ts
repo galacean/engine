@@ -13,13 +13,14 @@ import { Motion } from "./Motion";
 export class AnimationClip extends Motion {
   /** Animation Events for this animation clip. */
   events: AnimationEvent[];
+
   /**
    * @internal
    * Store a collection of Keyframes
    */
   _curves: AnimationClipCurveData<Component>[] = [];
 
-  private _length: number = 0; //时间
+  private _length: number = 0;
 
   /** Animation length in seconds. */
   get length(): number {
@@ -139,7 +140,9 @@ export class AnimationClip extends Motion {
     this._length = 0;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _setTarget(target: Entity): void {
     this._target = target;
     if (target) {
