@@ -31,7 +31,9 @@ export class AnimatorController {
     this.layers[layerIndex]._destroy();
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _setTarget(target: Entity): void {
     this._target = target;
     const layerCount = this.layers.length;

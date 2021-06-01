@@ -15,7 +15,7 @@ import { PlayType } from "./enums/PlayType";
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  /** The playback speed of the Animator. 1 is normal playback speed. */
+  /** The playback speed of the Animator, 1.0 is normal playback speed. */
   speed: number = 1;
 
   private _lastSpeed: number = 1;
@@ -53,7 +53,7 @@ export class Animator extends Component {
   }
 
   /**
-   * @param entity - The entitiy which the animator component belongs to
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);
@@ -65,7 +65,7 @@ export class Animator extends Component {
    * @param layerIndex - The layer index(default 0)
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
-  playState(stateName: string, layerIndex: number = 0, normalizedTimeOffset: number = 0): AnimatorState {
+  play(stateName: string, layerIndex: number = 0, normalizedTimeOffset: number = 0): AnimatorState {
     const { animatorController } = this;
     if (!animatorController) return;
     const animLayer = animatorController.layers[layerIndex];
@@ -73,21 +73,6 @@ export class Animator extends Component {
     theState.frameTime = theState.clip.length * normalizedTimeOffset;
     animLayer._playingState = theState;
     return theState;
-  }
-
-  /**
-   * Set the Animator in playback mode.
-   */
-  play(): void {
-    this.speed = this._lastSpeed;
-  }
-
-  /**
-   * Stops the animator playback mode.
-   */
-  stop(): void {
-    this._lastSpeed = this.speed;
-    this.speed = 0;
   }
 
   /**
@@ -142,7 +127,6 @@ export class Animator extends Component {
       if (nextState) {
         const transition = currentState.addTransition(nextState);
         this.animatorController.layers[layerIndex]._fadingState = nextState;
-        transition.solo = true;
         transition.duration = currentState.clip.length * normalizedTransitionDuration;
         transition.offset = nextState.clip.length * normalizedTimeOffset;
         transition.exitTime = currentState.frameTime;
@@ -364,8 +348,7 @@ export class Animator extends Component {
   ): void {
     const { weight, blendingMode } = animLayer;
     if (currentState._playType === PlayType.IsFading) {
-      const transitions = currentState.transitions;
-      const transition = transitions.filter((transition) => transition.solo)[0];
+      const transition = currentState.transitions[0];
       const destinationState = transition.destinationState;
       if (transition) {
         let clip = currentState.clip;

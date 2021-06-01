@@ -12,10 +12,6 @@ export class AnimatorStateTransition {
   exitTime: number;
   /** The destination state of the transition. */
   destinationState: AnimatorState;
-  /** Mutes the transition. The transition will never occur. */
-  mute: boolean;
-  /** Mutes all other transitions in the source state. */
-  solo: boolean;
 
   /** @internal */
   _crossFadeFrameTime: number = 0;
