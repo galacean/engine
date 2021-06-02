@@ -31,8 +31,6 @@ export class AnimationCurve {
   _valueSize: number;
   /** @internal */
   _valueType: InterpolableValueType;
-  /** @internal */
-  _firstFrameValue: InterpolableValue;
 
   private _currentValue: InterpolableValue;
   private _length: number = 0;
@@ -114,45 +112,29 @@ export class AnimationCurve {
     // Evaluate value.
     let value: InterpolableValue;
     if (curIndex === -1) {
-      // Time less than first frame.
-      if (valueType === InterpolableValueType.Float) {
-        value = keys[0].value;
-      } else {
-        value = this._currentValue;
-        (<IClone>keys[0].value).cloneTo(value);
-      }
+      value = keys[0].value;
     } else if (nextIndex === length) {
-      // Time large than first frame.
-      if (valueType === InterpolableValueType.Float) {
-        value = keys[length].value;
-      } else {
-        value = this._currentValue;
-        (<IClone>keys[length].value).cloneTo(value);
-      }
+      value = keys[length].value;
     } else {
       // Time between first frame and end frame.
       const curFrameTime = keys[curIndex].time;
       const duration = keys[nextIndex].time - curFrameTime;
-      const alpha = (time - curFrameTime) / duration;
+      const t = (time - curFrameTime) / duration;
       const dur = duration;
 
       switch (interpolation) {
         case InterpolationType.CubicSpine:
-          value = this._evaluateCubicSpline(curIndex, nextIndex, alpha);
+          value = this._evaluateCubicSpline(curIndex, nextIndex, t);
           break;
         case InterpolationType.Linear:
-          value = this._evaluateLinear(curIndex, nextIndex, alpha);
+          value = this._evaluateLinear(curIndex, nextIndex, t);
           break;
         case InterpolationType.Step:
           value = this._evaluateStep(nextIndex);
           break;
         case InterpolationType.Hermite:
-          value = this._evaluateHermite(curIndex, nextIndex, alpha, dur);
+          value = this._evaluateHermite(curIndex, nextIndex, t, dur);
       }
-    }
-
-    if (!this._firstFrameValue) {
-      this._firstFrameValue = keys[0].value;
     }
     return value;
   }
@@ -183,51 +165,45 @@ export class AnimationCurve {
     this._length = newLength;
   }
 
-  private _evaluateLinear(frameIndex: number, nextFrameIndex: number, alpha: number): InterpolableValue {
+  private _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number): InterpolableValue {
     const { _valueType, keys } = this;
     switch (_valueType) {
-      case InterpolableValueType.Float: {
-        const p0 = <number>keys[frameIndex].value;
-        const p1 = <number>keys[nextFrameIndex].value;
-        return p0 * (1 - alpha) + p1 * alpha;
-      }
-      case InterpolableValueType.Vector2: {
+      case InterpolableValueType.Float:
+        return <number>keys[frameIndex].value * (1 - t) + <number>keys[nextFrameIndex].value * t;
+      case InterpolableValueType.Vector2:
         Vector2.lerp(
           <Vector2>keys[frameIndex].value,
           <Vector2>keys[nextFrameIndex].value,
-          alpha,
+          t,
           <Vector2>this._currentValue
         );
         return this._currentValue;
-      }
-      case InterpolableValueType.Vector3: {
+      case InterpolableValueType.Vector3:
         Vector3.lerp(
           <Vector3>keys[frameIndex].value,
           <Vector3>keys[nextFrameIndex].value,
-          alpha,
+          t,
           <Vector3>this._currentValue
         );
         return this._currentValue;
-      }
-      case InterpolableValueType.Quaternion: {
+      case InterpolableValueType.Quaternion:
         Quaternion.slerp(
           <Quaternion>keys[frameIndex].value,
           <Quaternion>keys[nextFrameIndex].value,
-          alpha,
+          t,
           <Quaternion>this._currentValue
         );
         return this._currentValue;
-      }
     }
   }
 
-  private _evaluateCubicSpline(frameIndex: number, nextFrameIndex: number, alpha: number): Vector3 {
+  private _evaluateCubicSpline(frameIndex: number, nextFrameIndex: number, t: number): Vector3 {
     const { keys } = this;
-    const squared = alpha * alpha;
-    const cubed = alpha * squared;
+    const squared = t * t;
+    const cubed = t * squared;
     const part1 = 2.0 * cubed - 3.0 * squared + 1.0;
     const part2 = -2.0 * cubed + 3.0 * squared;
-    const part3 = cubed - 2.0 * squared + alpha;
+    const part3 = cubed - 2.0 * squared + t;
     const part4 = cubed - squared;
 
     const t1: Vector3 = <Vector3>keys[frameIndex].value;

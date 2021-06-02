@@ -539,8 +539,9 @@ export class Animator extends Component {
           this._applyClipValue(target, type, property, defaultValue, value, 1.0);
         } else {
           if (blendingMode === AnimatorLayerBlendingMode.Additive) {
-            const { _valueType, _firstFrameValue } = curve;
-            this._calculateDiff(_valueType, property, _firstFrameValue, value);
+            const { _valueType } = curve;
+            const firstFrameValue = curve.keys[0].value;
+            this._calculateDiff(_valueType, property, firstFrameValue, value);
             this._updateAdditiveLayerValue(target, type, property, this._diffValueFromBasePos, weight);
           } else {
             this._applyClipValue(target, type, property, defaultValue, value, weight);
