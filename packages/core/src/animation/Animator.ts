@@ -345,7 +345,7 @@ export class Animator extends Component {
     }
   }
 
-  private _updateLayerValue(
+  private _applyClipValue(
     target: Entity,
     type: new (entity: Entity) => Component,
     property: AnimationProperty,
@@ -498,7 +498,7 @@ export class Animator extends Component {
           let calculatedValue: InterpolableValue;
           if (vals[0] && vals[1]) {
             calculatedValue = this._getCrossFadeValue(targets[0], type, property, vals[0], vals[1], crossWeight);
-            this._updateLayerValue(targets[0], type, property, defaultValues[0], calculatedValue, weight);
+            this._applyClipValue(targets[0], type, property, defaultValues[0], calculatedValue, weight);
           } else if (vals[0]) {
             calculatedValue = this._getCrossFadeValue(
               targets[0],
@@ -508,7 +508,7 @@ export class Animator extends Component {
               vals[0],
               1 - crossWeight
             );
-            this._updateLayerValue(targets[0], type, property, defaultValues[0], calculatedValue, weight);
+            this._applyClipValue(targets[0], type, property, defaultValues[0], calculatedValue, weight);
           } else {
             calculatedValue = this._getCrossFadeValue(
               targets[1],
@@ -518,7 +518,7 @@ export class Animator extends Component {
               vals[1],
               crossWeight
             );
-            this._updateLayerValue(targets[1], type, property, defaultValues[1], calculatedValue, weight);
+            this._applyClipValue(targets[1], type, property, defaultValues[1], calculatedValue, weight);
           }
         }
         if (playingStateData.playType === PlayType.IsFinish) {
@@ -538,13 +538,13 @@ export class Animator extends Component {
         const { target } = playingStateData.curveDatas[i];
         const { defaultValue } = playingStateData.curveDatas[i];
         if (isFirstLayer) {
-          this._updateLayerValue(target, type, property, defaultValue, val, 1.0);
+          this._applyClipValue(target, type, property, defaultValue, val, 1.0);
         } else {
           if (blendingMode === AnimatorLayerBlendingMode.Additive) {
             this._calculateDiff(_valueType, property, _firstFrameValue, val);
             this._updateAdditiveLayerValue(target, type, property, this._diffValueFromBasePos, weight);
           } else {
-            this._updateLayerValue(target, type, property, defaultValue, val, weight);
+            this._applyClipValue(target, type, property, defaultValue, val, weight);
           }
         }
       }
