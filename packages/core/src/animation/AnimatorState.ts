@@ -108,14 +108,18 @@ export class AnimatorState {
     this.transitions = [];
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _setTarget(target: Entity): void {
     if (this.clip) {
       this.clip._setTarget(target);
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _getTheRealFrameTime(frameTime): number {
     if (frameTime < this.clipStartTime) {
       return this.clipStartTime;

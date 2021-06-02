@@ -530,21 +530,20 @@ export class Animator extends Component {
       playingStateData.playType = PlayType.IsPlaying;
       const clip = playingStateData.state.clip;
       const count = clip._curves.length;
+      const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
       for (let i = count - 1; i >= 0; i--) {
         const { curve, type, property } = clip._curves[i];
-        const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
-        const val = curve.evaluate(frameTime);
-        const { _valueType, _firstFrameValue } = curve;
-        const { target } = playingStateData.curveDatas[i];
-        const { defaultValue } = playingStateData.curveDatas[i];
+        const value = curve.evaluate(frameTime);
+        const { target, defaultValue } = playingStateData.curveDatas[i];
         if (isFirstLayer) {
-          this._applyClipValue(target, type, property, defaultValue, val, 1.0);
+          this._applyClipValue(target, type, property, defaultValue, value, 1.0);
         } else {
           if (blendingMode === AnimatorLayerBlendingMode.Additive) {
-            this._calculateDiff(_valueType, property, _firstFrameValue, val);
+            const { _valueType, _firstFrameValue } = curve;
+            this._calculateDiff(_valueType, property, _firstFrameValue, value);
             this._updateAdditiveLayerValue(target, type, property, this._diffValueFromBasePos, weight);
           } else {
-            this._applyClipValue(target, type, property, defaultValue, val, weight);
+            this._applyClipValue(target, type, property, defaultValue, value, weight);
           }
         }
       }

@@ -10,6 +10,7 @@ import {
 } from "./KeyFrame";
 import { InterpolationType } from "./enums/InterpolationType";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { IClone } from "@oasis-engine/design";
 
 interface IFrameInfo {
   frameIndex: number;
@@ -36,12 +37,6 @@ export class AnimationCurve {
   private _currentValue: InterpolableValue;
   private _length: number = 0;
   private _currentIndex: number = 0;
-  private _frameInfo: IFrameInfo = {
-    frameIndex: 0,
-    nextFrameIndex: 1,
-    alpha: 1,
-    dur: 1
-  };
 
   /**
    * Animation curve length in seconds.
@@ -96,26 +91,70 @@ export class AnimationCurve {
    * @param time - The time within the curve you want to evaluate
    */
   evaluate(time: number): InterpolableValue {
-    const { keys, interpolation } = this;
-    const { frameIndex, nextFrameIndex, alpha, dur } = this._getFrameInfo(time);
-    let val: InterpolableValue;
-    switch (interpolation) {
-      case InterpolationType.CubicSpine:
-        val = this._evaluateCubicSpline(frameIndex, nextFrameIndex, alpha);
-        break;
-      case InterpolationType.Linear:
-        val = this._evaluateLinear(frameIndex, nextFrameIndex, alpha);
-        break;
-      case InterpolationType.Step:
-        val = this._evaluateStep(nextFrameIndex);
-        break;
-      case InterpolationType.Hermite:
-        val = this._evaluateHermite(frameIndex, nextFrameIndex, alpha, dur);
+    const { keys, interpolation, _valueType: valueType } = this;
+    const { length } = this.keys;
+
+    // Compute curIndex and nextIndex.
+    let curIndex = this._currentIndex;
+    if (curIndex !== -1 && time < keys[curIndex].time) {
+      // Reset loop.
+      curIndex = -1;
     }
+
+    let nextIndex = curIndex + 1;
+    while (nextIndex < length) {
+      if (time < keys[nextIndex].time) {
+        break;
+      }
+      curIndex++;
+      nextIndex++;
+    }
+    this._currentIndex = curIndex;
+
+    // Evaluate value.
+    let value: InterpolableValue;
+    if (curIndex === -1) {
+      // Time less than first frame.
+      if (valueType === InterpolableValueType.Float) {
+        value = keys[0].value;
+      } else {
+        value = this._currentValue;
+        (<IClone>keys[0].value).cloneTo(value);
+      }
+    } else if (nextIndex === length) {
+      // Time large than first frame.
+      if (valueType === InterpolableValueType.Float) {
+        value = keys[length].value;
+      } else {
+        value = this._currentValue;
+        (<IClone>keys[length].value).cloneTo(value);
+      }
+    } else {
+      // Time between first frame and end frame.
+      const curFrameTime = keys[curIndex].time;
+      const duration = keys[nextIndex].time - curFrameTime;
+      const alpha = (time - curFrameTime) / duration;
+      const dur = duration;
+
+      switch (interpolation) {
+        case InterpolationType.CubicSpine:
+          value = this._evaluateCubicSpline(curIndex, nextIndex, alpha);
+          break;
+        case InterpolationType.Linear:
+          value = this._evaluateLinear(curIndex, nextIndex, alpha);
+          break;
+        case InterpolationType.Step:
+          value = this._evaluateStep(nextIndex);
+          break;
+        case InterpolationType.Hermite:
+          value = this._evaluateHermite(curIndex, nextIndex, alpha, dur);
+      }
+    }
+
     if (!this._firstFrameValue) {
       this._firstFrameValue = keys[0].value;
     }
-    return val;
+    return value;
   }
 
   /**
@@ -337,39 +376,5 @@ export class AnimationCurve {
         return <Quaternion>this._currentValue;
       }
     }
-  }
-
-  private _getFrameInfo(time: number): IFrameInfo {
-    const { keys, _frameInfo: frameInfo } = this;
-    const { length } = this.keys;
-
-    let curIndex = this._currentIndex;
-
-    // Reset loop.
-    if (curIndex !== -1 && time < keys[curIndex].time) {
-      curIndex = -1;
-    }
-
-    let nextIndex = curIndex + 1;
-    while (nextIndex < length) {
-      if (time < keys[nextIndex].time) {
-        break;
-      }
-      curIndex++;
-      nextIndex++;
-    }
-
-    frameInfo.frameIndex = curIndex;
-    frameInfo.nextFrameIndex = nextIndex;
-    // Need lerp.
-    if (curIndex !== -1 && nextIndex !== length) {
-      const curFrameTime = keys[curIndex].time;
-      const duration = keys[nextIndex].time - curFrameTime;
-      frameInfo.alpha = (time - curFrameTime) / duration;
-      frameInfo.dur = duration;
-    }
-
-    this._currentIndex = curIndex;
-    return frameInfo;
   }
 }
