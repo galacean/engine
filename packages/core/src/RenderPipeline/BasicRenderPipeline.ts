@@ -111,7 +111,7 @@ export class BasicRenderPipeline {
     this._opaqueQueue.destroy();
     this._alphaTestQueue.destroy();
     this._transparentQueue.destroy();
-    this._renderPassArray = null;
+    this._renderPassArray.length = 0;
     this._defaultPass = null;
     this._camera = null;
   }
