@@ -32,8 +32,8 @@ export interface ISample {
 }
 
 export interface ITarget {
-  path: string;
-  id: string;
+  relativePath: string;
+  propertyName: string;
 }
 
 export type List = number[] | Float32Array;
@@ -109,18 +109,18 @@ export class AnimationClipParser extends EngineObject {
   /**
    * Add channel to channels of the AnimationClip.
    * @param samplerIndex - The sampler's index in channel's sampler property.
-   * @param targetID - Entity name.
-   * @param targetPath - Transform property name: position, rotation, scale.
+   * @param relativePath - The Entity's relativePath.
+   * @param propertyName - Transform property name: position, rotation, scale.
    */
-  public addChannel(samplerIndex: number, targetID: string, targetPath: string) {
+  public addChannel(samplerIndex: number, relativePath: string, propertyName: string) {
     const bindSampler = this.samplers[samplerIndex];
 
     // The channel object, bind a Sample to an Object property.
     const channel = {
       sampler: bindSampler,
       target: {
-        id: targetID,
-        path: targetPath
+        relativePath,
+        propertyName
       }
     };
 
@@ -330,9 +330,9 @@ export class AnimationClipParser extends EngineObject {
       }
       curveDatas.push({
         curve,
-        relativePath: target.id,
+        relativePath: target.relativePath,
         type: Transform,
-        propertyName: target.path
+        propertyName: target.propertyName
       });
     }
     return curveDatas;

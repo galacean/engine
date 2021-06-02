@@ -77,13 +77,13 @@ export class AnimationParser extends Parser {
         }
 
         const channelTargetEntity = entities[target.node];
-        let path = channelTargetEntity.name;
+        let relativePath = channelTargetEntity.name;
         let parent = channelTargetEntity.parent;
-        while (parent) {
-          path = `${parent.name}/${path};`;
+        while (parent.parent) {
+          relativePath = `${parent.name}/${relativePath}`;
           parent = parent.parent;
         }
-        animationClipParser.addChannel(sampler, path, targetPath);
+        animationClipParser.addChannel(sampler, relativePath, targetPath);
       }
       const curveDatas = animationClipParser.getCurveDatas();
       const animationClip = new AnimationClip(name);

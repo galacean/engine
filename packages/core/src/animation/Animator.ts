@@ -218,7 +218,7 @@ export class Animator extends Component {
       for (let i = curvesCount - 1; i >= 0; i--) {
         const curve = curves[i];
         const { relativePath, property } = curve;
-        const targetEntity = this.entity.findByName(relativePath);
+        const targetEntity = this.entity.findByPath(relativePath);
         let defaultValue: InterpolableValue;
         switch (property) {
           case AnimationProperty.Position:
