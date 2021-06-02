@@ -2,10 +2,11 @@ import { Transform } from "../Transform";
 import { AnimationCurve } from "./AnimationCurve";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 import { Component } from "../Component";
-import { Entity } from "./../Entity";
+import { Entity } from "../Entity";
 import { AnimationClipCurveData } from "./AnimationClipCurveData";
 import { AnimationEvent } from "./AnimationEvent";
 import { Motion } from "./Motion";
+import { AnimationProperty } from "./enums/AnimationProperty";
 
 /**
  * Stores keyframe based animations.
@@ -62,19 +63,19 @@ export class AnimationClip extends Motion {
     const { length } = this._curves;
     for (let i = length - 1; i >= 0; i--) {
       const curveData = this._curves[i];
-      const { curve, propertyName, relativePath, type } = curveData;
+      const { curve, property, relativePath, type } = curveData;
       const val = curve.evaluate(time);
       const target = entity.findByName(relativePath);
       const transform = (<Entity>target).transform;
       if (type === Transform) {
-        switch (propertyName) {
-          case "position":
+        switch (property) {
+          case AnimationProperty.Position:
             transform.position = val as Vector3;
             break;
-          case "rotation":
+          case AnimationProperty.Rotation:
             transform.rotationQuaternion = val as Quaternion;
             break;
-          case "scale":
+          case AnimationProperty.Scale:
             transform.scale = val as Vector3;
             break;
         }
@@ -95,18 +96,26 @@ export class AnimationClip extends Motion {
     propertyName: string,
     curve: AnimationCurve
   ): void {
+    let property: AnimationProperty;
+    switch (propertyName) {
+      case "position":
+        property = AnimationProperty.Position;
+        break;
+      case "rotation":
+        property = AnimationProperty.Rotation;
+        break;
+      case "scale":
+        property = AnimationProperty.Scale;
+        break;
+    }
     const curveData: AnimationClipCurveData<Component> = {
       relativePath,
       type,
-      propertyName,
+      property,
       curve
     };
     if (curve.length > this._length) {
       this._length = curve.length;
-    }
-    if (this._target) {
-      curveData._target = this._target.findByName(relativePath);
-      curveData._defaultValue = this._target[propertyName];
     }
     this._curves.push(curveData);
   }
@@ -117,15 +126,22 @@ export class AnimationClip extends Motion {
    */
   removeCurve(curve: AnimationCurve): void {
     let deleteIndex = -1;
-    const { length } = this._curves;
-    for (let i = length - 1; i >= 0; i--) {
-      if (this._curves[i].curve === curve) {
+    const { length: count } = this._curves;
+    let newLength = 0;
+    for (let i = count - 1; i >= 0; i--) {
+      const theCurve = this._curves[i].curve;
+      if (theCurve === curve) {
         deleteIndex = i;
+      } else {
+        if (theCurve.length > newLength) {
+          newLength = theCurve.length;
+        }
       }
     }
     if (deleteIndex > -1) {
       this._curves.splice(deleteIndex, 1);
     }
+    this._length = newLength;
   }
 
   /**
@@ -138,20 +154,5 @@ export class AnimationClip extends Motion {
     }
     this._curves = [];
     this._length = 0;
-  }
-
-  /**
-   * @internal
-   */
-  _setTarget(target: Entity): void {
-    this._target = target;
-    if (target) {
-      const { length } = this._curves;
-      for (let i = length - 1; i >= 0; i--) {
-        const { relativePath, propertyName } = this._curves[i];
-        this._curves[i]._target = target.findByName(relativePath);
-        this._curves[i]._defaultValue = this._curves[i]._target[propertyName];
-      }
-    }
   }
 }

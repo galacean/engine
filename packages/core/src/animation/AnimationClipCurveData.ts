@@ -1,5 +1,5 @@
-import { InterpolableValue } from "./KeyFrame";
-import { Entity } from "./../Entity";
+import { AnimationProperty } from "./enums/AnimationProperty";
+import { Entity } from "../Entity";
 import { Component } from "../Component";
 import { AnimationCurve } from "./AnimationCurve";
 
@@ -14,10 +14,5 @@ export interface AnimationClipCurveData<T extends Component> {
   /** The class type of the component that is animated. */
   type: new (entity: Entity) => T;
   /** The name or path to the property being animated. */
-  propertyName: string;
-
-  /** @internal */
-  _target?: Entity;
-  /** @internal */
-  _defaultValue?: InterpolableValue;
+  property: AnimationProperty;
 }

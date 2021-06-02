@@ -17,8 +17,6 @@ export class AnimatorStateMachine {
 
   /** @internal */
   _statesMap: AnimatorStateMap = {};
-  /** @internal */
-  _target: Entity;
 
   /**
    * Add a state to the state machine.
@@ -28,9 +26,6 @@ export class AnimatorStateMachine {
     let state = this.findStateByName(name);
     if (!state) {
       state = new AnimatorState(name);
-      if (this._target) {
-        state._setTarget(this._target);
-      }
       this.states.push(state);
       this._statesMap[name] = state;
     }
@@ -59,7 +54,6 @@ export class AnimatorStateMachine {
   }
   /** @internal */
   _setTarget(target: Entity): void {
-    this._target = target;
     const layerCount = this.states.length;
     for (let i = layerCount - 1; i >= 0; i--) {
       this.states[i]._setTarget(target);

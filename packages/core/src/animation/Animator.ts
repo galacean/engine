@@ -1,3 +1,4 @@
+import { WrapMode } from "./enums/WrapMode";
 import { Transform } from "./../Transform";
 import { AnimatorState } from "./AnimatorState";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
@@ -10,42 +11,68 @@ import { Entity } from "../Entity";
 import { AnimatorUtils } from "./AnimatorUtils";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { PlayType } from "./enums/PlayType";
+import { ignoreClone } from "../clone/CloneManager";
+import { AnimationProperty } from "./enums/AnimationProperty";
 
+/**
+ * @internal
+ */
+interface CurveData {
+  target: Entity;
+  defaultValue: InterpolableValue;
+}
+
+/**
+ * @internal
+ */
+interface AnimatorStateData {
+  state: AnimatorState;
+  frameTime: number;
+  playType: PlayType;
+  curveDatas: CurveData[];
+}
+
+/**
+ * @internal
+ */
+interface AnimatorLayerData {
+  playingStateData: AnimatorStateData | null;
+  fadingStateData: AnimatorStateData | null;
+}
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
   speed: number = 1.0;
+  animatorController: AnimatorController;
 
-  private _animatorController: AnimatorController;
+  @ignoreClone
   private _diffValueFromBasePos: InterpolableValue;
+  @ignoreClone
   private _diffFloatFromBasePos: number = 0;
+  @ignoreClone
   private _diffVector2FromBasePos: Vector2 = new Vector2();
+  @ignoreClone
   private _diffVector3FromBasePos: Vector3 = new Vector3();
+  @ignoreClone
   private _diffVector4FromBasePos: Vector4 = new Vector4();
+  @ignoreClone
   private _diffQuaternionFromBasePos: Quaternion = new Quaternion();
+  @ignoreClone
   private _tempVector3: Vector3 = new Vector3();
+  @ignoreClone
   private _tempQuaternion: Quaternion = new Quaternion();
+  @ignoreClone
+  private _animatorLayersData: AnimatorLayerData[] = [];
 
-  /**
-   * AnimatorController that controls the Animator.
-   */
-  get animatorController(): AnimatorController {
-    return this._animatorController;
-  }
-
-  set animatorController(animatorController: AnimatorController) {
-    this._animatorController = animatorController;
-    if (!animatorController) return;
-    animatorController._setTarget(this.entity);
-  }
+  playing: boolean;
 
   /**
    * Get all layers from the AnimatorController which belongs this Animator .
    */
   get layers(): Readonly<AnimatorControllerLayer[]> {
-    return this._animatorController?.layers || [];
+    return this.animatorController?.layers || [];
   }
 
   /**
@@ -55,6 +82,34 @@ export class Animator extends Component {
     super(entity);
   }
 
+  _setDefaultValueAndTarget(stateData: AnimatorStateData) {
+    const { clip } = stateData.state;
+    if (clip) {
+      const curves = clip._curves;
+      const { length: curvesCount } = curves;
+      for (let i = curvesCount - 1; i >= 0; i--) {
+        const curve = curves[i];
+        const { relativePath, property } = curve;
+        const targetEntity = this.entity.findByName(relativePath);
+        let defaultValue: InterpolableValue;
+        switch (property) {
+          case AnimationProperty.Position:
+            defaultValue = targetEntity.position;
+            break;
+          case AnimationProperty.Rotation:
+            defaultValue = targetEntity.rotation;
+            break;
+          case AnimationProperty.Scale:
+            defaultValue = targetEntity.scale;
+            break;
+        }
+        stateData.curveDatas[i] = {
+          target: targetEntity,
+          defaultValue
+        };
+      }
+    }
+  }
   /**
    * Plays a state by name.
    * @param stateName - The state name
@@ -66,8 +121,17 @@ export class Animator extends Component {
     if (!animatorController) return;
     const animLayer = animatorController.layers[layerIndex];
     const theState = animLayer.stateMachine.findStateByName(stateName);
-    theState.frameTime = theState.clip.length * normalizedTimeOffset;
-    animLayer._playingState = theState;
+    this._animatorLayersData[layerIndex] = this._animatorLayersData[layerIndex] || {
+      playingStateData: {
+        state: theState,
+        frameTime: theState.clip.length * normalizedTimeOffset,
+        playType: PlayType.NotStart,
+        curveDatas: []
+      },
+      fadingStateData: null
+    };
+    this._setDefaultValueAndTarget(this._animatorLayersData[layerIndex].playingStateData);
+    this.playing = true;
     return theState;
   }
 
@@ -77,28 +141,36 @@ export class Animator extends Component {
    */
   update(deltaTime: number): void {
     if (this.speed === 0) return;
+    if (!this.playing) return;
     deltaTime *= this.speed;
     const { animatorController } = this;
     if (!animatorController) return;
     const { layers } = animatorController;
     for (let i = 0; i < layers.length; i++) {
       const isFirstLayer = i === 0;
-      const animLayer = layers[i];
-      if (!animLayer._playingState) {
-        animLayer._playingState = animLayer.stateMachine.states[0];
-      }
-      const currentState = animLayer._playingState;
-      currentState.frameTime += deltaTime / 1000;
-      if (currentState._playType === PlayType.IsFading) {
-        const fadingState = animLayer._fadingState;
-        if (fadingState) {
-          fadingState.frameTime += deltaTime / 1000;
-          if (fadingState.frameTime > fadingState.clipEndTime) {
-            fadingState.frameTime = fadingState.clipEndTime;
+      if (this._animatorLayersData[i]) {
+        const playingStateData = this._animatorLayersData[i].playingStateData;
+        playingStateData.frameTime += deltaTime / 1000;
+        if (playingStateData.playType === PlayType.IsFading) {
+          const fadingStateData = this._animatorLayersData[i].fadingStateData;
+          if (fadingStateData) {
+            fadingStateData.frameTime += deltaTime / 1000;
+            if (fadingStateData.frameTime > fadingStateData.state.clipEndTime) {
+              fadingStateData.frameTime = fadingStateData.state.clipEndTime;
+            }
           }
         }
+        if (playingStateData.playType === PlayType.IsPlaying) {
+          if (playingStateData.frameTime > playingStateData.state.clipEndTime) {
+            if (playingStateData.state.wrapMode === WrapMode.Loop) {
+              playingStateData.frameTime = playingStateData.frameTime % playingStateData.state.clipEndTime;
+            } else {
+              playingStateData.frameTime = playingStateData.state.clipEndTime;
+            }
+          }
+        }
+        this._updatePlayingState(i, isFirstLayer, deltaTime);
       }
-      this._updatePlayingState(currentState, animLayer, isFirstLayer, deltaTime);
     }
   }
 
@@ -116,16 +188,22 @@ export class Animator extends Component {
     normalizedTimeOffset: number
   ): void {
     const animLayer = this.animatorController.layers[layerIndex];
-    const currentState = animLayer._playingState;
-    if (currentState) {
-      currentState._playType = PlayType.IsFading;
+    const { playingStateData } = this._animatorLayersData[layerIndex];
+    if (playingStateData) {
+      playingStateData.playType = PlayType.IsFading;
       const nextState = animLayer.stateMachine.findStateByName(name);
       if (nextState) {
-        const transition = currentState.addTransition(nextState);
-        this.animatorController.layers[layerIndex]._fadingState = nextState;
-        transition.duration = currentState.clip.length * normalizedTransitionDuration;
+        const transition = playingStateData.state.addTransition(nextState);
+        this._animatorLayersData[layerIndex].fadingStateData = {
+          state: nextState,
+          frameTime: 0,
+          playType: PlayType.NotStart,
+          curveDatas: []
+        };
+        this._setDefaultValueAndTarget(this._animatorLayersData[layerIndex].fadingStateData);
+        transition.duration = playingStateData.state.clip.length * normalizedTransitionDuration;
         transition.offset = nextState.clip.length * normalizedTimeOffset;
-        transition.exitTime = currentState.frameTime;
+        transition.exitTime = playingStateData.frameTime;
       }
     }
   }
@@ -135,7 +213,10 @@ export class Animator extends Component {
    * @param name - The layer name
    */
   getLayerByName(name: string): AnimatorControllerLayer {
-    return AnimatorControllerLayer.findLayerByName(name);
+    if (this.animatorController) {
+      return this.animatorController.findLayerByName(name);
+    }
+    return null;
   }
 
   /**
@@ -156,22 +237,22 @@ export class Animator extends Component {
 
   private _calculateDiff(
     valueType: InterpolableValueType,
-    propertyName: string,
+    property: AnimationProperty,
     sVal: InterpolableValue,
     dVal: InterpolableValue
   ): void {
     switch (valueType) {
       case InterpolableValueType.Float:
-        this._calculateFloatDiff(propertyName, sVal as number, dVal as number);
+        this._calculateFloatDiff(property, sVal as number, dVal as number);
         break;
       case InterpolableValueType.Vector2:
-        this._calculateVector2Diff(propertyName, sVal as Vector2, dVal as Vector2);
+        this._calculateVector2Diff(property, sVal as Vector2, dVal as Vector2);
         break;
       case InterpolableValueType.Vector3:
-        this._calculateVector3Diff(propertyName, sVal as Vector3, dVal as Vector3);
+        this._calculateVector3Diff(property, sVal as Vector3, dVal as Vector3);
         break;
       case InterpolableValueType.Vector3:
-        this._calculateVector4Diff(propertyName, sVal as Vector4, dVal as Vector4);
+        this._calculateVector4Diff(property, sVal as Vector4, dVal as Vector4);
         break;
       case InterpolableValueType.Quaternion:
         this._calculateQuaternionDiff(dVal as Quaternion, sVal as Quaternion);
@@ -179,8 +260,8 @@ export class Animator extends Component {
     }
   }
 
-  private _calculateFloatDiff(propertyName: string, sVal: number, dVal: number): void {
-    if (propertyName === "scale") {
+  private _calculateFloatDiff(property: AnimationProperty, sVal: number, dVal: number): void {
+    if (property === AnimationProperty.Scale) {
       this._diffFloatFromBasePos = dVal / sVal;
     } else {
       this._diffFloatFromBasePos = dVal - sVal;
@@ -188,8 +269,8 @@ export class Animator extends Component {
     this._diffValueFromBasePos = this._diffFloatFromBasePos;
   }
 
-  private _calculateVector2Diff(propertyName: string, sVal: Vector2, dVal: Vector2): void {
-    if (propertyName === "scale") {
+  private _calculateVector2Diff(property: AnimationProperty, sVal: Vector2, dVal: Vector2): void {
+    if (property === AnimationProperty.Scale) {
       this._diffVector2FromBasePos.x = dVal.x / sVal.x;
       this._diffVector2FromBasePos.y = dVal.y / sVal.y;
     } else {
@@ -199,8 +280,8 @@ export class Animator extends Component {
     this._diffValueFromBasePos = this._diffVector2FromBasePos;
   }
 
-  private _calculateVector3Diff(propertyName: string, sVal: Vector3, dVal: Vector3): void {
-    if (propertyName === "scale") {
+  private _calculateVector3Diff(property: AnimationProperty, sVal: Vector3, dVal: Vector3): void {
+    if (property === AnimationProperty.Scale) {
       this._diffVector3FromBasePos.x = dVal.x / sVal.x;
       this._diffVector3FromBasePos.y = dVal.y / sVal.y;
       this._diffVector3FromBasePos.z = dVal.z / sVal.z;
@@ -212,8 +293,8 @@ export class Animator extends Component {
     this._diffValueFromBasePos = this._diffVector3FromBasePos;
   }
 
-  private _calculateVector4Diff(propertyName: string, sVal: Vector4, dVal: Vector4): void {
-    if (propertyName === "scale") {
+  private _calculateVector4Diff(property: AnimationProperty, sVal: Vector4, dVal: Vector4): void {
+    if (property === AnimationProperty.Scale) {
       this._diffVector4FromBasePos.x = dVal.x / sVal.x;
       this._diffVector4FromBasePos.y = dVal.y / sVal.y;
       this._diffVector4FromBasePos.z = dVal.z / sVal.z;
@@ -236,21 +317,21 @@ export class Animator extends Component {
   private _getCrossFadeValue(
     target: Entity,
     type: new (entity: Entity) => Component,
-    propertyName: string,
+    property: AnimationProperty,
     sVal: InterpolableValue,
     dVal: InterpolableValue,
     crossWeight: number
   ): InterpolableValue {
     const transform = target.transform;
     if (type === Transform) {
-      switch (propertyName) {
-        case "position":
+      switch (property) {
+        case AnimationProperty.Position:
           Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
           return this._tempVector3;
-        case "rotation":
+        case AnimationProperty.Rotation:
           Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, crossWeight, this._tempQuaternion);
           return this._tempQuaternion;
-        case "scale": {
+        case AnimationProperty.Scale: {
           const scale = transform.scale;
           Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
           transform.scale = scale;
@@ -263,30 +344,29 @@ export class Animator extends Component {
   private _updateLayerValue(
     target: Entity,
     type: new (entity: Entity) => Component,
-    propertyName: string,
+    property: AnimationProperty,
     sVal: InterpolableValue,
     dVal: InterpolableValue,
     weight: number
   ): void {
     const transform = target.transform;
     if (type === Transform) {
-      switch (propertyName) {
-        case "position":
+      switch (property) {
+        case AnimationProperty.Position:
           const position = transform.position;
           Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, position);
           transform.position = position as Vector3;
           break;
-        case "rotation":
+        case AnimationProperty.Rotation:
           const rotationQuaternion = transform.rotationQuaternion;
           Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, weight, rotationQuaternion);
           transform.rotationQuaternion = rotationQuaternion;
           break;
-        case "scale": {
+        case AnimationProperty.Scale:
           const scale = transform.scale;
           Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, scale);
           transform.scale = scale;
           break;
-        }
       }
     }
   }
@@ -294,60 +374,49 @@ export class Animator extends Component {
   private _updateAdditiveLayerValue(
     target: Entity,
     type: new (entity: Entity) => Component,
-    propertyName: string,
+    property: AnimationProperty,
     diffVal: InterpolableValue,
     weight: number
   ): void {
     const transform = (<Entity>target).transform;
     if (type === Transform) {
-      switch (propertyName) {
-        case "position":
-          if (diffVal instanceof Vector3) {
-            const position = transform.position;
-            position.x += diffVal.x;
-            position.y += diffVal.y;
-            position.z += diffVal.z;
-            transform.position = position;
-          }
+      switch (property) {
+        case AnimationProperty.Position:
+          const position = transform.position;
+          position.x += (diffVal as Vector3).x;
+          position.y += (diffVal as Vector3).y;
+          position.z += (diffVal as Vector3).z;
+          transform.position = position;
           break;
-        case "rotation":
-          if (diffVal instanceof Quaternion) {
-            const rotationQuaternion = transform.rotationQuaternion;
-            AnimatorUtils.calQuaternionWeight(diffVal, weight, diffVal);
-            diffVal.normalize();
-            rotationQuaternion.multiply(diffVal);
-            transform.rotationQuaternion = rotationQuaternion;
-          }
+        case AnimationProperty.Rotation:
+          const rotationQuaternion = transform.rotationQuaternion;
+          AnimatorUtils.calQuaternionWeight(diffVal as Quaternion, weight, diffVal as Quaternion);
+          (diffVal as Quaternion).normalize();
+          rotationQuaternion.multiply(diffVal as Quaternion);
+          transform.rotationQuaternion = rotationQuaternion;
           break;
-        case "scale": {
-          if (diffVal instanceof Vector3) {
-            const scale = transform.scale;
-            AnimatorUtils.calScaleWeight(scale, weight, scale);
-            scale.x = scale.x * diffVal.x;
-            scale.y = scale.y * diffVal.y;
-            scale.z = scale.z * diffVal.z;
-            transform.scale = scale;
-          }
+        case AnimationProperty.Scale:
+          const scale = transform.scale;
+          AnimatorUtils.calScaleWeight(scale, weight, scale);
+          scale.x = scale.x * (diffVal as Vector3).x;
+          scale.y = scale.y * (diffVal as Vector3).y;
+          scale.z = scale.z * (diffVal as Vector3).z;
+          transform.scale = scale;
           break;
-        }
-        default:
-          target[propertyName] += diffVal;
       }
     }
   }
 
-  private _updatePlayingState(
-    currentState: AnimatorState,
-    animLayer: AnimatorControllerLayer,
-    isFirstLayer: boolean,
-    deltaTime: number
-  ): void {
+  private _updatePlayingState(layerIndex: number, isFirstLayer: boolean, deltaTime: number): void {
+    const animLayer = this.layers[layerIndex];
+    const animlayerData = this._animatorLayersData[layerIndex];
+    const { playingStateData, fadingStateData } = animlayerData;
     const { weight, blendingMode } = animLayer;
-    if (currentState._playType === PlayType.IsFading) {
-      const transition = currentState.transitions[0];
+    if (playingStateData.playType === PlayType.IsFading) {
+      const transition = playingStateData.state.transitions[0];
       const destinationState = transition.destinationState;
       if (transition) {
-        let clip = currentState.clip;
+        let clip = playingStateData.state.clip;
         transition._crossFadeFrameTime += deltaTime / 1000;
         let crossWeight: number;
         if (transition.duration > clip.length - transition.exitTime) {
@@ -357,107 +426,109 @@ export class Animator extends Component {
         }
         if (crossWeight >= 1) {
           crossWeight = 1;
-          currentState._playType = PlayType.IsFinish;
+          playingStateData.playType = PlayType.IsFinish;
         }
         let count = clip._curves.length;
         const relativePathList: string[] = [];
         const typeList: (new (entity: Entity) => Component)[] = [];
-        const propertyNameList: string[] = [];
-        const relativePathPropertyNameMap: { [key: string]: number } = {};
-        const targetPropertyNameValues = [];
-        const targetDefaultValues = [];
+        const propertyList: AnimationProperty[] = [];
+        const relativePathPropertMap: { [key: string]: number } = {};
+        const targetPropertyValues = [];
         const targetList = [];
+        const defaultValueList = [];
         for (let i = count - 1; i >= 0; i--) {
-          const { curve, type, propertyName, relativePath, _defaultValue, _target } = clip._curves[i];
-          if (!relativePathPropertyNameMap[`${relativePath}_${propertyName}`]) {
-            const frameTime = currentState._getTheRealFrameTime();
-            relativePathPropertyNameMap[`${relativePath}_${propertyName}`] = relativePathList.length;
+          const { curve, type, property, relativePath } = clip._curves[i];
+          if (!relativePathPropertMap[`${relativePath}_${property}`]) {
+            const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
+            relativePathPropertMap[`${relativePath}_${property}`] = relativePathList.length;
             relativePathList.push(relativePath);
             typeList.push(type);
-            propertyNameList.push(propertyName);
+            propertyList.push(property);
             const val = curve.evaluate(frameTime);
-            targetPropertyNameValues.push([val]);
-            targetDefaultValues.push([_defaultValue]);
-            targetList.push([_target]);
+            targetPropertyValues.push([val]);
+            targetList.push([playingStateData.curveDatas[i].target]);
+            defaultValueList.push([playingStateData.curveDatas[i].defaultValue]);
           }
         }
         clip = destinationState.clip;
         count = clip._curves.length;
         for (let i = count - 1; i >= 0; i--) {
-          const { curve, type, propertyName, relativePath, _defaultValue, _target } = clip._curves[i];
-          if (relativePathPropertyNameMap[`${relativePath}_${propertyName}`] >= 0) {
-            const index = relativePathPropertyNameMap[`${relativePath}_${propertyName}`];
+          const { curve, type, property, relativePath } = clip._curves[i];
+          if (relativePathPropertMap[`${relativePath}_${property}`] >= 0) {
+            const index = relativePathPropertMap[`${relativePath}_${property}`];
             const val = curve.evaluate(transition.offset + transition._crossFadeFrameTime);
-            targetPropertyNameValues[index][1] = val;
-            targetDefaultValues[index][1] = _defaultValue;
+            targetPropertyValues[index][1] = val;
           } else {
-            relativePathPropertyNameMap[`${relativePath}_${propertyName}`] = relativePathList.length;
+            relativePathPropertMap[`${relativePath}_${property}`] = relativePathList.length;
             relativePathList.push(relativePath);
             typeList.push(type);
-            propertyNameList.push(propertyName);
+            propertyList.push(property);
             const val = curve.evaluate(transition.offset + transition._crossFadeFrameTime);
-            targetPropertyNameValues.push([null, val]);
-            targetDefaultValues.push([null, _defaultValue]);
-            targetList.push([null, _target]);
+            targetPropertyValues.push([null, val]);
+            targetList.push([null, fadingStateData.curveDatas[i].target]);
+            defaultValueList.push([null, fadingStateData.curveDatas[i].defaultValue]);
           }
         }
         count = relativePathList.length;
         for (let i = count - 1; i >= 0; i--) {
           const relativePath = relativePathList[i];
-          const propertyName = propertyNameList[i];
-          const index = relativePathPropertyNameMap[`${relativePath}_${propertyName}`];
-          const vals = targetPropertyNameValues[index];
-          const defaultValues = targetDefaultValues[index];
+          const property = propertyList[i];
+          const index = relativePathPropertMap[`${relativePath}_${property}`];
+          const vals = targetPropertyValues[index];
           const targets = targetList[index];
+          const defaultValues = defaultValueList[index];
           const type = typeList[index];
 
           let calculatedValue: InterpolableValue;
           if (vals[0] && vals[1]) {
-            calculatedValue = this._getCrossFadeValue(targets[0], type, propertyName, vals[0], vals[1], crossWeight);
-            this._updateLayerValue(targets[0], type, propertyName, defaultValues[0], calculatedValue, weight);
+            calculatedValue = this._getCrossFadeValue(targets[0], type, property, vals[0], vals[1], crossWeight);
+            this._updateLayerValue(targets[0], type, property, defaultValues[0], calculatedValue, weight);
           } else if (vals[0]) {
             calculatedValue = this._getCrossFadeValue(
               targets[0],
               type,
-              propertyName,
+              property,
               defaultValues[0],
               vals[0],
               1 - crossWeight
             );
-            this._updateLayerValue(targets[0], type, propertyName, defaultValues[0], calculatedValue, weight);
+            this._updateLayerValue(targets[0], type, property, defaultValues[0], calculatedValue, weight);
           } else {
             calculatedValue = this._getCrossFadeValue(
               targets[1],
               type,
-              propertyName,
+              property,
               defaultValues[1],
               vals[1],
               crossWeight
             );
-            this._updateLayerValue(targets[1], type, propertyName, defaultValues[1], calculatedValue, weight);
+            this._updateLayerValue(targets[1], type, property, defaultValues[1], calculatedValue, weight);
           }
         }
-        if (currentState._playType === PlayType.IsFinish) {
-          animLayer._playingState = destinationState;
+        if (playingStateData.playType === PlayType.IsFinish) {
+          this._animatorLayersData[layerIndex].playingStateData = this._animatorLayersData[layerIndex].fadingStateData;
+          this._animatorLayersData[layerIndex].fadingStateData = null;
         }
       }
     } else {
-      currentState._playType = PlayType.IsPlaying;
-      const clip = currentState.clip;
+      playingStateData.playType = PlayType.IsPlaying;
+      const clip = playingStateData.state.clip;
       const count = clip._curves.length;
-      for (let j = count - 1; j >= 0; j--) {
-        const { curve, type, propertyName, _target, _defaultValue } = clip._curves[j];
-        const frameTime = currentState._getTheRealFrameTime();
+      for (let i = count - 1; i >= 0; i--) {
+        const { curve, type, property } = clip._curves[i];
+        const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
         const val = curve.evaluate(frameTime);
         const { _valueType, _firstFrameValue } = curve;
+        const { target } = playingStateData.curveDatas[i];
+        const { defaultValue } = playingStateData.curveDatas[i];
         if (isFirstLayer) {
-          this._updateLayerValue(_target, type, propertyName, _defaultValue, val, 1);
+          this._updateLayerValue(target, type, property, defaultValue, val, 1);
         } else {
           if (blendingMode === AnimatorLayerBlendingMode.Additive) {
-            this._calculateDiff(_valueType, propertyName, _firstFrameValue, val);
-            this._updateAdditiveLayerValue(_target, type, propertyName, this._diffValueFromBasePos, weight);
+            this._calculateDiff(_valueType, property, _firstFrameValue, val);
+            this._updateAdditiveLayerValue(target, type, property, this._diffValueFromBasePos, weight);
           } else {
-            this._updateLayerValue(_target, type, propertyName, _defaultValue, val, weight);
+            this._updateLayerValue(target, type, property, defaultValue, val, weight);
           }
         }
       }

@@ -1,5 +1,9 @@
 import {
   Animator,
+  AnimatorController,
+  AnimatorControllerLayer,
+  AnimatorStateMachine,
+  AnimationClip,
   BlinnPhongMaterial,
   Camera,
   Engine,
@@ -143,12 +147,21 @@ export class SceneParser extends Parser {
   }
 
   private _createAnimator(context: GLTFResource) {
-    // const { defaultSceneRoot, animations } = context;
-    // if (!animations) return;
-    // const animator = defaultSceneRoot.addComponent(Animation);
-    // for (let i = 0; i < animations.length; i++) {
-    //   const animationClip = animations[i];
-    //   animator.addAnimationClip(animationClip, animationClip.name);
-    // }
+    const { defaultSceneRoot, animations } = context;
+    if (!animations) return;
+    const animator = defaultSceneRoot.addComponent(Animator);
+    const animatorController = new AnimatorController();
+    const layer = new AnimatorControllerLayer("layer");
+    const animatorStateMachine = new AnimatorStateMachine();
+    animatorController.addLayer(layer);
+    animator.animatorController = animatorController;
+    layer.stateMachine = animatorStateMachine;
+    if (animations) {
+      for (let i = 0; i < animations.length; i++) {
+        const animationClip = animations[i];
+        const animatorState = animatorStateMachine.addState(animationClip.name);
+        animatorState.clip = animationClip;
+      }
+    }
   }
 }

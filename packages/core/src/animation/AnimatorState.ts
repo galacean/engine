@@ -2,8 +2,6 @@ import { AnimationClip } from "./AnimationClip";
 import { Entity } from "../Entity";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
-import { PlayType } from "./enums/PlayType";
-import { AnimatorStateType } from "./enums/AnimatorStateType";
 
 /**
  * States are the basic building blocks of a state machine. Each state contains a AnimationClip which will play while the character is in that state.
@@ -15,20 +13,12 @@ export class AnimatorState {
   speed: number = 1;
   /** The wrap mode used in the state. */
   wrapMode: WrapMode = WrapMode.Loop;
+
   /** Start time of the animation clip, default 0. */
-  clipStartTime: number = 0;
+  private _clipStartTime: number = 0;
   /** End time of the animation clip, If has the clip, the default value is clip.length otherwise it is Infinity. */
-  clipEndTime: number = Infinity;
-
-  /** @internal */
-  _frameTime: number = 0;
-  /** @internal */
-  _playType: PlayType = PlayType.NotStart;
-  /** @internal */
-  _type: AnimatorStateType;
-  /** @internal */
-  _target: Entity;
-
+  private _clipEndTime: number = Infinity;
+  /** The AnimationClip. */
   private _clip: AnimationClip;
 
   /**
@@ -42,37 +32,44 @@ export class AnimatorState {
    * Set the clip that is being played by this animator state.
    */
   set clip(clip: AnimationClip) {
-    if (this._target) {
-      clip._setTarget(this._target);
-    }
+    this._clip = clip;
     if (clip.length < this.clipEndTime) {
       this.clipEndTime = clip.length;
     }
-    this._clip = clip;
   }
 
   /**
-   * @internal
    * Get the current time of the clip.
    */
-  get frameTime(): number {
-    return this._frameTime;
+  get clipStartTime() {
+    return this._clipStartTime;
   }
 
   /**
-   * @internal
    * Set the current time of the clip.
    */
-  set frameTime(time: number) {
-    const animClip = this.clip;
-    this._frameTime = time;
-    const endTime = Math.min(this.clipEndTime, animClip.length);
-    if (time > endTime) {
-      if (this.wrapMode === WrapMode.Loop) {
-        this._frameTime = time % endTime;
-      } else {
-        this._frameTime = endTime;
-      }
+  set clipStartTime(time: number) {
+    this._clipStartTime = time;
+    if (time < 0) {
+      this._clipStartTime = 0;
+    }
+  }
+
+  /**
+   * Get the current time of the clip.
+   */
+  get clipEndTime() {
+    return this._clipEndTime;
+  }
+
+  /**
+   * Set the current time of the clip.
+   */
+  set clipEndTime(time: number) {
+    const clipLength = this._clip.length;
+    this._clipEndTime = time;
+    if (time > this._clip.length) {
+      this._clipEndTime = clipLength;
     }
   }
 
@@ -113,15 +110,13 @@ export class AnimatorState {
 
   /** @internal */
   _setTarget(target: Entity): void {
-    this._target = target;
     if (this.clip) {
       this.clip._setTarget(target);
     }
   }
 
   /** @internal */
-  _getTheRealFrameTime(): number {
-    const { frameTime } = this;
+  _getTheRealFrameTime(frameTime): number {
     if (frameTime < this.clipStartTime) {
       return this.clipStartTime;
     } else if (frameTime > this.clipEndTime) {

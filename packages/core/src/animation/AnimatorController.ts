@@ -1,14 +1,16 @@
-import { Entity } from "./../Entity";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
+export interface AnimatorControllerLayerMap {
+  [key: string]: AnimatorControllerLayer;
+}
 
 /**
  * Store the data for Animator playback.
  */
 export class AnimatorController {
-  /** @internal */
-  _target: Entity;
-
   private _layers: AnimatorControllerLayer[] = [];
+
+  /** @internal */
+  _layersMap: AnimatorControllerLayerMap = {};
 
   /**
    * The layers in the controller.
@@ -18,14 +20,20 @@ export class AnimatorController {
   }
 
   /**
+   * Get the layer by name.
+   * @param name - The layer's name.
+   */
+  findLayerByName(name: string): AnimatorControllerLayer {
+    return this._layersMap[name];
+  }
+
+  /**
    * Add a layer to the controller.
    * @param layer - The layer to add
    */
   addLayer(layer: AnimatorControllerLayer): void {
-    if (this._target) {
-      layer._setTarget(this._target);
-    }
     this._layers.push(layer);
+    this._layersMap[name] = layer;
   }
 
   /**
@@ -33,18 +41,8 @@ export class AnimatorController {
    * @param layerIndex - The index of the AnimatorLayer
    */
   removeLayer(layerIndex: number): void {
+    const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
-    this.layers[layerIndex]._destroy();
-  }
-
-  /**
-   * @internal
-   */
-  _setTarget(target: Entity): void {
-    this._target = target;
-    const layerCount = this.layers.length;
-    for (let i = layerCount - 1; i >= 0; i--) {
-      this.layers[i]._setTarget(target);
-    }
+    delete this._layersMap[theLayer.name];
   }
 }

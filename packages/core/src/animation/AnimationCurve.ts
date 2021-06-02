@@ -119,6 +119,15 @@ export class AnimationCurve {
    */
   removeKey(index: number): void {
     this.keys.splice(index, 1);
+    const { keys } = this;
+    const count = this.keys.length;
+    let newLength = 0;
+    for (let i = count - 1; i >= 0; i--) {
+      if (keys[i].time > length) {
+        newLength = keys[i].time;
+      }
+    }
+    this._length = newLength;
   }
 
   private _evaluateLinear(frameIndex: number, nextFrameIndex: number, alpha: number): InterpolableValue {
