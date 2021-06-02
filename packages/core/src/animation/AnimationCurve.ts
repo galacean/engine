@@ -340,69 +340,36 @@ export class AnimationCurve {
   }
 
   private _getFrameInfo(time: number): IFrameInfo {
-    let keyTime = 0;
-    let frameIndex = 0;
-    let nextFrameIndex = 0;
-    const { keys, _currentIndex } = this;
-    const { length } = keys;
-    if (time >= keys[_currentIndex].time && time < keys[_currentIndex + 1].time) {
-      keyTime = time - keys[_currentIndex].time;
-      frameIndex = _currentIndex;
-    } else if (time > keys[_currentIndex + 1].time) {
-      if (time <= keys[length - 1].time) {
-        for (let i = _currentIndex; i < length - 1; ++i) {
-          if (time >= keys[i].time && time < keys[i + 1].time) {
-            keyTime = time - keys[i].time;
-            frameIndex = i;
-            this._currentIndex = i;
-            break;
-          }
-        }
-      } else {
-        keyTime = 0;
-        frameIndex = length - 1;
-        this._currentIndex = frameIndex;
-      }
-    } else {
-      if (time >= keys[0].time) {
-        for (let i = 0; i < _currentIndex - 1; ++i) {
-          if (time >= keys[i].time && time < keys[i + 1].time) {
-            keyTime = time - keys[i].time;
-            frameIndex = i;
-            this._currentIndex = i;
-            break;
-          }
-        }
-      } else {
-        keyTime = time - keys[0].time;
-        frameIndex = 0;
-        this._currentIndex = 0;
-      }
+    const { keys, _frameInfo: frameInfo } = this;
+    const { length } = this.keys;
+
+    let curIndex = this._currentIndex;
+
+    // Reset loop.
+    if (curIndex !== -1 && time < keys[curIndex].time) {
+      curIndex = -1;
     }
 
-    nextFrameIndex = frameIndex + 1;
-
-    if (nextFrameIndex >= length || keyTime < 0) {
-      nextFrameIndex = frameIndex;
-      if (length === 1) {
-        nextFrameIndex = frameIndex = 0;
+    let nextIndex = curIndex + 1;
+    while (nextIndex < length) {
+      if (time < keys[nextIndex].time) {
+        break;
       }
+      curIndex++;
+      nextIndex++;
     }
 
-    let dur: number;
-    if (keyTime < 0) {
-      dur = 0;
-    } else {
-      dur = keys[nextFrameIndex].time - keys[frameIndex].time;
+    frameInfo.frameIndex = curIndex;
+    frameInfo.nextFrameIndex = nextIndex;
+    // Need lerp.
+    if (curIndex !== -1 && nextIndex !== length) {
+      const curFrameTime = keys[curIndex].time;
+      const duration = keys[nextIndex].time - curFrameTime;
+      frameInfo.alpha = (time - curFrameTime) / duration;
+      frameInfo.dur = duration;
     }
 
-    let alpha = nextFrameIndex === frameIndex || dur < 0.00001 ? 1 : keyTime / dur;
-
-    this._frameInfo.frameIndex = frameIndex;
-    this._frameInfo.nextFrameIndex = nextFrameIndex;
-    this._frameInfo.alpha = alpha;
-    this._frameInfo.dur = dur;
-
-    return this._frameInfo;
+    this._currentIndex = curIndex;
+    return frameInfo;
   }
 }
