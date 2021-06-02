@@ -8,7 +8,7 @@ import { Parser } from "./Parser";
 
 export class AnimationParser extends Parser {
   parse(context: GLTFResource): void {
-    const { gltf, buffers } = context;
+    const { gltf, buffers, entities } = context;
     const { animations, accessors, nodes } = gltf;
     if (!animations) return;
 
@@ -76,11 +76,15 @@ export class AnimationParser extends Parser {
             targetPath = "weights";
             break;
         }
-        animationClipParser.addChannel(
-          sampler,
-          nodes[target.node].name || `${EntityParser._defaultName}${target.node}`,
-          targetPath
-        );
+
+        const channelTargetEntity = entities[target.node];
+        let path = channelTargetEntity.name;
+        let parent = channelTargetEntity.parent;
+        while (parent) {
+          path = `${parent.name}/${path};`;
+          parent = parent.parent;
+        }
+        animationClipParser.addChannel(sampler, path, targetPath);
       }
       const curveDatas = animationClipParser.getCurveDatas();
       const animationClip = new AnimationClip(name);
