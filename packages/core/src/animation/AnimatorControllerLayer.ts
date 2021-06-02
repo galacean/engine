@@ -12,11 +12,6 @@ export class AnimatorControllerLayer {
   blendingMode: AnimatorLayerBlendingMode = AnimatorLayerBlendingMode.Override;
   stateMachine: AnimatorStateMachine;
 
-  /** @internal */
-  _playingState: AnimatorState;
-  /** @internal */
-  _fadingState: AnimatorState;
-
   /**
    * @param name - The layer's name
    */

@@ -209,7 +209,6 @@ export class AnimationCurve {
         } else return curKey.value;
       }
       case 2: {
-        const out = new Vector2();
         const p0 = curKey.value as Vector2;
         const tan0 = curKey.outTangent as Vector2;
         const p1 = nextKey.value as Vector2;
@@ -224,16 +223,17 @@ export class AnimationCurve {
 
         let t0 = tan0.x,
           t1 = tan1.x;
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
-        else out.x = p0.x;
+        if (Number.isFinite(t0) && Number.isFinite(t1))
+          this._tempVector2.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
+        else this._tempVector2.x = p0.x;
 
         (t0 = tan0.y), (t1 = tan1.y);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
-        else out.y = p0.y;
-        return out;
+        if (Number.isFinite(t0) && Number.isFinite(t1))
+          this._tempVector2.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
+        else this._tempVector2.y = p0.y;
+        return this._tempVector2;
       }
       case 3: {
-        const out = new Vector3();
         const p0 = curKey.value as Vector3;
         const tan0 = curKey.outTangent as Vector3;
         const p1 = nextKey.value as Vector3;
@@ -248,20 +248,22 @@ export class AnimationCurve {
 
         let t0 = tan0.x,
           t1 = tan1.x;
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
-        else out.x = p0.x;
+        if (Number.isFinite(t0) && Number.isFinite(t1))
+          this._tempVector3.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
+        else this._tempVector3.x = p0.x;
 
         (t0 = tan0.y), (t1 = tan1.y);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
-        else out.y = p0.y;
+        if (Number.isFinite(t0) && Number.isFinite(t1))
+          this._tempVector3.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
+        else this._tempVector3.y = p0.y;
 
         (t0 = tan0.z), (t1 = tan1.z);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
-        else out.z = p0.z;
-        return out;
+        if (Number.isFinite(t0) && Number.isFinite(t1))
+          this._tempVector3.z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
+        else this._tempVector3.z = p0.z;
+        return this._tempVector3;
       }
       case 4: {
-        const out = new Quaternion();
         const p0 = curKey.value as Quaternion;
         const tan0 = curKey.outTangent as Vector4;
         const p1 = nextKey.value as Quaternion;
@@ -276,21 +278,25 @@ export class AnimationCurve {
 
         let t0 = tan0.x,
           t1 = tan1.x;
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
-        else out.x = p0.x;
+        if (Number.isFinite(t0) && Number.isFinite(t1))
+          this._tempQuaternion.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
+        else this._tempQuaternion.x = p0.x;
 
         (t0 = tan0.y), (t1 = tan1.y);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
-        else out.y = p0.y;
+        if (Number.isFinite(t0) && Number.isFinite(t1))
+          this._tempQuaternion.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
+        else this._tempQuaternion.y = p0.y;
 
         (t0 = tan0.z), (t1 = tan1.z);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
-        else out.z = p0.z;
+        if (Number.isFinite(t0) && Number.isFinite(t1))
+          this._tempQuaternion.z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
+        else this._tempQuaternion.z = p0.z;
 
         (t0 = tan0.w), (t1 = tan1.w);
-        if (Number.isFinite(t0) && Number.isFinite(t1)) out.w = a * p0.w + b * t0 * dur + c * t1 * dur + d * p1.w;
-        else out.w = p0.w;
-        return out;
+        if (Number.isFinite(t0) && Number.isFinite(t1))
+          this._tempQuaternion.w = a * p0.w + b * t0 * dur + c * t1 * dur + d * p1.w;
+        else this._tempQuaternion.w = p0.w;
+        return this._tempQuaternion;
       }
     }
   }
