@@ -1,4 +1,3 @@
-import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateMachine } from "./AnimatorStateMachine";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 

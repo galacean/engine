@@ -37,6 +37,13 @@ export class AnimationCurve {
   private _tempVector3: Vector3 = new Vector3();
   private _tempQuaternion: Quaternion = new Quaternion();
   private _length: number = 0;
+  private _currentIndex: number = 0;
+  private _frameInfo: IFrameInfo = {
+    frameIndex: 0,
+    nextFrameIndex: 1,
+    alpha: 1,
+    dur: 1
+  };
 
   /**
    * Animation curve length in seconds.
@@ -78,6 +85,7 @@ export class AnimationCurve {
         this._valueType = InterpolableValueType.Quaternion;
       }
     }
+    this.keys.sort((a, b) => a.time - b.time);
   }
 
   /**
@@ -305,16 +313,31 @@ export class AnimationCurve {
     let keyTime = 0;
     let frameIndex = 0;
     let nextFrameIndex = 1;
-    const { keys } = this;
+    const { keys, _currentIndex } = this;
     const { length } = keys;
-
-    for (let i = length - 1; i >= 0; i--) {
-      if (time >= keys[i].time) {
-        keyTime = time - keys[i].time;
-        frameIndex = i;
-        break;
+    if (time >= keys[_currentIndex].time && time < keys[_currentIndex + 1].time) {
+      keyTime = time - keys[_currentIndex].time;
+      frameIndex = _currentIndex;
+    } else if (time > keys[_currentIndex + 1].time) {
+      for (let i = _currentIndex; i < length - 1; ++i) {
+        if (time >= keys[i].time && time < keys[i + 1].time) {
+          keyTime = time - keys[i].time;
+          frameIndex = i;
+          this._currentIndex = i;
+          break;
+        }
+      }
+    } else {
+      for (let i = 0; i < _currentIndex - 1; ++i) {
+        if (time >= keys[i].time && time < keys[i + 1].time) {
+          keyTime = time - keys[i].time;
+          frameIndex = i;
+          this._currentIndex = i;
+          break;
+        }
       }
     }
+
     nextFrameIndex = frameIndex + 1;
 
     if (nextFrameIndex >= length) {
@@ -327,11 +350,11 @@ export class AnimationCurve {
     const dur = keys[nextFrameIndex].time - keys[frameIndex].time;
     const alpha = nextFrameIndex === frameIndex || dur < 0.00001 ? 1 : keyTime / dur;
 
-    return {
-      frameIndex,
-      nextFrameIndex,
-      alpha,
-      dur
-    };
+    this._frameInfo.frameIndex = frameIndex;
+    this._frameInfo.nextFrameIndex = nextFrameIndex;
+    this._frameInfo.alpha = alpha;
+    this._frameInfo.dur = dur;
+
+    return this._frameInfo;
   }
 }
