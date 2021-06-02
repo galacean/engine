@@ -2,7 +2,6 @@ import { AnimationClip, InterpolationType } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
 import { AnimationChannelTargetPath, AnimationSamplerInterpolation } from "../Schema";
-import { EntityParser } from "./EntityParser";
 import { AnimationClipParser } from "./AnimationClipParser";
 import { Parser } from "./Parser";
 
