@@ -82,34 +82,6 @@ export class Animator extends Component {
     super(entity);
   }
 
-  _setDefaultValueAndTarget(stateData: AnimatorStateData) {
-    const { clip } = stateData.state;
-    if (clip) {
-      const curves = clip._curves;
-      const { length: curvesCount } = curves;
-      for (let i = curvesCount - 1; i >= 0; i--) {
-        const curve = curves[i];
-        const { relativePath, property } = curve;
-        const targetEntity = this.entity.findByName(relativePath);
-        let defaultValue: InterpolableValue;
-        switch (property) {
-          case AnimationProperty.Position:
-            defaultValue = targetEntity.position;
-            break;
-          case AnimationProperty.Rotation:
-            defaultValue = targetEntity.rotation;
-            break;
-          case AnimationProperty.Scale:
-            defaultValue = targetEntity.scale;
-            break;
-        }
-        stateData.curveDatas[i] = {
-          target: targetEntity,
-          defaultValue
-        };
-      }
-    }
-  }
   /**
    * Plays a state by name.
    * @param stateName - The state name
@@ -133,6 +105,40 @@ export class Animator extends Component {
     this._setDefaultValueAndTarget(this._animatorLayersData[layerIndex].playingStateData);
     this.playing = true;
     return theState;
+  }
+
+  /**
+   * crossFade to the AnimationClip by name.
+   * @param name - The name of the next state
+   * @param layerIndex - The layer where the crossfade occurs
+   * @param normalizedTransitionDuration - The duration of the transition (normalized)
+   * @param normalizedTimeOffset - The time of the next state (normalized)
+   */
+  crossFade(
+    name: string,
+    layerIndex: number,
+    normalizedTransitionDuration: number,
+    normalizedTimeOffset: number
+  ): void {
+    const animLayer = this.animatorController.layers[layerIndex];
+    const { playingStateData } = this._animatorLayersData[layerIndex];
+    if (playingStateData) {
+      playingStateData.playType = PlayType.IsFading;
+      const nextState = animLayer.stateMachine.findStateByName(name);
+      if (nextState) {
+        const transition = playingStateData.state.addTransition(nextState);
+        this._animatorLayersData[layerIndex].fadingStateData = {
+          state: nextState,
+          frameTime: 0,
+          playType: PlayType.NotStart,
+          curveDatas: []
+        };
+        this._setDefaultValueAndTarget(this._animatorLayersData[layerIndex].fadingStateData);
+        transition.duration = playingStateData.state.clip.length * normalizedTransitionDuration;
+        transition.offset = nextState.clip.length * normalizedTimeOffset;
+        transition.exitTime = playingStateData.frameTime;
+      }
+    }
   }
 
   /**
@@ -175,40 +181,6 @@ export class Animator extends Component {
   }
 
   /**
-   * crossFade to the AnimationClip by name.
-   * @param name - The name of the next state
-   * @param layerIndex - The layer where the crossfade occurs
-   * @param normalizedTransitionDuration - The duration of the transition (normalized)
-   * @param normalizedTimeOffset - The time of the next state (normalized)
-   */
-  crossFade(
-    name: string,
-    layerIndex: number,
-    normalizedTransitionDuration: number,
-    normalizedTimeOffset: number
-  ): void {
-    const animLayer = this.animatorController.layers[layerIndex];
-    const { playingStateData } = this._animatorLayersData[layerIndex];
-    if (playingStateData) {
-      playingStateData.playType = PlayType.IsFading;
-      const nextState = animLayer.stateMachine.findStateByName(name);
-      if (nextState) {
-        const transition = playingStateData.state.addTransition(nextState);
-        this._animatorLayersData[layerIndex].fadingStateData = {
-          state: nextState,
-          frameTime: 0,
-          playType: PlayType.NotStart,
-          curveDatas: []
-        };
-        this._setDefaultValueAndTarget(this._animatorLayersData[layerIndex].fadingStateData);
-        transition.duration = playingStateData.state.clip.length * normalizedTransitionDuration;
-        transition.offset = nextState.clip.length * normalizedTimeOffset;
-        transition.exitTime = playingStateData.frameTime;
-      }
-    }
-  }
-
-  /**
    * Return the layer by name.
    * @param name - The layer name
    */
@@ -233,6 +205,38 @@ export class Animator extends Component {
    */
   _onDisable(): void {
     this.engine._componentsManager.removeOnUpdateAnimations(this);
+  }
+
+  /**
+   * @internal
+   */
+  _setDefaultValueAndTarget(stateData: AnimatorStateData): void {
+    const { clip } = stateData.state;
+    if (clip) {
+      const curves = clip._curves;
+      const { length: curvesCount } = curves;
+      for (let i = curvesCount - 1; i >= 0; i--) {
+        const curve = curves[i];
+        const { relativePath, property } = curve;
+        const targetEntity = this.entity.findByName(relativePath);
+        let defaultValue: InterpolableValue;
+        switch (property) {
+          case AnimationProperty.Position:
+            defaultValue = targetEntity.position;
+            break;
+          case AnimationProperty.Rotation:
+            defaultValue = targetEntity.rotation;
+            break;
+          case AnimationProperty.Scale:
+            defaultValue = targetEntity.scale;
+            break;
+        }
+        stateData.curveDatas[i] = {
+          target: targetEntity,
+          defaultValue
+        };
+      }
+    }
   }
 
   private _calculateDiff(
@@ -345,27 +349,39 @@ export class Animator extends Component {
     target: Entity,
     type: new (entity: Entity) => Component,
     property: AnimationProperty,
-    sVal: InterpolableValue,
-    dVal: InterpolableValue,
+    srcValue: InterpolableValue,
+    dstValue: InterpolableValue,
     weight: number
   ): void {
     const transform = target.transform;
     if (type === Transform) {
       switch (property) {
         case AnimationProperty.Position:
-          const position = transform.position;
-          Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, position);
-          transform.position = position as Vector3;
+          if (weight === 1.0) {
+            transform.position = <Vector3>dstValue;
+          } else {
+            const position = transform.position;
+            Vector3.lerp(<Vector3>srcValue, <Vector3>dstValue, weight, position);
+            transform.position = position;
+          }
           break;
         case AnimationProperty.Rotation:
-          const rotationQuaternion = transform.rotationQuaternion;
-          Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, weight, rotationQuaternion);
-          transform.rotationQuaternion = rotationQuaternion;
+          if (weight === 1.0) {
+            transform.rotationQuaternion = <Quaternion>dstValue;
+          } else {
+            const rotationQuaternion = transform.rotationQuaternion;
+            Quaternion.slerp(<Quaternion>srcValue, <Quaternion>dstValue, weight, rotationQuaternion);
+            transform.rotationQuaternion = rotationQuaternion;
+          }
           break;
         case AnimationProperty.Scale:
-          const scale = transform.scale;
-          Vector3.lerp(sVal as Vector3, dVal as Vector3, weight, scale);
-          transform.scale = scale;
+          if (weight === 1.0) {
+            transform.scale = <Vector3>dstValue;
+          } else {
+            const scale = transform.scale;
+            Vector3.lerp(<Vector3>srcValue, <Vector3>dstValue, weight, scale);
+            transform.scale = scale;
+          }
           break;
       }
     }
@@ -522,7 +538,7 @@ export class Animator extends Component {
         const { target } = playingStateData.curveDatas[i];
         const { defaultValue } = playingStateData.curveDatas[i];
         if (isFirstLayer) {
-          this._updateLayerValue(target, type, property, defaultValue, val, 1);
+          this._updateLayerValue(target, type, property, defaultValue, val, 1.0);
         } else {
           if (blendingMode === AnimatorLayerBlendingMode.Additive) {
             this._calculateDiff(_valueType, property, _firstFrameValue, val);
