@@ -1,5 +1,5 @@
 import { WrapMode } from "./enums/WrapMode";
-import { Transform } from "./../Transform";
+import { Transform } from "../Transform";
 import { AnimatorState } from "./AnimatorState";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { InterpolableValue } from "./KeyFrame";

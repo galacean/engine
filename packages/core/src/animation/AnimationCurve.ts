@@ -33,6 +33,9 @@ export class AnimationCurve {
   /** @internal */
   _firstFrameValue: InterpolableValue;
 
+  private _tempVector2: Vector2 = new Vector2();
+  private _tempVector3: Vector3 = new Vector3();
+  private _tempQuaternion: Quaternion = new Quaternion();
   private _length: number = 0;
 
   /**
@@ -139,27 +142,22 @@ export class AnimationCurve {
         return p0 * (1 - alpha) + p1 * alpha;
       }
       case InterpolableValueType.Vector2: {
-        let a = new Vector2();
-        let b = new Vector2();
-        Vector2.scale(keys[frameIndex].value as Vector2, 1 - alpha, a);
-        Vector2.scale(keys[nextFrameIndex].value as Vector2, alpha, b);
-        return a.add(b);
+        let a = keys[frameIndex].value as Vector2;
+        let b = keys[nextFrameIndex].value as Vector2;
+        Vector2.lerp(a, b, alpha, this._tempVector2);
+        return this._tempVector2;
       }
       case InterpolableValueType.Vector3: {
-        let a = new Vector3();
-        let b = new Vector3();
-        Vector3.scale(keys[frameIndex].value as Vector3, 1 - alpha, a);
-        Vector3.scale(keys[nextFrameIndex].value as Vector3, alpha, b);
-        return a.add(b);
+        let a = keys[frameIndex].value as Vector3;
+        let b = keys[nextFrameIndex].value as Vector3;
+        Vector3.lerp(a, b, alpha, this._tempVector3);
+        return this._tempVector3;
       }
       case InterpolableValueType.Quaternion: {
-        const out: Quaternion = new Quaternion();
-        const startValue = keys[frameIndex].value as Vector4;
-        const startQuaternion = new Quaternion(startValue.x, startValue.y, startValue.z, startValue.w);
-        const endValue = keys[nextFrameIndex].value as Vector4;
-        const endQuaternion = new Quaternion(endValue.x, endValue.y, endValue.z, endValue.w);
-        Quaternion.slerp(startQuaternion, endQuaternion, alpha, out);
-        return out;
+        const startQuaternion = keys[frameIndex].value as Quaternion;
+        const endQuaternion = keys[nextFrameIndex].value as Quaternion;
+        Quaternion.slerp(startQuaternion, endQuaternion, alpha, this._tempQuaternion);
+        return this._tempQuaternion;
       }
     }
   }
