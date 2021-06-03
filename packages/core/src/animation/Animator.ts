@@ -109,13 +109,13 @@ export class Animator extends Component {
 
   /**
    * crossFade to the AnimationClip by name.
-   * @param name - The name of the next state
+   * @param stateName - The name of the next state
    * @param layerIndex - The layer where the crossfade occurs
    * @param normalizedTransitionDuration - The duration of the transition (normalized)
    * @param normalizedTimeOffset - The time of the next state (normalized)
    */
   crossFade(
-    name: string,
+    stateName: string,
     layerIndex: number,
     normalizedTransitionDuration: number,
     normalizedTimeOffset: number
@@ -124,7 +124,7 @@ export class Animator extends Component {
     const { playingStateData } = this._animatorLayersData[layerIndex];
     if (playingStateData) {
       playingStateData.playType = PlayType.IsFading;
-      const nextState = animLayer.stateMachine.findStateByName(name);
+      const nextState = animLayer.stateMachine.findStateByName(stateName);
       if (nextState) {
         const transition = playingStateData.state.addTransition(nextState);
         this._animatorLayersData[layerIndex].fadingStateData = {

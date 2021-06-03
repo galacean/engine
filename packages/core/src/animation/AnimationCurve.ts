@@ -1,23 +1,16 @@
-import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
+import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { InterpolationType } from "./enums/InterpolationType";
 import {
-  Keyframe,
   FloatKeyframe,
+  InterpolableValue,
+  Keyframe,
+  QuaternionKeyframe,
   Vector2Keyframe,
   Vector3Keyframe,
-  Vector4Keyframe,
-  QuaternionKeyframe,
-  InterpolableValue
+  Vector4Keyframe
 } from "./KeyFrame";
-import { InterpolationType } from "./enums/InterpolationType";
-import { InterpolableValueType } from "./enums/InterpolableValueType";
-import { IClone } from "@oasis-engine/design";
 
-interface IFrameInfo {
-  frameIndex: number;
-  nextFrameIndex: number;
-  alpha: number;
-  dur: number;
-}
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
@@ -94,8 +87,9 @@ export class AnimationCurve {
 
     // Compute curIndex and nextIndex.
     let curIndex = this._currentIndex;
+    
+    // Reset loop.
     if (curIndex !== -1 && time < keys[curIndex].time) {
-      // Reset loop.
       curIndex = -1;
     }
 
@@ -114,7 +108,7 @@ export class AnimationCurve {
     if (curIndex === -1) {
       value = keys[0].value;
     } else if (nextIndex === length) {
-      value = keys[length].value;
+      value = keys[curIndex].value;
     } else {
       // Time between first frame and end frame.
       const curFrameTime = keys[curIndex].time;
