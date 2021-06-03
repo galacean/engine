@@ -10,6 +10,7 @@ import {
 } from "./KeyFrame";
 import { InterpolationType } from "./enums/InterpolationType";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { IClone } from "@oasis-engine/design";
 
 interface IFrameInfo {
   frameIndex: number;
@@ -30,18 +31,10 @@ export class AnimationCurve {
   _valueSize: number;
   /** @internal */
   _valueType: InterpolableValueType;
-  /** @internal */
-  _firstFrameValue: InterpolableValue;
 
   private _currentValue: InterpolableValue;
   private _length: number = 0;
   private _currentIndex: number = 0;
-  private _frameInfo: IFrameInfo = {
-    frameIndex: 0,
-    nextFrameIndex: 1,
-    alpha: 1,
-    dur: 1
-  };
 
   /**
    * Animation curve length in seconds.
@@ -96,26 +89,54 @@ export class AnimationCurve {
    * @param time - The time within the curve you want to evaluate
    */
   evaluate(time: number): InterpolableValue {
-    const { keys, interpolation } = this;
-    const { frameIndex, nextFrameIndex, alpha, dur } = this._getFrameInfo(time);
-    let val: InterpolableValue;
-    switch (interpolation) {
-      case InterpolationType.CubicSpine:
-        val = this._evaluateCubicSpline(frameIndex, nextFrameIndex, alpha);
-        break;
-      case InterpolationType.Linear:
-        val = this._evaluateLinear(frameIndex, nextFrameIndex, alpha);
-        break;
-      case InterpolationType.Step:
-        val = this._evaluateStep(nextFrameIndex);
-        break;
-      case InterpolationType.Hermite:
-        val = this._evaluateHermite(frameIndex, nextFrameIndex, alpha, dur);
+    const { keys, interpolation, _valueType: valueType } = this;
+    const { length } = this.keys;
+
+    // Compute curIndex and nextIndex.
+    let curIndex = this._currentIndex;
+    if (curIndex !== -1 && time < keys[curIndex].time) {
+      // Reset loop.
+      curIndex = -1;
     }
-    if (!this._firstFrameValue) {
-      this._firstFrameValue = keys[0].value;
+
+    let nextIndex = curIndex + 1;
+    while (nextIndex < length) {
+      if (time < keys[nextIndex].time) {
+        break;
+      }
+      curIndex++;
+      nextIndex++;
     }
-    return val;
+    this._currentIndex = curIndex;
+
+    // Evaluate value.
+    let value: InterpolableValue;
+    if (curIndex === -1) {
+      value = keys[0].value;
+    } else if (nextIndex === length) {
+      value = keys[length].value;
+    } else {
+      // Time between first frame and end frame.
+      const curFrameTime = keys[curIndex].time;
+      const duration = keys[nextIndex].time - curFrameTime;
+      const t = (time - curFrameTime) / duration;
+      const dur = duration;
+
+      switch (interpolation) {
+        case InterpolationType.CubicSpine:
+          value = this._evaluateCubicSpline(curIndex, nextIndex, t);
+          break;
+        case InterpolationType.Linear:
+          value = this._evaluateLinear(curIndex, nextIndex, t);
+          break;
+        case InterpolationType.Step:
+          value = this._evaluateStep(nextIndex);
+          break;
+        case InterpolationType.Hermite:
+          value = this._evaluateHermite(curIndex, nextIndex, t, dur);
+      }
+    }
+    return value;
   }
 
   /**
@@ -144,51 +165,45 @@ export class AnimationCurve {
     this._length = newLength;
   }
 
-  private _evaluateLinear(frameIndex: number, nextFrameIndex: number, alpha: number): InterpolableValue {
+  private _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number): InterpolableValue {
     const { _valueType, keys } = this;
     switch (_valueType) {
-      case InterpolableValueType.Float: {
-        const p0 = <number>keys[frameIndex].value;
-        const p1 = <number>keys[nextFrameIndex].value;
-        return p0 * (1 - alpha) + p1 * alpha;
-      }
-      case InterpolableValueType.Vector2: {
+      case InterpolableValueType.Float:
+        return <number>keys[frameIndex].value * (1 - t) + <number>keys[nextFrameIndex].value * t;
+      case InterpolableValueType.Vector2:
         Vector2.lerp(
           <Vector2>keys[frameIndex].value,
           <Vector2>keys[nextFrameIndex].value,
-          alpha,
+          t,
           <Vector2>this._currentValue
         );
         return this._currentValue;
-      }
-      case InterpolableValueType.Vector3: {
+      case InterpolableValueType.Vector3:
         Vector3.lerp(
           <Vector3>keys[frameIndex].value,
           <Vector3>keys[nextFrameIndex].value,
-          alpha,
+          t,
           <Vector3>this._currentValue
         );
         return this._currentValue;
-      }
-      case InterpolableValueType.Quaternion: {
+      case InterpolableValueType.Quaternion:
         Quaternion.slerp(
           <Quaternion>keys[frameIndex].value,
           <Quaternion>keys[nextFrameIndex].value,
-          alpha,
+          t,
           <Quaternion>this._currentValue
         );
         return this._currentValue;
-      }
     }
   }
 
-  private _evaluateCubicSpline(frameIndex: number, nextFrameIndex: number, alpha: number): Vector3 {
+  private _evaluateCubicSpline(frameIndex: number, nextFrameIndex: number, t: number): Vector3 {
     const { keys } = this;
-    const squared = alpha * alpha;
-    const cubed = alpha * squared;
+    const squared = t * t;
+    const cubed = t * squared;
     const part1 = 2.0 * cubed - 3.0 * squared + 1.0;
     const part2 = -2.0 * cubed + 3.0 * squared;
-    const part3 = cubed - 2.0 * squared + alpha;
+    const part3 = cubed - 2.0 * squared + t;
     const part4 = cubed - squared;
 
     const t1: Vector3 = <Vector3>keys[frameIndex].value;
@@ -337,72 +352,5 @@ export class AnimationCurve {
         return <Quaternion>this._currentValue;
       }
     }
-  }
-
-  private _getFrameInfo(time: number): IFrameInfo {
-    let keyTime = 0;
-    let frameIndex = 0;
-    let nextFrameIndex = 0;
-    const { keys, _currentIndex } = this;
-    const { length } = keys;
-    if (time >= keys[_currentIndex].time && time < keys[_currentIndex + 1].time) {
-      keyTime = time - keys[_currentIndex].time;
-      frameIndex = _currentIndex;
-    } else if (time > keys[_currentIndex + 1].time) {
-      if (time <= keys[length - 1].time) {
-        for (let i = _currentIndex; i < length - 1; ++i) {
-          if (time >= keys[i].time && time < keys[i + 1].time) {
-            keyTime = time - keys[i].time;
-            frameIndex = i;
-            this._currentIndex = i;
-            break;
-          }
-        }
-      } else {
-        keyTime = 0;
-        frameIndex = length - 1;
-        this._currentIndex = frameIndex;
-      }
-    } else {
-      if (time >= keys[0].time) {
-        for (let i = 0; i < _currentIndex - 1; ++i) {
-          if (time >= keys[i].time && time < keys[i + 1].time) {
-            keyTime = time - keys[i].time;
-            frameIndex = i;
-            this._currentIndex = i;
-            break;
-          }
-        }
-      } else {
-        keyTime = time - keys[0].time;
-        frameIndex = 0;
-        this._currentIndex = 0;
-      }
-    }
-
-    nextFrameIndex = frameIndex + 1;
-
-    if (nextFrameIndex >= length || keyTime < 0) {
-      nextFrameIndex = frameIndex;
-      if (length === 1) {
-        nextFrameIndex = frameIndex = 0;
-      }
-    }
-
-    let dur: number;
-    if (keyTime < 0) {
-      dur = 0;
-    } else {
-      dur = keys[nextFrameIndex].time - keys[frameIndex].time;
-    }
-
-    let alpha = nextFrameIndex === frameIndex || dur < 0.00001 ? 1 : keyTime / dur;
-
-    this._frameInfo.frameIndex = frameIndex;
-    this._frameInfo.nextFrameIndex = nextFrameIndex;
-    this._frameInfo.alpha = alpha;
-    this._frameInfo.dur = dur;
-
-    return this._frameInfo;
   }
 }
