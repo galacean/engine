@@ -1,23 +1,16 @@
-import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
+import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { InterpolationType } from "./enums/InterpolationType";
 import {
-  Keyframe,
   FloatKeyframe,
+  InterpolableValue,
+  Keyframe,
+  QuaternionKeyframe,
   Vector2Keyframe,
   Vector3Keyframe,
-  Vector4Keyframe,
-  QuaternionKeyframe,
-  InterpolableValue
+  Vector4Keyframe
 } from "./KeyFrame";
-import { InterpolationType } from "./enums/InterpolationType";
-import { InterpolableValueType } from "./enums/InterpolableValueType";
-import { IClone } from "@oasis-engine/design";
 
-interface IFrameInfo {
-  frameIndex: number;
-  nextFrameIndex: number;
-  alpha: number;
-  dur: number;
-}
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
