@@ -5,5 +5,5 @@ import { AnimatorStateData } from "./AnimatorStateData";
  */
 export class AnimatorLayerData {
   playingStateData: AnimatorStateData = new AnimatorStateData();
-  fadingStateData: AnimatorStateData = new AnimatorStateData();
+  destStateData: AnimatorStateData = new AnimatorStateData();
 }

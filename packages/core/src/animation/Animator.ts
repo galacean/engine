@@ -102,14 +102,14 @@ export class Animator extends Component {
 
     const nextState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
     if (nextState) {
-      const { playingStateData, fadingStateData } = this._getAnimatorLayerData(layerIndex);
+      const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
       playingStateData.playType = PlayType.IsFading;
 
-      fadingStateData.state = nextState;
-      fadingStateData.frameTime = 0;
-      fadingStateData.playType = PlayType.NotStart;
+      destStateData.state = nextState;
+      destStateData.frameTime = 0;
+      destStateData.playType = PlayType.NotStart;
 
-      this._setDefaultValueAndTarget(fadingStateData);
+      this._setDefaultValueAndTarget(destStateData);
 
       const { state } = playingStateData;
       const transition = state.addTransition(nextState);
@@ -136,11 +136,11 @@ export class Animator extends Component {
         const playingStateData = this._animatorLayersData[i].playingStateData;
         playingStateData.frameTime += deltaTime / 1000;
         if (playingStateData.playType === PlayType.IsFading) {
-          const fadingStateData = this._animatorLayersData[i].fadingStateData;
-          if (fadingStateData) {
-            fadingStateData.frameTime += deltaTime / 1000;
-            if (fadingStateData.frameTime > fadingStateData.state.clipEndTime) {
-              fadingStateData.frameTime = fadingStateData.state.clipEndTime;
+          const destStateData = this._animatorLayersData[i].destStateData;
+          if (destStateData) {
+            destStateData.frameTime += deltaTime / 1000;
+            if (destStateData.frameTime > destStateData.state.clipEndTime) {
+              destStateData.frameTime = destStateData.state.clipEndTime;
             }
           }
         }
@@ -410,7 +410,7 @@ export class Animator extends Component {
   private _updatePlayingState(layerIndex: number, isFirstLayer: boolean, deltaTime: number): void {
     const animLayer = this.layers[layerIndex];
     const animlayerData = this._animatorLayersData[layerIndex];
-    const { playingStateData, fadingStateData } = animlayerData;
+    const { playingStateData, destStateData } = animlayerData;
     const { weight, blendingMode } = animLayer;
     if (playingStateData.playType === PlayType.IsFading) {
       const transition = playingStateData.state.transitions[0];
@@ -465,8 +465,8 @@ export class Animator extends Component {
             propertyList.push(property);
             const val = curve.evaluate(transition.offset + transition._crossFadeFrameTime);
             targetPropertyValues.push([null, val]);
-            targetList.push([null, fadingStateData.curveDatas[i].target]);
-            defaultValueList.push([null, fadingStateData.curveDatas[i].defaultValue]);
+            targetList.push([null, destStateData.curveDatas[i].target]);
+            defaultValueList.push([null, destStateData.curveDatas[i].defaultValue]);
           }
         }
         count = relativePathList.length;
@@ -506,8 +506,8 @@ export class Animator extends Component {
           }
         }
         if (playingStateData.playType === PlayType.IsFinish) {
-          this._animatorLayersData[layerIndex].playingStateData = this._animatorLayersData[layerIndex].fadingStateData;
-          this._animatorLayersData[layerIndex].fadingStateData = null;
+          this._animatorLayersData[layerIndex].playingStateData = this._animatorLayersData[layerIndex].destStateData;
+          this._animatorLayersData[layerIndex].destStateData = null;
         }
       }
     } else {
