@@ -13,32 +13,9 @@ import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { PlayType } from "./enums/PlayType";
 import { ignoreClone } from "../clone/CloneManager";
 import { AnimationProperty } from "./enums/AnimationProperty";
+import { AnimatorLayerData } from "./AnimatorLayerData";
+import { AnimatorStateData } from "./AnimatorStateData";
 
-/**
- * @internal
- */
-interface CurveData {
-  target: Entity;
-  defaultValue: InterpolableValue;
-}
-
-/**
- * @internal
- */
-interface AnimatorStateData {
-  state: AnimatorState;
-  frameTime: number;
-  playType: PlayType;
-  curveDatas: CurveData[];
-}
-
-/**
- * @internal
- */
-interface AnimatorLayerData {
-  playingStateData: AnimatorStateData | null;
-  fadingStateData: AnimatorStateData | null;
-}
 /**
  * The controller of the animation system.
  */
@@ -83,32 +60,30 @@ export class Animator extends Component {
   }
 
   /**
-   * Plays a state by name.
+   * Play a state by name.
    * @param stateName - The state name
    * @param layerIndex - The layer index(default 0)
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
   play(stateName: string, layerIndex: number = 0, normalizedTimeOffset: number = 0): AnimatorState {
     const { animatorController } = this;
-    if (!animatorController) return;
-    const animLayer = animatorController.layers[layerIndex];
-    const theState = animLayer.stateMachine.findStateByName(stateName);
-    this._animatorLayersData[layerIndex] = this._animatorLayersData[layerIndex] || {
-      playingStateData: {
-        state: theState,
-        frameTime: theState.clip.length * normalizedTimeOffset,
-        playType: PlayType.NotStart,
-        curveDatas: []
-      },
-      fadingStateData: null
-    };
-    this._setDefaultValueAndTarget(this._animatorLayersData[layerIndex].playingStateData);
+    if (!animatorController) {
+      return;
+    }
+
+    const playState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
+    const { playingStateData } = this._getAnimatorLayerData(layerIndex);
+
+    playingStateData.state = playState;
+    playingStateData.frameTime = playState.clip.length * normalizedTimeOffset;
+    playingStateData.playType = PlayType.NotStart;
+    this._setDefaultValueAndTarget(playingStateData);
     this.playing = true;
-    return theState;
+    return playState;
   }
 
   /**
-   * crossFade to the AnimationClip by name.
+   * Cross fade to the AnimationClip by name.
    * @param stateName - The name of the next state
    * @param layerIndex - The layer where the crossfade occurs
    * @param normalizedTransitionDuration - The duration of the transition (normalized)
@@ -120,24 +95,27 @@ export class Animator extends Component {
     normalizedTransitionDuration: number,
     normalizedTimeOffset: number
   ): void {
-    const animLayer = this.animatorController.layers[layerIndex];
-    const { playingStateData } = this._animatorLayersData[layerIndex];
-    if (playingStateData) {
+    const { animatorController } = this;
+    if (!animatorController) {
+      return;
+    }
+
+    const nextState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
+    if (nextState) {
+      const { playingStateData, fadingStateData } = this._getAnimatorLayerData(layerIndex);
       playingStateData.playType = PlayType.IsFading;
-      const nextState = animLayer.stateMachine.findStateByName(stateName);
-      if (nextState) {
-        const transition = playingStateData.state.addTransition(nextState);
-        this._animatorLayersData[layerIndex].fadingStateData = {
-          state: nextState,
-          frameTime: 0,
-          playType: PlayType.NotStart,
-          curveDatas: []
-        };
-        this._setDefaultValueAndTarget(this._animatorLayersData[layerIndex].fadingStateData);
-        transition.duration = playingStateData.state.clip.length * normalizedTransitionDuration;
-        transition.offset = nextState.clip.length * normalizedTimeOffset;
-        transition.exitTime = playingStateData.frameTime;
-      }
+
+      fadingStateData.state = nextState;
+      fadingStateData.frameTime = 0;
+      fadingStateData.playType = PlayType.NotStart;
+
+      this._setDefaultValueAndTarget(fadingStateData);
+
+      const { state } = playingStateData;
+      const transition = state.addTransition(nextState);
+      transition.duration = state.clip.length * normalizedTransitionDuration;
+      transition.offset = nextState.clip.length * normalizedTimeOffset;
+      transition.exitTime = playingStateData.frameTime;
     }
   }
 
@@ -262,6 +240,12 @@ export class Animator extends Component {
         this._calculateQuaternionDiff(dVal as Quaternion, sVal as Quaternion);
         break;
     }
+  }
+
+  private _getAnimatorLayerData(layerIndex: number): AnimatorLayerData {
+    let animatorLayerData = this._animatorLayersData[layerIndex];
+    animatorLayerData || (this._animatorLayersData[layerIndex] = animatorLayerData = new AnimatorLayerData());
+    return animatorLayerData;
   }
 
   private _calculateFloatDiff(property: AnimationProperty, sVal: number, dVal: number): void {
