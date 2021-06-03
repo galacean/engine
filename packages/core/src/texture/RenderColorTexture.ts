@@ -90,4 +90,64 @@ export class RenderColorTexture extends Texture {
   ): void {
     (this._platformTexture as IPlatformRenderColorTexture).getPixelBuffer(face, x, y, width, height, out);
   }
+
+  /**
+   * Setting pixels data through cube face,color buffer data, designated area and texture mipmapping level.
+   * @param face - You can choose which cube face to write if it's cube texture
+   * @param colorBuffer - Color buffer data
+   * @param mipLevel - Texture mipmapping level
+   * @param x - X coordinate of area start
+   * @param y -  Y coordinate of area start
+   * @param width - Data width.if it's empty, width is the width corresponding to mipLevel minus x , width corresponding to mipLevel is Math.max(1, this.width >> mipLevel)
+   * @param height - Data height.if it's empty, height is the height corresponding to mipLevel minus y , height corresponding to mipLevel is Math.max(1, this.height >> mipLevel)
+   */
+  setPixelBuffer(
+    face: TextureCubeFace | null,
+    colorBuffer: ArrayBufferView,
+    mipLevel: number = 0,
+    x?: number,
+    y?: number,
+    width?: number,
+    height?: number
+  ): void {
+    (this._platformTexture as IPlatformRenderColorTexture).setPixelBuffer(
+      face,
+      colorBuffer,
+      mipLevel,
+      x,
+      y,
+      width,
+      height
+    );
+  }
+
+  /**
+   * Setting pixels data through cube face, TexImageSource, designated area and texture mipmapping level.
+   * @param face - You can choose which cube face to write if it's cube texture
+   * @param imageSource - The source of texture
+   * @param mipLevel - Texture mipmapping level
+   * @param flipY - Whether to flip the Y axis
+   * @param premultipltAlpha - Whether to premultiply the transparent channel
+   * @param x - X coordinate of area start
+   * @param y - Y coordinate of area start
+   */
+  setImageSource(
+    face: TextureCubeFace | null,
+    imageSource: TexImageSource,
+    mipLevel: number = 0,
+    flipY: boolean = false,
+    premultiplyAlpha: boolean = false,
+    x?: number,
+    y?: number
+  ): void {
+    (this._platformTexture as IPlatformRenderColorTexture).setImageSource(
+      face,
+      imageSource,
+      mipLevel,
+      flipY,
+      premultiplyAlpha,
+      x,
+      y
+    );
+  }
 }
