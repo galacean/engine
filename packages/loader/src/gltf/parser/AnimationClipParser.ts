@@ -1,9 +1,9 @@
 import {
+  Entity,
   EngineObject,
   Component,
   Transform,
   AnimationCurve,
-  AnimationClipCurveData,
   FloatKeyframe,
   Vector2Keyframe,
   Vector3Keyframe,
@@ -11,27 +11,26 @@ import {
   InterpolationType
 } from "@oasis-engine/core";
 import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
-
-export interface IChannelState {
-  frameTime: number;
-  currentFrame: number;
-  currentValue: Value;
-  mixWeight?: number;
+interface AnimationClipCurveData<T extends Component> {
+  curve: AnimationCurve;
+  relativePath: string;
+  type: new (entity: Entity) => T;
+  propertyName: string;
 }
 
-export interface IChannel {
+interface IChannel {
   sampler: ISample;
   target: ITarget;
 }
 
-export interface ISample {
+interface ISample {
   input: List;
   output: List;
   outputSize: number;
   interpolation: InterpolationType;
 }
 
-export interface ITarget {
+interface ITarget {
   relativePath: string;
   propertyName: string;
 }

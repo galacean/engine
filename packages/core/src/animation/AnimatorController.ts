@@ -33,7 +33,7 @@ export class AnimatorController {
    */
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
-    this._layersMap[name] = layer;
+    this._layersMap[layer.name] = layer;
   }
 
   /**
