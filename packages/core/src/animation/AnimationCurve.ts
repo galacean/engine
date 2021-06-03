@@ -87,8 +87,9 @@ export class AnimationCurve {
 
     // Compute curIndex and nextIndex.
     let curIndex = this._currentIndex;
+    
+    // Reset loop.
     if (curIndex !== -1 && time < keys[curIndex].time) {
-      // Reset loop.
       curIndex = -1;
     }
 
@@ -107,7 +108,7 @@ export class AnimationCurve {
     if (curIndex === -1) {
       value = keys[0].value;
     } else if (nextIndex === length) {
-      value = keys[length].value;
+      value = keys[curIndex].value;
     } else {
       // Time between first frame and end frame.
       const curFrameTime = keys[curIndex].time;
