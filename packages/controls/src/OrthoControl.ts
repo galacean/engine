@@ -1,8 +1,12 @@
-import { Camera, Entity, Script, Vector2, Vector3 } from "oasis-engine";
+import { Camera, Entity, Script, UpdateFlag, Vector2, Vector3 } from "oasis-engine";
 
+/**
+ * The camera's 2D controller, can zoom and pan.
+ */
 export class OrthoControl extends Script {
   camera: Entity;
   cameraComp: Camera;
+  cameraMatrixDirty: UpdateFlag;
 
   private _position: Vector3 = new Vector3();
   private _zoomSpeed: number = 1.0;
@@ -31,19 +35,25 @@ export class OrthoControl extends Script {
 
     this.camera = entity;
     this.cameraComp = entity.getComponent(Camera);
+    this.cameraMatrixDirty = entity.transform.registerWorldChangeFlag();
+    this.cameraMatrixDirty.flag = false;
 
     const position = this.camera.transform.position;
     position.cloneTo(this._position);
 
     // // @ts-ignore
     // this.mainElement = this.engine.canvas._webCanvas;
-    // this.mainElement.addEventListener("wheel", (e) => {
-    //   if (e.deltaY < 0) {
-    //     this.zoomIn();
-    //   } else {
-    //     this.zoomOut();
-    //   }
-    // }, false);
+    // this.mainElement.addEventListener(
+    //   "wheel",
+    //   (e) => {
+    //     if (e.deltaY < 0) {
+    //       this.zoomIn();
+    //     } else {
+    //       this.zoomOut();
+    //     }
+    //   },
+    //   false
+    // );
     // this.mainElement.addEventListener("mousedown", (e) => {
     //   this.panStart(e.clientX, e.clientY);
     // });
@@ -53,6 +63,10 @@ export class OrthoControl extends Script {
     // this.mainElement.addEventListener("mouseup", (e) => {
     //   this.panEnd();
     // });
+  }
+
+  onDestroy(): void {
+    this.cameraMatrixDirty.destroy();
   }
 
   onUpdate(dt: number): void {
@@ -66,6 +80,12 @@ export class OrthoControl extends Script {
     }
 
     this._zoomScale = 1;
+
+    if (this.cameraMatrixDirty.flag) {
+      const position = this.camera.transform.position;
+      position.cloneTo(this._position);
+      this.cameraMatrixDirty.flag = false;
+    }
   }
 
   /**
@@ -132,5 +152,6 @@ export class OrthoControl extends Script {
     pos.x -= (x * width3D) / width;
     pos.y += (y * height3D) / height;
     this.camera.transform.position = pos;
+    this.cameraMatrixDirty.flag = false;
   }
 }
