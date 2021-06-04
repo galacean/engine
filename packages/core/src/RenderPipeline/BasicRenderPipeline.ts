@@ -1,15 +1,17 @@
 import { Matrix } from "@oasis-engine/math";
-import { Logger } from "../base";
+import { SpriteMask } from "../2d/sprite/SpriteMask";
+import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
+import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
-import { RenderQueueType } from "../material";
+import { RenderQueueType } from "../material/enums/RenderQueueType";
 import { Material } from "../material/Material";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { Sky } from "../sky";
+import { Sky } from "../sky/Sky";
 import { TextureCubeFace } from "../texture/enums/TextureCubeFace";
 import { RenderTarget } from "../texture/RenderTarget";
 import { RenderContext } from "./RenderContext";
@@ -28,6 +30,8 @@ export class BasicRenderPipeline {
   _transparentQueue: RenderQueue;
   /** @internal */
   _alphaTestQueue: RenderQueue;
+  /** @internal */
+  _allSpriteMasks: DisorderedArray<SpriteMask> = new DisorderedArray();
 
   private _camera: Camera;
   private _defaultPass: RenderPass;
@@ -117,6 +121,7 @@ export class BasicRenderPipeline {
     this._opaqueQueue.destroy();
     this._alphaTestQueue.destroy();
     this._transparentQueue.destroy();
+    this._allSpriteMasks = null;
     this._renderPassArray = null;
     this._defaultPass = null;
     this._camera = null;
@@ -133,9 +138,13 @@ export class BasicRenderPipeline {
     const alphaTestQueue = this._alphaTestQueue;
     const transparentQueue = this._transparentQueue;
 
+    camera.engine._spriteMaskManager.clear();
+
     opaqueQueue.clear();
     alphaTestQueue.clear();
     transparentQueue.clear();
+    this._allSpriteMasks.length = 0;
+
     camera.engine._componentsManager.callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
@@ -223,6 +232,7 @@ export class BasicRenderPipeline {
     const program = shader._getShaderProgram(engine, compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, shaderData);
+    program.uploadUngroupTextures();
 
     renderState._apply(engine);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
