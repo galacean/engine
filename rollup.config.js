@@ -33,9 +33,10 @@ function toGlobalName(pkgName) {
 }
 
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
+const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
 const commonPlugins = [
-  resolve({ extensions, preferBuiltins: true }),
+  resolve({ extensions, preferBuiltins: true, mainFields }),
   glslify({
     include: [/\.glsl$/]
   }),
