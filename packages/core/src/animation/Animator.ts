@@ -22,7 +22,7 @@ import { AnimatorStateData } from "./AnimatorStateData";
  */
 export class Animator extends Component {
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
-  speed: number = 0.1;
+  speed: number = 1;
   animatorController: AnimatorController;
   playing: boolean;
 
@@ -108,11 +108,15 @@ export class Animator extends Component {
       const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
       const { state } = playingStateData;
       const targetProperty: number[][] = [];
-      const crossFromPos = !state;
+      const crossFromPos = !state || playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
       this._mergedCurveIndexList = [];
       const mergedCurveIndexList = this._mergedCurveIndexList;
 
+      if (playingStateData.playType === PlayType.IsFading) {
+        this._setDefaultValueAndTarget(playingStateData);
+        this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
+      }
       if (crossFromPos) {
         transition = this.transitionForPos = new AnimatorStateTransition();
       } else {
@@ -550,7 +554,7 @@ export class Animator extends Component {
     if (playingStateData.playType === PlayType.IsFinish) {
       animlayerData.playingStateData = animlayerData.destStateData;
       animlayerData.playingStateData.frameTime = frameTime;
-      animlayerData.destStateData = null;
+      animlayerData.destStateData = new AnimatorStateData();
     }
   }
 
@@ -592,7 +596,7 @@ export class Animator extends Component {
     if (destStateData.playType === PlayType.IsPlaying) {
       animlayerData.playingStateData = animlayerData.destStateData;
       animlayerData.playingStateData.frameTime = frameTime;
-      animlayerData.destStateData = null;
+      animlayerData.destStateData = new AnimatorStateData();
     }
   }
 }
