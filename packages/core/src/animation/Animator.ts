@@ -46,7 +46,8 @@ export class Animator extends Component {
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
   private _mergedCurveIndexList: any = [];
-  transitionForPos: AnimatorStateTransition;
+  @ignoreClone
+  private _transitionForPos: AnimatorStateTransition = new AnimatorStateTransition();
 
   /**
    * Get all layers from the AnimatorController which belongs this Animator .
@@ -118,7 +119,7 @@ export class Animator extends Component {
         this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
       }
       if (crossFromPos) {
-        transition = this.transitionForPos = new AnimatorStateTransition();
+        transition = this._transitionForPos;
       } else {
         playingStateData.playType = PlayType.IsFading;
         transition = state.addTransition(nextState);
@@ -454,7 +455,7 @@ export class Animator extends Component {
     if (destStateData && destStateData.playType === PlayType.IsCrossing) {
       const crossFromPos = !playingStateData.state;
       if (crossFromPos) {
-        this._updateCrossFadeFromPos(this.transitionForPos, destStateData, animlayerData, weight, deltaTime);
+        this._updateCrossFadeFromPos(this._transitionForPos, destStateData, animlayerData, weight, deltaTime);
       } else {
         const transition = playingStateData.state.transitions[0];
         if (transition) {
