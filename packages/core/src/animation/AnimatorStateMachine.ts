@@ -52,11 +52,4 @@ export class AnimatorStateMachine {
   findStateByName(name: string): AnimatorState {
     return this._statesMap[name];
   }
-  /** @internal */
-  _setTarget(target: Entity): void {
-    const layerCount = this.states.length;
-    for (let i = layerCount - 1; i >= 0; i--) {
-      this.states[i]._setTarget(target);
-    }
-  }
 }

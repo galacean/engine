@@ -87,7 +87,7 @@ export class AnimationCurve {
 
     // Compute curIndex and nextIndex.
     let curIndex = this._currentIndex;
-    
+
     // Reset loop.
     if (curIndex !== -1 && time < keys[curIndex].time) {
       curIndex = -1;
@@ -102,7 +102,6 @@ export class AnimationCurve {
       nextIndex++;
     }
     this._currentIndex = curIndex;
-
     // Evaluate value.
     let value: InterpolableValue;
     if (curIndex === -1) {

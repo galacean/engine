@@ -1,3 +1,4 @@
+import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
 import { Transform } from "../Transform";
 import { AnimatorState } from "./AnimatorState";
@@ -21,8 +22,9 @@ import { AnimatorStateData } from "./AnimatorStateData";
  */
 export class Animator extends Component {
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
-  speed: number = 1.0;
+  speed: number = 0.1;
   animatorController: AnimatorController;
+  playing: boolean;
 
   @ignoreClone
   private _diffValueFromBasePos: InterpolableValue;
@@ -42,8 +44,13 @@ export class Animator extends Component {
   private _tempQuaternion: Quaternion = new Quaternion();
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
-
-  playing: boolean;
+  relativePathList: string[] = [];
+  typeList: (new (entity: Entity) => Component)[] = [];
+  propertyList: AnimationProperty[] = [];
+  relativePathPropertMap: { [key: string]: number } = {};
+  targetPropertyValues: any = [];
+  targetList: any = [];
+  defaultValueList: any = [];
 
   /**
    * Get all layers from the AnimatorController which belongs this Animator .
@@ -116,6 +123,36 @@ export class Animator extends Component {
       transition.duration = state.clip.length * normalizedTransitionDuration;
       transition.offset = nextState.clip.length * normalizedTimeOffset;
       transition.exitTime = playingStateData.frameTime;
+      if (transition.duration > nextState.clipEndTime - transition.offset) {
+        transition.duration = nextState.clipEndTime - transition.offset;
+      }
+
+      const playingClip = state.clip;
+      let count = playingClip._curves.length;
+      const relativePathList: string[] = this.relativePathList;
+      const relativePathPropertMap: { [key: string]: number } = this.relativePathPropertMap;
+      const targetList = this.targetList;
+      for (let i = count - 1; i >= 0; i--) {
+        const { property, relativePath } = playingClip._curves[i];
+        if (!relativePathPropertMap[`${relativePath}_${property}`]) {
+          relativePathPropertMap[`${relativePath}_${property}`] = relativePathList.length;
+          relativePathList.push(relativePath);
+          targetList.push([i]);
+        }
+      }
+      const destClip = nextState.clip;
+      count = destClip._curves.length;
+      for (let i = count - 1; i >= 0; i--) {
+        const { property, relativePath } = destClip._curves[i];
+        if (relativePathPropertMap[`${relativePath}_${property}`] >= 0) {
+          const index = relativePathPropertMap[`${relativePath}_${property}`];
+          targetList[index][1] = i;
+        } else {
+          relativePathPropertMap[`${relativePath}_${property}`] = relativePathList.length;
+          relativePathList.push(relativePath);
+          targetList.push([null, i]);
+        }
+      }
     }
   }
 
@@ -133,27 +170,18 @@ export class Animator extends Component {
     for (let i = 0; i < layers.length; i++) {
       const isFirstLayer = i === 0;
       if (this._animatorLayersData[i]) {
-        const playingStateData = this._animatorLayersData[i].playingStateData;
+        const { playingStateData } = this._animatorLayersData[i];
         playingStateData.frameTime += deltaTime / 1000;
-        if (playingStateData.playType === PlayType.IsFading) {
-          const destStateData = this._animatorLayersData[i].destStateData;
-          if (destStateData) {
-            destStateData.frameTime += deltaTime / 1000;
-            if (destStateData.frameTime > destStateData.state.clipEndTime) {
-              destStateData.frameTime = destStateData.state.clipEndTime;
-            }
-          }
-        }
         if (playingStateData.playType === PlayType.IsPlaying) {
           if (playingStateData.frameTime > playingStateData.state.clipEndTime) {
             if (playingStateData.state.wrapMode === WrapMode.Loop) {
-              playingStateData.frameTime = playingStateData.frameTime % playingStateData.state.clipEndTime;
+              playingStateData.frameTime %= playingStateData.state.clipEndTime;
             } else {
               playingStateData.frameTime = playingStateData.state.clipEndTime;
             }
           }
         }
-        this._updatePlayingState(i, isFirstLayer, deltaTime);
+        this._updateLayer(i, isFirstLayer, deltaTime);
       }
     }
   }
@@ -407,131 +435,111 @@ export class Animator extends Component {
     }
   }
 
-  private _updatePlayingState(layerIndex: number, isFirstLayer: boolean, deltaTime: number): void {
+  private _updateLayer(layerIndex: number, isFirstLayer: boolean, deltaTime: number): void {
     const animLayer = this.layers[layerIndex];
     const animlayerData = this._animatorLayersData[layerIndex];
     const { playingStateData, destStateData } = animlayerData;
     const { weight, blendingMode } = animLayer;
     if (playingStateData.playType === PlayType.IsFading) {
       const transition = playingStateData.state.transitions[0];
-      const destinationState = transition.destinationState;
       if (transition) {
-        let clip = playingStateData.state.clip;
-        transition._crossFadeFrameTime += deltaTime / 1000;
-        let crossWeight: number;
-        if (transition.duration > clip.length - transition.exitTime) {
-          crossWeight = transition._crossFadeFrameTime / (clip.length - transition.exitTime);
-        } else {
-          crossWeight = transition._crossFadeFrameTime / transition.duration;
-        }
-        if (crossWeight >= 1) {
-          crossWeight = 1;
-          playingStateData.playType = PlayType.IsFinish;
-        }
-        let count = clip._curves.length;
-        const relativePathList: string[] = [];
-        const typeList: (new (entity: Entity) => Component)[] = [];
-        const propertyList: AnimationProperty[] = [];
-        const relativePathPropertMap: { [key: string]: number } = {};
-        const targetPropertyValues = [];
-        const targetList = [];
-        const defaultValueList = [];
-        for (let i = count - 1; i >= 0; i--) {
-          const { curve, type, property, relativePath } = clip._curves[i];
-          if (!relativePathPropertMap[`${relativePath}_${property}`]) {
-            const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
-            relativePathPropertMap[`${relativePath}_${property}`] = relativePathList.length;
-            relativePathList.push(relativePath);
-            typeList.push(type);
-            propertyList.push(property);
-            const val = curve.evaluate(frameTime);
-            targetPropertyValues.push([val]);
-            targetList.push([playingStateData.curveDatas[i].target]);
-            defaultValueList.push([playingStateData.curveDatas[i].defaultValue]);
-          }
-        }
-        clip = destinationState.clip;
-        count = clip._curves.length;
-        for (let i = count - 1; i >= 0; i--) {
-          const { curve, type, property, relativePath } = clip._curves[i];
-          if (relativePathPropertMap[`${relativePath}_${property}`] >= 0) {
-            const index = relativePathPropertMap[`${relativePath}_${property}`];
-            const val = curve.evaluate(transition.offset + transition._crossFadeFrameTime);
-            targetPropertyValues[index][1] = val;
-          } else {
-            relativePathPropertMap[`${relativePath}_${property}`] = relativePathList.length;
-            relativePathList.push(relativePath);
-            typeList.push(type);
-            propertyList.push(property);
-            const val = curve.evaluate(transition.offset + transition._crossFadeFrameTime);
-            targetPropertyValues.push([null, val]);
-            targetList.push([null, destStateData.curveDatas[i].target]);
-            defaultValueList.push([null, destStateData.curveDatas[i].defaultValue]);
-          }
-        }
-        count = relativePathList.length;
-        for (let i = count - 1; i >= 0; i--) {
-          const relativePath = relativePathList[i];
-          const property = propertyList[i];
-          const index = relativePathPropertMap[`${relativePath}_${property}`];
-          const vals = targetPropertyValues[index];
-          const targets = targetList[index];
-          const defaultValues = defaultValueList[index];
-          const type = typeList[index];
-
-          let calculatedValue: InterpolableValue;
-          if (vals[0] && vals[1]) {
-            calculatedValue = this._getCrossFadeValue(targets[0], type, property, vals[0], vals[1], crossWeight);
-            this._applyClipValue(targets[0], type, property, defaultValues[0], calculatedValue, weight);
-          } else if (vals[0]) {
-            calculatedValue = this._getCrossFadeValue(
-              targets[0],
-              type,
-              property,
-              defaultValues[0],
-              vals[0],
-              1 - crossWeight
-            );
-            this._applyClipValue(targets[0], type, property, defaultValues[0], calculatedValue, weight);
-          } else {
-            calculatedValue = this._getCrossFadeValue(
-              targets[1],
-              type,
-              property,
-              defaultValues[1],
-              vals[1],
-              crossWeight
-            );
-            this._applyClipValue(targets[1], type, property, defaultValues[1], calculatedValue, weight);
-          }
-        }
-        if (playingStateData.playType === PlayType.IsFinish) {
-          this._animatorLayersData[layerIndex].playingStateData = this._animatorLayersData[layerIndex].destStateData;
-          this._animatorLayersData[layerIndex].destStateData = null;
-        }
+        this._fadingPlayingState(playingStateData, transition, destStateData, animlayerData, weight, deltaTime);
       }
     } else {
-      playingStateData.playType = PlayType.IsPlaying;
-      const clip = playingStateData.state.clip;
-      const count = clip._curves.length;
-      const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
-      for (let i = count - 1; i >= 0; i--) {
-        const { curve, type, property } = clip._curves[i];
-        const value = curve.evaluate(frameTime);
-        const { target, defaultValue } = playingStateData.curveDatas[i];
-        if (isFirstLayer) {
-          this._applyClipValue(target, type, property, defaultValue, value, 1.0);
+      this._updatePlayingState(playingStateData, isFirstLayer, weight, blendingMode);
+    }
+  }
+
+  private _updatePlayingState(
+    playingStateData: AnimatorStateData,
+    isFirstLayer: boolean,
+    weight: number,
+    blendingMode: AnimatorLayerBlendingMode
+  ) {
+    playingStateData.playType = PlayType.IsPlaying;
+    const clip = playingStateData.state.clip;
+    const count = clip._curves.length;
+    const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
+    for (let i = count - 1; i >= 0; i--) {
+      const { curve, type, property } = clip._curves[i];
+      const value = curve.evaluate(frameTime);
+      const { target, defaultValue } = playingStateData.curveDatas[i];
+      if (isFirstLayer) {
+        this._applyClipValue(target, type, property, defaultValue, value, 1.0);
+      } else {
+        if (blendingMode === AnimatorLayerBlendingMode.Additive) {
+          const { _valueType } = curve;
+          const firstFrameValue = curve.keys[0].value;
+          this._calculateDiff(_valueType, property, firstFrameValue, value);
+          this._updateAdditiveLayerValue(target, type, property, this._diffValueFromBasePos, weight);
         } else {
-          if (blendingMode === AnimatorLayerBlendingMode.Additive) {
-            const { _valueType } = curve;
-            const firstFrameValue = curve.keys[0].value;
-            this._calculateDiff(_valueType, property, firstFrameValue, value);
-            this._updateAdditiveLayerValue(target, type, property, this._diffValueFromBasePos, weight);
-          } else {
-            this._applyClipValue(target, type, property, defaultValue, value, weight);
-          }
+          this._applyClipValue(target, type, property, defaultValue, value, weight);
         }
       }
+    }
+  }
+
+  private _fadingPlayingState(
+    playingStateData: AnimatorStateData,
+    transition: AnimatorStateTransition,
+    destStateData: AnimatorStateData,
+    animlayerData: AnimatorLayerData,
+    weight: number,
+    deltaTime: number
+  ) {
+    const destinationState = destStateData.state;
+    const curClip = playingStateData.state.clip;
+    const nextClip = destinationState.clip;
+    let crossWeight: number;
+    transition._crossFadeFrameTime += deltaTime / 1000;
+    let frameTime = transition.offset + transition._crossFadeFrameTime;
+    if (frameTime > destinationState.clipEndTime) {
+      if (destinationState.wrapMode === WrapMode.Loop) {
+        frameTime %= destinationState.clipEndTime;
+      } else {
+        frameTime = destinationState.clipEndTime;
+      }
+    }
+    crossWeight = transition._crossFadeFrameTime / transition.duration;
+    if (crossWeight >= 1) {
+      crossWeight = 1;
+      playingStateData.playType = PlayType.IsFinish;
+    }
+
+    const targetList = this.targetList;
+
+    let count = targetList.length;
+    for (let i = count - 1; i >= 0; i--) {
+      const curCurveIndex = targetList[i][0];
+      const nextCurveIndex = targetList[i][1];
+      if (curCurveIndex && nextCurveIndex) {
+        const { curve: curCurve, type, property } = curClip._curves[curCurveIndex];
+        const { curve: nextCurve } = nextClip._curves[nextCurveIndex];
+        const curFrameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
+        const curVal = curCurve.evaluate(curFrameTime);
+        const destVal = nextCurve.evaluate(frameTime);
+        const { target, defaultValue } = playingStateData.curveDatas[curCurveIndex];
+        const calculatedValue = this._getCrossFadeValue(target, type, property, curVal, destVal, crossWeight);
+        this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
+      } else if (curCurveIndex) {
+        const { curve: curCurve, type, property } = curClip._curves[curCurveIndex];
+        const { target, defaultValue } = playingStateData.curveDatas[curCurveIndex];
+        const curFrameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
+        const curVal = curCurve.evaluate(curFrameTime);
+        const calculatedValue = this._getCrossFadeValue(target, type, property, defaultValue, curVal, 1 - crossWeight);
+        this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
+      } else {
+        const { target, defaultValue } = destStateData.curveDatas[curCurveIndex];
+        const { curve, type, property } = nextClip._curves[curCurveIndex];
+        const val = curve.evaluate(frameTime);
+        const calculatedValue = this._getCrossFadeValue(target, type, property, defaultValue, val, crossWeight);
+        this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
+      }
+    }
+    if (playingStateData.playType === PlayType.IsFinish) {
+      animlayerData.playingStateData = animlayerData.destStateData;
+      animlayerData.playingStateData.frameTime = frameTime;
+      animlayerData.destStateData = null;
     }
   }
 }

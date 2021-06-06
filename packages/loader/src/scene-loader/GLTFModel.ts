@@ -39,8 +39,12 @@ export class GLTFModel extends Component {
 
   set autoPlay(value: string) {
     if (this._animator) {
+      // Play bone animation.
       if (value) {
         this._animator.play(value);
+        this._animator.speed = 1;
+      } else {
+        this._animator.speed = 0;
       }
     }
     this._autoPlay = value;
