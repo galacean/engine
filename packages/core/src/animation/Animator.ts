@@ -44,13 +44,8 @@ export class Animator extends Component {
   private _tempQuaternion: Quaternion = new Quaternion();
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
-  relativePathList: string[] = [];
-  typeList: (new (entity: Entity) => Component)[] = [];
-  propertyList: AnimationProperty[] = [];
-  relativePathPropertMap: { [key: string]: number } = {};
-  targetPropertyValues: any = [];
-  targetList: any = [];
-  defaultValueList: any = [];
+  @ignoreClone
+  private _mergedCurveIndexList: any = [];
 
   /**
    * Get all layers from the AnimatorController which belongs this Animator .
@@ -129,28 +124,29 @@ export class Animator extends Component {
 
       const playingClip = state.clip;
       let count = playingClip._curves.length;
-      const relativePathList: string[] = this.relativePathList;
-      const relativePathPropertMap: { [key: string]: number } = this.relativePathPropertMap;
-      const targetList = this.targetList;
+      this._mergedCurveIndexList = [];
+      const targetProperty: number[][] = [];
+      const mergedCurveIndexList = this._mergedCurveIndexList;
       for (let i = count - 1; i >= 0; i--) {
-        const { property, relativePath } = playingClip._curves[i];
-        if (!relativePathPropertMap[`${relativePath}_${property}`]) {
-          relativePathPropertMap[`${relativePath}_${property}`] = relativePathList.length;
-          relativePathList.push(relativePath);
-          targetList.push([i]);
+        const { instanceId } = playingStateData.curveDatas[i].target;
+        const { property } = playingClip._curves[i];
+        targetProperty[instanceId] = targetProperty[instanceId] || [];
+        if (targetProperty[instanceId][property] === undefined) {
+          targetProperty[instanceId][property] = mergedCurveIndexList.length;
+          mergedCurveIndexList.push([i]);
         }
       }
       const destClip = nextState.clip;
       count = destClip._curves.length;
       for (let i = count - 1; i >= 0; i--) {
-        const { property, relativePath } = destClip._curves[i];
-        if (relativePathPropertMap[`${relativePath}_${property}`] >= 0) {
-          const index = relativePathPropertMap[`${relativePath}_${property}`];
-          targetList[index][1] = i;
+        const { instanceId } = destStateData.curveDatas[i].target;
+        const { property } = destClip._curves[i];
+        if (targetProperty[instanceId][property] >= 0) {
+          const index = targetProperty[instanceId][property];
+          mergedCurveIndexList[index][1] = i;
         } else {
-          relativePathPropertMap[`${relativePath}_${property}`] = relativePathList.length;
-          relativePathList.push(relativePath);
-          targetList.push([null, i]);
+          targetProperty[instanceId][property] = mergedCurveIndexList.length;
+          mergedCurveIndexList.push([null, i]);
         }
       }
     }
@@ -506,12 +502,11 @@ export class Animator extends Component {
       playingStateData.playType = PlayType.IsFinish;
     }
 
-    const targetList = this.targetList;
-
-    let count = targetList.length;
+    const mergedCurveIndexList = this._mergedCurveIndexList;
+    const count = mergedCurveIndexList.length;
     for (let i = count - 1; i >= 0; i--) {
-      const curCurveIndex = targetList[i][0];
-      const nextCurveIndex = targetList[i][1];
+      const curCurveIndex = mergedCurveIndexList[i][0];
+      const nextCurveIndex = mergedCurveIndexList[i][1];
       if (curCurveIndex && nextCurveIndex) {
         const { curve: curCurve, type, property } = curClip._curves[curCurveIndex];
         const { curve: nextCurve } = nextClip._curves[nextCurveIndex];
