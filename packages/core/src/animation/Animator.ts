@@ -177,13 +177,18 @@ export class Animator extends Component {
    * @param deltaTime - The deltaTime when the animation update
    */
   update(deltaTime: number): void {
-    if (this.speed === 0) return;
-    if (!this._playing) return;
-    deltaTime *= this.speed;
+    if (this.speed === 0) {
+      return;
+    }
+    if (!this._playing) {
+      return;
+    }
     const { animatorController } = this;
-    if (!animatorController) return;
-    const { layers } = animatorController;
-    for (let i = 0; i < layers.length; i++) {
+    if (!animatorController) {
+      return;
+    }
+    deltaTime *= this.speed;
+    for (let i = 0, n = animatorController.layers.length; i < n; i++) {
       const isFirstLayer = i === 0;
       if (this._animatorLayersData[i]) {
         const { playingStateData } = this._animatorLayersData[i];
