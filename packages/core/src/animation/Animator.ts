@@ -115,8 +115,9 @@ export class Animator extends Component {
       const targetProperty: number[][] = [];
       const crossFromPos = !state || playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
-      this._mergedCurveIndexList = [];
+
       const mergedCurveIndexList = this._mergedCurveIndexList;
+      mergedCurveIndexList.length = 0;
 
       if (playingStateData.playType === PlayType.IsFading) {
         this._setDefaultValueAndTarget(playingStateData);
@@ -141,13 +142,12 @@ export class Animator extends Component {
         transition.duration = nextState.clipEndTime - transition.offset;
       }
 
-      let count: number;
       if (!crossFromPos) {
-        const playingClip = state.clip;
-        count = playingClip._curves.length;
-        for (let i = count - 1; i >= 0; i--) {
-          const { instanceId } = playingStateData.curveDatas[i].target;
-          const { property } = playingClip._curves[i];
+        const curves = state.clip._curves;
+        const curveDatas = playingStateData.curveDatas;
+        for (let i = curves.length - 1; i >= 0; i--) {
+          const { instanceId } = curveDatas[i].target;
+          const { property } = curves[i];
           targetProperty[instanceId] = targetProperty[instanceId] || [];
           if (targetProperty[instanceId][property] === undefined) {
             targetProperty[instanceId][property] = mergedCurveIndexList.length;
@@ -155,11 +155,11 @@ export class Animator extends Component {
           }
         }
       }
-      const destClip = nextState.clip;
-      count = destClip._curves.length;
-      for (let i = count - 1; i >= 0; i--) {
-        const { instanceId } = destStateData.curveDatas[i].target;
-        const { property } = destClip._curves[i];
+      const curves = nextState.clip._curves;
+      const curveDatas = destStateData.curveDatas;
+      for (let i = curves.length - 1; i >= 0; i--) {
+        const { instanceId } = curveDatas[i].target;
+        const { property } = curves[i];
         targetProperty[instanceId] = targetProperty[instanceId] || [];
         if (targetProperty[instanceId][property] >= 0) {
           const index = targetProperty[instanceId][property];
