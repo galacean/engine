@@ -36,17 +36,17 @@ export class Animator extends Component {
   _playing: boolean;
 
   @ignoreClone
-  private _diffValueFromBasePos: InterpolableValue;
+  private _diffValueFromBasePose: InterpolableValue;
   @ignoreClone
-  private _diffFloatFromBasePos: number = 0;
+  private _diffFloatFromBasePose: number = 0;
   @ignoreClone
-  private _diffVector2FromBasePos: Vector2 = new Vector2();
+  private _diffVector2FromBasePose: Vector2 = new Vector2();
   @ignoreClone
-  private _diffVector3FromBasePos: Vector3 = new Vector3();
+  private _diffVector3FromBasePose: Vector3 = new Vector3();
   @ignoreClone
-  private _diffVector4FromBasePos: Vector4 = new Vector4();
+  private _diffVector4FromBasePose: Vector4 = new Vector4();
   @ignoreClone
-  private _diffQuaternionFromBasePos: Quaternion = new Quaternion();
+  private _diffQuaternionFromBasePose: Quaternion = new Quaternion();
   @ignoreClone
   private _tempVector3: Vector3 = new Vector3();
   @ignoreClone
@@ -56,7 +56,7 @@ export class Animator extends Component {
   @ignoreClone
   private _mergedCurveIndexList: MergedCurveIndex[] = [];
   @ignoreClone
-  private _transitionForPos: AnimatorStateTransition = new AnimatorStateTransition();
+  private _transitionForPose: AnimatorStateTransition = new AnimatorStateTransition();
 
   /**
    * All layers from the AnimatorController which belongs this Animator .
@@ -118,28 +118,29 @@ export class Animator extends Component {
       const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
       const { state } = playingStateData;
       const targetProperty: number[][] = [];
-      const crossFromFixedPose = !state || playingStateData.playType === PlayType.IsFading;
+      const crossFromFixedPose = !state;
+      const isCrossFading = playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
 
       const mergedCurveIndexList = this._mergedCurveIndexList;
       mergedCurveIndexList.length = 0;
-
-      if (playingStateData.playType === PlayType.IsFading) {
-        this._setDefaultValueAndTarget(playingStateData);
-        this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
-      }
-      if (crossFromFixedPose) {
-        transition = this._transitionForPos;
-      } else {
-        playingStateData.playType = PlayType.IsFading;
-        transition = state.addTransition(nextState);
-      }
 
       destStateData.state = nextState;
       destStateData.frameTime = 0;
       destStateData.playType = PlayType.IsCrossing;
 
       this._setDefaultValueAndTarget(destStateData);
+
+      if (playingStateData.playType === PlayType.IsFading) {
+        this._setTempPoseValue(destStateData);
+        this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
+      }
+      if (crossFromFixedPose || isCrossFading) {
+        transition = this._transitionForPose;
+      } else {
+        playingStateData.playType = PlayType.IsFading;
+        transition = state.addTransition(nextState);
+      }
 
       transition.duration = nextState.clip.length * normalizedTransitionDuration;
       transition.offset = nextState.clip.length * normalizedTimeOffset;
@@ -259,20 +260,49 @@ export class Animator extends Component {
         const curve = curves[i];
         const { relativePath, property } = curve;
         const targetEntity = this.entity.findByPath(relativePath);
-        const curveData = new CurveData();
-        curveData.target = targetEntity;
+        if (!stateData.curveDatas[i]) {
+          const curveData = new CurveData();
+          curveData.target = targetEntity;
+          switch (property) {
+            case AnimationProperty.Position:
+              curveData.defaultValue = targetEntity.transform.position;
+              break;
+            case AnimationProperty.Rotation:
+              curveData.defaultValue = targetEntity.transform.rotationQuaternion;
+              break;
+            case AnimationProperty.Scale:
+              curveData.defaultValue = targetEntity.transform.scale;
+              break;
+          }
+          stateData.curveDatas[i] = curveData;
+        }
+      }
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _setTempPoseValue(stateData: AnimatorStateData): void {
+    const { clip } = stateData.state;
+    if (clip) {
+      const curves = clip._curves;
+      for (let i = curves.length - 1; i >= 0; i--) {
+        const curve = curves[i];
+        const { property } = curve;
+        const curveData = stateData.curveDatas[i];
+        const targetEntity = curveData.target;
         switch (property) {
           case AnimationProperty.Position:
-            curveData.defaultValue = targetEntity.transform.position;
+            curveData.tempPoseValue = targetEntity.transform.position;
             break;
           case AnimationProperty.Rotation:
-            curveData.defaultValue = targetEntity.transform.position;
+            curveData.tempPoseValue = targetEntity.transform.rotationQuaternion;
             break;
           case AnimationProperty.Scale:
-            curveData.defaultValue = targetEntity.transform.position;
+            curveData.tempPoseValue = targetEntity.transform.scale;
             break;
         }
-        stateData.curveDatas[i] = curveData;
       }
     }
   }
@@ -310,56 +340,56 @@ export class Animator extends Component {
 
   private _calculateFloatDiff(property: AnimationProperty, sVal: number, dVal: number): void {
     if (property === AnimationProperty.Scale) {
-      this._diffFloatFromBasePos = dVal / sVal;
+      this._diffFloatFromBasePose = dVal / sVal;
     } else {
-      this._diffFloatFromBasePos = dVal - sVal;
+      this._diffFloatFromBasePose = dVal - sVal;
     }
-    this._diffValueFromBasePos = this._diffFloatFromBasePos;
+    this._diffValueFromBasePose = this._diffFloatFromBasePose;
   }
 
   private _calculateVector2Diff(property: AnimationProperty, sVal: Vector2, dVal: Vector2): void {
     if (property === AnimationProperty.Scale) {
-      this._diffVector2FromBasePos.x = dVal.x / sVal.x;
-      this._diffVector2FromBasePos.y = dVal.y / sVal.y;
+      this._diffVector2FromBasePose.x = dVal.x / sVal.x;
+      this._diffVector2FromBasePose.y = dVal.y / sVal.y;
     } else {
-      this._diffVector2FromBasePos.x = dVal.x - sVal.x;
-      this._diffVector2FromBasePos.y = dVal.y - sVal.y;
+      this._diffVector2FromBasePose.x = dVal.x - sVal.x;
+      this._diffVector2FromBasePose.y = dVal.y - sVal.y;
     }
-    this._diffValueFromBasePos = this._diffVector2FromBasePos;
+    this._diffValueFromBasePose = this._diffVector2FromBasePose;
   }
 
   private _calculateVector3Diff(property: AnimationProperty, sVal: Vector3, dVal: Vector3): void {
     if (property === AnimationProperty.Scale) {
-      this._diffVector3FromBasePos.x = dVal.x / sVal.x;
-      this._diffVector3FromBasePos.y = dVal.y / sVal.y;
-      this._diffVector3FromBasePos.z = dVal.z / sVal.z;
+      this._diffVector3FromBasePose.x = dVal.x / sVal.x;
+      this._diffVector3FromBasePose.y = dVal.y / sVal.y;
+      this._diffVector3FromBasePose.z = dVal.z / sVal.z;
     } else {
-      this._diffVector3FromBasePos.x = dVal.x - sVal.x;
-      this._diffVector3FromBasePos.y = dVal.y - sVal.y;
-      this._diffVector3FromBasePos.z = dVal.z - sVal.z;
+      this._diffVector3FromBasePose.x = dVal.x - sVal.x;
+      this._diffVector3FromBasePose.y = dVal.y - sVal.y;
+      this._diffVector3FromBasePose.z = dVal.z - sVal.z;
     }
-    this._diffValueFromBasePos = this._diffVector3FromBasePos;
+    this._diffValueFromBasePose = this._diffVector3FromBasePose;
   }
 
   private _calculateVector4Diff(property: AnimationProperty, sVal: Vector4, dVal: Vector4): void {
     if (property === AnimationProperty.Scale) {
-      this._diffVector4FromBasePos.x = dVal.x / sVal.x;
-      this._diffVector4FromBasePos.y = dVal.y / sVal.y;
-      this._diffVector4FromBasePos.z = dVal.z / sVal.z;
-      this._diffVector4FromBasePos.w = dVal.w / sVal.w;
+      this._diffVector4FromBasePose.x = dVal.x / sVal.x;
+      this._diffVector4FromBasePose.y = dVal.y / sVal.y;
+      this._diffVector4FromBasePose.z = dVal.z / sVal.z;
+      this._diffVector4FromBasePose.w = dVal.w / sVal.w;
     } else {
-      this._diffVector4FromBasePos.x = dVal.x - sVal.x;
-      this._diffVector4FromBasePos.y = dVal.y - sVal.y;
-      this._diffVector4FromBasePos.z = dVal.z - sVal.z;
-      this._diffVector4FromBasePos.w = dVal.w - sVal.w;
+      this._diffVector4FromBasePose.x = dVal.x - sVal.x;
+      this._diffVector4FromBasePose.y = dVal.y - sVal.y;
+      this._diffVector4FromBasePose.z = dVal.z - sVal.z;
+      this._diffVector4FromBasePose.w = dVal.w - sVal.w;
     }
-    this._diffValueFromBasePos = this._diffVector4FromBasePos;
+    this._diffValueFromBasePose = this._diffVector4FromBasePose;
   }
 
   private _calculateQuaternionDiff(dVal: Quaternion, sVal: Quaternion): void {
-    Quaternion.conjugate(sVal, this._diffQuaternionFromBasePos);
-    Quaternion.multiply(this._diffQuaternionFromBasePos, dVal, this._diffQuaternionFromBasePos);
-    this._diffValueFromBasePos = this._diffQuaternionFromBasePos;
+    Quaternion.conjugate(sVal, this._diffQuaternionFromBasePose);
+    Quaternion.multiply(this._diffQuaternionFromBasePose, dVal, this._diffQuaternionFromBasePose);
+    this._diffValueFromBasePose = this._diffQuaternionFromBasePose;
   }
 
   private _getCrossFadeValue(
@@ -475,7 +505,7 @@ export class Animator extends Component {
     if (destStateData && destStateData.playType === PlayType.IsCrossing) {
       const crossFromFixedPose = !playingStateData.state;
       if (crossFromFixedPose) {
-        this._updateCrossFadeFromPos(this._transitionForPos, destStateData, animlayerData, weight, deltaTime);
+        this._updateCrossFadeFromPose(this._transitionForPose, destStateData, animlayerData, weight, deltaTime);
       } else {
         const transition = playingStateData.state.transitions[0];
         if (transition) {
@@ -508,7 +538,7 @@ export class Animator extends Component {
           const { _valueType } = curve;
           const firstFrameValue = curve.keys[0].value;
           this._calculateDiff(_valueType, property, firstFrameValue, value);
-          this._updateAdditiveLayerValue(target, type, property, this._diffValueFromBasePos, weight);
+          this._updateAdditiveLayerValue(target, type, property, this._diffValueFromBasePose, weight);
         } else {
           this._applyClipValue(target, type, property, defaultValue, value, weight);
         }
@@ -578,7 +608,7 @@ export class Animator extends Component {
     }
   }
 
-  private _updateCrossFadeFromPos(
+  private _updateCrossFadeFromPose(
     transition: AnimatorStateTransition,
     destStateData: AnimatorStateData,
     animlayerData: AnimatorLayerData,
@@ -607,10 +637,10 @@ export class Animator extends Component {
     const count = mergedCurveIndexList.length;
     for (let i = count - 1; i >= 0; i--) {
       const { nextCurveIndex } = mergedCurveIndexList[i];
-      const { target, defaultValue } = destStateData.curveDatas[nextCurveIndex];
+      const { target, defaultValue, tempPoseValue } = destStateData.curveDatas[nextCurveIndex];
       const { curve, type, property } = nextClip._curves[nextCurveIndex];
       const val = curve.evaluate(frameTime);
-      const calculatedValue = this._getCrossFadeValue(target, type, property, defaultValue, val, crossWeight);
+      const calculatedValue = this._getCrossFadeValue(target, type, property, tempPoseValue, val, crossWeight);
       this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
     }
     if (destStateData.playType === PlayType.IsPlaying) {

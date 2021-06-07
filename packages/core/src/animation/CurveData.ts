@@ -7,4 +7,5 @@ import { InterpolableValue } from "./KeyFrame";
 export class CurveData {
   target: Entity;
   defaultValue: InterpolableValue;
+  tempPoseValue: InterpolableValue;
 }
