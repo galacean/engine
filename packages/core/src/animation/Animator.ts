@@ -18,6 +18,11 @@ import { AnimatorLayerData } from "./AnimatorLayerData";
 import { AnimatorStateData } from "./AnimatorStateData";
 import { CurveData } from "./CurveData";
 
+interface MergedCurveIndex {
+  curCurveIndex: number;
+  nextCurveIndex: number;
+}
+
 /**
  * The controller of the animation system.
  */
@@ -49,7 +54,7 @@ export class Animator extends Component {
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
-  private _mergedCurveIndexList: any = [];
+  private _mergedCurveIndexList: MergedCurveIndex[] = [];
   @ignoreClone
   private _transitionForPos: AnimatorStateTransition = new AnimatorStateTransition();
 
@@ -113,7 +118,7 @@ export class Animator extends Component {
       const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
       const { state } = playingStateData;
       const targetProperty: number[][] = [];
-      const crossFromPos = !state || playingStateData.playType === PlayType.IsFading;
+      const crossFromFixedPose = !state || playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
 
       const mergedCurveIndexList = this._mergedCurveIndexList;
@@ -123,7 +128,7 @@ export class Animator extends Component {
         this._setDefaultValueAndTarget(playingStateData);
         this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
       }
-      if (crossFromPos) {
+      if (crossFromFixedPose) {
         transition = this._transitionForPos;
       } else {
         playingStateData.playType = PlayType.IsFading;
@@ -142,7 +147,7 @@ export class Animator extends Component {
         transition.duration = nextState.clipEndTime - transition.offset;
       }
 
-      if (!crossFromPos) {
+      if (!crossFromFixedPose) {
         const curves = state.clip._curves;
         const curveDatas = playingStateData.curveDatas;
         for (let i = curves.length - 1; i >= 0; i--) {
@@ -151,7 +156,10 @@ export class Animator extends Component {
           targetProperty[instanceId] = targetProperty[instanceId] || [];
           if (targetProperty[instanceId][property] === undefined) {
             targetProperty[instanceId][property] = mergedCurveIndexList.length;
-            mergedCurveIndexList.push([i]);
+            mergedCurveIndexList.push({
+              curCurveIndex: i,
+              nextCurveIndex: null
+            });
           }
         }
       }
@@ -163,10 +171,13 @@ export class Animator extends Component {
         targetProperty[instanceId] = targetProperty[instanceId] || [];
         if (targetProperty[instanceId][property] >= 0) {
           const index = targetProperty[instanceId][property];
-          mergedCurveIndexList[index][1] = i;
+          mergedCurveIndexList[index].nextCurveIndex = i;
         } else {
           targetProperty[instanceId][property] = mergedCurveIndexList.length;
-          mergedCurveIndexList.push([null, i]);
+          mergedCurveIndexList.push({
+            curCurveIndex: null,
+            nextCurveIndex: i
+          });
         }
       }
     }
@@ -462,8 +473,8 @@ export class Animator extends Component {
     const { playingStateData, destStateData } = animlayerData;
     const { weight, blendingMode } = animLayer;
     if (destStateData && destStateData.playType === PlayType.IsCrossing) {
-      const crossFromPos = !playingStateData.state;
-      if (crossFromPos) {
+      const crossFromFixedPose = !playingStateData.state;
+      if (crossFromFixedPose) {
         this._updateCrossFadeFromPos(this._transitionForPos, destStateData, animlayerData, weight, deltaTime);
       } else {
         const transition = playingStateData.state.transitions[0];
@@ -535,8 +546,7 @@ export class Animator extends Component {
     const mergedCurveIndexList = this._mergedCurveIndexList;
     const count = mergedCurveIndexList.length;
     for (let i = count - 1; i >= 0; i--) {
-      const curCurveIndex = mergedCurveIndexList[i][0];
-      const nextCurveIndex = mergedCurveIndexList[i][1];
+      const { curCurveIndex, nextCurveIndex } = mergedCurveIndexList[i];
       if (curCurveIndex && nextCurveIndex) {
         const { curve: curCurve, type, property } = curClip._curves[curCurveIndex];
         const { curve: nextCurve } = nextClip._curves[nextCurveIndex];
@@ -596,7 +606,7 @@ export class Animator extends Component {
     const mergedCurveIndexList = this._mergedCurveIndexList;
     const count = mergedCurveIndexList.length;
     for (let i = count - 1; i >= 0; i--) {
-      const nextCurveIndex = mergedCurveIndexList[i][1];
+      const { nextCurveIndex } = mergedCurveIndexList[i];
       const { target, defaultValue } = destStateData.curveDatas[nextCurveIndex];
       const { curve, type, property } = nextClip._curves[nextCurveIndex];
       const val = curve.evaluate(frameTime);
