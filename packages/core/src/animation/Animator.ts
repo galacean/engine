@@ -16,6 +16,7 @@ import { ignoreClone } from "../clone/CloneManager";
 import { AnimationProperty } from "./enums/AnimationProperty";
 import { AnimatorLayerData } from "./AnimatorLayerData";
 import { AnimatorStateData } from "./AnimatorStateData";
+import { CurveData } from "./CurveData";
 
 /**
  * The controller of the animation system.
@@ -23,8 +24,11 @@ import { AnimatorStateData } from "./AnimatorStateData";
 export class Animator extends Component {
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
   speed: number = 1;
+  /** All layers from the AnimatorController which belongs this Animator .*/
   animatorController: AnimatorController;
-  playing: boolean;
+
+  /** @internal */
+  _playing: boolean;
 
   @ignoreClone
   private _diffValueFromBasePos: InterpolableValue;
@@ -50,7 +54,7 @@ export class Animator extends Component {
   private _transitionForPos: AnimatorStateTransition = new AnimatorStateTransition();
 
   /**
-   * Get all layers from the AnimatorController which belongs this Animator .
+   * All layers from the AnimatorController which belongs this Animator .
    */
   get layers(): Readonly<AnimatorControllerLayer[]> {
     return this.animatorController?.layers || [];
@@ -82,7 +86,7 @@ export class Animator extends Component {
     playingStateData.frameTime = playState.clip.length * normalizedTimeOffset;
     playingStateData.playType = PlayType.NotStart;
     this._setDefaultValueAndTarget(playingStateData);
-    this.playing = true;
+    this._playing = true;
     return playState;
   }
 
@@ -103,7 +107,7 @@ export class Animator extends Component {
     if (!animatorController) {
       return;
     }
-    this.playing = true;
+    this._playing = true;
     const nextState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
     if (nextState) {
       const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
@@ -174,7 +178,7 @@ export class Animator extends Component {
    */
   update(deltaTime: number): void {
     if (this.speed === 0) return;
-    if (!this.playing) return;
+    if (!this._playing) return;
     deltaTime *= this.speed;
     const { animatorController } = this;
     if (!animatorController) return;
@@ -232,27 +236,24 @@ export class Animator extends Component {
     const { clip } = stateData.state;
     if (clip) {
       const curves = clip._curves;
-      const { length: curvesCount } = curves;
-      for (let i = curvesCount - 1; i >= 0; i--) {
+      for (let i = curves.length - 1; i >= 0; i--) {
         const curve = curves[i];
         const { relativePath, property } = curve;
         const targetEntity = this.entity.findByPath(relativePath);
-        let defaultValue: InterpolableValue;
+        const curveData = new CurveData();
+        curveData.target = targetEntity;
         switch (property) {
           case AnimationProperty.Position:
-            defaultValue = targetEntity.position;
+            curveData.defaultValue = targetEntity.transform.position;
             break;
           case AnimationProperty.Rotation:
-            defaultValue = targetEntity.rotation;
+            curveData.defaultValue = targetEntity.transform.position;
             break;
           case AnimationProperty.Scale:
-            defaultValue = targetEntity.scale;
+            curveData.defaultValue = targetEntity.transform.position;
             break;
         }
-        stateData.curveDatas[i] = {
-          target: targetEntity,
-          defaultValue
-        };
+        stateData.curveDatas[i] = curveData;
       }
     }
   }
@@ -475,10 +476,10 @@ export class Animator extends Component {
   ) {
     playingStateData.playType = PlayType.IsPlaying;
     const clip = playingStateData.state.clip;
-    const count = clip._curves.length;
+    const curves = clip._curves;
     const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
-    for (let i = count - 1; i >= 0; i--) {
-      const { curve, type, property } = clip._curves[i];
+    for (let i = curves.length - 1; i >= 0; i--) {
+      const { curve, type, property } = curves[i];
       const value = curve.evaluate(frameTime);
       const { target, defaultValue } = playingStateData.curveDatas[i];
       if (isFirstLayer) {
