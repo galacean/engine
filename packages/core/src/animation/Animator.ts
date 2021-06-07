@@ -86,6 +86,9 @@ export class Animator extends Component {
 
     const playState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
     const { playingStateData } = this._getAnimatorLayerData(layerIndex);
+    if (playingStateData.state) {
+      this._revert(playingStateData);
+    }
 
     playingStateData.state = playState;
     playingStateData.frameTime = playState.clip.length * normalizedTimeOffset;
@@ -112,18 +115,22 @@ export class Animator extends Component {
     if (!animatorController) {
       return;
     }
-    this._playing = true;
+
     const nextState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
     if (nextState) {
       const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
       const { state } = playingStateData;
       const targetProperty: number[][] = [];
-      const crossFromFixedPose = !state;
+      const crossFromFixedPose = !state || !this._playing;
       const isCrossFading = playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
 
       const mergedCurveIndexList = this._mergedCurveIndexList;
       mergedCurveIndexList.length = 0;
+
+      if (playingStateData.state) {
+        this._revert(playingStateData);
+      }
 
       destStateData.state = nextState;
       destStateData.frameTime = 0;
@@ -131,11 +138,9 @@ export class Animator extends Component {
 
       this._setDefaultValueAndTarget(destStateData);
 
-      if (playingStateData.playType === PlayType.IsFading) {
+      if (crossFromFixedPose || isCrossFading) {
         this._setTempPoseValue(destStateData);
         this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
-      }
-      if (crossFromFixedPose || isCrossFading) {
         transition = this._transitionForPose;
       } else {
         playingStateData.playType = PlayType.IsFading;
@@ -182,6 +187,7 @@ export class Animator extends Component {
         }
       }
     }
+    this._playing = true;
   }
 
   /**
@@ -202,23 +208,36 @@ export class Animator extends Component {
     deltaTime *= this.speed;
 
     const animatorLayersData = this._animatorLayersData;
-    for (let i = 0, n = animatorController.layers.length; i < n; i++) {
+    const layerCount = animatorController.layers.length;
+    let finishLayerCount = 0;
+    for (let i = layerCount - 1; i >= 0; i--) {
       const isFirstLayer = i === 0;
       const animatorLayerData = animatorLayersData[i];
-      if (animatorLayerData) {
-        const { playingStateData } = animatorLayerData;
-        playingStateData.frameTime += deltaTime / 1000;
-        if (playingStateData.playType === PlayType.IsPlaying) {
-          if (playingStateData.frameTime > playingStateData.state.clipEndTime) {
-            if (playingStateData.state.wrapMode === WrapMode.Loop) {
-              playingStateData.frameTime %= playingStateData.state.clipEndTime;
-            } else {
-              playingStateData.frameTime = playingStateData.state.clipEndTime;
-            }
+      const { playingStateData } = animatorLayerData;
+      playingStateData.frameTime += deltaTime / 1000;
+      if (playingStateData.playType === PlayType.IsPlaying) {
+        if (playingStateData.frameTime > playingStateData.state.clipEndTime) {
+          if (playingStateData.state.wrapMode === WrapMode.Loop) {
+            playingStateData.frameTime %= playingStateData.state.clipEndTime;
+          } else {
+            playingStateData.frameTime = playingStateData.state.clipEndTime;
+            playingStateData.playType = PlayType.IsFinish;
+            ++finishLayerCount;
           }
         }
-        this._updateLayer(i, isFirstLayer, deltaTime);
       }
+      if (playingStateData.frameTime === PlayType.IsFinish) {
+        ++finishLayerCount;
+      }
+      this._updateLayer(i, isFirstLayer, deltaTime);
+    }
+    if (finishLayerCount === layerCount) {
+      for (let i = layerCount - 1; i >= 0; i--) {
+        const animatorLayerData = animatorLayersData[i];
+        const { playingStateData } = animatorLayerData;
+        this._revert(playingStateData);
+      }
+      this._playing = false;
     }
   }
 
@@ -265,13 +284,13 @@ export class Animator extends Component {
           curveData.target = targetEntity;
           switch (property) {
             case AnimationProperty.Position:
-              curveData.defaultValue = targetEntity.transform.position;
+              curveData.defaultValue = targetEntity.transform.position.clone();
               break;
             case AnimationProperty.Rotation:
-              curveData.defaultValue = targetEntity.transform.rotationQuaternion;
+              curveData.defaultValue = targetEntity.transform.rotationQuaternion.clone();
               break;
             case AnimationProperty.Scale:
-              curveData.defaultValue = targetEntity.transform.scale;
+              curveData.defaultValue = targetEntity.transform.scale.clone();
               break;
           }
           stateData.curveDatas[i] = curveData;
@@ -294,13 +313,13 @@ export class Animator extends Component {
         const targetEntity = curveData.target;
         switch (property) {
           case AnimationProperty.Position:
-            curveData.tempPoseValue = targetEntity.transform.position;
+            curveData.tempPoseValue = targetEntity.transform.position.clone();
             break;
           case AnimationProperty.Rotation:
-            curveData.tempPoseValue = targetEntity.transform.rotationQuaternion;
+            curveData.tempPoseValue = targetEntity.transform.rotationQuaternion.clone();
             break;
           case AnimationProperty.Scale:
-            curveData.tempPoseValue = targetEntity.transform.scale;
+            curveData.tempPoseValue = targetEntity.transform.scale.clone();
             break;
         }
       }
@@ -647,6 +666,31 @@ export class Animator extends Component {
       animlayerData.playingStateData = animlayerData.destStateData;
       animlayerData.playingStateData.frameTime = frameTime;
       animlayerData.destStateData = new AnimatorStateData();
+    }
+  }
+
+  private _revert(playingStateData: AnimatorStateData) {
+    const { clip } = playingStateData.state;
+    if (clip) {
+      const curves = clip._curves;
+      for (let i = curves.length - 1; i >= 0; i--) {
+        const curve = curves[i];
+        const { property } = curve;
+        const curveData = playingStateData.curveDatas[i];
+        const { defaultValue } = curveData;
+        const { transform } = curveData.target;
+        switch (property) {
+          case AnimationProperty.Position:
+            transform.position = <Vector3>defaultValue;
+            break;
+          case AnimationProperty.Rotation:
+            transform.rotationQuaternion = <Quaternion>defaultValue;
+            break;
+          case AnimationProperty.Scale:
+            transform.scale = <Vector3>defaultValue;
+            break;
+        }
+      }
     }
   }
 }
