@@ -188,10 +188,13 @@ export class Animator extends Component {
       return;
     }
     deltaTime *= this.speed;
+
+    const animatorLayersData = this._animatorLayersData;
     for (let i = 0, n = animatorController.layers.length; i < n; i++) {
       const isFirstLayer = i === 0;
-      if (this._animatorLayersData[i]) {
-        const { playingStateData } = this._animatorLayersData[i];
+      const animatorLayerData = animatorLayersData[i];
+      if (animatorLayerData) {
+        const { playingStateData } = animatorLayerData;
         playingStateData.frameTime += deltaTime / 1000;
         if (playingStateData.playType === PlayType.IsPlaying) {
           if (playingStateData.frameTime > playingStateData.state.clipEndTime) {
