@@ -227,13 +227,15 @@ export class Animator extends Component {
           }
         }
       }
+      //CM: 这个判断没懂
       if (playingStateData.frameTime === PlayType.IsFinish) {
         ++finishLayerCount;
       }
       this._updateLayer(i, isFirstLayer, deltaTime);
     }
+
+    //CM: 这个是干啥的
     if (finishLayerCount === layerCount) {
-      //CM: 这个是干啥的
       for (let i = layerCount - 1; i >= 0; i--) {
         const animatorLayerData = animatorLayersData[i];
         const { playingStateData } = animatorLayerData;
