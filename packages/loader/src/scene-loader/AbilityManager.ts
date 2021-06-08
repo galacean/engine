@@ -72,6 +72,12 @@ export class AbilityManager {
     return { id, key, value };
   }
 
+  public addRuntimeComponent(componentId: string, component: Component) {
+    (component as any).id = componentId;
+    this.abilityMap[componentId] = component;
+    return component;
+  }
+
   public get(id: string): Component {
     return this.abilityMap[id];
   }
@@ -93,7 +99,7 @@ export class AbilityManager {
 
     const constructor = Parser._components["o3"][type];
     if (!constructor) {
-      throw new Error(`${type} is not defined`);
+      console.warn(`${type} is not defined`);
     }
     return constructor;
   }
