@@ -87,7 +87,7 @@ export class Animator extends Component {
     const playState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
     const { playingStateData } = this._getAnimatorLayerData(layerIndex);
     if (playingStateData.state) {
-      this._revert(playingStateData);
+      this._revertDefaultValue(playingStateData);
     }
 
     playingStateData.state = playState;
@@ -99,7 +99,7 @@ export class Animator extends Component {
   }
 
   /**
-   * Cross fade to the AnimationClip by name.
+   * Create a crossfade from the current state to another state.
    * @param stateName - The name of the next state
    * @param layerIndex - The layer where the crossfade occurs
    * @param normalizedTransitionDuration - The duration of the transition (normalized)
@@ -129,7 +129,7 @@ export class Animator extends Component {
       mergedCurveIndexList.length = 0;
 
       if (playingStateData.state) {
-        this._revert(playingStateData);
+        this._revertDefaultValue(playingStateData);
       }
 
       destStateData.state = nextState;
@@ -139,7 +139,7 @@ export class Animator extends Component {
       this._setDefaultValueAndTarget(destStateData);
 
       if (crossFromFixedPose || isCrossFading) {
-        this._setTempPoseValue(destStateData);// CM: 好像不太对，应该保存所有受融合影响节点的 FixedPose，不止是目标动作
+        this._setTempPoseValue(destStateData); // CM: 好像不太对，应该保存所有受融合影响节点的 FixedPose，不止是目标动作
         this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
         transition = this._transitionForPose;
       } else {
@@ -233,10 +233,11 @@ export class Animator extends Component {
       this._updateLayer(i, isFirstLayer, deltaTime);
     }
     if (finishLayerCount === layerCount) {
+      //CM: 这个是干啥的
       for (let i = layerCount - 1; i >= 0; i--) {
         const animatorLayerData = animatorLayersData[i];
         const { playingStateData } = animatorLayerData;
-        this._revert(playingStateData);
+        this._revertDefaultValue(playingStateData);
       }
       this._playing = false;
     }
@@ -314,7 +315,7 @@ export class Animator extends Component {
         const targetEntity = curveData.target;
         switch (property) {
           case AnimationProperty.Position:
-            //CM: 不能用克隆，会有 GC，只能用CloneTo() 
+            //CM: 不能用克隆，会有 GC，只能用CloneTo()
             curveData.tempPoseValue = targetEntity.transform.position.clone();
             break;
           case AnimationProperty.Rotation:
@@ -671,25 +672,23 @@ export class Animator extends Component {
     }
   }
 
-  private _revert(playingStateData: AnimatorStateData) {
+  private _revertDefaultValue(playingStateData: AnimatorStateData): void {
     const { clip } = playingStateData.state;
     if (clip) {
       const curves = clip._curves;
       for (let i = curves.length - 1; i >= 0; i--) {
-        const curve = curves[i];
-        const { property } = curve;
+        const { property } = curves[i];
         const curveData = playingStateData.curveDatas[i];
-        const { defaultValue } = curveData;
         const { transform } = curveData.target;
         switch (property) {
           case AnimationProperty.Position:
-            transform.position = <Vector3>defaultValue;
+            transform.position = <Vector3>curveData.defaultValue;
             break;
           case AnimationProperty.Rotation:
-            transform.rotationQuaternion = <Quaternion>defaultValue;
+            transform.rotationQuaternion = <Quaternion>curveData.defaultValue;
             break;
           case AnimationProperty.Scale:
-            transform.scale = <Vector3>defaultValue;
+            transform.scale = <Vector3>curveData.defaultValue;
             break;
         }
       }
