@@ -215,7 +215,6 @@ export class Animator extends Component {
 
     const animatorLayersData = this._animatorLayersData;
     const layerCount = animatorController.layers.length;
-    let finishLayerCount = 0;
     for (let i = layerCount - 1; i >= 0; i--) {
       const isFirstLayer = i === 0;
       const animatorLayerData = animatorLayersData[i];
@@ -228,25 +227,10 @@ export class Animator extends Component {
           } else {
             playingStateData.frameTime = playingStateData.state.clipEndTime;
             playingStateData.playType = PlayType.IsFinish;
-            ++finishLayerCount;
           }
         }
       }
-      //CM: 这个判断没懂
-      if (playingStateData.frameTime === PlayType.IsFinish) {
-        ++finishLayerCount;
-      }
       this._updateLayer(i, isFirstLayer, deltaTime);
-    }
-
-    //CM: 这个是干啥的
-    if (finishLayerCount === layerCount) {
-      for (let i = layerCount - 1; i >= 0; i--) {
-        const animatorLayerData = animatorLayersData[i];
-        const { playingStateData } = animatorLayerData;
-        this._revertDefaultValue(playingStateData);
-      }
-      this._playing = false;
     }
   }
 
