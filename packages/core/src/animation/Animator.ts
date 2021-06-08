@@ -57,6 +57,10 @@ export class Animator extends Component {
   private _mergedCurveIndexList: MergedCurveIndex[] = [];
   @ignoreClone
   private _transitionForPose: AnimatorStateTransition = new AnimatorStateTransition();
+  @ignoreClone
+  private _curveDataForPose: CurveData<Component>[] = [];
+  @ignoreClone
+  private _defaultValueCache: InterpolableValue[][] = [];
 
   /**
    * All layers from the AnimatorController which belongs this Animator .
@@ -120,16 +124,16 @@ export class Animator extends Component {
     if (nextState) {
       const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
       const { state } = playingStateData;
-      const mergeTargetProperty: number[][] = [];
       const crossFromFixedPose = !state || !this._playing;
       const isCrossFading = playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
+      let mergeTargetProperty: number[][] = [];
 
       const mergedCurveIndexList = this._mergedCurveIndexList;
       mergedCurveIndexList.length = 0;
 
-      if (playingStateData.state) {
-        this._revertDefaultValue(playingStateData);
+      if (isCrossFading) {
+        this._setTempPoseValue(playingStateData, destStateData);
       }
 
       destStateData.state = nextState;
@@ -137,9 +141,11 @@ export class Animator extends Component {
       destStateData.playType = PlayType.IsCrossing;
 
       this._setDefaultValueAndTarget(destStateData);
+      if (crossFromFixedPose) {
+        this._setTempPoseValue(null, destStateData);
+      }
 
       if (crossFromFixedPose || isCrossFading) {
-        this._setTempPoseValue(destStateData); // CM: 好像不太对，应该保存所有受融合影响节点的 FixedPose，不止是目标动作
         this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
         transition = this._transitionForPose;
       } else {
@@ -160,14 +166,11 @@ export class Animator extends Component {
           const { instanceId } = curveDatas[i].target;
           const { property } = curves[i];
           const mergeProperty = mergeTargetProperty[instanceId] || (mergeTargetProperty[instanceId] = []);
-          //CM: 判断一直生效
-          if (mergeProperty[property] === undefined) {
-            mergeProperty[property] = mergedCurveIndexList.length;
-            mergedCurveIndexList.push({
-              curCurveIndex: i,
-              nextCurveIndex: null
-            });
-          }
+          mergeProperty[property] = mergedCurveIndexList.length;
+          mergedCurveIndexList.push({
+            curCurveIndex: i,
+            nextCurveIndex: null
+          });
         }
       }
       const curves = nextState.clip._curves;
@@ -187,6 +190,8 @@ export class Animator extends Component {
           mergedCurveIndexList[index].nextCurveIndex = i;
         }
       }
+
+      mergeTargetProperty = null;
     }
     this._playing = true;
   }
@@ -276,29 +281,43 @@ export class Animator extends Component {
    * @internal
    */
   _setDefaultValueAndTarget(stateData: AnimatorStateData): void {
+    const { _defaultValueCache } = this;
     const { clip } = stateData.state;
-    if (clip) {
-      const curves = clip._curves;
-      for (let i = curves.length - 1; i >= 0; i--) {
-        const curve = curves[i];
-        const { relativePath, property } = curve;
-        const targetEntity = this.entity.findByPath(relativePath);
-        if (!stateData.curveDatas[i]) {
-          const curveData = new CurveData();
-          curveData.target = targetEntity;
-          switch (property) {
-            case AnimationProperty.Position:
-              curveData.defaultValue = targetEntity.transform.position.clone();
-              break;
-            case AnimationProperty.Rotation:
-              curveData.defaultValue = targetEntity.transform.rotationQuaternion.clone();
-              break;
-            case AnimationProperty.Scale:
-              curveData.defaultValue = targetEntity.transform.scale.clone();
-              break;
-          }
-          stateData.curveDatas[i] = curveData;
+    const curves = clip._curves;
+    for (let i = curves.length - 1; i >= 0; i--) {
+      const curve = curves[i];
+      const { relativePath, property } = curve;
+      const targetEntity = this.entity.findByPath(relativePath);
+      const { instanceId } = targetEntity;
+      const targetValueCache = _defaultValueCache[instanceId] || (_defaultValueCache[instanceId] = []);
+      if (!stateData.curveDatas[i]) {
+        const curveData = new CurveData();
+        curveData.target = targetEntity;
+        curveData.curveData = curve;
+        switch (property) {
+          case AnimationProperty.Position:
+            if (!targetValueCache[property]) {
+              targetValueCache[property] = targetEntity.transform.position.clone();
+            }
+            curveData.defaultValue = targetValueCache[property];
+            curveData.tempPoseValue = new Vector3();
+            break;
+          case AnimationProperty.Rotation:
+            if (!targetValueCache[property]) {
+              targetValueCache[property] = targetEntity.transform.rotationQuaternion.clone();
+            }
+            curveData.defaultValue = targetValueCache[property];
+            curveData.tempPoseValue = new Quaternion();
+            break;
+          case AnimationProperty.Scale:
+            if (!targetValueCache[property]) {
+              targetValueCache[property] = targetEntity.transform.scale.clone();
+            }
+            curveData.defaultValue = targetValueCache[property];
+            curveData.tempPoseValue = new Vector3();
+            break;
         }
+        stateData.curveDatas[i] = curveData;
       }
     }
   }
@@ -306,29 +325,48 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  private _setTempPoseValue(stateData: AnimatorStateData): void {
-    const { clip } = stateData.state;
-    if (clip) {
-      const curves = clip._curves;
-      for (let i = curves.length - 1; i >= 0; i--) {
-        const curve = curves[i];
+  private _setTempPoseValue(playingStateData: AnimatorStateData, destStateData: AnimatorStateData): void {
+    const { _curveDataForPose } = this;
+    _curveDataForPose.length = 0;
+
+    let effectTargetProperty: boolean[][] = [];
+    const nextCurves = destStateData.state.clip._curves;
+    for (let i = nextCurves.length - 1; i >= 0; i--) {
+      const curve = nextCurves[i];
+      const { property } = curve;
+      const curveData = destStateData.curveDatas[i];
+      const targetEntity = curveData.target;
+      const { instanceId } = targetEntity;
+      _curveDataForPose[i] = curveData;
+      const effectProperty = effectTargetProperty[instanceId] || (effectTargetProperty[instanceId] = []);
+      effectProperty[property] = true;
+      const { tempPoseValue } = _curveDataForPose[i];
+      switch (property) {
+        case AnimationProperty.Position:
+          targetEntity.transform.position.cloneTo(<Vector3>tempPoseValue);
+          break;
+        case AnimationProperty.Rotation:
+          targetEntity.transform.rotationQuaternion.cloneTo(<Quaternion>tempPoseValue);
+          break;
+        case AnimationProperty.Scale:
+          targetEntity.transform.scale.cloneTo(<Vector3>tempPoseValue);
+          break;
+      }
+    }
+    if (playingStateData) {
+      const curCurves = playingStateData.state.clip._curves;
+      for (let i = curCurves.length - 1; i >= 0; i--) {
+        const curve = curCurves[i];
         const { property } = curve;
-        const curveData = stateData.curveDatas[i];
+        const curveData = playingStateData.curveDatas[i];
         const targetEntity = curveData.target;
-        switch (property) {
-          case AnimationProperty.Position:
-            //CM: 不能用克隆，会有 GC，只能用CloneTo()
-            curveData.tempPoseValue = targetEntity.transform.position.clone();
-            break;
-          case AnimationProperty.Rotation:
-            curveData.tempPoseValue = targetEntity.transform.rotationQuaternion.clone();
-            break;
-          case AnimationProperty.Scale:
-            curveData.tempPoseValue = targetEntity.transform.scale.clone();
-            break;
+        const { instanceId } = targetEntity;
+        if (!effectTargetProperty[instanceId][property]) {
+          _curveDataForPose.push(curveData);
         }
       }
     }
+    effectTargetProperty = null;
   }
 
   private _calculateDiff(
@@ -601,7 +639,7 @@ export class Animator extends Component {
     const count = mergedCurveIndexList.length;
     for (let i = count - 1; i >= 0; i--) {
       const { curCurveIndex, nextCurveIndex } = mergedCurveIndexList[i];
-      if (curCurveIndex && nextCurveIndex) {
+      if (curCurveIndex >= 0 && nextCurveIndex >= 0) {
         const { curve: curCurve, type, property } = curClip._curves[curCurveIndex];
         const { curve: nextCurve } = nextClip._curves[nextCurveIndex];
         const curFrameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
@@ -609,8 +647,8 @@ export class Animator extends Component {
         const destVal = nextCurve.evaluate(frameTime);
         const { target, defaultValue } = playingStateData.curveDatas[curCurveIndex];
         const calculatedValue = this._getCrossFadeValue(target, type, property, curVal, destVal, crossWeight);
-        this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
-      } else if (curCurveIndex) {
+        this._applyClipValue(target, type, property, defaultValue, calculatedValue, 1);
+      } else if (curCurveIndex >= 0) {
         const { curve: curCurve, type, property } = curClip._curves[curCurveIndex];
         const { target, defaultValue } = playingStateData.curveDatas[curCurveIndex];
         const curFrameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
@@ -657,14 +695,21 @@ export class Animator extends Component {
       destStateData.playType = PlayType.IsPlaying;
     }
 
-    const mergedCurveIndexList = this._mergedCurveIndexList;
-    const count = mergedCurveIndexList.length;
+    const curveDataForPose = this._curveDataForPose;
+    const count = curveDataForPose.length;
+
     for (let i = count - 1; i >= 0; i--) {
-      const { nextCurveIndex } = mergedCurveIndexList[i];
-      const { target, defaultValue, tempPoseValue } = destStateData.curveDatas[nextCurveIndex];
-      const { curve, type, property } = nextClip._curves[nextCurveIndex];
-      const val = curve.evaluate(frameTime);
-      const calculatedValue = this._getCrossFadeValue(target, type, property, tempPoseValue, val, crossWeight);
+      const { target, curveData: fixedPoseCurveData, defaultValue, tempPoseValue } = curveDataForPose[i];
+      const destCurveData = destStateData.curveDatas[i];
+      let calculatedValue: InterpolableValue;
+      const { type, property } = fixedPoseCurveData;
+      const { curve } = nextClip._curves[i];
+      if (destCurveData) {
+        const val = curve.evaluate(frameTime);
+        calculatedValue = this._getCrossFadeValue(target, type, property, tempPoseValue, val, crossWeight);
+      } else {
+        calculatedValue = this._getCrossFadeValue(target, type, property, tempPoseValue, defaultValue, crossWeight);
+      }
       this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
     }
     if (destStateData.playType === PlayType.IsPlaying) {
@@ -674,23 +719,25 @@ export class Animator extends Component {
     }
   }
 
-  private _revertDefaultValue(playingStateData: AnimatorStateData): void {
+  private _revertDefaultValue(playingStateData: AnimatorStateData) {
     const { clip } = playingStateData.state;
     if (clip) {
       const curves = clip._curves;
       for (let i = curves.length - 1; i >= 0; i--) {
-        const { property } = curves[i];
+        const curve = curves[i];
+        const { property } = curve;
         const curveData = playingStateData.curveDatas[i];
+        const { defaultValue } = curveData;
         const { transform } = curveData.target;
         switch (property) {
           case AnimationProperty.Position:
-            transform.position = <Vector3>curveData.defaultValue;
+            transform.position = <Vector3>defaultValue;
             break;
           case AnimationProperty.Rotation:
-            transform.rotationQuaternion = <Quaternion>curveData.defaultValue;
+            transform.rotationQuaternion = <Quaternion>defaultValue;
             break;
           case AnimationProperty.Scale:
-            transform.scale = <Vector3>curveData.defaultValue;
+            transform.scale = <Vector3>defaultValue;
             break;
         }
       }
