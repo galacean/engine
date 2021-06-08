@@ -82,7 +82,7 @@ export class Animator extends Component {
    * @param layerIndex - The layer index(default 0)
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
-  play(stateName: string, layerIndex: number = 0, normalizedTimeOffset: number = 0): AnimatorState {
+  play(stateName: string, layerIndex: number = 0, normalizedTimeOffset: number = 0): void {
     const { animatorController } = this;
     if (!animatorController) {
       return;
@@ -99,7 +99,6 @@ export class Animator extends Component {
     playingStateData.playType = PlayType.NotStart;
     this._setDefaultValueAndTarget(playingStateData);
     this._playing = true;
-    return playState;
   }
 
   /**
@@ -264,7 +263,7 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  _setDefaultValueAndTarget(stateData: AnimatorStateData): void {
+  _setDefaultValueAndTarget(stateData: AnimatorStateData<Component>): void {
     const { _defaultValueCache } = this;
     const { clip } = stateData.state;
     const curves = clip._curves;
@@ -309,7 +308,10 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  private _setTempPoseValue(playingStateData: AnimatorStateData, destStateData: AnimatorStateData): void {
+  private _setTempPoseValue(
+    playingStateData: AnimatorStateData<Component>,
+    destStateData: AnimatorStateData<Component>
+  ): void {
     const { _curveDataForPose } = this;
     _curveDataForPose.length = 0;
 
@@ -564,7 +566,7 @@ export class Animator extends Component {
   }
 
   private _updatePlayingState(
-    playingStateData: AnimatorStateData,
+    playingStateData: AnimatorStateData<Component>,
     isFirstLayer: boolean,
     weight: number,
     blendingMode: AnimatorLayerBlendingMode
@@ -593,9 +595,9 @@ export class Animator extends Component {
   }
 
   private _updateCrossFade(
-    playingStateData: AnimatorStateData,
+    playingStateData: AnimatorStateData<Component>,
     transition: AnimatorStateTransition,
-    destStateData: AnimatorStateData,
+    destStateData: AnimatorStateData<Component>,
     animlayerData: AnimatorLayerData,
     weight: number,
     deltaTime: number
@@ -656,7 +658,7 @@ export class Animator extends Component {
 
   private _updateCrossFadeFromPose(
     transition: AnimatorStateTransition,
-    destStateData: AnimatorStateData,
+    destStateData: AnimatorStateData<Component>,
     animlayerData: AnimatorLayerData,
     weight: number,
     deltaTime: number
@@ -703,7 +705,7 @@ export class Animator extends Component {
     }
   }
 
-  private _revertDefaultValue(playingStateData: AnimatorStateData) {
+  private _revertDefaultValue(playingStateData: AnimatorStateData<Component>) {
     const { clip } = playingStateData.state;
     if (clip) {
       const curves = clip._curves;
