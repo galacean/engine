@@ -45,7 +45,7 @@ export class Camera extends Component {
   enableFrustumCulling: boolean = true;
 
   /**
-   * Determining what to clear when rendering by a Camera. 
+   * Determining what to clear when rendering by a Camera.
    * @defaultValue `CameraClearFlags.DepthColor`
    */
   clearFlags: CameraClearFlags = CameraClearFlags.DepthColor;
