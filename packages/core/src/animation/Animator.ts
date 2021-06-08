@@ -120,7 +120,7 @@ export class Animator extends Component {
     if (nextState) {
       const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
       const { state } = playingStateData;
-      const targetProperty: number[][] = [];
+      const mergeTargetProperty: number[][] = [];
       const crossFromFixedPose = !state || !this._playing;
       const isCrossFading = playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
@@ -159,9 +159,9 @@ export class Animator extends Component {
         for (let i = curves.length - 1; i >= 0; i--) {
           const { instanceId } = curveDatas[i].target;
           const { property } = curves[i];
-          targetProperty[instanceId] = targetProperty[instanceId] || [];
-          if (targetProperty[instanceId][property] === undefined) {
-            targetProperty[instanceId][property] = mergedCurveIndexList.length;
+          const mergeProperty = mergeTargetProperty[instanceId] || (mergeTargetProperty[instanceId] = []);
+          if (mergeProperty[property] === undefined) {
+            mergeProperty[property] = mergedCurveIndexList.length;
             mergedCurveIndexList.push({
               curCurveIndex: i,
               nextCurveIndex: null
@@ -174,12 +174,12 @@ export class Animator extends Component {
       for (let i = curves.length - 1; i >= 0; i--) {
         const { instanceId } = curveDatas[i].target;
         const { property } = curves[i];
-        targetProperty[instanceId] = targetProperty[instanceId] || [];
-        if (targetProperty[instanceId][property] >= 0) {
-          const index = targetProperty[instanceId][property];
+        const mergeProperty = mergeTargetProperty[instanceId] || (mergeTargetProperty[instanceId] = []);
+        if (mergeProperty[property] >= 0) {
+          const index = mergeProperty[property];
           mergedCurveIndexList[index].nextCurveIndex = i;
         } else {
-          targetProperty[instanceId][property] = mergedCurveIndexList.length;
+          mergeProperty[property] = mergedCurveIndexList.length;
           mergedCurveIndexList.push({
             curCurveIndex: null,
             nextCurveIndex: i
@@ -302,7 +302,7 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  _setTempPoseValue(stateData: AnimatorStateData): void {
+  private _setTempPoseValue(stateData: AnimatorStateData): void {
     const { clip } = stateData.state;
     if (clip) {
       const curves = clip._curves;
