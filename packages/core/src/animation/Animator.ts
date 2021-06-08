@@ -91,7 +91,7 @@ export class Animator extends Component {
     const playState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
     const { playingStateData } = this._getAnimatorLayerData(layerIndex);
     if (playingStateData.state) {
-      this._revert(playingStateData);
+      this._revertDefaultValue(playingStateData);
     }
 
     playingStateData.state = playState;
@@ -103,7 +103,7 @@ export class Animator extends Component {
   }
 
   /**
-   * Cross fade to the AnimationClip by name.
+   * Create a crossfade from the current state to another state.
    * @param stateName - The name of the next state
    * @param layerIndex - The layer where the crossfade occurs
    * @param normalizedTransitionDuration - The duration of the transition (normalized)
@@ -232,16 +232,19 @@ export class Animator extends Component {
           }
         }
       }
+      //CM: 这个判断没懂
       if (playingStateData.frameTime === PlayType.IsFinish) {
         ++finishLayerCount;
       }
       this._updateLayer(i, isFirstLayer, deltaTime);
     }
+
+    //CM: 这个是干啥的
     if (finishLayerCount === layerCount) {
       for (let i = layerCount - 1; i >= 0; i--) {
         const animatorLayerData = animatorLayersData[i];
         const { playingStateData } = animatorLayerData;
-        this._revert(playingStateData);
+        this._revertDefaultValue(playingStateData);
       }
       this._playing = false;
     }
@@ -716,7 +719,7 @@ export class Animator extends Component {
     }
   }
 
-  private _revert(playingStateData: AnimatorStateData) {
+  private _revertDefaultValue(playingStateData: AnimatorStateData) {
     const { clip } = playingStateData.state;
     if (clip) {
       const curves = clip._curves;
