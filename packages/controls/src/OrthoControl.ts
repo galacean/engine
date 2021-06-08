@@ -38,10 +38,10 @@ export class OrthoControl extends Script {
 
   onUpdate(dt: number): void {
     if (this._zoomScale !== 1) {
-      const { camera: cameraComp } = this;
+      const { camera } = this;
       const sizeDiff = this._zoomScaleUnit * (this._zoomScale - 1);
-      const size = cameraComp.orthographicSize + sizeDiff;
-      cameraComp.orthographicSize = Math.max(this._zoomMinSize, Math.min(this._zoomMaxSize, size));
+      const size = camera.orthographicSize + sizeDiff;
+      camera.orthographicSize = Math.max(this._zoomMinSize, Math.min(this._zoomMaxSize, size));
       this._zoomScale = 1;
     }
 
