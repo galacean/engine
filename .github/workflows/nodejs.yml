@@ -21,4 +21,4 @@ jobs:
     - run: npm run ci
     - run: npm install codecov
     - name: Upload coverage to Codecov
-      run: ./bin/codecov
+      run: ./node_modules/.bin/codecov
