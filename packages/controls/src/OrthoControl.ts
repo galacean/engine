@@ -1,4 +1,4 @@
-import { Camera, Entity, Script, Vector2, Vector3 } from "oasis-engine";
+import { Camera, Entity, Logger, Script, Vector2, Vector3 } from "oasis-engine";
 
 /**
  * The camera's 2D controller, can zoom and pan.
@@ -73,7 +73,7 @@ export class OrthoControl extends Script {
    * @param y - The y-axis coordinate (unit: pixel)
    */
   panStart(x: number, y: number): void {
-    if (this.enabled === false) return;
+    if (!this.enabled) return;
 
     this.cameraEntity.transform.position.cloneTo(this._panStartPos);
     this._panStart.setValue(x, y);
@@ -85,9 +85,14 @@ export class OrthoControl extends Script {
    * Panning.
    * @param x - The x-axis coordinate (unit: pixel)
    * @param y - The y-axis coordinate (unit: pixel)
+   *
+   * @remarks Make sure to call panStart before calling panMove.
    */
   panMove(x: number, y: number): void {
-    if (this.enabled === false || this._isPanStart === false) return;
+    if (!this.enabled) return;
+    if (!this._isPanStart) {
+      Logger.warn("Make sure to call panStart before calling panMove");
+    }
     this._panEnd.setValue(x, y);
   }
 
@@ -95,7 +100,7 @@ export class OrthoControl extends Script {
    * End pan.
    */
   panEnd(): void {
-    if (this.enabled === false) return;
+    if (!this.enabled) return;
     this._isPanStart = false;
   }
 
@@ -106,9 +111,9 @@ export class OrthoControl extends Script {
   private _handlePan(): void {
     const { width, height } = this.engine.canvas;
     const { x, y } = this._panDelta;
-    const { camera: cameraComp } = this;
-    const doubleOrthographicSize = cameraComp.orthographicSize * 4;
-    const width3D = doubleOrthographicSize * cameraComp.aspectRatio;
+    const { camera } = this;
+    const doubleOrthographicSize = camera.orthographicSize * 4;
+    const width3D = doubleOrthographicSize * camera.aspectRatio;
     const height3D = doubleOrthographicSize;
     const pos = this._panStartPos;
     pos.x -= (x * width3D) / width;
