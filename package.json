@@ -9,7 +9,7 @@
     "bootstrap": "npm i && lerna bootstrap",
     "test": "jest",
     "test-cov": "jest --coverage",
-    "ci": "lerna bootstrap && npm run build && npm run b:types && npm run test-cov",
+    "ci": "lerna bootstrap && npm run b:module && npm run b:types && npm run test-cov",
     "lint": "eslint packages/*/src --ext .ts",
     "watch": "cross-env NODE_ENV=development BUILD_TYPE=MODULE rollup -cw -m inline",
     "watch:umd": "cross-env NODE_ENV=development BUILD_TYPE=UMD rollup -cw -m inline",
