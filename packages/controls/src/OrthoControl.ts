@@ -47,7 +47,11 @@ export class OrthoControl extends Script {
 
     if (this._isPanStart) {
       const { _panStart: panStart, _panEnd: panEnd } = this;
-      Vector2.subtract(panEnd, panStart, this._panDelta);
+      const panDelta = this._panDelta;
+      Vector2.subtract(panEnd, panStart, panDelta);
+      if (panDelta.x === 0 && panDelta.y === 0) {
+        return ;
+      }
       this._handlePan();
       panEnd.cloneTo(panStart);
     }
