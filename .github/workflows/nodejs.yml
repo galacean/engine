@@ -22,3 +22,4 @@ jobs:
     - run: npm install codecov
     - name: Upload coverage to Codecov
       run: ./node_modules/.bin/codecov
+    - run: curl -s https://codecov.io/bash
