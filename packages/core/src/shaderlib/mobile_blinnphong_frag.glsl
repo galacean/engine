@@ -28,12 +28,11 @@
         lgt.color = u_pointLightColor[i];
         lgt.position = u_pointLightPosition[i];
         lgt.distance = u_pointLightDistance[i];
-        lgt.decay = u_pointLightDecay[i];
 
         vec3 direction = v_pos - lgt.position;
         float dist = length( direction );
         direction /= dist;
-        float decay = pow( max( 0.0, 1.0-dist / lgt.distance ), 2.0 );
+        float decay = clamp(1.0 - pow(dist/lgt.distance, 4.0), 0.0, 1.0);
 
         float d =  max( dot( N, -direction ), 0.0 ) * decay;
         lightDiffuse += lgt.color * d;
@@ -55,24 +54,21 @@
         lgt.position = u_spotLightPosition[i];
         lgt.direction = u_spotLightDirection[i];
         lgt.distance = u_spotLightDistance[i];
-        lgt.decay = u_spotLightDecay[i];
-        lgt.angle = u_spotLightAngle[i];
-        lgt.penumbra = u_spotLightPenumbra[i];
+        lgt.angleCos = u_spotLightAngleCos[i];
+        lgt.penumbraCos = u_spotLightPenumbraCos[i];
 
-        vec3 direction = v_pos - lgt.position;
-        float angle = acos( dot( normalize( direction ), normalize( lgt.direction ) ) );
-        float dist = length( direction );
-        direction /= dist;
-        float decay = pow( max( 0.0, 1.0 - dist / lgt.distance ), 2.0 );
-
-        float hasLight = step( angle, lgt.angle );
-        float hasPenumbra = step( lgt.angle, angle ) * step( angle, lgt.angle * ( 1.0 + lgt.penumbra ) );
-        float penumbra = hasPenumbra * ( 1.0 - ( angle - lgt.angle ) / ( lgt.angle * lgt.penumbra ) );
-        float d = max( dot( N, -direction ), 0.0 )  * decay * ( penumbra + hasLight );
+        vec3 direction = lgt.position - v_pos;
+        float lightDistance = length( direction );
+        direction/ = lightDistance;
+        float angleCos = dot( direction, -lgt.direction );
+        float decay = clamp(1.0 - pow(lightDistance/lgt.distance, 4.0), 0.0, 1.0);
+        float spotEffect = smoothstep( lgt.penumbraCos, lgt.angleCos, angleCos );
+        float decayTotal = decay * spotEffect;
+        float d = max( dot( N, direction ), 0.0 )  * decayTotal;
         lightDiffuse += lgt.color * d;
 
-        vec3 halfDir = normalize( V - direction );
-        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * decay * ( penumbra + hasLight );
+        vec3 halfDir = normalize( V + direction );
+        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * decayTotal;
         lightSpecular += lgt.color * s;
 
     }
