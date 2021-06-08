@@ -120,7 +120,7 @@ export class Animator extends Component {
     if (nextState) {
       const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
       const { state } = playingStateData;
-      const targetProperty: number[][] = [];
+      const mergeTargetProperty: number[][] = [];
       const crossFromFixedPose = !state || !this._playing;
       const isCrossFading = playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
@@ -139,7 +139,7 @@ export class Animator extends Component {
       this._setDefaultValueAndTarget(destStateData);
 
       if (crossFromFixedPose || isCrossFading) {
-        this._setTempPoseValue(destStateData);
+        this._setTempPoseValue(destStateData);// CM: 好像不太对，应该保存所有受融合影响节点的 FixedPose，不止是目标动作
         this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
         transition = this._transitionForPose;
       } else {
@@ -159,9 +159,10 @@ export class Animator extends Component {
         for (let i = curves.length - 1; i >= 0; i--) {
           const { instanceId } = curveDatas[i].target;
           const { property } = curves[i];
-          targetProperty[instanceId] = targetProperty[instanceId] || [];
-          if (targetProperty[instanceId][property] === undefined) {
-            targetProperty[instanceId][property] = mergedCurveIndexList.length;
+          const mergeProperty = mergeTargetProperty[instanceId] || (mergeTargetProperty[instanceId] = []);
+          //CM: 判断一直生效
+          if (mergeProperty[property] === undefined) {
+            mergeProperty[property] = mergedCurveIndexList.length;
             mergedCurveIndexList.push({
               curCurveIndex: i,
               nextCurveIndex: null
@@ -174,16 +175,16 @@ export class Animator extends Component {
       for (let i = curves.length - 1; i >= 0; i--) {
         const { instanceId } = curveDatas[i].target;
         const { property } = curves[i];
-        targetProperty[instanceId] = targetProperty[instanceId] || [];
-        if (targetProperty[instanceId][property] >= 0) {
-          const index = targetProperty[instanceId][property];
-          mergedCurveIndexList[index].nextCurveIndex = i;
-        } else {
-          targetProperty[instanceId][property] = mergedCurveIndexList.length;
+        const mergeProperty = mergeTargetProperty[instanceId] || (mergeTargetProperty[instanceId] = []);
+        if (mergeProperty[property] === undefined) {
+          mergeProperty[property] = mergedCurveIndexList.length;
           mergedCurveIndexList.push({
             curCurveIndex: null,
             nextCurveIndex: i
           });
+        } else {
+          const index = mergeProperty[property];
+          mergedCurveIndexList[index].nextCurveIndex = i;
         }
       }
     }
@@ -302,7 +303,7 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  _setTempPoseValue(stateData: AnimatorStateData): void {
+  private _setTempPoseValue(stateData: AnimatorStateData): void {
     const { clip } = stateData.state;
     if (clip) {
       const curves = clip._curves;
@@ -313,6 +314,7 @@ export class Animator extends Component {
         const targetEntity = curveData.target;
         switch (property) {
           case AnimationProperty.Position:
+            //CM: 不能用克隆，会有 GC，只能用CloneTo() 
             curveData.tempPoseValue = targetEntity.transform.position.clone();
             break;
           case AnimationProperty.Rotation:
