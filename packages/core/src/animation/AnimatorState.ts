@@ -39,15 +39,12 @@ export class AnimatorState {
   }
 
   /**
-   * Get the clip starttime the user setted of the clip, default is 0.
+   * The clip start time the user setted , default is 0.
    */
   get clipStartTime() {
     return this._clipStartTime;
   }
 
-  /**
-   * Set the clip starttime, the animation clip will start at this time.
-   */
   set clipStartTime(time: number) {
     this._clipStartTime = time;
     if (time < 0) {
@@ -56,7 +53,7 @@ export class AnimatorState {
   }
 
   /**
-   * Get clip starttime the user setted of the clip of the clip, default is the clip duration.
+   * The clip end time the user setted , default is the clip duration.
    */
   get clipEndTime() {
     return this._clipEndTime;

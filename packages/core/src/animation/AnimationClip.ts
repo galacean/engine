@@ -55,7 +55,7 @@ export class AnimationClip extends Motion {
   }
 
   /**
-   * Samples an animation at a given time for any animated properties.
+   * Samples an animation at a given time.
    * @param entity - The animated entity
    * @param time - The time to sample an animation
    */
