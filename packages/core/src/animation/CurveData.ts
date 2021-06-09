@@ -10,5 +10,5 @@ export class CurveData<T extends Component> {
   target: Entity;
   curveData: AnimationClipCurveData<T>;
   defaultValue: InterpolableValue;
-  tempPoseValue: InterpolableValue;
+  fiexedPoseValue: InterpolableValue;
 }

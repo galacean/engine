@@ -1,22 +1,21 @@
-import { AnimatorStateTransition } from "./AnimatorTransition";
-import { WrapMode } from "./enums/WrapMode";
-import { Transform } from "../Transform";
-import { AnimatorState } from "./AnimatorState";
-import { InterpolableValueType } from "./enums/InterpolableValueType";
-import { InterpolableValue } from "./KeyFrame";
-import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
-import { AnimatorController } from "./AnimatorController";
 import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { AnimatorUtils } from "./AnimatorUtils";
-import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
-import { PlayType } from "./enums/PlayType";
-import { ignoreClone } from "../clone/CloneManager";
-import { AnimationProperty } from "./enums/AnimationProperty";
+import { Transform } from "../Transform";
+import { AnimatorController } from "./AnimatorController";
+import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorLayerData } from "./AnimatorLayerData";
 import { AnimatorStateData } from "./AnimatorStateData";
+import { AnimatorStateTransition } from "./AnimatorTransition";
+import { AnimatorUtils } from "./AnimatorUtils";
 import { CurveData } from "./CurveData";
+import { AnimationProperty } from "./enums/AnimationProperty";
+import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
+import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { PlayType } from "./enums/PlayType";
+import { WrapMode } from "./enums/WrapMode";
+import { InterpolableValue } from "./KeyFrame";
 
 interface MergedCurveIndex {
   curCurveIndex: number;
@@ -132,7 +131,7 @@ export class Animator extends Component {
       mergedCurveIndexList.length = 0;
 
       if (isCrossFading) {
-        this._setTempPoseValue(playingStateData, destStateData);
+        this._saveFixedPose(playingStateData, destStateData);
       }
 
       destStateData.state = nextState;
@@ -141,7 +140,7 @@ export class Animator extends Component {
 
       this._setDefaultValueAndTarget(destStateData);
       if (crossFromFixedPose) {
-        this._setTempPoseValue(null, destStateData);
+        this._saveFixedPose(null, destStateData);
       }
 
       if (crossFromFixedPose || isCrossFading) {
@@ -283,21 +282,21 @@ export class Animator extends Component {
               targetValueCache[property] = targetEntity.transform.position.clone();
             }
             curveData.defaultValue = targetValueCache[property];
-            curveData.tempPoseValue = new Vector3();
+            curveData.fiexedPoseValue = new Vector3();
             break;
           case AnimationProperty.Rotation:
             if (!targetValueCache[property]) {
               targetValueCache[property] = targetEntity.transform.rotationQuaternion.clone();
             }
             curveData.defaultValue = targetValueCache[property];
-            curveData.tempPoseValue = new Quaternion();
+            curveData.fiexedPoseValue = new Quaternion();
             break;
           case AnimationProperty.Scale:
             if (!targetValueCache[property]) {
               targetValueCache[property] = targetEntity.transform.scale.clone();
             }
             curveData.defaultValue = targetValueCache[property];
-            curveData.tempPoseValue = new Vector3();
+            curveData.fiexedPoseValue = new Vector3();
             break;
         }
         stateData.curveDatas[i] = curveData;
@@ -305,7 +304,7 @@ export class Animator extends Component {
     }
   }
 
-  private _setTempPoseValue(
+  private _saveFixedPose(
     playingStateData: AnimatorStateData<Component>,
     destStateData: AnimatorStateData<Component>
   ): void {
@@ -323,16 +322,16 @@ export class Animator extends Component {
       _curveDataForPose[i] = curveData;
       const effectProperty = effectTargetProperty[instanceId] || (effectTargetProperty[instanceId] = []);
       effectProperty[property] = true;
-      const { tempPoseValue } = _curveDataForPose[i];
+      const { fiexedPoseValue } = _curveDataForPose[i];
       switch (property) {
         case AnimationProperty.Position:
-          targetEntity.transform.position.cloneTo(<Vector3>tempPoseValue);
+          targetEntity.transform.position.cloneTo(<Vector3>fiexedPoseValue);
           break;
         case AnimationProperty.Rotation:
-          targetEntity.transform.rotationQuaternion.cloneTo(<Quaternion>tempPoseValue);
+          targetEntity.transform.rotationQuaternion.cloneTo(<Quaternion>fiexedPoseValue);
           break;
         case AnimationProperty.Scale:
-          targetEntity.transform.scale.cloneTo(<Vector3>tempPoseValue);
+          targetEntity.transform.scale.cloneTo(<Vector3>fiexedPoseValue);
           break;
       }
     }
@@ -682,7 +681,9 @@ export class Animator extends Component {
     const count = curveDataForPose.length;
 
     for (let i = count - 1; i >= 0; i--) {
-      const { target, curveData: fixedPoseCurveData, defaultValue, tempPoseValue } = curveDataForPose[i];
+      const { target, curveData: fixedPoseCurveData, defaultValue, fiexedPoseValue: tempPoseValue } = curveDataForPose[
+        i
+      ];
       const destCurveData = destStateData.curveDatas[i];
       let calculatedValue: InterpolableValue;
       const { type, property } = fixedPoseCurveData;
