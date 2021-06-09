@@ -274,7 +274,7 @@ export class Animator extends Component {
       const { instanceId } = targetEntity;
       const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = []);
       if (!stateData.curveDatas[i]) {
-        //CN: 两种对象初始化时机解耦
+        //CM: 两种对象初始化时机解耦
         const propertyOwner = propertyOwners[property] || (propertyOwners[property] = new AnimationCureOwner());
         const curveData = new CurveData();
         propertyOwner.target = targetEntity;
@@ -314,8 +314,7 @@ export class Animator extends Component {
       const curve = nextCurves[i];
       const { property } = curve;
       const curveData = destStateData.curveDatas[i];
-      const owner = curveData.owner;
-      const { target, fiexedPoseValue } = owner;
+      const { target, fiexedPoseValue } = curveData.owner;
       const { instanceId } = target;
       _curveDataForPose[i] = curveData;
       const effectProperty = effectTargetProperty[instanceId] || (effectTargetProperty[instanceId] = []);
@@ -341,6 +340,7 @@ export class Animator extends Component {
         const { instanceId } = curveData.owner.target;
         if (!effectTargetProperty[instanceId][property]) {
           _curveDataForPose.push(curveData);
+          // CM: 没记录 fiexed pose
         }
       }
     }
