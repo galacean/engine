@@ -213,8 +213,7 @@ export class Animator extends Component {
     deltaTime *= this.speed;
 
     const animatorLayersData = this._animatorLayersData;
-    const layerCount = animatorController.layers.length;
-    for (let i = 0; i < layerCount; i++) {
+    for (let i = 0, n = animatorController.layers.length; i < n; i++) {
       const isFirstLayer = i === 0;
       const animatorLayerData = animatorLayersData[i];
       const { playingStateData } = animatorLayerData;

@@ -9,6 +9,7 @@ export class AnimatorControllerLayer {
   weight: number = 1;
   /** The blending mode used by the layer. It is not taken into account for the first layer. */
   blendingMode: AnimatorLayerBlendingMode = AnimatorLayerBlendingMode.Override;
+  /** The state machine for the layer. */
   stateMachine: AnimatorStateMachine;
 
   /**
