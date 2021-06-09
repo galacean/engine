@@ -57,8 +57,7 @@ export class GLTFModel extends Component {
   set loop(value: WrapMode) {
     if (this._animator && this.autoPlay) {
       // Play bone animation
-      const theState = this._animator.play(this._autoPlay);
-      theState.wrapMode = value;
+      this._animator.play(this._autoPlay);
     }
     this._loop = value;
   }

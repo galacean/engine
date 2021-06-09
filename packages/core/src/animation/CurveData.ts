@@ -1,14 +1,14 @@
-import { Entity } from "../Entity";
 import { Component } from "../Component";
-import { InterpolableValue } from "./KeyFrame";
 import { AnimationClipCurveData } from "./AnimationClipCurveData";
+import { AnimationCureOwner } from "./AnimationCureOwner";
 
 /**
  * @internal
  */
 export class CurveData<T extends Component> {
-  target: Entity;
+  owner: AnimationCureOwner;
   curveData: AnimationClipCurveData<T>;
-  defaultValue: InterpolableValue;
-  fiexedPoseValue: InterpolableValue;
+  // target: Entity;
+  // defaultValue: InterpolableValue;
+  // fiexedPoseValue: InterpolableValue;
 }
