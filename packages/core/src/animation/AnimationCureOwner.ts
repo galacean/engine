@@ -8,4 +8,6 @@ export class AnimationCureOwner {
   target: Entity;
   defaultValue: InterpolableValue;
   fiexedPoseValue: InterpolableValue;
+  crossCurveMark: number = 0;
+  crossCurveIndex: number;
 }

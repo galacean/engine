@@ -54,7 +54,7 @@ export class Animator extends Component {
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
-  private _mergedCurveIndexList: MergedCurveIndex[] = [];
+  private _crossCurveIndies: MergedCurveIndex[] = [];
   @ignoreClone
   private _transitionForPose: AnimatorStateTransition = new AnimatorStateTransition();
   @ignoreClone
@@ -121,15 +121,17 @@ export class Animator extends Component {
 
     const nextState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
     if (nextState) {
-      const { playingStateData, destStateData } = this._getAnimatorLayerData(layerIndex);
+      const animatorLayerData = this._getAnimatorLayerData(layerIndex);
+      const crossCurveMark = ++animatorLayerData.crossCurveMark;
+      const { playingStateData, destStateData } = animatorLayerData;
       const { state } = playingStateData;
       const crossFromFixedPose = !state || !this._playing;
       const isCrossFading = playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
-      let mergeTargetProperty: number[][] = [];
+      const animationCureOwners = this._animationCureOwners;
 
-      const mergedCurveIndexList = this._mergedCurveIndexList;
-      mergedCurveIndexList.length = 0;
+      const crossCurveIndices = this._crossCurveIndies;
+      crossCurveIndices.length = 0;
 
       if (isCrossFading) {
         this._saveFixedPose(playingStateData, destStateData);
@@ -163,10 +165,11 @@ export class Animator extends Component {
         const curveDatas = playingStateData.curveDatas;
         for (let i = curves.length - 1; i >= 0; i--) {
           const { instanceId } = curveDatas[i].owner.target;
-          const { property } = curves[i];
-          const mergeProperty = mergeTargetProperty[instanceId] || (mergeTargetProperty[instanceId] = []);
-          mergeProperty[property] = mergedCurveIndexList.length;
-          mergedCurveIndexList.push({
+          const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = []);
+          const propertyOwner = propertyOwners[curves[i].property];
+          propertyOwner.crossCurveMark = crossCurveMark;
+          propertyOwner.crossCurveIndex = crossCurveIndices.length;
+          crossCurveIndices.push({
             curCurveIndex: i,
             nextCurveIndex: null
           });
@@ -176,21 +179,18 @@ export class Animator extends Component {
       const curveDatas = destStateData.curveDatas;
       for (let i = curves.length - 1; i >= 0; i--) {
         const { instanceId } = curveDatas[i].owner.target;
-        const { property } = curves[i];
-        const mergeProperty = mergeTargetProperty[instanceId] || (mergeTargetProperty[instanceId] = []);
-        if (mergeProperty[property] === undefined) {
-          mergeProperty[property] = mergedCurveIndexList.length;
-          mergedCurveIndexList.push({
+        const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = []);
+        const propertyOwner = propertyOwners[curves[i].property];
+        if (propertyOwner.crossCurveMark === crossCurveMark) {
+          crossCurveIndices[propertyOwner.crossCurveIndex].nextCurveIndex = i;
+        } else {
+          propertyOwner.crossCurveMark = crossCurveMark;
+          crossCurveIndices.push({
             curCurveIndex: null,
             nextCurveIndex: i
           });
-        } else {
-          const index = mergeProperty[property];
-          mergedCurveIndexList[index].nextCurveIndex = i;
         }
       }
-
-      mergeTargetProperty = null;
     }
     this._playing = true;
   }
@@ -612,7 +612,7 @@ export class Animator extends Component {
       playingStateData.playType = PlayType.IsFinish;
     }
 
-    const mergedCurveIndexList = this._mergedCurveIndexList;
+    const mergedCurveIndexList = this._crossCurveIndies;
     const count = mergedCurveIndexList.length;
     for (let i = count - 1; i >= 0; i--) {
       const { curCurveIndex, nextCurveIndex } = mergedCurveIndexList[i];
