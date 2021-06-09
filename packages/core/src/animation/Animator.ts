@@ -1,7 +1,6 @@
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
 import { Transform } from "../Transform";
-import { AnimatorState } from "./AnimatorState";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { InterpolableValue } from "./KeyFrame";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
