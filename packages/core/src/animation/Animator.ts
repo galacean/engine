@@ -7,7 +7,6 @@ import { AnimationCureOwner } from "./AnimationCureOwner";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorLayerData } from "./AnimatorLayerData";
-import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateData } from "./AnimatorStateData";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { AnimatorUtils } from "./AnimatorUtils";
@@ -145,8 +144,9 @@ export class Animator extends Component {
         transition = state.addTransition(nextState);
       }
 
-      transition.duration = nextState.clip.length * normalizedTransitionDuration;
-      transition.offset = nextState.clip.length * normalizedTimeOffset;
+      const clipLength = nextState.clip.length;
+      transition.duration = clipLength * normalizedTransitionDuration;
+      transition.offset = clipLength * normalizedTimeOffset;
       if (transition.duration > nextState.clipEndTime - transition.offset) {
         transition.duration = nextState.clipEndTime - transition.offset;
       }
