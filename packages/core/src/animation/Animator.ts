@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-=======
-import { AnimatorStateTransition } from "./AnimatorTransition";
-import { WrapMode } from "./enums/WrapMode";
-import { Transform } from "../Transform";
-import { InterpolableValueType } from "./enums/InterpolableValueType";
-import { InterpolableValue } from "./KeyFrame";
-import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
-import { AnimatorController } from "./AnimatorController";
->>>>>>> 2a72642f64ad97a755e2c29b494665831b277490
 import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
