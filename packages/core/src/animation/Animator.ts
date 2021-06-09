@@ -7,6 +7,7 @@ import { AnimationCureOwner } from "./AnimationCureOwner";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorLayerData } from "./AnimatorLayerData";
+import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateData } from "./AnimatorStateData";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { AnimatorUtils } from "./AnimatorUtils";
@@ -19,6 +20,7 @@ import { WrapMode } from "./enums/WrapMode";
 import { InterpolableValue } from "./KeyFrame";
 
 interface MergedCurveIndex {
+  owner: AnimationCureOwner;
   curCurveIndex: number;
   nextCurveIndex: number;
 }
@@ -57,8 +59,6 @@ export class Animator extends Component {
   private _crossCurveIndies: MergedCurveIndex[] = [];
   @ignoreClone
   private _transitionForPose: AnimatorStateTransition = new AnimatorStateTransition();
-  @ignoreClone
-  private _curveDataForPose: CurveData<Component>[] = []; //CM: 简化
   @ignoreClone
   private _animationCureOwners: AnimationCureOwner[][] = [];
 
@@ -122,29 +122,20 @@ export class Animator extends Component {
     const nextState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
     if (nextState) {
       const animatorLayerData = this._getAnimatorLayerData(layerIndex);
-      const crossCurveMark = ++animatorLayerData.crossCurveMark;
       const { playingStateData, destStateData } = animatorLayerData;
       const { state } = playingStateData;
       const crossFromFixedPose = !state || !this._playing;
       const isCrossFading = playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
-      const animationCureOwners = this._animationCureOwners;
 
       const crossCurveIndices = this._crossCurveIndies;
       crossCurveIndices.length = 0;
-
-      if (isCrossFading) {
-        this._saveFixedPose(playingStateData, destStateData);
-      }
 
       destStateData.state = nextState;
       destStateData.frameTime = 0;
       destStateData.playType = PlayType.IsCrossing;
 
       this._setDefaultValueAndTarget(destStateData);
-      if (crossFromFixedPose) {
-        this._saveFixedPose(null, destStateData);
-      }
 
       if (crossFromFixedPose || isCrossFading) {
         this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
@@ -160,39 +151,89 @@ export class Animator extends Component {
         transition.duration = nextState.clipEndTime - transition.offset;
       }
 
-      if (!crossFromFixedPose) {
-        const curves = state.clip._curves;
-        const curveDatas = playingStateData.curveDatas;
-        for (let i = curves.length - 1; i >= 0; i--) {
-          const { instanceId } = curveDatas[i].owner.target;
-          const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = []);
-          const propertyOwner = propertyOwners[curves[i].property];
-          propertyOwner.crossCurveMark = crossCurveMark;
-          propertyOwner.crossCurveIndex = crossCurveIndices.length;
-          crossCurveIndices.push({
-            curCurveIndex: i,
-            nextCurveIndex: null
-          });
-        }
-      }
-      const curves = nextState.clip._curves;
-      const curveDatas = destStateData.curveDatas;
-      for (let i = curves.length - 1; i >= 0; i--) {
-        const { instanceId } = curveDatas[i].owner.target;
-        const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = []);
-        const propertyOwner = propertyOwners[curves[i].property];
-        if (propertyOwner.crossCurveMark === crossCurveMark) {
-          crossCurveIndices[propertyOwner.crossCurveIndex].nextCurveIndex = i;
-        } else {
-          propertyOwner.crossCurveMark = crossCurveMark;
-          crossCurveIndices.push({
-            curCurveIndex: null,
-            nextCurveIndex: i
-          });
-        }
+      if (isCrossFading) {
+        this._prepareFiexdPoseCrossFading(animatorLayerData);
+      } else {
+        this._prepareCrossFading(animatorLayerData);
       }
     }
     this._playing = true;
+  }
+
+  private _prepareCrossFading(animatorLayerData: AnimatorLayerData): void {
+    const crossCurveIndices = this._crossCurveIndies;
+    crossCurveIndices.length = 0;
+    const { playingStateData, destStateData } = animatorLayerData;
+    const { state } = playingStateData;
+    const crossCurveMark = ++animatorLayerData.crossCurveMark;
+    let curves = state.clip._curves;
+    let curveDatas = playingStateData.curveDatas;
+    for (let i = curves.length - 1; i >= 0; i--) {
+      const owner = curveDatas[i].owner;
+      owner.crossCurveMark = crossCurveMark;
+      owner.crossCurveIndex = crossCurveIndices.length;
+      crossCurveIndices.push({
+        owner: owner,
+        curCurveIndex: i,
+        nextCurveIndex: null
+      });
+    }
+
+    curveDatas = destStateData.curveDatas;
+    for (let i = curveDatas.length - 1; i >= 0; i--) {
+      const owner = curveDatas[i].owner;
+      if (owner.crossCurveMark === crossCurveMark) {
+        crossCurveIndices[owner.crossCurveIndex].nextCurveIndex = i;
+      } else {
+        owner.crossCurveMark = crossCurveMark;
+        crossCurveIndices.push({
+          owner: owner,
+          curCurveIndex: null,
+          nextCurveIndex: i
+        });
+      }
+    }
+  }
+
+  private _prepareFiexdPoseCrossFading(animatorLayerData: AnimatorLayerData): void {
+    const { playingStateData, destStateData } = animatorLayerData;
+
+    const crossCurveIndices = this._crossCurveIndies;
+    crossCurveIndices.length = 0;
+
+    const crossCurveMark = animatorLayerData.crossCurveMark;
+
+    // Save current crossFade curve owner fixed pose.
+    for (let i = crossCurveIndices.length - 1; i >= 0; i--) {
+      const crossCurveIndex = crossCurveIndices[i];
+      const curCurveIndex = crossCurveIndex.curCurveIndex;
+      let owner: AnimationCureOwner;
+      if (curCurveIndex) {
+        owner = playingStateData.curveDatas[curCurveIndex].owner;
+      } else {
+        owner = playingStateData.curveDatas[crossCurveIndex.nextCurveIndex].owner;
+      }
+      owner.saveFixedPoseValue();
+      crossCurveIndices[owner.crossCurveIndex].nextCurveIndex = null;
+    }
+
+    // Save dest curve owner fixed pose.
+    const curveDatas = destStateData.curveDatas;
+    for (let i = destStateData.curveDatas.length - 1; i >= 0; i--) {
+      const owner = curveDatas[i].owner;
+      // Not inclue in last cross fade.
+      if (owner.crossCurveMark === crossCurveMark) {
+        crossCurveIndices[owner.crossCurveIndex].nextCurveIndex = i;
+      } else {
+        crossCurveIndices.push({
+          owner: owner,
+          curCurveIndex: null,
+          nextCurveIndex: i
+        });
+        owner.saveFixedPoseValue();
+        owner.crossCurveMark = crossCurveMark;
+      }
+    }
   }
 
   /**
@@ -297,53 +338,6 @@ export class Animator extends Component {
         stateData.curveDatas[i] = curveData;
       }
     }
-  }
-
-  private _saveFixedPose(
-    playingStateData: AnimatorStateData<Component>,
-    destStateData: AnimatorStateData<Component>
-  ): void {
-    const { _curveDataForPose } = this;
-    _curveDataForPose.length = 0;
-
-    //CM: 可否简化
-    let effectTargetProperty: boolean[][] = [];
-    const nextCurves = destStateData.state.clip._curves;
-    for (let i = nextCurves.length - 1; i >= 0; i--) {
-      const curve = nextCurves[i];
-      const { property } = curve;
-      const curveData = destStateData.curveDatas[i];
-      const { target, fiexedPoseValue } = curveData.owner;
-      const { instanceId } = target;
-      _curveDataForPose[i] = curveData;
-      const effectProperty = effectTargetProperty[instanceId] || (effectTargetProperty[instanceId] = []);
-      effectProperty[property] = true;
-      switch (property) {
-        case AnimationProperty.Position:
-          target.transform.position.cloneTo(<Vector3>fiexedPoseValue);
-          break;
-        case AnimationProperty.Rotation:
-          target.transform.rotationQuaternion.cloneTo(<Quaternion>fiexedPoseValue);
-          break;
-        case AnimationProperty.Scale:
-          target.transform.scale.cloneTo(<Vector3>fiexedPoseValue);
-          break;
-      }
-    }
-    if (playingStateData) {
-      const curCurves = playingStateData.state.clip._curves;
-      for (let i = curCurves.length - 1; i >= 0; i--) {
-        const curve = curCurves[i];
-        const { property } = curve;
-        const curveData = playingStateData.curveDatas[i];
-        const { instanceId } = curveData.owner.target;
-        if (!effectTargetProperty[instanceId][property]) {
-          _curveDataForPose.push(curveData);
-          // CM: 没记录 fiexed pose
-        }
-      }
-    }
-    effectTargetProperty = null;
   }
 
   private _calculateDiff(
@@ -672,21 +666,18 @@ export class Animator extends Component {
       destStateData.playType = PlayType.IsPlaying;
     }
 
-    const curveDataForPose = this._curveDataForPose;
-    const count = curveDataForPose.length;
+    const crossCurveIndies = this._crossCurveIndies;
 
-    for (let i = count - 1; i >= 0; i--) {
-      const curveData = curveDataForPose[i];
-      const { curveData: fixedPoseCurveData } = curveData;
-      const { target, defaultValue, fiexedPoseValue } = curveData.owner;
-
-      const destCurveData = destStateData.curveDatas[i];
+    const curves = nextClip._curves;
+    for (let i = crossCurveIndies.length - 1; i >= 0; i--) {
       let calculatedValue: InterpolableValue;
-      const { type, property } = fixedPoseCurveData;
-      const { curve } = nextClip._curves[i];
-      if (destCurveData) {
-        const val = curve.evaluate(frameTime);
-        calculatedValue = this._getCrossFadeValue(target, type, property, fiexedPoseValue, val, crossWeight);
+
+      const crossCurveIndex = crossCurveIndies[i];
+      const { target, fiexedPoseValue, defaultValue, animationClopCurveData } = crossCurveIndex.owner;
+      const { type, property } = animationClopCurveData;
+      if (crossCurveIndex.nextCurveIndex) {
+        const value = curves[i].curve.evaluate(frameTime);
+        calculatedValue = this._getCrossFadeValue(target, type, property, fiexedPoseValue, value, crossWeight);
       } else {
         calculatedValue = this._getCrossFadeValue(target, type, property, fiexedPoseValue, defaultValue, crossWeight);
       }
