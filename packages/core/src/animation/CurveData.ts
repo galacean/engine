@@ -7,5 +7,5 @@ import { AnimationCureOwner } from "./AnimationCureOwner";
  */
 export class CurveData<T extends Component> {
   owner: AnimationCureOwner;
-  curveData: AnimationClipCurveData<T>;
+  clipCurveData: AnimationClipCurveData<T>;
 }

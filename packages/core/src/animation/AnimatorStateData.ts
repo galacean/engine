@@ -10,5 +10,5 @@ export class AnimatorStateData<T extends Component> {
   state: AnimatorState;
   frameTime: number;
   playType: PlayType;
-  curveDatas: CurveData<T>[] = [];
+  curveDataCollection: CurveData<T>[] = [];
 }
