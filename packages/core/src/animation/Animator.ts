@@ -106,7 +106,7 @@ export class Animator extends Component {
    * @param stateName - The name of the next state
    * @param layerIndex - The layer where the crossfade occurs
    * @param normalizedTransitionDuration - The duration of the transition (normalized)
-   * @param normalizedTimeOffset - The time of the next state (normalized)
+   * @param normalizedTimeOffset - The time of the next state (normalized from the dest state's duration)
    */
   crossFade(
     stateName: string,
@@ -214,7 +214,7 @@ export class Animator extends Component {
 
     const animatorLayersData = this._animatorLayersData;
     const layerCount = animatorController.layers.length;
-    for (let i = layerCount - 1; i >= 0; i--) {
+    for (let i = 0; i < layerCount; i++) {
       const isFirstLayer = i === 0;
       const animatorLayerData = animatorLayersData[i];
       const { playingStateData } = animatorLayerData;
@@ -305,9 +305,6 @@ export class Animator extends Component {
     }
   }
 
-  /**
-   * @internal
-   */
   private _setTempPoseValue(
     playingStateData: AnimatorStateData<Component>,
     destStateData: AnimatorStateData<Component>
