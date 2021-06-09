@@ -8,7 +8,4 @@ import { AnimationCureOwner } from "./AnimationCureOwner";
 export class CurveData<T extends Component> {
   owner: AnimationCureOwner;
   curveData: AnimationClipCurveData<T>;
-  // target: Entity;
-  // defaultValue: InterpolableValue;
-  // fiexedPoseValue: InterpolableValue;
 }
