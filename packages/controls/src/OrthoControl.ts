@@ -50,7 +50,7 @@ export class OrthoControl extends Script {
       const panDelta = this._panDelta;
       Vector2.subtract(panEnd, panStart, panDelta);
       if (panDelta.x === 0 && panDelta.y === 0) {
-        return ;
+        return;
       }
       this._handlePan();
       panEnd.cloneTo(panStart);
@@ -61,6 +61,7 @@ export class OrthoControl extends Script {
    * Zoom in.
    */
   zoomIn(): void {
+    if (!this.enabled) return;
     this._zoomScale *= this._getZoomScale();
   }
 
@@ -68,6 +69,7 @@ export class OrthoControl extends Script {
    * Zoom out.
    */
   zoomOut(): void {
+    if (!this.enabled) return;
     this._zoomScale /= this._getZoomScale();
   }
 
@@ -116,7 +118,7 @@ export class OrthoControl extends Script {
     const { width, height } = this.engine.canvas;
     const { x, y } = this._panDelta;
     const { camera } = this;
-    const doubleOrthographicSize = camera.orthographicSize * 4;
+    const doubleOrthographicSize = camera.orthographicSize * 2;
     const width3D = doubleOrthographicSize * camera.aspectRatio;
     const height3D = doubleOrthographicSize;
     const pos = this._panStartPos;
