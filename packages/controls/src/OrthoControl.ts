@@ -116,7 +116,7 @@ export class OrthoControl extends Script {
     const { width, height } = this.engine.canvas;
     const { x, y } = this._panDelta;
     const { camera } = this;
-    const doubleOrthographicSize = camera.orthographicSize * 4;
+    const doubleOrthographicSize = camera.orthographicSize * 2;
     const width3D = doubleOrthographicSize * camera.aspectRatio;
     const height3D = doubleOrthographicSize;
     const pos = this._panStartPos;
