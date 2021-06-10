@@ -4,6 +4,7 @@
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "debug": "src/index.ts",
   "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc"

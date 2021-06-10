@@ -12,22 +12,16 @@ export class SpotLight extends Light {
   private static _positionProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightPosition");
   private static _directionProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightDirection");
   private static _distanceProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightDistance");
-  private static _decayProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightDecay");
-  private static _angleProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightAngle");
-  private static _penumbraProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightPenumbra");
+  private static _angleCosProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightAngleCos");
   private static _penumbraCosProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightPenumbraCos");
-  private static _coneCosProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightConeCos");
 
   private static _combinedData = {
     color: new Float32Array(3 * Light._maxLight),
     position: new Float32Array(3 * Light._maxLight),
     direction: new Float32Array(3 * Light._maxLight),
     distance: new Float32Array(Light._maxLight),
-    decay: new Float32Array(Light._maxLight),
-    angle: new Float32Array(Light._maxLight),
-    penumbra: new Float32Array(Light._maxLight),
-    penumbraCos: new Float32Array(Light._maxLight),
-    coneCos: new Float32Array(Light._maxLight)
+    angleCos: new Float32Array(Light._maxLight),
+    penumbraCos: new Float32Array(Light._maxLight)
   };
 
   /**
@@ -40,19 +34,20 @@ export class SpotLight extends Light {
     shaderData.setFloatArray(SpotLight._positionProperty, data.position);
     shaderData.setFloatArray(SpotLight._directionProperty, data.direction);
     shaderData.setFloatArray(SpotLight._distanceProperty, data.distance);
-    shaderData.setFloatArray(SpotLight._decayProperty, data.decay);
-    shaderData.setFloatArray(SpotLight._angleProperty, data.angle);
-    shaderData.setFloatArray(SpotLight._penumbraProperty, data.penumbra);
+    shaderData.setFloatArray(SpotLight._angleCosProperty, data.angleCos);
     shaderData.setFloatArray(SpotLight._penumbraCosProperty, data.penumbraCos);
-    shaderData.setFloatArray(SpotLight._coneCosProperty, data.coneCos);
   }
 
+  /** Light color. */
   color: Color = new Color(1, 1, 1, 1);
-  penumbra: number = 0.2;
-  distance: number = 100;
+  /** Light intensity. */
   intensity: number = 1.0;
-  decay: number = 0;
+  /** Defines a distance cutoff at which the light's intensity must be considered zero. */
+  distance: number = 100;
+  /** Angle, in radians, from centre of spotlight where falloff begins. */
   angle: number = Math.PI / 6;
+  /** Angle, in radians, from falloff begins to ends. */
+  penumbra: number = Math.PI / 12;
 
   private _forward: Vector3 = new Vector3();
   private _lightColor: Color = new Color(1, 1, 1, 1);
@@ -60,7 +55,6 @@ export class SpotLight extends Light {
 
   /**
    * Get light position.
-   * @readonly
    */
   get position(): Vector3 {
     return this.entity.transform.worldPosition;
@@ -68,7 +62,6 @@ export class SpotLight extends Light {
 
   /**
    * Get light direction.
-   * @readonly
    */
   get direction(): Vector3 {
     this.entity.transform.getWorldForward(this._forward);
@@ -77,7 +70,6 @@ export class SpotLight extends Light {
 
   /**
    * Get the opposite direction of the spotlight.
-   * @readonly
    */
   get reverseDirection(): Vector3 {
     Vector3.scale(this.direction, -1, this._inverseDirection);
@@ -86,7 +78,6 @@ export class SpotLight extends Light {
 
   /**
    * Get the final light color.
-   * @readonly
    */
   get lightColor(): Color {
     this._lightColor.r = this.color.r * this.intensity;
@@ -104,11 +95,8 @@ export class SpotLight extends Light {
     const positionStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
     const distanceStart = lightIndex;
-    const decayStart = lightIndex;
-    const angleStart = lightIndex;
-    const penumbraStart = lightIndex;
     const penumbraCosStart = lightIndex;
-    const coneCosStart = lightIndex;
+    const angleCosStart = lightIndex;
 
     const color = this.lightColor;
     const position = this.position;
@@ -126,10 +114,7 @@ export class SpotLight extends Light {
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
     data.distance[distanceStart] = this.distance;
-    data.decay[decayStart] = this.decay;
-    data.angle[angleStart] = this.angle;
-    data.penumbra[penumbraStart] = this.penumbra;
-    data.penumbraCos[penumbraCosStart] = Math.cos(this.angle * (1 - this.penumbra));
-    data.coneCos[coneCosStart] = Math.cos(this.angle);
+    data.angleCos[angleCosStart] = Math.cos(this.angle);
+    data.penumbraCos[penumbraCosStart] = Math.cos(this.angle + this.penumbra);
   }
 }

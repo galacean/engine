@@ -1,6 +1,6 @@
-import { Vector4 } from "@oasis-engine/math";
-import { ClearMode } from "../base/Constant";
+import { Color } from "@oasis-engine/math";
 import { Camera } from "../Camera";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
 import { Material } from "../material/Material";
 import { RenderTarget } from "../texture/RenderTarget";
@@ -19,8 +19,8 @@ class RenderPass {
   public replaceMaterial: Material;
   public mask: Layer;
   public renderOverride: boolean;
-  public clearMode;
-  private _clearParam;
+  public clearFlags: CameraClearFlags | undefined;
+  public clearColor: Color | undefined;
 
   /**
    * Create a RenderPass.
@@ -29,15 +29,13 @@ class RenderPass {
    * @param renderTarget - The specified Render Target
    * @param replaceMaterial -  Replaced material
    * @param mask - Perform bit and operations with Entity.Layer to filter the objects that this Pass needs to render
-   * @param clearParam - Clear the background color of renderTarget
    */
   constructor(
     name = `RENDER_PASS${passNum++}`,
     priority = 0,
     renderTarget = null,
     replaceMaterial = null,
-    mask = null,
-    clearParam = new Vector4(0, 0, 0, 0)
+    mask = null
   ) {
     this.name = name;
     this.enabled = true;
@@ -46,20 +44,6 @@ class RenderPass {
     this.replaceMaterial = replaceMaterial;
     this.mask = mask || Layer.Everything;
     this.renderOverride = false; // If renderOverride is set to true, you need to implement the render method
-
-    this.clearMode = ClearMode.SOLID_COLOR;
-    this._clearParam = clearParam; // PASS use render target's clearParam
-  }
-
-  /**
-   * Canvas clear parameters, the default is to use the clearColor of RenderTarget.
-   */
-  get clearParam() {
-    return this._clearParam;
-  }
-
-  set clearParam(v) {
-    this._clearParam = v;
   }
 
   /**

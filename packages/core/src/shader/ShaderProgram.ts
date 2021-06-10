@@ -65,7 +65,6 @@ export class ShaderProgram {
 
   /**
    * Whether this shader program is valid.
-   * @readonly
    */
   get isValid(): boolean {
     return this._isValid;

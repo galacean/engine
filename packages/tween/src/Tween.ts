@@ -16,7 +16,6 @@ class Tween {
   /**
    * Next id.
    * @member {number}
-   * @readonly
    */
   getId() {
     return this._nextId++;

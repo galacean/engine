@@ -21,7 +21,6 @@ import worldpos_vert from "./worldpos_vert.glsl";
 import shadow_vert from "./shadow_vert.glsl";
 import fog_vert from "./fog_vert.glsl";
 
-import ambient_light_frag from "./ambient_light_frag.glsl";
 import direct_light_frag from "./direct_light_frag.glsl";
 import point_light_frag from "./point_light_frag.glsl";
 import spot_light_frag from "./spot_light_frag.glsl";
@@ -85,7 +84,6 @@ export const ShaderLib = {
   shadow_vert,
   fog_vert,
 
-  ambient_light_frag,
   direct_light_frag,
   point_light_frag,
   spot_light_frag,

@@ -32,6 +32,9 @@ export class AbilityManager {
     if (type === "GLTFModel") {
       // TODO
       (ability as any).init(abilityProps);
+    } else if (type === "Model") {
+      // TODO
+      (ability as any).setProps(abilityProps);
     } else {
       for (let k in abilityProps) {
         if (abilityProps[k] !== null) {
@@ -56,7 +59,7 @@ export class AbilityManager {
       if (value && this.checkIsAsset(value)) {
         (this.get(id) as any).setProp(key, this.oasis.resourceManager.get(value.id).resource);
       } else {
-        (this.get(id) as any).setProp(key, value);
+        (this.get(id) as any).updateProp(key, value);
       }
     } else {
       if (value && this.checkIsAsset(value)) {
@@ -67,6 +70,12 @@ export class AbilityManager {
     }
 
     return { id, key, value };
+  }
+
+  public addRuntimeComponent(componentId: string, component: Component) {
+    (component as any).id = componentId;
+    this.abilityMap[componentId] = component;
+    return component;
   }
 
   public get(id: string): Component {
@@ -90,7 +99,7 @@ export class AbilityManager {
 
     const constructor = Parser._components["o3"][type];
     if (!constructor) {
-      throw new Error(`${type} is not defined`);
+      console.warn(`${type} is not defined`);
     }
     return constructor;
   }

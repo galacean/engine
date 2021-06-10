@@ -124,6 +124,32 @@ export class Matrix3x3 implements IClone {
   }
 
   /**
+   * Performs a linear interpolation between two matrices.
+   * @param start - The first matrix
+   * @param end - The second matrix
+   * @param t - The blend amount where 0 returns start and 1 end
+   * @param out - The result of linear blending between two matrices
+   */
+  static lerp(start: Matrix3x3, end: Matrix3x3, t: number, out: Matrix3x3): void {
+    const se = start.elements;
+    const ee = end.elements;
+    const oe = out.elements;
+    const inv = 1.0 - t;
+
+    oe[0] = se[0] * inv + ee[0] * t;
+    oe[1] = se[1] * inv + ee[1] * t;
+    oe[2] = se[2] * inv + ee[2] * t;
+
+    oe[3] = se[3] * inv + ee[3] * t;
+    oe[4] = se[4] * inv + ee[4] * t;
+    oe[5] = se[5] * inv + ee[5] * t;
+
+    oe[6] = se[6] * inv + ee[6] * t;
+    oe[7] = se[7] * inv + ee[7] * t;
+    oe[8] = se[8] * inv + ee[8] * t;
+  }
+
+  /**
    * Calculate a rotation matrix from a quaternion.
    * @param quaternion - The quaternion used to calculate the matrix
    * @param out - The calculated rotation matrix

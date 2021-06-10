@@ -1,6 +1,5 @@
 import { Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
-import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
@@ -120,20 +119,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (n) return n;
 
     return this.findByNodeName(entity.parent, nodeName);
-  }
-
-  private _findParent(entity: Entity, nodeName: string) {
-    if (entity) {
-      const parent = entity.parent;
-      if (!parent) return null;
-      if (parent.name === nodeName) return parent;
-
-      const brother = parent.findByName(nodeName);
-      if (brother) return brother;
-
-      return this._findParent(parent, nodeName);
-    }
-    return null;
   }
 
   /**

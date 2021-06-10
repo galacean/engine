@@ -143,7 +143,7 @@ export class RenderQueue {
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spirteElement = <SpriteElement>item;
-        this._spriteBatcher.drawSprite(spirteElement);
+        this._spriteBatcher.drawElement(spirteElement);
       }
     }
 

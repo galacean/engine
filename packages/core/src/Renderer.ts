@@ -300,7 +300,7 @@ export abstract class Renderer extends Component {
     }
   }
 
-  protected _updateBounds(worldBounds: any): void {}
+  protected _updateBounds(worldBounds: BoundingBox): void {}
 
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
