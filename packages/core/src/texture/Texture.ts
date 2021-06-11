@@ -26,7 +26,6 @@ export abstract class Texture extends RefObject {
 
   /**
    * The width of the texture.
-   * @readonly
    */
   get width(): number {
     return this._width;
@@ -34,7 +33,6 @@ export abstract class Texture extends RefObject {
 
   /**
    * The height of the texture.
-   * @readonly
    */
   get height(): number {
     return this._height;
@@ -70,7 +68,6 @@ export abstract class Texture extends RefObject {
 
   /**
    * Texture mipmapping count.
-   * @readonly
    */
   get mipmapCount(): number {
     return this._mipmapCount;

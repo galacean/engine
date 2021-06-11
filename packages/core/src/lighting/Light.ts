@@ -34,7 +34,6 @@ export class Light extends Component {
 
   /**
    * View matrix.
-   * @readonly
    */
   get viewMatrix() {
     if (!this._viewMat) this._viewMat = new Matrix();
@@ -44,7 +43,6 @@ export class Light extends Component {
 
   /**
    * Inverse view matrix.
-   * @readonly
    */
   get inverseViewMatrix() {
     if (!this._inverseViewMat) this._inverseViewMat = new Matrix();

@@ -8,24 +8,22 @@ import {
   Camera,
   Component,
   DirectLight,
-  EnvironmentMapLight,
   ParticleRenderer,
   PointLight,
-  SkyBox,
   SphereCollider,
-  SpriteRenderer
+  SpriteRenderer,
+  SpriteMask,
 } from "@oasis-engine/core";
 import { GLTFModel, Parser, Model } from "@oasis-engine/loader";
 
 Parser.registerComponents("o3", {
   GLTFModel,
   SpriteRenderer,
+  SpriteMask,
   PointLight,
   AmbientLight,
   DirectLight,
-  EnvironmentMapLight,
   ParticleRenderer,
-  SkyBox,
   BoxCollider,
   Camera,
   Model,

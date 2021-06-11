@@ -11,4 +11,3 @@ export { Mesh } from "./Mesh";
 export { SubMesh } from "./SubMesh";
 export { VertexBufferBinding } from "./VertexBufferBinding";
 export { VertexElement } from "./VertexElement";
-

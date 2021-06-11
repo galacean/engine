@@ -7,9 +7,9 @@ import { Quaternion } from "./Quaternion";
  * Describes a 4D-vector.
  */
 export class Vector4 implements IClone {
-  /** @internal zero.*/
+  /** @internal */
   static readonly _zero = new Vector4(0.0, 0.0, 0.0, 0.0);
-  /** @internal one.*/
+  /** @internal */
   static readonly _one = new Vector4(1.0, 1.0, 1.0, 1.0);
 
   /**

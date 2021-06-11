@@ -18,33 +18,30 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time develop
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement id and get root entity.
+// Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
 const engine = new WebGLEngine("canvas-id");
-const canvas = engine.canvas;
+engine.canvas.resizeByClientSize();
+
+// Create root entity.
 const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
-canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
-canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
 
 // Create light.
 const lightEntity = rootEntity.createChild("Light");
-const ambient = lightEntity.addComponent(AmbientLight);
 const directLight = lightEntity.addComponent(DirectLight);
-ambient.color = new Color(0.5, 0.5, 0.5);
-directLight.color = new Color(0.3, 0.4, 0.4);
+lightEntity.transform.setRotation(-45, -45, 0);
+directLight.intensity = 0.4;
 
 // Create camera.
 const cameraEntity = rootEntity.createChild("Camera");
-cameraEntity.transform.setPosition(0, 6, 10);
-cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
 cameraEntity.addComponent(Camera);
+cameraEntity.transform.setPosition(0, 0, 12);
 
-// Create cube.
-const cubeEntity = rootEntity.createChild("Cube");
-const cubeRenderer = cubeEntity.addComponent(MeshRenderer);
+// Create sphere.
+const meshEntity = rootEntity.createChild("Sphere");
+const meshRenderer = meshEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
-cubeEntity.transform.rotate(0, 60, 0);
-cubeRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-cubeRenderer.setMaterial(material);
+meshRenderer.setMaterial(material);
+meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
 
 // Run engine.
 engine.run();
@@ -93,7 +90,10 @@ npm run build
 ## Links
 
 - [Official Site](https://oasisengine.cn)
-- [Documentation Source](https://github.com/oasis-engine/oasis-engine.github.io)
+- [Examples](https://oasisengine.cn/0.3/examples)
+- [Documentation](https://oasisengine.cn/0.3/docs/install-cn)
+- [API References](https://oasisengine.cn/0.3/api/core/index)
+
 
 ## License 
 The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.

@@ -20,7 +20,7 @@ export abstract class Mesh extends RefObject {
   /** The bounding volume of the mesh. */
   readonly bounds: BoundingBox = new BoundingBox();
 
-  _vertexElementMap: object = {};
+  _vertexElementMap: Record<string, VertexElement> = {};
   _glIndexType: number;
   _glIndexByteCount: number;
   _platformPrimitive: IPlatformPrimitive;

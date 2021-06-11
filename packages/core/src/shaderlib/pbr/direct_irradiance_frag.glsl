@@ -24,7 +24,6 @@
                 pointLight.color = u_pointLightColor[i];
                 pointLight.position = u_pointLightPosition[i];
                 pointLight.distance = u_pointLightDistance[i];
-                pointLight.decay = u_pointLightDecay[i];
 
                 getPointDirectLightIrradiance( pointLight, geometry, directLight );
 
@@ -44,11 +43,8 @@
                 spotLight.position = u_spotLightPosition[i];
                 spotLight.direction = u_spotLightDirection[i];
                 spotLight.distance = u_spotLightDistance[i];
-                spotLight.decay = u_spotLightDecay[i];
-                spotLight.angle = u_spotLightAngle[i];
-                spotLight.penumbra = u_spotLightPenumbra[i];
+                spotLight.angleCos = u_spotLightAngleCos[i];
                 spotLight.penumbraCos = u_spotLightPenumbraCos[i];
-                spotLight.coneCos = u_spotLightConeCos[i];
 
                 getSpotDirectLightIrradiance( spotLight, geometry, directLight );
 
