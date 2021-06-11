@@ -73,7 +73,9 @@ export class FramebufferPicker extends Script {
   }
 
   onDestroy() {
-    //@ts-ignore
-    this.camera._renderPipeline.removeRenderPass(this.colorRenderPass);
+    if (!this.camera.destroyed) {
+      //@ts-ignore
+      this.camera._renderPipeline.removeRenderPass(this.colorRenderPass);
+    }
   }
 }

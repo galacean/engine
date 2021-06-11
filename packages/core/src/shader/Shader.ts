@@ -156,7 +156,6 @@ export class Shader {
     const macroNameList = [];
     Shader._getNamesByMacros(macroCollection, macroNameList);
     const macroNameStr = ShaderFactory.parseCustomMacros(macroNameList);
-    const shaderNameStr = ShaderFactory.parseShaderName(this.name || "VOID");
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
     const precisionStr = `
     #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -174,7 +173,6 @@ export class Shader {
 
     let vertexSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
-        ${shaderNameStr}
         ${precisionStr}
         ${macroNameStr}
         ` + this._vertexSource
@@ -182,7 +180,6 @@ export class Shader {
 
     let fragmentSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
-        ${shaderNameStr}
         ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}
         ${precisionStr}
         ${macroNameStr}

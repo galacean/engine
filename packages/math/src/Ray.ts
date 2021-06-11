@@ -10,7 +10,7 @@ import { Vector3 } from "./Vector3";
 export class Ray {
   /** The origin of the ray. */
   readonly origin: Vector3 = new Vector3();
-  /** The direction of the ray. */
+  /** The normalized direction of the ray. */
   readonly direction: Vector3 = new Vector3();
 
   /**
