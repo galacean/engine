@@ -58,7 +58,7 @@ export class SpriteResource extends SchemaResource {
       }
 
       for (let k in configProps) {
-        if (!isAsset(configProps[k])) {
+        if (!isAsset(configProps[k]) && typeof configProps[k] !== "undefined") {
           assetObj[k] = configProps[k];
         }
       }

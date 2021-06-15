@@ -87,18 +87,13 @@ Then, to build the source, using npm:
 npm run build
 ```
 
-The docs can be generated using npm:
-
-```sh
-npm run doc
-```
-
 ## Links
 
-- [Official Site](https://oasis-engine.github.io)
-- [Playground](https://oasis-engine.github.io/0.3/playground)
-- [Manual](https://oasis-engine.github.io/#/0.3/manual/zh-cn/README)
-- [API References](https://oasis-engine.github.io/0.3/api/globals.html)
+- [Official Site](https://oasisengine.cn)
+- [Examples](https://oasisengine.cn/0.3/examples)
+- [Documentation](https://oasisengine.cn/0.3/docs/install-cn)
+- [API References](https://oasisengine.cn/0.3/api/core/index)
+
 
 ## License 
 The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.
