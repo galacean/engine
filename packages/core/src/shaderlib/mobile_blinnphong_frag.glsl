@@ -4,43 +4,42 @@
 
     #ifdef O3_DIRECT_LIGHT_COUNT
     
-    DirectLight lgt;
+    DirectLight directionalLight;
 
     for( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i++ ) {
-        lgt.color = u_directLightColor[i];
-        lgt.direction = u_directLightDirection[i];
+        directionalLight.color = u_directLightColor[i];
+        directionalLight.direction = u_directLightDirection[i];
 
-        float d = max(dot(N, -lgt.direction), 0.0);
-        lightDiffuse += lgt.color*d;
+        float d = max(dot(N, -directionalLight.direction), 0.0);
+        lightDiffuse += directionalLight.color * d;
 
-        vec3 halfDir = normalize( V - lgt.direction );
+        vec3 halfDir = normalize( V - directionalLight.direction );
         float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess );
-        lightSpecular += lgt.color * s;
+        lightSpecular += directionalLight.color * s;
     }
 
     #endif
 
     #ifdef O3_POINT_LIGHT_COUNT
     
-    PointLight lgt;
+    PointLight pointLight;
 
     for( int i = 0; i < O3_POINT_LIGHT_COUNT; i++ ) {
-        lgt.color = u_pointLightColor[i];
-        lgt.position = u_pointLightPosition[i];
-        lgt.distance = u_pointLightDistance[i];
-        lgt.decay = u_pointLightDecay[i];
+        pointLight.color = u_pointLightColor[i];
+        pointLight.position = u_pointLightPosition[i];
+        pointLight.distance = u_pointLightDistance[i];
 
-        vec3 direction = v_pos - lgt.position;
+        vec3 direction = v_pos - pointLight.position;
         float dist = length( direction );
         direction /= dist;
-        float decay = pow( max( 0.0, 1.0-dist / lgt.distance ), 2.0 );
+        float decay = clamp(1.0 - pow(dist / pointLight.distance, 4.0), 0.0, 1.0);
 
         float d =  max( dot( N, -direction ), 0.0 ) * decay;
-        lightDiffuse += lgt.color * d;
+        lightDiffuse += pointLight.color * d;
 
         vec3 halfDir = normalize( V - direction );
         float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess )  * decay;
-        lightSpecular += lgt.color * s;
+        lightSpecular += pointLight.color * s;
 
     }
 
@@ -48,32 +47,29 @@
 
     #ifdef O3_SPOT_LIGHT_COUNT
    
-    SpotLight lgt;
+    SpotLight spotLight;
 
     for( int i = 0; i < O3_SPOT_LIGHT_COUNT; i++) {
-        lgt.color = u_spotLightColor[i];
-        lgt.position = u_spotLightPosition[i];
-        lgt.direction = u_spotLightDirection[i];
-        lgt.distance = u_spotLightDistance[i];
-        lgt.decay = u_spotLightDecay[i];
-        lgt.angle = u_spotLightAngle[i];
-        lgt.penumbra = u_spotLightPenumbra[i];
+        spotLight.color = u_spotLightColor[i];
+        spotLight.position = u_spotLightPosition[i];
+        spotLight.direction = u_spotLightDirection[i];
+        spotLight.distance = u_spotLightDistance[i];
+        spotLight.angleCos = u_spotLightAngleCos[i];
+        spotLight.penumbraCos = u_spotLightPenumbraCos[i];
 
-        vec3 direction = v_pos - lgt.position;
-        float angle = acos( dot( normalize( direction ), normalize( lgt.direction ) ) );
-        float dist = length( direction );
-        direction /= dist;
-        float decay = pow( max( 0.0, 1.0 - dist / lgt.distance ), 2.0 );
+        vec3 direction = spotLight.position - v_pos;
+        float lightDistance = length( direction );
+        direction/ = lightDistance;
+        float angleCos = dot( direction, -spotLight.direction );
+        float decay = clamp(1.0 - pow(lightDistance/spotLight.distance, 4.0), 0.0, 1.0);
+        float spotEffect = smoothstep( spotLight.penumbraCos, spotLight.angleCos, angleCos );
+        float decayTotal = decay * spotEffect;
+        float d = max( dot( N, direction ), 0.0 )  * decayTotal;
+        lightDiffuse += spotLight.color * d;
 
-        float hasLight = step( angle, lgt.angle );
-        float hasPenumbra = step( lgt.angle, angle ) * step( angle, lgt.angle * ( 1.0 + lgt.penumbra ) );
-        float penumbra = hasPenumbra * ( 1.0 - ( angle - lgt.angle ) / ( lgt.angle * lgt.penumbra ) );
-        float d = max( dot( N, -direction ), 0.0 )  * decay * ( penumbra + hasLight );
-        lightDiffuse += lgt.color * d;
-
-        vec3 halfDir = normalize( V - direction );
-        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * decay * ( penumbra + hasLight );
-        lightSpecular += lgt.color * s;
+        vec3 halfDir = normalize( V + direction );
+        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * decayTotal;
+        lightSpecular += spotLight.color * s;
 
     }
 

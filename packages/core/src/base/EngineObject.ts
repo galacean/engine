@@ -15,6 +15,13 @@ export abstract class EngineObject {
   @ignoreClone
   protected _engine: Engine;
 
+  /**
+   * Get the engine which the object belongs.
+   */
+  get engine(): Engine {
+    return this._engine;
+  }
+
   constructor(engine: Engine) {
     this._engine = engine;
   }
