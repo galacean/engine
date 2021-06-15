@@ -1,10 +1,11 @@
 {
   "name": "@oasis-engine/core",
-  "version": "0.3.7",
+  "version": "0.3.12",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "types": "types/index.d.ts",
+  "debug": "src/index.ts",
   "scripts": {
     "b:types": "tsc"
   },
@@ -13,9 +14,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/math": "0.3.7"
+    "@oasis-engine/math": "0.3.12"
   },
   "devDependencies": {
-    "@oasis-engine/design": "0.3.7"
+    "@oasis-engine/design": "0.3.12"
   }
 }

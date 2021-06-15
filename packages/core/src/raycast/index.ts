@@ -1,4 +1,4 @@
-import { BoundingBox, BoundingSphere, Matrix, Plane, Ray, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, BoundingSphere, Plane, Ray, Vector3 } from "@oasis-engine/math";
 import { ABoxCollider } from "../collider/ABoxCollider";
 import { ASphereCollider } from "../collider/ASphereCollider";
 import { ColliderFeature } from "../collider/ColliderFeature";
@@ -16,6 +16,8 @@ const _tempPlane = new Plane();
 const _tepmBox = new BoundingBox();
 /** @internal */
 const _tempShpere = new BoundingSphere();
+/** @internal */
+const _ray = new Ray();
 
 /**
  * Perform ray detection on all Colliders in the scene and return to the one closest to the beginning of the ray.
@@ -28,6 +30,7 @@ const _tempShpere = new BoundingSphere();
   const colliders = cf.colliders;
 
   let nearestHit = new RaycastHit();
+  const hit = new RaycastHit();
 
   for (let i = 0, len = colliders.length; i < len; i++) {
     const collider = colliders[i];
@@ -38,13 +41,13 @@ const _tempShpere = new BoundingSphere();
     if (!(collider.entity.layer & tag)) {
       continue;
     }
-    const hit = new RaycastHit();
+
     if (collider.raycast(ray, hit)) {
       if (hit.distance < nearestHit.distance) {
         nearestHit = hit;
       }
     }
-  } // end of for
+  }
 
   if (_outPos && nearestHit.collider) {
     nearestHit.point.cloneTo(_outPos);
@@ -73,17 +76,17 @@ const _tempShpere = new BoundingSphere();
 };
 
 (ASphereCollider.prototype as any).raycast = function (ray, hit) {
-  const localRay = _getLocalRay(this, ray);
-  // TODO
-  this.center.cloneTo(_tempShpere.center);
-  _tempShpere.radius = this.radius;
-  const intersect = localRay.intersectSphere(_tempShpere);
+  const { transform } = this.entity;
+  Vector3.transformCoordinate(this.center, transform.worldMatrix, _tempShpere.center);
+  const lossyScale = transform.lossyWorldScale;
+  _tempShpere.radius = this.radius * Math.max(lossyScale.x, lossyScale.y, lossyScale.z);
+  const intersect = ray.intersectSphere(_tempShpere);
   if (intersect !== -1) {
-    _updateHitResult(this, localRay, intersect, hit, ray.origin);
+    _updateHitResult(this, ray, intersect, hit, ray.origin, true);
     return true;
   } else {
     return false;
-  } // end of else
+  }
 };
 
 (PlaneCollider.prototype as any).raycast = function (ray, hit) {
@@ -106,10 +109,19 @@ const _tempShpere = new BoundingSphere();
  * @param distance - The distance
  * @param outHit - The raycasthit
  */
-function _updateHitResult(collider, ray: Ray, distance: number, outHit: RaycastHit, origin: Vector3) {
+function _updateHitResult(
+  collider,
+  ray: Ray,
+  distance: number,
+  outHit: RaycastHit,
+  origin: Vector3,
+  isWorldRay: boolean = false
+) {
   const hitPos = _tempVec3;
   ray.getPoint(distance, hitPos);
-  Vector3.transformCoordinate(hitPos, collider.entity.transform.worldMatrix, hitPos);
+  if (!isWorldRay) {
+    Vector3.transformCoordinate(hitPos, collider.entity.transform.worldMatrix, hitPos);
+  }
 
   outHit.distance = Vector3.distance(origin, hitPos);
   outHit.collider = collider;
@@ -122,30 +134,13 @@ function _updateHitResult(collider, ray: Ray, distance: number, outHit: RaycastH
  * @private
  */
 
-function _getLocalRay(collider, ray) {
+function _getLocalRay(collider, ray): Ray {
   const worldToLocal = collider.entity.getInvModelMatrix();
+  const outRay = _ray;
 
-  // o = worldToLocal * vec4(ray.origin, 1)
-  const o = new Vector3();
-  Vector3.transformCoordinate(ray.origin, worldToLocal, o);
+  Vector3.transformCoordinate(ray.origin, worldToLocal, outRay.origin);
+  Vector3.transformNormal(ray.direction, worldToLocal, outRay.direction);
+  outRay.direction.normalize();
 
-  // d = worldToLocal * vec4(ray.direction, 0)
-  const d = new Vector3();
-  _transformDirection(d, ray.direction, worldToLocal);
-
-  return new Ray(o, d);
-}
-
-// a: vec3
-// m: mat4
-// return m * vec3(a, 0)
-function _transformDirection(out: Vector3, a: Vector3, m: Matrix) {
-  const x = a.x;
-  const y = a.y;
-  const z = a.z;
-  const e = m.elements;
-  out.x = x * e[0] + y * e[4] + z * e[8];
-  out.y = x * e[1] + y * e[5] + z * e[9];
-  out.z = x * e[2] + y * e[6] + z * e[10];
-  return out;
+  return outRay;
 }

@@ -11,7 +11,6 @@ attribute vec2 a_normalizedUv;
 
 uniform float u_time;
 uniform bool u_once;
-uniform bool u_active;
 uniform mat4 u_MVPMat;
 
 varying vec4 v_color;
@@ -40,28 +39,18 @@ void main() {
   v_color = a_color;
   v_uv = a_uv.xy;
   
-  // Real life time
-  float life = a_lifeAndSize.y + a_lifeAndSize.x;
+  // life time
+  float life = a_lifeAndSize.y;
+  float startTime = a_lifeAndSize.x;
 
   // Elapsed time
-  float deltaTime = max(mod(u_time, life) - a_lifeAndSize.x, 0.0);
+  float deltaTime = max(mod(u_time - startTime, life), 0.0);
 
-  bool isDying = false;
-
-  if (u_once || !u_active) {
-    isDying = true;
+  if ((u_once && u_time > life + startTime)) {
+    deltaTime = 0.0;
   }
 
-  if ((isDying && u_time > life)) {
-    deltaTime = life;
-  }
-
-  // Not born means death, otherwise it will be displayed if not born
-  if (deltaTime == 0.0) {
-    deltaTime = life;
-  }
-
-  v_lifeLeft = 1.0 - deltaTime / a_lifeAndSize.y;
+  v_lifeLeft = 1.0 - deltaTime / life;
   float scale = a_lifeAndSize.z;
   vec3 position = a_position + (a_velocity + a_acceleration * deltaTime * 0.5) * deltaTime;
 

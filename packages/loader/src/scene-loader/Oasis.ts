@@ -1,4 +1,4 @@
-import { Engine, EventDispatcher, ObjectValues } from "@oasis-engine/core";
+import { EventDispatcher, ObjectValues } from "@oasis-engine/core";
 import { AbilityManager } from "./AbilityManager";
 import { NodeManager } from "./NodeManager";
 import { pluginHook, PluginManager } from "./plugins/PluginManager";
@@ -6,7 +6,6 @@ import { RESOURCE_CLASS, SchemaResourceManager } from "./ResourceManager";
 import { Options, Schema } from "./types";
 
 export class Oasis extends EventDispatcher {
-  public readonly engine: Engine = null;
   public readonly nodeManager: NodeManager;
   public readonly abilityManager: AbilityManager;
   public resourceManager: SchemaResourceManager;
@@ -17,7 +16,6 @@ export class Oasis extends EventDispatcher {
 
   private constructor(private _options: Options, public readonly pluginManager: PluginManager) {
     super(_options.engine);
-    this.engine = _options.engine;
     this.schema = _options.config;
     this.timeout = _options.timeout;
     _options.scripts = _options.scripts ?? {};

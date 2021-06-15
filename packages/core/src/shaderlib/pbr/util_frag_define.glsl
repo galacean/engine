@@ -22,17 +22,6 @@ vec3 inverseTransformDirection( in vec3 dir, in mat4 matrix ) {
     return normalize( ( vec4( dir, 0.0 ) * matrix ).xyz );
 }
 
-// todo: enhance
-float punctualLightIntensityToIrradianceFactor( const in float lightDistance, const in float cutoffDistance, const in float decayExponent ) {
-
-    if( decayExponent > 0.0 ) {
-        return pow( saturate( -lightDistance / cutoffDistance + 1.0 ), decayExponent );
-    }
-
-    return 1.0;
-
-}
-
 vec3 BRDF_Diffuse_Lambert( const in vec3 diffuseColor ) {
 
 	return RECIPROCAL_PI * diffuseColor;
