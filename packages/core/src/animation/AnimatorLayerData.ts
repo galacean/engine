@@ -7,4 +7,5 @@ import { AnimatorStateData } from "./AnimatorStateData";
 export class AnimatorLayerData {
   playingStateData: AnimatorStateData<Component> = new AnimatorStateData<Component>();
   destStateData: AnimatorStateData<Component> = new AnimatorStateData();
+  crossCurveMark: number = 0;
 }
