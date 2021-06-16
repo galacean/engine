@@ -52,6 +52,8 @@ export interface PluginHook {
   // todo type
   beforeResourceAdd?(resource: any): any;
   resourceAdded?(resource: any): any;
+  beforeSceneUpdated?(field: string, key: string, value: any): any;
+  sceneUpdated?(updateConfig?: { type: string; key: string; value: any }): any;
 }
 
 export function pluginHook(options: Partial<{ before: keyof PluginHook; after: keyof PluginHook }>): MethodDecorator {
