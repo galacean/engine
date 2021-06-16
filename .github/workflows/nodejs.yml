@@ -1,6 +1,6 @@
 name: Node.js CI
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -9,7 +9,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [12.x, 15.x]
 
     steps:
     - uses: actions/checkout@v2
@@ -19,3 +19,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
     - run: npm install
     - run: npm run ci
+    - run: npm install codecov
+    - name: Upload coverage to Codecov
+      run: ./node_modules/.bin/codecov
+    - run: curl -s https://codecov.io/bash

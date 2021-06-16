@@ -16,7 +16,6 @@ export class RenderColorTexture extends Texture {
 
   /**
    * Texture format.
-   * @readonly
    */
   get format(): RenderBufferColorFormat {
     return this._format;
@@ -24,7 +23,6 @@ export class RenderColorTexture extends Texture {
 
   /**
    * Whether to render to a cube texture.
-   * @readonly
    */
   get isCube(): boolean {
     return this._isCube;

@@ -1,14 +1,15 @@
-import { Engine, EventDispatcher, ObjectValues } from "@oasis-engine/core";
+import { EventDispatcher, ObjectValues } from "@oasis-engine/core";
 import { AbilityManager } from "./AbilityManager";
 import { NodeManager } from "./NodeManager";
+import { SceneManager } from "./SceneManager";
 import { pluginHook, PluginManager } from "./plugins/PluginManager";
 import { RESOURCE_CLASS, SchemaResourceManager } from "./ResourceManager";
 import { Options, Schema } from "./types";
 
 export class Oasis extends EventDispatcher {
-  public readonly engine: Engine = null;
   public readonly nodeManager: NodeManager;
   public readonly abilityManager: AbilityManager;
+  public readonly sceneManager: SceneManager;
   public resourceManager: SchemaResourceManager;
   public _canvas: HTMLCanvasElement;
   private schema: Schema;
@@ -17,7 +18,6 @@ export class Oasis extends EventDispatcher {
 
   private constructor(private _options: Options, public readonly pluginManager: PluginManager) {
     super(_options.engine);
-    this.engine = _options.engine;
     this.schema = _options.config;
     this.timeout = _options.timeout;
     _options.scripts = _options.scripts ?? {};
@@ -26,6 +26,7 @@ export class Oasis extends EventDispatcher {
     this.nodeManager.add = this.nodeManager.add.bind(this.nodeManager);
     this.abilityManager.add = this.abilityManager.add.bind(this.abilityManager);
     this.resourceManager = new SchemaResourceManager(this);
+    this.sceneManager = new SceneManager(this);
     if (_options.fps) {
       this.engine.targetFrameRate = _options.fps;
       this.engine.vSyncCount = 0;
@@ -53,6 +54,7 @@ export class Oasis extends EventDispatcher {
       this.parseEntities();
       this.attach();
       this.nodeManager.addRootEntity();
+      this.sceneManager.init();
       this.parseNodeAbilities();
       this.pluginManager.boot(this);
     });

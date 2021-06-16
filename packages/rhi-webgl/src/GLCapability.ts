@@ -17,7 +17,6 @@ export class GLCapability {
 
   /**
    * Whether can use more joints.
-   * @readonly
    */
   get canIUseMoreJoints() {
     return (

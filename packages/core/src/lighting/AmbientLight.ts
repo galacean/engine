@@ -1,57 +1,131 @@
 import { Color } from "@oasis-engine/math";
-import { Entity } from "../Entity";
+import { Scene } from "../Scene";
 import { Shader } from "../shader";
+import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { Light } from "./Light";
+import { TextureCubeMap } from "../texture";
+import { DiffuseMode } from "./enums/DiffuseMode";
 
 /**
  * Ambient light.
  */
-export class AmbientLight extends Light {
-  private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_ambientLightColor");
+export class AmbientLight {
+  private static _diffuseMacro: ShaderMacro = Shader.getMacroByName("O3_USE_DIFFUSE_ENV");
+  private static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
+
+  private static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
+  private static _diffuseTextureProperty: ShaderProperty = Shader.getPropertyByName("u_env_diffuseSampler");
+  private static _diffuseIntensityProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuseIntensity");
+  private static _specularTextureProperty: ShaderProperty = Shader.getPropertyByName("u_env_specularSampler");
+  private static _specularIntensityProperty: ShaderProperty = Shader.getPropertyByName(
+    "u_envMapLight.specularIntensity"
+  );
+  private static _mipLevelProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.mipMapLevel");
+
+  private _scene: Scene;
+  private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
+  private _diffuseIntensity: number = 1.0;
+  private _specularReflection: TextureCubeMap;
+  private _specularIntensity: number = 1.0;
+  private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
 
   /**
-   * Ambient light color.
+   * Diffuse mode of ambient light.
    */
-  get color(): Color {
-    return this._color;
+  get diffuseMode(): DiffuseMode {
+    return this._diffuseMode;
   }
 
-  set color(value: Color) {
-    this._color = value;
-    this.scene.shaderData.setColor(AmbientLight._colorProperty, this.lightColor);
+  set diffuseMode(value: DiffuseMode) {
+    this._diffuseMode = value;
+    if (value === DiffuseMode.Texture) {
+      this._scene.shaderData.enableMacro(AmbientLight._diffuseMacro);
+    } else {
+      this._scene.shaderData.disableMacro(AmbientLight._diffuseMacro);
+    }
   }
 
   /**
-   * Ambient light intensity.
+   * Diffuse reflection solid color.
+   * @remarks Effective when diffuse reflection mode is `DiffuseMode.SolidColor`.
    */
-  get intensity(): number {
-    return this._intensity;
+  get diffuseSolidColor(): Color {
+    return this._diffuseSolidColor;
   }
 
-  set intensity(value: number) {
-    this._intensity = value;
-    this.scene.shaderData.setColor(AmbientLight._colorProperty, this.lightColor);
+  set diffuseSolidColor(value: Color) {
+    if (value !== this._diffuseSolidColor) {
+      value.cloneTo(this._diffuseSolidColor);
+    }
   }
 
   /**
-   * Get the final light color.
-   * @readonly
+   * Diffuse reflection intensity.
    */
-  get lightColor(): Color {
-    this._lightColor.r = this._color.r * this._intensity;
-    this._lightColor.g = this._color.g * this._intensity;
-    this._lightColor.b = this._color.b * this._intensity;
-    this._lightColor.a = this._color.a * this._intensity;
-    return this._lightColor;
+  get diffuseIntensity(): number {
+    return this._diffuseIntensity;
   }
 
-  private _color: Color = new Color(1, 1, 1, 1);
-  private _intensity: number = 1;
-  private _lightColor: Color = new Color(1, 1, 1, 1);
+  set diffuseIntensity(value: number) {
+    this._diffuseIntensity = value;
+    this._scene.shaderData.setFloat(AmbientLight._diffuseIntensityProperty, value);
+  }
 
-  constructor(entity: Entity) {
-    super(entity);
-    this.color = this._color;
+  /**
+   * Specular reflection texture.
+   */
+  get specularTexture(): TextureCubeMap {
+    return this._specularReflection;
+  }
+
+  set specularTexture(value: TextureCubeMap) {
+    this._specularReflection = value;
+
+    const shaderData = this._scene.shaderData;
+
+    if (value) {
+      shaderData.setTexture(AmbientLight._specularTextureProperty, value);
+      shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount);
+      shaderData.enableMacro(AmbientLight._specularMacro);
+    } else {
+      shaderData.disableMacro(AmbientLight._specularMacro);
+    }
+  }
+
+  /**
+   * Specular reflection intensity.
+   */
+  get specularIntensity(): number {
+    return this._specularIntensity;
+  }
+
+  set specularIntensity(value: number) {
+    this._specularIntensity = value;
+    this._scene.shaderData.setFloat(AmbientLight._specularIntensityProperty, value);
+  }
+
+  constructor(scene: Scene) {
+    this._scene = scene;
+
+    const { shaderData } = this._scene;
+    shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
+    shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
+    shaderData.setFloat(AmbientLight._specularIntensityProperty, this._specularIntensity);
+  }
+
+  //-----------------------------deprecated---------------------------------------
+
+  private _diffuseTexture: TextureCubeMap;
+
+  /**
+   * Diffuse cube texture.
+   */
+  get diffuseTexture(): TextureCubeMap {
+    return this._diffuseTexture;
+  }
+
+  set diffuseTexture(value: TextureCubeMap) {
+    this._diffuseTexture = value;
+    this._scene.shaderData.setTexture(AmbientLight._diffuseTextureProperty, value);
   }
 }

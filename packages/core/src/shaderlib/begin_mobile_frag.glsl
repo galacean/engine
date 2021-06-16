@@ -3,6 +3,8 @@
     vec4 diffuse = u_diffuseColor;
     vec4 specular = u_specularColor;
 
+    
+
     #ifdef O3_EMISSIVE_TEXTURE
 
         emission *= texture2D(u_emissiveTexture, v_uv);
@@ -21,8 +23,4 @@
 
     #endif
 
-    #ifdef O3_HAS_AMBIENT_LIGHT
-
-        ambient = vec4(u_ambientLightColor, 1.0) * diffuse;
-
-    #endif
+    ambient = vec4(u_envMapLight.diffuse * u_envMapLight.diffuseIntensity, 1.0) * diffuse;

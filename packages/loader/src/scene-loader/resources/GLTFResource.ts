@@ -2,15 +2,12 @@ import {
   AssetType,
   Entity,
   Logger,
-  Material,
-  Mesh,
   MeshRenderer,
   PBRMaterial,
   PBRSpecularMaterial,
   ResourceManager,
   UnlitMaterial
 } from "@oasis-engine/core";
-import { glTFDracoMeshCompression } from "../../gltf/glTFDracoMeshCompression";
 import { Oasis } from "../Oasis";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { BlinnPhongMaterialResource } from "./BlinnPhongMaterialResource";
@@ -21,9 +18,6 @@ import { UnlitMaterialResource } from "./UnlitMaterialResource";
 
 export class GLTFResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<any> {
-    if (!!assetConfig.props?.compression) {
-      glTFDracoMeshCompression.init();
-    }
     return resourceManager
       .load<any>({ url: assetConfig.url, type: AssetType.Perfab })
       .then((res) => {

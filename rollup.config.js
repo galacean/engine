@@ -17,6 +17,7 @@ const { BUILD_TYPE, NODE_ENV } = process.env;
 const pkgsRoot = path.join(__dirname, "packages");
 const pkgs = fs
   .readdirSync(pkgsRoot)
+  .filter((dir) => dir !== "design")
   .map((dir) => path.join(pkgsRoot, dir))
   .filter((dir) => fs.statSync(dir).isDirectory())
   .map((location) => {
@@ -32,9 +33,10 @@ function toGlobalName(pkgName) {
 }
 
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
+const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
 const commonPlugins = [
-  resolve({ extensions, preferBuiltins: true }),
+  resolve({ extensions, preferBuiltins: true, mainFields }),
   glslify({
     include: [/\.glsl$/]
   }),
@@ -58,6 +60,7 @@ function config({ location, pkgJson }) {
   const name = pkgJson.name;
   commonPlugins.push(
     replace({
+      preventAssignment: true,
       __buildVersion: pkgJson.version
     })
   );

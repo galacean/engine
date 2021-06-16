@@ -6,6 +6,7 @@ import { IndexFormat } from "./enums/IndexFormat";
 export interface ElementInfo {
   size: number;
   type: DataType;
+  normalized: boolean;
 }
 
 export class BufferUtil {
@@ -51,6 +52,8 @@ export class BufferUtil {
   static _getElementInfo(format: VertexElementFormat): ElementInfo {
     let size: number;
     let type: DataType;
+    let normalized: boolean = false;
+
     switch (format) {
       case VertexElementFormat.Float:
         size = 1;
@@ -70,27 +73,61 @@ export class BufferUtil {
         break;
       case VertexElementFormat.Byte4:
         size = 4;
+        type = DataType.BYTE;
+        break;
+      case VertexElementFormat.UByte4:
+        size = 4;
         type = DataType.UNSIGNED_BYTE;
+        break;
+      case VertexElementFormat.NormalizedByte4:
+        size = 4;
+        type = DataType.BYTE;
+        normalized = true;
+        break;
+      case VertexElementFormat.NormalizedUByte4:
+        size = 4;
+        type = DataType.UNSIGNED_BYTE;
+        normalized = true;
         break;
       case VertexElementFormat.Short2:
         size = 2;
-        type = DataType.SHORT;
-        break;
-      case VertexElementFormat.Short4:
-        size = 4;
         type = DataType.SHORT;
         break;
       case VertexElementFormat.UShort2:
         size = 2;
         type = DataType.UNSIGNED_SHORT;
         break;
+      case VertexElementFormat.NormalizedShort2:
+        size = 2;
+        type = DataType.SHORT;
+        normalized = true;
+        break;
+      case VertexElementFormat.NormalizedUShort2:
+        size = 2;
+        type = DataType.UNSIGNED_SHORT;
+        normalized = true;
+        break;
+      case VertexElementFormat.Short4:
+        size = 4;
+        type = DataType.SHORT;
+        break;
       case VertexElementFormat.UShort4:
         size = 4;
         type = DataType.UNSIGNED_SHORT;
         break;
+      case VertexElementFormat.NormalizedShort4:
+        size = 4;
+        type = DataType.SHORT;
+        normalized = true;
+        break;
+      case VertexElementFormat.NormalizedUShort4:
+        size = 4;
+        type = DataType.UNSIGNED_SHORT;
+        normalized = true;
+        break;
       default:
         break;
     }
-    return { size, type };
+    return { size, type, normalized };
   }
 }

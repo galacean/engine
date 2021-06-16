@@ -14,7 +14,6 @@ export class TextureCubeMap extends Texture {
 
   /**
    * Texture format.
-   * @readonly
    */
   get format(): TextureFormat {
     return this._format;
