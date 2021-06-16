@@ -33,7 +33,7 @@ describe(" Ortho Control", () => {
     cameraControl.panEnd();
 
     const pos = entity.transform.position;
-    expect(pos.x).toEqual(-0.07863898026315787);
+    expect(pos.x).toEqual(-0.039319490131578934);
     expect(pos.y).toEqual(0);
   });
 });

@@ -11,7 +11,7 @@ type Element = SpriteElement | SpriteMaskElement;
 export abstract class Basic2DBatcher {
   /** The maximum number of vertex. */
   static MAX_VERTEX_COUNT: number = 4096;
-  static _canUploadSameBuffer: boolean = !SystemInfo._isIos();
+  static _canUploadSameBuffer: boolean = true;
 
   /** @internal */
   _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);

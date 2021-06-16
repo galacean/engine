@@ -5,9 +5,10 @@ import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
  * @param config
  */
 export function compatibleToV2(config) {
-  const { abilities = {}, assets = {} } = config;
+  const { abilities = {}, assets = {}, scene = {} } = config;
   const ids = Object.keys(abilities);
   const assetKeys = Object.keys(assets);
+  const sceneKeys = Object.keys(scene || {});
 
   for (let i = 0, l = ids.length; i < l; ++i) {
     handleComponents(abilities[ids[i]].props);
@@ -15,6 +16,10 @@ export function compatibleToV2(config) {
 
   for (let i = 0, l = assetKeys.length; i < l; ++i) {
     handleAssets(assets[assetKeys[i]].props);
+  }
+
+  for (let i = 0, l = sceneKeys.length; i < l; ++i) {
+    handleSceneProps(scene[sceneKeys[i]].props);
   }
 
   return config;
@@ -29,6 +34,26 @@ function handleComponents(props) {
 
     if (Array.isArray(v)) {
       if (["color", "diffuseColor", "specularColor"].indexOf(k) !== -1) {
+        props[k] = new Color(v[0], v[1], v[2], v[3]);
+      } else if (v.length === 4) {
+        props[k] = new Vector4(v[0], v[1], v[2], v[3]);
+      } else if (v.length === 3) {
+        props[k] = new Vector3(v[0], v[1], v[2]);
+      } else if (v.length === 2) {
+        props[k] = new Vector2(v[0], v[1]);
+      }
+    }
+  }
+}
+
+function handleSceneProps(props) {
+  const keys = Object.keys(props);
+  for (let i = 0, l = keys.length; i < l; ++i) {
+    const k = keys[i];
+    const v = props[k];
+
+    if (Array.isArray(v)) {
+      if (/color/i.test(k)) {
         props[k] = new Color(v[0], v[1], v[2], v[3]);
       } else if (v.length === 4) {
         props[k] = new Vector4(v[0], v[1], v[2], v[3]);
