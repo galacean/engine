@@ -91,9 +91,9 @@ npm run build
 ## Links
 
 - [Official Site](https://oasisengine.cn)
-- [Examples](https://oasisengine.cn/0.3/examples)
-- [Documentation](https://oasisengine.cn/0.3/docs/install-cn)
-- [API References](https://oasisengine.cn/0.3/api/core/index)
+- [Examples](https://oasisengine.cn/0.4/examples)
+- [Documentation](https://oasisengine.cn/0.4/docs/install-cn)
+- [API References](https://oasisengine.cn/0.4/api/core/index)
 
 
 ## License 
