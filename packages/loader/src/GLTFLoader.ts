@@ -1,120 +1,22 @@
-import {
-  resourceLoader,
-  Loader,
-  AssetPromise,
-  AssetType,
-  LoadItem,
-  ResourceManager,
-  Texture2D
-} from "@oasis-engine/core";
-import { GlTf, LoadedGLTFResource } from "./GLTF";
-import { parseGLTF, GLTFResource } from "./gltf/glTF";
-import { parseGLB } from "./gltf/glb";
-import { loadImageBuffer, getBufferData, parseRelativeUrl } from "./gltf/Util";
+import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@oasis-engine/core";
+import { GLTFParser } from "./gltf/GLTFParser";
+import { GLTFResource } from "./gltf/GLTFResource";
 
 @resourceLoader(AssetType.Perfab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
-  private baseUrl: string;
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
+    const url = item.url;
     return new AssetPromise((resolve, reject) => {
-      const requestGLTFResource = this.isGLB(item.url) ? this.requestGLB : this.requestGLTF;
-      requestGLTFResource(item, resourceManager)
-        .then((res) => {
-          parseGLTF(res, resourceManager.engine).then((gltf) => {
-            resolve(gltf);
-          });
-        })
+      const resource = new GLTFResource(resourceManager.engine);
+      resource.url = url;
+
+      GLTFParser.instance
+        .parse(resource)
+        .then(resolve)
         .catch((e) => {
           console.error(e);
-          reject("Error loading glTF JSON from " + item.url);
+          reject(`Error loading glTF model from ${url} .`);
         });
     });
   }
-
-  private requestGLTF = (item: LoadItem, resourceManager: ResourceManager): Promise<LoadedGLTFResource> => {
-    return this.request<GlTf>(item.url, {
-      ...item,
-      type: "json"
-    }).then((res) => this._loadGLTFResources(item, res, resourceManager));
-  };
-
-  private requestGLB = (item: LoadItem, resourceManager: ResourceManager): Promise<LoadedGLTFResource> => {
-    return this.request<GlTf>(item.url, {
-      ...item,
-      type: "arraybuffer"
-    })
-      .then(parseGLB)
-      .then((res) => {
-        return { ...res, baseUrl: item.url, resourceManager };
-      })
-      .then(this._loadImages);
-  };
-
-  private isGLB(url: string): boolean {
-    return url.substring(url.lastIndexOf(".") + 1) === "glb";
-  }
-
-  /**
-   * Load resources in gltf.
-   * @param gltf
-   * @param resourceManager
-   */
-  private _loadGLTFResources(
-    item: LoadItem,
-    gltf: GlTf,
-    resourceManager: ResourceManager
-  ): Promise<LoadedGLTFResource> {
-    // Buffer must be loaded first, then image.
-    return this._loadBuffers(item.url, gltf, resourceManager).then(this._loadImages);
-  }
-
-  private _loadBuffers(baseUrl: string, gltf: GlTf, resourceManager: ResourceManager): Promise<LoadedGLTFResource> {
-    if (gltf.buffers) {
-      return Promise.all(
-        gltf.buffers.map((item) => {
-          if (item instanceof ArrayBuffer) {
-            return Promise.resolve(item);
-          }
-          return resourceManager.load<ArrayBuffer>({
-            url: parseRelativeUrl(baseUrl, item.uri),
-            type: AssetType.Buffer
-          });
-        })
-      ).then((buffers) => {
-        return { buffers, gltf, baseUrl, resourceManager };
-      });
-    }
-    return Promise.resolve({ baseUrl, gltf, resourceManager });
-  }
-
-  private _loadImages = ({
-    gltf,
-    buffers,
-    baseUrl,
-    resourceManager
-  }: LoadedGLTFResource & { baseUrl: string; resourceManager: ResourceManager }): Promise<any> => {
-    if (gltf.images) {
-      return Promise.all(
-        gltf.images.map(({ uri, bufferView: bufferViewIndex, mimeType }) => {
-          if (uri) {
-            // Use base64 or url.
-            return resourceManager.load({ url: parseRelativeUrl(baseUrl, uri), type: AssetType.Texture2D });
-          } else {
-            // Use bufferView.
-            const bufferView = gltf.bufferViews[bufferViewIndex];
-            const bufferData = getBufferData(bufferView, buffers);
-            return loadImageBuffer(bufferData, mimeType).then((image) => {
-              const tex = new Texture2D(resourceManager.engine, image.width, image.height);
-              tex.setImageSource(image);
-              tex.generateMipmaps();
-              return tex;
-            });
-          }
-        })
-      ).then((textures) => {
-        return { gltf, buffers, textures };
-      });
-    }
-    return Promise.resolve({ gltf, buffers });
-  };
 }

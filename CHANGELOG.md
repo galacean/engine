@@ -49,7 +49,6 @@
 
 
 ### Bug Fixes
-
 * Wrong number of mipmap in `Texture`.([#136](https://github.com/oasis-engine/engine/pull/136))
 * Material blend mode bug. ([#127](https://github.com/oasis-engine/engine/pull/127))
 * Fix none-indices gltf modle load error. ([#107](https://github.com/oasis-engine/engine/pull/107)) (Thanks to @BugDongDong for providing clues)

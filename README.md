@@ -5,6 +5,7 @@
 <a href="https://www.npmjs.com/package/oasis-engine"><img src="https://img.shields.io/npm/v/oasis-engine"/></a>
 ![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
+[![codecov](https://codecov.io/gh/oasis-engine/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/oasis-engine/engine)
 
 Oasis is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. This repository is the core engine of Oasis. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
@@ -18,33 +19,30 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time develop
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement id and get root entity.
+// Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
 const engine = new WebGLEngine("canvas-id");
-const canvas = engine.canvas;
+engine.canvas.resizeByClientSize();
+
+// Create root entity.
 const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
-canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
-canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
 
 // Create light.
 const lightEntity = rootEntity.createChild("Light");
-const ambient = lightEntity.addComponent(AmbientLight);
 const directLight = lightEntity.addComponent(DirectLight);
-ambient.color = new Color(0.5, 0.5, 0.5);
-directLight.color = new Color(0.3, 0.4, 0.4);
+lightEntity.transform.setRotation(-45, -45, 0);
+directLight.intensity = 0.4;
 
 // Create camera.
 const cameraEntity = rootEntity.createChild("Camera");
-cameraEntity.transform.setPosition(0, 6, 10);
-cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
 cameraEntity.addComponent(Camera);
+cameraEntity.transform.setPosition(0, 0, 12);
 
-// Create cube.
-const cubeEntity = rootEntity.createChild("Cube");
-const cubeRenderer = cubeEntity.addComponent(MeshRenderer);
+// Create sphere.
+const meshEntity = rootEntity.createChild("Sphere");
+const meshRenderer = meshEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
-cubeEntity.transform.rotate(0, 60, 0);
-cubeRenderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-cubeRenderer.setMaterial(material);
+meshRenderer.setMaterial(material);
+meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
 
 // Run engine.
 engine.run();
@@ -90,18 +88,13 @@ Then, to build the source, using npm:
 npm run build
 ```
 
-The docs can be generated using npm:
-
-```sh
-npm run doc
-```
-
 ## Links
 
-- [Official Site](https://oasis-engine.github.io)
-- [Playground](https://oasis-engine.github.io/0.3/playground)
-- [Manual](https://oasis-engine.github.io/#/0.3/manual/zh-cn/README)
-- [API References](https://oasis-engine.github.io/0.3/api/globals.html)
+- [Official Site](https://oasisengine.cn)
+- [Examples](https://oasisengine.cn/0.3/examples)
+- [Documentation](https://oasisengine.cn/0.3/docs/install-cn)
+- [API References](https://oasisengine.cn/0.3/api/core/index)
+
 
 ## License 
 The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.

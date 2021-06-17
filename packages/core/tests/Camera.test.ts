@@ -25,8 +25,6 @@ describe("camera test", function () {
     expect(camera.aspectRatio).toEqual(1);
     expect(camera._renderPipeline).not.toBeUndefined();
     expect(camera.entity.transform.worldPosition).not.toBeUndefined();
-    // TODO: deprecated
-    expect(camera.backgroundColor).toEqual({ x: 0.25, y: 0.25, z: 0.25, w: 1 });
     expect(camera.viewport).toEqual({ x: 0, y: 0, z: 1, w: 1 });
     expect(camera.fieldOfView).toEqual(45);
     expect(camera.isOrthographic).toEqual(false);

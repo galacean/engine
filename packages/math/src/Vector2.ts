@@ -5,9 +5,9 @@ import { MathUtil } from "./MathUtil";
  * Describes a 2D-vector.
  */
 export class Vector2 implements IClone {
-  /** @internal zero.*/
+  /** @internal */
   static readonly _zero = new Vector2(0.0, 0.0);
-  /** @internal one.*/
+  /** @internal */
   static readonly _one = new Vector2(1.0, 1.0);
 
   /**
