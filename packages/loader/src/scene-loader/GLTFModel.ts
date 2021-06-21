@@ -20,11 +20,11 @@ export class GLTFModel extends Component {
       entity.clearChildren();
       if (value !== null) {
         entity?.destroy();
-        const newEntity = value.defaultSceneRoot.clone();
-        this._animator = entity.getComponent(Animation);
-        this.entity.addChild(newEntity);
-        newEntity.isActive = this.enabled;
-        this.glTFEntity = newEntity;
+        const gltfEntity = value.defaultSceneRoot.clone();
+        this._animator = gltfEntity.getComponent(Animation);
+        this.entity.addChild(gltfEntity);
+        gltfEntity.isActive = this.enabled;
+        this.glTFEntity = gltfEntity;
       }
     }
     this._asset = value;
