@@ -131,6 +131,7 @@ export class MeshParser extends Parser {
       // Bounds
       if (vertexELement.semantic === "POSITION") {
         const { bounds } = mesh;
+        vertexCount = accessor.count;
         if (accessor.min && accessor.max) {
           bounds.min.setValueByArray(accessor.min);
           bounds.max.setValueByArray(accessor.max);
@@ -138,7 +139,6 @@ export class MeshParser extends Parser {
           const position = MeshParser._tempVector3;
           const { min, max } = bounds;
 
-          vertexCount = accessor.count;
           min.setValue(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
           max.setValue(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
