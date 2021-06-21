@@ -13,6 +13,18 @@ export class UnlitMaterial extends BaseMaterial {
   private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
 
   /**
+   * Tiling and offset of main textures.
+   */
+  get tilingOffset(): Vector4 {
+    return this._tilingOffset;
+  }
+
+  set tilingOffset(value: Vector4) {
+    this._tilingOffset = value;
+    this.shaderData.setVector4("u_tilingOffset", value);
+  }
+
+  /**
    * Base color.
    */
   get baseColor(): Color {
@@ -40,19 +52,6 @@ export class UnlitMaterial extends BaseMaterial {
       this.shaderData.setTexture("u_baseTexture", value);
     } else {
       this.shaderData.disableMacro("O3_BASE_TEXTURE");
-    }
-  }
-
-  /**
-   * Tiling and offset of main textures.
-   */
-  get tilingOffset(): Vector4 {
-    return this._tilingOffset;
-  }
-
-  set tilingOffset(value: Vector4) {
-    if (value !== this._tilingOffset) {
-      value.cloneTo(this._tilingOffset);
     }
   }
 

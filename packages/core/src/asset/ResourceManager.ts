@@ -44,6 +44,8 @@ export class ResourceManager {
   private _refObjectPool: { [key: number]: RefObject } = Object.create(null);
   /** Loading assets. */
   private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
+  /** Root directory of loader. */
+  baseUrl: string = ""
 
   /**
    * Create a ResourceManager.

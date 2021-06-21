@@ -119,14 +119,12 @@ export class RenderQueue {
           } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
-
           if (program._uploadRenderer !== renderer) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRenderer = renderer;
           } else if (switchProgram) {
             program.uploadTextures(program.rendererUniformBlock, rendererData);
           }
-
           if (program._uploadMaterial !== material) {
             program.uploadAll(program.materialUniformBlock, materialData);
             program._uploadMaterial = material;
