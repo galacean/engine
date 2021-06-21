@@ -5,6 +5,7 @@
 <a href="https://www.npmjs.com/package/oasis-engine"><img src="https://img.shields.io/npm/v/oasis-engine"/></a>
 ![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
+[![codecov](https://codecov.io/gh/oasis-engine/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/oasis-engine/engine)
 
 Oasis is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. This repository is the core engine of Oasis. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
@@ -90,9 +91,9 @@ npm run build
 ## Links
 
 - [Official Site](https://oasisengine.cn)
-- [Examples](https://oasisengine.cn/0.3/examples)
-- [Documentation](https://oasisengine.cn/0.3/docs/install-cn)
-- [API References](https://oasisengine.cn/0.3/api/core/index)
+- [Examples](https://oasisengine.cn/0.4/examples)
+- [Documentation](https://oasisengine.cn/0.4/docs/install-cn)
+- [API References](https://oasisengine.cn/0.4/api/core/index)
 
 
 ## License 
