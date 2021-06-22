@@ -30,9 +30,6 @@ export class Animator extends Component {
   /** All layers from the AnimatorController which belongs this Animator .*/
   animatorController: AnimatorController;
 
-  /** @internal */
-  _playing: boolean;
-
   @ignoreClone
   private _diffValueFromBasePose: InterpolableValue;
   @ignoreClone
@@ -77,16 +74,31 @@ export class Animator extends Component {
   /**
    * Play a state by name.
    * @param stateName - The state name
-   * @param layerIndex - The layer index(default 0)
+   * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
-  play(stateName: string, layerIndex: number = 0, normalizedTimeOffset: number = 0): void {
+  play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
     const { animatorController } = this;
     if (!animatorController) {
       return;
     }
 
-    const playState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
+    let playState;
+    const layers = animatorController.layers;
+    if (layerIndex === -1) {
+      for (let i = 0, n = layers.length; i < n; i--) {
+        playState = layers[i].stateMachine.findStateByName(stateName);
+        if (playState) {
+          break;
+        }
+      }
+    } else {
+      playState = layers[layerIndex].stateMachine.findStateByName(stateName);
+    }
+    if (!playState) {
+      return;
+    }
+
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
     const { playingStateData } = animatorLayerData;
     if (playingStateData.state) {
@@ -98,7 +110,6 @@ export class Animator extends Component {
     playingStateData.frameTime = playState.clip.length * normalizedTimeOffset;
     playingStateData.playState = StatePlayState.Playing;
     this._setDefaultValueAndTarget(playingStateData);
-    this._playing = true;
   }
 
   /**
@@ -142,7 +153,7 @@ export class Animator extends Component {
           animatorLayerData.playState = LayerPlayState.FixedCrossFading;
           this._clearCrossData(animatorLayerData);
           this._prepareStandbyCrossFading(animatorLayerData);
-          this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
+          animatorLayerData.playingStateData = new AnimatorStateData();
           transition = this._transitionForPose;
           break;
         case LayerPlayState.Playing:
@@ -155,7 +166,7 @@ export class Animator extends Component {
         case LayerPlayState.CrossFading:
           animatorLayerData.playState = LayerPlayState.FixedCrossFading;
           this._prepareFiexdPoseCrossFading(animatorLayerData);
-          this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
+          animatorLayerData.playingStateData = new AnimatorStateData();
           transition = this._transitionForPose;
           break;
         case LayerPlayState.FixedCrossFading:
@@ -170,7 +181,6 @@ export class Animator extends Component {
         transition.duration = nextState.clipEndTime - transition.offset;
       }
     }
-    this._playing = true;
   }
 
   /**
@@ -181,19 +191,20 @@ export class Animator extends Component {
     if (this.speed === 0) {
       return;
     }
-    if (!this._playing) {
-      return;
-    }
+
     const { animatorController } = this;
     if (!animatorController) {
       return;
     }
     deltaTime *= this.speed;
 
-    const animatorLayersData = this._animatorLayersData;
     for (let i = 0, n = animatorController.layers.length; i < n; i++) {
+      const animatorLayerData = this._getAnimatorLayerData(i);
+      if (animatorLayerData.playState === LayerPlayState.Standby) {
+        continue;
+      }
+
       const isFirstLayer = i === 0;
-      const animatorLayerData = animatorLayersData[i];
       const { playingStateData } = animatorLayerData;
       playingStateData.frameTime += deltaTime / 1000;
       if (playingStateData.playState === StatePlayState.Playing) {
@@ -716,13 +727,13 @@ export class Animator extends Component {
     }
   }
 
-  private _revertDefaultValue(playingStateData: AnimatorStateData<Component>) {
-    const { clip } = playingStateData.state;
+  private _revertDefaultValue(stateData: AnimatorStateData<Component>) {
+    const { clip } = stateData.state;
     if (clip) {
       const curves = clip._curves;
       for (let i = curves.length - 1; i >= 0; i--) {
         const curve = curves[i];
-        const { owner } = playingStateData.curveDataCollection[i];
+        const { owner } = stateData.curveDataCollection[i];
         const { transform } = owner.target;
         switch (curve.property) {
           case AnimationProperty.Position:
