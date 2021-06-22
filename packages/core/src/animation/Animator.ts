@@ -2,6 +2,7 @@ import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
+import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Transform } from "../Transform";
 import { AnimationCureOwner } from "./AnimationCureOwner";
 import { AnimatorController } from "./AnimatorController";
@@ -10,19 +11,15 @@ import { AnimatorLayerData } from "./AnimatorLayerData";
 import { AnimatorStateData } from "./AnimatorStateData";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { AnimatorUtils } from "./AnimatorUtils";
+import { CrossCurveData } from "./CrossCurveData";
 import { CurveData } from "./CurveData";
 import { AnimationProperty } from "./enums/AnimationProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
-import { PlayType } from "./enums/PlayType";
+import { LayerPlayState } from "./enums/LayerPlayState";
+import { StatePlayState } from "./enums/StatePlayState";
 import { WrapMode } from "./enums/WrapMode";
 import { InterpolableValue } from "./KeyFrame";
-
-interface CrossCurveData {
-  owner: AnimationCureOwner;
-  curCurveIndex: number;
-  nextCurveIndex: number;
-}
 
 /**
  * The controller of the animation system.
@@ -60,6 +57,8 @@ export class Animator extends Component {
   private _transitionForPose: AnimatorStateTransition = new AnimatorStateTransition();
   @ignoreClone
   private _animationCureOwners: AnimationCureOwner[][] = [];
+  @ignoreClone
+  private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
 
   /**
    * All layers from the AnimatorController which belongs this Animator .
@@ -88,14 +87,16 @@ export class Animator extends Component {
     }
 
     const playState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
-    const { playingStateData } = this._getAnimatorLayerData(layerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(layerIndex);
+    const { playingStateData } = animatorLayerData;
     if (playingStateData.state) {
       this._revertDefaultValue(playingStateData);
     }
 
+    animatorLayerData.playState = LayerPlayState.Playing;
     playingStateData.state = playState;
     playingStateData.frameTime = playState.clip.length * normalizedTimeOffset;
-    playingStateData.playType = PlayType.NotStart;
+    playingStateData.playState = StatePlayState.Playing;
     this._setDefaultValueAndTarget(playingStateData);
     this._playing = true;
   }
@@ -113,6 +114,9 @@ export class Animator extends Component {
     normalizedTransitionDuration: number,
     normalizedTimeOffset: number
   ): void {
+    //CM: CrossFade  三个动作交叉优化
+    //CM: 播放完成目标动作后是否允许其值呗修改（建议允许，动作结束以及没播放前均允许修改）
+    //CM: cross Fade 时间大于目标动作或者源动作的问题
     const { animatorController } = this;
     if (!animatorController) {
       return;
@@ -121,27 +125,42 @@ export class Animator extends Component {
     const nextState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
     if (nextState) {
       const animatorLayerData = this._getAnimatorLayerData(layerIndex);
+      const playState = animatorLayerData.playState;
+
       const { playingStateData, destStateData } = animatorLayerData;
       const { state } = playingStateData;
-      const crossFromFixedPose = !state || !this._playing;
-      const isCrossFading = playingStateData.playType === PlayType.IsFading;
       let transition: AnimatorStateTransition;
-
-      const crossCurveData = this._crossCurveData;
-      crossCurveData.length = 0;
 
       destStateData.state = nextState;
       destStateData.frameTime = 0;
-      destStateData.playType = PlayType.IsCrossing;
-
+      destStateData.playState = StatePlayState.Crossing;
       this._setDefaultValueAndTarget(destStateData);
 
-      if (crossFromFixedPose || isCrossFading) {
-        this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
-        transition = this._transitionForPose;
-      } else {
-        playingStateData.playType = PlayType.IsFading;
-        transition = state.addTransition(nextState);
+      switch (playState) {
+        // Maybe not play, maybe end.
+        case LayerPlayState.Standby:
+          animatorLayerData.playState = LayerPlayState.FixedCrossFading;
+          this._clearCrossData(animatorLayerData);
+          this._prepareStandbyCrossFading(animatorLayerData);
+          this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
+          transition = this._transitionForPose;
+          break;
+        case LayerPlayState.Playing:
+          animatorLayerData.playState = LayerPlayState.CrossFading;
+          this._clearCrossData(animatorLayerData);
+          this._prepareCrossFading(animatorLayerData);
+          playingStateData.playState = StatePlayState.Fading;
+          transition = state.addTransition(nextState);
+          break;
+        case LayerPlayState.CrossFading:
+          animatorLayerData.playState = LayerPlayState.FixedCrossFading;
+          this._prepareFiexdPoseCrossFading(animatorLayerData);
+          this._animatorLayersData[layerIndex].playingStateData = new AnimatorStateData();
+          transition = this._transitionForPose;
+          break;
+        case LayerPlayState.FixedCrossFading:
+          this._prepareFiexdPoseCrossFading(animatorLayerData);
+          break;
       }
 
       const clipLength = nextState.clip.length;
@@ -150,87 +169,8 @@ export class Animator extends Component {
       if (transition.duration > nextState.clipEndTime - transition.offset) {
         transition.duration = nextState.clipEndTime - transition.offset;
       }
-
-      if (isCrossFading) {
-        this._prepareFiexdPoseCrossFading(animatorLayerData);
-      } else {
-        this._prepareCrossFading(animatorLayerData);
-      }
     }
     this._playing = true;
-  }
-
-  private _prepareCrossFading(animatorLayerData: AnimatorLayerData): void {
-    // Reset cross fading data.
-    const crossCurveData = this._crossCurveData;
-    crossCurveData.length = 0;
-    const crossCurveMark = ++animatorLayerData.crossCurveMark;
-
-    // Add playing cross curve data.
-    const playingDataCollection = animatorLayerData.playingStateData.curveDataCollection;
-    for (let i = playingDataCollection.length - 1; i >= 0; i--) {
-      const owner = playingDataCollection[i].owner;
-      owner.crossCurveMark = crossCurveMark;
-      owner.crossCurveIndex = crossCurveData.length;
-      crossCurveData.push({
-        owner: owner,
-        curCurveIndex: i,
-        nextCurveIndex: null
-      });
-    }
-
-    // Add dest cross curve data.
-    const destDataCollection = animatorLayerData.destStateData.curveDataCollection;
-    for (let i = destDataCollection.length - 1; i >= 0; i--) {
-      const owner = destDataCollection[i].owner;
-      if (owner.crossCurveMark === crossCurveMark) {
-        crossCurveData[owner.crossCurveIndex].nextCurveIndex = i;
-      } else {
-        owner.crossCurveMark = crossCurveMark;
-        crossCurveData.push({
-          owner: owner,
-          curCurveIndex: null,
-          nextCurveIndex: i
-        });
-      }
-    }
-  }
-
-  private _prepareFiexdPoseCrossFading(animatorLayerData: AnimatorLayerData): void {
-    const crossCurveData = this._crossCurveData;
-    const crossCurveMark = animatorLayerData.crossCurveMark;
-
-    // Save current cross curve data owner fixed pose.
-    for (let i = crossCurveData.length - 1; i >= 0; i--) {
-      const dataItem = crossCurveData[i];
-      const curCurveIndex = dataItem.curCurveIndex;
-      let owner: AnimationCureOwner;
-      if (curCurveIndex) {
-        owner = animatorLayerData.playingStateData.curveDataCollection[curCurveIndex].owner;
-      } else {
-        owner = animatorLayerData.playingStateData.curveDataCollection[dataItem.nextCurveIndex].owner;
-      }
-      owner.saveFixedPoseValue();
-      crossCurveData[owner.crossCurveIndex].nextCurveIndex = null;
-    }
-
-    // Save dest curve owner fixed pose.
-    const curveDataCollection = animatorLayerData.destStateData.curveDataCollection;
-    for (let i = curveDataCollection.length - 1; i >= 0; i--) {
-      const owner = curveDataCollection[i].owner;
-      // Not inclue in last cross fade.
-      if (owner.crossCurveMark === crossCurveMark) {
-        crossCurveData[owner.crossCurveIndex].nextCurveIndex = i;
-      } else {
-        crossCurveData.push({
-          owner: owner,
-          curCurveIndex: null,
-          nextCurveIndex: i
-        });
-        owner.saveFixedPoseValue();
-        owner.crossCurveMark = crossCurveMark;
-      }
-    }
   }
 
   /**
@@ -256,13 +196,13 @@ export class Animator extends Component {
       const animatorLayerData = animatorLayersData[i];
       const { playingStateData } = animatorLayerData;
       playingStateData.frameTime += deltaTime / 1000;
-      if (playingStateData.playType === PlayType.IsPlaying) {
+      if (playingStateData.playState === StatePlayState.Playing) {
         if (playingStateData.frameTime > playingStateData.state.clipEndTime) {
           if (playingStateData.state.wrapMode === WrapMode.Loop) {
             playingStateData.frameTime %= playingStateData.state.clipEndTime;
           } else {
             playingStateData.frameTime = playingStateData.state.clipEndTime;
-            playingStateData.playType = PlayType.IsFinish;
+            playingStateData.playState = StatePlayState.Finished;
           }
         }
       }
@@ -333,6 +273,108 @@ export class Animator extends Component {
             break;
         }
         stateData.curveDataCollection[i] = curveData;
+      }
+    }
+  }
+
+  private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
+    animatorLayerData.crossCurveMark++;
+    this._crossCurveData.length = 0;
+    this._crossCurveDataPool.resetPool();
+  }
+
+  private _addCrossCurveData(
+    crossCurveData: CrossCurveData[],
+    owner: AnimationCureOwner,
+    curCurveIndex: number,
+    nextCurveIndex: number
+  ): void {
+    const dataItem = this._crossCurveDataPool.getFromPool();
+    dataItem.owner = owner;
+    dataItem.curCurveIndex = curCurveIndex;
+    dataItem.nextCurveIndex = nextCurveIndex;
+    crossCurveData.push(dataItem);
+  }
+
+  private _prepareCrossFading(animatorLayerData: AnimatorLayerData): void {
+    // Reset cross fading data.
+    const crossCurveData = this._crossCurveData;
+    const crossCurveMark = animatorLayerData.crossCurveMark;
+
+    // Add playing cross curve data.
+    const playingDataCollection = animatorLayerData.playingStateData.curveDataCollection;
+    for (let i = playingDataCollection.length - 1; i >= 0; i--) {
+      const owner = playingDataCollection[i].owner;
+      owner.crossCurveMark = crossCurveMark;
+      owner.crossCurveIndex = crossCurveData.length;
+      this._addCrossCurveData(crossCurveData, owner, i, null);
+    }
+
+    // Add dest cross curve data.
+    const destDataCollection = animatorLayerData.destStateData.curveDataCollection;
+    for (let i = destDataCollection.length - 1; i >= 0; i--) {
+      const owner = destDataCollection[i].owner;
+      if (owner.crossCurveMark === crossCurveMark) {
+        crossCurveData[owner.crossCurveIndex].nextCurveIndex = i;
+      } else {
+        owner.crossCurveMark = crossCurveMark;
+        this._addCrossCurveData(crossCurveData, owner, null, i);
+      }
+    }
+  }
+
+  private _prepareFiexdPoseCrossFading(animatorLayerData: AnimatorLayerData): void {
+    const crossCurveData = this._crossCurveData;
+    const { crossCurveMark, destStateData } = animatorLayerData;
+
+    // Save current cross curve data owner fixed pose.
+    for (let i = crossCurveData.length - 1; i >= 0; i--) {
+      const dataItem = crossCurveData[i];
+      dataItem.owner.saveFixedPoseValue();
+    }
+
+    // prepare dest AnimatorState cross data.
+    this._prepareDestFixedCross(crossCurveData, destStateData, crossCurveMark);
+  }
+
+  //CM: 和 prepare cross fade很像
+  private _prepareStandbyCrossFading(animatorLayerData: AnimatorLayerData): void {
+    const crossCurveData = this._crossCurveData;
+    const { playingStateData, crossCurveMark } = animatorLayerData;
+
+    // Standby have two sub state, one is never play, one is finshed, never play playingStateData is null.
+    if (playingStateData) {
+      const curveDataCollection = playingStateData.curveDataCollection;
+      // Save current cross curve data owner fixed pose.
+      for (let i = curveDataCollection.length - 1; i >= 0; i--) {
+        const owner = curveDataCollection[i].owner;
+        owner.crossCurveMark = crossCurveMark;
+        owner.crossCurveIndex = crossCurveData.length;
+        owner.saveFixedPoseValue();
+        this._addCrossCurveData(crossCurveData, owner, i, null);
+      }
+    }
+
+    // prepare dest AnimatorState cross data.
+    this._prepareDestFixedCross(crossCurveData, animatorLayerData.destStateData, crossCurveMark);
+  }
+
+  private _prepareDestFixedCross(
+    crossCurveData: CrossCurveData[],
+    destStateData: AnimatorStateData<Component>,
+    crossCurveMark: number
+  ): void {
+    // Save dest curve owner fixed pose.
+    const curveDataCollection = destStateData.curveDataCollection;
+    for (let i = curveDataCollection.length - 1; i >= 0; i--) {
+      const owner = curveDataCollection[i].owner;
+      // Not inclue in last cross fade.
+      if (owner.crossCurveMark === crossCurveMark) {
+        crossCurveData[owner.crossCurveIndex].nextCurveIndex = i;
+      } else {
+        owner.saveFixedPoseValue();
+        owner.crossCurveMark = crossCurveMark;
+        this._addCrossCurveData(crossCurveData, owner, null, i);
       }
     }
   }
@@ -532,7 +574,7 @@ export class Animator extends Component {
     const animlayerData = this._animatorLayersData[layerIndex];
     const { playingStateData, destStateData } = animlayerData;
     const { weight, blendingMode } = animLayer;
-    if (destStateData && destStateData.playType === PlayType.IsCrossing) {
+    if (destStateData && destStateData.playState === StatePlayState.Crossing) {
       const crossFromFixedPose = !playingStateData.state;
       if (crossFromFixedPose) {
         this._updateCrossFadeFromPose(this._transitionForPose, destStateData, animlayerData, weight, deltaTime);
@@ -553,7 +595,7 @@ export class Animator extends Component {
     weight: number,
     blendingMode: AnimatorLayerBlendingMode
   ) {
-    playingStateData.playType = PlayType.IsPlaying;
+    playingStateData.playState = StatePlayState.Playing;
     const clip = playingStateData.state.clip;
     const curves = clip._curves;
     const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
@@ -600,7 +642,7 @@ export class Animator extends Component {
     crossWeight = transition._crossFadeFrameTime / transition.duration;
     if (crossWeight >= 1) {
       crossWeight = 1;
-      playingStateData.playType = PlayType.IsFinish;
+      playingStateData.playState = StatePlayState.Finished;
     }
 
     const mergedCurveIndexList = this._crossCurveData;
@@ -631,7 +673,7 @@ export class Animator extends Component {
         this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
       }
     }
-    if (playingStateData.playType === PlayType.IsFinish) {
+    if (playingStateData.playState === StatePlayState.Finished) {
       animlayerData.playingStateData = animlayerData.destStateData;
       animlayerData.playingStateData.frameTime = frameTime;
       animlayerData.destStateData = new AnimatorStateData();
@@ -660,7 +702,7 @@ export class Animator extends Component {
     crossWeight = transition._crossFadeFrameTime / transition.duration;
     if (crossWeight >= 1) {
       crossWeight = 1;
-      destStateData.playType = PlayType.IsPlaying;
+      destStateData.playState = StatePlayState.Playing;
     }
 
     const crossCurveIndies = this._crossCurveData;
@@ -680,7 +722,7 @@ export class Animator extends Component {
       }
       this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
     }
-    if (destStateData.playType === PlayType.IsPlaying) {
+    if (destStateData.playState === StatePlayState.Playing) {
       animlayerData.playingStateData = animlayerData.destStateData;
       animlayerData.playingStateData.frameTime = frameTime;
       animlayerData.destStateData = new AnimatorStateData();

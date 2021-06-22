@@ -1,7 +1,7 @@
 import { Component } from "../Component";
 import { AnimatorState } from "./AnimatorState";
 import { CurveData } from "./CurveData";
-import { PlayType } from "./enums/PlayType";
+import { StatePlayState } from "./enums/StatePlayState";
 
 /**
  * @internal
@@ -9,6 +9,6 @@ import { PlayType } from "./enums/PlayType";
 export class AnimatorStateData<T extends Component> {
   state: AnimatorState;
   frameTime: number;
-  playType: PlayType;
+  playState: StatePlayState;
   curveDataCollection: CurveData<T>[] = [];
 }

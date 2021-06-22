@@ -13,4 +13,3 @@ export { InterpolableValueType } from "./enums/InterpolableValueType";
 export { InterpolationType } from "./enums/InterpolationType";
 export { WrapMode } from "./enums/WrapMode";
 export { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
-export { PlayType } from "./enums/PlayType";
