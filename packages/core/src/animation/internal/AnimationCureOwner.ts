@@ -1,8 +1,8 @@
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { Component } from "../Component";
-import { Entity } from "../Entity";
-import { AnimationProperty } from "./enums/AnimationProperty";
-import { InterpolableValue } from "./KeyFrame";
+import { Component } from "../../Component";
+import { Entity } from "../../Entity";
+import { AnimationProperty } from "../enums/AnimationProperty";
+import { InterpolableValue } from "../KeyFrame";
 
 /**
  * @internal

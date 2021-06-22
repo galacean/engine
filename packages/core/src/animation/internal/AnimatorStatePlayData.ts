@@ -1,8 +1,8 @@
-import { Component } from "../Component";
+import { Component } from "../../Component";
 import { AnimationCureOwner } from "./AnimationCureOwner";
 import { AnimatorStateData } from "./AnimatorStataData";
-import { AnimatorState } from "./AnimatorState";
-import { StatePlayState } from "./enums/StatePlayState";
+import { AnimatorState } from "../AnimatorState";
+import { StatePlayState } from "../enums/StatePlayState";
 
 /**
  * @internal

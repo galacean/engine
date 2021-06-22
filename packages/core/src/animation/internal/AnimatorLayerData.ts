@@ -1,7 +1,7 @@
-import { Component } from "../Component";
+import { Component } from "../../Component";
 import { AnimatorStateData } from "./AnimatorStataData";
 import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
-import { LayerPlayState } from "./enums/LayerPlayState";
+import { LayerPlayState } from "../enums/LayerPlayState";
 
 /**
  * @internal
