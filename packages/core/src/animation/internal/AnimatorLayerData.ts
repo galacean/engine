@@ -7,10 +7,9 @@ import { LayerPlayState } from "../enums/LayerPlayState";
  * @internal
  */
 export class AnimatorLayerData {
-  animatorStateDataCollection: Record<string, AnimatorStateData<Component>> = {};
-
-  srcPlayData: AnimatorStatePlayData<Component> = new AnimatorStatePlayData();
-  destPlayData: AnimatorStatePlayData<Component> = new AnimatorStatePlayData();
+  animatorStateDataMap: Record<string, AnimatorStateData> = {};
+  srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
+  destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   playState: LayerPlayState = LayerPlayState.Standby;
   crossCurveMark: number = 0;
 }

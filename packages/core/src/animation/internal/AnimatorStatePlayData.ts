@@ -1,15 +1,14 @@
 import { Component } from "../../Component";
-import { AnimationCureOwner } from "./AnimationCureOwner";
-import { AnimatorStateData } from "./AnimatorStataData";
 import { AnimatorState } from "../AnimatorState";
 import { StatePlayState } from "../enums/StatePlayState";
+import { AnimatorStateData } from "./AnimatorStataData";
 
 /**
  * @internal
  */
-export class AnimatorStatePlayData<T extends Component> {
+export class AnimatorStatePlayData {
   state: AnimatorState;
-  stateData: AnimatorStateData<T>;
+  stateData: AnimatorStateData;
   frameTime: number;
   playState: StatePlayState;
 }

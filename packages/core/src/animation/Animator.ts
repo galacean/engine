@@ -261,7 +261,7 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  _setDefaultValues(animatorStateData: AnimatorStateData<Component>): void {
+  _setDefaultValues(animatorStateData: AnimatorStateData): void {
     const { owners } = animatorStateData;
     for (let i = owners.length - 1; i >= 0; i--) {
       owners[i].saveDefaultValue();
@@ -272,18 +272,18 @@ export class Animator extends Component {
     stateName: string,
     animatorState: AnimatorState,
     animatorLayerData: AnimatorLayerData
-  ): AnimatorStateData<Component> {
-    const { animatorStateDataCollection } = animatorLayerData;
+  ): AnimatorStateData {
+    const { animatorStateDataMap: animatorStateDataCollection } = animatorLayerData;
     let animatorStateData = animatorStateDataCollection[stateName];
     if (!animatorStateData) {
-      animatorStateData = new AnimatorStateData<Component>();
+      animatorStateData = new AnimatorStateData();
       animatorStateDataCollection[stateName] = animatorStateData;
       this._saveAnimatorStateData(animatorState, animatorStateData);
     }
     return animatorStateData;
   }
 
-  private _saveAnimatorStateData(animatorState: AnimatorState, animatorStateData: AnimatorStateData<Component>): void {
+  private _saveAnimatorStateData(animatorState: AnimatorState, animatorStateData: AnimatorStateData): void {
     const { entity, _animationCureOwners: animationCureOwners } = this;
     const { owners } = animatorStateData;
     const { _curves: curves } = animatorState.clip;
@@ -352,7 +352,7 @@ export class Animator extends Component {
 
   private _prepareSrcCrossData(
     crossCurveData: CrossCurveData[],
-    srcPlayData: AnimatorStatePlayData<Component>,
+    srcPlayData: AnimatorStatePlayData,
     crossCurveMark: number,
     saveFixed: boolean
   ): void {
@@ -369,7 +369,7 @@ export class Animator extends Component {
 
   private _prepareDestCrossData(
     crossCurveData: CrossCurveData[],
-    destPlayData: AnimatorStatePlayData<Component>,
+    destPlayData: AnimatorStatePlayData,
     crossCurveMark: number,
     saveFixed: boolean
   ): void {
@@ -599,7 +599,7 @@ export class Animator extends Component {
   }
 
   private _updatePlayingState(
-    playingStateData: AnimatorStatePlayData<Component>,
+    playingStateData: AnimatorStatePlayData,
     isFirstLayer: boolean,
     weight: number,
     blendingMode: AnimatorLayerBlendingMode
@@ -629,9 +629,9 @@ export class Animator extends Component {
   }
 
   private _updateCrossFade(
-    playingStateData: AnimatorStatePlayData<Component>,
+    playingStateData: AnimatorStatePlayData,
     transition: AnimatorStateTransition,
-    destStateData: AnimatorStatePlayData<Component>,
+    destStateData: AnimatorStatePlayData,
     animlayerData: AnimatorLayerData,
     weight: number,
     deltaTime: number
@@ -694,7 +694,7 @@ export class Animator extends Component {
 
   private _updateCrossFadeFromPose(
     transition: AnimatorStateTransition,
-    destStateData: AnimatorStatePlayData<Component>,
+    destStateData: AnimatorStatePlayData,
     animlayerData: AnimatorLayerData,
     weight: number,
     deltaTime: number
@@ -740,7 +740,7 @@ export class Animator extends Component {
     }
   }
 
-  private _revertDefaultValue(playData: AnimatorStatePlayData<Component>) {
+  private _revertDefaultValue(playData: AnimatorStatePlayData) {
     const { clip } = playData.state;
     if (clip) {
       const curves = clip._curves;
