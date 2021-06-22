@@ -10,5 +10,5 @@ export class AnimatorStateData<T extends Component> {
   owners: AnimationCureOwner<T>[] = [];
   frameTime: number;
   playState: StatePlayState;
-  state: AnimatorState;ƒ
+  state: AnimatorState;
 }
