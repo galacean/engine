@@ -27,7 +27,7 @@ import { InterpolableValue } from "./KeyFrame";
  */
 export class Animator extends Component {
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
-  speed: number = 1;
+  speed: number = 1.0;
   /** All layers from the AnimatorController which belongs this Animator .*/
   animatorController: AnimatorController;
 
@@ -116,7 +116,7 @@ export class Animator extends Component {
     srcPlayData.playState = StatePlayState.Playing;
     srcPlayData.stateData = animatorStateData;
 
-    this._setDefaultValues(animatorStateData);
+    this._saveDefaultValues(animatorStateData);
   }
 
   /**
@@ -155,7 +155,7 @@ export class Animator extends Component {
       destPlayData.playState = StatePlayState.Crossing;
       destPlayData.stateData = animatorStateData;
 
-      this._setDefaultValues(animatorStateData);
+      this._saveDefaultValues(animatorStateData);
 
       switch (playState) {
         // Maybe not play, maybe end.
@@ -261,8 +261,8 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  _setDefaultValues(animatorStateData: AnimatorStateData): void {
-    const { owners } = animatorStateData;
+  private _saveDefaultValues(stateData: AnimatorStateData): void {
+    const { owners } = stateData;
     for (let i = owners.length - 1; i >= 0; i--) {
       owners[i].saveDefaultValue();
     }
