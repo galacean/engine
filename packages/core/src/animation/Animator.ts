@@ -57,7 +57,7 @@ export class Animator extends Component {
   @ignoreClone
   private _transitionForPose: AnimatorStateTransition = new AnimatorStateTransition();
   @ignoreClone
-  private _animationCureOwners: AnimationCureOwner<Component>[][] = [];
+  private _animationCureOwners: AnimationCureOwner[][] = [];
   @ignoreClone
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
 
@@ -310,7 +310,7 @@ export class Animator extends Component {
 
   private _addCrossCurveData(
     crossCurveData: CrossCurveData[],
-    owner: AnimationCureOwner<Component>,
+    owner: AnimationCureOwner,
     curCurveIndex: number,
     nextCurveIndex: number
   ): void {
@@ -611,7 +611,7 @@ export class Animator extends Component {
     playingStateData.playState = PlayState.Playing;
     const clip = playingStateData.state.clip;
     const curves = clip._curves;
-    const frameTime = playingStateData.state._getTheRealFrameTime(playingStateData.frameTime);
+    const frameTime = playingStateData.state._getRealFrameTime(playingStateData.frameTime);
     const { owners } = playingStateData.stateData;
     for (let i = curves.length - 1; i >= 0; i--) {
       const { curve, type, property } = curves[i];
@@ -640,16 +640,18 @@ export class Animator extends Component {
     weight: number,
     deltaTime: number
   ) {
-    const destinationState = destStateData.state;
-    const curClip = srcStateData.state.clip;
-    const nextClip = destinationState.clip;
+    const srcState = srcStateData.state;
+    const destState = destStateData.state;
+    const srcClip = srcState.clip;
+    const destClip = destState.clip;
+    
     transition._crossFadeFrameTime += deltaTime / 1000;
     let frameTime = transition.offset + transition._crossFadeFrameTime;
-    if (frameTime > destinationState.clipEndTime) {
-      if (destinationState.wrapMode === WrapMode.Loop) {
-        frameTime %= destinationState.clipEndTime;
+    if (frameTime > destState.clipEndTime) {
+      if (destState.wrapMode === WrapMode.Loop) {
+        frameTime %= destState.clipEndTime;
       } else {
-        frameTime = destinationState.clipEndTime;
+        frameTime = destState.clipEndTime;
       }
     }
     let crossWeight = transition._crossFadeFrameTime / transition.duration;
@@ -659,20 +661,20 @@ export class Animator extends Component {
     }
 
     const crossCurveDataCollection = this._crossCurveDataCollection;
-    const srcCurves = curClip._curves;
-    const destCurves = nextClip._curves;
+    const srcCurves = srcClip._curves;
+    const destCurves = destClip._curves;
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
-      const { curCurveIndex, nextCurveIndex, owner } = crossCurveDataCollection[i];
+      const { owner, curCurveIndex, nextCurveIndex } = crossCurveDataCollection[i];
       const { type, property, target, defaultValue } = owner;
 
       if (curCurveIndex >= 0 && nextCurveIndex >= 0) {
-        const curFrameTime = srcStateData.state._getTheRealFrameTime(srcStateData.frameTime);
-        const curVal = srcCurves[curCurveIndex].curve.evaluate(curFrameTime);
-        const destVal = destCurves[nextCurveIndex].curve.evaluate(frameTime);
-        const calculatedValue = this._getCrossFadeValue(target, type, property, curVal, destVal, crossWeight);
+        const curFrameTime = srcState._getRealFrameTime(srcStateData.frameTime);
+        const srcValue = srcCurves[curCurveIndex].curve.evaluate(curFrameTime);
+        const destValue = destCurves[nextCurveIndex].curve.evaluate(frameTime);
+        const calculatedValue = this._getCrossFadeValue(target, type, property, srcValue, destValue, crossWeight);
         this._applyClipValue(target, type, property, defaultValue, calculatedValue, 1);
       } else if (curCurveIndex >= 0) {
-        const curFrameTime = srcStateData.state._getTheRealFrameTime(srcStateData.frameTime);
+        const curFrameTime = srcState._getRealFrameTime(srcStateData.frameTime);
         const curVal = srcCurves[curCurveIndex].curve.evaluate(curFrameTime);
         const calculatedValue = this._getCrossFadeValue(target, type, property, defaultValue, curVal, 1 - crossWeight);
         this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);

@@ -117,7 +117,7 @@ export class AnimatorState {
   /**
    * @internal
    */
-  _getTheRealFrameTime(frameTime): number {
+  _getRealFrameTime(frameTime: number): number {
     if (frameTime < this.clipStartTime) {
       return this.clipStartTime;
     } else if (frameTime > this.clipEndTime) {

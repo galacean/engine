@@ -7,17 +7,17 @@ import { InterpolableValue } from "../KeyFrame";
 /**
  * @internal
  */
-export class AnimationCureOwner<T extends Component> {
+export class AnimationCureOwner {
   crossCurveMark: number = 0;
   crossCurveIndex: number;
 
   readonly target: Entity;
-  readonly type: new (entity: Entity) => T;
+  readonly type: new (entity: Entity) => Component;
   readonly property: AnimationProperty;
   readonly defaultValue: InterpolableValue;
   readonly fixedPoseValue: InterpolableValue;
 
-  constructor(target: Entity, type: new (entity: Entity) => T, property: AnimationProperty) {
+  constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     this.target = target;
     this.type = type;
     this.property = property;

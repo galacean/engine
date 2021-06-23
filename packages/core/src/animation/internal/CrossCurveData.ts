@@ -1,10 +1,9 @@
-import { Component } from "../../Component";
 import { AnimationCureOwner } from "./AnimationCureOwner";
 /**
  * @internal
  */
 export class CrossCurveData {
-  owner: AnimationCureOwner<Component>;
+  owner: AnimationCureOwner;
   curCurveIndex: number;
   nextCurveIndex: number;
 }
