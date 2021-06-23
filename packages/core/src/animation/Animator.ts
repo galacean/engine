@@ -689,8 +689,12 @@ export class Animator extends Component {
       }
     }
     if (playingStateData.playState === PlayState.Finished) {
-      animlayerData.srcPlayData = animlayerData.destPlayData;
-      animlayerData.srcPlayData.frameTime = frameTime;
+      const srcPlayData = animlayerData.destPlayData;
+      const switchTemp = animlayerData.srcPlayData;
+      animlayerData.srcPlayData = srcPlayData;
+      animlayerData.destPlayData = switchTemp;
+
+      srcPlayData.frameTime = frameTime;
       animlayerData.layerState = LayerState.Playing;
     }
   }
