@@ -1,7 +1,7 @@
 /**
  * State play state.
  */
-export enum StatePlayState {
+export enum PlayState {
   /** Playing state. */
   Playing,
   /** Crossing state. */

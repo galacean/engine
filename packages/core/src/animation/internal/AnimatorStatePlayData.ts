@@ -1,6 +1,6 @@
 import { Component } from "../../Component";
 import { AnimatorState } from "../AnimatorState";
-import { StatePlayState } from "../enums/StatePlayState";
+import { PlayState } from "../enums/PlayState";
 import { AnimatorStateData } from "./AnimatorStataData";
 
 /**
@@ -10,5 +10,5 @@ export class AnimatorStatePlayData {
   state: AnimatorState;
   stateData: AnimatorStateData;
   frameTime: number;
-  playState: StatePlayState;
+  playState: PlayState;
 }

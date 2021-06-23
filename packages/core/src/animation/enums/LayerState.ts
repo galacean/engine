@@ -1,7 +1,7 @@
 /**
- * Layer play state.
+ * Layer state.
  */
-export enum LayerPlayState {
+export enum LayerState {
   /** Standby state. */
   Standby,
   /** Playing state. */
