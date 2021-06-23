@@ -133,11 +133,12 @@ export class Animator extends Component {
     const playState = animatorLayerData.layerState;
 
     const { srcPlayData, destPlayData } = animatorLayerData;
-    const { state } = srcPlayData;
 
     const animatorStateData = this._getAnimatorStateData(stateName, crossState, animatorLayerData);
+    const duration = crossState._getDuration();
+    const offset = duration * normalizedTimeOffset;
     destPlayData.state = crossState;
-    destPlayData.frameTime = crossState._getDuration() * normalizedTimeOffset;
+    destPlayData.frameTime = offset;
     destPlayData.playState = PlayState.Crossing;
     destPlayData.stateData = animatorStateData;
 
@@ -166,12 +167,8 @@ export class Animator extends Component {
     }
 
     const transition = this._crossFadeTransition;
-    const clipLength = crossState.clip.length;
-    transition.duration = clipLength * normalizedTransitionDuration;
-    transition.offset = clipLength * normalizedTimeOffset;
-    if (transition.duration > crossState.clipEndTime - transition.offset) {
-      transition.duration = crossState.clipEndTime - transition.offset;
-    }
+    transition.offset = offset;
+    transition.duration = duration * normalizedTransitionDuration;
   }
 
   /**
