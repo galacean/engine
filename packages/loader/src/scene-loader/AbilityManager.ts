@@ -13,7 +13,6 @@ export class AbilityManager {
 
   @pluginHook({ after: "abilityAdded", before: "beforeAbilityAdded" })
   public add(abilityConfig: ComponentConfig) {
-    debugger;
     const { type, node: nodeId, props, id, index } = abilityConfig;
 
     const node = this.oasis.nodeManager.get(nodeId);
