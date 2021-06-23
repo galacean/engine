@@ -21,11 +21,14 @@ import { LayerState } from "./enums/LayerState";
 import { PlayState } from "./enums/PlayState";
 import { WrapMode } from "./enums/WrapMode";
 import { InterpolableValue } from "./KeyFrame";
+import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
+  private static _animatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
+
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
   speed: number = 1.0;
   /** All layers from the AnimatorController which belongs this Animator .*/
@@ -79,24 +82,25 @@ export class Animator extends Component {
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
-    const { layerIndex: validLayerIndex, state: playState } = this._getAnimatorStateInfo(stateName, layerIndex);
-    if (!playState) {
+    const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
+    const { state } = animatorInfo;
+    if (!state) {
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(validLayerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(animatorInfo.layerIndex);
     const { srcPlayData } = animatorLayerData;
-    const { state } = srcPlayData;
-    if (state && state !== playState) {
+    const { state: curState } = srcPlayData;
+    if (curState && curState !== state) {
       this._revertDefaultValue(srcPlayData);
     }
 
     //CM: Not consider same stateName, but different animation
-    const animatorStateData = this._getAnimatorStateData(stateName, playState, animatorLayerData);
+    const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData);
 
     animatorLayerData.layerState = LayerState.Playing;
-    srcPlayData.state = playState;
-    srcPlayData.frameTime = playState.clip.length * normalizedTimeOffset;
+    srcPlayData.state = state;
+    srcPlayData.frameTime = state.clip.length * normalizedTimeOffset;
     srcPlayData.playState = PlayState.Playing;
     srcPlayData.stateData = animatorStateData;
 
@@ -119,12 +123,13 @@ export class Animator extends Component {
     //CM: CrossFade  三个动作交叉优化
     //CM: 播放完成目标动作后是否允许其值呗修改（建议允许，动作结束以及没播放前均允许修改）
     //CM: cross Fade 时间大于目标动作或者源动作的问题
-    const { layerIndex: validLayerIndex, state: crossState } = this._getAnimatorStateInfo(stateName, layerIndex);
+    const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
+    const { state: crossState } = animatorInfo;
     if (!crossState) {
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(validLayerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(animatorInfo.layerIndex);
     const playState = animatorLayerData.layerState;
 
     const { srcPlayData, destPlayData } = animatorLayerData;
@@ -237,7 +242,7 @@ export class Animator extends Component {
     this.engine._componentsManager.removeOnUpdateAnimations(this);
   }
 
-  private _getAnimatorStateInfo(stateName: string, layerIndex: number): AnimatorStateInfo {
+  private _getAnimatorStateInfo(stateName: string, layerIndex: number, out: AnimatorStateInfo): AnimatorStateInfo {
     let state: AnimatorState = null;
     const { animatorController } = this;
     if (animatorController) {
@@ -254,8 +259,9 @@ export class Animator extends Component {
         state = layers[layerIndex].stateMachine.findStateByName(stateName);
       }
     }
-    //CM: GC
-    return { layerIndex, state };
+    out.layerIndex = layerIndex;
+    out.state = state;
+    return out;
   }
 
   private _saveDefaultValues(stateData: AnimatorStateData): void {
@@ -759,9 +765,4 @@ export class Animator extends Component {
       }
     }
   }
-}
-
-interface AnimatorStateInfo {
-  layerIndex: number;
-  state: AnimatorState;
 }
