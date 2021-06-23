@@ -35,6 +35,9 @@ export class AbilityManager {
     } else if (type === "Model") {
       // TODO
       (ability as any).setProps(abilityProps);
+      if (abilityProps.material) {
+        (ability as any).material = abilityProps.material;
+      }
     } else {
       for (let k in abilityProps) {
         if (abilityProps[k] !== null) {
@@ -54,16 +57,11 @@ export class AbilityManager {
 
   @pluginHook({ before: "beforeAbilityUpdated", after: "abilityUpdated" })
   public update(id: string, key: string, value: any) {
-    if (this.get(id).constructor === Model) {
-      // TODO
-      if (value && this.checkIsAsset(value)) {
-        (this.get(id) as any).setProp(key, this.oasis.resourceManager.get(value.id).resource);
-      } else {
-        (this.get(id) as any).updateProp(key, value);
-      }
+    if (value && this.checkIsAsset(value)) {
+      this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;
     } else {
-      if (value && this.checkIsAsset(value)) {
-        this.get(id)[key] = this.oasis.resourceManager.get(value.id).resource;
+      if (this.get(id).constructor === Model) {
+        (this.get(id) as any).updateProp(key, value);
       } else {
         this.get(id)[key] = value;
       }
