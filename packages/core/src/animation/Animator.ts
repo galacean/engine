@@ -79,35 +79,19 @@ export class Animator extends Component {
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
-    const { animatorController } = this;
-    if (!animatorController) {
-      return;
-    }
-
-    let playState: AnimatorState;
-    const layers = animatorController.layers;
-    if (layerIndex === -1) {
-      for (let i = 0, n = layers.length; i < n; i--) {
-        playState = layers[i].stateMachine.findStateByName(stateName);
-        if (playState) {
-          layerIndex = i;
-          break;
-        }
-      }
-    } else {
-      playState = layers[layerIndex].stateMachine.findStateByName(stateName);
-    }
+    const { layerIndex: validLayerIndex, state: playState } = this._getAnimatorStateInfo(stateName, layerIndex);
     if (!playState) {
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(layerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(validLayerIndex);
     const { srcPlayData } = animatorLayerData;
     const { state } = srcPlayData;
     if (state && state !== playState) {
       this._revertDefaultValue(srcPlayData);
     }
 
+    //CM: Not consider same stateName, but different animation
     const animatorStateData = this._getAnimatorStateData(stateName, playState, animatorLayerData);
 
     animatorLayerData.playState = LayerPlayState.Playing;
@@ -121,75 +105,72 @@ export class Animator extends Component {
 
   /**
    * Create a crossfade from the current state to another state.
-   * @param stateName - The name of the next state
-   * @param layerIndex - The layer where the crossfade occurs
+   * @param stateName - The state name
    * @param normalizedTransitionDuration - The duration of the transition (normalized)
+   * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
    * @param normalizedTimeOffset - The time of the next state (normalized from the dest state's duration)
    */
   crossFade(
     stateName: string,
-    layerIndex: number,
     normalizedTransitionDuration: number,
-    normalizedTimeOffset: number
+    layerIndex: number = -1,
+    normalizedTimeOffset: number = 0
   ): void {
     //CM: CrossFade  三个动作交叉优化
     //CM: 播放完成目标动作后是否允许其值呗修改（建议允许，动作结束以及没播放前均允许修改）
     //CM: cross Fade 时间大于目标动作或者源动作的问题
-    const { animatorController } = this;
-    if (!animatorController) {
+    const { layerIndex: validLayerIndex, state: crossState } = this._getAnimatorStateInfo(stateName, layerIndex);
+    if (!crossState) {
       return;
     }
 
-    const nextState = animatorController.layers[layerIndex].stateMachine.findStateByName(stateName);
-    if (nextState) {
-      const animatorLayerData = this._getAnimatorLayerData(layerIndex);
-      const playState = animatorLayerData.playState;
+    const animatorLayerData = this._getAnimatorLayerData(validLayerIndex);
+    const playState = animatorLayerData.playState;
 
-      const { srcPlayData, destPlayData } = animatorLayerData;
-      const { state } = srcPlayData;
-      let transition: AnimatorStateTransition;
+    const { srcPlayData, destPlayData } = animatorLayerData;
+    const { state } = srcPlayData;
+    let transition: AnimatorStateTransition;
 
-      const animatorStateData = this._getAnimatorStateData(stateName, nextState, animatorLayerData);
-      destPlayData.state = nextState;
-      destPlayData.frameTime = 0;
-      destPlayData.playState = StatePlayState.Crossing;
-      destPlayData.stateData = animatorStateData;
+    const animatorStateData = this._getAnimatorStateData(stateName, crossState, animatorLayerData);
+    destPlayData.state = crossState;
+    destPlayData.frameTime = 0;
+    destPlayData.playState = StatePlayState.Crossing;
+    destPlayData.stateData = animatorStateData;
 
-      this._saveDefaultValues(animatorStateData);
+    this._saveDefaultValues(animatorStateData);
 
-      switch (playState) {
-        // Maybe not play, maybe end.
-        case LayerPlayState.Standby:
-          animatorLayerData.playState = LayerPlayState.FixedCrossFading;
-          this._clearCrossData(animatorLayerData);
-          this._prepareStandbyCrossFading(animatorLayerData);
-          animatorLayerData.srcPlayData = new AnimatorStatePlayData();
-          transition = this._transitionForPose;
-          break;
-        case LayerPlayState.Playing:
-          animatorLayerData.playState = LayerPlayState.CrossFading;
-          this._clearCrossData(animatorLayerData);
-          this._prepareCrossFading(animatorLayerData);
-          srcPlayData.playState = StatePlayState.Fading;
-          transition = state.addTransition(nextState);
-          break;
-        case LayerPlayState.CrossFading:
-          animatorLayerData.playState = LayerPlayState.FixedCrossFading;
-          this._prepareFiexdPoseCrossFading(animatorLayerData);
-          animatorLayerData.srcPlayData = new AnimatorStatePlayData();
-          transition = this._transitionForPose;
-          break;
-        case LayerPlayState.FixedCrossFading:
-          this._prepareFiexdPoseCrossFading(animatorLayerData);
-          break;
-      }
+    switch (playState) {
+      // Maybe not play, maybe end.
+      case LayerPlayState.Standby:
+        animatorLayerData.playState = LayerPlayState.FixedCrossFading;
+        this._clearCrossData(animatorLayerData);
+        this._prepareStandbyCrossFading(animatorLayerData);
+        animatorLayerData.srcPlayData = new AnimatorStatePlayData();
+        transition = this._transitionForPose;
+        break;
+      case LayerPlayState.Playing:
+        animatorLayerData.playState = LayerPlayState.CrossFading;
+        this._clearCrossData(animatorLayerData);
+        this._prepareCrossFading(animatorLayerData);
+        srcPlayData.playState = StatePlayState.Fading;
+        transition = state.addTransition(crossState);
+        break;
+      case LayerPlayState.CrossFading:
+        animatorLayerData.playState = LayerPlayState.FixedCrossFading;
+        this._prepareFiexdPoseCrossFading(animatorLayerData);
+        animatorLayerData.srcPlayData = new AnimatorStatePlayData();
+        transition = this._transitionForPose;
+        break;
+      case LayerPlayState.FixedCrossFading:
+        this._prepareFiexdPoseCrossFading(animatorLayerData);
+        break;
+    }
 
-      const clipLength = nextState.clip.length;
-      transition.duration = clipLength * normalizedTransitionDuration;
-      transition.offset = clipLength * normalizedTimeOffset;
-      if (transition.duration > nextState.clipEndTime - transition.offset) {
-        transition.duration = nextState.clipEndTime - transition.offset;
-      }
+    const clipLength = crossState.clip.length;
+    transition.duration = clipLength * normalizedTransitionDuration;
+    transition.offset = clipLength * normalizedTimeOffset;
+    if (transition.duration > crossState.clipEndTime - transition.offset) {
+      transition.duration = crossState.clipEndTime - transition.offset;
     }
   }
 
@@ -258,9 +239,27 @@ export class Animator extends Component {
     this.engine._componentsManager.removeOnUpdateAnimations(this);
   }
 
-  /**
-   * @internal
-   */
+  private _getAnimatorStateInfo(stateName: string, layerIndex: number): AnimatorStateInfo {
+    let state: AnimatorState = null;
+    const { animatorController } = this;
+    if (animatorController) {
+      const layers = animatorController.layers;
+      if (layerIndex === -1) {
+        for (let i = 0, n = layers.length; i < n; i--) {
+          state = layers[i].stateMachine.findStateByName(stateName);
+          if (state) {
+            layerIndex = i;
+            break;
+          }
+        }
+      } else {
+        state = layers[layerIndex].stateMachine.findStateByName(stateName);
+      }
+    }
+    //CM: GC
+    return { layerIndex, state };
+  }
+
   private _saveDefaultValues(stateData: AnimatorStateData): void {
     const { owners } = stateData;
     for (let i = owners.length - 1; i >= 0; i--) {
@@ -763,4 +762,9 @@ export class Animator extends Component {
       }
     }
   }
+}
+
+interface AnimatorStateInfo {
+  layerIndex: number;
+  state: AnimatorState;
 }
