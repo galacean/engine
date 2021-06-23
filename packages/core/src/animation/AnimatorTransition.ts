@@ -12,7 +12,4 @@ export class AnimatorStateTransition {
   exitTime: number;
   /** The destination state of the transition. */
   destinationState: AnimatorState;
-
-  /** @internal */
-  _crossFadeFrameTime: number = 0;
 }

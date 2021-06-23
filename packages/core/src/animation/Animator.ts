@@ -100,7 +100,7 @@ export class Animator extends Component {
 
     animatorLayerData.layerState = LayerState.Playing;
     srcPlayData.state = state;
-    srcPlayData.frameTime = state.clip.length * normalizedTimeOffset;
+    srcPlayData.frameTime = state._getDuration() * normalizedTimeOffset;
     srcPlayData.playState = PlayState.Playing;
     srcPlayData.stateData = animatorStateData;
 
@@ -138,7 +138,7 @@ export class Animator extends Component {
 
     const animatorStateData = this._getAnimatorStateData(stateName, crossState, animatorLayerData);
     destPlayData.state = crossState;
-    destPlayData.frameTime = 0;
+    destPlayData.frameTime = crossState._getDuration() * normalizedTimeOffset;
     destPlayData.playState = PlayState.Crossing;
     destPlayData.stateData = animatorStateData;
 
@@ -190,28 +190,15 @@ export class Animator extends Component {
     if (!animatorController) {
       return;
     }
-    deltaTime *= this.speed;
 
+    deltaTime *= this.speed;
     for (let i = 0, n = animatorController.layers.length; i < n; i++) {
       const animatorLayerData = this._getAnimatorLayerData(i);
       if (animatorLayerData.layerState === LayerState.Standby) {
         continue;
       }
 
-      const isFirstLayer = i === 0;
-      const { srcPlayData } = animatorLayerData;
-      srcPlayData.frameTime += deltaTime / 1000;
-      if (srcPlayData.playState === PlayState.Playing) {
-        if (srcPlayData.frameTime > srcPlayData.state.clipEndTime) {
-          if (srcPlayData.state.wrapMode === WrapMode.Loop) {
-            srcPlayData.frameTime %= srcPlayData.state.clipEndTime;
-          } else {
-            srcPlayData.frameTime = srcPlayData.state.clipEndTime;
-            srcPlayData.playState = PlayState.Finished;
-          }
-        }
-      }
-      this._updateLayer(i, isFirstLayer, deltaTime);
+      this._updateLayer(i, i === 0, deltaTime / 1000);
     }
   }
 
@@ -584,11 +571,11 @@ export class Animator extends Component {
   private _updateLayer(layerIndex: number, isFirstLayer: boolean, deltaTime: number): void {
     const { blendingMode, weight } = this.layers[layerIndex];
     const animlayerData = this._animatorLayersData[layerIndex];
-    const { srcPlayData, destPlayData, layerState: playState } = animlayerData;
+    const { srcPlayData, destPlayData, layerState } = animlayerData;
 
-    switch (playState) {
+    switch (layerState) {
       case LayerState.Playing:
-        this._updatePlayingState(srcPlayData, isFirstLayer, weight, blendingMode);
+        this._updatePlayingState(srcPlayData, isFirstLayer, weight, blendingMode, deltaTime);
         break;
       case LayerState.FixedCrossFading:
         this._updateCrossFadeFromPose(this._transitionForPose, destPlayData, animlayerData, weight, deltaTime);
@@ -606,12 +593,14 @@ export class Animator extends Component {
     playingStateData: AnimatorStatePlayData,
     isFirstLayer: boolean,
     weight: number,
-    blendingMode: AnimatorLayerBlendingMode
+    blendingMode: AnimatorLayerBlendingMode,
+    deltaTime: number
   ) {
     playingStateData.playState = PlayState.Playing;
-    const clip = playingStateData.state.clip;
+    const { state } = playingStateData;
+    const clip = state.clip;
     const curves = clip._curves;
-    const frameTime = playingStateData.state._getRealFrameTime(playingStateData.frameTime);
+    const frameTime = state._getClipRealTime(playingStateData.frameTime);
     const { owners } = playingStateData.stateData;
     for (let i = curves.length - 1; i >= 0; i--) {
       const { curve, type, property } = curves[i];
@@ -630,6 +619,7 @@ export class Animator extends Component {
         }
       }
     }
+    playingStateData.frameTime += deltaTime;
   }
 
   private _updateCrossFade(
@@ -644,17 +634,8 @@ export class Animator extends Component {
     const destState = destStateData.state;
     const srcClip = srcState.clip;
     const destClip = destState.clip;
-    
-    transition._crossFadeFrameTime += deltaTime / 1000;
-    let frameTime = transition.offset + transition._crossFadeFrameTime;
-    if (frameTime > destState.clipEndTime) {
-      if (destState.wrapMode === WrapMode.Loop) {
-        frameTime %= destState.clipEndTime;
-      } else {
-        frameTime = destState.clipEndTime;
-      }
-    }
-    let crossWeight = transition._crossFadeFrameTime / transition.duration;
+
+    let crossWeight = destStateData.frameTime / transition.duration;
     if (crossWeight >= 1.0) {
       crossWeight = 1.0;
       srcStateData.playState = PlayState.Finished;
@@ -663,23 +644,24 @@ export class Animator extends Component {
     const crossCurveDataCollection = this._crossCurveDataCollection;
     const srcCurves = srcClip._curves;
     const destCurves = destClip._curves;
+    const srcClipTime = srcState._getClipRealTime(srcStateData.frameTime);
+    const destClipTime = destState._getClipRealTime(destStateData.frameTime);
+
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { owner, curCurveIndex, nextCurveIndex } = crossCurveDataCollection[i];
       const { type, property, target, defaultValue } = owner;
-
       if (curCurveIndex >= 0 && nextCurveIndex >= 0) {
-        const curFrameTime = srcState._getRealFrameTime(srcStateData.frameTime);
-        const srcValue = srcCurves[curCurveIndex].curve.evaluate(curFrameTime);
-        const destValue = destCurves[nextCurveIndex].curve.evaluate(frameTime);
+        const srcValue = srcCurves[curCurveIndex].curve.evaluate(srcClipTime);
+        const destValue = destCurves[nextCurveIndex].curve.evaluate(destClipTime);
         const calculatedValue = this._getCrossFadeValue(target, type, property, srcValue, destValue, crossWeight);
         this._applyClipValue(target, type, property, defaultValue, calculatedValue, 1);
       } else if (curCurveIndex >= 0) {
-        const curFrameTime = srcState._getRealFrameTime(srcStateData.frameTime);
-        const curVal = srcCurves[curCurveIndex].curve.evaluate(curFrameTime);
+        const srcClipTime = srcState._getClipRealTime(srcStateData.frameTime);
+        const curVal = srcCurves[curCurveIndex].curve.evaluate(srcClipTime);
         const calculatedValue = this._getCrossFadeValue(target, type, property, defaultValue, curVal, 1 - crossWeight);
         this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
       } else {
-        const val = destCurves[nextCurveIndex].curve.evaluate(frameTime);
+        const val = destCurves[nextCurveIndex].curve.evaluate(destClipTime);
         const calculatedValue = this._getCrossFadeValue(target, type, property, defaultValue, val, crossWeight);
         this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
       }
@@ -690,9 +672,11 @@ export class Animator extends Component {
       animlayerData.srcPlayData = srcPlayData;
       animlayerData.destPlayData = switchTemp;
 
-      srcPlayData.frameTime = frameTime;
       animlayerData.layerState = LayerState.Playing;
     }
+
+    srcStateData.frameTime += deltaTime;
+    destStateData.frameTime += deltaTime;
   }
 
   private _updateCrossFadeFromPose(
@@ -702,44 +686,38 @@ export class Animator extends Component {
     weight: number,
     deltaTime: number
   ) {
-    const destinationState = destStateData.state;
-    const nextClip = destinationState.clip;
-    let crossWeight: number;
-    transition._crossFadeFrameTime += deltaTime / 1000;
-    let frameTime = transition.offset + transition._crossFadeFrameTime;
-    if (frameTime > destinationState.clipEndTime) {
-      if (destinationState.wrapMode === WrapMode.Loop) {
-        frameTime %= destinationState.clipEndTime;
-      } else {
-        frameTime = destinationState.clipEndTime;
-      }
-    }
-    crossWeight = transition._crossFadeFrameTime / transition.duration;
+    const destState = destStateData.state;
+    const nextClip = destState.clip;
+
+    let crossWeight: number = destStateData.frameTime / transition.duration;
     if (crossWeight >= 1) {
       crossWeight = 1;
       destStateData.playState = PlayState.Playing;
     }
 
     const crossCurveIndies = this._crossCurveDataCollection;
-
     const curves = nextClip._curves;
+    const destClipTime = destState._getClipRealTime(destStateData.frameTime);
+
     for (let i = crossCurveIndies.length - 1; i >= 0; i--) {
       let calculatedValue: InterpolableValue;
 
       const crossCurveIndex = crossCurveIndies[i];
       const { target, type, property, fixedPoseValue, defaultValue } = crossCurveIndex.owner;
       if (crossCurveIndex.nextCurveIndex) {
-        const value = curves[i].curve.evaluate(frameTime);
+        const value = curves[i].curve.evaluate(destClipTime);
         calculatedValue = this._getCrossFadeValue(target, type, property, fixedPoseValue, value, crossWeight);
       } else {
         calculatedValue = this._getCrossFadeValue(target, type, property, fixedPoseValue, defaultValue, crossWeight);
       }
       this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
     }
+    //CM:
     if (destStateData.playState === PlayState.Playing) {
       animlayerData.srcPlayData = animlayerData.destPlayData;
-      animlayerData.srcPlayData.frameTime = frameTime;
+      animlayerData.srcPlayData.frameTime = destClipTime;
     }
+    destStateData.frameTime += deltaTime;
   }
 
   private _revertDefaultValue(playData: AnimatorStatePlayData) {

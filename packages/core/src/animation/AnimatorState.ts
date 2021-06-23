@@ -46,10 +46,7 @@ export class AnimatorState {
   }
 
   set clipStartTime(time: number) {
-    this._clipStartTime = time;
-    if (time < 0) {
-      this._clipStartTime = 0;
-    }
+    this._clipStartTime = time < 0 ? 0 : time;
   }
 
   /**
@@ -64,10 +61,7 @@ export class AnimatorState {
    */
   set clipEndTime(time: number) {
     const clipLength = this._clip.length;
-    this._clipEndTime = time;
-    if (time > this._clip.length) {
-      this._clipEndTime = clipLength;
-    }
+    this._clipEndTime = time > this._clip.length ? clipLength : time;
   }
 
   /**
@@ -117,13 +111,18 @@ export class AnimatorState {
   /**
    * @internal
    */
-  _getRealFrameTime(frameTime: number): number {
-    if (frameTime < this.clipStartTime) {
-      return this.clipStartTime;
-    } else if (frameTime > this.clipEndTime) {
-      return this.clipEndTime;
-    } else {
-      return frameTime;
+  _getDuration(): number {
+    return this._clipEndTime - this._clipStartTime;
+  }
+
+  /**
+   * @internal
+   */
+  _getClipRealTime(time: number): number {
+    const duration = this.clipEndTime - this.clipStartTime;
+    if (time > duration) {
+      time = this.wrapMode === WrapMode.Loop ? time % duration : duration;
     }
+    return time + this.clipStartTime;
   }
 }
