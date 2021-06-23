@@ -55,7 +55,7 @@ export class Animator extends Component {
   @ignoreClone
   private _crossCurveDataCollection: CrossCurveData[] = [];
   @ignoreClone
-  private _transitionForPose: AnimatorStateTransition = new AnimatorStateTransition();
+  private _crossFadeTransition: AnimatorStateTransition = new AnimatorStateTransition();
   @ignoreClone
   private _animationCureOwners: AnimationCureOwner[][] = [];
   @ignoreClone
@@ -134,7 +134,6 @@ export class Animator extends Component {
 
     const { srcPlayData, destPlayData } = animatorLayerData;
     const { state } = srcPlayData;
-    let transition: AnimatorStateTransition;
 
     const animatorStateData = this._getAnimatorStateData(stateName, crossState, animatorLayerData);
     destPlayData.state = crossState;
@@ -150,25 +149,23 @@ export class Animator extends Component {
         animatorLayerData.layerState = LayerState.FixedCrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareStandbyCrossFading(animatorLayerData);
-        transition = this._transitionForPose;
         break;
       case LayerState.Playing:
         animatorLayerData.layerState = LayerState.CrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareCrossFading(animatorLayerData);
         srcPlayData.playState = PlayState.Fading;
-        transition = state.addTransition(crossState);
         break;
       case LayerState.CrossFading:
         animatorLayerData.layerState = LayerState.FixedCrossFading;
         this._prepareFiexdPoseCrossFading(animatorLayerData);
-        transition = this._transitionForPose;
         break;
       case LayerState.FixedCrossFading:
         this._prepareFiexdPoseCrossFading(animatorLayerData);
         break;
     }
 
+    const transition = this._crossFadeTransition;
     const clipLength = crossState.clip.length;
     transition.duration = clipLength * normalizedTransitionDuration;
     transition.offset = clipLength * normalizedTimeOffset;
@@ -578,13 +575,10 @@ export class Animator extends Component {
         this._updatePlayingState(srcPlayData, isFirstLayer, weight, blendingMode, deltaTime);
         break;
       case LayerState.FixedCrossFading:
-        this._updateCrossFadeFromPose(this._transitionForPose, destPlayData, animlayerData, weight, deltaTime);
+        this._updateCrossFadeFromPose(this._crossFadeTransition, destPlayData, animlayerData, weight, deltaTime);
         break;
       case LayerState.CrossFading:
-        const transition = srcPlayData.state.transitions[0];
-        if (transition) {
-          this._updateCrossFade(srcPlayData, transition, destPlayData, animlayerData, weight, deltaTime);
-        }
+        this._updateCrossFade(srcPlayData, this._crossFadeTransition, destPlayData, animlayerData, weight, deltaTime);
         break;
     }
   }
