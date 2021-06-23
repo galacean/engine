@@ -108,7 +108,7 @@ export class Animator extends Component {
    * @param stateName - The state name
    * @param normalizedTransitionDuration - The duration of the transition (normalized)
    * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
-   * @param normalizedTimeOffset - The time of the next state (normalized from the dest state's duration)
+   * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
   crossFade(
     stateName: string,
@@ -578,22 +578,23 @@ export class Animator extends Component {
   }
 
   private _updateLayer(layerIndex: number, isFirstLayer: boolean, deltaTime: number): void {
-    const animLayer = this.layers[layerIndex];
+    const { blendingMode, weight } = this.layers[layerIndex];
     const animlayerData = this._animatorLayersData[layerIndex];
-    const { srcPlayData, destPlayData } = animlayerData;
-    const { weight, blendingMode } = animLayer;
-    if (destPlayData && destPlayData.playState === StatePlayState.Crossing) {
-      const crossFromFixedPose = !srcPlayData.state;
-      if (crossFromFixedPose) {
+    const { srcPlayData, destPlayData, playState } = animlayerData;
+
+    switch (playState) {
+      case LayerPlayState.Playing:
+        this._updatePlayingState(srcPlayData, isFirstLayer, weight, blendingMode);
+        break;
+      case LayerPlayState.FixedCrossFading:
         this._updateCrossFadeFromPose(this._transitionForPose, destPlayData, animlayerData, weight, deltaTime);
-      } else {
+        break;
+      case LayerPlayState.CrossFading:
         const transition = srcPlayData.state.transitions[0];
         if (transition) {
           this._updateCrossFade(srcPlayData, transition, destPlayData, animlayerData, weight, deltaTime);
         }
-      }
-    } else {
-      this._updatePlayingState(srcPlayData, isFirstLayer, weight, blendingMode);
+        break;
     }
   }
 
@@ -688,6 +689,7 @@ export class Animator extends Component {
       animlayerData.srcPlayData = animlayerData.destPlayData;
       animlayerData.srcPlayData.frameTime = frameTime;
       animlayerData.destPlayData = new AnimatorStatePlayData();
+      animlayerData.playState = LayerPlayState.Playing;
     }
   }
 
