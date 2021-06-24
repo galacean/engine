@@ -119,9 +119,7 @@ export class Animator extends Component {
     layerIndex: number = -1,
     normalizedTimeOffset: number = 0
   ): void {
-    //CM: CrossFade  三个动作交叉优化
     //CM: 播放完成目标动作后是否允许其值呗修改（建议允许，动作结束以及没播放前均允许修改）
-    //CM: 支持normalizedTransitionDuration 大于duration
     const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
     const { state: crossState } = animatorInfo;
     if (!crossState) {
@@ -129,9 +127,8 @@ export class Animator extends Component {
     }
 
     const animatorLayerData = this._getAnimatorLayerData(animatorInfo.layerIndex);
-    const playState = animatorLayerData.layerState;
-
-    const { srcPlayData, destPlayData } = animatorLayerData;
+    const layerState = animatorLayerData.layerState;
+    const { destPlayData } = animatorLayerData;
 
     const animatorStateData = this._getAnimatorStateData(stateName, crossState, animatorLayerData);
     const duration = crossState._getDuration();
@@ -142,7 +139,7 @@ export class Animator extends Component {
 
     this._saveDefaultValues(animatorStateData);
 
-    switch (playState) {
+    switch (layerState) {
       // Maybe not play, maybe end.
       case LayerState.Standby:
         animatorLayerData.layerState = LayerState.FixedCrossFading;
@@ -640,11 +637,12 @@ export class Animator extends Component {
       this._applyClipValue(target, type, property, defaultValue, resultValue, weight);
     }
 
-    srcStateData.frameTime += delta;
     destStateData.frameTime += delta;
     if (crossWeight === 1.0) {
       layerData.layerState = LayerState.Playing;
       layerData.switcPlayData();
+    } else {
+      srcStateData.frameTime += delta;
     }
   }
 
