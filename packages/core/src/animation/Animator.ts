@@ -101,7 +101,6 @@ export class Animator extends Component {
     animatorLayerData.layerState = LayerState.Playing;
     srcPlayData.state = state;
     srcPlayData.frameTime = state._getDuration() * normalizedTimeOffset;
-    srcPlayData.playState = PlayState.Playing;
     srcPlayData.stateData = animatorStateData;
 
     this._saveDefaultValues(animatorStateData);
@@ -139,7 +138,6 @@ export class Animator extends Component {
     const offset = duration * normalizedTimeOffset;
     destPlayData.state = crossState;
     destPlayData.frameTime = offset;
-    destPlayData.playState = PlayState.Crossing;
     destPlayData.stateData = animatorStateData;
 
     this._saveDefaultValues(animatorStateData);
@@ -155,7 +153,6 @@ export class Animator extends Component {
         animatorLayerData.layerState = LayerState.CrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareCrossFading(animatorLayerData);
-        srcPlayData.playState = PlayState.Fading;
         break;
       case LayerState.CrossFading:
         animatorLayerData.layerState = LayerState.FixedCrossFading;
@@ -587,7 +584,6 @@ export class Animator extends Component {
     blendingMode: AnimatorLayerBlendingMode,
     delta: number
   ) {
-    playingStateData.playState = PlayState.Playing;
     const { state } = playingStateData;
     const clip = state.clip;
     const curves = clip._curves;
@@ -648,7 +644,6 @@ export class Animator extends Component {
     destStateData.frameTime += delta;
     if (crossWeight === 1.0) {
       layerData.layerState = LayerState.Playing;
-      destStateData.playState = PlayState.Playing;
       layerData.switcPlayData();
     }
   }
@@ -681,7 +676,6 @@ export class Animator extends Component {
     destStateData.frameTime += delta;
     if (crossWeight === 1.0) {
       layerData.layerState = LayerState.Playing;
-      destStateData.playState = PlayState.Playing;
       layerData.switcPlayData();
     }
   }

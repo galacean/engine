@@ -10,5 +10,4 @@ export class AnimatorStatePlayData {
   state: AnimatorState;
   stateData: AnimatorStateData;
   frameTime: number;
-  playState: PlayState;
 }
