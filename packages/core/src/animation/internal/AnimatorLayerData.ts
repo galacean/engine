@@ -11,4 +11,11 @@ export class AnimatorLayerData {
   destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   layerState: LayerState = LayerState.Standby;
   crossCurveMark: number = 0;
+
+  switcPlayData(): void {
+    const srcPlayData = this.destPlayData;
+    const switchTemp = this.srcPlayData;
+    this.srcPlayData = srcPlayData;
+    this.destPlayData = switchTemp;
+  }
 }
