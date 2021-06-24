@@ -204,6 +204,7 @@ export class AnimationCurve {
     const t2: Vector3 = <Vector3>keys[frameIndex + 2].value;
     const v2: Vector3 = <Vector3>keys[nextFrameIndex + 1].value;
 
+    //CM:clone
     return v1.scale(part1).add(v2.scale(part2)).add(t1.scale(part3)).add(t2.scale(part4)).clone();
   }
 
