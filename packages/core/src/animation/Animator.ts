@@ -456,7 +456,7 @@ export class Animator extends Component {
     target: Entity,
     type: new (entity: Entity) => Component,
     property: AnimationProperty,
-    diffVal: InterpolableValue,
+    addtiveValue: InterpolableValue,
     weight: number
   ): void {
     const transform = (<Entity>target).transform;
@@ -464,24 +464,22 @@ export class Animator extends Component {
       switch (property) {
         case AnimationProperty.Position:
           const position = transform.position;
-          position.x += (diffVal as Vector3).x;
-          position.y += (diffVal as Vector3).y;
-          position.z += (diffVal as Vector3).z;
+          position.x += (<Vector3>addtiveValue).x * weight;
+          position.y += (<Vector3>addtiveValue).y * weight;
+          position.z += (<Vector3>addtiveValue).z * weight;
           transform.position = position;
           break;
         case AnimationProperty.Rotation:
           const rotationQuaternion = transform.rotationQuaternion;
-          AnimatorUtils.calQuaternionWeight(diffVal as Quaternion, weight, diffVal as Quaternion);
-          (diffVal as Quaternion).normalize();
-          rotationQuaternion.multiply(diffVal as Quaternion);
+          AnimatorUtils.quaternionWeight(<Quaternion>addtiveValue, weight, <Quaternion>addtiveValue);
+          (<Quaternion>addtiveValue).normalize();
+          rotationQuaternion.multiply(<Quaternion>addtiveValue);
           transform.rotationQuaternion = rotationQuaternion;
           break;
         case AnimationProperty.Scale:
           const scale = transform.scale;
-          AnimatorUtils.calScaleWeight(scale, weight, scale);
-          scale.x = scale.x * (diffVal as Vector3).x;
-          scale.y = scale.y * (diffVal as Vector3).y;
-          scale.z = scale.z * (diffVal as Vector3).z;
+          AnimatorUtils.scaleWeight(scale, weight, scale);
+          Vector3.multiply(scale, <Vector3>addtiveValue, scale);
           transform.scale = scale;
           break;
       }
@@ -526,8 +524,7 @@ export class Animator extends Component {
         this._applyClipValue(target, type, property, defaultValue, value, 1.0);
       } else {
         if (layerAddtive) {
-          const firstFrameValue = curve.keys[0].value;
-          const diffValueFromBase = this._calculateDiffFromBase(property, firstFrameValue, value);
+          const diffValueFromBase = this._calculateDiffFromBase(property, curve.keys[0].value, value);
           this._applyClipValueAddtive(target, type, property, diffValueFromBase, weight);
         } else {
           this._applyClipValue(target, type, property, defaultValue, value, weight);
