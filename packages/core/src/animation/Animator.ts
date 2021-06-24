@@ -122,7 +122,7 @@ export class Animator extends Component {
   ): void {
     //CM: CrossFade  三个动作交叉优化
     //CM: 播放完成目标动作后是否允许其值呗修改（建议允许，动作结束以及没播放前均允许修改）
-    //CM: cross Fade 时间大于目标动作或者源动作的问题
+    //CM: 支持normalizedTransitionDuration 大于duration
     const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
     const { state: crossState } = animatorInfo;
     if (!crossState) {
@@ -641,22 +641,12 @@ export class Animator extends Component {
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { owner, curCurveIndex, nextCurveIndex } = crossCurveDataCollection[i];
       const { type, property, target, defaultValue } = owner;
-      if (curCurveIndex >= 0 && nextCurveIndex >= 0) {
-        const srcValue = srcCurves[curCurveIndex].curve.evaluate(srcClipTime);
-        const destValue = destCurves[nextCurveIndex].curve.evaluate(destClipTime);
-        const calculatedValue = this._getCrossFadeValue(target, type, property, srcValue, destValue, crossWeight);
-        this._applyClipValue(target, type, property, defaultValue, calculatedValue, 1);
-      } else if (curCurveIndex >= 0) {
-        const srcClipTime = srcState._getClipRealTime(srcStateData.frameTime);
-        const curVal = srcCurves[curCurveIndex].curve.evaluate(srcClipTime);
-        const calculatedValue = this._getCrossFadeValue(target, type, property, defaultValue, curVal, 1 - crossWeight);
-        this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
-      } else {
-        const val = destCurves[nextCurveIndex].curve.evaluate(destClipTime);
-        const calculatedValue = this._getCrossFadeValue(target, type, property, defaultValue, val, crossWeight);
-        this._applyClipValue(target, type, property, defaultValue, calculatedValue, weight);
-      }
+      const srcValue = curCurveIndex >= 0 ? srcCurves[curCurveIndex].curve.evaluate(srcClipTime) : defaultValue;
+      const destValue = nextCurveIndex >= 0 ? destCurves[nextCurveIndex].curve.evaluate(destClipTime) : defaultValue;
+      const resultValue = this._getCrossFadeValue(target, type, property, srcValue, destValue, crossWeight);
+      this._applyClipValue(target, type, property, defaultValue, resultValue, weight);
     }
+
     if (srcStateData.playState === PlayState.Finished) {
       const srcPlayData = animlayerData.destPlayData;
       const switchTemp = animlayerData.srcPlayData;
