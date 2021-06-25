@@ -305,8 +305,7 @@ export class Animator extends Component {
 
     // Save current cross curve data owner fixed pose.
     for (let i = crossCurveData.length - 1; i >= 0; i--) {
-      const dataItem = crossCurveData[i];
-      dataItem.owner.saveFixedPoseValue();
+      crossCurveData[i].owner.saveFixedPoseValue();
     }
     // prepare dest AnimatorState cross data.
     this._prepareDestCrossData(crossCurveData, animatorLayerData.destPlayData, animatorLayerData.crossCurveMark, true);
@@ -412,8 +411,7 @@ export class Animator extends Component {
     const frameTime = state._getClipRealTime(playData.frameTime);
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = owners[i];
-      const { curve } = curves[i];
-      const value = this._evaluateCurve(owner.property, curve, frameTime, addtive);
+      const value = this._evaluateCurve(owner.property, curves[i].curve, frameTime, addtive);
       if (addtive) {
         this._applyClipValueAddtive(owner, value, weight);
       } else {
