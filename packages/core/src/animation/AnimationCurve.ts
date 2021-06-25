@@ -81,7 +81,7 @@ export class AnimationCurve {
    * Evaluate the curve at time.
    * @param time - The time within the curve you want to evaluate
    */
-  evaluate(time: number): InterpolableValue {
+  evaluate(time: number): Readonly<InterpolableValue> {
     const { keys, interpolation } = this;
     const { length } = this.keys;
 

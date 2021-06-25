@@ -4,6 +4,6 @@ import { AnimationCureOwner } from "./AnimationCureOwner";
  */
 export class CrossCurveData {
   owner: AnimationCureOwner;
-  curCurveIndex: number;
-  nextCurveIndex: number;
+  srcCurveIndex: number;
+  destCurveIndex: number;
 }
