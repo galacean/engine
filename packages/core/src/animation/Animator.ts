@@ -35,10 +35,6 @@ export class Animator extends Component {
   animatorController: AnimatorController;
 
   @ignoreClone
-  private _tempVector3: Vector3 = new Vector3();
-  @ignoreClone
-  private _tempQuaternion: Quaternion = new Quaternion();
-  @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
   private _crossCurveDataCollection: CrossCurveData[] = [];
@@ -389,94 +385,6 @@ export class Animator extends Component {
     return animatorLayerData;
   }
 
-  private _getCrossFadeValue(
-    owner: AnimationCureOwner,
-    sVal: InterpolableValue,
-    dVal: InterpolableValue,
-    crossWeight: number
-  ): InterpolableValue {
-    if (owner.type === Transform) {
-      const transform = owner.target.transform;
-      switch (owner.property) {
-        case AnimationProperty.Position:
-          Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
-          return this._tempVector3;
-        case AnimationProperty.Rotation:
-          Quaternion.slerp(sVal as Quaternion, dVal as Quaternion, crossWeight, this._tempQuaternion);
-          return this._tempQuaternion;
-        case AnimationProperty.Scale: {
-          const scale = transform.scale;
-          Vector3.lerp(sVal as Vector3, dVal as Vector3, crossWeight, this._tempVector3);
-          transform.scale = scale;
-          return this._tempVector3;
-        }
-      }
-    }
-  }
-
-  private _applyClipValue(owener: AnimationCureOwner, value: InterpolableValue, weight: number): void {
-    if (owener.type === Transform) {
-      const transform = owener.target.transform;
-      switch (owener.property) {
-        case AnimationProperty.Position:
-          if (weight === 1.0) {
-            transform.position = <Vector3>value;
-          } else {
-            const position = transform.position;
-            Vector3.lerp(position, <Vector3>value, weight, position);
-            transform.position = position;
-          }
-          break;
-        case AnimationProperty.Rotation:
-          if (weight === 1.0) {
-            transform.rotationQuaternion = <Quaternion>value;
-          } else {
-            const rotationQuaternion = transform.rotationQuaternion;
-            Quaternion.slerp(rotationQuaternion, <Quaternion>value, weight, rotationQuaternion);
-            transform.rotationQuaternion = rotationQuaternion;
-          }
-          break;
-        case AnimationProperty.Scale:
-          if (weight === 1.0) {
-            transform.scale = <Vector3>value;
-          } else {
-            const scale = transform.scale;
-            Vector3.lerp(scale, <Vector3>value, weight, scale);
-            transform.scale = scale;
-          }
-          break;
-      }
-    }
-  }
-
-  private _applyClipValueAddtive(owner: AnimationCureOwner, addtiveValue: InterpolableValue, weight: number): void {
-    if (owner.type === Transform) {
-      const transform = (<Entity>owner.target).transform;
-      switch (owner.property) {
-        case AnimationProperty.Position:
-          const position = transform.position;
-          position.x += (<Vector3>addtiveValue).x * weight;
-          position.y += (<Vector3>addtiveValue).y * weight;
-          position.z += (<Vector3>addtiveValue).z * weight;
-          transform.position = position;
-          break;
-        case AnimationProperty.Rotation:
-          const rotationQuaternion = transform.rotationQuaternion;
-          AnimatorUtils.quaternionWeight(<Quaternion>addtiveValue, weight, <Quaternion>addtiveValue);
-          (<Quaternion>addtiveValue).normalize();
-          rotationQuaternion.multiply(<Quaternion>addtiveValue);
-          transform.rotationQuaternion = rotationQuaternion;
-          break;
-        case AnimationProperty.Scale:
-          const scale = transform.scale;
-          AnimatorUtils.scaleWeight(scale, weight, scale);
-          Vector3.multiply(scale, <Vector3>addtiveValue, scale);
-          transform.scale = scale;
-          break;
-      }
-    }
-  }
-
   private _updateLayer(layerIndex: number, firstLayer: boolean, deltaTime: number): void {
     const { blendingMode, weight } = this.layers[layerIndex];
     const animlayerData = this._animatorLayersData[layerIndex];
@@ -603,14 +511,98 @@ export class Animator extends Component {
     srcValue: InterpolableValue,
     destValue: InterpolableValue,
     crossWeight: number,
-    weight: number,
+    layerWeight: number,
     addtive: boolean
   ): void {
-    const value = this._getCrossFadeValue(owner, srcValue, destValue, crossWeight);
+    let value: InterpolableValue;
+    if (owner.type === Transform) {
+      const transform = owner.target.transform;
+      switch (owner.property) {
+        case AnimationProperty.Position:
+          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
+          value = Animator._tempVector3;
+          break;
+        case AnimationProperty.Rotation:
+          Quaternion.slerp(srcValue as Quaternion, destValue as Quaternion, crossWeight, Animator._tempQuaternion);
+          value = Animator._tempQuaternion;
+          break;
+        case AnimationProperty.Scale: {
+          const scale = transform.scale;
+          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
+          transform.scale = scale;
+          value = Animator._tempVector3;
+          break;
+        }
+      }
+    }
+
     if (addtive) {
-      this._applyClipValueAddtive(owner, value, weight);
+      this._applyClipValueAddtive(owner, value, layerWeight);
     } else {
-      this._applyClipValue(owner, value, weight);
+      this._applyClipValue(owner, value, layerWeight);
+    }
+  }
+
+  private _applyClipValue(owener: AnimationCureOwner, value: InterpolableValue, weight: number): void {
+    if (owener.type === Transform) {
+      const transform = owener.target.transform;
+      switch (owener.property) {
+        case AnimationProperty.Position:
+          if (weight === 1.0) {
+            transform.position = <Vector3>value;
+          } else {
+            const position = transform.position;
+            Vector3.lerp(position, <Vector3>value, weight, position);
+            transform.position = position;
+          }
+          break;
+        case AnimationProperty.Rotation:
+          if (weight === 1.0) {
+            transform.rotationQuaternion = <Quaternion>value;
+          } else {
+            const rotationQuaternion = transform.rotationQuaternion;
+            Quaternion.slerp(rotationQuaternion, <Quaternion>value, weight, rotationQuaternion);
+            transform.rotationQuaternion = rotationQuaternion;
+          }
+          break;
+        case AnimationProperty.Scale:
+          if (weight === 1.0) {
+            transform.scale = <Vector3>value;
+          } else {
+            const scale = transform.scale;
+            Vector3.lerp(scale, <Vector3>value, weight, scale);
+            transform.scale = scale;
+          }
+          break;
+      }
+    }
+  }
+
+  private _applyClipValueAddtive(owner: AnimationCureOwner, addtiveValue: InterpolableValue, weight: number): void {
+    if (owner.type === Transform) {
+      const transform = (<Entity>owner.target).transform;
+      switch (owner.property) {
+        case AnimationProperty.Position:
+          const position = transform.position;
+          position.x += (<Vector3>addtiveValue).x * weight;
+          position.y += (<Vector3>addtiveValue).y * weight;
+          position.z += (<Vector3>addtiveValue).z * weight;
+          transform.position = position;
+          break;
+        case AnimationProperty.Rotation:
+          const rotationQuaternion = transform.rotationQuaternion;
+          AnimatorUtils.quaternionWeight(<Quaternion>addtiveValue, weight, <Quaternion>addtiveValue);
+          (<Quaternion>addtiveValue).normalize();
+          rotationQuaternion.multiply(<Quaternion>addtiveValue);
+          transform.rotationQuaternion = rotationQuaternion;
+          break;
+        case AnimationProperty.Scale:
+          const scale = transform.scale;
+          AnimatorUtils.scaleWeight(scale, weight, scale);
+          Vector3.multiply(scale, <Vector3>addtiveValue, scale);
+          transform.scale = scale;
+          break;
+      }
     }
   }
 
