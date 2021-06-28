@@ -12,7 +12,7 @@ export class AnimatorStatePlayData {
   finished: boolean;
   clipTime: number;
 
-  _update(): void {
+  update(): void {
     const state = this.state;
     let time = this.frameTime;
     const duration = state.clipEndTime - state.clipStartTime;

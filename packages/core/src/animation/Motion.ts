@@ -1,10 +1,9 @@
 import { Entity } from "../Entity";
-import { EngineObject } from "../base/EngineObject";
 
 /**
  * Base class for AnimationClips and BlendTrees.
  */
-export class Motion extends EngineObject {
+export class Motion {
   /** @internal */
   _target: Entity;
 

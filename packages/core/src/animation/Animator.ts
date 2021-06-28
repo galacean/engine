@@ -396,7 +396,7 @@ export class Animator extends Component {
     const { owners } = playData.stateData;
     const { _curves: curves } = playData.state.clip;
 
-    playData._update();
+    playData.update();
 
     const clipTime = playData.clipTime;
     for (let i = curves.length - 1; i >= 0; i--) {
@@ -429,8 +429,8 @@ export class Animator extends Component {
 
     let crossWeight = destPlayData.frameTime / this._crossFadeTransition.duration;
     crossWeight >= 1.0 && (crossWeight = 1.0);
-    srcPlayData._update();
-    destPlayData._update();
+    srcPlayData.update();
+    destPlayData.update();
 
     const srcClipTime = srcPlayData.clipTime;
     const destClipTime = destPlayData.clipTime;
@@ -464,7 +464,7 @@ export class Animator extends Component {
 
     let crossWeight = destPlayData.frameTime / this._crossFadeTransition.duration;
     crossWeight >= 1.0 && (crossWeight = 1.0);
-    destPlayData._update();
+    destPlayData.update();
 
     const destClipTime = destPlayData.clipTime;
 

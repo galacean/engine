@@ -12,16 +12,18 @@ import { AnimationProperty } from "./enums/AnimationProperty";
  * Stores keyframe based animations.
  */
 export class AnimationClip extends Motion {
-  /** Animation Events for this animation clip. */
-  events: AnimationEvent[];
-
-  /**
-   * @internal
-   * Store a collection of Keyframes
-   */
+  /** @internal */
   _curves: AnimationClipCurveData<Component>[] = [];
 
   private _length: number = 0;
+  private _events: AnimationEvent[];
+
+  /**
+   * Animation Events for this animation clip.
+   */
+  get events(): Readonly<AnimationEvent[]> {
+    return this._events;
+  }
 
   /** Animation length in seconds. */
   get length(): number {
@@ -32,7 +34,7 @@ export class AnimationClip extends Motion {
    * @param name - The AnimationClip's name
    */
   constructor(public readonly name: string) {
-    super(null);
+    super();
   }
 
   /**
@@ -40,26 +42,23 @@ export class AnimationClip extends Motion {
    * @param event - The animation event
    */
   addEvent(event: AnimationEvent): void {
-    this.events.push(event);
+    this._events.push(event);
   }
 
   /**
    * Clears all events from the clip.
    */
   clearEvents(): void {
-    const length = this.events.length;
-    for (let i = length - 1; i >= 0; i--) {
-      this.events[i] = null;
-    }
-    this.events = [];
+    this._events.length = 0;
   }
 
   /**
+   * @internal
    * Samples an animation at a given time.
    * @param entity - The animated entity
-   * @param time - The time to sample an animation
+   * @param tim e - The time to sample an animation
    */
-  sampleAnimation(entity: Entity, time: number): void {
+  _sampleAnimation(entity: Entity, time: number): void {
     const { length } = this._curves;
     for (let i = length - 1; i >= 0; i--) {
       const curveData = this._curves[i];
@@ -121,34 +120,10 @@ export class AnimationClip extends Motion {
   }
 
   /**
-   * Remove a curve from the AnimationClip.
-   * @param curve - The curve
-   */
-  removeCurve(curve: AnimationCurve): void {
-    let deleteIndex = -1;
-    const { length: count } = this._curves;
-    let newLength = 0;
-    for (let i = count - 1; i >= 0; i--) {
-      const theCurve = this._curves[i].curve;
-      if (theCurve === curve) {
-        deleteIndex = i;
-      } else {
-        if (theCurve.length > newLength) {
-          newLength = theCurve.length;
-        }
-      }
-    }
-    if (deleteIndex > -1) {
-      this._curves.splice(deleteIndex, 1);
-    }
-    this._length = newLength;
-  }
-
-  /**
    * Clears all curves from the clip.
    */
   clearCurves(): void {
-    const length = this.events.length;
+    const length = this._events.length;
     for (let i = length - 1; i >= 0; i--) {
       this._curves[i] = null;
     }
