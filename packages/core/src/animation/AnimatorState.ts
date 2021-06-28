@@ -1,4 +1,3 @@
-import { Entity } from "../Entity";
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
