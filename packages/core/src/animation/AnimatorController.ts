@@ -42,9 +42,9 @@ export class AnimatorController {
   }
 
   /**
-   * Clear layer.
+   * Clear layers.
    */
-  clearLayer(): void {
+  clearLayers(): void {
     this._layers.length = 0;
     for (let name in this._layersMap) {
       delete this._layersMap[name];
