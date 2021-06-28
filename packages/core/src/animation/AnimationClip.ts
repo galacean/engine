@@ -1,12 +1,12 @@
-import { Transform } from "../Transform";
-import { AnimationCurve } from "./AnimationCurve";
-import { Vector3, Quaternion } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
+import { Transform } from "../Transform";
 import { AnimationClipCurveData } from "./AnimationClipCurveData";
+import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
-import { Motion } from "./Motion";
 import { AnimationProperty } from "./enums/AnimationProperty";
+import { Motion } from "./Motion";
 
 /**
  * Stores keyframe based animations.
@@ -50,36 +50,6 @@ export class AnimationClip extends Motion {
    */
   clearEvents(): void {
     this._events.length = 0;
-  }
-
-  /**
-   * @internal
-   * Samples an animation at a given time.
-   * @param entity - The animated entity
-   * @param tim e - The time to sample an animation
-   */
-  _sampleAnimation(entity: Entity, time: number): void {
-    const { length } = this._curves;
-    for (let i = length - 1; i >= 0; i--) {
-      const curveData = this._curves[i];
-      const { curve, property, relativePath, type } = curveData;
-      const val = curve.evaluate(time);
-      const target = entity.findByName(relativePath);
-      const transform = (<Entity>target).transform;
-      if (type === Transform) {
-        switch (property) {
-          case AnimationProperty.Position:
-            transform.position = val as Vector3;
-            break;
-          case AnimationProperty.Rotation:
-            transform.rotationQuaternion = val as Quaternion;
-            break;
-          case AnimationProperty.Scale:
-            transform.scale = val as Vector3;
-            break;
-        }
-      }
-    }
   }
 
   /**
@@ -129,5 +99,35 @@ export class AnimationClip extends Motion {
     }
     this._curves = [];
     this._length = 0;
+  }
+
+  /**
+   * @internal
+   * Samples an animation at a given time.
+   * @param entity - The animated entity
+   * @param tim e - The time to sample an animation
+   */
+  _sampleAnimation(entity: Entity, time: number): void {
+    const { length } = this._curves;
+    for (let i = length - 1; i >= 0; i--) {
+      const curveData = this._curves[i];
+      const { curve, property, relativePath, type } = curveData;
+      const val = curve.evaluate(time);
+      const target = entity.findByName(relativePath);
+      const transform = (<Entity>target).transform;
+      if (type === Transform) {
+        switch (property) {
+          case AnimationProperty.Position:
+            transform.position = val as Vector3;
+            break;
+          case AnimationProperty.Rotation:
+            transform.rotationQuaternion = val as Quaternion;
+            break;
+          case AnimationProperty.Scale:
+            transform.scale = val as Vector3;
+            break;
+        }
+      }
+    }
   }
 }
