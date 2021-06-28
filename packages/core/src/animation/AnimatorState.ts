@@ -25,20 +25,15 @@ export class AnimatorState {
   }
 
   /**
-   * Get the clip that is being played by this animator state.
+   * ƒThe clip that is being played by this animator state.
    */
   get clip(): AnimationClip {
     return this._clip;
   }
 
-  /**
-   * Set the clip that is being played by this animator state.
-   */
   set clip(clip: AnimationClip) {
     this._clip = clip;
-    if (clip.length < this.clipEndTime) {
-      this.clipEndTime = clip.length;
-    }
+    this._clipEndTime = Math.min(this._clipEndTime, clip.length);
   }
 
   /**
@@ -60,8 +55,10 @@ export class AnimatorState {
   }
 
   set clipEndTime(time: number) {
-    const clipLength = this._clip.length;
-    this._clipEndTime = time > this._clip.length ? clipLength : time;
+    const clip = this._clip;
+    if (clip) {
+      this._clipEndTime = Math.min(time, clip.length);
+    }
   }
 
   /**
