@@ -6,7 +6,6 @@ import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Transform } from "../Transform";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimatorController } from "./AnimatorController";
-import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { AnimatorUtils } from "./AnimatorUtils";
@@ -44,13 +43,6 @@ export class Animator extends Component {
   private _animationCureOwners: AnimationCureOwner[][] = [];
   @ignoreClone
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
-
-  /**
-   * All layers from the AnimatorController which belongs this Animator .
-   */
-  get layers(): Readonly<AnimatorControllerLayer[]> {
-    return this.animatorController?.layers || [];
-  }
 
   /**
    * @internal
@@ -104,7 +96,6 @@ export class Animator extends Component {
     layerIndex: number = -1,
     normalizedTimeOffset: number = 0
   ): void {
-    //CM: 播放完成目标动作后是否允许其值呗修改（建议允许，动作结束以及没播放前均允许修改）
     const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
     const { state: crossState } = animatorInfo;
     if (!crossState) {
@@ -174,17 +165,6 @@ export class Animator extends Component {
 
       this._updateLayer(i, i === 0, deltaTime / 1000);
     }
-  }
-
-  /**
-   * Return the layer by name.
-   * @param name - The layer name
-   */
-  getLayerByName(name: string): AnimatorControllerLayer {
-    if (this.animatorController) {
-      return this.animatorController.findLayerByName(name);
-    }
-    return null;
   }
 
   /**
@@ -387,7 +367,7 @@ export class Animator extends Component {
   }
 
   private _updateLayer(layerIndex: number, firstLayer: boolean, deltaTime: number): void {
-    const { blendingMode, weight } = this.layers[layerIndex];
+    const { blendingMode, weight } = this.animatorController.layers[layerIndex];
     const animlayerData = this._animatorLayersData[layerIndex];
     const { srcPlayData, destPlayData } = animlayerData;
 
