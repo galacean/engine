@@ -2,6 +2,7 @@ import { AnimationClip } from "./AnimationClip";
 import { Entity } from "../Entity";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
+import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 
 /**
  * States are the basic building blocks of a state machine. Each state contains a AnimationClip which will play while the character is in that state.
@@ -113,16 +114,5 @@ export class AnimatorState {
    */
   _getDuration(): number {
     return this._clipEndTime - this._clipStartTime;
-  }
-
-  /**
-   * @internal
-   */
-  _getClipRealTime(time: number): number {
-    const duration = this.clipEndTime - this.clipStartTime;
-    if (time > duration) {
-      time = this.wrapMode === WrapMode.Loop ? time % duration : duration;
-    }
-    return time + this.clipStartTime;
   }
 }
