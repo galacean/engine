@@ -93,15 +93,6 @@ export class AnimatorState {
   /**
    * @internal
    */
-  _setTarget(target: Entity): void {
-    if (this.clip) {
-      this.clip._setTarget(target);
-    }
-  }
-
-  /**
-   * @internal
-   */
   _getDuration(): number {
     return this._clipEndTime - this._clipStartTime;
   }
