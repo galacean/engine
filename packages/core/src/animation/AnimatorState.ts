@@ -11,7 +11,7 @@ export class AnimatorState {
   /** The transitions that are going out of the state. */
   transitions: AnimatorStateTransition[] = [];
   /** The speed of the clip. 1 is normal speed, default 1. */
-  speed: number = 1;
+  speed: number = 1.0;
   /** The wrap mode used in the state. */
   wrapMode: WrapMode = WrapMode.Loop;
 

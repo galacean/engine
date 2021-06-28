@@ -116,11 +116,11 @@ export class AnimationCurve {
       const dur = duration;
 
       switch (interpolation) {
-        case InterpolationType.CubicSpine:
-          value = this._evaluateCubicSpline(curIndex, nextIndex, t);
-          break;
         case InterpolationType.Linear:
           value = this._evaluateLinear(curIndex, nextIndex, t);
+          break;
+        case InterpolationType.CubicSpine:
+          value = this._evaluateCubicSpline(curIndex, nextIndex, t);
           break;
         case InterpolationType.Step:
           value = this._evaluateStep(nextIndex);

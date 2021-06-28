@@ -1,16 +1,11 @@
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
-export interface AnimatorControllerLayerMap {
-  [key: string]: AnimatorControllerLayer;
-}
 
 /**
  * Store the data for Animator playback.
  */
 export class AnimatorController {
   private _layers: AnimatorControllerLayer[] = [];
-
-  /** @internal */
-  _layersMap: AnimatorControllerLayerMap = {};
+  private _layersMap: Record<string, AnimatorControllerLayer> = {};
 
   /**
    * The layers in the controller.
@@ -44,5 +39,15 @@ export class AnimatorController {
     const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
     delete this._layersMap[theLayer.name];
+  }
+
+  /**
+   * Clear layer.
+   */
+  clearLayer(): void {
+    this._layers.length = 0;
+    for (let name in this._layersMap) {
+      delete this._layersMap[name];
+    }
   }
 }
