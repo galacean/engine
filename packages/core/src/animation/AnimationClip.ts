@@ -93,11 +93,7 @@ export class AnimationClip extends Motion {
    * Clears all curves from the clip.
    */
   clearCurves(): void {
-    const length = this._events.length;
-    for (let i = length - 1; i >= 0; i--) {
-      this._curves[i] = null;
-    }
-    this._curves = [];
+    this._curves.length = 0;
     this._length = 0;
   }
 
