@@ -1,5 +1,7 @@
 import blinnPhongFs from "../shaderlib/extra/blinn-phong.fs.glsl";
 import blinnPhongVs from "../shaderlib/extra/blinn-phong.vs.glsl";
+import default2dFs from "../shaderlib/extra/default2d.fs.glsl";
+import default2dVs from "../shaderlib/extra/default2d.vs.glsl";
 import particleFs from "../shaderlib/extra/particle.fs.glsl";
 import particleVs from "../shaderlib/extra/particle.vs.glsl";
 import pbrFs from "../shaderlib/extra/pbr.fs.glsl";
@@ -11,8 +13,6 @@ import skyboxFs from "../shaderlib/extra/skybox.fs.glsl";
 import skyboxVs from "../shaderlib/extra/skybox.vs.glsl";
 import spriteMaskFs from "../shaderlib/extra/sprite-mask.fs.glsl";
 import spriteMaskVs from "../shaderlib/extra/sprite-mask.vs.glsl";
-import spriteFs from "../shaderlib/extra/sprite.fs.glsl";
-import spriteVs from "../shaderlib/extra/sprite.vs.glsl";
 import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
 import { Shader } from "./Shader";
@@ -31,6 +31,6 @@ export class ShaderPool {
     Shader.create("skybox", skyboxVs, skyboxFs);
     Shader.create("particle-shader", particleVs, particleFs);
     Shader.create("SpriteMask", spriteMaskVs, spriteMaskFs);
-    Shader.create("Sprite", spriteVs, spriteFs);
+    Shader.create("Default2D", default2dVs, default2dFs);
   }
 }

@@ -127,7 +127,7 @@ export class SpriteRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
-    this.setMaterial(this._engine._spriteDefaultMaterial);
+    this.setMaterial(this._engine._default2DMaterial);
   }
 
   /**

@@ -17,7 +17,6 @@ import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { BlendFactor } from "./shader/enums/BlendFactor";
-import { BlendOperation } from "./shader/enums/BlendOperation";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CullMode } from "./shader/enums/CullMode";
 import { Shader } from "./shader/Shader";
@@ -40,7 +39,7 @@ export class Engine extends EventDispatcher {
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
   _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
   _spriteMaskElementPool: ClassPool<SpriteMaskElement> = new ClassPool(SpriteMaskElement);
-  _spriteDefaultMaterial: Material;
+  _default2DMaterial: Material;
   _spriteMaskDefaultMaterial: Material;
   _renderContext: RenderContext = new RenderContext();
 
@@ -158,7 +157,7 @@ export class Engine extends EventDispatcher {
     this._sceneManager.activeScene = new Scene(this, "DefaultScene");
 
     this._spriteMaskManager = new SpriteMaskManager(this);
-    this._spriteDefaultMaterial = this._createSpriteMaterial();
+    this._default2DMaterial = this._create2DMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
 
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
@@ -330,8 +329,8 @@ export class Engine extends EventDispatcher {
     }
   }
 
-  private _createSpriteMaterial(): Material {
-    const material = new Material(this, Shader.find("Sprite"));
+  private _create2DMaterial(): Material {
+    const material = new Material(this, Shader.find("Default2D"));
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;
     target.enabled = true;
@@ -339,11 +338,10 @@ export class Engine extends EventDispatcher {
     target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
     target.sourceAlphaBlendFactor = BlendFactor.One;
     target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
     renderState.depthState.writeEnabled = false;
     renderState.rasterState.cullMode = CullMode.Off;
     material.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
+
     return material;
   }
 
@@ -354,7 +352,7 @@ export class Engine extends EventDispatcher {
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.stencilState.enabled = true;
     renderState.depthState.enabled = false;
-    material.isGCIgnored = true;
+
     return material;
   }
 
