@@ -1,11 +1,11 @@
 import { Component, Logger } from "@oasis-engine/core";
+import { Model } from "./Model";
 import { Oasis } from "./Oasis";
 import { Parser } from "./Parser";
 import { pluginHook } from "./plugins/PluginManager";
 import { scriptAbility } from "./resources";
 import { ComponentConfig, Props } from "./types";
 import { switchElementsIndex } from "./utils";
-
 export class AbilityManager {
   private abilityMap: { [id: string]: Component } = {};
 
@@ -54,7 +54,7 @@ export class AbilityManager {
 
   @pluginHook({ before: "beforeAbilityUpdated", after: "abilityUpdated" })
   public update(id: string, key: string, value: any) {
-    if (this.get(id).constructor.name === "Model") {
+    if (this.get(id).constructor === Model) {
       // TODO
       if (value && this.checkIsAsset(value)) {
         (this.get(id) as any).setProp(key, this.oasis.resourceManager.get(value.id).resource);
