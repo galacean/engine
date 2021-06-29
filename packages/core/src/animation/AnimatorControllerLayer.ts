@@ -6,7 +6,7 @@ import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
  */
 export class AnimatorControllerLayer {
   /** The blending weight that the layers has. It is not taken into account for the first layer. */
-  weight: number = 1;
+  weight: number = 1.0;
   /** The blending mode used by the layer. It is not taken into account for the first layer. */
   blendingMode: AnimatorLayerBlendingMode = AnimatorLayerBlendingMode.Override;
   /** The state machine for the layer. */

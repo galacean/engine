@@ -21,7 +21,7 @@ export class GLTFModel extends Component {
       if (value !== null) {
         entity?.destroy();
         const gltfEntity = value.defaultSceneRoot.clone();
-        this._animator = gltfEntity.getComponent(Animation);
+        this._animator = gltfEntity.getComponent(Animator);
         this.entity.addChild(gltfEntity);
         gltfEntity.isActive = this.enabled;
         this.glTFEntity = gltfEntity;

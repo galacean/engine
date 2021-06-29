@@ -81,7 +81,7 @@ export class AnimationCurve {
    * Evaluate the curve at time.
    * @param time - The time within the curve you want to evaluate
    */
-  evaluate(time: number): InterpolableValue {
+  evaluate(time: number): Readonly<InterpolableValue> {
     const { keys, interpolation } = this;
     const { length } = this.keys;
 
@@ -116,11 +116,11 @@ export class AnimationCurve {
       const dur = duration;
 
       switch (interpolation) {
-        case InterpolationType.CubicSpine:
-          value = this._evaluateCubicSpline(curIndex, nextIndex, t);
-          break;
         case InterpolationType.Linear:
           value = this._evaluateLinear(curIndex, nextIndex, t);
+          break;
+        case InterpolationType.CubicSpine:
+          value = this._evaluateCubicSpline(curIndex, nextIndex, t);
           break;
         case InterpolationType.Step:
           value = this._evaluateStep(nextIndex);
@@ -204,6 +204,7 @@ export class AnimationCurve {
     const t2: Vector3 = <Vector3>keys[frameIndex + 2].value;
     const v2: Vector3 = <Vector3>keys[nextFrameIndex + 1].value;
 
+    //CM:clone
     return v1.scale(part1).add(v2.scale(part2)).add(t1.scale(part3)).add(t2.scale(part4)).clone();
   }
 
