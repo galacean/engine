@@ -9,6 +9,7 @@ import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { IndexBufferBinding } from "../graphic";
+import { BlendShape } from "./BlendShape";
 
 /**
  * Mesh containing common vertex elements of the model.
@@ -40,6 +41,7 @@ export class ModelMesh extends Mesh {
   private _uv7: Vector2[] | null = null;
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
+  private _blendShapes: BlendShape[] = [];
 
   /**
    * Whether to access data of the mesh.
@@ -53,6 +55,13 @@ export class ModelMesh extends Mesh {
    */
   get vertexCount(): number {
     return this._vertexCount;
+  }
+
+  /**
+   * BlendShape count of this ModleMesh.
+   */
+  get blendShapes(): Readonly<BlendShape[]> {
+    return this._blendShapes;
   }
 
   /**
@@ -739,6 +748,17 @@ export class ModelMesh extends Mesh {
     this._uv6 = null;
     this._uv7 = null;
   }
+
+  /**
+   * Add a BlendShape for this ModleMesh.
+   * @param blendShape - The BlendShape.
+   */
+  addBlendShape(blendShape: BlendShape): void {}
+
+  /**
+   * Clear all BlendShapes.
+   */
+  clearBlendShapes(): void {}
 }
 
 const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);

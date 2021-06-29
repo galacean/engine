@@ -36,6 +36,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maxium number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
+  private _blendShapeWeights: number[];
+
+  /**
+   * The weights of the BlendShapes.
+   */
+  get blendShapeWeights(): number[] {
+    return this._blendShapeWeights;
+  }
+
+  set blendShapeWeights(value: number[]) {}
 
   /**
    * Constructor of SkinnedMeshRenderer
@@ -167,5 +177,23 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
+  }
+
+  /**
+   * Returns the weight of a BlendShape for this Renderer.
+   * @param index - The index of the BlendShape whose weight you want to retrieve
+   * @returns The weight for the BlendShape
+   */
+  getBlendShapeWeight(index: number): number {
+    return this._blendShapeWeights[index];
+  }
+
+  /**
+   * Set the weight of a BlendShape for this Renderer.
+   * @param index - The index of the BlendShape to modify
+   * @param weight - The weight for the BlendShape
+   */
+  setBlendShapeWeight(index: number, weight: number): void {
+    this._blendShapeWeights[index] = weight;
   }
 }
