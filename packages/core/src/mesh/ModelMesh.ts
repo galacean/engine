@@ -751,7 +751,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Add a BlendShape for this ModleMesh.
-   * @param blendShape - The BlendShape.
+   * @param blendShape - The BlendShape
    */
   addBlendShape(blendShape: BlendShape): void {}
 

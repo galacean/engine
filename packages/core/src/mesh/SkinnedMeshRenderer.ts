@@ -191,7 +191,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * Set the weight of a BlendShape for this Renderer.
    * @param index - The index of the BlendShape to modify
-   * @param weight - The weight for the BlendShape
+   * @param weight - The weight of BlendShape, the value range is 0.0 to 1.0
    */
   setBlendShapeWeight(index: number, weight: number): void {
     this._blendShapeWeights[index] = weight;
