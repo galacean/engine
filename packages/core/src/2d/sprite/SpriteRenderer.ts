@@ -128,7 +128,6 @@ export class SpriteRenderer extends Renderer {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this.setMaterial(this._engine._spriteDefaultMaterial);
-    this.shaderData.disableMacro("USE_MODEL_MATRIX");
   }
 
   /**
