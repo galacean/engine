@@ -27,11 +27,15 @@ export class SceneManager {
   private setProp(field, key, prop) {
     const scene = this.oasis.engine.sceneManager.activeScene;
     if (field === "background" && key === "skyboxTexture") {
+      const sky = scene.background.sky;
       if (prop) {
-        scene.background.sky.mesh = PrimitiveMesh.createCuboid(scene.engine, 2, 2, 2);
+        sky.mesh = PrimitiveMesh.createCuboid(scene.engine, 2, 2, 2);
         const skyMaterial = new SkyBoxMaterial(scene.engine);
         skyMaterial.textureCubeMap = this.oasis.resourceManager.get(prop.id).resource;
-        scene.background.sky.material = skyMaterial;
+        sky.material = skyMaterial;
+      } else {
+        sky.mesh = null;
+        sky.material = null;
       }
     } else if (scene[field]) {
       if (prop && prop.type === "asset") {
