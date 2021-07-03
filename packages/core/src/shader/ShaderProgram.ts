@@ -262,10 +262,12 @@ export class ShaderProgram {
       return null;
     }
 
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      Logger.error("Could not link WebGL program. \n" + gl.getProgramInfoLog(program));
-      gl.deleteProgram(program);
-      return null;
+    if (Logger.isEnabled) {
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        Logger.error("Could not link WebGL program. \n" + gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return null;
+      }
     }
 
     this._vertexShader = vertexShader;
@@ -291,13 +293,15 @@ export class ShaderProgram {
       return null;
     }
 
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      Logger.error(
-        `Could not compile WebGL shader.\n${gl.getShaderInfoLog(shader)}`,
-        ShaderProgram._addLineNum(shaderSource)
-      );
-      gl.deleteShader(shader);
-      return null;
+    if (Logger.isEnabled) {
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        Logger.error(
+          `Could not compile WebGL shader.\n${gl.getShaderInfoLog(shader)}`,
+          ShaderProgram._addLineNum(shaderSource)
+        );
+        gl.deleteShader(shader);
+        return null;
+      }
     }
 
     return shader;
