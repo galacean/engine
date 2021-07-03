@@ -85,7 +85,7 @@ npm run bootstrap
 Then, to build the source, using npm:
 
 ```sh
-npm run build
+npm run b:all
 ```
 
 ## Links
