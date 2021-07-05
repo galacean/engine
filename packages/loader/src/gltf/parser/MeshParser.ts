@@ -35,16 +35,12 @@ export class MeshParser extends Parser {
 
       for (let j = 0; j < gltfMesh.primitives.length; j++) {
         const gltfPrimitive = gltfMesh.primitives[j];
-        const { targets, extensions = {} } = gltfPrimitive;
+        const {extensions = {} } = gltfPrimitive;
         const { KHR_draco_mesh_compression } = extensions;
 
         primitivePromises.push(
           new Promise((resolve) => {
             const mesh = new BufferMesh(engine, gltfMesh.name || j + "");
-
-            if (targets) {
-              Logger.error("Sorry, morph animation is not supported now, wait please.");
-            }
 
             if (KHR_draco_mesh_compression) {
               (<Promise<EngineObject>>(
