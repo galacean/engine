@@ -7,7 +7,7 @@ export { AnimatorState } from "./AnimatorState";
 export { AnimationCurve } from "./AnimationCurve";
 export * from "./AnimationClipCurveData";
 export * from "./KeyFrame";
-export { AnimationEventType } from "./enums/AnimationEventType";
+export { AnimationEvent } from "./AnimationEvent";
 export { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 export { InterpolableValueType } from "./enums/InterpolableValueType";
 export { InterpolationType } from "./enums/InterpolationType";

@@ -16,7 +16,7 @@ export class AnimationClip extends Motion {
   _curves: AnimationClipCurveData<Component>[] = [];
 
   private _length: number = 0;
-  private _events: AnimationEvent[];
+  private _events: AnimationEvent[] = [];
 
   /**
    * Animation Events for this animation clip.

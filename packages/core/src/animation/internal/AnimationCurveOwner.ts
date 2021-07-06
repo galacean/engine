@@ -7,7 +7,7 @@ import { InterpolableValue } from "../KeyFrame";
 /**
  * @internal
  */
-export class AnimationCureOwner {
+export class AnimationCurveOwner {
   crossCurveMark: number = 0;
   crossCurveIndex: number;
 
