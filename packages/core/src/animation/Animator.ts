@@ -533,10 +533,10 @@ export class Animator extends Component {
     }
   }
 
-  private _applyClipValue(owener: AnimationCureOwner, value: InterpolableValue, weight: number): void {
-    if (owener.type === Transform) {
-      const transform = owener.target.transform;
-      switch (owener.property) {
+  private _applyClipValue(owner: AnimationCureOwner, value: InterpolableValue, weight: number): void {
+    if (owner.type === Transform) {
+      const transform = owner.target.transform;
+      switch (owner.property) {
         case AnimationProperty.Position:
           if (weight === 1.0) {
             transform.position = <Vector3>value;

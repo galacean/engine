@@ -187,7 +187,7 @@ export class MeshParser extends Parser {
     }
 
     // BlendShapes
-    this._createBlendShape(mesh, gltfMesh, gltfPrimitive, getBlendShapeData);
+    targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(true);
     return Promise.resolve(mesh);
@@ -196,12 +196,14 @@ export class MeshParser extends Parser {
   private _createBlendShape(
     mesh: ModelMesh,
     glTFMesh: IMesh,
-    glTFPrimitive: IMeshPrimitive,
+    glTFTargets: {
+      [name: string]: number;
+    }[],
     getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray
   ): void {
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
 
-    for (let i = 0, n = glTFPrimitive.targets.length; i < n; i++) {
+    for (let i = 0, n = glTFTargets.length; i < n; i++) {
       const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
       const posBuffer = getBlendShapeData("POSITION", i);
       const norBuffer = getBlendShapeData("NORMAL", i);

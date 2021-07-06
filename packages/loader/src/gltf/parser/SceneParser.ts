@@ -146,6 +146,7 @@ export class SceneParser extends Parser {
   }
 
   private _createAnimator(context: GLTFResource) {
+    debugger;
     const { defaultSceneRoot, animations } = context;
     if (!animations) return;
     const animator = defaultSceneRoot.addComponent(Animator);

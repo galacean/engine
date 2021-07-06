@@ -8,13 +8,14 @@ import {
   Vector2Keyframe,
   Vector3Keyframe,
   QuaternionKeyframe,
-  InterpolationType
+  InterpolationType,
+  SkinnedMeshRenderer
 } from "@oasis-engine/core";
 import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
-interface AnimationClipCurveData<T extends Component> {
+interface AnimationClipCurveData {
   curve: AnimationCurve;
   relativePath: string;
-  type: new (entity: Entity) => T;
+  type: new (entity: Entity) => Component;
   propertyName: string;
 }
 
@@ -60,6 +61,7 @@ export class AnimationClipParser extends EngineObject {
 
   public durationIndex: number;
 
+  // CM: 这是干啥
   public samplers: ISample[];
 
   public channels: IChannel[];
@@ -275,13 +277,13 @@ export class AnimationClipParser extends EngineObject {
             output[frameIndex * outputSize + i] * (1 - alpha) + output[nextFrameIndex * outputSize + i] * alpha;
         }
         break;
-    } // End of switch
+    }
   }
 
-  public getCurveDatas(): AnimationClipCurveData<Component>[] {
+  public getCurveDatas(): AnimationClipCurveData[] {
     const channelCount = this.getChannelCount();
-    const curveDatas: AnimationClipCurveData<Transform>[] = [];
-  
+    const curveDatas: AnimationClipCurveData[] = [];
+
     for (let i = channelCount - 1; i >= 0; i--) {
       const channel = this.getChannelObject(i);
       const { target } = channel;
@@ -328,10 +330,26 @@ export class AnimationClipParser extends EngineObject {
           curve.addKey(keyframe);
         }
       }
+
+      debugger;
+      let compType: new (entity: Entity) => Component;
+      switch (target.propertyName) {
+        case "position":
+        case "rotation":
+        case "scale":
+          compType = Transform;
+          break;
+        case "weight":
+          compType = SkinnedMeshRenderer;
+          break;
+        default:
+          break;
+      }
+
       curveDatas.push({
         curve,
         relativePath: target.relativePath,
-        type: Transform,
+        type: compType,
         propertyName: target.propertyName
       });
     }

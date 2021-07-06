@@ -76,6 +76,7 @@ export class AnimationParser extends Parser {
             break;
         }
 
+        
         const channelTargetEntity = entities[target.node];
         let path: string;
         let parent = channelTargetEntity.parent;
