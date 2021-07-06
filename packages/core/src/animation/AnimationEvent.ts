@@ -6,4 +6,6 @@ export class AnimationEvent {
   time: number;
   /** The name of the method called in the script. */
   functionName: string;
+  /** The parameter that is stored in the event and will be sent to the function. */
+  parameter: any;
 }
