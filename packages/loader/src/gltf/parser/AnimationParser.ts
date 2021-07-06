@@ -11,7 +11,7 @@ export class AnimationParser extends Parser {
     const { animations, accessors, nodes } = gltf;
     if (!animations) return;
 
-    const animationClips: AnimationClip[] = [];
+    const animationClips = new Array<AnimationClip>();
 
     for (let i = 0; i < animations.length; i++) {
       const gltfAnimation = animations[i];
@@ -77,13 +77,20 @@ export class AnimationParser extends Parser {
         }
 
         const channelTargetEntity = entities[target.node];
-        let relativePath = channelTargetEntity.name;
+        let path: string;
         let parent = channelTargetEntity.parent;
-        while (parent.parent) {
-          relativePath = `${parent.name}/${relativePath}`;
-          parent = parent.parent;
+        if (parent) {
+          path = channelTargetEntity.name;
+          const grandfather = parent.parent;
+          while (grandfather) {
+            path = `${parent.name}/${path}`;
+            parent = grandfather;
+          }
+        } else {
+          path = "";
         }
-        animationClipParser.addChannel(sampler, relativePath, targetPath);
+
+        animationClipParser.addChannel(sampler, path, targetPath);
       }
       const curveDatas = animationClipParser.getCurveDatas();
       const animationClip = new AnimationClip(name);

@@ -111,23 +111,24 @@ export class SceneParser extends Parser {
       materials,
       skins
     } = context;
-    const { mesh: meshID, skin: skinID, weights } = gltfNode;
-
-    if (weights) {
-      Logger.error("Sorry, morph animation is not supported now, wait please.");
-    }
-
-    const gltfMeshPrimitives = gltfMeshes[meshID].primitives;
+    const { mesh: meshID, skin: skinID } = gltfNode;
+    const glTFMesh = gltfMeshes[meshID];
+    const gltfMeshPrimitives = glTFMesh.primitives;
+    const blendShapeWeights = gltfNode.weights || glTFMesh.weights;
 
     for (let i = 0; i < gltfMeshPrimitives.length; i++) {
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 
-      if (skinID !== undefined) {
-        const skin = skins[skinID];
+      if (skinID !== undefined || blendShapeWeights) {
         const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
         skinRenderer.mesh = mesh;
-        skinRenderer.skin = skin;
+        if (skinID !== undefined) {
+          skinRenderer.skin = skins[skinID];
+        } else {
+          skinRenderer.blendShapeWeights = blendShapeWeights.slice();
+        }
+
         renderer = skinRenderer;
       } else {
         renderer = entity.addComponent(MeshRenderer);

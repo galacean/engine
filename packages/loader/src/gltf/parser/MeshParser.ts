@@ -1,4 +1,6 @@
 import {
+  BlendShape,
+  BlendShapeFrame,
   Buffer,
   BufferBindFlag,
   BufferMesh,
@@ -7,14 +9,14 @@ import {
   EngineObject,
   IndexBufferBinding,
   IndexFormat,
-  Logger,
+  ModelMesh,
   TypedArray,
   VertexElement
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
-import { IGLTF, IMeshPrimitive } from "../Schema";
+import { IGLTF, IMesh, IMeshPrimitive, INode } from "../Schema";
 import { Parser } from "./Parser";
 
 export class MeshParser extends Parser {
@@ -29,13 +31,9 @@ export class MeshParser extends Parser {
       const gltfMesh = gltf.meshes[i];
       const primitivePromises: Promise<BufferMesh>[] = [];
 
-      if (gltfMesh.weights) {
-        Logger.error("Sorry, morph animation is not supported now, wait please.");
-      }
-
       for (let j = 0; j < gltfMesh.primitives.length; j++) {
         const gltfPrimitive = gltfMesh.primitives[j];
-        const {extensions = {} } = gltfPrimitive;
+        const { extensions = {} } = gltfPrimitive;
         const { KHR_draco_mesh_compression } = extensions;
 
         primitivePromises.push(
@@ -54,12 +52,21 @@ export class MeshParser extends Parser {
                 .then((decodedGeometry: any) => {
                   return this._parseMeshFromGLTFPrimitive(
                     mesh,
+                    gltfMesh,
                     gltfPrimitive,
                     gltf,
                     (attributeSemantic) => {
                       for (let j = 0; j < decodedGeometry.attributes.length; j++) {
                         if (decodedGeometry.attributes[j].name === attributeSemantic) {
                           return decodedGeometry.attributes[j].array;
+                        }
+                      }
+                      return null;
+                    },
+                    (attributeSemantic) => {
+                      for (let j = 0; j < decodedGeometry.targets.length; j++) {
+                        if (decodedGeometry.targets[j].name === attributeSemantic) {
+                          return decodedGeometry.targets[j].array;
                         }
                       }
                       return null;
@@ -74,12 +81,24 @@ export class MeshParser extends Parser {
             } else {
               this._parseMeshFromGLTFPrimitive(
                 mesh,
+                gltfMesh,
                 gltfPrimitive,
                 gltf,
                 (attributeSemantic) => {
                   const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
                   const accessor = gltf.accessors[accessorIdx];
                   return GLTFUtil.getAccessorData(gltf, accessor, buffers);
+                },
+                (attributeName, shapeIndex) => {
+                  const shapeAccessorIdx = gltfPrimitive.targets[shapeIndex];
+                  const attributeAccessorIdx = shapeAccessorIdx[attributeName];
+                  if (attributeAccessorIdx) {
+                    const accessor = gltf.accessors[attributeAccessorIdx];
+                    console.log(accessor.name);
+                    return GLTFUtil.getAccessorData(gltf, accessor, buffers);
+                  } else {
+                    return null;
+                  }
                 },
                 () => {
                   const indexAccessor = gltf.accessors[gltfPrimitive.indices];
@@ -91,6 +110,7 @@ export class MeshParser extends Parser {
           })
         );
       }
+
       meshPromises.push(Promise.all(primitivePromises));
     }
 
@@ -101,17 +121,18 @@ export class MeshParser extends Parser {
 
   private _parseMeshFromGLTFPrimitive(
     mesh: BufferMesh,
+    gltfMesh: IMesh,
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     getVertexBufferData: (semantic: string) => TypedArray,
+    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray,
     getIndexBufferData: () => TypedArray,
     engine: Engine
   ): Promise<BufferMesh> {
-    const { attributes, indices, mode } = gltfPrimitive;
+    const { attributes, targets, indices, mode } = gltfPrimitive;
     const vertexElements: VertexElement[] = [];
     let j = 0;
     let vertexCount: number;
-
     for (const attributeSemantic in attributes) {
       const accessorIdx = attributes[attributeSemantic];
       const accessor = gltf.accessors[accessorIdx];
@@ -150,6 +171,8 @@ export class MeshParser extends Parser {
     }
     mesh.setVertexElements(vertexElements);
 
+    // this._createBlendShape(mesh, gltfMesh, gltfPrimitive, getBlendShapeData);
+
     // Indices
     if (indices !== undefined) {
       const indexAccessor = gltf.accessors[indices];
@@ -173,5 +196,37 @@ export class MeshParser extends Parser {
     }
 
     return Promise.resolve(mesh);
+  }
+
+  private _createBlendShape(
+    mesh: ModelMesh,
+    glTFMesh: IMesh,
+    glTFPrimitive: IMeshPrimitive,
+    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray
+  ): void {
+    const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
+
+    for (let i = 0, n = glTFPrimitive.targets.length; i < n; i++) {
+      const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
+      const posBuffer = getBlendShapeData("POSITION", i);
+      const norBuffer = getBlendShapeData("NORMAL", i);
+      const tanBuffer = getBlendShapeData("TANGENT", i);
+      const deltaPositions = posBuffer ? this._floatBufferToVector3Array(<Float32Array>posBuffer) : null;
+      const deltaNormals = posBuffer ? this._floatBufferToVector3Array(<Float32Array>norBuffer) : null;
+      const deltaTangents = posBuffer ? this._floatBufferToVector3Array(<Float32Array>tanBuffer) : null;
+
+      const blendShape = new BlendShape(name);
+      blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);
+      mesh.addBlendShape(blendShape);
+    }
+  }
+
+  private _floatBufferToVector3Array(buffer: Float32Array): Vector3[] {
+    const bufferLen = buffer.length;
+    const array = new Array<Vector3>(bufferLen / 3);
+    for (let i = 0; i < bufferLen; i += 3) {
+      array[i % 3] = new Vector3(buffer[i], buffer[i + 1], buffer[i + 2]);
+    }
+    return array;
   }
 }

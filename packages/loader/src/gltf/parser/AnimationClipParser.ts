@@ -281,6 +281,7 @@ export class AnimationClipParser extends EngineObject {
   public getCurveDatas(): AnimationClipCurveData<Component>[] {
     const channelCount = this.getChannelCount();
     const curveDatas: AnimationClipCurveData<Transform>[] = [];
+  
     for (let i = channelCount - 1; i >= 0; i--) {
       const channel = this.getChannelObject(i);
       const { target } = channel;
