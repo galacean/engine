@@ -77,6 +77,13 @@ export class GLTexture implements IPlatformTexture {
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
+      case TextureFormat.LuminanceAlpha:
+        return {
+          internalFormat: gl.LUMINANCE_ALPHA,
+          baseFormat: gl.LUMINANCE_ALPHA,
+          dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false
+        };
       case TextureFormat.R32G32B32A32:
         return {
           internalFormat: gl.RGBA32F,
