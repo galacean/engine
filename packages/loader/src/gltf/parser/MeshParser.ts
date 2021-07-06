@@ -118,8 +118,7 @@ export class MeshParser extends Parser {
     const { attributes, targets, indices, mode } = gltfPrimitive;
     let vertexCount: number;
 
-    const accessorIdx = attributes["POSITION"];
-    const accessor = gltf.accessors[accessorIdx];
+    const accessor = gltf.accessors[attributes["POSITION"]];
     const bufferData = getVertexBufferData("POSITION");
     const positions = GLTFUtil.floatBufferToVector3Array(<Float32Array>bufferData);
     mesh.setPositions(positions);
@@ -149,7 +148,6 @@ export class MeshParser extends Parser {
       if (attributeSemantic === "POSITION") {
         continue;
       }
-
       const bufferData = getVertexBufferData(attributeSemantic);
       switch (attributeSemantic) {
         case "NORMAL":
@@ -188,7 +186,8 @@ export class MeshParser extends Parser {
       mesh.addSubMesh(0, vertexCount, mode);
     }
 
-    // this._createBlendShape(mesh, gltfMesh, gltfPrimitive, getBlendShapeData);
+    // BlendShapes
+    this._createBlendShape(mesh, gltfMesh, gltfPrimitive, getBlendShapeData);
 
     mesh.uploadData(true);
     return Promise.resolve(mesh);
