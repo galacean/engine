@@ -1,11 +1,10 @@
 import {
-  AnimationClip,
-  BufferMesh,
-  Camera,
+  AnimationClip, Camera,
   EngineObject,
   Entity,
   Light,
   Material,
+  ModelMesh,
   Renderer,
   Skin,
   Texture2D
@@ -26,8 +25,8 @@ export class GLTFResource extends EngineObject {
   textures?: Texture2D[];
   /** Oasis Material after MaterialParser. */
   materials?: Material[];
-  /** Oasis BufferMesh after MeshParser. */
-  meshes?: BufferMesh[][];
+  /** Oasis ModelMesh after MeshParser. */
+  meshes?: ModelMesh[][];
   /** Oasis Skin after SkinParser. */
   skins?: Skin[];
   /** Oasis AnimationClip after AnimationParser. */

@@ -3,12 +3,10 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
-  AnimationClip,
   BlinnPhongMaterial,
   Camera,
   Engine,
   Entity,
-  Logger,
   MeshRenderer,
   SkinnedMeshRenderer
 } from "@oasis-engine/core";

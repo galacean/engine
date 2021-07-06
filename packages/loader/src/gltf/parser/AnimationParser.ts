@@ -81,10 +81,9 @@ export class AnimationParser extends Parser {
         let parent = channelTargetEntity.parent;
         if (parent) {
           path = channelTargetEntity.name;
-          const grandfather = parent.parent;
-          while (grandfather) {
+          while (parent.parent) {
             path = `${parent.name}/${path}`;
-            parent = grandfather;
+            parent = parent.parent;
           }
         } else {
           path = "";
