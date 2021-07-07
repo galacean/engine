@@ -1,23 +1,39 @@
-import { AnimationClip, InterpolationType } from "@oasis-engine/core";
+import {
+  AnimationClip,
+  AnimationCurve,
+  Component,
+  Entity,
+  FloatKeyframe,
+  InterpolationType,
+  QuaternionKeyframe,
+  SkinnedMeshRenderer,
+  Transform,
+  TypedArray,
+  Vector2Keyframe,
+  Vector3Keyframe
+} from "@oasis-engine/core";
+import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
-import { AnimationChannelTargetPath, AnimationSamplerInterpolation } from "../Schema";
-import { AnimationClipParser } from "./AnimationClipParser";
+import { AnimationChannelTargetPath, AnimationSamplerInterpolation, IAnimationChannel } from "../Schema";
 import { Parser } from "./Parser";
 
 export class AnimationParser extends Parser {
   parse(context: GLTFResource): void {
     const { gltf, buffers, entities } = context;
     const { animations, accessors, nodes } = gltf;
-    if (!animations) return;
+    if (!animations) {
+      return;
+    }
 
-    const animationClips = new Array<AnimationClip>();
+    const animationClipCount = animations.length;
+    const animationClips = new Array<AnimationClip>(animationClipCount);
 
-    for (let i = 0; i < animations.length; i++) {
+    for (let i = 0; i < animationClipCount; i++) {
       const gltfAnimation = animations[i];
       const { channels, samplers, name = `AnimationClip${i}` } = gltfAnimation;
-
-      const animationClipParser = new AnimationClipParser();
+      const animationClip = new AnimationClip(name);
+      const sampleDataCollection = new Array<SampleData>();
 
       let duration = -1;
 
@@ -33,7 +49,7 @@ export class AnimationParser extends Parser {
           outputAccessorSize = output.length / input.length;
         }
 
-        let samplerInterpolation;
+        let samplerInterpolation: InterpolationType;
         switch (gltfSampler.interpolation) {
           case AnimationSamplerInterpolation.CubicSpine:
             samplerInterpolation = InterpolationType.CubicSpine;
@@ -49,16 +65,18 @@ export class AnimationParser extends Parser {
         if (maxTime > duration) {
           duration = maxTime;
         }
-        animationClipParser.addSampler(
-          input as Float32Array,
-          output as Float32Array,
-          outputAccessorSize,
-          samplerInterpolation
-        );
+
+        sampleDataCollection.push({
+          interpolation: samplerInterpolation,
+          input,
+          output,
+          outputSize: outputAccessorSize
+        });
       }
 
       for (let i = 0; i < channels.length; i++) {
-        const { target, sampler } = channels[i];
+        const gltfChannel = channels[i];
+        const { target } = gltfChannel;
         let targetPath = "";
 
         switch (target.path) {
@@ -76,7 +94,6 @@ export class AnimationParser extends Parser {
             break;
         }
 
-        
         const channelTargetEntity = entities[target.node];
         let path: string;
         let parent = channelTargetEntity.parent;
@@ -90,15 +107,87 @@ export class AnimationParser extends Parser {
           path = "";
         }
 
-        animationClipParser.addChannel(sampler, path, targetPath);
+        let compType: new (entity: Entity) => Component;
+        let propertyName: string;
+        switch (target.path) {
+          case AnimationChannelTargetPath.TRANSLATION:
+            compType = Transform;
+            propertyName = "position";
+            break;
+          case AnimationChannelTargetPath.ROTATION:
+            compType = Transform;
+            propertyName = "rotation";
+            break;
+          case AnimationChannelTargetPath.SCALE:
+            compType = Transform;
+            propertyName = "scale";
+            break;
+          case AnimationChannelTargetPath.WEIGHTS:
+            compType = SkinnedMeshRenderer;
+            propertyName = "blendShapeWeights";
+            break;
+          default:
+            break;
+        }
+
+        const curve = this._addCurve(gltfChannel, sampleDataCollection);
+        animationClip.setCurve(path, compType, propertyName, curve);
       }
-      const curveDatas = animationClipParser.getCurveDatas();
-      const animationClip = new AnimationClip(name);
-      curveDatas.forEach((curveData) => {
-        animationClip.setCurve(curveData.relativePath, curveData.type, curveData.propertyName, curveData.curve);
-      });
+
       animationClips[i] = animationClip;
+      console.log(animationClip);
     }
     context.animations = animationClips;
   }
+
+  private _addCurve(gltfChannel: IAnimationChannel, sampleDataCollection: SampleData[]): AnimationCurve {
+    const curve = new AnimationCurve();
+    const sampleData = sampleDataCollection[gltfChannel.sampler];
+    const { input, output, outputSize } = sampleData;
+
+    curve.interpolation = sampleData.interpolation;
+    for (let j = 0, n = input.length; j < n; j++) {
+      const offset = j * outputSize;
+      if (outputSize === 1) {
+        const keyframe = new FloatKeyframe();
+        keyframe.time = input[j];
+        keyframe.value = output[offset];
+        keyframe.inTangent = 0;
+        keyframe.outTangent = 0;
+        curve.addKey(keyframe);
+      }
+      if (outputSize === 2) {
+        const keyframe = new Vector2Keyframe();
+        keyframe.time = input[j];
+        keyframe.value = new Vector2(output[offset], output[offset + 1]);
+        keyframe.inTangent = new Vector2();
+        keyframe.outTangent = new Vector2();
+        curve.addKey(keyframe);
+      }
+      if (outputSize === 3) {
+        const keyframe = new Vector3Keyframe();
+        keyframe.time = input[j];
+        keyframe.value = new Vector3(output[offset], output[offset + 1], output[offset + 2]);
+        keyframe.inTangent = new Vector3();
+        keyframe.outTangent = new Vector3();
+        curve.addKey(keyframe);
+      }
+      if (outputSize === 4) {
+        const keyframe = new QuaternionKeyframe();
+        keyframe.time = input[j];
+        keyframe.value = new Quaternion(output[offset], output[offset + 1], output[offset + 2], output[offset + 3]);
+        keyframe.inTangent = new Vector4();
+        keyframe.outTangent = new Vector4();
+        curve.addKey(keyframe);
+      }
+    }
+    return curve;
+  }
+}
+
+interface SampleData {
+  input: TypedArray;
+  output: TypedArray;
+  interpolation: InterpolationType;
+  outputSize: number;
 }
