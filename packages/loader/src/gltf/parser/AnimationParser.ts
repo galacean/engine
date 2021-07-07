@@ -21,7 +21,7 @@ import { Parser } from "./Parser";
 export class AnimationParser extends Parser {
   parse(context: GLTFResource): void {
     const { gltf, buffers, entities } = context;
-    const { animations, accessors, nodes } = gltf;
+    const { animations, accessors } = gltf;
     if (!animations) {
       return;
     }
@@ -135,7 +135,6 @@ export class AnimationParser extends Parser {
       }
 
       animationClips[i] = animationClip;
-      console.log(animationClip);
     }
     context.animations = animationClips;
   }

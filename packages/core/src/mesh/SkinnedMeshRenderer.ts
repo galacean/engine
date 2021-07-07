@@ -45,7 +45,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     return this._blendShapeWeights;
   }
 
-  set blendShapeWeights(value: number[]) {}
+  set blendShapeWeights(value: number[]) {
+    this._blendShapeWeights = value;
+  }
 
   /**
    * Constructor of SkinnedMeshRenderer
