@@ -73,14 +73,6 @@ export class Scene extends EngineObject {
     Scene.sceneFeatureManager.addObject(this);
     shaderData._addRefCount(1);
     this.ambientLight = new AmbientLight(this);
-
-    // @todo: this is deviec macro,should add when compile shader.
-    if (this._engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
-      shaderData.enableMacro("HAS_TEX_LOD");
-    }
-    if (this._engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
-      shaderData.enableMacro("HAS_DERIVATIVES");
-    }
   }
 
   /**
