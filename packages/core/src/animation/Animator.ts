@@ -43,11 +43,17 @@ export class Animator extends Component {
   @ignoreClone
   private _crossFadeTransition: AnimatorStateTransition = new AnimatorStateTransition();
   @ignoreClone
+<<<<<<< HEAD
   private _animationCurveOwners: AnimationCurveOwner[][] = [];
   @ignoreClone
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
   private _entityScripts: Script[] = [];
+=======
+  private _animationCureOwners: AnimationCureOwner[][] = [];
+  @ignoreClone
+  private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
 
   /**
    * @internal
@@ -68,6 +74,10 @@ export class Animator extends Component {
     if (!state) {
       return;
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     const animatorLayerData = this._getAnimatorLayerData(animatorInfo.layerIndex);
     const { srcPlayData } = animatorLayerData;
     const { state: curState } = srcPlayData;
@@ -210,9 +220,15 @@ export class Animator extends Component {
   }
 
   private _saveDefaultValues(stateData: AnimatorStateData): void {
+<<<<<<< HEAD
     const { curveOwners } = stateData;
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       curveOwners[i].saveDefaultValue();
+=======
+    const { owners } = stateData;
+    for (let i = owners.length - 1; i >= 0; i--) {
+      owners[i].saveDefaultValue();
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     }
   }
 
@@ -227,14 +243,22 @@ export class Animator extends Component {
       animatorStateData = new AnimatorStateData();
       animatorStateDataCollection[stateName] = animatorStateData;
       this._saveAnimatorStateData(animatorState, animatorStateData);
+<<<<<<< HEAD
       this._saveAnimatorEventHandlers(animatorState, animatorStateData);
+=======
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     }
     return animatorStateData;
   }
 
   private _saveAnimatorStateData(animatorState: AnimatorState, animatorStateData: AnimatorStateData): void {
+<<<<<<< HEAD
     const { entity, _animationCurveOwners: animationCureOwners } = this;
     const { curveOwners } = animatorStateData;
+=======
+    const { entity, _animationCureOwners: animationCureOwners } = this;
+    const { owners } = animatorStateData;
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     const { _curves: curves } = animatorState.clip;
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
@@ -242,6 +266,7 @@ export class Animator extends Component {
       const { property } = curve;
       const { instanceId } = targetEntity;
       const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = []);
+<<<<<<< HEAD
       curveOwners[i] =
         propertyOwners[property] ||
         (propertyOwners[property] = new AnimationCurveOwner(targetEntity, curve.type, property));
@@ -271,6 +296,14 @@ export class Animator extends Component {
     eventHandlers.sort((a, b) => b.event.time - a.event.time);
   }
 
+=======
+      owners[i] =
+        propertyOwners[property] ||
+        (propertyOwners[property] = new AnimationCureOwner(targetEntity, curve.type, property));
+    }
+  }
+
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
     animatorLayerData.crossCurveMark++;
     this._crossCurveDataCollection.length = 0;
@@ -279,12 +312,20 @@ export class Animator extends Component {
 
   private _addCrossCurveData(
     crossCurveData: CrossCurveData[],
+<<<<<<< HEAD
     owner: AnimationCurveOwner,
+=======
+    owner: AnimationCureOwner,
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     curCurveIndex: number,
     nextCurveIndex: number
   ): void {
     const dataItem = this._crossCurveDataPool.getFromPool();
+<<<<<<< HEAD
     dataItem.curveOwner = owner;
+=======
+    dataItem.owner = owner;
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     dataItem.srcCurveIndex = curCurveIndex;
     dataItem.destCurveIndex = nextCurveIndex;
     crossCurveData.push(dataItem);
@@ -315,7 +356,11 @@ export class Animator extends Component {
 
     // Save current cross curve data owner fixed pose.
     for (let i = crossCurveData.length - 1; i >= 0; i--) {
+<<<<<<< HEAD
       crossCurveData[i].curveOwner.saveFixedPoseValue();
+=======
+      crossCurveData[i].owner.saveFixedPoseValue();
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     }
     // prepare dest AnimatorState cross data.
     this._prepareDestCrossData(crossCurveData, animatorLayerData.destPlayData, animatorLayerData.crossCurveMark, true);
@@ -327,10 +372,17 @@ export class Animator extends Component {
     crossCurveMark: number,
     saveFixed: boolean
   ): void {
+<<<<<<< HEAD
     const { curveOwners } = srcPlayData.stateData;
 
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
+=======
+    const { owners } = srcPlayData.stateData;
+
+    for (let i = owners.length - 1; i >= 0; i--) {
+      const owner = owners[i];
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
       owner.crossCurveMark = crossCurveMark;
       owner.crossCurveIndex = crossCurveData.length;
       saveFixed && owner.saveFixedPoseValue();
@@ -344,10 +396,17 @@ export class Animator extends Component {
     crossCurveMark: number,
     saveFixed: boolean
   ): void {
+<<<<<<< HEAD
     const { curveOwners } = destPlayData.stateData;
 
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
+=======
+    const { owners } = destPlayData.stateData;
+
+    for (let i = owners.length - 1; i >= 0; i--) {
+      const owner = owners[i];
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
       // Not inclue in previous AnimatorState.
       if (owner.crossCurveMark === crossCurveMark) {
         crossCurveData[owner.crossCurveIndex].destCurveIndex = i;
@@ -421,18 +480,28 @@ export class Animator extends Component {
     delta: number,
     addtive: boolean
   ): void {
+<<<<<<< HEAD
     const { curveOwners, eventHandlers } = playData.stateData;
     const { _curves: curves } = playData.state.clip;
     const lastClipTime = playData.clipTime;
+=======
+    const { owners } = playData.stateData;
+    const { _curves: curves } = playData.state.clip;
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
 
     playData.update();
 
     const clipTime = playData.clipTime;
+<<<<<<< HEAD
 
     this._fireAnimationEvents(eventHandlers, lastClipTime, clipTime);
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
+=======
+    for (let i = curves.length - 1; i >= 0; i--) {
+      const owner = owners[i];
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
       const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, addtive);
       if (addtive) {
         this._applyClipValueAddtive(owner, value, weight);
@@ -440,7 +509,10 @@ export class Animator extends Component {
         this._applyClipValue(owner, value, weight);
       }
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     playData.frameTime += delta;
 
     if (playData.finished) {
@@ -468,8 +540,13 @@ export class Animator extends Component {
     const srcClipTime = srcPlayData.clipTime;
     const destClipTime = destPlayData.clipTime;
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
+<<<<<<< HEAD
       const { curveOwner, srcCurveIndex, destCurveIndex } = crossCurveDataCollection[i];
       const { property, defaultValue } = curveOwner;
+=======
+      const { owner, srcCurveIndex, destCurveIndex } = crossCurveDataCollection[i];
+      const { property, defaultValue } = owner;
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
 
       const srcCurve = srcCurves[srcCurveIndex].curve;
       const destCurve = destCurves[destCurveIndex].curve;
@@ -479,7 +556,11 @@ export class Animator extends Component {
       const destValue =
         destCurveIndex >= 0 ? this._evaluateCurve(property, destCurve, destClipTime, addtive) : defaultValue;
 
+<<<<<<< HEAD
       this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, addtive);
+=======
+      this._applyCrossClipValue(owner, srcValue, destValue, crossWeight, weight, addtive);
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     }
 
     this._updateCrossFadeData(layerData, crossWeight, delta, false);
@@ -502,6 +583,7 @@ export class Animator extends Component {
     const destClipTime = destPlayData.clipTime;
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
+<<<<<<< HEAD
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
       const destCurve = curves[destCurveIndex].curve;
       const destValue =
@@ -510,6 +592,16 @@ export class Animator extends Component {
           : curveOwner.defaultValue;
 
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, addtive);
+=======
+      const { owner, destCurveIndex } = crossCurveDataCollection[i];
+      const destCurve = curves[destCurveIndex].curve;
+      const destValue =
+        destCurveIndex >= 0
+          ? this._evaluateCurve(owner.property, destCurve, destClipTime, addtive)
+          : owner.defaultValue;
+
+      this._applyCrossClipValue(owner, owner.fixedPoseValue, destValue, crossWeight, weight, addtive);
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     }
 
     this._updateCrossFadeData(layerData, crossWeight, delta, true);
@@ -530,7 +622,11 @@ export class Animator extends Component {
   }
 
   private _applyCrossClipValue(
+<<<<<<< HEAD
     owner: AnimationCurveOwner,
+=======
+    owner: AnimationCureOwner,
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     srcValue: InterpolableValue,
     destValue: InterpolableValue,
     crossWeight: number,
@@ -566,7 +662,11 @@ export class Animator extends Component {
     }
   }
 
+<<<<<<< HEAD
   private _applyClipValue(owener: AnimationCurveOwner, value: InterpolableValue, weight: number): void {
+=======
+  private _applyClipValue(owener: AnimationCureOwner, value: InterpolableValue, weight: number): void {
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     if (owener.type === Transform) {
       const transform = owener.target.transform;
       switch (owener.property) {
@@ -601,7 +701,11 @@ export class Animator extends Component {
     }
   }
 
+<<<<<<< HEAD
   private _applyClipValueAddtive(owner: AnimationCurveOwner, addtiveValue: InterpolableValue, weight: number): void {
+=======
+  private _applyClipValueAddtive(owner: AnimationCureOwner, addtiveValue: InterpolableValue, weight: number): void {
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
     if (owner.type === Transform) {
       const transform = (<Entity>owner.target).transform;
       switch (owner.property) {
@@ -633,9 +737,15 @@ export class Animator extends Component {
     const { clip } = playData.state;
     if (clip) {
       const curves = clip._curves;
+<<<<<<< HEAD
       const { curveOwners } = playData.stateData;
       for (let i = curves.length - 1; i >= 0; i--) {
         const owner = curveOwners[i];
+=======
+      const { owners } = playData.stateData;
+      for (let i = curves.length - 1; i >= 0; i--) {
+        const owner = owners[i];
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
         const { transform } = owner.target;
         switch (owner.property) {
           case AnimationProperty.Position:
@@ -651,6 +761,7 @@ export class Animator extends Component {
       }
     }
   }
+<<<<<<< HEAD
 
   private _fireAnimationEvents(eventHandlers: AnimationEventHandler[], lastClipTime: number, clipTime: number) {
     for (let i = eventHandlers.length - 1; i >= 0; i--) {
@@ -668,4 +779,6 @@ export class Animator extends Component {
       }
     }
   }
+=======
+>>>>>>> d186335b15b677b805eb94cfa5e634ca2a50c507
 }
