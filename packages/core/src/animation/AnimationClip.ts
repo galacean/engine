@@ -101,7 +101,7 @@ export class AnimationClip extends Motion {
    * @internal
    * Samples an animation at a given time.
    * @param entity - The animated entity
-   * @param tim e - The time to sample an animation
+   * @param time - The time to sample an animation
    */
   _sampleAnimation(entity: Entity, time: number): void {
     const { length } = this._curves;
