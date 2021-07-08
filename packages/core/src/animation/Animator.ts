@@ -257,7 +257,7 @@ export class Animator extends Component {
     this._entity.getComponents(Script, scripts);
     for (let i = events.length - 1; i >= 0; i--) {
       const event = events[i];
-      const funcName = events[i].functionName;
+      const funcName = event.functionName;
       for (let j = scripts.length - 1; j >= 0; j--) {
         const handler = scripts[j][funcName];
         if (handler) {
@@ -268,6 +268,7 @@ export class Animator extends Component {
         }
       }
     }
+    eventHandlers.sort((a, b) => b.event.time - a.event.time);
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
@@ -655,6 +656,10 @@ export class Animator extends Component {
     for (let i = eventHandlers.length - 1; i >= 0; i--) {
       const eventHandler = eventHandlers[i];
       const { time, parameter } = eventHandler.event;
+
+      if (time > clipTime) break;
+      if (time < lastClipTime) continue;
+
       const { handlers } = eventHandler;
       if (time === MathUtil.clamp(time, lastClipTime, clipTime)) {
         for (let j = handlers.length - 1; j >= 0; j--) {
