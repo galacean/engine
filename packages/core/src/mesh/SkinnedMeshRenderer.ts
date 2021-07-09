@@ -18,6 +18,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointCountProperty: ShaderProperty = Shader.getPropertyByName("u_jointCount");
   private static _jointSamplerProperty: ShaderProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty: ShaderProperty = Shader.getPropertyByName("u_jointMatrix");
+  private static _blendShapeWeightsProperty: ShaderProperty = Shader.getPropertyByName("u_blendShapeWeights");
 
   private static _maxJoints: number = 0;
 
@@ -36,16 +37,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maxium number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
-  private _blendShapeWeights: number[];
+  private _blendShapeWeights: Float32Array;
 
   /**
    * The weights of the BlendShapes.
    */
-  get blendShapeWeights(): number[] {
+  get blendShapeWeights(): Float32Array {
     return this._blendShapeWeights;
   }
 
-  set blendShapeWeights(value: number[]) {
+  set blendShapeWeights(value: Float32Array) {
     this._blendShapeWeights = value;
   }
 
@@ -68,6 +69,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (!this._useJointTexture && this.matrixPalette) {
       this.shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
     }
+
+    this.shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
   }
 
   /**
@@ -157,7 +160,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         }
         Matrix.multiply(worldToLocal, mat, mat);
         matrixPalette.set(mat.elements, i * 16);
-      } // end of for
+      }
       if (this._useJointTexture) {
         this.createJointTexture();
       }
@@ -197,5 +200,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   setBlendShapeWeight(index: number, weight: number): void {
     this._blendShapeWeights[index] = weight;
+    //CM: 超界如何处理
   }
 }
