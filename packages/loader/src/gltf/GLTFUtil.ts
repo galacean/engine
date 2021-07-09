@@ -2,9 +2,10 @@ import { Vector3, Vector4, Vector2 } from "@oasis-engine/math";
 import { IndexFormat, TypedArray, VertexElement, VertexElementFormat } from "@oasis-engine/core";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
+/**
+ * @internal
+ */
 export class GLTFUtil {
-  private constructor() {}
-
   public static floatBufferToVector2Array(buffer: Float32Array): Vector2[] {
     const bufferLen = buffer.length;
     const array = new Array<Vector2>(bufferLen / 2);

@@ -116,11 +116,12 @@ export class MeshParser extends Parser {
     engine: Engine
   ): Promise<ModelMesh> {
     const { attributes, targets, indices, mode } = gltfPrimitive;
+    let positionBuffer: Float32Array, normalBuffer: Float32Array, tangentBuffer: Float32Array;
     let vertexCount: number;
 
     const accessor = gltf.accessors[attributes["POSITION"]];
-    const bufferData = getVertexBufferData("POSITION");
-    const positions = GLTFUtil.floatBufferToVector3Array(<Float32Array>bufferData);
+    positionBuffer = <Float32Array>getVertexBufferData("POSITION");
+    const positions = GLTFUtil.floatBufferToVector3Array(positionBuffer);
     mesh.setPositions(positions);
 
     const { bounds } = mesh;
@@ -135,10 +136,10 @@ export class MeshParser extends Parser {
       min.setValue(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
       max.setValue(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
-      const stride = bufferData.length / vertexCount;
+      const stride = positionBuffer.length / vertexCount;
       for (let j = 0; j < vertexCount; j++) {
         const offset = j * stride;
-        position.setValueByArray(bufferData, offset);
+        position.setValueByArray(positionBuffer, offset);
         Vector3.min(min, position, min);
         Vector3.max(max, position, max);
       }
@@ -153,10 +154,12 @@ export class MeshParser extends Parser {
         case "NORMAL":
           const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>bufferData);
           mesh.setNormals(normals);
+          normalBuffer = <Float32Array>bufferData;
           break;
         case "TANGENT":
           const tangents = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
           mesh.setTangents(tangents);
+          tangentBuffer = <Float32Array>bufferData;
           break;
         case "TEXCOORD_0":
           const texturecoords = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
@@ -187,7 +190,8 @@ export class MeshParser extends Parser {
     }
 
     // BlendShapes
-    targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
+    targets &&
+      this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData, positionBuffer, normalBuffer, tangentBuffer);
 
     mesh.uploadData(true);
     return Promise.resolve(mesh);
@@ -199,22 +203,46 @@ export class MeshParser extends Parser {
     glTFTargets: {
       [name: string]: number;
     }[],
-    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray
+    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray,
+    positionBuffer: Float32Array,
+    normalBuffer: Float32Array,
+    tangentBuffer: Float32Array
   ): void {
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
 
     for (let i = 0, n = glTFTargets.length; i < n; i++) {
       const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
-      const posBuffer = getBlendShapeData("POSITION", i);
-      const norBuffer = getBlendShapeData("NORMAL", i);
-      const tanBuffer = getBlendShapeData("TANGENT", i);
-      const deltaPositions = posBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>posBuffer) : null;
-      const deltaNormals = posBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>norBuffer) : null;
-      const deltaTangents = posBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>tanBuffer) : null;
+      const deltaPosBuffer = getBlendShapeData("POSITION", i);
+      const deltaNorBuffer = getBlendShapeData("NORMAL", i);
+      const deltaTanBuffer = getBlendShapeData("TANGENT", i);
+      const deltaPositions = deltaPosBuffer
+        ? this._getDeltaVertices(<Float32Array>deltaPosBuffer, positionBuffer, false)
+        : null;
+      const deltaNormals = deltaPosBuffer
+        ? this._getDeltaVertices(<Float32Array>deltaNorBuffer, normalBuffer, false)
+        : null;
+      const deltaTangents = deltaPosBuffer
+        ? this._getDeltaVertices(<Float32Array>deltaTanBuffer, tangentBuffer, true)
+        : null;
 
       const blendShape = new BlendShape(name);
       blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);
       mesh.addBlendShape(blendShape);
     }
+  }
+
+  private _getDeltaVertices(buffer: Float32Array, baseBuffer: Float32Array, isTangent: boolean): Vector3[] {
+    const bufferLength = buffer.length;
+    const vector3s = new Array<Vector3>(bufferLength / 3);
+    for (let i = 0; i < bufferLength; i += 3) {
+      const index = i / 3;
+      const baseOffset = isTangent ? index * 4 : i;
+      vector3s[index] = new Vector3(
+        buffer[i] - baseBuffer[baseOffset],
+        buffer[i + 1] - baseBuffer[baseOffset + 1],
+        buffer[i + 2] - baseBuffer[baseOffset + 2]
+      );
+    }
+    return vector3s;
   }
 }

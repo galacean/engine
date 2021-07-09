@@ -12,7 +12,7 @@ import { MeshRenderer } from "./MeshRenderer";
 import { Skin } from "./Skin";
 
 /**
- * SkinnedMeshRenderer
+ * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointCountProperty: ShaderProperty = Shader.getPropertyByName("u_jointCount");

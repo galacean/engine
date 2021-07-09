@@ -42,6 +42,8 @@ export class ModelMesh extends Mesh {
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
   private _blendShapes: BlendShape[] = [];
+  private _blendShapeNormal: boolean = false;
+  private _blendShapeTangent: boolean = false;
 
   /**
    * Whether to access data of the mesh.
@@ -94,8 +96,9 @@ export class ModelMesh extends Mesh {
     }
 
     // Vertex value change.
-    const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
+    const vertexBufferBindings = this._vertexBufferBindings;
     const elementCount = this._elementCount;
+    const vertexBuffer = vertexBufferBindings[0]?._buffer;
     const vertexFloatCount = elementCount * this._vertexCount;
     if (!vertexBuffer || this._verticesFloat32.length !== vertexFloatCount) {
       vertexBuffer?.destroy();
@@ -112,6 +115,7 @@ export class ModelMesh extends Mesh {
         vertices,
         noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic
       );
+
       this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
     } else if (this._vertexChangeFlag & ValueChanged.All) {
       const vertices = this._verticesFloat32;
@@ -525,6 +529,23 @@ export class ModelMesh extends Mesh {
       elementCount += 2;
     }
 
+    const blendShapeCount = Math.min(this._blendShapes.length, 4);
+    for (let i = 0, n = blendShapeCount; i < n; i++) {
+      vertexElements.push(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+      offset += 12;
+      elementCount += 3;
+      if (this._blendShapeNormal) {
+        vertexElements.push(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+        offset += 12;
+        elementCount += 3;
+      }
+      if (this._blendShapeTangent) {
+        vertexElements.push(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+        offset += 12;
+        elementCount += 3;
+      }
+    }
+
     this._elementCount = elementCount;
     return vertexElements;
   }
@@ -728,6 +749,55 @@ export class ModelMesh extends Mesh {
       }
       offset += 2;
     }
+
+    // BlendShape.
+    const blendShapes = this._blendShapes;
+    const blendShapeCount = Math.min(blendShapes.length, 4);
+    for (let i = 0; i < blendShapeCount; i++) {
+      const blendShape = blendShapes[i];
+      //CM: todo 支持多帧
+      const frame = blendShape.frames[0];
+      const deltaPositions = frame.deltaPositions;
+      for (let i = 0; i < _vertexCount; i++) {
+        const start = _elementCount * i + offset;
+        const deltaPosition = deltaPositions[i];
+        if (deltaPosition) {
+          vertices[start] = deltaPosition.x;
+          vertices[start + 1] = deltaPosition.y;
+          vertices[start + 2] = deltaPosition.z;
+        }
+      }
+      offset += 3;
+
+      if (this._blendShapeNormal) {
+        const deltaNormals = frame.deltaNormals;
+        for (let i = 0; i < _vertexCount; i++) {
+          const start = _elementCount * i + offset;
+          const deltaNormal = deltaNormals[i];
+          if (deltaNormal) {
+            vertices[start] = deltaNormal.x;
+            vertices[start + 1] = deltaNormal.y;
+            vertices[start + 2] = deltaNormal.z;
+          }
+        }
+        offset += 3;
+      }
+
+      if (this._blendShapeTangent) {
+        const deltaTangents = frame.deltaTangents;
+        for (let i = 0; i < _vertexCount; i++) {
+          const start = _elementCount * i + offset;
+          const deltaTangent = deltaTangents[i];
+          if (deltaTangent) {
+            vertices[start] = deltaTangent.x;
+            vertices[start + 1] = deltaTangent.y;
+            vertices[start + 2] = deltaTangent.z;
+          }
+        }
+        offset += 3;
+      }
+    }
+
     this._vertexChangeFlag = 0;
   }
 
