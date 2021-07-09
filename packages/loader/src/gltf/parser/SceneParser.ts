@@ -124,7 +124,7 @@ export class SceneParser extends Parser {
         if (skinID !== undefined) {
           skinRenderer.skin = skins[skinID];
         } else {
-          skinRenderer.blendShapeWeights = blendShapeWeights.slice();
+          skinRenderer.blendShapeWeights =new Float32Array(blendShapeWeights);
         }
 
         renderer = skinRenderer;

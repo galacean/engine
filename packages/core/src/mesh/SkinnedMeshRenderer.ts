@@ -9,6 +9,7 @@ import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { Texture2D } from "../texture/Texture2D";
 import { MeshRenderer } from "./MeshRenderer";
+import { ModelMesh } from "./ModelMesh";
 import { Skin } from "./Skin";
 
 /**
@@ -66,11 +67,18 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   _updateShaderData(context: RenderContext) {
     super._updateShaderData(context);
 
+    const shaderData = this.shaderData;
     if (!this._useJointTexture && this.matrixPalette) {
-      this.shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
+      shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
     }
 
-    this.shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
+    const blendShapes = (<ModelMesh>this.mesh).blendShapes;
+    if (blendShapes && blendShapes.length > 0) {
+      shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
+      shaderData.enableMacro("OASIS_BLENDSHAPE");
+    } else {
+      shaderData.disableMacro("OASIS_BLENDSHAPE");
+    }
   }
 
   /**
