@@ -1,5 +1,7 @@
 import { BlendShapeFrame } from "./BlendShapeFrame";
 import { Vector3 } from "@oasis-engine/math";
+import { UpdateFlag } from "../UpdateFlag";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
  * BlendShape.
@@ -9,7 +11,8 @@ export class BlendShape {
   name: string;
 
   private _frames: BlendShapeFrame[] = [];
-
+  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+  
   /**
    * Frames of BlendShape.
    */
@@ -58,6 +61,7 @@ export class BlendShape {
     } else {
       this._frames.push(frameOrWeight);
     }
+    this._updateFlagManager.distribute();
   }
 
   /**
@@ -65,5 +69,13 @@ export class BlendShape {
    */
   clearFrames(): void {
     this._frames.length = 0;
+    this._updateFlagManager.distribute();
+  }
+
+  /**
+   * @internal
+   */
+  _registerChangeFlag(): UpdateFlag {
+    return this._updateFlagManager.register();
   }
 }

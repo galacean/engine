@@ -1,4 +1,5 @@
 import { Vector3 } from "@oasis-engine/math";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
  * BlendShapeFrame.

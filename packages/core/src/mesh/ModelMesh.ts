@@ -754,10 +754,9 @@ export class ModelMesh extends Mesh {
     const blendShapes = this._blendShapes;
     const blendShapeCount = Math.min(blendShapes.length, 4);
     for (let i = 0; i < blendShapeCount; i++) {
-      const blendShape = blendShapes[i];
-      //CM: todo 支持多帧
-      const frame = blendShape.frames[0];
-      const deltaPositions = frame.deltaPositions;
+      const { frames } = blendShapes[i];
+      const endFrame = frames[frames.length - 1];
+      const { deltaPositions } = endFrame;
       for (let i = 0; i < _vertexCount; i++) {
         const start = _elementCount * i + offset;
         const deltaPosition = deltaPositions[i];
@@ -770,7 +769,7 @@ export class ModelMesh extends Mesh {
       offset += 3;
 
       if (this._blendShapeNormal) {
-        const deltaNormals = frame.deltaNormals;
+        const { deltaNormals } = endFrame;
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const deltaNormal = deltaNormals[i];
@@ -784,7 +783,7 @@ export class ModelMesh extends Mesh {
       }
 
       if (this._blendShapeTangent) {
-        const deltaTangents = frame.deltaTangents;
+        const { deltaTangents } = endFrame;
         for (let i = 0; i < _vertexCount; i++) {
           const start = _elementCount * i + offset;
           const deltaTangent = deltaTangents[i];
@@ -823,12 +822,22 @@ export class ModelMesh extends Mesh {
    * Add a BlendShape for this ModleMesh.
    * @param blendShape - The BlendShape
    */
-  addBlendShape(blendShape: BlendShape): void {}
+  addBlendShape(blendShape: BlendShape): void {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
+    this._blendShapes.push(blendShape);
+    this._vertexChangeFlag |= ValueChanged.BlendShape;
+    //CM: 考虑BlendShape 内部修改
+  }
 
   /**
    * Clear all BlendShapes.
    */
-  clearBlendShapes(): void {}
+  clearBlendShapes(): void {
+    this._blendShapes.length = 0;
+    this._vertexChangeFlag |= ValueChanged.BlendShape;
+  }
 }
 
 const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
@@ -848,5 +857,6 @@ enum ValueChanged {
   UV5 = 0x800,
   UV6 = 0x1000,
   UV7 = 0x2000,
+  BlendShape = 0x4000,
   All = 0xffff
 }
