@@ -10,12 +10,13 @@ import {
   Transform,
   TypedArray,
   Vector2Keyframe,
-  Vector3Keyframe
+  Vector3Keyframe,
+  FloatArrayKeyframe
 } from "@oasis-engine/core";
 import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
-import { AnimationChannelTargetPath, AnimationSamplerInterpolation, IAnimationChannel } from "../Schema";
+import { AccessorType, AnimationChannelTargetPath, AnimationSamplerInterpolation, IAnimationChannel } from "../Schema";
 import { Parser } from "./Parser";
 
 export class AnimationParser extends Parser {
@@ -42,12 +43,10 @@ export class AnimationParser extends Parser {
         const gltfSampler = samplers[i];
         const inputAccessor = accessors[gltfSampler.input];
         const outputAccessor = accessors[gltfSampler.output];
+
         const input = GLTFUtil.getAccessorData(gltf, inputAccessor, buffers);
         const output = GLTFUtil.getAccessorData(gltf, outputAccessor, buffers);
-        let outputAccessorSize = GLTFUtil.getAccessorTypeSize(outputAccessor.type);
-        if (outputAccessorSize * input.length !== output.length) {
-          outputAccessorSize = output.length / input.length;
-        }
+        const outputAccessorSize = output.length / input.length;
 
         let samplerInterpolation: InterpolationType;
         switch (gltfSampler.interpolation) {
@@ -67,6 +66,7 @@ export class AnimationParser extends Parser {
         }
 
         sampleDataCollection.push({
+          type: outputAccessor.type,
           interpolation: samplerInterpolation,
           input,
           output,
@@ -127,7 +127,6 @@ export class AnimationParser extends Parser {
             propertyName = "blendShapeWeights";
             break;
           default:
-            break;
         }
 
         const curve = this._addCurve(gltfChannel, sampleDataCollection);
@@ -142,20 +141,21 @@ export class AnimationParser extends Parser {
   private _addCurve(gltfChannel: IAnimationChannel, sampleDataCollection: SampleData[]): AnimationCurve {
     const curve = new AnimationCurve();
     const sampleData = sampleDataCollection[gltfChannel.sampler];
-    const { input, output, outputSize } = sampleData;
+    const { type, input, output, outputSize } = sampleData;
 
     curve.interpolation = sampleData.interpolation;
     for (let j = 0, n = input.length; j < n; j++) {
       const offset = j * outputSize;
-      if (outputSize === 1) {
-        const keyframe = new FloatKeyframe();
+      if (type === AccessorType.SCALAR) {
+        let keyframe = outputSize > 1 ? new FloatArrayKeyframe() : new FloatKeyframe();
         keyframe.time = input[j];
-        keyframe.value = output[offset];
         keyframe.inTangent = 0;
         keyframe.outTangent = 0;
+        keyframe.value = outputSize > 1 ? <Float32Array>output.subarray(offset, offset+outputSize) : output[offset];
         curve.addKey(keyframe);
+        debugger;
       }
-      if (outputSize === 2) {
+      if (type === AccessorType.VEC2) {
         const keyframe = new Vector2Keyframe();
         keyframe.time = input[j];
         keyframe.value = new Vector2(output[offset], output[offset + 1]);
@@ -163,7 +163,7 @@ export class AnimationParser extends Parser {
         keyframe.outTangent = new Vector2();
         curve.addKey(keyframe);
       }
-      if (outputSize === 3) {
+      if (type === AccessorType.VEC3) {
         const keyframe = new Vector3Keyframe();
         keyframe.time = input[j];
         keyframe.value = new Vector3(output[offset], output[offset + 1], output[offset + 2]);
@@ -171,7 +171,7 @@ export class AnimationParser extends Parser {
         keyframe.outTangent = new Vector3();
         curve.addKey(keyframe);
       }
-      if (outputSize === 4) {
+      if (type === AccessorType.VEC4) {
         const keyframe = new QuaternionKeyframe();
         keyframe.time = input[j];
         keyframe.value = new Quaternion(output[offset], output[offset + 1], output[offset + 2], output[offset + 3]);
@@ -185,6 +185,7 @@ export class AnimationParser extends Parser {
 }
 
 interface SampleData {
+  type: AccessorType;
   input: TypedArray;
   output: TypedArray;
   interpolation: InterpolationType;

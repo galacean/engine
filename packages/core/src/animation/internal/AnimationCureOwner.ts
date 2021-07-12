@@ -1,6 +1,7 @@
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Component } from "../../Component";
 import { Entity } from "../../Entity";
+import { SkinnedMeshRenderer } from "../../mesh";
 import { AnimationProperty } from "../enums/AnimationProperty";
 import { InterpolableValue } from "../KeyFrame";
 
@@ -11,9 +12,10 @@ export class AnimationCureOwner {
   crossCurveMark: number = 0;
   crossCurveIndex: number;
 
-  readonly target: Entity;
   readonly type: new (entity: Entity) => Component;
   readonly property: AnimationProperty;
+  readonly component: Component;
+  readonly target: Entity;
   readonly defaultValue: InterpolableValue;
   readonly fixedPoseValue: InterpolableValue;
 
@@ -34,7 +36,12 @@ export class AnimationCureOwner {
         this.defaultValue = new Vector3();
         this.fixedPoseValue = new Vector3();
         break;
+      case AnimationProperty.BlendShapeWeights:
+        this.defaultValue = new Float32Array(4);
+        this.fixedPoseValue = new Float32Array(4);
+        break;
     }
+    this.component = target.getComponent(SkinnedMeshRenderer);
   }
 
   saveDefaultValue(): void {

@@ -76,6 +76,8 @@ export class AnimationClip extends Motion {
       case "scale":
         property = AnimationProperty.Scale;
         break;
+      default:
+        property = AnimationProperty.BlendShapeWeights;
     }
     const curveData: AnimationClipCurveData<Component> = {
       relativePath,
