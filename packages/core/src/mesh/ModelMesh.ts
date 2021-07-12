@@ -643,7 +643,7 @@ export class ModelMesh extends Mesh {
           }
         }
       }
-      offset += 3;
+      offset += 4;
     }
     if (_uv) {
       if (_vertexChangeFlag & ValueChanged.UV) {
@@ -757,9 +757,9 @@ export class ModelMesh extends Mesh {
       const { frames } = blendShapes[i];
       const endFrame = frames[frames.length - 1];
       const { deltaPositions } = endFrame;
-      for (let i = 0; i < _vertexCount; i++) {
-        const start = _elementCount * i + offset;
-        const deltaPosition = deltaPositions[i];
+      for (let j = 0; j < _vertexCount; j++) {
+        const start = _elementCount * j + offset;
+        const deltaPosition = deltaPositions[j];
         if (deltaPosition) {
           vertices[start] = deltaPosition.x;
           vertices[start + 1] = deltaPosition.y;
@@ -770,9 +770,9 @@ export class ModelMesh extends Mesh {
 
       if (this._blendShapeNormal) {
         const { deltaNormals } = endFrame;
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
-          const deltaNormal = deltaNormals[i];
+        for (let j = 0; j < _vertexCount; j++) {
+          const start = _elementCount * j + offset;
+          const deltaNormal = deltaNormals[j];
           if (deltaNormal) {
             vertices[start] = deltaNormal.x;
             vertices[start + 1] = deltaNormal.y;
@@ -784,9 +784,9 @@ export class ModelMesh extends Mesh {
 
       if (this._blendShapeTangent) {
         const { deltaTangents } = endFrame;
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
-          const deltaTangent = deltaTangents[i];
+        for (let j = 0; j < _vertexCount; j++) {
+          const start = _elementCount * j + offset;
+          const deltaTangent = deltaTangents[j];
           if (deltaTangent) {
             vertices[start] = deltaTangent.x;
             vertices[start + 1] = deltaTangent.y;

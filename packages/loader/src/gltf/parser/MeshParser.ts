@@ -80,7 +80,6 @@ export class MeshParser extends Parser {
                   const attributeAccessorIdx = shapeAccessorIdx[attributeName];
                   if (attributeAccessorIdx) {
                     const accessor = gltf.accessors[attributeAccessorIdx];
-                    console.log(accessor.name);
                     return GLTFUtil.getAccessorData(gltf, accessor, buffers);
                   } else {
                     return null;
@@ -215,34 +214,13 @@ export class MeshParser extends Parser {
       const deltaPosBuffer = getBlendShapeData("POSITION", i);
       const deltaNorBuffer = getBlendShapeData("NORMAL", i);
       const deltaTanBuffer = getBlendShapeData("TANGENT", i);
-      const deltaPositions = deltaPosBuffer
-        ? this._getDeltaVertices(<Float32Array>deltaPosBuffer, positionBuffer, false)
-        : null;
-      const deltaNormals = deltaPosBuffer
-        ? this._getDeltaVertices(<Float32Array>deltaNorBuffer, normalBuffer, false)
-        : null;
-      const deltaTangents = deltaPosBuffer
-        ? this._getDeltaVertices(<Float32Array>deltaTanBuffer, tangentBuffer, true)
-        : null;
+      const deltaPositions = deltaPosBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaPosBuffer) : null;
+      const deltaNormals = deltaPosBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaNorBuffer) : null;
+      const deltaTangents = deltaPosBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaTanBuffer) : null;
 
       const blendShape = new BlendShape(name);
       blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);
       mesh.addBlendShape(blendShape);
     }
-  }
-
-  private _getDeltaVertices(buffer: Float32Array, baseBuffer: Float32Array, isTangent: boolean): Vector3[] {
-    const bufferLength = buffer.length;
-    const vector3s = new Array<Vector3>(bufferLength / 3);
-    for (let i = 0; i < bufferLength; i += 3) {
-      const index = i / 3;
-      const baseOffset = isTangent ? index * 4 : i;
-      vector3s[index] = new Vector3(
-        buffer[i] - baseBuffer[baseOffset],
-        buffer[i + 1] - baseBuffer[baseOffset + 1],
-        buffer[i + 2] - baseBuffer[baseOffset + 2]
-      );
-    }
-    return vector3s;
   }
 }
