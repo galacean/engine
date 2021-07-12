@@ -153,7 +153,6 @@ export class AnimationParser extends Parser {
         keyframe.outTangent = 0;
         keyframe.value = outputSize > 1 ? <Float32Array>output.subarray(offset, offset+outputSize) : output[offset];
         curve.addKey(keyframe);
-        debugger;
       }
       if (type === AccessorType.VEC2) {
         const keyframe = new Vector2Keyframe();
