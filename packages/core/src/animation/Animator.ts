@@ -337,7 +337,7 @@ export class Animator extends Component {
     curve: AnimationCurve,
     time: number,
     addtive: boolean
-  ): InterpolableValue {
+  ): Readonly<InterpolableValue> {
     const value = curve.evaluate(time);
 
     if (addtive) {
@@ -499,8 +499,8 @@ export class Animator extends Component {
 
   private _applyCrossClipValue(
     owner: AnimationCureOwner,
-    srcValue: InterpolableValue,
-    destValue: InterpolableValue,
+    srcValue: Readonly<InterpolableValue>,
+    destValue: Readonly<InterpolableValue>,
     crossWeight: number,
     layerWeight: number,
     addtive: boolean
@@ -534,7 +534,7 @@ export class Animator extends Component {
     }
   }
 
-  private _applyClipValue(owner: AnimationCureOwner, value: InterpolableValue, weight: number): void {
+  private _applyClipValue(owner: AnimationCureOwner, value:Readonly<InterpolableValue>, weight: number): void {
     if (owner.type === Transform) {
       const transform = owner.target.transform;
       switch (owner.property) {
@@ -575,7 +575,7 @@ export class Animator extends Component {
     }
   }
 
-  private _applyClipValueAddtive(owner: AnimationCureOwner, addtiveValue: InterpolableValue, weight: number): void {
+  private _applyClipValueAddtive(owner: AnimationCureOwner, addtiveValue: Readonly<InterpolableValue>, weight: number): void {
     if (owner.type === Transform) {
       const transform = (<Entity>owner.target).transform;
       switch (owner.property) {

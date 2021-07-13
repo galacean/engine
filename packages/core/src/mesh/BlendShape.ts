@@ -10,9 +10,14 @@ export class BlendShape {
   /** Name of BlendShape. */
   name: string;
 
+  /** @internal */
+  _useBlendShapeNormal: boolean = false;
+  /** @internal */
+  _useBlendShapeTangent: boolean = false;
+
   private _frames: BlendShapeFrame[] = [];
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
-  
+
   /**
    * Frames of BlendShape.
    */
@@ -54,12 +59,16 @@ export class BlendShape {
     deltaNormals?: Vector3[] | null,
     deltaTangents?: Vector3[] | null
   ): void | BlendShapeFrame {
+    //CM: 一帧法线为空，一帧不为空
+    const frames = this._frames;
     if (typeof frameOrWeight === "number") {
       const frame = new BlendShapeFrame(frameOrWeight, deltaPositions, deltaNormals, deltaTangents);
-      this._frames.push(frame);
+      this._checkSupportNormalAndTangent(frame);
+      frames.push(frame);
       return frame;
     } else {
-      this._frames.push(frameOrWeight);
+      this._checkSupportNormalAndTangent(frameOrWeight);
+      frames.push(frameOrWeight);
     }
     this._updateFlagManager.distribute();
   }
@@ -70,6 +79,8 @@ export class BlendShape {
   clearFrames(): void {
     this._frames.length = 0;
     this._updateFlagManager.distribute();
+    this._useBlendShapeNormal = false;
+    this._useBlendShapeTangent = false;
   }
 
   /**
@@ -77,5 +88,12 @@ export class BlendShape {
    */
   _registerChangeFlag(): UpdateFlag {
     return this._updateFlagManager.register();
+  }
+
+  private _checkSupportNormalAndTangent(frame: BlendShapeFrame): void {
+    this._useBlendShapeNormal =
+      frames.length === 0 ? frame.deltaNormals !== null : this._useBlendShapeNormal && frame.deltaNormals !== null;
+    this._useBlendShapeTangent =
+      frames.length === 0 ? frame.deltaTangents !== null : this._useBlendShapeTangent && frame.deltaTangents !== null;
   }
 }

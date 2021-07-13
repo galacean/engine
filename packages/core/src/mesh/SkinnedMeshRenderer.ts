@@ -72,10 +72,23 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
     }
 
-    const blendShapes = (<ModelMesh>this.mesh).blendShapes;
+    //CM: 优化
+    const mesh = <ModelMesh>this.mesh;
+    const blendShapes = mesh.blendShapes;
     if (blendShapes && blendShapes.length > 0) {
       shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
       shaderData.enableMacro("OASIS_BLENDSHAPE");
+
+      if (mesh._useBlendShapeNormal) {
+        shaderData.enableMacro("OASIS_BLENDSHAPE_NORMAL");
+      } else {
+        shaderData.disableMacro("OASIS_BLENDSHAPE_NORMAL");
+      }
+      if (mesh._useBlendShapeTangent) {
+        shaderData.enableMacro("OASIS_BLENDSHAPE_TANGENT");
+      } else {
+        shaderData.disableMacro("OASIS_BLENDSHAPE_TANGENT");
+      }
     } else {
       shaderData.disableMacro("OASIS_BLENDSHAPE");
     }

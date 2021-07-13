@@ -15,6 +15,9 @@ import { BlendShape } from "./BlendShape";
  * Mesh containing common vertex elements of the model.
  */
 export class ModelMesh extends Mesh {
+  _useBlendShapeNormal: boolean = false;
+  _useBlendShapeTangent: boolean = false;
+
   private _vertexCount: number = 0;
   private _accessible: boolean = true;
   private _verticesFloat32: Float32Array | null = null;
@@ -42,8 +45,6 @@ export class ModelMesh extends Mesh {
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
   private _blendShapes: BlendShape[] = [];
-  private _blendShapeNormal: boolean = false;
-  private _blendShapeTangent: boolean = false;
 
   /**
    * Whether to access data of the mesh.
@@ -534,12 +535,12 @@ export class ModelMesh extends Mesh {
       vertexElements.push(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
       offset += 12;
       elementCount += 3;
-      if (this._blendShapeNormal) {
+      if (this._useBlendShapeNormal) {
         vertexElements.push(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         offset += 12;
         elementCount += 3;
       }
-      if (this._blendShapeTangent) {
+      if (this._useBlendShapeTangent) {
         vertexElements.push(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         offset += 12;
         elementCount += 3;
@@ -768,7 +769,7 @@ export class ModelMesh extends Mesh {
       }
       offset += 3;
 
-      if (this._blendShapeNormal) {
+      if (this._useBlendShapeNormal) {
         const { deltaNormals } = endFrame;
         for (let j = 0; j < _vertexCount; j++) {
           const start = _elementCount * j + offset;
@@ -782,7 +783,7 @@ export class ModelMesh extends Mesh {
         offset += 3;
       }
 
-      if (this._blendShapeTangent) {
+      if (this._useBlendShapeTangent) {
         const { deltaTangents } = endFrame;
         for (let j = 0; j < _vertexCount; j++) {
           const start = _elementCount * j + offset;
@@ -826,9 +827,20 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    this._blendShapes.push(blendShape);
+    const blendShapes = this._blendShapes;
+
     this._vertexChangeFlag |= ValueChanged.BlendShape;
-    //CM: 考虑BlendShape 内部修改
+
+    this._useBlendShapeNormal =
+      blendShapes.length === 0
+        ? blendShape._useBlendShapeNormal
+        : this._useBlendShapeNormal && blendShape._useBlendShapeNormal;
+    this._useBlendShapeTangent =
+      blendShapes.length === 0
+        ? blendShape._useBlendShapeTangent
+        : this._useBlendShapeTangent && blendShape._useBlendShapeTangent;
+
+    blendShapes.push(blendShape);
   }
 
   /**
