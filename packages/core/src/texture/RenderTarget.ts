@@ -203,8 +203,8 @@ export class RenderTarget extends EngineObject {
   /**
    * @internal
    */
-  _setRenderTargetFace(faceIndex: TextureCubeFace): void {
-    this._platformRenderTarget.setRenderTargetFace(faceIndex);
+  _setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void {
+    this._platformRenderTarget.setRenderTargetInfo(faceIndex, mipLevel);
   }
 
   /**

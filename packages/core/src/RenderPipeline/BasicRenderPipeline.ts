@@ -131,8 +131,9 @@ export class BasicRenderPipeline {
    * Perform scene rendering.
    * @param context - Render context
    * @param cubeFace - Render surface of cube texture
+   * @param mipLevel - Set mip level the data want to wirte
    */
-  render(context: RenderContext, cubeFace?: TextureCubeFace) {
+  render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number) {
     const camera = this._camera;
     const opaqueQueue = this._opaqueQueue;
     const alphaTestQueue = this._alphaTestQueue;
@@ -151,11 +152,11 @@ export class BasicRenderPipeline {
     transparentQueue.sort(RenderQueue._compareFromFarToNear);
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
-      this._drawRenderPass(this._renderPassArray[i], camera, cubeFace);
+      this._drawRenderPass(this._renderPassArray[i], camera, cubeFace, mipLevel);
     }
   }
 
-  private _drawRenderPass(pass: RenderPass, camera: Camera, cubeFace?: TextureCubeFace) {
+  private _drawRenderPass(pass: RenderPass, camera: Camera, cubeFace?: TextureCubeFace, mipLevel?: number) {
     pass.preRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
 
     if (pass.enabled) {
@@ -163,8 +164,8 @@ export class BasicRenderPipeline {
       const { background } = scene;
       const rhi = engine._hardwareRenderer;
       const renderTarget = camera.renderTarget || pass.renderTarget;
-      rhi.activeRenderTarget(renderTarget, camera);
-      renderTarget?._setRenderTargetFace(cubeFace);
+      rhi.activeRenderTarget(renderTarget, camera, mipLevel); // change viewport with mip level
+      renderTarget?._setRenderTargetInfo(cubeFace, mipLevel);
       const clearFlags = pass.clearFlags ?? camera.clearFlags;
       const color = pass.clearColor ?? background.solidColor;
       if (clearFlags !== CameraClearFlags.None) {
