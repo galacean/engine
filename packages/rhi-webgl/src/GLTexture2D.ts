@@ -120,11 +120,12 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
    * @param width - Area width
    * @param height - Area height
    * @param out - Color buffer
+   * @param mipLevel - Set mip level the data want to get from
    */
-  getPixelBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {
+  getPixelBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView, mipLevel: number): void {
     if (this._formatDetail.isCompressed) {
       throw new Error("Unable to read compressed texture");
     }
-    super._getPixelBuffer(null, x, y, width, height, out);
+    super._getPixelBuffer(null, x, y, width, height, out, mipLevel);
   }
 }
