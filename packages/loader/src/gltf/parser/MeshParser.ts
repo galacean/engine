@@ -115,11 +115,10 @@ export class MeshParser extends Parser {
     engine: Engine
   ): Promise<ModelMesh> {
     const { attributes, targets, indices, mode } = gltfPrimitive;
-    let positionBuffer: Float32Array, normalBuffer: Float32Array, tangentBuffer: Float32Array;
     let vertexCount: number;
 
     const accessor = gltf.accessors[attributes["POSITION"]];
-    positionBuffer = <Float32Array>getVertexBufferData("POSITION");
+    const positionBuffer = <Float32Array>getVertexBufferData("POSITION");
     const positions = GLTFUtil.floatBufferToVector3Array(positionBuffer);
     mesh.setPositions(positions);
 
@@ -153,12 +152,10 @@ export class MeshParser extends Parser {
         case "NORMAL":
           const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>bufferData);
           mesh.setNormals(normals);
-          normalBuffer = <Float32Array>bufferData;
           break;
         case "TANGENT":
           const tangents = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
           mesh.setTangents(tangents);
-          tangentBuffer = <Float32Array>bufferData;
           break;
         case "TEXCOORD_0":
           const texturecoords = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
@@ -189,8 +186,7 @@ export class MeshParser extends Parser {
     }
 
     // BlendShapes
-    targets &&
-      this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData, positionBuffer, normalBuffer, tangentBuffer);
+    targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(true);
     return Promise.resolve(mesh);
@@ -202,10 +198,7 @@ export class MeshParser extends Parser {
     glTFTargets: {
       [name: string]: number;
     }[],
-    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray,
-    positionBuffer: Float32Array,
-    normalBuffer: Float32Array,
-    tangentBuffer: Float32Array
+    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray
   ): void {
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
 
@@ -217,6 +210,7 @@ export class MeshParser extends Parser {
       const deltaPositions = deltaPosBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaPosBuffer) : null;
       const deltaNormals = deltaNorBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaNorBuffer) : null;
       const deltaTangents = deltaTanBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaTanBuffer) : null;
+      console.log(deltaNormals);
 
       const blendShape = new BlendShape(name);
       blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);
