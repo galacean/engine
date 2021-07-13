@@ -59,16 +59,12 @@ export class BlendShape {
     deltaNormals?: Vector3[] | null,
     deltaTangents?: Vector3[] | null
   ): void | BlendShapeFrame {
-    //CM: 一帧法线为空，一帧不为空
-    const frames = this._frames;
     if (typeof frameOrWeight === "number") {
       const frame = new BlendShapeFrame(frameOrWeight, deltaPositions, deltaNormals, deltaTangents);
       this._checkSupportNormalAndTangent(frame);
-      frames.push(frame);
       return frame;
     } else {
       this._checkSupportNormalAndTangent(frameOrWeight);
-      frames.push(frameOrWeight);
     }
     this._updateFlagManager.distribute();
   }
@@ -91,9 +87,8 @@ export class BlendShape {
   }
 
   private _checkSupportNormalAndTangent(frame: BlendShapeFrame): void {
-    this._useBlendShapeNormal =
-      frames.length === 0 ? frame.deltaNormals !== null : this._useBlendShapeNormal && frame.deltaNormals !== null;
-    this._useBlendShapeTangent =
-      frames.length === 0 ? frame.deltaTangents !== null : this._useBlendShapeTangent && frame.deltaTangents !== null;
+    this._useBlendShapeNormal ||= frame.deltaNormals !== null;
+    this._useBlendShapeTangent ||= frame.deltaTangents !== null;
+    this._frames.push(frame);
   }
 }

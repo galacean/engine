@@ -771,13 +771,15 @@ export class ModelMesh extends Mesh {
 
       if (this._useBlendShapeNormal) {
         const { deltaNormals } = endFrame;
-        for (let j = 0; j < _vertexCount; j++) {
-          const start = _elementCount * j + offset;
-          const deltaNormal = deltaNormals[j];
-          if (deltaNormal) {
-            vertices[start] = deltaNormal.x;
-            vertices[start + 1] = deltaNormal.y;
-            vertices[start + 2] = deltaNormal.z;
+        if (deltaNormals) {
+          for (let j = 0; j < _vertexCount; j++) {
+            const start = _elementCount * j + offset;
+            const deltaNormal = deltaNormals[j];
+            if (deltaNormal) {
+              vertices[start] = deltaNormal.x;
+              vertices[start + 1] = deltaNormal.y;
+              vertices[start + 2] = deltaNormal.z;
+            }
           }
         }
         offset += 3;
@@ -785,13 +787,15 @@ export class ModelMesh extends Mesh {
 
       if (this._useBlendShapeTangent) {
         const { deltaTangents } = endFrame;
-        for (let j = 0; j < _vertexCount; j++) {
-          const start = _elementCount * j + offset;
-          const deltaTangent = deltaTangents[j];
-          if (deltaTangent) {
-            vertices[start] = deltaTangent.x;
-            vertices[start + 1] = deltaTangent.y;
-            vertices[start + 2] = deltaTangent.z;
+        if (deltaTangents) {
+          for (let j = 0; j < _vertexCount; j++) {
+            const start = _elementCount * j + offset;
+            const deltaTangent = deltaTangents[j];
+            if (deltaTangent) {
+              vertices[start] = deltaTangent.x;
+              vertices[start + 1] = deltaTangent.y;
+              vertices[start + 2] = deltaTangent.z;
+            }
           }
         }
         offset += 3;
@@ -827,20 +831,11 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    const blendShapes = this._blendShapes;
 
     this._vertexChangeFlag |= ValueChanged.BlendShape;
-
-    this._useBlendShapeNormal =
-      blendShapes.length === 0
-        ? blendShape._useBlendShapeNormal
-        : this._useBlendShapeNormal && blendShape._useBlendShapeNormal;
-    this._useBlendShapeTangent =
-      blendShapes.length === 0
-        ? blendShape._useBlendShapeTangent
-        : this._useBlendShapeTangent && blendShape._useBlendShapeTangent;
-
-    blendShapes.push(blendShape);
+    this._useBlendShapeNormal ||= blendShape._useBlendShapeNormal;
+    this._useBlendShapeTangent ||= blendShape._useBlendShapeTangent;
+    this._blendShapes.push(blendShape);
   }
 
   /**

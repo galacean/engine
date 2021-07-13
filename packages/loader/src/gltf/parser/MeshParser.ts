@@ -210,7 +210,6 @@ export class MeshParser extends Parser {
       const deltaPositions = deltaPosBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaPosBuffer) : null;
       const deltaNormals = deltaNorBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaNorBuffer) : null;
       const deltaTangents = deltaTanBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaTanBuffer) : null;
-      console.log(deltaNormals);
 
       const blendShape = new BlendShape(name);
       blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);
