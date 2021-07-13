@@ -15,7 +15,9 @@ import { BlendShape } from "./BlendShape";
  * Mesh containing common vertex elements of the model.
  */
 export class ModelMesh extends Mesh {
+  /** @internal */
   _useBlendShapeNormal: boolean = false;
+  /** @internal */
   _useBlendShapeTangent: boolean = false;
 
   private _vertexCount: number = 0;

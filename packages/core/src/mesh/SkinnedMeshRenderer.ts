@@ -4,7 +4,6 @@ import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
-import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { Texture2D } from "../texture/Texture2D";
@@ -16,10 +15,14 @@ import { Skin } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private static _jointCountProperty: ShaderProperty = Shader.getPropertyByName("u_jointCount");
-  private static _jointSamplerProperty: ShaderProperty = Shader.getPropertyByName("u_jointSampler");
-  private static _jointMatrixProperty: ShaderProperty = Shader.getPropertyByName("u_jointMatrix");
-  private static _blendShapeWeightsProperty: ShaderProperty = Shader.getPropertyByName("u_blendShapeWeights");
+  private static _blendShapeMacro = Shader.getMacroByName("OASIS_BLENDSHAPE");
+  private static _blendShapeNormalMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_NORMAL");
+  private static _blendShapeTangentMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TANGENT");
+
+  private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
+  private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
+  private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
+  private static _blendShapeWeightsProperty = Shader.getPropertyByName("u_blendShapeWeights");
 
   private static _maxJoints: number = 0;
 
@@ -73,25 +76,24 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
     }
 
-    //CM: 优化
     const mesh = <ModelMesh>this.mesh;
     const blendShapes = mesh.blendShapes;
     if (blendShapes && blendShapes.length > 0) {
       shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
-      shaderData.enableMacro("OASIS_BLENDSHAPE");
+      shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
 
       if (mesh._useBlendShapeNormal) {
-        shaderData.enableMacro("OASIS_BLENDSHAPE_NORMAL");
+        shaderData.enableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
       } else {
-        shaderData.disableMacro("OASIS_BLENDSHAPE_NORMAL");
+        shaderData.disableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
       }
       if (mesh._useBlendShapeTangent) {
-        shaderData.enableMacro("OASIS_BLENDSHAPE_TANGENT");
+        shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);
       } else {
-        shaderData.disableMacro("OASIS_BLENDSHAPE_TANGENT");
+        shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);
       }
     } else {
-      shaderData.disableMacro("OASIS_BLENDSHAPE");
+      shaderData.disableMacro(SkinnedMeshRenderer._blendShapeMacro);
     }
   }
 
