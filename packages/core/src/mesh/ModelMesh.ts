@@ -752,53 +752,56 @@ export class ModelMesh extends Mesh {
     }
 
     // BlendShape.
-    const blendShapes = this._blendShapes;
-    const blendShapeCount = Math.min(blendShapes.length, 4);
-    for (let i = 0; i < blendShapeCount; i++) {
-      const { frames } = blendShapes[i];
-      const endFrame = frames[frames.length - 1];
-      const { deltaPositions } = endFrame;
-      for (let j = 0; j < _vertexCount; j++) {
-        const start = _elementCount * j + offset;
-        const deltaPosition = deltaPositions[j];
-        if (deltaPosition) {
-          vertices[start] = deltaPosition.x;
-          vertices[start + 1] = deltaPosition.y;
-          vertices[start + 2] = deltaPosition.z;
-        }
-      }
-      offset += 3;
+    if (_vertexChangeFlag & ValueChanged.BlendShape) {
+      const blendShapes = this._blendShapes;
+      const blendShapeCount = Math.min(blendShapes.length, 4);
+      for (let i = 0; i < blendShapeCount; i++) {
+        const { frames } = blendShapes[i];
+        const endFrame = frames[frames.length - 1];
 
-      if (this._useBlendShapeNormal) {
-        const { deltaNormals } = endFrame;
-        if (deltaNormals) {
-          for (let j = 0; j < _vertexCount; j++) {
-            const start = _elementCount * j + offset;
-            const deltaNormal = deltaNormals[j];
-            if (deltaNormal) {
-              vertices[start] = deltaNormal.x;
-              vertices[start + 1] = deltaNormal.y;
-              vertices[start + 2] = deltaNormal.z;
-            }
+        const { deltaPositions } = endFrame;
+        for (let j = 0; j < _vertexCount; j++) {
+          const start = _elementCount * j + offset;
+          const deltaPosition = deltaPositions[j];
+          if (deltaPosition) {
+            vertices[start] = deltaPosition.x;
+            vertices[start + 1] = deltaPosition.y;
+            vertices[start + 2] = deltaPosition.z;
           }
         }
         offset += 3;
-      }
 
-      if (this._useBlendShapeTangent) {
-        const { deltaTangents } = endFrame;
-        if (deltaTangents) {
-          for (let j = 0; j < _vertexCount; j++) {
-            const start = _elementCount * j + offset;
-            const deltaTangent = deltaTangents[j];
-            if (deltaTangent) {
-              vertices[start] = deltaTangent.x;
-              vertices[start + 1] = deltaTangent.y;
-              vertices[start + 2] = deltaTangent.z;
+        if (this._useBlendShapeNormal) {
+          const { deltaNormals } = endFrame;
+          if (deltaNormals) {
+            for (let j = 0; j < _vertexCount; j++) {
+              const start = _elementCount * j + offset;
+              const deltaNormal = deltaNormals[j];
+              if (deltaNormal) {
+                vertices[start] = deltaNormal.x;
+                vertices[start + 1] = deltaNormal.y;
+                vertices[start + 2] = deltaNormal.z;
+              }
             }
           }
+          offset += 3;
         }
-        offset += 3;
+
+        if (this._useBlendShapeTangent) {
+          const { deltaTangents } = endFrame;
+          if (deltaTangents) {
+            for (let j = 0; j < _vertexCount; j++) {
+              const start = _elementCount * j + offset;
+              const deltaTangent = deltaTangents[j];
+              if (deltaTangent) {
+                vertices[start] = deltaTangent.x;
+                vertices[start + 1] = deltaTangent.y;
+                vertices[start + 2] = deltaTangent.z;
+              }
+            }
+          }
+          offset += 3;
+        }
       }
     }
 
