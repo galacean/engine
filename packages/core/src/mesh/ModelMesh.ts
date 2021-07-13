@@ -10,6 +10,7 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { IndexBufferBinding } from "../graphic";
 import { BlendShape } from "./BlendShape";
+import { UpdateFlag } from "../UpdateFlag";
 
 /**
  * Mesh containing common vertex elements of the model.
@@ -47,6 +48,7 @@ export class ModelMesh extends Mesh {
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
   private _blendShapes: BlendShape[] = [];
+  private _blendShapeUpdateFlags: UpdateFlag[] = [];
 
   /**
    * Whether to access data of the mesh.
@@ -77,107 +79,6 @@ export class ModelMesh extends Mesh {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
-  }
-
-  /**
-   * Upload Mesh Data to the graphics API.
-   * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
-   */
-  uploadData(noLongerAccessible: boolean): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    const { _indices } = this;
-
-    // Vertex element change.
-    if (this._vertexSlotChanged) {
-      const vertexElements = this._updateVertexElements();
-      this._setVertexElements(vertexElements);
-      this._vertexChangeFlag = ValueChanged.All;
-      this._vertexSlotChanged = false;
-    }
-
-    // Vertex value change.
-    const vertexBufferBindings = this._vertexBufferBindings;
-    const elementCount = this._elementCount;
-    const vertexBuffer = vertexBufferBindings[0]?._buffer;
-    const vertexFloatCount = elementCount * this._vertexCount;
-    if (!vertexBuffer || this._verticesFloat32.length !== vertexFloatCount) {
-      vertexBuffer?.destroy();
-      const vertices = new Float32Array(vertexFloatCount);
-      this._verticesFloat32 = vertices;
-      this._verticesUint8 = new Uint8Array(vertices.buffer);
-
-      this._vertexChangeFlag = ValueChanged.All;
-      this._updateVertices(vertices);
-
-      const newVertexBuffer = new Buffer(
-        this._engine,
-        BufferBindFlag.VertexBuffer,
-        vertices,
-        noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic
-      );
-
-      this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
-    } else if (this._vertexChangeFlag & ValueChanged.All) {
-      const vertices = this._verticesFloat32;
-      this._updateVertices(vertices);
-      vertexBuffer.setData(vertices);
-    }
-
-    const indexBuffer = this._indexBufferBinding?._buffer;
-    if (_indices) {
-      if (!indexBuffer || _indices.byteLength != indexBuffer.byteLength) {
-        indexBuffer?.destroy();
-        const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
-        this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
-      } else if (this._indicesChangeFlag) {
-        this._indicesChangeFlag = false;
-        indexBuffer.setData(_indices);
-        if (this._indexBufferBinding._format !== this._indicesFormat) {
-          this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
-        }
-      }
-    } else if (indexBuffer) {
-      indexBuffer.destroy();
-      this._setIndexBufferBinding(null);
-    }
-
-    if (noLongerAccessible) {
-      this._accessible = false;
-      this._releaseCache();
-    }
-  }
-
-  /**
-   * Set indices for the mesh.
-   * @param indices - The indices for the mesh.
-   */
-  setIndices(indices: Uint8Array | Uint16Array | Uint32Array): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    if (this._indices !== indices) {
-      this._indices = indices;
-      if (indices instanceof Uint8Array) {
-        this._indicesFormat = IndexFormat.UInt8;
-      } else if (indices instanceof Uint16Array) {
-        this._indicesFormat = IndexFormat.UInt16;
-      } else if (indices instanceof Uint32Array) {
-        this._indicesFormat = IndexFormat.UInt32;
-      }
-    }
-
-    this._indicesChangeFlag = true;
-  }
-
-  /**
-   * Get indices for the mesh.
-   */
-  getIndices(): Uint8Array | Uint16Array | Uint32Array {
-    return this._indices;
   }
 
   /**
@@ -317,7 +218,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Get joints for the mesh.
-   * @remarks Please call the setJoints() method after modification to ensure that the modification takes effect.
+   * @remarks Please call the setBoneIndices() method after modification to ensure that the modification takes effect.
    */
   getBoneIndices(): Vector4[] | null {
     if (!this._accessible) {
@@ -457,6 +358,147 @@ export class ModelMesh extends Mesh {
         return this._uv7;
     }
     throw "The index of channel needs to be in range [0 - 7].";
+  }
+
+  /**
+   * Set indices for the mesh.
+   * @param indices - The indices for the mesh.
+   */
+  setIndices(indices: Uint8Array | Uint16Array | Uint32Array): void {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
+
+    if (this._indices !== indices) {
+      this._indices = indices;
+      if (indices instanceof Uint8Array) {
+        this._indicesFormat = IndexFormat.UInt8;
+      } else if (indices instanceof Uint16Array) {
+        this._indicesFormat = IndexFormat.UInt16;
+      } else if (indices instanceof Uint32Array) {
+        this._indicesFormat = IndexFormat.UInt32;
+      }
+    }
+
+    this._indicesChangeFlag = true;
+  }
+
+  /**
+   * Get indices for the mesh.
+   */
+  getIndices(): Uint8Array | Uint16Array | Uint32Array {
+    return this._indices;
+  }
+
+  /**
+   * Add a BlendShape for this ModleMesh.
+   * @param blendShape - The BlendShape
+   */
+  addBlendShape(blendShape: BlendShape): void {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
+
+    this._vertexChangeFlag |= ValueChanged.BlendShape;
+    this._useBlendShapeNormal = this._useBlendShapeNormal || blendShape._useBlendShapeNormal;
+    this._useBlendShapeTangent = this._useBlendShapeTangent || blendShape._useBlendShapeTangent;
+    this._blendShapes.push(blendShape);
+    this._blendShapeUpdateFlags.push(blendShape._registerChangeFlag());
+  }
+
+  /**
+   * Clear all BlendShapes.
+   */
+  clearBlendShapes(): void {
+    this._vertexChangeFlag |= ValueChanged.BlendShape;
+    this._useBlendShapeNormal = false;
+    this._useBlendShapeTangent = false;
+    this._blendShapes.length = 0;
+    const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
+    for (let i = 0, n = blendShapeUpdateFlags.length; i < n; i++) {
+      blendShapeUpdateFlags[i].destroy();
+    }
+    blendShapeUpdateFlags.length = 0;
+  }
+
+  /**
+   * Upload Mesh Data to the graphics API.
+   * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
+   */
+  uploadData(noLongerAccessible: boolean): void {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
+
+    const { _indices } = this;
+
+    // Vertex element change.
+    if (this._vertexSlotChanged) {
+      const vertexElements = this._updateVertexElements();
+      this._setVertexElements(vertexElements);
+      this._vertexChangeFlag = ValueChanged.All;
+      this._vertexSlotChanged = false;
+    }
+
+    // Vertex value change.
+    const vertexBufferBindings = this._vertexBufferBindings;
+    const elementCount = this._elementCount;
+    const vertexBuffer = vertexBufferBindings[0]?._buffer;
+    const vertexFloatCount = elementCount * this._vertexCount;
+    if (!vertexBuffer || this._verticesFloat32.length !== vertexFloatCount) {
+      vertexBuffer?.destroy();
+      const vertices = new Float32Array(vertexFloatCount);
+      this._verticesFloat32 = vertices;
+      this._verticesUint8 = new Uint8Array(vertices.buffer);
+
+      this._vertexChangeFlag = ValueChanged.All;
+      this._updateVertices(vertices);
+
+      const newVertexBuffer = new Buffer(
+        this._engine,
+        BufferBindFlag.VertexBuffer,
+        vertices,
+        noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic
+      );
+
+      this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
+    } else if (this._vertexChangeFlag & ValueChanged.All) {
+      const vertices = this._verticesFloat32;
+      this._updateVertices(vertices);
+      vertexBuffer.setData(vertices);
+    }
+
+    const indexBuffer = this._indexBufferBinding?._buffer;
+    if (_indices) {
+      if (!indexBuffer || _indices.byteLength != indexBuffer.byteLength) {
+        indexBuffer?.destroy();
+        const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
+        this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
+      } else if (this._indicesChangeFlag) {
+        this._indicesChangeFlag = false;
+        indexBuffer.setData(_indices);
+        if (this._indexBufferBinding._format !== this._indicesFormat) {
+          this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
+        }
+      }
+    } else if (indexBuffer) {
+      indexBuffer.destroy();
+      this._setIndexBufferBinding(null);
+    }
+
+    if (noLongerAccessible) {
+      this._accessible = false;
+      this._releaseCache();
+    }
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  _onDestroy(): void {
+    super.destroy();
+    this.clearBlendShapes();
   }
 
   private _updateVertexElements(): VertexElement[] {
@@ -756,53 +798,63 @@ export class ModelMesh extends Mesh {
     // BlendShape.
     if (_vertexChangeFlag & ValueChanged.BlendShape) {
       const blendShapes = this._blendShapes;
+      const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
       const blendShapeCount = Math.min(blendShapes.length, 4);
       for (let i = 0; i < blendShapeCount; i++) {
-        const { frames } = blendShapes[i];
-        const endFrame = frames[frames.length - 1];
-
-        const { deltaPositions } = endFrame;
-        for (let j = 0; j < _vertexCount; j++) {
-          const start = _elementCount * j + offset;
-          const deltaPosition = deltaPositions[j];
-          if (deltaPosition) {
-            vertices[start] = deltaPosition.x;
-            vertices[start + 1] = deltaPosition.y;
-            vertices[start + 2] = deltaPosition.z;
+        const blendShapeUpdateFlag = blendShapeUpdateFlags[i];
+        if (blendShapeUpdateFlag.flag) {
+          const blendShape = blendShapes[i];
+          const { frames } = blendShape;
+          const farmeCount = frames.length;
+          const endFrame = frames[farmeCount - 1];
+          if (farmeCount > 0 && endFrame.deltaPositions.length !== this._vertexCount) {
+            throw "BlendShape frame deltaPositions length must same with mesh vertexCount.";
           }
-        }
-        offset += 3;
 
-        if (this._useBlendShapeNormal) {
-          const { deltaNormals } = endFrame;
-          if (deltaNormals) {
-            for (let j = 0; j < _vertexCount; j++) {
-              const start = _elementCount * j + offset;
-              const deltaNormal = deltaNormals[j];
-              if (deltaNormal) {
-                vertices[start] = deltaNormal.x;
-                vertices[start + 1] = deltaNormal.y;
-                vertices[start + 2] = deltaNormal.z;
-              }
+          const { deltaPositions } = endFrame;
+          for (let j = 0; j < _vertexCount; j++) {
+            const start = _elementCount * j + offset;
+            const deltaPosition = deltaPositions[j];
+            if (deltaPosition) {
+              vertices[start] = deltaPosition.x;
+              vertices[start + 1] = deltaPosition.y;
+              vertices[start + 2] = deltaPosition.z;
             }
           }
           offset += 3;
-        }
 
-        if (this._useBlendShapeTangent) {
-          const { deltaTangents } = endFrame;
-          if (deltaTangents) {
-            for (let j = 0; j < _vertexCount; j++) {
-              const start = _elementCount * j + offset;
-              const deltaTangent = deltaTangents[j];
-              if (deltaTangent) {
-                vertices[start] = deltaTangent.x;
-                vertices[start + 1] = deltaTangent.y;
-                vertices[start + 2] = deltaTangent.z;
+          if (this._useBlendShapeNormal) {
+            const { deltaNormals } = endFrame;
+            if (deltaNormals) {
+              for (let j = 0; j < _vertexCount; j++) {
+                const start = _elementCount * j + offset;
+                const deltaNormal = deltaNormals[j];
+                if (deltaNormal) {
+                  vertices[start] = deltaNormal.x;
+                  vertices[start + 1] = deltaNormal.y;
+                  vertices[start + 2] = deltaNormal.z;
+                }
               }
             }
+            offset += 3;
           }
-          offset += 3;
+
+          if (this._useBlendShapeTangent) {
+            const { deltaTangents } = endFrame;
+            if (deltaTangents) {
+              for (let j = 0; j < _vertexCount; j++) {
+                const start = _elementCount * j + offset;
+                const deltaTangent = deltaTangents[j];
+                if (deltaTangent) {
+                  vertices[start] = deltaTangent.x;
+                  vertices[start + 1] = deltaTangent.y;
+                  vertices[start + 2] = deltaTangent.z;
+                }
+              }
+            }
+            offset += 3;
+          }
+          blendShapeUpdateFlag.flag = false;
         }
       }
     }
@@ -826,29 +878,6 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
-  }
-
-  /**
-   * Add a BlendShape for this ModleMesh.
-   * @param blendShape - The BlendShape
-   */
-  addBlendShape(blendShape: BlendShape): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    this._vertexChangeFlag |= ValueChanged.BlendShape;
-    this._useBlendShapeNormal ||= blendShape._useBlendShapeNormal;
-    this._useBlendShapeTangent ||= blendShape._useBlendShapeTangent;
-    this._blendShapes.push(blendShape);
-  }
-
-  /**
-   * Clear all BlendShapes.
-   */
-  clearBlendShapes(): void {
-    this._blendShapes.length = 0;
-    this._vertexChangeFlag |= ValueChanged.BlendShape;
   }
 }
 

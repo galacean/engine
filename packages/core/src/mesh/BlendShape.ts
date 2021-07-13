@@ -34,12 +34,6 @@ export class BlendShape {
   }
 
   /**
-   * Add a BlendShapeFrame.
-   * @param frame - The BlendShapeFrame.
-   */
-  addFrame(frame: BlendShapeFrame): void;
-
-  /**
    * Add a BlendShapeFrame by weight, deltaPositions, deltaNormals and deltaTangents.
    * @param weight - Weight of BlendShapeFrame
    * @param deltaPositions - Delta positions for the frame being added
@@ -53,6 +47,12 @@ export class BlendShape {
     deltaTangents: Vector3[] | null
   ): BlendShapeFrame;
 
+  /**
+   * Add a BlendShapeFrame.
+   * @param frame - The BlendShapeFrame.
+   */
+  addFrame(frame: BlendShapeFrame): void;
+
   addFrame(
     frameOrWeight: BlendShapeFrame | number,
     deltaPositions?: Vector3[],
@@ -61,10 +61,10 @@ export class BlendShape {
   ): void | BlendShapeFrame {
     if (typeof frameOrWeight === "number") {
       const frame = new BlendShapeFrame(frameOrWeight, deltaPositions, deltaNormals, deltaTangents);
-      this._checkSupportNormalAndTangent(frame);
+      this._addFrame(frame);
       return frame;
     } else {
-      this._checkSupportNormalAndTangent(frameOrWeight);
+      this._addFrame(frameOrWeight);
     }
     this._updateFlagManager.distribute();
   }
@@ -86,9 +86,15 @@ export class BlendShape {
     return this._updateFlagManager.register();
   }
 
-  private _checkSupportNormalAndTangent(frame: BlendShapeFrame): void {
-    this._useBlendShapeNormal ||= frame.deltaNormals !== null;
-    this._useBlendShapeTangent ||= frame.deltaTangents !== null;
+  private _addFrame(frame: BlendShapeFrame): void {
+    const frames = this._frames;
+    const frameCount = frames.length;
+    if (frameCount > 0 && frame.deltaPositions.length !== frames[frameCount - 1].deltaPositions.length) {
+      throw "Frame's deltaPositions length must same with before farme deltaPositions length.";
+    }
+
+    this._useBlendShapeNormal = this._useBlendShapeNormal || frame.deltaNormals !== null;
+    this._useBlendShapeTangent = this._useBlendShapeTangent || frame.deltaTangents !== null;
     this._frames.push(frame);
   }
 }

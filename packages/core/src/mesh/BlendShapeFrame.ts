@@ -1,18 +1,17 @@
 import { Vector3 } from "@oasis-engine/math";
-import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
  * BlendShapeFrame.
  */
 export class BlendShapeFrame {
   /** Weight of BlendShapeFrame. */
-  weight: number;
+  readonly weight: number;
   /** Delta positions for the frame being added. */
-  deltaPositions: Vector3[];
+  readonly deltaPositions: Readonly<Readonly<Vector3>[]>;
   /** Delta normals for the frame being added. */
-  deltaNormals: Vector3[] | null;
+  readonly deltaNormals: Readonly<Readonly<Vector3[]> | null>;
   /** Delta tangents for the frame being added. */
-  deltaTangents: Vector3[] | null;
+  readonly deltaTangents: Readonly<Readonly<Vector3[]> | null>;
 
   /**
    * Create a BlendShapeFrame.
@@ -27,6 +26,14 @@ export class BlendShapeFrame {
     deltaNormals: Vector3[] | null,
     deltaTangents: Vector3[] | null
   ) {
+    if (deltaNormals && deltaNormals.length !== deltaPositions.length) {
+      throw "deltaNormals length must same with deltaPositions length.";
+    }
+
+    if (deltaTangents && deltaTangents.length !== deltaPositions.length) {
+      throw "deltaTangents length must same with deltaPositions length.";
+    }
+
     this.weight = weight;
     this.deltaPositions = deltaPositions;
     this.deltaNormals = deltaNormals;

@@ -140,7 +140,7 @@ export abstract class Mesh extends RefObject {
    * @override
    * Destroy.
    */
-  _onDestroy() {
+  _onDestroy(): void {
     this._vertexBufferBindings = null;
     this._indexBufferBinding = null;
     this._vertexElements = null;
