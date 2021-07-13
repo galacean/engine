@@ -173,7 +173,7 @@ export class MeshParser extends Parser {
           mesh.setBoneWeights(weights);
           break;
         default:
-          console.warn(`Unsupport attribute semantic ${attributeSemantic}.`);
+          // console.warn(`Unsupport attribute semantic ${attributeSemantic}.`);
           break;
       }
     }

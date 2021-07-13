@@ -42,6 +42,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   /**
    * The weights of the BlendShapes.
+   * @remarks Array index is BlendShape index.
    */
   get blendShapeWeights(): Float32Array {
     return this._blendShapeWeights;
@@ -203,24 +204,5 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
-  }
-
-  /**
-   * Returns the weight of a BlendShape for this Renderer.
-   * @param index - The index of the BlendShape whose weight you want to retrieve
-   * @returns The weight for the BlendShape
-   */
-  getBlendShapeWeight(index: number): number {
-    return this._blendShapeWeights[index];
-  }
-
-  /**
-   * Set the weight of a BlendShape for this Renderer.
-   * @param index - The index of the BlendShape to modify
-   * @param weight - The weight of BlendShape, the value range is 0.0 to 1.0
-   */
-  setBlendShapeWeight(index: number, weight: number): void {
-    this._blendShapeWeights[index] = weight;
-    //CM: 超界如何处理
   }
 }
