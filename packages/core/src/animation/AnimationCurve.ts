@@ -49,7 +49,7 @@ export class AnimationCurve {
     }
 
     if (!this._valueSize) {
-      //CM: 写在这不合理
+      //CM: It's not reasonable to write here.
       if (key instanceof FloatKeyframe) {
         this._valueSize = 1;
         this._valueType = InterpolableValueType.Float;
