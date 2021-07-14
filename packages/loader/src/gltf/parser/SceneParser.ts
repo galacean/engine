@@ -123,10 +123,10 @@ export class SceneParser extends Parser {
         skinRenderer.mesh = mesh;
         if (skinID !== undefined) {
           skinRenderer.skin = skins[skinID];
-        } else {
-          skinRenderer.blendShapeWeights =new Float32Array(blendShapeWeights);
         }
-
+        if (blendShapeWeights) {
+          skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);
+        }
         renderer = skinRenderer;
       } else {
         renderer = entity.addComponent(MeshRenderer);
