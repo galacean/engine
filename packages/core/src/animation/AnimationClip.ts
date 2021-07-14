@@ -43,6 +43,7 @@ export class AnimationClip extends Motion {
    */
   addEvent(event: AnimationEvent): void {
     this._events.push(event);
+    this._events.sort((a, b) => a.time - b.time);
   }
 
   /**

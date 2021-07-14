@@ -47,7 +47,11 @@ export class Animator extends Component {
   @ignoreClone
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
+  private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
+  @ignoreClone
   private _entityScripts: Script[] = [];
+  @ignoreClone
+  private _currentEventIndex: number = 0;
 
   /**
    * @internal
@@ -249,26 +253,25 @@ export class Animator extends Component {
   }
 
   private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData) {
-    const { _entityScripts: scripts } = this;
+    const { _animationEventHandlerPool } = this;
     const { events } = state.clip;
     const { eventHandlers } = animatorStateData;
-    scripts.length = 0;
     eventHandlers.length = 0;
-    this._entity.getComponents(Script, scripts);
-    for (let i = events.length - 1; i >= 0; i--) {
+    _animationEventHandlerPool.resetPool();
+    const scripts = this._entity._scripts._elements;
+    const scriptsLength = this._entity._scripts.length;
+    for (let i = 0, len = events.length; i < len; i++) {
       const event = events[i];
+      const eventHandler = _animationEventHandlerPool.getFromPool();
+      eventHandler.event = event;
+      eventHandler.handlers.length = 0;
       const funcName = event.functionName;
-      for (let j = scripts.length - 1; j >= 0; j--) {
+      for (let j = scriptsLength - 1; j >= 0; j--) {
         const handler = scripts[j][funcName];
-        if (handler) {
-          const eventHandler = new AnimationEventHandler();
-          eventHandler.event = event;
-          eventHandler.handlers.push(handler);
-          eventHandlers.push(eventHandler);
-        }
+        handler && eventHandler.handlers.push(handler);
       }
+      eventHandlers.push(eventHandler);
     }
-    eventHandlers.sort((a, b) => b.event.time - a.event.time);
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
@@ -429,7 +432,7 @@ export class Animator extends Component {
 
     const clipTime = playData.clipTime;
 
-    this._fireAnimationEvents(eventHandlers, lastClipTime, clipTime);
+    eventHandlers.length && this._fireAnimationEvents(eventHandlers, lastClipTime, clipTime);
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
@@ -652,18 +655,28 @@ export class Animator extends Component {
   }
 
   private _fireAnimationEvents(eventHandlers: AnimationEventHandler[], lastClipTime: number, clipTime: number) {
-    for (let i = eventHandlers.length - 1; i >= 0; i--) {
+    // TODO: If play backward, not work.
+    let currentIndex = this._currentEventIndex;
+    const len = eventHandlers.length;
+    const firstEventTime = eventHandlers[0].event.time;
+    const lastEventTime = eventHandlers[len - 1].event.time;
+    if (lastEventTime < lastClipTime || firstEventTime >= clipTime) return;
+    if (eventHandlers[currentIndex].event.time > clipTime) {
+      currentIndex = this._currentEventIndex = 0;
+    }
+
+    for (let i = currentIndex; i < len; i++) {
       const eventHandler = eventHandlers[i];
       const { time, parameter } = eventHandler.event;
 
-      if (time > clipTime) break;
-      if (time < lastClipTime) continue;
+      if (time >= clipTime) break;
 
       const { handlers } = eventHandler;
-      if (time === MathUtil.clamp(time, lastClipTime, clipTime)) {
+      if (time >= lastClipTime) {
         for (let j = handlers.length - 1; j >= 0; j--) {
           handlers[j](parameter);
         }
+        this._currentEventIndex = i;
       }
     }
   }
