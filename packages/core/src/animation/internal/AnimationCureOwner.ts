@@ -27,21 +27,24 @@ export class AnimationCureOwner {
       case AnimationProperty.Position:
         this.defaultValue = new Vector3();
         this.fixedPoseValue = new Vector3();
+        this.component = target.transform;
         break;
       case AnimationProperty.Rotation:
         this.defaultValue = new Quaternion();
         this.fixedPoseValue = new Quaternion();
+        this.component = target.transform;
         break;
       case AnimationProperty.Scale:
         this.defaultValue = new Vector3();
         this.fixedPoseValue = new Vector3();
+        this.component = target.transform;
         break;
       case AnimationProperty.BlendShapeWeights:
         this.defaultValue = new Float32Array(4);
         this.fixedPoseValue = new Float32Array(4);
+        this.component = target.getComponent(SkinnedMeshRenderer);
         break;
     }
-    this.component = target.getComponent(SkinnedMeshRenderer);
   }
 
   saveDefaultValue(): void {

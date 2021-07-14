@@ -534,9 +534,9 @@ export class Animator extends Component {
     }
   }
 
-  private _applyClipValue(owner: AnimationCureOwner, value:Readonly<InterpolableValue>, weight: number): void {
+  private _applyClipValue(owner: AnimationCureOwner, value: Readonly<InterpolableValue>, weight: number): void {
     if (owner.type === Transform) {
-      const transform = owner.target.transform;
+      const transform = <Transform>owner.component;
       switch (owner.property) {
         case AnimationProperty.Position:
           if (weight === 1.0) {
@@ -575,7 +575,11 @@ export class Animator extends Component {
     }
   }
 
-  private _applyClipValueAddtive(owner: AnimationCureOwner, addtiveValue: Readonly<InterpolableValue>, weight: number): void {
+  private _applyClipValueAddtive(
+    owner: AnimationCureOwner,
+    addtiveValue: Readonly<InterpolableValue>,
+    weight: number
+  ): void {
     if (owner.type === Transform) {
       const transform = (<Entity>owner.target).transform;
       switch (owner.property) {
