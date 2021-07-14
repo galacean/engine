@@ -58,14 +58,8 @@ describe("AnimationClipLoader Test", () => {
     expect(specularMaterial.renderFace).toEqual(0);
 
     // meshes
-    const bufferMesh = resource.meshes[0][0];
-    expect(bufferMesh.name === "AnimatedCube").toEqual(true);
-    const vertexElements = bufferMesh.vertexElements;
-    const semantics = ["NORMAL", "POSITION", "TANGENT", "TEXCOORD_0"];
-    expect(vertexElements.length === semantics.length).toEqual(true);
-    for (let i = 0, l = vertexElements.length; i < l; ++i) {
-      expect(semantics.indexOf(vertexElements[i].semantic) !== -1).toEqual(true);
-    }
+    const modleMesh = resource.meshes[0][0];
+    expect(modleMesh.name === "AnimatedCube").toEqual(true);
 
     // skin
     expect(resource.skins === undefined).toEqual(true);
