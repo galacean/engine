@@ -698,30 +698,8 @@ export class Animator extends Component {
     clipTime: number
   ): void {
     const { clipStartTime, clipEndTime } = currentState;
-    let i = this._currentEventIndex;
-    const len = eventHandlers.length;
-    while (i < len) {
-      const eventHandler = eventHandlers[i];
-      const { time, parameter } = eventHandler.event;
-      const { handlers } = eventHandler;
-      const inCurrentLoopInterval = time >= lastClipTime && time <= clipEndTime;
-      const inNextLoopInterval = time >= clipStartTime && time <= clipTime;
-      if (time > clipTime) {
-        break;
-      }
-      if (time > clipEndTime) {
-        i = 0;
-        continue;
-      }
-      if (inCurrentLoopInterval || inNextLoopInterval) {
-        this._triggerEventHandler(handlers, parameter, i);
-      }
-      if (this._currentEventIndex >= len) {
-        i = 0;
-      } else {
-        i++;
-      }
-    }
+    this._fireAnimationEventsNoLoop(eventHandlers, lastClipTime, clipEndTime);
+    this._fireAnimationEventsNoLoop(eventHandlers, clipStartTime, clipTime);
   }
 
   private _triggerEventHandler(handlers: Function[], parameter: Object, eventIndex: number) {
