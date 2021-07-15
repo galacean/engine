@@ -13,15 +13,13 @@ import { AnimationProperty } from "./enums/AnimationProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { LayerState } from "./enums/LayerState";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner";
+import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStataData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
 import { InterpolableValue } from "./KeyFrame";
-import { MathUtil } from "../../../math/src/MathUtil";
-import { AnimationEventHandler } from "./internal/AnimationEventHandler";
-import { Script } from "../Script";
 
 /**
  * The controller of the animation system.
@@ -48,8 +46,6 @@ export class Animator extends Component {
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
-  @ignoreClone
-  private _entityScripts: Script[] = [];
   @ignoreClone
   private _currentEventIndex: number = 0;
 
@@ -252,23 +248,26 @@ export class Animator extends Component {
     }
   }
 
-  private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData) {
-    const { _animationEventHandlerPool } = this;
-    const { events } = state.clip;
+  private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
+    const eventHandlerPool = this._animationEventHandlerPool;
+    const scripts = this._entity._scripts;
+    const scriptCount = scripts.length;
     const { eventHandlers } = animatorStateData;
+    const { events } = state.clip;
+
+    eventHandlerPool.resetPool();
     eventHandlers.length = 0;
-    _animationEventHandlerPool.resetPool();
-    const scripts = this._entity._scripts._elements;
-    const scriptsLength = this._entity._scripts.length;
-    for (let i = 0, len = events.length; i < len; i++) {
+    for (let i = 0, n = events.length; i < n; i++) {
       const event = events[i];
-      const eventHandler = _animationEventHandlerPool.getFromPool();
-      eventHandler.event = event;
-      eventHandler.handlers.length = 0;
+      const eventHandler = eventHandlerPool.getFromPool();
       const funcName = event.functionName;
-      for (let j = scriptsLength - 1; j >= 0; j--) {
-        const handler = scripts[j][funcName];
-        handler && eventHandler.handlers.push(handler);
+      const { handlers } = eventHandler;
+
+      eventHandler.event = event;
+      handlers.length = 0;
+      for (let j = scriptCount - 1; j >= 0; j--) {
+        const handler = <Function>scripts.get(j)[funcName];
+        handler && handlers.push(handler);
       }
       eventHandlers.push(eventHandler);
     }
@@ -654,7 +653,7 @@ export class Animator extends Component {
     }
   }
 
-  private _fireAnimationEvents(eventHandlers: AnimationEventHandler[], lastClipTime: number, clipTime: number) {
+  private _fireAnimationEvents(eventHandlers: AnimationEventHandler[], lastClipTime: number, clipTime: number): void {
     // TODO: If play backward, not work.
     let currentIndex = this._currentEventIndex;
     const len = eventHandlers.length;
