@@ -11,6 +11,8 @@ import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { IndexBufferBinding } from "../graphic";
 import { BlendShape } from "./BlendShape";
 import { UpdateFlag } from "../UpdateFlag";
+import { Texture2D } from "../texture/Texture2D";
+import { TextureFilterMode, TextureFormat } from "../texture";
 
 /**
  * Mesh containing common vertex elements of the model.
@@ -20,6 +22,8 @@ export class ModelMesh extends Mesh {
   _useBlendShapeNormal: boolean = false;
   /** @internal */
   _useBlendShapeTangent: boolean = false;
+  /** @internal */
+  _blendShapeTexture: Texture2D;
 
   private _vertexCount: number = 0;
   private _accessible: boolean = true;
@@ -800,61 +804,77 @@ export class ModelMesh extends Mesh {
       const blendShapes = this._blendShapes;
       const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
       const blendShapeCount = Math.min(blendShapes.length, 4);
-      for (let i = 0; i < blendShapeCount; i++) {
-        const blendShapeUpdateFlag = blendShapeUpdateFlags[i];
-        if (blendShapeUpdateFlag.flag) {
-          const blendShape = blendShapes[i];
-          const { frames } = blendShape;
-          const farmeCount = frames.length;
-          const endFrame = frames[farmeCount - 1];
-          if (farmeCount > 0 && endFrame.deltaPositions.length !== this._vertexCount) {
-            throw "BlendShape frame deltaPositions length must same with mesh vertexCount.";
-          }
 
-          const { deltaPositions } = endFrame;
-          for (let j = 0; j < _vertexCount; j++) {
-            const start = _elementCount * j + offset;
-            const deltaPosition = deltaPositions[j];
-            if (deltaPosition) {
-              vertices[start] = deltaPosition.x;
-              vertices[start + 1] = deltaPosition.y;
-              vertices[start + 2] = deltaPosition.z;
+      const rhi = this.engine._hardwareRenderer;
+      if (/*rhi.canUseFloatTextureBlendShape*/ false) {
+        let stride = 1;
+        this._useBlendShapeNormal && stride++;
+        this._useBlendShapeTangent && stride++;
+
+        const maxTextureSize = rhi.renderStates.getParameter(rhi.gl.MAX_TEXTURE_SIZE);
+        const pixelCount = this._vertexCount * stride;
+        const height = Math.ceil(pixelCount / maxTextureSize);
+        const width = height > 1 ? maxTextureSize : pixelCount;
+
+        this._blendShapeTexture = new Texture2D(this.engine, 0, 0, TextureFormat.R32G32B32A32, false);
+        this._blendShapeTexture.filterMode = TextureFilterMode.Point;
+      } else {
+        for (let i = 0; i < blendShapeCount; i++) {
+          const blendShapeUpdateFlag = blendShapeUpdateFlags[i];
+          if (blendShapeUpdateFlag.flag) {
+            const blendShape = blendShapes[i];
+            const { frames } = blendShape;
+            const farmeCount = frames.length;
+            const endFrame = frames[farmeCount - 1];
+            if (farmeCount > 0 && endFrame.deltaPositions.length !== this._vertexCount) {
+              throw "BlendShape frame deltaPositions length must same with mesh vertexCount.";
             }
-          }
-          offset += 3;
 
-          if (this._useBlendShapeNormal) {
-            const { deltaNormals } = endFrame;
-            if (deltaNormals) {
-              for (let j = 0; j < _vertexCount; j++) {
-                const start = _elementCount * j + offset;
-                const deltaNormal = deltaNormals[j];
-                if (deltaNormal) {
-                  vertices[start] = deltaNormal.x;
-                  vertices[start + 1] = deltaNormal.y;
-                  vertices[start + 2] = deltaNormal.z;
-                }
+            const { deltaPositions } = endFrame;
+            for (let j = 0; j < _vertexCount; j++) {
+              const start = _elementCount * j + offset;
+              const deltaPosition = deltaPositions[j];
+              if (deltaPosition) {
+                vertices[start] = deltaPosition.x;
+                vertices[start + 1] = deltaPosition.y;
+                vertices[start + 2] = deltaPosition.z;
               }
             }
             offset += 3;
-          }
 
-          if (this._useBlendShapeTangent) {
-            const { deltaTangents } = endFrame;
-            if (deltaTangents) {
-              for (let j = 0; j < _vertexCount; j++) {
-                const start = _elementCount * j + offset;
-                const deltaTangent = deltaTangents[j];
-                if (deltaTangent) {
-                  vertices[start] = deltaTangent.x;
-                  vertices[start + 1] = deltaTangent.y;
-                  vertices[start + 2] = deltaTangent.z;
+            if (this._useBlendShapeNormal) {
+              const { deltaNormals } = endFrame;
+              if (deltaNormals) {
+                for (let j = 0; j < _vertexCount; j++) {
+                  const start = _elementCount * j + offset;
+                  const deltaNormal = deltaNormals[j];
+                  if (deltaNormal) {
+                    vertices[start] = deltaNormal.x;
+                    vertices[start + 1] = deltaNormal.y;
+                    vertices[start + 2] = deltaNormal.z;
+                  }
                 }
               }
+              offset += 3;
             }
-            offset += 3;
+
+            if (this._useBlendShapeTangent) {
+              const { deltaTangents } = endFrame;
+              if (deltaTangents) {
+                for (let j = 0; j < _vertexCount; j++) {
+                  const start = _elementCount * j + offset;
+                  const deltaTangent = deltaTangents[j];
+                  if (deltaTangent) {
+                    vertices[start] = deltaTangent.x;
+                    vertices[start + 1] = deltaTangent.y;
+                    vertices[start + 2] = deltaTangent.z;
+                  }
+                }
+              }
+              offset += 3;
+            }
+            blendShapeUpdateFlag.flag = false;
           }
-          blendShapeUpdateFlag.flag = false;
         }
       }
     }
