@@ -431,7 +431,7 @@ export class Animator extends Component {
 
     const clipTime = playData.clipTime;
 
-    eventHandlers.length && this._fireAnimationEvents(eventHandlers, lastClipTime, clipTime);
+    eventHandlers.length && this._fireAnimationEvents(playData.state, eventHandlers, lastClipTime, clipTime);
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
@@ -653,13 +653,27 @@ export class Animator extends Component {
     }
   }
 
-  private _fireAnimationEvents(eventHandlers: AnimationEventHandler[], lastClipTime: number, clipTime: number): void {
+  private _fireAnimationEvents(
+    currentState: AnimatorState,
+    eventHandlers: AnimationEventHandler[],
+    lastClipTime: number,
+    clipTime: number
+  ): void {
     // TODO: If play backward, not work.
+    if (clipTime < lastClipTime) {
+      this._fireAnimationEventsWhenLoop(currentState, eventHandlers, lastClipTime, clipTime);
+    } else {
+      this._fireAnimationEventsNoLoop(eventHandlers, lastClipTime, clipTime);
+    }
+  }
+
+  private _fireAnimationEventsNoLoop(
+    eventHandlers: AnimationEventHandler[],
+    lastClipTime: number,
+    clipTime: number
+  ): void {
     let currentIndex = this._currentEventIndex;
     const len = eventHandlers.length;
-    const firstEventTime = eventHandlers[0].event.time;
-    const lastEventTime = eventHandlers[len - 1].event.time;
-    if (lastEventTime < lastClipTime || firstEventTime >= clipTime) return;
     if (eventHandlers[currentIndex].event.time > clipTime) {
       currentIndex = this._currentEventIndex = 0;
     }
@@ -668,15 +682,49 @@ export class Animator extends Component {
       const eventHandler = eventHandlers[i];
       const { time, parameter } = eventHandler.event;
 
-      if (time >= clipTime) break;
+      if (time > clipTime) break;
 
       const { handlers } = eventHandler;
       if (time >= lastClipTime) {
-        for (let j = handlers.length - 1; j >= 0; j--) {
-          handlers[j](parameter);
-        }
-        this._currentEventIndex = i;
+        this._triggerHandler(handlers, parameter, i);
       }
     }
+  }
+
+  private _fireAnimationEventsWhenLoop(
+    currentState: AnimatorState,
+    eventHandlers: AnimationEventHandler[],
+    lastClipTime: number,
+    clipTime: number
+  ): void {
+    const { clipStartTime, clipEndTime } = currentState;
+    let i = this._currentEventIndex;
+    const len = eventHandlers.length;
+    while (i < len) {
+      const eventHandler = eventHandlers[i];
+      const { time, parameter } = eventHandler.event;
+      const { handlers } = eventHandler;
+      const inCurrentLoopInterval = time >= lastClipTime && time <= clipEndTime;
+      const inNextLoopInterval = time >= clipStartTime && time <= clipTime;
+      if (time > clipEndTime) {
+        i = 0;
+        continue;
+      }
+      if (inCurrentLoopInterval || inNextLoopInterval) {
+        this._triggerHandler(handlers, parameter, i);
+      }
+      if (this._currentEventIndex >= len) {
+        i = 0;
+      } else {
+        i++;
+      }
+    }
+  }
+
+  private _triggerHandler(handlers: Function[], parameter: Object, handlerIndex: number) {
+    for (let i = handlers.length - 1; i >= 0; i--) {
+      handlers[i](parameter);
+    }
+    this._currentEventIndex = handlerIndex + 1;
   }
 }
