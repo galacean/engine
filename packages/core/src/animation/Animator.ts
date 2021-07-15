@@ -662,6 +662,7 @@ export class Animator extends Component {
     // TODO: If play backward, not work.
     if (clipTime < lastClipTime) {
       this._fireSubAnimationEvents(eventHandlers, lastClipTime, currentState.clipEndTime);
+      this._currentEventIndex = 0;
       this._fireSubAnimationEvents(eventHandlers, currentState.clipStartTime, clipTime);
     } else {
       this._fireSubAnimationEvents(eventHandlers, lastClipTime, clipTime);
@@ -671,19 +672,15 @@ export class Animator extends Component {
   private _fireSubAnimationEvents(
     eventHandlers: AnimationEventHandler[],
     lastClipTime: number,
-    clipTime: number
+    curClipTime: number
   ): void {
-    let currentIndex = this._currentEventIndex;
-    const len = eventHandlers.length;
-    if (eventHandlers[currentIndex].event.time > clipTime) {
-      currentIndex = this._currentEventIndex = 0;
-    }
-
-    for (let i = currentIndex; i < len; i++) {
+    for (let i = this._currentEventIndex, n = eventHandlers.length; i < n; i++) {
       const eventHandler = eventHandlers[i];
       const { time, parameter } = eventHandler.event;
 
-      if (time > clipTime) break;
+      if (time > curClipTime) {
+        break;
+      }
 
       const { handlers } = eventHandler;
       if (time >= lastClipTime) {
