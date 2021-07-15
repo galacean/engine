@@ -661,7 +661,9 @@ export class Animator extends Component {
   ): void {
     // TODO: If play backward, not work.
     if (clipTime < lastClipTime) {
-      this._fireAnimationEventsWhenLoop(currentState, eventHandlers, lastClipTime, clipTime);
+      const { clipStartTime, clipEndTime } = currentState;
+      this._fireAnimationEventsNoLoop(eventHandlers, lastClipTime, clipEndTime);
+      this._fireAnimationEventsNoLoop(eventHandlers, clipStartTime, clipTime);
     } else {
       this._fireAnimationEventsNoLoop(eventHandlers, lastClipTime, clipTime);
     }
@@ -686,26 +688,11 @@ export class Animator extends Component {
 
       const { handlers } = eventHandler;
       if (time >= lastClipTime) {
-        this._triggerEventHandler(handlers, parameter, i);
+        for (let j = handlers.length - 1; j >= 0; j--) {
+          handlers[j](parameter);
+        }
+        this._currentEventIndex = i + 1;
       }
     }
-  }
-
-  private _fireAnimationEventsWhenLoop(
-    currentState: AnimatorState,
-    eventHandlers: AnimationEventHandler[],
-    lastClipTime: number,
-    clipTime: number
-  ): void {
-    const { clipStartTime, clipEndTime } = currentState;
-    this._fireAnimationEventsNoLoop(eventHandlers, lastClipTime, clipEndTime);
-    this._fireAnimationEventsNoLoop(eventHandlers, clipStartTime, clipTime);
-  }
-
-  private _triggerEventHandler(handlers: Function[], parameter: Object, eventIndex: number) {
-    for (let i = handlers.length - 1; i >= 0; i--) {
-      handlers[i](parameter);
-    }
-    this._currentEventIndex = eventIndex + 1;
   }
 }
