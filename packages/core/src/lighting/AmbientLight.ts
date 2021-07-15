@@ -61,7 +61,7 @@ export class AmbientLight {
   }
 
   /**
-   * Diffuse reflection sphericalharmonics
+   * Diffuse reflection spherical harmonics 3.
    * @remarks Effective when diffuse reflection mode is `DiffuseMode.SphericalHarmonics`.
    */
   get diffuseSphericalHarmonics(): SphericalHarmonics3 {
