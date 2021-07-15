@@ -655,7 +655,7 @@ export class Animator extends Component {
     }
   }
 
-  private _fireAnimationEvents(eventHandlers: AnimationEventHandler[], lastClipTime: number, clipTime: number) {
+  private _fireAnimationEvents(eventHandlers: AnimationEventHandler[], lastClipTime: number, clipTime: number): void {
     // TODO: If play backward, not work.
     let currentIndex = this._currentEventIndex;
     const len = eventHandlers.length;
