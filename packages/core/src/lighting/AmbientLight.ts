@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math";
+import { Color, SphericalHarmonics3 } from "@oasis-engine/math";
 import { Scene } from "../Scene";
 import { Shader } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -14,7 +14,7 @@ export class AmbientLight {
   private static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
 
   private static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
-  private static _diffuseTextureProperty: ShaderProperty = Shader.getPropertyByName("u_env_diffuseSampler");
+  private static _diffuseSHProperty: ShaderProperty = Shader.getPropertyByName("u_env_sh");
   private static _diffuseIntensityProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuseIntensity");
   private static _specularTextureProperty: ShaderProperty = Shader.getPropertyByName("u_env_specularSampler");
   private static _specularIntensityProperty: ShaderProperty = Shader.getPropertyByName(
@@ -23,6 +23,7 @@ export class AmbientLight {
   private static _mipLevelProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.mipMapLevel");
 
   private _scene: Scene;
+  private _diffuseSphericalHarmonics: SphericalHarmonics3;
   private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
   private _diffuseIntensity: number = 1.0;
   private _specularReflection: TextureCubeMap;
@@ -38,7 +39,7 @@ export class AmbientLight {
 
   set diffuseMode(value: DiffuseMode) {
     this._diffuseMode = value;
-    if (value === DiffuseMode.Texture) {
+    if (value === DiffuseMode.SphericalHarmonics) {
       this._scene.shaderData.enableMacro(AmbientLight._diffuseMacro);
     } else {
       this._scene.shaderData.disableMacro(AmbientLight._diffuseMacro);
@@ -56,6 +57,23 @@ export class AmbientLight {
   set diffuseSolidColor(value: Color) {
     if (value !== this._diffuseSolidColor) {
       value.cloneTo(this._diffuseSolidColor);
+    }
+  }
+
+  /**
+   * Diffuse reflection sphericalharmonics
+   * @remarks Effective when diffuse reflection mode is `DiffuseMode.SphericalHarmonics`.
+   */
+  get diffuseSphericalHarmonics(): SphericalHarmonics3 {
+    return this._diffuseSphericalHarmonics;
+  }
+
+  set diffuseSphericalHarmonics(sh: SphericalHarmonics3) {
+    this._diffuseSphericalHarmonics = sh;
+    const shaderData = this._scene.shaderData;
+
+    if (sh) {
+      shaderData.setFloatArray(AmbientLight._diffuseSHProperty, sh.preScaledCoefficients);
     }
   }
 
@@ -111,21 +129,5 @@ export class AmbientLight {
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
     shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
     shaderData.setFloat(AmbientLight._specularIntensityProperty, this._specularIntensity);
-  }
-
-  //-----------------------------deprecated---------------------------------------
-
-  private _diffuseTexture: TextureCubeMap;
-
-  /**
-   * Diffuse cube texture.
-   */
-  get diffuseTexture(): TextureCubeMap {
-    return this._diffuseTexture;
-  }
-
-  set diffuseTexture(value: TextureCubeMap) {
-    this._diffuseTexture = value;
-    this._scene.shaderData.setTexture(AmbientLight._diffuseTextureProperty, value);
   }
 }
