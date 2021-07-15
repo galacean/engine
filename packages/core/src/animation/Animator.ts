@@ -686,7 +686,7 @@ export class Animator extends Component {
 
       const { handlers } = eventHandler;
       if (time >= lastClipTime) {
-        this._triggerHandler(handlers, parameter, i);
+        this._triggerEventHandler(handlers, parameter, i);
       }
     }
   }
@@ -706,12 +706,15 @@ export class Animator extends Component {
       const { handlers } = eventHandler;
       const inCurrentLoopInterval = time >= lastClipTime && time <= clipEndTime;
       const inNextLoopInterval = time >= clipStartTime && time <= clipTime;
+      if (time > clipTime) {
+        break;
+      }
       if (time > clipEndTime) {
         i = 0;
         continue;
       }
       if (inCurrentLoopInterval || inNextLoopInterval) {
-        this._triggerHandler(handlers, parameter, i);
+        this._triggerEventHandler(handlers, parameter, i);
       }
       if (this._currentEventIndex >= len) {
         i = 0;
@@ -721,7 +724,7 @@ export class Animator extends Component {
     }
   }
 
-  private _triggerHandler(handlers: Function[], parameter: Object, handlerIndex: number) {
+  private _triggerEventHandler(handlers: Function[], parameter: Object, handlerIndex: number) {
     for (let i = handlers.length - 1; i >= 0; i--) {
       handlers[i](parameter);
     }
