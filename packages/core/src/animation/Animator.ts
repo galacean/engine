@@ -724,10 +724,10 @@ export class Animator extends Component {
     }
   }
 
-  private _triggerEventHandler(handlers: Function[], parameter: Object, handlerIndex: number) {
+  private _triggerEventHandler(handlers: Function[], parameter: Object, eventIndex: number) {
     for (let i = handlers.length - 1; i >= 0; i--) {
       handlers[i](parameter);
     }
-    this._currentEventIndex = handlerIndex + 1;
+    this._currentEventIndex = eventIndex + 1;
   }
 }
