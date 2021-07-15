@@ -13,15 +13,13 @@ import { AnimationProperty } from "./enums/AnimationProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { LayerState } from "./enums/LayerState";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner";
+import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStataData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
 import { InterpolableValue } from "./KeyFrame";
-import { MathUtil } from "../../../math/src/MathUtil";
-import { AnimationEventHandler } from "./internal/AnimationEventHandler";
-import { Script } from "../Script";
 
 /**
  * The controller of the animation system.
