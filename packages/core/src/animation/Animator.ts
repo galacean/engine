@@ -250,7 +250,7 @@ export class Animator extends Component {
     }
   }
 
-  private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData) {
+  private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
     const eventHandlerPool = this._animationEventHandlerPool;
     const scripts = this._entity._scripts;
     const scriptCount = scripts.length;
