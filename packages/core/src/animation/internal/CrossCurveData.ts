@@ -1,9 +1,9 @@
-import { AnimationCureOwner } from "./AnimationCureOwner";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
 export class CrossCurveData {
-  owner: AnimationCureOwner;
+  curveOwner: AnimationCurveOwner;
   srcCurveIndex: number;
   destCurveIndex: number;
 }
