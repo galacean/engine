@@ -10,23 +10,20 @@ import { Vector3 } from "./Vector3";
  * https://google.github.io/filament/Filament.md.html#annex/sphericalharmonics
  */
 export class SphericalHarmonics3 implements IClone {
-  static fromArray(shArray: number[]): SphericalHarmonics3 {
+  static fromArray(shArray: number[], out: SphericalHarmonics3): void {
     if (shArray.length != 27) {
       console.error("sh coefficients must be as large as 27");
     }
 
-    const sh = new SphericalHarmonics3();
-    sh.y00 = new Color(shArray[0], shArray[1], shArray[2], 0);
-    sh.y1_1 = new Color(shArray[3], shArray[4], shArray[5], 0);
-    sh.y10 = new Color(shArray[6], shArray[7], shArray[8], 0);
-    sh.y11 = new Color(shArray[9], shArray[10], shArray[11], 0);
-    sh.y2_2 = new Color(shArray[12], shArray[13], shArray[14], 0);
-    sh.y2_1 = new Color(shArray[15], shArray[16], shArray[17], 0);
-    sh.y20 = new Color(shArray[18], shArray[19], shArray[20], 0);
-    sh.y21 = new Color(shArray[21], shArray[22], shArray[23], 0);
-    sh.y22 = new Color(shArray[24], shArray[25], shArray[26], 0);
-
-    return sh;
+    out.y00.setValue(shArray[0], shArray[1], shArray[2], 0);
+    out.y1_1.setValue(shArray[3], shArray[4], shArray[5], 0);
+    out.y10.setValue(shArray[6], shArray[7], shArray[8], 0);
+    out.y11.setValue(shArray[9], shArray[10], shArray[11], 0);
+    out.y2_2.setValue(shArray[12], shArray[13], shArray[14], 0);
+    out.y2_1.setValue(shArray[15], shArray[16], shArray[17], 0);
+    out.y20.setValue(shArray[18], shArray[19], shArray[20], 0);
+    out.y21.setValue(shArray[21], shArray[22], shArray[23], 0);
+    out.y22.setValue(shArray[24], shArray[25], shArray[26], 0);
   }
 
   private static _basisFunction = [
