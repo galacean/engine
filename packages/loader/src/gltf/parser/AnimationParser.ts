@@ -80,7 +80,7 @@ export class AnimationParser extends Parser {
         let relativePath = "";
         let entity = channelTargetEntity;
         while (entity.parent) {
-          relativePath = relativePath === "" ? `${entity.name}/${relativePath}` : `${entity.name}`;
+          relativePath = relativePath === "" ? `${entity.name}` : `${entity.name}/${relativePath}`;
           entity = entity.parent;
         }
         animationClipParser.addChannel(sampler, relativePath, targetPath);
