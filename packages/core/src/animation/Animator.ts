@@ -230,7 +230,7 @@ export class Animator extends Component {
     const { _curves: curves } = animatorState.clip;
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
-      const targetEntity = entity.findByPath(curve.relativePath);
+      const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
       const { property } = curve;
       const { instanceId } = targetEntity;
       const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = []);
