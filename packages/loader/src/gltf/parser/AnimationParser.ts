@@ -79,7 +79,7 @@ export class AnimationParser extends Parser {
         const channelTargetEntity = entities[target.node];
         let relativePath = channelTargetEntity.name;
         let parent = channelTargetEntity.parent;
-        while (parent.parent) {
+        while (parent?.parent) {
           relativePath = `${parent.name}/${relativePath}`;
           parent = parent.parent;
         }
