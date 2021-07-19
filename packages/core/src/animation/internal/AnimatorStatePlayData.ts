@@ -11,6 +11,15 @@ export class AnimatorStatePlayData {
   frameTime: number;
   finished: boolean;
   clipTime: number;
+  currentEventIndex: number;
+
+  reset(state: AnimatorState, stateData: AnimatorStateData, offsetFrameTime: number): void {
+    this.state = state;
+    this.frameTime = offsetFrameTime;
+    this.stateData = stateData;
+    this.finished = false;
+    this.currentEventIndex = 0;
+  }
 
   update(): void {
     const state = this.state;
