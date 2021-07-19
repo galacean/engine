@@ -13,6 +13,32 @@ export class SpriteAtlas extends RefObject {
   private _spritesMap: { [key: string]: Sprite } = {};
 
   /**
+   * Get the sprite named 'name' from the atlas.
+   * @param name
+   * @returns
+   */
+  public getSprite(name: string): Sprite {
+    const sprite = this._spritesMap[name];
+    if (!sprite) {
+      console.warn("There is no sprite named " + name + " in the atlas.");
+    }
+    return sprite;
+  }
+
+  /**
+   * Get all the sprites in the atlas.
+   * @returns
+   */
+  public getSprites(): Sprite[] {
+    const sprites: Sprite[] = [];
+    const spritesMap = this._spritesMap;
+    for (let key in spritesMap) {
+      sprites.push(spritesMap[key]);
+    }
+    return sprites;
+  }
+
+  /**
    * Pass in atlas data and pictures to parse out the included sprites.
    * @param config Raw data.
    * @param originalImgs Original images.
@@ -65,35 +91,15 @@ export class SpriteAtlas extends RefObject {
     }
   }
 
+  /**
+   * Constructor a sprite.
+   * @param engine
+   * @param atlasData Raw data.
+   * @param imgs Original images.
+   */
   constructor(engine: Engine, atlasData: AtlasConfig, imgs: HTMLImageElement[]) {
     super(engine);
     this._initialization(atlasData, imgs);
-  }
-
-  /**
-   * Get the sprite named 'name' from the atlas.
-   * @param name
-   * @returns
-   */
-  public getSprite(name: string): Sprite {
-    const sprite = this._spritesMap[name];
-    if (!sprite) {
-      console.warn("There is no sprite named " + name + " in the atlas.");
-    }
-    return sprite;
-  }
-
-  /**
-   * Get all the sprites in the atlas.
-   * @returns
-   */
-  public getSprites(): Sprite[] {
-    const sprites: Sprite[] = [];
-    const spritesMap = this._spritesMap;
-    for (let key in spritesMap) {
-      sprites.push(spritesMap[key]);
-    }
-    return sprites;
   }
 
   /**
