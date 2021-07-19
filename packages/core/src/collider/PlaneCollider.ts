@@ -1,7 +1,7 @@
 import { Collider } from "./Collider";
 import { Plane, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
-import { HitResult } from "../PhysicManager";
+import { HitResult } from "../PhysicsManager";
 
 /**
  * Represents a plane in three dimensional space.

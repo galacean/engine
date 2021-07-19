@@ -1,7 +1,7 @@
 import { Collider } from "./Collider";
 import { BoundingSphere, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
-import { HitResult } from "../PhysicManager";
+import { HitResult } from "../PhysicsManager";
 
 /**
  * A bounding sphere.

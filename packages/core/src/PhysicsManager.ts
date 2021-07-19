@@ -11,19 +11,19 @@ import { Collider } from "./collider/Collider";
 export class HitResult {
   /** The collider that was hit. */
   collider: Collider = null;
+  /** The distance from the origin to the hit point. */
+  distance: Number;
   /** The hit point of the collider that was hit in world space. */
   point: Vector3 = new Vector3();
   /** The hit normal of the collider that was hit in world space. */
   normal: Vector3 = new Vector3();
-
-  public distance: number;
 
   constructor(distance: number = Number.MAX_VALUE) {
     this.distance = distance;
   }
 }
 
-export class PhysicManager {
+export class PhysicsManager {
   _activeScene: Scene;
 
   /**
@@ -36,17 +36,45 @@ export class PhysicManager {
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   */
+  raycast(ray: Ray): Boolean;
+
+  /**
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
+   * @param distance - The max distance the ray should check
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   */
+  raycast(ray: Ray, distance: number): Boolean;
+
+  /**
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
+   * @param distance - The max distance the ray should check
+   * @param layerMask- Layer mask that is used to selectively ignore Colliders when casting
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   */
+  raycast(ray: Ray, distance: number, layerMask: number): Boolean;
+
+  /**
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
    * @param distance - The max distance the ray should check
    * @param layerMask- Layer mask that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, layerMask: Layer = Layer.Everything, outHitResult: HitResult): Boolean {
+  raycast(ray: Ray, distance?: number, layerMask: Layer = Layer.Everything, outHitResult?: HitResult): Boolean {
     const cf = this._activeScene.findFeature(ColliderFeature);
     const colliders = cf.colliders;
 
-    let nearestHit = new HitResult(distance);
-    const hit = new HitResult(distance);
+    let nearestHit = new HitResult();
+    const hit = new HitResult();
+    if (distance != undefined) {
+      nearestHit.distance = distance;
+      hit.distance = distance;
+    }
 
     for (let i = 0, len = colliders.length; i < len; i++) {
       const collider = colliders[i];
@@ -65,7 +93,10 @@ export class PhysicManager {
       }
     }
 
-    outHitResult = nearestHit;
+    if (outHitResult != undefined) {
+      outHitResult = nearestHit;
+    }
+
     return true;
   }
 }
