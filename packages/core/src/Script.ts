@@ -86,7 +86,38 @@ export class Script extends Component {
   onTriggerExit(other: ACollider): void {}
 
   /**
-   * Called when be diabled.
+   * Called when the pointer is down while over the Collider.
+   */
+  onPointerDown(): void {}
+
+  /**
+   * Called when the pointer is up while over the Collider.
+   */
+  onPointerUp(): void {}
+
+  /**
+   * Called when the pointer is down and up with the same collider.
+   */
+  onPointerClick(): void {}
+
+  /**
+   * Called when the pointer is enters the Collider.
+   */
+  onPointerEnter(): void {}
+
+  /**
+   * Called when the pointer is no longer over the Collider.
+   */
+  onPointerExit(): void {}
+
+  /**
+   * Called when the pointer is down while over the Collider and is still holding down.
+   * @remarks onPointerDrag is called every frame while the pointer is down.
+   */
+  onPointerDrag(): void {}
+
+  /**
+   * Called when be disabled.
    */
   onDisable(): void {}
 
