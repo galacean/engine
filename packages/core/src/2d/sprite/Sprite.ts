@@ -22,6 +22,8 @@ export class Sprite extends RefObject {
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _pixelsPerUnit: number;
   private _dirtyFlag: number = DirtyFlag.all;
+  // If and only if the type is Rect and trimmed.
+  private _offset: Vector2 = new Vector2(0, 0);
 
   /**
    * The reference to the used texture.
@@ -33,7 +35,7 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._setDirtyFlagTrue(DirtyFlag.positions);
+      this._setDirtyFlagTrue(DirtyFlag.vertices);
     }
   }
 
@@ -42,9 +44,9 @@ export class Sprite extends RefObject {
    *  @remarks The returned bounds should be considered deep-read-only.
    */
   get bounds(): Readonly<BoundingBox> {
-    if (this._isContainDirtyFlag(DirtyFlag.positions)) {
+    if (this._isContainDirtyFlag(DirtyFlag.vertices)) {
       this._updatePositionsAndBounds();
-      this._setDirtyFlagTrue(DirtyFlag.positions);
+      this._setDirtyFlagTrue(DirtyFlag.vertices);
     }
     return this._bounds;
   }
@@ -62,6 +64,7 @@ export class Sprite extends RefObject {
     atlasRegion.y = MathUtil.clamp(value.y, 0, 1);
     atlasRegion.width = MathUtil.clamp(value.width, 0, 1.0 - atlasRegion.x);
     atlasRegion.height = MathUtil.clamp(value.height, 0, 1.0 - atlasRegion.y);
+    this._setDirtyFlagTrue(DirtyFlag.vertices | DirtyFlag.uv);
   }
 
   /**
@@ -75,7 +78,7 @@ export class Sprite extends RefObject {
     const pivot = this._pivot;
     pivot.x = MathUtil.clamp(value.x, 0, 1);
     pivot.y = MathUtil.clamp(value.y, 0, 1);
-    this._setDirtyFlagTrue(DirtyFlag.positions);
+    this._setDirtyFlagTrue(DirtyFlag.vertices);
   }
 
   /**
@@ -91,7 +94,7 @@ export class Sprite extends RefObject {
     region.y = MathUtil.clamp(value.y, 0, 1);
     region.width = MathUtil.clamp(value.width, 0, 1.0 - region.x);
     region.height = MathUtil.clamp(value.height, 0, 1.0 - region.y);
-    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
+    this._setDirtyFlagTrue(DirtyFlag.vertices | DirtyFlag.uv);
   }
 
   /**
@@ -104,8 +107,21 @@ export class Sprite extends RefObject {
   set pixelsPerUnit(value: number) {
     if (this._pixelsPerUnit !== value) {
       this._pixelsPerUnit = value;
-      this._setDirtyFlagTrue(DirtyFlag.positions);
+      this._setDirtyFlagTrue(DirtyFlag.vertices);
     }
+  }
+
+  /**
+   * Only used in the atlas!!!
+   * The number of pixels in the sprite that correspond to one unit in world space.
+   */
+  get offset(): Vector2 {
+    return this._offset;
+  }
+
+  set offset(value: Vector2) {
+    this._offset = value;
+    this._setDirtyFlagTrue(DirtyFlag.vertices);
   }
 
   /**
@@ -131,7 +147,6 @@ export class Sprite extends RefObject {
 
     if (region) {
       this.region = region;
-      this.atlasRegion = region;
     }
 
     if (pivot) {
@@ -155,27 +170,28 @@ export class Sprite extends RefObject {
    */
   private _updatePositionsAndBounds(): void {
     const { texture } = this;
-    let lx = 0;
-    let ty = 0;
-    let rx = 0;
-    let by = 0;
-
-    if (texture) {
-      const { width, height } = texture;
-      const { width: rWidth, height: rHeight } = this.region;
-      const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
-
-      // Get the width and height in 3D space.
-      const unitWidth = rWidth * width * pixelsPerUnitReciprocal;
-      const unitHeight = rHeight * height * pixelsPerUnitReciprocal;
-
-      // Get the distance between the anchor point and the four sides.
-      const { x: px, y: py } = this.pivot;
-      lx = -px * unitWidth;
-      ty = -py * unitHeight;
-      rx = (1 - px) * unitWidth;
-      by = (1 - py) * unitHeight;
+    if (!texture) {
+      return;
     }
+
+    const { _region, _atlasRegion, _pixelsPerUnit, _offset, _pivot } = this;
+    const { width, height } = texture;
+    const { width: regionWidth, height: regionHeight } = _region;
+    const { width: atlasRegionWidth, height: atlasRegionHeight } = _atlasRegion;
+    const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
+
+    // Get the width and height in 3D space.
+    const unitWidth = atlasRegionWidth * regionWidth * width * pixelsPerUnitReciprocal;
+    const unitHeight = atlasRegionHeight * regionHeight * height * pixelsPerUnitReciprocal;
+
+    // Get the distance between the anchor point and the four sides.
+    const { x: px, y: py } = _pivot;
+    const offsetX = _offset.x * pixelsPerUnitReciprocal;
+    const offsetY = _offset.y * pixelsPerUnitReciprocal;
+    const lx = -px * unitWidth + offsetX;
+    const ty = -py * unitHeight + offsetY;
+    const rx = (1 - px) * unitWidth + offsetX;
+    const by = (1 - py) * unitHeight + offsetY;
 
     // Assign values ​​to _positions
     const positions = this._positions;
@@ -198,24 +214,34 @@ export class Sprite extends RefObject {
    * Update mesh.
    */
   private _updateMesh(): void {
-    if (this._isContainDirtyFlag(DirtyFlag.positions)) {
+    if (this._isContainDirtyFlag(DirtyFlag.vertices)) {
       this._updatePositionsAndBounds();
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
       const uv = this._uv;
-      const { x, y, width, height } = this.region;
-      const rightX = x + width;
-      const bottomY = y + height;
+      const {
+        x: atlasRegionX,
+        y: atlasRegionY,
+        width: atlasRegionWidth,
+        height: atlasRegionHeight
+      } = this._atlasRegion;
+      const { x: regionX, y: regionY, width: regionWidth, height: regionHeight } = this._region;
+      const realWidth = atlasRegionWidth * regionWidth;
+      const realheight = atlasRegionHeight * regionHeight;
+      const left = atlasRegionX + realWidth * regionX;
+      const right = left + realWidth;
+      const top = atlasRegionY + realheight * regionY;
+      const bottom = top + realheight;
 
       // Top-left.
-      uv[0].setValue(x, y);
+      uv[0].setValue(left, top);
       // Top-right.
-      uv[1].setValue(rightX, y);
+      uv[1].setValue(right, top);
       // Bottom-right.
-      uv[2].setValue(rightX, bottomY);
+      uv[2].setValue(right, bottom);
       // Bottom-left.
-      uv[3].setValue(x, bottomY);
+      uv[3].setValue(left, bottom);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
@@ -257,7 +283,7 @@ export class Sprite extends RefObject {
 }
 
 enum DirtyFlag {
-  positions = 0x1,
+  vertices = 0x1,
   uv = 0x2,
   triangles = 0x4,
   all = 0x7
