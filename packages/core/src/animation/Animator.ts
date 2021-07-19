@@ -2,6 +2,7 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
+import { SkinnedMeshRenderer } from "../mesh";
 import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Transform } from "../Transform";
 import { AnimationCurve } from "./AnimationCurve";
@@ -559,10 +560,10 @@ export class Animator extends Component {
     }
   }
 
-  private _applyClipValue(owener: AnimationCurveOwner, value: InterpolableValue, weight: number): void {
-    if (owener.type === Transform) {
-      const transform = owener.target.transform;
-      switch (owener.property) {
+  private _applyClipValue(owner: AnimationCurveOwner, value: InterpolableValue, weight: number): void {
+    if (owner.type === Transform) {
+      const transform = owner.target.transform;
+      switch (owner.property) {
         case AnimationProperty.Position:
           if (weight === 1.0) {
             transform.position = <Vector3>value;
@@ -589,6 +590,12 @@ export class Animator extends Component {
             Vector3.lerp(scale, <Vector3>value, weight, scale);
             transform.scale = scale;
           }
+          break;
+      }
+    } else if (owner.type === SkinnedMeshRenderer) {
+      switch (owner.property) {
+        case AnimationProperty.BlendShapeWeights:
+          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
           break;
       }
     }

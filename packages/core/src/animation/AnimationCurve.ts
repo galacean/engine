@@ -2,6 +2,7 @@ import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { InterpolationType } from "./enums/InterpolationType";
 import {
+  FloatArrayKeyframe,
   FloatKeyframe,
   InterpolableValue,
   Keyframe,
@@ -48,6 +49,7 @@ export class AnimationCurve {
     }
 
     if (!this._valueSize) {
+      //CM: It's not reasonable to write here.
       if (key instanceof FloatKeyframe) {
         this._valueSize = 1;
         this._valueType = InterpolableValueType.Float;
@@ -73,6 +75,13 @@ export class AnimationCurve {
         this._valueType = InterpolableValueType.Quaternion;
         this._currentValue = new Quaternion();
       }
+
+      if (key instanceof FloatArrayKeyframe) {
+        const size = key.value.length;
+        this._valueSize = size;
+        this._valueType = InterpolableValueType.FloatArray;
+        this._currentValue = new Float32Array(size);
+      }
     }
     this.keys.sort((a, b) => a.time - b.time);
   }
@@ -81,7 +90,7 @@ export class AnimationCurve {
    * Evaluate the curve at time.
    * @param time - The time within the curve you want to evaluate
    */
-  evaluate(time: number): Readonly<InterpolableValue> {
+  evaluate(time: number): InterpolableValue {
     const { keys, interpolation } = this;
     const { length } = this.keys;
 
@@ -163,6 +172,14 @@ export class AnimationCurve {
     switch (_valueType) {
       case InterpolableValueType.Float:
         return <number>keys[frameIndex].value * (1 - t) + <number>keys[nextFrameIndex].value * t;
+      case InterpolableValueType.FloatArray:
+        const curValue = this._currentValue;
+        const value = <Float32Array>keys[frameIndex].value;
+        const nextValue = <Float32Array>keys[frameIndex].value;
+        for (let i = 0, n = value.length; i < n; i++) {
+          curValue[i] = value[i] * (1 - t) + nextValue[i] * t;
+        }
+        return curValue;
       case InterpolableValueType.Vector2:
         Vector2.lerp(
           <Vector2>keys[frameIndex].value,
