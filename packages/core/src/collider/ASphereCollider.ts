@@ -1,7 +1,7 @@
 import { Collider } from "./Collider";
 import { BoundingSphere, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
-import { RaycastHit } from "../PhysicManager";
+import { HitResult } from "../PhysicManager";
 
 /**
  * A bounding sphere.
@@ -38,7 +38,7 @@ export class ASphereCollider extends Collider {
     this.radius = radius;
   }
 
-  _raycast(ray: Ray, hit: RaycastHit): boolean {
+  _raycast(ray: Ray, hit: HitResult): boolean {
     const { transform } = this.entity;
     Vector3.transformCoordinate(this.center, transform.worldMatrix, this._tempShpere.center);
     const lossyScale = transform.lossyWorldScale;

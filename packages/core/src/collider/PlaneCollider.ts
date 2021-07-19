@@ -1,7 +1,7 @@
 import { Collider } from "./Collider";
 import { Plane, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
-import { RaycastHit } from "../PhysicManager";
+import { HitResult } from "../PhysicManager";
 
 /**
  * Represents a plane in three dimensional space.
@@ -38,7 +38,7 @@ export class PlaneCollider extends Collider {
     this.normal = normal;
   }
 
-  _raycast(ray: Ray, hit: RaycastHit): boolean {
+  _raycast(ray: Ray, hit: HitResult): boolean {
     const localRay = this._getLocalRay(ray);
     // TODO
     this.normal.cloneTo(this._tempPlane.normal);

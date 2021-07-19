@@ -1,7 +1,7 @@
 import { BoundingBox, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { RaycastHit } from "../PhysicManager";
+import { HitResult } from "../PhysicManager";
 
 /**
  * Axis Aligned Bound Box (AABB).
@@ -108,7 +108,7 @@ export class ABoxCollider extends Collider {
     // return this._corners;
   }
 
-  _raycast(ray: Ray, hit: RaycastHit): boolean {
+  _raycast(ray: Ray, hit: HitResult): boolean {
     const localRay = this._getLocalRay(ray);
     // TODO
     this.boxMin.cloneTo(this._tepmBox.min);

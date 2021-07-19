@@ -8,23 +8,18 @@ import { Collider } from "./collider/Collider";
 /**
  * The result of raycast test.
  */
-export class RaycastHit {
+export class HitResult {
+  /** The collider that was hit. */
+  collider: Collider = null;
+  /** The hit point of the collider that was hit in world space. */
+  point: Vector3 = new Vector3();
+  /** The hit normal of the collider that was hit in world space. */
+  normal: Vector3 = new Vector3();
+
   public distance: number;
-  public collider: Collider;
-  public point: Vector3;
 
-  /**
-   * Constructor of RaycastHit.
-   */
-  constructor() {
-    /** The distance from the collider point to the origin of the ray. */
-    this.distance = Number.MAX_VALUE;
-
-    /** The collider that has been intersecting. */
-    this.collider = null;
-
-    /** The point where the ray intersects.  */
-    this.point = null;
+  constructor(distance: number = Number.MAX_VALUE) {
+    this.distance = distance;
   }
 }
 
@@ -39,18 +34,19 @@ export class PhysicManager {
   }
 
   /**
-   * Perform ray detection on all Colliders in the scene and return to the one closest to the beginning of the ray.
-   * @param ray - The ray to perform
-   * @param _outPos - The point where the ray intersects
-   * @param tag - raycast object's layer
-   * @return The collider that has been intersecting
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
+   * @param distance - The max distance the ray should check
+   * @param layerMask- Layer mask that is used to selectively ignore Colliders when casting
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, _outPos: Vector3, tag: Layer = Layer.Everything): Collider {
+  raycast(ray: Ray, distance: number, layerMask: Layer = Layer.Everything, outHitResult: HitResult): Boolean {
     const cf = this._activeScene.findFeature(ColliderFeature);
     const colliders = cf.colliders;
 
-    let nearestHit = new RaycastHit();
-    const hit = new RaycastHit();
+    let nearestHit = new HitResult(distance);
+    const hit = new HitResult(distance);
 
     for (let i = 0, len = colliders.length; i < len; i++) {
       const collider = colliders[i];
@@ -58,7 +54,7 @@ export class PhysicManager {
         continue;
       }
 
-      if (!(collider.entity.layer & tag)) {
+      if (!(collider.entity.layer & layerMask)) {
         continue;
       }
 
@@ -69,10 +65,7 @@ export class PhysicManager {
       }
     }
 
-    if (_outPos && nearestHit.collider) {
-      nearestHit.point.cloneTo(_outPos);
-    }
-
-    return nearestHit.collider;
+    outHitResult = nearestHit;
+    return true;
   }
 }

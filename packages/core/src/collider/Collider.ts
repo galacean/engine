@@ -2,7 +2,7 @@ import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { ColliderFeature } from "./ColliderFeature";
 import { Ray, Vector3 } from "@oasis-engine/math";
-import { RaycastHit } from "../PhysicManager";
+import { HitResult } from "../PhysicManager";
 
 /**
  * Define collider data.
@@ -35,7 +35,7 @@ export class Collider extends Component {
    * @param outHit - The raycasthit
    * @private
    */
-  _updateHitResult(ray: Ray, distance: number, outHit: RaycastHit, origin: Vector3, isWorldRay: boolean = false) {
+  _updateHitResult(ray: Ray, distance: number, outHit: HitResult, origin: Vector3, isWorldRay: boolean = false) {
     const hitPos = this._tempVec3;
     ray.getPoint(distance, hitPos);
     if (!isWorldRay) {
@@ -63,7 +63,7 @@ export class Collider extends Component {
     return outRay;
   }
 
-  _raycast(ray: Ray, hit: RaycastHit): boolean {
+  _raycast(ray: Ray, hit: HitResult): boolean {
     return false;
   }
 }
