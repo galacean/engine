@@ -77,34 +77,13 @@ export class AnimationParser extends Parser {
       for (let i = 0; i < channels.length; i++) {
         const gltfChannel = channels[i];
         const { target } = gltfChannel;
-        let targetPath = "";
-
-        switch (target.path) {
-          case AnimationChannelTargetPath.TRANSLATION:
-            targetPath = "position";
-            break;
-          case AnimationChannelTargetPath.ROTATION:
-            targetPath = "rotation";
-            break;
-          case AnimationChannelTargetPath.SCALE:
-            targetPath = "scale";
-            break;
-          case AnimationChannelTargetPath.WEIGHTS:
-            targetPath = "weights";
-            break;
-        }
 
         const channelTargetEntity = entities[target.node];
-        let path: string;
-        let parent = channelTargetEntity.parent;
-        if (parent) {
-          path = channelTargetEntity.name;
-          while (parent.parent) {
-            path = `${parent.name}/${path}`;
-            parent = parent.parent;
-          }
-        } else {
-          path = "";
+        let relativePath = "";
+        let entity = channelTargetEntity;
+        while (entity.parent) {
+          relativePath = relativePath === "" ? `${entity.name}` : `${entity.name}/${relativePath}`;
+          entity = entity.parent;
         }
 
         let compType: new (entity: Entity) => Component;
@@ -130,7 +109,7 @@ export class AnimationParser extends Parser {
         }
 
         const curve = this._addCurve(gltfChannel, sampleDataCollection);
-        animationClip.setCurve(path, compType, propertyName, curve);
+        animationClip.setCurve(relativePath, compType, propertyName, curve);
       }
 
       animationClips[i] = animationClip;
@@ -151,7 +130,7 @@ export class AnimationParser extends Parser {
         keyframe.time = input[j];
         keyframe.inTangent = 0;
         keyframe.outTangent = 0;
-        keyframe.value = outputSize > 1 ? <Float32Array>output.subarray(offset, offset+outputSize) : output[offset];
+        keyframe.value = outputSize > 1 ? <Float32Array>output.subarray(offset, offset + outputSize) : output[offset];
         curve.addKey(keyframe);
       }
       if (type === AccessorType.VEC2) {

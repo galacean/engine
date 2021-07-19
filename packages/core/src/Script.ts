@@ -24,6 +24,8 @@ export class Script extends Component {
   /** @internal */
   @ignoreClone
   _onPostRenderIndex: number = -1;
+  @ignoreClone
+  _entityCacheIndex: number = -1;
 
   /**
    * Called when be enabled first time, only once.
@@ -100,6 +102,7 @@ export class Script extends Component {
     if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.addOnLateUpdateScript(this);
     }
+    this._entity._addScript(this);
     this.onEnable();
   }
 
@@ -120,6 +123,9 @@ export class Script extends Component {
     }
     if (this._onLateUpdateIndex !== -1) {
       componentsManager.removeOnLateUpdateScript(this);
+    }
+    if (this._entityCacheIndex !== -1) {
+      this._entity._removeScript(this);
     }
     this.onDisable();
   }

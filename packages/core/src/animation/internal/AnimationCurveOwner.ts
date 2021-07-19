@@ -1,21 +1,21 @@
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Component } from "../../Component";
 import { Entity } from "../../Entity";
-import { SkinnedMeshRenderer } from "../../mesh";
+import { SkinnedMeshRenderer } from "../../mesh/SkinnedMeshRenderer";
 import { AnimationProperty } from "../enums/AnimationProperty";
 import { InterpolableValue } from "../KeyFrame";
 
 /**
  * @internal
  */
-export class AnimationCureOwner {
+export class AnimationCurveOwner {
   crossCurveMark: number = 0;
   crossCurveIndex: number;
 
+  readonly target: Entity;
   readonly type: new (entity: Entity) => Component;
   readonly property: AnimationProperty;
   readonly component: Component;
-  readonly target: Entity;
   readonly defaultValue: InterpolableValue;
   readonly fixedPoseValue: InterpolableValue;
 
