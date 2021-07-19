@@ -15,7 +15,7 @@ export class Skin extends EngineObject {
    */
   constructor(public name: string) {
     super(null);
-    this.inverseBindMatrices = []; // inverse bind matrix array, element type: gl-matrix.mat4
+    this.inverseBindMatrices = []; // inverse bind matrix array
     this.joints = []; // joints name array, element type: string
     this.skeleton = "none"; // root bone name
   }

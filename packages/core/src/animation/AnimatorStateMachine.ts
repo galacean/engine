@@ -1,4 +1,3 @@
-import { Entity } from "../Entity";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 

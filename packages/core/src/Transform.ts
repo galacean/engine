@@ -2,6 +2,7 @@ import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { UpdateFlag } from "./UpdateFlag";
+import { UpdateFlagManager } from "./UpdateFlagManager";
 
 /**
  * Used to implement transformation related functions.
@@ -38,7 +39,7 @@ export class Transform extends Component {
   @deepClone
   private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _changeFlags: UpdateFlag[] = [];
+  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
   @ignoreClone
   private _isParentDirty: boolean = true;
   @ignoreClone
@@ -505,7 +506,7 @@ export class Transform extends Component {
    * @returns Change flag
    */
   registerWorldChangeFlag(): UpdateFlag {
-    return new UpdateFlag(this._changeFlags);
+    return this._updateFlagManager.register();
   }
 
   /**
@@ -660,10 +661,7 @@ export class Transform extends Component {
 
   private _worldAssociatedChange(type: number): void {
     this._dirtyFlag |= type;
-    const len = this._changeFlags.length;
-    for (let i = len - 1; i >= 0; i--) {
-      this._changeFlags[i].flag = true;
-    }
+    this._updateFlagManager.distribute();
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean) {

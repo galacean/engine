@@ -16,7 +16,7 @@ export class AnimationClip extends Motion {
   _curves: AnimationClipCurveData<Component>[] = [];
 
   private _length: number = 0;
-  private _events: AnimationEvent[];
+  private _events: AnimationEvent[] = [];
 
   /**
    * Animation Events for this animation clip.
@@ -43,6 +43,7 @@ export class AnimationClip extends Motion {
    */
   addEvent(event: AnimationEvent): void {
     this._events.push(event);
+    this._events.sort((a, b) => a.time - b.time);
   }
 
   /**
@@ -76,6 +77,10 @@ export class AnimationClip extends Motion {
       case "scale":
         property = AnimationProperty.Scale;
         break;
+      case "blendShapeWeights":
+        property = AnimationProperty.BlendShapeWeights;
+        break;
+      default:
     }
     const curveData: AnimationClipCurveData<Component> = {
       relativePath,
@@ -101,7 +106,7 @@ export class AnimationClip extends Motion {
    * @internal
    * Samples an animation at a given time.
    * @param entity - The animated entity
-   * @param tim e - The time to sample an animation
+   * @param time - The time to sample an animation
    */
   _sampleAnimation(entity: Entity, time: number): void {
     const { length } = this._curves;

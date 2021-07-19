@@ -16,6 +16,8 @@ import position_vert from "./position_vert.glsl";
 import color_vert from "./color_vert.glsl";
 import normal_vert from "./normal_vert.glsl";
 import skinning_vert from "./skinning_vert.glsl";
+import blendShape_input from "./blendShape_input.glsl";
+import blendShape_vert from "./blendShape_vert.glsl";
 import uv_vert from "./uv_vert.glsl";
 import worldpos_vert from "./worldpos_vert.glsl";
 import shadow_vert from "./shadow_vert.glsl";
@@ -79,6 +81,8 @@ export const ShaderLib = {
   color_vert,
   normal_vert,
   skinning_vert,
+  blendShape_input,
+  blendShape_vert,
   uv_vert,
   worldpos_vert,
   shadow_vert,
