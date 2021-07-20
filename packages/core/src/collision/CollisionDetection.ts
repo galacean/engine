@@ -1,5 +1,4 @@
 import { BoundingBox, Vector3 } from "@oasis-engine/math";
-import { EventDispatcher } from "../base";
 import { ACollider, ABoxCollider, ASphereCollider, ColliderFeature } from "../collider";
 import { Script } from "../Script";
 import { intersectBox2Box, intersectSphere2Box, intersectSphere2Sphere } from "./intersect";
@@ -154,14 +153,4 @@ export class CollisionDetection extends Script {
     this._colliderManager = this.scene.findFeature(ColliderFeature);
     this._myCollider = this.entity.getComponent(ACollider);
   }
-}
-
-applyMixins(CollisionDetection, [EventDispatcher]);
-
-function applyMixins(derivedCtor: any, baseCtors: any[]) {
-  baseCtors.forEach((baseCtor) => {
-    Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-      derivedCtor.prototype[name] = baseCtor.prototype[name];
-    });
-  });
 }
