@@ -1,5 +1,4 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
-import { Scene } from "./Scene";
 import { Layer } from "./Layer";
 import { ColliderFeature } from "./collider";
 import { Engine } from "./Engine";
@@ -24,13 +23,13 @@ export class HitResult {
 }
 
 export class PhysicsManager {
-  _activeScene: Scene;
+  _engine: Engine;
 
   /**
    * @internal
    */
-  constructor(public readonly engine: Engine) {
-    this._activeScene = engine.sceneManager.activeScene;
+  constructor(engine: Engine) {
+    this._engine = engine;
   }
 
   /**
@@ -55,7 +54,7 @@ export class PhysicsManager {
    * @param layerMask- Layer mask that is used to selectively ignore Colliders when casting
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, layerMask: number): Boolean;
+  raycast(ray: Ray, distance: number, layerMask: Layer): Boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
@@ -65,8 +64,8 @@ export class PhysicsManager {
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance?: number, layerMask: Layer = Layer.Everything, outHitResult?: HitResult): Boolean {
-    const cf = this._activeScene.findFeature(ColliderFeature);
+  raycast(ray: Ray, distance?: number, layerMask?: Layer, outHitResult?: HitResult): Boolean {
+    const cf = this._engine.sceneManager.activeScene.findFeature(ColliderFeature);
     const colliders = cf.colliders;
 
     let nearestHit = new HitResult();
@@ -82,8 +81,14 @@ export class PhysicsManager {
         continue;
       }
 
-      if (!(collider.entity.layer & layerMask)) {
-        continue;
+      if (layerMask == undefined) {
+        if (!(collider.entity.layer & Layer.Everything)) {
+          continue;
+        }
+      } else {
+        if (!(collider.entity.layer & layerMask)) {
+          continue;
+        }
       }
 
       if (collider._raycast(ray, hit)) {
@@ -94,9 +99,12 @@ export class PhysicsManager {
     }
 
     if (outHitResult != undefined) {
-      outHitResult = nearestHit;
+      outHitResult.normal = nearestHit.normal;
+      outHitResult.point = nearestHit.point;
+      outHitResult.distance = nearestHit.distance;
+      outHitResult.collider = nearestHit.collider;
     }
 
-    return true;
+    return outHitResult.collider != undefined;
   }
 }
