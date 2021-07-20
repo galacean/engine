@@ -105,6 +105,6 @@ export class PhysicsManager {
       outHitResult.collider = nearestHit.collider;
     }
 
-    return outHitResult.collider != undefined;
+    return nearestHit.collider != undefined;
   }
 }
