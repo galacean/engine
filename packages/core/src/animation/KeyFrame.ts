@@ -1,69 +1,42 @@
 import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
 
-export type InterpolableValue = number | Vector2 | Vector3 | Vector4 | Quaternion | Float32Array;
+/**
+ * Keyframe.
+ * @typeParam V - Type of Keframe value
+ */
+export class Keyframe<V> {
+  /** The time of the Keyframe. */
+  time: number;
+  /** The valye of the Keyframe. */
+  value: V;
+}
 
 /**
- * A single keyframe that can be injected into an animation curve.
+ * InterpolaKeyframe.
+ * @typeParam T - Type of Tangent value
+ * @typeParam V - Type of Keframe value
  */
-export class Keyframe {
-  /** The time of the keyframe. */
-  time: number;
+export class InterpolaKeyframe<T, V> extends Keyframe<V> {
+  /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
+  inTangent?: T;
+  /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */
+  outTangent?: T;
 }
 
-export class ObjectKeyframe extends Keyframe {
-  /** The object of the keyframe. */
-  value: Object;
-}
+export type ObjectKeyframe = Keyframe<Object>;
+export type FloatKeyframe = InterpolaKeyframe<number, number>;
+export type FloatArrayKeyframe = InterpolaKeyframe<Float32Array, Float32Array>;
+export type Vector2Keyframe = InterpolaKeyframe<Vector2, Vector2>;
+export type Vector3Keyframe = InterpolaKeyframe<Vector3, Vector3>;
+export type Vector4Keyframe = InterpolaKeyframe<Vector4, Vector4>;
+export type QuaternionKeyframe = InterpolaKeyframe<Vector4, Quaternion>;
 
-export class FloatKeyframe extends Keyframe {
-  /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
-  inTangent?: number;
-  /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */
-  outTangent?: number;
-  /** The value of the curve at keyframe. */
-  value: number;
-}
+export type UnionInterpolaKeyframe =
+  | FloatKeyframe
+  | FloatArrayKeyframe
+  | Vector2Keyframe
+  | Vector3Keyframe
+  | Vector4Keyframe
+  | QuaternionKeyframe;
 
-export class FloatArrayKeyframe extends Keyframe {
-  /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
-  inTangent?: Float32Array;
-  /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */
-  outTangent?: Float32Array;
-  /** The value of the curve at keyframe. */
-  value: Float32Array;
-}
-
-export class Vector2Keyframe extends Keyframe {
-  /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
-  inTangent?: Vector2;
-  /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */
-  outTangent?: Vector2;
-  /** The value of the curve at keyframe. */
-  value: Vector2;
-}
-export class Vector3Keyframe extends Keyframe {
-  /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
-  inTangent?: Vector3;
-  /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */
-  outTangent?: Vector3;
-  /** The value of the curve at keyframe. */
-  value: Vector3;
-}
-
-export class Vector4Keyframe extends Keyframe {
-  /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
-  inTangent?: Vector4;
-  /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */
-  outTangent?: Vector4;
-  /** The value of the curve at keyframe. */
-  value: Vector4;
-}
-
-export class QuaternionKeyframe extends Keyframe {
-  /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
-  inTangent?: Vector4;
-  /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */
-  outTangent?: Vector4;
-  /** The value of the curve at keyframe. */
-  value: Quaternion;
-}
+export type InterpolableValue = number | Vector2 | Vector3 | Vector4 | Quaternion | Float32Array | Object;
