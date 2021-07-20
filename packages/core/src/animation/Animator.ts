@@ -20,7 +20,7 @@ import { AnimatorStateData } from "./internal/AnimatorStataData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
-import { InterpolableValue } from "./KeyFrame";
+import { InterpolableValue, UnionInterpolaKeyframe } from "./KeyFrame";
 
 /**
  * The controller of the animation system.
@@ -363,7 +363,7 @@ export class Animator extends Component {
     const value = curve.evaluate(time);
 
     if (addtive) {
-      const baseValue = curve.keys[0].value;
+      const baseValue = (<UnionInterpolaKeyframe>curve.keys[0]).value;
       switch (property) {
         case AnimationProperty.Position:
           const pos = Animator._tempVector3;

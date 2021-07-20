@@ -3,15 +3,11 @@ import {
   AnimationCurve,
   Component,
   Entity,
-  FloatKeyframe,
+  InterpolaKeyframe,
   InterpolationType,
-  QuaternionKeyframe,
   SkinnedMeshRenderer,
   Transform,
-  TypedArray,
-  Vector2Keyframe,
-  Vector3Keyframe,
-  FloatArrayKeyframe
+  TypedArray
 } from "@oasis-engine/core";
 import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
@@ -126,7 +122,10 @@ export class AnimationParser extends Parser {
     for (let j = 0, n = input.length; j < n; j++) {
       const offset = j * outputSize;
       if (type === AccessorType.SCALAR) {
-        let keyframe = outputSize > 1 ? new FloatArrayKeyframe() : new FloatKeyframe();
+        let keyframe =
+          outputSize > 1
+            ? new InterpolaKeyframe<Float32Array, Float32Array>()
+            : new InterpolaKeyframe<number, number>();
         keyframe.time = input[j];
         keyframe.inTangent = 0;
         keyframe.outTangent = 0;
@@ -134,7 +133,7 @@ export class AnimationParser extends Parser {
         curve.addKey(keyframe);
       }
       if (type === AccessorType.VEC2) {
-        const keyframe = new Vector2Keyframe();
+        const keyframe = new InterpolaKeyframe<Vector2, Vector2>();
         keyframe.time = input[j];
         keyframe.value = new Vector2(output[offset], output[offset + 1]);
         keyframe.inTangent = new Vector2();
@@ -142,7 +141,7 @@ export class AnimationParser extends Parser {
         curve.addKey(keyframe);
       }
       if (type === AccessorType.VEC3) {
-        const keyframe = new Vector3Keyframe();
+        const keyframe = new InterpolaKeyframe<Vector3, Vector3>();
         keyframe.time = input[j];
         keyframe.value = new Vector3(output[offset], output[offset + 1], output[offset + 2]);
         keyframe.inTangent = new Vector3();
@@ -150,7 +149,7 @@ export class AnimationParser extends Parser {
         curve.addKey(keyframe);
       }
       if (type === AccessorType.VEC4) {
-        const keyframe = new QuaternionKeyframe();
+        const keyframe = new InterpolaKeyframe<Vector4, Quaternion>();
         keyframe.time = input[j];
         keyframe.value = new Quaternion(output[offset], output[offset + 1], output[offset + 2], output[offset + 3]);
         keyframe.inTangent = new Vector4();
