@@ -1,40 +1,16 @@
-import { Ray, Vector3 } from "@oasis-engine/math";
+import { Ray } from "@oasis-engine/math";
 import { Layer } from "./Layer";
 import { ColliderFeature } from "./collider";
 import { Engine } from "./Engine";
-import { Collider } from "./collider/Collider";
-
-/**
- * Structure used to get information back from a raycast or a sweep.
- */
-export class HitResult {
-  /** The collider that was hit. */
-  collider: Collider = null;
-  /** The distance from the origin to the hit point. */
-  distance: Number = Number.MAX_VALUE;
-  /** The hit point of the collider that was hit in world space. */
-  point: Vector3 = new Vector3();
-  /** The hit normal of the collider that was hit in world space. */
-  normal: Vector3 = new Vector3();
-
-  reInit(distance: number = Number.MAX_VALUE) {
-    this.collider = null;
-    this.distance = distance;
-    this.point.setValue(0, 0, 0);
-    this.normal.setValue(0, 0, 0);
-  }
-}
+import { HitResult } from "./HitResult";
 
 /*
  * Manager for physical scenes
  */
 export class PhysicsManager {
-  /** @internal */
-  _engine: Engine;
-  /** @internal */
-  _nearestHit: HitResult = new HitResult();
-  /** @internal */
-  _hit: HitResult = new HitResult();
+  private static _currentHit: HitResult = new HitResult();
+
+  private _engine: Engine;
 
   /**
    * @internal
@@ -75,47 +51,44 @@ export class PhysicsManager {
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance?: number, layerMask?: Layer, outHitResult?: HitResult): Boolean {
+  raycast(ray: Ray, distance: number, layerMask: Layer, outHitResult: HitResult): Boolean;
+
+  raycast(
+    ray: Ray,
+    distance: number = Number.MAX_VALUE,
+    layerMask: Layer = Layer.Everything,
+    outHitResult?: HitResult
+  ): Boolean {
     const cf = this._engine.sceneManager.activeScene.findFeature(ColliderFeature);
     const colliders = cf.colliders;
 
-    this._nearestHit.reInit();
-    this._hit.reInit();
-    if (distance != undefined) {
-      this._nearestHit.distance = distance;
-      this._hit.distance = distance;
-    }
-
+    let curHit = PhysicsManager._currentHit;
     for (let i = 0, len = colliders.length; i < len; i++) {
       const collider = colliders[i];
-      if (!collider.entity.isActiveInHierarchy) {
+
+      if (!(collider.entity.layer & layerMask)) {
         continue;
       }
 
-      if (layerMask == undefined) {
-        if (!(collider.entity.layer & Layer.Everything)) {
-          continue;
-        }
-      } else {
-        if (!(collider.entity.layer & layerMask)) {
-          continue;
-        }
-      }
-
-      if (collider._raycast(ray, this._hit)) {
-        if (this._hit.distance < this._nearestHit.distance) {
-          this._nearestHit = this._hit;
+      if (collider._raycast(ray, curHit)) {
+        if (curHit.distance < distance) {
+          if (outHitResult) {
+            curHit.normal.cloneTo(outHitResult.normal);
+            curHit.point.cloneTo(outHitResult.point);
+            outHitResult.distance = curHit.distance;
+            outHitResult.collider = curHit.collider;
+          } else {
+            return true;
+          }
+          distance = curHit.distance;
         }
       }
     }
 
-    if (outHitResult != undefined) {
-      outHitResult.normal = this._nearestHit.normal;
-      outHitResult.point = this._nearestHit.point;
-      outHitResult.distance = this._nearestHit.distance;
-      outHitResult.collider = this._nearestHit.collider;
+    if (outHitResult) {
+      return outHitResult.collider != null;
+    } else {
+      return false;
     }
-
-    return this._nearestHit.collider != undefined;
   }
 }

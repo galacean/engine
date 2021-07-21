@@ -2,7 +2,7 @@ import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { ColliderFeature } from "./ColliderFeature";
 import { Ray, Vector3 } from "@oasis-engine/math";
-import { HitResult } from "../PhysicsManager";
+import { HitResult } from "../HitResult";
 
 /**
  * Define collider data.

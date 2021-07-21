@@ -1,7 +1,7 @@
 import { Collider } from "./Collider";
 import { BoundingSphere, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
-import { HitResult } from "../PhysicsManager";
+import { HitResult } from "../HitResult";
 
 /**
  * A bounding sphere.
@@ -9,8 +9,8 @@ import { HitResult } from "../PhysicsManager";
 export class ASphereCollider extends Collider {
   private static _tempSphere: BoundingSphere = new BoundingSphere();
 
-  public center: Vector3;
-  public radius: number;
+  center: Vector3;
+  radius: number;
 
   /**
    * Constructor of ASphereCollider.

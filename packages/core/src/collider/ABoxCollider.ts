@@ -1,7 +1,7 @@
 import { BoundingBox, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { HitResult } from "../PhysicsManager";
+import { HitResult } from "../HitResult";
 
 /**
  * Axis Aligned Bound Box (AABB).

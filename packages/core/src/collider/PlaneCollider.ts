@@ -1,7 +1,7 @@
 import { Collider } from "./Collider";
 import { Plane, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
-import { HitResult } from "../PhysicsManager";
+import { HitResult } from "../HitResult";
 
 /**
  * Represents a plane in three dimensional space.
@@ -9,8 +9,8 @@ import { HitResult } from "../PhysicsManager";
 export class PlaneCollider extends Collider {
   private static _tempPlane: Plane = new Plane();
 
-  public planePoint: Vector3;
-  public normal: Vector3;
+  planePoint: Vector3;
+  normal: Vector3;
 
   /**
    * Constructor of PlaneCollider.
