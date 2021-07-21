@@ -35,9 +35,7 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
-  /**
-   * Physics manager of Engine.
-   */
+  /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager = new PhysicsManager(this);
 
   _componentsManager: ComponentsManager = new ComponentsManager();

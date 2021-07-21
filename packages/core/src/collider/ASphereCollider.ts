@@ -7,12 +7,10 @@ import { HitResult } from "../PhysicsManager";
  * A bounding sphere.
  */
 export class ASphereCollider extends Collider {
-  center: Vector3;
+  private static _tempSphere: BoundingSphere = new BoundingSphere();
 
-  radius: number;
-
-  /** @internal */
-  _tempSphere: BoundingSphere = new BoundingSphere();
+  public center: Vector3;
+  public radius: number;
 
   /**
    * Constructor of ASphereCollider.
@@ -38,13 +36,16 @@ export class ASphereCollider extends Collider {
     this.radius = radius;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   * */
   _raycast(ray: Ray, hit: HitResult): boolean {
     const { transform } = this.entity;
-    Vector3.transformCoordinate(this.center, transform.worldMatrix, this._tempSphere.center);
+    const boundingSphere = ASphereCollider._tempSphere;
+    Vector3.transformCoordinate(this.center, transform.worldMatrix, boundingSphere.center);
     const lossyScale = transform.lossyWorldScale;
-    this._tempSphere.radius = this.radius * Math.max(lossyScale.x, lossyScale.y, lossyScale.z);
-    const intersect = ray.intersectSphere(this._tempSphere);
+    boundingSphere.radius = this.radius * Math.max(lossyScale.x, lossyScale.y, lossyScale.z);
+    const intersect = ray.intersectSphere(boundingSphere);
     if (intersect !== -1) {
       this._updateHitResult(ray, intersect, hit, ray.origin, true);
       return true;

@@ -7,12 +7,10 @@ import { HitResult } from "../PhysicsManager";
  * Represents a plane in three dimensional space.
  */
 export class PlaneCollider extends Collider {
-  planePoint: Vector3;
+  private static _tempPlane: Plane = new Plane();
 
-  normal: Vector3;
-
-  /** @internal */
-  _tempPlane: Plane = new Plane();
+  public planePoint: Vector3;
+  public normal: Vector3;
 
   /**
    * Constructor of PlaneCollider.
@@ -38,13 +36,16 @@ export class PlaneCollider extends Collider {
     this.normal = normal;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   * */
   _raycast(ray: Ray, hit: HitResult): boolean {
     const localRay = this._getLocalRay(ray);
-    // TODO
-    this.normal.cloneTo(this._tempPlane.normal);
-    this._tempPlane.distance = -Vector3.dot(this.planePoint, this._tempPlane.normal);
-    const intersect = localRay.intersectPlane(this._tempPlane);
+
+    const boundingPlane = PlaneCollider._tempPlane;
+    this.normal.cloneTo(boundingPlane.normal);
+    boundingPlane.distance = -Vector3.dot(this.planePoint, boundingPlane.normal);
+    const intersect = localRay.intersectPlane(boundingPlane);
     if (intersect !== -1) {
       this._updateHitResult(localRay, intersect, hit, ray.origin);
       return true;
