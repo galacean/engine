@@ -9,9 +9,7 @@ import { HitResult } from "../PhysicsManager";
  */
 export class Collider extends Component {
   /** @internal */
-  _tempVec3: Vector3 = new Vector3();
-  /** @internal */
-  _ray = new Ray();
+  private static _ray = new Ray();
 
   /**
    * @param {Entity} entity
@@ -28,12 +26,6 @@ export class Collider extends Component {
     this.scene.findFeature(ColliderFeature).detachCollider(this);
   }
 
-  /**
-   * Calculate the raycasthit in world space.
-   * @param ray - The ray
-   * @param distance - The distance
-   * @param outHit - The raycasthit
-   */
   protected _updateHitResult(
     ray: Ray,
     distance: number,
@@ -41,25 +33,18 @@ export class Collider extends Component {
     origin: Vector3,
     isWorldRay: boolean = false
   ) {
-    const hitPos = this._tempVec3;
-    ray.getPoint(distance, hitPos);
+    ray.getPoint(distance, outHit.point);
     if (!isWorldRay) {
-      Vector3.transformCoordinate(hitPos, this.entity.transform.worldMatrix, hitPos);
+      Vector3.transformCoordinate(outHit.point, this.entity.transform.worldMatrix, outHit.point);
     }
 
-    outHit.distance = Vector3.distance(origin, hitPos);
+    outHit.distance = Vector3.distance(origin, outHit.point);
     outHit.collider = this;
-    outHit.point = hitPos;
   }
 
-  /**
-   * transform ray to local space
-   * @param {Ray} ray
-   * @private
-   */
-  _getLocalRay(ray: Ray): Ray {
+  protected _getLocalRay(ray: Ray): Ray {
     const worldToLocal = this.entity.getInvModelMatrix();
-    const outRay = this._ray;
+    const outRay = Collider._ray;
 
     Vector3.transformCoordinate(ray.origin, worldToLocal, outRay.origin);
     Vector3.transformNormal(ray.direction, worldToLocal, outRay.direction);
@@ -68,8 +53,10 @@ export class Collider extends Component {
     return outRay;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _raycast(ray: Ray, hit: HitResult): boolean {
-    return false;
+    throw "Error: use concrete type instead!";
   }
 }
