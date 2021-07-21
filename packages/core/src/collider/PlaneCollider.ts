@@ -38,7 +38,7 @@ export class PlaneCollider extends Collider {
 
   /**
    * @internal
-   * */
+   */
   _raycast(ray: Ray, hit: HitResult): boolean {
     const localRay = this._getLocalRay(ray);
 

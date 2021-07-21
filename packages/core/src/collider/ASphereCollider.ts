@@ -38,7 +38,7 @@ export class ASphereCollider extends Collider {
 
   /**
    * @internal
-   * */
+   */
   _raycast(ray: Ray, hit: HitResult): boolean {
     const { transform } = this.entity;
     const boundingSphere = ASphereCollider._tempSphere;
