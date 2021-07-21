@@ -8,7 +8,6 @@ import { HitResult } from "../HitResult";
  * Define collider data.
  */
 export class Collider extends Component {
-  /** @internal */
   private static _ray = new Ray();
 
   /**

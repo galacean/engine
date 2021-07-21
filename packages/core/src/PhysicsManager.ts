@@ -5,7 +5,7 @@ import { Engine } from "./Engine";
 import { HitResult } from "./HitResult";
 
 /*
- * Manager for physical scenes
+ * Manager for physical scenes.
  */
 export class PhysicsManager {
   private static _currentHit: HitResult = new HitResult();

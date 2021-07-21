@@ -49,9 +49,9 @@ export class CollisionDetection extends Script {
           if (collider != this._myCollider && this._boxCollision(collider)) {
             overlappedCollider = collider;
             let scripts = this.entity._scripts;
-            scripts._elements.forEach((script) => {
-              script.onTriggerStay(collider);
-            });
+            for (let i = 0, len = scripts.length; i < len; i++) {
+              scripts.get(i).onTriggerStay(collider);
+            }
           }
         } // end of for
       } else if (this._myCollider instanceof ASphereCollider) {
@@ -61,9 +61,9 @@ export class CollisionDetection extends Script {
           if (collider != this._myCollider && this._sphereCollision(collider)) {
             overlappedCollider = collider;
             let scripts = this.entity._scripts;
-            scripts._elements.forEach((script) => {
-              script.onTriggerStay(collider);
-            });
+            for (let i = 0, len = scripts.length; i < len; i++) {
+              scripts.get(i).onTriggerStay(collider);
+            }
           }
         } // end of for
       }
@@ -72,16 +72,16 @@ export class CollisionDetection extends Script {
     //-- overlap events
     if (overlappedCollider != null && this._overlappedCollider != overlappedCollider) {
       let scripts = this.entity._scripts;
-      scripts._elements.forEach((script) => {
-        script.onTriggerEnter(overlappedCollider);
-      });
+      for (let i = 0, len = scripts.length; i < len; i++) {
+        scripts.get(i).onTriggerEnter(overlappedCollider);
+      }
     }
 
     if (this._overlappedCollider != null && this._overlappedCollider != overlappedCollider) {
       let scripts = this.entity._scripts;
-      scripts._elements.forEach((script) => {
-        script.onTriggerExit(this._overlappedCollider);
-      });
+      for (let i = 0, len = scripts.length; i < len; i++) {
+        scripts.get(i).onTriggerExit(this._overlappedCollider);
+      }
     }
 
     this._overlappedCollider = overlappedCollider;
