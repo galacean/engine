@@ -48,9 +48,8 @@ export class CollisionDetection extends Script {
           const collider = colliders[i];
           if (collider != this._myCollider && this._boxCollision(collider)) {
             overlappedCollider = collider;
-            let scripts: Script[] = [];
-            this.entity.getComponents(Script, scripts);
-            scripts.forEach((script) => {
+            let scripts = this.entity._scripts;
+            scripts._elements.forEach((script) => {
               script.onTriggerStay(collider);
             });
           }
@@ -61,9 +60,8 @@ export class CollisionDetection extends Script {
           const collider = colliders[i];
           if (collider != this._myCollider && this._sphereCollision(collider)) {
             overlappedCollider = collider;
-            let scripts: Script[] = [];
-            this.entity.getComponents(Script, scripts);
-            scripts.forEach((script) => {
+            let scripts = this.entity._scripts;
+            scripts._elements.forEach((script) => {
               script.onTriggerStay(collider);
             });
           }
@@ -73,17 +71,15 @@ export class CollisionDetection extends Script {
 
     //-- overlap events
     if (overlappedCollider != null && this._overlappedCollider != overlappedCollider) {
-      let scripts: Script[] = [];
-      this.entity.getComponents(Script, scripts);
-      scripts.forEach((script) => {
+      let scripts = this.entity._scripts;
+      scripts._elements.forEach((script) => {
         script.onTriggerEnter(overlappedCollider);
       });
     }
 
     if (this._overlappedCollider != null && this._overlappedCollider != overlappedCollider) {
-      let scripts: Script[] = [];
-      this.entity.getComponents(Script, scripts);
-      scripts.forEach((script) => {
+      let scripts = this.entity._scripts;
+      scripts._elements.forEach((script) => {
         script.onTriggerExit(this._overlappedCollider);
       });
     }

@@ -35,6 +35,11 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
+  /**
+   * Physics manager of Engine.
+   */
+  readonly physicsManager: PhysicsManager = new PhysicsManager(this);
+
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
@@ -59,10 +64,6 @@ export class Engine extends EventDispatcher {
   protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
-  /**
-   * Physics manager of Engine.
-   */
-  readonly physicsManager: PhysicsManager = new PhysicsManager(this);
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();

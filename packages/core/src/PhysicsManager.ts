@@ -5,25 +5,36 @@ import { Engine } from "./Engine";
 import { Collider } from "./collider/Collider";
 
 /**
- * The result of raycast test.
+ * Structure used to get information back from a raycast or a sweep.
  */
 export class HitResult {
   /** The collider that was hit. */
   collider: Collider = null;
   /** The distance from the origin to the hit point. */
-  distance: Number;
+  distance: Number = Number.MAX_VALUE;
   /** The hit point of the collider that was hit in world space. */
   point: Vector3 = new Vector3();
   /** The hit normal of the collider that was hit in world space. */
   normal: Vector3 = new Vector3();
 
-  constructor(distance: number = Number.MAX_VALUE) {
+  reInit(distance: number = Number.MAX_VALUE) {
+    this.collider = null;
     this.distance = distance;
+    this.point.setValue(0, 0, 0);
+    this.normal.setValue(0, 0, 0);
   }
 }
 
+/*
+ * Manager for physical scenes
+ */
 export class PhysicsManager {
+  /** @internal */
   _engine: Engine;
+  /** @internal */
+  _nearestHit: HitResult = new HitResult();
+  /** @internal */
+  _hit: HitResult = new HitResult();
 
   /**
    * @internal
@@ -68,11 +79,11 @@ export class PhysicsManager {
     const cf = this._engine.sceneManager.activeScene.findFeature(ColliderFeature);
     const colliders = cf.colliders;
 
-    let nearestHit = new HitResult();
-    const hit = new HitResult();
+    this._nearestHit.reInit();
+    this._hit.reInit();
     if (distance != undefined) {
-      nearestHit.distance = distance;
-      hit.distance = distance;
+      this._nearestHit.distance = distance;
+      this._hit.distance = distance;
     }
 
     for (let i = 0, len = colliders.length; i < len; i++) {
@@ -91,20 +102,20 @@ export class PhysicsManager {
         }
       }
 
-      if (collider._raycast(ray, hit)) {
-        if (hit.distance < nearestHit.distance) {
-          nearestHit = hit;
+      if (collider._raycast(ray, this._hit)) {
+        if (this._hit.distance < this._nearestHit.distance) {
+          this._nearestHit = this._hit;
         }
       }
     }
 
     if (outHitResult != undefined) {
-      outHitResult.normal = nearestHit.normal;
-      outHitResult.point = nearestHit.point;
-      outHitResult.distance = nearestHit.distance;
-      outHitResult.collider = nearestHit.collider;
+      outHitResult.normal = this._nearestHit.normal;
+      outHitResult.point = this._nearestHit.point;
+      outHitResult.distance = this._nearestHit.distance;
+      outHitResult.collider = this._nearestHit.collider;
     }
 
-    return nearestHit.collider != undefined;
+    return this._nearestHit.collider != undefined;
   }
 }

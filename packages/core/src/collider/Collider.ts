@@ -33,9 +33,14 @@ export class Collider extends Component {
    * @param ray - The ray
    * @param distance - The distance
    * @param outHit - The raycasthit
-   * @private
    */
-  _updateHitResult(ray: Ray, distance: number, outHit: HitResult, origin: Vector3, isWorldRay: boolean = false) {
+  protected _updateHitResult(
+    ray: Ray,
+    distance: number,
+    outHit: HitResult,
+    origin: Vector3,
+    isWorldRay: boolean = false
+  ) {
     const hitPos = this._tempVec3;
     ray.getPoint(distance, hitPos);
     if (!isWorldRay) {
@@ -63,6 +68,7 @@ export class Collider extends Component {
     return outRay;
   }
 
+  /** @internal */
   _raycast(ray: Ray, hit: HitResult): boolean {
     return false;
   }

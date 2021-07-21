@@ -8,13 +8,12 @@ import { HitResult } from "../PhysicsManager";
  * @extends Collider
  */
 export class ABoxCollider extends Collider {
-  /** @internal */
-  _tepmBox: BoundingBox = new BoundingBox();
-
   private static _tempVec3: Vector3 = new Vector3();
 
   public boxMin: Vector3;
   public boxMax: Vector3;
+  /** @internal */
+  _tempBox: BoundingBox = new BoundingBox();
   private _corners: Array<Vector3> = [];
   private _cornerFlag: boolean = false;
 
@@ -108,12 +107,13 @@ export class ABoxCollider extends Collider {
     // return this._corners;
   }
 
+  /** @internal */
   _raycast(ray: Ray, hit: HitResult): boolean {
     const localRay = this._getLocalRay(ray);
     // TODO
-    this.boxMin.cloneTo(this._tepmBox.min);
-    this.boxMax.cloneTo(this._tepmBox.max);
-    const intersect = localRay.intersectBox(this._tepmBox);
+    this.boxMin.cloneTo(this._tempBox.min);
+    this.boxMax.cloneTo(this._tempBox.max);
+    const intersect = localRay.intersectBox(this._tempBox);
     if (intersect !== -1) {
       this._updateHitResult(localRay, intersect, hit, ray.origin);
       return true;
