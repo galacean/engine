@@ -12,7 +12,7 @@ export interface AtlasConfig {
     // The size of the big picture.
     size: number[];
     // Sprites contained in the big picture.
-    frames: { [key: string]: AtlasFrame };
+    frames: Record<string, AtlasFrame>;
   }[];
   // Version of Atlas Packaging Tool.
   version: number;

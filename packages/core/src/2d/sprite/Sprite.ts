@@ -35,7 +35,7 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._setDirtyFlagTrue(DirtyFlag.vertices);
+      this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
 
@@ -44,9 +44,9 @@ export class Sprite extends RefObject {
    *  @remarks The returned bounds should be considered deep-read-only.
    */
   get bounds(): Readonly<BoundingBox> {
-    if (this._isContainDirtyFlag(DirtyFlag.vertices)) {
+    if (this._isContainDirtyFlag(DirtyFlag.positions)) {
       this._updatePositionsAndBounds();
-      this._setDirtyFlagTrue(DirtyFlag.vertices);
+      this._setDirtyFlagTrue(DirtyFlag.positions);
     }
     return this._bounds;
   }
@@ -64,7 +64,7 @@ export class Sprite extends RefObject {
     atlasRegion.y = MathUtil.clamp(value.y, 0, 1);
     atlasRegion.width = MathUtil.clamp(value.width, 0, 1.0 - atlasRegion.x);
     atlasRegion.height = MathUtil.clamp(value.height, 0, 1.0 - atlasRegion.y);
-    this._setDirtyFlagTrue(DirtyFlag.vertices | DirtyFlag.uv);
+    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
   /**
@@ -78,7 +78,7 @@ export class Sprite extends RefObject {
     const pivot = this._pivot;
     pivot.x = MathUtil.clamp(value.x, 0, 1);
     pivot.y = MathUtil.clamp(value.y, 0, 1);
-    this._setDirtyFlagTrue(DirtyFlag.vertices);
+    this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
   /**
@@ -94,7 +94,7 @@ export class Sprite extends RefObject {
     region.y = MathUtil.clamp(value.y, 0, 1);
     region.width = MathUtil.clamp(value.width, 0, 1.0 - region.x);
     region.height = MathUtil.clamp(value.height, 0, 1.0 - region.y);
-    this._setDirtyFlagTrue(DirtyFlag.vertices | DirtyFlag.uv);
+    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
   /**
@@ -107,7 +107,7 @@ export class Sprite extends RefObject {
   set pixelsPerUnit(value: number) {
     if (this._pixelsPerUnit !== value) {
       this._pixelsPerUnit = value;
-      this._setDirtyFlagTrue(DirtyFlag.vertices);
+      this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
 
@@ -121,7 +121,7 @@ export class Sprite extends RefObject {
 
   set offset(value: Vector2) {
     this._offset = value;
-    this._setDirtyFlagTrue(DirtyFlag.vertices);
+    this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
   /**
@@ -214,7 +214,7 @@ export class Sprite extends RefObject {
    * Update mesh.
    */
   private _updateMesh(): void {
-    if (this._isContainDirtyFlag(DirtyFlag.vertices)) {
+    if (this._isContainDirtyFlag(DirtyFlag.positions)) {
       this._updatePositionsAndBounds();
     }
 
@@ -283,7 +283,7 @@ export class Sprite extends RefObject {
 }
 
 enum DirtyFlag {
-  vertices = 0x1,
+  positions = 0x1,
   uv = 0x2,
   triangles = 0x4,
   all = 0x7

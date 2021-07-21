@@ -37,7 +37,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
             )
           ).then((imgs) => {
             const engine = resourceManager.engine;
-            //
+            // Generate a SpriteAtlas object
             const spriteAtlas = new SpriteAtlas(engine);
             /** @ts-ignore */
             const spriteMap = spriteAtlas._spritesMap;
