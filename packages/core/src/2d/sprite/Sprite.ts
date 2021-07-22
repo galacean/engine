@@ -22,7 +22,7 @@ export class Sprite extends RefObject {
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _pixelsPerUnit: number;
   private _dirtyFlag: number = DirtyFlag.all;
-  // If and only if the type is Rect and trimmed.
+  // If and only if the type(SpriteMeshType) is Rect and trimmed.
   private _offset: Vector2 = new Vector2(0, 0);
 
   /**
@@ -113,7 +113,7 @@ export class Sprite extends RefObject {
 
   /**
    * Only used in the atlas!!!
-   * The number of pixels in the sprite that correspond to one unit in world space.
+   * Offset of Spirte in the atlas from the original picture.
    */
   get offset(): Vector2 {
     return this._offset;
