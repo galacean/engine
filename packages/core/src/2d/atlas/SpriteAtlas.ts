@@ -34,6 +34,10 @@ export class SpriteAtlas extends RefObject {
     return sprites;
   }
 
+  /**
+   * Constructor a sprite.
+   * @param engine - Engine to which the SpriteAtlas belongs
+   */
   constructor(engine: Engine) {
     super(engine);
   }
