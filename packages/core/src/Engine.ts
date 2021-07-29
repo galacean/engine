@@ -25,6 +25,7 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
+import { PhysicsManager } from "./PhysicsManager";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -34,6 +35,9 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
+  /** Physics manager of Engine. */
+  readonly physicsManager: PhysicsManager = new PhysicsManager(this);
+
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
