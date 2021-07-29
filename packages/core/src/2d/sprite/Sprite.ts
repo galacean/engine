@@ -52,7 +52,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * The rectangle region of the original texture on its atlas texture.
+   * The rectangle region of the original texture on its atlas texture, specified in normalized.
    */
   get atlasRegion(): Rect {
     return this._atlasRegion;
@@ -69,7 +69,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * The rectangle region offset of the original texture on its atlas texture.
+   * The rectangle region offset of the original texture on its atlas texture, specified in normalized.
    */
   get atlasRegionOffset(): Vector2 {
     return this._atlasRegionOffset;
