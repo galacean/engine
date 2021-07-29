@@ -48,7 +48,7 @@ export class GLTFResource extends SchemaResource {
             }
           }
         };
-        if (materials && materials.length) {
+        if (materials?.length) {
           for (let i = 0; i < materials.length; i++) {
             const material = materials[i];
             let materialResource = null;
