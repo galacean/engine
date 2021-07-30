@@ -90,7 +90,7 @@ export class BlendShape {
     const frames = this._frames;
     const frameCount = frames.length;
     if (frameCount > 0 && frame.deltaPositions.length !== frames[frameCount - 1].deltaPositions.length) {
-      throw "Frame's deltaPositions length must same with before farme deltaPositions length.";
+      throw "Frame's deltaPositions length must same with before frame deltaPositions length.";
     }
 
     this._useBlendShapeNormal = this._useBlendShapeNormal || frame.deltaNormals !== null;

@@ -148,7 +148,7 @@ export class ShaderProgram {
   }
 
   /**
-   * Groupping other data.
+   * Grouping other data.
    */
   groupingOtherUniformBlock() {
     const { constUniforms, textureUniforms } = this.otherUniformBlock;
@@ -256,7 +256,7 @@ export class ShaderProgram {
     gl.validateProgram(program);
 
     if (gl.isContextLost()) {
-      Logger.error("Contex lost while linking program.");
+      Logger.error("Context lost while linking program.");
       gl.deleteShader(vertexShader);
       gl.deleteShader(fragmentShader);
       return null;

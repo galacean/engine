@@ -92,11 +92,11 @@ export class ShadowFeature extends SceneFeature {
       const item = items[i];
       const ability: Component = item.component;
 
-      const recieveShadow = (ability as any).recieveShadow;
+      const receiveShadow = (ability as any).recieveShadow;
       const castShadow = (ability as any).castShadow;
-      if (recieveShadow === true) {
+      if (receiveShadow === true) {
         ability.entity.layer |= Layer.Layer30; //SHADOW;
-      } else if (recieveShadow === false) {
+      } else if (receiveShadow === false) {
         ability.entity.layer &= ~Layer.Layer30; //SHADOW;
       }
 

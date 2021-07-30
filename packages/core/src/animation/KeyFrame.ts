@@ -2,19 +2,19 @@ import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
 
 /**
  * Keyframe.
- * @typeParam V - Type of Keframe value
+ * @typeParam V - Type of Keyframe value
  */
 export class Keyframe<V> {
   /** The time of the Keyframe. */
   time: number;
-  /** The valye of the Keyframe. */
+  /** The value of the Keyframe. */
   value: V;
 }
 
 /**
  * InterpolaKeyframe.
  * @typeParam T - Type of Tangent value
- * @typeParam V - Type of Keframe value
+ * @typeParam V - Type of Keyframe value
  */
 export class InterpolaKeyframe<T, V> extends Keyframe<V> {
   /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */

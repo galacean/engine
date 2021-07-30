@@ -43,7 +43,7 @@ describe("Asset Promise Test", function () {
     return expect(AssetPromise.all(promises)).rejects.toEqual("Promise Canceled");
   });
 
-  it("test promise cancal", () => {
+  it("test promise cancel", () => {
     const promise = new AssetPromise((resolve) => {
       setTimeout(() => {
         resolve(0);
@@ -76,7 +76,7 @@ describe("Asset Promise Test", function () {
     ).rejects.toEqual("test");
   });
 
-  it("test multi promie reject", () => {
+  it("test multi promise reject", () => {
     const promise = new AssetPromise((resolve, reject) => {
       setTimeout(() => {
         reject("test");

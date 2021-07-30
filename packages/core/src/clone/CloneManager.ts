@@ -185,7 +185,7 @@ export class CloneManager {
               target[k] = sourceCustomItem.clone();
             }
           } else {
-            // Object or other class not implments custom clone.
+            // Object or other class not implements custom clone.
             let targetItem = <Object>target[k];
             targetItem == null && (target[k] = targetItem = new sourceItem.constructor());
             CloneManager.deepCloneObject(sourceItem, targetItem);
@@ -193,7 +193,7 @@ export class CloneManager {
           }
       }
     } else {
-      // Null or undefine and primitive type.
+      // Null or undefined and primitive type.
       target[k] = sourceItem;
     }
   }

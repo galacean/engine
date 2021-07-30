@@ -47,7 +47,7 @@ export abstract class Component extends EngineObject {
   }
 
   /**
-   * The entitiy which the component belongs to.
+   * The entity which the component belongs to.
    */
   get entity(): Entity {
     return this._entity;
@@ -66,7 +66,7 @@ export abstract class Component extends EngineObject {
   }
 
   /**
-   * Destory this instance.
+   * Destroy this instance.
    */
   destroy(): void {
     if (this._destroyed) {

@@ -1,5 +1,5 @@
-import { WebCanvas } from "../src/WebCanvas"
-import { WebGLEngine } from "../src/WebGLEngine"
+import { WebCanvas } from "../src/WebCanvas";
+import { WebGLEngine } from "../src/WebGLEngine";
 
 describe("webgl engine test", () => {
   it("create a webgl engine", () => {

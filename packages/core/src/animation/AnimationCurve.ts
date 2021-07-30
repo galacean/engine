@@ -233,9 +233,9 @@ export class AnimationCurve {
     }
   }
 
-  private _evaluateHermite(frameIedex: number, nextFrameIndex: number, t: number, dur: number): InterpolableValue {
+  private _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number): InterpolableValue {
     const { _valueSize, keys } = this;
-    const curKey = keys[frameIedex];
+    const curKey = keys[frameIndex];
     const nextKey = keys[nextFrameIndex];
     switch (_valueSize) {
       case 1: {

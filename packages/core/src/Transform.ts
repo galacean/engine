@@ -147,7 +147,7 @@ export class Transform extends Component {
   }
 
   /**
-   * Local rotaion, defining the rotation by using a unit quaternion.
+   * Local rotation, defining the rotation by using a unit quaternion.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
    */
   get rotationQuaternion(): Quaternion {
@@ -173,7 +173,7 @@ export class Transform extends Component {
   }
 
   /**
-   * World rotaion, defining the rotation by using a unit quaternion.
+   * World rotation, defining the rotation by using a unit quaternion.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
    */
   get worldRotationQuaternion(): Quaternion {
@@ -222,7 +222,8 @@ export class Transform extends Component {
 
   /**
    * Local lossy scaling.
-   * @remarks The value obtained may not be correct under certain conditions(for example, the parent node has scaling, and the child node has a rotation), the scaling will be tilted. Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3.
+   * @remarks The value obtained may not be correct under certain conditions(for example, the parent node has scaling,
+   * and the child node has a rotation), the scaling will be tilted. Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3.
    */
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(TransformFlag.WorldScale)) {
@@ -304,7 +305,7 @@ export class Transform extends Component {
   }
 
   /**
-   * Set local rotaion by the X, Y, Z components of the euler angle, unit in degrees.
+   * Set local rotation by the X, Y, Z components of the euler angle, unit in degrees.
    * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    * @param x - The angle of rotation around the X axis
    * @param y - The angle of rotation around the Y axis
@@ -316,7 +317,7 @@ export class Transform extends Component {
   }
 
   /**
-   * Set local rotaion by the X, Y, Z, and W components of the quaternion.
+   * Set local rotation by the X, Y, Z, and W components of the quaternion.
    * @param x - X component of quaternion
    * @param y - Y component of quaternion
    * @param z - Z component of quaternion
@@ -350,7 +351,7 @@ export class Transform extends Component {
   }
 
   /**
-   * Set world rotaion by the X, Y, Z components of the euler angle, unit in degrees, Yaw/Pitch/Roll sequence.
+   * Set world rotation by the X, Y, Z components of the euler angle, unit in degrees, Yaw/Pitch/Roll sequence.
    * @param x - The angle of rotation around the X axis
    * @param y - The angle of rotation around the Y axis
    * @param z - The angle of rotation around the Z axis
@@ -361,7 +362,7 @@ export class Transform extends Component {
   }
 
   /**
-   * Set local rotaion by the X, Y, Z, and W components of the quaternion.
+   * Set local rotation by the X, Y, Z, and W components of the quaternion.
    * @param x - X component of quaternion
    * @param y - Y component of quaternion
    * @param z - Z component of quaternion
@@ -480,7 +481,7 @@ export class Transform extends Component {
   /**
    * Rotate and ensure that the world front vector points to the target world position.
    * @param worldPosition - Target world position
-   * @param worldUp - Up direciton in world space, defalut is Vector3(0, 1, 0)
+   * @param worldUp - Up direction in world space, default is Vector3(0, 1, 0)
    */
   lookAt(worldPosition: Vector3, worldUp?: Vector3): void {
     const position = this.worldPosition;

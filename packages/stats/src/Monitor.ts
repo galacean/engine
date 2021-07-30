@@ -125,7 +125,7 @@ export default class Monitor {
   }
 
   /**
-   * destory the instance
+   * destroy the instance
    */
   public destroy() {
     this.release();
