@@ -28,7 +28,7 @@ export enum AssetType {
   /** Animation Clip. */
   AnimationClip = "animation-clip",
   /** Prefab.*/
-  Perfab = "prefab",
+  Prefab = "prefab",
   /** Compress Texture. */
   KTX = "ktx",
   /** Cube Compress Texture. */

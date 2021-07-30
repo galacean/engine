@@ -23,9 +23,8 @@ export class Sprite extends RefObject {
   private _pixelsPerUnit: number;
   private _texture: Texture2D = null;
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
+  private _atlasRegionOffset: Vector2 = new Vector2(0, 0);
   private _dirtyFlag: number = DirtyFlag.all;
-  // If and only if the type(SpriteMeshType) is Rect and trimmed.
-  private _offset: Vector2 = new Vector2(0, 0);
 
   /**
    * The reference to the used texture.
@@ -54,7 +53,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * The rectangle region of the original texture on its atlas texture.
+   * The rectangle region of the original texture on its atlas texture, specified in normalized.
    */
   get atlasRegion(): Rect {
     return this._atlasRegion;
@@ -62,11 +61,24 @@ export class Sprite extends RefObject {
 
   set atlasRegion(value: Rect) {
     const atlasRegion = this._atlasRegion;
-    atlasRegion.x = MathUtil.clamp(value.x, 0, 1);
-    atlasRegion.y = MathUtil.clamp(value.y, 0, 1);
-    atlasRegion.width = MathUtil.clamp(value.width, 0, 1.0 - atlasRegion.x);
-    atlasRegion.height = MathUtil.clamp(value.height, 0, 1.0 - atlasRegion.y);
-    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
+    atlasRegion.setValue(
+      MathUtil.clamp(value.x, 0, 1),
+      MathUtil.clamp(value.y, 0, 1),
+      MathUtil.clamp(value.width, 0, 1 - atlasRegion.x),
+      MathUtil.clamp(value.height, 0, 1 - atlasRegion.y)
+    );
+  }
+
+  /**
+   * The rectangle region offset of the original texture on its atlas texture.
+   */
+  get atlasRegionOffset(): Vector2 {
+    return this._atlasRegionOffset;
+  }
+
+  set atlasRegionOffset(value: Vector2) {
+    this._atlasRegionOffset.setValue(value.x, value.y);
+    this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
   /**
@@ -77,9 +89,7 @@ export class Sprite extends RefObject {
   }
 
   set pivot(value: Vector2) {
-    const pivot = this._pivot;
-    pivot.x = MathUtil.clamp(value.x, 0, 1);
-    pivot.y = MathUtil.clamp(value.y, 0, 1);
+    this._pivot.setValue(MathUtil.clamp(value.x, 0, 1), MathUtil.clamp(value.y, 0, 1));
     this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
@@ -92,10 +102,12 @@ export class Sprite extends RefObject {
 
   set region(value: Rect) {
     const region = this._region;
-    region.x = MathUtil.clamp(value.x, 0, 1);
-    region.y = MathUtil.clamp(value.y, 0, 1);
-    region.width = MathUtil.clamp(value.width, 0, 1.0 - region.x);
-    region.height = MathUtil.clamp(value.height, 0, 1.0 - region.y);
+    region.setValue(
+      MathUtil.clamp(value.x, 0, 1),
+      MathUtil.clamp(value.y, 0, 1),
+      MathUtil.clamp(value.width, 0, 1 - region.x),
+      MathUtil.clamp(value.height, 0, 1 - region.y)
+    );
     this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
@@ -111,19 +123,6 @@ export class Sprite extends RefObject {
       this._pixelsPerUnit = value;
       this._setDirtyFlagTrue(DirtyFlag.positions);
     }
-  }
-
-  /**
-   * Only used in the atlas!!!
-   * Offset of Spirte in the atlas from the original picture.
-   */
-  get offset(): Vector2 {
-    return this._offset;
-  }
-
-  set offset(value: Vector2) {
-    this._offset = value;
-    this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
   /**
@@ -172,7 +171,7 @@ export class Sprite extends RefObject {
       return;
     }
 
-    const { _offset } = this;
+    const { _atlasRegionOffset } = this;
     const { width, height } = texture;
     const { width: regionWidth, height: regionHeight } = this._region;
     const { width: atlasRegionWidth, height: atlasRegionHeight } = this._atlasRegion;
@@ -184,8 +183,8 @@ export class Sprite extends RefObject {
 
     // Get the distance between the anchor point and the four sides.
     const { x: px, y: py } = this._pivot;
-    const offsetX = _offset.x * pixelsPerUnitReciprocal;
-    const offsetY = _offset.y * pixelsPerUnitReciprocal;
+    const offsetX = _atlasRegionOffset.x * pixelsPerUnitReciprocal;
+    const offsetY = _atlasRegionOffset.y * pixelsPerUnitReciprocal;
     const lx = -px * unitWidth + offsetX;
     const ty = -py * unitHeight + offsetY;
     const rx = (1 - px) * unitWidth + offsetX;

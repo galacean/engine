@@ -69,7 +69,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * BlendShape count of this ModleMesh.
+   * BlendShape count of this ModelMesh.
    */
   get blendShapes(): Readonly<BlendShape[]> {
     return this._blendShapes;
@@ -395,7 +395,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Add a BlendShape for this ModleMesh.
+   * Add a BlendShape for this ModelMesh.
    * @param blendShape - The BlendShape
    */
   addBlendShape(blendShape: BlendShape): void {
@@ -824,9 +824,9 @@ export class ModelMesh extends Mesh {
           if (blendShapeUpdateFlag.flag) {
             const blendShape = blendShapes[i];
             const { frames } = blendShape;
-            const farmeCount = frames.length;
-            const endFrame = frames[farmeCount - 1];
-            if (farmeCount > 0 && endFrame.deltaPositions.length !== this._vertexCount) {
+            const frameCount = frames.length;
+            const endFrame = frames[frameCount - 1];
+            if (frameCount > 0 && endFrame.deltaPositions.length !== this._vertexCount) {
               throw "BlendShape frame deltaPositions length must same with mesh vertexCount.";
             }
 

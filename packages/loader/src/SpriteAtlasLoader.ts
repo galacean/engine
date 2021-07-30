@@ -67,7 +67,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   atlasRegion.w * sourceWidthReciprocal,
                   atlasRegion.h * sourceHeightReciprocal
                 );
-                sprite.offset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
+                sprite.atlasRegionOffset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
                 spriteMap[atlasSprite.name] = sprite;
               }
             }

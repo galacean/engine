@@ -66,7 +66,7 @@ export class Color implements IClone {
   /**
    * Scale a color by the given value.
    * @param left - The color to scale
-   * @param scale - The amount by which to scale the color
+   * @param s - The amount by which to scale the color
    * @param out - The scaled color
    */
   static scale(left: Color, s: number, out: Color): void {

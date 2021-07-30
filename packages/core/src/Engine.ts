@@ -25,6 +25,7 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
+import { PhysicsManager } from "./PhysicsManager";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -34,6 +35,9 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
+  /** Physics manager of Engine. */
+  readonly physicsManager: PhysicsManager = new PhysicsManager(this);
+
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
@@ -131,7 +135,7 @@ export class Engine extends EventDispatcher {
    * Set the target frame rate you want to achieve.
    * @remarks
    * It only takes effect when vSyncCount = 0 (ie, vertical synchronization is turned off).
-   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINIT represents the infinite target frame rate.
+   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINITY represents the infinite target frame rate.
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;
@@ -163,21 +167,21 @@ export class Engine extends EventDispatcher {
 
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
 
-    const whiteTextrue2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    whiteTextrue2D.setPixelBuffer(whitePixel);
-    whiteTextrue2D.isGCIgnored = true;
+    const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+    whiteTexture2D.setPixelBuffer(whitePixel);
+    whiteTexture2D.isGCIgnored = true;
 
-    const whiteTextrueCube = new TextureCubeMap(this, 1, TextureFormat.R8G8B8A8, false);
-    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
-    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
-    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
-    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
-    whiteTextrueCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
-    whiteTextrueCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
-    whiteTextrueCube.isGCIgnored = true;
+    const whiteTextureCube = new TextureCubeMap(this, 1, TextureFormat.R8G8B8A8, false);
+    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
+    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
+    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
+    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
+    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
+    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
+    whiteTextureCube.isGCIgnored = true;
 
-    this._whiteTexture2D = whiteTextrue2D;
-    this._whiteTextureCube = whiteTextrueCube;
+    this._whiteTexture2D = whiteTexture2D;
+    this._whiteTextureCube = whiteTextureCube;
   }
 
   /**
@@ -233,7 +237,7 @@ export class Engine extends EventDispatcher {
       this._render(scene);
     }
 
-    this._componentsManager.callComponentDestory();
+    this._componentsManager.callComponentDestroy();
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
   }
@@ -266,8 +270,8 @@ export class Engine extends EventDispatcher {
 
       this._sceneManager._activeScene.destroy();
       this._resourceManager.gc();
-      // If engine destroy, callComponentDestory() maybe will not call anymore.
-      this._componentsManager.callComponentDestory();
+      // If engine destroy, callComponentDestroy() maybe will not call anymore.
+      this._componentsManager.callComponentDestroy();
       this._sceneManager = null;
       this._resourceManager = null;
 

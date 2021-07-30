@@ -227,7 +227,7 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Remove child entitiy.
+   * Remove child entity.
    * @param child - The child entity which want to be removed.
    */
   removeChild(child: Entity): void {
@@ -237,7 +237,7 @@ export class Entity extends EngineObject {
   /**
    * Find child entity by index.
    * @param index - The index of the child entity.
-   * @returns	The component which be finded.
+   * @returns	The component which be found.
    */
   getChild(index: number): Entity {
     return this._children[index];
@@ -245,8 +245,8 @@ export class Entity extends EngineObject {
 
   /**
    * Find child entity by name.
-   * @param name - The name of the entity which want to be finded.
-   * @returns The component which be finded.
+   * @param name - The name of the entity which want to be found.
+   * @returns The component which be found.
    */
   findByName(name: string): Entity {
     const children = this._children;
@@ -265,7 +265,7 @@ export class Entity extends EngineObject {
   /**
    * Find the entity by path.
    * @param path - The path fo the entity eg: /entity.
-   * @returns The component which be finded.
+   * @returns The component which be found.
    */
   findByPath(path: string): Entity {
     const splits = path.split("/");

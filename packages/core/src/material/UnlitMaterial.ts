@@ -76,7 +76,7 @@ export class UnlitMaterial extends BaseMaterial {
    * @override
    */
   clone(): UnlitMaterial {
-    var dest = new UnlitMaterial(this._engine);
+    const dest = new UnlitMaterial(this._engine);
     this.cloneTo(dest);
     return dest;
   }

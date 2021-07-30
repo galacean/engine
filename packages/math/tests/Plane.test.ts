@@ -7,7 +7,7 @@ describe("Plane test", () => {
     const point2 = new Vector3(0, 1, 1);
     const point3 = new Vector3(1, 1, 0);
     const plane1 = new Plane();
-    Plane.fromPoints(point1, point2, point3, plane1)
+    Plane.fromPoints(point1, point2, point3, plane1);
     const plane2 = new Plane(new Vector3(0, 1, 0), -1);
 
     expect(plane1.distance - plane2.distance).toEqual(0);

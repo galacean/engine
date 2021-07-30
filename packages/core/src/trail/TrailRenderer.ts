@@ -170,7 +170,7 @@ export class TrailRenderer extends MeshRenderer {
 
     vx.normalize();
 
-    const vertieces = this._vertices;
+    const vertices = this._vertices;
     //-- quad pos
     for (let i = 0; i < this._maxPointNum; i++) {
       //-- center pos
@@ -201,13 +201,13 @@ export class TrailRenderer extends MeshRenderer {
 
       const p0 = (i * 2 * this._vertexStride) / 4;
       const p1 = ((i * 2 + 1) * this._vertexStride) / 4;
-      vertieces[p0] = up.x;
-      vertieces[p0 + 1] = up.y;
-      vertieces[p0 + 2] = up.z;
+      vertices[p0] = up.x;
+      vertices[p0 + 1] = up.y;
+      vertices[p0 + 2] = up.z;
 
-      vertieces[p1] = down.x;
-      vertieces[p1 + 1] = down.y;
-      vertieces[p1 + 2] = down.z;
+      vertices[p1] = down.x;
+      vertices[p1 + 1] = down.y;
+      vertices[p1 + 2] = down.z;
     }
   }
 
@@ -220,17 +220,17 @@ export class TrailRenderer extends MeshRenderer {
 
     const count = this._curPointNum;
     const texDelta = 1.0 / count;
-    const vertieces = this._vertices;
+    const vertices = this._vertices;
     for (let i = 0; i < count; i++) {
       const d = 1.0 - i * texDelta;
       const p0 = (i * 2 * this._vertexStride) / 4;
       const p1 = ((i * 2 + 1) * this._vertexStride) / 4;
 
-      vertieces[p0] = 0;
-      vertieces[p0 + 1] = d;
+      vertices[p0] = 0;
+      vertices[p0 + 1] = d;
 
-      vertieces[p1] = 1.0;
-      vertieces[p1 + 1] = d;
+      vertices[p1] = 1.0;
+      vertices[p1 + 1] = d;
     }
   }
 

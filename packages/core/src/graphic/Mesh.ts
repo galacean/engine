@@ -53,7 +53,7 @@ export abstract class Mesh extends RefObject {
   }
 
   /**
-   * Create emsh.
+   * Create mesh.
    * @param engine - Engine
    * @param name - Mesh name
    */
@@ -178,7 +178,7 @@ export abstract class Mesh extends RefObject {
   private _clearVertexElements(): void {
     this._vertexElements.length = 0;
     const vertexElementMap = this._vertexElementMap;
-    for (var k in vertexElementMap) {
+    for (const k in vertexElementMap) {
       delete vertexElementMap[k];
     }
   }

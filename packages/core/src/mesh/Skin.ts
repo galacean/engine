@@ -10,7 +10,7 @@ export class Skin extends EngineObject {
   public joints: string[];
   public skeleton: string;
   /**
-   * Contructor of skin
+   * Constructor of skin
    * @param name - name
    */
   constructor(public name: string) {

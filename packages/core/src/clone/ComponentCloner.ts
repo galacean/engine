@@ -36,7 +36,7 @@ export class ComponentCloner {
             tarProp == null && (tarProp = target[k] = sourcePropS.constructor());
             Object.assign(tarProp, sourcePropS);
           } else {
-            // Null or undefine and primitive type.
+            // Null or undefined and primitive type.
             target[k] = sourcePropS;
           }
           break;
@@ -47,7 +47,7 @@ export class ComponentCloner {
             tarProp == null && (tarProp = target[k] = sourcePropD.constructor());
             CloneManager.deepCloneObject(sourcePropD, tarProp);
           } else {
-            // Null or undefine and primitive type.
+            // Null or undefined and primitive type.
             target[k] = sourcePropD;
           }
           break;

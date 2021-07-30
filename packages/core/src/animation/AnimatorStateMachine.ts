@@ -33,7 +33,7 @@ export class AnimatorStateMachine {
 
   /**
    * Remove a state from the state machine.
-   * @param name - The state
+   * @param state - The state
    */
   removeState(state: AnimatorState): void {
     const { name } = state;
