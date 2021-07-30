@@ -1,4 +1,4 @@
-import { PHYSX as PhysX, physics as PhysicsSystem } from "./physx.release";
+import { physics as PhysicsSystem } from "./physx.release";
 
 /**
  * Describes how physics materials of the colliding objects are combined.
@@ -22,11 +22,11 @@ export class PhysicMaterial {
   private _dynamicFriction: number;
   private _staticFriction: number;
 
-  private _is_dirty: boolean;
+  private _bounceCombine: PhysicCombineMode = PhysicCombineMode.Average;
+  private _frictionCombine: PhysicCombineMode = PhysicCombineMode.Average;
 
+  private _is_dirty: boolean;
   private _pxMaterial: any;
-  private _bounceCombine: any = PhysX.PxCombineMode.eAVERAGE;
-  private _frictionCombine: any = PhysX.PxCombineMode.eAVERAGE;
 
   constructor(staticFriction: number, dynamicFriction: number, bounciness: number) {
     this._staticFriction = staticFriction;
@@ -76,77 +76,27 @@ export class PhysicMaterial {
 
   /** Retrieves the restitution combine mode. */
   get bounceCombine(): PhysicCombineMode {
-    switch (this._bounceCombine) {
-      case PhysX.PxCombineMode.eAVERAGE:
-        return PhysicCombineMode.Average;
-
-      case PhysX.PxCombineMode.eMAX:
-        return PhysicCombineMode.Maximum;
-
-      case PhysX.PxCombineMode.eMIN:
-        return PhysicCombineMode.Minimum;
-
-      case PhysX.PxCombineMode.eMULTIPLY:
-        return PhysicCombineMode.Multiply;
-    }
+    return this._bounceCombine;
   }
 
   /** Sets the restitution combine mode.
    * @param value Restitution combine mode for this material.
    */
   set bounceCombine(value: PhysicCombineMode) {
-    switch (value) {
-      case PhysicCombineMode.Average:
-        this._bounceCombine = PhysX.PxCombineMode.eAVERAGE;
-        break;
-      case PhysicCombineMode.Maximum:
-        this._bounceCombine = PhysX.PxCombineMode.eMAX;
-        break;
-      case PhysicCombineMode.Minimum:
-        this._bounceCombine = PhysX.PxCombineMode.eMIN;
-        break;
-      case PhysicCombineMode.Multiply:
-        this._bounceCombine = PhysX.PxCombineMode.eMULTIPLY;
-        break;
-    }
+    this._bounceCombine = value;
     this._is_dirty = true;
   }
 
   /** Retrieves the friction combine mode. */
   get frictionCombine(): PhysicCombineMode {
-    switch (this._frictionCombine) {
-      case PhysX.PxCombineMode.eAVERAGE:
-        return PhysicCombineMode.Average;
-
-      case PhysX.PxCombineMode.eMAX:
-        return PhysicCombineMode.Maximum;
-
-      case PhysX.PxCombineMode.eMIN:
-        return PhysicCombineMode.Minimum;
-
-      case PhysX.PxCombineMode.eMULTIPLY:
-        return PhysicCombineMode.Multiply;
-    }
+    return this._frictionCombine;
   }
 
   /** Sets the friction combine mode.
    * @param value Friction combine mode to set for this material.
    */
   set frictionCombine(value: PhysicCombineMode) {
-    switch (value) {
-      case PhysicCombineMode.Average:
-        this._frictionCombine = PhysX.PxCombineMode.eAVERAGE;
-        break;
-      case PhysicCombineMode.Maximum:
-        this._frictionCombine = PhysX.PxCombineMode.eMAX;
-        break;
-      case PhysicCombineMode.Minimum:
-        this._frictionCombine = PhysX.PxCombineMode.eMIN;
-        break;
-      case PhysicCombineMode.Multiply:
-        this._frictionCombine = PhysX.PxCombineMode.eMULTIPLY;
-        break;
-    }
+    this._frictionCombine = value;
     this._is_dirty = true;
   }
 
