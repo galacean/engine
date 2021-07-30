@@ -8,19 +8,21 @@ import { Texture2D } from "../../texture/Texture2D";
  */
 export class Sprite extends RefObject {
   /** @internal */
-  _triangles: number[] = [];
+  private static rectangleTriangles = [0, 2, 1, 2, 0, 3];
   /** @internal */
   _uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   /** @internal */
   _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   /** @internal */
   _bounds: BoundingBox = new BoundingBox();
+  /** @internal */
+  _triangles: number[];
 
+  private _region: Rect;
+  private _pivot: Vector2;
+  private _pixelsPerUnit: number;
   private _texture: Texture2D = null;
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
-  private _region: Rect = new Rect(0, 0, 1, 1);
-  private _pivot: Vector2 = new Vector2(0.5, 0.5);
-  private _pixelsPerUnit: number;
   private _dirtyFlag: number = DirtyFlag.all;
   // If and only if the type(SpriteMeshType) is Rect and trimmed.
   private _offset: Vector2 = new Vector2(0, 0);
@@ -145,13 +147,9 @@ export class Sprite extends RefObject {
       this.texture = texture;
     }
 
-    if (region) {
-      this.region = region;
-    }
+    this.region = region || new Rect(0, 0, 1, 1);
 
-    if (pivot) {
-      this.pivot = pivot;
-    }
+    this.pivot = pivot || new Vector2(0.5, 0.5);
 
     this.pixelsPerUnit = pixelsPerUnit;
   }
@@ -174,18 +172,18 @@ export class Sprite extends RefObject {
       return;
     }
 
-    const { _region, _atlasRegion, _pixelsPerUnit, _offset, _pivot } = this;
+    const { _offset } = this;
     const { width, height } = texture;
-    const { width: regionWidth, height: regionHeight } = _region;
-    const { width: atlasRegionWidth, height: atlasRegionHeight } = _atlasRegion;
-    const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
+    const { width: regionWidth, height: regionHeight } = this._region;
+    const { width: atlasRegionWidth, height: atlasRegionHeight } = this._atlasRegion;
+    const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
 
     // Get the width and height in 3D space.
     const unitWidth = atlasRegionWidth * regionWidth * width * pixelsPerUnitReciprocal;
     const unitHeight = atlasRegionHeight * regionHeight * height * pixelsPerUnitReciprocal;
 
     // Get the distance between the anchor point and the four sides.
-    const { x: px, y: py } = _pivot;
+    const { x: px, y: py } = this._pivot;
     const offsetX = _offset.x * pixelsPerUnitReciprocal;
     const offsetY = _offset.y * pixelsPerUnitReciprocal;
     const lx = -px * unitWidth + offsetX;
@@ -219,20 +217,22 @@ export class Sprite extends RefObject {
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
-      const uv = this._uv;
-      const {
-        x: atlasRegionX,
-        y: atlasRegionY,
-        width: atlasRegionWidth,
-        height: atlasRegionHeight
-      } = this._atlasRegion;
-      const { x: regionX, y: regionY, width: regionWidth, height: regionHeight } = this._region;
-      const realWidth = atlasRegionWidth * regionWidth;
-      const realheight = atlasRegionHeight * regionHeight;
-      const left = atlasRegionX + realWidth * regionX;
+      const { _region: region, _atlasRegion: atlasRegion, _uv: uv } = this;
+      const realWidth = atlasRegion.width * region.width;
+      const realheight = atlasRegion.height * region.height;
+      const left = atlasRegion.x + realWidth * region.x;
       const right = left + realWidth;
-      const top = atlasRegionY + realheight * regionY;
+      const top = atlasRegion.y + realheight * region.y;
       const bottom = top + realheight;
+
+      // Top-left.
+      uv[0].setValue(left, top);
+      // Top-right.
+      uv[1].setValue(right, top);
+      // Bottom-right.
+      uv[2].setValue(right, bottom);
+      // Bottom-left.
+      uv[3].setValue(left, bottom);
 
       // Top-left.
       uv[0].setValue(left, top);
@@ -245,13 +245,7 @@ export class Sprite extends RefObject {
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
-      const triangles = this._triangles;
-      triangles[0] = 0;
-      triangles[1] = 2;
-      triangles[2] = 1;
-      triangles[3] = 2;
-      triangles[4] = 0;
-      triangles[5] = 3;
+      this._triangles = Sprite.rectangleTriangles;
     }
   }
 

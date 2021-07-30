@@ -1,37 +1,36 @@
 import { TextureFormat } from "../../texture";
-import { SpriteMeshType } from "../enums/SpriteMeshType";
 
 /**
  * The original data type of the atlas.
  */
 export interface AtlasConfig {
-  // The big picture array, each big picture contains multiple sprites.
-  AtlasItems: {
-    // The url of the big picture.
+  /** The big picture array, each big picture contains multiple sprites. */
+  atlasItems: {
+    /** The url of the big picture. */
     img: string;
-    // The size of the big picture.
+    /** The size of the big picture. */
     size: number[];
-    // Sprites contained in the big picture.
-    frames: Record<string, AtlasFrame>;
+    /** Sprites contained in the big picture. */
+    sprites: AtlasSprite[];
   }[];
-  // Version of Atlas Packaging Tool.
+  /** Version of Atlas */
   version: number;
-  // Texture format.
+  /** Texture format. */
   format: TextureFormat;
 }
 
 /**
  * The original data type of each sprite.
  */
-export interface AtlasFrame {
-  // Sprite's mesh type.
-  meshType: SpriteMeshType;
-  // The original size of the sprite.
+export interface AtlasSprite {
+  /** The name the sprite. */
+  name: string;
+  /** The original size of the sprite. */
   sourceSize: { w: number; h: number };
-  // The range of the sprites on the big picture
+  /** The range of the sprites on the big picture */
   atlasRegion: { x: number; y: number; w: number; h: number };
-  // If there is trimming, the offset of the sprite relative to the original sprite.
-  offset: { x: number; y: number };
+  /** If there is trimming, the offset of the sprite relative to the original sprite. */
+  atlasRegionOffset: { x: number; y: number };
   region: { x: number; y: number; w: number; h: number };
   pivot: { x: number; y: number };
   pixelsPerUnit: number;
