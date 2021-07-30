@@ -60,10 +60,10 @@ export class ResourceManager {
 
   /**
    * Load asset collection asynchronously through urls.
-   * @param path - Path collections
+   * @param paths - Path collections
    * @returns Asset Promise
    */
-  load(pathes: string[]): AssetPromise<Object[]>;
+  load(paths: string[]): AssetPromise<Object[]>;
 
   /**
    * Load the asset asynchronously by asset item information.

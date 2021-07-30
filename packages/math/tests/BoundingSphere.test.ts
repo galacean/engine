@@ -7,7 +7,7 @@ describe("BoundingSphere", () => {
     const sphere1 = new BoundingSphere();
     const sphere2 = new BoundingSphere();
 
-    // Create a same sphere by diffrent param.
+    // Create a same sphere by different param.
     const points = [
       new Vector3(0, 0, 0),
       new Vector3(-1, 0, 0),

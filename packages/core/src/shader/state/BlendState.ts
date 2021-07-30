@@ -69,7 +69,7 @@ export class BlendState {
   readonly targetBlendState: RenderTargetBlendState = new RenderTargetBlendState();
   /** Constant blend color. */
   readonly blendColor: Color = new Color(0, 0, 0, 0);
-  /** Whether to use (Alpha-to-Coverage) technolog. */
+  /** Whether to use (Alpha-to-Coverage) technology. */
   alphaToCoverage: boolean = false;
 
   /**

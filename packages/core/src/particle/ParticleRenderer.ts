@@ -714,78 +714,103 @@ export class ParticleRenderer extends MeshRenderer {
     if (_updateDirtyFlag & DirtyFlagType.Velocity) {
       const { _velocity, _velocityRandomness } = this;
 
-      vertices[k0 + 3] = vertices[k1 + 3] = vertices[k2 + 3] = vertices[k3 + 3] =
-        _velocity.x + getRandom() * _velocityRandomness.x;
-      vertices[k0 + 4] = vertices[k1 + 4] = vertices[k2 + 4] = vertices[k3 + 4] =
-        _velocity.y + getRandom() * _velocityRandomness.y;
-      vertices[k0 + 5] = vertices[k1 + 5] = vertices[k2 + 5] = vertices[k3 + 5] =
-        _velocity.z + getRandom() * _velocityRandomness.z;
+      vertices[k0 + 3] =
+        vertices[k1 + 3] =
+        vertices[k2 + 3] =
+        vertices[k3 + 3] =
+          _velocity.x + getRandom() * _velocityRandomness.x;
+      vertices[k0 + 4] =
+        vertices[k1 + 4] =
+        vertices[k2 + 4] =
+        vertices[k3 + 4] =
+          _velocity.y + getRandom() * _velocityRandomness.y;
+      vertices[k0 + 5] =
+        vertices[k1 + 5] =
+        vertices[k2 + 5] =
+        vertices[k3 + 5] =
+          _velocity.z + getRandom() * _velocityRandomness.z;
     }
 
     if (_updateDirtyFlag & DirtyFlagType.Acceleration) {
       const { _acceleration, _accelerationRandomness } = this;
 
-      vertices[k0 + 6] = vertices[k1 + 6] = vertices[k2 + 6] = vertices[k3 + 6] =
-        _acceleration.x + getRandom() * _accelerationRandomness.x;
-      vertices[k0 + 7] = vertices[k1 + 7] = vertices[k2 + 7] = vertices[k3 + 7] =
-        _acceleration.y + getRandom() * _accelerationRandomness.y;
-      vertices[k0 + 8] = vertices[k1 + 8] = vertices[k2 + 8] = vertices[k3 + 8] =
-        _acceleration.z + getRandom() * _accelerationRandomness.z;
+      vertices[k0 + 6] =
+        vertices[k1 + 6] =
+        vertices[k2 + 6] =
+        vertices[k3 + 6] =
+          _acceleration.x + getRandom() * _accelerationRandomness.x;
+      vertices[k0 + 7] =
+        vertices[k1 + 7] =
+        vertices[k2 + 7] =
+        vertices[k3 + 7] =
+          _acceleration.y + getRandom() * _accelerationRandomness.y;
+      vertices[k0 + 8] =
+        vertices[k1 + 8] =
+        vertices[k2 + 8] =
+        vertices[k3 + 8] =
+          _acceleration.z + getRandom() * _accelerationRandomness.z;
     }
 
     if (_updateDirtyFlag & DirtyFlagType.Color) {
       const { _color, _colorRandomness } = this;
 
-      vertices[k0 + 9] = vertices[k1 + 9] = vertices[k2 + 9] = vertices[k3 + 9] = MathUtil.clamp(
-        _color.r + getRandom() * _colorRandomness,
-        0,
-        1
-      );
+      vertices[k0 + 9] =
+        vertices[k1 + 9] =
+        vertices[k2 + 9] =
+        vertices[k3 + 9] =
+          MathUtil.clamp(_color.r + getRandom() * _colorRandomness, 0, 1);
 
-      vertices[k0 + 10] = vertices[k1 + 10] = vertices[k2 + 10] = vertices[k3 + 10] = MathUtil.clamp(
-        _color.g + getRandom() * _colorRandomness,
-        0,
-        1
-      );
-      vertices[k0 + 11] = vertices[k1 + 11] = vertices[k2 + 11] = vertices[k3 + 11] = MathUtil.clamp(
-        _color.b + getRandom() * _colorRandomness,
-        0,
-        1
-      );
+      vertices[k0 + 10] =
+        vertices[k1 + 10] =
+        vertices[k2 + 10] =
+        vertices[k3 + 10] =
+          MathUtil.clamp(_color.g + getRandom() * _colorRandomness, 0, 1);
+      vertices[k0 + 11] =
+        vertices[k1 + 11] =
+        vertices[k2 + 11] =
+        vertices[k3 + 11] =
+          MathUtil.clamp(_color.b + getRandom() * _colorRandomness, 0, 1);
     }
 
     if (_updateDirtyFlag & DirtyFlagType.Apha) {
-      vertices[k0 + 12] = vertices[k1 + 12] = vertices[k2 + 12] = vertices[k3 + 12] = MathUtil.clamp(
-        this._alpha + getRandom() * this._alphaRandomness,
-        0,
-        1
-      );
+      vertices[k0 + 12] =
+        vertices[k1 + 12] =
+        vertices[k2 + 12] =
+        vertices[k3 + 12] =
+          MathUtil.clamp(this._alpha + getRandom() * this._alphaRandomness, 0, 1);
     }
 
     if (_updateDirtyFlag & DirtyFlagType.StartTime) {
-      vertices[k0 + 13] = vertices[k1 + 13] = vertices[k2 + 13] = vertices[k3 + 13] =
-        Math.random() * this._startTimeRandomness;
+      vertices[k0 + 13] =
+        vertices[k1 + 13] =
+        vertices[k2 + 13] =
+        vertices[k3 + 13] =
+          Math.random() * this._startTimeRandomness;
     }
 
     if (_updateDirtyFlag & DirtyFlagType.LifeTime) {
       const { _lifetime } = this;
 
-      vertices[k0 + 14] = vertices[k1 + 14] = vertices[k2 + 14] = vertices[k3 + 14] =
-        _lifetime + getRandom() * _lifetime;
+      vertices[k0 + 14] =
+        vertices[k1 + 14] =
+        vertices[k2 + 14] =
+        vertices[k3 + 14] =
+          _lifetime + getRandom() * _lifetime;
     }
 
     // Update the duration of play once when startTime or lifetime changes.
-    if ((_updateDirtyFlag & DirtyFlagType.StartTime) || (_updateDirtyFlag & DirtyFlagType.LifeTime)) {
+    if (_updateDirtyFlag & DirtyFlagType.StartTime || _updateDirtyFlag & DirtyFlagType.LifeTime) {
       this._onceTime = Math.max(this._onceTime, vertices[k0 + 13] + vertices[k0 + 14]);
     }
 
     if (_updateDirtyFlag & DirtyFlagType.Size) {
       const { _size } = this;
 
-      vertices[k0 + 15] = vertices[k1 + 15] = vertices[k2 + 15] = vertices[k3 + 15] = Math.max(
-        _size + getRandom() * this._sizeRandomness * _size * 2,
-        0
-      );
+      vertices[k0 + 15] =
+        vertices[k1 + 15] =
+        vertices[k2 + 15] =
+        vertices[k3 + 15] =
+          Math.max(_size + getRandom() * this._sizeRandomness * _size * 2, 0);
     }
 
     if (_updateDirtyFlag & DirtyFlagType.Scale) {
@@ -793,13 +818,19 @@ export class ParticleRenderer extends MeshRenderer {
     }
 
     if (_updateDirtyFlag & DirtyFlagType.StartAngle) {
-      vertices[k0 + 17] = vertices[k1 + 17] = vertices[k2 + 17] = vertices[k3 + 17] =
-        this._startAngle + getRandom() * Math.PI * this._startAngleRandomness * 2;
+      vertices[k0 + 17] =
+        vertices[k1 + 17] =
+        vertices[k2 + 17] =
+        vertices[k3 + 17] =
+          this._startAngle + getRandom() * Math.PI * this._startAngleRandomness * 2;
     }
 
     if (_updateDirtyFlag & DirtyFlagType.RotateVelocity) {
-      vertices[k0 + 18] = vertices[k1 + 18] = vertices[k2 + 18] = vertices[k3 + 18] =
-        this._rotateVelocity + getRandom() * this._rotateVelocityRandomness;
+      vertices[k0 + 18] =
+        vertices[k1 + 18] =
+        vertices[k2 + 18] =
+        vertices[k3 + 18] =
+          this._rotateVelocity + getRandom() * this._rotateVelocityRandomness;
     }
 
     this._updateSingleUv(i, k0, k1, k2, k3);

@@ -19,7 +19,7 @@ describe("Vector3 test", () => {
     expect(toString(out)).toEqual("vec3(-1, 8, 4)");
   });
 
-  it("static substract", () => {
+  it("static subtract", () => {
     const a = new Vector3(2, 3, 4);
     const b = new Vector3(-3, 5, 1);
     const out = new Vector3();

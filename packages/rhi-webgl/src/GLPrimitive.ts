@@ -11,7 +11,7 @@ import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * @internal
- * GL platform primtive.
+ * GL platform primitive.
  */
 export class GLPrimitive implements IPlatformPrimitive {
   protected attribLocArray: number[];

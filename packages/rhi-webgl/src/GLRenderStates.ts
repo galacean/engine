@@ -25,7 +25,7 @@ export class GLRenderStates {
     gl.blendColor(0, 0, 0, 0);
     gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);
 
-    // init depth state same as DpethState default value.
+    // init depth state same as DepthState default value.
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LESS);
     gl.depthMask(true);

@@ -186,6 +186,6 @@ export class Script extends Component {
    * @override
    */
   _onDestroy(): void {
-    this.engine._componentsManager.addDestoryComponent(this);
+    this.engine._componentsManager.addDestroyComponent(this);
   }
 }
