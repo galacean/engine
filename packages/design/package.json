@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/design",
-  "version": "0.4.9",
+  "version": "0.4.10",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
