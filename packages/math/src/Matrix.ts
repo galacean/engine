@@ -550,7 +550,7 @@ export class Matrix implements IClone {
   }
 
   /**
-   * The specified matrix rotates around an arbitary axis.
+   * The specified matrix rotates around an arbitrary axis.
    * @param m - The specified matrix
    * @param axis - The axis
    * @param r - The rotation angle in radians

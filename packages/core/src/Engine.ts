@@ -135,7 +135,7 @@ export class Engine extends EventDispatcher {
    * Set the target frame rate you want to achieve.
    * @remarks
    * It only takes effect when vSyncCount = 0 (ie, vertical synchronization is turned off).
-   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINIT represents the infinite target frame rate.
+   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINITY represents the infinite target frame rate.
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;

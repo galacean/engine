@@ -38,18 +38,18 @@ export class ShaderUniform {
   }
 
   upload2f(shaderUniform: ShaderUniform, value: Vector2 | Vector3 | Vector4 | Color): void {
-    const cacheVaue = <Vector2>this.cacheValue;
+    const cacheValue = <Vector2>this.cacheValue;
     if ((<Color>value).r !== undefined) {
-      if (cacheVaue.x !== (<Color>value).r || cacheVaue.y !== (<Color>value).g) {
+      if (cacheValue.x !== (<Color>value).r || cacheValue.y !== (<Color>value).g) {
         this._gl.uniform2f(shaderUniform.location, (<Color>value).r, (<Color>value).g);
-        cacheVaue.x = (<Color>value).r;
-        cacheVaue.y = (<Color>value).g;
+        cacheValue.x = (<Color>value).r;
+        cacheValue.y = (<Color>value).g;
       }
     } else {
-      if (cacheVaue.x !== (<Vector2>value).x || cacheVaue.y !== (<Vector2>value).y) {
+      if (cacheValue.x !== (<Vector2>value).x || cacheValue.y !== (<Vector2>value).y) {
         this._gl.uniform2f(shaderUniform.location, (<Vector2>value).x, (<Vector2>value).y);
-        cacheVaue.x = (<Vector2>value).x;
-        cacheVaue.y = (<Vector2>value).y;
+        cacheValue.x = (<Vector2>value).x;
+        cacheValue.y = (<Vector2>value).y;
       }
     }
   }
