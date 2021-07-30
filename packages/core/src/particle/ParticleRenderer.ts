@@ -19,7 +19,7 @@ enum DirtyFlagType {
   Velocity = 0x2,
   Acceleration = 0x4,
   Color = 0x8,
-  Apha = 0x10,
+  Alpha = 0x10,
   Size = 0x20,
   StartAngle = 0x40,
   StartTime = 0x80,
@@ -248,7 +248,7 @@ export class ParticleRenderer extends MeshRenderer {
   }
 
   set alpha(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.Apha;
+    this._updateDirtyFlag |= DirtyFlagType.Alpha;
     this._alpha = value;
   }
 
@@ -260,7 +260,7 @@ export class ParticleRenderer extends MeshRenderer {
   }
 
   set alphaRandomness(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.Apha;
+    this._updateDirtyFlag |= DirtyFlagType.Alpha;
     this._alphaRandomness = value;
   }
 
@@ -630,10 +630,10 @@ export class ParticleRenderer extends MeshRenderer {
 
     for (let i = 0, idx = 0; i < this._maxCount; ++i) {
       let startIndex = i * 4;
-      indices[idx++] = startIndex + 0;
+      indices[idx++] = startIndex;
       indices[idx++] = startIndex + 1;
       indices[idx++] = startIndex + 2;
-      indices[idx++] = startIndex + 0;
+      indices[idx++] = startIndex;
       indices[idx++] = startIndex + 2;
       indices[idx++] = startIndex + 3;
     }
@@ -772,7 +772,7 @@ export class ParticleRenderer extends MeshRenderer {
           MathUtil.clamp(_color.b + getRandom() * _colorRandomness, 0, 1);
     }
 
-    if (_updateDirtyFlag & DirtyFlagType.Apha) {
+    if (_updateDirtyFlag & DirtyFlagType.Alpha) {
       vertices[k0 + 12] =
         vertices[k1 + 12] =
         vertices[k2 + 12] =

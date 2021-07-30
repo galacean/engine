@@ -38,7 +38,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _mat: Matrix;
   @ignoreClone
-  /** Whether to use joint texture. Automatically used when the device can't support the maxium number of bones. */
+  /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
   private _blendShapeWeights: Float32Array;
