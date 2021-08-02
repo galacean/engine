@@ -6,10 +6,8 @@ import { Sprite } from "../sprite/Sprite";
  * Sprite Atlas.
  */
 export class SpriteAtlas extends RefObject {
-  /** @internal */
-  _sprites: Sprite[] = new Array<Sprite>();
-  /** @internal */
-  _spriteNamesToIndex: Record<string, number> = {};
+  private _sprites: Sprite[] = new Array<Sprite>();
+  private _spriteNamesToIndex: Record<string, number> = {};
 
   /**
    * All the sprites in the atlas.
@@ -38,14 +36,16 @@ export class SpriteAtlas extends RefObject {
    * @returns The sprites you want to find
    */
   getSprites(name: string, outSprites: Sprite[]): Sprite[] {
-    if (name != null) {
+    outSprites.length = 0;
+    let i = this._spriteNamesToIndex[name];
+    if (i !== undefined) {
       const { _sprites } = this;
-      for (let i = this._spriteNamesToIndex[name]; i >= 0; i--) {
+      for (; i >= 0; i--) {
         const sprite = _sprites[i];
         sprite.name === name && outSprites.push(sprite);
       }
     } else {
-      console.warn("The name of the sprite you want to find is null.");
+      console.warn("The name of the sprite you want to find is not exit in SpriteAtlas.");
     }
     return outSprites;
   }
@@ -69,9 +69,7 @@ export class SpriteAtlas extends RefObject {
    * @override
    */
   _onDestroy(): void {
-    if (this._sprites) {
-      this._sprites = null;
-      this._spriteNamesToIndex = null;
-    }
+    this._sprites = null;
+    this._spriteNamesToIndex = null;
   }
 }

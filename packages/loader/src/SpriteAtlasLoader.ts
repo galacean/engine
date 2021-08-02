@@ -33,8 +33,9 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           ).then((imgs) => {
             const { engine } = resourceManager;
             // Generate a SpriteAtlas object
+            const tempRect = new Rect();
+            const tempPivot = new Vector2();
             const spriteAtlas = new SpriteAtlas(engine);
-            const texturesArr = new Array<Texture2D>(atlasItemsLen);
             for (let i = 0; i < atlasItemsLen; i++) {
               // Generate Texture2D according to configuration
               const originalImg = imgs[i];
@@ -42,21 +43,23 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               const texture = new Texture2D(engine, width, height, format);
               texture.setImageSource(originalImg);
               texture.generateMipmaps();
-              texturesArr[i] = texture;
               // Generate all the sprites on this texture.
               const atlasItem = atlasItems[i];
               const sprites = atlasItem.sprites;
-              const [sourceWidth, sourceHeight] = atlasItem.size;
-              const sourceWidthReciprocal = 1.0 / sourceWidth;
-              const sourceHeightReciprocal = 1.0 / sourceHeight;
+              const sourceWidthReciprocal = 1.0 / width;
+              const sourceHeightReciprocal = 1.0 / height;
               for (let j = sprites.length - 1; j >= 0; j--) {
                 const atlasSprite = sprites[j];
                 const { region, pivot, atlasRegionOffset, atlasRegion } = atlasSprite;
+
+                tempRect.setValue(region.x, region.y, region.w, region.h);
+                tempPivot.setValue(pivot.x, pivot.y);
+
                 const sprite = new Sprite(
                   engine,
                   texture,
-                  new Rect(region.x, region.y, region.w, region.h),
-                  new Vector2(pivot.x, pivot.y),
+                  tempRect,
+                  tempPivot,
                   atlasSprite.pixelsPerUnit,
                   atlasSprite.name
                 );
@@ -71,7 +74,6 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 spriteAtlas._addSprite(sprite);
               }
             }
-            // Return a SpriteAtlas instance.
             resolve(spriteAtlas);
           });
         })
