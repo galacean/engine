@@ -61,7 +61,7 @@ export class SpriteAtlas extends RefObject {
   /**
    * @internal
    */
-  _registerSprite(sprite: Sprite): void {
+  _addSprite(sprite: Sprite): void {
     this._spriteNamesToIndex[sprite.name] = this._sprites.push(sprite) - 1;
   }
 

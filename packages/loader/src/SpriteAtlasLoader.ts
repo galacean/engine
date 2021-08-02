@@ -68,7 +68,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 );
                 sprite.atlasRegionOffset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
                 /** @ts-ignore */
-                spriteAtlas._registerSprite(sprite);
+                spriteAtlas._addSprite(sprite);
               }
             }
             // Return a SpriteAtlas instance.
