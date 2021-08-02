@@ -40,9 +40,9 @@ export class SpriteAtlas extends RefObject {
   getSprites(name: string, outSprites: Sprite[]): Sprite[] {
     if (name != null) {
       const { _sprites } = this;
-      for (let index = this._spriteNamesToIndex[name]; index >= 0; index--) {
-        const sprite = _sprites[index];
-        sprite.name == name && outSprites.push(sprite);
+      for (let i = this._spriteNamesToIndex[name]; i >= 0; i--) {
+        const sprite = _sprites[i];
+        sprite.name === name && outSprites.push(sprite);
       }
     } else {
       console.warn("The name of the sprite you want to find is null.");
@@ -61,7 +61,7 @@ export class SpriteAtlas extends RefObject {
   /**
    * @internal
    */
-  _registerSprite(sprite: Sprite) {
+  _registerSprite(sprite: Sprite): void {
     this._spriteNamesToIndex[sprite.name] = this._sprites.push(sprite) - 1;
   }
 

@@ -35,22 +35,22 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
             // Generate a SpriteAtlas object
             const spriteAtlas = new SpriteAtlas(engine);
             const texturesArr = new Array<Texture2D>(atlasItemsLen);
-            for (let idx = 0; idx < atlasItemsLen; idx++) {
+            for (let i = 0; i < atlasItemsLen; i++) {
               // Generate Texture2D according to configuration
-              const originalImg = imgs[idx];
+              const originalImg = imgs[i];
               const { width, height } = originalImg;
               const texture = new Texture2D(engine, width, height, format);
               texture.setImageSource(originalImg);
               texture.generateMipmaps();
-              texturesArr[idx] = texture;
+              texturesArr[i] = texture;
               // Generate all the sprites on this texture.
-              const atlasItem = atlasItems[idx];
+              const atlasItem = atlasItems[i];
               const sprites = atlasItem.sprites;
               const [sourceWidth, sourceHeight] = atlasItem.size;
               const sourceWidthReciprocal = 1.0 / sourceWidth;
               const sourceHeightReciprocal = 1.0 / sourceHeight;
-              for (let spriteIdx = sprites.length - 1; spriteIdx >= 0; spriteIdx--) {
-                const atlasSprite = sprites[spriteIdx];
+              for (let j = sprites.length - 1; j >= 0; j--) {
+                const atlasSprite = sprites[j];
                 const { region, pivot, atlasRegionOffset, atlasRegion } = atlasSprite;
                 const sprite = new Sprite(
                   engine,
