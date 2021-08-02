@@ -8,16 +8,18 @@ import { Texture2D } from "../../texture/Texture2D";
  */
 export class Sprite extends RefObject {
   /** @internal */
-  _triangles: number[] = [];
+  _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   /** @internal */
   _uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   /** @internal */
-  _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  _triangles: number[] = [];
+
   /** @internal */
   _bounds: BoundingBox = new BoundingBox();
 
   private _texture: Texture2D = null;
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
+  private _atlasRegionOffset: Vector2 = new Vector2(0, 0);
   private _region: Rect = new Rect(0, 0, 1, 1);
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _pixelsPerUnit: number;
@@ -50,7 +52,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * The rectangle region of the original texture on its atlas texture.
+   * The rectangle region of the original texture on its atlas texture, specified in normalized.
    */
   get atlasRegion(): Rect {
     return this._atlasRegion;
@@ -58,10 +60,23 @@ export class Sprite extends RefObject {
 
   set atlasRegion(value: Rect) {
     const atlasRegion = this._atlasRegion;
-    atlasRegion.x = MathUtil.clamp(value.x, 0, 1);
-    atlasRegion.y = MathUtil.clamp(value.y, 0, 1);
-    atlasRegion.width = MathUtil.clamp(value.width, 0, 1.0 - atlasRegion.x);
-    atlasRegion.height = MathUtil.clamp(value.height, 0, 1.0 - atlasRegion.y);
+    atlasRegion.setValue(
+      MathUtil.clamp(value.x, 0, 1),
+      MathUtil.clamp(value.y, 0, 1),
+      MathUtil.clamp(value.width, 0, 1 - atlasRegion.x),
+      MathUtil.clamp(value.height, 0, 1 - atlasRegion.y)
+    );
+  }
+
+  /**
+   * The rectangle region offset of the original texture on its atlas texture, specified in normalized.
+   */
+  get atlasRegionOffset(): Vector2 {
+    return this._atlasRegionOffset;
+  }
+
+  set atlasRegionOffset(value: Vector2) {
+    this._atlasRegionOffset.setValue(MathUtil.clamp(value.x, 0, 1), MathUtil.clamp(value.y, 0, 1));
   }
 
   /**
@@ -72,9 +87,7 @@ export class Sprite extends RefObject {
   }
 
   set pivot(value: Vector2) {
-    const pivot = this._pivot;
-    pivot.x = MathUtil.clamp(value.x, 0, 1);
-    pivot.y = MathUtil.clamp(value.y, 0, 1);
+    this._pivot.setValue(MathUtil.clamp(value.x, 0, 1), MathUtil.clamp(value.y, 0, 1));
     this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
@@ -87,10 +100,12 @@ export class Sprite extends RefObject {
 
   set region(value: Rect) {
     const region = this._region;
-    region.x = MathUtil.clamp(value.x, 0, 1);
-    region.y = MathUtil.clamp(value.y, 0, 1);
-    region.width = MathUtil.clamp(value.width, 0, 1.0 - region.x);
-    region.height = MathUtil.clamp(value.height, 0, 1.0 - region.y);
+    region.setValue(
+      MathUtil.clamp(value.x, 0, 1),
+      MathUtil.clamp(value.y, 0, 1),
+      MathUtil.clamp(value.width, 0, 1 - region.x),
+      MathUtil.clamp(value.height, 0, 1 - region.y)
+    );
     this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
