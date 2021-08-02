@@ -34,8 +34,6 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
             const { engine } = resourceManager;
             // Generate a SpriteAtlas object
             const spriteAtlas = new SpriteAtlas(engine);
-            /** @ts-ignore */
-            const spriteMap = spriteAtlas._spritesMap;
             const texturesArr = new Array<Texture2D>(atlasItemsLen);
             for (let idx = atlasItemsLen - 1; idx >= 0; idx--) {
               // Generate Texture2D according to configuration
@@ -68,7 +66,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   atlasRegion.h * sourceHeightReciprocal
                 );
                 sprite.atlasRegionOffset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
-                spriteMap[atlasSprite.name] = sprite;
+                /** @ts-ignore */
+                spriteAtlas._registerSprite(atlasSprite.name, sprite);
               }
             }
             // Return a SpriteAtlas instance.
