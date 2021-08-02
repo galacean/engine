@@ -7,11 +7,11 @@ import { Texture2D } from "../../texture/Texture2D";
  * 2D sprite.
  */
 export class Sprite extends RefObject {
+  private static _rectangleTriangles: number[] = [0, 2, 1, 2, 0, 3];
+
   /** The name of sprite. */
   name: string;
 
-  /** @internal */
-  private static rectangleTriangles = [0, 2, 1, 2, 0, 3];
   /** @internal */
   _uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   /** @internal */
@@ -21,13 +21,13 @@ export class Sprite extends RefObject {
   /** @internal */
   _triangles: number[];
 
-  private _region: Rect;
-  private _pivot: Vector2;
   private _pixelsPerUnit: number;
   private _texture: Texture2D = null;
+  private _region: Rect = new Rect(0, 0, 1, 1);
+  private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
   private _atlasRegionOffset: Vector2 = new Vector2(0, 0);
-  private _dirtyFlag: number = DirtyFlag.all;
+  private _dirtyFlag: DirtyFlag = DirtyFlag.all;
 
   /**
    * The reference to the used texture.
@@ -73,7 +73,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-  * The rectangle region offset of the original texture on its atlas texture, specified in normalized.
+   * The rectangle region offset of the original texture on its atlas texture, specified in normalized.
    */
   get atlasRegionOffset(): Vector2 {
     return this._atlasRegionOffset;
@@ -150,9 +150,9 @@ export class Sprite extends RefObject {
       this.texture = texture;
     }
 
-    this.region = region || new Rect(0, 0, 1, 1);
+    region && region.cloneTo(this._region);
 
-    this.pivot = pivot || new Vector2(0.5, 0.5);
+    pivot && pivot.cloneTo(this._pivot);
 
     this.pixelsPerUnit = pixelsPerUnit;
 
@@ -241,7 +241,7 @@ export class Sprite extends RefObject {
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.triangles)) {
-      this._triangles = Sprite.rectangleTriangles;
+      this._triangles = Sprite._rectangleTriangles;
     }
   }
 
