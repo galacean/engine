@@ -7,6 +7,9 @@ import { Texture2D } from "../../texture/Texture2D";
  * 2D sprite.
  */
 export class Sprite extends RefObject {
+  /** The name of sprite. */
+  name: string;
+
   /** @internal */
   private static rectangleTriangles = [0, 2, 1, 2, 0, 3];
   /** @internal */
@@ -77,7 +80,7 @@ export class Sprite extends RefObject {
   }
 
   set atlasRegionOffset(value: Vector2) {
-    this._atlasRegionOffset.setValue(value.x, value.y);
+    this._atlasRegionOffset.setValue(MathUtil.clamp(value.x, 0, 1), MathUtil.clamp(value.y, 0, 1));
     this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
@@ -138,7 +141,8 @@ export class Sprite extends RefObject {
     texture: Texture2D = null,
     region: Rect = null,
     pivot: Vector2 = null,
-    pixelsPerUnit: number = 128
+    pixelsPerUnit: number = 128,
+    name: string = null
   ) {
     super(engine);
 
@@ -151,6 +155,8 @@ export class Sprite extends RefObject {
     this.pivot = pivot || new Vector2(0.5, 0.5);
 
     this.pixelsPerUnit = pixelsPerUnit;
+
+    this.name = name;
   }
 
   /**
@@ -167,44 +173,44 @@ export class Sprite extends RefObject {
    */
   private _updatePositionsAndBounds(): void {
     const { texture } = this;
-    if (!texture) {
-      return;
-    }
-
-    const { _atlasRegionOffset } = this;
-    const { width, height } = texture;
-    const { width: regionWidth, height: regionHeight } = this._region;
-    const { width: atlasRegionWidth, height: atlasRegionHeight } = this._atlasRegion;
-    const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
-
-    // Get the width and height in 3D space.
-    const unitWidth = atlasRegionWidth * regionWidth * width * pixelsPerUnitReciprocal;
-    const unitHeight = atlasRegionHeight * regionHeight * height * pixelsPerUnitReciprocal;
-
-    // Get the distance between the anchor point and the four sides.
-    const { x: px, y: py } = this._pivot;
-    const offsetX = _atlasRegionOffset.x * pixelsPerUnitReciprocal;
-    const offsetY = _atlasRegionOffset.y * pixelsPerUnitReciprocal;
-    const lx = -px * unitWidth + offsetX;
-    const ty = -py * unitHeight + offsetY;
-    const rx = (1 - px) * unitWidth + offsetX;
-    const by = (1 - py) * unitHeight + offsetY;
-
-    // Assign values ​​to _positions
-    const positions = this._positions;
-    // Top-left.
-    positions[0].setValue(lx, by);
-    // Top-right.
-    positions[1].setValue(rx, by);
-    // Bottom-right.
-    positions[2].setValue(rx, ty);
-    // Bottom-left.
-    positions[3].setValue(lx, ty);
-
-    // Update bounds.
     const { min, max } = this._bounds;
-    min.setValue(lx, ty, 0);
-    max.setValue(rx, by, 0);
+    if (texture) {
+      const { _atlasRegionOffset } = this;
+      const { width, height } = texture;
+      const { width: regionWidth, height: regionHeight } = this._region;
+      const { width: atlasRegionWidth, height: atlasRegionHeight } = this._atlasRegion;
+      const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
+
+      // Get the width and height in 3D space.
+      const unitWidth = atlasRegionWidth * regionWidth * width * pixelsPerUnitReciprocal;
+      const unitHeight = atlasRegionHeight * regionHeight * height * pixelsPerUnitReciprocal;
+
+      // Get the distance between the anchor point and the four sides.
+      const { x: px, y: py } = this._pivot;
+      const lx = (-px + _atlasRegionOffset.x) * unitWidth;
+      const ty = (-py + _atlasRegionOffset.y) * unitHeight;
+      const rx = unitWidth + lx;
+      const by = unitHeight + ty;
+
+      // Assign values ​​to _positions
+      const positions = this._positions;
+      // Top-left.
+      positions[0].setValue(lx, by);
+      // Top-right.
+      positions[1].setValue(rx, by);
+      // Bottom-right.
+      positions[2].setValue(rx, ty);
+      // Bottom-left.
+      positions[3].setValue(lx, ty);
+
+      // Update bounds.
+      min.setValue(lx, ty, 0);
+      max.setValue(rx, by, 0);
+    } else {
+      // Update bounds.
+      min.setValue(0, 0, 0);
+      max.setValue(0, 0, 0);
+    }
   }
 
   /**
@@ -220,18 +226,9 @@ export class Sprite extends RefObject {
       const realWidth = atlasRegion.width * region.width;
       const realheight = atlasRegion.height * region.height;
       const left = atlasRegion.x + realWidth * region.x;
-      const right = left + realWidth;
       const top = atlasRegion.y + realheight * region.y;
+      const right = left + realWidth;
       const bottom = top + realheight;
-
-      // Top-left.
-      uv[0].setValue(left, top);
-      // Top-right.
-      uv[1].setValue(right, top);
-      // Bottom-right.
-      uv[2].setValue(right, bottom);
-      // Bottom-left.
-      uv[3].setValue(left, bottom);
 
       // Top-left.
       uv[0].setValue(left, top);

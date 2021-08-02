@@ -35,7 +35,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
             // Generate a SpriteAtlas object
             const spriteAtlas = new SpriteAtlas(engine);
             const texturesArr = new Array<Texture2D>(atlasItemsLen);
-            for (let idx = atlasItemsLen - 1; idx >= 0; idx--) {
+            for (let idx = 0; idx < atlasItemsLen; idx++) {
               // Generate Texture2D according to configuration
               const originalImg = imgs[idx];
               const { width, height } = originalImg;
@@ -57,7 +57,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   texture,
                   new Rect(region.x, region.y, region.w, region.h),
                   new Vector2(pivot.x, pivot.y),
-                  atlasSprite.pixelsPerUnit
+                  atlasSprite.pixelsPerUnit,
+                  atlasSprite.name
                 );
                 sprite.atlasRegion.setValue(
                   atlasRegion.x * sourceWidthReciprocal,
@@ -67,7 +68,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 );
                 sprite.atlasRegionOffset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
                 /** @ts-ignore */
-                spriteAtlas._registerSprite(atlasSprite.name, sprite);
+                spriteAtlas._registerSprite(sprite);
               }
             }
             // Return a SpriteAtlas instance.

@@ -7,13 +7,15 @@ import { Sprite } from "../sprite/Sprite";
  */
 export class SpriteAtlas extends RefObject {
   /** @internal */
-  _sprites = [];
+  _sprites = new Array<Sprite>();
   /** @internal */
   _spriteNamesToIndex: Record<string, number> = {};
 
-  /** @internal */
-  private _registerSprite(name: string, sprite: Sprite) {
-    this._spriteNamesToIndex[name] = this._sprites.push(sprite) - 1;
+  /**
+   * All the sprites in the atlas.
+   */
+  public get sprites(): Readonly<Sprite[]> {
+    return this._sprites;
   }
 
   /**
@@ -30,15 +32,22 @@ export class SpriteAtlas extends RefObject {
   }
 
   /**
-   * Get all the sprites in the atlas.
-   * @returns all the sprites in the atlas
+   *
+   * @param name - The name of the sprite you want to find
+   * @param outSprites
+   * @returns
    */
-  public getSprites(sprites: Sprite[]): Sprite[] {
-    const len = this._sprites.length;
-    for (let i = 0; i < len; i++) {
-      sprites.push(this._sprites[i]);
+  public getSprites(name: string, outSprites: Sprite[]): Sprite[] {
+    if (name != null) {
+      const { _sprites } = this;
+      for (let index = this._spriteNamesToIndex[name]; index >= 0; index--) {
+        const sprite = _sprites[index];
+        sprite.name == name && outSprites.push(sprite);
+      }
+    } else {
+      console.warn("The name of the sprite you want to find is null.");
     }
-    return sprites;
+    return outSprites;
   }
 
   /**
@@ -47,6 +56,13 @@ export class SpriteAtlas extends RefObject {
    */
   constructor(engine: Engine) {
     super(engine);
+  }
+
+  /**
+   * @internal
+   */
+  _registerSprite(sprite: Sprite) {
+    this._spriteNamesToIndex[sprite.name] = this._sprites.push(sprite) - 1;
   }
 
   /**
