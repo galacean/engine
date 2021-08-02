@@ -19,7 +19,7 @@ export class SpriteAtlas extends RefObject {
   }
 
   /**
-   * Get the sprite named 'name' from the atlas.
+   * Get the last sprite named 'name' from the atlas.
    * @param name - The name of the sprite you want to find
    * @returns The sprite you want to find
    */
@@ -32,10 +32,10 @@ export class SpriteAtlas extends RefObject {
   }
 
   /**
-   *
-   * @param name - The name of the sprite you want to find
-   * @param outSprites
-   * @returns
+   * Get all the sprite named 'name' from the atlas.
+   * @param name - The name of the sprites you want to find
+   * @param outSprites - This array holds the sprites found
+   * @returns The sprites you want to find
    */
   public getSprites(name: string, outSprites: Sprite[]): Sprite[] {
     if (name != null) {
