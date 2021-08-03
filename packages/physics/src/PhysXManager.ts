@@ -1,8 +1,10 @@
 export class PhysXManager {
-  /*PhysX wasm object*/
+  /** PhysX wasm object */
   static PhysX: any;
-  /*Physx physics object*/
+  /** Physx physics object */
   static physics: any;
+  /** Global Physical Components ID which use to match PhysX and Oasis Components */
+  static physical_id: number = 0;
 
   /**
    * Initialize PhysX Object.

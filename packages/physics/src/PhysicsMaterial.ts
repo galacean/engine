@@ -25,14 +25,19 @@ export class PhysicsMaterial {
   private _bounceCombine: PhysicsCombineMode = PhysicsCombineMode.Average;
   private _frictionCombine: PhysicsCombineMode = PhysicsCombineMode.Average;
 
-  private _is_dirty: boolean;
-  private _pxMaterial: any;
+  /**
+   * PhysX material object
+   * @internal
+   */
+  _pxMaterial: any;
 
   constructor(staticFriction: number, dynamicFriction: number, bounciness: number) {
     this._staticFriction = staticFriction;
     this._dynamicFriction = dynamicFriction;
     this._bounciness = bounciness;
-    this._is_dirty = true;
+
+    // alloc PhysX object
+    this._alloc();
   }
 
   /** Retrieves the coefficient of restitution. */
@@ -45,7 +50,7 @@ export class PhysicsMaterial {
    */
   set bounciness(value: number) {
     this._bounciness = value;
-    this._is_dirty = true;
+    this._pxMaterial.setRestitution(this._bounciness);
   }
 
   /** Retrieves the DynamicFriction value. */
@@ -58,7 +63,7 @@ export class PhysicsMaterial {
    */
   set dynamicFriction(value: number) {
     this._dynamicFriction = value;
-    this._is_dirty = true;
+    this._pxMaterial.setDynamicFriction(this._dynamicFriction);
   }
 
   /** Retrieves the coefficient of static friction. */
@@ -71,7 +76,7 @@ export class PhysicsMaterial {
    */
   set staticFriction(value: number) {
     this._staticFriction = value;
-    this._is_dirty = true;
+    this._pxMaterial.setStaticFriction(this._staticFriction);
   }
 
   /** Retrieves the restitution combine mode. */
@@ -84,7 +89,7 @@ export class PhysicsMaterial {
    */
   set bounceCombine(value: PhysicsCombineMode) {
     this._bounceCombine = value;
-    this._is_dirty = true;
+    this._pxMaterial.setRestitutionCombineMode(this._bounceCombine);
   }
 
   /** Retrieves the friction combine mode. */
@@ -97,20 +102,17 @@ export class PhysicsMaterial {
    */
   set frictionCombine(value: PhysicsCombineMode) {
     this._frictionCombine = value;
-    this._is_dirty = true;
+    this._pxMaterial.setFrictionCombineMode(this._frictionCombine);
   }
 
-  create(): any {
-    if (this._is_dirty) {
-      this._pxMaterial = PhysXManager.physics.createMaterial(
-        this._staticFriction,
-        this._dynamicFriction,
-        this._bounciness
-      );
-      this._pxMaterial.setFrictionCombineMode(this._frictionCombine);
-      this._pxMaterial.setRestitutionCombineMode(this._bounceCombine);
-      this._is_dirty = false;
-    }
-    return this._pxMaterial;
+  /** alloc PhysX PhysicalMaterial object */
+  private _alloc() {
+    this._pxMaterial = PhysXManager.physics.createMaterial(
+      this._staticFriction,
+      this._dynamicFriction,
+      this._bounciness
+    );
+    this._pxMaterial.setFrictionCombineMode(this._frictionCombine);
+    this._pxMaterial.setRestitutionCombineMode(this._bounceCombine);
   }
 }
