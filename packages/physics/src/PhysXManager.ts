@@ -5,10 +5,15 @@ export class PhysXManager {
   static physics: any;
 
   /**
-   * called in Engine
-   * @internal
-   */
-  static _setup() {
+   * Initialize PhysX Object.
+   * @param PHYSX PhysX wasm object.
+   * */
+  public static init(PHYSX: any) {
+    PhysXManager.PhysX = PHYSX;
+    PhysXManager._setup();
+  }
+
+  private static _setup() {
     const version = PhysXManager.PhysX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new PhysXManager.PhysX.PxDefaultErrorCallback();
     const allocator = new PhysXManager.PhysX.PxDefaultAllocator();

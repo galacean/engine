@@ -14,6 +14,7 @@
     "types/**/*"
   ],
   "dependencies": {
+    "oasis-engine": "0.4.2",
     "@oasis-engine/core": "0.4.2",
     "@oasis-engine/math": "0.4.2"
   }

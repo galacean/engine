@@ -1,2 +1,2 @@
-import { PhysicMaterial } from "./PhysicsMaterial";
+import { PhysicsMaterial } from "./PhysicsMaterial";
 import { PhysXManager } from "./PhysXManager";

@@ -1,9 +1,9 @@
-import { physics as PhysicsSystem } from "./physx.release";
+import { PhysXManager } from "./PhysXManager";
 
 /**
  * Describes how physics materials of the colliding objects are combined.
  */
-export enum PhysicCombineMode {
+export enum PhysicsCombineMode {
   /** Averages the friction/bounce of the two colliding materials. */
   Average,
   /** Uses the smaller friction/bounce of the two colliding materials. */
@@ -17,13 +17,13 @@ export enum PhysicCombineMode {
 /**
  * Physics material describes how to handle colliding objects (friction, bounciness).
  */
-export class PhysicMaterial {
+export class PhysicsMaterial {
   private _bounciness: number;
   private _dynamicFriction: number;
   private _staticFriction: number;
 
-  private _bounceCombine: PhysicCombineMode = PhysicCombineMode.Average;
-  private _frictionCombine: PhysicCombineMode = PhysicCombineMode.Average;
+  private _bounceCombine: PhysicsCombineMode = PhysicsCombineMode.Average;
+  private _frictionCombine: PhysicsCombineMode = PhysicsCombineMode.Average;
 
   private _is_dirty: boolean;
   private _pxMaterial: any;
@@ -75,34 +75,38 @@ export class PhysicMaterial {
   }
 
   /** Retrieves the restitution combine mode. */
-  get bounceCombine(): PhysicCombineMode {
+  get bounceCombine(): PhysicsCombineMode {
     return this._bounceCombine;
   }
 
   /** Sets the restitution combine mode.
    * @param value Restitution combine mode for this material.
    */
-  set bounceCombine(value: PhysicCombineMode) {
+  set bounceCombine(value: PhysicsCombineMode) {
     this._bounceCombine = value;
     this._is_dirty = true;
   }
 
   /** Retrieves the friction combine mode. */
-  get frictionCombine(): PhysicCombineMode {
+  get frictionCombine(): PhysicsCombineMode {
     return this._frictionCombine;
   }
 
   /** Sets the friction combine mode.
    * @param value Friction combine mode to set for this material.
    */
-  set frictionCombine(value: PhysicCombineMode) {
+  set frictionCombine(value: PhysicsCombineMode) {
     this._frictionCombine = value;
     this._is_dirty = true;
   }
 
   create(): any {
     if (this._is_dirty) {
-      this._pxMaterial = PhysicsSystem.createMaterial(this._staticFriction, this._dynamicFriction, this._bounciness);
+      this._pxMaterial = PhysXManager.physics.createMaterial(
+        this._staticFriction,
+        this._dynamicFriction,
+        this._bounciness
+      );
       this._pxMaterial.setFrictionCombineMode(this._frictionCombine);
       this._pxMaterial.setRestitutionCombineMode(this._bounceCombine);
       this._is_dirty = false;

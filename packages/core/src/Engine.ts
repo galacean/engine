@@ -27,7 +27,6 @@ import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
 import { PhysicsManager } from "./PhysicsManager";
 import { PHYSX } from "../../physics/src/physx.release.js";
-import { PhysXManager } from "../../physics/src/PhysXManager";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -188,10 +187,7 @@ export class Engine extends EventDispatcher {
 
   init(_cb) {
     PHYSX().then(function (PHYSX) {
-      PhysXManager.PhysX = PHYSX;
-      PhysXManager._setup();
-      console.log("PHYSX loaded");
-      _cb();
+      _cb(PHYSX);
     });
   }
 
