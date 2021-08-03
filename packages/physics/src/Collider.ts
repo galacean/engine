@@ -1,4 +1,4 @@
-import { Component, Entity, Vector3 } from "oasis-engine";
+import { Component, Vector3 } from "oasis-engine";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import { PhysXManager } from "./PhysXManager";
 
