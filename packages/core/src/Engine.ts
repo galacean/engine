@@ -185,6 +185,10 @@ export class Engine extends EventDispatcher {
     this._whiteTextureCube = whiteTextureCube;
   }
 
+  /**
+   * Engine Initialization after asynchronous loader i.e. WASM.
+   * @param _cb initialization callback.
+   */
   init(_cb) {
     PHYSX().then(function (PHYSX) {
       _cb(PHYSX);
