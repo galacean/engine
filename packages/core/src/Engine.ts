@@ -26,6 +26,8 @@ import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
 import { PhysicsManager } from "./PhysicsManager";
+import { PHYSX } from "../../physics/src/physx.release.js";
+import { PhysXManager } from "../../physics/src/PhysXManager";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -182,6 +184,15 @@ export class Engine extends EventDispatcher {
 
     this._whiteTexture2D = whiteTexture2D;
     this._whiteTextureCube = whiteTextureCube;
+  }
+
+  init(_cb) {
+    PHYSX().then(function (PHYSX) {
+      PhysXManager.PhysX = PHYSX;
+      PhysXManager.setup();
+      console.log("PHYSX loaded");
+      _cb();
+    });
   }
 
   /**
