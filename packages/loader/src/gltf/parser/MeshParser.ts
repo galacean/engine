@@ -49,13 +49,8 @@ export class MeshParser extends Parser {
                       }
                       return null;
                     },
-                    (attributeSemantic) => {
-                      for (let j = 0; j < decodedGeometry.targets.length; j++) {
-                        if (decodedGeometry.targets[j].name === attributeSemantic) {
-                          return decodedGeometry.targets[j].array;
-                        }
-                      }
-                      return null;
+                    (attributeSemantic, shapeIndex) => {
+                      throw "BlendShape animation is not supported when using draco.";
                     },
                     () => {
                       return decodedGeometry.index.array;
