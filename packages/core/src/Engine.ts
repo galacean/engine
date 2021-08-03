@@ -189,7 +189,7 @@ export class Engine extends EventDispatcher {
   init(_cb) {
     PHYSX().then(function (PHYSX) {
       PhysXManager.PhysX = PHYSX;
-      PhysXManager.setup();
+      PhysXManager._setup();
       console.log("PHYSX loaded");
       _cb();
     });

@@ -1,8 +1,14 @@
 export class PhysXManager {
+  /*PhysX wasm object*/
   static PhysX: any;
+  /*Physx physics object*/
   static physics: any;
 
-  static setup() {
+  /**
+   * called in Engine
+   * @internal
+   */
+  static _setup() {
     const version = PhysXManager.PhysX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new PhysXManager.PhysX.PxDefaultErrorCallback();
     const allocator = new PhysXManager.PhysX.PxDefaultAllocator();
