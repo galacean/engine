@@ -29,6 +29,7 @@ export class AmbientLight {
   private _specularReflection: TextureCubeMap;
   private _specularIntensity: number = 1.0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
+  private _shArray: Float32Array = new Float32Array(27);
 
   /**
    * Diffuse mode of ambient light.
@@ -73,7 +74,7 @@ export class AmbientLight {
     const shaderData = this._scene.shaderData;
 
     if (sh) {
-      shaderData.setFloatArray(AmbientLight._diffuseSHProperty, sh.preScaledCoefficients);
+      shaderData.setFloatArray(AmbientLight._diffuseSHProperty, sh.convertRadianceToIrradiance(this._shArray));
     }
   }
 
