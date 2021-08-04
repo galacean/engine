@@ -48,6 +48,11 @@ export class BoxCollider extends Collider {
   }
 
   private _shape_alloc() {
-    this._pxShape = PhysXManager.physics.createShape(this._pxGeometry, this._material, false, this._shapeFlags);
+    this._pxShape = PhysXManager.physics.createShape(
+      this._pxGeometry,
+      this._material._pxMaterial,
+      false,
+      new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags)
+    );
   }
 }
