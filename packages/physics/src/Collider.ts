@@ -22,7 +22,11 @@ export class Collider extends Component {
 
   protected _material: PhysicsMaterial = new PhysicsMaterial(0.1, 0.1, 0.1);
 
-  protected _PxRigidStatic: any;
+  /**
+   * PhysX static actor object
+   * @internal
+   */
+  _PxRigidStatic: any;
 
   /**
    * PhysX shape object
@@ -79,7 +83,7 @@ export class Collider extends Component {
     this._pxShape.setFlag(flag, value);
   }
 
-  protected attachActor() {
+  protected _allocActor() {
     const local_pos = this.entity.transform.position;
     const local_rot = this.entity.transform.rotationQuaternion;
     {
@@ -100,13 +104,5 @@ export class Collider extends Component {
     }
 
     this._PxRigidStatic.attachShape(this._pxShape);
-  }
-
-  get staticActor(): any {
-    return this._PxRigidStatic;
-  }
-
-  get(): any {
-    return this._pxShape;
   }
 }
