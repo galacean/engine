@@ -1,9 +1,10 @@
-import { Component } from "../../Component";
-import { AnimationCureOwner } from "./AnimationCureOwner";
+import { AnimationEventHandler } from "./AnimationEventHandler";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
 /**
  * @internal
  */
 export class AnimatorStateData {
-  owners: AnimationCureOwner[] = [];
+  curveOwners: AnimationCurveOwner[] = [];
+  eventHandlers: AnimationEventHandler[] = [];
 }

@@ -215,7 +215,7 @@ export class ShaderData implements IRefObject, IClone {
   /**
    * Set two-dimensional vector from shader property name.
    * @remarks Correspondence includes vec2、ivec2 and bvec2 shader property type.
-   * @param propertyName - Shader property name
+   * @param property - Shader property name
    * @param value - Two-dimensional vector
    */
   setVector2(property: string, value: Vector2): void;
@@ -253,7 +253,7 @@ export class ShaderData implements IRefObject, IClone {
   /**
    * Set three dimensional vector by shader property name.
    * @remarks Correspondence includes vec3、ivec3 and bvec3 shader property type.
-   * @param propertyName - Shader property name
+   * @param property - Shader property name
    * @param value - Three-dimensional vector
    */
   setVector3(property: string, value: Vector3): void;
@@ -291,7 +291,7 @@ export class ShaderData implements IRefObject, IClone {
   /**
    * Set four-dimensional vector by shader property name.
    * @remarks Correspondence includes vec4、ivec4 and bvec4 shader property type.
-   * @param propertyName - Shader property name
+   * @param property - Shader property name
    * @param value - Four-dimensional vector
    */
   setVector4(property: string, value: Vector4): void;
@@ -611,9 +611,9 @@ export class ShaderData implements IRefObject, IClone {
   _addRefCount(value: number): void {
     this._refCount += value;
     const properties = this._properties;
-    for (var k in properties) {
+    for (const k in properties) {
       const property = properties[k];
-      // @todo: Seperate array to speed performace.
+      // @todo: Separate array to speed performance.
       if (property && property instanceof Texture) {
         property._addRefCount(value);
       }

@@ -8,10 +8,10 @@ describe("BoundingBox test", () => {
     const box1 = new BoundingBox();
     const box2 = new BoundingBox();
     const box3 = new BoundingBox();
-    
-    // Create a same box by diffrent param.
+
+    // Create a same box by different param.
     BoundingBox.fromCenterAndExtent(new Vector3(0, 0, 0), new Vector3(1, 1, 1), box1);
-    
+
     const points = [
       new Vector3(0, 0, 0),
       new Vector3(-1, 0, 0),
@@ -22,10 +22,10 @@ describe("BoundingBox test", () => {
       new Vector3(0, 0.5, 0.5),
       new Vector3(0, -0.5, 0.5),
       new Vector3(0, -1, 0.5),
-      new Vector3(0, 0, -1),
+      new Vector3(0, 0, -1)
     ];
     BoundingBox.fromPoints(points, box2);
-    
+
     const sphere = new BoundingSphere(new Vector3(0, 0, 0), 1);
     BoundingBox.fromSphere(sphere, box3);
 
@@ -43,12 +43,7 @@ describe("BoundingBox test", () => {
 
   it("transform", () => {
     const box = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));
-    const matrix = new Matrix(
-      2, 0, 0, 0,
-      0, 2, 0, 0,
-      0, 0, 2, 0,
-      1, 0.5, -1, 1
-    );
+    const matrix = new Matrix(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 1, 0.5, -1, 1);
     const newBox = new BoundingBox();
     BoundingBox.transform(box, matrix, newBox);
 
@@ -62,7 +57,7 @@ describe("BoundingBox test", () => {
     const box1 = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(2, 2, 2));
     const box2 = new BoundingBox(new Vector3(-2, -0.5, -2), new Vector3(3, 0, 3));
     const box = new BoundingBox();
-    
+
     BoundingBox.merge(box1, box2, box);
     expect(Vector3.equals(new Vector3(-2, -1, -2), box.min)).toEqual(true);
     expect(Vector3.equals(new Vector3(3, 2, 3), box.max)).toEqual(true);
@@ -71,7 +66,7 @@ describe("BoundingBox test", () => {
   it("getCenter", () => {
     const box = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(3, 3, 3));
     const center = new Vector3();
-    
+
     box.getCenter(center);
     expect(Vector3.equals(new Vector3(1, 1, 1), center)).toEqual(true);
   });
@@ -79,7 +74,7 @@ describe("BoundingBox test", () => {
   it("getExtent", () => {
     const box = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(3, 3, 3));
     const extent = new Vector3();
-    
+
     box.getExtent(extent);
     expect(Vector3.equals(new Vector3(2, 2, 2), extent)).toEqual(true);
   });
@@ -90,8 +85,14 @@ describe("BoundingBox test", () => {
     const { x: minX, y: minY, z: minZ } = min;
     const { x: maxX, y: maxY, z: maxZ } = max;
     const expectedCorners = [
-      new Vector3(), new Vector3(), new Vector3(), new Vector3(),
-      new Vector3(), new Vector3(), new Vector3(), new Vector3()
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3()
     ];
     expectedCorners[0].setValue(minX, maxY, maxZ);
     expectedCorners[1].setValue(maxX, maxY, maxZ);
@@ -101,16 +102,22 @@ describe("BoundingBox test", () => {
     expectedCorners[5].setValue(maxX, maxY, minZ);
     expectedCorners[6].setValue(maxX, minY, minZ);
     expectedCorners[7].setValue(minX, minY, minZ);
-    
+
     const box = new BoundingBox(min, max);
     const corners = [
-      new Vector3(), new Vector3(), new Vector3(), new Vector3(),
-      new Vector3(), new Vector3(), new Vector3(), new Vector3()
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3(),
+      new Vector3()
     ];
 
     box.getCorners(corners);
     for (let i = 0; i < 8; ++i) {
       expect(Vector3.equals(corners[i], expectedCorners[i])).toEqual(true);
     }
-  })
+  });
 });

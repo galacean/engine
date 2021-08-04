@@ -4,7 +4,7 @@ import { Engine } from "../Engine";
 import { ModelMesh } from "./ModelMesh";
 
 /**
- * Used to generate common primitve meshes.
+ * Used to generate common primitive meshes.
  */
 export class PrimitiveMesh {
   /**
@@ -219,7 +219,7 @@ export class PrimitiveMesh {
    * @param width - Plane width
    * @param height - Plane height
    * @param horizontalSegments - Plane horizontal segments
-   * @param verticalSegments - Plane verticle segments
+   * @param verticalSegments - Plane vertical segments
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Plane model mesh
    */
@@ -457,7 +457,7 @@ export class PrimitiveMesh {
    * Create a torus mesh.
    * @param engine - Engine
    * @param radius - Torus radius
-   * @param tube - Torus tube
+   * @param tubeRadius - Torus tube
    * @param radialSegments - Torus radial segments
    * @param tubularSegments - Torus tubular segments
    * @param arc - Central angle

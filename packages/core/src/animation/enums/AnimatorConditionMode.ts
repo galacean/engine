@@ -4,5 +4,5 @@ export enum AnimatorConditionMode {
   Greater,
   Less,
   Equals,
-  NotEuqals
+  NotEquals
 }

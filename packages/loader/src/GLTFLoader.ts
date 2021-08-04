@@ -2,7 +2,7 @@ import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceMana
 import { GLTFParser } from "./gltf/GLTFParser";
 import { GLTFResource } from "./gltf/GLTFResource";
 
-@resourceLoader(AssetType.Perfab, ["gltf", "glb"])
+@resourceLoader(AssetType.Prefab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const url = item.url;
