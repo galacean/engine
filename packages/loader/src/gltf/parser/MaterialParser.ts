@@ -72,10 +72,10 @@ export class MaterialParser extends Parser {
 
         if (!KHR_materials_unlit && !KHR_materials_pbrSpecularGlossiness) {
           material = material as PBRMaterial;
-          material.metallicFactor = metallicFactor ?? 1;
-          material.roughnessFactor = roughnessFactor ?? 1;
+          material.metallic = metallicFactor ?? 1;
+          material.roughness = roughnessFactor ?? 1;
           if (metallicRoughnessTexture) {
-            material.metallicRoughnessTexture = textures[metallicRoughnessTexture.index];
+            material.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
             MaterialParser._parseTextureTransform(material, metallicRoughnessTexture.extensions, context);
           }
         }
@@ -98,7 +98,7 @@ export class MaterialParser extends Parser {
           material.normalTexture = textures[index];
           MaterialParser._parseTextureTransform(material, normalTexture.extensions, context);
           if (scale !== undefined) {
-            material.normalIntensity = scale;
+            material.normalTextureIntensity = scale;
           }
         }
 
@@ -107,7 +107,7 @@ export class MaterialParser extends Parser {
           material.occlusionTexture = textures[index];
           MaterialParser._parseTextureTransform(material, occlusionTexture.extensions, context);
           if (strength !== undefined) {
-            material.occlusionStrength = strength;
+            material.occlusionTextureIntensity = strength;
           }
         }
       }
