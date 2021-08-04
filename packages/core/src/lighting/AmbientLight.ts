@@ -69,12 +69,12 @@ export class AmbientLight {
     return this._diffuseSphericalHarmonics;
   }
 
-  set diffuseSphericalHarmonics(sh: SphericalHarmonics3) {
-    this._diffuseSphericalHarmonics = sh;
+  set diffuseSphericalHarmonics(value: SphericalHarmonics3) {
+    this._diffuseSphericalHarmonics = value;
     const shaderData = this._scene.shaderData;
 
-    if (sh) {
-      shaderData.setFloatArray(AmbientLight._diffuseSHProperty, sh.convertRadianceToIrradiance(this._shArray));
+    if (value) {
+      shaderData.setFloatArray(AmbientLight._diffuseSHProperty, value.convertRadianceToIrradiance(this._shArray));
     }
   }
 
