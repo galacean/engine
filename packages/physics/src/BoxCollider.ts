@@ -1,6 +1,6 @@
 import { PhysXManager } from "./PhysXManager";
 import { Collider } from "./Collider";
-import { Entity, Vector3 } from "oasis-engine";
+import { Vector3 } from "oasis-engine";
 
 export class BoxCollider extends Collider {
   private _size: Vector3 = new Vector3();
@@ -16,10 +16,20 @@ export class BoxCollider extends Collider {
 
   /**
    * set size of collider
-   * @param value
-   * @remarks must set, which will alloc new PhysX object.
+   * @param value size of BoxCollider
+   * @remarks will re-alloc new PhysX object.
    */
   set size(value: Vector3) {
+    this._size = value;
+    this.initWithSize(value);
+  }
+
+  /**
+   * init Collider and alloc PhysX objects.
+   * @param value size of BoxCollider
+   * @remarks must call after this component add to Entity.
+   */
+  initWithSize(value: Vector3) {
     this._size = value;
 
     // alloc Physx object
@@ -30,10 +40,7 @@ export class BoxCollider extends Collider {
     this._allocActor();
   }
 
-  constructor(entity: Entity) {
-    super(entity);
-  }
-
+  //----------------------------------------------------------------------------
   private _geometry_alloc() {
     this._pxGeometry = new PhysXManager.PhysX.PxBoxGeometry(
       // PHYSX uses half-extents

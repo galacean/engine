@@ -65,45 +65,31 @@ export class Collider extends Component {
     this._pxShape.setFlag(flag, value);
   }
 
-  protected _allocActor() {
-    const local_pos = this.entity.transform.position;
-    const local_rot = this.entity.transform.rotationQuaternion;
-    {
-      const transform = {
-        translation: {
-          x: this._center.x + local_pos.x,
-          y: this._center.y + local_pos.y,
-          z: this._center.z + local_pos.z
-        },
-        rotation: {
-          w: local_rot.w,
-          x: local_rot.x,
-          y: local_rot.y,
-          z: local_rot.z
-        }
-      };
-      this._PxRigidStatic = PhysXManager.physics.createRigidStatic(transform);
-    }
+  //----------------------------------------------------------------------------
+  protected get _transform(): any {
+    return {
+      translation: {
+        x: this._center.x,
+        y: this._center.y,
+        z: this._center.z
+      },
+      rotation: {
+        w: 1,
+        x: 0,
+        y: 0,
+        z: 0
+      }
+    };
+  }
 
+  protected _allocActor() {
+    const transform = this._transform;
+    this._PxRigidStatic = PhysXManager.physics.createRigidStatic(transform);
     this._PxRigidStatic.attachShape(this._pxShape);
   }
 
   protected _setLocalPose() {
-    {
-      const transform = {
-        translation: {
-          x: this._center.x,
-          y: this._center.y,
-          z: this._center.z
-        },
-        rotation: {
-          w: 1,
-          x: 0,
-          y: 0,
-          z: 0
-        }
-      };
-      this._pxShape.setLocalPose(transform);
-    }
+    const transform = this._transform;
+    this._pxShape.setLocalPose(transform);
   }
 }

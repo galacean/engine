@@ -106,7 +106,7 @@ export class PhysicsScene {
     return this._physicObjectsMap;
   }
 
-  //------------------------------------------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   raycastTest(origin: Vector3, direction: Vector3, maxDistance: number): boolean {
     return this._PxScene.raycastAny(
       { x: origin.x, y: origin.y, z: origin.z },
@@ -172,7 +172,7 @@ export class PhysicsScene {
     return this._hits;
   }
 
-  //------------------------------------------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   get gravity(): Vector3 {
     return this._gravity;
   }
@@ -182,7 +182,7 @@ export class PhysicsScene {
     this._PxScene.setGravity({ x: value.x, y: value.y, z: value.z });
   }
 
-  //------------------------------------------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   private _physicObjectsMap: any = {};
   private _hits: RaycastHit[] = [];
 
@@ -200,7 +200,7 @@ export class PhysicsScene {
     this._PxScene.addActor(actor._PxRigidStatic, null);
   }
 
-  //------------------------------------------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
     this._PxScene.simulate(elapsedTime, controlSimulation);
   }

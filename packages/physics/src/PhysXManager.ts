@@ -13,6 +13,7 @@ export class PhysXManager {
   public static init(PHYSX: any) {
     PhysXManager.PhysX = PHYSX;
     PhysXManager._setup();
+    console.log("PHYSX loaded");
   }
 
   private static _setup() {
