@@ -6,85 +6,48 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  * PBR (Metallic-Roughness Workflow) Material.
  */
 export class PBRMaterial extends PBRBaseMaterial {
-  private _metallicFactor: number = 1;
-  private _roughnessFactor: number = 1;
-  private _metallicTexture: Texture2D;
-  private _roughnessTexture: Texture2D;
-  private _metallicRoughnessTexture: Texture2D;
+  private _metallic: number = 1;
+  private _roughness: number = 1;
+  private _roughnessMetallicTexture: Texture2D;
 
   /**
-   * Metallic factor.
+   * Metallic.
    */
-  get metallicFactor(): number {
-    return this._metallicFactor;
+  get metallic(): number {
+    return this._metallic;
   }
 
-  set metallicFactor(v: number) {
-    this._metallicFactor = v;
-    this.shaderData.setFloat("u_metal", v);
+  set metallic(value: number) {
+    this._metallic = value;
+    this.shaderData.setFloat("u_metal", value);
   }
 
   /**
-   * Rough factor.
+   * Roughness.
    */
-  get roughnessFactor(): number {
-    return this._roughnessFactor;
+  get roughness(): number {
+    return this._roughness;
   }
 
-  set roughnessFactor(v: number) {
-    this._roughnessFactor = v;
-    this.shaderData.setFloat("u_roughness", v);
+  set roughness(value: number) {
+    this._roughness = value;
+    this.shaderData.setFloat("u_roughness", value);
   }
 
   /**
-   * Metallic texture.
+   * Roughness metallic texture.
+   * @remarks G channel is roughness, B channel is metallic
    */
-  get metallicTexture(): Texture2D {
-    return this._metallicTexture;
+  get roughnessMetallicTexture(): Texture2D {
+    return this._roughnessMetallicTexture;
   }
 
-  set metallicTexture(v: Texture2D) {
-    this._metallicTexture = v;
+  set roughnessMetallicTexture(value: Texture2D) {
+    this._roughnessMetallicTexture = value;
 
-    if (v) {
-      this.shaderData.enableMacro("HAS_METALMAP");
-      this.shaderData.setTexture("u_metallicSampler", v);
-    } else {
-      this.shaderData.disableMacro("HAS_METALMAP");
-    }
-  }
-
-  /**
-   * Rough texture.
-   */
-  get roughnessTexture(): Texture2D {
-    return this._roughnessTexture;
-  }
-
-  set roughnessTexture(v: Texture2D) {
-    this._roughnessTexture = v;
-
-    if (v) {
-      this.shaderData.enableMacro("HAS_ROUGHNESSMAP");
-      this.shaderData.setTexture("u_roughnessSampler", v);
-    } else {
-      this.shaderData.disableMacro("HAS_ROUGHNESSMAP");
-    }
-  }
-
-  /**
-   * Metallic rough texture.
-   */
-  get metallicRoughnessTexture(): Texture2D {
-    return this._metallicRoughnessTexture;
-  }
-
-  set metallicRoughnessTexture(v: Texture2D) {
-    this._metallicRoughnessTexture = v;
-
-    if (v) {
+    if (value) {
       this.shaderData.enableMacro("HAS_METALROUGHNESSMAP");
-      this.shaderData.setTexture("u_metallicRoughnessSampler", v);
+      this.shaderData.setTexture("u_metallicRoughnessSampler", value);
     } else {
       this.shaderData.disableMacro("HAS_METALROUGHNESSMAP");
     }
@@ -98,8 +61,8 @@ export class PBRMaterial extends PBRBaseMaterial {
     super(engine);
     this.shaderData.enableMacro("IS_METALLIC_WORKFLOW");
 
-    this.metallicFactor = this._metallicFactor;
-    this.roughnessFactor = this._roughnessFactor;
+    this.metallic = this._metallic;
+    this.roughness = this._roughness;
   }
 
   /**

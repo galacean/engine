@@ -6,30 +6,21 @@ import { TextureResource } from "./TextureResource";
 
 const attrs = [
   "specularColor",
-  "glossinessFactor",
+  "glossiness",
   "specularGlossinessTexture",
 
+  // pbr base
   "tilingOffset",
   "baseColor",
-  "normalIntensity",
+  "normalTextureIntensity",
   "emissiveColor",
-  "occlusionStrength",
-  "envMapIntensity",
-  "refractionRatio",
-  "refractionDepth",
-  "perturbationUOffset",
-  "perturbationVOffset",
+  "occlusionTextureIntensity",
   "baseTexture",
-  "opacityTexture",
   "normalTexture",
   "emissiveTexture",
   "occlusionTexture",
-  "refractionTexture",
-  "perturbationTexture",
-  "srgb",
-  "srgbFast",
-  "gamma",
-  "getOpacityFromRGB",
+
+  // base material
   "isTransparent",
   "alphaCutoff",
   "renderFace",

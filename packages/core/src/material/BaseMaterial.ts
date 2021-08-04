@@ -8,7 +8,6 @@ import { Material } from "./Material";
 
 export class BaseMaterial extends Material {
   private static _alphaCutoffMacro: ShaderMacro = Shader.getMacroByName("ALPHA_CUTOFF");
-  private static _blendMacro: ShaderMacro = Shader.getMacroByName("ALPHA_BLEND");
 
   private _alphaCutoff: number = 0;
   private _renderFace: RenderFace = RenderFace.Front;
@@ -34,12 +33,10 @@ export class BaseMaterial extends Material {
     } = this.renderState;
 
     if (value) {
-      this.shaderData.enableMacro(BaseMaterial._blendMacro);
       targetBlendState.enabled = true;
       depthState.writeEnabled = false;
       this.renderQueueType = RenderQueueType.Transparent;
     } else {
-      this.shaderData.disableMacro(BaseMaterial._blendMacro);
       targetBlendState.enabled = false;
       depthState.writeEnabled = true;
       this.renderQueueType = this._alphaCutoff ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;

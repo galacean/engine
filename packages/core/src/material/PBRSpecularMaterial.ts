@@ -8,7 +8,7 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  */
 export class PBRSpecularMaterial extends PBRBaseMaterial {
   private _specularColor = new Color(1, 1, 1, 1);
-  private _glossinessFactor: number = 1;
+  private _glossiness: number = 1;
   private _specularGlossinessTexture: Texture2D;
 
   /**
@@ -18,36 +18,38 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
     return this._specularColor;
   }
 
-  set specularColor(v: Color) {
-    this._specularColor = v;
-    this.shaderData.setColor("u_specularFactor", v);
+  set specularColor(value: Color) {
+    if (value !== this._specularColor) {
+      value.cloneTo(this._specularColor);
+    }
   }
 
   /**
-   * Glossiness factor.
+   * Glossiness.
    */
-  get glossinessFactor(): number {
-    return this._glossinessFactor;
+  get glossiness(): number {
+    return this._glossiness;
   }
 
-  set glossinessFactor(v: number) {
-    this._glossinessFactor = v;
-    this.shaderData.setFloat("u_glossinessFactor", v);
+  set glossiness(value: number) {
+    this._glossiness = value;
+    this.shaderData.setFloat("u_glossinessFactor", value);
   }
 
   /**
-   * Specular and glossiness texture.
+   * Specular glossiness texture.
+   * @remarks RGB is specular, A is glossiness
    */
   get specularGlossinessTexture(): Texture2D {
     return this._specularGlossinessTexture;
   }
 
-  set specularGlossinessTexture(v: Texture2D) {
-    this._specularGlossinessTexture = v;
+  set specularGlossinessTexture(value: Texture2D) {
+    this._specularGlossinessTexture = value;
 
-    if (v) {
+    if (value) {
       this.shaderData.enableMacro("HAS_SPECULARGLOSSINESSMAP");
-      this.shaderData.setTexture("u_specularGlossinessSampler", v);
+      this.shaderData.setTexture("u_specularGlossinessSampler", value);
     } else {
       this.shaderData.disableMacro("HAS_SPECULARGLOSSINESSMAP");
     }
@@ -60,8 +62,8 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
   constructor(engine: Engine) {
     super(engine);
 
-    this.specularColor = this._specularColor;
-    this.glossinessFactor = this._glossinessFactor;
+    this.shaderData.setColor("u_specularColor", this._specularColor);
+    this.glossiness = this._glossiness;
   }
 
   /**
