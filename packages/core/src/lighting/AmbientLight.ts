@@ -10,7 +10,7 @@ import { DiffuseMode } from "./enums/DiffuseMode";
  * Ambient light.
  */
 export class AmbientLight {
-  private static _diffuseMacro: ShaderMacro = Shader.getMacroByName("O3_USE_DIFFUSE_ENV");
+  private static _shMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SH");
   private static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
 
   private static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
@@ -41,9 +41,9 @@ export class AmbientLight {
   set diffuseMode(value: DiffuseMode) {
     this._diffuseMode = value;
     if (value === DiffuseMode.SphericalHarmonics) {
-      this._scene.shaderData.enableMacro(AmbientLight._diffuseMacro);
+      this._scene.shaderData.enableMacro(AmbientLight._shMacro);
     } else {
-      this._scene.shaderData.disableMacro(AmbientLight._diffuseMacro);
+      this._scene.shaderData.disableMacro(AmbientLight._shMacro);
     }
   }
 
