@@ -1,4 +1,5 @@
 import { Collider } from "./Collider";
+import { Rigidbody } from "./Rigidbody";
 
 export class Collision {
   /** The Collider we hit */
@@ -6,5 +7,9 @@ export class Collision {
 
   constructor(collider: Collider) {
     this.collider = collider;
+  }
+
+  get rigidbody(): Rigidbody | undefined {
+    return undefined;
   }
 }

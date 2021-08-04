@@ -4,6 +4,7 @@ import { Collision } from "./Collision";
 import { Collider } from "./Collider";
 import { RaycastHit } from "./RaycastHit";
 import { Vector3 } from "@oasis-engine/math";
+import { Rigidbody } from "./Rigidbody";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -189,19 +190,15 @@ export class PhysicsScene {
 
   private _PxScene: any;
 
-  // addDynamicActor(actor: Rigidbody) {
-  //   this._physicObjectsMap[actor.collider.group_id] = actor.entity;
-  //   this._PxScene.addActor(actor.get(), null);
-  // }
+  addDynamicActor(actor: Rigidbody) {
+    this._physicObjectsMap[actor.collider.group_id] = actor.entity;
+    this._PxScene.addActor(actor.get(), null);
+  }
 
   addStaticActor(actor: Collider) {
     this._physicObjectsMap[actor.group_id] = actor.entity;
     this._PxScene.addActor(actor._PxRigidStatic, null);
   }
-
-  // addController(controller: CharacterController) {
-  //   this._physicObjectsMap[controller.group_id] = controller.entity;
-  // }
 
   //------------------------------------------------------------------------------------------------------------------
   simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
