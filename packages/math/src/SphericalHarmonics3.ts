@@ -10,22 +10,6 @@ import { Vector3 } from "./Vector3";
  * https://google.github.io/filament/Filament.md.html#annex/sphericalharmonics
  */
 export class SphericalHarmonics3 implements IClone {
-  static fromArray(shArray: number[], out: SphericalHarmonics3): void {
-    if (shArray.length != 27) {
-      console.error("sh coefficients must be as large as 27");
-    }
-
-    out.y00.setValue(shArray[0], shArray[1], shArray[2], 0);
-    out.y1_1.setValue(shArray[3], shArray[4], shArray[5], 0);
-    out.y10.setValue(shArray[6], shArray[7], shArray[8], 0);
-    out.y11.setValue(shArray[9], shArray[10], shArray[11], 0);
-    out.y2_2.setValue(shArray[12], shArray[13], shArray[14], 0);
-    out.y2_1.setValue(shArray[15], shArray[16], shArray[17], 0);
-    out.y20.setValue(shArray[18], shArray[19], shArray[20], 0);
-    out.y21.setValue(shArray[21], shArray[22], shArray[23], 0);
-    out.y22.setValue(shArray[24], shArray[25], shArray[26], 0);
-  }
-
   private static _basisFunction = [
     0.282095, //  1/2 * Math.sqrt(1 / PI)
 
@@ -181,39 +165,59 @@ export class SphericalHarmonics3 implements IClone {
   }
 
   /**
-   * Clone the value of this coefficients to an array.
-   * @param out - The array
+   * Set the value of this spherical harmonics by an array.
+   * @param array - The array
+   * @param offset - The start offset of the array
+   * @returns This spherical harmonics
    */
-  toArray(out: number[]): void {
-    out[0] = this.y00.r;
-    out[1] = this.y00.g;
-    out[2] = this.y00.b;
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): SphericalHarmonics3 {
+    this.y00.setValue(array[0 + offset], array[1 + offset], array[2 + offset], 0);
+    this.y1_1.setValue(array[3 + offset], array[4 + offset], array[5 + offset], 0);
+    this.y10.setValue(array[6 + offset], array[7 + offset], array[8 + offset], 0);
+    this.y11.setValue(array[9 + offset], array[10 + offset], array[11 + offset], 0);
+    this.y2_2.setValue(array[12 + offset], array[13 + offset], array[14 + offset], 0);
+    this.y2_1.setValue(array[15 + offset], array[16 + offset], array[17 + offset], 0);
+    this.y20.setValue(array[18 + offset], array[19 + offset], array[20 + offset], 0);
+    this.y21.setValue(array[21 + offset], array[22 + offset], array[23 + offset], 0);
+    this.y22.setValue(array[24 + offset], array[25 + offset], array[26 + offset], 0);
+    return this;
+  }
 
-    out[3] = this.y1_1.r;
-    out[4] = this.y1_1.g;
-    out[5] = this.y1_1.b;
-    out[6] = this.y10.r;
-    out[7] = this.y10.g;
-    out[8] = this.y10.b;
-    out[9] = this.y11.r;
-    out[10] = this.y11.g;
-    out[11] = this.y11.b;
+  /**
+   * Clone the value of this spherical harmonics to an array.
+   * @param out - The array
+   * @param outOffset - The start offset of the array
+   */
+  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0): void {
+    out[0 + outOffset] = this.y00.r;
+    out[1 + outOffset] = this.y00.g;
+    out[2 + outOffset] = this.y00.b;
 
-    out[12] = this.y2_2.r;
-    out[13] = this.y2_2.g;
-    out[14] = this.y2_2.b;
-    out[15] = this.y2_1.r;
-    out[16] = this.y2_1.g;
-    out[17] = this.y2_1.b;
-    out[18] = this.y20.r;
-    out[19] = this.y20.g;
-    out[20] = this.y20.b;
-    out[21] = this.y21.r;
-    out[22] = this.y21.g;
-    out[23] = this.y21.b;
-    out[24] = this.y22.r;
-    out[25] = this.y22.g;
-    out[26] = this.y22.b;
+    out[3 + outOffset] = this.y1_1.r;
+    out[4 + outOffset] = this.y1_1.g;
+    out[5 + outOffset] = this.y1_1.b;
+    out[6 + outOffset] = this.y10.r;
+    out[7 + outOffset] = this.y10.g;
+    out[8 + outOffset] = this.y10.b;
+    out[9 + outOffset] = this.y11.r;
+    out[10 + outOffset] = this.y11.g;
+    out[11 + outOffset] = this.y11.b;
+
+    out[12 + outOffset] = this.y2_2.r;
+    out[13 + outOffset] = this.y2_2.g;
+    out[14 + outOffset] = this.y2_2.b;
+    out[15 + outOffset] = this.y2_1.r;
+    out[16 + outOffset] = this.y2_1.g;
+    out[17 + outOffset] = this.y2_1.b;
+    out[18 + outOffset] = this.y20.r;
+    out[19 + outOffset] = this.y20.g;
+    out[20 + outOffset] = this.y20.b;
+    out[21 + outOffset] = this.y21.r;
+    out[22 + outOffset] = this.y21.g;
+    out[23 + outOffset] = this.y21.b;
+    out[24 + outOffset] = this.y22.r;
+    out[25 + outOffset] = this.y22.g;
+    out[26 + outOffset] = this.y22.b;
   }
 
   /**
