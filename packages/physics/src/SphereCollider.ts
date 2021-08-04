@@ -1,36 +1,35 @@
 import { PhysXManager } from "./PhysXManager";
 import { Collider } from "./Collider";
-import { Vector3 } from "oasis-engine";
 
-export class BoxCollider extends Collider {
-  private _size: Vector3 = new Vector3();
+export class SphereCollider extends Collider {
+  private _radius: number = 0.0;
   /**
    * PhysX geometry object
    * @internal
    */
-  _pxGeometry: any;
+  private _pxGeometry: any;
 
-  get size(): Vector3 {
-    return this._size;
+  get radius(): number {
+    return this._radius;
   }
 
   /**
    * set size of collider
-   * @param value size of BoxCollider
+   * @param value size of SphereCollider
    * @remarks will re-alloc new PhysX object.
    */
-  set size(value: Vector3) {
-    this._size = value;
-    this.initWithSize(value);
+  set radius(value: number) {
+    this._radius = value;
+    this.initWithRadius(value);
   }
 
   /**
    * init Collider and alloc PhysX objects.
-   * @param value size of BoxCollider
+   * @param value size of SphereCollider
    * @remarks must call after this component add to Entity.
    */
-  initWithSize(value: Vector3) {
-    this._size = value;
+  initWithRadius(value: number) {
+    this._radius = value;
 
     // alloc Physx object
     this._allocGeometry();
@@ -42,12 +41,7 @@ export class BoxCollider extends Collider {
 
   //----------------------------------------------------------------------------
   private _allocGeometry() {
-    this._pxGeometry = new PhysXManager.PhysX.PxBoxGeometry(
-      // PHYSX uses half-extents
-      this._size.x / 2,
-      this._size.y / 2,
-      this._size.z / 2
-    );
+    this._pxGeometry = new PhysXManager.PhysX.PxSphereGeometry(this._radius);
   }
 
   private _allocShape() {
