@@ -157,7 +157,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * Create a pbr base material instance.
    * @param engine - Engine to which the material belongs
    */
-  constructor(engine: Engine) {
+  protected constructor(engine: Engine) {
     super(engine, Shader.find("pbr"));
 
     const shaderData = this.shaderData;

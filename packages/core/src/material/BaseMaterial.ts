@@ -132,7 +132,7 @@ export class BaseMaterial extends Material {
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
    */
-  constructor(engine: Engine, shader: Shader) {
+  protected constructor(engine: Engine, shader: Shader) {
     super(engine, shader);
     this.blendMode = BlendMode.Normal;
   }
