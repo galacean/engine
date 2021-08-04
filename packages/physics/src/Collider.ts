@@ -14,7 +14,7 @@ export enum ShapeFlag {
 
 /** A base class of all colliders. */
 export class Collider extends Component {
-  protected _group_id: number = ++PhysXManager.physical_id;
+  protected _group_id: number = PhysXManager.physical_id++;
 
   protected _center: Vector3 = new Vector3();
 
@@ -40,25 +40,7 @@ export class Collider extends Component {
 
   set center(value: Vector3) {
     this._center = value;
-
-    const local_pos = this.entity.transform.position;
-    const local_rot = this.entity.transform.rotationQuaternion;
-    {
-      const transform = {
-        translation: {
-          x: this._center.x + local_pos.x,
-          y: this._center.y + local_pos.y,
-          z: this._center.z + local_pos.z
-        },
-        rotation: {
-          w: local_rot.w,
-          x: local_rot.x,
-          y: local_rot.y,
-          z: local_rot.z
-        }
-      };
-      this._pxShape.setLocalPose(transform);
-    }
+    this._setLocalPose();
   }
 
   get material(): PhysicsMaterial {
@@ -104,5 +86,24 @@ export class Collider extends Component {
     }
 
     this._PxRigidStatic.attachShape(this._pxShape);
+  }
+
+  protected _setLocalPose() {
+    {
+      const transform = {
+        translation: {
+          x: this._center.x,
+          y: this._center.y,
+          z: this._center.z
+        },
+        rotation: {
+          w: 1,
+          x: 0,
+          y: 0,
+          z: 0
+        }
+      };
+      this._pxShape.setLocalPose(transform);
+    }
   }
 }

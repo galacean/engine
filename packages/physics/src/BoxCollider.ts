@@ -17,25 +17,21 @@ export class BoxCollider extends Collider {
   /**
    * set size of collider
    * @param value
-   * @remarks will alloc new PhysX object.
+   * @remarks must set, which will alloc new PhysX object.
    */
   set size(value: Vector3) {
     this._size = value;
 
+    // alloc Physx object
     this._geometry_alloc();
     this._shape_alloc();
+    this._setLocalPose();
+    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._group_id, 0, 0, 0));
+    this._allocActor();
   }
 
   constructor(entity: Entity) {
     super(entity);
-
-    // alloc Physx object
-    this._geometry_alloc();
-    this._shape_alloc();
-
-    this.center = new Vector3();
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._group_id, 0, 0, 0));
-    this._allocActor();
   }
 
   private _geometry_alloc() {
