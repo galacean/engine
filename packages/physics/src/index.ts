@@ -1,10 +1,10 @@
 export { PhysXManager } from "./PhysXManager";
-export { PhysicsCombineMode, PhysicsMaterial } from "./PhysicsMaterial";
-export { ShapeFlag, Collider } from "./Collider";
+export { PhysicsMaterial, PhysicsCombineMode } from "./PhysicsMaterial";
+export { Collider, ShapeFlag } from "./Collider";
 export { BoxCollider } from "./BoxCollider";
 export { SphereCollider } from "./SphereCollider";
 export { HitResult } from "./HitResult";
 export { Collision } from "./Collision";
-export { PhysicsScene } from "./PhysicsScene";
-export { Rigidbody } from "./Rigidbody";
+export { PhysicsScene, QueryFlag } from "./PhysicsScene";
+export { Rigidbody, CollisionDetectionMode, RigidbodyConstraints } from "./Rigidbody";
 export { PhysicsScript } from "./PhysicsScript";

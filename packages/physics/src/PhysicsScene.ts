@@ -2,9 +2,10 @@ import { PhysXManager } from "./PhysXManager";
 import { Collision } from "./Collision";
 import { Collider } from "./Collider";
 import { HitResult } from "./HitResult";
-import { Vector3 } from "@oasis-engine/math";
+import { Ray, Vector3 } from "@oasis-engine/math";
 import { Rigidbody } from "./Rigidbody";
 import { PhysicsScript } from "./PhysicsScript";
+import { Layer } from "@oasis-engine/core/src";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -205,6 +206,69 @@ export class PhysicsScene {
   }
 
   //----------------raycast-----------------------------------------------------
+  /**
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   */
+  raycast(ray: Ray): Boolean;
+
+  /**
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
+   * @param distance - The max distance the ray should check
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   */
+  raycast(ray: Ray, distance: number): Boolean;
+
+  /**
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
+   * @param distance - The max distance the ray should check
+   * @param flag - Flag that is used to selectively ignore Colliders when casting
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   */
+  raycast(ray: Ray, distance: number, flag: QueryFlag): Boolean;
+
+  /**
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
+   * @param distance - The max distance the ray should check
+   * @param flag - Flag that is used to selectively ignore Colliders when casting
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   */
+  raycast(ray: Ray, distance: number, flag: QueryFlag, outHitResult: HitResult): Boolean;
+
+  raycast(
+    ray: Ray,
+    distance?: number,
+    flag: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC,
+    hit?: HitResult
+  ): boolean {
+    const pxRaycastHit: any = new PhysXManager.PhysX.PxRaycastHit();
+    const filterData: any = new PhysXManager.PhysX.PxQueryFilterData();
+    filterData.flags = new PhysXManager.PhysX.PxQueryFlags(flag);
+    const result = this._pxScene.raycastSingle(
+      { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
+      { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },
+      distance,
+      pxRaycastHit,
+      filterData
+    );
+
+    if (result == false) {
+      return;
+    }
+
+    hit.distance = pxRaycastHit.distance;
+    hit.point = new Vector3(pxRaycastHit.position.x, pxRaycastHit.position.y, pxRaycastHit.position.z);
+    hit.normal = new Vector3(pxRaycastHit.normal.x, pxRaycastHit.normal.y, pxRaycastHit.normal.z);
+    hit.entity = this._physicalObjectsMap[pxRaycastHit.getShape().getQueryFilterData().word0];
+
+    return result;
+  }
+
   private _hits: HitResult[] = [];
 
   get hits(): HitResult[] {
@@ -221,40 +285,6 @@ export class PhysicsScene {
       },
       maxDistance
     );
-  }
-
-  raycast(
-    origin: Vector3,
-    direction: Vector3,
-    maxDistance: number,
-    hit: HitResult,
-    flag: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC
-  ): boolean {
-    const pxRaycastHit: any = new PhysXManager.PhysX.PxRaycastHit();
-    const filterData: any = new PhysXManager.PhysX.PxQueryFilterData();
-    filterData.flags = new PhysXManager.PhysX.PxQueryFlags(flag);
-    const result = this._pxScene.raycastSingle(
-      { x: origin.x, y: origin.y, z: origin.z },
-      {
-        x: direction.x,
-        y: direction.y,
-        z: direction.z
-      },
-      maxDistance,
-      pxRaycastHit,
-      filterData
-    );
-
-    if (result == false) {
-      return;
-    }
-
-    hit.distance = pxRaycastHit.distance;
-    hit.point = new Vector3(pxRaycastHit.position.x, pxRaycastHit.position.y, pxRaycastHit.position.z);
-    hit.normal = new Vector3(pxRaycastHit.normal.x, pxRaycastHit.normal.y, pxRaycastHit.normal.z);
-    hit.entity = this._physicalObjectsMap[pxRaycastHit.getShape().getQueryFilterData().word0];
-
-    return result;
   }
 
   raycastAll(origin: Vector3, direction: Vector3, maxDistance: number): boolean {
