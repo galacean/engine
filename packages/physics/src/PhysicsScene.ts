@@ -113,7 +113,7 @@ export class PhysicsScene {
 
   //----------------------------------------------------------------------------
   raycastTest(origin: Vector3, direction: Vector3, maxDistance: number): boolean {
-    return this._PxScene.raycastAny(
+    return this._pxScene.raycastAny(
       { x: origin.x, y: origin.y, z: origin.z },
       {
         x: direction.x,
@@ -134,7 +134,7 @@ export class PhysicsScene {
     const pxRaycastHit: any = new PhysXManager.PhysX.PxRaycastHit();
     const filterData: any = new PhysXManager.PhysX.PxQueryFilterData();
     filterData.flags = new PhysXManager.PhysX.PxQueryFlags(flag);
-    const result = this._PxScene.raycastSingle(
+    const result = this._pxScene.raycastSingle(
       { x: origin.x, y: origin.y, z: origin.z },
       {
         x: direction.x,
@@ -161,7 +161,7 @@ export class PhysicsScene {
   raycastAll(origin: Vector3, direction: Vector3, maxDistance: number): boolean {
     const PHYSXRaycastCallbackInstance = PhysXManager.PhysX.PxRaycastCallback.implement(this.raycastCallback);
     this._hits = [];
-    return this._PxScene.raycast(
+    return this._pxScene.raycast(
       { x: origin.x, y: origin.y, z: origin.z },
       {
         x: direction.x,
@@ -184,7 +184,7 @@ export class PhysicsScene {
 
   set gravity(value: Vector3) {
     this._gravity = value;
-    this._PxScene.setGravity({ x: value.x, y: value.y, z: value.z });
+    this._pxScene.setGravity({ x: value.x, y: value.y, z: value.z });
   }
 
   //----------------------------------------------------------------------------
@@ -193,37 +193,37 @@ export class PhysicsScene {
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
-  private _PxScene: any;
+  private _pxScene: any;
 
   addDynamicActor(actor: Rigidbody) {
     this._physicObjectsMap[actor.collider.group_id] = actor.entity;
-    this._PxScene.addActor(actor._PxRigidActor, null);
+    this._pxScene.addActor(actor._pxRigidActor, null);
   }
 
   addStaticActor(actor: Collider) {
     this._physicObjectsMap[actor.group_id] = actor.entity;
-    this._PxScene.addActor(actor._PxRigidStatic, null);
+    this._pxScene.addActor(actor._pxRigidStatic, null);
   }
 
   //----------------------------------------------------------------------------
   simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
-    this._PxScene.simulate(elapsedTime, controlSimulation);
+    this._pxScene.simulate(elapsedTime, controlSimulation);
   }
 
   fetchResults(block: boolean = true) {
-    this._PxScene.fetchResults(block);
+    this._pxScene.fetchResults(block);
   }
 
   advance() {
-    this._PxScene.advance();
+    this._pxScene.advance();
   }
 
   fetchCollision(block: boolean = true) {
-    this._PxScene.fetchCollision(block);
+    this._pxScene.fetchCollision(block);
   }
 
   collide(elapsedTime: number = 1 / 60) {
-    this._PxScene.collide(elapsedTime);
+    this._pxScene.collide(elapsedTime);
   }
 
   init() {
@@ -235,10 +235,10 @@ export class PhysicsScene {
       0,
       PHYSXSimulationCallbackInstance
     );
-    this._PxScene = PhysXManager.physics.createScene(sceneDesc);
+    this._pxScene = PhysXManager.physics.createScene(sceneDesc);
   }
 
   get(): any {
-    return this._PxScene;
+    return this._pxScene;
   }
 }

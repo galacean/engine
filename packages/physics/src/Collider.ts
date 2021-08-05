@@ -26,7 +26,7 @@ export class Collider extends Component {
    * PhysX static actor object
    * @internal
    */
-  _PxRigidStatic: any;
+  _pxRigidStatic: any;
 
   /**
    * PhysX shape object
@@ -66,8 +66,26 @@ export class Collider extends Component {
   }
 
   //----------------------------------------------------------------------------
-  protected get _transform(): any {
-    return {
+  protected _allocActor() {
+    const transform = {
+      translation: {
+        x: this.entity.transform.position.x,
+        y: this.entity.transform.position.y,
+        z: this.entity.transform.position.z
+      },
+      rotation: {
+        w: this.entity.transform.rotationQuaternion.w, // PHYSX uses WXYZ quaternions,
+        x: this.entity.transform.rotationQuaternion.x,
+        y: this.entity.transform.rotationQuaternion.y,
+        z: this.entity.transform.rotationQuaternion.z
+      }
+    };
+    this._pxRigidStatic = PhysXManager.physics.createRigidStatic(transform);
+    this._pxRigidStatic.attachShape(this._pxShape);
+  }
+
+  protected _setLocalPose() {
+    const transform = {
       translation: {
         x: this._center.x,
         y: this._center.y,
@@ -80,16 +98,6 @@ export class Collider extends Component {
         z: 0
       }
     };
-  }
-
-  protected _allocActor() {
-    const transform = this._transform;
-    this._PxRigidStatic = PhysXManager.physics.createRigidStatic(transform);
-    this._PxRigidStatic.attachShape(this._pxShape);
-  }
-
-  protected _setLocalPose() {
-    const transform = this._transform;
     this._pxShape.setLocalPose(transform);
   }
 }
