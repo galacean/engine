@@ -271,13 +271,28 @@ export class PhysicsScene {
     return result;
   }
 
-  raycastAll(ray: Ray, maxDistance: number = Number.MAX_VALUE, hit?: HitResult[]): boolean {
+  /**
+   * Casts a ray through the Scene and returns the whole of hit.
+   * @param ray The ray
+   * @param hit If true is returned, outHitResult will contain more detailed collision information
+   */
+  raycastAll(ray: Ray, hit: HitResult[]): boolean;
+
+  /**
+   * Casts a ray through the Scene and returns the whole of hit.
+   * @param ray The ray
+   * @param hit If true is returned, outHitResult will contain more detailed collision information
+   * @param distance The max distance the ray should check
+   */
+  raycastAll(ray: Ray, hit: HitResult[], distance: number): boolean;
+
+  raycastAll(ray: Ray, hit: HitResult[], distance?: number): boolean {
     const PHYSXRaycastCallbackInstance = PhysXManager.PhysX.PxRaycastCallback.implement(this.raycastCallback);
     this._hits = [];
     const result = this._pxScene.raycast(
       { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
       { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },
-      maxDistance,
+      distance ? distance : Number.MAX_VALUE,
       PHYSXRaycastCallbackInstance
     );
 
@@ -285,9 +300,7 @@ export class PhysicsScene {
       return false;
     }
 
-    if (hit !== undefined) {
-      hit = this._hits;
-    }
+    hit = this._hits;
     return result;
   }
 }
