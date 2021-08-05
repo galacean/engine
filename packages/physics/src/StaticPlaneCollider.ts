@@ -44,6 +44,7 @@ export class StaticPlaneCollider extends Collider {
       new PhysXManager.PhysX.PxPlane(normal.x, normal.y, normal.z, distance),
       this._material._pxMaterial
     );
+    this._pxShape = this._pxRigidStatic.getShape();
     this._pxRigidStatic.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._group_id, 0, 0, 0));
   }
 }
