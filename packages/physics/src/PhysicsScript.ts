@@ -1,5 +1,6 @@
 import { Script } from "@oasis-engine/core";
 import { Collision } from "./Collision";
+import { Collider } from "./Collider";
 
 export class PhysicsScript extends Script {
   /**
@@ -19,4 +20,10 @@ export class PhysicsScript extends Script {
    * @param other The Collision data associated with this collision event.
    */
   onCollisionExit(other: Collision): void {}
+
+  onTriggerEnters(other: Collider): void {}
+
+  onTriggerExits(other: Collider): void {}
+
+  onTriggerStays(other: Collider): void {}
 }

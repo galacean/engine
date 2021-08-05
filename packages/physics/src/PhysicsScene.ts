@@ -5,6 +5,7 @@ import { HitResult } from "./HitResult";
 import { Rigidbody } from "./Rigidbody";
 import { PhysicsScript } from "./PhysicsScript";
 import { Ray, Vector3 } from "@oasis-engine/math";
+import { Entity } from "@oasis-engine/core";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -29,82 +30,92 @@ export class PhysicsScene {
   triggerCallback = {
     onContactBegin: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider =
-            this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider);
+          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+            .get(obj2.getQueryFilterData().word0)
+            .getComponent(Collider);
           scripts[i].onCollisionEnter(PhysicsScene._tempCollision);
         }
       }
 
       scripts = [];
-      this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider =
-            this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider);
+          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+            .get(obj2.getQueryFilterData().word0)
+            .getComponent(Collider);
           scripts[i].onCollisionEnter(PhysicsScene._tempCollision);
         }
       }
     },
     onContactEnd: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider =
-            this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider);
+          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+            .get(obj2.getQueryFilterData().word0)
+            .getComponent(Collider);
           scripts[i].onCollisionExit(PhysicsScene._tempCollision);
         }
       }
 
       scripts = [];
-      this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider =
-            this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider);
+          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+            .get(obj2.getQueryFilterData().word0)
+            .getComponent(Collider);
           scripts[i].onCollisionExit(PhysicsScene._tempCollision);
         }
       }
     },
     onContactPersist: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider =
-            this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider);
+          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+            .get(obj2.getQueryFilterData().word0)
+            .getComponent(Collider);
           scripts[i].onCollisionStay(PhysicsScene._tempCollision);
         }
       }
 
       scripts = [];
-      this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider =
-            this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider);
+          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+            .get(obj2.getQueryFilterData().word0)
+            .getComponent(Collider);
           scripts[i].onCollisionStay(PhysicsScene._tempCollision);
         }
       }
     },
     onTriggerBegin: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         for (let i = 0, len = scripts.length; i < len; i++) {
-          scripts[i].onTriggerEnter(this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider));
+          scripts[i].onTriggerEnters(
+            this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponent(Collider)
+          );
         }
       }
     },
     onTriggerEnd: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         for (let i = 0, len = scripts.length; i < len; i++) {
-          scripts[i].onTriggerExit(this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider));
+          scripts[i].onTriggerExits(
+            this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponent(Collider)
+          );
         }
       }
     }
@@ -163,22 +174,22 @@ export class PhysicsScene {
   }
 
   //--------------adding to the scene-------------------------------------------
-  private _physicalObjectsMap: any = {};
+  private _physicalObjectsMap = new Map<number, Entity>();
 
   /** get the map of physical objects and PhysX objects. */
-  get physicalObjectsMap(): any {
+  get physicalObjectsMap(): Map<number, Entity> {
     return this._physicalObjectsMap;
   }
 
   /** add Dynamic Actor, i.e. Rigidbody. */
   addDynamicActor(actor: Rigidbody) {
-    this._physicalObjectsMap[actor.collider.group_id] = actor.entity;
+    this._physicalObjectsMap.set(actor.collider.group_id, actor.entity);
     this._pxScene.addActor(actor._pxRigidActor, null);
   }
 
   /** add Static Actor, i.e Collider and Trigger. */
   addStaticActor(actor: Collider) {
-    this._physicalObjectsMap[actor.group_id] = actor.entity;
+    this._physicalObjectsMap.set(actor.group_id, actor.entity);
     this._pxScene.addActor(actor._pxRigidStatic, null);
   }
 
@@ -206,6 +217,19 @@ export class PhysicsScene {
   /** call PhysX collide */
   collide(elapsedTime: number = 1 / 60) {
     this._pxScene.collide(elapsedTime);
+  }
+
+  update() {
+    this.simulate();
+    this.fetchResults();
+
+    this._physicalObjectsMap.forEach((entity: Entity, key: number) => {
+      if (key != 0) {
+        const transform = entity.getComponent(Rigidbody).getGlobalPose();
+        entity.transform.position = transform.translation;
+        entity.transform.rotationQuaternion = transform.rotation;
+      }
+    });
   }
 
   //----------------raycast-----------------------------------------------------
@@ -266,7 +290,7 @@ export class PhysicsScene {
       const hitResult = PhysicsScene._pxRaycastHit;
       const position = PhysicsScene._tempPosition;
       const normal = PhysicsScene._tempNormal;
-      hit.entity = this._physicalObjectsMap[hitResult.getShape().getQueryFilterData().word0];
+      hit.entity = this._physicalObjectsMap.get(hitResult.getShape().getQueryFilterData().word0);
       hit.distance = hitResult.distance;
       {
         position.x = hitResult.position.x;

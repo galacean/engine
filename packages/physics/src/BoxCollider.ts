@@ -36,7 +36,7 @@ export class BoxCollider extends Collider {
   }
 
   //----------------------------------------------------------------------------
-  protected _allocGeometry() {
+  private _allocGeometry() {
     this._pxGeometry = new PhysXManager.PhysX.PxBoxGeometry(
       // PHYSX uses half-extents
       this._size.x / 2,

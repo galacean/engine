@@ -35,7 +35,7 @@ export class SphereCollider extends Collider {
   }
 
   //----------------------------------------------------------------------------
-  protected _allocGeometry() {
+  private _allocGeometry() {
     this._pxGeometry = new PhysXManager.PhysX.PxSphereGeometry(this._radius);
   }
 }
