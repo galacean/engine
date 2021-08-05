@@ -4,11 +4,6 @@ import { Vector3 } from "oasis-engine";
 
 export class BoxCollider extends Collider {
   private _size: Vector3 = new Vector3();
-  /**
-   * PhysX geometry object
-   * @internal
-   */
-  _pxGeometry: any;
 
   get size(): Vector3 {
     return this._size;
@@ -41,21 +36,12 @@ export class BoxCollider extends Collider {
   }
 
   //----------------------------------------------------------------------------
-  private _allocGeometry() {
+  protected _allocGeometry() {
     this._pxGeometry = new PhysXManager.PhysX.PxBoxGeometry(
       // PHYSX uses half-extents
       this._size.x / 2,
       this._size.y / 2,
       this._size.z / 2
-    );
-  }
-
-  private _allocShape() {
-    this._pxShape = PhysXManager.physics.createShape(
-      this._pxGeometry,
-      this._material._pxMaterial,
-      false,
-      new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags)
     );
   }
 }

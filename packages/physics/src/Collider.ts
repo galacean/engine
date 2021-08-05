@@ -13,7 +13,7 @@ export enum ShapeFlag {
 }
 
 /** A base class of all colliders. */
-export class Collider extends Component {
+export abstract class Collider extends Component {
   protected _group_id: number = PhysXManager.physical_id++;
 
   protected _center: Vector3 = new Vector3();
@@ -33,6 +33,12 @@ export class Collider extends Component {
    * @internal
    */
   _pxShape: any;
+
+  /**
+   * PhysX geometry object
+   * @internal
+   */
+  _pxGeometry: any;
 
   get center(): Vector3 {
     return this._center;
@@ -66,6 +72,17 @@ export class Collider extends Component {
   }
 
   //----------------------------------------------------------------------------
+  protected abstract _allocGeometry();
+
+  protected _allocShape() {
+    this._pxShape = PhysXManager.physics.createShape(
+      this._pxGeometry,
+      this._material._pxMaterial,
+      false,
+      new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags)
+    );
+  }
+
   protected _allocActor() {
     const transform = {
       translation: {

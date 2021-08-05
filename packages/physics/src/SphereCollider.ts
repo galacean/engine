@@ -3,11 +3,6 @@ import { Collider } from "./Collider";
 
 export class SphereCollider extends Collider {
   private _radius: number = 0.0;
-  /**
-   * PhysX geometry object
-   * @internal
-   */
-  private _pxGeometry: any;
 
   get radius(): number {
     return this._radius;
@@ -40,16 +35,7 @@ export class SphereCollider extends Collider {
   }
 
   //----------------------------------------------------------------------------
-  private _allocGeometry() {
+  protected _allocGeometry() {
     this._pxGeometry = new PhysXManager.PhysX.PxSphereGeometry(this._radius);
-  }
-
-  private _allocShape() {
-    this._pxShape = PhysXManager.physics.createShape(
-      this._pxGeometry,
-      this._material._pxMaterial,
-      false,
-      new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags)
-    );
   }
 }
