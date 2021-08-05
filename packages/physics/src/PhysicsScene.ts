@@ -1,7 +1,7 @@
 import { PhysXManager } from "./PhysXManager";
 import { Collision } from "./Collision";
 import { Collider } from "./Collider";
-import { RaycastHit } from "./RaycastHit";
+import { HitResult } from "./HitResult";
 import { Vector3 } from "@oasis-engine/math";
 import { Rigidbody } from "./Rigidbody";
 import { PhysicsScript } from "./PhysicsScript";
@@ -95,7 +95,7 @@ export class PhysicsScene {
 
   raycastCallback = {
     processTouches: (obj) => {
-      const hit = new RaycastHit();
+      const hit = new HitResult();
       hit.distance = obj.distance;
       hit.point.x = obj.position.x;
       hit.point.y = obj.position.y;
@@ -103,7 +103,6 @@ export class PhysicsScene {
       hit.normal.x = obj.normal.x;
       hit.normal.y = obj.normal.y;
       hit.normal.z = obj.normal.z;
-      hit.collider = this._physicObjectsMap[obj.getShape().getQueryFilterData().word0].getComponent(Collider);
       this._hits.push(hit);
     }
   };
@@ -129,7 +128,7 @@ export class PhysicsScene {
     origin: Vector3,
     direction: Vector3,
     maxDistance: number,
-    hit: RaycastHit,
+    hit: HitResult,
     flag: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC
   ): boolean {
     const pxRaycastHit: any = new PhysXManager.PhysX.PxRaycastHit();
@@ -174,7 +173,7 @@ export class PhysicsScene {
     );
   }
 
-  get hits(): RaycastHit[] {
+  get hits(): HitResult[] {
     return this._hits;
   }
 
@@ -190,7 +189,7 @@ export class PhysicsScene {
 
   //----------------------------------------------------------------------------
   private _physicObjectsMap: any = {};
-  private _hits: RaycastHit[] = [];
+  private _hits: HitResult[] = [];
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
