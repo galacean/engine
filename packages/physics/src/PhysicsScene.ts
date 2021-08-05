@@ -197,7 +197,7 @@ export class PhysicsScene {
 
   addDynamicActor(actor: Rigidbody) {
     this._physicObjectsMap[actor.collider.group_id] = actor.entity;
-    this._PxScene.addActor(actor.get(), null);
+    this._PxScene.addActor(actor._PxRigidActor, null);
   }
 
   addStaticActor(actor: Collider) {

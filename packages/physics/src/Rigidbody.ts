@@ -2,139 +2,130 @@ import { PhysXManager } from "./PhysXManager";
 import { Component, Quaternion, Vector3 } from "oasis-engine";
 import { Collider } from "./Collider";
 
+/** The collision detection mode constants used for Rigidbody.collisionDetectionMode. */
 export enum CollisionDetectionMode {
+  /** Continuous collision detection is off for this Rigidbody. */
   Discrete,
-  Continuous, // eENABLE_CCD
-  ContinuousDynamic, // eENABLE_CCD_FRICTION
-  ContinuousSpeculative // eENABLE_SPECULATIVE_CCD
+  /** Continuous collision detection is on for colliding with static mesh geometry. */
+  Continuous,
+  /** Continuous collision detection is on for colliding with static and dynamic geometry. */
+  ContinuousDynamic,
+  /** Speculative continuous collision detection is on for static and dynamic geometries */
+  ContinuousSpeculative
 }
 
+/** Use these flags to constrain motion of Rigidbodies. */
 export enum RigidbodyConstraints {
-  FreezePositionX, // eLOCK_LINEAR_X
-  FreezePositionY, // eLOCK_LINEAR_Y
-  FreezePositionZ, // eLOCK_LINEAR_Z
-  FreezeRotationX, // eLOCK_ANGULAR_X
-  FreezeRotationY, // eLOCK_ANGULAR_Y
-  FreezeRotationZ, // eLOCK_ANGULAR_Z
-  FreezePosition, // eLOCK_LINEAR_X, eLOCK_LINEAR_Y, eLOCK_LINEAR_Z
-  FreezeRotation, // eLOCK_ANGULAR_X, eLOCK_ANGULAR_Y, eLOCK_ANGULAR_Z
+  /** Freeze motion along the X-axis. */
+  FreezePositionX,
+  /** Freeze motion along the Y-axis. */
+  FreezePositionY,
+  /** Freeze motion along the Z-axis. */
+  FreezePositionZ,
+  /** Freeze rotation along the X-axis. */
+  FreezeRotationX,
+  /** Freeze rotation along the Y-axis. */
+  FreezeRotationY,
+  /** Freeze rotation along the Z-axis. */
+  FreezeRotationZ,
+  /** Freeze motion along all axes. */
+  FreezePosition,
+  /** Freeze rotation along all axes. */
+  FreezeRotation,
+  /** Freeze rotation and motion along all axes. */
   FreezeAll
 }
 
-// detectCollisions, inertiaTensorRotation, useGravity
-// interpolation, solverVelocityIterations, worldCenterOfMass
+/** Control of an object's position through physics simulation. */
 export class Rigidbody extends Component {
+  private _position: Vector3 = new Vector3();
+  private _rotation: Quaternion = new Quaternion();
   private _collider: Collider;
 
-  /** The drag of the object. */
   private _drag: number;
-  /** The angular drag of the object. */
   private _angularDrag: number;
 
-  /** The velocity vector of the rigidbody. It represents the rate of change of Rigidbody position. */
   private _velocity: Vector3;
-  /** The angular velocity vector of the rigidbody measured in radians per second. */
   private _angularVelocity: Vector3;
 
-  /** The position of the rigidbody. */
-  private _position: Vector3 = new Vector3();
-  /** The rotation of the Rigidbody. */
-  private _rotation: Quaternion = new Quaternion();
-
-  /** The mass of the rigidbody. */
   private _mass: number;
-  /** The center of mass relative to the transform's origin. */
   private _centerOfMass: Vector3;
-  /** The diagonal inertia tensor of mass relative to the center of mass. */
   private _inertiaTensor: Vector3;
 
-  /** The maximum angular velocity of the rigidbody measured in radians per second. (Default 7) range { 0, infinity }. */
   private _maxAngularVelocity: number;
-  /** Maximum velocity of a rigidbody when moving out of penetrating state. */
   private _maxDepenetrationVelocity: number;
 
-  /** The mass-normalized energy threshold, below which objects start going to sleep. */
   private _sleepThreshold: number;
-  /** The solverIterations determines how accurately Rigidbody joints and collision contacts are resolved.
-   * Overrides Physics.defaultSolverIterations. Must be positive. */
   private _solverIterations: number;
 
-  /** The Rigidbody's collision detection mode. */
   private _collisionDetectionMode: CollisionDetectionMode;
-  /** Controls whether physics affects the rigidbody. */
   private _isKinematic: boolean;
 
-  /** Controls which degrees of freedom are allowed for the simulation of this Rigidbody. */
   private _constraints: RigidbodyConstraints;
-  /** Controls whether physics will change the rotation of the object. */
   private _freezeRotation: boolean;
 
-  private _PxRigidActor: any;
+  /**
+   * PhysX rigid body object
+   * @internal
+   */
+  _PxRigidActor: any;
 
+  /** The drag of the object. */
   get drag(): number {
     return this._drag;
   }
 
-  // setLinearDamping
   set drag(value: number) {
     this._drag = value;
     this._PxRigidActor.setLinearDamping(value);
   }
 
+  /** The angular drag of the object. */
   get angularDrag(): number {
     return this._angularDrag;
   }
 
-  //setAngularDamping
   set angularDrag(value: number) {
     this._angularDrag = value;
     this._PxRigidActor.setAngularDamping(value);
   }
 
+  /** The velocity vector of the rigidbody. It represents the rate of change of Rigidbody position. */
   get velocity(): Vector3 {
     return this._velocity;
   }
 
-  //setLinearVelocity
   set velocity(value: Vector3) {
     this._velocity = value;
     const vel = { x: value.x, y: value.y, z: value.z };
     this._PxRigidActor.setLinearVelocity(vel, true);
   }
 
+  /** The angular velocity vector of the rigidbody measured in radians per second. */
   get angularVelocity(): Vector3 {
     return this._angularVelocity;
   }
 
-  //setAngularVelocity
   set angularVelocity(value: Vector3) {
     this._angularVelocity = value;
     this._PxRigidActor.setAngularVelocity({ x: value.x, y: value.y, z: value.z }, true);
   }
 
-  get position(): Vector3 {
-    return this._position;
-  }
-
-  get rotation(): Quaternion {
-    return this._rotation;
-  }
-
+  /** The mass of the rigidbody. */
   get mass(): number {
     return this._mass;
   }
 
-  // setMass
   set mass(value: number) {
     this._mass = value;
     this._PxRigidActor.setMass(value);
   }
 
+  /** The center of mass relative to the transform's origin. */
   get centerOfMass(): Vector3 {
     return this._centerOfMass;
   }
 
-  // setCMassLocalPose
   set centerOfMass(value: Vector3) {
     this._centerOfMass = value;
     const transform = {
@@ -150,59 +141,62 @@ export class Rigidbody extends Component {
         z: 0
       }
     };
-    this._PxRigidActor.setCMassLocalPose(value);
+    this._PxRigidActor.setCMassLocalPose(transform);
   }
 
+  /** The diagonal inertia tensor of mass relative to the center of mass. */
   get inertiaTensor(): Vector3 {
     return this._inertiaTensor;
   }
 
-  // setMassSpaceInertiaTensor
   set inertiaTensor(value: Vector3) {
     this._inertiaTensor = value;
     this._PxRigidActor.setMassSpaceInertiaTensor({ x: value.x, y: value.y, z: value.z });
   }
 
+  /** The maximum angular velocity of the rigidbody measured in radians per second. (Default 7) range { 0, infinity }. */
   get maxAngularVelocity(): number {
     return this._maxAngularVelocity;
   }
 
-  // setMaxAngularVelocity
   set maxAngularVelocity(value: number) {
     this._maxAngularVelocity = value;
     this._PxRigidActor.setMaxAngularVelocity(value);
   }
 
+  /** Maximum velocity of a rigidbody when moving out of penetrating state. */
   get maxDepenetrationVelocity(): number {
     return this._maxDepenetrationVelocity;
   }
 
-  // setMaxDepenetrationVelocity
   set maxDepenetrationVelocity(value: number) {
     this._maxDepenetrationVelocity = value;
     this._PxRigidActor.setMaxDepenetrationVelocity(value);
   }
 
+  /** The mass-normalized energy threshold, below which objects start going to sleep. */
   get sleepThreshold(): number {
     return this._sleepThreshold;
   }
 
-  //setSleepThreshold
   set sleepThreshold(value: number) {
     this._sleepThreshold = value;
     this._PxRigidActor.setSleepThreshold(value);
   }
 
+  /** The solverIterations determines how accurately Rigidbody joints and collision contacts are resolved.
+   * Overrides Physics.defaultSolverIterations. Must be positive.
+   */
   get solverIterations(): number {
     return this._solverIterations;
   }
 
-  //setSolverIterationCounts
   set solverIterations(value: number) {
     this._solverIterations = value;
     this._PxRigidActor.setSolverIterationCounts(value, 1);
   }
 
+  /** The Rigidbody's collision detection mode. */
   get collisionDetectionMode(): CollisionDetectionMode {
     return this._collisionDetectionMode;
   }
@@ -227,6 +221,7 @@ export class Rigidbody extends Component {
     }
   }
 
+  /** Controls whether physics affects the rigidbody. */
   get isKinematic(): boolean {
     return this._isKinematic;
   }
@@ -240,6 +235,7 @@ export class Rigidbody extends Component {
     }
   }
 
+  /** Controls which degrees of freedom are allowed for the simulation of this Rigidbody. */
   get constraints(): RigidbodyConstraints {
     return this._constraints;
   }
@@ -288,6 +284,7 @@ export class Rigidbody extends Component {
     }
   }
 
+  /** Controls whether physics will change the rotation of the object. */
   get freezeRotation(): boolean {
     return this._freezeRotation;
   }
@@ -297,38 +294,47 @@ export class Rigidbody extends Component {
     this.setConstraints(RigidbodyConstraints.FreezeRotation, value);
   }
 
-  //----------------------------------------------------------------------------------
-  // AddExplosionForce, AddRelativeTorque, ClosestPointOnBounds,
-  // MovePosition, MoveRotation, ResetCenterOfMass, ResetInertiaTensor
-  // SweepTest, SweepTestAll, setDensity
-
-  // addForce must called after add into scene;
+  //----------------------------------------------------------------------------
+  /**
+   * Adds a force to the Rigidbody.
+   * @param force Force vector in world coordinates.
+   * @remark addForce must called after add into scene.
+   */
   addForce(force: Vector3) {
     this._PxRigidActor.addForce({ x: force.x, y: force.y, z: force.z });
   }
 
-  // addTorque must called after add into scene;
+  /**
+   * Adds a torque to the rigidbody.
+   * @param torque Torque vector in world coordinates.
+   * @remark addTorque must called after add into scene.
+   */
   addTorque(torque: Vector3) {
     this._PxRigidActor.addTorque({ x: torque.x, y: torque.y, z: torque.z });
   }
 
-  // addForceAtPos
+  /**
+   * Applies force at position. As a result this will apply a torque and force on the object.
+   * @param force Force vector in world coordinates.
+   * @param pos Position in world coordinates.
+   */
   addForceAtPosition(force: Vector3, pos: Vector3) {
     this._PxRigidActor.addForceAtPos({ x: force.x, y: force.y, z: force.z }, { x: pos.x, y: pos.y, z: pos.z });
   }
 
-  // addForceAtLocalPos
-  addRelativeForce(force: Vector3, pos: Vector3) {
-    this._PxRigidActor.addForceAtLocalPos({ x: force.x, y: force.y, z: force.z }, { x: pos.x, y: pos.y, z: pos.z });
-  }
-
-  //getVelocityAtPos
+  /**
+   * The velocity of the rigidbody at the point worldPoint in global space.
+   * @param pos The point in global space.
+   */
   getPointVelocity(pos: Vector3): Vector3 {
     const vel = this._PxRigidActor.getVelocityAtPos({ x: pos.x, y: pos.y, z: pos.z });
     return new Vector3(vel.x, vel.y, vel.z);
   }
 
-  //getLocalVelocityAtLocalPos
+  /**
+   * The velocity relative to the rigidbody at the point relativePoint.
+   * @param pos The relative point
+   */
   getRelativePointVelocity(pos: Vector3): Vector3 {
     const vel = this._PxRigidActor.getLocalVelocityAtLocalPos({ x: pos.x, y: pos.y, z: pos.z });
     return new Vector3(vel.x, vel.y, vel.z);
@@ -342,6 +348,10 @@ export class Rigidbody extends Component {
     };
   }
 
+  /**
+   * Moves the kinematic Rigidbody towards position.
+   * @param value Provides the new position for the Rigidbody object.
+   */
   MovePosition(value: Vector3) {
     const transform = {
       translation: {
@@ -359,6 +369,10 @@ export class Rigidbody extends Component {
     this._PxRigidActor.setKinematicTarget(transform);
   }
 
+  /**
+   * Rotates the rigidbody to rotation.
+   * @param value The new rotation for the Rigidbody.
+   */
   MoveRotation(value: Quaternion) {
     const transform = {
       translation: {
@@ -376,22 +390,38 @@ export class Rigidbody extends Component {
     this._PxRigidActor.setKinematicTarget(transform);
   }
 
-  //isSleeping
+  /**
+   * Is the rigidbody sleeping?
+   */
   isSleeping(): boolean {
     return this._PxRigidActor.isSleeping();
   }
 
-  //putToSleep
+  /**
+   * Forces a rigidbody to sleep at least one frame.
+   */
   sleep() {
     return this._PxRigidActor.putToSleep();
   }
 
-  //wakeUp
+  /**
+   * Forces a rigidbody to wake up.
+   */
   wakeUp() {
     return this._PxRigidActor.wakeUp();
   }
 
   //----------------------------------------------------------------------------------
+  /** The position of the rigidbody. */
+  get position(): Vector3 {
+    return this._position;
+  }
+
+  /** The rotation of the Rigidbody. */
+  get rotation(): Quaternion {
+    return this._rotation;
+  }
+
   get collider(): Collider {
     return this._collider;
   }
@@ -425,9 +455,5 @@ export class Rigidbody extends Component {
     };
 
     this._PxRigidActor = PhysXManager.physics.createRigidDynamic(transform);
-  }
-
-  get(): any {
-    return this._PxRigidActor;
   }
 }
