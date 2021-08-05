@@ -7,3 +7,4 @@ export { RaycastHit } from "./RaycastHit";
 export { Collision } from "./Collision";
 export { PhysicsScene } from "./PhysicsScene";
 export { Rigidbody } from "./Rigidbody";
+export { PhysicsScript } from "./PhysicsScript";
