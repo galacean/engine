@@ -14,85 +14,106 @@ export enum QueryFlag {
   NO_BLOCK = 1 << 5
 }
 
+/** A scene is a collection of bodies and constraints which can interact. */
 export class PhysicsScene {
+  /**
+   * PhysX Trigger callback
+   * @internal
+   */
   triggerCallback = {
     onContactBegin: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         scripts.forEach((value: PhysicsScript) => {
-          let collision = new Collision(this._physicObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider));
+          let collision = new Collision(
+            this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider)
+          );
           value.onCollisionEnter(collision);
         });
       }
 
       scripts = [];
-      this._physicObjectsMap[obj2.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         scripts.forEach((value: PhysicsScript) => {
-          let collision = new Collision(this._physicObjectsMap[obj1.getQueryFilterData().word0].getComponent(Collider));
+          let collision = new Collision(
+            this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponent(Collider)
+          );
           value.onCollisionEnter(collision);
         });
       }
     },
     onContactEnd: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         scripts.forEach((value: PhysicsScript) => {
-          let collision = new Collision(this._physicObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider));
+          let collision = new Collision(
+            this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider)
+          );
           value.onCollisionExit(collision);
         });
       }
 
       scripts = [];
-      this._physicObjectsMap[obj2.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         scripts.forEach((value: PhysicsScript) => {
-          let collision = new Collision(this._physicObjectsMap[obj1.getQueryFilterData().word0].getComponent(Collider));
+          let collision = new Collision(
+            this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponent(Collider)
+          );
           value.onCollisionExit(collision);
         });
       }
     },
     onContactPersist: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         scripts.forEach((value: PhysicsScript) => {
-          let collision = new Collision(this._physicObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider));
+          let collision = new Collision(
+            this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider)
+          );
           value.onCollisionStay(collision);
         });
       }
 
       scripts = [];
-      this._physicObjectsMap[obj2.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         scripts.forEach((value: PhysicsScript) => {
-          let collision = new Collision(this._physicObjectsMap[obj1.getQueryFilterData().word0].getComponent(Collider));
+          let collision = new Collision(
+            this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponent(Collider)
+          );
           value.onCollisionStay(collision);
         });
       }
     },
     onTriggerBegin: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         scripts.forEach((value: PhysicsScript) => {
-          value.onTriggerEnter(this._physicObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider));
+          value.onTriggerEnter(this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider));
         });
       }
     },
     onTriggerEnd: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
-      this._physicObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
+      this._physicalObjectsMap[obj1.getQueryFilterData().word0].getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
         scripts.forEach((value: PhysicsScript) => {
-          value.onTriggerExit(this._physicObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider));
+          value.onTriggerExit(this._physicalObjectsMap[obj2.getQueryFilterData().word0].getComponent(Collider));
         });
       }
     }
   };
 
+  /**
+   * PhysX Raycast callback
+   * @internal
+   */
   raycastCallback = {
     processTouches: (obj) => {
       const hit = new HitResult();
@@ -107,11 +128,89 @@ export class PhysicsScene {
     }
   };
 
-  get physicObjectsMap(): any {
-    return this._physicObjectsMap;
+  /**
+   * PhysX Scene object
+   * @internal
+   */
+  _pxScene: any;
+
+  private _gravity: Vector3 = new Vector3(0, -9.81, 0);
+
+  /** Global gravity in the physical scene */
+  get gravity(): Vector3 {
+    return this._gravity;
   }
 
-  //----------------------------------------------------------------------------
+  set gravity(value: Vector3) {
+    this._gravity = value;
+    this._pxScene.setGravity({ x: value.x, y: value.y, z: value.z });
+  }
+
+  constructor() {
+    const PHYSXSimulationCallbackInstance = PhysXManager.PhysX.PxSimulationEventCallback.implement(
+      this.triggerCallback
+    );
+    const sceneDesc = PhysXManager.PhysX.getDefaultSceneDesc(
+      PhysXManager.physics.getTolerancesScale(),
+      0,
+      PHYSXSimulationCallbackInstance
+    );
+    this._pxScene = PhysXManager.physics.createScene(sceneDesc);
+  }
+
+  //--------------adding to the scene-------------------------------------------
+  private _physicalObjectsMap: any = {};
+
+  /** get the map of physical objects and PhysX objects. */
+  get physicalObjectsMap(): any {
+    return this._physicalObjectsMap;
+  }
+
+  /** add Dynamic Actor, i.e. Rigidbody. */
+  addDynamicActor(actor: Rigidbody) {
+    this._physicalObjectsMap[actor.collider.group_id] = actor.entity;
+    this._pxScene.addActor(actor._pxRigidActor, null);
+  }
+
+  /** add Static Actor, i.e Collider and Trigger. */
+  addStaticActor(actor: Collider) {
+    this._physicalObjectsMap[actor.group_id] = actor.entity;
+    this._pxScene.addActor(actor._pxRigidStatic, null);
+  }
+
+  //--------------simulation ---------------------------------------------------
+  /** call PhysX simulate */
+  simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
+    this._pxScene.simulate(elapsedTime, controlSimulation);
+  }
+
+  /** call PhysX fetchResults */
+  fetchResults(block: boolean = true) {
+    this._pxScene.fetchResults(block);
+  }
+
+  /** call PhysX advance */
+  advance() {
+    this._pxScene.advance();
+  }
+
+  /** call PhysX fetchCollision */
+  fetchCollision(block: boolean = true) {
+    this._pxScene.fetchCollision(block);
+  }
+
+  /** call PhysX collide */
+  collide(elapsedTime: number = 1 / 60) {
+    this._pxScene.collide(elapsedTime);
+  }
+
+  //----------------raycast-----------------------------------------------------
+  private _hits: HitResult[] = [];
+
+  get hits(): HitResult[] {
+    return this._hits;
+  }
+
   raycastTest(origin: Vector3, direction: Vector3, maxDistance: number): boolean {
     return this._pxScene.raycastAny(
       { x: origin.x, y: origin.y, z: origin.z },
@@ -153,7 +252,7 @@ export class PhysicsScene {
     hit.distance = pxRaycastHit.distance;
     hit.point = new Vector3(pxRaycastHit.position.x, pxRaycastHit.position.y, pxRaycastHit.position.z);
     hit.normal = new Vector3(pxRaycastHit.normal.x, pxRaycastHit.normal.y, pxRaycastHit.normal.z);
-    hit.entity = this._physicObjectsMap[pxRaycastHit.getShape().getQueryFilterData().word0];
+    hit.entity = this._physicalObjectsMap[pxRaycastHit.getShape().getQueryFilterData().word0];
 
     return result;
   }
@@ -171,74 +270,5 @@ export class PhysicsScene {
       maxDistance,
       PHYSXRaycastCallbackInstance
     );
-  }
-
-  get hits(): HitResult[] {
-    return this._hits;
-  }
-
-  //----------------------------------------------------------------------------
-  get gravity(): Vector3 {
-    return this._gravity;
-  }
-
-  set gravity(value: Vector3) {
-    this._gravity = value;
-    this._pxScene.setGravity({ x: value.x, y: value.y, z: value.z });
-  }
-
-  //----------------------------------------------------------------------------
-  private _physicObjectsMap: any = {};
-  private _hits: HitResult[] = [];
-
-  private _gravity: Vector3 = new Vector3(0, -9.81, 0);
-
-  private _pxScene: any;
-
-  addDynamicActor(actor: Rigidbody) {
-    this._physicObjectsMap[actor.collider.group_id] = actor.entity;
-    this._pxScene.addActor(actor._pxRigidActor, null);
-  }
-
-  addStaticActor(actor: Collider) {
-    this._physicObjectsMap[actor.group_id] = actor.entity;
-    this._pxScene.addActor(actor._pxRigidStatic, null);
-  }
-
-  //----------------------------------------------------------------------------
-  simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
-    this._pxScene.simulate(elapsedTime, controlSimulation);
-  }
-
-  fetchResults(block: boolean = true) {
-    this._pxScene.fetchResults(block);
-  }
-
-  advance() {
-    this._pxScene.advance();
-  }
-
-  fetchCollision(block: boolean = true) {
-    this._pxScene.fetchCollision(block);
-  }
-
-  collide(elapsedTime: number = 1 / 60) {
-    this._pxScene.collide(elapsedTime);
-  }
-
-  init() {
-    const PHYSXSimulationCallbackInstance = PhysXManager.PhysX.PxSimulationEventCallback.implement(
-      this.triggerCallback
-    );
-    const sceneDesc = PhysXManager.PhysX.getDefaultSceneDesc(
-      PhysXManager.physics.getTolerancesScale(),
-      0,
-      PHYSXSimulationCallbackInstance
-    );
-    this._pxScene = PhysXManager.physics.createScene(sceneDesc);
-  }
-
-  get(): any {
-    return this._pxScene;
   }
 }
