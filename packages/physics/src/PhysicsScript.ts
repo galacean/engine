@@ -21,9 +21,22 @@ export class PhysicsScript extends Script {
    */
   onCollisionExit(other: Collision): void {}
 
+  /**
+   * Called when the collision enter.
+   * @param other Collider
+   */
   onTriggerEnters(other: Collider): void {}
 
+  /**
+   * Called when the collision stay.
+   * @remarks onTriggerStay is called every frame while the collision stay.
+   * @param other Collider
+   */
   onTriggerExits(other: Collider): void {}
 
+  /**
+   * Called when the collision exit.
+   * @param other Collider
+   */
   onTriggerStays(other: Collider): void {}
 }

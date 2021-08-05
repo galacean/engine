@@ -175,14 +175,11 @@ export class PhysicsScene {
 
   //--------------adding to the scene-------------------------------------------
   private _physicalObjectsMap = new Map<number, Entity>();
-
-  /** get the map of physical objects and PhysX objects. */
-  get physicalObjectsMap(): Map<number, Entity> {
-    return this._physicalObjectsMap;
-  }
+  private _updateObject: Rigidbody[] = [];
 
   /** add Dynamic Actor, i.e. Rigidbody. */
   addDynamicActor(actor: Rigidbody) {
+    this._updateObject.push(actor);
     this._physicalObjectsMap.set(actor.collider.group_id, actor.entity);
     this._pxScene.addActor(actor._pxRigidActor, null);
   }
@@ -223,12 +220,10 @@ export class PhysicsScene {
     this.simulate();
     this.fetchResults();
 
-    this._physicalObjectsMap.forEach((entity: Entity, key: number) => {
-      if (key != 0) {
-        const transform = entity.getComponent(Rigidbody).getGlobalPose();
-        entity.transform.position = transform.translation;
-        entity.transform.rotationQuaternion = transform.rotation;
-      }
+    this._updateObject.forEach((actor: Rigidbody, key: number) => {
+      const transform = actor.getGlobalPose();
+      actor.entity.transform.position = transform.translation;
+      actor.entity.transform.rotationQuaternion = transform.rotation;
     });
   }
 
