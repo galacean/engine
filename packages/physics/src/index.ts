@@ -3,6 +3,7 @@ export { PhysicsMaterial, PhysicsCombineMode } from "./PhysicsMaterial";
 export { Collider, ShapeFlag } from "./Collider";
 export { BoxCollider } from "./BoxCollider";
 export { SphereCollider } from "./SphereCollider";
+export { StaticPlaneCollider } from "./StaticPlaneCollider";
 export { HitResult } from "./HitResult";
 export { Collision } from "./Collision";
 export { PhysicsScene, QueryFlag } from "./PhysicsScene";

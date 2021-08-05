@@ -216,6 +216,9 @@ export class PhysicsScene {
     this._pxScene.collide(elapsedTime);
   }
 
+  /**
+   * call on every frame to update pose of objects
+   */
   update() {
     this.simulate();
     this.fetchResults();
