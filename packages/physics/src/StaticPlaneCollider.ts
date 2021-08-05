@@ -2,6 +2,9 @@ import { Collider } from "./Collider";
 import { Vector3 } from "@oasis-engine/math";
 import { PhysXManager } from "./PhysXManager";
 
+/**
+ * Represents a plane in three dimensional space.
+ */
 export class StaticPlaneCollider extends Collider {
   private _normal: Vector3 = new Vector3(0, 0, 1);
   private _distance: number = 0;
@@ -39,7 +42,7 @@ export class StaticPlaneCollider extends Collider {
     this._pxRigidStatic = PhysXManager.PhysX.PxCreatePlane(
       PhysXManager.physics,
       new PhysXManager.PhysX.PxPlane(normal.x, normal.y, normal.z, distance),
-      this._material
+      this._material._pxMaterial
     );
     this._pxRigidStatic.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._group_id, 0, 0, 0));
   }
