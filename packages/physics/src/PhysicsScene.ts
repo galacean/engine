@@ -135,6 +135,7 @@ export class PhysicsScene {
    */
   _pxScene: any;
 
+  private _hits: HitResult[] = [];
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
   /** Global gravity in the physical scene */
@@ -242,7 +243,7 @@ export class PhysicsScene {
 
   raycast(
     ray: Ray,
-    distance?: number,
+    distance: number = Number.MAX_VALUE,
     flag: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC,
     hit?: HitResult
   ): boolean {
@@ -258,47 +259,35 @@ export class PhysicsScene {
     );
 
     if (result == false) {
-      return;
+      return false;
     }
 
-    hit.distance = pxRaycastHit.distance;
-    hit.point = new Vector3(pxRaycastHit.position.x, pxRaycastHit.position.y, pxRaycastHit.position.z);
-    hit.normal = new Vector3(pxRaycastHit.normal.x, pxRaycastHit.normal.y, pxRaycastHit.normal.z);
-    hit.entity = this._physicalObjectsMap[pxRaycastHit.getShape().getQueryFilterData().word0];
-
+    if (hit != undefined) {
+      hit.entity = this._physicalObjectsMap[pxRaycastHit.getShape().getQueryFilterData().word0];
+      hit.distance = pxRaycastHit.distance;
+      hit.point = new Vector3(pxRaycastHit.position.x, pxRaycastHit.position.y, pxRaycastHit.position.z);
+      hit.normal = new Vector3(pxRaycastHit.normal.x, pxRaycastHit.normal.y, pxRaycastHit.normal.z);
+    }
     return result;
   }
 
-  private _hits: HitResult[] = [];
-
-  get hits(): HitResult[] {
-    return this._hits;
-  }
-
-  raycastTest(origin: Vector3, direction: Vector3, maxDistance: number): boolean {
-    return this._pxScene.raycastAny(
-      { x: origin.x, y: origin.y, z: origin.z },
-      {
-        x: direction.x,
-        y: direction.y,
-        z: direction.z
-      },
-      maxDistance
-    );
-  }
-
-  raycastAll(origin: Vector3, direction: Vector3, maxDistance: number): boolean {
+  raycastAll(ray: Ray, maxDistance: number = Number.MAX_VALUE, hit?: HitResult[]): boolean {
     const PHYSXRaycastCallbackInstance = PhysXManager.PhysX.PxRaycastCallback.implement(this.raycastCallback);
     this._hits = [];
-    return this._pxScene.raycast(
-      { x: origin.x, y: origin.y, z: origin.z },
-      {
-        x: direction.x,
-        y: direction.y,
-        z: direction.z
-      },
+    const result = this._pxScene.raycast(
+      { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
+      { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },
       maxDistance,
       PHYSXRaycastCallbackInstance
     );
+
+    if (result == false) {
+      return false;
+    }
+
+    if (hit !== undefined) {
+      hit = this._hits;
+    }
+    return result;
   }
 }
