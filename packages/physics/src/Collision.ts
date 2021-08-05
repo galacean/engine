@@ -3,13 +3,7 @@ import { Rigidbody } from "./Rigidbody";
 
 export class Collision {
   /** The Collider we hit */
-  public readonly collider: Collider;
-
-  constructor(collider: Collider) {
-    this.collider = collider;
-  }
-
-  get rigidbody(): Rigidbody | undefined {
-    return undefined;
-  }
+  collider: Collider;
+  /** The Rigidbody we hit */
+  rigidbody?: Rigidbody;
 }
