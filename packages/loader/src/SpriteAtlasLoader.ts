@@ -51,16 +51,12 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               for (let j = sprites.length - 1; j >= 0; j--) {
                 const atlasSprite = sprites[j];
                 const { region, pivot, atlasRegionOffset, atlasRegion } = atlasSprite;
-
-                tempRect.setValue(region.x, region.y, region.w, region.h);
-                tempPivot.setValue(pivot.x, pivot.y);
-
                 const sprite = new Sprite(
                   engine,
                   texture,
-                  tempRect,
-                  tempPivot,
-                  atlasSprite.pixelsPerUnit,
+                  region ? tempRect.setValue(region.x, region.y, region.w, region.h) : null,
+                  pivot ? tempPivot.setValue(pivot.x, pivot.y) : null,
+                  atlasSprite.pixelsPerUnit || 128,
                   atlasSprite.name
                 );
                 sprite.atlasRegion.setValue(
@@ -69,7 +65,9 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   atlasRegion.w * sourceWidthReciprocal,
                   atlasRegion.h * sourceHeightReciprocal
                 );
-                sprite.atlasRegionOffset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
+                if (atlasRegionOffset) {
+                  sprite.atlasRegionOffset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
+                }
                 /** @ts-ignore */
                 spriteAtlas._addSprite(sprite);
               }

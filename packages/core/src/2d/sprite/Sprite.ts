@@ -67,8 +67,8 @@ export class Sprite extends RefObject {
     atlasRegion.setValue(
       MathUtil.clamp(value.x, 0, 1),
       MathUtil.clamp(value.y, 0, 1),
-      MathUtil.clamp(value.width, 0, 1 - atlasRegion.x),
-      MathUtil.clamp(value.height, 0, 1 - atlasRegion.y)
+      MathUtil.clamp(value.width, 0, 1 - value.x),
+      MathUtil.clamp(value.height, 0, 1 - value.y)
     );
     this._setDirtyFlagTrue(DirtyFlag.positions);
   }
@@ -109,8 +109,8 @@ export class Sprite extends RefObject {
     region.setValue(
       MathUtil.clamp(value.x, 0, 1),
       MathUtil.clamp(value.y, 0, 1),
-      MathUtil.clamp(value.width, 0, 1 - region.x),
-      MathUtil.clamp(value.height, 0, 1 - region.y)
+      MathUtil.clamp(value.width, 0, 1 - value.x),
+      MathUtil.clamp(value.height, 0, 1 - value.y)
     );
     this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
@@ -182,24 +182,24 @@ export class Sprite extends RefObject {
 
       // Get the distance between the anchor point and the four sides.
       const lx = (-pivot.x + atlasRegionOffset.x) * unitWidth;
-      const ty = (-pivot.y + atlasRegionOffset.y) * unitHeight;
+      const by = (-pivot.y + atlasRegionOffset.y) * unitHeight;
       const rx = unitWidth + lx;
-      const by = unitHeight + ty;
+      const ty = unitHeight + by;
 
       // Assign values ​​to _positions
       const positions = this._positions;
       // Top-left.
-      positions[0].setValue(lx, by);
+      positions[0].setValue(lx, ty);
       // Top-right.
-      positions[1].setValue(rx, by);
+      positions[1].setValue(rx, ty);
       // Bottom-right.
-      positions[2].setValue(rx, ty);
+      positions[2].setValue(rx, by);
       // Bottom-left.
-      positions[3].setValue(lx, ty);
+      positions[3].setValue(lx, by);
 
       // Update bounds.
-      bounds.min.setValue(lx, ty, 0);
-      bounds.max.setValue(rx, by, 0);
+      bounds.min.setValue(lx, by, 0);
+      bounds.max.setValue(rx, ty, 0);
     } else {
       // Update bounds.
       bounds.min.setValue(0, 0, 0);
@@ -219,8 +219,8 @@ export class Sprite extends RefObject {
       const { _region: region, _atlasRegion: atlasRegion, _uv: uv } = this;
       const realWidth = atlasRegion.width * region.width;
       const realHeight = atlasRegion.height * region.height;
-      const left = atlasRegion.x + realWidth * region.x;
-      const top = atlasRegion.y + realHeight * region.y;
+      const left = atlasRegion.x + atlasRegion.width * region.x;
+      const top = atlasRegion.y + atlasRegion.height * region.y;
       const right = left + realWidth;
       const bottom = top + realHeight;
 
