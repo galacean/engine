@@ -69,7 +69,6 @@ describe("AnimationClipLoader Test", () => {
     expect(animations.length === 1).toEqual(true);
     const animation = animations[0];
     expect(animation.name === "animation_AnimatedCube").toEqual(true);
-    expect(animation.channels.length === 1).toEqual(true);
-    expect(animation.samplers.length === 1).toEqual(true);
+    expect(animation._curves.length).toEqual(1);
   });
 });
