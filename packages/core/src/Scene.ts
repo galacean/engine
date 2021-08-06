@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 import { Background } from "./Background";
 import { EngineObject, GLCapabilityType, Logger } from "./base";
 import { Camera } from "./Camera";
@@ -10,7 +10,6 @@ import { AmbientLight } from "./lighting/AmbientLight";
 import { LightFeature } from "./lighting/LightFeature";
 import { SceneFeature } from "./SceneFeature";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 
 /**
@@ -18,8 +17,6 @@ import { ShaderData } from "./shader/ShaderData";
  */
 export class Scene extends EngineObject {
   static sceneFeatureManager = new FeatureManager<SceneFeature>();
-
-  private static _resolutionProperty = Shader.getPropertyByName("u_resolution");
 
   /** Scene name. */
   name: string;
@@ -37,7 +34,6 @@ export class Scene extends EngineObject {
 
   private _destroyed: boolean = false;
   private _rootEntities: Entity[] = [];
-  private _resolution: Vector2 = new Vector2();
 
   /**
    * Count of root entities.
@@ -251,14 +247,8 @@ export class Scene extends EngineObject {
    */
   _updateShaderData() {
     const lightMgr = this.findFeature(LightFeature);
-    const shaderData = this.shaderData;
-    const canvas = this.engine.canvas;
-    const resolution = this._resolution;
 
-    lightMgr._updateShaderData(shaderData);
-
-    resolution.setValue(canvas.width, canvas.height);
-    shaderData.setVector2(Scene._resolutionProperty, resolution);
+    lightMgr._updateShaderData(this.shaderData);
   }
 
   private _removeEntity(entity: Entity): void {

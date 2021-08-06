@@ -27,7 +27,7 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
     }
 
     if (glossinessFactor !== undefined) {
-      material.glossinessFactor = glossinessFactor;
+      material.glossiness = glossinessFactor;
     }
 
     if (specularGlossinessTexture) {
