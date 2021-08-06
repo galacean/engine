@@ -37,11 +37,12 @@ export class SphericalHarmonics3 implements IClone {
      * 8: Math.sqrt(15 / (16 * Math.PI))
      */
 
+    color.scale(deltaSolidAngle);
+
     const coe = this.coefficients;
+
     const { x, y, z } = direction;
     const { r, g, b } = color;
-
-    color.scale(deltaSolidAngle);
 
     const bv0 = 0.282095; // basis0 = 0.886227
     const bv1 = -0.488603 * y; // basis1 = -0.488603
