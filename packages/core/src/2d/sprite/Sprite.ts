@@ -217,12 +217,11 @@ export class Sprite extends RefObject {
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
       const { _region: region, _atlasRegion: atlasRegion, _uv: uv } = this;
-      const realWidth = atlasRegion.width * region.width;
-      const realHeight = atlasRegion.height * region.height;
-      const left = atlasRegion.x + atlasRegion.width * region.x;
-      const top = atlasRegion.y + atlasRegion.height * region.y;
-      const right = left + realWidth;
-      const bottom = top + realHeight;
+      const { width: atlasRegionWidth, height: atlasRegionHeight } = atlasRegion;
+      const left = atlasRegion.x + atlasRegionWidth * region.x;
+      const top = atlasRegion.y + atlasRegionHeight * region.y;
+      const right = left + atlasRegionWidth * region.width;
+      const bottom = top + atlasRegionHeight * region.height;
 
       // Top-left.
       uv[0].setValue(left, top);
