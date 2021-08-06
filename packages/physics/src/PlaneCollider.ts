@@ -1,11 +1,12 @@
 import { Collider } from "./Collider";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXManager } from "./PhysXManager";
 
 /**
  * Represents a plane in three dimensional space.
  */
 export class PlaneCollider extends Collider {
+  private static tempMatrix = new Matrix();
   private _normal: Vector3 = new Vector3(0, 0, 1);
   private _distance: number = 0;
 
@@ -25,7 +26,14 @@ export class PlaneCollider extends Collider {
     return this._distance;
   }
 
+  /**
+   * rotate the normal of plane
+   * @param quat new local quaternion
+   */
   rotate(quat: Quaternion) {
+    Matrix.rotationQuaternion(quat, PlaneCollider.tempMatrix);
+    this.normal.transformNormal(PlaneCollider.tempMatrix);
+
     const transform = {
       translation: {
         x: this._center.x,
