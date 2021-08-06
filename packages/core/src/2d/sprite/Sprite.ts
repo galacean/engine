@@ -64,12 +64,9 @@ export class Sprite extends RefObject {
 
   set atlasRegion(value: Rect) {
     const atlasRegion = this._atlasRegion;
-    atlasRegion.setValue(
-      MathUtil.clamp(value.x, 0, 1),
-      MathUtil.clamp(value.y, 0, 1),
-      MathUtil.clamp(value.width, 0, 1 - value.x),
-      MathUtil.clamp(value.height, 0, 1 - value.y)
-    );
+    const x = MathUtil.clamp(value.x, 0, 1);
+    const y = MathUtil.clamp(value.y, 0, 1);
+    atlasRegion.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._setDirtyFlagTrue(DirtyFlag.positions);
   }
 
@@ -106,12 +103,9 @@ export class Sprite extends RefObject {
 
   set region(value: Rect) {
     const region = this._region;
-    region.setValue(
-      MathUtil.clamp(value.x, 0, 1),
-      MathUtil.clamp(value.y, 0, 1),
-      MathUtil.clamp(value.width, 0, 1 - value.x),
-      MathUtil.clamp(value.height, 0, 1 - value.y)
-    );
+    const x = MathUtil.clamp(value.x, 0, 1);
+    const y = MathUtil.clamp(value.y, 0, 1);
+    region.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
