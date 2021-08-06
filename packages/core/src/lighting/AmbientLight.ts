@@ -74,10 +74,7 @@ export class AmbientLight {
     const shaderData = this._scene.shaderData;
 
     if (value) {
-      shaderData.setFloatArray(
-        AmbientLight._diffuseSHProperty,
-        this._convertRadianceToIrradiance(value, this._shArray)
-      );
+      shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._preComputeSH(value, this._shArray));
     }
   }
 
@@ -135,7 +132,7 @@ export class AmbientLight {
     shaderData.setFloat(AmbientLight._specularIntensityProperty, this._specularIntensity);
   }
 
-  private _convertRadianceToIrradiance(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
+  private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
     /**
      * Basis constants
      *
