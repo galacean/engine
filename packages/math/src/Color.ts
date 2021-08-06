@@ -55,12 +55,15 @@ export class Color implements IClone {
    * @param left - The first color to add
    * @param right - The second color to add
    * @param out - The sum of two colors
+   * @returns The added color
    */
-  static add(left: Color, right: Color, out: Color): void {
+  static add(left: Color, right: Color, out: Color): Color {
     out.r = left.r + right.r;
     out.g = left.g + right.g;
     out.b = left.b + right.b;
     out.a = left.a + right.a;
+
+    return out;
   }
 
   /**
@@ -68,12 +71,15 @@ export class Color implements IClone {
    * @param left - The color to scale
    * @param s - The amount by which to scale the color
    * @param out - The scaled color
+   * @returns The scaled color
    */
-  static scale(left: Color, s: number, out: Color): void {
+  static scale(left: Color, s: number, out: Color): Color {
     out.r = left.r * s;
     out.g = left.g * s;
     out.b = left.b * s;
     out.a = left.a * s;
+
+    return out;
   }
 
   /** The red component of the color, 0~1. */
@@ -118,7 +124,7 @@ export class Color implements IClone {
   /**
    * Determines the sum of this color and the specified color.
    * @param color - The specified color
-   * @returns This color
+   * @returns The added color
    */
   add(color: Color): Color {
     this.r += color.r;
@@ -132,7 +138,7 @@ export class Color implements IClone {
   /**
    * Scale this color by the given value.
    * @param s - The amount by which to scale the color
-   * @returns This color
+   * @returns The scaled color
    */
   scale(s: number): Color {
     this.r *= s;
