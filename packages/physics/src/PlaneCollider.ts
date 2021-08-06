@@ -1,11 +1,11 @@
 import { Collider } from "./Collider";
-import { Vector3 } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXManager } from "./PhysXManager";
 
 /**
  * Represents a plane in three dimensional space.
  */
-export class StaticPlaneCollider extends Collider {
+export class PlaneCollider extends Collider {
   private _normal: Vector3 = new Vector3(0, 0, 1);
   private _distance: number = 0;
 
@@ -17,11 +17,6 @@ export class StaticPlaneCollider extends Collider {
     return this._normal;
   }
 
-  set normal(value: Vector3) {
-    this._normal = value;
-    this.initWithNormalDistance(this._normal, this._distance);
-  }
-
   /**
    * distance of collider
    * @remarks will re-alloc new PhysX object.
@@ -30,9 +25,21 @@ export class StaticPlaneCollider extends Collider {
     return this._distance;
   }
 
-  set distance(value: number) {
-    this._distance = value;
-    this.initWithNormalDistance(this._normal, this._distance);
+  rotate(quat: Quaternion) {
+    const transform = {
+      translation: {
+        x: this._center.x,
+        y: this._center.y,
+        z: this._center.z
+      },
+      rotation: {
+        w: quat.w,
+        x: quat.x,
+        y: quat.y,
+        z: quat.z
+      }
+    };
+    this._pxShape.setLocalPose(transform);
   }
 
   initWithNormalDistance(normal: Vector3, distance: number) {
