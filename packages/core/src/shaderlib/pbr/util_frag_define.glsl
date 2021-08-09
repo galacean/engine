@@ -11,6 +11,7 @@ vec4 SRGBtoLinear(vec4 srgbIn)
 
 vec4 RGBEToLinear(vec4 value) {
     return vec4( step(0.0, value.a) * value.rgb * exp2( value.a * 255.0 - 128.0 ), 1.0 );
+}
 
 float pow2( const in float x ) {
     return x * x;
